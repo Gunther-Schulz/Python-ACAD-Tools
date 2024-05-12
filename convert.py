@@ -20,7 +20,6 @@ def shape_to_dwg(input_shapefile, output_dwg, plot=False):
         return
     if plot:
         plot_shapefile(input_shapefile)
-
     driver = ogr.GetDriverByName('ESRI Shapefile')
     dataSource = driver.Open(input_shapefile, 0)  # 0 means read-only
     layer = dataSource.GetLayer()
@@ -28,8 +27,10 @@ def shape_to_dwg(input_shapefile, output_dwg, plot=False):
     doc = ezdxf.new(dxfversion='AC1032')
     if 'parcels' not in doc.layers:
         parcels_layer = doc.layers.new('parcels')
-    else:
-        parcels_layer = doc.layers.get('parcels')
+    if 'X' not in doc.layers:
+        x_layer = doc.layers.new('X')
+    if 'O' not in doc.layers:
+        o_layer = doc.layers.new('O')
 
     msp = doc.modelspace()
 
@@ -47,9 +48,20 @@ def shape_to_dwg(input_shapefile, output_dwg, plot=False):
             centroid_x = sum(x_coords) / len(x_coords)
             centroid_y = sum(y_coords) / len(y_coords)
 
-            # Add a point at the centroid
+            # Add a point at the centroid on the 'parcels' layer
             msp.add_point((centroid_x, centroid_y), dxfattribs={
                           'layer': 'parcels', 'color': 2})
+
+            # Draw an X at the centroid on the 'X' layer
+            size = 0.1  # Size of the X, adjust as needed
+            msp.add_line((centroid_x - size, centroid_y - size), (centroid_x +
+                         size, centroid_y + size), dxfattribs={'layer': 'X', 'color': 1})
+            msp.add_line((centroid_x - size, centroid_y + size), (centroid_x +
+                         size, centroid_y - size), dxfattribs={'layer': 'X', 'color': 1})
+
+            # Add MTEXT "O" at the centroid on the 'O' layer
+            msp.add_mtext("O", dxfattribs={'layer': 'O'}).set_location(
+                (centroid_x, centroid_y))
 
     doc.saveas(output_dwg)
 
