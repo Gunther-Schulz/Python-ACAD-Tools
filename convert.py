@@ -25,12 +25,16 @@ def shape_to_dwg(input_shapefile, output_dwg, plot=False):
     layer = dataSource.GetLayer()
 
     doc = ezdxf.new(dxfversion='AC1032')
-    if 'parcels' not in doc.layers:
-        parcels_layer = doc.layers.new('parcels')
-    if 'X' not in doc.layers:
-        x_layer = doc.layers.new('X')
-    if 'O' not in doc.layers:
-        o_layer = doc.layers.new('O')
+    # Define a text style that can be modified in AutoCAD
+    text_style_name = 'Parcel Number'
+    if text_style_name not in doc.styles:
+        doc.styles.new(name=text_style_name, dxfattribs={
+                       'font': 'Arial.ttf', 'height': 0.1})
+
+    if 'Parcels' not in doc.layers:
+        parcels_layer = doc.layers.new('Parcels')
+    if 'Parcel Number' not in doc.layers:
+        parcels_number_layer = doc.layers.new('Parcel Number')
 
     msp = doc.modelspace()
 
@@ -50,7 +54,7 @@ def shape_to_dwg(input_shapefile, output_dwg, plot=False):
 
             # Add a point at the centroid on the 'parcels' layer
             msp.add_point((centroid_x, centroid_y), dxfattribs={
-                          'layer': 'parcels', 'color': 2})
+                          'layer': 'Parcels', 'color': 2})
 
             # Draw an X at the centroid on the 'X' layer
             size = 0.1  # Size of the X, adjust as needed
@@ -59,13 +63,12 @@ def shape_to_dwg(input_shapefile, output_dwg, plot=False):
             msp.add_line((centroid_x - size, centroid_y + size), (centroid_x +
                          size, centroid_y - size), dxfattribs={'layer': 'X', 'color': 1})
 
-            # Add MTEXT "O" at the centroid on the 'O' layer
-            msp.add_mtext("O", dxfattribs={'layer': 'O'}).set_location(
-                (centroid_x, centroid_y))
+            # Get the label value from the feature
+            label_value = feature.GetField("label")
 
-            # Add TEXT "F" at the centroid on the 'O' layer
-            msp.add_text("F", dxfattribs={
-                         'layer': 'O', 'insert': (centroid_x, centroid_y)})
+            # Add TEXT with the label value at the centroid on the 'O' layer
+            msp.add_text(label_value, dxfattribs={
+                         'style': text_style_name, 'layer': 'Parcel Number', 'insert': (centroid_x, centroid_y)})
 
     doc.saveas(output_dwg)
 
