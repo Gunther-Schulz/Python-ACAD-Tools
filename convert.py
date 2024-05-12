@@ -63,6 +63,10 @@ def shape_to_dwg(input_shapefile, output_dwg, plot=False):
             msp.add_mtext("O", dxfattribs={'layer': 'O'}).set_location(
                 (centroid_x, centroid_y))
 
+            # Add TEXT "F" at the centroid on the 'O' layer
+            msp.add_text("F", dxfattribs={
+                         'layer': 'O', 'insert': (centroid_x, centroid_y)})
+
     doc.saveas(output_dwg)
 
 
