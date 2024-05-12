@@ -4,6 +4,11 @@ import geopandas as gpd
 import matplotlib.pyplot as plt
 from osgeo import ogr
 import ezdxf
+from shapely.geometry import Polygon, LineString
+from shapely.affinity import translate
+
+
+parcel_list = ["1", "2", "4", "6", "7"]
 
 
 def plot_shapefile(input_shapefile):
@@ -35,16 +40,37 @@ def shape_to_dwg(input_shapefile, output_dwg, plot=False):
         parcels_layer = doc.layers.new('Parcels')
     if 'Parcel Number' not in doc.layers:
         parcels_number_layer = doc.layers.new('Parcel Number')
+    if 'Flur' not in doc.layers:
+        flur_layer = doc.layers.new('Flur')
 
     msp = doc.modelspace()
 
+    # Process parcels
+    process_layer(layer, msp, 'Parcels', text_style_name)
+
+    # Load and process Flur shapefile
+    flur_shapefile = './data/flur.shp'
+    if not os.path.exists(flur_shapefile) or os.path.getsize(flur_shapefile) == 0:
+        print(f"Error: The file {flur_shapefile} was not found or is empty.")
+    if os.path.exists(flur_shapefile):
+        flur_data_source = driver.Open(flur_shapefile, 0)
+        flur_layer = flur_data_source.GetLayer()
+        process_layer(flur_layer, msp, 'Flur', text_style_name, offset=True)
+
+    doc.saveas(output_dwg)
+
+
+def process_layer(layer, msp, layer_name, text_style_name, offset=False):
+    label_field_name = "label" if layer_name == "Parcels" else "flurname" if layer_name == "Flur" else "label"
     for feature in layer:
         geometry = feature.GetGeometryRef()
         if geometry.GetGeometryType() == ogr.wkbPolygon:
             ring = geometry.GetGeometryRef(0)
             points = ring.GetPoints()
+            if offset:
+                points = apply_offset(points, 2)  # Apply an offset of 2 units
             msp.add_lwpolyline(points, close=True, dxfattribs={
-                               'layer': 'parcels'})
+                               'layer': layer_name})
 
             # Manually calculate the centroid of the polygon
             x_coords = [p[0] for p in points]
@@ -62,30 +88,35 @@ def shape_to_dwg(input_shapefile, output_dwg, plot=False):
                          size, centroid_y + size), dxfattribs={'layer': 'X', 'color': 1})
             msp.add_line((centroid_x - size, centroid_y + size), (centroid_x +
                          size, centroid_y - size), dxfattribs={'layer': 'X', 'color': 1})
+            field_count = feature.GetFieldCount()
 
             # Get the label value from the feature
-            label_value = feature.GetField("label")
+            label_value = feature.GetField(label_field_name)
 
             # Add TEXT with the label value at the centroid on the 'O' layer
             msp.add_text(label_value, dxfattribs={
                          'style': text_style_name, 'layer': 'Parcel Number', 'insert': (centroid_x, centroid_y)})
 
-    doc.saveas(output_dwg)
+
+def apply_offset(points, offset_distance):
+    # Create a polygon from the points
+    polygon = Polygon(points)
+
+    # Simplify the polygon to avoid overly complex offsets
+    simplified_polygon = polygon.simplify(0.1, preserve_topology=True)
+
+    # Create an offset polygon, positive distance for outward, negative for inward
+    offset_polygon = simplified_polygon.buffer(offset_distance)
+
+    # Extract the exterior points of the offset polygon
+    if offset_polygon.is_empty:
+        return points  # Return original if offset results in an empty polygon
+    else:
+        return list(offset_polygon.exterior.coords)
 
 
 if __name__ == "__main__":
     plot = False
-    # if "-p" in sys.argv:
-    #     plot = True
-    #     # Remove the plot option to simplify further argument processing
-    #     sys.argv.remove("-p")
-
-    # if len(sys.argv) != 3:
-    #     print("Usage: python convert.py <input_shapefile> <output_dwg> [-p]")
-    #     sys.exit(1)
-
-    # input_shapefile = sys.argv[1]
-    # output_dwg = sys.argv[2]
-    input_shapefile = "./data/Plasten Nr1 Flurstücke.shp"
+    parcel_shapefile = "./data/Plasten Nr1 Flurstücke.shp"
     output_dwg = "/Users/guntherschulz/IONOS HiDrive/Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Zeichnung/parcels.dxf"
-    shape_to_dwg(input_shapefile, output_dwg, plot)
+    shape_to_dwg(parcel_shapefile, output_dwg, plot)
