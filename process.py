@@ -1,19 +1,16 @@
-import os
 import geopandas as gpd
 import ezdxf
-from shapely.geometry import Polygon, MultiPolygon
-from shapely.ops import unary_union
 import matplotlib.pyplot as plt
+import sys
+import json
 
-# Constants
-CRS = "EPSG:25833"
-PARCEL_LABEL = "label"
-PARCEL_SHAPEFILE = "./data/Plasten Nr1 Flurstücke.shp"
-FLUR_SHAPEFILE = "./data/flur.shp"
-FLUR_LABEL = "flurname"
-DXF_FILENAME = "/Users/guntherschulz/IONOS HiDrive/Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Zeichnung/combined.dxf"
 
-# Load shapefile
+def load_project_settings(project_name):
+    with open('projects.json', 'r') as file:
+        projects = json.load(file)['projects']
+        project = next(
+            (project for project in projects if project['name'] == project_name), None)
+        return project
 
 
 def load_shapefile(file_path):
@@ -48,19 +45,27 @@ def apply_conditional_buffering(source_geom, target_geom, distance):
 
 
 def labeled_centroid_points(source_geom, label):
-    centroids = source_geom.centroid
-    return gpd.GeoDataFrame(geometry=centroids, data={"label": source_geom[label]})
+    # Use representative_point() to get a point within the polygon
+    points_within = source_geom.representative_point()
+    return gpd.GeoDataFrame(geometry=points_within, data={"label": source_geom[label]})
 
 
-def setup_document_style(doc, text_style_name):
+def setup_textt_style(doc, text_style_name):
     if text_style_name not in doc.styles:
         doc.styles.new(name=text_style_name, dxfattribs={
                        'font': 'Arial.ttf', 'height': 0.1})
 
 
 def add_text(msp, text, x, y, layer_name, style_name):
-    msp.add_text(text, dxfattribs={'style': style_name,
-                 'layer': layer_name, 'insert': (x, y)})
+    msp.add_text(text, dxfattribs={
+                 'style': style_name,
+                 'layer': layer_name,
+                 # Initial insertion point, might not be used depending on alignment
+                 'insert': (x, y),
+                 'align_point': (x, y),  # Actual point for alignment
+                 'halign': 1,  # Center alignment
+                 'valign': 1   # Middle alignment
+                 })
 
 
 def add_text_to_centroids(msp, labeled_centroid_points_df, layer_name, style_name=None):
@@ -107,11 +112,14 @@ def main():
     parcel_points = labeled_centroid_points(parcels, PARCEL_LABEL)
 
     doc = ezdxf.new('R2010', setup=True)
+
     doc.layers.new(name='Flur', dxfattribs={'color': 2})
     doc.layers.new(name='Parcel', dxfattribs={'color': 3})
     doc.layers.new(name='Geltungsbereich', dxfattribs={'color': 10})
+    setup_textt_style(doc, 'Parcel Number')
+
     msp = doc.modelspace()
-    setup_document_style(doc, 'Parcel Number')
+
     add_geometries_to_dxf(
         msp, [target_parcels['geometry'].unary_union], 'Geltungsbereich')
     add_geometries_to_dxf(msp, flur['geometry'], 'Flur')
@@ -119,7 +127,28 @@ def main():
     add_text_to_centroids(msp, parcel_points, 'Parcel Number')
 
     doc.saveas(DXF_FILENAME)
+    print(f"Saved {DXF_FILENAME}")
 
 
 if __name__ == "__main__":
+    if len(sys.argv) < 1:
+        print("Usage: python process.py <project_name>")
+
+    project_settings = load_project_settings(sys.argv[1])
+    if project_settings:
+        CRS = project_settings['crs']
+        DXF_FILENAME = project_settings['dxfFilename']
+        FLUR_SHAPEFILE = next(
+            (layer['shapeFile'] for layer in project_settings['layers'] if layer['name'] == "Flur"), None)
+        FLUR_LABEL = next(
+            (layer['label'] for layer in project_settings['layers'] if layer['name'] == "Flur"), None)
+        PARCEL_SHAPEFILE = next(
+            (layer['shapeFile'] for layer in project_settings['layers'] if layer['name'] == "Parcel"), None)
+        PARCEL_LABEL = next(
+            (layer['label'] for layer in project_settings['layers'] if layer['name'] == "Parcel"), None)
+    # Add your processing logic here
+
+    else:
+        print(f"Project {sys.argv[1]} not found.")
+
     main()
