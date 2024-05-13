@@ -82,14 +82,6 @@ def process_layer(layer, msp, layer_name, text_style_name, offset=False):
             msp.add_point((centroid_x, centroid_y), dxfattribs={
                           'layer': 'Parcels', 'color': 2})
 
-            # Draw an X at the centroid on the 'X' layer
-            size = 0.1  # Size of the X, adjust as needed
-            msp.add_line((centroid_x - size, centroid_y - size), (centroid_x +
-                         size, centroid_y + size), dxfattribs={'layer': 'X', 'color': 1})
-            msp.add_line((centroid_x - size, centroid_y + size), (centroid_x +
-                         size, centroid_y - size), dxfattribs={'layer': 'X', 'color': 1})
-            field_count = feature.GetFieldCount()
-
             # Get the label value from the feature
             label_value = feature.GetField(label_field_name)
 
