@@ -4,16 +4,22 @@
       "name": "Plasten",
       "crs": "EPSG:25833",
       "dxfFilename": "/Users/guntherschulz/IONOS HiDrive/Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Zeichnung/combined.dxf",
+      "template": "./data/Zeichnung.dxf",
+      "useTemplate": true,
       "layers": [
         {
           "name": "Flur",
           "shapeFile": "./data/flur.shp",
-          "label": "flurname"
+          "label": "flurname",
+          "color": 2,
+          "close": true
         },
         {
           "name": "Parcel",
           "shapeFile": "./data/Plasten Nr1 Flurstücke.shp",
-          "label": "label"
+          "label": "label",
+          "color": 10,
+          "close": true
         }
       ]
     }

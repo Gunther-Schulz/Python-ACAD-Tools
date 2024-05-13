@@ -13,6 +13,12 @@ def load_project_settings(project_name):
         return project
 
 
+def load_template(project_settings):
+    if project_settings['useTemplate']:
+        doc = ezdxf.readfile(TEMPLATE_DXF)
+        return doc
+
+
 def load_shapefile(file_path):
     gdf = gpd.read_file(file_path)
     gdf = gdf.set_crs(CRS, allow_override=True)
@@ -39,6 +45,7 @@ def conditional_buffer(source_geom, target_geom, distance):
 
 
 def apply_conditional_buffering(source_geom, target_geom, distance):
+    # TODO: If it crosses Geltungsbereich, increase distance by x. Try by using a combination of target_parcels and geltungsbereich
     source_geom['geometry'] = source_geom['geometry'].apply(
         lambda x: conditional_buffer(x, target_geom, distance))
     return source_geom
@@ -75,22 +82,20 @@ def add_text_to_centroids(msp, labeled_centroid_points_df, layer_name, style_nam
         x, y = row['geometry'].coords[0]
         add_text(msp, row['label'], x, y, layer_name, style_name)
 
-    # Create DXF document
-
 
 # Add geometries to DXF
 
 
-def add_geometries_to_dxf(msp, geometries, layer_name):
+def add_geometries_to_dxf(msp, geometries, layer_name, close=False):
     for geom in geometries:
         if geom.geom_type == 'Polygon':
             points = [(x, y) for x, y in geom.exterior.coords]
-            msp.add_lwpolyline(points, close=True, dxfattribs={
+            msp.add_lwpolyline(points, close=close, dxfattribs={
                                'layer': layer_name})
         elif geom.geom_type == 'MultiPolygon':
             for polygon in geom.geoms:
                 points = [(x, y) for x, y in polygon.exterior.coords]
-                msp.add_lwpolyline(points, close=True, dxfattribs={
+                msp.add_lwpolyline(points, close=close, dxfattribs={
                                    'layer': layer_name})
 
 
@@ -99,7 +104,18 @@ def add_points_to_dxf(msp, points, layer_name):
         msp.add_point(point, dxfattribs={'layer': layer_name})
 
 
+def add_from_template(msp, template_dxf):
+    doc = ezdxf.readfile(template_dxf)
+    # msp.add_entities(doc.modelspace())
+    # add Layout1
+    msp.add_entities(doc.modelspace().get_layout('Layout1'))
+
 # Main function
+
+
+def add_layer(doc, layer_name, color):
+    if not doc.layers.has_entry(layer_name):
+        doc.layers.new(name=layer_name, dxfattribs={'color': color})
 
 
 def main():
@@ -108,22 +124,27 @@ def main():
     parcel_list = ["1", "2", "4", "6", "7"]
     flur_list = ["Flur 1"]
     target_parcels = filter_parcels(parcels, flur, parcel_list, flur_list)
+    # check if this actually works by switching sides
     flur = apply_conditional_buffering(flur, target_parcels, 2)
     parcel_points = labeled_centroid_points(parcels, PARCEL_LABEL)
 
-    doc = ezdxf.new('R2010', setup=True)
+    if project_settings['useTemplate']:
+        doc = load_template(project_settings)
+    else:
+        doc = ezdxf.new('R2010', setup=True)
 
-    doc.layers.new(name='Flur', dxfattribs={'color': 2})
-    doc.layers.new(name='Parcel', dxfattribs={'color': 3})
-    doc.layers.new(name='Geltungsbereich', dxfattribs={'color': 10})
+    # This is optional and only useful if we want to set some attributes to the layer. Otherwise defaults are used
+    add_layer(doc, 'Flur', COLORS['Flur'])
+    add_layer(doc, 'Parcel', COLORS['Parcel'])
+    add_layer(doc, 'Geltungsbereich', COLORS['Geltungsbereich'])
     setup_textt_style(doc, 'Parcel Number')
 
     msp = doc.modelspace()
 
     add_geometries_to_dxf(
-        msp, [target_parcels['geometry'].unary_union], 'Geltungsbereich')
-    add_geometries_to_dxf(msp, flur['geometry'], 'Flur')
-    add_geometries_to_dxf(msp, parcels['geometry'], 'Parcel')
+        msp, [target_parcels['geometry'].unary_union], 'Geltungsbereich', True)
+    add_geometries_to_dxf(msp, flur['geometry'], 'Flur', True)
+    add_geometries_to_dxf(msp, parcels['geometry'], 'Parcel', True)
     add_text_to_centroids(msp, parcel_points, 'Parcel Number')
 
     doc.saveas(DXF_FILENAME)
@@ -138,6 +159,7 @@ if __name__ == "__main__":
     if project_settings:
         CRS = project_settings['crs']
         DXF_FILENAME = project_settings['dxfFilename']
+        TEMPLATE_DXF = project_settings['template']
         FLUR_SHAPEFILE = next(
             (layer['shapeFile'] for layer in project_settings['layers'] if layer['name'] == "Flur"), None)
         FLUR_LABEL = next(
@@ -146,6 +168,8 @@ if __name__ == "__main__":
             (layer['shapeFile'] for layer in project_settings['layers'] if layer['name'] == "Parcel"), None)
         PARCEL_LABEL = next(
             (layer['label'] for layer in project_settings['layers'] if layer['name'] == "Parcel"), None)
+        COLORS = {layer['name']: layer['color']
+                  for layer in project_settings['layers']}
     # Add your processing logic here
 
     else:
