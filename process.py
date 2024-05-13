@@ -5,90 +5,121 @@ from shapely.geometry import Polygon, MultiPolygon
 from shapely.ops import unary_union
 import matplotlib.pyplot as plt
 
+# Constants
+CRS = "EPSG:25833"
+PARCEL_LABEL = "label"
+PARCEL_SHAPEFILE = "./data/Plasten Nr1 Flurstücke.shp"
+FLUR_SHAPEFILE = "./data/flur.shp"
+FLUR_LABEL = "flurname"
+DXF_FILENAME = "/Users/guntherschulz/IONOS HiDrive/Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Zeichnung/combined.dxf"
 
-parcel_list = ["1", "2", "4", "6", "7"]
-flur_list = ["Flur 1"]
-plot = True
-parcel_label_field = "label"
-parcel_shapefile = "./data/Plasten Nr1 Flurstücke.shp"
-flur_shapefile = "./data/flur.shp"
-flur_label_field = "flurname"
+# Load shapefile
 
 
 def load_shapefile(file_path):
-    return gpd.read_file(file_path)
+    gdf = gpd.read_file(file_path)
+    gdf = gdf.set_crs(CRS, allow_override=True)
+    return gdf
+
+# Filter parcels
 
 
-parcel = load_shapefile(parcel_shapefile)
-flur = load_shapefile(flur_shapefile)
+def filter_parcels(parcel, flur, parcel_list, flur_list):
+    buffered_flur = flur[flur[FLUR_LABEL].isin(
+        flur_list)].unary_union.buffer(-10)
+    return parcel[(parcel[PARCEL_LABEL].isin(parcel_list)) & (parcel.intersects(buffered_flur))]
 
-# Filter parcels that are in the parcel_list and intersect with a negatively buffered version of flurs in the flur_list
-buffered_flur = flur[flur[flur_label_field].isin(
-    flur_list)].unary_union.buffer(-10)
-target_parcels = parcel[(parcel[parcel_label_field].isin(parcel_list)) &
-                        (parcel.intersects(buffered_flur))]
-# print the parcel_label_field
-print(target_parcels[parcel_label_field])
-
-# use matplotlib to plot the parcels
-print(plot)
+# Conditional buffer
 
 
-# Create a single polygon that contains all target parcels
-geltungsbereich_geom = target_parcels['geometry'].unary_union
-# plot geltungsbereich_geom
-# if isinstance(geltungsbereich_geom, (Polygon, MultiPolygon)):
-#     gpd.GeoSeries([geltungsbereich_geom]).plot()
-#     plt.show()
-
-
-def conditional_buffer(flur_geom):
-    if any(flur_geom.intersects(parcel_geom) for parcel_geom in target_parcels['geometry']):
-        # Apply negative buffer if flur overlaps any target parcel
-        return flur_geom.buffer(-2)
+def conditional_buffer(source_geom, target_geom, distance):
+    if any(source_geom.intersects(geom) for geom in target_geom['geometry']):
+        return source_geom.buffer(-distance)
     else:
-        return flur_geom.buffer(2)  # Otherwise, apply positive buffer
+        return source_geom.buffer(distance)
+
+# Apply conditional buffering to flur geometries
 
 
-# Apply conditional buffering to each flur polygon
-flur['geometry'] = flur['geometry'].apply(conditional_buffer)
+def apply_conditional_buffering(source_geom, target_geom, distance):
+    source_geom['geometry'] = source_geom['geometry'].apply(
+        lambda x: conditional_buffer(x, target_geom, distance))
+    return source_geom
 
-# Create a new DXF document
-doc = ezdxf.new('R2010', setup=True)
-msp = doc.modelspace()
 
-# Define layers
-doc.layers.new(name='Flur', dxfattribs={'color': 2})
-doc.layers.new(name='Parcel', dxfattribs={'color': 3})
-doc.layers.new(name='Geltungsbereich', dxfattribs={
-               'color': 4})  # New layer for Geltungsbereich
+def labeled_centroid_points(source_geom, label):
+    centroids = source_geom.centroid
+    return gpd.GeoDataFrame(geometry=centroids, data={"label": source_geom[label]})
 
-# Add flur geometries to the DXF
-for index, row in flur.iterrows():
-    geom = row['geometry']
-    if geom.geom_type == 'Polygon':
-        points = [(x, y) for x, y in geom.exterior.coords]
-        msp.add_lwpolyline(points, close=True, dxfattribs={'layer': 'Flur'})
 
-# Add parcel geometries to the DXF
-for index, row in parcel.iterrows():
-    geom = row['geometry']
-    if geom.geom_type == 'Polygon':
-        points = [(x, y) for x, y in geom.exterior.coords]
-        msp.add_lwpolyline(points, close=True, dxfattribs={'layer': 'Parcel'})
+def setup_document_style(doc, text_style_name):
+    if text_style_name not in doc.styles:
+        doc.styles.new(name=text_style_name, dxfattribs={
+                       'font': 'Arial.ttf', 'height': 0.1})
 
-# Add Geltungsbereich geometry to the DXF
-if geltungsbereich_geom.geom_type in ['Polygon', 'MultiPolygon']:
-    if geltungsbereich_geom.geom_type == 'Polygon':
-        points = [(x, y) for x, y in geltungsbereich_geom.exterior.coords]
-        msp.add_lwpolyline(points, close=True, dxfattribs={
-                           'layer': 'Geltungsbereich'})
-    elif geltungsbereich_geom.geom_type == 'MultiPolygon':
-        for polygon in geltungsbereich_geom.geoms:
-            points = [(x, y) for x, y in polygon.exterior.coords]
+
+def add_text(msp, text, x, y, layer_name, style_name):
+    msp.add_text(text, dxfattribs={'style': style_name,
+                 'layer': layer_name, 'insert': (x, y)})
+
+
+def add_text_to_centroids(msp, labeled_centroid_points_df, layer_name, style_name=None):
+    if style_name is None:
+        style_name = layer_name
+    for index, row in labeled_centroid_points_df.iterrows():
+        x, y = row['geometry'].coords[0]
+        add_text(msp, row['label'], x, y, layer_name, style_name)
+
+    # Create DXF document
+
+
+# Add geometries to DXF
+
+
+def add_geometries_to_dxf(msp, geometries, layer_name):
+    for geom in geometries:
+        if geom.geom_type == 'Polygon':
+            points = [(x, y) for x, y in geom.exterior.coords]
             msp.add_lwpolyline(points, close=True, dxfattribs={
-                               'layer': 'Geltungsbereich'})
+                               'layer': layer_name})
+        elif geom.geom_type == 'MultiPolygon':
+            for polygon in geom.geoms:
+                points = [(x, y) for x, y in polygon.exterior.coords]
+                msp.add_lwpolyline(points, close=True, dxfattribs={
+                                   'layer': layer_name})
 
-# Save the DXF file
-dxf_filename = "/Users/guntherschulz/IONOS HiDrive/Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Zeichnung/combined.dxf"
-doc.saveas(dxf_filename)
+
+def add_points_to_dxf(msp, points, layer_name):
+    for point in points:
+        msp.add_point(point, dxfattribs={'layer': layer_name})
+
+
+# Main function
+
+
+def main():
+    parcels = load_shapefile(PARCEL_SHAPEFILE)
+    flur = load_shapefile(FLUR_SHAPEFILE)
+    parcel_list = ["1", "2", "4", "6", "7"]
+    flur_list = ["Flur 1"]
+    target_parcels = filter_parcels(parcels, flur, parcel_list, flur_list)
+    flur = apply_conditional_buffering(flur, target_parcels, 2)
+    parcel_points = labeled_centroid_points(parcels, PARCEL_LABEL)
+
+    doc = ezdxf.new('R2010', setup=True)
+    doc.layers.new(name='Flur', dxfattribs={'color': 2})
+    doc.layers.new(name='Parcel', dxfattribs={'color': 3})
+    doc.layers.new(name='Geltungsbereich', dxfattribs={'color': 10})
+    msp = doc.modelspace()
+    setup_document_style(doc, 'Parcel Number')
+    add_geometries_to_dxf(
+        msp, [target_parcels['geometry'].unary_union], 'Geltungsbereich')
+    add_geometries_to_dxf(msp, flur['geometry'], 'Flur')
+    add_geometries_to_dxf(msp, parcels['geometry'], 'Parcel')
+    add_text_to_centroids(msp, parcel_points, 'Parcel Number')
+
+    doc.saveas(DXF_FILENAME)
+
+
+if __name__ == "__main__":
+    main()
