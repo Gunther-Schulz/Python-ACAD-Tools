@@ -20,6 +20,20 @@
           "label": "label",
           "color": 10,
           "close": true
+        },
+        {
+          "name": "Gemarkung",
+          "shapeFile": "./data/Gemarkung.shp",
+          "label": "gmkname",
+          "color": 11,
+          "close": true
+        },
+        {
+          "name": "Gemeinde",
+          "shapeFile": "./data/Gemeinde.shp",
+          "label": "gen",
+          "color": 12,
+          "close": true
         }
       ]
     }
