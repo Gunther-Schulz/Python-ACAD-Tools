@@ -6,6 +6,12 @@
       "dxfFilename": "/Users/guntherschulz/IONOS HiDrive/Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Zeichnung/combined.dxf",
       "template": "./data/Zeichnung.dxf",
       "useTemplate": true,
+      "coverage": {
+        "parcelList": ["1", "2", "4", "6", "7"],
+        "flurList": ["Flur 1"],
+        "gemarkungList": ["Groß Plasten"],
+        "gemeindeList": ["Groß Plasten"]
+      },
       "layers": [
         {
           "name": "Flur",

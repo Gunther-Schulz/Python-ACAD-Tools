@@ -32,13 +32,47 @@ def load_shapefile(file_path):
     gdf = gdf.set_crs(CRS, allow_override=True)
     return gdf
 
+
+def geoms_missing(gdf: gpd.GeoDataFrame, coverage: dict) -> set:
+    return set(coverage["parcelList"]).difference(gdf[PARCEL_LABEL])
+
 # Filter parcels
 
 
-def filter_parcels(parcel, flur, parcel_list, flur_list):
+def filter_parcels(parcel, flur, gemarkung, gemeinde, coverage):
+
+    parcels_missing = geoms_missing(parcel, coverage)
+
+    if not parcels_missing:
+        print("No parcels missing.")
+
     buffered_flur = flur[flur[FLUR_LABEL].isin(
-        flur_list)].unary_union.buffer(-10)
-    return parcel[(parcel[PARCEL_LABEL].isin(parcel_list)) & (parcel.intersects(buffered_flur))]
+        coverage["flurList"])].unary_union.buffer(-10)
+    buffered_gemeinde = gemeinde[gemeinde[GEMEINDE_LABEL].isin(
+        coverage["gemeindeList"])].unary_union.buffer(-10)
+    buffered_gemarkung = gemarkung[gemarkung[GEMARKUNG_LABEL].isin(
+        coverage["gemarkungList"])].unary_union.buffer(-10)
+
+    selected_parcels = parcel[parcel[PARCEL_LABEL].isin(
+        coverage["parcelList"])]
+
+    selected_parcels_mask = parcel.index.isin(selected_parcels.index)
+
+    # Create a boolean mask for parcels that intersect with buffered_flur
+    flur_mask = parcel.intersects(buffered_flur)
+    gemeinde_mask = parcel.intersects(buffered_gemeinde)
+    gemarkung_mask = parcel.intersects(buffered_gemarkung)
+
+    # Use logical AND between two boolean masks for indexing
+    result = parcel[selected_parcels_mask &
+                    flur_mask & gemeinde_mask & gemarkung_mask]
+
+    # fig, ax = plt.subplots()
+    # result.plot(ax=ax, color='green')
+    # plt.show()
+
+    return result
+
 
 # Conditional buffer
 
@@ -96,7 +130,10 @@ def add_text_to_center(msp, labeled_centroid_points_df, layer_name, style_name=N
 
 def add_geometries(msp, geometries, layer_name, close=False):
     for geom in geometries:
-        if geom.geom_type == 'Polygon':
+        if geom is None:
+            print(
+                f"Warning: None geometry encountered in layer '{layer_name}'")
+        elif geom.geom_type == 'Polygon':
             points = [(x, y) for x, y in geom.exterior.coords]
             msp.add_lwpolyline(points, close=close, dxfattribs={
                                'layer': layer_name})
@@ -129,14 +166,11 @@ def add_layer(doc, layer_name, color):
 def main():
     parcels = load_shapefile(PARCEL_SHAPEFILE)
     flur = load_shapefile(FLUR_SHAPEFILE)
-
-    parcel_list = ["1", "2", "4", "6", "7"]
-    flur_list = ["Flur 1"]
-
-    gemeinde = load_shapefile(GEMEINDE_SHAPEFILE)
     gemarkung = load_shapefile(GEMARKUNG_SHAPEFILE)
+    gemeinde = load_shapefile(GEMEINDE_SHAPEFILE)
 
-    target_parcels = filter_parcels(parcels, flur, parcel_list, flur_list)
+    target_parcels = filter_parcels(
+        parcels, flur, gemarkung, gemeinde, COVERAGE)
     # check if this actually works by switching sides
     flur = apply_conditional_buffering(flur, target_parcels, 2)
     geltungsbereich = target_parcels['geometry'].unary_union
@@ -205,6 +239,7 @@ if __name__ == "__main__":
             project_settings, "Parcel")
         COLORS = {layer['name']: layer['color']
                   for layer in project_settings['layers']}
+        COVERAGE = project_settings['coverage']
     # Add your processing logic here
 
     else:
