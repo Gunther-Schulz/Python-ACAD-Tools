@@ -42,6 +42,49 @@
           "close": true
         }
       ]
+    },
+    {
+      "name": "Torgelow",
+      "crs": "EPSG:25833",
+      "dxfFilename": "~/hidrive/Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/Zeichnung/combined.dxf",
+      "template": "~/hidrive/Öffentlich Planungsbüro Schulz/Allgemein/CAD/Zeichnung.dxf",
+      "useTemplate": true,
+      "coverage": {
+        "parcelList": ["104", "96", "95", "87/1"], 
+        "flurList": ["Flur 2"], 
+        "gemarkungList": ["Torgelow am See"], 
+        "gemeindeList": ["Torgelow am See"] 
+      },
+      "layers": [
+        {
+          "name": "Flur",
+          "shapeFile": "~/hidrive/Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/flur.shp",
+          "label": "flurname",
+          "color": 2,
+          "close": true
+        },
+        {
+          "name": "Parcel",
+          "shapeFile": "~/hidrive/Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/parcel.shp",
+          "label": "label",
+          "color": 10,
+          "close": true
+        },
+        {
+          "name": "Gemarkung",
+          "shapeFile": "~/hidrive/Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/gemarkung.shp",
+          "label": "gmkname",
+          "color": 11,
+          "close": true
+        },
+        {
+          "name": "Gemeinde",
+          "shapeFile": "~/hidrive/Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/gemeinde.shp",
+          "label": "gen",
+          "color": 12,
+          "close": true
+        }
+      ]
     }
   ]
 }
