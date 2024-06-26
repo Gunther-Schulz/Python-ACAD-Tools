@@ -172,21 +172,91 @@ def add_layer(doc, layer_name, color):
     if not doc.layers.has_entry(layer_name):
         doc.layers.new(name=layer_name, dxfattribs={'color': color})
 
+from shapely.ops import nearest_points
+import shapely.geometry
+
+from shapely.geometry import Point
+
+import geopandas as gpd
+import matplotlib.pyplot as plt
+from shapely.geometry import Point, Polygon, LineString
+
+def select_parcel_edges(parcels, geom):
+    # This function takes parces and another geno like flur or gemarkung.
+    # geom are low resolution geoms. geoms in reality always overlay parcels, but the polygons do not.
+    # this funcion makes geom more accurate by checking which parcel edges (not the whole polygon) run closest to the geom.
+    # the result is a geom with the same number of edges as the original geom, but with the closest parcels.
+    # the reult is the original geom, but in a higher reolution. the new geom exactly touches the parcel edges.
+
+    # Ensure geom is a single geometry object by taking its unary_union if it's not already
+    if isinstance(geom, gpd.GeoDataFrame):
+        geom = geom.unary_union
+
+    # Handle both single and multi-part geometries
+    if geom.geom_type.startswith('Multi'):
+        geom_boundaries = [part.boundary for part in geom.geoms]
+    else:
+        geom_boundaries = [geom.boundary]
+
+    nearest_geom = []
+    for boundary in geom_boundaries:
+        # Check if the boundary is a MultiLineString and handle accordingly
+        if boundary.geom_type == 'MultiLineString':
+            parts = boundary.geoms
+        else:
+            parts = [boundary]  # Treat as a single part
+
+        for part in parts:
+            for point in part.coords:
+                point_geom = Point(point)  # Ensure point is a valid Geometry object
+                nearest_parcel_point = min(
+                    (nearest_points(point_geom, parcel.boundary)[1] for parcel in parcels.geometry if not parcel.is_empty and parcel.boundary is not None),
+                    key=lambda p: p.distance(point_geom),
+                    default=None  # Handle case where no nearest point is found
+                )
+                if nearest_parcel_point:
+                    nearest_geom.append(nearest_parcel_point)
+
+    # Create a new geometry from the nearest points
+    if len(nearest_geom) > 2:
+        adjusted_geom = Polygon(nearest_geom)
+    else:
+        adjusted_geom = LineString(nearest_geom)
+
+    # Convert the Shapely Geometry to a GeoDataFrame for plotting
+    adjusted_geom_gdf = gpd.GeoDataFrame(geometry=[adjusted_geom])  # Ensure this is outside any conditional or loop that might skip its creation
+
+    # Plot results
+    fig, ax = plt.subplots()
+    parcels.plot(ax=ax, color='blue')
+    if isinstance(geom, gpd.GeoDataFrame):
+        geom.plot(ax=ax, color='red')
+    else:
+        gpd.GeoDataFrame(geometry=[geom]).plot(ax=ax, color='red')
+    adjusted_geom_gdf.plot(ax=ax, color='green')
+    plt.show()
+
+    return adjusted_geom_gdf  # Return a GeoDataFrame instead of a raw Geometry    
+    
+
 
 def main():
     parcels = load_shapefile(PARCEL_SHAPEFILE)
     flur = load_shapefile(FLUR_SHAPEFILE)
+    orig_flur = load_shapefile(FLUR_SHAPEFILE)
     gemarkung = load_shapefile(GEMARKUNG_SHAPEFILE)
     gemeinde = load_shapefile(GEMEINDE_SHAPEFILE)
 
     target_parcels = filter_parcels(
         parcels, flur, gemarkung, gemeinde, COVERAGE)
     # check if this actually works by switching sides
-    flur = apply_conditional_buffering(flur, target_parcels, 2)
+    # flur = apply_conditional_buffering(flur, target_parcels, 2)
     geltungsbereich = target_parcels['geometry'].unary_union
 
+    flur = select_parcel_edges(parcels, flur)
+
     parcel_points = labeled_center_points(parcels, PARCEL_LABEL)
-    flur_points = labeled_center_points(flur, FLUR_LABEL)
+    # flur_points = labeled_center_points(flur, FLUR_LABEL)
     gemeinde_points = labeled_center_points(gemeinde, GEMEINDE_LABEL)
     gemarkung_points = labeled_center_points(gemarkung, GEMARKUNG_LABEL)
 
@@ -201,6 +271,7 @@ def main():
 
     # This is optional and only useful if we want to set some attributes to the layer. Otherwise defaults are used
     add_layer(doc, 'Flur', COLORS['Flur'])
+    add_layer(doc, 'FlurOrig', 3)
     add_layer(doc, 'Gemeinde', COLORS['Gemeinde'])
     add_layer(doc, 'Gemarkung', COLORS['Gemarkung'])
     add_layer(doc, 'Parcel', COLORS['Parcel'])
@@ -217,14 +288,16 @@ def main():
 
     msp = doc.modelspace()
 
+    add_geometries(msp, parcels['geometry'], 'Parcel', True)
     add_geometries(
         msp, [geltungsbereich], 'Geltungsbereich', True)
-    add_geometries(msp, flur['geometry'], 'Flur', True)
+    add_geometries(msp, orig_flur['geometry'], 'Flur', True)
+    add_geometries(msp, flur['geometry'], 'FlurOrig', True)
     # add_geometries(msp, gemeinde['geometry'], 'Gemeinde', True)
     # add_geometries(msp, gemarkung['geometry'], 'Gemarkung', True)
     # add_geometries(msp, parcels['geometry'], 'Parcel', True)
     # add_text_to_center(msp, parcel_points, 'Parcel Number')
-    add_text_to_center(msp, flur_points, 'Flur Number')
+    # add_text_to_center(msp, flur_points, 'Flur Number')
     # add_text_to_center(msp, gemeinde_points, 'Gemeinde Name')
     # add_text_to_center(msp, gemarkung_points, 'Gemarkung Name')
 
