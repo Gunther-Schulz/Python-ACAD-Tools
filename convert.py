@@ -5,9 +5,11 @@ import sys
 import json
 import os
 
+import yaml  # Import the yaml module
+
 def load_project_settings(project_name):
-    with open('projects.json', 'r') as file:
-        projects = json.load(file)['projects']
+    with open('projects.yaml', 'r') as file:  # Change the file extension to .yaml
+        projects = yaml.safe_load(file)['projects']  # Use yaml.safe_load to read YAML
         project = next(
             (project for project in projects if project['name'] == project_name), None)
         return project
@@ -27,11 +29,12 @@ def resolve_full_path(path):
 
 
 def load_template(project_settings):
-    if project_settings['useTemplate']:
-        # Resolve the full path from a path that may include '~'
-        template_path = resolve_full_path(project_settings['template'])
-        doc = ezdxf.readfile(template_path)
+    template_path = project_settings.get('template')  # Use get to handle missing template key
+    if template_path:
+        full_template_path = resolve_full_path(template_path)
+        doc = ezdxf.readfile(full_template_path)
         return doc
+    return None  # Return None if no template path is provided
 
 
 def load_shapefile(file_path):
@@ -187,7 +190,8 @@ def main():
     gemeinde_points = labeled_center_points(gemeinde, GEMEINDE_LABEL)
     gemarkung_points = labeled_center_points(gemarkung, GEMARKUNG_LABEL)
 
-    if project_settings['useTemplate']:
+    TEMPLATE_DXF = resolve_full_path(project_settings.get('template')) if project_settings.get('template') else None
+    if project_settings['useTemplate'] and TEMPLATE_DXF:
         doc = load_template(project_settings)
     else:
         doc = ezdxf.new('R2010', setup=True)
@@ -216,13 +220,13 @@ def main():
     add_geometries(
         msp, [geltungsbereich], 'Geltungsbereich', True)
     add_geometries(msp, flur['geometry'], 'Flur', True)
-    add_geometries(msp, gemeinde['geometry'], 'Gemeinde', True)
-    add_geometries(msp, gemarkung['geometry'], 'Gemarkung', True)
-    add_geometries(msp, parcels['geometry'], 'Parcel', True)
-    add_text_to_center(msp, parcel_points, 'Parcel Number')
+    # add_geometries(msp, gemeinde['geometry'], 'Gemeinde', True)
+    # add_geometries(msp, gemarkung['geometry'], 'Gemarkung', True)
+    # add_geometries(msp, parcels['geometry'], 'Parcel', True)
+    # add_text_to_center(msp, parcel_points, 'Parcel Number')
     add_text_to_center(msp, flur_points, 'Flur Number')
-    add_text_to_center(msp, gemeinde_points, 'Gemeinde Name')
-    add_text_to_center(msp, gemarkung_points, 'Gemarkung Name')
+    # add_text_to_center(msp, gemeinde_points, 'Gemeinde Name')
+    # add_text_to_center(msp, gemarkung_points, 'Gemarkung Name')
 
     doc.saveas(DXF_FILENAME)
     print(f"Saved {DXF_FILENAME}")
@@ -236,7 +240,7 @@ if __name__ == "__main__":
     if project_settings:
         CRS = project_settings['crs']
         DXF_FILENAME = resolve_full_path(project_settings['dxfFilename'])
-        TEMPLATE_DXF = resolve_full_path(project_settings['template'])
+        TEMPLATE_DXF = resolve_full_path(project_settings.get('template')) if project_settings.get('template') else None
         GEMEINDE_SHAPEFILE, GEMEINDE_LABEL = get_layer_info(
             project_settings, "Gemeinde")
         GEMARKUNG_SHAPEFILE, GEMARKUNG_LABEL = get_layer_info(
