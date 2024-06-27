@@ -182,62 +182,45 @@ import matplotlib.pyplot as plt
 from shapely.geometry import Point, Polygon, LineString
 
 def select_parcel_edges(parcels, geom):
-    # This function takes parces and another geno like flur or gemarkung.
-    # geom are low resolution geoms. geoms in reality always overlay parcels, but the polygons do not.
-    # this funcion makes geom more accurate by checking which parcel edges (not the whole polygon) run closest to the geom.
-    # the result is a geom with the same number of edges as the original geom, but with the closest parcels.
-    # the reult is the original geom, but in a higher reolution. the new geom exactly touches the parcel edges.
+    # This function takes parces and another geom like flur or gemarkung.
+    # the input parcels already overlay geoms exactly. parcel polygons are subdivisions of geom polygons
+    # the goal of this function is to be able to display geom edges on the map without them being covered by parcels
+    # 
+    # to that end we need to offset all geom edges by 10 units from the parcel edges
+    # a simple buffer will not work!!!! since if we offset each polygon of geom separately their edges wouuld not touch anymore
+    # that means we need a strategy to offset each individual polygon of geom in a way so the edges of all polygons
+    # of geom will still touch each other. in essence we need to redraw all polygons of geom to be offset by 10 units and
+    # make a decision to which side of the parcel we will redraw that is most effective
 
-    # Ensure geom is a single geometry object by taking its unary_union if it's not already
-    if isinstance(geom, gpd.GeoDataFrame):
-        geom = geom.unary_union
+    print(parcels)
+    print(geom)
 
-    # Handle both single and multi-part geometries
-    if geom.geom_type.startswith('Multi'):
-        geom_boundaries = [part.boundary for part in geom.geoms]
-    else:
-        geom_boundaries = [geom.boundary]
-
-    nearest_geom = []
-    for boundary in geom_boundaries:
-        # Check if the boundary is a MultiLineString and handle accordingly
-        if boundary.geom_type == 'MultiLineString':
-            parts = boundary.geoms
-        else:
-            parts = [boundary]  # Treat as a single part
-
-        for part in parts:
-            for point in part.coords:
-                point_geom = Point(point)  # Ensure point is a valid Geometry object
-                nearest_parcel_point = min(
-                    (nearest_points(point_geom, parcel.boundary)[1] for parcel in parcels.geometry if not parcel.is_empty and parcel.boundary is not None),
-                    key=lambda p: p.distance(point_geom),
-                    default=None  # Handle case where no nearest point is found
-                )
-                if nearest_parcel_point:
-                    nearest_geom.append(nearest_parcel_point)
-
-    # Create a new geometry from the nearest points
-    if len(nearest_geom) > 2:
-        adjusted_geom = Polygon(nearest_geom)
-    else:
-        adjusted_geom = LineString(nearest_geom)
-
-    # Convert the Shapely Geometry to a GeoDataFrame for plotting
-    adjusted_geom_gdf = gpd.GeoDataFrame(geometry=[adjusted_geom])  # Ensure this is outside any conditional or loop that might skip its creation
-
-    # Plot results
+    # Create an empty list to store the resulting geometries
+    geometries = []
+    
+    # Iterate over each polygon in the geometry
+    for poly in geom.geometry:
+        # Buffer each polygon outward by 10 units
+        buffered_poly = poly.buffer(10)
+        # Intersect the buffered polygon with the unary union of all geometries to ensure continuity
+        intersected_poly = buffered_poly.intersection(geom.unary_union)
+        # Append the resulting geometry to the list
+        geometries.append(intersected_poly)
+    
+    # Create a GeoDataFrame from the list of geometries
+    result_gdf = gpd.GeoDataFrame(geometry=geometries, crs=geom.crs)
+    
+    # Plot old and new geom as differently colored lines, no fill
     fig, ax = plt.subplots()
-    parcels.plot(ax=ax, color='blue')
-    if isinstance(geom, gpd.GeoDataFrame):
-        geom.plot(ax=ax, color='red')
-    else:
-        gpd.GeoDataFrame(geometry=[geom]).plot(ax=ax, color='red')
-    adjusted_geom_gdf.plot(ax=ax, color='green')
+    # Plot original geometry
+    geom.boundary.plot(ax=ax, color='blue', linewidth=1.5, label='Original Geometry')
+    # Plot edge geometry
+    result_gdf.boundary.plot(ax=ax, color='red', linewidth=1.5, label='Offset Geometry')  # Adjusted line
+    ax.set_title('Comparison of Original and Offset Geometries')
+    ax.legend()
     plt.show()
 
-    return adjusted_geom_gdf  # Return a GeoDataFrame instead of a raw Geometry    
-    
+    return result_gdf
 
 
 def main():
@@ -292,7 +275,7 @@ def main():
     add_geometries(
         msp, [geltungsbereich], 'Geltungsbereich', True)
     add_geometries(msp, orig_flur['geometry'], 'Flur', True)
-    add_geometries(msp, flur['geometry'], 'FlurOrig', True)
+    add_geometries(msp, flur['geometry'], 'Flur', True)
     # add_geometries(msp, gemeinde['geometry'], 'Gemeinde', True)
     # add_geometries(msp, gemarkung['geometry'], 'Gemarkung', True)
     # add_geometries(msp, parcels['geometry'], 'Parcel', True)
