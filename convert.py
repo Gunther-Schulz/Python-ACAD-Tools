@@ -181,18 +181,8 @@ import geopandas as gpd
 import matplotlib.pyplot as plt
 from shapely.geometry import Point, Polygon, LineString
 
-def select_parcel_edges(parcels, geom):
-    # This function takes parces and another geom like flur or gemarkung.
-    # the input parcels already overlay geoms exactly. parcel polygons are subdivisions of geom polygons
-    # the goal of this function is to be able to display geom edges on the map without them being covered by parcels
-    # 
-    # to that end we need to offset all geom edges by 10 units from the parcel edges
-    # a simple buffer will not work!!!! since if we offset each polygon of geom separately their edges wouuld not touch anymore
-    # that means we need a strategy to offset each individual polygon of geom in a way so the edges of all polygons
-    # of geom will still touch each other. in essence we need to redraw all polygons of geom to be offset by 10 units and
-    # make a decision to which side of the parcel we will redraw that is most effective
+def select_parcel_edges(geom):
 
-    print(parcels)
     print(geom)
 
     # Create an empty list to store the resulting geometries
@@ -200,22 +190,28 @@ def select_parcel_edges(parcels, geom):
     
     # Iterate over each polygon in the geometry
     for poly in geom.geometry:
-        # Buffer each polygon outward by 10 units
-        buffered_poly = poly.buffer(10)
-        # Intersect the buffered polygon with the unary union of all geometries to ensure continuity
-        intersected_poly = buffered_poly.intersection(geom.unary_union)
+        # Buffer each polygon outward by 10 units with sharp corners
+        buffered_poly_out = poly.buffer(10, join_style=2)  # 2 is for miter join
+        # Buffer each polygon inward by 10 units with sharp corners
+        buffered_poly_in = poly.buffer(-10, join_style=2)  # Negative for inward buffer
+        
+        # Intersect the buffered polygons with the unary union of all geometries to ensure continuity
+        intersected_poly_out = buffered_poly_out.intersection(geom.unary_union)
+        intersected_poly_in = buffered_poly_in.intersection(geom.unary_union)
+        
         # Append the resulting geometry to the list
-        geometries.append(intersected_poly)
+        geometries.append(intersected_poly_out)
+        geometries.append(intersected_poly_in)
     
     # Create a GeoDataFrame from the list of geometries
     result_gdf = gpd.GeoDataFrame(geometry=geometries, crs=geom.crs)
     
     # Plot old and new geom as differently colored lines, no fill
     fig, ax = plt.subplots()
-    # Plot original geometry
-    geom.boundary.plot(ax=ax, color='blue', linewidth=1.5, label='Original Geometry')
+    # Plot original geometry with thicker line
+    geom.boundary.plot(ax=ax, color='blue', linewidth=5, label='Original Geometry')  # Increased linewidth
     # Plot edge geometry
-    result_gdf.boundary.plot(ax=ax, color='red', linewidth=1.5, label='Offset Geometry')  # Adjusted line
+    result_gdf.boundary.plot(ax=ax, color='red', linewidth=1.5, label='Offset Geometry')
     ax.set_title('Comparison of Original and Offset Geometries')
     ax.legend()
     plt.show()
@@ -236,7 +232,7 @@ def main():
     # flur = apply_conditional_buffering(flur, target_parcels, 2)
     geltungsbereich = target_parcels['geometry'].unary_union
 
-    flur = select_parcel_edges(parcels, flur)
+    flur = select_parcel_edges(flur)
 
     parcel_points = labeled_center_points(parcels, PARCEL_LABEL)
     # flur_points = labeled_center_points(flur, FLUR_LABEL)
