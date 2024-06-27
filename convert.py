@@ -141,17 +141,21 @@ def add_text_to_center(msp, labeled_centroid_points_df, layer_name, style_name=N
 def add_geometries(msp, geometries, layer_name, close=False):
     for geom in geometries:
         if geom is None:
-            print(
-                f"Warning: None geometry encountered in layer '{layer_name}'")
+            print(f"Warning: None geometry encountered in layer '{layer_name}'")
         elif geom.geom_type == 'Polygon':
             points = [(x, y) for x, y in geom.exterior.coords]
-            msp.add_lwpolyline(points, close=close, dxfattribs={
-                               'layer': layer_name})
+            msp.add_lwpolyline(points, close=True, dxfattribs={'layer': layer_name})  # Close for polygons
         elif geom.geom_type == 'MultiPolygon':
             for polygon in geom.geoms:
                 points = [(x, y) for x, y in polygon.exterior.coords]
-                msp.add_lwpolyline(points, close=close, dxfattribs={
-                                   'layer': layer_name})
+                msp.add_lwpolyline(points, close=True, dxfattribs={'layer': layer_name})  # Close for polygons
+        elif geom.geom_type == 'LineString':
+            points = [(x, y) for x, y in geom.coords]
+            msp.add_lwpolyline(points, close=False, dxfattribs={'layer': layer_name})  # Do not close for line strings
+        elif geom.geom_type == 'MultiLineString':
+            for line in geom.geoms:
+                points = [(x, y) for x, y in line.coords]
+                msp.add_lwpolyline(points, close=False, dxfattribs={'layer': layer_name})  # Do not close for line strings
 
 
 def add_points_to_dxf(msp, points, layer_name):
@@ -246,7 +250,7 @@ def main():
     # flur = apply_conditional_buffering(flur, target_parcels, 2)
     geltungsbereich = target_parcels['geometry'].unary_union
 
-    flur = select_parcel_edges(flur)
+    # flur = select_parcel_edges(flur)
 
     parcel_points = labeled_center_points(parcels, PARCEL_LABEL)
     # flur_points = labeled_center_points(flur, FLUR_LABEL)
@@ -281,11 +285,15 @@ def main():
 
     msp = doc.modelspace()
 
-    add_geometries(msp, parcels['geometry'], 'Parcel', True)
-    add_geometries(
-        msp, [geltungsbereich], 'Geltungsbereich', True)
-    add_geometries(msp, orig_flur['geometry'], 'Flur', True)
+    flur = select_parcel_edges(flur)
     add_geometries(msp, flur['geometry'], 'Flur', True)
+
+
+    # add_geometries(msp, parcels['geometry'], 'Parcel', True)
+    # add_geometries(
+    #     msp, [geltungsbereich], 'Geltungsbereich', True)
+    # add_geometries(msp, orig_flur['geometry'], 'Flur', True)
+    # add_geometries(msp, flur['geometry'], 'Flur', True)
     # add_geometries(msp, gemeinde['geometry'], 'Gemeinde', True)
     # add_geometries(msp, gemarkung['geometry'], 'Gemarkung', True)
     # add_geometries(msp, parcels['geometry'], 'Parcel', True)
