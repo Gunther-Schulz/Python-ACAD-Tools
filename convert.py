@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import sys
 import json
 import os
+import random  # Import random for generating random colors
 
 import yaml  # Import the yaml module
 
@@ -182,7 +183,6 @@ import matplotlib.pyplot as plt
 from shapely.geometry import Point, Polygon, LineString
 
 def select_parcel_edges(geom):
-
     print(geom)
 
     # Create an empty list to store the resulting geometries
@@ -192,29 +192,30 @@ def select_parcel_edges(geom):
     for poly in geom.geometry:
         # Buffer each polygon outward by 10 units with sharp corners
         buffered_poly_out = poly.buffer(10, join_style=2)  # 2 is for miter join
-        # Buffer each polygon inward by 10 units with sharp corners
-        buffered_poly_in = poly.buffer(-10, join_style=2)  # Negative for inward buffer
-        
-        # Intersect the buffered polygons with the unary union of all geometries to ensure continuity
-        intersected_poly_out = buffered_poly_out.intersection(geom.unary_union)
-        intersected_poly_in = buffered_poly_in.intersection(geom.unary_union)
+        # Buffer each polygon inward by 10 units with sharp corners and intersect with unary union
+        buffered_poly_in = poly.buffer(-10, join_style=2).intersection(geom.unary_union)
         
         # Append the resulting geometry to the list
-        geometries.append(intersected_poly_out)
-        geometries.append(intersected_poly_in)
+        geometries.append(buffered_poly_out)  # Outer buffer added directly without intersection
+        geometries.append(buffered_poly_in)
     
     # Create a GeoDataFrame from the list of geometries
     result_gdf = gpd.GeoDataFrame(geometry=geometries, crs=geom.crs)
+    
+    print(f"The type of geometry in result_gdf is: {type(result_gdf.geometry.iloc[0])}")
     
     # Plot old and new geom as differently colored lines, no fill
     fig, ax = plt.subplots()
     # Plot original geometry with thicker line
     geom.boundary.plot(ax=ax, color='blue', linewidth=5, label='Original Geometry')  # Increased linewidth
-    # Plot edge geometry
-    result_gdf.boundary.plot(ax=ax, color='red', linewidth=1.5, label='Offset Geometry')
+    # Plot edge geometry with random colors
+    for geometry in result_gdf.geometry:
+        random_color = "#{:06x}".format(random.randint(0, 0xFFFFFF))  # Generate a random color
+        gpd.GeoSeries([geometry]).boundary.plot(ax=ax, color=random_color, linewidth=1.5)  # Plot each geometry in a different color
     ax.set_title('Comparison of Original and Offset Geometries')
     ax.legend()
     plt.show()
+
 
     return result_gdf
 
