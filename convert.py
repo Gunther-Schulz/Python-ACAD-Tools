@@ -191,49 +191,65 @@ import matplotlib.pyplot as plt
 import random
 
 def select_parcel_edges(geom):
+    # Print the input geometry object for debugging purposes
     print(geom)
 
-    # Create an empty list to store the resulting geometries
+    # Initialize a list to hold the edges derived from the input geometry
     edge_lines = []
     
-    # Iterate over each polygon in the geometry
+    # Loop through each polygon in the input geometry collection
     for poly in geom.geometry:
-        # Convert polygon to a linestring along the boundary
+        # Extract the boundary of the polygon, converting it to a linestring
         boundary_line = poly.boundary
         
-        # Buffer each line outward and inward
-        buffered_line_out = boundary_line.buffer(10, join_style=2)  # Outward buffer
-        buffered_line_in = boundary_line.buffer(-10, join_style=2)  # Inward buffer
+        # Create an outward buffer of 10 units from the boundary line
+        buffered_line_out = boundary_line.buffer(10, join_style=2)  # Outward buffer with a mitered join
+        # Create an inward buffer of 10 units from the boundary line
+        buffered_line_in = boundary_line.buffer(-10, join_style=2)  # Inward buffer with a mitered join
         
-        # Select appropriate edges from the buffers
+        # Extract the exterior ring of the outward buffer
         outer_edge = buffered_line_out.exterior
+        # Extract the exterior ring of the inward buffer
         inner_edge = buffered_line_in.exterior
         
-        # Append edges to the list
+        # Add the outer and inner edges to the list of edge lines
         edge_lines.append(outer_edge)
         edge_lines.append(inner_edge)
+
+    # Plot each edge line in the edge_lines list
+    fig, ax = plt.subplots()
+    for edge in edge_lines:
+        gpd.GeoSeries([edge]).plot(ax=ax, linewidth=1.5)
+    ax.set_title('Edge Lines Visualization')
+    plt.show()
     
-    # Merge and simplify edges
+    # Merge and simplify the collected edge lines into a single geometry
     merged_edges = linemerge(unary_union(edge_lines))
     
-    # Create a GeoDataFrame from the resulting geometry
+    # Create a GeoDataFrame to hold the merged edges, preserving the original CRS
     result_gdf = gpd.GeoDataFrame(geometry=[merged_edges], crs=geom.crs)
     
+    # Output the type of geometry contained in the resulting GeoDataFrame
     print(f"The type of geometry in result_gdf is: {type(result_gdf.geometry.iloc[0])}")
     
-    # Plot old and new geom as differently colored lines, no fill
+    # Set up a plot to visually compare the original and modified geometries
     fig, ax = plt.subplots()
-    # Plot original geometry with thicker line
+    # Plot the original geometry boundary with a blue line
     geom.boundary.plot(ax=ax, color='blue', linewidth=5, label='Original Geometry')
-    # Plot each segment of the offset geometry in a different random color
+    # Plot each segment of the merged edges in a randomly chosen color
     if not result_gdf.empty:
         for line in merged_edges.geoms:
+            # Generate a random color for each segment
             random_color = "#{:06x}".format(random.randint(0, 0xFFFFFF))
+            # Plot the segment with the randomly chosen color
             gpd.GeoSeries([line]).plot(ax=ax, color=random_color, linewidth=1.5)
+    # Set the title of the plot and display the legend
     ax.set_title('Comparison of Original and Offset Geometries')
     ax.legend()
+    # Display the plot
     plt.show()
 
+    # Return the GeoDataFrame containing the processed geometry
     return result_gdf
 
 
