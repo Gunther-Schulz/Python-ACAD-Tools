@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 import sys
 import json
 import os
-import random  # Import random for generating random colors
 
 import yaml  # Import the yaml module
 
@@ -182,40 +181,54 @@ import geopandas as gpd
 import matplotlib.pyplot as plt
 from shapely.geometry import Point, Polygon, LineString
 
+from shapely.ops import linemerge, unary_union
+import geopandas as gpd
+import matplotlib.pyplot as plt
+import random
+
 def select_parcel_edges(geom):
     print(geom)
 
     # Create an empty list to store the resulting geometries
-    geometries = []
+    edge_lines = []
     
     # Iterate over each polygon in the geometry
     for poly in geom.geometry:
-        # Buffer each polygon outward by 10 units with sharp corners
-        buffered_poly_out = poly.buffer(10, join_style=2)  # 2 is for miter join
-        # Buffer each polygon inward by 10 units with sharp corners and intersect with unary union
-        buffered_poly_in = poly.buffer(-10, join_style=2).intersection(geom.unary_union)
+        # Convert polygon to a linestring along the boundary
+        boundary_line = poly.boundary
         
-        # Append the resulting geometry to the list
-        geometries.append(buffered_poly_out)  # Outer buffer added directly without intersection
-        geometries.append(buffered_poly_in)
+        # Buffer each line outward and inward
+        buffered_line_out = boundary_line.buffer(10, join_style=2)  # Outward buffer
+        buffered_line_in = boundary_line.buffer(-10, join_style=2)  # Inward buffer
+        
+        # Select appropriate edges from the buffers
+        outer_edge = buffered_line_out.exterior
+        inner_edge = buffered_line_in.exterior
+        
+        # Append edges to the list
+        edge_lines.append(outer_edge)
+        edge_lines.append(inner_edge)
     
-    # Create a GeoDataFrame from the list of geometries
-    result_gdf = gpd.GeoDataFrame(geometry=geometries, crs=geom.crs)
+    # Merge and simplify edges
+    merged_edges = linemerge(unary_union(edge_lines))
+    
+    # Create a GeoDataFrame from the resulting geometry
+    result_gdf = gpd.GeoDataFrame(geometry=[merged_edges], crs=geom.crs)
     
     print(f"The type of geometry in result_gdf is: {type(result_gdf.geometry.iloc[0])}")
     
     # Plot old and new geom as differently colored lines, no fill
     fig, ax = plt.subplots()
     # Plot original geometry with thicker line
-    geom.boundary.plot(ax=ax, color='blue', linewidth=5, label='Original Geometry')  # Increased linewidth
-    # Plot edge geometry with random colors
-    for geometry in result_gdf.geometry:
-        random_color = "#{:06x}".format(random.randint(0, 0xFFFFFF))  # Generate a random color
-        gpd.GeoSeries([geometry]).boundary.plot(ax=ax, color=random_color, linewidth=1.5)  # Plot each geometry in a different color
+    geom.boundary.plot(ax=ax, color='blue', linewidth=5, label='Original Geometry')
+    # Plot each segment of the offset geometry in a different random color
+    if not result_gdf.empty:
+        for line in merged_edges.geoms:
+            random_color = "#{:06x}".format(random.randint(0, 0xFFFFFF))
+            gpd.GeoSeries([line]).plot(ax=ax, color=random_color, linewidth=1.5)
     ax.set_title('Comparison of Original and Offset Geometries')
     ax.legend()
     plt.show()
-
 
     return result_gdf
 
