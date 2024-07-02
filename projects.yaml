@@ -63,16 +63,18 @@ projects:
         color: 12
         close: true
       - name: Wald
-        shapeFile: "Öffentlich Planungsbro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/wald.shp"
+        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/wald.shp"
         label: waldname
         color: 256 # Dark green in DXF color index
         close: true
       - name: Biotope
-        shapeFile: "Öffentlich Planungsbro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/biotope.shp"
-        label: biotopename
+        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/biotope.shp"
+        label: biotopn
         color: 3
         close: true
     wmts:
       - name: DOP
         url: "https://www.geodaten-mv.de/dienste/dop_wmts/wmts/1.0.0/WMTSCapabilities.xml"
-        targetFolder: Öffentlich Planungsbro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/DOP"
+        layer: "mv_dop"
+        zoom: "14"
+        targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/DOP"
