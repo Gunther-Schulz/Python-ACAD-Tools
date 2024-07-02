@@ -62,3 +62,13 @@ projects:
         label: gen
         color: 12
         close: true
+      - name: Wald
+        shapeFile: "Öffentlich Planungsbro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/wald.shp"
+        label: waldname
+        color: 256 # Dark green in DXF color index
+        close: true
+      - name: Biotope
+        shapeFile: "Öffentlich Planungsbro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/biotope.shp"
+        label: biotopename
+        color: 3
+        close: true
