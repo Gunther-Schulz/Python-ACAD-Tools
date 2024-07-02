@@ -7,13 +7,16 @@ import os
 
 import yaml  # Import the yaml module
 
-def load_project_settings(project_name):
-    with open('projects.yaml', 'r') as file:  # Change the file extension to .yaml
-        projects = yaml.safe_load(file)['projects']  # Use yaml.safe_load to read YAML
-        project = next(
-            (project for project in projects if project['name'] == project_name), None)
-        return project
+def load_project_settings(project_name: str):
+    with open('projects.yaml', 'r') as file:
+        data = yaml.safe_load(file)
+        projects = data['projects']
+        folder_prefix = data.get('folderPrefix', '')  # Get folderPrefix or default to empty string
+        return next((project for project in projects if project['name'] == project_name), None), folder_prefix
 
+def resolve_full_path(path: str, prefix: str) -> str:
+    """Resolve the full path, expanding user directory if necessary, and adding the folder prefix."""
+    return os.path.abspath(os.path.expanduser(os.path.join(prefix, path)))
 
 def get_layer_info(project_settings, layer_name):
     shapefile = next((layer['shapeFile']
@@ -21,11 +24,6 @@ def get_layer_info(project_settings, layer_name):
     label = next((layer['label'] for layer in project_settings['layers']
                  if layer['name'] == layer_name), None)
     return shapefile, label
-
-
-def resolve_full_path(path):
-    """Resolve the full path, expanding user directory if necessary."""
-    return os.path.abspath(os.path.expanduser(path))
 
 
 def load_template(project_settings):
@@ -191,8 +189,6 @@ import matplotlib.pyplot as plt
 import random
 
 def select_parcel_edges(geom):
-    # Print the input geometry object for debugging purposes
-    print(geom)
 
     # Initialize a list to hold the edges derived from the input geometry
     edge_lines = []
@@ -207,14 +203,19 @@ def select_parcel_edges(geom):
         # Create an inward buffer of 10 units from the boundary line
         buffered_line_in = boundary_line.buffer(-10, join_style=2)  # Inward buffer with a mitered join
         
-        # Extract the exterior ring of the outward buffer
-        outer_edge = buffered_line_out.exterior
-        # Extract the exterior ring of the inward buffer
-        inner_edge = buffered_line_in.exterior
+        # Handle MultiPolygon and Polygon cases for outward buffer
+        if buffered_line_out.geom_type == 'MultiPolygon':
+            for part in buffered_line_out.geoms:  # Iterate over geoms attribute
+                edge_lines.append(part.exterior)
+        elif buffered_line_out.geom_type == 'Polygon':
+            edge_lines.append(buffered_line_out.exterior)
         
-        # Add the outer and inner edges to the list of edge lines
-        edge_lines.append(outer_edge)
-        edge_lines.append(inner_edge)
+        # Handle MultiPolygon and Polygon cases for inward buffer
+        if buffered_line_in.geom_type == 'MultiPolygon':
+            for part in buffered_line_in.geoms:  # Iterate over geoms attribute
+                edge_lines.append(part.exterior)
+        elif buffered_line_in.geom_type == 'Polygon':
+            edge_lines.append(buffered_line_in.exterior)
 
     # Plot each edge line in the edge_lines list
     fig, ax = plt.subplots()
@@ -254,11 +255,29 @@ def select_parcel_edges(geom):
 
 
 def main():
-    parcels = load_shapefile(PARCEL_SHAPEFILE)
-    flur = load_shapefile(FLUR_SHAPEFILE)
-    orig_flur = load_shapefile(FLUR_SHAPEFILE)
-    gemarkung = load_shapefile(GEMARKUNG_SHAPEFILE)
-    gemeinde = load_shapefile(GEMEINDE_SHAPEFILE)
+    project_settings, folder_prefix = load_project_settings(sys.argv[1])
+    if project_settings:
+        CRS = project_settings['crs']
+        DXF_FILENAME = resolve_full_path(project_settings['dxfFilename'], folder_prefix)
+        TEMPLATE_DXF = resolve_full_path(project_settings.get('template', ''), folder_prefix) if project_settings.get('template') else None
+        GEMEINDE_SHAPEFILE, GEMEINDE_LABEL = get_layer_info(
+            project_settings, "Gemeinde")
+        GEMARKUNG_SHAPEFILE, GEMARKUNG_LABEL = get_layer_info(
+            project_settings, "Gemarkung")
+        FLUR_SHAPEFILE, FLUR_LABEL = get_layer_info(project_settings, "Flur")
+        PARCEL_SHAPEFILE, PARCEL_LABEL = get_layer_info(
+            project_settings, "Parcel")
+        COLORS = {layer['name']: layer['color']
+                  for layer in project_settings['layers']}
+        COVERAGE = project_settings['coverage']
+    else:
+        print(f"Project {sys.argv[1]} not found.")
+
+    parcels = load_shapefile(resolve_full_path(PARCEL_SHAPEFILE, folder_prefix))
+    flur = load_shapefile(resolve_full_path(FLUR_SHAPEFILE, folder_prefix))
+    orig_flur = load_shapefile(resolve_full_path(FLUR_SHAPEFILE, folder_prefix))
+    gemarkung = load_shapefile(resolve_full_path(GEMARKUNG_SHAPEFILE, folder_prefix))
+    gemeinde = load_shapefile(resolve_full_path(GEMEINDE_SHAPEFILE, folder_prefix))
 
     target_parcels = filter_parcels(
         parcels, flur, gemarkung, gemeinde, COVERAGE)
@@ -273,7 +292,7 @@ def main():
     gemeinde_points = labeled_center_points(gemeinde, GEMEINDE_LABEL)
     gemarkung_points = labeled_center_points(gemarkung, GEMARKUNG_LABEL)
 
-    TEMPLATE_DXF = resolve_full_path(project_settings.get('template')) if project_settings.get('template') else None
+    TEMPLATE_DXF = resolve_full_path(project_settings.get('template'), folder_prefix) if project_settings.get('template') else None
     if project_settings['useTemplate'] and TEMPLATE_DXF:
         doc = load_template(project_settings)
     else:
@@ -323,27 +342,22 @@ def main():
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 1:
+    if len(sys.argv) < 2:
         print("Usage: python process.py <project_name>")
+        sys.exit(1)
 
-    project_settings = load_project_settings(sys.argv[1])
+    project_settings, folder_prefix = load_project_settings(sys.argv[1])
+    print(project_settings)
     if project_settings:
         CRS = project_settings['crs']
-        DXF_FILENAME = resolve_full_path(project_settings['dxfFilename'])
-        TEMPLATE_DXF = resolve_full_path(project_settings.get('template')) if project_settings.get('template') else None
-        GEMEINDE_SHAPEFILE, GEMEINDE_LABEL = get_layer_info(
-            project_settings, "Gemeinde")
-        GEMARKUNG_SHAPEFILE, GEMARKUNG_LABEL = get_layer_info(
-            project_settings, "Gemarkung")
+        DXF_FILENAME = resolve_full_path(project_settings['dxfFilename'], folder_prefix)
+        TEMPLATE_DXF = resolve_full_path(project_settings.get('template', ''), folder_prefix) if project_settings.get('template') else None
+        GEMEINDE_SHAPEFILE, GEMEINDE_LABEL = get_layer_info(project_settings, "Gemeinde")
+        GEMARKUNG_SHAPEFILE, GEMARKUNG_LABEL = get_layer_info(project_settings, "Gemarkung")
         FLUR_SHAPEFILE, FLUR_LABEL = get_layer_info(project_settings, "Flur")
-        PARCEL_SHAPEFILE, PARCEL_LABEL = get_layer_info(
-            project_settings, "Parcel")
-        COLORS = {layer['name']: layer['color']
-                  for layer in project_settings['layers']}
+        PARCEL_SHAPEFILE, PARCEL_LABEL = get_layer_info(project_settings, "Parcel")
+        COLORS = {layer['name']: layer['color'] for layer in project_settings['layers']}
         COVERAGE = project_settings['coverage']
-    # Add your processing logic here
-
+        main()
     else:
         print(f"Project {sys.argv[1]} not found.")
-
-    main()
