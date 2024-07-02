@@ -72,3 +72,7 @@ projects:
         label: biotopename
         color: 3
         close: true
+    wmts:
+      - name: DOP
+        url: "https://www.geodaten-mv.de/dienste/dop_wmts/wmts/1.0.0/WMTSCapabilities.xml"
+        targetFolder: Öffentlich Planungsbro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/DOP"

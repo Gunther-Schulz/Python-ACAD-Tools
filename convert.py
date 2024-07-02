@@ -267,6 +267,10 @@ def main():
         FLUR_SHAPEFILE, FLUR_LABEL = get_layer_info(project_settings, "Flur")
         PARCEL_SHAPEFILE, PARCEL_LABEL = get_layer_info(
             project_settings, "Parcel")
+        WALD_SHAPEFILE, WALD_LABEL = get_layer_info(
+            project_settings, "Wald")  # Added Wald
+        BIOTOPE_SHAPEFILE, BIOTOPE_LABEL = get_layer_info(
+            project_settings, "Biotope")  # Added Biotope
         COLORS = {layer['name']: layer['color']
                   for layer in project_settings['layers']}
         COVERAGE = project_settings['coverage']
@@ -278,6 +282,8 @@ def main():
     orig_flur = load_shapefile(resolve_full_path(FLUR_SHAPEFILE, folder_prefix))
     gemarkung = load_shapefile(resolve_full_path(GEMARKUNG_SHAPEFILE, folder_prefix))
     gemeinde = load_shapefile(resolve_full_path(GEMEINDE_SHAPEFILE, folder_prefix))
+    wald = load_shapefile(resolve_full_path(WALD_SHAPEFILE, folder_prefix))  # Added Wald
+    biotope = load_shapefile(resolve_full_path(BIOTOPE_SHAPEFILE, folder_prefix))  # Added Biotope
 
     target_parcels = filter_parcels(
         parcels, flur, gemarkung, gemeinde, COVERAGE)
@@ -285,12 +291,18 @@ def main():
     # flur = apply_conditional_buffering(flur, target_parcels, 2)
     geltungsbereich = target_parcels['geometry'].unary_union
 
-    # flur = select_parcel_edges(flur)
+    # Buffer the wald geometries by 30 units
+    wald_buffered = wald.buffer(30)
+
+    # Reduce geltungsbereich by where it overlays the buffered wald
+    geltungsbereich = geltungsbereich.difference(wald_buffered.unary_union)
 
     parcel_points = labeled_center_points(parcels, PARCEL_LABEL)
     # flur_points = labeled_center_points(flur, FLUR_LABEL)
     gemeinde_points = labeled_center_points(gemeinde, GEMEINDE_LABEL)
     gemarkung_points = labeled_center_points(gemarkung, GEMARKUNG_LABEL)
+    # wald_points = labeled_center_points(wald, WALD_LABEL)  # Added Wald
+    # biotope_points = labeled_center_points(biotope, BIOTOPE_LABEL)  # Added Biotope
 
     TEMPLATE_DXF = resolve_full_path(project_settings.get('template'), folder_prefix) if project_settings.get('template') else None
     if project_settings['useTemplate'] and TEMPLATE_DXF:
@@ -309,6 +321,8 @@ def main():
     add_layer(doc, 'Parcel', COLORS['Parcel'])
     add_layer(doc, 'Parcel Number', COLORS['Parcel'])
     add_layer(doc, 'Flur Number', COLORS['Flur'])
+    add_layer(doc, 'Wald', COLORS['Wald'])  # Added Wald
+    add_layer(doc, 'Biotope', COLORS['Biotope'])  # Added Biotope
     # add_layer(doc, 'Gemeinde Name', COLORS['Gemeinde'])
     # add_layer(doc, 'Gemarkung Name', COLORS['Gemarkung'])
 
@@ -321,21 +335,23 @@ def main():
     msp = doc.modelspace()
 
     flur = select_parcel_edges(flur)
-    add_geometries(msp, flur['geometry'], 'Flur', True)
-
+    # add_geometries(msp, flur['geometry'], 'Flur', True)
 
     # add_geometries(msp, parcels['geometry'], 'Parcel', True)
-    # add_geometries(
-    #     msp, [geltungsbereich], 'Geltungsbereich', True)
+    add_geometries(
+        msp, [geltungsbereich], 'Geltungsbereich', True)
     # add_geometries(msp, orig_flur['geometry'], 'Flur', True)
     # add_geometries(msp, flur['geometry'], 'Flur', True)
     # add_geometries(msp, gemeinde['geometry'], 'Gemeinde', True)
     # add_geometries(msp, gemarkung['geometry'], 'Gemarkung', True)
-    # add_geometries(msp, parcels['geometry'], 'Parcel', True)
+    # add_geometries(msp, wald['geometry'], 'Wald', True)  # Added Wald
+    # add_geometries(msp, biotope['geometry'], 'Biotope', True)  # Added Biotope
     # add_text_to_center(msp, parcel_points, 'Parcel Number')
     # add_text_to_center(msp, flur_points, 'Flur Number')
     # add_text_to_center(msp, gemeinde_points, 'Gemeinde Name')
     # add_text_to_center(msp, gemarkung_points, 'Gemarkung Name')
+    # add_text_to_center(msp, wald_points, 'Wald Name')  # Added Wald
+    # add_text_to_center(msp, biotope_points, 'Biotope Name')  # Added Biotope
 
     doc.saveas(DXF_FILENAME)
     print(f"Saved {DXF_FILENAME}")
@@ -346,18 +362,19 @@ if __name__ == "__main__":
         print("Usage: python process.py <project_name>")
         sys.exit(1)
 
-    project_settings, folder_prefix = load_project_settings(sys.argv[1])
-    print(project_settings)
-    if project_settings:
-        CRS = project_settings['crs']
-        DXF_FILENAME = resolve_full_path(project_settings['dxfFilename'], folder_prefix)
-        TEMPLATE_DXF = resolve_full_path(project_settings.get('template', ''), folder_prefix) if project_settings.get('template') else None
-        GEMEINDE_SHAPEFILE, GEMEINDE_LABEL = get_layer_info(project_settings, "Gemeinde")
-        GEMARKUNG_SHAPEFILE, GEMARKUNG_LABEL = get_layer_info(project_settings, "Gemarkung")
-        FLUR_SHAPEFILE, FLUR_LABEL = get_layer_info(project_settings, "Flur")
-        PARCEL_SHAPEFILE, PARCEL_LABEL = get_layer_info(project_settings, "Parcel")
-        COLORS = {layer['name']: layer['color'] for layer in project_settings['layers']}
-        COVERAGE = project_settings['coverage']
-        main()
-    else:
-        print(f"Project {sys.argv[1]} not found.")
+    # project_settings, folder_prefix = load_project_settings(sys.argv[1])
+    # print(project_settings)
+    # if project_settings:
+    #     CRS = project_settings['crs']
+    #     DXF_FILENAME = resolve_full_path(project_settings['dxfFilename'], folder_prefix)
+    #     TEMPLATE_DXF = resolve_full_path(project_settings.get('template', ''), folder_prefix) if project_settings.get('template') else None
+    #     GEMEINDE_SHAPEFILE, GEMEINDE_LABEL = get_layer_info(project_settings, "Gemeinde")
+    #     GEMARKUNG_SHAPEFILE, GEMARKUNG_LABEL = get_layer_info(project_settings, "Gemarkung")
+    #     FLUR_SHAPEFILE, FLUR_LABEL = get_layer_info(project_settings, "Flur")
+    #     PARCEL_SHAPEFILE, PARCEL_LABEL = get_layer_info(project_settings, "Parcel")
+    #     COLORS = {layer['name']: layer['color'] for layer in project_settings['layers']}
+    #     COVERAGE = project_settings['coverage']
+    #     main()
+    # else:
+    #     print(f"Project {sys.argv[1]} not found.")
+
