@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 from shapely.ops import linemerge, unary_union
 from wmts_downloader import download_wmts_tiles
 from shapely.geometry import Point, Polygon, LineString, MultiPolygon, MultiLineString
+import random
 
 
 class ProjectProcessor:
@@ -85,15 +86,68 @@ class ProjectProcessor:
                         flur_mask & gemeinde_mask & gemarkung_mask]
         return result
 
-    def select_parcel_edges(self, geom: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
+    def select_parcel_edges(self, geom):
+
+        # Initialize a list to hold the edges derived from the input geometry
         edge_lines = []
+
+        # Loop through each polygon in the input geometry collection
         for poly in geom.geometry:
+            # Extract the boundary of the polygon, converting it to a linestring
             boundary_line = poly.boundary
-            buffered_line_out = boundary_line.buffer(10, join_style=2)
+
+            # Create an outward buffer of 10 units from the boundary line
+            buffered_line_out = boundary_line.buffer(
+                10, join_style=2)  # Outward buffer with a mitered join
+            # Create an inward buffer of 10 units from the boundary line
+            # Inward buffer with a mitered join
             buffered_line_in = boundary_line.buffer(-10, join_style=2)
-            edge_lines.append(boundary_line.difference(
-                buffered_line_in).difference(buffered_line_out))
-        return gpd.GeoDataFrame(geometry=edge_lines, crs=geom.crs)
+
+            # Handle MultiPolygon and Polygon cases for outward buffer
+            if buffered_line_out.geom_type == 'MultiPolygon':
+                for part in buffered_line_out.geoms:  # Iterate over geoms attribute
+                    edge_lines.append(part.exterior)
+            elif buffered_line_out.geom_type == 'Polygon':
+                edge_lines.append(buffered_line_out.exterior)
+
+            # Handle MultiPolygon and Polygon cases for inward buffer
+            if buffered_line_in.geom_type == 'MultiPolygon':
+                for part in buffered_line_in.geoms:  # Iterate over geoms attribute
+                    edge_lines.append(part.exterior)
+            elif buffered_line_in.geom_type == 'Polygon':
+                edge_lines.append(buffered_line_in.exterior)
+
+        # Merge and simplify the collected edge lines into a single geometry
+        merged_edges = linemerge(unary_union(edge_lines))
+
+        # Create a GeoDataFrame to hold the merged edges, preserving the original CRS
+        result_gdf = gpd.GeoDataFrame(geometry=[merged_edges], crs=geom.crs)
+
+        # Output the type of geometry contained in the resulting GeoDataFrame
+        print(
+            f"The type of geometry in result_gdf is: {type(result_gdf.geometry.iloc[0])}")
+
+        # Set up a plot to visually compare the original and modified geometries
+        fig, ax = plt.subplots()
+        # Plot the original geometry boundary with a blue line
+        geom.boundary.plot(ax=ax, color='blue', linewidth=5,
+                           label='Original Geometry')
+        # Plot each segment of the merged edges in a randomly chosen color
+        if not result_gdf.empty:
+            for line in merged_edges.geoms:
+                # Generate a random color for each segment
+                random_color = "#{:06x}".format(random.randint(0, 0xFFFFFF))
+                # Plot the segment with the randomly chosen color
+                gpd.GeoSeries([line]).plot(
+                    ax=ax, color=random_color, linewidth=1.5)
+        # Set the title of the plot and display the legend
+        ax.set_title('Comparison of Original and Offset Geometries')
+        ax.legend()
+        # Display the plot
+        plt.show()
+
+        # Return the GeoDataFrame containing the processed geometry
+        return result_gdf
 
     def load_template(self):
         if self.template_dxf:
