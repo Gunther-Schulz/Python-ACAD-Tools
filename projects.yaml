@@ -1,6 +1,7 @@
 folderPrefix: "~/IONOS HiDrive"
 projects:
   - name: Plasten
+    exportFormat: dwg
     crs: EPSG:25833
     dxfFilename: "/Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Zeichnung/combined.dxf"
     template: "./data/Zeichnung.dxf"
@@ -32,6 +33,7 @@ projects:
         color: 12
         close: true
   - name: Torgelow
+    exportFormat: dxf
     crs: EPSG:25833
     dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/Zeichnung/combined.dxf"
     # template: "~/hidrive/Öffentlich Planungsbüro Schulz/Allgemein/CAD/Zeichnung.dxf"

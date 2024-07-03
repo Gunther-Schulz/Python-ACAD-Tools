@@ -10,8 +10,8 @@ from shapely.geometry import Point, Polygon, LineString, MultiPolygon, MultiLine
 import random
 from ezdxf.addons import odafc
 
-if sys.platform == "darwin" and os.path.exists("/Applications/ODAFileConverter.app/Contents/MacOS/ODAFileConverter"):
-    odafc.unix_exec_path = "/Applications/ODAFileConverter.app/Contents/MacOS/ODAFileConverter"
+# if sys.platform == "darwin" and os.path.exists("/Applications/ODAFileConverter.app/Contents/MacOS/ODAFileConverter"):
+#     odafc.unix_exec_path = "/Applications/ODAFileConverter.app/Contents/MacOS/ODAFileConverter"
 
 
 class ProjectProcessor:
@@ -51,6 +51,11 @@ class ProjectProcessor:
         # Modify this part to create a dictionary of WMTS layers
         self.wmts_layers = {
             wmts['name']: f"WMTS {wmts['name']}" for wmts in self.wmts}
+
+        self.export_format = self.project_settings.get('exportFormat', 'dxf')
+
+        if sys.platform == "darwin" and os.path.exists("/Applications/ODAFileConverter.app/Contents/MacOS/ODAFileConverter"):
+            odafc.unix_exec_path = "/Applications/ODAFileConverter.app/Contents/MacOS/ODAFileConverter"
 
     def load_project_settings(self, project_name: str):
         with open('projects.yaml', 'r') as file:
@@ -405,10 +410,11 @@ class ProjectProcessor:
                 self.add_image_with_worldfile(
                     msp, tile_path, world_file_path, layer_name)
 
-        # Save the DXF document
-        # doc.saveas(self.dxf_filename)
-        doc.header['$PROJECTNAME'] = ''
-        odafc.export_dwg(doc, self.dxf_filename.replace('.dxf', '.dwg'))
+        if self.export_format == 'dwg':
+            doc.header['$PROJECTNAME'] = ''
+            odafc.export_dwg(doc, self.dxf_filename.replace('.dxf', '.dwg'))
+        else:
+            doc.saveas(self.dxf_filename)
 
     def update_wmts(self):
         print("Starting update_wmts...")  # Debugging statement
