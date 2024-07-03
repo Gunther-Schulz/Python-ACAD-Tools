@@ -59,6 +59,7 @@ def write_world_file(file_name, extension, col, row, matrix, zoom_folder) -> str
     left = ((col * matrix.tilewidth + 0.5) * a) + matrix.topleftcorner[0]
     top = ((row * matrix.tileheight + 0.5) * e) + matrix.topleftcorner[1]
 
+    # Generate the world file path without the image extension
     world_file_path = os.path.join(zoom_folder, f'{file_name}.{wf_ext}')
     with open(world_file_path, 'w') as f:
         f.write('%f\n%d\n%d\n%f\n%f\n%f' % (a, 0, 0, e, left, top))
@@ -143,6 +144,7 @@ def download_wmts_tiles(wmts_info: dict, geltungsbereich, buffer_distance: float
         left = ((col * matrix.tilewidth + 0.5) * a) + matrix.topleftcorner[0]
         top = ((row * matrix.tileheight + 0.5) * e) + matrix.topleftcorner[1]
 
+        # Generate the world file path without the image extension
         world_file_path = os.path.join(zoom_folder, f'{file_name}.{wf_ext}')
         with open(world_file_path, 'w') as f:
             f.write('%f\n%d\n%d\n%f\n%f\n%f' % (a, 0, 0, e, left, top))
@@ -205,7 +207,8 @@ def download_wmts_tiles(wmts_info: dict, geltungsbereich, buffer_distance: float
                 exists, file_path = tile_already_exists(
                     file_name, extension, zoom_folder)
                 if exists:
-                    downloaded_tiles.append((file_path, f'{file_path}.pgw'))
+                    downloaded_tiles.append(
+                        (file_path, f'{zoom_folder}/{file_name}.pgw'))
                     skip_count += 1
                     continue
 

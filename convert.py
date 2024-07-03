@@ -144,7 +144,7 @@ class ProjectProcessor:
         ax.set_title('Comparison of Original and Offset Geometries')
         ax.legend()
         # Display the plot
-        plt.show()
+        # plt.show()
 
         # Return the GeoDataFrame containing the processed geometry
         return result_gdf
