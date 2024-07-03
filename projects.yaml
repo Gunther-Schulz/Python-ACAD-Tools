@@ -47,32 +47,32 @@ projects:
       - name: Flur
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/flur2.shp"
         label: flurname
-        color: 2
+        color: red
         close: true
       - name: Parcel
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/parcel2.shp"
         label: label
-        color: 10
+        color: yellow
         close: true
       - name: Gemarkung
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/gemarkung2.shp"
         label: gmkname
-        color: 11
+        color: green
         close: true
       - name: Gemeinde
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/gemeinde2.shp"
         label: gen
-        color: 12
+        color: cyan
         close: true
       - name: Wald
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/wald.shp"
         label: waldname
-        color: 256 # Dark green in DXF color index
+        color: blue
         close: true
       - name: Biotope
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/biotope.shp"
         label: biotopn
-        color: 3
+        color: magenta
         close: true
     distanceLayers:
       - shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/abstand.shp"

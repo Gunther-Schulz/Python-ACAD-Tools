@@ -10,9 +10,6 @@ from shapely.geometry import Point, Polygon, LineString, MultiPolygon, MultiLine
 import random
 from ezdxf.addons import odafc
 
-# if sys.platform == "darwin" and os.path.exists("/Applications/ODAFileConverter.app/Contents/MacOS/ODAFileConverter"):
-#     odafc.unix_exec_path = "/Applications/ODAFileConverter.app/Contents/MacOS/ODAFileConverter"
-
 
 class ProjectProcessor:
     def __init__(self, project_name: str, update_wmts_only: bool = False):
@@ -44,8 +41,32 @@ class ProjectProcessor:
         self.wald_shapefile, self.wald_label = self.get_layer_info("Wald")
         self.biotope_shapefile, self.biotope_label = self.get_layer_info(
             "Biotope")
-        self.colors = {layer['name']: layer['color']
+        self.color_map = {
+            'red': 1, 'yellow': 2, 'green': 3, 'cyan': 4, 'blue': 5, 'magenta': 6,
+            'white': 7, 'gray': 8, 'light_gray': 9, 'dark_red': 10, 'dark_yellow': 11,
+            'dark_green': 12, 'dark_cyan': 13, 'dark_blue': 14, 'dark_magenta': 15,
+            'orange': 16, 'pink': 17, 'brown': 18, 'purple': 19, 'lime': 20,
+            'olive': 21, 'navy': 22, 'teal': 23, 'maroon': 24, 'silver': 25,
+            'gold': 26, 'beige': 27, 'coral': 28, 'ivory': 29, 'khaki': 30,
+            'lavender': 31, 'peach': 32, 'mint': 33, 'apricot': 34, 'rose': 35,
+            'plum': 36, 'mustard': 37, 'turquoise': 38, 'violet': 39, 'charcoal': 40,
+            'aqua': 41, 'burgundy': 42, 'emerald': 43, 'fuchsia': 44, 'indigo': 45,
+            'jade': 46, 'lavender_blush': 47, 'lemon': 48, 'mauve': 49, 'pearl': 50,
+            'ruby': 51, 'sapphire': 52, 'amber': 53, 'amethyst': 54, 'topaz': 55,
+            'opal': 56, 'garnet': 57, 'peridot': 58, 'aquamarine': 59, 'tanzanite': 60,
+            'moonstone': 61, 'onyx': 62, 'quartz': 63, 'citrine': 64, 'jasper': 65,
+            'lapis': 66, 'malachite': 67, 'obsidian': 68, 'agate': 69, 'turquoise_blue': 70,
+            'copper': 71, 'bronze': 72, 'brass': 73, 'nickel': 74, 'platinum': 75,
+            'zinc': 76, 'aluminum': 77, 'steel': 78, 'chrome': 79, 'titanium': 80,
+            'pewter': 81, 'lead': 82, 'tin': 83, 'mercury': 84, 'bismuth': 85,
+            'antimony': 86, 'arsenic': 87, 'cadmium': 88, 'cobalt': 89, 'gallium': 90,
+            'germanium': 91, 'hafnium': 92, 'iridium': 93, 'osmium': 94, 'palladium': 95,
+            'rhodium': 96, 'ruthenium': 97, 'scandium': 98, 'strontium': 99, 'tellurium': 100,
+        }
+
+        self.colors = {layer['name']: self.get_color_code(layer['color'])
                        for layer in self.project_settings['layers']}
+
         self.coverage = self.project_settings['coverage']
 
         # Modify this part to create a dictionary of WMTS layers
@@ -243,7 +264,20 @@ class ProjectProcessor:
 
     def add_layer(self, doc, layer_name, color):
         if layer_name not in doc.layers:
-            doc.layers.new(name=layer_name, dxfattribs={'color': color})
+            color_code = self.get_color_code(color)
+            doc.layers.new(name=layer_name, dxfattribs={'color': color_code})
+
+    def get_color_code(self, color):
+        if isinstance(color, int):
+            if color == 0:
+                # Choose a random color between 1 and 255
+                return random.randint(1, 255)
+            return color
+        elif isinstance(color, str):
+            # Default to white (7) if color name not found
+            return self.color_map.get(color.lower(), 7)
+        else:
+            return 7  # Default to white (7) for any other type
 
     def add_image_with_worldfile(self, msp, image_path, world_file_path, layer_name):
         # Create a relative path for the image
@@ -350,7 +384,7 @@ class ProjectProcessor:
         self.add_text_style(doc, 'default')
         layers = [
             ('Flur', self.colors['Flur']),
-            ('FlurOrig', 3),
+            ('FlurOrig', 'green'),
             ('Gemeinde', self.colors['Gemeinde']),
             ('Gemarkung', self.colors['Gemarkung']),
             ('Parcel', self.colors['Parcel']),
@@ -360,10 +394,10 @@ class ProjectProcessor:
             ('Biotope', self.colors['Biotope']),
             ('Gemeinde Name', self.colors['Gemeinde']),
             ('Gemarkung Name', self.colors['Gemarkung']),
-            ('Geltungsbereich', 10),
+            ('Geltungsbereich', 'dark_red'),
         ]
         # Add WMTS layers
-        layers.extend((layer_name, 7)
+        layers.extend((layer_name, 'gray')
                       for layer_name in self.wmts_layers.values())
 
         for layer_name, color in layers:
