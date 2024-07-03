@@ -11,7 +11,7 @@ import random
 
 
 class ProjectProcessor:
-    def __init__(self, project_name: str):
+    def __init__(self, project_name: str, update_wmts_only: bool = False):
         self.project_settings, self.folder_prefix = self.load_project_settings(
             project_name)
         if not self.project_settings:
@@ -20,6 +20,14 @@ class ProjectProcessor:
         self.crs = self.project_settings['crs']
         self.dxf_filename = self.resolve_full_path(
             self.project_settings['dxfFilename'])
+        self.wmts = self.project_settings.get('wmts', [])
+        self.distance_layers = self.project_settings.get('distanceLayers', [])
+
+        if update_wmts_only:
+            print("Updating WMTS tiles only...")
+            self.update_wmts()
+            return
+
         self.template_dxf = self.resolve_full_path(self.project_settings.get(
             'template', '')) if self.project_settings.get('template') else None
         self.gemeinde_shapefile, self.gemeinde_label = self.get_layer_info(
@@ -35,7 +43,6 @@ class ProjectProcessor:
         self.colors = {layer['name']: layer['color']
                        for layer in self.project_settings['layers']}
         self.coverage = self.project_settings['coverage']
-        self.wmts = self.project_settings.get('wmts', [])
 
     def load_project_settings(self, project_name: str):
         with open('projects.yaml', 'r') as file:
@@ -226,9 +233,6 @@ class ProjectProcessor:
             doc.layers.new(name=layer_name, dxfattribs={'color': color})
 
     def add_image_with_worldfile(self, msp, image_path, world_file_path, layer_name):
-        print(
-            f"Adding image to layer {layer_name} at {image_path} with world file {world_file_path}")
-
         # Create the image definition
         image_def = msp.doc.add_image_def(
             filename=image_path, size_in_pixel=(256, 256))
@@ -257,6 +261,22 @@ class ProjectProcessor:
             dxfattribs={'layer': layer_name}
         )
 
+    def process_distance_layers(self, geltungsbereich):
+        for layer in self.distance_layers:
+            shapefile = self.resolve_full_path(layer['shapeFile'])
+            buffer_distance = layer['bufferDistance']
+
+            # Load the shapefile
+            gdf = self.load_shapefile(shapefile)
+
+            # Create buffer
+            buffered = gdf.buffer(buffer_distance)
+
+            # Reduce geltungsbereich
+            geltungsbereich = geltungsbereich.difference(buffered.unary_union)
+
+        return geltungsbereich
+
     def main(self):
         # Load shapefiles
         shapefiles = {
@@ -277,6 +297,9 @@ class ProjectProcessor:
         # Apply buffer to wald and update geltungsbereich
         wald_buffered = shapefiles["wald"].buffer(30)
         geltungsbereich = geltungsbereich.difference(wald_buffered.unary_union)
+
+        # Process distance layers
+        geltungsbereich = self.process_distance_layers(geltungsbereich)
 
         # Download WMTS tiles and get their paths
         downloaded_tiles = []
@@ -352,7 +375,7 @@ class ProjectProcessor:
         # Add WMTS tiles as images
         print(
             f"Adding {len(downloaded_tiles)} WMTS tiles to layer 'WMTS Tiles'")
-        print(downloaded_tiles)
+
         for tile_path, world_file_path in downloaded_tiles:
             self.add_image_with_worldfile(
                 msp, tile_path, world_file_path, 'WMTS Tiles')
@@ -360,13 +383,63 @@ class ProjectProcessor:
         # Save the DXF document
         doc.saveas(self.dxf_filename)
 
+    def update_wmts(self):
+        print("Starting update_wmts...")  # Debugging statement
+        # load existing dxf
+        doc = ezdxf.readfile(self.dxf_filename)
+        print(f"Loaded DXF file: {self.dxf_filename}")  # Debugging statement
+        # Get all polylines from layer "Geltungsbereich"
+        geltungsbereich_polylines = doc.modelspace().query(
+            'LWPOLYLINE[layer=="Geltungsbereich"]')
+        # Debugging statement
+        print(
+            f"Found {len(geltungsbereich_polylines)} polylines in 'Geltungsbereich' layer")
+
+        # Convert polylines to shapely geometries
+        geltungsbereich_geometries = []
+        for polyline in geltungsbereich_polylines:
+            points = polyline.get_points()
+            # Extract only x and y coordinates
+            xy_points = [(point[0], point[1]) for point in points]
+            if len(xy_points) >= 3:  # Ensure we have at least 3 points to form a polygon
+                geltungsbereich_geometries.append(Polygon(xy_points))
+            else:
+                print(
+                    f"Warning: Skipping polyline with insufficient points: {len(xy_points)}")
+        # Debugging statement
+        print(
+            f"Converted {len(geltungsbereich_geometries)} polylines to shapely geometries")
+
+        # convert to shapely geometry
+        geltungsbereich = unary_union(geltungsbereich_geometries)
+        print("Converted geometries to unary union")  # Debugging statement
+
+        # Download WMTS tiles
+        for wmts_info in self.wmts:
+            target_folder = self.resolve_full_path(wmts_info['targetFolder'])
+            os.makedirs(target_folder, exist_ok=True)
+            # Debugging statement
+            print(f"Downloading WMTS tiles to {target_folder}")
+            download_wmts_tiles(wmts_info, geltungsbereich,
+                                500, target_folder, True)
+            # Debugging statement
+            print(f"Downloaded WMTS tiles for {wmts_info['url']}")
+
+        print("WMTS tiles updated successfully.")
+
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: python process.py <project_name>")
+        print(
+            "Usage: python process.py <project_name> [--update-wmts-only | -u]")
         sys.exit(1)
     try:
-        processor = ProjectProcessor(sys.argv[1])
-        processor.main()
+        project_name = sys.argv[1]
+        update_wmts_only = '--update-wmts-only' in sys.argv or '-u' in sys.argv
+        processor = ProjectProcessor(project_name, update_wmts_only)
+        if update_wmts_only:
+            processor.update_wmts()
+        else:
+            processor.main()
     except ValueError as e:
         print(e)

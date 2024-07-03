@@ -67,7 +67,7 @@ def write_world_file(file_name, extension, col, row, matrix, zoom_folder) -> str
     return world_file_path
 
 
-def download_wmts_tiles(wmts_info: dict, geltungsbereich, buffer_distance: float, target_folder: str) -> list:
+def download_wmts_tiles(wmts_info: dict, geltungsbereich, buffer_distance: float, target_folder: str, overwrite: bool = False) -> list:
     """Download WMTS tiles for the given area with a buffer and save to the target folder."""
     """Source: https://github.com/GastonZalba/wmts-downloader"""
 
@@ -206,7 +206,7 @@ def download_wmts_tiles(wmts_info: dict, geltungsbereich, buffer_distance: float
 
                 exists, file_path = tile_already_exists(
                     file_name, extension, zoom_folder)
-                if exists:
+                if exists and not overwrite:
                     downloaded_tiles.append(
                         (file_path, f'{zoom_folder}/{file_name}.pgw'))
                     skip_count += 1
