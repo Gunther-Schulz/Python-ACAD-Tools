@@ -8,6 +8,10 @@ from shapely.ops import linemerge, unary_union
 from wmts_downloader import download_wmts_tiles
 from shapely.geometry import Point, Polygon, LineString, MultiPolygon, MultiLineString
 import random
+from ezdxf.addons import odafc
+
+if sys.platform == "darwin" and os.path.exists("/Applications/ODAFileConverter.app/Contents/MacOS/ODAFileConverter"):
+    odafc.unix_exec_path = "/Applications/ODAFileConverter.app/Contents/MacOS/ODAFileConverter"
 
 
 class ProjectProcessor:
@@ -259,13 +263,20 @@ class ProjectProcessor:
         size_in_units = (a * 256, abs(e) * 256)
 
         # Add the image with relative path
-        msp.add_image(
+        image = msp.add_image(
             insert=insert_point,
             size_in_units=size_in_units,
             image_def=image_def,
             rotation=0,
             dxfattribs={'layer': layer_name}
         )
+
+        # Set the image path as a relative path
+        image.dxf.image_def_handle = image_def.dxf.handle
+        image.dxf.flags = 3  # Set bit 0 and 1 to indicate relative path
+
+        # Set the $PROJECTNAME header variable to an empty string
+        msp.doc.header['$PROJECTNAME'] = ''
 
     def process_distance_layers(self, geltungsbereich):
         for layer in self.distance_layers:
@@ -395,7 +406,9 @@ class ProjectProcessor:
                     msp, tile_path, world_file_path, layer_name)
 
         # Save the DXF document
-        doc.saveas(self.dxf_filename)
+        # doc.saveas(self.dxf_filename)
+        doc.header['$PROJECTNAME'] = ''
+        odafc.export_dwg(doc, self.dxf_filename.replace('.dxf', '.dwg'))
 
     def update_wmts(self):
         print("Starting update_wmts...")  # Debugging statement
