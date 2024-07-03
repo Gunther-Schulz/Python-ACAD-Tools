@@ -237,9 +237,13 @@ class ProjectProcessor:
             doc.layers.new(name=layer_name, dxfattribs={'color': color})
 
     def add_image_with_worldfile(self, msp, image_path, world_file_path, layer_name):
-        # Create the image definition
+        # Create a relative path for the image
+        relative_image_path = os.path.relpath(
+            image_path, os.path.dirname(self.dxf_filename))
+
+        # Create the image definition with the relative path
         image_def = msp.doc.add_image_def(
-            filename=image_path, size_in_pixel=(256, 256))
+            filename=relative_image_path, size_in_pixel=(256, 256))
 
         # Read the world file to get the transformation parameters
         with open(world_file_path, 'r') as wf:
@@ -251,12 +255,10 @@ class ProjectProcessor:
             f = float(wf.readline().strip())
 
         # Calculate the insertion point and size
-        # Adjust the insertion point to lower the image
         insert_point = (c, f - abs(e) * 256)
-        # Use abs(e) to ensure positive size
         size_in_units = (a * 256, abs(e) * 256)
 
-        # Assuming the image is not rotated (d and b are 0)
+        # Add the image with relative path
         msp.add_image(
             insert=insert_point,
             size_in_units=size_in_units,

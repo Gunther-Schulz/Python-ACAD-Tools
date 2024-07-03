@@ -2,6 +2,7 @@ from owslib.wmts import WebMapTileService
 import os
 import math
 import time
+import mimetypes
 
 
 def filter_row_cols_by_bbox(matrix, bbox):
@@ -39,20 +40,23 @@ def write_image(file_name, extension, img, zoom_folder):
     file_path = os.path.join(zoom_folder, f'{file_name}.{extension}')
     with open(file_path, 'wb') as out:
         out.write(img.read())
+    return file_path
+
+
+def get_world_file_extension(image_extension: str) -> str:
+    extension_map = {
+        'png': 'pgw',
+        'tiff': 'tfw',
+        'tif': 'tfw',
+        'jpg': 'jgw',
+        'jpeg': 'jgw',
+        'gif': 'gfw'
+    }
+    return extension_map.get(image_extension.lower(), 'wld')
 
 
 def write_world_file(file_name, extension, col, row, matrix, zoom_folder) -> str:
-    if extension == 'png':
-        wf_ext = 'pgw'
-    elif extension in ['tiff', 'tif']:
-        wf_ext = 'tfw'
-    elif extension in ['jpg', 'jpeg']:
-        wf_ext = 'jgw'
-    elif extension == 'gif':
-        wf_ext = 'gfw'
-    else:
-        wf_ext = 'wld'
-
+    wf_ext = get_world_file_extension(extension)
     pixel_size = 0.00028
     a = matrix.scaledenominator * pixel_size
     e = matrix.scaledenominator * -pixel_size
@@ -75,7 +79,8 @@ def download_wmts_tiles(wmts_info: dict, geltungsbereich, buffer_distance: float
     wmts = WebMapTileService(capabilities_url)
     layer_id = wmts_info['layer']
     zoom = wmts_info['zoom']
-    format = 'image/png'
+    requested_format = wmts_info.get('format', 'image/png')
+    requested_extension = requested_format.split("/")[-1]
     proj = wmts_info['proj']  # Updated projection
     sleep = wmts_info.get('sleep', 0)
     limit_requests = wmts_info.get('limit', 0)
@@ -125,6 +130,7 @@ def download_wmts_tiles(wmts_info: dict, geltungsbereich, buffer_distance: float
         file_path = os.path.join(zoom_folder, f'{file_name}.{extension}')
         with open(file_path, 'wb') as out:
             out.write(img.read())
+        return file_path
 
     def write_world_file(file_name, extension, col, row, matrix, zoom_folder) -> str:
         if extension == 'png':
@@ -199,25 +205,33 @@ def download_wmts_tiles(wmts_info: dict, geltungsbereich, buffer_distance: float
 
         for row in range(min_row, max_row):
             for col in range(min_col, max_col):
-                extension = format.split("/")[-1]
                 file_name = f'{layer_id}__{proj.replace(":", "-")}_row-{row}_col-{col}_zoom-{zoom}'
-                file_path = os.path.join(
-                    zoom_folder, f'{file_name}.{extension}')
+
+                img = wmts.gettile(layer=layer_id, tilematrixset=proj,
+                                   tilematrix=zoom_str, row=row, column=col, format=requested_format)
+
+                # Determine the actual content type and extension
+                content_type = img.info().get('Content-Type', requested_format)
+                actual_extension = mimetypes.guess_extension(
+                    content_type, strict=False)
+                if actual_extension:
+                    # Remove the leading dot
+                    actual_extension = actual_extension[1:]
+                else:
+                    actual_extension = requested_extension
 
                 exists, file_path = tile_already_exists(
-                    file_name, extension, zoom_folder)
+                    file_name, actual_extension, zoom_folder)
                 if exists and not overwrite:
                     downloaded_tiles.append(
-                        (file_path, f'{zoom_folder}/{file_name}.pgw'))
+                        (file_path, f'{zoom_folder}/{file_name}.{get_world_file_extension(actual_extension)}'))
                     skip_count += 1
                     continue
 
-                img = wmts.gettile(layer=layer_id, tilematrixset=proj,
-                                   tilematrix=zoom_str, row=row, column=col, format=format)
-
                 world_file_path = write_world_file(
-                    file_name, extension, col, row, tile_matrix_zoom, zoom_folder)
-                write_image(file_name, extension, img, zoom_folder)
+                    file_name, actual_extension, col, row, tile_matrix_zoom, zoom_folder)
+                file_path = write_image(
+                    file_name, actual_extension, img, zoom_folder)
 
                 downloaded_tiles.append((file_path, world_file_path))
 
