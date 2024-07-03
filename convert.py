@@ -44,6 +44,10 @@ class ProjectProcessor:
                        for layer in self.project_settings['layers']}
         self.coverage = self.project_settings['coverage']
 
+        # Modify this part to create a dictionary of WMTS layers
+        self.wmts_layers = {
+            wmts['name']: f"WMTS {wmts['name']}" for wmts in self.wmts}
+
     def load_project_settings(self, project_name: str):
         with open('projects.yaml', 'r') as file:
             data = yaml.safe_load(file)
@@ -339,8 +343,11 @@ class ProjectProcessor:
             ('Gemeinde Name', self.colors['Gemeinde']),
             ('Gemarkung Name', self.colors['Gemarkung']),
             ('Geltungsbereich', 10),
-            ('WMTS Tiles', 7)  # Add a new layer for WMTS tiles
         ]
+        # Add WMTS layers
+        layers.extend((layer_name, 7)
+                      for layer_name in self.wmts_layers.values())
+
         for layer_name, color in layers:
             self.add_layer(doc, layer_name, color)
 
@@ -373,12 +380,17 @@ class ProjectProcessor:
             self.add_text_to_center(msp, points, layer_name)
 
         # Add WMTS tiles as images
-        print(
-            f"Adding {len(downloaded_tiles)} WMTS tiles to layer 'WMTS Tiles'")
+        for wmts_info in self.wmts:
+            target_folder = self.resolve_full_path(wmts_info['targetFolder'])
+            os.makedirs(target_folder, exist_ok=True)
+            tiles = download_wmts_tiles(
+                wmts_info, geltungsbereich, 500, target_folder)
 
-        for tile_path, world_file_path in downloaded_tiles:
-            self.add_image_with_worldfile(
-                msp, tile_path, world_file_path, 'WMTS Tiles')
+            layer_name = self.wmts_layers[wmts_info['name']]
+            print(f"Adding {len(tiles)} WMTS tiles to layer '{layer_name}'")
+            for tile_path, world_file_path in tiles:
+                self.add_image_with_worldfile(
+                    msp, tile_path, world_file_path, layer_name)
 
         # Save the DXF document
         doc.saveas(self.dxf_filename)
@@ -423,7 +435,8 @@ class ProjectProcessor:
             download_wmts_tiles(wmts_info, geltungsbereich,
                                 500, target_folder, True)
             # Debugging statement
-            print(f"Downloaded WMTS tiles for {wmts_info['url']}")
+            print(
+                f"Downloaded WMTS tiles for {wmts_info['url']} to layer '{self.wmts_layers[wmts_info['name']]}'")
 
         print("WMTS tiles updated successfully.")
 
