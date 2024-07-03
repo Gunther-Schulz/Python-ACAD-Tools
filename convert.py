@@ -225,6 +225,32 @@ class ProjectProcessor:
         if layer_name not in doc.layers:
             doc.layers.new(name=layer_name, dxfattribs={'color': color})
 
+    def add_image_with_worldfile(self, msp, image_path, world_file_path, layer_name):
+        print(
+            f"Adding image to layer {layer_name} at {image_path} with world file {world_file_path}")
+
+        # Create the image definition
+        image_def = msp.doc.add_image_def(
+            filename=image_path, size_in_pixel=(256, 256))
+
+        # Read the world file to get the transformation parameters
+        with open(world_file_path, 'r') as wf:
+            a = float(wf.readline().strip())
+            d = float(wf.readline().strip())
+            b = float(wf.readline().strip())
+            e = float(wf.readline().strip())
+            c = float(wf.readline().strip())
+            f = float(wf.readline().strip())
+
+        # Assuming the image is not rotated (d and b are 0)
+        msp.add_image(
+            insert=(c, f),
+            size_in_units=(a * 256, e * 256),
+            image_def=image_def,
+            rotation=0,
+            dxfattribs={'layer': layer_name}
+        )
+
     def main(self):
         # Load shapefiles
         shapefiles = {
@@ -246,11 +272,14 @@ class ProjectProcessor:
         wald_buffered = shapefiles["wald"].buffer(30)
         geltungsbereich = geltungsbereich.difference(wald_buffered.unary_union)
 
-        # Download WMTS tiles
+        # Download WMTS tiles and get their paths
+        downloaded_tiles = []
         for wmts_info in self.wmts:
             target_folder = self.resolve_full_path(wmts_info['targetFolder'])
             os.makedirs(target_folder, exist_ok=True)
-            download_wmts_tiles(wmts_info, geltungsbereich, 500, target_folder)
+            tiles = download_wmts_tiles(
+                wmts_info, geltungsbereich, 500, target_folder)
+            downloaded_tiles.extend(tiles)
 
         # Generate labeled center points
         labeled_points = {
@@ -280,7 +309,8 @@ class ProjectProcessor:
             ('Biotope', self.colors['Biotope']),
             ('Gemeinde Name', self.colors['Gemeinde']),
             ('Gemarkung Name', self.colors['Gemarkung']),
-            ('Geltungsbereich', 10)
+            ('Geltungsbereich', 10),
+            ('WMTS Tiles', 7)  # Add a new layer for WMTS tiles
         ]
         for layer_name, color in layers:
             self.add_layer(doc, layer_name, color)
@@ -312,6 +342,14 @@ class ProjectProcessor:
         for label, points in labeled_points.items():
             layer_name = label.replace("_points", "").replace("_", " ").title()
             self.add_text_to_center(msp, points, layer_name)
+
+        # Add WMTS tiles as images
+        print(
+            f"Adding {len(downloaded_tiles)} WMTS tiles to layer 'WMTS Tiles'")
+        print(downloaded_tiles)
+        for tile_path, world_file_path in downloaded_tiles:
+            self.add_image_with_worldfile(
+                msp, tile_path, world_file_path, 'WMTS Tiles')
 
         # Save the DXF document
         doc.saveas(self.dxf_filename)
