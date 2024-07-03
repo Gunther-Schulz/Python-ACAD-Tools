@@ -242,10 +242,16 @@ class ProjectProcessor:
             c = float(wf.readline().strip())
             f = float(wf.readline().strip())
 
+        # Calculate the insertion point and size
+        # Adjust the insertion point to lower the image
+        insert_point = (c, f - abs(e) * 256)
+        # Use abs(e) to ensure positive size
+        size_in_units = (a * 256, abs(e) * 256)
+
         # Assuming the image is not rotated (d and b are 0)
         msp.add_image(
-            insert=(c, f),
-            size_in_units=(a * 256, e * 256),
+            insert=insert_point,
+            size_in_units=size_in_units,
             image_def=image_def,
             rotation=0,
             dxfattribs={'layer': layer_name}
