@@ -22,7 +22,8 @@ class ProjectProcessor:
         self.dxf_filename = self.resolve_full_path(
             self.project_settings['dxfFilename'])
         self.wmts = self.project_settings.get('wmts', [])
-        self.distance_layers = self.project_settings.get('distanceLayers', [])
+        self.clip_distance_layers = self.project_settings.get('clipDistanceLayers', [])
+        # self.buffer_distance_layers = self.project_settings.get('bufferDistanceLayers', [])
 
         if update_wmts_only:
             print("Updating WMTS tiles only...")
@@ -128,9 +129,6 @@ class ProjectProcessor:
         return result
 
     def select_parcel_edges(self, geom):
-        # Debugging: Print the type of geom
-        print(f"Input geom type: {type(geom)}")
-        print(f"Input geom columns: {geom.columns}")
 
         # Initialize a list to hold the edges derived from the input geometry
         edge_lines = []
@@ -139,8 +137,6 @@ class ProjectProcessor:
         for _, row in geom.iterrows():
             poly = row.geometry
             # Debugging: Print the type of each geometry
-            print(f"Individual geometry type: {type(poly)}")
-
             if not isinstance(poly, (Polygon, MultiPolygon)):
                 print(f"Skipping non-polygon geometry: {type(poly)}")
                 continue
@@ -178,14 +174,6 @@ class ProjectProcessor:
 
         # Create a GeoDataFrame to hold the merged edges, preserving the original CRS
         result_gdf = gpd.GeoDataFrame(geometry=result_geometries, crs=geom.crs)
-
-        # Debugging: Check the content of result_gdf
-        print("Resulting GeoDataFrame:")
-        print(result_gdf)
-
-        # Output the type of geometry contained in the resulting GeoDataFrame
-        print(f"The type of geometry in result_gdf is: {result_gdf.geometry.dtype}")
-
         # Return the GeoDataFrame containing the processed geometry
         return result_gdf
 
@@ -232,6 +220,9 @@ class ProjectProcessor:
             self.add_text(msp, row['label'], x, y, layer_name, style_name)
 
     def add_geometries(self, msp, geometries, layer_name, close=False):
+        if isinstance(geometries, gpd.GeoSeries) or isinstance(geometries, gpd.GeoDataFrame):
+            geometries = geometries.geometry
+        
         for geom in geometries:
             if geom is None:
                 print(
@@ -316,8 +307,8 @@ class ProjectProcessor:
         # Set the $PROJECTNAME header variable to an empty string
         msp.doc.header['$PROJECTNAME'] = ''
 
-    def process_distance_layers(self, geltungsbereich):
-        for layer in self.distance_layers:
+    def clip_with_distance_layer_buffers(self, geom_to_clip):
+        for layer in self.clip_distance_layers:
             shapefile = self.resolve_full_path(layer['shapeFile'])
             buffer_distance = layer['bufferDistance']
 
@@ -328,10 +319,24 @@ class ProjectProcessor:
             buffered = gdf.buffer(buffer_distance)
 
             # Reduce geltungsbereich
-            geltungsbereich = geltungsbereich.difference(buffered.unary_union)
+            geom_to_clip = geom_to_clip.difference(buffered.unary_union)
 
-        return geltungsbereich
+        return geom_to_clip
+    
+    def get_distance_layer_buffers(self, geom_to_buffer, distance, clipping_geom=None):
+        # Ensure geom_to_buffer is a GeoDataFrame
+        if isinstance(geom_to_buffer, gpd.GeoSeries):
+            geom_to_buffer = gpd.GeoDataFrame(geometry=geom_to_buffer)
 
+        # Create buffer
+        combined_buffer = geom_to_buffer.buffer(distance)
+
+        # If a clipping geometry is provided, intersect the combined buffer with it
+        if clipping_geom is not None:
+            combined_buffer = combined_buffer.intersection(clipping_geom)
+
+        return combined_buffer
+    
     def main(self):
         # Load shapefiles
         shapefiles = {
@@ -349,12 +354,16 @@ class ProjectProcessor:
             shapefiles["parcels"], shapefiles["flur"], shapefiles["gemarkung"], shapefiles["gemeinde"], self.coverage)
         geltungsbereich = target_parcels['geometry'].unary_union
 
-        # Apply buffer to wald and update geltungsbereich
-        wald_buffered = shapefiles["wald"].buffer(30)
-        geltungsbereich = geltungsbereich.difference(wald_buffered.unary_union)
+        # Apply buffer zones from distance layers to reduce geltungsbereich
+        geltungsbereich = self.clip_with_distance_layer_buffers(geltungsbereich)
 
-        # Process distance layers
-        geltungsbereich = self.process_distance_layers(geltungsbereich)
+        # Clip geltungsbereich with wald
+        geltungsbereich = geltungsbereich.difference(shapefiles["wald"].unary_union)
+
+        wald_abstand = self.get_distance_layer_buffers(shapefiles["wald"], 30, geltungsbereich)
+
+        # # Only keep the wald_abstand within the geltungsbereich
+        # wald_abstand = wald_abstand.intersection(geltungsbereich)
 
         # Download WMTS tiles and get their paths
         downloaded_tiles = []
@@ -390,6 +399,7 @@ class ProjectProcessor:
             ('Parcel Number', self.colors['Parcel']),
             ('Flur Number', self.colors['Flur']),
             ('Wald', self.colors['Wald']),
+            ('Wald Abstand', 'dark_red'),
             ('Biotope', self.colors['Biotope']),
             ('Gemeinde Name', self.colors['Gemeinde']),
             ('Gemarkung Name', self.colors['Gemarkung']),
@@ -410,14 +420,15 @@ class ProjectProcessor:
         msp = doc.modelspace()
 
         # Add geometries to modelspace
-        self.add_geometries(msp, self.select_parcel_edges(shapefiles["flur"])['geometry'], 'Flur', close=False)
-        self.add_geometries(msp, shapefiles["parcels"]['geometry'], 'Parcel', close=True)
+        # self.add_geometries(msp, self.select_parcel_edges(shapefiles["flur"])['geometry'], 'Flur', close=False)
+        # self.add_geometries(msp, shapefiles["parcels"]['geometry'], 'Parcel', close=True)
         self.add_geometries(msp, [geltungsbereich], 'Geltungsbereich', close=True)
-        self.add_geometries(msp, shapefiles["orig_flur"]['geometry'], 'FlurOrig', close=True)
-        self.add_geometries(msp, shapefiles["gemeinde"]['geometry'], 'Gemeinde', close=True)
-        self.add_geometries(msp, shapefiles["gemarkung"]['geometry'], 'Gemarkung', close=True)
+        # self.add_geometries(msp, shapefiles["orig_flur"]['geometry'], 'FlurOrig', close=True)
+        # self.add_geometries(msp, shapefiles["gemeinde"]['geometry'], 'Gemeinde', close=True)
+        # self.add_geometries(msp, shapefiles["gemarkung"]['geometry'], 'Gemarkung', close=True)
         self.add_geometries(msp, shapefiles["wald"]['geometry'], 'Wald', close=True)
-        self.add_geometries(msp, shapefiles["biotope"]['geometry'], 'Biotope', close=True)
+        self.add_geometries(msp, wald_abstand, 'Wald Abstand', close=True)
+        # self.add_geometries(msp, shapefiles["biotope"]['geometry'], 'Biotope', close=True)
 
         # Add text to center points
         for label, points in labeled_points.items():

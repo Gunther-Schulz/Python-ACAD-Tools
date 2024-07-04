@@ -75,9 +75,12 @@ projects:
         label: biotopn
         color: magenta
         close: true
-    distanceLayers:
+    clipDistanceLayers:
       - shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/abstand.shp"
         bufferDistance: 7
+    # bufferDistanceLayers:
+    #   - shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/wald.shp"
+    #     bufferDistance: 30
     wmts:
       - name: DOP
         url: "https://www.geodaten-mv.de/dienste/dop_wmts/wmts/1.0.0/WMTSCapabilities.xml"
