@@ -38,6 +38,15 @@ class ProjectProcessor:
         self.wald_shapefile, self.wald_label = self.get_layer_info("Wald")
         self.biotope_shapefile, self.biotope_label = self.get_layer_info(
             "Biotope")
+
+        # Load shapefiles
+        self.gemeinde_shapefile = self.load_shapefile(self.gemeinde_shapefile)
+        self.gemarkung_shapefile = self.load_shapefile(self.gemarkung_shapefile)
+        self.flur_shapefile = self.load_shapefile(self.flur_shapefile)
+        self.parcel_shapefile = self.load_shapefile(self.parcel_shapefile)
+        self.wald_shapefile = self.load_shapefile(self.wald_shapefile)
+        self.biotope_shapefile = self.load_shapefile(self.biotope_shapefile)
+
         self.color_map = {
             'red': 1, 'yellow': 2, 'green': 3, 'cyan': 4, 'blue': 5, 'magenta': 6,
             'white': 7, 'gray': 8, 'light_gray': 9, 'dark_red': 10, 'dark_yellow': 11,
@@ -92,7 +101,7 @@ class ProjectProcessor:
             (layer['shapeFile'] for layer in self.project_settings['layers'] if layer['name'] == layer_name), None)
         label = next((layer['label'] for layer in self.project_settings['layers']
                      if layer['name'] == layer_name), None)
-        return shapefile, label
+        return self.resolve_full_path(shapefile), label
 
     def load_shapefile(self, file_path: str) -> gpd.GeoDataFrame:
         gdf = gpd.read_file(file_path)
@@ -210,43 +219,23 @@ class ProjectProcessor:
             'valign': 1
         })
 
-    def add_text_to_center(self, msp, labeled_centroid_points_df, layer_name, style_name=None):
-        if style_name is None or not msp.styles.has_entry(style_name):
-            style_name = "default"
-        for index, row in labeled_centroid_points_df.iterrows():
-            x, y = row['geometry'].coords[0]
-            self.add_text(msp, row['label'], x, y, layer_name, style_name)
+    def add_text_to_center(self, msp, points, layer_name):
+        self.add_text_style(msp.doc, 'Standard')
+        for idx, row in points.iterrows():
+            self.add_text(msp, row['label'], row.geometry.x, row.geometry.y, layer_name, 'Standard')
 
-    def add_geometries(self, msp, geometries, layer_name, close=False):
-        if isinstance(geometries, gpd.GeoSeries) or isinstance(geometries, gpd.GeoDataFrame):
-            geometries = geometries.geometry
-        
-        # If geometries is a single geometry object, wrap it in a list
-        if isinstance(geometries, (Polygon, LineString, MultiPolygon, MultiLineString)):
-            geometries = [geometries]
-        
+    def add_geometries(self, msp, geometries, layer_name, close=True):
         for geom in geometries:
-            if geom is None:
-                print(f"Warning: None geometry encountered in layer '{layer_name}'")
-            elif isinstance(geom, (Polygon, LineString, MultiPolygon, MultiLineString)):
-                if geom.geom_type == 'Polygon':
-                    points = [(x, y) for x, y in geom.exterior.coords]
-                    msp.add_lwpolyline(points, close=close, dxfattribs={'layer': layer_name})
-                elif geom.geom_type == 'MultiPolygon':
-                    for polygon in geom.geoms:
-                        points = [(x, y) for x, y in polygon.exterior.coords]
-                        msp.add_lwpolyline(points, close=close, dxfattribs={'layer': layer_name})
-                elif geom.geom_type == 'LineString':
-                    points = [(x, y) for x, y in geom.coords]
-                    msp.add_lwpolyline(points, close=close, dxfattribs={'layer': layer_name})
-                elif geom.geom_type == 'MultiLineString':
-                    for line in geom.geoms:
-                        points = [(x, y) for x, y in line.coords]
-                        msp.add_lwpolyline(points, close=close, dxfattribs={'layer': layer_name})
-                else:
-                    print(f"Unsupported geometry type: {geom.geom_type}")
-            else:
-                print(f"Unsupported object type: {type(geom)} in layer '{layer_name}'")
+            if geom.geom_type == 'Polygon' or (geom.geom_type == 'LineString' and close):
+                msp.add_lwpolyline(geom.exterior.coords, dxfattribs={'layer': layer_name, 'closed': close})
+            elif geom.geom_type == 'LineString':
+                msp.add_lwpolyline(geom.coords, dxfattribs={'layer': layer_name})
+            elif geom.geom_type == 'MultiPolygon':
+                for poly in geom.geoms:  # Iterate over the individual polygons in the MultiPolygon
+                    msp.add_lwpolyline(poly.exterior.coords, dxfattribs={'layer': layer_name, 'closed': close})
+            elif geom.geom_type == 'MultiLineString':
+                for line in geom.geoms:  # Iterate over the individual lines in the MultiLineString
+                    msp.add_lwpolyline(line.coords, dxfattribs={'layer': layer_name})
 
     def add_layer(self, doc, layer_name, color):
         if layer_name not in doc.layers:
@@ -333,209 +322,74 @@ class ProjectProcessor:
 
         return combined_buffer
     
-    def update_layers(self, layers_to_update):
+    def process_layers(self, layers_to_process=None):
         doc = ezdxf.readfile(self.dxf_filename)
         msp = doc.modelspace()
 
-        # Load necessary shapefiles
-        self.shapefiles = {}
-        for layer in layers_to_update:
-            if layer == 'Flur':
-                self.shapefiles["flur"] = self.load_shapefile(self.resolve_full_path(self.flur_shapefile))
-            elif layer == 'Parcel':
-                self.shapefiles["parcels"] = self.load_shapefile(self.resolve_full_path(self.parcel_shapefile))
-            elif layer == 'FlurOrig':
-                self.shapefiles["orig_flur"] = self.load_shapefile(self.resolve_full_path(self.flur_shapefile))
-            elif layer == 'Gemeinde':
-                self.shapefiles["gemeinde"] = self.load_shapefile(self.resolve_full_path(self.gemeinde_shapefile))
-            elif layer == 'Gemarkung':
-                self.shapefiles["gemarkung"] = self.load_shapefile(self.resolve_full_path(self.gemarkung_shapefile))
-            elif layer == 'Wald':
-                self.shapefiles["wald"] = self.load_shapefile(self.resolve_full_path(self.wald_shapefile))
-            elif layer == 'Biotope':
-                self.shapefiles["biotope"] = self.load_shapefile(self.resolve_full_path(self.biotope_shapefile))
+        all_layers = ['Flur', 'Parcel', 'FlurOrig', 'Gemeinde', 'Gemarkung', 'Wald', 'Biotope'] + list(self.wmts_layers.values())
+        layers_to_process = layers_to_process or all_layers
 
-        for layer in layers_to_update:
+        if 'Geltungsbereich' in layers_to_process or not hasattr(self, 'geltungsbereich'):
+            target_parcels = self.filter_parcels(
+                self.parcel_shapefile, self.flur_shapefile, self.gemarkung_shapefile, self.gemeinde_shapefile, self.coverage)
+            self.geltungsbereich = target_parcels['geometry'].unary_union
+            self.geltungsbereich = self.clip_with_distance_layer_buffers(self.geltungsbereich)
+
+        for layer in layers_to_process:
+            for entity in msp.query(f'*[layer=="{layer}"]'):
+                msp.delete_entity(entity)
+
             if layer in self.wmts_layers.values():
-                # Update WMTS layer
                 wmts_info = next(wmts for wmts in self.wmts if self.wmts_layers[wmts['name']] == layer)
                 target_folder = self.resolve_full_path(wmts_info['targetFolder'])
                 os.makedirs(target_folder, exist_ok=True)
                 print(f"Updating WMTS tiles for layer '{layer}'")
-                tiles = download_wmts_tiles(wmts_info, self.get_geltungsbereich(), 500, target_folder, True)
+                tiles = download_wmts_tiles(wmts_info, self.geltungsbereich, 500, target_folder, True)
                 
-                # Remove existing images
-                for entity in msp.query(f'IMAGE[layer=="{layer}"]'):
-                    msp.delete_entity(entity)
-                
-                # Add updated images
                 for tile_path, world_file_path in tiles:
                     self.add_image_with_worldfile(msp, tile_path, world_file_path, layer)
             else:
-                # Update other layers
-                for entity in msp.query(f'*[layer=="{layer}"]'):
-                    msp.delete_entity(entity)
-
                 if layer == 'Flur':
-                    self.add_geometries(msp, self.select_parcel_edges(self.shapefiles["flur"])['geometry'], 'Flur', close=False)
+                    self.add_geometries(msp, self.select_parcel_edges(self.flur_shapefile)['geometry'], 'Flur', close=False)
                 elif layer == 'Parcel':
-                    self.add_geometries(msp, self.shapefiles["parcels"]['geometry'], 'Parcel', close=True)
+                    self.add_geometries(msp, self.parcel_shapefile['geometry'], 'Parcel', close=True)
                 elif layer == 'Geltungsbereich':
-                    self.add_geometries(msp, [self.get_geltungsbereich()], 'Geltungsbereich', close=True)
+                    self.add_geometries(msp, [self.geltungsbereich], 'Geltungsbereich', close=True)
                 elif layer == 'FlurOrig':
-                    self.add_geometries(msp, self.shapefiles["orig_flur"]['geometry'], 'FlurOrig', close=True)
+                    self.add_geometries(msp, self.flur_shapefile['geometry'], 'FlurOrig', close=True)
                 elif layer == 'Gemeinde':
-                    self.add_geometries(msp, self.shapefiles["gemeinde"]['geometry'], 'Gemeinde', close=True)
+                    self.add_geometries(msp, self.gemeinde_shapefile['geometry'], 'Gemeinde', close=True)
                 elif layer == 'Gemarkung':
-                    self.add_geometries(msp, self.shapefiles["gemarkung"]['geometry'], 'Gemarkung', close=True)
+                    self.add_geometries(msp, self.gemarkung_shapefile['geometry'], 'Gemarkung', close=True)
                 elif layer == 'Wald':
-                    self.add_geometries(msp, self.shapefiles["wald"]['geometry'], 'Wald', close=True)
+                    self.add_geometries(msp, self.wald_shapefile['geometry'], 'Wald', close=True)
                 elif layer == 'Wald Abstand':
-                    wald_abstand = self.get_distance_layer_buffers(self.shapefiles["wald"], 30, self.get_geltungsbereich())
+                    wald_abstand = self.get_distance_layer_buffers(self.wald_shapefile, 30, self.geltungsbereich)
                     self.add_geometries(msp, wald_abstand, 'Wald Abstand', close=True)
                 elif layer == 'Wald Inside':
-                    wald_inside = self.get_geltungsbereich().intersection(self.shapefiles["wald"].unary_union)
+                    wald_inside = self.geltungsbereich.intersection(self.wald_shapefile.unary_union)
                     self.add_geometries(msp, wald_inside, 'Wald Inside', close=True)
                 elif layer == 'Biotope':
-                    self.add_geometries(msp, self.shapefiles["biotope"]['geometry'], 'Biotope', close=True)
+                    self.add_geometries(msp, self.biotope_shapefile['geometry'], 'Biotope', close=True)
 
-        doc.save()
-        print(f"Updated layers: {', '.join(layers_to_update)}")
+            if layer in ['Parcel', 'Flur', 'Gemeinde', 'Gemarkung']:
+                label_attr = f"{layer.lower()}_label"
+                points = self.labeled_center_points(getattr(self, f"{layer.lower()}_shapefile"), getattr(self, label_attr))
+                self.add_text_to_center(msp, points, f"{layer} Number")
 
-
-    def get_geltungsbereich(self):
-        doc = ezdxf.readfile(self.dxf_filename)
-        geltungsbereich_polylines = doc.modelspace().query('LWPOLYLINE[layer=="Geltungsbereich"]')
-        geltungsbereich_geometries = []
-        for polyline in geltungsbereich_polylines:
-            points = polyline.get_points()
-            xy_points = [(point[0], point[1]) for point in points]
-            if len(xy_points) >= 3:
-                geltungsbereich_geometries.append(Polygon(xy_points))
-        return unary_union(geltungsbereich_geometries)
+        return doc
 
     def main(self):
-        if self.update_layers_list:
-            self.update_layers(self.update_layers_list)
+        doc = self.process_layers(self.update_layers_list)
+        
+        if self.export_format == 'dwg':
+            doc.header['$PROJECTNAME'] = ''
+            odafc.export_dwg(doc, self.dxf_filename.replace('.dxf', '.dwg'))
         else:
-            # Load shapefiles
-            self.shapefiles = {
-                "parcels": self.load_shapefile(self.resolve_full_path(self.parcel_shapefile)),
-                "flur": self.load_shapefile(self.resolve_full_path(self.flur_shapefile)),
-                "orig_flur": self.load_shapefile(self.resolve_full_path(self.flur_shapefile)),
-                "gemarkung": self.load_shapefile(self.resolve_full_path(self.gemarkung_shapefile)),
-                "gemeinde": self.load_shapefile(self.resolve_full_path(self.gemeinde_shapefile)),
-                "wald": self.load_shapefile(self.resolve_full_path(self.wald_shapefile)),
-                "biotope": self.load_shapefile(self.resolve_full_path(self.biotope_shapefile))
-            }
+            doc.saveas(self.dxf_filename)
 
-            # Filter parcels and calculate geltungsbereich
-            target_parcels = self.filter_parcels(
-                self.shapefiles["parcels"], self.shapefiles["flur"], self.shapefiles["gemarkung"], self.shapefiles["gemeinde"], self.coverage)
-            self.geltungsbereich = target_parcels['geometry'].unary_union
-
-            # Apply buffer zones from distance layers to reduce geltungsbereich
-            self.geltungsbereich = self.clip_with_distance_layer_buffers(self.geltungsbereich)
-
-            # Clip geltungsbereich with wald
-            self.wald_inside = self.geltungsbereich.intersection(self.shapefiles["wald"].unary_union)
-            self.geltungsbereich = self.geltungsbereich.difference(self.shapefiles["wald"].unary_union)
-
-            self.wald_abstand = self.get_distance_layer_buffers(self.shapefiles["wald"], 30, self.geltungsbereich)
-
-            # # Only keep the wald_abstand within the geltungsbereich
-            # wald_abstand = wald_abstand.intersection(geltungsbereich)
-
-            # Download WMTS tiles and get their paths
-            downloaded_tiles = []
-            for wmts_info in self.wmts:
-                target_folder = self.resolve_full_path(wmts_info['targetFolder'])
-                os.makedirs(target_folder, exist_ok=True)
-                tiles = download_wmts_tiles(
-                    wmts_info, self.geltungsbereich, 500, target_folder)
-                downloaded_tiles.extend(tiles)
-
-            # Generate labeled center points
-            labeled_points = {
-                "parcel_points": self.labeled_center_points(self.shapefiles["parcels"], self.parcel_label),
-                "flur_points": self.labeled_center_points(self.shapefiles["flur"], self.flur_label),
-                "gemeinde_points": self.labeled_center_points(self.shapefiles["gemeinde"], self.gemeinde_label),
-                "gemarkung_points": self.labeled_center_points(self.shapefiles["gemarkung"], self.gemarkung_label),
-                "wald_points": self.labeled_center_points(self.shapefiles["wald"], self.wald_label),
-                "biotope_points": self.labeled_center_points(self.shapefiles["biotope"], self.biotope_label)
-            }
-
-            # Load or create DXF document
-            doc = self.load_template(
-            ) if self.project_settings['useTemplate'] and self.template_dxf else ezdxf.new('R2010', setup=True)
-
-            # Add text styles and layers
-            self.add_text_style(doc, 'default')
-            layers = [
-                ('Flur', self.colors['Flur']),
-                ('FlurOrig', 'green'),
-                ('Gemeinde', self.colors['Gemeinde']),
-                ('Gemarkung', self.colors['Gemarkung']),
-                ('Parcel', self.colors['Parcel']),
-                ('Parcel Number', self.colors['Parcel']),
-                ('Flur Number', self.colors['Flur']),
-                ('Wald', self.colors['Wald']),
-                ('Wald Abstand', 'dark_red'),
-                ('Wald Inside', 'dark_green'),
-                ('Biotope', self.colors['Biotope']),
-                ('Gemeinde Name', self.colors['Gemeinde']),
-                ('Gemarkung Name', self.colors['Gemarkung']),
-                ('Geltungsbereich', 'dark_red'),
-            ]
-            # Add WMTS layers
-            layers.extend((layer_name, 'gray')
-                          for layer_name in self.wmts_layers.values())
-
-            for layer_name, color in layers:
-                self.add_layer(doc, layer_name, color)
-
-            text_styles = ['Parcel Number', 'Flur Number',
-                           'Gemeinde Name', 'Gemarkung Name']
-            for style in text_styles:
-                self.add_text_style(doc, style)
-
-            msp = doc.modelspace()
-
-            # Add geometries to modelspace
-            self.add_geometries(msp, self.select_parcel_edges(self.shapefiles["flur"])['geometry'], 'Flur', close=False)
-            self.add_geometries(msp, self.shapefiles["parcels"]['geometry'], 'Parcel', close=True)
-            self.add_geometries(msp, [self.geltungsbereich], 'Geltungsbereich', close=True)
-            self.add_geometries(msp, self.shapefiles["orig_flur"]['geometry'], 'FlurOrig', close=True)
-            self.add_geometries(msp, self.shapefiles["gemeinde"]['geometry'], 'Gemeinde', close=True)
-            self.add_geometries(msp, self.shapefiles["gemarkung"]['geometry'], 'Gemarkung', close=True)
-            self.add_geometries(msp, self.shapefiles["wald"]['geometry'], 'Wald', close=True)
-            self.add_geometries(msp, self.wald_abstand, 'Wald Abstand', close=True)
-            self.add_geometries(msp, self.wald_inside, 'Wald Inside', close=True)
-            self.add_geometries(msp, self.shapefiles["biotope"]['geometry'], 'Biotope', close=True)
-
-            # Add text to center points
-            for label, points in labeled_points.items():
-                layer_name = label.replace("_points", "").replace("_", " ").title()
-                self.add_text_to_center(msp, points, layer_name)
-
-            # Add WMTS tiles as images
-            for wmts_info in self.wmts:
-                target_folder = self.resolve_full_path(wmts_info['targetFolder'])
-                os.makedirs(target_folder, exist_ok=True)
-                tiles = download_wmts_tiles(
-                    wmts_info, self.geltungsbereich, 500, target_folder)
-
-                layer_name = self.wmts_layers[wmts_info['name']]
-                print(f"Adding {len(tiles)} WMTS tiles to layer '{layer_name}'")
-                for tile_path, world_file_path in tiles:
-                    self.add_image_with_worldfile(
-                        msp, tile_path, world_file_path, layer_name)
-
-            if self.export_format == 'dwg':
-                doc.header['$PROJECTNAME'] = ''
-                odafc.export_dwg(doc, self.dxf_filename.replace('.dxf', '.dwg'))
-            else:
-                doc.saveas(self.dxf_filename)
+        processed_layers = self.update_layers_list if self.update_layers_list else ['Flur', 'Parcel', 'FlurOrig', 'Gemeinde', 'Gemarkung', 'Wald', 'Biotope'] + list(self.wmts_layers.values())
+        print(f"Processed layers: {', '.join(processed_layers)}")
 
 
 if __name__ == "__main__":
@@ -550,4 +404,5 @@ if __name__ == "__main__":
         processor.main()
     except ValueError as e:
         print(e)
+
 
