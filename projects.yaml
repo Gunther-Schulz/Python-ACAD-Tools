@@ -1,4 +1,5 @@
-folderPrefix: "~/IONOS HiDrive"
+# folderPrefix: "~/IONOS HiDrive"
+folderPrefix: "~/hidrive"
 projects:
   - name: Plasten
     exportFormat: dwg

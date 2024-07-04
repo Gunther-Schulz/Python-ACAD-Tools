@@ -128,21 +128,30 @@ class ProjectProcessor:
         return result
 
     def select_parcel_edges(self, geom):
+        # Debugging: Print the type of geom
+        print(f"Input geom type: {type(geom)}")
+        print(f"Input geom columns: {geom.columns}")
 
         # Initialize a list to hold the edges derived from the input geometry
         edge_lines = []
 
         # Loop through each polygon in the input geometry collection
-        for poly in geom.geometry:
+        for _, row in geom.iterrows():
+            poly = row.geometry
+            # Debugging: Print the type of each geometry
+            print(f"Individual geometry type: {type(poly)}")
+
+            if not isinstance(poly, (Polygon, MultiPolygon)):
+                print(f"Skipping non-polygon geometry: {type(poly)}")
+                continue
+
             # Extract the boundary of the polygon, converting it to a linestring
             boundary_line = poly.boundary
 
             # Create an outward buffer of 10 units from the boundary line
-            buffered_line_out = boundary_line.buffer(
-                10, join_style=2)  # Outward buffer with a mitered join
+            buffered_line_out = boundary_line.buffer(10, join_style=2)  # Outward buffer with a mitered join
             # Create an inward buffer of 10 units from the boundary line
-            # Inward buffer with a mitered join
-            buffered_line_in = boundary_line.buffer(-10, join_style=2)
+            buffered_line_in = boundary_line.buffer(-10, join_style=2)  # Inward buffer with a mitered join
 
             # Handle MultiPolygon and Polygon cases for outward buffer
             if buffered_line_out.geom_type == 'MultiPolygon':
@@ -161,31 +170,21 @@ class ProjectProcessor:
         # Merge and simplify the collected edge lines into a single geometry
         merged_edges = linemerge(unary_union(edge_lines))
 
+        # Convert the merged edges to a list of LineString objects
+        if isinstance(merged_edges, MultiLineString):
+            result_geometries = list(merged_edges.geoms)
+        else:
+            result_geometries = [merged_edges]
+
         # Create a GeoDataFrame to hold the merged edges, preserving the original CRS
-        result_gdf = gpd.GeoDataFrame(geometry=[merged_edges], crs=geom.crs)
+        result_gdf = gpd.GeoDataFrame(geometry=result_geometries, crs=geom.crs)
+
+        # Debugging: Check the content of result_gdf
+        print("Resulting GeoDataFrame:")
+        print(result_gdf)
 
         # Output the type of geometry contained in the resulting GeoDataFrame
-        print(
-            f"The type of geometry in result_gdf is: {type(result_gdf.geometry.iloc[0])}")
-
-        # Set up a plot to visually compare the original and modified geometries
-        fig, ax = plt.subplots()
-        # Plot the original geometry boundary with a blue line
-        geom.boundary.plot(ax=ax, color='blue', linewidth=5,
-                           label='Original Geometry')
-        # Plot each segment of the merged edges in a randomly chosen color
-        if not result_gdf.empty:
-            for line in merged_edges.geoms:
-                # Generate a random color for each segment
-                random_color = "#{:06x}".format(random.randint(0, 0xFFFFFF))
-                # Plot the segment with the randomly chosen color
-                gpd.GeoSeries([line]).plot(
-                    ax=ax, color=random_color, linewidth=1.5)
-        # Set the title of the plot and display the legend
-        ax.set_title('Comparison of Original and Offset Geometries')
-        ax.legend()
-        # Display the plot
-        # plt.show()
+        print(f"The type of geometry in result_gdf is: {result_gdf.geometry.dtype}")
 
         # Return the GeoDataFrame containing the processed geometry
         return result_gdf
@@ -240,12 +239,12 @@ class ProjectProcessor:
             elif isinstance(geom, (Polygon, LineString, MultiPolygon, MultiLineString)):
                 if geom.geom_type == 'Polygon':
                     points = [(x, y) for x, y in geom.exterior.coords]
-                    msp.add_lwpolyline(points, close=True, dxfattribs={
+                    msp.add_lwpolyline(points, close=close, dxfattribs={
                                        'layer': layer_name})
                 elif geom.geom_type == 'MultiPolygon':
                     for polygon in geom.geoms:
                         points = [(x, y) for x, y in polygon.exterior.coords]
-                        msp.add_lwpolyline(points, close=True, dxfattribs={
+                        msp.add_lwpolyline(points, close=close, dxfattribs={
                                            'layer': layer_name})
                 elif geom.geom_type == 'LineString':
                     points = [(x, y) for x, y in geom.coords]
@@ -411,20 +410,14 @@ class ProjectProcessor:
         msp = doc.modelspace()
 
         # Add geometries to modelspace
-        self.add_geometries(msp, self.select_parcel_edges(
-            shapefiles["flur"]), 'Flur', True)
-        self.add_geometries(
-            msp, shapefiles["parcels"]['geometry'], 'Parcel', True)
-        self.add_geometries(msp, [geltungsbereich], 'Geltungsbereich', True)
-        self.add_geometries(
-            msp, shapefiles["orig_flur"]['geometry'], 'Flur', True)
-        self.add_geometries(
-            msp, shapefiles["gemeinde"]['geometry'], 'Gemeinde', True)
-        self.add_geometries(
-            msp, shapefiles["gemarkung"]['geometry'], 'Gemarkung', True)
-        self.add_geometries(msp, shapefiles["wald"]['geometry'], 'Wald', True)
-        self.add_geometries(
-            msp, shapefiles["biotope"]['geometry'], 'Biotope', True)
+        self.add_geometries(msp, self.select_parcel_edges(shapefiles["flur"])['geometry'], 'Flur', close=False)
+        self.add_geometries(msp, shapefiles["parcels"]['geometry'], 'Parcel', close=True)
+        self.add_geometries(msp, [geltungsbereich], 'Geltungsbereich', close=True)
+        self.add_geometries(msp, shapefiles["orig_flur"]['geometry'], 'FlurOrig', close=True)
+        self.add_geometries(msp, shapefiles["gemeinde"]['geometry'], 'Gemeinde', close=True)
+        self.add_geometries(msp, shapefiles["gemarkung"]['geometry'], 'Gemarkung', close=True)
+        self.add_geometries(msp, shapefiles["wald"]['geometry'], 'Wald', close=True)
+        self.add_geometries(msp, shapefiles["biotope"]['geometry'], 'Biotope', close=True)
 
         # Add text to center points
         for label, points in labeled_points.items():
