@@ -9,10 +9,11 @@ from wmts_downloader import download_wmts_tiles
 from shapely.geometry import Point, Polygon, LineString, MultiPolygon, MultiLineString
 import random
 from ezdxf.addons import odafc
+import argparse
 
 
 class ProjectProcessor:
-    def __init__(self, project_name: str, update_wmts_only: bool = False):
+    def __init__(self, project_name: str, update_layers_list: list = None):
         self.project_settings, self.folder_prefix = self.load_project_settings(
             project_name)
         if not self.project_settings:
@@ -24,11 +25,6 @@ class ProjectProcessor:
         self.wmts = self.project_settings.get('wmts', [])
         self.clip_distance_layers = self.project_settings.get('clipDistanceLayers', [])
         # self.buffer_distance_layers = self.project_settings.get('bufferDistanceLayers', [])
-
-        if update_wmts_only:
-            print("Updating WMTS tiles only...")
-            self.update_wmts()
-            return
 
         self.template_dxf = self.resolve_full_path(self.project_settings.get(
             'template', '')) if self.project_settings.get('template') else None
@@ -78,6 +74,8 @@ class ProjectProcessor:
 
         if sys.platform == "darwin" and os.path.exists("/Applications/ODAFileConverter.app/Contents/MacOS/ODAFileConverter"):
             odafc.unix_exec_path = "/Applications/ODAFileConverter.app/Contents/MacOS/ODAFileConverter"
+
+        self.update_layers_list = update_layers_list
 
     def load_project_settings(self, project_name: str):
         with open('projects.yaml', 'r') as file:
@@ -249,7 +247,7 @@ class ProjectProcessor:
                     print(f"Unsupported geometry type: {geom.geom_type}")
             else:
                 print(f"Unsupported object type: {type(geom)} in layer '{layer_name}'")
-                
+
     def add_layer(self, doc, layer_name, color):
         if layer_name not in doc.layers:
             color_code = self.get_color_code(color)
@@ -335,184 +333,198 @@ class ProjectProcessor:
 
         return combined_buffer
     
-    def main(self):
-        # Load shapefiles
-        shapefiles = {
-            "parcels": self.load_shapefile(self.resolve_full_path(self.parcel_shapefile)),
-            "flur": self.load_shapefile(self.resolve_full_path(self.flur_shapefile)),
-            "orig_flur": self.load_shapefile(self.resolve_full_path(self.flur_shapefile)),
-            "gemarkung": self.load_shapefile(self.resolve_full_path(self.gemarkung_shapefile)),
-            "gemeinde": self.load_shapefile(self.resolve_full_path(self.gemeinde_shapefile)),
-            "wald": self.load_shapefile(self.resolve_full_path(self.wald_shapefile)),
-            "biotope": self.load_shapefile(self.resolve_full_path(self.biotope_shapefile))
-        }
-
-        # Filter parcels and calculate geltungsbereich
-        target_parcels = self.filter_parcels(
-            shapefiles["parcels"], shapefiles["flur"], shapefiles["gemarkung"], shapefiles["gemeinde"], self.coverage)
-        geltungsbereich = target_parcels['geometry'].unary_union
-
-        # Apply buffer zones from distance layers to reduce geltungsbereich
-        geltungsbereich = self.clip_with_distance_layer_buffers(geltungsbereich)
-
-        # Clip geltungsbereich with wald
-        wald_inside = geltungsbereich.intersection(shapefiles["wald"].unary_union)
-        geltungsbereich = geltungsbereich.difference(shapefiles["wald"].unary_union)
-
-        wald_abstand = self.get_distance_layer_buffers(shapefiles["wald"], 30, geltungsbereich)
-
-        # # Only keep the wald_abstand within the geltungsbereich
-        # wald_abstand = wald_abstand.intersection(geltungsbereich)
-
-        # Download WMTS tiles and get their paths
-        downloaded_tiles = []
-        for wmts_info in self.wmts:
-            target_folder = self.resolve_full_path(wmts_info['targetFolder'])
-            os.makedirs(target_folder, exist_ok=True)
-            tiles = download_wmts_tiles(
-                wmts_info, geltungsbereich, 500, target_folder)
-            downloaded_tiles.extend(tiles)
-
-        # Generate labeled center points
-        labeled_points = {
-            "parcel_points": self.labeled_center_points(shapefiles["parcels"], self.parcel_label),
-            "flur_points": self.labeled_center_points(shapefiles["flur"], self.flur_label),
-            "gemeinde_points": self.labeled_center_points(shapefiles["gemeinde"], self.gemeinde_label),
-            "gemarkung_points": self.labeled_center_points(shapefiles["gemarkung"], self.gemarkung_label),
-            "wald_points": self.labeled_center_points(shapefiles["wald"], self.wald_label),
-            "biotope_points": self.labeled_center_points(shapefiles["biotope"], self.biotope_label)
-        }
-
-        # Load or create DXF document
-        doc = self.load_template(
-        ) if self.project_settings['useTemplate'] and self.template_dxf else ezdxf.new('R2010', setup=True)
-
-        # Add text styles and layers
-        self.add_text_style(doc, 'default')
-        layers = [
-            ('Flur', self.colors['Flur']),
-            ('FlurOrig', 'green'),
-            ('Gemeinde', self.colors['Gemeinde']),
-            ('Gemarkung', self.colors['Gemarkung']),
-            ('Parcel', self.colors['Parcel']),
-            ('Parcel Number', self.colors['Parcel']),
-            ('Flur Number', self.colors['Flur']),
-            ('Wald', self.colors['Wald']),
-            ('Wald Abstand', 'dark_red'),
-            ('Wald Inside', 'dark_green'),
-            ('Biotope', self.colors['Biotope']),
-            ('Gemeinde Name', self.colors['Gemeinde']),
-            ('Gemarkung Name', self.colors['Gemarkung']),
-            ('Geltungsbereich', 'dark_red'),
-        ]
-        # Add WMTS layers
-        layers.extend((layer_name, 'gray')
-                      for layer_name in self.wmts_layers.values())
-
-        for layer_name, color in layers:
-            self.add_layer(doc, layer_name, color)
-
-        text_styles = ['Parcel Number', 'Flur Number',
-                       'Gemeinde Name', 'Gemarkung Name']
-        for style in text_styles:
-            self.add_text_style(doc, style)
-
+    def update_layers(self, layers_to_update):
+        doc = ezdxf.readfile(self.dxf_filename)
         msp = doc.modelspace()
 
-        # Add geometries to modelspace
-        # self.add_geometries(msp, self.select_parcel_edges(shapefiles["flur"])['geometry'], 'Flur', close=False)
-        # self.add_geometries(msp, shapefiles["parcels"]['geometry'], 'Parcel', close=True)
-        self.add_geometries(msp, [geltungsbereich], 'Geltungsbereich', close=True)
-        # self.add_geometries(msp, shapefiles["orig_flur"]['geometry'], 'FlurOrig', close=True)
-        # self.add_geometries(msp, shapefiles["gemeinde"]['geometry'], 'Gemeinde', close=True)
-        # self.add_geometries(msp, shapefiles["gemarkung"]['geometry'], 'Gemarkung', close=True)
-        self.add_geometries(msp, shapefiles["wald"]['geometry'], 'Wald', close=True)
-        self.add_geometries(msp, wald_abstand, 'Wald Abstand', close=True)
-        self.add_geometries(msp, wald_inside, 'Wald Inside', close=True)
-        # self.add_geometries(msp, shapefiles["biotope"]['geometry'], 'Biotope', close=True)
+        for layer in layers_to_update:
+            if layer in self.wmts_layers.values():
+                # Update WMTS layer
+                wmts_info = next(wmts for wmts in self.wmts if self.wmts_layers[wmts['name']] == layer)
+                target_folder = self.resolve_full_path(wmts_info['targetFolder'])
+                os.makedirs(target_folder, exist_ok=True)
+                print(f"Updating WMTS tiles for layer '{layer}'")
+                tiles = download_wmts_tiles(wmts_info, self.get_geltungsbereich(), 500, target_folder, True)
+                
+                # Remove existing images
+                msp.query(f'IMAGE[layer=="{layer}"]').delete()
+                
+                # Add updated images
+                for tile_path, world_file_path in tiles:
+                    self.add_image_with_worldfile(msp, tile_path, world_file_path, layer)
+            else:
+                # Update other layers
+                msp.query(f'*[layer=="{layer}"]').delete()
 
-        # Add text to center points
-        for label, points in labeled_points.items():
-            layer_name = label.replace("_points", "").replace("_", " ").title()
-            self.add_text_to_center(msp, points, layer_name)
+                if layer == 'Flur':
+                    self.add_geometries(msp, self.select_parcel_edges(self.shapefiles["flur"])['geometry'], 'Flur', close=False)
+                elif layer == 'Parcel':
+                    self.add_geometries(msp, self.shapefiles["parcels"]['geometry'], 'Parcel', close=True)
+                elif layer == 'Geltungsbereich':
+                    self.add_geometries(msp, [self.geltungsbereich], 'Geltungsbereich', close=True)
+                elif layer == 'FlurOrig':
+                    self.add_geometries(msp, self.shapefiles["orig_flur"]['geometry'], 'FlurOrig', close=True)
+                elif layer == 'Gemeinde':
+                    self.add_geometries(msp, self.shapefiles["gemeinde"]['geometry'], 'Gemeinde', close=True)
+                elif layer == 'Gemarkung':
+                    self.add_geometries(msp, self.shapefiles["gemarkung"]['geometry'], 'Gemarkung', close=True)
+                elif layer == 'Wald':
+                    self.add_geometries(msp, self.shapefiles["wald"]['geometry'], 'Wald', close=True)
+                elif layer == 'Wald Abstand':
+                    self.add_geometries(msp, self.wald_abstand, 'Wald Abstand', close=True)
+                elif layer == 'Wald Inside':
+                    self.add_geometries(msp, self.wald_inside, 'Wald Inside', close=True)
+                elif layer == 'Biotope':
+                    self.add_geometries(msp, self.shapefiles["biotope"]['geometry'], 'Biotope', close=True)
 
-        # Add WMTS tiles as images
-        for wmts_info in self.wmts:
-            target_folder = self.resolve_full_path(wmts_info['targetFolder'])
-            os.makedirs(target_folder, exist_ok=True)
-            tiles = download_wmts_tiles(
-                wmts_info, geltungsbereich, 500, target_folder)
+        doc.save()
+        print(f"Updated layers: {', '.join(layers_to_update)}")
 
-            layer_name = self.wmts_layers[wmts_info['name']]
-            print(f"Adding {len(tiles)} WMTS tiles to layer '{layer_name}'")
-            for tile_path, world_file_path in tiles:
-                self.add_image_with_worldfile(
-                    msp, tile_path, world_file_path, layer_name)
-
-        if self.export_format == 'dwg':
-            doc.header['$PROJECTNAME'] = ''
-            odafc.export_dwg(doc, self.dxf_filename.replace('.dxf', '.dwg'))
-        else:
-            doc.saveas(self.dxf_filename)
-
-    def update_wmts(self):
-        print("Starting update_wmts...")  # Debugging statement
-        # load existing dxf
+    def get_geltungsbereich(self):
         doc = ezdxf.readfile(self.dxf_filename)
-        print(f"Loaded DXF file: {self.dxf_filename}")  # Debugging statement
-        # Get all polylines from layer "Geltungsbereich"
-        geltungsbereich_polylines = doc.modelspace().query(
-            'LWPOLYLINE[layer=="Geltungsbereich"]')
-        # Debugging statement
-        print(
-            f"Found {len(geltungsbereich_polylines)} polylines in 'Geltungsbereich' layer")
-
-        # Convert polylines to shapely geometries
+        geltungsbereich_polylines = doc.modelspace().query('LWPOLYLINE[layer=="Geltungsbereich"]')
         geltungsbereich_geometries = []
         for polyline in geltungsbereich_polylines:
             points = polyline.get_points()
-            # Extract only x and y coordinates
             xy_points = [(point[0], point[1]) for point in points]
-            if len(xy_points) >= 3:  # Ensure we have at least 3 points to form a polygon
+            if len(xy_points) >= 3:
                 geltungsbereich_geometries.append(Polygon(xy_points))
+        return unary_union(geltungsbereich_geometries)
+
+    def main(self):
+        if self.update_layers_list:
+            self.update_layers(self.update_layers_list)
+        else:
+            # Load shapefiles
+            self.shapefiles = {
+                "parcels": self.load_shapefile(self.resolve_full_path(self.parcel_shapefile)),
+                "flur": self.load_shapefile(self.resolve_full_path(self.flur_shapefile)),
+                "orig_flur": self.load_shapefile(self.resolve_full_path(self.flur_shapefile)),
+                "gemarkung": self.load_shapefile(self.resolve_full_path(self.gemarkung_shapefile)),
+                "gemeinde": self.load_shapefile(self.resolve_full_path(self.gemeinde_shapefile)),
+                "wald": self.load_shapefile(self.resolve_full_path(self.wald_shapefile)),
+                "biotope": self.load_shapefile(self.resolve_full_path(self.biotope_shapefile))
+            }
+
+            # Filter parcels and calculate geltungsbereich
+            target_parcels = self.filter_parcels(
+                self.shapefiles["parcels"], self.shapefiles["flur"], self.shapefiles["gemarkung"], self.shapefiles["gemeinde"], self.coverage)
+            self.geltungsbereich = target_parcels['geometry'].unary_union
+
+            # Apply buffer zones from distance layers to reduce geltungsbereich
+            self.geltungsbereich = self.clip_with_distance_layer_buffers(self.geltungsbereich)
+
+            # Clip geltungsbereich with wald
+            self.wald_inside = self.geltungsbereich.intersection(self.shapefiles["wald"].unary_union)
+            self.geltungsbereich = self.geltungsbereich.difference(self.shapefiles["wald"].unary_union)
+
+            self.wald_abstand = self.get_distance_layer_buffers(self.shapefiles["wald"], 30, self.geltungsbereich)
+
+            # # Only keep the wald_abstand within the geltungsbereich
+            # wald_abstand = wald_abstand.intersection(geltungsbereich)
+
+            # Download WMTS tiles and get their paths
+            downloaded_tiles = []
+            for wmts_info in self.wmts:
+                target_folder = self.resolve_full_path(wmts_info['targetFolder'])
+                os.makedirs(target_folder, exist_ok=True)
+                tiles = download_wmts_tiles(
+                    wmts_info, self.geltungsbereich, 500, target_folder)
+                downloaded_tiles.extend(tiles)
+
+            # Generate labeled center points
+            labeled_points = {
+                "parcel_points": self.labeled_center_points(self.shapefiles["parcels"], self.parcel_label),
+                "flur_points": self.labeled_center_points(self.shapefiles["flur"], self.flur_label),
+                "gemeinde_points": self.labeled_center_points(self.shapefiles["gemeinde"], self.gemeinde_label),
+                "gemarkung_points": self.labeled_center_points(self.shapefiles["gemarkung"], self.gemarkung_label),
+                "wald_points": self.labeled_center_points(self.shapefiles["wald"], self.wald_label),
+                "biotope_points": self.labeled_center_points(self.shapefiles["biotope"], self.biotope_label)
+            }
+
+            # Load or create DXF document
+            doc = self.load_template(
+            ) if self.project_settings['useTemplate'] and self.template_dxf else ezdxf.new('R2010', setup=True)
+
+            # Add text styles and layers
+            self.add_text_style(doc, 'default')
+            layers = [
+                ('Flur', self.colors['Flur']),
+                ('FlurOrig', 'green'),
+                ('Gemeinde', self.colors['Gemeinde']),
+                ('Gemarkung', self.colors['Gemarkung']),
+                ('Parcel', self.colors['Parcel']),
+                ('Parcel Number', self.colors['Parcel']),
+                ('Flur Number', self.colors['Flur']),
+                ('Wald', self.colors['Wald']),
+                ('Wald Abstand', 'dark_red'),
+                ('Wald Inside', 'dark_green'),
+                ('Biotope', self.colors['Biotope']),
+                ('Gemeinde Name', self.colors['Gemeinde']),
+                ('Gemarkung Name', self.colors['Gemarkung']),
+                ('Geltungsbereich', 'dark_red'),
+            ]
+            # Add WMTS layers
+            layers.extend((layer_name, 'gray')
+                          for layer_name in self.wmts_layers.values())
+
+            for layer_name, color in layers:
+                self.add_layer(doc, layer_name, color)
+
+            text_styles = ['Parcel Number', 'Flur Number',
+                           'Gemeinde Name', 'Gemarkung Name']
+            for style in text_styles:
+                self.add_text_style(doc, style)
+
+            msp = doc.modelspace()
+
+            # Add geometries to modelspace
+            self.add_geometries(msp, self.select_parcel_edges(self.shapefiles["flur"])['geometry'], 'Flur', close=False)
+            self.add_geometries(msp, self.shapefiles["parcels"]['geometry'], 'Parcel', close=True)
+            self.add_geometries(msp, [self.geltungsbereich], 'Geltungsbereich', close=True)
+            self.add_geometries(msp, self.shapefiles["orig_flur"]['geometry'], 'FlurOrig', close=True)
+            self.add_geometries(msp, self.shapefiles["gemeinde"]['geometry'], 'Gemeinde', close=True)
+            self.add_geometries(msp, self.shapefiles["gemarkung"]['geometry'], 'Gemarkung', close=True)
+            self.add_geometries(msp, self.shapefiles["wald"]['geometry'], 'Wald', close=True)
+            self.add_geometries(msp, self.wald_abstand, 'Wald Abstand', close=True)
+            self.add_geometries(msp, self.wald_inside, 'Wald Inside', close=True)
+            self.add_geometries(msp, self.shapefiles["biotope"]['geometry'], 'Biotope', close=True)
+
+            # Add text to center points
+            for label, points in labeled_points.items():
+                layer_name = label.replace("_points", "").replace("_", " ").title()
+                self.add_text_to_center(msp, points, layer_name)
+
+            # Add WMTS tiles as images
+            for wmts_info in self.wmts:
+                target_folder = self.resolve_full_path(wmts_info['targetFolder'])
+                os.makedirs(target_folder, exist_ok=True)
+                tiles = download_wmts_tiles(
+                    wmts_info, self.geltungsbereich, 500, target_folder)
+
+                layer_name = self.wmts_layers[wmts_info['name']]
+                print(f"Adding {len(tiles)} WMTS tiles to layer '{layer_name}'")
+                for tile_path, world_file_path in tiles:
+                    self.add_image_with_worldfile(
+                        msp, tile_path, world_file_path, layer_name)
+
+            if self.export_format == 'dwg':
+                doc.header['$PROJECTNAME'] = ''
+                odafc.export_dwg(doc, self.dxf_filename.replace('.dxf', '.dwg'))
             else:
-                print(
-                    f"Warning: Skipping polyline with insufficient points: {len(xy_points)}")
-        # Debugging statement
-        print(
-            f"Converted {len(geltungsbereich_geometries)} polylines to shapely geometries")
-
-        # convert to shapely geometry
-        geltungsbereich = unary_union(geltungsbereich_geometries)
-        print("Converted geometries to unary union")  # Debugging statement
-
-        # Download WMTS tiles
-        for wmts_info in self.wmts:
-            target_folder = self.resolve_full_path(wmts_info['targetFolder'])
-            os.makedirs(target_folder, exist_ok=True)
-            # Debugging statement
-            print(f"Downloading WMTS tiles to {target_folder}")
-            download_wmts_tiles(wmts_info, geltungsbereich,
-                                500, target_folder, True)
-            # Debugging statement
-            print(
-                f"Downloaded WMTS tiles for {wmts_info['url']} to layer '{self.wmts_layers[wmts_info['name']]}'")
-
-        print("WMTS tiles updated successfully.")
+                doc.saveas(self.dxf_filename)
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print(
-            "Usage: python process.py <project_name> [--update-wmts-only | -u]")
-        sys.exit(1)
+    parser = argparse.ArgumentParser(description="Process project data.")
+    parser.add_argument("project_name", help="Name of the project to process")
+    parser.add_argument("-u", "--update", help="Update specific layers (comma-separated list)")
+    args = parser.parse_args()
+
     try:
-        project_name = sys.argv[1]
-        update_wmts_only = '--update-wmts-only' in sys.argv or '-u' in sys.argv
-        processor = ProjectProcessor(project_name, update_wmts_only)
-        if update_wmts_only:
-            processor.update_wmts()
-        else:
-            processor.main()
+        processor = ProjectProcessor(args.project_name)
+        processor.update_layers_list = args.update.split(',') if args.update else None
+        processor.main()
     except ValueError as e:
         print(e)
+
