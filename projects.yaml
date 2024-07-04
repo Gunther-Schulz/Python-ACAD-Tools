@@ -6,7 +6,6 @@ projects:
     crs: EPSG:25833
     dxfFilename: "/Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Zeichnung/combined.dxf"
     template: "./data/Zeichnung.dxf"
-    useTemplate: true
     coverage:
       parcelList: ["1", "2", "4", "6", "7"]
       flurList: ["Flur 1"]
@@ -16,29 +15,28 @@ projects:
       - name: Flur
         shapeFile: "./data/flur.shp"
         label: flurname
-        color: 2
-        close: true
+        color: Cyan
+        # close: false
       - name: Parcel
         shapeFile: "./data/Plasten Nr1 Flurstücke.shp"
         label: label
-        color: 10
-        close: true
+        color: Black
+        # close: true
       - name: Gemarkung
         shapeFile: "./data/Gemarkung.shp"
         label: gmkname
-        color: 11
-        close: true
+        color: "Medium Orange Red"
+        # close: true
       - name: Gemeinde
         shapeFile: "./data/Gemeinde.shp"
         label: gen
-        color: 12
-        close: true
+        color: "Dark Red"
+        # close: true
   - name: Torgelow
     exportFormat: dxf
     crs: EPSG:25833
     dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/Zeichnung/combined.dxf"
     # template: "~/hidrive/Öffentlich Planungsbüro Schulz/Allgemein/CAD/Zeichnung.dxf"
-    useTemplate: true
     coverage:
       parcelList: ["104", "96", "95", "87/1"]
       flurList: ["Flur 2"]
@@ -48,39 +46,41 @@ projects:
       - name: Flur
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/flur2.shp"
         label: flurname
-        color: red
+        color: Cyan
         close: true
       - name: Parcel
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/parcel2.shp"
         label: label
-        color: yellow
+        color: Black
         close: true
       - name: Gemarkung
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/gemarkung2.shp"
         label: gmkname
-        color: green
+        color: "Medium Orange Red"
         close: true
       - name: Gemeinde
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/gemeinde2.shp"
         label: gen
-        color: cyan
+        color: "Dark Red"
         close: true
       - name: Wald
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/wald.shp"
         label: waldname
-        color: blue
+        color: "Dark Green"
         close: true
       - name: Biotope
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/biotope.shp"
         label: biotopn
-        color: magenta
+        color: "Green"
         close: true
     clipDistanceLayers:
       - shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/abstand.shp"
         bufferDistance: 7
-    # bufferDistanceLayers:
-    #   - shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/wald.shp"
-    #     bufferDistance: 30
+      - shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/wald.shp"
+        bufferDistance: 0
+    bufferDistanceLayers:
+      - shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/wald.shp"
+        bufferDistance: 30
     wmts:
       - name: DOP
         url: "https://www.geodaten-mv.de/dienste/dop_wmts/wmts/1.0.0/WMTSCapabilities.xml"

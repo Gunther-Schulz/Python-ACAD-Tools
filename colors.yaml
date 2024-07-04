@@ -1,0 +1,1530 @@
+- aciCode: 1
+  name: Red
+  rgb:
+  - 255
+  - 0
+  - 0
+- aciCode: 2
+  name: Yellow
+  rgb:
+  - 255
+  - 255
+  - 0
+- aciCode: 3
+  name: Green
+  rgb:
+  - 0
+  - 255
+  - 0
+- aciCode: 4
+  name: Cyan
+  rgb:
+  - 0
+  - 255
+  - 255
+- aciCode: 5
+  name: Blue
+  rgb:
+  - 0
+  - 0
+  - 255
+- aciCode: 6
+  name: Magenta
+  rgb:
+  - 255
+  - 0
+  - 255
+- aciCode: 7
+  name: White
+  rgb:
+  - 0
+  - 0
+  - 0
+- aciCode: 8
+  name: Gray
+  rgb:
+  - 128
+  - 128
+  - 128
+- aciCode: 9
+  name: Light Gray
+  rgb:
+  - 192
+  - 192
+  - 192
+- aciCode: 10
+  name: Pure Red
+  rgb:
+  - 255
+  - 0
+  - 0
+- aciCode: 11
+  name: Light Red
+  rgb:
+  - 255
+  - 127
+  - 127
+- aciCode: 12
+  name: Dark Red
+  rgb:
+  - 165
+  - 0
+  - 0
+- aciCode: 13
+  name: Medium Red
+  rgb:
+  - 165
+  - 82
+  - 82
+- aciCode: 14
+  name: Deep Red
+  rgb:
+  - 127
+  - 0
+  - 0
+- aciCode: 15
+  name: Soft Red
+  rgb:
+  - 127
+  - 63
+  - 63
+- aciCode: 16
+  name: Maroon
+  rgb:
+  - 76
+  - 0
+  - 0
+- aciCode: 17
+  name: Brownish Red
+  rgb:
+  - 76
+  - 38
+  - 38
+- aciCode: 18
+  name: Dark Maroon
+  rgb:
+  - 38
+  - 0
+  - 0
+- aciCode: 19
+  name: Deep Brownish Red
+  rgb:
+  - 38
+  - 19
+  - 19
+- aciCode: 20
+  name: Orange Red
+  rgb:
+  - 255
+  - 63
+  - 0
+- aciCode: 21
+  name: Light Orange Red
+  rgb:
+  - 255
+  - 159
+  - 127
+- aciCode: 22
+  name: Dark Orange Red
+  rgb:
+  - 165
+  - 41
+  - 0
+- aciCode: 23
+  name: Medium Orange Red
+  rgb:
+  - 165
+  - 103
+  - 82
+- aciCode: 24
+  name: Deep Orange Red
+  rgb:
+  - 127
+  - 31
+  - 0
+- aciCode: 25
+  name: Soft Orange Red
+  rgb:
+  - 127
+  - 79
+  - 63
+- aciCode: 26
+  name: Burnt Orange
+  rgb:
+  - 191
+  - 87
+  - 0
+- aciCode: 27
+  name: Brownish Orange
+  rgb:
+  - 191
+  - 127
+  - 63
+- aciCode: 28
+  name: Dark Burnt Orange
+  rgb:
+  - 127
+  - 58
+  - 0
+- aciCode: 29
+  name: Deep Brownish Orange
+  rgb:
+  - 127
+  - 85
+  - 42
+- aciCode: 30
+  name: Orange
+  rgb:
+  - 255
+  - 127
+  - 0
+- aciCode: 31
+  name: Light Orange
+  rgb:
+  - 255
+  - 191
+  - 127
+- aciCode: 32
+  name: Dark Orange
+  rgb:
+  - 165
+  - 82
+  - 0
+- aciCode: 33
+  name: Medium Orange
+  rgb:
+  - 165
+  - 124
+  - 82
+- aciCode: 34
+  name: Deep Orange
+  rgb:
+  - 127
+  - 63
+  - 0
+- aciCode: 35
+  name: Soft Orange
+  rgb:
+  - 127
+  - 95
+  - 63
+- aciCode: 36
+  name: Burnt Sienna
+  rgb:
+  - 138
+  - 54
+  - 15
+- aciCode: 37
+  name: Brownish Sienna
+  rgb:
+  - 138
+  - 92
+  - 54
+- aciCode: 38
+  name: Dark Burnt Sienna
+  rgb:
+  - 92
+  - 36
+  - 10
+- aciCode: 39
+  name: Deep Brownish Sienna
+  rgb:
+  - 92
+  - 61
+  - 30
+- aciCode: 40
+  name: Pure Yellow
+  rgb:
+  - 255
+  - 255
+  - 0
+- aciCode: 41
+  name: Light Yellow
+  rgb:
+  - 255
+  - 255
+  - 127
+- aciCode: 42
+  name: Dark Yellow
+  rgb:
+  - 165
+  - 165
+  - 0
+- aciCode: 43
+  name: Medium Yellow
+  rgb:
+  - 165
+  - 165
+  - 82
+- aciCode: 44
+  name: Deep Yellow
+  rgb:
+  - 127
+  - 127
+  - 0
+- aciCode: 45
+  name: Soft Yellow
+  rgb:
+  - 127
+  - 127
+  - 63
+- aciCode: 46
+  name: Burnt Yellow
+  rgb:
+  - 204
+  - 119
+  - 34
+- aciCode: 47
+  name: Brownish Yellow
+  rgb:
+  - 204
+  - 153
+  - 102
+- aciCode: 48
+  name: Dark Burnt Yellow
+  rgb:
+  - 153
+  - 89
+  - 25
+- aciCode: 49
+  name: Deep Brownish Yellow
+  rgb:
+  - 153
+  - 114
+  - 76
+- aciCode: 50
+  name: Pure Green
+  rgb:
+  - 0
+  - 255
+  - 0
+- aciCode: 51
+  name: Light Green
+  rgb:
+  - 127
+  - 255
+  - 127
+- aciCode: 52
+  name: Dark Green
+  rgb:
+  - 0
+  - 165
+  - 0
+- aciCode: 53
+  name: Medium Green
+  rgb:
+  - 82
+  - 165
+  - 82
+- aciCode: 54
+  name: Deep Green
+  rgb:
+  - 0
+  - 127
+  - 0
+- aciCode: 55
+  name: Soft Green
+  rgb:
+  - 63
+  - 127
+  - 63
+- aciCode: 56
+  name: Burnt Green
+  rgb:
+  - 76
+  - 153
+  - 0
+- aciCode: 57
+  name: Brownish Green
+  rgb:
+  - 127
+  - 191
+  - 127
+- aciCode: 58
+  name: Dark Burnt Green
+  rgb:
+  - 51
+  - 102
+  - 0
+- aciCode: 59
+  name: Deep Brownish Green
+  rgb:
+  - 89
+  - 127
+  - 89
+- aciCode: 60
+  name: Pure Cyan
+  rgb:
+  - 0
+  - 255
+  - 255
+- aciCode: 61
+  name: Light Cyan
+  rgb:
+  - 127
+  - 255
+  - 255
+- aciCode: 62
+  name: Dark Cyan
+  rgb:
+  - 0
+  - 165
+  - 165
+- aciCode: 63
+  name: Medium Cyan
+  rgb:
+  - 82
+  - 165
+  - 165
+- aciCode: 64
+  name: Deep Cyan
+  rgb:
+  - 0
+  - 127
+  - 127
+- aciCode: 65
+  name: Soft Cyan
+  rgb:
+  - 63
+  - 127
+  - 127
+- aciCode: 66
+  name: Burnt Cyan
+  rgb:
+  - 0
+  - 153
+  - 153
+- aciCode: 67
+  name: Brownish Cyan
+  rgb:
+  - 127
+  - 191
+  - 191
+- aciCode: 68
+  name: Dark Burnt Cyan
+  rgb:
+  - 0
+  - 102
+  - 102
+- aciCode: 69
+  name: Deep Brownish Cyan
+  rgb:
+  - 89
+  - 127
+  - 127
+- aciCode: 70
+  name: Pure Blue
+  rgb:
+  - 0
+  - 0
+  - 255
+- aciCode: 71
+  name: Light Blue
+  rgb:
+  - 127
+  - 127
+  - 255
+- aciCode: 72
+  name: Dark Blue
+  rgb:
+  - 0
+  - 0
+  - 165
+- aciCode: 73
+  name: Medium Blue
+  rgb:
+  - 82
+  - 82
+  - 165
+- aciCode: 74
+  name: Deep Blue
+  rgb:
+  - 0
+  - 0
+  - 127
+- aciCode: 75
+  name: Soft Blue
+  rgb:
+  - 63
+  - 63
+  - 127
+- aciCode: 76
+  name: Burnt Blue
+  rgb:
+  - 0
+  - 0
+  - 153
+- aciCode: 77
+  name: Brownish Blue
+  rgb:
+  - 127
+  - 127
+  - 191
+- aciCode: 78
+  name: Dark Burnt Blue
+  rgb:
+  - 0
+  - 0
+  - 102
+- aciCode: 79
+  name: Deep Brownish Blue
+  rgb:
+  - 89
+  - 89
+  - 127
+- aciCode: 80
+  name: Pure Magenta
+  rgb:
+  - 255
+  - 0
+  - 255
+- aciCode: 81
+  name: Light Magenta
+  rgb:
+  - 255
+  - 127
+  - 255
+- aciCode: 82
+  name: Dark Magenta
+  rgb:
+  - 165
+  - 0
+  - 165
+- aciCode: 83
+  name: Medium Magenta
+  rgb:
+  - 165
+  - 82
+  - 165
+- aciCode: 84
+  name: Deep Magenta
+  rgb:
+  - 127
+  - 0
+  - 127
+- aciCode: 85
+  name: Soft Magenta
+  rgb:
+  - 127
+  - 63
+  - 127
+- aciCode: 86
+  name: Burnt Magenta
+  rgb:
+  - 153
+  - 0
+  - 153
+- aciCode: 87
+  name: Brownish Magenta
+  rgb:
+  - 191
+  - 127
+  - 191
+- aciCode: 88
+  name: Dark Burnt Magenta
+  rgb:
+  - 102
+  - 0
+  - 102
+- aciCode: 89
+  name: Deep Brownish Magenta
+  rgb:
+  - 127
+  - 89
+  - 127
+- aciCode: 90
+  name: Red Magenta
+  rgb:
+  - 255
+  - 0
+  - 127
+- aciCode: 91
+  name: Light Red Magenta
+  rgb:
+  - 255
+  - 127
+  - 191
+- aciCode: 92
+  name: Dark Red Magenta
+  rgb:
+  - 165
+  - 0
+  - 82
+- aciCode: 93
+  name: Medium Red Magenta
+  rgb:
+  - 165
+  - 82
+  - 124
+- aciCode: 94
+  name: Deep Red Magenta
+  rgb:
+  - 127
+  - 0
+  - 63
+- aciCode: 95
+  name: Soft Red Magenta
+  rgb:
+  - 127
+  - 63
+  - 95
+- aciCode: 96
+  name: Burnt Red Magenta
+  rgb:
+  - 153
+  - 0
+  - 76
+- aciCode: 97
+  name: Brownish Red Magenta
+  rgb:
+  - 191
+  - 127
+  - 153
+- aciCode: 98
+  name: Dark Burnt Red Magenta
+  rgb:
+  - 102
+  - 0
+  - 51
+- aciCode: 99
+  name: Deep Brownish Red Magenta
+  rgb:
+  - 127
+  - 89
+  - 102
+- aciCode: 100
+  name: Red Cyan
+  rgb:
+  - 255
+  - 0
+  - 63
+- aciCode: 101
+  name: Light Red Cyan
+  rgb:
+  - 255
+  - 127
+  - 159
+- aciCode: 102
+  name: Dark Red Cyan
+  rgb:
+  - 165
+  - 0
+  - 41
+- aciCode: 103
+  name: Medium Red Cyan
+  rgb:
+  - 165
+  - 82
+  - 103
+- aciCode: 104
+  name: Deep Red Cyan
+  rgb:
+  - 127
+  - 0
+  - 31
+- aciCode: 105
+  name: Soft Red Cyan
+  rgb:
+  - 127
+  - 63
+  - 79
+- aciCode: 106
+  name: Burnt Red Cyan
+  rgb:
+  - 153
+  - 0
+  - 38
+- aciCode: 107
+  name: Brownish Red Cyan
+  rgb:
+  - 191
+  - 127
+  - 143
+- aciCode: 108
+  name: Dark Burnt Red Cyan
+  rgb:
+  - 102
+  - 0
+  - 25
+- aciCode: 109
+  name: Deep Brownish Red Cyan
+  rgb:
+  - 127
+  - 89
+  - 95
+- aciCode: 110
+  name: Red Blue
+  rgb:
+  - 255
+  - 0
+  - 255
+- aciCode: 111
+  name: Light Red Blue
+  rgb:
+  - 255
+  - 127
+  - 255
+- aciCode: 112
+  name: Dark Red Blue
+  rgb:
+  - 165
+  - 0
+  - 165
+- aciCode: 113
+  name: Medium Red Blue
+  rgb:
+  - 165
+  - 82
+  - 165
+- aciCode: 114
+  name: Deep Red Blue
+  rgb:
+  - 127
+  - 0
+  - 127
+- aciCode: 115
+  name: Soft Red Blue
+  rgb:
+  - 127
+  - 63
+  - 127
+- aciCode: 116
+  name: Burnt Red Blue
+  rgb:
+  - 153
+  - 0
+  - 153
+- aciCode: 117
+  name: Brownish Red Blue
+  rgb:
+  - 191
+  - 127
+  - 191
+- aciCode: 118
+  name: Dark Burnt Red Blue
+  rgb:
+  - 102
+  - 0
+  - 102
+- aciCode: 119
+  name: Deep Brownish Red Blue
+  rgb:
+  - 127
+  - 89
+  - 127
+- aciCode: 120
+  name: Red Yellow
+  rgb:
+  - 255
+  - 0
+  - 191
+- aciCode: 121
+  name: Light Red Yellow
+  rgb:
+  - 255
+  - 127
+  - 223
+- aciCode: 122
+  name: Dark Red Yellow
+  rgb:
+  - 165
+  - 0
+  - 124
+- aciCode: 123
+  name: Medium Red Yellow
+  rgb:
+  - 165
+  - 82
+  - 145
+- aciCode: 124
+  name: Deep Red Yellow
+  rgb:
+  - 127
+  - 0
+  - 95
+- aciCode: 125
+  name: Soft Red Yellow
+  rgb:
+  - 127
+  - 63
+  - 111
+- aciCode: 126
+  name: Burnt Red Yellow
+  rgb:
+  - 153
+  - 0
+  - 76
+- aciCode: 127
+  name: Brownish Red Yellow
+  rgb:
+  - 191
+  - 127
+  - 153
+- aciCode: 128
+  name: Dark Burnt Red Yellow
+  rgb:
+  - 102
+  - 0
+  - 51
+- aciCode: 129
+  name: Deep Brownish Red Yellow
+  rgb:
+  - 127
+  - 89
+  - 102
+- aciCode: 130
+  name: Green Magenta
+  rgb:
+  - 255
+  - 0
+  - 127
+- aciCode: 131
+  name: Light Green Magenta
+  rgb:
+  - 255
+  - 127
+  - 191
+- aciCode: 132
+  name: Dark Green Magenta
+  rgb:
+  - 165
+  - 0
+  - 82
+- aciCode: 133
+  name: Medium Green Magenta
+  rgb:
+  - 165
+  - 82
+  - 124
+- aciCode: 134
+  name: Deep Green Magenta
+  rgb:
+  - 127
+  - 0
+  - 63
+- aciCode: 135
+  name: Soft Green Magenta
+  rgb:
+  - 127
+  - 63
+  - 95
+- aciCode: 136
+  name: Burnt Green Magenta
+  rgb:
+  - 153
+  - 0
+  - 76
+- aciCode: 137
+  name: Brownish Green Magenta
+  rgb:
+  - 191
+  - 127
+  - 153
+- aciCode: 138
+  name: Dark Burnt Green Magenta
+  rgb:
+  - 102
+  - 0
+  - 51
+- aciCode: 139
+  name: Deep Brownish Green Magenta
+  rgb:
+  - 127
+  - 89
+  - 102
+- aciCode: 140
+  name: Green Cyan
+  rgb:
+  - 0
+  - 255
+  - 255
+- aciCode: 141
+  name: Light Green Cyan
+  rgb:
+  - 127
+  - 255
+  - 255
+- aciCode: 142
+  name: Dark Green Cyan
+  rgb:
+  - 0
+  - 165
+  - 165
+- aciCode: 143
+  name: Medium Green Cyan
+  rgb:
+  - 82
+  - 165
+  - 165
+- aciCode: 144
+  name: Deep Green Cyan
+  rgb:
+  - 0
+  - 127
+  - 127
+- aciCode: 145
+  name: Soft Green Cyan
+  rgb:
+  - 63
+  - 127
+  - 127
+- aciCode: 146
+  name: Burnt Green Cyan
+  rgb:
+  - 0
+  - 153
+  - 153
+- aciCode: 147
+  name: Brownish Green Cyan
+  rgb:
+  - 127
+  - 191
+  - 191
+- aciCode: 148
+  name: Dark Burnt Green Cyan
+  rgb:
+  - 0
+  - 102
+  - 102
+- aciCode: 149
+  name: Deep Brownish Green Cyan
+  rgb:
+  - 89
+  - 127
+  - 127
+- aciCode: 150
+  name: Green Blue
+  rgb:
+  - 0
+  - 127
+  - 255
+- aciCode: 151
+  name: Light Green Blue
+  rgb:
+  - 127
+  - 191
+  - 255
+- aciCode: 152
+  name: Dark Green Blue
+  rgb:
+  - 0
+  - 82
+  - 165
+- aciCode: 153
+  name: Medium Green Blue
+  rgb:
+  - 82
+  - 124
+  - 165
+- aciCode: 154
+  name: Deep Green Blue
+  rgb:
+  - 0
+  - 63
+  - 127
+- aciCode: 155
+  name: Soft Green Blue
+  rgb:
+  - 63
+  - 95
+  - 127
+- aciCode: 156
+  name: Burnt Green Blue
+  rgb:
+  - 0
+  - 38
+  - 76
+- aciCode: 157
+  name: Brownish Green Blue
+  rgb:
+  - 38
+  - 57
+  - 126
+- aciCode: 158
+  name: Dark Burnt Green Blue
+  rgb:
+  - 0
+  - 19
+  - 38
+- aciCode: 159
+  name: Deep Brownish Green Blue
+  rgb:
+  - 19
+  - 28
+  - 88
+- aciCode: 160
+  name: Dark Burnt Green Blue
+  rgb:
+  - 0
+  - 63
+  - 255
+- aciCode: 161
+  name: Light Red Cyan
+  rgb:
+  - 127
+  - 159
+  - 255
+- aciCode: 162
+  name: Dark Orange Red
+  rgb:
+  - 0
+  - 41
+  - 165
+- aciCode: 163
+  name: Medium Orange Red
+  rgb:
+  - 82
+  - 103
+  - 165
+- aciCode: 164
+  name: Deep Orange Red
+  rgb:
+  - 0
+  - 31
+  - 127
+- aciCode: 165
+  name: Soft Orange Red
+  rgb:
+  - 63
+  - 79
+  - 127
+- aciCode: 166
+  name: Burnt Orange
+  rgb:
+  - 0
+  - 19
+  - 76
+- aciCode: 167
+  name: Brownish Orange
+  rgb:
+  - 38
+  - 47
+  - 126
+- aciCode: 168
+  name: Dark Burnt Orange
+  rgb:
+  - 0
+  - 9
+  - 38
+- aciCode: 169
+  name: Deep Brownish Orange
+  rgb:
+  - 19
+  - 23
+  - 88
+- aciCode: 170
+  name: Blue
+  rgb:
+  - 0
+  - 0
+  - 255
+- aciCode: 171
+  name: Light Blue
+  rgb:
+  - 127
+  - 127
+  - 255
+- aciCode: 172
+  name: Dark Blue
+  rgb:
+  - 0
+  - 0
+  - 165
+- aciCode: 173
+  name: Medium Blue
+  rgb:
+  - 82
+  - 82
+  - 165
+- aciCode: 174
+  name: Deep Blue
+  rgb:
+  - 0
+  - 0
+  - 127
+- aciCode: 175
+  name: Soft Blue
+  rgb:
+  - 63
+  - 63
+  - 127
+- aciCode: 176
+  name: Burnt Blue
+  rgb:
+  - 0
+  - 0
+  - 76
+- aciCode: 177
+  name: Brownish Blue
+  rgb:
+  - 38
+  - 38
+  - 126
+- aciCode: 178
+  name: Dark Burnt Blue
+  rgb:
+  - 0
+  - 0
+  - 38
+- aciCode: 179
+  name: Deep Brownish Blue
+  rgb:
+  - 19
+  - 19
+  - 88
+- aciCode: 180
+  name: Magenta
+  rgb:
+  - 63
+  - 0
+  - 255
+- aciCode: 181
+  name: Light Magenta
+  rgb:
+  - 159
+  - 127
+  - 255
+- aciCode: 182
+  name: Dark Magenta
+  rgb:
+  - 41
+  - 0
+  - 165
+- aciCode: 183
+  name: Medium Magenta
+  rgb:
+  - 103
+  - 82
+  - 165
+- aciCode: 184
+  name: Deep Magenta
+  rgb:
+  - 31
+  - 0
+  - 127
+- aciCode: 185
+  name: Soft Magenta
+  rgb:
+  - 79
+  - 63
+  - 127
+- aciCode: 186
+  name: Burnt Magenta
+  rgb:
+  - 19
+  - 0
+  - 76
+- aciCode: 187
+  name: Brownish Magenta
+  rgb:
+  - 47
+  - 38
+  - 126
+- aciCode: 188
+  name: Dark Burnt Magenta
+  rgb:
+  - 9
+  - 0
+  - 38
+- aciCode: 189
+  name: Deep Brownish Magenta
+  rgb:
+  - 23
+  - 19
+  - 88
+- aciCode: 190
+  name: Red Magenta
+  rgb:
+  - 127
+  - 0
+  - 255
+- aciCode: 191
+  name: Light Red Magenta
+  rgb:
+  - 191
+  - 127
+  - 255
+- aciCode: 192
+  name: Dark Red Magenta
+  rgb:
+  - 82
+  - 0
+  - 165
+- aciCode: 193
+  name: Medium Red Magenta
+  rgb:
+  - 124
+  - 82
+  - 165
+- aciCode: 194
+  name: Deep Red Magenta
+  rgb:
+  - 63
+  - 0
+  - 127
+- aciCode: 195
+  name: Soft Red Magenta
+  rgb:
+  - 95
+  - 63
+  - 127
+- aciCode: 196
+  name: Burnt Red Magenta
+  rgb:
+  - 38
+  - 0
+  - 76
+- aciCode: 197
+  name: Brownish Red Magenta
+  rgb:
+  - 57
+  - 38
+  - 126
+- aciCode: 198
+  name: Dark Burnt Red Magenta
+  rgb:
+  - 19
+  - 0
+  - 38
+- aciCode: 199
+  name: Deep Brownish Red Magenta
+  rgb:
+  - 28
+  - 19
+  - 88
+- aciCode: 200
+  name: Red Cyan
+  rgb:
+  - 191
+  - 0
+  - 255
+- aciCode: 201
+  name: Light Red Cyan
+  rgb:
+  - 223
+  - 127
+  - 255
+- aciCode: 202
+  name: Dark Red Cyan
+  rgb:
+  - 124
+  - 0
+  - 165
+- aciCode: 203
+  name: Medium Red Cyan
+  rgb:
+  - 145
+  - 82
+  - 165
+- aciCode: 204
+  name: Deep Red Cyan
+  rgb:
+  - 95
+  - 0
+  - 127
+- aciCode: 205
+  name: Soft Red Cyan
+  rgb:
+  - 111
+  - 63
+  - 127
+- aciCode: 206
+  name: Burnt Red Cyan
+  rgb:
+  - 57
+  - 0
+  - 76
+- aciCode: 207
+  name: Brownish Red Cyan
+  rgb:
+  - 66
+  - 38
+  - 76
+- aciCode: 208
+  name: Dark Burnt Red Cyan
+  rgb:
+  - 28
+  - 0
+  - 38
+- aciCode: 209
+  name: Deep Brownish Red Cyan
+  rgb:
+  - 88
+  - 19
+  - 88
+- aciCode: 210
+  name: Red Blue
+  rgb:
+  - 255
+  - 0
+  - 255
+- aciCode: 211
+  name: Light Red Blue
+  rgb:
+  - 255
+  - 127
+  - 255
+- aciCode: 212
+  name: Dark Red Blue
+  rgb:
+  - 165
+  - 0
+  - 165
+- aciCode: 213
+  name: Medium Red Blue
+  rgb:
+  - 165
+  - 82
+  - 165
+- aciCode: 214
+  name: Deep Red Blue
+  rgb:
+  - 127
+  - 0
+  - 127
+- aciCode: 215
+  name: Soft Red Blue
+  rgb:
+  - 127
+  - 63
+  - 127
+- aciCode: 216
+  name: Burnt Red Blue
+  rgb:
+  - 76
+  - 0
+  - 76
+- aciCode: 217
+  name: Brownish Red Blue
+  rgb:
+  - 76
+  - 38
+  - 76
+- aciCode: 218
+  name: Dark Burnt Red Blue
+  rgb:
+  - 38
+  - 0
+  - 38
+- aciCode: 219
+  name: Deep Brownish Red Blue
+  rgb:
+  - 88
+  - 19
+  - 88
+- aciCode: 220
+  name: Red Yellow
+  rgb:
+  - 255
+  - 0
+  - 191
+- aciCode: 221
+  name: Light Red Yellow
+  rgb:
+  - 255
+  - 127
+  - 223
+- aciCode: 222
+  name: Dark Red Yellow
+  rgb:
+  - 165
+  - 0
+  - 124
+- aciCode: 223
+  name: Medium Red Yellow
+  rgb:
+  - 165
+  - 82
+  - 145
+- aciCode: 224
+  name: Deep Red Yellow
+  rgb:
+  - 127
+  - 0
+  - 95
+- aciCode: 225
+  name: Soft Red Yellow
+  rgb:
+  - 127
+  - 63
+  - 111
+- aciCode: 226
+  name: Burnt Red Yellow
+  rgb:
+  - 76
+  - 0
+  - 57
+- aciCode: 227
+  name: Brownish Red Yellow
+  rgb:
+  - 76
+  - 38
+  - 66
+- aciCode: 228
+  name: Dark Burnt Red Yellow
+  rgb:
+  - 38
+  - 0
+  - 28
+- aciCode: 229
+  name: Deep Brownish Red Yellow
+  rgb:
+  - 88
+  - 19
+  - 88
+- aciCode: 230
+  name: Green Magenta
+  rgb:
+  - 255
+  - 0
+  - 127
+- aciCode: 231
+  name: Light Green Magenta
+  rgb:
+  - 255
+  - 127
+  - 191
+- aciCode: 232
+  name: Dark Green Magenta
+  rgb:
+  - 165
+  - 0
+  - 82
+- aciCode: 233
+  name: Medium Green Magenta
+  rgb:
+  - 165
+  - 82
+  - 124
+- aciCode: 234
+  name: Deep Green Magenta
+  rgb:
+  - 127
+  - 0
+  - 63
+- aciCode: 235
+  name: Soft Green Magenta
+  rgb:
+  - 127
+  - 63
+  - 95
+- aciCode: 236
+  name: Burnt Green Magenta
+  rgb:
+  - 76
+  - 0
+  - 38
+- aciCode: 237
+  name: Brownish Green Magenta
+  rgb:
+  - 76
+  - 38
+  - 57
+- aciCode: 238
+  name: Dark Burnt Green Magenta
+  rgb:
+  - 38
+  - 0
+  - 19
+- aciCode: 239
+  name: Deep Brownish Green Magenta
+  rgb:
+  - 88
+  - 19
+  - 28
+- aciCode: 240
+  name: Green Cyan
+  rgb:
+  - 255
+  - 0
+  - 63
+- aciCode: 241
+  name: Light Green Cyan
+  rgb:
+  - 255
+  - 127
+  - 159
+- aciCode: 242
+  name: Dark Green Cyan
+  rgb:
+  - 165
+  - 0
+  - 41
+- aciCode: 243
+  name: Medium Green Cyan
+  rgb:
+  - 165
+  - 82
+  - 103
+- aciCode: 244
+  name: Deep Green Cyan
+  rgb:
+  - 127
+  - 0
+  - 31
+- aciCode: 245
+  name: Soft Green Cyan
+  rgb:
+  - 127
+  - 63
+  - 79
+- aciCode: 246
+  name: Burnt Green Cyan
+  rgb:
+  - 76
+  - 0
+  - 19
+- aciCode: 247
+  name: Brownish Green Cyan
+  rgb:
+  - 76
+  - 38
+  - 47
+- aciCode: 248
+  name: Dark Burnt Green Cyan
+  rgb:
+  - 38
+  - 0
+  - 9
+- aciCode: 249
+  name: Deep Brownish Green Cyan
+  rgb:
+  - 88
+  - 19
+  - 23
+- aciCode: 250
+  name: Black
+  rgb:
+  - 0
+  - 0
+  - 0
+- aciCode: 251
+  name: Dark Gray
+  rgb:
+  - 101
+  - 101
+  - 101
+- aciCode: 252
+  name: Silver Gray
+  rgb:
+  - 102
+  - 102
+  - 102
+- aciCode: 253
+  name: Medium Gray
+  rgb:
+  - 153
+  - 153
+  - 153
+- aciCode: 254
+  name: Soft Gray
+  rgb:
+  - 204
+  - 204
+  - 204
+- aciCode: 255
+  name: Snow White
+  rgb:
+  - 255
+  - 255
+  - 255

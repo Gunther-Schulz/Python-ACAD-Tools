@@ -14,6 +14,12 @@ import argparse
 
 class ProjectProcessor:
     def __init__(self, project_name: str, update_layers_list: list = None):
+        # Load the color mapping from the YAML file
+        with open('colors.yaml', 'r') as file:
+            color_data = yaml.safe_load(file)
+            self.name_to_aci = {item['name'].lower(): item['aciCode'] for item in color_data}
+            self.aci_to_name = {item['aciCode']: item['name'] for item in color_data}
+
         self.project_settings, self.folder_prefix = self.load_project_settings(
             project_name)
         if not self.project_settings:
@@ -46,32 +52,12 @@ class ProjectProcessor:
         self.parcel_shapefile = self.load_shapefile(self.parcel_shapefile)
         self.wald_shapefile = self.load_shapefile(self.wald_shapefile)
         self.biotope_shapefile = self.load_shapefile(self.biotope_shapefile)
-
-        self.color_map = {
-            'red': 1, 'yellow': 2, 'green': 3, 'cyan': 4, 'blue': 5, 'magenta': 6,
-            'white': 7, 'gray': 8, 'light_gray': 9, 'dark_red': 10, 'dark_yellow': 11,
-            'dark_green': 12, 'dark_cyan': 13, 'dark_blue': 14, 'dark_magenta': 15,
-            'orange': 16, 'pink': 17, 'brown': 18, 'purple': 19, 'lime': 20,
-            'olive': 21, 'navy': 22, 'teal': 23, 'maroon': 24, 'silver': 25,
-            'gold': 26, 'beige': 27, 'coral': 28, 'ivory': 29, 'khaki': 30,
-            'lavender': 31, 'peach': 32, 'mint': 33, 'apricot': 34, 'rose': 35,
-            'plum': 36, 'mustard': 37, 'turquoise': 38, 'violet': 39, 'charcoal': 40,
-            'aqua': 41, 'burgundy': 42, 'emerald': 43, 'fuchsia': 44, 'indigo': 45,
-            'jade': 46, 'lavender_blush': 47, 'lemon': 48, 'mauve': 49, 'pearl': 50,
-            'ruby': 51, 'sapphire': 52, 'amber': 53, 'amethyst': 54, 'topaz': 55,
-            'opal': 56, 'garnet': 57, 'peridot': 58, 'aquamarine': 59, 'tanzanite': 60,
-            'moonstone': 61, 'onyx': 62, 'quartz': 63, 'citrine': 64, 'jasper': 65,
-            'lapis': 66, 'malachite': 67, 'obsidian': 68, 'agate': 69, 'turquoise_blue': 70,
-            'copper': 71, 'bronze': 72, 'brass': 73, 'nickel': 74, 'platinum': 75,
-            'zinc': 76, 'aluminum': 77, 'steel': 78, 'chrome': 79, 'titanium': 80,
-            'pewter': 81, 'lead': 82, 'tin': 83, 'mercury': 84, 'bismuth': 85,
-            'antimony': 86, 'arsenic': 87, 'cadmium': 88, 'cobalt': 89, 'gallium': 90,
-            'germanium': 91, 'hafnium': 92, 'iridium': 93, 'osmium': 94, 'palladium': 95,
-            'rhodium': 96, 'ruthenium': 97, 'scandium': 98, 'strontium': 99, 'tellurium': 100,
-        }
-
-        self.colors = {layer['name']: self.get_color_code(layer['color'])
-                       for layer in self.project_settings['layers']}
+        
+        self.colors = {}
+        for layer in self.project_settings['layers']:
+            color_code = self.get_color_code(layer['color'])
+            self.colors[layer['name']] = color_code
+            self.colors[f"{layer['name']} Number"] = color_code  # Add color for label layer
 
         self.coverage = self.project_settings['coverage']
 
@@ -108,11 +94,11 @@ class ProjectProcessor:
         gdf = gdf.set_crs(self.crs, allow_override=True)
         return gdf
 
-    def geoms_missing(self, gdf: gpd.GeoDataFrame, coverage: dict) -> set:
+    def parcel_missing(self, gdf: gpd.GeoDataFrame, coverage: dict) -> set:
         return set(coverage["parcelList"]).difference(gdf[self.parcel_label])
 
     def filter_parcels(self, parcel, flur, gemarkung, gemeinde, coverage):
-        parcels_missing = self.geoms_missing(parcel, coverage)
+        parcels_missing = self.parcel_missing(parcel, coverage)
         if not parcels_missing:
             print("All parcels found.")
 
@@ -209,50 +195,65 @@ class ProjectProcessor:
             doc.styles.new(name=text_style_name, dxfattribs={
                            'font': 'Arial.ttf', 'height': 0.1})
 
-    def add_text(self, msp, text, x, y, layer_name, style_name):
+    def add_text(self, msp, text, x, y, layer_name, style_name, color):
         msp.add_text(text, dxfattribs={
             'style': style_name,
             'layer': layer_name,
             'insert': (x, y),
             'align_point': (x, y),
             'halign': 1,
-            'valign': 1
+            'valign': 1,
+            'color': color
         })
 
     def add_text_to_center(self, msp, points, layer_name):
         self.add_text_style(msp.doc, 'Standard')
+        # Get the color for the layer
+        color = self.colors.get(layer_name, 7)  # Default to white (7) if color not found
         for idx, row in points.iterrows():
-            self.add_text(msp, row['label'], row.geometry.x, row.geometry.y, layer_name, 'Standard')
+            self.add_text(msp, row['label'], row.geometry.x, row.geometry.y, layer_name, 'Standard', color)
 
     def add_geometries(self, msp, geometries, layer_name, close=True):
+        # Get the color for the layer
+        color = self.colors.get(layer_name, 7)  # Default to white (7) if color not found
+        
         for geom in geometries:
             if geom.geom_type == 'Polygon' or (geom.geom_type == 'LineString' and close):
-                msp.add_lwpolyline(geom.exterior.coords, dxfattribs={'layer': layer_name, 'closed': close})
+                msp.add_lwpolyline(geom.exterior.coords, dxfattribs={'layer': layer_name, 'color': color, 'closed': close})
             elif geom.geom_type == 'LineString':
-                msp.add_lwpolyline(geom.coords, dxfattribs={'layer': layer_name})
+                msp.add_lwpolyline(geom.coords, dxfattribs={'layer': layer_name, 'color': color})
             elif geom.geom_type == 'MultiPolygon':
                 for poly in geom.geoms:  # Iterate over the individual polygons in the MultiPolygon
-                    msp.add_lwpolyline(poly.exterior.coords, dxfattribs={'layer': layer_name, 'closed': close})
+                    msp.add_lwpolyline(poly.exterior.coords, dxfattribs={'layer': layer_name, 'color': color, 'closed': close})
             elif geom.geom_type == 'MultiLineString':
                 for line in geom.geoms:  # Iterate over the individual lines in the MultiLineString
-                    msp.add_lwpolyline(line.coords, dxfattribs={'layer': layer_name})
+                    msp.add_lwpolyline(line.coords, dxfattribs={'layer': layer_name, 'color': color})
 
-    def add_layer(self, doc, layer_name, color):
-        if layer_name not in doc.layers:
-            color_code = self.get_color_code(color)
-            doc.layers.new(name=layer_name, dxfattribs={'color': color_code})
+    # def add_layer(self, doc, layer_name, color):
+    #     if layer_name not in doc.layers:
+    #         color_code = self.get_color_code(color)
+    #         doc.layers.new(name=layer_name, dxfattribs={'color': color_code})
 
     def get_color_code(self, color):
         if isinstance(color, int):
-            if color == 0:
-                # Choose a random color between 1 and 255
-                return random.randint(1, 255)
-            return color
+            if 1 <= color <= 255:
+                return color
+            else:
+                random_color = random.randint(1, 255)
+                print(f"Warning: Invalid color code {color}. Assigning random color: {random_color}")
+                return random_color
         elif isinstance(color, str):
-            # Default to white (7) if color name not found
-            return self.color_map.get(color.lower(), 7)
+            color_lower = color.lower()
+            if color_lower in self.name_to_aci:
+                return self.name_to_aci[color_lower]
+            else:
+                random_color = random.randint(1, 255)
+                print(f"Warning: Color name '{color}' not found. Assigning random color: {random_color}")
+                return random_color
         else:
-            return 7  # Default to white (7) for any other type
+            random_color = random.randint(1, 255)
+            print(f"Warning: Invalid color type. Assigning random color: {random_color}")
+            return random_color
 
     def add_image_with_worldfile(self, msp, image_path, world_file_path, layer_name):
         # Create a relative path for the image
@@ -375,7 +376,8 @@ class ProjectProcessor:
             if layer in ['Parcel', 'Flur', 'Gemeinde', 'Gemarkung']:
                 label_attr = f"{layer.lower()}_label"
                 points = self.labeled_center_points(getattr(self, f"{layer.lower()}_shapefile"), getattr(self, label_attr))
-                self.add_text_to_center(msp, points, f"{layer} Number")
+                label_layer_name = f"{layer} Number"
+                self.add_text_to_center(msp, points, label_layer_name)
 
         return doc
 
