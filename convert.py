@@ -223,35 +223,33 @@ class ProjectProcessor:
         if isinstance(geometries, gpd.GeoSeries) or isinstance(geometries, gpd.GeoDataFrame):
             geometries = geometries.geometry
         
+        # If geometries is a single geometry object, wrap it in a list
+        if isinstance(geometries, (Polygon, LineString, MultiPolygon, MultiLineString)):
+            geometries = [geometries]
+        
         for geom in geometries:
             if geom is None:
-                print(
-                    f"Warning: None geometry encountered in layer '{layer_name}'")
+                print(f"Warning: None geometry encountered in layer '{layer_name}'")
             elif isinstance(geom, (Polygon, LineString, MultiPolygon, MultiLineString)):
                 if geom.geom_type == 'Polygon':
                     points = [(x, y) for x, y in geom.exterior.coords]
-                    msp.add_lwpolyline(points, close=close, dxfattribs={
-                                       'layer': layer_name})
+                    msp.add_lwpolyline(points, close=close, dxfattribs={'layer': layer_name})
                 elif geom.geom_type == 'MultiPolygon':
                     for polygon in geom.geoms:
                         points = [(x, y) for x, y in polygon.exterior.coords]
-                        msp.add_lwpolyline(points, close=close, dxfattribs={
-                                           'layer': layer_name})
+                        msp.add_lwpolyline(points, close=close, dxfattribs={'layer': layer_name})
                 elif geom.geom_type == 'LineString':
                     points = [(x, y) for x, y in geom.coords]
-                    msp.add_lwpolyline(points, close=close, dxfattribs={
-                                       'layer': layer_name})
+                    msp.add_lwpolyline(points, close=close, dxfattribs={'layer': layer_name})
                 elif geom.geom_type == 'MultiLineString':
                     for line in geom.geoms:
                         points = [(x, y) for x, y in line.coords]
-                        msp.add_lwpolyline(points, close=close, dxfattribs={
-                                           'layer': layer_name})
+                        msp.add_lwpolyline(points, close=close, dxfattribs={'layer': layer_name})
                 else:
                     print(f"Unsupported geometry type: {geom.geom_type}")
             else:
-                print(
-                    f"Unsupported object type: {type(geom)} in layer '{layer_name}'")
-
+                print(f"Unsupported object type: {type(geom)} in layer '{layer_name}'")
+                
     def add_layer(self, doc, layer_name, color):
         if layer_name not in doc.layers:
             color_code = self.get_color_code(color)
@@ -358,6 +356,7 @@ class ProjectProcessor:
         geltungsbereich = self.clip_with_distance_layer_buffers(geltungsbereich)
 
         # Clip geltungsbereich with wald
+        wald_inside = geltungsbereich.intersection(shapefiles["wald"].unary_union)
         geltungsbereich = geltungsbereich.difference(shapefiles["wald"].unary_union)
 
         wald_abstand = self.get_distance_layer_buffers(shapefiles["wald"], 30, geltungsbereich)
@@ -400,6 +399,7 @@ class ProjectProcessor:
             ('Flur Number', self.colors['Flur']),
             ('Wald', self.colors['Wald']),
             ('Wald Abstand', 'dark_red'),
+            ('Wald Inside', 'dark_green'),
             ('Biotope', self.colors['Biotope']),
             ('Gemeinde Name', self.colors['Gemeinde']),
             ('Gemarkung Name', self.colors['Gemarkung']),
@@ -428,6 +428,7 @@ class ProjectProcessor:
         # self.add_geometries(msp, shapefiles["gemarkung"]['geometry'], 'Gemarkung', close=True)
         self.add_geometries(msp, shapefiles["wald"]['geometry'], 'Wald', close=True)
         self.add_geometries(msp, wald_abstand, 'Wald Abstand', close=True)
+        self.add_geometries(msp, wald_inside, 'Wald Inside', close=True)
         # self.add_geometries(msp, shapefiles["biotope"]['geometry'], 'Biotope', close=True)
 
         # Add text to center points
