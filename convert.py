@@ -337,6 +337,24 @@ class ProjectProcessor:
         doc = ezdxf.readfile(self.dxf_filename)
         msp = doc.modelspace()
 
+        # Load necessary shapefiles
+        self.shapefiles = {}
+        for layer in layers_to_update:
+            if layer == 'Flur':
+                self.shapefiles["flur"] = self.load_shapefile(self.resolve_full_path(self.flur_shapefile))
+            elif layer == 'Parcel':
+                self.shapefiles["parcels"] = self.load_shapefile(self.resolve_full_path(self.parcel_shapefile))
+            elif layer == 'FlurOrig':
+                self.shapefiles["orig_flur"] = self.load_shapefile(self.resolve_full_path(self.flur_shapefile))
+            elif layer == 'Gemeinde':
+                self.shapefiles["gemeinde"] = self.load_shapefile(self.resolve_full_path(self.gemeinde_shapefile))
+            elif layer == 'Gemarkung':
+                self.shapefiles["gemarkung"] = self.load_shapefile(self.resolve_full_path(self.gemarkung_shapefile))
+            elif layer == 'Wald':
+                self.shapefiles["wald"] = self.load_shapefile(self.resolve_full_path(self.wald_shapefile))
+            elif layer == 'Biotope':
+                self.shapefiles["biotope"] = self.load_shapefile(self.resolve_full_path(self.biotope_shapefile))
+
         for layer in layers_to_update:
             if layer in self.wmts_layers.values():
                 # Update WMTS layer
@@ -347,21 +365,23 @@ class ProjectProcessor:
                 tiles = download_wmts_tiles(wmts_info, self.get_geltungsbereich(), 500, target_folder, True)
                 
                 # Remove existing images
-                msp.query(f'IMAGE[layer=="{layer}"]').delete()
+                for entity in msp.query(f'IMAGE[layer=="{layer}"]'):
+                    msp.delete_entity(entity)
                 
                 # Add updated images
                 for tile_path, world_file_path in tiles:
                     self.add_image_with_worldfile(msp, tile_path, world_file_path, layer)
             else:
                 # Update other layers
-                msp.query(f'*[layer=="{layer}"]').delete()
+                for entity in msp.query(f'*[layer=="{layer}"]'):
+                    msp.delete_entity(entity)
 
                 if layer == 'Flur':
                     self.add_geometries(msp, self.select_parcel_edges(self.shapefiles["flur"])['geometry'], 'Flur', close=False)
                 elif layer == 'Parcel':
                     self.add_geometries(msp, self.shapefiles["parcels"]['geometry'], 'Parcel', close=True)
                 elif layer == 'Geltungsbereich':
-                    self.add_geometries(msp, [self.geltungsbereich], 'Geltungsbereich', close=True)
+                    self.add_geometries(msp, [self.get_geltungsbereich()], 'Geltungsbereich', close=True)
                 elif layer == 'FlurOrig':
                     self.add_geometries(msp, self.shapefiles["orig_flur"]['geometry'], 'FlurOrig', close=True)
                 elif layer == 'Gemeinde':
@@ -371,14 +391,17 @@ class ProjectProcessor:
                 elif layer == 'Wald':
                     self.add_geometries(msp, self.shapefiles["wald"]['geometry'], 'Wald', close=True)
                 elif layer == 'Wald Abstand':
-                    self.add_geometries(msp, self.wald_abstand, 'Wald Abstand', close=True)
+                    wald_abstand = self.get_distance_layer_buffers(self.shapefiles["wald"], 30, self.get_geltungsbereich())
+                    self.add_geometries(msp, wald_abstand, 'Wald Abstand', close=True)
                 elif layer == 'Wald Inside':
-                    self.add_geometries(msp, self.wald_inside, 'Wald Inside', close=True)
+                    wald_inside = self.get_geltungsbereich().intersection(self.shapefiles["wald"].unary_union)
+                    self.add_geometries(msp, wald_inside, 'Wald Inside', close=True)
                 elif layer == 'Biotope':
                     self.add_geometries(msp, self.shapefiles["biotope"]['geometry'], 'Biotope', close=True)
 
         doc.save()
         print(f"Updated layers: {', '.join(layers_to_update)}")
+
 
     def get_geltungsbereich(self):
         doc = ezdxf.readfile(self.dxf_filename)
