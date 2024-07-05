@@ -481,7 +481,12 @@ class ProjectProcessor:
     def process_single_layer(self, msp, layer):
         # Check if the layer is a clip distance layer
         if layer in [clip_layer['name'] for clip_layer in self.clip_distance_layers]:
-            print(f"Skipping clip distance layer: {layer}")
+            if not self.has_corresponding_layer(layer):
+                print(f"Skipping clip distance layer: {layer} as it has no corresponding entry in 'layers'")
+                return
+            print(f"Processing clip distance layer: {layer}")
+            geometry = self.clip_geometries[layer]
+            self.add_geometries(msp, [geometry], layer, close=True)
             return
 
         # Remove existing entities in the layer
@@ -552,11 +557,24 @@ class ProjectProcessor:
         # Process exclusions
         self.exclusion_geometries = {}
         for exclusion in self.exclusions:
-            self.create_exclusion_polygon(exclusion)
+            if self.has_corresponding_layer(exclusion['name']):
+                self.create_exclusion_polygon(exclusion)
         
         doc = self.process_layers(self.update_layers_list)
         
-        # ... (rest of your main method)
+        # Ensure the directory exists
+        os.makedirs(os.path.dirname(self.dxf_filename), exist_ok=True)
+
+        if self.export_format == 'dwg':
+            print(f"Exporting to DWG: {self.dxf_filename.replace('.dxf', '.dwg')}")
+            doc.header['$PROJECTNAME'] = ''
+            odafc.export_dwg(doc, self.dxf_filename.replace('.dxf', '.dwg'))
+        else:
+            print(f"Saving DXF file: {self.dxf_filename}")
+            doc.saveas(self.dxf_filename)
+
+        # processed_layers = self.update_layers_list if self.update_layers_list else ['Flur', 'Parcel', 'Gemeinde', 'Gemarkung', 'Wald', 'Biotope'] + list(self.wmts_layers.values())
+        print("Processing complete.")
 
     def add_layer_properties(self, layer_name, layer_info):
         color = self.get_color_code(layer_info.get('color', 'White'))
@@ -574,51 +592,36 @@ class ProjectProcessor:
             'close': True
         }
 
+    def has_corresponding_layer(self, layer_name):
+        """Check if the given layer name has a corresponding entry in the 'layers' section."""
+        return any(layer['name'] == layer_name for layer in self.project_settings['layers'])
+
     def create_clip_distance_layers(self):
         print("Starting to create clip distance layers...")
+        self.clip_geometries = {}
         for layer in self.clip_distance_layers:
             input_shapefile = self.resolve_full_path(layer['shapeFile'])
             buffer_distance = layer['bufferDistance']
-            layer_name = layer['name']  # Use the name directly from the YAML file
-            output_shapefile = input_shapefile.replace('.shp', f'_clip_{buffer_distance}.shp')
+            layer_name = layer['name']
 
-            print(f"Processing clip distance layer: {layer_name}")
-            print(f"Input shapefile: {input_shapefile}")
-            print(f"Buffer distance: {buffer_distance}")
-            print(f"Output shapefile: {output_shapefile}")
+            # Only process if there's a corresponding layer in the 'layers' section
+            if self.has_corresponding_layer(layer_name):
+                print(f"Processing clip distance layer: {layer_name}")
+                print(f"Input shapefile: {input_shapefile}")
+                print(f"Buffer distance: {buffer_distance}")
 
-            # Load the input shapefile
-            gdf = gpd.read_file(input_shapefile)
+                # Load the input shapefile
+                gdf = gpd.read_file(input_shapefile)
 
-            # Create buffer
-            buffered = gdf.buffer(buffer_distance)
+                # Create buffer
+                buffered = gdf.buffer(buffer_distance)
 
-            # Create a new GeoDataFrame with the buffered geometry
-            buffered_gdf = gpd.GeoDataFrame(geometry=buffered, crs=gdf.crs)
+                # Store the buffered geometry
+                self.clip_geometries[layer_name] = buffered.unary_union
 
-            # Save the buffered GeoDataFrame as a new shapefile
-            buffered_gdf.to_file(output_shapefile)
-
-            print(f"Created clip distance layer: {layer_name}")
-
-            # Add the new layer to the project settings
-            new_layer = {
-                'name': layer_name,
-                'shapeFile': output_shapefile,
-                'color': layer.get('color', "Light Green"),
-                'close': layer.get('close', True),
-                'locked': layer.get('locked', False)
-            }
-            self.project_settings['layers'].append(new_layer)
-
-            # Add the new layer to layer_properties
-            self.layer_properties[layer_name] = {
-                'color': self.get_color_code(new_layer['color']),
-                'locked': new_layer['locked'],
-                'close': new_layer['close']
-            }
-
-            print(f"Added new layer to project settings: {layer_name}")
+                print(f"Created clip distance geometry for layer: {layer_name}")
+            else:
+                print(f"Skipping clip distance layer '{layer_name}' as it has no corresponding entry in 'layers'")
 
         print("Finished creating clip distance layers.")
 
@@ -630,25 +633,29 @@ class ProjectProcessor:
             buffer_distance = buffer_layer['bufferDistance']
             layer_name = buffer_layer['name']
 
-            try:
-                # Load the input shapefile
-                gdf = gpd.read_file(input_shapefile)
+            # Only process if there's a corresponding layer in the 'layers' section
+            if self.has_corresponding_layer(layer_name):
+                try:
+                    # Load the input shapefile
+                    gdf = gpd.read_file(input_shapefile)
+                    
+                    # Create buffer
+                    buffered = gdf.buffer(buffer_distance)
+                    
+                    # Get the combined Geltungsbereich geometry
+                    geltungsbereich_geometry = self.get_combined_geltungsbereich()
+                    
+                    # Intersect the buffer with the Geltungsbereich
+                    clipped_buffer = buffered.intersection(geltungsbereich_geometry)
+                    
+                    # Store the buffered geometry
+                    self.buffer_geometries[layer_name] = clipped_buffer
                 
-                # Create buffer
-                buffered = gdf.buffer(buffer_distance)
-                
-                # Get the combined Geltungsbereich geometry
-                geltungsbereich_geometry = self.get_combined_geltungsbereich()
-                
-                # Intersect the buffer with the Geltungsbereich
-                clipped_buffer = buffered.intersection(geltungsbereich_geometry)
-                
-                # Store the buffered geometry
-                self.buffer_geometries[layer_name] = clipped_buffer
-                
-                print(f"Created buffer for layer: {layer_name}")
-            except Exception as e:
-                print(f"Error creating buffer for layer {layer_name}: {str(e)}")
+                    print(f"Created buffer for layer: {layer_name}")
+                except Exception as e:
+                    print(f"Error creating buffer for layer {layer_name}: {str(e)}")
+            else:
+                print(f"Skipping buffer distance layer '{layer_name}' as it has no corresponding entry in 'layers'")
 
     def get_combined_geltungsbereich(self):
         if not hasattr(self, 'geltungsbereich_geometries'):
@@ -726,12 +733,16 @@ class ProjectProcessor:
         # Dynamically generate the list of layers from projects.yaml
         wmts_layers = [wmts['dxfLayer'] for wmts in self.wmts]
         other_layers = [layer['name'] for layer in self.project_settings['layers']]
-        exclusion_layers = [exc['name'] for exc in self.exclusions]
-        buffer_distance_layers = [layer['name'] for layer in self.buffer_distance_layers]
+        
+        # Only include exclusion layers that have corresponding entries in 'layers'
+        exclusion_layers = [exc['name'] for exc in self.exclusions if self.has_corresponding_layer(exc['name'])]
+    
+        buffer_distance_layers = [layer['name'] for layer in self.buffer_distance_layers if self.has_corresponding_layer(layer['name'])]
+        clip_distance_layers = [layer['name'] for layer in self.clip_distance_layers if self.has_corresponding_layer(layer['name'])]
+        
         geltungsbereich_layers = [layer['name'] for layer in self.geltungsbereich_layers]
         
-        # Remove clip distance layers from the layers to process
-        all_layers = wmts_layers + other_layers + exclusion_layers + buffer_distance_layers + geltungsbereich_layers
+        all_layers = wmts_layers + other_layers + exclusion_layers + buffer_distance_layers + clip_distance_layers + geltungsbereich_layers
 
         layers_to_process = layers_to_process or all_layers
 
@@ -745,8 +756,9 @@ class ProjectProcessor:
 
         # Add buffer geometries to their respective layers
         for layer_name, geometry in self.buffer_geometries.items():
-            print(f"Adding buffer geometry to layer: {layer_name}")
-            self.add_geometries(msp, geometry, layer_name, close=self.layer_properties[layer_name]['close'])
+            if self.has_corresponding_layer(layer_name):
+                print(f"Adding buffer geometry to layer: {layer_name}")
+                self.add_geometries(msp, geometry, layer_name, close=self.layer_properties[layer_name]['close'])
 
         return doc
 
@@ -770,7 +782,8 @@ class ProjectProcessor:
         # Process exclusions
         self.exclusion_geometries = {}
         for exclusion in self.exclusions:
-            self.create_exclusion_polygon(exclusion)
+            if self.has_corresponding_layer(exclusion['name']):
+                self.create_exclusion_polygon(exclusion)
         
         doc = self.process_layers(self.update_layers_list)
         
