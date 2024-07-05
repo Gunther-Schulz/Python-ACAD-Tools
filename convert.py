@@ -118,6 +118,9 @@ class ProjectProcessor:
         # Create clip distance layers
         self.create_clip_distance_layers()
 
+        # Create buffer distance layers
+        self.create_buffer_distance_layers()
+
     def find_layer_by_name(self, layer_name):
         """Find a layer in the project settings by its name."""
         for layer in self.project_settings['layers']:
@@ -390,12 +393,18 @@ class ProjectProcessor:
     
     def create_exclusion_polygon(self, scope_layer, exclude_layers, new_layer_name):
         # Get the scope geometry
-        scope_geom = self.geltungsbereich if scope_layer == 'Geltungsbereich' else getattr(self, f"{scope_layer.lower()}_shapefile")['geometry'].unary_union
+        if scope_layer == 'Geltungsbereich':
+            scope_geom = self.geltungsbereich
+        else:
+            scope_shapefile = getattr(self, f"{scope_layer.lower()}_shapefile", None)
+            if scope_shapefile is None:
+                print_warning(f"Scope layer '{scope_layer}' not found.")
+                return None
+            scope_geom = scope_shapefile['geometry'].unary_union
 
         # Initialize the exclusion geometry with the scope geometry
         exclusion_geom = scope_geom
 
-        # Subtract each exclude layer from the exclusion geometry
         for layer in exclude_layers:
             layer_info = self.find_layer_by_name(layer)
             if layer_info and 'shapeFile' in layer_info:
@@ -405,12 +414,20 @@ class ProjectProcessor:
                     layer_geom = layer_gdf['geometry'].unary_union
                     exclusion_geom = exclusion_geom.difference(layer_geom)
                 else:
-                    # Only print warnings for layers explicitly defined in the YAML
-                    if any(l['name'] == layer for l in self.project_settings['layers']):
-                        print_warning(f"Shapefile for exclusion layer '{layer}' not found: {shapefile_path}")
+                    print_warning(f"Shapefile for exclusion layer '{layer}' not found: {shapefile_path}")
             else:
-                # The layer might be dynamically generated, so we don't print a warning here
-                pass
+                # Check if it's a buffer distance layer
+                buffer_layer = next((bl for bl in self.buffer_distance_layers if bl['name'] == layer), None)
+                if buffer_layer:
+                    buffer_shapefile = self.resolve_full_path(buffer_layer['shapeFile']).replace('.shp', f'_buffer_{buffer_layer["bufferDistance"]}.shp')
+                    if os.path.exists(buffer_shapefile):
+                        buffer_gdf = self.load_shapefile(buffer_shapefile)
+                        buffer_geom = buffer_gdf['geometry'].unary_union
+                        exclusion_geom = exclusion_geom.difference(buffer_geom)
+                    else:
+                        print_warning(f"Buffer shapefile for layer '{layer}' not found: {buffer_shapefile}")
+                else:
+                    print_warning(f"Exclusion layer '{layer}' not found in project settings or buffer distance layers.")
 
         # Create a new GeoDataFrame with the resulting geometry
         result_gdf = gpd.GeoDataFrame(geometry=[exclusion_geom], crs=self.crs)
@@ -419,6 +436,7 @@ class ProjectProcessor:
         self.add_geometries(self.doc.modelspace(), result_gdf['geometry'], new_layer_name, close=True)
 
         return result_gdf
+
 
     def create_clip_distance_layers(self):
         print("Starting to create clip distance layers...")
@@ -467,6 +485,43 @@ class ProjectProcessor:
 
         print("Finished creating clip distance layers.")
 
+    def create_buffer_distance_layers(self):
+        for layer in self.buffer_distance_layers:
+            input_shapefile = self.resolve_full_path(layer['shapeFile'])
+            buffer_distance = layer['bufferDistance']
+            output_shapefile = input_shapefile.replace('.shp', f'_buffer_{buffer_distance}.shp')
+
+            # Load the input shapefile
+            gdf = gpd.read_file(input_shapefile)
+
+            # Create buffer
+            buffered = gdf.buffer(buffer_distance)
+
+            # Create a new GeoDataFrame with the buffered geometry
+            buffered_gdf = gpd.GeoDataFrame(geometry=buffered, crs=gdf.crs)
+
+            # Save the buffered GeoDataFrame as a new shapefile
+            buffered_gdf.to_file(output_shapefile)
+
+            print(f"Created buffer distance layer: {output_shapefile}")
+
+            # Add the new layer to the project settings
+            new_layer = {
+                'name': layer['name'],
+                'shapeFile': output_shapefile,
+                'color': layer.get('color', "Light Green"),
+                'close': layer.get('close', True),
+                'locked': layer.get('locked', False)
+            }
+            self.project_settings['layers'].append(new_layer)
+
+            # Add the new layer to layer_properties
+            self.layer_properties[new_layer['name']] = {
+                'color': self.get_color_code(new_layer['color']),
+                'locked': new_layer['locked'],
+                'close': new_layer['close']
+            }
+
     def process_layers(self, layers_to_process=None):
         try:
             doc = ezdxf.readfile(self.dxf_filename)
@@ -484,7 +539,8 @@ class ProjectProcessor:
         other_layers = ['Flur', 'Parcel', 'FlurOrig', 'Gemeinde', 'Gemarkung', 'Wald', 'Biotope']
         exclusion_layers = [exc['name'] for exc in self.exclusions]
         clip_distance_layers = [f"{os.path.basename(layer['shapeFile']).split('.')[0]} Abstand" for layer in self.clip_distance_layers]
-        all_layers = wmts_layers + other_layers + exclusion_layers + clip_distance_layers
+        buffer_distance_layers = [layer['name'] for layer in self.buffer_distance_layers]
+        all_layers = wmts_layers + other_layers + exclusion_layers + clip_distance_layers + buffer_distance_layers
 
         layers_to_process = layers_to_process or all_layers
 
