@@ -66,14 +66,15 @@ class ProjectProcessor:
         self.biotope_shapefile = self.load_shapefile(self.biotope_shapefile)
         
         self.colors = {}
-        for layer in self.project_settings['layers']:
+        for layer in self.project_settings['dxfLayers']:
             color_code = self.get_color_code(layer['color'])
             self.colors[layer['name']] = color_code
             self.colors[f"{layer['name']} Number"] = color_code  # Add color for label layer
 
-        # Modify this part to create a dictionary of WMTS layers
+        # Modify this part to use the actual WMTS layer name
         self.wmts_layers = {
-            wmts['name']: f"WMTS {wmts['name']}" for wmts in self.wmts}
+            wmts['name']: wmts['name'] for wmts in self.wmts
+        }
 
         self.export_format = self.project_settings.get('exportFormat', 'dxf')
 
@@ -84,7 +85,7 @@ class ProjectProcessor:
 
         # Add layer definitions for all layers, including buffer distance layers
         self.layer_properties = {}
-        for layer in self.project_settings['layers']:
+        for layer in self.project_settings['dxfLayers']:
             self.add_layer_properties(layer['name'], layer)
 
         for buffer_layer in self.buffer_distance_layers:
@@ -98,7 +99,7 @@ class ProjectProcessor:
 
         # Handle WMTS layers
         for wmts in self.wmts:
-            layer_name = f"WMTS {wmts['name']}"
+            layer_name = wmts['name']
             self.layer_properties[layer_name] = {
                 'color': 7,  # Default to white
                 'locked': wmts.get('locked', False),
@@ -135,7 +136,7 @@ class ProjectProcessor:
 
     def find_layer_by_name(self, layer_name):
         """Find a layer in the project settings by its name."""
-        for layer in self.project_settings['layers']:
+        for layer in self.project_settings['dxfLayers']:
             if layer['name'] == layer_name:
                 return layer
         return None
@@ -152,7 +153,7 @@ class ProjectProcessor:
 
     def get_layer_info(self, layer_name: str):
         try:
-            layer = next(layer for layer in self.project_settings['layers'] if layer['name'] == layer_name)
+            layer = next(layer for layer in self.project_settings['dxfLayers'] if layer['name'] == layer_name)
             shapefile = layer['shapeFile']
             label = layer.get('label')
             return self.resolve_full_path(shapefile), label
@@ -193,53 +194,55 @@ class ProjectProcessor:
         return result
 
     def select_parcel_edges(self, geom):
+        # unused. see offsetLayers: in projects.yaml
+        pass
 
-        # Initialize a list to hold the edges derived from the input geometry
-        edge_lines = []
+    #     # Initialize a list to hold the edges derived from the input geometry
+    #     edge_lines = []
 
-        # Loop through each polygon in the input geometry collection
-        for _, row in geom.iterrows():
-            poly = row.geometry
-            # Debugging: Print the type of each geometry
-            if not isinstance(poly, (Polygon, MultiPolygon)):
-                print(f"Skipping non-polygon geometry: {type(poly)}")
-                continue
+    #     # Loop through each polygon in the input geometry collection
+    #     for _, row in geom.iterrows():
+    #         poly = row.geometry
+    #         # Debugging: Print the type of each geometry
+    #         if not isinstance(poly, (Polygon, MultiPolygon)):
+    #             print(f"Skipping non-polygon geometry: {type(poly)}")
+    #             continue
 
-            # Extract the boundary of the polygon, converting it to a linestring
-            boundary_line = poly.boundary
+    #         # Extract the boundary of the polygon, converting it to a linestring
+    #         boundary_line = poly.boundary
 
-            # Create an outward buffer of 10 units from the boundary line
-            buffered_line_out = boundary_line.buffer(10, join_style=2)  # Outward buffer with a mitered join
-            # Create an inward buffer of 10 units from the boundary line
-            buffered_line_in = boundary_line.buffer(-10, join_style=2)  # Inward buffer with a mitered join
+    #         # Create an outward buffer of 10 units from the boundary line
+    #         buffered_line_out = boundary_line.buffer(10, join_style=2)  # Outward buffer with a mitered join
+    #         # Create an inward buffer of 10 units from the boundary line
+    #         buffered_line_in = boundary_line.buffer(-10, join_style=2)  # Inward buffer with a mitered join
 
-            # Handle MultiPolygon and Polygon cases for outward buffer
-            if buffered_line_out.geom_type == 'MultiPolygon':
-                for part in buffered_line_out.geoms:  # Iterate over geoms attribute
-                    edge_lines.append(part.exterior)
-            elif buffered_line_out.geom_type == 'Polygon':
-                edge_lines.append(buffered_line_out.exterior)
+    #         # Handle MultiPolygon and Polygon cases for outward buffer
+    #         if buffered_line_out.geom_type == 'MultiPolygon':
+    #             for part in buffered_line_out.geoms:  # Iterate over geoms attribute
+    #                 edge_lines.append(part.exterior)
+    #         elif buffered_line_out.geom_type == 'Polygon':
+    #             edge_lines.append(buffered_line_out.exterior)
 
-            # Handle MultiPolygon and Polygon cases for inward buffer
-            if buffered_line_in.geom_type == 'MultiPolygon':
-                for part in buffered_line_in.geoms:  # Iterate over geoms attribute
-                    edge_lines.append(part.exterior)
-            elif buffered_line_in.geom_type == 'Polygon':
-                edge_lines.append(buffered_line_in.exterior)
+    #         # Handle MultiPolygon and Polygon cases for inward buffer
+    #         if buffered_line_in.geom_type == 'MultiPolygon':
+    #             for part in buffered_line_in.geoms:  # Iterate over geoms attribute
+    #                 edge_lines.append(part.exterior)
+    #         elif buffered_line_in.geom_type == 'Polygon':
+    #             edge_lines.append(buffered_line_in.exterior)
 
-        # Merge and simplify the collected edge lines into a single geometry
-        merged_edges = linemerge(unary_union(edge_lines))
+    #     # Merge and simplify the collected edge lines into a single geometry
+    #     merged_edges = linemerge(unary_union(edge_lines))
 
-        # Convert the merged edges to a list of LineString objects
-        if isinstance(merged_edges, MultiLineString):
-            result_geometries = list(merged_edges.geoms)
-        else:
-            result_geometries = [merged_edges]
+    #     # Convert the merged edges to a list of LineString objects
+    #     if isinstance(merged_edges, MultiLineString):
+    #         result_geometries = list(merged_edges.geoms)
+    #     else:
+    #         result_geometries = [merged_edges]
 
-        # Create a GeoDataFrame to hold the merged edges, preserving the original CRS
-        result_gdf = gpd.GeoDataFrame(geometry=result_geometries, crs=geom.crs)
-        # Return the GeoDataFrame containing the processed geometry
-        return result_gdf
+    #     # Create a GeoDataFrame to hold the merged edges, preserving the original CRS
+    #     result_gdf = gpd.GeoDataFrame(geometry=result_geometries, crs=geom.crs)
+    #     # Return the GeoDataFrame containing the processed geometry
+    #     return result_gdf
 
     def load_template(self):
         if self.template_dxf:
@@ -486,7 +489,7 @@ class ProjectProcessor:
         # Check if the layer is a clip distance layer
         if layer in [clip_layer['name'] for clip_layer in self.clip_distance_layers]:
             if not self.has_corresponding_layer(layer):
-                print(f"Skipping clip distance layer: {layer} as it has no corresponding entry in 'layers'")
+                print(f"Skipping clip distance layer: {layer} as it has no corresponding entry in 'dxfLayers'")
                 return
             print(f"Processing clip distance layer: {layer}")
             geometry = self.clip_geometries[layer]
@@ -506,9 +509,9 @@ class ProjectProcessor:
             print(f"Processing exclusion layer: {layer}")
             geometry = self.exclusion_geometries[layer]
             self.add_geometries(msp, [geometry], layer, close=True)
-        elif layer in [wmts['dxfLayer'] for wmts in self.wmts]:
+        elif layer in [wmts['name'] for wmts in self.wmts]:
             print(f"Processing WMTS layer: {layer}")
-            wmts_info = next(wmts for wmts in self.wmts if wmts['dxfLayer'] == layer)
+            wmts_info = next(wmts for wmts in self.wmts if wmts['name'] == layer)
             target_folder = self.resolve_full_path(wmts_info['targetFolder'])
             os.makedirs(target_folder, exist_ok=True)
             print(f"Updating WMTS tiles for layer '{layer}'")
@@ -597,8 +600,8 @@ class ProjectProcessor:
         }
 
     def has_corresponding_layer(self, layer_name):
-        """Check if the given layer name has a corresponding entry in the 'layers' section."""
-        return any(layer['name'] == layer_name for layer in self.project_settings['layers'])
+        """Check if the given layer name has a corresponding entry in the 'dxfLayers' section."""
+        return any(layer['name'] == layer_name for layer in self.project_settings['dxfLayers'])
 
     def create_clip_distance_layers(self):
         print("Starting to create clip distance layers...")
@@ -608,7 +611,7 @@ class ProjectProcessor:
             buffer_distance = layer['bufferDistance']
             layer_name = layer['name']
 
-            # Only process if there's a corresponding layer in the 'layers' section
+            # Only process if there's a corresponding layer in the 'dxfLayers' section
             if self.has_corresponding_layer(layer_name):
                 print(f"Processing clip distance layer: {layer_name}")
                 print(f"Input shapefile: {input_shapefile}")
@@ -625,7 +628,7 @@ class ProjectProcessor:
 
                 print(f"Created clip distance geometry for layer: {layer_name}")
             else:
-                print(f"Skipping clip distance layer '{layer_name}' as it has no corresponding entry in 'layers'")
+                print(f"Skipping clip distance layer '{layer_name}' as it has no corresponding entry in 'dxfLayers'")
 
         print("Finished creating clip distance layers.")
 
@@ -637,7 +640,7 @@ class ProjectProcessor:
             buffer_distance = buffer_layer['bufferDistance']
             layer_name = buffer_layer['name']
 
-            # Only process if there's a corresponding layer in the 'layers' section
+            # Only process if there's a corresponding layer in the 'dxfLayers' section
             if self.has_corresponding_layer(layer_name):
                 try:
                     # Load the input shapefile
@@ -659,7 +662,7 @@ class ProjectProcessor:
                 except Exception as e:
                     print(f"Error creating buffer for layer {layer_name}: {str(e)}")
             else:
-                print(f"Skipping buffer distance layer '{layer_name}' as it has no corresponding entry in 'layers'")
+                print(f"Skipping buffer distance layer '{layer_name}' as it has no corresponding entry in 'dxfLayers'")
 
     def get_combined_geltungsbereich(self):
         if not hasattr(self, 'geltungsbereich_geometries'):
@@ -715,7 +718,7 @@ class ProjectProcessor:
             'close': layer_info.get('close', True),
             'locked': layer_info.get('locked', False)
         }
-        self.project_settings['layers'].append(new_layer)
+        self.project_settings['dxfLayers'].append(new_layer)
 
         # Update layer properties
         self.add_layer_properties(layer_name, new_layer)
@@ -734,11 +737,11 @@ class ProjectProcessor:
         self.doc = doc  # Store the doc object in the class instance
         msp = doc.modelspace()
 
-        # Dynamically generate the list of layers from projects.yaml
-        wmts_layers = [wmts['dxfLayer'] for wmts in self.wmts]
-        other_layers = [layer['name'] for layer in self.project_settings['layers']]
+        # Update this part to use the actual WMTS layer names
+        wmts_layers = [wmts['name'] for wmts in self.wmts]
+        other_layers = [layer['name'] for layer in self.project_settings['dxfLayers']]
         
-        # Only include exclusion layers that have corresponding entries in 'layers'
+        # Only include exclusion layers that have corresponding entries in 'dxfLayers'
         exclusion_layers = [exc['name'] for exc in self.exclusions if self.has_corresponding_layer(exc['name'])]
     
         buffer_distance_layers = [layer['name'] for layer in self.buffer_distance_layers if self.has_corresponding_layer(layer['name'])]
