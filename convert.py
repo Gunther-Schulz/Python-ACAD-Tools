@@ -30,7 +30,7 @@ class ProjectProcessor:
             self.project_settings['dxfFilename'])
         self.wmts = self.project_settings.get('wmts', [])
         self.clip_distance_layers = self.project_settings.get('clipDistanceLayers', [])
-        # self.buffer_distance_layers = self.project_settings.get('bufferDistanceLayers', [])
+        self.buffer_distance_layers = self.project_settings.get('bufferDistanceLayers', [])
 
         self.template_dxf = self.resolve_full_path(self.project_settings.get(
             'template', '')) if self.project_settings.get('template') else None
@@ -195,44 +195,41 @@ class ProjectProcessor:
             doc.styles.new(name=text_style_name, dxfattribs={
                            'font': 'Arial.ttf', 'height': 0.1})
 
-    def add_text(self, msp, text, x, y, layer_name, style_name, color):
+    def add_text(self, msp, text, x, y, layer_name, style_name):
         msp.add_text(text, dxfattribs={
             'style': style_name,
             'layer': layer_name,
             'insert': (x, y),
             'align_point': (x, y),
             'halign': 1,
-            'valign': 1,
-            'color': color
+            'valign': 1
         })
 
     def add_text_to_center(self, msp, points, layer_name):
+        self.add_layer(msp.doc, layer_name)
         self.add_text_style(msp.doc, 'Standard')
-        # Get the color for the layer
-        color = self.colors.get(layer_name, 7)  # Default to white (7) if color not found
         for idx, row in points.iterrows():
-            self.add_text(msp, row['label'], row.geometry.x, row.geometry.y, layer_name, 'Standard', color)
+            self.add_text(msp, row['label'], row.geometry.x, row.geometry.y, layer_name, 'Standard')
 
     def add_geometries(self, msp, geometries, layer_name, close=True):
-        # Get the color for the layer
-        color = self.colors.get(layer_name, 7)  # Default to white (7) if color not found
+        self.add_layer(msp.doc, layer_name)
         
         for geom in geometries:
             if geom.geom_type == 'Polygon' or (geom.geom_type == 'LineString' and close):
-                msp.add_lwpolyline(geom.exterior.coords, dxfattribs={'layer': layer_name, 'color': color, 'closed': close})
+                msp.add_lwpolyline(geom.exterior.coords, dxfattribs={'layer': layer_name, 'closed': close})
             elif geom.geom_type == 'LineString':
-                msp.add_lwpolyline(geom.coords, dxfattribs={'layer': layer_name, 'color': color})
+                msp.add_lwpolyline(geom.coords, dxfattribs={'layer': layer_name})
             elif geom.geom_type == 'MultiPolygon':
-                for poly in geom.geoms:  # Iterate over the individual polygons in the MultiPolygon
-                    msp.add_lwpolyline(poly.exterior.coords, dxfattribs={'layer': layer_name, 'color': color, 'closed': close})
+                for poly in geom.geoms:
+                    msp.add_lwpolyline(poly.exterior.coords, dxfattribs={'layer': layer_name, 'closed': close})
             elif geom.geom_type == 'MultiLineString':
-                for line in geom.geoms:  # Iterate over the individual lines in the MultiLineString
-                    msp.add_lwpolyline(line.coords, dxfattribs={'layer': layer_name, 'color': color})
+                for line in geom.geoms:
+                    msp.add_lwpolyline(line.coords, dxfattribs={'layer': layer_name})
 
-    # def add_layer(self, doc, layer_name, color):
-    #     if layer_name not in doc.layers:
-    #         color_code = self.get_color_code(color)
-    #         doc.layers.new(name=layer_name, dxfattribs={'color': color_code})
+    def add_layer(self, doc, layer_name):
+        if layer_name not in doc.layers:
+            color = self.colors.get(layer_name, 7)  # Default to white (7) if color not found
+            doc.layers.new(name=layer_name, dxfattribs={'color': color})
 
     def get_color_code(self, color):
         if isinstance(color, int):
@@ -256,6 +253,7 @@ class ProjectProcessor:
             return random_color
 
     def add_image_with_worldfile(self, msp, image_path, world_file_path, layer_name):
+        self.add_layer(msp.doc, layer_name)
         # Create a relative path for the image
         relative_image_path = os.path.relpath(
             image_path, os.path.dirname(self.dxf_filename))
@@ -324,7 +322,13 @@ class ProjectProcessor:
         return combined_buffer
     
     def process_layers(self, layers_to_process=None):
-        doc = ezdxf.readfile(self.dxf_filename)
+        try:
+            doc = ezdxf.readfile(self.dxf_filename)
+        except FileNotFoundError:
+            print(f"DXF file not found. Creating a new file: {self.dxf_filename}")
+            doc = ezdxf.new('R2010')  # Create a new DXF document
+            doc.header['$INSUNITS'] = 6  # Set units to meters
+
         msp = doc.modelspace()
 
         all_layers = ['Flur', 'Parcel', 'FlurOrig', 'Gemeinde', 'Gemarkung', 'Wald', 'Biotope'] + list(self.wmts_layers.values())
@@ -364,14 +368,17 @@ class ProjectProcessor:
                     self.add_geometries(msp, self.gemarkung_shapefile['geometry'], 'Gemarkung', close=True)
                 elif layer == 'Wald':
                     self.add_geometries(msp, self.wald_shapefile['geometry'], 'Wald', close=True)
-                elif layer == 'Wald Abstand':
-                    wald_abstand = self.get_distance_layer_buffers(self.wald_shapefile, 30, self.geltungsbereich)
-                    self.add_geometries(msp, wald_abstand, 'Wald Abstand', close=True)
-                elif layer == 'Wald Inside':
-                    wald_inside = self.geltungsbereich.intersection(self.wald_shapefile.unary_union)
-                    self.add_geometries(msp, wald_inside, 'Wald Inside', close=True)
                 elif layer == 'Biotope':
                     self.add_geometries(msp, self.biotope_shapefile['geometry'], 'Biotope', close=True)
+                
+                # New code to handle buffer distance layers
+                for buffer_layer in self.buffer_distance_layers:
+                    layer_name = f"{os.path.splitext(os.path.basename(buffer_layer['shapeFile']))[0]} Abstand"
+                    if layer == layer_name:
+                        shapefile = self.load_shapefile(self.resolve_full_path(buffer_layer['shapeFile']))
+                        buffer_distance = buffer_layer['bufferDistance']
+                        buffered = self.get_distance_layer_buffers(shapefile, buffer_distance, self.geltungsbereich)
+                        self.add_geometries(msp, buffered, layer_name, close=True)
 
             if layer in ['Parcel', 'Flur', 'Gemeinde', 'Gemarkung']:
                 label_attr = f"{layer.lower()}_label"
@@ -384,6 +391,9 @@ class ProjectProcessor:
     def main(self):
         doc = self.process_layers(self.update_layers_list)
         
+        # Ensure the directory exists
+        os.makedirs(os.path.dirname(self.dxf_filename), exist_ok=True)
+
         if self.export_format == 'dwg':
             doc.header['$PROJECTNAME'] = ''
             odafc.export_dwg(doc, self.dxf_filename.replace('.dxf', '.dwg'))

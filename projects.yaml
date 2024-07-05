@@ -53,34 +53,40 @@ projects:
         label: label
         color: Black
         close: true
+        locked: true
       - name: Gemarkung
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/gemarkung2.shp"
         label: gmkname
         color: "Medium Orange Red"
         close: true
+        locked: true
       - name: Gemeinde
-        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/gemeinde2.shp"
+        shapeFile: "Öffentlich Planungsbro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/gemeinde2.shp"
         label: gen
         color: "Dark Red"
         close: true
+        locked: true
       - name: Wald
-        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/wald.shp"
+        shapeFile: "Öffentlich Planungsbro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/wald.shp"
         label: waldname
         color: "Dark Green"
         close: true
+        locked: false
       - name: Biotope
-        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/biotope.shp"
+        shapeFile: "Öffentlich Planungsbro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/biotope.shp"
         label: biotopn
         color: "Green"
         close: true
+        locked: false
     clipDistanceLayers:
-      - shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/abstand.shp"
+      - shapeFile: "Öffentlich Planungsbro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/abstand.shp"
         bufferDistance: 7
       - shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/wald.shp"
         bufferDistance: 0
     bufferDistanceLayers:
       - shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/wald.shp"
         bufferDistance: 30
+      locked: false
     wmts:
       - name: DOP
         url: "https://www.geodaten-mv.de/dienste/dop_wmts/wmts/1.0.0/WMTSCapabilities.xml"
@@ -88,9 +94,11 @@ projects:
         zoom: "10"
         proj: "ETRS89UTM33"
         targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/DOP"
+        locked: true
       - name: Basemap
         url: "https://sgx.geodatenzentrum.de/wmts_basemapde/1.0.0/WMTSCapabilities.xml"
         layer: "de_basemapde_web_raster_farbe"
         zoom: "10"
         proj: "DE_EPSG_25833_ADV"
-        targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/Basemap"
+        targetFolder: "Öffentlich Planungsbro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/Basemap"
+        locked: true
