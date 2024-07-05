@@ -15,7 +15,10 @@ import colorama
 colorama.init()
 
 def print_warning(message):
-    print(f"{colorama.Fore.YELLOW}Warning: {message}{colorama.Fore.RESET}")
+    print(f"\033[93mWarning: {message}\033[0m", file=sys.stderr)
+
+def print_error(message):
+    print(f"\033[91mError: {message}\033[0m", file=sys.stderr)
 
 class ProjectProcessor:
     def __init__(self, project_name: str, update_layers_list: list = None):
@@ -267,7 +270,7 @@ class ProjectProcessor:
                 centroid = row.geometry.centroid
                 x, y = centroid.x, centroid.y
             else:
-                print(f"Warning: Unsupported geometry type {row.geometry.geom_type} for label in layer {layer_name}")
+                print_warning(f"Unsupported geometry type {row.geometry.geom_type} for label in layer {layer_name}")
                 continue
             
             self.add_text(msp, str(row['label']), x, y, layer_name, 'Standard')
@@ -476,7 +479,6 @@ class ProjectProcessor:
             print(f"Processing exclusion layer: {layer}")
             geometry = self.exclusion_geometries[layer]
             self.add_geometries(msp, [geometry], layer, close=True)
-
         elif layer in [wmts['dxfLayer'] for wmts in self.wmts]:
             print(f"Processing WMTS layer: {layer}")
             wmts_info = next(wmts for wmts in self.wmts if wmts['dxfLayer'] == layer)
@@ -501,12 +503,21 @@ class ProjectProcessor:
                     if os.path.exists(shapefile_path):
                         gdf = gpd.read_file(shapefile_path)
                         self.add_geometries(msp, gdf['geometry'], layer, close=layer_info.get('close', True))
+                        
+                        # Add labels if 'label' is specified in layer_info
+                        if 'label' in layer_info:
+                            label_column = layer_info['label']
+                            if label_column in gdf.columns:
+                                gdf['label'] = gdf[label_column].astype(str)  # Ensure label is a string
+                                self.add_text_to_center(msp, gdf, f"{layer} Number")  # Use a separate layer for labels
+                            else:
+                                print_warning(f"Label column '{label_column}' not found in shapefile for layer '{layer}'")
                     else:
-                        print(f"Shapefile for layer '{layer}' not found: {shapefile_path}")
+                        print_error(f"Shapefile for layer '{layer}' not found: {shapefile_path}")
                 else:
-                    print(f"No shapefile specified for layer '{layer}'")
+                    print_warning(f"No shapefile specified for layer '{layer}'")
             else:
-                print(f"Layer '{layer}' not found in project settings")
+                print_warning(f"Layer '{layer}' not found in project settings")
 
         # Set layer properties
         self.add_layer(self.doc, layer)
@@ -710,7 +721,7 @@ class ProjectProcessor:
 
         # Separate WMTS layers from other layers
         wmts_layers = [wmts['dxfLayer'] for wmts in self.wmts]
-        other_layers = ['Flur', 'Parcel', 'FlurOrig', 'Gemeinde', 'Gemarkung', 'Wald', 'Biotope']
+        other_layers = ['Flur', 'Parcel', 'Gemeinde', 'Gemarkung', 'Wald', 'Biotope']
         exclusion_layers = [exc['name'] for exc in self.exclusions]
         buffer_distance_layers = [layer['name'] for layer in self.buffer_distance_layers]
         geltungsbereich_layers = [layer['name'] for layer in self.geltungsbereich_layers]
@@ -729,70 +740,6 @@ class ProjectProcessor:
                 self.process_single_layer(msp, layer)
 
         return doc
-
-    def process_single_layer(self, msp, layer):
-        # Check if the layer is a clip distance layer
-        if layer in [clip_layer['name'] for clip_layer in self.clip_distance_layers]:
-            print(f"Skipping clip distance layer: {layer}")
-            return
-
-        # Remove existing entities in the layer
-        for entity in msp.query(f'*[layer=="{layer}"]'):
-            msp.delete_entity(entity)
-
-        # Check if the layer is a Geltungsbereich layer
-        if layer in self.geltungsbereich_geometries:
-            print(f"Processing Geltungsbereich layer: {layer}")
-            geometry = self.geltungsbereich_geometries[layer]
-            self.add_geometries(msp, [geometry], layer, close=True)
-        elif layer in self.exclusion_geometries:
-            print(f"Processing exclusion layer: {layer}")
-            geometry = self.exclusion_geometries[layer]
-            self.add_geometries(msp, [geometry], layer, close=True)
-        elif layer in [wmts['dxfLayer'] for wmts in self.wmts]:
-            print(f"Processing WMTS layer: {layer}")
-            wmts_info = next(wmts for wmts in self.wmts if wmts['dxfLayer'] == layer)
-            target_folder = self.resolve_full_path(wmts_info['targetFolder'])
-            os.makedirs(target_folder, exist_ok=True)
-            print(f"Updating WMTS tiles for layer '{layer}'")
-            
-            # Combine all Geltungsbereich geometries
-            combined_geometry = unary_union([geom for geom in self.geltungsbereich_geometries.values()])
-            
-            # Download tiles for the combined geometry
-            tiles = download_wmts_tiles(wmts_info, combined_geometry, 500, target_folder, True)
-            
-            # Add all downloaded tiles to the DXF
-            for tile_path, world_file_path in tiles:
-                self.add_image_with_worldfile(msp, tile_path, world_file_path, layer)
-        else:
-            layer_info = self.find_layer_by_name(layer)
-            if layer_info:
-                if 'shapeFile' in layer_info:
-                    shapefile_path = self.resolve_full_path(layer_info['shapeFile'])
-                    if os.path.exists(shapefile_path):
-                        gdf = gpd.read_file(shapefile_path)
-                        self.add_geometries(msp, gdf['geometry'], layer, close=layer_info.get('close', True))
-                        
-                        # Add labels if 'label' is specified in layer_info
-                        if 'label' in layer_info:
-                            label_column = layer_info['label']
-                            if label_column in gdf.columns:
-                                gdf['label'] = gdf[label_column]
-                                self.add_text_to_center(msp, gdf, layer)
-                            else:
-                                print(f"Warning: Label column '{label_column}' not found in shapefile for layer '{layer}'")
-                    else:
-                        print(f"Shapefile for layer '{layer}' not found: {shapefile_path}")
-                else:
-                    print(f"No shapefile specified for layer '{layer}'")
-            else:
-                print(f"Layer '{layer}' not found in project settings")
-
-        # Set layer properties
-        self.add_layer(self.doc, layer)
-
-        print(f"Finished processing layer: {layer}")
 
     def add_layer(self, doc, layer_name):
         base_layer = layer_name.split('_')[0]  # Get the base layer name (e.g., 'WMTS DOP' from 'WMTS DOP_Hauptgeltungsbereich')
@@ -829,7 +776,7 @@ class ProjectProcessor:
             print(f"Saving DXF file: {self.dxf_filename}")
             doc.saveas(self.dxf_filename)
 
-        processed_layers = self.update_layers_list if self.update_layers_list else ['Flur', 'Parcel', 'FlurOrig', 'Gemeinde', 'Gemarkung', 'Wald', 'Biotope'] + list(self.wmts_layers.values())
+        processed_layers = self.update_layers_list if self.update_layers_list else ['Flur', 'Parcel', 'Gemeinde', 'Gemarkung', 'Wald', 'Biotope'] + list(self.wmts_layers.values())
         print(f"Processed layers: {', '.join(processed_layers)}")
         print("Processing complete.")
 
