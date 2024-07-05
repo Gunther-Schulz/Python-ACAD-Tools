@@ -533,7 +533,8 @@ class ProjectProcessor:
                     else:
                         print_error(f"Shapefile for layer '{layer}' not found: {shapefile_path}")
                 else:
-                    print_warning(f"No shapefile specified for layer '{layer}'")
+                    # Layer without shapefile, possibly a dynamically created layer (like buffer layers)
+                    print(f"Layer '{layer}' has no associated shapefile. It may be created dynamically.")
             else:
                 print_warning(f"Layer '{layer}' not found in project settings")
 

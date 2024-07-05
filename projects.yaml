@@ -103,6 +103,10 @@ projects:
         color: "Light Green"
         close: true
         locked: false
+      - name: Straße Clip
+        color: "Light Green"
+        close: true
+        locked: false
     clipDistanceLayers:
       - name: Straße Clip
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/abstand.shp"
