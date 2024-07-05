@@ -42,6 +42,9 @@ class ProjectProcessor:
         self.clip_distance_layers = self.project_settings.get('clipDistanceLayers', [])
         self.buffer_distance_layers = self.project_settings.get('bufferDistanceLayers', [])
         self.geltungsbereich_layers = self.project_settings.get('geltungsbereichLayers', [])
+        print(f"Loaded {len(self.geltungsbereich_layers)} Geltungsbereich layers:")
+        for layer in self.geltungsbereich_layers:
+            print(f"  - {layer['layerName']}")
         self.offset_layers = self.project_settings.get('offsetLayers', [])
 
         self.template_dxf = self.resolve_full_path(self.project_settings.get(
@@ -149,6 +152,72 @@ class ProjectProcessor:
 
         # Create offset layers
         self.create_offset_layers(all_geometries)
+
+    def create_geltungsbereich_layers(self):
+        print("Starting to create Geltungsbereich layers...")
+        self.geltungsbereich_geometries = {}
+        for geltungsbereich in self.geltungsbereich_layers:
+            layer_name = geltungsbereich['layerName']
+            print(f"Processing Geltungsbereich layer: {layer_name}")
+            
+            combined_geometry = None
+            for coverage_index, coverage in enumerate(geltungsbereich['coverages']):
+                print(f"  Processing coverage {coverage_index + 1}")
+                coverage_geometry = None
+                for layer in coverage['layers']:
+                    layer_name = layer['name']
+                    value_list = layer['valueList']
+                    print(f"    Processing layer: {layer_name}")
+                    print(f"    Value list: {value_list}")
+                    
+                    if layer_name not in self.shapefiles:
+                        print(f"    Warning: Layer '{layer_name}' not found in shapefiles.")
+                        continue
+                    
+                    gdf = self.shapefiles[layer_name]
+                    label_column = self.shapefile_labels.get(layer_name)
+                    if not label_column:
+                        print(f"    Warning: Label column for layer '{layer_name}' not found.")
+                        continue
+                    
+                    print(f"    Label column: {label_column}")
+                    print(f"    Unique values in label column: {gdf[label_column].unique()}")
+                    
+                    filtered_gdf = gdf[gdf[label_column].isin(value_list)]
+                    print(f"    Filtered GeoDataFrame size: {len(filtered_gdf)}")
+                    
+                    if coverage_geometry is None:
+                        coverage_geometry = filtered_gdf.unary_union
+                    else:
+                        coverage_geometry = coverage_geometry.intersection(filtered_gdf.unary_union)
+                
+                if coverage_geometry:
+                    if combined_geometry is None:
+                        combined_geometry = coverage_geometry
+                    else:
+                        combined_geometry = combined_geometry.union(coverage_geometry)
+                else:
+                    print(f"    Warning: No geometry created for coverage {coverage_index + 1}")
+            
+            if combined_geometry:
+                # Clip with all layers in clipDistanceLayers
+                for clip_layer in self.clip_distance_layers:
+                    clip_shapefile = self.resolve_full_path(clip_layer['shapeFile'])
+                    clip_gdf = gpd.read_file(clip_shapefile)
+                    
+                    if clip_layer['bufferDistance'] > 0:
+                        clip_geometry = clip_gdf.geometry.buffer(clip_layer['bufferDistance']).unary_union
+                    else:
+                        clip_geometry = clip_gdf.geometry.unary_union
+                    
+                    combined_geometry = combined_geometry.difference(clip_geometry)
+                
+                self.geltungsbereich_geometries[layer_name] = combined_geometry
+                print(f"Created Geltungsbereich layer: {layer_name}")
+            else:
+                print(f"Warning: No geometry created for Geltungsbereich layer: {layer_name}")
+        
+        print("Finished creating Geltungsbereich layers.")
 
     def create_offset_layers(self, base_geometries):
         print("Starting to create offset layers...")
@@ -541,6 +610,7 @@ class ProjectProcessor:
             print(f"Processing Geltungsbereich layer: {layer}")
             geometry = self.geltungsbereich_geometries[layer]
             self.add_geometries(msp, [geometry], layer, close=True)
+            return
         elif layer in self.exclusion_geometries:
             print(f"Processing exclusion layer: {layer}")
             geometry = self.exclusion_geometries[layer]
@@ -632,7 +702,6 @@ class ProjectProcessor:
             print(f"Saving DXF file: {self.dxf_filename}")
             doc.saveas(self.dxf_filename)
 
-        # processed_layers = self.update_layers_list if self.update_layers_list else ['Flur', 'Parcel', 'Gemeinde', 'Gemarkung', 'Wald', 'Biotope'] + list(self.wmts_layers.values())
         print("Processing complete.")
 
     def add_layer_properties(self, layer_name, layer_info):
@@ -724,42 +793,67 @@ class ProjectProcessor:
     def create_geltungsbereich_layers(self):
         print("Starting to create Geltungsbereich layers...")
         self.geltungsbereich_geometries = {}
-        for layer in self.geltungsbereich_layers:
-            layer_name = layer['name']
-            coverage = layer['coverage']
-            coverage['name'] = layer_name  # Add the layer name to the coverage dict
+        for geltungsbereich in self.geltungsbereich_layers:
+            layer_name = geltungsbereich['layerName']
+            print(f"Processing Geltungsbereich layer: {layer_name}")
             
-            # Filter parcels based on coverage
-            gdf = self.filter_parcels(coverage)
-            
-            # Dissolve the geometry
-            dissolved_geometry = gdf.unary_union
-            
-            # Clip with all layers in clipDistanceLayers
-            for clip_layer in self.clip_distance_layers:
-                clip_shapefile = self.resolve_full_path(clip_layer['shapeFile'])
-                clip_gdf = gpd.read_file(clip_shapefile)
+            combined_geometry = None
+            for coverage_index, coverage in enumerate(geltungsbereich['coverages']):
+                print(f"  Processing coverage {coverage_index + 1}")
+                coverage_geometry = None
+                for layer in coverage['layers']:
+                    layer_name = layer['name']
+                    value_list = layer['valueList']
+                    print(f"    Processing layer: {layer_name}")
+                    print(f"    Value list: {value_list}")
+                    
+                    if layer_name not in self.shapefiles:
+                        print(f"    Warning: Layer '{layer_name}' not found in shapefiles.")
+                        continue
+                    
+                    gdf = self.shapefiles[layer_name]
+                    label_column = self.shapefile_labels.get(layer_name)
+                    if not label_column:
+                        print(f"    Warning: Label column for layer '{layer_name}' not found.")
+                        continue
+                    
+                    print(f"    Label column: {label_column}")
+                    print(f"    Unique values in label column: {gdf[label_column].unique()}")
+                    
+                    filtered_gdf = gdf[gdf[label_column].isin(value_list)]
+                    print(f"    Filtered GeoDataFrame size: {len(filtered_gdf)}")
+                    
+                    if coverage_geometry is None:
+                        coverage_geometry = filtered_gdf.unary_union
+                    else:
+                        coverage_geometry = coverage_geometry.intersection(filtered_gdf.unary_union)
                 
-                if clip_layer['bufferDistance'] > 0:
-                    clip_geometry = clip_gdf.geometry.buffer(clip_layer['bufferDistance']).unary_union
+                if coverage_geometry:
+                    if combined_geometry is None:
+                        combined_geometry = coverage_geometry
+                    else:
+                        combined_geometry = combined_geometry.union(coverage_geometry)
                 else:
-                    clip_geometry = clip_gdf.geometry.unary_union
+                    print(f"    Warning: No geometry created for coverage {coverage_index + 1}")
+        
+            if combined_geometry:
+                # Clip with all layers in clipDistanceLayers
+                for clip_layer in self.clip_distance_layers:
+                    clip_shapefile = self.resolve_full_path(clip_layer['shapeFile'])
+                    clip_gdf = gpd.read_file(clip_shapefile)
+                    
+                    if clip_layer['bufferDistance'] > 0:
+                        clip_geometry = clip_gdf.geometry.buffer(clip_layer['bufferDistance']).unary_union
+                    else:
+                        clip_geometry = clip_gdf.geometry.unary_union
+                    
+                    combined_geometry = combined_geometry.difference(clip_geometry)
                 
-                dissolved_geometry = dissolved_geometry.difference(clip_geometry)
-            
-            self.geltungsbereich_geometries[layer_name] = dissolved_geometry
-            
-            print(f"Created Geltungsbereich layer: {layer_name}")
-            
-            # Add the new layer to layer_properties
-            self.layer_properties[layer_name] = {
-                'color': self.get_color_code(layer.get('color', "Red")),
-                'locked': layer.get('locked', False),
-                'close': layer.get('close', True)
-            }
-            
-            print(f"Added new Geltungsbereich layer to project settings: {layer_name}")
-    
+                self.geltungsbereich_geometries[geltungsbereich['layerName']] = combined_geometry
+                print(f"Created Geltungsbereich layer: {geltungsbereich['layerName']}")
+            else:
+                print(f"Warning: No geometry created for Geltungsbereich layer: {geltungsbereich['layerName']}")
+        
         print("Finished creating Geltungsbereich layers.")
 
     def create_offset_layers(self, base_geometries):
@@ -848,7 +942,7 @@ class ProjectProcessor:
         buffer_distance_layers = [layer['name'] for layer in self.buffer_distance_layers if self.has_corresponding_layer(layer['name'])]
         clip_distance_layers = [layer['name'] for layer in self.clip_distance_layers if self.has_corresponding_layer(layer['name'])]
         
-        geltungsbereich_layers = [layer['name'] for layer in self.geltungsbereich_layers]
+        geltungsbereich_layers = [layer['layerName'] for layer in self.geltungsbereich_layers]
         offset_layers = [layer['name'] for layer in self.offset_layers if self.has_corresponding_layer(layer['name'])]
         
         all_layers = wmts_layers + other_layers + exclusion_layers + buffer_distance_layers + clip_distance_layers + geltungsbereich_layers + offset_layers
@@ -933,7 +1027,6 @@ class ProjectProcessor:
             print(f"Saving DXF file: {self.dxf_filename}")
             doc.saveas(self.dxf_filename)
 
-        # processed_layers = self.update_layers_list if self.update_layers_list else ['Flur', 'Parcel', 'Gemeinde', 'Gemarkung', 'Wald', 'Biotope'] + list(self.wmts_layers.values())
         print("Processing complete.")
 
 
