@@ -81,10 +81,19 @@ class ProjectProcessor:
 
         self.update_layers_list = update_layers_list
 
-        # Update how we handle layer colors and locked status
+        # Add layer definitions for all layers, including buffer distance layers
         self.layer_properties = {}
         for layer in self.project_settings['layers']:
             self.add_layer_properties(layer['name'], layer)
+
+        for buffer_layer in self.buffer_distance_layers:
+            layer_name = buffer_layer['name']
+            if layer_name not in self.layer_properties:
+                self.add_layer_properties(layer_name, {
+                    'color': "Light Green",
+                    'close': True,
+                    'locked': False
+                })
 
         # Handle WMTS layers
         for wmts in self.wmts:
@@ -109,7 +118,10 @@ class ProjectProcessor:
 
         # Handle buffer distance layers
         for buffer_layer in self.buffer_distance_layers:
-            self.add_layer_properties(buffer_layer['name'], buffer_layer)
+            # Use the shapefile name (without extension) as the layer name if not provided
+            layer_name = buffer_layer.get('name', os.path.splitext(os.path.basename(buffer_layer['shapeFile']))[0])
+            buffer_layer['name'] = layer_name  # Add the name to the buffer_layer dict
+            self.add_layer_properties(layer_name, buffer_layer)
 
         # Create clip distance layers
         self.create_clip_distance_layers()
@@ -525,6 +537,7 @@ class ProjectProcessor:
         print(f"Finished processing layer: {layer}")
 
     def main(self):
+        print(f"Starting processing for project: {self.project_settings['name']}")
         self.create_geltungsbereich_layers()
         self.create_clip_distance_layers()
         self.create_buffer_distance_layers()
@@ -535,7 +548,8 @@ class ProjectProcessor:
             self.create_exclusion_polygon(exclusion)
         
         doc = self.process_layers(self.update_layers_list)
-        # ... rest of your main method
+        
+        # ... (rest of your main method)
 
     def add_layer_properties(self, layer_name, layer_info):
         self.layer_properties[layer_name] = {
@@ -593,58 +607,32 @@ class ProjectProcessor:
         print("Finished creating clip distance layers.")
 
     def create_buffer_distance_layers(self):
-        print("Starting to create buffer distance layers...")
-        for layer in self.buffer_distance_layers:
-            input_shapefile = self.resolve_full_path(layer['shapeFile'])
-            buffer_distance = layer['bufferDistance']
-            layer_name = layer['name']
-            output_shapefile = input_shapefile.replace('.shp', f'_buffer_{buffer_distance}.shp')
+        print("Creating buffer distance layers...")
+        self.buffer_geometries = {}
+        for buffer_layer in self.buffer_distance_layers:
+            input_shapefile = self.resolve_full_path(buffer_layer['shapeFile'])
+            buffer_distance = buffer_layer['bufferDistance']
+            layer_name = buffer_layer['name']
 
-            print(f"Processing buffer distance layer: {layer_name}")
-            print(f"Input shapefile: {input_shapefile}")
-            print(f"Buffer distance: {buffer_distance}")
-            print(f"Output shapefile: {output_shapefile}")
-
-            # Load the input shapefile
-            gdf = gpd.read_file(input_shapefile)
-
-            # Create buffer
-            buffered = gdf.buffer(buffer_distance)
-
-            # Get the combined Geltungsbereich geometry
-            geltungsbereich_geometry = self.get_combined_geltungsbereich()
-
-            # Intersect the buffer with the Geltungsbereich
-            clipped_buffer = buffered.intersection(geltungsbereich_geometry)
-
-            # Create a new GeoDataFrame with the clipped buffered geometry
-            buffered_gdf = gpd.GeoDataFrame(geometry=clipped_buffer, crs=gdf.crs)
-
-            # Save the buffered GeoDataFrame as a new shapefile
-            buffered_gdf.to_file(output_shapefile)
-
-            print(f"Created buffer distance layer: {layer_name}")
-
-            # Add the new layer to the project settings
-            new_layer = {
-                'name': layer_name,
-                'shapeFile': output_shapefile,
-                'color': layer.get('color', "Light Green"),
-                'close': layer.get('close', True),
-                'locked': layer.get('locked', False)
-            }
-            self.project_settings['layers'].append(new_layer)
-
-            # Add the new layer to layer_properties
-            self.layer_properties[layer_name] = {
-                'color': self.get_color_code(new_layer['color']),
-                'locked': new_layer['locked'],
-                'close': new_layer['close']
-            }
-
-            print(f"Added new layer to project settings: {layer_name}")
-
-        print("Finished creating buffer distance layers.")
+            try:
+                # Load the input shapefile
+                gdf = gpd.read_file(input_shapefile)
+                
+                # Create buffer
+                buffered = gdf.buffer(buffer_distance)
+                
+                # Get the combined Geltungsbereich geometry
+                geltungsbereich_geometry = self.get_combined_geltungsbereich()
+                
+                # Intersect the buffer with the Geltungsbereich
+                clipped_buffer = buffered.intersection(geltungsbereich_geometry)
+                
+                # Store the buffered geometry
+                self.buffer_geometries[layer_name] = clipped_buffer
+                
+                print(f"Created buffer for layer: {layer_name}")
+            except Exception as e:
+                print(f"Error creating buffer for layer {layer_name}: {str(e)}")
 
     def get_combined_geltungsbereich(self):
         if not hasattr(self, 'geltungsbereich_geometries'):
@@ -721,7 +709,7 @@ class ProjectProcessor:
 
         # Separate WMTS layers from other layers
         wmts_layers = [wmts['dxfLayer'] for wmts in self.wmts]
-        other_layers = ['Flur', 'Parcel', 'Gemeinde', 'Gemarkung', 'Wald', 'Biotope']
+        other_layers = [layer['name'] for layer in self.project_settings['layers']]
         exclusion_layers = [exc['name'] for exc in self.exclusions]
         buffer_distance_layers = [layer['name'] for layer in self.buffer_distance_layers]
         geltungsbereich_layers = [layer['name'] for layer in self.geltungsbereich_layers]
@@ -738,6 +726,11 @@ class ProjectProcessor:
             if layer in layers_to_process:
                 print(f"Processing layer: {layer}")
                 self.process_single_layer(msp, layer)
+
+        # Add buffer geometries to their respective layers
+        for layer_name, geometry in self.buffer_geometries.items():
+            print(f"Adding buffer geometry to layer: {layer_name}")
+            self.add_geometries(msp, geometry, layer_name, close=self.layer_properties[layer_name]['close'])
 
         return doc
 
@@ -776,8 +769,7 @@ class ProjectProcessor:
             print(f"Saving DXF file: {self.dxf_filename}")
             doc.saveas(self.dxf_filename)
 
-        processed_layers = self.update_layers_list if self.update_layers_list else ['Flur', 'Parcel', 'Gemeinde', 'Gemarkung', 'Wald', 'Biotope'] + list(self.wmts_layers.values())
-        print(f"Processed layers: {', '.join(processed_layers)}")
+        # processed_layers = self.update_layers_list if self.update_layers_list else ['Flur', 'Parcel', 'Gemeinde', 'Gemarkung', 'Wald', 'Biotope'] + list(self.wmts_layers.values())
         print("Processing complete.")
 
 

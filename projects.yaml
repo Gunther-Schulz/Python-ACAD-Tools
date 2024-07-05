@@ -99,8 +99,12 @@ projects:
       - name: Baufeld
         color: "Red"
         locked: false
+      - name: Wald Abstand
+        color: "Light Green"
+        close: true
+        locked: false
     clipDistanceLayers:
-      - name: Abstand
+      - name: Straße Clip
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/abstand.shp"
         bufferDistance: 7
       - name: Wald Clip
@@ -110,9 +114,6 @@ projects:
       - name: Wald Abstand
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/wald.shp"
         bufferDistance: 30
-        color: "Light Green"
-        close: true
-        locked: false
     wmts:
       - name: DOP
         url: "https://www.geodaten-mv.de/dienste/dop_wmts/wmts/1.0.0/WMTSCapabilities.xml"
