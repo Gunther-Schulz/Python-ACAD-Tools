@@ -38,6 +38,7 @@ class ProjectProcessor:
         self.wmts = self.project_settings.get('wmts', [])
         self.clip_distance_layers = self.project_settings.get('clipDistanceLayers', [])
         self.buffer_distance_layers = self.project_settings.get('bufferDistanceLayers', [])
+        self.geltungsbereich_layers = self.project_settings.get('geltungsbereichLayers', [])
 
         self.template_dxf = self.resolve_full_path(self.project_settings.get(
             'template', '')) if self.project_settings.get('template') else None
@@ -66,8 +67,6 @@ class ProjectProcessor:
             self.colors[layer['name']] = color_code
             self.colors[f"{layer['name']} Number"] = color_code  # Add color for label layer
 
-        self.coverage = self.project_settings['coverage']
-
         # Modify this part to create a dictionary of WMTS layers
         self.wmts_layers = {
             wmts['name']: f"WMTS {wmts['name']}" for wmts in self.wmts}
@@ -82,17 +81,7 @@ class ProjectProcessor:
         # Update how we handle layer colors and locked status
         self.layer_properties = {}
         for layer in self.project_settings['layers']:
-            self.layer_properties[layer['name']] = {
-                'color': self.get_color_code(layer['color']),
-                'locked': layer.get('locked', False),
-                'close': layer.get('close', True)  # Default to True if not specified
-            }
-            # Also add properties for label layers
-            self.layer_properties[f"{layer['name']} Number"] = {
-                'color': self.get_color_code(layer['color']),
-                'locked': layer.get('locked', False),
-                'close': True  # Labels are always closed
-            }
+            self.add_layer_properties(layer['name'], layer)
 
         # Handle WMTS layers
         for wmts in self.wmts:
@@ -115,11 +104,18 @@ class ProjectProcessor:
             else:
                 print_warning(f"Layer '{exclusion['name']}' not found in project settings.")
 
+        # Handle buffer distance layers
+        for buffer_layer in self.buffer_distance_layers:
+            self.add_layer_properties(buffer_layer['name'], buffer_layer)
+
         # Create clip distance layers
         self.create_clip_distance_layers()
 
         # Create buffer distance layers
         self.create_buffer_distance_layers()
+
+        # Create Geltungsbereich layers
+        self.create_geltungsbereich_layers()
 
     def find_layer_by_name(self, layer_name):
         """Find a layer in the project settings by its name."""
@@ -153,27 +149,27 @@ class ProjectProcessor:
     def parcel_missing(self, gdf: gpd.GeoDataFrame, coverage: dict) -> set:
         return set(coverage["parcelList"]).difference(gdf[self.parcel_label])
 
-    def filter_parcels(self, parcel, flur, gemarkung, gemeinde, coverage):
-        parcels_missing = self.parcel_missing(parcel, coverage)
+    def filter_parcels(self, coverage):
+        parcels_missing = self.parcel_missing(self.parcel_shapefile, coverage)
         if not parcels_missing:
             print("All parcels found.")
 
-        buffered_flur = flur[flur[self.flur_label].isin(
+        buffered_flur = self.flur_shapefile[self.flur_shapefile[self.flur_label].isin(
             coverage["flurList"])].unary_union.buffer(-10)
-        buffered_gemeinde = gemeinde[gemeinde[self.gemeinde_label].isin(
+        buffered_gemeinde = self.gemeinde_shapefile[self.gemeinde_shapefile[self.gemeinde_label].isin(
             coverage["gemeindeList"])].unary_union.buffer(-10)
-        buffered_gemarkung = gemarkung[gemarkung[self.gemarkung_label].isin(
+        buffered_gemarkung = self.gemarkung_shapefile[self.gemarkung_shapefile[self.gemarkung_label].isin(
             coverage["gemarkungList"])].unary_union.buffer(-10)
 
-        selected_parcels = parcel[parcel[self.parcel_label].isin(
+        selected_parcels = self.parcel_shapefile[self.parcel_shapefile[self.parcel_label].isin(
             coverage["parcelList"])]
-        selected_parcels_mask = parcel.index.isin(selected_parcels.index)
+        selected_parcels_mask = self.parcel_shapefile.index.isin(selected_parcels.index)
 
-        flur_mask = parcel.intersects(buffered_flur)
-        gemeinde_mask = parcel.intersects(buffered_gemeinde)
-        gemarkung_mask = parcel.intersects(buffered_gemarkung)
+        flur_mask = self.parcel_shapefile.intersects(buffered_flur)
+        gemeinde_mask = self.parcel_shapefile.intersects(buffered_gemeinde)
+        gemarkung_mask = self.parcel_shapefile.intersects(buffered_gemarkung)
 
-        result = parcel[selected_parcels_mask &
+        result = self.parcel_shapefile[selected_parcels_mask &
                         flur_mask & gemeinde_mask & gemarkung_mask]
         return result
 
@@ -279,20 +275,37 @@ class ProjectProcessor:
                 if close:
                     points.append(points[0])  # Close the polygon
                 msp.add_lwpolyline(points, dxfattribs={'layer': layer_name})
+                for interior in geom.interiors:
+                    points = list(interior.coords)
+                    if close:
+                        points.append(points[0])  # Close the interior ring
+                    msp.add_lwpolyline(points, dxfattribs={'layer': layer_name})
             elif geom.geom_type == 'MultiPolygon':
-                for part in geom.geoms:  # Use geoms attribute for MultiPolygon
-                    points = list(part.exterior.coords)
+                for poly in geom.geoms:
+                    points = list(poly.exterior.coords)
                     if close:
                         points.append(points[0])  # Close the polygon
                     msp.add_lwpolyline(points, dxfattribs={'layer': layer_name})
+                    for interior in poly.interiors:
+                        points = list(interior.coords)
+                        if close:
+                            points.append(points[0])  # Close the interior ring
+                        msp.add_lwpolyline(points, dxfattribs={'layer': layer_name})
             elif geom.geom_type == 'LineString':
-                msp.add_lwpolyline(geom.coords, dxfattribs={'layer': layer_name})
+                points = list(geom.coords)
+                if close and points[0] != points[-1]:
+                    points.append(points[0])  # Close the linestring if it's not already closed
+                msp.add_lwpolyline(points, dxfattribs={'layer': layer_name})
             elif geom.geom_type == 'MultiLineString':
-                for line in geom.geoms:  # Use geoms attribute for MultiLineString
-                    msp.add_lwpolyline(line.coords, dxfattribs={'layer': layer_name})
+                for line in geom.geoms:
+                    points = list(line.coords)
+                    if close and points[0] != points[-1]:
+                        points.append(points[0])  # Close the linestring if it's not already closed
+                    msp.add_lwpolyline(points, dxfattribs={'layer': layer_name})
 
     def add_layer(self, doc, layer_name):
-        properties = self.layer_properties.get(layer_name, {'color': 7, 'locked': False})
+        base_layer = layer_name.split('_')[0]  # Get the base layer name (e.g., 'WMTS DOP' from 'WMTS DOP_Hauptgeltungsbereich')
+        properties = self.layer_properties.get(base_layer, {'color': 7, 'locked': False})
         if layer_name not in doc.layers:
             new_layer = doc.layers.new(name=layer_name)
         else:
@@ -437,15 +450,23 @@ class ProjectProcessor:
 
         return result_gdf
 
+    def add_layer_properties(self, layer_name, layer_info):
+        self.layer_properties[layer_name] = {
+            'color': self.get_color_code(layer_info.get('color', 'White')),
+            'locked': layer_info.get('locked', False),
+            'close': layer_info.get('close', True)
+        }
 
     def create_clip_distance_layers(self):
         print("Starting to create clip distance layers...")
         for layer in self.clip_distance_layers:
             input_shapefile = self.resolve_full_path(layer['shapeFile'])
             buffer_distance = layer['bufferDistance']
-            output_shapefile = input_shapefile.replace('.shp', '_abstand.shp')
+            layer_name = layer['name']  # Use the name directly from the YAML file
+            output_shapefile = input_shapefile.replace('.shp', f'_clip_{buffer_distance}.shp')
 
-            print(f"Processing clip distance layer: {input_shapefile}")
+            print(f"Processing clip distance layer: {layer_name}")
+            print(f"Input shapefile: {input_shapefile}")
             print(f"Buffer distance: {buffer_distance}")
             print(f"Output shapefile: {output_shapefile}")
 
@@ -461,53 +482,11 @@ class ProjectProcessor:
             # Save the buffered GeoDataFrame as a new shapefile
             buffered_gdf.to_file(output_shapefile)
 
-            print(f"Created clip distance layer: {output_shapefile}")
-
-            # Add the new layer to the project settings
-            new_layer_name = f"{os.path.basename(input_shapefile).split('.')[0]} Abstand"
-            new_layer = {
-                'name': new_layer_name,
-                'shapeFile': output_shapefile,
-                'color': "Light Green",
-                'close': True,
-                'locked': False
-            }
-            self.project_settings['layers'].append(new_layer)
-
-            # Add the new layer to layer_properties
-            self.layer_properties[new_layer_name] = {
-                'color': self.get_color_code("Light Green"),
-                'locked': False,
-                'close': True
-            }
-
-            print(f"Added new layer to project settings: {new_layer_name}")
-
-        print("Finished creating clip distance layers.")
-
-    def create_buffer_distance_layers(self):
-        for layer in self.buffer_distance_layers:
-            input_shapefile = self.resolve_full_path(layer['shapeFile'])
-            buffer_distance = layer['bufferDistance']
-            output_shapefile = input_shapefile.replace('.shp', f'_buffer_{buffer_distance}.shp')
-
-            # Load the input shapefile
-            gdf = gpd.read_file(input_shapefile)
-
-            # Create buffer
-            buffered = gdf.buffer(buffer_distance)
-
-            # Create a new GeoDataFrame with the buffered geometry
-            buffered_gdf = gpd.GeoDataFrame(geometry=buffered, crs=gdf.crs)
-
-            # Save the buffered GeoDataFrame as a new shapefile
-            buffered_gdf.to_file(output_shapefile)
-
-            print(f"Created buffer distance layer: {output_shapefile}")
+            print(f"Created clip distance layer: {layer_name}")
 
             # Add the new layer to the project settings
             new_layer = {
-                'name': layer['name'],
+                'name': layer_name,
                 'shapeFile': output_shapefile,
                 'color': layer.get('color', "Light Green"),
                 'close': layer.get('close', True),
@@ -516,11 +495,130 @@ class ProjectProcessor:
             self.project_settings['layers'].append(new_layer)
 
             # Add the new layer to layer_properties
-            self.layer_properties[new_layer['name']] = {
+            self.layer_properties[layer_name] = {
                 'color': self.get_color_code(new_layer['color']),
                 'locked': new_layer['locked'],
                 'close': new_layer['close']
             }
+
+            print(f"Added new layer to project settings: {layer_name}")
+
+        print("Finished creating clip distance layers.")
+
+    def create_buffer_distance_layers(self):
+        print("Starting to create buffer distance layers...")
+        for layer in self.buffer_distance_layers:
+            input_shapefile = self.resolve_full_path(layer['shapeFile'])
+            buffer_distance = layer['bufferDistance']
+            layer_name = layer['name']
+            output_shapefile = input_shapefile.replace('.shp', f'_buffer_{buffer_distance}.shp')
+
+            print(f"Processing buffer distance layer: {layer_name}")
+            print(f"Input shapefile: {input_shapefile}")
+            print(f"Buffer distance: {buffer_distance}")
+            print(f"Output shapefile: {output_shapefile}")
+
+            # Load the input shapefile
+            gdf = gpd.read_file(input_shapefile)
+
+            # Create buffer
+            buffered = gdf.buffer(buffer_distance)
+
+            # Get the combined Geltungsbereich geometry
+            geltungsbereich_geometry = self.get_combined_geltungsbereich()
+
+            # Intersect the buffer with the Geltungsbereich
+            clipped_buffer = buffered.intersection(geltungsbereich_geometry)
+
+            # Create a new GeoDataFrame with the clipped buffered geometry
+            buffered_gdf = gpd.GeoDataFrame(geometry=clipped_buffer, crs=gdf.crs)
+
+            # Save the buffered GeoDataFrame as a new shapefile
+            buffered_gdf.to_file(output_shapefile)
+
+            print(f"Created buffer distance layer: {layer_name}")
+
+            # Add the new layer to the project settings
+            new_layer = {
+                'name': layer_name,
+                'shapeFile': output_shapefile,
+                'color': layer.get('color', "Light Green"),
+                'close': layer.get('close', True),
+                'locked': layer.get('locked', False)
+            }
+            self.project_settings['layers'].append(new_layer)
+
+            # Add the new layer to layer_properties
+            self.layer_properties[layer_name] = {
+                'color': self.get_color_code(new_layer['color']),
+                'locked': new_layer['locked'],
+                'close': new_layer['close']
+            }
+
+            print(f"Added new layer to project settings: {layer_name}")
+
+        print("Finished creating buffer distance layers.")
+
+    def get_combined_geltungsbereich(self):
+        if not hasattr(self, 'geltungsbereich_geometries'):
+            self.create_geltungsbereich_layers()
+        return unary_union(list(self.geltungsbereich_geometries.values()))
+
+    def create_geltungsbereich_layers(self):
+        print("Starting to create Geltungsbereich layers...")
+        self.geltungsbereich_geometries = {}
+        for layer in self.geltungsbereich_layers:
+            layer_name = layer['name']
+            coverage = layer['coverage']
+            
+            # Filter parcels based on coverage
+            gdf = self.filter_parcels(coverage)
+            
+            # Dissolve the geometry
+            dissolved_geometry = gdf.unary_union
+            
+            # Clip with all layers in clipDistanceLayers
+            for clip_layer in self.clip_distance_layers:
+                clip_shapefile = self.resolve_full_path(clip_layer['shapeFile'])
+                clip_gdf = gpd.read_file(clip_shapefile)
+                
+                if clip_layer['bufferDistance'] > 0:
+                    clip_geometry = clip_gdf.geometry.buffer(clip_layer['bufferDistance']).unary_union
+                else:
+                    clip_geometry = clip_gdf.geometry.unary_union
+                
+                dissolved_geometry = dissolved_geometry.difference(clip_geometry)
+            
+            self.geltungsbereich_geometries[layer_name] = dissolved_geometry
+            
+            print(f"Created Geltungsbereich layer: {layer_name}")
+            
+            # Add the new layer to layer_properties
+            self.layer_properties[layer_name] = {
+                'color': self.get_color_code(layer.get('color', "Red")),
+                'locked': layer.get('locked', False),
+                'close': layer.get('close', True)
+            }
+            
+            print(f"Added new Geltungsbereich layer to project settings: {layer_name}")
+    
+        print("Finished creating Geltungsbereich layers.")
+
+    def update_layer_info(self, layer_name, shapefile_path, layer_info):
+        # Update project settings
+        new_layer = {
+            'name': layer_name,
+            'shapeFile': shapefile_path,
+            'color': layer_info.get('color', "Light Green"),
+            'close': layer_info.get('close', True),
+            'locked': layer_info.get('locked', False)
+        }
+        self.project_settings['layers'].append(new_layer)
+
+        # Update layer properties
+        self.add_layer_properties(layer_name, new_layer)
+
+        print(f"Updated project settings and layer properties for: {layer_name}")
 
     def process_layers(self, layers_to_process=None):
         try:
@@ -538,19 +636,14 @@ class ProjectProcessor:
         wmts_layers = [layer for layer in self.wmts_layers.values()]
         other_layers = ['Flur', 'Parcel', 'FlurOrig', 'Gemeinde', 'Gemarkung', 'Wald', 'Biotope']
         exclusion_layers = [exc['name'] for exc in self.exclusions]
-        clip_distance_layers = [f"{os.path.basename(layer['shapeFile']).split('.')[0]} Abstand" for layer in self.clip_distance_layers]
+        clip_distance_layers = [layer['name'] for layer in self.clip_distance_layers]
         buffer_distance_layers = [layer['name'] for layer in self.buffer_distance_layers]
-        all_layers = wmts_layers + other_layers + exclusion_layers + clip_distance_layers + buffer_distance_layers
+        geltungsbereich_layers = [layer['name'] for layer in self.geltungsbereich_layers]
+        all_layers = wmts_layers + other_layers + exclusion_layers + clip_distance_layers + buffer_distance_layers + geltungsbereich_layers
 
         layers_to_process = layers_to_process or all_layers
 
         print("Layers to process:", layers_to_process)
-
-        if 'Geltungsbereich' in layers_to_process or not hasattr(self, 'geltungsbereich'):
-            target_parcels = self.filter_parcels(
-                self.parcel_shapefile, self.flur_shapefile, self.gemarkung_shapefile, self.gemeinde_shapefile, self.coverage)
-            self.geltungsbereich = target_parcels['geometry'].unary_union
-            self.geltungsbereich = self.clip_with_distance_layer_buffers(self.geltungsbereich)
 
         # Process layers in the order they appear in all_layers
         for layer in all_layers:
@@ -565,25 +658,32 @@ class ProjectProcessor:
         for entity in msp.query(f'*[layer=="{layer}"]'):
             msp.delete_entity(entity)
 
-        # Check if the layer is an exclusion layer
-        exclusion_config = next((exc for exc in self.exclusions if exc['name'] == layer), None)
-        if exclusion_config:
-            print(f"Creating exclusion polygon for layer: {layer}")
-            self.create_exclusion_polygon(
-                exclusion_config['scopeLayer'],
-                exclusion_config['excludeLayers'],
-                layer
-            )
+        # Check if the layer is a Geltungsbereich layer
+        if layer in self.geltungsbereich_geometries:
+            print(f"Processing Geltungsbereich layer: {layer}")
+            geometry = self.geltungsbereich_geometries[layer]
+            self.add_geometries(msp, [geometry], layer, close=True)
         elif layer in self.wmts_layers.values():
             print(f"Processing WMTS layer: {layer}")
             wmts_info = next(wmts for wmts in self.wmts if self.wmts_layers[wmts['name']] == layer)
             target_folder = self.resolve_full_path(wmts_info['targetFolder'])
             os.makedirs(target_folder, exist_ok=True)
             print(f"Updating WMTS tiles for layer '{layer}'")
-            tiles = download_wmts_tiles(wmts_info, self.geltungsbereich, 500, target_folder, True)
             
-            for tile_path, world_file_path in tiles:
-                self.add_image_with_worldfile(msp, tile_path, world_file_path, layer)
+            # Process WMTS for each Geltungsbereich layer
+            for gb_layer in self.geltungsbereich_layers:
+                gb_coverage = gb_layer['coverage']
+                gb_gdf = self.filter_parcels(gb_coverage)
+                gb_geometry = gb_gdf['geometry'].unary_union
+                
+                gb_target_folder = os.path.join(target_folder, gb_layer['name'])
+                os.makedirs(gb_target_folder, exist_ok=True)
+                
+                print(f"Downloading WMTS tiles for Geltungsbereich: {gb_layer['name']}")
+                tiles = download_wmts_tiles(wmts_info, gb_geometry, 500, gb_target_folder, True)
+                
+                for tile_path, world_file_path in tiles:
+                    self.add_image_with_worldfile(msp, tile_path, world_file_path, f"{layer}_{gb_layer['name']}")
         else:
             layer_info = self.find_layer_by_name(layer)
             if layer_info:
@@ -594,33 +694,37 @@ class ProjectProcessor:
                             self.add_geometries(msp, self.select_parcel_edges(self.flur_shapefile)['geometry'], 'Flur', close=False)
                         elif layer == 'Parcel':
                             self.add_geometries(msp, self.parcel_shapefile['geometry'], 'Parcel', close=True)
-                        elif layer == 'Geltungsbereich':
-                            self.add_geometries(msp, [self.geltungsbereich], 'Geltungsbereich', close=True)
                         else:
                             gdf = self.load_shapefile(shapefile_path)
                             self.add_geometries(msp, gdf['geometry'], layer, close=layer_info.get('close', True))
                     else:
-                        print_warning(f"Shapefile for layer '{layer}' not found: {shapefile_path}")
+                        print(f"Shapefile for layer '{layer}' not found: {shapefile_path}")
                 else:
-                    # Layer is defined in YAML but doesn't have a shapefile (e.g., Baufeld)
-                    pass
-            elif layer in ['FlurOrig', 'Geltungsbereich']:
-                # These are special layers not explicitly defined in YAML, so we process them without warnings
-                if layer == 'FlurOrig':
-                    self.add_geometries(msp, self.flur_shapefile['geometry'], 'FlurOrig', close=True)
-                elif layer == 'Geltungsbereich':
-                    self.add_geometries(msp, [self.geltungsbereich], 'Geltungsbereich', close=True)
+                    print(f"No shapefile specified for layer '{layer}'")
             else:
-                # This layer is not defined in YAML and is not a special layer, so we skip it without a warning
-                return
+                print(f"Layer '{layer}' not found in project settings")
 
         # Set layer properties
         self.add_layer(self.doc, layer)
 
         print(f"Finished processing layer: {layer}")
 
+    def add_layer(self, doc, layer_name):
+        base_layer = layer_name.split('_')[0]  # Get the base layer name (e.g., 'WMTS DOP' from 'WMTS DOP_Hauptgeltungsbereich')
+        properties = self.layer_properties.get(base_layer, {'color': 7, 'locked': False})
+        if layer_name not in doc.layers:
+            new_layer = doc.layers.new(name=layer_name)
+        else:
+            new_layer = doc.layers.get(layer_name)
+        
+        new_layer.color = properties['color']
+        new_layer.lock = properties['locked']
+
     def main(self):
         print(f"Starting processing for project: {self.project_settings['name']}")
+        self.create_geltungsbereich_layers()
+        self.create_clip_distance_layers()
+        self.create_buffer_distance_layers()
         doc = self.process_layers(self.update_layers_list)
         
         # Ensure the directory exists
@@ -651,5 +755,7 @@ if __name__ == "__main__":
         processor.main()
     except ValueError as e:
         print(e)
+
+
 
 

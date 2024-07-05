@@ -37,14 +37,26 @@ projects:
     crs: EPSG:25833
     dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/Zeichnung/combined.dxf"
     # template: "~/hidrive/Öffentlich Planungsbüro Schulz/Allgemein/CAD/Zeichnung.dxf"
-    coverage:
-      parcelList: ["104", "96", "95", "87/1"]
-      flurList: ["Flur 2"]
-      gemarkungList: ["Torgelow am See"]
-      gemeindeList: ["Torgelow am See"]
+    geltungsbereichLayers:
+      - name: Geltungsbereich
+        coverage:
+          parcelList: ["104", "96", "95", "87/1"]
+          flurList: ["Flur 2"]
+          gemarkungList: ["Torgelow am See"]
+          gemeindeList: ["Torgelow am See"]
+        color: "Red"
+        locked: false
+      # - name: Erweiterter Geltungsbereich
+      #   coverage:
+      #     parcelList: ["104", "96", "95", "87/1", "88", "89"]
+      #     flurList: ["Flur 2"]
+      #     gemarkungList: ["Torgelow am See"]
+      #     gemeindeList: ["Torgelow am See"]
+      #   color: "Blue"
+      #   locked: false
     exclusions:
       - name: Baufeld
-        scopeLayer: Geltungsbereich
+        scopeLayer: Hauptgeltungsbereich
         excludeLayers:
           - Wald Abstand
           - Biotope
@@ -88,9 +100,11 @@ projects:
         color: "Red"
         locked: false
     clipDistanceLayers:
-      - shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/abstand.shp"
+      - name: Abstand
+        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/abstand.shp"
         bufferDistance: 7
-      - shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/wald.shp"
+      - name: Wald Clip
+        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/wald.shp"
         bufferDistance: 0
     bufferDistanceLayers:
       - name: Wald Abstand
