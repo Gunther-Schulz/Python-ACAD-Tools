@@ -72,6 +72,27 @@ class ProjectProcessor:
 
         self.update_layers_list = update_layers_list
 
+        # Update how we handle layer colors and locked status
+        self.layer_properties = {}
+        for layer in self.project_settings['layers']:
+            self.layer_properties[layer['name']] = {
+                'color': self.get_color_code(layer['color']),
+                'locked': layer.get('locked', False)
+            }
+            # Also add properties for label layers
+            self.layer_properties[f"{layer['name']} Number"] = {
+                'color': self.get_color_code(layer['color']),
+                'locked': layer.get('locked', False)
+            }
+
+        # Handle WMTS layers
+        for wmts in self.wmts:
+            layer_name = f"WMTS {wmts['name']}"
+            self.layer_properties[layer_name] = {
+                'color': 7,  # Default to white
+                'locked': wmts.get('locked', False)
+            }
+
     def load_project_settings(self, project_name: str):
         with open('projects.yaml', 'r') as file:
             data = yaml.safe_load(file)
@@ -228,8 +249,15 @@ class ProjectProcessor:
 
     def add_layer(self, doc, layer_name):
         if layer_name not in doc.layers:
-            color = self.colors.get(layer_name, 7)  # Default to white (7) if color not found
-            doc.layers.new(name=layer_name, dxfattribs={'color': color})
+            properties = self.layer_properties.get(layer_name, {'color': 7, 'locked': False})
+            new_layer = doc.layers.new(name=layer_name, dxfattribs={'color': properties['color']})
+            new_layer.lock = properties['locked']
+        else:
+            # If the layer already exists, update its properties
+            existing_layer = doc.layers.get(layer_name)
+            properties = self.layer_properties.get(layer_name, {'color': 7, 'locked': False})
+            existing_layer.color = properties['color']
+            existing_layer.lock = properties['locked']
 
     def get_color_code(self, color):
         if isinstance(color, int):
@@ -331,7 +359,11 @@ class ProjectProcessor:
 
         msp = doc.modelspace()
 
-        all_layers = ['Flur', 'Parcel', 'FlurOrig', 'Gemeinde', 'Gemarkung', 'Wald', 'Biotope'] + list(self.wmts_layers.values())
+        # Separate WMTS layers from other layers
+        wmts_layers = [layer for layer in self.wmts_layers.values()]
+        other_layers = ['Flur', 'Parcel', 'FlurOrig', 'Gemeinde', 'Gemarkung', 'Wald', 'Biotope']
+        all_layers = wmts_layers + other_layers
+
         layers_to_process = layers_to_process or all_layers
 
         if 'Geltungsbereich' in layers_to_process or not hasattr(self, 'geltungsbereich'):
@@ -340,53 +372,70 @@ class ProjectProcessor:
             self.geltungsbereich = target_parcels['geometry'].unary_union
             self.geltungsbereich = self.clip_with_distance_layer_buffers(self.geltungsbereich)
 
-        for layer in layers_to_process:
-            for entity in msp.query(f'*[layer=="{layer}"]'):
-                msp.delete_entity(entity)
+        # Process WMTS layers first
+        for layer in wmts_layers:
+            if layer in layers_to_process:
+                self.process_single_layer(msp, layer)
 
-            if layer in self.wmts_layers.values():
-                wmts_info = next(wmts for wmts in self.wmts if self.wmts_layers[wmts['name']] == layer)
-                target_folder = self.resolve_full_path(wmts_info['targetFolder'])
-                os.makedirs(target_folder, exist_ok=True)
-                print(f"Updating WMTS tiles for layer '{layer}'")
-                tiles = download_wmts_tiles(wmts_info, self.geltungsbereich, 500, target_folder, True)
-                
-                for tile_path, world_file_path in tiles:
-                    self.add_image_with_worldfile(msp, tile_path, world_file_path, layer)
-            else:
-                if layer == 'Flur':
-                    self.add_geometries(msp, self.select_parcel_edges(self.flur_shapefile)['geometry'], 'Flur', close=False)
-                elif layer == 'Parcel':
-                    self.add_geometries(msp, self.parcel_shapefile['geometry'], 'Parcel', close=True)
-                elif layer == 'Geltungsbereich':
-                    self.add_geometries(msp, [self.geltungsbereich], 'Geltungsbereich', close=True)
-                elif layer == 'FlurOrig':
-                    self.add_geometries(msp, self.flur_shapefile['geometry'], 'FlurOrig', close=True)
-                elif layer == 'Gemeinde':
-                    self.add_geometries(msp, self.gemeinde_shapefile['geometry'], 'Gemeinde', close=True)
-                elif layer == 'Gemarkung':
-                    self.add_geometries(msp, self.gemarkung_shapefile['geometry'], 'Gemarkung', close=True)
-                elif layer == 'Wald':
-                    self.add_geometries(msp, self.wald_shapefile['geometry'], 'Wald', close=True)
-                elif layer == 'Biotope':
-                    self.add_geometries(msp, self.biotope_shapefile['geometry'], 'Biotope', close=True)
-                
-                # New code to handle buffer distance layers
-                for buffer_layer in self.buffer_distance_layers:
-                    layer_name = f"{os.path.splitext(os.path.basename(buffer_layer['shapeFile']))[0]} Abstand"
-                    if layer == layer_name:
-                        shapefile = self.load_shapefile(self.resolve_full_path(buffer_layer['shapeFile']))
-                        buffer_distance = buffer_layer['bufferDistance']
-                        buffered = self.get_distance_layer_buffers(shapefile, buffer_distance, self.geltungsbereich)
-                        self.add_geometries(msp, buffered, layer_name, close=True)
+        # Then process other layers
+        for layer in other_layers:
+            if layer in layers_to_process:
+                self.process_single_layer(msp, layer)
 
-            if layer in ['Parcel', 'Flur', 'Gemeinde', 'Gemarkung']:
-                label_attr = f"{layer.lower()}_label"
-                points = self.labeled_center_points(getattr(self, f"{layer.lower()}_shapefile"), getattr(self, label_attr))
-                label_layer_name = f"{layer} Number"
-                self.add_text_to_center(msp, points, label_layer_name)
+        # Set the display order of layers
+        for i, layer_name in enumerate(all_layers):
+            if layer_name in doc.layers:
+                doc.layers[layer_name].dxf.disp_order = i
 
         return doc
+
+    def process_single_layer(self, msp, layer):
+        # Remove existing entities in the layer
+        for entity in msp.query(f'*[layer=="{layer}"]'):
+            msp.delete_entity(entity)
+
+        if layer in self.wmts_layers.values():
+            wmts_info = next(wmts for wmts in self.wmts if self.wmts_layers[wmts['name']] == layer)
+            target_folder = self.resolve_full_path(wmts_info['targetFolder'])
+            os.makedirs(target_folder, exist_ok=True)
+            print(f"Updating WMTS tiles for layer '{layer}'")
+            tiles = download_wmts_tiles(wmts_info, self.geltungsbereich, 500, target_folder, True)
+            
+            for tile_path, world_file_path in tiles:
+                self.add_image_with_worldfile(msp, tile_path, world_file_path, layer)
+        else:
+            # Process other layers as before
+            if layer == 'Flur':
+                self.add_geometries(msp, self.select_parcel_edges(self.flur_shapefile)['geometry'], 'Flur', close=False)
+            elif layer == 'Parcel':
+                self.add_geometries(msp, self.parcel_shapefile['geometry'], 'Parcel', close=True)
+            elif layer == 'Geltungsbereich':
+                self.add_geometries(msp, [self.geltungsbereich], 'Geltungsbereich', close=True)
+            elif layer == 'FlurOrig':
+                self.add_geometries(msp, self.flur_shapefile['geometry'], 'FlurOrig', close=True)
+            elif layer == 'Gemeinde':
+                self.add_geometries(msp, self.gemeinde_shapefile['geometry'], 'Gemeinde', close=True)
+            elif layer == 'Gemarkung':
+                self.add_geometries(msp, self.gemarkung_shapefile['geometry'], 'Gemarkung', close=True)
+            elif layer == 'Wald':
+                self.add_geometries(msp, self.wald_shapefile['geometry'], 'Wald', close=True)
+            elif layer == 'Biotope':
+                self.add_geometries(msp, self.biotope_shapefile['geometry'], 'Biotope', close=True)
+            
+            # Handle buffer distance layers
+            for buffer_layer in self.buffer_distance_layers:
+                layer_name = f"{os.path.splitext(os.path.basename(buffer_layer['shapeFile']))[0]} Abstand"
+                if layer == layer_name:
+                    shapefile = self.load_shapefile(self.resolve_full_path(buffer_layer['shapeFile']))
+                    buffer_distance = buffer_layer['bufferDistance']
+                    buffered = self.get_distance_layer_buffers(shapefile, buffer_distance, self.geltungsbereich)
+                    self.add_geometries(msp, buffered, layer_name, close=True)
+
+        if layer in ['Parcel', 'Flur', 'Gemeinde', 'Gemarkung']:
+            label_attr = f"{layer.lower()}_label"
+            points = self.labeled_center_points(getattr(self, f"{layer.lower()}_shapefile"), getattr(self, label_attr))
+            label_layer_name = f"{layer} Number"
+            self.add_text_to_center(msp, points, label_layer_name)
 
     def main(self):
         doc = self.process_layers(self.update_layers_list)
