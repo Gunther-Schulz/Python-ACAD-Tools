@@ -46,6 +46,9 @@ projects:
           gemeindeList: ["Torgelow am See"]
         color: "Red"
         locked: false
+        parcelLayer: "Parcel"
+        flurLayer: "Flur"
+        gemarkungLayer: "Gemarkung"
       # - name: Erweiterter Geltungsbereich
       #   coverage:
       #     parcelList: ["104", "96", "95", "87/1", "88", "89"]
@@ -135,3 +138,4 @@ projects:
         targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/Basemap"
         dxfLayer: "WMTS Basemap"
         locked: true
+

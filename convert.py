@@ -45,16 +45,17 @@ class ProjectProcessor:
 
         self.template_dxf = self.resolve_full_path(self.project_settings.get(
             'template', '')) if self.project_settings.get('template') else None
-        self.gemeinde_shapefile, self.gemeinde_label = self.get_layer_info(
-            "Gemeinde")
-        self.gemarkung_shapefile, self.gemarkung_label = self.get_layer_info(
-            "Gemarkung")
-        self.flur_shapefile, self.flur_label = self.get_layer_info("Flur")
-        self.parcel_shapefile, self.parcel_label = self.get_layer_info(
-            "Parcel")
-        self.wald_shapefile, self.wald_label = self.get_layer_info("Wald")
-        self.biotope_shapefile, self.biotope_label = self.get_layer_info(
-            "Biotope")
+        try:
+            self.gemeinde_shapefile, self.gemeinde_label = self.get_layer_info("Gemeinde")
+            self.gemarkung_shapefile, self.gemarkung_label = self.get_layer_info(self.geltungsbereich_layers[0]['gemarkungLayer'])
+            self.flur_shapefile, self.flur_label = self.get_layer_info(self.geltungsbereich_layers[0]['flurLayer'])
+            self.parcel_shapefile, self.parcel_label = self.get_layer_info(self.geltungsbereich_layers[0]['parcelLayer'])
+            self.wald_shapefile, self.wald_label = self.get_layer_info("Wald")
+            self.biotope_shapefile, self.biotope_label = self.get_layer_info("Biotope")
+        except KeyError as e:
+            print_error(f"Missing key in geltungsbereichLayers configuration: {e}")
+            print_error("Please ensure that 'gemarkungLayer', 'flurLayer', and 'parcelLayer' are defined in the YAML file.")
+            sys.exit(1)
 
         # Load shapefiles
         self.gemeinde_shapefile = self.load_shapefile(self.gemeinde_shapefile)
@@ -150,11 +151,14 @@ class ProjectProcessor:
         return os.path.abspath(os.path.expanduser(os.path.join(self.folder_prefix, path)))
 
     def get_layer_info(self, layer_name: str):
-        shapefile = next(
-            (layer['shapeFile'] for layer in self.project_settings['layers'] if layer['name'] == layer_name), None)
-        label = next((layer['label'] for layer in self.project_settings['layers']
-                     if layer['name'] == layer_name), None)
-        return self.resolve_full_path(shapefile), label
+        try:
+            layer = next(layer for layer in self.project_settings['layers'] if layer['name'] == layer_name)
+            shapefile = layer['shapeFile']
+            label = layer.get('label')
+            return self.resolve_full_path(shapefile), label
+        except StopIteration:
+            print_error(f"Layer '{layer_name}' is not defined in the YAML file. Please check projects.yaml.")
+            sys.exit(1)
 
     def load_shapefile(self, file_path: str) -> gpd.GeoDataFrame:
         gdf = gpd.read_file(file_path)
