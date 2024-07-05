@@ -262,19 +262,25 @@ class ProjectProcessor:
             doc.styles.new(name=text_style_name, dxfattribs={
                            'font': 'Arial.ttf', 'height': 0.1})
 
-    def add_text(self, msp, text, x, y, layer_name, style_name):
+    def add_text(self, msp, text, x, y, layer_name, style_name, color):
         msp.add_text(text, dxfattribs={
             'style': style_name,
             'layer': layer_name,
             'insert': (x, y),
             'align_point': (x, y),
             'halign': 1,
-                'valign': 1
-            })
+            'valign': 1,
+            'color': color  # Set the color for the text
+        })
 
     def add_text_to_center(self, msp, points, layer_name):
-        self.add_layer(msp.doc, layer_name)
+        text_layer_name = f"{layer_name} Number"
+        self.add_layer(msp.doc, text_layer_name)
         self.add_text_style(msp.doc, 'Standard')
+        
+        # Get the color from the layer properties
+        color = self.layer_properties[text_layer_name]['color']
+        
         for idx, row in points.iterrows():
             if row.geometry.geom_type == 'Point':
                 x, y = row.geometry.x, row.geometry.y
@@ -282,10 +288,10 @@ class ProjectProcessor:
                 centroid = row.geometry.centroid
                 x, y = centroid.x, centroid.y
             else:
-                print_warning(f"Unsupported geometry type {row.geometry.geom_type} for label in layer {layer_name}")
+                print_warning(f"Unsupported geometry type {row.geometry.geom_type} for label in layer {text_layer_name}")
                 continue
             
-            self.add_text(msp, str(row['label']), x, y, layer_name, 'Standard')
+            self.add_text(msp, str(row['label']), x, y, text_layer_name, 'Standard', color)
 
     def add_geometries(self, msp, geometries, layer_name, close=True):
         self.add_layer(msp.doc, layer_name)
@@ -521,7 +527,7 @@ class ProjectProcessor:
                             label_column = layer_info['label']
                             if label_column in gdf.columns:
                                 gdf['label'] = gdf[label_column].astype(str)  # Ensure label is a string
-                                self.add_text_to_center(msp, gdf, f"{layer} Number")  # Use a separate layer for labels
+                                self.add_text_to_center(msp, gdf, layer)  # Use the same layer for labels
                             else:
                                 print_warning(f"Label column '{label_column}' not found in shapefile for layer '{layer}'")
                     else:
@@ -552,10 +558,19 @@ class ProjectProcessor:
         # ... (rest of your main method)
 
     def add_layer_properties(self, layer_name, layer_info):
+        color = self.get_color_code(layer_info.get('color', 'White'))
         self.layer_properties[layer_name] = {
-            'color': self.get_color_code(layer_info.get('color', 'White')),
+            'color': color,
             'locked': layer_info.get('locked', False),
             'close': layer_info.get('close', True)
+        }
+        
+        # Add properties for the text/number layer
+        text_layer_name = f"{layer_name} Number"
+        self.layer_properties[text_layer_name] = {
+            'color': color,  # Use the same color as the main layer
+            'locked': layer_info.get('locked', False),
+            'close': True
         }
 
     def create_clip_distance_layers(self):
@@ -707,7 +722,7 @@ class ProjectProcessor:
         self.doc = doc  # Store the doc object in the class instance
         msp = doc.modelspace()
 
-        # Separate WMTS layers from other layers
+        # Dynamically generate the list of layers from projects.yaml
         wmts_layers = [wmts['dxfLayer'] for wmts in self.wmts]
         other_layers = [layer['name'] for layer in self.project_settings['layers']]
         exclusion_layers = [exc['name'] for exc in self.exclusions]
