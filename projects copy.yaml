@@ -1,6 +1,37 @@
 # folderPrefix: "~/IONOS HiDrive"
 folderPrefix: "~/hidrive"
 projects:
+  - name: Plasten
+    exportFormat: dwg
+    crs: EPSG:25833
+    dxfFilename: "/Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Zeichnung/combined.dxf"
+    template: "./data/Zeichnung.dxf"
+    coverage:
+      parcelList: ["1", "2", "4", "6", "7"]
+      flurList: ["Flur 1"]
+      gemarkungList: ["Groß Plasten"]
+      gemeindeList: ["Groß Plasten"]
+    layers:
+      - name: Flur
+        shapeFile: "./data/flur.shp"
+        label: flurname
+        color: Cyan
+        # close: false
+      - name: Parcel
+        shapeFile: "./data/Plasten Nr1 Flurstücke.shp"
+        label: label
+        color: Black
+        # close: true
+      - name: Gemarkung
+        shapeFile: "./data/Gemarkung.shp"
+        label: gmkname
+        color: "Medium Orange Red"
+        # close: true
+      - name: Gemeinde
+        shapeFile: "./data/Gemeinde.shp"
+        label: gen
+        color: "Dark Red"
+        # close: true
   - name: Torgelow
     exportFormat: dxf
     crs: EPSG:25833

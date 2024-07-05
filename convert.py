@@ -46,26 +46,27 @@ class ProjectProcessor:
 
         self.template_dxf = self.resolve_full_path(self.project_settings.get(
             'template', '')) if self.project_settings.get('template') else None
-        try:
-            self.gemeinde_shapefile, self.gemeinde_label = self.get_layer_info("Gemeinde")
-            self.gemarkung_shapefile, self.gemarkung_label = self.get_layer_info(self.geltungsbereich_layers[0]['gemarkungLayer'])
-            self.flur_shapefile, self.flur_label = self.get_layer_info(self.geltungsbereich_layers[0]['flurLayer'])
-            self.parcel_shapefile, self.parcel_label = self.get_layer_info(self.geltungsbereich_layers[0]['parcelLayer'])
-            self.wald_shapefile, self.wald_label = self.get_layer_info("Wald")
-            self.biotope_shapefile, self.biotope_label = self.get_layer_info("Biotope")
-        except KeyError as e:
-            print_error(f"Missing key in geltungsbereichLayers configuration: {e}")
-            print_error("Please ensure that 'gemarkungLayer', 'flurLayer', and 'parcelLayer' are defined in the YAML file.")
-            sys.exit(1)
+
+        # Initialize dictionaries to store shapefile paths and labels
+        self.shapefile_paths = {}
+        self.shapefile_labels = {}
+
+        # Load shapefile paths and labels from dxfLayers
+        for layer in self.project_settings['dxfLayers']:
+            if 'shapeFile' in layer:
+                layer_name = layer['name']
+                self.shapefile_paths[layer_name] = self.resolve_full_path(layer['shapeFile'])
+                self.shapefile_labels[layer_name] = layer.get('label')
 
         # Load shapefiles
-        self.gemeinde_shapefile = self.load_shapefile(self.gemeinde_shapefile)
-        self.gemarkung_shapefile = self.load_shapefile(self.gemarkung_shapefile)
-        self.flur_shapefile = self.load_shapefile(self.flur_shapefile)
-        self.parcel_shapefile = self.load_shapefile(self.parcel_shapefile)
-        self.wald_shapefile = self.load_shapefile(self.wald_shapefile)
-        self.biotope_shapefile = self.load_shapefile(self.biotope_shapefile)
-        
+        self.shapefiles = {}
+        for layer_name, shapefile_path in self.shapefile_paths.items():
+            try:
+                self.shapefiles[layer_name] = self.load_shapefile(shapefile_path)
+                print(f"Loaded shapefile for layer: {layer_name}")
+            except Exception as e:
+                print_warning(f"Failed to load shapefile for layer '{layer_name}': {str(e)}")
+
         self.colors = {}
         for layer in self.project_settings['dxfLayers']:
             color_code = self.get_color_code(layer['color'])
@@ -135,6 +136,68 @@ class ProjectProcessor:
         # Create Geltungsbereich layers
         self.create_geltungsbereich_layers()
 
+        # Load geometries for all layers
+        all_geometries = {}
+        for layer in self.project_settings['dxfLayers']:
+            if 'shapeFile' in layer:
+                shapefile_path = self.resolve_full_path(layer['shapeFile'])
+                if os.path.exists(shapefile_path):
+                    gdf = gpd.read_file(shapefile_path)
+                    all_geometries[layer['name']] = gdf.geometry.tolist()
+                else:
+                    print(f"Warning: Shapefile not found for layer '{layer['name']}': {shapefile_path}")
+
+        # Create offset layers
+        self.create_offset_layers(all_geometries)
+
+    def create_offset_layers(self, base_geometries):
+        print("Starting to create offset layers...")
+        self.offset_geometries = {}
+        for layer in self.offset_layers:
+            layer_name = layer['name']
+            layer_to_offset = layer['layerToOffset']
+            offset_distance = layer['offsetDistance']
+
+            if self.has_corresponding_layer(layer_name):
+                print(f"Processing offset layer: {layer_name}")
+                print(f"Layer to offset: {layer_to_offset}")
+                print(f"Offset distance: {offset_distance}")
+
+                if layer_to_offset not in base_geometries:
+                    print(f"Warning: Base layer '{layer_to_offset}' not found in loaded geometries")
+                    continue
+
+                offset_geometries = []
+                for base_geometry in base_geometries[layer_to_offset]:
+                    print(f"Processing geometry: {base_geometry.geom_type}")
+                    try:
+                        if isinstance(base_geometry, (Polygon, MultiPolygon)):
+                            outer_offset = base_geometry.buffer(offset_distance, join_style=2).exterior
+                            inner_offset = base_geometry.buffer(-offset_distance, join_style=2)
+                            if not inner_offset.is_empty:
+                                inner_offset = inner_offset.exterior
+                            offset_geometries.extend([outer_offset, inner_offset])
+                        elif isinstance(base_geometry, (LineString, MultiLineString)):
+                            right_offset = base_geometry.parallel_offset(offset_distance, 'right', join_style=2)
+                            left_offset = base_geometry.parallel_offset(offset_distance, 'left', join_style=2)
+                            offset_geometries.extend([right_offset, left_offset])
+                        else:
+                            print(f"Warning: Unsupported geometry type for offset: {base_geometry.geom_type}")
+                    except Exception as e:
+                        print(f"Error creating offset for geometry: {str(e)}")
+
+                if offset_geometries:
+                    # Combine all offset geometries into a single MultiLineString
+                    combined_offset = MultiLineString(offset_geometries)
+                    self.offset_geometries[layer_name] = combined_offset
+                    print(f"Created offset geometry for layer: {layer_name}")
+                else:
+                    print(f"Warning: No valid offset geometries created for layer '{layer_name}'")
+            else:
+                print(f"Skipping offset layer '{layer_name}' as it has no corresponding entry in 'dxfLayers'")
+
+        print("Finished creating offset layers.")
+
     def find_layer_by_name(self, layer_name):
         """Find a layer in the project settings by its name."""
         for layer in self.project_settings['dxfLayers']:
@@ -152,98 +215,70 @@ class ProjectProcessor:
     def resolve_full_path(self, path: str) -> str:
         return os.path.abspath(os.path.expanduser(os.path.join(self.folder_prefix, path)))
 
-    def get_layer_info(self, layer_name: str):
-        try:
-            layer = next(layer for layer in self.project_settings['dxfLayers'] if layer['name'] == layer_name)
-            shapefile = layer['shapeFile']
-            label = layer.get('label')
-            return self.resolve_full_path(shapefile), label
-        except StopIteration:
-            print_error(f"Layer '{layer_name}' is not defined in the YAML file. Please check projects.yaml.")
-            sys.exit(1)
-
     def load_shapefile(self, file_path: str) -> gpd.GeoDataFrame:
         gdf = gpd.read_file(file_path)
         gdf = gdf.set_crs(self.crs, allow_override=True)
         return gdf
 
     def parcel_missing(self, gdf: gpd.GeoDataFrame, coverage: dict) -> set:
-        return set(coverage["parcelList"]).difference(gdf[self.parcel_label])
+        return set(coverage["parcelList"]).difference(gdf[self.shapefile_labels['Parcel']])
 
     def filter_parcels(self, coverage):
-        parcels_missing = self.parcel_missing(self.parcel_shapefile, coverage)
+        parcels_missing = self.parcel_missing(self.shapefiles['Parcel'], coverage)
         if not parcels_missing:
             print("All parcels found.")
 
-        buffered_flur = self.flur_shapefile[self.flur_shapefile[self.flur_label].isin(
-            coverage["flurList"])].unary_union.buffer(-10)
-        buffered_gemeinde = self.gemeinde_shapefile[self.gemeinde_shapefile[self.gemeinde_label].isin(
-            coverage["gemeindeList"])].unary_union.buffer(-10)
-        buffered_gemarkung = self.gemarkung_shapefile[self.gemarkung_shapefile[self.gemarkung_label].isin(
-            coverage["gemarkungList"])].unary_union.buffer(-10)
+        # Find the corresponding geltungsbereich layer
+        geltungsbereich_layer = next((layer for layer in self.geltungsbereich_layers if layer['name'] == coverage['name']), None)
+        
+        if not geltungsbereich_layer:
+            raise ValueError(f"Geltungsbereich layer '{coverage['name']}' not found in project settings.")
 
-        selected_parcels = self.parcel_shapefile[self.parcel_shapefile[self.parcel_label].isin(
-            coverage["parcelList"])]
-        selected_parcels_mask = self.parcel_shapefile.index.isin(selected_parcels.index)
+        buffer_distance = -10  # Default buffer distance, you might want to make this configurable
 
-        flur_mask = self.parcel_shapefile.intersects(buffered_flur)
-        gemeinde_mask = self.parcel_shapefile.intersects(buffered_gemeinde)
-        gemarkung_mask = self.parcel_shapefile.intersects(buffered_gemarkung)
+        buffered_layers = {}
+        for layer_key, layer_name in geltungsbereich_layer.items():
+            if layer_key.endswith('Layer') and layer_key != 'parcelLayer':
+                layer_data = self.shapefiles.get(layer_name)
+                if layer_data is None:
+                    print(f"Warning: Layer '{layer_name}' not found in shapefiles.")
+                    continue
+                
+                layer_label = self.shapefile_labels.get(layer_name)
+                if layer_label is None:
+                    print(f"Warning: Label for layer '{layer_name}' not found.")
+                    continue
+                
+                list_key = f"{layer_key[:-5]}List"
+                if list_key not in coverage:
+                    print(f"Warning: {list_key} not found in coverage for layer {layer_name}")
+                    continue
+                
+                filtered_data = layer_data[layer_data[layer_label].isin(coverage[list_key])]
+                if not filtered_data.empty:
+                    buffered_layers[layer_key] = filtered_data.unary_union.buffer(buffer_distance)
+                else:
+                    print(f"Warning: No data found for layer '{layer_name}' after filtering.")
 
-        result = self.parcel_shapefile[selected_parcels_mask &
-                        flur_mask & gemeinde_mask & gemarkung_mask]
+        selected_parcels = self.shapefiles['Parcel'][self.shapefiles['Parcel'][self.shapefile_labels['Parcel']].isin(coverage["parcelList"])]
+        selected_parcels_mask = self.shapefiles['Parcel'].index.isin(selected_parcels.index)
+
+        # Create masks for each buffered layer
+        masks = [selected_parcels_mask]
+        for buffered_layer in buffered_layers.values():
+            masks.append(self.shapefiles['Parcel'].intersects(buffered_layer))
+
+        # Combine all masks
+        final_mask = masks[0]
+        for mask in masks[1:]:
+            final_mask &= mask
+
+        result = self.shapefiles['Parcel'][final_mask]
         return result
 
     def select_parcel_edges(self, geom):
         # unused. see offsetLayers: in projects.yaml
         pass
-
-    #     # Initialize a list to hold the edges derived from the input geometry
-    #     edge_lines = []
-
-    #     # Loop through each polygon in the input geometry collection
-    #     for _, row in geom.iterrows():
-    #         poly = row.geometry
-    #         # Debugging: Print the type of each geometry
-    #         if not isinstance(poly, (Polygon, MultiPolygon)):
-    #             print(f"Skipping non-polygon geometry: {type(poly)}")
-    #             continue
-
-    #         # Extract the boundary of the polygon, converting it to a linestring
-    #         boundary_line = poly.boundary
-
-    #         # Create an outward buffer of 10 units from the boundary line
-    #         buffered_line_out = boundary_line.buffer(10, join_style=2)  # Outward buffer with a mitered join
-    #         # Create an inward buffer of 10 units from the boundary line
-    #         buffered_line_in = boundary_line.buffer(-10, join_style=2)  # Inward buffer with a mitered join
-
-    #         # Handle MultiPolygon and Polygon cases for outward buffer
-    #         if buffered_line_out.geom_type == 'MultiPolygon':
-    #             for part in buffered_line_out.geoms:  # Iterate over geoms attribute
-    #                 edge_lines.append(part.exterior)
-    #         elif buffered_line_out.geom_type == 'Polygon':
-    #             edge_lines.append(buffered_line_out.exterior)
-
-    #         # Handle MultiPolygon and Polygon cases for inward buffer
-    #         if buffered_line_in.geom_type == 'MultiPolygon':
-    #             for part in buffered_line_in.geoms:  # Iterate over geoms attribute
-    #                 edge_lines.append(part.exterior)
-    #         elif buffered_line_in.geom_type == 'Polygon':
-    #             edge_lines.append(buffered_line_in.exterior)
-
-    #     # Merge and simplify the collected edge lines into a single geometry
-    #     merged_edges = linemerge(unary_union(edge_lines))
-
-    #     # Convert the merged edges to a list of LineString objects
-    #     if isinstance(merged_edges, MultiLineString):
-    #         result_geometries = list(merged_edges.geoms)
-    #     else:
-    #         result_geometries = [merged_edges]
-
-    #     # Create a GeoDataFrame to hold the merged edges, preserving the original CRS
-    #     result_gdf = gpd.GeoDataFrame(geometry=result_geometries, crs=geom.crs)
-    #     # Return the GeoDataFrame containing the processed geometry
-    #     return result_gdf
 
     def load_template(self):
         if self.template_dxf:
@@ -683,7 +718,7 @@ class ProjectProcessor:
 
     def get_combined_geltungsbereich(self):
         if not hasattr(self, 'geltungsbereich_geometries'):
-            self.create_geltungsbereich_layers()
+                self.create_geltungsbereich_layers()
         return unary_union(list(self.geltungsbereich_geometries.values()))
 
     def create_geltungsbereich_layers(self):
@@ -692,6 +727,7 @@ class ProjectProcessor:
         for layer in self.geltungsbereich_layers:
             layer_name = layer['name']
             coverage = layer['coverage']
+            coverage['name'] = layer_name  # Add the layer name to the coverage dict
             
             # Filter parcels based on coverage
             gdf = self.filter_parcels(coverage)
