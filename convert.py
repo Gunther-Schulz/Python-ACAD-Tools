@@ -476,6 +476,7 @@ class ProjectProcessor:
             print(f"Processing exclusion layer: {layer}")
             geometry = self.exclusion_geometries[layer]
             self.add_geometries(msp, [geometry], layer, close=True)
+
         elif layer in [wmts['dxfLayer'] for wmts in self.wmts]:
             print(f"Processing WMTS layer: {layer}")
             wmts_info = next(wmts for wmts in self.wmts if wmts['dxfLayer'] == layer)
@@ -483,20 +484,15 @@ class ProjectProcessor:
             os.makedirs(target_folder, exist_ok=True)
             print(f"Updating WMTS tiles for layer '{layer}'")
             
-            # Process WMTS for each Geltungsbereich layer
-            for gb_layer in self.geltungsbereich_layers:
-                gb_coverage = gb_layer['coverage']
-                gb_gdf = self.filter_parcels(gb_coverage)
-                gb_geometry = gb_gdf['geometry'].unary_union
-                
-                gb_target_folder = os.path.join(target_folder, gb_layer['name'])
-                os.makedirs(gb_target_folder, exist_ok=True)
-                
-                print(f"Downloading WMTS tiles for Geltungsbereich: {gb_layer['name']}")
-                tiles = download_wmts_tiles(wmts_info, gb_geometry, 500, gb_target_folder, True)
-                
-                for tile_path, world_file_path in tiles:
-                    self.add_image_with_worldfile(msp, tile_path, world_file_path, layer)
+            # Combine all Geltungsbereich geometries
+            combined_geometry = unary_union([geom for geom in self.geltungsbereich_geometries.values()])
+            
+            # Download tiles for the combined geometry
+            tiles = download_wmts_tiles(wmts_info, combined_geometry, 500, target_folder, True)
+            
+            # Add all downloaded tiles to the DXF
+            for tile_path, world_file_path in tiles:
+                self.add_image_with_worldfile(msp, tile_path, world_file_path, layer)
         else:
             layer_info = self.find_layer_by_name(layer)
             if layer_info:
@@ -760,20 +756,15 @@ class ProjectProcessor:
             os.makedirs(target_folder, exist_ok=True)
             print(f"Updating WMTS tiles for layer '{layer}'")
             
-            # Process WMTS for each Geltungsbereich layer
-            for gb_layer in self.geltungsbereich_layers:
-                gb_coverage = gb_layer['coverage']
-                gb_gdf = self.filter_parcels(gb_coverage)
-                gb_geometry = gb_gdf['geometry'].unary_union
-                
-                gb_target_folder = os.path.join(target_folder, gb_layer['name'])
-                os.makedirs(gb_target_folder, exist_ok=True)
-                
-                print(f"Downloading WMTS tiles for Geltungsbereich: {gb_layer['name']}")
-                tiles = download_wmts_tiles(wmts_info, gb_geometry, 500, gb_target_folder, True)
-                
-                for tile_path, world_file_path in tiles:
-                    self.add_image_with_worldfile(msp, tile_path, world_file_path, layer)
+            # Combine all Geltungsbereich geometries
+            combined_geometry = unary_union([geom for geom in self.geltungsbereich_geometries.values()])
+            
+            # Download tiles for the combined geometry
+            tiles = download_wmts_tiles(wmts_info, combined_geometry, 500, target_folder, True)
+            
+            # Add all downloaded tiles to the DXF
+            for tile_path, world_file_path in tiles:
+                self.add_image_with_worldfile(msp, tile_path, world_file_path, layer)
         else:
             layer_info = self.find_layer_by_name(layer)
             if layer_info:
