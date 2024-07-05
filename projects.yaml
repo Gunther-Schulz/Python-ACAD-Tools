@@ -84,6 +84,10 @@ projects:
         color: "Light Green"
         close: true
         locked: false
+      - name: Flur Offset
+        color: "Light Green"
+        close: false
+        locked: false
     geltungsbereichLayers:
       - name: Geltungsbereich
         coverage:

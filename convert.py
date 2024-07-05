@@ -42,6 +42,7 @@ class ProjectProcessor:
         self.clip_distance_layers = self.project_settings.get('clipDistanceLayers', [])
         self.buffer_distance_layers = self.project_settings.get('bufferDistanceLayers', [])
         self.geltungsbereich_layers = self.project_settings.get('geltungsbereichLayers', [])
+        self.offset_layers = self.project_settings.get('offsetLayers', [])
 
         self.template_dxf = self.resolve_full_path(self.project_settings.get(
             'template', '')) if self.project_settings.get('template') else None
@@ -560,6 +561,7 @@ class ProjectProcessor:
         self.create_geltungsbereich_layers()
         self.create_clip_distance_layers()
         self.create_buffer_distance_layers()
+        self.create_offset_layers()  # Add this line
         
         # Process exclusions
         self.exclusion_geometries = {}
@@ -709,6 +711,46 @@ class ProjectProcessor:
     
         print("Finished creating Geltungsbereich layers.")
 
+    def create_offset_layers(self):
+        print("Starting to create offset layers...")
+        self.offset_geometries = {}
+        for layer in self.offset_layers:
+            layer_name = layer['name']
+            layer_to_offset = layer['layerToOffset']
+            offset_distance = layer['offsetDistance']
+
+            if self.has_corresponding_layer(layer_name):
+                print(f"Processing offset layer: {layer_name}")
+                print(f"Layer to offset: {layer_to_offset}")
+                print(f"Offset distance: {offset_distance}")
+
+                # Get the geometry to offset
+                if layer_to_offset in self.geltungsbereich_geometries:
+                    base_geometry = self.geltungsbereich_geometries[layer_to_offset]
+                elif layer_to_offset in self.buffer_geometries:
+                    base_geometry = self.buffer_geometries[layer_to_offset]
+                else:
+                    print(f"Warning: Base layer '{layer_to_offset}' not found for offset layer '{layer_name}'")
+                    continue
+
+                # Create offset
+                if isinstance(base_geometry, (Polygon, MultiPolygon)):
+                    offset_geometry = base_geometry.boundary.parallel_offset(offset_distance, 'right', join_style=2)
+                elif isinstance(base_geometry, (LineString, MultiLineString)):
+                    offset_geometry = base_geometry.parallel_offset(offset_distance, 'right', join_style=2)
+                else:
+                    print(f"Warning: Unsupported geometry type for offset layer '{layer_name}'")
+                    continue
+
+                # Store the offset geometry
+                self.offset_geometries[layer_name] = offset_geometry
+
+                print(f"Created offset geometry for layer: {layer_name}")
+            else:
+                print(f"Skipping offset layer '{layer_name}' as it has no corresponding entry in 'dxfLayers'")
+
+        print("Finished creating offset layers.")
+
     def update_layer_info(self, layer_name, shapefile_path, layer_info):
         # Update project settings
         new_layer = {
@@ -748,8 +790,9 @@ class ProjectProcessor:
         clip_distance_layers = [layer['name'] for layer in self.clip_distance_layers if self.has_corresponding_layer(layer['name'])]
         
         geltungsbereich_layers = [layer['name'] for layer in self.geltungsbereich_layers]
+        offset_layers = [layer['name'] for layer in self.offset_layers if self.has_corresponding_layer(layer['name'])]
         
-        all_layers = wmts_layers + other_layers + exclusion_layers + buffer_distance_layers + clip_distance_layers + geltungsbereich_layers
+        all_layers = wmts_layers + other_layers + exclusion_layers + buffer_distance_layers + clip_distance_layers + geltungsbereich_layers + offset_layers
 
         layers_to_process = layers_to_process or all_layers
 
@@ -765,6 +808,12 @@ class ProjectProcessor:
         for layer_name, geometry in self.buffer_geometries.items():
             if self.has_corresponding_layer(layer_name):
                 print(f"Adding buffer geometry to layer: {layer_name}")
+                self.add_geometries(msp, geometry, layer_name, close=self.layer_properties[layer_name]['close'])
+
+        # Add offset geometries to their respective layers
+        for layer_name, geometry in self.offset_geometries.items():
+            if self.has_corresponding_layer(layer_name):
+                print(f"Adding offset geometry to layer: {layer_name}")
                 self.add_geometries(msp, geometry, layer_name, close=self.layer_properties[layer_name]['close'])
 
         return doc
@@ -785,6 +834,7 @@ class ProjectProcessor:
         self.create_geltungsbereich_layers()
         self.create_clip_distance_layers()
         self.create_buffer_distance_layers()
+        self.create_offset_layers()  # Add this line
         
         # Process exclusions
         self.exclusion_geometries = {}
