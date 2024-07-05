@@ -306,9 +306,18 @@ class ProjectProcessor:
         
         if isinstance(geometries, gpd.GeoSeries):
             geometries = geometries.tolist()
+        elif not isinstance(geometries, (list, tuple)):
+            geometries = [geometries]
         
         for geom in geometries:
-            if geom.geom_type == 'Polygon':
+            if geom.geom_type in ['LineString', 'MultiLineString']:
+                lines = geom.geoms if geom.geom_type == 'MultiLineString' else [geom]
+                for line in lines:
+                    points = list(line.coords)
+                    if close and points[0] != points[-1]:
+                        points.append(points[0])  # Close the linestring if it's not already closed
+                    msp.add_lwpolyline(points, dxfattribs={'layer': layer_name})
+            elif geom.geom_type == 'Polygon':
                 points = list(geom.exterior.coords)
                 if close:
                     points.append(points[0])  # Close the polygon
@@ -329,17 +338,8 @@ class ProjectProcessor:
                         if close:
                             points.append(points[0])  # Close the interior ring
                         msp.add_lwpolyline(points, dxfattribs={'layer': layer_name})
-            elif geom.geom_type == 'LineString':
-                points = list(geom.coords)
-                if close and points[0] != points[-1]:
-                    points.append(points[0])  # Close the linestring if it's not already closed
-                msp.add_lwpolyline(points, dxfattribs={'layer': layer_name})
-            elif geom.geom_type == 'MultiLineString':
-                for line in geom.geoms:
-                    points = list(line.coords)
-                    if close and points[0] != points[-1]:
-                        points.append(points[0])  # Close the linestring if it's not already closed
-                    msp.add_lwpolyline(points, dxfattribs={'layer': layer_name})
+            else:
+                print(f"Warning: Unsupported geometry type: {geom.geom_type}")
 
     def add_layer(self, doc, layer_name):
         base_layer = layer_name.split('_')[0]  # Get the base layer name (e.g., 'WMTS DOP' from 'WMTS DOP_Hauptgeltungsbereich')
@@ -561,7 +561,22 @@ class ProjectProcessor:
         self.create_geltungsbereich_layers()
         self.create_clip_distance_layers()
         self.create_buffer_distance_layers()
-        self.create_offset_layers()  # Add this line
+
+        # Dictionary to store geometries of all layers
+        all_geometries = {}
+
+        # Load geometries for all layers
+        for layer in self.project_settings['dxfLayers']:
+            if 'shapeFile' in layer:
+                shapefile_path = self.resolve_full_path(layer['shapeFile'])
+                if os.path.exists(shapefile_path):
+                    gdf = gpd.read_file(shapefile_path)
+                    all_geometries[layer['name']] = gdf.geometry.tolist()
+                else:
+                    print(f"Warning: Shapefile not found for layer '{layer['name']}': {shapefile_path}")
+
+        # Create offset layers using pre-loaded geometries
+        self.create_offset_layers(all_geometries)
         
         # Process exclusions
         self.exclusion_geometries = {}
@@ -711,7 +726,7 @@ class ProjectProcessor:
     
         print("Finished creating Geltungsbereich layers.")
 
-    def create_offset_layers(self):
+    def create_offset_layers(self, base_geometries):
         print("Starting to create offset layers...")
         self.offset_geometries = {}
         for layer in self.offset_layers:
@@ -724,28 +739,36 @@ class ProjectProcessor:
                 print(f"Layer to offset: {layer_to_offset}")
                 print(f"Offset distance: {offset_distance}")
 
-                # Get the geometry to offset
-                if layer_to_offset in self.geltungsbereich_geometries:
-                    base_geometry = self.geltungsbereich_geometries[layer_to_offset]
-                elif layer_to_offset in self.buffer_geometries:
-                    base_geometry = self.buffer_geometries[layer_to_offset]
-                else:
-                    print(f"Warning: Base layer '{layer_to_offset}' not found for offset layer '{layer_name}'")
+                if layer_to_offset not in base_geometries:
+                    print(f"Warning: Base layer '{layer_to_offset}' not found in loaded geometries")
                     continue
 
-                # Create offset
-                if isinstance(base_geometry, (Polygon, MultiPolygon)):
-                    offset_geometry = base_geometry.boundary.parallel_offset(offset_distance, 'right', join_style=2)
-                elif isinstance(base_geometry, (LineString, MultiLineString)):
-                    offset_geometry = base_geometry.parallel_offset(offset_distance, 'right', join_style=2)
+                offset_geometries = []
+                for base_geometry in base_geometries[layer_to_offset]:
+                    print(f"Processing geometry: {base_geometry.geom_type}")
+                    try:
+                        if isinstance(base_geometry, (Polygon, MultiPolygon)):
+                            outer_offset = base_geometry.buffer(offset_distance, join_style=2).exterior
+                            inner_offset = base_geometry.buffer(-offset_distance, join_style=2)
+                            if not inner_offset.is_empty:
+                                inner_offset = inner_offset.exterior
+                            offset_geometries.extend([outer_offset, inner_offset])
+                        elif isinstance(base_geometry, (LineString, MultiLineString)):
+                            right_offset = base_geometry.parallel_offset(offset_distance, 'right', join_style=2)
+                            left_offset = base_geometry.parallel_offset(offset_distance, 'left', join_style=2)
+                            offset_geometries.extend([right_offset, left_offset])
+                        else:
+                            print(f"Warning: Unsupported geometry type for offset: {base_geometry.geom_type}")
+                    except Exception as e:
+                        print(f"Error creating offset for geometry: {str(e)}")
+
+                if offset_geometries:
+                    # Combine all offset geometries into a single MultiLineString
+                    combined_offset = MultiLineString(offset_geometries)
+                    self.offset_geometries[layer_name] = combined_offset
+                    print(f"Created offset geometry for layer: {layer_name}")
                 else:
-                    print(f"Warning: Unsupported geometry type for offset layer '{layer_name}'")
-                    continue
-
-                # Store the offset geometry
-                self.offset_geometries[layer_name] = offset_geometry
-
-                print(f"Created offset geometry for layer: {layer_name}")
+                    print(f"Warning: No valid offset geometries created for layer '{layer_name}'")
             else:
                 print(f"Skipping offset layer '{layer_name}' as it has no corresponding entry in 'dxfLayers'")
 
@@ -812,9 +835,13 @@ class ProjectProcessor:
 
         # Add offset geometries to their respective layers
         for layer_name, geometry in self.offset_geometries.items():
-            if self.has_corresponding_layer(layer_name):
-                print(f"Adding offset geometry to layer: {layer_name}")
-                self.add_geometries(msp, geometry, layer_name, close=self.layer_properties[layer_name]['close'])
+            if layers_to_process is None or layer_name in layers_to_process:
+                print(f"Processing offset layer: {layer_name}")
+                print(f"Offset geometry type: {geometry.geom_type}")
+                print(f"Offset geometry is valid: {geometry.is_valid}")
+                print(f"Offset geometry is empty: {geometry.is_empty}")
+                close = self.layer_properties[layer_name].get('close', True)
+                self.add_geometries(msp, geometry, layer_name, close=close)
 
         return doc
 
@@ -834,7 +861,22 @@ class ProjectProcessor:
         self.create_geltungsbereich_layers()
         self.create_clip_distance_layers()
         self.create_buffer_distance_layers()
-        self.create_offset_layers()  # Add this line
+        
+        # Dictionary to store geometries of all layers
+        all_geometries = {}
+
+        # Load geometries for all layers
+        for layer in self.project_settings['dxfLayers']:
+            if 'shapeFile' in layer:
+                shapefile_path = self.resolve_full_path(layer['shapeFile'])
+                if os.path.exists(shapefile_path):
+                    gdf = gpd.read_file(shapefile_path)
+                    all_geometries[layer['name']] = gdf.geometry.tolist()
+                else:
+                    print(f"Warning: Shapefile not found for layer '{layer['name']}': {shapefile_path}")
+
+        # Create offset layers using pre-loaded geometries
+        self.create_offset_layers(all_geometries)
         
         # Process exclusions
         self.exclusion_geometries = {}
