@@ -120,6 +120,7 @@ projects:
         zoom: "10"
         proj: "ETRS89UTM33"
         targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/DOP"
+        dxfLayer: "WMTS DOP"
         locked: true
       - name: Basemap
         url: "https://sgx.geodatenzentrum.de/wmts_basemapde/1.0.0/WMTSCapabilities.xml"
@@ -127,4 +128,5 @@ projects:
         zoom: "10"
         proj: "DE_EPSG_25833_ADV"
         targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/Basemap"
+        dxfLayer: "WMTS Basemap"
         locked: true

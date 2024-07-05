@@ -633,13 +633,14 @@ class ProjectProcessor:
         msp = doc.modelspace()
 
         # Separate WMTS layers from other layers
-        wmts_layers = [layer for layer in self.wmts_layers.values()]
+        wmts_layers = [wmts['dxfLayer'] for wmts in self.wmts]
         other_layers = ['Flur', 'Parcel', 'FlurOrig', 'Gemeinde', 'Gemarkung', 'Wald', 'Biotope']
         exclusion_layers = [exc['name'] for exc in self.exclusions]
-        clip_distance_layers = [layer['name'] for layer in self.clip_distance_layers]
         buffer_distance_layers = [layer['name'] for layer in self.buffer_distance_layers]
         geltungsbereich_layers = [layer['name'] for layer in self.geltungsbereich_layers]
-        all_layers = wmts_layers + other_layers + exclusion_layers + clip_distance_layers + buffer_distance_layers + geltungsbereich_layers
+        
+        # Remove clip distance layers from the layers to process
+        all_layers = wmts_layers + other_layers + exclusion_layers + buffer_distance_layers + geltungsbereich_layers
 
         layers_to_process = layers_to_process or all_layers
 
@@ -663,9 +664,9 @@ class ProjectProcessor:
             print(f"Processing Geltungsbereich layer: {layer}")
             geometry = self.geltungsbereich_geometries[layer]
             self.add_geometries(msp, [geometry], layer, close=True)
-        elif layer in self.wmts_layers.values():
+        elif layer in [wmts['dxfLayer'] for wmts in self.wmts]:
             print(f"Processing WMTS layer: {layer}")
-            wmts_info = next(wmts for wmts in self.wmts if self.wmts_layers[wmts['name']] == layer)
+            wmts_info = next(wmts for wmts in self.wmts if wmts['dxfLayer'] == layer)
             target_folder = self.resolve_full_path(wmts_info['targetFolder'])
             os.makedirs(target_folder, exist_ok=True)
             print(f"Updating WMTS tiles for layer '{layer}'")
@@ -683,20 +684,15 @@ class ProjectProcessor:
                 tiles = download_wmts_tiles(wmts_info, gb_geometry, 500, gb_target_folder, True)
                 
                 for tile_path, world_file_path in tiles:
-                    self.add_image_with_worldfile(msp, tile_path, world_file_path, f"{layer}_{gb_layer['name']}")
+                    self.add_image_with_worldfile(msp, tile_path, world_file_path, layer)
         else:
             layer_info = self.find_layer_by_name(layer)
             if layer_info:
                 if 'shapeFile' in layer_info:
                     shapefile_path = self.resolve_full_path(layer_info['shapeFile'])
                     if os.path.exists(shapefile_path):
-                        if layer == 'Flur':
-                            self.add_geometries(msp, self.select_parcel_edges(self.flur_shapefile)['geometry'], 'Flur', close=False)
-                        elif layer == 'Parcel':
-                            self.add_geometries(msp, self.parcel_shapefile['geometry'], 'Parcel', close=True)
-                        else:
-                            gdf = self.load_shapefile(shapefile_path)
-                            self.add_geometries(msp, gdf['geometry'], layer, close=layer_info.get('close', True))
+                        gdf = gpd.read_file(shapefile_path)
+                        self.add_geometries(msp, gdf['geometry'], layer, close=layer_info.get('close', True))
                     else:
                         print(f"Shapefile for layer '{layer}' not found: {shapefile_path}")
                 else:
