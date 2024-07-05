@@ -254,14 +254,23 @@ class ProjectProcessor:
             'insert': (x, y),
             'align_point': (x, y),
             'halign': 1,
-            'valign': 1
-        })
+                'valign': 1
+            })
 
     def add_text_to_center(self, msp, points, layer_name):
         self.add_layer(msp.doc, layer_name)
         self.add_text_style(msp.doc, 'Standard')
         for idx, row in points.iterrows():
-            self.add_text(msp, row['label'], row.geometry.x, row.geometry.y, layer_name, 'Standard')
+            if row.geometry.geom_type == 'Point':
+                x, y = row.geometry.x, row.geometry.y
+            elif row.geometry.geom_type in ['Polygon', 'MultiPolygon']:
+                centroid = row.geometry.centroid
+                x, y = centroid.x, centroid.y
+            else:
+                print(f"Warning: Unsupported geometry type {row.geometry.geom_type} for label in layer {layer_name}")
+                continue
+            
+            self.add_text(msp, str(row['label']), x, y, layer_name, 'Standard')
 
     def add_geometries(self, msp, geometries, layer_name, close=True):
         self.add_layer(msp.doc, layer_name)
@@ -697,7 +706,7 @@ class ProjectProcessor:
             print(f"Opened existing DXF file: {self.dxf_filename}")
         except FileNotFoundError:
             print(f"DXF file not found. Creating a new file: {self.dxf_filename}")
-            doc = ezdxf.new('R2010')  # Create a new DXF document
+            doc = ezdxf.new('R2018')  # Create a new DXF document
             doc.header['$INSUNITS'] = 6  # Set units to meters
 
         self.doc = doc  # Store the doc object in the class instance
@@ -773,6 +782,15 @@ class ProjectProcessor:
                     if os.path.exists(shapefile_path):
                         gdf = gpd.read_file(shapefile_path)
                         self.add_geometries(msp, gdf['geometry'], layer, close=layer_info.get('close', True))
+                        
+                        # Add labels if 'label' is specified in layer_info
+                        if 'label' in layer_info:
+                            label_column = layer_info['label']
+                            if label_column in gdf.columns:
+                                gdf['label'] = gdf[label_column]
+                                self.add_text_to_center(msp, gdf, layer)
+                            else:
+                                print(f"Warning: Label column '{label_column}' not found in shapefile for layer '{layer}'")
                     else:
                         print(f"Shapefile for layer '{layer}' not found: {shapefile_path}")
                 else:
