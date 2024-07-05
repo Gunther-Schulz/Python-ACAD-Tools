@@ -42,6 +42,12 @@ projects:
       flurList: ["Flur 2"]
       gemarkungList: ["Torgelow am See"]
       gemeindeList: ["Torgelow am See"]
+    exclusions:
+      - name: Baufeld
+        scopeLayer: Geltungsbereich
+        excludeLayers:
+          - Wald Abstand
+          - Biotope
     layers:
       - name: Flur
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/flur2.shp"
@@ -77,6 +83,9 @@ projects:
         label: biotopn
         color: "Green"
         close: true
+        locked: false
+      - name: Baufeld
+        color: "Red"
         locked: false
     clipDistanceLayers:
       - shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/abstand.shp"
