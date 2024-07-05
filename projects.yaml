@@ -56,7 +56,7 @@ projects:
       #   locked: false
     exclusions:
       - name: Baufeld
-        scopeLayer: Hauptgeltungsbereich
+        scopeLayer: Geltungsbereich
         excludeLayers:
           - Wald Abstand
           - Biotope

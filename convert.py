@@ -404,16 +404,16 @@ class ProjectProcessor:
 
         return combined_buffer
     
-    def create_exclusion_polygon(self, scope_layer, exclude_layers, new_layer_name):
+    def create_exclusion_polygon(self, exclusion):
+        scope_layer = exclusion['scopeLayer']
+        exclude_layers = exclusion['excludeLayers']
+        new_layer_name = exclusion['name']
+
         # Get the scope geometry
-        if scope_layer == 'Geltungsbereich':
-            scope_geom = self.geltungsbereich
-        else:
-            scope_shapefile = getattr(self, f"{scope_layer.lower()}_shapefile", None)
-            if scope_shapefile is None:
-                print_warning(f"Scope layer '{scope_layer}' not found.")
-                return None
-            scope_geom = scope_shapefile['geometry'].unary_union
+        scope_geom = self.geltungsbereich_geometries.get(scope_layer)
+        if scope_geom is None:
+            print_warning(f"Scope layer '{scope_layer}' not found.")
+            return None
 
         # Initialize the exclusion geometry with the scope geometry
         exclusion_geom = scope_geom
@@ -442,13 +442,84 @@ class ProjectProcessor:
                 else:
                     print_warning(f"Exclusion layer '{layer}' not found in project settings or buffer distance layers.")
 
-        # Create a new GeoDataFrame with the resulting geometry
-        result_gdf = gpd.GeoDataFrame(geometry=[exclusion_geom], crs=self.crs)
+        # Store the resulting geometry
+        self.exclusion_geometries[new_layer_name] = exclusion_geom
 
-        # Add the new layer to the DXF file
-        self.add_geometries(self.doc.modelspace(), result_gdf['geometry'], new_layer_name, close=True)
+        print(f"Created exclusion polygon: {new_layer_name}")
+        return exclusion_geom
 
-        return result_gdf
+    def process_single_layer(self, msp, layer):
+        # Check if the layer is a clip distance layer
+        if layer in [clip_layer['name'] for clip_layer in self.clip_distance_layers]:
+            print(f"Skipping clip distance layer: {layer}")
+            return
+
+        # Remove existing entities in the layer
+        for entity in msp.query(f'*[layer=="{layer}"]'):
+            msp.delete_entity(entity)
+
+        # Check if the layer is a Geltungsbereich layer
+        if layer in self.geltungsbereich_geometries:
+            print(f"Processing Geltungsbereich layer: {layer}")
+            geometry = self.geltungsbereich_geometries[layer]
+            self.add_geometries(msp, [geometry], layer, close=True)
+        elif layer in self.exclusion_geometries:
+            print(f"Processing exclusion layer: {layer}")
+            geometry = self.exclusion_geometries[layer]
+            self.add_geometries(msp, [geometry], layer, close=True)
+        elif layer in [wmts['dxfLayer'] for wmts in self.wmts]:
+            print(f"Processing WMTS layer: {layer}")
+            wmts_info = next(wmts for wmts in self.wmts if wmts['dxfLayer'] == layer)
+            target_folder = self.resolve_full_path(wmts_info['targetFolder'])
+            os.makedirs(target_folder, exist_ok=True)
+            print(f"Updating WMTS tiles for layer '{layer}'")
+            
+            # Process WMTS for each Geltungsbereich layer
+            for gb_layer in self.geltungsbereich_layers:
+                gb_coverage = gb_layer['coverage']
+                gb_gdf = self.filter_parcels(gb_coverage)
+                gb_geometry = gb_gdf['geometry'].unary_union
+                
+                gb_target_folder = os.path.join(target_folder, gb_layer['name'])
+                os.makedirs(gb_target_folder, exist_ok=True)
+                
+                print(f"Downloading WMTS tiles for Geltungsbereich: {gb_layer['name']}")
+                tiles = download_wmts_tiles(wmts_info, gb_geometry, 500, gb_target_folder, True)
+                
+                for tile_path, world_file_path in tiles:
+                    self.add_image_with_worldfile(msp, tile_path, world_file_path, layer)
+        else:
+            layer_info = self.find_layer_by_name(layer)
+            if layer_info:
+                if 'shapeFile' in layer_info:
+                    shapefile_path = self.resolve_full_path(layer_info['shapeFile'])
+                    if os.path.exists(shapefile_path):
+                        gdf = gpd.read_file(shapefile_path)
+                        self.add_geometries(msp, gdf['geometry'], layer, close=layer_info.get('close', True))
+                    else:
+                        print(f"Shapefile for layer '{layer}' not found: {shapefile_path}")
+                else:
+                    print(f"No shapefile specified for layer '{layer}'")
+            else:
+                print(f"Layer '{layer}' not found in project settings")
+
+        # Set layer properties
+        self.add_layer(self.doc, layer)
+
+        print(f"Finished processing layer: {layer}")
+
+    def main(self):
+        self.create_geltungsbereich_layers()
+        self.create_clip_distance_layers()
+        self.create_buffer_distance_layers()
+        
+        # Process exclusions
+        self.exclusion_geometries = {}
+        for exclusion in self.exclusions:
+            self.create_exclusion_polygon(exclusion)
+        
+        doc = self.process_layers(self.update_layers_list)
+        # ... rest of your main method
 
     def add_layer_properties(self, layer_name, layer_info):
         self.layer_properties[layer_name] = {
@@ -655,6 +726,11 @@ class ProjectProcessor:
         return doc
 
     def process_single_layer(self, msp, layer):
+        # Check if the layer is a clip distance layer
+        if layer in [clip_layer['name'] for clip_layer in self.clip_distance_layers]:
+            print(f"Skipping clip distance layer: {layer}")
+            return
+
         # Remove existing entities in the layer
         for entity in msp.query(f'*[layer=="{layer}"]'):
             msp.delete_entity(entity)
@@ -663,6 +739,10 @@ class ProjectProcessor:
         if layer in self.geltungsbereich_geometries:
             print(f"Processing Geltungsbereich layer: {layer}")
             geometry = self.geltungsbereich_geometries[layer]
+            self.add_geometries(msp, [geometry], layer, close=True)
+        elif layer in self.exclusion_geometries:
+            print(f"Processing exclusion layer: {layer}")
+            geometry = self.exclusion_geometries[layer]
             self.add_geometries(msp, [geometry], layer, close=True)
         elif layer in [wmts['dxfLayer'] for wmts in self.wmts]:
             print(f"Processing WMTS layer: {layer}")
@@ -721,6 +801,12 @@ class ProjectProcessor:
         self.create_geltungsbereich_layers()
         self.create_clip_distance_layers()
         self.create_buffer_distance_layers()
+        
+        # Process exclusions
+        self.exclusion_geometries = {}
+        for exclusion in self.exclusions:
+            self.create_exclusion_polygon(exclusion)
+        
         doc = self.process_layers(self.update_layers_list)
         
         # Ensure the directory exists
