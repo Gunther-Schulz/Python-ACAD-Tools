@@ -298,51 +298,55 @@ class ProjectProcessor:
             print("All parcels found.")
 
         # Find the corresponding geltungsbereich layer
-        geltungsbereich_layer = next((layer for layer in self.geltungsbereich_layers if layer['name'] == coverage['name']), None)
+        geltungsbereich_layer = next((layer for layer in self.geltungsbereich_layers if layer['layerName'] == coverage['layerName']), None)
         
         if not geltungsbereich_layer:
-            raise ValueError(f"Geltungsbereich layer '{coverage['name']}' not found in project settings.")
+            raise ValueError(f"Geltungsbereich layer '{coverage['layerName']}' not found in project settings.")
 
         buffer_distance = -10  # Default buffer distance, you might want to make this configurable
 
-        buffered_layers = {}
-        for layer_key, layer_name in geltungsbereich_layer.items():
-            if layer_key.endswith('Layer') and layer_key != 'parcelLayer':
-                layer_data = self.shapefiles.get(layer_name)
-                if layer_data is None:
-                    print(f"Warning: Layer '{layer_name}' not found in shapefiles.")
-                    continue
-                
-                layer_label = self.shapefile_labels.get(layer_name)
-                if layer_label is None:
-                    print(f"Warning: Label for layer '{layer_name}' not found.")
-                    continue
-                
-                list_key = f"{layer_key[:-5]}List"
-                if list_key not in coverage:
-                    print(f"Warning: {list_key} not found in coverage for layer {layer_name}")
-                    continue
-                
-                filtered_data = layer_data[layer_data[layer_label].isin(coverage[list_key])]
-                if not filtered_data.empty:
-                    buffered_layers[layer_key] = filtered_data.unary_union.buffer(buffer_distance)
-                else:
-                    print(f"Warning: No data found for layer '{layer_name}' after filtering.")
+        # Infer layer names from dxfLayers
+        relevant_layers = [layer['name'] for layer in self.project_settings['dxfLayers'] 
+                           if 'shapeFile' in layer]
 
-        selected_parcels = self.shapefiles['Parcel'][self.shapefiles['Parcel'][self.shapefile_labels['Parcel']].isin(coverage["parcelList"])]
-        selected_parcels_mask = self.shapefiles['Parcel'].index.isin(selected_parcels.index)
+        buffered_layers = {}
+        for i, layer_name in enumerate(relevant_layers):
+            if i >= len(coverage['valueLists']):
+                print(f"Warning: No values provided for layer {layer_name}")
+                continue
+
+            layer_data = self.shapefiles.get(layer_name)
+            if layer_data is None:
+                print(f"Warning: Layer '{layer_name}' not found in shapefiles.")
+                continue
+            
+            layer_label = self.shapefile_labels.get(layer_name)
+            if layer_label is None:
+                print(f"Warning: Label for layer '{layer_name}' not found.")
+                continue
+            
+            filtered_data = layer_data[layer_data[layer_label].isin(coverage['valueLists'][i])]
+            if not filtered_data.empty:
+                buffered_layers[layer_name] = filtered_data.unary_union.buffer(buffer_distance)
+            else:
+                print(f"Warning: No data found for layer '{layer_name}' after filtering.")
+
+        # Use the first layer (assumed to be 'Parcel') for selected parcels
+        parcel_layer_name = relevant_layers[0]
+        selected_parcels = self.shapefiles[parcel_layer_name][self.shapefiles[parcel_layer_name][self.shapefile_labels[parcel_layer_name]].isin(coverage['valueLists'][0])]
+        selected_parcels_mask = self.shapefiles[parcel_layer_name].index.isin(selected_parcels.index)
 
         # Create masks for each buffered layer
         masks = [selected_parcels_mask]
         for buffered_layer in buffered_layers.values():
-            masks.append(self.shapefiles['Parcel'].intersects(buffered_layer))
+            masks.append(self.shapefiles[parcel_layer_name].intersects(buffered_layer))
 
         # Combine all masks
         final_mask = masks[0]
         for mask in masks[1:]:
             final_mask &= mask
 
-        result = self.shapefiles['Parcel'][final_mask]
+        result = self.shapefiles[parcel_layer_name][final_mask]
         return result
 
     def select_parcel_edges(self, geom):
