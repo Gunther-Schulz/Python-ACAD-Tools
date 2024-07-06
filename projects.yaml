@@ -1,5 +1,6 @@
 # folderPrefix: "~/IONOS HiDrive"
 folderPrefix: "~/hidrive"
+logFile: "./log.txt"
 projects:
   - name: Torgelow
     exportFormat: dxf

@@ -1,0 +1,366 @@
+2024-07-06 09:53:50,365 - INFO - Unsetting PROJ_DATA (was set to: /home/g/.conda/envs/gis/share/proj)
+2024-07-06 09:53:50,365 - INFO - Set PROJ_LIB to: /usr/share/proj
+2024-07-06 09:53:50,365 - INFO - Set PROJ_NETWORK to OFF
+2024-07-06 09:53:50,365 - INFO - Current PROJ_LIB: /usr/share/proj
+2024-07-06 09:53:50,365 - INFO - Current PATH: /home/g/.conda/envs/gis/bin:/home/g/.conda/envs/gis/bin:/tmp/.mount_cursorM991Z0:/tmp/.mount_cursorM991Z0/usr/sbin:/home/g/.local/bin:/usr/local/bin:/usr/bin:/usr/local/sbin:/opt/cuda/bin:/opt/cuda/nsight_compute:/opt/cuda/nsight_systems/bin:/usr/lib/jvm/default/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl:/opt/cuda/bin
+2024-07-06 09:53:50,370 - INFO - PyProj data directory: /usr/share/proj
+2024-07-06 09:53:50,370 - INFO - PyProj version: 3.6.1
+2024-07-06 09:53:50,371 - INFO - Successfully created CRS object: EPSG:4326
+2024-07-06 09:53:50,373 - INFO - Successfully performed transformation: (0.0, 0.0)
+2024-07-06 09:53:50,373 - INFO - PROJ version (from pyproj): 9.3.0
+2024-07-06 09:53:50,409 - INFO - Loaded 1 Geltungsbereich layers:
+2024-07-06 09:53:50,409 - INFO -   - Geltungsbereich
+2024-07-06 09:53:50,466 - INFO - Loaded shapefile for layer: Flur
+2024-07-06 09:53:50,634 - INFO - Loaded shapefile for layer: Parcel
+2024-07-06 09:53:50,645 - INFO - Loaded shapefile for layer: Gemarkung
+2024-07-06 09:53:50,654 - INFO - Loaded shapefile for layer: Gemeinde
+2024-07-06 09:53:50,662 - INFO - Loaded shapefile for layer: Wald
+2024-07-06 09:53:50,669 - INFO - Loaded shapefile for layer: Biotope
+2024-07-06 09:53:50,669 - INFO - Starting to create clip distance layers...
+2024-07-06 09:53:50,669 - INFO - Processing clip distance layer: Straße Clip
+2024-07-06 09:53:50,669 - INFO - Input shapefile: /home/g/hidrive/Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/abstand.shp
+2024-07-06 09:53:50,670 - INFO - Buffer distance: 7
+2024-07-06 09:53:50,676 - INFO - Created clip distance geometry for layer: Straße Clip
+2024-07-06 09:53:50,677 - INFO - Skipping clip distance layer 'Wald Clip' as it has no corresponding entry in 'dxfLayers'
+2024-07-06 09:53:50,677 - INFO - Finished creating clip distance layers.
+2024-07-06 09:53:50,677 - INFO - Creating buffer distance layers...
+2024-07-06 09:53:50,684 - INFO - Starting to create Geltungsbereich layers...
+2024-07-06 09:53:50,684 - INFO - Processing Geltungsbereich layer: Geltungsbereich
+2024-07-06 09:53:50,684 - INFO -   Processing coverage 1
+2024-07-06 09:53:50,684 - INFO -     Processing layer: Parcel
+2024-07-06 09:53:50,684 - INFO -     Value list: ['104', '96', '95', '87/1']
+2024-07-06 09:53:50,684 - INFO -     Label column: label
+2024-07-06 09:53:50,684 - INFO -     Unique values in label column: ['15/3' '11/2' '14/2' '15/5' '16/4' '16/5' '16/1' '18/5' '19/7' '18/9'
+ '20/4' '20/5' '21/1' '18/6' '18/7' '20/3' '17/3' '21/4' '35/4' '35/9'
+ '35/6' '35/8' '39/14' '36/4' '40/5' '39/26' '35/13' '35/14' '40/13'
+ '41/18' '40/8' '41/12' '40/10' '41/6' '42/3' '42/4' '43/5' '43/7' '43/3'
+ '46/3' '43/4' '46/4' '46/9' '43/10' '46/10' '43/11' '42/6' '42/7' '57/2'
+ '42/8' '42/9' '57/5' '53/2' '62/6' '61/7' '62/7' '61/8' '62/8' '61/18'
+ '61/19' '61/20' '61/13' '61/17' '63/1' '63/2' '60/3' '61/3' '61/4'
+ '61/22' '8' '9' '13' '15' '34/1' '41' '43' '1/1' '61/2' '98' '52' '107'
+ '148/1' '148/2' '165' '169' '171' '160' '172' '266/8' '266/2' '284/3'
+ '333/1' '345' '349/1' '96' '183/1' '183/2' '226' '147/1' '266/9' '164'
+ '170' '173' '5/2' '5/4' '184/2' '40/11' '41/19' '35/3' '55/1' '261' '260'
+ '263/2' '35/10' '41/11' '48/1' '15/4' '17/2' '263/4' '100' '34/2' '14/4'
+ '185/2' '182/2' '6/1' '229' '5' '36/3' '36/1' '45/3' '45/2' '43/1' '44'
+ '266/7' '266/3' '24/2' '5/5' '6/2' '41/13' '35/2' '39/25' '41/17' '16/7'
+ '10/3' '7' '10/4' '10/1' '10/2' '8/2' '9/1' '9/2' '8/3' '8/4' '9/3'
+ '39/13' '39/6' '39/31' '9/4' '8/1' '16/3' '18/3' '17/1' '153' '13/2'
+ '18/1' '16/6' '35/12' '39/17' '46/8' '43/9' '42/5' '55/2' '60/1' '47/4'
+ '62/9' '61/21' '63/3' '147/2' '352' '347' '2' '159/2' '155/2' '46/2'
+ '46/5' '46/6' '46/13' '46/12' '39/27' '67/2' '48/2' '262/1' '263/3'
+ '262/2' '39/32' '39/34' '39/33' '146/1' '146/2' '24/3' '5/6' '14/3'
+ '15/7' '15/6' '3/2' '3/1' '159/1' '155/1' '6/3' '4/1' '4/2' '11/3' '10'
+ '15/2' '13/1' '11/4' '12/1' '12/2' '5/1' '19/5' '19/6' '19/3' '19/4'
+ '18/10' '18/11' '20/2' '18/8' '18/12' '21/2' '21/3' '25/1' '33/2' '27'
+ '28' '26/1' '26/2' '35/1' '29/1' '31' '32' '33/1' '29/2' '30' '22' '23/1'
+ '37' '39/16' '23/2' '24' '38/6' '38/9' '39/22' '39/23' '39/24' '38/7'
+ '39/18' '38/8' '39/10' '41/8' '41/9' '39/11' '40/12' '39/29' '39/30'
+ '41/7' '45/1' '47/2' '49/1' '56' '49/2' '47/8' '49/3' '57/3' '59/1'
+ '53/1' '49/4' '57/4' '50' '51' '58' '59/2' '47/6' '47/7' '61/6' '59/3'
+ '54' '47/5' '62/13' '62/14' '61/14' '62/11' '62/12' '60/2' '62/3' '63/4'
+ '62/4' '66/3' '67/4' '11' '68/1' '12' '68/2' '67/3' '1' '14' '4' '17'
+ '18' '6' '19' '3' '16' '64' '65' '33' '39/1' '39/2' '66/1' '66/2' '38/2'
+ '40' '36/2' '45' '37/1' '46' '42' '37/2' '48' '21' '22/1' '49' '38/1'
+ '20' '57' '68' '59' '69' '60' '70' '66' '58/1' '67' '58/2' '1/2' '61/1'
+ '71' '74' '62' '75' '72' '73' '63' '76' '82' '83' '99' '84' '53' '55'
+ '85' '101' '86' '92' '105' '93' '106' '94' '102' '87/1' '103' '89' '104'
+ '95' '108' '79' '80' '81' '114' '109' '97' '110' '77' '78' '115/1' '117'
+ '118' '115/2' '128' '116' '119' '120' '121' '111' '112' '113/1' '113/2'
+ '150' '151' '149' '152/1' '154' '152/2' '145' '162' '175' '163' '176/1'
+ '161' '174' '176/2' '168' '180' '181' '177' '166' '178' '167' '179' '182'
+ '157' '158' '183' '184' '156' '190' '203' '194' '216' '195' '217/1' '196'
+ '227/1' '191' '204' '192' '205' '193' '206/1' '197' '234' '253/2' '201'
+ '254' '202' '198' '239' '199' '200' '255/1' '185' '186' '187' '188' '189'
+ '267' '268' '265' '271' '272' '273' '269' '264' '270' '274' '275' '258'
+ '259' '282' '293' '283' '266/6' '255/2' '256' '257' '284/1' '285' '287'
+ '284/2' '290' '291' '292' '328' '329/1' '331' '333/2' '351/2' '353'
+ '350/3' '350/4' '351/1' '334' '335' '336' '348' '349/2' '350/2' '29'
+ '4/3' '4/4' '38' '39' '34' '36' '40/1' '47' '98/1' '3/3' '176' '181/3'
+ '182/1' '185/1' '199/1' '188/1' '199/2' '195/1' '227' '184/1' '224' '225'
+ '228' '230/2' '219/2' '231' '220' '232' '221' '230/1' '219/1' '233' '222'
+ '241' '242/1' '223' '235' '236/1' '238' '286' '288' '329/2' '332' '330']
+2024-07-06 09:53:50,685 - INFO -     Filtered GeoDataFrame size: 5
+2024-07-06 09:53:50,685 - INFO -     Processing layer: Flur
+2024-07-06 09:53:50,685 - INFO -     Value list: ['Flur 2']
+2024-07-06 09:53:50,685 - INFO -     Label column: flurname
+2024-07-06 09:53:50,685 - INFO -     Unique values in label column: ['Flur 1' 'Flur 6' 'Flur 3' 'Flur 2' 'Flur 30' 'Flur 31' 'Flur 32']
+2024-07-06 09:53:50,685 - INFO -     Filtered GeoDataFrame size: 4
+2024-07-06 09:53:50,686 - INFO -     Processing layer: Gemarkung
+2024-07-06 09:53:50,686 - INFO -     Value list: ['Torgelow am See']
+2024-07-06 09:53:50,686 - INFO -     Label column: gmkname
+2024-07-06 09:53:50,686 - INFO -     Unique values in label column: ['Carlsruh' 'Groß Gievitz' 'Klein Gievitz' 'Neu Schloen' 'Schloen'
+ 'Schmachthagen' 'Torgelow am See' 'Jägerhof' 'Rügeband' 'Waren']
+2024-07-06 09:53:50,687 - INFO -     Filtered GeoDataFrame size: 1
+2024-07-06 09:53:50,687 - INFO -     Processing layer: Gemeinde
+2024-07-06 09:53:50,687 - INFO -     Value list: ['Torgelow am See']
+2024-07-06 09:53:50,687 - INFO -     Label column: gen
+2024-07-06 09:53:50,687 - INFO -     Unique values in label column: ['Peenehagen' 'Torgelow am See' 'Waren (Müritz), Stadt']
+2024-07-06 09:53:50,687 - INFO -     Filtered GeoDataFrame size: 1
+2024-07-06 09:53:50,701 - INFO - Created Geltungsbereich layer: Geltungsbereich
+2024-07-06 09:53:50,701 - INFO - Finished creating Geltungsbereich layers.
+2024-07-06 09:53:50,701 - INFO - Created buffer for layer: Wald Abstand
+2024-07-06 09:53:50,701 - INFO - Starting to create Geltungsbereich layers...
+2024-07-06 09:53:50,701 - INFO - Processing Geltungsbereich layer: Geltungsbereich
+2024-07-06 09:53:50,701 - INFO -   Processing coverage 1
+2024-07-06 09:53:50,701 - INFO -     Processing layer: Parcel
+2024-07-06 09:53:50,701 - INFO -     Value list: ['104', '96', '95', '87/1']
+2024-07-06 09:53:50,701 - INFO -     Label column: label
+2024-07-06 09:53:50,702 - INFO -     Unique values in label column: ['15/3' '11/2' '14/2' '15/5' '16/4' '16/5' '16/1' '18/5' '19/7' '18/9'
+ '20/4' '20/5' '21/1' '18/6' '18/7' '20/3' '17/3' '21/4' '35/4' '35/9'
+ '35/6' '35/8' '39/14' '36/4' '40/5' '39/26' '35/13' '35/14' '40/13'
+ '41/18' '40/8' '41/12' '40/10' '41/6' '42/3' '42/4' '43/5' '43/7' '43/3'
+ '46/3' '43/4' '46/4' '46/9' '43/10' '46/10' '43/11' '42/6' '42/7' '57/2'
+ '42/8' '42/9' '57/5' '53/2' '62/6' '61/7' '62/7' '61/8' '62/8' '61/18'
+ '61/19' '61/20' '61/13' '61/17' '63/1' '63/2' '60/3' '61/3' '61/4'
+ '61/22' '8' '9' '13' '15' '34/1' '41' '43' '1/1' '61/2' '98' '52' '107'
+ '148/1' '148/2' '165' '169' '171' '160' '172' '266/8' '266/2' '284/3'
+ '333/1' '345' '349/1' '96' '183/1' '183/2' '226' '147/1' '266/9' '164'
+ '170' '173' '5/2' '5/4' '184/2' '40/11' '41/19' '35/3' '55/1' '261' '260'
+ '263/2' '35/10' '41/11' '48/1' '15/4' '17/2' '263/4' '100' '34/2' '14/4'
+ '185/2' '182/2' '6/1' '229' '5' '36/3' '36/1' '45/3' '45/2' '43/1' '44'
+ '266/7' '266/3' '24/2' '5/5' '6/2' '41/13' '35/2' '39/25' '41/17' '16/7'
+ '10/3' '7' '10/4' '10/1' '10/2' '8/2' '9/1' '9/2' '8/3' '8/4' '9/3'
+ '39/13' '39/6' '39/31' '9/4' '8/1' '16/3' '18/3' '17/1' '153' '13/2'
+ '18/1' '16/6' '35/12' '39/17' '46/8' '43/9' '42/5' '55/2' '60/1' '47/4'
+ '62/9' '61/21' '63/3' '147/2' '352' '347' '2' '159/2' '155/2' '46/2'
+ '46/5' '46/6' '46/13' '46/12' '39/27' '67/2' '48/2' '262/1' '263/3'
+ '262/2' '39/32' '39/34' '39/33' '146/1' '146/2' '24/3' '5/6' '14/3'
+ '15/7' '15/6' '3/2' '3/1' '159/1' '155/1' '6/3' '4/1' '4/2' '11/3' '10'
+ '15/2' '13/1' '11/4' '12/1' '12/2' '5/1' '19/5' '19/6' '19/3' '19/4'
+ '18/10' '18/11' '20/2' '18/8' '18/12' '21/2' '21/3' '25/1' '33/2' '27'
+ '28' '26/1' '26/2' '35/1' '29/1' '31' '32' '33/1' '29/2' '30' '22' '23/1'
+ '37' '39/16' '23/2' '24' '38/6' '38/9' '39/22' '39/23' '39/24' '38/7'
+ '39/18' '38/8' '39/10' '41/8' '41/9' '39/11' '40/12' '39/29' '39/30'
+ '41/7' '45/1' '47/2' '49/1' '56' '49/2' '47/8' '49/3' '57/3' '59/1'
+ '53/1' '49/4' '57/4' '50' '51' '58' '59/2' '47/6' '47/7' '61/6' '59/3'
+ '54' '47/5' '62/13' '62/14' '61/14' '62/11' '62/12' '60/2' '62/3' '63/4'
+ '62/4' '66/3' '67/4' '11' '68/1' '12' '68/2' '67/3' '1' '14' '4' '17'
+ '18' '6' '19' '3' '16' '64' '65' '33' '39/1' '39/2' '66/1' '66/2' '38/2'
+ '40' '36/2' '45' '37/1' '46' '42' '37/2' '48' '21' '22/1' '49' '38/1'
+ '20' '57' '68' '59' '69' '60' '70' '66' '58/1' '67' '58/2' '1/2' '61/1'
+ '71' '74' '62' '75' '72' '73' '63' '76' '82' '83' '99' '84' '53' '55'
+ '85' '101' '86' '92' '105' '93' '106' '94' '102' '87/1' '103' '89' '104'
+ '95' '108' '79' '80' '81' '114' '109' '97' '110' '77' '78' '115/1' '117'
+ '118' '115/2' '128' '116' '119' '120' '121' '111' '112' '113/1' '113/2'
+ '150' '151' '149' '152/1' '154' '152/2' '145' '162' '175' '163' '176/1'
+ '161' '174' '176/2' '168' '180' '181' '177' '166' '178' '167' '179' '182'
+ '157' '158' '183' '184' '156' '190' '203' '194' '216' '195' '217/1' '196'
+ '227/1' '191' '204' '192' '205' '193' '206/1' '197' '234' '253/2' '201'
+ '254' '202' '198' '239' '199' '200' '255/1' '185' '186' '187' '188' '189'
+ '267' '268' '265' '271' '272' '273' '269' '264' '270' '274' '275' '258'
+ '259' '282' '293' '283' '266/6' '255/2' '256' '257' '284/1' '285' '287'
+ '284/2' '290' '291' '292' '328' '329/1' '331' '333/2' '351/2' '353'
+ '350/3' '350/4' '351/1' '334' '335' '336' '348' '349/2' '350/2' '29'
+ '4/3' '4/4' '38' '39' '34' '36' '40/1' '47' '98/1' '3/3' '176' '181/3'
+ '182/1' '185/1' '199/1' '188/1' '199/2' '195/1' '227' '184/1' '224' '225'
+ '228' '230/2' '219/2' '231' '220' '232' '221' '230/1' '219/1' '233' '222'
+ '241' '242/1' '223' '235' '236/1' '238' '286' '288' '329/2' '332' '330']
+2024-07-06 09:53:50,702 - INFO -     Filtered GeoDataFrame size: 5
+2024-07-06 09:53:50,702 - INFO -     Processing layer: Flur
+2024-07-06 09:53:50,702 - INFO -     Value list: ['Flur 2']
+2024-07-06 09:53:50,702 - INFO -     Label column: flurname
+2024-07-06 09:53:50,702 - INFO -     Unique values in label column: ['Flur 1' 'Flur 6' 'Flur 3' 'Flur 2' 'Flur 30' 'Flur 31' 'Flur 32']
+2024-07-06 09:53:50,702 - INFO -     Filtered GeoDataFrame size: 4
+2024-07-06 09:53:50,703 - INFO -     Processing layer: Gemarkung
+2024-07-06 09:53:50,703 - INFO -     Value list: ['Torgelow am See']
+2024-07-06 09:53:50,703 - INFO -     Label column: gmkname
+2024-07-06 09:53:50,703 - INFO -     Unique values in label column: ['Carlsruh' 'Groß Gievitz' 'Klein Gievitz' 'Neu Schloen' 'Schloen'
+ 'Schmachthagen' 'Torgelow am See' 'Jägerhof' 'Rügeband' 'Waren']
+2024-07-06 09:53:50,704 - INFO -     Filtered GeoDataFrame size: 1
+2024-07-06 09:53:50,704 - INFO -     Processing layer: Gemeinde
+2024-07-06 09:53:50,704 - INFO -     Value list: ['Torgelow am See']
+2024-07-06 09:53:50,704 - INFO -     Label column: gen
+2024-07-06 09:53:50,704 - INFO -     Unique values in label column: ['Peenehagen' 'Torgelow am See' 'Waren (Müritz), Stadt']
+2024-07-06 09:53:50,704 - INFO -     Filtered GeoDataFrame size: 1
+2024-07-06 09:53:50,718 - INFO - Created Geltungsbereich layer: Geltungsbereich
+2024-07-06 09:53:50,718 - INFO - Finished creating Geltungsbereich layers.
+2024-07-06 09:53:50,948 - INFO - Starting to create offset layers...
+2024-07-06 09:53:50,948 - INFO - Processing offset layer: Flur Offset
+2024-07-06 09:53:50,948 - INFO - Layer to offset: Flur
+2024-07-06 09:53:50,948 - INFO - Offset distance: 10
+2024-07-06 09:53:50,948 - INFO - Processing geometry: Polygon
+2024-07-06 09:53:50,948 - INFO - Processing geometry: MultiPolygon
+2024-07-06 09:53:50,948 - INFO - Processing geometry: Polygon
+2024-07-06 09:53:50,949 - INFO - Processing geometry: Polygon
+2024-07-06 09:53:50,949 - INFO - Processing geometry: Polygon
+2024-07-06 09:53:50,949 - INFO - Processing geometry: Polygon
+2024-07-06 09:53:50,950 - INFO - Processing geometry: Polygon
+2024-07-06 09:53:50,950 - INFO - Processing geometry: Polygon
+2024-07-06 09:53:50,950 - INFO - Processing geometry: Polygon
+2024-07-06 09:53:50,950 - INFO - Processing geometry: Polygon
+2024-07-06 09:53:50,951 - INFO - Processing geometry: Polygon
+2024-07-06 09:53:50,951 - INFO - Processing geometry: Polygon
+2024-07-06 09:53:50,951 - INFO - Processing geometry: Polygon
+2024-07-06 09:53:50,951 - INFO - Processing geometry: Polygon
+2024-07-06 09:53:50,952 - INFO - Processing geometry: Polygon
+2024-07-06 09:53:50,952 - INFO - Processing geometry: Polygon
+2024-07-06 09:53:50,952 - INFO - Processing geometry: Polygon
+2024-07-06 09:53:50,952 - INFO - Processing geometry: Polygon
+2024-07-06 09:53:50,965 - INFO - Created offset geometry for layer: Flur Offset
+2024-07-06 09:53:50,965 - INFO - Finished creating offset layers.
+2024-07-06 09:53:50,965 - INFO - Starting processing for project: Torgelow
+2024-07-06 09:53:50,965 - INFO - Starting to create Geltungsbereich layers...
+2024-07-06 09:53:50,965 - INFO - Processing Geltungsbereich layer: Geltungsbereich
+2024-07-06 09:53:50,965 - INFO -   Processing coverage 1
+2024-07-06 09:53:50,965 - INFO -     Processing layer: Parcel
+2024-07-06 09:53:50,965 - INFO -     Value list: ['104', '96', '95', '87/1']
+2024-07-06 09:53:50,965 - INFO -     Label column: label
+2024-07-06 09:53:50,966 - INFO -     Unique values in label column: ['15/3' '11/2' '14/2' '15/5' '16/4' '16/5' '16/1' '18/5' '19/7' '18/9'
+ '20/4' '20/5' '21/1' '18/6' '18/7' '20/3' '17/3' '21/4' '35/4' '35/9'
+ '35/6' '35/8' '39/14' '36/4' '40/5' '39/26' '35/13' '35/14' '40/13'
+ '41/18' '40/8' '41/12' '40/10' '41/6' '42/3' '42/4' '43/5' '43/7' '43/3'
+ '46/3' '43/4' '46/4' '46/9' '43/10' '46/10' '43/11' '42/6' '42/7' '57/2'
+ '42/8' '42/9' '57/5' '53/2' '62/6' '61/7' '62/7' '61/8' '62/8' '61/18'
+ '61/19' '61/20' '61/13' '61/17' '63/1' '63/2' '60/3' '61/3' '61/4'
+ '61/22' '8' '9' '13' '15' '34/1' '41' '43' '1/1' '61/2' '98' '52' '107'
+ '148/1' '148/2' '165' '169' '171' '160' '172' '266/8' '266/2' '284/3'
+ '333/1' '345' '349/1' '96' '183/1' '183/2' '226' '147/1' '266/9' '164'
+ '170' '173' '5/2' '5/4' '184/2' '40/11' '41/19' '35/3' '55/1' '261' '260'
+ '263/2' '35/10' '41/11' '48/1' '15/4' '17/2' '263/4' '100' '34/2' '14/4'
+ '185/2' '182/2' '6/1' '229' '5' '36/3' '36/1' '45/3' '45/2' '43/1' '44'
+ '266/7' '266/3' '24/2' '5/5' '6/2' '41/13' '35/2' '39/25' '41/17' '16/7'
+ '10/3' '7' '10/4' '10/1' '10/2' '8/2' '9/1' '9/2' '8/3' '8/4' '9/3'
+ '39/13' '39/6' '39/31' '9/4' '8/1' '16/3' '18/3' '17/1' '153' '13/2'
+ '18/1' '16/6' '35/12' '39/17' '46/8' '43/9' '42/5' '55/2' '60/1' '47/4'
+ '62/9' '61/21' '63/3' '147/2' '352' '347' '2' '159/2' '155/2' '46/2'
+ '46/5' '46/6' '46/13' '46/12' '39/27' '67/2' '48/2' '262/1' '263/3'
+ '262/2' '39/32' '39/34' '39/33' '146/1' '146/2' '24/3' '5/6' '14/3'
+ '15/7' '15/6' '3/2' '3/1' '159/1' '155/1' '6/3' '4/1' '4/2' '11/3' '10'
+ '15/2' '13/1' '11/4' '12/1' '12/2' '5/1' '19/5' '19/6' '19/3' '19/4'
+ '18/10' '18/11' '20/2' '18/8' '18/12' '21/2' '21/3' '25/1' '33/2' '27'
+ '28' '26/1' '26/2' '35/1' '29/1' '31' '32' '33/1' '29/2' '30' '22' '23/1'
+ '37' '39/16' '23/2' '24' '38/6' '38/9' '39/22' '39/23' '39/24' '38/7'
+ '39/18' '38/8' '39/10' '41/8' '41/9' '39/11' '40/12' '39/29' '39/30'
+ '41/7' '45/1' '47/2' '49/1' '56' '49/2' '47/8' '49/3' '57/3' '59/1'
+ '53/1' '49/4' '57/4' '50' '51' '58' '59/2' '47/6' '47/7' '61/6' '59/3'
+ '54' '47/5' '62/13' '62/14' '61/14' '62/11' '62/12' '60/2' '62/3' '63/4'
+ '62/4' '66/3' '67/4' '11' '68/1' '12' '68/2' '67/3' '1' '14' '4' '17'
+ '18' '6' '19' '3' '16' '64' '65' '33' '39/1' '39/2' '66/1' '66/2' '38/2'
+ '40' '36/2' '45' '37/1' '46' '42' '37/2' '48' '21' '22/1' '49' '38/1'
+ '20' '57' '68' '59' '69' '60' '70' '66' '58/1' '67' '58/2' '1/2' '61/1'
+ '71' '74' '62' '75' '72' '73' '63' '76' '82' '83' '99' '84' '53' '55'
+ '85' '101' '86' '92' '105' '93' '106' '94' '102' '87/1' '103' '89' '104'
+ '95' '108' '79' '80' '81' '114' '109' '97' '110' '77' '78' '115/1' '117'
+ '118' '115/2' '128' '116' '119' '120' '121' '111' '112' '113/1' '113/2'
+ '150' '151' '149' '152/1' '154' '152/2' '145' '162' '175' '163' '176/1'
+ '161' '174' '176/2' '168' '180' '181' '177' '166' '178' '167' '179' '182'
+ '157' '158' '183' '184' '156' '190' '203' '194' '216' '195' '217/1' '196'
+ '227/1' '191' '204' '192' '205' '193' '206/1' '197' '234' '253/2' '201'
+ '254' '202' '198' '239' '199' '200' '255/1' '185' '186' '187' '188' '189'
+ '267' '268' '265' '271' '272' '273' '269' '264' '270' '274' '275' '258'
+ '259' '282' '293' '283' '266/6' '255/2' '256' '257' '284/1' '285' '287'
+ '284/2' '290' '291' '292' '328' '329/1' '331' '333/2' '351/2' '353'
+ '350/3' '350/4' '351/1' '334' '335' '336' '348' '349/2' '350/2' '29'
+ '4/3' '4/4' '38' '39' '34' '36' '40/1' '47' '98/1' '3/3' '176' '181/3'
+ '182/1' '185/1' '199/1' '188/1' '199/2' '195/1' '227' '184/1' '224' '225'
+ '228' '230/2' '219/2' '231' '220' '232' '221' '230/1' '219/1' '233' '222'
+ '241' '242/1' '223' '235' '236/1' '238' '286' '288' '329/2' '332' '330']
+2024-07-06 09:53:50,966 - INFO -     Filtered GeoDataFrame size: 5
+2024-07-06 09:53:50,966 - INFO -     Processing layer: Flur
+2024-07-06 09:53:50,966 - INFO -     Value list: ['Flur 2']
+2024-07-06 09:53:50,966 - INFO -     Label column: flurname
+2024-07-06 09:53:50,966 - INFO -     Unique values in label column: ['Flur 1' 'Flur 6' 'Flur 3' 'Flur 2' 'Flur 30' 'Flur 31' 'Flur 32']
+2024-07-06 09:53:50,966 - INFO -     Filtered GeoDataFrame size: 4
+2024-07-06 09:53:50,967 - INFO -     Processing layer: Gemarkung
+2024-07-06 09:53:50,968 - INFO -     Value list: ['Torgelow am See']
+2024-07-06 09:53:50,968 - INFO -     Label column: gmkname
+2024-07-06 09:53:50,968 - INFO -     Unique values in label column: ['Carlsruh' 'Groß Gievitz' 'Klein Gievitz' 'Neu Schloen' 'Schloen'
+ 'Schmachthagen' 'Torgelow am See' 'Jägerhof' 'Rügeband' 'Waren']
+2024-07-06 09:53:50,968 - INFO -     Filtered GeoDataFrame size: 1
+2024-07-06 09:53:50,968 - INFO -     Processing layer: Gemeinde
+2024-07-06 09:53:50,968 - INFO -     Value list: ['Torgelow am See']
+2024-07-06 09:53:50,968 - INFO -     Label column: gen
+2024-07-06 09:53:50,968 - INFO -     Unique values in label column: ['Peenehagen' 'Torgelow am See' 'Waren (Müritz), Stadt']
+2024-07-06 09:53:50,968 - INFO -     Filtered GeoDataFrame size: 1
+2024-07-06 09:53:50,983 - INFO - Created Geltungsbereich layer: Geltungsbereich
+2024-07-06 09:53:50,983 - INFO - Finished creating Geltungsbereich layers.
+2024-07-06 09:53:50,983 - INFO - Starting to create clip distance layers...
+2024-07-06 09:53:50,983 - INFO - Processing clip distance layer: Straße Clip
+2024-07-06 09:53:50,983 - INFO - Input shapefile: /home/g/hidrive/Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/abstand.shp
+2024-07-06 09:53:50,983 - INFO - Buffer distance: 7
+2024-07-06 09:53:50,990 - INFO - Created clip distance geometry for layer: Straße Clip
+2024-07-06 09:53:50,990 - INFO - Skipping clip distance layer 'Wald Clip' as it has no corresponding entry in 'dxfLayers'
+2024-07-06 09:53:50,990 - INFO - Finished creating clip distance layers.
+2024-07-06 09:53:50,990 - INFO - Creating buffer distance layers...
+2024-07-06 09:53:50,998 - INFO - Created buffer for layer: Wald Abstand
+2024-07-06 09:53:51,202 - INFO - Starting to create offset layers...
+2024-07-06 09:53:51,203 - INFO - Processing offset layer: Flur Offset
+2024-07-06 09:53:51,203 - INFO - Layer to offset: Flur
+2024-07-06 09:53:51,203 - INFO - Offset distance: 10
+2024-07-06 09:53:51,203 - INFO - Processing geometry: Polygon
+2024-07-06 09:53:51,203 - INFO - Processing geometry: MultiPolygon
+2024-07-06 09:53:51,203 - INFO - Processing geometry: Polygon
+2024-07-06 09:53:51,203 - INFO - Processing geometry: Polygon
+2024-07-06 09:53:51,204 - INFO - Processing geometry: Polygon
+2024-07-06 09:53:51,204 - INFO - Processing geometry: Polygon
+2024-07-06 09:53:51,204 - INFO - Processing geometry: Polygon
+2024-07-06 09:53:51,205 - INFO - Processing geometry: Polygon
+2024-07-06 09:53:51,205 - INFO - Processing geometry: Polygon
+2024-07-06 09:53:51,205 - INFO - Processing geometry: Polygon
+2024-07-06 09:53:51,206 - INFO - Processing geometry: Polygon
+2024-07-06 09:53:51,206 - INFO - Processing geometry: Polygon
+2024-07-06 09:53:51,206 - INFO - Processing geometry: Polygon
+2024-07-06 09:53:51,206 - INFO - Processing geometry: Polygon
+2024-07-06 09:53:51,207 - INFO - Processing geometry: Polygon
+2024-07-06 09:53:51,207 - INFO - Processing geometry: Polygon
+2024-07-06 09:53:51,207 - INFO - Processing geometry: Polygon
+2024-07-06 09:53:51,207 - INFO - Processing geometry: Polygon
+2024-07-06 09:53:51,219 - INFO - Created offset geometry for layer: Flur Offset
+2024-07-06 09:53:51,219 - INFO - Finished creating offset layers.
+2024-07-06 09:53:51,331 - INFO - Created exclusion polygon: Baufeld
+2024-07-06 09:53:51,927 - INFO - Opened existing DXF file: /home/g/hidrive/Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/Zeichnung/combined.dxf
+2024-07-06 09:53:51,927 - INFO - Layers to process: ['DOP', 'Basemap', 'Flur', 'Parcel', 'Gemarkung', 'Gemeinde', 'Wald', 'Biotope', 'Baufeld', 'Wald Abstand', 'Straße Clip', 'Flur Offset', 'Geltungsbereich', 'Baufeld', 'Wald Abstand', 'Straße Clip', 'Geltungsbereich', 'Flur Offset']
+2024-07-06 09:53:51,927 - INFO - Processing layer: DOP
+2024-07-06 09:53:51,938 - INFO - Processing WMTS layer: DOP
+2024-07-06 09:53:51,938 - INFO - Updating WMTS tiles for layer 'DOP'
+2024-07-06 09:53:52,993 - INFO - Finished processing layer: DOP
+2024-07-06 09:53:52,993 - INFO - Processing layer: Basemap
+2024-07-06 09:53:53,005 - INFO - Processing WMTS layer: Basemap
+2024-07-06 09:53:53,005 - INFO - Updating WMTS tiles for layer 'Basemap'
+2024-07-06 09:53:53,888 - INFO - Finished processing layer: Basemap
+2024-07-06 09:53:53,888 - INFO - Processing layer: Flur
+2024-07-06 09:53:53,925 - INFO - Finished processing layer: Flur
+2024-07-06 09:53:53,925 - INFO - Processing layer: Parcel
+2024-07-06 09:53:54,222 - INFO - Finished processing layer: Parcel
+2024-07-06 09:53:54,222 - INFO - Processing layer: Gemarkung
+2024-07-06 09:53:54,299 - INFO - Finished processing layer: Gemarkung
+2024-07-06 09:53:54,300 - INFO - Processing layer: Gemeinde
+2024-07-06 09:53:54,326 - INFO - Finished processing layer: Gemeinde
+2024-07-06 09:53:54,326 - INFO - Processing layer: Wald
+2024-07-06 09:53:54,344 - INFO - Finished processing layer: Wald
+2024-07-06 09:53:54,344 - INFO - Processing layer: Biotope
+2024-07-06 09:53:54,363 - INFO - Finished processing layer: Biotope
+2024-07-06 09:53:54,363 - INFO - Processing layer: Baufeld
+2024-07-06 09:53:54,373 - INFO - Processing exclusion layer: Baufeld
+2024-07-06 09:53:54,374 - INFO - Finished processing layer: Baufeld
+2024-07-06 09:53:54,374 - INFO - Processing layer: Wald Abstand
+2024-07-06 09:53:54,384 - INFO - Layer 'Wald Abstand' has no associated shapefile. It may be created dynamically.
+2024-07-06 09:53:54,384 - INFO - Finished processing layer: Wald Abstand
+2024-07-06 09:53:54,384 - INFO - Processing layer: Straße Clip
+2024-07-06 09:53:54,384 - INFO - Processing clip distance layer: Straße Clip
+2024-07-06 09:53:54,384 - INFO - Processing layer: Flur Offset
+2024-07-06 09:53:54,708 - INFO - Layer 'Flur Offset' has no associated shapefile. It may be created dynamically.
+2024-07-06 09:53:54,708 - INFO - Finished processing layer: Flur Offset
+2024-07-06 09:53:54,708 - INFO - Processing layer: Geltungsbereich
+2024-07-06 09:53:54,717 - INFO - Processing Geltungsbereich layer: Geltungsbereich
+2024-07-06 09:53:54,718 - INFO - Processing layer: Baufeld
+2024-07-06 09:53:54,726 - INFO - Processing exclusion layer: Baufeld
+2024-07-06 09:53:54,727 - INFO - Finished processing layer: Baufeld
+2024-07-06 09:53:54,727 - INFO - Processing layer: Wald Abstand
+2024-07-06 09:53:54,734 - INFO - Layer 'Wald Abstand' has no associated shapefile. It may be created dynamically.
+2024-07-06 09:53:54,734 - INFO - Finished processing layer: Wald Abstand
+2024-07-06 09:53:54,734 - INFO - Processing layer: Straße Clip
+2024-07-06 09:53:54,734 - INFO - Processing clip distance layer: Straße Clip
+2024-07-06 09:53:54,735 - INFO - Processing layer: Geltungsbereich
+2024-07-06 09:53:54,742 - INFO - Processing Geltungsbereich layer: Geltungsbereich
+2024-07-06 09:53:54,742 - INFO - Processing layer: Flur Offset
+2024-07-06 09:53:54,751 - INFO - Layer 'Flur Offset' has no associated shapefile. It may be created dynamically.
+2024-07-06 09:53:54,751 - INFO - Finished processing layer: Flur Offset
+2024-07-06 09:53:54,751 - INFO - Adding buffer geometry to layer: Wald Abstand
+2024-07-06 09:53:54,752 - INFO - Processing offset layer: Flur Offset
+2024-07-06 09:53:54,752 - INFO - Offset geometry type: MultiLineString
+2024-07-06 09:53:54,753 - INFO - Offset geometry is valid: True
+2024-07-06 09:53:54,753 - INFO - Offset geometry is empty: False
+2024-07-06 09:53:54,836 - INFO - Saving DXF file: /home/g/hidrive/Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/Zeichnung/combined.dxf
+2024-07-06 09:53:55,328 - INFO - Processing complete.

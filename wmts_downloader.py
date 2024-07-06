@@ -163,7 +163,9 @@ def download_wmts_tiles(wmts_info: dict, geltungsbereich, buffer_distance: float
         wmts = WebMapTileService(capabilities_url)
 
         layer = wmts.contents[layer_id]
-        print(f"Available tile matrix sets: {layer.tilematrixsetlinks.keys()}")
+        print(f"Available tile matrix sets:")
+        for tms in wmts.contents[layer_id].tilematrixsetlinks.keys():
+            print(f"  • {tms}")
 
         if proj not in layer.tilematrixsetlinks:
             raise ValueError(
@@ -172,7 +174,7 @@ def download_wmts_tiles(wmts_info: dict, geltungsbereich, buffer_distance: float
         tile_matrix_set = layer.tilematrixsetlinks[proj]
 
         tile_matrix = wmts.tilematrixsets[proj].tilematrix
-        print(f"Available zoom levels: {tile_matrix.keys()}")
+        print(f"Available zoom levels: {', '.join(tile_matrix.keys())}")
 
         if str(zoom) not in tile_matrix:
             raise ValueError(

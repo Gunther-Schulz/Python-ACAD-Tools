@@ -11,14 +11,85 @@ import random
 from ezdxf.addons import odafc
 import argparse
 import colorama
+import logging
+import pyproj
+from pyproj import CRS
+
+# Setup logging first
+logging.basicConfig(filename='convert.log', filemode='w', level=logging.INFO, 
+                    format='%(asctime)s - %(levelname)s - %(message)s')
+console = logging.StreamHandler()
+console.setLevel(logging.WARNING)
+formatter = logging.Formatter('%(levelname)s - %(message)s')
+console.setFormatter(formatter)
+logging.getLogger('').addHandler(console)
+
+def log_info(*messages):
+    logging.info(' '.join(str(msg) for msg in messages))
+
+def log_warning(message):
+    logging.warning(f"\033[93mWarning: {message}\033[0m")
+
+def log_error(message):
+    logging.error(f"\033[91mError: {message}\033[0m")
+
+# Unset potentially conflicting environment variables
+if 'PROJ_DATA' in os.environ:
+    log_info(f"Unsetting PROJ_DATA (was set to: {os.environ['PROJ_DATA']})")
+    del os.environ['PROJ_DATA']
+
+# List of common PROJ data directories
+proj_data_dirs = [
+    '/usr/share/proj',
+    '/usr/local/share/proj',
+    '/opt/homebrew/share/proj',
+    'C:\\Program Files\\PROJ\\share',
+    os.path.join(sys.prefix, 'share', 'proj'),
+]
+
+# Find the first directory that contains proj.db
+for directory in proj_data_dirs:
+    if os.path.exists(os.path.join(directory, 'proj.db')):
+        os.environ['PROJ_LIB'] = directory
+        log_info(f"Set PROJ_LIB to: {directory}")
+        break
+else:
+    log_warning("Could not find proj.db in any of the standard locations.")
+
+# Disable network access for PROJ
+os.environ['PROJ_NETWORK'] = 'OFF'
+log_info("Set PROJ_NETWORK to OFF")
+
+log_info(f"Current PROJ_LIB: {os.environ.get('PROJ_LIB', 'Not set')}")
+log_info(f"Current PATH: {os.environ.get('PATH', 'Not set')}")
+
+pyproj.datadir.set_data_dir(os.environ['PROJ_LIB'])
+log_info(f"PyProj data directory: {pyproj.datadir.get_data_dir()}")
+log_info(f"PyProj version: {pyproj.__version__}")
+
+# Try to create a CRS object
+try:
+    crs = CRS("EPSG:4326")
+    log_info(f"Successfully created CRS object: {crs}")
+except Exception as e:
+    log_error(f"Error creating CRS object: {str(e)}")
+
+# Try to perform a simple transformation
+try:
+    transformer = pyproj.Transformer.from_crs("EPSG:4326", "EPSG:3857", always_xy=True)
+    result = transformer.transform(0, 0)
+    log_info(f"Successfully performed transformation: {result}")
+except Exception as e:
+    log_error(f"Error performing transformation: {str(e)}")
+
+# Try to get the PROJ version from pyproj
+try:
+    proj_version = pyproj.__proj_version__
+    log_info(f"PROJ version (from pyproj): {proj_version}")
+except Exception as e:
+    log_error(f"Error getting PROJ version: {str(e)}")
 
 colorama.init()
-
-def print_warning(message):
-    print(f"\033[93mWarning: {message}\033[0m", file=sys.stderr)
-
-def print_error(message):
-    print(f"\033[91mError: {message}\033[0m", file=sys.stderr)
 
 class ProjectProcessor:
     def __init__(self, project_name: str, update_layers_list: list = None):
@@ -28,8 +99,7 @@ class ProjectProcessor:
             self.name_to_aci = {item['name'].lower(): item['aciCode'] for item in color_data}
             self.aci_to_name = {item['aciCode']: item['name'] for item in color_data}
 
-        self.project_settings, self.folder_prefix = self.load_project_settings(
-            project_name)
+        self.project_settings, self.folder_prefix, self.log_file = self.load_project_settings(project_name)
         if not self.project_settings:
             raise ValueError(f"Project {project_name} not found.")
 
@@ -42,9 +112,9 @@ class ProjectProcessor:
         self.clip_distance_layers = self.project_settings.get('clipDistanceLayers', [])
         self.buffer_distance_layers = self.project_settings.get('bufferDistanceLayers', [])
         self.geltungsbereich_layers = self.project_settings.get('geltungsbereichLayers', [])
-        print(f"Loaded {len(self.geltungsbereich_layers)} Geltungsbereich layers:")
+        log_info(f"Loaded {len(self.geltungsbereich_layers)} Geltungsbereich layers:")
         for layer in self.geltungsbereich_layers:
-            print(f"  - {layer['layerName']}")
+            log_info(f"  - {layer['layerName']}")
         self.offset_layers = self.project_settings.get('offsetLayers', [])
 
         self.template_dxf = self.resolve_full_path(self.project_settings.get(
@@ -66,9 +136,9 @@ class ProjectProcessor:
         for layer_name, shapefile_path in self.shapefile_paths.items():
             try:
                 self.shapefiles[layer_name] = self.load_shapefile(shapefile_path)
-                print(f"Loaded shapefile for layer: {layer_name}")
+                log_info(f"Loaded shapefile for layer: {layer_name}")
             except Exception as e:
-                print_warning(f"Failed to load shapefile for layer '{layer_name}': {str(e)}")
+                log_warning(f"Failed to load shapefile for layer '{layer_name}': {str(e)}")
 
         self.colors = {}
         for layer in self.project_settings['dxfLayers']:
@@ -104,12 +174,12 @@ class ProjectProcessor:
 
         # Handle WMTS layers
         for wmts in self.wmts:
-            layer_name = wmts['name']
-            self.layer_properties[layer_name] = {
-                'color': 7,  # Default to white
-                'locked': wmts.get('locked', False),
-                'close': True
-            }
+            layer_name = wmts['dxfLayer']
+            if layer_name not in self.layer_properties:
+                self.add_layer_properties(layer_name, {
+                    'color': "White",
+                    'locked': wmts.get('locked', False)
+                })
 
         # Handle exclusion layers
         for exclusion in self.exclusions:
@@ -121,7 +191,7 @@ class ProjectProcessor:
                     'close': layer_info.get('close', True)
                 }
             else:
-                print_warning(f"Layer '{exclusion['name']}' not found in project settings.")
+                log_warning(f"Layer '{exclusion['name']}' not found in project settings.")
 
         # Handle buffer distance layers
         for buffer_layer in self.buffer_distance_layers:
@@ -148,43 +218,43 @@ class ProjectProcessor:
                     gdf = gpd.read_file(shapefile_path)
                     all_geometries[layer['name']] = gdf.geometry.tolist()
                 else:
-                    print(f"Warning: Shapefile not found for layer '{layer['name']}': {shapefile_path}")
+                    log_warning(f"Shapefile not found for layer '{layer['name']}': {shapefile_path}")
 
         # Create offset layers
         self.create_offset_layers(all_geometries)
 
     def create_geltungsbereich_layers(self):
-        print("Starting to create Geltungsbereich layers...")
+        log_info("Starting to create Geltungsbereich layers...")
         self.geltungsbereich_geometries = {}
         for geltungsbereich in self.geltungsbereich_layers:
             layer_name = geltungsbereich['layerName']
-            print(f"Processing Geltungsbereich layer: {layer_name}")
+            log_info(f"Processing Geltungsbereich layer: {layer_name}")
             
             combined_geometry = None
             for coverage_index, coverage in enumerate(geltungsbereich['coverages']):
-                print(f"  Processing coverage {coverage_index + 1}")
+                log_info(f"  Processing coverage {coverage_index + 1}")
                 coverage_geometry = None
                 for layer in coverage['layers']:
                     layer_name = layer['name']
                     value_list = layer['valueList']
-                    print(f"    Processing layer: {layer_name}")
-                    print(f"    Value list: {value_list}")
+                    log_info(f"    Processing layer: {layer_name}")
+                    log_info(f"    Value list: {value_list}")
                     
                     if layer_name not in self.shapefiles:
-                        print(f"    Warning: Layer '{layer_name}' not found in shapefiles.")
+                        log_warning(f"    Warning: Layer '{layer_name}' not found in shapefiles.")
                         continue
                     
                     gdf = self.shapefiles[layer_name]
                     label_column = self.shapefile_labels.get(layer_name)
                     if not label_column:
-                        print(f"    Warning: Label column for layer '{layer_name}' not found.")
+                        log_warning(f"    Warning: Label column for layer '{layer_name}' not found.")
                         continue
                     
-                    print(f"    Label column: {label_column}")
-                    print(f"    Unique values in label column: {gdf[label_column].unique()}")
+                    log_info(f"    Label column: {label_column}")
+                    log_info(f"    Unique values in label column: {gdf[label_column].unique()}")
                     
                     filtered_gdf = gdf[gdf[label_column].isin(value_list)]
-                    print(f"    Filtered GeoDataFrame size: {len(filtered_gdf)}")
+                    log_info(f"    Filtered GeoDataFrame size: {len(filtered_gdf)}")
                     
                     if coverage_geometry is None:
                         coverage_geometry = filtered_gdf.unary_union
@@ -197,7 +267,7 @@ class ProjectProcessor:
                     else:
                         combined_geometry = combined_geometry.union(coverage_geometry)
                 else:
-                    print(f"    Warning: No geometry created for coverage {coverage_index + 1}")
+                    log_warning(f"    Warning: No geometry created for coverage {coverage_index + 1}")
             
             if combined_geometry:
                 # Clip with all layers in clipDistanceLayers
@@ -213,14 +283,14 @@ class ProjectProcessor:
                     combined_geometry = combined_geometry.difference(clip_geometry)
                 
                 self.geltungsbereich_geometries[layer_name] = combined_geometry
-                print(f"Created Geltungsbereich layer: {layer_name}")
+                log_info(f"Created Geltungsbereich layer: {layer_name}")
             else:
-                print(f"Warning: No geometry created for Geltungsbereich layer: {layer_name}")
+                log_warning(f"Warning: No geometry created for Geltungsbereich layer: {layer_name}")
         
-        print("Finished creating Geltungsbereich layers.")
+        log_info("Finished creating Geltungsbereich layers.")
 
     def create_offset_layers(self, base_geometries):
-        print("Starting to create offset layers...")
+        log_info("Starting to create offset layers...")
         self.offset_geometries = {}
         for layer in self.offset_layers:
             layer_name = layer['name']
@@ -228,17 +298,17 @@ class ProjectProcessor:
             offset_distance = layer['offsetDistance']
 
             if self.has_corresponding_layer(layer_name):
-                print(f"Processing offset layer: {layer_name}")
-                print(f"Layer to offset: {layer_to_offset}")
-                print(f"Offset distance: {offset_distance}")
+                log_info(f"Processing offset layer: {layer_name}")
+                log_info(f"Layer to offset: {layer_to_offset}")
+                log_info(f"Offset distance: {offset_distance}")
 
                 if layer_to_offset not in base_geometries:
-                    print(f"Warning: Base layer '{layer_to_offset}' not found in loaded geometries")
+                    log_warning(f"Warning: Base layer '{layer_to_offset}' not found in loaded geometries")
                     continue
 
                 offset_geometries = []
                 for base_geometry in base_geometries[layer_to_offset]:
-                    print(f"Processing geometry: {base_geometry.geom_type}")
+                    log_info(f"Processing geometry: {base_geometry.geom_type}")
                     try:
                         if isinstance(base_geometry, (Polygon, MultiPolygon)):
                             outer_offset = base_geometry.buffer(offset_distance, join_style=2).exterior
@@ -251,21 +321,21 @@ class ProjectProcessor:
                             left_offset = base_geometry.parallel_offset(offset_distance, 'left', join_style=2)
                             offset_geometries.extend([right_offset, left_offset])
                         else:
-                            print(f"Warning: Unsupported geometry type for offset: {base_geometry.geom_type}")
+                            log_warning(f"Warning: Unsupported geometry type for offset: {base_geometry.geom_type}")
                     except Exception as e:
-                        print(f"Error creating offset for geometry: {str(e)}")
+                        log_error(f"Error creating offset for geometry: {str(e)}")
 
                 if offset_geometries:
                     # Combine all offset geometries into a single MultiLineString
                     combined_offset = MultiLineString(offset_geometries)
                     self.offset_geometries[layer_name] = combined_offset
-                    print(f"Created offset geometry for layer: {layer_name}")
+                    log_info(f"Created offset geometry for layer: {layer_name}")
                 else:
-                    print(f"Warning: No valid offset geometries created for layer '{layer_name}'")
+                    log_warning(f"Warning: No valid offset geometries created for layer '{layer_name}'")
             else:
-                print(f"Skipping offset layer '{layer_name}' as it has no corresponding entry in 'dxfLayers'")
+                log_info(f"Skipping offset layer '{layer_name}' as it has no corresponding entry in 'dxfLayers'")
 
-        print("Finished creating offset layers.")
+        log_info("Finished creating offset layers.")
 
     def find_layer_by_name(self, layer_name):
         """Find a layer in the project settings by its name."""
@@ -279,7 +349,8 @@ class ProjectProcessor:
             data = yaml.safe_load(file)
             projects = data['projects']
             folder_prefix = data.get('folderPrefix', '')
-            return next((project for project in projects if project['name'] == project_name), None), folder_prefix
+            log_file = data.get('logFile', './log.txt')
+            return next((project for project in projects if project['name'] == project_name), None), folder_prefix, log_file
 
     def resolve_full_path(self, path: str) -> str:
         return os.path.abspath(os.path.expanduser(os.path.join(self.folder_prefix, path)))
@@ -295,7 +366,7 @@ class ProjectProcessor:
     def filter_parcels(self, coverage):
         parcels_missing = self.parcel_missing(self.shapefiles['Parcel'], coverage)
         if not parcels_missing:
-            print("All parcels found.")
+            log_info("All parcels found.")
 
         # Find the corresponding geltungsbereich layer
         geltungsbereich_layer = next((layer for layer in self.geltungsbereich_layers if layer['layerName'] == coverage['layerName']), None)
@@ -312,24 +383,24 @@ class ProjectProcessor:
         buffered_layers = {}
         for i, layer_name in enumerate(relevant_layers):
             if i >= len(coverage['valueLists']):
-                print(f"Warning: No values provided for layer {layer_name}")
+                log_warning(f"Warning: No values provided for layer {layer_name}")
                 continue
 
             layer_data = self.shapefiles.get(layer_name)
             if layer_data is None:
-                print(f"Warning: Layer '{layer_name}' not found in shapefiles.")
+                log_warning(f"Warning: Layer '{layer_name}' not found in shapefiles.")
                 continue
             
             layer_label = self.shapefile_labels.get(layer_name)
             if layer_label is None:
-                print(f"Warning: Label for layer '{layer_name}' not found.")
+                log_warning(f"Warning: Label for layer '{layer_name}' not found.")
                 continue
             
             filtered_data = layer_data[layer_data[layer_label].isin(coverage['valueLists'][i])]
             if not filtered_data.empty:
                 buffered_layers[layer_name] = filtered_data.unary_union.buffer(buffer_distance)
             else:
-                print(f"Warning: No data found for layer '{layer_name}' after filtering.")
+                log_warning(f"Warning: No data found for layer '{layer_name}' after filtering.")
 
         # Use the first layer (assumed to be 'Parcel') for selected parcels
         parcel_layer_name = relevant_layers[0]
@@ -404,7 +475,7 @@ class ProjectProcessor:
                 centroid = row.geometry.centroid
                 x, y = centroid.x, centroid.y
             else:
-                print_warning(f"Unsupported geometry type {row.geometry.geom_type} for label in layer {text_layer_name}")
+                log_warning(f"Unsupported geometry type {row.geometry.geom_type} for label in layer {text_layer_name}")
                 continue
             
             self.add_text(msp, str(row['label']), x, y, text_layer_name, 'Standard', color)
@@ -447,7 +518,7 @@ class ProjectProcessor:
                             points.append(points[0])  # Close the interior ring
                         msp.add_lwpolyline(points, dxfattribs={'layer': layer_name})
             else:
-                print(f"Warning: Unsupported geometry type: {geom.geom_type}")
+                log_warning(f"Warning: Unsupported geometry type: {geom.geom_type}")
 
     def add_layer(self, doc, layer_name):
         base_layer = layer_name.split('_')[0]  # Get the base layer name (e.g., 'WMTS DOP' from 'WMTS DOP_Hauptgeltungsbereich')
@@ -466,7 +537,7 @@ class ProjectProcessor:
                 return color
             else:
                 random_color = random.randint(1, 255)
-                print(f"Warning: Invalid color code {color}. Assigning random color: {random_color}")
+                log_warning(f"Warning: Invalid color code {color}. Assigning random color: {random_color}")
                 return random_color
         elif isinstance(color, str):
             color_lower = color.lower()
@@ -474,11 +545,11 @@ class ProjectProcessor:
                 return self.name_to_aci[color_lower]
             else:
                 random_color = random.randint(1, 255)
-                print(f"Warning: Color name '{color}' not found. Assigning random color: {random_color}")
+                log_warning(f"Warning: Color name '{color}' not found. Assigning random color: {random_color}")
                 return random_color
         else:
             random_color = random.randint(1, 255)
-            print(f"Warning: Invalid color type. Assigning random color: {random_color}")
+            log_warning(f"Warning: Invalid color type. Assigning random color: {random_color}")
             return random_color
 
     def add_image_with_worldfile(self, msp, image_path, world_file_path, layer_name):
@@ -558,7 +629,7 @@ class ProjectProcessor:
         # Get the scope geometry
         scope_geom = self.geltungsbereich_geometries.get(scope_layer)
         if scope_geom is None:
-            print_warning(f"Scope layer '{scope_layer}' not found.")
+            log_warning(f"Scope layer '{scope_layer}' not found.")
             return None
 
         # Initialize the exclusion geometry with the scope geometry
@@ -573,7 +644,7 @@ class ProjectProcessor:
                     layer_geom = layer_gdf['geometry'].unary_union
                     exclusion_geom = exclusion_geom.difference(layer_geom)
                 else:
-                    print_warning(f"Shapefile for exclusion layer '{layer}' not found: {shapefile_path}")
+                    log_warning(f"Shapefile for exclusion layer '{layer}' not found: {shapefile_path}")
             else:
                 # Check if it's a buffer distance layer
                 buffer_layer = next((bl for bl in self.buffer_distance_layers if bl['name'] == layer), None)
@@ -584,23 +655,23 @@ class ProjectProcessor:
                         buffer_geom = buffer_gdf['geometry'].unary_union
                         exclusion_geom = exclusion_geom.difference(buffer_geom)
                     else:
-                        print_warning(f"Buffer shapefile for layer '{layer}' not found: {buffer_shapefile}")
+                        log_warning(f"Buffer shapefile for layer '{layer}' not found: {buffer_shapefile}")
                 else:
-                    print_warning(f"Exclusion layer '{layer}' not found in project settings or buffer distance layers.")
+                    log_warning(f"Exclusion layer '{layer}' not found in project settings or buffer distance layers.")
 
         # Store the resulting geometry
         self.exclusion_geometries[new_layer_name] = exclusion_geom
 
-        print(f"Created exclusion polygon: {new_layer_name}")
+        log_info(f"Created exclusion polygon: {new_layer_name}")
         return exclusion_geom
 
     def process_single_layer(self, msp, layer):
         # Check if the layer is a clip distance layer
         if layer in [clip_layer['name'] for clip_layer in self.clip_distance_layers]:
             if not self.has_corresponding_layer(layer):
-                print(f"Skipping clip distance layer: {layer} as it has no corresponding entry in 'dxfLayers'")
+                log_info(f"Skipping clip distance layer: {layer} as it has no corresponding entry in 'dxfLayers'")
                 return
-            print(f"Processing clip distance layer: {layer}")
+            log_info(f"Processing clip distance layer: {layer}")
             geometry = self.clip_geometries[layer]
             self.add_geometries(msp, [geometry], layer, close=True)
             return
@@ -611,20 +682,20 @@ class ProjectProcessor:
 
         # Check if the layer is a Geltungsbereich layer
         if layer in self.geltungsbereich_geometries:
-            print(f"Processing Geltungsbereich layer: {layer}")
+            log_info(f"Processing Geltungsbereich layer: {layer}")
             geometry = self.geltungsbereich_geometries[layer]
             self.add_geometries(msp, [geometry], layer, close=True)
             return
         elif layer in self.exclusion_geometries:
-            print(f"Processing exclusion layer: {layer}")
+            log_info(f"Processing exclusion layer: {layer}")
             geometry = self.exclusion_geometries[layer]
             self.add_geometries(msp, [geometry], layer, close=True)
         elif layer in [wmts['name'] for wmts in self.wmts]:
-            print(f"Processing WMTS layer: {layer}")
+            log_info(f"Processing WMTS layer: {layer}")
             wmts_info = next(wmts for wmts in self.wmts if wmts['name'] == layer)
             target_folder = self.resolve_full_path(wmts_info['targetFolder'])
             os.makedirs(target_folder, exist_ok=True)
-            print(f"Updating WMTS tiles for layer '{layer}'")
+            log_info(f"Updating WMTS tiles for layer '{layer}'")
             
             # Combine all Geltungsbereich geometries
             combined_geometry = unary_union([geom for geom in self.geltungsbereich_geometries.values()])
@@ -651,22 +722,22 @@ class ProjectProcessor:
                                 gdf['label'] = gdf[label_column].astype(str)  # Ensure label is a string
                                 self.add_text_to_center(msp, gdf, layer)  # Use the same layer for labels
                             else:
-                                print_warning(f"Label column '{label_column}' not found in shapefile for layer '{layer}'")
+                                log_warning(f"Label column '{label_column}' not found in shapefile for layer '{layer}'")
                     else:
-                        print_error(f"Shapefile for layer '{layer}' not found: {shapefile_path}")
+                        log_error(f"Shapefile for layer '{layer}' not found: {shapefile_path}")
                 else:
                     # Layer without shapefile, possibly a dynamically created layer (like buffer layers)
-                    print(f"Layer '{layer}' has no associated shapefile. It may be created dynamically.")
+                    log_info(f"Layer '{layer}' has no associated shapefile. It may be created dynamically.")
             else:
-                print_warning(f"Layer '{layer}' not found in project settings")
+                log_warning(f"Layer '{layer}' not found in project settings")
 
         # Set layer properties
         self.add_layer(self.doc, layer)
 
-        print(f"Finished processing layer: {layer}")
+        log_info(f"Finished processing layer: {layer}")
 
     def main(self):
-        print(f"Starting processing for project: {self.project_settings['name']}")
+        log_info(f"Starting processing for project: {self.project_settings['name']}")
         self.create_geltungsbereich_layers()
         self.create_clip_distance_layers()
         self.create_buffer_distance_layers()
@@ -682,7 +753,7 @@ class ProjectProcessor:
                     gdf = gpd.read_file(shapefile_path)
                     all_geometries[layer['name']] = gdf.geometry.tolist()
                 else:
-                    print(f"Warning: Shapefile not found for layer '{layer['name']}': {shapefile_path}")
+                    log_warning(f"Warning: Shapefile not found for layer '{layer['name']}': {shapefile_path}")
 
         # Create offset layers using pre-loaded geometries
         self.create_offset_layers(all_geometries)
@@ -699,14 +770,14 @@ class ProjectProcessor:
         os.makedirs(os.path.dirname(self.dxf_filename), exist_ok=True)
 
         if self.export_format == 'dwg':
-            print(f"Exporting to DWG: {self.dxf_filename.replace('.dxf', '.dwg')}")
+            log_info(f"Exporting to DWG: {self.dxf_filename.replace('.dxf', '.dwg')}")
             doc.header['$PROJECTNAME'] = ''
             odafc.export_dwg(doc, self.dxf_filename.replace('.dxf', '.dwg'))
         else:
-            print(f"Saving DXF file: {self.dxf_filename}")
+            log_info(f"Saving DXF file: {self.dxf_filename}")
             doc.saveas(self.dxf_filename)
 
-        print("Processing complete.")
+        log_info("Processing complete.")
 
     def add_layer_properties(self, layer_name, layer_info):
         color = self.get_color_code(layer_info.get('color', 'White'))
@@ -729,7 +800,7 @@ class ProjectProcessor:
         return any(layer['name'] == layer_name for layer in self.project_settings['dxfLayers'])
 
     def create_clip_distance_layers(self):
-        print("Starting to create clip distance layers...")
+        log_info("Starting to create clip distance layers...")
         self.clip_geometries = {}
         for layer in self.clip_distance_layers:
             input_shapefile = self.resolve_full_path(layer['shapeFile'])
@@ -738,9 +809,9 @@ class ProjectProcessor:
 
             # Only process if there's a corresponding layer in the 'dxfLayers' section
             if self.has_corresponding_layer(layer_name):
-                print(f"Processing clip distance layer: {layer_name}")
-                print(f"Input shapefile: {input_shapefile}")
-                print(f"Buffer distance: {buffer_distance}")
+                log_info(f"Processing clip distance layer: {layer_name}")
+                log_info(f"Input shapefile: {input_shapefile}")
+                log_info(f"Buffer distance: {buffer_distance}")
 
                 # Load the input shapefile
                 gdf = gpd.read_file(input_shapefile)
@@ -751,14 +822,14 @@ class ProjectProcessor:
                 # Store the buffered geometry
                 self.clip_geometries[layer_name] = buffered.unary_union
 
-                print(f"Created clip distance geometry for layer: {layer_name}")
+                log_info(f"Created clip distance geometry for layer: {layer_name}")
             else:
-                print(f"Skipping clip distance layer '{layer_name}' as it has no corresponding entry in 'dxfLayers'")
+                log_info(f"Skipping clip distance layer '{layer_name}' as it has no corresponding entry in 'dxfLayers'")
 
-        print("Finished creating clip distance layers.")
+        log_info("Finished creating clip distance layers.")
 
     def create_buffer_distance_layers(self):
-        print("Creating buffer distance layers...")
+        log_info("Creating buffer distance layers...")
         self.buffer_geometries = {}
         for buffer_layer in self.buffer_distance_layers:
             input_shapefile = self.resolve_full_path(buffer_layer['shapeFile'])
@@ -783,11 +854,11 @@ class ProjectProcessor:
                     # Store the buffered geometry
                     self.buffer_geometries[layer_name] = clipped_buffer
                 
-                    print(f"Created buffer for layer: {layer_name}")
+                    log_info(f"Created buffer for layer: {layer_name}")
                 except Exception as e:
-                    print(f"Error creating buffer for layer {layer_name}: {str(e)}")
+                    log_error(f"Error creating buffer for layer {layer_name}: {str(e)}")
             else:
-                print(f"Skipping buffer distance layer '{layer_name}' as it has no corresponding entry in 'dxfLayers'")
+                log_info(f"Skipping buffer distance layer '{layer_name}' as it has no corresponding entry in 'dxfLayers'")
 
     def get_combined_geltungsbereich(self):
         if not hasattr(self, 'geltungsbereich_geometries'):
@@ -795,37 +866,37 @@ class ProjectProcessor:
         return unary_union(list(self.geltungsbereich_geometries.values()))
 
     def create_geltungsbereich_layers(self):
-        print("Starting to create Geltungsbereich layers...")
+        log_info("Starting to create Geltungsbereich layers...")
         self.geltungsbereich_geometries = {}
         for geltungsbereich in self.geltungsbereich_layers:
             layer_name = geltungsbereich['layerName']
-            print(f"Processing Geltungsbereich layer: {layer_name}")
+            log_info(f"Processing Geltungsbereich layer: {layer_name}")
             
             combined_geometry = None
             for coverage_index, coverage in enumerate(geltungsbereich['coverages']):
-                print(f"  Processing coverage {coverage_index + 1}")
+                log_info(f"  Processing coverage {coverage_index + 1}")
                 coverage_geometry = None
                 for layer in coverage['layers']:
                     layer_name = layer['name']
                     value_list = layer['valueList']
-                    print(f"    Processing layer: {layer_name}")
-                    print(f"    Value list: {value_list}")
+                    log_info(f"    Processing layer: {layer_name}")
+                    log_info(f"    Value list: {value_list}")
                     
                     if layer_name not in self.shapefiles:
-                        print(f"    Warning: Layer '{layer_name}' not found in shapefiles.")
+                        log_warning(f"    Warning: Layer '{layer_name}' not found in shapefiles.")
                         continue
                     
                     gdf = self.shapefiles[layer_name]
                     label_column = self.shapefile_labels.get(layer_name)
                     if not label_column:
-                        print(f"    Warning: Label column for layer '{layer_name}' not found.")
+                        log_warning(f"    Warning: Label column for layer '{layer_name}' not found.")
                         continue
                     
-                    print(f"    Label column: {label_column}")
-                    print(f"    Unique values in label column: {gdf[label_column].unique()}")
+                    log_info(f"    Label column: {label_column}")
+                    log_info(f"    Unique values in label column: {gdf[label_column].unique()}")
                     
                     filtered_gdf = gdf[gdf[label_column].isin(value_list)]
-                    print(f"    Filtered GeoDataFrame size: {len(filtered_gdf)}")
+                    log_info(f"    Filtered GeoDataFrame size: {len(filtered_gdf)}")
                     
                     if coverage_geometry is None:
                         coverage_geometry = filtered_gdf.unary_union
@@ -838,7 +909,7 @@ class ProjectProcessor:
                     else:
                         combined_geometry = combined_geometry.union(coverage_geometry)
                 else:
-                    print(f"    Warning: No geometry created for coverage {coverage_index + 1}")
+                    log_warning(f"    Warning: No geometry created for coverage {coverage_index + 1}")
         
             if combined_geometry:
                 # Clip with all layers in clipDistanceLayers
@@ -854,14 +925,14 @@ class ProjectProcessor:
                     combined_geometry = combined_geometry.difference(clip_geometry)
                 
                 self.geltungsbereich_geometries[geltungsbereich['layerName']] = combined_geometry
-                print(f"Created Geltungsbereich layer: {geltungsbereich['layerName']}")
+                log_info(f"Created Geltungsbereich layer: {geltungsbereich['layerName']}")
             else:
-                print(f"Warning: No geometry created for Geltungsbereich layer: {geltungsbereich['layerName']}")
+                log_warning(f"Warning: No geometry created for Geltungsbereich layer: {geltungsbereich['layerName']}")
         
-        print("Finished creating Geltungsbereich layers.")
+        log_info("Finished creating Geltungsbereich layers.")
 
     def create_offset_layers(self, base_geometries):
-        print("Starting to create offset layers...")
+        log_info("Starting to create offset layers...")
         self.offset_geometries = {}
         for layer in self.offset_layers:
             layer_name = layer['name']
@@ -869,44 +940,53 @@ class ProjectProcessor:
             offset_distance = layer['offsetDistance']
 
             if self.has_corresponding_layer(layer_name):
-                print(f"Processing offset layer: {layer_name}")
-                print(f"Layer to offset: {layer_to_offset}")
-                print(f"Offset distance: {offset_distance}")
+                log_info(f"Processing offset layer: {layer_name}")
+                log_info(f"Layer to offset: {layer_to_offset}")
+                log_info(f"Offset distance: {offset_distance}")
 
                 if layer_to_offset not in base_geometries:
-                    print(f"Warning: Base layer '{layer_to_offset}' not found in loaded geometries")
+                    log_warning(f"Warning: Base layer '{layer_to_offset}' not found in loaded geometries")
                     continue
 
                 offset_geometries = []
                 for base_geometry in base_geometries[layer_to_offset]:
-                    print(f"Processing geometry: {base_geometry.geom_type}")
+                    log_info(f"Processing geometry: {base_geometry.geom_type}")
                     try:
                         if isinstance(base_geometry, (Polygon, MultiPolygon)):
-                            outer_offset = base_geometry.buffer(offset_distance, join_style=2).exterior
-                            inner_offset = base_geometry.buffer(-offset_distance, join_style=2)
-                            if not inner_offset.is_empty:
-                                inner_offset = inner_offset.exterior
-                            offset_geometries.extend([outer_offset, inner_offset])
+                            # Create positive and negative buffers
+                            outer_buffer = base_geometry.buffer(offset_distance, join_style=2)
+                            inner_buffer = base_geometry.buffer(-offset_distance, join_style=2)
+                            
+                            # Extract the boundaries
+                            outer_boundary = outer_buffer.boundary
+                            inner_boundary = inner_buffer.boundary if not inner_buffer.is_empty else None
+                            
+                            # Add boundaries to offset geometries
+                            offset_geometries.append(outer_boundary)
+                            if inner_boundary:
+                                offset_geometries.append(inner_boundary)
                         elif isinstance(base_geometry, (LineString, MultiLineString)):
                             right_offset = base_geometry.parallel_offset(offset_distance, 'right', join_style=2)
                             left_offset = base_geometry.parallel_offset(offset_distance, 'left', join_style=2)
                             offset_geometries.extend([right_offset, left_offset])
                         else:
-                            print(f"Warning: Unsupported geometry type for offset: {base_geometry.geom_type}")
+                            log_warning(f"Warning: Unsupported geometry type for offset: {base_geometry.geom_type}")
                     except Exception as e:
-                        print(f"Error creating offset for geometry: {str(e)}")
+                        log_error(f"Error creating offset for geometry: {str(e)}")
 
                 if offset_geometries:
                     # Combine all offset geometries into a single MultiLineString
-                    combined_offset = MultiLineString(offset_geometries)
+                    combined_offset = unary_union(offset_geometries)
+                    if not isinstance(combined_offset, MultiLineString):
+                        combined_offset = MultiLineString([combined_offset])
                     self.offset_geometries[layer_name] = combined_offset
-                    print(f"Created offset geometry for layer: {layer_name}")
+                    log_info(f"Created offset geometry for layer: {layer_name}")
                 else:
-                    print(f"Warning: No valid offset geometries created for layer '{layer_name}'")
+                    log_warning(f"Warning: No valid offset geometries created for layer '{layer_name}'")
             else:
-                print(f"Skipping offset layer '{layer_name}' as it has no corresponding entry in 'dxfLayers'")
+                log_info(f"Skipping offset layer '{layer_name}' as it has no corresponding entry in 'dxfLayers'")
 
-        print("Finished creating offset layers.")
+        log_info("Finished creating offset layers.")
 
     def update_layer_info(self, layer_name, shapefile_path, layer_info):
         # Update project settings
@@ -922,14 +1002,14 @@ class ProjectProcessor:
         # Update layer properties
         self.add_layer_properties(layer_name, new_layer)
 
-        print(f"Updated project settings and layer properties for: {layer_name}")
+        log_info(f"Updated project settings and layer properties for: {layer_name}")
 
     def process_layers(self, layers_to_process=None):
         try:
             doc = ezdxf.readfile(self.dxf_filename)
-            print(f"Opened existing DXF file: {self.dxf_filename}")
+            log_info(f"Opened existing DXF file: {self.dxf_filename}")
         except FileNotFoundError:
-            print(f"DXF file not found. Creating a new file: {self.dxf_filename}")
+            log_info(f"DXF file not found. Creating a new file: {self.dxf_filename}")
             doc = ezdxf.new('R2018')  # Create a new DXF document
             doc.header['$INSUNITS'] = 6  # Set units to meters
 
@@ -953,27 +1033,27 @@ class ProjectProcessor:
 
         layers_to_process = layers_to_process or all_layers
 
-        print("Layers to process:", layers_to_process)
+        log_info("Layers to process:", layers_to_process)
 
         # Process layers in the order they appear in all_layers
         for layer in all_layers:
             if layer in layers_to_process:
-                print(f"Processing layer: {layer}")
+                log_info(f"Processing layer: {layer}")
                 self.process_single_layer(msp, layer)
 
         # Add buffer geometries to their respective layers
         for layer_name, geometry in self.buffer_geometries.items():
             if self.has_corresponding_layer(layer_name):
-                print(f"Adding buffer geometry to layer: {layer_name}")
+                log_info(f"Adding buffer geometry to layer: {layer_name}")
                 self.add_geometries(msp, geometry, layer_name, close=self.layer_properties[layer_name]['close'])
 
         # Add offset geometries to their respective layers
         for layer_name, geometry in self.offset_geometries.items():
             if layers_to_process is None or layer_name in layers_to_process:
-                print(f"Processing offset layer: {layer_name}")
-                print(f"Offset geometry type: {geometry.geom_type}")
-                print(f"Offset geometry is valid: {geometry.is_valid}")
-                print(f"Offset geometry is empty: {geometry.is_empty}")
+                log_info(f"Processing offset layer: {layer_name}")
+                log_info(f"Offset geometry type: {geometry.geom_type}")
+                log_info(f"Offset geometry is valid: {geometry.is_valid}")
+                log_info(f"Offset geometry is empty: {geometry.is_empty}")
                 close = self.layer_properties[layer_name].get('close', True)
                 self.add_geometries(msp, geometry, layer_name, close=close)
 
@@ -991,7 +1071,7 @@ class ProjectProcessor:
         new_layer.lock = properties['locked']
 
     def main(self):
-        print(f"Starting processing for project: {self.project_settings['name']}")
+        log_info(f"Starting processing for project: {self.project_settings['name']}")
         self.create_geltungsbereich_layers()
         self.create_clip_distance_layers()
         self.create_buffer_distance_layers()
@@ -1007,7 +1087,7 @@ class ProjectProcessor:
                     gdf = gpd.read_file(shapefile_path)
                     all_geometries[layer['name']] = gdf.geometry.tolist()
                 else:
-                    print(f"Warning: Shapefile not found for layer '{layer['name']}': {shapefile_path}")
+                    log_warning(f"Warning: Shapefile not found for layer '{layer['name']}': {shapefile_path}")
 
         # Create offset layers using pre-loaded geometries
         self.create_offset_layers(all_geometries)
@@ -1024,14 +1104,14 @@ class ProjectProcessor:
         os.makedirs(os.path.dirname(self.dxf_filename), exist_ok=True)
 
         if self.export_format == 'dwg':
-            print(f"Exporting to DWG: {self.dxf_filename.replace('.dxf', '.dwg')}")
+            log_info(f"Exporting to DWG: {self.dxf_filename.replace('.dxf', '.dwg')}")
             doc.header['$PROJECTNAME'] = ''
             odafc.export_dwg(doc, self.dxf_filename.replace('.dxf', '.dwg'))
         else:
-            print(f"Saving DXF file: {self.dxf_filename}")
+            log_info(f"Saving DXF file: {self.dxf_filename}")
             doc.saveas(self.dxf_filename)
 
-        print("Processing complete.")
+        log_info("Processing complete.")
 
 
 if __name__ == "__main__":
@@ -1045,7 +1125,7 @@ if __name__ == "__main__":
         processor.update_layers_list = args.update.split(',') if args.update else None
         processor.main()
     except ValueError as e:
-        print(e)
+        log_error(e)
 
 
 
