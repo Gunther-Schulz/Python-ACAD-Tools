@@ -107,6 +107,8 @@ class ProjectProcessor:
 
         self.exclusions = self.project_settings.get('exclusions', [])
 
+        self.all_layers = {}
+
         self.crs = self.project_settings['crs']
         self.dxf_filename = self.resolve_full_path(
             self.project_settings['dxfFilename'])
@@ -571,6 +573,7 @@ class ProjectProcessor:
 
         new_layer_name = exclusion['name']
         self.exclusion_geometries[new_layer_name] = exclusion_geom
+        self.all_layers[new_layer_name] = exclusion_geom  # Add to all_layers
         log_info(f"Created exclusion polygon: {new_layer_name}")
         return exclusion_geom
 
@@ -767,58 +770,20 @@ class ProjectProcessor:
             return unary_union(buffered_polys)
 
     def create_inner_buffer_layers(self):
-        log_info("Starting to create inner buffer layers...")
-        self.inner_buffer_geometries = {}
+        log_info(f"Available layers in self.all_layers: {list(self.all_layers.keys())}")
         for layer in self.inner_buffer_layers:
             layer_name = layer['name']
-            layer_to_buffer = layer['layerToBuffer']
+            base_layer_name = layer['layerToBuffer']
             buffer_distance = layer['bufferDistance']
 
-            if self.has_corresponding_layer(layer_name):
-                log_info(f"Processing inner buffer layer: {layer_name}")
-                log_info(f"Layer to buffer: {layer_to_buffer}")
-                log_info(f"Buffer distance: {buffer_distance}")
+            if base_layer_name not in self.all_layers:
+                log_warning(f"Warning: Base layer '{base_layer_name}' not found in created layers")
+                continue
 
-                if layer_to_buffer not in self.geltungsbereich_geometries:
-                    log_warning(f"Warning: Base layer '{layer_to_buffer}' not found in Geltungsbereich geometries")
-                    continue
-
-                base_geometry = self.geltungsbereich_geometries[layer_to_buffer]
-                try:
-                    inner_buffer = self.inner_buffer(base_geometry, buffer_distance)
-                    self.inner_buffer_geometries[layer_name] = inner_buffer
-                    log_info(f"Created inner buffer geometry for layer: {layer_name}")
-                    
-                    # Plot the original geometry and the buffer
-                    fig, ax = plt.subplots(figsize=(10, 10))
-                    
-                    # Plot original geometry
-                    if isinstance(base_geometry, (Polygon, MultiPolygon)):
-                        plot_polygon(base_geometry, ax=ax, add_points=False, color='blue', alpha=0.5)
-                    elif isinstance(base_geometry, (LineString, MultiLineString)):
-                        plot_line(base_geometry, ax=ax, add_points=False, color='blue', alpha=0.5)
-                    
-                    # Plot buffer
-                    if isinstance(inner_buffer, (Polygon, MultiPolygon)):
-                        plot_polygon(inner_buffer, ax=ax, add_points=False, color='red', alpha=0.5)
-                    elif isinstance(inner_buffer, (LineString, MultiLineString)):
-                        plot_line(inner_buffer, ax=ax, add_points=False, color='red', alpha=0.5)
-                    
-                    ax.set_aspect('equal')
-                    plt.title(f"Inner Buffer for {layer_name}")
-                    plt.legend(['Original Geometry', 'Inner Buffer'])
-                    
-                    # Display the plot
-                    # plt.show()
-                    
-                    log_info(f"Displayed plot for {layer_name}")
-                    
-                except Exception as e:
-                    log_error(f"Error creating inner buffer for layer {layer_name}: {str(e)}")
-            else:
-                log_info(f"Skipping inner buffer layer '{layer_name}' as it has no corresponding entry in 'dxfLayers'")
-
-        log_info("Finished creating inner buffer layers.")
+            base_geometry = self.all_layers[base_layer_name]
+            buffered_geometry = base_geometry.buffer(-buffer_distance)
+            self.all_layers[layer_name] = buffered_geometry
+            log_info(f"Created inner buffer layer: {layer_name}")
 
     def get_combined_geltungsbereich(self):
         if not hasattr(self, 'geltungsbereich_geometries'):
@@ -885,6 +850,7 @@ class ProjectProcessor:
                     combined_geometry = combined_geometry.difference(clip_geometry)
                 
                 self.geltungsbereich_geometries[geltungsbereich['layerName']] = combined_geometry
+                self.all_layers[geltungsbereich['layerName']] = combined_geometry  # Add to all_layers
                 log_info(f"Created Geltungsbereich layer: {geltungsbereich['layerName']}")
             else:
                 log_warning(f"Warning: No geometry created for Geltungsbereich layer: {geltungsbereich['layerName']}")
@@ -929,6 +895,7 @@ class ProjectProcessor:
                 if not isinstance(combined_offset, MultiLineString):
                     combined_offset = MultiLineString([combined_offset])
                 self.offset_geometries[layer_name] = combined_offset
+                self.all_layers[layer_name] = combined_offset  # Add to all_layers
                 log_info(f"Created offset geometry for layer: {layer_name}")
             else:
                 log_warning(f"No valid offset geometries created for layer '{layer_name}'")
@@ -1018,7 +985,6 @@ class ProjectProcessor:
         self.create_geltungsbereich_layers()
         self.create_clip_distance_layers()
         self.create_buffer_distance_layers()
-        self.create_inner_buffer_layers()
         
         # Load geometries for all layers
         all_geometries = {}
@@ -1034,9 +1000,12 @@ class ProjectProcessor:
         # Create offset layers using pre-loaded geometries
         self.create_offset_layers(all_geometries)
         
-        # Create exclusion polygons
+        # Create exclusion polygons (including Baufeld)
         for exclusion in self.exclusions:
             self.create_exclusion_polygon(exclusion)
+        
+        # Now create inner buffer layers after all other layers have been created
+        self.create_inner_buffer_layers()
         
         doc = self.process_layers(self.update_layers_list)
         
