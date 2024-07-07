@@ -1,36 +1,36 @@
-2024-07-06 09:53:50,365 - INFO - Unsetting PROJ_DATA (was set to: /home/g/.conda/envs/gis/share/proj)
-2024-07-06 09:53:50,365 - INFO - Set PROJ_LIB to: /usr/share/proj
-2024-07-06 09:53:50,365 - INFO - Set PROJ_NETWORK to OFF
-2024-07-06 09:53:50,365 - INFO - Current PROJ_LIB: /usr/share/proj
-2024-07-06 09:53:50,365 - INFO - Current PATH: /home/g/.conda/envs/gis/bin:/home/g/.conda/envs/gis/bin:/tmp/.mount_cursorM991Z0:/tmp/.mount_cursorM991Z0/usr/sbin:/home/g/.local/bin:/usr/local/bin:/usr/bin:/usr/local/sbin:/opt/cuda/bin:/opt/cuda/nsight_compute:/opt/cuda/nsight_systems/bin:/usr/lib/jvm/default/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl:/opt/cuda/bin
-2024-07-06 09:53:50,370 - INFO - PyProj data directory: /usr/share/proj
-2024-07-06 09:53:50,370 - INFO - PyProj version: 3.6.1
-2024-07-06 09:53:50,371 - INFO - Successfully created CRS object: EPSG:4326
-2024-07-06 09:53:50,373 - INFO - Successfully performed transformation: (0.0, 0.0)
-2024-07-06 09:53:50,373 - INFO - PROJ version (from pyproj): 9.3.0
-2024-07-06 09:53:50,409 - INFO - Loaded 1 Geltungsbereich layers:
-2024-07-06 09:53:50,409 - INFO -   - Geltungsbereich
-2024-07-06 09:53:50,466 - INFO - Loaded shapefile for layer: Flur
-2024-07-06 09:53:50,634 - INFO - Loaded shapefile for layer: Parcel
-2024-07-06 09:53:50,645 - INFO - Loaded shapefile for layer: Gemarkung
-2024-07-06 09:53:50,654 - INFO - Loaded shapefile for layer: Gemeinde
-2024-07-06 09:53:50,662 - INFO - Loaded shapefile for layer: Wald
-2024-07-06 09:53:50,669 - INFO - Loaded shapefile for layer: Biotope
-2024-07-06 09:53:50,669 - INFO - Starting to create clip distance layers...
-2024-07-06 09:53:50,669 - INFO - Processing clip distance layer: Straße Clip
-2024-07-06 09:53:50,669 - INFO - Input shapefile: /home/g/hidrive/Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/abstand.shp
-2024-07-06 09:53:50,670 - INFO - Buffer distance: 7
-2024-07-06 09:53:50,676 - INFO - Created clip distance geometry for layer: Straße Clip
-2024-07-06 09:53:50,677 - INFO - Skipping clip distance layer 'Wald Clip' as it has no corresponding entry in 'dxfLayers'
-2024-07-06 09:53:50,677 - INFO - Finished creating clip distance layers.
-2024-07-06 09:53:50,677 - INFO - Creating buffer distance layers...
-2024-07-06 09:53:50,684 - INFO - Starting to create Geltungsbereich layers...
-2024-07-06 09:53:50,684 - INFO - Processing Geltungsbereich layer: Geltungsbereich
-2024-07-06 09:53:50,684 - INFO -   Processing coverage 1
-2024-07-06 09:53:50,684 - INFO -     Processing layer: Parcel
-2024-07-06 09:53:50,684 - INFO -     Value list: ['104', '96', '95', '87/1']
-2024-07-06 09:53:50,684 - INFO -     Label column: label
-2024-07-06 09:53:50,684 - INFO -     Unique values in label column: ['15/3' '11/2' '14/2' '15/5' '16/4' '16/5' '16/1' '18/5' '19/7' '18/9'
+2024-07-07 10:57:06,823 - INFO - Unsetting PROJ_DATA (was set to: /home/g/.conda/envs/gis/share/proj)
+2024-07-07 10:57:06,823 - INFO - Set PROJ_LIB to: /usr/share/proj
+2024-07-07 10:57:06,823 - INFO - Set PROJ_NETWORK to OFF
+2024-07-07 10:57:06,823 - INFO - Current PROJ_LIB: /usr/share/proj
+2024-07-07 10:57:06,823 - INFO - Current PATH: /home/g/.conda/envs/gis/bin:/home/g/.conda/envs/gis/bin:/tmp/.mount_cursorM991Z0:/tmp/.mount_cursorM991Z0/usr/sbin:/home/g/.local/bin:/usr/local/bin:/usr/bin:/usr/local/sbin:/opt/cuda/bin:/opt/cuda/nsight_compute:/opt/cuda/nsight_systems/bin:/usr/lib/jvm/default/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl:/opt/cuda/bin
+2024-07-07 10:57:06,828 - INFO - PyProj data directory: /usr/share/proj
+2024-07-07 10:57:06,828 - INFO - PyProj version: 3.6.1
+2024-07-07 10:57:06,828 - INFO - Successfully created CRS object: EPSG:4326
+2024-07-07 10:57:06,831 - INFO - Successfully performed transformation: (0.0, 0.0)
+2024-07-07 10:57:06,831 - INFO - PROJ version (from pyproj): 9.3.0
+2024-07-07 10:57:06,864 - INFO - Loaded 1 Geltungsbereich layers:
+2024-07-07 10:57:06,864 - INFO -   - Geltungsbereich
+2024-07-07 10:57:06,917 - INFO - Loaded shapefile for layer: Flur
+2024-07-07 10:57:07,080 - INFO - Loaded shapefile for layer: Parcel
+2024-07-07 10:57:07,090 - INFO - Loaded shapefile for layer: Gemarkung
+2024-07-07 10:57:07,099 - INFO - Loaded shapefile for layer: Gemeinde
+2024-07-07 10:57:07,107 - INFO - Loaded shapefile for layer: Wald
+2024-07-07 10:57:07,114 - INFO - Loaded shapefile for layer: Biotope
+2024-07-07 10:57:07,114 - INFO - Starting to create clip distance layers...
+2024-07-07 10:57:07,114 - INFO - Processing clip distance layer: Straße Clip
+2024-07-07 10:57:07,114 - INFO - Input shapefile: /home/g/hidrive/Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/abstand.shp
+2024-07-07 10:57:07,114 - INFO - Buffer distance: 7
+2024-07-07 10:57:07,121 - INFO - Created clip distance geometry for layer: Straße Clip
+2024-07-07 10:57:07,121 - INFO - Skipping clip distance layer 'Wald Clip' as it has no corresponding entry in 'dxfLayers'
+2024-07-07 10:57:07,121 - INFO - Finished creating clip distance layers.
+2024-07-07 10:57:07,121 - INFO - Creating buffer distance layers...
+2024-07-07 10:57:07,129 - INFO - Starting to create Geltungsbereich layers...
+2024-07-07 10:57:07,129 - INFO - Processing Geltungsbereich layer: Geltungsbereich
+2024-07-07 10:57:07,129 - INFO -   Processing coverage 1
+2024-07-07 10:57:07,129 - INFO -     Processing layer: Parcel
+2024-07-07 10:57:07,129 - INFO -     Value list: ['104', '96', '95', '87/1']
+2024-07-07 10:57:07,129 - INFO -     Label column: label
+2024-07-07 10:57:07,129 - INFO -     Unique values in label column: ['15/3' '11/2' '14/2' '15/5' '16/4' '16/5' '16/1' '18/5' '19/7' '18/9'
  '20/4' '20/5' '21/1' '18/6' '18/7' '20/3' '17/3' '21/4' '35/4' '35/9'
  '35/6' '35/8' '39/14' '36/4' '40/5' '39/26' '35/13' '35/14' '40/13'
  '41/18' '40/8' '41/12' '40/10' '41/6' '42/3' '42/4' '43/5' '43/7' '43/3'
@@ -80,33 +80,33 @@
  '182/1' '185/1' '199/1' '188/1' '199/2' '195/1' '227' '184/1' '224' '225'
  '228' '230/2' '219/2' '231' '220' '232' '221' '230/1' '219/1' '233' '222'
  '241' '242/1' '223' '235' '236/1' '238' '286' '288' '329/2' '332' '330']
-2024-07-06 09:53:50,685 - INFO -     Filtered GeoDataFrame size: 5
-2024-07-06 09:53:50,685 - INFO -     Processing layer: Flur
-2024-07-06 09:53:50,685 - INFO -     Value list: ['Flur 2']
-2024-07-06 09:53:50,685 - INFO -     Label column: flurname
-2024-07-06 09:53:50,685 - INFO -     Unique values in label column: ['Flur 1' 'Flur 6' 'Flur 3' 'Flur 2' 'Flur 30' 'Flur 31' 'Flur 32']
-2024-07-06 09:53:50,685 - INFO -     Filtered GeoDataFrame size: 4
-2024-07-06 09:53:50,686 - INFO -     Processing layer: Gemarkung
-2024-07-06 09:53:50,686 - INFO -     Value list: ['Torgelow am See']
-2024-07-06 09:53:50,686 - INFO -     Label column: gmkname
-2024-07-06 09:53:50,686 - INFO -     Unique values in label column: ['Carlsruh' 'Groß Gievitz' 'Klein Gievitz' 'Neu Schloen' 'Schloen'
+2024-07-07 10:57:07,130 - INFO -     Filtered GeoDataFrame size: 5
+2024-07-07 10:57:07,130 - INFO -     Processing layer: Flur
+2024-07-07 10:57:07,130 - INFO -     Value list: ['Flur 2']
+2024-07-07 10:57:07,130 - INFO -     Label column: flurname
+2024-07-07 10:57:07,130 - INFO -     Unique values in label column: ['Flur 1' 'Flur 6' 'Flur 3' 'Flur 2' 'Flur 30' 'Flur 31' 'Flur 32']
+2024-07-07 10:57:07,130 - INFO -     Filtered GeoDataFrame size: 4
+2024-07-07 10:57:07,131 - INFO -     Processing layer: Gemarkung
+2024-07-07 10:57:07,131 - INFO -     Value list: ['Torgelow am See']
+2024-07-07 10:57:07,131 - INFO -     Label column: gmkname
+2024-07-07 10:57:07,131 - INFO -     Unique values in label column: ['Carlsruh' 'Groß Gievitz' 'Klein Gievitz' 'Neu Schloen' 'Schloen'
  'Schmachthagen' 'Torgelow am See' 'Jägerhof' 'Rügeband' 'Waren']
-2024-07-06 09:53:50,687 - INFO -     Filtered GeoDataFrame size: 1
-2024-07-06 09:53:50,687 - INFO -     Processing layer: Gemeinde
-2024-07-06 09:53:50,687 - INFO -     Value list: ['Torgelow am See']
-2024-07-06 09:53:50,687 - INFO -     Label column: gen
-2024-07-06 09:53:50,687 - INFO -     Unique values in label column: ['Peenehagen' 'Torgelow am See' 'Waren (Müritz), Stadt']
-2024-07-06 09:53:50,687 - INFO -     Filtered GeoDataFrame size: 1
-2024-07-06 09:53:50,701 - INFO - Created Geltungsbereich layer: Geltungsbereich
-2024-07-06 09:53:50,701 - INFO - Finished creating Geltungsbereich layers.
-2024-07-06 09:53:50,701 - INFO - Created buffer for layer: Wald Abstand
-2024-07-06 09:53:50,701 - INFO - Starting to create Geltungsbereich layers...
-2024-07-06 09:53:50,701 - INFO - Processing Geltungsbereich layer: Geltungsbereich
-2024-07-06 09:53:50,701 - INFO -   Processing coverage 1
-2024-07-06 09:53:50,701 - INFO -     Processing layer: Parcel
-2024-07-06 09:53:50,701 - INFO -     Value list: ['104', '96', '95', '87/1']
-2024-07-06 09:53:50,701 - INFO -     Label column: label
-2024-07-06 09:53:50,702 - INFO -     Unique values in label column: ['15/3' '11/2' '14/2' '15/5' '16/4' '16/5' '16/1' '18/5' '19/7' '18/9'
+2024-07-07 10:57:07,132 - INFO -     Filtered GeoDataFrame size: 1
+2024-07-07 10:57:07,132 - INFO -     Processing layer: Gemeinde
+2024-07-07 10:57:07,132 - INFO -     Value list: ['Torgelow am See']
+2024-07-07 10:57:07,132 - INFO -     Label column: gen
+2024-07-07 10:57:07,132 - INFO -     Unique values in label column: ['Peenehagen' 'Torgelow am See' 'Waren (Müritz), Stadt']
+2024-07-07 10:57:07,132 - INFO -     Filtered GeoDataFrame size: 1
+2024-07-07 10:57:07,146 - INFO - Created Geltungsbereich layer: Geltungsbereich
+2024-07-07 10:57:07,146 - INFO - Finished creating Geltungsbereich layers.
+2024-07-07 10:57:07,146 - INFO - Created buffer for layer: Wald Abstand
+2024-07-07 10:57:07,146 - INFO - Starting to create Geltungsbereich layers...
+2024-07-07 10:57:07,146 - INFO - Processing Geltungsbereich layer: Geltungsbereich
+2024-07-07 10:57:07,146 - INFO -   Processing coverage 1
+2024-07-07 10:57:07,146 - INFO -     Processing layer: Parcel
+2024-07-07 10:57:07,146 - INFO -     Value list: ['104', '96', '95', '87/1']
+2024-07-07 10:57:07,147 - INFO -     Label column: label
+2024-07-07 10:57:07,147 - INFO -     Unique values in label column: ['15/3' '11/2' '14/2' '15/5' '16/4' '16/5' '16/1' '18/5' '19/7' '18/9'
  '20/4' '20/5' '21/1' '18/6' '18/7' '20/3' '17/3' '21/4' '35/4' '35/9'
  '35/6' '35/8' '39/14' '36/4' '40/5' '39/26' '35/13' '35/14' '40/13'
  '41/18' '40/8' '41/12' '40/10' '41/6' '42/3' '42/4' '43/5' '43/7' '43/3'
@@ -156,57 +156,57 @@
  '182/1' '185/1' '199/1' '188/1' '199/2' '195/1' '227' '184/1' '224' '225'
  '228' '230/2' '219/2' '231' '220' '232' '221' '230/1' '219/1' '233' '222'
  '241' '242/1' '223' '235' '236/1' '238' '286' '288' '329/2' '332' '330']
-2024-07-06 09:53:50,702 - INFO -     Filtered GeoDataFrame size: 5
-2024-07-06 09:53:50,702 - INFO -     Processing layer: Flur
-2024-07-06 09:53:50,702 - INFO -     Value list: ['Flur 2']
-2024-07-06 09:53:50,702 - INFO -     Label column: flurname
-2024-07-06 09:53:50,702 - INFO -     Unique values in label column: ['Flur 1' 'Flur 6' 'Flur 3' 'Flur 2' 'Flur 30' 'Flur 31' 'Flur 32']
-2024-07-06 09:53:50,702 - INFO -     Filtered GeoDataFrame size: 4
-2024-07-06 09:53:50,703 - INFO -     Processing layer: Gemarkung
-2024-07-06 09:53:50,703 - INFO -     Value list: ['Torgelow am See']
-2024-07-06 09:53:50,703 - INFO -     Label column: gmkname
-2024-07-06 09:53:50,703 - INFO -     Unique values in label column: ['Carlsruh' 'Groß Gievitz' 'Klein Gievitz' 'Neu Schloen' 'Schloen'
+2024-07-07 10:57:07,147 - INFO -     Filtered GeoDataFrame size: 5
+2024-07-07 10:57:07,147 - INFO -     Processing layer: Flur
+2024-07-07 10:57:07,147 - INFO -     Value list: ['Flur 2']
+2024-07-07 10:57:07,147 - INFO -     Label column: flurname
+2024-07-07 10:57:07,147 - INFO -     Unique values in label column: ['Flur 1' 'Flur 6' 'Flur 3' 'Flur 2' 'Flur 30' 'Flur 31' 'Flur 32']
+2024-07-07 10:57:07,148 - INFO -     Filtered GeoDataFrame size: 4
+2024-07-07 10:57:07,149 - INFO -     Processing layer: Gemarkung
+2024-07-07 10:57:07,149 - INFO -     Value list: ['Torgelow am See']
+2024-07-07 10:57:07,149 - INFO -     Label column: gmkname
+2024-07-07 10:57:07,149 - INFO -     Unique values in label column: ['Carlsruh' 'Groß Gievitz' 'Klein Gievitz' 'Neu Schloen' 'Schloen'
  'Schmachthagen' 'Torgelow am See' 'Jägerhof' 'Rügeband' 'Waren']
-2024-07-06 09:53:50,704 - INFO -     Filtered GeoDataFrame size: 1
-2024-07-06 09:53:50,704 - INFO -     Processing layer: Gemeinde
-2024-07-06 09:53:50,704 - INFO -     Value list: ['Torgelow am See']
-2024-07-06 09:53:50,704 - INFO -     Label column: gen
-2024-07-06 09:53:50,704 - INFO -     Unique values in label column: ['Peenehagen' 'Torgelow am See' 'Waren (Müritz), Stadt']
-2024-07-06 09:53:50,704 - INFO -     Filtered GeoDataFrame size: 1
-2024-07-06 09:53:50,718 - INFO - Created Geltungsbereich layer: Geltungsbereich
-2024-07-06 09:53:50,718 - INFO - Finished creating Geltungsbereich layers.
-2024-07-06 09:53:50,948 - INFO - Starting to create offset layers...
-2024-07-06 09:53:50,948 - INFO - Processing offset layer: Flur Offset
-2024-07-06 09:53:50,948 - INFO - Layer to offset: Flur
-2024-07-06 09:53:50,948 - INFO - Offset distance: 10
-2024-07-06 09:53:50,948 - INFO - Processing geometry: Polygon
-2024-07-06 09:53:50,948 - INFO - Processing geometry: MultiPolygon
-2024-07-06 09:53:50,948 - INFO - Processing geometry: Polygon
-2024-07-06 09:53:50,949 - INFO - Processing geometry: Polygon
-2024-07-06 09:53:50,949 - INFO - Processing geometry: Polygon
-2024-07-06 09:53:50,949 - INFO - Processing geometry: Polygon
-2024-07-06 09:53:50,950 - INFO - Processing geometry: Polygon
-2024-07-06 09:53:50,950 - INFO - Processing geometry: Polygon
-2024-07-06 09:53:50,950 - INFO - Processing geometry: Polygon
-2024-07-06 09:53:50,950 - INFO - Processing geometry: Polygon
-2024-07-06 09:53:50,951 - INFO - Processing geometry: Polygon
-2024-07-06 09:53:50,951 - INFO - Processing geometry: Polygon
-2024-07-06 09:53:50,951 - INFO - Processing geometry: Polygon
-2024-07-06 09:53:50,951 - INFO - Processing geometry: Polygon
-2024-07-06 09:53:50,952 - INFO - Processing geometry: Polygon
-2024-07-06 09:53:50,952 - INFO - Processing geometry: Polygon
-2024-07-06 09:53:50,952 - INFO - Processing geometry: Polygon
-2024-07-06 09:53:50,952 - INFO - Processing geometry: Polygon
-2024-07-06 09:53:50,965 - INFO - Created offset geometry for layer: Flur Offset
-2024-07-06 09:53:50,965 - INFO - Finished creating offset layers.
-2024-07-06 09:53:50,965 - INFO - Starting processing for project: Torgelow
-2024-07-06 09:53:50,965 - INFO - Starting to create Geltungsbereich layers...
-2024-07-06 09:53:50,965 - INFO - Processing Geltungsbereich layer: Geltungsbereich
-2024-07-06 09:53:50,965 - INFO -   Processing coverage 1
-2024-07-06 09:53:50,965 - INFO -     Processing layer: Parcel
-2024-07-06 09:53:50,965 - INFO -     Value list: ['104', '96', '95', '87/1']
-2024-07-06 09:53:50,965 - INFO -     Label column: label
-2024-07-06 09:53:50,966 - INFO -     Unique values in label column: ['15/3' '11/2' '14/2' '15/5' '16/4' '16/5' '16/1' '18/5' '19/7' '18/9'
+2024-07-07 10:57:07,149 - INFO -     Filtered GeoDataFrame size: 1
+2024-07-07 10:57:07,149 - INFO -     Processing layer: Gemeinde
+2024-07-07 10:57:07,149 - INFO -     Value list: ['Torgelow am See']
+2024-07-07 10:57:07,149 - INFO -     Label column: gen
+2024-07-07 10:57:07,149 - INFO -     Unique values in label column: ['Peenehagen' 'Torgelow am See' 'Waren (Müritz), Stadt']
+2024-07-07 10:57:07,149 - INFO -     Filtered GeoDataFrame size: 1
+2024-07-07 10:57:07,163 - INFO - Created Geltungsbereich layer: Geltungsbereich
+2024-07-07 10:57:07,163 - INFO - Finished creating Geltungsbereich layers.
+2024-07-07 10:57:07,394 - INFO - Starting to create offset layers...
+2024-07-07 10:57:07,394 - INFO - Processing offset layer: Flur Offset
+2024-07-07 10:57:07,394 - INFO - Layer to offset: Flur
+2024-07-07 10:57:07,394 - INFO - Offset distance: 10
+2024-07-07 10:57:07,394 - INFO - Processing geometry: Polygon
+2024-07-07 10:57:07,394 - INFO - Processing geometry: MultiPolygon
+2024-07-07 10:57:07,394 - INFO - Processing geometry: Polygon
+2024-07-07 10:57:07,395 - INFO - Processing geometry: Polygon
+2024-07-07 10:57:07,395 - INFO - Processing geometry: Polygon
+2024-07-07 10:57:07,395 - INFO - Processing geometry: Polygon
+2024-07-07 10:57:07,396 - INFO - Processing geometry: Polygon
+2024-07-07 10:57:07,396 - INFO - Processing geometry: Polygon
+2024-07-07 10:57:07,396 - INFO - Processing geometry: Polygon
+2024-07-07 10:57:07,396 - INFO - Processing geometry: Polygon
+2024-07-07 10:57:07,397 - INFO - Processing geometry: Polygon
+2024-07-07 10:57:07,397 - INFO - Processing geometry: Polygon
+2024-07-07 10:57:07,397 - INFO - Processing geometry: Polygon
+2024-07-07 10:57:07,397 - INFO - Processing geometry: Polygon
+2024-07-07 10:57:07,398 - INFO - Processing geometry: Polygon
+2024-07-07 10:57:07,398 - INFO - Processing geometry: Polygon
+2024-07-07 10:57:07,398 - INFO - Processing geometry: Polygon
+2024-07-07 10:57:07,398 - INFO - Processing geometry: Polygon
+2024-07-07 10:57:07,411 - INFO - Created offset geometry for layer: Flur Offset
+2024-07-07 10:57:07,411 - INFO - Finished creating offset layers.
+2024-07-07 10:57:07,411 - INFO - Starting processing for project: Torgelow
+2024-07-07 10:57:07,411 - INFO - Starting to create Geltungsbereich layers...
+2024-07-07 10:57:07,411 - INFO - Processing Geltungsbereich layer: Geltungsbereich
+2024-07-07 10:57:07,411 - INFO -   Processing coverage 1
+2024-07-07 10:57:07,411 - INFO -     Processing layer: Parcel
+2024-07-07 10:57:07,411 - INFO -     Value list: ['104', '96', '95', '87/1']
+2024-07-07 10:57:07,411 - INFO -     Label column: label
+2024-07-07 10:57:07,411 - INFO -     Unique values in label column: ['15/3' '11/2' '14/2' '15/5' '16/4' '16/5' '16/1' '18/5' '19/7' '18/9'
  '20/4' '20/5' '21/1' '18/6' '18/7' '20/3' '17/3' '21/4' '35/4' '35/9'
  '35/6' '35/8' '39/14' '36/4' '40/5' '39/26' '35/13' '35/14' '40/13'
  '41/18' '40/8' '41/12' '40/10' '41/6' '42/3' '42/4' '43/5' '43/7' '43/3'
@@ -256,111 +256,113 @@
  '182/1' '185/1' '199/1' '188/1' '199/2' '195/1' '227' '184/1' '224' '225'
  '228' '230/2' '219/2' '231' '220' '232' '221' '230/1' '219/1' '233' '222'
  '241' '242/1' '223' '235' '236/1' '238' '286' '288' '329/2' '332' '330']
-2024-07-06 09:53:50,966 - INFO -     Filtered GeoDataFrame size: 5
-2024-07-06 09:53:50,966 - INFO -     Processing layer: Flur
-2024-07-06 09:53:50,966 - INFO -     Value list: ['Flur 2']
-2024-07-06 09:53:50,966 - INFO -     Label column: flurname
-2024-07-06 09:53:50,966 - INFO -     Unique values in label column: ['Flur 1' 'Flur 6' 'Flur 3' 'Flur 2' 'Flur 30' 'Flur 31' 'Flur 32']
-2024-07-06 09:53:50,966 - INFO -     Filtered GeoDataFrame size: 4
-2024-07-06 09:53:50,967 - INFO -     Processing layer: Gemarkung
-2024-07-06 09:53:50,968 - INFO -     Value list: ['Torgelow am See']
-2024-07-06 09:53:50,968 - INFO -     Label column: gmkname
-2024-07-06 09:53:50,968 - INFO -     Unique values in label column: ['Carlsruh' 'Groß Gievitz' 'Klein Gievitz' 'Neu Schloen' 'Schloen'
+2024-07-07 10:57:07,412 - INFO -     Filtered GeoDataFrame size: 5
+2024-07-07 10:57:07,412 - INFO -     Processing layer: Flur
+2024-07-07 10:57:07,412 - INFO -     Value list: ['Flur 2']
+2024-07-07 10:57:07,412 - INFO -     Label column: flurname
+2024-07-07 10:57:07,412 - INFO -     Unique values in label column: ['Flur 1' 'Flur 6' 'Flur 3' 'Flur 2' 'Flur 30' 'Flur 31' 'Flur 32']
+2024-07-07 10:57:07,412 - INFO -     Filtered GeoDataFrame size: 4
+2024-07-07 10:57:07,413 - INFO -     Processing layer: Gemarkung
+2024-07-07 10:57:07,413 - INFO -     Value list: ['Torgelow am See']
+2024-07-07 10:57:07,413 - INFO -     Label column: gmkname
+2024-07-07 10:57:07,413 - INFO -     Unique values in label column: ['Carlsruh' 'Groß Gievitz' 'Klein Gievitz' 'Neu Schloen' 'Schloen'
  'Schmachthagen' 'Torgelow am See' 'Jägerhof' 'Rügeband' 'Waren']
-2024-07-06 09:53:50,968 - INFO -     Filtered GeoDataFrame size: 1
-2024-07-06 09:53:50,968 - INFO -     Processing layer: Gemeinde
-2024-07-06 09:53:50,968 - INFO -     Value list: ['Torgelow am See']
-2024-07-06 09:53:50,968 - INFO -     Label column: gen
-2024-07-06 09:53:50,968 - INFO -     Unique values in label column: ['Peenehagen' 'Torgelow am See' 'Waren (Müritz), Stadt']
-2024-07-06 09:53:50,968 - INFO -     Filtered GeoDataFrame size: 1
-2024-07-06 09:53:50,983 - INFO - Created Geltungsbereich layer: Geltungsbereich
-2024-07-06 09:53:50,983 - INFO - Finished creating Geltungsbereich layers.
-2024-07-06 09:53:50,983 - INFO - Starting to create clip distance layers...
-2024-07-06 09:53:50,983 - INFO - Processing clip distance layer: Straße Clip
-2024-07-06 09:53:50,983 - INFO - Input shapefile: /home/g/hidrive/Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/abstand.shp
-2024-07-06 09:53:50,983 - INFO - Buffer distance: 7
-2024-07-06 09:53:50,990 - INFO - Created clip distance geometry for layer: Straße Clip
-2024-07-06 09:53:50,990 - INFO - Skipping clip distance layer 'Wald Clip' as it has no corresponding entry in 'dxfLayers'
-2024-07-06 09:53:50,990 - INFO - Finished creating clip distance layers.
-2024-07-06 09:53:50,990 - INFO - Creating buffer distance layers...
-2024-07-06 09:53:50,998 - INFO - Created buffer for layer: Wald Abstand
-2024-07-06 09:53:51,202 - INFO - Starting to create offset layers...
-2024-07-06 09:53:51,203 - INFO - Processing offset layer: Flur Offset
-2024-07-06 09:53:51,203 - INFO - Layer to offset: Flur
-2024-07-06 09:53:51,203 - INFO - Offset distance: 10
-2024-07-06 09:53:51,203 - INFO - Processing geometry: Polygon
-2024-07-06 09:53:51,203 - INFO - Processing geometry: MultiPolygon
-2024-07-06 09:53:51,203 - INFO - Processing geometry: Polygon
-2024-07-06 09:53:51,203 - INFO - Processing geometry: Polygon
-2024-07-06 09:53:51,204 - INFO - Processing geometry: Polygon
-2024-07-06 09:53:51,204 - INFO - Processing geometry: Polygon
-2024-07-06 09:53:51,204 - INFO - Processing geometry: Polygon
-2024-07-06 09:53:51,205 - INFO - Processing geometry: Polygon
-2024-07-06 09:53:51,205 - INFO - Processing geometry: Polygon
-2024-07-06 09:53:51,205 - INFO - Processing geometry: Polygon
-2024-07-06 09:53:51,206 - INFO - Processing geometry: Polygon
-2024-07-06 09:53:51,206 - INFO - Processing geometry: Polygon
-2024-07-06 09:53:51,206 - INFO - Processing geometry: Polygon
-2024-07-06 09:53:51,206 - INFO - Processing geometry: Polygon
-2024-07-06 09:53:51,207 - INFO - Processing geometry: Polygon
-2024-07-06 09:53:51,207 - INFO - Processing geometry: Polygon
-2024-07-06 09:53:51,207 - INFO - Processing geometry: Polygon
-2024-07-06 09:53:51,207 - INFO - Processing geometry: Polygon
-2024-07-06 09:53:51,219 - INFO - Created offset geometry for layer: Flur Offset
-2024-07-06 09:53:51,219 - INFO - Finished creating offset layers.
-2024-07-06 09:53:51,331 - INFO - Created exclusion polygon: Baufeld
-2024-07-06 09:53:51,927 - INFO - Opened existing DXF file: /home/g/hidrive/Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/Zeichnung/combined.dxf
-2024-07-06 09:53:51,927 - INFO - Layers to process: ['DOP', 'Basemap', 'Flur', 'Parcel', 'Gemarkung', 'Gemeinde', 'Wald', 'Biotope', 'Baufeld', 'Wald Abstand', 'Straße Clip', 'Flur Offset', 'Geltungsbereich', 'Baufeld', 'Wald Abstand', 'Straße Clip', 'Geltungsbereich', 'Flur Offset']
-2024-07-06 09:53:51,927 - INFO - Processing layer: DOP
-2024-07-06 09:53:51,938 - INFO - Processing WMTS layer: DOP
-2024-07-06 09:53:51,938 - INFO - Updating WMTS tiles for layer 'DOP'
-2024-07-06 09:53:52,993 - INFO - Finished processing layer: DOP
-2024-07-06 09:53:52,993 - INFO - Processing layer: Basemap
-2024-07-06 09:53:53,005 - INFO - Processing WMTS layer: Basemap
-2024-07-06 09:53:53,005 - INFO - Updating WMTS tiles for layer 'Basemap'
-2024-07-06 09:53:53,888 - INFO - Finished processing layer: Basemap
-2024-07-06 09:53:53,888 - INFO - Processing layer: Flur
-2024-07-06 09:53:53,925 - INFO - Finished processing layer: Flur
-2024-07-06 09:53:53,925 - INFO - Processing layer: Parcel
-2024-07-06 09:53:54,222 - INFO - Finished processing layer: Parcel
-2024-07-06 09:53:54,222 - INFO - Processing layer: Gemarkung
-2024-07-06 09:53:54,299 - INFO - Finished processing layer: Gemarkung
-2024-07-06 09:53:54,300 - INFO - Processing layer: Gemeinde
-2024-07-06 09:53:54,326 - INFO - Finished processing layer: Gemeinde
-2024-07-06 09:53:54,326 - INFO - Processing layer: Wald
-2024-07-06 09:53:54,344 - INFO - Finished processing layer: Wald
-2024-07-06 09:53:54,344 - INFO - Processing layer: Biotope
-2024-07-06 09:53:54,363 - INFO - Finished processing layer: Biotope
-2024-07-06 09:53:54,363 - INFO - Processing layer: Baufeld
-2024-07-06 09:53:54,373 - INFO - Processing exclusion layer: Baufeld
-2024-07-06 09:53:54,374 - INFO - Finished processing layer: Baufeld
-2024-07-06 09:53:54,374 - INFO - Processing layer: Wald Abstand
-2024-07-06 09:53:54,384 - INFO - Layer 'Wald Abstand' has no associated shapefile. It may be created dynamically.
-2024-07-06 09:53:54,384 - INFO - Finished processing layer: Wald Abstand
-2024-07-06 09:53:54,384 - INFO - Processing layer: Straße Clip
-2024-07-06 09:53:54,384 - INFO - Processing clip distance layer: Straße Clip
-2024-07-06 09:53:54,384 - INFO - Processing layer: Flur Offset
-2024-07-06 09:53:54,708 - INFO - Layer 'Flur Offset' has no associated shapefile. It may be created dynamically.
-2024-07-06 09:53:54,708 - INFO - Finished processing layer: Flur Offset
-2024-07-06 09:53:54,708 - INFO - Processing layer: Geltungsbereich
-2024-07-06 09:53:54,717 - INFO - Processing Geltungsbereich layer: Geltungsbereich
-2024-07-06 09:53:54,718 - INFO - Processing layer: Baufeld
-2024-07-06 09:53:54,726 - INFO - Processing exclusion layer: Baufeld
-2024-07-06 09:53:54,727 - INFO - Finished processing layer: Baufeld
-2024-07-06 09:53:54,727 - INFO - Processing layer: Wald Abstand
-2024-07-06 09:53:54,734 - INFO - Layer 'Wald Abstand' has no associated shapefile. It may be created dynamically.
-2024-07-06 09:53:54,734 - INFO - Finished processing layer: Wald Abstand
-2024-07-06 09:53:54,734 - INFO - Processing layer: Straße Clip
-2024-07-06 09:53:54,734 - INFO - Processing clip distance layer: Straße Clip
-2024-07-06 09:53:54,735 - INFO - Processing layer: Geltungsbereich
-2024-07-06 09:53:54,742 - INFO - Processing Geltungsbereich layer: Geltungsbereich
-2024-07-06 09:53:54,742 - INFO - Processing layer: Flur Offset
-2024-07-06 09:53:54,751 - INFO - Layer 'Flur Offset' has no associated shapefile. It may be created dynamically.
-2024-07-06 09:53:54,751 - INFO - Finished processing layer: Flur Offset
-2024-07-06 09:53:54,751 - INFO - Adding buffer geometry to layer: Wald Abstand
-2024-07-06 09:53:54,752 - INFO - Processing offset layer: Flur Offset
-2024-07-06 09:53:54,752 - INFO - Offset geometry type: MultiLineString
-2024-07-06 09:53:54,753 - INFO - Offset geometry is valid: True
-2024-07-06 09:53:54,753 - INFO - Offset geometry is empty: False
-2024-07-06 09:53:54,836 - INFO - Saving DXF file: /home/g/hidrive/Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/Zeichnung/combined.dxf
-2024-07-06 09:53:55,328 - INFO - Processing complete.
+2024-07-07 10:57:07,414 - INFO -     Filtered GeoDataFrame size: 1
+2024-07-07 10:57:07,414 - INFO -     Processing layer: Gemeinde
+2024-07-07 10:57:07,414 - INFO -     Value list: ['Torgelow am See']
+2024-07-07 10:57:07,414 - INFO -     Label column: gen
+2024-07-07 10:57:07,414 - INFO -     Unique values in label column: ['Peenehagen' 'Torgelow am See' 'Waren (Müritz), Stadt']
+2024-07-07 10:57:07,414 - INFO -     Filtered GeoDataFrame size: 1
+2024-07-07 10:57:07,429 - INFO - Created Geltungsbereich layer: Geltungsbereich
+2024-07-07 10:57:07,429 - INFO - Finished creating Geltungsbereich layers.
+2024-07-07 10:57:07,429 - INFO - Starting to create clip distance layers...
+2024-07-07 10:57:07,429 - INFO - Processing clip distance layer: Straße Clip
+2024-07-07 10:57:07,429 - INFO - Input shapefile: /home/g/hidrive/Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/abstand.shp
+2024-07-07 10:57:07,429 - INFO - Buffer distance: 7
+2024-07-07 10:57:07,435 - INFO - Created clip distance geometry for layer: Straße Clip
+2024-07-07 10:57:07,435 - INFO - Skipping clip distance layer 'Wald Clip' as it has no corresponding entry in 'dxfLayers'
+2024-07-07 10:57:07,436 - INFO - Finished creating clip distance layers.
+2024-07-07 10:57:07,436 - INFO - Creating buffer distance layers...
+2024-07-07 10:57:07,443 - INFO - Created buffer for layer: Wald Abstand
+2024-07-07 10:57:07,643 - INFO - Starting to create offset layers...
+2024-07-07 10:57:07,643 - INFO - Processing offset layer: Flur Offset
+2024-07-07 10:57:07,643 - INFO - Layer to offset: Flur
+2024-07-07 10:57:07,643 - INFO - Offset distance: 10
+2024-07-07 10:57:07,643 - INFO - Processing geometry: Polygon
+2024-07-07 10:57:07,643 - INFO - Processing geometry: MultiPolygon
+2024-07-07 10:57:07,644 - INFO - Processing geometry: Polygon
+2024-07-07 10:57:07,644 - INFO - Processing geometry: Polygon
+2024-07-07 10:57:07,644 - INFO - Processing geometry: Polygon
+2024-07-07 10:57:07,644 - INFO - Processing geometry: Polygon
+2024-07-07 10:57:07,645 - INFO - Processing geometry: Polygon
+2024-07-07 10:57:07,645 - INFO - Processing geometry: Polygon
+2024-07-07 10:57:07,645 - INFO - Processing geometry: Polygon
+2024-07-07 10:57:07,645 - INFO - Processing geometry: Polygon
+2024-07-07 10:57:07,646 - INFO - Processing geometry: Polygon
+2024-07-07 10:57:07,646 - INFO - Processing geometry: Polygon
+2024-07-07 10:57:07,646 - INFO - Processing geometry: Polygon
+2024-07-07 10:57:07,646 - INFO - Processing geometry: Polygon
+2024-07-07 10:57:07,647 - INFO - Processing geometry: Polygon
+2024-07-07 10:57:07,647 - INFO - Processing geometry: Polygon
+2024-07-07 10:57:07,647 - INFO - Processing geometry: Polygon
+2024-07-07 10:57:07,647 - INFO - Processing geometry: Polygon
+2024-07-07 10:57:07,659 - INFO - Created offset geometry for layer: Flur Offset
+2024-07-07 10:57:07,659 - INFO - Finished creating offset layers.
+2024-07-07 10:57:07,769 - INFO - Created exclusion polygon: Baufeld
+2024-07-07 10:57:07,962 - INFO - Opened existing DXF file: /home/g/hidrive/Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/Zeichnung/combined.dxf
+2024-07-07 10:57:07,963 - INFO - Layers to process: ['DOP', 'Basemap', 'Flur', 'Parcel', 'Gemarkung', 'Gemeinde', 'Wald', 'Biotope', 'Baufeld', 'Wald Abstand', 'Straße Clip', 'Flur Offset', 'Geltungsbereich', 'Baufeld', 'Wald Abstand', 'Straße Clip', 'Geltungsbereich', 'Flur Offset']
+2024-07-07 10:57:07,963 - INFO - Processing layer: DOP
+2024-07-07 10:57:07,967 - INFO - Processing WMTS layer: DOP
+2024-07-07 10:57:07,967 - INFO - Updating WMTS tiles for layer 'DOP'
+2024-07-07 10:57:09,035 - INFO - Finished processing layer: DOP
+2024-07-07 10:57:09,035 - INFO - Processing layer: Basemap
+2024-07-07 10:57:09,039 - INFO - Processing WMTS layer: Basemap
+2024-07-07 10:57:09,039 - INFO - Updating WMTS tiles for layer 'Basemap'
+2024-07-07 10:57:10,229 - INFO - Finished processing layer: Basemap
+2024-07-07 10:57:10,229 - INFO - Processing layer: Flur
+2024-07-07 10:57:10,262 - INFO - Finished processing layer: Flur
+2024-07-07 10:57:10,262 - INFO - Processing layer: Parcel
+2024-07-07 10:57:10,520 - INFO - Finished processing layer: Parcel
+2024-07-07 10:57:10,520 - INFO - Processing layer: Gemarkung
+2024-07-07 10:57:10,552 - INFO - Finished processing layer: Gemarkung
+2024-07-07 10:57:10,552 - INFO - Processing layer: Gemeinde
+2024-07-07 10:57:10,571 - INFO - Finished processing layer: Gemeinde
+2024-07-07 10:57:10,571 - INFO - Processing layer: Wald
+2024-07-07 10:57:10,582 - INFO - Finished processing layer: Wald
+2024-07-07 10:57:10,582 - INFO - Processing layer: Biotope
+2024-07-07 10:57:10,593 - INFO - Finished processing layer: Biotope
+2024-07-07 10:57:10,593 - INFO - Processing layer: Baufeld
+2024-07-07 10:57:10,596 - INFO - Processing exclusion layer: Baufeld
+2024-07-07 10:57:10,596 - WARNING - [93mWarning: Warning: Unsupported geometry type: GeometryCollection[0m
+2024-07-07 10:57:10,596 - INFO - Finished processing layer: Baufeld
+2024-07-07 10:57:10,596 - INFO - Processing layer: Wald Abstand
+2024-07-07 10:57:10,599 - INFO - Layer 'Wald Abstand' has no associated shapefile. It may be created dynamically.
+2024-07-07 10:57:10,599 - INFO - Finished processing layer: Wald Abstand
+2024-07-07 10:57:10,599 - INFO - Processing layer: Straße Clip
+2024-07-07 10:57:10,599 - INFO - Processing clip distance layer: Straße Clip
+2024-07-07 10:57:10,599 - INFO - Processing layer: Flur Offset
+2024-07-07 10:57:10,621 - INFO - Layer 'Flur Offset' has no associated shapefile. It may be created dynamically.
+2024-07-07 10:57:10,621 - INFO - Finished processing layer: Flur Offset
+2024-07-07 10:57:10,621 - INFO - Processing layer: Geltungsbereich
+2024-07-07 10:57:10,622 - INFO - Processing Geltungsbereich layer: Geltungsbereich
+2024-07-07 10:57:10,622 - INFO - Processing layer: Baufeld
+2024-07-07 10:57:10,624 - INFO - Processing exclusion layer: Baufeld
+2024-07-07 10:57:10,624 - WARNING - [93mWarning: Warning: Unsupported geometry type: GeometryCollection[0m
+2024-07-07 10:57:10,624 - INFO - Finished processing layer: Baufeld
+2024-07-07 10:57:10,624 - INFO - Processing layer: Wald Abstand
+2024-07-07 10:57:10,625 - INFO - Layer 'Wald Abstand' has no associated shapefile. It may be created dynamically.
+2024-07-07 10:57:10,625 - INFO - Finished processing layer: Wald Abstand
+2024-07-07 10:57:10,625 - INFO - Processing layer: Straße Clip
+2024-07-07 10:57:10,625 - INFO - Processing clip distance layer: Straße Clip
+2024-07-07 10:57:10,625 - INFO - Processing layer: Geltungsbereich
+2024-07-07 10:57:10,627 - INFO - Processing Geltungsbereich layer: Geltungsbereich
+2024-07-07 10:57:10,627 - INFO - Processing layer: Flur Offset
+2024-07-07 10:57:10,628 - INFO - Layer 'Flur Offset' has no associated shapefile. It may be created dynamically.
+2024-07-07 10:57:10,628 - INFO - Finished processing layer: Flur Offset
+2024-07-07 10:57:10,628 - INFO - Adding buffer geometry to layer: Wald Abstand
+2024-07-07 10:57:10,629 - INFO - Processing offset layer: Flur Offset
+2024-07-07 10:57:10,629 - INFO - Offset geometry type: MultiLineString
+2024-07-07 10:57:10,629 - INFO - Offset geometry is valid: True
+2024-07-07 10:57:10,629 - INFO - Offset geometry is empty: False
+2024-07-07 10:57:10,708 - INFO - Saving DXF file: /home/g/hidrive/Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/Zeichnung/combined.dxf
+2024-07-07 10:57:10,882 - INFO - Processing complete.

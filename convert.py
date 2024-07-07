@@ -223,119 +223,6 @@ class ProjectProcessor:
         # Create offset layers
         self.create_offset_layers(all_geometries)
 
-    def create_geltungsbereich_layers(self):
-        log_info("Starting to create Geltungsbereich layers...")
-        self.geltungsbereich_geometries = {}
-        for geltungsbereich in self.geltungsbereich_layers:
-            layer_name = geltungsbereich['layerName']
-            log_info(f"Processing Geltungsbereich layer: {layer_name}")
-            
-            combined_geometry = None
-            for coverage_index, coverage in enumerate(geltungsbereich['coverages']):
-                log_info(f"  Processing coverage {coverage_index + 1}")
-                coverage_geometry = None
-                for layer in coverage['layers']:
-                    layer_name = layer['name']
-                    value_list = layer['valueList']
-                    log_info(f"    Processing layer: {layer_name}")
-                    log_info(f"    Value list: {value_list}")
-                    
-                    if layer_name not in self.shapefiles:
-                        log_warning(f"    Warning: Layer '{layer_name}' not found in shapefiles.")
-                        continue
-                    
-                    gdf = self.shapefiles[layer_name]
-                    label_column = self.shapefile_labels.get(layer_name)
-                    if not label_column:
-                        log_warning(f"    Warning: Label column for layer '{layer_name}' not found.")
-                        continue
-                    
-                    log_info(f"    Label column: {label_column}")
-                    log_info(f"    Unique values in label column: {gdf[label_column].unique()}")
-                    
-                    filtered_gdf = gdf[gdf[label_column].isin(value_list)]
-                    log_info(f"    Filtered GeoDataFrame size: {len(filtered_gdf)}")
-                    
-                    if coverage_geometry is None:
-                        coverage_geometry = filtered_gdf.unary_union
-                    else:
-                        coverage_geometry = coverage_geometry.intersection(filtered_gdf.unary_union)
-                
-                if coverage_geometry:
-                    if combined_geometry is None:
-                        combined_geometry = coverage_geometry
-                    else:
-                        combined_geometry = combined_geometry.union(coverage_geometry)
-                else:
-                    log_warning(f"    Warning: No geometry created for coverage {coverage_index + 1}")
-            
-            if combined_geometry:
-                # Clip with all layers in clipDistanceLayers
-                for clip_layer in self.clip_distance_layers:
-                    clip_shapefile = self.resolve_full_path(clip_layer['shapeFile'])
-                    clip_gdf = gpd.read_file(clip_shapefile)
-                    
-                    if clip_layer['bufferDistance'] > 0:
-                        clip_geometry = clip_gdf.geometry.buffer(clip_layer['bufferDistance']).unary_union
-                    else:
-                        clip_geometry = clip_gdf.geometry.unary_union
-                    
-                    combined_geometry = combined_geometry.difference(clip_geometry)
-                
-                self.geltungsbereich_geometries[layer_name] = combined_geometry
-                log_info(f"Created Geltungsbereich layer: {layer_name}")
-            else:
-                log_warning(f"Warning: No geometry created for Geltungsbereich layer: {layer_name}")
-        
-        log_info("Finished creating Geltungsbereich layers.")
-
-    def create_offset_layers(self, base_geometries):
-        log_info("Starting to create offset layers...")
-        self.offset_geometries = {}
-        for layer in self.offset_layers:
-            layer_name = layer['name']
-            layer_to_offset = layer['layerToOffset']
-            offset_distance = layer['offsetDistance']
-
-            if self.has_corresponding_layer(layer_name):
-                log_info(f"Processing offset layer: {layer_name}")
-                log_info(f"Layer to offset: {layer_to_offset}")
-                log_info(f"Offset distance: {offset_distance}")
-
-                if layer_to_offset not in base_geometries:
-                    log_warning(f"Warning: Base layer '{layer_to_offset}' not found in loaded geometries")
-                    continue
-
-                offset_geometries = []
-                for base_geometry in base_geometries[layer_to_offset]:
-                    log_info(f"Processing geometry: {base_geometry.geom_type}")
-                    try:
-                        if isinstance(base_geometry, (Polygon, MultiPolygon)):
-                            outer_offset = base_geometry.buffer(offset_distance, join_style=2).exterior
-                            inner_offset = base_geometry.buffer(-offset_distance, join_style=2)
-                            if not inner_offset.is_empty:
-                                inner_offset = inner_offset.exterior
-                            offset_geometries.extend([outer_offset, inner_offset])
-                        elif isinstance(base_geometry, (LineString, MultiLineString)):
-                            right_offset = base_geometry.parallel_offset(offset_distance, 'right', join_style=2)
-                            left_offset = base_geometry.parallel_offset(offset_distance, 'left', join_style=2)
-                            offset_geometries.extend([right_offset, left_offset])
-                        else:
-                            log_warning(f"Warning: Unsupported geometry type for offset: {base_geometry.geom_type}")
-                    except Exception as e:
-                        log_error(f"Error creating offset for geometry: {str(e)}")
-
-                if offset_geometries:
-                    # Combine all offset geometries into a single MultiLineString
-                    combined_offset = MultiLineString(offset_geometries)
-                    self.offset_geometries[layer_name] = combined_offset
-                    log_info(f"Created offset geometry for layer: {layer_name}")
-                else:
-                    log_warning(f"Warning: No valid offset geometries created for layer '{layer_name}'")
-            else:
-                log_info(f"Skipping offset layer '{layer_name}' as it has no corresponding entry in 'dxfLayers'")
-
-        log_info("Finished creating offset layers.")
 
     def find_layer_by_name(self, layer_name):
         """Find a layer in the project settings by its name."""
@@ -736,48 +623,6 @@ class ProjectProcessor:
 
         log_info(f"Finished processing layer: {layer}")
 
-    def main(self):
-        log_info(f"Starting processing for project: {self.project_settings['name']}")
-        self.create_geltungsbereich_layers()
-        self.create_clip_distance_layers()
-        self.create_buffer_distance_layers()
-
-        # Dictionary to store geometries of all layers
-        all_geometries = {}
-
-        # Load geometries for all layers
-        for layer in self.project_settings['dxfLayers']:
-            if 'shapeFile' in layer:
-                shapefile_path = self.resolve_full_path(layer['shapeFile'])
-                if os.path.exists(shapefile_path):
-                    gdf = gpd.read_file(shapefile_path)
-                    all_geometries[layer['name']] = gdf.geometry.tolist()
-                else:
-                    log_warning(f"Warning: Shapefile not found for layer '{layer['name']}': {shapefile_path}")
-
-        # Create offset layers using pre-loaded geometries
-        self.create_offset_layers(all_geometries)
-        
-        # Process exclusions
-        self.exclusion_geometries = {}
-        for exclusion in self.exclusions:
-            if self.has_corresponding_layer(exclusion['name']):
-                self.create_exclusion_polygon(exclusion)
-        
-        doc = self.process_layers(self.update_layers_list)
-        
-        # Ensure the directory exists
-        os.makedirs(os.path.dirname(self.dxf_filename), exist_ok=True)
-
-        if self.export_format == 'dwg':
-            log_info(f"Exporting to DWG: {self.dxf_filename.replace('.dxf', '.dwg')}")
-            doc.header['$PROJECTNAME'] = ''
-            odafc.export_dwg(doc, self.dxf_filename.replace('.dxf', '.dwg'))
-        else:
-            log_info(f"Saving DXF file: {self.dxf_filename}")
-            doc.saveas(self.dxf_filename)
-
-        log_info("Processing complete.")
 
     def add_layer_properties(self, layer_name, layer_info):
         color = self.get_color_code(layer_info.get('color', 'White'))
@@ -1058,17 +903,6 @@ class ProjectProcessor:
                 self.add_geometries(msp, geometry, layer_name, close=close)
 
         return doc
-
-    def add_layer(self, doc, layer_name):
-        base_layer = layer_name.split('_')[0]  # Get the base layer name (e.g., 'WMTS DOP' from 'WMTS DOP_Hauptgeltungsbereich')
-        properties = self.layer_properties.get(base_layer, {'color': 7, 'locked': False})
-        if layer_name not in doc.layers:
-            new_layer = doc.layers.new(name=layer_name)
-        else:
-            new_layer = doc.layers.get(layer_name)
-        
-        new_layer.color = properties['color']
-        new_layer.lock = properties['locked']
 
     def main(self):
         log_info(f"Starting processing for project: {self.project_settings['name']}")
