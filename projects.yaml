@@ -62,6 +62,10 @@ projects:
         color: "Red"
         locked: false
         close: true
+      - name: Baugrenze
+        color: "Blue"
+        locked: false
+        close: true
     geltungsbereichLayers:
       - layerName: Geltungsbereich
         coverages:
@@ -95,6 +99,10 @@ projects:
       - name: Flur Offset
         layerToOffset: Flur
         offsetDistance: 10
+    innerBufferLayers:
+      - name: Baugrenze
+        layerToBuffer: Geltungsbereich
+        bufferDistance: -3
     wmts:
       - name: DOP
         url: "https://www.geodaten-mv.de/dienste/dop_wmts/wmts/1.0.0/WMTSCapabilities.xml"

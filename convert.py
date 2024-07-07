@@ -376,36 +376,43 @@ class ProjectProcessor:
             geometries = [geometries]
         
         for geom in geometries:
-            if geom.geom_type in ['LineString', 'MultiLineString']:
-                lines = geom.geoms if geom.geom_type == 'MultiLineString' else [geom]
-                for line in lines:
-                    points = list(line.coords)
-                    if close and points[0] != points[-1]:
-                        points.append(points[0])  # Close the linestring if it's not already closed
+            if geom.geom_type == 'GeometryCollection':
+                for subgeom in geom.geoms:
+                    self.add_single_geometry(msp, subgeom, layer_name, close)
+            else:
+                self.add_single_geometry(msp, geom, layer_name, close)
+
+    def add_single_geometry(self, msp, geom, layer_name, close):
+        if geom.geom_type in ['LineString', 'MultiLineString']:
+            lines = geom.geoms if geom.geom_type == 'MultiLineString' else [geom]
+            for line in lines:
+                points = list(line.coords)
+                if close and points[0] != points[-1]:
+                    points.append(points[0])  # Close the linestring if it's not already closed
                     msp.add_lwpolyline(points, dxfattribs={'layer': layer_name})
-            elif geom.geom_type == 'Polygon':
-                points = list(geom.exterior.coords)
+        elif geom.geom_type == 'Polygon':
+            points = list(geom.exterior.coords)
+            if close:
+                points.append(points[0])  # Close the polygon
+            msp.add_lwpolyline(points, dxfattribs={'layer': layer_name})
+            for interior in geom.interiors:
+                points = list(interior.coords)
+                if close:
+                    points.append(points[0])  # Close the interior ring
+                msp.add_lwpolyline(points, dxfattribs={'layer': layer_name})
+        elif geom.geom_type == 'MultiPolygon':
+            for poly in geom.geoms:
+                points = list(poly.exterior.coords)
                 if close:
                     points.append(points[0])  # Close the polygon
                 msp.add_lwpolyline(points, dxfattribs={'layer': layer_name})
-                for interior in geom.interiors:
+                for interior in poly.interiors:
                     points = list(interior.coords)
                     if close:
                         points.append(points[0])  # Close the interior ring
                     msp.add_lwpolyline(points, dxfattribs={'layer': layer_name})
-            elif geom.geom_type == 'MultiPolygon':
-                for poly in geom.geoms:
-                    points = list(poly.exterior.coords)
-                    if close:
-                        points.append(points[0])  # Close the polygon
-                    msp.add_lwpolyline(points, dxfattribs={'layer': layer_name})
-                    for interior in poly.interiors:
-                        points = list(interior.coords)
-                        if close:
-                            points.append(points[0])  # Close the interior ring
-                        msp.add_lwpolyline(points, dxfattribs={'layer': layer_name})
-            else:
-                log_warning(f"Warning: Unsupported geometry type: {geom.geom_type}")
+        else:
+            log_warning(f"Warning: Unsupported geometry type: {geom.geom_type}")
 
     def add_layer(self, doc, layer_name):
         base_layer = layer_name.split('_')[0]  # Get the base layer name (e.g., 'WMTS DOP' from 'WMTS DOP_Hauptgeltungsbereich')
@@ -704,6 +711,39 @@ class ProjectProcessor:
                     log_error(f"Error creating buffer for layer {layer_name}: {str(e)}")
             else:
                 log_info(f"Skipping buffer distance layer '{layer_name}' as it has no corresponding entry in 'dxfLayers'")
+
+    from shapely.geometry import Polygon, MultiPolygon
+    from shapely.ops import unary_union
+
+    def inner_buffer(geometry, distance):
+        """
+        Perform an inner buffer on a geometry, including holes.
+        
+        :param geometry: A Shapely geometry (Polygon or MultiPolygon)
+        :param distance: The buffer distance (negative for inward buffer)
+        :return: The buffered geometry
+        """
+        if not isinstance(geometry, (Polygon, MultiPolygon)):
+            raise ValueError("Input geometry must be a Polygon or MultiPolygon")
+
+        def buffer_polygon(poly):
+            # Buffer the exterior
+            exterior_ring = poly.exterior
+            buffered_exterior = exterior_ring.buffer(distance)
+
+            # Buffer each interior (hole) outwards
+            buffered_interiors = [interior.buffer(-distance) for interior in poly.interiors]
+
+            # Subtract the buffered interiors from the buffered exterior
+            result = buffered_exterior.difference(unary_union(buffered_interiors))
+
+            return result
+
+        if isinstance(geometry, Polygon):
+            return buffer_polygon(geometry)
+        elif isinstance(geometry, MultiPolygon):
+                buffered_polys = [buffer_polygon(poly) for poly in geometry.geoms]
+                return unary_union(buffered_polys)
 
     def get_combined_geltungsbereich(self):
         if not hasattr(self, 'geltungsbereich_geometries'):
