@@ -43,9 +43,6 @@ projects:
         color: "Green"
         close: true
         locked: false
-      - name: Baufeld
-        color: "Red"
-        locked: false
       - name: Wald Abstand
         color: "Light Green"
         close: true
@@ -62,6 +59,9 @@ projects:
         color: "Red"
         locked: false
         close: true
+      - name: Baufeld
+        color: "Red"
+        locked: false
       - name: Baugrenze
         color: "Blue"
         locked: false
@@ -101,8 +101,8 @@ projects:
         offsetDistance: 10
     innerBufferLayers:
       - name: Baugrenze
-        layerToBuffer: Geltungsbereich
-        bufferDistance: -3
+        layerToBuffer: Baufeld
+        bufferDistance: 3
     wmts:
       - name: DOP
         url: "https://www.geodaten-mv.de/dienste/dop_wmts/wmts/1.0.0/WMTSCapabilities.xml"
