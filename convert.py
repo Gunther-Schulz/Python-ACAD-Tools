@@ -214,19 +214,17 @@ class ProjectProcessor:
         self.create_geltungsbereich_layers()
 
         # Load geometries for all layers
-        all_geometries = {}
         for layer in self.project_settings['dxfLayers']:
             if 'shapeFile' in layer:
                 shapefile_path = self.resolve_full_path(layer['shapeFile'])
                 if os.path.exists(shapefile_path):
                     gdf = gpd.read_file(shapefile_path)
-                    all_geometries[layer['name']] = gdf.geometry.tolist()
+                    self.all_layers[layer['name']] = gdf.geometry
                 else:
                     log_warning(f"Shapefile not found for layer '{layer['name']}': {shapefile_path}")
 
         # Create offset layers
-        self.create_offset_layers(all_geometries)
-        self.exclusion_geometries = {}
+        self.create_offset_layers(self.all_layers)
 
         self.inner_buffer_layers = self.project_settings.get('innerBufferLayers', [])
 
@@ -250,8 +248,35 @@ class ProjectProcessor:
 
     def load_shapefile(self, file_path: str) -> gpd.GeoDataFrame:
         gdf = gpd.read_file(file_path)
-        gdf = gdf.set_crs(self.crs, allow_override=True)
+        gdf = self.standardize_layer_crs(os.path.splitext(os.path.basename(file_path))[0], gdf)
         return gdf
+
+
+    def standardize_layer_crs(self, layer_name, geometry_or_gdf):
+        target_crs = self.crs  # Assuming self.crs is your project's target CRS
+        log_info(f"Standardizing CRS for layer: {layer_name}")
+
+        if isinstance(geometry_or_gdf, gpd.GeoDataFrame):
+            log_info(f"Original CRS: {geometry_or_gdf.crs}")
+            if geometry_or_gdf.crs is None:
+                log_warning(f"Layer {layer_name} has no CRS. Setting to target CRS: {target_crs}")
+                geometry_or_gdf.set_crs(target_crs, inplace=True)
+            elif geometry_or_gdf.crs != target_crs:
+                log_info(f"Transforming layer {layer_name} from {geometry_or_gdf.crs} to {target_crs}")
+                geometry_or_gdf = geometry_or_gdf.to_crs(target_crs)
+            log_info(f"Final CRS for layer {layer_name}: {geometry_or_gdf.crs}")
+            return geometry_or_gdf
+        elif isinstance(geometry_or_gdf, gpd.GeoSeries):
+            return self.standardize_layer_crs(layer_name, gpd.GeoDataFrame(geometry=geometry_or_gdf))
+        elif isinstance(geometry_or_gdf, (Polygon, MultiPolygon, LineString, MultiLineString, Point)):
+            log_info(f"Processing individual geometry for layer: {layer_name}")
+            # For individual geometries, wrap in a GeoDataFrame, transform, and extract back
+            gdf = gpd.GeoDataFrame(geometry=[geometry_or_gdf], crs=target_crs)
+            log_info(f"Created GeoDataFrame with CRS: {gdf.crs}")
+            return gdf.geometry.iloc[0]
+        else:
+            log_warning(f"Unsupported type for layer {layer_name}: {type(geometry_or_gdf)}")
+            return geometry_or_gdf
 
     def parcel_missing(self, gdf: gpd.GeoDataFrame, coverage: dict) -> set:
         return set(coverage["parcelList"]).difference(gdf[self.shapefile_labels['Parcel']])
@@ -378,68 +403,72 @@ class ProjectProcessor:
         log_info(f"Geometry type: {type(geometries)}")
         
         if isinstance(geometries, gpd.GeoSeries):
+            log_info("Converting GeoSeries to list")
             geometries = geometries.tolist()
+        elif isinstance(geometries, gpd.GeoDataFrame):
+            log_info("Converting GeoDataFrame to list of geometries")
+            geometries = geometries.geometry.tolist()
         elif not isinstance(geometries, list):
+            log_info("Converting single geometry to list")
             geometries = [geometries]
         
-        for geometry in geometries:
-            log_info(f"Processing geometry: {type(geometry)}")
+        log_info(f"Number of geometries to process: {len(geometries)}")
+        
+        for i, geometry in enumerate(geometries):
+            log_info(f"Processing geometry {i+1}/{len(geometries)}: {type(geometry)}")
+            try:
+                if geometry is None:
+                    log_warning(f"Null geometry encountered in layer: {layer}")
+                    continue
+                if isinstance(geometry, gpd.GeoSeries):
+                    log_info("Processing GeoSeries")
+                    for sub_geom in geometry:
+                        self.add_single_geometry(msp, sub_geom, layer, close)
+                elif isinstance(geometry, gpd.GeoDataFrame):
+                    log_info("Processing GeoDataFrame")
+                    for _, row in geometry.iterrows():
+                        self.add_single_geometry(msp, row.geometry, layer, close)
+                else:
+                    self.add_single_geometry(msp, geometry, layer, close)
+            except Exception as e:
+                log_error(f"Error processing geometry {i+1} in layer {layer}: {str(e)}")
+                log_error(f"Geometry details: {geometry}")
+
+    def add_single_geometry(self, msp, geometry, layer, close):
+        try:
+            if geometry is None or geometry.is_empty:
+                log_warning(f"Empty geometry encountered in layer: {layer}")
+                return
+            
             if isinstance(geometry, Polygon):
-                self.add_polyline(msp, geometry.exterior.coords, layer, close=close)
-                for interior in geometry.interiors:
-                    self.add_polyline(msp, interior.coords, layer, close=close)
+                self.add_polygon(msp, geometry, layer, close)
             elif isinstance(geometry, MultiPolygon):
-                for polygon in geometry.geoms:
-                    self.add_polyline(msp, polygon.exterior.coords, layer, close=close)
-                    for interior in polygon.interiors:
-                        self.add_polyline(msp, interior.coords, layer, close=close)
+                for poly in geometry.geoms:
+                    self.add_polygon(msp, poly, layer, close)
             elif isinstance(geometry, LineString):
-                self.add_polyline(msp, geometry.coords, layer, close=close)
+                self.add_polyline(msp, list(geometry.coords), layer, close)
             elif isinstance(geometry, MultiLineString):
-                for line in geometry:
-                    self.add_polyline(msp, line.coords, layer, close=close)
+                for line in geometry.geoms:
+                    self.add_polyline(msp, list(line.coords), layer, close)
             elif isinstance(geometry, Point):
                 self.add_point(msp, geometry, layer)
             elif isinstance(geometry, GeometryCollection):
                 for geom in geometry.geoms:
-                    self.add_geometries(msp, geom, layer, close)
+                    self.add_single_geometry(msp, geom, layer, close)
             else:
-                log_warning(f"Unsupported geometry type: {type(geometry)}")
-
-    def add_single_geometry(self, msp, geom, layer_name, close):
-        if geom is None or geom.is_empty:
-            log_warning(f"Empty geometry encountered for layer '{layer_name}'. Skipping.")
-            return
-
-        try:
-            if geom.geom_type in ['LineString', 'MultiLineString']:
-                lines = geom.geoms if geom.geom_type == 'MultiLineString' else [geom]
-                for line in lines:
-                    points = list(line.coords)
-                    if close and points[0] != points[-1]:
-                        points.append(points[0])  # Close the linestring if it's not already closed
-                    self.add_polyline(msp, points, layer_name)
-            elif geom.geom_type == 'Polygon':
-                exterior_points = list(geom.exterior.coords)
-                if close:
-                    exterior_points.append(exterior_points[0])  # Close the polygon
-                self.add_polyline(msp, exterior_points, layer_name)
-                for interior in geom.interiors:
-                    interior_points = list(interior.coords)
-                    if close:
-                        interior_points.append(interior_points[0])  # Close the interior ring
-                    self.add_polyline(msp, interior_points, layer_name)
-            elif geom.geom_type == 'MultiPolygon':
-                for poly in geom.geoms:
-                    self.add_single_geometry(msp, poly, layer_name, close)
-            else:
-                log_warning(f"Unsupported geometry type: {geom.geom_type}")
+                log_warning(f"Unsupported geometry type in layer {layer}: {type(geometry)}")
         except Exception as e:
-            log_error(f"Error adding geometry to layer '{layer_name}': {str(e)}")
+            log_error(f"Error adding single geometry to layer {layer}: {str(e)}")
+            log_error(f"Geometry details: {geometry}")
+
+    def add_polygon(self, msp, polygon, layer, close):
+        self.add_polyline(msp, list(polygon.exterior.coords), layer, close)
+        for interior in polygon.interiors:
+            self.add_polyline(msp, list(interior.coords), layer, close)
 
     def add_polyline(self, msp, coords, layer, close=False):
         points = [coord[:2] for coord in coords]  # Use only x and y coordinates
-        if close:
+        if close and points[0] != points[-1]:
             points.append(points[0])  # Close the polyline by adding the first point at the end
         msp.add_lwpolyline(points, dxfattribs={'layer': layer, 'color': self.colors.get(layer, 1)})
 
@@ -524,11 +553,13 @@ class ProjectProcessor:
 
             # Load the shapefile
             gdf = self.load_shapefile(shapefile)
+            gdf = self.standardize_layer_crs(layer['name'], gdf)
 
             # Create buffer with square corners
             buffered = gdf.buffer(buffer_distance, join_style=2)
 
             # Reduce geltungsbereich
+            geom_to_clip = self.standardize_layer_crs(layer['name'], geom_to_clip)
             geom_to_clip = geom_to_clip.difference(buffered.unary_union)
 
         return geom_to_clip
@@ -537,12 +568,17 @@ class ProjectProcessor:
         # Ensure geom_to_buffer is a GeoDataFrame
         if isinstance(geom_to_buffer, gpd.GeoSeries):
             geom_to_buffer = gpd.GeoDataFrame(geometry=geom_to_buffer)
+        
+        # Standardize CRS for geom_to_buffer
+        geom_to_buffer = self.standardize_layer_crs(os.path.splitext(os.path.basename(geom_to_buffer.name))[0], geom_to_buffer)
 
         # Create buffer with square corners
         combined_buffer = geom_to_buffer.buffer(distance, join_style=2)
 
         # If a clipping geometry is provided, intersect the combined buffer with it
         if clipping_geom is not None:
+            # Standardize CRS for clipping_geom
+            clipping_geom = self.standardize_layer_crs(os.path.splitext(os.path.basename(clipping_geom.name))[0], clipping_geom)
             combined_buffer = combined_buffer.intersection(clipping_geom)
 
         return combined_buffer
@@ -550,30 +586,41 @@ class ProjectProcessor:
     def create_exclusion_polygon(self, exclusion):
         log_info(f"Creating exclusion polygon for: {exclusion['name']}")
         scope_layer = exclusion['scopeLayer']
-        if scope_layer not in self.geltungsbereich_geometries:
-            log_warning(f"Scope layer '{scope_layer}' not found in Geltungsbereich geometries")
+        if scope_layer not in self.all_layers:
+            log_warning(f"Scope layer '{scope_layer}' not found in created layers")
             return None
-
-        scope_geom = self.geltungsbereich_geometries[scope_layer]
+        scope_geom = self.all_layers[scope_layer]
+        scope_geom = self.standardize_layer_crs(scope_layer, scope_geom)
+        
+        # Ensure scope_geom is a GeoDataFrame
+        if not isinstance(scope_geom, gpd.GeoDataFrame):
+            scope_geom = gpd.GeoDataFrame(geometry=[scope_geom], crs=self.crs)
+        
         exclusion_geom = scope_geom
 
         for layer_name in exclusion['excludeLayers']:
             log_info(f"Processing exclude layer: {layer_name}")
-            if layer_name in self.buffer_geometries:
-                exclusion_geom = exclusion_geom.difference(self.buffer_geometries[layer_name])
-            elif layer_name in self.shapefiles:
-                layer_gdf = self.shapefiles[layer_name]
-                if isinstance(layer_gdf, gpd.GeoDataFrame):
-                    layer_geom = layer_gdf.geometry.unary_union
-                    exclusion_geom = exclusion_geom.difference(layer_geom)
-                else:
-                    log_warning(f"Layer '{layer_name}' is not a GeoDataFrame")
+            if layer_name in self.all_layers:
+                exclude_geom = self.all_layers[layer_name]
+                exclude_geom = self.standardize_layer_crs(layer_name, exclude_geom)
+                
+                # Handle different types of geometries
+                if isinstance(exclude_geom, gpd.GeoSeries):
+                    exclude_geom = gpd.GeoDataFrame(geometry=exclude_geom, crs=self.crs)
+                elif not isinstance(exclude_geom, gpd.GeoDataFrame):
+                    if isinstance(exclude_geom, (Polygon, MultiPolygon, LineString, MultiLineString)):
+                        exclude_geom = gpd.GeoDataFrame(geometry=[exclude_geom], crs=self.crs)
+                    else:
+                        log_warning(f"Unsupported geometry type for layer '{layer_name}': {type(exclude_geom)}")
+                        continue
+                
+                # Perform the difference operation
+                exclusion_geom = gpd.overlay(exclusion_geom, exclude_geom, how='difference')
             else:
-                log_warning(f"Exclusion layer '{layer_name}' not found in buffer geometries or shapefiles")
+                log_warning(f"Exclusion layer '{layer_name}' not found in created layers")
 
         new_layer_name = exclusion['name']
-        self.exclusion_geometries[new_layer_name] = exclusion_geom
-        self.all_layers[new_layer_name] = exclusion_geom  # Add to all_layers
+        self.all_layers[new_layer_name] = exclusion_geom
         log_info(f"Created exclusion polygon: {new_layer_name}")
         return exclusion_geom
 
@@ -586,7 +633,7 @@ class ProjectProcessor:
                 log_info(f"Skipping clip distance layer: {layer} as it has no corresponding entry in 'dxfLayers'")
                 return
             log_info(f"Processing clip distance layer: {layer}")
-            geometry = self.clip_geometries[layer]
+            geometry = self.all_layers[layer]
             self.add_geometries(msp, [geometry], layer, close=True)
             return
 
@@ -595,22 +642,11 @@ class ProjectProcessor:
             msp.delete_entity(entity)
 
         # Check if the layer is a Geltungsbereich layer
-        if layer in self.geltungsbereich_geometries:
-            log_info(f"Processing Geltungsbereich layer: {layer}")
-            geometry = self.geltungsbereich_geometries[layer]
+        if layer in self.all_layers:
+            log_info(f"Processing layer: {layer}")
+            geometry = self.all_layers[layer]
             self.add_geometries(msp, [geometry], layer, close=True)
             return
-        elif layer in self.exclusion_geometries:
-            log_info(f"Processing exclusion layer: {layer}")
-            geometry = self.exclusion_geometries[layer]
-            log_info(f"Exclusion geometry type: {type(geometry)}")
-            if isinstance(geometry, gpd.GeoSeries):
-                geometry = geometry.iloc[0] if not geometry.empty else None
-            if geometry is not None:
-                log_info(f"Exclusion geometry: {geometry}")
-                self.add_geometries(msp, [geometry], layer, close=True)
-            else:
-                log_warning(f"Empty exclusion geometry for layer: {layer}")
         elif layer in [wmts['name'] for wmts in self.wmts]:
             log_info(f"Processing WMTS layer: {layer}")
             wmts_info = next(wmts for wmts in self.wmts if wmts['name'] == layer)
@@ -619,7 +655,7 @@ class ProjectProcessor:
             log_info(f"Updating WMTS tiles for layer '{layer}'")
             
             # Combine all Geltungsbereich geometries
-            combined_geometry = unary_union([geom for geom in self.geltungsbereich_geometries.values()])
+            combined_geometry = unary_union([geom for geom in self.all_layers.values() if isinstance(geom, (Polygon, MultiPolygon))])
             
             # Download tiles for the combined geometry
             tiles = download_wmts_tiles(wmts_info, combined_geometry, 500, target_folder, True)
@@ -680,7 +716,6 @@ class ProjectProcessor:
 
     def create_clip_distance_layers(self):
         log_info("Starting to create clip distance layers...")
-        self.clip_geometries = {}
         for layer in self.clip_distance_layers:
             input_shapefile = self.resolve_full_path(layer['shapeFile'])
             buffer_distance = layer['bufferDistance']
@@ -694,12 +729,13 @@ class ProjectProcessor:
 
                 # Load the input shapefile
                 gdf = gpd.read_file(input_shapefile)
+                gdf = self.standardize_layer_crs(layer_name, gdf)
 
                 # Create buffer with square corners
                 buffered = gdf.buffer(buffer_distance, join_style=2)
 
                 # Store the buffered geometry
-                self.clip_geometries[layer_name] = buffered.unary_union
+                self.all_layers[layer_name] = buffered.unary_union
 
                 log_info(f"Created clip distance geometry for layer: {layer_name}")
             else:
@@ -708,36 +744,19 @@ class ProjectProcessor:
         log_info("Finished creating clip distance layers.")
 
     def create_buffer_distance_layers(self):
-        log_info("Creating buffer distance layers...")
-        self.buffer_geometries = {}
-        for buffer_layer in self.buffer_distance_layers:
-            input_shapefile = self.resolve_full_path(buffer_layer['shapeFile'])
-            buffer_distance = buffer_layer['bufferDistance']
-            layer_name = buffer_layer['name']
-
-            # Only process if there's a corresponding layer in the 'dxfLayers' section
-            if self.has_corresponding_layer(layer_name):
-                try:
-                    # Load the input shapefile
-                    gdf = gpd.read_file(input_shapefile)
-                    
-                    # Create buffer with square corners
-                    buffered = gdf.buffer(buffer_distance, join_style=2)
-                    
-                    # Get the combined Geltungsbereich geometry
-                    geltungsbereich_geometry = self.get_combined_geltungsbereich()
-                    
-                    # Intersect the buffer with the Geltungsbereich
-                    clipped_buffer = buffered.intersection(geltungsbereich_geometry)
-                    
-                    # Store the buffered geometry
-                    self.buffer_geometries[layer_name] = clipped_buffer
-                
-                    log_info(f"Created buffer for layer: {layer_name}")
-                except Exception as e:
-                    log_error(f"Error creating buffer for layer {layer_name}: {str(e)}")
+        for layer in self.buffer_distance_layers:
+            layer_name = layer['name']
+            shapefile_path = self.resolve_full_path(layer['shapeFile'])
+            buffer_distance = layer['bufferDistance']
+            
+            if os.path.exists(shapefile_path):
+                gdf = gpd.read_file(shapefile_path)
+                gdf = self.standardize_layer_crs(layer_name, gdf)
+                buffered_geometry = gdf.geometry.buffer(buffer_distance)
+                self.all_layers[layer_name] = buffered_geometry
+                log_info(f"Created buffer for layer: {layer_name}")
             else:
-                log_info(f"Skipping buffer distance layer '{layer_name}' as it has no corresponding entry in 'dxfLayers'")
+                log_warning(f"Warning: Shapefile not found for layer '{layer_name}': {shapefile_path}")
 
     def inner_buffer(self, geometry, distance):
         """
@@ -786,13 +805,10 @@ class ProjectProcessor:
             log_info(f"Created inner buffer layer: {layer_name}")
 
     def get_combined_geltungsbereich(self):
-        if not hasattr(self, 'geltungsbereich_geometries'):
-                self.create_geltungsbereich_layers()
-        return unary_union(list(self.geltungsbereich_geometries.values()))
+        return unary_union([geom for geom in self.all_layers.values() if geom.geom_type in ['Polygon', 'MultiPolygon']])
 
     def create_geltungsbereich_layers(self):
         log_info("Starting to create Geltungsbereich layers...")
-        self.geltungsbereich_geometries = {}
         for geltungsbereich in self.geltungsbereich_layers:
             layer_name = geltungsbereich['layerName']
             log_info(f"Processing Geltungsbereich layer: {layer_name}")
@@ -849,8 +865,7 @@ class ProjectProcessor:
                     
                     combined_geometry = combined_geometry.difference(clip_geometry)
                 
-                self.geltungsbereich_geometries[geltungsbereich['layerName']] = combined_geometry
-                self.all_layers[geltungsbereich['layerName']] = combined_geometry  # Add to all_layers
+                self.all_layers[geltungsbereich['layerName']] = combined_geometry
                 log_info(f"Created Geltungsbereich layer: {geltungsbereich['layerName']}")
             else:
                 log_warning(f"Warning: No geometry created for Geltungsbereich layer: {geltungsbereich['layerName']}")
@@ -859,7 +874,6 @@ class ProjectProcessor:
 
     def create_offset_layers(self, base_geometries):
         log_info("Starting to create offset layers...")
-        self.offset_geometries = {}
         for layer in self.project_settings['dxfLayers']:
             if 'offsetDistance' not in layer:
                 continue  # Skip layers without offset
@@ -894,8 +908,7 @@ class ProjectProcessor:
                 combined_offset = unary_union(offset_geometries)
                 if not isinstance(combined_offset, MultiLineString):
                     combined_offset = MultiLineString([combined_offset])
-                self.offset_geometries[layer_name] = combined_offset
-                self.all_layers[layer_name] = combined_offset  # Add to all_layers
+                self.all_layers[layer_name] = combined_offset
                 log_info(f"Created offset geometry for layer: {layer_name}")
             else:
                 log_warning(f"No valid offset geometries created for layer '{layer_name}'")
@@ -940,7 +953,7 @@ class ProjectProcessor:
         all_layers.update([layer['name'] for layer in self.clip_distance_layers if self.has_corresponding_layer(layer['name'])])
         all_layers.update([layer['layerName'] for layer in self.geltungsbereich_layers])
         all_layers.update([layer['name'] for layer in self.offset_layers if self.has_corresponding_layer(layer['name'])])
-        all_layers.update(self.inner_buffer_geometries.keys())
+        all_layers.update(self.all_layers.keys())
 
         # Add any layers that are in all_layers but not in ordered_layers
         ordered_layers.extend([layer for layer in all_layers if layer not in ordered_layers])
@@ -955,29 +968,6 @@ class ProjectProcessor:
                 log_info(f"Processing layer: {layer}")
                 self.process_single_layer(msp, layer)
 
-        # Add buffer geometries to their respective layers
-        for layer_name, geometry in self.buffer_geometries.items():
-            if self.has_corresponding_layer(layer_name):
-                log_info(f"Adding buffer geometry to layer: {layer_name}")
-                self.add_geometries(msp, geometry, layer_name, close=self.layer_properties[layer_name]['close'])
-
-        # Add offset geometries to their respective layers
-        for layer_name, geometry in self.offset_geometries.items():
-            if layers_to_process is None or layer_name in layers_to_process:
-                log_info(f"Processing offset layer: {layer_name}")
-                log_info(f"Offset geometry type: {geometry.geom_type}")
-                log_info(f"Offset geometry is valid: {geometry.is_valid}")
-                log_info(f"Offset geometry is empty: {geometry.is_empty}")
-                close = self.layer_properties[layer_name].get('close', True)
-                self.add_geometries(msp, geometry, layer_name, close=close)
-
-        # Add inner buffer geometries to their respective layers
-        for layer_name, geometry in self.inner_buffer_geometries.items():
-            if layers_to_process is None or layer_name in layers_to_process:
-                log_info(f"Processing inner buffer layer: {layer_name}")
-                close = self.layer_properties[layer_name].get('close', True)
-                self.add_geometries(msp, geometry, layer_name, close=close)
-
         return doc
 
     def main(self):
@@ -987,18 +977,17 @@ class ProjectProcessor:
         self.create_buffer_distance_layers()
         
         # Load geometries for all layers
-        all_geometries = {}
         for layer in self.project_settings['dxfLayers']:
             if 'shapeFile' in layer:
                 shapefile_path = self.resolve_full_path(layer['shapeFile'])
                 if os.path.exists(shapefile_path):
                     gdf = gpd.read_file(shapefile_path)
-                    all_geometries[layer['name']] = gdf.geometry.tolist()
+                    self.all_layers[layer['name']] = gdf.geometry
                 else:
                     log_warning(f"Warning: Shapefile not found for layer '{layer['name']}': {shapefile_path}")
 
         # Create offset layers using pre-loaded geometries
-        self.create_offset_layers(all_geometries)
+        self.create_offset_layers(self.all_layers)
         
         # Create exclusion polygons (including Baufeld)
         for exclusion in self.exclusions:
