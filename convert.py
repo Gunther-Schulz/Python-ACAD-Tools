@@ -318,13 +318,13 @@ class ProjectProcessor:
 
     def conditional_buffer(self, source_geom, target_geom, distance):
         if any(source_geom.intersects(geom) for geom in target_geom['geometry']):
-            return source_geom.buffer(-distance)
+            return source_geom.buffer(-distance, join_style=2)
         else:
-            return source_geom.buffer(distance)
+            return source_geom.buffer(distance, join_style=2)
 
     def apply_conditional_buffering(self, source_geom, target_geom, distance):
         source_geom['geometry'] = source_geom['geometry'].apply(
-            lambda x: self.conditional_buffer(x, target_geom, distance))
+            lambda x: self.conditional_buffer(x, target_geom, distance, join_style=2))
         return source_geom
 
     def labeled_center_points(self, source_geom, label):
@@ -383,36 +383,45 @@ class ProjectProcessor:
                 self.add_single_geometry(msp, geom, layer_name, close)
 
     def add_single_geometry(self, msp, geom, layer_name, close):
-        if geom.geom_type in ['LineString', 'MultiLineString']:
-            lines = geom.geoms if geom.geom_type == 'MultiLineString' else [geom]
-            for line in lines:
-                points = list(line.coords)
-                if close and points[0] != points[-1]:
-                    points.append(points[0])  # Close the linestring if it's not already closed
-                    msp.add_lwpolyline(points, dxfattribs={'layer': layer_name})
-        elif geom.geom_type == 'Polygon':
-            points = list(geom.exterior.coords)
-            if close:
-                points.append(points[0])  # Close the polygon
-            msp.add_lwpolyline(points, dxfattribs={'layer': layer_name})
-            for interior in geom.interiors:
-                points = list(interior.coords)
+        if geom is None or geom.is_empty:
+            log_warning(f"Empty geometry encountered for layer '{layer_name}'. Skipping.")
+            return
+
+        try:
+            if geom.geom_type in ['LineString', 'MultiLineString']:
+                lines = geom.geoms if geom.geom_type == 'MultiLineString' else [geom]
+                for line in lines:
+                    points = list(line.coords)
+                    if close and points[0] != points[-1]:
+                        points.append(points[0])  # Close the linestring if it's not already closed
+                    self.add_polyline(msp, points, layer_name)
+            elif geom.geom_type == 'Polygon':
+                exterior_points = list(geom.exterior.coords)
                 if close:
-                    points.append(points[0])  # Close the interior ring
-                msp.add_lwpolyline(points, dxfattribs={'layer': layer_name})
-        elif geom.geom_type == 'MultiPolygon':
-            for poly in geom.geoms:
-                points = list(poly.exterior.coords)
-                if close:
-                    points.append(points[0])  # Close the polygon
-                msp.add_lwpolyline(points, dxfattribs={'layer': layer_name})
-                for interior in poly.interiors:
-                    points = list(interior.coords)
+                    exterior_points.append(exterior_points[0])  # Close the polygon
+                self.add_polyline(msp, exterior_points, layer_name)
+                for interior in geom.interiors:
+                    interior_points = list(interior.coords)
                     if close:
-                        points.append(points[0])  # Close the interior ring
-                    msp.add_lwpolyline(points, dxfattribs={'layer': layer_name})
-        else:
-            log_warning(f"Warning: Unsupported geometry type: {geom.geom_type}")
+                        interior_points.append(interior_points[0])  # Close the interior ring
+                    self.add_polyline(msp, interior_points, layer_name)
+            elif geom.geom_type == 'MultiPolygon':
+                for poly in geom.geoms:
+                    self.add_single_geometry(msp, poly, layer_name, close)
+            else:
+                log_warning(f"Unsupported geometry type: {geom.geom_type}")
+        except Exception as e:
+            log_error(f"Error adding geometry to layer '{layer_name}': {str(e)}")
+
+    def add_polyline(self, msp, points, layer_name):
+        if not points:
+            log_warning(f"No points provided for polyline in layer '{layer_name}'. Skipping.")
+            return None
+
+        # Create a new polyline
+        polyline = msp.add_lwpolyline(points=points, dxfattribs={'layer': layer_name})
+        
+        return polyline
 
     def add_layer(self, doc, layer_name):
         base_layer = layer_name.split('_')[0]  # Get the base layer name (e.g., 'WMTS DOP' from 'WMTS DOP_Hauptgeltungsbereich')
@@ -493,8 +502,8 @@ class ProjectProcessor:
             # Load the shapefile
             gdf = self.load_shapefile(shapefile)
 
-            # Create buffer
-            buffered = gdf.buffer(buffer_distance)
+            # Create buffer with square corners
+            buffered = gdf.buffer(buffer_distance, join_style=2)
 
             # Reduce geltungsbereich
             geom_to_clip = geom_to_clip.difference(buffered.unary_union)
@@ -506,8 +515,8 @@ class ProjectProcessor:
         if isinstance(geom_to_buffer, gpd.GeoSeries):
             geom_to_buffer = gpd.GeoDataFrame(geometry=geom_to_buffer)
 
-        # Create buffer
-        combined_buffer = geom_to_buffer.buffer(distance)
+        # Create buffer with square corners
+        combined_buffer = geom_to_buffer.buffer(distance, join_style=2)
 
         # If a clipping geometry is provided, intersect the combined buffer with it
         if clipping_geom is not None:
@@ -668,8 +677,8 @@ class ProjectProcessor:
                 # Load the input shapefile
                 gdf = gpd.read_file(input_shapefile)
 
-                # Create buffer
-                buffered = gdf.buffer(buffer_distance)
+                # Create buffer with square corners
+                buffered = gdf.buffer(buffer_distance, join_style=2)
 
                 # Store the buffered geometry
                 self.clip_geometries[layer_name] = buffered.unary_union
@@ -694,8 +703,8 @@ class ProjectProcessor:
                     # Load the input shapefile
                     gdf = gpd.read_file(input_shapefile)
                     
-                    # Create buffer
-                    buffered = gdf.buffer(buffer_distance)
+                    # Create buffer with square corners
+                    buffered = gdf.buffer(buffer_distance, join_style=2)
                     
                     # Get the combined Geltungsbereich geometry
                     geltungsbereich_geometry = self.get_combined_geltungsbereich()
@@ -729,10 +738,10 @@ class ProjectProcessor:
         def buffer_polygon(poly):
             # Buffer the exterior
             exterior_ring = poly.exterior
-            buffered_exterior = exterior_ring.buffer(distance)
+            buffered_exterior = exterior_ring.buffer(distance, join_style=2)
 
             # Buffer each interior (hole) outwards
-            buffered_interiors = [interior.buffer(-distance) for interior in poly.interiors]
+            buffered_interiors = [interior.buffer(-distance, join_style=2) for interior in poly.interiors]
 
             # Subtract the buffered interiors from the buffered exterior
             result = buffered_exterior.difference(unary_union(buffered_interiors))
@@ -803,7 +812,7 @@ class ProjectProcessor:
                     clip_gdf = gpd.read_file(clip_shapefile)
                     
                     if clip_layer['bufferDistance'] > 0:
-                        clip_geometry = clip_gdf.geometry.buffer(clip_layer['bufferDistance']).unary_union
+                        clip_geometry = clip_gdf.geometry.buffer(clip_layer['bufferDistance'], join_style=2).unary_union
                     else:
                         clip_geometry = clip_gdf.geometry.unary_union
                     
