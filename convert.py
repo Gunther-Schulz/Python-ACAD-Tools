@@ -144,6 +144,15 @@ class ProjectProcessor:
                     'locked': wmts.get('locked', False)
                 })
 
+    def load_shapefile(self, file_path):
+        try:
+            gdf = gpd.read_file(file_path)
+            gdf = self.standardize_layer_crs(file_path, gdf)
+            return gdf
+        except Exception as e:
+            log_warning(f"Failed to load shapefile: {file_path}. Error: {str(e)}")
+            return None
+
     def setup_shapefiles(self):
         self.shapefile_paths = {}
         self.shapefile_labels = {}
@@ -158,9 +167,12 @@ class ProjectProcessor:
 
                 try:
                     gdf = self.load_shapefile(self.shapefile_paths[layer_name])
-                    self.shapefiles[layer_name] = gdf
-                    self.all_layers[layer_name] = gdf.geometry.unary_union
-                    log_info(f"Loaded shapefile for layer: {layer_name}")
+                    if gdf is not None:
+                        self.shapefiles[layer_name] = gdf
+                        self.all_layers[layer_name] = gdf.geometry.unary_union
+                        log_info(f"Loaded shapefile for layer: {layer_name}")
+                    else:
+                        log_warning(f"Failed to load shapefile for layer: {layer_name}")
                 except Exception as e:
                     log_warning(f"Failed to load shapefile for layer '{layer_name}': {str(e)}")
 
