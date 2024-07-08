@@ -425,13 +425,38 @@ class ProjectProcessor:
         return layer_name in self.layer_properties
 
     def process_layers(self):
-        self.create_geltungsbereich_layers()
-        self.create_clip_distance_layers()
-        self.create_buffer_distance_layers()
-        self.create_offset_layers()
-        self.create_inner_buffer_layers()
+        log_info("Starting to process layers...")
+        
+        # Create a mapping of layer names to their creation methods
+        layer_creation_methods = {
+            'clipDistanceLayers': self.create_clip_distance_layers,
+            'bufferDistanceLayers': self.create_buffer_distance_layers,
+            'offsetLayers': self.create_offset_layers,
+            'innerBufferLayers': self.create_inner_buffer_layers,
+            'geltungsbereichLayers': self.create_geltungsbereich_layers,
+        }
+
+        # Process layers in the order specified in dxfLayers
+        for layer in self.project_settings['dxfLayers']:
+            layer_name = layer['name']
+            log_info(f"Processing layer: {layer_name}")
+
+            # Check if this layer needs special processing
+            for layer_type, creation_method in layer_creation_methods.items():
+                if any(l['name'] == layer_name for l in getattr(self, layer_type, [])):
+                    creation_method()
+                    break
+            
+            # If the layer is not in any of the special processing lists,
+            # it should already be in self.all_layers from the initial shapefile loading
+
+        # Process exclusions after all other layers
         self.create_exclusion_layers()
+
+        # Process WMTS layers last
         self.process_wmts_layers()
+
+        log_info("Finished processing layers.")
 
     def export_to_dxf(self):
         log_info("Starting DXF export...")
