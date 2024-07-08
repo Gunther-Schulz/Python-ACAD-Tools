@@ -273,9 +273,8 @@ class ProjectProcessor:
                     combined_geometry = combined_geometry.union(coverage_geometry)
 
         if combined_geometry:
-            if 'clipLayers' in operation:
-                for clip_layer in operation['clipLayers']:
-                    clip_layer_name = clip_layer['name']
+            if 'clipToLayers' in operation:
+                for clip_layer_name in operation['clipToLayers']:
                     if clip_layer_name in self.all_layers:
                         clip_geometry = self.all_layers[clip_layer_name].geometry.unary_union
                         combined_geometry = combined_geometry.difference(clip_geometry)
@@ -311,7 +310,8 @@ class ProjectProcessor:
         log_info(f"Creating buffer layer: {layer_name}")
         source_layer = operation['sourceLayer']
         buffer_distance = operation['distance']
-        buffer_mode = operation.get('mode', 'both')  # Default to 'both' if not specified
+        buffer_mode = operation.get('mode', 'both')
+        clip_to_layers = operation.get('clipToLayers', [])
 
         if source_layer in self.all_layers:
             original_geometry = self.all_layers[source_layer]
@@ -324,11 +324,25 @@ class ProjectProcessor:
             else:  # 'both'
                 result = original_geometry.buffer(buffer_distance, join_style=2)
 
+            # Clip the buffer to the specified layers
+            if clip_to_layers:
+                clip_geometry = None
+                for clip_layer in clip_to_layers:
+                    if clip_layer in self.all_layers:
+                        if clip_geometry is None:
+                            clip_geometry = self.all_layers[clip_layer]
+                        else:
+                            clip_geometry = clip_geometry.union(self.all_layers[clip_layer])
+                    else:
+                        log_warning(f"Warning: Clip layer '{clip_layer}' not found for buffer layer '{layer_name}'")
+                
+                if clip_geometry is not None:
+                    result = result.intersection(clip_geometry)
+
             self.all_layers[layer_name] = result
             log_info(f"Created buffer layer: {layer_name}")
         else:
             log_warning(f"Warning: Source layer '{source_layer}' not found for buffer layer '{layer_name}'")
-
 
     def create_offset_layers(self, layers_to_offset):
         log_info("Starting to create offset layers...")

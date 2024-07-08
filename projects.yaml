@@ -78,16 +78,16 @@ projects:
                   valueList: ["Torgelow am See"]
                 - name: Gemeinde
                   valueList: ["Torgelow am See"]
-          clipLayers:
-            - name: Straße Clip
-      # - name: Wald Abstand
-      #   color: "Light Green"
-      #   close: true
-      #   locked: false
-      #   operation:
-      #     type: buffer
-      #     sourceLayer: Wald
-      #     distance: 30
+          clipToLayers: ["Wald", "Straße Clip"]
+      - name: Wald Abstand
+        color: "Light Green"
+        close: true
+        locked: false
+        operation:
+          type: buffer
+          sourceLayer: Wald
+          distance: 30
+          clipToLayers: ["Geltungsbereich"]
       # - name: Baufeld
       #   color: "Red"
       #   locked: false
