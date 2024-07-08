@@ -84,10 +84,12 @@ def setup_proj():
 class ProjectProcessor:
     def __init__(self, project_name: str, update_layers_list: list = None):
         self.load_project_settings(project_name)
-        self.load_color_mapping()  # Add this line
+        self.load_color_mapping()
         self.setup_layers()
+        self.setup_wmts_layers()
         self.update_layers_list = update_layers_list
         self.all_layers = {}
+
 
     def load_color_mapping(self):
         with open('colors.yaml', 'r') as file:
@@ -108,11 +110,6 @@ class ProjectProcessor:
         self.crs = self.project_settings['crs']
         self.dxf_filename = self.resolve_full_path(self.project_settings['dxfFilename'])
         self.wmts = self.project_settings.get('wmts', [])
-        self.exclusions = self.project_settings.get('exclusions', [])
-        self.clip_distance_layers = self.project_settings.get('clipDistanceLayers', [])
-        self.buffer_distance_layers = self.project_settings.get('bufferDistanceLayers', [])
-        self.geltungsbereich_layers = self.project_settings.get('geltungsbereichLayers', [])
-        self.offset_layers = self.project_settings.get('offsetLayers', [])
         self.template_dxf = self.resolve_full_path(self.project_settings.get('template', '')) if self.project_settings.get('template') else None
         self.export_format = self.project_settings.get('exportFormat', 'dxf')
 
@@ -126,13 +123,15 @@ class ProjectProcessor:
             self.colors[layer['name']] = color_code
             self.colors[f"{layer['name']} Number"] = color_code
 
+    def setup_wmts_layers(self):
         for wmts in self.wmts:
-            layer_name = wmts['dxfLayer']
+            layer_name = wmts['name']
             if layer_name not in self.layer_properties:
                 self.add_layer_properties(layer_name, {
                     'color': "White",
-                    'locked': wmts.get('locked', False)
-                    })
+                    'locked': True
+                })
+
     def load_shapefile(self, file_path):
         try:
             gdf = gpd.read_file(file_path)
@@ -399,10 +398,32 @@ class ProjectProcessor:
                     self.create_exclusion_layer(layer_name, operation)
                 else:
                     log_warning(f"Unknown operation type: {op_type} for layer {layer_name}")
-            elif layer_name not in self.all_layers:
-                log_warning(f"Layer {layer_name} not found and has no operation defined.")
+            elif 'shapeFile' in layer:
+                # This is a shapefile layer, already loaded in setup_shapefiles()
+                pass
+            else:
+                # This is a layer without operation or shapefile (like DOP or Basemap)
+                # We'll just add it to all_layers with None for now
+                self.all_layers[layer_name] = None
+                log_info(f"Added layer {layer_name} without data (possibly a WMTS layer)")
+
+        # Step 3: Process WMTS layers
+        self.process_wmts_layers()
 
         log_info("Finished processing layers.")
+
+    def process_wmts_layers(self):
+        for wmts in self.wmts:
+            layer_name = wmts['name']
+            log_info(f"Processing WMTS layer: {layer_name}")
+            
+            # Here you would add the logic to download and process WMTS tiles
+            # For now, we'll just update the existing entry in all_layers
+            if layer_name in self.all_layers:
+                self.all_layers[layer_name] = "WMTS_DATA_PLACEHOLDER"  # Replace with actual WMTS data
+                log_info(f"Updated WMTS layer: {layer_name}")
+            else:
+                log_warning(f"WMTS layer {layer_name} not found in all_layers")
 
     def export_to_dxf(self):
         log_info("Starting DXF export...")

@@ -103,9 +103,16 @@ projects:
         locked: false
         close: true
         operation:
+          # Test with holes
           type: buffer
           sourceLayer: Baufeld
           distance: -3
+      - name: DOP
+        color: Black
+        locked: true
+      - name: Basemap
+        color: Black
+        locked: true
     wmts:
       - name: DOP
         url: "https://www.geodaten-mv.de/dienste/dop_wmts/wmts/1.0.0/WMTSCapabilities.xml"
@@ -113,13 +120,9 @@ projects:
         zoom: "10"
         proj: "ETRS89UTM33"
         targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/DOP"
-        dxfLayer: "WMTS DOP"
-        locked: true
       - name: Basemap
         url: "https://sgx.geodatenzentrum.de/wmts_basemapde/1.0.0/WMTSCapabilities.xml"
         layer: "de_basemapde_web_raster_farbe"
         zoom: "10"
         proj: "DE_EPSG_25833_ADV"
         targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/Basemap"
-        dxfLayer: "WMTS Basemap"
-        locked: true
