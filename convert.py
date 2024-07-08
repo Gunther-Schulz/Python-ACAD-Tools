@@ -317,16 +317,17 @@ class ProjectProcessor:
         layer = next((l for l in self.clip_distance_layers if l['name'] == layer_name), None)
         if layer:
             buffer_distance = layer['bufferDistance']
-            if layer_name in self.all_layers:
-                original_geometry = self.all_layers[layer_name]
+            source_layer = layer['sourceLayer']
+            if source_layer in self.all_layers:
+                original_geometry = self.all_layers[source_layer]
                 if buffer_distance > 0:
                     clipped = original_geometry.buffer(buffer_distance, join_style=2)
                 else:
                     clipped = original_geometry
-                self.all_layers[layer_name] = clipped.unary_union
+                self.all_layers[layer_name] = clipped
                 log_info(f"Created clip distance layer: {layer_name}")
             else:
-                log_warning(f"Warning: Layer '{layer_name}' not found in all_layers for clip distance layer")
+                log_warning(f"Warning: Source layer '{source_layer}' not found in all_layers for clip distance layer '{layer_name}'")
         else:
             log_warning(f"Warning: Clip distance layer '{layer_name}' not found in configuration")
             
@@ -437,12 +438,18 @@ class ProjectProcessor:
 
                 if op_type == 'buffer':
                     self.create_buffer_distance_layers([{
-                        'name': operation['sourceLayer'],
+                        'name': layer_name,
                         'bufferDistance': operation['distance']
                     }])
                     # Update the current layer with the buffered result
                     self.all_layers[layer_name] = self.all_layers[operation['sourceLayer']]
                 elif op_type == 'clip':
+                    # Add the layer to self.clip_distance_layers
+                    self.clip_distance_layers.append({
+                        'name': layer_name,
+                        'sourceLayer': operation['sourceLayer'],
+                        'bufferDistance': operation['distance']
+                    })
                     self.create_clip_distance_layers(layer_name)
                 elif op_type == 'offset':
                     self.create_offset_layers()
