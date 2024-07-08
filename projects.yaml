@@ -98,14 +98,14 @@ projects:
           excludeLayers:
             - Wald Abstand
             - Biotope
-      # - name: Baugrenze
-      #   color: "Blue"
-      #   locked: false
-      #   close: true
-      #   operation:
-      #     type: innerBuffer
-      #     sourceLayer: Baufeld
-      #     distance: 3
+      - name: Baugrenze
+        color: "Blue"
+        locked: false
+        close: true
+        operation:
+          type: buffer
+          sourceLayer: Baufeld
+          distance: -3
     wmts:
       - name: DOP
         url: "https://www.geodaten-mv.de/dienste/dop_wmts/wmts/1.0.0/WMTSCapabilities.xml"

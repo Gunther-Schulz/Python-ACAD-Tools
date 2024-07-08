@@ -113,7 +113,6 @@ class ProjectProcessor:
         self.buffer_distance_layers = self.project_settings.get('bufferDistanceLayers', [])
         self.geltungsbereich_layers = self.project_settings.get('geltungsbereichLayers', [])
         self.offset_layers = self.project_settings.get('offsetLayers', [])
-        self.inner_buffer_layers = self.project_settings.get('innerBufferLayers', [])
         self.template_dxf = self.resolve_full_path(self.project_settings.get('template', '')) if self.project_settings.get('template') else None
         self.export_format = self.project_settings.get('exportFormat', 'dxf')
 
@@ -362,24 +361,6 @@ class ProjectProcessor:
 
         log_info("Finished creating offset layers.")
 
-    def create_inner_buffer_layers(self):
-        log_info("Starting to create inner buffer layers...")
-        for layer in self.inner_buffer_layers:
-            layer_to_buffer = layer['layerToBuffer']
-            buffer_distance = layer['bufferDistance']
-            layer_name = layer['name']
-
-            if layer_to_buffer in self.all_layers:
-                log_info(f"Processing inner buffer layer: {layer_name}")
-                original_geometry = self.all_layers[layer_to_buffer]
-                inner_buffer_geometry = original_geometry.buffer(-buffer_distance, join_style=2)
-                self.all_layers[layer_name] = inner_buffer_geometry
-                log_info(f"Created inner buffer layer: {layer_name}")
-            else:
-                log_warning(f"Warning: Layer to buffer '{layer_to_buffer}' not found for inner buffer layer '{layer_name}'")
-
-        log_info("Finished creating inner buffer layers.")
-
     def create_exclusion_layer(self, layer_name, operation):
         log_info(f"Creating exclusion layer: {layer_name}")
         scope_layer = operation['scopeLayer']
@@ -434,8 +415,6 @@ class ProjectProcessor:
                     self.create_geltungsbereich_layer(layer_name, operation)
                 elif op_type == 'exclusion':
                     self.create_exclusion_layer(layer_name, operation)
-                elif op_type == 'innerBuffer':
-                    self.create_inner_buffer_layers()
                 else:
                     log_warning(f"Unknown operation type: {op_type} for layer {layer_name}")
             elif layer_name not in self.all_layers:
