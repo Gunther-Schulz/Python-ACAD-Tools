@@ -283,15 +283,16 @@ class ProjectProcessor:
             if combined_geometry:
                 # Clip with all layers in clipDistanceLayers
                 for clip_layer in self.clip_distance_layers:
-                    clip_shapefile = self.resolve_full_path(clip_layer['shapeFile'])
-                    clip_gdf = gpd.read_file(clip_shapefile)
-                    
-                    if clip_layer['bufferDistance'] > 0:
-                        clip_geometry = clip_gdf.geometry.buffer(clip_layer['bufferDistance'], join_style=2).unary_union
+                    clip_layer_name = clip_layer['name']
+                    if clip_layer_name in self.all_layers:
+                        clip_geometry = self.all_layers[clip_layer_name]
+                        
+                        if clip_layer['bufferDistance'] > 0:
+                            clip_geometry = clip_geometry.buffer(clip_layer['bufferDistance'], join_style=2)
+                        
+                        combined_geometry = combined_geometry.difference(clip_geometry)
                     else:
-                        clip_geometry = clip_gdf.geometry.unary_union
-                    
-                    combined_geometry = combined_geometry.difference(clip_geometry)
+                        log_warning(f"Warning: Clip layer '{clip_layer_name}' not found in all_layers")
                 
                 self.all_layers[geltungsbereich['layerName']] = combined_geometry
                 log_info(f"Created Geltungsbereich layer: {geltungsbereich['layerName']}")
@@ -303,40 +304,39 @@ class ProjectProcessor:
     def create_clip_distance_layers(self):
         log_info("Starting to create clip distance layers...")
         for layer in self.clip_distance_layers:
-            input_shapefile = self.resolve_full_path(layer['shapeFile'])
-            buffer_distance = layer['bufferDistance']
             layer_name = layer['name']
+            buffer_distance = layer['bufferDistance']
 
-            if self.has_corresponding_layer(layer_name):
-                        log_info(f"Processing clip distance layer: {layer_name}")
-        gdf = gpd.read_file(input_shapefile)
-        gdf = self.standardize_layer_crs(layer_name, gdf)
+            if layer_name in self.all_layers:
+                log_info(f"Processing clip distance layer: {layer_name}")
+                original_geometry = self.all_layers[layer_name]
+                
+                if buffer_distance > 0:
+                    clipped = original_geometry.buffer(buffer_distance, join_style=2)
+                else:
+                    clipped = original_geometry
 
-        if buffer_distance > 0:
-            buffered = gdf.geometry.buffer(buffer_distance, join_style=2)
-        else:
-            buffered = gdf.geometry
+                self.all_layers[layer_name] = clipped.unary_union
+                log_info(f"Created clip distance layer: {layer_name}")
+            else:
+                log_warning(f"Warning: Layer '{layer_name}' not found in all_layers for clip distance layer")
 
-        self.all_layers[layer_name] = buffered.unary_union
-        log_info(f"Created clip distance layer: {layer_name}")
-
-    log_info("Finished creating clip distance layers.")
+        log_info("Finished creating clip distance layers.")
 
     def create_buffer_distance_layers(self):
         log_info("Starting to create buffer distance layers...")
         for layer in self.buffer_distance_layers:
-            layer_to_buffer = layer['name']
-            buffer_distance = layer['bufferDistance']
             layer_name = layer['name']
+            buffer_distance = layer['bufferDistance']
 
-            if layer_to_buffer in self.all_layers:
+            if layer_name in self.all_layers:
                 log_info(f"Processing buffer distance layer: {layer_name}")
-                original_geometry = self.all_layers[layer_to_buffer]
+                original_geometry = self.all_layers[layer_name]
                 buffered = original_geometry.buffer(buffer_distance, join_style=2)
                 self.all_layers[layer_name] = buffered.unary_union
                 log_info(f"Created buffer distance layer: {layer_name}")
             else:
-                log_warning(f"Warning: Layer to buffer '{layer_to_buffer}' not found in all_layers for buffer layer '{layer_name}'")
+                log_warning(f"Warning: Layer '{layer_name}' not found in all_layers for buffer distance layer")
 
         log_info("Finished creating buffer distance layers.")
 
@@ -505,12 +505,15 @@ def main():
     parser.add_argument("--update", nargs='+', help="List of layers to update", default=None)
     args = parser.parse_args()
 
-    try:
-        processor = ProjectProcessor(args.project_name, args.update)
-        processor.run()
-    except Exception as e:
-        log_error(f"An error occurred: {str(e)}")
-        sys.exit(1)
+    processor = ProjectProcessor(args.project_name, args.update)
+    processor.run()
+
+    # try:
+    #     processor = ProjectProcessor(args.project_name, args.update)
+    #     processor.run()
+    # except Exception as e:
+    #     log_error(f"An error occurred: {str(e)}")
+    #     sys.exit(1)
 
 if __name__ == "__main__":
     main()
