@@ -423,7 +423,7 @@ class ProjectProcessor:
         log_info("Starting to process layers...")
         
         # Step 1: Load all shapefiles
-        self.load_shapefiles()
+        self.setup_shapefiles()
 
         # Step 2: Process all layers in order
         for layer in self.project_settings['dxfLayers']:
@@ -433,7 +433,23 @@ class ProjectProcessor:
 
             log_info(f"Processing layer: {layer_name}")
             if 'operation' in layer:
-                self.process_layer_operation(layer)
+                operation = layer['operation']
+                op_type = operation['type']
+
+                if op_type == 'buffer':
+                    self.create_buffer_layer(layer_name, operation['sourceLayer'], operation['distance'])
+                elif op_type == 'clip':
+                    self.create_clip_layer(layer_name, operation['sourceLayer'], operation['distance'])
+                elif op_type == 'offset':
+                    self.create_offset_layer(layer_name, operation['sourceLayer'], operation['distance'])
+                elif op_type == 'geltungsbereich':
+                    self.create_geltungsbereich_layer(layer_name, operation['coverages'])
+                elif op_type == 'exclusion':
+                    self.create_exclusion_layer(layer_name, operation['scopeLayer'], operation['excludeLayers'])
+                elif op_type == 'innerBuffer':
+                    self.create_inner_buffer_layer(layer_name, operation['sourceLayer'], operation['distance'])
+                else:
+                    log_warning(f"Unknown operation type: {op_type} for layer {layer_name}")
             elif layer_name not in self.all_layers:
                 log_warning(f"Layer {layer_name} not found and has no operation defined.")
 
@@ -497,26 +513,6 @@ class ProjectProcessor:
             coords = list(linestring.coords)
             if len(coords) > 1:
                 msp.add_lwpolyline(coords, dxfattribs={'layer': layer_name, 'closed': self.layer_properties[layer_name]['close']})
-
-    def process_layer_operation(self, layer):
-        operation = layer['operation']
-        op_type = operation['type']
-        layer_name = layer['name']
-
-        if op_type == 'buffer':
-            self.create_buffer_layer(layer_name, operation['sourceLayer'], operation['distance'])
-        elif op_type == 'clip':
-            self.create_clip_layer(layer_name, operation['sourceLayer'], operation['distance'])
-        elif op_type == 'offset':
-            self.create_offset_layer(layer_name, operation['sourceLayer'], operation['distance'])
-        elif op_type == 'geltungsbereich':
-            self.create_geltungsbereich_layer(layer_name, operation['coverages'])
-        elif op_type == 'exclusion':
-            self.create_exclusion_layer(layer_name, operation['scopeLayer'], operation['excludeLayers'])
-        elif op_type == 'innerBuffer':
-            self.create_inner_buffer_layer(layer_name, operation['sourceLayer'], operation['distance'])
-        else:
-            log_warning(f"Unknown operation type: {op_type} for layer {layer_name}")
 
     def run(self):
         self.process_layers()
