@@ -472,30 +472,56 @@ class ProjectProcessor:
     def add_wmts_xrefs_to_dxf(self, msp, tile_data, layer_name):
         log_info(f"Adding WMTS xrefs to DXF for layer: {layer_name}")
         
-        dxf_dir = os.path.dirname(self.dxf_filename)
-        
         for image_path, world_file_path in tile_data:
-            # Read world file
-            with open(world_file_path, 'r') as wf:
-                a, d, b, e, c, f = map(float, wf.read().split())
-
-            # Calculate insertion point and scaling
-            rel_path = os.path.relpath(image_path, dxf_dir)
-            insertion_point = (c, f)
-            pixel_size = (abs(a), abs(e))
-
-            # Add image as xref
-            image_def = msp.doc.add_image_def(filename=rel_path)
-            msp.add_image(
-                image_def=image_def,
-                insert=insertion_point,
-                u_pixel=pixel_size[0],
-                v_pixel=pixel_size[1],
-                rotation=0,
-                dxfattribs={'layer': layer_name}
-            )
+            self.add_image_with_worldfile(msp, image_path, world_file_path, layer_name)
 
         log_info(f"Added {len(tile_data)} WMTS xrefs to layer: {layer_name}")
+
+    def add_image_with_worldfile(self, msp, image_path, world_file_path, layer_name):
+        # Ensure the layer exists with proper properties
+        if layer_name not in self.layer_properties:
+            self.add_layer_properties(layer_name, {
+                'color': "White",
+                'locked': False,
+                'close': True
+            })
+
+        # Create a relative path for the image
+        relative_image_path = os.path.relpath(
+            image_path, os.path.dirname(self.dxf_filename))
+
+        # Create the image definition with the relative path
+        image_def = msp.doc.add_image_def(
+            filename=relative_image_path, size_in_pixel=(256, 256))
+
+        # Read the world file to get the transformation parameters
+        with open(world_file_path, 'r') as wf:
+            a = float(wf.readline().strip())
+            d = float(wf.readline().strip())
+            b = float(wf.readline().strip())
+            e = float(wf.readline().strip())
+            c = float(wf.readline().strip())
+            f = float(wf.readline().strip())
+
+        # Calculate the insertion point and size
+        insert_point = (c, f - abs(e) * 256)
+        size_in_units = (a * 256, abs(e) * 256)
+
+        # Add the image with relative path
+        image = msp.add_image(
+            insert=insert_point,
+            size_in_units=size_in_units,
+            image_def=image_def,
+            rotation=0,
+            dxfattribs={'layer': layer_name}
+        )
+
+        # Set the image path as a relative path
+        image.dxf.image_def_handle = image_def.dxf.handle
+        image.dxf.flags = 3  # Set bit 0 and 1 to indicate relative path
+
+        # Set the $PROJECTNAME header variable to an empty string
+        msp.doc.header['$PROJECTNAME'] = ''
 
     def add_geometries_to_dxf(self, msp, geo_data, layer_name):
         log_info(f"Adding geometries to DXF for layer: {layer_name}")
