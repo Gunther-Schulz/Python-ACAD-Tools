@@ -330,9 +330,9 @@ class ProjectProcessor:
         else:
             log_warning(f"Warning: Clip distance layer '{layer_name}' not found in configuration")
             
-    def create_buffer_distance_layers(self):
+    def create_buffer_distance_layers(self, layers_to_buffer):
         log_info("Starting to create buffer distance layers...")
-        for layer in self.buffer_distance_layers:
+        for layer in layers_to_buffer:
             layer_name = layer['name']
             buffer_distance = layer['bufferDistance']
 
@@ -340,7 +340,17 @@ class ProjectProcessor:
                 log_info(f"Processing buffer distance layer: {layer_name}")
                 original_geometry = self.all_layers[layer_name]
                 buffered = original_geometry.buffer(buffer_distance, join_style=2)
-                self.all_layers[layer_name] = buffered.unary_union
+                
+                # Handle different geometry types
+                if isinstance(buffered, (Polygon, MultiPolygon)):
+                    self.all_layers[layer_name] = buffered
+                elif isinstance(buffered, GeometryCollection):
+                    # If it's a GeometryCollection, union all its components
+                    self.all_layers[layer_name] = unary_union(buffered.geoms)
+                else:
+                    # For other types (like LineString), just use as is
+                    self.all_layers[layer_name] = buffered
+                
                 log_info(f"Created buffer distance layer: {layer_name}")
             else:
                 log_warning(f"Warning: Layer '{layer_name}' not found in all_layers for buffer distance layer")
@@ -408,29 +418,6 @@ class ProjectProcessor:
 
         log_info("Finished creating exclusion layers.")
 
-    def process_wmts_layers(self):
-        log_info("Starting to process WMTS layers...")
-        for wmts in self.wmts:
-            layer_name = wmts['dxfLayer']
-            log_info(f"Processing WMTS layer: {layer_name}")
-            
-            url = wmts['url']
-            layer = wmts['layer']
-            zoom = wmts['zoom']
-            proj = wmts['proj']
-            target_folder = self.resolve_full_path(wmts['targetFolder'])
-
-            try:
-                download_wmts_tiles(url, layer, zoom, proj, target_folder)
-                log_info(f"Downloaded WMTS tiles for layer: {layer_name}")
-            except Exception as e:
-                log_error(f"Error downloading WMTS tiles for layer '{layer_name}': {str(e)}")
-
-        log_info("Finished processing WMTS layers.")
-
-    def has_corresponding_layer(self, layer_name):
-        return layer_name in self.layer_properties
-
     def process_layers(self):
         log_info("Starting to process layers...")
         
@@ -450,9 +437,11 @@ class ProjectProcessor:
 
                 if op_type == 'buffer':
                     self.create_buffer_distance_layers([{
-                        'name': layer_name,
+                        'name': operation['sourceLayer'],
                         'bufferDistance': operation['distance']
                     }])
+                    # Update the current layer with the buffered result
+                    self.all_layers[layer_name] = self.all_layers[operation['sourceLayer']]
                 elif op_type == 'clip':
                     self.create_clip_distance_layers(layer_name)
                 elif op_type == 'offset':
