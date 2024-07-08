@@ -449,17 +449,20 @@ class ProjectProcessor:
                 op_type = operation['type']
 
                 if op_type == 'buffer':
-                    self.create_buffer_layer(layer_name, operation['sourceLayer'], operation['distance'])
+                    self.create_buffer_distance_layers([{
+                        'name': layer_name,
+                        'bufferDistance': operation['distance']
+                    }])
                 elif op_type == 'clip':
-                    self.create_clip_layer(layer_name, operation['sourceLayer'], operation['distance'])
+                    self.create_clip_distance_layers(layer_name)
                 elif op_type == 'offset':
-                    self.create_offset_layer(layer_name, operation['sourceLayer'], operation['distance'])
+                    self.create_offset_layers()
                 elif op_type == 'geltungsbereich':
-                    self.create_geltungsbereich_layer(layer_name, operation['coverages'])
+                    self.create_geltungsbereich_layers()
                 elif op_type == 'exclusion':
-                    self.create_exclusion_layer(layer_name, operation['scopeLayer'], operation['excludeLayers'])
+                    self.create_exclusion_layers()
                 elif op_type == 'innerBuffer':
-                    self.create_inner_buffer_layer(layer_name, operation['sourceLayer'], operation['distance'])
+                    self.create_inner_buffer_layers()
                 else:
                     log_warning(f"Unknown operation type: {op_type} for layer {layer_name}")
             elif layer_name not in self.all_layers:
