@@ -435,7 +435,7 @@ class ProjectProcessor:
         doc = ezdxf.new(dxfversion="R2010")
         msp = doc.modelspace()
 
-        for layer_name, gdf in self.all_layers.items():
+        for layer_name, geo_data in self.all_layers.items():
             if self.update_layers_list and layer_name not in self.update_layers_list:
                 continue
 
@@ -449,19 +449,23 @@ class ProjectProcessor:
             layer.linetype = linetype
 
             log_info(f"Exporting layer: {layer_name}")
-            self.add_geometries_to_dxf(msp, gdf, layer_name)
+            self.add_geometries_to_dxf(msp, geo_data, layer_name)
 
         doc.saveas(self.dxf_filename)
         log_info(f"DXF file saved: {self.dxf_filename}")
 
-    def add_geometries_to_dxf(self, msp, gdf, layer_name):
+    def add_geometries_to_dxf(self, msp, geo_data, layer_name):
         log_info(f"Adding geometries to DXF for layer: {layer_name}")
         
-        if not isinstance(gdf, gpd.GeoDataFrame):
-            log_warning(f"Expected GeoDataFrame for layer {layer_name}, but got {type(gdf)}")
+        if isinstance(geo_data, gpd.GeoDataFrame):
+            geometries = geo_data.geometry
+        elif isinstance(geo_data, gpd.GeoSeries):
+            geometries = geo_data
+        else:
+            log_warning(f"Unexpected data type for layer {layer_name}: {type(geo_data)}")
             return
 
-        for geometry in gdf.geometry:
+        for geometry in geometries:
             self.add_geometry_to_dxf(msp, geometry, layer_name)
 
     def add_geometry_to_dxf(self, msp, geometry, layer_name):
