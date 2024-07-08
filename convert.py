@@ -336,10 +336,11 @@ class ProjectProcessor:
         for layer in layers_to_buffer:
             layer_name = layer['name']
             buffer_distance = layer['bufferDistance']
+            source_layer = layer['sourceLayer']
 
-            if layer_name in self.all_layers:
+            if source_layer in self.all_layers:
                 log_info(f"Processing buffer distance layer: {layer_name}")
-                original_geometry = self.all_layers[layer_name]
+                original_geometry = self.all_layers[source_layer]
                 buffered = original_geometry.buffer(buffer_distance, join_style=2)
                 
                 # Handle different geometry types
@@ -354,7 +355,7 @@ class ProjectProcessor:
                 
                 log_info(f"Created buffer distance layer: {layer_name}")
             else:
-                log_warning(f"Warning: Layer '{layer_name}' not found in all_layers for buffer distance layer")
+                log_warning(f"Warning: Source layer '{source_layer}' not found in all_layers for buffer distance layer '{layer_name}'")
 
         log_info("Finished creating buffer distance layers.")
 
@@ -439,12 +440,10 @@ class ProjectProcessor:
                 if op_type == 'buffer':
                     self.create_buffer_distance_layers([{
                         'name': layer_name,
+                        'sourceLayer': operation['sourceLayer'],
                         'bufferDistance': operation['distance']
                     }])
-                    # Update the current layer with the buffered result
-                    self.all_layers[layer_name] = self.all_layers[operation['sourceLayer']]
                 elif op_type == 'clip':
-                    # Add the layer to self.clip_distance_layers
                     self.clip_distance_layers.append({
                         'name': layer_name,
                         'sourceLayer': operation['sourceLayer'],
