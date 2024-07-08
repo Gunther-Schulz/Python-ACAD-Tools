@@ -7,7 +7,7 @@ projects:
     crs: EPSG:25833
     dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/Zeichnung/combined.dxf"
     # template: "~/hidrive/Öffentlich Planungsbüro Schulz/Allgemein/CAD/Zeichnung.dxf"
-    dxfLayers:
+    dxfLayers: # geometries in the rest of the yaml should be processed in the order that is given here
       - name: Flur
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/flur2.shp"
         label: flurname
