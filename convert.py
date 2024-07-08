@@ -418,13 +418,12 @@ class ProjectProcessor:
             log_info(f"Processing WMTS layer: {layer_name}")
             
             # Here you would add the logic to download and process WMTS tiles
-            # For now, we'll just update the existing entry in all_layers
+            # For now, we'll just update the existing entry in all_layers with None
             if layer_name in self.all_layers:
-                self.all_layers[layer_name] = "WMTS_DATA_PLACEHOLDER"  # Replace with actual WMTS data
+                self.all_layers[layer_name] = None  # Replace with actual WMTS data when implemented
                 log_info(f"Updated WMTS layer: {layer_name}")
             else:
                 log_warning(f"WMTS layer {layer_name} not found in all_layers")
-
     def export_to_dxf(self):
         log_info("Starting DXF export...")
         doc = ezdxf.new(dxfversion="R2010")
@@ -453,6 +452,10 @@ class ProjectProcessor:
     def add_geometries_to_dxf(self, msp, geo_data, layer_name):
         log_info(f"Adding geometries to DXF for layer: {layer_name}")
         
+        if geo_data is None:
+            log_info(f"No geometry data available for layer: {layer_name}")
+            return
+
         if isinstance(geo_data, gpd.GeoDataFrame):
             geometries = geo_data.geometry
         elif isinstance(geo_data, gpd.GeoSeries):
