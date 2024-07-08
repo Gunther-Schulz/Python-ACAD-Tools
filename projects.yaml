@@ -54,56 +54,56 @@ projects:
           type: buffer
           sourceLayer: Wald
           distance: 30
-      - name: Straße Clip
-        color: "Light Green"
-        close: true
-        locked: false
-        operation:
-          type: clip
-          sourceLayer: Straße Abstand
-          distance: 7
-      - name: Flur Offset
-        color: "Light Green"
-        close: false
-        locked: false
-        operation:
-          type: offset
-          sourceLayer: Flur
-          distance: 10
-      - name: Geltungsbereich
-        color: "Red"
-        locked: false
-        close: true
-        operation:
-          type: geltungsbereich
-          coverages:
-            - layers:
-                - name: Parcel
-                  valueList: ["104", "96", "95", "87/1"]
-                - name: Flur
-                  valueList: ["Flur 2"]
-                - name: Gemarkung
-                  valueList: ["Torgelow am See"]
-                - name: Gemeinde
-                  valueList: ["Torgelow am See"]
-      - name: Baufeld
-        color: "Red"
-        locked: false
-        close: true
-        operation:
-          type: exclusion
-          scopeLayer: Geltungsbereich
-          excludeLayers:
-            - Wald Abstand
-            - Biotope
-      - name: Baugrenze
-        color: "Blue"
-        locked: false
-        close: true
-        operation:
-          type: innerBuffer
-          sourceLayer: Baufeld
-          distance: 3
+      # - name: Straße Clip
+      #   color: "Light Green"
+      #   close: true
+      #   locked: false
+      #   operation:
+      #     type: clip
+      #     sourceLayer: Straße Abstand
+      #     distance: 7
+      # - name: Flur Offset
+      #   color: "Light Green"
+      #   close: false
+      #   locked: false
+      #   operation:
+      #     type: offset
+      #     sourceLayer: Flur
+      #     distance: 10
+      # - name: Geltungsbereich
+      #   color: "Red"
+      #   locked: false
+      #   close: true
+      #   operation:
+      #     type: geltungsbereich
+      #     coverages:
+      #       - layers:
+      #           - name: Parcel
+      #             valueList: ["104", "96", "95", "87/1"]
+      #           - name: Flur
+      #             valueList: ["Flur 2"]
+      #           - name: Gemarkung
+      #             valueList: ["Torgelow am See"]
+      #           - name: Gemeinde
+      #             valueList: ["Torgelow am See"]
+      # - name: Baufeld
+      #   color: "Red"
+      #   locked: false
+      #   close: true
+      #   operation:
+      #     type: exclusion
+      #     scopeLayer: Geltungsbereich
+      #     excludeLayers:
+      #       - Wald Abstand
+      #       - Biotope
+      # - name: Baugrenze
+      #   color: "Blue"
+      #   locked: false
+      #   close: true
+      #   operation:
+      #     type: innerBuffer
+      #     sourceLayer: Baufeld
+      #     distance: 3
     wmts:
       - name: DOP
         url: "https://www.geodaten-mv.de/dienste/dop_wmts/wmts/1.0.0/WMTSCapabilities.xml"

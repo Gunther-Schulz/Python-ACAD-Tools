@@ -87,6 +87,7 @@ class ProjectProcessor:
         self.load_color_mapping()  # Add this line
         self.setup_layers()
         self.update_layers_list = update_layers_list
+        self.all_layers = {}
 
     def load_color_mapping(self):
         with open('colors.yaml', 'r') as file:
@@ -117,7 +118,6 @@ class ProjectProcessor:
         self.export_format = self.project_settings.get('exportFormat', 'dxf')
 
     def setup_layers(self):
-        self.all_layers = {}
         self.layer_properties = {}
         self.colors = {}
 
@@ -142,8 +142,7 @@ class ProjectProcessor:
                 self.add_layer_properties(layer_name, {
                     'color': "White",
                     'locked': wmts.get('locked', False)
-                })
-
+                    })
     def load_shapefile(self, file_path):
         try:
             gdf = gpd.read_file(file_path)
@@ -154,28 +153,21 @@ class ProjectProcessor:
             return None
 
     def setup_shapefiles(self):
-        self.shapefile_paths = {}
-        self.shapefile_labels = {}
-        self.shapefiles = {}
-        self.all_layers = {}  # Make sure this is initialized
-
         for layer in self.project_settings['dxfLayers']:
             if 'shapeFile' in layer:
                 layer_name = layer['name']
-                self.shapefile_paths[layer_name] = self.resolve_full_path(layer['shapeFile'])
-                self.shapefile_labels[layer_name] = layer.get('label')
-
+                shapefile_path = self.resolve_full_path(layer['shapeFile'])
                 try:
-                    gdf = self.load_shapefile(self.shapefile_paths[layer_name])
+                    gdf = gpd.read_file(shapefile_path)
+                    gdf = self.standardize_layer_crs(layer_name, gdf)
                     if gdf is not None:
-                        self.shapefiles[layer_name] = gdf
-                        self.all_layers[layer_name] = gdf.geometry.unary_union
+                        # Store the GeoDataFrame instead of unary_union
+                        self.all_layers[layer_name] = gdf
                         log_info(f"Loaded shapefile for layer: {layer_name}")
                     else:
                         log_warning(f"Failed to load shapefile for layer: {layer_name}")
                 except Exception as e:
                     log_warning(f"Failed to load shapefile for layer '{layer_name}': {str(e)}")
-
 
     def resolve_full_path(self, path: str) -> str:
         return os.path.abspath(os.path.expanduser(os.path.join(self.folder_prefix, path)))
@@ -470,7 +462,7 @@ class ProjectProcessor:
         doc = ezdxf.new(dxfversion="R2010")
         msp = doc.modelspace()
 
-        for layer_name, geometry in self.all_layers.items():
+        for layer_name, geometry_or_gdf in self.all_layers.items():
             if self.update_layers_list and layer_name not in self.update_layers_list:
                 continue
 
@@ -483,16 +475,24 @@ class ProjectProcessor:
             layer.color = color
             layer.linetype = linetype
 
-            if isinstance(geometry, (Polygon, MultiPolygon)):
-                self.add_polygon_to_dxf(msp, geometry, layer_name)
-            elif isinstance(geometry, (LineString, MultiLineString)):
-                self.add_linestring_to_dxf(msp, geometry, layer_name)
-            elif isinstance(geometry, GeometryCollection):
-                for geom in geometry.geoms:
-                    if isinstance(geom, (Polygon, MultiPolygon)):
-                        self.add_polygon_to_dxf(msp, geom, layer_name)
-                    elif isinstance(geom, (LineString, MultiLineString)):
-                        self.add_linestring_to_dxf(msp, geom, layer_name)
+            if isinstance(geometry_or_gdf, gpd.GeoDataFrame):
+                for geometry in geometry_or_gdf.geometry:
+                    if isinstance(geometry, (Polygon, MultiPolygon)):
+                        self.add_polygon_to_dxf(msp, geometry, layer_name)
+                    elif isinstance(geometry, (LineString, MultiLineString)):
+                        self.add_linestring_to_dxf(msp, geometry, layer_name)
+            else:
+                # Handle single geometry as before
+                if isinstance(geometry_or_gdf, (Polygon, MultiPolygon)):
+                    self.add_polygon_to_dxf(msp, geometry_or_gdf, layer_name)
+                elif isinstance(geometry_or_gdf, (LineString, MultiLineString)):
+                    self.add_linestring_to_dxf(msp, geometry_or_gdf, layer_name)
+                elif isinstance(geometry_or_gdf, GeometryCollection):
+                    for geom in geometry_or_gdf.geoms:
+                        if isinstance(geom, (Polygon, MultiPolygon)):
+                            self.add_polygon_to_dxf(msp, geom, layer_name)
+                        elif isinstance(geom, (LineString, MultiLineString)):
+                            self.add_linestring_to_dxf(msp, geom, layer_name)
 
         doc.saveas(self.dxf_filename)
         log_info(f"DXF file saved: {self.dxf_filename}")
@@ -514,6 +514,27 @@ class ProjectProcessor:
                 interior_coords = list(interior.coords)
                 if len(interior_coords) > 2:
                     msp.add_lwpolyline(interior_coords, dxfattribs={'layer': layer_name, 'closed': self.layer_properties[layer_name]['close']})
+
+
+    def add_single_polygon_to_dxf(self, msp, geometry, layer_name):
+        if isinstance(geometry, Polygon):
+            polygons = [geometry]
+        elif isinstance(geometry, MultiPolygon):
+            polygons = list(geometry.geoms)
+        else:
+            return
+
+        for polygon in polygons:
+            exterior_coords = list(polygon.exterior.coords)
+            if len(exterior_coords) > 2:
+                msp.add_lwpolyline(exterior_coords, dxfattribs={'layer': layer_name, 'closed': self.layer_properties[layer_name]['close']})
+
+            for interior in polygon.interiors:
+                interior_coords = list(interior.coords)
+                if len(interior_coords) > 2:
+                    msp.add_lwpolyline(interior_coords, dxfattribs={'layer': layer_name, 'closed': self.layer_properties[layer_name]['close']})
+
+
 
     def add_linestring_to_dxf(self, msp, geometry, layer_name):
         if isinstance(geometry, LineString):
