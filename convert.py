@@ -477,7 +477,11 @@ class ProjectProcessor:
             layer_properties = self.layer_properties.get(layer_name, {})
             color = layer_properties.get('color', 7)  # Default to white if color not specified
             linetype = 'CONTINUOUS'
-            doc.layers.new(name=layer_name, color=color, linetype=linetype)
+            
+            # Create the layer
+            layer = doc.layers.new(name=layer_name)
+            layer.color = color
+            layer.linetype = linetype
 
             if isinstance(geometry, (Polygon, MultiPolygon)):
                 self.add_polygon_to_dxf(msp, geometry, layer_name)
