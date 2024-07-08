@@ -86,7 +86,6 @@ class ProjectProcessor:
         self.load_project_settings(project_name)
         self.load_color_mapping()
         self.setup_layers()
-        self.setup_wmts_layers()
         self.update_layers_list = update_layers_list
         self.all_layers = {}
 
@@ -109,7 +108,6 @@ class ProjectProcessor:
 
         self.crs = self.project_settings['crs']
         self.dxf_filename = self.resolve_full_path(self.project_settings['dxfFilename'])
-        self.wmts = self.project_settings.get('wmts', [])
         self.template_dxf = self.resolve_full_path(self.project_settings.get('template', '')) if self.project_settings.get('template') else None
         self.export_format = self.project_settings.get('exportFormat', 'dxf')
 
@@ -396,34 +394,28 @@ class ProjectProcessor:
                     self.create_geltungsbereich_layer(layer_name, operation)
                 elif op_type == 'exclusion':
                     self.create_exclusion_layer(layer_name, operation)
+                elif op_type == 'wmts':
+                    self.process_wmts_layer(layer_name, operation)
                 else:
                     log_warning(f"Unknown operation type: {op_type} for layer {layer_name}")
             elif 'shapeFile' in layer:
                 # This is a shapefile layer, already loaded in setup_shapefiles()
                 pass
             else:
-                # This is a layer without operation or shapefile (like DOP or Basemap)
-                # We'll just add it to all_layers with None for now
+                # This is a layer without operation or shapefile
                 self.all_layers[layer_name] = None
-                log_info(f"Added layer {layer_name} without data (possibly a WMTS layer)")
-
-        # Step 3: Process WMTS layers
-        self.process_wmts_layers()
+                log_info(f"Added layer {layer_name} without data")
 
         log_info("Finished processing layers.")
+        
+    def process_wmts_layer(self, layer_name, operation):
+        log_info(f"Processing WMTS layer: {layer_name}")
+        
+        # Here you would add the logic to download and process WMTS tiles
+        # For now, we'll just update the existing entry in all_layers with None
+        self.all_layers[layer_name] = None  # Replace with actual WMTS data when implemented
+        log_info(f"Updated WMTS layer: {layer_name}")
 
-    def process_wmts_layers(self):
-        for wmts in self.wmts:
-            layer_name = wmts['name']
-            log_info(f"Processing WMTS layer: {layer_name}")
-            
-            # Here you would add the logic to download and process WMTS tiles
-            # For now, we'll just update the existing entry in all_layers with None
-            if layer_name in self.all_layers:
-                self.all_layers[layer_name] = None  # Replace with actual WMTS data when implemented
-                log_info(f"Updated WMTS layer: {layer_name}")
-            else:
-                log_warning(f"WMTS layer {layer_name} not found in all_layers")
     def export_to_dxf(self):
         log_info("Starting DXF export...")
         doc = ezdxf.new(dxfversion="R2010")
