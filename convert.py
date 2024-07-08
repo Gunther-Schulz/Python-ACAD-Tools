@@ -161,7 +161,6 @@ class ProjectProcessor:
                     gdf = gpd.read_file(shapefile_path)
                     gdf = self.standardize_layer_crs(layer_name, gdf)
                     if gdf is not None:
-                        # Store the GeoDataFrame instead of unary_union
                         self.all_layers[layer_name] = gdf
                         log_info(f"Loaded shapefile for layer: {layer_name}")
                     else:
@@ -238,71 +237,56 @@ class ProjectProcessor:
             'close': True
         }
 
-    def create_geltungsbereich_layers(self):
-        log_info("Starting to create Geltungsbereich layers...")
-        for geltungsbereich in self.geltungsbereich_layers:
-            layer_name = geltungsbereich['layerName']
-            log_info(f"Processing Geltungsbereich layer: {layer_name}")
-            
-            combined_geometry = None
-            for coverage_index, coverage in enumerate(geltungsbereich['coverages']):
-                log_info(f"  Processing coverage {coverage_index + 1}")
-                coverage_geometry = None
-                for layer in coverage['layers']:
-                    layer_name = layer['name']
-                    value_list = layer['valueList']
-                    log_info(f"    Processing layer: {layer_name}")
-                    log_info(f"    Value list: {value_list}")
-                    
-                    if layer_name not in self.shapefiles:
-                        log_warning(f"    Warning: Layer '{layer_name}' not found in shapefiles.")
-                        continue
-                    
-                    gdf = self.shapefiles[layer_name]
-                    label_column = self.shapefile_labels.get(layer_name)
-                    if not label_column:
-                        log_warning(f"    Warning: Label column for layer '{layer_name}' not found.")
-                        continue
-                    
-                    log_info(f"    Label column: {label_column}")
-                    log_info(f"    Unique values in label column: {gdf[label_column].unique()}")
-                    
-                    filtered_gdf = gdf[gdf[label_column].isin(value_list)]
-                    log_info(f"    Filtered GeoDataFrame size: {len(filtered_gdf)}")
-                    
-                    if coverage_geometry is None:
-                        coverage_geometry = filtered_gdf.geometry.unary_union
-                    else:
-                        coverage_geometry = coverage_geometry.intersection(filtered_gdf.geometry.unary_union)
+    def create_geltungsbereich_layer(self, layer_name, operation):
+        log_info(f"Creating Geltungsbereich layer: {layer_name}")
+        combined_geometry = None
+
+        for coverage in operation['coverages']:
+            coverage_geometry = None
+            for layer in coverage['layers']:
+                source_layer_name = layer['name']
+                value_list = layer['valueList']
+
+                if source_layer_name not in self.all_layers:
+                    log_warning(f"Source layer '{source_layer_name}' not found for Geltungsbereich")
+                    continue
+
+                source_gdf = self.all_layers[source_layer_name]
                 
-                if coverage_geometry:
-                    if combined_geometry is None:
-                        combined_geometry = coverage_geometry
-                    else:
-                        combined_geometry = combined_geometry.union(coverage_geometry)
+                label_column = next((l['label'] for l in self.project_settings['dxfLayers'] if l['name'] == source_layer_name), None)
+                
+                if label_column is None or label_column not in source_gdf.columns:
+                    log_warning(f"Label column '{label_column}' not found in layer '{source_layer_name}'")
+                    continue
+
+                filtered_gdf = source_gdf[source_gdf[label_column].isin(value_list)]
+
+                if coverage_geometry is None:
+                    coverage_geometry = filtered_gdf.geometry.unary_union
                 else:
-                    log_warning(f"    Warning: No geometry created for coverage {coverage_index + 1}")
-        
-            if combined_geometry:
-                # Clip with all layers in clipDistanceLayers
-                for clip_layer in self.clip_distance_layers:
+                    coverage_geometry = coverage_geometry.intersection(filtered_gdf.geometry.unary_union)
+
+            if coverage_geometry:
+                if combined_geometry is None:
+                    combined_geometry = coverage_geometry
+                else:
+                    combined_geometry = combined_geometry.union(coverage_geometry)
+
+        if combined_geometry:
+            if 'clipLayers' in operation:
+                for clip_layer in operation['clipLayers']:
                     clip_layer_name = clip_layer['name']
                     if clip_layer_name in self.all_layers:
-                        clip_geometry = self.all_layers[clip_layer_name]
-                        
-                        if clip_layer['bufferDistance'] > 0:
-                            clip_geometry = clip_geometry.buffer(clip_layer['bufferDistance'], join_style=2)
-                        
+                        clip_geometry = self.all_layers[clip_layer_name].geometry.unary_union
                         combined_geometry = combined_geometry.difference(clip_geometry)
                     else:
-                        log_warning(f"Warning: Clip layer '{clip_layer_name}' not found in all_layers")
-                
-                self.all_layers[geltungsbereich['layerName']] = combined_geometry
-                log_info(f"Created Geltungsbereich layer: {geltungsbereich['layerName']}")
-            else:
-                log_warning(f"Warning: No geometry created for Geltungsbereich layer: {geltungsbereich['layerName']}")
-        
-        log_info("Finished creating Geltungsbereich layers.")
+                        log_warning(f"Clip layer '{clip_layer_name}' not found for Geltungsbereich")
+
+            self.all_layers[layer_name] = gpd.GeoDataFrame(geometry=[combined_geometry], crs=self.crs)
+            log_info(f"Created Geltungsbereich layer: {layer_name}")
+        else:
+            log_warning(f"No geometry created for Geltungsbereich layer: {layer_name}")
+
 
     def create_clip_distance_layers(self, layer_name):
         log_info(f"Creating clip distance layer: {layer_name}")
@@ -434,7 +418,7 @@ class ProjectProcessor:
                     })
                     self.create_clip_distance_layers(layer_name)
                 elif op_type == 'geltungsbereich':
-                    self.create_geltungsbereich_layers()
+                    self.create_geltungsbereich_layer(layer_name, operation)
                 elif op_type == 'exclusion':
                     self.create_exclusion_layers()
                 elif op_type == 'innerBuffer':
@@ -451,8 +435,7 @@ class ProjectProcessor:
         doc = ezdxf.new(dxfversion="R2010")
         msp = doc.modelspace()
 
-        for layer_name, geometry_or_gdf in self.all_layers.items():
-            print(layer_name)
+        for layer_name, gdf in self.all_layers.items():
             if self.update_layers_list and layer_name not in self.update_layers_list:
                 continue
 
@@ -466,40 +449,31 @@ class ProjectProcessor:
             layer.linetype = linetype
 
             log_info(f"Exporting layer: {layer_name}")
-            log_info(f"Geometry type: {type(geometry_or_gdf)}")
-
-            if isinstance(geometry_or_gdf, gpd.GeoDataFrame):
-                for geometry in geometry_or_gdf.geometry:
-                    self.add_geometry_to_dxf(msp, geometry, layer_name)
-            elif isinstance(geometry_or_gdf, gpd.GeoSeries):
-                for geometry in geometry_or_gdf:
-                    self.add_geometry_to_dxf(msp, geometry, layer_name)
-            else:
-                self.add_geometry_to_dxf(msp, geometry_or_gdf, layer_name)
+            self.add_geometries_to_dxf(msp, gdf, layer_name)
 
         doc.saveas(self.dxf_filename)
         log_info(f"DXF file saved: {self.dxf_filename}")
 
-    def add_geometry_to_dxf(self, msp, geometry, layer_name):
-        log_info(f"Adding geometry to DXF for layer: {layer_name}")
-        log_info(f"Geometry type: {type(geometry)}")
+    def add_geometries_to_dxf(self, msp, gdf, layer_name):
+        log_info(f"Adding geometries to DXF for layer: {layer_name}")
+        
+        if not isinstance(gdf, gpd.GeoDataFrame):
+            log_warning(f"Expected GeoDataFrame for layer {layer_name}, but got {type(gdf)}")
+            return
 
-        if isinstance(geometry, Polygon):
+        for geometry in gdf.geometry:
+            self.add_geometry_to_dxf(msp, geometry, layer_name)
+
+    def add_geometry_to_dxf(self, msp, geometry, layer_name):
+        if isinstance(geometry, (Polygon, MultiPolygon)):
             self.add_polygon_to_dxf(msp, geometry, layer_name)
-        elif isinstance(geometry, MultiPolygon):
-            for polygon in geometry.geoms:
-                self.add_polygon_to_dxf(msp, polygon, layer_name)
-        elif isinstance(geometry, LineString):
+        elif isinstance(geometry, (LineString, MultiLineString)):
             self.add_linestring_to_dxf(msp, geometry, layer_name)
-        elif isinstance(geometry, MultiLineString):
-            for linestring in geometry.geoms:
-                self.add_linestring_to_dxf(msp, linestring, layer_name)
         elif isinstance(geometry, GeometryCollection):
             for geom in geometry.geoms:
                 self.add_geometry_to_dxf(msp, geom, layer_name)
         else:
             log_warning(f"Unsupported geometry type for layer {layer_name}: {type(geometry)}")
-
 
     def add_polygon_to_dxf(self, msp, geometry, layer_name):
         if isinstance(geometry, Polygon):
@@ -519,27 +493,6 @@ class ProjectProcessor:
                 if len(interior_coords) > 2:
                     msp.add_lwpolyline(interior_coords, dxfattribs={'layer': layer_name, 'closed': self.layer_properties[layer_name]['close']})
 
-
-    def add_single_polygon_to_dxf(self, msp, geometry, layer_name):
-        if isinstance(geometry, Polygon):
-            polygons = [geometry]
-        elif isinstance(geometry, MultiPolygon):
-            polygons = list(geometry.geoms)
-        else:
-            return
-
-        for polygon in polygons:
-            exterior_coords = list(polygon.exterior.coords)
-            if len(exterior_coords) > 2:
-                msp.add_lwpolyline(exterior_coords, dxfattribs={'layer': layer_name, 'closed': self.layer_properties[layer_name]['close']})
-
-            for interior in polygon.interiors:
-                interior_coords = list(interior.coords)
-                if len(interior_coords) > 2:
-                    msp.add_lwpolyline(interior_coords, dxfattribs={'layer': layer_name, 'closed': self.layer_properties[layer_name]['close']})
-
-
-
     def add_linestring_to_dxf(self, msp, geometry, layer_name):
         if isinstance(geometry, LineString):
             linestrings = [geometry]
@@ -552,7 +505,6 @@ class ProjectProcessor:
             coords = list(linestring.coords)
             if len(coords) > 1:
                 msp.add_lwpolyline(coords, dxfattribs={'layer': layer_name, 'closed': self.layer_properties[layer_name]['close']})
-
     def run(self):
         self.process_layers()
         self.export_to_dxf()

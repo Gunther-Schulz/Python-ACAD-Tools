@@ -62,30 +62,24 @@ projects:
           type: buffer
           sourceLayer: Flur
           distance: 10
-      - name: Wald Abstand
-        color: "Light Green"
-        close: true
+      - name: Geltungsbereich
+        color: "Red"
         locked: false
+        close: true
         operation:
-          type: buffer
-          sourceLayer: Wald
-          distance: 30
-      # - name: Geltungsbereich
-      #   color: "Red"
-      #   locked: false
-      #   close: true
-      #   operation:
-      #     type: geltungsbereich
-      #     coverages:
-      #       - layers:
-      #           - name: Parcel
-      #             valueList: ["104", "96", "95", "87/1"]
-      #           - name: Flur
-      #             valueList: ["Flur 2"]
-      #           - name: Gemarkung
-      #             valueList: ["Torgelow am See"]
-      #           - name: Gemeinde
-      #             valueList: ["Torgelow am See"]
+          type: geltungsbereich
+          coverages:
+            - layers:
+                - name: Parcel
+                  valueList: ["104", "96", "95", "87/1"]
+                - name: Flur
+                  valueList: ["Flur 2"]
+                - name: Gemarkung
+                  valueList: ["Torgelow am See"]
+                - name: Gemeinde
+                  valueList: ["Torgelow am See"]
+          clipLayers:
+            - name: Straße Clip
       # - name: Wald Abstand
       #   color: "Light Green"
       #   close: true
