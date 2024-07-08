@@ -301,28 +301,24 @@ class ProjectProcessor:
         
         log_info("Finished creating Geltungsbereich layers.")
 
-    def create_clip_distance_layers(self):
-        log_info("Starting to create clip distance layers...")
-        for layer in self.clip_distance_layers:
-            layer_name = layer['name']
+    def create_clip_distance_layers(self, layer_name):
+        log_info(f"Creating clip distance layer: {layer_name}")
+        layer = next((l for l in self.clip_distance_layers if l['name'] == layer_name), None)
+        if layer:
             buffer_distance = layer['bufferDistance']
-
             if layer_name in self.all_layers:
-                log_info(f"Processing clip distance layer: {layer_name}")
                 original_geometry = self.all_layers[layer_name]
-                
                 if buffer_distance > 0:
                     clipped = original_geometry.buffer(buffer_distance, join_style=2)
                 else:
                     clipped = original_geometry
-
                 self.all_layers[layer_name] = clipped.unary_union
                 log_info(f"Created clip distance layer: {layer_name}")
             else:
                 log_warning(f"Warning: Layer '{layer_name}' not found in all_layers for clip distance layer")
-
-        log_info("Finished creating clip distance layers.")
-
+        else:
+            log_warning(f"Warning: Clip distance layer '{layer_name}' not found in configuration")
+            
     def create_buffer_distance_layers(self):
         log_info("Starting to create buffer distance layers...")
         for layer in self.buffer_distance_layers:
