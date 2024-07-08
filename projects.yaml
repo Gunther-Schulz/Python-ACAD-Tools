@@ -59,9 +59,17 @@ projects:
         close: false
         locked: false
         operation:
-          type: offset
+          type: buffer
           sourceLayer: Flur
           distance: 10
+      - name: Wald Abstand
+        color: "Light Green"
+        close: true
+        locked: false
+        operation:
+          type: buffer
+          sourceLayer: Wald
+          distance: 30
       # - name: Geltungsbereich
       #   color: "Red"
       #   locked: false

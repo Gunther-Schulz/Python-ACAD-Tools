@@ -323,33 +323,28 @@ class ProjectProcessor:
         else:
             log_warning(f"Warning: Clip distance layer '{layer_name}' not found in configuration")
             
-    def create_buffer_distance_layers(self, layers_to_buffer):
-        log_info("Starting to create buffer distance layers...")
-        for layer in layers_to_buffer:
-            layer_name = layer['name']
-            buffer_distance = layer['bufferDistance']
-            source_layer = layer['sourceLayer']
+    def create_buffer_layer(self, layer_name, operation):
+        log_info(f"Creating buffer layer: {layer_name}")
+        source_layer = operation['sourceLayer']
+        buffer_distance = operation['distance']
+        buffer_mode = operation.get('mode', 'both')  # Default to 'both' if not specified
 
-            if source_layer in self.all_layers:
-                log_info(f"Processing buffer distance layer: {layer_name}")
-                original_geometry = self.all_layers[source_layer]
+        if source_layer in self.all_layers:
+            original_geometry = self.all_layers[source_layer]
+            
+            if buffer_mode == 'outer':
                 buffered = original_geometry.buffer(buffer_distance, join_style=2)
-                
-                # Handle different geometry types
-                if isinstance(buffered, (Polygon, MultiPolygon)):
-                    self.all_layers[layer_name] = buffered
-                elif isinstance(buffered, GeometryCollection):
-                    # If it's a GeometryCollection, union all its components
-                    self.all_layers[layer_name] = unary_union(buffered.geoms)
-                else:
-                    # For other types (like LineString), just use as is
-                    self.all_layers[layer_name] = buffered
-                
-                log_info(f"Created buffer distance layer: {layer_name}")
-            else:
-                log_warning(f"Warning: Source layer '{source_layer}' not found in all_layers for buffer distance layer '{layer_name}'")
+                result = buffered.difference(original_geometry)
+            elif buffer_mode == 'inner':
+                result = original_geometry.buffer(-buffer_distance, join_style=2)
+            else:  # 'both'
+                result = original_geometry.buffer(buffer_distance, join_style=2)
 
-        log_info("Finished creating buffer distance layers.")
+            self.all_layers[layer_name] = result
+            log_info(f"Created buffer layer: {layer_name}")
+        else:
+            log_warning(f"Warning: Source layer '{source_layer}' not found for buffer layer '{layer_name}'")
+
 
     def create_offset_layers(self, layers_to_offset):
         log_info("Starting to create offset layers...")
@@ -430,11 +425,7 @@ class ProjectProcessor:
                 op_type = operation['type']
 
                 if op_type == 'buffer':
-                    self.create_buffer_distance_layers([{
-                        'name': layer_name,
-                        'sourceLayer': operation['sourceLayer'],
-                        'bufferDistance': operation['distance']
-                    }])
+                    self.create_buffer_layer(layer_name, operation)
                 elif op_type == 'clip':
                     self.clip_distance_layers.append({
                         'name': layer_name,
@@ -442,12 +433,6 @@ class ProjectProcessor:
                         'bufferDistance': operation['distance']
                     })
                     self.create_clip_distance_layers(layer_name)
-                elif op_type == 'offset':
-                    self.create_offset_layers([{
-                        'name': layer_name,
-                        'layerToOffset': operation['sourceLayer'],
-                        'offsetDistance': operation['distance']
-                    }])
                 elif op_type == 'geltungsbereich':
                     self.create_geltungsbereich_layers()
                 elif op_type == 'exclusion':
