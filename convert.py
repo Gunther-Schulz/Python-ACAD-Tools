@@ -351,9 +351,9 @@ class ProjectProcessor:
 
         log_info("Finished creating buffer distance layers.")
 
-    def create_offset_layers(self):
+    def create_offset_layers(self, layers_to_offset):
         log_info("Starting to create offset layers...")
-        for layer in self.offset_layers:
+        for layer in layers_to_offset:
             layer_to_offset = layer['layerToOffset']
             offset_distance = layer['offsetDistance']
             layer_name = layer['name']
@@ -443,7 +443,11 @@ class ProjectProcessor:
                     })
                     self.create_clip_distance_layers(layer_name)
                 elif op_type == 'offset':
-                    self.create_offset_layers()
+                    self.create_offset_layers([{
+                        'name': layer_name,
+                        'layerToOffset': operation['sourceLayer'],
+                        'offsetDistance': operation['distance']
+                    }])
                 elif op_type == 'geltungsbereich':
                     self.create_geltungsbereich_layers()
                 elif op_type == 'exclusion':
@@ -463,6 +467,7 @@ class ProjectProcessor:
         msp = doc.modelspace()
 
         for layer_name, geometry_or_gdf in self.all_layers.items():
+            print(layer_name)
             if self.update_layers_list and layer_name not in self.update_layers_list:
                 continue
 
@@ -475,27 +480,41 @@ class ProjectProcessor:
             layer.color = color
             layer.linetype = linetype
 
+            log_info(f"Exporting layer: {layer_name}")
+            log_info(f"Geometry type: {type(geometry_or_gdf)}")
+
             if isinstance(geometry_or_gdf, gpd.GeoDataFrame):
                 for geometry in geometry_or_gdf.geometry:
-                    if isinstance(geometry, (Polygon, MultiPolygon)):
-                        self.add_polygon_to_dxf(msp, geometry, layer_name)
-                    elif isinstance(geometry, (LineString, MultiLineString)):
-                        self.add_linestring_to_dxf(msp, geometry, layer_name)
+                    self.add_geometry_to_dxf(msp, geometry, layer_name)
+            elif isinstance(geometry_or_gdf, gpd.GeoSeries):
+                for geometry in geometry_or_gdf:
+                    self.add_geometry_to_dxf(msp, geometry, layer_name)
             else:
-                # Handle single geometry as before
-                if isinstance(geometry_or_gdf, (Polygon, MultiPolygon)):
-                    self.add_polygon_to_dxf(msp, geometry_or_gdf, layer_name)
-                elif isinstance(geometry_or_gdf, (LineString, MultiLineString)):
-                    self.add_linestring_to_dxf(msp, geometry_or_gdf, layer_name)
-                elif isinstance(geometry_or_gdf, GeometryCollection):
-                    for geom in geometry_or_gdf.geoms:
-                        if isinstance(geom, (Polygon, MultiPolygon)):
-                            self.add_polygon_to_dxf(msp, geom, layer_name)
-                        elif isinstance(geom, (LineString, MultiLineString)):
-                            self.add_linestring_to_dxf(msp, geom, layer_name)
+                self.add_geometry_to_dxf(msp, geometry_or_gdf, layer_name)
 
         doc.saveas(self.dxf_filename)
         log_info(f"DXF file saved: {self.dxf_filename}")
+
+    def add_geometry_to_dxf(self, msp, geometry, layer_name):
+        log_info(f"Adding geometry to DXF for layer: {layer_name}")
+        log_info(f"Geometry type: {type(geometry)}")
+
+        if isinstance(geometry, Polygon):
+            self.add_polygon_to_dxf(msp, geometry, layer_name)
+        elif isinstance(geometry, MultiPolygon):
+            for polygon in geometry.geoms:
+                self.add_polygon_to_dxf(msp, polygon, layer_name)
+        elif isinstance(geometry, LineString):
+            self.add_linestring_to_dxf(msp, geometry, layer_name)
+        elif isinstance(geometry, MultiLineString):
+            for linestring in geometry.geoms:
+                self.add_linestring_to_dxf(msp, linestring, layer_name)
+        elif isinstance(geometry, GeometryCollection):
+            for geom in geometry.geoms:
+                self.add_geometry_to_dxf(msp, geom, layer_name)
+        else:
+            log_warning(f"Unsupported geometry type for layer {layer_name}: {type(geometry)}")
+
 
     def add_polygon_to_dxf(self, msp, geometry, layer_name):
         if isinstance(geometry, Polygon):

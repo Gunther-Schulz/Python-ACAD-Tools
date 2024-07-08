@@ -46,30 +46,22 @@ projects:
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/abstand.shp"
         color: "Light Green"
         locked: false
-      - name: Wald Abstand
+      - name: Straße Clip
         color: "Light Green"
         close: true
         locked: false
         operation:
-          type: buffer
-          sourceLayer: Wald
-          distance: 30
-      # - name: Straße Clip
-      #   color: "Light Green"
-      #   close: true
-      #   locked: false
-      #   operation:
-      #     type: clip
-      #     sourceLayer: Straße Abstand
-      #     distance: 7
-      # - name: Flur Offset
-      #   color: "Light Green"
-      #   close: false
-      #   locked: false
-      #   operation:
-      #     type: offset
-      #     sourceLayer: Flur
-      #     distance: 10
+          type: clip
+          sourceLayer: Straße Abstand
+          distance: 7
+      - name: Flur Offset
+        color: "Light Green"
+        close: false
+        locked: false
+        operation:
+          type: offset
+          sourceLayer: Flur
+          distance: 10
       # - name: Geltungsbereich
       #   color: "Red"
       #   locked: false
@@ -86,6 +78,14 @@ projects:
       #             valueList: ["Torgelow am See"]
       #           - name: Gemeinde
       #             valueList: ["Torgelow am See"]
+      # - name: Wald Abstand
+      #   color: "Light Green"
+      #   close: true
+      #   locked: false
+      #   operation:
+      #     type: buffer
+      #     sourceLayer: Wald
+      #     distance: 30
       # - name: Baufeld
       #   color: "Red"
       #   locked: false
