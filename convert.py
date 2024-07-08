@@ -83,10 +83,9 @@ def setup_proj():
 
 class ProjectProcessor:
     def __init__(self, project_name: str, update_layers_list: list = None):
-        self.load_color_mapping()
         self.load_project_settings(project_name)
+        self.load_color_mapping()  # Add this line
         self.setup_layers()
-        self.setup_shapefiles()
         self.update_layers_list = update_layers_list
 
     def load_color_mapping(self):
@@ -169,10 +168,10 @@ class ProjectProcessor:
     def resolve_full_path(self, path: str) -> str:
         return os.path.abspath(os.path.expanduser(os.path.join(self.folder_prefix, path)))
 
-    def load_shapefile(self, file_path: str) -> gpd.GeoDataFrame:
-        gdf = gpd.read_file(file_path)
-        gdf = self.standardize_layer_crs(os.path.splitext(os.path.basename(file_path))[0], gdf)
-        return gdf
+    def load_shapefiles(self):
+        for layer in self.project_settings['dxfLayers']:
+            if 'shapeFile' in layer:
+                self.load_shapefile(layer['name'], layer['shapeFile'])
 
     def standardize_layer_crs(self, layer_name, geometry_or_gdf):
         target_crs = self.crs
@@ -423,34 +422,20 @@ class ProjectProcessor:
     def process_layers(self):
         log_info("Starting to process layers...")
         
-        # Create a mapping of layer names to their creation methods
-        layer_creation_methods = {
-            'clipDistanceLayers': self.create_clip_distance_layers,
-            'bufferDistanceLayers': self.create_buffer_distance_layers,
-            'offsetLayers': self.create_offset_layers,
-            'innerBufferLayers': self.create_inner_buffer_layers,
-            'geltungsbereichLayers': self.create_geltungsbereich_layers,
-        }
+        # Step 1: Load all shapefiles
+        self.load_shapefiles()
 
-        # Process layers in the order specified in dxfLayers
+        # Step 2: Process all layers in order
         for layer in self.project_settings['dxfLayers']:
             layer_name = layer['name']
+            if self.update_layers_list and layer_name not in self.update_layers_list:
+                continue
+
             log_info(f"Processing layer: {layer_name}")
-
-            # Check if this layer needs special processing
-            for layer_type, creation_method in layer_creation_methods.items():
-                if any(l['name'] == layer_name for l in getattr(self, layer_type, [])):
-                    creation_method()
-                    break
-            
-            # If the layer is not in any of the special processing lists,
-            # it should already be in self.all_layers from the initial shapefile loading
-
-        # Process exclusions after all other layers
-        self.create_exclusion_layers()
-
-        # Process WMTS layers last
-        self.process_wmts_layers()
+            if 'operation' in layer:
+                self.process_layer_operation(layer)
+            elif layer_name not in self.all_layers:
+                log_warning(f"Layer {layer_name} not found and has no operation defined.")
 
         log_info("Finished processing layers.")
 
@@ -512,6 +497,26 @@ class ProjectProcessor:
             coords = list(linestring.coords)
             if len(coords) > 1:
                 msp.add_lwpolyline(coords, dxfattribs={'layer': layer_name, 'closed': self.layer_properties[layer_name]['close']})
+
+    def process_layer_operation(self, layer):
+        operation = layer['operation']
+        op_type = operation['type']
+        layer_name = layer['name']
+
+        if op_type == 'buffer':
+            self.create_buffer_layer(layer_name, operation['sourceLayer'], operation['distance'])
+        elif op_type == 'clip':
+            self.create_clip_layer(layer_name, operation['sourceLayer'], operation['distance'])
+        elif op_type == 'offset':
+            self.create_offset_layer(layer_name, operation['sourceLayer'], operation['distance'])
+        elif op_type == 'geltungsbereich':
+            self.create_geltungsbereich_layer(layer_name, operation['coverages'])
+        elif op_type == 'exclusion':
+            self.create_exclusion_layer(layer_name, operation['scopeLayer'], operation['excludeLayers'])
+        elif op_type == 'innerBuffer':
+            self.create_inner_buffer_layer(layer_name, operation['sourceLayer'], operation['distance'])
+        else:
+            log_warning(f"Unknown operation type: {op_type} for layer {layer_name}")
 
     def run(self):
         self.process_layers()

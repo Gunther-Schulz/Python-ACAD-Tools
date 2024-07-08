@@ -6,8 +6,7 @@ projects:
     exportFormat: dxf
     crs: EPSG:25833
     dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/Zeichnung/combined.dxf"
-    # template: "~/hidrive/Öffentlich Planungsbüro Schulz/Allgemein/CAD/Zeichnung.dxf"
-    dxfLayers: # geometries in the rest of the yaml should be processed in the order that is given here
+    dxfLayers:
       - name: Flur
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/flur2.shp"
         label: flurname
@@ -51,60 +50,60 @@ projects:
         color: "Light Green"
         close: true
         locked: false
+        operation:
+          type: buffer
+          sourceLayer: Wald
+          distance: 30
       - name: Straße Clip
         color: "Light Green"
         close: true
         locked: false
+        operation:
+          type: clip
+          sourceLayer: Straße Abstand
+          distance: 7
       - name: Flur Offset
         color: "Light Green"
         close: false
         locked: false
+        operation:
+          type: offset
+          sourceLayer: Flur
+          distance: 10
       - name: Geltungsbereich
         color: "Red"
         locked: false
         close: true
+        operation:
+          type: geltungsbereich
+          coverages:
+            - layers:
+                - name: Parcel
+                  valueList: ["104", "96", "95", "87/1"]
+                - name: Flur
+                  valueList: ["Flur 2"]
+                - name: Gemarkung
+                  valueList: ["Torgelow am See"]
+                - name: Gemeinde
+                  valueList: ["Torgelow am See"]
       - name: Baufeld
         color: "Red"
         locked: false
         close: true
+        operation:
+          type: exclusion
+          scopeLayer: Geltungsbereich
+          excludeLayers:
+            - Wald Abstand
+            - Biotope
       - name: Baugrenze
         color: "Blue"
         locked: false
         close: true
-    geltungsbereichLayers:
-      - layerName: Geltungsbereich
-        coverages:
-          - layers:
-              - name: Parcel
-                valueList: ["104", "96", "95", "87/1"]
-              - name: Flur
-                valueList: ["Flur 2"]
-              - name: Gemarkung
-                valueList: ["Torgelow am See"]
-              - name: Gemeinde
-                valueList: ["Torgelow am See"]
-    exclusions:
-      - name: Baufeld
-        scopeLayer: Geltungsbereich
-        excludeLayers:
-          - Wald Abstand
-          - Biotope
-    clipDistanceLayers:
-      - name: Straße Clip
-        bufferDistance: 7
-      - name: Wald Clip
-        bufferDistance: 0
-    bufferDistanceLayers:
-      - name: Wald Abstand
-        bufferDistance: 30
-    offsetLayers:
-      - name: Flur Offset
-        layerToOffset: Flur
-        offsetDistance: 10
-    innerBufferLayers:
-      - name: Baugrenze
-        layerToBuffer: Baufeld
-        bufferDistance: 3
+        operation:
+          type: innerBuffer
+          sourceLayer: Baufeld
+          distance: 3
     wmts:
       - name: DOP
         url: "https://www.geodaten-mv.de/dienste/dop_wmts/wmts/1.0.0/WMTSCapabilities.xml"
@@ -122,4 +121,3 @@ projects:
         targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/Basemap"
         dxfLayer: "WMTS Basemap"
         locked: true
-
