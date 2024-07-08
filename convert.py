@@ -126,15 +126,6 @@ class ProjectProcessor:
             self.colors[layer['name']] = color_code
             self.colors[f"{layer['name']} Number"] = color_code
 
-        for buffer_layer in self.buffer_distance_layers:
-            layer_name = buffer_layer['name']
-            if layer_name not in self.layer_properties:
-                self.add_layer_properties(layer_name, {
-                    'color': "Light Green",
-                    'close': True,
-                    'locked': False
-                })
-
         for wmts in self.wmts:
             layer_name = wmts['dxfLayer']
             if layer_name not in self.layer_properties:
@@ -286,24 +277,20 @@ class ProjectProcessor:
             log_warning(f"No geometry created for Geltungsbereich layer: {layer_name}")
 
 
-    def create_clip_distance_layers(self, layer_name):
+    def create_clip_distance_layer(self, layer_name, operation):
         log_info(f"Creating clip distance layer: {layer_name}")
-        layer = next((l for l in self.clip_distance_layers if l['name'] == layer_name), None)
-        if layer:
-            buffer_distance = layer['bufferDistance']
-            source_layer = layer['sourceLayer']
-            if source_layer in self.all_layers:
-                original_geometry = self.all_layers[source_layer]
-                if buffer_distance > 0:
-                    clipped = original_geometry.buffer(buffer_distance, join_style=2)
-                else:
-                    clipped = original_geometry
-                self.all_layers[layer_name] = clipped
-                log_info(f"Created clip distance layer: {layer_name}")
+        buffer_distance = operation['distance']
+        source_layer = operation['sourceLayer']
+        if source_layer in self.all_layers:
+            original_geometry = self.all_layers[source_layer]
+            if buffer_distance > 0:
+                clipped = original_geometry.buffer(buffer_distance, join_style=2)
             else:
-                log_warning(f"Warning: Source layer '{source_layer}' not found in all_layers for clip distance layer '{layer_name}'")
+                clipped = original_geometry
+            self.all_layers[layer_name] = clipped
+            log_info(f"Created clip distance layer: {layer_name}")
         else:
-            log_warning(f"Warning: Clip distance layer '{layer_name}' not found in configuration")
+            log_warning(f"Warning: Source layer '{source_layer}' not found in all_layers for clip distance layer '{layer_name}'")
             
     def create_buffer_layer(self, layer_name, operation):
         log_info(f"Creating buffer layer: {layer_name}")
@@ -405,12 +392,7 @@ class ProjectProcessor:
                 if op_type == 'buffer':
                     self.create_buffer_layer(layer_name, operation)
                 elif op_type == 'clip':
-                    self.clip_distance_layers.append({
-                        'name': layer_name,
-                        'sourceLayer': operation['sourceLayer'],
-                        'bufferDistance': operation['distance']
-                    })
-                    self.create_clip_distance_layers(layer_name)
+                    self.create_clip_distance_layer(layer_name, operation)
                 elif op_type == 'geltungsbereich':
                     self.create_geltungsbereich_layer(layer_name, operation)
                 elif op_type == 'exclusion':
