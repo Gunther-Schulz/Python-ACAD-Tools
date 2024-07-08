@@ -380,30 +380,29 @@ class ProjectProcessor:
 
         log_info("Finished creating inner buffer layers.")
 
-    def create_exclusion_layers(self):
-        log_info("Starting to create exclusion layers...")
-        for exclusion in self.exclusions:
-            layer_name = exclusion['name']
-            scope_layer = exclusion['scopeLayer']
-            exclude_layers = exclusion['excludeLayers']
+    def create_exclusion_layer(self, layer_name, operation):
+        log_info(f"Creating exclusion layer: {layer_name}")
+        scope_layer = operation['scopeLayer']
+        exclude_layers = operation['excludeLayers']
 
-            if scope_layer in self.all_layers:
-                log_info(f"Processing exclusion layer: {layer_name}")
-                scope_geometry = self.all_layers[scope_layer]
-                excluded_geometry = scope_geometry
+        log_info(f"  Scope layer: {scope_layer}")
+        log_info(f"  Exclude layers: {exclude_layers}")
 
-                for exclude_layer in exclude_layers:
-                    if exclude_layer in self.all_layers:
-                        excluded_geometry = excluded_geometry.difference(self.all_layers[exclude_layer])
-                    else:
-                        log_warning(f"Warning: Exclude layer '{exclude_layer}' not found for exclusion layer '{layer_name}'")
+        if scope_layer in self.all_layers:
+            scope_geometry = self.all_layers[scope_layer]
+            excluded_geometry = scope_geometry
 
-                self.all_layers[layer_name] = excluded_geometry
-                log_info(f"Created exclusion layer: {layer_name}")
-            else:
-                log_warning(f"Warning: Scope layer '{scope_layer}' not found for exclusion layer '{layer_name}'")
+            for exclude_layer in exclude_layers:
+                if exclude_layer in self.all_layers:
+                    log_info(f"  Excluding {exclude_layer}")
+                    excluded_geometry = excluded_geometry.difference(self.all_layers[exclude_layer])
+                else:
+                    log_warning(f"Warning: Exclude layer '{exclude_layer}' not found for exclusion layer '{layer_name}'")
 
-        log_info("Finished creating exclusion layers.")
+            self.all_layers[layer_name] = excluded_geometry
+            log_info(f"Created exclusion layer: {layer_name}")
+        else:
+            log_warning(f"Warning: Scope layer '{scope_layer}' not found for exclusion layer '{layer_name}'")
 
     def process_layers(self):
         log_info("Starting to process layers...")
@@ -434,7 +433,7 @@ class ProjectProcessor:
                 elif op_type == 'geltungsbereich':
                     self.create_geltungsbereich_layer(layer_name, operation)
                 elif op_type == 'exclusion':
-                    self.create_exclusion_layers()
+                    self.create_exclusion_layer(layer_name, operation)
                 elif op_type == 'innerBuffer':
                     self.create_inner_buffer_layers()
                 else:
@@ -450,6 +449,7 @@ class ProjectProcessor:
         msp = doc.modelspace()
 
         for layer_name, geo_data in self.all_layers.items():
+            print(layer_name)
             if self.update_layers_list and layer_name not in self.update_layers_list:
                 continue
 

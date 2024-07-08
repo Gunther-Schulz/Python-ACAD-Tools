@@ -88,16 +88,16 @@ projects:
           sourceLayer: Wald
           distance: 30
           clipToLayers: ["Geltungsbereich"]
-      # - name: Baufeld
-      #   color: "Red"
-      #   locked: false
-      #   close: true
-      #   operation:
-      #     type: exclusion
-      #     scopeLayer: Geltungsbereich
-      #     excludeLayers:
-      #       - Wald Abstand
-      #       - Biotope
+      - name: Baufeld
+        color: "Red"
+        locked: false
+        close: true
+        operation:
+          type: exclusion
+          scopeLayer: Geltungsbereich
+          excludeLayers:
+            - Wald Abstand
+            - Biotope
       # - name: Baugrenze
       #   color: "Blue"
       #   locked: false
