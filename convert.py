@@ -149,6 +149,7 @@ class ProjectProcessor:
         self.shapefile_paths = {}
         self.shapefile_labels = {}
         self.shapefiles = {}
+        self.all_layers = {}  # Make sure this is initialized
 
         for layer in self.project_settings['dxfLayers']:
             if 'shapeFile' in layer:
@@ -156,12 +157,14 @@ class ProjectProcessor:
                 self.shapefile_paths[layer_name] = self.resolve_full_path(layer['shapeFile'])
                 self.shapefile_labels[layer_name] = layer.get('label')
 
-        for layer_name, shapefile_path in self.shapefile_paths.items():
-            try:
-                self.shapefiles[layer_name] = self.load_shapefile(shapefile_path)
-                log_info(f"Loaded shapefile for layer: {layer_name}")
-            except Exception as e:
-                log_warning(f"Failed to load shapefile for layer '{layer_name}': {str(e)}")
+                try:
+                    gdf = self.load_shapefile(self.shapefile_paths[layer_name])
+                    self.shapefiles[layer_name] = gdf
+                    self.all_layers[layer_name] = gdf.geometry.unary_union
+                    log_info(f"Loaded shapefile for layer: {layer_name}")
+                except Exception as e:
+                    log_warning(f"Failed to load shapefile for layer '{layer_name}': {str(e)}")
+
 
     def resolve_full_path(self, path: str) -> str:
         return os.path.abspath(os.path.expanduser(os.path.join(self.folder_prefix, path)))
@@ -322,18 +325,18 @@ class ProjectProcessor:
     def create_buffer_distance_layers(self):
         log_info("Starting to create buffer distance layers...")
         for layer in self.buffer_distance_layers:
-            input_shapefile = self.resolve_full_path(layer['shapeFile'])
+            layer_to_buffer = layer['name']
             buffer_distance = layer['bufferDistance']
             layer_name = layer['name']
 
-            if self.has_corresponding_layer(layer_name):
+            if layer_to_buffer in self.all_layers:
                 log_info(f"Processing buffer distance layer: {layer_name}")
-                gdf = gpd.read_file(input_shapefile)
-                gdf = self.standardize_layer_crs(layer_name, gdf)
-
-                buffered = gdf.geometry.buffer(buffer_distance, join_style=2)
+                original_geometry = self.all_layers[layer_to_buffer]
+                buffered = original_geometry.buffer(buffer_distance, join_style=2)
                 self.all_layers[layer_name] = buffered.unary_union
                 log_info(f"Created buffer distance layer: {layer_name}")
+            else:
+                log_warning(f"Warning: Layer to buffer '{layer_to_buffer}' not found in all_layers for buffer layer '{layer_name}'")
 
         log_info("Finished creating buffer distance layers.")
 
@@ -351,7 +354,7 @@ class ProjectProcessor:
                 self.all_layers[layer_name] = offset_geometry
                 log_info(f"Created offset layer: {layer_name}")
             else:
-                log_warning(f"Warning: Layer to offset '{layer_to_offset}' not found for offset layer '{layer_name}'")
+                log_warning(f"Warning: Layer to offset '{layer_to_offset}' not found in all_layers for offset layer '{layer_name}'")
 
         log_info("Finished creating offset layers.")
 
