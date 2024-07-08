@@ -43,6 +43,10 @@ projects:
         color: "Green"
         close: true
         locked: false
+      - name: Straße Abstand
+        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/abstand.shp"
+        color: "Light Green"
+        locked: false
       - name: Wald Abstand
         color: "Light Green"
         close: true
@@ -87,14 +91,11 @@ projects:
           - Biotope
     clipDistanceLayers:
       - name: Straße Clip
-        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/abstand.shp"
         bufferDistance: 7
       - name: Wald Clip
-        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/wald.shp"
         bufferDistance: 0
     bufferDistanceLayers:
       - name: Wald Abstand
-        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/wald.shp"
         bufferDistance: 30
     offsetLayers:
       - name: Flur Offset
