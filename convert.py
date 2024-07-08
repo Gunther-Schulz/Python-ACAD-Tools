@@ -407,14 +407,38 @@ class ProjectProcessor:
                 log_info(f"Added layer {layer_name} without data")
 
         log_info("Finished processing layers.")
-        
+
     def process_wmts_layer(self, layer_name, operation):
         log_info(f"Processing WMTS layer: {layer_name}")
         
-        # Here you would add the logic to download and process WMTS tiles
-        # For now, we'll just update the existing entry in all_layers with None
-        self.all_layers[layer_name] = None  # Replace with actual WMTS data when implemented
-        log_info(f"Updated WMTS layer: {layer_name}")
+        # Get the geltungsbereich geometry
+        geltungsbereich = self.all_layers.get('Geltungsbereich')
+        if geltungsbereich is None:
+            log_warning(f"Geltungsbereich layer not found. Skipping WMTS download for {layer_name}")
+            return
+
+        # Use the first geometry if it's a GeoDataFrame
+        if isinstance(geltungsbereich, gpd.GeoDataFrame):
+            geltungsbereich = geltungsbereich.geometry.iloc[0]
+
+        buffer_distance = operation.get('buffer', 100)  # Default buffer of 100 meters
+        target_folder = self.resolve_full_path(operation['targetFolder'])
+
+        wmts_info = {
+            'url': operation['url'],
+            'layer': operation['layer'],
+            'zoom': operation['zoom'],
+            'proj': operation['proj'],
+            'format': operation.get('format', 'image/png'),
+        }
+
+        downloaded_tiles = download_wmts_tiles(wmts_info, geltungsbereich, buffer_distance, target_folder)
+        
+        if downloaded_tiles:
+            self.all_layers[layer_name] = downloaded_tiles
+            log_info(f"Downloaded {len(downloaded_tiles)} tiles for layer: {layer_name}")
+        else:
+            log_warning(f"No tiles downloaded for layer: {layer_name}")
 
     def export_to_dxf(self):
         log_info("Starting DXF export...")
@@ -422,7 +446,6 @@ class ProjectProcessor:
         msp = doc.modelspace()
 
         for layer_name, geo_data in self.all_layers.items():
-            print(layer_name)
             if self.update_layers_list and layer_name not in self.update_layers_list:
                 continue
 
@@ -436,10 +459,43 @@ class ProjectProcessor:
             layer.linetype = linetype
 
             log_info(f"Exporting layer: {layer_name}")
-            self.add_geometries_to_dxf(msp, geo_data, layer_name)
+            
+            if isinstance(geo_data, list) and all(isinstance(item, tuple) for item in geo_data):
+                # This is a WMTS layer with downloaded tiles
+                self.add_wmts_xrefs_to_dxf(msp, geo_data, layer_name)
+            else:
+                self.add_geometries_to_dxf(msp, geo_data, layer_name)
 
         doc.saveas(self.dxf_filename)
         log_info(f"DXF file saved: {self.dxf_filename}")
+
+    def add_wmts_xrefs_to_dxf(self, msp, tile_data, layer_name):
+        log_info(f"Adding WMTS xrefs to DXF for layer: {layer_name}")
+        
+        dxf_dir = os.path.dirname(self.dxf_filename)
+        
+        for image_path, world_file_path in tile_data:
+            # Read world file
+            with open(world_file_path, 'r') as wf:
+                a, d, b, e, c, f = map(float, wf.read().split())
+
+            # Calculate insertion point and scaling
+            rel_path = os.path.relpath(image_path, dxf_dir)
+            insertion_point = (c, f)
+            pixel_size = (abs(a), abs(e))
+
+            # Add image as xref
+            image_def = msp.doc.add_image_def(filename=rel_path)
+            msp.add_image(
+                image_def=image_def,
+                insert=insertion_point,
+                u_pixel=pixel_size[0],
+                v_pixel=pixel_size[1],
+                rotation=0,
+                dxfattribs={'layer': layer_name}
+            )
+
+        log_info(f"Added {len(tile_data)} WMTS xrefs to layer: {layer_name}")
 
     def add_geometries_to_dxf(self, msp, geo_data, layer_name):
         log_info(f"Adding geometries to DXF for layer: {layer_name}")
