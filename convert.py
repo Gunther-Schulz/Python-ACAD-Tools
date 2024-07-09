@@ -5,7 +5,7 @@ import geopandas as gpd
 import ezdxf
 from shapely.ops import unary_union
 from wmts_downloader import download_wmts_tiles
-from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection
+from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection, Point
 import random
 from ezdxf.addons import odafc
 import argparse
@@ -563,6 +563,16 @@ class ProjectProcessor:
             
             if labels is not None:
                 self.add_label_to_dxf(msp, geometry, labels.iloc[idx], layer_name)
+            elif self.is_generated_layer(layer_name):
+                # Add label for generated layers using the layer name
+                self.add_label_to_dxf(msp, geometry, layer_name, layer_name)
+
+    def is_generated_layer(self, layer_name):
+        # Check if the layer is generated (has an operation) and not loaded from a shapefile
+        for layer in self.project_settings['dxfLayers']:
+            if layer['name'] == layer_name:
+                return 'operation' in layer and 'shapeFile' not in layer
+        return False
 
     def add_geometry_to_dxf(self, msp, geometry, layer_name):
         if isinstance(geometry, (Polygon, MultiPolygon)):
@@ -628,6 +638,14 @@ class ProjectProcessor:
             'Standard',
             self.colors[text_layer_name]
         )
+
+    def get_text_height(self, geometry):
+        # Calculate text height based on geometry size
+        bounds = geometry.bounds
+        width = bounds[2] - bounds[0]
+        height = bounds[3] - bounds[1]
+        max_dimension = max(width, height)
+        return max_dimension * 0.05  # Adjust this factor as needed
 
     def get_geometry_centroid(self, geometry):
         if isinstance(geometry, (Polygon, MultiPolygon)):

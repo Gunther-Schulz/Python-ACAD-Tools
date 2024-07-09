@@ -40,7 +40,7 @@ projects:
           coverages:
             - layers:
                 - name: Parcel
-                  valueList: ["1", "2", "4", "6", "7"]
+                  valueList: ["1", "2", "4", "6", "7", "14"]
                 - name: Flur
                   valueList: ["Flur 1"]
                 - name: Gemarkung
