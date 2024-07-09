@@ -119,7 +119,7 @@ class ProjectProcessor:
             self.add_layer_properties(layer['name'], layer)
             color_code = self.get_color_code(layer['color'])
             self.colors[layer['name']] = color_code
-            self.colors[f"{layer['name']} Number"] = color_code
+            self.colors[f"{layer['name']} Label"] = color_code
 
     def setup_wmts_layers(self):
         for wmts in self.wmts:
@@ -217,7 +217,7 @@ class ProjectProcessor:
             'close': layer_info.get('close', True)
         }
         
-        text_layer_name = f"{layer_name} Number"
+        text_layer_name = f"{layer_name} Label"
         self.layer_properties[text_layer_name] = {
             'color': color,
             'locked': layer_info.get('locked', False),
@@ -411,15 +411,29 @@ class ProjectProcessor:
     def process_wmts_layer(self, layer_name, operation):
         log_info(f"Processing WMTS layer: {layer_name}")
         
-        # Get the geltungsbereich geometry
-        geltungsbereich = self.all_layers.get('Geltungsbereich')
-        if geltungsbereich is None:
-            log_warning(f"Geltungsbereich layer not found. Skipping WMTS download for {layer_name}")
+        # Get the layers to use for WMTS tiles
+        wmts_layers = operation.get('layers', [])
+        
+        if not wmts_layers:
+            log_warning(f"No layers specified for WMTS download of {layer_name}")
             return
 
-        # Use the first geometry if it's a GeoDataFrame
-        if isinstance(geltungsbereich, gpd.GeoDataFrame):
-            geltungsbereich = geltungsbereich.geometry.iloc[0]
+        combined_geometry = None
+        for layer in wmts_layers:
+            if layer in self.all_layers:
+                layer_geometry = self.all_layers[layer]
+                if isinstance(layer_geometry, gpd.GeoDataFrame):
+                    layer_geometry = layer_geometry.geometry.unary_union
+                if combined_geometry is None:
+                    combined_geometry = layer_geometry
+                else:
+                    combined_geometry = combined_geometry.union(layer_geometry)
+            else:
+                log_warning(f"Layer {layer} not found for WMTS download of {layer_name}")
+
+        if combined_geometry is None:
+            log_warning(f"No valid layers found for WMTS download of {layer_name}")
+            return
 
         buffer_distance = operation.get('buffer', 100)  # Default buffer of 100 meters
         target_folder = self.resolve_full_path(operation['targetFolder'])
@@ -432,7 +446,7 @@ class ProjectProcessor:
             'format': operation.get('format', 'image/png'),
         }
 
-        downloaded_tiles = download_wmts_tiles(wmts_info, geltungsbereich, buffer_distance, target_folder)
+        downloaded_tiles = download_wmts_tiles(wmts_info, combined_geometry, buffer_distance, target_folder)
         
         if downloaded_tiles:
             self.all_layers[layer_name] = downloaded_tiles
@@ -459,7 +473,7 @@ class ProjectProcessor:
             layer.linetype = linetype
 
             # Create the text layer
-            text_layer_name = f"{layer_name} Number"
+            text_layer_name = f"{layer_name} Label"
             text_layer = doc.layers.new(name=text_layer_name)
             text_layer.color = color
             text_layer.linetype = linetype
@@ -628,7 +642,7 @@ class ProjectProcessor:
             log_warning(f"Could not determine centroid for geometry in layer {layer_name}")
             return
 
-        text_layer_name = f"{layer_name} Number"
+        text_layer_name = f"{layer_name} Label"
         self.add_text(
             msp,
             str(label),

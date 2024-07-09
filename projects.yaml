@@ -79,6 +79,36 @@ projects:
                   valueList: ["Klein Plasten"]
                 - name: Gemeinde
                   valueList: ["Groß Plasten"]
+      - name: WMTS DOP
+        color: Black
+        locked: true
+        operation:
+          type: wmts
+          url: "https://www.geodaten-mv.de/dienste/dop_wmts/wmts/1.0.0/WMTSCapabilities.xml"
+          layer: "mv_dop"
+          zoom: "10"
+          proj: "ETRS89UTM33"
+          targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/DOP"
+          layers:
+            - Geltungsbereich 1
+            - Geltungsbereich 2
+            - Geltungsbereich 3
+          buffer: 100
+      - name: WMTS Basemap
+        color: Black
+        locked: true
+        operation:
+          type: wmts
+          url: "https://sgx.geodatenzentrum.de/wmts_basemapde/1.0.0/WMTSCapabilities.xml"
+          layer: "de_basemapde_web_raster_farbe"
+          zoom: "10"
+          proj: "DE_EPSG_25833_ADV"
+          targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/Basemap"
+          layers:
+            - Geltungsbereich 1
+            - Geltungsbereich 2
+            - Geltungsbereich 3
+          buffer: 200
   - name: Torgelow
     exportFormat: dxf
     crs: EPSG:25833
@@ -185,7 +215,7 @@ projects:
           type: buffer
           sourceLayer: Baufeld
           distance: -3
-      - name: DOP
+      - name: WMTS DOP
         color: Black
         locked: true
         operation:
@@ -195,8 +225,10 @@ projects:
           zoom: "10"
           proj: "ETRS89UTM33"
           targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/DOP"
-          # zOrder: back
-      - name: Basemap
+          layers:
+            - Geltungsbereich
+          buffer: 100
+      - name: WMTS Basemap
         color: Black
         locked: true
         operation:
@@ -206,4 +238,6 @@ projects:
           zoom: "10"
           proj: "DE_EPSG_25833_ADV"
           targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/Basemap"
-          # zOrder: back
+          layers:
+            - Geltungsbereich
+          buffer: 200
