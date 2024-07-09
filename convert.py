@@ -228,36 +228,28 @@ class ProjectProcessor:
         log_info(f"Creating Geltungsbereich layer: {layer_name}")
         combined_geometry = None
 
-        for coverage in operation['coverages']:
-            coverage_geometry = None
-            for layer in coverage['layers']:
-                source_layer_name = layer['name']
-                value_list = layer['valueList']
+        for layer in operation['layers']:
+            source_layer_name = layer['name']
+            value_list = layer['valueList']
 
-                if source_layer_name not in self.all_layers:
-                    log_warning(f"Source layer '{source_layer_name}' not found for Geltungsbereich")
-                    continue
+            if source_layer_name not in self.all_layers:
+                log_warning(f"Source layer '{source_layer_name}' not found for Geltungsbereich")
+                continue
 
-                source_gdf = self.all_layers[source_layer_name]
-                
-                label_column = next((l['label'] for l in self.project_settings['dxfLayers'] if l['name'] == source_layer_name), None)
-                
-                if label_column is None or label_column not in source_gdf.columns:
-                    log_warning(f"Label column '{label_column}' not found in layer '{source_layer_name}'")
-                    continue
+            source_gdf = self.all_layers[source_layer_name]
+            
+            label_column = next((l['label'] for l in self.project_settings['dxfLayers'] if l['name'] == source_layer_name), None)
+            
+            if label_column is None or label_column not in source_gdf.columns:
+                log_warning(f"Label column '{label_column}' not found in layer '{source_layer_name}'")
+                continue
 
-                filtered_gdf = source_gdf[source_gdf[label_column].isin(value_list)]
+            filtered_gdf = source_gdf[source_gdf[label_column].isin(value_list)]
 
-                if coverage_geometry is None:
-                    coverage_geometry = filtered_gdf.geometry.unary_union
-                else:
-                    coverage_geometry = coverage_geometry.intersection(filtered_gdf.geometry.unary_union)
-
-            if coverage_geometry:
-                if combined_geometry is None:
-                    combined_geometry = coverage_geometry
-                else:
-                    combined_geometry = combined_geometry.union(coverage_geometry)
+            if combined_geometry is None:
+                combined_geometry = filtered_gdf.geometry.unary_union
+            else:
+                combined_geometry = combined_geometry.intersection(filtered_gdf.geometry.unary_union)
 
         if combined_geometry:
             if 'clipToLayers' in operation:

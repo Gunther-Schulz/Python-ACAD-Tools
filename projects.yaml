@@ -37,48 +37,63 @@ projects:
         close: true
         operation:
           type: geltungsbereich
-          coverages:
-            - layers:
-                - name: Parcel
-                  valueList: ["1", "2", "4", "6", "7", "14"]
-                - name: Flur
-                  valueList: ["Flur 1"]
-                - name: Gemarkung
-                  valueList: ["Groß Plasten"]
-                - name: Gemeinde
-                  valueList: ["Groß Plasten"]
+          layers:
+            - name: Parcel
+              valueList:
+                - "1"
+                - "2"
+                - "4"
+                - "6"
+                - "7"
+                - "14"
+            - name: Flur
+              valueList:
+                - "Flur 1"
+            - name: Gemarkung
+              valueList:
+                - "Groß Plasten"
+            - name: Gemeinde
+              valueList:
+                - "Groß Plasten"
       - name: Geltungsbereich 2
         color: "Red"
         locked: false
         close: true
         operation:
           type: geltungsbereich
-          coverages:
-            - layers:
-                - name: Parcel
-                  valueList: ["24/8", "24/9"]
-                - name: Flur
-                  valueList: ["Flur 1"]
-                - name: Gemarkung
-                  valueList: ["Groß Plasten"]
-                - name: Gemeinde
-                  valueList: ["Groß Plasten"]
+          layers:
+            - name: Parcel
+              valueList:
+                - "24/8"
+                - "24/9"
+            - name: Flur
+              valueList:
+                - "Flur 1"
+            - name: Gemarkung
+              valueList:
+                - "Groß Plasten"
+            - name: Gemeinde
+              valueList:
+                - "Groß Plasten"
       - name: Geltungsbereich 3
         color: "Red"
         locked: false
         close: true
         operation:
           type: geltungsbereich
-          coverages:
-            - layers:
-                - name: Parcel
-                  valueList: ["41/1"]
-                - name: Flur
-                  valueList: ["Flur 2"]
-                - name: Gemarkung
-                  valueList: ["Klein Plasten"]
-                - name: Gemeinde
-                  valueList: ["Groß Plasten"]
+          layers:
+            - name: Parcel
+              valueList:
+                - "41/1"
+            - name: Flur
+              valueList:
+                - "Flur 2"
+            - name: Gemarkung
+              valueList:
+                - "Klein Plasten"
+            - name: Gemeinde
+              valueList:
+                - "Groß Plasten"
       - name: WMTS DOP
         color: Black
         locked: true
@@ -176,17 +191,25 @@ projects:
         close: true
         operation:
           type: geltungsbereich
-          coverages:
-            - layers:
-                - name: Parcel
-                  valueList: ["104", "96", "95", "87/1"]
-                - name: Flur
-                  valueList: ["Flur 2"]
-                - name: Gemarkung
-                  valueList: ["Torgelow am See"]
-                - name: Gemeinde
-                  valueList: ["Torgelow am See"]
-          clipToLayers: ["Wald", "Straße Clip"]
+          layers:
+            - name: Parcel
+              valueList:
+                - 104
+                - 96
+                - 95
+                - 87/1
+            - name: Flur
+              valueList:
+                - Flur 2
+            - name: Gemarkung
+              valueList:
+                - Torgelow am See
+            - name: Gemeinde
+              valueList:
+                - Torgelow am See
+          clipToLayers:
+            - Wald
+            - Straße Clip
       - name: Wald Abstand
         color: "Light Green"
         close: true
@@ -195,7 +218,8 @@ projects:
           type: buffer
           sourceLayer: Wald
           distance: 30
-          clipToLayers: ["Geltungsbereich"]
+          clipToLayers:
+            - Geltungsbereich
       - name: Baufeld
         color: "Red"
         locked: false
