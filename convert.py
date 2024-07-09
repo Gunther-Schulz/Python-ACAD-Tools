@@ -120,7 +120,11 @@ class ProjectProcessor:
             self.add_layer_properties(layer['name'], layer)
             color_code = self.get_color_code(layer['color'])
             self.colors[layer['name']] = color_code
-            self.colors[f"{layer['name']} Label"] = color_code
+            
+            # Only add label layer if it's not a WMTS layer
+            if not self.is_wmts_layer(layer):
+                self.colors[f"{layer['name']} Label"] = color_code
+
 
     def setup_wmts_layers(self):
         for wmts in self.wmts:
@@ -218,12 +222,17 @@ class ProjectProcessor:
             'close': layer_info.get('close', True)
         }
         
-        text_layer_name = f"{layer_name} Label"
-        self.layer_properties[text_layer_name] = {
-            'color': color,
-            'locked': layer_info.get('locked', False),
-            'close': True
-        }
+        # Only add label layer properties if it's not a WMTS layer
+        if not self.is_wmts_layer(layer_info):
+            text_layer_name = f"{layer_name} Label"
+            self.layer_properties[text_layer_name] = {
+                'color': color,
+                'locked': layer_info.get('locked', False),
+                'close': True
+            }
+
+    def is_wmts_layer(self, layer_info):
+        return 'operation' in layer_info and layer_info['operation']['type'] == 'wmts'
 
     def create_geltungsbereich_layer(self, layer_name, operation):
         log_info(f"Creating Geltungsbereich layer: {layer_name}")
@@ -498,6 +507,13 @@ class ProjectProcessor:
             layer.color = color
             layer.linetype = linetype
 
+            # Create the text layer only if it's not a WMTS layer
+            if not self.is_wmts_layer(next((l for l in self.project_settings['dxfLayers'] if l['name'] == layer_name), {})):
+                text_layer_name = f"{layer_name} Label"
+                text_layer = doc.layers.new(name=text_layer_name)
+                text_layer.color = color
+                text_layer.linetype = linetype
+
             # Create the text layer
             text_layer_name = f"{layer_name} Label"
             text_layer = doc.layers.new(name=text_layer_name)
@@ -601,11 +617,13 @@ class ProjectProcessor:
             else:
                 log_warning(f"Unsupported geometry type for layer {layer_name}: {type(geometry)}")
             
-            if labels is not None:
-                self.add_label_to_dxf(msp, geometry, labels.iloc[idx], layer_name)
-            elif self.is_generated_layer(layer_name):
-                # Add label for generated layers using the layer name
-                self.add_label_to_dxf(msp, geometry, layer_name, layer_name)
+            # Only add labels if it's not a WMTS layer
+            if not self.is_wmts_layer(next((l for l in self.project_settings['dxfLayers'] if l['name'] == layer_name), {})):
+                if labels is not None:
+                    self.add_label_to_dxf(msp, geometry, labels.iloc[idx], layer_name)
+                elif self.is_generated_layer(layer_name):
+                    # Add label for generated layers using the layer name
+                    self.add_label_to_dxf(msp, geometry, layer_name, layer_name)
 
     def is_generated_layer(self, layer_name):
         # Check if the layer is generated (has an operation) and not loaded from a shapefile
