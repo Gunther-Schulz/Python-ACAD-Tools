@@ -403,7 +403,6 @@ class ProjectProcessor:
     def process_wmts_layer(self, layer_name, operation):
         log_info(f"Processing WMTS layer: {layer_name}")
         
-        # Get the layers to use for WMTS tiles
         wmts_layers = operation.get('layers', [])
         
         if not wmts_layers:
@@ -430,6 +429,9 @@ class ProjectProcessor:
         buffer_distance = operation.get('buffer', 100)  # Default buffer of 100 meters
         target_folder = self.resolve_full_path(operation['targetFolder'])
 
+        # Create the target folder if it doesn't exist
+        os.makedirs(target_folder, exist_ok=True)
+
         wmts_info = {
             'url': operation['url'],
             'layer': operation['layer'],
@@ -438,13 +440,34 @@ class ProjectProcessor:
             'format': operation.get('format', 'image/png'),
         }
 
+        # Check for existing tiles
+        existing_tiles = self.get_existing_tiles(target_folder)
+        
+        # Download only missing tiles
         downloaded_tiles = download_wmts_tiles(wmts_info, combined_geometry, buffer_distance, target_folder)
         
-        if downloaded_tiles:
-            self.all_layers[layer_name] = downloaded_tiles
-            log_info(f"Downloaded {len(downloaded_tiles)} tiles for layer: {layer_name}")
+        # Combine existing and newly downloaded tiles
+        all_tiles = existing_tiles + [tile for tile in downloaded_tiles if tile not in existing_tiles]
+        
+        if all_tiles:
+            self.all_layers[layer_name] = all_tiles
+            log_info(f"Processed {len(all_tiles)} tiles for layer: {layer_name}")
+            log_info(f"  {len(existing_tiles)} existing tiles")
+            log_info(f"  {len(downloaded_tiles)} newly downloaded tiles")
         else:
-            log_warning(f"No tiles downloaded for layer: {layer_name}")
+            log_warning(f"No tiles processed for layer: {layer_name}")
+
+    def get_existing_tiles(self, target_folder):
+        existing_tiles = []
+        if os.path.exists(target_folder):
+            for filename in os.listdir(target_folder):
+                if filename.endswith('.png'):
+                    image_path = os.path.join(target_folder, filename)
+                    world_file_path = os.path.splitext(image_path)[0] + '.pgw'
+                    if os.path.exists(world_file_path):
+                        existing_tiles.append((image_path, world_file_path))
+        return existing_tiles
+
 
     def export_to_dxf(self):
         log_info("Starting DXF export...")
