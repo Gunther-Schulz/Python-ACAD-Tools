@@ -401,7 +401,6 @@ class ProjectProcessor:
 
         log_info("Finished processing layers.")
 
-
     def process_wmts_layer(self, layer_name, operation):
         log_info(f"Processing WMTS layer: {layer_name}")
         
@@ -409,23 +408,6 @@ class ProjectProcessor:
         
         if not wmts_layers:
             log_warning(f"No layers specified for WMTS download of {layer_name}")
-            return
-
-        combined_geometry = None
-        for layer in wmts_layers:
-            if layer in self.all_layers:
-                layer_geometry = self.all_layers[layer]
-                if isinstance(layer_geometry, gpd.GeoDataFrame):
-                    layer_geometry = layer_geometry.geometry.unary_union
-                if combined_geometry is None:
-                    combined_geometry = layer_geometry
-                else:
-                    combined_geometry = combined_geometry.union(layer_geometry)
-            else:
-                log_warning(f"Layer {layer} not found for WMTS download of {layer_name}")
-
-        if combined_geometry is None:
-            log_warning(f"No valid layers found for WMTS download of {layer_name}")
             return
 
         buffer_distance = operation.get('buffer', 100)
@@ -438,27 +420,39 @@ class ProjectProcessor:
             'format': operation.get('format', 'image/png'),
         }
 
-        zoom_folder = os.path.join(target_folder, f"zoom_{wmts_info['zoom']}")
-        
-        if os.path.exists(zoom_folder) and os.path.isdir(zoom_folder):
-            log_info(f"Zoom folder for {layer_name} (zoom level {wmts_info['zoom']}) exists. Checking for existing tiles.")
-            existing_tiles = self.find_existing_tiles(zoom_folder)
+        all_tiles = []
+        for layer in wmts_layers:
+            if layer in self.all_layers:
+                layer_geometry = self.all_layers[layer]
+                if isinstance(layer_geometry, gpd.GeoDataFrame):
+                    layer_geometry = layer_geometry.geometry.unary_union
 
-            if existing_tiles:
-                self.all_layers[layer_name] = existing_tiles
-                log_info(f"Loaded {len(existing_tiles)} existing tiles for layer: {layer_name} (zoom level {wmts_info['zoom']})")
-                self.log_tile_info(existing_tiles)
+                zoom_folder = os.path.join(target_folder, f"{layer}_zoom_{wmts_info['zoom']}")
+                
+                if os.path.exists(zoom_folder) and os.path.isdir(zoom_folder):
+                    log_info(f"Zoom folder for {layer} (zoom level {wmts_info['zoom']}) exists. Checking for existing tiles.")
+                    existing_tiles = self.find_existing_tiles(zoom_folder)
+
+                    if existing_tiles:
+                        all_tiles.extend(existing_tiles)
+                        log_info(f"Loaded {len(existing_tiles)} existing tiles for layer: {layer} (zoom level {wmts_info['zoom']})")
+                        self.log_tile_info(existing_tiles)
+                    else:
+                        log_info(f"No existing tiles found in {zoom_folder} for layer: {layer}. Will download tiles.")
+                        downloaded_tiles = download_wmts_tiles(wmts_info, layer_geometry, buffer_distance, zoom_folder)
+                        all_tiles.extend(downloaded_tiles)
+                        self.log_tile_info(downloaded_tiles)
+                else:
+                    log_info(f"Zoom folder {zoom_folder} does not exist. Will download tiles.")
+                    os.makedirs(zoom_folder, exist_ok=True)
+                    downloaded_tiles = download_wmts_tiles(wmts_info, layer_geometry, buffer_distance, zoom_folder)
+                    all_tiles.extend(downloaded_tiles)
+                    self.log_tile_info(downloaded_tiles)
             else:
-                log_info(f"No existing tiles found in {zoom_folder} for layer: {layer_name}. Will download tiles.")
-                downloaded_tiles = download_wmts_tiles(wmts_info, combined_geometry, buffer_distance, target_folder)
-                self.all_layers[layer_name] = downloaded_tiles
-                self.log_tile_info(downloaded_tiles)
-        else:
-            log_info(f"Zoom folder {zoom_folder} does not exist. Will download tiles.")
-            os.makedirs(target_folder, exist_ok=True)
-            downloaded_tiles = download_wmts_tiles(wmts_info, combined_geometry, buffer_distance, target_folder)
-            self.all_layers[layer_name] = downloaded_tiles
-            self.log_tile_info(downloaded_tiles)
+                log_warning(f"Layer {layer} not found for WMTS download of {layer_name}")
+
+        self.all_layers[layer_name] = all_tiles
+        log_info(f"Total tiles for {layer_name}: {len(all_tiles)}")
 
     def find_existing_tiles(self, folder):
         existing_tiles = []
