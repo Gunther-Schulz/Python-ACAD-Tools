@@ -110,6 +110,7 @@ class ProjectProcessor:
         self.dxf_filename = self.resolve_full_path(self.project_settings['dxfFilename'])
         self.template_dxf = self.resolve_full_path(self.project_settings.get('template', '')) if self.project_settings.get('template') else None
         self.export_format = self.project_settings.get('exportFormat', 'dxf')
+        self.dxf_version = self.project_settings.get('dxfVersion', 'R2010')
 
     def setup_layers(self):
         self.layer_properties = {}
@@ -400,10 +401,10 @@ class ProjectProcessor:
 
         log_info("Finished processing layers.")
 
+
     def process_wmts_layer(self, layer_name, operation):
         log_info(f"Processing WMTS layer: {layer_name}")
         
-        # Get the layers to use for WMTS tiles
         wmts_layers = operation.get('layers', [])
         
         if not wmts_layers:
@@ -427,9 +428,8 @@ class ProjectProcessor:
             log_warning(f"No valid layers found for WMTS download of {layer_name}")
             return
 
-        buffer_distance = operation.get('buffer', 100)  # Default buffer of 100 meters
+        buffer_distance = operation.get('buffer', 100)
         target_folder = self.resolve_full_path(operation['targetFolder'])
-
         wmts_info = {
             'url': operation['url'],
             'layer': operation['layer'],
@@ -438,17 +438,57 @@ class ProjectProcessor:
             'format': operation.get('format', 'image/png'),
         }
 
-        downloaded_tiles = download_wmts_tiles(wmts_info, combined_geometry, buffer_distance, target_folder)
+        zoom_folder = os.path.join(target_folder, f"zoom_{wmts_info['zoom']}")
         
-        if downloaded_tiles:
-            self.all_layers[layer_name] = downloaded_tiles
-            log_info(f"Downloaded {len(downloaded_tiles)} tiles for layer: {layer_name}")
+        if os.path.exists(zoom_folder) and os.path.isdir(zoom_folder):
+            log_info(f"Zoom folder for {layer_name} (zoom level {wmts_info['zoom']}) exists. Checking for existing tiles.")
+            existing_tiles = self.find_existing_tiles(zoom_folder)
+
+            if existing_tiles:
+                self.all_layers[layer_name] = existing_tiles
+                log_info(f"Loaded {len(existing_tiles)} existing tiles for layer: {layer_name} (zoom level {wmts_info['zoom']})")
+                self.log_tile_info(existing_tiles)
+            else:
+                log_info(f"No existing tiles found in {zoom_folder} for layer: {layer_name}. Will download tiles.")
+                downloaded_tiles = download_wmts_tiles(wmts_info, combined_geometry, buffer_distance, target_folder)
+                self.all_layers[layer_name] = downloaded_tiles
+                self.log_tile_info(downloaded_tiles)
         else:
-            log_warning(f"No tiles downloaded for layer: {layer_name}")
+            log_info(f"Zoom folder {zoom_folder} does not exist. Will download tiles.")
+            os.makedirs(target_folder, exist_ok=True)
+            downloaded_tiles = download_wmts_tiles(wmts_info, combined_geometry, buffer_distance, target_folder)
+            self.all_layers[layer_name] = downloaded_tiles
+            self.log_tile_info(downloaded_tiles)
+
+    def find_existing_tiles(self, folder):
+        existing_tiles = []
+        image_extensions = ['.jpg', '.jpeg', '.png', '.tif', '.tiff']
+        world_file_extensions = ['.jgw', '.jpgw', '.pgw', '.pngw', '.tfw', '.tifw']
+
+        for file in os.listdir(folder):
+            file_lower = file.lower()
+            if any(file_lower.endswith(ext) for ext in image_extensions):
+                image_path = os.path.join(folder, file)
+                base_name = os.path.splitext(image_path)[0]
+                
+                world_file = next((base_name + wf_ext for wf_ext in world_file_extensions 
+                                if os.path.exists(base_name + wf_ext)), None)
+                
+                if world_file:
+                    existing_tiles.append((image_path, world_file))
+
+        return existing_tiles
+
+    def log_tile_info(self, tiles):
+        for idx, (image_path, world_file_path) in enumerate(tiles[:5]):  # Log only first 5 for brevity
+            log_info(f"  Tile {idx + 1}: Image: {os.path.basename(image_path)}, World file: {os.path.basename(world_file_path)}")
+        if len(tiles) > 5:
+            log_info(f"  ... and {len(tiles) - 5} more tiles")
 
     def export_to_dxf(self):
         log_info("Starting DXF export...")
-        doc = ezdxf.new(dxfversion="R2010")
+        dxf_version = self.project_settings.get('dxfVersion', 'R2010')
+        doc = ezdxf.new(dxfversion=dxf_version)
         msp = doc.modelspace()
 
         for layer_name, geo_data in self.all_layers.items():
