@@ -117,6 +117,7 @@ projects:
           zoom: "10"
           proj: "ETRS89UTM33"
           targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/DOP"
+          # zOrder: back
       - name: Basemap
         color: Black
         locked: true
@@ -127,3 +128,4 @@ projects:
           zoom: "10"
           proj: "DE_EPSG_25833_ADV"
           targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/Basemap"
+          # zOrder: back

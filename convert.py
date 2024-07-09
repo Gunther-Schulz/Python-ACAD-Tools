@@ -458,6 +458,12 @@ class ProjectProcessor:
             layer.color = color
             layer.linetype = linetype
 
+            # Create the text layer
+            text_layer_name = f"{layer_name} Number"
+            text_layer = doc.layers.new(name=text_layer_name)
+            text_layer.color = color
+            text_layer.linetype = linetype
+
             log_info(f"Exporting layer: {layer_name}")
             
             if isinstance(geo_data, list) and all(isinstance(item, tuple) for item in geo_data):
@@ -532,14 +538,31 @@ class ProjectProcessor:
 
         if isinstance(geo_data, gpd.GeoDataFrame):
             geometries = geo_data.geometry
+            label_column = self.get_label_column(layer_name)
+            if label_column and label_column in geo_data.columns:
+                labels = geo_data[label_column]
+            else:
+                labels = None
         elif isinstance(geo_data, gpd.GeoSeries):
             geometries = geo_data
+            labels = None
         else:
             log_warning(f"Unexpected data type for layer {layer_name}: {type(geo_data)}")
             return
 
-        for geometry in geometries:
-            self.add_geometry_to_dxf(msp, geometry, layer_name)
+        for idx, geometry in enumerate(geometries):
+            if isinstance(geometry, (Polygon, MultiPolygon)):
+                self.add_polygon_to_dxf(msp, geometry, layer_name)
+            elif isinstance(geometry, (LineString, MultiLineString)):
+                self.add_linestring_to_dxf(msp, geometry, layer_name)
+            elif isinstance(geometry, GeometryCollection):
+                for geom in geometry.geoms:
+                    self.add_geometry_to_dxf(msp, geom, layer_name)
+            else:
+                log_warning(f"Unsupported geometry type for layer {layer_name}: {type(geometry)}")
+            
+            if labels is not None:
+                self.add_label_to_dxf(msp, geometry, labels.iloc[idx], layer_name)
 
     def add_geometry_to_dxf(self, msp, geometry, layer_name):
         if isinstance(geometry, (Polygon, MultiPolygon)):
@@ -582,6 +605,54 @@ class ProjectProcessor:
             coords = list(linestring.coords)
             if len(coords) > 1:
                 msp.add_lwpolyline(coords, dxfattribs={'layer': layer_name, 'closed': self.layer_properties[layer_name]['close']})
+
+    def get_label_column(self, layer_name):
+        for layer in self.project_settings['dxfLayers']:
+            if layer['name'] == layer_name and 'label' in layer:
+                return layer['label']
+        return None
+
+    def add_label_to_dxf(self, msp, geometry, label, layer_name):
+        centroid = self.get_geometry_centroid(geometry)
+        if centroid is None:
+            log_warning(f"Could not determine centroid for geometry in layer {layer_name}")
+            return
+
+        text_layer_name = f"{layer_name} Number"
+        self.add_text(
+            msp,
+            str(label),
+            centroid.x,
+            centroid.y,
+            text_layer_name,
+            'Standard',
+            self.colors[text_layer_name]
+        )
+
+    def get_geometry_centroid(self, geometry):
+        if isinstance(geometry, (Polygon, MultiPolygon)):
+            return geometry.centroid
+        elif isinstance(geometry, (LineString, MultiLineString)):
+            return geometry.interpolate(0.5, normalized=True)
+        elif isinstance(geometry, Point):
+            return geometry
+        elif isinstance(geometry, GeometryCollection):
+            # For GeometryCollection, we'll use the centroid of the first geometry
+            if len(geometry.geoms) > 0:
+                return self.get_geometry_centroid(geometry.geoms[0])
+        return None
+
+    def add_text(self, msp, text, x, y, layer_name, style_name, color):
+        msp.add_text(text, dxfattribs={
+            'style': style_name,
+            'layer': layer_name,
+            'insert': (x, y),
+            'align_point': (x, y),
+            'halign': 1,
+            'valign': 1,
+            'color': color
+        })
+
     def run(self):
         self.process_layers()
         self.export_to_dxf()
