@@ -2,11 +2,135 @@
 folderPrefix: "~/hidrive"
 logFile: "./log.txt"
 projects:
+  - name: Plasten
+    exportFormat: dxf
+    dxfVersion: R2018
+    crs: EPSG:25833
+    dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Zeichnung/combined.dxf"
+    # template: "./data/Zeichnung.dxf"
+    dxfLayers:
+      - name: Flur
+        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/flur.shp"
+        label: flurname
+        color: Cyan
+        close: true
+      - name: Parcel
+        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/parcel.shp"
+        label: label
+        color: Black
+        close: true
+        locked: true
+      - name: Gemarkung
+        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/gemarkung.shp"
+        label: gmkname
+        color: "Medium Orange Red"
+        close: true
+        locked: true
+      - name: Gemeinde
+        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/gemeinde.shp"
+        label: gen
+        color: "Dark Red"
+        close: true
+        locked: true
+      - name: Geltungsbereich 1
+        color: "Red"
+        locked: false
+        close: true
+        operation:
+          type: geltungsbereich
+          layers:
+            - name: Parcel
+              valueList:
+                - "1"
+                - "2"
+                - "4"
+                - "6"
+                - "7"
+                - "14"
+            - name: Flur
+              valueList:
+                - "Flur 1"
+            - name: Gemarkung
+              valueList:
+                - "Groß Plasten"
+            - name: Gemeinde
+              valueList:
+                - "Groß Plasten"
+      - name: Geltungsbereich 2
+        color: "Red"
+        locked: false
+        close: true
+        operation:
+          type: geltungsbereich
+          layers:
+            - name: Parcel
+              valueList:
+                - "24/8"
+                - "24/9"
+            - name: Flur
+              valueList:
+                - "Flur 1"
+            - name: Gemarkung
+              valueList:
+                - "Groß Plasten"
+            - name: Gemeinde
+              valueList:
+                - "Groß Plasten"
+      - name: Geltungsbereich 3
+        color: "Red"
+        locked: false
+        close: true
+        operation:
+          type: geltungsbereich
+          layers:
+            - name: Parcel
+              valueList:
+                - "41/1"
+            - name: Flur
+              valueList:
+                - "Flur 2"
+            - name: Gemarkung
+              valueList:
+                - "Klein Plasten"
+            - name: Gemeinde
+              valueList:
+                - "Groß Plasten"
+      - name: WMTS DOP
+        color: Black
+        locked: true
+        operation:
+          type: wmts
+          url: "https://www.geodaten-mv.de/dienste/dop_wmts/wmts/1.0.0/WMTSCapabilities.xml"
+          layer: "mv_dop"
+          zoom: "14"
+          proj: "ETRS89UTM33"
+          targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/DOP"
+          layers:
+            - Geltungsbereich 1
+            - Geltungsbereich 2
+            - Geltungsbereich 3
+          buffer: 100
+      - name: WMTS Basemap
+        color: Black
+        locked: true
+        operation:
+          type: wmts
+          url: "https://sgx.geodatenzentrum.de/wmts_basemapde/1.0.0/WMTSCapabilities.xml"
+          layer: "de_basemapde_web_raster_farbe"
+          zoom: "14"
+          proj: "DE_EPSG_25833_ADV"
+          targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/Basemap"
+          layers:
+            - Geltungsbereich 1
+            - Geltungsbereich 2
+            - Geltungsbereich 3
+          buffer: 200
   - name: Torgelow
     exportFormat: dxf
+    dxfVersion: R2018
     crs: EPSG:25833
     dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/Zeichnung/combined.dxf"
-    # template: "~/hidrive/Öffentlich Planungsbüro Schulz/Allgemein/CAD/Zeichnung.dxf"
+    # template: "./data/Zeichnung.dxf"
     dxfLayers:
       - name: Flur
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/flur2.shp"
@@ -43,80 +167,103 @@ projects:
         color: "Green"
         close: true
         locked: false
-      - name: Wald Abstand
+      - name: Straße Abstand
+        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/abstand.shp"
         color: "Light Green"
-        close: true
         locked: false
       - name: Straße Clip
         color: "Light Green"
         close: true
         locked: false
+        operation:
+          type: clip
+          sourceLayer: Straße Abstand
+          distance: 7
       - name: Flur Offset
         color: "Light Green"
         close: false
         locked: false
+        operation:
+          type: buffer
+          sourceLayer: Flur
+          distance: 10
       - name: Geltungsbereich
         color: "Red"
         locked: false
         close: true
+        operation:
+          type: geltungsbereich
+          layers:
+            - name: Parcel
+              valueList:
+                - 104
+                - 96
+                - 95
+                - 87/1
+            - name: Flur
+              valueList:
+                - Flur 2
+            - name: Gemarkung
+              valueList:
+                - Torgelow am See
+            - name: Gemeinde
+              valueList:
+                - Torgelow am See
+          clipToLayers:
+            - Wald
+            - Straße Clip
+      - name: Wald Abstand
+        color: "Light Green"
+        close: true
+        locked: false
+        operation:
+          type: buffer
+          sourceLayer: Wald
+          distance: 30
+          clipToLayers:
+            - Geltungsbereich
       - name: Baufeld
         color: "Red"
         locked: false
+        close: true
+        operation:
+          type: exclusion
+          scopeLayer: Geltungsbereich
+          excludeLayers:
+            - Wald Abstand
+            - Biotope
       - name: Baugrenze
         color: "Blue"
         locked: false
         close: true
-    geltungsbereichLayers:
-      - layerName: Geltungsbereich
-        coverages:
-          - layers:
-              - name: Parcel
-                valueList: ["104", "96", "95", "87/1"]
-              - name: Flur
-                valueList: ["Flur 2"]
-              - name: Gemarkung
-                valueList: ["Torgelow am See"]
-              - name: Gemeinde
-                valueList: ["Torgelow am See"]
-    exclusions:
-      - name: Baufeld
-        scopeLayer: Geltungsbereich
-        excludeLayers:
-          - Wald Abstand
-          - Biotope
-    clipDistanceLayers:
-      - name: Straße Clip
-        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/abstand.shp"
-        bufferDistance: 7
-      - name: Wald Clip
-        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/wald.shp"
-        bufferDistance: 0
-    bufferDistanceLayers:
-      - name: Wald Abstand
-        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/wald.shp"
-        bufferDistance: 30
-    offsetLayers:
-      - name: Flur Offset
-        layerToOffset: Flur
-        offsetDistance: 10
-    innerBufferLayers:
-      - name: Baugrenze
-        layerToBuffer: Baufeld
-        bufferDistance: 3
-    wmts:
-      - name: DOP
-        url: "https://www.geodaten-mv.de/dienste/dop_wmts/wmts/1.0.0/WMTSCapabilities.xml"
-        layer: "mv_dop"
-        zoom: "10"
-        proj: "ETRS89UTM33"
-        targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/DOP"
-        dxfLayer: "WMTS DOP"
+        operation:
+          # Test with holes
+          type: buffer
+          sourceLayer: Baufeld
+          distance: -3
+      - name: WMTS DOP
+        color: Black
         locked: true
-      - name: Basemap
-        url: "https://sgx.geodatenzentrum.de/wmts_basemapde/1.0.0/WMTSCapabilities.xml"
-        layer: "de_basemapde_web_raster_farbe"
-        zoom: "10"
-        proj: "DE_EPSG_25833_ADV"
-        targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/Basemap"
-        dxfLayer: "WMTS Basemap"
+        operation:
+          type: wmts
+          url: "https://www.geodaten-mv.de/dienste/dop_wmts/wmts/1.0.0/WMTSCapabilities.xml"
+          layer: "mv_dop"
+          zoom: "10"
+          proj: "ETRS89UTM33"
+          targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/DOP"
+          layers:
+            - Geltungsbereich
+          buffer: 100
+      - name: WMTS Basemap
+        color: Black
         locked: true
+        operation:
+          type: wmts
+          url: "https://sgx.geodatenzentrum.de/wmts_basemapde/1.0.0/WMTSCapabilities.xml"
+          layer: "de_basemapde_web_raster_farbe"
+          zoom: "10"
+          proj: "DE_EPSG_25833_ADV"
+          targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/Basemap"
+          layers:
+            - Geltungsbereich
+          buffer: 200
