@@ -3,6 +3,7 @@ import os
 import math
 import time
 import mimetypes
+from utils import log_info, log_warning, log_error
 
 
 def filter_row_cols_by_bbox(matrix, bbox):
@@ -155,12 +156,14 @@ def download_wmts_tiles(wmts_info: dict, geltungsbereich, buffer_distance: float
     zoom_folder = target_folder
 
     downloaded_tiles = []
+    download_count = 0
+    skip_count = 0
 
     try:
         wmts = WebMapTileService(capabilities_url)
 
         layer = wmts.contents[layer_id]
-        print(f"Available tile matrix sets:")
+        log_info(f"Available tile matrix sets:")
         for tms in wmts.contents[layer_id].tilematrixsetlinks.keys():
             print(f"  • {tms}")
 
@@ -171,7 +174,7 @@ def download_wmts_tiles(wmts_info: dict, geltungsbereich, buffer_distance: float
         tile_matrix_set = layer.tilematrixsetlinks[proj]
 
         tile_matrix = wmts.tilematrixsets[proj].tilematrix
-        print(f"Available zoom levels: {', '.join(tile_matrix.keys())}")
+        log_info(f"Available zoom levels: {', '.join(tile_matrix.keys())}")
 
         if str(zoom) not in tile_matrix:
             raise ValueError(
@@ -199,9 +202,6 @@ def download_wmts_tiles(wmts_info: dict, geltungsbereich, buffer_distance: float
         min_col, max_col, min_row, max_row = filter_row_cols_by_bbox(
             tile_matrix_zoom, bbox)
 
-        download_count = 0
-        skip_count = 0
-
         for row in range(min_row, max_row):
             for col in range(min_col, max_col):
                 file_name = f'{layer_id}__{proj.replace(":", "-")}_row-{row}_col-{col}_zoom-{zoom}'
@@ -209,24 +209,24 @@ def download_wmts_tiles(wmts_info: dict, geltungsbereich, buffer_distance: float
                 img = wmts.gettile(layer=layer_id, tilematrixset=proj,
                                    tilematrix=zoom_str, row=row, column=col, format=requested_format)
 
-                # Determine the actual content type and extension
+                # Determine the actual extension of the image
                 content_type = img.info().get('Content-Type', requested_format)
-                actual_extension = mimetypes.guess_extension(
-                    content_type, strict=False)
-                if actual_extension:
-                    # Remove the leading dot
-                    actual_extension = actual_extension[1:]
-                else:
+                actual_extension = mimetypes.guess_extension(content_type, strict=False)
+                if actual_extension is None:
                     actual_extension = requested_extension
+                else:
+                    actual_extension = actual_extension[1:]  # Remove the leading dot
 
                 exists, file_path = tile_already_exists(
                     file_name, actual_extension, zoom_folder)
                 if exists and not overwrite:
+                    log_info(f"Tile already exists: {file_path}")
                     downloaded_tiles.append(
                         (file_path, f'{zoom_folder}/{file_name}.{get_world_file_extension(actual_extension)}'))
                     skip_count += 1
                     continue
 
+                log_info(f"Downloading tile: {file_path}")
                 world_file_path = write_world_file(
                     file_name, actual_extension, col, row, tile_matrix_zoom, zoom_folder)
                 file_path = write_image(
@@ -236,6 +236,7 @@ def download_wmts_tiles(wmts_info: dict, geltungsbereich, buffer_distance: float
 
                 download_count += 1
                 if limit_requests and download_count >= limit_requests:
+                    print(f"Reached download limit of {limit_requests}")
                     break
 
                 if sleep:
@@ -246,5 +247,9 @@ def download_wmts_tiles(wmts_info: dict, geltungsbereich, buffer_distance: float
 
     except Exception as e:
         print(f'Error: {e}')
+
+    print(f"Total tiles processed: {download_count + skip_count}")
+    print(f"Tiles downloaded: {download_count}")
+    print(f"Tiles skipped (already exist): {skip_count}")
 
     return downloaded_tiles
