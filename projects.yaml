@@ -196,10 +196,10 @@ projects:
           layers:
             - name: Parcel
               valueList:
-                - 104
-                - 96
-                - 95
-                - 87/1
+                - "104"
+                - "96"
+                - "95"
+                - "87/1"
             - name: Flur
               valueList:
                 - Flur 2

@@ -75,7 +75,8 @@ class LayerProcessor:
 
         for layer in operation['layers']:
             source_layer_name = layer['name']
-            value_list = layer['valueList']
+            value_list = [str(v) for v in layer['valueList']]  # Ensure all values are strings
+            log_info(f"Processing source layer: {source_layer_name}")
 
             if source_layer_name not in self.all_layers:
                 log_warning(f"Source layer '{source_layer_name}' not found for Geltungsbereich")
@@ -88,8 +89,13 @@ class LayerProcessor:
             if label_column is None or label_column not in source_gdf.columns:
                 log_warning(f"Label column '{label_column}' not found in layer '{source_layer_name}'")
                 continue
+            
+            # Convert label column to string and filter
+            filtered_gdf = source_gdf[source_gdf[label_column].astype(str).isin(value_list)]
 
-            filtered_gdf = source_gdf[source_gdf[label_column].isin(value_list)]
+            if filtered_gdf.empty:
+                log_warning(f"No matching geometries found for {source_layer_name} with values {value_list}")
+                continue
 
             if combined_geometry is None:
                 combined_geometry = filtered_gdf.geometry.unary_union
@@ -102,13 +108,18 @@ class LayerProcessor:
                     if clip_layer_name in self.all_layers:
                         clip_geometry = self.all_layers[clip_layer_name].geometry.unary_union
                         combined_geometry = combined_geometry.difference(clip_geometry)
+                        log_info(f"Applied clipping with layer: {clip_layer_name}")
                     else:
                         log_warning(f"Clip layer '{clip_layer_name}' not found for Geltungsbereich")
 
-            self.all_layers[layer_name] = gpd.GeoDataFrame(geometry=[combined_geometry], crs=self.crs)
-            log_info(f"Created Geltungsbereich layer: {layer_name}")
+            # Ensure the result is a Polygon or MultiPolygon
+            if isinstance(combined_geometry, (Polygon, MultiPolygon)):
+                self.all_layers[layer_name] = gpd.GeoDataFrame(geometry=[combined_geometry], crs=self.crs)
+            else:
+                log_warning(f"Resulting geometry is not a Polygon or MultiPolygon for layer: {layer_name}")
         else:
             log_warning(f"No geometry created for Geltungsbereich layer: {layer_name}")
+
 
 
     def create_clip_distance_layer(self, layer_name, operation):
@@ -195,14 +206,17 @@ class LayerProcessor:
         zoom_level = operation['zoom']
         zoom_folder = os.path.join(target_folder, f"zoom_{zoom_level}")
         
+        log_info(f"Zoom folder path: {zoom_folder}")
+        
         if os.path.exists(zoom_folder) and os.listdir(zoom_folder):
-            log_info(f"Zoom folder {zoom_folder} already exists and is not empty.")
+            log_info(f"Zoom folder {zoom_folder} exists and is not empty.")
             log_info(f"Using existing tiles for {layer_name}")
             self.all_layers[layer_name] = [(os.path.join(zoom_folder, f), os.path.join(zoom_folder, os.path.splitext(f)[0] + '.pgw')) 
                                         for f in os.listdir(zoom_folder) if f.lower().endswith(('.png', '.jpg', '.jpeg', '.tif', '.tiff'))]
+            log_info(f"Found {len(self.all_layers[layer_name])} tiles for {layer_name}")
             return
 
-        log_info(f"Zoom folder {zoom_folder} does not exist or is empty. Proceeding with download.")
+        log_info(f"No existing tiles found in {zoom_folder}. Proceeding with download.")
 
         os.makedirs(zoom_folder, exist_ok=True)
 

@@ -79,6 +79,10 @@ class DXFExporter:
         log_info(f"Added {len(tile_data)} WMTS xrefs to layer: {layer_name}")
 
     def add_image_with_worldfile(self, msp, image_path, world_file_path, layer_name):
+        log_info(f"Adding image with worldfile for layer: {layer_name}")
+        log_info(f"Image path: {image_path}")
+        log_info(f"World file path: {world_file_path}")
+
         # Ensure the layer exists with proper properties
         if layer_name not in self.layer_properties:
             self.add_layer_properties(layer_name, {
@@ -90,6 +94,7 @@ class DXFExporter:
         # Create a relative path for the image
         relative_image_path = os.path.relpath(
             image_path, os.path.dirname(self.dxf_filename))
+        log_info(f"Relative image path: {relative_image_path}")
 
         # Create the image definition with the relative path
         image_def = msp.doc.add_image_def(
@@ -103,10 +108,13 @@ class DXFExporter:
             e = float(wf.readline().strip())
             c = float(wf.readline().strip())
             f = float(wf.readline().strip())
+        log_info(f"World file parameters: a={a}, d={d}, b={b}, e={e}, c={c}, f={f}")
 
         # Calculate the insertion point and size
         insert_point = (c, f - abs(e) * 256)
         size_in_units = (a * 256, abs(e) * 256)
+        log_info(f"Insertion point: {insert_point}")
+        log_info(f"Size in units: {size_in_units}")
 
         # Add the image with relative path
         image = msp.add_image(
