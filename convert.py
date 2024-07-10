@@ -413,18 +413,27 @@ class ProjectProcessor:
     def process_wmts_layer(self, layer_name, operation):
         log_info(f"Processing WMTS layer: {layer_name}")
         
-        wmts_layers = operation.get('layers', [])
+        target_folder = self.resolve_full_path(operation['targetFolder'])
+        zoom_level = operation['zoom']
+        zoom_folder = os.path.join(target_folder, f"zoom_{zoom_level}")
         
-        if not wmts_layers:
-            log_warning(f"No layers specified for WMTS download of {layer_name}")
+        if os.path.exists(zoom_folder) and os.listdir(zoom_folder):
+            log_info(f"Zoom folder {zoom_folder} already exists and is not empty.")
+            log_info(f"Using existing tiles for {layer_name}")
+            self.all_layers[layer_name] = [(os.path.join(zoom_folder, f), os.path.join(zoom_folder, os.path.splitext(f)[0] + '.pgw')) 
+                                        for f in os.listdir(zoom_folder) if f.lower().endswith(('.png', '.jpg', '.jpeg', '.tif', '.tiff'))]
             return
 
+        log_info(f"Zoom folder {zoom_folder} does not exist or is empty. Proceeding with download.")
+
+        os.makedirs(zoom_folder, exist_ok=True)
+
+        wmts_layers = operation.get('layers', [])
         buffer_distance = operation.get('buffer', 100)
-        target_folder = self.resolve_full_path(operation['targetFolder'])
         wmts_info = {
             'url': operation['url'],
             'layer': operation['layer'],
-            'zoom': operation['zoom'],
+            'zoom': zoom_level,
             'proj': operation['proj'],
             'format': operation.get('format', 'image/png'),
         }
@@ -436,57 +445,14 @@ class ProjectProcessor:
                 if isinstance(layer_geometry, gpd.GeoDataFrame):
                     layer_geometry = layer_geometry.geometry.unary_union
 
-                zoom_folder = os.path.join(target_folder, f"{layer}_zoom_{wmts_info['zoom']}")
-                
-                if os.path.exists(zoom_folder) and os.path.isdir(zoom_folder):
-                    log_info(f"Zoom folder for {layer} (zoom level {wmts_info['zoom']}) exists. Checking for existing tiles.")
-                    existing_tiles = self.find_existing_tiles(zoom_folder)
-
-                    if existing_tiles:
-                        all_tiles.extend(existing_tiles)
-                        log_info(f"Loaded {len(existing_tiles)} existing tiles for layer: {layer} (zoom level {wmts_info['zoom']})")
-                        self.log_tile_info(existing_tiles)
-                    else:
-                        log_info(f"No existing tiles found in {zoom_folder} for layer: {layer}. Will download tiles.")
-                        downloaded_tiles = download_wmts_tiles(wmts_info, layer_geometry, buffer_distance, zoom_folder)
-                        all_tiles.extend(downloaded_tiles)
-                        self.log_tile_info(downloaded_tiles)
-                else:
-                    log_info(f"Zoom folder {zoom_folder} does not exist. Will download tiles.")
-                    os.makedirs(zoom_folder, exist_ok=True)
-                    downloaded_tiles = download_wmts_tiles(wmts_info, layer_geometry, buffer_distance, zoom_folder)
-                    all_tiles.extend(downloaded_tiles)
-                    self.log_tile_info(downloaded_tiles)
+                log_info(f"Downloading tiles for layer: {layer}")
+                downloaded_tiles = download_wmts_tiles(wmts_info, layer_geometry, buffer_distance, zoom_folder)
+                all_tiles.extend(downloaded_tiles)
             else:
                 log_warning(f"Layer {layer} not found for WMTS download of {layer_name}")
 
         self.all_layers[layer_name] = all_tiles
         log_info(f"Total tiles for {layer_name}: {len(all_tiles)}")
-
-    def find_existing_tiles(self, folder):
-        existing_tiles = []
-        image_extensions = ['.jpg', '.jpeg', '.png', '.tif', '.tiff']
-        world_file_extensions = ['.jgw', '.jpgw', '.pgw', '.pngw', '.tfw', '.tifw']
-
-        for file in os.listdir(folder):
-            file_lower = file.lower()
-            if any(file_lower.endswith(ext) for ext in image_extensions):
-                image_path = os.path.join(folder, file)
-                base_name = os.path.splitext(image_path)[0]
-                
-                world_file = next((base_name + wf_ext for wf_ext in world_file_extensions 
-                                if os.path.exists(base_name + wf_ext)), None)
-                
-                if world_file:
-                    existing_tiles.append((image_path, world_file))
-
-        return existing_tiles
-
-    def log_tile_info(self, tiles):
-        for idx, (image_path, world_file_path) in enumerate(tiles[:5]):  # Log only first 5 for brevity
-            log_info(f"  Tile {idx + 1}: Image: {os.path.basename(image_path)}, World file: {os.path.basename(world_file_path)}")
-        if len(tiles) > 5:
-            log_info(f"  ... and {len(tiles) - 5} more tiles")
 
     def export_to_dxf(self):
         log_info("Starting DXF export...")
@@ -502,23 +468,19 @@ class ProjectProcessor:
             color = layer_properties.get('color', 7)  # Default to white if color not specified
             linetype = 'CONTINUOUS'
             
-            # Create the layer
-            layer = doc.layers.new(name=layer_name)
-            layer.color = color
-            layer.linetype = linetype
+            # Create the layer if it doesn't exist
+            if layer_name not in doc.layers:
+                layer = doc.layers.new(name=layer_name)
+                layer.color = color
+                layer.linetype = linetype
 
-            # Create the text layer only if it's not a WMTS layer
+            # Create the text layer only if it's not a WMTS layer and doesn't already exist
             if not self.is_wmts_layer(next((l for l in self.project_settings['dxfLayers'] if l['name'] == layer_name), {})):
                 text_layer_name = f"{layer_name} Label"
-                text_layer = doc.layers.new(name=text_layer_name)
-                text_layer.color = color
-                text_layer.linetype = linetype
-
-            # Create the text layer
-            text_layer_name = f"{layer_name} Label"
-            text_layer = doc.layers.new(name=text_layer_name)
-            text_layer.color = color
-            text_layer.linetype = linetype
+                if text_layer_name not in doc.layers:
+                    text_layer = doc.layers.new(name=text_layer_name)
+                    text_layer.color = color
+                    text_layer.linetype = linetype
 
             log_info(f"Exporting layer: {layer_name}")
             
