@@ -70,6 +70,65 @@ def write_world_file(file_name, extension, col, row, matrix, zoom_folder) -> str
 
     return world_file_path
 
+def filter_row_cols_by_bbox(matrix, bbox):
+    a = matrix.scaledenominator * 0.00028
+    e = matrix.scaledenominator * -0.00028
+
+    column_orig = math.floor(
+        (float(bbox[0]) - matrix.topleftcorner[0]) / (a * matrix.tilewidth))
+    row_orig = math.floor(
+        (float(bbox[1]) - matrix.topleftcorner[1]) / (e * matrix.tilewidth))
+
+    column_dest = math.floor(
+        (float(bbox[2]) - matrix.topleftcorner[0]) / (a * matrix.tilewidth))
+    row_dest = math.floor(
+        (float(bbox[3]) - matrix.topleftcorner[1]) / (e * matrix.tilewidth))
+
+    if column_orig > column_dest:
+        column_orig, column_dest = column_dest, column_orig
+
+    if row_orig > row_dest:
+        row_orig, row_dest = row_dest, row_orig
+
+    column_dest += 1
+    row_dest += 1
+
+    return column_orig, column_dest, row_orig, row_dest
+
+def tile_already_exists(file_name, extension, zoom_folder):
+    file_path = os.path.join(zoom_folder, f'{file_name}.{extension}')
+    return os.path.exists(file_path), file_path
+
+def write_image(file_name, extension, img, zoom_folder):
+    file_path = os.path.join(zoom_folder, f'{file_name}.{extension}')
+    with open(file_path, 'wb') as out:
+        out.write(img.read())
+    return file_path
+
+def write_world_file(file_name, extension, col, row, matrix, zoom_folder) -> str:
+    if extension == 'png':
+        wf_ext = 'pgw'
+    elif extension in ['tiff', 'tif']:
+        wf_ext = 'tfw'
+    elif extension in ['jpg', 'jpeg']:
+        wf_ext = 'jgw'
+    elif extension == 'gif':
+        wf_ext = 'gfw'
+    else:
+        wf_ext = 'wld'
+
+    pixel_size = 0.00028
+    a = matrix.scaledenominator * pixel_size
+    e = matrix.scaledenominator * -pixel_size
+    left = ((col * matrix.tilewidth + 0.5) * a) + matrix.topleftcorner[0]
+    top = ((row * matrix.tileheight + 0.5) * e) + matrix.topleftcorner[1]
+
+    # Generate the world file path without the image extension
+    world_file_path = os.path.join(zoom_folder, f'{file_name}.{wf_ext}')
+    with open(world_file_path, 'w') as f:
+        f.write('%f\n%d\n%d\n%f\n%f\n%f' % (a, 0, 0, e, left, top))
+
+    return world_file_path
 
 def download_wmts_tiles(wmts_info: dict, geltungsbereich, buffer_distance: float, target_folder: str, overwrite: bool = False) -> list:
     """Download WMTS tiles for the given area with a buffer and save to the target folder."""
@@ -94,67 +153,6 @@ def download_wmts_tiles(wmts_info: dict, geltungsbereich, buffer_distance: float
 
     # Create a subdirectory for the zoom level
     zoom_folder = target_folder
-
-
-    def filter_row_cols_by_bbox(matrix, bbox):
-        a = matrix.scaledenominator * 0.00028
-        e = matrix.scaledenominator * -0.00028
-
-        column_orig = math.floor(
-            (float(bbox[0]) - matrix.topleftcorner[0]) / (a * matrix.tilewidth))
-        row_orig = math.floor(
-            (float(bbox[1]) - matrix.topleftcorner[1]) / (e * matrix.tilewidth))
-
-        column_dest = math.floor(
-            (float(bbox[2]) - matrix.topleftcorner[0]) / (a * matrix.tilewidth))
-        row_dest = math.floor(
-            (float(bbox[3]) - matrix.topleftcorner[1]) / (e * matrix.tilewidth))
-
-        if column_orig > column_dest:
-            column_orig, column_dest = column_dest, column_orig
-
-        if row_orig > row_dest:
-            row_orig, row_dest = row_dest, row_orig
-
-        column_dest += 1
-        row_dest += 1
-
-        return column_orig, column_dest, row_orig, row_dest
-
-    def tile_already_exists(file_name, extension, zoom_folder):
-        file_path = os.path.join(zoom_folder, f'{file_name}.{extension}')
-        return os.path.exists(file_path), file_path
-
-    def write_image(file_name, extension, img, zoom_folder):
-        file_path = os.path.join(zoom_folder, f'{file_name}.{extension}')
-        with open(file_path, 'wb') as out:
-            out.write(img.read())
-        return file_path
-
-    def write_world_file(file_name, extension, col, row, matrix, zoom_folder) -> str:
-        if extension == 'png':
-            wf_ext = 'pgw'
-        elif extension in ['tiff', 'tif']:
-            wf_ext = 'tfw'
-        elif extension in ['jpg', 'jpeg']:
-            wf_ext = 'jgw'
-        elif extension == 'gif':
-            wf_ext = 'gfw'
-        else:
-            wf_ext = 'wld'
-
-        pixel_size = 0.00028
-        a = matrix.scaledenominator * pixel_size
-        e = matrix.scaledenominator * -pixel_size
-        left = ((col * matrix.tilewidth + 0.5) * a) + matrix.topleftcorner[0]
-        top = ((row * matrix.tileheight + 0.5) * e) + matrix.topleftcorner[1]
-
-        # Generate the world file path without the image extension
-        world_file_path = os.path.join(zoom_folder, f'{file_name}.{wf_ext}')
-        with open(world_file_path, 'w') as f:
-            f.write('%f\n%d\n%d\n%f\n%f\n%f' % (a, 0, 0, e, left, top))
-
-        return world_file_path
 
     downloaded_tiles = []
 
