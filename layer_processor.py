@@ -191,7 +191,7 @@ class LayerProcessor:
     def process_wmts_layer(self, layer_name, operation):
         log_info(f"Processing WMTS layer: {layer_name}")
         
-        target_folder = self.resolve_full_path(operation['targetFolder'])
+        target_folder = self.project_loader.resolve_full_path(operation['targetFolder'])
         zoom_level = operation['zoom']
         zoom_folder = os.path.join(target_folder, f"zoom_{zoom_level}")
         
