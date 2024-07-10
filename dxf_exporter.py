@@ -14,6 +14,7 @@ class DXFExporter:
         self.all_layers = layer_processor.all_layers
         self.update_layers_list = layer_processor.update_layers_list
         self.layer_properties = {}
+        self.name_to_aci = project_loader.name_to_aci  # Add this line
         self.initialize_layer_properties()
 
     def export_to_dxf(self):
