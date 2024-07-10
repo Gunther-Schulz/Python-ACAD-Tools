@@ -207,6 +207,14 @@ class LayerProcessor:
         
         # Create a zoom-specific folder
         zoom_folder = os.path.join(target_folder, f"zoom_{zoom_level}")
+        
+        # Check if the zoom folder already exists
+        if os.path.exists(zoom_folder):
+            log_info(f"Zoom folder already exists: {zoom_folder}. Using existing tiles.")
+            existing_tiles = self.get_existing_tiles(zoom_folder)
+            self.all_layers[layer_name] = existing_tiles
+            return
+
         os.makedirs(zoom_folder, exist_ok=True)
         
         log_info(f"Target folder path: {zoom_folder}")
@@ -244,6 +252,32 @@ class LayerProcessor:
 
         self.all_layers[layer_name] = all_tiles
         log_info(f"Total tiles for {layer_name}: {len(all_tiles)}")
+
+    def get_existing_tiles(self, zoom_folder):
+        existing_tiles = []
+        image_extensions = ('.png', '.jpg', '.jpeg', '.tif', '.tiff')
+        world_file_extensions = {
+            '.png': '.pgw',
+            '.jpg': '.jgw',
+            '.jpeg': '.jgw',
+            '.tif': '.tfw',
+            '.tiff': '.tfw'
+        }
+        
+        for root, dirs, files in os.walk(zoom_folder):
+            for file in files:
+                file_lower = file.lower()
+                if file_lower.endswith(image_extensions):
+                    image_path = os.path.join(root, file)
+                    file_ext = os.path.splitext(file_lower)[1]
+                    world_file_ext = world_file_extensions[file_ext]
+                    world_file_path = os.path.splitext(image_path)[0] + world_file_ext
+                    
+                    if os.path.exists(world_file_path):
+                        existing_tiles.append((image_path, world_file_path))
+        
+        log_info(f"Found {len(existing_tiles)} existing tiles in {zoom_folder}")
+        return existing_tiles
 
     def standardize_layer_crs(self, layer_name, geometry_or_gdf):
         target_crs = self.crs

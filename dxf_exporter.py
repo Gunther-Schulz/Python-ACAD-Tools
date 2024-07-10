@@ -62,7 +62,7 @@ class DXFExporter:
             log_info(f"Exporting layer: {layer_name}")
             
             if isinstance(geo_data, list) and all(isinstance(item, tuple) for item in geo_data):
-                # This is a WMTS layer with downloaded tiles
+                # This is a WMTS layer with downloaded or existing tiles
                 self.add_wmts_xrefs_to_dxf(msp, geo_data, layer_name)
             else:
                 self.add_geometries_to_dxf(msp, geo_data, layer_name)
