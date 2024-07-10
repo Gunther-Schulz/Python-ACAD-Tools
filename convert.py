@@ -192,46 +192,46 @@ class ProjectProcessor:
     #         log_warning(f"Unsupported type for layer {layer_name}: {type(geometry_or_gdf)}")
     #         return geometry_or_gdf
 
-    def get_color_code(self, color):
-        if isinstance(color, int):
-            if 1 <= color <= 255:
-                return color
-            else:
-                random_color = random.randint(1, 255)
-                log_warning(f"Warning: Invalid color code {color}. Assigning random color: {random_color}")
-                return random_color
-        elif isinstance(color, str):
-            color_lower = color.lower()
-            if color_lower in self.name_to_aci:
-                return self.name_to_aci[color_lower]
-            else:
-                random_color = random.randint(1, 255)
-                log_warning(f"Warning: Color name '{color}' not found. Assigning random color: {random_color}")
-                return random_color
-        else:
-            random_color = random.randint(1, 255)
-            log_warning(f"Warning: Invalid color type. Assigning random color: {random_color}")
-            return random_color
+    # def get_color_code(self, color):
+    #     if isinstance(color, int):
+    #         if 1 <= color <= 255:
+    #             return color
+    #         else:
+    #             random_color = random.randint(1, 255)
+    #             log_warning(f"Warning: Invalid color code {color}. Assigning random color: {random_color}")
+    #             return random_color
+    #     elif isinstance(color, str):
+    #         color_lower = color.lower()
+    #         if color_lower in self.name_to_aci:
+    #             return self.name_to_aci[color_lower]
+    #         else:
+    #             random_color = random.randint(1, 255)
+    #             log_warning(f"Warning: Color name '{color}' not found. Assigning random color: {random_color}")
+    #             return random_color
+    #     else:
+    #         random_color = random.randint(1, 255)
+    #         log_warning(f"Warning: Invalid color type. Assigning random color: {random_color}")
+    #         return random_color
 
-    def add_layer_properties(self, layer_name, layer_info):
-        color = self.get_color_code(layer_info.get('color', 'White'))
-        self.layer_properties[layer_name] = {
-            'color': color,
-            'locked': layer_info.get('locked', False),
-            'close': layer_info.get('close', True)
-        }
+    # def add_layer_properties(self, layer_name, layer_info):
+    #     color = self.get_color_code(layer_info.get('color', 'White'))
+    #     self.layer_properties[layer_name] = {
+    #         'color': color,
+    #         'locked': layer_info.get('locked', False),
+    #         'close': layer_info.get('close', True)
+    #     }
         
-        # Only add label layer properties if it's not a WMTS layer
-        if not self.is_wmts_layer(layer_info):
-            text_layer_name = f"{layer_name} Label"
-            self.layer_properties[text_layer_name] = {
-                'color': color,
-                'locked': layer_info.get('locked', False),
-                'close': True
-            }
+    #     # Only add label layer properties if it's not a WMTS layer
+    #     if not self.is_wmts_layer(layer_info):
+    #         text_layer_name = f"{layer_name} Label"
+    #         self.layer_properties[text_layer_name] = {
+    #             'color': color,
+    #             'locked': layer_info.get('locked', False),
+    #             'close': True
+    #         }
 
-    def is_wmts_layer(self, layer_info):
-        return 'operation' in layer_info and layer_info['operation']['type'] == 'wmts'
+    # def is_wmts_layer(self, layer_info):
+    #     return 'operation' in layer_info and layer_info['operation']['type'] == 'wmts'
 
     # def create_geltungsbereich_layer(self, layer_name, operation):
     #     log_info(f"Creating Geltungsbereich layer: {layer_name}")
@@ -586,12 +586,12 @@ class ProjectProcessor:
     #                 # Add label for generated layers using the layer name
     #                 self.add_label_to_dxf(msp, geometry, layer_name, layer_name)
 
-    def is_generated_layer(self, layer_name):
-        # Check if the layer is generated (has an operation) and not loaded from a shapefile
-        for layer in self.project_settings['dxfLayers']:
-            if layer['name'] == layer_name:
-                return 'operation' in layer and 'shapeFile' not in layer
-        return False
+    # def is_generated_layer(self, layer_name):
+    #     # Check if the layer is generated (has an operation) and not loaded from a shapefile
+    #     for layer in self.project_settings['dxfLayers']:
+    #         if layer['name'] == layer_name:
+    #             return 'operation' in layer and 'shapeFile' not in layer
+    #     return False
 
     def add_geometry_to_dxf(self, msp, geometry, layer_name):
         if isinstance(geometry, (Polygon, MultiPolygon)):
