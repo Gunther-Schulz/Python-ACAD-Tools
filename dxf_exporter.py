@@ -14,8 +14,22 @@ class DXFExporter:
         self.all_layers = layer_processor.all_layers
         self.update_layers_list = layer_processor.update_layers_list
         self.layer_properties = {}
-        self.name_to_aci = project_loader.name_to_aci  # Add this line
-        self.initialize_layer_properties()
+        self.colors = {}
+        self.name_to_aci = project_loader.name_to_aci
+        self.setup_layers()
+
+    def setup_layers(self):
+        self.layer_properties = {}
+        self.colors = {}
+
+        for layer in self.project_settings['dxfLayers']:
+            self.add_layer_properties(layer['name'], layer)
+            color_code = self.get_color_code(layer['color'])
+            self.colors[layer['name']] = color_code
+            
+            # Only add label layer if it's not a WMTS layer
+            if not self.is_wmts_layer(layer):
+                self.colors[f"{layer['name']} Label"] = color_code
 
     def export_to_dxf(self):
         log_info("Starting DXF export...")
@@ -279,3 +293,14 @@ class DXFExporter:
             'valign': 1,
             'color': color
         })
+
+    def add_geometry_to_dxf(self, msp, geometry, layer_name):
+        if isinstance(geometry, (Polygon, MultiPolygon)):
+            self.add_polygon_to_dxf(msp, geometry, layer_name)
+        elif isinstance(geometry, (LineString, MultiLineString)):
+            self.add_linestring_to_dxf(msp, geometry, layer_name)
+        elif isinstance(geometry, GeometryCollection):
+            for geom in geometry.geoms:
+                self.add_geometry_to_dxf(msp, geom, layer_name)
+        else:
+            log_warning(f"Unsupported geometry type for layer {layer_name}: {type(geometry)}")

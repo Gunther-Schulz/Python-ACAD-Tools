@@ -110,18 +110,18 @@
     #     self.export_format = self.project_settings.get('exportFormat', 'dxf')
     #     self.dxf_version = self.project_settings.get('dxfVersion', 'R2010')
 
-    def setup_layers(self):
-        self.layer_properties = {}
-        self.colors = {}
+    # def setup_layers(self):
+    #     self.layer_properties = {}
+    #     self.colors = {}
 
-        for layer in self.project_settings['dxfLayers']:
-            self.add_layer_properties(layer['name'], layer)
-            color_code = self.get_color_code(layer['color'])
-            self.colors[layer['name']] = color_code
+    #     for layer in self.project_settings['dxfLayers']:
+    #         self.add_layer_properties(layer['name'], layer)
+    #         color_code = self.get_color_code(layer['color'])
+    #         self.colors[layer['name']] = color_code
             
-            # Only add label layer if it's not a WMTS layer
-            if not self.is_wmts_layer(layer):
-                self.colors[f"{layer['name']} Label"] = color_code
+    #         # Only add label layer if it's not a WMTS layer
+    #         if not self.is_wmts_layer(layer):
+    #             self.colors[f"{layer['name']} Label"] = color_code
 
 
     def setup_wmts_layers(self):
@@ -593,16 +593,16 @@
     #             return 'operation' in layer and 'shapeFile' not in layer
     #     return False
 
-    def add_geometry_to_dxf(self, msp, geometry, layer_name):
-        if isinstance(geometry, (Polygon, MultiPolygon)):
-            self.add_polygon_to_dxf(msp, geometry, layer_name)
-        elif isinstance(geometry, (LineString, MultiLineString)):
-            self.add_linestring_to_dxf(msp, geometry, layer_name)
-        elif isinstance(geometry, GeometryCollection):
-            for geom in geometry.geoms:
-                self.add_geometry_to_dxf(msp, geom, layer_name)
-        else:
-            log_warning(f"Unsupported geometry type for layer {layer_name}: {type(geometry)}")
+    # def add_geometry_to_dxf(self, msp, geometry, layer_name):
+    #     if isinstance(geometry, (Polygon, MultiPolygon)):
+    #         self.add_polygon_to_dxf(msp, geometry, layer_name)
+    #     elif isinstance(geometry, (LineString, MultiLineString)):
+    #         self.add_linestring_to_dxf(msp, geometry, layer_name)
+    #     elif isinstance(geometry, GeometryCollection):
+    #         for geom in geometry.geoms:
+    #             self.add_geometry_to_dxf(msp, geom, layer_name)
+    #     else:
+    #         log_warning(f"Unsupported geometry type for layer {layer_name}: {type(geometry)}")
 
     # def add_polygon_to_dxf(self, msp, geometry, layer_name):
     #     if isinstance(geometry, Polygon):
