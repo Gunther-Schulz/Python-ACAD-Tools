@@ -249,3 +249,33 @@ class DXFExporter:
             random_color = random.randint(1, 255)
             log_warning(f"Warning: Invalid color type. Assigning random color: {random_color}")
             return random_color
+        
+    def get_label_column(self, layer_name):
+        for layer in self.project_settings['dxfLayers']:
+            if layer['name'] == layer_name and 'label' in layer:
+                return layer['label']
+        return None
+    
+    def get_geometry_centroid(self, geometry):
+        if isinstance(geometry, (Polygon, MultiPolygon)):
+            return geometry.centroid
+        elif isinstance(geometry, (LineString, MultiLineString)):
+            return geometry.interpolate(0.5, normalized=True)
+        elif isinstance(geometry, Point):
+            return geometry
+        elif isinstance(geometry, GeometryCollection):
+            # For GeometryCollection, we'll use the centroid of the first geometry
+            if len(geometry.geoms) > 0:
+                return self.get_geometry_centroid(geometry.geoms[0])
+        return None
+    
+    def add_text(self, msp, text, x, y, layer_name, style_name, color):
+        msp.add_text(text, dxfattribs={
+            'style': style_name,
+            'layer': layer_name,
+            'insert': (x, y),
+            'align_point': (x, y),
+            'halign': 1,
+            'valign': 1,
+            'color': color
+        })

@@ -1,16 +1,16 @@
-import os
-import sys
-import yaml
-import geopandas as gpd
-import ezdxf
-from wmts_downloader import download_wmts_tiles
-from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection, Point
-import random
-from ezdxf.addons import odafc
-import argparse
-import logging
-import pyproj
-from pyproj import CRS
+# import os
+# import sys
+# import yaml
+# import geopandas as gpd
+# import ezdxf
+# from wmts_downloader import download_wmts_tiles
+# from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection, Point
+# import random
+# from ezdxf.addons import odafc
+# import argparse
+# import logging
+# import pyproj
+# from pyproj import CRS
 
 # # Setup logging
 # def setup_logging():
@@ -79,13 +79,13 @@ from pyproj import CRS
 #     except Exception as e:
 #         log_error(f"Error getting PROJ version: {str(e)}")
 
-class ProjectProcessor:
-    def __init__(self, project_name: str, update_layers_list: list = None):
-        self.load_project_settings(project_name)
-        self.load_color_mapping()
-        self.setup_layers()
-        self.update_layers_list = update_layers_list
-        self.all_layers = {}
+# class ProjectProcessor:
+#     def __init__(self, project_name: str, update_layers_list: list = None):
+#         self.load_project_settings(project_name)
+#         self.load_color_mapping()
+#         self.setup_layers()
+#         self.update_layers_list = update_layers_list
+#         self.all_layers = {}
 
 
     # def load_color_mapping(self):
@@ -635,11 +635,11 @@ class ProjectProcessor:
     #         if len(coords) > 1:
     #             msp.add_lwpolyline(coords, dxfattribs={'layer': layer_name, 'closed': self.layer_properties[layer_name]['close']})
 
-    def get_label_column(self, layer_name):
-        for layer in self.project_settings['dxfLayers']:
-            if layer['name'] == layer_name and 'label' in layer:
-                return layer['label']
-        return None
+    # def get_label_column(self, layer_name):
+    #     for layer in self.project_settings['dxfLayers']:
+    #         if layer['name'] == layer_name and 'label' in layer:
+    #             return layer['label']
+    #     return None
 
     # def add_label_to_dxf(self, msp, geometry, label, layer_name):
     #     centroid = self.get_geometry_centroid(geometry)
@@ -666,29 +666,29 @@ class ProjectProcessor:
         max_dimension = max(width, height)
         return max_dimension * 0.05  # Adjust this factor as needed
 
-    def get_geometry_centroid(self, geometry):
-        if isinstance(geometry, (Polygon, MultiPolygon)):
-            return geometry.centroid
-        elif isinstance(geometry, (LineString, MultiLineString)):
-            return geometry.interpolate(0.5, normalized=True)
-        elif isinstance(geometry, Point):
-            return geometry
-        elif isinstance(geometry, GeometryCollection):
-            # For GeometryCollection, we'll use the centroid of the first geometry
-            if len(geometry.geoms) > 0:
-                return self.get_geometry_centroid(geometry.geoms[0])
-        return None
+    # def get_geometry_centroid(self, geometry):
+    #     if isinstance(geometry, (Polygon, MultiPolygon)):
+    #         return geometry.centroid
+    #     elif isinstance(geometry, (LineString, MultiLineString)):
+    #         return geometry.interpolate(0.5, normalized=True)
+    #     elif isinstance(geometry, Point):
+    #         return geometry
+    #     elif isinstance(geometry, GeometryCollection):
+    #         # For GeometryCollection, we'll use the centroid of the first geometry
+    #         if len(geometry.geoms) > 0:
+    #             return self.get_geometry_centroid(geometry.geoms[0])
+    #     return None
 
-    def add_text(self, msp, text, x, y, layer_name, style_name, color):
-        msp.add_text(text, dxfattribs={
-            'style': style_name,
-            'layer': layer_name,
-            'insert': (x, y),
-            'align_point': (x, y),
-            'halign': 1,
-            'valign': 1,
-            'color': color
-        })
+    # def add_text(self, msp, text, x, y, layer_name, style_name, color):
+    #     msp.add_text(text, dxfattribs={
+    #         'style': style_name,
+    #         'layer': layer_name,
+    #         'insert': (x, y),
+    #         'align_point': (x, y),
+    #         'halign': 1,
+    #         'valign': 1,
+    #         'color': color
+    #     })
 
     def run(self):
         self.process_layers()
