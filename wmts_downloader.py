@@ -93,9 +93,8 @@ def download_wmts_tiles(wmts_info: dict, geltungsbereich, buffer_distance: float
     bbox = (minx, miny, maxx, maxy)
 
     # Create a subdirectory for the zoom level
-    zoom_folder = os.path.join(target_folder, f'zoom_{zoom}')
-    if not os.path.exists(zoom_folder):
-        os.makedirs(zoom_folder)
+    zoom_folder = target_folder
+
 
     def filter_row_cols_by_bbox(matrix, bbox):
         a = matrix.scaledenominator * 0.00028

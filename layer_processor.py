@@ -1,6 +1,6 @@
 import geopandas as gpd
 from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection
-from utils import log_info, log_warning
+from utils import log_info, log_warning, log_error
 import os
 from wmts_downloader import download_wmts_tiles
 
@@ -204,21 +204,12 @@ class LayerProcessor:
         
         target_folder = self.project_loader.resolve_full_path(operation['targetFolder'])
         zoom_level = operation['zoom']
+        
+        # Create a zoom-specific folder
         zoom_folder = os.path.join(target_folder, f"zoom_{zoom_level}")
-        
-        log_info(f"Zoom folder path: {zoom_folder}")
-        
-        if os.path.exists(zoom_folder) and os.listdir(zoom_folder):
-            log_info(f"Zoom folder {zoom_folder} exists and is not empty.")
-            log_info(f"Using existing tiles for {layer_name}")
-            self.all_layers[layer_name] = [(os.path.join(zoom_folder, f), os.path.join(zoom_folder, os.path.splitext(f)[0] + '.pgw')) 
-                                        for f in os.listdir(zoom_folder) if f.lower().endswith(('.png', '.jpg', '.jpeg', '.tif', '.tiff'))]
-            log_info(f"Found {len(self.all_layers[layer_name])} tiles for {layer_name}")
-            return
-
-        log_info(f"No existing tiles found in {zoom_folder}. Proceeding with download.")
-
         os.makedirs(zoom_folder, exist_ok=True)
+        
+        log_info(f"Target folder path: {zoom_folder}")
 
         wmts_layers = operation.get('layers', [])
         buffer_distance = operation.get('buffer', 100)
@@ -228,7 +219,12 @@ class LayerProcessor:
             'zoom': zoom_level,
             'proj': operation['proj'],
             'format': operation.get('format', 'image/png'),
+            'sleep': operation.get('sleep', 0),
+            'limit': operation.get('limit', 0)
         }
+
+        log_info(f"WMTS info: {wmts_info}")
+        log_info(f"Layers to process: {wmts_layers}")
 
         all_tiles = []
         for layer in wmts_layers:
@@ -238,6 +234,9 @@ class LayerProcessor:
                     layer_geometry = layer_geometry.geometry.unary_union
 
                 log_info(f"Downloading tiles for layer: {layer}")
+                log_info(f"Layer geometry type: {type(layer_geometry)}")
+                log_info(f"Layer geometry bounds: {layer_geometry.bounds}")
+
                 downloaded_tiles = download_wmts_tiles(wmts_info, layer_geometry, buffer_distance, zoom_folder)
                 all_tiles.extend(downloaded_tiles)
             else:
