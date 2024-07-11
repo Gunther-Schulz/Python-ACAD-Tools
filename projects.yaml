@@ -239,7 +239,7 @@ projects:
         locked: false
         close: true
         textColor: "White"
-        include: false
+        # include: false
         operation:
           type: exclusion
           scopeLayer: Geltungsbereich
