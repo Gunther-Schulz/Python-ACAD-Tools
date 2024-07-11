@@ -1,7 +1,7 @@
 import random
 import ezdxf
 from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection, Point
-from src.utils import log_info, log_warning
+from src.utils import log_info, log_warning, log_error
 import geopandas as gpd
 import os
 
@@ -41,6 +41,12 @@ class DXFExporter:
             if self.update_layers_list and layer_name not in self.update_layers_list:
                 continue
 
+            # Check if the layer should be included
+            layer_info = next((l for l in self.project_settings['dxfLayers'] if l['name'] == layer_name), None)
+            if layer_info is None or layer_info.get('include', True) == False:
+                log_info(f"Skipping layer {layer_name} as it is set to not be included")
+                continue
+
             layer_properties = self.layer_properties.get(layer_name, {})
             color = layer_properties.get('color', 7)  # Default to white if color not specified
             linetype = 'CONTINUOUS'
@@ -52,7 +58,7 @@ class DXFExporter:
                 layer.linetype = linetype
 
             # Create the text layer only if it's not a WMTS layer and doesn't already exist
-            if not self.is_wmts_layer(next((l for l in self.project_settings['dxfLayers'] if l['name'] == layer_name), {})):
+            if not self.is_wmts_layer(layer_info):
                 text_layer_name = f"{layer_name} Label"
                 if text_layer_name not in doc.layers:
                     text_layer = doc.layers.new(name=text_layer_name)
