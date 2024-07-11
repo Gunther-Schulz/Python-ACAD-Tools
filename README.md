@@ -9,8 +9,3 @@
 - out buffer for biotope
 - add hatching
 - possibly add t-line on path creation
-- check if any function load shapes again
-- make offsets/offers scare not round
-- domnt download wmts again if tehy exist
-
-rename geltungsberiech

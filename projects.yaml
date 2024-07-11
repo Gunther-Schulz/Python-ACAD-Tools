@@ -185,7 +185,8 @@ projects:
         include: false
         operations:
           - type: buffer
-            sourceLayer: Straße
+            layers: 
+              - Straße
             distance: 7
       - name: Flur Offset
         color: "Light Green"
@@ -194,7 +195,8 @@ projects:
         include: false
         operations:
           - type: buffer
-            sourceLayer: Flur
+            layers:
+              - Flur
             distance: 10
       - name: Geltungsbereich
         color: "Red"
@@ -231,7 +233,8 @@ projects:
         # include: false
         operations:
           - type: buffer
-            sourceLayer: Wald
+            layers:
+              - Wald
             distance: 30
           - type: intersection
             layers:
@@ -257,7 +260,8 @@ projects:
         # include: false
         operations:
           - type: buffer
-            sourceLayer: Baufeld
+            layers:
+              - Baufeld
             distance: -3
       - name: WMTS DOP
         color: Black

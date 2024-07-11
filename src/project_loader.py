@@ -38,10 +38,10 @@ class ProjectLoader:
             new_operations = []
             for operation in layer['operations']:
                 if operation['type'] == 'copy':
-                    # Convert 'copy' operation to a new format
+                    # Convert 'copy' operation to use 'layers' instead of 'sourceLayer'
                     new_operations.append({
                         'type': 'copy',
-                        'sourceLayer': operation['layers'][0] if operation['layers'] else None
+                        'layers': operation['layers']
                     })
                 else:
                     new_operations.append(operation)

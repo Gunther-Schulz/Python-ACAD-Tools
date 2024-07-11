@@ -64,12 +64,12 @@ class LayerProcessor:
             log_warning(f"Operation {op_type} did not produce a result for layer {layer_name}")
 
     def create_copy_layer(self, layer_name, operation):
-        source_layer = operation.get('sourceLayer')
-        if source_layer and source_layer in self.all_layers:
-            self.all_layers[layer_name] = self.all_layers[source_layer].copy()
-            log_info(f"Copied layer {source_layer} to {layer_name}")
+        source_layers = operation.get('layers', [])
+        if source_layers and source_layers[0] in self.all_layers:
+            self.all_layers[layer_name] = self.all_layers[source_layers[0]].copy()
+            log_info(f"Copied layer {source_layers[0]} to {layer_name}")
         else:
-            log_warning(f"Source layer '{source_layer}' not found for copy operation on {layer_name}")
+            log_warning(f"Source layer not found for copy operation on {layer_name}")
 
     def write_shapefile(self, layer_name, output_path):
         if layer_name in self.all_layers:
@@ -166,22 +166,20 @@ class LayerProcessor:
         log_info(f"Operation details: {operation}")
         
         overlay_layers = operation.get('layers', [])
-        source_layer = operation.get('sourceLayer', layer_name)
         
-        log_info(f"Source layer: {source_layer}")
         log_info(f"Overlay layers: {overlay_layers}")
-        
-        if source_layer not in self.all_layers:
-            log_warning(f"Source layer '{source_layer}' not found for {overlay_type} operation on {layer_name}")
-            return
-        
-        base_geometry = self.all_layers[source_layer]
-        log_info(f"Base geometry type: {type(base_geometry)}")
-        log_info(f"Base geometry CRS: {base_geometry.crs if hasattr(base_geometry, 'crs') else 'N/A'}")
         
         if not overlay_layers:
             log_warning(f"No overlay layers specified for {layer_name}")
             return
+        
+        base_geometry = self.all_layers.get(layer_name)
+        if base_geometry is None:
+            log_warning(f"Base layer '{layer_name}' not found for {overlay_type} operation")
+            return
+        
+        log_info(f"Base geometry type: {type(base_geometry)}")
+        log_info(f"Base geometry CRS: {base_geometry.crs if hasattr(base_geometry, 'crs') else 'N/A'}")
 
         combined_overlay_geometry = None
         for overlay_layer in overlay_layers:
@@ -228,13 +226,25 @@ class LayerProcessor:
             
     def create_buffer_layer(self, layer_name, operation):
         log_info(f"Creating buffer layer: {layer_name}")
-        source_layer = operation['sourceLayer']
+        source_layers = operation.get('layers', [])
         buffer_distance = operation['distance']
         buffer_mode = operation.get('mode', 'both')
 
-        if source_layer in self.all_layers:
-            original_geometry = self.all_layers[source_layer]
-            
+        if not source_layers:
+            log_warning(f"No source layers specified for buffer layer '{layer_name}'")
+            return
+
+        original_geometry = None
+        for source_layer in source_layers:
+            if source_layer in self.all_layers:
+                if original_geometry is None:
+                    original_geometry = self.all_layers[source_layer]
+                else:
+                    original_geometry = original_geometry.overlay(self.all_layers[source_layer], how='union')
+            else:
+                log_warning(f"Source layer '{source_layer}' not found for buffer layer '{layer_name}'")
+
+        if original_geometry is not None:
             if buffer_mode == 'outer':
                 buffered = original_geometry.buffer(buffer_distance, join_style=2)
                 result = buffered.difference(original_geometry)
@@ -246,7 +256,7 @@ class LayerProcessor:
             self.all_layers[layer_name] = self.ensure_geodataframe(layer_name, result)
             log_info(f"Created buffer layer: {layer_name}")
         else:
-            log_warning(f"Warning: Source layer '{source_layer}' not found for buffer layer '{layer_name}'")
+            log_warning(f"No valid source geometry found for buffer layer '{layer_name}'")
 
     def process_wmts_layer(self, layer_name, operation):
         log_info(f"Processing WMTS layer: {layer_name}")
