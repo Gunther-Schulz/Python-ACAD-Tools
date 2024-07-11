@@ -241,25 +241,27 @@ projects:
         locked: false
         close: true
         textColor: "White"
-        include: false
+        # include: false
         operations:
-          - type: exclusion
-            scopeLayer: Geltungsbereich
-            excludeLayers:
+          - type: copy
+            layers:
+              - Geltungsbereich
+          - type: difference
+            layers:
               - Wald Abstand
               - Biotope
           # - type: clip
           #   layers:
           #     - Geltungsbereich
-      - name: Baugrenze
-        color: "Blue"
-        locked: false
-        close: true
-        include: false
-        operations:
-          - type: buffer
-            sourceLayer: Baufeld
-            distance: -3
+      # - name: Baugrenze
+      #   color: "Blue"
+      #   locked: false
+      #   close: true
+      #   include: false
+      #   operations:
+      #     - type: buffer
+      #       sourceLayer: Baufeld
+      #       distance: -3
       - name: WMTS DOP
         color: Black
         locked: true
