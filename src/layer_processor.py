@@ -52,10 +52,8 @@ class LayerProcessor:
             self.create_difference_layer(layer_name, operation)
         elif op_type == 'intersection':
             self.create_intersection_layer(layer_name, operation)
-        elif op_type == 'geltungsbereich':
-            self.create_geltungsbereich_layer(layer_name, operation)
-        elif op_type == 'exclusion':
-            self.create_exclusion_layer(layer_name, operation)
+        elif op_type == 'filter_by_attributes':  # Changed from 'geltungsbereich'
+            self.create_filtered_layer(layer_name, operation)  # Renamed method
         elif op_type == 'wmts':
             self.process_wmts_layer(layer_name, operation)
         else:
@@ -112,8 +110,8 @@ class LayerProcessor:
                 return None
         return geometry                       
 
-    def create_geltungsbereich_layer(self, layer_name, operation):
-        log_info(f"Creating Geltungsbereich layer: {layer_name}")
+    def create_filtered_layer(self, layer_name, operation):  # Renamed from create_geltungsbereich_layer
+        log_info(f"Creating filtered layer: {layer_name}")
         combined_geometry = None
 
         for layer in operation['layers']:
@@ -122,7 +120,7 @@ class LayerProcessor:
             log_info(f"Processing source layer: {source_layer_name}")
 
             if source_layer_name not in self.all_layers:
-                log_warning(f"Source layer '{source_layer_name}' not found for Geltungsbereich")
+                log_warning(f"Source layer '{source_layer_name}' not found for filtering")
                 continue
 
             source_gdf = self.all_layers[source_layer_name]
@@ -151,11 +149,11 @@ class LayerProcessor:
             # Ensure the result is a Polygon or MultiPolygon
             if isinstance(combined_geometry, (Polygon, MultiPolygon)):
                 self.all_layers[layer_name] = self.ensure_geodataframe(layer_name, gpd.GeoDataFrame(geometry=[combined_geometry], crs=self.crs))
-                log_info(f"Created Geltungsbereich layer: {layer_name}")
+                log_info(f"Created filtered layer: {layer_name}")
             else:
                 log_warning(f"Resulting geometry is not a Polygon or MultiPolygon for layer: {layer_name}")
         else:
-            log_warning(f"No geometry created for Geltungsbereich layer: {layer_name}")
+            log_warning(f"No geometry created for filtered layer: {layer_name}")
 
     def create_difference_layer(self, layer_name, operation):
         self._create_overlay_layer(layer_name, operation, 'difference')
@@ -249,30 +247,6 @@ class LayerProcessor:
             log_info(f"Created buffer layer: {layer_name}")
         else:
             log_warning(f"Warning: Source layer '{source_layer}' not found for buffer layer '{layer_name}'")
-
-    def create_exclusion_layer(self, layer_name, operation):
-        log_info(f"Creating exclusion layer: {layer_name}")
-        scope_layer = operation['scopeLayer']
-        exclude_layers = operation['excludeLayers']
-
-        log_info(f"  Scope layer: {scope_layer}")
-        log_info(f"  Exclude layers: {exclude_layers}")
-
-        if scope_layer in self.all_layers:
-            scope_geometry = self.all_layers[scope_layer]
-            excluded_geometry = scope_geometry
-
-            for exclude_layer in exclude_layers:
-                if exclude_layer in self.all_layers:
-                    log_info(f"  Excluding {exclude_layer}")
-                    excluded_geometry = excluded_geometry.difference(self.all_layers[exclude_layer])
-                else:
-                    log_warning(f"Warning: Exclude layer '{exclude_layer}' not found for exclusion layer '{layer_name}'")
-
-            self.all_layers[layer_name] = self.ensure_geodataframe(layer_name, excluded_geometry)
-            log_info(f"Created exclusion layer: {layer_name}")
-        else:
-            log_warning(f"Warning: Scope layer '{scope_layer}' not found for exclusion layer '{layer_name}'")
 
     def process_wmts_layer(self, layer_name, operation):
         log_info(f"Processing WMTS layer: {layer_name}")

@@ -37,7 +37,7 @@ projects:
         locked: false
         close: true
         operations:
-          - type: geltungsbereich
+          - type: filter_by_attributes
             layers:
               - name: Parcel
                 valueList:
@@ -61,7 +61,7 @@ projects:
         locked: false
         close: true
         operations:
-          - type: geltungsbereich
+          - type: filter_by_attributes
             layers:
               - name: Parcel
                 valueList:
@@ -81,7 +81,7 @@ projects:
         locked: false
         close: true
         operations:
-          - type: geltungsbereich
+          - type: filter_by_attributes
             layers:
               - name: Parcel
                 valueList:
@@ -202,7 +202,7 @@ projects:
         close: true
         # include: false
         operations:
-          - type: geltungsbereich
+          - type: filter_by_attributes
             layers:
               - name: Parcel
                 valueList:
