@@ -44,7 +44,9 @@ class LayerProcessor:
     def process_operation(self, layer_name, operation):
         op_type = operation['type']
         
-        if op_type == 'buffer':
+        if op_type == 'copy':
+            self.create_copy_layer(layer_name, operation)
+        elif op_type == 'buffer':
             self.create_buffer_layer(layer_name, operation)
         elif op_type == 'difference':
             self.create_difference_layer(layer_name, operation)
@@ -62,6 +64,14 @@ class LayerProcessor:
         # Ensure the result is stored in all_layers
         if layer_name not in self.all_layers:
             log_warning(f"Operation {op_type} did not produce a result for layer {layer_name}")
+
+    def create_copy_layer(self, layer_name, operation):
+        source_layer = operation.get('sourceLayer')
+        if source_layer and source_layer in self.all_layers:
+            self.all_layers[layer_name] = self.all_layers[source_layer].copy()
+            log_info(f"Copied layer {source_layer} to {layer_name}")
+        else:
+            log_warning(f"Source layer '{source_layer}' not found for copy operation on {layer_name}")
 
     def write_shapefile(self, layer_name, output_path):
         if layer_name in self.all_layers:
