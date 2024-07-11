@@ -25,11 +25,12 @@ class DXFExporter:
         for layer in self.project_settings['dxfLayers']:
             self.add_layer_properties(layer['name'], layer)
             color_code = self.get_color_code(layer['color'])
+            text_color_code = self.get_color_code(layer.get('textColor', layer['color']))
             self.colors[layer['name']] = color_code
             
             # Only add label layer if it's not a WMTS layer
             if not self.is_wmts_layer(layer):
-                self.colors[f"{layer['name']} Label"] = color_code
+                self.colors[f"{layer['name']} Label"] = text_color_code
 
     def export_to_dxf(self):
         log_info("Starting DXF export...")
@@ -232,8 +233,10 @@ class DXFExporter:
 
     def add_layer_properties(self, layer_name, layer_info):
         color = self.get_color_code(layer_info.get('color', 'White'))
+        text_color = self.get_color_code(layer_info.get('textColor', layer_info.get('color', 'White')))
         self.layer_properties[layer_name] = {
             'color': color,
+            'textColor': text_color,
             'locked': layer_info.get('locked', False),
             'close': layer_info.get('close', True)
         }
@@ -242,7 +245,8 @@ class DXFExporter:
         if not self.is_wmts_layer(layer_info):
             text_layer_name = f"{layer_name} Label"
             self.layer_properties[text_layer_name] = {
-                'color': color,
+                'color': text_color,
+                'textColor': text_color,  # Ensure textColor is set for label layers
                 'locked': layer_info.get('locked', False),
                 'close': True
             }
@@ -298,14 +302,16 @@ class DXFExporter:
         return None
     
     def add_text(self, msp, text, x, y, layer_name, style_name, color):
+        text_layer_name = f"{layer_name} Label"
+        text_color = self.layer_properties[layer_name].get('textColor', self.layer_properties[layer_name]['color'])
         msp.add_text(text, dxfattribs={
             'style': style_name,
-            'layer': layer_name,
+            'layer': text_layer_name,
             'insert': (x, y),
             'align_point': (x, y),
             'halign': 1,
             'valign': 1,
-            'color': color
+            'color': text_color
         })
 
     def add_geometry_to_dxf(self, msp, geometry, layer_name):

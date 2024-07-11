@@ -237,6 +237,7 @@ projects:
         color: "Light Red"
         locked: false
         close: true
+        textColor: "White"
         # include: false
         operation:
           type: exclusion
