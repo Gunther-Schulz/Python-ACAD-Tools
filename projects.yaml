@@ -144,7 +144,7 @@ projects:
         color: Black
         close: true
         locked: true
-        include: false
+        # include: false
       - name: Gemarkung
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/gemarkung2.shp"
         label: gmkname
@@ -222,6 +222,7 @@ projects:
           clipToLayers:
             - Wald
             - Straße Abstand
+        shapeFileOutput: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/geltungsbereich.shp"
       - name: Wald Abstand
         color: "Light Green"
         close: true

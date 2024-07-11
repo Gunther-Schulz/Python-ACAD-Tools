@@ -43,6 +43,11 @@ class LayerProcessor:
                     self.process_wmts_layer(layer_name, operation)
                 else:
                     log_warning(f"Unknown operation type: {op_type} for layer {layer_name}")
+
+                # Check if shapeFileOutput is specified and write the shapefile
+                if 'shapeFileOutput' in layer:
+                    self.write_shapefile(layer_name, layer['shapeFileOutput'])
+
             elif 'shapeFile' in layer:
                 # This is a shapefile layer, already loaded in setup_shapefiles()
                 pass
@@ -52,6 +57,18 @@ class LayerProcessor:
                 log_info(f"Added layer {layer_name} without data")
 
         log_info("Finished processing layers.")
+
+    def write_shapefile(self, layer_name, output_path):
+        if layer_name in self.all_layers:
+            gdf = self.all_layers[layer_name]
+            if isinstance(gdf, gpd.GeoDataFrame):
+                full_path = self.project_loader.resolve_full_path(output_path)
+                gdf.to_file(full_path)
+                log_info(f"Shapefile written for layer {layer_name}: {full_path}")
+            else:
+                log_warning(f"Cannot write shapefile for layer {layer_name}: not a GeoDataFrame")
+        else:
+            log_warning(f"Cannot write shapefile for layer {layer_name}: layer not found")
 
     def setup_shapefiles(self):
             for layer in self.project_settings['dxfLayers']:
