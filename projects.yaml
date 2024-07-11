@@ -144,7 +144,7 @@ projects:
         color: Black
         close: true
         locked: true
-        include: false
+        # include: false
       - name: Gemarkung
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/gemarkung2.shp"
         label: gmkname
@@ -172,7 +172,7 @@ projects:
         color: "Green"
         close: true
         locked: false
-        # include: false
+        include: false
       - name: Straße
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/abstand.shp"
         color: "Light Green"
@@ -184,7 +184,7 @@ projects:
         locked: false
         include: false
         operations:
-          - type: clip
+          - type: buffer
             sourceLayer: Straße
             distance: 7
       - name: Flur Offset
@@ -200,7 +200,7 @@ projects:
         color: "Red"
         locked: false
         close: true
-        include: false
+        # include: false
         operations:
           - type: geltungsbereich
             layers:
@@ -219,7 +219,7 @@ projects:
               - name: Gemeinde
                 valueList:
                   - Torgelow am See
-          - type: clip          
+          - type: difference
             layers:
               - Wald
               - Straße Abstand
@@ -228,12 +228,12 @@ projects:
         color: "Light Green"
         close: true
         locked: false
-        include: false
+        # include: false
         operations:
           - type: buffer
-          sourceLayer: Wald
+            sourceLayer: Wald
             distance: 30
-          - type: clip
+          - type: intersection
             layers:
               - Geltungsbereich
       - name: Baufeld
@@ -243,9 +243,11 @@ projects:
         textColor: "White"
         # include: false
         operations:
-          - type: exclusion
-            scopeLayer: Geltungsbereich
-            excludeLayers:
+          - type: copy
+            layers:
+              - Geltungsbereich
+          - type: difference
+            layers:
               - Wald Abstand
               - Biotope
       - name: Baugrenze
@@ -254,13 +256,9 @@ projects:
         close: true
         # include: false
         operations:
-          # Test with holes
           - type: buffer
             sourceLayer: Baufeld
             distance: -3
-          - type: clip
-            layers:
-              - Geltungsbereich
       - name: WMTS DOP
         color: Black
         locked: true

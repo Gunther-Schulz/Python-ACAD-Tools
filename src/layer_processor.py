@@ -1,4 +1,5 @@
 import geopandas as gpd
+from matplotlib import pyplot as plt
 from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection
 from src.utils import log_info, log_warning, log_error
 import os
@@ -13,50 +14,64 @@ class LayerProcessor:
         self.update_layers_list = None
 
     def process_layers(self, update_layers_list=None):
-        # Store the update_layers_list
         self.update_layers_list = update_layers_list
         log_info("Starting to process layers...")
         
-        # Step 1: Load all shapefiles
         self.setup_shapefiles()
 
-        # Step 2: Process all layers in order
         for layer in self.project_settings['dxfLayers']:
             layer_name = layer['name']
             if self.update_layers_list and layer_name not in self.update_layers_list:
                 continue
 
             log_info(f"Processing layer: {layer_name}")
-            if 'operation' in layer:
-                operation = layer['operation']
-                op_type = operation['type']
-
-                if op_type == 'buffer':
-                    self.create_buffer_layer(layer_name, operation)
-                elif op_type == 'clip':
-                    self.create_clip_distance_layer(layer_name, operation)
-                elif op_type == 'geltungsbereich':
-                    self.create_geltungsbereich_layer(layer_name, operation)
-                elif op_type == 'exclusion':
-                    self.create_exclusion_layer(layer_name, operation)
-                elif op_type == 'wmts':
-                    self.process_wmts_layer(layer_name, operation)
-                else:
-                    log_warning(f"Unknown operation type: {op_type} for layer {layer_name}")
-
-                # Check if shapeFileOutput is specified and write the shapefile
-                if 'shapeFileOutput' in layer:
-                    self.write_shapefile(layer_name, layer['shapeFileOutput'])
+            if 'operations' in layer:
+                for operation in layer['operations']:
+                    self.process_operation(layer_name, operation)
+                    # The result of each operation is now stored in self.all_layers[layer_name]
 
             elif 'shapeFile' in layer:
-                # This is a shapefile layer, already loaded in setup_shapefiles()
-                pass
+                pass  # Shapefiles are already loaded in setup_shapefiles
             else:
-                # This is a layer without operation or shapefile
                 self.all_layers[layer_name] = None
                 log_info(f"Added layer {layer_name} without data")
 
+            if 'shapeFileOutput' in layer:
+                self.write_shapefile(layer_name, layer['shapeFileOutput'])
+
         log_info("Finished processing layers.")
+
+    def process_operation(self, layer_name, operation):
+        op_type = operation['type']
+        
+        if op_type == 'copy':
+            self.create_copy_layer(layer_name, operation)
+        elif op_type == 'buffer':
+            self.create_buffer_layer(layer_name, operation)
+        elif op_type == 'difference':
+            self.create_difference_layer(layer_name, operation)
+        elif op_type == 'intersection':
+            self.create_intersection_layer(layer_name, operation)
+        elif op_type == 'geltungsbereich':
+            self.create_geltungsbereich_layer(layer_name, operation)
+        elif op_type == 'exclusion':
+            self.create_exclusion_layer(layer_name, operation)
+        elif op_type == 'wmts':
+            self.process_wmts_layer(layer_name, operation)
+        else:
+            log_warning(f"Unknown operation type: {op_type} for layer {layer_name}")
+
+        # Ensure the result is stored in all_layers
+        if layer_name not in self.all_layers:
+            log_warning(f"Operation {op_type} did not produce a result for layer {layer_name}")
+
+    def create_copy_layer(self, layer_name, operation):
+        source_layer = operation.get('sourceLayer')
+        if source_layer and source_layer in self.all_layers:
+            self.all_layers[layer_name] = self.all_layers[source_layer].copy()
+            log_info(f"Copied layer {source_layer} to {layer_name}")
+        else:
+            log_warning(f"Source layer '{source_layer}' not found for copy operation on {layer_name}")
 
     def write_shapefile(self, layer_name, output_path):
         if layer_name in self.all_layers:
@@ -86,6 +101,17 @@ class LayerProcessor:
                     except Exception as e:
                         log_warning(f"Failed to load shapefile for layer '{layer_name}': {str(e)}")
 
+    def ensure_geodataframe(self, layer_name, geometry):
+        if not isinstance(geometry, gpd.GeoDataFrame):
+            if isinstance(geometry, gpd.GeoSeries):
+                return gpd.GeoDataFrame(geometry=geometry, crs=self.crs)
+            elif isinstance(geometry, (Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection)):
+                return gpd.GeoDataFrame(geometry=[geometry], crs=self.crs)
+            else:
+                log_warning(f"Unsupported type for layer {layer_name}: {type(geometry)}")
+                return None
+        return geometry                       
+
     def create_geltungsbereich_layer(self, layer_name, operation):
         log_info(f"Creating Geltungsbereich layer: {layer_name}")
         combined_geometry = None
@@ -114,52 +140,99 @@ class LayerProcessor:
                 log_warning(f"No matching geometries found for {source_layer_name} with values {value_list}")
                 continue
 
+            layer_geometry = filtered_gdf.geometry.unary_union
+
             if combined_geometry is None:
-                combined_geometry = filtered_gdf.geometry.unary_union
+                combined_geometry = layer_geometry
             else:
-                combined_geometry = combined_geometry.intersection(filtered_gdf.geometry.unary_union)
+                combined_geometry = combined_geometry.intersection(layer_geometry)
 
-        if combined_geometry:
-            if 'clipToLayers' in operation:
-                for clip_layer_name in operation['clipToLayers']:
-                    if clip_layer_name in self.all_layers:
-                        clip_geometry = self.all_layers[clip_layer_name].geometry.unary_union
-                        combined_geometry = combined_geometry.difference(clip_geometry)
-                        log_info(f"Applied clipping with layer: {clip_layer_name}")
-                    else:
-                        log_warning(f"Clip layer '{clip_layer_name}' not found for Geltungsbereich")
-
+        if combined_geometry is not None:
             # Ensure the result is a Polygon or MultiPolygon
             if isinstance(combined_geometry, (Polygon, MultiPolygon)):
-                self.all_layers[layer_name] = gpd.GeoDataFrame(geometry=[combined_geometry], crs=self.crs)
+                self.all_layers[layer_name] = self.ensure_geodataframe(layer_name, gpd.GeoDataFrame(geometry=[combined_geometry], crs=self.crs))
+                log_info(f"Created Geltungsbereich layer: {layer_name}")
             else:
                 log_warning(f"Resulting geometry is not a Polygon or MultiPolygon for layer: {layer_name}")
         else:
             log_warning(f"No geometry created for Geltungsbereich layer: {layer_name}")
 
+    def create_difference_layer(self, layer_name, operation):
+        self._create_overlay_layer(layer_name, operation, 'difference')
 
+    def create_intersection_layer(self, layer_name, operation):
+        self._create_overlay_layer(layer_name, operation, 'intersection')
 
-    def create_clip_distance_layer(self, layer_name, operation):
-        log_info(f"Creating clip distance layer: {layer_name}")
-        buffer_distance = operation['distance']
-        source_layer = operation['sourceLayer']
-        if source_layer in self.all_layers:
-            original_geometry = self.all_layers[source_layer]
-            if buffer_distance > 0:
-                clipped = original_geometry.buffer(buffer_distance, join_style=2)
+    def _create_overlay_layer(self, layer_name, operation, overlay_type):
+        log_info(f"Creating {overlay_type} layer: {layer_name}")
+        log_info(f"Operation details: {operation}")
+        
+        overlay_layers = operation.get('layers', [])
+        source_layer = operation.get('sourceLayer', layer_name)
+        
+        log_info(f"Source layer: {source_layer}")
+        log_info(f"Overlay layers: {overlay_layers}")
+        
+        if source_layer not in self.all_layers:
+            log_warning(f"Source layer '{source_layer}' not found for {overlay_type} operation on {layer_name}")
+            return
+        
+        base_geometry = self.all_layers[source_layer]
+        log_info(f"Base geometry type: {type(base_geometry)}")
+        log_info(f"Base geometry CRS: {base_geometry.crs if hasattr(base_geometry, 'crs') else 'N/A'}")
+        
+        if not overlay_layers:
+            log_warning(f"No overlay layers specified for {layer_name}")
+            return
+
+        combined_overlay_geometry = None
+        for overlay_layer in overlay_layers:
+            if overlay_layer in self.all_layers:
+                overlay_geometry = self.all_layers[overlay_layer]
+                if isinstance(overlay_geometry, gpd.GeoDataFrame):
+                    overlay_geometry = overlay_geometry.geometry.unary_union
+                if combined_overlay_geometry is None:
+                    combined_overlay_geometry = overlay_geometry
+                else:
+                    combined_overlay_geometry = combined_overlay_geometry.union(overlay_geometry)
+                log_info(f"Added overlay geometry from layer: {overlay_layer}")
             else:
-                clipped = original_geometry
-            self.all_layers[layer_name] = clipped
-            log_info(f"Created clip distance layer: {layer_name}")
+                log_warning(f"Overlay layer '{overlay_layer}' not found for layer '{layer_name}'")
+
+        if combined_overlay_geometry is None:
+            log_warning(f"No valid overlay geometries found for layer '{layer_name}'")
+            return
+
+        try:
+            if overlay_type == 'difference':
+                result_geometry = base_geometry.geometry.difference(combined_overlay_geometry)
+            elif overlay_type == 'intersection':
+                result_geometry = base_geometry.geometry.intersection(combined_overlay_geometry)
+            
+            log_info(f"Applied {overlay_type} operation")
+        except Exception as e:
+            log_error(f"Error during {overlay_type} operation: {str(e)}")
+            return
+
+        if result_geometry is not None:
+            result_gdf = gpd.GeoDataFrame(geometry=result_geometry, crs=base_geometry.crs)
+            self.all_layers[layer_name] = result_gdf
+            log_info(f"Created {overlay_type} layer: {layer_name}")
+            log_info(f"Final geometry type: {type(self.all_layers[layer_name])}")
+            log_info(f"Final geometry CRS: {self.all_layers[layer_name].crs}")
         else:
-            log_warning(f"Warning: Source layer '{source_layer}' not found in all_layers for clip distance layer '{layer_name}'")
+            log_warning(f"No valid geometry created for {overlay_type} layer: {layer_name}")
+
+        # Plot and show (optional, for debugging)
+        self.all_layers[layer_name].plot()
+        plt.title(f"Layer: {layer_name}")
+        plt.show()
             
     def create_buffer_layer(self, layer_name, operation):
         log_info(f"Creating buffer layer: {layer_name}")
         source_layer = operation['sourceLayer']
         buffer_distance = operation['distance']
         buffer_mode = operation.get('mode', 'both')
-        clip_to_layers = operation.get('clipToLayers', [])
 
         if source_layer in self.all_layers:
             original_geometry = self.all_layers[source_layer]
@@ -172,22 +245,7 @@ class LayerProcessor:
             else:  # 'both'
                 result = original_geometry.buffer(buffer_distance, join_style=2)
 
-            # Clip the buffer to the specified layers
-            if clip_to_layers:
-                clip_geometry = None
-                for clip_layer in clip_to_layers:
-                    if clip_layer in self.all_layers:
-                        if clip_geometry is None:
-                            clip_geometry = self.all_layers[clip_layer]
-                        else:
-                            clip_geometry = clip_geometry.union(self.all_layers[clip_layer])
-                    else:
-                        log_warning(f"Warning: Clip layer '{clip_layer}' not found for buffer layer '{layer_name}'")
-                
-                if clip_geometry is not None:
-                    result = result.intersection(clip_geometry)
-
-            self.all_layers[layer_name] = result
+            self.all_layers[layer_name] = self.ensure_geodataframe(layer_name, result)
             log_info(f"Created buffer layer: {layer_name}")
         else:
             log_warning(f"Warning: Source layer '{source_layer}' not found for buffer layer '{layer_name}'")
@@ -211,7 +269,7 @@ class LayerProcessor:
                 else:
                     log_warning(f"Warning: Exclude layer '{exclude_layer}' not found for exclusion layer '{layer_name}'")
 
-            self.all_layers[layer_name] = excluded_geometry
+            self.all_layers[layer_name] = self.ensure_geodataframe(layer_name, excluded_geometry)
             log_info(f"Created exclusion layer: {layer_name}")
         else:
             log_warning(f"Warning: Scope layer '{scope_layer}' not found for exclusion layer '{layer_name}'")

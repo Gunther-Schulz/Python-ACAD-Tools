@@ -28,5 +28,24 @@ class ProjectLoader:
         self.export_format = self.project_settings.get('exportFormat', 'dxf')
         self.dxf_version = self.project_settings.get('dxfVersion', 'R2010')
 
+        # Process layers to handle the new 'copy' operation
+        for layer in self.project_settings['dxfLayers']:
+            if 'operations' in layer:
+                self.process_copy_operation(layer)
+
+    def process_copy_operation(self, layer):
+        if 'operations' in layer:
+            new_operations = []
+            for operation in layer['operations']:
+                if operation['type'] == 'copy':
+                    # Convert 'copy' operation to a new format
+                    new_operations.append({
+                        'type': 'copy',
+                        'sourceLayer': operation['layers'][0] if operation['layers'] else None
+                    })
+                else:
+                    new_operations.append(operation)
+            layer['operations'] = new_operations
+
     def resolve_full_path(self, path: str) -> str:
         return os.path.abspath(os.path.expanduser(os.path.join(self.folder_prefix, path)))

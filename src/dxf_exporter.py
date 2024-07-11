@@ -28,7 +28,6 @@ class DXFExporter:
             text_color_code = self.get_color_code(layer.get('textColor', layer['color']))
             self.colors[layer['name']] = color_code
             
-            # Only add label layer if it's not a WMTS layer
             if not self.is_wmts_layer(layer):
                 self.colors[f"{layer['name']} Label"] = text_color_code
 
@@ -42,23 +41,20 @@ class DXFExporter:
             if self.update_layers_list and layer_name not in self.update_layers_list:
                 continue
 
-            # Check if the layer should be included
             layer_info = next((l for l in self.project_settings['dxfLayers'] if l['name'] == layer_name), None)
             if layer_info is None or layer_info.get('include', True) == False:
                 log_info(f"Skipping layer {layer_name} as it is set to not be included")
                 continue
 
             layer_properties = self.layer_properties.get(layer_name, {})
-            color = layer_properties.get('color', 7)  # Default to white if color not specified
+            color = layer_properties.get('color', 7)
             linetype = 'CONTINUOUS'
             
-            # Create the layer if it doesn't exist
             if layer_name not in doc.layers:
                 layer = doc.layers.new(name=layer_name)
                 layer.color = color
                 layer.linetype = linetype
 
-            # Create the text layer only if it's not a WMTS layer and doesn't already exist
             if not self.is_wmts_layer(layer_info):
                 text_layer_name = f"{layer_name} Label"
                 if text_layer_name not in doc.layers:
@@ -67,15 +63,11 @@ class DXFExporter:
                     text_layer.linetype = linetype
 
             log_info(f"Exporting layer: {layer_name}")
-            
-            if isinstance(geo_data, list) and all(isinstance(item, tuple) for item in geo_data):
-                # This is a WMTS layer with downloaded or existing tiles
-                self.add_wmts_xrefs_to_dxf(msp, geo_data, layer_name)
-            else:
-                self.add_geometries_to_dxf(msp, geo_data, layer_name)
+            self.add_geometries_to_dxf(msp, geo_data, layer_name)
 
-        doc.saveas(self.dxf_filename)
-        log_info(f"DXF file saved: {self.dxf_filename}")
+            doc.saveas(self.dxf_filename)
+            log_info(f"DXF file saved successfully: {self.dxf_filename}")
+
 
     def add_wmts_xrefs_to_dxf(self, msp, tile_data, layer_name):
         log_info(f"Adding WMTS xrefs to DXF for layer: {layer_name}")
@@ -161,22 +153,13 @@ class DXFExporter:
             return
 
         for idx, geometry in enumerate(geometries):
-            if isinstance(geometry, (Polygon, MultiPolygon)):
-                self.add_polygon_to_dxf(msp, geometry, layer_name)
-            elif isinstance(geometry, (LineString, MultiLineString)):
-                self.add_linestring_to_dxf(msp, geometry, layer_name)
-            elif isinstance(geometry, GeometryCollection):
-                for geom in geometry.geoms:
-                    self.add_geometry_to_dxf(msp, geom, layer_name)
-            else:
-                log_warning(f"Unsupported geometry type for layer {layer_name}: {type(geometry)}")
+            self.add_geometry_to_dxf(msp, geometry, layer_name)
             
-            # Only add labels if it's not a WMTS layer
-            if not self.is_wmts_layer(next((l for l in self.project_settings['dxfLayers'] if l['name'] == layer_name), {})):
+            layer_info = next((l for l in self.project_settings['dxfLayers'] if l['name'] == layer_name), {})
+            if not self.is_wmts_layer(layer_info):
                 if labels is not None:
                     self.add_label_to_dxf(msp, geometry, labels.iloc[idx], layer_name)
                 elif self.is_generated_layer(layer_name):
-                    # Add label for generated layers using the layer name
                     self.add_label_to_dxf(msp, geometry, layer_name, layer_name)
 
     def add_polygon_to_dxf(self, msp, geometry, layer_name):
@@ -252,13 +235,15 @@ class DXFExporter:
             }
 
     def is_wmts_layer(self, layer_info):
-        return 'operation' in layer_info and layer_info['operation']['type'] == 'wmts'
+        if 'operations' in layer_info:
+            return any(op['type'] == 'wmts' for op in layer_info['operations'])
+        return False
     
     def is_generated_layer(self, layer_name):
-        # Check if the layer is generated (has an operation) and not loaded from a shapefile
+        # Check if the layer is generated (has operations) and not loaded from a shapefile
         for layer in self.project_settings['dxfLayers']:
             if layer['name'] == layer_name:
-                return 'operation' in layer and 'shapeFile' not in layer
+                return 'operations' in layer and 'shapeFile' not in layer
         return False
     
     def get_color_code(self, color):
