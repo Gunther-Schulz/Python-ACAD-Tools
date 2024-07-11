@@ -219,8 +219,7 @@ projects:
               - name: Gemeinde
                 valueList:
                   - Torgelow am See
-          - type: clip
-            mode: difference
+          - type: difference
             layers:
               - Wald
               - Straße Abstand
@@ -234,8 +233,7 @@ projects:
           - type: buffer
             sourceLayer: Wald
             distance: 30
-          - type: clip
-            mode: intersection
+          - type: intersection
             layers:
               - Geltungsbereich
       - name: Baufeld

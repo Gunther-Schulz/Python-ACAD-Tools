@@ -46,8 +46,10 @@ class LayerProcessor:
         
         if op_type == 'buffer':
             self.create_buffer_layer(layer_name, operation)
-        elif op_type == 'clip':
-            self.create_clip_layer(layer_name, operation)
+        elif op_type == 'difference':
+            self.create_difference_layer(layer_name, operation)
+        elif op_type == 'intersection':
+            self.create_intersection_layer(layer_name, operation)
         elif op_type == 'geltungsbereich':
             self.create_geltungsbereich_layer(layer_name, operation)
         elif op_type == 'exclusion':
@@ -145,70 +147,71 @@ class LayerProcessor:
         else:
             log_warning(f"No geometry created for Geltungsbereich layer: {layer_name}")
 
-    def create_clip_layer(self, layer_name, operation):
-        log_info(f"Creating clip layer: {layer_name}")
+    def create_difference_layer(self, layer_name, operation):
+        self._create_overlay_layer(layer_name, operation, 'difference')
+
+    def create_intersection_layer(self, layer_name, operation):
+        self._create_overlay_layer(layer_name, operation, 'intersection')
+
+    def _create_overlay_layer(self, layer_name, operation, overlay_type):
+        log_info(f"Creating {overlay_type} layer: {layer_name}")
         log_info(f"Operation details: {operation}")
         
-        clip_layers = operation.get('layers', [])
+        overlay_layers = operation.get('layers', [])
         source_layer = operation.get('sourceLayer', layer_name)
-        clip_mode = operation.get('mode', 'difference')  # Default to 'difference' for backward compatibility
         
         log_info(f"Source layer: {source_layer}")
-        log_info(f"Clip layers: {clip_layers}")
-        log_info(f"Clip mode: {clip_mode}")
+        log_info(f"Overlay layers: {overlay_layers}")
         
         if source_layer not in self.all_layers:
-            log_warning(f"Source layer '{source_layer}' not found for clipping {layer_name}")
+            log_warning(f"Source layer '{source_layer}' not found for {overlay_type} operation on {layer_name}")
             return
         
         base_geometry = self.all_layers[source_layer]
         log_info(f"Base geometry type: {type(base_geometry)}")
         log_info(f"Base geometry CRS: {base_geometry.crs if hasattr(base_geometry, 'crs') else 'N/A'}")
         
-        if not clip_layers:
-            log_warning(f"No clip layers specified for {layer_name}")
+        if not overlay_layers:
+            log_warning(f"No overlay layers specified for {layer_name}")
             return
 
-        combined_clip_geometry = None
-        for clip_layer in clip_layers:
-            if clip_layer in self.all_layers:
-                clip_geometry = self.all_layers[clip_layer]
-                if isinstance(clip_geometry, gpd.GeoDataFrame):
-                    clip_geometry = clip_geometry.geometry.unary_union
-                if combined_clip_geometry is None:
-                    combined_clip_geometry = clip_geometry
+        combined_overlay_geometry = None
+        for overlay_layer in overlay_layers:
+            if overlay_layer in self.all_layers:
+                overlay_geometry = self.all_layers[overlay_layer]
+                if isinstance(overlay_geometry, gpd.GeoDataFrame):
+                    overlay_geometry = overlay_geometry.geometry.unary_union
+                if combined_overlay_geometry is None:
+                    combined_overlay_geometry = overlay_geometry
                 else:
-                    combined_clip_geometry = combined_clip_geometry.union(clip_geometry)
-                log_info(f"Added clip geometry from layer: {clip_layer}")
+                    combined_overlay_geometry = combined_overlay_geometry.union(overlay_geometry)
+                log_info(f"Added overlay geometry from layer: {overlay_layer}")
             else:
-                log_warning(f"Clip layer '{clip_layer}' not found for layer '{layer_name}'")
+                log_warning(f"Overlay layer '{overlay_layer}' not found for layer '{layer_name}'")
 
-        if combined_clip_geometry is None:
-            log_warning(f"No valid clip geometries found for layer '{layer_name}'")
+        if combined_overlay_geometry is None:
+            log_warning(f"No valid overlay geometries found for layer '{layer_name}'")
             return
 
         try:
-            if clip_mode == 'difference':
-                result_geometry = base_geometry.geometry.difference(combined_clip_geometry)
-            elif clip_mode == 'intersection':
-                result_geometry = base_geometry.geometry.intersection(combined_clip_geometry)
-            else:
-                log_warning(f"Unknown clip mode '{clip_mode}' for layer '{layer_name}'. Using 'difference'.")
-                result_geometry = base_geometry.geometry.difference(combined_clip_geometry)
+            if overlay_type == 'difference':
+                result_geometry = base_geometry.geometry.difference(combined_overlay_geometry)
+            elif overlay_type == 'intersection':
+                result_geometry = base_geometry.geometry.intersection(combined_overlay_geometry)
             
-            log_info(f"Applied clipping with mode: {clip_mode}")
+            log_info(f"Applied {overlay_type} operation")
         except Exception as e:
-            log_error(f"Error during clipping: {str(e)}")
+            log_error(f"Error during {overlay_type} operation: {str(e)}")
             return
 
         if result_geometry is not None:
             result_gdf = gpd.GeoDataFrame(geometry=result_geometry, crs=base_geometry.crs)
             self.all_layers[layer_name] = result_gdf
-            log_info(f"Created clip layer: {layer_name}")
+            log_info(f"Created {overlay_type} layer: {layer_name}")
             log_info(f"Final geometry type: {type(self.all_layers[layer_name])}")
             log_info(f"Final geometry CRS: {self.all_layers[layer_name].crs}")
         else:
-            log_warning(f"No valid geometry created for clip layer: {layer_name}")
+            log_warning(f"No valid geometry created for {overlay_type} layer: {layer_name}")
 
         # Plot and show (optional, for debugging)
         self.all_layers[layer_name].plot()
