@@ -1,7 +1,7 @@
 import random
 import ezdxf
 from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection, Point
-from utils import log_info, log_warning
+from src.utils import log_info, log_warning
 import geopandas as gpd
 import os
 

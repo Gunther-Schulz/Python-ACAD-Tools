@@ -1,8 +1,8 @@
 import geopandas as gpd
 from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection
-from utils import log_info, log_warning, log_error
+from src.utils import log_info, log_warning, log_error
 import os
-from wmts_downloader import download_wmts_tiles
+from src.wmts_downloader import download_wmts_tiles
 
 class LayerProcessor:
     def __init__(self, project_loader):

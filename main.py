@@ -1,10 +1,10 @@
 from ezdxf.addons import odafc
 import argparse
 
-from project_loader import ProjectLoader
-from layer_processor import LayerProcessor
-from dxf_exporter import DXFExporter
-from utils import setup_logging, setup_proj, log_info, log_warning, log_error
+from src.project_loader import ProjectLoader
+from src.layer_processor import LayerProcessor
+from src.dxf_exporter import DXFExporter
+from src.utils import setup_logging, setup_proj
 
 class ProjectProcessor:
     def __init__(self, project_name: str, update_layers_list: list = None):
