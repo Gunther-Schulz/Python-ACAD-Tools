@@ -9,3 +9,5 @@
 - out buffer for biotope
 - add hatching
 - possibly add t-line on path creation
+
+seamless conversion dwg<->dxf

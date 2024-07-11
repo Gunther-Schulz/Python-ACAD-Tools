@@ -178,6 +178,19 @@ projects:
         color: "Light Green"
         locked: false
         include: false
+      - name: Biotope Puffer
+        color: "Light Green"
+        close: true
+        locked: false
+        # include: false
+        operations:
+          - type: buffer
+            layers:
+              - Biotope
+            distance: 5
+          - type: intersection
+            layers:
+              - Geltungsbereich
       - name: Straße Abstand
         color: "Light Green"
         close: true
@@ -226,6 +239,19 @@ projects:
               - Wald
               - Straße Abstand
         shapeFileOutput: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/geltungsbereich.shp"
+      - name: Biotope Puffer
+        color: "Light Green"
+        close: true
+        locked: false
+        # include: false
+        operations:
+          - type: buffer
+            layers:
+              - Biotope
+            distance: 5
+          - type: intersection
+            layers:
+              - Geltungsbereich
       - name: Wald Abstand
         color: "Light Green"
         close: true
@@ -252,7 +278,7 @@ projects:
           - type: difference
             layers:
               - Wald Abstand
-              - Biotope
+              - Biotope Puffer
       - name: Baugrenze
         color: "Blue"
         locked: false
