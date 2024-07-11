@@ -19,31 +19,57 @@ class LayerProcessor:
         
         self.setup_shapefiles()
 
+        processed_layers = set()
+
         for layer in self.project_settings['dxfLayers']:
             layer_name = layer['name']
             if self.update_layers_list and layer_name not in self.update_layers_list:
                 continue
 
-            log_info(f"Processing layer: {layer_name}")
-            if 'operations' in layer:
-                for operation in layer['operations']:
-                    self.process_operation(layer_name, operation)
-                    # The result of each operation is now stored in self.all_layers[layer_name]
-
-            elif 'shapeFile' in layer:
-                pass  # Shapefiles are already loaded in setup_shapefiles
-            else:
-                self.all_layers[layer_name] = None
-                log_info(f"Added layer {layer_name} without data")
-
-            if 'shapeFileOutput' in layer:
-                self.write_shapefile(layer_name, layer['shapeFileOutput'])
+            self.process_layer(layer, processed_layers)
 
         log_info("Finished processing layers.")
 
-    def process_operation(self, layer_name, operation):
+    def process_layer(self, layer, processed_layers):
+        if isinstance(layer, str):
+            layer_name = layer
+            layer_obj = next((l for l in self.project_settings['dxfLayers'] if l['name'] == layer_name), None)
+        else:
+            layer_name = layer['name']
+            layer_obj = layer
+
+        if layer_name in processed_layers:
+            return
+
+        log_info(f"Processing layer: {layer_name}")
+        
+        if layer_obj is None:
+            log_warning(f"Layer {layer_name} not found in project settings")
+            return
+
+        if 'operations' in layer_obj:
+            for operation in layer_obj['operations']:
+                self.process_operation(layer_name, operation, processed_layers)
+        elif 'shapeFile' in layer_obj:
+            pass  # Shapefiles are already loaded in setup_shapefiles
+        else:
+            self.all_layers[layer_name] = None
+            log_info(f"Added layer {layer_name} without data")
+
+        if 'shapeFileOutput' in layer_obj:
+            self.write_shapefile(layer_name, layer_obj['shapeFileOutput'])
+
+        processed_layers.add(layer_name)
+
+
+    def process_operation(self, layer_name, operation, processed_layers):
         op_type = operation['type']
         
+        # Process dependent layers first
+        if 'layers' in operation:
+            for dep_layer_name in operation['layers']:
+                self.process_layer(dep_layer_name, processed_layers)
+
         if op_type == 'copy':
             self.create_copy_layer(layer_name, operation)
         elif op_type == 'buffer':
@@ -52,8 +78,8 @@ class LayerProcessor:
             self.create_difference_layer(layer_name, operation)
         elif op_type == 'intersection':
             self.create_intersection_layer(layer_name, operation)
-        elif op_type == 'filter_by_attributes':  # Changed from 'geltungsbereich'
-            self.create_filtered_layer(layer_name, operation)  # Renamed method
+        elif op_type == 'filter_by_attributes':
+            self.create_filtered_layer(layer_name, operation)
         elif op_type == 'wmts':
             self.process_wmts_layer(layer_name, operation)
         else:
@@ -62,6 +88,8 @@ class LayerProcessor:
         # Ensure the result is stored in all_layers
         if layer_name not in self.all_layers:
             log_warning(f"Operation {op_type} did not produce a result for layer {layer_name}")
+        else:
+            log_info(f"Layer {layer_name} processed successfully")
 
     def create_copy_layer(self, layer_name, operation):
         source_layers = operation.get('layers', [])
