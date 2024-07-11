@@ -144,7 +144,7 @@ projects:
         color: Black
         close: true
         locked: true
-        include: false
+        # include: false
       - name: Gemarkung
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/gemarkung2.shp"
         label: gmkname
@@ -172,7 +172,7 @@ projects:
         color: "Green"
         close: true
         locked: false
-        # include: false
+        include: false
       - name: Straße
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/abstand.shp"
         color: "Light Green"
@@ -200,7 +200,7 @@ projects:
         color: "Red"
         locked: false
         close: true
-        include: false
+        # include: false
         operations:
           - type: geltungsbereich
             layers:
@@ -219,7 +219,8 @@ projects:
               - name: Gemeinde
                 valueList:
                   - Torgelow am See
-          - type: clip          
+          - type: clip
+            mode: difference
             layers:
               - Wald
               - Straße Abstand
@@ -228,12 +229,13 @@ projects:
         color: "Light Green"
         close: true
         locked: false
-        include: false
+        # include: false
         operations:
           - type: buffer
             sourceLayer: Wald
             distance: 30
           - type: clip
+            mode: intersection
             layers:
               - Geltungsbereich
       - name: Baufeld
@@ -241,7 +243,7 @@ projects:
         locked: false
         close: true
         textColor: "White"
-        # include: false
+        include: false
         operations:
           - type: exclusion
             scopeLayer: Geltungsbereich
@@ -255,9 +257,8 @@ projects:
         color: "Blue"
         locked: false
         close: true
-        # include: false
+        include: false
         operations:
-          # Test with holes
           - type: buffer
             sourceLayer: Baufeld
             distance: -3

@@ -65,6 +65,9 @@ class DXFExporter:
             log_info(f"Exporting layer: {layer_name}")
             self.add_geometries_to_dxf(msp, geo_data, layer_name)
 
+            doc.saveas(self.dxf_filename)
+            log_info(f"DXF file saved successfully: {self.dxf_filename}")
+
 
     def add_wmts_xrefs_to_dxf(self, msp, tile_data, layer_name):
         log_info(f"Adding WMTS xrefs to DXF for layer: {layer_name}")
