@@ -12,3 +12,7 @@
 - check if any function load shapes again
 - make offsets/offers scare not round
 - domnt download wmts again if tehy exist
+
+operations take multiple layers
+rename geltungsberiech
+consolidate exclusiosn

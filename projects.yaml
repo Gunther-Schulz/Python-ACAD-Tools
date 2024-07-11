@@ -231,7 +231,7 @@ projects:
         include: false
         operations:
           - type: buffer
-          sourceLayer: Wald
+            sourceLayer: Wald
             distance: 30
           - type: clip
             layers:

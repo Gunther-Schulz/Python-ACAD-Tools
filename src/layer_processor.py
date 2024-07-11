@@ -13,50 +13,47 @@ class LayerProcessor:
         self.update_layers_list = None
 
     def process_layers(self, update_layers_list=None):
-        # Store the update_layers_list
         self.update_layers_list = update_layers_list
         log_info("Starting to process layers...")
         
-        # Step 1: Load all shapefiles
         self.setup_shapefiles()
 
-        # Step 2: Process all layers in order
         for layer in self.project_settings['dxfLayers']:
             layer_name = layer['name']
             if self.update_layers_list and layer_name not in self.update_layers_list:
                 continue
 
             log_info(f"Processing layer: {layer_name}")
-            if 'operation' in layer:
-                operation = layer['operation']
-                op_type = operation['type']
-
-                if op_type == 'buffer':
-                    self.create_buffer_layer(layer_name, operation)
-                elif op_type == 'clip':
-                    self.create_clip_distance_layer(layer_name, operation)
-                elif op_type == 'geltungsbereich':
-                    self.create_geltungsbereich_layer(layer_name, operation)
-                elif op_type == 'exclusion':
-                    self.create_exclusion_layer(layer_name, operation)
-                elif op_type == 'wmts':
-                    self.process_wmts_layer(layer_name, operation)
-                else:
-                    log_warning(f"Unknown operation type: {op_type} for layer {layer_name}")
-
-                # Check if shapeFileOutput is specified and write the shapefile
-                if 'shapeFileOutput' in layer:
-                    self.write_shapefile(layer_name, layer['shapeFileOutput'])
+            if 'operations' in layer:
+                for operation in layer['operations']:
+                    self.process_operation(layer_name, operation)
 
             elif 'shapeFile' in layer:
-                # This is a shapefile layer, already loaded in setup_shapefiles()
                 pass
             else:
-                # This is a layer without operation or shapefile
                 self.all_layers[layer_name] = None
                 log_info(f"Added layer {layer_name} without data")
 
+            if 'shapeFileOutput' in layer:
+                self.write_shapefile(layer_name, layer['shapeFileOutput'])
+
         log_info("Finished processing layers.")
+
+    def process_operation(self, layer_name, operation):
+        op_type = operation['type']
+
+        if op_type == 'buffer':
+            self.create_buffer_layer(layer_name, operation)
+        elif op_type == 'clip':
+            self.create_clip_distance_layer(layer_name, operation)
+        elif op_type == 'geltungsbereich':
+            self.create_geltungsbereich_layer(layer_name, operation)
+        elif op_type == 'exclusion':
+            self.create_exclusion_layer(layer_name, operation)
+        elif op_type == 'wmts':
+            self.process_wmts_layer(layer_name, operation)
+        else:
+            log_warning(f"Unknown operation type: {op_type} for layer {layer_name}")
 
     def write_shapefile(self, layer_name, output_path):
         if layer_name in self.all_layers:
