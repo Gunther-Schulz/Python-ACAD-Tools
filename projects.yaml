@@ -129,7 +129,7 @@ projects:
     exportFormat: dxf
     dxfVersion: R2018
     crs: EPSG:25833
-    dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/Zeichnung/combined.dxf"
+    dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/Zeichnung/torgelow.dxf"
     # template: "./data/Zeichnung.dxf"
     dxfLayers:
       - name: Flur
@@ -144,7 +144,7 @@ projects:
         color: Black
         close: true
         locked: true
-        # include: false
+        include: false
       - name: Gemarkung
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/gemarkung2.shp"
         label: gmkname
@@ -172,7 +172,7 @@ projects:
         color: "Green"
         close: true
         locked: false
-        include: false
+        # include: false
       - name: Straße
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/abstand.shp"
         color: "Light Green"
@@ -200,7 +200,7 @@ projects:
         color: "Red"
         locked: false
         close: true
-        # include: false
+        include: false
         operation:
           type: geltungsbereich
           layers:
@@ -239,7 +239,7 @@ projects:
         locked: false
         close: true
         textColor: "White"
-        # include: false
+        include: false
         operation:
           type: exclusion
           scopeLayer: Geltungsbereich
@@ -250,7 +250,7 @@ projects:
         color: "Blue"
         locked: false
         close: true
-        include: false
+        # include: false
         operation:
           # Test with holes
           type: buffer
