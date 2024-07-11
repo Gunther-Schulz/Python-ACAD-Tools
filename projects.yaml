@@ -129,7 +129,7 @@ projects:
     exportFormat: dxf
     dxfVersion: R2018
     crs: EPSG:25833
-    dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/Zeichnung/combined.dxf"
+    dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/Zeichnung/torgelow.dxf"
     # template: "./data/Zeichnung.dxf"
     dxfLayers:
       - name: Flur
@@ -137,52 +137,61 @@ projects:
         label: flurname
         color: Cyan
         close: true
+        include: false
       - name: Parcel
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/parcel2.shp"
         label: label
         color: Black
         close: true
         locked: true
+        include: false
       - name: Gemarkung
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/gemarkung2.shp"
         label: gmkname
         color: "Medium Orange Red"
         close: true
         locked: true
+        include: false
       - name: Gemeinde
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/gemeinde2.shp"
         label: gen
         color: "Dark Red"
         close: true
         locked: true
+        include: false
       - name: Wald
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/wald.shp"
         label: waldname
         color: "Dark Green"
         close: true
         locked: false
+        include: false
       - name: Biotope
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/biotope.shp"
         label: biotopn
         color: "Green"
         close: true
         locked: false
-      - name: Straße Abstand
+        # include: false
+      - name: Straße
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/abstand.shp"
         color: "Light Green"
         locked: false
-      - name: Straße Clip
+        include: false
+      - name: Straße Abstand
         color: "Light Green"
         close: true
         locked: false
+        include: false
         operation:
           type: clip
-          sourceLayer: Straße Abstand
+          sourceLayer: Straße
           distance: 7
       - name: Flur Offset
         color: "Light Green"
         close: false
         locked: false
+        include: false
         operation:
           type: buffer
           sourceLayer: Flur
@@ -191,15 +200,16 @@ projects:
         color: "Red"
         locked: false
         close: true
+        include: false
         operation:
           type: geltungsbereich
           layers:
             - name: Parcel
               valueList:
-                - 104
-                - 96
-                - 95
-                - 87/1
+                - "104"
+                - "96"
+                - "95"
+                - "87/1"
             - name: Flur
               valueList:
                 - Flur 2
@@ -211,11 +221,13 @@ projects:
                 - Torgelow am See
           clipToLayers:
             - Wald
-            - Straße Clip
+            - Straße Abstand
+        shapeFileOutput: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/geltungsbereich.shp"
       - name: Wald Abstand
         color: "Light Green"
         close: true
         locked: false
+        include: false
         operation:
           type: buffer
           sourceLayer: Wald
@@ -223,9 +235,11 @@ projects:
           clipToLayers:
             - Geltungsbereich
       - name: Baufeld
-        color: "Red"
+        color: "Light Red"
         locked: false
         close: true
+        textColor: "White"
+        include: false
         operation:
           type: exclusion
           scopeLayer: Geltungsbereich
@@ -236,6 +250,7 @@ projects:
         color: "Blue"
         locked: false
         close: true
+        # include: false
         operation:
           # Test with holes
           type: buffer
@@ -244,6 +259,7 @@ projects:
       - name: WMTS DOP
         color: Black
         locked: true
+        include: false
         operation:
           type: wmts
           url: "https://www.geodaten-mv.de/dienste/dop_wmts/wmts/1.0.0/WMTSCapabilities.xml"
@@ -257,6 +273,7 @@ projects:
       - name: WMTS Basemap
         color: Black
         locked: true
+        include: false
         operation:
           type: wmts
           url: "https://sgx.geodatenzentrum.de/wmts_basemapde/1.0.0/WMTSCapabilities.xml"
