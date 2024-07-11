@@ -1,4 +1,5 @@
 import geopandas as gpd
+from matplotlib import pyplot as plt
 from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection
 from src.utils import log_info, log_warning, log_error
 import os
@@ -27,9 +28,10 @@ class LayerProcessor:
             if 'operations' in layer:
                 for operation in layer['operations']:
                     self.process_operation(layer_name, operation)
+                    # The result of each operation is now stored in self.all_layers[layer_name]
 
             elif 'shapeFile' in layer:
-                pass
+                pass  # Shapefiles are already loaded in setup_shapefiles
             else:
                 self.all_layers[layer_name] = None
                 log_info(f"Added layer {layer_name} without data")
@@ -41,11 +43,11 @@ class LayerProcessor:
 
     def process_operation(self, layer_name, operation):
         op_type = operation['type']
-
+        
         if op_type == 'buffer':
             self.create_buffer_layer(layer_name, operation)
         elif op_type == 'clip':
-            self.create_clip_distance_layer(layer_name, operation)
+            self.create_clip_layer(layer_name, operation)
         elif op_type == 'geltungsbereich':
             self.create_geltungsbereich_layer(layer_name, operation)
         elif op_type == 'exclusion':
@@ -54,6 +56,10 @@ class LayerProcessor:
             self.process_wmts_layer(layer_name, operation)
         else:
             log_warning(f"Unknown operation type: {op_type} for layer {layer_name}")
+
+        # Ensure the result is stored in all_layers
+        if layer_name not in self.all_layers:
+            log_warning(f"Operation {op_type} did not produce a result for layer {layer_name}")
 
     def write_shapefile(self, layer_name, output_path):
         if layer_name in self.all_layers:
@@ -134,22 +140,55 @@ class LayerProcessor:
         else:
             log_warning(f"No geometry created for Geltungsbereich layer: {layer_name}")
 
+    def create_clip_layer(self, layer_name, operation):
+        log_info(f"Creating clip layer: {layer_name}")
+        log_info(f"Operation details: {operation}")
+        
+        clip_layers = operation.get('layers', [])
+        source_layer = operation.get('sourceLayer', layer_name)
+        
+        log_info(f"Source layer: {source_layer}")
+        log_info(f"Clip layers: {clip_layers}")
+        
+        if source_layer not in self.all_layers:
+            log_warning(f"Source layer '{source_layer}' not found for clipping {layer_name}")
+            return
+        
+        base_geometry = self.all_layers[source_layer]
+        log_info(f"Base geometry type: {type(base_geometry)}")
+        log_info(f"Base geometry CRS: {base_geometry.crs if hasattr(base_geometry, 'crs') else 'N/A'}")
+        
+        if not clip_layers:
+            log_warning(f"No clip layers specified for {layer_name}")
+            return
 
-
-    def create_clip_distance_layer(self, layer_name, operation):
-        log_info(f"Creating clip distance layer: {layer_name}")
-        buffer_distance = operation['distance']
-        source_layer = operation['sourceLayer']
-        if source_layer in self.all_layers:
-            original_geometry = self.all_layers[source_layer]
-            if buffer_distance > 0:
-                clipped = original_geometry.buffer(buffer_distance, join_style=2)
+        for clip_layer in clip_layers:
+            if clip_layer in self.all_layers:
+                clip_geometry = self.all_layers[clip_layer]
+                log_info(f"Clip geometry type for {clip_layer}: {type(clip_geometry)}")
+                log_info(f"Clip geometry CRS for {clip_layer}: {clip_geometry.crs if hasattr(clip_geometry, 'crs') else 'N/A'}")
+                
+                try:
+                    base_geometry = base_geometry.difference(clip_geometry)
+                    log_info(f"Applied clipping with layer: {clip_layer}")
+                except Exception as e:
+                    log_error(f"Error during clipping with {clip_layer}: {str(e)}")
             else:
-                clipped = original_geometry
-            self.all_layers[layer_name] = clipped
-            log_info(f"Created clip distance layer: {layer_name}")
+                log_warning(f"Clip layer '{clip_layer}' not found for layer '{layer_name}'")
+
+        if base_geometry is not None:
+            self.all_layers[layer_name] = base_geometry
+            log_info(f"Created clip layer: {layer_name}")
+            log_info(f"Final geometry type: {type(self.all_layers[layer_name])}")
+            log_info(f"Final geometry CRS: {self.all_layers[layer_name].crs if hasattr(self.all_layers[layer_name], 'crs') else 'N/A'}")
         else:
-            log_warning(f"Warning: Source layer '{source_layer}' not found in all_layers for clip distance layer '{layer_name}'")
+            log_warning(f"No valid geometry created for clip layer: {layer_name}")
+
+        # plot show
+        self.all_layers[layer_name].plot()
+        plt.title(f"Layer: {layer_name}")
+        # show
+        plt.show()
             
     def create_buffer_layer(self, layer_name, operation):
         log_info(f"Creating buffer layer: {layer_name}")
