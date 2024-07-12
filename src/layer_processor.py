@@ -229,7 +229,12 @@ class LayerProcessor:
 
         try:
             if overlay_type == 'difference':
+                # Perform the difference operation
                 result_geometry = base_geometry.geometry.difference(combined_overlay_geometry)
+                # Apply a small negative buffer
+                result_geometry = result_geometry.buffer(-1, join_style=2)
+                # Apply a small positive buffer
+                result_geometry = result_geometry.buffer(1, join_style=2)
             elif overlay_type == 'intersection':
                 result_geometry = base_geometry.geometry.intersection(combined_overlay_geometry)
             
@@ -237,6 +242,8 @@ class LayerProcessor:
         except Exception as e:
             log_error(f"Error during {overlay_type} operation: {str(e)}")
             return
+
+        # ... rest of the method remains unchanged ...
 
         if result_geometry is not None:
             result_gdf = gpd.GeoDataFrame(geometry=result_geometry, crs=base_geometry.crs)
