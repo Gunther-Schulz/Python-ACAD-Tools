@@ -1,5 +1,6 @@
 # Python-ACAD-Tools
 
+- check if output shapes have field data labels, if not add them
 - offset
     - break lines for flur/gemarkung/gemeinde
     - offset for geltungs bereich. dont break lines

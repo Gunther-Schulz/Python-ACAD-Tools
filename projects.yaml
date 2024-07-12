@@ -1,6 +1,5 @@
 # folderPrefix: "~/IONOS HiDrive"
 folderPrefix: "~/hidrive"
-logFile: "./log.txt"
 projects:
   - name: Plasten
     exportFormat: dxf
@@ -214,7 +213,7 @@ projects:
       - name: Geltungsbereich
         color: "Red"
         locked: false
-        close: true
+        close: false
         # include: false
         operations:
           - type: filter_by_attributes
@@ -223,7 +222,7 @@ projects:
                 valueList:
                   - "104"
                   - "96"
-                  - "95"
+                  # - "95"
                   - "87/1"
               - name: Flur
                 valueList:
@@ -238,7 +237,7 @@ projects:
             layers:
               - Wald
               - Straße Abstand
-        shapeFileOutput: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/geltungsbereich.shp"
+        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/geltungsbereich.shp"
       - name: Biotope Puffer
         color: "Light Green"
         close: true
@@ -279,6 +278,7 @@ projects:
             layers:
               - Wald Abstand
               - Biotope Puffer
+        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/baufeld.shp"
       - name: Baugrenze
         color: "Blue"
         locked: false
@@ -289,6 +289,7 @@ projects:
             layers:
               - Baufeld
             distance: -3
+        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/baugrenze.shp"
       - name: WMTS DOP
         color: Black
         locked: true
@@ -306,7 +307,7 @@ projects:
       - name: WMTS Basemap
         color: Black
         locked: true
-        # include: false
+        include: false
         operations:
           - type: wmts
             url: "https://sgx.geodatenzentrum.de/wmts_basemapde/1.0.0/WMTSCapabilities.xml"
