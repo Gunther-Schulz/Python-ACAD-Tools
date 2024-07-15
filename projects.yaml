@@ -31,6 +31,14 @@ projects:
         color: "Dark Red"
         close: true
         locked: true
+      - name: Geltungsbereichsgrenze
+        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/geltungsbereich_abstand.shp"
+        color: "Grey"
+        operations:
+          - type: buffer
+            layers:
+              - Geltungsbereich
+            distance: 27
       - name: Geltungsbereich 1
         color: "Red"
         locked: false
@@ -97,6 +105,7 @@ projects:
       - name: WMTS DOP
         color: Black
         locked: true
+        include: false
         operations:
           - type: wmts
             url: "https://www.geodaten-mv.de/dienste/dop_wmts/wmts/1.0.0/WMTSCapabilities.xml"
@@ -112,6 +121,7 @@ projects:
       - name: WMTS Basemap
         color: Black
         locked: true
+        include: false
         operations:
           - type: wmts
             url: "https://sgx.geodatenzentrum.de/wmts_basemapde/1.0.0/WMTSCapabilities.xml"
