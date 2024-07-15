@@ -69,6 +69,9 @@ class LayerProcessor:
         if 'layers' in operation:
             for dep_layer_name in operation['layers']:
                 self.process_layer(dep_layer_name, processed_layers)
+        else:
+            # If 'layers' key is missing, apply the operation on the calling layer
+            operation['layers'] = [layer_name]
 
         if op_type == 'copy':
             self.create_copy_layer(layer_name, operation)

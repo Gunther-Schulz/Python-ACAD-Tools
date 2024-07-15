@@ -5,7 +5,7 @@ projects:
     exportFormat: dxf
     dxfVersion: R2018
     crs: EPSG:25833
-    dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Zeichnung/combined.dxf"
+    dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Zeichnung/Plasten.dxf"
     # template: "./data/Zeichnung.dxf"
     dxfLayers:
       - name: Flur
@@ -33,11 +33,12 @@ projects:
         locked: true
       - name: Geltungsbereichsgrenze
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/geltungsbereich_abstand.shp"
-        color: "Grey"
+        color: "Dark Red"
+        close: true
+        locked: false
+        include: false
         operations:
           - type: buffer
-            layers:
-              - Geltungsbereich
             distance: 27
       - name: Geltungsbereich 1
         color: "Red"
