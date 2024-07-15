@@ -5,7 +5,7 @@ projects:
     exportFormat: dxf
     dxfVersion: R2018
     crs: EPSG:25833
-    dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Zeichnung/combined.dxf"
+    dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Zeichnung/Plasten.dxf"
     # template: "./data/Zeichnung.dxf"
     dxfLayers:
       - name: Flur
@@ -32,13 +32,40 @@ projects:
         close: true
         locked: true
       - name: Geltungsbereichsgrenze
+        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/geltungsberiech_grenze.shp"
+        color: "Dark Red"
+        close: true
+        locked: false
+        # include: false
+        operations:
+          - type: buffer
+            distance: 27
+      - name: Geltungsbereichsabstand
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/geltungsbereich_abstand.shp"
-        color: "Grey"
+        color: "Dark Red"
+        close: true
+        locked: false
+        # include: false
+      - name: Wald
+        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/wald.shp"
+        color: "Dark Green"
+        close: true
+        locked: false
+      - name: Baumabstand
+        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/baum_abstand.shp"
+        color: "Dark Green"
+        close: true
+        locked: false
         operations:
           - type: buffer
             layers:
-              - Geltungsbereich
-            distance: 27
+              - Wald
+            distance: 5
+      - name: Biotope
+        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/biotope.shp"
+        color: "Green"
+        close: true
+        locked: false
       - name: Geltungsbereich 1
         color: "Red"
         locked: false
@@ -63,6 +90,12 @@ projects:
               - name: Gemeinde
                 valueList:
                   - "Groß Plasten"
+          - type: difference
+            layers:
+              - Geltungsbereichsgrenze
+              - Geltungsbereichsabstand
+              - Wald
+              - Baumabstand
       - name: Geltungsbereich 2
         color: "Red"
         locked: false
@@ -83,6 +116,12 @@ projects:
               - name: Gemeinde
                 valueList:
                   - "Groß Plasten"
+          - type: difference
+            layers:
+              - Geltungsbereichsgrenze
+              - Geltungsbereichsabstand
+              - Wald
+              - Baumabst
       - name: Geltungsbereich 3
         color: "Red"
         locked: false
@@ -102,6 +141,41 @@ projects:
               - name: Gemeinde
                 valueList:
                   - "Groß Plasten"
+          - type: difference
+            layers:
+              - Geltungsbereichsgrenze
+              - Geltungsbereichsabstand
+              - Wald
+              - Baumabstand
+      - name: Waldabstand
+        color: "Dark Green"
+        close: true
+        locked: false
+        operations:
+          - type: buffer
+            layers:
+              - Wald
+            distance: 30
+          - type: intersection
+            layers:
+              - Geltungsbereich 1
+              - Geltungsbereich 2
+              - Geltungsbereich 3
+      - name: Biotope Puffer
+        color: "Light Green"
+        close: true
+        locked: false
+        # include: false
+        operations:
+          - type: buffer
+            layers:
+              - Biotope
+            distance: 10
+          - type: intersection
+            layers:
+              - Geltungsbereich 1
+              - Geltungsbereich 2
+              - Geltungsbereich 3
       - name: WMTS DOP
         color: Black
         locked: true
