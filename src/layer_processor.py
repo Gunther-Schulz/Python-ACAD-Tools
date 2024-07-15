@@ -294,12 +294,12 @@ class LayerProcessor:
 
         if original_geometry is not None:
             if buffer_mode == 'outer':
-                buffered = original_geometry.buffer(buffer_distance, join_style=2)
+                buffered = original_geometry.buffer(buffer_distance, cap_style=2, join_style=2)
                 result = buffered.difference(original_geometry)
             elif buffer_mode == 'inner':
-                result = original_geometry.buffer(-buffer_distance, join_style=2)
+                result = original_geometry.buffer(-buffer_distance, cap_style=2, join_style=2)
             else:  # 'both'
-                result = original_geometry.buffer(buffer_distance, join_style=2)
+                result = original_geometry.buffer(buffer_distance, cap_style=2, join_style=2)
 
             self.all_layers[layer_name] = self.ensure_geodataframe(layer_name, result)
             log_info(f"Created buffer layer: {layer_name}")
