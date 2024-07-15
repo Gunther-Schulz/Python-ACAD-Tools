@@ -121,7 +121,7 @@ projects:
               - Geltungsbereichsgrenze
               - Geltungsbereichsabstand
               - Wald
-              - Baumabst
+              - Baumabstand
       - name: Geltungsbereich 3
         color: "Red"
         locked: false

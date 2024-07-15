@@ -38,6 +38,16 @@ class DXFExporter:
         doc = ezdxf.new(dxfversion=dxf_version)
         msp = doc.modelspace()
 
+        doc.header['$INSUNITS'] = 6  # Meters
+        doc.header['$LUNITS'] = 2    # Decimal
+        doc.header['$LUPREC'] = 4    # Linear display precision
+        doc.header['$AUPREC'] = 4    # Angular display precision
+        doc.header['$MEASUREMENT'] = 1
+
+        # Set drawing units using acad_units method
+        doc.units = 6
+        msp.units = 6
+
         for layer_name, geo_data in self.all_layers.items():
             if self.update_layers_list and layer_name not in self.update_layers_list:
                 continue
@@ -76,6 +86,15 @@ class DXFExporter:
 
         doc.saveas(self.dxf_filename)
         log_info(f"DXF file saved: {self.dxf_filename}")
+
+        loaded_doc = ezdxf.readfile(self.dxf_filename)
+        loaded_msp = loaded_doc.modelspace()
+
+        # Print out the settings to verify
+        print(f"INSUNITS after load: {loaded_doc.header['$INSUNITS']}")
+        print(f"LUNITS after load: {loaded_doc.header['$LUNITS']}")
+        print(f"LUPREC after load: {loaded_doc.header['$LUPREC']}")
+        print(f"AUPREC after load: {loaded_doc.header['$AUPREC']}")
 
     def add_wmts_xrefs_to_dxf(self, msp, tile_data, layer_name):
         log_info(f"Adding WMTS xrefs to DXF for layer: {layer_name}")
