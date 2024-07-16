@@ -117,12 +117,17 @@ class DXFExporter:
                 'close': True
             })
 
-        # Create a relative path for the image
+        # Convert Unix-style path to Windows-style path
+        def convert_to_windows_path(path):
+            return path.replace('/', '\\')
+
+        # Create a relative path for the image and convert to Windows style
         relative_image_path = os.path.relpath(
             image_path, os.path.dirname(self.dxf_filename))
+        relative_image_path = convert_to_windows_path(relative_image_path)
         log_info(f"Relative image path: {relative_image_path}")
 
-        # Create the image definition with the relative path
+        # Create the image definition with the relative Windows-style path
         image_def = msp.doc.add_image_def(
             filename=relative_image_path, size_in_pixel=(256, 256))
 

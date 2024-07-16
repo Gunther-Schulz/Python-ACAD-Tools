@@ -195,12 +195,12 @@ projects:
       - name: WMTS Basemap
         color: Black
         locked: true
-        include: false
+        # include: false
         operations:
           - type: wmts
             url: "https://sgx.geodatenzentrum.de/wmts_basemapde/1.0.0/WMTSCapabilities.xml"
             layer: "de_basemapde_web_raster_farbe"
-            zoom: "13"
+            zoom: "05"
             proj: "DE_EPSG_25833_ADV"
             targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/Basemap"
             layers:
