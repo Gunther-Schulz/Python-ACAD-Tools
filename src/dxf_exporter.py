@@ -49,26 +49,41 @@ class DXFExporter:
         # Set drawing properties only if it's a new file
         if not os.path.exists(self.dxf_filename):
             doc.header['$INSUNITS'] = 6  # Meters
-            doc.header['$LUNITS'] = 2    # Decimal
-            doc.header['$LUPREC'] = 4    # Linear display precision
-            doc.header['$AUPREC'] = 4    # Angular display precision
-            doc.header['$MEASUREMENT'] = 1
-
-            # Set drawing units using acad_units method
-            doc.units = 6
+            doc.header['$MEASUREMENT'] = 1  # Metric
+            doc.header['$LUNITS'] = 2  # Decimal
+            doc.header['$AUNITS'] = 0  # Degrees
+            doc.header['$ANGBASE'] = 0  # 0 degrees
             msp.units = 6
+
+        # Separate WMTS layers from other layers
+        wmts_layers = []
+        other_layers = []
 
         for layer_name, geo_data in self.all_layers.items():
             if self.update_layers_list and layer_name not in self.update_layers_list:
                 continue
 
-            # Check if the layer should be included
             layer_info = next((l for l in self.project_settings['dxfLayers'] if l['name'] == layer_name), None)
             if layer_info is None or layer_info.get('include', True) == False:
                 log_info(f"Skipping layer {layer_name} as it is set to not be included")
                 continue
 
-            # Check if the layer already exists
+            if self.is_wmts_layer(layer_name):
+                wmts_layers.append((layer_name, geo_data))
+            else:
+                other_layers.append((layer_name, geo_data))
+
+        # Process WMTS layers first, but in reverse order
+        for layer_name, geo_data in reversed(wmts_layers):
+            if layer_name in doc.layers:
+                log_info(f"WMTS Layer {layer_name} already exists. Updating geometry and labels only.")
+                self.update_layer_geometry(msp, layer_name, geo_data)
+            else:
+                log_info(f"Creating new WMTS layer: {layer_name}")
+                self.create_new_layer(doc, msp, layer_name, geo_data)
+
+        # Process non-WMTS layers
+        for layer_name, geo_data in other_layers:
             if layer_name in doc.layers:
                 log_info(f"Layer {layer_name} already exists. Updating geometry and labels only.")
                 self.update_layer_geometry(msp, layer_name, geo_data)
