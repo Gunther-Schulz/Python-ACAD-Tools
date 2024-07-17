@@ -9,7 +9,7 @@ layers:
   plot: true
   locked: false
   frozen: false
-  'on': true
+  is_on: true
   vp_freeze: false
   transparency: 0.0
   handle: '10'
@@ -24,7 +24,7 @@ layers:
   plot: false
   locked: false
   frozen: false
-  'on': true
+  is_on: true
   vp_freeze: false
   transparency: 0.0
   handle: 2C75C
@@ -39,7 +39,7 @@ layers:
   plot: true
   locked: false
   frozen: false
-  'on': true
+  is_on: true
   vp_freeze: false
   transparency: 0.0
   handle: 2C774
@@ -54,7 +54,7 @@ layers:
   plot: false
   locked: false
   frozen: false
-  'on': true
+  is_on: true
   vp_freeze: false
   transparency: 0.0
   handle: 2C775
@@ -69,7 +69,7 @@ layers:
   plot: true
   locked: false
   frozen: false
-  'on': true
+  is_on: true
   vp_freeze: false
   transparency: 0.0
   handle: 2C776
@@ -84,7 +84,7 @@ layers:
   plot: true
   locked: false
   frozen: false
-  'on': true
+  is_on: true
   vp_freeze: false
   transparency: 0.0
   handle: 2C777
@@ -99,7 +99,7 @@ layers:
   plot: true
   locked: false
   frozen: false
-  'on': true
+  is_on: true
   vp_freeze: false
   transparency: 0.0
   handle: 2C778
@@ -114,7 +114,7 @@ layers:
   plot: true
   locked: false
   frozen: false
-  'on': false
+  is_on: true
   vp_freeze: false
   transparency: 0.0
   handle: 2C77A
@@ -129,12 +129,12 @@ layers:
   plot: false
   locked: false
   frozen: false
-  'on': false
+  is_on: true
   vp_freeze: false
   transparency: 0.0
   handle: 2DD28
   owner: '2'
-- name: "flurst\xFCcksnummer"
+- name: flurstücksnummer
   color:
     index: 7
     name: White
@@ -144,7 +144,7 @@ layers:
   plot: true
   locked: false
   frozen: false
-  'on': true
+  is_on: true
   vp_freeze: false
   transparency: 0.0
   handle: 2DD29
@@ -159,7 +159,7 @@ layers:
   plot: true
   locked: false
   frozen: false
-  'on': true
+  is_on: true
   vp_freeze: false
   transparency: 0.0
   handle: 2DD2C
@@ -174,7 +174,7 @@ layers:
   plot: true
   locked: false
   frozen: false
-  'on': true
+  is_on: true
   vp_freeze: false
   transparency: 0.0
   handle: 2DD2D
@@ -189,7 +189,7 @@ layers:
   plot: true
   locked: false
   frozen: false
-  'on': true
+  is_on: true
   vp_freeze: false
   transparency: 0.0
   handle: 2DD2E
@@ -204,7 +204,7 @@ layers:
   plot: true
   locked: false
   frozen: false
-  'on': true
+  is_on: true
   vp_freeze: false
   transparency: 0.0
   handle: 2DD31
@@ -219,12 +219,12 @@ layers:
   plot: true
   locked: false
   frozen: false
-  'on': false
+  is_on: true
   vp_freeze: false
   transparency: 0.6
   handle: 2DD33
   owner: '2'
-- name: "Gr\xFCnfl\xE4che"
+- name: Grünfläche
   color:
     index: 7
     name: White
@@ -234,12 +234,12 @@ layers:
   plot: true
   locked: false
   frozen: false
-  'on': false
+  is_on: true
   vp_freeze: false
   transparency: 0.0
   handle: 2DD34
   owner: '2'
-- name: "flurst\xFCcke"
+- name: flurstücke
   color:
     index: 7
     name: White
@@ -249,12 +249,12 @@ layers:
   plot: true
   locked: false
   frozen: false
-  'on': true
+  is_on: true
   vp_freeze: false
   transparency: 0.0
   handle: 2DD37
   owner: '2'
-- name: "Gr\xFCnfl\xE4che Schraffur"
+- name: Grünfläche Schraffur
   color:
     index: 60
     name: Pure Cyan
@@ -264,12 +264,12 @@ layers:
   plot: true
   locked: false
   frozen: false
-  'on': false
+  is_on: true
   vp_freeze: false
   transparency: 0.6
   handle: 2DD38
   owner: '2'
-- name: "Gr\xFCnfl\xE4che T-Linie Symbol"
+- name: Grünfläche T-Linie Symbol
   color:
     index: 7
     name: White
@@ -279,12 +279,12 @@ layers:
   plot: true
   locked: false
   frozen: false
-  'on': false
+  is_on: true
   vp_freeze: false
   transparency: 0.0
   handle: 2DD39
   owner: '2'
-- name: "Gr\xFCnfl\xE4che T-Linie Symbol Schraffur"
+- name: Grünfläche T-Linie Symbol Schraffur
   color:
     index: 82
     name: Dark Magenta
@@ -294,7 +294,7 @@ layers:
   plot: true
   locked: false
   frozen: false
-  'on': false
+  is_on: true
   vp_freeze: false
   transparency: 0.6
   handle: 2DD3A
@@ -309,7 +309,7 @@ layers:
   plot: true
   locked: false
   frozen: false
-  'on': true
+  is_on: true
   vp_freeze: false
   transparency: 0.0
   handle: 2DD3B
@@ -324,7 +324,7 @@ layers:
   plot: true
   locked: false
   frozen: false
-  'on': false
+  is_on: true
   vp_freeze: false
   transparency: 0.0
   handle: 2DD3C
@@ -339,7 +339,7 @@ layers:
   plot: true
   locked: false
   frozen: false
-  'on': true
+  is_on: true
   vp_freeze: false
   transparency: 0.0
   handle: 2DD3F
@@ -354,7 +354,7 @@ layers:
   plot: true
   locked: false
   frozen: false
-  'on': true
+  is_on: true
   vp_freeze: false
   transparency: 0.0
   handle: 2DD42
@@ -369,7 +369,7 @@ layers:
   plot: true
   locked: false
   frozen: false
-  'on': false
+  is_on: true
   vp_freeze: false
   transparency: 0.0
   handle: 2DD45
@@ -384,7 +384,7 @@ layers:
   plot: true
   locked: false
   frozen: false
-  'on': false
+  is_on: true
   vp_freeze: false
   transparency: 0.6
   handle: 2DD48
@@ -399,7 +399,7 @@ layers:
   plot: true
   locked: false
   frozen: false
-  'on': true
+  is_on: true
   vp_freeze: false
   transparency: 0.0
   handle: 2DD4B
@@ -414,7 +414,7 @@ layers:
   plot: true
   locked: false
   frozen: false
-  'on': true
+  is_on: true
   vp_freeze: false
   transparency: 0.0
   handle: 2DD4C
@@ -429,7 +429,7 @@ layers:
   plot: true
   locked: false
   frozen: false
-  'on': true
+  is_on: true
   vp_freeze: false
   transparency: 0.0
   handle: 2DD4F
@@ -444,7 +444,7 @@ layers:
   plot: true
   locked: false
   frozen: false
-  'on': true
+  is_on: true
   vp_freeze: false
   transparency: 0.0
   handle: 334F2
@@ -459,7 +459,7 @@ layers:
   plot: true
   locked: false
   frozen: false
-  'on': true
+  is_on: true
   vp_freeze: false
   transparency: 0.0
   handle: 335DD
@@ -474,7 +474,7 @@ layers:
   plot: true
   locked: false
   frozen: false
-  'on': false
+  is_on: true
   vp_freeze: false
   transparency: 0.6
   handle: 335DE
@@ -489,7 +489,7 @@ layers:
   plot: true
   locked: false
   frozen: false
-  'on': false
+  is_on: true
   vp_freeze: false
   transparency: 0.0
   handle: 335DF
@@ -504,7 +504,7 @@ layers:
   plot: true
   locked: false
   frozen: false
-  'on': false
+  is_on: true
   vp_freeze: false
   transparency: 0.0
   handle: '33642'
@@ -519,7 +519,7 @@ layers:
   plot: false
   locked: false
   frozen: false
-  'on': true
+  is_on: true
   vp_freeze: false
   transparency: 0.0
   handle: '33685'
@@ -534,7 +534,7 @@ layers:
   plot: false
   locked: false
   frozen: false
-  'on': true
+  is_on: true
   vp_freeze: false
   transparency: 0.0
   handle: '33686'
@@ -549,7 +549,7 @@ layers:
   plot: false
   locked: false
   frozen: false
-  'on': true
+  is_on: true
   vp_freeze: false
   transparency: 0.0
   handle: '33687'
@@ -564,7 +564,7 @@ layers:
   plot: true
   locked: false
   frozen: false
-  'on': false
+  is_on: true
   vp_freeze: false
   transparency: 0.0
   handle: 336C9
@@ -579,12 +579,12 @@ layers:
   plot: true
   locked: false
   frozen: false
-  'on': true
+  is_on: true
   vp_freeze: false
   transparency: 0.0
   handle: 336CA
   owner: '2'
-- name: "H\xF6henlinien"
+- name: Höhenlinien
   color:
     index: 7
     name: White
@@ -594,7 +594,7 @@ layers:
   plot: true
   locked: false
   frozen: false
-  'on': true
+  is_on: true
   vp_freeze: false
   transparency: 0.0
   handle: 336CB
@@ -609,7 +609,7 @@ layers:
   plot: true
   locked: false
   frozen: false
-  'on': false
+  is_on: true
   vp_freeze: false
   transparency: 0.0
   handle: 336CC
@@ -624,7 +624,7 @@ layers:
   plot: false
   locked: false
   frozen: false
-  'on': true
+  is_on: true
   vp_freeze: false
   transparency: 0.0
   handle: 3371D
@@ -639,12 +639,12 @@ layers:
   plot: false
   locked: false
   frozen: false
-  'on': false
+  is_on: true
   vp_freeze: false
   transparency: 0.0
   handle: '33792'
   owner: '2'
-- name: "Flurst\xFCcksnummern"
+- name: Flurstücksnummern
   color:
     index: 7
     name: White
@@ -654,7 +654,7 @@ layers:
   plot: true
   locked: false
   frozen: false
-  'on': true
+  is_on: true
   vp_freeze: false
   transparency: 0.0
   handle: '33949'
@@ -669,7 +669,7 @@ layers:
   plot: true
   locked: false
   frozen: false
-  'on': true
+  is_on: true
   vp_freeze: false
   transparency: 0.0
   handle: 3394C
@@ -684,7 +684,7 @@ layers:
   plot: true
   locked: false
   frozen: false
-  'on': true
+  is_on: true
   vp_freeze: false
   transparency: 0.0
   handle: 3394D
@@ -699,7 +699,7 @@ layers:
   plot: true
   locked: false
   frozen: false
-  'on': true
+  is_on: true
   vp_freeze: false
   transparency: 0.0
   handle: 339BA
@@ -714,7 +714,7 @@ layers:
   plot: true
   locked: false
   frozen: false
-  'on': true
+  is_on: true
   vp_freeze: false
   transparency: 0.0
   handle: 339E1
@@ -729,7 +729,7 @@ layers:
   plot: true
   locked: false
   frozen: false
-  'on': false
+  is_on: true
   vp_freeze: false
   transparency: 0.0
   handle: 33A55
@@ -744,7 +744,7 @@ layers:
   plot: true
   locked: false
   frozen: false
-  'on': true
+  is_on: true
   vp_freeze: false
   transparency: 0.0
   handle: 33A57
@@ -759,7 +759,7 @@ layers:
   plot: true
   locked: false
   frozen: false
-  'on': true
+  is_on: true
   vp_freeze: false
   transparency: 0.0
   handle: 33A58
@@ -774,12 +774,12 @@ layers:
   plot: true
   locked: false
   frozen: false
-  'on': false
+  is_on: true
   vp_freeze: false
   transparency: 0.0
   handle: 33A85
   owner: '2'
-- name: "Wasserfl\xE4chen"
+- name: Wasserflächen
   color:
     index: 7
     name: White
@@ -789,7 +789,7 @@ layers:
   plot: true
   locked: false
   frozen: false
-  'on': false
+  is_on: true
   vp_freeze: false
   transparency: 0.0
   handle: 33A90
@@ -804,7 +804,7 @@ layers:
   plot: true
   locked: false
   frozen: false
-  'on': true
+  is_on: true
   vp_freeze: false
   transparency: 0.0
   handle: 33AB6
@@ -819,7 +819,7 @@ layers:
   plot: true
   locked: false
   frozen: false
-  'on': true
+  is_on: true
   vp_freeze: false
   transparency: 0.0
   handle: 33AB7
@@ -834,7 +834,7 @@ layers:
   plot: true
   locked: false
   frozen: false
-  'on': false
+  is_on: true
   vp_freeze: false
   transparency: 0.0
   handle: 33B9F
@@ -849,12 +849,12 @@ layers:
   plot: true
   locked: false
   frozen: false
-  'on': false
+  is_on: true
   vp_freeze: false
   transparency: 0.6
   handle: 33BA0
   owner: '2'
-- name: "\xDCbersichtskartebeschriftung"
+- name: Übersichtskartebeschriftung
   color:
     index: 7
     name: White
@@ -864,7 +864,7 @@ layers:
   plot: true
   locked: false
   frozen: false
-  'on': false
+  is_on: true
   vp_freeze: false
   transparency: 0.0
   handle: 33C73
@@ -879,7 +879,7 @@ layers:
   plot: true
   locked: false
   frozen: false
-  'on': false
+  is_on: true
   vp_freeze: false
   transparency: 0.6
   handle: 33C74
@@ -894,7 +894,7 @@ layers:
   plot: true
   locked: false
   frozen: false
-  'on': true
+  is_on: true
   vp_freeze: false
   transparency: 0.0
   handle: 33C9F
@@ -909,12 +909,12 @@ layers:
   plot: true
   locked: false
   frozen: false
-  'on': true
+  is_on: true
   vp_freeze: false
   transparency: 0.0
   handle: 33D3B
   owner: '2'
-- name: "Stra\xDFe Label"
+- name: Straße Label
   color:
     index: 7
     name: White
@@ -924,7 +924,7 @@ layers:
   plot: true
   locked: false
   frozen: false
-  'on': true
+  is_on: true
   vp_freeze: false
   transparency: 0.0
   handle: 33D3C
@@ -939,12 +939,12 @@ layers:
   plot: true
   locked: false
   frozen: false
-  'on': false
+  is_on: true
   vp_freeze: false
   transparency: 0.0
   handle: 33DA3
   owner: '2'
-- name: "Gr\xFCnfl\xE4che hidden"
+- name: Grünfläche hidden
   color:
     index: 7
     name: White
@@ -954,7 +954,7 @@ layers:
   plot: false
   locked: false
   frozen: false
-  'on': false
+  is_on: true
   vp_freeze: false
   transparency: 0.0
   handle: 33DA6
@@ -969,12 +969,12 @@ layers:
   plot: true
   locked: false
   frozen: false
-  'on': false
+  is_on: true
   vp_freeze: false
   transparency: 0.0
   handle: 33DD8
   owner: '2'
-- name: "Nutzungsabgrenzung Kn\xF6tchen"
+- name: Nutzungsabgrenzung Knötchen
   color:
     index: 7
     name: White
@@ -984,7 +984,7 @@ layers:
   plot: true
   locked: false
   frozen: false
-  'on': true
+  is_on: true
   vp_freeze: false
   transparency: 0.0
   handle: 33E78
@@ -999,7 +999,7 @@ layers:
   plot: true
   locked: false
   frozen: false
-  'on': true
+  is_on: true
   vp_freeze: false
   transparency: 0.0
   handle: 33E79
