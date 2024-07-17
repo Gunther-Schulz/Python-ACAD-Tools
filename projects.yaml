@@ -222,19 +222,19 @@ projects:
         close: true
         include: false
       - name: Parcel
+        update: true
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/parcel2.shp"
         label: label
-        color: White
-        linetype: Continuous
-        lineweight: 13
+        color: Cyan
+        linetype: ACAD_ISO11W100
+        lineweight: 30
         plot: true
-        locked: false
         frozen: false
         is_on: true 
         vp_freeze: false
         transparency: 0.0
-        close: true
         locked: true
+        close: true
         # include: false
       - name: Gemarkung
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/gemarkung2.shp"

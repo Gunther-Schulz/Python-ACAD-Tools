@@ -45,6 +45,7 @@ class DXFExporter:
             doc = ezdxf.new(dxfversion=dxf_version)
             log_info(f"Created new DXF file with version: {dxf_version}")
             self.set_drawing_properties(doc)
+            self.load_standard_linetypes(doc)
         
         msp = doc.modelspace()
 
@@ -101,19 +102,21 @@ class DXFExporter:
             self.process_single_layer(doc, msp, layer_name, layer_info)
 
     def process_single_layer(self, doc, msp, layer_name, layer_info):
-        update_flag = layer_info.get('update', False)
         if layer_name in doc.layers:
             existing_layer = doc.layers.get(layer_name)
+            update_flag = layer_info.get('update', False)
+            log_info(f"Processing existing layer: {layer_name}")
+            log_info(f"Update flag: {update_flag}")
             if update_flag:
-                log_info(f"Layer {layer_name} already exists. Updating geometry and labels.")
+                self.update_layer_properties(existing_layer, layer_info)
+                log_info(f"Layer {layer_name} already exists. Updating properties and geometry.")
                 if layer_name in self.all_layers:
                     self.update_layer_geometry(msp, layer_name, self.all_layers[layer_name], layer_info)
                 else:
                     log_info(f"Layer {layer_name} exists in DXF but not in all_layers. Creating new geometry.")
                     self.create_new_layer(doc, msp, layer_name, layer_info, existing_layer)
             else:
-                log_info(f"Keeping existing geometry for layer {layer_name} as update is set to false")
-            self.update_layer_properties(existing_layer, layer_info)
+                log_info(f"Keeping existing properties and geometry for layer {layer_name} as update is set to false")
         else:
             log_info(f"Creating new layer: {layer_name}")
             self.create_new_layer(doc, msp, layer_name, layer_info)
@@ -145,26 +148,27 @@ class DXFExporter:
             self.add_geometries_to_dxf(msp, geo_data, layer_name)
 
     def create_new_layer(self, doc, msp, layer_name, layer_info, existing_layer=None):
-        layer_properties = self.layer_properties.get(layer_name, {})
-        
         if existing_layer:
             layer = existing_layer
+            log_info(f"Using existing layer: {layer_name}")
         else:
             layer = doc.layers.new(name=layer_name)
-            color = layer_properties.get('color', 7)  # Default to white if color not specified
-            linetype = 'CONTINUOUS'
-            layer.color = color
-            layer.linetype = linetype
+            log_info(f"Created new layer: {layer_name}")
+        
+        self.update_layer_properties(layer, layer_info)
+        
+        log_info(f"Final layer properties: {layer.dxf.all_existing_dxf_attribs()}")
 
-        # Create or update the text layer if it's not a WMTS layer
         if not self.is_wmts_layer(layer_name):
             text_layer_name = f"{layer_name} Label"
             if text_layer_name not in doc.layers:
                 text_layer = doc.layers.new(name=text_layer_name)
-                text_layer.color = layer.color
-                text_layer.linetype = layer.linetype
+                text_properties = self.layer_properties.get(text_layer_name, {})
+                for key, value in text_properties.items():
+                    setattr(text_layer, key, value)
+                log_info(f"Created text layer: {text_layer_name}")
+                log_info(f"  Text layer properties: {text_properties}")
 
-        # Add geometry and labels only if it's a new layer or update is True
         if not existing_layer or layer_info.get('update', False):
             geo_data = self.all_layers.get(layer_name)
             if geo_data is not None:
@@ -173,11 +177,56 @@ class DXFExporter:
                 log_info(f"No geometry data available for layer: {layer_name}")
 
     def update_layer_properties(self, layer, layer_info):
+        log_info(f"Updating properties for layer: {layer.dxf.name}")
+        log_info(f"Layer info: {layer_info}")
+        log_info(f"Current layer properties: {layer.dxf.all_existing_dxf_attribs()}")
+        
         if 'color' in layer_info:
-            color = self.get_color_code(layer_info['color'])
-            layer.color = color
+            layer.color = self.get_color_code(layer_info['color'])
+            log_info(f"  Set color to: {layer.color}")
         if 'linetype' in layer_info:
-            layer.linetype = layer_info['linetype']
+            linetype_name = layer_info['linetype']
+            if linetype_name not in layer.doc.linetypes:
+                log_warning(f"  Linetype '{linetype_name}' not found. Using 'CONTINUOUS' instead.")
+                linetype_name = 'CONTINUOUS'
+            layer.dxf.linetype = linetype_name
+            log_info(f"  Set linetype to: {linetype_name}")
+        if 'lineweight' in layer_info:
+            layer.dxf.lineweight = layer_info['lineweight']
+            log_info(f"  Set lineweight to: {layer_info['lineweight']}")
+        if 'plot' in layer_info:
+            layer.dxf.plot = layer_info['plot']
+            log_info(f"  Set plot to: {layer_info['plot']}")
+        if 'locked' in layer_info:
+            layer.dxf.flags = layer.dxf.flags | 4 if layer_info['locked'] else layer.dxf.flags & ~4
+            log_info(f"  Set locked to: {layer_info['locked']}")
+        if 'frozen' in layer_info:
+            layer.dxf.flags = layer.dxf.flags | 1 if layer_info['frozen'] else layer.dxf.flags & ~1
+            log_info(f"  Set frozen to: {layer_info['frozen']}")
+        if 'is_on' in layer_info:
+            layer.is_on = layer_info['is_on']
+            log_info(f"  Set is_on to: {layer_info['is_on']}")
+        if 'vp_freeze' in layer_info:
+            layer.dxf.flags = layer.dxf.flags | 8 if layer_info['vp_freeze'] else layer.dxf.flags & ~8
+            log_info(f"  Set vp_freeze to: {layer_info['vp_freeze']}")
+        if 'transparency' in layer_info:
+            layer.transparency = int(layer_info['transparency'] * 100)
+            log_info(f"  Set transparency to: {layer.transparency}")
+        
+        log_info(f"Final layer properties after update: {layer.dxf.all_existing_dxf_attribs()}")
+
+    def load_standard_linetypes(self, doc):
+        standard_linetypes = [
+            'CONTINUOUS', 'CENTER', 'DASHED', 'PHANTOM', 'HIDDEN', 'DASHDOT',
+            'BORDER', 'DIVIDE', 'DOT', 'ACAD_ISO02W100', 'ACAD_ISO03W100',
+            'ACAD_ISO04W100', 'ACAD_ISO05W100', 'ACAD_ISO06W100', 'ACAD_ISO07W100',
+            'ACAD_ISO08W100', 'ACAD_ISO09W100', 'ACAD_ISO10W100', 'ACAD_ISO11W100',
+            'ACAD_ISO12W100', 'ACAD_ISO13W100', 'ACAD_ISO14W100', 'ACAD_ISO15W100'
+        ]
+        for lt in standard_linetypes:
+            if lt not in doc.linetypes:
+                doc.linetypes.new(lt)
+
 
     def add_wmts_xrefs_to_dxf(self, msp, tile_data, layer_name):
         log_info(f"Adding WMTS xrefs to DXF for layer: {layer_name}")
@@ -334,24 +383,34 @@ class DXFExporter:
             self.add_layer_properties(layer['name'], layer)
 
     def add_layer_properties(self, layer_name, layer_info):
-        color = self.get_color_code(layer_info.get('color', 'White'))
-        text_color = self.get_color_code(layer_info.get('textColor', layer_info.get('color', 'White')))
-        self.layer_properties[layer_name] = {
-            'color': color,
-            'textColor': text_color,
+        properties = {
+            'color': self.get_color_code(layer_info.get('color', 'White')),
+            'textColor': self.get_color_code(layer_info.get('textColor', layer_info.get('color', 'White'))),
+            'linetype': layer_info.get('linetype', 'Continuous'),
+            'lineweight': layer_info.get('lineweight', 13),
+            'plot': layer_info.get('plot', True),
             'locked': layer_info.get('locked', False),
+            'frozen': layer_info.get('frozen', False),
+            'is_on': layer_info.get('is_on', True),
+            'vp_freeze': layer_info.get('vp_freeze', False),
+            'transparency': layer_info.get('transparency', 0.0),
             'close': layer_info.get('close', True)
         }
+        self.layer_properties[layer_name] = properties
         
         # Only add label layer properties if it's not a WMTS layer
         if not self.is_wmts_layer(layer_info):
             text_layer_name = f"{layer_name} Label"
-            self.layer_properties[text_layer_name] = {
-                'color': text_color,
-                'textColor': text_color,  # Ensure textColor is set for label layers
-                'locked': layer_info.get('locked', False),
-                'close': True
+            text_properties = {
+                'color': properties['textColor'],
+                'plot': properties['plot'],
+                'locked': properties['locked'],
+                'frozen': properties['frozen'],
+                'is_on': properties['is_on'],
+                'vp_freeze': properties['vp_freeze'],
+                'close': properties['close']
             }
+            self.layer_properties[text_layer_name] = text_properties
 
     def is_wmts_layer(self, layer_name):
         layer_info = next((l for l in self.project_settings['dxfLayers'] if l['name'] == layer_name), None)

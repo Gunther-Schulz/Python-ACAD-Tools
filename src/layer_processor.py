@@ -59,9 +59,9 @@ class LayerProcessor:
             for operation in layer_obj['operations']:
                 self.process_operation(layer_name, operation, processed_layers)
         elif 'shapeFile' in layer_obj:
-            # Only load shapefile if the layer doesn't exist or update is true
-            if layer_name not in self.all_layers or update_flag:
-                self.load_shapefile(layer_name, layer_obj['shapeFile'])
+            # The shapefile should have been loaded in setup_shapefiles
+            if layer_name not in self.all_layers:
+                log_warning(f"Shapefile for layer {layer_name} was not loaded properly")
         else:
             self.all_layers[layer_name] = None
             log_info(f"Added layer {layer_name} without data")
