@@ -413,7 +413,8 @@ projects:
             layers:
               - Geltungsbereich
           - type: buffer
-            distance: 5
+            distance: -5
+            mode: keep # Keeps 
         outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/fromCad/grnfläche.shp"
       - name: Baufeld
         update: true
@@ -430,7 +431,6 @@ projects:
             layers:
               - Wald Abstand
               - Grünfläche
-              # - Biotope Puffer
         outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/fromCad/baufeld.shp"
       - name: Baugrenze
         update: true

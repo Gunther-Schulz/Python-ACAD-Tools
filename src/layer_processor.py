@@ -317,7 +317,7 @@ class LayerProcessor:
         log_info(f"Creating buffer layer: {layer_name}")
         source_layers = operation.get('layers', [])
         buffer_distance = operation['distance']
-        buffer_mode = operation.get('mode', 'both')
+        buffer_mode = operation.get('mode', 'off')  # Changed default to 'off'
 
         combined_geometry = None
         for layer_info in source_layers:
@@ -340,12 +340,31 @@ class LayerProcessor:
                 result = buffered.difference(combined_geometry)
             elif buffer_mode == 'inner':
                 result = combined_geometry.buffer(-buffer_distance, cap_style=2, join_style=2)
-            else:  # 'both'
+            elif buffer_mode == 'keep':
+                buffered = combined_geometry.buffer(buffer_distance, cap_style=2, join_style=2)
+                result = [combined_geometry, buffered]
+            else:  # 'off' or any other value
                 result = combined_geometry.buffer(buffer_distance, cap_style=2, join_style=2)
 
-            result_gdf = gpd.GeoDataFrame(geometry=[result], crs=self.crs)
+            # Ensure the result is a valid geometry type for shapefiles
+            if buffer_mode == 'keep':
+                result_geom = []
+                for geom in result:
+                    if isinstance(geom, (Polygon, MultiPolygon)):
+                        result_geom.append(geom)
+                    elif isinstance(geom, GeometryCollection):
+                        result_geom.extend([g for g in geom.geoms if isinstance(g, (Polygon, MultiPolygon))])
+            else:
+                if isinstance(result, (Polygon, MultiPolygon)):
+                    result_geom = [result]
+                elif isinstance(result, GeometryCollection):
+                    result_geom = [geom for geom in result.geoms if isinstance(geom, (Polygon, MultiPolygon))]
+                else:
+                    result_geom = []
+
+            result_gdf = gpd.GeoDataFrame(geometry=result_geom, crs=self.crs)
             self.all_layers[layer_name] = result_gdf
-            log_info(f"Created buffer layer: {layer_name}")
+            log_info(f"Created buffer layer: {layer_name} with {len(result_geom)} geometries")
         else:
             log_warning(f"No valid source geometry found for buffer layer '{layer_name}'")
             result_gdf = gpd.GeoDataFrame(geometry=[], crs=self.crs)
@@ -483,40 +502,10 @@ class LayerProcessor:
         log_info(f"Total geometries collected: {len(combined_geometries)}")
 
         if combined_geometries:
-            # Apply buffer trick
-            buffer_distance = 0.01  # Adjust this value as needed
-            log_info(f"Applying buffer trick with distance: {buffer_distance}")
+            merged_geometry = unary_union(combined_geometries)
+            log_info(f"Merged geometry type: {merged_geometry.geom_type}")
             
-            buffered_geometries = [geom.buffer(buffer_distance) for geom in combined_geometries]
-            log_info("Merging buffered geometries")
-            merged_geometry = unary_union(buffered_geometries)
-            log_info(f"Merged buffered geometry type: {merged_geometry.geom_type}")
-            
-            # Unbuffer to get back to original size
-            log_info("Unbuffering merged geometry")
-            unbuffered_geometry = merged_geometry.buffer(-buffer_distance)
-            log_info(f"Unbuffered geometry type: {unbuffered_geometry.geom_type}")
-            
-            # Simplify the unbuffered geometry
-            log_info("Simplifying unbuffered geometry")
-            simplified_geometry = unbuffered_geometry.simplify(0.1)
-            log_info(f"Simplified geometry type: {simplified_geometry.geom_type}")
-            
-            # If the result is a MultiPolygon, convert it to separate Polygons
-            if isinstance(simplified_geometry, MultiPolygon):
-                log_info("Result is a MultiPolygon, separating into individual Polygons")
-                result_geometries = list(simplified_geometry.geoms)
-            elif isinstance(simplified_geometry, Polygon):
-                log_info("Result is a single Polygon")
-                result_geometries = [simplified_geometry]
-            else:
-                log_info(f"Result is of type {type(simplified_geometry)}")
-                result_geometries = [simplified_geometry]
-            
-            log_info(f"Number of resulting geometries: {len(result_geometries)}")
-            
-            # Create a GeoDataFrame with the resulting geometries
-            result_gdf = gpd.GeoDataFrame(geometry=result_geometries, crs=self.crs)
+            result_gdf = gpd.GeoDataFrame(geometry=[merged_geometry], crs=self.crs)
             self.all_layers[layer_name] = result_gdf
             log_info(f"Created merged layer '{layer_name}' with {len(result_gdf)} geometries")
             
