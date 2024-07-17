@@ -321,9 +321,19 @@ projects:
       #       layers:
       #         - Flur
       #       distance: 10
+      - name: Weg
+        update: true
+        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/weg.shp"
+      - name: Weg Abstand
+        update: true
+        operations:
+          - type: buffer
+            layers:
+              - Weg
+            distance: 1
       - name: Geltungsbereich
         update: true
-        # color: "Red"
+        color: "Red"
         locked: false
         close: false
         add: true
@@ -357,6 +367,7 @@ projects:
             layers:
               - Wald
               - Straße Abstand
+              - Weg Abstand
         outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/fromCad/geltungsbereich.shp"
       - name: Wald Abstand
         update: true
@@ -409,12 +420,16 @@ projects:
               - Grünflächeinput
               - Temp Grünfl
               - Wald Abstand
+          - type: difference
+            layers:
+              - Weg Abstand
           - type: intersection
             layers:
               - Geltungsbereich
-          - type: buffer
-            distance: 5
-        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/fromCad/grnfläche.shp"
+          # - type: buffer
+          #   distance: -5
+          #   mode: keep # Keeps both the original geometries and the buffered ones
+        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/fromCad/grünfläche.shp"
       - name: Baufeld
         update: true
         color: "Light Red"
@@ -430,7 +445,6 @@ projects:
             layers:
               - Wald Abstand
               - Grünfläche
-              # - Biotope Puffer
         outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/fromCad/baufeld.shp"
       - name: Baugrenze
         update: true
