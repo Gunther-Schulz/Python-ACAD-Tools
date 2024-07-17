@@ -163,11 +163,11 @@ class DXFExporter:
             text_layer_name = f"{layer_name} Label"
             if text_layer_name not in doc.layers:
                 text_layer = doc.layers.new(name=text_layer_name)
-                text_layer.color = layer.color
-                text_layer.dxf.linetype = layer.dxf.linetype
+                text_properties = self.layer_properties.get(text_layer_name, {})
+                for key, value in text_properties.items():
+                    setattr(text_layer, key, value)
                 log_info(f"Created text layer: {text_layer_name}")
-                log_info(f"  Set text layer color to: {text_layer.color}")
-                log_info(f"  Set text layer linetype to: {text_layer.dxf.linetype}")
+                log_info(f"  Text layer properties: {text_properties}")
 
         if not existing_layer or layer_info.get('update', False):
             geo_data = self.all_layers.get(layer_name)
@@ -401,8 +401,15 @@ class DXFExporter:
         # Only add label layer properties if it's not a WMTS layer
         if not self.is_wmts_layer(layer_info):
             text_layer_name = f"{layer_name} Label"
-            text_properties = properties.copy()
-            text_properties['color'] = properties['textColor']
+            text_properties = {
+                'color': properties['textColor'],
+                'plot': properties['plot'],
+                'locked': properties['locked'],
+                'frozen': properties['frozen'],
+                'is_on': properties['is_on'],
+                'vp_freeze': properties['vp_freeze'],
+                'close': properties['close']
+            }
             self.layer_properties[text_layer_name] = text_properties
 
     def is_wmts_layer(self, layer_name):
