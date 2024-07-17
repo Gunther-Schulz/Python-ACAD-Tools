@@ -1,3 +1,4 @@
+import sys
 from ezdxf.addons import odafc
 import argparse
 
@@ -26,8 +27,17 @@ def main():
     parser.add_argument("--update", nargs='+', help="List of layers to update", default=None)
     args = parser.parse_args()
 
-    processor = ProjectProcessor(args.project_name, args.update)
-    processor.run()
-
+    try:
+        processor = ProjectProcessor(args.project_name, args.update)
+        processor.run()
+    except ValueError as e:
+        print(f"Error: {e}")
+        sys.exit(1)
+    except Exception as e:
+        import traceback
+        print(f"An unexpected error occurred:")
+        print(traceback.format_exc())
+        sys.exit(1)
+        
 if __name__ == "__main__":
     main()

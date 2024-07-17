@@ -412,7 +412,9 @@ projects:
           - type: intersection
             layers:
               - Geltungsbereich
-        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/fromCad/grünfläche.shp"
+          - buffer:
+              distance: 5
+        outputShapeFile: "Öffentlich Planungsbro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/fromCad/grnfläche.shp"
       - name: Baufeld
         update: true
         color: "Light Red"
@@ -443,7 +445,7 @@ projects:
             distance: -3
         outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/fromCad/baugrenze.shp"
       - name: WMTS DOP
-        update: true
+        # update: true
         color: Black
         locked: true
         add: true
@@ -458,7 +460,7 @@ projects:
               - Geltungsbereich
             buffer: 100
       - name: WMTS Basemap
-        update: true
+        # update: true
         color: Black
         locked: true
         add: true

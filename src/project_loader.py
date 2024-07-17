@@ -1,5 +1,6 @@
 import yaml
 import os
+from src.utils import log_info, log_warning, log_error
 
 class ProjectLoader:
     def __init__(self, project_name: str):
@@ -37,14 +38,19 @@ class ProjectLoader:
         if 'operations' in layer:
             new_operations = []
             for operation in layer['operations']:
-                if operation['type'] == 'copy':
-                    # Convert 'copy' operation to use 'layers' instead of 'sourceLayer'
-                    new_operations.append({
-                        'type': 'copy',
-                        'layers': operation['layers']
-                    })
+                if isinstance(operation, dict) and 'type' in operation:
+                    if operation['type'] == 'copy':
+                        new_operations.append({
+                            'type': 'copy',
+                            'layers': operation['layers']
+                        })
+                    else:
+                        new_operations.append(operation)
                 else:
-                    new_operations.append(operation)
+                    layer_name = layer.get('name', 'Unknown')
+                    error_message = f"Invalid operation found in layer '{layer_name}': {operation}."
+                    log_error(error_message)
+                    raise ValueError(error_message)
             layer['operations'] = new_operations
 
     def resolve_full_path(self, path: str) -> str:
