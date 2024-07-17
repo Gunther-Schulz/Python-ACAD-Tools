@@ -216,8 +216,8 @@ projects:
     # template: "./data/Zeichnung.dxf"
     dxfLayers:
       - name: Flur
-        label: "flurname"
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/flur2.shp"
+        label: "flurname"
         linetype: Continuous
         lineweight: 13
         plot: false
@@ -226,7 +226,7 @@ projects:
         is_on: true
         vp_freeze: false
         transparency: 0.0
-        # include: false
+        include: false
       - name: Parcel
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/parcel2.shp"
         label: label
@@ -280,7 +280,7 @@ projects:
         vp_freeze: false
         transparency: 0.0
         close: true
-        # include: false
+        include: false
       # - name: Biotope
       #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/biotope.shp"
       #   label: biotopn
@@ -305,33 +305,33 @@ projects:
       #       layers:
       #         - Geltungsbereich
       - name: Straße Abstand
-        # update: true
-        # include: false
+        update: true
+        color: "Light Green"
+        close: true
+        locked: false
+        include: false
         operations:
           - type: buffer
             layers: 
               - Straße
             distance: 7
-      # - name: Flur Offset
-      #   update: true
-      #   color: "Light Green"
-      #   close: false
-      #   locked: false
-      #   include: false
-      #   operations:
-      #     - type: buffer
-      #       layers:
-      #         - Flur
-      #       distance: 10
-      - name: Geltungsbereich
-        linetype: Continuous
-        lineweight: 13
-        plot: false
+      - name: Flur Offset
+        update: true
+        color: "Light Green"
+        close: false
         locked: false
-        frozen: false
-        is_on: true
-        vp_freeze: false
-        transparency: 0.0
+        include: false
+        operations:
+          - type: buffer
+            layers:
+              - Flur
+            distance: 10
+      - name: Geltungsbereich
+        update: true
+        # color: "Red"
+        locked: false
+        close: false
+        # include: false
         operations:
           - type: filter_by_attributes
             layers:
@@ -364,15 +364,11 @@ projects:
               - Straße Abstand
         outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/geltungsbereich.shp"
       - name: Wald Abstand
-        color: "White"
-        linetype: Continuous
-        lineweight: 13
-        plot: true
+        color: "Light Green"
+        update: true
+        close: true
         locked: false
-        frozen: false
-        is_on: true
-        vp_freeze: false
-        transparency: 0.0
+        # include: false
         operations:
           - type: buffer
             layers:
@@ -381,17 +377,12 @@ projects:
           - type: intersection
             layers:
               - Geltungsbereich
-      - name: Grünfläche 1
+      - name: Grünfeld 1
         update: true
-        color: White
-        linetype: Continuous
-        lineweight: 13
-        plot: true
+        color: "Light Green"
+        close: true
         locked: false
-        frozen: false
-        is_on: true
-        vp_freeze: false
-        transparency: 0.0
+        # include: false
         operations:
           - type: copy
             layers:
@@ -423,7 +414,7 @@ projects:
           - type: difference
             layers:
               - Wald Abstand
-              - Grünfläche 1
+              - Grünfeld 1
               # - Biotope Puffer
         outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/baufeld.shp"
       - name: Baugrenze
