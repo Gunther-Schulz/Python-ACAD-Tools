@@ -96,11 +96,45 @@ class LayerProcessor:
 
     def create_copy_layer(self, layer_name, operation):
         source_layers = operation.get('layers', [])
-        if source_layers and source_layers[0] in self.all_layers:
-            self.all_layers[layer_name] = self.all_layers[source_layers[0]].copy()
-            log_info(f"Copied layer {source_layers[0]} to {layer_name}")
+        combined_geometry = None
+
+        for layer_info in source_layers:
+            if isinstance(layer_info, str):
+                source_layer_name = layer_info
+                value_list = []
+            elif isinstance(layer_info, dict):
+                source_layer_name = layer_info['name']
+                value_list = layer_info.get('valueList', [])
+            else:
+                log_warning(f"Invalid layer info type for copy operation on {layer_name}")
+                continue
+
+            if source_layer_name in self.all_layers:
+                source_gdf = self.all_layers[source_layer_name]
+
+                if value_list:
+                    label_column = next((l['label'] for l in self.project_settings['dxfLayers'] if l['name'] == source_layer_name), None)
+                    if label_column and label_column in source_gdf.columns:
+                        filtered_gdf = source_gdf[source_gdf[label_column].astype(str).isin(value_list)]
+                        layer_geometry = filtered_gdf.geometry.unary_union
+                    else:
+                        log_warning(f"Label column '{label_column}' not found in layer '{source_layer_name}'")
+                        continue
+                else:
+                    layer_geometry = source_gdf.geometry.unary_union
+
+                if combined_geometry is None:
+                    combined_geometry = layer_geometry
+                else:
+                    combined_geometry = combined_geometry.union(layer_geometry)
+            else:
+                log_warning(f"Source layer '{source_layer_name}' not found for copy operation on {layer_name}")
+
+        if combined_geometry is not None:
+            self.all_layers[layer_name] = self.ensure_geodataframe(layer_name, gpd.GeoDataFrame(geometry=[combined_geometry], crs=self.crs))
+            log_info(f"Copied layer(s) to {layer_name}")
         else:
-            log_warning(f"Source layer not found for copy operation on {layer_name}")
+            log_warning(f"No valid source layers found for copy operation on {layer_name}")
 
     def write_shapefile(self, layer_name, output_path):
         if layer_name in self.all_layers:

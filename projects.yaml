@@ -378,6 +378,7 @@ projects:
           - type: difference
             layers:
               - Wald Abstand
+              - Grünfeld 1
               # - Biotope Puffer
         outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/baufeld.shp"
       - name: Baugrenze
