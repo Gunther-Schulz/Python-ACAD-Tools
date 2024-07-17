@@ -32,20 +32,14 @@ class ProjectLoader:
         # Process layers to handle the new 'copy' operation
         for layer in self.project_settings['dxfLayers']:
             if 'operations' in layer:
-                self.process_copy_operation(layer)
+                self.process_operations(layer)
 
-    def process_copy_operation(self, layer):
+    def process_operations(self, layer):
         if 'operations' in layer:
             new_operations = []
             for operation in layer['operations']:
                 if isinstance(operation, dict) and 'type' in operation:
-                    if operation['type'] == 'copy':
-                        new_operations.append({
-                            'type': 'copy',
-                            'layers': operation['layers']
-                        })
-                    else:
-                        new_operations.append(operation)
+                    new_operations.append(operation)
                 else:
                     layer_name = layer.get('name', 'Unknown')
                     error_message = f"Invalid operation found in layer '{layer_name}': {operation}."

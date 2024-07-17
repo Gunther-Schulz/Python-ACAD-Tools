@@ -51,7 +51,6 @@ def main():
         error_message = f"Error: Unable to create file. The directory does not exist: {directory}\n"
         error_message += "Please ensure that the directory exists before running the program."
         log_error(error_message)
-        # print(error_message)
         sys.exit(1)
     except Exception as e:
         import traceback
