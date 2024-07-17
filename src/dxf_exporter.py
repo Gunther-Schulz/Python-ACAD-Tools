@@ -173,11 +173,26 @@ class DXFExporter:
                 log_info(f"No geometry data available for layer: {layer_name}")
 
     def update_layer_properties(self, layer, layer_info):
-        if 'color' in layer_info:
-            color = self.get_color_code(layer_info['color'])
-            layer.color = color
-        if 'linetype' in layer_info:
-            layer.linetype = layer_info['linetype']
+        properties = self.layer_properties.get(layer.dxf.name, {})
+        
+        if 'color' in properties:
+            layer.color = properties['color']
+        if 'linetype' in properties:
+            layer.linetype = properties['linetype']
+        if 'lineweight' in properties:
+            layer.lineweight = properties['lineweight']
+        if 'plot' in properties:
+            layer.plot = properties['plot']
+        if 'locked' in properties:
+            layer.locked = properties['locked']
+        if 'frozen' in properties:
+            layer.frozen = properties['frozen']
+        if 'is_on' in properties:
+            layer.is_on = properties['is_on']
+        if 'vp_freeze' in properties:
+            layer.vp_freeze = properties['vp_freeze']
+        if 'transparency' in properties:
+            layer.transparency = int(properties['transparency'] * 100)  # Convert to percentage
 
     def add_wmts_xrefs_to_dxf(self, msp, tile_data, layer_name):
         log_info(f"Adding WMTS xrefs to DXF for layer: {layer_name}")
@@ -334,24 +349,27 @@ class DXFExporter:
             self.add_layer_properties(layer['name'], layer)
 
     def add_layer_properties(self, layer_name, layer_info):
-        color = self.get_color_code(layer_info.get('color', 'White'))
-        text_color = self.get_color_code(layer_info.get('textColor', layer_info.get('color', 'White')))
-        self.layer_properties[layer_name] = {
-            'color': color,
-            'textColor': text_color,
+        properties = {
+            'color': self.get_color_code(layer_info.get('color', 'White')),
+            'textColor': self.get_color_code(layer_info.get('textColor', layer_info.get('color', 'White'))),
+            'linetype': layer_info.get('linetype', 'Continuous'),
+            'lineweight': layer_info.get('lineweight', 13),
+            'plot': layer_info.get('plot', True),
             'locked': layer_info.get('locked', False),
+            'frozen': layer_info.get('frozen', False),
+            'is_on': layer_info.get('is_on', True),
+            'vp_freeze': layer_info.get('vp_freeze', False),
+            'transparency': layer_info.get('transparency', 0.0),
             'close': layer_info.get('close', True)
         }
+        self.layer_properties[layer_name] = properties
         
         # Only add label layer properties if it's not a WMTS layer
         if not self.is_wmts_layer(layer_info):
             text_layer_name = f"{layer_name} Label"
-            self.layer_properties[text_layer_name] = {
-                'color': text_color,
-                'textColor': text_color,  # Ensure textColor is set for label layers
-                'locked': layer_info.get('locked', False),
-                'close': True
-            }
+            text_properties = properties.copy()
+            text_properties['color'] = properties['textColor']
+            self.layer_properties[text_layer_name] = text_properties
 
     def is_wmts_layer(self, layer_name):
         layer_info = next((l for l in self.project_settings['dxfLayers'] if l['name'] == layer_name), None)
