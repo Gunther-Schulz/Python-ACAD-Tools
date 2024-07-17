@@ -6,7 +6,6 @@ projects:
     dxfVersion: R2018
     crs: EPSG:25833
     dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Zeichnung/Plasten.dxf"
-    # template: "./data/Zeichnung.dxf"
     dxfLayers:
       - name: Flur
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/flur.shp"
@@ -213,7 +212,6 @@ projects:
     dxfVersion: R2018
     crs: EPSG:25833
     dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/Zeichnung/torgelow.dxf"
-    # template: "./data/Zeichnung.dxf"
     dxfLayers:
       - name: Flur
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/flur2.shp"
@@ -368,7 +366,7 @@ projects:
         update: true
         close: true
         locked: false
-        # include: false
+        include: false
         operations:
           - type: buffer
             layers:
@@ -377,12 +375,8 @@ projects:
           - type: intersection
             layers:
               - Geltungsbereich
-      - name: Grünfeld 1
-        update: true
-        color: "Light Green"
-        close: true
-        locked: false
-        # include: false
+      - name: Temp Grünfl
+        include: false
         operations:
           - type: copy
             layers:
@@ -394,12 +388,33 @@ projects:
                   - "101"
                   - "102"
                   - "103"
+              # - name: Flur
+              #   valueList:
+              #     - Flur 2
+              # - name: Gemarkung
+              #   valueList:
+              #     - Torgelow am See
+              - name: Gemeinde
+                valueList:
+                  - Torgelow am See
           - type: intersection
             layers:
               - Geltungsbereich
           - type: difference
             layers:
               - Wald Abstand
+      - name: Grünfläche
+        update: true
+        color: "Light Green"
+        close: true
+        locked: false
+        include: true
+        operations:
+          - type: merge
+            layers:
+              - Temp Grünfl
+              - Wald Abstand
+        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/baufeld.shp"
       - name: Baufeld
         update: true
         color: "Light Red"
@@ -414,7 +429,7 @@ projects:
           - type: difference
             layers:
               - Wald Abstand
-              - Grünfeld 1
+              - Grünfläche
               # - Biotope Puffer
         outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/baufeld.shp"
       - name: Baugrenze
