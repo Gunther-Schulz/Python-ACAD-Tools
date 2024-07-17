@@ -36,74 +36,100 @@ class DXFExporter:
         log_info("Starting DXF export...")
         dxf_version = self.project_settings.get('dxfVersion', 'R2010')
         
-        # Check if a DXF file already exists
+        # Load existing DXF file or create a new one
         if os.path.exists(self.dxf_filename):
             doc = ezdxf.readfile(self.dxf_filename)
             log_info(f"Loaded existing DXF file: {self.dxf_filename}")
+            self.load_existing_layers(doc)
         else:
             doc = ezdxf.new(dxfversion=dxf_version)
             log_info(f"Created new DXF file with version: {dxf_version}")
+            self.set_drawing_properties(doc)
         
         msp = doc.modelspace()
 
-        # Set drawing properties only if it's a new file
-        if not os.path.exists(self.dxf_filename):
-            doc.header['$INSUNITS'] = 6  # Meters
-            doc.header['$MEASUREMENT'] = 1  # Metric
-            doc.header['$LUNITS'] = 2  # Decimal
-            doc.header['$AUNITS'] = 0  # Degrees
-            doc.header['$ANGBASE'] = 0  # 0 degrees
-            msp.units = 6
+        # Process layers
+        self.process_layers(doc, msp)
 
-        # Separate WMTS layers from other layers
-        wmts_layers = []
-        other_layers = []
-
-        for layer_name, geo_data in self.all_layers.items():
-            if self.update_layers_list and layer_name not in self.update_layers_list:
-                continue
-
-            layer_info = next((l for l in self.project_settings['dxfLayers'] if l['name'] == layer_name), None)
-            if layer_info is None or layer_info.get('include', True) == False:
-                log_info(f"Skipping layer {layer_name} as it is set to not be included")
-                continue
-
-            if self.is_wmts_layer(layer_name):
-                wmts_layers.append((layer_name, geo_data))
-            else:
-                other_layers.append((layer_name, geo_data))
-
-        # Process WMTS layers first, but in reverse order
-        for layer_name, geo_data in reversed(wmts_layers):
-            if layer_name in doc.layers:
-                log_info(f"WMTS Layer {layer_name} already exists. Updating geometry and labels only.")
-                self.update_layer_geometry(msp, layer_name, geo_data)
-            else:
-                log_info(f"Creating new WMTS layer: {layer_name}")
-                self.create_new_layer(doc, msp, layer_name, geo_data)
-
-        # Process non-WMTS layers
-        for layer_name, geo_data in other_layers:
-            if layer_name in doc.layers:
-                log_info(f"Layer {layer_name} already exists. Updating geometry and labels only.")
-                self.update_layer_geometry(msp, layer_name, geo_data)
-            else:
-                log_info(f"Creating new layer: {layer_name}")
-                self.create_new_layer(doc, msp, layer_name, geo_data)
-
+        # Save the DXF file
         doc.saveas(self.dxf_filename)
         log_info(f"DXF file saved: {self.dxf_filename}")
 
-        loaded_doc = ezdxf.readfile(self.dxf_filename)
-        loaded_msp = loaded_doc.modelspace()
+        # Verify settings
+        self.verify_dxf_settings()
 
-        # Print out the settings to verify
+    def set_drawing_properties(self, doc):
+        doc.header['$INSUNITS'] = 6  # Meters
+        doc.header['$MEASUREMENT'] = 1  # Metric
+        doc.header['$LUNITS'] = 2  # Decimal
+        doc.header['$AUNITS'] = 0  # Degrees
+        doc.header['$ANGBASE'] = 0  # 0 degrees
+
+    def load_existing_layers(self, doc):
+        for layer in doc.layers:
+            layer_name = layer.dxf.name
+            if layer_name not in self.all_layers:
+                # Store the layer entity in all_layers
+                self.all_layers[layer_name] = layer
+                log_info(f"Loaded existing layer: {layer_name}")
+
+    def process_layers(self, doc, msp):
+        wmts_layers = []
+        other_layers = []
+
+        for layer_info in self.project_settings['dxfLayers']:
+            layer_name = layer_info['name']
+            if self.update_layers_list and layer_name not in self.update_layers_list:
+                continue
+
+            update_flag = layer_info.get('update', True)
+            if not update_flag and layer_name in doc.layers:
+                log_info(f"Skipping update for layer {layer_name} as update is set to false")
+                continue
+
+            if self.is_wmts_layer(layer_name):
+                wmts_layers.append((layer_name, layer_info))
+            else:
+                other_layers.append((layer_name, layer_info))
+
+        # Process WMTS layers first, but in reverse order
+        for layer_name, layer_info in reversed(wmts_layers):
+            self.process_single_layer(doc, msp, layer_name, layer_info)
+
+        # Process non-WMTS layers
+        for layer_name, layer_info in other_layers:
+            self.process_single_layer(doc, msp, layer_name, layer_info)
+
+    def process_single_layer(self, doc, msp, layer_name, layer_info):
+        update_flag = layer_info.get('update', True)
+        if layer_name in doc.layers:
+            if update_flag:
+                log_info(f"Layer {layer_name} already exists. Updating geometry and labels.")
+                if layer_name in self.all_layers:
+                    self.update_layer_geometry(msp, layer_name, self.all_layers[layer_name], layer_info)
+                else:
+                    log_info(f"Layer {layer_name} exists in DXF but not in all_layers. Creating new geometry.")
+                    self.create_new_layer(doc, msp, layer_name, layer_info)
+            else:
+                log_info(f"Skipping update for layer {layer_name} as update is set to false")
+        else:
+            log_info(f"Creating new layer: {layer_name}")
+            self.create_new_layer(doc, msp, layer_name, layer_info)
+
+    def verify_dxf_settings(self):
+        loaded_doc = ezdxf.readfile(self.dxf_filename)
         print(f"INSUNITS after load: {loaded_doc.header['$INSUNITS']}")
         print(f"LUNITS after load: {loaded_doc.header['$LUNITS']}")
         print(f"LUPREC after load: {loaded_doc.header['$LUPREC']}")
         print(f"AUPREC after load: {loaded_doc.header['$AUPREC']}")
 
-    def update_layer_geometry(self, msp, layer_name, geo_data):
+    def update_layer_geometry(self, msp, layer_name, geo_data, layer_config):
+        update_flag = layer_config.get('update', True)  # Default to True if not specified
+        
+        if not update_flag and layer_name in msp.doc.layers:
+            log_info(f"Skipping update for layer {layer_name} as update is set to false")
+            return
+
         # Remove existing entities for this layer
         for entity in msp.query(f'*[layer=="{layer_name}"]'):
             msp.delete_entity(entity)
@@ -116,30 +142,35 @@ class DXFExporter:
         else:
             self.add_geometries_to_dxf(msp, geo_data, layer_name)
 
-    def create_new_layer(self, doc, msp, layer_name, geo_data):
+    def create_new_layer(self, doc, msp, layer_name, layer_info):
         layer_properties = self.layer_properties.get(layer_name, {})
         color = layer_properties.get('color', 7)  # Default to white if color not specified
         linetype = 'CONTINUOUS'
         
-        # Create the layer if it doesn't exist
+        # Create or update the layer
         if layer_name not in doc.layers:
             layer = doc.layers.new(name=layer_name)
-            layer.color = color
-            layer.linetype = linetype
+        else:
+            layer = doc.layers.get(layer_name)
+        layer.color = color
+        layer.linetype = linetype
 
-        # Create the text layer only if it's not a WMTS layer and doesn't already exist
+        # Create or update the text layer if it's not a WMTS layer
         if not self.is_wmts_layer(layer_name):
             text_layer_name = f"{layer_name} Label"
             if text_layer_name not in doc.layers:
                 text_layer = doc.layers.new(name=text_layer_name)
-                text_layer.color = color
-                text_layer.linetype = linetype
+            else:
+                text_layer = doc.layers.get(text_layer_name)
+            text_layer.color = color
+            text_layer.linetype = linetype
 
         # Add geometry and labels
-        if isinstance(geo_data, list) and all(isinstance(item, tuple) for item in geo_data):
-            self.add_wmts_xrefs_to_dxf(msp, geo_data, layer_name)
-        else:
+        geo_data = self.all_layers.get(layer_name)
+        if geo_data is not None:
             self.add_geometries_to_dxf(msp, geo_data, layer_name)
+        else:
+            log_info(f"No geometry data available for layer: {layer_name}")
 
     def add_wmts_xrefs_to_dxf(self, msp, tile_data, layer_name):
         log_info(f"Adding WMTS xrefs to DXF for layer: {layer_name}")

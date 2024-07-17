@@ -42,16 +42,26 @@ class LayerProcessor:
             return
 
         log_info(f"Processing layer: {layer_name}")
+        log_info(f"Layer object: {layer_obj}")
         
         if layer_obj is None:
             log_warning(f"Layer {layer_name} not found in project settings")
+            return
+
+        # Check if the layer should be updated
+        update_flag = layer_obj.get('update', False)
+        log_info(f"Update flag for layer {layer_name}: {update_flag}")
+        if not update_flag and layer_name in self.all_layers:
+            log_info(f"Skipping update for layer {layer_name} as update is set to false")
             return
 
         if 'operations' in layer_obj:
             for operation in layer_obj['operations']:
                 self.process_operation(layer_name, operation, processed_layers)
         elif 'shapeFile' in layer_obj:
-            pass  # Shapefiles are already loaded in setup_shapefiles
+            # Only load shapefile if the layer doesn't exist or update is true
+            if layer_name not in self.all_layers or update_flag:
+                self.load_shapefile(layer_name, layer_obj['shapeFile'])
         else:
             self.all_layers[layer_name] = None
             log_info(f"Added layer {layer_name} without data")
@@ -61,18 +71,32 @@ class LayerProcessor:
 
         processed_layers.add(layer_name)
 
-
     def process_operation(self, layer_name, operation, processed_layers):
         op_type = operation['type']
         
+        log_info(f"Processing operation for layer {layer_name}: {op_type}")
+        log_info(f"Operation details: {operation}")
+        
+        # Check if the layer should be updated
+        layer_info = next((l for l in self.project_settings['dxfLayers'] if l['name'] == layer_name), None)
+        update_flag = layer_info.get('update', False) if layer_info else False
+        log_info(f"Update flag for layer {layer_name}: {update_flag}")
+        
+        if not update_flag and layer_name in self.all_layers:
+            log_info(f"Skipping update for layer {layer_name} as update is set to false")
+            return
+        
         # Process dependent layers first
         if 'layers' in operation:
-            for dep_layer_name in operation['layers']:
+            for dep_layer_info in operation['layers']:
+                dep_layer_name = dep_layer_info['name'] if isinstance(dep_layer_info, dict) else dep_layer_info
+                log_info(f"Processing dependent layer: {dep_layer_name}")
                 self.process_layer(dep_layer_name, processed_layers)
         else:
             # If 'layers' key is missing, apply the operation on the calling layer
             operation['layers'] = [layer_name]
 
+        # Perform the operation
         if op_type == 'copy':
             self.create_copy_layer(layer_name, operation)
         elif op_type == 'buffer':

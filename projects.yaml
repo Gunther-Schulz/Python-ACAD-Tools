@@ -297,7 +297,7 @@ projects:
               - Flur
             distance: 10
       - name: Geltungsbereich
-        update: true
+        update: false
         color: "Red"
         locked: false
         close: false
