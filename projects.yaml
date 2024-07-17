@@ -35,7 +35,7 @@ projects:
         color: "Dark Red"
         close: true
         locked: false
-        # include: false
+        # add: true
         operations:
           - type: buffer
             distance: 27
@@ -44,7 +44,7 @@ projects:
         color: "Dark Red"
         close: true
         locked: false
-        # include: false
+        # add: true
       - name: Wald
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/wald.shp"
         color: "Dark Green"
@@ -164,7 +164,7 @@ projects:
         color: "Light Green"
         close: true
         locked: false
-        # include: false
+        # add: true
         operations:
           - type: buffer
             layers:
@@ -178,7 +178,7 @@ projects:
       - name: WMTS DOP
         color: Black
         locked: true
-        include: false
+        add: true
         operations:
           - type: wmts
             url: "https://www.geodaten-mv.de/dienste/dop_wmts/wmts/1.0.0/WMTSCapabilities.xml"
@@ -194,7 +194,7 @@ projects:
       - name: WMTS Basemap
         color: Black
         locked: true
-        # include: false
+        # add: true
         operations:
           - type: wmts
             url: "https://sgx.geodatenzentrum.de/wmts_basemapde/1.0.0/WMTSCapabilities.xml"
@@ -224,7 +224,7 @@ projects:
         is_on: true
         vp_freeze: false
         transparency: 0.0
-        include: false
+        add: true
       - name: Parcel
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/parcel2.shp"
         label: label
@@ -238,7 +238,7 @@ projects:
         transparency: 0.0
         locked: true
         close: true
-        # include: false
+        add: true
       - name: Gemarkung
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/gemarkung2.shp"
         label: gmkname
@@ -251,7 +251,7 @@ projects:
         is_on: true
         vp_freeze: false
         transparency: 0.0
-        # include: false
+        add: true
       - name: Gemeinde
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/gemeinde2.shp"
         label: gen
@@ -264,8 +264,9 @@ projects:
         is_on: true
         vp_freeze: false
         transparency: 0.0
-        # include: false
+        add: true
       - name: Wald
+        update: true
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/wald.shp"
         label: waldname
         color: White
@@ -278,22 +279,22 @@ projects:
         vp_freeze: false
         transparency: 0.0
         close: true
-        include: false
+        add: true
       # - name: Biotope
       #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/biotope.shp"
       #   label: biotopn
       #   color: "Green"
       #   close: true
       #   locked: false
-      #   include: false
+      #   add: true
       - name: Straße
+        update: true
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/abstand.shp"
-        include: false
       # - name: Biotope Puffer
       #   color: "Light Green"
       #   close: true
       #   locked: false
-      #   # include: false
+      #   add: true
       #   operations:
       #     - type: buffer
       #       layers:
@@ -303,33 +304,29 @@ projects:
       #       layers:
       #         - Geltungsbereich
       - name: Straße Abstand
-        update: true
-        color: "Light Green"
-        close: true
-        locked: false
-        include: false
+        update: true # I think this is optional, if that layer does not already exists in the dxf file, but it cant hurt and makes sure that it updates
         operations:
           - type: buffer
             layers: 
               - Straße
             distance: 7
-      - name: Flur Offset
-        update: true
-        color: "Light Green"
-        close: false
-        locked: false
-        include: false
-        operations:
-          - type: buffer
-            layers:
-              - Flur
-            distance: 10
+      # - name: Flur Offset
+      #   update: true
+      #   color: "Light Green"
+      #   close: false
+      #   locked: false
+      #   add: true
+      #   operations:
+      #     - type: buffer
+      #       layers:
+      #         - Flur
+      #       distance: 10
       - name: Geltungsbereich
         update: true
         # color: "Red"
         locked: false
         close: false
-        # include: false
+        add: true
         operations:
           - type: filter_by_attributes
             layers:
@@ -360,13 +357,13 @@ projects:
             layers:
               - Wald
               - Straße Abstand
-        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/geltungsbereich.shp"
+        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/fromCad/geltungsbereich.shp"
       - name: Wald Abstand
-        color: "Light Green"
         update: true
+        color: "Light Green"
         close: true
         locked: false
-        include: false
+        # add: true
         operations:
           - type: buffer
             layers:
@@ -375,8 +372,11 @@ projects:
           - type: intersection
             layers:
               - Geltungsbereich
+      - name: Grünflächeinput
+        update: true
+        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/grünfläche.shp"
       - name: Temp Grünfl
-        include: false
+        update: true
         operations:
           - type: filter_by_attributes
             layers:
@@ -397,31 +397,29 @@ projects:
               - name: Gemeinde
                 valueList:
                   - Torgelow am See
-          - type: intersection
-            layers:
-              - Geltungsbereich
-          - type: difference
-            layers:
-              - Wald Abstand
       - name: Grünfläche
         update: true
         color: "Light Green"
         close: true
         locked: false
-        include: true
+        add: true
         operations:
           - type: merge
             layers:
+              - Grünflächeinput
               - Temp Grünfl
               - Wald Abstand
-        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/baufeld.shp"
+          - type: intersection
+            layers:
+              - Geltungsbereich
+        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/fromCad/grünfläche.shp"
       - name: Baufeld
         update: true
         color: "Light Red"
         locked: false
         close: true
         textColor: "White"
-        # include: false
+        add: true
         operations:
           - type: copy
             layers:
@@ -431,23 +429,23 @@ projects:
               - Wald Abstand
               - Grünfläche
               # - Biotope Puffer
-        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/baufeld.shp"
+        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/fromCad/baufeld.shp"
       - name: Baugrenze
         update: true
         color: "Blue"
         locked: false
         close: true
-        # include: false
+        add: true
         operations:
           - type: buffer
             layers:
               - Baufeld
             distance: -3
-        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/baugrenze.shp"
+        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/fromCad/baugrenze.shp"
       # - name: WMTS DOP
       #   color: Black
       #   locked: true
-      #   # include: false
+      #   add: true
       #   operations:
       #     - type: wmts
       #       url: "https://www.geodaten-mv.de/dienste/dop_wmts/wmts/1.0.0/WMTSCapabilities.xml"
@@ -461,7 +459,7 @@ projects:
       # - name: WMTS Basemap
       #   color: Black
       #   locked: true
-      #   # include: false
+      #   add: true
       #   operations:
       #     - type: wmts
       #       url: "https://sgx.geodatenzentrum.de/wmts_basemapde/1.0.0/WMTSCapabilities.xml"

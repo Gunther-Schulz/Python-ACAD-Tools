@@ -83,6 +83,11 @@ class DXFExporter:
             if self.update_layers_list and layer_name not in self.update_layers_list:
                 continue
 
+            # Check if the 'add' key is present and set to True
+            if not layer_info.get('add', False):
+                log_info(f"Skipping layer {layer_name} as 'add' is not set to True")
+                continue
+
             update_flag = layer_info.get('update', False)  # Default to False
             if not update_flag and layer_name in doc.layers:
                 log_info(f"Skipping update for layer {layer_name} as update is set to false")
