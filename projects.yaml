@@ -225,7 +225,7 @@ projects:
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/parcel2.shp"
         label: label
         color: White
-        linetype: Continuous
+        linetype: ACAD_ISO11W100
         lineweight: 13
         plot: true
         locked: false
