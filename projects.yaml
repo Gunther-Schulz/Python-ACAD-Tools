@@ -412,8 +412,8 @@ projects:
           - type: intersection
             layers:
               - Geltungsbereich
-          - buffer:
-              distance: 5
+          - type: buffer
+            distance: 5
         outputShapeFile: "Öffentlich Planungsbro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/fromCad/grnfläche.shp"
       - name: Baufeld
         update: true
