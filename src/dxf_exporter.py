@@ -82,7 +82,7 @@ class DXFExporter:
             if self.update_layers_list and layer_name not in self.update_layers_list:
                 continue
 
-            update_flag = layer_info.get('update', True)
+            update_flag = layer_info.get('update', False)  # Default to False
             if not update_flag and layer_name in doc.layers:
                 log_info(f"Skipping update for layer {layer_name} as update is set to false")
                 continue
@@ -101,7 +101,7 @@ class DXFExporter:
             self.process_single_layer(doc, msp, layer_name, layer_info)
 
     def process_single_layer(self, doc, msp, layer_name, layer_info):
-        update_flag = layer_info.get('update', True)
+        update_flag = layer_info.get('update', False)
         if layer_name in doc.layers:
             if update_flag:
                 log_info(f"Layer {layer_name} already exists. Updating geometry and labels.")
@@ -124,7 +124,7 @@ class DXFExporter:
         print(f"AUPREC after load: {loaded_doc.header['$AUPREC']}")
 
     def update_layer_geometry(self, msp, layer_name, geo_data, layer_config):
-        update_flag = layer_config.get('update', True)  # Default to True if not specified
+        update_flag = layer_config.get('update', False)  # Default to False if not specified
         
         if not update_flag and layer_name in msp.doc.layers:
             log_info(f"Skipping update for layer {layer_name} as update is set to false")

@@ -49,7 +49,7 @@ class LayerProcessor:
             return
 
         # Check if the layer should be updated
-        update_flag = layer_obj.get('update', False)
+        update_flag = layer_obj.get('update', False)  # Default to False
         log_info(f"Update flag for layer {layer_name}: {update_flag}")
         if not update_flag and layer_name in self.all_layers:
             log_info(f"Skipping update for layer {layer_name} as update is set to false")
