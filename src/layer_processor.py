@@ -94,13 +94,56 @@ class LayerProcessor:
         else:
             log_info(f"Layer {layer_name} processed successfully")
 
+    def _process_layer_info(self, layer_info):
+        if isinstance(layer_info, str):
+            return layer_info, []
+        elif isinstance(layer_info, dict):
+            return layer_info['name'], layer_info.get('valueList', [])
+        else:
+            log_warning(f"Invalid layer info type: {type(layer_info)}")
+            return None, []
+
+    def _get_filtered_geometry(self, layer_name, value_list):
+        if layer_name not in self.all_layers:
+            log_warning(f"Layer '{layer_name}' not found")
+            return None
+
+        source_gdf = self.all_layers[layer_name]
+
+        if value_list:
+            label_column = next((l['label'] for l in self.project_settings['dxfLayers'] if l['name'] == layer_name), None)
+            if label_column and label_column in source_gdf.columns:
+                filtered_gdf = source_gdf[source_gdf[label_column].astype(str).isin(value_list)]
+                return filtered_gdf.geometry.unary_union
+            else:
+                log_warning(f"Label column '{label_column}' not found in layer '{layer_name}'")
+                return None
+        else:
+            return source_gdf.geometry.unary_union
+
     def create_copy_layer(self, layer_name, operation):
         source_layers = operation.get('layers', [])
-        if source_layers and source_layers[0] in self.all_layers:
-            self.all_layers[layer_name] = self.all_layers[source_layers[0]].copy()
-            log_info(f"Copied layer {source_layers[0]} to {layer_name}")
+        combined_geometry = None
+
+        for layer_info in source_layers:
+            source_layer_name, value_list = self._process_layer_info(layer_info)
+            if source_layer_name is None:
+                continue
+
+            layer_geometry = self._get_filtered_geometry(source_layer_name, value_list)
+            if layer_geometry is None:
+                continue
+
+            if combined_geometry is None:
+                combined_geometry = layer_geometry
+            else:
+                combined_geometry = combined_geometry.union(layer_geometry)
+
+        if combined_geometry is not None:
+            self.all_layers[layer_name] = self.ensure_geodataframe(layer_name, gpd.GeoDataFrame(geometry=[combined_geometry], crs=self.crs))
+            log_info(f"Copied layer(s) to {layer_name}")
         else:
-            log_warning(f"Source layer not found for copy operation on {layer_name}")
+            log_warning(f"No valid source layers found for copy operation on {layer_name}")
 
     def write_shapefile(self, layer_name, output_path):
         if layer_name in self.all_layers:
@@ -141,60 +184,46 @@ class LayerProcessor:
                 return None
         return geometry                       
 
-    def create_filtered_layer(self, layer_name, operation):  # Renamed from create_geltungsbereich_layer
-            log_info(f"Creating filtered layer: {layer_name}")
-            combined_geometry = None
+    def create_filtered_layer(self, layer_name, operation):
+        log_info(f"Creating filtered layer: {layer_name}")
+        combined_geometry = None
 
-            for layer in operation['layers']:
-                source_layer_name = layer['name']
-                value_list = [str(v) for v in layer['valueList']]  # Ensure all values are strings
-                log_info(f"Processing source layer: {source_layer_name}")
+        for layer_info in operation['layers']:
+            source_layer_name, value_list = self._process_layer_info(layer_info)
+            if source_layer_name is None:
+                continue
 
-                if source_layer_name not in self.all_layers:
-                    log_warning(f"Source layer '{source_layer_name}' not found for filtering")
-                    continue
+            log_info(f"Processing source layer: {source_layer_name}")
 
-                source_gdf = self.all_layers[source_layer_name]
-                
-                label_column = next((l['label'] for l in self.project_settings['dxfLayers'] if l['name'] == source_layer_name), None)
-                
-                if label_column is None or label_column not in source_gdf.columns:
-                    log_warning(f"Label column '{label_column}' not found in layer '{source_layer_name}'")
-                    continue
-                
-                # Convert label column to string and filter
-                filtered_gdf = source_gdf[source_gdf[label_column].astype(str).isin(value_list)]
+            layer_geometry = self._get_filtered_geometry(source_layer_name, value_list)
+            if layer_geometry is None:
+                continue
 
-                if filtered_gdf.empty:
-                    log_warning(f"No matching geometries found for {source_layer_name} with values {value_list}")
-                    continue
+            log_info(f"Filtered geometry type for {source_layer_name}: {type(layer_geometry)}")
 
-                layer_geometry = filtered_gdf.geometry.unary_union
-                log_info(f"Filtered geometry type for {source_layer_name}: {type(layer_geometry)}")
-
-                if combined_geometry is None:
-                    combined_geometry = layer_geometry
-                else:
-                    combined_geometry = combined_geometry.intersection(layer_geometry)
-                    log_info(f"Combined geometry type after intersection with {source_layer_name}: {type(combined_geometry)}")
-
-            if combined_geometry is not None:
-                # Ensure the result is a Polygon or MultiPolygon
-                if isinstance(combined_geometry, (Polygon, MultiPolygon)):
-                    self.all_layers[layer_name] = self.ensure_geodataframe(layer_name, gpd.GeoDataFrame(geometry=[combined_geometry], crs=self.crs))
-                    log_info(f"Created filtered layer: {layer_name}")
-                elif isinstance(combined_geometry, GeometryCollection):
-                    # Extract Polygon or MultiPolygon from GeometryCollection
-                    polygons = [geom for geom in combined_geometry.geoms if isinstance(geom, (Polygon, MultiPolygon))]
-                    if polygons:
-                        self.all_layers[layer_name] = self.ensure_geodataframe(layer_name, gpd.GeoDataFrame(geometry=polygons, crs=self.crs))
-                        log_info(f"Created filtered layer from GeometryCollection: {layer_name}")
-                    else:
-                        log_warning(f"No Polygon or MultiPolygon found in GeometryCollection for layer: {layer_name}")
-                else:
-                    log_warning(f"Resulting geometry is not a Polygon, MultiPolygon, or GeometryCollection for layer: {layer_name}")
+            if combined_geometry is None:
+                combined_geometry = layer_geometry
             else:
-                log_warning(f"No geometry created for filtered layer: {layer_name}")
+                combined_geometry = combined_geometry.intersection(layer_geometry)
+                log_info(f"Combined geometry type after intersection with {source_layer_name}: {type(combined_geometry)}")
+
+        if combined_geometry is not None:
+            # Ensure the result is a Polygon or MultiPolygon
+            if isinstance(combined_geometry, (Polygon, MultiPolygon)):
+                self.all_layers[layer_name] = self.ensure_geodataframe(layer_name, gpd.GeoDataFrame(geometry=[combined_geometry], crs=self.crs))
+                log_info(f"Created filtered layer: {layer_name}")
+            elif isinstance(combined_geometry, GeometryCollection):
+                # Extract Polygon or MultiPolygon from GeometryCollection
+                polygons = [geom for geom in combined_geometry.geoms if isinstance(geom, (Polygon, MultiPolygon))]
+                if polygons:
+                    self.all_layers[layer_name] = self.ensure_geodataframe(layer_name, gpd.GeoDataFrame(geometry=polygons, crs=self.crs))
+                    log_info(f"Created filtered layer from GeometryCollection: {layer_name}")
+                else:
+                    log_warning(f"No Polygon or MultiPolygon found in GeometryCollection for layer: {layer_name}")
+            else:
+                log_warning(f"Resulting geometry is not a Polygon, MultiPolygon, or GeometryCollection for layer: {layer_name}")
+        else:
+            log_warning(f"No geometry created for filtered layer: {layer_name}")
 
     def create_difference_layer(self, layer_name, operation):
         self._create_overlay_layer(layer_name, operation, 'difference')
@@ -208,8 +237,6 @@ class LayerProcessor:
         
         overlay_layers = operation.get('layers', [])
         
-        log_info(f"Overlay layers: {overlay_layers}")
-        
         if not overlay_layers:
             log_warning(f"No overlay layers specified for {layer_name}")
             return
@@ -219,22 +246,20 @@ class LayerProcessor:
             log_warning(f"Base layer '{layer_name}' not found for {overlay_type} operation")
             return
         
-        log_info(f"Base geometry type: {type(base_geometry)}")
-        log_info(f"Base geometry CRS: {base_geometry.crs if hasattr(base_geometry, 'crs') else 'N/A'}")
-
         combined_overlay_geometry = None
-        for overlay_layer in overlay_layers:
-            if overlay_layer in self.all_layers:
-                overlay_geometry = self.all_layers[overlay_layer]
-                if isinstance(overlay_geometry, gpd.GeoDataFrame):
-                    overlay_geometry = overlay_geometry.geometry.unary_union
-                if combined_overlay_geometry is None:
-                    combined_overlay_geometry = overlay_geometry
-                else:
-                    combined_overlay_geometry = combined_overlay_geometry.union(overlay_geometry)
-                log_info(f"Added overlay geometry from layer: {overlay_layer}")
+        for layer_info in overlay_layers:
+            overlay_layer_name, value_list = self._process_layer_info(layer_info)
+            if overlay_layer_name is None:
+                continue
+
+            overlay_geometry = self._get_filtered_geometry(overlay_layer_name, value_list)
+            if overlay_geometry is None:
+                continue
+
+            if combined_overlay_geometry is None:
+                combined_overlay_geometry = overlay_geometry
             else:
-                log_warning(f"Overlay layer '{overlay_layer}' not found for layer '{layer_name}'")
+                combined_overlay_geometry = combined_overlay_geometry.union(overlay_geometry)
 
         if combined_overlay_geometry is None:
             log_warning(f"No valid overlay geometries found for layer '{layer_name}'")
@@ -242,12 +267,8 @@ class LayerProcessor:
 
         try:
             if overlay_type == 'difference':
-                # Perform the difference operation
                 result_geometry = base_geometry.geometry.difference(combined_overlay_geometry)
-                # Apply a small negative buffer
-                result_geometry = result_geometry.buffer(-1, join_style=2)
-                # Apply a small positive buffer
-                result_geometry = result_geometry.buffer(1, join_style=2)
+                result_geometry = result_geometry.buffer(-1, join_style=2).buffer(1, join_style=2)
             elif overlay_type == 'intersection':
                 result_geometry = base_geometry.geometry.intersection(combined_overlay_geometry)
             
@@ -256,21 +277,12 @@ class LayerProcessor:
             log_error(f"Error during {overlay_type} operation: {str(e)}")
             return
 
-        # ... rest of the method remains unchanged ...
-
         if result_geometry is not None:
             result_gdf = gpd.GeoDataFrame(geometry=result_geometry, crs=base_geometry.crs)
             self.all_layers[layer_name] = result_gdf
             log_info(f"Created {overlay_type} layer: {layer_name}")
-            log_info(f"Final geometry type: {type(self.all_layers[layer_name])}")
-            log_info(f"Final geometry CRS: {self.all_layers[layer_name].crs}")
         else:
             log_warning(f"No valid geometry created for {overlay_type} layer: {layer_name}")
-
-        # Plot and show (optional, for debugging)
-        self.all_layers[layer_name].plot()
-        plt.title(f"Layer: {layer_name}")
-        plt.show()
             
     def create_buffer_layer(self, layer_name, operation):
         log_info(f"Creating buffer layer: {layer_name}")
@@ -278,28 +290,29 @@ class LayerProcessor:
         buffer_distance = operation['distance']
         buffer_mode = operation.get('mode', 'both')
 
-        if not source_layers:
-            log_warning(f"No source layers specified for buffer layer '{layer_name}'")
-            return
+        combined_geometry = None
+        for layer_info in source_layers:
+            source_layer_name, value_list = self._process_layer_info(layer_info)
+            if source_layer_name is None:
+                continue
 
-        original_geometry = None
-        for source_layer in source_layers:
-            if source_layer in self.all_layers:
-                if original_geometry is None:
-                    original_geometry = self.all_layers[source_layer]
-                else:
-                    original_geometry = original_geometry.overlay(self.all_layers[source_layer], how='union')
+            layer_geometry = self._get_filtered_geometry(source_layer_name, value_list)
+            if layer_geometry is None:
+                continue
+
+            if combined_geometry is None:
+                combined_geometry = layer_geometry
             else:
-                log_warning(f"Source layer '{source_layer}' not found for buffer layer '{layer_name}'")
+                combined_geometry = combined_geometry.union(layer_geometry)
 
-        if original_geometry is not None:
+        if combined_geometry is not None:
             if buffer_mode == 'outer':
-                buffered = original_geometry.buffer(buffer_distance, cap_style=2, join_style=2)
-                result = buffered.difference(original_geometry)
+                buffered = combined_geometry.buffer(buffer_distance, cap_style=2, join_style=2)
+                result = buffered.difference(combined_geometry)
             elif buffer_mode == 'inner':
-                result = original_geometry.buffer(-buffer_distance, cap_style=2, join_style=2)
+                result = combined_geometry.buffer(-buffer_distance, cap_style=2, join_style=2)
             else:  # 'both'
-                result = original_geometry.buffer(buffer_distance, cap_style=2, join_style=2)
+                result = combined_geometry.buffer(buffer_distance, cap_style=2, join_style=2)
 
             self.all_layers[layer_name] = self.ensure_geodataframe(layer_name, result)
             log_info(f"Created buffer layer: {layer_name}")
