@@ -269,7 +269,7 @@ projects:
         update: true
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/wald.shp"
         label: waldname
-        color: White
+        color: Dark Green
         linetype: Continuous
         lineweight: 13
         plot: true
@@ -442,31 +442,32 @@ projects:
               - Baufeld
             distance: -3
         outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/fromCad/baugrenze.shp"
-      # - name: WMTS DOP
-      #   color: Black
-      #   locked: true
-      #   add: true
-      #   operations:
-      #     - type: wmts
-      #       url: "https://www.geodaten-mv.de/dienste/dop_wmts/wmts/1.0.0/WMTSCapabilities.xml"
-      #       layer: "mv_dop"
-      #       zoom: "10"
-      #       proj: "ETRS89UTM33"
-      #       targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/DOP"
-      #       layers:
-      #         - Geltungsbereich
-      #       buffer: 100
-      # - name: WMTS Basemap
-      #   color: Black
-      #   locked: true
-      #   add: true
-      #   operations:
-      #     - type: wmts
-      #       url: "https://sgx.geodatenzentrum.de/wmts_basemapde/1.0.0/WMTSCapabilities.xml"
-      #       layer: "de_basemapde_web_raster_farbe"
-      #       zoom: "10"
-      #       proj: "DE_EPSG_25833_ADV"
-      #       targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/Basemap"
-      #       layers:
-      #         - Geltungsbereich
-      #       buffer: 200
+      - name: WMTS DOP
+        update: true
+        color: Black
+        locked: true
+        add: true
+        operations:
+          - type: wmts
+            url: "https://www.geodaten-mv.de/dienste/dop_wmts/wmts/1.0.0/WMTSCapabilities.xml"
+            layer: "mv_dop"
+            zoom: "14"
+            proj: "ETRS89UTM33"
+            targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/DOP"
+            layers:
+              - Geltungsbereich
+            buffer: 100
+      - name: WMTS Basemap
+        color: Black
+        locked: true
+        add: true
+        operations:
+          - type: wmts
+            url: "https://sgx.geodatenzentrum.de/wmts_basemapde/1.0.0/WMTSCapabilities.xml"
+            layer: "de_basemapde_web_raster_farbe"
+            zoom: "13"
+            proj: "DE_EPSG_25833_ADV"
+            targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/Basemap"
+            layers:
+              - Geltungsbereich
+            buffer: 200
