@@ -24,8 +24,8 @@ class DXFExporter:
 
         for layer in self.project_settings['dxfLayers']:
             self.add_layer_properties(layer['name'], layer)
-            color_code = self.get_color_code(layer['color'])
-            text_color_code = self.get_color_code(layer.get('textColor', layer['color']))
+            color_code = self.get_color_code(layer.get('color', 'White'))  # Default to White if color is not specified
+            text_color_code = self.get_color_code(layer.get('textColor', layer.get('color', 'White')))
             self.colors[layer['name']] = color_code
             
             # Only add label layer if it's not a WMTS layer
@@ -103,15 +103,17 @@ class DXFExporter:
     def process_single_layer(self, doc, msp, layer_name, layer_info):
         update_flag = layer_info.get('update', False)
         if layer_name in doc.layers:
+            existing_layer = doc.layers.get(layer_name)
             if update_flag:
                 log_info(f"Layer {layer_name} already exists. Updating geometry and labels.")
                 if layer_name in self.all_layers:
                     self.update_layer_geometry(msp, layer_name, self.all_layers[layer_name], layer_info)
                 else:
                     log_info(f"Layer {layer_name} exists in DXF but not in all_layers. Creating new geometry.")
-                    self.create_new_layer(doc, msp, layer_name, layer_info)
+                    self.create_new_layer(doc, msp, layer_name, layer_info, existing_layer)
             else:
-                log_info(f"Skipping update for layer {layer_name} as update is set to false")
+                log_info(f"Keeping existing geometry for layer {layer_name} as update is set to false")
+            self.update_layer_properties(existing_layer, layer_info)
         else:
             log_info(f"Creating new layer: {layer_name}")
             self.create_new_layer(doc, msp, layer_name, layer_info)
@@ -142,35 +144,40 @@ class DXFExporter:
         else:
             self.add_geometries_to_dxf(msp, geo_data, layer_name)
 
-    def create_new_layer(self, doc, msp, layer_name, layer_info):
+    def create_new_layer(self, doc, msp, layer_name, layer_info, existing_layer=None):
         layer_properties = self.layer_properties.get(layer_name, {})
-        color = layer_properties.get('color', 7)  # Default to white if color not specified
-        linetype = 'CONTINUOUS'
         
-        # Create or update the layer
-        if layer_name not in doc.layers:
-            layer = doc.layers.new(name=layer_name)
+        if existing_layer:
+            layer = existing_layer
         else:
-            layer = doc.layers.get(layer_name)
-        layer.color = color
-        layer.linetype = linetype
+            layer = doc.layers.new(name=layer_name)
+            color = layer_properties.get('color', 7)  # Default to white if color not specified
+            linetype = 'CONTINUOUS'
+            layer.color = color
+            layer.linetype = linetype
 
         # Create or update the text layer if it's not a WMTS layer
         if not self.is_wmts_layer(layer_name):
             text_layer_name = f"{layer_name} Label"
             if text_layer_name not in doc.layers:
                 text_layer = doc.layers.new(name=text_layer_name)
-            else:
-                text_layer = doc.layers.get(text_layer_name)
-            text_layer.color = color
-            text_layer.linetype = linetype
+                text_layer.color = layer.color
+                text_layer.linetype = layer.linetype
 
-        # Add geometry and labels
-        geo_data = self.all_layers.get(layer_name)
-        if geo_data is not None:
-            self.add_geometries_to_dxf(msp, geo_data, layer_name)
-        else:
-            log_info(f"No geometry data available for layer: {layer_name}")
+        # Add geometry and labels only if it's a new layer or update is True
+        if not existing_layer or layer_info.get('update', False):
+            geo_data = self.all_layers.get(layer_name)
+            if geo_data is not None:
+                self.add_geometries_to_dxf(msp, geo_data, layer_name)
+            else:
+                log_info(f"No geometry data available for layer: {layer_name}")
+
+    def update_layer_properties(self, layer, layer_info):
+        if 'color' in layer_info:
+            color = self.get_color_code(layer_info['color'])
+            layer.color = color
+        if 'linetype' in layer_info:
+            layer.linetype = layer_info['linetype']
 
     def add_wmts_xrefs_to_dxf(self, msp, tile_data, layer_name):
         log_info(f"Adding WMTS xrefs to DXF for layer: {layer_name}")
@@ -337,7 +344,7 @@ class DXFExporter:
         }
         
         # Only add label layer properties if it's not a WMTS layer
-        if not self.is_wmts_layer(layer_name):
+        if not self.is_wmts_layer(layer_info):
             text_layer_name = f"{layer_name} Label"
             self.layer_properties[text_layer_name] = {
                 'color': text_color,
