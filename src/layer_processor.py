@@ -169,6 +169,7 @@ class LayerProcessor:
         if combined_geometry is not None:
             self.all_layers[layer_name] = self.ensure_geodataframe(layer_name, gpd.GeoDataFrame(geometry=[combined_geometry], crs=self.crs))
             log_info(f"Copied layer(s) to {layer_name}")
+            
         else:
             log_warning(f"No valid source layers found for copy operation on {layer_name}")
 

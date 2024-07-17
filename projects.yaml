@@ -378,7 +378,7 @@ projects:
       - name: Temp Grünfl
         include: false
         operations:
-          - type: copy
+          - type: filter_by_attributes
             layers:
               - name: Parcel
                 valueList:
@@ -388,12 +388,12 @@ projects:
                   - "101"
                   - "102"
                   - "103"
-              # - name: Flur
-              #   valueList:
-              #     - Flur 2
-              # - name: Gemarkung
-              #   valueList:
-              #     - Torgelow am See
+              - name: Flur
+                valueList:
+                  - Flur 2
+              - name: Gemarkung
+                valueList:
+                  - Torgelow am See
               - name: Gemeinde
                 valueList:
                   - Torgelow am See
