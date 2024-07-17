@@ -107,24 +107,32 @@ class DXFExporter:
             self.process_single_layer(doc, msp, layer_name, layer_info)
 
     def process_single_layer(self, doc, msp, layer_name, layer_info):
-        if layer_name in doc.layers:
-            existing_layer = doc.layers.get(layer_name)
-            update_flag = layer_info.get('update', False)
-            log_info(f"Processing existing layer: {layer_name}")
-            log_info(f"Update flag: {update_flag}")
-            if update_flag:
-                self.update_layer_properties(existing_layer, layer_info)
-                log_info(f"Layer {layer_name} already exists. Updating properties and geometry.")
-                if layer_name in self.all_layers:
-                    self.update_layer_geometry(msp, layer_name, self.all_layers[layer_name], layer_info)
-                else:
-                    log_info(f"Layer {layer_name} exists in DXF but not in all_layers. Creating new geometry.")
-                    self.create_new_layer(doc, msp, layer_name, layer_info, existing_layer)
+        update_flag = layer_info.get('update', False)
+        log_info(f"Processing layer: {layer_name}")
+        log_info(f"Update flag: {update_flag}")
+
+        if self.is_wmts_layer(layer_info):
+            if update_flag or layer_name not in doc.layers:
+                log_info(f"Updating WMTS layer: {layer_name}")
+                self.create_new_layer(doc, msp, layer_name, layer_info)
             else:
-                log_info(f"Keeping existing properties and geometry for layer {layer_name} as update is set to false")
+                log_info(f"Skipping update for WMTS layer {layer_name} as update is set to false")
         else:
-            log_info(f"Creating new layer: {layer_name}")
-            self.create_new_layer(doc, msp, layer_name, layer_info)
+            if layer_name in doc.layers:
+                existing_layer = doc.layers.get(layer_name)
+                if update_flag:
+                    self.update_layer_properties(existing_layer, layer_info)
+                    log_info(f"Layer {layer_name} already exists. Updating properties and geometry.")
+                    if layer_name in self.all_layers:
+                        self.update_layer_geometry(msp, layer_name, self.all_layers[layer_name], layer_info)
+                    else:
+                        log_info(f"Layer {layer_name} exists in DXF but not in all_layers. Creating new geometry.")
+                        self.create_new_layer(doc, msp, layer_name, layer_info, existing_layer)
+                else:
+                    log_info(f"Keeping existing properties and geometry for layer {layer_name} as update is set to false")
+            else:
+                log_info(f"Creating new layer: {layer_name}")
+                self.create_new_layer(doc, msp, layer_name, layer_info)
 
     def verify_dxf_settings(self):
         loaded_doc = ezdxf.readfile(self.dxf_filename)

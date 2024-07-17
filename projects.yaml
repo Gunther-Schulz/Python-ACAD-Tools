@@ -458,6 +458,7 @@ projects:
               - Geltungsbereich
             buffer: 100
       - name: WMTS Basemap
+        update: true
         color: Black
         locked: true
         add: true

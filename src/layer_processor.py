@@ -5,6 +5,7 @@ from src.utils import log_info, log_warning, log_error
 import os
 from src.wmts_downloader import download_wmts_tiles
 from shapely.ops import unary_union
+import shutil
 
 class LayerProcessor:
     def __init__(self, project_loader):
@@ -361,50 +362,55 @@ class LayerProcessor:
         # Create a zoom-specific folder
         zoom_folder = os.path.join(target_folder, f"zoom_{zoom_level}")
         
-        # Check if the zoom folder already exists
-        if os.path.exists(zoom_folder):
-            log_info(f"Zoom folder already exists: {zoom_folder}. Using existing tiles.")
+        # Check if the layer should be updated
+        layer_info = next((l for l in self.project_settings['dxfLayers'] if l['name'] == layer_name), None)
+        update_flag = layer_info.get('update', False) if layer_info else False
+        
+        if update_flag or not os.path.exists(zoom_folder):
+            # If update is true or the folder doesn't exist, proceed with downloading
+            if os.path.exists(zoom_folder):
+                shutil.rmtree(zoom_folder)  # Remove existing folder if updating
+            os.makedirs(zoom_folder, exist_ok=True)
+            
+            log_info(f"Target folder path: {zoom_folder}")
+
+            wmts_layers = operation.get('layers', [])
+            buffer_distance = operation.get('buffer', 100)
+            wmts_info = {
+                'url': operation['url'],
+                'layer': operation['layer'],
+                'zoom': zoom_level,
+                'proj': operation['proj'],
+                'format': operation.get('format', 'image/png'),
+                'sleep': operation.get('sleep', 0),
+                'limit': operation.get('limit', 0)
+            }
+
+            log_info(f"WMTS info: {wmts_info}")
+            log_info(f"Layers to process: {wmts_layers}")
+
+            all_tiles = []
+            for layer in wmts_layers:
+                if layer in self.all_layers:
+                    layer_geometry = self.all_layers[layer]
+                    if isinstance(layer_geometry, gpd.GeoDataFrame):
+                        layer_geometry = layer_geometry.geometry.unary_union
+
+                    log_info(f"Downloading tiles for layer: {layer}")
+                    log_info(f"Layer geometry type: {type(layer_geometry)}")
+                    log_info(f"Layer geometry bounds: {layer_geometry.bounds}")
+
+                    downloaded_tiles = download_wmts_tiles(wmts_info, layer_geometry, buffer_distance, zoom_folder)
+                    all_tiles.extend(downloaded_tiles)
+                else:
+                    log_warning(f"Layer {layer} not found for WMTS download of {layer_name}")
+
+            self.all_layers[layer_name] = all_tiles
+            log_info(f"Total tiles for {layer_name}: {len(all_tiles)}")
+        else:
+            log_info(f"Zoom folder already exists and update is not required: {zoom_folder}. Using existing tiles.")
             existing_tiles = self.get_existing_tiles(zoom_folder)
             self.all_layers[layer_name] = existing_tiles
-            return
-
-        os.makedirs(zoom_folder, exist_ok=True)
-        
-        log_info(f"Target folder path: {zoom_folder}")
-
-        wmts_layers = operation.get('layers', [])
-        buffer_distance = operation.get('buffer', 100)
-        wmts_info = {
-            'url': operation['url'],
-            'layer': operation['layer'],
-            'zoom': zoom_level,
-            'proj': operation['proj'],
-            'format': operation.get('format', 'image/png'),
-            'sleep': operation.get('sleep', 0),
-            'limit': operation.get('limit', 0)
-        }
-
-        log_info(f"WMTS info: {wmts_info}")
-        log_info(f"Layers to process: {wmts_layers}")
-
-        all_tiles = []
-        for layer in wmts_layers:
-            if layer in self.all_layers:
-                layer_geometry = self.all_layers[layer]
-                if isinstance(layer_geometry, gpd.GeoDataFrame):
-                    layer_geometry = layer_geometry.geometry.unary_union
-
-                log_info(f"Downloading tiles for layer: {layer}")
-                log_info(f"Layer geometry type: {type(layer_geometry)}")
-                log_info(f"Layer geometry bounds: {layer_geometry.bounds}")
-
-                downloaded_tiles = download_wmts_tiles(wmts_info, layer_geometry, buffer_distance, zoom_folder)
-                all_tiles.extend(downloaded_tiles)
-            else:
-                log_warning(f"Layer {layer} not found for WMTS download of {layer_name}")
-
-        self.all_layers[layer_name] = all_tiles
-        log_info(f"Total tiles for {layer_name}: {len(all_tiles)}")
 
     def get_existing_tiles(self, zoom_folder):
         existing_tiles = []

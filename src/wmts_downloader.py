@@ -33,14 +33,21 @@ def filter_row_cols_by_bbox(matrix, bbox):
 
 
 def tile_already_exists(file_name, extension, zoom_folder):
-    file_path = os.path.join(zoom_folder, f'{file_name}.{extension}')
-    return os.path.exists(file_path), file_path
+    for ext in ['png', 'jpg']:
+        file_path = os.path.join(zoom_folder, f'{file_name}.{ext}')
+        if os.path.exists(file_path):
+            log_info(f"Checking if tile exists: {file_path}, Exists: True")
+            return True, file_path, ext
+    # log_info(f"Checking if tile exists: {os.path.join(zoom_folder, f'{file_name}.png')}, Exists: False")
+    return False, os.path.join(zoom_folder, f'{file_name}.{extension}'), extension
 
 
 def write_image(file_name, extension, img, zoom_folder):
     file_path = os.path.join(zoom_folder, f'{file_name}.{extension}')
     with open(file_path, 'wb') as out:
         out.write(img.read())
+    # log_info(f"Image written to: {file_path}")
+    # log_info(f"File exists after writing: {os.path.exists(file_path)}")
     return file_path
 
 
@@ -58,66 +65,6 @@ def get_world_file_extension(image_extension: str) -> str:
 
 def write_world_file(file_name, extension, col, row, matrix, zoom_folder) -> str:
     wf_ext = get_world_file_extension(extension)
-    pixel_size = 0.00028
-    a = matrix.scaledenominator * pixel_size
-    e = matrix.scaledenominator * -pixel_size
-    left = ((col * matrix.tilewidth + 0.5) * a) + matrix.topleftcorner[0]
-    top = ((row * matrix.tileheight + 0.5) * e) + matrix.topleftcorner[1]
-
-    # Generate the world file path without the image extension
-    world_file_path = os.path.join(zoom_folder, f'{file_name}.{wf_ext}')
-    with open(world_file_path, 'w') as f:
-        f.write('%f\n%d\n%d\n%f\n%f\n%f' % (a, 0, 0, e, left, top))
-
-    return world_file_path
-
-def filter_row_cols_by_bbox(matrix, bbox):
-    a = matrix.scaledenominator * 0.00028
-    e = matrix.scaledenominator * -0.00028
-
-    column_orig = math.floor(
-        (float(bbox[0]) - matrix.topleftcorner[0]) / (a * matrix.tilewidth))
-    row_orig = math.floor(
-        (float(bbox[1]) - matrix.topleftcorner[1]) / (e * matrix.tilewidth))
-
-    column_dest = math.floor(
-        (float(bbox[2]) - matrix.topleftcorner[0]) / (a * matrix.tilewidth))
-    row_dest = math.floor(
-        (float(bbox[3]) - matrix.topleftcorner[1]) / (e * matrix.tilewidth))
-
-    if column_orig > column_dest:
-        column_orig, column_dest = column_dest, column_orig
-
-    if row_orig > row_dest:
-        row_orig, row_dest = row_dest, row_orig
-
-    column_dest += 1
-    row_dest += 1
-
-    return column_orig, column_dest, row_orig, row_dest
-
-def tile_already_exists(file_name, extension, zoom_folder):
-    file_path = os.path.join(zoom_folder, f'{file_name}.{extension}')
-    return os.path.exists(file_path), file_path
-
-def write_image(file_name, extension, img, zoom_folder):
-    file_path = os.path.join(zoom_folder, f'{file_name}.{extension}')
-    with open(file_path, 'wb') as out:
-        out.write(img.read())
-    return file_path
-
-def write_world_file(file_name, extension, col, row, matrix, zoom_folder) -> str:
-    if extension == 'png':
-        wf_ext = 'pgw'
-    elif extension in ['tiff', 'tif']:
-        wf_ext = 'tfw'
-    elif extension in ['jpg', 'jpeg']:
-        wf_ext = 'jgw'
-    elif extension == 'gif':
-        wf_ext = 'gfw'
-    else:
-        wf_ext = 'wld'
-
     pixel_size = 0.00028
     a = matrix.scaledenominator * pixel_size
     e = matrix.scaledenominator * -pixel_size
@@ -202,12 +149,32 @@ def download_wmts_tiles(wmts_info: dict, geltungsbereich, buffer_distance: float
         min_col, max_col, min_row, max_row = filter_row_cols_by_bbox(
             tile_matrix_zoom, bbox)
 
+        log_info(f"Starting download_wmts_tiles with overwrite={overwrite}")
+        log_info(f"Target folder: {target_folder}")
+        log_info(f"Requested format: {wmts_info.get('format', 'image/png')}")
+
         for row in range(min_row, max_row):
             for col in range(min_col, max_col):
                 file_name = f'{layer_id}__{proj.replace(":", "-")}_row-{row}_col-{col}_zoom-{zoom}'
+                
+                # log_info(f"Processing tile: {file_name}")
+                # log_info(f"Requested extension: {requested_extension}")
+                
+                exists, file_path, existing_extension = tile_already_exists(file_name, requested_extension, zoom_folder)
+                # log_info(f"Tile exists: {exists}, Path: {file_path}, Existing extension: {existing_extension}")
+                
+                if exists and not overwrite:
+                    # log_info(f"Skipping existing tile: {file_path}")
+                    world_file_path = f'{zoom_folder}/{file_name}.{get_world_file_extension(existing_extension)}'
+                    downloaded_tiles.append((file_path, world_file_path))
+                    skip_count += 1
+                    continue
+
+                # If we get here, we're downloading the tile
+                # log_info(f"Downloading tile: {file_name}")
 
                 img = wmts.gettile(layer=layer_id, tilematrixset=proj,
-                                   tilematrix=zoom_str, row=row, column=col, format=requested_format)
+                                tilematrix=zoom_str, row=row, column=col, format=requested_format)
 
                 # Determine the actual extension of the image
                 content_type = img.info().get('Content-Type', requested_format)
@@ -217,24 +184,18 @@ def download_wmts_tiles(wmts_info: dict, geltungsbereich, buffer_distance: float
                 else:
                     actual_extension = actual_extension[1:]  # Remove the leading dot
 
-                exists, file_path = tile_already_exists(
-                    file_name, actual_extension, zoom_folder)
-                if exists and not overwrite:
-                    log_info(f"Tile already exists: {file_path}")
-                    downloaded_tiles.append(
-                        (file_path, f'{zoom_folder}/{file_name}.{get_world_file_extension(actual_extension)}'))
-                    skip_count += 1
-                    continue
-
-                log_info(f"Downloading tile: {file_path}")
                 world_file_path = write_world_file(
                     file_name, actual_extension, col, row, tile_matrix_zoom, zoom_folder)
                 file_path = write_image(
                     file_name, actual_extension, img, zoom_folder)
 
                 downloaded_tiles.append((file_path, world_file_path))
-
                 download_count += 1
+
+                # log_info(f"Actual extension determined: {actual_extension}")
+                # log_info(f"File path after writing: {file_path}")
+
+
                 if limit_requests and download_count >= limit_requests:
                     print(f"Reached download limit of {limit_requests}")
                     break
@@ -248,8 +209,8 @@ def download_wmts_tiles(wmts_info: dict, geltungsbereich, buffer_distance: float
     except Exception as e:
         print(f'Error: {e}')
 
-    print(f"Total tiles processed: {download_count + skip_count}")
-    print(f"Tiles downloaded: {download_count}")
-    print(f"Tiles skipped (already exist): {skip_count}")
+    log_info(f"Total tiles processed: {download_count + skip_count}")
+    log_info(f"Tiles downloaded: {download_count}")
+    log_info(f"Tiles skipped (already exist): {skip_count}")
 
     return downloaded_tiles
