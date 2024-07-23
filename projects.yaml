@@ -327,10 +327,13 @@ projects:
       - name: Weg Abstand
         update: true
         operations:
-          - type: buffer
+          # - type: buffer
+          #   layers:
+          #     - Weg
+          #   distance: 1
+          - type: copy
             layers:
               - Weg
-            distance: 1
       - name: Geltungsbereich
         update: true
         color: "Red"
@@ -398,7 +401,7 @@ projects:
                   - "100"
                   - "101"
                   - "102"
-                  - "103"
+                  # - "103"
               - name: Flur
                 valueList:
                   - Flur 2
