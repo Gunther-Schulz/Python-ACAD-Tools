@@ -46,6 +46,12 @@ class LayerProcessor:
             log_warning(f"Layer {layer_name} not found in project settings")
             return
 
+        # Check for unrecognized keys
+        recognized_keys = {'name', 'update', 'operations', 'shapeFile', 'outputShapeFile', 'add', 'color', 'locked', 'close', 'transparency', 'label', 'lineweight', 'linetype', 'plot', 'vp_freeze', 'frozen', 'is_on'}
+        unrecognized_keys = set(layer_obj.keys()) - recognized_keys
+        if unrecognized_keys:
+            log_warning(f"Unrecognized keys in layer {layer_name}: {', '.join(unrecognized_keys)}")
+
         # Check if the layer should be updated
         update_flag = layer_obj.get('update', False)  # Default to False
         log_info(f"Update flag for layer {layer_name}: {update_flag}")
