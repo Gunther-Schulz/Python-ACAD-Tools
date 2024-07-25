@@ -239,7 +239,7 @@ projects:
               - Geltungsbereich 1
               - Geltungsbereich 2
               - Geltungsbereich 3
-        outputShape: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/grünfläche.shp"
+        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/grünfläche.shp"
       # - name: Baufeld
       #   add: true
       #   update: true
