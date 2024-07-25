@@ -1,3 +1,5 @@
+# add - only adds the layer if it does not exist in the dxf file
+# update - updates the layer if it exists in the dxf file
 # folderPrefix: "~/IONOS HiDrive"
 folderPrefix: "~/hidrive"
 projects:
@@ -8,49 +10,82 @@ projects:
     dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Zeichnung/Plasten.dxf"
     dxfLayers:
       - name: Flur
+        # add: true
+        update: true
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/flur.shp"
         label: flurname
         color: Cyan
         close: true
+        linetype: Continuous
+        lineweight: 13
+        plot: false
+        locked: true
+        frozen: false
+        is_on: true
+        vp_freeze: false
+        transparency: 0.0
       - name: Parcel
+        add: true
+        update: true
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/parcel.shp"
         label: label
         color: Black
         close: true
         locked: true
+        linetype: ACAD_ISO11W100
+        lineweight: 30
+        plot: true
+        frozen: false
+        is_on: true 
+        vp_freeze: false
+        transparency: 0.0
       - name: Gemarkung
+        # add: true
+        update: true
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/gemarkung.shp"
         label: gmkname
         color: "Medium Orange Red"
         close: true
         locked: true
+        linetype: Continuous
+        lineweight: 13
+        plot: false
+        frozen: false
+        is_on: true
+        vp_freeze: false
+        transparency: 0.0
       - name: Gemeinde
+        # add: true
+        update: true
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/gemeinde.shp"
         label: gen
         color: "Dark Red"
         close: true
         locked: true
-      - name: Geltungsbereichsgrenze
-        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/geltungsberiech_grenze.shp"
-        color: "Dark Red"
-        close: true
-        locked: false
-        # add: true
-        operations:
-          - type: buffer
-            distance: 27
-      - name: Geltungsbereichsabstand
+        linetype: Continuous
+        lineweight: 13
+        plot: false
+        frozen: false
+        is_on: true
+        vp_freeze: false
+        transparency: 0.0
+      - name: Grünfläche Input 1
+        add: false
+        update: true
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/geltungsbereich_abstand.shp"
-        color: "Dark Red"
+        color: "Light Green"
         close: true
         locked: false
-        # add: true
       - name: Wald
+        add: true
+        update: true
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/wald.shp"
         color: "Dark Green"
         close: true
         locked: false
       - name: Baumabstand
+        # add: false
+        update: true
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/baum_abstand.shp"
         color: "Dark Green"
         close: true
@@ -60,12 +95,16 @@ projects:
             layers:
               - Wald
             distance: 5
-      - name: Biotope
-        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/biotope.shp"
-        color: "Green"
-        close: true
-        locked: false
+      # - name: Biotope Input 1
+      #   # add: true
+      #   update: true
+      #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/biotope.shp"
+      #   color: "Green"
+      #   close: true
+      #   locked: false
       - name: Geltungsbereich 1
+        add: true
+        update: true
         color: "Red"
         locked: false
         close: true
@@ -91,11 +130,11 @@ projects:
                   - "Groß Plasten"
           - type: difference
             layers:
-              - Geltungsbereichsgrenze
-              - Geltungsbereichsabstand
               - Wald
               - Baumabstand
       - name: Geltungsbereich 2
+        add: true
+        update: true
         color: "Red"
         locked: false
         close: true
@@ -117,11 +156,11 @@ projects:
                   - "Groß Plasten"
           - type: difference
             layers:
-              - Geltungsbereichsgrenze
-              - Geltungsbereichsabstand
               - Wald
               - Baumabstand
       - name: Geltungsbereich 3
+        add: true
+        update: true
         color: "Red"
         locked: false
         close: true
@@ -142,11 +181,11 @@ projects:
                   - "Groß Plasten"
           - type: difference
             layers:
-              - Geltungsbereichsgrenze
-              - Geltungsbereichsabstand
               - Wald
               - Baumabstand
       - name: Waldabstand
+        add: true
+        update: true
         color: "Dark Green"
         close: true
         locked: false
@@ -160,30 +199,75 @@ projects:
               - Geltungsbereich 1
               - Geltungsbereich 2
               - Geltungsbereich 3
-      - name: Biotope Puffer
+      # - name: Biotope
+      #   # add: true
+      #   update: true
+      #   color: "Light Green"
+      #   close: true
+      #   locked: false
+      #   operations:
+      #     - type: buffer
+      #       mode: keep
+      #       layers:
+      #         - Biotope Input 1
+      #       distance: 10
+      #     - type: buffer
+      #       mode: keep
+      #       layers:
+      #         - Biotope Input 1
+      #       distance: -5
+      #     - type: intersection
+      #       layers:
+      #         - Geltungsbereich 1
+      #         - Geltungsbereich 2
+      #         - Geltungsbereich 3
+      - name: Grünfläche
+        update: true
         color: "Light Green"
         close: true
         locked: false
-        # add: true
+        add: true
         operations:
-          - type: buffer
+          - type: merge
             layers:
-              - Biotope
-            distance: 10
+              - Grünfläche Input 1
+          # - type: difference
+          #   layers:
+          #     - Weg Abstand
           - type: intersection
             layers:
               - Geltungsbereich 1
               - Geltungsbereich 2
               - Geltungsbereich 3
+        outputShape: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/grünfläche.shp"
+      # - name: Baufeld
+      #   add: true
+      #   update: true
+      #   color: "Light Red"
+      #   locked: false
+      #   close: true
+      #   operations:
+      #     - type: copy
+      #       layers:
+      #         - Geltungsbereich 1
+      #         - Geltungsbereich 2
+      #         - Geltungsbereich 3
+      #     - type: difference
+      #       layers:
+      #         - Waldabstand
+      #         - Grünfläche
+      #         - Biotope
       - name: WMTS DOP
+        add: true
+        update: false
         color: Black
         locked: true
-        add: true
         operations:
           - type: wmts
             url: "https://www.geodaten-mv.de/dienste/dop_wmts/wmts/1.0.0/WMTSCapabilities.xml"
             layer: "mv_dop"
-            zoom: "14"
+            # zoom: "14"
+            zoom: 10
             proj: "ETRS89UTM33"
             targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/DOP"
             layers:
@@ -192,21 +276,22 @@ projects:
               - Geltungsbereich 3
             buffer: 100
       - name: WMTS Basemap
+        add: true
+        update: false
         color: Black
         locked: true
-        # add: true
         operations:
           - type: wmts
             url: "https://sgx.geodatenzentrum.de/wmts_basemapde/1.0.0/WMTSCapabilities.xml"
             layer: "de_basemapde_web_raster_farbe"
-            zoom: "05"
+            zoom: "10"
             proj: "DE_EPSG_25833_ADV"
             targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/Basemap"
             layers:
               - Geltungsbereich 1
               - Geltungsbereich 2
               - Geltungsbereich 3
-            buffer: 200
+            buffer: 200  
   - name: Torgelow
     exportFormat: dxf
     dxfVersion: R2018
@@ -470,7 +555,7 @@ projects:
           - type: wmts
             url: "https://www.geodaten-mv.de/dienste/dop_wmts/wmts/1.0.0/WMTSCapabilities.xml"
             layer: "mv_dop"
-            zoom: "14"
+            zoom: "10"
             proj: "ETRS89UTM33"
             targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/DOP"
             layers:
@@ -485,7 +570,7 @@ projects:
           - type: wmts
             url: "https://sgx.geodatenzentrum.de/wmts_basemapde/1.0.0/WMTSCapabilities.xml"
             layer: "de_basemapde_web_raster_farbe"
-            zoom: "13"
+            zoom: "10"
             proj: "DE_EPSG_25833_ADV"
             targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/Basemap"
             layers:

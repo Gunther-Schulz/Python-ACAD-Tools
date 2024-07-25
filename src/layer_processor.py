@@ -13,10 +13,8 @@ class LayerProcessor:
         self.all_layers = {}
         self.project_settings = project_loader.project_settings
         self.crs = project_loader.crs
-        self.update_layers_list = None
 
-    def process_layers(self, update_layers_list=None):
-        self.update_layers_list = update_layers_list
+    def process_layers(self):
         log_info("Starting to process layers...")
         
         self.setup_shapefiles()
@@ -25,8 +23,6 @@ class LayerProcessor:
 
         for layer in self.project_settings['dxfLayers']:
             layer_name = layer['name']
-            if self.update_layers_list and layer_name not in self.update_layers_list:
-                continue
 
             self.process_layer(layer, processed_layers)
 

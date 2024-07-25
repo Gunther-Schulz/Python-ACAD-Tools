@@ -12,7 +12,6 @@ class DXFExporter:
         self.project_settings = project_loader.project_settings
         self.dxf_filename = project_loader.dxf_filename
         self.all_layers = layer_processor.all_layers
-        self.update_layers_list = layer_processor.update_layers_list
         self.layer_properties = {}
         self.colors = {}
         self.name_to_aci = project_loader.name_to_aci
@@ -80,8 +79,6 @@ class DXFExporter:
 
         for layer_info in self.project_settings['dxfLayers']:
             layer_name = layer_info['name']
-            if self.update_layers_list and layer_name not in self.update_layers_list:
-                continue
 
             # Check if the 'add' key is present and set to True
             if not layer_info.get('add', False):

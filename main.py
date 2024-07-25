@@ -11,14 +11,13 @@ from src.dxf_exporter import DXFExporter
 from src.utils import log_error, setup_logging, setup_proj
 
 class ProjectProcessor:
-    def __init__(self, project_name: str, update_layers_list: list = None):
+    def __init__(self, project_name: str):
         self.project_loader = ProjectLoader(project_name)
         self.layer_processor = LayerProcessor(self.project_loader)
         self.dxf_exporter = DXFExporter(self.project_loader, self.layer_processor)
-        self.update_layers_list = update_layers_list
 
     def run(self):
-        self.layer_processor.process_layers(self.update_layers_list)
+        self.layer_processor.process_layers()
         self.dxf_exporter.export_to_dxf()
 
 def main():
@@ -27,11 +26,10 @@ def main():
 
     parser = argparse.ArgumentParser(description="Process and export project data to DXF.")
     parser.add_argument("project_name", help="Name of the project to process")
-    parser.add_argument("--update", nargs='+', help="List of layers to update", default=None)
     args = parser.parse_args()
 
     try:
-        processor = ProjectProcessor(args.project_name, args.update)
+        processor = ProjectProcessor(args.project_name)
         processor.run()
     except yaml.YAMLError as e:
         error_message = f"YAML parsing error in projects.yaml: {str(e)}"
