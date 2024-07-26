@@ -70,9 +70,13 @@ class LayerProcessor:
             self.all_layers[layer_name] = None
             log_info(f"Added layer {layer_name} without data")
 
-        # Only write the output shape if update_flag is True
-        if update_flag and 'outputShapeFile' in layer_obj:
+        # # Only write the output shape if update_flag is True
+        # if update_flag and 'outputShapeFile' in layer_obj:
+        #     self.write_shapefile(layer_name, layer_obj['outputShapeFile'])
+
+        if 'outputShapeFile' in layer_obj:
             self.write_shapefile(layer_name, layer_obj['outputShapeFile'])
+
 
         processed_layers.add(layer_name)
 

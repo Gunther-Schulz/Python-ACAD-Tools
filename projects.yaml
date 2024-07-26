@@ -83,8 +83,22 @@ projects:
         color: "Dark Green"
         close: true
         locked: false
+      - name: Biotope Input 1
+        # add: true
+        update: true
+        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/biotope.shp"
+        color: "Green"
+        close: true
+        locked: false
+      - name: Exclude
+        add: false
+        update: true
+        color: "Red"
+        locked: false
+        close: true
+        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/exclude.shp"
       - name: Baumabstand
-        # add: false
+        add: false
         update: true
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/baum_abstand.shp"
         color: "Dark Green"
@@ -92,16 +106,8 @@ projects:
         locked: false
         operations:
           - type: buffer
-            layers:
-              - Wald
             distance: 5
-      # - name: Biotope Input 1
-      #   # add: true
-      #   update: true
-      #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/biotope.shp"
-      #   color: "Green"
-      #   close: true
-      #   locked: false
+        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/baumabstand.shp"
       - name: Geltungsbereich 1
         add: true
         update: true
@@ -132,6 +138,8 @@ projects:
             layers:
               - Wald
               - Baumabstand
+              - Exclude
+        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/geltungsbereich_1.shp"
       - name: Geltungsbereich 2
         add: true
         update: true
@@ -158,6 +166,8 @@ projects:
             layers:
               - Wald
               - Baumabstand
+              - Exclude
+        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/geltungsbereich_2.shp"
       - name: Geltungsbereich 3
         add: true
         update: true
@@ -183,6 +193,8 @@ projects:
             layers:
               - Wald
               - Baumabstand
+              - Exclude
+        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/geltungsbereich_3.shp"
       - name: Waldabstand
         add: true
         update: true
@@ -199,28 +211,29 @@ projects:
               - Geltungsbereich 1
               - Geltungsbereich 2
               - Geltungsbereich 3
-      # - name: Biotope
-      #   # add: true
-      #   update: true
-      #   color: "Light Green"
-      #   close: true
-      #   locked: false
-      #   operations:
-      #     - type: buffer
-      #       mode: keep
-      #       layers:
-      #         - Biotope Input 1
-      #       distance: 10
-      #     - type: buffer
-      #       mode: keep
-      #       layers:
-      #         - Biotope Input 1
-      #       distance: -5
-      #     - type: intersection
-      #       layers:
-      #         - Geltungsbereich 1
-      #         - Geltungsbereich 2
-      #         - Geltungsbereich 3
+        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/waldabstand.shp"
+      - name: Biotope
+        # add: true
+        update: true
+        color: "Light Green"
+        close: true
+        locked: false
+        operations:
+          - type: buffer
+            layers:
+              - Biotope Input 1
+            distance: 10
+          - type: buffer
+            mode: keep
+            layers:
+              - Biotope Input 1
+            distance: 5
+          - type: intersection
+            layers:
+              - Geltungsbereich 1
+              - Geltungsbereich 2
+              - Geltungsbereich 3
+        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/biotope.shp"
       - name: Grünfläche
         update: true
         color: "Light Green"
