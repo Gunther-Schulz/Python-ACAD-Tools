@@ -116,24 +116,26 @@ projects:
         locked: false
         close: true
         operations:
-          - type: filter_by_attributes
+          - type: copy
             layers:
               - name: Parcel
-                valueList:
+                values:
                   - "1"
                   - "2"
                   - "4"
                   - "6"
                   - "7"
                   - "14"
+          - type: filter
+            layers:
               - name: Flur
-                valueList:
+                values:
                   - "Flur 1"
               - name: Gemarkung
-                valueList:
+                values:
                   - "Groß Plasten"
               - name: Gemeinde
-                valueList:
+                values:
                   - "Groß Plasten"
           - type: difference
             layers:
@@ -148,20 +150,22 @@ projects:
         locked: false
         close: true
         operations:
-          - type: filter_by_attributes
+          - type: copy
             layers:
               - name: Parcel
-                valueList:
+                values:
                   - "24/8"
                   - "24/9"
+          - type: filter
+            layers:
               - name: Flur
-                valueList:
+                values:
                   - "Flur 1"
               - name: Gemarkung
-                valueList:
+                values:
                   - "Groß Plasten"
               - name: Gemeinde
-                valueList:
+                values:
                   - "Groß Plasten"
           - type: difference
             layers:
@@ -176,25 +180,27 @@ projects:
         locked: false
         close: true
         operations:
-          - type: filter_by_attributes
+          - type: copy
             layers:
               - name: Parcel
-                valueList:
+                values:
                   - "41/1"
+          - type: filter
+            layers:
               - name: Flur
-                valueList:
+                values:
                   - "Flur 2"
               - name: Gemarkung
-                valueList:
+                values:
                   - "Klein Plasten"
               - name: Gemeinde
-                valueList:
+                values:
                   - "Groß Plasten"
-          # - type: difference
-          #   layers:
-          #     - Wald
-          #     - Baumabstand
-          #     - Exclude
+          - type: difference
+            layers:
+              - Wald
+              - Baumabstand
+              - Exclude
         outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/geltungsbereich_3.shp"
       - name: Waldabstand
         add: true
@@ -440,10 +446,10 @@ projects:
         close: false
         add: true
         operations:
-          - type: filter_by_attributes
+          - type: copy
             layers:
               - name: Parcel
-                valueList:
+                values:
                   - "81"
                   - "87/1"
                   - "89"
@@ -456,14 +462,16 @@ projects:
                   - "102"
                   - "103"
                   - "104"
+          - type: filter
+            layers:
               - name: Flur
-                valueList:
+                values:
                   - Flur 2
               - name: Gemarkung
-                valueList:
+                values:
                   - Torgelow am See
               - name: Gemeinde
-                valueList:
+                values:
                   - Torgelow am See
           - type: difference
             layers:
@@ -491,10 +499,10 @@ projects:
       - name: Temp Grünfl
         update: true
         operations:
-          - type: filter_by_attributes
+          - type: filter
             layers:
               - name: Parcel
-                valueList:
+                values:
                   - "97"
                   - "99"
                   - "100"
@@ -502,13 +510,13 @@ projects:
                   - "102"
                   # - "103"
               - name: Flur
-                valueList:
+                values:
                   - Flur 2
               - name: Gemarkung
-                valueList:
+                values:
                   - Torgelow am See
               - name: Gemeinde
-                valueList:
+                values:
                   - Torgelow am See
       - name: Grünfläche
         update: true
