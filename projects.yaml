@@ -116,7 +116,7 @@ projects:
         locked: false
         close: true
         operations:
-          - type: filter_by_attributes
+          - type: copy
             layers:
               - name: Parcel
                 valueList:
@@ -126,6 +126,16 @@ projects:
                   - "6"
                   - "7"
                   - "14"
+          - type: filter_by_attributes
+            layers:
+              # - name: Parcel
+              #   valueList:
+              #     - "1"
+              #     - "2"
+              #     - "4"
+              #     - "6"
+              #     - "7"
+              #     - "14"
               - name: Flur
                 valueList:
                   - "Flur 1"
@@ -148,12 +158,18 @@ projects:
         locked: false
         close: true
         operations:
-          - type: filter_by_attributes
+          - type: copy
             layers:
               - name: Parcel
                 valueList:
                   - "24/8"
                   - "24/9"
+          - type: filter_by_attributes
+            layers:
+              # - name: Parcel
+              #   valueList:
+              #     - "24/8"
+              #     - "24/9"
               - name: Flur
                 valueList:
                   - "Flur 1"
@@ -176,11 +192,13 @@ projects:
         locked: false
         close: true
         operations:
-          - type: filter_by_attributes
+          - type: copy
             layers:
               - name: Parcel
                 valueList:
                   - "41/1"
+          - type: filter_by_attributes
+            layers:
               - name: Flur
                 valueList:
                   - "Flur 2"

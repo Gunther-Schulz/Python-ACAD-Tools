@@ -222,44 +222,53 @@ class LayerProcessor:
 
     def create_filtered_layer(self, layer_name, operation):
         log_info(f"Creating filtered layer: {layer_name}")
-        combined_geometry = None
+        
+        if layer_name not in self.all_layers:
+            log_warning(f"Layer '{layer_name}' not found for filtering")
+            return
+
+        source_gdf = self.all_layers[layer_name]
+        filtered_gdf = source_gdf.copy()
+
+        log_info(f"Initial number of geometries in {layer_name}: {len(filtered_gdf)}")
+        log_info(f"Initial geometries: {filtered_gdf.geometry.tolist()}")
+        log_info(f"Initial attributes: {filtered_gdf}")
 
         for layer_info in operation['layers']:
             source_layer_name, value_list = self._process_layer_info(layer_info)
             if source_layer_name is None:
                 continue
 
-            log_info(f"Processing source layer: {source_layer_name}")
+            log_info(f"Processing filter layer: {source_layer_name}")
 
-            layer_geometry = self._get_filtered_geometry(source_layer_name, value_list)
-            if layer_geometry is None:
+            filter_geometry = self._get_filtered_geometry(source_layer_name, value_list)
+            if filter_geometry is None:
                 continue
 
-            log_info(f"Filtered geometry type for {source_layer_name}: {type(layer_geometry)}")
+            log_info(f"Filter geometry type for {source_layer_name}: {type(filter_geometry)}")
 
-            if combined_geometry is None:
-                combined_geometry = layer_geometry
-            else:
-                combined_geometry = combined_geometry.intersection(layer_geometry)
-                log_info(f"Combined geometry type after intersection with {source_layer_name}: {type(combined_geometry)}")
+            # Explode MultiPolygon into individual Polygons
+            filtered_gdf = filtered_gdf.explode(index_parts=False)
 
-        if combined_geometry is not None:
-            # Ensure the result is a Polygon or MultiPolygon
-            if isinstance(combined_geometry, (Polygon, MultiPolygon)):
-                self.all_layers[layer_name] = self.ensure_geodataframe(layer_name, gpd.GeoDataFrame(geometry=[combined_geometry], crs=self.crs))
-                log_info(f"Created filtered layer: {layer_name}")
-            elif isinstance(combined_geometry, GeometryCollection):
-                # Extract Polygon or MultiPolygon from GeometryCollection
-                polygons = [geom for geom in combined_geometry.geoms if isinstance(geom, (Polygon, MultiPolygon))]
-                if polygons:
-                    self.all_layers[layer_name] = self.ensure_geodataframe(layer_name, gpd.GeoDataFrame(geometry=polygons, crs=self.crs))
-                    log_info(f"Created filtered layer from GeometryCollection: {layer_name}")
-                else:
-                    log_warning(f"No Polygon or MultiPolygon found in GeometryCollection for layer: {layer_name}")
-            else:
-                log_warning(f"Resulting geometry is not a Polygon, MultiPolygon, or GeometryCollection for layer: {layer_name}")
+            # Filter the geometries based on intersection
+            filtered_gdf = filtered_gdf[filtered_gdf.geometry.intersects(filter_geometry)]
+
+            log_info(f"Number of geometries after filtering with {source_layer_name}: {len(filtered_gdf)}")
+            log_info(f"Geometries after filtering with {source_layer_name}: {filtered_gdf.geometry.tolist()}")
+            log_info(f"Attributes after filtering with {source_layer_name}: {filtered_gdf}")
+
+            # If no geometries are left after filtering, break early
+            if filtered_gdf.empty:
+                break
+
+        if not filtered_gdf.empty:
+            self.all_layers[layer_name] = self.ensure_geodataframe(layer_name, filtered_gdf)
+            log_info(f"Filtered layer: {layer_name} with {len(filtered_gdf)} geometries")
+            log_info(f"Final geometries: {filtered_gdf.geometry.tolist()}")
+            log_info(f"Final attributes: {filtered_gdf}")
         else:
-            log_warning(f"No geometry created for filtered layer: {layer_name}")
+            log_warning(f"No geometries left after filtering for layer: {layer_name}")
+            self.all_layers[layer_name] = gpd.GeoDataFrame(geometry=[], crs=self.crs)
 
     def create_difference_layer(self, layer_name, operation):
         self._create_overlay_layer(layer_name, operation, 'difference')
