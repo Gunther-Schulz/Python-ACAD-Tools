@@ -119,7 +119,7 @@ projects:
           - type: copy
             layers:
               - name: Parcel
-                valueList:
+                values:
                   - "1"
                   - "2"
                   - "4"
@@ -129,13 +129,13 @@ projects:
           - type: filter
             layers:
               - name: Flur
-                valueList:
+                values:
                   - "Flur 1"
               - name: Gemarkung
-                valueList:
+                values:
                   - "Groß Plasten"
               - name: Gemeinde
-                valueList:
+                values:
                   - "Groß Plasten"
           - type: difference
             layers:
@@ -153,19 +153,19 @@ projects:
           - type: copy
             layers:
               - name: Parcel
-                valueList:
+                values:
                   - "24/8"
                   - "24/9"
           - type: filter
             layers:
               - name: Flur
-                valueList:
+                values:
                   - "Flur 1"
               - name: Gemarkung
-                valueList:
+                values:
                   - "Groß Plasten"
               - name: Gemeinde
-                valueList:
+                values:
                   - "Groß Plasten"
           - type: difference
             layers:
@@ -183,18 +183,18 @@ projects:
           - type: copy
             layers:
               - name: Parcel
-                valueList:
+                values:
                   - "41/1"
           - type: filter
             layers:
               - name: Flur
-                valueList:
+                values:
                   - "Flur 2"
               - name: Gemarkung
-                valueList:
+                values:
                   - "Klein Plasten"
               - name: Gemeinde
-                valueList:
+                values:
                   - "Groß Plasten"
           - type: difference
             layers:
@@ -449,7 +449,7 @@ projects:
           - type: copy
             layers:
               - name: Parcel
-                valueList:
+                values:
                   - "81"
                   - "87/1"
                   - "89"
@@ -462,16 +462,16 @@ projects:
                   - "102"
                   - "103"
                   - "104"
-            - type: filter
-              layers:
-                - name: Flur
-                  valueList:
-                    - Flur 2
+          - type: filter
+            layers:
+              - name: Flur
+                values:
+                  - Flur 2
               - name: Gemarkung
-                valueList:
+                values:
                   - Torgelow am See
               - name: Gemeinde
-                valueList:
+                values:
                   - Torgelow am See
           - type: difference
             layers:
@@ -502,7 +502,7 @@ projects:
           - type: filter
             layers:
               - name: Parcel
-                valueList:
+                values:
                   - "97"
                   - "99"
                   - "100"
@@ -510,13 +510,13 @@ projects:
                   - "102"
                   # - "103"
               - name: Flur
-                valueList:
+                values:
                   - Flur 2
               - name: Gemarkung
-                valueList:
+                values:
                   - Torgelow am See
               - name: Gemeinde
-                valueList:
+                values:
                   - Torgelow am See
       - name: Grünfläche
         update: true

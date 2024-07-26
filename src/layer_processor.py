@@ -133,22 +133,22 @@ class LayerProcessor:
         if isinstance(layer_info, str):
             return layer_info, []
         elif isinstance(layer_info, dict):
-            return layer_info['name'], layer_info.get('valueList', [])
+            return layer_info['name'], layer_info.get('values', [])
         else:
             log_warning(f"Invalid layer info type: {type(layer_info)}")
             return None, []
 
-    def _get_filtered_geometry(self, layer_name, value_list):
+    def _get_filtered_geometry(self, layer_name, values):
         if layer_name not in self.all_layers:
             log_warning(f"Layer '{layer_name}' not found")
             return None
 
         source_gdf = self.all_layers[layer_name]
 
-        if value_list:
+        if values:
             label_column = next((l['label'] for l in self.project_settings['dxfLayers'] if l['name'] == layer_name), None)
             if label_column and label_column in source_gdf.columns:
-                filtered_gdf = source_gdf[source_gdf[label_column].astype(str).isin(value_list)]
+                filtered_gdf = source_gdf[source_gdf[label_column].astype(str).isin(values)]
                 return filtered_gdf.geometry.unary_union
             else:
                 log_warning(f"Label column '{label_column}' not found in layer '{layer_name}'")
@@ -161,11 +161,11 @@ class LayerProcessor:
         combined_geometry = None
 
         for layer_info in source_layers:
-            source_layer_name, value_list = self._process_layer_info(layer_info)
+            source_layer_name, values = self._process_layer_info(layer_info)
             if source_layer_name is None:
                 continue
 
-            layer_geometry = self._get_filtered_geometry(source_layer_name, value_list)
+            layer_geometry = self._get_filtered_geometry(source_layer_name, values)
             if layer_geometry is None:
                 continue
 
@@ -235,13 +235,13 @@ class LayerProcessor:
         log_info(f"Initial attributes: {filtered_gdf}")
 
         for layer_info in operation['layers']:
-            source_layer_name, value_list = self._process_layer_info(layer_info)
+            source_layer_name, values = self._process_layer_info(layer_info)
             if source_layer_name is None:
                 continue
 
             log_info(f"Processing filter layer: {source_layer_name}")
 
-            filter_geometry = self._get_filtered_geometry(source_layer_name, value_list)
+            filter_geometry = self._get_filtered_geometry(source_layer_name, values)
             if filter_geometry is None:
                 continue
 
@@ -297,11 +297,11 @@ class LayerProcessor:
         
         combined_overlay_geometry = None
         for layer_info in overlay_layers:
-            overlay_layer_name, value_list = self._process_layer_info(layer_info)
+            overlay_layer_name, values = self._process_layer_info(layer_info)
             if overlay_layer_name is None:
                 continue
 
-            overlay_geometry = self._get_filtered_geometry(overlay_layer_name, value_list)
+            overlay_geometry = self._get_filtered_geometry(overlay_layer_name, values)
             if overlay_geometry is None:
                 continue
 
@@ -350,11 +350,11 @@ class LayerProcessor:
 
         combined_geometry = None
         for layer_info in source_layers:
-            source_layer_name, value_list = self._process_layer_info(layer_info)
+            source_layer_name, values = self._process_layer_info(layer_info)
             if source_layer_name is None:
                 continue
 
-            layer_geometry = self._get_filtered_geometry(source_layer_name, value_list)
+            layer_geometry = self._get_filtered_geometry(source_layer_name, values)
             if layer_geometry is None:
                 continue
 
@@ -517,11 +517,11 @@ class LayerProcessor:
         
         combined_geometries = []
         for layer_info in source_layers:
-            source_layer_name, value_list = self._process_layer_info(layer_info)
+            source_layer_name, values = self._process_layer_info(layer_info)
             if source_layer_name is None:
                 continue
 
-            layer_geometry = self._get_filtered_geometry(source_layer_name, value_list)
+            layer_geometry = self._get_filtered_geometry(source_layer_name, values)
             if layer_geometry is None:
                 continue
 
