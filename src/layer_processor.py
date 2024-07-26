@@ -114,7 +114,7 @@ class LayerProcessor:
             self.create_difference_layer(layer_name, operation)
         elif op_type == 'intersection':
             self.create_intersection_layer(layer_name, operation)
-        elif op_type == 'filter_by_attributes':
+        elif op_type == 'filter':
             self.create_filtered_layer(layer_name, operation)
         elif op_type == 'wmts':
             self.process_wmts_layer(layer_name, operation)
