@@ -107,6 +107,7 @@ projects:
         operations:
           - type: buffer
             distance: 5
+            joinStyle: round
         outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/baumabstand.shp"
       - name: Geltungsbereich 1
         add: true
@@ -189,11 +190,11 @@ projects:
               - name: Gemeinde
                 valueList:
                   - "Groß Plasten"
-          - type: difference
-            layers:
-              - Wald
-              - Baumabstand
-              - Exclude
+          # - type: difference
+          #   layers:
+          #     - Wald
+          #     - Baumabstand
+          #     - Exclude
         outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/geltungsbereich_3.shp"
       - name: Waldabstand
         add: true
