@@ -250,8 +250,12 @@ class LayerProcessor:
             # Explode MultiPolygon into individual Polygons
             filtered_gdf = filtered_gdf.explode(index_parts=False)
 
-            # Filter the geometries based on intersection
-            filtered_gdf = filtered_gdf[filtered_gdf.geometry.intersects(filter_geometry)]
+            # Apply a small buffer to handle edge-on-edge proximity
+            small_buffer = -1
+            buffered_filter_geometry = filter_geometry.buffer(small_buffer)
+
+            # Filter the geometries based on intersection with the buffered filter geometry
+            filtered_gdf = filtered_gdf[filtered_gdf.geometry.intersects(buffered_filter_geometry)]
 
             log_info(f"Number of geometries after filtering with {source_layer_name}: {len(filtered_gdf)}")
             log_info(f"Geometries after filtering with {source_layer_name}: {filtered_gdf.geometry.tolist()}")
