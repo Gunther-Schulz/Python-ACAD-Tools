@@ -609,9 +609,19 @@ class LayerProcessor:
             self.all_layers[layer_name] = gpd.GeoDataFrame(geometry=[], crs=self.crs)
 
     def smooth_geometry(self, geometry, strength):
-        # Implement the smoothing algorithm here
-        # Ensure the area does not increase
+        # Simplify the geometry
         smoothed = geometry.simplify(strength, preserve_topology=True)
-        if smoothed.area > geometry.area:
-            smoothed = smoothed.buffer(-0.01).simplify(strength, preserve_topology=True)
+        
+        # Ensure the smoothed geometry does not expand beyond the original geometry
+        if not geometry.contains(smoothed):
+            smoothed = geometry.intersection(smoothed)
+        
+        # Increase vertex count for smoother curves
+        if isinstance(smoothed, (Polygon, MultiPolygon)):
+            smoothed = smoothed.buffer(0.01).buffer(-0.01)
+        
+        # Ensure the smoothed geometry does not expand beyond the original geometry after vertex increase
+        if not geometry.contains(smoothed):
+            smoothed = geometry.intersection(smoothed)
+        
         return smoothed
