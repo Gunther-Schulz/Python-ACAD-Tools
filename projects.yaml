@@ -109,6 +109,17 @@ projects:
             distance: 5
             joinStyle: round
         outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/baumabstand.shp"
+      - name: Baumabstand Puffer
+        add: true
+        update: true
+        color: "Dark Green"
+        close: true
+        locked: false
+        operations:
+          - type: buffer
+            layers:
+              - Baumabstand
+            distance: 10      
       - name: Geschütze Biotope
         add: true
         update: true
@@ -266,10 +277,11 @@ projects:
         locked: false
         add: true
         operations:
-          - type: merge
+          - type: copy
             layers:
-              - Grünfläche Input 1
-              - Waldabstand
+              # - Grünfläche Input 1
+              # - Waldabstand
+              - Baumabstand
               - FG
           # - type: difference
           #   layers:
