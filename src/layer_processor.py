@@ -47,7 +47,7 @@ class LayerProcessor:
             return
 
         # Check for unrecognized keys
-        recognized_keys = {'name', 'update', 'operations', 'shapeFile', 'outputShapeFile', 'add', 'color', 'locked', 'close', 'transparency', 'label', 'lineweight', 'linetype', 'plot', 'vp_freeze', 'frozen', 'is_on'}
+        recognized_keys = {'name', 'update', 'operations', 'shapeFile', 'outputShapeFile', 'add', 'color', 'textColor', 'locked', 'close', 'transparency', 'label', 'lineweight', 'linetype', 'plot', 'vp_freeze', 'frozen', 'is_on'}
         unrecognized_keys = set(layer_obj.keys()) - recognized_keys
         if unrecognized_keys:
             log_warning(f"Unrecognized keys in layer {layer_name}: {', '.join(unrecognized_keys)}")
@@ -120,6 +120,8 @@ class LayerProcessor:
             self.process_wmts_layer(layer_name, operation)
         elif op_type == 'merge':
             self.create_merged_layer(layer_name, operation)
+        elif op_type == 'smooth':
+            self.create_smooth_layer(layer_name, operation)
         else:
             log_warning(f"Unknown operation type: {op_type} for layer {layer_name}")
 
@@ -577,3 +579,49 @@ class LayerProcessor:
             self.all_layers[layer_name] = gpd.GeoDataFrame(geometry=[], crs=self.crs)
 
         return self.all_layers[layer_name]
+
+    def create_smooth_layer(self, layer_name, operation):
+        log_info(f"Creating smooth layer: {layer_name}")
+        source_layers = operation.get('layers', [])
+        strength = operation.get('strength', 1.0)  # Default strength to 1.0
+
+        combined_geometry = None
+        for layer_info in source_layers:
+            source_layer_name, values = self._process_layer_info(layer_info)
+            if source_layer_name is None:
+                continue
+
+            layer_geometry = self._get_filtered_geometry(source_layer_name, values)
+            if layer_geometry is None:
+                continue
+
+            if combined_geometry is None:
+                combined_geometry = layer_geometry
+            else:
+                combined_geometry = combined_geometry.union(layer_geometry)
+
+        if combined_geometry is not None:
+            smoothed_geometry = self.smooth_geometry(combined_geometry, strength)
+            self.all_layers[layer_name] = self.ensure_geodataframe(layer_name, gpd.GeoDataFrame(geometry=[smoothed_geometry], crs=self.crs))
+            log_info(f"Created smooth layer: {layer_name}")
+        else:
+            log_warning(f"No valid source geometry found for smooth layer '{layer_name}'")
+            self.all_layers[layer_name] = gpd.GeoDataFrame(geometry=[], crs=self.crs)
+
+    def smooth_geometry(self, geometry, strength):
+        # Simplify the geometry
+        smoothed = geometry.simplify(strength, preserve_topology=True)
+        
+        # Ensure the smoothed geometry does not expand beyond the original geometry
+        if not geometry.contains(smoothed):
+            smoothed = geometry.intersection(smoothed)
+        
+        # Increase vertex count for smoother curves
+        if isinstance(smoothed, (Polygon, MultiPolygon)):
+            smoothed = smoothed.buffer(0.01).buffer(-0.01)
+        
+        # Ensure the smoothed geometry does not expand beyond the original geometry after vertex increase
+        if not geometry.contains(smoothed):
+            smoothed = geometry.intersection(smoothed)
+        
+        return smoothed
