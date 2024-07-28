@@ -501,7 +501,7 @@ projects:
               - Wald
               - Straße Abstand
               - Weg Abstand
-        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/fromCad/geltungsbereich.shp"
+        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/generated/geltungsbereich.shp"
       - name: Wald Abstand
         update: true
         color: "Light Green"
@@ -562,7 +562,7 @@ projects:
           - type: buffer
             distance: -5
             mode: keep # Keeps both the original geometries and the buffered ones
-        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/fromCad/grünfläche.shp"
+        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/generated/grünfläche.shp"
       - name: Baufeld
         update: true
         color: "Light Red"
@@ -578,7 +578,7 @@ projects:
             layers:
               - Wald Abstand
               - Grünfläche
-        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/fromCad/baufeld.shp"
+        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/generated/baufeld.shp"
       - name: Baugrenze
         update: true
         color: "Blue"
@@ -590,7 +590,7 @@ projects:
             layers:
               - Baufeld
             distance: -3
-        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/fromCad/baugrenze.shp"
+        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/generated/baugrenze.shp"
       - name: WMTS DOP
         # update: true
         color: Black

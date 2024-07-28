@@ -31,6 +31,16 @@ class DXFExporter:
             if not self.is_wmts_layer(layer):
                 self.colors[f"{layer['name']} Label"] = text_color_code
 
+    def remove_unused_entities(self, msp):
+        log_info("Removing unused entities...")
+        removed_count = 0
+        for entity in msp:
+            if entity.dxf.layer not in self.layer_properties:
+                msp.delete_entity(entity)
+                removed_count += 1
+        log_info(f"Removed {removed_count} unused entities")
+
+
     def export_to_dxf(self):
         log_info("Starting DXF export...")
         dxf_version = self.project_settings.get('dxfVersion', 'R2010')
@@ -50,6 +60,9 @@ class DXFExporter:
 
         # Process layers
         self.process_layers(doc, msp)
+
+        # Remove unused entities
+        self.remove_unused_entities(msp)
 
         # Save the DXF file
         doc.saveas(self.dxf_filename)
