@@ -60,8 +60,11 @@ class LayerProcessor:
             return
 
         if 'operations' in layer_obj:
+            result_geometry = None
             for operation in layer_obj['operations']:
-                self.process_operation(layer_name, operation, processed_layers)
+                result_geometry = self.process_operation(layer_name, operation, processed_layers)
+            if result_geometry is not None:
+                self.all_layers[layer_name] = result_geometry
         elif 'shapeFile' in layer_obj:
             # The shapefile should have been loaded in setup_shapefiles
             if layer_name not in self.all_layers:
@@ -184,12 +187,28 @@ class LayerProcessor:
             log_warning(f"No valid source layers found for copy operation on {layer_name}")
 
     def write_shapefile(self, layer_name, output_path):
+        log_info(f"Writing shapefile for layer {layer_name}: {output_path}")
         if layer_name in self.all_layers:
             gdf = self.all_layers[layer_name]
             if isinstance(gdf, gpd.GeoDataFrame):
-                full_path = self.project_loader.resolve_full_path(output_path)
-                gdf.to_file(full_path)
-                log_info(f"Shapefile written for layer {layer_name}: {full_path}")
+                # Handle GeometryCollection
+                def convert_geometry(geom):
+                    if isinstance(geom, GeometryCollection):
+                        polygons = [g for g in geom.geoms if isinstance(g, (Polygon, MultiPolygon))]
+                        if polygons:
+                            return MultiPolygon(polygons)
+                        return None
+                    return geom
+
+                gdf['geometry'] = gdf['geometry'].apply(convert_geometry)
+                gdf = gdf[gdf['geometry'].notna()]
+
+                if not gdf.empty:
+                    full_path = self.project_loader.resolve_full_path(output_path)
+                    gdf.to_file(full_path)
+                    log_info(f"Shapefile written for layer {layer_name}: {full_path}")
+                else:
+                    log_warning(f"No valid geometries found for layer {layer_name} after conversion")
             else:
                 log_warning(f"Cannot write shapefile for layer {layer_name}: not a GeoDataFrame")
         else:
