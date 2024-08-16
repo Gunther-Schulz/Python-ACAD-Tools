@@ -15,7 +15,7 @@ projects:
         update: true
         color: "Light Blue"
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/Grundlagen/wasser_bodeverband/5LV11_PVA-Fhof.shp"
-      - name: GrünflächeWBVPuffer
+      - name: Grünfläche
         add: true
         update: true
         operations:

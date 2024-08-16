@@ -11,9 +11,9 @@ from src.dxf_exporter import DXFExporter
 from src.utils import log_error, setup_logging, setup_proj
 
 class ProjectProcessor:
-    def __init__(self, project_name: str):
+    def __init__(self, project_name: str, plot_ops=False):
         self.project_loader = ProjectLoader(project_name)
-        self.layer_processor = LayerProcessor(self.project_loader)
+        self.layer_processor = LayerProcessor(self.project_loader, plot_ops)
         self.dxf_exporter = DXFExporter(self.project_loader, self.layer_processor)
 
     def run(self):
@@ -26,12 +26,13 @@ def main():
 
     parser = argparse.ArgumentParser(description="Process and export project data to DXF.")
     parser.add_argument("project_name", help="Name of the project to process")
+    parser.add_argument('--plot-ops', action='store_true', help="Plot the result of each operation")
     args = parser.parse_args()
 
     print(f"Processing project: {args.project_name}")
 
     try:
-        processor = ProjectProcessor(args.project_name)
+        processor = ProjectProcessor(args.project_name, plot_ops=args.plot_ops)
         processor.run()
     except yaml.YAMLError as e:
         error_message = f"YAML parsing error in projects.yaml: {str(e)}"

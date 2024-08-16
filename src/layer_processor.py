@@ -8,11 +8,12 @@ from shapely.ops import unary_union
 import shutil
 
 class LayerProcessor:
-    def __init__(self, project_loader):
+    def __init__(self, project_loader, plot_ops=False):
         self.project_loader = project_loader
         self.all_layers = {}
         self.project_settings = project_loader.project_settings
         self.crs = project_loader.crs
+        self.plot_ops = plot_ops  # New flag for plotting operations
 
     def process_layers(self):
         log_info("Starting to process layers...")
@@ -109,30 +110,46 @@ class LayerProcessor:
             operation['layers'] = [layer_name]
 
         # Perform the operation
+        result = None
         if op_type == 'copy':
-            self.create_copy_layer(layer_name, operation)
+            result = self.create_copy_layer(layer_name, operation)
         elif op_type == 'buffer':
-            self.create_buffer_layer(layer_name, operation)
+            result = self.create_buffer_layer(layer_name, operation)
         elif op_type == 'difference':
-            self.create_difference_layer(layer_name, operation)
+            result = self.create_difference_layer(layer_name, operation)
         elif op_type == 'intersection':
-            self.create_intersection_layer(layer_name, operation)
+            result = self.create_intersection_layer(layer_name, operation)
         elif op_type == 'filter':
-            self.create_filtered_layer(layer_name, operation)
+            result = self.create_filtered_layer(layer_name, operation)
         elif op_type == 'wmts':
-            self.process_wmts_layer(layer_name, operation)
+            result = self.process_wmts_layer(layer_name, operation)
         elif op_type == 'merge':
-            self.create_merged_layer(layer_name, operation)
+            result = self.create_merged_layer(layer_name, operation)
         elif op_type == 'smooth':
-            self.create_smooth_layer(layer_name, operation)
+            result = self.create_smooth_layer(layer_name, operation)
         else:
             log_warning(f"Unknown operation type: {op_type} for layer {layer_name}")
 
-        # Ensure the result is stored in all_layers
-        if layer_name not in self.all_layers:
-            log_warning(f"Operation {op_type} did not produce a result for layer {layer_name}")
+        if result is not None:
+            self.all_layers[layer_name] = result
+            if self.plot_ops:
+                self.plot_operation_result(layer_name, op_type, result)
+
+        return result
+
+    def plot_operation_result(self, layer_name, op_type, result):
+        plt.figure(figsize=(10, 10))
+        if isinstance(result, gpd.GeoDataFrame):
+            result.plot(ax=plt.gca())
+        elif isinstance(result, list):  # For WMTS tiles
+            log_info(f"WMTS layer {layer_name} cannot be plotted directly.")
+            return
         else:
-            log_info(f"Layer {layer_name} processed successfully")
+            gpd.GeoSeries([result]).plot(ax=plt.gca())
+        plt.title(f"{op_type.capitalize()} Operation Result for {layer_name}")
+        plt.axis('off')
+        plt.tight_layout()
+        plt.show()
 
     def _process_layer_info(self, layer_info):
         if isinstance(layer_info, str):
