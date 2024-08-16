@@ -32,6 +32,7 @@ projects:
         color: Black
         locked: true
         add: true
+        label: elevation
         operations:
           - type: contour
             url: "https://www.geodaten-mv.de/dienste/dgm_atom?type=dataset&id=df758744-b2a1-4d39-b34c-9ec5bf9b4372"

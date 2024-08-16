@@ -672,7 +672,7 @@ class LayerProcessor:
             return None
 
         buffer_distance = operation.get('buffer', 0)
-        contour_gdf = process_contour(operation, geltungsbereich, buffer_distance)
+        contour_gdf = process_contour(operation, geltungsbereich, buffer_distance, self.crs)
 
         self.all_layers[layer_name] = contour_gdf
         return contour_gdf
