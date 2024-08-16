@@ -28,6 +28,8 @@ def main():
     parser.add_argument("project_name", help="Name of the project to process")
     args = parser.parse_args()
 
+    print(f"Processing project: {args.project_name}")
+
     try:
         processor = ProjectProcessor(args.project_name)
         processor.run()
@@ -46,8 +48,13 @@ def main():
         error_message = str(e)
         file_path = error_message.split("Failed to create file")[1].split(":")[0].strip()
         directory = os.path.dirname(file_path)
-        error_message = f"Error: Unable to create file. The directory does not exist: {directory}\n"
+        error_message = f"Error: Unable to create file. The directory does not exist: {os.path.abspath(directory)}\n"
         error_message += "Please ensure that the directory exists before running the program."
+        log_error(error_message)
+        sys.exit(1)
+    except FileNotFoundError as e:
+        full_path = os.path.abspath(os.path.join(processor.project_loader.folder_prefix, e.filename))
+        error_message = f"Error: File not found: {full_path}"
         log_error(error_message)
         sys.exit(1)
     except Exception as e:

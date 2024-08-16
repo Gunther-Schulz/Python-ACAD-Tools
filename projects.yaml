@@ -3,6 +3,25 @@
 # folderPrefix: "~/IONOS HiDrive"
 folderPrefix: "~/hidrive"
 projects:
+  - name: Friedrichshof
+    exportFormat: dxf
+    dxfVersion: R2018
+    crs: EPSG:25833
+    dxfFilename: "Öxffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/Zeichnung/24 08.13 Friedrichshof  Zeichnung -2.dxf"
+    dxfLayers:
+      - name: WasserBodenVerband
+        add: true
+        update: true
+        color: "Light Blue"
+        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/Grundlagen/wasser_bodeverband/5LV11_PVA-Fhof.shp"
+      - name: Grünfläche
+        add: true
+        update: true
+        operations:
+          - type: buffer
+            layers:
+              - WasserBodenVerband
+            distance: 7
   - name: Plasten
     exportFormat: dxf
     dxfVersion: R2018
@@ -10,9 +29,9 @@ projects:
     dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Zeichnung/Plasten.dxf"
     dxfLayers:
       - name: Flur
-        # add: true
+        add: true
         update: true
-        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/flur.shp"
+        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/flur.shp"
         label: flurname
         color: Cyan
         close: true
@@ -27,7 +46,7 @@ projects:
       - name: Parcel
         add: true
         update: true
-        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/parcel.shp"
+        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/parcel.shp"
         label: label
         color: Black
         close: true
@@ -40,9 +59,9 @@ projects:
         vp_freeze: false
         transparency: 0.0
       - name: Gemarkung
-        # add: true
+        add: true
         update: true
-        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/gemarkung.shp"
+        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/gemarkung.shp"
         label: gmkname
         color: "Medium Orange Red"
         close: true
@@ -55,9 +74,9 @@ projects:
         vp_freeze: false
         transparency: 0.0
       - name: Gemeinde
-        # add: true
+        add: true
         update: true
-        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/gemeinde.shp"
+        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/gemeinde.shp"
         label: gen
         color: "Dark Red"
         close: true
@@ -72,21 +91,21 @@ projects:
       - name: Grünfläche Input 1
         add: false
         update: true
-        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/geltungsbereich_abstand.shp"
+        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/geltungsbereich_abstand.shp"
         color: "Light Green"
         close: true
         locked: false
       - name: Wald
         add: true
         update: true
-        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/wald.shp"
+        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/wald.shp"
         color: "Dark Green"
         close: true
         locked: false
       - name: Biotope Input 1
         # add: true
         update: true
-        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/biotope.shp"
+        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/biotope.shp"
         color: "Green"
         close: true
         locked: false
@@ -96,11 +115,11 @@ projects:
         color: "Red"
         locked: false
         close: true
-        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/exclude.shp"
+        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/exclude.shp"
       - name: Baumabstand
         add: false
         update: true
-        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/baum_abstand.shp"
+        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/baum_abstand.shp"
         color: "Dark Green"
         close: true
         locked: false
@@ -127,14 +146,14 @@ projects:
         linetype: dashed
         locked: false
         close: true
-        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/gesch_biotope.shp"
+        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/gesch_biotope.shp"
       - name: FG
         add: true
         update: true
         operations:
           - type: buffer
             distance: 5
-        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/FG.shp"
+        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/FG.shp"
         outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/fg.shp"
       - name: Geltungsbereich 1
         add: true
@@ -307,10 +326,11 @@ projects:
               - Geltungsbereich 3
           - type: difference
             layers:
-              - Grünfläche
-              - FG
-          - type: smooth
-            strength: 1.5
+              # - Grünfläche
+              - Biotope
+              # - FG
+          # - type: smooth
+          #   strength: 1.5
         outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/baufeld_smoothed.shp"
       - name: WMTS DOP
         add: true
@@ -354,6 +374,8 @@ projects:
     dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/Zeichnung/torgelow.dxf"
     dxfLayers:
       - name: Flur
+        update: true
+        add: true
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/flur2.shp"
         label: "flurname"
         linetype: Continuous
@@ -364,8 +386,9 @@ projects:
         is_on: true
         vp_freeze: false
         transparency: 0.0
-        add: true
       - name: Parcel
+        update: true
+        add: true
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/parcel2.shp"
         label: label
         color: White
@@ -378,8 +401,9 @@ projects:
         transparency: 0.0
         locked: true
         close: true
-        add: true
       - name: Gemarkung
+        update: true
+        add: true
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/gemarkung2.shp"
         label: gmkname
         color: White
@@ -391,8 +415,9 @@ projects:
         is_on: true
         vp_freeze: false
         transparency: 0.0
-        add: true
       - name: Gemeinde
+        update: true
+        add: true
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/gemeinde2.shp"
         label: gen
         color: White
@@ -404,9 +429,9 @@ projects:
         is_on: true
         vp_freeze: false
         transparency: 0.0
-        add: true
       - name: Wald
         update: true
+        add: true
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/wald.shp"
         label: waldname
         color: Dark Green
@@ -419,14 +444,13 @@ projects:
         vp_freeze: false
         transparency: 0.0
         close: true
-        add: true
       # - name: Biotope
+      #   add: true
       #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/biotope.shp"
       #   label: biotopn
       #   color: "Green"
       #   close: true
       #   locked: false
-      #   add: true
       - name: Straße
         update: true
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/abstand.shp"
@@ -586,10 +610,11 @@ projects:
           - type: copy
             layers:
               - Geltungsbereich
-          - type: difference
-            layers:
-              - Wald Abstand
-              - Grünfläche
+          # - type: difference
+          #   layers:
+          #     - Biotope
+          #     - Wald Abstand
+          #     - Grünfläche
         outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/generated/baufeld.shp"
       - name: Baugrenze
         update: true
