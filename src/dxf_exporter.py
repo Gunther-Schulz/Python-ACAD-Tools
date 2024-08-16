@@ -148,12 +148,8 @@ class DXFExporter:
             log_info(f"Removing existing entities for layer {layer_name}")
             entities_to_delete = []
             for entity in msp.query(f'*[layer=="{layer_name}"]'):
-                log_info(f"Checking entity in layer {layer_name}: {entity}")
                 if self.is_created_by_script(entity):
                     entities_to_delete.append(entity)
-                    log_info(f"Marked entity for deletion: {entity}")
-                else:
-                    log_info(f"Entity not created by script, keeping: {entity}")
             
             delete_count = 0
             for entity in entities_to_delete:
@@ -284,7 +280,6 @@ class DXFExporter:
                     len(hyperlink) > 0 and 
                     hyperlink[0] == self.script_identifier
                 )
-                log_info(f"Checking entity {entity}: hyperlink = '{hyperlink}', created by script = {is_created}")
                 return is_created
             except Exception as e:
                 log_error(f"Error getting hyperlink for entity {entity}: {str(e)}")
@@ -583,7 +578,6 @@ class DXFExporter:
         for entity in msp.query(f'*[layer=="{layer_name}"]'):
             if hasattr(entity, 'get_hyperlink'):
                 hyperlink = entity.get_hyperlink()
-                log_info(f"Entity {entity} in layer {layer_name} has hyperlink: '{hyperlink}'")
             else:
                 log_warning(f"Entity {entity} in layer {layer_name} has no 'get_hyperlink' method")
 
@@ -592,6 +586,5 @@ class DXFExporter:
         for entity in doc.modelspace():
             if hasattr(entity, 'get_hyperlink'):
                 hyperlink = entity.get_hyperlink()
-                log_info(f"Entity {entity} has hyperlink: {hyperlink}")
             else:
                 log_info(f"Entity {entity} has no 'get_hyperlink' method")
