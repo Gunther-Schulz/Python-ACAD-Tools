@@ -99,17 +99,16 @@ class DXFExporter:
             layer_name = layer_info['name']
             
             # Only process layers that are explicitly set to be added or updated
-            if layer_info.get('add', False) or layer_info.get('update', False):
+            if layer_info.get('update', False):
                 self.process_single_layer(doc, msp, layer_name, layer_info)
 
     def process_single_layer(self, doc, msp, layer_name, layer_info):
         update_flag = layer_info.get('update', False)
-        add_flag = layer_info.get('add', False)
         log_info(f"Processing layer: {layer_name}")
-        log_info(f"Update flag: {update_flag}, Add flag: {add_flag}")
+        log_info(f"Update flag: {update_flag}")
 
-        if not add_flag:
-            log_info(f"Skipping layer {layer_name} as 'add' flag is not set")
+        if not update_flag:
+            log_info(f"Skipping layer {layer_name} as 'update' flag is not set")
             return
 
         if self.is_wmts_layer(layer_info):
@@ -136,38 +135,33 @@ class DXFExporter:
 
     def update_layer_geometry(self, msp, layer_name, geo_data, layer_config):
         update_flag = layer_config.get('update', False)
-        add_flag = layer_config.get('add', False)
         
-        log_info(f"Updating layer geometry for {layer_name}. Update flag: {update_flag}, Add flag: {add_flag}")
+        log_info(f"Updating layer geometry for {layer_name}. Update flag: {update_flag}")
         
-        if not add_flag:
-            log_info(f"Skipping geometry update for layer {layer_name} as 'add' flag is not set")
+        if not update_flag:
+            log_info(f"Skipping geometry update for layer {layer_name} as 'update' flag is not set")
             return
 
-        if update_flag:
-            log_info(f"Removing existing entities for layer {layer_name}")
-            entities_to_delete = []
-            for entity in msp.query(f'*[layer=="{layer_name}"]'):
-                if self.is_created_by_script(entity):
-                    entities_to_delete.append(entity)
-            
-            delete_count = 0
-            for entity in entities_to_delete:
-                try:
-                    msp.delete_entity(entity)
-                    delete_count += 1
-                except Exception as e:
-                    log_error(f"Error deleting entity: {e}")
-            
-            log_info(f"Removed {delete_count} entities from layer {layer_name}")
+        # Always remove existing entities if update flag is set
+        log_info(f"Removing existing entities for layer {layer_name}")
+        entities_to_delete = [entity for entity in msp.query(f'*[layer=="{layer_name}"]') if self.is_created_by_script(entity)]
+        
+        delete_count = 0
+        for entity in entities_to_delete:
+            try:
+                msp.delete_entity(entity)
+                delete_count += 1
+            except Exception as e:
+                log_error(f"Error deleting entity: {e}")
+        
+        log_info(f"Removed {delete_count} entities from layer {layer_name}")
 
-        # Add new geometry and labels only if we're adding or updating
-        if add_flag or update_flag:
-            log_info(f"Adding new geometry to layer {layer_name}")
-            if isinstance(geo_data, list) and all(isinstance(item, tuple) for item in geo_data):
-                self.add_wmts_xrefs_to_dxf(msp, geo_data, layer_name)
-            else:
-                self.add_geometries_to_dxf(msp, geo_data, layer_name)
+        # Add new geometry and labels
+        log_info(f"Adding new geometry to layer {layer_name}")
+        if isinstance(geo_data, list) and all(isinstance(item, tuple) for item in geo_data):
+            self.add_wmts_xrefs_to_dxf(msp, geo_data, layer_name)
+        else:
+            self.add_geometries_to_dxf(msp, geo_data, layer_name)
 
         # Verify hyperlinks after adding new entities
         self.verify_entity_hyperlinks(msp, layer_name)
