@@ -390,7 +390,7 @@ class DXFExporter:
                     self.add_linestring_to_dxf(msp, line, layer_name)
             else:
                 self.add_geometry_to_dxf(msp, geometry, layer_name)
-            
+
             if labels is not None:
                 self.add_label_to_dxf(msp, geometry, labels.iloc[idx], layer_name)
             elif self.is_generated_layer(layer_name):
@@ -427,13 +427,30 @@ class DXFExporter:
 
     def add_linestring_to_dxf(self, msp, linestring, layer_name):
         points = list(linestring.coords)
-        polyline = msp.add_lwpolyline(points, dxfattribs={
-            'layer': layer_name,
-            'closed': False,  # Ensure the polyline is not closed
-            'flags': 0  # Ensure no special flags are set
-        })
-        self.attach_custom_data(polyline)
-        log_info(f"Added open linestring to layer {layer_name}: {polyline}")
+        log_info(f"Adding linestring to layer {layer_name} with {len(points)} points")
+        log_info(f"First point: {points[0][:2] if points else 'No points'}")
+
+        try:
+            # Extract only x and y coordinates
+            points_2d = [(p[0], p[1]) for p in points]
+            
+            polyline = msp.add_lwpolyline(
+                points=points_2d,
+                dxfattribs={
+                    'layer': layer_name,
+                    'closed': False,
+                }
+            )
+            
+            # Set constant width to 0
+            polyline.dxf.const_width = 0
+            
+            self.attach_custom_data(polyline)
+            log_info(f"Successfully added polyline to layer {layer_name}")
+            log_info(f"Polyline properties: {polyline.dxf.all_existing_dxf_attribs()}")
+        except Exception as e:
+            log_error(f"Error adding polyline to layer {layer_name}: {str(e)}")
+            log_error(f"Points causing error: {points_2d}")
 
     def add_label_to_dxf(self, msp, geometry, label, layer_name):
         centroid = self.get_geometry_centroid(geometry)

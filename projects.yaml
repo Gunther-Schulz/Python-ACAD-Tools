@@ -14,19 +14,19 @@ projects:
         add: false
         update: true
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/geltungsbereich.shp"
-      # - name: WasserBodenVerband
-      #   add: true
-      #   update: true
-      #   color: "Light Blue"
-      #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/Grundlagen/wasser_bodeverband/5LV11_PVA-Fhof.shp"
-      # - name: WBVGrünfläche
-      #   add: true
-      #   update: true
-      #   operations:
-      #     - type: buffer
-      #       layers:
-      #         - WasserBodenVerband
-      #       distance: 7
+      - name: WasserBodenVerband
+        add: true
+        update: true
+        color: "Light Blue"
+        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/Grundlagen/wasser_bodeverband/5LV11_PVA-Fhof.shp"
+      - name: WBVGrünfläche
+        add: true
+        update: true
+        operations:
+          - type: buffer
+            layers:
+              - WasserBodenVerband
+            distance: 7
       - name: Contour
         # update: true
         color: Black
@@ -39,7 +39,7 @@ projects:
             layers:
               - Geltungsbereich
             buffer: 200
-        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/generated/contour.shp"
+        # outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/generated/contour.shp"
   - name: Plasten
     exportFormat: dxf
     dxfVersion: R2018
