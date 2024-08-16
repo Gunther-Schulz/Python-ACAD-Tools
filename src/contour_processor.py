@@ -13,6 +13,7 @@ import zipfile
 from rasterio.merge import merge
 from pyproj import Transformer
 import pandas as pd
+import hashlib
 
 CACHE_DIR = '.cache'
 
@@ -22,14 +23,14 @@ def ensure_cache_dir():
         log_info(f"Created cache directory: {CACHE_DIR}")
 
 def get_cached_file(url, file_type):
-    file_name = os.path.join(CACHE_DIR, f"{hash(url)}.{file_type}")
+    file_name = os.path.join(CACHE_DIR, f"{hashlib.md5(url.encode()).hexdigest()}.{file_type}")
     if os.path.exists(file_name):
         log_info(f"Using cached file: {file_name}")
         return file_name
     return None
 
 def cache_file(url, content, file_type):
-    file_name = os.path.join(CACHE_DIR, f"{hash(url)}.{file_type}")
+    file_name = os.path.join(CACHE_DIR, f"{hashlib.md5(url.encode()).hexdigest()}.{file_type}")
     with open(file_name, 'wb') as f:
         f.write(content)
     log_info(f"Cached file: {file_name}")
@@ -153,4 +154,3 @@ def process_contour(operation, geltungsbereich, buffer_distance, project_crs):
     log_info("Contour processing completed successfully")
 
     return clipped_gdf
-
