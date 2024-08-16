@@ -321,7 +321,10 @@ class DXFExporter:
             return
 
         for idx, geometry in enumerate(geometries):
-            self.add_geometry_to_dxf(msp, geometry, layer_name)
+            if isinstance(geometry, (LineString, MultiLineString)):
+                self.add_linestring_to_dxf(msp, geometry, layer_name)
+            else:
+                self.add_geometry_to_dxf(msp, geometry, layer_name)
             
             if labels is not None:
                 self.add_label_to_dxf(msp, geometry, labels.iloc[idx], layer_name)
@@ -359,7 +362,7 @@ class DXFExporter:
             if len(coords) > 1:
                 msp.add_lwpolyline(coords, dxfattribs={
                     'layer': layer_name,
-                    'closed': self.layer_properties[layer_name].get('close', False)
+                    'closed': False  # Always set to False for linestrings
                 })
 
     def add_label_to_dxf(self, msp, geometry, label, layer_name):
@@ -395,7 +398,8 @@ class DXFExporter:
             'is_on': layer_info.get('is_on', True),
             'vp_freeze': layer_info.get('vp_freeze', False),
             'transparency': layer_info.get('transparency', 0.0),
-            'close': layer_info.get('close', True)
+            'close': layer_info.get('close', True),
+            'close_linestring': layer_info.get('close_linestring', False)  # New property
         }
         self.layer_properties[layer_name] = properties
         
