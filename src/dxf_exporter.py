@@ -357,7 +357,10 @@ class DXFExporter:
         for linestring in linestrings:
             coords = list(linestring.coords)
             if len(coords) > 1:
-                msp.add_lwpolyline(coords, dxfattribs={'layer': layer_name, 'closed': self.layer_properties[layer_name]['close']})
+                msp.add_lwpolyline(coords, dxfattribs={
+                    'layer': layer_name,
+                    'closed': self.layer_properties[layer_name].get('close', False)
+                })
 
     def add_label_to_dxf(self, msp, geometry, label, layer_name):
         centroid = self.get_geometry_centroid(geometry)
