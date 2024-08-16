@@ -7,14 +7,15 @@ projects:
     exportFormat: dxf
     dxfVersion: R2018
     crs: EPSG:25833
-    dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/Zeichnung/24 08.13 Friedrichshof  Zeichnung -2.dxf"
+    # dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/Zeichnung/24 08.13 Friedrichshof  Zeichnung -2.dxf"
+    dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/Zeichnung/test.dxf"
     dxfLayers:
       - name: WasserBodenVerband
         add: true
         update: true
         color: "Light Blue"
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/Grundlagen/wasser_bodeverband/5LV11_PVA-Fhof.shp"
-      # - name: Grünfläche
+      # - name: GrünflächeWBVPuffer
       #   add: true
       #   update: true
       #   operations:
