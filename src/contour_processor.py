@@ -5,7 +5,7 @@ import numpy as np
 from scipy.ndimage import gaussian_filter
 import geopandas as gpd
 from shapely.geometry import LineString
-from src.logger import log_info, log_warning, log_error
+from src.utils import log_info, log_warning, log_error
 
 def process_contour(operation, geltungsbereich, buffer_distance):
     url = operation['url']

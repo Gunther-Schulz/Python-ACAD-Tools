@@ -10,19 +10,23 @@ projects:
     # dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/Zeichnung/24 08.16 Friedrichshof  Zeichnung -2.dxf"
     dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/Zeichnung/test.dxf"
     dxfLayers:
-      - name: WasserBodenVerband
-        add: true
+      - name: Geltungsbereich
+        add: false
         update: true
-        color: "Light Blue"
-        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/Grundlagen/wasser_bodeverband/5LV11_PVA-Fhof.shp"
-      - name: WBVGrünfläche
-        add: true
-        update: true
-        operations:
-          - type: buffer
-            layers:
-              - WasserBodenVerband
-            distance: 7
+        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/geltungsbereich.shp"
+      # - name: WasserBodenVerband
+      #   add: true
+      #   update: true
+      #   color: "Light Blue"
+      #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/Grundlagen/wasser_bodeverband/5LV11_PVA-Fhof.shp"
+      # - name: WBVGrünfläche
+      #   add: true
+      #   update: true
+      #   operations:
+      #     - type: buffer
+      #       layers:
+      #         - WasserBodenVerband
+      #       distance: 7
       - name: Contour
         # update: true
         color: Black
