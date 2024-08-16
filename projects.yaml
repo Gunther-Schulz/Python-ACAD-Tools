@@ -7,8 +7,8 @@ projects:
     exportFormat: dxf
     dxfVersion: R2018
     crs: EPSG:25833
-    # dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/Zeichnung/24 08.13 Friedrichshof  Zeichnung -2.dxf"
-    dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/Zeichnung/test.dxf"
+    dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/Zeichnung/24 08.13 Friedrichshof  Zeichnung -2.dxf"
+    # dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/Zeichnung/test.dxf"
     dxfLayers:
       - name: WasserBodenVerband
         add: true
