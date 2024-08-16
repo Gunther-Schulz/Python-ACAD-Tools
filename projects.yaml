@@ -7,15 +7,15 @@ projects:
     exportFormat: dxf
     dxfVersion: R2018
     crs: EPSG:25833
-    dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/Zeichnung/24 08.13 Friedrichshof  Zeichnung -2.dxf"
-    # dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/Zeichnung/test.dxf"
+    # dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/Zeichnung/24 08.16 Friedrichshof  Zeichnung -2.dxf"
+    dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/Zeichnung/test.dxf"
     dxfLayers:
       - name: WasserBodenVerband
         add: true
         update: true
         color: "Light Blue"
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/Grundlagen/wasser_bodeverband/5LV11_PVA-Fhof.shp"
-      - name: Grünfläche
+      - name: WBVGrünfläche
         add: true
         update: true
         operations:
@@ -23,6 +23,17 @@ projects:
             layers:
               - WasserBodenVerband
             distance: 7
+      - name: Contour
+        # update: true
+        color: Black
+        locked: true
+        add: true
+        operations:
+          - type: contour
+            url: "https://www.geodaten-mv.de/dienste/dgm_atom?type=dataset&id=df758744-b2a1-4d39-b34c-9ec5bf9b4372"
+            layers:
+              - Geltungsbereich
+            buffer: 200
   - name: Plasten
     exportFormat: dxf
     dxfVersion: R2018
