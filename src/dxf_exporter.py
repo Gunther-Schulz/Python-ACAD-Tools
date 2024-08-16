@@ -383,8 +383,11 @@ class DXFExporter:
             return
 
         for idx, geometry in enumerate(geometries):
-            if isinstance(geometry, (LineString, MultiLineString)):
+            if isinstance(geometry, LineString):
                 self.add_linestring_to_dxf(msp, geometry, layer_name)
+            elif isinstance(geometry, MultiLineString):
+                for line in geometry.geoms:
+                    self.add_linestring_to_dxf(msp, line, layer_name)
             else:
                 self.add_geometry_to_dxf(msp, geometry, layer_name)
             
@@ -422,24 +425,15 @@ class DXFExporter:
                     self.attach_custom_data(polyline)
                     log_info(f"Added polygon interior to layer {layer_name}: {polyline}")
 
-    def add_linestring_to_dxf(self, msp, geometry, layer_name):
-        log_info(f"Adding linestring to layer {layer_name}")
-        if isinstance(geometry, LineString):
-            linestrings = [geometry]
-        elif isinstance(geometry, MultiLineString):
-            linestrings = list(geometry.geoms)
-        else:
-            return
-
-        for linestring in linestrings:
-            coords = list(linestring.coords)
-            if len(coords) > 1:
-                polyline = msp.add_lwpolyline(coords, dxfattribs={
-                    'layer': layer_name,
-                    'closed': False  # Always set to False for linestrings
-                })
-                self.attach_custom_data(polyline)
-                log_info(f"Added linestring to layer {layer_name}: {polyline}")
+    def add_linestring_to_dxf(self, msp, linestring, layer_name):
+        points = list(linestring.coords)
+        polyline = msp.add_lwpolyline(points, dxfattribs={
+            'layer': layer_name,
+            'closed': False,  # Ensure the polyline is not closed
+            'flags': 0  # Ensure no special flags are set
+        })
+        self.attach_custom_data(polyline)
+        log_info(f"Added open linestring to layer {layer_name}: {polyline}")
 
     def add_label_to_dxf(self, msp, geometry, label, layer_name):
         centroid = self.get_geometry_centroid(geometry)
@@ -565,8 +559,11 @@ class DXFExporter:
     def add_geometry_to_dxf(self, msp, geometry, layer_name):
         if isinstance(geometry, (Polygon, MultiPolygon)):
             self.add_polygon_to_dxf(msp, geometry, layer_name)
-        elif isinstance(geometry, (LineString, MultiLineString)):
+        elif isinstance(geometry, LineString):
             self.add_linestring_to_dxf(msp, geometry, layer_name)
+        elif isinstance(geometry, MultiLineString):
+            for line in geometry.geoms:
+                self.add_linestring_to_dxf(msp, line, layer_name)
         elif isinstance(geometry, GeometryCollection):
             for geom in geometry.geoms:
                 self.add_geometry_to_dxf(msp, geom, layer_name)

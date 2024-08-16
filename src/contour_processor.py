@@ -5,6 +5,7 @@ import numpy as np
 from scipy.ndimage import gaussian_filter
 import geopandas as gpd
 from shapely.geometry import LineString, box
+from shapely.ops import linemerge, unary_union
 from src.utils import log_info, log_warning, log_error
 from skimage import measure
 import os
@@ -134,6 +135,8 @@ def process_contour(operation, geltungsbereich, buffer_distance, project_crs):
     gdf_list = []
     for shp_file in shape_files:
         gdf = gpd.read_file(shp_file)
+        # Ensure we only keep LineString geometries
+        gdf = gdf[gdf.geometry.type == 'LineString']
         gdf_list.append(gdf)
 
     merged_gdf = gpd.GeoDataFrame(pd.concat(gdf_list, ignore_index=True), crs=gdf_list[0].crs)
@@ -143,26 +146,11 @@ def process_contour(operation, geltungsbereich, buffer_distance, project_crs):
     clipped_gdf = merged_gdf.clip(geltungsbereich_buffered)
     log_info(f"Clipped GeoDataFrame contains {len(clipped_gdf)} features")
 
+    # Ensure all geometries are LineStrings
+    clipped_gdf = clipped_gdf[clipped_gdf.geometry.type == 'LineString']
+    log_info(f"Final GeoDataFrame contains {len(clipped_gdf)} LineString features")
+
     log_info("Contour processing completed successfully")
 
     return clipped_gdf
 
-def generate_contours(elevation_data, transform, interval=1.0):
-    log_info(f"Generating contours with interval {interval}")
-    contours = []
-    min_elevation = np.nanmin(elevation_data)
-    max_elevation = np.nanmax(elevation_data)
-    log_info(f"Elevation range: {min_elevation} to {max_elevation}")
-
-    levels = np.arange(min_elevation, max_elevation, interval)
-    log_info(f"Generating contours for {len(levels)} levels")
-
-    for level in levels:
-        level_contours = measure.find_contours(elevation_data, level)
-        log_info(f"Found {len(level_contours)} contours at level {level}")
-        for contour in level_contours:
-            coords = [rasterio.transform.xy(transform, y, x) for y, x in contour]
-            contours.append(LineString(coords))
-
-    log_info(f"Total contours generated: {len(contours)}")
-    return contours

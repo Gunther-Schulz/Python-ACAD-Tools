@@ -30,7 +30,7 @@ projects:
       - name: Contour
         # update: true
         color: Black
-        locked: true
+        locked: false
         add: true
         label: elevation
         operations:
