@@ -116,13 +116,13 @@ class DXFExporter:
             log_info(f"Processing WMTS layer: {layer_name}")
             self.create_new_layer(doc, msp, layer_name, layer_info)
         else:
-            if layer_name in doc.layers:
+            if layer_name not in doc.layers:
+                log_info(f"Creating new layer: {layer_name}")
+                self.create_new_layer(doc, msp, layer_name, layer_info, add_geometry=False)
+            else:
                 existing_layer = doc.layers.get(layer_name)
                 self.update_layer_properties(existing_layer, layer_info)
-                log_info(f"Layer {layer_name} already exists. Updating properties and geometry.")
-            else:
-                log_info(f"Creating new layer: {layer_name}")
-                self.create_new_layer(doc, msp, layer_name, layer_info)
+                log_info(f"Layer {layer_name} already exists. Updating properties.")
             
             if layer_name in self.all_layers:
                 self.update_layer_geometry(msp, layer_name, self.all_layers[layer_name], layer_info)
@@ -161,17 +161,18 @@ class DXFExporter:
             
             log_info(f"Removed {delete_count} entities from layer {layer_name}")
 
-        # Add new geometry and labels
-        log_info(f"Adding new geometry to layer {layer_name}")
-        if isinstance(geo_data, list) and all(isinstance(item, tuple) for item in geo_data):
-            self.add_wmts_xrefs_to_dxf(msp, geo_data, layer_name)
-        else:
-            self.add_geometries_to_dxf(msp, geo_data, layer_name)
+        # Add new geometry and labels only if we're adding or updating
+        if add_flag or update_flag:
+            log_info(f"Adding new geometry to layer {layer_name}")
+            if isinstance(geo_data, list) and all(isinstance(item, tuple) for item in geo_data):
+                self.add_wmts_xrefs_to_dxf(msp, geo_data, layer_name)
+            else:
+                self.add_geometries_to_dxf(msp, geo_data, layer_name)
 
         # Verify hyperlinks after adding new entities
         self.verify_entity_hyperlinks(msp, layer_name)
 
-    def create_new_layer(self, doc, msp, layer_name, layer_info, existing_layer=None):
+    def create_new_layer(self, doc, msp, layer_name, layer_info, existing_layer=None, add_geometry=True):
         if existing_layer:
             layer = existing_layer
             log_info(f"Using existing layer: {layer_name}")
@@ -193,7 +194,7 @@ class DXFExporter:
                 log_info(f"Created text layer: {text_layer_name}")
                 log_info(f"  Text layer properties: {text_properties}")
 
-        if not existing_layer or layer_info.get('update', False):
+        if add_geometry and (not existing_layer or layer_info.get('update', False)):
             geo_data = self.all_layers.get(layer_name)
             if geo_data is not None:
                 self.add_geometries_to_dxf(msp, geo_data, layer_name)
@@ -382,6 +383,7 @@ class DXFExporter:
             log_warning(f"Unexpected data type for layer {layer_name}: {type(geo_data)}")
             return
 
+        print(f"add_geometries_to_dxf Layer Name: {layer_name}")
         for idx, geometry in enumerate(geometries):
             if isinstance(geometry, LineString):
                 self.add_linestring_to_dxf(msp, geometry, layer_name)
