@@ -4,6 +4,7 @@ from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString,
 from src.utils import log_info, log_warning, log_error
 import geopandas as gpd
 import os
+from ezdxf.lldxf.const import DXFValueError
 
 class DXFExporter:
     def __init__(self, project_loader, layer_processor):
@@ -15,6 +16,8 @@ class DXFExporter:
         self.layer_properties = {}
         self.colors = {}
         self.name_to_aci = project_loader.name_to_aci
+        self.script_identifier = "Created by DXFExporter"
+        log_info(f"DXFExporter initialized with script identifier: {self.script_identifier}")
         self.setup_layers()
 
     def setup_layers(self):
@@ -35,11 +38,12 @@ class DXFExporter:
         log_info("Removing unused entities...")
         removed_count = 0
         for entity in msp:
-            if entity.dxf.layer in processed_layers and entity.dxf.layer not in self.layer_properties:
+            if (entity.dxf.layer in processed_layers and 
+                entity.dxf.layer not in self.layer_properties and
+                self.is_created_by_script(entity)):
                 msp.delete_entity(entity)
                 removed_count += 1
         log_info(f"Removed {removed_count} unused entities from processed layers")
-
 
     def export_to_dxf(self):
         log_info("Starting DXF export...")
@@ -50,6 +54,7 @@ class DXFExporter:
             doc = ezdxf.readfile(self.dxf_filename)
             log_info(f"Loaded existing DXF file: {self.dxf_filename}")
             self.load_existing_layers(doc)
+            self.check_existing_entities(doc)
         else:
             doc = ezdxf.new(dxfversion=dxf_version)
             log_info(f"Created new DXF file with version: {dxf_version}")
@@ -103,21 +108,24 @@ class DXFExporter:
         log_info(f"Processing layer: {layer_name}")
         log_info(f"Update flag: {update_flag}, Add flag: {add_flag}")
 
+        if not add_flag:
+            log_info(f"Skipping layer {layer_name} as 'add' flag is not set")
+            return
+
         if self.is_wmts_layer(layer_info):
-            if add_flag or (update_flag and layer_name in doc.layers):
-                log_info(f"Updating WMTS layer: {layer_name}")
-                self.create_new_layer(doc, msp, layer_name, layer_info)
+            log_info(f"Processing WMTS layer: {layer_name}")
+            self.create_new_layer(doc, msp, layer_name, layer_info)
         else:
             if layer_name in doc.layers:
-                if update_flag:
-                    existing_layer = doc.layers.get(layer_name)
-                    self.update_layer_properties(existing_layer, layer_info)
-                    log_info(f"Layer {layer_name} already exists. Updating properties and geometry.")
-                    if layer_name in self.all_layers:
-                        self.update_layer_geometry(msp, layer_name, self.all_layers[layer_name], layer_info)
-            elif add_flag:
+                existing_layer = doc.layers.get(layer_name)
+                self.update_layer_properties(existing_layer, layer_info)
+                log_info(f"Layer {layer_name} already exists. Updating properties and geometry.")
+            else:
                 log_info(f"Creating new layer: {layer_name}")
                 self.create_new_layer(doc, msp, layer_name, layer_info)
+            
+            if layer_name in self.all_layers:
+                self.update_layer_geometry(msp, layer_name, self.all_layers[layer_name], layer_info)
 
     def verify_dxf_settings(self):
         loaded_doc = ezdxf.readfile(self.dxf_filename)
@@ -127,23 +135,45 @@ class DXFExporter:
         print(f"AUPREC after load: {loaded_doc.header['$AUPREC']}")
 
     def update_layer_geometry(self, msp, layer_name, geo_data, layer_config):
-        update_flag = layer_config.get('update', False)  # Default to False if not specified
+        update_flag = layer_config.get('update', False)
+        add_flag = layer_config.get('add', False)
         
-        if not update_flag and layer_name in msp.doc.layers:
-            log_info(f"Skipping update for layer {layer_name} as update is set to false")
+        log_info(f"Updating layer geometry for {layer_name}. Update flag: {update_flag}, Add flag: {add_flag}")
+        
+        if not add_flag:
+            log_info(f"Skipping geometry update for layer {layer_name} as 'add' flag is not set")
             return
 
-        # Remove existing entities for this layer
-        for entity in msp.query(f'*[layer=="{layer_name}"]'):
-            msp.delete_entity(entity)
-        for entity in msp.query(f'*[layer=="{layer_name} Label"]'):
-            msp.delete_entity(entity)
+        if update_flag:
+            log_info(f"Removing existing entities for layer {layer_name}")
+            entities_to_delete = []
+            for entity in msp.query(f'*[layer=="{layer_name}"]'):
+                log_info(f"Checking entity in layer {layer_name}: {entity}")
+                if self.is_created_by_script(entity):
+                    entities_to_delete.append(entity)
+                    log_info(f"Marked entity for deletion: {entity}")
+                else:
+                    log_info(f"Entity not created by script, keeping: {entity}")
+            
+            delete_count = 0
+            for entity in entities_to_delete:
+                try:
+                    msp.delete_entity(entity)
+                    delete_count += 1
+                except Exception as e:
+                    log_error(f"Error deleting entity: {e}")
+            
+            log_info(f"Removed {delete_count} entities from layer {layer_name}")
 
         # Add new geometry and labels
+        log_info(f"Adding new geometry to layer {layer_name}")
         if isinstance(geo_data, list) and all(isinstance(item, tuple) for item in geo_data):
             self.add_wmts_xrefs_to_dxf(msp, geo_data, layer_name)
         else:
             self.add_geometries_to_dxf(msp, geo_data, layer_name)
+
+        # Verify hyperlinks after adding new entities
+        self.verify_entity_hyperlinks(msp, layer_name)
 
     def create_new_layer(self, doc, msp, layer_name, layer_info, existing_layer=None):
         if existing_layer:
@@ -202,7 +232,7 @@ class DXFExporter:
             layer.dxf.flags = layer.dxf.flags | 1 if layer_info['frozen'] else layer.dxf.flags & ~1
             log_info(f"  Set frozen to: {layer_info['frozen']}")
         if 'is_on' in layer_info:
-            layer.is_on = layer_info['is_on']
+            layer.dxf.is_on = layer_info['is_on']
             log_info(f"  Set is_on to: {layer_info['is_on']}")
         if 'vp_freeze' in layer_info:
             layer.dxf.flags = layer.dxf.flags | 8 if layer_info['vp_freeze'] else layer.dxf.flags & ~8
@@ -225,6 +255,42 @@ class DXFExporter:
             if lt not in doc.linetypes:
                 doc.linetypes.new(lt)
 
+    def attach_custom_data(self, entity):
+        """Attach custom data to identify entities created by this script."""
+        if hasattr(entity, 'set_hyperlink'):
+            try:
+                entity.set_hyperlink(self.script_identifier)
+                log_info(f"Attached custom data to entity: {entity}")
+                # Verify the hyperlink was set correctly
+                if hasattr(entity, 'get_hyperlink'):
+                    set_value = entity.get_hyperlink()
+                    log_info(f"Verified hyperlink for {entity}: {set_value}")
+                    if set_value != self.script_identifier and set_value != (self.script_identifier, '', ''):
+                        log_warning(f"Hyperlink mismatch for {entity}. Expected: {self.script_identifier}, Got: {set_value}")
+                else:
+                    log_warning(f"Entity {entity} has set_hyperlink but not get_hyperlink method")
+            except Exception as e:
+                log_error(f"Error setting hyperlink for entity {entity}: {str(e)}")
+        else:
+            log_warning(f"Unable to attach custom data to entity: {entity}. No 'set_hyperlink' method.")
+
+    def is_created_by_script(self, entity):
+        """Check if an entity was created by this script."""
+        if hasattr(entity, 'get_hyperlink'):
+            try:
+                hyperlink = entity.get_hyperlink()
+                is_created = hyperlink == self.script_identifier or (
+                    isinstance(hyperlink, tuple) and 
+                    len(hyperlink) > 0 and 
+                    hyperlink[0] == self.script_identifier
+                )
+                log_info(f"Checking entity {entity}: hyperlink = '{hyperlink}', created by script = {is_created}")
+                return is_created
+            except Exception as e:
+                log_error(f"Error getting hyperlink for entity {entity}: {str(e)}")
+                return False
+        log_warning(f"Unable to check if entity was created by script: {entity}. No 'get_hyperlink' method.")
+        return False
 
     def add_wmts_xrefs_to_dxf(self, msp, tile_data, layer_name):
         log_info(f"Adding WMTS xrefs to DXF for layer: {layer_name}")
@@ -285,6 +351,7 @@ class DXFExporter:
             rotation=0,
             dxfattribs={'layer': layer_name}
         )
+        self.attach_custom_data(image)
 
         # Set the image path as a relative path
         image.dxf.image_def_handle = image_def.dxf.handle
@@ -332,6 +399,7 @@ class DXFExporter:
                 self.add_label_to_dxf(msp, geometry, layer_name, layer_name)
 
     def add_polygon_to_dxf(self, msp, geometry, layer_name):
+        log_info(f"Adding polygon to layer {layer_name}")
         if isinstance(geometry, Polygon):
             polygons = [geometry]
         elif isinstance(geometry, MultiPolygon):
@@ -342,14 +410,25 @@ class DXFExporter:
         for polygon in polygons:
             exterior_coords = list(polygon.exterior.coords)
             if len(exterior_coords) > 2:
-                msp.add_lwpolyline(exterior_coords, dxfattribs={'layer': layer_name, 'closed': self.layer_properties[layer_name]['close']})
+                polyline = msp.add_lwpolyline(exterior_coords, dxfattribs={
+                    'layer': layer_name, 
+                    'closed': self.layer_properties[layer_name]['close']
+                })
+                self.attach_custom_data(polyline)
+                log_info(f"Added polygon to layer {layer_name}: {polyline}")
 
             for interior in polygon.interiors:
                 interior_coords = list(interior.coords)
                 if len(interior_coords) > 2:
-                    msp.add_lwpolyline(interior_coords, dxfattribs={'layer': layer_name, 'closed': self.layer_properties[layer_name]['close']})
+                    polyline = msp.add_lwpolyline(interior_coords, dxfattribs={
+                        'layer': layer_name, 
+                        'closed': self.layer_properties[layer_name]['close']
+                    })
+                    self.attach_custom_data(polyline)
+                    log_info(f"Added polygon interior to layer {layer_name}: {polyline}")
 
     def add_linestring_to_dxf(self, msp, geometry, layer_name):
+        log_info(f"Adding linestring to layer {layer_name}")
         if isinstance(geometry, LineString):
             linestrings = [geometry]
         elif isinstance(geometry, MultiLineString):
@@ -360,10 +439,12 @@ class DXFExporter:
         for linestring in linestrings:
             coords = list(linestring.coords)
             if len(coords) > 1:
-                msp.add_lwpolyline(coords, dxfattribs={
+                polyline = msp.add_lwpolyline(coords, dxfattribs={
                     'layer': layer_name,
                     'closed': False  # Always set to False for linestrings
                 })
+                self.attach_custom_data(polyline)
+                log_info(f"Added linestring to layer {layer_name}: {polyline}")
 
     def add_label_to_dxf(self, msp, geometry, label, layer_name):
         centroid = self.get_geometry_centroid(geometry)
@@ -471,9 +552,10 @@ class DXFExporter:
         return None
     
     def add_text(self, msp, text, x, y, layer_name, style_name, color):
+        log_info(f"Adding text to layer {layer_name}")
         text_layer_name = f"{layer_name} Label"
         text_color = self.layer_properties[layer_name].get('textColor', self.layer_properties[layer_name]['color'])
-        msp.add_text(text, dxfattribs={
+        text_entity = msp.add_text(text, dxfattribs={
             'style': style_name,
             'layer': text_layer_name,
             'insert': (x, y),
@@ -482,6 +564,8 @@ class DXFExporter:
             'valign': 1,
             'color': text_color
         })
+        self.attach_custom_data(text_entity)
+        log_info(f"Added text to layer {layer_name}: {text_entity}")
 
     def add_geometry_to_dxf(self, msp, geometry, layer_name):
         if isinstance(geometry, (Polygon, MultiPolygon)):
@@ -493,3 +577,21 @@ class DXFExporter:
                 self.add_geometry_to_dxf(msp, geom, layer_name)
         else:
             log_warning(f"Unsupported geometry type for layer {layer_name}: {type(geometry)}")
+
+    def verify_entity_hyperlinks(self, msp, layer_name):
+        log_info(f"Verifying hyperlinks for entities in layer {layer_name}")
+        for entity in msp.query(f'*[layer=="{layer_name}"]'):
+            if hasattr(entity, 'get_hyperlink'):
+                hyperlink = entity.get_hyperlink()
+                log_info(f"Entity {entity} in layer {layer_name} has hyperlink: '{hyperlink}'")
+            else:
+                log_warning(f"Entity {entity} in layer {layer_name} has no 'get_hyperlink' method")
+
+    def check_existing_entities(self, doc):
+        log_info("Checking existing entities in the DXF file")
+        for entity in doc.modelspace():
+            if hasattr(entity, 'get_hyperlink'):
+                hyperlink = entity.get_hyperlink()
+                log_info(f"Entity {entity} has hyperlink: {hyperlink}")
+            else:
+                log_info(f"Entity {entity} has no 'get_hyperlink' method")
