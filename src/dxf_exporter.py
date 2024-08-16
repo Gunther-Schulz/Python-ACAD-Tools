@@ -31,14 +31,14 @@ class DXFExporter:
             if not self.is_wmts_layer(layer):
                 self.colors[f"{layer['name']} Label"] = text_color_code
 
-    def remove_unused_entities(self, msp):
+    def remove_unused_entities(self, msp, processed_layers):
         log_info("Removing unused entities...")
         removed_count = 0
         for entity in msp:
-            if entity.dxf.layer not in self.layer_properties:
+            if entity.dxf.layer in processed_layers and entity.dxf.layer not in self.layer_properties:
                 msp.delete_entity(entity)
                 removed_count += 1
-        log_info(f"Removed {removed_count} unused entities")
+        log_info(f"Removed {removed_count} unused entities from processed layers")
 
 
     def export_to_dxf(self):
@@ -61,8 +61,11 @@ class DXFExporter:
         # Process layers
         self.process_layers(doc, msp)
 
-        # Remove unused entities
-        self.remove_unused_entities(msp)
+        # Get the list of layers we're processing
+        processed_layers = [layer['name'] for layer in self.project_settings['dxfLayers']]
+
+        # Remove unused entities only from processed layers
+        self.remove_unused_entities(msp, processed_layers)
 
         # Save the DXF file
         doc.saveas(self.dxf_filename)
@@ -87,60 +90,32 @@ class DXFExporter:
                 log_info(f"Loaded existing layer: {layer_name}")
 
     def process_layers(self, doc, msp):
-        wmts_layers = []
-        other_layers = []
-
         for layer_info in self.project_settings['dxfLayers']:
             layer_name = layer_info['name']
-
-            # Check if the 'add' key is present and set to True
-            if not layer_info.get('add', False):
-                log_info(f"Skipping layer {layer_name} as 'add' is not set to True")
-                continue
-
-            update_flag = layer_info.get('update', False)  # Default to False
-            if not update_flag and layer_name in doc.layers:
-                log_info(f"Skipping update for layer {layer_name} as update is set to false")
-                continue
-
-            if self.is_wmts_layer(layer_name):
-                wmts_layers.append((layer_name, layer_info))
-            else:
-                other_layers.append((layer_name, layer_info))
-
-        # Process WMTS layers first, but in reverse order
-        for layer_name, layer_info in reversed(wmts_layers):
-            self.process_single_layer(doc, msp, layer_name, layer_info)
-
-        # Process non-WMTS layers
-        for layer_name, layer_info in other_layers:
-            self.process_single_layer(doc, msp, layer_name, layer_info)
+            
+            # Only process layers that are explicitly set to be added or updated
+            if layer_info.get('add', False) or layer_info.get('update', False):
+                self.process_single_layer(doc, msp, layer_name, layer_info)
 
     def process_single_layer(self, doc, msp, layer_name, layer_info):
         update_flag = layer_info.get('update', False)
+        add_flag = layer_info.get('add', False)
         log_info(f"Processing layer: {layer_name}")
-        log_info(f"Update flag: {update_flag}")
+        log_info(f"Update flag: {update_flag}, Add flag: {add_flag}")
 
         if self.is_wmts_layer(layer_info):
-            if update_flag or layer_name not in doc.layers:
+            if add_flag or (update_flag and layer_name in doc.layers):
                 log_info(f"Updating WMTS layer: {layer_name}")
                 self.create_new_layer(doc, msp, layer_name, layer_info)
-            else:
-                log_info(f"Skipping update for WMTS layer {layer_name} as update is set to false")
         else:
             if layer_name in doc.layers:
-                existing_layer = doc.layers.get(layer_name)
                 if update_flag:
+                    existing_layer = doc.layers.get(layer_name)
                     self.update_layer_properties(existing_layer, layer_info)
                     log_info(f"Layer {layer_name} already exists. Updating properties and geometry.")
                     if layer_name in self.all_layers:
                         self.update_layer_geometry(msp, layer_name, self.all_layers[layer_name], layer_info)
-                    else:
-                        log_info(f"Layer {layer_name} exists in DXF but not in all_layers. Creating new geometry.")
-                        self.create_new_layer(doc, msp, layer_name, layer_info, existing_layer)
-                else:
-                    log_info(f"Keeping existing properties and geometry for layer {layer_name} as update is set to false")
-            else:
+            elif add_flag:
                 log_info(f"Creating new layer: {layer_name}")
                 self.create_new_layer(doc, msp, layer_name, layer_info)
 
