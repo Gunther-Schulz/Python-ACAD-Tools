@@ -39,6 +39,7 @@ projects:
             layers:
               - Geltungsbereich
             buffer: 200
+        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/generated/contour.shp"
   - name: Plasten
     exportFormat: dxf
     dxfVersion: R2018
