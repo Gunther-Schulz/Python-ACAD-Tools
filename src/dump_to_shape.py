@@ -4,16 +4,38 @@ import ezdxf
 import shapefile
 from ezdxf.entities import LWPolyline, Polyline
 from shapely.geometry import Polygon, MultiPolygon
+import pyproj
+import re
 
-def is_clockwise(points):
-    # Calculate the signed area
-    area = sum((p2[0] - p1[0]) * (p2[1] + p1[1]) for p1, p2 in zip(points, points[1:] + [points[0]])) / 2
-    return area > 0
+def polygon_area(polygon):
+    """Calculate the area of a polygon."""
+    return Polygon(polygon).area
 
-def polygon_area(points):
-    return abs(sum(x0*y1 - x1*y0 for ((x0, y0), (x1, y1)) in zip(points, points[1:] + [points[0]])) / 2)
+def get_crs_from_dxf(dxf_path):
+    # Read the entire DXF file as text
+    with open(dxf_path, 'r', errors='ignore') as file:
+        dxf_content = file.read()
 
-def merge_dxf_layer_to_shapefile(dxf_path, output_folder, layer_name, entities):
+    # Search for the EPSG code in the entire file content
+    match = re.search(r'<Alias id="(\d+)" type="CoordinateSystem">', dxf_content)
+    if match:
+        epsg = int(match.group(1))
+        return pyproj.CRS.from_epsg(epsg), f"EPSG:{epsg} found in DXF file"
+
+    # If not found, return the default EPSG:25833 (ETRS89 / UTM zone 33N)
+    print("Warning: CRS not found in DXF file. Using default EPSG:25833 (ETRS89 / UTM zone 33N).")
+    return pyproj.CRS.from_epsg(25833), "Default EPSG:25833 (ETRS89 / UTM zone 33N) used"
+
+def write_prj_file(output_path, crs):
+    prj_path = output_path.replace('.shp', '.prj')
+    
+    # Use a known, valid WKT string for EPSG:25833
+    wkt = 'PROJCS["ETRS89 / UTM zone 33N",GEOGCS["ETRS89",DATUM["European_Terrestrial_Reference_System_1989",SPHEROID["GRS 1980",6378137,298.257222101,AUTHORITY["EPSG","7019"]],TOWGS84[0,0,0,0,0,0,0],AUTHORITY["EPSG","6258"]],PRIMEM["Greenwich",0,AUTHORITY["EPSG","8901"]],UNIT["degree",0.0174532925199433,AUTHORITY["EPSG","9122"]],AUTHORITY["EPSG","4258"]],PROJECTION["Transverse_Mercator"],PARAMETER["latitude_of_origin",0],PARAMETER["central_meridian",15],PARAMETER["scale_factor",0.9996],PARAMETER["false_easting",500000],PARAMETER["false_northing",0],UNIT["metre",1,AUTHORITY["EPSG","9001"]],AXIS["Easting",EAST],AXIS["Northing",NORTH],AUTHORITY["EPSG","25833"]]'
+
+    with open(prj_path, 'w') as prj_file:
+        prj_file.write(wkt)
+
+def merge_dxf_layer_to_shapefile(dxf_path, output_folder, layer_name, entities, crs):
     polygons = []
     for entity in entities:
         if isinstance(entity, (LWPolyline, Polyline)):
@@ -38,9 +60,17 @@ def merge_dxf_layer_to_shapefile(dxf_path, output_folder, layer_name, entities):
                 shp.poly([list(poly.exterior.coords)] + [list(interior.coords) for interior in poly.interiors])
                 shp.record(Layer=layer_name)
 
+        # Write the .prj file
+        write_prj_file(shp_path, crs)
+
         print(f"Created merged shapefile for layer: {layer_name}")
 
 def dxf_to_shapefiles(dxf_path, output_folder):
+    # Get the CRS from the DXF file
+    crs, crs_source = get_crs_from_dxf(dxf_path)
+    print(f"CRS being used: {crs}")
+    print(f"CRS source: {crs_source}")
+
     # Read the DXF file
     doc = ezdxf.readfile(dxf_path)
     msp = doc.modelspace()
@@ -84,10 +114,17 @@ def dxf_to_shapefiles(dxf_path, output_folder):
                 shp.poly([list(largest_polygon_shape.exterior.coords)] + [list(interior.coords) for interior in largest_polygon_shape.interiors])
                 shp.record(Layer=layer_name)
 
+            # Write the .prj file
+            write_prj_file(shp_path, crs)
+
             print(f"Created shapefile for layer: {layer_name}")
 
-            # Also create the merged shapefile for this layer
-            merge_dxf_layer_to_shapefile(dxf_path, output_folder, layer_name, entities)
+        # Create the merged shapefile for this layer
+        merge_dxf_layer_to_shapefile(dxf_path, output_folder, layer_name, entities, crs)
+
+    # Print CRS information at the end
+    print(f"\nCRS being used: {crs}")
+    print(f"CRS source: {crs_source}")
 
 def main():
     parser = argparse.ArgumentParser(description="Convert DXF layers to shapefiles with holes cut out by inner polygons")
