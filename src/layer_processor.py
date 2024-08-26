@@ -1,6 +1,6 @@
 import geopandas as gpd
 from matplotlib import pyplot as plt
-from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection
+from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection, Point, MultiPoint, GeometryCollection
 from src.utils import log_info, log_warning, log_error
 import os
 from src.wmts_downloader import download_wmts_tiles
