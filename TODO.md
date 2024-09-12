@@ -1,0 +1,4 @@
+- add and update are still unclear. test them and improve. do we need add? is it even active? Keep styling if layer exists
+- Default line thickness shuld be: 0.13
+- contour get a Label Label layer. Fix that
+- counter labels have the text color per object, not form the layer color
