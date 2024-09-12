@@ -6,6 +6,7 @@ import os
 from src.wmts_downloader import download_wmts_tiles
 from shapely.ops import unary_union
 import shutil
+from src.contour_processor import process_contour
 
 class LayerProcessor:
     def __init__(self, project_loader, plot_ops=False):
@@ -127,6 +128,8 @@ class LayerProcessor:
             result = self.create_merged_layer(layer_name, operation)
         elif op_type == 'smooth':
             result = self.create_smooth_layer(layer_name, operation)
+        elif op_type == 'contour':
+            result = self._handle_contour_operation(layer_name, operation)
         else:
             log_warning(f"Unknown operation type: {op_type} for layer {layer_name}")
 
@@ -661,3 +664,23 @@ class LayerProcessor:
             smoothed = geometry.intersection(smoothed)
         
         return smoothed
+
+    def _handle_contour_operation(self, layer_name, operation):
+        log_info(f"Starting contour operation for layer: {layer_name}")
+        log_info(f"Operation details: {operation}")
+        
+        geltungsbereich = self._get_filtered_geometry(operation['layers'][0], [])
+        if geltungsbereich is None:
+            log_warning(f"Geltungsbereich not found for contour operation on layer '{layer_name}'")
+            return None
+
+        buffer_distance = operation.get('buffer', 0)
+        contour_gdf = process_contour(operation, geltungsbereich, buffer_distance, self.crs)
+
+        if layer_name in self.all_layers:
+            log_warning(f"Layer '{layer_name}' already exists. Overwriting with new contour data.")
+        
+        self.all_layers[layer_name] = contour_gdf
+        log_info(f"Finished contour operation for layer: {layer_name}")
+        log_info(f"Number of contour features: {len(contour_gdf)}")
+        return contour_gdf

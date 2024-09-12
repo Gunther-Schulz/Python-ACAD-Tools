@@ -7,22 +7,44 @@ projects:
     exportFormat: dxf
     dxfVersion: R2018
     crs: EPSG:25833
-    dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/Zeichnung/24 08.13 Friedrichshof  Zeichnung -2.dxf"
+    dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/Zeichnung/24 09.12 Friedrichshof  Zeichnung -2.dxf"
     # dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/Zeichnung/test.dxf"
     dxfLayers:
+      - name: Geltungsbereich
+        # add: false
+        update: false
+        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/geltungsbereich.shp"
       - name: WasserBodenVerband
-        add: true
-        update: true
+        # add: true
+        update: false
         color: "Light Blue"
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/Grundlagen/wasser_bodeverband/5LV11_PVA-Fhof.shp"
-      - name: Grünfläche
-        add: true
-        update: true
+      - name: WBVGrünfläche
+        # add: true
+        update: false
         operations:
           - type: buffer
             layers:
               - WasserBodenVerband
             distance: 7
+      - name: Externer Ausgleich
+        # add: true
+        update: false
+        color: "Light Blue"
+        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/Lagefaktor_var1/compensatory/Ausgleich_Acker/Ausgleich.shp"
+      - name: Contour
+        update: true
+        color: Black
+        locked: false
+        update: true
+        label: elevation
+        operations:
+          - type: contour
+            url: "https://www.geodaten-mv.de/dienste/dgm_atom?type=dataset&id=df758744-b2a1-4d39-b34c-9ec5bf9b4372"
+            layers:
+              - Geltungsbereich
+            buffer: 1000
+        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/generated/contour.shp"
   - name: Plasten
     exportFormat: dxf
     dxfVersion: R2018

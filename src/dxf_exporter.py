@@ -99,30 +99,29 @@ class DXFExporter:
             layer_name = layer_info['name']
             
             # Only process layers that are explicitly set to be added or updated
-            if layer_info.get('add', False) or layer_info.get('update', False):
+            if layer_info.get('update', False):
                 self.process_single_layer(doc, msp, layer_name, layer_info)
 
     def process_single_layer(self, doc, msp, layer_name, layer_info):
         update_flag = layer_info.get('update', False)
-        add_flag = layer_info.get('add', False)
         log_info(f"Processing layer: {layer_name}")
-        log_info(f"Update flag: {update_flag}, Add flag: {add_flag}")
+        log_info(f"Update flag: {update_flag}")
 
-        if not add_flag:
-            log_info(f"Skipping layer {layer_name} as 'add' flag is not set")
+        if not update_flag:
+            log_info(f"Skipping layer {layer_name} as 'update' flag is not set")
             return
 
         if self.is_wmts_layer(layer_info):
             log_info(f"Processing WMTS layer: {layer_name}")
             self.create_new_layer(doc, msp, layer_name, layer_info)
         else:
-            if layer_name in doc.layers:
+            if layer_name not in doc.layers:
+                log_info(f"Creating new layer: {layer_name}")
+                self.create_new_layer(doc, msp, layer_name, layer_info, add_geometry=False)
+            else:
                 existing_layer = doc.layers.get(layer_name)
                 self.update_layer_properties(existing_layer, layer_info)
-                log_info(f"Layer {layer_name} already exists. Updating properties and geometry.")
-            else:
-                log_info(f"Creating new layer: {layer_name}")
-                self.create_new_layer(doc, msp, layer_name, layer_info)
+                log_info(f"Layer {layer_name} already exists. Updating properties.")
             
             if layer_name in self.all_layers:
                 self.update_layer_geometry(msp, layer_name, self.all_layers[layer_name], layer_info)
@@ -136,30 +135,26 @@ class DXFExporter:
 
     def update_layer_geometry(self, msp, layer_name, geo_data, layer_config):
         update_flag = layer_config.get('update', False)
-        add_flag = layer_config.get('add', False)
         
-        log_info(f"Updating layer geometry for {layer_name}. Update flag: {update_flag}, Add flag: {add_flag}")
+        log_info(f"Updating layer geometry for {layer_name}. Update flag: {update_flag}")
         
-        if not add_flag:
-            log_info(f"Skipping geometry update for layer {layer_name} as 'add' flag is not set")
+        if not update_flag:
+            log_info(f"Skipping geometry update for layer {layer_name} as 'update' flag is not set")
             return
 
-        if update_flag:
-            log_info(f"Removing existing entities for layer {layer_name}")
-            entities_to_delete = []
-            for entity in msp.query(f'*[layer=="{layer_name}"]'):
-                if self.is_created_by_script(entity):
-                    entities_to_delete.append(entity)
-            
-            delete_count = 0
-            for entity in entities_to_delete:
-                try:
-                    msp.delete_entity(entity)
-                    delete_count += 1
-                except Exception as e:
-                    log_error(f"Error deleting entity: {e}")
-            
-            log_info(f"Removed {delete_count} entities from layer {layer_name}")
+        # Always remove existing entities if update flag is set
+        log_info(f"Removing existing entities for layer {layer_name}")
+        entities_to_delete = [entity for entity in msp.query(f'*[layer=="{layer_name}"]') if self.is_created_by_script(entity)]
+        
+        delete_count = 0
+        for entity in entities_to_delete:
+            try:
+                msp.delete_entity(entity)
+                delete_count += 1
+            except Exception as e:
+                log_error(f"Error deleting entity: {e}")
+        
+        log_info(f"Removed {delete_count} entities from layer {layer_name}")
 
         # Add new geometry and labels
         log_info(f"Adding new geometry to layer {layer_name}")
@@ -171,7 +166,7 @@ class DXFExporter:
         # Verify hyperlinks after adding new entities
         self.verify_entity_hyperlinks(msp, layer_name)
 
-    def create_new_layer(self, doc, msp, layer_name, layer_info, existing_layer=None):
+    def create_new_layer(self, doc, msp, layer_name, layer_info, existing_layer=None, add_geometry=True):
         if existing_layer:
             layer = existing_layer
             log_info(f"Using existing layer: {layer_name}")
@@ -193,7 +188,7 @@ class DXFExporter:
                 log_info(f"Created text layer: {text_layer_name}")
                 log_info(f"  Text layer properties: {text_properties}")
 
-        if not existing_layer or layer_info.get('update', False):
+        if add_geometry and (not existing_layer or layer_info.get('update', False)):
             geo_data = self.all_layers.get(layer_name)
             if geo_data is not None:
                 self.add_geometries_to_dxf(msp, geo_data, layer_name)
@@ -382,12 +377,16 @@ class DXFExporter:
             log_warning(f"Unexpected data type for layer {layer_name}: {type(geo_data)}")
             return
 
+        print(f"add_geometries_to_dxf Layer Name: {layer_name}")
         for idx, geometry in enumerate(geometries):
-            if isinstance(geometry, (LineString, MultiLineString)):
+            if isinstance(geometry, LineString):
                 self.add_linestring_to_dxf(msp, geometry, layer_name)
+            elif isinstance(geometry, MultiLineString):
+                for line in geometry.geoms:
+                    self.add_linestring_to_dxf(msp, line, layer_name)
             else:
                 self.add_geometry_to_dxf(msp, geometry, layer_name)
-            
+
             if labels is not None:
                 self.add_label_to_dxf(msp, geometry, labels.iloc[idx], layer_name)
             elif self.is_generated_layer(layer_name):
@@ -422,24 +421,32 @@ class DXFExporter:
                     self.attach_custom_data(polyline)
                     log_info(f"Added polygon interior to layer {layer_name}: {polyline}")
 
-    def add_linestring_to_dxf(self, msp, geometry, layer_name):
-        log_info(f"Adding linestring to layer {layer_name}")
-        if isinstance(geometry, LineString):
-            linestrings = [geometry]
-        elif isinstance(geometry, MultiLineString):
-            linestrings = list(geometry.geoms)
-        else:
-            return
+    def add_linestring_to_dxf(self, msp, linestring, layer_name):
+        points = list(linestring.coords)
+        log_info(f"Adding linestring to layer {layer_name} with {len(points)} points")
+        log_info(f"First point: {points[0][:2] if points else 'No points'}")
 
-        for linestring in linestrings:
-            coords = list(linestring.coords)
-            if len(coords) > 1:
-                polyline = msp.add_lwpolyline(coords, dxfattribs={
+        try:
+            # Extract only x and y coordinates
+            points_2d = [(p[0], p[1]) for p in points]
+            
+            polyline = msp.add_lwpolyline(
+                points=points_2d,
+                dxfattribs={
                     'layer': layer_name,
-                    'closed': False  # Always set to False for linestrings
-                })
-                self.attach_custom_data(polyline)
-                log_info(f"Added linestring to layer {layer_name}: {polyline}")
+                    'closed': False,
+                }
+            )
+            
+            # Set constant width to 0
+            polyline.dxf.const_width = 0
+            
+            self.attach_custom_data(polyline)
+            log_info(f"Successfully added polyline to layer {layer_name}")
+            log_info(f"Polyline properties: {polyline.dxf.all_existing_dxf_attribs()}")
+        except Exception as e:
+            log_error(f"Error adding polyline to layer {layer_name}: {str(e)}")
+            log_error(f"Points causing error: {points_2d}")
 
     def add_label_to_dxf(self, msp, geometry, label, layer_name):
         centroid = self.get_geometry_centroid(geometry)
@@ -565,8 +572,11 @@ class DXFExporter:
     def add_geometry_to_dxf(self, msp, geometry, layer_name):
         if isinstance(geometry, (Polygon, MultiPolygon)):
             self.add_polygon_to_dxf(msp, geometry, layer_name)
-        elif isinstance(geometry, (LineString, MultiLineString)):
+        elif isinstance(geometry, LineString):
             self.add_linestring_to_dxf(msp, geometry, layer_name)
+        elif isinstance(geometry, MultiLineString):
+            for line in geometry.geoms:
+                self.add_linestring_to_dxf(msp, line, layer_name)
         elif isinstance(geometry, GeometryCollection):
             for geom in geometry.geoms:
                 self.add_geometry_to_dxf(msp, geom, layer_name)
