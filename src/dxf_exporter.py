@@ -1,4 +1,5 @@
 import random
+import shutil
 import ezdxf
 from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection, Point
 from src.utils import log_info, log_warning, log_error
@@ -49,6 +50,12 @@ class DXFExporter:
         log_info("Starting DXF export...")
         dxf_version = self.project_settings.get('dxfVersion', 'R2010')
         
+        # Create a backup of the existing DXF file if it exists
+        if os.path.exists(self.dxf_filename):
+            backup_filename = f"{self.dxf_filename}.ezdxf_bak"
+            shutil.copy2(self.dxf_filename, backup_filename)
+            log_info(f"Created backup of existing DXF file: {backup_filename}")
+
         # Load existing DXF file or create a new one
         if os.path.exists(self.dxf_filename):
             doc = ezdxf.readfile(self.dxf_filename)
