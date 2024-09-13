@@ -223,8 +223,8 @@ class DXFExporter:
             layer.dxf.flags = layer.dxf.flags | 1 if layer_info['frozen'] else layer.dxf.flags & ~1
             log_info(f"  Set frozen to: {layer_info['frozen']}")
         if 'is_on' in layer_info:
-            layer.dxf.is_on = layer_info['is_on']
-            log_info(f"  Set is_on to: {layer_info['is_on']}")
+            layer.is_on = layer_info['is_on']
+            log_info(f"  Set is_on to: {layer.is_on}")
         if 'vp_freeze' in layer_info:
             layer.dxf.flags = layer.dxf.flags | 8 if layer_info['vp_freeze'] else layer.dxf.flags & ~8
             log_info(f"  Set vp_freeze to: {layer_info['vp_freeze']}")

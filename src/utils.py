@@ -34,6 +34,7 @@ def setup_proj():
         '/usr/local/share/proj',
         '/opt/homebrew/share/proj',
         'C:\\Program Files\\PROJ\\share',
+        '/home/g/.conda/envs/qgis/share/proj',
         os.path.join(sys.prefix, 'share', 'proj'),
     ]
 
