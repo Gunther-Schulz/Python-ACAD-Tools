@@ -177,19 +177,24 @@ class DXFExporter:
             log_info(f"Skipping geometry update for layer {layer_name} as 'update' flag is not set")
             return
 
-        # Always remove existing entities if update flag is set
-        log_info(f"Removing existing entities for layer {layer_name}")
-        entities_to_delete = [entity for entity in msp.query(f'*[layer=="{layer_name}"]') if self.is_created_by_script(entity)]
-        
-        delete_count = 0
-        for entity in entities_to_delete:
-            try:
-                msp.delete_entity(entity)
-                delete_count += 1
-            except Exception as e:
-                log_error(f"Error deleting entity: {e}")
-        
-        log_info(f"Removed {delete_count} entities from layer {layer_name}")
+        # Remove existing entities for both the main layer and its label layer
+        layers_to_clear = [layer_name]
+        if not layer_name.endswith(' Label'):
+            layers_to_clear.append(f"{layer_name} Label")
+
+        for layer in layers_to_clear:
+            log_info(f"Removing existing entities for layer {layer}")
+            entities_to_delete = [entity for entity in msp.query(f'*[layer=="{layer}"]') if self.is_created_by_script(entity)]
+            
+            delete_count = 0
+            for entity in entities_to_delete:
+                try:
+                    msp.delete_entity(entity)
+                    delete_count += 1
+                except Exception as e:
+                    log_error(f"Error deleting entity: {e}")
+            
+            log_info(f"Removed {delete_count} entities from layer {layer}")
 
         # Add new geometry and labels
         log_info(f"Adding new geometry to layer {layer_name}")
@@ -200,6 +205,8 @@ class DXFExporter:
 
         # Verify hyperlinks after adding new entities
         self.verify_entity_hyperlinks(msp, layer_name)
+        if not layer_name.endswith(' Label'):
+            self.verify_entity_hyperlinks(msp, f"{layer_name} Label")
 
     def create_new_layer(self, doc, msp, layer_name, layer_info, existing_layer=None, add_geometry=True):
         log_info(f"Creating new layer: {layer_name}")
