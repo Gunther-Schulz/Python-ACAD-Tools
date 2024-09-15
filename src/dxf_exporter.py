@@ -29,10 +29,15 @@ class DXFExporter:
             layer_name = layer['name']
             style = layer.get('style', {})
             
+            log_info(f"Setting up layer: {layer_name}")
+            log_info(f"Layer style: {style}")
+            
             # Set up main layer
             self.add_layer_properties(layer_name, layer)
             color_code = self.get_color_code(style.get('color', 'White'))
             self.colors[layer_name] = color_code
+            
+            log_info(f"Main layer color code: {color_code}")
             
             # Only add label layer if it's not a WMTS layer and not already a label layer
             if not self.is_wmts_layer(layer) and not layer_name.endswith(' Label'):
@@ -41,6 +46,10 @@ class DXFExporter:
                 # Use labelColor from style if specified, otherwise use the base layer color
                 label_color = style.get('labelColor', style.get('color', 'White'))
                 label_color_code = self.get_color_code(label_color)
+                
+                log_info(f"Label layer: {label_layer_name}")
+                log_info(f"Label color: {label_color}")
+                log_info(f"Label color code: {label_color_code}")
                 
                 self.colors[label_layer_name] = label_color_code
                 
@@ -521,12 +530,16 @@ class DXFExporter:
         }
         self.layer_properties[layer_name] = properties
         
+        log_info(f"Added layer properties for {layer_name}: {properties}")
+        
         # Only add label layer properties if it's not a WMTS layer and not already a label layer
         if not self.is_wmts_layer(layer_info) and not layer_name.endswith(' Label'):
             text_layer_name = f"{layer_name} Label"
             text_properties = properties.copy()
             text_properties['color'] = self.get_color_code(style.get('labelColor', style.get('color', 'White')))
             self.layer_properties[text_layer_name] = text_properties
+            
+            log_info(f"Added label layer properties for {text_layer_name}: {text_properties}")
 
     def is_wmts_layer(self, layer_name):
         layer_info = next((l for l in self.project_settings['dxfLayers'] if l['name'] == layer_name), None)
@@ -584,8 +597,8 @@ class DXFExporter:
     def add_text(self, msp, text, x, y, layer_name, style_name, color):
         text_layer_name = f"{layer_name} Label" if not layer_name.endswith(' Label') else layer_name
         
-        # Use the color of the label layer, which may be different from the base layer if textColor was specified
-        text_color = self.layer_properties[text_layer_name]['color']
+        # Use the color of the label layer
+        text_color = self.colors[text_layer_name]
         
         text_entity = msp.add_text(text, dxfattribs={
             'style': style_name,
@@ -594,7 +607,7 @@ class DXFExporter:
             'align_point': (x, y),
             'halign': 1,
             'valign': 1,
-            # Color is set by layer, so we don't need to specify it here
+            'color': text_color  # Explicitly set the color
         })
         self.attach_custom_data(text_entity)
 
