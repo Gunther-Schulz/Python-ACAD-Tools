@@ -127,7 +127,10 @@ class DXFExporter:
                 self.create_new_layer(doc, msp, layer_name, layer_info, add_geometry=False)
             else:
                 existing_layer = doc.layers.get(layer_name)
-                self.update_layer_properties(existing_layer, layer_info)
+                if 'style' in layer_info:
+                    log_info(f"Layer {layer_name} already exists. Skipping style application.")
+                else:
+                    self.update_layer_properties(existing_layer, layer_info)
                 log_info(f"Layer {layer_name} already exists. Updating properties.")
             
             if layer_name in self.all_layers:
@@ -174,33 +177,23 @@ class DXFExporter:
         self.verify_entity_hyperlinks(msp, layer_name)
 
     def create_new_layer(self, doc, msp, layer_name, layer_info, existing_layer=None, add_geometry=True):
-        if existing_layer:
-            layer = existing_layer
-            log_info(f"Using existing layer: {layer_name}")
-        else:
-            layer = doc.layers.new(name=layer_name)
-            log_info(f"Created new layer: {layer_name}")
+        log_info(f"Creating new layer: {layer_name}")
+        new_layer = doc.layers.new(layer_name)
         
-        self.update_layer_properties(layer, layer_info)
-        
-        log_info(f"Final layer properties: {layer.dxf.all_existing_dxf_attribs()}")
+        if 'style' in layer_info:
+            style = layer_info['style']
+            new_layer.color = self.get_color_code(style.get('color', 'White'))
+            new_layer.linetype = style.get('linetype', 'Continuous')
+            new_layer.lineweight = style.get('lineweight', 13)
+            new_layer.plot = style.get('plot', True)
+            new_layer.locked = style.get('locked', False)
+            new_layer.frozen = style.get('frozen', False)
+            new_layer.on = style.get('is_on', True)
+            new_layer.dxf.vp_freeze = style.get('vp_freeze', False)
+            new_layer.transparency = int(style.get('transparency', 0.0) * 100)
 
-        if not self.is_wmts_layer(layer_name):
-            text_layer_name = f"{layer_name} Label"
-            if text_layer_name not in doc.layers:
-                text_layer = doc.layers.new(name=text_layer_name)
-                text_properties = self.layer_properties.get(text_layer_name, {})
-                for key, value in text_properties.items():
-                    setattr(text_layer, key, value)
-                log_info(f"Created text layer: {text_layer_name}")
-                log_info(f"  Text layer properties: {text_properties}")
-
-        if add_geometry and (not existing_layer or layer_info.get('update', False)):
-            geo_data = self.all_layers.get(layer_name)
-            if geo_data is not None:
-                self.add_geometries_to_dxf(msp, geo_data, layer_name)
-            else:
-                log_info(f"No geometry data available for layer: {layer_name}")
+        if add_geometry and layer_name in self.all_layers:
+            self.update_layer_geometry(msp, layer_name, self.all_layers[layer_name], layer_info)
 
     def update_layer_properties(self, layer, layer_info):
         log_info(f"Updating properties for layer: {layer.dxf.name}")
@@ -432,6 +425,11 @@ class DXFExporter:
 
     def add_linestring_to_dxf(self, msp, linestring, layer_name):
         points = list(linestring.coords)
+        close_linestring = self.layer_properties[layer_name].get('close_linestring', False)
+        
+        if close_linestring and points[0] != points[-1]:
+            points.append(points[0])  # Close the linestring by adding the first point at the end
+        
         log_info(f"Adding linestring to layer {layer_name} with {len(points)} points")
         log_info(f"First point: {points[0][:2] if points else 'No points'}")
 
