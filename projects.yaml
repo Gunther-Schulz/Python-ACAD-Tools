@@ -387,6 +387,19 @@ projects:
       #         - Geltungsbereich NO
       #         - Geltungsbereich S
       #       buffer: 200
+      - name: Contour
+        update: true
+        style:
+          color: Black
+          locked: false
+        label: elevation
+        operations:
+          - type: contour
+            url: "https://www.geodaten-mv.de/dienste/dgm_atom?type=dataset&id=df758744-b2a1-4d39-b34c-9ec5bf9b4372"
+            layers:
+              - Geltungsbereich NW
+            buffer: 1000
+        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/contour.shp"
   - name: Torgelow
     exportFormat: dxf
     dxfVersion: R2018

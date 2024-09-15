@@ -33,7 +33,18 @@ class DXFExporter:
             
             # Only add label layer if it's not a WMTS layer and not already a label layer
             if not self.is_wmts_layer(layer) and not layer['name'].endswith(' Label'):
-                self.colors[f"{layer['name']} Label"] = text_color_code
+                label_layer_name = f"{layer['name']} Label"
+                self.colors[label_layer_name] = text_color_code
+                # Add the label layer properties
+                self.add_layer_properties(label_layer_name, {
+                    'style': {
+                        'color': layer.get('textColor', layer.get('color', 'White')),
+                        'plot': layer.get('style', {}).get('plot', True),
+                        'locked': layer.get('style', {}).get('locked', False),
+                        'frozen': layer.get('style', {}).get('frozen', False),
+                        'is_on': layer.get('style', {}).get('is_on', True),
+                    }
+                })
 
     def remove_unused_entities(self, msp, processed_layers):
         log_info("Removing unused entities...")
@@ -572,7 +583,10 @@ class DXFExporter:
     def add_text(self, msp, text, x, y, layer_name, style_name, color):
         log_info(f"Adding text to layer {layer_name}")
         text_layer_name = f"{layer_name} Label" if not layer_name.endswith(' Label') else layer_name
-        text_color = self.layer_properties[layer_name].get('textColor', self.layer_properties[layer_name]['color'])
+        
+        # Use the color of the label layer, not the individual text color
+        text_color = self.layer_properties[text_layer_name]['color']
+        
         text_entity = msp.add_text(text, dxfattribs={
             'style': style_name,
             'layer': text_layer_name,
@@ -580,10 +594,10 @@ class DXFExporter:
             'align_point': (x, y),
             'halign': 1,
             'valign': 1,
-            'color': text_color
+            # Color is now set by layer, so we don't need to specify it here
         })
         self.attach_custom_data(text_entity)
-        log_info(f"Added text to layer {layer_name}: {text_entity}")
+        log_info(f"Added text to layer {text_layer_name}: {text_entity}")
 
     def add_geometry_to_dxf(self, msp, geometry, layer_name):
         if isinstance(geometry, (Polygon, MultiPolygon)):
