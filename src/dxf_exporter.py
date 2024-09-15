@@ -207,36 +207,38 @@ class DXFExporter:
         log_info(f"Layer info: {layer_info}")
         log_info(f"Current layer properties: {layer.dxf.all_existing_dxf_attribs()}")
         
-        if 'color' in layer_info:
-            layer.color = self.get_color_code(layer_info['color'])
+        style = layer_info.get('style', {})
+        
+        if 'color' in style:
+            layer.color = self.get_color_code(style['color'])
             log_info(f"  Set color to: {layer.color}")
-        if 'linetype' in layer_info:
-            linetype_name = layer_info['linetype']
+        if 'linetype' in style:
+            linetype_name = style['linetype']
             if linetype_name not in layer.doc.linetypes:
                 log_warning(f"  Linetype '{linetype_name}' not found. Using 'CONTINUOUS' instead.")
                 linetype_name = 'CONTINUOUS'
             layer.dxf.linetype = linetype_name
             log_info(f"  Set linetype to: {linetype_name}")
-        if 'lineweight' in layer_info:
-            layer.dxf.lineweight = layer_info['lineweight']
-            log_info(f"  Set lineweight to: {layer_info['lineweight']}")
-        if 'plot' in layer_info:
-            layer.dxf.plot = layer_info['plot']
-            log_info(f"  Set plot to: {layer_info['plot']}")
-        if 'locked' in layer_info:
-            layer.dxf.flags = layer.dxf.flags | 4 if layer_info['locked'] else layer.dxf.flags & ~4
-            log_info(f"  Set locked to: {layer_info['locked']}")
-        if 'frozen' in layer_info:
-            layer.dxf.flags = layer.dxf.flags | 1 if layer_info['frozen'] else layer.dxf.flags & ~1
-            log_info(f"  Set frozen to: {layer_info['frozen']}")
-        if 'is_on' in layer_info:
-            layer.is_on = layer_info['is_on']
+        if 'lineweight' in style:
+            layer.dxf.lineweight = style['lineweight']
+            log_info(f"  Set lineweight to: {style['lineweight']}")
+        if 'plot' in style:
+            layer.dxf.plot = style['plot']
+            log_info(f"  Set plot to: {style['plot']}")
+        if 'locked' in style:
+            layer.dxf.flags = layer.dxf.flags | 4 if style['locked'] else layer.dxf.flags & ~4
+            log_info(f"  Set locked to: {style['locked']}")
+        if 'frozen' in style:
+            layer.dxf.flags = layer.dxf.flags | 1 if style['frozen'] else layer.dxf.flags & ~1
+            log_info(f"  Set frozen to: {style['frozen']}")
+        if 'is_on' in style:
+            layer.is_on = style['is_on']
             log_info(f"  Set is_on to: {layer.is_on}")
-        if 'vp_freeze' in layer_info:
-            layer.dxf.flags = layer.dxf.flags | 8 if layer_info['vp_freeze'] else layer.dxf.flags & ~8
-            log_info(f"  Set vp_freeze to: {layer_info['vp_freeze']}")
-        if 'transparency' in layer_info:
-            layer.transparency = int(layer_info['transparency'] * 100)
+        if 'vp_freeze' in style:
+            layer.dxf.flags = layer.dxf.flags | 8 if style['vp_freeze'] else layer.dxf.flags & ~8
+            log_info(f"  Set vp_freeze to: {style['vp_freeze']}")
+        if 'transparency' in style:
+            layer.transparency = int(style['transparency'] * 100)
             log_info(f"  Set transparency to: {layer.transparency}")
         
         log_info(f"Final layer properties after update: {layer.dxf.all_existing_dxf_attribs()}")
@@ -477,19 +479,20 @@ class DXFExporter:
             self.add_layer_properties(layer['name'], layer)
 
     def add_layer_properties(self, layer_name, layer_info):
+        style = layer_info.get('style', {})
         properties = {
-            'color': self.get_color_code(layer_info.get('color', 'White')),
-            'textColor': self.get_color_code(layer_info.get('textColor', layer_info.get('color', 'White'))),
-            'linetype': layer_info.get('linetype', 'Continuous'),
-            'lineweight': layer_info.get('lineweight', 13),
-            'plot': layer_info.get('plot', True),
-            'locked': layer_info.get('locked', False),
-            'frozen': layer_info.get('frozen', False),
-            'is_on': layer_info.get('is_on', True),
-            'vp_freeze': layer_info.get('vp_freeze', False),
-            'transparency': layer_info.get('transparency', 0.0),
-            'close': layer_info.get('close', True),
-            'close_linestring': layer_info.get('close_linestring', False)  # New property
+            'color': self.get_color_code(style.get('color', 'White')),
+            'textColor': self.get_color_code(style.get('textColor', style.get('color', 'White'))),
+            'linetype': style.get('linetype', 'Continuous'),
+            'lineweight': style.get('lineweight', 13),
+            'plot': style.get('plot', True),
+            'locked': style.get('locked', False),
+            'frozen': style.get('frozen', False),
+            'is_on': style.get('is_on', True),
+            'vp_freeze': style.get('vp_freeze', False),
+            'transparency': style.get('transparency', 0.0),
+            'close': style.get('close', True),
+            'close_linestring': style.get('close_linestring', False)
         }
         self.layer_properties[layer_name] = properties
         

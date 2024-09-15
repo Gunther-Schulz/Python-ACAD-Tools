@@ -49,10 +49,17 @@ class LayerProcessor:
             return
 
         # Check for unrecognized keys
-        recognized_keys = {'name', 'update', 'operations', 'shapeFile', 'outputShapeFile', 'add', 'color', 'textColor', 'locked', 'close', 'transparency', 'label', 'lineweight', 'linetype', 'plot', 'vp_freeze', 'frozen', 'is_on'}
+        recognized_keys = {'name', 'update', 'operations', 'shapeFile', 'outputShapeFile', 'style', 'label', 'close'}
         unrecognized_keys = set(layer_obj.keys()) - recognized_keys
         if unrecognized_keys:
             log_warning(f"Unrecognized keys in layer {layer_name}: {', '.join(unrecognized_keys)}")
+
+        # Check for known style keys
+        known_style_keys = {'color', 'textColor', 'linetype', 'lineweight', 'plot', 'locked', 'frozen', 'is_on', 'vp_freeze', 'transparency'}
+        if 'style' in layer_obj:
+            unknown_style_keys = set(layer_obj['style'].keys()) - known_style_keys
+            if unknown_style_keys:
+                log_warning(f"Unknown style keys in layer {layer_name}: {', '.join(unknown_style_keys)}")
 
         # Check if the layer should be updated
         update_flag = layer_obj.get('update', False)  # Default to False

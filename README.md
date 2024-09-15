@@ -1,6 +1,9 @@
 # Python-ACAD-Tools
 
-Python-ACAD-Tools is a powerful utility for processing and manipulating GIS data, particularly for AutoCAD DXF file generation and WMTS tile downloading. This tool is designed to streamline workflows for urban planning and GIS professionals.
+## FAQ
+
+Q: Linetype are set in the config.yaml but not available in the CAD file.
+A: This is a limitaion of ezdfx. You meend to load all line types into ACAD in the layer editor. Then all Layers should display fine
 
 ## Features
 
