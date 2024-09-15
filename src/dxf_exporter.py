@@ -27,12 +27,12 @@ class DXFExporter:
 
         for layer in self.project_settings['dxfLayers']:
             self.add_layer_properties(layer['name'], layer)
-            color_code = self.get_color_code(layer.get('color', 'White'))  # Default to White if color is not specified
+            color_code = self.get_color_code(layer.get('color', 'White'))
             text_color_code = self.get_color_code(layer.get('textColor', layer.get('color', 'White')))
             self.colors[layer['name']] = color_code
             
-            # Only add label layer if it's not a WMTS layer
-            if not self.is_wmts_layer(layer):
+            # Only add label layer if it's not a WMTS layer and not already a label layer
+            if not self.is_wmts_layer(layer) and not layer['name'].endswith(' Label'):
                 self.colors[f"{layer['name']} Label"] = text_color_code
 
     def remove_unused_entities(self, msp, processed_layers):
@@ -189,7 +189,8 @@ class DXFExporter:
             new_layer.locked = style.get('locked', False)
             new_layer.frozen = style.get('frozen', False)
             new_layer.on = style.get('is_on', True)
-            new_layer.dxf.vp_freeze = style.get('vp_freeze', False)
+            # Use viewport_frozen property instead of vp_freeze
+            new_layer.viewport_frozen = style.get('vp_freeze', False)
             new_layer.transparency = int(style.get('transparency', 0.0) * 100)
 
         if add_geometry and layer_name in self.all_layers:
@@ -219,17 +220,18 @@ class DXFExporter:
             layer.dxf.plot = style['plot']
             log_info(f"  Set plot to: {style['plot']}")
         if 'locked' in style:
-            layer.dxf.flags = layer.dxf.flags | 4 if style['locked'] else layer.dxf.flags & ~4
+            layer.locked = style['locked']
             log_info(f"  Set locked to: {style['locked']}")
         if 'frozen' in style:
-            layer.dxf.flags = layer.dxf.flags | 1 if style['frozen'] else layer.dxf.flags & ~1
+            layer.frozen = style['frozen']
             log_info(f"  Set frozen to: {style['frozen']}")
         if 'is_on' in style:
-            layer.is_on = style['is_on']
-            log_info(f"  Set is_on to: {layer.is_on}")
+            layer.on = style['is_on']
+            log_info(f"  Set on to: {layer.on}")
         if 'vp_freeze' in style:
-            layer.dxf.flags = layer.dxf.flags | 8 if style['vp_freeze'] else layer.dxf.flags & ~8
-            log_info(f"  Set vp_freeze to: {style['vp_freeze']}")
+            # Update to use viewport_frozen
+            layer.viewport_frozen = style['vp_freeze']
+            log_info(f"  Set viewport_frozen to: {layer.viewport_frozen}")
         if 'transparency' in style:
             layer.transparency = int(style['transparency'] * 100)
             log_info(f"  Set transparency to: {layer.transparency}")
@@ -461,7 +463,7 @@ class DXFExporter:
             log_warning(f"Could not determine centroid for geometry in layer {layer_name}")
             return
 
-        text_layer_name = f"{layer_name} Label"
+        text_layer_name = f"{layer_name} Label" if not layer_name.endswith(' Label') else layer_name
         self.add_text(
             msp,
             str(label),
@@ -494,8 +496,8 @@ class DXFExporter:
         }
         self.layer_properties[layer_name] = properties
         
-        # Only add label layer properties if it's not a WMTS layer
-        if not self.is_wmts_layer(layer_info):
+        # Only add label layer properties if it's not a WMTS layer and not already a label layer
+        if not self.is_wmts_layer(layer_info) and not layer_name.endswith(' Label'):
             text_layer_name = f"{layer_name} Label"
             text_properties = {
                 'color': properties['textColor'],
@@ -563,7 +565,7 @@ class DXFExporter:
     
     def add_text(self, msp, text, x, y, layer_name, style_name, color):
         log_info(f"Adding text to layer {layer_name}")
-        text_layer_name = f"{layer_name} Label"
+        text_layer_name = f"{layer_name} Label" if not layer_name.endswith(' Label') else layer_name
         text_color = self.layer_properties[layer_name].get('textColor', self.layer_properties[layer_name]['color'])
         text_entity = msp.add_text(text, dxfattribs={
             'style': style_name,
