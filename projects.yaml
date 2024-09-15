@@ -211,7 +211,8 @@ projects:
           color: "Dark Gray"
           linetype: ACAD_ISO02W100
           lineweight: 50
-          linetypescale: 10
+          linetypeScale: 1
+          linetypeGeneration: 1
         operations:
           - type: buffer
             layers:

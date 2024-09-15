@@ -55,11 +55,17 @@ class LayerProcessor:
             log_warning(f"Unrecognized keys in layer {layer_name}: {', '.join(unrecognized_keys)}")
 
         # Check for known style keys
-        known_style_keys = {'color', 'linetype', 'lineweight', 'linetypescale', 'plot', 'locked', 'frozen', 'is_on', 'vp_freeze', 'transparency'}
+        known_style_keys = {'color', 'linetype', 'lineweight', 'linetypeScale', 'linetypeGeneration', 'plot', 'locked', 'frozen', 'is_on', 'vp_freeze', 'transparency'}
         if 'style' in layer_obj:
             unknown_style_keys = set(layer_obj['style'].keys()) - known_style_keys
             if unknown_style_keys:
                 log_warning(f"Unknown style keys in layer {layer_name}: {', '.join(unknown_style_keys)}")
+            
+            # Check for typos in style keys
+            for key in layer_obj['style'].keys():
+                closest_match = min(known_style_keys, key=lambda x: self.levenshtein_distance(key, x))
+                if key != closest_match and self.levenshtein_distance(key, closest_match) <= 2:
+                    log_warning(f"Possible typo in style key for layer {layer_name}: '{key}'. Did you mean '{closest_match}'?")
 
         # Check for known labelStyle keys
         if 'labelStyle' in layer_obj:
@@ -97,6 +103,26 @@ class LayerProcessor:
 
 
         processed_layers.add(layer_name)
+
+
+    def levenshtein_distance(self, s1, s2):
+        if len(s1) < len(s2):
+            return self.levenshtein_distance(s2, s1)
+
+        if len(s2) == 0:
+            return len(s1)
+
+        previous_row = range(len(s2) + 1)
+        for i, c1 in enumerate(s1):
+            current_row = [i + 1]
+            for j, c2 in enumerate(s2):
+                insertions = previous_row[j + 1] + 1
+                deletions = current_row[j] + 1
+                substitutions = previous_row[j] + (c1 != c2)
+                current_row.append(min(insertions, deletions, substitutions))
+            previous_row = current_row
+
+        return previous_row[-1]
 
     def process_operation(self, layer_name, operation, processed_layers):
         op_type = operation['type']

@@ -5,7 +5,7 @@ from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString,
 from src.utils import log_info, log_warning, log_error
 import geopandas as gpd
 import os
-from ezdxf.lldxf.const import DXFValueError
+from ezdxf.lldxf.const import DXFValueError, LWPOLYLINE_PLINEGEN
 
 class DXFExporter:
     def __init__(self, project_loader, layer_processor):
@@ -424,9 +424,14 @@ class DXFExporter:
                 polyline = msp.add_lwpolyline(exterior_coords, dxfattribs={
                     'layer': layer_name, 
                     'closed': layer_properties['close'],
-                    'ltscale': layer_properties['linetypescale']  # Add this line
+                    'ltscale': layer_properties['linetypeScale']
                 })
                 self.attach_custom_data(polyline)
+                # Set linetype generation using flags attribute
+                if layer_properties['linetypeGeneration']:
+                    polyline.dxf.flags |= LWPOLYLINE_PLINEGEN
+                else:
+                    polyline.dxf.flags &= ~LWPOLYLINE_PLINEGEN
 
             for interior in polygon.interiors:
                 interior_coords = list(interior.coords)
@@ -434,9 +439,14 @@ class DXFExporter:
                     polyline = msp.add_lwpolyline(interior_coords, dxfattribs={
                         'layer': layer_name, 
                         'closed': layer_properties['close'],
-                        'ltscale': layer_properties['linetypescale']  # Add this line
+                        'ltscale': layer_properties['linetypeScale']
                     })
                     self.attach_custom_data(polyline)
+                    # Set linetype generation using flags attribute
+                    if layer_properties['linetypeGeneration']:
+                        polyline.dxf.flags |= LWPOLYLINE_PLINEGEN
+                    else:
+                        polyline.dxf.flags &= ~LWPOLYLINE_PLINEGEN
                     log_info(f"Added polygon interior to layer {layer_name}: {polyline}")
 
     def add_linestring_to_dxf(self, msp, linestring, layer_name):
@@ -459,12 +469,18 @@ class DXFExporter:
                 dxfattribs={
                     'layer': layer_name,
                     'closed': close_linestring,
-                    'ltscale': layer_properties['linetypescale']  # Add this line
+                    'ltscale': layer_properties['linetypeScale']
                 }
             )
             
             # Set constant width to 0
             polyline.dxf.const_width = 0
+            
+            # Set linetype generation using flags attribute
+            if layer_properties['linetypeGeneration']:
+                polyline.dxf.flags |= LWPOLYLINE_PLINEGEN
+            else:
+                polyline.dxf.flags &= ~LWPOLYLINE_PLINEGEN
             
             self.attach_custom_data(polyline)
             log_info(f"Successfully added polyline to layer {layer_name}")
@@ -492,7 +508,8 @@ class DXFExporter:
             'color': self.get_color_code(style.get('color', 'White')),
             'linetype': style.get('linetype', 'Continuous'),
             'lineweight': style.get('lineweight', 13),
-            'linetypescale': style.get('linetypescale', 1.0),  # Add this line
+            'linetypeScale': style.get('linetypeScale', 1.0),
+            'linetypeGeneration': bool(style.get('linetypeGeneration', False)),  # Convert to boolean, default to True
             'plot': style.get('plot', True),
             'locked': style.get('locked', False),
             'frozen': style.get('frozen', False),
