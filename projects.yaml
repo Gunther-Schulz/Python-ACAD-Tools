@@ -86,7 +86,7 @@ projects:
         label: gmkname
         close: true
         style:
-          labelColor: "Green"
+          # labelColor: "Green"
           color: "Medium Orange Red"
           locked: true
           linetype: Continuous
@@ -121,8 +121,8 @@ projects:
         update: true
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/wald.shp"
         close: true
-        # style:
-        #   color: "Dark Green"
+        style:
+          color: "Dark Green"
       - name: Biotope Input 1
         update: false
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/biotope.shp"
