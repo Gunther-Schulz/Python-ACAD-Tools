@@ -26,23 +26,35 @@ class DXFExporter:
         self.colors = {}
 
         for layer in self.project_settings['dxfLayers']:
-            self.add_layer_properties(layer['name'], layer)
-            color_code = self.get_color_code(layer.get('color', 'White'))
-            text_color_code = self.get_color_code(layer.get('textColor', layer.get('color', 'White')))
-            self.colors[layer['name']] = color_code
+            layer_name = layer['name']
+            style = layer.get('style', {})
+            
+            # Set up main layer
+            self.add_layer_properties(layer_name, layer)
+            color_code = self.get_color_code(style.get('color', 'White'))
+            self.colors[layer_name] = color_code
             
             # Only add label layer if it's not a WMTS layer and not already a label layer
-            if not self.is_wmts_layer(layer) and not layer['name'].endswith(' Label'):
-                label_layer_name = f"{layer['name']} Label"
-                self.colors[label_layer_name] = text_color_code
+            if not self.is_wmts_layer(layer) and not layer_name.endswith(' Label'):
+                label_layer_name = f"{layer_name} Label"
+                
+                # Use labelColor from style if specified, otherwise use the base layer color
+                label_color = style.get('labelColor', style.get('color', 'White'))
+                label_color_code = self.get_color_code(label_color)
+                
+                self.colors[label_layer_name] = label_color_code
+                
                 # Add the label layer properties
                 self.add_layer_properties(label_layer_name, {
                     'style': {
-                        'color': layer.get('textColor', layer.get('color', 'White')),
-                        'plot': layer.get('style', {}).get('plot', True),
-                        'locked': layer.get('style', {}).get('locked', False),
-                        'frozen': layer.get('style', {}).get('frozen', False),
-                        'is_on': layer.get('style', {}).get('is_on', True),
+                        'color': label_color,
+                        'plot': style.get('plot', True),
+                        'locked': style.get('locked', False),
+                        'frozen': style.get('frozen', False),
+                        'is_on': style.get('is_on', True),
+                        'lineweight': style.get('lineweight', 13),
+                        'linetype': style.get('linetype', 'Continuous'),
+                        'transparency': style.get('transparency', 0.0),
                     }
                 })
 
@@ -274,11 +286,9 @@ class DXFExporter:
         if hasattr(entity, 'set_hyperlink'):
             try:
                 entity.set_hyperlink(self.script_identifier)
-                log_info(f"Attached custom data to entity: {entity}")
                 # Verify the hyperlink was set correctly
                 if hasattr(entity, 'get_hyperlink'):
                     set_value = entity.get_hyperlink()
-                    log_info(f"Verified hyperlink for {entity}: {set_value}")
                     if set_value != self.script_identifier and set_value != (self.script_identifier, '', ''):
                         log_warning(f"Hyperlink mismatch for {entity}. Expected: {self.script_identifier}, Got: {set_value}")
                 else:
@@ -416,7 +426,6 @@ class DXFExporter:
                 self.add_label_to_dxf(msp, geometry, layer_name, layer_name)
 
     def add_polygon_to_dxf(self, msp, geometry, layer_name):
-        log_info(f"Adding polygon to layer {layer_name}")
         if isinstance(geometry, Polygon):
             polygons = [geometry]
         elif isinstance(geometry, MultiPolygon):
@@ -432,7 +441,6 @@ class DXFExporter:
                     'closed': self.layer_properties[layer_name]['close']
                 })
                 self.attach_custom_data(polyline)
-                log_info(f"Added polygon to layer {layer_name}: {polyline}")
 
             for interior in polygon.interiors:
                 interior_coords = list(interior.coords)
@@ -501,7 +509,6 @@ class DXFExporter:
         style = layer_info.get('style', {})
         properties = {
             'color': self.get_color_code(style.get('color', 'White')),
-            'textColor': self.get_color_code(style.get('textColor', style.get('color', 'White'))),
             'linetype': style.get('linetype', 'Continuous'),
             'lineweight': style.get('lineweight', 13),
             'plot': style.get('plot', True),
@@ -517,14 +524,8 @@ class DXFExporter:
         # Only add label layer properties if it's not a WMTS layer and not already a label layer
         if not self.is_wmts_layer(layer_info) and not layer_name.endswith(' Label'):
             text_layer_name = f"{layer_name} Label"
-            text_properties = {
-                'color': properties['textColor'],
-                'plot': properties['plot'],
-                'locked': properties['locked'],
-                'frozen': properties['frozen'],
-                'is_on': properties['is_on'],
-                'close': properties['close']
-            }
+            text_properties = properties.copy()
+            text_properties['color'] = self.get_color_code(style.get('labelColor', style.get('color', 'White')))
             self.layer_properties[text_layer_name] = text_properties
 
     def is_wmts_layer(self, layer_name):
@@ -581,10 +582,9 @@ class DXFExporter:
         return None
     
     def add_text(self, msp, text, x, y, layer_name, style_name, color):
-        log_info(f"Adding text to layer {layer_name}")
         text_layer_name = f"{layer_name} Label" if not layer_name.endswith(' Label') else layer_name
         
-        # Use the color of the label layer, not the individual text color
+        # Use the color of the label layer, which may be different from the base layer if textColor was specified
         text_color = self.layer_properties[text_layer_name]['color']
         
         text_entity = msp.add_text(text, dxfattribs={
@@ -594,10 +594,9 @@ class DXFExporter:
             'align_point': (x, y),
             'halign': 1,
             'valign': 1,
-            # Color is now set by layer, so we don't need to specify it here
+            # Color is set by layer, so we don't need to specify it here
         })
         self.attach_custom_data(text_entity)
-        log_info(f"Added text to layer {text_layer_name}: {text_entity}")
 
     def add_geometry_to_dxf(self, msp, geometry, layer_name):
         if isinstance(geometry, (Polygon, MultiPolygon)):

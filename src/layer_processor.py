@@ -55,7 +55,7 @@ class LayerProcessor:
             log_warning(f"Unrecognized keys in layer {layer_name}: {', '.join(unrecognized_keys)}")
 
         # Check for known style keys
-        known_style_keys = {'color', 'textColor', 'linetype', 'lineweight', 'plot', 'locked', 'frozen', 'is_on', 'vp_freeze', 'transparency'}
+        known_style_keys = {'color', 'labelColor', 'linetype', 'lineweight', 'plot', 'locked', 'frozen', 'is_on', 'vp_freeze', 'transparency'}
         if 'style' in layer_obj:
             unknown_style_keys = set(layer_obj['style'].keys()) - known_style_keys
             if unknown_style_keys:
