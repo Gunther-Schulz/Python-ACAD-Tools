@@ -176,9 +176,6 @@ projects:
         close: true
         style:
           color: "Red"
-          locked: false
-          linetype: ACAD_ISO02W100
-          lineweight: 50
         operations:
           - type: copy
             layers:
@@ -214,6 +211,7 @@ projects:
           color: "Dark Gray"
           linetype: ACAD_ISO02W100
           lineweight: 50
+          linetypescale: 10
         operations:
           - type: buffer
             layers:

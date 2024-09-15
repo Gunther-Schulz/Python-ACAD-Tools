@@ -423,7 +423,8 @@ class DXFExporter:
             if len(exterior_coords) > 2:
                 polyline = msp.add_lwpolyline(exterior_coords, dxfattribs={
                     'layer': layer_name, 
-                    'closed': layer_properties['close']
+                    'closed': layer_properties['close'],
+                    'ltscale': layer_properties['linetypescale']  # Add this line
                 })
                 self.attach_custom_data(polyline)
 
@@ -432,7 +433,8 @@ class DXFExporter:
                 if len(interior_coords) > 2:
                     polyline = msp.add_lwpolyline(interior_coords, dxfattribs={
                         'layer': layer_name, 
-                        'closed': layer_properties['close']
+                        'closed': layer_properties['close'],
+                        'ltscale': layer_properties['linetypescale']  # Add this line
                     })
                     self.attach_custom_data(polyline)
                     log_info(f"Added polygon interior to layer {layer_name}: {polyline}")
@@ -456,7 +458,8 @@ class DXFExporter:
                 points=points_2d,
                 dxfattribs={
                     'layer': layer_name,
-                    'closed': close_linestring
+                    'closed': close_linestring,
+                    'ltscale': layer_properties['linetypescale']  # Add this line
                 }
             )
             
@@ -489,6 +492,7 @@ class DXFExporter:
             'color': self.get_color_code(style.get('color', 'White')),
             'linetype': style.get('linetype', 'Continuous'),
             'lineweight': style.get('lineweight', 13),
+            'linetypescale': style.get('linetypescale', 1.0),  # Add this line
             'plot': style.get('plot', True),
             'locked': style.get('locked', False),
             'frozen': style.get('frozen', False),
