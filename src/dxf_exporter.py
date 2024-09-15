@@ -34,38 +34,26 @@ class DXFExporter:
             
             # Set up main layer
             self.add_layer_properties(layer_name, layer)
-            color_code = self.get_color_code(style.get('color', 'White'))
-            self.colors[layer_name] = color_code
-            
-            log_info(f"Main layer color code: {color_code}")
             
             # Only add label layer if it's not a WMTS layer and not already a label layer
             if not self.is_wmts_layer(layer) and not layer_name.endswith(' Label'):
                 label_layer_name = f"{layer_name} Label"
                 
-                # Use labelColor from style if specified, otherwise use the base layer color
-                label_color = style.get('labelColor', style.get('color', 'White'))
-                label_color_code = self.get_color_code(label_color)
+                # Create label layer with the same properties as the base layer
+                label_properties = self.layer_properties[layer_name].copy()
+                
+                # Only override label color if specifically provided
+                if 'labelColor' in style:
+                    label_color = style['labelColor']
+                    label_color_code = self.get_color_code(label_color)
+                    label_properties['color'] = label_color_code
                 
                 log_info(f"Label layer: {label_layer_name}")
-                log_info(f"Label color: {label_color}")
-                log_info(f"Label color code: {label_color_code}")
-                
-                self.colors[label_layer_name] = label_color_code
+                log_info(f"Label properties: {label_properties}")
                 
                 # Add the label layer properties
-                self.add_layer_properties(label_layer_name, {
-                    'style': {
-                        'color': label_color,
-                        'plot': style.get('plot', True),
-                        'locked': style.get('locked', False),
-                        'frozen': style.get('frozen', False),
-                        'is_on': style.get('is_on', True),
-                        'lineweight': style.get('lineweight', 13),
-                        'linetype': style.get('linetype', 'Continuous'),
-                        'transparency': style.get('transparency', 0.0),
-                    }
-                })
+                self.layer_properties[label_layer_name] = label_properties
+                self.colors[label_layer_name] = label_properties['color']
 
     def remove_unused_entities(self, msp, processed_layers):
         log_info("Removing unused entities...")
@@ -150,6 +138,7 @@ class DXFExporter:
             log_info(f"Processing WMTS layer: {layer_name}")
             self.create_new_layer(doc, msp, layer_name, layer_info)
         else:
+            # Process main layer
             if layer_name not in doc.layers:
                 log_info(f"Creating new layer: {layer_name}")
                 self.create_new_layer(doc, msp, layer_name, layer_info, add_geometry=False)
@@ -157,6 +146,16 @@ class DXFExporter:
                 existing_layer = doc.layers.get(layer_name)
                 self.update_layer_properties(existing_layer, layer_info)
                 log_info(f"Layer {layer_name} already exists. Updated properties.")
+            
+            # Process label layer
+            label_layer_name = f"{layer_name} Label"
+            if label_layer_name not in doc.layers:
+                log_info(f"Creating new label layer: {label_layer_name}")
+                self.create_new_layer(doc, msp, label_layer_name, layer_info, add_geometry=False)
+            else:
+                existing_label_layer = doc.layers.get(label_layer_name)
+                self.update_layer_properties(existing_label_layer, layer_info)
+                log_info(f"Label layer {label_layer_name} already exists. Updated properties.")
             
             if layer_name in self.all_layers:
                 self.update_layer_geometry(msp, layer_name, self.all_layers[layer_name], layer_info)
@@ -208,82 +207,47 @@ class DXFExporter:
         if not layer_name.endswith(' Label'):
             self.verify_entity_hyperlinks(msp, f"{layer_name} Label")
 
-    def create_new_layer(self, doc, msp, layer_name, layer_info, existing_layer=None, add_geometry=True):
+    def create_new_layer(self, doc, msp, layer_name, layer_info, add_geometry=True):
         log_info(f"Creating new layer: {layer_name}")
+        properties = self.layer_properties[layer_name]
+        
         new_layer = doc.layers.new(layer_name)
+        new_layer.color = properties['color']
+        new_layer.linetype = properties['linetype']
+        new_layer.lineweight = properties['lineweight']
+        new_layer.plot = properties['plot']
+        new_layer.locked = properties['locked']
+        new_layer.frozen = properties['frozen']
+        new_layer.on = properties['is_on']
         
-        # Default styles
-        default_styles = {
-            'color': 'White',
-            'linetype': 'Continuous',
-            'lineweight': 13,
-            'plot': True,
-            'locked': False,
-            'frozen': False,
-            'is_on': True,
-            'transparency': 0.0
-        }
+        if 'transparency' in properties:
+            new_layer.transparency = int(properties['transparency'] * 100)
         
-        # If 'style' is in layer_info, update default_styles with those values
-        if 'style' in layer_info:
-            default_styles.update(layer_info['style'])
+        log_info(f"Created new layer: {layer_name}")
+        log_info(f"Layer properties: {properties}")
         
-        # Apply styles (either default or overridden)
-        new_layer.color = self.get_color_code(default_styles['color'])
-        new_layer.dxf.linetype = default_styles['linetype']
-        new_layer.dxf.lineweight = default_styles['lineweight']
-        new_layer.dxf.plot = default_styles['plot']
-        new_layer.locked = default_styles['locked']
-        new_layer.frozen = default_styles['frozen']
-        new_layer.on = default_styles['is_on']
-        new_layer.transparency = int(default_styles['transparency'] * 100)
-
-        log_info(f"Applied styles to new layer: {layer_name}")
-        log_info(f"Layer properties: {new_layer.dxf.all_existing_dxf_attribs()}")
-
         if add_geometry and layer_name in self.all_layers:
             self.update_layer_geometry(msp, layer_name, self.all_layers[layer_name], layer_info)
+        
+        return new_layer
 
     def update_layer_properties(self, layer, layer_info):
         log_info(f"Updating properties for layer: {layer.dxf.name}")
-        log_info(f"Layer info: {layer_info}")
-        log_info(f"Current layer properties: {layer.dxf.all_existing_dxf_attribs()}")
+        layer_name = layer.dxf.name
+        properties = self.layer_properties[layer_name]
         
-        style = layer_info.get('style', {})
+        layer.color = properties['color']
+        layer.dxf.linetype = properties['linetype']
+        layer.dxf.lineweight = properties['lineweight']
+        layer.dxf.plot = properties['plot']
+        layer.locked = properties['locked']
+        layer.frozen = properties['frozen']
+        layer.on = properties['is_on']
         
-        if style:
-            if 'color' in style:
-                layer.color = self.get_color_code(style['color'])
-                log_info(f"  Set color to: {layer.color}")
-            if 'linetype' in style:
-                linetype_name = style['linetype']
-                if linetype_name not in layer.doc.linetypes:
-                    log_warning(f"  Linetype '{linetype_name}' not found. Using 'CONTINUOUS' instead.")
-                    linetype_name = 'CONTINUOUS'
-                layer.dxf.linetype = linetype_name
-                log_info(f"  Set linetype to: {linetype_name}")
-            if 'lineweight' in style:
-                layer.dxf.lineweight = style['lineweight']
-                log_info(f"  Set lineweight to: {style['lineweight']}")
-            if 'plot' in style:
-                layer.dxf.plot = style['plot']
-                log_info(f"  Set plot to: {style['plot']}")
-            if 'locked' in style:
-                layer.locked = style['locked']
-                log_info(f"  Set locked to: {style['locked']}")
-            if 'frozen' in style:
-                layer.frozen = style['frozen']
-                log_info(f"  Set frozen to: {style['frozen']}")
-            if 'is_on' in style:
-                layer.on = style['is_on']
-                log_info(f"  Set on to: {layer.on}")
-            if 'transparency' in style:
-                layer.transparency = int(style['transparency'] * 100)
-                log_info(f"  Set transparency to: {layer.transparency}")
-        else:
-            log_info(f"No style information provided for layer {layer.dxf.name}. Keeping existing properties.")
+        if 'transparency' in properties:
+            layer.transparency = int(properties['transparency'] * 100)
         
-        log_info(f"Final layer properties after update: {layer.dxf.all_existing_dxf_attribs()}")
+        log_info(f"Updated layer properties: {properties}")
 
     def load_standard_linetypes(self, doc):
         standard_linetypes = [
@@ -507,15 +471,7 @@ class DXFExporter:
             return
 
         text_layer_name = f"{layer_name} Label" if not layer_name.endswith(' Label') else layer_name
-        self.add_text(
-            msp,
-            str(label),
-            centroid.x,
-            centroid.y,
-            text_layer_name,
-            'Standard',
-            self.colors[text_layer_name]
-        )
+        self.add_text(msp, str(label), centroid.x, centroid.y, text_layer_name, 'Standard')
 
     def initialize_layer_properties(self):
         for layer in self.project_settings['dxfLayers']:
@@ -536,17 +492,9 @@ class DXFExporter:
             'close_linestring': style.get('close_linestring', False)
         }
         self.layer_properties[layer_name] = properties
+        self.colors[layer_name] = properties['color']
         
         log_info(f"Added layer properties for {layer_name}: {properties}")
-        
-        # Only add label layer properties if it's not a WMTS layer and not already a label layer
-        if not self.is_wmts_layer(layer_info) and not layer_name.endswith(' Label'):
-            text_layer_name = f"{layer_name} Label"
-            text_properties = properties.copy()
-            text_properties['color'] = self.get_color_code(style.get('labelColor', style.get('color', 'White')))
-            self.layer_properties[text_layer_name] = text_properties
-            
-            log_info(f"Added label layer properties for {text_layer_name}: {text_properties}")
 
     def is_wmts_layer(self, layer_name):
         layer_info = next((l for l in self.project_settings['dxfLayers'] if l['name'] == layer_name), None)
@@ -601,11 +549,8 @@ class DXFExporter:
                 return self.get_geometry_centroid(geometry.geoms[0])
         return None
     
-    def add_text(self, msp, text, x, y, layer_name, style_name, color):
+    def add_text(self, msp, text, x, y, layer_name, style_name):
         text_layer_name = f"{layer_name} Label" if not layer_name.endswith(' Label') else layer_name
-        
-        # Use the color of the label layer
-        text_color = self.colors[text_layer_name]
         
         text_entity = msp.add_text(text, dxfattribs={
             'style': style_name,
@@ -613,8 +558,7 @@ class DXFExporter:
             'insert': (x, y),
             'align_point': (x, y),
             'halign': 1,
-            'valign': 1,
-            'color': text_color  # Explicitly set the color
+            'valign': 1
         })
         self.attach_custom_data(text_entity)
 
