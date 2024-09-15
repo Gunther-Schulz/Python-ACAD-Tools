@@ -49,10 +49,30 @@ class LayerProcessor:
             return
 
         # Check for unrecognized keys
-        recognized_keys = {'name', 'update', 'operations', 'shapeFile', 'outputShapeFile', 'add', 'color', 'textColor', 'locked', 'close', 'transparency', 'label', 'lineweight', 'linetype', 'plot', 'vp_freeze', 'frozen', 'is_on'}
+        recognized_keys = {'name', 'update', 'operations', 'shapeFile', 'outputShapeFile', 'style', 'labelStyle', 'label', 'close', 'linetypeScale', 'linetypeGeneration'}
         unrecognized_keys = set(layer_obj.keys()) - recognized_keys
         if unrecognized_keys:
             log_warning(f"Unrecognized keys in layer {layer_name}: {', '.join(unrecognized_keys)}")
+
+        # Check for known style keys
+        known_style_keys = {'color', 'linetype', 'lineweight', 'plot', 'locked', 'frozen', 'is_on', 'vp_freeze', 'transparency'}
+        if 'style' in layer_obj:
+            unknown_style_keys = set(layer_obj['style'].keys()) - known_style_keys
+            if unknown_style_keys:
+                log_warning(f"Unknown style keys in layer {layer_name}: {', '.join(unknown_style_keys)}")
+            
+            # Check for typos in style keys
+            for key in layer_obj['style'].keys():
+                closest_match = min(known_style_keys, key=lambda x: self.levenshtein_distance(key, x))
+                if key != closest_match and self.levenshtein_distance(key, closest_match) <= 2:
+                    log_warning(f"Possible typo in style key for layer {layer_name}: '{key}'. Did you mean '{closest_match}'?")
+
+        # Check for known labelStyle keys only if labels are present
+        if 'label' in layer_obj or 'labelStyle' in layer_obj:
+            if 'labelStyle' in layer_obj:
+                unknown_label_style_keys = set(layer_obj['labelStyle'].keys()) - known_style_keys
+                if unknown_label_style_keys:
+                    log_warning(f"Unknown labelStyle keys in layer {layer_name}: {', '.join(unknown_label_style_keys)}")
 
         # Check if the layer should be updated
         update_flag = layer_obj.get('update', False)  # Default to False
@@ -84,6 +104,26 @@ class LayerProcessor:
 
 
         processed_layers.add(layer_name)
+
+
+    def levenshtein_distance(self, s1, s2):
+        if len(s1) < len(s2):
+            return self.levenshtein_distance(s2, s1)
+
+        if len(s2) == 0:
+            return len(s1)
+
+        previous_row = range(len(s2) + 1)
+        for i, c1 in enumerate(s1):
+            current_row = [i + 1]
+            for j, c2 in enumerate(s2):
+                insertions = previous_row[j + 1] + 1
+                deletions = current_row[j] + 1
+                substitutions = previous_row[j] + (c1 != c2)
+                current_row.append(min(insertions, deletions, substitutions))
+            previous_row = current_row
+
+        return previous_row[-1]
 
     def process_operation(self, layer_name, operation, processed_layers):
         op_type = operation['type']
@@ -235,20 +275,20 @@ class LayerProcessor:
             log_warning(f"Cannot write shapefile for layer {layer_name}: layer not found")
 
     def setup_shapefiles(self):
-            for layer in self.project_settings['dxfLayers']:
-                if 'shapeFile' in layer:
-                    layer_name = layer['name']
-                    shapefile_path = self.project_loader.resolve_full_path(layer['shapeFile'])
-                    try:
-                        gdf = gpd.read_file(shapefile_path)
-                        gdf = self.standardize_layer_crs(layer_name, gdf)
-                        if gdf is not None:
-                            self.all_layers[layer_name] = gdf
-                            log_info(f"Loaded shapefile for layer: {layer_name}")
-                        else:
-                            log_warning(f"Failed to load shapefile for layer: {layer_name}")
-                    except Exception as e:
-                        log_warning(f"Failed to load shapefile for layer '{layer_name}': {str(e)}")
+        for layer in self.project_settings['dxfLayers']:
+            if 'shapeFile' in layer:
+                layer_name = layer['name']
+                shapefile_path = self.project_loader.resolve_full_path(layer['shapeFile'])
+                try:
+                    gdf = gpd.read_file(shapefile_path)
+                    gdf = self.standardize_layer_crs(layer_name, gdf)
+                    if gdf is not None:
+                        self.all_layers[layer_name] = gdf
+                        log_info(f"Loaded shapefile for layer: {layer_name}")
+                    else:
+                        log_warning(f"Failed to load shapefile for layer: {layer_name}")
+                except Exception as e:
+                    log_warning(f"Failed to load shapefile for layer '{layer_name}': {str(e)}")
 
     def ensure_geodataframe(self, layer_name, geometry):
         if not isinstance(geometry, gpd.GeoDataFrame):
