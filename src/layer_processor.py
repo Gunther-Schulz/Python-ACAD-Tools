@@ -49,17 +49,23 @@ class LayerProcessor:
             return
 
         # Check for unrecognized keys
-        recognized_keys = {'name', 'update', 'operations', 'shapeFile', 'outputShapeFile', 'style', 'label', 'close'}
+        recognized_keys = {'name', 'update', 'operations', 'shapeFile', 'outputShapeFile', 'style', 'labelStyle', 'label', 'close'}
         unrecognized_keys = set(layer_obj.keys()) - recognized_keys
         if unrecognized_keys:
             log_warning(f"Unrecognized keys in layer {layer_name}: {', '.join(unrecognized_keys)}")
 
         # Check for known style keys
-        known_style_keys = {'color', 'labelColor', 'linetype', 'lineweight', 'plot', 'locked', 'frozen', 'is_on', 'vp_freeze', 'transparency'}
+        known_style_keys = {'color', 'linetype', 'lineweight', 'plot', 'locked', 'frozen', 'is_on', 'vp_freeze', 'transparency'}
         if 'style' in layer_obj:
             unknown_style_keys = set(layer_obj['style'].keys()) - known_style_keys
             if unknown_style_keys:
                 log_warning(f"Unknown style keys in layer {layer_name}: {', '.join(unknown_style_keys)}")
+
+        # Check for known labelStyle keys
+        if 'labelStyle' in layer_obj:
+            unknown_label_style_keys = set(layer_obj['labelStyle'].keys()) - known_style_keys
+            if unknown_label_style_keys:
+                log_warning(f"Unknown labelStyle keys in layer {layer_name}: {', '.join(unknown_label_style_keys)}")
 
         # Check if the layer should be updated
         update_flag = layer_obj.get('update', False)  # Default to False
@@ -242,20 +248,20 @@ class LayerProcessor:
             log_warning(f"Cannot write shapefile for layer {layer_name}: layer not found")
 
     def setup_shapefiles(self):
-            for layer in self.project_settings['dxfLayers']:
-                if 'shapeFile' in layer:
-                    layer_name = layer['name']
-                    shapefile_path = self.project_loader.resolve_full_path(layer['shapeFile'])
-                    try:
-                        gdf = gpd.read_file(shapefile_path)
-                        gdf = self.standardize_layer_crs(layer_name, gdf)
-                        if gdf is not None:
-                            self.all_layers[layer_name] = gdf
-                            log_info(f"Loaded shapefile for layer: {layer_name}")
-                        else:
-                            log_warning(f"Failed to load shapefile for layer: {layer_name}")
-                    except Exception as e:
-                        log_warning(f"Failed to load shapefile for layer '{layer_name}': {str(e)}")
+        for layer in self.project_settings['dxfLayers']:
+            if 'shapeFile' in layer:
+                layer_name = layer['name']
+                shapefile_path = self.project_loader.resolve_full_path(layer['shapeFile'])
+                try:
+                    gdf = gpd.read_file(shapefile_path)
+                    gdf = self.standardize_layer_crs(layer_name, gdf)
+                    if gdf is not None:
+                        self.all_layers[layer_name] = gdf
+                        log_info(f"Loaded shapefile for layer: {layer_name}")
+                    else:
+                        log_warning(f"Failed to load shapefile for layer: {layer_name}")
+                except Exception as e:
+                    log_warning(f"Failed to load shapefile for layer '{layer_name}': {str(e)}")
 
     def ensure_geodataframe(self, layer_name, geometry):
         if not isinstance(geometry, gpd.GeoDataFrame):

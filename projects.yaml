@@ -64,7 +64,6 @@ projects:
           is_on: true
           vp_freeze: false
           transparency: 0.0
-          plot: false
       - name: Parcel
         update: true
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/parcel.shp"
@@ -86,7 +85,6 @@ projects:
         label: gmkname
         close: true
         style:
-          # labelColor: "Green"
           color: "Medium Orange Red"
           locked: true
           linetype: Continuous
@@ -96,6 +94,8 @@ projects:
           is_on: true
           vp_freeze: false
           transparency: 0.0
+        labelStyle:
+          color: "Green"
       - name: Gemeinde
         update: true
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/gemeinde.shp"
@@ -177,7 +177,8 @@ projects:
         style:
           color: "Red"
           locked: false
-          # linetype: ACAD_ISO02W100
+          linetype: ACAD_ISO02W100
+          lineweight: 50
         operations:
           - type: copy
             layers:

@@ -37,8 +37,14 @@ class DXFExporter:
         label_properties = self.layer_properties[base_layer_name].copy()
         
         style = base_layer.get('style', {})
-        if 'labelColor' in style:
-            label_properties['color'] = self.get_color_code(style['labelColor'])
+        label_style = base_layer.get('labelStyle', {})
+        
+        # Apply label style properties, falling back to base style if not specified
+        for key, value in label_style.items():
+            if key == 'color':
+                label_properties['color'] = self.get_color_code(value)
+            else:
+                label_properties[key] = value
         
         self.layer_properties[label_layer_name] = label_properties
         self.colors[label_layer_name] = label_properties['color']
