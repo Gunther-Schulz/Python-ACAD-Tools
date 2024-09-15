@@ -30,7 +30,11 @@ class DXFExporter:
         self.add_layer_properties(layer_name, layer)
         
         if not self.is_wmts_layer(layer) and not layer_name.endswith(' Label'):
-            self._setup_label_layer(layer_name, layer)
+            if self.has_labels(layer):
+                self._setup_label_layer(layer_name, layer)
+
+    def has_labels(self, layer):
+        return 'label' in layer or 'labelStyle' in layer
 
     def _setup_label_layer(self, base_layer_name, base_layer):
         label_layer_name = f"{base_layer_name} Label"
@@ -135,7 +139,9 @@ class DXFExporter:
 
     def _process_regular_layer(self, doc, msp, layer_name, layer_info):
         self._ensure_layer_exists(doc, layer_name, layer_info)
-        self._ensure_label_layer_exists(doc, layer_name, layer_info)
+        
+        if self.has_labels(layer_info):
+            self._ensure_label_layer_exists(doc, layer_name, layer_info)
         
         if layer_name in self.all_layers:
             self.update_layer_geometry(msp, layer_name, self.all_layers[layer_name], layer_info)
@@ -406,7 +412,7 @@ class DXFExporter:
 
             if labels is not None:
                 self.add_label_to_dxf(msp, geometry, labels.iloc[idx], layer_name)
-            elif self.is_generated_layer(layer_name):
+            elif self.is_generated_layer(layer_name) and self.has_labels(layer_info):
                 self.add_label_to_dxf(msp, geometry, layer_name, layer_name)
 
     def add_polygon_to_dxf(self, msp, geometry, layer_name):
@@ -508,8 +514,8 @@ class DXFExporter:
             'color': self.get_color_code(style.get('color', 'White')),
             'linetype': style.get('linetype', 'Continuous'),
             'lineweight': style.get('lineweight', 13),
-            'linetypeScale': style.get('linetypeScale', 1.0),
-            'linetypeGeneration': bool(style.get('linetypeGeneration', False)),  # Convert to boolean, default to True
+            'linetypeScale': layer_info.get('linetypeScale', 1.0),
+            'linetypeGeneration': bool(layer_info.get('linetypeGeneration', False)),
             'plot': style.get('plot', True),
             'locked': style.get('locked', False),
             'frozen': style.get('frozen', False),
@@ -521,22 +527,24 @@ class DXFExporter:
         self.layer_properties[layer_name] = properties
         self.colors[layer_name] = properties['color']
         
-        # Add label layer properties
-        label_layer_name = f"{layer_name} Label"
-        label_style = layer_info.get('labelStyle', {})
-        label_properties = properties.copy()
-        
-        for key, value in label_style.items():
-            if key == 'color':
-                label_properties['color'] = self.get_color_code(value)
-            else:
-                label_properties[key] = value
-        
-        self.layer_properties[label_layer_name] = label_properties
-        self.colors[label_layer_name] = label_properties['color']
+        # Add label layer properties only if labels are present
+        if self.has_labels(layer_info):
+            label_layer_name = f"{layer_name} Label"
+            label_style = layer_info.get('labelStyle', {})
+            label_properties = properties.copy()
+            
+            for key, value in label_style.items():
+                if key == 'color':
+                    label_properties['color'] = self.get_color_code(value)
+                else:
+                    label_properties[key] = value
+            
+            self.layer_properties[label_layer_name] = label_properties
+            self.colors[label_layer_name] = label_properties['color']
+            
+            log_info(f"Added label layer properties for {label_layer_name}: {label_properties}")
         
         log_info(f"Added layer properties for {layer_name}: {properties}")
-        log_info(f"Added label layer properties for {label_layer_name}: {label_properties}")
 
     def is_wmts_layer(self, layer_name):
         layer_info = next((l for l in self.project_settings['dxfLayers'] if l['name'] == layer_name), None)

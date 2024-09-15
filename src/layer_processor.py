@@ -49,13 +49,13 @@ class LayerProcessor:
             return
 
         # Check for unrecognized keys
-        recognized_keys = {'name', 'update', 'operations', 'shapeFile', 'outputShapeFile', 'style', 'labelStyle', 'label', 'close'}
+        recognized_keys = {'name', 'update', 'operations', 'shapeFile', 'outputShapeFile', 'style', 'labelStyle', 'label', 'close', 'linetypeScale', 'linetypeGeneration'}
         unrecognized_keys = set(layer_obj.keys()) - recognized_keys
         if unrecognized_keys:
             log_warning(f"Unrecognized keys in layer {layer_name}: {', '.join(unrecognized_keys)}")
 
         # Check for known style keys
-        known_style_keys = {'color', 'linetype', 'lineweight', 'linetypeScale', 'linetypeGeneration', 'plot', 'locked', 'frozen', 'is_on', 'vp_freeze', 'transparency'}
+        known_style_keys = {'color', 'linetype', 'lineweight', 'plot', 'locked', 'frozen', 'is_on', 'vp_freeze', 'transparency'}
         if 'style' in layer_obj:
             unknown_style_keys = set(layer_obj['style'].keys()) - known_style_keys
             if unknown_style_keys:
@@ -67,11 +67,12 @@ class LayerProcessor:
                 if key != closest_match and self.levenshtein_distance(key, closest_match) <= 2:
                     log_warning(f"Possible typo in style key for layer {layer_name}: '{key}'. Did you mean '{closest_match}'?")
 
-        # Check for known labelStyle keys
-        if 'labelStyle' in layer_obj:
-            unknown_label_style_keys = set(layer_obj['labelStyle'].keys()) - known_style_keys
-            if unknown_label_style_keys:
-                log_warning(f"Unknown labelStyle keys in layer {layer_name}: {', '.join(unknown_label_style_keys)}")
+        # Check for known labelStyle keys only if labels are present
+        if 'label' in layer_obj or 'labelStyle' in layer_obj:
+            if 'labelStyle' in layer_obj:
+                unknown_label_style_keys = set(layer_obj['labelStyle'].keys()) - known_style_keys
+                if unknown_label_style_keys:
+                    log_warning(f"Unknown labelStyle keys in layer {layer_name}: {', '.join(unknown_label_style_keys)}")
 
         # Check if the layer should be updated
         update_flag = layer_obj.get('update', False)  # Default to False

@@ -207,12 +207,12 @@ projects:
       - name: Geltungsbereich NW 2
         update: true
         close: true
+        linetypeScale: 1
+        linetypeGeneration: true
         style:
           color: "Dark Gray"
           linetype: ACAD_ISO02W100
-          lineweight: 50
-          linetypeScale: 1
-          linetypeGeneration: 1
+          lineweight: 158
         operations:
           - type: buffer
             layers:
