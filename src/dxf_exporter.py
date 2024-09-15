@@ -114,10 +114,6 @@ class DXFExporter:
         log_info(f"Processing layer: {layer_name}")
         log_info(f"Update flag: {update_flag}")
 
-        if not update_flag:
-            log_info(f"Skipping layer {layer_name} as 'update' flag is not set")
-            return
-
         if self.is_wmts_layer(layer_info):
             log_info(f"Processing WMTS layer: {layer_name}")
             self.create_new_layer(doc, msp, layer_name, layer_info)
@@ -127,11 +123,8 @@ class DXFExporter:
                 self.create_new_layer(doc, msp, layer_name, layer_info, add_geometry=False)
             else:
                 existing_layer = doc.layers.get(layer_name)
-                if 'style' in layer_info:
-                    log_info(f"Layer {layer_name} already exists. Skipping style application.")
-                else:
-                    self.update_layer_properties(existing_layer, layer_info)
-                log_info(f"Layer {layer_name} already exists. Updating properties.")
+                self.update_layer_properties(existing_layer, layer_info)
+                log_info(f"Layer {layer_name} already exists. Updated properties.")
             
             if layer_name in self.all_layers:
                 self.update_layer_geometry(msp, layer_name, self.all_layers[layer_name], layer_info)
@@ -180,18 +173,34 @@ class DXFExporter:
         log_info(f"Creating new layer: {layer_name}")
         new_layer = doc.layers.new(layer_name)
         
+        # Default styles
+        default_styles = {
+            'color': 'White',
+            'linetype': 'Continuous',
+            'lineweight': 13,
+            'plot': True,
+            'locked': False,
+            'frozen': False,
+            'is_on': True,
+            'transparency': 0.0
+        }
+        
+        # If 'style' is in layer_info, update default_styles with those values
         if 'style' in layer_info:
-            style = layer_info['style']
-            new_layer.color = self.get_color_code(style.get('color', 'White'))
-            new_layer.linetype = style.get('linetype', 'Continuous')
-            new_layer.lineweight = style.get('lineweight', 13)
-            new_layer.plot = style.get('plot', True)
-            new_layer.locked = style.get('locked', False)
-            new_layer.frozen = style.get('frozen', False)
-            new_layer.on = style.get('is_on', True)
-            # Use viewport_frozen property instead of vp_freeze
-            new_layer.viewport_frozen = style.get('vp_freeze', False)
-            new_layer.transparency = int(style.get('transparency', 0.0) * 100)
+            default_styles.update(layer_info['style'])
+        
+        # Apply styles (either default or overridden)
+        new_layer.color = self.get_color_code(default_styles['color'])
+        new_layer.dxf.linetype = default_styles['linetype']
+        new_layer.dxf.lineweight = default_styles['lineweight']
+        new_layer.dxf.plot = default_styles['plot']
+        new_layer.locked = default_styles['locked']
+        new_layer.frozen = default_styles['frozen']
+        new_layer.on = default_styles['is_on']
+        new_layer.transparency = int(default_styles['transparency'] * 100)
+
+        log_info(f"Applied styles to new layer: {layer_name}")
+        log_info(f"Layer properties: {new_layer.dxf.all_existing_dxf_attribs()}")
 
         if add_geometry and layer_name in self.all_layers:
             self.update_layer_geometry(msp, layer_name, self.all_layers[layer_name], layer_info)
@@ -203,38 +212,37 @@ class DXFExporter:
         
         style = layer_info.get('style', {})
         
-        if 'color' in style:
-            layer.color = self.get_color_code(style['color'])
-            log_info(f"  Set color to: {layer.color}")
-        if 'linetype' in style:
-            linetype_name = style['linetype']
-            if linetype_name not in layer.doc.linetypes:
-                log_warning(f"  Linetype '{linetype_name}' not found. Using 'CONTINUOUS' instead.")
-                linetype_name = 'CONTINUOUS'
-            layer.dxf.linetype = linetype_name
-            log_info(f"  Set linetype to: {linetype_name}")
-        if 'lineweight' in style:
-            layer.dxf.lineweight = style['lineweight']
-            log_info(f"  Set lineweight to: {style['lineweight']}")
-        if 'plot' in style:
-            layer.dxf.plot = style['plot']
-            log_info(f"  Set plot to: {style['plot']}")
-        if 'locked' in style:
-            layer.locked = style['locked']
-            log_info(f"  Set locked to: {style['locked']}")
-        if 'frozen' in style:
-            layer.frozen = style['frozen']
-            log_info(f"  Set frozen to: {style['frozen']}")
-        if 'is_on' in style:
-            layer.on = style['is_on']
-            log_info(f"  Set on to: {layer.on}")
-        if 'vp_freeze' in style:
-            # Update to use viewport_frozen
-            layer.viewport_frozen = style['vp_freeze']
-            log_info(f"  Set viewport_frozen to: {layer.viewport_frozen}")
-        if 'transparency' in style:
-            layer.transparency = int(style['transparency'] * 100)
-            log_info(f"  Set transparency to: {layer.transparency}")
+        if style:
+            if 'color' in style:
+                layer.color = self.get_color_code(style['color'])
+                log_info(f"  Set color to: {layer.color}")
+            if 'linetype' in style:
+                linetype_name = style['linetype']
+                if linetype_name not in layer.doc.linetypes:
+                    log_warning(f"  Linetype '{linetype_name}' not found. Using 'CONTINUOUS' instead.")
+                    linetype_name = 'CONTINUOUS'
+                layer.dxf.linetype = linetype_name
+                log_info(f"  Set linetype to: {linetype_name}")
+            if 'lineweight' in style:
+                layer.dxf.lineweight = style['lineweight']
+                log_info(f"  Set lineweight to: {style['lineweight']}")
+            if 'plot' in style:
+                layer.dxf.plot = style['plot']
+                log_info(f"  Set plot to: {style['plot']}")
+            if 'locked' in style:
+                layer.locked = style['locked']
+                log_info(f"  Set locked to: {style['locked']}")
+            if 'frozen' in style:
+                layer.frozen = style['frozen']
+                log_info(f"  Set frozen to: {style['frozen']}")
+            if 'is_on' in style:
+                layer.on = style['is_on']
+                log_info(f"  Set on to: {layer.on}")
+            if 'transparency' in style:
+                layer.transparency = int(style['transparency'] * 100)
+                log_info(f"  Set transparency to: {layer.transparency}")
+        else:
+            log_info(f"No style information provided for layer {layer.dxf.name}. Keeping existing properties.")
         
         log_info(f"Final layer properties after update: {layer.dxf.all_existing_dxf_attribs()}")
 
@@ -489,7 +497,6 @@ class DXFExporter:
             'locked': style.get('locked', False),
             'frozen': style.get('frozen', False),
             'is_on': style.get('is_on', True),
-            'vp_freeze': style.get('vp_freeze', False),
             'transparency': style.get('transparency', 0.0),
             'close': style.get('close', True),
             'close_linestring': style.get('close_linestring', False)
@@ -505,7 +512,6 @@ class DXFExporter:
                 'locked': properties['locked'],
                 'frozen': properties['frozen'],
                 'is_on': properties['is_on'],
-                'vp_freeze': properties['vp_freeze'],
                 'close': properties['close']
             }
             self.layer_properties[text_layer_name] = text_properties
