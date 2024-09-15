@@ -217,9 +217,9 @@ class DXFExporter:
         
         new_layer = doc.layers.new(layer_name)
         new_layer.color = properties['color']
-        new_layer.linetype = properties['linetype']
-        new_layer.lineweight = properties['lineweight']
-        new_layer.plot = properties['plot']
+        new_layer.dxf.linetype = properties['linetype']
+        new_layer.dxf.lineweight = properties['lineweight']
+        new_layer.dxf.plot = properties['plot']
         new_layer.locked = properties['locked']
         new_layer.frozen = properties['frozen']
         new_layer.on = properties['is_on']
@@ -417,12 +417,13 @@ class DXFExporter:
         else:
             return
 
+        layer_properties = self.layer_properties[layer_name]
         for polygon in polygons:
             exterior_coords = list(polygon.exterior.coords)
             if len(exterior_coords) > 2:
                 polyline = msp.add_lwpolyline(exterior_coords, dxfattribs={
                     'layer': layer_name, 
-                    'closed': self.layer_properties[layer_name]['close']
+                    'closed': layer_properties['close']
                 })
                 self.attach_custom_data(polyline)
 
@@ -431,14 +432,15 @@ class DXFExporter:
                 if len(interior_coords) > 2:
                     polyline = msp.add_lwpolyline(interior_coords, dxfattribs={
                         'layer': layer_name, 
-                        'closed': self.layer_properties[layer_name]['close']
+                        'closed': layer_properties['close']
                     })
                     self.attach_custom_data(polyline)
                     log_info(f"Added polygon interior to layer {layer_name}: {polyline}")
 
     def add_linestring_to_dxf(self, msp, linestring, layer_name):
         points = list(linestring.coords)
-        close_linestring = self.layer_properties[layer_name].get('close_linestring', False)
+        layer_properties = self.layer_properties[layer_name]
+        close_linestring = layer_properties.get('close_linestring', False)
         
         if close_linestring and points[0] != points[-1]:
             points.append(points[0])  # Close the linestring by adding the first point at the end
@@ -454,7 +456,7 @@ class DXFExporter:
                 points=points_2d,
                 dxfattribs={
                     'layer': layer_name,
-                    'closed': False,
+                    'closed': close_linestring
                 }
             )
             
@@ -498,7 +500,22 @@ class DXFExporter:
         self.layer_properties[layer_name] = properties
         self.colors[layer_name] = properties['color']
         
+        # Add label layer properties
+        label_layer_name = f"{layer_name} Label"
+        label_style = layer_info.get('labelStyle', {})
+        label_properties = properties.copy()
+        
+        for key, value in label_style.items():
+            if key == 'color':
+                label_properties['color'] = self.get_color_code(value)
+            else:
+                label_properties[key] = value
+        
+        self.layer_properties[label_layer_name] = label_properties
+        self.colors[label_layer_name] = label_properties['color']
+        
         log_info(f"Added layer properties for {layer_name}: {properties}")
+        log_info(f"Added label layer properties for {label_layer_name}: {label_properties}")
 
     def is_wmts_layer(self, layer_name):
         layer_info = next((l for l in self.project_settings['dxfLayers'] if l['name'] == layer_name), None)

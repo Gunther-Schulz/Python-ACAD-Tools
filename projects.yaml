@@ -58,7 +58,7 @@ projects:
         style:
           color: Cyan
           linetype: Continuous
-          lineweight: 13
+          # lineweight: 13
           locked: true
           frozen: false
           is_on: true
@@ -73,7 +73,7 @@ projects:
           color: Black
           locked: true
           linetype: ACAD_ISO11W100
-          lineweight: 30
+          # lineweight: 30
           plot: true
           frozen: false
           is_on: true 
@@ -88,7 +88,7 @@ projects:
           color: "Medium Orange Red"
           locked: true
           linetype: Continuous
-          lineweight: 13
+          # lineweight: 13
           plot: false
           frozen: false
           is_on: true
@@ -105,7 +105,7 @@ projects:
           color: "Dark Red"
           locked: true
           linetype: Continuous
-          lineweight: 13
+          # lineweight: 13
           plot: false
           frozen: false
           is_on: true
