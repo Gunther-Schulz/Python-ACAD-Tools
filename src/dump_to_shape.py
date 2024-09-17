@@ -6,6 +6,7 @@ from ezdxf.entities import LWPolyline, Polyline
 from shapely.geometry import Polygon, MultiPolygon
 import pyproj
 import re
+import yaml
 
 def polygon_area(polygon):
     """Calculate the area of a polygon."""
@@ -126,13 +127,40 @@ def dxf_to_shapefiles(dxf_path, output_folder):
     print(f"\nCRS being used: {crs}")
     print(f"CRS source: {crs_source}")
 
+def load_project_config(project_name):
+    with open('projects.yaml', 'r') as file:
+        config = yaml.safe_load(file)
+    
+    for project in config['projects']:
+        if project['name'] == project_name:
+            return project
+    
+    return None
+
 def main():
     parser = argparse.ArgumentParser(description="Convert DXF layers to shapefiles with holes cut out by inner polygons")
-    parser.add_argument("dxf_file", help="Path to the input DXF file")
-    parser.add_argument("output_folder", help="Path to the output folder for shapefiles")
+    parser.add_argument("--dxf_file", help="Path to the input DXF file")
+    parser.add_argument("--output_folder", help="Path to the output folder for shapefiles")
+    parser.add_argument("--project_name", help="Name of the project in projects.yaml")
     args = parser.parse_args()
 
-    dxf_to_shapefiles(args.dxf_file, args.output_folder)
+    if args.project_name:
+        project_config = load_project_config(args.project_name)
+        if project_config:
+            folder_prefix = project_config.get('folderPrefix', '')
+            dxf_filename = os.path.expanduser(os.path.join(folder_prefix, project_config.get('dxfFilename', '')))
+            dump_output_dir = os.path.expanduser(os.path.join(folder_prefix, project_config.get('dumpOutputDir', '')))
+            
+            if os.path.exists(dxf_filename) and dump_output_dir:
+                dxf_to_shapefiles(dxf_filename, dump_output_dir)
+            else:
+                print("Error: DXF file not found or dump output directory not specified in project configuration.")
+        else:
+            print(f"Error: Project '{args.project_name}' not found in projects.yaml")
+    elif args.dxf_file and args.output_folder:
+        dxf_to_shapefiles(args.dxf_file, args.output_folder)
+    else:
+        print("Error: Please provide either a project name or both DXF file and output folder.")
 
 if __name__ == "__main__":
     main()
