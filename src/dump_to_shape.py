@@ -64,23 +64,14 @@ def merge_dxf_layer_to_shapefile(dxf_path, output_folder, layer_name, entities, 
         # Write the .prj file
         write_prj_file(shp_path, crs)
 
-        print(f"Created merged shapefile for layer: {layer_name}")
-
 def dxf_to_shapefiles(dxf_path, output_folder):
-    # Get the CRS from the DXF file
     crs, crs_source = get_crs_from_dxf(dxf_path)
-    print(f"CRS being used: {crs}")
-    print(f"CRS source: {crs_source}")
-
-    # Read the DXF file
     doc = ezdxf.readfile(dxf_path)
     msp = doc.modelspace()
-
-    # Create output folder if it doesn't exist
     os.makedirs(output_folder, exist_ok=True)
-
-    # Get all layers in the DXF file
     layers = doc.layers
+
+    error_summary = {}
 
     for layer in layers:
         layer_name = layer.dxf.name
@@ -90,40 +81,42 @@ def dxf_to_shapefiles(dxf_path, output_folder):
         for entity in entities:
             if isinstance(entity, (LWPolyline, Polyline)):
                 points = list(entity.vertices())
-                if len(points) >= 3:  # Ensure it's a valid polygon
-                    # Ensure the polygon is closed
+                if len(points) >= 3:
                     if points[0] != points[-1]:
                         points.append(points[0])
                     polygons.append(points)
 
         if polygons:
-            # Find the largest polygon (assumed to be the outer ring)
             largest_polygon = max(polygons, key=polygon_area)
             largest_polygon_shape = Polygon(largest_polygon)
 
-            # Use smaller polygons as holes
             holes = [Polygon(poly) for poly in polygons if poly != largest_polygon and Polygon(poly).within(largest_polygon_shape)]
+            error_count = 0
             for hole in holes:
-                largest_polygon_shape = largest_polygon_shape.difference(hole)
+                try:
+                    largest_polygon_shape = largest_polygon_shape.difference(hole)
+                except Exception:
+                    error_count += 1
 
-            # Create a shapefile for the layer
+            if error_count > 0:
+                error_summary[layer_name] = error_count
+
             shp_path = os.path.join(output_folder, f"{layer_name}.shp")
             with shapefile.Writer(shp_path, shapeType=shapefile.POLYGON) as shp:
                 shp.field('Layer', 'C', 40)
-                
-                # Add the largest polygon with holes
                 shp.poly([list(largest_polygon_shape.exterior.coords)] + [list(interior.coords) for interior in largest_polygon_shape.interiors])
                 shp.record(Layer=layer_name)
 
-            # Write the .prj file
             write_prj_file(shp_path, crs)
 
-            print(f"Created shapefile for layer: {layer_name}")
-
-        # Create the merged shapefile for this layer
         merge_dxf_layer_to_shapefile(dxf_path, output_folder, layer_name, entities, crs)
 
-    # Print CRS information at the end
+    if error_summary:
+        print("\nError Summary:")
+        for layer, count in error_summary.items():
+            print(f"  Layer '{layer}': {count} errors while processing holes")
+        print("These errors are typically due to invalid geometries or topology conflicts")
+
     print(f"\nCRS being used: {crs}")
     print(f"CRS source: {crs_source}")
 
@@ -149,12 +142,24 @@ def main():
         if project_config:
             folder_prefix = project_config.get('folderPrefix', '')
             dxf_filename = os.path.expanduser(os.path.join(folder_prefix, project_config.get('dxfFilename', '')))
-            dump_output_dir = os.path.expanduser(os.path.join(folder_prefix, project_config.get('dumpOutputDir', '')))
+            
+            if 'dumpOutputDir' not in project_config:
+                print("Error: 'dumpOutputDir' not specified in project configuration.")
+                return
+
+            dump_output_dir = os.path.expanduser(os.path.join(folder_prefix, project_config['dumpOutputDir']))
+            
+            print(f"DXF filename: {dxf_filename}")
+            print(f"Dump output directory: {dump_output_dir}")
             
             if os.path.exists(dxf_filename) and dump_output_dir:
                 dxf_to_shapefiles(dxf_filename, dump_output_dir)
             else:
                 print("Error: DXF file not found or dump output directory not specified in project configuration.")
+                if not os.path.exists(dxf_filename):
+                    print(f"DXF file does not exist: {dxf_filename}")
+                if not dump_output_dir:
+                    print("Dump output directory not specified.")
         else:
             print(f"Error: Project '{args.project_name}' not found in projects.yaml")
     elif args.dxf_file and args.output_folder:

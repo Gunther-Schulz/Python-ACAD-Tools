@@ -24,14 +24,32 @@ class ProjectProcessor:
         
         # Run the dumping process after exporting to DXF
         project_settings = self.project_loader.project_settings
-        dxf_filename = os.path.expanduser(os.path.join(project_settings.get('folderPrefix', ''), project_settings.get('dxfFilename', '')))
-        dump_output_dir = os.path.expanduser(os.path.join(project_settings.get('folderPrefix', ''), project_settings.get('dumpOutputDir', '')))
+        folder_prefix = self.project_loader.folder_prefix
+        dxf_filename = self.project_loader.dxf_filename
+        
+        if 'dumpOutputDir' not in project_settings:
+            print("Skipping DXF dump: 'dumpOutputDir' not specified in project configuration.")
+            return
+
+        dump_output_dir = os.path.expanduser(os.path.join(folder_prefix, project_settings['dumpOutputDir']))
+        
+        print(f"DXF filename: {dxf_filename}")
+        print(f"Dump output directory: {dump_output_dir}")
+        
+        if os.path.exists(dxf_filename):
+            print(f"DXF file exists: {dxf_filename}")
+        else:
+            print(f"DXF file does not exist: {dxf_filename}")
         
         if os.path.exists(dxf_filename) and dump_output_dir:
             print(f"Dumping DXF to shapefiles: {dxf_filename} -> {dump_output_dir}")
             dxf_to_shapefiles(dxf_filename, dump_output_dir)
         else:
             print("Skipping DXF dump: DXF file not found or dump output directory not specified.")
+            if not os.path.exists(dxf_filename):
+                print(f"DXF file does not exist: {dxf_filename}")
+            if not dump_output_dir:
+                print("Dump output directory not specified.")
 
 def main():
     setup_logging()
