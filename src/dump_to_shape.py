@@ -65,10 +65,23 @@ def merge_dxf_layer_to_shapefile(dxf_path, output_folder, layer_name, entities, 
         write_prj_file(shp_path, crs)
 
 def dxf_to_shapefiles(dxf_path, output_folder):
+    # Clear the contents of the output folder
+    if os.path.exists(output_folder):
+        for filename in os.listdir(output_folder):
+            file_path = os.path.join(output_folder, filename)
+            try:
+                if os.path.isfile(file_path) or os.path.islink(file_path):
+                    os.unlink(file_path)
+                elif os.path.isdir(file_path):
+                    os.rmdir(file_path)
+            except Exception as e:
+                print(f'Failed to delete {file_path}. Reason: {e}')
+    else:
+        os.makedirs(output_folder)
+
     crs, crs_source = get_crs_from_dxf(dxf_path)
     doc = ezdxf.readfile(dxf_path)
     msp = doc.modelspace()
-    os.makedirs(output_folder, exist_ok=True)
     layers = doc.layers
 
     error_summary = {}
@@ -109,7 +122,7 @@ def dxf_to_shapefiles(dxf_path, output_folder):
 
             write_prj_file(shp_path, crs)
 
-        merge_dxf_layer_to_shapefile(dxf_path, output_folder, layer_name, entities, crs)
+            merge_dxf_layer_to_shapefile(dxf_path, output_folder, layer_name, entities, crs)
 
     if error_summary:
         print("\nError Summary:")
