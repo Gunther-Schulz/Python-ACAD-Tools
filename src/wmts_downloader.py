@@ -5,7 +5,7 @@ import math
 import time
 import mimetypes
 from src.utils import log_info, log_warning, log_error
-from PIL import Image
+from PIL import Image, ImageOps
 from io import BytesIO
 from collections import defaultdict
 import logging
@@ -17,7 +17,7 @@ import numpy as np
 def color_distance(c1, c2):
     return np.sqrt(np.sum((c1 - c2) ** 2))
 
-def post_process_image(img, color_map, alpha_color, tolerance=30):
+def post_process_image(img, color_map, alpha_color, tolerance=30, grayscale=False):
     img = img.convert('RGBA')
     data = np.array(img)
     
@@ -31,7 +31,16 @@ def post_process_image(img, color_map, alpha_color, tolerance=30):
         alpha_mask = alpha_distances <= tolerance
         data[alpha_mask, 3] = 0
     
-    return Image.fromarray(data)
+    result_img = Image.fromarray(data)
+    
+    if grayscale:
+        # Convert to grayscale while preserving alpha channel
+        gray_data = np.array(ImageOps.grayscale(result_img.convert('RGB')))
+        alpha_channel = data[:, :, 3]
+        gray_rgba = np.dstack((gray_data, gray_data, gray_data, alpha_channel))
+        result_img = Image.fromarray(gray_rgba)
+    
+    return result_img
 
 def hex_to_rgb(hex_color):
     return tuple(int(hex_color.lstrip('#')[i:i+2], 16) for i in (0, 2, 4))
@@ -253,8 +262,9 @@ def download_wms_tiles(wms_info: dict, geltungsbereich, buffer_distance: float, 
     color_map = post_process.get('colorMap', {})
     alpha_color = post_process.get('alphaColor')
     tolerance = post_process.get('tolerance', 30)
+    grayscale = post_process.get('grayscale', False)  # Add this line
 
-    logging.info(f"Post-processing config: color_map={color_map}, alpha_color={alpha_color}, tolerance={tolerance}")
+    logging.info(f"Post-processing config: color_map={color_map}, alpha_color={alpha_color}, tolerance={tolerance}, grayscale={grayscale}")
 
     log_info(f"WMS Info: {wms_info}")
 
@@ -296,9 +306,9 @@ def download_wms_tiles(wms_info: dict, geltungsbereich, buffer_distance: float, 
             try:
                 img = wms.getmap(layers=[layer_id], srs=srs, bbox=tile_bbox, size=(tile_size, tile_size), format=image_format)
                 
-                if color_map or alpha_color:
+                if color_map or alpha_color or grayscale:
                     pil_img = Image.open(BytesIO(img.read()))
-                    pil_img = post_process_image(pil_img, color_map, alpha_color, tolerance)
+                    pil_img = post_process_image(pil_img, color_map, alpha_color, tolerance, grayscale)
                     pil_img.save(image_path, 'PNG')
                 else:
                     with open(image_path, 'wb') as out:
