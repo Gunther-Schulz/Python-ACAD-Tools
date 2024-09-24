@@ -221,13 +221,30 @@ def download_wmts_tiles(wmts_info: dict, geltungsbereich, buffer_distance: float
 def download_wms_tiles(wms_info: dict, geltungsbereich, buffer_distance: float, target_folder: str, overwrite: bool = False) -> list:
     """Download WMS tiles for the given area with a buffer and save to the target folder."""
     capabilities_url = wms_info['url']
-    wms = WebMapService(capabilities_url, version=wms_info.get('version', '1.3.0'))
+    try:
+        wms = WebMapService(capabilities_url, version=wms_info.get('version', '1.3.0'))
+    except Exception as e:
+        log_error(f"Failed to connect to WMS service: {str(e)}")
+        return []
+
+    # List all available layers
+    print("Available layers from WMS endpoint:")
+    for layer_name, layer in wms.contents.items():
+        print(f"  • {layer_name}: {layer.title}")
+
     layer_id = wms_info['layer']
+    if layer_id not in wms.contents:
+        log_error(f"Layer '{layer_id}' not found in WMS service. Please choose from the available layers listed above.")
+        return []
+
     srs = wms_info['srs']
     image_format = wms_info.get('format', 'image/png')
     tile_size = wms_info.get('tileSize', 256)
     sleep = wms_info.get('sleep', 0)
     limit_requests = wms_info.get('limit', 0)
+    zoom = wms_info.get('zoom')  # New: Get zoom from wms_info
+
+    log_info(f"WMS Info: {wms_info}")
 
     # Buffer the geltungsbereich
     geltungsbereich_buffered = geltungsbereich.buffer(buffer_distance)
@@ -239,8 +256,15 @@ def download_wms_tiles(wms_info: dict, geltungsbereich, buffer_distance: float, 
     # Calculate the number of tiles needed
     width = maxx - minx
     height = maxy - miny
+
+    # If zoom is provided, adjust tile_size
+    if zoom is not None:
+        tile_size = tile_size * (2 ** (18 - zoom))  # Adjust this formula based on your WMS provider's zoom levels
+
     cols = math.ceil(width / tile_size)
     rows = math.ceil(height / tile_size)
+
+    log_info(f"Downloading {rows}x{cols} tiles")
 
     downloaded_tiles = []
     download_count = 0
@@ -261,27 +285,34 @@ def download_wms_tiles(wms_info: dict, geltungsbereich, buffer_distance: float, 
                 downloaded_tiles.append((image_path, world_file_path))
                 continue
 
-            img = wms.getmap(layers=[layer_id], srs=srs, bbox=tile_bbox, size=(tile_size, tile_size), format=image_format)
-            
-            # Save image
-            with open(image_path, 'wb') as out:
-                out.write(img.read())
+            try:
+                img = wms.getmap(layers=[layer_id], srs=srs, bbox=tile_bbox, size=(tile_size, tile_size), format=image_format)
+                
+                # Save image
+                with open(image_path, 'wb') as out:
+                    out.write(img.read())
 
-            # Create world file
-            with open(world_file_path, 'w') as wf:
-                wf.write(f"{(tile_maxx - tile_minx) / tile_size}\n")
-                wf.write("0\n0\n")
-                wf.write(f"-{(tile_maxy - tile_miny) / tile_size}\n")
-                wf.write(f"{tile_minx}\n")
-                wf.write(f"{tile_maxy}\n")
+                # Create world file
+                with open(world_file_path, 'w') as wf:
+                    wf.write(f"{(tile_maxx - tile_minx) / tile_size}\n")
+                    wf.write("0\n0\n")
+                    wf.write(f"-{(tile_maxy - tile_miny) / tile_size}\n")
+                    wf.write(f"{tile_minx}\n")
+                    wf.write(f"{tile_maxy}\n")
 
-            downloaded_tiles.append((image_path, world_file_path))
-            download_count += 1
+                downloaded_tiles.append((image_path, world_file_path))
+                download_count += 1
+                log_info(f"Downloaded tile {download_count}: {file_name}")
+
+            except Exception as e:
+                log_error(f"Failed to download tile {file_name}: {str(e)}")
 
             if limit_requests and download_count >= limit_requests:
+                log_info(f"Reached download limit of {limit_requests}")
                 return downloaded_tiles
 
             if sleep:
                 time.sleep(sleep)
 
+    log_info(f"Total WMS tiles downloaded: {download_count}")
     return downloaded_tiles

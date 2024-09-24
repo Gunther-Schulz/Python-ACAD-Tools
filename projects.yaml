@@ -50,13 +50,14 @@ projects:
         operations:
           - type: wms
             url: "https://www.geodaten-mv.de/dienste/gebaeude_wms"
-            layer: "mv_gebaeude"
+            layer: "gebaeude"
             srs: "EPSG:25833"
             format: "image/png"
-            targetFolder: "path/to/your/wms/folder"
+            targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/Gebäude"
             layers:
               - Geltungsbereich
-            buffer: 100    
+            buffer: 100
+            zoom: 15
   - name: Plasten
     exportFormat: dxf
     dxfVersion: R2018
