@@ -3,7 +3,7 @@ from matplotlib import pyplot as plt
 from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection, Point, MultiPoint, GeometryCollection
 from src.utils import log_info, log_warning, log_error
 import os
-from src.wmts_downloader import download_wmts_tiles
+from src.wmts_downloader import download_wmts_tiles, download_wms_tiles
 from shapely.ops import unary_union
 import shutil
 from src.contour_processor import process_contour
@@ -162,8 +162,8 @@ class LayerProcessor:
             result = self.create_intersection_layer(layer_name, operation)
         elif op_type == 'filter':
             result = self.create_filtered_layer(layer_name, operation)
-        elif op_type == 'wmts':
-            result = self.process_wmts_layer(layer_name, operation)
+        elif op_type == 'wmts' or op_type == 'wms':
+            result = self.process_wmts_or_wms_layer(layer_name, operation)
         elif op_type == 'merge':
             result = self.create_merged_layer(layer_name, operation)
         elif op_type == 'smooth':
@@ -482,44 +482,45 @@ class LayerProcessor:
 
         return self.all_layers[layer_name]
 
-    def process_wmts_layer(self, layer_name, operation):
-        log_info(f"Processing WMTS layer: {layer_name}")
+    def process_wmts_or_wms_layer(self, layer_name, operation):
+        log_info(f"Processing WMTS/WMS layer: {layer_name}")
+        log_info(f"Operation details: {operation}")
         
         target_folder = self.project_loader.resolve_full_path(operation['targetFolder'])
-        zoom_level = operation['zoom']
+        zoom_level = operation.get('zoom')
         
-        # Create a zoom-specific folder
-        zoom_folder = os.path.join(target_folder, f"zoom_{zoom_level}")
+        zoom_folder = os.path.join(target_folder, f"zoom_{zoom_level}") if zoom_level else target_folder
         
-        # Check if the layer should be updated
         layer_info = next((l for l in self.project_settings['dxfLayers'] if l['name'] == layer_name), None)
         update_flag = layer_info.get('update', False) if layer_info else False
+        overwrite_flag = operation.get('overwrite', False)  # Get overwrite flag from operation
         
         if update_flag or not os.path.exists(zoom_folder):
-            # If update is true or the folder doesn't exist, proceed with downloading
-            if os.path.exists(zoom_folder):
-                shutil.rmtree(zoom_folder)  # Remove existing folder if updating
             os.makedirs(zoom_folder, exist_ok=True)
             
             log_info(f"Target folder path: {zoom_folder}")
+            log_info(f"Update flag: {update_flag}, Overwrite flag: {overwrite_flag}")
 
-            wmts_layers = operation.get('layers', [])
+            layers = operation.get('layers', [])
             buffer_distance = operation.get('buffer', 100)
-            wmts_info = {
+            service_info = {
                 'url': operation['url'],
                 'layer': operation['layer'],
-                'zoom': zoom_level,
-                'proj': operation['proj'],
+                'proj': operation.get('proj'),
+                'srs': operation.get('srs'),
                 'format': operation.get('format', 'image/png'),
                 'sleep': operation.get('sleep', 0),
-                'limit': operation.get('limit', 0)
+                'limit': operation.get('limit', 0),
+                'postProcess': operation.get('postProcess', {})
             }
+            if zoom_level:
+                service_info['zoom'] = zoom_level
 
-            log_info(f"WMTS info: {wmts_info}")
-            log_info(f"Layers to process: {wmts_layers}")
+            log_info(f"Service info: {service_info}")
+            log_info(f"Layers to process: {layers}")
 
             all_tiles = []
-            for layer in wmts_layers:
+            for layer in layers:
                 if layer in self.all_layers:
                     layer_geometry = self.all_layers[layer]
                     if isinstance(layer_geometry, gpd.GeoDataFrame):
@@ -529,10 +530,13 @@ class LayerProcessor:
                     log_info(f"Layer geometry type: {type(layer_geometry)}")
                     log_info(f"Layer geometry bounds: {layer_geometry.bounds}")
 
-                    downloaded_tiles = download_wmts_tiles(wmts_info, layer_geometry, buffer_distance, zoom_folder)
+                    if 'wmts' in operation['type'].lower():
+                        downloaded_tiles = download_wmts_tiles(service_info, layer_geometry, buffer_distance, zoom_folder, update=update_flag, overwrite=overwrite_flag)
+                    else:
+                        downloaded_tiles = download_wms_tiles(service_info, layer_geometry, buffer_distance, zoom_folder, update=update_flag, overwrite=overwrite_flag)
                     all_tiles.extend(downloaded_tiles)
                 else:
-                    log_warning(f"Layer {layer} not found for WMTS download of {layer_name}")
+                    log_warning(f"Layer {layer} not found for WMTS/WMS download of {layer_name}")
 
             self.all_layers[layer_name] = all_tiles
             log_info(f"Total tiles for {layer_name}: {len(all_tiles)}")
@@ -540,6 +544,8 @@ class LayerProcessor:
             log_info(f"Zoom folder already exists and update is not required: {zoom_folder}. Using existing tiles.")
             existing_tiles = self.get_existing_tiles(zoom_folder)
             self.all_layers[layer_name] = existing_tiles
+
+        return self.all_layers[layer_name]
 
     def get_existing_tiles(self, zoom_folder):
         existing_tiles = []

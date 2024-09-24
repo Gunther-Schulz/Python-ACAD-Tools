@@ -7,8 +7,8 @@ projects:
     exportFormat: dxf
     dxfVersion: R2018
     crs: EPSG:25833
-    dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/Zeichnung/24 09.17 Friedrichshof  Zeichnung -3.dxf"
-    # dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/Zeichnung/test.dxf"
+    # dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/Zeichnung/24 09.23 Friedrichshof  Zeichnung.dxf"
+    dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/Zeichnung/test.dxf"
     dumpOutputDir: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/dxf_dump"
     dxfLayers:
       - name: Geltungsbereich
@@ -45,6 +45,25 @@ projects:
               - Geltungsbereich
             buffer: 1000
         outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/generated/contour.shp"
+      - name: Buildings WMS
+        update: true
+        operations:
+          - type: wms
+            url: "https://www.geodaten-mv.de/dienste/gebaeude_wms"
+            layer: "gebaeude"
+            srs: "EPSG:25833"
+            format: "image/png"
+            targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/Gebäude"
+            layers:
+              - Geltungsbereich
+            buffer: 100
+            zoom: 16
+            postProcess:
+                colorMap:
+                  "#ff0000": "#808080"  # Map red to grey
+                alphaColor: "#ffffff"  # Set white to fully transparent
+                tolerance: 30  # Increased tolerance to catch similar shades
+                grayscale: true
   - name: Plasten
     exportFormat: dxf
     dxfVersion: R2018
