@@ -7,6 +7,7 @@ import mimetypes
 from src.utils import log_info, log_warning, log_error
 from PIL import Image
 from io import BytesIO
+from collections import defaultdict
 
 
 def filter_row_cols_by_bbox(matrix, bbox):
@@ -218,6 +219,28 @@ def download_wmts_tiles(wmts_info: dict, geltungsbereich, buffer_distance: float
 
     return downloaded_tiles
 
+def post_process_image(img, color_map, alpha_color):
+    img = img.convert('RGBA')
+    data = img.getdata()
+    new_data = []
+    colors_found = defaultdict(bool)
+    for item in data:
+        if item[3] == 0:  # If the pixel is already fully transparent, keep it as is
+            new_data.append(item)
+        else:
+            hex_color = '#{:02x}{:02x}{:02x}'.format(item[0], item[1], item[2])
+            if hex_color in color_map:
+                new_color = tuple(int(color_map[hex_color].lstrip('#')[i:i+2], 16) for i in (0, 2, 4)) + (255,)
+                new_data.append(new_color)
+                colors_found[hex_color] = True
+            elif hex_color == alpha_color:
+                new_data.append(item[:3] + (0,))  # Make the pixel fully transparent
+                colors_found[alpha_color] = True
+            else:
+                new_data.append(item)
+    img.putdata(new_data)
+    return img, colors_found
+
 def download_wms_tiles(wms_info: dict, geltungsbereich, buffer_distance: float, target_folder: str, overwrite: bool = False) -> list:
     """Download WMS tiles for the given area with a buffer and save to the target folder."""
     capabilities_url = wms_info['url']
@@ -243,6 +266,16 @@ def download_wms_tiles(wms_info: dict, geltungsbereich, buffer_distance: float, 
     sleep = wms_info.get('sleep', 0)
     limit_requests = wms_info.get('limit', 0)
     zoom = wms_info.get('zoom')  # New: Get zoom from wms_info
+
+    post_process = wms_info.get('postProcess', {})
+    color_map = post_process.get('colorMap', {})
+    alpha_color = post_process.get('alphaColor')
+
+    colors_found = defaultdict(bool)
+    if alpha_color:
+        colors_found[alpha_color] = False
+    for color in color_map:
+        colors_found[color] = False
 
     log_info(f"WMS Info: {wms_info}")
 
@@ -288,9 +321,19 @@ def download_wms_tiles(wms_info: dict, geltungsbereich, buffer_distance: float, 
             try:
                 img = wms.getmap(layers=[layer_id], srs=srs, bbox=tile_bbox, size=(tile_size, tile_size), format=image_format)
                 
-                # Save image
-                with open(image_path, 'wb') as out:
-                    out.write(img.read())
+                # Post-process the image
+                if color_map or alpha_color:
+                    pil_img = Image.open(BytesIO(img.read()))
+                    pil_img, tile_colors_found = post_process_image(pil_img, color_map, alpha_color)
+                    for color, found in tile_colors_found.items():
+                        colors_found[color] |= found
+                    
+                    # Save image
+                    pil_img.save(image_path)
+                else:
+                    # Save image without post-processing
+                    with open(image_path, 'wb') as out:
+                        out.write(img.read())
 
                 # Create world file
                 with open(world_file_path, 'w') as wf:
@@ -302,10 +345,10 @@ def download_wms_tiles(wms_info: dict, geltungsbereich, buffer_distance: float, 
 
                 downloaded_tiles.append((image_path, world_file_path))
                 download_count += 1
-                log_info(f"Downloaded tile {download_count}: {file_name}")
+                log_info(f"Downloaded and processed tile {download_count}: {file_name}")
 
             except Exception as e:
-                log_error(f"Failed to download tile {file_name}: {str(e)}")
+                log_error(f"Failed to download or process tile {file_name}: {str(e)}")
 
             if limit_requests and download_count >= limit_requests:
                 log_info(f"Reached download limit of {limit_requests}")
@@ -313,6 +356,18 @@ def download_wms_tiles(wms_info: dict, geltungsbereich, buffer_distance: float, 
 
             if sleep:
                 time.sleep(sleep)
+
+    # After the download loop
+    if color_map or alpha_color:
+        not_found_colors = [color for color, found in colors_found.items() if not found]
+        if not_found_colors:
+            for color in not_found_colors:
+                if color == alpha_color:
+                    print(f"The specified alpha color {color} was not found in any of the downloaded tiles.")
+                else:
+                    print(f"The color {color} specified for transformation was not found in any of the downloaded tiles.")
+        else:
+            log_info("All specified colors for transformation were found in the downloaded tiles.")
 
     log_info(f"Total WMS tiles downloaded: {download_count}")
     return downloaded_tiles

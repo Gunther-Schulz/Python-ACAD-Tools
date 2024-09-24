@@ -57,7 +57,11 @@ projects:
             layers:
               - Geltungsbereich
             buffer: 100
-            zoom: 15
+            zoom: 16
+            postProcess:
+              colorMap:
+                "#ff0000": "#808080"  # Map red to grey
+              alphaColor: "#ffffff"  # Set white to fully transparent
   - name: Plasten
     exportFormat: dxf
     dxfVersion: R2018
