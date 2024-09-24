@@ -484,6 +484,7 @@ class LayerProcessor:
 
     def process_wmts_or_wms_layer(self, layer_name, operation):
         log_info(f"Processing WMTS/WMS layer: {layer_name}")
+        log_info(f"Operation details: {operation}")
         
         target_folder = self.project_loader.resolve_full_path(operation['targetFolder'])
         zoom_level = operation.get('zoom')
@@ -512,7 +513,8 @@ class LayerProcessor:
                 'srs': operation.get('srs'),
                 'format': operation.get('format', 'image/png'),
                 'sleep': operation.get('sleep', 0),
-                'limit': operation.get('limit', 0)
+                'limit': operation.get('limit', 0),
+                'postProcess': operation.get('postProcess', {})  # Include postProcess configuration
             }
             if zoom_level:
                 service_info['zoom'] = zoom_level

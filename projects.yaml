@@ -59,9 +59,10 @@ projects:
             buffer: 100
             zoom: 16
             postProcess:
-              colorMap:
-                "#ff0000": "#808080"  # Map red to grey
-              alphaColor: "#ffffff"  # Set white to fully transparent
+                colorMap:
+                  "#ff0000": "#808080"  # Map red to grey
+                alphaColor: "#ffffff"  # Set white to fully transparent
+                tolerance: 30  # Increased tolerance to catch similar shades
   - name: Plasten
     exportFormat: dxf
     dxfVersion: R2018
