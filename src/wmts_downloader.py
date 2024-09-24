@@ -1,9 +1,12 @@
 from owslib.wmts import WebMapTileService
+from owslib.wms import WebMapService
 import os
 import math
 import time
 import mimetypes
 from src.utils import log_info, log_warning, log_error
+from PIL import Image
+from io import BytesIO
 
 
 def filter_row_cols_by_bbox(matrix, bbox):
@@ -212,5 +215,73 @@ def download_wmts_tiles(wmts_info: dict, geltungsbereich, buffer_distance: float
     log_info(f"Total tiles processed: {download_count + skip_count}")
     log_info(f"Tiles downloaded: {download_count}")
     log_info(f"Tiles skipped (already exist): {skip_count}")
+
+    return downloaded_tiles
+
+def download_wms_tiles(wms_info: dict, geltungsbereich, buffer_distance: float, target_folder: str, overwrite: bool = False) -> list:
+    """Download WMS tiles for the given area with a buffer and save to the target folder."""
+    capabilities_url = wms_info['url']
+    wms = WebMapService(capabilities_url, version=wms_info.get('version', '1.3.0'))
+    layer_id = wms_info['layer']
+    srs = wms_info['srs']
+    image_format = wms_info.get('format', 'image/png')
+    tile_size = wms_info.get('tileSize', 256)
+    sleep = wms_info.get('sleep', 0)
+    limit_requests = wms_info.get('limit', 0)
+
+    # Buffer the geltungsbereich
+    geltungsbereich_buffered = geltungsbereich.buffer(buffer_distance)
+
+    # Get bounding box of the buffered geltungsbereich
+    minx, miny, maxx, maxy = geltungsbereich_buffered.bounds
+    bbox = (minx, miny, maxx, maxy)
+
+    # Calculate the number of tiles needed
+    width = maxx - minx
+    height = maxy - miny
+    cols = math.ceil(width / tile_size)
+    rows = math.ceil(height / tile_size)
+
+    downloaded_tiles = []
+    download_count = 0
+
+    for row in range(rows):
+        for col in range(cols):
+            tile_minx = minx + col * tile_size
+            tile_miny = miny + row * tile_size
+            tile_maxx = min(tile_minx + tile_size, maxx)
+            tile_maxy = min(tile_miny + tile_size, maxy)
+            tile_bbox = (tile_minx, tile_miny, tile_maxx, tile_maxy)
+
+            file_name = f'{layer_id}__{srs.replace(":", "-")}_row-{row}_col-{col}'
+            image_path = os.path.join(target_folder, f'{file_name}.png')
+            world_file_path = os.path.join(target_folder, f'{file_name}.pgw')
+
+            if os.path.exists(image_path) and os.path.exists(world_file_path) and not overwrite:
+                downloaded_tiles.append((image_path, world_file_path))
+                continue
+
+            img = wms.getmap(layers=[layer_id], srs=srs, bbox=tile_bbox, size=(tile_size, tile_size), format=image_format)
+            
+            # Save image
+            with open(image_path, 'wb') as out:
+                out.write(img.read())
+
+            # Create world file
+            with open(world_file_path, 'w') as wf:
+                wf.write(f"{(tile_maxx - tile_minx) / tile_size}\n")
+                wf.write("0\n0\n")
+                wf.write(f"-{(tile_maxy - tile_miny) / tile_size}\n")
+                wf.write(f"{tile_minx}\n")
+                wf.write(f"{tile_maxy}\n")
+
+            downloaded_tiles.append((image_path, world_file_path))
+            download_count += 1
+
+            if limit_requests and download_count >= limit_requests:
+                return downloaded_tiles
+
+            if sleep:
+                time.sleep(sleep)
 
     return downloaded_tiles

@@ -7,8 +7,8 @@ projects:
     exportFormat: dxf
     dxfVersion: R2018
     crs: EPSG:25833
-    dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/Zeichnung/24 09.17 Friedrichshof  Zeichnung -3.dxf"
-    # dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/Zeichnung/test.dxf"
+    # dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/Zeichnung/24 09.17 Friedrichshof  Zeichnung -3.dxf"
+    dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/Zeichnung/test.dxf"
     dumpOutputDir: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/dxf_dump"
     dxfLayers:
       - name: Geltungsbereich
@@ -45,6 +45,18 @@ projects:
               - Geltungsbereich
             buffer: 1000
         outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/generated/contour.shp"
+      - name: Buildings WMS
+        update: true
+        operations:
+          - type: wms
+            url: "https://www.geodaten-mv.de/dienste/gebaeude_wms"
+            layer: "mv_gebaeude"
+            srs: "EPSG:25833"
+            format: "image/png"
+            targetFolder: "path/to/your/wms/folder"
+            layers:
+              - Geltungsbereich
+            buffer: 100    
   - name: Plasten
     exportFormat: dxf
     dxfVersion: R2018
