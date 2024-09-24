@@ -162,7 +162,7 @@ class LayerProcessor:
             result = self.create_intersection_layer(layer_name, operation)
         elif op_type == 'filter':
             result = self.create_filtered_layer(layer_name, operation)
-        elif op_type == 'wmts':
+        elif op_type == 'wmts' or op_type == 'wms':
             result = self.process_wmts_or_wms_layer(layer_name, operation)
         elif op_type == 'merge':
             result = self.create_merged_layer(layer_name, operation)

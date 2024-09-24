@@ -29,7 +29,7 @@ class DXFExporter:
         layer_name = layer['name']
         self.add_layer_properties(layer_name, layer)
         
-        if not self.is_wmts_layer(layer) and not layer_name.endswith(' Label'):
+        if not self.is_wmts_or_wms_layer(layer) and not layer_name.endswith(' Label'):
             if self.has_labels(layer):
                 self._setup_label_layer(layer_name, layer)
 
@@ -128,7 +128,7 @@ class DXFExporter:
     def process_single_layer(self, doc, msp, layer_name, layer_info):
         log_info(f"Processing layer: {layer_name}")
         
-        if self.is_wmts_layer(layer_info):
+        if self.is_wmts_or_wms_layer(layer_info):
             self._process_wmts_layer(doc, msp, layer_name, layer_info)
         else:
             self._process_regular_layer(doc, msp, layer_name, layer_info)
@@ -378,7 +378,7 @@ class DXFExporter:
         
         layer_info = next((l for l in self.project_settings['dxfLayers'] if l['name'] == layer_name), {})
         
-        if self.is_wmts_layer(layer_name):
+        if self.is_wmts_or_wms_layer(layer_name):
             self.add_wmts_xrefs_to_dxf(msp, geo_data, layer_name)
             return
 
@@ -546,10 +546,10 @@ class DXFExporter:
         
         log_info(f"Added layer properties for {layer_name}: {properties}")
 
-    def is_wmts_layer(self, layer_name):
+    def is_wmts_or_wms_layer(self, layer_name):
         layer_info = next((l for l in self.project_settings['dxfLayers'] if l['name'] == layer_name), None)
         if layer_info and 'operations' in layer_info:
-            return any(op['type'] == 'wmts' for op in layer_info['operations'])
+            return any(op['type'] in ['wmts', 'wms'] for op in layer_info['operations'])
         return False
     
     def is_generated_layer(self, layer_name):
