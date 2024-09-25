@@ -12,6 +12,8 @@ from src.dxf_exporter import DXFExporter
 from src.utils import log_error, setup_logging, setup_proj
 from src.dump_to_shape import dxf_to_shapefiles
 
+import src.easyocr_patch
+
 class ProjectProcessor:
     def __init__(self, project_name: str, plot_ops=False):
         self.project_loader = ProjectLoader(project_name)

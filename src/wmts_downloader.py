@@ -8,8 +8,13 @@ from src.utils import log_info, log_warning, log_error
 from PIL import Image, ImageOps
 from io import BytesIO
 from collections import defaultdict
-import logging
 import numpy as np
+import cv2
+import pytesseract
+import easyocr
+import traceback
+# import logging
+import src.easyocr_patch
 
 # This will also log INFO
 # logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -17,29 +22,84 @@ import numpy as np
 def color_distance(c1, c2):
     return np.sqrt(np.sum((c1 - c2) ** 2))
 
-def post_process_image(img, color_map, alpha_color, tolerance=30, grayscale=False):
-    img = img.convert('RGBA')
+def remove_geobasis_text(img):
+    log_info("Attempting to remove GeoBasis-DE/MV text using EasyOCR")
+    
+    # Convert PIL Image to OpenCV format
+    cv_img = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
+    
+    # Create a mask for the entire image
+    mask = np.zeros(cv_img.shape[:2], dtype=np.uint8)
+    
+    # Initialize EasyOCR
+    reader = easyocr.Reader(['de', 'en'])
+    
+    # Focus on the top-left corner where the text is usually located
+    height, width = cv_img.shape[:2]
+    roi = cv_img[0:int(height*0.1), 0:int(width*0.3)]
+    
+    # Perform text detection with lower confidence threshold
+    results = reader.readtext(roi, min_size=3, low_text=0.1, text_threshold=0.3, link_threshold=0.1, width_ths=0.05)
+    
+    for (bbox, text, prob) in results:
+        log_info(f"EasyOCR detected text: {text} (confidence: {prob})")
+        (top_left, top_right, bottom_right, bottom_left) = bbox
+        x = int(min(top_left[0], bottom_left[0]))
+        y = int(min(top_left[1], top_right[1]))
+        w = int(max(top_right[0], bottom_right[0]) - x)
+        h = int(max(bottom_left[1], bottom_right[1]) - y)
+        cv2.rectangle(mask[0:int(height*0.1), 0:int(width*0.3)], (x, y), (x+w, y+h), (255), -1)
+    
+    # Dilate the mask slightly to ensure complete coverage of text
+    kernel = np.ones((5,5), np.uint8)
+    mask = cv2.dilate(mask, kernel, iterations=2)
+    
+    # Inpaint only the detected text regions
+    if np.any(mask):
+        cv_img = cv2.inpaint(cv_img, mask, 5, cv2.INPAINT_TELEA)
+        log_info("Text removal completed")
+    else:
+        log_info("No text detected for removal")
+    
+    # Convert back to PIL Image
+    return Image.fromarray(cv2.cvtColor(cv_img, cv2.COLOR_BGR2RGB))
+
+def post_process_image(img, color_map, alpha_color, tolerance=30, grayscale=False, remove_text=False):
+    log_info("Starting post-processing of image")
+    
+    # Convert to RGB initially (no alpha)
+    img = img.convert('RGB')
+    
+    if remove_text:
+        log_info("Text removal requested, processing image")
+        img = remove_geobasis_text(img)
+    else:
+        log_info("Text removal not requested, skipping")
+    
     data = np.array(img)
     
-    for target_color, replacement_color in color_map.items():
-        distances = np.apply_along_axis(lambda x: color_distance(x[:3], np.array(hex_to_rgb(target_color))), 2, data)
-        mask = distances <= tolerance
-        data[mask] = np.append(hex_to_rgb(replacement_color), 255)
-    
-    if alpha_color:
-        alpha_distances = np.apply_along_axis(lambda x: color_distance(x[:3], np.array(hex_to_rgb(alpha_color))), 2, data)
-        alpha_mask = alpha_distances <= tolerance
-        data[alpha_mask, 3] = 0
-    
-    result_img = Image.fromarray(data)
+    if color_map:
+        for target_color, replacement_color in color_map.items():
+            distances = np.apply_along_axis(lambda x: color_distance(x, np.array(hex_to_rgb(target_color))), 2, data)
+            mask = distances <= tolerance
+            data[mask] = hex_to_rgb(replacement_color)
     
     if grayscale:
-        # Convert to grayscale while preserving alpha channel
-        gray_data = np.array(ImageOps.grayscale(result_img.convert('RGB')))
-        alpha_channel = data[:, :, 3]
-        gray_rgba = np.dstack((gray_data, gray_data, gray_data, alpha_channel))
-        result_img = Image.fromarray(gray_rgba)
+        log_info("Converting to grayscale")
+        gray_data = np.array(ImageOps.grayscale(Image.fromarray(data)))
+        data = np.dstack((gray_data, gray_data, gray_data))
     
+    # Add alpha channel as the last step
+    if alpha_color:
+        log_info(f"Applying alpha color: {alpha_color}")
+        alpha_channel = np.ones(data.shape[:2], dtype=np.uint8) * 255
+        alpha_distances = np.apply_along_axis(lambda x: color_distance(x, np.array(hex_to_rgb(alpha_color))), 2, data)
+        alpha_mask = alpha_distances <= tolerance
+        alpha_channel[alpha_mask] = 0
+        data = np.dstack((data, alpha_channel))
+    
+    result_img = Image.fromarray(data, 'RGBA' if alpha_color else 'RGB')
+    log_info("Post-processing completed")
     return result_img
 
 def hex_to_rgb(hex_color):
@@ -262,11 +322,10 @@ def download_wms_tiles(wms_info: dict, geltungsbereich, buffer_distance: float, 
     color_map = post_process.get('colorMap', {})
     alpha_color = post_process.get('alphaColor')
     tolerance = post_process.get('tolerance', 30)
-    grayscale = post_process.get('grayscale', False)  # Add this line
+    grayscale = post_process.get('grayscale', False)
+    remove_text = post_process.get('removeText', False)
 
-    logging.info(f"Post-processing config: color_map={color_map}, alpha_color={alpha_color}, tolerance={tolerance}, grayscale={grayscale}")
-
-    log_info(f"WMS Info: {wms_info}")
+    log_info(f"Post-processing config: color_map={color_map}, alpha_color={alpha_color}, tolerance={tolerance}, grayscale={grayscale}, remove_text={remove_text}")
 
     geltungsbereich_buffered = geltungsbereich.buffer(buffer_distance)
 
@@ -286,7 +345,7 @@ def download_wms_tiles(wms_info: dict, geltungsbereich, buffer_distance: float, 
 
     downloaded_tiles = []
     download_count = 0
-    skip_count = 0  # Add this line
+    skip_count = 0
 
     for row in range(rows):
         for col in range(cols):
@@ -302,15 +361,15 @@ def download_wms_tiles(wms_info: dict, geltungsbereich, buffer_distance: float, 
 
             if os.path.exists(image_path) and os.path.exists(world_file_path) and (not update or (update and not overwrite)):
                 downloaded_tiles.append((image_path, world_file_path))
-                skip_count += 1  # Add this line
+                skip_count += 1
                 continue
 
             try:
                 img = wms.getmap(layers=[layer_id], srs=srs, bbox=tile_bbox, size=(tile_size, tile_size), format=image_format)
                 
-                if color_map or alpha_color or grayscale:
+                if color_map or alpha_color or grayscale or remove_text:
                     pil_img = Image.open(BytesIO(img.read()))
-                    pil_img = post_process_image(pil_img, color_map, alpha_color, tolerance, grayscale)
+                    pil_img = post_process_image(pil_img, color_map, alpha_color, tolerance, grayscale, remove_text)
                     pil_img.save(image_path, 'PNG')
                 else:
                     with open(image_path, 'wb') as out:
@@ -328,7 +387,8 @@ def download_wms_tiles(wms_info: dict, geltungsbereich, buffer_distance: float, 
                 log_info(f"Downloaded and processed tile {download_count}: {file_name}")
 
             except Exception as e:
-                logging.error(f"Failed to download or process tile {file_name}: {str(e)}", exc_info=True)
+                log_error(f"Failed to download or process tile {file_name}: {str(e)}")
+                log_error(f"Traceback: {traceback.format_exc()}")
 
             if limit_requests and download_count >= limit_requests:
                 log_info(f"Reached download limit of {limit_requests}")
@@ -337,7 +397,7 @@ def download_wms_tiles(wms_info: dict, geltungsbereich, buffer_distance: float, 
             if sleep:
                 time.sleep(sleep)
 
-    log_info(f"Total WMS tiles processed: {download_count + skip_count}")  # Modify this line
+    log_info(f"Total WMS tiles processed: {download_count + skip_count}")
     log_info(f"WMS tiles downloaded: {download_count}")
-    log_info(f"WMS tiles skipped (already exist): {skip_count}")  # Add this line
+    log_info(f"WMS tiles skipped (already exist): {skip_count}")
     return downloaded_tiles
