@@ -6,6 +6,7 @@ from src.utils import log_info, log_warning, log_error
 import geopandas as gpd
 import os
 from ezdxf.lldxf.const import DXFValueError, LWPOLYLINE_PLINEGEN
+from ezdxf.entities import Image
 
 class DXFExporter:
     def __init__(self, project_loader, layer_processor):
@@ -370,8 +371,13 @@ class DXFExporter:
         image.dxf.image_def_handle = image_def.dxf.handle
         image.dxf.flags = 3  # Set bit 0 and 1 to indicate relative path
 
+        # Enable background transparency
+        image.dxf.flags |= 8  # 8 is the value for USE_TRANSPARENCY
+
         # Set the $PROJECTNAME header variable to an empty string
         msp.doc.header['$PROJECTNAME'] = ''
+
+        log_info(f"Added image with transparency: {image}")
 
     def add_geometries_to_dxf(self, msp, geo_data, layer_name):
         log_info(f"Adding geometries to DXF for layer: {layer_name}")

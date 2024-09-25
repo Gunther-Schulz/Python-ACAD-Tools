@@ -79,7 +79,7 @@ projects:
               - Geltungsbereich
             buffer: 100
             zoom: 0 # Zoom doesnt work (only for this layer?)
-            overwrite: true
+            # overwrite: true
             postProcess:
               # alphaColor: "#ffffff"  # Set white to fully transparent
               removeText: true
