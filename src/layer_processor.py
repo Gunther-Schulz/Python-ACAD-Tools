@@ -516,6 +516,10 @@ class LayerProcessor:
             if zoom_level:
                 service_info['zoom'] = zoom_level
 
+            # Add removeText to postProcess if it's in the operation
+            if 'postProcess' in operation and 'removeText' in operation['postProcess']:
+                service_info['postProcess']['removeText'] = operation['postProcess']['removeText']
+
             log_info(f"Service info: {service_info}")
             log_info(f"Layers to process: {layers}")
 

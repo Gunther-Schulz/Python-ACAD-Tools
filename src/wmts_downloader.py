@@ -8,8 +8,10 @@ from src.utils import log_info, log_warning, log_error
 from PIL import Image, ImageOps
 from io import BytesIO
 from collections import defaultdict
-import logging
 import numpy as np
+import cv2
+import pytesseract
+# import logging
 
 # This will also log INFO
 # logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -17,8 +19,57 @@ import numpy as np
 def color_distance(c1, c2):
     return np.sqrt(np.sum((c1 - c2) ** 2))
 
-def post_process_image(img, color_map, alpha_color, tolerance=30, grayscale=False):
+import cv2
+import numpy as np
+from PIL import Image
+
+import cv2
+import numpy as np
+from PIL import Image
+
+import cv2
+import numpy as np
+from PIL import Image
+
+import cv2
+import numpy as np
+from PIL import Image
+import pytesseract
+
+import cv2
+import numpy as np
+from PIL import Image
+
+def remove_geobasis_text(img):
+    log_info("Attempting to remove GeoBasis-DE/MV text")
+    
+    # Convert PIL Image to OpenCV format
+    cv_img = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
+    
+    # Create a mask for the top-left corner
+    height, width = cv_img.shape[:2]
+    mask = np.zeros((height, width), dtype=np.uint8)
+    
+    # Adjust these values as needed to cover the text area
+    cv2.rectangle(mask, (0, 0), (int(width * 0.2), int(height * 0.05)), (255), -1)
+    
+    # Inpaint the text region
+    result = cv2.inpaint(cv_img, mask, 3, cv2.INPAINT_TELEA)
+    
+    log_info("Text removal completed")
+    
+    # Convert back to PIL Image
+    return Image.fromarray(cv2.cvtColor(result, cv2.COLOR_BGR2RGB))
+
+def post_process_image(img, color_map, alpha_color, tolerance=30, grayscale=False, remove_text=False):
     img = img.convert('RGBA')
+    
+    if remove_text:
+        log_info("Text removal requested, processing image")
+        img = remove_geobasis_text(img)
+    else:
+        log_info("Text removal not requested, skipping")
+    
     data = np.array(img)
     
     for target_color, replacement_color in color_map.items():
@@ -262,11 +313,10 @@ def download_wms_tiles(wms_info: dict, geltungsbereich, buffer_distance: float, 
     color_map = post_process.get('colorMap', {})
     alpha_color = post_process.get('alphaColor')
     tolerance = post_process.get('tolerance', 30)
-    grayscale = post_process.get('grayscale', False)  # Add this line
+    grayscale = post_process.get('grayscale', False)
+    remove_text = post_process.get('removeText', False)
 
-    logging.info(f"Post-processing config: color_map={color_map}, alpha_color={alpha_color}, tolerance={tolerance}, grayscale={grayscale}")
-
-    log_info(f"WMS Info: {wms_info}")
+    log_info(f"Post-processing config: color_map={color_map}, alpha_color={alpha_color}, tolerance={tolerance}, grayscale={grayscale}, remove_text={remove_text}")
 
     geltungsbereich_buffered = geltungsbereich.buffer(buffer_distance)
 
@@ -286,7 +336,7 @@ def download_wms_tiles(wms_info: dict, geltungsbereich, buffer_distance: float, 
 
     downloaded_tiles = []
     download_count = 0
-    skip_count = 0  # Add this line
+    skip_count = 0
 
     for row in range(rows):
         for col in range(cols):
@@ -302,15 +352,15 @@ def download_wms_tiles(wms_info: dict, geltungsbereich, buffer_distance: float, 
 
             if os.path.exists(image_path) and os.path.exists(world_file_path) and (not update or (update and not overwrite)):
                 downloaded_tiles.append((image_path, world_file_path))
-                skip_count += 1  # Add this line
+                skip_count += 1
                 continue
 
             try:
                 img = wms.getmap(layers=[layer_id], srs=srs, bbox=tile_bbox, size=(tile_size, tile_size), format=image_format)
                 
-                if color_map or alpha_color or grayscale:
+                if color_map or alpha_color or grayscale or remove_text:
                     pil_img = Image.open(BytesIO(img.read()))
-                    pil_img = post_process_image(pil_img, color_map, alpha_color, tolerance, grayscale)
+                    pil_img = post_process_image(pil_img, color_map, alpha_color, tolerance, grayscale, remove_text)
                     pil_img.save(image_path, 'PNG')
                 else:
                     with open(image_path, 'wb') as out:
@@ -328,7 +378,7 @@ def download_wms_tiles(wms_info: dict, geltungsbereich, buffer_distance: float, 
                 log_info(f"Downloaded and processed tile {download_count}: {file_name}")
 
             except Exception as e:
-                logging.error(f"Failed to download or process tile {file_name}: {str(e)}", exc_info=True)
+                log_error(f"Failed to download or process tile {file_name}: {str(e)}", exc_info=True)
 
             if limit_requests and download_count >= limit_requests:
                 log_info(f"Reached download limit of {limit_requests}")
@@ -337,7 +387,7 @@ def download_wms_tiles(wms_info: dict, geltungsbereich, buffer_distance: float, 
             if sleep:
                 time.sleep(sleep)
 
-    log_info(f"Total WMS tiles processed: {download_count + skip_count}")  # Modify this line
+    log_info(f"Total WMS tiles processed: {download_count + skip_count}")
     log_info(f"WMS tiles downloaded: {download_count}")
-    log_info(f"WMS tiles skipped (already exist): {skip_count}")  # Add this line
+    log_info(f"WMS tiles skipped (already exist): {skip_count}")
     return downloaded_tiles
