@@ -328,18 +328,12 @@ def download_wms_tiles(wms_info: dict, geltungsbereich, buffer_distance: float, 
     log_info(f"Post-processing config: color_map={color_map}, alpha_color={alpha_color}, tolerance={tolerance}, grayscale={grayscale}, remove_text={remove_text}")
 
     geltungsbereich_buffered = geltungsbereich.buffer(buffer_distance)
-
     minx, miny, maxx, maxy = geltungsbereich_buffered.bounds
-    bbox = (minx, miny, maxx, maxy)
 
-    width = maxx - minx
-    height = maxy - miny
-
-    if zoom is not None:
-        tile_size = tile_size * (2 ** (18 - zoom))
-
-    cols = math.ceil(width / tile_size)
-    rows = math.ceil(height / tile_size)
+    # Calculate the number of tiles needed to cover the area
+    tile_width = tile_height = tile_size
+    cols = math.ceil((maxx - minx) / tile_width)
+    rows = math.ceil((maxy - miny) / tile_height)
 
     log_info(f"Downloading {rows}x{cols} tiles")
 
@@ -349,10 +343,10 @@ def download_wms_tiles(wms_info: dict, geltungsbereich, buffer_distance: float, 
 
     for row in range(rows):
         for col in range(cols):
-            tile_minx = minx + col * tile_size
-            tile_miny = miny + row * tile_size
-            tile_maxx = min(tile_minx + tile_size, maxx)
-            tile_maxy = min(tile_miny + tile_size, maxy)
+            tile_minx = minx + col * tile_width
+            tile_miny = maxy - (row + 1) * tile_height  # Start from top-left corner
+            tile_maxx = tile_minx + tile_width
+            tile_maxy = tile_miny + tile_height
             tile_bbox = (tile_minx, tile_miny, tile_maxx, tile_maxy)
 
             file_name = f'{layer_id}__{srs.replace(":", "-")}_row-{row}_col-{col}'
@@ -375,12 +369,13 @@ def download_wms_tiles(wms_info: dict, geltungsbereich, buffer_distance: float, 
                     with open(image_path, 'wb') as out:
                         out.write(img.read())
 
+                # Write the world file with correct georeference information
                 with open(world_file_path, 'w') as wf:
-                    wf.write(f"{(tile_maxx - tile_minx) / tile_size}\n")
-                    wf.write("0\n0\n")
-                    wf.write(f"-{(tile_maxy - tile_miny) / tile_size}\n")
-                    wf.write(f"{tile_minx}\n")
-                    wf.write(f"{tile_maxy}\n")
+                    wf.write(f"{tile_width / tile_size}\n")  # pixel size in the x-direction
+                    wf.write("0\n0\n")  # rotation terms (usually 0)
+                    wf.write(f"-{tile_height / tile_size}\n")  # negative pixel size in the y-direction
+                    wf.write(f"{tile_minx}\n")  # x-coordinate of the center of the upper-left pixel
+                    wf.write(f"{tile_maxy}\n")  # y-coordinate of the center of the upper-left pixel
 
                 downloaded_tiles.append((image_path, world_file_path))
                 download_count += 1
