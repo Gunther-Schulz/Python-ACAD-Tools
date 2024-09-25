@@ -36,7 +36,7 @@ def remove_geobasis_text(img):
     
     # Focus on the top portion of the image, but use full width
     height, width = cv_img.shape[:2]
-    roi = cv_img[0:int(height*0.2), 0:width]  # Increased height to 20% and full width
+    roi = cv_img[0:int(height*0.2), 0:width]
     
     # Perform text detection with lower confidence threshold
     results = reader.readtext(roi, min_size=3, low_text=0.1, text_threshold=0.3, link_threshold=0.1, width_ths=0.05)
@@ -58,13 +58,13 @@ def remove_geobasis_text(img):
     else:
         log_info("No text detected for removal")
     
-    # Dilate the mask slightly to ensure complete coverage of text
-    kernel = np.ones((5,5), np.uint8)
-    mask = cv2.dilate(mask, kernel, iterations=2)
+    # Dilate the mask slightly, but less than before
+    kernel = np.ones((3,3), np.uint8)  # Smaller kernel
+    mask = cv2.dilate(mask, kernel, iterations=1)  # Fewer iterations
     
-    # Inpaint only the detected text regions
+    # Inpaint only the detected text regions using NS method
     if np.any(mask):
-        cv_img = cv2.inpaint(cv_img, mask, 5, cv2.INPAINT_TELEA)
+        cv_img = cv2.inpaint(cv_img, mask, 3, cv2.INPAINT_NS)  # Changed method and reduced radius
         log_info("Text removal completed")
     else:
         log_info("No text detected for removal")
