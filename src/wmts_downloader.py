@@ -36,7 +36,7 @@ def remove_geobasis_text(img):
     
     # Focus on the top portion of the image, but use full width
     height, width = cv_img.shape[:2]
-    roi = cv_img[0:int(height*0.2), 0:width]
+    roi = cv_img[0:int(height*0.1), 0:width]
     
     # Perform text detection with lower confidence threshold
     results = reader.readtext(roi, min_size=3, low_text=0.1, text_threshold=0.3, link_threshold=0.1, width_ths=0.05)
@@ -50,7 +50,7 @@ def remove_geobasis_text(img):
         y = int(min(top_left[1], top_right[1]))
         w = int(max(top_right[0], bottom_right[0]) - x)
         h = int(max(bottom_left[1], bottom_right[1]) - y)
-        cv2.rectangle(mask[0:int(height*0.2), 0:width], (x, y), (x+w, y+h), (255), -1)
+        cv2.rectangle(mask[0:int(height*0.1), 0:width], (x, y), (x+w, y+h), (255), -1)
     
     # Print the texts that will be removed
     if texts_to_remove:
