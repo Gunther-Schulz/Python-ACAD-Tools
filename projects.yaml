@@ -45,27 +45,27 @@ projects:
               - Geltungsbereich
             buffer: 1000
         outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/generated/contour.shp"
-      # - name: WMS Gebäude
-      #   update: true
-      #   operations:
-      #     - type: wms
-      #       url: "https://www.geodaten-mv.de/dienste/gebaeude_wms"
-      #       layer: "gebaeude"
-      #       srs: "EPSG:25833"
-      #       format: "image/png"
-      #       targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/Gebäude"
-      #       layers:
-      #         - Geltungsbereich
-      #       buffer: 100
-      #       zoom: 17
-      #       overwrite: true
-      #       postProcess:
-      #           colorMap:
-      #             "#ff0000": "#808080"  # Map red to grey
-      #           alphaColor: "#ffffff"  # Set white to fully transparent
-      #           # tolerance: 30  # Increased tolerance to catch similar shades
-      #           grayscale: true
-      #           removeText: true
+      - name: WMS Gebäude
+        update: false
+        operations:
+          - type: wms
+            url: "https://www.geodaten-mv.de/dienste/gebaeude_wms"
+            layer: "gebaeude"
+            srs: "EPSG:25833"
+            format: "image/png"
+            targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/Gebäude"
+            layers:
+              - Geltungsbereich
+            buffer: 100
+            zoom: 17
+            overwrite: true
+            postProcess:
+                colorMap:
+                  "#ff0000": "#808080"  # Map red to grey
+                alphaColor: "#ffffff"  # Set white to fully transparent
+                # tolerance: 30  # Increased tolerance to catch similar shades
+                grayscale: true
+                removeText: true
       - name: WMS Höhenlinien
         update: true
         operations:
@@ -79,9 +79,9 @@ projects:
               - Geltungsbereich
             buffer: 100
             zoom: 0 # Zoom doesnt work (only for this layer?)
-            # overwrite: true
+            overwrite: true
             postProcess:
-              # alphaColor: "#ffffff"  # Set white to fully transparent
+              alphaColor: "#ffffff"  # Set white to fully transparent
               removeText: true
   - name: Plasten
     exportFormat: dxf
