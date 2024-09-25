@@ -57,7 +57,7 @@ projects:
             layers:
               - Geltungsbereich
             buffer: 100
-            zoom: 16
+            zoom: 17
             overwrite: true
             postProcess:
                 # colorMap:
@@ -66,6 +66,7 @@ projects:
                 # tolerance: 30  # Increased tolerance to catch similar shades
                 # grayscale: true
                 removeText: true
+                # textRemovalMethod: "easyocr"  # Use "tesseract" or "easyocr"
   - name: Plasten
     exportFormat: dxf
     dxfVersion: R2018

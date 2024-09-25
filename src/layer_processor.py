@@ -516,9 +516,13 @@ class LayerProcessor:
             if zoom_level:
                 service_info['zoom'] = zoom_level
 
-            # Add removeText to postProcess if it's in the operation
-            if 'postProcess' in operation and 'removeText' in operation['postProcess']:
-                service_info['postProcess']['removeText'] = operation['postProcess']['removeText']
+            # Ensure postProcess is a dictionary
+            if 'postProcess' not in service_info:
+                service_info['postProcess'] = {}
+
+            # Add removeText and textRemovalMethod to postProcess
+            service_info['postProcess']['removeText'] = operation.get('postProcess', {}).get('removeText', False)
+            service_info['postProcess']['textRemovalMethod'] = operation.get('postProcess', {}).get('textRemovalMethod', 'tesseract')
 
             log_info(f"Service info: {service_info}")
             log_info(f"Layers to process: {layers}")

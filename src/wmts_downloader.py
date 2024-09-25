@@ -11,7 +11,10 @@ from collections import defaultdict
 import numpy as np
 import cv2
 import pytesseract
+import easyocr
+import traceback
 # import logging
+import src.easyocr_patch
 
 # This will also log INFO
 # logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -19,47 +22,60 @@ import pytesseract
 def color_distance(c1, c2):
     return np.sqrt(np.sum((c1 - c2) ** 2))
 
-import cv2
-import numpy as np
-from PIL import Image
 
-import cv2
-import numpy as np
-from PIL import Image
-
-import cv2
-import numpy as np
-from PIL import Image
-
-import cv2
-import numpy as np
-from PIL import Image
-import pytesseract
-
-import cv2
-import numpy as np
-from PIL import Image
+def preprocess_for_ocr(img):
+    # Convert to grayscale
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    
+    # Apply adaptive thresholding
+    thresh = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
+    
+    # Denoise
+    denoised = cv2.fastNlMeansDenoising(thresh, None, 10, 7, 21)
+    
+    return denoised
 
 def remove_geobasis_text(img):
-    log_info("Attempting to remove GeoBasis-DE/MV text")
+    log_info("Attempting to remove GeoBasis-DE/MV text using EasyOCR")
     
     # Convert PIL Image to OpenCV format
     cv_img = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
     
-    # Create a mask for the top-left corner
+    # Create a mask for the entire image
+    mask = np.zeros(cv_img.shape[:2], dtype=np.uint8)
+    
+    # Initialize EasyOCR
+    reader = easyocr.Reader(['de', 'en'])
+    
+    # Focus on the top-left corner where the text is usually located
     height, width = cv_img.shape[:2]
-    mask = np.zeros((height, width), dtype=np.uint8)
+    roi = cv_img[0:int(height*0.1), 0:int(width*0.3)]
     
-    # Adjust these values as needed to cover the text area
-    cv2.rectangle(mask, (0, 0), (int(width * 0.2), int(height * 0.05)), (255), -1)
+    # Perform text detection with lower confidence threshold
+    results = reader.readtext(roi, min_size=3, low_text=0.1, text_threshold=0.3, link_threshold=0.1, width_ths=0.05)
     
-    # Inpaint the text region
-    result = cv2.inpaint(cv_img, mask, 3, cv2.INPAINT_TELEA)
+    for (bbox, text, prob) in results:
+        log_info(f"EasyOCR detected text: {text} (confidence: {prob})")
+        (top_left, top_right, bottom_right, bottom_left) = bbox
+        x = int(min(top_left[0], bottom_left[0]))
+        y = int(min(top_left[1], top_right[1]))
+        w = int(max(top_right[0], bottom_right[0]) - x)
+        h = int(max(bottom_left[1], bottom_right[1]) - y)
+        cv2.rectangle(mask[0:int(height*0.1), 0:int(width*0.3)], (x, y), (x+w, y+h), (255), -1)
     
-    log_info("Text removal completed")
+    # Dilate the mask slightly to ensure complete coverage of text
+    kernel = np.ones((5,5), np.uint8)
+    mask = cv2.dilate(mask, kernel, iterations=2)
+    
+    # Inpaint only the detected text regions
+    if np.any(mask):
+        cv_img = cv2.inpaint(cv_img, mask, 5, cv2.INPAINT_TELEA)
+        log_info("Text removal completed")
+    else:
+        log_info("No text detected for removal")
     
     # Convert back to PIL Image
-    return Image.fromarray(cv2.cvtColor(result, cv2.COLOR_BGR2RGB))
+    return Image.fromarray(cv2.cvtColor(cv_img, cv2.COLOR_BGR2RGB))
 
 def post_process_image(img, color_map, alpha_color, tolerance=30, grayscale=False, remove_text=False):
     img = img.convert('RGBA')
@@ -378,7 +394,8 @@ def download_wms_tiles(wms_info: dict, geltungsbereich, buffer_distance: float, 
                 log_info(f"Downloaded and processed tile {download_count}: {file_name}")
 
             except Exception as e:
-                log_error(f"Failed to download or process tile {file_name}: {str(e)}", exc_info=True)
+                log_error(f"Failed to download or process tile {file_name}: {str(e)}")
+                log_error(f"Traceback: {traceback.format_exc()}")
 
             if limit_requests and download_count >= limit_requests:
                 log_info(f"Reached download limit of {limit_requests}")
