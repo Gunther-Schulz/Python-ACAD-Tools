@@ -80,9 +80,9 @@ projects:
             buffer: 100
             zoom: 18
             overwrite: true
-            # postProcess:
+            postProcess:
             #     alphaColor: "#ffffff"  # Set white to fully transparent
-            #     removeText: true
+              removeText: true
   - name: Plasten
     exportFormat: dxf
     dxfVersion: R2018
