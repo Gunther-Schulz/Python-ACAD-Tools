@@ -22,19 +22,6 @@ import src.easyocr_patch
 def color_distance(c1, c2):
     return np.sqrt(np.sum((c1 - c2) ** 2))
 
-
-def preprocess_for_ocr(img):
-    # Convert to grayscale
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    
-    # Apply adaptive thresholding
-    thresh = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
-    
-    # Denoise
-    denoised = cv2.fastNlMeansDenoising(thresh, None, 10, 7, 21)
-    
-    return denoised
-
 def remove_geobasis_text(img):
     log_info("Attempting to remove GeoBasis-DE/MV text using EasyOCR")
     
@@ -78,7 +65,10 @@ def remove_geobasis_text(img):
     return Image.fromarray(cv2.cvtColor(cv_img, cv2.COLOR_BGR2RGB))
 
 def post_process_image(img, color_map, alpha_color, tolerance=30, grayscale=False, remove_text=False):
-    img = img.convert('RGBA')
+    log_info("Starting post-processing of image")
+    
+    # Convert to RGB initially (no alpha)
+    img = img.convert('RGB')
     
     if remove_text:
         log_info("Text removal requested, processing image")
@@ -88,25 +78,28 @@ def post_process_image(img, color_map, alpha_color, tolerance=30, grayscale=Fals
     
     data = np.array(img)
     
-    for target_color, replacement_color in color_map.items():
-        distances = np.apply_along_axis(lambda x: color_distance(x[:3], np.array(hex_to_rgb(target_color))), 2, data)
-        mask = distances <= tolerance
-        data[mask] = np.append(hex_to_rgb(replacement_color), 255)
-    
-    if alpha_color:
-        alpha_distances = np.apply_along_axis(lambda x: color_distance(x[:3], np.array(hex_to_rgb(alpha_color))), 2, data)
-        alpha_mask = alpha_distances <= tolerance
-        data[alpha_mask, 3] = 0
-    
-    result_img = Image.fromarray(data)
+    if color_map:
+        for target_color, replacement_color in color_map.items():
+            distances = np.apply_along_axis(lambda x: color_distance(x, np.array(hex_to_rgb(target_color))), 2, data)
+            mask = distances <= tolerance
+            data[mask] = hex_to_rgb(replacement_color)
     
     if grayscale:
-        # Convert to grayscale while preserving alpha channel
-        gray_data = np.array(ImageOps.grayscale(result_img.convert('RGB')))
-        alpha_channel = data[:, :, 3]
-        gray_rgba = np.dstack((gray_data, gray_data, gray_data, alpha_channel))
-        result_img = Image.fromarray(gray_rgba)
+        log_info("Converting to grayscale")
+        gray_data = np.array(ImageOps.grayscale(Image.fromarray(data)))
+        data = np.dstack((gray_data, gray_data, gray_data))
     
+    # Add alpha channel as the last step
+    if alpha_color:
+        log_info(f"Applying alpha color: {alpha_color}")
+        alpha_channel = np.ones(data.shape[:2], dtype=np.uint8) * 255
+        alpha_distances = np.apply_along_axis(lambda x: color_distance(x, np.array(hex_to_rgb(alpha_color))), 2, data)
+        alpha_mask = alpha_distances <= tolerance
+        alpha_channel[alpha_mask] = 0
+        data = np.dstack((data, alpha_channel))
+    
+    result_img = Image.fromarray(data, 'RGBA' if alpha_color else 'RGB')
+    log_info("Post-processing completed")
     return result_img
 
 def hex_to_rgb(hex_color):

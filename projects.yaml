@@ -60,13 +60,12 @@ projects:
             zoom: 17
             overwrite: true
             postProcess:
-                # colorMap:
-                #   "#ff0000": "#808080"  # Map red to grey
-                # alphaColor: "#ffffff"  # Set white to fully transparent
+                colorMap:
+                  "#ff0000": "#808080"  # Map red to grey
+                alphaColor: "#ffffff"  # Set white to fully transparent
                 # tolerance: 30  # Increased tolerance to catch similar shades
-                # grayscale: true
+                grayscale: true
                 removeText: true
-                # textRemovalMethod: "easyocr"  # Use "tesseract" or "easyocr"
   - name: Plasten
     exportFormat: dxf
     dxfVersion: R2018
