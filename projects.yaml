@@ -396,14 +396,14 @@ projects:
       #     #   strength: 1.5
       #   outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/baufeld_smoothed.shp"
       - name: WMTS DOP
-        update: false
+        update: true
         style:
           locked: true
         operations:
           - type: wmts
             url: "https://www.geodaten-mv.de/dienste/dop_wmts/wmts/1.0.0/WMTSCapabilities.xml"
             layer: "mv_dop"
-            zoom: "14"
+            zoom: "10"
             # zoom: 10
             proj: "ETRS89UTM33"
             targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/DOP"
@@ -412,6 +412,7 @@ projects:
               # - Geltungsbereich NO
               # - Geltungsbereich S
             buffer: 200
+            stitchTiles: true
       # - name: WMTS Basemap
       #   update: true
       #   color: Black

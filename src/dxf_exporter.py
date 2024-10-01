@@ -60,6 +60,7 @@ class DXFExporter:
         msp = doc.modelspace()
 
         self.process_layers(doc, msp)
+
         self._cleanup_and_save(doc, msp)
 
     def _prepare_dxf_document(self):
@@ -128,17 +129,6 @@ class DXFExporter:
 
     def process_single_layer(self, doc, msp, layer_name, layer_info):
         log_info(f"Processing layer: {layer_name}")
-        
-        if self.is_wmts_or_wms_layer(layer_info):
-            self._process_wmts_layer(doc, msp, layer_name, layer_info)
-        else:
-            self._process_regular_layer(doc, msp, layer_name, layer_info)
-
-    def _process_wmts_layer(self, doc, msp, layer_name, layer_info):
-        log_info(f"Processing WMTS layer: {layer_name}")
-        self.create_new_layer(doc, msp, layer_name, layer_info)
-
-    def _process_regular_layer(self, doc, msp, layer_name, layer_info):
         self._ensure_layer_exists(doc, layer_name, layer_info)
         
         if self.has_labels(layer_info):
@@ -209,6 +199,7 @@ class DXFExporter:
         # Add new geometry and labels
         log_info(f"Adding new geometry to layer {layer_name}")
         if isinstance(geo_data, list) and all(isinstance(item, tuple) for item in geo_data):
+            # This handles both individual tiles and stitched images
             self.add_wmts_xrefs_to_dxf(msp, geo_data, layer_name)
         else:
             self.add_geometries_to_dxf(msp, geo_data, layer_name)

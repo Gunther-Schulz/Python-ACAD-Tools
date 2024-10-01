@@ -21,7 +21,7 @@ import src.easyocr_patch
 
 def color_distance(c1, c2):
     return np.sqrt(np.sum((c1 - c2) ** 2))
-
+ 
 def remove_geobasis_text(img):
     log_info("Attempting to remove GeoBasis-DE/MV text using EasyOCR")
     
@@ -391,3 +391,61 @@ def download_wms_tiles(wms_info: dict, geltungsbereich, buffer_distance: float, 
     log_info(f"WMS tiles downloaded: {download_count}")
     log_info(f"WMS tiles skipped (already exist): {skip_count}")
     return downloaded_tiles
+
+def stitch_tiles(tiles, tile_matrix):
+    if not tiles:
+        raise ValueError("No tiles to stitch")
+
+    # Extract row and column information from filenames
+    tile_info = []
+    for tile_path, _ in tiles:
+        filename = os.path.basename(tile_path)
+        parts = filename.split('_')
+        for part in parts:
+            if part.startswith('row-'):
+                row = int(part.split('-')[1])
+            elif part.startswith('col-'):
+                col = int(part.split('-')[1])
+        tile_info.append((row, col, tile_path))
+
+    if not tile_info:
+        raise ValueError("Could not extract row and column information from tile filenames")
+
+    min_row = min(info[0] for info in tile_info)
+    max_row = max(info[0] for info in tile_info)
+    min_col = min(info[1] for info in tile_info)
+    max_col = max(info[1] for info in tile_info)
+
+    width = (max_col - min_col + 1) * tile_matrix.tilewidth
+    height = (max_row - min_row + 1) * tile_matrix.tileheight
+
+    stitched_image = Image.new('RGBA', (width, height))
+
+    for row, col, tile_path in tile_info:
+        img = Image.open(tile_path)
+        stitched_image.paste(img, ((col - min_col) * tile_matrix.tilewidth, (row - min_row) * tile_matrix.tileheight))
+
+    # Calculate world file content
+    pixel_size = 0.00028
+    a = tile_matrix.scaledenominator * pixel_size
+    e = tile_matrix.scaledenominator * -pixel_size
+    left = ((min_col * tile_matrix.tilewidth + 0.5) * a) + tile_matrix.topleftcorner[0]
+    top = ((min_row * tile_matrix.tileheight + 0.5) * e) + tile_matrix.topleftcorner[1]
+
+    world_file_content = f"{a}\n0\n0\n{e}\n{left}\n{top}"
+
+    return stitched_image, world_file_content
+
+def process_and_stitch_tiles(wmts_info: dict, downloaded_tiles: list, tile_matrix_zoom, zoom_folder: str) -> list:
+    if wmts_info.get('stitchTiles', False):
+        log_info("Stitching tiles into a single image")
+        stitched_image, world_file_content = stitch_tiles(downloaded_tiles, tile_matrix_zoom)
+        layer_id = wmts_info['layer']
+        stitched_image_path = os.path.join(zoom_folder, f"{layer_id}_stitched.png")
+        stitched_image.save(stitched_image_path)
+        world_file_path = os.path.join(zoom_folder, f"{layer_id}_stitched.pgw")
+        with open(world_file_path, 'w') as f:
+            f.write(world_file_content)
+        return [(stitched_image_path, world_file_path)]
+    else:
+        return downloaded_tiles
