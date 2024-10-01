@@ -6,7 +6,6 @@ from src.utils import log_info, log_warning, log_error
 import geopandas as gpd
 import os
 from ezdxf.lldxf.const import DXFValueError, LWPOLYLINE_PLINEGEN
-from ezdxf.entities import Image
 
 class DXFExporter:
     def __init__(self, project_loader, layer_processor):
@@ -60,7 +59,6 @@ class DXFExporter:
         msp = doc.modelspace()
 
         self.process_layers(doc, msp)
-
         self._cleanup_and_save(doc, msp)
 
     def _prepare_dxf_document(self):
@@ -129,6 +127,17 @@ class DXFExporter:
 
     def process_single_layer(self, doc, msp, layer_name, layer_info):
         log_info(f"Processing layer: {layer_name}")
+        
+        if self.is_wmts_or_wms_layer(layer_info):
+            self._process_wmts_layer(doc, msp, layer_name, layer_info)
+        else:
+            self._process_regular_layer(doc, msp, layer_name, layer_info)
+
+    def _process_wmts_layer(self, doc, msp, layer_name, layer_info):
+        log_info(f"Processing WMTS layer: {layer_name}")
+        self.create_new_layer(doc, msp, layer_name, layer_info)
+
+    def _process_regular_layer(self, doc, msp, layer_name, layer_info):
         self._ensure_layer_exists(doc, layer_name, layer_info)
         
         if self.has_labels(layer_info):
@@ -199,7 +208,6 @@ class DXFExporter:
         # Add new geometry and labels
         log_info(f"Adding new geometry to layer {layer_name}")
         if isinstance(geo_data, list) and all(isinstance(item, tuple) for item in geo_data):
-            # This handles both individual tiles and stitched images
             self.add_wmts_xrefs_to_dxf(msp, geo_data, layer_name)
         else:
             self.add_geometries_to_dxf(msp, geo_data, layer_name)
@@ -362,13 +370,8 @@ class DXFExporter:
         image.dxf.image_def_handle = image_def.dxf.handle
         image.dxf.flags = 3  # Set bit 0 and 1 to indicate relative path
 
-        # Enable background transparency
-        image.dxf.flags |= 8  # 8 is the value for USE_TRANSPARENCY
-
         # Set the $PROJECTNAME header variable to an empty string
         msp.doc.header['$PROJECTNAME'] = ''
-
-        log_info(f"Added image with transparency: {image}")
 
     def add_geometries_to_dxf(self, msp, geo_data, layer_name):
         log_info(f"Adding geometries to DXF for layer: {layer_name}")
