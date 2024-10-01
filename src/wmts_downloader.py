@@ -426,13 +426,14 @@ def stitch_tiles(tiles, tile_matrix):
         stitched_image.paste(img, ((col - min_col) * tile_matrix.tilewidth, (row - min_row) * tile_matrix.tileheight))
 
     # Calculate world file content
-    pixel_size = 0.00028
-    a = tile_matrix.scaledenominator * pixel_size
-    e = tile_matrix.scaledenominator * -pixel_size
-    left = ((min_col * tile_matrix.tilewidth + 0.5) * a) + tile_matrix.topleftcorner[0]
-    top = ((min_row * tile_matrix.tileheight + 0.5) * e) + tile_matrix.topleftcorner[1]
+    pixel_size_x = tile_matrix.scaledenominator * 0.00028  # Using the constant from tile_matrix
+    pixel_size_y = -pixel_size_x  # Negative because Y increases downwards in image space
 
-    world_file_content = f"{a}\n0\n0\n{e}\n{left}\n{top}"
+    # Calculate the geographic coordinates of the top-left corner
+    left = tile_matrix.topleftcorner[0] + min_col * tile_matrix.tilewidth * pixel_size_x
+    top = tile_matrix.topleftcorner[1] + min_row * tile_matrix.tileheight * pixel_size_y
+
+    world_file_content = f"{pixel_size_x}\n0\n0\n{pixel_size_y}\n{left}\n{top}"
 
     return stitched_image, world_file_content
 
