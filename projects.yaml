@@ -7,8 +7,8 @@ projects:
     exportFormat: dxf
     dxfVersion: R2018
     crs: EPSG:25833
-    # dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/Zeichnung/24 09.23 Friedrichshof  Zeichnung.dxf"
-    dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/Zeichnung/test.dxf"
+    dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/Zeichnung/24 09.25 Friedrichshof  Zeichnung -2.dxf"
+    # dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/Zeichnung/test.dxf"
     dumpOutputDir: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/dxf_dump"
     dxfLayers:
       - name: Geltungsbereich
@@ -31,22 +31,22 @@ projects:
         style:
           color: "Light Blue"
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/Lagefaktor_var1/compensatory/Ausgleich_Acker/Ausgleich.shp"
-      - name: Contour
-        update: false
-        style:
-          color: Black
-          locked: false
-        update: false
-        label: elevation
-        operations:
-          - type: contour
-            url: "https://www.geodaten-mv.de/dienste/dgm_atom?type=dataset&id=df758744-b2a1-4d39-b34c-9ec5bf9b4372"
-            layers:
-              - Geltungsbereich
-            buffer: 1000
-        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/generated/contour.shp"
+      # - name: Contour
+      #   update: false
+      #   style:
+      #     color: Black
+      #     locked: false
+      #   update: false
+      #   label: elevation
+      #   operations:
+      #     - type: contour
+      #       url: "https://www.geodaten-mv.de/dienste/dgm_atom?type=dataset&id=df758744-b2a1-4d39-b34c-9ec5bf9b4372"
+      #       layers:
+      #         - Geltungsbereich
+      #       buffer: 1000
+      #   outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/generated/contour.shp"
       - name: WMS Gebäude
-        update: false
+        update: true
         operations:
           - type: wms
             url: "https://www.geodaten-mv.de/dienste/gebaeude_wms"
@@ -56,8 +56,8 @@ projects:
             targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/Gebäude"
             layers:
               - Geltungsbereich
-            buffer: 100
-            zoom: 17
+            buffer: 600
+            zoom: 18
             overwrite: true
             postProcess:
                 colorMap:
@@ -65,29 +65,30 @@ projects:
                 alphaColor: "#ffffff"  # Set white to fully transparent
                 # tolerance: 30  # Increased tolerance to catch similar shades
                 grayscale: true
-                removeText: true
-      - name: WMS Höhenlinien
-        update: true
-        operations:
-          - type: wms
-            url: "https://www.geodaten-mv.de/dienste/dgm_wms"
-            layer: "hohenlinien"
-            srs: "EPSG:25833"
-            format: "image/png"
-            targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/Höhenlinien"
-            layers:
-              - Geltungsbereich
-            buffer: 100
-            zoom: 0 # Zoom doesnt work (only for this layer?)
-            overwrite: true
-            postProcess:
-              alphaColor: "#ffffff"  # Set white to fully transparent
-              removeText: true
+                # removeText: true
+      # - name: WMS Höhenlinien
+      #   update: true
+      #   operations:
+      #     - type: wms
+      #       url: "https://www.geodaten-mv.de/dienste/dgm_wms"
+      #       layer: "hohenlinien"
+      #       srs: "EPSG:25833"
+      #       format: "image/png"
+      #       targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/Höhenlinien"
+      #       layers:
+      #         - Geltungsbereich
+      #       buffer: 600
+      #       zoom: 0 # Zoom doesnt work (only for this layer?)
+      #       overwrite: true
+      #       postProcess:
+      #         alphaColor: "#ffffff"  # Set white to fully transparent
+      #         removeText: true
   - name: Plasten
     exportFormat: dxf
     dxfVersion: R2018
     crs: EPSG:25833
     dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Zeichnung/Plasten.dxf"
+    dumpOutputDir: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten//GIS/dxf_dump"
     dxfLayers:
       - name: Flur
         update: true
@@ -394,23 +395,23 @@ projects:
       #     # - type: smooth
       #     #   strength: 1.5
       #   outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/baufeld_smoothed.shp"
-      # - name: WMTS DOP
-      #   update: false
-      #   color: Black
-      #   locked: true
-      #   operations:
-      #     - type: wmts
-      #       url: "https://www.geodaten-mv.de/dienste/dop_wmts/wmts/1.0.0/WMTSCapabilities.xml"
-      #       layer: "mv_dop"
-      #       # zoom: "14"
-      #       zoom: 10
-      #       proj: "ETRS89UTM33"
-      #       targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/DOP"
-      #       layers:
-      #         - Geltungsbereich NW
-      #         - Geltungsbereich NO
-      #         - Geltungsbereich S
-      #       buffer: 100
+      - name: WMTS DOP
+        update: false
+        style:
+          locked: true
+        operations:
+          - type: wmts
+            url: "https://www.geodaten-mv.de/dienste/dop_wmts/wmts/1.0.0/WMTSCapabilities.xml"
+            layer: "mv_dop"
+            zoom: "14"
+            # zoom: 10
+            proj: "ETRS89UTM33"
+            targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/DOP"
+            layers:
+              - Geltungsbereich NW
+              # - Geltungsbereich NO
+              # - Geltungsbereich S
+            buffer: 200
       # - name: WMTS Basemap
       #   update: true
       #   color: Black
