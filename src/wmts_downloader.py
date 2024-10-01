@@ -21,43 +21,38 @@ import src.easyocr_patch
 
 def color_distance(c1, c2):
     return np.sqrt(np.sum((c1 - c2) ** 2))
-
+ 
 def remove_geobasis_text(img):
     log_info("Attempting to remove GeoBasis-DE/MV text using EasyOCR")
     
     # Convert PIL Image to OpenCV format
     cv_img = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
     
-    # Create a mask for the entire image
-    mask = np.zeros(cv_img.shape[:2], dtype=np.uint8)
-    
     # Initialize EasyOCR
     reader = easyocr.Reader(['de', 'en'])
     
-    # Focus on the top-left corner where the text is usually located
+    # Focus on the top portion of the image, but use full width
     height, width = cv_img.shape[:2]
-    roi = cv_img[0:int(height*0.1), 0:int(width*0.3)]
+    roi = cv_img[0:int(height*0.09), 0:width]
     
     # Perform text detection with lower confidence threshold
     results = reader.readtext(roi, min_size=3, low_text=0.1, text_threshold=0.3, link_threshold=0.1, width_ths=0.05)
     
+    texts_to_remove = []
     for (bbox, text, prob) in results:
         log_info(f"EasyOCR detected text: {text} (confidence: {prob})")
+        texts_to_remove.append(text)
         (top_left, top_right, bottom_right, bottom_left) = bbox
         x = int(min(top_left[0], bottom_left[0]))
         y = int(min(top_left[1], top_right[1]))
         w = int(max(top_right[0], bottom_right[0]) - x)
         h = int(max(bottom_left[1], bottom_right[1]) - y)
-        cv2.rectangle(mask[0:int(height*0.1), 0:int(width*0.3)], (x, y), (x+w, y+h), (255), -1)
+        # Instead of inpainting, fill the area with white
+        cv2.rectangle(roi, (x, y), (x+w, y+h), (255, 255, 255), -1)
     
-    # Dilate the mask slightly to ensure complete coverage of text
-    kernel = np.ones((5,5), np.uint8)
-    mask = cv2.dilate(mask, kernel, iterations=2)
-    
-    # Inpaint only the detected text regions
-    if np.any(mask):
-        cv_img = cv2.inpaint(cv_img, mask, 5, cv2.INPAINT_TELEA)
-        log_info("Text removal completed")
+    # Print the texts that will be removed
+    if texts_to_remove:
+        log_info(f"The following text will be removed: {', '.join(texts_to_remove)}")
     else:
         log_info("No text detected for removal")
     
@@ -328,18 +323,12 @@ def download_wms_tiles(wms_info: dict, geltungsbereich, buffer_distance: float, 
     log_info(f"Post-processing config: color_map={color_map}, alpha_color={alpha_color}, tolerance={tolerance}, grayscale={grayscale}, remove_text={remove_text}")
 
     geltungsbereich_buffered = geltungsbereich.buffer(buffer_distance)
-
     minx, miny, maxx, maxy = geltungsbereich_buffered.bounds
-    bbox = (minx, miny, maxx, maxy)
 
-    width = maxx - minx
-    height = maxy - miny
-
-    if zoom is not None:
-        tile_size = tile_size * (2 ** (18 - zoom))
-
-    cols = math.ceil(width / tile_size)
-    rows = math.ceil(height / tile_size)
+    # Calculate the number of tiles needed to cover the area
+    tile_width = tile_height = tile_size
+    cols = math.ceil((maxx - minx) / tile_width)
+    rows = math.ceil((maxy - miny) / tile_height)
 
     log_info(f"Downloading {rows}x{cols} tiles")
 
@@ -349,10 +338,10 @@ def download_wms_tiles(wms_info: dict, geltungsbereich, buffer_distance: float, 
 
     for row in range(rows):
         for col in range(cols):
-            tile_minx = minx + col * tile_size
-            tile_miny = miny + row * tile_size
-            tile_maxx = min(tile_minx + tile_size, maxx)
-            tile_maxy = min(tile_miny + tile_size, maxy)
+            tile_minx = minx + col * tile_width
+            tile_miny = maxy - (row + 1) * tile_height  # Start from top-left corner
+            tile_maxx = tile_minx + tile_width
+            tile_maxy = tile_miny + tile_height
             tile_bbox = (tile_minx, tile_miny, tile_maxx, tile_maxy)
 
             file_name = f'{layer_id}__{srs.replace(":", "-")}_row-{row}_col-{col}'
@@ -375,12 +364,13 @@ def download_wms_tiles(wms_info: dict, geltungsbereich, buffer_distance: float, 
                     with open(image_path, 'wb') as out:
                         out.write(img.read())
 
+                # Write the world file with correct georeference information
                 with open(world_file_path, 'w') as wf:
-                    wf.write(f"{(tile_maxx - tile_minx) / tile_size}\n")
-                    wf.write("0\n0\n")
-                    wf.write(f"-{(tile_maxy - tile_miny) / tile_size}\n")
-                    wf.write(f"{tile_minx}\n")
-                    wf.write(f"{tile_maxy}\n")
+                    wf.write(f"{tile_width / tile_size}\n")  # pixel size in the x-direction
+                    wf.write("0\n0\n")  # rotation terms (usually 0)
+                    wf.write(f"-{tile_height / tile_size}\n")  # negative pixel size in the y-direction
+                    wf.write(f"{tile_minx}\n")  # x-coordinate of the center of the upper-left pixel
+                    wf.write(f"{tile_maxy}\n")  # y-coordinate of the center of the upper-left pixel
 
                 downloaded_tiles.append((image_path, world_file_path))
                 download_count += 1
@@ -401,3 +391,133 @@ def download_wms_tiles(wms_info: dict, geltungsbereich, buffer_distance: float, 
     log_info(f"WMS tiles downloaded: {download_count}")
     log_info(f"WMS tiles skipped (already exist): {skip_count}")
     return downloaded_tiles
+
+def stitch_tiles(tiles, tile_matrix):
+    if not tiles:
+        raise ValueError("No tiles to stitch")
+
+    # Extract row and column information from filenames
+    tile_info = []
+    for tile_path, _ in tiles:
+        filename = os.path.basename(tile_path)
+        parts = filename.split('_')
+        for part in parts:
+            if part.startswith('row-'):
+                row = int(part.split('-')[1])
+            elif part.startswith('col-'):
+                col = int(part.split('-')[1])
+        tile_info.append((row, col, tile_path))
+
+    if not tile_info:
+        raise ValueError("Could not extract row and column information from tile filenames")
+
+    min_row = min(info[0] for info in tile_info)
+    max_row = max(info[0] for info in tile_info)
+    min_col = min(info[1] for info in tile_info)
+    max_col = max(info[1] for info in tile_info)
+
+    width = (max_col - min_col + 1) * tile_matrix.tilewidth
+    height = (max_row - min_row + 1) * tile_matrix.tileheight
+
+    stitched_image = Image.new('RGBA', (width, height))
+
+    for row, col, tile_path in tile_info:
+        img = Image.open(tile_path)
+        stitched_image.paste(img, ((col - min_col) * tile_matrix.tilewidth, (row - min_row) * tile_matrix.tileheight))
+
+    # Calculate world file content
+    pixel_size_x = tile_matrix.scaledenominator * 0.00028  # Using the constant from tile_matrix
+    pixel_size_y = -pixel_size_x  # Negative because Y increases downwards in image space
+
+    # Calculate the geographic coordinates of the top-left corner
+    left = tile_matrix.topleftcorner[0] + min_col * tile_matrix.tilewidth * pixel_size_x
+    top = tile_matrix.topleftcorner[1] + min_row * tile_matrix.tileheight * pixel_size_y
+
+    world_file_content = f"{pixel_size_x}\n0\n0\n{pixel_size_y}\n{left}\n{top}"
+
+    return stitched_image, world_file_content
+
+def process_and_stitch_tiles(wmts_info: dict, downloaded_tiles: list, tile_matrix_zoom, zoom_folder: str) -> list:
+    if wmts_info.get('stitchTiles', False):
+        log_info("Grouping and stitching tiles into separate images")
+        
+        # Group tiles by layer
+        layer_tiles = defaultdict(list)
+        for tile_path, world_file_path in downloaded_tiles:
+            layer_name = os.path.basename(os.path.dirname(tile_path))  # Get layer name from parent directory
+            layer_tiles[layer_name].append((tile_path, world_file_path))
+        
+        stitched_images = []
+        for layer_name, tiles in layer_tiles.items():
+            log_info(f"Processing tiles for layer: {layer_name}")
+            
+            # Group connected tiles within each layer
+            tile_groups = group_connected_tiles(tiles)
+            
+            for group_index, tile_group in enumerate(tile_groups):
+                log_info(f"Stitching group {group_index + 1} of {len(tile_groups)} for layer {layer_name}")
+                if tile_group:  # Only process non-empty groups
+                    stitched_image, world_file_content = stitch_tiles(tile_group, tile_matrix_zoom)
+                    
+                    # Generate unique filenames for each group
+                    base_filename = f"{layer_name}_stitched_group{group_index + 1}"
+                    stitched_image_path = os.path.join(zoom_folder, f"{base_filename}.png")
+                    world_file_path = os.path.join(zoom_folder, f"{base_filename}.pgw")
+                    
+                    # Ensure unique filenames by appending a number if necessary
+                    counter = 1
+                    while os.path.exists(stitched_image_path) or os.path.exists(world_file_path):
+                        base_filename = f"{layer_name}_stitched_group{group_index + 1}_{counter}"
+                        stitched_image_path = os.path.join(zoom_folder, f"{base_filename}.png")
+                        world_file_path = os.path.join(zoom_folder, f"{base_filename}.pgw")
+                        counter += 1
+                    
+                    stitched_image.save(stitched_image_path)
+                    log_info(f"Saved stitched image: {stitched_image_path}")
+                    with open(world_file_path, 'w') as f:
+                        f.write(world_file_content)
+                    log_info(f"Saved world file: {world_file_path}")
+                    
+                    stitched_images.append((stitched_image_path, world_file_path))
+                else:
+                    log_info(f"Skipping empty group {group_index + 1} for layer {layer_name}")
+        
+        log_info(f"Created {len(stitched_images)} stitched images across all layers")
+        return stitched_images
+    else:
+        return downloaded_tiles
+
+def group_connected_tiles(tiles):
+    tile_dict = {}
+    for tile_path, world_file_path in tiles:
+        filename = os.path.basename(tile_path)
+        parts = filename.split('_')
+        row = col = None
+        for part in parts:
+            if part.startswith('row-'):
+                row = int(part.split('-')[1])
+            elif part.startswith('col-'):
+                col = int(part.split('-')[1])
+        if row is not None and col is not None:
+            tile_dict[(row, col)] = (tile_path, world_file_path)
+
+    def get_neighbors(row, col):
+        return [(row-1, col), (row+1, col), (row, col-1), (row, col+1)]
+
+    def dfs(row, col, group):
+        if (row, col) not in tile_dict or (row, col) in visited:
+            return
+        visited.add((row, col))
+        group.append(tile_dict[(row, col)])
+        for nr, nc in get_neighbors(row, col):
+            dfs(nr, nc, group)
+
+    visited = set()
+    groups = []
+    for (row, col) in tile_dict:
+        if (row, col) not in visited:
+            group = []
+            dfs(row, col, group)
+            groups.append(group)
+
+    return groups

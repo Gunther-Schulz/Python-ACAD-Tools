@@ -3,10 +3,11 @@ from matplotlib import pyplot as plt
 from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection, Point, MultiPoint, GeometryCollection
 from src.utils import log_info, log_warning, log_error
 import os
-from src.wmts_downloader import download_wmts_tiles, download_wms_tiles
+from src.wmts_downloader import download_wmts_tiles, download_wms_tiles, process_and_stitch_tiles
 from shapely.ops import unary_union
 import shutil
 from src.contour_processor import process_contour
+from owslib.wmts import WebMapTileService
 
 class LayerProcessor:
     def __init__(self, project_loader, plot_ops=False):
@@ -524,6 +525,9 @@ class LayerProcessor:
             service_info['postProcess']['removeText'] = operation.get('postProcess', {}).get('removeText', False)
             service_info['postProcess']['textRemovalMethod'] = operation.get('postProcess', {}).get('textRemovalMethod', 'tesseract')
 
+            stitch_tiles = operation.get('stitchTiles', False)
+            service_info['stitchTiles'] = stitch_tiles
+
             log_info(f"Service info: {service_info}")
             log_info(f"Layers to process: {layers}")
 
@@ -540,9 +544,16 @@ class LayerProcessor:
 
                     if 'wmts' in operation['type'].lower():
                         downloaded_tiles = download_wmts_tiles(service_info, layer_geometry, buffer_distance, zoom_folder, update=update_flag, overwrite=overwrite_flag)
+                        # Get the tile_matrix_zoom from the WMTS service
+                        wmts = WebMapTileService(service_info['url'])
+                        tile_matrix = wmts.tilematrixsets[service_info['proj']].tilematrix
+                        tile_matrix_zoom = tile_matrix[str(service_info['zoom'])]
+                        processed_tiles = process_and_stitch_tiles(service_info, downloaded_tiles, tile_matrix_zoom, zoom_folder)
                     else:
                         downloaded_tiles = download_wms_tiles(service_info, layer_geometry, buffer_distance, zoom_folder, update=update_flag, overwrite=overwrite_flag)
-                    all_tiles.extend(downloaded_tiles)
+                        processed_tiles = process_and_stitch_tiles(service_info, downloaded_tiles, None, zoom_folder)
+                    
+                    all_tiles.extend(processed_tiles)
                 else:
                     log_warning(f"Layer {layer} not found for WMTS/WMS download of {layer_name}")
 
