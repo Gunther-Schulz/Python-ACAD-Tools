@@ -6,6 +6,7 @@ from src.utils import log_info, log_warning, log_error
 import geopandas as gpd
 import os
 from ezdxf.lldxf.const import DXFValueError, LWPOLYLINE_PLINEGEN
+from PIL import Image
 
 class DXFExporter:
     def __init__(self, project_loader, layer_processor):
@@ -336,10 +337,6 @@ class DXFExporter:
         relative_image_path = convert_to_windows_path(relative_image_path)
         log_info(f"Relative image path: {relative_image_path}")
 
-        # Create the image definition with the relative Windows-style path
-        image_def = msp.doc.add_image_def(
-            filename=relative_image_path, size_in_pixel=(256, 256))
-
         # Read the world file to get the transformation parameters
         with open(world_file_path, 'r') as wf:
             a = float(wf.readline().strip())
@@ -350,11 +347,18 @@ class DXFExporter:
             f = float(wf.readline().strip())
         log_info(f"World file parameters: a={a}, d={d}, b={b}, e={e}, c={c}, f={f}")
 
-        # Calculate the insertion point and size
-        insert_point = (c, f - abs(e) * 256)
-        size_in_units = (a * 256, abs(e) * 256)
+        # Get image dimensions
+        with Image.open(image_path) as img:
+            img_width, img_height = img.size
+
+        # Calculate the insertion point (top-left corner)
+        insert_point = (c, f)
+        size_in_units = (abs(a) * img_width, abs(e) * img_height)
         log_info(f"Insertion point: {insert_point}")
         log_info(f"Size in units: {size_in_units}")
+
+        # Create the image definition with the relative Windows-style path
+        image_def = msp.doc.add_image_def(filename=relative_image_path, size_in_pixel=(img_width, img_height))
 
         # Add the image with relative path
         image = msp.add_image(
@@ -372,6 +376,8 @@ class DXFExporter:
 
         # Set the $PROJECTNAME header variable to an empty string
         msp.doc.header['$PROJECTNAME'] = ''
+
+        log_info(f"Added image: {image}")
 
     def add_geometries_to_dxf(self, msp, geo_data, layer_name):
         log_info(f"Adding geometries to DXF for layer: {layer_name}")
