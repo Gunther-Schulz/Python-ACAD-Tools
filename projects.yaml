@@ -288,34 +288,35 @@ projects:
               - Baumabstand
               - Exclude
         outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/geltungsbereich_2.shp"
-      # - name: Geltungsbereich S
-      #   update: true
-      #   color: "Red"
-      #   locked: false
-      #   close: true
-      #   operations:
-      #     - type: copy
-      #       layers:
-      #         - name: Parcel
-      #           values:
-      #             - "41/1"
-      #     - type: filter
-      #       layers:
-      #         - name: Flur
-      #           values:
-      #             - "Flur 2"
-      #         - name: Gemarkung
-      #           values:
-      #             - "Klein Plasten"
-      #         - name: Gemeinde
-      #           values:
-      #             - "Groß Plasten"
-      #     - type: difference
-      #       layers:
-      #         - Wald
-      #         - Baumabstand
-      #         - Exclude
-      #   outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/geltungsbereich_3.shp"
+      - name: Geltungsbereich S
+        update: true
+        style:
+          color: "Red"
+          locked: false
+        close: true
+        operations:
+          - type: copy
+            layers:
+              - name: Parcel
+                values:
+                  - "41/1"
+          - type: filter
+            layers:
+              - name: Flur
+                values:
+                  - "Flur 2"
+              - name: Gemarkung
+                values:
+                  - "Klein Plasten"
+              - name: Gemeinde
+                values:
+                  - "Groß Plasten"
+          - type: difference
+            layers:
+              - Wald
+              - Baumabstand
+              - Exclude
+        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/geltungsbereich_3.shp"
       # - name: Waldabstand
       #   update: true
       #   color: "Dark Green"
@@ -411,9 +412,10 @@ projects:
             layers:
               - Geltungsbereich NW
               - Geltungsbereich NO
-              # - Geltungsbereich S
+              - Geltungsbereich S
             buffer: 200
             stitchTiles: true
+            overwrite: true
       # - name: WMTS Basemap
       #   update: true
       #   color: Black

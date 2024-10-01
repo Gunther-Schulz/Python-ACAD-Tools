@@ -438,54 +438,42 @@ def stitch_tiles(tiles, tile_matrix):
     return stitched_image, world_file_content
 
 def process_and_stitch_tiles(wmts_info: dict, downloaded_tiles: list, tile_matrix_zoom, zoom_folder: str) -> list:
-    if wmts_info.get('stitchTiles', False):
-        log_info("Grouping and stitching tiles into separate images")
-        
-        # Group tiles by layer
-        layer_tiles = defaultdict(list)
-        for tile_path, world_file_path in downloaded_tiles:
-            layer_name = os.path.basename(os.path.dirname(tile_path))  # Get layer name from parent directory
-            layer_tiles[layer_name].append((tile_path, world_file_path))
-        
-        stitched_images = []
-        for layer_name, tiles in layer_tiles.items():
-            log_info(f"Processing tiles for layer: {layer_name}")
+    log_info("Stitching tiles into a single image per layer")
+    
+    # Group tiles by layer
+    layer_tiles = defaultdict(list)
+    for tile_path, world_file_path in downloaded_tiles:
+        layer_name = os.path.basename(os.path.dirname(tile_path))  # Get layer name from parent directory
+        layer_tiles[layer_name].append((tile_path, world_file_path))
+    
+    stitched_images = []
+    for layer_name, tiles in layer_tiles.items():
+        log_info(f"Stitching tiles for layer: {layer_name}")
+        if tiles:  # Only process non-empty groups
+            stitched_image, world_file_content = stitch_tiles(tiles, tile_matrix_zoom)
             
-            # Group connected tiles within each layer
-            tile_groups = group_connected_tiles(tiles)
+            # Generate filename for the stitched image
+            base_filename = f"{layer_name}_stitched"
+            stitched_image_path = os.path.join(zoom_folder, f"{base_filename}.png")
+            world_file_path = os.path.join(zoom_folder, f"{base_filename}.pgw")
             
-            for group_index, tile_group in enumerate(tile_groups):
-                log_info(f"Stitching group {group_index + 1} of {len(tile_groups)} for layer {layer_name}")
-                if tile_group:  # Only process non-empty groups
-                    stitched_image, world_file_content = stitch_tiles(tile_group, tile_matrix_zoom)
-                    
-                    # Generate unique filenames for each group
-                    base_filename = f"{layer_name}_stitched_group{group_index + 1}"
-                    stitched_image_path = os.path.join(zoom_folder, f"{base_filename}.png")
-                    world_file_path = os.path.join(zoom_folder, f"{base_filename}.pgw")
-                    
-                    # Ensure unique filenames by appending a number if necessary
-                    counter = 1
-                    while os.path.exists(stitched_image_path) or os.path.exists(world_file_path):
-                        base_filename = f"{layer_name}_stitched_group{group_index + 1}_{counter}"
-                        stitched_image_path = os.path.join(zoom_folder, f"{base_filename}.png")
-                        world_file_path = os.path.join(zoom_folder, f"{base_filename}.pgw")
-                        counter += 1
-                    
-                    stitched_image.save(stitched_image_path)
-                    log_info(f"Saved stitched image: {stitched_image_path}")
-                    with open(world_file_path, 'w') as f:
-                        f.write(world_file_content)
-                    log_info(f"Saved world file: {world_file_path}")
-                    
-                    stitched_images.append((stitched_image_path, world_file_path))
-                else:
-                    log_info(f"Skipping empty group {group_index + 1} for layer {layer_name}")
-        
-        log_info(f"Created {len(stitched_images)} stitched images across all layers")
-        return stitched_images
-    else:
-        return downloaded_tiles
+            # Overwrite if the flag is set
+            if os.path.exists(stitched_image_path) and not wmts_info.get('overwrite', False):
+                log_info(f"Stitched image already exists and overwrite is not enabled: {stitched_image_path}")
+                continue
+            
+            stitched_image.save(stitched_image_path)
+            log_info(f"Saved stitched image: {stitched_image_path}")
+            with open(world_file_path, 'w') as f:
+                f.write(world_file_content)
+            log_info(f"Saved world file: {world_file_path}")
+            
+            stitched_images.append((stitched_image_path, world_file_path))
+        else:
+            log_info(f"Skipping empty group for layer {layer_name}")
+    
+    log_info(f"Created {len(stitched_images)} stitched images across all layers")
+    return stitched_images
 
 def group_connected_tiles(tiles):
     tile_dict = {}

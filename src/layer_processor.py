@@ -512,7 +512,8 @@ class LayerProcessor:
                 'format': operation.get('format', 'image/png'),
                 'sleep': operation.get('sleep', 0),
                 'limit': operation.get('limit', 0),
-                'postProcess': operation.get('postProcess', {})
+                'postProcess': operation.get('postProcess', {}),
+                'overwrite': overwrite_flag  # Pass overwrite flag to service_info
             }
             if zoom_level:
                 service_info['zoom'] = zoom_level
