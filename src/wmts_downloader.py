@@ -439,14 +439,85 @@ def stitch_tiles(tiles, tile_matrix):
 
 def process_and_stitch_tiles(wmts_info: dict, downloaded_tiles: list, tile_matrix_zoom, zoom_folder: str) -> list:
     if wmts_info.get('stitchTiles', False):
-        log_info("Stitching tiles into a single image")
-        stitched_image, world_file_content = stitch_tiles(downloaded_tiles, tile_matrix_zoom)
-        layer_id = wmts_info['layer']
-        stitched_image_path = os.path.join(zoom_folder, f"{layer_id}_stitched.png")
-        stitched_image.save(stitched_image_path)
-        world_file_path = os.path.join(zoom_folder, f"{layer_id}_stitched.pgw")
-        with open(world_file_path, 'w') as f:
-            f.write(world_file_content)
-        return [(stitched_image_path, world_file_path)]
+        log_info("Grouping and stitching tiles into separate images")
+        
+        # Group tiles by layer
+        layer_tiles = defaultdict(list)
+        for tile_path, world_file_path in downloaded_tiles:
+            layer_name = os.path.basename(os.path.dirname(tile_path))  # Get layer name from parent directory
+            layer_tiles[layer_name].append((tile_path, world_file_path))
+        
+        stitched_images = []
+        for layer_name, tiles in layer_tiles.items():
+            log_info(f"Processing tiles for layer: {layer_name}")
+            
+            # Group connected tiles within each layer
+            tile_groups = group_connected_tiles(tiles)
+            
+            for group_index, tile_group in enumerate(tile_groups):
+                log_info(f"Stitching group {group_index + 1} of {len(tile_groups)} for layer {layer_name}")
+                if tile_group:  # Only process non-empty groups
+                    stitched_image, world_file_content = stitch_tiles(tile_group, tile_matrix_zoom)
+                    
+                    # Generate unique filenames for each group
+                    base_filename = f"{layer_name}_stitched_group{group_index + 1}"
+                    stitched_image_path = os.path.join(zoom_folder, f"{base_filename}.png")
+                    world_file_path = os.path.join(zoom_folder, f"{base_filename}.pgw")
+                    
+                    # Ensure unique filenames by appending a number if necessary
+                    counter = 1
+                    while os.path.exists(stitched_image_path) or os.path.exists(world_file_path):
+                        base_filename = f"{layer_name}_stitched_group{group_index + 1}_{counter}"
+                        stitched_image_path = os.path.join(zoom_folder, f"{base_filename}.png")
+                        world_file_path = os.path.join(zoom_folder, f"{base_filename}.pgw")
+                        counter += 1
+                    
+                    stitched_image.save(stitched_image_path)
+                    log_info(f"Saved stitched image: {stitched_image_path}")
+                    with open(world_file_path, 'w') as f:
+                        f.write(world_file_content)
+                    log_info(f"Saved world file: {world_file_path}")
+                    
+                    stitched_images.append((stitched_image_path, world_file_path))
+                else:
+                    log_info(f"Skipping empty group {group_index + 1} for layer {layer_name}")
+        
+        log_info(f"Created {len(stitched_images)} stitched images across all layers")
+        return stitched_images
     else:
         return downloaded_tiles
+
+def group_connected_tiles(tiles):
+    tile_dict = {}
+    for tile_path, world_file_path in tiles:
+        filename = os.path.basename(tile_path)
+        parts = filename.split('_')
+        row = col = None
+        for part in parts:
+            if part.startswith('row-'):
+                row = int(part.split('-')[1])
+            elif part.startswith('col-'):
+                col = int(part.split('-')[1])
+        if row is not None and col is not None:
+            tile_dict[(row, col)] = (tile_path, world_file_path)
+
+    def get_neighbors(row, col):
+        return [(row-1, col), (row+1, col), (row, col-1), (row, col+1)]
+
+    def dfs(row, col, group):
+        if (row, col) not in tile_dict or (row, col) in visited:
+            return
+        visited.add((row, col))
+        group.append(tile_dict[(row, col)])
+        for nr, nc in get_neighbors(row, col):
+            dfs(nr, nc, group)
+
+    visited = set()
+    groups = []
+    for (row, col) in tile_dict:
+        if (row, col) not in visited:
+            group = []
+            dfs(row, col, group)
+            groups.append(group)
+
+    return groups

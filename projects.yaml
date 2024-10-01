@@ -258,35 +258,36 @@ projects:
             layers:
               - name: Geltungsbereich NW
             distance: 2
-      # - name: Geltungsbereich NO
-      #   update: true
-      #   color: "Red"
-      #   locked: false
-      #   close: true
-      #   operations:
-      #     - type: copy
-      #       layers:
-      #         - name: Parcel
-      #           values:
-      #             - "24/8"
-      #             - "24/9"
-      #     - type: filter
-      #       layers:
-      #         - name: Flur
-      #           values:
-      #             - "Flur 1"
-      #         - name: Gemarkung
-      #           values:
-      #             - "Groß Plasten"
-      #         - name: Gemeinde
-      #           values:
-      #             - "Groß Plasten"
-      #     - type: difference
-      #       layers:
-      #         - Wald
-      #         - Baumabstand
-      #         - Exclude
-      #   outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/geltungsbereich_2.shp"
+      - name: Geltungsbereich NO
+        update: true
+        style:
+          color: "Red"
+          locked: false
+        close: true
+        operations:
+          - type: copy
+            layers:
+              - name: Parcel
+                values:
+                  - "24/8"
+                  - "24/9"
+          - type: filter
+            layers:
+              - name: Flur
+                values:
+                  - "Flur 1"
+              - name: Gemarkung
+                values:
+                  - "Groß Plasten"
+              - name: Gemeinde
+                values:
+                  - "Groß Plasten"
+          - type: difference
+            layers:
+              - Wald
+              - Baumabstand
+              - Exclude
+        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/geltungsbereich_2.shp"
       # - name: Geltungsbereich S
       #   update: true
       #   color: "Red"
@@ -404,12 +405,12 @@ projects:
             url: "https://www.geodaten-mv.de/dienste/dop_wmts/wmts/1.0.0/WMTSCapabilities.xml"
             layer: "mv_dop"
             zoom: "10"
-            # zoom: 10
+            # zoom: 14
             proj: "ETRS89UTM33"
             targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/DOP"
             layers:
               - Geltungsbereich NW
-              # - Geltungsbereich NO
+              - Geltungsbereich NO
               # - Geltungsbereich S
             buffer: 200
             stitchTiles: true
