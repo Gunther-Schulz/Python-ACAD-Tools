@@ -545,8 +545,11 @@ class LayerProcessor:
                     downloaded_tiles = download_wms_tiles(service_info, layer_geometry, buffer_distance, zoom_folder, update=update_flag, overwrite=overwrite_flag)
                     tile_matrix_zoom = None
 
-                processed_tiles = process_and_stitch_tiles(service_info, downloaded_tiles, tile_matrix_zoom, zoom_folder, layer)
-                all_tiles.extend(processed_tiles)
+                if stitch_tiles:
+                    processed_tiles = process_and_stitch_tiles(service_info, downloaded_tiles, tile_matrix_zoom, zoom_folder, layer)
+                    all_tiles.extend(processed_tiles)
+                else:
+                    all_tiles.extend(downloaded_tiles)
             else:
                 log_warning(f"Layer {layer} not found for WMTS/WMS download of {layer_name}")
 

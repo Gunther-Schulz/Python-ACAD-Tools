@@ -453,21 +453,22 @@ projects:
             layer: "gebaeude"
             srs: "EPSG:25833"
             format: "image/png"
-            targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/Projekte/23-24 Maxsolar - Plasten/GIS/Gebäude"
+            targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/Gebäude"
             layers:
               - Geltungsbereich NW
               - Geltungsbereich NO
               - Geltungsbereich S
-            buffer: 600
-            zoom: 18
-            overwrite: true
+            buffer: 100
+            zoom: 10
+            # overwrite: true
             postProcess:
                 colorMap:
                   "#ff0000": "#808080"  # Map red to grey
                 alphaColor: "#ffffff"  # Set white to fully transparent
                 # tolerance: 30  # Increased tolerance to catch similar shades
                 grayscale: true
-                removeText: true
+                # removeText: true
+            stitchTiles: true
   - name: Torgelow
     exportFormat: dxf
     dxfVersion: R2018
