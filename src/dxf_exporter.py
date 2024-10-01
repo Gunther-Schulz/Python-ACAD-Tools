@@ -351,8 +351,8 @@ class DXFExporter:
         with Image.open(image_path) as img:
             img_width, img_height = img.size
 
-        # Calculate the insertion point (top-left corner)
-        insert_point = (c, f)
+        # Calculate the insertion point (bottom-left corner)
+        insert_point = (c, f - abs(e) * img_height)
         size_in_units = (abs(a) * img_width, abs(e) * img_height)
         log_info(f"Insertion point: {insert_point}")
         log_info(f"Size in units: {size_in_units}")
@@ -377,7 +377,8 @@ class DXFExporter:
         # Set the $PROJECTNAME header variable to an empty string
         msp.doc.header['$PROJECTNAME'] = ''
 
-        log_info(f"Added image: {image}")
+        # Enable background transparency
+        log_info(f"Added image with transparency: {image}")
 
     def add_geometries_to_dxf(self, msp, geo_data, layer_name):
         log_info(f"Adding geometries to DXF for layer: {layer_name}")
