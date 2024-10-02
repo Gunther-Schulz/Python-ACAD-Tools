@@ -207,6 +207,15 @@ projects:
           color: "Light Orange"
           linetype: CONTINUOUS
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/gesch_biotope.shp"
+      # - name: FG Buffer
+      #   update: true
+      #   style:
+      #     color: "Light Blue"
+      #   operations:
+      #     - type: buffer
+      #       distance: 7
+      #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/FG.shp"
+      #   outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/fg.shp"
       - name: FG Buffer
         update: true
         style:
@@ -214,7 +223,7 @@ projects:
         operations:
           - type: buffer
             distance: 7
-        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/FG.shp"
+        dxfLayer: "Boeschung"
         outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/fg.shp"
       - name: Geltungsbereich NW
         update: true

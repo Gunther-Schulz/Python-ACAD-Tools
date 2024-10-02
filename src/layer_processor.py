@@ -8,6 +8,8 @@ from shapely.ops import unary_union
 import shutil
 from src.contour_processor import process_contour
 from owslib.wmts import WebMapTileService
+import ezdxf
+from shapely.geometry import Polygon, LineString
 
 class LayerProcessor:
     def __init__(self, project_loader, plot_ops=False):
@@ -256,8 +258,8 @@ class LayerProcessor:
 
     def setup_shapefiles(self):
         for layer in self.project_settings['dxfLayers']:
+            layer_name = layer['name']
             if 'shapeFile' in layer:
-                layer_name = layer['name']
                 shapefile_path = self.project_loader.resolve_full_path(layer['shapeFile'])
                 try:
                     gdf = gpd.read_file(shapefile_path)
@@ -269,6 +271,8 @@ class LayerProcessor:
                         log_warning(f"Failed to load shapefile for layer: {layer_name}")
                 except Exception as e:
                     log_warning(f"Failed to load shapefile for layer '{layer_name}': {str(e)}")
+            elif 'dxfLayer' in layer:
+                self.load_dxf_layer(layer_name, layer['dxfLayer'])
 
     def ensure_geodataframe(self, layer_name, geometry):
         if not isinstance(geometry, gpd.GeoDataFrame):
@@ -755,3 +759,27 @@ class LayerProcessor:
         log_info(f"Finished contour operation for layer: {layer_name}")
         log_info(f"Number of contour features: {len(contour_gdf)}")
         return contour_gdf
+
+    def load_dxf_layer(self, layer_name, dxf_layer_name):
+        try:
+            doc = ezdxf.readfile(self.project_loader.dxf_filename)
+            msp = doc.modelspace()
+            
+            geometries = []
+            for entity in msp.query(f'*[layer=="{dxf_layer_name}"]'):
+                if isinstance(entity, (ezdxf.entities.LWPolyline, ezdxf.entities.Polyline)):
+                    points = list(entity.vertices())
+                    if len(points) >= 2:
+                        if entity.closed or (points[0] == points[-1]):
+                            geometries.append(Polygon(points))
+                        else:
+                            geometries.append(LineString(points))
+            
+            if geometries:
+                gdf = gpd.GeoDataFrame(geometry=geometries, crs=self.crs)
+                self.all_layers[layer_name] = gdf
+                log_info(f"Loaded DXF layer '{dxf_layer_name}' for layer: {layer_name}")
+            else:
+                log_warning(f"No valid geometries found in DXF layer '{dxf_layer_name}' for layer: {layer_name}")
+        except Exception as e:
+            log_warning(f"Failed to load DXF layer '{dxf_layer_name}' for layer '{layer_name}': {str(e)}")
