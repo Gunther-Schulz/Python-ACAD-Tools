@@ -75,13 +75,6 @@ class LayerProcessor:
                 if unknown_label_style_keys:
                     log_warning(f"Unknown labelStyle keys in layer {layer_name}: {', '.join(unknown_label_style_keys)}")
 
-        # Check if the layer should be updated
-        update_flag = layer_obj.get('update', False)  # Default to False
-        log_info(f"Update flag for layer {layer_name}: {update_flag}")
-        if not update_flag and layer_name in self.all_layers:
-            log_info(f"Skipping update for layer {layer_name} as update is set to false")
-            return
-
         if 'operations' in layer_obj:
             result_geometry = None
             for operation in layer_obj['operations']:
@@ -96,13 +89,8 @@ class LayerProcessor:
             self.all_layers[layer_name] = None
             log_info(f"Added layer {layer_name} without data")
 
-        # # Only write the output shape if update_flag is True
-        # if update_flag and 'outputShapeFile' in layer_obj:
-        #     self.write_shapefile(layer_name, layer_obj['outputShapeFile'])
-
         if 'outputShapeFile' in layer_obj:
             self.write_shapefile(layer_name, layer_obj['outputShapeFile'])
-
 
         processed_layers.add(layer_name)
 
@@ -131,15 +119,6 @@ class LayerProcessor:
         
         log_info(f"Processing operation for layer {layer_name}: {op_type}")
         log_info(f"Operation details: {operation}")
-        
-        # Check if the layer should be updated
-        layer_info = next((l for l in self.project_settings['dxfLayers'] if l['name'] == layer_name), None)
-        update_flag = layer_info.get('update', False) if layer_info else False
-        log_info(f"Update flag for layer {layer_name}: {update_flag}")
-        
-        if not update_flag and layer_name in self.all_layers:
-            log_info(f"Skipping update for layer {layer_name} as update is set to false")
-            return
         
         # Process dependent layers first
         if 'layers' in operation:
@@ -494,77 +473,104 @@ class LayerProcessor:
         
         layer_info = next((l for l in self.project_settings['dxfLayers'] if l['name'] == layer_name), None)
         update_flag = layer_info.get('update', False) if layer_info else False
-        overwrite_flag = operation.get('overwrite', False)  # Get overwrite flag from operation
+        overwrite_flag = operation.get('overwrite', False)
         
-        if update_flag or not os.path.exists(zoom_folder):
-            os.makedirs(zoom_folder, exist_ok=True)
-            
-            log_info(f"Target folder path: {zoom_folder}")
-            log_info(f"Update flag: {update_flag}, Overwrite flag: {overwrite_flag}")
+        os.makedirs(zoom_folder, exist_ok=True)
+        
+        log_info(f"Target folder path: {zoom_folder}")
+        log_info(f"Update flag: {update_flag}, Overwrite flag: {overwrite_flag}")
 
-            layers = operation.get('layers', [])
-            buffer_distance = operation.get('buffer', 100)
-            service_info = {
-                'url': operation['url'],
-                'layer': operation['layer'],
-                'proj': operation.get('proj'),
-                'srs': operation.get('srs'),
-                'format': operation.get('format', 'image/png'),
-                'sleep': operation.get('sleep', 0),
-                'limit': operation.get('limit', 0),
-                'postProcess': operation.get('postProcess', {})
-            }
-            if zoom_level:
-                service_info['zoom'] = zoom_level
+        layers = operation.get('layers', [])
+        buffer_distance = operation.get('buffer', 100)
+        service_info = {
+            'url': operation['url'],
+            'layer': operation['layer'],
+            'proj': operation.get('proj'),
+            'srs': operation.get('srs'),
+            'format': operation.get('format', 'image/png'),
+            'sleep': operation.get('sleep', 0),
+            'limit': operation.get('limit', 0),
+            'postProcess': operation.get('postProcess', {}),
+            'overwrite': overwrite_flag,
+            'zoom': zoom_level
+        }
 
-            # Ensure postProcess is a dictionary
-            if 'postProcess' not in service_info:
-                service_info['postProcess'] = {}
+        service_info['postProcess']['removeText'] = operation.get('postProcess', {}).get('removeText', False)
+        service_info['postProcess']['textRemovalMethod'] = operation.get('postProcess', {}).get('textRemovalMethod', 'tesseract')
 
-            # Add removeText and textRemovalMethod to postProcess
-            service_info['postProcess']['removeText'] = operation.get('postProcess', {}).get('removeText', False)
-            service_info['postProcess']['textRemovalMethod'] = operation.get('postProcess', {}).get('textRemovalMethod', 'tesseract')
+        stitch_tiles = operation.get('stitchTiles', False)
+        service_info['stitchTiles'] = stitch_tiles
 
-            stitch_tiles = operation.get('stitchTiles', False)
-            service_info['stitchTiles'] = stitch_tiles
+        log_info(f"Service info: {service_info}")
+        log_info(f"Layers to process: {layers}")
 
-            log_info(f"Service info: {service_info}")
-            log_info(f"Layers to process: {layers}")
+        wmts = WebMapTileService(service_info['url'])
+        tile_matrix = wmts.tilematrixsets[service_info['proj']].tilematrix
+        available_zooms = sorted(tile_matrix.keys(), key=int)
+        
+        requested_zoom = service_info.get('zoom')
+        
+        if requested_zoom is None:
+            # Use the highest available zoom level if not specified
+            chosen_zoom = available_zooms[-1]
+            log_info(f"No zoom level specified. Using highest available zoom: {chosen_zoom}")
+        else:
+            # Try to use the manually specified zoom level
+            if str(requested_zoom) in available_zooms:
+                chosen_zoom = str(requested_zoom)
+            else:
+                error_message = (
+                    f"Error: Zoom level {requested_zoom} not available for projection {service_info['proj']}.\n"
+                    f"Available zoom levels: {', '.join(available_zooms)}.\n"
+                    f"Please choose a zoom level from the available options or remove the 'zoom' key to use the highest available zoom."
+                )
+                raise ValueError(error_message)
+        
+        service_info['zoom'] = chosen_zoom
+        log_info(f"Using zoom level: {chosen_zoom}")
+        
+        all_tiles = []
+        for layer in layers:
+            if layer in self.all_layers:
+                layer_geometry = self.all_layers[layer]
+                if isinstance(layer_geometry, gpd.GeoDataFrame):
+                    layer_geometry = layer_geometry.geometry.unary_union
 
-            all_tiles = []
-            for layer in layers:
-                if layer in self.all_layers:
-                    layer_geometry = self.all_layers[layer]
-                    if isinstance(layer_geometry, gpd.GeoDataFrame):
-                        layer_geometry = layer_geometry.geometry.unary_union
+                log_info(f"Downloading tiles for layer: {layer}")
+                log_info(f"Layer geometry type: {type(layer_geometry)}")
+                log_info(f"Layer geometry bounds: {layer_geometry.bounds}")
 
-                    log_info(f"Downloading tiles for layer: {layer}")
-                    log_info(f"Layer geometry type: {type(layer_geometry)}")
-                    log_info(f"Layer geometry bounds: {layer_geometry.bounds}")
-
-                    if 'wmts' in operation['type'].lower():
-                        downloaded_tiles = download_wmts_tiles(service_info, layer_geometry, buffer_distance, zoom_folder, update=update_flag, overwrite=overwrite_flag)
-                        # Get the tile_matrix_zoom from the WMTS service
-                        wmts = WebMapTileService(service_info['url'])
-                        tile_matrix = wmts.tilematrixsets[service_info['proj']].tilematrix
+                if 'wmts' in operation['type'].lower():
+                    downloaded_tiles = download_wmts_tiles(service_info, layer_geometry, buffer_distance, zoom_folder, update=update_flag, overwrite=overwrite_flag)
+                    wmts = WebMapTileService(service_info['url'])
+                    tile_matrix = wmts.tilematrixsets[service_info['proj']].tilematrix
+                    try:
                         tile_matrix_zoom = tile_matrix[str(service_info['zoom'])]
-                        processed_tiles = process_and_stitch_tiles(service_info, downloaded_tiles, tile_matrix_zoom, zoom_folder)
-                    else:
-                        downloaded_tiles = download_wms_tiles(service_info, layer_geometry, buffer_distance, zoom_folder, update=update_flag, overwrite=overwrite_flag)
-                        processed_tiles = process_and_stitch_tiles(service_info, downloaded_tiles, None, zoom_folder)
-                    
+                    except KeyError:
+                        available_zooms = sorted(tile_matrix.keys())
+                        error_message = (
+                            f"Error: Zoom level {service_info['zoom']} not available for projection {service_info['proj']}.\n"
+                            f"Available zoom levels: {', '.join(available_zooms)}.\n"
+                            f"Please choose a zoom level from the available options."
+                        )
+                        raise ValueError(error_message)
+                else:
+                    downloaded_tiles = download_wms_tiles(service_info, layer_geometry, buffer_distance, zoom_folder, update=update_flag, overwrite=overwrite_flag)
+                    tile_matrix_zoom = None
+
+                if stitch_tiles:
+                    processed_tiles = process_and_stitch_tiles(service_info, downloaded_tiles, tile_matrix_zoom, zoom_folder, layer)
                     all_tiles.extend(processed_tiles)
                 else:
-                    log_warning(f"Layer {layer} not found for WMTS/WMS download of {layer_name}")
+                    all_tiles.extend(downloaded_tiles)
+            else:
+                log_warning(f"Layer {layer} not found for WMTS/WMS download of {layer_name}")
 
-            self.all_layers[layer_name] = all_tiles
-            log_info(f"Total tiles for {layer_name}: {len(all_tiles)}")
-        else:
-            log_info(f"Zoom folder already exists and update is not required: {zoom_folder}. Using existing tiles.")
-            existing_tiles = self.get_existing_tiles(zoom_folder)
-            self.all_layers[layer_name] = existing_tiles
+        self.all_layers[layer_name] = all_tiles
+        log_info(f"Total tiles for {layer_name}: {len(all_tiles)}")
 
         return self.all_layers[layer_name]
+
 
     def get_existing_tiles(self, zoom_folder):
         existing_tiles = []

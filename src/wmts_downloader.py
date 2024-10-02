@@ -401,12 +401,24 @@ def stitch_tiles(tiles, tile_matrix):
     for tile_path, _ in tiles:
         filename = os.path.basename(tile_path)
         parts = filename.split('_')
+        row = col = None
         for part in parts:
             if part.startswith('row-'):
                 row = int(part.split('-')[1])
             elif part.startswith('col-'):
-                col = int(part.split('-')[1])
-        tile_info.append((row, col, tile_path))
+                col = int(part.split('-')[1].split('.')[0])  # Remove file extension
+        
+        # If row and col are not found, try to extract from WMS filename format
+        if row is None or col is None:
+            parts = filename.replace('.png', '').split('_')
+            if len(parts) >= 2:
+                row = int(parts[-2])
+                col = int(parts[-1])
+        
+        if row is not None and col is not None:
+            tile_info.append((row, col, tile_path))
+        else:
+            log_warning(f"Could not extract row and column from filename: {filename}")
 
     if not tile_info:
         raise ValueError("Could not extract row and column information from tile filenames")
@@ -416,76 +428,66 @@ def stitch_tiles(tiles, tile_matrix):
     min_col = min(info[1] for info in tile_info)
     max_col = max(info[1] for info in tile_info)
 
-    width = (max_col - min_col + 1) * tile_matrix.tilewidth
-    height = (max_row - min_row + 1) * tile_matrix.tileheight
+    # Open the first image to get tile dimensions
+    first_img = Image.open(tile_info[0][2])
+    tile_width, tile_height = first_img.size
+
+    width = (max_col - min_col + 1) * tile_width
+    height = (max_row - min_row + 1) * tile_height
 
     stitched_image = Image.new('RGBA', (width, height))
 
     for row, col, tile_path in tile_info:
         img = Image.open(tile_path)
-        stitched_image.paste(img, ((col - min_col) * tile_matrix.tilewidth, (row - min_row) * tile_matrix.tileheight))
+        stitched_image.paste(img, ((col - min_col) * tile_width, (row - min_row) * tile_height))
 
     # Calculate world file content
-    pixel_size_x = tile_matrix.scaledenominator * 0.00028  # Using the constant from tile_matrix
-    pixel_size_y = -pixel_size_x  # Negative because Y increases downwards in image space
-
-    # Calculate the geographic coordinates of the top-left corner
-    left = tile_matrix.topleftcorner[0] + min_col * tile_matrix.tilewidth * pixel_size_x
-    top = tile_matrix.topleftcorner[1] + min_row * tile_matrix.tileheight * pixel_size_y
+    if tile_matrix:
+        pixel_size_x = tile_matrix.scaledenominator * 0.00028
+        pixel_size_y = -pixel_size_x
+        left = tile_matrix.topleftcorner[0] + min_col * tile_width * pixel_size_x
+        top = tile_matrix.topleftcorner[1] + min_row * tile_height * pixel_size_y
+    else:
+        # For WMS, we need to calculate these values from the world files
+        world_file_path = tiles[0][1]
+        with open(world_file_path, 'r') as wf:
+            world_file_content = wf.readlines()
+        pixel_size_x = float(world_file_content[0])
+        pixel_size_y = float(world_file_content[3])
+        left = float(world_file_content[4]) + min_col * tile_width * pixel_size_x
+        top = float(world_file_content[5]) + min_row * tile_height * pixel_size_y
 
     world_file_content = f"{pixel_size_x}\n0\n0\n{pixel_size_y}\n{left}\n{top}"
 
     return stitched_image, world_file_content
 
-def process_and_stitch_tiles(wmts_info: dict, downloaded_tiles: list, tile_matrix_zoom, zoom_folder: str) -> list:
-    if wmts_info.get('stitchTiles', False):
-        log_info("Grouping and stitching tiles into separate images")
-        
-        # Group tiles by layer
-        layer_tiles = defaultdict(list)
-        for tile_path, world_file_path in downloaded_tiles:
-            layer_name = os.path.basename(os.path.dirname(tile_path))  # Get layer name from parent directory
-            layer_tiles[layer_name].append((tile_path, world_file_path))
-        
-        stitched_images = []
-        for layer_name, tiles in layer_tiles.items():
-            log_info(f"Processing tiles for layer: {layer_name}")
-            
-            # Group connected tiles within each layer
-            tile_groups = group_connected_tiles(tiles)
-            
-            for group_index, tile_group in enumerate(tile_groups):
-                log_info(f"Stitching group {group_index + 1} of {len(tile_groups)} for layer {layer_name}")
-                if tile_group:  # Only process non-empty groups
-                    stitched_image, world_file_content = stitch_tiles(tile_group, tile_matrix_zoom)
-                    
-                    # Generate unique filenames for each group
-                    base_filename = f"{layer_name}_stitched_group{group_index + 1}"
-                    stitched_image_path = os.path.join(zoom_folder, f"{base_filename}.png")
-                    world_file_path = os.path.join(zoom_folder, f"{base_filename}.pgw")
-                    
-                    # Ensure unique filenames by appending a number if necessary
-                    counter = 1
-                    while os.path.exists(stitched_image_path) or os.path.exists(world_file_path):
-                        base_filename = f"{layer_name}_stitched_group{group_index + 1}_{counter}"
-                        stitched_image_path = os.path.join(zoom_folder, f"{base_filename}.png")
-                        world_file_path = os.path.join(zoom_folder, f"{base_filename}.pgw")
-                        counter += 1
-                    
-                    stitched_image.save(stitched_image_path)
-                    log_info(f"Saved stitched image: {stitched_image_path}")
-                    with open(world_file_path, 'w') as f:
-                        f.write(world_file_content)
-                    log_info(f"Saved world file: {world_file_path}")
-                    
-                    stitched_images.append((stitched_image_path, world_file_path))
-                else:
-                    log_info(f"Skipping empty group {group_index + 1} for layer {layer_name}")
-        
-        log_info(f"Created {len(stitched_images)} stitched images across all layers")
-        return stitched_images
-    else:
-        return downloaded_tiles
+def process_and_stitch_tiles(wmts_info: dict, downloaded_tiles: list, tile_matrix_zoom, zoom_folder: str, layer_name: str) -> list:
+    log_info(f"Stitching tiles for layer: {layer_name}")
+    
+    if not downloaded_tiles:
+        log_info(f"No tiles to stitch for layer {layer_name}")
+        return []
+    
+    stitched_image, world_file_content = stitch_tiles(downloaded_tiles, tile_matrix_zoom)
+    
+    base_filename = f"{layer_name}_stitched"
+    stitched_image_path = os.path.join(zoom_folder, f"{base_filename}.png")
+    world_file_path = os.path.join(zoom_folder, f"{base_filename}.pgw")
+    
+    files_exist = os.path.exists(stitched_image_path) or os.path.exists(world_file_path)
+    should_overwrite = wmts_info.get('overwrite', False)
+    
+    if files_exist and not should_overwrite:
+        log_info(f"Stitched image already exists and overwrite is not enabled: {stitched_image_path}")
+        return [(stitched_image_path, world_file_path)]
+    
+    stitched_image.save(stitched_image_path)
+    log_info(f"Saved stitched image: {stitched_image_path}")
+    with open(world_file_path, 'w') as f:
+        f.write(world_file_content)
+    log_info(f"Saved world file: {world_file_path}")
+    
+    return [(stitched_image_path, world_file_path)]
 
 def group_connected_tiles(tiles):
     tile_dict = {}
