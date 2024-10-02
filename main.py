@@ -162,6 +162,82 @@ def print_layer_operations():
             else:
                 print(f"    - {option}: {description}")
 
+def print_layer_settings():
+    settings = {
+        "name": {
+            "description": "Name of the layer",
+            "type": "string"
+        },
+        "update": {
+            "description": "Whether to update the layer",
+            "type": "boolean"
+        },
+        "shapeFile": {
+            "description": "Path to the shapefile for this layer",
+            "type": "string"
+        },
+        "dxfLayer": {
+            "description": "Name of the DXF layer to use",
+            "type": "string"
+        },
+        "outputShapeFile": {
+            "description": "Path to save the output shapefile",
+            "type": "string"
+        },
+        "style": {
+            "description": "Style settings for the layer",
+            "options": {
+                "color": "Color of the layer (name or ACI code)",
+                "linetype": "Line type for the layer",
+                "lineweight": "Line weight for the layer",
+                "plot": "Whether to plot this layer",
+                "locked": "Whether the layer is locked",
+                "frozen": "Whether the layer is frozen",
+                "is_on": "Whether the layer is visible",
+                "transparency": "Transparency of the layer (0.0 to 1.0)"
+            }
+        },
+        "labelStyle": {
+            "description": "Style settings for labels",
+            "options": {
+                "color": "Color of the labels (name or ACI code)",
+                "size": "Size of the label text",
+                "font": "Font for the label text"
+            }
+        },
+        "label": {
+            "description": "Column to use for labels",
+            "type": "string"
+        },
+        "close": {
+            "description": "Whether to close polygons",
+            "type": "boolean"
+        },
+        "linetypeScale": {
+            "description": "Scale factor for line types",
+            "type": "float"
+        },
+        "linetypeGeneration": {
+            "description": "Whether to generate line types",
+            "type": "boolean"
+        },
+        "operations": {
+            "description": "List of operations to perform on the layer",
+            "type": "list of operation objects"
+        }
+    }
+
+    print("Available Layer Settings:")
+    for setting, details in settings.items():
+        print(f"\n{setting.upper()}:")
+        print(f"  Description: {details['description']}")
+        if 'type' in details:
+            print(f"  Type: {details['type']}")
+        if 'options' in details:
+            print("  Options:")
+            for option, description in details['options'].items():
+                print(f"    - {option}: {description}")
+
 def main():
     setup_logging()
     setup_proj()
@@ -170,14 +246,22 @@ def main():
     parser.add_argument("project_name", nargs="?", help="Name of the project to process")
     parser.add_argument('--plot-ops', action='store_true', help="Plot the result of each operation")
     parser.add_argument('-l', '--list-operations', action='store_true', help="List all possible layer operations and their options")
+    parser.add_argument('-s', '--list-settings', action='store_true', help="List all possible layer settings and their options")
+    parser.add_argument('--dxf-file', help="Path to the input DXF file (for dump_to_shape functionality)")
+    parser.add_argument('--output-folder', help="Path to the output folder for shapefiles (for dump_to_shape functionality)")
+    parser.add_argument('-h', '--help', action='help', default=argparse.SUPPRESS, help='Show this help message and exit')
     args = parser.parse_args()
 
     if args.list_operations:
         print_layer_operations()
         return
 
+    if args.list_settings:
+        print_layer_settings()
+        return
+
     if not args.project_name:
-        parser.error("project_name is required unless --list-operations is specified")
+        parser.error("project_name is required unless --list-operations or --list-settings is specified")
 
     print(f"Processing project: {args.project_name}")
 
