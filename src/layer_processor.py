@@ -75,13 +75,6 @@ class LayerProcessor:
                 if unknown_label_style_keys:
                     log_warning(f"Unknown labelStyle keys in layer {layer_name}: {', '.join(unknown_label_style_keys)}")
 
-        # Check if the layer should be updated
-        update_flag = layer_obj.get('update', False)  # Default to False
-        log_info(f"Update flag for layer {layer_name}: {update_flag}")
-        if not update_flag and layer_name in self.all_layers:
-            log_info(f"Skipping update for layer {layer_name} as update is set to false")
-            return
-
         if 'operations' in layer_obj:
             result_geometry = None
             for operation in layer_obj['operations']:
@@ -96,13 +89,8 @@ class LayerProcessor:
             self.all_layers[layer_name] = None
             log_info(f"Added layer {layer_name} without data")
 
-        # # Only write the output shape if update_flag is True
-        # if update_flag and 'outputShapeFile' in layer_obj:
-        #     self.write_shapefile(layer_name, layer_obj['outputShapeFile'])
-
         if 'outputShapeFile' in layer_obj:
             self.write_shapefile(layer_name, layer_obj['outputShapeFile'])
-
 
         processed_layers.add(layer_name)
 
@@ -131,15 +119,6 @@ class LayerProcessor:
         
         log_info(f"Processing operation for layer {layer_name}: {op_type}")
         log_info(f"Operation details: {operation}")
-        
-        # Check if the layer should be updated
-        layer_info = next((l for l in self.project_settings['dxfLayers'] if l['name'] == layer_name), None)
-        update_flag = layer_info.get('update', False) if layer_info else False
-        log_info(f"Update flag for layer {layer_name}: {update_flag}")
-        
-        if not update_flag and layer_name in self.all_layers:
-            log_info(f"Skipping update for layer {layer_name} as update is set to false")
-            return
         
         # Process dependent layers first
         if 'layers' in operation:
