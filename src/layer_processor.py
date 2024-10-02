@@ -525,6 +525,31 @@ class LayerProcessor:
         log_info(f"Service info: {service_info}")
         log_info(f"Layers to process: {layers}")
 
+        wmts = WebMapTileService(service_info['url'])
+        tile_matrix = wmts.tilematrixsets[service_info['proj']].tilematrix
+        available_zooms = sorted(tile_matrix.keys(), key=int)
+        
+        requested_zoom = service_info.get('zoom')
+        
+        if requested_zoom is None:
+            # Use the highest available zoom level if not specified
+            chosen_zoom = available_zooms[-1]
+            log_info(f"No zoom level specified. Using highest available zoom: {chosen_zoom}")
+        else:
+            # Try to use the manually specified zoom level
+            if str(requested_zoom) in available_zooms:
+                chosen_zoom = str(requested_zoom)
+            else:
+                error_message = (
+                    f"Error: Zoom level {requested_zoom} not available for projection {service_info['proj']}.\n"
+                    f"Available zoom levels: {', '.join(available_zooms)}.\n"
+                    f"Please choose a zoom level from the available options or remove the 'zoom' key to use the highest available zoom."
+                )
+                raise ValueError(error_message)
+        
+        service_info['zoom'] = chosen_zoom
+        log_info(f"Using zoom level: {chosen_zoom}")
+        
         all_tiles = []
         for layer in layers:
             if layer in self.all_layers:
@@ -540,7 +565,16 @@ class LayerProcessor:
                     downloaded_tiles = download_wmts_tiles(service_info, layer_geometry, buffer_distance, zoom_folder, update=update_flag, overwrite=overwrite_flag)
                     wmts = WebMapTileService(service_info['url'])
                     tile_matrix = wmts.tilematrixsets[service_info['proj']].tilematrix
-                    tile_matrix_zoom = tile_matrix[str(service_info['zoom'])]
+                    try:
+                        tile_matrix_zoom = tile_matrix[str(service_info['zoom'])]
+                    except KeyError:
+                        available_zooms = sorted(tile_matrix.keys())
+                        error_message = (
+                            f"Error: Zoom level {service_info['zoom']} not available for projection {service_info['proj']}.\n"
+                            f"Available zoom levels: {', '.join(available_zooms)}.\n"
+                            f"Please choose a zoom level from the available options."
+                        )
+                        raise ValueError(error_message)
                 else:
                     downloaded_tiles = download_wms_tiles(service_info, layer_geometry, buffer_distance, zoom_folder, update=update_flag, overwrite=overwrite_flag)
                     tile_matrix_zoom = None
@@ -557,6 +591,7 @@ class LayerProcessor:
         log_info(f"Total tiles for {layer_name}: {len(all_tiles)}")
 
         return self.all_layers[layer_name]
+
 
     def get_existing_tiles(self, zoom_folder):
         existing_tiles = []

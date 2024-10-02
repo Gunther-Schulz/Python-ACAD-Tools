@@ -396,13 +396,14 @@ projects:
           - type: difference
             layers:
               - Grünfläche
+              - Baumabstand
               - Biotope
               - FG Buffer
           # - type: smooth
           #   strength: 1.5
         outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/baufeld_smoothed.shp"
       - name: WMTS DOP
-        update: true
+        update: false
         style:
           locked: true
           color: "White"
@@ -411,7 +412,6 @@ projects:
             url: "https://www.geodaten-mv.de/dienste/dop_wmts/wmts/1.0.0/WMTSCapabilities.xml"
             layer: "mv_dop"
             # zoom: "10"
-            zoom: "16"
             proj: "ETRS89UTM33"
             targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/DOP"
             layers:
