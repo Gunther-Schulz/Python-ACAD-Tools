@@ -91,7 +91,7 @@ projects:
     dumpOutputDir: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten//GIS/dxf_dump"
     dxfLayers:
       - name: Flur
-        update: true
+        update: false
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/flur.shp"
         label: flurname
         close: true
@@ -120,7 +120,7 @@ projects:
           vp_freeze: false
           transparency: 0.0
       - name: Gemarkung
-        update: true
+        update: false
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/gemarkung.shp"
         label: gmkname
         close: true
@@ -137,7 +137,7 @@ projects:
         labelStyle:
           color: "Green"
       - name: Gemeinde
-        update: true
+        update: false
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/gemeinde.shp"
         label: gen
         close: true
@@ -173,11 +173,15 @@ projects:
           color: "Green"
       - name: Exclude
         update: false
-        close: true
-        style:
-          color: "Red"
-          locked: false
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/exclude.shp"
+      - name: Exclude Acad
+        update: false
+        # operations:
+        #   - type: buffer
+        #     distance: 5
+        #     joinStyle: round
+        dxfLayer: "Exclude Acad"
+        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/exclude_acad.shp"
       - name: Baumabstand
         update: false
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/baum_abstand.shp"
@@ -207,23 +211,14 @@ projects:
           color: "Light Orange"
           linetype: CONTINUOUS
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/gesch_biotope.shp"
-      # - name: FG Buffer
-      #   update: true
-      #   style:
-      #     color: "Light Blue"
-      #   operations:
-      #     - type: buffer
-      #       distance: 7
-      #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/FG.shp"
-      #   outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/fg.shp"
       - name: FG Buffer
-        update: true
+        update: false
         style:
           color: "Light Blue"
         operations:
           - type: buffer
             distance: 7
-        dxfLayer: "Boeschung"
+        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/FG.shp"
         outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/fg.shp"
       - name: Geltungsbereich NW
         update: true
@@ -301,6 +296,7 @@ projects:
               - Wald
               - Baumabstand
               - Exclude
+              - Exclude Acad
         outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/geltungsbereich_2.shp"
       - name: Geltungsbereich S
         update: true
@@ -332,7 +328,7 @@ projects:
               - Exclude
         outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/geltungsbereich_3.shp"
       - name: Waldabstand
-        update: true
+        update: false
         style:
           color: "Dark Green"
         close: true
