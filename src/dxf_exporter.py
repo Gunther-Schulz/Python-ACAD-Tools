@@ -5,9 +5,9 @@ from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString,
 from src.utils import log_info, log_warning, log_error
 import geopandas as gpd
 import os
-from ezdxf.lldxf.const import DXFValueError, LWPOLYLINE_PLINEGEN
-from ezdxf.entities import LayerOverrides
-from ezdxf.lldxf import const
+from ezdxf.lldxf.const import LWPOLYLINE_PLINEGEN
+
+
 
 from PIL import Image
 
@@ -305,8 +305,12 @@ class DXFExporter:
                 for code, value in xdata:
                     if code == 1000 and value == self.script_identifier:
                         return True
+        except ezdxf.lldxf.const.DXFValueError:
+            # This exception is raised when the entity has no XDATA for 'DXFEXPORTER'
+            # It's not an error, just means the entity wasn't created by this script
+            return False
         except Exception as e:
-            log_error(f"Error getting XDATA for entity {entity}: {str(e)}")
+            log_warning(f"Unexpected error checking XDATA for entity {entity}: {str(e)}")
         return False
 
     def add_wmts_xrefs_to_dxf(self, msp, tile_data, layer_name):
