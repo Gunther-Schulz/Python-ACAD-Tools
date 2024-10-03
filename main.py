@@ -249,7 +249,6 @@ def main():
     parser.add_argument('-s', '--list-settings', action='store_true', help="List all possible layer settings and their options")
     parser.add_argument('--dxf-file', help="Path to the input DXF file (for dump_to_shape functionality)")
     parser.add_argument('--output-folder', help="Path to the output folder for shapefiles (for dump_to_shape functionality)")
-    parser.add_argument('-h', '--help', action='help', default=argparse.SUPPRESS, help='Show this help message and exit')
     args = parser.parse_args()
 
     if args.list_operations:

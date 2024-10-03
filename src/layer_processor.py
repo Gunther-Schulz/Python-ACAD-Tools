@@ -77,6 +77,10 @@ class LayerProcessor:
                 if unknown_label_style_keys:
                     log_warning(f"Unknown labelStyle keys in layer {layer_name}: {', '.join(unknown_label_style_keys)}")
 
+        # Load DXF layer if specified, regardless of operations
+        if 'dxfLayer' in layer_obj:
+            self.load_dxf_layer(layer_name, layer_obj['dxfLayer'])
+
         if 'operations' in layer_obj:
             result_geometry = None
             for operation in layer_obj['operations']:
@@ -87,7 +91,7 @@ class LayerProcessor:
             # The shapefile should have been loaded in setup_shapefiles
             if layer_name not in self.all_layers:
                 log_warning(f"Shapefile for layer {layer_name} was not loaded properly")
-        else:
+        elif 'dxfLayer' not in layer_obj:
             self.all_layers[layer_name] = None
             log_info(f"Added layer {layer_name} without data")
 
@@ -232,7 +236,15 @@ class LayerProcessor:
         log_info(f"Writing shapefile for layer {layer_name}: {output_path}")
         if layer_name in self.all_layers:
             gdf = self.all_layers[layer_name]
+            log_info(f"Type of data for {layer_name}: {type(gdf)}")
+            log_info(f"Columns in the data: {gdf.columns.tolist() if hasattr(gdf, 'columns') else 'No columns'}")
+            log_info(f"CRS of the data: {gdf.crs if hasattr(gdf, 'crs') else 'No CRS'}")
+            log_info(f"Number of rows: {len(gdf) if hasattr(gdf, '__len__') else 'Unknown'}")
+            
             if isinstance(gdf, gpd.GeoDataFrame):
+                log_info(f"Geometry column name: {gdf.geometry.name}")
+                log_info(f"Geometry types: {gdf.geometry.type.unique().tolist()}")
+                
                 # Handle GeometryCollection
                 def convert_geometry(geom):
                     if isinstance(geom, GeometryCollection):
@@ -272,7 +284,11 @@ class LayerProcessor:
                 except Exception as e:
                     log_warning(f"Failed to load shapefile for layer '{layer_name}': {str(e)}")
             elif 'dxfLayer' in layer:
-                self.load_dxf_layer(layer_name, layer['dxfLayer'])
+                gdf = self.load_dxf_layer(layer_name, layer['dxfLayer'])
+                self.all_layers[layer_name] = gdf
+                if 'outputShapeFile' in layer:
+                    output_path = self.project_loader.resolve_full_path(layer['outputShapeFile'])
+                    self.write_shapefile(layer_name, output_path)
 
     def ensure_geodataframe(self, layer_name, geometry):
         if not isinstance(geometry, gpd.GeoDataFrame):
@@ -762,6 +778,7 @@ class LayerProcessor:
 
     def load_dxf_layer(self, layer_name, dxf_layer_name):
         try:
+            log_info(f"Attempting to load DXF layer '{dxf_layer_name}' for layer: {layer_name}")
             doc = ezdxf.readfile(self.project_loader.dxf_filename)
             msp = doc.modelspace()
             
@@ -774,12 +791,27 @@ class LayerProcessor:
                             geometries.append(Polygon(points))
                         else:
                             geometries.append(LineString(points))
+                else:
+                    log_info(f"Skipping entity of type {type(entity)} in layer '{dxf_layer_name}'")
+            
+            log_info(f"Found {len(geometries)} geometries in DXF layer '{dxf_layer_name}'")
             
             if geometries:
                 gdf = gpd.GeoDataFrame(geometry=geometries, crs=self.crs)
                 self.all_layers[layer_name] = gdf
-                log_info(f"Loaded DXF layer '{dxf_layer_name}' for layer: {layer_name}")
+                log_info(f"Loaded DXF layer '{dxf_layer_name}' for layer: {layer_name} with {len(gdf)} features")
+                log_info(f"Type of self.all_layers[{layer_name}]: {type(self.all_layers[layer_name])}")
             else:
                 log_warning(f"No valid geometries found in DXF layer '{dxf_layer_name}' for layer: {layer_name}")
+                gdf = gpd.GeoDataFrame(geometry=[], crs=self.crs)
+                self.all_layers[layer_name] = gdf
+            
         except Exception as e:
             log_warning(f"Failed to load DXF layer '{dxf_layer_name}' for layer '{layer_name}': {str(e)}")
+            import traceback
+            log_warning(traceback.format_exc())
+            gdf = gpd.GeoDataFrame(geometry=[], crs=self.crs)
+            self.all_layers[layer_name] = gdf
+        
+        log_info(f"Final state of self.all_layers[{layer_name}]: {self.all_layers[layer_name]}")
+        return gdf
