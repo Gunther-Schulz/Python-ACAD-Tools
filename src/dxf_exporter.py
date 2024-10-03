@@ -21,6 +21,7 @@ class DXFExporter:
         self.script_identifier = "Created by DXFExporter"
         log_info(f"DXFExporter initialized with script identifier: {self.script_identifier}")
         self.setup_layers()
+        self.viewports = {}
 
     def setup_layers(self):
         for layer in self.project_settings['dxfLayers']:
@@ -58,7 +59,7 @@ class DXFExporter:
         log_info("Starting DXF export...")
         doc = self._prepare_dxf_document()
         msp = doc.modelspace()
-
+        self.create_viewports(doc, msp)
         self.process_layers(doc, msp)
         self._cleanup_and_save(doc, msp)
 
@@ -133,6 +134,9 @@ class DXFExporter:
             self._process_wmts_layer(doc, msp, layer_name, layer_info)
         else:
             self._process_regular_layer(doc, msp, layer_name, layer_info)
+        
+        if 'viewports' in layer_info:
+            self._process_viewport_styles(doc, layer_name, layer_info['viewports'])
 
     def _process_wmts_layer(self, doc, msp, layer_name, layer_info):
         log_info(f"Processing WMTS layer: {layer_name}")
@@ -648,3 +652,30 @@ class DXFExporter:
                 hyperlink = entity.get_hyperlink()
             else:
                 log_info(f"Entity {entity} has no 'get_hyperlink' method")
+
+    def create_viewports(self, doc, msp):
+        log_info("Creating viewports...")
+        layout = doc.layout()
+        for vp_config in self.project_settings.get('viewports', []):
+            viewport = layout.add_viewport(
+                center=vp_config['center'],
+                size=(vp_config['width'], vp_config['height']),
+                view_center_point=vp_config['target_view']['center'],
+                view_height=vp_config['target_view']['height']
+            )
+            viewport.dxf.status = 1  # Activate the viewport
+            viewport.dxf.layer = 'VIEWPORTS'
+            self.viewports[vp_config['name']] = viewport
+            log_info(f"Created viewport: {vp_config['name']}")
+
+    def _process_viewport_styles(self, doc, layer_name, viewport_styles):
+        for vp_style in viewport_styles:
+            viewport = self.viewports.get(vp_style['name'])
+            if viewport:
+                vp_properties = {
+                    'vp_color': self.get_color_code(vp_style['style'].get('color')),
+                    'vp_linetype': vp_style['style'].get('linetype'),
+                    'vp_lineweight': vp_style['style'].get('lineweight'),
+                    'vp_transparency': int(vp_style['style'].get('transparency', 0) * 100)
+                }
+                viewport.set_layer_properties(layer_name, **vp_properties)

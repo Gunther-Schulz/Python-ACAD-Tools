@@ -87,7 +87,15 @@ projects:
     exportFormat: dxf
     dxfVersion: R2018
     crs: EPSG:25833
-    dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Zeichnung/Plasten.dxf"
+    dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Zeichnung/Plasten2.dxf"
+    viewports:
+      - name: MainView
+        center: [0, 0]
+        width: 200
+        height: 150
+        target_view:
+          center: [1000, 1000]
+          height: 500
     dumpOutputDir: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten//GIS/dxf_dump"
     dxfLayers:
       - name: Flur
@@ -174,14 +182,14 @@ projects:
       - name: Exclude
         update: false
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/exclude.shp"
-      - name: Exclude Acad
-        update: false
-        # operations:
-        #   - type: buffer
-        #     distance: 5
-        #     joinStyle: round
-        dxfLayer: "Exclude Acad"
-        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/exclude_acad.shp"
+      # - name: Exclude Acad
+      #   update: false
+      #   # operations:
+      #   #   - type: buffer
+      #   #     distance: 5
+      #   #     joinStyle: round
+      #   dxfLayer: "Exclude Acad"
+      #   outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/exclude_acad.shp"
       - name: Baumabstand
         update: false
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/baum_abstand.shp"
@@ -296,7 +304,7 @@ projects:
               - Wald
               - Baumabstand
               - Exclude
-              - Exclude Acad
+              # - Exclude Acad
         outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/geltungsbereich_2.shp"
       - name: Geltungsbereich S
         update: true
