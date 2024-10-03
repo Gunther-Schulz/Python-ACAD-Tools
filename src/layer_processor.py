@@ -10,6 +10,7 @@ from src.contour_processor import process_contour
 from owslib.wmts import WebMapTileService
 import ezdxf
 from shapely.geometry import Polygon, LineString
+from shapely.geometry import MultiPolygon, Polygon
 
 class LayerProcessor:
     def __init__(self, project_loader, plot_ops=False):
@@ -361,6 +362,7 @@ class LayerProcessor:
     def create_intersection_layer(self, layer_name, operation):
         self._create_overlay_layer(layer_name, operation, 'intersection')
 
+
     def _create_overlay_layer(self, layer_name, operation, overlay_type):
         log_info(f"Creating {overlay_type} layer: {layer_name}")
         log_info(f"Operation details: {operation}")
@@ -398,21 +400,55 @@ class LayerProcessor:
         try:
             if overlay_type == 'difference':
                 result_geometry = base_geometry.geometry.difference(combined_overlay_geometry)
-                result_geometry = result_geometry.buffer(-1, join_style=2).buffer(1, join_style=2)
             elif overlay_type == 'intersection':
                 result_geometry = base_geometry.geometry.intersection(combined_overlay_geometry)
             
-            log_info(f"Applied {overlay_type} operation")
+            # Apply a small buffer to remove thin artifacts
+            epsilon = 0.01  # Adjust this value as needed
+            result_geometry = result_geometry.buffer(epsilon, join_style=2).buffer(-epsilon, join_style=2)
+            
+            # Remove small polygons
+            min_area = 1  # Adjust this value as needed (in square units of your CRS)
+            result_geometry = result_geometry.apply(lambda geom: self._remove_small_polygons(geom, min_area))
+            
+            log_info(f"Applied {overlay_type} operation and cleaned up results")
         except Exception as e:
             log_error(f"Error during {overlay_type} operation: {str(e)}")
+            import traceback
+            log_error(f"Traceback:\n{traceback.format_exc()}")
             return
 
-        if result_geometry is not None:
+        # Check if result_geometry is empty
+        if result_geometry.empty:
+            log_warning(f"No valid geometry created for {overlay_type} layer: {layer_name}")
+            self.all_layers[layer_name] = gpd.GeoDataFrame(geometry=[], crs=base_geometry.crs)
+        else:
+            # Create a new GeoDataFrame with the resulting geometries
             result_gdf = gpd.GeoDataFrame(geometry=result_geometry, crs=base_geometry.crs)
             self.all_layers[layer_name] = result_gdf
-            log_info(f"Created {overlay_type} layer: {layer_name}")
+            log_info(f"Created {overlay_type} layer: {layer_name} with {len(result_geometry)} geometries")
+
+    def _remove_small_polygons(self, geometry, min_area):
+        if isinstance(geometry, Polygon):
+            if geometry.area >= min_area:
+                return geometry
+            else:
+                return Polygon()
+        elif isinstance(geometry, MultiPolygon):
+            return MultiPolygon([poly for poly in geometry.geoms if poly.area >= min_area])
         else:
-            log_warning(f"No valid geometry created for {overlay_type} layer: {layer_name}")
+            return geometry
+
+    def _remove_small_polygons(self, geometry, min_area):
+        if isinstance(geometry, Polygon):
+            if geometry.area >= min_area:
+                return geometry
+            else:
+                return Polygon()
+        elif isinstance(geometry, MultiPolygon):
+            return MultiPolygon([poly for poly in geometry.geoms if poly.area >= min_area])
+        else:
+            return geometry
             
     def create_buffer_layer(self, layer_name, operation):
         log_info(f"Creating buffer layer: {layer_name}")
