@@ -406,7 +406,18 @@ projects:
               - FG Buffer
           # - type: smooth
           #   strength: 1.5
-        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/baufeld.shp"
+      - name: Baugrenze
+        update: true
+        style:
+          color: "Blue"
+          locked: false
+        close: true
+        operations:
+          - type: buffer
+            layers:
+              - Baufeld
+            distance: -3
+        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/baugrenze.shp"
       - name: WMTS DOP
         update: false
         style:
