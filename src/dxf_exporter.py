@@ -62,6 +62,7 @@ class DXFExporter:
         log_info("Starting DXF export...")
         doc = self._prepare_dxf_document()
         msp = doc.modelspace()
+        self.register_app_id(doc, 'CUSTOM_VP_NAME')
         self.create_viewports(doc, msp)
         self.process_layers(doc, msp)
         self._cleanup_and_save(doc, msp)
@@ -668,13 +669,27 @@ class DXFExporter:
             )
             viewport.dxf.status = 1  # Activate the viewport
             viewport.dxf.layer = 'VIEWPORTS'
+            
+            # Store the viewport name as XDATA
+            viewport.set_xdata(
+                'CUSTOM_VP_NAME',
+                [(1000, vp_config['name'])]  # 1000 is the group code for strings
+            )
+            
             self.viewports[vp_config['name']] = viewport
             log_info(f"Created viewport: {vp_config['name']}")
         return self.viewports
 
-
-
-
+    def get_viewport_by_name(self, doc, name):
+        for viewport in doc.viewports:
+            try:
+                xdata = viewport.get_xdata('CUSTOM_VP_NAME')
+                if xdata and xdata[0].value == name:
+                    return viewport
+            except ezdxf.lldxf.const.DXFValueError:
+                # XDATA not found for this viewport, continue to the next one
+                continue
+        return None
 
     def _process_viewport_styles(self, doc, layer_name, viewport_styles):
         layer = doc.layers.get(layer_name)
@@ -685,33 +700,42 @@ class DXFExporter:
         layer_overrides = layer.get_vp_overrides()
 
         for vp_style in viewport_styles:
-            viewport = self.viewports.get(vp_style['name'])
-            if viewport:
-                vp_handle = viewport.dxf.handle
-                
-                # Set color override
-                color = self.get_color_code(vp_style['style'].get('color'))
-                if color is not None:
-                    layer_overrides.set_color(vp_handle, color)
+            try:
+                viewport = self.get_viewport_by_name(doc, vp_style['name'])
+                if viewport:
+                    vp_handle = viewport.dxf.handle
+                    
+                    # Set color override
+                    color = self.get_color_code(vp_style['style'].get('color'))
+                    if color is not None:
+                        layer_overrides.set_color(vp_handle, color)
 
-                # Set linetype override
-                linetype = vp_style['style'].get('linetype')
-                if linetype:
-                    layer_overrides.set_linetype(vp_handle, linetype)
+                    # Set linetype override
+                    linetype = vp_style['style'].get('linetype')
+                    if linetype:
+                        layer_overrides.set_linetype(vp_handle, linetype)
 
-                # Set lineweight override
-                lineweight = vp_style['style'].get('lineweight')
-                if lineweight is not None:
-                    layer_overrides.set_lineweight(vp_handle, lineweight)
+                    # Set lineweight override
+                    lineweight = vp_style['style'].get('lineweight')
+                    if lineweight is not None:
+                        layer_overrides.set_lineweight(vp_handle, lineweight)
 
-                # Set transparency override
-                transparency = vp_style['style'].get('transparency')
-                if transparency is not None:
-                    # Ensure transparency is between 0 and 1
-                    transparency_value = max(0, min(transparency, 1))
-                    layer_overrides.set_transparency(vp_handle, transparency_value)
+                    # Set transparency override
+                    transparency = vp_style['style'].get('transparency')
+                    if transparency is not None:
+                        # Ensure transparency is between 0 and 1
+                        transparency_value = max(0, min(transparency, 1))
+                        layer_overrides.set_transparency(vp_handle, transparency_value)
 
-                log_info(f"Set viewport-specific properties for {vp_style['name']} on layer {layer_name}")
+                    log_info(f"Set viewport-specific properties for {vp_style['name']} on layer {layer_name}")
+                else:
+                    log_warning(f"Viewport {vp_style['name']} not found")
+            except Exception as e:
+                log_error(f"Error processing viewport style for {vp_style['name']}: {str(e)}")
 
         # Commit the changes to the layer overrides
         layer_overrides.commit()
+
+    def register_app_id(self, doc, app_id):
+        if app_id not in doc.appids:
+            doc.appids.new(app_id)

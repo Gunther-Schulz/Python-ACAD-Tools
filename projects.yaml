@@ -96,6 +96,13 @@ projects:
         target_view:
           center: [1000, 1000]
           height: 500
+      - name: MainView2
+        center: [400, 400]
+        width: 200
+        height: 150
+        target_view:
+          center: [1000, 1000]
+          height: 500
     dumpOutputDir: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten//GIS/dxf_dump"
     dxfLayers:
       - name: Flur
@@ -131,6 +138,12 @@ projects:
           - name: MainView
             style:
               color: "Red"
+              linetype: "DASHED"
+              lineweight: 35
+              transparency: 0.5
+          - name: MainView2
+            style:
+              color: "Green"
               linetype: "DASHED"
               lineweight: 35
               transparency: 0.5
