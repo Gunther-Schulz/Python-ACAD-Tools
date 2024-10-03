@@ -62,7 +62,7 @@ class DXFExporter:
         log_info("Starting DXF export...")
         doc = self._prepare_dxf_document()
         msp = doc.modelspace()
-        self.register_app_id(doc, 'CUSTOM_VP_NAME')
+        self.register_app_id(doc)
         self.create_viewports(doc, msp)
         self.process_layers(doc, msp)
         self._cleanup_and_save(doc, msp)
@@ -282,36 +282,31 @@ class DXFExporter:
 
     def attach_custom_data(self, entity):
         """Attach custom data to identify entities created by this script."""
-        if hasattr(entity, 'set_hyperlink'):
-            try:
-                entity.set_hyperlink(self.script_identifier)
-                # Verify the hyperlink was set correctly
-                if hasattr(entity, 'get_hyperlink'):
-                    set_value = entity.get_hyperlink()
-                    if set_value != self.script_identifier and set_value != (self.script_identifier, '', ''):
-                        log_warning(f"Hyperlink mismatch for {entity}. Expected: {self.script_identifier}, Got: {set_value}")
-                else:
-                    log_warning(f"Entity {entity} has set_hyperlink but not get_hyperlink method")
-            except Exception as e:
-                log_error(f"Error setting hyperlink for entity {entity}: {str(e)}")
-        else:
-            log_warning(f"Unable to attach custom data to entity: {entity}. No 'set_hyperlink' method.")
+        try:
+            entity.set_xdata(
+                'DXFEXPORTER',
+                [
+                    (1000, self.script_identifier),
+                    (1002, '{'),
+                    (1000, 'CREATED_BY'),
+                    (1000, 'DXFExporter'),
+                    (1002, '}')
+                ]
+            )
+            log_info(f"Attached custom XDATA to entity: {entity}")
+        except Exception as e:
+            log_error(f"Error setting XDATA for entity {entity}: {str(e)}")
 
     def is_created_by_script(self, entity):
         """Check if an entity was created by this script."""
-        if hasattr(entity, 'get_hyperlink'):
-            try:
-                hyperlink = entity.get_hyperlink()
-                is_created = hyperlink == self.script_identifier or (
-                    isinstance(hyperlink, tuple) and 
-                    len(hyperlink) > 0 and 
-                    hyperlink[0] == self.script_identifier
-                )
-                return is_created
-            except Exception as e:
-                log_error(f"Error getting hyperlink for entity {entity}: {str(e)}")
-                return False
-        log_warning(f"Unable to check if entity was created by script: {entity}. No 'get_hyperlink' method.")
+        try:
+            xdata = entity.get_xdata('DXFEXPORTER')
+            if xdata:
+                for code, value in xdata:
+                    if code == 1000 and value == self.script_identifier:
+                        return True
+        except Exception as e:
+            log_error(f"Error getting XDATA for entity {entity}: {str(e)}")
         return False
 
     def add_wmts_xrefs_to_dxf(self, msp, tile_data, layer_name):
@@ -672,8 +667,14 @@ class DXFExporter:
             
             # Store the viewport name as XDATA
             viewport.set_xdata(
-                'CUSTOM_VP_NAME',
-                [(1000, vp_config['name'])]  # 1000 is the group code for strings
+                'DXFEXPORTER',
+                [
+                    (1000, self.script_identifier),
+                    (1002, '{'),
+                    (1000, 'VIEWPORT_NAME'),
+                    (1000, vp_config['name']),
+                    (1002, '}')
+                ]
             )
             
             self.viewports[vp_config['name']] = viewport
@@ -685,11 +686,15 @@ class DXFExporter:
             for entity in layout:
                 if entity.dxftype() == 'VIEWPORT':
                     try:
-                        xdata = entity.get_xdata('CUSTOM_VP_NAME')
-                        if xdata and xdata[0].value == name:
-                            return entity
+                        xdata = entity.get_xdata('DXFEXPORTER')
+                        if xdata:
+                            in_viewport_section = False
+                            for code, value in xdata:
+                                if code == 1000 and value == 'VIEWPORT_NAME':
+                                    in_viewport_section = True
+                                elif in_viewport_section and code == 1000 and value == name:
+                                    return entity
                     except ezdxf.lldxf.const.DXFValueError:
-                        # XDATA not found for this viewport, continue to the next one
                         continue
         return None
 
@@ -738,6 +743,6 @@ class DXFExporter:
         # Commit the changes to the layer overrides
         layer_overrides.commit()
 
-    def register_app_id(self, doc, app_id):
-        if app_id not in doc.appids:
-            doc.appids.new(app_id)
+    def register_app_id(self, doc):
+        if 'DXFEXPORTER' not in doc.appids:
+            doc.appids.new('DXFEXPORTER')
