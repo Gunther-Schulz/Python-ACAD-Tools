@@ -5,7 +5,10 @@ from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString,
 from src.utils import log_info, log_warning, log_error
 import geopandas as gpd
 import os
-from ezdxf.lldxf.const import DXFValueError, LWPOLYLINE_PLINEGEN
+from ezdxf.lldxf.const import LWPOLYLINE_PLINEGEN
+
+
+
 from PIL import Image
 
 class DXFExporter:
@@ -21,6 +24,7 @@ class DXFExporter:
         self.script_identifier = "Created by DXFExporter"
         log_info(f"DXFExporter initialized with script identifier: {self.script_identifier}")
         self.setup_layers()
+        self.viewports = {}
 
     def setup_layers(self):
         for layer in self.project_settings['dxfLayers']:
@@ -58,7 +62,8 @@ class DXFExporter:
         log_info("Starting DXF export...")
         doc = self._prepare_dxf_document()
         msp = doc.modelspace()
-
+        self.register_app_id(doc)
+        self.create_viewports(doc, msp)
         self.process_layers(doc, msp)
         self._cleanup_and_save(doc, msp)
 
@@ -133,6 +138,9 @@ class DXFExporter:
             self._process_wmts_layer(doc, msp, layer_name, layer_info)
         else:
             self._process_regular_layer(doc, msp, layer_name, layer_info)
+        
+        if 'viewports' in layer_info:
+            self._process_viewport_styles(doc, layer_name, layer_info['viewports'])
 
     def _process_wmts_layer(self, doc, msp, layer_name, layer_info):
         log_info(f"Processing WMTS layer: {layer_name}")
@@ -274,36 +282,35 @@ class DXFExporter:
 
     def attach_custom_data(self, entity):
         """Attach custom data to identify entities created by this script."""
-        if hasattr(entity, 'set_hyperlink'):
-            try:
-                entity.set_hyperlink(self.script_identifier)
-                # Verify the hyperlink was set correctly
-                if hasattr(entity, 'get_hyperlink'):
-                    set_value = entity.get_hyperlink()
-                    if set_value != self.script_identifier and set_value != (self.script_identifier, '', ''):
-                        log_warning(f"Hyperlink mismatch for {entity}. Expected: {self.script_identifier}, Got: {set_value}")
-                else:
-                    log_warning(f"Entity {entity} has set_hyperlink but not get_hyperlink method")
-            except Exception as e:
-                log_error(f"Error setting hyperlink for entity {entity}: {str(e)}")
-        else:
-            log_warning(f"Unable to attach custom data to entity: {entity}. No 'set_hyperlink' method.")
+        try:
+            entity.set_xdata(
+                'DXFEXPORTER',
+                [
+                    (1000, self.script_identifier),
+                    (1002, '{'),
+                    (1000, 'CREATED_BY'),
+                    (1000, 'DXFExporter'),
+                    (1002, '}')
+                ]
+            )
+            log_info(f"Attached custom XDATA to entity: {entity}")
+        except Exception as e:
+            log_error(f"Error setting XDATA for entity {entity}: {str(e)}")
 
     def is_created_by_script(self, entity):
         """Check if an entity was created by this script."""
-        if hasattr(entity, 'get_hyperlink'):
-            try:
-                hyperlink = entity.get_hyperlink()
-                is_created = hyperlink == self.script_identifier or (
-                    isinstance(hyperlink, tuple) and 
-                    len(hyperlink) > 0 and 
-                    hyperlink[0] == self.script_identifier
-                )
-                return is_created
-            except Exception as e:
-                log_error(f"Error getting hyperlink for entity {entity}: {str(e)}")
-                return False
-        log_warning(f"Unable to check if entity was created by script: {entity}. No 'get_hyperlink' method.")
+        try:
+            xdata = entity.get_xdata('DXFEXPORTER')
+            if xdata:
+                for code, value in xdata:
+                    if code == 1000 and value == self.script_identifier:
+                        return True
+        except ezdxf.lldxf.const.DXFValueError:
+            # This exception is raised when the entity has no XDATA for 'DXFEXPORTER'
+            # It's not an error, just means the entity wasn't created by this script
+            return False
+        except Exception as e:
+            log_warning(f"Unexpected error checking XDATA for entity {entity}: {str(e)}")
         return False
 
     def add_wmts_xrefs_to_dxf(self, msp, tile_data, layer_name):
@@ -648,3 +655,98 @@ class DXFExporter:
                 hyperlink = entity.get_hyperlink()
             else:
                 log_info(f"Entity {entity} has no 'get_hyperlink' method")
+
+    def create_viewports(self, doc, msp):
+        log_info("Creating viewports...")
+        paper_space = doc.paperspace()
+        for vp_config in self.project_settings.get('viewports', []):
+            viewport = paper_space.add_viewport(
+                center=vp_config['center'],
+                size=(vp_config['width'], vp_config['height']),
+                view_center_point=vp_config['target_view']['center'],
+                view_height=vp_config['target_view']['height']
+            )
+            viewport.dxf.status = 1  # Activate the viewport
+            viewport.dxf.layer = 'VIEWPORTS'
+            
+            # Store the viewport name as XDATA
+            viewport.set_xdata(
+                'DXFEXPORTER',
+                [
+                    (1000, self.script_identifier),
+                    (1002, '{'),
+                    (1000, 'VIEWPORT_NAME'),
+                    (1000, vp_config['name']),
+                    (1002, '}')
+                ]
+            )
+            
+            self.viewports[vp_config['name']] = viewport
+            log_info(f"Created viewport: {vp_config['name']}")
+        return self.viewports
+
+    def get_viewport_by_name(self, doc, name):
+        for layout in doc.layouts:
+            for entity in layout:
+                if entity.dxftype() == 'VIEWPORT':
+                    try:
+                        xdata = entity.get_xdata('DXFEXPORTER')
+                        if xdata:
+                            in_viewport_section = False
+                            for code, value in xdata:
+                                if code == 1000 and value == 'VIEWPORT_NAME':
+                                    in_viewport_section = True
+                                elif in_viewport_section and code == 1000 and value == name:
+                                    return entity
+                    except ezdxf.lldxf.const.DXFValueError:
+                        continue
+        return None
+
+    def _process_viewport_styles(self, doc, layer_name, viewport_styles):
+        layer = doc.layers.get(layer_name)
+        if layer is None:
+            log_warning(f"Layer {layer_name} not found in the document.")
+            return
+
+        layer_overrides = layer.get_vp_overrides()
+
+        for vp_style in viewport_styles:
+            try:
+                viewport = self.get_viewport_by_name(doc, vp_style['name'])
+                if viewport:
+                    vp_handle = viewport.dxf.handle
+                    
+                    # Set color override
+                    color = self.get_color_code(vp_style['style'].get('color'))
+                    if color is not None:
+                        layer_overrides.set_color(vp_handle, color)
+
+                    # Set linetype override
+                    linetype = vp_style['style'].get('linetype')
+                    if linetype:
+                        layer_overrides.set_linetype(vp_handle, linetype)
+
+                    # Set lineweight override
+                    lineweight = vp_style['style'].get('lineweight')
+                    if lineweight is not None:
+                        layer_overrides.set_lineweight(vp_handle, lineweight)
+
+                    # Set transparency override
+                    transparency = vp_style['style'].get('transparency')
+                    if transparency is not None:
+                        # Ensure transparency is between 0 and 1
+                        transparency_value = max(0, min(transparency, 1))
+                        layer_overrides.set_transparency(vp_handle, transparency_value)
+
+                    log_info(f"Set viewport-specific properties for {vp_style['name']} on layer {layer_name}")
+                else:
+                    log_warning(f"Viewport {vp_style['name']} not found")
+            except Exception as e:
+                log_error(f"Error processing viewport style for {vp_style['name']}: {str(e)}")
+
+        # Commit the changes to the layer overrides
+        layer_overrides.commit()
+
+    def register_app_id(self, doc):
+        if 'DXFEXPORTER' not in doc.appids:
+            doc.appids.new('DXFEXPORTER')

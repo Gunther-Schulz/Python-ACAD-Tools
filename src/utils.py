@@ -3,6 +3,7 @@ import os
 import sys
 import pyproj
 from pyproj import CRS
+import traceback
 
 # Setup logging
 def setup_logging():
@@ -21,7 +22,10 @@ def log_warning(message):
     logging.warning(f"\033[93mWarning: {message}\033[0m")
 
 def log_error(message):
+    error_traceback = traceback.format_exc()
     logging.error(f"\033[91mError: {message}\033[0m")
+    if error_traceback != "NoneType: None\n":
+        logging.error(f"Traceback:\n{error_traceback}")
 
 # PROJ setup
 def setup_proj():
