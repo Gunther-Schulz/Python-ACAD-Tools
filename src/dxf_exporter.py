@@ -660,29 +660,34 @@ class DXFExporter:
         log_info("Creating viewports...")
         paper_space = doc.paperspace()
         for vp_config in self.project_settings.get('viewports', []):
-            viewport = paper_space.add_viewport(
-                center=vp_config['center'],
-                size=(vp_config['width'], vp_config['height']),
-                view_center_point=vp_config['target_view']['center'],
-                view_height=vp_config['target_view']['height']
-            )
-            viewport.dxf.status = 1  # Activate the viewport
-            viewport.dxf.layer = 'VIEWPORTS'
-            
-            # Store the viewport name as XDATA
-            viewport.set_xdata(
-                'DXFEXPORTER',
-                [
-                    (1000, self.script_identifier),
-                    (1002, '{'),
-                    (1000, 'VIEWPORT_NAME'),
-                    (1000, vp_config['name']),
-                    (1002, '}')
-                ]
-            )
-            
-            self.viewports[vp_config['name']] = viewport
-            log_info(f"Created viewport: {vp_config['name']}")
+            existing_viewport = self.get_viewport_by_name(doc, vp_config['name'])
+            if existing_viewport:
+                log_info(f"Viewport {vp_config['name']} already exists. Skipping creation.")
+                self.viewports[vp_config['name']] = existing_viewport
+            else:
+                viewport = paper_space.add_viewport(
+                    center=vp_config['center'],
+                    size=(vp_config['width'], vp_config['height']),
+                    view_center_point=vp_config['target_view']['center'],
+                    view_height=vp_config['target_view']['height']
+                )
+                viewport.dxf.status = 1  # Activate the viewport
+                viewport.dxf.layer = 'VIEWPORTS'
+                
+                # Store the viewport name as XDATA
+                viewport.set_xdata(
+                    'DXFEXPORTER',
+                    [
+                        (1000, self.script_identifier),
+                        (1002, '{'),
+                        (1000, 'VIEWPORT_NAME'),
+                        (1000, vp_config['name']),
+                        (1002, '}')
+                    ]
+                )
+                
+                self.viewports[vp_config['name']] = viewport
+                log_info(f"Created viewport: {vp_config['name']}")
         return self.viewports
 
     def get_viewport_by_name(self, doc, name):
