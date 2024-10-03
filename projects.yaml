@@ -105,21 +105,18 @@ projects:
           height: 500
     dumpOutputDir: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten//GIS/dxf_dump"
     dxfLayers:
-      - name: Test
-      # - name: Flur
-      #   update: false
-      #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/flur.shp"
-      #   label: flurname
-      #   close: true
-      #   style:
-      #     color: Cyan
-      #     linetype: Continuous
-      #     # lineweight: 13
-      #     locked: true
-      #     frozen: false
-      #     is_on: true
-      #     vp_freeze: false
-      #     transparency: 0.0
+      - name: Flur
+        update: true
+        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/flur.shp"
+        label: flurname
+        close: true
+        style:
+          linetype: ACAD_ISO14W100
+          locked: true
+        viewports:
+          - name: WorkView
+            style:
+              color: "Light Gray"
       - name: Parcel
         update: true
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/parcel.shp"
@@ -128,74 +125,64 @@ projects:
         style:
           # color: Black
           locked: true
-          linetype: ACAD_ISO11W100
-          linetypeGeneration: true
-          linetypeScale: 1
-          # # lineweight: 30
+          # linetype: ACAD_ISO11W100
+          # linetypeGeneration: true
+          # linetypeScale: 1
+          # lineweight: 30
           # plot: true
           # frozen: false
           # is_on: true 
           # vp_freeze: false
           # transparency: 0.0
+        # labelStyle:
+        #   color: "Green"
         viewports:
-      #     - name: MainView
-      #       style:
-      #         color: "Red"
-      #         linetype: "DASHED"
-      #         lineweight: 35
-      #         transparency: 0.5
           - name: WorkView
             style:
-              color: "Yellow"
-              linetype: "ZIGZAG"
+              color: "Dark Gray"
+              # linetype: "ZIGZAG"
               # lineweight: 35
               # transparency: 0.5
-      # - name: Gemarkung
-      #   update: false
-      #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/gemarkung.shp"
-      #   label: gmkname
-      #   close: true
-      #   style:
-      #     color: "Medium Orange Red"
-      #     locked: true
-      #     linetype: Continuous
-      #     # lineweight: 13
-      #     plot: true
-      #     frozen: false
-      #     is_on: true
-      #     vp_freeze: false
-      #     transparency: 0.0
-      #   labelStyle:
-      #     color: "Green"
-      # - name: Gemeinde
-      #   update: false
-      #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/gemeinde.shp"
-      #   label: gen
-      #   close: true
-      #   style:
-      #     color: "Dark Red"
-      #     locked: true
-      #     linetype: Continuous
-      #     # lineweight: 13
-      #     plot: true
-      #     frozen: false
-      #     is_on: true
-      #     vp_freeze: false
-      #     transparency: 0.0
-      # - name: Grünfläche Input 1
-      #   update: false
-      #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/geltungsbereich_abstand.shp"
-      #   close: true
-      #   style:
-      #     color: "Light Green"
-      # - name: Wald
-      #   update: true
-      #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/wald.shp"
-      #   close: true
-      #   style:
-      #     color: "Dark Green"
-      #   operations:
-      #     - type: merge
+      - name: Gemarkung
+        update: true
+        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/gemarkung.shp"
+        label: gmkname
+        close: true
+        style:
+          locked: true
+          linetype: ACAD_ISO12W100
+        viewports:
+          - name: WorkView
+            style:
+              color: "Light Gray"
+      - name: Gemeinde
+        update: true
+        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/gemeinde.shp"
+        label: gen
+        close: true
+        style:
+          locked: true
+          linetype: ACAD_ISO10W100
+        viewports:
+          - name: WorkView
+            style:
+              color: "Light Gray"
+      - name: Grünfläche Input 1
+        # update: true
+        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/geltungsbereich_abstand.shp"
+        close: true
+        # style:
+        #   color: "Light Green"
+      - name: Wald
+        update: true
+        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/wald.shp"
+        close: true
+        operations:
+          - type: merge
+        viewports:
+          - name: WorkView
+            style:
+              color: "Dark Green"
       # - name: Biotope Input 1
       #   update: false
       #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/biotope.shp"
