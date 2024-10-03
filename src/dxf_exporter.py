@@ -6,6 +6,9 @@ from src.utils import log_info, log_warning, log_error
 import geopandas as gpd
 import os
 from ezdxf.lldxf.const import DXFValueError, LWPOLYLINE_PLINEGEN
+from ezdxf.entities import LayerOverrides
+from ezdxf.lldxf import const
+
 from PIL import Image
 
 class DXFExporter:
@@ -667,15 +670,48 @@ class DXFExporter:
             viewport.dxf.layer = 'VIEWPORTS'
             self.viewports[vp_config['name']] = viewport
             log_info(f"Created viewport: {vp_config['name']}")
+        return self.viewports
+
+
+
+
 
     def _process_viewport_styles(self, doc, layer_name, viewport_styles):
+        layer = doc.layers.get(layer_name)
+        if layer is None:
+            log_warning(f"Layer {layer_name} not found in the document.")
+            return
+
+        layer_overrides = layer.get_vp_overrides()
+
         for vp_style in viewport_styles:
             viewport = self.viewports.get(vp_style['name'])
             if viewport:
-                vp_properties = {
-                    'vp_color': self.get_color_code(vp_style['style'].get('color')),
-                    'vp_linetype': vp_style['style'].get('linetype'),
-                    'vp_lineweight': vp_style['style'].get('lineweight'),
-                    'vp_transparency': int(vp_style['style'].get('transparency', 0) * 100)
-                }
-                viewport.set_layer_properties(layer_name, **vp_properties)
+                vp_handle = viewport.dxf.handle
+                
+                # Set color override
+                color = self.get_color_code(vp_style['style'].get('color'))
+                if color is not None:
+                    layer_overrides.set_color(vp_handle, color)
+
+                # Set linetype override
+                linetype = vp_style['style'].get('linetype')
+                if linetype:
+                    layer_overrides.set_linetype(vp_handle, linetype)
+
+                # Set lineweight override
+                lineweight = vp_style['style'].get('lineweight')
+                if lineweight is not None:
+                    layer_overrides.set_lineweight(vp_handle, lineweight)
+
+                # Set transparency override
+                transparency = vp_style['style'].get('transparency')
+                if transparency is not None:
+                    # Ensure transparency is between 0 and 1
+                    transparency_value = max(0, min(transparency, 1))
+                    layer_overrides.set_transparency(vp_handle, transparency_value)
+
+                log_info(f"Set viewport-specific properties for {vp_style['name']} on layer {layer_name}")
+
+        # Commit the changes to the layer overrides
+        layer_overrides.commit()

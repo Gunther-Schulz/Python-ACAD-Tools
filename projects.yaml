@@ -127,6 +127,13 @@ projects:
           is_on: true 
           vp_freeze: false
           transparency: 0.0
+        viewports:
+          - name: MainView
+            style:
+              color: "Red"
+              linetype: "DASHED"
+              lineweight: 35
+              transparency: 0.5
       - name: Gemarkung
         update: false
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/gemarkung.shp"
