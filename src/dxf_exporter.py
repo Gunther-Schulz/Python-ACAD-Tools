@@ -659,9 +659,9 @@ class DXFExporter:
 
     def create_viewports(self, doc, msp):
         log_info("Creating viewports...")
-        layout = doc.layout()
+        paper_space = doc.paperspace()
         for vp_config in self.project_settings.get('viewports', []):
-            viewport = layout.add_viewport(
+            viewport = paper_space.add_viewport(
                 center=vp_config['center'],
                 size=(vp_config['width'], vp_config['height']),
                 view_center_point=vp_config['target_view']['center'],
@@ -681,14 +681,16 @@ class DXFExporter:
         return self.viewports
 
     def get_viewport_by_name(self, doc, name):
-        for viewport in doc.viewports:
-            try:
-                xdata = viewport.get_xdata('CUSTOM_VP_NAME')
-                if xdata and xdata[0].value == name:
-                    return viewport
-            except ezdxf.lldxf.const.DXFValueError:
-                # XDATA not found for this viewport, continue to the next one
-                continue
+        for layout in doc.layouts:
+            for entity in layout:
+                if entity.dxftype() == 'VIEWPORT':
+                    try:
+                        xdata = entity.get_xdata('CUSTOM_VP_NAME')
+                        if xdata and xdata[0].value == name:
+                            return entity
+                    except ezdxf.lldxf.const.DXFValueError:
+                        # XDATA not found for this viewport, continue to the next one
+                        continue
         return None
 
     def _process_viewport_styles(self, doc, layer_name, viewport_styles):
