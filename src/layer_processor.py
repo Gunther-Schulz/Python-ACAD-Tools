@@ -75,6 +75,10 @@ class LayerProcessor:
                 if key != closest_match and self.levenshtein_distance(key, closest_match) <= 2:
                     log_warning(f"Possible typo in style key for layer {layer_name}: '{key}'. Did you mean '{closest_match}'?")
 
+            # Ensure transparency is between 0 and 1
+            if 'transparency' in layer_obj['style']:
+                layer_obj['style']['transparency'] = max(0, min(layer_obj['style']['transparency'], 1))
+
         # Check for known labelStyle keys only if labels are present
         if 'label' in layer_obj or 'labelStyle' in layer_obj:
             if 'labelStyle' in layer_obj:
