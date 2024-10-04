@@ -11,6 +11,8 @@ from owslib.wmts import WebMapTileService
 import ezdxf
 from shapely.geometry import Polygon, LineString
 from shapely.geometry import MultiPolygon, Polygon
+from shapely.validation import make_valid
+import pandas as pd
 
 class LayerProcessor:
     def __init__(self, project_loader, plot_ops=False):
@@ -403,13 +405,8 @@ class LayerProcessor:
             elif overlay_type == 'intersection':
                 result_geometry = base_geometry.geometry.intersection(combined_overlay_geometry)
             
-            # Apply a small buffer to remove thin artifacts
-            epsilon = 0.01  # Adjust this value as needed
-            result_geometry = result_geometry.buffer(epsilon, join_style=2).buffer(-epsilon, join_style=2)
-            
-            # Remove small polygons
-            min_area = 1  # Adjust this value as needed (in square units of your CRS)
-            result_geometry = result_geometry.apply(lambda geom: self._remove_small_polygons(geom, min_area))
+            # Apply a series of cleaning operations
+            result_geometry = self._clean_geometry(result_geometry)
             
             log_info(f"Applied {overlay_type} operation and cleaned up results")
         except Exception as e:
@@ -428,16 +425,47 @@ class LayerProcessor:
             self.all_layers[layer_name] = result_gdf
             log_info(f"Created {overlay_type} layer: {layer_name} with {len(result_geometry)} geometries")
 
-    def _remove_small_polygons(self, geometry, min_area):
-        if isinstance(geometry, Polygon):
-            if geometry.area >= min_area:
-                return geometry
-            else:
-                return Polygon()
-        elif isinstance(geometry, MultiPolygon):
-            return MultiPolygon([poly for poly in geometry.geoms if poly.area >= min_area])
+
+
+
+
+    def _clean_geometry(self, geometry):
+        if isinstance(geometry, (gpd.GeoSeries, pd.Series)):
+            return geometry.apply(self._clean_single_geometry)
         else:
-            return geometry
+            return self._clean_single_geometry(geometry)
+
+    def _clean_single_geometry(self, geometry):
+        # Ensure the geometry is valid
+        geometry = make_valid(geometry)
+        
+        # Simplify the geometry
+        simplify_tolerance = 0.1
+        geometry = geometry.simplify(simplify_tolerance, preserve_topology=True)
+        
+        # Remove small polygons and attempt to remove slivers
+        min_area = 1
+        sliver_removal_distance = 0.05
+
+        if isinstance(geometry, (Polygon, MultiPolygon)):
+            # For polygons, use buffer trick
+            geometry = geometry.buffer(-sliver_removal_distance).buffer(sliver_removal_distance)
+            
+            # Remove small polygons
+            if isinstance(geometry, Polygon):
+                if geometry.area < min_area:
+                    return None
+            elif isinstance(geometry, MultiPolygon):
+                geometry = MultiPolygon([poly for poly in geometry.geoms if poly.area >= min_area])
+        
+        # Merge any overlapping polygons
+        if isinstance(geometry, MultiPolygon):
+            geometry = unary_union(geometry)
+        
+        # Final validity check
+        geometry = make_valid(geometry)
+
+        return geometry
 
     def _remove_small_polygons(self, geometry, min_area):
         if isinstance(geometry, Polygon):
@@ -851,3 +879,29 @@ class LayerProcessor:
         
         log_info(f"Final state of self.all_layers[{layer_name}]: {self.all_layers[layer_name]}")
         return gdf
+
+
+    def _merge_close_vertices(self, geometry, tolerance=0.1):
+        def merge_points(geom):
+            if isinstance(geom, LineString):
+                coords = list(geom.coords)
+                merged_coords = [coords[0]]
+                for coord in coords[1:]:
+                    if Point(coord).distance(Point(merged_coords[-1])) > tolerance:
+                        merged_coords.append(coord)
+                return LineString(merged_coords)
+            elif isinstance(geom, Polygon):
+                exterior_coords = merge_points(LineString(geom.exterior.coords)).coords
+                interiors = [merge_points(LineString(interior.coords)).coords for interior in geom.interiors]
+                return Polygon(exterior_coords, interiors)
+            elif isinstance(geom, MultiPolygon):
+                return MultiPolygon([merge_points(part) for part in geom.geoms])
+            elif isinstance(geom, MultiLineString):
+                return MultiLineString([merge_points(part) for part in geom.geoms])
+            else:
+                return geom
+
+        if isinstance(geometry, GeometryCollection):
+            return GeometryCollection([merge_points(geom) for geom in geometry.geoms])
+        else:
+            return merge_points(geometry)
