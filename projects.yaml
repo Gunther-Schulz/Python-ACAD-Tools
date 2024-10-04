@@ -402,7 +402,7 @@ projects:
               - Geltungsbereich NO
               - Geltungsbereich S
         bluntAngles:
-          angleThreshold: 45  # Angles smaller than this will be blunted
+          angleThreshold: 25  # Angles smaller than this will be blunted
           distance: 10.0  # Distance to move the vertex along the angle bisector
         outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/ausgleich.shp"
       - name: Ausgleich Schraffur
