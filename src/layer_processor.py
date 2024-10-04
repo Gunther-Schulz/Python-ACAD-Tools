@@ -4,7 +4,9 @@ from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString,
 from src.utils import log_info, log_warning, log_error
 import os
 from src.wmts_downloader import download_wmts_tiles, download_wms_tiles, process_and_stitch_tiles
-from shapely.ops import unary_union
+from shapely.ops import unary_union, linemerge
+from shapely.validation import make_valid
+from shapely.geometry import LinearRing
 import shutil
 from src.contour_processor import process_contour
 from owslib.wmts import WebMapTileService
@@ -447,25 +449,67 @@ class LayerProcessor:
         min_area = 1
         sliver_removal_distance = 0.05
 
-        if isinstance(geometry, (Polygon, MultiPolygon)):
-            # For polygons, use buffer trick
-            geometry = geometry.buffer(-sliver_removal_distance).buffer(sliver_removal_distance)
-            
-            # Remove small polygons
-            if isinstance(geometry, Polygon):
-                if geometry.area < min_area:
-                    return None
-            elif isinstance(geometry, MultiPolygon):
-                geometry = MultiPolygon([poly for poly in geometry.geoms if poly.area >= min_area])
-        
-        # Merge any overlapping polygons
-        if isinstance(geometry, MultiPolygon):
-            geometry = unary_union(geometry)
-        
-        # Final validity check
-        geometry = make_valid(geometry)
+        if isinstance(geometry, Polygon):
+            return self._clean_polygon(geometry, sliver_removal_distance, min_area)
+        elif isinstance(geometry, MultiPolygon):
+            cleaned_polygons = [self._clean_polygon(poly, sliver_removal_distance, min_area) 
+                                for poly in geometry.geoms]
+            cleaned_polygons = [poly for poly in cleaned_polygons if poly is not None]
+            if not cleaned_polygons:
+                return None
+            return MultiPolygon(cleaned_polygons)
+        elif isinstance(geometry, GeometryCollection):
+            cleaned_geoms = [self._clean_single_geometry(geom) for geom in geometry.geoms]
+            cleaned_geoms = [geom for geom in cleaned_geoms if geom is not None]
+            if not cleaned_geoms:
+                return None
+            return GeometryCollection(cleaned_geoms)
+        else:
+            # For non-polygon geometries, just return the simplified version
+            return geometry
 
-        return geometry
+    def _clean_polygon(self, polygon, sliver_removal_distance, min_area):
+        # Clean the exterior
+        cleaned_exterior = self._clean_linear_ring(polygon.exterior, sliver_removal_distance)
+        if cleaned_exterior is None:
+            return None
+        
+        # Clean the interiors
+        cleaned_interiors = [self._clean_linear_ring(interior, sliver_removal_distance) 
+                             for interior in polygon.interiors]
+        cleaned_interiors = [interior for interior in cleaned_interiors if interior is not None]
+        
+        # Reconstruct the polygon
+        cleaned_polygon = Polygon(cleaned_exterior, cleaned_interiors)
+        
+        # Remove small polygons
+        if cleaned_polygon.area < min_area:
+            return None
+        
+        return cleaned_polygon
+
+    def _clean_linear_ring(self, ring, tolerance):
+        # Convert to LineString to use linemerge
+        line = LineString(ring.coords)
+        
+        # Merge any nearly coincident line segments
+        merged = linemerge([line])
+        
+        # Remove any points that are too close together
+        cleaned_coords = []
+        for coord in merged.coords:
+            if not cleaned_coords or Point(coord).distance(Point(cleaned_coords[-1])) > tolerance:
+                cleaned_coords.append(coord)
+        
+        # Ensure the ring is closed
+        if cleaned_coords[0] != cleaned_coords[-1]:
+            cleaned_coords.append(cleaned_coords[0])
+        
+        # Check if we have enough coordinates to form a valid LinearRing
+        if len(cleaned_coords) < 4:
+            return None
+        
+        return LinearRing(cleaned_coords)
 
     def _remove_small_polygons(self, geometry, min_area):
         if isinstance(geometry, Polygon):
