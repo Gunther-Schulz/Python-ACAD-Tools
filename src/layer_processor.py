@@ -599,7 +599,7 @@ class LayerProcessor:
         
         # Remove small polygons and attempt to remove slivers
         min_area = 1
-        sliver_removal_distance = 0.05
+        sliver_removal_distance = 0.02
 
         if isinstance(geometry, Polygon):
             return self._clean_polygon(geometry, sliver_removal_distance, min_area)
