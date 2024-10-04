@@ -414,7 +414,7 @@ projects:
               - Geltungsbereich S
         bluntAngles:
           angleThreshold: 45  # Angles smaller than this will be blunted
-          distance: 0.5  # Distance to move the vertex along the angle bisector
+          distance: 2.0  # Distance to move the vertex along the angle bisector
       - name: Ausgleich Schraffur
         update: true
         style:
