@@ -15,6 +15,11 @@ from shapely.geometry import Polygon, LineString
 from shapely.geometry import MultiPolygon, Polygon
 from shapely.validation import make_valid
 import pandas as pd
+import math
+from geopandas import GeoSeries
+from shapely.geometry import Point, LineString, Polygon, MultiPolygon, GeometryCollection
+from shapely.validation import explain_validity
+import re
 
 class LayerProcessor:
     def __init__(self, project_loader, plot_ops=False):
@@ -120,6 +125,26 @@ class LayerProcessor:
                 gdf['attributes'] = gdf['attributes'].apply(lambda x: {**x, key: value})
             
             self.all_layers[layer_name] = gdf
+
+        if 'bluntAngles' in layer_obj:
+            blunt_config = layer_obj['bluntAngles']
+            angle_threshold = blunt_config.get('angleThreshold', 45)
+            blunt_distance = blunt_config.get('distance', 0.5)
+
+            log_info(f"Applying blunt angles to layer '{layer_name}' with threshold {angle_threshold} and distance {blunt_distance}")
+
+            if layer_name in self.all_layers:
+                original_geom = self.all_layers[layer_name]
+                blunted_geom = original_geom.geometry.apply(
+                    lambda geom: self.blunt_sharp_angles(geom, angle_threshold, blunt_distance)
+                )
+                self.all_layers[layer_name].geometry = blunted_geom
+
+                log_info(f"Blunting complete for layer '{layer_name}'")
+                log_info(f"Original geometry count: {len(original_geom)}")
+                log_info(f"Blunted geometry count: {len(blunted_geom)}")
+            else:
+                log_warning(f"Layer '{layer_name}' not found for blunting angles")
 
         processed_layers.add(layer_name)
 
@@ -250,17 +275,94 @@ class LayerProcessor:
             return None
 
         source_gdf = self.all_layers[layer_name]
+        log_info(f"Initial number of geometries in {layer_name}: {len(source_gdf)}")
 
         if values:
             label_column = next((l['label'] for l in self.project_settings['dxfLayers'] if l['name'] == layer_name), None)
             if label_column and label_column in source_gdf.columns:
-                filtered_gdf = source_gdf[source_gdf[label_column].astype(str).isin(values)]
-                return filtered_gdf.geometry.unary_union
+                filtered_gdf = source_gdf[source_gdf[label_column].astype(str).isin(values)].copy()
+                log_info(f"Number of geometries after filtering by values: {len(filtered_gdf)}")
             else:
                 log_warning(f"Label column '{label_column}' not found in layer '{layer_name}'")
                 return None
         else:
-            return source_gdf.geometry.unary_union
+            filtered_gdf = source_gdf.copy()
+
+        # Check validity of original geometries
+        invalid_geoms = filtered_gdf[~filtered_gdf.geometry.is_valid]
+        if not invalid_geoms.empty:
+            log_warning(f"Found {len(invalid_geoms)} invalid geometries in layer '{layer_name}'")
+            
+            # Plot the layer with invalid points marked
+            fig, ax = plt.subplots(figsize=(12, 8))
+            filtered_gdf.plot(ax=ax, color='blue', alpha=0.5)
+            
+            for idx, geom in invalid_geoms.geometry.items():
+                reason = explain_validity(geom)
+                log_warning(f"Invalid geometry at index {idx}: {reason}")
+                
+                # Extract coordinates of invalid points
+                coords = self._extract_coords_from_reason(reason)
+                if coords:
+                    ax.plot(coords[0], coords[1], 'rx', markersize=10, markeredgewidth=2)
+                    ax.annotate(f"Invalid point", (coords[0], coords[1]), xytext=(5, 5), 
+                                textcoords='offset points', color='red', fontsize=8)
+                else:
+                    log_warning(f"Could not extract coordinates from reason: {reason}")
+            
+            # Add some buffer to the plot extent
+            x_min, y_min, x_max, y_max = filtered_gdf.total_bounds
+            ax.set_xlim(x_min - 10, x_max + 10)
+            ax.set_ylim(y_min - 10, y_max + 10)
+            
+            plt.title(f"Layer: {layer_name} - Invalid Points Marked")
+            plt.axis('equal')
+            plt.tight_layout()
+            plt.savefig(f"invalid_geometries_{layer_name}.png", dpi=300)
+            plt.close()
+
+            log_info(f"Plot saved as invalid_geometries_{layer_name}.png")
+
+        # Attempt to fix invalid geometries
+        def fix_geometry(geom):
+            if geom.is_valid:
+                return geom
+            try:
+                valid_geom = make_valid(geom)
+                if isinstance(valid_geom, (MultiPolygon, Polygon, LineString, MultiLineString)):
+                    return valid_geom
+                elif isinstance(valid_geom, GeometryCollection):
+                    valid_parts = [g for g in valid_geom.geoms if isinstance(g, (Polygon, MultiPolygon, LineString, MultiLineString))]
+                    if valid_parts:
+                        return GeometryCollection(valid_parts)
+                log_warning(f"Unable to fix geometry: {valid_geom.geom_type}")
+                return None
+            except Exception as e:
+                log_warning(f"Error fixing geometry: {e}")
+                return None
+
+        filtered_gdf['geometry'] = filtered_gdf['geometry'].apply(fix_geometry)
+        filtered_gdf = filtered_gdf[filtered_gdf['geometry'].notna()]
+        log_info(f"Number of valid geometries after fixing: {len(filtered_gdf)}")
+
+        if filtered_gdf.empty:
+            log_warning(f"No valid geometries found for layer '{layer_name}'")
+            return None
+
+        try:
+            union_result = unary_union(filtered_gdf.geometry.tolist())
+            log_info(f"Unary union result type for {layer_name}: {type(union_result)}")
+            return union_result
+        except Exception as e:
+            log_error(f"Error performing unary_union on filtered geometries: {e}")
+            return None
+
+    def _extract_coords_from_reason(self, reason):
+        # Try to extract coordinates using regex
+        match = re.search(r'\[([-\d.]+)\s+([-\d.]+)\]', reason)
+        if match:
+            return float(match.group(1)), float(match.group(2))
+        return None
 
     def create_copy_layer(self, layer_name, operation):
         source_layers = operation.get('layers', [])
@@ -491,8 +593,12 @@ class LayerProcessor:
         # Ensure the geometry is valid
         geometry = make_valid(geometry)
         
+        # Apply REVERSE buffer trick to merge nearby geometries and remove small gaps
+        buffer_distance = 0.01  # Adjust this value as needed
+        geometry = geometry.buffer(-buffer_distance).buffer(buffer_distance)
+        
         # Simplify the geometry
-        simplify_tolerance = 0.1
+        simplify_tolerance = 0.01
         geometry = geometry.simplify(simplify_tolerance, preserve_topology=True)
         
         # Remove small polygons and attempt to remove slivers
@@ -544,7 +650,7 @@ class LayerProcessor:
         
         # Merge any nearly coincident line segments
         merged = linemerge([line])
-        
+
         # Remove any points that are too close together
         cleaned_coords = []
         for coord in merged.coords:
@@ -748,7 +854,6 @@ class LayerProcessor:
         log_info(f"Total tiles for {layer_name}: {len(all_tiles)}")
 
         return self.all_layers[layer_name]
-
 
     def get_existing_tiles(self, zoom_folder):
         existing_tiles = []
@@ -974,7 +1079,6 @@ class LayerProcessor:
         log_info(f"Final state of self.all_layers[{layer_name}]: {self.all_layers[layer_name]}")
         return gdf
 
-
     def _merge_close_vertices(self, geometry, tolerance=0.1):
         def merge_points(geom):
             if isinstance(geom, LineString):
@@ -999,3 +1103,126 @@ class LayerProcessor:
             return GeometryCollection([merge_points(geom) for geom in geometry.geoms])
         else:
             return merge_points(geometry)
+
+    def blunt_sharp_angles(self, geometry, angle_threshold, blunt_distance):
+        if isinstance(geometry, GeoSeries):
+            return geometry.apply(lambda geom: self.blunt_sharp_angles(geom, angle_threshold, blunt_distance))
+        
+        log_info(f"Blunting angles for geometry: {geometry.wkt[:100]}...")
+        if isinstance(geometry, Polygon):
+            return self._blunt_polygon_angles(geometry, angle_threshold, blunt_distance)
+        elif isinstance(geometry, MultiPolygon):
+            return MultiPolygon([self._blunt_polygon_angles(poly, angle_threshold, blunt_distance) for poly in geometry.geoms])
+        elif isinstance(geometry, (LineString, MultiLineString)):
+            return self._blunt_linestring_angles(geometry, angle_threshold, blunt_distance)
+        elif isinstance(geometry, GeometryCollection):
+            new_geoms = [self.blunt_sharp_angles(geom, angle_threshold, blunt_distance) for geom in geometry.geoms]
+            return GeometryCollection(new_geoms)
+        else:
+            log_warning(f"Unsupported geometry type for blunting: {type(geometry)}")
+            return geometry
+
+    def _blunt_polygon_angles(self, polygon, angle_threshold, blunt_distance):
+        log_info(f"Blunting polygon angles: {polygon.wkt[:100]}...")
+        
+        exterior_blunted = self._blunt_ring(LinearRing(polygon.exterior.coords), angle_threshold, blunt_distance)
+        interiors_blunted = [self._blunt_ring(LinearRing(interior.coords), angle_threshold, blunt_distance) for interior in polygon.interiors]
+        
+        return Polygon(exterior_blunted, interiors_blunted)
+
+    def _blunt_ring(self, ring, angle_threshold, blunt_distance):
+        coords = list(ring.coords)
+        new_coords = []
+        
+        for i in range(len(coords) - 1):  # -1 because the last point is the same as the first for rings
+            prev_point = Point(coords[i-1])
+            current_point = Point(coords[i])
+            next_point = Point(coords[(i+1) % (len(coords)-1)])  # Wrap around for the last point
+            
+            # Skip processing if current point is identical to previous or next point
+            if current_point.equals(prev_point) or current_point.equals(next_point):
+                new_coords.append(coords[i])
+                continue
+            
+            angle = self._calculate_angle(prev_point, current_point, next_point)
+            log_info(f"Angle at point {i}: {angle} degrees")
+            
+            if angle is not None and angle < angle_threshold:
+                log_info(f"Blunting angle at point {i}")
+                blunted_points = self._create_radical_blunt_segment(prev_point, current_point, next_point, blunt_distance)
+                new_coords.extend(blunted_points)
+            else:
+                new_coords.append(coords[i])
+        
+        new_coords.append(new_coords[0])  # Close the ring
+        return LinearRing(new_coords)
+
+    def _blunt_linestring_angles(self, linestring, angle_threshold, blunt_distance):
+        log_info(f"Blunting linestring angles: {linestring.wkt[:100]}...")
+        if isinstance(linestring, MultiLineString):
+            new_linestrings = [self._blunt_linestring_angles(ls, angle_threshold, blunt_distance) for ls in linestring.geoms]
+            return MultiLineString(new_linestrings)
+        
+        coords = list(linestring.coords)
+        new_coords = [coords[0]]
+        
+        for i in range(1, len(coords) - 1):
+            prev_point = Point(coords[i-1])
+            current_point = Point(coords[i])
+            next_point = Point(coords[i+1])
+            
+            angle = self._calculate_angle(prev_point, current_point, next_point)
+            log_info(f"Angle at point {i}: {angle} degrees")
+            
+            if angle is not None and angle < angle_threshold:
+                log_info(f"Blunting angle at point {i}")
+                blunted_points = self._create_radical_blunt_segment(prev_point, current_point, next_point, blunt_distance)
+                new_coords.extend(blunted_points)
+            else:
+                new_coords.append(coords[i])
+        
+        new_coords.append(coords[-1])
+        return LineString(new_coords)
+
+    def _calculate_angle(self, p1, p2, p3):
+        v1 = [p1.x - p2.x, p1.y - p2.y]
+        v2 = [p3.x - p2.x, p3.y - p2.y]
+        
+        v1_mag = math.sqrt(v1[0]**2 + v1[1]**2)
+        v2_mag = math.sqrt(v2[0]**2 + v2[1]**2)
+        
+        # Check if either vector has zero magnitude
+        if v1_mag == 0 or v2_mag == 0:
+            log_warning(f"Zero magnitude vector encountered: v1_mag={v1_mag}, v2_mag={v2_mag}")
+            return None
+        
+        dot_product = v1[0] * v2[0] + v1[1] * v2[1]
+        
+        cos_angle = dot_product / (v1_mag * v2_mag)
+        cos_angle = max(-1, min(1, cos_angle))  # Ensure the value is between -1 and 1
+        angle_rad = math.acos(cos_angle)
+        return math.degrees(angle_rad)
+
+    def _create_radical_blunt_segment(self, p1, p2, p3, blunt_distance):
+        log_info(f"Creating radical blunt segment for points: {p1}, {p2}, {p3}")
+        v1 = [(p1.x - p2.x), (p1.y - p2.y)]
+        v2 = [(p3.x - p2.x), (p3.y - p2.y)]
+        
+        # Normalize vectors
+        v1_mag = math.sqrt(v1[0]**2 + v1[1]**2)
+        v2_mag = math.sqrt(v2[0]**2 + v2[1]**2)
+        
+        # Check if either vector has zero magnitude
+        if v1_mag == 0 or v2_mag == 0:
+            log_warning(f"Zero magnitude vector encountered in blunt segment: v1_mag={v1_mag}, v2_mag={v2_mag}")
+            return [p2.coords[0]]  # Return the original point if we can't create a blunt segment
+        
+        v1_norm = [v1[0] / v1_mag, v1[1] / v1_mag]
+        v2_norm = [v2[0] / v2_mag, v2[1] / v2_mag]
+        
+        # Calculate points for the new segment
+        point1 = (p2.x + v1_norm[0] * blunt_distance, p2.y + v1_norm[1] * blunt_distance)
+        point2 = (p2.x + v2_norm[0] * blunt_distance, p2.y + v2_norm[1] * blunt_distance)
+        
+        log_info(f"Radical blunt segment created: {point1}, {point2}")
+        return [point1, point2]
