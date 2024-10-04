@@ -8,3 +8,5 @@ temp.dxf
 *.log
 
 .cache/
+
+invalid_geometries_Ausgleich.png

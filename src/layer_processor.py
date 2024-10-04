@@ -594,12 +594,12 @@ class LayerProcessor:
         geometry = make_valid(geometry)
         
         # Simplify the geometry
-        simplify_tolerance = 0.1
+        simplify_tolerance = 0.01
         geometry = geometry.simplify(simplify_tolerance, preserve_topology=True)
         
         # Remove small polygons and attempt to remove slivers
         min_area = 1
-        sliver_removal_distance = 0.02
+        sliver_removal_distance = 0.05
 
         if isinstance(geometry, Polygon):
             return self._clean_polygon(geometry, sliver_removal_distance, min_area)

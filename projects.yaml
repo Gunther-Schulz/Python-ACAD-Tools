@@ -401,20 +401,20 @@ projects:
               - Geltungsbereich NW
               - Geltungsbereich NO
               - Geltungsbereich S
-        # bluntAngles:
-        #   angleThreshold: 45  # Angles smaller than this will be blunted
-        #   distance: 10.0  # Distance to move the vertex along the angle bisector
+        bluntAngles:
+          angleThreshold: 45  # Angles smaller than this will be blunted
+          distance: 10.0  # Distance to move the vertex along the angle bisector
         outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/ausgleich.shp"
       - name: Ausgleich Schraffur
         update: true
         style:
           color: "Dark Green"
           transparency: 0.6
-        # attributes:
-        #   hatch:
-        #     layers:
-        #       - Ausgleich
-        #     individual_hatches: true
+        attributes:
+          hatch:
+            layers:
+              - Ausgleich
+            individual_hatches: true
       - name: Grünfläche
         update: true
         close: true
@@ -432,13 +432,13 @@ projects:
         style:
           color: "Light Green"
           transparency: 0.6
-        # attributes:
-        #   hatch:
-        #     layers:
-        #       - Grünfläche
-        #     individual_hatches: true
-        #     # pattern: 'ANSI31'
-        #     # scale: 50  # Adjust this value to change the hatch density
+        attributes:
+          hatch:
+            layers:
+              - Grünfläche
+            individual_hatches: true
+            # pattern: 'ANSI31'
+            # scale: 50  # Adjust this value to change the hatch density
       - name: Baufeld
         update: true
         close: true
@@ -466,14 +466,14 @@ projects:
         style:
           color: "Light Red"
           transparency: 0.6
-        # attributes:
-        #   hatch:
-        #     layers:
-        #       - Baufeld
-        #     individual_hatches: true 
-        #     # pattern: 'ANSI31'
-        #     # scale: 50  # Adjust this value to change the hatch density
-        #     # color: "Blue"  # ACI color index for Light Red
+        attributes:
+          hatch:
+            layers:
+              - Baufeld
+            individual_hatches: true 
+            # pattern: 'ANSI31'
+            # scale: 50  # Adjust this value to change the hatch density
+            # color: "Blue"  # ACI color index for Light Red
       - name: Baugrenze 2
         update: true
         style:
