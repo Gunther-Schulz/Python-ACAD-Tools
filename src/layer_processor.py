@@ -57,7 +57,7 @@ class LayerProcessor:
             return
 
         # Check for unrecognized keys
-        recognized_keys = {'name', 'update', 'operations', 'shapeFile', 'dxfLayer', 'outputShapeFile', 'style', 'labelStyle', 'label', 'close', 'linetypeScale', 'linetypeGeneration', 'viewports'}
+        recognized_keys = {'name', 'update', 'operations', 'shapeFile', 'dxfLayer', 'outputShapeFile', 'style', 'labelStyle', 'label', 'close', 'linetypeScale', 'linetypeGeneration', 'viewports', 'attributes'}
         unrecognized_keys = set(layer_obj.keys()) - recognized_keys
         if unrecognized_keys:
             log_warning(f"Unrecognized keys in layer {layer_name}: {', '.join(unrecognized_keys)}")
@@ -103,8 +103,19 @@ class LayerProcessor:
         if 'outputShapeFile' in layer_obj:
             self.write_shapefile(layer_name, layer_obj['outputShapeFile'])
 
-        if 'hatch' in layer_obj:
-            self._process_hatch_config(layer_name, layer_obj['hatch'])
+        if 'attributes' in layer_obj:
+            if layer_name not in self.all_layers or self.all_layers[layer_name] is None:
+                self.all_layers[layer_name] = gpd.GeoDataFrame(geometry=[], crs=self.crs)
+            
+            gdf = self.all_layers[layer_name]
+            if 'attributes' not in gdf.columns:
+                gdf['attributes'] = None
+            
+            gdf['attributes'] = gdf['attributes'].apply(lambda x: {} if x is None else x)
+            for key, value in layer_obj['attributes'].items():
+                gdf['attributes'] = gdf['attributes'].apply(lambda x: {**x, key: value})
+            
+            self.all_layers[layer_name] = gdf
 
         processed_layers.add(layer_name)
 
