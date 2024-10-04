@@ -6,6 +6,7 @@ from src.utils import log_info, log_warning, log_error
 import geopandas as gpd
 import os
 from ezdxf.lldxf.const import LWPOLYLINE_PLINEGEN
+from ezdxf import pattern
 
 
 
@@ -141,6 +142,10 @@ class DXFExporter:
         
         if 'viewports' in layer_info:
             self._process_viewport_styles(doc, layer_name, layer_info['viewports'])
+        
+        # Add hatch processing
+        if 'hatch' in layer_info:
+            self._process_hatch(doc, msp, layer_name, layer_info['hatch'])
 
     def _process_wmts_layer(self, doc, msp, layer_name, layer_info):
         log_info(f"Processing WMTS layer: {layer_name}")
@@ -757,3 +762,82 @@ class DXFExporter:
     def register_app_id(self, doc):
         if 'DXFEXPORTER' not in doc.appids:
             doc.appids.new('DXFEXPORTER')
+
+    def _process_hatch(self, doc, msp, layer_name, layer_info):
+        log_info(f"Processing hatch for layer: {layer_name}")
+        
+        # Get the hatch configuration
+        layer_data = self.all_layers[layer_name]
+        if 'attributes' not in layer_data.columns or layer_data['attributes'].empty:
+            log_warning(f"No attributes found for layer: {layer_name}")
+            return
+        
+        hatch_config = layer_data['attributes'].iloc[0].get('hatch_config', {})
+        if not hatch_config:
+            log_warning(f"No hatch configuration found for layer: {layer_name}")
+            return
+        
+        # Get the boundary geometry
+        boundary_layers = hatch_config.get('layers', [])
+        boundary_geometry = self._get_boundary_geometry(boundary_layers)
+        
+        if boundary_geometry is None or boundary_geometry.is_empty:
+            log_warning(f"No valid boundary geometry found for hatch in layer: {layer_name}")
+            return
+        
+        # Create hatch
+        hatch = msp.add_hatch(color=self.get_color_code(hatch_config.get('color', 'White')))
+        
+        # Set hatch pattern
+        pattern_name = hatch_config.get('pattern', 'SOLID')
+        scale = hatch_config.get('scale', 1)
+        if pattern_name != 'SOLID':
+            try:
+                hatch.set_pattern_fill(pattern_name, scale=scale)
+            except ezdxf.DXFValueError:
+                log_warning(f"Invalid hatch pattern: {pattern_name}. Using SOLID instead.")
+                hatch.set_pattern_fill("SOLID")
+        
+        # Add boundary paths
+        self._add_boundary_paths(hatch, boundary_geometry)
+        
+        # Set layer
+        hatch.dxf.layer = layer_name
+        
+        self.attach_custom_data(hatch)
+        log_info(f"Added hatch to layer: {layer_name}")
+
+    def _get_boundary_geometry(self, boundary_layers):
+        combined_geometry = None
+        for layer_name in boundary_layers:
+            if layer_name in self.all_layers:
+                layer_geometry = self.all_layers[layer_name]
+                if isinstance(layer_geometry, gpd.GeoDataFrame):
+                    layer_geometry = layer_geometry.geometry.unary_union
+                if combined_geometry is None:
+                    combined_geometry = layer_geometry
+                else:
+                    combined_geometry = combined_geometry.union(layer_geometry)
+        return combined_geometry
+
+    def _add_boundary_paths(self, hatch, geometry):
+        if isinstance(geometry, (Polygon, MultiPolygon)):
+            if isinstance(geometry, Polygon):
+                polygons = [geometry]
+            else:
+                polygons = list(geometry.geoms)
+            
+            for polygon in polygons:
+                exterior_path = hatch.paths.add_polyline_path(list(polygon.exterior.coords))
+                for interior in polygon.interiors:
+                    hatch.paths.add_polyline_path(list(interior.coords))
+        elif isinstance(geometry, (LineString, MultiLineString)):
+            if isinstance(geometry, LineString):
+                linestrings = [geometry]
+            else:
+                linestrings = list(geometry.geoms)
+            
+            for linestring in linestrings:
+                hatch.paths.add_polyline_path(list(linestring.coords))
+        else:
+            log_warning(f"Unsupported geometry type for hatch boundary: {type(geometry)}")

@@ -103,8 +103,43 @@ class LayerProcessor:
         if 'outputShapeFile' in layer_obj:
             self.write_shapefile(layer_name, layer_obj['outputShapeFile'])
 
+        if 'hatch' in layer_obj:
+            self._process_hatch_config(layer_name, layer_obj['hatch'])
+
         processed_layers.add(layer_name)
 
+    def _process_hatch_config(self, layer_name, hatch_config):
+        log_info(f"Processing hatch configuration for layer: {layer_name}")
+        
+        # Validate hatch configuration
+        if 'layers' not in hatch_config:
+            log_warning(f"No boundary layers specified for hatch in layer: {layer_name}")
+            return
+        
+        # Ensure all boundary layers are processed
+        for boundary_layer in hatch_config['layers']:
+            if boundary_layer not in self.all_layers:
+                self.process_layer(boundary_layer, set())
+        
+        # Store hatch configuration in the layer properties
+        if layer_name not in self.all_layers or self.all_layers[layer_name] is None:
+            self.all_layers[layer_name] = gpd.GeoDataFrame(geometry=[], crs=self.crs)
+        
+        # Create a copy of the existing DataFrame
+        gdf = self.all_layers[layer_name].copy()
+        
+        # If 'attributes' column doesn't exist, create it
+        if 'attributes' not in gdf.columns:
+            gdf['attributes'] = None
+        
+        # Update the 'attributes' column with the hatch configuration
+        gdf.loc[:, 'attributes'] = gdf['attributes'].apply(lambda x: {} if x is None else x)
+        gdf.loc[:, 'attributes'] = gdf['attributes'].apply(lambda x: {**x, 'hatch_config': hatch_config})
+        
+        # Assign the modified DataFrame back to self.all_layers
+        self.all_layers[layer_name] = gdf
+        
+        log_info(f"Stored hatch configuration for layer: {layer_name}")
 
     def levenshtein_distance(self, s1, s2):
         if len(s1) < len(s2):
