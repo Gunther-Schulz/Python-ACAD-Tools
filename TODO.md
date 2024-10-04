@@ -1,3 +1,6 @@
+- check for self intersections at each step
+- apply buffer(0) to all layers to 
+
 - add and update are still unclear. test them and improve. do we need add? is it even active? Keep styling if layer exists
 - Default line thickness shuld be: 0.13
 - contour get a Label Label layer. Fix that

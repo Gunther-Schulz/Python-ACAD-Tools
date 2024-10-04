@@ -278,12 +278,39 @@ class LayerProcessor:
             label_column = next((l['label'] for l in self.project_settings['dxfLayers'] if l['name'] == layer_name), None)
             if label_column and label_column in source_gdf.columns:
                 filtered_gdf = source_gdf[source_gdf[label_column].astype(str).isin(values)]
-                return filtered_gdf.geometry.unary_union
             else:
                 log_warning(f"Label column '{label_column}' not found in layer '{layer_name}'")
                 return None
         else:
-            return source_gdf.geometry.unary_union
+            filtered_gdf = source_gdf
+
+        # Attempt to fix invalid geometries
+        def fix_geometry(geom):
+            try:
+                valid_geom = make_valid(geom)
+                if isinstance(valid_geom, (MultiPolygon, Polygon)):
+                    return valid_geom
+                elif isinstance(valid_geom, GeometryCollection):
+                    polygons = [g for g in valid_geom.geoms if isinstance(g, (Polygon, MultiPolygon))]
+                    if polygons:
+                        return MultiPolygon(polygons)
+                return None
+            except Exception as e:
+                log_warning(f"Error fixing geometry: {e}")
+                return None
+
+        filtered_gdf['geometry'] = filtered_gdf['geometry'].apply(fix_geometry)
+        filtered_gdf = filtered_gdf[filtered_gdf['geometry'].notna()]
+
+        if filtered_gdf.empty:
+            log_warning(f"No valid geometries found for layer '{layer_name}'")
+            return None
+
+        try:
+            return filtered_gdf.geometry.unary_union
+        except Exception as e:
+            log_error(f"Error performing unary_union on filtered geometries: {e}")
+            return None
 
     def create_copy_layer(self, layer_name, operation):
         source_layers = operation.get('layers', [])
@@ -1056,10 +1083,15 @@ class LayerProcessor:
             current_point = Point(coords[i])
             next_point = Point(coords[(i+1) % (len(coords)-1)])  # Wrap around for the last point
             
+            # Skip processing if current point is identical to previous or next point
+            if current_point.equals(prev_point) or current_point.equals(next_point):
+                new_coords.append(coords[i])
+                continue
+            
             angle = self._calculate_angle(prev_point, current_point, next_point)
             log_info(f"Angle at point {i}: {angle} degrees")
             
-            if angle < angle_threshold:
+            if angle is not None and angle < angle_threshold:
                 log_info(f"Blunting angle at point {i}")
                 blunted_points = self._create_radical_blunt_segment(prev_point, current_point, next_point, blunt_distance)
                 new_coords.extend(blunted_points)
@@ -1086,7 +1118,7 @@ class LayerProcessor:
             angle = self._calculate_angle(prev_point, current_point, next_point)
             log_info(f"Angle at point {i}: {angle} degrees")
             
-            if angle < angle_threshold:
+            if angle is not None and angle < angle_threshold:
                 log_info(f"Blunting angle at point {i}")
                 blunted_points = self._create_radical_blunt_segment(prev_point, current_point, next_point, blunt_distance)
                 new_coords.extend(blunted_points)
@@ -1100,12 +1132,19 @@ class LayerProcessor:
         v1 = [p1.x - p2.x, p1.y - p2.y]
         v2 = [p3.x - p2.x, p3.y - p2.y]
         
-        dot_product = v1[0] * v2[0] + v1[1] * v2[1]
         v1_mag = math.sqrt(v1[0]**2 + v1[1]**2)
         v2_mag = math.sqrt(v2[0]**2 + v2[1]**2)
         
+        # Check if either vector has zero magnitude
+        if v1_mag == 0 or v2_mag == 0:
+            log_warning(f"Zero magnitude vector encountered: v1_mag={v1_mag}, v2_mag={v2_mag}")
+            return None
+        
+        dot_product = v1[0] * v2[0] + v1[1] * v2[1]
+        
         cos_angle = dot_product / (v1_mag * v2_mag)
-        angle_rad = math.acos(min(1, max(-1, cos_angle)))
+        cos_angle = max(-1, min(1, cos_angle))  # Ensure the value is between -1 and 1
+        angle_rad = math.acos(cos_angle)
         return math.degrees(angle_rad)
 
     def _create_radical_blunt_segment(self, p1, p2, p3, blunt_distance):
@@ -1116,6 +1155,12 @@ class LayerProcessor:
         # Normalize vectors
         v1_mag = math.sqrt(v1[0]**2 + v1[1]**2)
         v2_mag = math.sqrt(v2[0]**2 + v2[1]**2)
+        
+        # Check if either vector has zero magnitude
+        if v1_mag == 0 or v2_mag == 0:
+            log_warning(f"Zero magnitude vector encountered in blunt segment: v1_mag={v1_mag}, v2_mag={v2_mag}")
+            return [p2.coords[0]]  # Return the original point if we can't create a blunt segment
+        
         v1_norm = [v1[0] / v1_mag, v1[1] / v1_mag]
         v2_norm = [v2[0] / v2_mag, v2[1] / v2_mag]
         
