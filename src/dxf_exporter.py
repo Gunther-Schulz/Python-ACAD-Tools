@@ -264,7 +264,9 @@ class DXFExporter:
         layer.on = properties['is_on']
         
         if 'transparency' in properties:
-            layer.transparency = int(properties['transparency'] * 100)
+            # Ensure transparency is between 0 and 1
+            transparency = max(0, min(properties['transparency'], 1))
+            layer.transparency = transparency
         
         log_info(f"Updated layer properties: {properties}")
 
@@ -534,7 +536,7 @@ class DXFExporter:
             'locked': style.get('locked', False),
             'frozen': style.get('frozen', False),
             'is_on': style.get('is_on', True),
-            'transparency': style.get('transparency', 0.0),
+            'transparency': max(0, min(style.get('transparency', 0.0), 1)),
             'close': style.get('close', True),
             'close_linestring': style.get('close_linestring', False)
         }

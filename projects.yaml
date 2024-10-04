@@ -434,6 +434,7 @@ projects:
         update: true
         style:
           color: "Light Red"
+          transparency: 0.6
       - name: Baugrenze 2
         update: true
         style:
