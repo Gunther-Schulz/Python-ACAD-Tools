@@ -18,6 +18,7 @@ import pandas as pd
 import math
 from geopandas import GeoSeries
 from shapely.geometry import Point, LineString, Polygon, MultiPolygon, GeometryCollection
+from shapely.validation import explain_validity
 
 class LayerProcessor:
     def __init__(self, project_loader, plot_ops=False):
@@ -273,27 +274,39 @@ class LayerProcessor:
             return None
 
         source_gdf = self.all_layers[layer_name]
+        log_info(f"Initial number of geometries in {layer_name}: {len(source_gdf)}")
 
         if values:
             label_column = next((l['label'] for l in self.project_settings['dxfLayers'] if l['name'] == layer_name), None)
             if label_column and label_column in source_gdf.columns:
-                filtered_gdf = source_gdf[source_gdf[label_column].astype(str).isin(values)]
+                filtered_gdf = source_gdf[source_gdf[label_column].astype(str).isin(values)].copy()
+                log_info(f"Number of geometries after filtering by values: {len(filtered_gdf)}")
             else:
                 log_warning(f"Label column '{label_column}' not found in layer '{layer_name}'")
                 return None
         else:
-            filtered_gdf = source_gdf
+            filtered_gdf = source_gdf.copy()
+
+        # Check validity of original geometries
+        invalid_geoms = filtered_gdf[~filtered_gdf.geometry.is_valid]
+        if not invalid_geoms.empty:
+            log_warning(f"Found {len(invalid_geoms)} invalid geometries in layer '{layer_name}'")
+            for idx, geom in invalid_geoms.geometry.items():
+                log_warning(f"Invalid geometry at index {idx}: {explain_validity(geom)}")
 
         # Attempt to fix invalid geometries
         def fix_geometry(geom):
+            if geom.is_valid:
+                return geom
             try:
                 valid_geom = make_valid(geom)
-                if isinstance(valid_geom, (MultiPolygon, Polygon)):
+                if isinstance(valid_geom, (MultiPolygon, Polygon, LineString, MultiLineString)):
                     return valid_geom
                 elif isinstance(valid_geom, GeometryCollection):
-                    polygons = [g for g in valid_geom.geoms if isinstance(g, (Polygon, MultiPolygon))]
-                    if polygons:
-                        return MultiPolygon(polygons)
+                    valid_parts = [g for g in valid_geom.geoms if isinstance(g, (Polygon, MultiPolygon, LineString, MultiLineString))]
+                    if valid_parts:
+                        return GeometryCollection(valid_parts)
+                log_warning(f"Unable to fix geometry: {valid_geom.geom_type}")
                 return None
             except Exception as e:
                 log_warning(f"Error fixing geometry: {e}")
@@ -301,13 +314,16 @@ class LayerProcessor:
 
         filtered_gdf['geometry'] = filtered_gdf['geometry'].apply(fix_geometry)
         filtered_gdf = filtered_gdf[filtered_gdf['geometry'].notna()]
+        log_info(f"Number of valid geometries after fixing: {len(filtered_gdf)}")
 
         if filtered_gdf.empty:
             log_warning(f"No valid geometries found for layer '{layer_name}'")
             return None
 
         try:
-            return filtered_gdf.geometry.unary_union
+            union_result = filtered_gdf.geometry.unary_union
+            log_info(f"Unary union result type for {layer_name}: {type(union_result)}")
+            return union_result
         except Exception as e:
             log_error(f"Error performing unary_union on filtered geometries: {e}")
             return None
