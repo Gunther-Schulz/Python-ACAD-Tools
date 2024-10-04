@@ -429,6 +429,7 @@ projects:
               - FG Buffer
           # - type: smooth
           #   strength: 1.5
+        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/baufeld.shp"
       - name: Baufeld Schraffur
         update: true
         style:
