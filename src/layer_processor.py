@@ -1026,8 +1026,10 @@ class LayerProcessor:
             return geometry.apply(lambda geom: self.blunt_sharp_angles(geom, angle_threshold, blunt_distance))
         
         log_info(f"Blunting angles for geometry: {geometry.wkt[:100]}...")
-        if isinstance(geometry, (Polygon, MultiPolygon)):
+        if isinstance(geometry, Polygon):
             return self._blunt_polygon_angles(geometry, angle_threshold, blunt_distance)
+        elif isinstance(geometry, MultiPolygon):
+            return MultiPolygon([self._blunt_polygon_angles(poly, angle_threshold, blunt_distance) for poly in geometry.geoms])
         elif isinstance(geometry, (LineString, MultiLineString)):
             return self._blunt_linestring_angles(geometry, angle_threshold, blunt_distance)
         elif isinstance(geometry, GeometryCollection):
@@ -1039,14 +1041,33 @@ class LayerProcessor:
 
     def _blunt_polygon_angles(self, polygon, angle_threshold, blunt_distance):
         log_info(f"Blunting polygon angles: {polygon.wkt[:100]}...")
-        if isinstance(polygon, MultiPolygon):
-            new_polygons = [self._blunt_polygon_angles(p, angle_threshold, blunt_distance) for p in polygon.geoms]
-            return MultiPolygon(new_polygons)
         
-        exterior_blunted = self._blunt_linestring_angles(LineString(polygon.exterior.coords), angle_threshold, blunt_distance)
-        interiors_blunted = [self._blunt_linestring_angles(LineString(interior.coords), angle_threshold, blunt_distance) for interior in polygon.interiors]
+        exterior_blunted = self._blunt_ring(LinearRing(polygon.exterior.coords), angle_threshold, blunt_distance)
+        interiors_blunted = [self._blunt_ring(LinearRing(interior.coords), angle_threshold, blunt_distance) for interior in polygon.interiors]
         
         return Polygon(exterior_blunted, interiors_blunted)
+
+    def _blunt_ring(self, ring, angle_threshold, blunt_distance):
+        coords = list(ring.coords)
+        new_coords = []
+        
+        for i in range(len(coords) - 1):  # -1 because the last point is the same as the first for rings
+            prev_point = Point(coords[i-1])
+            current_point = Point(coords[i])
+            next_point = Point(coords[(i+1) % (len(coords)-1)])  # Wrap around for the last point
+            
+            angle = self._calculate_angle(prev_point, current_point, next_point)
+            log_info(f"Angle at point {i}: {angle} degrees")
+            
+            if angle < angle_threshold:
+                log_info(f"Blunting angle at point {i}")
+                blunted_points = self._create_radical_blunt_segment(prev_point, current_point, next_point, blunt_distance)
+                new_coords.extend(blunted_points)
+            else:
+                new_coords.append(coords[i])
+        
+        new_coords.append(new_coords[0])  # Close the ring
+        return LinearRing(new_coords)
 
     def _blunt_linestring_angles(self, linestring, angle_threshold, blunt_distance):
         log_info(f"Blunting linestring angles: {linestring.wkt[:100]}...")
@@ -1067,15 +1088,13 @@ class LayerProcessor:
             
             if angle < angle_threshold:
                 log_info(f"Blunting angle at point {i}")
-                blunted_points = self._create_blunt_segment(prev_point, current_point, next_point, blunt_distance)
+                blunted_points = self._create_radical_blunt_segment(prev_point, current_point, next_point, blunt_distance)
                 new_coords.extend(blunted_points)
             else:
                 new_coords.append(coords[i])
         
         new_coords.append(coords[-1])
-        result = LineString(new_coords)
-        log_info(f"Blunted linestring result: {result.wkt[:100]}...")
-        return result
+        return LineString(new_coords)
 
     def _calculate_angle(self, p1, p2, p3):
         v1 = [p1.x - p2.x, p1.y - p2.y]
@@ -1089,8 +1108,8 @@ class LayerProcessor:
         angle_rad = math.acos(min(1, max(-1, cos_angle)))
         return math.degrees(angle_rad)
 
-    def _create_blunt_segment(self, p1, p2, p3, blunt_distance):
-        log_info(f"Creating blunt segment for points: {p1}, {p2}, {p3}")
+    def _create_radical_blunt_segment(self, p1, p2, p3, blunt_distance):
+        log_info(f"Creating radical blunt segment for points: {p1}, {p2}, {p3}")
         v1 = [(p1.x - p2.x), (p1.y - p2.y)]
         v2 = [(p3.x - p2.x), (p3.y - p2.y)]
         
@@ -1104,5 +1123,5 @@ class LayerProcessor:
         point1 = (p2.x + v1_norm[0] * blunt_distance, p2.y + v1_norm[1] * blunt_distance)
         point2 = (p2.x + v2_norm[0] * blunt_distance, p2.y + v2_norm[1] * blunt_distance)
         
-        log_info(f"Blunt segment created: {point1}, {point2}")
+        log_info(f"Radical blunt segment created: {point1}, {point2}")
         return [point1, point2]
