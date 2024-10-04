@@ -774,8 +774,8 @@ class DXFExporter:
             log_warning(f"No valid boundary geometry found for hatch in layer: {layer_name}")
             return
         
-        # Create hatch
-        hatch = msp.add_hatch(color=self.get_color_code(hatch_config.get('color', 'White')))
+        # Create hatch without specifying a color
+        hatch = msp.add_hatch()
         
         # Set hatch pattern
         pattern_name = hatch_config.get('pattern', 'SOLID')
@@ -792,6 +792,9 @@ class DXFExporter:
         
         # Set layer
         hatch.dxf.layer = layer_name
+        
+        # Set color to BYLAYER
+        hatch.dxf.color = ezdxf.const.BYLAYER
         
         self.attach_custom_data(hatch)
         log_info(f"Added hatch to layer: {layer_name}")

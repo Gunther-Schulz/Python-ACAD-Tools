@@ -439,9 +439,9 @@ projects:
           hatch:
             layers:
               - Baufeld
-            pattern: 'ANSI31'
-            scale: 50  # Adjust this value to change the hatch density
-            color: "Blue"  # ACI color index for Light Red
+            # pattern: 'ANSI31'
+            # scale: 50  # Adjust this value to change the hatch density
+            # color: "Blue"  # ACI color index for Light Red
       - name: Baugrenze 2
         update: true
         style:
