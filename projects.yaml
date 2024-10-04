@@ -439,6 +439,7 @@ projects:
           hatch:
             layers:
               - Baufeld
+            individual_hatches: true 
             # pattern: 'ANSI31'
             # scale: 50  # Adjust this value to change the hatch density
             # color: "Blue"  # ACI color index for Light Red

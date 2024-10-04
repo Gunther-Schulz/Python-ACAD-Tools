@@ -774,30 +774,41 @@ class DXFExporter:
             log_warning(f"No valid boundary geometry found for hatch in layer: {layer_name}")
             return
         
-        # Create hatch without specifying a color
-        hatch = msp.add_hatch()
+        # Check if we should create individual hatches
+        individual_hatches = hatch_config.get('individual_hatches', False)
         
         # Set hatch pattern
         pattern_name = hatch_config.get('pattern', 'SOLID')
         scale = hatch_config.get('scale', 1)
-        if pattern_name != 'SOLID':
-            try:
-                hatch.set_pattern_fill(pattern_name, scale=scale)
-            except ezdxf.DXFValueError:
-                log_warning(f"Invalid hatch pattern: {pattern_name}. Using SOLID instead.")
-                hatch.set_pattern_fill("SOLID")
         
-        # Add boundary paths
-        self._add_boundary_paths(hatch, boundary_geometry)
+        if individual_hatches:
+            geometries = [boundary_geometry] if isinstance(boundary_geometry, (Polygon, LineString)) else list(boundary_geometry.geoms)
+        else:
+            geometries = [boundary_geometry]
         
-        # Set layer
-        hatch.dxf.layer = layer_name
+        for geometry in geometries:
+            # Create hatch without specifying a color
+            hatch = msp.add_hatch()
+            
+            if pattern_name != 'SOLID':
+                try:
+                    hatch.set_pattern_fill(pattern_name, scale=scale)
+                except ezdxf.DXFValueError:
+                    log_warning(f"Invalid hatch pattern: {pattern_name}. Using SOLID instead.")
+                    hatch.set_pattern_fill("SOLID")
+            
+            # Add boundary paths
+            self._add_boundary_paths(hatch, geometry)
+            
+            # Set layer
+            hatch.dxf.layer = layer_name
+            
+            # Set color to BYLAYER
+            hatch.dxf.color = ezdxf.const.BYLAYER
+            
+            self.attach_custom_data(hatch)
         
-        # Set color to BYLAYER
-        hatch.dxf.color = ezdxf.const.BYLAYER
-        
-        self.attach_custom_data(hatch)
-        log_info(f"Added hatch to layer: {layer_name}")
+        log_info(f"Added hatch{'es' if individual_hatches else ''} to layer: {layer_name}")
 
     def _get_boundary_geometry(self, boundary_layers):
         combined_geometry = None
