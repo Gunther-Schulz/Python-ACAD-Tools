@@ -19,6 +19,7 @@ import math
 from geopandas import GeoSeries
 from shapely.geometry import Point, LineString, Polygon, MultiPolygon, GeometryCollection
 from shapely.validation import explain_validity
+import re
 
 class LayerProcessor:
     def __init__(self, project_loader, plot_ops=False):
@@ -291,8 +292,36 @@ class LayerProcessor:
         invalid_geoms = filtered_gdf[~filtered_gdf.geometry.is_valid]
         if not invalid_geoms.empty:
             log_warning(f"Found {len(invalid_geoms)} invalid geometries in layer '{layer_name}'")
+            
+            # Plot the layer with invalid points marked
+            fig, ax = plt.subplots(figsize=(12, 8))
+            filtered_gdf.plot(ax=ax, color='blue', alpha=0.5)
+            
             for idx, geom in invalid_geoms.geometry.items():
-                log_warning(f"Invalid geometry at index {idx}: {explain_validity(geom)}")
+                reason = explain_validity(geom)
+                log_warning(f"Invalid geometry at index {idx}: {reason}")
+                
+                # Extract coordinates of invalid points
+                coords = self._extract_coords_from_reason(reason)
+                if coords:
+                    ax.plot(coords[0], coords[1], 'rx', markersize=10, markeredgewidth=2)
+                    ax.annotate(f"Invalid point", (coords[0], coords[1]), xytext=(5, 5), 
+                                textcoords='offset points', color='red', fontsize=8)
+                else:
+                    log_warning(f"Could not extract coordinates from reason: {reason}")
+            
+            # Add some buffer to the plot extent
+            x_min, y_min, x_max, y_max = filtered_gdf.total_bounds
+            ax.set_xlim(x_min - 10, x_max + 10)
+            ax.set_ylim(y_min - 10, y_max + 10)
+            
+            plt.title(f"Layer: {layer_name} - Invalid Points Marked")
+            plt.axis('equal')
+            plt.tight_layout()
+            plt.savefig(f"invalid_geometries_{layer_name}.png", dpi=300)
+            plt.close()
+
+            log_info(f"Plot saved as invalid_geometries_{layer_name}.png")
 
         # Attempt to fix invalid geometries
         def fix_geometry(geom):
@@ -321,12 +350,19 @@ class LayerProcessor:
             return None
 
         try:
-            union_result = filtered_gdf.geometry.unary_union
+            union_result = unary_union(filtered_gdf.geometry.tolist())
             log_info(f"Unary union result type for {layer_name}: {type(union_result)}")
             return union_result
         except Exception as e:
             log_error(f"Error performing unary_union on filtered geometries: {e}")
             return None
+
+    def _extract_coords_from_reason(self, reason):
+        # Try to extract coordinates using regex
+        match = re.search(r'\[([-\d.]+)\s+([-\d.]+)\]', reason)
+        if match:
+            return float(match.group(1)), float(match.group(2))
+        return None
 
     def create_copy_layer(self, layer_name, operation):
         source_layers = operation.get('layers', [])
