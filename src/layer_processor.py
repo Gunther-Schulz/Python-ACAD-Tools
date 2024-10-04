@@ -456,7 +456,7 @@ class LayerProcessor:
             else:
                 log_warning(f"Unsupported type for layer {layer_name}: {type(geometry)}")
                 return None
-        return geometry                       
+        return geometry
 
     def create_filtered_layer(self, layer_name, operation):
         log_info(f"Creating filtered layer: {layer_name}")
@@ -593,13 +593,13 @@ class LayerProcessor:
         # Ensure the geometry is valid
         geometry = make_valid(geometry)
         
-        # Apply REVERSE buffer trick to merge nearby geometries and remove small gaps
-        buffer_distance = 0.01  # Adjust this value as needed
-        geometry = geometry.buffer(-buffer_distance).buffer(buffer_distance)
-        
         # Simplify the geometry
         simplify_tolerance = 0.01
         geometry = geometry.simplify(simplify_tolerance, preserve_topology=True)
+        
+        # Remove thin growths
+        thin_growth_threshold = 0.0001  # Adjust this value as needed
+        geometry = self._remove_thin_growths(geometry, thin_growth_threshold)
         
         # Remove small polygons and attempt to remove slivers
         min_area = 1
@@ -622,6 +622,25 @@ class LayerProcessor:
             return GeometryCollection(cleaned_geoms)
         else:
             # For non-polygon geometries, just return the simplified version
+            return geometry
+
+    def _remove_thin_growths(self, geometry, threshold):
+        if isinstance(geometry, (Polygon, MultiPolygon)):
+            # Apply a negative buffer followed by a positive buffer
+            cleaned = geometry.buffer(-threshold).buffer(threshold)
+            
+            # Ensure the result is valid and of the same type as the input
+            cleaned = make_valid(cleaned)
+            if isinstance(geometry, Polygon) and isinstance(cleaned, MultiPolygon):
+                # If a Polygon became a MultiPolygon, take the largest part
+                largest = max(cleaned.geoms, key=lambda g: g.area)
+                return largest
+            return cleaned
+        elif isinstance(geometry, GeometryCollection):
+            cleaned_geoms = [self._remove_thin_growths(geom, threshold) for geom in geometry.geoms]
+            return GeometryCollection([g for g in cleaned_geoms if g is not None])
+        else:
+            # For non-polygon geometries, return as is
             return geometry
 
     def _clean_polygon(self, polygon, sliver_removal_distance, min_area):
