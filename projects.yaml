@@ -453,7 +453,7 @@ projects:
               - Geltungsbereich S
           - type: difference
             layers:
-              - Grünfläche
+              - Ausgleich
               - Baumabstand
               - Biotope
               - FG Buffer
