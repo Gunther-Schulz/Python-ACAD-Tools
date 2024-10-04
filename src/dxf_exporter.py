@@ -245,7 +245,11 @@ class DXFExporter:
         new_layer.on = properties['is_on']
         
         if 'transparency' in properties:
-            new_layer.transparency = int(properties['transparency'] * 100)
+            transparency = self._convert_transparency(properties['transparency'])
+            if transparency is not None:
+                new_layer.transparency = transparency
+            else:
+                log_warning(f"Invalid transparency value for layer {layer_name}: {properties['transparency']}")
         
         log_info(f"Created new layer: {layer_name}")
         log_info(f"Layer properties: {properties}")
@@ -256,10 +260,7 @@ class DXFExporter:
         return new_layer
 
     def update_layer_properties(self, layer, layer_info):
-        log_info(f"Updating properties for layer: {layer.dxf.name}")
-        layer_name = layer.dxf.name
-        properties = self.layer_properties[layer_name]
-        
+        properties = self.layer_properties[layer.dxf.name]
         layer.color = properties['color']
         layer.dxf.linetype = properties['linetype']
         layer.dxf.lineweight = properties['lineweight']
@@ -269,9 +270,11 @@ class DXFExporter:
         layer.on = properties['is_on']
         
         if 'transparency' in properties:
-            # Ensure transparency is between 0 and 1
-            transparency = max(0, min(properties['transparency'], 1))
-            layer.transparency = transparency
+            transparency = self._convert_transparency(properties['transparency'])
+            if transparency is not None:
+                layer.transparency = transparency
+            else:
+                log_warning(f"Invalid transparency value for layer {layer.dxf.name}: {properties['transparency']}")
         
         log_info(f"Updated layer properties: {properties}")
 
@@ -535,13 +538,13 @@ class DXFExporter:
             'color': self.get_color_code(style.get('color', 'White')),
             'linetype': style.get('linetype', 'Continuous'),
             'lineweight': style.get('lineweight', 13),
-            'linetypeScale': layer_info.get('linetypeScale', 1.0),
+            'linetypeScale': layer_info.get('linetypeScale', 1.0),  # Explicitly set to 1.0 if not provided
             'linetypeGeneration': bool(layer_info.get('linetypeGeneration', False)),
             'plot': style.get('plot', True),
             'locked': style.get('locked', False),
             'frozen': style.get('frozen', False),
             'is_on': style.get('is_on', True),
-            'transparency': max(0, min(style.get('transparency', 0.0), 1)),
+            'transparency': float(style.get('transparency', 0.0)),
             'close': style.get('close', True),
             'close_linestring': style.get('close_linestring', False)
         }
@@ -844,3 +847,8 @@ class DXFExporter:
                 hatch.paths.add_polyline_path(list(linestring.coords))
         else:
             log_warning(f"Unsupported geometry type for hatch boundary: {type(geometry)}")
+
+    def _convert_transparency(self, transparency):
+        if isinstance(transparency, (int, float)):
+            return max(0, min(transparency, 1))
+        return None

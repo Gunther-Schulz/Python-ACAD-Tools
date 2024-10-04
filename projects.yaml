@@ -87,7 +87,7 @@ projects:
     exportFormat: dxf
     dxfVersion: R2018
     crs: EPSG:25833
-    dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Zeichnung/Plasten3.dxf"
+    dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Zeichnung/Plasten4.dxf"
     viewports:
       - name: MainView
         center: [425, 450]
@@ -273,7 +273,7 @@ projects:
       - name: Geltungsbereich NW 2
         update: true
         close: true
-        linetypeScale: 0.2
+        linetypeScale: 1
         linetypeGeneration: true
         style:
           color: "Dark Gray"
@@ -385,13 +385,13 @@ projects:
               - Geltungsbereich NO
               - Geltungsbereich S
         outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/biotope.shp"
-      - name: Grünfläche
+      - name: Ausgleich
         update: true
         close: true
         viewports:
           - name: WorkView
             style:
-              color: "Light Green"
+              color: "Dark Green"
         operations:
           - type: copy
             layers:
@@ -404,10 +404,40 @@ projects:
               - Geltungsbereich NW
               - Geltungsbereich NO
               - Geltungsbereich S
+      - name: Ausgleich Schraffur
+        update: true
+        style:
+          color: "Dark Green"
+          # transparency: 0.6
+        attributes:
+          hatch:
+            layers:
+              - Ausgleich
+            individual_hatches: true
+      - name: Grünfläche
+        update: true
+        close: true
+        viewports:
+          - name: WorkView
+            style:
+              color: "Light Green"
+        operations:
+          - type: buffer
+            layers:
+              - Ausgleich
+            distance: -5
       - name: Grünfläche Schraffur
         update: true
         style:
           color: "Light Green"
+          # transparency: 0.6
+        attributes:
+          hatch:
+            layers:
+              - Grünfläche
+            individual_hatches: true
+            # pattern: 'ANSI31'
+            # scale: 50  # Adjust this value to change the hatch density
       - name: Baufeld
         update: true
         close: true
@@ -423,7 +453,7 @@ projects:
               - Geltungsbereich S
           - type: difference
             layers:
-              - Grünfläche
+              - Ausgleich
               - Baumabstand
               - Biotope
               - FG Buffer
@@ -434,7 +464,7 @@ projects:
         update: true
         style:
           color: "Light Red"
-          transparency: 0.6
+          # transparency: 0.6
         attributes:
           hatch:
             layers:
@@ -459,6 +489,8 @@ projects:
         style:
           linetype: ACAD_ISO02W100
           lineweight: 60
+        linetypeScale: 0.5
+        linetypeGeneration: true
         close: true
         viewports:
           - name: WorkView
@@ -470,17 +502,6 @@ projects:
               - Baufeld
             distance: -3
         outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/baugrenze.shp"
-      - name: Baugrenze 2
-        update: true
-        style:
-          color: "Green Blue"
-          lineweight: 60
-        close: true
-        operations:
-          - type: buffer
-            layers:
-              - Baugrenze
-            distance: -0.4
       - name: WMTS DOP
         # update: true
         style:
@@ -571,7 +592,7 @@ projects:
         frozen: false
         is_on: true
         vp_freeze: false
-        transparency: 0.0
+        # transparency: 0.0
       - name: Parcel
         update: true
         add: true
@@ -584,7 +605,7 @@ projects:
         frozen: false
         is_on: true 
         vp_freeze: false
-        transparency: 0.0
+        # transparency: 0.0
         locked: true
         close: true
       - name: Gemarkung
@@ -600,7 +621,7 @@ projects:
         frozen: false
         is_on: true
         vp_freeze: false
-        transparency: 0.0
+        # transparency: 0.0
       - name: Gemeinde
         update: true
         add: true
@@ -614,7 +635,7 @@ projects:
         frozen: false
         is_on: true
         vp_freeze: false
-        transparency: 0.0
+        # transparency: 0.0
       - name: Wald
         update: true
         add: true
@@ -628,7 +649,7 @@ projects:
         frozen: false
         is_on: true
         vp_freeze: false
-        transparency: 0.0
+        # transparency: 0.0
         close: true
       # - name: Biotope
       #   add: true
