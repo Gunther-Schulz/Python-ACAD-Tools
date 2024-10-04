@@ -188,6 +188,14 @@ projects:
           - name: WorkView
             style:
               color: "Dark Green"
+      - name: Wald Schraffur
+        update: true
+        attributes:
+          hatch:
+            layers:
+              - Wald
+            pattern: 'ANSI31'
+            scale: 5  # Adjust this value to change the hatch density
       - name: Biotope Input 1
         # update: true
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/biotope.shp"
@@ -408,7 +416,7 @@ projects:
         update: true
         style:
           color: "Dark Green"
-          # transparency: 0.6
+          transparency: 0.6
         attributes:
           hatch:
             layers:
@@ -430,7 +438,7 @@ projects:
         update: true
         style:
           color: "Light Green"
-          # transparency: 0.6
+          transparency: 0.6
         attributes:
           hatch:
             layers:
@@ -464,7 +472,7 @@ projects:
         update: true
         style:
           color: "Light Red"
-          # transparency: 0.6
+          transparency: 0.6
         attributes:
           hatch:
             layers:
