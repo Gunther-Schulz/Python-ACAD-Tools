@@ -206,7 +206,7 @@ projects:
         operations:
           - type: buffer
             distance: 5
-            joinStyle: round
+            # joinStyle: round
         outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/baumabstand.shp"
       - name: Baumabstand Puffer
         # update: true

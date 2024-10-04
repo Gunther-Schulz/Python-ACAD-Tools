@@ -11,6 +11,8 @@ from owslib.wmts import WebMapTileService
 import ezdxf
 from shapely.geometry import Polygon, LineString
 from shapely.geometry import MultiPolygon, Polygon
+from shapely.validation import make_valid
+import pandas as pd
 
 class LayerProcessor:
     def __init__(self, project_loader, plot_ops=False):
@@ -423,28 +425,45 @@ class LayerProcessor:
             self.all_layers[layer_name] = result_gdf
             log_info(f"Created {overlay_type} layer: {layer_name} with {len(result_geometry)} geometries")
 
+
+
+
+
     def _clean_geometry(self, geometry):
-        # Apply a small buffer to remove thin artifacts
-        epsilon = 0.01
-        geometry = geometry.buffer(epsilon, join_style=2).buffer(-epsilon, join_style=2)
+        if isinstance(geometry, (gpd.GeoSeries, pd.Series)):
+            return geometry.apply(self._clean_single_geometry)
+        else:
+            return self._clean_single_geometry(geometry)
+
+    def _clean_single_geometry(self, geometry):
+        # Ensure the geometry is valid
+        geometry = make_valid(geometry)
         
         # Simplify the geometry
         simplify_tolerance = 0.1
         geometry = geometry.simplify(simplify_tolerance, preserve_topology=True)
         
-        # Merge close vertices
-        geometry = self._merge_close_vertices(geometry, tolerance=0.1)
-        
-        # Remove small polygons
+        # Remove small polygons and attempt to remove slivers
         min_area = 1
-        geometry = geometry.apply(lambda geom: self._remove_small_polygons(geom, min_area))
+        sliver_removal_distance = 0.05
+
+        if isinstance(geometry, (Polygon, MultiPolygon)):
+            # For polygons, use buffer trick
+            geometry = geometry.buffer(-sliver_removal_distance).buffer(sliver_removal_distance)
+            
+            # Remove small polygons
+            if isinstance(geometry, Polygon):
+                if geometry.area < min_area:
+                    return None
+            elif isinstance(geometry, MultiPolygon):
+                geometry = MultiPolygon([poly for poly in geometry.geoms if poly.area >= min_area])
         
-        # Attempt to remove remaining slivers using the buffer trick
-        sliver_removal_distance = 0.05  # Adjust this value as needed
-        geometry = geometry.buffer(-sliver_removal_distance).buffer(sliver_removal_distance)
+        # Merge any overlapping polygons
+        if isinstance(geometry, MultiPolygon):
+            geometry = unary_union(geometry)
         
-        # Ensure valid geometry
-        geometry = geometry.make_valid()
+        # Final validity check
+        geometry = make_valid(geometry)
 
         return geometry
 
