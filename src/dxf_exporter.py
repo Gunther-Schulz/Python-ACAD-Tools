@@ -770,7 +770,7 @@ class DXFExporter:
         log_info(f"Processing hatch for layer: {layer_name}")
         
         # Get the boundary geometry
-        boundary_layers = hatch_config.get('layers', [])
+        boundary_layers = hatch_config.get('layers', [layer_name])
         boundary_geometry = self._get_boundary_geometry(boundary_layers)
         
         if boundary_geometry is None or boundary_geometry.is_empty:

@@ -62,7 +62,7 @@ class LayerProcessor:
             return
 
         # Check for unrecognized keys
-        recognized_keys = {'name', 'update', 'operations', 'shapeFile', 'dxfLayer', 'outputShapeFile', 'style', 'labelStyle', 'label', 'close', 'linetypeScale', 'linetypeGeneration', 'viewports', 'attributes'}
+        recognized_keys = {'name', 'update', 'operations', 'shapeFile', 'dxfLayer', 'outputShapeFile', 'style', 'labelStyle', 'label', 'close', 'linetypeScale', 'linetypeGeneration', 'viewports', 'attributes', 'bluntAngles'}
         unrecognized_keys = set(layer_obj.keys()) - recognized_keys
         if unrecognized_keys:
             log_warning(f"Unrecognized keys in layer {layer_name}: {', '.join(unrecognized_keys)}")
@@ -151,10 +151,10 @@ class LayerProcessor:
     def _process_hatch_config(self, layer_name, hatch_config):
         log_info(f"Processing hatch configuration for layer: {layer_name}")
         
-        # Validate hatch configuration
+        # If 'layers' is not specified, use the current layer
         if 'layers' not in hatch_config:
-            log_warning(f"No boundary layers specified for hatch in layer: {layer_name}")
-            return
+            hatch_config['layers'] = [layer_name]
+            log_info(f"No boundary layers specified for hatch. Using current layer: {layer_name}")
         
         # Ensure all boundary layers are processed
         for boundary_layer in hatch_config['layers']:

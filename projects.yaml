@@ -419,8 +419,8 @@ projects:
               - Grünfläche
         attributes:
           hatch:
-            layers:
-              - Ausgleich Schraffur
+            # layers:
+            #   - Ausgleich Schraffur
             individual_hatches: true
       - name: Grünfläche
         update: true
