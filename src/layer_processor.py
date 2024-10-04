@@ -593,6 +593,10 @@ class LayerProcessor:
         # Ensure the geometry is valid
         geometry = make_valid(geometry)
         
+        # Apply REVERSE buffer trick to merge nearby geometries and remove small gaps
+        buffer_distance = 0.01  # Adjust this value as needed
+        geometry = geometry.buffer(-buffer_distance).buffer(buffer_distance)
+        
         # Simplify the geometry
         simplify_tolerance = 0.01
         geometry = geometry.simplify(simplify_tolerance, preserve_topology=True)
