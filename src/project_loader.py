@@ -16,6 +16,7 @@ class ProjectLoader:
     def load_project_settings(self, project_name: str):
         with open('projects.yaml', 'r') as file:
             data = yaml.safe_load(file)
+            self.project_config = data
             projects = data['projects']
             self.folder_prefix = data.get('folderPrefix', '')
             self.log_file = data.get('logFile', './log.txt')

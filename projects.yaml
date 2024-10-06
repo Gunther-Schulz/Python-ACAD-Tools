@@ -104,6 +104,16 @@ projects:
           center: [1000, 1000]
           height: 500
     dumpOutputDir: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten//GIS/dxf_dump"
+    reports:
+      - name: GeltungsbereichNWByParcel
+        type: area
+        baseLayer: Parcel
+        coverLayer: Geltungsbereich NW
+        output:
+          format: csv
+          file: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/areas_geltungsbereich_nw_by_parcel.csv"
+        includeLabels: true
+        includeTotalArea: true
     dxfLayers:
       - name: Flur
         update: true
@@ -419,8 +429,6 @@ projects:
               - Grünfläche
         attributes:
           hatch:
-            # layers:
-            #   - Ausgleich Schraffur
             individual_hatches: true
       - name: Grünfläche
         update: true
@@ -444,8 +452,6 @@ projects:
             layers:
               - Grünfläche
             individual_hatches: true
-            # pattern: 'ANSI31'
-            # scale: 50  # Adjust this value to change the hatch density
       - name: Baufeld
         update: true
         close: true
