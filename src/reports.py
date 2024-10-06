@@ -6,7 +6,7 @@ import csv
 import os
 
 def generate_area_report(base_layer: gpd.GeoDataFrame, cover_layer: gpd.GeoDataFrame, 
-                         output_file: str, include_labels: bool = True, 
+                         output_file: str, report_name: str, include_labels: bool = True, 
                          include_total_area: bool = True, 
                          min_overlap_area: float = 0.01) -> None:
     """
@@ -14,7 +14,8 @@ def generate_area_report(base_layer: gpd.GeoDataFrame, cover_layer: gpd.GeoDataF
     
     :param base_layer: GeoDataFrame containing the base polygons (e.g., Parcel)
     :param cover_layer: GeoDataFrame containing the cover polygons (e.g., Geltungsbereich NW)
-    :param output_file: Path to the output CSV file
+    :param output_file: Path to the output file (without extension)
+    :param report_name: Name of the report to be used as title
     :param include_labels: Whether to include labels from the base layer in the report
     :param include_total_area: Whether to include the total covered area in the report
     :param min_overlap_area: Minimum overlap area to consider (to avoid floating point errors)
@@ -49,16 +50,27 @@ def generate_area_report(base_layer: gpd.GeoDataFrame, cover_layer: gpd.GeoDataF
     result_gdf = gpd.GeoDataFrame(results, geometry='Geometry', crs=base_layer.crs)
 
     # Save to CSV
-    result_gdf.drop('Geometry', axis=1).to_csv(output_file, index=False, float_format='%.2f')
+    csv_file = f"{output_file}.csv"
+    result_gdf.drop('Geometry', axis=1).to_csv(csv_file, index=False, float_format='%.2f')
 
-    # Append total area if requested
-    if include_total_area:
-        with open(output_file, 'a', newline='') as f:
-            writer = csv.writer(f)
-            writer.writerow([])
-            writer.writerow(['Total Area', round(total_area, 2)])
+    # Save to Excel
+    excel_file = f"{output_file}.xlsx"
+    with pd.ExcelWriter(excel_file, engine='openpyxl') as writer:
+        df = result_gdf.drop('Geometry', axis=1)
+        df.to_excel(writer, sheet_name='Area Report', index=False, startrow=1)
+        
+        # Add title
+        workbook = writer.book
+        worksheet = writer.sheets['Area Report']
+        worksheet.cell(row=1, column=1, value=report_name)
+        
+        # Add total area if requested
+        if include_total_area:
+            total_row = len(df) + 3
+            worksheet.cell(row=total_row, column=1, value='Total Area')
+            worksheet.cell(row=total_row, column=2, value=round(total_area, 2))
 
-    print(f"Area report saved to {output_file}")
+    print(f"Area report saved to {csv_file} and {excel_file}")
 
 def process_area_report(report_config: Dict[str, Any], all_layers: Dict[str, gpd.GeoDataFrame]) -> None:
     """
@@ -70,11 +82,12 @@ def process_area_report(report_config: Dict[str, Any], all_layers: Dict[str, gpd
     base_layer_name = report_config['baseLayer']
     cover_layer_name = report_config['coverLayer']
     output_file = report_config['output']['file']
+    report_name = report_config['name']
     include_labels = report_config.get('includeLabels', True)
     include_total_area = report_config.get('includeTotalArea', True)
 
     if base_layer_name not in all_layers or cover_layer_name not in all_layers:
-        print(f"Error: One or both layers not found for report {report_config['name']}")
+        print(f"Error: One or both layers not found for report {report_name}")
         return
 
     base_layer = all_layers[base_layer_name]
@@ -83,7 +96,7 @@ def process_area_report(report_config: Dict[str, Any], all_layers: Dict[str, gpd
     # Ensure output directory exists
     os.makedirs(os.path.dirname(output_file), exist_ok=True)
 
-    generate_area_report(base_layer, cover_layer, output_file, include_labels, include_total_area)
+    generate_area_report(base_layer, cover_layer, output_file, report_name, include_labels, include_total_area)
 
 def process_all_reports(project_settings: Dict[str, Any], all_layers: Dict[str, gpd.GeoDataFrame]) -> None:
     """

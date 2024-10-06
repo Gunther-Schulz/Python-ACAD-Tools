@@ -105,13 +105,13 @@ projects:
           height: 500
     dumpOutputDir: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten//GIS/dxf_dump"
     reports:
-      - name: GeltungsbereichNWByParcel
+      - name: Anteilige Flurstücksgrößen innerhalb Geltungsbereich NW in Plasten
         type: area
         baseLayer: Parcel
         coverLayer: Geltungsbereich NW
         output:
           format: csv
-          file: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/areas_geltungsbereich_nw_by_parcel.csv"
+          file: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/areas_geltungsbereich_nw_by_parcel"
         includeLabels: true
         includeTotalArea: true
     dxfLayers:
