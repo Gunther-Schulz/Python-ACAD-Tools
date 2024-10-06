@@ -11,6 +11,7 @@ from src.layer_processor import LayerProcessor
 from src.dxf_exporter import DXFExporter
 from src.utils import log_error, setup_logging, setup_proj
 from src.dump_to_shape import dxf_to_shapefiles
+from src.reports import process_all_reports
 
 import src.easyocr_patch
 
@@ -29,29 +30,17 @@ class ProjectProcessor:
         folder_prefix = self.project_loader.folder_prefix
         dxf_filename = self.project_loader.dxf_filename
         
-        if 'dumpOutputDir' not in project_settings:
-            print("Skipping DXF dump: 'dumpOutputDir' not specified in project configuration.")
-            return
+        if 'dumpOutputDir' in project_settings:
+            dump_output_dir = os.path.expanduser(os.path.join(folder_prefix, project_settings['dumpOutputDir']))
+            
+            if os.path.exists(dxf_filename) and dump_output_dir:
+                print(f"Dumping DXF to shapefiles: {dxf_filename} -> {dump_output_dir}")
+                dxf_to_shapefiles(dxf_filename, dump_output_dir)
+            else:
+                print("Skipping DXF dump: DXF file not found or dump output directory not specified.")
 
-        dump_output_dir = os.path.expanduser(os.path.join(folder_prefix, project_settings['dumpOutputDir']))
-        
-        print(f"DXF filename: {dxf_filename}")
-        print(f"Dump output directory: {dump_output_dir}")
-        
-        if os.path.exists(dxf_filename):
-            print(f"DXF file exists: {dxf_filename}")
-        else:
-            print(f"DXF file does not exist: {dxf_filename}")
-        
-        if os.path.exists(dxf_filename) and dump_output_dir:
-            print(f"Dumping DXF to shapefiles: {dxf_filename} -> {dump_output_dir}")
-            dxf_to_shapefiles(dxf_filename, dump_output_dir)
-        else:
-            print("Skipping DXF dump: DXF file not found or dump output directory not specified.")
-            if not os.path.exists(dxf_filename):
-                print(f"DXF file does not exist: {dxf_filename}")
-            if not dump_output_dir:
-                print("Dump output directory not specified.")
+        # Process reports
+        process_all_reports(self.project_loader.project_settings, self.layer_processor.all_layers, self.project_loader)
 
 def print_layer_operations():
     operations = {
