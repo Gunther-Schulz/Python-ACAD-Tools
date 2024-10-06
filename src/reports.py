@@ -5,9 +5,11 @@ from typing import List, Dict, Any
 import csv
 import os
 
+from src.project_loader import ProjectLoader
+
 def generate_area_report(base_layer: gpd.GeoDataFrame, cover_layer: gpd.GeoDataFrame, 
-                         output_file: str, report_name: str, include_labels: bool = True, 
-                         include_total_area: bool = True, 
+                         output_file: str, report_name: str, project_loader: ProjectLoader,
+                         include_labels: bool = True, include_total_area: bool = True, 
                          min_overlap_area: float = 0.01) -> None:
     """
     Generate an area report based on the coverage of the base layer by the cover layer.
@@ -16,6 +18,7 @@ def generate_area_report(base_layer: gpd.GeoDataFrame, cover_layer: gpd.GeoDataF
     :param cover_layer: GeoDataFrame containing the cover polygons (e.g., Geltungsbereich NW)
     :param output_file: Path to the output file (without extension)
     :param report_name: Name of the report to be used as title
+    :param project_loader: ProjectLoader instance to resolve full paths
     :param include_labels: Whether to include labels from the base layer in the report
     :param include_total_area: Whether to include the total covered area in the report
     :param min_overlap_area: Minimum overlap area to consider (to avoid floating point errors)
@@ -50,11 +53,11 @@ def generate_area_report(base_layer: gpd.GeoDataFrame, cover_layer: gpd.GeoDataF
     result_gdf = gpd.GeoDataFrame(results, geometry='Geometry', crs=base_layer.crs)
 
     # Save to CSV
-    csv_file = f"{output_file}.csv"
+    csv_file = project_loader.resolve_full_path(f"{output_file}.csv")
     result_gdf.drop('Geometry', axis=1).to_csv(csv_file, index=False, float_format='%.2f')
 
     # Save to Excel
-    excel_file = f"{output_file}.xlsx"
+    excel_file = project_loader.resolve_full_path(f"{output_file}.xlsx")
     with pd.ExcelWriter(excel_file, engine='openpyxl') as writer:
         df = result_gdf.drop('Geometry', axis=1)
         df.to_excel(writer, sheet_name='Area Report', index=False, startrow=1)
@@ -72,12 +75,13 @@ def generate_area_report(base_layer: gpd.GeoDataFrame, cover_layer: gpd.GeoDataF
 
     print(f"Area report saved to {csv_file} and {excel_file}")
 
-def process_area_report(report_config: Dict[str, Any], all_layers: Dict[str, gpd.GeoDataFrame]) -> None:
+def process_area_report(report_config: Dict[str, Any], all_layers: Dict[str, gpd.GeoDataFrame], project_loader: ProjectLoader) -> None:
     """
     Process an area report based on the configuration.
     
     :param report_config: Dictionary containing the report configuration
     :param all_layers: Dictionary containing all available layers
+    :param project_loader: ProjectLoader instance to resolve full paths
     """
     base_layer_name = report_config['baseLayer']
     cover_layer_name = report_config['coverLayer']
@@ -94,16 +98,17 @@ def process_area_report(report_config: Dict[str, Any], all_layers: Dict[str, gpd
     cover_layer = all_layers[cover_layer_name]
 
     # Ensure output directory exists
-    os.makedirs(os.path.dirname(output_file), exist_ok=True)
+    os.makedirs(os.path.dirname(project_loader.resolve_full_path(output_file)), exist_ok=True)
 
-    generate_area_report(base_layer, cover_layer, output_file, report_name, include_labels, include_total_area)
+    generate_area_report(base_layer, cover_layer, output_file, report_name, project_loader, include_labels, include_total_area)
 
-def process_all_reports(project_settings: Dict[str, Any], all_layers: Dict[str, gpd.GeoDataFrame]) -> None:
+def process_all_reports(project_settings: Dict[str, Any], all_layers: Dict[str, gpd.GeoDataFrame], project_loader: ProjectLoader) -> None:
     """
     Process all reports defined in the project settings.
     
     :param project_settings: Dictionary containing the current project's settings
     :param all_layers: Dictionary containing all available layers
+    :param project_loader: ProjectLoader instance to resolve full paths
     """
     if 'reports' not in project_settings:
         print("No reports defined in project settings")
@@ -111,6 +116,6 @@ def process_all_reports(project_settings: Dict[str, Any], all_layers: Dict[str, 
 
     for report_config in project_settings['reports']:
         if report_config['type'] == 'area':
-            process_area_report(report_config, all_layers)
+            process_area_report(report_config, all_layers, project_loader)
         else:
             print(f"Unknown report type: {report_config['type']}")

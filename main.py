@@ -40,7 +40,7 @@ class ProjectProcessor:
                 print("Skipping DXF dump: DXF file not found or dump output directory not specified.")
 
         # Process reports
-        process_all_reports(self.project_loader.project_settings, self.layer_processor.all_layers)
+        process_all_reports(self.project_loader.project_settings, self.layer_processor.all_layers, self.project_loader)
 
 def print_layer_operations():
     operations = {
