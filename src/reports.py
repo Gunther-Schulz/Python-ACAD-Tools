@@ -7,7 +7,8 @@ import os
 
 def generate_area_report(base_layer: gpd.GeoDataFrame, cover_layer: gpd.GeoDataFrame, 
                          output_file: str, include_labels: bool = True, 
-                         include_total_area: bool = True) -> None:
+                         include_total_area: bool = True, 
+                         min_overlap_area: float = 0.01) -> None:
     """
     Generate an area report based on the coverage of the base layer by the cover layer.
     
@@ -16,6 +17,7 @@ def generate_area_report(base_layer: gpd.GeoDataFrame, cover_layer: gpd.GeoDataF
     :param output_file: Path to the output CSV file
     :param include_labels: Whether to include labels from the base layer in the report
     :param include_total_area: Whether to include the total covered area in the report
+    :param min_overlap_area: Minimum overlap area to consider (to avoid floating point errors)
     """
     results = []
     total_area = 0
@@ -26,8 +28,8 @@ def generate_area_report(base_layer: gpd.GeoDataFrame, cover_layer: gpd.GeoDataF
             continue
 
         intersection = base_geom.intersection(cover_layer.unary_union)
-        if not intersection.is_empty:
-            area = intersection.area
+        if not intersection.is_empty and intersection.area > min_overlap_area:
+            area = round(intersection.area, 2)
             total_area += area
             
             result = {
@@ -40,18 +42,21 @@ def generate_area_report(base_layer: gpd.GeoDataFrame, cover_layer: gpd.GeoDataF
             
             results.append(result)
 
+    # Sort results by area in descending order
+    results.sort(key=lambda x: x['Area'], reverse=True)
+
     # Create a GeoDataFrame from the results
     result_gdf = gpd.GeoDataFrame(results, geometry='Geometry', crs=base_layer.crs)
 
     # Save to CSV
-    result_gdf.drop('Geometry', axis=1).to_csv(output_file, index=False)
+    result_gdf.drop('Geometry', axis=1).to_csv(output_file, index=False, float_format='%.2f')
 
     # Append total area if requested
     if include_total_area:
         with open(output_file, 'a', newline='') as f:
             writer = csv.writer(f)
             writer.writerow([])
-            writer.writerow(['Total Area', total_area])
+            writer.writerow(['Total Area', round(total_area, 2)])
 
     print(f"Area report saved to {output_file}")
 
