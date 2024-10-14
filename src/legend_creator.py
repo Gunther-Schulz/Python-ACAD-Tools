@@ -3,6 +3,7 @@ from ezdxf.enums import TextEntityAlignment
 from ezdxf import const
 from src.color_utils import get_color_code
 from ezdxf.math import Vec3
+from ezdxf import enums
 
 class LegendCreator:
     def __init__(self, doc, msp, project_loader):
@@ -64,9 +65,12 @@ class LegendCreator:
 
     def add_text(self, x, y, text):
         text_entity = self.msp.add_text(text)
-        text_entity.dxf.insert = Vec3(x, y, 0)
+        text_entity.dxf.insert = (x, y, 0)
         text_entity.dxf.height = 5
         text_entity.dxf.color = get_color_code('White', self.project_loader.name_to_aci)
-        text_entity.dxf.halign = TextEntityAlignment.LEFT
-        text_entity.dxf.valign = TextEntityAlignment.MIDDLE
-        text_entity.set_pos((x, y), align=TextEntityAlignment.LEFT)
+        text_entity.dxf.halign = 0  # 0 corresponds to LEFT alignment
+        text_entity.dxf.valign = 2  # 2 corresponds to MIDDLE alignment
+        text_entity.set_placement(
+            (x, y),
+            align=enums.TextEntityAlignment.LEFT
+        )
