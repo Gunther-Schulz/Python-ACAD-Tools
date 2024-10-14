@@ -11,6 +11,8 @@ from ezdxf import pattern
 
 
 from PIL import Image
+from src.legend_creator import LegendCreator
+from src.color_utils import get_color_code
 
 class DXFExporter:
     def __init__(self, project_loader, layer_processor):
@@ -52,7 +54,7 @@ class DXFExporter:
         # Apply label style properties, falling back to base style if not specified
         for key, value in label_style.items():
             if key == 'color':
-                label_properties['color'] = self.get_color_code(value)
+                label_properties['color'] = get_color_code(value, self.name_to_aci)
             else:
                 label_properties[key] = value
         
@@ -66,6 +68,9 @@ class DXFExporter:
         self.register_app_id(doc)
         self.create_viewports(doc, msp)
         self.process_layers(doc, msp)
+        # Create legend
+        legend_creator = LegendCreator(doc, msp, self.project_loader)
+        legend_creator.create_legend()
         self._cleanup_and_save(doc, msp)
 
     def _prepare_dxf_document(self):
@@ -535,7 +540,7 @@ class DXFExporter:
     def add_layer_properties(self, layer_name, layer_info):
         style = layer_info.get('style', {})
         properties = {
-            'color': self.get_color_code(style.get('color', 'White')),
+            'color': get_color_code(style.get('color', 'White'), self.name_to_aci),
             'linetype': style.get('linetype', 'Continuous'),
             'lineweight': style.get('lineweight', 13),
             'linetypeScale': layer_info.get('linetypeScale', 1.0),  # Explicitly set to 1.0 if not provided
@@ -559,7 +564,7 @@ class DXFExporter:
             
             for key, value in label_style.items():
                 if key == 'color':
-                    label_properties['color'] = self.get_color_code(value)
+                    label_properties['color'] = get_color_code(value, self.name_to_aci)
                 else:
                     label_properties[key] = value
             
@@ -582,27 +587,6 @@ class DXFExporter:
             if layer['name'] == layer_name:
                 return 'operation' in layer and 'shapeFile' not in layer
         return False
-    
-    def get_color_code(self, color):
-        if isinstance(color, int):
-            if 1 <= color <= 255:
-                return color
-            else:
-                random_color = random.randint(1, 255)
-                log_warning(f"Warning: Invalid color code {color}. Assigning random color: {random_color}")
-                return random_color
-        elif isinstance(color, str):
-            color_lower = color.lower()
-            if color_lower in self.name_to_aci:
-                return self.name_to_aci[color_lower]
-            else:
-                random_color = random.randint(1, 255)
-                log_warning(f"Warning: Color name '{color}' not found. Assigning random color: {random_color}")
-                return random_color
-        else:
-            random_color = random.randint(1, 255)
-            log_warning(f"Warning: Invalid color type. Assigning random color: {random_color}")
-            return random_color
         
     def get_label_column(self, layer_name):
         for layer in self.project_settings['dxfLayers']:
@@ -732,7 +716,7 @@ class DXFExporter:
                     vp_handle = viewport.dxf.handle
                     
                     # Set color override
-                    color = self.get_color_code(vp_style['style'].get('color'))
+                    color = get_color_code(vp_style['style'].get('color'), self.name_to_aci)
                     if color is not None:
                         layer_overrides.set_color(vp_handle, color)
 
