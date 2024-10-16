@@ -174,11 +174,21 @@ def apply_style_to_entity(entity, style, project_loader, item_type='area', is_le
     else:
         entity.dxf.lineweight = ezdxf.const.LINEWEIGHT_BYLAYER
     
-    # Set transparency for legend items or when explicitly specified
-    if is_legend_item or 'transparency' in style:
-        transparency = convert_transparency(style.get('transparency', 0))
+    # Set transparency for all entity types
+    if 'transparency' in style:
+        transparency = convert_transparency(style['transparency'])
         if transparency is not None:
-            entity.transparency = colors.float2transparency(transparency)
+            try:
+                entity.transparency = transparency
+            except Exception as e:
+                print(f"Warning: Could not set transparency for {entity.dxftype()}. Error: {str(e)}")
+    else:
+        # To set transparency to ByLayer, we'll try to remove the attribute if it exists
+        try:
+            del entity.transparency
+        except AttributeError:
+            # If the entity doesn't have a transparency attribute, we don't need to do anything
+            pass
 
     # Apply specific styles based on item type
     if item_type == 'line':

@@ -110,6 +110,7 @@ projects:
               type: line
               style:
                 color: "Red"
+                transparency: 0.5
                 linetype: "Continuous"
         - name: "Flächen"
           update: true
