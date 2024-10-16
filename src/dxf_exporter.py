@@ -12,7 +12,7 @@ from ezdxf import pattern
 
 from PIL import Image
 from src.legend_creator import LegendCreator
-from src.color_utils import get_color_code
+from src.dfx_utils import get_color_code
 
 class DXFExporter:
     def __init__(self, project_loader, layer_processor):

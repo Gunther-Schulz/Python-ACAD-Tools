@@ -1,7 +1,7 @@
 import ezdxf
 from ezdxf.enums import TextEntityAlignment
 from ezdxf import const
-from src.color_utils import get_color_code
+from src.dfx_utils import get_color_code
 from ezdxf.math import Vec3
 from ezdxf import enums
 
