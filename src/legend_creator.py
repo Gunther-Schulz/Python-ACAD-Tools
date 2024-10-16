@@ -85,7 +85,7 @@ class LegendCreator:
 
         # Create and style the hatch
         hatch_paths = [[(x1, y1), (x2, y1), (x2, y2), (x1, y2)]]
-        hatch = create_hatch(self.msp, hatch_paths, item_style, self.project_loader)
+        hatch = create_hatch(self.msp, hatch_paths, item_style, self.project_loader, is_legend=True)
         hatch.dxf.layer = layer_name
         self.attach_custom_data(hatch)
 

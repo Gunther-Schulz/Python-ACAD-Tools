@@ -197,7 +197,7 @@ def apply_style_to_entity(entity, style, project_loader, item_type='area'):
         else:
             entity.dxf.ltscale = 1.0  # Default scale
 
-def create_hatch(msp, boundary_paths, style, project_loader):
+def create_hatch(msp, boundary_paths, style, project_loader, is_legend=False):
     hatch = msp.add_hatch()
     
     pattern = style.get('hatch', {}).get('pattern', 'SOLID')
@@ -213,11 +213,11 @@ def create_hatch(msp, boundary_paths, style, project_loader):
     for path in boundary_paths:
         hatch.paths.add_polyline_path(path)
     
-    # Apply color
-    if 'color' in style:
+    # Apply color only for legend items
+    if is_legend and 'color' in style:
         hatch.dxf.color = get_color_code(style['color'], project_loader.name_to_aci)
-    
-    # We'll set transparency in create_area_item, so we don't need to do it here
+    else:
+        hatch.dxf.color = ezdxf.const.BYLAYER
     
     return hatch
 
