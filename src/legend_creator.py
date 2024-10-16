@@ -24,9 +24,6 @@ class LegendCreator:
         self.script_identifier = "Created by LegendCreator"
 
     def create_legend(self):
-        if not self.legend_config:
-            return
-
         for group in self.legend_config.get('groups', []):
             self.create_group(group)
 
@@ -41,49 +38,40 @@ class LegendCreator:
         group_name = group.get('name', '')
         layer_name = f"Legend_{group_name}"
         
-        ensure_layer_exists(self.doc, layer_name, {
-            'color': get_color_code('White', self.project_loader.name_to_aci),
-            'linetype': 'Continuous',
-            'lineweight': 13,
-            'plot': True,
-            'locked': False,
-            'frozen': False,
-            'is_on': True,
-            'transparency': 0.0
-        })
+        # Get and apply group style
+        group_style = get_style(group.get('style', {}), self.project_loader)
+        ensure_layer_exists(self.doc, layer_name, group_style)
         
-        update_flag = group.get('update', False)
-        
-        if not update_flag:
-            print(f"Skipping update for legend group: {group_name}")
-            return
+        # Add group title
+        self.add_text(self.position['x'], self.current_y, group_name, layer_name)
+        self.current_y -= self.group_spacing
 
-        def update_group():
-            self.add_text(self.position['x'], self.current_y, group_name, layer_name)
-            self.current_y -= self.item_spacing
+        # Create items
+        for item in group.get('items', []):
+            self.create_item(item, layer_name)
 
-            for item in group.get('items', []):
-                self.create_item(item, layer_name)
-
-            self.current_y -= self.group_spacing
-
-        update_layer_geometry(self.msp, layer_name, self.script_identifier, update_group)
+        self.current_y -= self.group_spacing
 
     def create_item(self, item, layer_name):
         item_name = item.get('name', '')
-        style = get_style(item.get('style', {}), self.project_loader)
+        item_style = get_style(item.get('style', {}), self.project_loader)
 
         # Create rectangle
         x1, y1 = self.position['x'], self.current_y
         x2, y2 = x1 + self.item_width, y1 - self.item_height
         rectangle = self.msp.add_lwpolyline([(x1, y1), (x2, y1), (x2, y2), (x1, y2), (x1, y1)], dxfattribs={'layer': layer_name})
-        apply_style_to_entity(rectangle, style, self.project_loader)
+        apply_style_to_entity(rectangle, item_style, self.project_loader)
         self.attach_custom_data(rectangle)
 
+        # Apply style to a line (for linetype demonstration)
+        line = self.msp.add_line((x1, y1), (x2, y2), dxfattribs={'layer': layer_name})
+        apply_style_to_entity(line, item_style, self.project_loader)
+        self.attach_custom_data(line)
+
         # Add hatch if specified
-        if 'hatch' in style:
+        if 'hatch' in item_style:
             hatch_paths = [[(x1, y1), (x2, y1), (x2, y2), (x1, y2)]]
-            hatch = create_hatch(self.msp, hatch_paths, style, self.project_loader)
+            hatch = create_hatch(self.msp, hatch_paths, item_style, self.project_loader)
             hatch.dxf.layer = layer_name
             self.attach_custom_data(hatch)
 
@@ -95,7 +83,7 @@ class LegendCreator:
         self.current_y -= self.item_height + self.item_spacing
 
     def add_text(self, x, y, text, layer_name):
-        text_entity = add_text(self.msp, text, x, y, layer_name, 'Standard', height=5, color=get_color_code('White', self.project_loader.name_to_aci))
+        text_entity = add_text(self.msp, text, x, y, layer_name, 'Standard')
         self.attach_custom_data(text_entity)
 
     def attach_custom_data(self, entity):
