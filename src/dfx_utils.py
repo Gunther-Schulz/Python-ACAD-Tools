@@ -161,18 +161,19 @@ def apply_style_to_entity(entity, style, project_loader, item_type='area'):
     else:
         entity.dxf.lineweight = ezdxf.const.LINEWEIGHT_BYLAYER
     
-    if 'transparency' in style:
-        transparency = convert_transparency(style['transparency'])
-        if transparency is not None:
-            entity.transparency = colors.float2transparency(transparency)
+    # Don't set transparency here for hatches
+    if item_type != 'area':
+        if 'transparency' in style:
+            transparency = convert_transparency(style['transparency'])
+            if transparency is not None:
+                entity.transparency = colors.float2transparency(transparency)
+            else:
+                entity.transparency = -1  # BYLAYER
         else:
             entity.transparency = -1  # BYLAYER
-    else:
-        entity.transparency = -1  # BYLAYER
 
     # Apply specific styles based on item type
     if item_type == 'line':
-        # For lines, we might want to ensure that the linetype is visible
         if 'linetype_scale' in style:
             entity.dxf.ltscale = style['linetype_scale']
         else:
@@ -199,15 +200,13 @@ def create_hatch(msp, boundary_paths, style, project_loader):
     for path in boundary_paths:
         hatch.paths.add_polyline_path(path)
     
-    # Only apply style if it's specifically set for the hatch
-    if 'hatch' in style:
-        apply_style_to_entity(hatch, style['hatch'], project_loader)
-    else:
-        # Set to BYLAYER if not specified
-        hatch.dxf.color = ezdxf.const.BYLAYER
-        hatch.dxf.linetype = 'BYLAYER'
-        hatch.dxf.lineweight = ezdxf.const.LINEWEIGHT_BYLAYER
-        # For transparency, we'll use -1 to indicate BYLAYER
-        hatch.transparency = -1
+    # Apply style to the hatch
+    apply_style_to_entity(hatch, style, project_loader, item_type='area')
+    
+    # Handle transparency separately
+    if 'transparency' in style:
+        transparency = convert_transparency(style['transparency'])
+        if transparency is not None:
+            hatch.transparency = colors.float2transparency(transparency)
     
     return hatch
