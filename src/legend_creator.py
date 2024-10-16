@@ -1,7 +1,9 @@
 import ezdxf
 from ezdxf.enums import TextEntityAlignment
 from ezdxf import const
-from src.dfx_utils import get_color_code, convert_transparency, attach_custom_data, is_created_by_script, add_text, remove_entities_by_layer, ensure_layer_exists
+from src.dfx_utils import (get_color_code, convert_transparency, attach_custom_data, 
+                           is_created_by_script, add_text, remove_entities_by_layer, 
+                           ensure_layer_exists, update_layer_geometry)
 from ezdxf.math import Vec3
 from ezdxf import enums
 
@@ -54,13 +56,16 @@ class LegendCreator:
             'transparency': 0.0
         })
         
-        self.add_text(self.position['x'], self.current_y, group_name, layer_name)
-        self.current_y -= self.item_spacing
+        def update_group():
+            self.add_text(self.position['x'], self.current_y, group_name, layer_name)
+            self.current_y -= self.item_spacing
 
-        for item in group.get('items', []):
-            self.create_item(item, layer_name)
+            for item in group.get('items', []):
+                self.create_item(item, layer_name)
 
-        self.current_y -= self.group_spacing
+            self.current_y -= self.group_spacing
+
+        update_layer_geometry(self.msp, layer_name, self.script_identifier, update_group)
 
     def create_item(self, item, layer_name):
         item_name = item.get('name', '')

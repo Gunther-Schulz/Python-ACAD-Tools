@@ -15,7 +15,7 @@ from src.legend_creator import LegendCreator
 from src.dfx_utils import (get_color_code, convert_transparency, attach_custom_data, 
                            is_created_by_script, add_text, remove_entities_by_layer, 
                            ensure_layer_exists, update_layer_properties, load_standard_linetypes, 
-                           set_drawing_properties, verify_dxf_settings)
+                           set_drawing_properties, verify_dxf_settings, update_layer_geometry)
 
 class DXFExporter:
     def __init__(self, project_loader, layer_processor):
@@ -192,36 +192,20 @@ class DXFExporter:
             log_info(f"Skipping geometry update for layer {layer_name} as 'update' flag is not set")
             return
 
-        # Remove existing entities for both the main layer and its label layer
-        layers_to_clear = [layer_name]
-        if not layer_name.endswith(' Label'):
-            layers_to_clear.append(f"{layer_name} Label")
+        def update_function():
+            # Add new geometry and labels
+            log_info(f"Adding new geometry to layer {layer_name}")
+            if isinstance(geo_data, list) and all(isinstance(item, tuple) for item in geo_data):
+                self.add_wmts_xrefs_to_dxf(msp, geo_data, layer_name)
+            else:
+                self.add_geometries_to_dxf(msp, geo_data, layer_name)
 
-        for layer in layers_to_clear:
-            log_info(f"Removing existing entities for layer {layer}")
-            entities_to_delete = [entity for entity in msp.query(f'*[layer=="{layer}"]') if self.is_created_by_script(entity)]
-            
-            delete_count = 0
-            for entity in entities_to_delete:
-                try:
-                    msp.delete_entity(entity)
-                    delete_count += 1
-                except Exception as e:
-                    log_error(f"Error deleting entity: {e}")
-            
-            log_info(f"Removed {delete_count} entities from layer {layer}")
+            # Verify hyperlinks after adding new entities
+            self.verify_entity_hyperlinks(msp, layer_name)
+            if not layer_name.endswith(' Label'):
+                self.verify_entity_hyperlinks(msp, f"{layer_name} Label")
 
-        # Add new geometry and labels
-        log_info(f"Adding new geometry to layer {layer_name}")
-        if isinstance(geo_data, list) and all(isinstance(item, tuple) for item in geo_data):
-            self.add_wmts_xrefs_to_dxf(msp, geo_data, layer_name)
-        else:
-            self.add_geometries_to_dxf(msp, geo_data, layer_name)
-
-        # Verify hyperlinks after adding new entities
-        self.verify_entity_hyperlinks(msp, layer_name)
-        if not layer_name.endswith(' Label'):
-            self.verify_entity_hyperlinks(msp, f"{layer_name} Label")
+        update_layer_geometry(msp, layer_name, self.script_identifier, update_function)
 
     def create_new_layer(self, doc, msp, layer_name, layer_info, add_geometry=True):
         log_info(f"Creating new layer: {layer_name}")

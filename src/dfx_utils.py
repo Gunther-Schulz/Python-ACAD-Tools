@@ -85,6 +85,14 @@ def remove_entities_by_layer(msp, layer_name, script_identifier):
             print(f"Error deleting entity: {e}")
     return delete_count
 
+def update_layer_geometry(msp, layer_name, script_identifier, update_function):
+    # Remove existing entities
+    removed_count = remove_entities_by_layer(msp, layer_name, script_identifier)
+    print(f"Removed {removed_count} entities from layer {layer_name}")
+    
+    # Add new geometry
+    update_function()
+
 def ensure_layer_exists(doc, layer_name, layer_properties):
     if layer_name not in doc.layers:
         new_layer = doc.layers.new(layer_name)
