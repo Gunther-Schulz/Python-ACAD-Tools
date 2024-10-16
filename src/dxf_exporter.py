@@ -11,6 +11,11 @@ from ezdxf import pattern
 
 
 from PIL import Image
+from src.legend_creator import LegendCreator
+from src.dfx_utils import (get_color_code, convert_transparency, attach_custom_data, 
+                           is_created_by_script, add_text, remove_entities_by_layer, 
+                           ensure_layer_exists, update_layer_properties, load_standard_linetypes, 
+                           set_drawing_properties, verify_dxf_settings, update_layer_geometry)
 
 class DXFExporter:
     def __init__(self, project_loader, layer_processor):
@@ -26,6 +31,12 @@ class DXFExporter:
         log_info(f"DXFExporter initialized with script identifier: {self.script_identifier}")
         self.setup_layers()
         self.viewports = {}
+        self.default_hatch_settings = {
+            'pattern': 'SOLID',
+            'scale': 1,
+            'color': None,  # Use layer color by default
+            'individual_hatches': False
+        }
 
     def setup_layers(self):
         for layer in self.project_settings['dxfLayers']:
@@ -33,6 +44,11 @@ class DXFExporter:
 
     def _setup_single_layer(self, layer):
         layer_name = layer['name']
+        
+        # If style is a string, get the preset style
+        if 'style' in layer and isinstance(layer['style'], str):
+            layer['style'] = self.project_loader.get_style(layer['style'])
+        
         self.add_layer_properties(layer_name, layer)
         
         if not self.is_wmts_or_wms_layer(layer) and not layer_name.endswith(' Label'):
@@ -52,7 +68,7 @@ class DXFExporter:
         # Apply label style properties, falling back to base style if not specified
         for key, value in label_style.items():
             if key == 'color':
-                label_properties['color'] = self.get_color_code(value)
+                label_properties['color'] = get_color_code(value, self.name_to_aci)
             else:
                 label_properties[key] = value
         
@@ -66,6 +82,9 @@ class DXFExporter:
         self.register_app_id(doc)
         self.create_viewports(doc, msp)
         self.process_layers(doc, msp)
+        # Create legend
+        legend_creator = LegendCreator(doc, msp, self.project_loader)
+        legend_creator.create_legend()
         self._cleanup_and_save(doc, msp)
 
     def _prepare_dxf_document(self):
@@ -89,8 +108,8 @@ class DXFExporter:
         else:
             doc = ezdxf.new(dxfversion=dxf_version)
             log_info(f"Created new DXF file with version: {dxf_version}")
-            self.set_drawing_properties(doc)
-            self.load_standard_linetypes(doc)
+            set_drawing_properties(doc)
+            load_standard_linetypes(doc)
         return doc
 
     def load_existing_layers(self, doc):
@@ -111,21 +130,12 @@ class DXFExporter:
                 self.colors[layer_name] = layer.color
             log_info(f"Loaded existing layer: {layer_name}")
 
-    def set_drawing_properties(self, doc):
-        # Set drawing properties based on project settings
-        # You may need to adjust this method based on your specific requirements
-        doc.header['$INSUNITS'] = 6  # Assuming meters, adjust if needed
-        doc.header['$LUNITS'] = 2  # Assuming decimal units
-        doc.header['$LUPREC'] = 4  # Precision for linear units
-        doc.header['$AUPREC'] = 4  # Precision for angular units
-        log_info("Drawing properties set")
-
     def _cleanup_and_save(self, doc, msp):
         processed_layers = [layer['name'] for layer in self.project_settings['dxfLayers']]
         self.remove_unused_entities(msp, processed_layers)
         doc.saveas(self.dxf_filename)
         log_info(f"DXF file saved: {self.dxf_filename}")
-        self.verify_dxf_settings()
+        verify_dxf_settings(self.dxf_filename)
 
     def process_layers(self, doc, msp):
         for layer_info in self.project_settings['dxfLayers']:
@@ -143,9 +153,17 @@ class DXFExporter:
         if 'viewports' in layer_info:
             self._process_viewport_styles(doc, layer_name, layer_info['viewports'])
         
-        # Change this condition to check for 'attributes' and 'hatch'
-        if 'attributes' in layer_info and 'hatch' in layer_info['attributes']:
-            self._process_hatch(doc, msp, layer_name, layer_info['attributes']['hatch'])
+        should_process_hatch = 'performHatch' in layer_info
+        if 'style' in layer_info:
+            style = layer_info['style']
+            if isinstance(style, str):
+                style_dict = self.project_loader.get_style(style)
+            else:
+                style_dict = style
+            should_process_hatch = should_process_hatch or 'hatch' in style_dict
+
+        if should_process_hatch:
+            self._process_hatch(doc, msp, layer_name, layer_info)
 
     def _process_wmts_layer(self, doc, msp, layer_name, layer_info):
         log_info(f"Processing WMTS layer: {layer_name}")
@@ -184,13 +202,6 @@ class DXFExporter:
                 removed_count += 1
         log_info(f"Removed {removed_count} unused entities from processed layers")
 
-    def verify_dxf_settings(self):
-        loaded_doc = ezdxf.readfile(self.dxf_filename)
-        print(f"INSUNITS after load: {loaded_doc.header['$INSUNITS']}")
-        print(f"LUNITS after load: {loaded_doc.header['$LUNITS']}")
-        print(f"LUPREC after load: {loaded_doc.header['$LUPREC']}")
-        print(f"AUPREC after load: {loaded_doc.header['$AUPREC']}")
-
     def update_layer_geometry(self, msp, layer_name, geo_data, layer_config):
         update_flag = layer_config.get('update', False)
         
@@ -200,56 +211,26 @@ class DXFExporter:
             log_info(f"Skipping geometry update for layer {layer_name} as 'update' flag is not set")
             return
 
-        # Remove existing entities for both the main layer and its label layer
-        layers_to_clear = [layer_name]
-        if not layer_name.endswith(' Label'):
-            layers_to_clear.append(f"{layer_name} Label")
+        def update_function():
+            # Add new geometry and labels
+            log_info(f"Adding new geometry to layer {layer_name}")
+            if isinstance(geo_data, list) and all(isinstance(item, tuple) for item in geo_data):
+                self.add_wmts_xrefs_to_dxf(msp, geo_data, layer_name)
+            else:
+                self.add_geometries_to_dxf(msp, geo_data, layer_name)
 
-        for layer in layers_to_clear:
-            log_info(f"Removing existing entities for layer {layer}")
-            entities_to_delete = [entity for entity in msp.query(f'*[layer=="{layer}"]') if self.is_created_by_script(entity)]
-            
-            delete_count = 0
-            for entity in entities_to_delete:
-                try:
-                    msp.delete_entity(entity)
-                    delete_count += 1
-                except Exception as e:
-                    log_error(f"Error deleting entity: {e}")
-            
-            log_info(f"Removed {delete_count} entities from layer {layer}")
+            # Verify hyperlinks after adding new entities
+            self.verify_entity_hyperlinks(msp, layer_name)
+            if not layer_name.endswith(' Label'):
+                self.verify_entity_hyperlinks(msp, f"{layer_name} Label")
 
-        # Add new geometry and labels
-        log_info(f"Adding new geometry to layer {layer_name}")
-        if isinstance(geo_data, list) and all(isinstance(item, tuple) for item in geo_data):
-            self.add_wmts_xrefs_to_dxf(msp, geo_data, layer_name)
-        else:
-            self.add_geometries_to_dxf(msp, geo_data, layer_name)
-
-        # Verify hyperlinks after adding new entities
-        self.verify_entity_hyperlinks(msp, layer_name)
-        if not layer_name.endswith(' Label'):
-            self.verify_entity_hyperlinks(msp, f"{layer_name} Label")
+        update_layer_geometry(msp, layer_name, self.script_identifier, update_function)
 
     def create_new_layer(self, doc, msp, layer_name, layer_info, add_geometry=True):
         log_info(f"Creating new layer: {layer_name}")
         properties = self.layer_properties[layer_name]
         
-        new_layer = doc.layers.new(layer_name)
-        new_layer.color = properties['color']
-        new_layer.dxf.linetype = properties['linetype']
-        new_layer.dxf.lineweight = properties['lineweight']
-        new_layer.dxf.plot = properties['plot']
-        new_layer.locked = properties['locked']
-        new_layer.frozen = properties['frozen']
-        new_layer.on = properties['is_on']
-        
-        if 'transparency' in properties:
-            transparency = self._convert_transparency(properties['transparency'])
-            if transparency is not None:
-                new_layer.transparency = transparency
-            else:
-                log_warning(f"Invalid transparency value for layer {layer_name}: {properties['transparency']}")
+        ensure_layer_exists(doc, layer_name, properties)
         
         log_info(f"Created new layer: {layer_name}")
         log_info(f"Layer properties: {properties}")
@@ -257,71 +238,18 @@ class DXFExporter:
         if add_geometry and layer_name in self.all_layers:
             self.update_layer_geometry(msp, layer_name, self.all_layers[layer_name], layer_info)
         
-        return new_layer
+        return doc.layers.get(layer_name)
 
     def update_layer_properties(self, layer, layer_info):
         properties = self.layer_properties[layer.dxf.name]
-        layer.color = properties['color']
-        layer.dxf.linetype = properties['linetype']
-        layer.dxf.lineweight = properties['lineweight']
-        layer.dxf.plot = properties['plot']
-        layer.locked = properties['locked']
-        layer.frozen = properties['frozen']
-        layer.on = properties['is_on']
-        
-        if 'transparency' in properties:
-            transparency = self._convert_transparency(properties['transparency'])
-            if transparency is not None:
-                layer.transparency = transparency
-            else:
-                log_warning(f"Invalid transparency value for layer {layer.dxf.name}: {properties['transparency']}")
-        
+        update_layer_properties(layer, properties)
         log_info(f"Updated layer properties: {properties}")
 
-    def load_standard_linetypes(self, doc):
-        standard_linetypes = [
-            'CONTINUOUS', 'CENTER', 'DASHED', 'PHANTOM', 'HIDDEN', 'DASHDOT',
-            'BORDER', 'DIVIDE', 'DOT', 'ACAD_ISO02W100', 'ACAD_ISO03W100',
-            'ACAD_ISO04W100', 'ACAD_ISO05W100', 'ACAD_ISO06W100', 'ACAD_ISO07W100',
-            'ACAD_ISO08W100', 'ACAD_ISO09W100', 'ACAD_ISO10W100', 'ACAD_ISO11W100',
-            'ACAD_ISO12W100', 'ACAD_ISO13W100', 'ACAD_ISO14W100', 'ACAD_ISO15W100'
-        ]
-        for lt in standard_linetypes:
-            if lt not in doc.linetypes:
-                doc.linetypes.new(lt)
-
     def attach_custom_data(self, entity):
-        """Attach custom data to identify entities created by this script."""
-        try:
-            entity.set_xdata(
-                'DXFEXPORTER',
-                [
-                    (1000, self.script_identifier),
-                    (1002, '{'),
-                    (1000, 'CREATED_BY'),
-                    (1000, 'DXFExporter'),
-                    (1002, '}')
-                ]
-            )
-            log_info(f"Attached custom XDATA to entity: {entity}")
-        except Exception as e:
-            log_error(f"Error setting XDATA for entity {entity}: {str(e)}")
+        attach_custom_data(entity, self.script_identifier)
 
     def is_created_by_script(self, entity):
-        """Check if an entity was created by this script."""
-        try:
-            xdata = entity.get_xdata('DXFEXPORTER')
-            if xdata:
-                for code, value in xdata:
-                    if code == 1000 and value == self.script_identifier:
-                        return True
-        except ezdxf.lldxf.const.DXFValueError:
-            # This exception is raised when the entity has no XDATA for 'DXFEXPORTER'
-            # It's not an error, just means the entity wasn't created by this script
-            return False
-        except Exception as e:
-            log_warning(f"Unexpected error checking XDATA for entity {entity}: {str(e)}")
-        return False
+        return is_created_by_script(entity, self.script_identifier)
 
     def add_wmts_xrefs_to_dxf(self, msp, tile_data, layer_name):
         log_info(f"Adding WMTS xrefs to DXF for layer: {layer_name}")
@@ -535,7 +463,7 @@ class DXFExporter:
     def add_layer_properties(self, layer_name, layer_info):
         style = layer_info.get('style', {})
         properties = {
-            'color': self.get_color_code(style.get('color', 'White')),
+            'color': get_color_code(style.get('color', 'White'), self.name_to_aci),
             'linetype': style.get('linetype', 'Continuous'),
             'lineweight': style.get('lineweight', 13),
             'linetypeScale': layer_info.get('linetypeScale', 1.0),  # Explicitly set to 1.0 if not provided
@@ -559,7 +487,7 @@ class DXFExporter:
             
             for key, value in label_style.items():
                 if key == 'color':
-                    label_properties['color'] = self.get_color_code(value)
+                    label_properties['color'] = get_color_code(value, self.name_to_aci)
                 else:
                     label_properties[key] = value
             
@@ -582,27 +510,6 @@ class DXFExporter:
             if layer['name'] == layer_name:
                 return 'operation' in layer and 'shapeFile' not in layer
         return False
-    
-    def get_color_code(self, color):
-        if isinstance(color, int):
-            if 1 <= color <= 255:
-                return color
-            else:
-                random_color = random.randint(1, 255)
-                log_warning(f"Warning: Invalid color code {color}. Assigning random color: {random_color}")
-                return random_color
-        elif isinstance(color, str):
-            color_lower = color.lower()
-            if color_lower in self.name_to_aci:
-                return self.name_to_aci[color_lower]
-            else:
-                random_color = random.randint(1, 255)
-                log_warning(f"Warning: Color name '{color}' not found. Assigning random color: {random_color}")
-                return random_color
-        else:
-            random_color = random.randint(1, 255)
-            log_warning(f"Warning: Invalid color type. Assigning random color: {random_color}")
-            return random_color
         
     def get_label_column(self, layer_name):
         for layer in self.project_settings['dxfLayers']:
@@ -732,7 +639,7 @@ class DXFExporter:
                     vp_handle = viewport.dxf.handle
                     
                     # Set color override
-                    color = self.get_color_code(vp_style['style'].get('color'))
+                    color = get_color_code(vp_style['style'].get('color'), self.name_to_aci)
                     if color is not None:
                         layer_overrides.set_color(vp_handle, color)
 
@@ -766,8 +673,27 @@ class DXFExporter:
         if 'DXFEXPORTER' not in doc.appids:
             doc.appids.new('DXFEXPORTER')
 
-    def _process_hatch(self, doc, msp, layer_name, hatch_config):
+    def _process_hatch(self, doc, msp, layer_name, layer_info):
         log_info(f"Processing hatch for layer: {layer_name}")
+        
+        style = layer_info.get('style', {})
+        if isinstance(style, str):
+            style = self.project_loader.get_style(style)
+        
+        # Start with default hatch settings
+        hatch_config = self.default_hatch_settings.copy()
+        
+        # Merge with style hatch settings if present
+        if 'hatch' in style:
+            hatch_config = self.deep_merge(hatch_config, style['hatch'])
+        
+        # Merge with performHatch settings from layer_info
+        if 'performHatch' in layer_info:
+            hatch_config = self.deep_merge(hatch_config, layer_info['performHatch'])
+        elif not 'hatch' in style:
+            # If there's no hatch in style and no performHatch, don't create a hatch
+            log_info(f"No hatch configuration found for layer: {layer_name}")
+            return
         
         # Get the boundary geometry
         boundary_layers = hatch_config.get('layers', [layer_name])
@@ -777,12 +703,11 @@ class DXFExporter:
             log_warning(f"No valid boundary geometry found for hatch in layer: {layer_name}")
             return
         
-        # Check if we should create individual hatches
-        individual_hatches = hatch_config.get('individual_hatches', False)
-        
-        # Set hatch pattern
+        # Set hatch pattern and scale
         pattern_name = hatch_config.get('pattern', 'SOLID')
         scale = hatch_config.get('scale', 1)
+        
+        individual_hatches = hatch_config.get('individual_hatches', False)
         
         if individual_hatches:
             geometries = [boundary_geometry] if isinstance(boundary_geometry, (Polygon, LineString)) else list(boundary_geometry.geoms)
@@ -790,7 +715,6 @@ class DXFExporter:
             geometries = [boundary_geometry]
         
         for geometry in geometries:
-            # Create hatch without specifying a color
             hatch = msp.add_hatch()
             
             if pattern_name != 'SOLID':
@@ -806,8 +730,17 @@ class DXFExporter:
             # Set layer
             hatch.dxf.layer = layer_name
             
-            # Set color to BYLAYER
-            hatch.dxf.color = ezdxf.const.BYLAYER
+            # Set color
+            hatch_color = hatch_config.get('color') or style.get('color')
+            if hatch_color:
+                hatch.dxf.color = get_color_code(hatch_color, self.name_to_aci)
+            else:
+                hatch.dxf.color = ezdxf.const.BYLAYER
+            
+            # Set transparency
+            transparency = style.get('transparency')
+            if transparency is not None:
+                hatch.transparency = convert_transparency(transparency)
             
             self.attach_custom_data(hatch)
         
@@ -848,7 +781,11 @@ class DXFExporter:
         else:
             log_warning(f"Unsupported geometry type for hatch boundary: {type(geometry)}")
 
-    def _convert_transparency(self, transparency):
-        if isinstance(transparency, (int, float)):
-            return max(0, min(transparency, 1))
-        return None
+    def deep_merge(self, dict1, dict2):
+        result = dict1.copy()
+        for key, value in dict2.items():
+            if isinstance(value, dict):
+                result[key] = self.deep_merge(result.get(key, {}), value)
+            else:
+                result[key] = value
+        return result

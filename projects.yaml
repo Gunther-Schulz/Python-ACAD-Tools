@@ -87,7 +87,41 @@ projects:
     exportFormat: dxf
     dxfVersion: R2018
     crs: EPSG:25833
-    dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Zeichnung/Plasten4.dxf"
+    # dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Zeichnung/Plasten4.dxf"
+    dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Zeichnung/test.dxf"    
+    dumpOutputDir: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten//GIS/dxf_dump"
+    legend:
+      position:
+        x: 100
+        y: 100
+      groups:
+        - name: "Geltungsbereich"
+          update: true
+          items:
+            - name: "Geltungsbereich"
+              style:
+                color: "Red"
+                linetype: "Continuous"
+        - name: "Flächen"
+          update: true
+          items:
+            - name: "Baufeld"
+              style:
+                color: "Light Red"
+                hatch:
+                  pattern: "SOLID"
+            - name: "Grünfläche"
+              style:
+                color: "Light Green"
+                hatch:
+                  pattern: "GRASS"
+        - name: "Grenzen"
+          update: true
+          items:
+            - name: "Baugrenze"
+              style:
+                color: "Blue"
+                linetype: "ACAD_ISO02W100"    
     viewports:
       - name: MainView
         center: [425, 450]
@@ -103,7 +137,6 @@ projects:
         target_view:
           center: [1000, 1000]
           height: 500
-    dumpOutputDir: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten//GIS/dxf_dump"
     reports:
       - name: Anteilige Flurstücksgrößen innerhalb Geltungsbereich Nordwesten in Plasten
         type: area
@@ -218,7 +251,7 @@ projects:
               color: "Dark Green"
       - name: Wald Schraffur
         update: true
-        attributes:
+        style:
           hatch:
             layers:
               - Wald
@@ -438,6 +471,8 @@ projects:
         style:
           color: "Dark Green"
           transparency: 0.6
+          hatch:
+            individual_hatches: true
         operations:
           - type: copy
             layers:
@@ -445,9 +480,6 @@ projects:
           - type: difference
             layers:
               - Grünfläche
-        attributes:
-          hatch:
-            individual_hatches: true
       - name: Grünfläche
         update: true
         close: true
@@ -465,7 +497,6 @@ projects:
         style:
           color: "Light Green"
           transparency: 0.6
-        attributes:
           hatch:
             layers:
               - Grünfläche
@@ -494,17 +525,14 @@ projects:
         outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/baufeld.shp"
       - name: Baufeld Schraffur
         update: true
-        style:
-          color: "Light Red"
-          transparency: 0.6
-        attributes:
-          hatch:
-            layers:
-              - Baufeld
-            individual_hatches: true 
-            # pattern: 'ANSI31'
-            # scale: 50  # Adjust this value to change the hatch density
-            # color: "Blue"  # ACI color index for Light Red
+        style: baufeldSchraffur
+        performHatch:
+          layers:
+            - Baufeld
+          # individual_hatches: true
+          # pattern: 'ANSI31'
+          # scale: 50  # Adjust this value to change the hatch density
+          # color: "Blue"  # ACI color index for Light Red
       - name: Baugrenze 2
         update: true
         style:
