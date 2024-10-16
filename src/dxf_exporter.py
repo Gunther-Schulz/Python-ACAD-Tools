@@ -663,7 +663,13 @@ class DXFExporter:
         log_info(f"Processing hatch for layer: {layer_name}")
         
         style = layer_info.get('style', {})
-        hatch_config = style.get('hatch', {})
+        if isinstance(style, str):
+            style = self.project_loader.get_style(style)
+        
+        # Merge hatch configurations from style and layer_info
+        style_hatch = style.get('hatch', {})
+        layer_hatch = layer_info.get('hatch', {})
+        hatch_config = {**style_hatch, **layer_hatch}
         
         if not hatch_config:
             log_info(f"No hatch configuration found for layer: {layer_name}")
@@ -690,7 +696,6 @@ class DXFExporter:
             geometries = [boundary_geometry]
         
         for geometry in geometries:
-            # Create hatch without specifying a color
             hatch = msp.add_hatch()
             
             if pattern_name != 'SOLID':
@@ -706,8 +711,17 @@ class DXFExporter:
             # Set layer
             hatch.dxf.layer = layer_name
             
-            # Set color to BYLAYER
-            hatch.dxf.color = ezdxf.const.BYLAYER
+            # Set color
+            hatch_color = hatch_config.get('color') or style.get('color')
+            if hatch_color:
+                hatch.dxf.color = get_color_code(hatch_color, self.name_to_aci)
+            else:
+                hatch.dxf.color = ezdxf.const.BYLAYER
+            
+            # Set transparency
+            transparency = style.get('transparency')
+            if transparency is not None:
+                hatch.transparency = convert_transparency(transparency)
             
             self.attach_custom_data(hatch)
         

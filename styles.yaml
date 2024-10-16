@@ -12,4 +12,7 @@ styles:
   baufeldSchraffur:
     color: "Light Red"
     transparency: 0.6
+    hatch:
+      # pattern: 'SOLID'
+      # scale: 10
   
