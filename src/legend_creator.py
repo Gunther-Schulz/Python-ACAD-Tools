@@ -22,6 +22,10 @@ class LegendCreator:
         self.item_height = 15
         self.text_offset = 5
         self.script_identifier = "Created by LegendCreator"
+        
+        # Global text styles
+        self.group_text_style = get_style(self.legend_config.get('groupTextStyle', {}), self.project_loader)
+        self.item_text_style = get_style(self.legend_config.get('itemTextStyle', {}), self.project_loader)
 
     def create_legend(self):
         for group in self.legend_config.get('groups', []):
@@ -42,8 +46,8 @@ class LegendCreator:
         group_style = get_style(group.get('style', {}), self.project_loader)
         ensure_layer_exists(self.doc, layer_name, group_style)
         
-        # Add group title
-        self.add_text(self.position['x'], self.current_y, group_name, layer_name)
+        # Add group title with global group text style
+        self.add_text(self.position['x'], self.current_y, group_name, layer_name, self.group_text_style)
         self.current_y -= self.group_spacing
 
         # Create items
@@ -75,15 +79,16 @@ class LegendCreator:
             hatch.dxf.layer = layer_name
             self.attach_custom_data(hatch)
 
-        # Add item name
+        # Add item name with global item text style
         text_x = x2 + self.text_offset
         text_y = y1 - self.item_height / 2  # Center the text vertically
-        self.add_text(text_x, text_y, item_name, layer_name)
+        self.add_text(text_x, text_y, item_name, layer_name, self.item_text_style)
 
         self.current_y -= self.item_height + self.item_spacing
 
-    def add_text(self, x, y, text, layer_name):
+    def add_text(self, x, y, text, layer_name, text_style):
         text_entity = add_text(self.msp, text, x, y, layer_name, 'Standard')
+        apply_style_to_entity(text_entity, text_style, self.project_loader)
         self.attach_custom_data(text_entity)
 
     def attach_custom_data(self, entity):
