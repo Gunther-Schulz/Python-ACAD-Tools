@@ -142,9 +142,9 @@ class DXFExporter:
         if 'viewports' in layer_info:
             self._process_viewport_styles(doc, layer_name, layer_info['viewports'])
         
-        # Change this condition to check for 'attributes' and 'hatch'
-        if 'attributes' in layer_info and 'hatch' in layer_info['attributes']:
-            self._process_hatch(doc, msp, layer_name, layer_info['attributes']['hatch'])
+        # Process hatch if present in style
+        if 'style' in layer_info and 'hatch' in layer_info['style']:
+            self._process_hatch(doc, msp, layer_name, layer_info)
 
     def _process_wmts_layer(self, doc, msp, layer_name, layer_info):
         log_info(f"Processing WMTS layer: {layer_name}")
@@ -654,8 +654,15 @@ class DXFExporter:
         if 'DXFEXPORTER' not in doc.appids:
             doc.appids.new('DXFEXPORTER')
 
-    def _process_hatch(self, doc, msp, layer_name, hatch_config):
+    def _process_hatch(self, doc, msp, layer_name, layer_info):
         log_info(f"Processing hatch for layer: {layer_name}")
+        
+        style = layer_info.get('style', {})
+        hatch_config = style.get('hatch', {})
+        
+        if not hatch_config:
+            log_info(f"No hatch configuration found for layer: {layer_name}")
+            return
         
         # Get the boundary geometry
         boundary_layers = hatch_config.get('layers', [layer_name])

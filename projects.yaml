@@ -248,7 +248,7 @@ projects:
               color: "Dark Green"
       - name: Wald Schraffur
         update: true
-        attributes:
+        style:
           hatch:
             layers:
               - Wald
@@ -468,6 +468,8 @@ projects:
         style:
           color: "Dark Green"
           transparency: 0.6
+          hatch:
+            individual_hatches: true
         operations:
           - type: copy
             layers:
@@ -475,9 +477,6 @@ projects:
           - type: difference
             layers:
               - Grünfläche
-        attributes:
-          hatch:
-            individual_hatches: true
       - name: Grünfläche
         update: true
         close: true
@@ -495,7 +494,6 @@ projects:
         style:
           color: "Light Green"
           transparency: 0.6
-        attributes:
           hatch:
             layers:
               - Grünfläche
@@ -527,7 +525,6 @@ projects:
         style:
           color: "Light Red"
           transparency: 0.6
-        attributes:
           hatch:
             layers:
               - Baufeld

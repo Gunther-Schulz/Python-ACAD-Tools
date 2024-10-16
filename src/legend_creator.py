@@ -88,7 +88,8 @@ class LegendCreator:
         # Add hatch if specified
         if 'hatch' in style:
             hatch = self.msp.add_hatch(color=color, dxfattribs={'layer': layer_name})
-            hatch.set_pattern_fill(style['hatch'].get('pattern', 'SOLID'), scale=style['hatch'].get('scale', 1))
+            hatch_config = style['hatch']
+            hatch.set_pattern_fill(hatch_config.get('pattern', 'SOLID'), scale=hatch_config.get('scale', 1))
             hatch.paths.add_polyline_path([(x1, y1), (x2, y1), (x2, y2), (x1, y2)])
             self.attach_custom_data(hatch)
 
