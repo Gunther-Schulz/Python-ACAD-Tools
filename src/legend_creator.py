@@ -114,10 +114,7 @@ class LegendCreator:
         pass
 
     def add_mtext(self, x, y, text, layer_name, text_style):
-        mtext_entity = add_mtext(self.msp, text, x, y, layer_name, 'Standard')
-        apply_style_to_entity(mtext_entity, text_style, self.project_loader)
-        # Set horizontal alignment to left and vertical alignment to middle
-        mtext_entity.dxf.attachment_point = 4  # 4 = Middle Left
+        mtext_entity = add_mtext(self.msp, text, x, y, layer_name, 'Standard', text_style)
         self.attach_custom_data(mtext_entity)
 
     def attach_custom_data(self, entity):

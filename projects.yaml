@@ -95,7 +95,7 @@ projects:
         x: 367841
         y: 5942622
       groupTextStyle:
-        color: "Black"
+        color: "Blue"
         height: 7
         font: "Arial"
       subtitleTextStyle:

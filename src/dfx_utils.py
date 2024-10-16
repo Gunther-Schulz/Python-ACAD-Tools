@@ -159,6 +159,12 @@ def get_style(style, project_loader):
     return style
 
 def apply_style_to_entity(entity, style, project_loader, item_type='area'):
+    if entity.dxftype() == 'MTEXT':
+        if 'height' in style:
+            entity.dxf.char_height = style['height']
+        if 'font' in style:
+            entity.dxf.style = style['font']
+    
     if 'color' in style:
         entity.dxf.color = get_color_code(style['color'], project_loader.name_to_aci)
     else:
@@ -232,13 +238,22 @@ def set_hatch_transparency(hatch, transparency):
         # Set hatch transparency
         hatch.dxf.transparency = colors.float2transparency(ezdxf_transparency)
 
-def add_mtext(msp, text, x, y, layer_name, style_name, height=5, color=None):
-    mtext_entity = msp.add_mtext(text, dxfattribs={
+def add_mtext(msp, text, x, y, layer_name, style_name, text_style=None):
+    dxfattribs = {
         'style': style_name,
         'layer': layer_name,
         'insert': (x, y),
-        'char_height': height,
-        'color': color if color is not None else ezdxf.const.BYLAYER
-    })
+    }
+    
+    if text_style:
+        if 'height' in text_style:
+            dxfattribs['char_height'] = text_style['height']
+        if 'color' in text_style:
+            dxfattribs['color'] = get_color_code(text_style['color'], msp.doc.header['$CMATERIAL'])
+        if 'font' in text_style:
+            dxfattribs['style'] = text_style['font']
+
+    mtext_entity = msp.add_mtext(text, dxfattribs=dxfattribs)
     mtext_entity.dxf.attachment_point = 4  # 4 = Middle Left
+
     return mtext_entity
