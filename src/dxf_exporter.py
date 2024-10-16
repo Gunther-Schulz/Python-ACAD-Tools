@@ -12,7 +12,10 @@ from ezdxf import pattern
 
 from PIL import Image
 from src.legend_creator import LegendCreator
-from src.dfx_utils import get_color_code, convert_transparency, attach_custom_data, is_created_by_script
+from src.dfx_utils import (get_color_code, convert_transparency, attach_custom_data, 
+                           is_created_by_script, add_text, remove_entities_by_layer, 
+                           ensure_layer_exists, update_layer_properties, load_standard_linetypes, 
+                           set_drawing_properties, verify_dxf_settings)
 
 class DXFExporter:
     def __init__(self, project_loader, layer_processor):
@@ -94,8 +97,8 @@ class DXFExporter:
         else:
             doc = ezdxf.new(dxfversion=dxf_version)
             log_info(f"Created new DXF file with version: {dxf_version}")
-            self.set_drawing_properties(doc)
-            self.load_standard_linetypes(doc)
+            set_drawing_properties(doc)
+            load_standard_linetypes(doc)
         return doc
 
     def load_existing_layers(self, doc):
@@ -116,21 +119,12 @@ class DXFExporter:
                 self.colors[layer_name] = layer.color
             log_info(f"Loaded existing layer: {layer_name}")
 
-    def set_drawing_properties(self, doc):
-        # Set drawing properties based on project settings
-        # You may need to adjust this method based on your specific requirements
-        doc.header['$INSUNITS'] = 6  # Assuming meters, adjust if needed
-        doc.header['$LUNITS'] = 2  # Assuming decimal units
-        doc.header['$LUPREC'] = 4  # Precision for linear units
-        doc.header['$AUPREC'] = 4  # Precision for angular units
-        log_info("Drawing properties set")
-
     def _cleanup_and_save(self, doc, msp):
         processed_layers = [layer['name'] for layer in self.project_settings['dxfLayers']]
         self.remove_unused_entities(msp, processed_layers)
         doc.saveas(self.dxf_filename)
         log_info(f"DXF file saved: {self.dxf_filename}")
-        self.verify_dxf_settings()
+        verify_dxf_settings(self.dxf_filename)
 
     def process_layers(self, doc, msp):
         for layer_info in self.project_settings['dxfLayers']:
@@ -189,13 +183,6 @@ class DXFExporter:
                 removed_count += 1
         log_info(f"Removed {removed_count} unused entities from processed layers")
 
-    def verify_dxf_settings(self):
-        loaded_doc = ezdxf.readfile(self.dxf_filename)
-        print(f"INSUNITS after load: {loaded_doc.header['$INSUNITS']}")
-        print(f"LUNITS after load: {loaded_doc.header['$LUNITS']}")
-        print(f"LUPREC after load: {loaded_doc.header['$LUPREC']}")
-        print(f"AUPREC after load: {loaded_doc.header['$AUPREC']}")
-
     def update_layer_geometry(self, msp, layer_name, geo_data, layer_config):
         update_flag = layer_config.get('update', False)
         
@@ -240,21 +227,7 @@ class DXFExporter:
         log_info(f"Creating new layer: {layer_name}")
         properties = self.layer_properties[layer_name]
         
-        new_layer = doc.layers.new(layer_name)
-        new_layer.color = properties['color']
-        new_layer.dxf.linetype = properties['linetype']
-        new_layer.dxf.lineweight = properties['lineweight']
-        new_layer.dxf.plot = properties['plot']
-        new_layer.locked = properties['locked']
-        new_layer.frozen = properties['frozen']
-        new_layer.on = properties['is_on']
-        
-        if 'transparency' in properties:
-            transparency = convert_transparency(properties['transparency'])
-            if transparency is not None:
-                new_layer.transparency = transparency
-            else:
-                log_warning(f"Invalid transparency value for layer {layer_name}: {properties['transparency']}")
+        ensure_layer_exists(doc, layer_name, properties)
         
         log_info(f"Created new layer: {layer_name}")
         log_info(f"Layer properties: {properties}")
@@ -262,38 +235,12 @@ class DXFExporter:
         if add_geometry and layer_name in self.all_layers:
             self.update_layer_geometry(msp, layer_name, self.all_layers[layer_name], layer_info)
         
-        return new_layer
+        return doc.layers.get(layer_name)
 
     def update_layer_properties(self, layer, layer_info):
         properties = self.layer_properties[layer.dxf.name]
-        layer.color = properties['color']
-        layer.dxf.linetype = properties['linetype']
-        layer.dxf.lineweight = properties['lineweight']
-        layer.dxf.plot = properties['plot']
-        layer.locked = properties['locked']
-        layer.frozen = properties['frozen']
-        layer.on = properties['is_on']
-        
-        if 'transparency' in properties:
-            transparency = convert_transparency(properties['transparency'])
-            if transparency is not None:
-                layer.transparency = transparency
-            else:
-                log_warning(f"Invalid transparency value for layer {layer.dxf.name}: {properties['transparency']}")
-        
+        update_layer_properties(layer, properties)
         log_info(f"Updated layer properties: {properties}")
-
-    def load_standard_linetypes(self, doc):
-        standard_linetypes = [
-            'CONTINUOUS', 'CENTER', 'DASHED', 'PHANTOM', 'HIDDEN', 'DASHDOT',
-            'BORDER', 'DIVIDE', 'DOT', 'ACAD_ISO02W100', 'ACAD_ISO03W100',
-            'ACAD_ISO04W100', 'ACAD_ISO05W100', 'ACAD_ISO06W100', 'ACAD_ISO07W100',
-            'ACAD_ISO08W100', 'ACAD_ISO09W100', 'ACAD_ISO10W100', 'ACAD_ISO11W100',
-            'ACAD_ISO12W100', 'ACAD_ISO13W100', 'ACAD_ISO14W100', 'ACAD_ISO15W100'
-        ]
-        for lt in standard_linetypes:
-            if lt not in doc.linetypes:
-                doc.linetypes.new(lt)
 
     def attach_custom_data(self, entity):
         attach_custom_data(entity, self.script_identifier)
