@@ -158,7 +158,7 @@ def get_style(style, project_loader):
         return project_loader.get_style(style)
     return style
 
-def apply_style_to_entity(entity, style, project_loader, item_type='area', is_legend_item=False):
+def apply_style_to_entity(entity, style, project_loader, item_type='area'):
     if 'color' in style:
         entity.dxf.color = get_color_code(style['color'], project_loader.name_to_aci)
     else:
@@ -197,7 +197,7 @@ def apply_style_to_entity(entity, style, project_loader, item_type='area', is_le
         else:
             entity.dxf.ltscale = 1.0  # Default scale
 
-def create_hatch(msp, boundary_paths, style, project_loader, is_legend_item=False):
+def create_hatch(msp, boundary_paths, style, project_loader):
     hatch = msp.add_hatch()
     
     pattern = style.get('hatch', {}).get('pattern', 'SOLID')

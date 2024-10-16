@@ -79,12 +79,13 @@ class LegendCreator:
         self.current_y -= self.item_height + self.item_spacing
 
     def create_area_item(self, x1, y1, x2, y2, layer_name, item_style):
+        # Create the rectangle without applying any style
         rectangle = self.msp.add_lwpolyline([(x1, y1), (x2, y1), (x2, y2), (x1, y2), (x1, y1)], dxfattribs={'layer': layer_name})
-        apply_style_to_entity(rectangle, item_style, self.project_loader, is_legend_item=True)
         self.attach_custom_data(rectangle)
 
+        # Create and style the hatch
         hatch_paths = [[(x1, y1), (x2, y1), (x2, y2), (x1, y2)]]
-        hatch = create_hatch(self.msp, hatch_paths, item_style, self.project_loader, is_legend_item=True)
+        hatch = create_hatch(self.msp, hatch_paths, item_style, self.project_loader)
         hatch.dxf.layer = layer_name
         self.attach_custom_data(hatch)
 
@@ -97,7 +98,7 @@ class LegendCreator:
 
     def create_line_item(self, x1, y1, x2, y2, layer_name, item_style):
         line = self.msp.add_line((x1, y1 - self.item_height / 2), (x2, y1 - self.item_height / 2), dxfattribs={'layer': layer_name})
-        apply_style_to_entity(line, item_style, self.project_loader, item_type='line', is_legend_item=True)
+        apply_style_to_entity(line, item_style, self.project_loader, item_type='line')
         self.attach_custom_data(line)
 
     def create_empty_item(self, x1, y1, x2, y2, layer_name):
@@ -106,7 +107,7 @@ class LegendCreator:
 
     def add_text(self, x, y, text, layer_name, text_style):
         text_entity = add_text(self.msp, text, x, y, layer_name, 'Standard')
-        apply_style_to_entity(text_entity, text_style, self.project_loader, is_legend_item=True)
+        apply_style_to_entity(text_entity, text_style, self.project_loader)
         self.attach_custom_data(text_entity)
 
     def attach_custom_data(self, entity):
