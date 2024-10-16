@@ -9,3 +9,7 @@ styles:
     hatch:
       pattern: 'DASH'
       scale: 2
+  baufeldSchraffur:
+    color: "Light Red"
+    transparency: 0.6
+  
