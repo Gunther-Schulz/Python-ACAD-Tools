@@ -200,8 +200,9 @@ def apply_style_to_entity(entity, style, project_loader, item_type='area'):
 def create_hatch(msp, boundary_paths, style, project_loader, is_legend=False):
     hatch = msp.add_hatch()
     
-    pattern = style.get('hatch', {}).get('pattern', 'SOLID')
-    scale = style.get('hatch', {}).get('scale', 1)
+    hatch_style = style.get('hatch', {})
+    pattern = hatch_style.get('pattern', 'SOLID')
+    scale = hatch_style.get('scale', 1)
     
     if pattern != 'SOLID':
         try:
@@ -209,7 +210,9 @@ def create_hatch(msp, boundary_paths, style, project_loader, is_legend=False):
         except ezdxf.DXFValueError:
             print(f"Invalid hatch pattern: {pattern}. Using SOLID instead.")
             hatch.set_pattern_fill("SOLID")
-    
+    else:
+        hatch.set_solid_fill()
+
     for path in boundary_paths:
         hatch.paths.add_polyline_path(path)
     

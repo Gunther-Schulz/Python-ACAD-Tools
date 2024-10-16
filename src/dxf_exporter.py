@@ -691,7 +691,7 @@ class DXFExporter:
         # Merge with performHatch settings from layer_info
         if 'performHatch' in layer_info:
             hatch_config = self.deep_merge(hatch_config, layer_info['performHatch'])
-        elif not 'hatch' in style:
+        elif 'hatch' not in style:
             # If there's no hatch in style and no performHatch, don't create a hatch
             log_info(f"No hatch configuration found for layer: {layer_name}")
             return
@@ -704,10 +704,6 @@ class DXFExporter:
             log_warning(f"No valid boundary geometry found for hatch in layer: {layer_name}")
             return
         
-        # Set hatch pattern and scale
-        pattern_name = hatch_config.get('pattern', 'SOLID')
-        scale = hatch_config.get('scale', 1)
-        
         individual_hatches = hatch_config.get('individual_hatches', False)
         
         if individual_hatches:
@@ -717,7 +713,8 @@ class DXFExporter:
         
         for geometry in geometries:
             hatch_paths = self._get_hatch_paths(geometry)
-            hatch = create_hatch(msp, hatch_paths, hatch_config, self.project_loader, is_legend=False)
+            hatch_style = {'hatch': hatch_config}
+            hatch = create_hatch(msp, hatch_paths, hatch_style, self.project_loader, is_legend=False)
             hatch.dxf.layer = layer_name
             self.attach_custom_data(hatch)
 
