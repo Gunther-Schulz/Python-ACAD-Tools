@@ -210,3 +210,11 @@ def create_hatch(msp, boundary_paths, style, project_loader, is_legend_item=Fals
     # We'll set transparency in create_area_item, so we don't need to do it here
     
     return hatch
+
+def set_hatch_transparency(hatch, transparency):
+    """Set the transparency of a hatch entity."""
+    if transparency is not None:
+        # Convert transparency to ezdxf format (0-1, where 1 is fully transparent)
+        ezdxf_transparency = transparency
+        # Set hatch transparency
+        hatch.dxf.transparency = colors.float2transparency(ezdxf_transparency)

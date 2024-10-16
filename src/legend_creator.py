@@ -4,7 +4,7 @@ from ezdxf import const
 from src.dfx_utils import (get_color_code, convert_transparency, attach_custom_data, 
                            is_created_by_script, add_text, remove_entities_by_layer, 
                            ensure_layer_exists, update_layer_geometry, get_style,
-                           apply_style_to_entity, create_hatch)
+                           apply_style_to_entity, create_hatch, set_hatch_transparency)
 from ezdxf.math import Vec3
 from ezdxf import colors
 
@@ -91,11 +91,7 @@ class LegendCreator:
         # Set hatch transparency
         if 'transparency' in item_style:
             transparency = convert_transparency(item_style['transparency'])
-            if transparency is not None:
-                # Convert transparency to ezdxf format (0-1, where 1 is fully transparent)
-                ezdxf_transparency = transparency
-                # Set hatch transparency
-                hatch.dxf.transparency = colors.float2transparency(ezdxf_transparency)
+            set_hatch_transparency(hatch, transparency)
 
         return hatch
 
