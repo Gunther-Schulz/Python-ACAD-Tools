@@ -22,6 +22,8 @@ class LegendCreator:
         self.item_height = 15
         self.text_offset = 5
         self.script_identifier = "Created by LegendCreator"
+        self.subtitle_text_style = get_style(self.legend_config.get('subtitleTextStyle', {}), self.project_loader)
+        self.subtitle_spacing = 15  # Add spacing for subtitle
         
         # Global text styles
         self.group_text_style = get_style(self.legend_config.get('groupTextStyle', {}), self.project_loader)
@@ -40,6 +42,7 @@ class LegendCreator:
 
     def create_group(self, group):
         group_name = group.get('name', '')
+        subtitle = group.get('subtitle', '')
         layer_name = f"Legend_{group_name}"
         
         # Get and apply group style
@@ -49,6 +52,11 @@ class LegendCreator:
         # Add group title with global group text style
         self.add_text(self.position['x'], self.current_y, group_name, layer_name, self.group_text_style)
         self.current_y -= self.group_spacing
+
+        # Add subtitle with global subtitle text style
+        if subtitle:
+            self.add_text(self.position['x'], self.current_y, subtitle, layer_name, self.subtitle_text_style)
+            self.current_y -= self.subtitle_spacing
 
         # Create items
         for item in group.get('items', []):

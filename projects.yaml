@@ -94,16 +94,21 @@ projects:
       position:
         x: 367841
         y: 5942622
-    # groupTextStyle:
-    #   color: "Blue"
-    #   height: 7
-    #   font: "Arial"
-    # itemTextStyle:
-    #   color: "Black"
-    #   height: 5
-    #   font: "Arial"
+      groupTextStyle:
+        color: "Black"
+        height: 7
+        font: "Arial"
+      subtitleTextStyle:
+        color: "Black"
+        height: 6
+        font: "Arial"
+      itemTextStyle:
+        color: "Black"
+        height: 4
+        font: "Arial"
       groups:
         - name: "Geltungsbereich"
+          subtitle: "Planungsrechtliche Festsetzungen"
           update: true
           items:
             - name: "Geltungsbereich"
