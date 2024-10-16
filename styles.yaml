@@ -1,0 +1,11 @@
+styles:
+  forest:
+    color: "Dark Green"
+    hatch:
+      pattern: 'ANSI31'
+      scale: 5
+  water:
+    color: "Light Blue"
+    hatch:
+      pattern: 'DASH'
+      scale: 2

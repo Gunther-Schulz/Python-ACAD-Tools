@@ -68,8 +68,16 @@ class LayerProcessor:
             log_warning(f"Unrecognized keys in layer {layer_name}: {', '.join(unrecognized_keys)}")
 
         # Check for known style keys
-        known_style_keys = {'color', 'linetype', 'lineweight', 'plot', 'locked', 'frozen', 'is_on', 'vp_freeze', 'transparency'}
+        known_style_keys = {'color', 'linetype', 'lineweight', 'plot', 'locked', 'frozen', 'is_on', 'vp_freeze', 'transparency', 'hatch'}
         if 'style' in layer_obj:
+            if isinstance(layer_obj['style'], str):
+                # If style is a string, it's a preset name
+                preset_style = self.project_loader.get_style(layer_obj['style'])
+                layer_obj['style'] = preset_style
+            else:
+                # If it's a dict, it's a custom style, so we keep it as is
+                pass
+
             unknown_style_keys = set(layer_obj['style'].keys()) - known_style_keys
             if unknown_style_keys:
                 log_warning(f"Unknown style keys in layer {layer_name}: {', '.join(unknown_style_keys)}")

@@ -38,6 +38,11 @@ class DXFExporter:
 
     def _setup_single_layer(self, layer):
         layer_name = layer['name']
+        
+        # If style is a string, get the preset style
+        if 'style' in layer and isinstance(layer['style'], str):
+            layer['style'] = self.project_loader.get_style(layer['style'])
+        
         self.add_layer_properties(layer_name, layer)
         
         if not self.is_wmts_or_wms_layer(layer) and not layer_name.endswith(' Label'):

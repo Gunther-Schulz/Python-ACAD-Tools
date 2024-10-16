@@ -73,6 +73,10 @@ class LegendCreator:
         item_name = item.get('name', '')
         style = item.get('style', {})
 
+        # If style is a string, get the preset style
+        if isinstance(style, str):
+            style = self.project_loader.get_style(style)
+
         # Create rectangle
         x1, y1 = self.position['x'], self.current_y
         x2, y2 = x1 + self.item_width, y1 - self.item_height

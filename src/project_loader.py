@@ -6,6 +6,7 @@ class ProjectLoader:
     def __init__(self, project_name: str):
         self.load_project_settings(project_name)
         self.load_color_mapping()
+        self.load_styles()
 
     def load_color_mapping(self):
         with open('colors.yaml', 'r') as file:
@@ -50,3 +51,11 @@ class ProjectLoader:
 
     def resolve_full_path(self, path: str) -> str:
         return os.path.abspath(os.path.expanduser(os.path.join(self.folder_prefix, path)))
+
+    def load_styles(self):
+        with open('styles.yaml', 'r') as file:
+            style_data = yaml.safe_load(file)
+            self.styles = style_data.get('styles', {})
+
+    def get_style(self, style_name):
+        return self.styles.get(style_name, {})
