@@ -145,7 +145,7 @@ def get_style(style, project_loader):
         return project_loader.get_style(style)
     return style
 
-def apply_style_to_entity(entity, style, project_loader):
+def apply_style_to_entity(entity, style, project_loader, item_type='area'):
     if 'color' in style:
         entity.dxf.color = get_color_code(style['color'], project_loader.name_to_aci)
     else:
@@ -169,6 +169,19 @@ def apply_style_to_entity(entity, style, project_loader):
             entity.transparency = -1  # BYLAYER
     else:
         entity.transparency = -1  # BYLAYER
+
+    # Apply specific styles based on item type
+    if item_type == 'line':
+        # For lines, we might want to ensure that the linetype is visible
+        if 'linetype_scale' in style:
+            entity.dxf.ltscale = style['linetype_scale']
+        else:
+            entity.dxf.ltscale = 1.0  # Default scale
+
+    # For 'area' type, we don't need to do anything special here
+    # as the hatch is handled separately in the create_hatch function
+
+    # For 'empty' type, we don't need to do anything
 
 def create_hatch(msp, boundary_paths, style, project_loader):
     hatch = msp.add_hatch()

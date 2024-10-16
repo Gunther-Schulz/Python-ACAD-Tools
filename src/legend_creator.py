@@ -58,28 +58,18 @@ class LegendCreator:
 
     def create_item(self, item, layer_name):
         item_name = item.get('name', '')
+        item_type = item.get('type', 'empty')
         item_style = get_style(item.get('style', {}), self.project_loader)
 
-        # Create rectangle
         x1, y1 = self.position['x'], self.current_y
         x2, y2 = x1 + self.item_width, y1 - self.item_height
-        rectangle = self.msp.add_lwpolyline([(x1, y1), (x2, y1), (x2, y2), (x1, y2), (x1, y1)], dxfattribs={'layer': layer_name})
-        if item_style:
-            apply_style_to_entity(rectangle, item_style, self.project_loader)
-        self.attach_custom_data(rectangle)
 
-        # Apply style to a line (for linetype demonstration)
-        line = self.msp.add_line((x1, y1), (x2, y2), dxfattribs={'layer': layer_name})
-        if item_style:
-            apply_style_to_entity(line, item_style, self.project_loader)
-        self.attach_custom_data(line)
-
-        # Add hatch if specified
-        if 'hatch' in item_style:
-            hatch_paths = [[(x1, y1), (x2, y1), (x2, y2), (x1, y2)]]
-            hatch = create_hatch(self.msp, hatch_paths, item_style, self.project_loader)
-            hatch.dxf.layer = layer_name
-            self.attach_custom_data(hatch)
+        if item_type == 'area':
+            self.create_area_item(x1, y1, x2, y2, layer_name, item_style)
+        elif item_type == 'line':
+            self.create_line_item(x1, y1, x2, y2, layer_name, item_style)
+        elif item_type == 'empty':
+            self.create_empty_item(x1, y1, x2, y2, layer_name)
 
         # Add item name with global item text style
         text_x = x2 + self.text_offset
@@ -87,6 +77,26 @@ class LegendCreator:
         self.add_text(text_x, text_y, item_name, layer_name, self.item_text_style)
 
         self.current_y -= self.item_height + self.item_spacing
+
+    def create_area_item(self, x1, y1, x2, y2, layer_name, item_style):
+        rectangle = self.msp.add_lwpolyline([(x1, y1), (x2, y1), (x2, y2), (x1, y2), (x1, y1)], dxfattribs={'layer': layer_name})
+        apply_style_to_entity(rectangle, item_style, self.project_loader)
+        self.attach_custom_data(rectangle)
+
+        if 'hatch' in item_style:
+            hatch_paths = [[(x1, y1), (x2, y1), (x2, y2), (x1, y2)]]
+            hatch = create_hatch(self.msp, hatch_paths, item_style, self.project_loader)
+            hatch.dxf.layer = layer_name
+            self.attach_custom_data(hatch)
+
+    def create_line_item(self, x1, y1, x2, y2, layer_name, item_style):
+        line = self.msp.add_line((x1, y1 - self.item_height / 2), (x2, y1 - self.item_height / 2), dxfattribs={'layer': layer_name})
+        apply_style_to_entity(line, item_style, self.project_loader)
+        self.attach_custom_data(line)
+
+    def create_empty_item(self, x1, y1, x2, y2, layer_name):
+        # For empty items, we don't need to draw anything
+        pass
 
     def add_text(self, x, y, text, layer_name, text_style):
         text_entity = add_text(self.msp, text, x, y, layer_name, 'Standard')

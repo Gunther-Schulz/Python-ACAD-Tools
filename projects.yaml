@@ -94,11 +94,20 @@ projects:
       position:
         x: 100
         y: 100
+    # groupTextStyle:
+    #   color: "Blue"
+    #   height: 7
+    #   font: "Arial"
+    # itemTextStyle:
+    #   color: "Black"
+    #   height: 5
+    #   font: "Arial"
       groups:
         - name: "Geltungsbereich"
           update: true
           items:
             - name: "Geltungsbereich"
+              type: line
               style:
                 color: "Red"
                 linetype: "Continuous"
@@ -106,8 +115,10 @@ projects:
           update: true
           items:
             - name: "Baufeld"
+              type: area
               style: baufeldSchraffur
             - name: "Grünfläche"
+              type: area
               style:
                 color: "Light Green"
                 hatch:
@@ -116,6 +127,7 @@ projects:
           update: true
           items:
             - name: "Baugrenze"
+              type: line
               style:
                 color: "Blue"
                 linetype: "ACAD_ISO02W100"    
