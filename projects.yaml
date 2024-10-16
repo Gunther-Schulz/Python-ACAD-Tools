@@ -96,12 +96,14 @@ projects:
         y: 100
       groups:
         - name: "Geltungsbereich"
+          update: true
           items:
             - name: "Geltungsbereich"
               style:
                 color: "Red"
                 linetype: "Continuous"
         - name: "Flächen"
+          update: true
           items:
             - name: "Baufeld"
               style:
@@ -114,6 +116,7 @@ projects:
                 hatch:
                   pattern: "GRASS"
         - name: "Grenzen"
+          update: true
           items:
             - name: "Baugrenze"
               style:
