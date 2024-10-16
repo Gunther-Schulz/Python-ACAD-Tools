@@ -92,8 +92,8 @@ projects:
     dumpOutputDir: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten//GIS/dxf_dump"
     legend:
       position:
-        x: 100
-        y: 100
+        x: 367841
+        y: 5942622
     # groupTextStyle:
     #   color: "Blue"
     #   height: 7

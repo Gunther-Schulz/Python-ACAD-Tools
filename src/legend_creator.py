@@ -73,7 +73,7 @@ class LegendCreator:
 
         # Add item name with global item text style
         text_x = x2 + self.text_offset
-        text_y = y1 - self.item_height / 2  # Center the text vertically
+        text_y = (y1 + y2) / 2  # Calculate the vertical middle point
         self.add_text(text_x, text_y, item_name, layer_name, self.item_text_style)
 
         self.current_y -= self.item_height + self.item_spacing
@@ -108,6 +108,10 @@ class LegendCreator:
     def add_text(self, x, y, text, layer_name, text_style):
         text_entity = add_text(self.msp, text, x, y, layer_name, 'Standard')
         apply_style_to_entity(text_entity, text_style, self.project_loader)
+        # Set horizontal alignment to left and vertical alignment to middle
+        text_entity.dxf.halign = 0  # 0 = Left
+        text_entity.dxf.valign = 2  # 2 = Middle
+        text_entity.dxf.align_point = (x, y)
         self.attach_custom_data(text_entity)
 
     def attach_custom_data(self, entity):
