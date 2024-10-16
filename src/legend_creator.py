@@ -28,6 +28,7 @@ class LegendCreator:
         # Global text styles
         self.group_text_style = get_style(self.legend_config.get('groupTextStyle', {}), self.project_loader)
         self.item_text_style = get_style(self.legend_config.get('itemTextStyle', {}), self.project_loader)
+        self.name_to_aci = project_loader.name_to_aci
 
     def create_legend(self):
         for group in self.legend_config.get('groups', []):
@@ -114,7 +115,8 @@ class LegendCreator:
         pass
 
     def add_mtext(self, x, y, text, layer_name, text_style):
-        mtext_entity = add_mtext(self.msp, text, x, y, layer_name, 'Standard', text_style)
+        mtext_entity = add_mtext(self.msp, text, x, y, layer_name, 'Standard', text_style, self.name_to_aci)
+        apply_style_to_entity(mtext_entity, text_style, self.project_loader)
         self.attach_custom_data(mtext_entity)
 
     def attach_custom_data(self, entity):
@@ -122,3 +124,6 @@ class LegendCreator:
 
     def is_created_by_script(self, entity):
         return is_created_by_script(entity, self.script_identifier)
+
+    def get_color_code(self, color):
+        return get_color_code(color, self.name_to_aci)

@@ -8,21 +8,18 @@ def get_color_code(color, name_to_aci):
         if 1 <= color <= 255:
             return color
         else:
-            random_color = random.randint(1, 255)
-            print(f"Warning: Invalid color code {color}. Assigning random color: {random_color}")
-            return random_color
+            print(f"Warning: Invalid color code {color}. Using BYLAYER.")
+            return ezdxf.const.BYLAYER
     elif isinstance(color, str):
         color_lower = color.lower()
         if color_lower in name_to_aci:
             return name_to_aci[color_lower]
         else:
-            random_color = random.randint(1, 255)
-            print(f"Warning: Color name '{color}' not found. Assigning random color: {random_color}")
-            return random_color
+            print(f"Warning: Color name '{color}' not found. Using BYLAYER.")
+            return ezdxf.const.BYLAYER
     else:
-        random_color = random.randint(1, 255)
-        print(f"Warning: Invalid color type. Assigning random color: {random_color}")
-        return random_color
+        print(f"Warning: Invalid color type. Using BYLAYER.")
+        return ezdxf.const.BYLAYER
 
 def convert_transparency(transparency):
     if isinstance(transparency, (int, float)):
@@ -238,7 +235,7 @@ def set_hatch_transparency(hatch, transparency):
         # Set hatch transparency
         hatch.dxf.transparency = colors.float2transparency(ezdxf_transparency)
 
-def add_mtext(msp, text, x, y, layer_name, style_name, text_style=None):
+def add_mtext(msp, text, x, y, layer_name, style_name, text_style=None, name_to_aci=None):
     dxfattribs = {
         'style': style_name,
         'layer': layer_name,
@@ -248,8 +245,8 @@ def add_mtext(msp, text, x, y, layer_name, style_name, text_style=None):
     if text_style:
         if 'height' in text_style:
             dxfattribs['char_height'] = text_style['height']
-        if 'color' in text_style:
-            dxfattribs['color'] = get_color_code(text_style['color'], msp.doc.header['$CMATERIAL'])
+        if 'color' in text_style and name_to_aci:
+            dxfattribs['color'] = get_color_code(text_style['color'], name_to_aci)
         if 'font' in text_style:
             dxfattribs['style'] = text_style['font']
 
