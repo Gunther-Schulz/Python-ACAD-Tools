@@ -2,7 +2,7 @@ import ezdxf
 from ezdxf.enums import TextEntityAlignment
 from ezdxf import const
 from src.dfx_utils import (get_color_code, convert_transparency, attach_custom_data, 
-                           is_created_by_script, add_text, remove_entities_by_layer, 
+                           is_created_by_script, add_mtext, remove_entities_by_layer, 
                            ensure_layer_exists, update_layer_geometry, get_style,
                            apply_style_to_entity, create_hatch, set_hatch_transparency)
 from ezdxf.math import Vec3
@@ -50,12 +50,12 @@ class LegendCreator:
         ensure_layer_exists(self.doc, layer_name, group_style)
         
         # Add group title with global group text style
-        self.add_text(self.position['x'], self.current_y, group_name, layer_name, self.group_text_style)
+        self.add_mtext(self.position['x'], self.current_y, group_name, layer_name, self.group_text_style)
         self.current_y -= self.group_spacing
 
         # Add subtitle with global subtitle text style
         if subtitle:
-            self.add_text(self.position['x'], self.current_y, subtitle, layer_name, self.subtitle_text_style)
+            self.add_mtext(self.position['x'], self.current_y, subtitle, layer_name, self.subtitle_text_style)
             self.current_y -= self.subtitle_spacing
 
         # Create items
@@ -82,7 +82,7 @@ class LegendCreator:
         # Add item name with global item text style
         text_x = x2 + self.text_offset
         text_y = (y1 + y2) / 2  # Calculate the vertical middle point
-        self.add_text(text_x, text_y, item_name, layer_name, self.item_text_style)
+        self.add_mtext(text_x, text_y, item_name, layer_name, self.item_text_style)
 
         self.current_y -= self.item_height + self.item_spacing
 
@@ -113,14 +113,12 @@ class LegendCreator:
         # For empty items, we don't need to draw anything
         pass
 
-    def add_text(self, x, y, text, layer_name, text_style):
-        text_entity = add_text(self.msp, text, x, y, layer_name, 'Standard')
-        apply_style_to_entity(text_entity, text_style, self.project_loader)
+    def add_mtext(self, x, y, text, layer_name, text_style):
+        mtext_entity = add_mtext(self.msp, text, x, y, layer_name, 'Standard')
+        apply_style_to_entity(mtext_entity, text_style, self.project_loader)
         # Set horizontal alignment to left and vertical alignment to middle
-        text_entity.dxf.halign = 0  # 0 = Left
-        text_entity.dxf.valign = 2  # 2 = Middle
-        text_entity.dxf.align_point = (x, y)
-        self.attach_custom_data(text_entity)
+        mtext_entity.dxf.attachment_point = 4  # 4 = Middle Left
+        self.attach_custom_data(mtext_entity)
 
     def attach_custom_data(self, entity):
         attach_custom_data(entity, self.script_identifier)

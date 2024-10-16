@@ -231,3 +231,14 @@ def set_hatch_transparency(hatch, transparency):
         ezdxf_transparency = transparency
         # Set hatch transparency
         hatch.dxf.transparency = colors.float2transparency(ezdxf_transparency)
+
+def add_mtext(msp, text, x, y, layer_name, style_name, height=5, color=None):
+    mtext_entity = msp.add_mtext(text, dxfattribs={
+        'style': style_name,
+        'layer': layer_name,
+        'insert': (x, y),
+        'char_height': height,
+        'color': color if color is not None else ezdxf.const.BYLAYER
+    })
+    mtext_entity.dxf.attachment_point = 4  # 4 = Middle Left
+    return mtext_entity
