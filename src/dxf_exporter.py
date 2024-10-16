@@ -15,7 +15,8 @@ from src.legend_creator import LegendCreator
 from src.dfx_utils import (get_color_code, convert_transparency, attach_custom_data, 
                            is_created_by_script, add_text, remove_entities_by_layer, 
                            ensure_layer_exists, update_layer_properties, load_standard_linetypes, 
-                           set_drawing_properties, verify_dxf_settings, update_layer_geometry)
+                           set_drawing_properties, verify_dxf_settings, update_layer_geometry,
+                           get_style, apply_style_to_entity, create_hatch)
 
 class DXFExporter:
     def __init__(self, project_loader, layer_processor):
@@ -715,35 +716,11 @@ class DXFExporter:
             geometries = [boundary_geometry]
         
         for geometry in geometries:
-            hatch = msp.add_hatch()
-            
-            if pattern_name != 'SOLID':
-                try:
-                    hatch.set_pattern_fill(pattern_name, scale=scale)
-                except ezdxf.DXFValueError:
-                    log_warning(f"Invalid hatch pattern: {pattern_name}. Using SOLID instead.")
-                    hatch.set_pattern_fill("SOLID")
-            
-            # Add boundary paths
-            self._add_boundary_paths(hatch, geometry)
-            
-            # Set layer
+            hatch_paths = self._get_hatch_paths(geometry)
+            hatch = create_hatch(msp, hatch_paths, hatch_config, self.project_loader)
             hatch.dxf.layer = layer_name
-            
-            # Set color
-            hatch_color = hatch_config.get('color') or style.get('color')
-            if hatch_color:
-                hatch.dxf.color = get_color_code(hatch_color, self.name_to_aci)
-            else:
-                hatch.dxf.color = ezdxf.const.BYLAYER
-            
-            # Set transparency
-            transparency = style.get('transparency')
-            if transparency is not None:
-                hatch.transparency = convert_transparency(transparency)
-            
             self.attach_custom_data(hatch)
-        
+
         log_info(f"Added hatch{'es' if individual_hatches else ''} to layer: {layer_name}")
 
     def _get_boundary_geometry(self, boundary_layers):
@@ -759,27 +736,22 @@ class DXFExporter:
                     combined_geometry = combined_geometry.union(layer_geometry)
         return combined_geometry
 
-    def _add_boundary_paths(self, hatch, geometry):
-        if isinstance(geometry, (Polygon, MultiPolygon)):
-            if isinstance(geometry, Polygon):
-                polygons = [geometry]
-            else:
-                polygons = list(geometry.geoms)
-            
-            for polygon in polygons:
-                exterior_path = hatch.paths.add_polyline_path(list(polygon.exterior.coords))
-                for interior in polygon.interiors:
-                    hatch.paths.add_polyline_path(list(interior.coords))
-        elif isinstance(geometry, (LineString, MultiLineString)):
-            if isinstance(geometry, LineString):
-                linestrings = [geometry]
-            else:
-                linestrings = list(geometry.geoms)
-            
-            for linestring in linestrings:
-                hatch.paths.add_polyline_path(list(linestring.coords))
-        else:
-            log_warning(f"Unsupported geometry type for hatch boundary: {type(geometry)}")
+    def _get_hatch_paths(self, geometry):
+        # This method should return a list of paths for the hatch
+        # The implementation depends on your specific geometry types
+        # Here's a simple example for polygons:
+        if isinstance(geometry, Polygon):
+            paths = [list(geometry.exterior.coords)]
+            for interior in geometry.interiors:
+                paths.append(list(interior.coords))
+            return paths
+        elif isinstance(geometry, MultiPolygon):
+            paths = []
+            for polygon in geometry.geoms:
+                paths.extend(self._get_hatch_paths(polygon))
+            return paths
+        # Add more geometry types as needed
+        return []
 
     def deep_merge(self, dict1, dict2):
         result = dict1.copy()

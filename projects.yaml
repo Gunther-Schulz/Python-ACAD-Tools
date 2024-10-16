@@ -106,10 +106,7 @@ projects:
           update: true
           items:
             - name: "Baufeld"
-              style:
-                color: "Light Red"
-                hatch:
-                  pattern: "SOLID"
+              style: baufeldSchraffur
             - name: "Grünfläche"
               style:
                 color: "Light Green"

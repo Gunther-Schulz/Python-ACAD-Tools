@@ -87,8 +87,7 @@ def remove_entities_by_layer(msp, layer_name, script_identifier):
 
 def update_layer_geometry(msp, layer_name, script_identifier, update_function):
     # Remove existing entities
-    removed_count = remove_entities_by_layer(msp, layer_name, script_identifier)
-    print(f"Removed {removed_count} entities from layer {layer_name}")
+    remove_entities_by_layer(msp, layer_name, script_identifier)
     
     # Add new geometry
     update_function()
@@ -139,3 +138,38 @@ def verify_dxf_settings(filename):
     print(f"LUNITS after load: {loaded_doc.header['$LUNITS']}")
     print(f"LUPREC after load: {loaded_doc.header['$LUPREC']}")
     print(f"AUPREC after load: {loaded_doc.header['$AUPREC']}")
+
+def get_style(style, project_loader):
+    if isinstance(style, str):
+        return project_loader.get_style(style)
+    return style
+
+def apply_style_to_entity(entity, style, project_loader):
+    if 'color' in style:
+        entity.dxf.color = get_color_code(style['color'], project_loader.name_to_aci)
+    if 'linetype' in style:
+        entity.dxf.linetype = style['linetype']
+    if 'lineweight' in style:
+        entity.dxf.lineweight = style['lineweight']
+    if 'transparency' in style:
+        entity.transparency = convert_transparency(style['transparency'])
+
+def create_hatch(msp, boundary_paths, style, project_loader):
+    hatch = msp.add_hatch()
+    
+    pattern = style.get('hatch', {}).get('pattern', 'SOLID')
+    scale = style.get('hatch', {}).get('scale', 1)
+    
+    if pattern != 'SOLID':
+        try:
+            hatch.set_pattern_fill(pattern, scale=scale)
+        except ezdxf.DXFValueError:
+            print(f"Invalid hatch pattern: {pattern}. Using SOLID instead.")
+            hatch.set_pattern_fill("SOLID")
+    
+    for path in boundary_paths:
+        hatch.paths.add_polyline_path(path)
+    
+    apply_style_to_entity(hatch, style, project_loader)
+    
+    return hatch
