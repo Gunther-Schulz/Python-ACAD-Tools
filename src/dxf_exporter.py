@@ -12,7 +12,7 @@ from ezdxf import pattern
 
 from PIL import Image
 from src.legend_creator import LegendCreator
-from src.dfx_utils import get_color_code
+from src.dfx_utils import get_color_code, convert_transparency, attach_custom_data, is_created_by_script
 
 class DXFExporter:
     def __init__(self, project_loader, layer_processor):
@@ -250,7 +250,7 @@ class DXFExporter:
         new_layer.on = properties['is_on']
         
         if 'transparency' in properties:
-            transparency = self._convert_transparency(properties['transparency'])
+            transparency = convert_transparency(properties['transparency'])
             if transparency is not None:
                 new_layer.transparency = transparency
             else:
@@ -275,7 +275,7 @@ class DXFExporter:
         layer.on = properties['is_on']
         
         if 'transparency' in properties:
-            transparency = self._convert_transparency(properties['transparency'])
+            transparency = convert_transparency(properties['transparency'])
             if transparency is not None:
                 layer.transparency = transparency
             else:
@@ -296,37 +296,10 @@ class DXFExporter:
                 doc.linetypes.new(lt)
 
     def attach_custom_data(self, entity):
-        """Attach custom data to identify entities created by this script."""
-        try:
-            entity.set_xdata(
-                'DXFEXPORTER',
-                [
-                    (1000, self.script_identifier),
-                    (1002, '{'),
-                    (1000, 'CREATED_BY'),
-                    (1000, 'DXFExporter'),
-                    (1002, '}')
-                ]
-            )
-            log_info(f"Attached custom XDATA to entity: {entity}")
-        except Exception as e:
-            log_error(f"Error setting XDATA for entity {entity}: {str(e)}")
+        attach_custom_data(entity, self.script_identifier)
 
     def is_created_by_script(self, entity):
-        """Check if an entity was created by this script."""
-        try:
-            xdata = entity.get_xdata('DXFEXPORTER')
-            if xdata:
-                for code, value in xdata:
-                    if code == 1000 and value == self.script_identifier:
-                        return True
-        except ezdxf.lldxf.const.DXFValueError:
-            # This exception is raised when the entity has no XDATA for 'DXFEXPORTER'
-            # It's not an error, just means the entity wasn't created by this script
-            return False
-        except Exception as e:
-            log_warning(f"Unexpected error checking XDATA for entity {entity}: {str(e)}")
-        return False
+        return is_created_by_script(entity, self.script_identifier)
 
     def add_wmts_xrefs_to_dxf(self, msp, tile_data, layer_name):
         log_info(f"Adding WMTS xrefs to DXF for layer: {layer_name}")
@@ -831,8 +804,3 @@ class DXFExporter:
                 hatch.paths.add_polyline_path(list(linestring.coords))
         else:
             log_warning(f"Unsupported geometry type for hatch boundary: {type(geometry)}")
-
-    def _convert_transparency(self, transparency):
-        if isinstance(transparency, (int, float)):
-            return max(0, min(transparency, 1))
-        return None

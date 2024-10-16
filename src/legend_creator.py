@@ -1,7 +1,7 @@
 import ezdxf
 from ezdxf.enums import TextEntityAlignment
 from ezdxf import const
-from src.dfx_utils import get_color_code
+from src.dfx_utils import get_color_code, convert_transparency, attach_custom_data, is_created_by_script
 from ezdxf.math import Vec3
 from ezdxf import enums
 
@@ -18,6 +18,7 @@ class LegendCreator:
         self.item_width = 30
         self.item_height = 15
         self.text_offset = 5
+        self.script_identifier = "Created by LegendCreator"
 
     def create_legend(self):
         if not self.legend_config:
@@ -74,3 +75,9 @@ class LegendCreator:
             (x, y),
             align=enums.TextEntityAlignment.LEFT
         )
+
+    def attach_custom_data(self, entity):
+        attach_custom_data(entity, self.script_identifier)
+
+    def is_created_by_script(self, entity):
+        return is_created_by_script(entity, self.script_identifier)
