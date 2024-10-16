@@ -26,7 +26,12 @@ def get_color_code(color, name_to_aci):
 
 def convert_transparency(transparency):
     if isinstance(transparency, (int, float)):
-        return max(0, min(transparency, 1))
+        return min(max(transparency, 0), 1)  # Ensure value is between 0 and 1
+    elif isinstance(transparency, str):
+        try:
+            return float(transparency)
+        except ValueError:
+            print(f"Invalid transparency value: {transparency}")
     return None
 
 def attach_custom_data(entity, script_identifier):
@@ -101,19 +106,27 @@ def ensure_layer_exists(doc, layer_name, layer_properties):
         existing_layer = doc.layers.get(layer_name)
         update_layer_properties(existing_layer, layer_properties)
 
-def update_layer_properties(layer, properties):
-    layer.color = properties.get('color', layer.color)
-    layer.dxf.linetype = properties.get('linetype', layer.dxf.linetype)
-    layer.dxf.lineweight = properties.get('lineweight', layer.dxf.lineweight)
-    layer.dxf.plot = properties.get('plot', layer.dxf.plot)
-    layer.is_locked = properties.get('locked', layer.is_locked)
-    layer.is_frozen = properties.get('frozen', layer.is_frozen)
-    layer.is_on = properties.get('is_on', layer.is_on)
-    
-    if 'transparency' in properties:
-        transparency = convert_transparency(properties['transparency'])
-        if transparency is not None:
-            layer.transparency = transparency
+def update_layer_properties(layer, layer_properties):
+    if 'color' in layer_properties:
+        layer.color = layer_properties['color']
+    if 'linetype' in layer_properties:
+        layer.linetype = layer_properties['linetype']
+    if 'lineweight' in layer_properties:
+        layer.lineweight = layer_properties['lineweight']
+    if 'transparency' in layer_properties:
+        # Convert the 0-1 transparency value to what ezdxf expects for layers
+        transparency = layer_properties['transparency']
+        if isinstance(transparency, (int, float)):
+            # Ensure the value is between 0 and 1
+            layer.transparency = min(max(transparency, 0), 1)
+        elif isinstance(transparency, str):
+            try:
+                transparency_value = float(transparency)
+                layer.transparency = min(max(transparency_value, 0), 1)
+            except ValueError:
+                print(f"Invalid transparency value for layer: {transparency}")
+    if 'plot' in layer_properties:
+        layer.plot = layer_properties['plot']
 
 def load_standard_linetypes(doc):
     standard_linetypes = [
@@ -145,7 +158,7 @@ def get_style(style, project_loader):
         return project_loader.get_style(style)
     return style
 
-def apply_style_to_entity(entity, style, project_loader, item_type='area'):
+def apply_style_to_entity(entity, style, project_loader, item_type='area', is_legend_item=False):
     if 'color' in style:
         entity.dxf.color = get_color_code(style['color'], project_loader.name_to_aci)
     else:
@@ -161,16 +174,11 @@ def apply_style_to_entity(entity, style, project_loader, item_type='area'):
     else:
         entity.dxf.lineweight = ezdxf.const.LINEWEIGHT_BYLAYER
     
-    # Don't set transparency here for hatches
-    if item_type != 'area':
-        if 'transparency' in style:
-            transparency = convert_transparency(style['transparency'])
-            if transparency is not None:
-                entity.transparency = colors.float2transparency(transparency)
-            else:
-                entity.transparency = -1  # BYLAYER
-        else:
-            entity.transparency = -1  # BYLAYER
+    # Set transparency for legend items or when explicitly specified
+    if is_legend_item or 'transparency' in style:
+        transparency = convert_transparency(style.get('transparency', 0))
+        if transparency is not None:
+            entity.transparency = colors.float2transparency(transparency)
 
     # Apply specific styles based on item type
     if item_type == 'line':
@@ -179,12 +187,7 @@ def apply_style_to_entity(entity, style, project_loader, item_type='area'):
         else:
             entity.dxf.ltscale = 1.0  # Default scale
 
-    # For 'area' type, we don't need to do anything special here
-    # as the hatch is handled separately in the create_hatch function
-
-    # For 'empty' type, we don't need to do anything
-
-def create_hatch(msp, boundary_paths, style, project_loader):
+def create_hatch(msp, boundary_paths, style, project_loader, is_legend_item=False):
     hatch = msp.add_hatch()
     
     pattern = style.get('hatch', {}).get('pattern', 'SOLID')
@@ -200,13 +203,10 @@ def create_hatch(msp, boundary_paths, style, project_loader):
     for path in boundary_paths:
         hatch.paths.add_polyline_path(path)
     
-    # Apply style to the hatch
-    apply_style_to_entity(hatch, style, project_loader, item_type='area')
+    # Apply color
+    if 'color' in style:
+        hatch.dxf.color = get_color_code(style['color'], project_loader.name_to_aci)
     
-    # Handle transparency separately
-    if 'transparency' in style:
-        transparency = convert_transparency(style['transparency'])
-        if transparency is not None:
-            hatch.transparency = colors.float2transparency(transparency)
+    # We'll set transparency in create_area_item, so we don't need to do it here
     
     return hatch

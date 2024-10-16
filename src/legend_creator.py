@@ -6,7 +6,7 @@ from src.dfx_utils import (get_color_code, convert_transparency, attach_custom_d
                            ensure_layer_exists, update_layer_geometry, get_style,
                            apply_style_to_entity, create_hatch)
 from ezdxf.math import Vec3
-from ezdxf import enums
+from ezdxf import colors
 
 class LegendCreator:
     def __init__(self, doc, msp, project_loader):
@@ -80,18 +80,28 @@ class LegendCreator:
 
     def create_area_item(self, x1, y1, x2, y2, layer_name, item_style):
         rectangle = self.msp.add_lwpolyline([(x1, y1), (x2, y1), (x2, y2), (x1, y2), (x1, y1)], dxfattribs={'layer': layer_name})
-        apply_style_to_entity(rectangle, item_style, self.project_loader)
+        apply_style_to_entity(rectangle, item_style, self.project_loader, is_legend_item=True)
         self.attach_custom_data(rectangle)
 
-        if 'hatch' in item_style:
-            hatch_paths = [[(x1, y1), (x2, y1), (x2, y2), (x1, y2)]]
-            hatch = create_hatch(self.msp, hatch_paths, item_style, self.project_loader)
-            hatch.dxf.layer = layer_name
-            self.attach_custom_data(hatch)
+        hatch_paths = [[(x1, y1), (x2, y1), (x2, y2), (x1, y2)]]
+        hatch = create_hatch(self.msp, hatch_paths, item_style, self.project_loader, is_legend_item=True)
+        hatch.dxf.layer = layer_name
+        self.attach_custom_data(hatch)
+
+        # Set hatch transparency
+        if 'transparency' in item_style:
+            transparency = convert_transparency(item_style['transparency'])
+            if transparency is not None:
+                # Convert transparency to ezdxf format (0-1, where 1 is fully transparent)
+                ezdxf_transparency = transparency
+                # Set hatch transparency
+                hatch.dxf.transparency = colors.float2transparency(ezdxf_transparency)
+
+        return hatch
 
     def create_line_item(self, x1, y1, x2, y2, layer_name, item_style):
         line = self.msp.add_line((x1, y1 - self.item_height / 2), (x2, y1 - self.item_height / 2), dxfattribs={'layer': layer_name})
-        apply_style_to_entity(line, item_style, self.project_loader)
+        apply_style_to_entity(line, item_style, self.project_loader, item_type='line', is_legend_item=True)
         self.attach_custom_data(line)
 
     def create_empty_item(self, x1, y1, x2, y2, layer_name):
@@ -100,7 +110,7 @@ class LegendCreator:
 
     def add_text(self, x, y, text, layer_name, text_style):
         text_entity = add_text(self.msp, text, x, y, layer_name, 'Standard')
-        apply_style_to_entity(text_entity, text_style, self.project_loader)
+        apply_style_to_entity(text_entity, text_style, self.project_loader, is_legend_item=True)
         self.attach_custom_data(text_entity)
 
     def attach_custom_data(self, entity):
