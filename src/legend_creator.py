@@ -26,10 +26,6 @@ class LegendCreator:
         if not self.legend_config:
             return
 
-        update_flag = self.legend_config.get('update', False)
-        if update_flag:
-            self.remove_existing_legend()
-
         for group in self.legend_config.get('groups', []):
             self.create_group(group)
 
@@ -56,6 +52,12 @@ class LegendCreator:
             'transparency': 0.0
         })
         
+        update_flag = group.get('update', False)
+        
+        if not update_flag:
+            print(f"Skipping update for legend group: {group_name}")
+            return
+
         def update_group():
             self.add_text(self.position['x'], self.current_y, group_name, layer_name)
             self.current_y -= self.item_spacing
@@ -74,18 +76,21 @@ class LegendCreator:
         # Create rectangle
         x1, y1 = self.position['x'], self.current_y
         x2, y2 = x1 + self.item_width, y1 - self.item_height
-        self.msp.add_lwpolyline([(x1, y1), (x2, y1), (x2, y2), (x1, y2), (x1, y1)], dxfattribs={'layer': layer_name})
+        rectangle = self.msp.add_lwpolyline([(x1, y1), (x2, y1), (x2, y2), (x1, y2), (x1, y1)], dxfattribs={'layer': layer_name})
+        self.attach_custom_data(rectangle)
 
         # Apply style
         color = get_color_code(style.get('color', 'White'), self.project_loader.name_to_aci)
         linetype = style.get('linetype', 'Continuous')
-        self.msp.add_line((x1, y1), (x2, y2), dxfattribs={'color': color, 'linetype': linetype, 'layer': layer_name})
+        line = self.msp.add_line((x1, y1), (x2, y2), dxfattribs={'color': color, 'linetype': linetype, 'layer': layer_name})
+        self.attach_custom_data(line)
 
         # Add hatch if specified
         if 'hatch' in style:
             hatch = self.msp.add_hatch(color=color, dxfattribs={'layer': layer_name})
             hatch.set_pattern_fill(style['hatch'].get('pattern', 'SOLID'), scale=style['hatch'].get('scale', 1))
             hatch.paths.add_polyline_path([(x1, y1), (x2, y1), (x2, y2), (x1, y2)])
+            self.attach_custom_data(hatch)
 
         # Add item name
         text_x = x2 + self.text_offset
@@ -96,7 +101,7 @@ class LegendCreator:
 
     def add_text(self, x, y, text, layer_name):
         text_entity = add_text(self.msp, text, x, y, layer_name, 'Standard', height=5, color=get_color_code('White', self.project_loader.name_to_aci))
-        attach_custom_data(text_entity, self.script_identifier)
+        self.attach_custom_data(text_entity)
 
     def attach_custom_data(self, entity):
         attach_custom_data(entity, self.script_identifier)
