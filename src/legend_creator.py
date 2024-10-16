@@ -64,12 +64,14 @@ class LegendCreator:
         x1, y1 = self.position['x'], self.current_y
         x2, y2 = x1 + self.item_width, y1 - self.item_height
         rectangle = self.msp.add_lwpolyline([(x1, y1), (x2, y1), (x2, y2), (x1, y2), (x1, y1)], dxfattribs={'layer': layer_name})
-        apply_style_to_entity(rectangle, item_style, self.project_loader)
+        if item_style:
+            apply_style_to_entity(rectangle, item_style, self.project_loader)
         self.attach_custom_data(rectangle)
 
         # Apply style to a line (for linetype demonstration)
         line = self.msp.add_line((x1, y1), (x2, y2), dxfattribs={'layer': layer_name})
-        apply_style_to_entity(line, item_style, self.project_loader)
+        if item_style:
+            apply_style_to_entity(line, item_style, self.project_loader)
         self.attach_custom_data(line)
 
         # Add hatch if specified

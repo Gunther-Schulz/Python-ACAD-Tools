@@ -1,6 +1,7 @@
 import random
 import ezdxf
 from ezdxf import enums
+from ezdxf import colors
 
 def get_color_code(color, name_to_aci):
     if isinstance(color, int):
@@ -147,12 +148,27 @@ def get_style(style, project_loader):
 def apply_style_to_entity(entity, style, project_loader):
     if 'color' in style:
         entity.dxf.color = get_color_code(style['color'], project_loader.name_to_aci)
+    else:
+        entity.dxf.color = ezdxf.const.BYLAYER
+    
     if 'linetype' in style:
         entity.dxf.linetype = style['linetype']
+    else:
+        entity.dxf.linetype = 'BYLAYER'
+    
     if 'lineweight' in style:
         entity.dxf.lineweight = style['lineweight']
+    else:
+        entity.dxf.lineweight = ezdxf.const.LINEWEIGHT_BYLAYER
+    
     if 'transparency' in style:
-        entity.transparency = convert_transparency(style['transparency'])
+        transparency = convert_transparency(style['transparency'])
+        if transparency is not None:
+            entity.transparency = colors.float2transparency(transparency)
+        else:
+            entity.transparency = -1  # BYLAYER
+    else:
+        entity.transparency = -1  # BYLAYER
 
 def create_hatch(msp, boundary_paths, style, project_loader):
     hatch = msp.add_hatch()
@@ -170,6 +186,15 @@ def create_hatch(msp, boundary_paths, style, project_loader):
     for path in boundary_paths:
         hatch.paths.add_polyline_path(path)
     
-    apply_style_to_entity(hatch, style, project_loader)
+    # Only apply style if it's specifically set for the hatch
+    if 'hatch' in style:
+        apply_style_to_entity(hatch, style['hatch'], project_loader)
+    else:
+        # Set to BYLAYER if not specified
+        hatch.dxf.color = ezdxf.const.BYLAYER
+        hatch.dxf.linetype = 'BYLAYER'
+        hatch.dxf.lineweight = ezdxf.const.LINEWEIGHT_BYLAYER
+        # For transparency, we'll use -1 to indicate BYLAYER
+        hatch.transparency = -1
     
     return hatch
