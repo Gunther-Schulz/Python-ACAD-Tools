@@ -31,6 +31,12 @@ class DXFExporter:
         log_info(f"DXFExporter initialized with script identifier: {self.script_identifier}")
         self.setup_layers()
         self.viewports = {}
+        self.default_hatch_settings = {
+            'pattern': 'SOLID',
+            'scale': 1,
+            'color': None,  # Use layer color by default
+            'individual_hatches': False
+        }
 
     def setup_layers(self):
         for layer in self.project_settings['dxfLayers']:
@@ -147,8 +153,16 @@ class DXFExporter:
         if 'viewports' in layer_info:
             self._process_viewport_styles(doc, layer_name, layer_info['viewports'])
         
-        # Process hatch if present in style
-        if 'style' in layer_info and 'hatch' in layer_info['style']:
+        should_process_hatch = 'performHatch' in layer_info
+        if 'style' in layer_info:
+            style = layer_info['style']
+            if isinstance(style, str):
+                style_dict = self.project_loader.get_style(style)
+            else:
+                style_dict = style
+            should_process_hatch = should_process_hatch or 'hatch' in style_dict
+
+        if should_process_hatch:
             self._process_hatch(doc, msp, layer_name, layer_info)
 
     def _process_wmts_layer(self, doc, msp, layer_name, layer_info):
@@ -666,12 +680,18 @@ class DXFExporter:
         if isinstance(style, str):
             style = self.project_loader.get_style(style)
         
-        # Merge hatch configurations from style and layer_info
-        style_hatch = style.get('hatch', {})
-        layer_hatch = layer_info.get('hatch', {})
-        hatch_config = {**style_hatch, **layer_hatch}
+        # Start with default hatch settings
+        hatch_config = self.default_hatch_settings.copy()
         
-        if not hatch_config:
+        # Merge with style hatch settings if present
+        if 'hatch' in style:
+            hatch_config = self.deep_merge(hatch_config, style['hatch'])
+        
+        # Merge with performHatch settings from layer_info
+        if 'performHatch' in layer_info:
+            hatch_config = self.deep_merge(hatch_config, layer_info['performHatch'])
+        elif not 'hatch' in style:
+            # If there's no hatch in style and no performHatch, don't create a hatch
             log_info(f"No hatch configuration found for layer: {layer_name}")
             return
         
@@ -683,12 +703,11 @@ class DXFExporter:
             log_warning(f"No valid boundary geometry found for hatch in layer: {layer_name}")
             return
         
-        # Check if we should create individual hatches
-        individual_hatches = hatch_config.get('individual_hatches', False)
-        
-        # Set hatch pattern
+        # Set hatch pattern and scale
         pattern_name = hatch_config.get('pattern', 'SOLID')
         scale = hatch_config.get('scale', 1)
+        
+        individual_hatches = hatch_config.get('individual_hatches', False)
         
         if individual_hatches:
             geometries = [boundary_geometry] if isinstance(boundary_geometry, (Polygon, LineString)) else list(boundary_geometry.geoms)
@@ -761,3 +780,12 @@ class DXFExporter:
                 hatch.paths.add_polyline_path(list(linestring.coords))
         else:
             log_warning(f"Unsupported geometry type for hatch boundary: {type(geometry)}")
+
+    def deep_merge(self, dict1, dict2):
+        result = dict1.copy()
+        for key, value in dict2.items():
+            if isinstance(value, dict):
+                result[key] = self.deep_merge(result.get(key, {}), value)
+            else:
+                result[key] = value
+        return result

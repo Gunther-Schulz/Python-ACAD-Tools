@@ -13,6 +13,7 @@ styles:
     color: "Light Red"
     transparency: 0.6
     hatch:
+      individual_hatches: true
       # pattern: 'SOLID'
       # scale: 10
   
