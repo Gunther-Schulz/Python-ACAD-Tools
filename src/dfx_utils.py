@@ -256,6 +256,5 @@ def add_mtext(msp, text, x, y, layer_name, style_name, text_style=None, name_to_
     if max_width:
         mtext_entity.dxf.width = max_width
         # Word wrap is automatically enabled when width is set
-    # mtext_entity.dxf.width = 100
 
     return mtext_entity

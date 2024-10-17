@@ -30,6 +30,7 @@ class LegendCreator:
         self.item_text_style = get_style(self.legend_config.get('itemTextStyle', {}), self.project_loader)
         self.name_to_aci = project_loader.name_to_aci
         self.max_width = self.legend_config.get('max_width', 200)  # Default max width of 200 units
+        self.total_item_width = self.item_width + self.text_offset + self.max_width
 
     def create_legend(self):
         for group in self.legend_config.get('groups', []):
@@ -52,12 +53,12 @@ class LegendCreator:
         ensure_layer_exists(self.doc, layer_name, group_style)
         
         # Add group title with global group text style
-        self.add_mtext(self.position['x'], self.current_y, group_name, layer_name, self.group_text_style)
+        self.add_mtext(self.position['x'], self.current_y, group_name, layer_name, self.group_text_style, self.max_width)
         self.current_y -= self.group_spacing
 
         # Add subtitle with global subtitle text style
         if subtitle:
-            self.add_mtext(self.position['x'], self.current_y, subtitle, layer_name, self.subtitle_text_style)
+            self.add_mtext(self.position['x'], self.current_y, subtitle, layer_name, self.subtitle_text_style, self.max_width)
             self.current_y -= self.subtitle_spacing
 
         # Create items
@@ -84,7 +85,8 @@ class LegendCreator:
         # Add item name with global item text style
         text_x = x2 + self.text_offset
         text_y = (y1 + y2) / 2  # Calculate the vertical middle point
-        self.add_mtext(text_x, text_y, item_name, layer_name, self.item_text_style)
+        text_width = self.max_width - self.item_width - self.text_offset
+        self.add_mtext(text_x, text_y, item_name, layer_name, self.item_text_style, text_width)
 
         self.current_y -= self.item_height + self.item_spacing
 
@@ -115,8 +117,8 @@ class LegendCreator:
         # For empty items, we don't need to draw anything
         pass
 
-    def add_mtext(self, x, y, text, layer_name, text_style):
-        mtext_entity = add_mtext(self.msp, text, x, y, layer_name, 'Standard', text_style, self.name_to_aci, self.max_width)
+    def add_mtext(self, x, y, text, layer_name, text_style, text_width=None):
+        mtext_entity = add_mtext(self.msp, text, x, y, layer_name, 'Standard', text_style, self.name_to_aci, text_width)
         apply_style_to_entity(mtext_entity, text_style, self.project_loader)
         self.attach_custom_data(mtext_entity)
 
