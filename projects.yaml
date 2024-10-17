@@ -103,7 +103,7 @@ projects:
         x: 367841
         y: 5942622
       titleTextStyle:
-        height: 10
+        height: 8
         color: "Black"
         font: "Legend"
         # rotation: 45
@@ -119,7 +119,7 @@ projects:
         # strike_through: False
         # oblique_angle: 15
       titleSubtitleStyle:
-        height: 10
+        height: 4
         color: "Dark Gray"
         font: "Legend"
       groupTextStyle:
