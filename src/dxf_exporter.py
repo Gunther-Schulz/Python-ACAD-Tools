@@ -402,7 +402,6 @@ class DXFExporter:
                         polyline.dxf.flags |= LWPOLYLINE_PLINEGEN
                     else:
                         polyline.dxf.flags &= ~LWPOLYLINE_PLINEGEN
-                    log_info(f"Added polygon interior to layer {layer_name}: {polyline}")
 
     def add_linestring_to_dxf(self, msp, linestring, layer_name):
         points = list(linestring.coords)

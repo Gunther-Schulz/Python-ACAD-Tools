@@ -476,10 +476,6 @@ class LayerProcessor:
         source_gdf = self.all_layers[layer_name]
         filtered_gdf = source_gdf.copy()
 
-        log_info(f"Initial number of geometries in {layer_name}: {len(filtered_gdf)}")
-        log_info(f"Initial geometries: {filtered_gdf.geometry.tolist()}")
-        log_info(f"Initial attributes: {filtered_gdf}")
-
         for layer_info in operation['layers']:
             source_layer_name, values = self._process_layer_info(layer_info)
             if source_layer_name is None:
@@ -503,19 +499,12 @@ class LayerProcessor:
             # Filter the geometries based on intersection with the buffered filter geometry
             filtered_gdf = filtered_gdf[filtered_gdf.geometry.intersects(buffered_filter_geometry)]
 
-            log_info(f"Number of geometries after filtering with {source_layer_name}: {len(filtered_gdf)}")
-            log_info(f"Geometries after filtering with {source_layer_name}: {filtered_gdf.geometry.tolist()}")
-            log_info(f"Attributes after filtering with {source_layer_name}: {filtered_gdf}")
-
             # If no geometries are left after filtering, break early
             if filtered_gdf.empty:
                 break
 
         if not filtered_gdf.empty:
             self.all_layers[layer_name] = self.ensure_geodataframe(layer_name, filtered_gdf)
-            log_info(f"Filtered layer: {layer_name} with {len(filtered_gdf)} geometries")
-            log_info(f"Final geometries: {filtered_gdf.geometry.tolist()}")
-            log_info(f"Final attributes: {filtered_gdf}")
         else:
             log_warning(f"No geometries left after filtering for layer: {layer_name}")
             self.all_layers[layer_name] = gpd.GeoDataFrame(geometry=[], crs=self.crs)
@@ -1172,7 +1161,6 @@ class LayerProcessor:
                 continue
             
             angle = self._calculate_angle(prev_point, current_point, next_point)
-            log_info(f"Angle at point {i}: {angle} degrees")
             
             if angle is not None and angle < angle_threshold:
                 log_info(f"Blunting angle at point {i}")
@@ -1199,7 +1187,6 @@ class LayerProcessor:
             next_point = Point(coords[i+1])
             
             angle = self._calculate_angle(prev_point, current_point, next_point)
-            log_info(f"Angle at point {i}: {angle} degrees")
             
             if angle is not None and angle < angle_threshold:
                 log_info(f"Blunting angle at point {i}")
