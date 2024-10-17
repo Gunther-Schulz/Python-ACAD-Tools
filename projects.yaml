@@ -105,23 +105,23 @@ projects:
       titleTextStyle:
         height: 10
         color: "Black"
-        font: "Arial"
+        font: "Legend"
       titleSubtitleStyle:
         height: 4
         color: "Dark Gray"
-        font: "Arial"
+        font: "Legend"
       groupTextStyle:
         color: "Black"
         height: 7
-        font: "Arial"
+        font: "Legend"
       subtitleTextStyle:
         color: "Black"
         height: 4
-        font: "Arial"
+        font: "Legend"
       itemTextStyle:
         color: "Black"
         height: 4
-        font: "Arial"
+        font: "Legend"
       groups:
         - name: "Geltungsbereich"
           update: true
