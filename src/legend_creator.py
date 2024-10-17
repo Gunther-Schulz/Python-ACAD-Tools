@@ -32,6 +32,7 @@ class LegendCreator:
         self.max_width = self.legend_config.get('max_width', 200)  # Default max width of 200 units
         self.total_item_width = self.item_width + self.text_offset + self.max_width
         self.between_group_spacing = self.legend_config.get('between_group_spacing', 40)  # Default spacing of 40 units between groups
+        self.text_line_spacing = 1.5  # Line spacing factor
 
     def create_legend(self):
         self.selectively_remove_existing_legend()
@@ -44,27 +45,25 @@ class LegendCreator:
                 group_name = group.get('name', '')
                 layer_name = f"Legend_{group_name}"
                 removed_count = remove_entities_by_layer(self.msp, layer_name, script_identifier)
-                log_warning(f"Removed {removed_count} entities from layer {layer_name}")
 
     def create_group(self, group):
         group_name = group.get('name', '')
         subtitle = group.get('subtitle', '')
         layer_name = f"Legend_{group_name}"
         
-        # Get and apply group style
         group_style = get_style(group.get('style', {}), self.project_loader)
         ensure_layer_exists(self.doc, layer_name, group_style)
         
-        # Add group title with global group text style
+        # Add group title
         title_height = self.group_text_style.get('height', 5)
-        self.add_mtext(self.position['x'], self.current_y, group_name, layer_name, self.group_text_style, self.max_width)
-        self.current_y -= title_height + self.group_spacing
+        title_entity = self.add_mtext(self.position['x'], self.current_y, group_name, layer_name, self.group_text_style, self.max_width)
+        self.current_y = title_entity.dxf.insert.y - title_height - self.group_spacing
 
-        # Add subtitle with global subtitle text style
+        # Add subtitle
         if subtitle:
             subtitle_height = self.subtitle_text_style.get('height', 3)
-            self.add_mtext(self.position['x'], self.current_y, subtitle, layer_name, self.subtitle_text_style, self.max_width)
-            self.current_y -= subtitle_height + self.subtitle_spacing
+            subtitle_entity = self.add_mtext(self.position['x'], self.current_y, subtitle, layer_name, self.subtitle_text_style, self.max_width)
+            self.current_y = subtitle_entity.dxf.insert.y - subtitle_height - self.subtitle_spacing
 
         # Create items
         for item in group.get('items', []):
@@ -82,21 +81,24 @@ class LegendCreator:
         x2, y2 = x1 + self.item_width, y1 - self.item_height
 
         if item_type == 'area':
-            self.create_area_item(x1, y1, x2, y2, layer_name, item_style)
+            item_entity = self.create_area_item(x1, y1, x2, y2, layer_name, item_style)
         elif item_type == 'line':
-            self.create_line_item(x1, y1, x2, y2, layer_name, item_style)
+            item_entity = self.create_line_item(x1, y1, x2, y2, layer_name, item_style)
         elif item_type == 'empty':
-            self.create_empty_item(x1, y1, x2, y2, layer_name)
+            item_entity = self.create_empty_item(x1, y1, x2, y2, layer_name)
 
-        # Add item name with global item text style
+        # Add item name
         text_x = x2 + self.text_offset
         text_y = y1  # Align text with top of the item
         text_width = self.max_width - self.item_width - self.text_offset
+        text_entity = self.add_mtext(text_x, text_y, item_name, layer_name, self.item_text_style, text_width)
+        
+        # Calculate the bottom of the entire item (including text)
         text_height = self.item_text_style.get('height', 3)
-        self.add_mtext(text_x, text_y, item_name, layer_name, self.item_text_style, text_width)
+        bottom_y = min(y2, text_entity.dxf.insert.y - text_height)
 
         # Update current_y to be below the item or text, whichever is lower
-        self.current_y = min(y2, text_y - text_height) - self.item_spacing
+        self.current_y = bottom_y - self.item_spacing
 
     def create_area_item(self, x1, y1, x2, y2, layer_name, item_style):
         # Create the rectangle without applying any style
@@ -129,6 +131,14 @@ class LegendCreator:
         mtext_entity = add_mtext(self.msp, text, x, y, layer_name, 'Standard', text_style, self.name_to_aci, text_width)
         apply_style_to_entity(mtext_entity, text_style, self.project_loader)
         self.attach_custom_data(mtext_entity)
+        
+        # Ensure char_height is set
+        if 'height' in text_style:
+            mtext_entity.dxf.char_height = text_style['height']
+        
+        # Set line spacing
+        mtext_entity.dxf.line_spacing_factor = self.text_line_spacing
+        
         return mtext_entity
 
     def attach_custom_data(self, entity):
