@@ -63,6 +63,7 @@ class LegendCreator:
         if subtitle:
             subtitle_height = self.subtitle_text_style.get('height', 3)
             subtitle_entity = self.add_mtext(self.position['x'], self.current_y, subtitle, layer_name, self.subtitle_text_style, self.max_width)
+            subtitle_entity.dxf.line_spacing_factor = 1.0  # Adjust this value to change line spacing
             self.current_y = subtitle_entity.dxf.insert.y - subtitle_height - self.subtitle_spacing
 
         # Create items
@@ -89,7 +90,7 @@ class LegendCreator:
 
         # Add item name
         text_x = x2 + self.text_offset
-        text_y = y1  # Align text with top of the item
+        text_y = y1 - (self.item_height / 2)  # Align text with middle of the item
         text_width = self.max_width - self.item_width - self.text_offset
         text_entity = self.add_mtext(text_x, text_y, item_name, layer_name, self.item_text_style, text_width)
         
@@ -127,7 +128,7 @@ class LegendCreator:
         # For empty items, we don't need to draw anything
         pass
 
-    def add_mtext(self, x, y, text, layer_name, text_style, text_width=None):
+    def add_mtext(self, x, y, text, layer_name, text_style, text_width=None, line_spacing_factor=None):
         mtext_entity = add_mtext(self.msp, text, x, y, layer_name, 'Standard', text_style, self.name_to_aci, text_width)
         apply_style_to_entity(mtext_entity, text_style, self.project_loader)
         self.attach_custom_data(mtext_entity)
@@ -137,7 +138,10 @@ class LegendCreator:
             mtext_entity.dxf.char_height = text_style['height']
         
         # Set line spacing
-        mtext_entity.dxf.line_spacing_factor = self.text_line_spacing
+        if line_spacing_factor is not None:
+            mtext_entity.dxf.line_spacing_factor = line_spacing_factor
+        else:
+            mtext_entity.dxf.line_spacing_factor = self.text_line_spacing
         
         return mtext_entity
 
