@@ -46,6 +46,7 @@ def convert_transparency(transparency):
 def attach_custom_data(entity, script_identifier):
     if entity.dxftype() != 'MTEXT':
         try:
+            # Set XDATA
             entity.set_xdata(
                 'DXFEXPORTER',
                 [
@@ -56,8 +57,16 @@ def attach_custom_data(entity, script_identifier):
                     (1002, '}')
                 ]
             )
+            
+            # Set hyperlink
+            if hasattr(entity, 'set_hyperlink'):
+                hyperlink_text = f"{script_identifier} - Created by DXFExporter"
+                entity.set_hyperlink(hyperlink_text, description="Entity created by DXFExporter")
+            else:
+                print(f"Warning: Entity {entity.dxftype()} does not support hyperlinks")
+                
         except Exception as e:
-            print(f"Error setting XDATA for entity {entity}: {str(e)}")
+            print(f"Error setting custom data for entity {entity}: {str(e)}")
 
 def is_created_by_script(entity, script_identifier):
     """Check if an entity was created by this script."""
