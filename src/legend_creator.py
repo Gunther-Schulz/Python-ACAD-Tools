@@ -112,7 +112,7 @@ class LegendCreator:
 
         # Add item name
         text_x = x2 + self.text_offset
-        text_y = y1  # Align text with top of the item
+        text_y = y1 - (self.item_height / 2)  # Center text vertically with the item symbol
         text_width = self.max_width - self.item_width - self.text_offset
         text_result = self.add_mtext(text_x, text_y, item_name, layer_name, self.item_text_style, text_width)
         
@@ -121,6 +121,8 @@ class LegendCreator:
             self.current_y -= self.item_height + self.item_spacing
         else:
             text_entity, actual_text_height = text_result
+            # Adjust the vertical position of the text to center it
+            text_entity.dxf.insert = (text_x, y1 - (self.item_height / 2) + (actual_text_height / 2))
             self.current_y -= max(self.item_height, actual_text_height) + self.item_spacing
 
     def create_area_item(self, x1, y1, x2, y2, layer_name, item_style):
