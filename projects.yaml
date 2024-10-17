@@ -112,7 +112,7 @@ projects:
       groups:
         - name: "Planzeichen"
           update: true
-          subtitle: "(gem. PlanzV 1990-PlanzV 90 v.18.12.1990)"
+          subtitle: "(gem. PlanzV 1990-PlanzV 90 v.18.12.1990)  xxxxx xxxx   xxxx xxx xxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx"
         - name: "Geltungsbereich"
           update: true
           subtitle: "Planungsrechtliche Festsetzungen"

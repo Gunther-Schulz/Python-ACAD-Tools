@@ -56,13 +56,15 @@ class LegendCreator:
         ensure_layer_exists(self.doc, layer_name, group_style)
         
         # Add group title with global group text style
+        title_height = self.group_text_style.get('height', 5)
         self.add_mtext(self.position['x'], self.current_y, group_name, layer_name, self.group_text_style, self.max_width)
-        self.current_y -= self.group_spacing
+        self.current_y -= title_height + self.group_spacing
 
         # Add subtitle with global subtitle text style
         if subtitle:
+            subtitle_height = self.subtitle_text_style.get('height', 3)
             self.add_mtext(self.position['x'], self.current_y, subtitle, layer_name, self.subtitle_text_style, self.max_width)
-            self.current_y -= self.subtitle_spacing
+            self.current_y -= subtitle_height + self.subtitle_spacing
 
         # Create items
         for item in group.get('items', []):
@@ -88,11 +90,13 @@ class LegendCreator:
 
         # Add item name with global item text style
         text_x = x2 + self.text_offset
-        text_y = (y1 + y2) / 2  # Calculate the vertical middle point
+        text_y = y1  # Align text with top of the item
         text_width = self.max_width - self.item_width - self.text_offset
+        text_height = self.item_text_style.get('height', 3)
         self.add_mtext(text_x, text_y, item_name, layer_name, self.item_text_style, text_width)
 
-        self.current_y -= self.item_height + self.item_spacing
+        # Update current_y to be below the item or text, whichever is lower
+        self.current_y = min(y2, text_y - text_height) - self.item_spacing
 
     def create_area_item(self, x1, y1, x2, y2, layer_name, item_style):
         # Create the rectangle without applying any style
@@ -125,6 +129,7 @@ class LegendCreator:
         mtext_entity = add_mtext(self.msp, text, x, y, layer_name, 'Standard', text_style, self.name_to_aci, text_width)
         apply_style_to_entity(mtext_entity, text_style, self.project_loader)
         self.attach_custom_data(mtext_entity)
+        return mtext_entity
 
     def attach_custom_data(self, entity):
         attach_custom_data(entity, script_identifier)
