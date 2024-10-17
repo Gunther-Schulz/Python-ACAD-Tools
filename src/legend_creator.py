@@ -167,14 +167,15 @@ class LegendCreator:
         ensure_layer_exists(self.doc, layer_name, {})
 
         if title:
-            title_height = self.title_text_style.get('height', 7)
+            title_height = self.title_text_style.get('height', 10)
             title_entity = self.add_mtext(self.position['x'], self.current_y, title, layer_name, self.title_text_style, self.max_width)
             self.current_y = title_entity.dxf.insert.y - title_height - self.title_spacing
 
         if subtitle:
-            subtitle_height = self.title_subtitle_style.get('height', 5)
+            subtitle_height = self.title_subtitle_style.get('height', 7)
             subtitle_entity = self.add_mtext(self.position['x'], self.current_y, subtitle, layer_name, self.title_subtitle_style, self.max_width)
-            self.current_y = subtitle_entity.dxf.insert.y - subtitle_height - self.title_spacing
+            subtitle_entity.dxf.line_spacing_factor = 1.0  # Adjust this value to change line spacing
+            self.current_y = subtitle_entity.dxf.insert.y - subtitle_height - self.subtitle_spacing
 
-        # Add extra spacing after the title
+        # Add extra spacing after the title/subtitle
         self.current_y -= self.between_group_spacing

@@ -107,7 +107,7 @@ projects:
         color: "Black"
         font: "Arial"
       titleSubtitleStyle:
-        height: 7
+        height: 4
         color: "Dark Gray"
         font: "Arial"
       groupTextStyle:
