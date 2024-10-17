@@ -91,7 +91,7 @@ projects:
     dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Zeichnung/dev/test.dxf"    
     dumpOutputDir: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten//GIS/dxf_dump"
     legend:
-      max_width: 200
+      max_width: 100
       position:
         x: 367841
         y: 5942622
