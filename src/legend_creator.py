@@ -16,7 +16,7 @@ class LegendCreator:
         self.legend_config = project_loader.project_settings.get('legend', {})
         self.position = self.legend_config.get('position', {'x': 0, 'y': 0})
         self.current_y = self.position['y']
-        self.group_spacing = 20
+        self.group_spacing = self.legend_config.get('group_spacing', 20)  # Default group spacing of 20 units
         self.item_spacing = 10
         self.item_width = 30
         self.item_height = 15
@@ -31,6 +31,7 @@ class LegendCreator:
         self.name_to_aci = project_loader.name_to_aci
         self.max_width = self.legend_config.get('max_width', 200)  # Default max width of 200 units
         self.total_item_width = self.item_width + self.text_offset + self.max_width
+        self.between_group_spacing = self.legend_config.get('between_group_spacing', 40)  # Default spacing of 40 units between groups
 
     def create_legend(self):
         for group in self.legend_config.get('groups', []):
@@ -64,8 +65,9 @@ class LegendCreator:
         # Create items
         for item in group.get('items', []):
             self.create_item(item, layer_name)
-
-        self.current_y -= self.group_spacing
+        
+        # Add extra spacing after the group
+        self.current_y -= self.between_group_spacing
 
     def create_item(self, item, layer_name):
         item_name = item.get('name', '')
