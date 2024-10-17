@@ -201,6 +201,15 @@ class DXFExporter:
             return
 
         def update_function():
+            # Remove existing geometry and labels
+            log_info(f"Removing existing geometry from layer {layer_name}")
+            remove_entities_by_layer(msp, layer_name, script_identifier)
+            
+            # Remove existing labels
+            label_layer_name = f"{layer_name} Label"
+            log_info(f"Removing existing labels from layer {label_layer_name}")
+            remove_entities_by_layer(msp, label_layer_name, script_identifier)
+
             # Add new geometry and labels
             log_info(f"Adding new geometry to layer {layer_name}")
             if isinstance(geo_data, list) and all(isinstance(item, tuple) for item in geo_data):
@@ -210,8 +219,7 @@ class DXFExporter:
 
             # Verify hyperlinks after adding new entities
             self.verify_entity_hyperlinks(msp, layer_name)
-            if not layer_name.endswith(' Label'):
-                self.verify_entity_hyperlinks(msp, f"{layer_name} Label")
+            self.verify_entity_hyperlinks(msp, label_layer_name)
 
         update_layer_geometry(msp, layer_name, script_identifier, update_function)
 
