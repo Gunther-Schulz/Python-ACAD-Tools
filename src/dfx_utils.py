@@ -11,7 +11,7 @@ from ezdxf.lldxf.const import (
 )
 from ezdxf.enums import TextEntityAlignment
 from ezdxf.math import Vec3
-from src.utils import log_info, log_error
+from src.utils import log_info, log_warning, log_error
 
 script_identifier = "Created by DXFExporter"
 
@@ -44,20 +44,42 @@ def convert_transparency(transparency):
     return None
 
 def attach_custom_data(entity, script_identifier):
-    if entity.dxftype() != 'MTEXT':
+    xdata_set = False
+    hyperlink_set = False
+
+    try:
+        # Set XDATA
+        entity.set_xdata(
+            'DXFEXPORTER',
+            [
+                (1000, script_identifier),
+                (1002, '{'),
+                (1000, 'CREATED_BY'),
+                (1000, 'DXFExporter'),
+                (1002, '}')
+            ]
+        )
+        xdata_set = True
+        log_info(f"XDATA set for entity {entity.dxftype()}")
+    except Exception as e:
+        log_error(f"Error setting XDATA for entity {entity.dxftype()}: {str(e)}")
+
+    # Set hyperlink
+    if hasattr(entity, 'set_hyperlink'):
         try:
-            entity.set_xdata(
-                'DXFEXPORTER',
-                [
-                    (1000, script_identifier),
-                    (1002, '{'),
-                    (1000, 'CREATED_BY'),
-                    (1000, 'DXFExporter'),
-                    (1002, '}')
-                ]
-            )
+            hyperlink_text = f"{script_identifier} - Created by DXFExporter"
+            entity.set_hyperlink(hyperlink_text, description="Entity created by DXFExporter")
+            hyperlink_set = True
+            log_info(f"Hyperlink set for entity {entity.dxftype()}")
         except Exception as e:
-            print(f"Error setting XDATA for entity {entity}: {str(e)}")
+            log_error(f"Error setting hyperlink for entity {entity.dxftype()}: {str(e)}")
+    else:
+        log_warning(f"Entity {entity.dxftype()} does not support hyperlinks")
+
+    if xdata_set and not hyperlink_set:
+        log_warning(f"Entity {entity.dxftype()} received XDATA but not a hyperlink")
+
+    return xdata_set, hyperlink_set
 
 def is_created_by_script(entity, script_identifier):
     """Check if an entity was created by this script."""
@@ -283,6 +305,7 @@ def add_mtext(msp, text, x, y, layer_name, style_name, text_style=None, name_to_
     
     try:
         mtext = msp.add_mtext(sanitized_text, dxfattribs=dxfattribs)
+        attach_custom_data(mtext, script_identifier)  # Attach custom data to MTEXT entities
         
         # Apply additional formatting if specified
         if text_style:

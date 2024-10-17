@@ -243,8 +243,7 @@ class DXFExporter:
         log_info(f"Updated layer properties: {properties}")
 
     def attach_custom_data(self, entity):
-        if entity.dxftype() not in ['MTEXT', 'TEXT']:
-            attach_custom_data(entity, script_identifier)
+        attach_custom_data(entity, script_identifier)
 
     def is_created_by_script(self, entity):
         return is_created_by_script(entity, script_identifier)
@@ -451,7 +450,8 @@ class DXFExporter:
             return
 
         text_layer_name = f"{layer_name} Label" if not layer_name.endswith(' Label') else layer_name
-        self.add_text(msp, str(label), centroid.x, centroid.y, text_layer_name, 'Standard')
+        text_entity = self.add_text(msp, str(label), centroid.x, centroid.y, text_layer_name, 'Standard')
+        self.attach_custom_data(text_entity)  # Attach custom data to label entities
 
     def initialize_layer_properties(self):
         for layer in self.project_settings['dxfLayers']:
@@ -538,8 +538,8 @@ class DXFExporter:
             'halign': 1,
             'valign': 1
         })
-        # Do not attach custom data to text entities
-        # self.attach_custom_data(text_entity)
+        self.attach_custom_data(text_entity)  # Attach custom data to text entities
+        return text_entity
 
     def add_geometry_to_dxf(self, msp, geometry, layer_name):
         if isinstance(geometry, (Polygon, MultiPolygon)):
@@ -560,8 +560,12 @@ class DXFExporter:
         for entity in msp.query(f'*[layer=="{layer_name}"]'):
             if hasattr(entity, 'get_hyperlink'):
                 hyperlink = entity.get_hyperlink()
+                if hyperlink:
+                    log_info(f"Entity {entity.dxftype()} in layer {layer_name} has hyperlink: {hyperlink}")
+                else:
+                    log_info(f"Entity {entity.dxftype()} in layer {layer_name} has no hyperlink content")
             else:
-                log_warning(f"Entity {entity} in layer {layer_name} has no 'get_hyperlink' method")
+                log_warning(f"Entity {entity.dxftype()} in layer {layer_name} has no 'get_hyperlink' method")
 
     def check_existing_entities(self, doc):
         log_info("Checking existing entities in the DXF file")
