@@ -4,7 +4,7 @@ from ezdxf import const
 from src.dfx_utils import (get_color_code, convert_transparency, attach_custom_data, 
                            is_created_by_script, add_mtext, remove_entities_by_layer, 
                            ensure_layer_exists, update_layer_geometry, get_style,
-                           apply_style_to_entity, create_hatch, set_hatch_transparency)
+                           apply_style_to_entity, create_hatch, set_hatch_transparency, script_identifier)
 from ezdxf.math import Vec3
 from ezdxf import colors
 
@@ -21,7 +21,6 @@ class LegendCreator:
         self.item_width = 30
         self.item_height = 15
         self.text_offset = 5
-        self.script_identifier = "Created by LegendCreator"
         self.subtitle_text_style = get_style(self.legend_config.get('subtitleTextStyle', {}), self.project_loader)
         self.subtitle_spacing = 15  # Add spacing for subtitle
         
@@ -42,7 +41,7 @@ class LegendCreator:
         legend_layers.append("Legend")  # Add the main legend layer
         
         for layer_name in legend_layers:
-            removed_count = remove_entities_by_layer(self.msp, layer_name, self.script_identifier)
+            removed_count = remove_entities_by_layer(self.msp, layer_name, script_identifier)
 
     def create_group(self, group):
         group_name = group.get('name', '')
@@ -125,10 +124,10 @@ class LegendCreator:
         self.attach_custom_data(mtext_entity)
 
     def attach_custom_data(self, entity):
-        attach_custom_data(entity, self.script_identifier)
+        attach_custom_data(entity, script_identifier)
 
     def is_created_by_script(self, entity):
-        return is_created_by_script(entity, self.script_identifier)
+        return is_created_by_script(entity, script_identifier)
 
     def get_color_code(self, color):
         return get_color_code(color, self.name_to_aci)

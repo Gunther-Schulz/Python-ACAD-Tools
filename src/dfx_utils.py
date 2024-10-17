@@ -3,6 +3,8 @@ import ezdxf
 from ezdxf import enums
 from ezdxf import colors
 
+script_identifier = "Created by DXFExporter"
+
 def get_color_code(color, name_to_aci):
     if isinstance(color, int):
         if 1 <= color <= 255:

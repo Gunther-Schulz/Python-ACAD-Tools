@@ -16,7 +16,7 @@ from src.dfx_utils import (get_color_code, convert_transparency, attach_custom_d
                            is_created_by_script, add_text, remove_entities_by_layer, 
                            ensure_layer_exists, update_layer_properties, load_standard_linetypes, 
                            set_drawing_properties, verify_dxf_settings, update_layer_geometry,
-                           get_style, apply_style_to_entity, create_hatch)
+                           get_style, apply_style_to_entity, create_hatch, script_identifier)
 
 class DXFExporter:
     def __init__(self, project_loader, layer_processor):
@@ -28,8 +28,7 @@ class DXFExporter:
         self.layer_properties = {}
         self.colors = {}
         self.name_to_aci = project_loader.name_to_aci
-        self.script_identifier = "Created by DXFExporter"
-        log_info(f"DXFExporter initialized with script identifier: {self.script_identifier}")
+        log_info(f"DXFExporter initialized with script identifier: {script_identifier}")
         self.setup_layers()
         self.viewports = {}
         self.default_hatch_settings = {
@@ -133,7 +132,7 @@ class DXFExporter:
 
     def _cleanup_and_save(self, doc, msp):
         processed_layers = [layer['name'] for layer in self.project_settings['dxfLayers']]
-        self.remove_unused_entities(msp, processed_layers)
+        remove_entities_by_layer(msp, processed_layers, script_identifier)
         doc.saveas(self.dxf_filename)
         log_info(f"DXF file saved: {self.dxf_filename}")
         verify_dxf_settings(self.dxf_filename)
@@ -192,17 +191,6 @@ class DXFExporter:
         else:
             self.update_layer_properties(doc.layers.get(label_layer_name), layer_info)
 
-    def remove_unused_entities(self, msp, processed_layers):
-        log_info("Removing unused entities...")
-        removed_count = 0
-        for entity in msp:
-            if (entity.dxf.layer in processed_layers and 
-                entity.dxf.layer not in self.layer_properties and
-                self.is_created_by_script(entity)):
-                msp.delete_entity(entity)
-                removed_count += 1
-        log_info(f"Removed {removed_count} unused entities from processed layers")
-
     def update_layer_geometry(self, msp, layer_name, geo_data, layer_config):
         update_flag = layer_config.get('update', False)
         
@@ -225,7 +213,7 @@ class DXFExporter:
             if not layer_name.endswith(' Label'):
                 self.verify_entity_hyperlinks(msp, f"{layer_name} Label")
 
-        update_layer_geometry(msp, layer_name, self.script_identifier, update_function)
+        update_layer_geometry(msp, layer_name, script_identifier, update_function)
 
     def create_new_layer(self, doc, msp, layer_name, layer_info, add_geometry=True):
         log_info(f"Creating new layer: {layer_name}")
@@ -247,10 +235,10 @@ class DXFExporter:
         log_info(f"Updated layer properties: {properties}")
 
     def attach_custom_data(self, entity):
-        attach_custom_data(entity, self.script_identifier)
+        attach_custom_data(entity, script_identifier)
 
     def is_created_by_script(self, entity):
-        return is_created_by_script(entity, self.script_identifier)
+        return is_created_by_script(entity, script_identifier)
 
     def add_wmts_xrefs_to_dxf(self, msp, tile_data, layer_name):
         log_info(f"Adding WMTS xrefs to DXF for layer: {layer_name}")
@@ -596,7 +584,7 @@ class DXFExporter:
                 viewport.set_xdata(
                     'DXFEXPORTER',
                     [
-                        (1000, self.script_identifier),
+                        (1000, script_identifier),
                         (1002, '{'),
                         (1000, 'VIEWPORT_NAME'),
                         (1000, vp_config['name']),
