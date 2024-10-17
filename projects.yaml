@@ -91,28 +91,38 @@ projects:
     dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Zeichnung/dev/test.dxf"    
     dumpOutputDir: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten//GIS/dxf_dump"
     legend:
+      # title: "Planzeichen"
+      # subtitle: "(gem. PlanzV 1990-PlanzV 90 v.18.12.1990)"
       max_width: 100
-      group_spacing: 6
-      between_group_spacing: 10
+      title_spacing: 15
+      group_spacing: 15 # space between groups
+      subtitle_spacing: 10 # space between subtitle and items
+      item_spacing: 10 # space between items
+      between_group_spacing: 25 # space between groups
       position:
         x: 367841
         y: 5942622
+      titleTextStyle:
+        height: 10
+        color: "Black"
+        font: "Legend"
+      titleSubtitleStyle:
+        height: 4
+        color: "Dark Gray"
+        font: "Legend"
       groupTextStyle:
         color: "Black"
         height: 7
-        font: "Arial"
+        font: "Legend"
       subtitleTextStyle:
         color: "Black"
         height: 4
-        font: "Arial"
+        font: "Legend"
       itemTextStyle:
         color: "Black"
         height: 4
-        font: "Arial"
+        font: "Legend"
       groups:
-        - name: "Planzeichen"
-          update: true
-          subtitle: "(gem. PlanzV 1990-PlanzV 90 v.18.12.1990)"
         - name: "Geltungsbereich"
           update: true
           subtitle: "Planungsrechtliche Festsetzungen"
