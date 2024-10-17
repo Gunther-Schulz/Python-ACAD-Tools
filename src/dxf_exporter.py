@@ -243,7 +243,8 @@ class DXFExporter:
         log_info(f"Updated layer properties: {properties}")
 
     def attach_custom_data(self, entity):
-        attach_custom_data(entity, script_identifier)
+        if entity.dxftype() not in ['MTEXT', 'TEXT']:
+            attach_custom_data(entity, script_identifier)
 
     def is_created_by_script(self, entity):
         return is_created_by_script(entity, script_identifier)
@@ -537,7 +538,8 @@ class DXFExporter:
             'halign': 1,
             'valign': 1
         })
-        self.attach_custom_data(text_entity)
+        # Do not attach custom data to text entities
+        # self.attach_custom_data(text_entity)
 
     def add_geometry_to_dxf(self, msp, geometry, layer_name):
         if isinstance(geometry, (Polygon, MultiPolygon)):

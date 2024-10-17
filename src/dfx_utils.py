@@ -2,6 +2,10 @@ import random
 import ezdxf
 from ezdxf import enums
 from ezdxf import colors
+from ezdxf.lldxf.const import MTEXT_MIDDLE_LEFT  # Import at the top of the file
+from ezdxf.enums import TextEntityAlignment
+from ezdxf.math import Vec3
+from src.utils import log_info, log_error
 
 script_identifier = "Created by DXFExporter"
 
@@ -34,20 +38,20 @@ def convert_transparency(transparency):
     return None
 
 def attach_custom_data(entity, script_identifier):
-    """Attach custom data to identify entities created by this script."""
-    try:
-        entity.set_xdata(
-            'DXFEXPORTER',
-            [
-                (1000, script_identifier),
-                (1002, '{'),
-                (1000, 'CREATED_BY'),
-                (1000, 'DXFExporter'),
-                (1002, '}')
-            ]
-        )
-    except Exception as e:
-        print(f"Error setting XDATA for entity {entity}: {str(e)}")
+    if entity.dxftype() != 'MTEXT':
+        try:
+            entity.set_xdata(
+                'DXFEXPORTER',
+                [
+                    (1000, script_identifier),
+                    (1002, '{'),
+                    (1000, 'CREATED_BY'),
+                    (1000, 'DXFExporter'),
+                    (1002, '}')
+                ]
+            )
+        except Exception as e:
+            print(f"Error setting XDATA for entity {entity}: {str(e)}")
 
 def is_created_by_script(entity, script_identifier):
     """Check if an entity was created by this script."""
@@ -238,25 +242,31 @@ def set_hatch_transparency(hatch, transparency):
         hatch.dxf.transparency = colors.float2transparency(ezdxf_transparency)
 
 def add_mtext(msp, text, x, y, layer_name, style_name, text_style=None, name_to_aci=None, max_width=None):
+    log_info(f"Adding MTEXT: text='{text}', x={x}, y={y}, layer='{layer_name}', style='{style_name}', max_width={max_width}")
+    
+    sanitized_text = text.replace('\n', '\\P')
+    
     dxfattribs = {
         'style': style_name,
         'layer': layer_name,
-        'insert': (x, y),
+        'char_height': text_style.get('height', 2.5),
+        'insert': Vec3(x, y, 0),
+        'attachment_point': TextEntityAlignment.TOP_LEFT.value
     }
     
-    if text_style:
-        if 'height' in text_style:
-            dxfattribs['char_height'] = text_style['height']
-        if 'color' in text_style and name_to_aci:
-            dxfattribs['color'] = get_color_code(text_style['color'], name_to_aci)
-        if 'font' in text_style:
-            dxfattribs['style'] = text_style['font']
-
-    mtext_entity = msp.add_mtext(text, dxfattribs=dxfattribs)
-    mtext_entity.dxf.attachment_point = 4  # 4 = Middle Left
+    if max_width is not None:
+        dxfattribs['width'] = max_width
     
-    if max_width:
-        mtext_entity.dxf.width = max_width
-        # Word wrap is automatically enabled when width is set
-
-    return mtext_entity
+    if text_style:
+        if 'color' in text_style:
+            dxfattribs['color'] = get_color_code(text_style['color'], name_to_aci)
+        if 'rotation' in text_style:
+            dxfattribs['rotation'] = text_style['rotation']
+    
+    try:
+        mtext = msp.add_mtext(sanitized_text, dxfattribs=dxfattribs)
+        log_info("MTEXT added successfully")
+        return mtext
+    except Exception as e:
+        log_error(f"Failed to add MTEXT: {str(e)}")
+        return None

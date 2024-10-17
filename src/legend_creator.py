@@ -7,7 +7,8 @@ from src.dfx_utils import (get_color_code, convert_transparency, attach_custom_d
                            apply_style_to_entity, create_hatch, set_hatch_transparency, script_identifier)
 from ezdxf.math import Vec3
 from ezdxf import colors
-from src.utils import log_warning
+from src.utils import log_warning, log_error
+from src import dfx_utils
 
 class LegendCreator:
     def __init__(self, doc, msp, project_loader):
@@ -32,7 +33,7 @@ class LegendCreator:
         self.max_width = self.legend_config.get('max_width', 200)  # Default max width of 200 units
         self.total_item_width = self.item_width + self.text_offset + self.max_width
         self.between_group_spacing = self.legend_config.get('between_group_spacing', 40)  # Default spacing of 40 units between groups
-        self.text_line_spacing = 1.5  # Line spacing factor
+        self.text_line_spacing = min(max(1.5, 0.25), 4.00)  # Ensure it's within the valid range
         self.title_text_style = get_style(self.legend_config.get('titleTextStyle', {}), self.project_loader)
         self.title_subtitle_style = get_style(self.legend_config.get('titleSubtitleStyle', {}), self.project_loader)
         self.title_spacing = self.legend_config.get('title_spacing', 20)
@@ -52,27 +53,42 @@ class LegendCreator:
                 removed_count = remove_entities_by_layer(self.msp, layer_name, script_identifier)
 
     def create_group(self, group):
-        group_name = group.get('name', '')
-        subtitle = group.get('subtitle', '')
-        layer_name = f"Legend_{group_name}"
-        
-        group_style = get_style(group.get('style', {}), self.project_loader)
-        ensure_layer_exists(self.doc, layer_name, group_style)
+        group_name = group['name']
+        items = group['items']
+        subtitle = group.get('subtitle', '')  # Get subtitle from group, default to empty string
+        layer_name = f"Legend_{group_name}"  # Create a unique layer name for each group
         
         # Add group title
-        title_height = self.group_text_style.get('height', 5)
-        title_entity = self.add_mtext(self.position['x'], self.current_y, group_name, layer_name, self.group_text_style, self.max_width)
-        self.current_y = title_entity.dxf.insert.y - title_height - self.group_spacing
+        title_height = self.title_text_style.get('height', 2.5)
+        title_entity = self.add_mtext(
+            self.position['x'],
+            self.current_y,
+            group_name,
+            layer_name,
+            self.title_text_style,
+            self.max_width
+        )
+        
+        if title_entity is None:
+            print(f"Warning: Failed to create title MTEXT for group '{group_name}'")
+            # Estimate the vertical space the title would have taken
+            self.current_y -= title_height + self.group_spacing
+        else:
+            self.current_y = title_entity.dxf.insert.y - title_height - self.group_spacing
 
         # Add subtitle
         if subtitle:
             subtitle_height = self.subtitle_text_style.get('height', 3)
             subtitle_entity = self.add_mtext(self.position['x'], self.current_y, subtitle, layer_name, self.subtitle_text_style, self.max_width)
-            subtitle_entity.dxf.line_spacing_factor = 1.0  # Adjust this value to change line spacing
-            self.current_y = subtitle_entity.dxf.insert.y - subtitle_height - self.subtitle_spacing
+            if subtitle_entity is not None:
+                subtitle_entity.dxf.line_spacing_factor = self.text_line_spacing  # Adjust this value to change line spacing
+                self.current_y = subtitle_entity.dxf.insert.y - subtitle_height - self.subtitle_spacing
+            else:
+                print(f"Warning: Failed to create subtitle MTEXT for group '{group_name}'")
+                self.current_y -= subtitle_height + self.subtitle_spacing
 
         # Create items
-        for item in group.get('items', []):
+        for item in items:
             self.create_item(item, layer_name)
         
         # Add extra spacing after the group
@@ -101,7 +117,11 @@ class LegendCreator:
         
         # Calculate the bottom of the entire item (including text)
         text_height = self.item_text_style.get('height', 3)
-        bottom_y = min(y2, text_entity.dxf.insert.y - text_height)
+        if text_entity is None:
+            log_warning(f"Failed to create text entity for item '{item_name}'")
+            bottom_y = y2  # Use the bottom of the item if text creation failed
+        else:
+            bottom_y = min(y2, text_entity.dxf.insert.y - text_height)
 
         # Update current_y to be below the item or text, whichever is lower
         self.current_y = bottom_y - self.item_spacing
@@ -133,25 +153,26 @@ class LegendCreator:
         # For empty items, we don't need to draw anything
         pass
 
-    def add_mtext(self, x, y, text, layer_name, text_style, text_width=None, line_spacing_factor=None):
-        mtext_entity = add_mtext(self.msp, text, x, y, layer_name, 'Standard', text_style, self.name_to_aci, text_width)
-        apply_style_to_entity(mtext_entity, text_style, self.project_loader)
-        self.attach_custom_data(mtext_entity)
-        
-        # Ensure char_height is set
-        if 'height' in text_style:
-            mtext_entity.dxf.char_height = text_style['height']
-        
-        # Set line spacing
-        if line_spacing_factor is not None:
-            mtext_entity.dxf.line_spacing_factor = line_spacing_factor
-        else:
-            mtext_entity.dxf.line_spacing_factor = self.text_line_spacing
-        
-        return mtext_entity
+    def add_mtext(self, x, y, text, layer_name, text_style, max_width=None):
+        try:
+            return dfx_utils.add_mtext(
+                self.msp,
+                text,
+                x,
+                y,
+                layer_name,
+                text_style.get('font', 'Standard'),
+                text_style=text_style,
+                name_to_aci=self.name_to_aci,
+                max_width=max_width
+            )
+        except Exception as e:
+            log_error(f"Error creating MTEXT: {str(e)}")
+            return None
 
     def attach_custom_data(self, entity):
-        attach_custom_data(entity, script_identifier)
+        if entity.dxftype() != 'MTEXT':
+            attach_custom_data(entity, script_identifier)
 
     def is_created_by_script(self, entity):
         return is_created_by_script(entity, script_identifier)
