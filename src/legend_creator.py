@@ -7,6 +7,7 @@ from src.dfx_utils import (get_color_code, convert_transparency, attach_custom_d
                            apply_style_to_entity, create_hatch, set_hatch_transparency, script_identifier)
 from ezdxf.math import Vec3
 from ezdxf import colors
+from src.utils import log_warning
 
 class LegendCreator:
     def __init__(self, doc, msp, project_loader):
@@ -33,15 +34,17 @@ class LegendCreator:
         self.between_group_spacing = self.legend_config.get('between_group_spacing', 40)  # Default spacing of 40 units between groups
 
     def create_legend(self):
+        self.selectively_remove_existing_legend()
         for group in self.legend_config.get('groups', []):
             self.create_group(group)
 
-    def remove_existing_legend(self):
-        legend_layers = [f"Legend_{group['name']}" for group in self.legend_config.get('groups', [])]
-        legend_layers.append("Legend")  # Add the main legend layer
-        
-        for layer_name in legend_layers:
-            removed_count = remove_entities_by_layer(self.msp, layer_name, script_identifier)
+    def selectively_remove_existing_legend(self):
+        for group in self.legend_config.get('groups', []):
+            if group.get('update', False):
+                group_name = group.get('name', '')
+                layer_name = f"Legend_{group_name}"
+                removed_count = remove_entities_by_layer(self.msp, layer_name, script_identifier)
+                log_warning(f"Removed {removed_count} entities from layer {layer_name}")
 
     def create_group(self, group):
         group_name = group.get('name', '')

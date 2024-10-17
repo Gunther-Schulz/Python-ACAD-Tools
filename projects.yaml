@@ -111,10 +111,11 @@ projects:
         font: "Arial"
       groups:
         - name: "Planzeichen"
+          update: true
           subtitle: "(gem. PlanzV 1990-PlanzV 90 v.18.12.1990)"
         - name: "Geltungsbereich"
-          subtitle: "Planungsrechtliche Festsetzungen"
           update: true
+          subtitle: "Planungsrechtliche Festsetzungen"
           items:
             - name: "Geltungsbereich"
               type: line
