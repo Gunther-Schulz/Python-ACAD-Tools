@@ -91,8 +91,8 @@ projects:
     dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Zeichnung/dev/test.dxf"    
     dumpOutputDir: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten//GIS/dxf_dump"
     legend:
-      # title: "Planzeichen"
-      # subtitle: "(gem. PlanzV 1990-PlanzV 90 v.18.12.1990)"
+      title: "Planzeichen"
+      subtitle: "(gem. PlanzV 1990-PlanzV 90 v.18.12.1990)"
       max_width: 100
       title_spacing: 15
       group_spacing: 15 # space between groups
@@ -106,8 +106,20 @@ projects:
         height: 10
         color: "Black"
         font: "Legend"
+        # rotation: 45
+        # attachment_point: MTEXT_MIDDLE_CENTER
+        # flow_direction: MTEXT_LEFT_TO_RIGHT
+        # line_spacing_style: MTEXT_AT_LEAST
+        # line_spacing_factor: 1.5
+        # bg_fill: 1
+        # bg_fill_color: 'yellow'
+        # bg_fill_scale: 1.2
+        # underline: True
+        # overline: False
+        # strike_through: False
+        # oblique_angle: 15
       titleSubtitleStyle:
-        height: 4
+        height: 10
         color: "Dark Gray"
         font: "Legend"
       groupTextStyle:

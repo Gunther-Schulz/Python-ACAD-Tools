@@ -2,7 +2,13 @@ import random
 import ezdxf
 from ezdxf import enums
 from ezdxf import colors
-from ezdxf.lldxf.const import MTEXT_MIDDLE_LEFT  # Import at the top of the file
+from ezdxf.lldxf.const import (
+    MTEXT_TOP_LEFT, MTEXT_TOP_CENTER, MTEXT_TOP_RIGHT,
+    MTEXT_MIDDLE_LEFT, MTEXT_MIDDLE_CENTER, MTEXT_MIDDLE_RIGHT,
+    MTEXT_BOTTOM_LEFT, MTEXT_BOTTOM_CENTER, MTEXT_BOTTOM_RIGHT,
+    MTEXT_LEFT_TO_RIGHT, MTEXT_TOP_TO_BOTTOM, MTEXT_BY_STYLE,
+    MTEXT_AT_LEAST, MTEXT_EXACT
+)
 from ezdxf.enums import TextEntityAlignment
 from ezdxf.math import Vec3
 from src.utils import log_info, log_error
@@ -251,22 +257,65 @@ def add_mtext(msp, text, x, y, layer_name, style_name, text_style=None, name_to_
         'layer': layer_name,
         'char_height': text_style.get('height', 2.5),
         'insert': Vec3(x, y, 0),
-        'attachment_point': TextEntityAlignment.TOP_LEFT.value
+        'attachment_point': MTEXT_TOP_LEFT,
+        'width': max_width if max_width is not None else 0,
     }
-    
-    if max_width is not None:
-        dxfattribs['width'] = max_width
     
     if text_style:
         if 'color' in text_style:
             dxfattribs['color'] = get_color_code(text_style['color'], name_to_aci)
         if 'rotation' in text_style:
             dxfattribs['rotation'] = text_style['rotation']
+        if 'attachment_point' in text_style:
+            dxfattribs['attachment_point'] = get_mtext_constant(text_style['attachment_point'])
+        if 'flow_direction' in text_style:
+            dxfattribs['flow_direction'] = get_mtext_constant(text_style['flow_direction'])
+        if 'line_spacing_style' in text_style:
+            dxfattribs['line_spacing_style'] = get_mtext_constant(text_style['line_spacing_style'])
+        if 'line_spacing_factor' in text_style:
+            dxfattribs['line_spacing_factor'] = text_style['line_spacing_factor']
+        if 'bg_fill' in text_style:
+            dxfattribs['bg_fill'] = text_style['bg_fill']
+        if 'bg_fill_color' in text_style:
+            dxfattribs['bg_fill_color'] = get_color_code(text_style['bg_fill_color'], name_to_aci)
+        if 'bg_fill_scale' in text_style:
+            dxfattribs['box_fill_scale'] = text_style['bg_fill_scale']
     
     try:
         mtext = msp.add_mtext(sanitized_text, dxfattribs=dxfattribs)
+        
+        # Apply additional formatting if specified
+        if text_style:
+            if 'underline' in text_style and text_style['underline']:
+                mtext.text = f"\\L{mtext.text}\\l"
+            if 'overline' in text_style and text_style['overline']:
+                mtext.text = f"\\O{mtext.text}\\o"
+            if 'strike_through' in text_style and text_style['strike_through']:
+                mtext.text = f"\\K{mtext.text}\\k"
+            if 'oblique_angle' in text_style:
+                mtext.text = f"\\Q{text_style['oblique_angle']};{mtext.text}"
+        
         log_info("MTEXT added successfully")
         return mtext
     except Exception as e:
         log_error(f"Failed to add MTEXT: {str(e)}")
         return None
+
+def get_mtext_constant(value):
+    mtext_constants = {
+        'MTEXT_TOP_LEFT': MTEXT_TOP_LEFT,
+        'MTEXT_TOP_CENTER': MTEXT_TOP_CENTER,
+        'MTEXT_TOP_RIGHT': MTEXT_TOP_RIGHT,
+        'MTEXT_MIDDLE_LEFT': MTEXT_MIDDLE_LEFT,
+        'MTEXT_MIDDLE_CENTER': MTEXT_MIDDLE_CENTER,
+        'MTEXT_MIDDLE_RIGHT': MTEXT_MIDDLE_RIGHT,
+        'MTEXT_BOTTOM_LEFT': MTEXT_BOTTOM_LEFT,
+        'MTEXT_BOTTOM_CENTER': MTEXT_BOTTOM_CENTER,
+        'MTEXT_BOTTOM_RIGHT': MTEXT_BOTTOM_RIGHT,
+        'MTEXT_LEFT_TO_RIGHT': MTEXT_LEFT_TO_RIGHT,
+        'MTEXT_TOP_TO_BOTTOM': MTEXT_TOP_TO_BOTTOM,
+        'MTEXT_BY_STYLE': MTEXT_BY_STYLE,
+        'MTEXT_AT_LEAST': MTEXT_AT_LEAST,
+        'MTEXT_EXACT': MTEXT_EXACT
+    }
+    return mtext_constants.get(value, value)
