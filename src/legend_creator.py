@@ -155,7 +155,7 @@ class LegendCreator:
 
     def add_mtext(self, x, y, text, layer_name, text_style, max_width=None):
         try:
-            return dfx_utils.add_mtext(
+            mtext = dfx_utils.add_mtext(
                 self.msp,
                 text,
                 x,
@@ -166,13 +166,15 @@ class LegendCreator:
                 name_to_aci=self.name_to_aci,
                 max_width=max_width
             )
+            if mtext:
+                self.attach_custom_data(mtext)  # Attach custom data to MTEXT entities
+            return mtext
         except Exception as e:
             log_error(f"Error creating MTEXT: {str(e)}")
             return None
 
     def attach_custom_data(self, entity):
-        if entity.dxftype() != 'MTEXT':
-            attach_custom_data(entity, script_identifier)
+        attach_custom_data(entity, script_identifier)
 
     def is_created_by_script(self, entity):
         return is_created_by_script(entity, script_identifier)
@@ -190,11 +192,13 @@ class LegendCreator:
         if title:
             title_height = self.title_text_style.get('height', 10)
             title_entity = self.add_mtext(self.position['x'], self.current_y, title, layer_name, self.title_text_style, self.max_width)
+            self.attach_custom_data(title_entity)  # Attach custom data to title entity
             self.current_y = title_entity.dxf.insert.y - title_height - self.title_spacing
 
         if subtitle:
             subtitle_height = self.title_subtitle_style.get('height', 7)
             subtitle_entity = self.add_mtext(self.position['x'], self.current_y, subtitle, layer_name, self.title_subtitle_style, self.max_width)
+            self.attach_custom_data(subtitle_entity)  # Attach custom data to subtitle entity
             subtitle_entity.dxf.line_spacing_factor = 1.0  # Adjust this value to change line spacing
             self.current_y = subtitle_entity.dxf.insert.y - subtitle_height - self.subtitle_spacing
 
