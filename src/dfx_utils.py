@@ -44,6 +44,10 @@ def convert_transparency(transparency):
     return None
 
 def attach_custom_data(entity, script_identifier):
+    if entity is None:
+        log_warning("Attempted to attach custom data to a None entity")
+        return
+
     xdata_set = False
     hyperlink_set = False
 
@@ -305,7 +309,7 @@ def add_mtext(msp, text, x, y, layer_name, style_name, text_style=None, name_to_
     
     try:
         mtext = msp.add_mtext(sanitized_text, dxfattribs=dxfattribs)
-        attach_custom_data(mtext, script_identifier)  # Attach custom data to MTEXT entities
+        attach_custom_data(mtext, script_identifier)
         
         # Apply additional formatting if specified
         if text_style:
@@ -319,10 +323,13 @@ def add_mtext(msp, text, x, y, layer_name, style_name, text_style=None, name_to_
                 mtext.text = f"\\Q{text_style['oblique_angle']};{mtext.text}"
         
         log_info("MTEXT added successfully")
-        return mtext
+        
+        # Calculate and return the actual height of the MTEXT entity
+        actual_height = mtext.dxf.char_height * mtext.dxf.line_spacing_factor * len(text.split('\n'))
+        return mtext, actual_height
     except Exception as e:
         log_error(f"Failed to add MTEXT: {str(e)}")
-        return None
+        return None, 0
 
 def get_mtext_constant(value):
     mtext_constants = {

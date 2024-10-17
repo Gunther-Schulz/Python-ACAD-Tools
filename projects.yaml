@@ -119,7 +119,7 @@ projects:
         # strike_through: False
         # oblique_angle: 15
       titleSubtitleStyle:
-        height: 4
+        height: 40
         color: "Dark Gray"
         font: "Legend"
       groupTextStyle:
