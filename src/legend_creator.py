@@ -33,13 +33,18 @@ class LegendCreator:
         self.total_item_width = self.item_width + self.text_offset + self.max_width
         self.between_group_spacing = self.legend_config.get('between_group_spacing', 40)  # Default spacing of 40 units between groups
         self.text_line_spacing = 1.5  # Line spacing factor
+        self.title_text_style = get_style(self.legend_config.get('titleTextStyle', {}), self.project_loader)
+        self.title_subtitle_style = get_style(self.legend_config.get('titleSubtitleStyle', {}), self.project_loader)
+        self.title_spacing = self.legend_config.get('title_spacing', 20)
 
     def create_legend(self):
         self.selectively_remove_existing_legend()
+        self.create_legend_title()
         for group in self.legend_config.get('groups', []):
             self.create_group(group)
 
     def selectively_remove_existing_legend(self):
+        remove_entities_by_layer(self.msp, "Legend_Title", script_identifier)
         for group in self.legend_config.get('groups', []):
             if group.get('update', False):
                 group_name = group.get('name', '')
@@ -153,3 +158,23 @@ class LegendCreator:
 
     def get_color_code(self, color):
         return get_color_code(color, self.name_to_aci)
+
+    def create_legend_title(self):
+        title = self.legend_config.get('title', '')
+        subtitle = self.legend_config.get('subtitle', '')
+        layer_name = "Legend_Title"
+
+        ensure_layer_exists(self.doc, layer_name, {})
+
+        if title:
+            title_height = self.title_text_style.get('height', 7)
+            title_entity = self.add_mtext(self.position['x'], self.current_y, title, layer_name, self.title_text_style, self.max_width)
+            self.current_y = title_entity.dxf.insert.y - title_height - self.title_spacing
+
+        if subtitle:
+            subtitle_height = self.title_subtitle_style.get('height', 5)
+            subtitle_entity = self.add_mtext(self.position['x'], self.current_y, subtitle, layer_name, self.title_subtitle_style, self.max_width)
+            self.current_y = subtitle_entity.dxf.insert.y - subtitle_height - self.title_spacing
+
+        # Add extra spacing after the title
+        self.current_y -= self.between_group_spacing
