@@ -37,33 +37,59 @@ def detect_tint(rgb):
     return None
 
 def closest_colour(requested_colour, used_names, previous_colors):
-    min_colours = {}
-    for rgb, name in COLOR_MAPPING.items():
-        distance = get_color_distance(requested_colour, rgb)
-        min_colours[distance] = name
+    r, g, b = requested_colour
     
-    closest_names = sorted(min_colours.items())[:5]  # Get top 5 closest colors
-    
-    base_name = closest_names[0][1]
-    
-    # Only apply special naming for colors that would be "darkslategrey"
-    if base_name == "darkslategrey":
-        tint = detect_tint(requested_colour)
-        if tint and previous_colors:
-            last_color = previous_colors[-1].split()[-1]  # Get the base color name
-            tint_name = {"red": "reddish", "green": "greenish", "blue": "bluish"}[tint]
-            name = f"dark {tint_name} {last_color}"
-        elif previous_colors:
-            last_color = previous_colors[-1].split()[-1]  # Get the base color name
-            name = f"very dark {last_color}"
+    # Determine base hue
+    if r > g and r > b:
+        if b > g:
+            base_hue = "purple" if b > r * 0.6 else "magenta"
         else:
-            name = base_name
+            base_hue = "red"
+    elif g > r and g > b:
+        base_hue = "green"
+    elif b > r and b > g:
+        if r > g:
+            base_hue = "purple" if r > b * 0.6 else "blue"
+        else:
+            base_hue = "blue"
     else:
-        name = base_name
-    
-    # Add numbering to avoid duplicates
+        base_hue = "grey"
+
+    # Brightness detection
+    brightness = (r * 299 + g * 587 + b * 114) / 1000
+    if brightness < 64:
+        brightness_prefix = "very-dark"
+    elif brightness < 128:
+        brightness_prefix = "dark"
+    elif brightness > 220:
+        brightness_prefix = "light"
+    elif brightness > 180:
+        brightness_prefix = "pale"
+    else:
+        brightness_prefix = ""
+
+    # Saturation detection
+    max_rgb = max(r, g, b)
+    min_rgb = min(r, g, b)
+    if max_rgb != 0:
+        saturation = (max_rgb - min_rgb) / max_rgb
+    else:
+        saturation = 0
+
+    if saturation > 0.7:
+        saturation_prefix = "vivid"
+    elif saturation > 0.4:
+        saturation_prefix = "medium"
+    else:
+        saturation_prefix = "dull"
+
+    # Construct the new name
+    name_parts = [brightness_prefix, saturation_prefix, base_hue]
+    name = "-".join(filter(None, name_parts))
+
+    # Add simple numbering to avoid duplicates
     if name in used_names:
-        suffix = 1
+        suffix = 2
         while f"{name}-{suffix}" in used_names:
             suffix += 1
         name = f"{name}-{suffix}"
@@ -84,6 +110,12 @@ def convert_to_csv_css_and_yaml(input_file, output_csv, output_css, output_yaml)
     used_names = set()
     yaml_data = []
     previous_colors = []
+    
+    # Add color name overrides
+    color_overrides = {
+        "dark-reddish-maroon-9": "black",
+        "very-dark-black": "very-darkgrey"
+    }
     
     with open(input_file, 'r') as infile, \
          open(output_csv, 'w', newline='') as outfile_csv, \
@@ -118,6 +150,11 @@ def convert_to_csv_css_and_yaml(input_file, output_csv, output_css, output_yaml)
             # Get color name and hex from Ermittelt RGB values
             rgb = tuple(map(int, parts[7:10]))
             color_name = get_colour_name(rgb, used_names, previous_colors)
+            
+            # Apply color name override if it exists
+            original_color_name = color_name
+            color_name = color_overrides.get(color_name.replace(' ', '-').lower(), color_name)
+            
             used_names.add(color_name)
             hex_color = rgb_to_hex(rgb)
             
