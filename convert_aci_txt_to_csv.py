@@ -48,7 +48,7 @@ def closest_colour(requested_colour, used_names):
     ]
     base_hue = next((name for threshold, name in hue_names if h <= threshold), "red")
 
-    # Determine brightness and saturation
+    # Determine brightness
     if v < 0.2:
         brightness = "very-dark"
     elif v < 0.4:
@@ -60,29 +60,46 @@ def closest_colour(requested_colour, used_names):
     else:
         brightness = "medium"
 
+    # Determine saturation
     if s < 0.1:
         saturation = "grey"
     elif s < 0.3:
-        saturation = "very-muted"
-    elif s < 0.5:
         saturation = "muted"
+    elif s < 0.6:
+        saturation = "moderate"
     elif s > 0.9:
         saturation = "vivid"
-    elif s > 0.7:
-        saturation = "strong"
     else:
-        saturation = "moderate"
+        saturation = "strong"
+
+    # Additional descriptors
+    additional_descriptors = {
+        "red": ["crimson", "scarlet", "ruby", "cherry", "maroon", "burgundy", "cardinal", "carmine"],
+        "orange": ["tangerine", "rust", "bronze", "copper", "amber", "terracotta", "cinnamon", "sienna"],
+        "yellow": ["gold", "lemon", "mustard", "sand", "khaki", "ochre", "maize", "flax"],
+        "green": ["emerald", "lime", "olive", "sage", "forest", "mint", "jade", "fern"],
+        "blue": ["sapphire", "navy", "denim", "sky", "azure", "cobalt", "turquoise", "teal"],
+        "purple": ["lavender", "plum", "mauve", "eggplant", "amethyst", "lilac", "periwinkle", "indigo"],
+        "pink": ["salmon", "coral", "peach", "blush", "rose", "fuchsia", "cerise", "magenta"]
+    }
 
     # Construct the name
-    name_parts = [brightness, saturation, base_hue]
-    name = "-".join(filter(None, name_parts))
+    base_descriptors = [brightness, saturation, base_hue]
+    name = "-".join(filter(None, base_descriptors))
 
-    # Ensure uniqueness
-    if name in used_names.values():
-        count = 1
-        while f"{name}-{count}" in used_names.values():
-            count += 1
-        name = f"{name}-{count}"
+    # Check if we need an additional descriptor
+    if name in used_names.values() and (r, g, b) not in used_names:
+        for descriptor in additional_descriptors.get(base_hue, []):
+            new_name = "-".join(filter(None, [brightness, saturation, descriptor]))
+            if new_name not in used_names.values():
+                return new_name
+
+        # If still not unique, try combinations
+        for i, desc1 in enumerate(additional_descriptors.get(base_hue, [])):
+            for desc2 in additional_descriptors.get(base_hue, [])[i+1:]:
+                new_name = "-".join(filter(None, [brightness, desc1, desc2]))
+                if new_name not in used_names.values():
+                    return new_name
 
     return name
 
@@ -124,9 +141,11 @@ def convert_to_csv_css_and_yaml(input_file, output_csv, output_css, output_yaml)
             ermittelt = f"{parts[7]},{parts[8]},{parts[9]}"
             
             rgb = tuple(map(int, parts[7:10]))
-            color_name = closest_colour(rgb, used_names)
-            
-            used_names[rgb] = color_name
+            if rgb in used_names:
+                color_name = used_names[rgb]
+            else:
+                color_name = closest_colour(rgb, used_names)
+                used_names[rgb] = color_name
             
             # Write to CSV
             csv_writer.writerow([aci, autodesk, berechnet, ermittelt, color_name, rgb_to_hex(rgb)])
