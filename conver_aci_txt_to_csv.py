@@ -46,7 +46,7 @@ def closest_colour(requested_colour, used_names):
     
     # Check for pure or near-pure greys
     max_diff = max(abs(r - g), abs(r - b), abs(g - b))
-    if max_diff <= 2:  # Allow small differences to account for rounding
+    if max_diff <= 5:  # Increased tolerance for near-greys
         avg = (r + g + b) // 3
         if avg == 0:
             return "black"
