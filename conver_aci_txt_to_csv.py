@@ -8,92 +8,62 @@ def rgb_to_hex(rgb):
 def closest_colour(requested_colour, used_names):
     r, g, b = requested_colour
     
-    # Check for pure white
+    # Check for pure white and black
     if r == g == b == 255:
         return "white"
+    if r == g == b == 0:
+        return "black"
     
     # Check for pure or near-pure greys
     max_diff = max(abs(r - g), abs(r - b), abs(g - b))
-    if max_diff <= 5:  # Increased tolerance for near-greys
+    if max_diff <= 5:  # Tolerance for near-greys
         avg = (r + g + b) // 3
-        if avg == 0:
-            return "black"
-        elif avg < 32:
-            return "very-dark-grey"
-        elif avg < 64:
-            return "dark-grey"
-        elif avg < 96:
-            return "medium-dark-grey"
-        elif avg < 128:
-            return "medium-grey"
-        elif avg < 160:
-            return "medium-light-grey"
-        elif avg < 192:
-            return "light-grey"
-        elif avg < 224:
-            return "very-light-grey"
-        else:
-            return "near-white"
+        grey_levels = [
+            (16, "charcoal"), (32, "coal"), (48, "dark-slate"),
+            (64, "slate"), (80, "dim"), (96, "smoke"),
+            (112, "ash"), (128, "stone"), (144, "overcast"),
+            (160, "cloudy"), (176, "silver"), (192, "pale-silver"),
+            (208, "light-silver"), (224, "pearl"), (240, "off-white")
+        ]
+        for threshold, name in grey_levels:
+            if avg < threshold:
+                return name
+        return "near-white"
     
     # Convert RGB to HSV
     h, s, v = rgb_to_hsv(r/255, g/255, b/255)
     
     # Determine base hue
-    if h < 1/12:
-        base_hue = "red"
-    elif h < 1/6:
-        base_hue = "orange"
-    elif h < 1/4:
-        base_hue = "yellow"
-    elif h < 5/12:
-        base_hue = "chartreuse"
-    elif h < 1/2:
-        base_hue = "green"
-    elif h < 7/12:
-        base_hue = "spring-green"
-    elif h < 2/3:
-        base_hue = "cyan"
-    elif h < 3/4:
-        base_hue = "azure"
-    elif h < 5/6:
-        base_hue = "blue"
-    elif h < 11/12:
-        base_hue = "violet"
-    else:
-        base_hue = "magenta"
+    hue_names = [
+        (0.025, "red"), (0.05, "vermilion"), (0.075, "orange-red"),
+        (0.1, "orange"), (0.125, "amber"), (0.15, "golden"),
+        (0.175, "yellow"), (0.2, "lime"), (0.275, "chartreuse"),
+        (0.35, "green"), (0.4, "emerald"), (0.45, "spring-green"),
+        (0.5, "turquoise"), (0.55, "cyan"), (0.6, "azure"),
+        (0.65, "cerulean"), (0.7, "blue"), (0.75, "indigo"),
+        (0.8, "violet"), (0.85, "purple"), (0.9, "magenta"),
+        (0.95, "fuchsia"), (1.0, "crimson")
+    ]
+    base_hue = next((name for threshold, name in hue_names if h <= threshold), "red")
 
-    # Brightness detection
-    if v < 0.25:
-        brightness_prefix = "very-dark"
-    elif v < 0.5:
-        brightness_prefix = "dark"
-    elif v > 0.9:
-        brightness_prefix = "light"
-    elif v > 0.75:
-        brightness_prefix = "pale"
-    else:
-        brightness_prefix = ""
+    # Brightness levels
+    brightness_levels = [
+        (0.15, "very-dark"), (0.3, "dark"), (0.45, "deep"),
+        (0.6, "medium"), (0.75, "soft"), (0.9, "light"),
+        (1.0, "pale")
+    ]
+    brightness = next((name for threshold, name in brightness_levels if v <= threshold), "bright")
 
-    # Saturation detection
-    if s > 0.9:
-        saturation_prefix = "vivid"
-    elif s > 0.65:
-        saturation_prefix = "bright"
-    elif s > 0.35:
-        saturation_prefix = "medium"
-    else:
-        saturation_prefix = "dull"
+    # Saturation levels
+    saturation_levels = [
+        (0.15, "muted"), (0.3, "subdued"), (0.45, "moderate"),
+        (0.6, "clear"), (0.75, "vivid"), (1.0, "intense")
+    ]
+    saturation = next((name for threshold, name in saturation_levels if s <= threshold), "pure")
 
     # Construct the new name
-    name_parts = [brightness_prefix, saturation_prefix, base_hue]
-    name = "-".join(filter(None, name_parts))
-
-    # Add simple numbering to avoid duplicates
-    if name in used_names:
-        suffix = 2
-        while f"{name}-{suffix}" in used_names:
-            suffix += 1
-        name = f"{name}-{suffix}"
+    name_parts = [brightness, saturation, base_hue]
+    name = "-".join(filter(lambda x: x not in ["medium", "moderate"], name_parts))
     
     return name
 
