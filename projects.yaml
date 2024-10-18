@@ -139,7 +139,8 @@ projects:
           update: true
           subtitle: "§ 9 Abs. 1 Nr. 1 BauGB"
           items:
-            - name: "Sonstiges Sondergebiet (§ 11 Abs. 2 BauNVO) Zweckbestimmung: Energiegewinnung auf der Basis solarer Strahlungsenergie"
+            # - name: "Sonstiges Sondergebiet (§ 11 Abs. 2 BauNVO) Zweckbestimmung: Energiegewinnung auf der Basis solarer Strahlungsenergie"
+            - name: "test"  
               type: area
               style: baufeldSchraffur
                 # color: "Red"
