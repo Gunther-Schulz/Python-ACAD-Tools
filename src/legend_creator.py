@@ -17,6 +17,7 @@ class LegendCreator:
     def __init__(self, doc, msp, project_loader):
         self.doc = doc
         self.msp = msp
+        self.script_identifier = script_identifier
         self.project_loader = project_loader
         self.legend_config = project_loader.project_settings.get('legend', {})
         self.position = self.legend_config.get('position', {'x': 0, 'y': 0})
@@ -105,13 +106,21 @@ class LegendCreator:
 
         # Create the item symbol
         if item_type == 'area':
-            item_entity = self.create_area_item(x1, y1, x2, y2, layer_name, item_style)
+            item_entities = self.create_area_item(x1, y1, x2, y2, layer_name, item_style)
         elif item_type == 'line':
-            item_entity = self.create_line_item(x1, y1, x2, y2, layer_name, item_style)
+            item_entities = [self.create_line_item(x1, y1, x2, y2, layer_name, item_style)]
         elif item_type == 'empty':
-            item_entity = None
+            item_entities = []
         else:
             raise ValueError(f"Unknown item type: {item_type}")
+
+        # Calculate bounding box for the symbol
+        item_bbox = bbox.BoundingBox()
+        for entity in item_entities:
+            item_bbox.extend(self.get_entity_bbox(entity))
+
+        # Calculate the vertical center of the item symbol
+        item_center_y = (item_bbox.extmin.y + item_bbox.extmax.y) / 2
 
         # Create the item text using MTEXT
         text_x = x2 + self.text_offset
@@ -119,7 +128,7 @@ class LegendCreator:
             self.msp,
             item_name,
             text_x,
-            y1,
+            item_center_y,  # Use the center of the symbol for text placement
             layer_name,
             self.item_text_style.get('font', 'Standard'),
             self.item_text_style,
@@ -134,48 +143,30 @@ class LegendCreator:
 
         text_entity, actual_text_height = text_result
 
-        # Calculate bounding boxes
-        if item_entity:
-            if isinstance(item_entity, ezdxf.entities.Hatch):
-                # For Hatch entities, we need to use the bounding box of its paths
-                item_bbox = bbox.BoundingBox()
-                for path in item_entity.paths:
-                    if hasattr(path, 'vertices'):
-                        item_bbox.extend(path.vertices)
-                    elif hasattr(path, 'control_points'):
-                        item_bbox.extend(path.control_points)
-            else:
-                item_bbox = bbox.extents([item_entity])
-        else:
-            item_bbox = bbox.BoundingBox(Vec3(x1, y2, 0), Vec3(x2, y1, 0))
-        
+        # Adjust text vertical position to align with symbol center
+        text_entity.dxf.insert = Vec3(text_x, item_center_y - actual_text_height / 2, 0)
+
+        # Recalculate combined bounding box
         text_bbox = bbox.extents([text_entity])
         combined_bbox = item_bbox.union(text_bbox)
-
-        # Calculate the vertical center of the item symbol
-        item_center_y = (item_bbox.extmin.y + item_bbox.extmax.y) / 2
-
-        # Adjust the text position to align with the center of the item symbol
-        text_entity.dxf.insert = Vec3(text_x, item_center_y + actual_text_height / 2, 0)
 
         # Calculate the total height of the item (including symbol and text)
         total_height = combined_bbox.size.y
 
+        # Move all entities as a unit
+        vertical_offset = self.item_spacing
+        for entity in item_entities + [text_entity]:
+            entity.translate(0, -vertical_offset, 0)
+
         # Adjust the current_y by the total height plus spacing
         self.current_y -= total_height + self.item_spacing
 
-        # Move both the item symbol and text to respect the item spacing
-        if item_entity:
-            item_entity.translate(0, -self.item_spacing, 0)
-        text_entity.translate(0, -self.item_spacing, 0)
-
-        # Attach custom data to both entities
-        if item_entity:
-            attach_custom_data(item_entity, script_identifier)
-        attach_custom_data(text_entity, script_identifier)
+        # Attach custom data to all entities
+        for entity in item_entities + [text_entity]:
+            attach_custom_data(entity, self.script_identifier)
 
     def create_area_item(self, x1, y1, x2, y2, layer_name, item_style):
-        # Create the rectangle without applying any style
+        # Create the rectangle
         rectangle = self.msp.add_lwpolyline([(x1, y1), (x2, y1), (x2, y2), (x1, y2), (x1, y1)], dxfattribs={'layer': layer_name})
         self.attach_custom_data(rectangle)
 
@@ -190,7 +181,7 @@ class LegendCreator:
             transparency = convert_transparency(item_style['transparency'])
             set_hatch_transparency(hatch, transparency)
 
-        return hatch
+        return [rectangle, hatch]
 
     def create_line_item(self, x1, y1, x2, y2, layer_name, item_style):
         line = self.msp.add_line((x1, y1 - self.item_height / 2), (x2, y1 - self.item_height / 2), dxfattribs={'layer': layer_name})
@@ -265,3 +256,15 @@ class LegendCreator:
                 self.current_y -= self.title_subtitle_style.get('height', 4) + self.subtitle_spacing
 
         self.current_y -= self.between_group_spacing
+
+    def get_entity_bbox(self, entity):
+        if isinstance(entity, ezdxf.entities.Hatch):
+            item_bbox = bbox.BoundingBox()
+            for path in entity.paths:
+                if hasattr(path, 'vertices'):
+                    item_bbox.extend(path.vertices)
+                elif hasattr(path, 'control_points'):
+                    item_bbox.extend(path.control_points)
+            return item_bbox
+        else:
+            return bbox.extents([entity])
