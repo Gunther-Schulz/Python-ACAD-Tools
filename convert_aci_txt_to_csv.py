@@ -27,71 +27,77 @@ def closest_colour(requested_colour, used_names):
     if max_diff <= 5:
         avg = (r + g + b) // 3
         grey_levels = [
-            (32, "charcoal"), (64, "dark-grey"),
-            (96, "grey"), (128, "medium-grey"),
-            (192, "light-grey"), (224, "pale-grey"),
-            (255, "off-white")
+            (16, "charcoal"), (32, "coal"), (48, "dark-slate"),
+            (64, "slate"), (96, "smoke"), (128, "stone"),
+            (160, "silver"), (192, "pale-silver"), (224, "pearl"),
+            (255, "near-white")
         ]
-        return next((name for threshold, name in grey_levels if avg <= threshold), "off-white")
+        return next((name for threshold, name in grey_levels if avg <= threshold), "near-white")
     
     # Convert RGB to HSV
     h, s, v = rgb_to_hsv(r/255, g/255, b/255)
     
-    # Determine base hue
+    # Determine base hue with more precise ranges
     hue_names = [
-        (0.025, "red"), (0.05, "vermilion"), (0.085, "orange"),
-        (0.12, "amber"), (0.17, "yellow"), (0.225, "chartreuse"),
-        (0.35, "green"), (0.475, "spring-green"), (0.525, "cyan"),
-        (0.575, "azure"), (0.625, "blue"), (0.7, "indigo"),
-        (0.8, "violet"), (0.875, "purple"), (0.925, "magenta"),
-        (0.975, "rose"), (1.0, "red")
+        (0.025, "red"), (0.05, "vermilion"), (0.075, "orange-red"),
+        (0.1, "orange"), (0.15, "amber"), (0.2, "yellow"),
+        (0.275, "chartreuse"), (0.35, "green"), (0.45, "spring-green"),
+        (0.5, "cyan"), (0.55, "azure"), (0.6, "blue"),
+        (0.7, "indigo"), (0.8, "violet"), (0.85, "purple"),
+        (0.9, "magenta"), (0.95, "rose"), (0.975, "pink"), (1.0, "red")
     ]
     base_hue = next((name for threshold, name in hue_names if h <= threshold), "red")
 
-    # Determine brightness and saturation
-    if v < 0.2:
-        brightness = "dark"
-    elif v < 0.4:
-        brightness = "deep"
-    elif v > 0.9:
-        brightness = "bright"
-    elif v > 0.7:
-        brightness = "light"
-    else:
-        brightness = ""
+    # Saturation levels (prioritize these for highly saturated colors)
+    saturation_levels = [
+        (0.15, "muted"), (0.4, "soft"), (0.7, "clear"),
+        (0.9, "vivid"), (1.0, "intense")
+    ]
+    saturation = next((name for threshold, name in saturation_levels if s <= threshold), "pure")
 
-    if s < 0.15:
-        saturation = "grey"
-    elif s < 0.35:
-        saturation = "muted"
-    elif s > 0.85:
-        saturation = "vivid"
-    else:
-        saturation = ""
+    # Brightness levels
+    brightness_levels = [
+        (0.2, "dark"), (0.4, "deep"), (0.6, "medium"),
+        (0.8, "bright"), (1.0, "light")
+    ]
+    brightness = next((name for threshold, name in brightness_levels if v <= threshold), "brilliant")
 
     # Construct the name
-    name_parts = list(filter(None, [brightness, saturation, base_hue]))
-    name = "-".join(name_parts) if len(name_parts) > 1 else base_hue
+    if s > 0.9:  # For highly saturated colors, prioritize saturation
+        if v > 0.8:
+            name = f"bright-{base_hue}"
+        elif v > 0.6:
+            name = f"vivid-{base_hue}"
+        else:
+            name = f"{brightness}-{base_hue}"
+    elif v > 0.9:  # For very bright but less saturated colors
+        name = f"light-{saturation}-{base_hue}"
+    elif saturation == "clear" and brightness == "medium":
+        name = base_hue
+    else:
+        name = f"{brightness}-{saturation}-{base_hue}"
 
     # Ensure uniqueness without numbers
     if name in used_names:
         alternates = {
-            "bright": ["luminous", "radiant"],
-            "light": ["pale", "soft"],
-            "deep": ["rich", "intense"],
+            "bright": ["luminous", "radiant", "brilliant"],
+            "light": ["pale", "pastel", "faint"],
+            "deep": ["rich", "intense", "profound"],
             "dark": ["shadowy", "dusky"],
-            "vivid": ["vibrant", "bold"],
-            "muted": ["subdued", "toned"]
+            "vivid": ["vibrant", "bold", "striking"],
+            "clear": ["pure", "true"],
+            "soft": ["gentle", "delicate", "subtle"],
+            "muted": ["subdued", "toned", "mellow"]
         }
-        for word in name_parts:
+        for word in name.split("-"):
             if word in alternates:
                 for alt in alternates[word]:
-                    new_name = "-".join([alt if part == word else part for part in name_parts])
+                    new_name = name.replace(word, alt)
                     if new_name not in used_names:
                         return new_name
         
         # If still not unique, add a modifier
-        modifiers = ["warm", "cool", "neutral"]
+        modifiers = ["warm", "cool", "neutral", "dusty", "electric"]
         for modifier in modifiers:
             new_name = f"{modifier}-{name}"
             if new_name not in used_names:
