@@ -1,15 +1,15 @@
 /* AutoCAD Color Index (ACI) colors */
 
-.red { color: #ff0000; } /* ACI: 1 */
-.yellow { color: #ffff00; } /* ACI: 2 */
-.lime { color: #00ff00; } /* ACI: 3 */
-.cyan { color: #00ffff; } /* ACI: 4 */
-.blue { color: #0000ff; } /* ACI: 5 */
-.magenta { color: #ff00ff; } /* ACI: 6 */
+.light-vivid-red { color: #ff0000; } /* ACI: 1 */
+.light-vivid-yellow { color: #ffff00; } /* ACI: 2 */
+.light-vivid-chartreuse { color: #00ff00; } /* ACI: 3 */
+.light-vivid-spring-green { color: #00ffff; } /* ACI: 4 */
+.light-vivid-azure { color: #0000ff; } /* ACI: 5 */
+.light-vivid-violet { color: #ff00ff; } /* ACI: 6 */
 .white { color: #ffffff; } /* ACI: 7 */
 .medium-light-grey { color: #848284; } /* ACI: 8 */
 .very-light-grey { color: #c6c3c6; } /* ACI: 9 */
-.light-vivid-red { color: #ff0000; } /* ACI: 10 */
+.light-vivid-red-2 { color: #ff0000; } /* ACI: 10 */
 .light-medium-red { color: #ff7d7b; } /* ACI: 11 */
 .pale-vivid-red { color: #ce0000; } /* ACI: 12 */
 .pale-medium-red { color: #ce6563; } /* ACI: 13 */
@@ -19,7 +19,7 @@
 .dark-medium-red { color: #7b3c39; } /* ACI: 17 */
 .dark-vivid-red-2 { color: #4a0000; } /* ACI: 18 */
 .dark-medium-red-2 { color: #4a2421; } /* ACI: 19 */
-.light-vivid-red-2 { color: #ff3c00; } /* ACI: 20 */
+.light-vivid-red-3 { color: #ff3c00; } /* ACI: 20 */
 .light-medium-red-2 { color: #ff9e7b; } /* ACI: 21 */
 .pale-vivid-red-2 { color: #ce3000; } /* ACI: 22 */
 .pale-medium-red-2 { color: #ce7d63; } /* ACI: 23 */
@@ -29,7 +29,7 @@
 .dark-medium-red-3 { color: #7b4d39; } /* ACI: 27 */
 .dark-vivid-red-4 { color: #4a1000; } /* ACI: 28 */
 .dark-medium-red-4 { color: #4a2c21; } /* ACI: 29 */
-.light-vivid-red-3 { color: #ff7d00; } /* ACI: 30 */
+.light-vivid-red-4 { color: #ff7d00; } /* ACI: 30 */
 .light-medium-orange { color: #ffbe7b; } /* ACI: 31 */
 .pale-vivid-red-3 { color: #ce6500; } /* ACI: 32 */
 .pale-medium-orange { color: #ce9a63; } /* ACI: 33 */
@@ -49,7 +49,7 @@
 .dark-medium-orange-3 { color: #7b6d39; } /* ACI: 47 */
 .dark-vivid-orange-2 { color: #4a3800; } /* ACI: 48 */
 .dark-medium-orange-4 { color: #4a4121; } /* ACI: 49 */
-.light-vivid-yellow { color: #ffff00; } /* ACI: 50 */
+.light-vivid-yellow-2 { color: #ffff00; } /* ACI: 50 */
 .light-medium-yellow { color: #ffff7b; } /* ACI: 51 */
 .pale-vivid-yellow { color: #cecf00; } /* ACI: 52 */
 .pale-medium-yellow { color: #cecf63; } /* ACI: 53 */
@@ -59,7 +59,7 @@
 .dark-medium-yellow { color: #7b7d39; } /* ACI: 57 */
 .dark-vivid-yellow-2 { color: #4a4d00; } /* ACI: 58 */
 .dark-medium-yellow-2 { color: #4a4d21; } /* ACI: 59 */
-.light-vivid-yellow-2 { color: #bdff00; } /* ACI: 60 */
+.light-vivid-yellow-3 { color: #bdff00; } /* ACI: 60 */
 .light-medium-yellow-2 { color: #deff7b; } /* ACI: 61 */
 .pale-vivid-yellow-2 { color: #9ccf00; } /* ACI: 62 */
 .pale-medium-yellow-2 { color: #b5cf63; } /* ACI: 63 */
@@ -69,7 +69,7 @@
 .dark-medium-yellow-3 { color: #6b7d39; } /* ACI: 67 */
 .dark-vivid-yellow-4 { color: #394d00; } /* ACI: 68 */
 .dark-medium-yellow-4 { color: #424d21; } /* ACI: 69 */
-.light-vivid-chartreuse { color: #7bff00; } /* ACI: 70 */
+.light-vivid-chartreuse-2 { color: #7bff00; } /* ACI: 70 */
 .light-medium-chartreuse { color: #bdff7b; } /* ACI: 71 */
 .pale-vivid-chartreuse { color: #63cf00; } /* ACI: 72 */
 .pale-medium-yellow-3 { color: #9ccf63; } /* ACI: 73 */
@@ -79,7 +79,7 @@
 .dark-medium-chartreuse { color: #5a7d39; } /* ACI: 77 */
 .dark-vivid-chartreuse-2 { color: #214d00; } /* ACI: 78 */
 .dark-medium-yellow-5 { color: #394d21; } /* ACI: 79 */
-.light-vivid-chartreuse-2 { color: #39ff00; } /* ACI: 80 */
+.light-vivid-chartreuse-3 { color: #39ff00; } /* ACI: 80 */
 .light-medium-chartreuse-2 { color: #9cff7b; } /* ACI: 81 */
 .pale-vivid-chartreuse-2 { color: #31cf00; } /* ACI: 82 */
 .pale-medium-chartreuse { color: #7bcf63; } /* ACI: 83 */
@@ -89,7 +89,7 @@
 .dark-medium-chartreuse-2 { color: #4a7d39; } /* ACI: 87 */
 .dark-vivid-chartreuse-4 { color: #104d00; } /* ACI: 88 */
 .dark-medium-chartreuse-3 { color: #294d21; } /* ACI: 89 */
-.light-vivid-chartreuse-3 { color: #00ff00; } /* ACI: 90 */
+.light-vivid-chartreuse-4 { color: #00ff00; } /* ACI: 90 */
 .light-medium-chartreuse-3 { color: #7bff7b; } /* ACI: 91 */
 .pale-vivid-chartreuse-3 { color: #00cf00; } /* ACI: 92 */
 .pale-medium-chartreuse-2 { color: #63cf63; } /* ACI: 93 */
@@ -99,7 +99,7 @@
 .dark-medium-chartreuse-4 { color: #397d39; } /* ACI: 97 */
 .dark-vivid-chartreuse-6 { color: #004d00; } /* ACI: 98 */
 .dark-medium-chartreuse-5 { color: #214d21; } /* ACI: 99 */
-.light-vivid-chartreuse-4 { color: #00ff39; } /* ACI: 100 */
+.light-vivid-chartreuse-5 { color: #00ff39; } /* ACI: 100 */
 .light-medium-chartreuse-4 { color: #7bff9c; } /* ACI: 101 */
 .pale-vivid-chartreuse-4 { color: #00cf31; } /* ACI: 102 */
 .pale-medium-chartreuse-3 { color: #63cf7b; } /* ACI: 103 */
@@ -109,7 +109,7 @@
 .dark-medium-chartreuse-6 { color: #397d4a; } /* ACI: 107 */
 .dark-vivid-chartreuse-8 { color: #004d10; } /* ACI: 108 */
 .dark-medium-chartreuse-7 { color: #214d29; } /* ACI: 109 */
-.light-vivid-chartreuse-5 { color: #00ff7b; } /* ACI: 110 */
+.light-vivid-chartreuse-6 { color: #00ff7b; } /* ACI: 110 */
 .light-medium-green { color: #7bffbd; } /* ACI: 111 */
 .pale-vivid-chartreuse-5 { color: #00cf63; } /* ACI: 112 */
 .pale-medium-green { color: #63cf9c; } /* ACI: 113 */
@@ -129,7 +129,7 @@
 .dark-medium-green-2 { color: #397d6b; } /* ACI: 127 */
 .dark-vivid-green-2 { color: #004d39; } /* ACI: 128 */
 .dark-medium-green-3 { color: #214d42; } /* ACI: 129 */
-.light-vivid-spring-green { color: #00ffff; } /* ACI: 130 */
+.light-vivid-spring-green-2 { color: #00ffff; } /* ACI: 130 */
 .light-medium-spring-green { color: #7bffff; } /* ACI: 131 */
 .pale-vivid-green-2 { color: #00cfce; } /* ACI: 132 */
 .pale-medium-green-3 { color: #63cfce; } /* ACI: 133 */
@@ -139,7 +139,7 @@
 .dark-medium-green-4 { color: #397d7b; } /* ACI: 137 */
 .dark-vivid-green-4 { color: #004d4a; } /* ACI: 138 */
 .dark-medium-green-5 { color: #214d4a; } /* ACI: 139 */
-.light-vivid-spring-green-2 { color: #00beff; } /* ACI: 140 */
+.light-vivid-spring-green-3 { color: #00beff; } /* ACI: 140 */
 .light-medium-spring-green-2 { color: #7bdfff; } /* ACI: 141 */
 .pale-vivid-spring-green { color: #009ace; } /* ACI: 142 */
 .pale-medium-spring-green { color: #63b2ce; } /* ACI: 143 */
@@ -169,7 +169,7 @@
 .dark-medium-cyan { color: #394d7b; } /* ACI: 167 */
 .dark-vivid-cyan-4 { color: #00104a; } /* ACI: 168 */
 .dark-medium-cyan-2 { color: #212c4a; } /* ACI: 169 */
-.light-vivid-azure { color: #0000ff; } /* ACI: 170 */
+.light-vivid-azure-2 { color: #0000ff; } /* ACI: 170 */
 .light-medium-cyan-2 { color: #7b7dff; } /* ACI: 171 */
 .pale-vivid-azure { color: #0000ce; } /* ACI: 172 */
 .pale-medium-cyan-2 { color: #6365ce; } /* ACI: 173 */
@@ -179,7 +179,7 @@
 .dark-medium-cyan-3 { color: #393c7b; } /* ACI: 177 */
 .dark-vivid-azure-2 { color: #00004a; } /* ACI: 178 */
 .dark-medium-cyan-4 { color: #21244a; } /* ACI: 179 */
-.light-vivid-azure-2 { color: #3900ff; } /* ACI: 180 */
+.light-vivid-azure-3 { color: #3900ff; } /* ACI: 180 */
 .light-medium-azure { color: #9c7dff; } /* ACI: 181 */
 .pale-vivid-azure-2 { color: #3100ce; } /* ACI: 182 */
 .pale-medium-azure { color: #7b65ce; } /* ACI: 183 */
@@ -189,7 +189,7 @@
 .dark-medium-azure { color: #4a3c7b; } /* ACI: 187 */
 .dark-vivid-azure-4 { color: #10004a; } /* ACI: 188 */
 .dark-medium-azure-2 { color: #29244a; } /* ACI: 189 */
-.light-vivid-azure-3 { color: #7b00ff; } /* ACI: 190 */
+.light-vivid-azure-4 { color: #7b00ff; } /* ACI: 190 */
 .light-medium-azure-2 { color: #bd7dff; } /* ACI: 191 */
 .pale-vivid-azure-3 { color: #6300ce; } /* ACI: 192 */
 .pale-medium-blue { color: #9c65ce; } /* ACI: 193 */
@@ -209,7 +209,7 @@
 .dark-medium-blue-2 { color: #6b3c7b; } /* ACI: 207 */
 .dark-vivid-blue-2 { color: #39004a; } /* ACI: 208 */
 .dark-medium-blue-3 { color: #42244a; } /* ACI: 209 */
-.light-vivid-violet { color: #ff00ff; } /* ACI: 210 */
+.light-vivid-violet-2 { color: #ff00ff; } /* ACI: 210 */
 .light-medium-violet { color: #ff7dff; } /* ACI: 211 */
 .pale-vivid-violet { color: #ce00ce; } /* ACI: 212 */
 .pale-medium-violet { color: #ce65ce; } /* ACI: 213 */
@@ -219,7 +219,7 @@
 .dark-medium-violet { color: #7b3c7b; } /* ACI: 217 */
 .dark-vivid-violet-2 { color: #4a004a; } /* ACI: 218 */
 .dark-medium-violet-2 { color: #4a244a; } /* ACI: 219 */
-.light-vivid-violet-2 { color: #ff00bd; } /* ACI: 220 */
+.light-vivid-violet-3 { color: #ff00bd; } /* ACI: 220 */
 .light-medium-violet-2 { color: #ff7dde; } /* ACI: 221 */
 .pale-vivid-violet-2 { color: #ce009c; } /* ACI: 222 */
 .pale-medium-violet-2 { color: #ce65b5; } /* ACI: 223 */

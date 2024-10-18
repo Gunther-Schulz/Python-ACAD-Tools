@@ -1,35 +1,35 @@
 - aciCode: 1
-  name: red
+  name: light-vivid-red
   rgb:
   - 255
   - 0
   - 0
 - aciCode: 2
-  name: yellow
+  name: light-vivid-yellow
   rgb:
   - 255
   - 255
   - 0
 - aciCode: 3
-  name: lime
+  name: light-vivid-chartreuse
   rgb:
   - 0
   - 255
   - 0
 - aciCode: 4
-  name: cyan
+  name: light-vivid-spring-green
   rgb:
   - 0
   - 255
   - 255
 - aciCode: 5
-  name: blue
+  name: light-vivid-azure
   rgb:
   - 0
   - 0
   - 255
 - aciCode: 6
-  name: magenta
+  name: light-vivid-violet
   rgb:
   - 255
   - 0
@@ -53,7 +53,7 @@
   - 195
   - 198
 - aciCode: 10
-  name: light-vivid-red
+  name: light-vivid-red-2
   rgb:
   - 255
   - 0
@@ -113,7 +113,7 @@
   - 36
   - 33
 - aciCode: 20
-  name: light-vivid-red-2
+  name: light-vivid-red-3
   rgb:
   - 255
   - 60
@@ -173,7 +173,7 @@
   - 44
   - 33
 - aciCode: 30
-  name: light-vivid-red-3
+  name: light-vivid-red-4
   rgb:
   - 255
   - 125
@@ -293,7 +293,7 @@
   - 65
   - 33
 - aciCode: 50
-  name: light-vivid-yellow
+  name: light-vivid-yellow-2
   rgb:
   - 255
   - 255
@@ -353,7 +353,7 @@
   - 77
   - 33
 - aciCode: 60
-  name: light-vivid-yellow-2
+  name: light-vivid-yellow-3
   rgb:
   - 189
   - 255
@@ -413,7 +413,7 @@
   - 77
   - 33
 - aciCode: 70
-  name: light-vivid-chartreuse
+  name: light-vivid-chartreuse-2
   rgb:
   - 123
   - 255
@@ -473,7 +473,7 @@
   - 77
   - 33
 - aciCode: 80
-  name: light-vivid-chartreuse-2
+  name: light-vivid-chartreuse-3
   rgb:
   - 57
   - 255
@@ -533,7 +533,7 @@
   - 77
   - 33
 - aciCode: 90
-  name: light-vivid-chartreuse-3
+  name: light-vivid-chartreuse-4
   rgb:
   - 0
   - 255
@@ -593,7 +593,7 @@
   - 77
   - 33
 - aciCode: 100
-  name: light-vivid-chartreuse-4
+  name: light-vivid-chartreuse-5
   rgb:
   - 0
   - 255
@@ -653,7 +653,7 @@
   - 77
   - 41
 - aciCode: 110
-  name: light-vivid-chartreuse-5
+  name: light-vivid-chartreuse-6
   rgb:
   - 0
   - 255
@@ -773,7 +773,7 @@
   - 77
   - 66
 - aciCode: 130
-  name: light-vivid-spring-green
+  name: light-vivid-spring-green-2
   rgb:
   - 0
   - 255
@@ -833,7 +833,7 @@
   - 77
   - 74
 - aciCode: 140
-  name: light-vivid-spring-green-2
+  name: light-vivid-spring-green-3
   rgb:
   - 0
   - 190
@@ -1013,7 +1013,7 @@
   - 44
   - 74
 - aciCode: 170
-  name: light-vivid-azure
+  name: light-vivid-azure-2
   rgb:
   - 0
   - 0
@@ -1073,7 +1073,7 @@
   - 36
   - 74
 - aciCode: 180
-  name: light-vivid-azure-2
+  name: light-vivid-azure-3
   rgb:
   - 57
   - 0
@@ -1133,7 +1133,7 @@
   - 36
   - 74
 - aciCode: 190
-  name: light-vivid-azure-3
+  name: light-vivid-azure-4
   rgb:
   - 123
   - 0
@@ -1253,7 +1253,7 @@
   - 36
   - 74
 - aciCode: 210
-  name: light-vivid-violet
+  name: light-vivid-violet-2
   rgb:
   - 255
   - 0
@@ -1313,7 +1313,7 @@
   - 36
   - 74
 - aciCode: 220
-  name: light-vivid-violet-2
+  name: light-vivid-violet-3
   rgb:
   - 255
   - 0
