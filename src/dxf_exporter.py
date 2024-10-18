@@ -642,8 +642,7 @@ class DXFExporter:
                     
                     # Set color override
                     color = get_color_code(vp_style['style'].get('color'), self.name_to_aci)
-                    if color is not None:
-                        layer_overrides.set_color(vp_handle, color)
+                    layer_overrides.set_color(vp_handle, color)
 
                     # Set linetype override
                     linetype = vp_style['style'].get('linetype')
