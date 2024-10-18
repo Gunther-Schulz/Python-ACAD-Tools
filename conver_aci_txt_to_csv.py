@@ -6,20 +6,51 @@ from math import sqrt
 def rgb_to_hex(rgb):
     return '#{:02x}{:02x}{:02x}'.format(rgb[0], rgb[1], rgb[2])
 
+def create_color_mapping():
+    color_mapping = {}
+    for name in webcolors.names():
+        try:
+            rgb = webcolors.name_to_rgb(name)
+            color_mapping[rgb] = name
+        except ValueError:
+            # Skip colors that might not be recognized
+            pass
+    return color_mapping
+
+COLOR_MAPPING = create_color_mapping()
+
+def get_color_distance(c1, c2):
+    # Weighted Euclidean distance, giving more weight to luminance differences
+    return sqrt(2 * (c1[0] - c2[0])**2 + 4 * (c1[1] - c2[1])**2 + 3 * (c1[2] - c2[2])**2)
+
+def detect_tint(rgb):
+    # Detect if the color has a noticeable tint
+    max_component = max(rgb)
+    min_component = min(rgb)
+    if max_component - min_component > 20:
+        if rgb[0] == max_component:
+            return "reddish"
+        elif rgb[1] == max_component:
+            return "greenish"
+        elif rgb[2] == max_component:
+            return "bluish"
+    return None
+
 def closest_colour(requested_colour, used_names):
     min_colours = {}
-    for name in webcolors.names():
-        hex_value = webcolors.name_to_hex(name)
-        r_c, g_c, b_c = webcolors.hex_to_rgb(hex_value)
-        rd = (r_c - requested_colour[0]) ** 2
-        gd = (g_c - requested_colour[1]) ** 2
-        bd = (b_c - requested_colour[2]) ** 2
-        min_colours[(rd + gd + bd)] = name
+    for rgb, name in COLOR_MAPPING.items():
+        distance = get_color_distance(requested_colour, rgb)
+        min_colours[distance] = name
     
-    if not min_colours:
-        return "unnamed"
+    closest_names = sorted(min_colours.items())[:3]  # Get top 3 closest colors
     
-    closest_name = min_colours[min(min_colours.keys())]
+    tint = detect_tint(requested_colour)
+    if tint:
+        for _, name in closest_names:
+            if tint in name.lower():
+                return name
+    
+    closest_name = closest_names[0][1]
     if closest_name in used_names:
         suffix = 1
         while f"{closest_name}-{suffix}" in used_names:
