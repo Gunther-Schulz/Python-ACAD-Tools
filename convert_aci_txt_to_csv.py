@@ -49,28 +49,20 @@ def closest_colour(requested_colour, used_names):
     base_hue = next((name for threshold, name in hue_names if h <= threshold), "red")
 
     # Determine brightness
-    if v < 0.2:
-        brightness = "very-dark"
-    elif v < 0.4:
-        brightness = "dark"
-    elif v > 0.9:
-        brightness = "bright"
-    elif v > 0.7:
-        brightness = "light"
-    else:
-        brightness = "medium"
+    brightness_levels = [
+        (0.1, "darkest"), (0.2, "darker"), (0.3, "dark"),
+        (0.4, "deep"), (0.5, "medium"), (0.6, "moderate"),
+        (0.7, "light"), (0.8, "bright"), (0.9, "vivid"),
+        (1.0, "brilliant")
+    ]
+    brightness = next((name for threshold, name in brightness_levels if v <= threshold), "brilliant")
 
     # Determine saturation
-    if s < 0.1:
-        saturation = "grey"
-    elif s < 0.3:
-        saturation = "muted"
-    elif s < 0.6:
-        saturation = "moderate"
-    elif s > 0.9:
-        saturation = "vivid"
-    else:
-        saturation = "strong"
+    saturation_levels = [
+        (0.1, "greyed"), (0.3, "muted"), (0.6, "soft"),
+        (0.8, "clear"), (1.0, "intense")
+    ]
+    saturation = next((name for threshold, name in saturation_levels if s <= threshold), "intense")
 
     # Additional descriptors
     additional_descriptors = {
@@ -80,28 +72,36 @@ def closest_colour(requested_colour, used_names):
         "green": ["emerald", "lime", "olive", "sage", "forest", "mint", "jade", "fern"],
         "blue": ["sapphire", "navy", "denim", "sky", "azure", "cobalt", "turquoise", "teal"],
         "purple": ["lavender", "plum", "mauve", "eggplant", "amethyst", "lilac", "periwinkle", "indigo"],
-        "pink": ["salmon", "coral", "peach", "blush", "rose", "fuchsia", "cerise", "magenta"]
+        "pink": ["salmon", "coral", "peach", "blush", "rose", "fuchsia", "cerise", "magenta"],
+        "vermilion": ["persimmon", "tomato", "coral", "salmon"],
+        "amber": ["honey", "topaz", "golden"],
+        "chartreuse": ["lime", "pear", "avocado"],
+        "spring-green": ["mint", "seafoam", "jade"],
+        "azure": ["cerulean", "sky", "cornflower"],
+        "indigo": ["midnight", "royal", "navy"],
+        "violet": ["orchid", "wine", "grape"],
+        "magenta": ["fuchsia", "hot-pink", "raspberry"],
+        "rose": ["pink", "blush", "flamingo"]
     }
 
     # Construct the name
-    base_descriptors = [brightness, saturation, base_hue]
-    name = "-".join(filter(None, base_descriptors))
+    base_descriptors = [brightness, saturation]
+    name_options = [base_hue] + additional_descriptors.get(base_hue, [])
+    
+    for descriptor in name_options:
+        name = "-".join(filter(None, base_descriptors + [descriptor]))
+        if name not in used_names.values() or used_names.get(requested_colour) == name:
+            return name
 
-    # Check if we need an additional descriptor
-    if name in used_names.values() and (r, g, b) not in used_names:
-        for descriptor in additional_descriptors.get(base_hue, []):
-            new_name = "-".join(filter(None, [brightness, saturation, descriptor]))
-            if new_name not in used_names.values():
-                return new_name
+    # If we still don't have a unique name, try combinations
+    for i, desc1 in enumerate(name_options):
+        for desc2 in name_options[i+1:]:
+            name = "-".join(filter(None, [brightness, saturation, desc1, desc2]))
+            if name not in used_names.values():
+                return name
 
-        # If still not unique, try combinations
-        for i, desc1 in enumerate(additional_descriptors.get(base_hue, [])):
-            for desc2 in additional_descriptors.get(base_hue, [])[i+1:]:
-                new_name = "-".join(filter(None, [brightness, desc1, desc2]))
-                if new_name not in used_names.values():
-                    return new_name
-
-    return name
+    # If we still don't have a unique name, use a combination of all descriptors
+    return "-".join(filter(None, [brightness, saturation] + name_options[:3]))
 
 def get_colour_name(rgb_triplet, used_names):
     return closest_colour(rgb_triplet, used_names)
@@ -141,10 +141,14 @@ def convert_to_csv_css_and_yaml(input_file, output_csv, output_css, output_yaml)
             ermittelt = f"{parts[7]},{parts[8]},{parts[9]}"
             
             rgb = tuple(map(int, parts[7:10]))
+            
             if rgb in used_names:
                 color_name = used_names[rgb]
             else:
                 color_name = closest_colour(rgb, used_names)
+                if color_name in used_names.values():
+                    # If the name is already used, append a unique identifier
+                    color_name = f"{color_name}-{aci}"
                 used_names[rgb] = color_name
             
             # Write to CSV
