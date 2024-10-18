@@ -36,7 +36,7 @@ class LayerProcessor:
 
         processed_layers = set()
 
-        for layer in self.project_settings['dxfLayers']:
+        for layer in self.project_settings['geomLayers']:
             layer_name = layer['name']
 
             self.process_layer(layer, processed_layers)
@@ -46,7 +46,7 @@ class LayerProcessor:
     def process_layer(self, layer, processed_layers):
         if isinstance(layer, str):
             layer_name = layer
-            layer_obj = next((l for l in self.project_settings['dxfLayers'] if l['name'] == layer_name), None)
+            layer_obj = next((l for l in self.project_settings['geomLayers'] if l['name'] == layer_name), None)
         else:
             layer_name = layer['name']
             layer_obj = layer
@@ -286,7 +286,7 @@ class LayerProcessor:
         log_info(f"Initial number of geometries in {layer_name}: {len(source_gdf)}")
 
         if values:
-            label_column = next((l['label'] for l in self.project_settings['dxfLayers'] if l['name'] == layer_name), None)
+            label_column = next((l['label'] for l in self.project_settings['geomLayers'] if l['name'] == layer_name), None)
             if label_column and label_column in source_gdf.columns:
                 filtered_gdf = source_gdf[source_gdf[label_column].astype(str).isin(values)].copy()
                 log_info(f"Number of geometries after filtering by values: {len(filtered_gdf)}")
@@ -434,7 +434,7 @@ class LayerProcessor:
             log_warning(f"Cannot write shapefile for layer {layer_name}: layer not found")
 
     def setup_shapefiles(self):
-        for layer in self.project_settings['dxfLayers']:
+        for layer in self.project_settings['geomLayers']:
             layer_name = layer['name']
             if 'shapeFile' in layer:
                 shapefile_path = self.project_loader.resolve_full_path(layer['shapeFile'])
@@ -771,7 +771,7 @@ class LayerProcessor:
         
         zoom_folder = os.path.join(target_folder, f"zoom_{zoom_level}") if zoom_level else target_folder
         
-        layer_info = next((l for l in self.project_settings['dxfLayers'] if l['name'] == layer_name), None)
+        layer_info = next((l for l in self.project_settings['geomLayers'] if l['name'] == layer_name), None)
         update_flag = layer_info.get('update', False) if layer_info else False
         overwrite_flag = operation.get('overwrite', False)
         

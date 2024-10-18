@@ -16,22 +16,14 @@ from src.utils import log_info, log_warning, log_error
 script_identifier = "Created by DXFExporter"
 
 def get_color_code(color, name_to_aci):
+    if color is None:
+        return 7  # Default to 7 (white) if no color is specified
     if isinstance(color, int):
-        if 1 <= color <= 255:
-            return color
-        else:
-            print(f"Warning: Invalid color code {color}. Using BYLAYER.")
-            return ezdxf.const.BYLAYER
+        return min(max(color, 0), 255)  # Ensure color is between 0 and 255
     elif isinstance(color, str):
-        color_lower = color.lower()
-        if color_lower in name_to_aci:
-            return name_to_aci[color_lower]
-        else:
-            print(f"Warning: Color name '{color}' not found. Using BYLAYER.")
-            return ezdxf.const.BYLAYER
+        return name_to_aci.get(color.lower(), 7)  # Default to 7 (white) if not found
     else:
-        print(f"Warning: Invalid color type. Using BYLAYER.")
-        return ezdxf.const.BYLAYER
+        return 7  # Default to 7 (white) for any other type
 
 def convert_transparency(transparency):
     if isinstance(transparency, (int, float)):

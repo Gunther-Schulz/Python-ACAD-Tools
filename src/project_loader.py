@@ -9,7 +9,7 @@ class ProjectLoader:
         self.load_styles()
 
     def load_color_mapping(self):
-        with open('colors.yaml', 'r') as file:
+        with open('aci_colors.yaml', 'r') as file:
             color_data = yaml.safe_load(file)
             self.name_to_aci = {item['name'].lower(): item['aciCode'] for item in color_data}
             self.aci_to_name = {item['aciCode']: item['name'] for item in color_data}
@@ -32,7 +32,7 @@ class ProjectLoader:
         self.dxf_version = self.project_settings.get('dxfVersion', 'R2010')
 
         # Process layers to handle the new 'copy' operation
-        for layer in self.project_settings['dxfLayers']:
+        for layer in self.project_settings['geomLayers']:
             if 'operations' in layer:
                 self.process_operations(layer)
 
