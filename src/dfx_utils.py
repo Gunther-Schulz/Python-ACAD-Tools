@@ -16,6 +16,8 @@ from src.utils import log_info, log_warning, log_error
 script_identifier = "Created by DXFExporter"
 
 def get_color_code(color, name_to_aci):
+    if color is None:
+        return 7  # Default to 7 (white) if no color is specified
     if isinstance(color, int):
         return min(max(color, 0), 255)  # Ensure color is between 0 and 255
     elif isinstance(color, str):

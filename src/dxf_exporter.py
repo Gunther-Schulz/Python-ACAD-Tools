@@ -72,6 +72,10 @@ class DXFExporter:
             else:
                 label_properties[key] = value
         
+        # If no color is specified in label_style, use the base layer color or default to white
+        if 'color' not in label_style:
+            label_properties['color'] = get_color_code(style.get('color'), self.name_to_aci)
+        
         self.layer_properties[label_layer_name] = label_properties
         self.colors[label_layer_name] = label_properties['color']
 
@@ -378,12 +382,12 @@ class DXFExporter:
             if len(exterior_coords) > 2:
                 polyline = msp.add_lwpolyline(exterior_coords, dxfattribs={
                     'layer': layer_name, 
-                    'closed': layer_properties['close'],
-                    'ltscale': layer_properties['linetypeScale']
+                    'closed': layer_properties.get('close', True),
+                    'ltscale': layer_properties.get('linetypeScale', 1.0)  # Use .get() with a default value
                 })
                 self.attach_custom_data(polyline)
                 # Set linetype generation using flags attribute
-                if layer_properties['linetypeGeneration']:
+                if layer_properties.get('linetypeGeneration', False):
                     polyline.dxf.flags |= LWPOLYLINE_PLINEGEN
                 else:
                     polyline.dxf.flags &= ~LWPOLYLINE_PLINEGEN
@@ -393,12 +397,12 @@ class DXFExporter:
                 if len(interior_coords) > 2:
                     polyline = msp.add_lwpolyline(interior_coords, dxfattribs={
                         'layer': layer_name, 
-                        'closed': layer_properties['close'],
-                        'ltscale': layer_properties['linetypeScale']
+                        'closed': layer_properties.get('close', True),
+                        'ltscale': layer_properties.get('linetypeScale', 1.0)  # Use .get() with a default value
                     })
                     self.attach_custom_data(polyline)
                     # Set linetype generation using flags attribute
-                    if layer_properties['linetypeGeneration']:
+                    if layer_properties.get('linetypeGeneration', False):
                         polyline.dxf.flags |= LWPOLYLINE_PLINEGEN
                     else:
                         polyline.dxf.flags &= ~LWPOLYLINE_PLINEGEN
@@ -457,43 +461,23 @@ class DXFExporter:
         for layer in self.project_settings['geomLayers']:
             self.add_layer_properties(layer['name'], layer)
 
-    def add_layer_properties(self, layer_name, layer_info):
-        style = layer_info.get('style', {})
-        properties = {
-            'color': get_color_code(style.get('color', 'White'), self.name_to_aci),
-            'linetype': style.get('linetype', 'Continuous'),
-            'lineweight': style.get('lineweight', 13),
-            'linetypeScale': layer_info.get('linetypeScale', 1.0),  # Explicitly set to 1.0 if not provided
-            'linetypeGeneration': bool(layer_info.get('linetypeGeneration', False)),
-            'plot': style.get('plot', True),
-            'locked': style.get('locked', False),
-            'frozen': style.get('frozen', False),
-            'is_on': style.get('is_on', True),
-            'transparency': float(style.get('transparency', 0.0)),
-            'close': style.get('close', True),
-            'close_linestring': style.get('close_linestring', False)
-        }
+    def add_layer_properties(self, layer_name, layer):
+        properties = {}
+        style = layer.get('style', {})
+        
+        properties['color'] = get_color_code(style.get('color'), self.name_to_aci)
+        properties['linetype'] = style.get('linetype', 'Continuous')
+        properties['lineweight'] = style.get('lineweight', 0)
+        properties['plot'] = style.get('plot', True)
+        properties['locked'] = style.get('locked', False)
+        properties['frozen'] = style.get('frozen', False)
+        properties['is_on'] = style.get('is_on', True)
+        properties['transparency'] = style.get('transparency', 0)
+        properties['close'] = style.get('close', True)
+        properties['linetypeScale'] = style.get('linetypeScale', 1.0)  # Add this line
+        
         self.layer_properties[layer_name] = properties
         self.colors[layer_name] = properties['color']
-        
-        # Add label layer properties only if labels are present
-        if self.has_labels(layer_info):
-            label_layer_name = f"{layer_name} Label"
-            label_style = layer_info.get('labelStyle', {})
-            label_properties = properties.copy()
-            
-            for key, value in label_style.items():
-                if key == 'color':
-                    label_properties['color'] = get_color_code(value, self.name_to_aci)
-                else:
-                    label_properties[key] = value
-            
-            self.layer_properties[label_layer_name] = label_properties
-            self.colors[label_layer_name] = label_properties['color']
-            
-            log_info(f"Added label layer properties for {label_layer_name}: {label_properties}")
-        
-        log_info(f"Added layer properties for {layer_name}: {properties}")
 
     def is_wmts_or_wms_layer(self, layer_name):
         layer_info = next((l for l in self.project_settings['geomLayers'] if l['name'] == layer_name), None)
