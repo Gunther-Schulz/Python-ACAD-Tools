@@ -1,35 +1,35 @@
 - aciCode: 1
-  name: pale-intense-red
+  name: red-pale-intense
   rgb:
   - 255
   - 0
   - 0
 - aciCode: 2
-  name: pale-intense-yellow
+  name: yellow-pale-intense
   rgb:
   - 255
   - 255
   - 0
 - aciCode: 3
-  name: pale-intense-green
+  name: green-pale-intense
   rgb:
   - 0
   - 255
   - 0
 - aciCode: 4
-  name: pale-intense-turquoise
+  name: turquoise-pale-intense
   rgb:
   - 0
   - 255
   - 255
 - aciCode: 5
-  name: pale-intense-blue
+  name: blue-pale-intense
   rgb:
   - 0
   - 0
   - 255
 - aciCode: 6
-  name: pale-intense-purple
+  name: purple-pale-intense
   rgb:
   - 255
   - 0
@@ -53,1441 +53,1441 @@
   - 195
   - 198
 - aciCode: 10
-  name: pale-intense-red
+  name: red-pale-intense
   rgb:
   - 255
   - 0
   - 0
 - aciCode: 11
-  name: pale-clear-red
+  name: red-pale-clear
   rgb:
   - 255
   - 125
   - 123
 - aciCode: 12
-  name: light-intense-red
+  name: red-light-intense
   rgb:
   - 206
   - 0
   - 0
 - aciCode: 13
-  name: light-clear-red
+  name: red-light-clear
   rgb:
   - 206
   - 101
   - 99
 - aciCode: 14
-  name: soft-intense-red
+  name: red-soft-intense
   rgb:
   - 156
   - 0
   - 0
 - aciCode: 15
-  name: soft-clear-red
+  name: red-soft-clear
   rgb:
   - 156
   - 77
   - 74
 - aciCode: 16
-  name: intense-red
+  name: red-intense
   rgb:
   - 123
   - 0
   - 0
 - aciCode: 17
-  name: clear-red
+  name: red-clear
   rgb:
   - 123
   - 60
   - 57
 - aciCode: 18
-  name: dark-intense-red
+  name: red-dark-intense
   rgb:
   - 74
   - 0
   - 0
 - aciCode: 19
-  name: dark-clear-red
+  name: red-dark-clear
   rgb:
   - 74
   - 36
   - 33
 - aciCode: 20
-  name: pale-intense-vermilion
+  name: vermilion-pale-intense
   rgb:
   - 255
   - 60
   - 0
 - aciCode: 21
-  name: pale-clear-vermilion
+  name: vermilion-pale-clear
   rgb:
   - 255
   - 158
   - 123
 - aciCode: 22
-  name: light-intense-vermilion
+  name: vermilion-light-intense
   rgb:
   - 206
   - 48
   - 0
 - aciCode: 23
-  name: light-clear-vermilion
+  name: vermilion-light-clear
   rgb:
   - 206
   - 125
   - 99
 - aciCode: 24
-  name: soft-intense-vermilion
+  name: vermilion-soft-intense
   rgb:
   - 156
   - 36
   - 0
 - aciCode: 25
-  name: soft-clear-vermilion
+  name: vermilion-soft-clear
   rgb:
   - 156
   - 93
   - 74
 - aciCode: 26
-  name: intense-vermilion
+  name: vermilion-intense
   rgb:
   - 123
   - 28
   - 0
 - aciCode: 27
-  name: clear-orange-red
+  name: orange-red-clear
   rgb:
   - 123
   - 77
   - 57
 - aciCode: 28
-  name: dark-intense-vermilion
+  name: vermilion-dark-intense
   rgb:
   - 74
   - 16
   - 0
 - aciCode: 29
-  name: dark-clear-vermilion
+  name: vermilion-dark-clear
   rgb:
   - 74
   - 44
   - 33
 - aciCode: 30
-  name: pale-intense-orange
+  name: orange-pale-intense
   rgb:
   - 255
   - 125
   - 0
 - aciCode: 31
-  name: pale-clear-orange
+  name: orange-pale-clear
   rgb:
   - 255
   - 190
   - 123
 - aciCode: 32
-  name: light-intense-orange
+  name: orange-light-intense
   rgb:
   - 206
   - 101
   - 0
 - aciCode: 33
-  name: light-clear-orange
+  name: orange-light-clear
   rgb:
   - 206
   - 154
   - 99
 - aciCode: 34
-  name: soft-intense-orange
+  name: orange-soft-intense
   rgb:
   - 156
   - 77
   - 0
 - aciCode: 35
-  name: soft-clear-orange
+  name: orange-soft-clear
   rgb:
   - 156
   - 113
   - 74
 - aciCode: 36
-  name: intense-orange
+  name: orange-intense
   rgb:
   - 123
   - 60
   - 0
 - aciCode: 37
-  name: clear-orange
+  name: orange-clear
   rgb:
   - 123
   - 93
   - 57
 - aciCode: 38
-  name: dark-intense-orange
+  name: orange-dark-intense
   rgb:
   - 74
   - 36
   - 0
 - aciCode: 39
-  name: dark-clear-orange
+  name: orange-dark-clear
   rgb:
   - 74
   - 56
   - 33
 - aciCode: 40
-  name: pale-intense-amber
+  name: amber-pale-intense
   rgb:
   - 255
   - 190
   - 0
 - aciCode: 41
-  name: pale-clear-golden
+  name: golden-pale-clear
   rgb:
   - 255
   - 223
   - 123
 - aciCode: 42
-  name: light-intense-amber
+  name: amber-light-intense
   rgb:
   - 206
   - 154
   - 0
 - aciCode: 43
-  name: light-clear-amber
+  name: amber-light-clear
   rgb:
   - 206
   - 178
   - 99
 - aciCode: 44
-  name: soft-intense-amber
+  name: amber-soft-intense
   rgb:
   - 156
   - 113
   - 0
 - aciCode: 45
-  name: soft-clear-amber
+  name: amber-soft-clear
   rgb:
   - 156
   - 134
   - 74
 - aciCode: 46
-  name: intense-golden
+  name: golden-intense
   rgb:
   - 123
   - 93
   - 0
 - aciCode: 47
-  name: clear-golden
+  name: golden-clear
   rgb:
   - 123
   - 109
   - 57
 - aciCode: 48
-  name: dark-intense-golden
+  name: golden-dark-intense
   rgb:
   - 74
   - 56
   - 0
 - aciCode: 49
-  name: dark-clear-golden
+  name: golden-dark-clear
   rgb:
   - 74
   - 65
   - 33
 - aciCode: 50
-  name: pale-intense-yellow
+  name: yellow-pale-intense
   rgb:
   - 255
   - 255
   - 0
 - aciCode: 51
-  name: pale-clear-yellow
+  name: yellow-pale-clear
   rgb:
   - 255
   - 255
   - 123
 - aciCode: 52
-  name: light-intense-yellow
+  name: yellow-light-intense
   rgb:
   - 206
   - 207
   - 0
 - aciCode: 53
-  name: light-clear-yellow
+  name: yellow-light-clear
   rgb:
   - 206
   - 207
   - 99
 - aciCode: 54
-  name: soft-intense-yellow
+  name: yellow-soft-intense
   rgb:
   - 156
   - 154
   - 0
 - aciCode: 55
-  name: soft-clear-yellow
+  name: yellow-soft-clear
   rgb:
   - 156
   - 154
   - 74
 - aciCode: 56
-  name: intense-yellow
+  name: yellow-intense
   rgb:
   - 123
   - 125
   - 0
 - aciCode: 57
-  name: clear-yellow
+  name: yellow-clear
   rgb:
   - 123
   - 125
   - 57
 - aciCode: 58
-  name: deep-intense-yellow
+  name: yellow-deep-intense
   rgb:
   - 74
   - 77
   - 0
 - aciCode: 59
-  name: deep-clear-lime
+  name: lime-deep-clear
   rgb:
   - 74
   - 77
   - 33
 - aciCode: 60
-  name: pale-intense-chartreuse
+  name: chartreuse-pale-intense
   rgb:
   - 189
   - 255
   - 0
 - aciCode: 61
-  name: pale-clear-chartreuse
+  name: chartreuse-pale-clear
   rgb:
   - 222
   - 255
   - 123
 - aciCode: 62
-  name: light-intense-chartreuse
+  name: chartreuse-light-intense
   rgb:
   - 156
   - 207
   - 0
 - aciCode: 63
-  name: light-clear-chartreuse
+  name: chartreuse-light-clear
   rgb:
   - 181
   - 207
   - 99
 - aciCode: 64
-  name: soft-intense-chartreuse
+  name: chartreuse-soft-intense
   rgb:
   - 115
   - 154
   - 0
 - aciCode: 65
-  name: soft-clear-chartreuse
+  name: chartreuse-soft-clear
   rgb:
   - 132
   - 154
   - 74
 - aciCode: 66
-  name: intense-chartreuse
+  name: chartreuse-intense
   rgb:
   - 90
   - 125
   - 0
 - aciCode: 67
-  name: clear-chartreuse
+  name: chartreuse-clear
   rgb:
   - 107
   - 125
   - 57
 - aciCode: 68
-  name: deep-intense-chartreuse
+  name: chartreuse-deep-intense
   rgb:
   - 57
   - 77
   - 0
 - aciCode: 69
-  name: deep-clear-chartreuse
+  name: chartreuse-deep-clear
   rgb:
   - 66
   - 77
   - 33
 - aciCode: 70
-  name: pale-intense-chartreuse
+  name: chartreuse-pale-intense
   rgb:
   - 123
   - 255
   - 0
 - aciCode: 71
-  name: pale-clear-chartreuse
+  name: chartreuse-pale-clear
   rgb:
   - 189
   - 255
   - 123
 - aciCode: 72
-  name: light-intense-chartreuse
+  name: chartreuse-light-intense
   rgb:
   - 99
   - 207
   - 0
 - aciCode: 73
-  name: light-clear-chartreuse
+  name: chartreuse-light-clear
   rgb:
   - 156
   - 207
   - 99
 - aciCode: 74
-  name: soft-intense-chartreuse
+  name: chartreuse-soft-intense
   rgb:
   - 74
   - 154
   - 0
 - aciCode: 75
-  name: soft-clear-chartreuse
+  name: chartreuse-soft-clear
   rgb:
   - 115
   - 154
   - 74
 - aciCode: 76
-  name: intense-chartreuse
+  name: chartreuse-intense
   rgb:
   - 57
   - 125
   - 0
 - aciCode: 77
-  name: clear-chartreuse
+  name: chartreuse-clear
   rgb:
   - 90
   - 125
   - 57
 - aciCode: 78
-  name: deep-intense-chartreuse
+  name: chartreuse-deep-intense
   rgb:
   - 33
   - 77
   - 0
 - aciCode: 79
-  name: deep-clear-chartreuse
+  name: chartreuse-deep-clear
   rgb:
   - 57
   - 77
   - 33
 - aciCode: 80
-  name: pale-intense-green
+  name: green-pale-intense
   rgb:
   - 57
   - 255
   - 0
 - aciCode: 81
-  name: pale-clear-green
+  name: green-pale-clear
   rgb:
   - 156
   - 255
   - 123
 - aciCode: 82
-  name: light-intense-green
+  name: green-light-intense
   rgb:
   - 49
   - 207
   - 0
 - aciCode: 83
-  name: light-clear-green
+  name: green-light-clear
   rgb:
   - 123
   - 207
   - 99
 - aciCode: 84
-  name: soft-intense-green
+  name: green-soft-intense
   rgb:
   - 33
   - 154
   - 0
 - aciCode: 85
-  name: soft-clear-green
+  name: green-soft-clear
   rgb:
   - 90
   - 154
   - 74
 - aciCode: 86
-  name: intense-green
+  name: green-intense
   rgb:
   - 24
   - 125
   - 0
 - aciCode: 87
-  name: clear-green
+  name: green-clear
   rgb:
   - 74
   - 125
   - 57
 - aciCode: 88
-  name: deep-intense-green
+  name: green-deep-intense
   rgb:
   - 16
   - 77
   - 0
 - aciCode: 89
-  name: deep-clear-green
+  name: green-deep-clear
   rgb:
   - 41
   - 77
   - 33
 - aciCode: 90
-  name: pale-intense-green
+  name: green-pale-intense
   rgb:
   - 0
   - 255
   - 0
 - aciCode: 91
-  name: pale-clear-green
+  name: green-pale-clear
   rgb:
   - 123
   - 255
   - 123
 - aciCode: 92
-  name: light-intense-green
+  name: green-light-intense
   rgb:
   - 0
   - 207
   - 0
 - aciCode: 93
-  name: light-clear-green
+  name: green-light-clear
   rgb:
   - 99
   - 207
   - 99
 - aciCode: 94
-  name: soft-intense-green
+  name: green-soft-intense
   rgb:
   - 0
   - 154
   - 0
 - aciCode: 95
-  name: soft-clear-green
+  name: green-soft-clear
   rgb:
   - 74
   - 154
   - 74
 - aciCode: 96
-  name: intense-green
+  name: green-intense
   rgb:
   - 0
   - 125
   - 0
 - aciCode: 97
-  name: clear-green
+  name: green-clear
   rgb:
   - 57
   - 125
   - 57
 - aciCode: 98
-  name: deep-intense-green
+  name: green-deep-intense
   rgb:
   - 0
   - 77
   - 0
 - aciCode: 99
-  name: deep-clear-green
+  name: green-deep-clear
   rgb:
   - 33
   - 77
   - 33
 - aciCode: 100
-  name: pale-intense-emerald
+  name: emerald-pale-intense
   rgb:
   - 0
   - 255
   - 57
 - aciCode: 101
-  name: pale-clear-emerald
+  name: emerald-pale-clear
   rgb:
   - 123
   - 255
   - 156
 - aciCode: 102
-  name: light-intense-emerald
+  name: emerald-light-intense
   rgb:
   - 0
   - 207
   - 49
 - aciCode: 103
-  name: light-clear-emerald
+  name: emerald-light-clear
   rgb:
   - 99
   - 207
   - 123
 - aciCode: 104
-  name: soft-intense-emerald
+  name: emerald-soft-intense
   rgb:
   - 0
   - 154
   - 33
 - aciCode: 105
-  name: soft-clear-emerald
+  name: emerald-soft-clear
   rgb:
   - 74
   - 154
   - 90
 - aciCode: 106
-  name: intense-emerald
+  name: emerald-intense
   rgb:
   - 0
   - 125
   - 24
 - aciCode: 107
-  name: clear-emerald
+  name: emerald-clear
   rgb:
   - 57
   - 125
   - 74
 - aciCode: 108
-  name: deep-intense-emerald
+  name: emerald-deep-intense
   rgb:
   - 0
   - 77
   - 16
 - aciCode: 109
-  name: deep-clear-emerald
+  name: emerald-deep-clear
   rgb:
   - 33
   - 77
   - 41
 - aciCode: 110
-  name: pale-intense-spring-green
+  name: spring-green-pale-intense
   rgb:
   - 0
   - 255
   - 123
 - aciCode: 111
-  name: pale-clear-spring-green
+  name: spring-green-pale-clear
   rgb:
   - 123
   - 255
   - 189
 - aciCode: 112
-  name: light-intense-spring-green
+  name: spring-green-light-intense
   rgb:
   - 0
   - 207
   - 99
 - aciCode: 113
-  name: light-clear-spring-green
+  name: spring-green-light-clear
   rgb:
   - 99
   - 207
   - 156
 - aciCode: 114
-  name: soft-intense-spring-green
+  name: spring-green-soft-intense
   rgb:
   - 0
   - 154
   - 74
 - aciCode: 115
-  name: soft-clear-spring-green
+  name: spring-green-soft-clear
   rgb:
   - 74
   - 154
   - 115
 - aciCode: 116
-  name: intense-spring-green
+  name: spring-green-intense
   rgb:
   - 0
   - 125
   - 57
 - aciCode: 117
-  name: clear-spring-green
+  name: spring-green-clear
   rgb:
   - 57
   - 125
   - 90
 - aciCode: 118
-  name: deep-intense-spring-green
+  name: spring-green-deep-intense
   rgb:
   - 0
   - 77
   - 33
 - aciCode: 119
-  name: deep-clear-spring-green
+  name: spring-green-deep-clear
   rgb:
   - 33
   - 77
   - 57
 - aciCode: 120
-  name: pale-intense-turquoise
+  name: turquoise-pale-intense
   rgb:
   - 0
   - 255
   - 189
 - aciCode: 121
-  name: pale-clear-turquoise
+  name: turquoise-pale-clear
   rgb:
   - 123
   - 255
   - 222
 - aciCode: 122
-  name: light-intense-turquoise
+  name: turquoise-light-intense
   rgb:
   - 0
   - 207
   - 156
 - aciCode: 123
-  name: light-clear-turquoise
+  name: turquoise-light-clear
   rgb:
   - 99
   - 207
   - 181
 - aciCode: 124
-  name: soft-intense-turquoise
+  name: turquoise-soft-intense
   rgb:
   - 0
   - 154
   - 115
 - aciCode: 125
-  name: soft-clear-turquoise
+  name: turquoise-soft-clear
   rgb:
   - 74
   - 154
   - 132
 - aciCode: 126
-  name: intense-turquoise
+  name: turquoise-intense
   rgb:
   - 0
   - 125
   - 90
 - aciCode: 127
-  name: clear-turquoise
+  name: turquoise-clear
   rgb:
   - 57
   - 125
   - 107
 - aciCode: 128
-  name: deep-intense-turquoise
+  name: turquoise-deep-intense
   rgb:
   - 0
   - 77
   - 57
 - aciCode: 129
-  name: deep-clear-turquoise
+  name: turquoise-deep-clear
   rgb:
   - 33
   - 77
   - 66
 - aciCode: 130
-  name: pale-intense-turquoise
+  name: turquoise-pale-intense
   rgb:
   - 0
   - 255
   - 255
 - aciCode: 131
-  name: pale-clear-turquoise
+  name: turquoise-pale-clear
   rgb:
   - 123
   - 255
   - 255
 - aciCode: 132
-  name: light-intense-turquoise
+  name: turquoise-light-intense
   rgb:
   - 0
   - 207
   - 206
 - aciCode: 133
-  name: light-clear-turquoise
+  name: turquoise-light-clear
   rgb:
   - 99
   - 207
   - 206
 - aciCode: 134
-  name: soft-intense-cyan
+  name: cyan-soft-intense
   rgb:
   - 0
   - 154
   - 156
 - aciCode: 135
-  name: soft-clear-cyan
+  name: cyan-soft-clear
   rgb:
   - 74
   - 154
   - 156
 - aciCode: 136
-  name: intense-turquoise
+  name: turquoise-intense
   rgb:
   - 0
   - 125
   - 123
 - aciCode: 137
-  name: clear-turquoise
+  name: turquoise-clear
   rgb:
   - 57
   - 125
   - 123
 - aciCode: 138
-  name: deep-intense-turquoise
+  name: turquoise-deep-intense
   rgb:
   - 0
   - 77
   - 74
 - aciCode: 139
-  name: deep-clear-turquoise
+  name: turquoise-deep-clear
   rgb:
   - 33
   - 77
   - 74
 - aciCode: 140
-  name: pale-intense-cyan
+  name: cyan-pale-intense
   rgb:
   - 0
   - 190
   - 255
 - aciCode: 141
-  name: pale-clear-cyan
+  name: cyan-pale-clear
   rgb:
   - 123
   - 223
   - 255
 - aciCode: 142
-  name: light-intense-cyan
+  name: cyan-light-intense
   rgb:
   - 0
   - 154
   - 206
 - aciCode: 143
-  name: light-clear-cyan
+  name: cyan-light-clear
   rgb:
   - 99
   - 178
   - 206
 - aciCode: 144
-  name: soft-intense-cyan
+  name: cyan-soft-intense
   rgb:
   - 0
   - 113
   - 156
 - aciCode: 145
-  name: soft-intense-indigo
+  name: indigo-soft-intense
   rgb:
   - 74
   - 13
   - 156
 - aciCode: 146
-  name: intense-cyan
+  name: cyan-intense
   rgb:
   - 0
   - 93
   - 123
 - aciCode: 147
-  name: clear-cyan
+  name: cyan-clear
   rgb:
   - 57
   - 109
   - 123
 - aciCode: 148
-  name: dark-intense-cyan
+  name: cyan-dark-intense
   rgb:
   - 0
   - 56
   - 74
 - aciCode: 149
-  name: dark-clear-cyan
+  name: cyan-dark-clear
   rgb:
   - 33
   - 65
   - 74
 - aciCode: 150
-  name: pale-intense-azure
+  name: azure-pale-intense
   rgb:
   - 0
   - 125
   - 255
 - aciCode: 151
-  name: pale-clear-azure
+  name: azure-pale-clear
   rgb:
   - 123
   - 190
   - 255
 - aciCode: 152
-  name: light-intense-azure
+  name: azure-light-intense
   rgb:
   - 0
   - 101
   - 206
 - aciCode: 153
-  name: light-clear-azure
+  name: azure-light-clear
   rgb:
   - 99
   - 154
   - 206
 - aciCode: 154
-  name: soft-intense-azure
+  name: azure-soft-intense
   rgb:
   - 0
   - 77
   - 156
 - aciCode: 155
-  name: soft-clear-azure
+  name: azure-soft-clear
   rgb:
   - 74
   - 113
   - 156
 - aciCode: 156
-  name: intense-azure
+  name: azure-intense
   rgb:
   - 0
   - 60
   - 123
 - aciCode: 157
-  name: clear-azure
+  name: azure-clear
   rgb:
   - 57
   - 93
   - 123
 - aciCode: 158
-  name: dark-intense-azure
+  name: azure-dark-intense
   rgb:
   - 0
   - 36
   - 74
 - aciCode: 159
-  name: dark-clear-azure
+  name: azure-dark-clear
   rgb:
   - 33
   - 56
   - 74
 - aciCode: 160
-  name: pale-intense-cerulean
+  name: cerulean-pale-intense
   rgb:
   - 0
   - 60
   - 255
 - aciCode: 161
-  name: pale-clear-cerulean
+  name: cerulean-pale-clear
   rgb:
   - 123
   - 158
   - 255
 - aciCode: 162
-  name: light-intense-cerulean
+  name: cerulean-light-intense
   rgb:
   - 0
   - 48
   - 206
 - aciCode: 163
-  name: light-clear-cerulean
+  name: cerulean-light-clear
   rgb:
   - 99
   - 125
   - 206
 - aciCode: 164
-  name: soft-intense-cerulean
+  name: cerulean-soft-intense
   rgb:
   - 0
   - 36
   - 156
 - aciCode: 165
-  name: soft-clear-cerulean
+  name: cerulean-soft-clear
   rgb:
   - 74
   - 93
   - 156
 - aciCode: 166
-  name: intense-cerulean
+  name: cerulean-intense
   rgb:
   - 0
   - 28
   - 123
 - aciCode: 167
-  name: clear-cerulean
+  name: cerulean-clear
   rgb:
   - 57
   - 77
   - 123
 - aciCode: 168
-  name: dark-intense-cerulean
+  name: cerulean-dark-intense
   rgb:
   - 0
   - 16
   - 74
 - aciCode: 169
-  name: dark-clear-cerulean
+  name: cerulean-dark-clear
   rgb:
   - 33
   - 44
   - 74
 - aciCode: 170
-  name: pale-intense-blue
+  name: blue-pale-intense
   rgb:
   - 0
   - 0
   - 255
 - aciCode: 171
-  name: pale-clear-blue
+  name: blue-pale-clear
   rgb:
   - 123
   - 125
   - 255
 - aciCode: 172
-  name: light-intense-blue
+  name: blue-light-intense
   rgb:
   - 0
   - 0
   - 206
 - aciCode: 173
-  name: light-clear-blue
+  name: blue-light-clear
   rgb:
   - 99
   - 101
   - 206
 - aciCode: 174
-  name: soft-intense-blue
+  name: blue-soft-intense
   rgb:
   - 0
   - 0
   - 156
 - aciCode: 175
-  name: soft-clear-blue
+  name: blue-soft-clear
   rgb:
   - 74
   - 77
   - 156
 - aciCode: 176
-  name: intense-blue
+  name: blue-intense
   rgb:
   - 0
   - 0
   - 123
 - aciCode: 177
-  name: clear-blue
+  name: blue-clear
   rgb:
   - 57
   - 60
   - 123
 - aciCode: 178
-  name: dark-intense-blue
+  name: blue-dark-intense
   rgb:
   - 0
   - 0
   - 74
 - aciCode: 179
-  name: dark-clear-blue
+  name: blue-dark-clear
   rgb:
   - 33
   - 36
   - 74
 - aciCode: 180
-  name: pale-intense-indigo
+  name: indigo-pale-intense
   rgb:
   - 57
   - 0
   - 255
 - aciCode: 181
-  name: pale-clear-indigo
+  name: indigo-pale-clear
   rgb:
   - 156
   - 125
   - 255
 - aciCode: 182
-  name: light-intense-indigo
+  name: indigo-light-intense
   rgb:
   - 49
   - 0
   - 206
 - aciCode: 183
-  name: light-clear-indigo
+  name: indigo-light-clear
   rgb:
   - 123
   - 101
   - 206
 - aciCode: 184
-  name: soft-intense-indigo
+  name: indigo-soft-intense
   rgb:
   - 33
   - 0
   - 156
 - aciCode: 185
-  name: soft-clear-blue
+  name: blue-soft-clear
   rgb:
   - 90
   - 77
   - 156
 - aciCode: 186
-  name: intense-blue
+  name: blue-intense
   rgb:
   - 24
   - 0
   - 123
 - aciCode: 187
-  name: clear-indigo
+  name: indigo-clear
   rgb:
   - 74
   - 60
   - 123
 - aciCode: 188
-  name: dark-intense-indigo
+  name: indigo-dark-intense
   rgb:
   - 16
   - 0
   - 74
 - aciCode: 189
-  name: dark-clear-blue
+  name: blue-dark-clear
   rgb:
   - 41
   - 36
   - 74
 - aciCode: 190
-  name: pale-intense-indigo
+  name: indigo-pale-intense
   rgb:
   - 123
   - 0
   - 255
 - aciCode: 191
-  name: pale-clear-indigo
+  name: indigo-pale-clear
   rgb:
   - 189
   - 125
   - 255
 - aciCode: 192
-  name: light-intense-indigo
+  name: indigo-light-intense
   rgb:
   - 99
   - 0
   - 206
 - aciCode: 193
-  name: light-clear-violet
+  name: violet-light-clear
   rgb:
   - 156
   - 101
   - 206
 - aciCode: 194
-  name: soft-intense-indigo
+  name: indigo-soft-intense
   rgb:
   - 74
   - 0
   - 156
 - aciCode: 195
-  name: soft-clear-indigo
+  name: indigo-soft-clear
   rgb:
   - 115
   - 77
   - 156
 - aciCode: 196
-  name: intense-indigo
+  name: indigo-intense
   rgb:
   - 57
   - 0
   - 123
 - aciCode: 197
-  name: clear-indigo
+  name: indigo-clear
   rgb:
   - 90
   - 60
   - 123
 - aciCode: 198
-  name: dark-intense-indigo
+  name: indigo-dark-intense
   rgb:
   - 33
   - 0
   - 74
 - aciCode: 199
-  name: dark-clear-violet
+  name: violet-dark-clear
   rgb:
   - 57
   - 36
   - 74
 - aciCode: 200
-  name: pale-intense-violet
+  name: violet-pale-intense
   rgb:
   - 189
   - 0
   - 255
 - aciCode: 201
-  name: pale-clear-blue
+  name: blue-pale-clear
   rgb:
   - 122
   - 125
   - 255
 - aciCode: 202
-  name: light-intense-violet
+  name: violet-light-intense
   rgb:
   - 156
   - 0
   - 206
 - aciCode: 203
-  name: light-clear-violet
+  name: violet-light-clear
   rgb:
   - 181
   - 101
   - 206
 - aciCode: 204
-  name: soft-intense-violet
+  name: violet-soft-intense
   rgb:
   - 115
   - 0
   - 156
 - aciCode: 205
-  name: soft-clear-violet
+  name: violet-soft-clear
   rgb:
   - 132
   - 77
   - 156
 - aciCode: 206
-  name: intense-violet
+  name: violet-intense
   rgb:
   - 90
   - 0
   - 123
 - aciCode: 207
-  name: clear-violet
+  name: violet-clear
   rgb:
   - 107
   - 60
   - 123
 - aciCode: 208
-  name: dark-intense-violet
+  name: violet-dark-intense
   rgb:
   - 57
   - 0
   - 74
 - aciCode: 209
-  name: dark-clear-violet
+  name: violet-dark-clear
   rgb:
   - 66
   - 36
   - 74
 - aciCode: 210
-  name: pale-intense-purple
+  name: purple-pale-intense
   rgb:
   - 255
   - 0
   - 255
 - aciCode: 211
-  name: pale-clear-purple
+  name: purple-pale-clear
   rgb:
   - 255
   - 125
   - 255
 - aciCode: 212
-  name: light-intense-purple
+  name: purple-light-intense
   rgb:
   - 206
   - 0
   - 206
 - aciCode: 213
-  name: light-clear-purple
+  name: purple-light-clear
   rgb:
   - 206
   - 101
   - 206
 - aciCode: 214
-  name: soft-intense-purple
+  name: purple-soft-intense
   rgb:
   - 156
   - 0
   - 156
 - aciCode: 215
-  name: soft-clear-purple
+  name: purple-soft-clear
   rgb:
   - 156
   - 77
   - 156
 - aciCode: 216
-  name: intense-purple
+  name: purple-intense
   rgb:
   - 123
   - 0
   - 123
 - aciCode: 217
-  name: clear-purple
+  name: purple-clear
   rgb:
   - 123
   - 60
   - 123
 - aciCode: 218
-  name: dark-intense-purple
+  name: purple-dark-intense
   rgb:
   - 74
   - 0
   - 74
 - aciCode: 219
-  name: dark-clear-purple
+  name: purple-dark-clear
   rgb:
   - 74
   - 36
   - 74
 - aciCode: 220
-  name: pale-intense-magenta
+  name: magenta-pale-intense
   rgb:
   - 255
   - 0
   - 189
 - aciCode: 221
-  name: pale-clear-magenta
+  name: magenta-pale-clear
   rgb:
   - 255
   - 125
   - 222
 - aciCode: 222
-  name: light-intense-magenta
+  name: magenta-light-intense
   rgb:
   - 206
   - 0
   - 156
 - aciCode: 223
-  name: light-clear-magenta
+  name: magenta-light-clear
   rgb:
   - 206
   - 101
   - 181
 - aciCode: 224
-  name: soft-intense-magenta
+  name: magenta-soft-intense
   rgb:
   - 156
   - 0
   - 115
 - aciCode: 225
-  name: soft-clear-magenta
+  name: magenta-soft-clear
   rgb:
   - 156
   - 77
   - 132
 - aciCode: 226
-  name: intense-magenta
+  name: magenta-intense
   rgb:
   - 123
   - 0
   - 90
 - aciCode: 227
-  name: clear-magenta
+  name: magenta-clear
   rgb:
   - 123
   - 60
   - 107
 - aciCode: 228
-  name: dark-intense-magenta
+  name: magenta-dark-intense
   rgb:
   - 74
   - 0
   - 57
 - aciCode: 229
-  name: dark-clear-magenta
+  name: magenta-dark-clear
   rgb:
   - 74
   - 36
   - 66
 - aciCode: 230
-  name: pale-intense-fuchsia
+  name: fuchsia-pale-intense
   rgb:
   - 255
   - 0
   - 123
 - aciCode: 231
-  name: pale-clear-fuchsia
+  name: fuchsia-pale-clear
   rgb:
   - 255
   - 125
   - 189
 - aciCode: 232
-  name: light-intense-fuchsia
+  name: fuchsia-light-intense
   rgb:
   - 206
   - 0
   - 99
 - aciCode: 233
-  name: light-clear-fuchsia
+  name: fuchsia-light-clear
   rgb:
   - 206
   - 101
   - 156
 - aciCode: 234
-  name: soft-intense-fuchsia
+  name: fuchsia-soft-intense
   rgb:
   - 156
   - 0
   - 74
 - aciCode: 235
-  name: soft-clear-fuchsia
+  name: fuchsia-soft-clear
   rgb:
   - 156
   - 77
   - 115
 - aciCode: 236
-  name: intense-fuchsia
+  name: fuchsia-intense
   rgb:
   - 123
   - 0
   - 57
 - aciCode: 237
-  name: clear-fuchsia
+  name: fuchsia-clear
   rgb:
   - 123
   - 60
   - 90
 - aciCode: 238
-  name: dark-intense-fuchsia
+  name: fuchsia-dark-intense
   rgb:
   - 74
   - 0
   - 33
 - aciCode: 239
-  name: dark-clear-fuchsia
+  name: fuchsia-dark-clear
   rgb:
   - 74
   - 36
   - 57
 - aciCode: 240
-  name: pale-intense-crimson
+  name: crimson-pale-intense
   rgb:
   - 255
   - 0
   - 57
 - aciCode: 241
-  name: pale-clear-crimson
+  name: crimson-pale-clear
   rgb:
   - 255
   - 125
   - 156
 - aciCode: 242
-  name: light-intense-crimson
+  name: crimson-light-intense
   rgb:
   - 206
   - 0
   - 49
 - aciCode: 243
-  name: light-clear-crimson
+  name: crimson-light-clear
   rgb:
   - 206
   - 101
   - 123
 - aciCode: 244
-  name: soft-intense-crimson
+  name: crimson-soft-intense
   rgb:
   - 156
   - 0
   - 33
 - aciCode: 245
-  name: soft-clear-crimson
+  name: crimson-soft-clear
   rgb:
   - 156
   - 77
   - 90
 - aciCode: 246
-  name: intense-crimson
+  name: crimson-intense
   rgb:
   - 123
   - 0
   - 24
 - aciCode: 247
-  name: clear-crimson
+  name: crimson-clear
   rgb:
   - 123
   - 60
   - 74
 - aciCode: 248
-  name: dark-intense-crimson
+  name: crimson-dark-intense
   rgb:
   - 74
   - 0
   - 16
 - aciCode: 249
-  name: dark-clear-crimson
+  name: crimson-dark-clear
   rgb:
   - 74
   - 36

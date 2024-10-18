@@ -61,8 +61,8 @@ def closest_colour(requested_colour, used_names):
     ]
     saturation = next((name for threshold, name in saturation_levels if s <= threshold), "pure")
 
-    # Construct the new name
-    name_parts = [brightness, saturation, base_hue]
+    # Construct the new name with reversed order
+    name_parts = [base_hue, brightness, saturation]
     name = "-".join(filter(lambda x: x not in ["medium", "moderate"], name_parts))
     
     return name
