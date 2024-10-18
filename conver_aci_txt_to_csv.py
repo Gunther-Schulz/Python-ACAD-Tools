@@ -16,19 +16,15 @@ def closest_colour(requested_colour, used_names):
     
     # Check for pure or near-pure greys
     max_diff = max(abs(r - g), abs(r - b), abs(g - b))
-    if max_diff <= 5:  # Tolerance for near-greys
+    if max_diff <= 5:
         avg = (r + g + b) // 3
         grey_levels = [
             (16, "charcoal"), (32, "coal"), (48, "dark-slate"),
-            (64, "slate"), (80, "dim"), (96, "smoke"),
-            (112, "ash"), (128, "stone"), (144, "overcast"),
-            (160, "cloudy"), (176, "silver"), (192, "pale-silver"),
-            (208, "light-silver"), (224, "pearl"), (240, "off-white")
+            (64, "slate"), (96, "smoke"), (128, "stone"),
+            (160, "silver"), (192, "pale-silver"), (224, "pearl"),
+            (255, "white")
         ]
-        for threshold, name in grey_levels:
-            if avg < threshold:
-                return name
-        return "near-white"
+        return next((name for threshold, name in grey_levels if avg <= threshold), "near-white")
     
     # Convert RGB to HSV
     h, s, v = rgb_to_hsv(r/255, g/255, b/255)
@@ -36,34 +32,41 @@ def closest_colour(requested_colour, used_names):
     # Determine base hue
     hue_names = [
         (0.025, "red"), (0.05, "vermilion"), (0.075, "orange-red"),
-        (0.1, "orange"), (0.125, "amber"), (0.15, "golden"),
-        (0.175, "yellow"), (0.2, "lime"), (0.275, "chartreuse"),
-        (0.35, "green"), (0.4, "emerald"), (0.45, "spring-green"),
-        (0.5, "turquoise"), (0.55, "cyan"), (0.6, "azure"),
-        (0.65, "cerulean"), (0.7, "blue"), (0.75, "indigo"),
-        (0.8, "violet"), (0.85, "purple"), (0.9, "magenta"),
-        (0.95, "fuchsia"), (1.0, "crimson")
+        (0.1, "orange"), (0.15, "amber"), (0.2, "yellow"),
+        (0.275, "chartreuse"), (0.35, "green"), (0.45, "spring-green"),
+        (0.5, "cyan"), (0.55, "azure"), (0.6, "blue"),
+        (0.7, "indigo"), (0.8, "violet"), (0.85, "purple"),
+        (0.9, "magenta"), (0.95, "pink"), (1.0, "red")
     ]
     base_hue = next((name for threshold, name in hue_names if h <= threshold), "red")
 
-    # Brightness levels
-    brightness_levels = [
-        (0.15, "very-dark"), (0.3, "dark"), (0.45, "deep"),
-        (0.6, "medium"), (0.75, "soft"), (0.9, "light"),
-        (1.0, "pale")
-    ]
-    brightness = next((name for threshold, name in brightness_levels if v <= threshold), "bright")
+    # Brightness and saturation
+    if v > 0.9 and s > 0.9:
+        return base_hue
+    
+    if v > 0.7:
+        brightness = "light"
+    elif v < 0.3:
+        brightness = "dark"
+    else:
+        brightness = ""
 
-    # Saturation levels
-    saturation_levels = [
-        (0.15, "muted"), (0.3, "subdued"), (0.45, "moderate"),
-        (0.6, "clear"), (0.75, "vivid"), (1.0, "intense")
-    ]
-    saturation = next((name for threshold, name in saturation_levels if s <= threshold), "pure")
+    if s > 0.7:
+        saturation = "vivid"
+    elif s < 0.3:
+        saturation = "muted"
+    else:
+        saturation = ""
 
-    # Construct the new name with reversed order
-    name_parts = [base_hue, brightness, saturation]
-    name = "-".join(filter(lambda x: x not in ["medium", "moderate"], name_parts))
+    # Construct the name
+    name_parts = [brightness, saturation, base_hue]
+    name = "-".join(filter(None, name_parts))
+    
+    # Simplify if possible
+    if name == f"light-vivid-{base_hue}":
+        name = f"bright-{base_hue}"
+    elif name == f"dark-muted-{base_hue}":
+        name = f"deep-{base_hue}"
     
     return name
 
