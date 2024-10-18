@@ -94,11 +94,11 @@ projects:
       title: "Planzeichen"
       subtitle: "(gem. PlanzV 1990-PlanzV 90 v.18.12.1990)"
       max_width: 100
-      title_spacing: 4
-      group_spacing: 4 # space between groups
-      subtitle_spacing: 4 # space between subtitle and items
+      title_spacing: 8
+      group_spacing: 12 # space between group title and first item or subtitle
+      subtitle_spacing: 6 # space between subtitle and items
       item_spacing: 4 # space between items
-      between_group_spacing: 4 # space between groups
+      between_group_spacing: 16 # space between groups
       position:
         x: 367841
         y: 5942622
@@ -119,20 +119,20 @@ projects:
         # strike_through: False
         # oblique_angle: 15
       titleSubtitleStyle:
-        height: 4
+        height: 3.5
         color: "Dark Gray"
         font: "Legend"
       groupTextStyle:
         color: "Black"
-        height: 7
+        height: 5
         font: "Legend"
       subtitleTextStyle:
         color: "Black"
-        height: 4
+        height: 3.5
         font: "Legend"
       itemTextStyle:
         color: "Black"
-        height: 4
+        height: 3
         font: "Legend"
       groups:
         - name: "Maß der baulichen Nutzung"
