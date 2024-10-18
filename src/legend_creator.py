@@ -108,7 +108,8 @@ class LegendCreator:
         if item_type == 'area':
             item_entities = self.create_area_item(x1, y1, x2, y2, layer_name, item_style)
         elif item_type == 'line':
-            item_entities = [self.create_line_item(x1, y1, x2, y2, layer_name, item_style)]
+            line_entity = self.create_line_item(x1, y1, x2, y2, layer_name, item_style)
+            item_entities = [line_entity] if line_entity else []
         elif item_type == 'empty':
             item_entities = []
         else:
@@ -117,7 +118,13 @@ class LegendCreator:
         # Calculate bounding box for the symbol
         item_bbox = bbox.BoundingBox()
         for entity in item_entities:
-            item_bbox.extend(self.get_entity_bbox(entity))
+            if entity:  # Check if the entity is not None
+                item_bbox.extend(self.get_entity_bbox(entity))
+
+        # If item_bbox is empty (no valid entities), create a default bounding box
+        if item_bbox.is_empty:
+            item_bbox = bbox.BoundingBox()
+            item_bbox.extend([Vec3(x1, y2, 0), Vec3(x2, y1, 0)])
 
         # Calculate the vertical center of the item symbol
         item_center_y = (item_bbox.extmin.y + item_bbox.extmax.y) / 2
@@ -159,14 +166,16 @@ class LegendCreator:
         # Move all entities as a unit to respect the item spacing
         vertical_offset = self.current_y - combined_bbox.extmax.y
         for entity in item_entities + [text_entity]:
-            entity.translate(0, vertical_offset, 0)
+            if entity:  # Check if the entity is not None
+                entity.translate(0, vertical_offset, 0)
 
         # Adjust the current_y by the total height plus spacing
         self.current_y -= total_height + self.item_spacing
 
         # Attach custom data to all entities
         for entity in item_entities + [text_entity]:
-            attach_custom_data(entity, self.script_identifier)
+            if entity:  # Check if the entity is not None
+                attach_custom_data(entity, self.script_identifier)
 
     def create_area_item(self, x1, y1, x2, y2, layer_name, item_style):
         # Create the rectangle
@@ -187,9 +196,19 @@ class LegendCreator:
         return [rectangle, hatch]
 
     def create_line_item(self, x1, y1, x2, y2, layer_name, item_style):
-        line = self.msp.add_line((x1, y1 - self.item_height / 2), (x2, y1 - self.item_height / 2), dxfattribs={'layer': layer_name})
-        apply_style_to_entity(line, item_style, self.project_loader, item_type='line')
-        self.attach_custom_data(line)
+        # Create a line for the legend item
+        points = [(x1, y1), (x2, y1)]  # Horizontal line at the top of the item box
+        line = self.msp.add_lwpolyline(points, dxfattribs={'layer': layer_name})
+        
+        # Apply style to the line
+        if 'color' in item_style:
+            line.dxf.color = get_color_code(item_style['color'], self.project_loader.name_to_aci)
+        if 'linetype' in item_style:
+            line.dxf.linetype = item_style['linetype']
+        if 'lineweight' in item_style:
+            line.dxf.lineweight = item_style['lineweight']
+        
+        return line
 
     def create_empty_item(self, x1, y1, x2, y2, layer_name):
         # For empty items, we don't need to draw anything

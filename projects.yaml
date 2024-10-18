@@ -146,6 +146,12 @@ projects:
                 # color: "Red"
                 # transparency: 0.5
                 # linetype: "Continuous"
+            - name: "test3"  
+              type: line
+              style:
+                color: "Red"
+                transparency: 0.5
+                linetype: "Continuous"
             - name: "test2"  
               type: area
               style: baufeldSchraffur
