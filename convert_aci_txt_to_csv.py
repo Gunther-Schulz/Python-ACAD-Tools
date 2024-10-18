@@ -27,7 +27,7 @@ def closest_colour(requested_colour, used_names):
     
     # Check for near-neutral greys
     max_diff = max(abs(r - g), abs(r - b), abs(g - b))
-    if max_diff <= 10:  # This threshold can be adjusted
+    if max_diff <= 10:
         brightness_levels = [
             (0.1, "darkest"),
             (0.2, "darker"),
@@ -56,80 +56,39 @@ def closest_colour(requested_colour, used_names):
 
     # Determine brightness
     brightness_levels = [
-        (0.05, "darkest"),
-        (0.15, "darker"),
-        (0.25, "dark"),
-        (0.35, "deep"),
-        (0.45, "medium"),
-        (0.55, "moderate"),
-        (0.65, "light"),
-        (0.75, "bright"),
-        (0.85, "vivid"),
+        (0.15, "darkest"),
+        (0.25, "darker"),
+        (0.35, "dark"),
+        (0.45, "deep"),
+        (0.55, "medium"),
+        (0.65, "moderate"),
+        (0.75, "light"),
+        (0.85, "bright"),
+        (0.95, "vivid"),
         (1.0, "brilliant")
     ]
     brightness = next((name for threshold, name in brightness_levels if v <= threshold), "brilliant")
 
     # Determine saturation
     saturation_levels = [
-        (0.1, "greyed"),
-        (0.3, "muted"),
-        (0.5, "soft"),
-        (0.7, "clear"),
+        (0.15, "greyed"),
+        (0.35, "muted"),
+        (0.55, "soft"),
+        (0.75, "clear"),
         (1.0, "intense")
     ]
     saturation = next((name for threshold, name in saturation_levels if s <= threshold), "intense")
 
-    # Check for near-grey colors
-    if s < 0.1:
-        grey_hues = [
-            (0.0833, "warm"),
-            (0.2500, "yellow"),
-            (0.4167, "green"),
-            (0.5833, "cyan"),
-            (0.7500, "blue"),
-            (0.9167, "purple"),
-            (1.0000, "cool")
-        ]
-        grey_tone = next((name for threshold, name in grey_hues if h <= threshold), "neutral")
-        return f"{brightness}-{grey_tone}-grey"
-
-    # Additional descriptors
-    additional_descriptors = {
-        "red": ["crimson", "scarlet", "ruby", "cherry", "maroon", "burgundy", "cardinal", "carmine"],
-        "orange": ["tangerine", "rust", "bronze", "copper", "amber", "terracotta", "cinnamon", "sienna"],
-        "yellow": ["gold", "lemon", "mustard", "sand", "khaki", "ochre", "maize", "flax"],
-        "green": ["emerald", "lime", "olive", "sage", "forest", "mint", "jade", "fern"],
-        "blue": ["sapphire", "navy", "denim", "sky", "azure", "cobalt", "turquoise", "teal"],
-        "purple": ["lavender", "plum", "mauve", "eggplant", "amethyst", "lilac", "periwinkle", "indigo"],
-        "pink": ["salmon", "coral", "peach", "blush", "rose", "fuchsia", "cerise", "magenta"],
-        "vermilion": ["persimmon", "tomato", "coral", "salmon"],
-        "amber": ["honey", "topaz", "golden"],
-        "chartreuse": ["lime", "pear", "avocado"],
-        "spring-green": ["mint", "seafoam", "jade"],
-        "azure": ["cerulean", "sky", "cornflower"],
-        "indigo": ["midnight", "royal", "navy"],
-        "violet": ["orchid", "wine", "grape"],
-        "magenta": ["fuchsia", "hot-pink", "raspberry"],
-        "rose": ["pink", "blush", "flamingo"]
-    }
-
     # Construct the name
-    name_options = [base_hue] + additional_descriptors.get(base_hue, [])
-    
-    for descriptor in name_options:
-        name = "-".join(filter(None, [brightness, saturation, descriptor]))
-        if name not in used_names.values() or used_names.get(requested_colour) == name:
-            return name
-
-    # If we still don't have a unique name, try combinations
-    for i, desc1 in enumerate(name_options):
-        for desc2 in name_options[i+1:]:
-            name = "-".join(filter(None, [brightness, saturation, desc1, desc2]))
-            if name not in used_names.values():
-                return name
+    if saturation in ["greyed", "muted"]:
+        return f"{brightness}-{saturation}-{base_hue}"
+    elif saturation == "soft":
+        return f"{brightness}-{base_hue}"
+    else:
+        return f"{brightness}-{saturation}-{base_hue}"
 
     # If we still don't have a unique name, use a combination of all descriptors
-    return "-".join(filter(None, [brightness, saturation] + name_options[:3]))
+    return "-".join(filter(None, [brightness, saturation, base_hue]))
 
 def get_colour_name(rgb_triplet, used_names):
     return closest_colour(rgb_triplet, used_names)

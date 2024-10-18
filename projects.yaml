@@ -145,61 +145,61 @@ projects:
                 # color: "Red"
                 # transparency: 0.5
                 # linetype: "Continuous"
-        - name: "Maß der baulichen Nutzung"
-          update: true
-          subtitle: "§ 9 Abs. 1 Nr. 1 BauGB"
-          items:
-            - name: "Grundflächenzahl"
-              type: empty
-              # style: baufeldSchraffur
-        - name: "Bauweise, Baulinien, Baugrenzen"
-          update: true
-          subtitle: "§ 9 Abs. 1 Nr. 2 BauGB"
-          items:
-            - name: "Baugrenze"
-              type: empty
-              # style:
-              #   color: "Blue"
-              #   linetype: "ACAD_ISO02W100"    
-        - name: "Verkehrsflächen"
-          update: true
-          subtitle: "(§ 9 Abs. 1 Nr. 11 und Abs. 6 BauGB)"
-          items:
-            - name: "Verkehrsfläche besonderer Zweckbestimmung"
-              type: area
-              style:
-                color: "Burnt Yellow"
-                hatch:
-                  pattern: "ANSI31"
-                  scale: 20
-                  angle: 80
-          items:
-            - name: "Verkehrsberuhigter Bereich"
-              type: empty
-            - name: "Privat"
-              type: empty
-        - name: "Grünflächen"
-          update: true
-          subtitle: "§ 9 Abs.1 Nr. 15 BauGB"
-          items:
-            - name: "Private Grünflächen"
-              type: area
-              style:
-                color: "Light Green"
-                hatch:
-                  pattern: "SOLID"
-                  transparency: 0.5
-          - name: "Wasserflächen und Flächen für die Wasserwirtschaft, den Hochwasserschutz und die Regelung des Wasserabflusses"
-            update: true
-            subtitle: "§ 9 Abs. 1 Nr. 16 BauBG"
-            items:
-              - name: "Wasserflächen"
-                type: area
-                style:
-                  color: "Light Green"
-                  hatch:
-                    pattern: "SOLID"
-                    transparency: 0.5
+      #   - name: "Maß der baulichen Nutzung"
+      #     update: true
+      #     subtitle: "§ 9 Abs. 1 Nr. 1 BauGB"
+      #     items:
+      #       - name: "Grundflächenzahl"
+      #         type: empty
+      #         # style: baufeldSchraffur
+      #   - name: "Bauweise, Baulinien, Baugrenzen"
+      #     update: true
+      #     subtitle: "§ 9 Abs. 1 Nr. 2 BauGB"
+      #     items:
+      #       - name: "Baugrenze"
+      #         type: empty
+      #         # style:
+      #         #   color: "Blue"
+      #         #   linetype: "ACAD_ISO02W100"    
+      #   - name: "Verkehrsflächen"
+      #     update: true
+      #     subtitle: "(§ 9 Abs. 1 Nr. 11 und Abs. 6 BauGB)"
+      #     items:
+      #       - name: "Verkehrsfläche besonderer Zweckbestimmung"
+      #         type: area
+      #         style:
+      #           color: "Burnt Yellow"
+      #           hatch:
+      #             pattern: "ANSI31"
+      #             scale: 20
+      #             angle: 80
+      #     items:
+      #       - name: "Verkehrsberuhigter Bereich"
+      #         type: empty
+      #       - name: "Privat"
+      #         type: empty
+      #   - name: "Grünflächen"
+      #     update: true
+      #     subtitle: "§ 9 Abs.1 Nr. 15 BauGB"
+      #     items:
+      #       - name: "Private Grünflächen"
+      #         type: area
+      #         style:
+      #           color: "Light Green"
+      #           hatch:
+      #             pattern: "SOLID"
+      #             transparency: 0.5
+      #     - name: "Wasserflächen und Flächen für die Wasserwirtschaft, den Hochwasserschutz und die Regelung des Wasserabflusses"
+      #       update: true
+      #       subtitle: "§ 9 Abs. 1 Nr. 16 BauBG"
+      #       items:
+      #         - name: "Wasserflächen"
+      #           type: area
+      #           style:
+      #             color: "Light Green"
+      #             hatch:
+      #               pattern: "SOLID"
+      #               transparency: 0.5
     viewports:
       - name: MainView
         center: [425, 450]
