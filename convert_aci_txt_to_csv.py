@@ -22,21 +22,27 @@ def closest_colour(requested_colour, used_names):
     if (r, g, b) in pure_colors:
         return pure_colors[(r, g, b)]
     
-    # Check for near-pure greys
-    max_diff = max(abs(r - g), abs(r - b), abs(g - b))
-    if max_diff <= 10:
-        avg = (r + g + b) // 3
-        grey_levels = [
-            (32, "charcoal"), (64, "dark-grey"),
-            (96, "grey"), (128, "medium-grey"),
-            (192, "light-grey"), (224, "pale-grey"),
-            (255, "off-white")
-        ]
-        return next((name for threshold, name in grey_levels if avg <= threshold), "off-white")
-    
     # Convert RGB to HSV
     h, s, v = rgb_to_hsv(r/255, g/255, b/255)
     
+    # Check for near-neutral greys
+    max_diff = max(abs(r - g), abs(r - b), abs(g - b))
+    if max_diff <= 10:  # This threshold can be adjusted
+        brightness_levels = [
+            (0.1, "darkest"),
+            (0.2, "darker"),
+            (0.3, "dark"),
+            (0.4, "deep"),
+            (0.5, "medium"),
+            (0.6, "moderate"),
+            (0.7, "light"),
+            (0.8, "bright"),
+            (0.9, "pale"),
+            (1.0, "lightest")
+        ]
+        brightness = next((name for threshold, name in brightness_levels if v <= threshold), "lightest")
+        return f"{brightness}-grey"
+
     # Determine base hue
     hue_names = [
         (0.025, "red"), (0.05, "vermilion"), (0.085, "orange"),
@@ -50,19 +56,42 @@ def closest_colour(requested_colour, used_names):
 
     # Determine brightness
     brightness_levels = [
-        (0.1, "darkest"), (0.2, "darker"), (0.3, "dark"),
-        (0.4, "deep"), (0.5, "medium"), (0.6, "moderate"),
-        (0.7, "light"), (0.8, "bright"), (0.9, "vivid"),
+        (0.05, "darkest"),
+        (0.15, "darker"),
+        (0.25, "dark"),
+        (0.35, "deep"),
+        (0.45, "medium"),
+        (0.55, "moderate"),
+        (0.65, "light"),
+        (0.75, "bright"),
+        (0.85, "vivid"),
         (1.0, "brilliant")
     ]
     brightness = next((name for threshold, name in brightness_levels if v <= threshold), "brilliant")
 
     # Determine saturation
     saturation_levels = [
-        (0.1, "greyed"), (0.3, "muted"), (0.6, "soft"),
-        (0.8, "clear"), (1.0, "intense")
+        (0.1, "greyed"),
+        (0.3, "muted"),
+        (0.5, "soft"),
+        (0.7, "clear"),
+        (1.0, "intense")
     ]
     saturation = next((name for threshold, name in saturation_levels if s <= threshold), "intense")
+
+    # Check for near-grey colors
+    if s < 0.1:
+        grey_hues = [
+            (0.0833, "warm"),
+            (0.2500, "yellow"),
+            (0.4167, "green"),
+            (0.5833, "cyan"),
+            (0.7500, "blue"),
+            (0.9167, "purple"),
+            (1.0000, "cool")
+        ]
+        grey_tone = next((name for threshold, name in grey_hues if h <= threshold), "neutral")
+        return f"{brightness}-{grey_tone}-grey"
 
     # Additional descriptors
     additional_descriptors = {
@@ -85,11 +114,10 @@ def closest_colour(requested_colour, used_names):
     }
 
     # Construct the name
-    base_descriptors = [brightness, saturation]
     name_options = [base_hue] + additional_descriptors.get(base_hue, [])
     
     for descriptor in name_options:
-        name = "-".join(filter(None, base_descriptors + [descriptor]))
+        name = "-".join(filter(None, [brightness, saturation, descriptor]))
         if name not in used_names.values() or used_names.get(requested_colour) == name:
             return name
 
@@ -146,9 +174,6 @@ def convert_to_csv_css_and_yaml(input_file, output_csv, output_css, output_yaml)
                 color_name = used_names[rgb]
             else:
                 color_name = closest_colour(rgb, used_names)
-                if color_name in used_names.values():
-                    # If the name is already used, append a unique identifier
-                    color_name = f"{color_name}-{aci}"
                 used_names[rgb] = color_name
             
             # Write to CSV
