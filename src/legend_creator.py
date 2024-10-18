@@ -2,8 +2,8 @@ import ezdxf
 from ezdxf.enums import TextEntityAlignment
 from ezdxf import const
 from src.dfx_utils import (get_color_code, convert_transparency, attach_custom_data, 
-                           is_created_by_script, add_mtext as dfx_add_mtext, remove_entities_by_layer, 
-                           ensure_layer_exists, update_layer_geometry, get_style,
+                           is_created_by_script, add_mtext, remove_entities_by_layer, 
+                           ensure_layer_exists, update_layer_geometry, get_style, script_identifier,
                            apply_style_to_entity, create_hatch, set_hatch_transparency, script_identifier)
 from ezdxf.math import Vec3
 from ezdxf import colors
@@ -103,33 +103,76 @@ class LegendCreator:
         x1, y1 = self.position['x'], self.current_y
         x2, y2 = x1 + self.item_width, y1 - self.item_height
 
+        # Create the item symbol
         if item_type == 'area':
             item_entity = self.create_area_item(x1, y1, x2, y2, layer_name, item_style)
         elif item_type == 'line':
             item_entity = self.create_line_item(x1, y1, x2, y2, layer_name, item_style)
         elif item_type == 'empty':
-            item_entity = self.create_empty_item(x1, y1, x2, y2, layer_name)
+            item_entity = None
+        else:
+            raise ValueError(f"Unknown item type: {item_type}")
 
-        # Add item name
+        # Create the item text using MTEXT
         text_x = x2 + self.text_offset
-        text_y = y1  # Start at the top of the item
-        text_width = self.max_width - self.item_width - self.text_offset
-        text_result = self.add_mtext(text_x, text_y, item_name, layer_name, self.item_text_style, text_width)
-        
+        text_result = add_mtext(
+            self.msp,
+            item_name,
+            text_x,
+            y1,
+            layer_name,
+            self.item_text_style.get('font', 'Standard'),
+            self.item_text_style,
+            self.project_loader.name_to_aci,
+            self.max_width - self.item_width - self.text_offset
+        )
+
         if text_result is None or text_result[0] is None:
             log_warning(f"Failed to create text entity for item '{item_name}'")
             self.current_y -= self.item_height + self.item_spacing
+            return
+
+        text_entity, actual_text_height = text_result
+
+        # Calculate bounding boxes
+        if item_entity:
+            if isinstance(item_entity, ezdxf.entities.Hatch):
+                # For Hatch entities, we need to use the bounding box of its paths
+                item_bbox = bbox.BoundingBox()
+                for path in item_entity.paths:
+                    if hasattr(path, 'vertices'):
+                        item_bbox.extend(path.vertices)
+                    elif hasattr(path, 'control_points'):
+                        item_bbox.extend(path.control_points)
+            else:
+                item_bbox = bbox.extents([item_entity])
         else:
-            text_entity, actual_text_height = text_result
-            
-            # Calculate the maximum height between the item symbol and the text
-            max_height = max(self.item_height, actual_text_height)
-            
-            # Adjust the vertical position of the text to align with the top of the item symbol
-            text_entity.dxf.insert = (text_x, y1)
-            
-            # Adjust the current_y by the maximum height plus spacing
-            self.current_y -= max_height + self.item_spacing
+            item_bbox = bbox.BoundingBox(Vec3(x1, y2, 0), Vec3(x2, y1, 0))
+        
+        text_bbox = bbox.extents([text_entity])
+        combined_bbox = item_bbox.union(text_bbox)
+
+        # Calculate the vertical center of the item symbol
+        item_center_y = (item_bbox.extmin.y + item_bbox.extmax.y) / 2
+
+        # Adjust the text position to align with the center of the item symbol
+        text_entity.dxf.insert = Vec3(text_x, item_center_y + actual_text_height / 2, 0)
+
+        # Calculate the total height of the item (including symbol and text)
+        total_height = combined_bbox.size.y
+
+        # Adjust the current_y by the total height plus spacing
+        self.current_y -= total_height + self.item_spacing
+
+        # Move both the item symbol and text to respect the item spacing
+        if item_entity:
+            item_entity.translate(0, -self.item_spacing, 0)
+        text_entity.translate(0, -self.item_spacing, 0)
+
+        # Attach custom data to both entities
+        if item_entity:
+            attach_custom_data(item_entity, script_identifier)
+        attach_custom_data(text_entity, script_identifier)
 
     def create_area_item(self, x1, y1, x2, y2, layer_name, item_style):
         # Create the rectangle without applying any style
