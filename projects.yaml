@@ -104,7 +104,7 @@ projects:
         y: 5942622
       titleTextStyle:
         height: 8
-        color: "Black"
+        color: "darkslategrey-20"
         font: "Legend"
         # rotation: 45
         # attachment_point: MTEXT_MIDDLE_CENTER

@@ -1,16 +1,16 @@
 styles:
   forest:
-    color: "Dark Green"
+    color: "olivedrab-3"
     hatch:
       pattern: 'ANSI31'
       scale: 5
   water:
-    color: "Light Blue"
+    color: "cornflowerblue-1"
     hatch:
       pattern: 'DASH'
       scale: 2
   baufeldSchraffur:
-    color: "Light Red"
+    color: "palevioletred-1"
     transparency: 0.6
     hatch:
       individual_hatches: true
