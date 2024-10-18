@@ -2,6 +2,7 @@ import csv
 import webcolors
 import yaml
 from math import sqrt
+from colorsys import rgb_to_hsv
 
 def rgb_to_hex(rgb):
     return '#{:02x}{:02x}{:02x}'.format(rgb[0], rgb[1], rgb[2])
@@ -36,49 +37,81 @@ def detect_tint(rgb):
             return "blue"
     return None
 
-def closest_colour(requested_colour, used_names, previous_colors):
+def closest_colour(requested_colour, used_names):
     r, g, b = requested_colour
     
+    # Check for pure white
+    if r == g == b == 255:
+        return "white"
+    
+    # Check for pure or near-pure greys
+    max_diff = max(abs(r - g), abs(r - b), abs(g - b))
+    if max_diff <= 2:  # Allow small differences to account for rounding
+        avg = (r + g + b) // 3
+        if avg == 0:
+            return "black"
+        elif avg < 32:
+            return "very-dark-grey"
+        elif avg < 64:
+            return "dark-grey"
+        elif avg < 96:
+            return "medium-dark-grey"
+        elif avg < 128:
+            return "medium-grey"
+        elif avg < 160:
+            return "medium-light-grey"
+        elif avg < 192:
+            return "light-grey"
+        elif avg < 224:
+            return "very-light-grey"
+        else:
+            return "near-white"
+    
+    # Convert RGB to HSV
+    h, s, v = rgb_to_hsv(r/255, g/255, b/255)
+    
     # Determine base hue
-    if r > g and r > b:
-        if b > g:
-            base_hue = "purple" if b > r * 0.6 else "magenta"
-        else:
-            base_hue = "red"
-    elif g > r and g > b:
+    if h < 1/12:
+        base_hue = "red"
+    elif h < 1/6:
+        base_hue = "orange"
+    elif h < 1/4:
+        base_hue = "yellow"
+    elif h < 5/12:
+        base_hue = "chartreuse"
+    elif h < 1/2:
         base_hue = "green"
-    elif b > r and b > g:
-        if r > g:
-            base_hue = "purple" if r > b * 0.6 else "blue"
-        else:
-            base_hue = "blue"
+    elif h < 7/12:
+        base_hue = "spring-green"
+    elif h < 2/3:
+        base_hue = "cyan"
+    elif h < 3/4:
+        base_hue = "azure"
+    elif h < 5/6:
+        base_hue = "blue"
+    elif h < 11/12:
+        base_hue = "violet"
     else:
-        base_hue = "grey"
+        base_hue = "magenta"
 
     # Brightness detection
-    brightness = (r * 299 + g * 587 + b * 114) / 1000
-    if brightness < 64:
+    if v < 0.25:
         brightness_prefix = "very-dark"
-    elif brightness < 128:
+    elif v < 0.5:
         brightness_prefix = "dark"
-    elif brightness > 220:
+    elif v > 0.9:
         brightness_prefix = "light"
-    elif brightness > 180:
+    elif v > 0.75:
         brightness_prefix = "pale"
     else:
         brightness_prefix = ""
 
     # Saturation detection
-    max_rgb = max(r, g, b)
-    min_rgb = min(r, g, b)
-    if max_rgb != 0:
-        saturation = (max_rgb - min_rgb) / max_rgb
-    else:
-        saturation = 0
-
-    if saturation > 0.7:
+    if s > 0.9:
         saturation_prefix = "vivid"
-    elif saturation > 0.4:
+    elif s > 0.65:
+        saturation_prefix = "bright"
+    elif s > 0.35:
         saturation_prefix = "medium"
     else:
         saturation_prefix = "dull"
@@ -101,10 +134,10 @@ def get_colour_name(rgb_triplet, used_names, previous_colors):
     try:
         name = webcolors.hex_to_name(hex_color)
         if name in used_names:
-            return closest_colour(rgb_triplet, used_names, previous_colors)
+            return closest_colour(rgb_triplet, used_names)
         return name
     except ValueError:
-        return closest_colour(rgb_triplet, used_names, previous_colors)
+        return closest_colour(rgb_triplet, used_names)
 
 def convert_to_csv_css_and_yaml(input_file, output_csv, output_css, output_yaml):
     used_names = set()
