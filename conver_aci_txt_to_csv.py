@@ -44,19 +44,20 @@ def closest_colour(requested_colour, used_names, previous_colors):
     
     closest_names = sorted(min_colours.items())[:5]  # Get top 5 closest colors
     
-    tint = detect_tint(requested_colour)
-    
-    # Check if the color is dark
-    is_dark = sum(requested_colour) < 200
-    
     base_name = closest_names[0][1]
     
-    if is_dark:
-        if tint:
+    # Only apply special naming for colors that would be "darkslategrey"
+    if base_name == "darkslategrey":
+        tint = detect_tint(requested_colour)
+        if tint and previous_colors:
+            last_color = previous_colors[-1].split()[-1]  # Get the base color name
             tint_name = {"red": "reddish", "green": "greenish", "blue": "bluish"}[tint]
-            name = f"dark {tint_name} {base_name}"
+            name = f"dark {tint_name} {last_color}"
+        elif previous_colors:
+            last_color = previous_colors[-1].split()[-1]  # Get the base color name
+            name = f"very dark {last_color}"
         else:
-            name = f"very dark {base_name}"
+            name = base_name
     else:
         name = base_name
     
@@ -69,20 +70,20 @@ def closest_colour(requested_colour, used_names, previous_colors):
     
     return name
 
-def get_colour_name(rgb_triplet, used_names, color_count):
+def get_colour_name(rgb_triplet, used_names, previous_colors):
     hex_color = rgb_to_hex(rgb_triplet)
     try:
         name = webcolors.hex_to_name(hex_color)
         if name in used_names:
-            return closest_colour(rgb_triplet, used_names, color_count)
+            return closest_colour(rgb_triplet, used_names, previous_colors)
         return name
     except ValueError:
-        return closest_colour(rgb_triplet, used_names, color_count)
+        return closest_colour(rgb_triplet, used_names, previous_colors)
 
 def convert_to_csv_css_and_yaml(input_file, output_csv, output_css, output_yaml):
     used_names = set()
     yaml_data = []
-    color_count = {}
+    previous_colors = []
     
     with open(input_file, 'r') as infile, \
          open(output_csv, 'w', newline='') as outfile_csv, \
@@ -116,13 +117,14 @@ def convert_to_csv_css_and_yaml(input_file, output_csv, output_css, output_yaml)
             
             # Get color name and hex from Ermittelt RGB values
             rgb = tuple(map(int, parts[7:10]))
-            color_name = get_colour_name(rgb, used_names, color_count)
+            color_name = get_colour_name(rgb, used_names, previous_colors)
             used_names.add(color_name)
             hex_color = rgb_to_hex(rgb)
             
-            # Update color_count
-            base_name = color_name.split('-')[0]
-            color_count[base_name] = color_count.get(base_name, 0) + 1
+            # Update previous_colors
+            previous_colors.append(color_name)
+            if len(previous_colors) > 3:  # Keep only the last 3 colors
+                previous_colors.pop(0)
             
             # Write to CSV
             csv_writer.writerow([aci, autodesk, berechnet, ermittelt, color_name, hex_color])
