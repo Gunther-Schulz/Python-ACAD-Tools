@@ -146,7 +146,7 @@ projects:
                 # color: "Red"
                 # transparency: 0.5
                 # linetype: "Continuous"
-            - name: "test3"  
+            - name: "Sonstiges Sondergebiet (§ 11 Abs. 2 BauNVO) Zweckbestimmung: Energiegewinnung auf der Basis solarer Strahlungsenergie"
               type: line
               style:
                 color: "Red"

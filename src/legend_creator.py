@@ -127,7 +127,10 @@ class LegendCreator:
             item_bbox.extend([Vec3(x1, y2, 0), Vec3(x2, y1, 0)])
 
         # Calculate the vertical center of the item symbol
-        item_center_y = (item_bbox.extmin.y + item_bbox.extmax.y) / 2
+        if item_type == 'line':
+            item_center_y = (y1 + y2) / 2
+        else:
+            item_center_y = (item_bbox.extmin.y + item_bbox.extmax.y) / 2
 
         # Create the item text using MTEXT
         text_x = x2 + self.text_offset
@@ -196,8 +199,11 @@ class LegendCreator:
         return [rectangle, hatch]
 
     def create_line_item(self, x1, y1, x2, y2, layer_name, item_style):
-        # Create a line for the legend item
-        points = [(x1, y1), (x2, y1)]  # Horizontal line at the top of the item box
+        # Calculate the middle y-coordinate
+        middle_y = (y1 + y2) / 2
+
+        # Create a line for the legend item in the middle
+        points = [(x1, middle_y), (x2, middle_y)]
         line = self.msp.add_lwpolyline(points, dxfattribs={'layer': layer_name})
         
         # Apply style to the line
