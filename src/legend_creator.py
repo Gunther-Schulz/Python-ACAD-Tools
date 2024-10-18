@@ -144,7 +144,10 @@ class LegendCreator:
         text_entity, actual_text_height = text_result
 
         # Adjust text vertical position to align with symbol center
-        text_entity.dxf.insert = Vec3(text_x, item_center_y - actual_text_height / 2, 0)
+        text_bbox = bbox.extents([text_entity])
+        text_center_y = (text_bbox.extmin.y + text_bbox.extmax.y) / 2
+        vertical_adjustment = item_center_y - text_center_y
+        text_entity.translate(0, vertical_adjustment, 0)
 
         # Recalculate combined bounding box
         text_bbox = bbox.extents([text_entity])
@@ -153,10 +156,10 @@ class LegendCreator:
         # Calculate the total height of the item (including symbol and text)
         total_height = combined_bbox.size.y
 
-        # Move all entities as a unit
-        vertical_offset = self.item_spacing
+        # Move all entities as a unit to respect the item spacing
+        vertical_offset = self.current_y - combined_bbox.extmax.y
         for entity in item_entities + [text_entity]:
-            entity.translate(0, -vertical_offset, 0)
+            entity.translate(0, vertical_offset, 0)
 
         # Adjust the current_y by the total height plus spacing
         self.current_y -= total_height + self.item_spacing
