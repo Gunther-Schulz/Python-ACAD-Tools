@@ -27,50 +27,62 @@ def detect_tint(rgb):
     # Detect if the color has a noticeable tint
     max_component = max(rgb)
     min_component = min(rgb)
-    if max_component - min_component > 20:
+    if max_component - min_component > 10:  # Lowered threshold for more sensitivity
         if rgb[0] == max_component:
-            return "reddish"
+            return "red"
         elif rgb[1] == max_component:
-            return "greenish"
+            return "green"
         elif rgb[2] == max_component:
-            return "bluish"
+            return "blue"
     return None
 
-def closest_colour(requested_colour, used_names):
+def closest_colour(requested_colour, used_names, previous_colors):
     min_colours = {}
     for rgb, name in COLOR_MAPPING.items():
         distance = get_color_distance(requested_colour, rgb)
         min_colours[distance] = name
     
-    closest_names = sorted(min_colours.items())[:3]  # Get top 3 closest colors
+    closest_names = sorted(min_colours.items())[:5]  # Get top 5 closest colors
     
     tint = detect_tint(requested_colour)
-    if tint:
-        for _, name in closest_names:
-            if tint in name.lower():
-                return name
     
-    closest_name = closest_names[0][1]
-    if closest_name in used_names:
+    # Check if the color is dark
+    is_dark = sum(requested_colour) < 200
+    
+    base_name = closest_names[0][1]
+    
+    if is_dark:
+        if tint:
+            tint_name = {"red": "reddish", "green": "greenish", "blue": "bluish"}[tint]
+            name = f"dark {tint_name} {base_name}"
+        else:
+            name = f"very dark {base_name}"
+    else:
+        name = base_name
+    
+    # Add numbering to avoid duplicates
+    if name in used_names:
         suffix = 1
-        while f"{closest_name}-{suffix}" in used_names:
+        while f"{name}-{suffix}" in used_names:
             suffix += 1
-        return f"{closest_name}-{suffix}"
-    return closest_name
+        name = f"{name}-{suffix}"
+    
+    return name
 
-def get_colour_name(rgb_triplet, used_names):
+def get_colour_name(rgb_triplet, used_names, color_count):
     hex_color = rgb_to_hex(rgb_triplet)
     try:
         name = webcolors.hex_to_name(hex_color)
         if name in used_names:
-            return closest_colour(rgb_triplet, used_names)
+            return closest_colour(rgb_triplet, used_names, color_count)
         return name
     except ValueError:
-        return closest_colour(rgb_triplet, used_names)
+        return closest_colour(rgb_triplet, used_names, color_count)
 
 def convert_to_csv_css_and_yaml(input_file, output_csv, output_css, output_yaml):
     used_names = set()
     yaml_data = []
+    color_count = {}
     
     with open(input_file, 'r') as infile, \
          open(output_csv, 'w', newline='') as outfile_csv, \
@@ -104,9 +116,13 @@ def convert_to_csv_css_and_yaml(input_file, output_csv, output_css, output_yaml)
             
             # Get color name and hex from Ermittelt RGB values
             rgb = tuple(map(int, parts[7:10]))
-            color_name = get_colour_name(rgb, used_names)
+            color_name = get_colour_name(rgb, used_names, color_count)
             used_names.add(color_name)
             hex_color = rgb_to_hex(rgb)
+            
+            # Update color_count
+            base_name = color_name.split('-')[0]
+            color_count[base_name] = color_count.get(base_name, 0) + 1
             
             # Write to CSV
             csv_writer.writerow([aci, autodesk, berechnet, ermittelt, color_name, hex_color])
