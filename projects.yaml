@@ -152,6 +152,11 @@ projects:
                 color: "Red"
                 transparency: 0.5
                 linetype: "Continuous"
+            - name: "Sonstiges Sondergebiet (§ 11 Abs. 2 BauNVO) Zweckbestimmung: Energiegewinnung auf der Basis solarer Strahlungsenergie"
+              type: empty
+              # style:
+              #   color: "Blue"
+              #   linetype: "ACAD_ISO02W100"   
             - name: "test2"  
               type: area
               style: baufeldSchraffur

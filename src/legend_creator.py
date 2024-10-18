@@ -104,33 +104,33 @@ class LegendCreator:
         x1, y1 = self.position['x'], self.current_y
         x2, y2 = x1 + self.item_width, y1 - self.item_height
 
-        # Create the item symbol
+        # Create the item symbol or virtual box for 'empty' type
         if item_type == 'area':
             item_entities = self.create_area_item(x1, y1, x2, y2, layer_name, item_style)
         elif item_type == 'line':
             line_entity = self.create_line_item(x1, y1, x2, y2, layer_name, item_style)
             item_entities = [line_entity] if line_entity else []
         elif item_type == 'empty':
+            # Create a virtual box for alignment, but don't add it to the drawing
             item_entities = []
         else:
             raise ValueError(f"Unknown item type: {item_type}")
 
-        # Calculate bounding box for the symbol
+        # Calculate bounding box for the symbol or virtual box
         item_bbox = bbox.BoundingBox()
-        for entity in item_entities:
-            if entity:  # Check if the entity is not None
-                item_bbox.extend(self.get_entity_bbox(entity))
+        item_bbox.extend([Vec3(x1, y2, 0), Vec3(x2, y1, 0)])
 
-        # If item_bbox is empty (no valid entities), create a default bounding box
-        if item_bbox.is_empty:
-            item_bbox = bbox.BoundingBox()
-            item_bbox.extend([Vec3(x1, y2, 0), Vec3(x2, y1, 0)])
+        if item_type != 'empty':
+            for entity in item_entities:
+                if entity:  # Check if the entity is not None
+                    entity_bbox = self.get_entity_bbox(entity)
+                    item_bbox.extend(entity_bbox)
 
-        # Calculate the vertical center of the item symbol
-        if item_type == 'line':
-            item_center_y = (y1 + y2) / 2
-        else:
-            item_center_y = (item_bbox.extmin.y + item_bbox.extmax.y) / 2
+        # Ensure the item_bbox is at least as big as the defined item dimensions
+        item_bbox.extend([Vec3(x1, y1, 0), Vec3(x2, y2, 0)])
+
+        # Calculate the vertical center of the item symbol or virtual box
+        item_center_y = (item_bbox.extmin.y + item_bbox.extmax.y) / 2
 
         # Create the item text using MTEXT
         text_x = x2 + self.text_offset
@@ -138,7 +138,7 @@ class LegendCreator:
             self.msp,
             item_name,
             text_x,
-            item_center_y,  # Use the center of the symbol for text placement
+            item_center_y,  # Use the center of the symbol or virtual box for text placement
             layer_name,
             self.item_text_style.get('font', 'Standard'),
             self.item_text_style,
@@ -153,7 +153,7 @@ class LegendCreator:
 
         text_entity, actual_text_height = text_result
 
-        # Adjust text vertical position to align with symbol center
+        # Adjust text vertical position to align with symbol center or virtual box center
         text_bbox = bbox.extents([text_entity])
         text_center_y = (text_bbox.extmin.y + text_bbox.extmax.y) / 2
         vertical_adjustment = item_center_y - text_center_y
@@ -163,7 +163,7 @@ class LegendCreator:
         text_bbox = bbox.extents([text_entity])
         combined_bbox = item_bbox.union(text_bbox)
 
-        # Calculate the total height of the item (including symbol and text)
+        # Calculate the total height of the item (including symbol/virtual box and text)
         total_height = combined_bbox.size.y
 
         # Move all entities as a unit to respect the item spacing
@@ -175,7 +175,7 @@ class LegendCreator:
         # Adjust the current_y by the total height plus spacing
         self.current_y -= total_height + self.item_spacing
 
-        # Attach custom data to all entities
+        # Attach custom data to all entities (only text entity for 'empty' type)
         for entity in item_entities + [text_entity]:
             if entity:  # Check if the entity is not None
                 attach_custom_data(entity, self.script_identifier)
