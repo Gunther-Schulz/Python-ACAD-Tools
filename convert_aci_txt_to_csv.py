@@ -104,7 +104,7 @@ def convert_to_csv_css_and_yaml(input_file, output_csv, output_css, output_yaml)
         csv_writer = csv.writer(outfile_csv)
         
         # Write header to CSV
-        csv_writer.writerow(['ACI', 'AutoDESK', 'Berechnet', 'Ermittelt', 'Color Name', 'Hex'])
+        csv_writer.writerow(['ACI', 'AutoDESK', 'Berechnet', 'Ermittelt', 'Color Name', 'RGB'])
         
         # Write CSS file header
         outfile_css.write("/* AutoCAD Color Index (ACI) colors */\n\n")
@@ -127,7 +127,8 @@ def convert_to_csv_css_and_yaml(input_file, output_csv, output_css, output_yaml)
             berechnet = f"{parts[4]},{parts[5]},{parts[6]}"
             ermittelt = f"{parts[7]},{parts[8]},{parts[9]}"
             
-            rgb = tuple(map(int, parts[7:10]))
+            # Use 'Berechnet' values for RGB
+            rgb = tuple(map(int, parts[4:7]))
             
             if rgb in used_names:
                 color_name = used_names[rgb]
@@ -136,11 +137,11 @@ def convert_to_csv_css_and_yaml(input_file, output_csv, output_css, output_yaml)
                 used_names[rgb] = color_name
             
             # Write to CSV
-            csv_writer.writerow([aci, autodesk, berechnet, ermittelt, color_name, rgb_to_hex(rgb)])
+            csv_writer.writerow([aci, autodesk, berechnet, ermittelt, color_name, f"rgb({rgb[0]}, {rgb[1]}, {rgb[2]})"])
             
             # Write to CSS
             css_class_name = color_name.replace(' ', '-').lower()
-            outfile_css.write(f".{css_class_name} {{ color: {rgb_to_hex(rgb)}; }} /* ACI: {aci} */\n")
+            outfile_css.write(f".{css_class_name} {{ color: rgb({rgb[0]}, {rgb[1]}, {rgb[2]}); }} /* ACI: {aci} */\n")
             
             # Prepare YAML data
             yaml_data.append({

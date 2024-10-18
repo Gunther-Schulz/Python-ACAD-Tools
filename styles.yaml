@@ -5,12 +5,12 @@ styles:
       pattern: 'ANSI31'
       scale: 5
   water:
-    color: "bright-azure"
+    color: "brilliant-blue"
     hatch:
       pattern: 'DASH'
       scale: 2
   baufeldSchraffur:
-    color: "bright-rose"
+    color: "brilliant-red"
     transparency: 0.6
     hatch:
       individual_hatches: true
