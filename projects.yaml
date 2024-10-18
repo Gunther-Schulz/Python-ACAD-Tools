@@ -10,7 +10,7 @@ projects:
     dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/Zeichnung/24 09.25 Friedrichshof  Zeichnung -2.dxf"
     # dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/Zeichnung/test.dxf"
     dumpOutputDir: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/dxf_dump"
-    dxfLayers:
+    geomLayers:
       - name: Geltungsbereich
         update: false
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/geltungsbereich.shp"
@@ -135,36 +135,71 @@ projects:
         height: 4
         font: "Legend"
       groups:
-        - name: "Geltungsbereich"
+        - name: "Maß der baulichen Nutzung"
           update: true
-          subtitle: "Planungsrechtliche Festsetzungen"
+          subtitle: "§ 9 Abs. 1 Nr. 1 BauGB"
           items:
-            - name: "Geltungsbereich"
-              type: line
-              style:
-                color: "Red"
-                transparency: 0.5
-                linetype: "Continuous"
-        - name: "Flächen"
-          update: true
-          items:
-            - name: "Baufeld"
+            - name: "Sonstiges Sondergebiet (§ 11 Abs. 2 BauNVO) Zweckbestimmung: Energiegewinnung auf der Basis solarer Strahlungsenergie"
               type: area
               style: baufeldSchraffur
-            - name: "Grünfläche"
+                # color: "Red"
+                # transparency: 0.5
+                # linetype: "Continuous"
+        - name: "Maß der baulichen Nutzung"
+          update: true
+          subtitle: "§ 9 Abs. 1 Nr. 1 BauGB"
+          items:
+            - name: "Grundflächenzahl"
+              type: empty
+              # style: baufeldSchraffur
+        - name: "Bauweise, Baulinien, Baugrenzen"
+          update: true
+          subtitle: "§ 9 Abs. 1 Nr. 2 BauGB"
+          items:
+            - name: "Baugrenze"
+              type: empty
+              # style:
+              #   color: "Blue"
+              #   linetype: "ACAD_ISO02W100"    
+        - name: "Verkehrsflächen"
+          update: true
+          subtitle: "(§ 9 Abs. 1 Nr. 11 und Abs. 6 BauGB)"
+          items:
+            - name: "Verkehrsfläche besonderer Zweckbestimmung"
+              type: area
+              style:
+                color: "Burnt Yellow"
+                hatch:
+                  pattern: "ANSI31"
+                  scale: 20
+                  angle: 80
+          items:
+            - name: "Verkehrsberuhigter Bereich"
+              type: empty
+            - name: "Privat"
+              type: empty
+        - name: "Grünflächen"
+          update: true
+          subtitle: "§ 9 Abs.1 Nr. 15 BauGB"
+          items:
+            - name: "Private Grünflächen"
               type: area
               style:
                 color: "Light Green"
                 hatch:
-                  pattern: "GRASS"
-        - name: "Grenzen"
-          update: true
-          items:
-            - name: "Baugrenze"
-              type: line
-              style:
-                color: "Blue"
-                linetype: "ACAD_ISO02W100"    
+                  pattern: "SOLID"
+                  transparency: 0.5
+          - name: "Wasserflächen und Flächen für die Wasserwirtschaft, den Hochwasserschutz und die Regelung des Wasserabflusses"
+            update: true
+            subtitle: "§ 9 Abs. 1 Nr. 16 BauBG"
+            items:
+              - name: "Wasserflächen"
+                type: area
+                style:
+                  color: "Light Green"
+                  hatch:
+                    pattern: "SOLID"
+                    transparency: 0.5
     viewports:
       - name: MainView
         center: [425, 450]
@@ -208,7 +243,7 @@ projects:
           file: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Ausgabe Karten und Daten/ZAV/areas_geltungsbereich_s_by_parcel"
         includeLabels: true
         includeTotalArea: true
-    dxfLayers:
+    geomLayers:
       - name: Flur
         update: true
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/flur.shp"
@@ -682,7 +717,7 @@ projects:
     dxfVersion: R2018
     crs: EPSG:25833
     dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/Zeichnung/torgelow.dxf"
-    dxfLayers:
+    geomLayers:
       - name: Flur
         update: true
         add: true

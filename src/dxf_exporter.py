@@ -39,7 +39,7 @@ class DXFExporter:
         }
 
     def setup_layers(self):
-        for layer in self.project_settings['dxfLayers']:
+        for layer in self.project_settings['geomLayers']:
             self._setup_single_layer(layer)
 
     def _setup_single_layer(self, layer):
@@ -131,14 +131,14 @@ class DXFExporter:
             log_info(f"Loaded existing layer: {layer_name}")
 
     def _cleanup_and_save(self, doc, msp):
-        processed_layers = [layer['name'] for layer in self.project_settings['dxfLayers']]
+        processed_layers = [layer['name'] for layer in self.project_settings['geomLayers']]
         remove_entities_by_layer(msp, processed_layers, script_identifier)
         doc.saveas(self.dxf_filename)
         log_info(f"DXF file saved: {self.dxf_filename}")
         verify_dxf_settings(self.dxf_filename)
 
     def process_layers(self, doc, msp):
-        for layer_info in self.project_settings['dxfLayers']:
+        for layer_info in self.project_settings['geomLayers']:
             if layer_info.get('update', False):
                 self.process_single_layer(doc, msp, layer_info['name'], layer_info)
 
@@ -325,7 +325,7 @@ class DXFExporter:
     def add_geometries_to_dxf(self, msp, geo_data, layer_name):
         log_info(f"Adding geometries to DXF for layer: {layer_name}")
         
-        layer_info = next((l for l in self.project_settings['dxfLayers'] if l['name'] == layer_name), {})
+        layer_info = next((l for l in self.project_settings['geomLayers'] if l['name'] == layer_name), {})
         
         if self.is_wmts_or_wms_layer(layer_name):
             self.add_wmts_xrefs_to_dxf(msp, geo_data, layer_name)
@@ -454,7 +454,7 @@ class DXFExporter:
         self.attach_custom_data(text_entity)  # Attach custom data to label entities
 
     def initialize_layer_properties(self):
-        for layer in self.project_settings['dxfLayers']:
+        for layer in self.project_settings['geomLayers']:
             self.add_layer_properties(layer['name'], layer)
 
     def add_layer_properties(self, layer_name, layer_info):
@@ -496,20 +496,20 @@ class DXFExporter:
         log_info(f"Added layer properties for {layer_name}: {properties}")
 
     def is_wmts_or_wms_layer(self, layer_name):
-        layer_info = next((l for l in self.project_settings['dxfLayers'] if l['name'] == layer_name), None)
+        layer_info = next((l for l in self.project_settings['geomLayers'] if l['name'] == layer_name), None)
         if layer_info and 'operations' in layer_info:
             return any(op['type'] in ['wmts', 'wms'] for op in layer_info['operations'])
         return False
     
     def is_generated_layer(self, layer_name):
         # Check if the layer is generated (has an operation) and not loaded from a shapefile
-        for layer in self.project_settings['dxfLayers']:
+        for layer in self.project_settings['geomLayers']:
             if layer['name'] == layer_name:
                 return 'operation' in layer and 'shapeFile' not in layer
         return False
         
     def get_label_column(self, layer_name):
-        for layer in self.project_settings['dxfLayers']:
+        for layer in self.project_settings['geomLayers']:
             if layer['name'] == layer_name and 'label' in layer:
                 return layer['label']
         return None

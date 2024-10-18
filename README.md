@@ -50,7 +50,7 @@ projects:
     dxfVersion: R2018
     crs: EPSG:25833
     dxfFilename: "path/to/output.dxf"
-    dxfLayers:
+    geomLayers:
       - name: LayerName
         add: true
         update: true

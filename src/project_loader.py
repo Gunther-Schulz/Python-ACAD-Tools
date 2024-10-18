@@ -32,7 +32,7 @@ class ProjectLoader:
         self.dxf_version = self.project_settings.get('dxfVersion', 'R2010')
 
         # Process layers to handle the new 'copy' operation
-        for layer in self.project_settings['dxfLayers']:
+        for layer in self.project_settings['geomLayers']:
             if 'operations' in layer:
                 self.process_operations(layer)
 
