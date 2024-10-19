@@ -28,3 +28,6 @@ styles:
     transparency: 0.6
     hatch:
       pattern: "SOLID"
+  geltungsbereich:
+    linetype: "ACAD_ISO02W100"
+    lineweight: 80

@@ -97,7 +97,7 @@ projects:
       title_spacing: 0      # Space after the main legend title
       subtitle_spacing: 4   # Space after the main subtitle
       group_spacing: 3      # Space between different groups in the legend
-      group_title_spacing: 0 # Space after each group's title
+      group_title_spacing: 2 # Space after each group's title
       group_subtitle_spacing: 3 # Space after each group's subtitle
       item_spacing: 4       # Space between individual items within a group
       position:
@@ -201,6 +201,13 @@ projects:
             - name: "Wasserflächen"
               type: area
               hatch_style: water
+        - name: "Sonstige Planzeichen"
+          update: true
+          items:
+            - name: "Grenze des räumlichen Geltungsbereiches des Bebauungsplans"
+              type: area
+              create_hatch: false
+              rectangle_style: geltungsbereich
     viewports:
       - name: MainView
         center: [425, 450]
