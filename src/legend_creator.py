@@ -22,13 +22,15 @@ class LegendCreator:
         self.legend_config = project_loader.project_settings.get('legend', {})
         self.position = self.legend_config.get('position', {'x': 0, 'y': 0})
         self.current_y = self.position['y']
-        self.group_spacing = self.legend_config.get('group_spacing', 15)  # Default group spacing of 15 units
-        self.item_spacing = self.legend_config.get('item_spacing', 10)
+        self.group_spacing = self.legend_config.get('group_spacing', 20)  # Default group spacing of 20 units
+        self.item_spacing = self.legend_config.get('item_spacing', 2)
         self.item_width = 30
         self.item_height = 15
         self.text_offset = 5
         self.subtitle_text_style = get_style(self.legend_config.get('subtitleTextStyle', {}), self.project_loader)
-        self.subtitle_spacing = self.legend_config.get('subtitle_spacing', 10)
+        self.subtitle_spacing = self.legend_config.get('subtitle_spacing', 6)
+        self.group_title_spacing = self.legend_config.get('group_title_spacing', 8)
+        self.group_subtitle_spacing = self.legend_config.get('group_subtitle_spacing', 4)
         
         # Global text styles
         self.group_text_style = get_style(self.legend_config.get('groupTextStyle', {}), self.project_loader)
@@ -36,11 +38,9 @@ class LegendCreator:
         self.name_to_aci = project_loader.name_to_aci
         self.max_width = self.legend_config.get('max_width', 200)  # Default max width of 200 units
         self.total_item_width = self.item_width + self.text_offset + self.max_width
-        self.between_group_spacing = self.legend_config.get('between_group_spacing', 25)  # Default spacing of 25 units between groups
-        self.text_line_spacing = min(max(1.5, 0.25), 4.00)  # Ensure it's within the valid range
         self.title_text_style = get_style(self.legend_config.get('titleTextStyle', {}), self.project_loader)
         self.title_subtitle_style = get_style(self.legend_config.get('titleSubtitleStyle', {}), self.project_loader)
-        self.title_spacing = self.legend_config.get('title_spacing', 20)
+        self.title_spacing = self.legend_config.get('title_spacing', 10)
 
     def create_legend(self):
         self.selectively_remove_existing_legend()
@@ -58,43 +58,35 @@ class LegendCreator:
                 removed_count = remove_entities_by_layer(self.msp, layer_name, script_identifier)
 
     def create_group(self, group):
-        group_name = group['name']
-        items = group['items']
+        group_name = group.get('name', '')
         subtitle = group.get('subtitle', '')
+        items = group.get('items', [])
         layer_name = f"Legend_{group_name}"
         
         # Add group title
-        title_result = self.add_mtext(
-            self.position['x'],
-            self.current_y,
-            group_name,
-            layer_name,
-            self.group_text_style,
-            self.max_width
-        )
-        
-        if title_result is None or title_result[0] is None:
-            log_warning(f"Failed to create title MTEXT for group '{group_name}'")
-            self.current_y -= self.group_text_style.get('height', 7) + self.group_spacing
-        else:
+        title_result = self.add_mtext(self.position['x'], self.current_y, group_name, layer_name, self.group_text_style, self.max_width)
+        if title_result is not None and title_result[0] is not None:
             title_entity, actual_title_height = title_result
-            self.current_y -= actual_title_height + self.group_spacing
+            self.current_y -= actual_title_height + self.group_title_spacing  # Use group_title_spacing here
+        else:
+            log_warning(f"Failed to create title MTEXT for group '{group_name}'")
+            self.current_y -= self.group_text_style.get('height', 5) + self.group_title_spacing  # Use group_title_spacing here
 
         # Add subtitle
         if subtitle:
             subtitle_result = self.add_mtext(self.position['x'], self.current_y, subtitle, layer_name, self.subtitle_text_style, self.max_width)
             if subtitle_result is not None and subtitle_result[0] is not None:
                 subtitle_entity, actual_subtitle_height = subtitle_result
-                self.current_y -= actual_subtitle_height + self.subtitle_spacing
+                self.current_y -= actual_subtitle_height + self.group_subtitle_spacing
             else:
                 log_warning(f"Failed to create subtitle MTEXT for group '{group_name}'")
-                self.current_y -= self.subtitle_text_style.get('height', 4) + self.subtitle_spacing
+                self.current_y -= self.subtitle_text_style.get('height', 4) + self.group_subtitle_spacing
 
         # Create items
         for item in items:
             self.create_item(item, layer_name)
         
-        self.current_y -= self.between_group_spacing
+        self.current_y -= self.group_spacing
 
     def create_item(self, item, layer_name):
         item_name = item.get('name', '')
@@ -283,7 +275,7 @@ class LegendCreator:
                 log_warning(f"Failed to create subtitle MTEXT for legend")
                 self.current_y -= self.title_subtitle_style.get('height', 4) + self.subtitle_spacing
 
-        self.current_y -= self.between_group_spacing
+        self.current_y -= self.group_spacing
 
     def get_entity_bbox(self, entity):
         if isinstance(entity, ezdxf.entities.Hatch):
