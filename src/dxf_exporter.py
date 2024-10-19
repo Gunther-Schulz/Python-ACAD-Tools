@@ -16,7 +16,7 @@ from src.dfx_utils import (get_color_code, convert_transparency, attach_custom_d
                            is_created_by_script, add_text, remove_entities_by_layer, 
                            ensure_layer_exists, update_layer_properties, load_standard_linetypes, 
                            set_drawing_properties, verify_dxf_settings, update_layer_geometry,
-                           get_style, apply_style_to_entity, create_hatch, SCRIPT_IDENTIFIER, initialize_document, sanitize_layer_name)
+                           get_style, apply_style_to_entity, create_hatch, SCRIPT_IDENTIFIER, initialize_document, sanitize_layer_name, create_path_array)
 
 class DXFExporter:
     def __init__(self, project_loader, layer_processor):
@@ -140,6 +140,7 @@ class DXFExporter:
     def _cleanup_and_save(self, doc, msp):
         processed_layers = [layer['name'] for layer in self.project_settings['geomLayers']]
         remove_entities_by_layer(msp, processed_layers, self.script_identifier)
+        self.create_path_arrays(msp)
         doc.saveas(self.dxf_filename)
         log_info(f"DXF file saved: {self.dxf_filename}")
         verify_dxf_settings(self.dxf_filename)
@@ -749,3 +750,24 @@ class DXFExporter:
 
     def apply_style(self, entity, style):
         apply_style_to_entity(entity, style, self.project_loader, self.loaded_styles)
+
+    def create_path_arrays(self, msp):
+        for layer_config in self.project_settings.get('pathArrays', []):
+            source_layer_name = layer_config['sourceLayer']
+            target_layer_name = layer_config.get('targetLayer', source_layer_name)
+            block_name = layer_config['block']
+            spacing = layer_config['spacing']
+            scale = layer_config.get('scale', 1.0)
+            rotation = layer_config.get('rotation', 0.0)
+            update = layer_config.get('update', False)
+            
+            # Check if the source layer exists
+            if not msp.doc.layers.get(source_layer_name):
+                log_warning(f"Source layer '{source_layer_name}' does not exist. Skipping path array creation.")
+                continue
+            
+            if update:
+                # Remove existing entities from the target layer
+                remove_entities_by_layer(msp, target_layer_name, self.script_identifier)
+                
+            create_path_array(msp, source_layer_name, target_layer_name, block_name, spacing, scale, rotation)

@@ -277,6 +277,13 @@ projects:
               type: empty
               block_symbol: "Abgrenzung unterschiedlicher Nutzung"
               block_symbol_scale: 1.4
+    # pathArrays:
+    #   - sourceLayer: "Wald"
+    #     targetLayer: "Wald Array"
+    #     block: "GFL1"
+    #     spacing: 10
+    #     # scale: 0.5
+    #     # rotation: 90
     viewports:
       - name: MainView
         center: [425, 450]

@@ -13,6 +13,8 @@ from ezdxf.enums import TextEntityAlignment
 from ezdxf.math import Vec3
 from src.utils import log_info, log_warning, log_error
 import re
+import math
+from ezdxf.math import Vec2
 
 SCRIPT_IDENTIFIER = "Created by DXFExporter"
 
@@ -461,3 +463,59 @@ def add_block_reference(msp, block_name, insert_point, layer_name, scale=1.0, ro
     else:
         log_warning(f"Block '{block_name}' not found in the document")
         return None
+
+def create_path_array(msp, source_layer_name, target_layer_name, block_name, spacing, scale=1.0, rotation=0.0):
+    """
+    Create a path array of blocks along polylines in the specified source layer and place them on the target layer.
+    
+    :param msp: Modelspace object
+    :param source_layer_name: Name of the layer containing the polylines
+    :param target_layer_name: Name of the layer where the array objects will be placed
+    :param block_name: Name of the block to be used in the array
+    :param spacing: Distance between block insertions
+    :param scale: Scale factor for the blocks (default: 1.0)
+    :param rotation: Rotation angle for the blocks in degrees (default: 0.0)
+    """
+    if block_name not in msp.doc.blocks:
+        log_warning(f"Block '{block_name}' not found in the document")
+        return
+
+    polylines = msp.query(f'LWPOLYLINE[layer=="{source_layer_name}"]')
+    
+    for polyline in polylines:
+        points = polyline.get_points()
+        total_length = 0
+        segments = []
+
+        for i in range(len(points) - 1):
+            start = Vec2(points[i][:2])
+            end = Vec2(points[i+1][:2])
+            segment_length = (end - start).magnitude
+            segments.append((start, end, segment_length))
+            total_length += segment_length
+
+        current_distance = 0
+        for start, end, segment_length in segments:
+            segment_direction = (end - start).normalize()
+            
+            while current_distance < segment_length:
+                insertion_point = start + segment_direction * current_distance
+                angle = math.atan2(segment_direction.y, segment_direction.x)
+                
+                block_ref = add_block_reference(
+                    msp,
+                    block_name,
+                    insertion_point,
+                    target_layer_name,
+                    scale=scale,
+                    rotation=rotation + math.degrees(angle)
+                )
+                
+                if block_ref:
+                    attach_custom_data(block_ref, SCRIPT_IDENTIFIER)
+                
+                current_distance += spacing
+            
+            current_distance -= segment_length
+
+    log_info(f"Path array created for source layer '{source_layer_name}' using block '{block_name}' and placed on target layer '{target_layer_name}'")
