@@ -88,7 +88,8 @@ projects:
     dxfVersion: R2018
     crs: EPSG:25833
     # dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Zeichnung/Plasten4.dxf"
-    dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Zeichnung/dev/test.dxf"    
+    dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Zeichnung/dev/test.dxf"
+    symbolsDxf: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Zeichnung/dev/symbols.dxf"
     dumpOutputDir: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten//GIS/dxf_dump"
     legend:
       title: "Planzeichen"
@@ -141,7 +142,6 @@ projects:
           subtitle: "§ 9 Abs. 1 Nr. 1 BauGB"
           items:
             - name: "Sonstiges Sondergebiet (§ 11 Abs. 2 BauNVO) Zweckbestimmung: Energiegewinnung auf der Basis solarer Strahlungsenergie"
-            # - name: "test"  
               type: area
               style: baufeldSchraffur
                 # color: "Red"
