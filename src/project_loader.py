@@ -58,4 +58,6 @@ class ProjectLoader:
             self.styles = style_data.get('styles', {})
 
     def get_style(self, style_name):
-        return self.styles.get(style_name, {})
+        style = self.styles.get(style_name, {})
+        log_info(f"Retrieved style for '{style_name}': {style}")
+        return style

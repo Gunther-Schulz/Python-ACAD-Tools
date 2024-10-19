@@ -106,7 +106,7 @@ projects:
       titleTextStyle:
         height: 8
         color: "darkslategrey-20"
-        font: "Legend"
+        text_style: "Arial"
         # rotation: 45
         # attachment_point: MTEXT_MIDDLE_CENTER
         # flow_direction: MTEXT_LEFT_TO_RIGHT
@@ -122,19 +122,19 @@ projects:
       titleSubtitleStyle:
         height: 3.5
         color: "Dark Gray"
-        font: "Legend"
+        text_style: "Arial"
       groupTextStyle:
         color: "Black"
         height: 5
-        font: "Legend"
+        text_style: "Arial"
       subtitleTextStyle:
         color: "Black"
         height: 3.5
-        font: "Legend"
+        text_style: "Arial"
       itemTextStyle:
         color: "Black"
         height: 3
-        font: "Legend"
+        text_style: "Arial"
         attachment_point: MTEXT_MIDDLE_LEFT
       groups:
         - name: "Art der baulichen Nutzung"
@@ -144,31 +144,24 @@ projects:
             - name: "Sonstiges Sondergebiet (§ 11 Abs. 2 BauNVO) Zweckbestimmung: Energiegewinnung auf der Basis solarer Strahlungsenergie"
               type: area
               create_hatch: true
-              hatch_style:
-                  color: "brilliant-red"
-                  transparency: 0.6
-                  hatch:
-                    individual_hatches: true
-              symbol: "Sonstiges Sondergebiet EBS"
-              symbol_scale: 2
-                # color: "Red"
-                # transparency: 0.5
-                # linetype: "Continuous"
+              hatch_style: baufeldSchraffur
+              block_symbol: "Sonstiges Sondergebiet EBS"
+              block_symbol_scale: 2
         - name: "Maß der baulichen Nutzung"
           update: true
           subtitle: "§ 9 Abs. 1 Nr. 1 BauGB"
           items:
             - name: "Grundflächenzahl"
               type: empty
-              symbol: "GRZ"
-              symbol_scale: 2
+              block_symbol: "GRZ"
+              block_symbol_scale: 2
         - name: "Bauweise, Baulinien, Baugrenzen"
           update: true
           subtitle: "§ 9 Abs. 1 Nr. 2 BauGB"
           items:
             - name: "Baugrenze"
               type: empty
-              symbol: "Baugrenze"   
+              block_symbol: "Baugrenze"   
         - name: "Verkehrsflächen"
           update: true
           subtitle: "(§ 9 Abs. 1 Nr. 11 und Abs. 6 BauGB)"
@@ -176,17 +169,14 @@ projects:
             - name: "Verkehrsfläche besonderer Zweckbestimmung"
               type: area
               hatch_style: verkehrsflaeche
-              rectangle_style:
-                color: "Red"
-                transparency: 0.5
             - name: "Verkehrsberuhigter Bereich"
               type: empty
-              symbol: "Verkehrsberuhigter Bereich"
-              symbol_scale: 2
+              block_symbol: "Verkehrsberuhigter Bereich"
+              block_symbol_scale: 2
             - name: "Privat"
               type: empty
-              symbol: "Privat"
-              symbol_scale: 2
+              block_symbol: "Privat"
+              block_symbol_scale: 2
         - name: "Grünflächen"
           update: true
           subtitle: "§ 9 Abs.1 Nr. 15 BauGB"
@@ -205,9 +195,59 @@ projects:
           update: true
           items:
             - name: "Grenze des räumlichen Geltungsbereiches des Bebauungsplans"
+              subtitle: "(§ 9 Abs. 7 BauGB)"
+              type: area
+              rectangle_style: geltungsbereich
+              create_hatch: false
+            - name: "Hauptversorgungs- und Hauptabwasserleitungen unterirdisch"
+              subtitle: "(§ 5 Abs. 2 Nr.4 und Abs. 4, § 9 Abs.1 Nr.1 u. Abs. 6)"
               type: area
               create_hatch: false
-              rectangle_style: geltungsbereich
+              block_symbol: "Leitung oberirdisch"
+              block_symbol_scale: 2
+            - name: "Hauptversorgungs- und Hauptabwasserleitungen oberirdisch"
+              subtitle: "(§ 5 Abs. 2 Nr.4 und Abs. 4, § 9 Abs.1 Nr.1 u. Abs. 6)"
+              type: area
+              create_hatch: false
+              block_symbol: "Leitung unterirdisch"
+              block_symbol_scale: 2
+            - name: "Mit Geh-, Fahr- und Leitungsrechten zu belastende Flächen"
+              subtitle: "(§ 9 Abs.1 Nr.21 und Abs. 6 BauGB)"
+              type: area
+              create_hatch: false
+              rectangle_style: gfl1
+              block_symbol: "GFL1"
+              block_symbol_scale: 2
+            - name: "Mit Geh-, Fahr- und Leitungsrechten zu belastende Flächen"
+              subtitle: "(§ 9 Abs.1 Nr.21 und Abs. 6 BauGB)"
+              type: empty
+              create_hatch: false
+              block_symbol: "GFL2"
+              block_symbol_scale: 1.8
+        - name: "Darstellung ohne Normcharakter"
+          update: true
+          items:
+            - name: "Gemeindegrenze"
+              type: diagonal_line
+              style: gemeindegrenze
+            - name: "Gemarkungsgrenze"
+              type: line
+              style: gemarkungsgrenze
+            - name: "Flurgrenze"
+              type: line
+              style: flurgrenze
+            - name: "Flurstücksnummer\nFlurstücksgrenze"
+              type: empty
+            - name: "anstehendes Gelände in Meter über NHN im amtlichen Höhenbezugssystem DHHN2016 als unterer Höhenbezugspunkt"
+              type: empty
+            - name: "Bemaßung in Meter"
+              type: empty
+        - name: "Nachrichtliche Übernahme"
+          update: true
+          items:
+            - name: "gesetzlich geschützes Biotop § 9 Abs. 6 BauGB i. V. m. § 20 NatSchAG - MV"
+              type: area
+              # rectangle_style: geltungsbereich
     viewports:
       - name: MainView
         center: [425, 450]

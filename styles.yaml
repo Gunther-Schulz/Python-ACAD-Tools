@@ -31,3 +31,14 @@ styles:
   geltungsbereich:
     linetype: "ACAD_ISO02W100"
     lineweight: 80
+  gfl1:
+    linetype: "ACAD_ISO02W100"
+  gemeindegrenze:
+    linetype: "ACAD_ISO10W100"
+    lineweight: 50
+  gemarkungsgrenze:
+    linetype: "ACAD_ISO12W100"
+    lineweight: 50
+  flurgrenze:
+    linetype: "ACAD_ISO14W100"
+    lineweight: 50

@@ -1,10 +1,10 @@
 import ezdxf
 from ezdxf.enums import TextEntityAlignment
 from ezdxf import const
-from src.dfx_utils import (get_color_code, convert_transparency, attach_custom_data, 
+from src.dfx_utils import (get_color_code, attach_custom_data, 
                            is_created_by_script, add_mtext, remove_entities_by_layer, 
-                           ensure_layer_exists, update_layer_geometry, get_style, script_identifier,
-                           apply_style_to_entity, create_hatch, set_hatch_transparency, script_identifier,
+                           ensure_layer_exists, get_style, SCRIPT_IDENTIFIER,
+                           apply_style_to_entity,
                            sanitize_layer_name)
 from ezdxf.math import Vec3
 from ezdxf import colors
@@ -16,11 +16,12 @@ from ezdxf import bbox
 import os
 
 class LegendCreator:
-    def __init__(self, doc, msp, project_loader):
+    def __init__(self, doc, msp, project_loader, loaded_styles):
         self.doc = doc
         self.msp = msp
-        self.script_identifier = script_identifier
         self.project_loader = project_loader
+        self.loaded_styles = loaded_styles
+        self.script_identifier = SCRIPT_IDENTIFIER
         self.legend_config = project_loader.project_settings.get('legend', {})
         self.position = self.legend_config.get('position', {'x': 0, 'y': 0})
         self.current_y = self.position['y']
@@ -56,12 +57,12 @@ class LegendCreator:
             self.create_group(group)
 
     def selectively_remove_existing_legend(self):
-        remove_entities_by_layer(self.msp, "Legend_Title", script_identifier)
+        remove_entities_by_layer(self.msp, "Legend_Title", self.script_identifier)
         for group in self.legend_config.get('groups', []):
             if group.get('update', False):
                 group_name = group.get('name', '')
                 layer_name = f"Legend_{group_name}"
-                removed_count = remove_entities_by_layer(self.msp, layer_name, script_identifier)
+                removed_count = remove_entities_by_layer(self.msp, layer_name, self.script_identifier)
 
     def create_group(self, group):
         group_name = group.get('name', '')
@@ -98,15 +99,16 @@ class LegendCreator:
         item_name = item.get('name', '')
         item_type = item.get('type', 'empty')
         hatch_style = self.get_style(item.get('hatch_style', {}))
+        style = self.get_style(item.get('style', {}))  # Changed from rectangle_style to style
         rectangle_style = self.get_style(item.get('rectangle_style', {}))
-        symbol_name = item.get('symbol')
-        symbol_scale = item.get('symbol_scale', 1.0)
+        block_symbol = item.get('block_symbol')
+        block_symbol_scale = item.get('block_symbol_scale', 1.0)
         create_hatch = item.get('create_hatch', True)
 
         x1, y1 = self.position['x'], self.current_y
         x2, y2 = x1 + self.item_width, y1 - self.item_height
 
-        log_info(f"Creating item: {item_name}, type: {item_type}, symbol: {symbol_name}")
+        log_info(f"Creating item: {item_name}, type: {item_type}, symbol: {block_symbol}")
         
         sanitized_layer_name = self.get_sanitized_layer_name(layer_name)
 
@@ -123,11 +125,13 @@ class LegendCreator:
 
         # Step 1: Create the symbol/area/line item
         if item_type == 'area':
-            item_entities = self.create_area_item(x1, y1, x2, y2, sanitized_layer_name, prepared_hatch_style, rectangle_style, create_hatch, symbol_name, symbol_scale)
+            item_entities = self.create_area_item(x1, y1, x2, y2, sanitized_layer_name, prepared_hatch_style, rectangle_style, create_hatch, block_symbol, block_symbol_scale)
         elif item_type == 'line':
-            item_entities = self.create_line_item(x1, y1, x2, y2, sanitized_layer_name, rectangle_style, symbol_name, symbol_scale)
+            item_entities = self.create_line_item(x1, y1, x2, y2, sanitized_layer_name, style, block_symbol, block_symbol_scale)
+        elif item_type == 'diagonal_line':
+            item_entities = self.create_diagonal_line_item(x1, y1, x2, y2, sanitized_layer_name, style, block_symbol, block_symbol_scale)
         elif item_type == 'empty':
-            item_entities = self.create_empty_item(x1, y1, x2, y2, sanitized_layer_name, symbol_name, symbol_scale)
+            item_entities = self.create_empty_item(x1, y1, x2, y2, sanitized_layer_name, block_symbol, block_symbol_scale)
         else:
             raise ValueError(f"Unknown item type: {item_type}")
 
@@ -151,7 +155,7 @@ class LegendCreator:
             text_x,
             item_center_y,
             sanitized_layer_name,
-            self.item_text_style.get('font', 'Standard'),
+            self.item_text_style.get('text_style', 'Standard'),
             self.item_text_style,
             self.project_loader.name_to_aci,
             self.max_width - self.item_width - self.text_offset
@@ -191,12 +195,15 @@ class LegendCreator:
             if entity:
                 attach_custom_data(entity, self.script_identifier)
 
-    def create_area_item(self, x1, y1, x2, y2, layer_name, hatch_style, rectangle_style, create_hatch, symbol_name=None, symbol_scale=1.0):
+    def create_area_item(self, x1, y1, x2, y2, layer_name, hatch_style, rectangle_style, create_hatch, block_symbol=None, block_symbol_scale=1.0):
         entities = []
         
         # Create the rectangle
         rectangle = self.msp.add_lwpolyline([(x1, y1), (x2, y1), (x2, y2), (x1, y2), (x1, y1)], dxfattribs={'layer': layer_name})
-        apply_style_to_entity(rectangle, rectangle_style, self.project_loader)
+        
+        # Apply the style to the rectangle
+        self.apply_style(rectangle, rectangle_style)
+        
         self.attach_custom_data(rectangle)
         entities.append(rectangle)
 
@@ -209,62 +216,94 @@ class LegendCreator:
             entities.append(hatch)
 
         # Add symbol if specified
-        if symbol_name and symbol_name in self.available_blocks:
-            log_info(f"Adding symbol '{symbol_name}' to area item with scale {symbol_scale}")
-            symbol_entity = self.msp.add_blockref(symbol_name, ((x1 + x2) / 2, (y1 + y2) / 2))
-            symbol_entity.dxf.xscale = symbol_scale
-            symbol_entity.dxf.yscale = symbol_scale
+        if block_symbol and block_symbol in self.available_blocks:
+            log_info(f"Adding symbol '{block_symbol}' to area item with scale {block_symbol_scale}")
+            symbol_entity = self.msp.add_blockref(block_symbol, ((x1 + x2) / 2, (y1 + y2) / 2))
+            symbol_entity.dxf.xscale = block_symbol_scale
+            symbol_entity.dxf.yscale = block_symbol_scale
             symbol_entity.dxf.layer = layer_name
             self.attach_custom_data(symbol_entity)
             entities.append(symbol_entity)
-        elif symbol_name:
-            log_warning(f"Symbol '{symbol_name}' not found for area item")
+        elif block_symbol:
+            log_warning(f"Symbol '{block_symbol}' not found for area item")
 
         return entities
 
-    def create_line_item(self, x1, y1, x2, y2, layer_name, item_style, symbol_name=None, symbol_scale=1.0):
+    def create_line_item(self, x1, y1, x2, y2, layer_name, rectangle_style, block_symbol=None, block_symbol_scale=1.0):
         entities = []
         
         # Create the line as before
         middle_y = (y1 + y2) / 2
         points = [(x1, middle_y), (x2, middle_y)]
         line = self.msp.add_lwpolyline(points, dxfattribs={'layer': layer_name})
-        apply_style_to_entity(line, item_style, self.project_loader)
+        self.apply_style(line, rectangle_style)
         entities.append(line)
 
         # Add symbol if specified
-        if symbol_name and symbol_name in self.available_blocks:
-            symbol_entity = self.msp.add_blockref(symbol_name, ((x1 + x2) / 2, (y1 + y2) / 2))
-            symbol_entity.dxf.xscale = symbol_scale
-            symbol_entity.dxf.yscale = symbol_scale
+        if block_symbol and block_symbol in self.available_blocks:
+            symbol_entity = self.msp.add_blockref(block_symbol, ((x1 + x2) / 2, (y1 + y2) / 2))
+            symbol_entity.dxf.xscale = block_symbol_scale
+            symbol_entity.dxf.yscale = block_symbol_scale
             symbol_entity.dxf.layer = layer_name
             self.attach_custom_data(symbol_entity)
             entities.append(symbol_entity)
-        elif symbol_name:
-            log_warning(f"Symbol '{symbol_name}' not found for line item")
+        elif block_symbol:
+            log_warning(f"Symbol '{block_symbol}' not found for line item")
 
         return entities
 
-    def create_empty_item(self, x1, y1, x2, y2, layer_name, symbol_name=None, symbol_scale=1.0):
+    def create_diagonal_line_item(self, x1, y1, x2, y2, layer_name, style, block_symbol=None, block_symbol_scale=1.0):
         entities = []
         
+        # Create the rectangle (no styling)
+        rectangle = self.msp.add_lwpolyline([(x1, y1), (x2, y1), (x2, y2), (x1, y2), (x1, y1)], dxfattribs={'layer': layer_name})
+        self.attach_custom_data(rectangle)
+        entities.append(rectangle)
+
+        # Create the diagonal line
+        line = self.msp.add_line((x1, y1), (x2, y2), dxfattribs={'layer': layer_name})
+        self.apply_style(line, style)
+        self.attach_custom_data(line)
+        entities.append(line)
+
         # Add symbol if specified
-        if symbol_name and symbol_name in self.available_blocks:
-            symbol_entity = self.msp.add_blockref(symbol_name, ((x1 + x2) / 2, (y1 + y2) / 2))
-            symbol_entity.dxf.xscale = symbol_scale
-            symbol_entity.dxf.yscale = symbol_scale
+        if block_symbol and block_symbol in self.available_blocks:
+            symbol_entity = self.msp.add_blockref(block_symbol, ((x1 + x2) / 2, (y1 + y2) / 2))
+            symbol_entity.dxf.xscale = block_symbol_scale
+            symbol_entity.dxf.yscale = block_symbol_scale
             symbol_entity.dxf.layer = layer_name
             self.attach_custom_data(symbol_entity)
             entities.append(symbol_entity)
-        elif symbol_name:
-            log_warning(f"Symbol '{symbol_name}' not found for empty item")
+        elif block_symbol:
+            log_warning(f"Symbol '{block_symbol}' not found for diagonal line item")
+
+        return entities
+
+    def create_empty_item(self, x1, y1, x2, y2, layer_name, block_symbol=None, block_symbol_scale=1.0):
+        entities = []
+        
+        # Add symbol if specified
+        if block_symbol and block_symbol in self.available_blocks:
+            symbol_entity = self.msp.add_blockref(block_symbol, ((x1 + x2) / 2, (y1 + y2) / 2))
+            symbol_entity.dxf.xscale = block_symbol_scale
+            symbol_entity.dxf.yscale = block_symbol_scale
+            symbol_entity.dxf.layer = layer_name
+            self.attach_custom_data(symbol_entity)
+            entities.append(symbol_entity)
+        elif block_symbol:
+            log_warning(f"Symbol '{block_symbol}' not found for empty item")
 
         return entities
 
     def add_mtext(self, x, y, text, layer_name, text_style, max_width=None):
         try:
+            style_name = text_style.get('text_style', 'Standard')
+            if style_name not in self.loaded_styles:
+                log_warning(f"Text style '{style_name}' was not loaded during initialization. Using 'Standard' instead.")
+                style_name = 'Standard'
+
             dxfattribs = {
-                'style': text_style.get('font', 'Standard'),
+                'style': style_name,
                 'char_height': text_style.get('height', 2.5),
                 'width': max_width,
                 'attachment_point': MTEXT_TOP_LEFT,
@@ -281,7 +320,7 @@ class LegendCreator:
             bounding_box = bbox.extents([mtext])
             actual_height = bounding_box.size.y
             
-            attach_custom_data(mtext, script_identifier)
+            attach_custom_data(mtext, self.script_identifier)
             return mtext, actual_height
         except Exception as e:
             log_error(f"Error creating MTEXT: {str(e)}")
@@ -289,12 +328,12 @@ class LegendCreator:
 
     def attach_custom_data(self, entity):
         if entity is not None:
-            attach_custom_data(entity, script_identifier)
+            attach_custom_data(entity, self.script_identifier)
         else:
             log_warning("Attempted to attach custom data to a None entity")
 
     def is_created_by_script(self, entity):
-        return is_created_by_script(entity, script_identifier)
+        return is_created_by_script(entity, self.script_identifier)
 
     def get_color_code(self, color):
         return get_color_code(color, self.name_to_aci)
@@ -348,8 +387,7 @@ class LegendCreator:
             return self.project_loader.get_style(style)
         return style
 
-
-
-
-
-
+    def apply_style(self, entity, style):
+        if isinstance(style, str):
+            style = self.project_loader.get_style(style)
+        apply_style_to_entity(entity, style, self.project_loader, self.loaded_styles)
