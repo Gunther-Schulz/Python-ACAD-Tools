@@ -99,7 +99,7 @@ projects:
       group_spacing: 3      # Space between different groups in the legend
       group_title_spacing: 0 # Space after each group's title
       group_subtitle_spacing: 3 # Space after each group's subtitle
-      item_spacing: 3       # Space between individual items within a group
+      item_spacing: 4       # Space between individual items within a group
       position:
         x: 367841
         y: 5942622
@@ -147,39 +147,37 @@ projects:
                 # color: "Red"
                 # transparency: 0.5
                 # linetype: "Continuous"
-            - name: "Sonstiges Sondergebiet (§ 11 Abs. 2 BauNVO) Zweckbestimmung: Energiegewinnung auf der Basis solarer Strahlungsenergie"
-              type: line
-              style:
-                color: "Red"
-                transparency: 0.5
-                linetype: "Continuous"
-            - name: "Sonstiges Sondergebiet (§ 11 Abs. 2 BauNVO) Zweckbestimmung: Energiegewinnung auf der Basis solarer Strahlungsenergie"
+            # - name: "Sonstiges Sondergebiet (§ 11 Abs. 2 BauNVO) Zweckbestimmung: Energiegewinnung auf der Basis solarer Strahlungsenergie"
+            #   type: line
+            #   style:
+            #     color: "Red"
+            #     transparency: 0.5
+            #     linetype: "Continuous"
+            # - name: "Sonstiges Sondergebiet (§ 11 Abs. 2 BauNVO) Zweckbestimmung: Energiegewinnung auf der Basis solarer Strahlungsenergie"
+            #   type: empty
+            #   # style:
+            #   #   color: "Blue"
+            #   #   linetype: "ACAD_ISO02W100"   
+            # - name: "test2"  
+            #   type: area
+            #   style: baufeldSchraffur
+            #     # color: "Red"
+            #     # transparency: 0.5
+            #     # linetype: "Continuous"
+        - name: "Maß der baulichen Nutzung"
+          update: true
+          subtitle: "§ 9 Abs. 1 Nr. 1 BauGB"
+          items:
+            - name: "Grundflächenzahl"
               type: empty
-              # style:
-              #   color: "Blue"
-              #   linetype: "ACAD_ISO02W100"   
-            - name: "test2"  
-              type: area
-              style: baufeldSchraffur
-                # color: "Red"
-                # transparency: 0.5
-                # linetype: "Continuous"
-      #   - name: "Maß der baulichen Nutzung"
-      #     update: true
-      #     subtitle: "§ 9 Abs. 1 Nr. 1 BauGB"
-      #     items:
-      #       - name: "Grundflächenzahl"
-      #         type: empty
-      #         # style: baufeldSchraffur
-      #   - name: "Bauweise, Baulinien, Baugrenzen"
-      #     update: true
-      #     subtitle: "§ 9 Abs. 1 Nr. 2 BauGB"
-      #     items:
-      #       - name: "Baugrenze"
-      #         type: empty
-      #         # style:
-      #         #   color: "Blue"
-      #         #   linetype: "ACAD_ISO02W100"    
+              symbol: "GRZ"
+        - name: "Bauweise, Baulinien, Baugrenzen"
+          update: true
+          subtitle: "§ 9 Abs. 1 Nr. 2 BauGB"
+          items:
+            - name: "Baugrenze"
+              type: empty
+              # symbol: "Baugrenze"   
       #   - name: "Verkehrsflächen"
       #     update: true
       #     subtitle: "(§ 9 Abs. 1 Nr. 11 und Abs. 6 BauGB)"
