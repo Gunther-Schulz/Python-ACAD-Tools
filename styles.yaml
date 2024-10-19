@@ -28,9 +28,10 @@ styles:
     transparency: 0.6
     hatch:
       individual_hatches: true
-  ausgleich:
+  ausgleichGeom:
     color: "moderate-intense-green"
     transparency: 0.6
+  ausgleichHatch:
     hatch:
       individual_hatches: true
   geltungsbereich:

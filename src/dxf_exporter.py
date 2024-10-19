@@ -68,7 +68,7 @@ class DXFExporter:
         label_layer_name = f"{base_layer_name} Label"
         label_properties = self.layer_properties[base_layer_name].copy()
         
-        style = base_layer.get('geomStyle', {})
+        geomStyle = base_layer.get('geomStyle', {})
         label_style = base_layer.get('labelStyle', {})
         
         # Apply label style properties, falling back to base style if not specified
@@ -80,7 +80,7 @@ class DXFExporter:
         
         # If no color is specified in label_style, use the base layer color or default to white
         if 'color' not in label_style:
-            label_properties['color'] = get_color_code(style.get('color'), self.name_to_aci)
+            label_properties['color'] = get_color_code(geomStyle.get('color'), self.name_to_aci)
         
         self.layer_properties[label_layer_name] = label_properties
         self.colors[label_layer_name] = label_properties['color']
@@ -630,21 +630,21 @@ class DXFExporter:
                     vp_handle = viewport.dxf.handle
                     
                     # Set color override
-                    color = get_color_code(vp_style['style'].get('color'), self.name_to_aci)
+                    color = get_color_code(vp_style['geomStyle'].get('color'), self.name_to_aci)
                     layer_overrides.set_color(vp_handle, color)
 
                     # Set linetype override
-                    linetype = vp_style['style'].get('linetype')
+                    linetype = vp_style['geomStyle'].get('linetype')
                     if linetype:
                         layer_overrides.set_linetype(vp_handle, linetype)
 
                     # Set lineweight override
-                    lineweight = vp_style['style'].get('lineweight')
+                    lineweight = vp_style['geomStyle'].get('lineweight')
                     if lineweight is not None:
                         layer_overrides.set_lineweight(vp_handle, lineweight)
 
                     # Set transparency override
-                    transparency = vp_style['style'].get('transparency')
+                    transparency = vp_style['geomStyle'].get('transparency')
                     if transparency is not None:
                         # Ensure transparency is between 0 and 1
                         transparency_value = max(0, min(transparency, 1))
@@ -679,7 +679,8 @@ class DXFExporter:
         # Merge with performHatch settings from layer_info
         if 'performHatch' in layer_info:
             hatch_config = self.deep_merge(hatch_config, layer_info['performHatch'])
-        elif not hatch_style:
+        
+        if not hatch_config:
             # If there's no hatchStyle and no performHatch, don't create a hatch
             log_info(f"No hatch configuration found for layer: {layer_name}")
             return
@@ -701,7 +702,7 @@ class DXFExporter:
         
         for geometry in geometries:
             hatch_paths = self._get_hatch_paths(geometry)
-            hatch = create_hatch(msp, hatch_paths, {'hatch': hatch_config}, self.project_loader, is_legend=False)
+            hatch = create_hatch(msp, hatch_paths, hatch_config, self.project_loader, is_legend=False)
             hatch.dxf.layer = layer_name
             self.attach_custom_data(hatch)
 
@@ -769,4 +770,6 @@ class DXFExporter:
                 remove_entities_by_layer(msp, target_layer_name, self.script_identifier)
                 
             create_path_array(msp, source_layer_name, target_layer_name, block_name, spacing, scale, rotation)
+
+
 

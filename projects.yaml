@@ -409,12 +409,11 @@ projects:
           - type: merge
         viewports:
           - name: WorkView
-            style:
+            geomStyle:
               color: "Dark Green"
       - name: Wald Schraffur
         update: true
-        geomStyle: 
-          hatch:
+        hatchStyle: 
             layers:
               - Wald
             pattern: 'ANSI31'
@@ -643,7 +642,8 @@ projects:
         outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/ausgleich.shp"
       - name: Ausgleich Schraffur
         update: true
-        geomStyle: ausgleich
+        geomStyle: ausgleichGeom
+        hatchStyle: ausgleichHatch
         performHatch:
           individual_hatches: true
         operations:
