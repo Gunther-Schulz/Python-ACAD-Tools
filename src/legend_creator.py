@@ -7,7 +7,7 @@ from src.dfx_utils import (get_color_code, convert_transparency, attach_custom_d
                            apply_style_to_entity, create_hatch, set_hatch_transparency, script_identifier)
 from ezdxf.math import Vec3
 from ezdxf import colors
-from src.utils import log_warning, log_error
+from src.utils import log_warning, log_error, log_info
 from src import dfx_utils
 from ezdxf.math import BoundingBox
 from ezdxf.lldxf.const import MTEXT_TOP_LEFT  # Add this line
@@ -99,6 +99,8 @@ class LegendCreator:
         x2, y2 = x1 + self.item_width, y1 - self.item_height
 
         symbol_name = item.get('symbol')
+        log_info(f"Creating item: {item_name}, type: {item_type}, symbol: {symbol_name}")
+        log_info(f"Available symbols: {list(self.symbols.keys())}")
 
         if item_type == 'area':
             item_entities = self.create_area_item(x1, y1, x2, y2, layer_name, item_style, symbol_name)
@@ -189,10 +191,13 @@ class LegendCreator:
 
         # Add symbol if specified
         if symbol_name and symbol_name in self.symbols:
+            log_info(f"Adding symbol '{symbol_name}' to area item")
             symbol_entity = self.msp.add_blockref(symbol_name, ((x1 + x2) / 2, (y1 + y2) / 2))
             symbol_entity.dxf.layer = layer_name
             self.attach_custom_data(symbol_entity)
             entities.append(symbol_entity)
+        else:
+            log_warning(f"Symbol '{symbol_name}' not found or not specified for area item")
 
         return entities
 
@@ -203,7 +208,7 @@ class LegendCreator:
         middle_y = (y1 + y2) / 2
         points = [(x1, middle_y), (x2, middle_y)]
         line = self.msp.add_lwpolyline(points, dxfattribs={'layer': layer_name})
-        apply_style_to_entity(line, item_style, self.project_loader.name_to_aci)
+        apply_style_to_entity(line, item_style, self.project_loader)
         entities.append(line)
 
         # Add symbol if specified
@@ -306,8 +311,21 @@ class LegendCreator:
 
     def load_symbols(self, symbols_dxf_path):
         full_path = os.path.expanduser(os.path.join(self.project_loader.folder_prefix, symbols_dxf_path))
+        log_info(f"Loading symbols from: {full_path}")
         symbols_doc = ezdxf.readfile(full_path)
         symbols = {}
         for block in symbols_doc.blocks:
-            symbols[block.name] = block
+            if not block.name.startswith('*'):  # Skip special blocks
+                symbols[block.name] = block
+                # Add the block to the main document
+                if block.name not in self.doc.blocks:
+                    self.doc.blocks.new(name=block.name)
+                    for entity in block:
+                        self.doc.blocks[block.name].add_entity(entity.copy())
+                log_info(f"Found and added block: {block.name}")
+        log_info(f"Total blocks found and added: {len(symbols)}")
         return symbols
+
+
+
+
