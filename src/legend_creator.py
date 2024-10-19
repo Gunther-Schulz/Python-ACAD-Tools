@@ -98,9 +98,8 @@ class LegendCreator:
     def create_item(self, item, layer_name):
         item_name = item.get('name', '')
         item_type = item.get('type', 'empty')
-        hatch_style = self.get_style(item.get('hatch_style', {}))
-        style = self.get_style(item.get('style', {}))  # Changed from rectangle_style to style
-        rectangle_style = self.get_style(item.get('rectangle_style', {}))
+        hatch_style = self.get_style(item.get('hatchStyle', {}))
+        geom_style = self.get_style(item.get('geomStyle', {}))
         block_symbol = item.get('block_symbol')
         block_symbol_scale = item.get('block_symbol_scale', 1.0)
         create_hatch = item.get('create_hatch', True)
@@ -112,24 +111,13 @@ class LegendCreator:
         
         sanitized_layer_name = self.get_sanitized_layer_name(layer_name)
 
-        # Prepare hatch style
-        prepared_hatch_style = {
-            'color': hatch_style.get('color'),
-            'transparency': hatch_style.get('transparency'),
-            'hatch': {
-                'pattern': hatch_style.get('hatch', {}).get('pattern', 'SOLID'),
-                'scale': hatch_style.get('hatch', {}).get('scale', 1),
-                'individual_hatches': hatch_style.get('hatch', {}).get('individual_hatches', True)
-            }
-        }
-
         # Step 1: Create the symbol/area/line item
         if item_type == 'area':
-            item_entities = self.create_area_item(x1, y1, x2, y2, sanitized_layer_name, prepared_hatch_style, rectangle_style, create_hatch, block_symbol, block_symbol_scale)
+            item_entities = self.create_area_item(x1, y1, x2, y2, sanitized_layer_name, hatch_style, geom_style, create_hatch, block_symbol, block_symbol_scale)
         elif item_type == 'line':
-            item_entities = self.create_line_item(x1, y1, x2, y2, sanitized_layer_name, style, block_symbol, block_symbol_scale)
+            item_entities = self.create_line_item(x1, y1, x2, y2, sanitized_layer_name, geom_style, block_symbol, block_symbol_scale)
         elif item_type == 'diagonal_line':
-            item_entities = self.create_diagonal_line_item(x1, y1, x2, y2, sanitized_layer_name, style, block_symbol, block_symbol_scale)
+            item_entities = self.create_diagonal_line_item(x1, y1, x2, y2, sanitized_layer_name, geom_style, block_symbol, block_symbol_scale)
         elif item_type == 'empty':
             item_entities = self.create_empty_item(x1, y1, x2, y2, sanitized_layer_name, block_symbol, block_symbol_scale)
         else:
@@ -394,3 +382,4 @@ class LegendCreator:
         if isinstance(style, str):
             style = self.project_loader.get_style(style)
         apply_style_to_entity(entity, style, self.project_loader, self.loaded_styles)
+

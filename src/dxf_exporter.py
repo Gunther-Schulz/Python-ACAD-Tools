@@ -47,9 +47,13 @@ class DXFExporter:
     def _setup_single_layer(self, layer):
         layer_name = layer['name']
         
-        # If style is a string, get the preset style
-        if 'style' in layer and isinstance(layer['style'], str):
-            layer['style'] = self.project_loader.get_style(layer['style'])
+        # If geomStyle is a string, get the preset style
+        if 'geomStyle' in layer and isinstance(layer['geomStyle'], str):
+            layer['geomStyle'] = self.project_loader.get_style(layer['geomStyle'])
+        
+        # If hatchStyle is a string, get the preset style
+        if 'hatchStyle' in layer and isinstance(layer['hatchStyle'], str):
+            layer['hatchStyle'] = self.project_loader.get_style(layer['hatchStyle'])
         
         self.add_layer_properties(layer_name, layer)
         
@@ -64,7 +68,7 @@ class DXFExporter:
         label_layer_name = f"{base_layer_name} Label"
         label_properties = self.layer_properties[base_layer_name].copy()
         
-        style = base_layer.get('style', {})
+        style = base_layer.get('geomStyle', {})
         label_style = base_layer.get('labelStyle', {})
         
         # Apply label style properties, falling back to base style if not specified
@@ -468,18 +472,18 @@ class DXFExporter:
 
     def add_layer_properties(self, layer_name, layer):
         properties = {}
-        style = layer.get('style', {})
+        geom_style = layer.get('geomStyle', {})
         
-        properties['color'] = get_color_code(style.get('color'), self.name_to_aci)
-        properties['linetype'] = style.get('linetype', 'Continuous')
-        properties['lineweight'] = style.get('lineweight', 0)
-        properties['plot'] = style.get('plot', True)
-        properties['locked'] = style.get('locked', False)
-        properties['frozen'] = style.get('frozen', False)
-        properties['is_on'] = style.get('is_on', True)
-        properties['transparency'] = style.get('transparency', 0)
-        properties['close'] = style.get('close', True)
-        properties['linetypeScale'] = style.get('linetypeScale', 1.0)  # Add this line
+        properties['color'] = get_color_code(geom_style.get('color'), self.name_to_aci)
+        properties['linetype'] = geom_style.get('linetype', 'Continuous')
+        properties['lineweight'] = geom_style.get('lineweight', 0)
+        properties['plot'] = geom_style.get('plot', True)
+        properties['locked'] = geom_style.get('locked', False)
+        properties['frozen'] = geom_style.get('frozen', False)
+        properties['is_on'] = geom_style.get('is_on', True)
+        properties['transparency'] = geom_style.get('transparency', 0)
+        properties['close'] = geom_style.get('close', True)
+        properties['linetypeScale'] = geom_style.get('linetypeScale', 1.0)
         
         self.layer_properties[layer_name] = properties
         self.colors[layer_name] = properties['color']
@@ -662,22 +666,21 @@ class DXFExporter:
     def _process_hatch(self, doc, msp, layer_name, layer_info):
         log_info(f"Processing hatch for layer: {layer_name}")
         
-        style = layer_info.get('style', {})
-        if isinstance(style, str):
-            style = self.project_loader.get_style(style)
+        hatch_style = layer_info.get('hatchStyle', {})
+        if isinstance(hatch_style, str):
+            hatch_style = self.project_loader.get_style(hatch_style)
         
         # Start with default hatch settings
         hatch_config = self.default_hatch_settings.copy()
         
-        # Merge with style hatch settings if present
-        if 'hatch' in style:
-            hatch_config = self.deep_merge(hatch_config, style['hatch'])
+        # Merge with hatchStyle settings
+        hatch_config = self.deep_merge(hatch_config, hatch_style)
         
         # Merge with performHatch settings from layer_info
         if 'performHatch' in layer_info:
             hatch_config = self.deep_merge(hatch_config, layer_info['performHatch'])
-        elif 'hatch' not in style:
-            # If there's no hatch in style and no performHatch, don't create a hatch
+        elif not hatch_style:
+            # If there's no hatchStyle and no performHatch, don't create a hatch
             log_info(f"No hatch configuration found for layer: {layer_name}")
             return
         
@@ -690,7 +693,7 @@ class DXFExporter:
             return
         
         individual_hatches = hatch_config.get('individual_hatches', False)
-        
+
         if individual_hatches:
             geometries = [boundary_geometry] if isinstance(boundary_geometry, (Polygon, LineString)) else list(boundary_geometry.geoms)
         else:
@@ -698,8 +701,7 @@ class DXFExporter:
         
         for geometry in geometries:
             hatch_paths = self._get_hatch_paths(geometry)
-            hatch_style = {'hatch': hatch_config}
-            hatch = create_hatch(msp, hatch_paths, hatch_style, self.project_loader, is_legend=False)
+            hatch = create_hatch(msp, hatch_paths, {'hatch': hatch_config}, self.project_loader, is_legend=False)
             hatch.dxf.layer = layer_name
             self.attach_custom_data(hatch)
 
@@ -767,3 +769,4 @@ class DXFExporter:
                 remove_entities_by_layer(msp, target_layer_name, self.script_identifier)
                 
             create_path_array(msp, source_layer_name, target_layer_name, block_name, spacing, scale, rotation)
+
