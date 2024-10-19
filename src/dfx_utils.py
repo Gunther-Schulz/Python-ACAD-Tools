@@ -445,3 +445,19 @@ def initialize_document(doc):
     load_standard_linetypes(doc)
     loaded_styles = load_standard_text_styles(doc)
     return loaded_styles
+
+def get_available_blocks(doc):
+    return set(block.name for block in doc.blocks if not block.name.startswith('*'))
+
+def add_block_reference(msp, block_name, insert_point, layer_name, scale=1.0, rotation=0.0):
+    if block_name in msp.doc.blocks:
+        block_ref = msp.add_blockref(block_name, insert_point)
+        block_ref.dxf.layer = layer_name
+        block_ref.dxf.xscale = scale
+        block_ref.dxf.yscale = scale
+        block_ref.dxf.rotation = rotation
+        attach_custom_data(block_ref, SCRIPT_IDENTIFIER)
+        return block_ref
+    else:
+        log_warning(f"Block '{block_name}' not found in the document")
+        return None
