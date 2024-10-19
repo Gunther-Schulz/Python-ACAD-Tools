@@ -100,6 +100,7 @@ class LegendCreator:
         item_type = item.get('type', 'empty')
         hatch_style = self.get_style(item.get('hatch_style', {}))
         style = self.get_style(item.get('style', {}))  # Changed from rectangle_style to style
+        rectangle_style = self.get_style(item.get('rectangle_style', {}))
         block_symbol = item.get('block_symbol')
         block_symbol_scale = item.get('block_symbol_scale', 1.0)
         create_hatch = item.get('create_hatch', True)
@@ -124,7 +125,7 @@ class LegendCreator:
 
         # Step 1: Create the symbol/area/line item
         if item_type == 'area':
-            item_entities = self.create_area_item(x1, y1, x2, y2, sanitized_layer_name, prepared_hatch_style, style, create_hatch, block_symbol, block_symbol_scale)
+            item_entities = self.create_area_item(x1, y1, x2, y2, sanitized_layer_name, prepared_hatch_style, rectangle_style, create_hatch, block_symbol, block_symbol_scale)
         elif item_type == 'line':
             item_entities = self.create_line_item(x1, y1, x2, y2, sanitized_layer_name, style, block_symbol, block_symbol_scale)
         elif item_type == 'diagonal_line':
@@ -154,7 +155,7 @@ class LegendCreator:
             text_x,
             item_center_y,
             sanitized_layer_name,
-            self.item_text_style.get('font', 'Standard'),
+            self.item_text_style.get('text_style', 'Standard'),
             self.item_text_style,
             self.project_loader.name_to_aci,
             self.max_width - self.item_width - self.text_offset
@@ -199,7 +200,10 @@ class LegendCreator:
         
         # Create the rectangle
         rectangle = self.msp.add_lwpolyline([(x1, y1), (x2, y1), (x2, y2), (x1, y2), (x1, y1)], dxfattribs={'layer': layer_name})
+        
+        # Apply the style to the rectangle
         self.apply_style(rectangle, rectangle_style)
+        
         self.attach_custom_data(rectangle)
         entities.append(rectangle)
 
@@ -384,4 +388,6 @@ class LegendCreator:
         return style
 
     def apply_style(self, entity, style):
+        if isinstance(style, str):
+            style = self.project_loader.get_style(style)
         apply_style_to_entity(entity, style, self.project_loader, self.loaded_styles)

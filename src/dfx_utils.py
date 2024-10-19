@@ -224,18 +224,14 @@ def apply_style_to_entity(entity, style, project_loader, loaded_styles, item_typ
     
     if 'linetype' in style:
         linetype = style['linetype']
-        if linetype not in entity.doc.linetypes:
+        if linetype_exists(entity.doc, linetype):
+            entity.dxf.linetype = linetype
+        else:
             log_warning(f"Linetype '{linetype}' is not defined in the current DXF object. Using 'BYLAYER' instead.")
             entity.dxf.linetype = 'BYLAYER'
-        else:
-            entity.dxf.linetype = linetype
-    else:
-        entity.dxf.linetype = 'BYLAYER'
     
     if 'lineweight' in style:
         entity.dxf.lineweight = style['lineweight']
-    else:
-        entity.dxf.lineweight = ezdxf.const.LINEWEIGHT_BYLAYER
     
     # Set transparency for all entity types
     if 'transparency' in style:
