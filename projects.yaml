@@ -191,6 +191,12 @@ projects:
             - name: "Wasserflächen"
               type: area
               hatch_style: water
+        - name: "Planungen, Nutzungsregelungen, Maßnahmen und Flächen für Maßnahmen zum Schutz, zur Pflege und zur Entwicklung von Natur und Landschaft"
+          update: true
+          subtitle: "§ 9 Abs.1 Nr. 20 BauGB"
+          items:
+            - name: "Umgrenzung von Flächen für Maßnahmen zum Schutz, zur Pflege und zurEntwicklung von Natur und Landschaft"
+              type: empty
         - name: "Sonstige Planzeichen"
           update: true
           items:
@@ -223,7 +229,7 @@ projects:
               type: empty
               create_hatch: false
               block_symbol: "GFL2"
-              block_symbol_scale: 1.8
+              block_symbol_scale: 1.6
         - name: "Darstellung ohne Normcharakter"
           update: true
           items:
@@ -238,16 +244,39 @@ projects:
               style: flurgrenze
             - name: "Flurstücksnummer\nFlurstücksgrenze"
               type: empty
+              block_symbol: "Parcel"
+              block_symbol_scale: 1.4
             - name: "anstehendes Gelände in Meter über NHN im amtlichen Höhenbezugssystem DHHN2016 als unterer Höhenbezugspunkt"
               type: empty
+              block_symbol: "Contours"
+              block_symbol_scale: 1.4
             - name: "Bemaßung in Meter"
               type: empty
+              block_symbol: "Bemaßung"
         - name: "Nachrichtliche Übernahme"
           update: true
           items:
             - name: "gesetzlich geschützes Biotop § 9 Abs. 6 BauGB i. V. m. § 20 NatSchAG - MV"
               type: area
-              # rectangle_style: geltungsbereich
+              create_hatch: false
+              rectangle_style: gesGeschuetzesBiotop
+              block_symbol: "Gesetzlich geschütztes Biotop"
+              block_symbol_scale: 1.8
+            - name: "Wald"
+              type: area
+              hatch_style: waldSchraffur
+            - name: "Baum"
+              type: empty
+              block_symbol: "Baum"
+              block_symbol_scale: 1.8
+            - name: "Baum erhalten"
+              type: empty
+              block_symbol: "Baum erhalten"
+              block_symbol_scale: 1.8
+            - name: "Abgrenzung unterschiedlicher Nutzung, z. B. von Baugebieten, oder Abgrenzung des Maßes der Nutzung innerhalb eines Baugebiets z.B. § 1 Abs. 4 § 16 Abs. 5 BauNVO)"
+              type: empty
+              block_symbol: "Abgrenzung unterschiedlicher Nutzung"
+              block_symbol_scale: 1.4
     viewports:
       - name: MainView
         center: [425, 450]
