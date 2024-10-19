@@ -97,26 +97,37 @@ class LegendCreator:
     def create_item(self, item, layer_name):
         item_name = item.get('name', '')
         item_type = item.get('type', 'empty')
-        item_style = get_style(item.get('style', {}), self.project_loader)
+        hatch_style = self.get_style(item.get('hatch_style', {}))
+        rectangle_style = self.get_style(item.get('rectangle_style', {}))
+        symbol_name = item.get('symbol')
+        symbol_scale = item.get('symbol_scale', 1.0)
+        create_hatch = item.get('create_hatch', True)
 
         x1, y1 = self.position['x'], self.current_y
         x2, y2 = x1 + self.item_width, y1 - self.item_height
 
-        symbol_name = item.get('symbol')  # This will be None if 'symbol' key is not present
         log_info(f"Creating item: {item_name}, type: {item_type}, symbol: {symbol_name}")
         
-        if symbol_name:
-            log_info(f"Available blocks: {list(self.available_blocks)}")
-
-        # Use sanitized layer name for entities
         sanitized_layer_name = self.get_sanitized_layer_name(layer_name)
 
+        # Prepare hatch style
+        prepared_hatch_style = {
+            'color': hatch_style.get('color'),
+            'transparency': hatch_style.get('transparency'),
+            'hatch': {
+                'pattern': hatch_style.get('hatch', {}).get('pattern', 'SOLID'),
+                'scale': hatch_style.get('hatch', {}).get('scale', 1),
+                'individual_hatches': hatch_style.get('hatch', {}).get('individual_hatches', True)
+            }
+        }
+
+        # Step 1: Create the symbol/area/line item
         if item_type == 'area':
-            item_entities = self.create_area_item(x1, y1, x2, y2, sanitized_layer_name, item_style, symbol_name)
+            item_entities = self.create_area_item(x1, y1, x2, y2, sanitized_layer_name, prepared_hatch_style, rectangle_style, create_hatch, symbol_name, symbol_scale)
         elif item_type == 'line':
-            item_entities = self.create_line_item(x1, y1, x2, y2, sanitized_layer_name, item_style, symbol_name)
+            item_entities = self.create_line_item(x1, y1, x2, y2, sanitized_layer_name, rectangle_style, symbol_name, symbol_scale)
         elif item_type == 'empty':
-            item_entities = self.create_empty_item(x1, y1, x2, y2, sanitized_layer_name, symbol_name)
+            item_entities = self.create_empty_item(x1, y1, x2, y2, sanitized_layer_name, symbol_name, symbol_scale)
         else:
             raise ValueError(f"Unknown item type: {item_type}")
 
@@ -124,25 +135,21 @@ class LegendCreator:
         item_bbox = bbox.BoundingBox()
         item_bbox.extend([Vec3(x1, y2, 0), Vec3(x2, y1, 0)])
 
-        if item_type != 'empty':
-            for entity in item_entities:
-                if entity:  # Check if the entity is not None
-                    entity_bbox = self.get_entity_bbox(entity)
-                    item_bbox.extend(entity_bbox)
-
-        # Ensure the item_bbox is at least as big as the defined item dimensions
-        item_bbox.extend([Vec3(x1, y1, 0), Vec3(x2, y2, 0)])
+        for entity in item_entities:
+            if entity:
+                entity_bbox = self.get_entity_bbox(entity)
+                item_bbox.extend(entity_bbox)
 
         # Calculate the vertical center of the item symbol or virtual box
         item_center_y = (item_bbox.extmin.y + item_bbox.extmax.y) / 2
 
-        # Create the item text using MTEXT
+        # Step 2: Create the item title text
         text_x = x2 + self.text_offset
         text_result = add_mtext(
             self.msp,
             item_name,
             text_x,
-            item_center_y,  # Use the center of the symbol or virtual box for text placement
+            item_center_y,
             sanitized_layer_name,
             self.item_text_style.get('font', 'Standard'),
             self.item_text_style,
@@ -157,51 +164,56 @@ class LegendCreator:
 
         text_entity, actual_text_height = text_result
 
-        # Adjust text vertical position to align with symbol center or virtual box center
+        # Step 3: Align the text with the symbol
         text_bbox = bbox.extents([text_entity])
         text_center_y = (text_bbox.extmin.y + text_bbox.extmax.y) / 2
         vertical_adjustment = item_center_y - text_center_y
         text_entity.translate(0, vertical_adjustment, 0)
 
-        # Recalculate combined bounding box
+        # Step 4: Get the bounding box of the entire item (symbol + text)
         text_bbox = bbox.extents([text_entity])
         combined_bbox = item_bbox.union(text_bbox)
 
-        # Calculate the total height of the item (including symbol/virtual box and text)
-        total_height = combined_bbox.size.y
-
-        # Move all entities as a unit to respect the item spacing
+        # Step 5: Position the entire item according to our placement rules
         vertical_offset = self.current_y - combined_bbox.extmax.y
         for entity in item_entities + [text_entity]:
-            if entity:  # Check if the entity is not None
+            if entity:
                 entity.translate(0, vertical_offset, 0)
+
+        # Calculate the total height of the item
+        total_height = combined_bbox.size.y
 
         # Adjust the current_y by the total height plus spacing
         self.current_y -= total_height + self.item_spacing
 
-        # Attach custom data to all entities (only text entity for 'empty' type)
+        # Attach custom data to all entities
         for entity in item_entities + [text_entity]:
-            if entity:  # Check if the entity is not None
+            if entity:
                 attach_custom_data(entity, self.script_identifier)
 
-    def create_area_item(self, x1, y1, x2, y2, layer_name, item_style, symbol_name=None):
+    def create_area_item(self, x1, y1, x2, y2, layer_name, hatch_style, rectangle_style, create_hatch, symbol_name=None, symbol_scale=1.0):
         entities = []
         
-        # Create the rectangle and hatch as before
+        # Create the rectangle
         rectangle = self.msp.add_lwpolyline([(x1, y1), (x2, y1), (x2, y2), (x1, y2), (x1, y1)], dxfattribs={'layer': layer_name})
+        apply_style_to_entity(rectangle, rectangle_style, self.project_loader)
         self.attach_custom_data(rectangle)
         entities.append(rectangle)
 
-        hatch_paths = [[(x1, y1), (x2, y1), (x2, y2), (x1, y2)]]
-        hatch = create_hatch(self.msp, hatch_paths, item_style, self.project_loader, is_legend=True)
-        hatch.dxf.layer = layer_name
-        self.attach_custom_data(hatch)
-        entities.append(hatch)
+        # Create hatch if specified
+        if create_hatch:
+            hatch_paths = [[(x1, y1), (x2, y1), (x2, y2), (x1, y2)]]
+            hatch = dfx_utils.create_hatch(self.msp, hatch_paths, hatch_style, self.project_loader, is_legend=True)
+            hatch.dxf.layer = layer_name
+            self.attach_custom_data(hatch)
+            entities.append(hatch)
 
         # Add symbol if specified
         if symbol_name and symbol_name in self.available_blocks:
-            log_info(f"Adding symbol '{symbol_name}' to area item")
+            log_info(f"Adding symbol '{symbol_name}' to area item with scale {symbol_scale}")
             symbol_entity = self.msp.add_blockref(symbol_name, ((x1 + x2) / 2, (y1 + y2) / 2))
+            symbol_entity.dxf.xscale = symbol_scale
+            symbol_entity.dxf.yscale = symbol_scale
             symbol_entity.dxf.layer = layer_name
             self.attach_custom_data(symbol_entity)
             entities.append(symbol_entity)
@@ -210,7 +222,7 @@ class LegendCreator:
 
         return entities
 
-    def create_line_item(self, x1, y1, x2, y2, layer_name, item_style, symbol_name=None):
+    def create_line_item(self, x1, y1, x2, y2, layer_name, item_style, symbol_name=None, symbol_scale=1.0):
         entities = []
         
         # Create the line as before
@@ -222,7 +234,9 @@ class LegendCreator:
 
         # Add symbol if specified
         if symbol_name and symbol_name in self.available_blocks:
-            symbol_entity = self.msp.add_blockref(symbol_name, ((x1 + x2) / 2, middle_y))
+            symbol_entity = self.msp.add_blockref(symbol_name, ((x1 + x2) / 2, (y1 + y2) / 2))
+            symbol_entity.dxf.xscale = symbol_scale
+            symbol_entity.dxf.yscale = symbol_scale
             symbol_entity.dxf.layer = layer_name
             self.attach_custom_data(symbol_entity)
             entities.append(symbol_entity)
@@ -231,12 +245,14 @@ class LegendCreator:
 
         return entities
 
-    def create_empty_item(self, x1, y1, x2, y2, layer_name, symbol_name=None):
+    def create_empty_item(self, x1, y1, x2, y2, layer_name, symbol_name=None, symbol_scale=1.0):
         entities = []
         
         # Add symbol if specified
         if symbol_name and symbol_name in self.available_blocks:
             symbol_entity = self.msp.add_blockref(symbol_name, ((x1 + x2) / 2, (y1 + y2) / 2))
+            symbol_entity.dxf.xscale = symbol_scale
+            symbol_entity.dxf.yscale = symbol_scale
             symbol_entity.dxf.layer = layer_name
             self.attach_custom_data(symbol_entity)
             entities.append(symbol_entity)
@@ -326,3 +342,14 @@ class LegendCreator:
         if name not in self.layer_name_cache:
             self.layer_name_cache[name] = sanitize_layer_name(name)
         return self.layer_name_cache[name]
+
+    def get_style(self, style):
+        if isinstance(style, str):
+            return self.project_loader.get_style(style)
+        return style
+
+
+
+
+
+

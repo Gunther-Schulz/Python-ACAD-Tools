@@ -93,11 +93,11 @@ projects:
     legend:
       title: "Planzeichen"
       subtitle: "(gem. PlanzV 1990-PlanzV 90 v.18.12.1990)"
-      max_width: 100
+      max_width: 160
       title_spacing: 0      # Space after the main legend title
       subtitle_spacing: 4   # Space after the main subtitle
       group_spacing: 3      # Space between different groups in the legend
-      group_title_spacing: 0 # Space after each group's title
+      group_title_spacing: 2 # Space after each group's title
       group_subtitle_spacing: 3 # Space after each group's subtitle
       item_spacing: 4       # Space between individual items within a group
       position:
@@ -135,35 +135,25 @@ projects:
         color: "Black"
         height: 3
         font: "Legend"
+        attachment_point: MTEXT_MIDDLE_LEFT
       groups:
-        - name: "Maß der baulichen Nutzung"
+        - name: "Art der baulichen Nutzung"
           update: true
           subtitle: "§ 9 Abs. 1 Nr. 1 BauGB"
           items:
             - name: "Sonstiges Sondergebiet (§ 11 Abs. 2 BauNVO) Zweckbestimmung: Energiegewinnung auf der Basis solarer Strahlungsenergie"
               type: area
-              style: baufeldSchraffur
+              create_hatch: true
+              hatch_style:
+                  color: "brilliant-red"
+                  transparency: 0.6
+                  hatch:
+                    individual_hatches: true
               symbol: "Sonstiges Sondergebiet EBS"
+              symbol_scale: 2
                 # color: "Red"
                 # transparency: 0.5
                 # linetype: "Continuous"
-            # - name: "Sonstiges Sondergebiet (§ 11 Abs. 2 BauNVO) Zweckbestimmung: Energiegewinnung auf der Basis solarer Strahlungsenergie"
-            #   type: line
-            #   style:
-            #     color: "Red"
-            #     transparency: 0.5
-            #     linetype: "Continuous"
-            # - name: "Sonstiges Sondergebiet (§ 11 Abs. 2 BauNVO) Zweckbestimmung: Energiegewinnung auf der Basis solarer Strahlungsenergie"
-            #   type: empty
-            #   # style:
-            #   #   color: "Blue"
-            #   #   linetype: "ACAD_ISO02W100"   
-            # - name: "test2"  
-            #   type: area
-            #   style: baufeldSchraffur
-            #     # color: "Red"
-            #     # transparency: 0.5
-            #     # linetype: "Continuous"
         - name: "Maß der baulichen Nutzung"
           update: true
           subtitle: "§ 9 Abs. 1 Nr. 1 BauGB"
@@ -171,6 +161,7 @@ projects:
             - name: "Grundflächenzahl"
               type: empty
               symbol: "GRZ"
+              symbol_scale: 2
         - name: "Bauweise, Baulinien, Baugrenzen"
           update: true
           subtitle: "§ 9 Abs. 1 Nr. 2 BauGB"
@@ -184,34 +175,39 @@ projects:
           items:
             - name: "Verkehrsfläche besonderer Zweckbestimmung"
               type: area
-              style: verkehrsflaeche
-      #     items:
-      #       - name: "Verkehrsberuhigter Bereich"
-      #         type: empty
-      #       - name: "Privat"
-      #         type: empty
-      #   - name: "Grünflächen"
-      #     update: true
-      #     subtitle: "§ 9 Abs.1 Nr. 15 BauGB"
-      #     items:
-      #       - name: "Private Grünflächen"
-      #         type: area
-      #         style:
-      #           color: "Light Green"
-      #           hatch:
-      #             pattern: "SOLID"
-      #             transparency: 0.5
-      #     - name: "Wasserflächen und Flächen für die Wasserwirtschaft, den Hochwasserschutz und die Regelung des Wasserabflusses"
-      #       update: true
-      #       subtitle: "§ 9 Abs. 1 Nr. 16 BauBG"
-      #       items:
-      #         - name: "Wasserflächen"
-      #           type: area
-      #           style:
-      #             color: "Light Green"
-      #             hatch:
-      #               pattern: "SOLID"
-      #               transparency: 0.5
+              hatch_style: verkehrsflaeche
+              rectangle_style:
+                color: "Red"
+                transparency: 0.5
+            - name: "Verkehrsberuhigter Bereich"
+              type: empty
+              symbol: "Verkehrsberuhigter Bereich"
+              symbol_scale: 2
+            - name: "Privat"
+              type: empty
+              symbol: "Privat"
+              symbol_scale: 2
+        - name: "Grünflächen"
+          update: true
+          subtitle: "§ 9 Abs.1 Nr. 15 BauGB"
+          items:
+            - name: "Private Grünflächen"
+              type: area
+              hatch_style: gruenflaeche
+        - name: "Wasserflächen und Flächen für die Wasserwirtschaft, den Hochwasserschutz und die Regelung des Wasserabflusses"
+          update: true
+          subtitle: "§ 9 Abs. 1 Nr. 16 BauBG"
+          items:
+            - name: "Wasserflächen"
+              type: area
+              hatch_style: water
+        - name: "Sonstige Planzeichen"
+          update: true
+          items:
+            - name: "Grenze des räumlichen Geltungsbereiches des Bebauungsplans"
+              type: area
+              create_hatch: false
+              rectangle_style: geltungsbereich
     viewports:
       - name: MainView
         center: [425, 450]
