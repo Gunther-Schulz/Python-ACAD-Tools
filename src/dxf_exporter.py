@@ -47,9 +47,9 @@ class DXFExporter:
     def _setup_single_layer(self, layer):
         layer_name = layer['name']
         
-        # If geomStyle is a string, get the preset style
-        if 'geomStyle' in layer and isinstance(layer['geomStyle'], str):
-            layer['geomStyle'] = self.project_loader.get_style(layer['geomStyle'])
+        # If layerStyle is a string, get the preset style
+        if 'layerStyle' in layer and isinstance(layer['layerStyle'], str):
+            layer['layerStyle'] = self.project_loader.get_style(layer['layerStyle'])
         
         # If hatchStyle is a string, get the preset style
         if 'hatchStyle' in layer and isinstance(layer['hatchStyle'], str):
@@ -68,7 +68,7 @@ class DXFExporter:
         label_layer_name = f"{base_layer_name} Label"
         label_properties = self.layer_properties[base_layer_name].copy()
         
-        geomStyle = base_layer.get('geomStyle', {})
+        layerStyle = base_layer.get('layerStyle', {})
         label_style = base_layer.get('labelStyle', {})
         
         # Apply label style properties, falling back to base style if not specified
@@ -80,7 +80,7 @@ class DXFExporter:
         
         # If no color is specified in label_style, use the base layer color or default to white
         if 'color' not in label_style:
-            label_properties['color'] = get_color_code(geomStyle.get('color'), self.name_to_aci)
+            label_properties['color'] = get_color_code(layerStyle.get('color'), self.name_to_aci)
         
         self.layer_properties[label_layer_name] = label_properties
         self.colors[label_layer_name] = label_properties['color']
@@ -472,7 +472,7 @@ class DXFExporter:
 
     def add_layer_properties(self, layer_name, layer):
         properties = {}
-        geom_style = layer.get('geomStyle', {})
+        geom_style = layer.get('layerStyle', {})
         
         properties['color'] = get_color_code(geom_style.get('color'), self.name_to_aci)
         properties['linetype'] = geom_style.get('linetype', 'Continuous')
@@ -630,21 +630,21 @@ class DXFExporter:
                     vp_handle = viewport.dxf.handle
                     
                     # Set color override
-                    color = get_color_code(vp_style['geomStyle'].get('color'), self.name_to_aci)
+                    color = get_color_code(vp_style['layerStyle'].get('color'), self.name_to_aci)
                     layer_overrides.set_color(vp_handle, color)
 
                     # Set linetype override
-                    linetype = vp_style['geomStyle'].get('linetype')
+                    linetype = vp_style['layerStyle'].get('linetype')
                     if linetype:
                         layer_overrides.set_linetype(vp_handle, linetype)
 
                     # Set lineweight override
-                    lineweight = vp_style['geomStyle'].get('lineweight')
+                    lineweight = vp_style['layerStyle'].get('lineweight')
                     if lineweight is not None:
                         layer_overrides.set_lineweight(vp_handle, lineweight)
 
                     # Set transparency override
-                    transparency = vp_style['geomStyle'].get('transparency')
+                    transparency = vp_style['layerStyle'].get('transparency')
                     if transparency is not None:
                         # Ensure transparency is between 0 and 1
                         transparency_value = max(0, min(transparency, 1))

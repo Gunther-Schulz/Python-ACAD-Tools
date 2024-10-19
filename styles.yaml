@@ -7,7 +7,7 @@ styles:
   water:
     color: "brilliant-blue"
     transparency: 0.6
-  baufeldGeom:
+  baufeldLayer:
     color: "brilliant-red"
     transparency: 0.6
   baufeldHatch:

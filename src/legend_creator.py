@@ -99,7 +99,7 @@ class LegendCreator:
         item_name = item.get('name', '')
         item_type = item.get('type', 'empty')
         hatch_style = self.get_style(item.get('hatchStyle', {}))
-        geom_style = self.get_style(item.get('geomStyle', {}))
+        geom_style = self.get_style(item.get('layerStyle', {}))
         block_symbol = item.get('block_symbol')
         block_symbol_scale = item.get('block_symbol_scale', 1.0)
         create_hatch = item.get('create_hatch', True)

@@ -62,35 +62,35 @@ class LayerProcessor:
             return
 
         # Check for unrecognized keys
-        recognized_keys = {'name', 'update', 'operations', 'shapeFile', 'dxfLayer', 'outputShapeFile', 'geomStyle', 'hatchStyle', 'labelStyle', 'label', 'close', 'linetypeScale', 'linetypeGeneration', 'viewports', 'attributes', 'bluntAngles'}
+        recognized_keys = {'name', 'update', 'operations', 'shapeFile', 'dxfLayer', 'outputShapeFile', 'layerStyle', 'hatchStyle', 'labelStyle', 'label', 'close', 'linetypeScale', 'linetypeGeneration', 'viewports', 'attributes', 'bluntAngles'}
         unrecognized_keys = set(layer_obj.keys()) - recognized_keys
         if unrecognized_keys:
             log_warning(f"Unrecognized keys in layer {layer_name}: {', '.join(unrecognized_keys)}")
 
         # Check for known style keys
         known_style_keys = {'color', 'linetype', 'lineweight', 'plot', 'locked', 'frozen', 'is_on', 'vp_freeze', 'transparency'}
-        if 'geomStyle' in layer_obj:
-            if isinstance(layer_obj['geomStyle'], str):
-                # If geomStyle is a string, it's a preset name
-                preset_style = self.project_loader.get_style(layer_obj['geomStyle'])
-                layer_obj['geomStyle'] = preset_style
+        if 'layerStyle' in layer_obj:
+            if isinstance(layer_obj['layerStyle'], str):
+                # If layerStyle is a string, it's a preset name
+                preset_style = self.project_loader.get_style(layer_obj['layerStyle'])
+                layer_obj['layerStyle'] = preset_style
             else:
                 # If it's a dict, it's a custom style, so we keep it as is
                 pass
 
-            unknown_style_keys = set(layer_obj['geomStyle'].keys()) - known_style_keys
+            unknown_style_keys = set(layer_obj['layerStyle'].keys()) - known_style_keys
             if unknown_style_keys:
                 log_warning(f"Unknown style keys in layer {layer_name}: {', '.join(unknown_style_keys)}")
             
             # Check for typos in style keys
-            for key in layer_obj['geomStyle'].keys():
+            for key in layer_obj['layerStyle'].keys():
                 closest_match = min(known_style_keys, key=lambda x: self.levenshtein_distance(key, x))
                 if key != closest_match and self.levenshtein_distance(key, closest_match) <= 2:
                     log_warning(f"Possible typo in style key for layer {layer_name}: '{key}'. Did you mean '{closest_match}'?")
 
             # Ensure transparency is between 0 and 1
-            if 'transparency' in layer_obj['geomStyle']:
-                layer_obj['geomStyle']['transparency'] = max(0, min(layer_obj['geomStyle']['transparency'], 1))
+            if 'transparency' in layer_obj['layerStyle']:
+                layer_obj['layerStyle']['transparency'] = max(0, min(layer_obj['layerStyle']['transparency'], 1))
 
         # Check for known labelStyle keys only if labels are present
         if 'label' in layer_obj or 'labelStyle' in layer_obj:
