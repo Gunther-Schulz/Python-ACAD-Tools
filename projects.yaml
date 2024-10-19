@@ -644,8 +644,7 @@ projects:
         update: true
         geomStyle: ausgleichGeom
         hatchStyle: ausgleichHatch
-        performHatch:
-          individual_hatches: true
+        performHatch: true
         operations:
           - type: copy
             layers:
@@ -696,7 +695,8 @@ projects:
         outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/baufeld.shp"
       - name: Baufeld Schraffur
         update: true
-        geomStyle: baufeldSchraffur
+        geomStyle: baufeldGeom
+        hatchStyle: baufeldHatch
         performHatch:
           layers:
             - Baufeld

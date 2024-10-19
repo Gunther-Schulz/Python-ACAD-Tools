@@ -676,12 +676,18 @@ class DXFExporter:
         # Merge with hatchStyle settings
         hatch_config = self.deep_merge(hatch_config, hatch_style)
         
-        # Merge with performHatch settings from layer_info
-        if 'performHatch' in layer_info:
-            hatch_config = self.deep_merge(hatch_config, layer_info['performHatch'])
+        # Check if performHatch is a boolean or dict
+        perform_hatch = layer_info.get('performHatch', False)
+        if isinstance(perform_hatch, bool):
+            if not perform_hatch:
+                log_info(f"Hatch processing skipped for layer: {layer_name}")
+                return
+            # If perform_hatch is True, continue with existing hatch_config
+        elif isinstance(perform_hatch, dict):
+            # Merge with performHatch settings from layer_info
+            hatch_config = self.deep_merge(hatch_config, perform_hatch)
         
         if not hatch_config:
-            # If there's no hatchStyle and no performHatch, don't create a hatch
             log_info(f"No hatch configuration found for layer: {layer_name}")
             return
         
@@ -770,6 +776,7 @@ class DXFExporter:
                 remove_entities_by_layer(msp, target_layer_name, self.script_identifier)
                 
             create_path_array(msp, source_layer_name, target_layer_name, block_name, spacing, scale, rotation)
+
 
 
 

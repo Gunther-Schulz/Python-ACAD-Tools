@@ -7,11 +7,11 @@ styles:
   water:
     color: "brilliant-blue"
     transparency: 0.6
-  baufeldSchraffur:
+  baufeldGeom:
     color: "brilliant-red"
     transparency: 0.6
-    hatch:
-      individual_hatches: true
+  baufeldHatch:
+    individual_hatches: true
       # pattern: 'SOLID'
       # scale: 10
   verkehrsflaeche:
