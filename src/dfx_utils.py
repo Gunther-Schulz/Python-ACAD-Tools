@@ -171,14 +171,19 @@ def update_layer_properties(layer, layer_properties):
 def load_standard_linetypes(doc):
     standard_linetypes = [
         'CONTINUOUS', 'CENTER', 'DASHED', 'PHANTOM', 'HIDDEN', 'DASHDOT',
-        'BORDER', 'DIVIDE', 'DOT', 'ACAD_ISO02W100', 'ACAD_ISO03W100',
-        'ACAD_ISO04W100', 'ACAD_ISO05W100', 'ACAD_ISO06W100', 'ACAD_ISO07W100',
-        'ACAD_ISO08W100', 'ACAD_ISO09W100', 'ACAD_ISO10W100', 'ACAD_ISO11W100',
-        'ACAD_ISO12W100', 'ACAD_ISO13W100', 'ACAD_ISO14W100', 'ACAD_ISO15W100'
+        'BORDER', 'DIVIDE', 'DOT'
     ]
+    # Add ACAD_ISO linetypes
+    for i in range(1, 16):  # ACAD_ISO01W100 to ACAD_ISO15W100
+        standard_linetypes.append(f'ACAD_ISO{i:02d}W100')
+
     for lt in standard_linetypes:
         if lt not in doc.linetypes:
-            doc.linetypes.new(lt)
+            try:
+                doc.linetypes.new(lt)
+                log_info(f"Added standard linetype: {lt}")
+            except ezdxf.lldxf.const.DXFTableEntryError:
+                log_warning(f"Failed to add standard linetype: {lt}")
 
 def set_drawing_properties(doc):
     doc.header['$INSUNITS'] = 6  # Assuming meters, adjust if needed
@@ -198,6 +203,9 @@ def get_style(style, project_loader):
         return project_loader.get_style(style)
     return style
 
+def linetype_exists(doc, linetype):
+    return linetype in doc.linetypes
+
 def apply_style_to_entity(entity, style, project_loader, item_type='area'):
     if entity.dxftype() == 'MTEXT':
         if 'height' in style:
@@ -215,7 +223,13 @@ def apply_style_to_entity(entity, style, project_loader, item_type='area'):
         entity.dxf.color = ezdxf.const.BYLAYER
     
     if 'linetype' in style:
-        entity.dxf.linetype = style['linetype']
+        linetype = style['linetype']
+        print(f"Linetype: {linetype}")
+        if linetype not in entity.doc.linetypes:
+            log_warning(f"Linetype '{linetype}' is not defined in the current DXF object. Using 'BYLAYER' instead.")
+            entity.dxf.linetype = 'BYLAYER'
+        else:
+            entity.dxf.linetype = linetype
     else:
         entity.dxf.linetype = 'BYLAYER'
     
