@@ -643,11 +643,9 @@ projects:
         outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/ausgleich.shp"
       - name: Ausgleich Schraffur
         update: true
-        style:
-          color: "Dark Green"
-          transparency: 0.6
-          hatch:
-            individual_hatches: true
+        style: ausgleich
+        performHatch:
+          individual_hatches: true
         operations:
           - type: copy
             layers:
@@ -669,10 +667,8 @@ projects:
             distance: -5
       - name: Grünfläche Schraffur
         update: true
-        style:
-          color: "Light Green"
-          transparency: 0.6
-          hatch:
+        style: gruenflaeche
+        perfromHatch:
             layers:
               - Grünfläche
             individual_hatches: true
