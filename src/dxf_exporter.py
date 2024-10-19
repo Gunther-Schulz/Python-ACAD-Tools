@@ -14,7 +14,7 @@ from PIL import Image
 from src.legend_creator import LegendCreator
 from src.dfx_utils import (get_color_code, convert_transparency, attach_custom_data, 
                            is_created_by_script, add_text, remove_entities_by_layer, 
-                           ensure_layer_exists, update_layer_properties, load_standard_linetypes, 
+                           ensure_layer_exists, update_layer_properties, 
                            set_drawing_properties, verify_dxf_settings, update_layer_geometry,
                            get_style, apply_style_to_entity, create_hatch, SCRIPT_IDENTIFIER, initialize_document, sanitize_layer_name, create_path_array)
 
@@ -120,7 +120,7 @@ class DXFExporter:
             doc = ezdxf.new(dxfversion=dxf_version)
             log_info(f"Created new DXF file with version: {dxf_version}")
             set_drawing_properties(doc)
-            load_standard_linetypes(doc)
+            # load_standard_linetypes(doc)
         return doc
 
     def load_existing_layers(self, doc):
