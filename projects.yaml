@@ -223,31 +223,31 @@ projects:
               type: empty
               create_hatch: false
               block_symbol: "GFL2"
-              block_symbol_scale: 2
+              block_symbol_scale: 1.8
         - name: "Darstellung ohne Normcharakter"
           update: true
           items:
             - name: "Gemeindegrenze"
               type: diagonal_line
               style: gemeindegrenze
-        #     - name: "Gemarkungsgrenze"
-        #       type: line
-        #       style: gemarkungsgrenze
-        #     - name: "Flurgrenze"
-        #       type: line
-        #       style: flurgrenze
-        #     - name: "Flurstücksnummer\nFlurstücksgrenze"
-        #       type: empty
-        #     - name: "anstehendes Gelände in Meter über NHN im amtlichen Höhenbezugssystem DHHN2016 als unterer Höhenbezugspunkt"
-        #       type: empty
-        #     - name: "Bemaßung in Meter"
-        #       type: empty
-        # - name: "Nachrichtliche Übernahme"
-        #   update: true
-        #   items:
-        #     - name: "gesetzlich geschützes Biotop § 9 Abs. 6 BauGB i. V. m. § 20 NatSchAG - MV"
-        #       type: area
-        #       # rectangle_style: geltungsbereich
+            - name: "Gemarkungsgrenze"
+              type: line
+              style: gemarkungsgrenze
+            - name: "Flurgrenze"
+              type: line
+              style: flurgrenze
+            - name: "Flurstücksnummer\nFlurstücksgrenze"
+              type: empty
+            - name: "anstehendes Gelände in Meter über NHN im amtlichen Höhenbezugssystem DHHN2016 als unterer Höhenbezugspunkt"
+              type: empty
+            - name: "Bemaßung in Meter"
+              type: empty
+        - name: "Nachrichtliche Übernahme"
+          update: true
+          items:
+            - name: "gesetzlich geschützes Biotop § 9 Abs. 6 BauGB i. V. m. § 20 NatSchAG - MV"
+              type: area
+              # rectangle_style: geltungsbereich
     viewports:
       - name: MainView
         center: [425, 450]
