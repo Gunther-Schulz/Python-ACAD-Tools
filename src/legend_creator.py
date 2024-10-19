@@ -98,7 +98,7 @@ class LegendCreator:
         item_name = item.get('name', '')
         item_type = item.get('type', 'empty')
         hatch_style = self.get_style(item.get('hatch_style', {}))
-        rectangle_style = self.get_style(item.get('rectangle_style', {}))
+        style = self.get_style(item.get('style', {}))  # Changed from rectangle_style to style
         block_symbol = item.get('block_symbol')
         block_symbol_scale = item.get('block_symbol_scale', 1.0)
         create_hatch = item.get('create_hatch', True)
@@ -123,9 +123,11 @@ class LegendCreator:
 
         # Step 1: Create the symbol/area/line item
         if item_type == 'area':
-            item_entities = self.create_area_item(x1, y1, x2, y2, sanitized_layer_name, prepared_hatch_style, rectangle_style, create_hatch, block_symbol, block_symbol_scale)
+            item_entities = self.create_area_item(x1, y1, x2, y2, sanitized_layer_name, prepared_hatch_style, style, create_hatch, block_symbol, block_symbol_scale)
         elif item_type == 'line':
-            item_entities = self.create_line_item(x1, y1, x2, y2, sanitized_layer_name, rectangle_style, block_symbol, block_symbol_scale)
+            item_entities = self.create_line_item(x1, y1, x2, y2, sanitized_layer_name, style, block_symbol, block_symbol_scale)
+        elif item_type == 'diagonal_line':
+            item_entities = self.create_diagonal_line_item(x1, y1, x2, y2, sanitized_layer_name, style, block_symbol, block_symbol_scale)
         elif item_type == 'empty':
             item_entities = self.create_empty_item(x1, y1, x2, y2, sanitized_layer_name, block_symbol, block_symbol_scale)
         else:
@@ -245,6 +247,33 @@ class LegendCreator:
 
         return entities
 
+    def create_diagonal_line_item(self, x1, y1, x2, y2, layer_name, style, block_symbol=None, block_symbol_scale=1.0):
+        entities = []
+        
+        # Create the rectangle (no styling)
+        rectangle = self.msp.add_lwpolyline([(x1, y1), (x2, y1), (x2, y2), (x1, y2), (x1, y1)], dxfattribs={'layer': layer_name})
+        self.attach_custom_data(rectangle)
+        entities.append(rectangle)
+
+        # Create the diagonal line
+        line = self.msp.add_line((x1, y1), (x2, y2), dxfattribs={'layer': layer_name})
+        apply_style_to_entity(line, style, self.project_loader)
+        self.attach_custom_data(line)
+        entities.append(line)
+
+        # Add symbol if specified
+        if block_symbol and block_symbol in self.available_blocks:
+            symbol_entity = self.msp.add_blockref(block_symbol, ((x1 + x2) / 2, (y1 + y2) / 2))
+            symbol_entity.dxf.xscale = block_symbol_scale
+            symbol_entity.dxf.yscale = block_symbol_scale
+            symbol_entity.dxf.layer = layer_name
+            self.attach_custom_data(symbol_entity)
+            entities.append(symbol_entity)
+        elif block_symbol:
+            log_warning(f"Symbol '{block_symbol}' not found for diagonal line item")
+
+        return entities
+
     def create_empty_item(self, x1, y1, x2, y2, layer_name, block_symbol=None, block_symbol_scale=1.0):
         entities = []
         
@@ -347,6 +376,7 @@ class LegendCreator:
         if isinstance(style, str):
             return self.project_loader.get_style(style)
         return style
+
 
 
 

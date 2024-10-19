@@ -219,7 +219,7 @@ projects:
           update: true
           items:
             - name: "Gemeindegrenze"
-              type: line
+              type: diagonal_line
             - name: "Gemarkungsgrenze"
               type: line
             - name: "Flurgrenze"
