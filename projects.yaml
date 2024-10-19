@@ -277,13 +277,13 @@ projects:
               type: empty
               block_symbol: "Abgrenzung unterschiedlicher Nutzung"
               block_symbol_scale: 1.4
-    # pathArrays:
-    #   - sourceLayer: "Wald"
-    #     targetLayer: "Wald Array"
-    #     block: "GFL1"
-    #     spacing: 10
-    #     # scale: 0.5
-    #     # rotation: 90
+    pathArrays:
+      - sourceLayer: "Biotope T-Symbol"
+        targetLayer: "Biotope T-Symbol Array"
+        block: "T-Symbol"
+        spacing: 10
+        # scale: 0.5
+        # rotation: 90
     viewports:
       - name: MainView
         center: [425, 450]
@@ -593,18 +593,31 @@ projects:
               - Biotope Input 1
               - Geschütze Biotope
             distance: 10
-          - type: buffer
-            mode: keep
-            layers:
-              - Biotope Input 1
-              - Geschütze Biotope
-            distance: 5
+          # - type: buffer
+          #   mode: keep
+          #   layers:
+          #     - Biotope Input 1
+          #     - Geschütze Biotope
+            # distance: 5
           - type: intersection
             layers:
               - Geltungsbereich NW
               - Geltungsbereich NO
               - Geltungsbereich S
         outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/biotope.shp"
+      - name: "Biotope T-Symbol"
+        update: true
+        close: true
+        operations:
+          - type: buffer
+            distance: 5
+            layers:
+              - Biotope
+          - type: intersection
+            layers:
+              - Geltungsbereich NW
+              - Geltungsbereich NO
+              - Geltungsbereich S              
       - name: Ausgleich
         update: true
         close: true

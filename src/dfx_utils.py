@@ -396,15 +396,18 @@ def get_mtext_constant(value):
     return mtext_constants.get(value, value)
 
 def sanitize_layer_name(name):
-    # Define a set of allowed characters, including German-specific ones
-    allowed_chars = r'a-zA-Z0-9_\-öüäßÖÜÄ'
+    # Define a set of allowed characters, including German-specific ones and space
+    allowed_chars = r'a-zA-Z0-9_\-öüäßÖÜÄ '
     
     # Replace disallowed characters with underscores
     sanitized = re.sub(f'[^{allowed_chars}]', '_', name)
     
-    # Ensure the name starts with a letter, underscore, or allowed special character
-    if not re.match(f'^[{allowed_chars}]', sanitized):
+    # Ensure the name starts with a letter, underscore, or allowed special character (excluding space)
+    if not re.match(f'^[{allowed_chars.replace(" ", "")}]', sanitized):
         sanitized = '_' + sanitized
+    
+    # Remove any leading spaces
+    sanitized = sanitized.lstrip()
     
     # Truncate to 255 characters (AutoCAD limit)
     return sanitized[:255]
