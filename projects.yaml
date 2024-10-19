@@ -93,7 +93,7 @@ projects:
     legend:
       title: "Planzeichen"
       subtitle: "(gem. PlanzV 1990-PlanzV 90 v.18.12.1990)"
-      max_width: 100
+      max_width: 200
       title_spacing: 0      # Space after the main legend title
       subtitle_spacing: 4   # Space after the main subtitle
       group_spacing: 3      # Space between different groups in the legend
@@ -144,6 +144,7 @@ projects:
               type: area
               style: baufeldSchraffur
               symbol: "Sonstiges Sondergebiet EBS"
+              symbol_scale: 2
                 # color: "Red"
                 # transparency: 0.5
                 # linetype: "Continuous"
@@ -171,6 +172,7 @@ projects:
             - name: "Grundflächenzahl"
               type: empty
               symbol: "GRZ"
+              symbol_scale: 2
         - name: "Bauweise, Baulinien, Baugrenzen"
           update: true
           subtitle: "§ 9 Abs. 1 Nr. 2 BauGB"
@@ -188,20 +190,22 @@ projects:
             - name: "Verkehrsberuhigter Bereich"
               type: empty
               symbol: "Verkehrsberuhigter Bereich"
+              symbol_scale: 2
             - name: "Privat"
               type: empty
               symbol: "Privat"
-      #   - name: "Grünflächen"
-      #     update: true
-      #     subtitle: "§ 9 Abs.1 Nr. 15 BauGB"
-      #     items:
-      #       - name: "Private Grünflächen"
-      #         type: area
-      #         style:
-      #           color: "Light Green"
-      #           hatch:
-      #             pattern: "SOLID"
-      #             transparency: 0.5
+              symbol_scale: 2
+        - name: "Grünflächen"
+          update: true
+          subtitle: "§ 9 Abs.1 Nr. 15 BauGB"
+          items:
+            - name: "Private Grünflächen"
+              type: area
+              style:
+                color: "brilliant-chartreuse"
+                hatch:
+                  pattern: "SOLID"
+                  transparency: 0.5
       #     - name: "Wasserflächen und Flächen für die Wasserwirtschaft, den Hochwasserschutz und die Regelung des Wasserabflusses"
       #       update: true
       #       subtitle: "§ 9 Abs. 1 Nr. 16 BauBG"

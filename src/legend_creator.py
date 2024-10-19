@@ -98,11 +98,12 @@ class LegendCreator:
         item_name = item.get('name', '')
         item_type = item.get('type', 'empty')
         item_style = get_style(item.get('style', {}), self.project_loader)
+        symbol_name = item.get('symbol')
+        symbol_scale = item.get('symbol_scale', 1.0)  # Add this line to get the symbol scale
 
         x1, y1 = self.position['x'], self.current_y
         x2, y2 = x1 + self.item_width, y1 - self.item_height
 
-        symbol_name = item.get('symbol')  # This will be None if 'symbol' key is not present
         log_info(f"Creating item: {item_name}, type: {item_type}, symbol: {symbol_name}")
         
         if symbol_name:
@@ -112,11 +113,11 @@ class LegendCreator:
         sanitized_layer_name = self.get_sanitized_layer_name(layer_name)
 
         if item_type == 'area':
-            item_entities = self.create_area_item(x1, y1, x2, y2, sanitized_layer_name, item_style, symbol_name)
+            item_entities = self.create_area_item(x1, y1, x2, y2, sanitized_layer_name, item_style, symbol_name, symbol_scale)
         elif item_type == 'line':
-            item_entities = self.create_line_item(x1, y1, x2, y2, sanitized_layer_name, item_style, symbol_name)
+            item_entities = self.create_line_item(x1, y1, x2, y2, sanitized_layer_name, item_style, symbol_name, symbol_scale)
         elif item_type == 'empty':
-            item_entities = self.create_empty_item(x1, y1, x2, y2, sanitized_layer_name, symbol_name)
+            item_entities = self.create_empty_item(x1, y1, x2, y2, sanitized_layer_name, symbol_name, symbol_scale)
         else:
             raise ValueError(f"Unknown item type: {item_type}")
 
@@ -184,7 +185,7 @@ class LegendCreator:
             if entity:  # Check if the entity is not None
                 attach_custom_data(entity, self.script_identifier)
 
-    def create_area_item(self, x1, y1, x2, y2, layer_name, item_style, symbol_name=None):
+    def create_area_item(self, x1, y1, x2, y2, layer_name, item_style, symbol_name=None, symbol_scale=1.0):
         entities = []
         
         # Create the rectangle and hatch as before
@@ -200,8 +201,10 @@ class LegendCreator:
 
         # Add symbol if specified
         if symbol_name and symbol_name in self.available_blocks:
-            log_info(f"Adding symbol '{symbol_name}' to area item")
+            log_info(f"Adding symbol '{symbol_name}' to area item with scale {symbol_scale}")
             symbol_entity = self.msp.add_blockref(symbol_name, ((x1 + x2) / 2, (y1 + y2) / 2))
+            symbol_entity.dxf.xscale = symbol_scale
+            symbol_entity.dxf.yscale = symbol_scale
             symbol_entity.dxf.layer = layer_name
             self.attach_custom_data(symbol_entity)
             entities.append(symbol_entity)
@@ -210,7 +213,7 @@ class LegendCreator:
 
         return entities
 
-    def create_line_item(self, x1, y1, x2, y2, layer_name, item_style, symbol_name=None):
+    def create_line_item(self, x1, y1, x2, y2, layer_name, item_style, symbol_name=None, symbol_scale=1.0):
         entities = []
         
         # Create the line as before
@@ -222,7 +225,9 @@ class LegendCreator:
 
         # Add symbol if specified
         if symbol_name and symbol_name in self.available_blocks:
-            symbol_entity = self.msp.add_blockref(symbol_name, ((x1 + x2) / 2, middle_y))
+            symbol_entity = self.msp.add_blockref(symbol_name, ((x1 + x2) / 2, (y1 + y2) / 2))
+            symbol_entity.dxf.xscale = symbol_scale
+            symbol_entity.dxf.yscale = symbol_scale
             symbol_entity.dxf.layer = layer_name
             self.attach_custom_data(symbol_entity)
             entities.append(symbol_entity)
@@ -231,12 +236,14 @@ class LegendCreator:
 
         return entities
 
-    def create_empty_item(self, x1, y1, x2, y2, layer_name, symbol_name=None):
+    def create_empty_item(self, x1, y1, x2, y2, layer_name, symbol_name=None, symbol_scale=1.0):
         entities = []
         
         # Add symbol if specified
         if symbol_name and symbol_name in self.available_blocks:
             symbol_entity = self.msp.add_blockref(symbol_name, ((x1 + x2) / 2, (y1 + y2) / 2))
+            symbol_entity.dxf.xscale = symbol_scale
+            symbol_entity.dxf.yscale = symbol_scale
             symbol_entity.dxf.layer = layer_name
             self.attach_custom_data(symbol_entity)
             entities.append(symbol_entity)
