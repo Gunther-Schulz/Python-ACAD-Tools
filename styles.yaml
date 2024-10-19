@@ -17,10 +17,10 @@ styles:
   verkehrsflaeche:
     # color: "brilliant-orange"
     color: "248,215,49"
+    lineweight: 10
     hatch:
       individual_hatches: true
       pattern: "ANSI31"
-      lineweight: 10
       # scale: 20
       # angle: 80
   gruenflaeche:

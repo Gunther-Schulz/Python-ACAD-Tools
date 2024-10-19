@@ -93,7 +93,7 @@ projects:
     legend:
       title: "Planzeichen"
       subtitle: "(gem. PlanzV 1990-PlanzV 90 v.18.12.1990)"
-      max_width: 200
+      max_width: 160
       title_spacing: 0      # Space after the main legend title
       subtitle_spacing: 4   # Space after the main subtitle
       group_spacing: 3      # Space between different groups in the legend
@@ -148,23 +148,6 @@ projects:
                 # color: "Red"
                 # transparency: 0.5
                 # linetype: "Continuous"
-            # - name: "Sonstiges Sondergebiet (§ 11 Abs. 2 BauNVO) Zweckbestimmung: Energiegewinnung auf der Basis solarer Strahlungsenergie"
-            #   type: line
-            #   style:
-            #     color: "Red"
-            #     transparency: 0.5
-            #     linetype: "Continuous"
-            # - name: "Sonstiges Sondergebiet (§ 11 Abs. 2 BauNVO) Zweckbestimmung: Energiegewinnung auf der Basis solarer Strahlungsenergie"
-            #   type: empty
-            #   # style:
-            #   #   color: "Blue"
-            #   #   linetype: "ACAD_ISO02W100"   
-            # - name: "test2"  
-            #   type: area
-            #   style: baufeldSchraffur
-            #     # color: "Red"
-            #     # transparency: 0.5
-            #     # linetype: "Continuous"
         - name: "Maß der baulichen Nutzung"
           update: true
           subtitle: "§ 9 Abs. 1 Nr. 1 BauGB"
