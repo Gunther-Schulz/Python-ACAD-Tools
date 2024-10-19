@@ -58,8 +58,30 @@ def attach_custom_data(entity, script_identifier):
     xdata_set = False
     hyperlink_set = False
 
+    # Set XDATA
     try:
-        # Set XDATA
+        existing_xdata = entity.get_xdata('DXFEXPORTER')
+        if existing_xdata:
+            for code, value in existing_xdata:
+                if code == 1000 and value == script_identifier:
+                    xdata_set = True
+                    break
+        
+        if not xdata_set:
+            entity.set_xdata(
+                'DXFEXPORTER',
+                [
+                    (1000, script_identifier),
+                    (1002, '{'),
+                    (1000, 'CREATED_BY'),
+                    (1000, 'DXFExporter'),
+                    (1002, '}')
+                ]
+            )
+            xdata_set = True
+    except ezdxf.lldxf.const.DXFValueError:
+        # This exception is raised when the XDATA application ID doesn't exist
+        # We can safely add the XDATA in this case
         entity.set_xdata(
             'DXFEXPORTER',
             [
@@ -71,17 +93,24 @@ def attach_custom_data(entity, script_identifier):
             ]
         )
         xdata_set = True
-        log_info(f"XDATA set for entity {entity.dxftype()}")
     except Exception as e:
         log_error(f"Error setting XDATA for entity {entity.dxftype()}: {str(e)}")
 
     # Set hyperlink
     if hasattr(entity, 'set_hyperlink'):
         try:
-            hyperlink_text = f"{script_identifier} - Created by DXFExporter"
-            entity.set_hyperlink(hyperlink_text, description="Entity created by DXFExporter")
-            hyperlink_set = True
-            log_info(f"Hyperlink set for entity {entity.dxftype()}")
+            existing_hyperlink = entity.get_hyperlink()
+            if isinstance(existing_hyperlink, tuple) and len(existing_hyperlink) > 0:
+                existing_url = existing_hyperlink[0]
+            else:
+                existing_url = ''
+
+            if script_identifier in existing_url:
+                hyperlink_set = True
+            else:
+                hyperlink_text = f"{script_identifier} - Created by DXFExporter"
+                entity.set_hyperlink(hyperlink_text, description="Entity created by DXFExporter")
+                hyperlink_set = True
         except Exception as e:
             log_error(f"Error setting hyperlink for entity {entity.dxftype()}: {str(e)}")
     else:

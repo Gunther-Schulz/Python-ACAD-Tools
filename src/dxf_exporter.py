@@ -548,11 +548,7 @@ class DXFExporter:
         log_info(f"Verifying hyperlinks for entities in layer {layer_name}")
         for entity in msp.query(f'*[layer=="{layer_name}"]'):
             if hasattr(entity, 'get_hyperlink'):
-                hyperlink = entity.get_hyperlink()
-                if hyperlink:
-                    log_info(f"Entity {entity.dxftype()} in layer {layer_name} has hyperlink: {hyperlink}")
-                else:
-                    log_info(f"Entity {entity.dxftype()} in layer {layer_name} has no hyperlink content")
+                pass
             else:
                 log_warning(f"Entity {entity.dxftype()} in layer {layer_name} has no 'get_hyperlink' method")
 
