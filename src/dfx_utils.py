@@ -14,7 +14,7 @@ from ezdxf.math import Vec3
 from src.utils import log_info, log_warning, log_error
 import re
 
-script_identifier = "Created by DXFExporter"
+SCRIPT_IDENTIFIER = "Created by DXFExporter"
 
 def get_color_code(color, name_to_aci):
     if color is None:
@@ -206,7 +206,7 @@ def get_style(style, project_loader):
 def linetype_exists(doc, linetype):
     return linetype in doc.linetypes
 
-def apply_style_to_entity(entity, style, project_loader, item_type='area'):
+def apply_style_to_entity(entity, style, project_loader, loaded_styles, item_type='area'):
     if entity.dxftype() == 'MTEXT':
         if 'height' in style:
             entity.dxf.char_height = style['height']
@@ -224,7 +224,6 @@ def apply_style_to_entity(entity, style, project_loader, item_type='area'):
     
     if 'linetype' in style:
         linetype = style['linetype']
-        print(f"Linetype: {linetype}")
         if linetype not in entity.doc.linetypes:
             log_warning(f"Linetype '{linetype}' is not defined in the current DXF object. Using 'BYLAYER' instead.")
             entity.dxf.linetype = 'BYLAYER'
@@ -260,6 +259,17 @@ def apply_style_to_entity(entity, style, project_loader, item_type='area'):
             entity.dxf.ltscale = style['linetype_scale']
         else:
             entity.dxf.ltscale = 1.0  # Default scale
+
+    if 'text_style' in style:
+        text_style = style['text_style']
+        if text_style not in loaded_styles:
+            log_warning(f"Text style '{text_style}' was not loaded during initialization. Using 'Standard' instead.")
+            entity.dxf.style = 'Standard'
+        elif text_style not in entity.doc.styles:
+            log_warning(f"Text style '{text_style}' is not defined in the current DXF object. Using 'Standard' instead.")
+            entity.dxf.style = 'Standard'
+        else:
+            entity.dxf.style = text_style
 
 def create_hatch(msp, boundary_paths, style, project_loader, is_legend=False):
     if is_legend:
@@ -346,7 +356,7 @@ def add_mtext(msp, text, x, y, layer_name, style_name, text_style=None, name_to_
     
     try:
         mtext = msp.add_mtext(sanitized_text, dxfattribs=dxfattribs)
-        attach_custom_data(mtext, script_identifier)
+        attach_custom_data(mtext, SCRIPT_IDENTIFIER)
         
         # Apply additional formatting if specified
         if text_style:
@@ -400,3 +410,42 @@ def sanitize_layer_name(name):
     
     # Truncate to 255 characters (AutoCAD limit)
     return sanitized[:255]
+
+def load_standard_text_styles(doc):
+    standard_styles = [
+        ('Standard', 'Arial', 0.0),
+        ('Arial', 'Arial', 0.0),
+        ('Arial Narrow', 'Arial Narrow', 0.0),
+        ('Isocpeur', 'Isocpeur', 0.0),
+        ('Isocp', 'Isocp', 0.0),
+        ('Romantic', 'Romantic', 0.0),
+        ('Romans', 'Romans', 0.0),
+        ('Romand', 'Romand', 0.0),
+        ('Romant', 'Romant', 0.0),
+    ]
+
+    loaded_styles = set()
+
+    for style_name, font, height in standard_styles:
+        if style_name not in doc.styles:
+            try:
+                style = doc.styles.new(style_name)
+                style.dxf.font = font
+                style.dxf.height = height
+                style.dxf.width = 1.0  # Default width factor
+                style.dxf.oblique = 0.0  # Default oblique angle
+                style.dxf.last_height = 2.5  # Default last height
+                loaded_styles.add(style_name)
+                log_info(f"Added standard text style: {style_name}")
+            except ezdxf.lldxf.const.DXFTableEntryError:
+                log_warning(f"Failed to add standard text style: {style_name}")
+        else:
+            loaded_styles.add(style_name)
+
+    return loaded_styles
+
+# This function should be called once when the document is loaded
+def initialize_document(doc):
+    load_standard_linetypes(doc)
+    loaded_styles = load_standard_text_styles(doc)
+    return loaded_styles

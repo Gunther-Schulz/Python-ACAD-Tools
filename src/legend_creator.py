@@ -1,10 +1,10 @@
 import ezdxf
 from ezdxf.enums import TextEntityAlignment
 from ezdxf import const
-from src.dfx_utils import (get_color_code, convert_transparency, attach_custom_data, 
+from src.dfx_utils import (get_color_code, attach_custom_data, 
                            is_created_by_script, add_mtext, remove_entities_by_layer, 
-                           ensure_layer_exists, update_layer_geometry, get_style, script_identifier,
-                           apply_style_to_entity, create_hatch, set_hatch_transparency, script_identifier,
+                           ensure_layer_exists, get_style, SCRIPT_IDENTIFIER,
+                           apply_style_to_entity,
                            sanitize_layer_name)
 from ezdxf.math import Vec3
 from ezdxf import colors
@@ -16,11 +16,12 @@ from ezdxf import bbox
 import os
 
 class LegendCreator:
-    def __init__(self, doc, msp, project_loader):
+    def __init__(self, doc, msp, project_loader, loaded_styles):
         self.doc = doc
         self.msp = msp
-        self.script_identifier = script_identifier
         self.project_loader = project_loader
+        self.loaded_styles = loaded_styles
+        self.script_identifier = SCRIPT_IDENTIFIER
         self.legend_config = project_loader.project_settings.get('legend', {})
         self.position = self.legend_config.get('position', {'x': 0, 'y': 0})
         self.current_y = self.position['y']
@@ -56,12 +57,12 @@ class LegendCreator:
             self.create_group(group)
 
     def selectively_remove_existing_legend(self):
-        remove_entities_by_layer(self.msp, "Legend_Title", script_identifier)
+        remove_entities_by_layer(self.msp, "Legend_Title", self.script_identifier)
         for group in self.legend_config.get('groups', []):
             if group.get('update', False):
                 group_name = group.get('name', '')
                 layer_name = f"Legend_{group_name}"
-                removed_count = remove_entities_by_layer(self.msp, layer_name, script_identifier)
+                removed_count = remove_entities_by_layer(self.msp, layer_name, self.script_identifier)
 
     def create_group(self, group):
         group_name = group.get('name', '')
@@ -198,7 +199,7 @@ class LegendCreator:
         
         # Create the rectangle
         rectangle = self.msp.add_lwpolyline([(x1, y1), (x2, y1), (x2, y2), (x1, y2), (x1, y1)], dxfattribs={'layer': layer_name})
-        apply_style_to_entity(rectangle, rectangle_style, self.project_loader)
+        self.apply_style(rectangle, rectangle_style)
         self.attach_custom_data(rectangle)
         entities.append(rectangle)
 
@@ -231,7 +232,7 @@ class LegendCreator:
         middle_y = (y1 + y2) / 2
         points = [(x1, middle_y), (x2, middle_y)]
         line = self.msp.add_lwpolyline(points, dxfattribs={'layer': layer_name})
-        apply_style_to_entity(line, rectangle_style, self.project_loader)
+        self.apply_style(line, rectangle_style)
         entities.append(line)
 
         # Add symbol if specified
@@ -257,7 +258,7 @@ class LegendCreator:
 
         # Create the diagonal line
         line = self.msp.add_line((x1, y1), (x2, y2), dxfattribs={'layer': layer_name})
-        apply_style_to_entity(line, style, self.project_loader)
+        self.apply_style(line, style)
         self.attach_custom_data(line)
         entities.append(line)
 
@@ -292,8 +293,13 @@ class LegendCreator:
 
     def add_mtext(self, x, y, text, layer_name, text_style, max_width=None):
         try:
+            style_name = text_style.get('text_style', 'Standard')
+            if style_name not in self.loaded_styles:
+                log_warning(f"Text style '{style_name}' was not loaded during initialization. Using 'Standard' instead.")
+                style_name = 'Standard'
+
             dxfattribs = {
-                'style': text_style.get('font', 'Standard'),
+                'style': style_name,
                 'char_height': text_style.get('height', 2.5),
                 'width': max_width,
                 'attachment_point': MTEXT_TOP_LEFT,
@@ -310,7 +316,7 @@ class LegendCreator:
             bounding_box = bbox.extents([mtext])
             actual_height = bounding_box.size.y
             
-            attach_custom_data(mtext, script_identifier)
+            attach_custom_data(mtext, self.script_identifier)
             return mtext, actual_height
         except Exception as e:
             log_error(f"Error creating MTEXT: {str(e)}")
@@ -318,12 +324,12 @@ class LegendCreator:
 
     def attach_custom_data(self, entity):
         if entity is not None:
-            attach_custom_data(entity, script_identifier)
+            attach_custom_data(entity, self.script_identifier)
         else:
             log_warning("Attempted to attach custom data to a None entity")
 
     def is_created_by_script(self, entity):
-        return is_created_by_script(entity, script_identifier)
+        return is_created_by_script(entity, self.script_identifier)
 
     def get_color_code(self, color):
         return get_color_code(color, self.name_to_aci)
@@ -377,11 +383,5 @@ class LegendCreator:
             return self.project_loader.get_style(style)
         return style
 
-
-
-
-
-
-
-
-
+    def apply_style(self, entity, style):
+        apply_style_to_entity(entity, style, self.project_loader, self.loaded_styles)

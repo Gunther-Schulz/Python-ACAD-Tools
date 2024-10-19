@@ -16,7 +16,7 @@ from src.dfx_utils import (get_color_code, convert_transparency, attach_custom_d
                            is_created_by_script, add_text, remove_entities_by_layer, 
                            ensure_layer_exists, update_layer_properties, load_standard_linetypes, 
                            set_drawing_properties, verify_dxf_settings, update_layer_geometry,
-                           get_style, apply_style_to_entity, create_hatch, script_identifier)
+                           get_style, apply_style_to_entity, create_hatch, SCRIPT_IDENTIFIER, initialize_document, sanitize_layer_name)
 
 class DXFExporter:
     def __init__(self, project_loader, layer_processor):
@@ -24,11 +24,12 @@ class DXFExporter:
         self.layer_processor = layer_processor
         self.project_settings = project_loader.project_settings
         self.dxf_filename = project_loader.dxf_filename
+        self.script_identifier = SCRIPT_IDENTIFIER
         self.all_layers = layer_processor.all_layers
         self.layer_properties = {}
         self.colors = {}
         self.name_to_aci = project_loader.name_to_aci
-        log_info(f"DXFExporter initialized with script identifier: {script_identifier}")
+        log_info(f"DXFExporter initialized with script identifier: {self.script_identifier}")
         self.setup_layers()
         self.viewports = {}
         self.default_hatch_settings = {
@@ -37,6 +38,7 @@ class DXFExporter:
             'color': None,  # Use layer color by default
             'individual_hatches': False
         }
+        self.loaded_styles = set()  # Add this line to store loaded styles
 
     def setup_layers(self):
         for layer in self.project_settings['geomLayers']:
@@ -82,12 +84,13 @@ class DXFExporter:
     def export_to_dxf(self):
         log_info("Starting DXF export...")
         doc = self._prepare_dxf_document()
+        self.loaded_styles = initialize_document(doc)
         msp = doc.modelspace()
         self.register_app_id(doc)
         self.create_viewports(doc, msp)
         self.process_layers(doc, msp)
         # Create legend
-        legend_creator = LegendCreator(doc, msp, self.project_loader)
+        legend_creator = LegendCreator(doc, msp, self.project_loader, self.loaded_styles)  # Pass self.loaded_styles here
         legend_creator.create_legend()
         self._cleanup_and_save(doc, msp)
 
@@ -136,7 +139,7 @@ class DXFExporter:
 
     def _cleanup_and_save(self, doc, msp):
         processed_layers = [layer['name'] for layer in self.project_settings['geomLayers']]
-        remove_entities_by_layer(msp, processed_layers, script_identifier)
+        remove_entities_by_layer(msp, processed_layers, self.script_identifier)
         doc.saveas(self.dxf_filename)
         log_info(f"DXF file saved: {self.dxf_filename}")
         verify_dxf_settings(self.dxf_filename)
@@ -207,12 +210,12 @@ class DXFExporter:
         def update_function():
             # Remove existing geometry and labels
             log_info(f"Removing existing geometry from layer {layer_name}")
-            remove_entities_by_layer(msp, layer_name, script_identifier)
+            remove_entities_by_layer(msp, layer_name, self.script_identifier)
             
             # Remove existing labels
             label_layer_name = f"{layer_name} Label"
             log_info(f"Removing existing labels from layer {label_layer_name}")
-            remove_entities_by_layer(msp, label_layer_name, script_identifier)
+            remove_entities_by_layer(msp, label_layer_name, self.script_identifier)
 
             # Add new geometry and labels
             log_info(f"Adding new geometry to layer {layer_name}")
@@ -225,21 +228,22 @@ class DXFExporter:
             self.verify_entity_hyperlinks(msp, layer_name)
             self.verify_entity_hyperlinks(msp, label_layer_name)
 
-        update_layer_geometry(msp, layer_name, script_identifier, update_function)
+        update_layer_geometry(msp, layer_name, self.script_identifier, update_function)
 
     def create_new_layer(self, doc, msp, layer_name, layer_info, add_geometry=True):
         log_info(f"Creating new layer: {layer_name}")
+        sanitized_layer_name = sanitize_layer_name(layer_name)  # Add this line
         properties = self.layer_properties[layer_name]
         
-        ensure_layer_exists(doc, layer_name, properties)
+        ensure_layer_exists(doc, sanitized_layer_name, properties)  # Update this line
         
-        log_info(f"Created new layer: {layer_name}")
+        log_info(f"Created new layer: {sanitized_layer_name}")  # Update this line
         log_info(f"Layer properties: {properties}")
         
         if add_geometry and layer_name in self.all_layers:
-            self.update_layer_geometry(msp, layer_name, self.all_layers[layer_name], layer_info)
+            self.update_layer_geometry(msp, sanitized_layer_name, self.all_layers[layer_name], layer_info)  # Update this line
         
-        return doc.layers.get(layer_name)
+        return doc.layers.get(sanitized_layer_name)  # Update this line
 
     def update_layer_properties(self, layer, layer_info):
         properties = self.layer_properties[layer.dxf.name]
@@ -247,10 +251,10 @@ class DXFExporter:
         log_info(f"Updated layer properties: {properties}")
 
     def attach_custom_data(self, entity):
-        attach_custom_data(entity, script_identifier)
+        attach_custom_data(entity, self.script_identifier)
 
     def is_created_by_script(self, entity):
-        return is_created_by_script(entity, script_identifier)
+        return is_created_by_script(entity, self.script_identifier)
 
     def add_wmts_xrefs_to_dxf(self, msp, tile_data, layer_name):
         log_info(f"Adding WMTS xrefs to DXF for layer: {layer_name}")
@@ -581,7 +585,7 @@ class DXFExporter:
                 viewport.set_xdata(
                     'DXFEXPORTER',
                     [
-                        (1000, script_identifier),
+                        (1000, self.script_identifier),
                         (1002, '{'),
                         (1000, 'VIEWPORT_NAME'),
                         (1000, vp_config['name']),
@@ -742,3 +746,6 @@ class DXFExporter:
             else:
                 result[key] = value
         return result
+
+    def apply_style(self, entity, style):
+        apply_style_to_entity(entity, style, self.project_loader, self.loaded_styles)
