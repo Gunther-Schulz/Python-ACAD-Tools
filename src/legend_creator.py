@@ -183,14 +183,14 @@ class LegendCreator:
             if entity:
                 attach_custom_data(entity, self.script_identifier)
 
-    def create_area_item(self, x1, y1, x2, y2, layer_name, hatch_style, rectangle_style, create_hatch, block_symbol=None, block_symbol_scale=1.0):
+    def create_area_item(self, x1, y1, x2, y2, layer_name, hatch_style, geom_style, create_hatch, block_symbol=None, block_symbol_scale=1.0):
         entities = []
         
         # Create the rectangle
         rectangle = self.msp.add_lwpolyline([(x1, y1), (x2, y1), (x2, y2), (x1, y2), (x1, y1)], dxfattribs={'layer': layer_name})
         
         # Apply the style to the rectangle
-        self.apply_style(rectangle, rectangle_style)
+        self.apply_style(rectangle, geom_style)
         
         self.attach_custom_data(rectangle)
         entities.append(rectangle)
@@ -382,4 +382,5 @@ class LegendCreator:
         if isinstance(style, str):
             style = self.project_loader.get_style(style)
         apply_style_to_entity(entity, style, self.project_loader, self.loaded_styles)
+
 
