@@ -6,9 +6,7 @@ styles:
       scale: 5
   water:
     color: "brilliant-blue"
-    hatch:
-      pattern: 'DASH'
-      scale: 2
+    transparency: 0.6
   baufeldSchraffur:
     color: "brilliant-red"
     transparency: 0.6
@@ -17,10 +15,16 @@ styles:
       # pattern: 'SOLID'
       # scale: 10
   verkehrsflaeche:
-    color: "brilliant-orange"
+    # color: "brilliant-orange"
+    color: "248,215,49"
     hatch:
       individual_hatches: true
       pattern: "ANSI31"
       lineweight: 10
       # scale: 20
       # angle: 80
+  gruenflaeche:
+    color: "brilliant-chartreuse"
+    transparency: 0.6
+    hatch:
+      pattern: "SOLID"

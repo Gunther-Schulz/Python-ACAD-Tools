@@ -201,22 +201,14 @@ projects:
           items:
             - name: "Private Grünflächen"
               type: area
-              style:
-                color: "brilliant-chartreuse"
-                hatch:
-                  pattern: "SOLID"
-                  transparency: 0.5
-      #     - name: "Wasserflächen und Flächen für die Wasserwirtschaft, den Hochwasserschutz und die Regelung des Wasserabflusses"
-      #       update: true
-      #       subtitle: "§ 9 Abs. 1 Nr. 16 BauBG"
-      #       items:
-      #         - name: "Wasserflächen"
-      #           type: area
-      #           style:
-      #             color: "Light Green"
-      #             hatch:
-      #               pattern: "SOLID"
-      #               transparency: 0.5
+              style: gruenflaeche
+        - name: "Wasserflächen und Flächen für die Wasserwirtschaft, den Hochwasserschutz und die Regelung des Wasserabflusses"
+          update: true
+          subtitle: "§ 9 Abs. 1 Nr. 16 BauBG"
+          items:
+            - name: "Wasserflächen"
+              type: area
+              style: water
     viewports:
       - name: MainView
         center: [425, 450]

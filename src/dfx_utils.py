@@ -20,9 +20,21 @@ def get_color_code(color, name_to_aci):
     if color is None:
         return 7  # Default to 7 (white) if no color is specified
     if isinstance(color, int):
-        return min(max(color, 0), 255)  # Ensure color is between 0 and 255
+        return color  # Return ACI code as-is
     elif isinstance(color, str):
-        return name_to_aci.get(color.lower(), 7)  # Default to 7 (white) if not found
+        if ',' in color:
+            # It's an RGB string
+            try:
+                return tuple(map(int, color.split(',')))
+            except ValueError:
+                print(f"Invalid RGB color string: {color}")
+                return 7  # Default to white if invalid
+        else:
+            # It's a color name
+            return name_to_aci.get(color.lower(), 7)
+    elif isinstance(color, (list, tuple)) and len(color) == 3:
+        # It's already an RGB tuple
+        return tuple(color)
     else:
         return 7  # Default to 7 (white) for any other type
 
@@ -194,7 +206,11 @@ def apply_style_to_entity(entity, style, project_loader, item_type='area'):
             entity.dxf.style = style['font']
     
     if 'color' in style:
-        entity.dxf.color = get_color_code(style['color'], project_loader.name_to_aci)
+        color = get_color_code(style['color'], project_loader.name_to_aci)
+        if isinstance(color, tuple):
+            entity.rgb = color  # Set RGB color directly
+        else:
+            entity.dxf.color = color  # Set ACI color
     else:
         entity.dxf.color = ezdxf.const.BYLAYER
     
@@ -253,7 +269,11 @@ def create_hatch(msp, boundary_paths, style, project_loader, is_legend=False):
     # Apply color and transparency only for legend items
     if is_legend:
         if 'color' in style:
-            hatch.dxf.color = get_color_code(style['color'], project_loader.name_to_aci)
+            color = get_color_code(style['color'], project_loader.name_to_aci)
+            if isinstance(color, tuple):
+                hatch.rgb = color  # Set RGB color directly
+            else:
+                hatch.dxf.color = color  # Set ACI color
         if 'transparency' in style:
             transparency = convert_transparency(style['transparency'])
             if transparency is not None:
