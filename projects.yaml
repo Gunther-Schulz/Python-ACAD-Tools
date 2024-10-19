@@ -94,12 +94,12 @@ projects:
       title: "Planzeichen"
       subtitle: "(gem. PlanzV 1990-PlanzV 90 v.18.12.1990)"
       max_width: 100
-      title_spacing: 0
-      subtitle_spacing: 0
-      group_spacing: 0
-      group_title_spacing: 0
-      group_subtitle_spacing: 0 
-      item_spacing: 0
+      title_spacing: 0      # Space after the main legend title
+      subtitle_spacing: 4   # Space after the main subtitle
+      group_spacing: 3      # Space between different groups in the legend
+      group_title_spacing: 0 # Space after each group's title
+      group_subtitle_spacing: 3 # Space after each group's subtitle
+      item_spacing: 3       # Space between individual items within a group
       position:
         x: 367841
         y: 5942622
