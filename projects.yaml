@@ -185,11 +185,12 @@ projects:
             - name: "Verkehrsfläche besonderer Zweckbestimmung"
               type: area
               style: verkehrsflaeche
-      #     items:
-      #       - name: "Verkehrsberuhigter Bereich"
-      #         type: empty
-      #       - name: "Privat"
-      #         type: empty
+            - name: "Verkehrsberuhigter Bereich"
+              type: empty
+              symbol: "Verkehrsberuhigter Bereich"
+            - name: "Privat"
+              type: empty
+              symbol: "Privat"
       #   - name: "Grünflächen"
       #     update: true
       #     subtitle: "§ 9 Abs.1 Nr. 15 BauGB"
