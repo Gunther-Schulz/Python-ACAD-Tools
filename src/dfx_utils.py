@@ -250,9 +250,14 @@ def create_hatch(msp, boundary_paths, style, project_loader, is_legend=False):
     for path in boundary_paths:
         hatch.paths.add_polyline_path(path)
     
-    # Apply color only for legend items
-    if is_legend and 'color' in style:
-        hatch.dxf.color = get_color_code(style['color'], project_loader.name_to_aci)
+    # Apply color and transparency only for legend items
+    if is_legend:
+        if 'color' in style:
+            hatch.dxf.color = get_color_code(style['color'], project_loader.name_to_aci)
+        if 'transparency' in style:
+            transparency = convert_transparency(style['transparency'])
+            if transparency is not None:
+                set_hatch_transparency(hatch, transparency)
     else:
         hatch.dxf.color = ezdxf.const.BYLAYER
     
