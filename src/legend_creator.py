@@ -12,6 +12,7 @@ from src import dfx_utils
 from ezdxf.math import BoundingBox
 from ezdxf.lldxf.const import MTEXT_TOP_LEFT  # Add this line
 from ezdxf import bbox
+import os
 
 class LegendCreator:
     def __init__(self, doc, msp, project_loader):
@@ -41,6 +42,7 @@ class LegendCreator:
         self.title_text_style = get_style(self.legend_config.get('titleTextStyle', {}), self.project_loader)
         self.title_subtitle_style = get_style(self.legend_config.get('titleSubtitleStyle', {}), self.project_loader)
         self.title_spacing = self.legend_config.get('title_spacing', 10)
+        self.symbols = self.load_symbols(project_loader.project_settings.get('symbolsDxf', ''))
 
     def create_legend(self):
         self.selectively_remove_existing_legend()
@@ -96,15 +98,14 @@ class LegendCreator:
         x1, y1 = self.position['x'], self.current_y
         x2, y2 = x1 + self.item_width, y1 - self.item_height
 
-        # Create the item symbol or virtual box for 'empty' type
+        symbol_name = item.get('symbol')
+
         if item_type == 'area':
-            item_entities = self.create_area_item(x1, y1, x2, y2, layer_name, item_style)
+            item_entities = self.create_area_item(x1, y1, x2, y2, layer_name, item_style, symbol_name)
         elif item_type == 'line':
-            line_entity = self.create_line_item(x1, y1, x2, y2, layer_name, item_style)
-            item_entities = [line_entity] if line_entity else []
+            item_entities = self.create_line_item(x1, y1, x2, y2, layer_name, item_style, symbol_name)
         elif item_type == 'empty':
-            # Create a virtual box for alignment, but don't add it to the drawing
-            item_entities = []
+            item_entities = self.create_empty_item(x1, y1, x2, y2, layer_name, symbol_name)
         else:
             raise ValueError(f"Unknown item type: {item_type}")
 
@@ -172,45 +173,59 @@ class LegendCreator:
             if entity:  # Check if the entity is not None
                 attach_custom_data(entity, self.script_identifier)
 
-    def create_area_item(self, x1, y1, x2, y2, layer_name, item_style):
-        # Create the rectangle
+    def create_area_item(self, x1, y1, x2, y2, layer_name, item_style, symbol_name=None):
+        entities = []
+        
+        # Create the rectangle and hatch as before
         rectangle = self.msp.add_lwpolyline([(x1, y1), (x2, y1), (x2, y2), (x1, y2), (x1, y1)], dxfattribs={'layer': layer_name})
         self.attach_custom_data(rectangle)
+        entities.append(rectangle)
 
-        # Create and style the hatch
         hatch_paths = [[(x1, y1), (x2, y1), (x2, y2), (x1, y2)]]
         hatch = create_hatch(self.msp, hatch_paths, item_style, self.project_loader, is_legend=True)
         hatch.dxf.layer = layer_name
         self.attach_custom_data(hatch)
+        entities.append(hatch)
 
-        # Set hatch transparency
-        if 'transparency' in item_style:
-            transparency = convert_transparency(item_style['transparency'])
-            set_hatch_transparency(hatch, transparency)
+        # Add symbol if specified
+        if symbol_name and symbol_name in self.symbols:
+            symbol_entity = self.msp.add_blockref(symbol_name, ((x1 + x2) / 2, (y1 + y2) / 2))
+            symbol_entity.dxf.layer = layer_name
+            self.attach_custom_data(symbol_entity)
+            entities.append(symbol_entity)
 
-        return [rectangle, hatch]
+        return entities
 
-    def create_line_item(self, x1, y1, x2, y2, layer_name, item_style):
-        # Calculate the middle y-coordinate
+    def create_line_item(self, x1, y1, x2, y2, layer_name, item_style, symbol_name=None):
+        entities = []
+        
+        # Create the line as before
         middle_y = (y1 + y2) / 2
-
-        # Create a line for the legend item in the middle
         points = [(x1, middle_y), (x2, middle_y)]
         line = self.msp.add_lwpolyline(points, dxfattribs={'layer': layer_name})
-        
-        # Apply style to the line
-        if 'color' in item_style:
-            line.dxf.color = get_color_code(item_style['color'], self.project_loader.name_to_aci)
-        if 'linetype' in item_style:
-            line.dxf.linetype = item_style['linetype']
-        if 'lineweight' in item_style:
-            line.dxf.lineweight = item_style['lineweight']
-        
-        return line
+        apply_style_to_entity(line, item_style, self.project_loader.name_to_aci)
+        entities.append(line)
 
-    def create_empty_item(self, x1, y1, x2, y2, layer_name):
-        # For empty items, we don't need to draw anything
-        pass
+        # Add symbol if specified
+        if symbol_name and symbol_name in self.symbols:
+            symbol_entity = self.msp.add_blockref(symbol_name, ((x1 + x2) / 2, middle_y))
+            symbol_entity.dxf.layer = layer_name
+            self.attach_custom_data(symbol_entity)
+            entities.append(symbol_entity)
+
+        return entities
+
+    def create_empty_item(self, x1, y1, x2, y2, layer_name, symbol_name=None):
+        entities = []
+        
+        # Add symbol if specified
+        if symbol_name and symbol_name in self.symbols:
+            symbol_entity = self.msp.add_blockref(symbol_name, ((x1 + x2) / 2, (y1 + y2) / 2))
+            symbol_entity.dxf.layer = layer_name
+            self.attach_custom_data(symbol_entity)
+            entities.append(symbol_entity)
+
+        return entities
 
     def add_mtext(self, x, y, text, layer_name, text_style, max_width=None):
         try:
@@ -288,3 +303,11 @@ class LegendCreator:
             return item_bbox
         else:
             return bbox.extents([entity])
+
+    def load_symbols(self, symbols_dxf_path):
+        full_path = os.path.expanduser(os.path.join(self.project_loader.folder_prefix, symbols_dxf_path))
+        symbols_doc = ezdxf.readfile(full_path)
+        symbols = {}
+        for block in symbols_doc.blocks:
+            symbols[block.name] = block
+        return symbols

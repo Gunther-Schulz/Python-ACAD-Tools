@@ -144,6 +144,7 @@ projects:
             - name: "Sonstiges Sondergebiet (§ 11 Abs. 2 BauNVO) Zweckbestimmung: Energiegewinnung auf der Basis solarer Strahlungsenergie"
               type: area
               style: baufeldSchraffur
+              symbol: "Sonstiges Sondergebiet EBS"
                 # color: "Red"
                 # transparency: 0.5
                 # linetype: "Continuous"
