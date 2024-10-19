@@ -42,7 +42,9 @@ class LegendCreator:
         self.title_text_style = get_style(self.legend_config.get('titleTextStyle', {}), self.project_loader)
         self.title_subtitle_style = get_style(self.legend_config.get('titleSubtitleStyle', {}), self.project_loader)
         self.title_spacing = self.legend_config.get('title_spacing', 10)
-        self.symbols = self.load_symbols(project_loader.project_settings.get('symbolsDxf', ''))
+        
+        # Instead, get the list of available blocks in the document
+        self.available_blocks = set(block.name for block in self.doc.blocks if not block.name.startswith('*'))
 
     def create_legend(self):
         self.selectively_remove_existing_legend()
@@ -98,9 +100,11 @@ class LegendCreator:
         x1, y1 = self.position['x'], self.current_y
         x2, y2 = x1 + self.item_width, y1 - self.item_height
 
-        symbol_name = item.get('symbol')
+        symbol_name = item.get('symbol')  # This will be None if 'symbol' key is not present
         log_info(f"Creating item: {item_name}, type: {item_type}, symbol: {symbol_name}")
-        log_info(f"Available symbols: {list(self.symbols.keys())}")
+        
+        if symbol_name:
+            log_info(f"Available blocks: {list(self.available_blocks)}")
 
         if item_type == 'area':
             item_entities = self.create_area_item(x1, y1, x2, y2, layer_name, item_style, symbol_name)
@@ -190,14 +194,14 @@ class LegendCreator:
         entities.append(hatch)
 
         # Add symbol if specified
-        if symbol_name and symbol_name in self.symbols:
+        if symbol_name and symbol_name in self.available_blocks:
             log_info(f"Adding symbol '{symbol_name}' to area item")
             symbol_entity = self.msp.add_blockref(symbol_name, ((x1 + x2) / 2, (y1 + y2) / 2))
             symbol_entity.dxf.layer = layer_name
             self.attach_custom_data(symbol_entity)
             entities.append(symbol_entity)
-        else:
-            log_warning(f"Symbol '{symbol_name}' not found or not specified for area item")
+        elif symbol_name:
+            log_warning(f"Symbol '{symbol_name}' not found for area item")
 
         return entities
 
@@ -212,11 +216,13 @@ class LegendCreator:
         entities.append(line)
 
         # Add symbol if specified
-        if symbol_name and symbol_name in self.symbols:
+        if symbol_name and symbol_name in self.available_blocks:
             symbol_entity = self.msp.add_blockref(symbol_name, ((x1 + x2) / 2, middle_y))
             symbol_entity.dxf.layer = layer_name
             self.attach_custom_data(symbol_entity)
             entities.append(symbol_entity)
+        elif symbol_name:
+            log_warning(f"Symbol '{symbol_name}' not found for line item")
 
         return entities
 
@@ -224,11 +230,13 @@ class LegendCreator:
         entities = []
         
         # Add symbol if specified
-        if symbol_name and symbol_name in self.symbols:
+        if symbol_name and symbol_name in self.available_blocks:
             symbol_entity = self.msp.add_blockref(symbol_name, ((x1 + x2) / 2, (y1 + y2) / 2))
             symbol_entity.dxf.layer = layer_name
             self.attach_custom_data(symbol_entity)
             entities.append(symbol_entity)
+        elif symbol_name:
+            log_warning(f"Symbol '{symbol_name}' not found for empty item")
 
         return entities
 
@@ -308,24 +316,3 @@ class LegendCreator:
             return item_bbox
         else:
             return bbox.extents([entity])
-
-    def load_symbols(self, symbols_dxf_path):
-        full_path = os.path.expanduser(os.path.join(self.project_loader.folder_prefix, symbols_dxf_path))
-        log_info(f"Loading symbols from: {full_path}")
-        symbols_doc = ezdxf.readfile(full_path)
-        symbols = {}
-        for block in symbols_doc.blocks:
-            if not block.name.startswith('*'):  # Skip special blocks
-                symbols[block.name] = block
-                # Add the block to the main document
-                if block.name not in self.doc.blocks:
-                    self.doc.blocks.new(name=block.name)
-                    for entity in block:
-                        self.doc.blocks[block.name].add_entity(entity.copy())
-                log_info(f"Found and added block: {block.name}")
-        log_info(f"Total blocks found and added: {len(symbols)}")
-        return symbols
-
-
-
-
