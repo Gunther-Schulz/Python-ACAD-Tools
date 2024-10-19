@@ -12,6 +12,7 @@ from ezdxf.lldxf.const import (
 from ezdxf.enums import TextEntityAlignment
 from ezdxf.math import Vec3
 from src.utils import log_info, log_warning, log_error
+import re
 
 script_identifier = "Created by DXFExporter"
 
@@ -341,3 +342,17 @@ def get_mtext_constant(value):
         'MTEXT_EXACT': MTEXT_EXACT
     }
     return mtext_constants.get(value, value)
+
+def sanitize_layer_name(name):
+    # Define a set of allowed characters, including German-specific ones
+    allowed_chars = r'a-zA-Z0-9_\-öüäßÖÜÄ'
+    
+    # Replace disallowed characters with underscores
+    sanitized = re.sub(f'[^{allowed_chars}]', '_', name)
+    
+    # Ensure the name starts with a letter, underscore, or allowed special character
+    if not re.match(f'^[{allowed_chars}]', sanitized):
+        sanitized = '_' + sanitized
+    
+    # Truncate to 255 characters (AutoCAD limit)
+    return sanitized[:255]

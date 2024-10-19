@@ -4,7 +4,8 @@ from ezdxf import const
 from src.dfx_utils import (get_color_code, convert_transparency, attach_custom_data, 
                            is_created_by_script, add_mtext, remove_entities_by_layer, 
                            ensure_layer_exists, update_layer_geometry, get_style, script_identifier,
-                           apply_style_to_entity, create_hatch, set_hatch_transparency, script_identifier)
+                           apply_style_to_entity, create_hatch, set_hatch_transparency, script_identifier,
+                           sanitize_layer_name)
 from ezdxf.math import Vec3
 from ezdxf import colors
 from src.utils import log_warning, log_error, log_info
@@ -45,6 +46,7 @@ class LegendCreator:
         
         # Instead, get the list of available blocks in the document
         self.available_blocks = set(block.name for block in self.doc.blocks if not block.name.startswith('*'))
+        self.layer_name_cache = {}  # Add this line to cache sanitized layer names
 
     def create_legend(self):
         self.selectively_remove_existing_legend()
@@ -65,7 +67,7 @@ class LegendCreator:
         group_name = group.get('name', '')
         subtitle = group.get('subtitle', '')
         items = group.get('items', [])
-        layer_name = f"Legend_{group_name}"
+        layer_name = self.get_sanitized_layer_name(f"Legend_{group_name}")
         
         # Add group title
         title_result = self.add_mtext(self.position['x'], self.current_y, group_name, layer_name, self.group_text_style, self.max_width)
@@ -106,12 +108,15 @@ class LegendCreator:
         if symbol_name:
             log_info(f"Available blocks: {list(self.available_blocks)}")
 
+        # Use sanitized layer name for entities
+        sanitized_layer_name = self.get_sanitized_layer_name(layer_name)
+
         if item_type == 'area':
-            item_entities = self.create_area_item(x1, y1, x2, y2, layer_name, item_style, symbol_name)
+            item_entities = self.create_area_item(x1, y1, x2, y2, sanitized_layer_name, item_style, symbol_name)
         elif item_type == 'line':
-            item_entities = self.create_line_item(x1, y1, x2, y2, layer_name, item_style, symbol_name)
+            item_entities = self.create_line_item(x1, y1, x2, y2, sanitized_layer_name, item_style, symbol_name)
         elif item_type == 'empty':
-            item_entities = self.create_empty_item(x1, y1, x2, y2, layer_name, symbol_name)
+            item_entities = self.create_empty_item(x1, y1, x2, y2, sanitized_layer_name, symbol_name)
         else:
             raise ValueError(f"Unknown item type: {item_type}")
 
@@ -138,7 +143,7 @@ class LegendCreator:
             item_name,
             text_x,
             item_center_y,  # Use the center of the symbol or virtual box for text placement
-            layer_name,
+            sanitized_layer_name,
             self.item_text_style.get('font', 'Standard'),
             self.item_text_style,
             self.project_loader.name_to_aci,
@@ -281,7 +286,7 @@ class LegendCreator:
     def create_legend_title(self):
         title = self.legend_config.get('title', '')
         subtitle = self.legend_config.get('subtitle', '')
-        layer_name = "Legend_Title"
+        layer_name = self.get_sanitized_layer_name("Legend_Title")
 
         ensure_layer_exists(self.doc, layer_name, {})
 
@@ -316,3 +321,8 @@ class LegendCreator:
             return item_bbox
         else:
             return bbox.extents([entity])
+
+    def get_sanitized_layer_name(self, name):
+        if name not in self.layer_name_cache:
+            self.layer_name_cache[name] = sanitize_layer_name(name)
+        return self.layer_name_cache[name]

@@ -177,19 +177,14 @@ projects:
           items:
             - name: "Baugrenze"
               type: empty
-              # symbol: "Baugrenze"   
-      #   - name: "Verkehrsflächen"
-      #     update: true
-      #     subtitle: "(§ 9 Abs. 1 Nr. 11 und Abs. 6 BauGB)"
-      #     items:
-      #       - name: "Verkehrsfläche besonderer Zweckbestimmung"
-      #         type: area
-      #         style:
-      #           color: "Burnt Yellow"
-      #           hatch:
-      #             pattern: "ANSI31"
-      #             scale: 20
-      #             angle: 80
+              symbol: "Baugrenze"   
+        - name: "Verkehrsflächen"
+          update: true
+          subtitle: "(§ 9 Abs. 1 Nr. 11 und Abs. 6 BauGB)"
+          items:
+            - name: "Verkehrsfläche besonderer Zweckbestimmung"
+              type: area
+              style: verkehrsflaeche
       #     items:
       #       - name: "Verkehrsberuhigter Bereich"
       #         type: empty
