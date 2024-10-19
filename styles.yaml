@@ -42,3 +42,10 @@ styles:
   flurgrenze:
     linetype: "ACAD_ISO14W100"
     lineweight: 50
+  gesGeschuetzesBiotop:
+    color: "brilliant-intense-orange"
+    linetype: "ACAD_ISO02W100"
+    lineweight: 30
+  waldSchraffur:
+    hatch:
+      pattern: "ANSI31"
