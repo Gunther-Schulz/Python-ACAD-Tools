@@ -144,7 +144,7 @@ projects:
             - name: "Sonstiges Sondergebiet (§ 11 Abs. 2 BauNVO) Zweckbestimmung: Energiegewinnung auf der Basis solarer Strahlungsenergie"
               type: area
               create_hatch: true
-              hatchStyle: baufeldLayer
+              layerStyle: baufeldLayer
               block_symbol: "Sonstiges Sondergebiet EBS"
               block_symbol_scale: 2
         - name: "Maß der baulichen Nutzung"
@@ -259,7 +259,7 @@ projects:
             - name: "gesetzlich geschützes Biotop § 9 Abs. 6 BauGB i. V. m. § 20 NatSchAG - MV"
               type: area
               create_hatch: false
-              rectangle_style: gesGeschuetzesBiotop
+              rectangleStyle: gesGeschuetzesBiotop
               block_symbol: "Gesetzlich geschütztes Biotop"
               block_symbol_scale: 1.8
             - name: "Wald"

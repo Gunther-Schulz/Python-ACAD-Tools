@@ -98,8 +98,12 @@ class LegendCreator:
     def create_item(self, item, layer_name):
         item_name = item.get('name', '')
         item_type = item.get('type', 'empty')
+        
+        # Separate styles for different components
         hatch_style = self.get_style(item.get('hatchStyle', {}))
-        geom_style = self.get_style(item.get('layerStyle', {}))
+        layer_style = self.get_style(item.get('layerStyle', {}))
+        rectangle_style = self.get_style(item.get('rectangleStyle', {}))
+        
         block_symbol = item.get('block_symbol')
         block_symbol_scale = item.get('block_symbol_scale', 1.0)
         create_hatch = item.get('create_hatch', True)
@@ -113,13 +117,13 @@ class LegendCreator:
 
         # Step 1: Create the symbol/area/line item
         if item_type == 'area':
-            item_entities = self.create_area_item(x1, y1, x2, y2, sanitized_layer_name, hatch_style, geom_style, create_hatch, block_symbol, block_symbol_scale)
+            item_entities = self.create_area_item(x1, y1, x2, y2, sanitized_layer_name, hatch_style, layer_style, rectangle_style, create_hatch, block_symbol, block_symbol_scale)
         elif item_type == 'line':
-            item_entities = self.create_line_item(x1, y1, x2, y2, sanitized_layer_name, geom_style, block_symbol, block_symbol_scale)
+            item_entities = self.create_line_item(x1, y1, x2, y2, sanitized_layer_name, layer_style, rectangle_style, block_symbol, block_symbol_scale)
         elif item_type == 'diagonal_line':
-            item_entities = self.create_diagonal_line_item(x1, y1, x2, y2, sanitized_layer_name, geom_style, block_symbol, block_symbol_scale)
+            item_entities = self.create_diagonal_line_item(x1, y1, x2, y2, sanitized_layer_name, layer_style, rectangle_style, block_symbol, block_symbol_scale)
         elif item_type == 'empty':
-            item_entities = self.create_empty_item(x1, y1, x2, y2, sanitized_layer_name, block_symbol, block_symbol_scale)
+            item_entities = self.create_empty_item(x1, y1, x2, y2, sanitized_layer_name, rectangle_style, block_symbol, block_symbol_scale)
         else:
             raise ValueError(f"Unknown item type: {item_type}")
 
@@ -183,14 +187,14 @@ class LegendCreator:
             if entity:
                 attach_custom_data(entity, self.script_identifier)
 
-    def create_area_item(self, x1, y1, x2, y2, layer_name, hatch_style, geom_style, create_hatch, block_symbol=None, block_symbol_scale=1.0):
+    def create_area_item(self, x1, y1, x2, y2, layer_name, hatch_style, layer_style, rectangle_style, create_hatch, block_symbol=None, block_symbol_scale=1.0):
         entities = []
         
         # Create the rectangle
         rectangle = self.msp.add_lwpolyline([(x1, y1), (x2, y1), (x2, y2), (x1, y2), (x1, y1)], dxfattribs={'layer': layer_name})
         
-        # Apply the style to the rectangle
-        self.apply_style(rectangle, geom_style)
+        # Apply the rectangle style to the rectangle
+        self.apply_style(rectangle, rectangle_style)
         
         self.attach_custom_data(rectangle)
         entities.append(rectangle)
@@ -198,8 +202,11 @@ class LegendCreator:
         # Create hatch if specified
         if create_hatch:
             hatch_paths = [[(x1, y1), (x2, y1), (x2, y2), (x1, y2)]]
+            # Use only hatch-specific settings for the hatch
             hatch = dfx_utils.create_hatch(self.msp, hatch_paths, hatch_style, self.project_loader, is_legend=True)
             hatch.dxf.layer = layer_name
+            # Apply layer style properties to the hatch
+            self.apply_style(hatch, layer_style)
             self.attach_custom_data(hatch)
             entities.append(hatch)
 
@@ -217,41 +224,15 @@ class LegendCreator:
 
         return entities
 
-    def create_line_item(self, x1, y1, x2, y2, layer_name, rectangle_style, block_symbol=None, block_symbol_scale=1.0):
+    def create_line_item(self, x1, y1, x2, y2, layer_name, layer_style, rectangle_style, block_symbol=None, block_symbol_scale=1.0):
         entities = []
         
-        # Create the line as before
+        # Create the line
         middle_y = (y1 + y2) / 2
         points = [(x1, middle_y), (x2, middle_y)]
         line = self.msp.add_lwpolyline(points, dxfattribs={'layer': layer_name})
-        self.apply_style(line, rectangle_style)
-        entities.append(line)
-
-        # Add symbol if specified
-        if block_symbol:
-            symbol_entity = add_block_reference(
-                self.msp,
-                block_symbol,
-                ((x1 + x2) / 2, (y1 + y2) / 2),
-                layer_name,
-                scale=block_symbol_scale
-            )
-            if symbol_entity:
-                entities.append(symbol_entity)
-
-        return entities
-
-    def create_diagonal_line_item(self, x1, y1, x2, y2, layer_name, style, block_symbol=None, block_symbol_scale=1.0):
-        entities = []
-        
-        # Create the rectangle (no styling)
-        rectangle = self.msp.add_lwpolyline([(x1, y1), (x2, y1), (x2, y2), (x1, y2), (x1, y1)], dxfattribs={'layer': layer_name})
-        self.attach_custom_data(rectangle)
-        entities.append(rectangle)
-
-        # Create the diagonal line
-        line = self.msp.add_line((x1, y1), (x2, y2), dxfattribs={'layer': layer_name})
-        self.apply_style(line, style)
+        # Use layer_style for the line
+        self.apply_style(line, layer_style)
         self.attach_custom_data(line)
         entities.append(line)
 
@@ -269,7 +250,38 @@ class LegendCreator:
 
         return entities
 
-    def create_empty_item(self, x1, y1, x2, y2, layer_name, block_symbol=None, block_symbol_scale=1.0):
+    def create_diagonal_line_item(self, x1, y1, x2, y2, layer_name, layer_style, rectangle_style, block_symbol=None, block_symbol_scale=1.0):
+        entities = []
+        
+        # Create the rectangle
+        rectangle = self.msp.add_lwpolyline([(x1, y1), (x2, y1), (x2, y2), (x1, y2), (x1, y1)], dxfattribs={'layer': layer_name})
+        # Use rectangle_style for the rectangle
+        self.apply_style(rectangle, rectangle_style)
+        self.attach_custom_data(rectangle)
+        entities.append(rectangle)
+
+        # Create the diagonal line
+        line = self.msp.add_line((x1, y1), (x2, y2), dxfattribs={'layer': layer_name})
+        # Use layer_style for the diagonal line
+        self.apply_style(line, layer_style)
+        self.attach_custom_data(line)
+        entities.append(line)
+
+        # Add symbol if specified
+        if block_symbol:
+            symbol_entity = add_block_reference(
+                self.msp,
+                block_symbol,
+                ((x1 + x2) / 2, (y1 + y2) / 2),
+                layer_name,
+                scale=block_symbol_scale
+            )
+            if symbol_entity:
+                entities.append(symbol_entity)
+
+        return entities
+
+    def create_empty_item(self, x1, y1, x2, y2, layer_name, rectangle_style, block_symbol=None, block_symbol_scale=1.0):
         entities = []
         
         # Add symbol if specified
@@ -382,5 +394,8 @@ class LegendCreator:
         if isinstance(style, str):
             style = self.project_loader.get_style(style)
         apply_style_to_entity(entity, style, self.project_loader, self.loaded_styles)
+
+
+
 
 
