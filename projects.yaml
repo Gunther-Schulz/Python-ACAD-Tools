@@ -135,8 +135,9 @@ projects:
         color: "Black"
         height: 3
         font: "Legend"
+        attachment_point: MTEXT_MIDDLE_LEFT
       groups:
-        - name: "Maß der baulichen Nutzung"
+        - name: "Art der baulichen Nutzung"
           update: true
           subtitle: "§ 9 Abs. 1 Nr. 1 BauGB"
           items:

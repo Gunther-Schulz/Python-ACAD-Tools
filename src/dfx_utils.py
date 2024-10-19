@@ -301,7 +301,7 @@ def add_mtext(msp, text, x, y, layer_name, style_name, text_style=None, name_to_
         'layer': layer_name,
         'char_height': text_style.get('height', 2.5),
         'insert': Vec3(x, y, 0),
-        'attachment_point': MTEXT_TOP_LEFT,
+        'attachment_point': MTEXT_MIDDLE_LEFT,
         'width': max_width if max_width is not None else 0,
     }
     
