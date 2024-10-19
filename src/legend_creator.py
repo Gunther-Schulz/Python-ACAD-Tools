@@ -99,14 +99,14 @@ class LegendCreator:
         item_type = item.get('type', 'empty')
         hatch_style = self.get_style(item.get('hatch_style', {}))
         rectangle_style = self.get_style(item.get('rectangle_style', {}))
-        symbol_name = item.get('symbol')
-        symbol_scale = item.get('symbol_scale', 1.0)
+        block_symbol = item.get('block_symbol')
+        block_symbol_scale = item.get('block_symbol_scale', 1.0)
         create_hatch = item.get('create_hatch', True)
 
         x1, y1 = self.position['x'], self.current_y
         x2, y2 = x1 + self.item_width, y1 - self.item_height
 
-        log_info(f"Creating item: {item_name}, type: {item_type}, symbol: {symbol_name}")
+        log_info(f"Creating item: {item_name}, type: {item_type}, symbol: {block_symbol}")
         
         sanitized_layer_name = self.get_sanitized_layer_name(layer_name)
 
@@ -123,11 +123,11 @@ class LegendCreator:
 
         # Step 1: Create the symbol/area/line item
         if item_type == 'area':
-            item_entities = self.create_area_item(x1, y1, x2, y2, sanitized_layer_name, prepared_hatch_style, rectangle_style, create_hatch, symbol_name, symbol_scale)
+            item_entities = self.create_area_item(x1, y1, x2, y2, sanitized_layer_name, prepared_hatch_style, rectangle_style, create_hatch, block_symbol, block_symbol_scale)
         elif item_type == 'line':
-            item_entities = self.create_line_item(x1, y1, x2, y2, sanitized_layer_name, rectangle_style, symbol_name, symbol_scale)
+            item_entities = self.create_line_item(x1, y1, x2, y2, sanitized_layer_name, rectangle_style, block_symbol, block_symbol_scale)
         elif item_type == 'empty':
-            item_entities = self.create_empty_item(x1, y1, x2, y2, sanitized_layer_name, symbol_name, symbol_scale)
+            item_entities = self.create_empty_item(x1, y1, x2, y2, sanitized_layer_name, block_symbol, block_symbol_scale)
         else:
             raise ValueError(f"Unknown item type: {item_type}")
 
@@ -191,7 +191,7 @@ class LegendCreator:
             if entity:
                 attach_custom_data(entity, self.script_identifier)
 
-    def create_area_item(self, x1, y1, x2, y2, layer_name, hatch_style, rectangle_style, create_hatch, symbol_name=None, symbol_scale=1.0):
+    def create_area_item(self, x1, y1, x2, y2, layer_name, hatch_style, rectangle_style, create_hatch, block_symbol=None, block_symbol_scale=1.0):
         entities = []
         
         # Create the rectangle
@@ -209,55 +209,55 @@ class LegendCreator:
             entities.append(hatch)
 
         # Add symbol if specified
-        if symbol_name and symbol_name in self.available_blocks:
-            log_info(f"Adding symbol '{symbol_name}' to area item with scale {symbol_scale}")
-            symbol_entity = self.msp.add_blockref(symbol_name, ((x1 + x2) / 2, (y1 + y2) / 2))
-            symbol_entity.dxf.xscale = symbol_scale
-            symbol_entity.dxf.yscale = symbol_scale
+        if block_symbol and block_symbol in self.available_blocks:
+            log_info(f"Adding symbol '{block_symbol}' to area item with scale {block_symbol_scale}")
+            symbol_entity = self.msp.add_blockref(block_symbol, ((x1 + x2) / 2, (y1 + y2) / 2))
+            symbol_entity.dxf.xscale = block_symbol_scale
+            symbol_entity.dxf.yscale = block_symbol_scale
             symbol_entity.dxf.layer = layer_name
             self.attach_custom_data(symbol_entity)
             entities.append(symbol_entity)
-        elif symbol_name:
-            log_warning(f"Symbol '{symbol_name}' not found for area item")
+        elif block_symbol:
+            log_warning(f"Symbol '{block_symbol}' not found for area item")
 
         return entities
 
-    def create_line_item(self, x1, y1, x2, y2, layer_name, item_style, symbol_name=None, symbol_scale=1.0):
+    def create_line_item(self, x1, y1, x2, y2, layer_name, rectangle_style, block_symbol=None, block_symbol_scale=1.0):
         entities = []
         
         # Create the line as before
         middle_y = (y1 + y2) / 2
         points = [(x1, middle_y), (x2, middle_y)]
         line = self.msp.add_lwpolyline(points, dxfattribs={'layer': layer_name})
-        apply_style_to_entity(line, item_style, self.project_loader)
+        apply_style_to_entity(line, rectangle_style, self.project_loader)
         entities.append(line)
 
         # Add symbol if specified
-        if symbol_name and symbol_name in self.available_blocks:
-            symbol_entity = self.msp.add_blockref(symbol_name, ((x1 + x2) / 2, (y1 + y2) / 2))
-            symbol_entity.dxf.xscale = symbol_scale
-            symbol_entity.dxf.yscale = symbol_scale
+        if block_symbol and block_symbol in self.available_blocks:
+            symbol_entity = self.msp.add_blockref(block_symbol, ((x1 + x2) / 2, (y1 + y2) / 2))
+            symbol_entity.dxf.xscale = block_symbol_scale
+            symbol_entity.dxf.yscale = block_symbol_scale
             symbol_entity.dxf.layer = layer_name
             self.attach_custom_data(symbol_entity)
             entities.append(symbol_entity)
-        elif symbol_name:
-            log_warning(f"Symbol '{symbol_name}' not found for line item")
+        elif block_symbol:
+            log_warning(f"Symbol '{block_symbol}' not found for line item")
 
         return entities
 
-    def create_empty_item(self, x1, y1, x2, y2, layer_name, symbol_name=None, symbol_scale=1.0):
+    def create_empty_item(self, x1, y1, x2, y2, layer_name, block_symbol=None, block_symbol_scale=1.0):
         entities = []
         
         # Add symbol if specified
-        if symbol_name and symbol_name in self.available_blocks:
-            symbol_entity = self.msp.add_blockref(symbol_name, ((x1 + x2) / 2, (y1 + y2) / 2))
-            symbol_entity.dxf.xscale = symbol_scale
-            symbol_entity.dxf.yscale = symbol_scale
+        if block_symbol and block_symbol in self.available_blocks:
+            symbol_entity = self.msp.add_blockref(block_symbol, ((x1 + x2) / 2, (y1 + y2) / 2))
+            symbol_entity.dxf.xscale = block_symbol_scale
+            symbol_entity.dxf.yscale = block_symbol_scale
             symbol_entity.dxf.layer = layer_name
             self.attach_custom_data(symbol_entity)
             entities.append(symbol_entity)
-        elif symbol_name:
-            log_warning(f"Symbol '{symbol_name}' not found for empty item")
+        elif block_symbol:
+            log_warning(f"Symbol '{block_symbol}' not found for empty item")
 
         return entities
 
@@ -347,6 +347,8 @@ class LegendCreator:
         if isinstance(style, str):
             return self.project_loader.get_style(style)
         return style
+
+
 
 
 
