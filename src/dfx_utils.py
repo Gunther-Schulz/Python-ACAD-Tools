@@ -248,6 +248,11 @@ def apply_style_to_entity(entity, style, project_loader, item_type='area'):
             entity.dxf.ltscale = 1.0  # Default scale
 
 def create_hatch(msp, boundary_paths, style, project_loader, is_legend=False):
+    if is_legend:
+        log_info(f"Creating symbol hatch with style: {style}")
+    else:
+        log_info(f"Creating hatch with style: {style}")
+    
     hatch = msp.add_hatch()
     
     hatch_style = style.get('hatch', {})

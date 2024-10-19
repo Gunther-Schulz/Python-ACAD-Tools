@@ -143,7 +143,12 @@ projects:
           items:
             - name: "Sonstiges Sondergebiet (§ 11 Abs. 2 BauNVO) Zweckbestimmung: Energiegewinnung auf der Basis solarer Strahlungsenergie"
               type: area
-              style: baufeldSchraffur
+              create_hatch: true
+              hatch_style:
+                  color: "brilliant-red"
+                  transparency: 0.6
+                  hatch:
+                    individual_hatches: true
               symbol: "Sonstiges Sondergebiet EBS"
               symbol_scale: 2
                 # color: "Red"
@@ -170,7 +175,10 @@ projects:
           items:
             - name: "Verkehrsfläche besonderer Zweckbestimmung"
               type: area
-              style: verkehrsflaeche
+              hatch_style: verkehrsflaeche
+              rectangle_style:
+                color: "Red"
+                transparency: 0.5
             - name: "Verkehrsberuhigter Bereich"
               type: empty
               symbol: "Verkehrsberuhigter Bereich"
@@ -185,14 +193,14 @@ projects:
           items:
             - name: "Private Grünflächen"
               type: area
-              style: gruenflaeche
+              hatch_style: gruenflaeche
         - name: "Wasserflächen und Flächen für die Wasserwirtschaft, den Hochwasserschutz und die Regelung des Wasserabflusses"
           update: true
           subtitle: "§ 9 Abs. 1 Nr. 16 BauBG"
           items:
             - name: "Wasserflächen"
               type: area
-              style: water
+              hatch_style: water
     viewports:
       - name: MainView
         center: [425, 450]

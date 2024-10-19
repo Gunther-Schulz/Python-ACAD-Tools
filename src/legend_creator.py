@@ -97,9 +97,11 @@ class LegendCreator:
     def create_item(self, item, layer_name):
         item_name = item.get('name', '')
         item_type = item.get('type', 'empty')
-        item_style = get_style(item.get('style', {}), self.project_loader)
+        hatch_style = self.get_style(item.get('hatch_style', {}))
+        rectangle_style = self.get_style(item.get('rectangle_style', {}))
         symbol_name = item.get('symbol')
         symbol_scale = item.get('symbol_scale', 1.0)
+        create_hatch = item.get('create_hatch', True)
 
         x1, y1 = self.position['x'], self.current_y
         x2, y2 = x1 + self.item_width, y1 - self.item_height
@@ -108,11 +110,22 @@ class LegendCreator:
         
         sanitized_layer_name = self.get_sanitized_layer_name(layer_name)
 
+        # Prepare hatch style
+        prepared_hatch_style = {
+            'color': hatch_style.get('color'),
+            'transparency': hatch_style.get('transparency'),
+            'hatch': {
+                'pattern': hatch_style.get('hatch', {}).get('pattern', 'SOLID'),
+                'scale': hatch_style.get('hatch', {}).get('scale', 1),
+                'individual_hatches': hatch_style.get('hatch', {}).get('individual_hatches', True)
+            }
+        }
+
         # Step 1: Create the symbol/area/line item
         if item_type == 'area':
-            item_entities = self.create_area_item(x1, y1, x2, y2, sanitized_layer_name, item_style, symbol_name, symbol_scale)
+            item_entities = self.create_area_item(x1, y1, x2, y2, sanitized_layer_name, prepared_hatch_style, rectangle_style, create_hatch, symbol_name, symbol_scale)
         elif item_type == 'line':
-            item_entities = self.create_line_item(x1, y1, x2, y2, sanitized_layer_name, item_style, symbol_name, symbol_scale)
+            item_entities = self.create_line_item(x1, y1, x2, y2, sanitized_layer_name, rectangle_style, symbol_name, symbol_scale)
         elif item_type == 'empty':
             item_entities = self.create_empty_item(x1, y1, x2, y2, sanitized_layer_name, symbol_name, symbol_scale)
         else:
@@ -178,19 +191,22 @@ class LegendCreator:
             if entity:
                 attach_custom_data(entity, self.script_identifier)
 
-    def create_area_item(self, x1, y1, x2, y2, layer_name, item_style, symbol_name=None, symbol_scale=1.0):
+    def create_area_item(self, x1, y1, x2, y2, layer_name, hatch_style, rectangle_style, create_hatch, symbol_name=None, symbol_scale=1.0):
         entities = []
         
-        # Create the rectangle and hatch as before
+        # Create the rectangle
         rectangle = self.msp.add_lwpolyline([(x1, y1), (x2, y1), (x2, y2), (x1, y2), (x1, y1)], dxfattribs={'layer': layer_name})
+        apply_style_to_entity(rectangle, rectangle_style, self.project_loader)
         self.attach_custom_data(rectangle)
         entities.append(rectangle)
 
-        hatch_paths = [[(x1, y1), (x2, y1), (x2, y2), (x1, y2)]]
-        hatch = create_hatch(self.msp, hatch_paths, item_style, self.project_loader, is_legend=True)
-        hatch.dxf.layer = layer_name
-        self.attach_custom_data(hatch)
-        entities.append(hatch)
+        # Create hatch if specified
+        if create_hatch:
+            hatch_paths = [[(x1, y1), (x2, y1), (x2, y2), (x1, y2)]]
+            hatch = dfx_utils.create_hatch(self.msp, hatch_paths, hatch_style, self.project_loader, is_legend=True)
+            hatch.dxf.layer = layer_name
+            self.attach_custom_data(hatch)
+            entities.append(hatch)
 
         # Add symbol if specified
         if symbol_name and symbol_name in self.available_blocks:
@@ -326,3 +342,14 @@ class LegendCreator:
         if name not in self.layer_name_cache:
             self.layer_name_cache[name] = sanitize_layer_name(name)
         return self.layer_name_cache[name]
+
+    def get_style(self, style):
+        if isinstance(style, str):
+            return self.project_loader.get_style(style)
+        return style
+
+
+
+
+
+
