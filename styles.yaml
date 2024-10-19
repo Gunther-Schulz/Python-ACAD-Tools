@@ -24,10 +24,15 @@ styles:
       # scale: 20
       # angle: 80
   gruenflaeche:
-    color: "brilliant-chartreuse"
+    color: "brilliant-intense-chartreuse"
     transparency: 0.6
     hatch:
-      pattern: "SOLID"
+      individual_hatches: true
+  ausgleich:
+    color: "moderate-intense-green"
+    transparency: 0.6
+    hatch:
+      individual_hatches: true
   geltungsbereich:
     linetype: "ACAD_ISO02W100"
     lineweight: 80

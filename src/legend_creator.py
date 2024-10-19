@@ -5,7 +5,7 @@ from src.dfx_utils import (get_color_code, attach_custom_data,
                            is_created_by_script, add_mtext, remove_entities_by_layer, 
                            ensure_layer_exists, get_style, SCRIPT_IDENTIFIER,
                            apply_style_to_entity,
-                           sanitize_layer_name)
+                           sanitize_layer_name, get_available_blocks, add_block_reference)
 from ezdxf.math import Vec3
 from ezdxf import colors
 from src.utils import log_warning, log_error, log_info
@@ -46,7 +46,7 @@ class LegendCreator:
         self.title_spacing = self.legend_config.get('title_spacing', 10)
         
         # Instead, get the list of available blocks in the document
-        self.available_blocks = set(block.name for block in self.doc.blocks if not block.name.startswith('*'))
+        self.available_blocks = get_available_blocks(doc)
         self.layer_name_cache = {}  # Add this line to cache sanitized layer names
 
     def create_legend(self):
@@ -216,16 +216,16 @@ class LegendCreator:
             entities.append(hatch)
 
         # Add symbol if specified
-        if block_symbol and block_symbol in self.available_blocks:
-            log_info(f"Adding symbol '{block_symbol}' to area item with scale {block_symbol_scale}")
-            symbol_entity = self.msp.add_blockref(block_symbol, ((x1 + x2) / 2, (y1 + y2) / 2))
-            symbol_entity.dxf.xscale = block_symbol_scale
-            symbol_entity.dxf.yscale = block_symbol_scale
-            symbol_entity.dxf.layer = layer_name
-            self.attach_custom_data(symbol_entity)
-            entities.append(symbol_entity)
-        elif block_symbol:
-            log_warning(f"Symbol '{block_symbol}' not found for area item")
+        if block_symbol:
+            symbol_entity = add_block_reference(
+                self.msp,
+                block_symbol,
+                ((x1 + x2) / 2, (y1 + y2) / 2),
+                layer_name,
+                scale=block_symbol_scale
+            )
+            if symbol_entity:
+                entities.append(symbol_entity)
 
         return entities
 
@@ -240,15 +240,16 @@ class LegendCreator:
         entities.append(line)
 
         # Add symbol if specified
-        if block_symbol and block_symbol in self.available_blocks:
-            symbol_entity = self.msp.add_blockref(block_symbol, ((x1 + x2) / 2, (y1 + y2) / 2))
-            symbol_entity.dxf.xscale = block_symbol_scale
-            symbol_entity.dxf.yscale = block_symbol_scale
-            symbol_entity.dxf.layer = layer_name
-            self.attach_custom_data(symbol_entity)
-            entities.append(symbol_entity)
-        elif block_symbol:
-            log_warning(f"Symbol '{block_symbol}' not found for line item")
+        if block_symbol:
+            symbol_entity = add_block_reference(
+                self.msp,
+                block_symbol,
+                ((x1 + x2) / 2, (y1 + y2) / 2),
+                layer_name,
+                scale=block_symbol_scale
+            )
+            if symbol_entity:
+                entities.append(symbol_entity)
 
         return entities
 
@@ -267,15 +268,16 @@ class LegendCreator:
         entities.append(line)
 
         # Add symbol if specified
-        if block_symbol and block_symbol in self.available_blocks:
-            symbol_entity = self.msp.add_blockref(block_symbol, ((x1 + x2) / 2, (y1 + y2) / 2))
-            symbol_entity.dxf.xscale = block_symbol_scale
-            symbol_entity.dxf.yscale = block_symbol_scale
-            symbol_entity.dxf.layer = layer_name
-            self.attach_custom_data(symbol_entity)
-            entities.append(symbol_entity)
-        elif block_symbol:
-            log_warning(f"Symbol '{block_symbol}' not found for diagonal line item")
+        if block_symbol:
+            symbol_entity = add_block_reference(
+                self.msp,
+                block_symbol,
+                ((x1 + x2) / 2, (y1 + y2) / 2),
+                layer_name,
+                scale=block_symbol_scale
+            )
+            if symbol_entity:
+                entities.append(symbol_entity)
 
         return entities
 
@@ -283,15 +285,16 @@ class LegendCreator:
         entities = []
         
         # Add symbol if specified
-        if block_symbol and block_symbol in self.available_blocks:
-            symbol_entity = self.msp.add_blockref(block_symbol, ((x1 + x2) / 2, (y1 + y2) / 2))
-            symbol_entity.dxf.xscale = block_symbol_scale
-            symbol_entity.dxf.yscale = block_symbol_scale
-            symbol_entity.dxf.layer = layer_name
-            self.attach_custom_data(symbol_entity)
-            entities.append(symbol_entity)
-        elif block_symbol:
-            log_warning(f"Symbol '{block_symbol}' not found for empty item")
+        if block_symbol:
+            symbol_entity = add_block_reference(
+                self.msp,
+                block_symbol,
+                ((x1 + x2) / 2, (y1 + y2) / 2),
+                layer_name,
+                scale=block_symbol_scale
+            )
+            if symbol_entity:
+                entities.append(symbol_entity)
 
         return entities
 

@@ -13,6 +13,8 @@ from ezdxf.enums import TextEntityAlignment
 from ezdxf.math import Vec3
 from src.utils import log_info, log_warning, log_error
 import re
+import math
+from ezdxf.math import Vec2
 
 SCRIPT_IDENTIFIER = "Created by DXFExporter"
 
@@ -56,8 +58,30 @@ def attach_custom_data(entity, script_identifier):
     xdata_set = False
     hyperlink_set = False
 
+    # Set XDATA
     try:
-        # Set XDATA
+        existing_xdata = entity.get_xdata('DXFEXPORTER')
+        if existing_xdata:
+            for code, value in existing_xdata:
+                if code == 1000 and value == script_identifier:
+                    xdata_set = True
+                    break
+        
+        if not xdata_set:
+            entity.set_xdata(
+                'DXFEXPORTER',
+                [
+                    (1000, script_identifier),
+                    (1002, '{'),
+                    (1000, 'CREATED_BY'),
+                    (1000, 'DXFExporter'),
+                    (1002, '}')
+                ]
+            )
+            xdata_set = True
+    except ezdxf.lldxf.const.DXFValueError:
+        # This exception is raised when the XDATA application ID doesn't exist
+        # We can safely add the XDATA in this case
         entity.set_xdata(
             'DXFEXPORTER',
             [
@@ -69,17 +93,24 @@ def attach_custom_data(entity, script_identifier):
             ]
         )
         xdata_set = True
-        log_info(f"XDATA set for entity {entity.dxftype()}")
     except Exception as e:
         log_error(f"Error setting XDATA for entity {entity.dxftype()}: {str(e)}")
 
     # Set hyperlink
     if hasattr(entity, 'set_hyperlink'):
         try:
-            hyperlink_text = f"{script_identifier} - Created by DXFExporter"
-            entity.set_hyperlink(hyperlink_text, description="Entity created by DXFExporter")
-            hyperlink_set = True
-            log_info(f"Hyperlink set for entity {entity.dxftype()}")
+            existing_hyperlink = entity.get_hyperlink()
+            if isinstance(existing_hyperlink, tuple) and len(existing_hyperlink) > 0:
+                existing_url = existing_hyperlink[0]
+            else:
+                existing_url = ''
+
+            if script_identifier in existing_url:
+                hyperlink_set = True
+            else:
+                hyperlink_text = f"{script_identifier} - Created by DXFExporter"
+                entity.set_hyperlink(hyperlink_text, description="Entity created by DXFExporter")
+                hyperlink_set = True
         except Exception as e:
             log_error(f"Error setting hyperlink for entity {entity.dxftype()}: {str(e)}")
     else:
@@ -394,15 +425,18 @@ def get_mtext_constant(value):
     return mtext_constants.get(value, value)
 
 def sanitize_layer_name(name):
-    # Define a set of allowed characters, including German-specific ones
-    allowed_chars = r'a-zA-Z0-9_\-öüäßÖÜÄ'
+    # Define a set of allowed characters, including German-specific ones and space
+    allowed_chars = r'a-zA-Z0-9_\-öüäßÖÜÄ '
     
     # Replace disallowed characters with underscores
     sanitized = re.sub(f'[^{allowed_chars}]', '_', name)
     
-    # Ensure the name starts with a letter, underscore, or allowed special character
-    if not re.match(f'^[{allowed_chars}]', sanitized):
+    # Ensure the name starts with a letter, underscore, or allowed special character (excluding space)
+    if not re.match(f'^[{allowed_chars.replace(" ", "")}]', sanitized):
         sanitized = '_' + sanitized
+    
+    # Remove any leading spaces
+    sanitized = sanitized.lstrip()
     
     # Truncate to 255 characters (AutoCAD limit)
     return sanitized[:255]
@@ -445,3 +479,75 @@ def initialize_document(doc):
     load_standard_linetypes(doc)
     loaded_styles = load_standard_text_styles(doc)
     return loaded_styles
+
+def get_available_blocks(doc):
+    return set(block.name for block in doc.blocks if not block.name.startswith('*'))
+
+def add_block_reference(msp, block_name, insert_point, layer_name, scale=1.0, rotation=0.0):
+    if block_name in msp.doc.blocks:
+        block_ref = msp.add_blockref(block_name, insert_point)
+        block_ref.dxf.layer = layer_name
+        block_ref.dxf.xscale = scale
+        block_ref.dxf.yscale = scale
+        block_ref.dxf.rotation = rotation
+        attach_custom_data(block_ref, SCRIPT_IDENTIFIER)
+        return block_ref
+    else:
+        log_warning(f"Block '{block_name}' not found in the document")
+        return None
+
+def create_path_array(msp, source_layer_name, target_layer_name, block_name, spacing, scale=1.0, rotation=0.0):
+    """
+    Create a path array of blocks along polylines in the specified source layer and place them on the target layer.
+    
+    :param msp: Modelspace object
+    :param source_layer_name: Name of the layer containing the polylines
+    :param target_layer_name: Name of the layer where the array objects will be placed
+    :param block_name: Name of the block to be used in the array
+    :param spacing: Distance between block insertions
+    :param scale: Scale factor for the blocks (default: 1.0)
+    :param rotation: Rotation angle for the blocks in degrees (default: 0.0)
+    """
+    if block_name not in msp.doc.blocks:
+        log_warning(f"Block '{block_name}' not found in the document")
+        return
+
+    polylines = msp.query(f'LWPOLYLINE[layer=="{source_layer_name}"]')
+    
+    for polyline in polylines:
+        points = polyline.get_points()
+        total_length = 0
+        segments = []
+
+        for i in range(len(points) - 1):
+            start = Vec2(points[i][:2])
+            end = Vec2(points[i+1][:2])
+            segment_length = (end - start).magnitude
+            segments.append((start, end, segment_length))
+            total_length += segment_length
+
+        current_distance = 0
+        for start, end, segment_length in segments:
+            segment_direction = (end - start).normalize()
+            
+            while current_distance < segment_length:
+                insertion_point = start + segment_direction * current_distance
+                angle = math.atan2(segment_direction.y, segment_direction.x)
+                
+                block_ref = add_block_reference(
+                    msp,
+                    block_name,
+                    insertion_point,
+                    target_layer_name,
+                    scale=scale,
+                    rotation=rotation + math.degrees(angle)
+                )
+                
+                if block_ref:
+                    attach_custom_data(block_ref, SCRIPT_IDENTIFIER)
+                
+                current_distance += spacing
+            
+            current_distance -= segment_length
+
+    log_info(f"Path array created for source layer '{source_layer_name}' using block '{block_name}' and placed on target layer '{target_layer_name}'")
