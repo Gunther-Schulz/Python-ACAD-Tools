@@ -23,12 +23,13 @@ styles:
       pattern: "ANSI31"
       # scale: 20
       # angle: 80
-  gruenflaeche:
+  gruenflaecheLayer:
     color: "brilliant-intense-chartreuse"
     transparency: 0.6
+  gruenflaecheHatch:
     hatch:
       individual_hatches: true
-  ausgleichGeom:
+  ausgleichLayer:
     color: "moderate-intense-green"
     transparency: 0.6
   ausgleichHatch:

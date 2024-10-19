@@ -642,7 +642,7 @@ projects:
         outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/ausgleich.shp"
       - name: Ausgleich Schraffur
         update: true
-        layerStyle: ausgleichGeom
+        layerStyle: ausgleichLayer
         hatchStyle: ausgleichHatch
         performHatch: true
         operations:
@@ -666,11 +666,11 @@ projects:
             distance: -5
       - name: Grünfläche Schraffur
         update: true
-        layerStyle: gruenflaeche
-        perfromHatch:
+        layerStyle: gruenflaecheLayer
+        hatchStyle: gruenflaecheHatch
+        performHatch:
             layers:
               - Grünfläche
-            individual_hatches: true
       - name: Baufeld
         update: true
         close: true
