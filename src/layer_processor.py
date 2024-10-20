@@ -698,8 +698,8 @@ class LayerProcessor:
         log_info(f"Creating buffer layer: {layer_name}")
         source_layers = operation.get('layers', [])
         buffer_distance = operation['distance']
-        buffer_mode = operation.get('mode', 'off')  # Changed default to 'off'
-        join_style = operation.get('joinStyle', 'mitre')  # Default to 'round'
+        buffer_mode = operation.get('mode', 'normal')
+        join_style = operation.get('joinStyle', 'mitre')
 
         # Map join style names to shapely constants
         join_style_map = {
@@ -725,15 +725,14 @@ class LayerProcessor:
                 combined_geometry = combined_geometry.union(layer_geometry)
 
         if combined_geometry is not None:
-            if buffer_mode == 'outer':
-                buffered = combined_geometry.buffer(buffer_distance, cap_style=2, join_style=join_style_value)
-                result = buffered.difference(combined_geometry)
-            elif buffer_mode == 'inner':
-                result = combined_geometry.buffer(-buffer_distance, cap_style=2, join_style=join_style_value)
+            if buffer_mode == 'ring':
+                outer_buffer = combined_geometry.buffer(abs(buffer_distance), cap_style=2, join_style=join_style_value)
+                inner_buffer = combined_geometry.buffer(-abs(buffer_distance), cap_style=2, join_style=join_style_value)
+                result = outer_buffer.difference(inner_buffer)
             elif buffer_mode == 'keep':
                 buffered = combined_geometry.buffer(buffer_distance, cap_style=2, join_style=join_style_value)
                 result = [combined_geometry, buffered]
-            else:  # 'off' or any other value
+            else:  # 'normal' or any other value
                 result = combined_geometry.buffer(buffer_distance, cap_style=2, join_style=join_style_value)
 
             # Ensure the result is a valid geometry type for shapefiles

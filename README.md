@@ -1,251 +1,105 @@
-# Python-ACAD-Tools
+# Layer Processor Operations
 
-## FAQ
+This document outlines the various operation types available in the LayerProcessor class and their possible options.
 
-Q: Linetype are set in the config.yaml but not available in the CAD file.
-A: This is a limitaion of ezdfx. You meend to load all line types into ACAD in the layer editor. Then all Layers should display fine
+## Operation Types
 
-## Features
+1. Copy
+2. Buffer
+3. Difference
+4. Intersection
+5. Filter
+6. WMTS/WMS
+7. Merge
+8. Smooth
+9. Contour
 
-- Load and process multiple GIS layers
-- Perform various geometric operations (buffer, intersection, difference, etc.)
-- Filter layers by attributes
-- Download WMTS tiles for specified areas
-- Export processed data to DXF format compatible with AutoCAD
-- Support for multiple projects with different configurations
+## Operation Details
 
-## Installation
+### 1. Copy
+Copies geometries from one or more source layers to the target layer.
 
-1. Clone this repository:
-   ```
-   git clone https://github.com/yourusername/Python-ACAD-Tools.git
-   ```
+Options:
+- `layers`: List of source layers to copy from. If omitted, the operation will be performed on the current layer.
 
-2. Install the required dependencies:
-   ```
-   pip install -r requirements.txt
-   ```
+### 2. Buffer
+Creates a buffer around the geometries of the source layers.
 
-## Usage
+Options:
+- `layers`: List of source layers. If omitted, the operation will be performed on the current layer.
+- `distance`: Buffer distance (positive for outer buffer, negative for inner buffer)
+- `mode`: Buffer mode (default: 'normal')
+  - 'normal': Regular buffer (inner or outer based on distance sign)
+  - 'ring': Creates a ring buffer
+  - 'keep': Keeps both the original geometry and the buffered geometry
+- `joinStyle`: Style of buffer corners (default: 'mitre')
+  - 'round'
+  - 'mitre'
+  - 'bevel'
 
-1. Configure your project in the `projects.yaml` file. This file defines all the layers, operations, and export settings for each project.
+### 3. Difference
+Subtracts the geometries of overlay layers from the base layer.
 
-2. Run the main script:
-   ```
-   python main.py --project <project_name> [--update <layer1,layer2,...]
-   ```
+Options:
+- `layers`: List of overlay layers. If omitted, no difference operation will be performed.
 
-   - `<project_name>`: The name of the project as defined in `projects.yaml`
-   - `--update`: (Optional) Comma-separated list of layers to update. If not provided, all layers will be processed.
+### 4. Intersection
+Creates geometries that represent the intersection of the base layer with overlay layers.
 
-## Configuration (projects.yaml)
+Options:
+- `layers`: List of overlay layers. If omitted, no intersection operation will be performed.
 
-The `projects.yaml` file is the heart of the configuration. Here's a breakdown of its structure:
+### 5. Filter
+Filters geometries based on their intersection with filter layers.
 
-```yaml
-folderPrefix: "~/hidrive"
-projects:
-  - name: ProjectName
-    exportFormat: dxf
-    dxfVersion: R2018
-    crs: EPSG:25833
-    dxfFilename: "path/to/output.dxf"
-    geomLayers:
-      - name: LayerName
-        add: true
-        update: true
-        shapeFile: "path/to/input.shp"
-        label: "attribute_name"
-        color: "ColorName"
-        # ... other layer properties ...
-        operations:
-          - type: operation_type
-            # ... operation-specific parameters ...
-```
+Options:
+- `layers`: List of filter layers. If omitted, no filtering will be performed.
 
-### Key Configuration Options:
+### 6. WMTS/WMS
+Downloads and processes Web Map Tile Service (WMTS) or Web Map Service (WMS) tiles.
 
-- `folderPrefix`: Base directory for all relative paths
-- `exportFormat`: Output format (currently supports 'dxf')
-- `dxfVersion`: AutoCAD DXF version
-- `crs`: Coordinate Reference System
-- `dxfFilename`: Output DXF file path
+Options:
+- `layers`: List of boundary layers. If omitted, the current layer will be used as the boundary.
+- `url`: Service URL
+- `layer`: Service layer name
+- `proj`: Projection
+- `srs`: Spatial Reference System
+- `format`: Image format (default: 'image/png')
+- `zoom`: Zoom level
+- `buffer`: Buffer distance around boundary (default: 100)
+- `sleep`: Sleep time between requests (default: 0)
+- `limit`: Limit on number of tiles to download (default: 0)
+- `overwrite`: Whether to overwrite existing tiles (default: false)
+- `stitchTiles`: Whether to stitch downloaded tiles (default: false)
+- `postProcess`: Post-processing options
+  - `removeText`: Whether to remove text from tiles (default: false)
+  - `textRemovalMethod`: Method for text removal (default: 'tesseract')
 
-### Layer Configuration:
+### 7. Merge
+Merges geometries from multiple source layers.
 
-- `name`: Layer name
-- `add`: Whether to add this layer if it doesn't exist
-- `update`: Whether to update this layer if it already exists
-- `shapeFile`: Input shapefile path
-- `label`: Attribute to use for labels
-- `color`: Layer color in AutoCAD
-- `operations`: List of operations to perform on the layer
+Options:
+- `layers`: List of source layers to merge. If omitted, no merge operation will be performed.
 
-### Supported Operations:
+### 8. Smooth
+Smooths the geometries of source layers.
 
-1. `copy`: Copy geometries from one or more layers
-2. `buffer`: Create a buffer around geometries
-3. `difference`: Subtract one geometry from another
-4. `intersection`: Find the intersection of geometries
-5. `filter_by_attributes`: Filter geometries based on attribute values
-6. `wmts`: Download WMTS tiles for specified areas
-7. `merge`: Merge multiple geometries
+Options:
+- `layers`: List of source layers. If omitted, the operation will be performed on the current layer.
+- `strength`: Smoothing strength (default: 1.0)
 
-## Examples and Operation Options
+### 9. Contour
+Generates contour lines from elevation data.
 
-The `projects.yaml` file allows you to define various operations on layers. Here are some real-life examples and explanations of the available operations:
+Options:
+- `layers`: List containing the boundary layer. If omitted, the current layer will be used as the boundary.
+- `buffer`: Buffer distance around boundary
+- Other options specific to contour generation (e.g., elevation data source, contour interval)
 
-### 1. Buffer Operation
+## General Notes
 
-The buffer operation creates a new geometry by expanding or shrinking the original geometry by a specified distance.
-
-Example:
-```yaml
-- name: Waldabstand
-  color: "Dark Green"
-  close: true
-  locked: false
-  operations:
-    - type: buffer
-      layers:
-        - Wald
-      distance: 30
-```
-
-This operation creates a 30-meter buffer around the "Wald" (forest) layer and names it "Waldabstand" (forest distance).
-
-### 2. Filter by Attributes
-
-This operation allows you to select specific features from a layer based on attribute values.
-
-Example:
-```yaml
-- name: Geltungsbereich
-  color: "Red"
-  locked: false
-  close: false
-  operations:
-    - type: filter_by_attributes
-      layers:
-        - name: Parcel
-          valueList:
-            - "81"
-            - "87/1"
-            - "89"
-        - name: Flur
-          valueList:
-            - Flur 2
-        - name: Gemarkung
-          valueList:
-            - Torgelow am See
-```
-
-This operation creates a "Geltungsbereich" (area of application) by filtering parcels, "Flur" (cadastral district), and "Gemarkung" (cadastral area) based on specific values.
-
-### 3. WMTS (Web Map Tile Service) Download
-
-This operation downloads map tiles for a specified area.
-
-Example:
-```yaml
-- name: WMTS DOP
-  color: Black
-  locked: true
-  operations:
-    - type: wmts
-      url: "https://www.geodaten-mv.de/dienste/dop_wmts/wmts/1.0.0/WMTSCapabilities.xml"
-      layer: "mv_dop"
-      zoom: "10"
-      proj: "ETRS89UTM33"
-      targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/DOP"
-      layers:
-        - Geltungsbereich
-      buffer: 100
-```
-
-This operation downloads Digital Orthophotos (DOP) for the "Geltungsbereich" area with a 100-meter buffer.
-
-### 4. Difference Operation
-
-The difference operation subtracts one or more geometries from another.
-
-Example:
-```yaml
-- name: Baufeld
-  color: "Light Red"
-  locked: false
-  close: true
-  operations:
-    - type: copy
-      layers:
-        - Geltungsbereich
-    - type: difference
-      layers:
-        - Wald Abstand
-        - Grünfläche
-```
-
-This operation creates a "Baufeld" (building area) by copying the "Geltungsbereich" and then subtracting the "Wald Abstand" (forest distance) and "Grünfläche" (green area) from it.
-
-### 5. Intersection Operation
-
-The intersection operation creates a new geometry from the overlapping areas of two or more geometries.
-
-Example:
-```yaml
-- name: Wald Abstand
-  color: "Light Green"
-  close: true
-  locked: false
-  operations:
-    - type: buffer
-      layers:
-        - Wald
-      distance: 30
-    - type: intersection
-      layers:
-        - Geltungsbereich
-```
-
-This operation creates a 30-meter buffer around the "Wald" layer and then intersects it with the "Geltungsbereich" to create the "Wald Abstand" layer.
-
-### 6. Merge Operation
-
-The merge operation combines multiple geometries into a single layer.
-
-Example:
-```yaml
-- name: Grünfläche
-  color: "Light Green"
-  close: true
-  locked: false
-  operations:
-    - type: merge
-      layers:
-        - Grünflächeinput
-        - Temp Grünfl
-        - Wald Abstand
-```
-
-This operation merges the "Grünflächeinput", "Temp Grünfl", and "Wald Abstand" layers into a single "Grünfläche" layer.
-
-These examples demonstrate how you can use various operations to process and manipulate geographic data in your project. The operations can be combined and chained to create complex workflows for urban planning and GIS applications.
-
-## Output
-
-The script will generate:
-1. A DXF file with all processed layers
-2. Downloaded WMTS tiles (if specified)
-3. Output shapefiles for certain layers (if specified)
-
-## Logging
-
-The script logs its progress and any issues to both the console and a log file. Check the log file for detailed information about the processing steps and any warnings or errors.
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## License
-
-This project is licensed under the MIT License.
+- Most operations support specifying multiple source or overlay layers.
+- The `layers` option in operations can accept layer names as strings or as dictionaries with additional filtering options.
+- If the `layers` option is omitted in applicable operations, the operation will be performed on the current layer.
+- Some operations may have additional options not listed here. Refer to the specific method implementations for more details.
+- For the buffer operation, use positive distance values for outer buffers and negative values for inner buffers.

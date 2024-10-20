@@ -90,193 +90,193 @@ projects:
     # dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Zeichnung/Plasten4.dxf"
     dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Zeichnung/dev/test.dxf"
     dumpOutputDir: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten//GIS/dxf_dump"
-    legend:
-      title: "Planzeichen"
-      subtitle: "(gem. PlanzV 1990-PlanzV 90 v.18.12.1990)"
-      max_width: 160
-      title_spacing: 0      # Space after the main legend title
-      subtitle_spacing: 4   # Space after the main subtitle
-      group_spacing: 3      # Space between different groups in the legend
-      group_title_spacing: 2 # Space after each group's title
-      group_subtitle_spacing: 3 # Space after each group's subtitle
-      item_spacing: 4       # Space between individual items within a group
-      position:
-        x: 367841
-        y: 5942622
-      titleTextStyle:
-        height: 8
-        color: "darkslategrey-20"
-        text_style: "Arial"
-        # rotation: 45
-        # attachment_point: MTEXT_MIDDLE_CENTER
-        # flow_direction: MTEXT_LEFT_TO_RIGHT
-        # line_spacing_style: MTEXT_AT_LEAST
-        # line_spacing_factor: 1.5
-        # bg_fill: 1
-        # bg_fill_color: 'yellow'
-        # bg_fill_scale: 1.2
-        # underline: True
-        # overline: False
-        # strike_through: False
-        # oblique_angle: 15
-      titleSubtitleStyle:
-        height: 3.5
-        color: "Dark Gray"
-        text_style: "Arial"
-      groupTextStyle:
-        color: "Black"
-        height: 5
-        text_style: "Arial"
-      subtitleTextStyle:
-        color: "Black"
-        height: 3.5
-        text_style: "Arial"
-      itemTextStyle:
-        color: "Black"
-        height: 3
-        text_style: "Arial"
-        attachment_point: MTEXT_MIDDLE_LEFT
-      groups:
-        - name: "Art der baulichen Nutzung"
-          update: true
-          subtitle: "§ 9 Abs. 1 Nr. 1 BauGB"
-          items:
-            - name: "Sonstiges Sondergebiet (§ 11 Abs. 2 BauNVO) Zweckbestimmung: Energiegewinnung auf der Basis solarer Strahlungsenergie"
-              type: area
-              create_hatch: true
-              layerStyle: baufeldLayer
-              block_symbol: "Sonstiges Sondergebiet EBS"
-              block_symbol_scale: 2
-        - name: "Maß der baulichen Nutzung"
-          update: true
-          subtitle: "§ 9 Abs. 1 Nr. 1 BauGB"
-          items:
-            - name: "Grundflächenzahl"
-              type: empty
-              block_symbol: "GRZ"
-              block_symbol_scale: 2
-        - name: "Bauweise, Baulinien, Baugrenzen"
-          update: true
-          subtitle: "§ 9 Abs. 1 Nr. 2 BauGB"
-          items:
-            - name: "Baugrenze"
-              type: empty
-              block_symbol: "Baugrenze"   
-        - name: "Verkehrsflächen"
-          update: true
-          subtitle: "(§ 9 Abs. 1 Nr. 11 und Abs. 6 BauGB)"
-          items:
-            - name: "Verkehrsfläche besonderer Zweckbestimmung"
-              type: area
-              hatch_style: verkehrsflaeche
-            - name: "Verkehrsberuhigter Bereich"
-              type: empty
-              block_symbol: "Verkehrsberuhigter Bereich"
-              block_symbol_scale: 2
-            - name: "Privat"
-              type: empty
-              block_symbol: "Privat"
-              block_symbol_scale: 2
-        - name: "Grünflächen"
-          update: true
-          subtitle: "§ 9 Abs.1 Nr. 15 BauGB"
-          items:
-            - name: "Private Grünflächen"
-              type: area
-              hatch_style: gruenflaeche
-        - name: "Wasserflächen und Flächen für die Wasserwirtschaft, den Hochwasserschutz und die Regelung des Wasserabflusses"
-          update: true
-          subtitle: "§ 9 Abs. 1 Nr. 16 BauBG"
-          items:
-            - name: "Wasserflächen"
-              type: area
-              hatch_style: water
-        - name: "Planungen, Nutzungsregelungen, Maßnahmen und Flächen für Maßnahmen zum Schutz, zur Pflege und zur Entwicklung von Natur und Landschaft"
-          update: true
-          subtitle: "§ 9 Abs.1 Nr. 20 BauGB"
-          items:
-            - name: "Umgrenzung von Flächen für Maßnahmen zum Schutz, zur Pflege und zurEntwicklung von Natur und Landschaft"
-              type: empty
-        - name: "Sonstige Planzeichen"
-          update: true
-          items:
-            - name: "Grenze des räumlichen Geltungsbereiches des Bebauungsplans"
-              subtitle: "(§ 9 Abs. 7 BauGB)"
-              type: area
-              rectangle_style: geltungsbereich
-              create_hatch: false
-            - name: "Hauptversorgungs- und Hauptabwasserleitungen unterirdisch"
-              subtitle: "(§ 5 Abs. 2 Nr.4 und Abs. 4, § 9 Abs.1 Nr.1 u. Abs. 6)"
-              type: area
-              create_hatch: false
-              block_symbol: "Leitung oberirdisch"
-              block_symbol_scale: 2
-            - name: "Hauptversorgungs- und Hauptabwasserleitungen oberirdisch"
-              subtitle: "(§ 5 Abs. 2 Nr.4 und Abs. 4, § 9 Abs.1 Nr.1 u. Abs. 6)"
-              type: area
-              create_hatch: false
-              block_symbol: "Leitung unterirdisch"
-              block_symbol_scale: 2
-            - name: "Mit Geh-, Fahr- und Leitungsrechten zu belastende Flächen"
-              subtitle: "(§ 9 Abs.1 Nr.21 und Abs. 6 BauGB)"
-              type: area
-              create_hatch: false
-              rectangle_style: gfl1
-              block_symbol: "GFL1"
-              block_symbol_scale: 2
-            - name: "Mit Geh-, Fahr- und Leitungsrechten zu belastende Flächen"
-              subtitle: "(§ 9 Abs.1 Nr.21 und Abs. 6 BauGB)"
-              type: empty
-              create_hatch: false
-              block_symbol: "GFL2"
-              block_symbol_scale: 1.6
-        - name: "Darstellung ohne Normcharakter"
-          update: true
-          items:
-            - name: "Gemeindegrenze"
-              type: diagonal_line
-              layerStyle: gemeindegrenze
-            - name: "Gemarkungsgrenze"
-              type: line
-              layerStyle: gemarkungsgrenze
-            - name: "Flurgrenze"
-              type: line
-              layerStyle: flurgrenze
-            - name: "Flurstücksnummer\nFlurstücksgrenze"
-              type: empty
-              block_symbol: "Parcel"
-              block_symbol_scale: 1.4
-            - name: "anstehendes Gelände in Meter über NHN im amtlichen Höhenbezugssystem DHHN2016 als unterer Höhenbezugspunkt"
-              type: empty
-              block_symbol: "Contours"
-              block_symbol_scale: 1.4
-            - name: "Bemaßung in Meter"
-              type: empty
-              block_symbol: "Bemaßung"
-        - name: "Nachrichtliche Übernahme"
-          update: true
-          items:
-            - name: "gesetzlich geschützes Biotop § 9 Abs. 6 BauGB i. V. m. § 20 NatSchAG - MV"
-              type: area
-              create_hatch: false
-              rectangleStyle: gesGeschuetzesBiotop
-              block_symbol: "Gesetzlich geschütztes Biotop"
-              block_symbol_scale: 1.8
-            - name: "Wald"
-              type: area
-              hatch_style: waldSchraffur
-            - name: "Baum"
-              type: empty
-              block_symbol: "Baum"
-              block_symbol_scale: 1.8
-            - name: "Baum erhalten"
-              type: empty
-              block_symbol: "Baum erhalten"
-              block_symbol_scale: 1.8
-            - name: "Abgrenzung unterschiedlicher Nutzung, z. B. von Baugebieten, oder Abgrenzung des Maßes der Nutzung innerhalb eines Baugebiets z.B. § 1 Abs. 4 § 16 Abs. 5 BauNVO)"
-              type: empty
-              block_symbol: "Abgrenzung unterschiedlicher Nutzung"
-              block_symbol_scale: 1.4
+    # legend:
+    #   title: "Planzeichen"
+    #   subtitle: "(gem. PlanzV 1990-PlanzV 90 v.18.12.1990)"
+    #   max_width: 160
+    #   title_spacing: 0      # Space after the main legend title
+    #   subtitle_spacing: 4   # Space after the main subtitle
+    #   group_spacing: 3      # Space between different groups in the legend
+    #   group_title_spacing: 2 # Space after each group's title
+    #   group_subtitle_spacing: 3 # Space after each group's subtitle
+    #   item_spacing: 4       # Space between individual items within a group
+    #   position:
+    #     x: 367841
+    #     y: 5942622
+    #   titleTextStyle:
+    #     height: 8
+    #     color: "darkslategrey-20"
+    #     text_style: "Arial"
+    #     # rotation: 45
+    #     # attachment_point: MTEXT_MIDDLE_CENTER
+    #     # flow_direction: MTEXT_LEFT_TO_RIGHT
+    #     # line_spacing_style: MTEXT_AT_LEAST
+    #     # line_spacing_factor: 1.5
+    #     # bg_fill: 1
+    #     # bg_fill_color: 'yellow'
+    #     # bg_fill_scale: 1.2
+    #     # underline: True
+    #     # overline: False
+    #     # strike_through: False
+    #     # oblique_angle: 15
+    #   titleSubtitleStyle:
+    #     height: 3.5
+    #     color: "Dark Gray"
+    #     text_style: "Arial"
+    #   groupTextStyle:
+    #     color: "Black"
+    #     height: 5
+    #     text_style: "Arial"
+    #   subtitleTextStyle:
+    #     color: "Black"
+    #     height: 3.5
+    #     text_style: "Arial"
+    #   itemTextStyle:
+    #     color: "Black"
+    #     height: 3
+    #     text_style: "Arial"
+    #     attachment_point: MTEXT_MIDDLE_LEFT
+    #   groups:
+    #     - name: "Art der baulichen Nutzung"
+    #       update: true
+    #       subtitle: "§ 9 Abs. 1 Nr. 1 BauGB"
+    #       items:
+    #         - name: "Sonstiges Sondergebiet (§ 11 Abs. 2 BauNVO) Zweckbestimmung: Energiegewinnung auf der Basis solarer Strahlungsenergie"
+    #           type: area
+    #           create_hatch: true
+    #           layerStyle: baufeldLayer
+    #           block_symbol: "Sonstiges Sondergebiet EBS"
+    #           block_symbol_scale: 2
+    #     - name: "Maß der baulichen Nutzung"
+    #       update: true
+    #       subtitle: "§ 9 Abs. 1 Nr. 1 BauGB"
+    #       items:
+    #         - name: "Grundflächenzahl"
+    #           type: empty
+    #           block_symbol: "GRZ"
+    #           block_symbol_scale: 2
+    #     - name: "Bauweise, Baulinien, Baugrenzen"
+    #       update: true
+    #       subtitle: "§ 9 Abs. 1 Nr. 2 BauGB"
+    #       items:
+    #         - name: "Baugrenze"
+    #           type: empty
+    #           block_symbol: "Baugrenze"   
+    #     - name: "Verkehrsflächen"
+    #       update: true
+    #       subtitle: "(§ 9 Abs. 1 Nr. 11 und Abs. 6 BauGB)"
+    #       items:
+    #         - name: "Verkehrsfläche besonderer Zweckbestimmung"
+    #           type: area
+    #           hatch_style: verkehrsflaeche
+    #         - name: "Verkehrsberuhigter Bereich"
+    #           type: empty
+    #           block_symbol: "Verkehrsberuhigter Bereich"
+    #           block_symbol_scale: 2
+    #         - name: "Privat"
+    #           type: empty
+    #           block_symbol: "Privat"
+    #           block_symbol_scale: 2
+    #     - name: "Grünflächen"
+    #       update: true
+    #       subtitle: "§ 9 Abs.1 Nr. 15 BauGB"
+    #       items:
+    #         - name: "Private Grünflächen"
+    #           type: area
+    #           hatch_style: gruenflaeche
+    #     - name: "Wasserflächen und Flächen für die Wasserwirtschaft, den Hochwasserschutz und die Regelung des Wasserabflusses"
+    #       update: true
+    #       subtitle: "§ 9 Abs. 1 Nr. 16 BauBG"
+    #       items:
+    #         - name: "Wasserflächen"
+    #           type: area
+    #           hatch_style: water
+    #     - name: "Planungen, Nutzungsregelungen, Maßnahmen und Flächen für Maßnahmen zum Schutz, zur Pflege und zur Entwicklung von Natur und Landschaft"
+    #       update: true
+    #       subtitle: "§ 9 Abs.1 Nr. 20 BauGB"
+    #       items:
+    #         - name: "Umgrenzung von Flächen für Maßnahmen zum Schutz, zur Pflege und zurEntwicklung von Natur und Landschaft"
+    #           type: empty
+    #     - name: "Sonstige Planzeichen"
+    #       update: true
+    #       items:
+    #         - name: "Grenze des räumlichen Geltungsbereiches des Bebauungsplans"
+    #           subtitle: "(§ 9 Abs. 7 BauGB)"
+    #           type: area
+    #           rectangle_style: geltungsbereich
+    #           create_hatch: false
+    #         - name: "Hauptversorgungs- und Hauptabwasserleitungen unterirdisch"
+    #           subtitle: "(§ 5 Abs. 2 Nr.4 und Abs. 4, § 9 Abs.1 Nr.1 u. Abs. 6)"
+    #           type: area
+    #           create_hatch: false
+    #           block_symbol: "Leitung oberirdisch"
+    #           block_symbol_scale: 2
+    #         - name: "Hauptversorgungs- und Hauptabwasserleitungen oberirdisch"
+    #           subtitle: "(§ 5 Abs. 2 Nr.4 und Abs. 4, § 9 Abs.1 Nr.1 u. Abs. 6)"
+    #           type: area
+    #           create_hatch: false
+    #           block_symbol: "Leitung unterirdisch"
+    #           block_symbol_scale: 2
+    #         - name: "Mit Geh-, Fahr- und Leitungsrechten zu belastende Flächen"
+    #           subtitle: "(§ 9 Abs.1 Nr.21 und Abs. 6 BauGB)"
+    #           type: area
+    #           create_hatch: false
+    #           rectangle_style: gfl1
+    #           block_symbol: "GFL1"
+    #           block_symbol_scale: 2
+    #         - name: "Mit Geh-, Fahr- und Leitungsrechten zu belastende Flächen"
+    #           subtitle: "(§ 9 Abs.1 Nr.21 und Abs. 6 BauGB)"
+    #           type: empty
+    #           create_hatch: false
+    #           block_symbol: "GFL2"
+    #           block_symbol_scale: 1.6
+    #     - name: "Darstellung ohne Normcharakter"
+    #       update: true
+    #       items:
+    #         - name: "Gemeindegrenze"
+    #           type: diagonal_line
+    #           layerStyle: gemeindegrenze
+    #         - name: "Gemarkungsgrenze"
+    #           type: line
+    #           layerStyle: gemarkungsgrenze
+    #         - name: "Flurgrenze"
+    #           type: line
+    #           layerStyle: flurgrenze
+    #         - name: "Flurstücksnummer\nFlurstücksgrenze"
+    #           type: empty
+    #           block_symbol: "Parcel"
+    #           block_symbol_scale: 1.4
+    #         - name: "anstehendes Gelände in Meter über NHN im amtlichen Höhenbezugssystem DHHN2016 als unterer Höhenbezugspunkt"
+    #           type: empty
+    #           block_symbol: "Contours"
+    #           block_symbol_scale: 1.4
+    #         - name: "Bemaßung in Meter"
+    #           type: empty
+    #           block_symbol: "Bemaßung"
+    #     - name: "Nachrichtliche Übernahme"
+    #       update: true
+    #       items:
+    #         - name: "gesetzlich geschützes Biotop § 9 Abs. 6 BauGB i. V. m. § 20 NatSchAG - MV"
+    #           type: area
+    #           create_hatch: false
+    #           rectangleStyle: gesGeschuetzesBiotop
+    #           block_symbol: "Gesetzlich geschütztes Biotop"
+    #           block_symbol_scale: 1.8
+    #         - name: "Wald"
+    #           type: area
+    #           hatch_style: waldSchraffur
+    #         - name: "Baum"
+    #           type: empty
+    #           block_symbol: "Baum"
+    #           block_symbol_scale: 1.8
+    #         - name: "Baum erhalten"
+    #           type: empty
+    #           block_symbol: "Baum erhalten"
+    #           block_symbol_scale: 1.8
+    #         - name: "Abgrenzung unterschiedlicher Nutzung, z. B. von Baugebieten, oder Abgrenzung des Maßes der Nutzung innerhalb eines Baugebiets z.B. § 1 Abs. 4 § 16 Abs. 5 BauNVO)"
+    #           type: empty
+    #           block_symbol: "Abgrenzung unterschiedlicher Nutzung"
+    #           block_symbol_scale: 1.4
     # pathArrays:
     #   - sourceLayer: "Biotope T-Symbol"
     #     targetLayer: "Biotope T-Symbol Array"
@@ -299,34 +299,34 @@ projects:
         target_view:
           center: [1000, 1000]
           height: 500
-    reports:
-      - name: Anteilige Flurstücksgrößen innerhalb Geltungsbereich Nordwesten in Plasten
-        type: area
-        baseLayer: Parcel
-        coverLayer: Geltungsbereich NW
-        output:
-          format: csv
-          file: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Ausgabe Karten und Daten/ZAV/areas_geltungsbereich_nw_by_parcel"
-        includeLabels: true
-        includeTotalArea: true
-      - name: Anteilige Flurstücksgrößen innerhalb Geltungsbereich Nordosten in Plasten
-        type: area
-        baseLayer: Parcel
-        coverLayer: Geltungsbereich NO
-        output:
-          format: csv
-          file: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Ausgabe Karten und Daten/ZAV/areas_geltungsbereich_no_by_parcel"
-        includeLabels: true
-        includeTotalArea: true
-      - name: Anteilige Flurstücksgrößen innerhalb Geltungsbereich Süden in Plasten
-        type: area
-        baseLayer: Parcel
-        coverLayer: Geltungsbereich S
-        output:
-          format: csv
-          file: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Ausgabe Karten und Daten/ZAV/areas_geltungsbereich_s_by_parcel"
-        includeLabels: true
-        includeTotalArea: true
+    # reports:
+    #   - name: Anteilige Flurstücksgrößen innerhalb Geltungsbereich Nordwesten in Plasten
+    #     type: area
+    #     baseLayer: Parcel
+    #     coverLayer: Geltungsbereich NW
+    #     output:
+    #       format: csv
+    #       file: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Ausgabe Karten und Daten/ZAV/areas_geltungsbereich_nw_by_parcel"
+    #     includeLabels: true
+    #     includeTotalArea: true
+    #   - name: Anteilige Flurstücksgrößen innerhalb Geltungsbereich Nordosten in Plasten
+    #     type: area
+    #     baseLayer: Parcel
+    #     coverLayer: Geltungsbereich NO
+    #     output:
+    #       format: csv
+    #       file: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Ausgabe Karten und Daten/ZAV/areas_geltungsbereich_no_by_parcel"
+    #     includeLabels: true
+    #     includeTotalArea: true
+    #   - name: Anteilige Flurstücksgrößen innerhalb Geltungsbereich Süden in Plasten
+    #     type: area
+    #     baseLayer: Parcel
+    #     coverLayer: Geltungsbereich S
+    #     output:
+    #       format: csv
+    #       file: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Ausgabe Karten und Daten/ZAV/areas_geltungsbereich_s_by_parcel"
+    #     includeLabels: true
+    #     includeTotalArea: true
     geomLayers:
       - name: Flur
         update: true
@@ -367,206 +367,187 @@ projects:
         viewports:
           - name: WorkView
             layerStyle: gemeindeWorkView
-      # - name: Grünfläche Input 1
-      #   # update: true
-      #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/geltungsbereich_abstand.shp"
-      #   close: true
-      #   outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/grünfläche_input_1.shp"
-      # - name: Wald
-      #   update: true
-      #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/wald.shp"
-      #   close: true
-      #   operations:
-      #     - type: merge
-      #   viewports:
-      #     - name: WorkView
-      #       layerStyle:
-      #         color: "Dark Green"
-      # - name: Wald Schraffur
-      #   update: true
-      #   hatchStyle: 
-      #       layers:
-      #         - Wald
-      #       pattern: 'ANSI31'
-      #       scale: 5  # Adjust this value to change the hatch density
-      # - name: Biotope Input 1
-      #   # update: true
-      #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/biotope.shp"
-      #   # close: true
-      # - name: Exclude
-      #   # update: true
-      #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/exclude.shp"
-      # # - name: Exclude Acad
-      # #   update: false
-      # #   dxfLayer: "Exclude Acad"
-      # #   outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/exclude_acad.shp"
-      # - name: Baumabstand Puffer
-      #   # update: true
-      #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/baum_abstand.shp"
-      #   # close: true
-      #   operations:
-      #     - type: buffer
-      #       distance: 5
-      #       # joinStyle: round
-      #   outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/baumabstand.shp"   
-      # - name: Geschütze Biotope
-      #   update: true
-      #   close: true
-      #   # linetypeScale: 0.2
-      #   linetypeGeneration: true
-      #   layerStyle: 
-      #     color: "Light Orange"
-      #     linetype: ACAD_ISO02W100
-      #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/gesch_biotope.shp"
-      # - name: FG Buffer
-      #   # update: true
-      #   # layerStyle: 
-      #   #   color: "Light Blue"
-      #   operations:
-      #     - type: buffer
-      #       distance: 7
-      #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/FG.shp"
-      #   outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/fg_puffer.shp"
-      # - name: Geltungsbereich NW
-      #   update: true
-      #   close: true
-      #   layerStyle: 
-      #     color: "Red"
-      #   operations:
-      #     - type: copy
-      #       layers:
-      #         - name: Parcel
-      #           values:
-      #             - "1"
-      #             - "2"
-      #             - "4"
-      #             - "6"
-      #             - "7"
-      #             - "14"
-      #     - type: filter
-      #       layers:
-      #         - name: Flur
-      #           values:
-      #             - "Flur 1"
-      #         - name: Gemarkung
-      #           values:
-      #             - "Groß Plasten"
-      #         - name: Gemeinde
-      #           values:
-      #             - "Groß Plasten"
-      #     - type: difference
-      #       layers:
-      #         - Wald
-      #         - Baumabstand Puffer
-      #         - Exclude
-      #   outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/geltungsbereich_1.shp"
-      # - name: Geltungsbereich NW 2
-      #   update: true
-      #   close: true
-      #   linetypeScale: 1
-      #   linetypeGeneration: true
-      #   layerStyle: 
-      #     color: "Dark Gray"
-      #     linetype: ACAD_ISO02W100
-      #     lineweight: 158
-      #   operations:
-      #     - type: buffer
-      #       layers:
-      #         - name: Geltungsbereich NW
-      #       distance: 2
-      # - name: Geltungsbereich NO
-      #   update: true
-      #   layerStyle: 
-      #     color: "Red"
-      #     locked: false
-      #   close: true
-      #   operations:
-      #     - type: copy
-      #       layers:
-      #         - name: Parcel
-      #           values:
-      #             - "24/8"
-      #             - "24/9"
-      #     - type: filter
-      #       layers:
-      #         - name: Flur
-      #           values:
-      #             - "Flur 1"
-      #         - name: Gemarkung
-      #           values:
-      #             - "Groß Plasten"
-      #         - name: Gemeinde
-      #           values:
-      #             - "Groß Plasten"
-      #     - type: difference
-      #       layers:
-      #         - Wald
-      #         - Baumabstand Puffer
-      #         - Exclude
-      #         # - Exclude Acad
-      #   outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/geltungsbereich_2.shp"
-      # - name: Geltungsbereich S
-      #   update: true
-      #   layerStyle: 
-      #     color: "Red"
-      #     locked: false
-      #   close: true
-      #   operations:
-      #     - type: copy
-      #       layers:
-      #         - name: Parcel
-      #           values:
-      #             - "41/1"
-      #     - type: filter
-      #       layers:
-      #         - name: Flur
-      #           values:
-      #             - "Flur 2"
-      #         - name: Gemarkung
-      #           values:
-      #             - "Klein Plasten"
-      #         - name: Gemeinde
-      #           values:
-      #             - "Groß Plasten"
-      #     - type: difference
-      #       layers:
-      #         - Wald
-      #         - Baumabstand Puffer
-      #         - Exclude
-      #   outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/geltungsbereich_3.shp"
-      # - name: Waldabstand
-      #   # update: true
-      #   # layerStyle: 
-      #   #   color: "Dark Green"
-      #   # close: true
-      #   operations:
-      #     - type: buffer
-      #       layers:
-      #         - Wald
-      #       distance: 30
-      #     - type: intersection
-      #       layers:
-      #         - Geltungsbereich NW
-      #         - Geltungsbereich NO
-      #         - Geltungsbereich S
-      #   outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/waldabstand.shp"
+      - name: Grünfläche Input 1
+        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/geltungsbereich_abstand.shp"
+        close: true
+        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/grünfläche_input_1.shp"
+      - name: Wald
+        update: true
+        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/wald.shp"
+        close: true
+        operations:
+          - type: merge
+        viewports:
+          - name: WorkView
+            layerStyle:
+              color: "Dark Green"
+      - name: Wald Schraffur
+        update: true
+        hatchStyle: waldHatch
+        performHatch:
+          layers:
+            - Wald
+      - name: Biotope Input
+        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/biotope.shp"
+      - name: Exclude
+        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/exclude.shp"
+      # - name: Exclude Acad
+      #   update: false
+      #   dxfLayer: "Exclude Acad"
+      #   outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/exclude_acad.shp"
+      - name: Baumabstand Puffer
+        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/baum_abstand.shp"
+        operations:
+          - type: buffer
+            distance: 5
+            # joinStyle: round
+        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/baumabstand.shp"   
+      - name: Geschütze Biotope
+        update: true
+        # linetypeScale: 0.2
+        linetypeGeneration: true
+        layerStyle: gesGeschuetzesBiotop
+        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/gesch_biotope.shp"
+      - name: FG Buffer
+        operations:
+          - type: buffer
+            distance: 5
+        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/FG.shp"
+        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/fg_puffer.shp"
+      - name: Geltungsbereich NW
+        update: true
+        layerStyle: 
+          color: "red"
+          plot: false
+        operations:
+          - type: copy
+            layers:
+              - name: Parcel
+                values:
+                  - "1"
+                  - "2"
+                  - "4"
+                  - "6"
+                  - "7"
+                  - "14"
+          - type: filter
+            layers:
+              - name: Flur
+                values:
+                  - "Flur 1"
+              - name: Gemarkung
+                values:
+                  - "Groß Plasten"
+              - name: Gemeinde
+                values:
+                  - "Groß Plasten"
+          - type: difference
+            layers:
+              - Wald
+              - Baumabstand Puffer
+              - Exclude
+        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/geltungsbereich_1.shp"
+      - name: Geltungsbereich NW 2
+        update: true
+        close: true
+        linetypeScale: 1
+        linetypeGeneration: true
+        layerStyle: 
+          color: "Dark Gray"
+          linetype: ACAD_ISO02W100
+          lineweight: 158
+        operations:
+          - type: buffer
+            layers:
+              - name: Geltungsbereich NW
+            distance: 2
+      - name: Geltungsbereich NO
+        update: true
+        layerStyle: 
+          color: "Red"
+          locked: false
+        close: true
+        operations:
+          - type: copy
+            layers:
+              - name: Parcel
+                values:
+                  - "24/8"
+                  - "24/9"
+          - type: filter
+            layers:
+              - name: Flur
+                values:
+                  - "Flur 1"
+              - name: Gemarkung
+                values:
+                  - "Groß Plasten"
+              - name: Gemeinde
+                values:
+                  - "Groß Plasten"
+          - type: difference
+            layers:
+              - Wald
+              - Baumabstand Puffer
+              - Exclude
+              # - Exclude Acad
+        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/geltungsbereich_2.shp"
+      - name: Geltungsbereich S
+        update: true
+        layerStyle: 
+          color: "Red"
+          locked: false
+        close: true
+        operations:
+          - type: copy
+            layers:
+              - name: Parcel
+                values:
+                  - "41/1"
+          - type: filter
+            layers:
+              - name: Flur
+                values:
+                  - "Flur 2"
+              - name: Gemarkung
+                values:
+                  - "Klein Plasten"
+              - name: Gemeinde
+                values:
+                  - "Groß Plasten"
+          - type: difference
+            layers:
+              - Wald
+              - Baumabstand Puffer
+              - Exclude
+        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/geltungsbereich_3.shp"
+      - name: Waldabstand
+        operations:
+          - type: buffer
+            layers:
+              - Wald
+            distance: 30
+          - type: intersection
+            layers:
+              - Geltungsbereich NW
+              - Geltungsbereich NO
+              - Geltungsbereich S
+        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/waldabstand.shp"
       # - name: Biotope
       #   update: true
-      #   close: true
       #   viewports:
       #     - name: WorkView
-      #       layerStyle: 
-      #         color: "Light Green"
+      #       layerStyle: biotopWorkView
       #   operations:
       #     - type: buffer
       #       layers:
-      #         - Biotope Input 1
+      #         - Biotope Input
       #         - Geschütze Biotope
       #       distance: 10
       #     # - type: buffer
       #     #   mode: keep
       #     #   layers:
-      #     #     - Biotope Input 1
+      #     #     - Biotope Input
       #     #     - Geschütze Biotope
       #       # distance: 5
       #     - type: intersection
@@ -575,6 +556,47 @@ projects:
       #         - Geltungsbereich NO
       #         - Geltungsbereich S
       #   outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/biotope.shp"
+      - name: Biotope
+        update: true
+        viewports:
+          - name: WorkView
+            layerStyle: biotopWorkView
+        operations:
+          - type: merge
+            layers:
+              - Biotope Input
+              - Geschütze Biotope
+          #   distance: 10
+          # - type: buffer
+          #   mode: keep
+          #   layers:
+          #     - Biotope Input
+          #     - Geschütze Biotope
+            # distance: 5
+          # - type: intersection
+          #   layers:
+          #     - Geltungsbereich NW
+          #     - Geltungsbereich NO
+          #     - Geltungsbereich S
+        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/biotope.shp"
+      - name: Biotoppuffer
+        update: true
+        viewports:
+          - name: WorkView
+            layerStyle:
+              color: "brilliant-green"
+              linetype: "ACAD_ISO02W100"
+        operations:
+          - type: buffer
+            layers:
+              - Biotope
+            distance: 10
+            mode: keep
+          - type: intersection
+            layers:
+              - Geltungsbereich NW
+              - Geltungsbereich NO
+              - Geltungsbereich S
       # - name: "Biotope T-Symbol"
       #   update: true
       #   close: true
@@ -704,25 +726,25 @@ projects:
       #         - Baufeld
       #       distance: -3
       #   outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/baugrenze.shp"
-      # - name: WMTS DOP
-      #   # update: true
-      #   layerStyle: 
-      #     locked: true
-      #     # color: "White"
-      #   operations:
-      #     - type: wmts
-      #       url: "https://www.geodaten-mv.de/dienste/dop_wmts/wmts/1.0.0/WMTSCapabilities.xml"
-      #       layer: "mv_dop"
-      #       # zoom: "10"
-      #       proj: "ETRS89UTM33"
-      #       targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/DOP"
-      #       layers:
-      #         - Geltungsbereich NW
-      #         - Geltungsbereich NO
-      #         - Geltungsbereich S
-      #       buffer: 200
-      #       stitchTiles: true
-      #       # overwrite: true
+      - name: WMTS DOP
+        # update: true
+        layerStyle: 
+          locked: true
+          # color: "White"
+        operations:
+          - type: wmts
+            url: "https://www.geodaten-mv.de/dienste/dop_wmts/wmts/1.0.0/WMTSCapabilities.xml"
+            layer: "mv_dop"
+            # zoom: "10"
+            proj: "ETRS89UTM33"
+            targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/DOP"
+            layers:
+              - Geltungsbereich NW
+              - Geltungsbereich NO
+              - Geltungsbereich S
+            buffer: 200
+            stitchTiles: true
+            # overwrite: true
       # - name: WMTS Basemap
       #   update: true
       #   color: Black

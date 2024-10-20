@@ -3,7 +3,7 @@ styles:
     locked: true
     linetype: ACAD_ISO14W100
   flurWorkView:
-    color: "Light Gray"
+    color: "moderate-yellow"
   parcel:
     locked: true
     # color: "Black"
@@ -17,22 +17,28 @@ styles:
     # vp_freeze: false
     # transparency: 0.0
   parcelWorkView:
-    color: "Dark Gray"
+    color: "dark-grey"
   gemarkung:
     locked: true
     linetype: ACAD_ISO12W100
   gemarkungWorkView:
-    color: "Light Gray"
+    color: "moderate-yellow"
   gemeinde:
     locked: true
     linetype: ACAD_ISO10W100
   gemeindeWorkView:
-    color: "Light Gray"
-  forest:
-    color: "moderate-intense-chartreuse"
-    hatch:
-      pattern: 'ANSI31'
-      scale: 5
+    color: "moderate-yellow"
+  # waldLayer:
+  #   color: "moderate-intense-chartreuse"
+  waldHatch:
+    pattern: 'ANSI31'
+    scale: 5
+  gesGeschuetzesBiotop:
+    color: "brilliant-intense-orange"
+    linetype: "ACAD_ISO02W100"
+    lineweight: 30
+  biotopWorkView:
+    color: "brilliant-green"
   water:
     color: "brilliant-blue"
     transparency: 0.6
@@ -78,10 +84,6 @@ styles:
   flurgrenze:
     linetype: "ACAD_ISO14W100"
     lineweight: 50
-  gesGeschuetzesBiotop:
-    color: "brilliant-intense-orange"
-    linetype: "ACAD_ISO02W100"
-    lineweight: 30
   waldSchraffur:
     hatch:
       pattern: "ANSI31"
