@@ -15,6 +15,8 @@ from src.utils import log_info, log_warning, log_error
 import re
 import math
 from ezdxf.math import Vec2
+import os
+from ezdxf.lldxf.const import DXFValueError
 
 SCRIPT_IDENTIFIER = "Created by DXFExporter"
 
@@ -199,22 +201,73 @@ def update_layer_properties(layer, layer_properties):
     if 'plot' in layer_properties:
         layer.plot = layer_properties['plot']
 
-def load_standard_linetypes(doc):
-    standard_linetypes = [
-        'CONTINUOUS', 'CENTER', 'DASHED', 'PHANTOM', 'HIDDEN', 'DASHDOT',
-        'BORDER', 'DIVIDE', 'DOT'
-    ]
-    # Add ACAD_ISO linetypes
-    for i in range(1, 16):  # ACAD_ISO01W100 to ACAD_ISO15W100
-        standard_linetypes.append(f'ACAD_ISO{i:02d}W100')
+# def load_standard_linetypes(doc):
+#     linetypes = doc.linetypes
+    
+#     acadiso_lin_file = 'acadiso.lin'  # Adjust this path if necessary
+    
+#     if not os.path.exists(acadiso_lin_file):
+#         log_warning(f"acadiso.lin file not found at: {acadiso_lin_file}")
+#         return
 
-    for lt in standard_linetypes:
-        if lt not in doc.linetypes:
-            try:
-                doc.linetypes.new(lt)
-                log_info(f"Added standard linetype: {lt}")
-            except ezdxf.lldxf.const.DXFTableEntryError:
-                log_warning(f"Failed to add standard linetype: {lt}")
+#     def parse_pattern(pattern_string):
+#         elements = []
+#         parts = pattern_string.split(',')
+#         for part in parts:
+#             part = part.strip()
+#             if part.startswith('['):
+#                 # Complex element, add as is
+#                 elements.append(part)
+#             else:
+#                 try:
+#                     elements.append(float(part))
+#                 except ValueError:
+#                     # Ignore non-numeric, non-complex elements
+#                     pass
+#         return elements
+
+#     with open(acadiso_lin_file, 'r') as file:
+#         current_linetype = None
+#         current_description = ''
+#         current_pattern = []
+
+#         for line in file:
+#             line = line.strip()
+#             if line.startswith('*'):
+#                 # New linetype definition
+#                 if current_linetype:
+#                     add_linetype(linetypes, current_linetype, current_description, current_pattern)
+                
+#                 # Start a new linetype
+#                 parts = line[1:].split(',', 1)
+#                 current_linetype = parts[0]
+#                 current_description = parts[1] if len(parts) > 1 else ''
+#                 current_pattern = []
+#             elif line.startswith('A,'):
+#                 # Pattern definition
+#                 pattern_string = line[2:]
+#                 current_pattern = parse_pattern(pattern_string)
+
+#     # Add the last linetype
+#     if current_linetype:
+#         add_linetype(linetypes, current_linetype, current_description, current_pattern)
+
+#     # Verify that all linetypes are present
+#     for name in linetypes:
+#         log_info(f"Linetype '{name}' is present in the document.")
+
+#     # Set a default linetype scale
+#     doc.header['$LTSCALE'] = 1.0  # Adjust this value as needed
+
+# def add_linetype(linetypes, name, description, pattern):
+#     if name not in linetypes:
+#         try:
+#             linetypes.add(name, pattern, description=description)
+#             log_info(f"Added linetype: {name}")
+#         except Exception as e:
+#             log_warning(f"Failed to add linetype {name}: {str(e)}")
+#     else:
+#         log_info(f"Linetype {name} already exists")
 
 def set_drawing_properties(doc):
     doc.header['$INSUNITS'] = 6  # Assuming meters, adjust if needed
@@ -306,9 +359,8 @@ def create_hatch(msp, boundary_paths, style, project_loader, is_legend=False):
     
     hatch = msp.add_hatch()
     
-    hatch_style = style.get('hatch', {})
-    pattern = hatch_style.get('pattern', 'SOLID')
-    scale = hatch_style.get('scale', 1)
+    pattern = style.get('pattern', 'SOLID')
+    scale = style.get('scale', 1)
     
     if pattern != 'SOLID':
         try:
@@ -476,7 +528,7 @@ def load_standard_text_styles(doc):
 
 # This function should be called once when the document is loaded
 def initialize_document(doc):
-    load_standard_linetypes(doc)
+    # load_standard_linetypes(doc)
     loaded_styles = load_standard_text_styles(doc)
     return loaded_styles
 
@@ -551,3 +603,4 @@ def create_path_array(msp, source_layer_name, target_layer_name, block_name, spa
             current_distance -= segment_length
 
     log_info(f"Path array created for source layer '{source_layer_name}' using block '{block_name}' and placed on target layer '{target_layer_name}'")
+

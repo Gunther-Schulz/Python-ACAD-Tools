@@ -7,11 +7,11 @@ styles:
   water:
     color: "brilliant-blue"
     transparency: 0.6
-  baufeldSchraffur:
+  baufeldLayer:
     color: "brilliant-red"
     transparency: 0.6
-    hatch:
-      individual_hatches: true
+  baufeldHatch:
+    individual_hatches: true
       # pattern: 'SOLID'
       # scale: 10
   verkehrsflaeche:
@@ -23,14 +23,16 @@ styles:
       pattern: "ANSI31"
       # scale: 20
       # angle: 80
-  gruenflaeche:
+  gruenflaecheLayer:
     color: "brilliant-intense-chartreuse"
     transparency: 0.6
+  gruenflaecheHatch:
     hatch:
       individual_hatches: true
-  ausgleich:
+  ausgleichLayer:
     color: "moderate-intense-green"
     transparency: 0.6
+  ausgleichHatch:
     hatch:
       individual_hatches: true
   geltungsbereich:

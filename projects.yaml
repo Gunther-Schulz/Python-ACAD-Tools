@@ -144,7 +144,7 @@ projects:
             - name: "Sonstiges Sondergebiet (§ 11 Abs. 2 BauNVO) Zweckbestimmung: Energiegewinnung auf der Basis solarer Strahlungsenergie"
               type: area
               create_hatch: true
-              hatch_style: baufeldSchraffur
+              layerStyle: baufeldLayer
               block_symbol: "Sonstiges Sondergebiet EBS"
               block_symbol_scale: 2
         - name: "Maß der baulichen Nutzung"
@@ -235,13 +235,13 @@ projects:
           items:
             - name: "Gemeindegrenze"
               type: diagonal_line
-              style: gemeindegrenze
+              layerStyle: gemeindegrenze
             - name: "Gemarkungsgrenze"
               type: line
-              style: gemarkungsgrenze
+              layerStyle: gemarkungsgrenze
             - name: "Flurgrenze"
               type: line
-              style: flurgrenze
+              layerStyle: flurgrenze
             - name: "Flurstücksnummer\nFlurstücksgrenze"
               type: empty
               block_symbol: "Parcel"
@@ -259,7 +259,7 @@ projects:
             - name: "gesetzlich geschützes Biotop § 9 Abs. 6 BauGB i. V. m. § 20 NatSchAG - MV"
               type: area
               create_hatch: false
-              rectangle_style: gesGeschuetzesBiotop
+              rectangleStyle: gesGeschuetzesBiotop
               block_symbol: "Gesetzlich geschütztes Biotop"
               block_symbol_scale: 1.8
             - name: "Wald"
@@ -335,19 +335,19 @@ projects:
         close: true
         linetypeScale: 0.2
         linetypeGeneration: true
-        style:
+        layerStyle: 
           locked: true
           linetype: ACAD_ISO14W100
         viewports:
           - name: WorkView
-            style:
+            layerStyle: 
               color: "Light Gray"
       - name: Parcel
         update: true
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/parcel.shp"
         label: label
         close: true
-        style:
+        layerStyle: 
           # color: Black
           locked: true
           # linetype: ACAD_ISO11W100
@@ -363,7 +363,7 @@ projects:
         #   color: "Green"
         viewports:
           - name: WorkView
-            style:
+            layerStyle: 
               color: "Dark Gray"
               # linetype: "ZIGZAG"
               # lineweight: 35
@@ -375,12 +375,12 @@ projects:
         close: true
         # linetypeScale: 0.2
         linetypeGeneration: true
-        style:
+        layerStyle: 
           locked: true
           linetype: ACAD_ISO12W100
         viewports:
           - name: WorkView
-            style:
+            layerStyle: 
               color: "Light Gray"
       - name: Gemeinde
         update: true
@@ -389,12 +389,12 @@ projects:
         close: true
         # linetypeScale: 0.2
         linetypeGeneration: true
-        style:
+        layerStyle: 
           locked: true
           linetype: ACAD_ISO10W100
         viewports:
           - name: WorkView
-            style:
+            layerStyle: 
               color: "Light Gray"
       - name: Grünfläche Input 1
         # update: true
@@ -409,12 +409,11 @@ projects:
           - type: merge
         viewports:
           - name: WorkView
-            style:
+            layerStyle:
               color: "Dark Green"
       - name: Wald Schraffur
         update: true
-        style:
-          hatch:
+        hatchStyle: 
             layers:
               - Wald
             pattern: 'ANSI31'
@@ -444,13 +443,13 @@ projects:
         close: true
         # linetypeScale: 0.2
         linetypeGeneration: true
-        style:
+        layerStyle: 
           color: "Light Orange"
           linetype: ACAD_ISO02W100
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/gesch_biotope.shp"
       - name: FG Buffer
         # update: true
-        # style:
+        # layerStyle: 
         #   color: "Light Blue"
         operations:
           - type: buffer
@@ -460,7 +459,7 @@ projects:
       - name: Geltungsbereich NW
         update: true
         close: true
-        style:
+        layerStyle: 
           color: "Red"
         operations:
           - type: copy
@@ -495,7 +494,7 @@ projects:
         close: true
         linetypeScale: 1
         linetypeGeneration: true
-        style:
+        layerStyle: 
           color: "Dark Gray"
           linetype: ACAD_ISO02W100
           lineweight: 158
@@ -506,7 +505,7 @@ projects:
             distance: 2
       - name: Geltungsbereich NO
         update: true
-        style:
+        layerStyle: 
           color: "Red"
           locked: false
         close: true
@@ -537,7 +536,7 @@ projects:
         outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/geltungsbereich_2.shp"
       - name: Geltungsbereich S
         update: true
-        style:
+        layerStyle: 
           color: "Red"
           locked: false
         close: true
@@ -566,7 +565,7 @@ projects:
         outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/geltungsbereich_3.shp"
       - name: Waldabstand
         # update: true
-        # style:
+        # layerStyle: 
         #   color: "Dark Green"
         # close: true
         operations:
@@ -585,7 +584,7 @@ projects:
         close: true
         viewports:
           - name: WorkView
-            style:
+            layerStyle: 
               color: "Light Green"
         operations:
           - type: buffer
@@ -623,7 +622,7 @@ projects:
         close: true
         viewports:
           - name: WorkView
-            style:
+            layerStyle: 
               color: "Dark Green"
         operations:
           - type: copy
@@ -643,9 +642,9 @@ projects:
         outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/ausgleich.shp"
       - name: Ausgleich Schraffur
         update: true
-        style: ausgleich
-        performHatch:
-          individual_hatches: true
+        layerStyle: ausgleichLayer
+        hatchStyle: ausgleichHatch
+        performHatch: true
         operations:
           - type: copy
             layers:
@@ -658,7 +657,7 @@ projects:
         close: true
         viewports:
           - name: WorkView
-            style:
+            layerStyle: 
               color: "Light Green"
         operations:
           - type: buffer
@@ -667,17 +666,17 @@ projects:
             distance: -5
       - name: Grünfläche Schraffur
         update: true
-        style: gruenflaeche
-        perfromHatch:
+        layerStyle: gruenflaecheLayer
+        hatchStyle: gruenflaecheHatch
+        performHatch:
             layers:
               - Grünfläche
-            individual_hatches: true
       - name: Baufeld
         update: true
         close: true
         viewports:
           - name: WorkView
-            style:
+            layerStyle: 
               color: "Light Red"
         operations:
           - type: copy
@@ -696,7 +695,8 @@ projects:
         outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/baufeld.shp"
       - name: Baufeld Schraffur
         update: true
-        style: baufeldSchraffur
+        layerStyle: baufeldLayer
+        hatchStyle: baufeldHatch
         performHatch:
           layers:
             - Baufeld
@@ -706,7 +706,7 @@ projects:
           # color: "Blue"  # ACI color index for Light Red
       - name: Baugrenze 2
         update: true
-        style:
+        layerStyle: 
           color: "Green Blue"
           lineweight: 60
         close: true
@@ -717,7 +717,7 @@ projects:
             distance: -3.4
       - name: Baugrenze
         update: true
-        style:
+        layerStyle: 
           linetype: ACAD_ISO02W100
           lineweight: 60
         linetypeScale: 0.5
@@ -725,7 +725,7 @@ projects:
         close: true
         viewports:
           - name: WorkView
-            style:
+            layerStyle: 
               color: "Blue"
         operations:
           - type: buffer
@@ -735,7 +735,7 @@ projects:
         outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/baugrenze.shp"
       - name: WMTS DOP
         # update: true
-        style:
+        layerStyle: 
           locked: true
           # color: "White"
         operations:
