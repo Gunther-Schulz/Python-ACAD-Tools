@@ -592,6 +592,9 @@ projects:
               - Biotope
             distance: 10
             mode: keep
+          - type: difference
+            layers:
+              - Biotope
           - type: intersection
             layers:
               - Geltungsbereich NW
