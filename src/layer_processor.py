@@ -534,14 +534,36 @@ class LayerProcessor:
                 overlay_geometry = overlay_geometry.union(layer_geometry)
 
         if base_geometry is not None and overlay_geometry is not None:
-            result = self._perform_smart_difference(base_geometry, overlay_geometry)
+            # Auto-detect whether to reverse the difference
+            reverse_difference = self._should_reverse_difference(base_geometry, overlay_geometry)
+            log_info(f"Auto-detected reverse_difference for {layer_name}: {reverse_difference}")
+
+            if isinstance(base_geometry, gpd.GeoDataFrame):
+                base_union = base_geometry.geometry.unary_union
+                if reverse_difference:
+                    result = overlay_geometry.difference(base_union)
+                else:
+                    result = base_union.difference(overlay_geometry)
+            else:
+                if reverse_difference:
+                    result = overlay_geometry.difference(base_geometry)
+                else:
+                    result = base_geometry.difference(overlay_geometry)
             
-            if result is None or result.is_empty:
+            # Handle the result based on its type
+            if isinstance(result, (Polygon, MultiPolygon, LineString, MultiLineString)):
+                result = gpd.GeoSeries([result])
+            elif not isinstance(result, gpd.GeoSeries):
+                log_warning(f"Unexpected result type: {type(result)}")
+                return None
+            
+            result = result[~result.is_empty & result.notna()]
+            
+            if result.empty:
                 log_warning(f"Difference operation resulted in empty geometry for layer {layer_name}")
                 return None
             
-            result_gdf = gpd.GeoDataFrame(geometry=[result], crs=self.crs)
-            
+            result_gdf = gpd.GeoDataFrame(geometry=result, crs=self.crs)
             if isinstance(base_geometry, gpd.GeoDataFrame):
                 for col in base_geometry.columns:
                     if col != 'geometry':
@@ -552,37 +574,46 @@ class LayerProcessor:
             log_warning(f"Unable to perform difference operation for layer {layer_name}")
             return None
 
-    def _perform_smart_difference(self, base_geometry, overlay_geometry):
+    def _should_reverse_difference(self, base_geometry, overlay_geometry):
         if isinstance(base_geometry, gpd.GeoDataFrame):
             base_geometry = base_geometry.geometry.unary_union
         
-        if isinstance(base_geometry, (Polygon, MultiPolygon)) and isinstance(overlay_geometry, (Polygon, MultiPolygon)):
-            # Split multipolygons into individual polygons
-            base_polygons = [base_geometry] if isinstance(base_geometry, Polygon) else list(base_geometry.geoms)
-            overlay_polygons = [overlay_geometry] if isinstance(overlay_geometry, Polygon) else list(overlay_geometry.geoms)
-            
-            result_polygons = []
-            for base_poly in base_polygons:
-                for overlay_poly in overlay_polygons:
-                    if base_poly.intersects(overlay_poly):
-                        intersection = base_poly.intersection(overlay_poly)
-                        if intersection.area / base_poly.area > 0.5:
-                            # If more than half of the base polygon is covered, subtract it from the overlay
-                            diff = overlay_poly.difference(base_poly)
-                        else:
-                            # Otherwise, subtract the overlay from the base
-                            diff = base_poly.difference(overlay_poly)
-                        if not diff.is_empty:
-                            result_polygons.append(diff)
-                    else:
-                        # If they don't intersect, keep the base polygon as is
-                        result_polygons.append(base_poly)
-            
-            # Combine all resulting polygons
-            return unary_union(result_polygons)
-        else:
-            # For non-polygon geometries, perform a simple difference
-            return base_geometry.difference(overlay_geometry)
+        # Ensure we're working with single geometries
+        if isinstance(base_geometry, (MultiPolygon, MultiLineString)):
+            base_geometry = unary_union(base_geometry)
+        if isinstance(overlay_geometry, (MultiPolygon, MultiLineString)):
+            overlay_geometry = unary_union(overlay_geometry)
+        
+        # Check if overlay_geometry is completely within base_geometry
+        if overlay_geometry.within(base_geometry):
+            return False
+        
+        # Check if base_geometry is completely within overlay_geometry
+        if base_geometry.within(overlay_geometry):
+            return True
+        
+        # Compare areas
+        base_area = base_geometry.area
+        overlay_area = overlay_geometry.area
+        
+        # If the overlay area is larger, it's likely a positive buffer, so don't reverse
+        if overlay_area > base_area:
+            return False
+        
+        # If the base area is larger, it's likely a negative buffer, so do reverse
+        if base_area > overlay_area:
+            return True
+        
+        # If areas are similar, check the intersection
+        intersection = base_geometry.intersection(overlay_geometry)
+        intersection_area = intersection.area
+        
+        # If the intersection is closer to the base area, reverse
+        if abs(intersection_area - base_area) < abs(intersection_area - overlay_area):
+            return True
+        
+        # Default to not reversing
+        return False
 
     def create_intersection_layer(self, layer_name, operation):
         self._create_overlay_layer(layer_name, operation, 'intersection')

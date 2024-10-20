@@ -577,7 +577,7 @@ projects:
           - type: difference
             layers:
               - Biotope
-            reverseDifference: true
+            # reverseDifference: true
           - type: intersection
             layers:
               - Geltungsbereich NW
