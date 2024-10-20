@@ -1,5 +1,6 @@
 import random
 import shutil
+import traceback
 import ezdxf
 from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection, Point
 from src.utils import log_info, log_warning, log_error
@@ -364,7 +365,12 @@ class DXFExporter:
 
         print(f"add_geometries_to_dxf Layer Name: {layer_name}")
         for idx, geometry in enumerate(geometries):
-            if isinstance(geometry, LineString):
+            if isinstance(geometry, Polygon):
+                self.add_polygon_to_dxf(msp, geometry, layer_name)
+            elif isinstance(geometry, MultiPolygon):
+                for polygon in geometry.geoms:
+                    self.add_polygon_to_dxf(msp, polygon, layer_name)
+            elif isinstance(geometry, LineString):
                 self.add_linestring_to_dxf(msp, geometry, layer_name)
             elif isinstance(geometry, MultiLineString):
                 for line in geometry.geoms:
@@ -378,50 +384,44 @@ class DXFExporter:
                 self.add_label_to_dxf(msp, geometry, layer_name, layer_name)
 
     def add_polygon_to_dxf(self, msp, geometry, layer_name):
-        if isinstance(geometry, Polygon):
-            polygons = [geometry]
-        elif isinstance(geometry, MultiPolygon):
-            polygons = list(geometry.geoms)
-        else:
-            return
-
         layer_properties = self.layer_properties[layer_name]
-        for polygon in polygons:
-            exterior_coords = list(polygon.exterior.coords)
-            if len(exterior_coords) > 2:
-                polyline = msp.add_lwpolyline(exterior_coords, dxfattribs={
+        # For polygons, always set 'close' to True, regardless of layer properties
+        close = True
+
+        exterior_coords = list(geometry.exterior.coords)
+        if len(exterior_coords) > 2:
+            polyline = msp.add_lwpolyline(exterior_coords, dxfattribs={
+                'layer': layer_name, 
+                'closed': close,
+                'ltscale': layer_properties.get('linetypeScale', 1.0)
+            })
+            self.attach_custom_data(polyline)
+            if layer_properties.get('linetypeGeneration', False):
+                polyline.dxf.flags |= LWPOLYLINE_PLINEGEN
+            else:
+                polyline.dxf.flags &= ~LWPOLYLINE_PLINEGEN
+
+        for interior in geometry.interiors:
+            interior_coords = list(interior.coords)
+            if len(interior_coords) > 2:
+                polyline = msp.add_lwpolyline(interior_coords, dxfattribs={
                     'layer': layer_name, 
-                    'closed': layer_properties.get('close', True),
-                    'ltscale': layer_properties.get('linetypeScale', 1.0)  # Use .get() with a default value
+                    'closed': close,
+                    'ltscale': layer_properties.get('linetypeScale', 1.0)
                 })
                 self.attach_custom_data(polyline)
-                # Set linetype generation using flags attribute
                 if layer_properties.get('linetypeGeneration', False):
                     polyline.dxf.flags |= LWPOLYLINE_PLINEGEN
                 else:
                     polyline.dxf.flags &= ~LWPOLYLINE_PLINEGEN
 
-            for interior in polygon.interiors:
-                interior_coords = list(interior.coords)
-                if len(interior_coords) > 2:
-                    polyline = msp.add_lwpolyline(interior_coords, dxfattribs={
-                        'layer': layer_name, 
-                        'closed': layer_properties.get('close', True),
-                        'ltscale': layer_properties.get('linetypeScale', 1.0)  # Use .get() with a default value
-                    })
-                    self.attach_custom_data(polyline)
-                    # Set linetype generation using flags attribute
-                    if layer_properties.get('linetypeGeneration', False):
-                        polyline.dxf.flags |= LWPOLYLINE_PLINEGEN
-                    else:
-                        polyline.dxf.flags &= ~LWPOLYLINE_PLINEGEN
-
     def add_linestring_to_dxf(self, msp, linestring, layer_name):
         points = list(linestring.coords)
         layer_properties = self.layer_properties[layer_name]
-        close_linestring = layer_properties.get('close_linestring', False)
+        # For linestrings, use the 'close' property from layer settings
+        close = layer_properties.get('close', False)
         
-        if close_linestring and points[0] != points[-1]:
+        if close and points[0] != points[-1]:
             points.append(points[0])  # Close the linestring by adding the first point at the end
         
         log_info(f"Adding linestring to layer {layer_name} with {len(points)} points")
@@ -435,7 +435,7 @@ class DXFExporter:
                 points=points_2d,
                 dxfattribs={
                     'layer': layer_name,
-                    'closed': close_linestring,
+                    'closed': close,
                     'ltscale': layer_properties['linetypeScale']
                 }
             )
@@ -629,22 +629,30 @@ class DXFExporter:
                 if viewport:
                     vp_handle = viewport.dxf.handle
                     
+                    # Check if layerStyle is a string (preset) or dict (inline)
+                    if isinstance(vp_style['layerStyle'], str):
+                        # It's a preset, get the style from project_loader
+                        style_dict = self.project_loader.get_style(vp_style['layerStyle'])
+                    else:
+                        # It's an inline style
+                        style_dict = vp_style['layerStyle']
+                    
                     # Set color override
-                    color = get_color_code(vp_style['layerStyle'].get('color'), self.name_to_aci)
+                    color = get_color_code(style_dict.get('color'), self.name_to_aci)
                     layer_overrides.set_color(vp_handle, color)
 
                     # Set linetype override
-                    linetype = vp_style['layerStyle'].get('linetype')
+                    linetype = style_dict.get('linetype')
                     if linetype:
                         layer_overrides.set_linetype(vp_handle, linetype)
 
                     # Set lineweight override
-                    lineweight = vp_style['layerStyle'].get('lineweight')
+                    lineweight = style_dict.get('lineweight')
                     if lineweight is not None:
                         layer_overrides.set_lineweight(vp_handle, lineweight)
 
                     # Set transparency override
-                    transparency = vp_style['layerStyle'].get('transparency')
+                    transparency = style_dict.get('transparency')
                     if transparency is not None:
                         # Ensure transparency is between 0 and 1
                         transparency_value = max(0, min(transparency, 1))
@@ -655,6 +663,7 @@ class DXFExporter:
                     log_warning(f"Viewport {vp_style['name']} not found")
             except Exception as e:
                 log_error(f"Error processing viewport style for {vp_style['name']}: {str(e)}")
+                log_error(f"Traceback:\n{traceback.format_exc()}")
 
         # Commit the changes to the layer overrides
         layer_overrides.commit()
@@ -776,6 +785,8 @@ class DXFExporter:
                 remove_entities_by_layer(msp, target_layer_name, self.script_identifier)
                 
             create_path_array(msp, source_layer_name, target_layer_name, block_name, spacing, scale, rotation)
+
+
 
 
 

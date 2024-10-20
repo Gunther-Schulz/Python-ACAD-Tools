@@ -510,7 +510,124 @@ class LayerProcessor:
             self.all_layers[layer_name] = gpd.GeoDataFrame(geometry=[], crs=self.crs)
 
     def create_difference_layer(self, layer_name, operation):
-        self._create_overlay_layer(layer_name, operation, 'difference')
+        log_info(f"Creating difference layer: {layer_name}")
+        overlay_layers = operation.get('layers', [])
+        manual_reverse = operation.get('reverseDifference')
+        
+        base_geometry = self.all_layers.get(layer_name)
+        if base_geometry is None:
+            log_warning(f"Base layer {layer_name} not found for difference operation")
+            return None
+
+        base_geometry = self._remove_empty_geometries(base_geometry)
+        if base_geometry is None or (isinstance(base_geometry, gpd.GeoDataFrame) and base_geometry.empty):
+            log_warning(f"Base geometry for layer {layer_name} is empty after removing empty geometries")
+            return None
+
+        overlay_geometry = None
+        for layer_info in overlay_layers:
+            overlay_layer_name, values = self._process_layer_info(layer_info)
+            if overlay_layer_name is None:
+                continue
+
+            layer_geometry = self._get_filtered_geometry(overlay_layer_name, values)
+            if layer_geometry is None:
+                continue
+
+            layer_geometry = self._remove_empty_geometries(layer_geometry)
+            if layer_geometry is None:
+                continue
+
+            if overlay_geometry is None:
+                overlay_geometry = layer_geometry
+            else:
+                overlay_geometry = overlay_geometry.union(layer_geometry)
+
+        if overlay_geometry is None:
+            log_warning(f"No valid overlay geometry found for layer {layer_name}")
+            return None
+
+        # Use manual override if provided, otherwise use auto-detection
+        if manual_reverse is not None:
+            reverse_difference = manual_reverse
+            log_info(f"Using manual override for reverse_difference: {reverse_difference}")
+        else:
+            reverse_difference = self._should_reverse_difference(base_geometry, overlay_geometry)
+            log_info(f"Auto-detected reverse_difference for {layer_name}: {reverse_difference}")
+
+        if isinstance(base_geometry, gpd.GeoDataFrame):
+            base_union = base_geometry.geometry.unary_union
+            if reverse_difference:
+                result = overlay_geometry.difference(base_union)
+            else:
+                result = base_union.difference(overlay_geometry)
+        else:
+            if reverse_difference:
+                result = overlay_geometry.difference(base_geometry)
+            else:
+                result = base_geometry.difference(overlay_geometry)
+        
+        # Handle the result based on its type
+        if isinstance(result, (Polygon, MultiPolygon, LineString, MultiLineString)):
+            result = gpd.GeoSeries([result])
+        elif not isinstance(result, gpd.GeoSeries):
+            log_warning(f"Unexpected result type: {type(result)}")
+            return None
+        
+        result = result[~result.is_empty & result.notna()]
+        
+        if result.empty:
+            log_warning(f"Difference operation resulted in empty geometry for layer {layer_name}")
+            return None
+        
+        result_gdf = gpd.GeoDataFrame(geometry=result, crs=self.crs)
+        if isinstance(base_geometry, gpd.GeoDataFrame):
+            for col in base_geometry.columns:
+                if col != 'geometry':
+                    result_gdf[col] = base_geometry[col].iloc[0]
+        
+        return result_gdf
+
+    def _should_reverse_difference(self, base_geometry, overlay_geometry):
+        if isinstance(base_geometry, gpd.GeoDataFrame):
+            base_geometry = base_geometry.geometry.unary_union
+        
+        # Ensure we're working with single geometries
+        if isinstance(base_geometry, (MultiPolygon, MultiLineString)):
+            base_geometry = unary_union(base_geometry)
+        if isinstance(overlay_geometry, (MultiPolygon, MultiLineString)):
+            overlay_geometry = unary_union(overlay_geometry)
+        
+        # Check if overlay_geometry is completely within base_geometry
+        if overlay_geometry.within(base_geometry):
+            return False
+        
+        # Check if base_geometry is completely within overlay_geometry
+        if base_geometry.within(overlay_geometry):
+            return True
+        
+        # Compare areas
+        base_area = base_geometry.area
+        overlay_area = overlay_geometry.area
+        
+        # If the overlay area is larger, it's likely a positive buffer, so don't reverse
+        if overlay_area > base_area:
+            return False
+        
+        # If the base area is larger, it's likely a negative buffer, so do reverse
+        if base_area > overlay_area:
+            return True
+        
+        # If areas are similar, check the intersection
+        intersection = base_geometry.intersection(overlay_geometry)
+        intersection_area = intersection.area
+        
+        # If the intersection is closer to the base area, reverse
+        if abs(intersection_area - base_area) < abs(intersection_area - overlay_area):
+            return True
+        
+        # Default to not reversing
+        return False
 
     def create_intersection_layer(self, layer_name, operation):
         self._create_overlay_layer(layer_name, operation, 'intersection')
@@ -641,47 +758,56 @@ class LayerProcessor:
             return geometry
 
     def _clean_polygon(self, polygon, sliver_removal_distance, min_area):
-        # Clean the exterior
+        if polygon.is_empty:
+            log_warning("Encountered an empty polygon during cleaning. Skipping.")
+            return polygon
+
         cleaned_exterior = self._clean_linear_ring(polygon.exterior, sliver_removal_distance)
-        if cleaned_exterior is None:
-            return None
-        
-        # Clean the interiors
-        cleaned_interiors = [self._clean_linear_ring(interior, sliver_removal_distance) 
-                             for interior in polygon.interiors]
-        cleaned_interiors = [interior for interior in cleaned_interiors if interior is not None]
-        
-        # Reconstruct the polygon
-        cleaned_polygon = Polygon(cleaned_exterior, cleaned_interiors)
-        
-        # Remove small polygons
+        cleaned_interiors = [self._clean_linear_ring(interior, sliver_removal_distance) for interior in polygon.interiors]
+
+        # Filter out any empty interiors
+        cleaned_interiors = [interior for interior in cleaned_interiors if not interior.is_empty]
+
+        try:
+            cleaned_polygon = Polygon(cleaned_exterior, cleaned_interiors)
+        except Exception as e:
+            log_warning(f"Error creating cleaned polygon: {str(e)}. Returning original polygon.")
+            return polygon
+
         if cleaned_polygon.area < min_area:
+            log_info(f"Polygon area ({cleaned_polygon.area}) is below minimum ({min_area}). Removing.")
             return None
-        
+
         return cleaned_polygon
 
-    def _clean_linear_ring(self, ring, tolerance):
-        # Convert to LineString to use linemerge
-        line = LineString(ring.coords)
-        
-        # Merge any nearly coincident line segments
-        merged = linemerge([line])
+    def _clean_linear_ring(self, ring, sliver_removal_distance):
+        if ring.is_empty:
+            log_warning("Encountered an empty ring during cleaning. Skipping.")
+            return ring
 
-        # Remove any points that are too close together
-        cleaned_coords = []
-        for coord in merged.coords:
-            if not cleaned_coords or Point(coord).distance(Point(cleaned_coords[-1])) > tolerance:
-                cleaned_coords.append(coord)
-        
-        # Ensure the ring is closed
-        if cleaned_coords[0] != cleaned_coords[-1]:
-            cleaned_coords.append(cleaned_coords[0])
-        
-        # Check if we have enough coordinates to form a valid LinearRing
-        if len(cleaned_coords) < 4:
-            return None
-        
-        return LinearRing(cleaned_coords)
+        coords = list(ring.coords)
+        if len(coords) < 3:
+            log_warning(f"Ring has fewer than 3 coordinates. Skipping cleaning. Coords: {coords}")
+            return ring
+
+        line = LineString(coords)
+        try:
+            merged = linemerge([line])
+        except Exception as e:
+            log_warning(f"Error during linemerge: {str(e)}. Returning original ring.")
+            return ring
+
+        if merged.geom_type == 'LineString':
+            cleaned = merged.simplify(sliver_removal_distance)
+        else:
+            log_warning(f"Unexpected geometry type after merge: {merged.geom_type}. Returning original ring.")
+            return ring
+
+        if not cleaned.is_ring:
+            log_warning("Cleaned geometry is not a ring. Attempting to close it.")
+            cleaned = LineString(list(cleaned.coords) + [cleaned.coords[0]])
+
+        return LinearRing(cleaned)
 
     def _remove_small_polygons(self, geometry, min_area):
         if isinstance(geometry, Polygon):
@@ -698,16 +824,10 @@ class LayerProcessor:
         log_info(f"Creating buffer layer: {layer_name}")
         source_layers = operation.get('layers', [])
         buffer_distance = operation['distance']
-        buffer_mode = operation.get('mode', 'off')  # Changed default to 'off'
-        join_style = operation.get('joinStyle', 'mitre')  # Default to 'round'
+        join_style = operation.get('joinStyle', 'round')
 
-        # Map join style names to shapely constants
-        join_style_map = {
-            'round': 1,
-            'mitre': 2,
-            'bevel': 3
-        }
-        join_style_value = join_style_map.get(join_style, 1)  # Default to 'round' if invalid
+        join_style_map = {'round': 1, 'mitre': 2, 'bevel': 3}
+        join_style_value = join_style_map.get(join_style, 1)
 
         combined_geometry = None
         for layer_info in source_layers:
@@ -725,42 +845,30 @@ class LayerProcessor:
                 combined_geometry = combined_geometry.union(layer_geometry)
 
         if combined_geometry is not None:
-            if buffer_mode == 'outer':
-                buffered = combined_geometry.buffer(buffer_distance, cap_style=2, join_style=join_style_value)
-                result = buffered.difference(combined_geometry)
-            elif buffer_mode == 'inner':
-                result = combined_geometry.buffer(-buffer_distance, cap_style=2, join_style=join_style_value)
-            elif buffer_mode == 'keep':
-                buffered = combined_geometry.buffer(buffer_distance, cap_style=2, join_style=join_style_value)
-                result = [combined_geometry, buffered]
-            else:  # 'off' or any other value
-                result = combined_geometry.buffer(buffer_distance, cap_style=2, join_style=join_style_value)
-
-            # Ensure the result is a valid geometry type for shapefiles
-            if buffer_mode == 'keep':
-                result_geom = []
-                for geom in result:
-                    if isinstance(geom, (Polygon, MultiPolygon)):
-                        result_geom.append(geom)
-                    elif isinstance(geom, GeometryCollection):
-                        result_geom.extend([g for g in geom.geoms if isinstance(g, (Polygon, MultiPolygon))])
+            if isinstance(combined_geometry, gpd.GeoDataFrame):
+                buffered = combined_geometry.geometry.buffer(buffer_distance, cap_style=2, join_style=join_style_value)
+                buffered = buffered[~buffered.is_empty]  # Remove empty geometries
+                if buffered.empty:
+                    log_warning(f"Buffer operation resulted in empty geometry for layer {layer_name}")
+                    return None
+                result = gpd.GeoDataFrame(geometry=buffered, crs=self.crs)
+                
+                # Copy attributes from the original geometry
+                for col in combined_geometry.columns:
+                    if col != 'geometry':
+                        result[col] = combined_geometry[col].iloc[0]
             else:
-                if isinstance(result, (Polygon, MultiPolygon)):
-                    result_geom = [result]
-                elif isinstance(result, GeometryCollection):
-                    result_geom = [geom for geom in result.geoms if isinstance(geom, (Polygon, MultiPolygon))]
-                else:
-                    result_geom = []
-
-            result_gdf = gpd.GeoDataFrame(geometry=result_geom, crs=self.crs)
-            self.all_layers[layer_name] = result_gdf
-            log_info(f"Created buffer layer: {layer_name} with {len(result_geom)} geometries")
+                # Handle individual geometry objects
+                buffered = combined_geometry.buffer(buffer_distance, cap_style=2, join_style=join_style_value)
+                if buffered.is_empty:
+                    log_warning(f"Buffer operation resulted in empty geometry for layer {layer_name}")
+                    return None
+                result = gpd.GeoDataFrame(geometry=[buffered], crs=self.crs)
+            
+            return result
         else:
-            log_warning(f"No valid source geometry found for buffer layer '{layer_name}'")
-            result_gdf = gpd.GeoDataFrame(geometry=[], crs=self.crs)
-            self.all_layers[layer_name] = result_gdf
-
-        return self.all_layers[layer_name]
+            log_warning(f"No valid geometry found for buffer operation on layer {layer_name}")
+            return None
 
     def process_wmts_or_wms_layer(self, layer_name, operation):
         log_info(f"Processing WMTS/WMS layer: {layer_name}")
@@ -1240,3 +1348,13 @@ class LayerProcessor:
         
         log_info(f"Radical blunt segment created: {point1}, {point2}")
         return [point1, point2]
+
+    def _remove_empty_geometries(self, geometry):
+        if isinstance(geometry, gpd.GeoDataFrame):
+            return geometry[~geometry.geometry.is_empty & geometry.geometry.notna()]
+        elif isinstance(geometry, (MultiPolygon, MultiLineString)):
+            return type(geometry)([geom for geom in geometry.geoms if not geom.is_empty])
+        elif isinstance(geometry, (Polygon, LineString)):
+            return None if geometry.is_empty else geometry
+        else:
+            return geometry
