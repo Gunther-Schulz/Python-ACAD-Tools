@@ -28,11 +28,7 @@ Creates a buffer around the geometries of the source layers.
 Options:
 - `layers`: List of source layers. If omitted, the operation will be performed on the current layer.
 - `distance`: Buffer distance (positive for outer buffer, negative for inner buffer)
-- `mode`: Buffer mode (default: 'normal')
-  - 'normal': Regular buffer (inner or outer based on distance sign)
-  - 'ring': Creates a ring buffer
-  - 'keep': Keeps both the original geometry and the buffered geometry
-- `joinStyle`: Style of buffer corners (default: 'mitre')
+- `joinStyle`: Style of buffer corners (default: 'round')
   - 'round'
   - 'mitre'
   - 'bevel'
@@ -42,6 +38,9 @@ Subtracts the geometries of overlay layers from the base layer.
 
 Options:
 - `layers`: List of overlay layers. If omitted, no difference operation will be performed.
+- `reverseDifference`: Boolean flag to reverse the difference operation (default: false)
+  - When true, subtracts the base geometry from the overlay geometry
+  - When false, performs the standard difference operation (base minus overlay)
 
 ### 4. Intersection
 Creates geometries that represent the intersection of the base layer with overlay layers.
@@ -103,3 +102,4 @@ Options:
 - If the `layers` option is omitted in applicable operations, the operation will be performed on the current layer.
 - Some operations may have additional options not listed here. Refer to the specific method implementations for more details.
 - For the buffer operation, use positive distance values for outer buffers and negative values for inner buffers.
+- The difference operation now supports a `reverseDifference` flag to control the direction of the difference operation.
