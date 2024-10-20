@@ -277,13 +277,13 @@ projects:
               type: empty
               block_symbol: "Abgrenzung unterschiedlicher Nutzung"
               block_symbol_scale: 1.4
-    pathArrays:
-      - sourceLayer: "Biotope T-Symbol"
-        targetLayer: "Biotope T-Symbol Array"
-        block: "T-Symbol"
-        spacing: 10
-        # scale: 0.5
-        # rotation: 90
+    # pathArrays:
+    #   - sourceLayer: "Biotope T-Symbol"
+    #     targetLayer: "Biotope T-Symbol Array"
+    #     block: "T-Symbol"
+    #     spacing: 10
+    #     # scale: 0.5
+    #     # rotation: 90
     viewports:
       - name: MainView
         center: [425, 450]
@@ -335,423 +335,394 @@ projects:
         close: true
         linetypeScale: 0.2
         linetypeGeneration: true
-        layerStyle: 
-          locked: true
-          linetype: ACAD_ISO14W100
+        layerStyle: flur
         viewports:
           - name: WorkView
-            layerStyle: 
-              color: "Light Gray"
+            layerStyle: flurWorkView
       - name: Parcel
         update: true
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/parcel.shp"
         label: label
         close: true
-        layerStyle: 
-          # color: Black
-          locked: true
-          # linetype: ACAD_ISO11W100
-          # linetypeGeneration: true
-          # linetypeScale: 1
-          # lineweight: 30
-          # plot: true
-          # frozen: false
-          # is_on: true 
-          # vp_freeze: false
-          # transparency: 0.0
-        # labelStyle:
-        #   color: "Green"
+        layerStyle: parcel
         viewports:
           - name: WorkView
-            layerStyle: 
-              color: "Dark Gray"
-              # linetype: "ZIGZAG"
-              # lineweight: 35
-              # transparency: 0.5
+            layerStyle: parcelWorkView
       - name: Gemarkung
         update: true
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/gemarkung.shp"
         label: gmkname
-        close: true
-        # linetypeScale: 0.2
         linetypeGeneration: true
-        layerStyle: 
-          locked: true
-          linetype: ACAD_ISO12W100
+        layerStyle: gemarkung
         viewports:
           - name: WorkView
-            layerStyle: 
-              color: "Light Gray"
+            layerStyle: gemarkungWorkView
       - name: Gemeinde
         update: true
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/gemeinde.shp"
         label: gen
-        close: true
         # linetypeScale: 0.2
         linetypeGeneration: true
-        layerStyle: 
-          locked: true
-          linetype: ACAD_ISO10W100
+        layerStyle: gemeinde
         viewports:
           - name: WorkView
-            layerStyle: 
-              color: "Light Gray"
-      - name: Grünfläche Input 1
-        # update: true
-        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/geltungsbereich_abstand.shp"
-        close: true
-        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/grünfläche_input_1.shp"
-      - name: Wald
-        update: true
-        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/wald.shp"
-        close: true
-        operations:
-          - type: merge
-        viewports:
-          - name: WorkView
-            layerStyle:
-              color: "Dark Green"
-      - name: Wald Schraffur
-        update: true
-        hatchStyle: 
-            layers:
-              - Wald
-            pattern: 'ANSI31'
-            scale: 5  # Adjust this value to change the hatch density
-      - name: Biotope Input 1
-        # update: true
-        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/biotope.shp"
-        # close: true
-      - name: Exclude
-        # update: true
-        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/exclude.shp"
-      # - name: Exclude Acad
-      #   update: false
-      #   dxfLayer: "Exclude Acad"
-      #   outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/exclude_acad.shp"
-      - name: Baumabstand Puffer
-        # update: true
-        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/baum_abstand.shp"
-        # close: true
-        operations:
-          - type: buffer
-            distance: 5
-            # joinStyle: round
-        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/baumabstand.shp"   
-      - name: Geschütze Biotope
-        update: true
-        close: true
-        # linetypeScale: 0.2
-        linetypeGeneration: true
-        layerStyle: 
-          color: "Light Orange"
-          linetype: ACAD_ISO02W100
-        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/gesch_biotope.shp"
-      - name: FG Buffer
-        # update: true
-        # layerStyle: 
-        #   color: "Light Blue"
-        operations:
-          - type: buffer
-            distance: 7
-        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/FG.shp"
-        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/fg_puffer.shp"
-      - name: Geltungsbereich NW
-        update: true
-        close: true
-        layerStyle: 
-          color: "Red"
-        operations:
-          - type: copy
-            layers:
-              - name: Parcel
-                values:
-                  - "1"
-                  - "2"
-                  - "4"
-                  - "6"
-                  - "7"
-                  - "14"
-          - type: filter
-            layers:
-              - name: Flur
-                values:
-                  - "Flur 1"
-              - name: Gemarkung
-                values:
-                  - "Groß Plasten"
-              - name: Gemeinde
-                values:
-                  - "Groß Plasten"
-          - type: difference
-            layers:
-              - Wald
-              - Baumabstand Puffer
-              - Exclude
-        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/geltungsbereich_1.shp"
-      - name: Geltungsbereich NW 2
-        update: true
-        close: true
-        linetypeScale: 1
-        linetypeGeneration: true
-        layerStyle: 
-          color: "Dark Gray"
-          linetype: ACAD_ISO02W100
-          lineweight: 158
-        operations:
-          - type: buffer
-            layers:
-              - name: Geltungsbereich NW
-            distance: 2
-      - name: Geltungsbereich NO
-        update: true
-        layerStyle: 
-          color: "Red"
-          locked: false
-        close: true
-        operations:
-          - type: copy
-            layers:
-              - name: Parcel
-                values:
-                  - "24/8"
-                  - "24/9"
-          - type: filter
-            layers:
-              - name: Flur
-                values:
-                  - "Flur 1"
-              - name: Gemarkung
-                values:
-                  - "Groß Plasten"
-              - name: Gemeinde
-                values:
-                  - "Groß Plasten"
-          - type: difference
-            layers:
-              - Wald
-              - Baumabstand Puffer
-              - Exclude
-              # - Exclude Acad
-        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/geltungsbereich_2.shp"
-      - name: Geltungsbereich S
-        update: true
-        layerStyle: 
-          color: "Red"
-          locked: false
-        close: true
-        operations:
-          - type: copy
-            layers:
-              - name: Parcel
-                values:
-                  - "41/1"
-          - type: filter
-            layers:
-              - name: Flur
-                values:
-                  - "Flur 2"
-              - name: Gemarkung
-                values:
-                  - "Klein Plasten"
-              - name: Gemeinde
-                values:
-                  - "Groß Plasten"
-          - type: difference
-            layers:
-              - Wald
-              - Baumabstand Puffer
-              - Exclude
-        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/geltungsbereich_3.shp"
-      - name: Waldabstand
-        # update: true
-        # layerStyle: 
-        #   color: "Dark Green"
-        # close: true
-        operations:
-          - type: buffer
-            layers:
-              - Wald
-            distance: 30
-          - type: intersection
-            layers:
-              - Geltungsbereich NW
-              - Geltungsbereich NO
-              - Geltungsbereich S
-        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/waldabstand.shp"
-      - name: Biotope
-        update: true
-        close: true
-        viewports:
-          - name: WorkView
-            layerStyle: 
-              color: "Light Green"
-        operations:
-          - type: buffer
-            layers:
-              - Biotope Input 1
-              - Geschütze Biotope
-            distance: 10
-          # - type: buffer
-          #   mode: keep
-          #   layers:
-          #     - Biotope Input 1
-          #     - Geschütze Biotope
-            # distance: 5
-          - type: intersection
-            layers:
-              - Geltungsbereich NW
-              - Geltungsbereich NO
-              - Geltungsbereich S
-        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/biotope.shp"
-      - name: "Biotope T-Symbol"
-        update: true
-        close: true
-        operations:
-          - type: buffer
-            distance: 5
-            layers:
-              - Biotope
-          - type: intersection
-            layers:
-              - Geltungsbereich NW
-              - Geltungsbereich NO
-              - Geltungsbereich S              
-      - name: Ausgleich
-        update: true
-        close: true
-        viewports:
-          - name: WorkView
-            layerStyle: 
-              color: "Dark Green"
-        operations:
-          - type: copy
-            layers:
-              - Grünfläche Input 1
-              - Waldabstand
-              - Baumabstand Puffer
-              - FG Buffer
-          - type: intersection
-            layers:
-              - Geltungsbereich NW
-              - Geltungsbereich NO
-              - Geltungsbereich S
-        bluntAngles:
-          angleThreshold: 25  # Angles smaller than this will be blunted
-          distance: 10.0  # Distance to move the vertex along the angle bisector
-        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/ausgleich.shp"
-      - name: Ausgleich Schraffur
-        update: true
-        layerStyle: ausgleichLayer
-        hatchStyle: ausgleichHatch
-        performHatch: true
-        operations:
-          - type: copy
-            layers:
-              - Ausgleich
-          - type: difference
-            layers:
-              - Grünfläche
-      - name: Grünfläche
-        update: true
-        close: true
-        viewports:
-          - name: WorkView
-            layerStyle: 
-              color: "Light Green"
-        operations:
-          - type: buffer
-            layers:
-              - Ausgleich
-            distance: -5
-      - name: Grünfläche Schraffur
-        update: true
-        layerStyle: gruenflaecheLayer
-        hatchStyle: gruenflaecheHatch
-        performHatch:
-            layers:
-              - Grünfläche
-      - name: Baufeld
-        update: true
-        close: true
-        viewports:
-          - name: WorkView
-            layerStyle: 
-              color: "Light Red"
-        operations:
-          - type: copy
-            layers:
-              - Geltungsbereich NW
-              - Geltungsbereich NO
-              - Geltungsbereich S
-          - type: difference
-            layers:
-              - Ausgleich
-              - Baumabstand Puffer
-              - Biotope
-              - FG Buffer
-          # - type: smooth
-          #   strength: 1.5
-        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/baufeld.shp"
-      - name: Baufeld Schraffur
-        update: true
-        layerStyle: baufeldLayer
-        hatchStyle: baufeldHatch
-        performHatch:
-          layers:
-            - Baufeld
-          # individual_hatches: true
-          # pattern: 'ANSI31'
-          # scale: 50  # Adjust this value to change the hatch density
-          # color: "Blue"  # ACI color index for Light Red
-      - name: Baugrenze 2
-        update: true
-        layerStyle: 
-          color: "Green Blue"
-          lineweight: 60
-        close: true
-        operations:
-          - type: buffer
-            layers:
-              - Baufeld
-            distance: -3.4
-      - name: Baugrenze
-        update: true
-        layerStyle: 
-          linetype: ACAD_ISO02W100
-          lineweight: 60
-        linetypeScale: 0.5
-        linetypeGeneration: true
-        close: true
-        viewports:
-          - name: WorkView
-            layerStyle: 
-              color: "Blue"
-        operations:
-          - type: buffer
-            layers:
-              - Baufeld
-            distance: -3
-        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/baugrenze.shp"
-      - name: WMTS DOP
-        # update: true
-        layerStyle: 
-          locked: true
-          # color: "White"
-        operations:
-          - type: wmts
-            url: "https://www.geodaten-mv.de/dienste/dop_wmts/wmts/1.0.0/WMTSCapabilities.xml"
-            layer: "mv_dop"
-            # zoom: "10"
-            proj: "ETRS89UTM33"
-            targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/DOP"
-            layers:
-              - Geltungsbereich NW
-              - Geltungsbereich NO
-              - Geltungsbereich S
-            buffer: 200
-            stitchTiles: true
-            # overwrite: true
+            layerStyle: gemeindeWorkView
+      # - name: Grünfläche Input 1
+      #   # update: true
+      #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/geltungsbereich_abstand.shp"
+      #   close: true
+      #   outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/grünfläche_input_1.shp"
+      # - name: Wald
+      #   update: true
+      #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/wald.shp"
+      #   close: true
+      #   operations:
+      #     - type: merge
+      #   viewports:
+      #     - name: WorkView
+      #       layerStyle:
+      #         color: "Dark Green"
+      # - name: Wald Schraffur
+      #   update: true
+      #   hatchStyle: 
+      #       layers:
+      #         - Wald
+      #       pattern: 'ANSI31'
+      #       scale: 5  # Adjust this value to change the hatch density
+      # - name: Biotope Input 1
+      #   # update: true
+      #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/biotope.shp"
+      #   # close: true
+      # - name: Exclude
+      #   # update: true
+      #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/exclude.shp"
+      # # - name: Exclude Acad
+      # #   update: false
+      # #   dxfLayer: "Exclude Acad"
+      # #   outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/exclude_acad.shp"
+      # - name: Baumabstand Puffer
+      #   # update: true
+      #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/baum_abstand.shp"
+      #   # close: true
+      #   operations:
+      #     - type: buffer
+      #       distance: 5
+      #       # joinStyle: round
+      #   outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/baumabstand.shp"   
+      # - name: Geschütze Biotope
+      #   update: true
+      #   close: true
+      #   # linetypeScale: 0.2
+      #   linetypeGeneration: true
+      #   layerStyle: 
+      #     color: "Light Orange"
+      #     linetype: ACAD_ISO02W100
+      #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/gesch_biotope.shp"
+      # - name: FG Buffer
+      #   # update: true
+      #   # layerStyle: 
+      #   #   color: "Light Blue"
+      #   operations:
+      #     - type: buffer
+      #       distance: 7
+      #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/FG.shp"
+      #   outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/fg_puffer.shp"
+      # - name: Geltungsbereich NW
+      #   update: true
+      #   close: true
+      #   layerStyle: 
+      #     color: "Red"
+      #   operations:
+      #     - type: copy
+      #       layers:
+      #         - name: Parcel
+      #           values:
+      #             - "1"
+      #             - "2"
+      #             - "4"
+      #             - "6"
+      #             - "7"
+      #             - "14"
+      #     - type: filter
+      #       layers:
+      #         - name: Flur
+      #           values:
+      #             - "Flur 1"
+      #         - name: Gemarkung
+      #           values:
+      #             - "Groß Plasten"
+      #         - name: Gemeinde
+      #           values:
+      #             - "Groß Plasten"
+      #     - type: difference
+      #       layers:
+      #         - Wald
+      #         - Baumabstand Puffer
+      #         - Exclude
+      #   outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/geltungsbereich_1.shp"
+      # - name: Geltungsbereich NW 2
+      #   update: true
+      #   close: true
+      #   linetypeScale: 1
+      #   linetypeGeneration: true
+      #   layerStyle: 
+      #     color: "Dark Gray"
+      #     linetype: ACAD_ISO02W100
+      #     lineweight: 158
+      #   operations:
+      #     - type: buffer
+      #       layers:
+      #         - name: Geltungsbereich NW
+      #       distance: 2
+      # - name: Geltungsbereich NO
+      #   update: true
+      #   layerStyle: 
+      #     color: "Red"
+      #     locked: false
+      #   close: true
+      #   operations:
+      #     - type: copy
+      #       layers:
+      #         - name: Parcel
+      #           values:
+      #             - "24/8"
+      #             - "24/9"
+      #     - type: filter
+      #       layers:
+      #         - name: Flur
+      #           values:
+      #             - "Flur 1"
+      #         - name: Gemarkung
+      #           values:
+      #             - "Groß Plasten"
+      #         - name: Gemeinde
+      #           values:
+      #             - "Groß Plasten"
+      #     - type: difference
+      #       layers:
+      #         - Wald
+      #         - Baumabstand Puffer
+      #         - Exclude
+      #         # - Exclude Acad
+      #   outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/geltungsbereich_2.shp"
+      # - name: Geltungsbereich S
+      #   update: true
+      #   layerStyle: 
+      #     color: "Red"
+      #     locked: false
+      #   close: true
+      #   operations:
+      #     - type: copy
+      #       layers:
+      #         - name: Parcel
+      #           values:
+      #             - "41/1"
+      #     - type: filter
+      #       layers:
+      #         - name: Flur
+      #           values:
+      #             - "Flur 2"
+      #         - name: Gemarkung
+      #           values:
+      #             - "Klein Plasten"
+      #         - name: Gemeinde
+      #           values:
+      #             - "Groß Plasten"
+      #     - type: difference
+      #       layers:
+      #         - Wald
+      #         - Baumabstand Puffer
+      #         - Exclude
+      #   outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/geltungsbereich_3.shp"
+      # - name: Waldabstand
+      #   # update: true
+      #   # layerStyle: 
+      #   #   color: "Dark Green"
+      #   # close: true
+      #   operations:
+      #     - type: buffer
+      #       layers:
+      #         - Wald
+      #       distance: 30
+      #     - type: intersection
+      #       layers:
+      #         - Geltungsbereich NW
+      #         - Geltungsbereich NO
+      #         - Geltungsbereich S
+      #   outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/waldabstand.shp"
+      # - name: Biotope
+      #   update: true
+      #   close: true
+      #   viewports:
+      #     - name: WorkView
+      #       layerStyle: 
+      #         color: "Light Green"
+      #   operations:
+      #     - type: buffer
+      #       layers:
+      #         - Biotope Input 1
+      #         - Geschütze Biotope
+      #       distance: 10
+      #     # - type: buffer
+      #     #   mode: keep
+      #     #   layers:
+      #     #     - Biotope Input 1
+      #     #     - Geschütze Biotope
+      #       # distance: 5
+      #     - type: intersection
+      #       layers:
+      #         - Geltungsbereich NW
+      #         - Geltungsbereich NO
+      #         - Geltungsbereich S
+      #   outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/biotope.shp"
+      # - name: "Biotope T-Symbol"
+      #   update: true
+      #   close: true
+      #   operations:
+      #     - type: buffer
+      #       distance: 5
+      #       layers:
+      #         - Biotope
+      #     - type: intersection
+      #       layers:
+      #         - Geltungsbereich NW
+      #         - Geltungsbereich NO
+      #         - Geltungsbereich S              
+      # - name: Ausgleich
+      #   update: true
+      #   close: true
+      #   viewports:
+      #     - name: WorkView
+      #       layerStyle: 
+      #         color: "Dark Green"
+      #   operations:
+      #     - type: copy
+      #       layers:
+      #         - Grünfläche Input 1
+      #         - Waldabstand
+      #         - Baumabstand Puffer
+      #         - FG Buffer
+      #     - type: intersection
+      #       layers:
+      #         - Geltungsbereich NW
+      #         - Geltungsbereich NO
+      #         - Geltungsbereich S
+      #   bluntAngles:
+      #     angleThreshold: 25  # Angles smaller than this will be blunted
+      #     distance: 10.0  # Distance to move the vertex along the angle bisector
+      #   outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/ausgleich.shp"
+      # - name: Ausgleich Schraffur
+      #   update: true
+      #   layerStyle: ausgleichLayer
+      #   hatchStyle: ausgleichHatch
+      #   performHatch: true
+      #   operations:
+      #     - type: copy
+      #       layers:
+      #         - Ausgleich
+      #     - type: difference
+      #       layers:
+      #         - Grünfläche
+      # - name: Grünfläche
+      #   update: true
+      #   close: true
+      #   viewports:
+      #     - name: WorkView
+      #       layerStyle: 
+      #         color: "Light Green"
+      #   operations:
+      #     - type: buffer
+      #       layers:
+      #         - Ausgleich
+      #       distance: -5
+      # - name: Grünfläche Schraffur
+      #   update: true
+      #   layerStyle: gruenflaecheLayer
+      #   hatchStyle: gruenflaecheHatch
+      #   performHatch:
+      #       layers:
+      #         - Grünfläche
+      # - name: Baufeld
+      #   update: true
+      #   close: true
+      #   viewports:
+      #     - name: WorkView
+      #       layerStyle: 
+      #         color: "Light Red"
+      #   operations:
+      #     - type: copy
+      #       layers:
+      #         - Geltungsbereich NW
+      #         - Geltungsbereich NO
+      #         - Geltungsbereich S
+      #     - type: difference
+      #       layers:
+      #         - Ausgleich
+      #         - Baumabstand Puffer
+      #         - Biotope
+      #         - FG Buffer
+      #     # - type: smooth
+      #     #   strength: 1.5
+      #   outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/baufeld.shp"
+      # - name: Baufeld Schraffur
+      #   update: true
+      #   layerStyle: baufeldLayer
+      #   hatchStyle: baufeldHatch
+      #   performHatch:
+      #     layers:
+      #       - Baufeld
+      #     # individual_hatches: true
+      #     # pattern: 'ANSI31'
+      #     # scale: 50  # Adjust this value to change the hatch density
+      #     # color: "Blue"  # ACI color index for Light Red
+      # - name: Baugrenze 2
+      #   update: true
+      #   layerStyle: 
+      #     color: "Green Blue"
+      #     lineweight: 60
+      #   close: true
+      #   operations:
+      #     - type: buffer
+      #       layers:
+      #         - Baufeld
+      #       distance: -3.4
+      # - name: Baugrenze
+      #   update: true
+      #   layerStyle: 
+      #     linetype: ACAD_ISO02W100
+      #     lineweight: 60
+      #   linetypeScale: 0.5
+      #   linetypeGeneration: true
+      #   close: true
+      #   viewports:
+      #     - name: WorkView
+      #       layerStyle: 
+      #         color: "Blue"
+      #   operations:
+      #     - type: buffer
+      #       layers:
+      #         - Baufeld
+      #       distance: -3
+      #   outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/baugrenze.shp"
+      # - name: WMTS DOP
+      #   # update: true
+      #   layerStyle: 
+      #     locked: true
+      #     # color: "White"
+      #   operations:
+      #     - type: wmts
+      #       url: "https://www.geodaten-mv.de/dienste/dop_wmts/wmts/1.0.0/WMTSCapabilities.xml"
+      #       layer: "mv_dop"
+      #       # zoom: "10"
+      #       proj: "ETRS89UTM33"
+      #       targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/DOP"
+      #       layers:
+      #         - Geltungsbereich NW
+      #         - Geltungsbereich NO
+      #         - Geltungsbereich S
+      #       buffer: 200
+      #       stitchTiles: true
+      #       # overwrite: true
       # - name: WMTS Basemap
       #   update: true
       #   color: Black

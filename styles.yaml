@@ -1,4 +1,33 @@
 styles:
+  flur:
+    locked: true
+    linetype: ACAD_ISO14W100
+  flurWorkView:
+    color: "Light Gray"
+  parcel:
+    locked: true
+    # color: "Black"
+    # linetype: ACAD_ISO11W100
+    # linetypeGeneration: true
+    # linetypeScale: 1
+    # lineweight: 30
+    # plot: true
+    # frozen: false
+    # is_on: true 
+    # vp_freeze: false
+    # transparency: 0.0
+  parcelWorkView:
+    color: "Dark Gray"
+  gemarkung:
+    locked: true
+    linetype: ACAD_ISO12W100
+  gemarkungWorkView:
+    color: "Light Gray"
+  gemeinde:
+    locked: true
+    linetype: ACAD_ISO10W100
+  gemeindeWorkView:
+    color: "Light Gray"
   forest:
     color: "moderate-intense-chartreuse"
     hatch:

@@ -364,7 +364,12 @@ class DXFExporter:
 
         print(f"add_geometries_to_dxf Layer Name: {layer_name}")
         for idx, geometry in enumerate(geometries):
-            if isinstance(geometry, LineString):
+            if isinstance(geometry, Polygon):
+                self.add_polygon_to_dxf(msp, geometry, layer_name)
+            elif isinstance(geometry, MultiPolygon):
+                for polygon in geometry.geoms:
+                    self.add_polygon_to_dxf(msp, polygon, layer_name)
+            elif isinstance(geometry, LineString):
                 self.add_linestring_to_dxf(msp, geometry, layer_name)
             elif isinstance(geometry, MultiLineString):
                 for line in geometry.geoms:
@@ -378,50 +383,44 @@ class DXFExporter:
                 self.add_label_to_dxf(msp, geometry, layer_name, layer_name)
 
     def add_polygon_to_dxf(self, msp, geometry, layer_name):
-        if isinstance(geometry, Polygon):
-            polygons = [geometry]
-        elif isinstance(geometry, MultiPolygon):
-            polygons = list(geometry.geoms)
-        else:
-            return
-
         layer_properties = self.layer_properties[layer_name]
-        for polygon in polygons:
-            exterior_coords = list(polygon.exterior.coords)
-            if len(exterior_coords) > 2:
-                polyline = msp.add_lwpolyline(exterior_coords, dxfattribs={
+        # For polygons, always set 'close' to True, regardless of layer properties
+        close = True
+
+        exterior_coords = list(geometry.exterior.coords)
+        if len(exterior_coords) > 2:
+            polyline = msp.add_lwpolyline(exterior_coords, dxfattribs={
+                'layer': layer_name, 
+                'closed': close,
+                'ltscale': layer_properties.get('linetypeScale', 1.0)
+            })
+            self.attach_custom_data(polyline)
+            if layer_properties.get('linetypeGeneration', False):
+                polyline.dxf.flags |= LWPOLYLINE_PLINEGEN
+            else:
+                polyline.dxf.flags &= ~LWPOLYLINE_PLINEGEN
+
+        for interior in geometry.interiors:
+            interior_coords = list(interior.coords)
+            if len(interior_coords) > 2:
+                polyline = msp.add_lwpolyline(interior_coords, dxfattribs={
                     'layer': layer_name, 
-                    'closed': layer_properties.get('close', True),
-                    'ltscale': layer_properties.get('linetypeScale', 1.0)  # Use .get() with a default value
+                    'closed': close,
+                    'ltscale': layer_properties.get('linetypeScale', 1.0)
                 })
                 self.attach_custom_data(polyline)
-                # Set linetype generation using flags attribute
                 if layer_properties.get('linetypeGeneration', False):
                     polyline.dxf.flags |= LWPOLYLINE_PLINEGEN
                 else:
                     polyline.dxf.flags &= ~LWPOLYLINE_PLINEGEN
 
-            for interior in polygon.interiors:
-                interior_coords = list(interior.coords)
-                if len(interior_coords) > 2:
-                    polyline = msp.add_lwpolyline(interior_coords, dxfattribs={
-                        'layer': layer_name, 
-                        'closed': layer_properties.get('close', True),
-                        'ltscale': layer_properties.get('linetypeScale', 1.0)  # Use .get() with a default value
-                    })
-                    self.attach_custom_data(polyline)
-                    # Set linetype generation using flags attribute
-                    if layer_properties.get('linetypeGeneration', False):
-                        polyline.dxf.flags |= LWPOLYLINE_PLINEGEN
-                    else:
-                        polyline.dxf.flags &= ~LWPOLYLINE_PLINEGEN
-
     def add_linestring_to_dxf(self, msp, linestring, layer_name):
         points = list(linestring.coords)
         layer_properties = self.layer_properties[layer_name]
-        close_linestring = layer_properties.get('close_linestring', False)
+        # For linestrings, use the 'close' property from layer settings
+        close = layer_properties.get('close', False)
         
-        if close_linestring and points[0] != points[-1]:
+        if close and points[0] != points[-1]:
             points.append(points[0])  # Close the linestring by adding the first point at the end
         
         log_info(f"Adding linestring to layer {layer_name} with {len(points)} points")
@@ -435,7 +434,7 @@ class DXFExporter:
                 points=points_2d,
                 dxfattribs={
                     'layer': layer_name,
-                    'closed': close_linestring,
+                    'closed': close,
                     'ltscale': layer_properties['linetypeScale']
                 }
             )
@@ -776,6 +775,7 @@ class DXFExporter:
                 remove_entities_by_layer(msp, target_layer_name, self.script_identifier)
                 
             create_path_array(msp, source_layer_name, target_layer_name, block_name, spacing, scale, rotation)
+
 
 
 
