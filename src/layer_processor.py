@@ -1227,7 +1227,7 @@ class LayerProcessor:
             return GeometryCollection([merge_points(geom) for geom in geometry.geoms])
         else:
             return merge_points(geometry)
-
+        
     def blunt_sharp_angles(self, geometry, angle_threshold, blunt_distance):
         if isinstance(geometry, GeoSeries):
             return geometry.apply(lambda geom: self.blunt_sharp_angles(geom, angle_threshold, blunt_distance))
@@ -1348,7 +1348,7 @@ class LayerProcessor:
         
         log_info(f"Radical blunt segment created: {point1}, {point2}")
         return [point1, point2]
-
+    
     def _remove_empty_geometries(self, geometry):
         if isinstance(geometry, gpd.GeoDataFrame):
             return geometry[~geometry.geometry.is_empty & geometry.geometry.notna()]
