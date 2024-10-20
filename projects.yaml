@@ -367,7 +367,7 @@ projects:
         viewports:
           - name: WorkView
             layerStyle: gemeindeWorkView
-      - name: Grünfläche Input 1
+      - name: Grünfläche Input 
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/geltungsbereich_abstand.shp"
         close: true
         outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/grünfläche_input_1.shp"
@@ -533,29 +533,6 @@ projects:
               - Geltungsbereich NO
               - Geltungsbereich S
         outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/waldabstand.shp"
-      # - name: Biotope
-      #   update: true
-      #   viewports:
-      #     - name: WorkView
-      #       layerStyle: biotopWorkView
-      #   operations:
-      #     - type: buffer
-      #       layers:
-      #         - Biotope Input
-      #         - Geschütze Biotope
-      #       distance: 10
-      #     # - type: buffer
-      #     #   mode: keep
-      #     #   layers:
-      #     #     - Biotope Input
-      #     #     - Geschütze Biotope
-      #       # distance: 5
-      #     - type: intersection
-      #       layers:
-      #         - Geltungsbereich NW
-      #         - Geltungsbereich NO
-      #         - Geltungsbereich S
-      #   outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/biotope.shp"
       - name: Biotope
         update: true
         viewports:
@@ -566,18 +543,6 @@ projects:
             layers:
               - Biotope Input
               - Geschütze Biotope
-          #   distance: 10
-          # - type: buffer
-          #   mode: keep
-          #   layers:
-          #     - Biotope Input
-          #     - Geschütze Biotope
-            # distance: 5
-          # - type: intersection
-          #   layers:
-          #     - Geltungsbereich NW
-          #     - Geltungsbereich NO
-          #     - Geltungsbereich S
         outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/biotope.shp"
       - name: Biotoppuffer
         update: true
@@ -591,7 +556,6 @@ projects:
             layers:
               - Biotope
             distance: 10
-            # mode: keep
           - type: difference
             layers:
               - Biotope
@@ -600,6 +564,47 @@ projects:
               - Geltungsbereich NW
               - Geltungsbereich NO
               - Geltungsbereich S
+      - name: Schutzflächeumgrenzung
+        update: true
+        viewports:
+          - name: WorkView
+            layerStyle: schutzflaecheWorkView
+        operations:
+          - type: buffer
+            layers:
+              - Biotope
+            distance: -5
+          - type: difference
+            layers:
+              - Biotope
+          # - type: intersection
+          #   layers:
+          #     - Geltungsbereich NW
+          #     - Geltungsbereich NO
+          #     - Geltungsbereich S
+        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/schutzflaeche.shp"
+
+      # - name: Ausgleich
+      #   update: true
+      #   viewports:
+      #     - name: WorkView
+      #       layerStyle: ausgleichWorkView
+      #   operations:
+      #     - type: copy
+      #       layers:
+      #         - Grünfläche Input 
+      #         - Waldabstand
+      #         - Baumabstand Puffer
+      #         - FG Buffer
+      #     - type: intersection
+      #       layers:
+      #         - Geltungsbereich NW
+      #         - Geltungsbereich NO
+      #         - Geltungsbereich S
+      #   bluntAngles:
+      #     angleThreshold: 25  # Angles smaller than this will be blunted
+      #     distance: 10.0  # Distance to move the vertex along the angle bisector
+      #   outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/ausgleich.shp"
       # - name: "Biotope T-Symbol"
       #   update: true
       #   close: true
@@ -623,7 +628,7 @@ projects:
       #   operations:
       #     - type: copy
       #       layers:
-      #         - Grünfläche Input 1
+      #         - Grünfläche Input 
       #         - Waldabstand
       #         - Baumabstand Puffer
       #         - FG Buffer

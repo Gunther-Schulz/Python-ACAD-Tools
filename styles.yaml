@@ -39,6 +39,8 @@ styles:
     lineweight: 30
   biotopWorkView:
     color: "brilliant-green"
+  schutzflaecheWorkView:
+    color: "moderate-intense-green"
   water:
     color: "brilliant-blue"
     transparency: 0.6
@@ -64,7 +66,7 @@ styles:
   gruenflaecheHatch:
     hatch:
       individual_hatches: true
-  ausgleichLayer:
+  ausgleichWorkView:
     color: "moderate-intense-green"
     transparency: 0.6
   ausgleichHatch:
