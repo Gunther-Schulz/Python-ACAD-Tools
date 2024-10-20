@@ -1,5 +1,6 @@
 import random
 import shutil
+import traceback
 import ezdxf
 from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection, Point
 from src.utils import log_info, log_warning, log_error
@@ -628,22 +629,30 @@ class DXFExporter:
                 if viewport:
                     vp_handle = viewport.dxf.handle
                     
+                    # Check if layerStyle is a string (preset) or dict (inline)
+                    if isinstance(vp_style['layerStyle'], str):
+                        # It's a preset, get the style from project_loader
+                        style_dict = self.project_loader.get_style(vp_style['layerStyle'])
+                    else:
+                        # It's an inline style
+                        style_dict = vp_style['layerStyle']
+                    
                     # Set color override
-                    color = get_color_code(vp_style['layerStyle'].get('color'), self.name_to_aci)
+                    color = get_color_code(style_dict.get('color'), self.name_to_aci)
                     layer_overrides.set_color(vp_handle, color)
 
                     # Set linetype override
-                    linetype = vp_style['layerStyle'].get('linetype')
+                    linetype = style_dict.get('linetype')
                     if linetype:
                         layer_overrides.set_linetype(vp_handle, linetype)
 
                     # Set lineweight override
-                    lineweight = vp_style['layerStyle'].get('lineweight')
+                    lineweight = style_dict.get('lineweight')
                     if lineweight is not None:
                         layer_overrides.set_lineweight(vp_handle, lineweight)
 
                     # Set transparency override
-                    transparency = vp_style['layerStyle'].get('transparency')
+                    transparency = style_dict.get('transparency')
                     if transparency is not None:
                         # Ensure transparency is between 0 and 1
                         transparency_value = max(0, min(transparency, 1))
@@ -654,6 +663,7 @@ class DXFExporter:
                     log_warning(f"Viewport {vp_style['name']} not found")
             except Exception as e:
                 log_error(f"Error processing viewport style for {vp_style['name']}: {str(e)}")
+                log_error(f"Traceback:\n{traceback.format_exc()}")
 
         # Commit the changes to the layer overrides
         layer_overrides.commit()
@@ -775,6 +785,7 @@ class DXFExporter:
                 remove_entities_by_layer(msp, target_layer_name, self.script_identifier)
                 
             create_path_array(msp, source_layer_name, target_layer_name, block_name, spacing, scale, rotation)
+
 
 
 
