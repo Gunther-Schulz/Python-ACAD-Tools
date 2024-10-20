@@ -38,9 +38,15 @@ Subtracts the geometries of overlay layers from the base layer.
 
 Options:
 - `layers`: List of overlay layers. If omitted, no difference operation will be performed.
-- `reverseDifference`: Boolean flag to reverse the difference operation (default: false)
-  - When true, subtracts the base geometry from the overlay geometry
-  - When false, performs the standard difference operation (base minus overlay)
+- `reverseDifference`: Boolean flag to manually control the direction of the difference operation (optional)
+  - If true, subtracts the base geometry from the overlay geometry
+  - If false, performs the standard difference operation (base minus overlay)
+  - If omitted, the direction is automatically determined based on the geometries
+
+Notes:
+- The `reverseDifference` flag provides a manual override to the automatic direction detection.
+- When `reverseDifference` is not specified, the operation uses an algorithm to determine the most appropriate direction based on the geometries involved.
+- Use this flag when you need to explicitly control the direction of the difference operation, overriding the automatic detection.
 
 ### 4. Intersection
 Creates geometries that represent the intersection of the base layer with overlay layers.

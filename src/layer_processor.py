@@ -519,6 +519,11 @@ class LayerProcessor:
             log_warning(f"Base layer {layer_name} not found for difference operation")
             return None
 
+        base_geometry = self._remove_empty_geometries(base_geometry)
+        if base_geometry is None or (isinstance(base_geometry, gpd.GeoDataFrame) and base_geometry.empty):
+            log_warning(f"Base geometry for layer {layer_name} is empty after removing empty geometries")
+            return None
+
         overlay_geometry = None
         for layer_info in overlay_layers:
             overlay_layer_name, values = self._process_layer_info(layer_info)
@@ -529,55 +534,59 @@ class LayerProcessor:
             if layer_geometry is None:
                 continue
 
+            layer_geometry = self._remove_empty_geometries(layer_geometry)
+            if layer_geometry is None:
+                continue
+
             if overlay_geometry is None:
                 overlay_geometry = layer_geometry
             else:
                 overlay_geometry = overlay_geometry.union(layer_geometry)
 
-        if base_geometry is not None and overlay_geometry is not None:
-            # Use manual override if provided, otherwise use auto-detection
-            if manual_reverse is not None:
-                reverse_difference = manual_reverse
-                log_info(f"Using manual override for reverse_difference: {reverse_difference}")
-            else:
-                reverse_difference = self._should_reverse_difference(base_geometry, overlay_geometry)
-                log_info(f"Auto-detected reverse_difference for {layer_name}: {reverse_difference}")
-
-            if isinstance(base_geometry, gpd.GeoDataFrame):
-                base_union = base_geometry.geometry.unary_union
-                if reverse_difference:
-                    result = overlay_geometry.difference(base_union)
-                else:
-                    result = base_union.difference(overlay_geometry)
-            else:
-                if reverse_difference:
-                    result = overlay_geometry.difference(base_geometry)
-                else:
-                    result = base_geometry.difference(overlay_geometry)
-            
-            # Handle the result based on its type
-            if isinstance(result, (Polygon, MultiPolygon, LineString, MultiLineString)):
-                result = gpd.GeoSeries([result])
-            elif not isinstance(result, gpd.GeoSeries):
-                log_warning(f"Unexpected result type: {type(result)}")
-                return None
-            
-            result = result[~result.is_empty & result.notna()]
-            
-            if result.empty:
-                log_warning(f"Difference operation resulted in empty geometry for layer {layer_name}")
-                return None
-            
-            result_gdf = gpd.GeoDataFrame(geometry=result, crs=self.crs)
-            if isinstance(base_geometry, gpd.GeoDataFrame):
-                for col in base_geometry.columns:
-                    if col != 'geometry':
-                        result_gdf[col] = base_geometry[col].iloc[0]
-            
-            return result_gdf
-        else:
-            log_warning(f"Unable to perform difference operation for layer {layer_name}")
+        if overlay_geometry is None:
+            log_warning(f"No valid overlay geometry found for layer {layer_name}")
             return None
+
+        # Use manual override if provided, otherwise use auto-detection
+        if manual_reverse is not None:
+            reverse_difference = manual_reverse
+            log_info(f"Using manual override for reverse_difference: {reverse_difference}")
+        else:
+            reverse_difference = self._should_reverse_difference(base_geometry, overlay_geometry)
+            log_info(f"Auto-detected reverse_difference for {layer_name}: {reverse_difference}")
+
+        if isinstance(base_geometry, gpd.GeoDataFrame):
+            base_union = base_geometry.geometry.unary_union
+            if reverse_difference:
+                result = overlay_geometry.difference(base_union)
+            else:
+                result = base_union.difference(overlay_geometry)
+        else:
+            if reverse_difference:
+                result = overlay_geometry.difference(base_geometry)
+            else:
+                result = base_geometry.difference(overlay_geometry)
+        
+        # Handle the result based on its type
+        if isinstance(result, (Polygon, MultiPolygon, LineString, MultiLineString)):
+            result = gpd.GeoSeries([result])
+        elif not isinstance(result, gpd.GeoSeries):
+            log_warning(f"Unexpected result type: {type(result)}")
+            return None
+        
+        result = result[~result.is_empty & result.notna()]
+        
+        if result.empty:
+            log_warning(f"Difference operation resulted in empty geometry for layer {layer_name}")
+            return None
+        
+        result_gdf = gpd.GeoDataFrame(geometry=result, crs=self.crs)
+        if isinstance(base_geometry, gpd.GeoDataFrame):
+            for col in base_geometry.columns:
+                if col != 'geometry':
+                    result_gdf[col] = base_geometry[col].iloc[0]
+        
+        return result_gdf
 
     def _should_reverse_difference(self, base_geometry, overlay_geometry):
         if isinstance(base_geometry, gpd.GeoDataFrame):
@@ -1339,3 +1348,13 @@ class LayerProcessor:
         
         log_info(f"Radical blunt segment created: {point1}, {point2}")
         return [point1, point2]
+
+    def _remove_empty_geometries(self, geometry):
+        if isinstance(geometry, gpd.GeoDataFrame):
+            return geometry[~geometry.geometry.is_empty & geometry.geometry.notna()]
+        elif isinstance(geometry, (MultiPolygon, MultiLineString)):
+            return type(geometry)([geom for geom in geometry.geoms if not geom.is_empty])
+        elif isinstance(geometry, (Polygon, LineString)):
+            return None if geometry.is_empty else geometry
+        else:
+            return geometry
