@@ -544,26 +544,26 @@ projects:
               - Biotope Input
               - Geschütze Biotope
         outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/biotope.shp"
-      - name: Biotoppuffer
-        update: true
-        viewports:
-          - name: WorkView
-            layerStyle:
-              color: "brilliant-green"
-              linetype: "ACAD_ISO02W100"
-        operations:
-          - type: buffer
-            layers:
-              - Biotope
-            distance: 10
-          - type: difference
-            layers:
-              - Biotope
-          - type: intersection
-            layers:
-              - Geltungsbereich NW
-              - Geltungsbereich NO
-              - Geltungsbereich S
+      # - name: Biotoppuffer
+      #   update: true
+      #   viewports:
+      #     - name: WorkView
+      #       layerStyle:
+      #         color: "brilliant-green"
+      #         linetype: "ACAD_ISO02W100"
+      #   operations:
+      #     - type: buffer
+      #       layers:
+      #         - Biotope
+      #       distance: 10
+      #     - type: difference
+      #       layers:
+      #         - Biotope
+      #     - type: intersection
+      #       layers:
+      #         - Geltungsbereich NW
+      #         - Geltungsbereich NO
+      #         - Geltungsbereich S
       - name: Schutzflächeumgrenzung
         update: true
         viewports:
@@ -577,6 +577,12 @@ projects:
           - type: difference
             layers:
               - Biotope
+          # - type: copy
+          #   layers:
+          #     - Biotope
+          # - type: buffer
+          #   distance: -5
+          # - type: difference
           # - type: intersection
           #   layers:
           #     - Geltungsbereich NW

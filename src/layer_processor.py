@@ -510,7 +510,51 @@ class LayerProcessor:
             self.all_layers[layer_name] = gpd.GeoDataFrame(geometry=[], crs=self.crs)
 
     def create_difference_layer(self, layer_name, operation):
-        self._create_overlay_layer(layer_name, operation, 'difference')
+        log_info(f"Creating difference layer: {layer_name}")
+        overlay_layers = operation.get('layers', [])
+        
+        base_geometry = self.all_layers.get(layer_name)
+        if base_geometry is None:
+            log_warning(f"Base layer {layer_name} not found for difference operation")
+            return None
+
+        overlay_geometry = None
+        for layer_info in overlay_layers:
+            overlay_layer_name, values = self._process_layer_info(layer_info)
+            if overlay_layer_name is None:
+                continue
+
+            layer_geometry = self._get_filtered_geometry(overlay_layer_name, values)
+            if layer_geometry is None:
+                continue
+
+            if overlay_geometry is None:
+                overlay_geometry = layer_geometry
+            else:
+                overlay_geometry = overlay_geometry.union(layer_geometry)
+
+        if base_geometry is not None and overlay_geometry is not None:
+            if isinstance(base_geometry, gpd.GeoDataFrame):
+                result = base_geometry.geometry.difference(overlay_geometry)
+                result = result[~result.is_empty]
+                if result.empty:
+                    log_warning(f"Difference operation resulted in empty geometry for layer {layer_name}")
+                    return None
+                result_gdf = gpd.GeoDataFrame(geometry=result, crs=self.crs)
+                for col in base_geometry.columns:
+                    if col != 'geometry':
+                        result_gdf[col] = base_geometry[col].iloc[0]
+            else:
+                result = base_geometry.difference(overlay_geometry)
+                if result.is_empty:
+                    log_warning(f"Difference operation resulted in empty geometry for layer {layer_name}")
+                    return None
+                result_gdf = gpd.GeoDataFrame(geometry=[result], crs=self.crs)
+            
+            return result_gdf
+        else:
+            log_warning(f"Unable to perform difference operation for layer {layer_name}")
+            return None
 
     def create_intersection_layer(self, layer_name, operation):
         self._create_overlay_layer(layer_name, operation, 'intersection')
@@ -707,16 +751,10 @@ class LayerProcessor:
         log_info(f"Creating buffer layer: {layer_name}")
         source_layers = operation.get('layers', [])
         buffer_distance = operation['distance']
-        buffer_mode = operation.get('mode', 'normal')
-        join_style = operation.get('joinStyle', 'mitre')
+        join_style = operation.get('joinStyle', 'round')
 
-        # Map join style names to shapely constants
-        join_style_map = {
-            'round': 1,
-            'mitre': 2,
-            'bevel': 3
-        }
-        join_style_value = join_style_map.get(join_style, 1)  # Default to 'round' if invalid
+        join_style_map = {'round': 1, 'mitre': 2, 'bevel': 3}
+        join_style_value = join_style_map.get(join_style, 1)
 
         combined_geometry = None
         for layer_info in source_layers:
@@ -734,41 +772,30 @@ class LayerProcessor:
                 combined_geometry = combined_geometry.union(layer_geometry)
 
         if combined_geometry is not None:
-            if buffer_mode == 'ring':
-                outer_buffer = combined_geometry.buffer(abs(buffer_distance), cap_style=2, join_style=join_style_value)
-                inner_buffer = combined_geometry.buffer(-abs(buffer_distance), cap_style=2, join_style=join_style_value)
-                result = outer_buffer.difference(inner_buffer)
-            elif buffer_mode == 'keep':
-                buffered = combined_geometry.buffer(buffer_distance, cap_style=2, join_style=join_style_value)
-                result = [combined_geometry, buffered]
-            else:  # 'normal' or any other value
-                result = combined_geometry.buffer(buffer_distance, cap_style=2, join_style=join_style_value)
-
-            # Ensure the result is a valid geometry type for shapefiles
-            if buffer_mode == 'keep':
-                result_geom = []
-                for geom in result:
-                    if isinstance(geom, (Polygon, MultiPolygon)):
-                        result_geom.append(geom)
-                    elif isinstance(geom, GeometryCollection):
-                        result_geom.extend([g for g in geom.geoms if isinstance(g, (Polygon, MultiPolygon))])
+            if isinstance(combined_geometry, gpd.GeoDataFrame):
+                buffered = combined_geometry.geometry.buffer(buffer_distance, cap_style=2, join_style=join_style_value)
+                buffered = buffered[~buffered.is_empty]  # Remove empty geometries
+                if buffered.empty:
+                    log_warning(f"Buffer operation resulted in empty geometry for layer {layer_name}")
+                    return None
+                result = gpd.GeoDataFrame(geometry=buffered, crs=self.crs)
+                
+                # Copy attributes from the original geometry
+                for col in combined_geometry.columns:
+                    if col != 'geometry':
+                        result[col] = combined_geometry[col].iloc[0]
             else:
-                if isinstance(result, (Polygon, MultiPolygon)):
-                    result_geom = [result]
-                elif isinstance(result, GeometryCollection):
-                    result_geom = [geom for geom in result.geoms if isinstance(geom, (Polygon, MultiPolygon))]
-                else:
-                    result_geom = []
-
-            result_gdf = gpd.GeoDataFrame(geometry=result_geom, crs=self.crs)
-            self.all_layers[layer_name] = result_gdf
-            log_info(f"Created buffer layer: {layer_name} with {len(result_geom)} geometries")
+                # Handle individual geometry objects
+                buffered = combined_geometry.buffer(buffer_distance, cap_style=2, join_style=join_style_value)
+                if buffered.is_empty:
+                    log_warning(f"Buffer operation resulted in empty geometry for layer {layer_name}")
+                    return None
+                result = gpd.GeoDataFrame(geometry=[buffered], crs=self.crs)
+            
+            return result
         else:
-            log_warning(f"No valid source geometry found for buffer layer '{layer_name}'")
-            result_gdf = gpd.GeoDataFrame(geometry=[], crs=self.crs)
-            self.all_layers[layer_name] = result_gdf
-
-        return self.all_layers[layer_name]
+            log_warning(f"No valid geometry found for buffer operation on layer {layer_name}")
+            return None
 
     def process_wmts_or_wms_layer(self, layer_name, operation):
         log_info(f"Processing WMTS/WMS layer: {layer_name}")
