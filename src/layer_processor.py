@@ -512,6 +512,7 @@ class LayerProcessor:
     def create_difference_layer(self, layer_name, operation):
         log_info(f"Creating difference layer: {layer_name}")
         overlay_layers = operation.get('layers', [])
+        manual_reverse = operation.get('reverseDifference')
         
         base_geometry = self.all_layers.get(layer_name)
         if base_geometry is None:
@@ -534,9 +535,13 @@ class LayerProcessor:
                 overlay_geometry = overlay_geometry.union(layer_geometry)
 
         if base_geometry is not None and overlay_geometry is not None:
-            # Auto-detect whether to reverse the difference
-            reverse_difference = self._should_reverse_difference(base_geometry, overlay_geometry)
-            log_info(f"Auto-detected reverse_difference for {layer_name}: {reverse_difference}")
+            # Use manual override if provided, otherwise use auto-detection
+            if manual_reverse is not None:
+                reverse_difference = manual_reverse
+                log_info(f"Using manual override for reverse_difference: {reverse_difference}")
+            else:
+                reverse_difference = self._should_reverse_difference(base_geometry, overlay_geometry)
+                log_info(f"Auto-detected reverse_difference for {layer_name}: {reverse_difference}")
 
             if isinstance(base_geometry, gpd.GeoDataFrame):
                 base_union = base_geometry.geometry.unary_union
