@@ -512,6 +512,7 @@ class LayerProcessor:
     def create_difference_layer(self, layer_name, operation):
         log_info(f"Creating difference layer: {layer_name}")
         overlay_layers = operation.get('layers', [])
+        reverse_difference = operation.get('reverseDifference', False)
         
         base_geometry = self.all_layers.get(layer_name)
         if base_geometry is None:
@@ -535,20 +536,38 @@ class LayerProcessor:
 
         if base_geometry is not None and overlay_geometry is not None:
             if isinstance(base_geometry, gpd.GeoDataFrame):
-                result = base_geometry.geometry.difference(overlay_geometry)
-                result = result[~result.is_empty]
+                if reverse_difference:
+                    result = overlay_geometry.difference(base_geometry.geometry.unary_union)
+                else:
+                    result = base_geometry.geometry.difference(overlay_geometry)
+                
+                # Handle the result based on its type
+                if isinstance(result, (Polygon, MultiPolygon, LineString, MultiLineString)):
+                    result = gpd.GeoSeries([result])
+                elif isinstance(result, gpd.GeoSeries):
+                    result = result[~result.is_empty]
+                else:
+                    log_warning(f"Unexpected result type: {type(result)}")
+                    return None
+                
                 if result.empty:
                     log_warning(f"Difference operation resulted in empty geometry for layer {layer_name}")
                     return None
+                
                 result_gdf = gpd.GeoDataFrame(geometry=result, crs=self.crs)
                 for col in base_geometry.columns:
                     if col != 'geometry':
                         result_gdf[col] = base_geometry[col].iloc[0]
             else:
-                result = base_geometry.difference(overlay_geometry)
+                if reverse_difference:
+                    result = overlay_geometry.difference(base_geometry)
+                else:
+                    result = base_geometry.difference(overlay_geometry)
+                
                 if result.is_empty:
                     log_warning(f"Difference operation resulted in empty geometry for layer {layer_name}")
                     return None
+                
                 result_gdf = gpd.GeoDataFrame(geometry=[result], crs=self.crs)
             
             return result_gdf
