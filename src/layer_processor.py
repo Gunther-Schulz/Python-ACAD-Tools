@@ -641,47 +641,56 @@ class LayerProcessor:
             return geometry
 
     def _clean_polygon(self, polygon, sliver_removal_distance, min_area):
-        # Clean the exterior
+        if polygon.is_empty:
+            log_warning("Encountered an empty polygon during cleaning. Skipping.")
+            return polygon
+
         cleaned_exterior = self._clean_linear_ring(polygon.exterior, sliver_removal_distance)
-        if cleaned_exterior is None:
-            return None
-        
-        # Clean the interiors
-        cleaned_interiors = [self._clean_linear_ring(interior, sliver_removal_distance) 
-                             for interior in polygon.interiors]
-        cleaned_interiors = [interior for interior in cleaned_interiors if interior is not None]
-        
-        # Reconstruct the polygon
-        cleaned_polygon = Polygon(cleaned_exterior, cleaned_interiors)
-        
-        # Remove small polygons
+        cleaned_interiors = [self._clean_linear_ring(interior, sliver_removal_distance) for interior in polygon.interiors]
+
+        # Filter out any empty interiors
+        cleaned_interiors = [interior for interior in cleaned_interiors if not interior.is_empty]
+
+        try:
+            cleaned_polygon = Polygon(cleaned_exterior, cleaned_interiors)
+        except Exception as e:
+            log_warning(f"Error creating cleaned polygon: {str(e)}. Returning original polygon.")
+            return polygon
+
         if cleaned_polygon.area < min_area:
+            log_info(f"Polygon area ({cleaned_polygon.area}) is below minimum ({min_area}). Removing.")
             return None
-        
+
         return cleaned_polygon
 
-    def _clean_linear_ring(self, ring, tolerance):
-        # Convert to LineString to use linemerge
-        line = LineString(ring.coords)
-        
-        # Merge any nearly coincident line segments
-        merged = linemerge([line])
+    def _clean_linear_ring(self, ring, sliver_removal_distance):
+        if ring.is_empty:
+            log_warning("Encountered an empty ring during cleaning. Skipping.")
+            return ring
 
-        # Remove any points that are too close together
-        cleaned_coords = []
-        for coord in merged.coords:
-            if not cleaned_coords or Point(coord).distance(Point(cleaned_coords[-1])) > tolerance:
-                cleaned_coords.append(coord)
-        
-        # Ensure the ring is closed
-        if cleaned_coords[0] != cleaned_coords[-1]:
-            cleaned_coords.append(cleaned_coords[0])
-        
-        # Check if we have enough coordinates to form a valid LinearRing
-        if len(cleaned_coords) < 4:
-            return None
-        
-        return LinearRing(cleaned_coords)
+        coords = list(ring.coords)
+        if len(coords) < 3:
+            log_warning(f"Ring has fewer than 3 coordinates. Skipping cleaning. Coords: {coords}")
+            return ring
+
+        line = LineString(coords)
+        try:
+            merged = linemerge([line])
+        except Exception as e:
+            log_warning(f"Error during linemerge: {str(e)}. Returning original ring.")
+            return ring
+
+        if merged.geom_type == 'LineString':
+            cleaned = merged.simplify(sliver_removal_distance)
+        else:
+            log_warning(f"Unexpected geometry type after merge: {merged.geom_type}. Returning original ring.")
+            return ring
+
+        if not cleaned.is_ring:
+            log_warning("Cleaned geometry is not a ring. Attempting to close it.")
+            cleaned = LineString(list(cleaned.coords) + [cleaned.coords[0]])
+
+        return LinearRing(cleaned)
 
     def _remove_small_polygons(self, geometry, min_area):
         if isinstance(geometry, Polygon):
