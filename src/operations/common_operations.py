@@ -378,15 +378,21 @@ def _clean_geometry(all_layers, project_settings, crs, geometry):
             return _clean_single_geometry(geometry)
 
 
-def _remove_empty_geometries(all_layers, project_settings, crs, geometry):
+def _remove_empty_geometries(all_layers, project_settings, crs, layer_name, geometry):
         if isinstance(geometry, gpd.GeoDataFrame):
-            return geometry[~geometry.geometry.is_empty & geometry.geometry.notna()]
-        elif isinstance(geometry, (MultiPolygon, MultiLineString)):
-            return type(geometry)([geom for geom in geometry.geoms if not geom.is_empty])
-        elif isinstance(geometry, (Polygon, LineString)):
-            return None if geometry.is_empty else geometry
-        else:
+            non_empty = geometry[~geometry.geometry.is_empty & geometry.geometry.notna()]
+            if non_empty.empty:
+                log_warning(f"All geometries in layer '{layer_name}' are empty or null")
+                return None
+            return non_empty
+        elif isinstance(geometry, (Polygon, MultiPolygon, LineString, MultiLineString)):
+            if geometry.is_empty:
+                log_warning(f"Geometry in layer '{layer_name}' is empty")
+                return None
             return geometry
+        else:
+            log_warning(f"Unsupported geometry type for layer '{layer_name}': {type(geometry)}")
+            return None
 
 def _create_overlay_layer(all_layers, project_settings, crs, layer_name, operation, overlay_type):
         log_info(f"Creating {overlay_type} layer: {layer_name}")
@@ -427,6 +433,9 @@ def _create_overlay_layer(all_layers, project_settings, crs, layer_name, operati
                 result_geometry = base_geometry.geometry.difference(combined_overlay_geometry)
             elif overlay_type == 'intersection':
                 result_geometry = base_geometry.geometry.intersection(combined_overlay_geometry)
+            else:
+                log_error(f"Unsupported overlay type: {overlay_type}")
+                return
             
             # Apply a series of cleaning operations
             result_geometry = _clean_geometry(result_geometry)
@@ -447,6 +456,8 @@ def _create_overlay_layer(all_layers, project_settings, crs, layer_name, operati
             result_gdf = gpd.GeoDataFrame(geometry=result_geometry, crs=base_geometry.crs)
             all_layers[layer_name] = result_gdf
             log_info(f"Created {overlay_type} layer: {layer_name} with {len(result_geometry)} geometries")
+
+
 
 
 
