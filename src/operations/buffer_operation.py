@@ -16,11 +16,11 @@ def create_buffer_layer(all_layers, project_settings, crs, layer_name, operation
 
         combined_geometry = None
         for layer_info in source_layers:
-            source_layer_name, values = _process_layer_info(layer_info)
+            source_layer_name, values = _process_layer_info(all_layers, project_settings, crs, layer_info)
             if source_layer_name is None:
                 continue
 
-            layer_geometry = _get_filtered_geometry(source_layer_name, values)
+            layer_geometry = _get_filtered_geometry(all_layers, project_settings, crs, source_layer_name, values)
             if layer_geometry is None:
                 continue
 
@@ -54,5 +54,6 @@ def create_buffer_layer(all_layers, project_settings, crs, layer_name, operation
         else:
             log_warning(f"No valid geometry found for buffer operation on layer {layer_name}")
             return None
+
 
 

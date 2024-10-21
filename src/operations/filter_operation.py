@@ -15,13 +15,13 @@ def create_filtered_layer(all_layers, project_settings, crs, layer_name, operati
         filtered_gdf = source_gdf.copy()
 
         for layer_info in operation['layers']:
-            source_layer_name, values = _process_layer_info(layer_info)
+            source_layer_name, values = _process_layer_info(all_layers, project_settings, crs, layer_info)
             if source_layer_name is None:
                 continue
 
             log_info(f"Processing filter layer: {source_layer_name}")
 
-            filter_geometry = _get_filtered_geometry(source_layer_name, values)
+            filter_geometry = _get_filtered_geometry(all_layers, project_settings, crs, source_layer_name, values)
             if filter_geometry is None:
                 continue
 
@@ -46,5 +46,3 @@ def create_filtered_layer(all_layers, project_settings, crs, layer_name, operati
         else:
             log_warning(f"No geometries left after filtering for layer: {layer_name}")
             all_layers[layer_name] = gpd.GeoDataFrame(geometry=[], crs=crs)
-
-

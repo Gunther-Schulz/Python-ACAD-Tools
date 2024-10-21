@@ -16,7 +16,7 @@ from src.operations import (
     process_wmts_or_wms_layer,
     create_merged_layer,
     create_smooth_layer,
-    handle_contour_operation,
+    _handle_contour_operation,
     _create_overlay_layer
 )
 
@@ -191,7 +191,7 @@ class LayerProcessor:
         elif op_type == 'smooth':
             result = create_smooth_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
         elif op_type == 'contour':
-            result = handle_contour_operation(self.all_layers, self.project_settings, self.crs, layer_name, operation)
+            result = _handle_contour_operation(self.all_layers, self.project_settings, self.crs, layer_name, operation)
         else:
             log_warning(f"Unknown operation type: {op_type} for layer {layer_name}")
             return None

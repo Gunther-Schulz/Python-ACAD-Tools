@@ -4,14 +4,14 @@ from src.utils import log_info, log_warning, log_error
 import os
 from src.wmts_downloader import download_wmts_tiles, download_wms_tiles, process_and_stitch_tiles
 from owslib.wmts import WebMapTileService
-from src.project_loader import project_loader
+from src.project_loader import ProjectLoader
 from src.operations.common_operations import *
 
 def process_wmts_or_wms_layer(all_layers, project_settings, crs, layer_name, operation):
         log_info(f"Processing WMTS/WMS layer: {layer_name}")
         log_info(f"Operation details: {operation}")
         
-        target_folder = project_loader.resolve_full_path(operation['targetFolder'])
+        target_folder = ProjectLoader.resolve_full_path(operation['targetFolder'])
         zoom_level = operation.get('zoom')
         
         zoom_folder = os.path.join(target_folder, f"zoom_{zoom_level}") if zoom_level else target_folder
