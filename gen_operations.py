@@ -36,27 +36,73 @@ def remove_self_references(content):
     content = re.sub(r'self\.', '', content)
     return content
 
-def add_imports(content):
-    imports = [
+def add_imports(content, file_name):
+    common_imports = [
         "import geopandas as gpd",
-        "from matplotlib import pyplot as plt",
         "from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection, Point, MultiPoint",
         "from src.utils import log_info, log_warning, log_error",
-        "import os",
-        "from src.wmts_downloader import download_wmts_tiles, download_wms_tiles, process_and_stitch_tiles",
-        "from shapely.ops import unary_union, linemerge",
-        "from shapely.validation import make_valid, explain_validity",
-        "from shapely.geometry import LinearRing",
-        "import shutil",
-        "from src.contour_processor import process_contour",
-        "from owslib.wmts import WebMapTileService",
-        "import ezdxf",
-        "import pandas as pd",
-        "import math",
-        "from geopandas import GeoSeries",
-        "import re",
-        "from src.project_loader import project_loader"
     ]
+
+    specific_imports = {
+        'common_operations.py': [
+            "from shapely.ops import unary_union",
+            "from shapely.validation import make_valid",
+            "import pandas as pd",
+            "from geopandas import GeoSeries",
+            "import re"
+        ],
+        'buffer_operation.py': [
+            "from shapely.ops import unary_union",
+            "from src.operations.common_operations import _process_layer_info, _get_filtered_geometry"
+        ],
+        'copy_operation.py': [
+            "from src.operations.common_operations import _process_layer_info, _get_filtered_geometry, ensure_geodataframe"
+        ],
+        'difference_operation.py': [
+            "from shapely.ops import unary_union",
+            "from src.operations.common_operations import _process_layer_info, _get_filtered_geometry, _remove_empty_geometries"
+        ],
+        'filter_operation.py': [
+            "from src.operations.common_operations import _process_layer_info, _get_filtered_geometry, ensure_geodataframe"
+        ],
+        'intersection_operation.py': [
+            "import traceback",
+            "from src.operations.common_operations import _create_overlay_layer"
+        ],
+        'merge_operation.py': [
+            "from shapely.ops import unary_union",
+            "from src.operations.common_operations import _process_layer_info, _get_filtered_geometry"
+        ],
+        'smooth_operation.py': [
+            "from src.operations.common_operations import _process_layer_info, _get_filtered_geometry, ensure_geodataframe"
+        ],
+        'contour_operation.py': [
+            "from src.contour_processor import process_contour",
+            "from src.operations.common_operations import _get_filtered_geometry"
+        ],
+        'wmts_wms_operation.py': [
+            "import os",
+            "from src.wmts_downloader import download_wmts_tiles, download_wms_tiles, process_and_stitch_tiles",
+            "from owslib.wmts import WebMapTileService",
+            "from src.project_loader import project_loader"
+        ],
+        'utils.py': [
+            "from shapely.ops import unary_union, linemerge",
+            "from shapely.validation import make_valid",
+            "from shapely.geometry import LinearRing",
+            "import math"
+        ],
+        'layer_processor.py': [
+            "import os",
+            "import shutil",
+            "from src.project_loader import project_loader",
+            "import ezdxf"
+        ]
+    }
+
+    imports = common_imports + specific_imports.get(file_name, [])
+    if file_name != 'common_operations.py':
+        imports.append("from src.operations.common_operations import *")
     return "\n".join(imports) + "\n\n" + content
 
 def main():
@@ -75,7 +121,9 @@ def main():
         'ensure_geodataframe',
         'standardize_layer_crs',
         'plot_operation_result',
-        'write_shapefile'
+        'write_shapefile',
+        '_clean_geometry',
+        '_remove_empty_geometries'
     ]
 
     common_content = ""
@@ -83,13 +131,15 @@ def main():
         extracted_func = extract_class_method(content, 'LayerProcessor', func)
         if extracted_func:
             common_content += remove_self_references(extracted_func) + '\n\n'
+    common_content = add_imports(common_content, 'common_operations.py')
+    create_file('src/operations/common_operations.py', common_content)
 
     operations = {
         'buffer_operation.py': ['create_buffer_layer'],
         'copy_operation.py': ['create_copy_layer'],
         'difference_operation.py': ['create_difference_layer', '_should_reverse_difference'],
         'filter_operation.py': ['create_filtered_layer'],
-        'intersection_operation.py': ['create_intersection_layer'],
+        'intersection_operation.py': ['create_intersection_layer', '_create_overlay_layer'],
         'merge_operation.py': ['create_merged_layer'],
         'smooth_operation.py': ['create_smooth_layer', 'smooth_geometry'],
         'contour_operation.py': ['_handle_contour_operation'],
@@ -102,16 +152,15 @@ def main():
             extracted_func = extract_class_method(content, 'LayerProcessor', func)
             if extracted_func:
                 file_content += remove_self_references(extracted_func) + '\n\n'
-        file_content += common_content
-        file_content = add_imports(file_content)
+        file_content = add_imports(file_content, file)
         create_file(f'src/operations/{file}', file_content)
 
     utils_functions = [
-        '_clean_geometry', '_clean_single_geometry', '_remove_thin_growths',
+        '_clean_single_geometry', '_remove_thin_growths',
         '_clean_polygon', '_clean_linear_ring', '_remove_small_polygons',
         '_merge_close_vertices', 'blunt_sharp_angles', '_blunt_polygon_angles',
         '_blunt_ring', '_blunt_linestring_angles', '_calculate_angle',
-        '_create_radical_blunt_segment', '_remove_empty_geometries'
+        '_create_radical_blunt_segment'
     ]
 
     utils_content = ""
@@ -119,20 +168,20 @@ def main():
         extracted_func = extract_class_method(content, 'LayerProcessor', func)
         if extracted_func:
             utils_content += remove_self_references(extracted_func) + '\n\n'
-    utils_content = add_imports(utils_content)
+    utils_content = add_imports(utils_content, 'utils.py')
     create_file('src/operations/utils.py', utils_content)
 
     layer_processor_content = "from src.operations import *\n\n"
     layer_processor_content += "class LayerProcessor:\n"
     methods = ['__init__', 'process_layers', 'process_layer', 'process_operation', 'setup_shapefiles', 'load_dxf_layer', '_process_hatch_config', 'levenshtein_distance']
-    
+
     for method in methods:
         extracted_method = extract_class_method(content, 'LayerProcessor', method)
         if extracted_method:
             layer_processor_content += '    ' + extracted_method.replace('\n', '\n    ') + '\n\n'
 
-    layer_processor_content = add_imports(layer_processor_content)
-    create_file('src/layer_processor_new.py', layer_processor_content)
+    layer_processor_content = add_imports(layer_processor_content, 'layer_processor.py')
+    create_file('src/layer_processor.py', layer_processor_content)
 
     print("Files and directories created successfully!")
 

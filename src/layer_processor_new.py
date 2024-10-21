@@ -1,21 +1,11 @@
 import geopandas as gpd
-from matplotlib import pyplot as plt
 from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection, Point, MultiPoint
 from src.utils import log_info, log_warning, log_error
 import os
-from src.wmts_downloader import download_wmts_tiles, download_wms_tiles, process_and_stitch_tiles
-from shapely.ops import unary_union, linemerge
-from shapely.validation import make_valid, explain_validity
-from shapely.geometry import LinearRing
 import shutil
-from src.contour_processor import process_contour
-from owslib.wmts import WebMapTileService
-import ezdxf
-import pandas as pd
-import math
-from geopandas import GeoSeries
-import re
 from src.project_loader import project_loader
+import ezdxf
+from src.operations.common_operations import *
 
 from src.operations import *
 
