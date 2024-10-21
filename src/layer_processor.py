@@ -476,6 +476,32 @@ class LayerProcessor:
         log_info(f"Radical blunt segment created: {point1}, {point2}")
         return [point1, point2]
 
+    def standardize_layer_crs(self, layer_name, geometry_or_gdf):
+        target_crs = self.crs
+        log_info(f"Standardizing CRS for layer: {layer_name}")
+
+        if isinstance(geometry_or_gdf, gpd.GeoDataFrame):
+            log_info(f"Original CRS: {geometry_or_gdf.crs}")
+            if geometry_or_gdf.crs is None:
+                log_warning(f"Layer {layer_name} has no CRS. Setting to target CRS: {target_crs}")
+                geometry_or_gdf.set_crs(target_crs, inplace=True)
+            elif geometry_or_gdf.crs != target_crs:
+                log_info(f"Transforming layer {layer_name} from {geometry_or_gdf.crs} to {target_crs}")
+                geometry_or_gdf = geometry_or_gdf.to_crs(target_crs)
+            log_info(f"Final CRS for layer {layer_name}: {geometry_or_gdf.crs}")
+            return geometry_or_gdf
+        elif isinstance(geometry_or_gdf, gpd.GeoSeries):
+            return self.standardize_layer_crs(layer_name, gpd.GeoDataFrame(geometry=geometry_or_gdf))
+        elif isinstance(geometry_or_gdf, (Polygon, MultiPolygon, LineString, MultiLineString)):
+            log_info(f"Processing individual geometry for layer: {layer_name}")
+            gdf = gpd.GeoDataFrame(geometry=[geometry_or_gdf], crs=target_crs)
+            log_info(f"Created GeoDataFrame with CRS: {gdf.crs}")
+            return gdf.geometry.iloc[0]
+        else:
+            log_warning(f"Unsupported type for layer {layer_name}: {type(geometry_or_gdf)}")
+            return geometry_or_gdf
+
+
 
 
 
