@@ -59,7 +59,7 @@ def _create_overlay_layer(all_layers, project_settings, crs, layer_name, operati
             return
         
         # Apply a series of cleaning operations
-        result_geometry = _clean_geometry(result_geometry)
+        result_geometry = _clean_geometry(all_layers, project_settings, crs, result_geometry)
         
         log_info(f"Applied {overlay_type} operation and cleaned up results")
     except Exception as e:
