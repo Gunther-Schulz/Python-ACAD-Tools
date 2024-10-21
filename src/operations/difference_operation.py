@@ -4,6 +4,7 @@ from src.utils import log_info, log_warning, log_error
 from shapely.ops import unary_union
 from src.operations.common_operations import _process_layer_info, _get_filtered_geometry, _remove_empty_geometries
 from src.operations.common_operations import *
+from src.operations.intersection_operation import _create_overlay_layer
 
 def create_difference_layer(all_layers, project_settings, crs, layer_name, operation):
         log_info(f"Creating difference layer: {layer_name}")
@@ -82,7 +83,7 @@ def create_difference_layer(all_layers, project_settings, crs, layer_name, opera
                 if col != 'geometry':
                     result_gdf[col] = base_geometry[col].iloc[0]
         
-        return result_gdf
+        return _create_overlay_layer(all_layers, project_settings, crs, layer_name, operation, 'difference')
 
 
 def _should_reverse_difference(all_layers, project_settings, crs, base_geometry, overlay_geometry):

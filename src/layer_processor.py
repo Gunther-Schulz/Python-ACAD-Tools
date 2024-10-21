@@ -185,7 +185,7 @@ class LayerProcessor:
         elif op_type == 'filter':
             result = create_filtered_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
         elif op_type == 'wmts' or op_type == 'wms':
-            result = process_wmts_or_wms_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
+            result = process_wmts_or_wms_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation, self.project_loader)
         elif op_type == 'merge':
             result = create_merged_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
         elif op_type == 'smooth':
@@ -475,6 +475,7 @@ class LayerProcessor:
         
         log_info(f"Radical blunt segment created: {point1}, {point2}")
         return [point1, point2]
+
 
 
 

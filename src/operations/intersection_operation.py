@@ -6,7 +6,8 @@ from src.operations.common_operations import _create_overlay_layer
 from src.operations.common_operations import *
 
 def create_intersection_layer(all_layers, project_settings, crs, layer_name, operation):
-        _create_overlay_layer(layer_name, operation, 'intersection')
+    return _create_overlay_layer(all_layers, project_settings, crs, layer_name, operation, 'intersection')
+
 
 
 
