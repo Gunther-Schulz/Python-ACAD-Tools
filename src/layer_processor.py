@@ -5,6 +5,7 @@ from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString,
 import ezdxf
 import math
 from geopandas import GeoSeries
+import os
 
 # Import operations individually
 from src.operations import (
@@ -252,8 +253,22 @@ class LayerProcessor:
 
                 if not gdf.empty:
                     full_path = self.project_loader.resolve_full_path(output_path)
-                    gdf.to_file(full_path)
-                    log_info(f"Shapefile written for layer {layer_name}: {full_path}")
+                    directory = os.path.dirname(full_path)
+                    parent_directory = os.path.dirname(directory)
+                    
+                    if os.path.exists(parent_directory):
+                        if not os.path.exists(directory):
+                            try:
+                                os.makedirs(directory, exist_ok=True)
+                                log_info(f"Created directory: {directory}")
+                            except Exception as e:
+                                log_error(f"Failed to create directory: {str(e)}")
+                                return
+                        try:
+                            gdf.to_file(full_path)
+                            log_info(f"Shapefile written for layer {layer_name}: {full_path}")
+                        except Exception as e:
+                            log_error(f"Error writing shapefile for layer '{layer_name}': {str(e)}")
                 else:
                     log_warning(f"No valid geometries found for layer {layer_name} after conversion")
             else:
@@ -500,6 +515,8 @@ class LayerProcessor:
         else:
             log_warning(f"Unsupported type for layer {layer_name}: {type(geometry_or_gdf)}")
             return geometry_or_gdf
+
+
 
 
 
