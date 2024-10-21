@@ -1,8 +1,7 @@
 import geopandas as gpd
-from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection, Point, MultiPoint
 from src.utils import log_info, log_warning, log_error
 import traceback
-from src.operations.common_operations import _create_overlay_layer, _process_layer_info, _get_filtered_geometry, _clean_geometry
+from src.operations.common_operations import _process_layer_info, _get_filtered_geometry, _clean_geometry
 from src.operations.common_operations import *
 from src.utils import log_info, log_warning, log_error
 import geopandas as gpd
@@ -10,12 +9,12 @@ import traceback
 from src.operations.common_operations import _process_layer_info, _get_filtered_geometry, _clean_geometry
 
 def create_intersection_layer(all_layers, project_settings, crs, layer_name, operation):
-    return _create_overlay_layer(all_layers, project_settings, crs, layer_name, operation, 'intersection')
+    return _create_intersection_overlay_layer(all_layers, project_settings, crs, layer_name, operation, 'intersection')
 
 
 
 
-def _create_overlay_layer(all_layers, project_settings, crs, layer_name, operation, overlay_type):
+def _create_intersection_overlay_layer(all_layers, project_settings, crs, layer_name, operation, overlay_type):
     log_info(f"Creating {overlay_type} layer: {layer_name}")
     log_info(f"Operation details: {operation}")
     

@@ -17,8 +17,7 @@ from src.operations import (
     process_wmts_or_wms_layer,
     create_merged_layer,
     create_smooth_layer,
-    _handle_contour_operation,
-    _create_overlay_layer
+    _handle_contour_operation
 )
 
 class LayerProcessor:

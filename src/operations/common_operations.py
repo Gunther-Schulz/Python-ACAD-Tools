@@ -373,7 +373,7 @@ def _remove_empty_geometries(all_layers, project_settings, crs, layer_name, geom
             log_warning(f"Unsupported geometry type for layer '{layer_name}': {type(geometry)}")
             return None
 
-def _create_overlay_layer(all_layers, project_settings, crs, layer_name, operation, overlay_type):
+def _create_generic_overlay_layer(all_layers, project_settings, crs, layer_name, operation, overlay_type):
         log_info(f"Creating {overlay_type} layer: {layer_name}")
         log_info(f"Operation details: {operation}")
         
