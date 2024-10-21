@@ -1,11 +1,113 @@
-styles:
+# Administrative Boundaries
+# ------------------------
+
   flur:
     locked: true
     linetype: ACAD_ISO14W100
+  flurgrenze:
+    linetype: "ACAD_ISO14W100"
+    lineweight: 50
   flurWorkView:
     color: "moderate-yellow"
+
+  gemarkung:
+    locked: true
+    linetype: ACAD_ISO12W100
+  gemarkungsgrenze:
+    linetype: "ACAD_ISO12W100"
+    lineweight: 50
+  gemarkungWorkView:
+    color: "moderate-yellow"
+
+  gemeinde:
+    locked: true
+    linetype: ACAD_ISO10W100
+  gemeindegrenze:
+    linetype: "ACAD_ISO10W100"
+    lineweight: 50
+  gemeindeWorkView:
+    color: "moderate-yellow"
+
   parcel:
     locked: true
+  parcelWorkView:
+    color: "dark-grey"
+
+
+# Natural Features
+# ----------------
+
+  biotopWorkView:
+    color: "brilliant-green"
+
+  gesGeschuetzesBiotop:
+    color: "brilliant-intense-orange"
+    linetype: "ACAD_ISO02W100"
+    lineweight: 30
+
+  schutzflaecheWorkView:
+    color: "moderate-intense-green"
+
+  waldHatch:
+    pattern: 'ANSI31'
+    scale: 5
+  waldSchraffur:
+    hatch:
+      pattern: "ANSI31"
+  # waldLayer:
+  #   color: "moderate-intense-chartreuse"
+
+  water:
+    color: "brilliant-blue"
+    transparency: 0.6
+
+
+# Urban Planning
+# --------------
+
+  ausgleichHatch:
+    hatch:
+      individual_hatches: true
+  ausgleichWorkView:
+    color: "moderate-intense-green"
+    transparency: 0.6
+
+  baufeldHatch:
+    individual_hatches: true
+  baufeldLayer:
+    color: "brilliant-red"
+    transparency: 0.6
+
+  geltungsbereich:
+    linetype: "ACAD_ISO02W100"
+    lineweight: 80
+
+  gfl1:
+    linetype: "ACAD_ISO02W100"
+
+  gruenflaecheHatch:
+    hatch:
+      individual_hatches: true
+  gruenflaecheLayer:
+    color: "brilliant-intense-chartreuse"
+    transparency: 0.6
+
+  verkehrsflaeche:
+    color: "248,215,49"
+    lineweight: 10
+    hatch:
+      individual_hatches: true
+      pattern: "ANSI31"
+
+
+# Commented Out Styles
+# --------------------
+
+  # baufeldHatch:
+    # pattern: 'SOLID'
+    # scale: 10
+
+  # parcel:
     # color: "Black"
     # linetype: ACAD_ISO11W100
     # linetypeGeneration: true
@@ -16,76 +118,8 @@ styles:
     # is_on: true 
     # vp_freeze: false
     # transparency: 0.0
-  parcelWorkView:
-    color: "dark-grey"
-  gemarkung:
-    locked: true
-    linetype: ACAD_ISO12W100
-  gemarkungWorkView:
-    color: "moderate-yellow"
-  gemeinde:
-    locked: true
-    linetype: ACAD_ISO10W100
-  gemeindeWorkView:
-    color: "moderate-yellow"
-  # waldLayer:
-  #   color: "moderate-intense-chartreuse"
-  waldHatch:
-    pattern: 'ANSI31'
-    scale: 5
-  gesGeschuetzesBiotop:
-    color: "brilliant-intense-orange"
-    linetype: "ACAD_ISO02W100"
-    lineweight: 30
-  biotopWorkView:
-    color: "brilliant-green"
-  schutzflaecheWorkView:
-    color: "moderate-intense-green"
-  water:
-    color: "brilliant-blue"
-    transparency: 0.6
-  baufeldLayer:
-    color: "brilliant-red"
-    transparency: 0.6
-  baufeldHatch:
-    individual_hatches: true
-      # pattern: 'SOLID'
-      # scale: 10
-  verkehrsflaeche:
+
+  # verkehrsflaeche:
     # color: "brilliant-orange"
-    color: "248,215,49"
-    lineweight: 10
-    hatch:
-      individual_hatches: true
-      pattern: "ANSI31"
-      # scale: 20
-      # angle: 80
-  gruenflaecheLayer:
-    color: "brilliant-intense-chartreuse"
-    transparency: 0.6
-  gruenflaecheHatch:
-    hatch:
-      individual_hatches: true
-  ausgleichWorkView:
-    color: "moderate-intense-green"
-    transparency: 0.6
-  ausgleichHatch:
-    hatch:
-      individual_hatches: true
-  geltungsbereich:
-    linetype: "ACAD_ISO02W100"
-    lineweight: 80
-  gfl1:
-    linetype: "ACAD_ISO02W100"
-  gemeindegrenze:
-    linetype: "ACAD_ISO10W100"
-    lineweight: 50
-  gemarkungsgrenze:
-    linetype: "ACAD_ISO12W100"
-    lineweight: 50
-  flurgrenze:
-    linetype: "ACAD_ISO14W100"
-    lineweight: 50
-  waldSchraffur:
-    hatch:
-      pattern: "ANSI31"
+    # scale: 20
+    # angle: 80

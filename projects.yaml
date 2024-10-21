@@ -564,26 +564,6 @@ projects:
               - Geltungsbereich NW
               - Geltungsbereich NO
               - Geltungsbereich S
-      - name: Schutzflächeumgrenzung
-        update: true
-        viewports:
-          - name: WorkView
-            layerStyle: schutzflaecheWorkView
-        operations:
-          - type: buffer
-            layers:
-              - Biotope
-            distance: -5
-          - type: difference
-            layers:
-              - Biotope
-            # reverseDifference: true
-          - type: intersection
-            layers:
-              - Geltungsbereich NW
-              - Geltungsbereich NO
-              - Geltungsbereich S
-        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/schutzflaeche.shp"
 
       - name: Ausgleich
         update: true
@@ -602,10 +582,34 @@ projects:
               - Geltungsbereich NW
               - Geltungsbereich NO
               - Geltungsbereich S
-        bluntAngles:
-          angleThreshold: 25  # Angles smaller than this will be blunted
-          distance: 10.0  # Distance to move the vertex along the angle bisector
+        # bluntAngles:
+        #   angleThreshold: 25  # Angles smaller than this will be blunted
+        #   distance: 10.0  # Distance to move the vertex along the angle bisector
         outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/ausgleich.shp"
+      
+      - name: Schutzflächeumgrenzung
+        update: true
+        viewports:
+          - name: WorkView
+            layerStyle: schutzflaecheWorkView
+        operations:
+          - type: buffer
+            layers:
+              - Biotope
+              - Ausgleich
+            distance: -5
+          - type: difference
+            layers:
+              - Biotope
+              - Ausgleich
+            # reverseDifference: false
+          - type: intersection
+            layers:
+              - Geltungsbereich NW
+              - Geltungsbereich NO
+              - Geltungsbereich S
+        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/schutzflaeche.shp"
+      
       # - name: "Biotope T-Symbol"
       #   update: true
       #   close: true
@@ -642,18 +646,18 @@ projects:
       #     angleThreshold: 25  # Angles smaller than this will be blunted
       #     distance: 10.0  # Distance to move the vertex along the angle bisector
       #   outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/ausgleich.shp"
+      
       # - name: Ausgleich Schraffur
       #   update: true
-      #   layerStyle: ausgleichLayer
-      #   hatchStyle: ausgleichHatch
+      #   hatchStyle: gruenflaecheLayer
       #   performHatch: true
       #   operations:
       #     - type: copy
       #       layers:
       #         - Ausgleich
-      #     - type: difference
-      #       layers:
-      #         - Grünfläche
+      #     # - type: difference
+      #     #   layers:
+      #     #     - Grünfläche
       # - name: Grünfläche
       #   update: true
       #   close: true

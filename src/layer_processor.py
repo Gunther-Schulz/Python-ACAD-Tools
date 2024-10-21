@@ -824,10 +824,10 @@ class LayerProcessor:
         log_info(f"Creating buffer layer: {layer_name}")
         source_layers = operation.get('layers', [])
         buffer_distance = operation['distance']
-        join_style = operation.get('joinStyle', 'round')
+        join_style = operation.get('joinStyle', 'mitre')  # Default to 'mitre' instead of 'round'
 
         join_style_map = {'round': 1, 'mitre': 2, 'bevel': 3}
-        join_style_value = join_style_map.get(join_style, 1)
+        join_style_value = join_style_map.get(join_style, 2)  # Default to mitre (2) if not specified
 
         combined_geometry = None
         for layer_info in source_layers:
