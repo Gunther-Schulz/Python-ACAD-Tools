@@ -83,7 +83,7 @@ def create_difference_layer(all_layers, project_settings, crs, layer_name, opera
             if col != 'geometry':
                 result_gdf[col] = base_geometry[col].iloc[0]
     
-    return _create_overlay_layer(all_layers, project_settings, crs, layer_name, operation, 'difference')
+    return result_gdf
 
 
 def _should_reverse_difference(all_layers, project_settings, crs, base_geometry, overlay_geometry):
