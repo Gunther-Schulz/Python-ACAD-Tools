@@ -560,7 +560,7 @@ projects:
         applyHatch:
           layers:
             - Biotoppuffer
-      - name: Ausgleich
+      - name: Grünfläche
         update: true
         viewports:
           - name: WorkView
@@ -572,6 +572,9 @@ projects:
               - Waldabstand
               - Baumabstand Puffer
               - FG Buffer
+              - Biotoppuffer
+          - type: buffer
+            distance: -5
           - type: intersection
             layers:
               - Geltungsbereich NW
@@ -586,28 +589,26 @@ projects:
         applyHatch:
           layers:
             - Ausgleich
-      - name: Schutzflächeumgrenzung
-        update: true
-        viewports:
-          - name: WorkView
-            style: schutzflaecheWorkView
-        operations:
-          - type: buffer
-            layers:
-              - Biotope
-              - Ausgleich
-            distance: -5
-          - type: difference
-            layers:
-              - Biotope
-              - Ausgleich
-            # reverseDifference: false
-          - type: intersection
-            layers:
-              - Geltungsbereich NW
-              - Geltungsbereich NO
-              - Geltungsbereich S
-        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/schutzflaeche.shp"
+      # - name: Schutzflächeumgrenzung
+      #   update: true
+      #   viewports:
+      #     - name: WorkView
+      #       style: schutzflaecheWorkView
+      #   operations:
+      #     - type: buffer
+      #       layers:
+      #         - Ausgleich
+      #       distance: -5
+      #     - type: difference
+      #       layers:
+      #         - Ausgleich
+      #       reverseDifference: true
+      #     # - type: intersection
+      #     #   layers:
+      #     #     - Geltungsbereich NW
+      #     #     - Geltungsbereich NO
+      #     #     - Geltungsbereich S
+      #   outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/schutzflaeche.shp"
       
       # - name: "Biotope T-Symbol"
       #   update: true
