@@ -574,8 +574,8 @@ projects:
               - Geltungsbereich NO
               - Geltungsbereich S
           - type: buffer
-            distance: -5
-            joinStyle: round
+            distance: -3
+            # joinStyle: round
         # bluntAngles:
         #   angleThreshold: 25  # Angles smaller than this will be blunted
         #   distance: 10.0  # Distance to move the vertex along the angle bisector
@@ -598,6 +598,7 @@ projects:
               - FG Buffer
               - Biotoppuffer
               - Biotope
+          - type: merge
           # - type: buffer
           #   layers:
           #     - Grünfläche
@@ -606,14 +607,14 @@ projects:
           - type: difference
             layers:
               - Grünfläche
-            # reverseDifference: true
+            # reverseDifference: false
           - type: intersection
             layers:
               - Geltungsbereich NW
               - Geltungsbereich NO
               - Geltungsbereich S
-          - type: filterGeometry
-            minArea: 200
+      #     # - type: filterGeometry
+      #     #   minArea: 200
       
       # - name: "Biotope T-Symbol"
       #   update: true
