@@ -689,9 +689,7 @@ class DXFExporter:
             log_info(f"Hatch processing skipped for layer: {layer_name}")
             return
 
-        boundary_layers = [layer_name]
-        if isinstance(apply_hatch, dict) and 'layers' in apply_hatch:
-            boundary_layers = apply_hatch['layers']
+        boundary_layers = hatch_config.get('layers', [layer_name])
 
         boundary_geometry = self._get_boundary_geometry(boundary_layers)
         
@@ -776,6 +774,8 @@ class DXFExporter:
                 remove_entities_by_layer(msp, target_layer_name, self.script_identifier)
                 
             create_path_array(msp, source_layer_name, target_layer_name, block_name, spacing, scale, rotation)
+
+
 
 
 

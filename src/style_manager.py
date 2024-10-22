@@ -88,13 +88,25 @@ class StyleManager:
             style_preset, _ = self.get_style(layer_style)
             if style_preset and 'hatch' in style_preset:
                 hatch_config.update(style_preset['hatch'])
-        elif isinstance(layer_style, dict) and 'hatch' in layer_style:
-            hatch_config.update(layer_style['hatch'])
+        elif isinstance(layer_style, dict):
+            if 'hatch' in layer_style:
+                hatch_config.update(layer_style['hatch'])
+            elif 'layer' in layer_style:
+                # Use layer settings for hatch if no specific hatch settings are provided
+                layer_settings = layer_style['layer']
+                if 'color' in layer_settings:
+                    hatch_config['color'] = layer_settings['color']
+                if 'transparency' in layer_settings:
+                    hatch_config['transparency'] = layer_settings['transparency']
         
         apply_hatch = layer_info.get('applyHatch', False)
         if isinstance(apply_hatch, dict):
             if 'layers' in apply_hatch:
                 hatch_config['layers'] = apply_hatch['layers']
+        
+        # Ensure color is set to 'BYLAYER' if not specified
+        if 'color' not in hatch_config or hatch_config['color'] is None:
+            hatch_config['color'] = 'BYLAYER'
         
         return hatch_config
 

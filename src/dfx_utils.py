@@ -379,7 +379,7 @@ def create_hatch(msp, boundary_paths, hatch_config, project_loader, is_legend=Fa
         hatch.paths.add_polyline_path(path)
     
     # Apply color and transparency
-    if 'color' in hatch_config:
+    if 'color' in hatch_config and hatch_config['color'] not in (None, 'BYLAYER'):
         color = get_color_code(hatch_config['color'], project_loader.name_to_aci)
         if isinstance(color, tuple):
             hatch.rgb = color  # Set RGB color directly
@@ -607,6 +607,8 @@ def create_path_array(msp, source_layer_name, target_layer_name, block_name, spa
             current_distance -= segment_length
 
     log_info(f"Path array created for source layer '{source_layer_name}' using block '{block_name}' and placed on target layer '{target_layer_name}'")
+
+
 
 
 
