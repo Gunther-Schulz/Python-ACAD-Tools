@@ -70,7 +70,11 @@ class LayerProcessor:
     
         # Process the new style structure
         if 'style' in layer_obj:
-            self._process_style(layer_name, layer_obj['style'])
+            style, warning_generated = self.style_manager.get_style(layer_obj['style'])
+            if warning_generated:
+                log_warning(f"Issue with style for layer '{layer_name}'")
+            if style is not None:
+                layer_obj['style'] = style
     
         # Load DXF layer if specified, regardless of operations
         if 'dxfLayer' in layer_obj:
@@ -482,42 +486,15 @@ class LayerProcessor:
             # If style_config is a string, it's a preset name
             style_config = self.project_loader.get_style(style_config)
         
-        known_style_keys = {'layer', 'hatch', 'text'}
-        unknown_style_keys = set(style_config.keys()) - known_style_keys
-        if unknown_style_keys:
-            log_warning(f"Unknown style keys in layer {layer_name}: {', '.join(unknown_style_keys)}")
-
         if 'layer' in style_config:
-            self._process_layer_style(layer_name, style_config['layer'])
+            self.style_manager._process_layer_style(layer_name, style_config['layer'])
         if 'hatch' in style_config or 'applyHatch' in style_config:
-            self._process_hatch_config(layer_name, style_config)
+            self.style_manager._process_hatch_style(layer_name, style_config)
         if 'text' in style_config:
-            self._process_text_style(layer_name, style_config['text'])
+            self.style_manager._process_text_style(layer_name, style_config['text'])
 
-    def _process_layer_style(self, layer_name, layer_style):
-        known_style_keys = {'color', 'linetype', 'lineweight', 'plot', 'locked', 'frozen', 'is_on', 'vp_freeze', 'transparency'}
-        self._process_style_keys(layer_name, 'layer', layer_style, known_style_keys)
 
-    def _process_hatch_style(self, layer_name, hatch_style):
-        known_style_keys = {'pattern', 'scale', 'color', 'transparency'}
-        self._process_style_keys(layer_name, 'hatch', hatch_style, known_style_keys)
 
-    def _process_text_style(self, layer_name, text_style):
-        known_style_keys = {'color', 'height', 'font', 'style', 'alignment'}
-        self._process_style_keys(layer_name, 'text', text_style, known_style_keys)
-
-    def _process_style_keys(self, layer_name, style_type, style_dict, known_keys):
-        unknown_keys = set(style_dict.keys()) - known_keys
-        if unknown_keys:
-            log_warning(f"Unknown {style_type} style keys in layer {layer_name}: {', '.join(unknown_keys)}")
-
-        for key in style_dict.keys():
-            closest_match = min(known_keys, key=lambda x: self.levenshtein_distance(key, x))
-            if key != closest_match and self.levenshtein_distance(key, closest_match) <= 2:
-                log_warning(f"Possible typo in {style_type} style key for layer {layer_name}: '{key}'. Did you mean '{closest_match}'?")
-
-        if 'transparency' in style_dict:
-            style_dict['transparency'] = max(0, min(style_dict['transparency'], 1))
 
 
 

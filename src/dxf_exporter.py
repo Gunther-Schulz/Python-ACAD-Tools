@@ -160,6 +160,14 @@ class DXFExporter:
     def process_single_layer(self, doc, msp, layer_name, layer_info):
         log_info(f"Processing layer: {layer_name}")
         
+        # Validate the style
+        if 'style' in layer_info:
+            style, warning_generated = self.style_manager.get_style(layer_info['style'])
+            if warning_generated:
+                log_warning(f"Issue with style for layer '{layer_name}'")
+            if style is not None:
+                layer_info['style'] = style
+        
         if self.is_wmts_or_wms_layer(layer_info):
             self._process_wmts_layer(doc, msp, layer_name, layer_info)
         else:
@@ -760,6 +768,9 @@ class DXFExporter:
                 remove_entities_by_layer(msp, target_layer_name, self.script_identifier)
                 
             create_path_array(msp, source_layer_name, target_layer_name, block_name, spacing, scale, rotation)
+
+
+
 
 
 
