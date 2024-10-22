@@ -80,8 +80,11 @@ styles:
   baufeldSchraffur:
     layer:
       color: "brilliant-red"
-      transparency: 0.6
+      # lock: true
+      # lineweight: 13
+      # linetype: "ACAD_ISO02W100"
     hatch:
+      transparency: 0.6
       individual_hatches: true
 
   

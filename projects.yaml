@@ -708,15 +708,7 @@ projects:
         outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/baufeld.shp"
       - name: Baufeld Schraffur
         update: true
-        style:
-            layer:
-              color: "brilliant-red"
-              transparency: 0.6
-              lock: true
-              lineweight: 13
-              linetype: "ACAD_ISO02W100"
-            hatch:
-              individual_hatches: true
+        style: baufeldSchraffur
         applyHatch:
           layers:
             - Baufeld
