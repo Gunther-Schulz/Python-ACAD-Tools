@@ -20,6 +20,7 @@ from src.operations import (
     _handle_contour_operation
 )
 from src.style_manager import StyleManager
+from src.operations.filter_geometry_operation import create_filtered_geometry_layer
 
 class LayerProcessor:
     def __init__(self, project_loader, plot_ops=False):
@@ -133,6 +134,13 @@ class LayerProcessor:
                 log_info(f"Blunted geometry count: {len(blunted_geom)}")
             else:
                 log_warning(f"Layer '{layer_name}' not found for blunting angles")
+    
+        if 'filterGeometry' in layer_obj:
+            filter_config = layer_obj['filterGeometry']
+            filtered_layer = create_filtered_geometry_layer(self.all_layers, self.project_settings, self.crs, layer_name, filter_config)
+            if filtered_layer is not None:
+                self.all_layers[layer_name] = filtered_layer
+            log_info(f"Applied geometry filter to layer '{layer_name}'")
     
         processed_layers.add(layer_name)
     
