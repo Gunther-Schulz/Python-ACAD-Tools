@@ -126,12 +126,12 @@ def _process_layer_info(all_layers, project_settings, crs, layer_info):
             return None, []
 
 
-def _extract_coords_from_reason(all_layers, project_settings, crs, reason):
-        # Try to extract coordinates using regex
-        match = re.search(r'\[([-\d.]+)\s+([-\d.]+)\]', reason)
-        if match:
-            return float(match.group(1)), float(match.group(2))
-        return None
+def _extract_coords_from_reason(reason):
+    # Try to extract coordinates using regex
+    match = re.search(r'\[([-\d.]+)\s+([-\d.]+)\]', reason)
+    if match:
+        return float(match.group(1)), float(match.group(2))
+    return None
 
 
 def ensure_geodataframe(all_layers, project_settings, crs, layer_name, geometry):
@@ -435,6 +435,8 @@ def _create_generic_overlay_layer(all_layers, project_settings, crs, layer_name,
             result_gdf = gpd.GeoDataFrame(geometry=result_geometry, crs=base_geometry.crs)
             all_layers[layer_name] = result_gdf
             log_info(f"Created {overlay_type} layer: {layer_name} with {len(result_geometry)} geometries")
+
+
 
 
 

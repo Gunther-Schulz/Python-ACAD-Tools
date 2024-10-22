@@ -44,7 +44,6 @@ projects:
       #       layers:
       #         - Geltungsbereich
       #       buffer: 1000
-      #   outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/generated/contour.shp"
       - name: WMS Gebäude
         update: true
         operations:
@@ -90,6 +89,7 @@ projects:
     # dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Zeichnung/Plasten4.dxf"
     dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Zeichnung/dev/test.dxf"
     dumpOutputDir: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten//GIS/dxf_dump"
+    shapefileOutputDir: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated"
     legend:
       title: "Planzeichen"
       subtitle: "(gem. PlanzV 1990-PlanzV 90 v.18.12.1990)"
@@ -371,7 +371,6 @@ projects:
       - name: Grünfläche Input 
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/geltungsbereich_abstand.shp"
         close: true
-        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/grünfläche_input_1.shp"
       - name: Wald
         update: true
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/wald.shp"
@@ -394,14 +393,12 @@ projects:
       # - name: Exclude Acad
       #   update: false
       #   dxfLayer: "Exclude Acad"
-      #   outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/exclude_acad.shp"
       - name: Baumabstand Puffer
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/baum_abstand.shp"
         operations:
           - type: buffer
             distance: 5
             # joinStyle: round
-        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/baumabstand.shp"   
       - name: Geschütze Biotope
         update: true
         # linetypeScale: 0.2
@@ -413,7 +410,6 @@ projects:
           - type: buffer
             distance: 5
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/FG.shp"
-        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/fg_puffer.shp"
       - name: Geltungsbereich NW
         update: true
         style: geltungsbereich
@@ -444,7 +440,6 @@ projects:
               - Wald
               - Baumabstand Puffer
               - Exclude
-        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/geltungsbereich_1.shp"
       - name: Geltungsbereich NW 2
         update: true
         close: true
@@ -484,7 +479,6 @@ projects:
               - Baumabstand Puffer
               - Exclude
               # - Exclude Acad
-        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/geltungsbereich_2.shp"
       - name: Geltungsbereich S
         update: true
         style: geltungsbereich
@@ -511,7 +505,6 @@ projects:
               - Wald
               - Baumabstand Puffer
               - Exclude
-        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/geltungsbereich_3.shp"
       - name: Waldabstand
         operations:
           - type: buffer
@@ -523,7 +516,6 @@ projects:
               - Geltungsbereich NW
               - Geltungsbereich NO
               - Geltungsbereich S
-        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/waldabstand.shp"
       - name: Biotope
         update: true
         viewports:
@@ -534,7 +526,6 @@ projects:
             layers:
               - Biotope Input
               - Geschütze Biotope
-        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/biotope.shp"
       - name: Biotoppuffer
         update: true
         viewports:
@@ -573,42 +564,46 @@ projects:
               - Baumabstand Puffer
               - FG Buffer
               - Biotoppuffer
-          - type: buffer
-            distance: -5
+              - Biotope
+          # - type: merge
+          # - type: buffer
+          #   distance: -5
           - type: intersection
             layers:
               - Geltungsbereich NW
               - Geltungsbereich NO
               - Geltungsbereich S
+          - type: buffer
+            distance: -5
+            joinStyle: round
         # bluntAngles:
         #   angleThreshold: 25  # Angles smaller than this will be blunted
         #   distance: 10.0  # Distance to move the vertex along the angle bisector
-        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/ausgleich.shp"
-      - name: Ausgleich Schraffur
+      - name: Grünfläche Schraffur
         hatchStyle: ausgleichHatch
         applyHatch:
           layers:
-            - Ausgleich
-      # - name: Schutzflächeumgrenzung
-      #   update: true
-      #   viewports:
-      #     - name: WorkView
-      #       style: schutzflaecheWorkView
-      #   operations:
-      #     - type: buffer
-      #       layers:
-      #         - Ausgleich
-      #       distance: -5
-      #     - type: difference
-      #       layers:
-      #         - Ausgleich
-      #       reverseDifference: true
-      #     # - type: intersection
-      #     #   layers:
-      #     #     - Geltungsbereich NW
-      #     #     - Geltungsbereich NO
-      #     #     - Geltungsbereich S
-      #   outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/schutzflaeche.shp"
+            - Grünfläche
+      - name: Schutzflächeumgrenzung
+        update: true
+        viewports:
+          - name: WorkView
+            style: schutzflaecheWorkView
+        operations:
+          - type: buffer
+            layers:
+              - Grünfläche
+            distance: 5
+            # joinStyle: round
+          - type: difference
+            layers:
+              - Grünfläche
+            # reverseDifference: true
+          - type: intersection
+            layers:
+              - Geltungsbereich NW
+              - Geltungsbereich NO
+              - Geltungsbereich S
       
       # - name: "Biotope T-Symbol"
       #   update: true
@@ -645,7 +640,6 @@ projects:
       #   bluntAngles:
       #     angleThreshold: 25  # Angles smaller than this will be blunted
       #     distance: 10.0  # Distance to move the vertex along the angle bisector
-      #   outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/ausgleich.shp"
       
       # - name: Ausgleich Schraffur
       #   update: true
@@ -677,46 +671,45 @@ projects:
       #   applyHatch:
       #       layers:
       #         - Grünfläche
-      - name: Baufeld
-        update: true
-        close: true
-        style:
-            layer:
-              color: "brilliant-red"
-              transparency: 0.6
-              lock: true
-              lineweight: 13
-              linetype: "ACAD_ISO02W100"
-            hatch:
-              individual_hatches: true
-        viewports:
-          - name: WorkView
-            style: baufeldSchraffur
-        operations:
-          - type: copy
-            layers:
-              - Geltungsbereich NW
-              - Geltungsbereich NO
-              - Geltungsbereich S
-          - type: difference
-            layers:
-              - Ausgleich
-              - Baumabstand Puffer
-              - Biotope
-              - FG Buffer
-          # - type: smooth
-          #   strength: 1.5
-        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/baufeld.shp"
-      - name: Baufeld Schraffur
-        update: true
-        style: baufeldSchraffur
-        applyHatch:
-          layers:
-            - Baufeld
-          # individual_hatches: true
-          # pattern: 'ANSI31'
-          # scale: 50  # Adjust this value to change the hatch density
-          # color: "Blue"  # ACI color index for Light Red
+      # - name: Baufeld
+      #   update: true
+      #   close: true
+      #   style:
+      #       layer:
+      #         color: "brilliant-red"
+      #         transparency: 0.6
+      #         lock: true
+      #         lineweight: 13
+      #         linetype: "ACAD_ISO02W100"
+      #       hatch:
+      #         individual_hatches: true
+      #   viewports:
+      #     - name: WorkView
+      #       style: baufeldSchraffur
+      #   operations:
+      #     - type: copy
+      #       layers:
+      #         - Geltungsbereich NW
+      #         - Geltungsbereich NO
+      #         - Geltungsbereich S
+      #     - type: difference
+      #       layers:
+      #         - Ausgleich
+      #         - Baumabstand Puffer
+      #         - Biotope
+      #         - FG Buffer
+      #     # - type: smooth
+      #     #   strength: 1.5
+      # - name: Baufeld Schraffur
+      #   update: true
+      #   style: baufeldSchraffur
+      #   applyHatch:
+      #     layers:
+      #       - Baufeld
+      #     # individual_hatches: true
+      #     # pattern: 'ANSI31'
+      #     # scale: 50  # Adjust this value to change the hatch density
+      #     # color: "Blue"  # ACI color index for Light Red
       # - name: Baugrenze 2
       #   update: true
       #   style: 
@@ -745,7 +738,6 @@ projects:
       #       layers:
       #         - Baufeld
       #       distance: -3
-      #   outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/baugrenze.shp"
       - name: WMTS DOP
         # update: true
         style: 
@@ -793,7 +785,6 @@ projects:
       #       layers:
       #         - Geltungsbereich NW
       #       buffer: 1000
-      #   outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/contour.shp"
       # - name: WMS Gebäude
       #   update: true
       #   operations:
@@ -988,7 +979,6 @@ projects:
               - Wald
               - Straße Abstand
               - Weg Abstand
-        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/generated/geltungsbereich.shp"
       - name: Wald Abstand
         update: true
         color: "Light Green"
@@ -1049,7 +1039,6 @@ projects:
           - type: buffer
             distance: -5
             mode: keep # Keeps both the original geometries and the buffered ones
-        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/generated/grünfläche.shp"
       - name: Baufeld
         update: true
         color: "Light Red"
@@ -1066,7 +1055,6 @@ projects:
           #     - Biotope
           #     - Wald Abstand
           #     - Grünfläche
-        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/generated/baufeld.shp"
       - name: Baugrenze
         update: true
         color: "Blue"
@@ -1078,7 +1066,6 @@ projects:
             layers:
               - Baufeld
             distance: -3
-        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/generated/baugrenze.shp"
       - name: WMTS DOP
         # update: true
         color: Black
