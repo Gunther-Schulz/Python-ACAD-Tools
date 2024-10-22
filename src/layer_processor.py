@@ -43,117 +43,89 @@ class LayerProcessor:
         log_info("Finished processing layers.")
 
     def process_layer(self, layer, processed_layers):
-            if isinstance(layer, str):
-                layer_name = layer
-                layer_obj = next((l for l in self.project_settings['geomLayers'] if l['name'] == layer_name), None)
-            else:
-                layer_name = layer['name']
-                layer_obj = layer
+        if isinstance(layer, str):
+            layer_name = layer
+            layer_obj = next((l for l in self.project_settings['geomLayers'] if l['name'] == layer_name), None)
+        else:
+            layer_name = layer['name']
+            layer_obj = layer
     
-            if layer_name in processed_layers:
-                return
+        if layer_name in processed_layers:
+            return
     
-            log_info(f"Processing layer: {layer_name}")
-            log_info(f"Layer object: {layer_obj}")
+        log_info(f"Processing layer: {layer_name}")
+        log_info(f"Layer object: {layer_obj}")
+        
+        if layer_obj is None:
+            log_warning(f"Layer {layer_name} not found in project settings")
+            return
+    
+        # Check for unrecognized keys
+        recognized_keys = {'name', 'update', 'operations', 'shapeFile', 'dxfLayer', 'outputShapeFile', 'style', 'close', 'linetypeScale', 'linetypeGeneration', 'viewports', 'attributes', 'bluntAngles'}
+        unrecognized_keys = set(layer_obj.keys()) - recognized_keys
+        if unrecognized_keys:
+            log_warning(f"Unrecognized keys in layer {layer_name}: {', '.join(unrecognized_keys)}")
+    
+        # Process the new style structure
+        if 'style' in layer_obj:
+            self._process_style(layer_name, layer_obj['style'])
+    
+        # Load DXF layer if specified, regardless of operations
+        if 'dxfLayer' in layer_obj:
+            self.load_dxf_layer(layer_name, layer_obj['dxfLayer'])
+    
+        if 'operations' in layer_obj:
+            result_geometry = None
+            for operation in layer_obj['operations']:
+                result_geometry = self.process_operation(layer_name, operation, processed_layers)
+            if result_geometry is not None:
+                self.all_layers[layer_name] = result_geometry
+        elif 'shapeFile' in layer_obj:
+            # The shapefile should have been loaded in setup_shapefiles
+            if layer_name not in self.all_layers:
+                log_warning(f"Shapefile for layer {layer_name} was not loaded properly")
+        elif 'dxfLayer' not in layer_obj:
+            self.all_layers[layer_name] = None
+            log_info(f"Added layer {layer_name} without data")
+    
+        if 'outputShapeFile' in layer_obj:
+            self.write_shapefile(layer_name, layer_obj['outputShapeFile'])
+    
+        if 'attributes' in layer_obj:
+            if layer_name not in self.all_layers or self.all_layers[layer_name] is None:
+                self.all_layers[layer_name] = gpd.GeoDataFrame(geometry=[], crs=self.crs)
             
-            if layer_obj is None:
-                log_warning(f"Layer {layer_name} not found in project settings")
-                return
+            gdf = self.all_layers[layer_name]
+            if 'attributes' not in gdf.columns:
+                gdf['attributes'] = None
+            
+            gdf['attributes'] = gdf['attributes'].apply(lambda x: {} if x is None else x)
+            for key, value in layer_obj['attributes'].items():
+                gdf['attributes'] = gdf['attributes'].apply(lambda x: {**x, key: value})
+            
+            self.all_layers[layer_name] = gdf
     
-            # Check for unrecognized keys
-            recognized_keys = {'name', 'update', 'operations', 'shapeFile', 'dxfLayer', 'outputShapeFile', 'layerStyle', 'hatchStyle', 'performHatch','labelStyle', 'label', 'close', 'linetypeScale', 'linetypeGeneration', 'viewports', 'attributes', 'bluntAngles'}
-            unrecognized_keys = set(layer_obj.keys()) - recognized_keys
-            if unrecognized_keys:
-                log_warning(f"Unrecognized keys in layer {layer_name}: {', '.join(unrecognized_keys)}")
+        if 'bluntAngles' in layer_obj:
+            blunt_config = layer_obj['bluntAngles']
+            angle_threshold = blunt_config.get('angleThreshold', 45)
+            blunt_distance = blunt_config.get('distance', 0.5)
     
-            # Check for known style keys
-            known_style_keys = {'color', 'linetype', 'lineweight', 'plot', 'locked', 'frozen', 'is_on', 'vp_freeze', 'transparency'}
-            if 'layerStyle' in layer_obj:
-                if isinstance(layer_obj['layerStyle'], str):
-                    # If layerStyle is a string, it's a preset name
-                    preset_style = self.project_loader.get_style(layer_obj['layerStyle'])
-                    layer_obj['layerStyle'] = preset_style
-                else:
-                    # If it's a dict, it's a custom style, so we keep it as is
-                    pass
+            log_info(f"Applying blunt angles to layer '{layer_name}' with threshold {angle_threshold} and distance {blunt_distance}")
     
-                unknown_style_keys = set(layer_obj['layerStyle'].keys()) - known_style_keys
-                if unknown_style_keys:
-                    log_warning(f"Unknown style keys in layer {layer_name}: {', '.join(unknown_style_keys)}")
-                
-                # Check for typos in style keys
-                for key in layer_obj['layerStyle'].keys():
-                    closest_match = min(known_style_keys, key=lambda x: self.levenshtein_distance(key, x))
-                    if key != closest_match and self.levenshtein_distance(key, closest_match) <= 2:
-                        log_warning(f"Possible typo in style key for layer {layer_name}: '{key}'. Did you mean '{closest_match}'?")
+            if layer_name in self.all_layers:
+                original_geom = self.all_layers[layer_name]
+                blunted_geom = original_geom.geometry.apply(
+                    lambda geom: self.blunt_sharp_angles(geom, angle_threshold, blunt_distance)
+                )
+                self.all_layers[layer_name].geometry = blunted_geom
     
-                # Ensure transparency is between 0 and 1
-                if 'transparency' in layer_obj['layerStyle']:
-                    layer_obj['layerStyle']['transparency'] = max(0, min(layer_obj['layerStyle']['transparency'], 1))
+                log_info(f"Blunting complete for layer '{layer_name}'")
+                log_info(f"Original geometry count: {len(original_geom)}")
+                log_info(f"Blunted geometry count: {len(blunted_geom)}")
+            else:
+                log_warning(f"Layer '{layer_name}' not found for blunting angles")
     
-            # Check for known labelStyle keys only if labels are present
-            if 'label' in layer_obj or 'labelStyle' in layer_obj:
-                if 'labelStyle' in layer_obj:
-                    unknown_label_style_keys = set(layer_obj['labelStyle'].keys()) - known_style_keys
-                    if unknown_label_style_keys:
-                        log_warning(f"Unknown labelStyle keys in layer {layer_name}: {', '.join(unknown_label_style_keys)}")
-    
-            # Load DXF layer if specified, regardless of operations
-            if 'dxfLayer' in layer_obj:
-                self.load_dxf_layer(layer_name, layer_obj['dxfLayer'])
-    
-            if 'operations' in layer_obj:
-                result_geometry = None
-                for operation in layer_obj['operations']:
-                    result_geometry = self.process_operation(layer_name, operation, processed_layers)
-                if result_geometry is not None:
-                    self.all_layers[layer_name] = result_geometry
-            elif 'shapeFile' in layer_obj:
-                # The shapefile should have been loaded in setup_shapefiles
-                if layer_name not in self.all_layers:
-                    log_warning(f"Shapefile for layer {layer_name} was not loaded properly")
-            elif 'dxfLayer' not in layer_obj:
-                self.all_layers[layer_name] = None
-                log_info(f"Added layer {layer_name} without data")
-    
-            if 'outputShapeFile' in layer_obj:
-                self.write_shapefile(layer_name, layer_obj['outputShapeFile'])
-    
-            if 'attributes' in layer_obj:
-                if layer_name not in self.all_layers or self.all_layers[layer_name] is None:
-                    self.all_layers[layer_name] = gpd.GeoDataFrame(geometry=[], crs=self.crs)
-                
-                gdf = self.all_layers[layer_name]
-                if 'attributes' not in gdf.columns:
-                    gdf['attributes'] = None
-                
-                gdf['attributes'] = gdf['attributes'].apply(lambda x: {} if x is None else x)
-                for key, value in layer_obj['attributes'].items():
-                    gdf['attributes'] = gdf['attributes'].apply(lambda x: {**x, key: value})
-                
-                self.all_layers[layer_name] = gdf
-    
-            if 'bluntAngles' in layer_obj:
-                blunt_config = layer_obj['bluntAngles']
-                angle_threshold = blunt_config.get('angleThreshold', 45)
-                blunt_distance = blunt_config.get('distance', 0.5)
-    
-                log_info(f"Applying blunt angles to layer '{layer_name}' with threshold {angle_threshold} and distance {blunt_distance}")
-    
-                if layer_name in self.all_layers:
-                    original_geom = self.all_layers[layer_name]
-                    blunted_geom = original_geom.geometry.apply(
-                        lambda geom: self.blunt_sharp_angles(geom, angle_threshold, blunt_distance)
-                    )
-                    self.all_layers[layer_name].geometry = blunted_geom
-    
-                    log_info(f"Blunting complete for layer '{layer_name}'")
-                    log_info(f"Original geometry count: {len(original_geom)}")
-                    log_info(f"Blunted geometry count: {len(blunted_geom)}")
-                else:
-                    log_warning(f"Layer '{layer_name}' not found for blunting angles")
-    
-            processed_layers.add(layer_name)
+        processed_layers.add(layer_name)
     
 
     def process_operation(self, layer_name, operation, processed_layers):
@@ -321,24 +293,33 @@ class LayerProcessor:
         
         hatch_config = {}
         
-        # Process hatchStyle if it's present
-        if 'hatchStyle' in layer_config:
-            hatch_style = layer_config['hatchStyle']
-            if isinstance(hatch_style, str):
-                hatch_config['hatchStyle'] = self.project_loader.get_style(hatch_style)
-            else:
-                hatch_config['hatchStyle'] = hatch_style
+        # Process style if it's present
+        if 'style' in layer_config:
+            style = layer_config['style']
+            if 'hatch' in style:
+                hatch_style = style['hatch']
+                if isinstance(hatch_style, str):
+                    hatch_config['hatchStyle'] = self.project_loader.get_style(hatch_style)
+                else:
+                    hatch_config['hatchStyle'] = hatch_style
         
-        # Process performHatch if it's present
-        if 'performHatch' in layer_config:
-            perform_hatch = layer_config['performHatch']
-            if isinstance(perform_hatch, bool):
-                hatch_config['performHatch'] = perform_hatch
-            elif isinstance(perform_hatch, dict):
-                hatch_config['performHatch'] = perform_hatch
-                # If 'layers' is not specified, use the current layer
-                if 'layers' not in perform_hatch:
-                    hatch_config['performHatch']['layers'] = [layer_name]
+        # Process applyHatch if it's present
+        if 'applyHatch' in layer_config:
+            apply_hatch = layer_config['applyHatch']
+            hatch_config['applyHatch'] = apply_hatch
+            if isinstance(apply_hatch, dict):
+                # Handle 'layers' key for boundary layers
+                if 'layers' in apply_hatch:
+                    boundary_layers = apply_hatch['layers']
+                    if isinstance(boundary_layers, str):
+                        hatch_config['applyHatch']['layers'] = [boundary_layers]
+                    elif isinstance(boundary_layers, list):
+                        hatch_config['applyHatch']['layers'] = boundary_layers
+                    else:
+                        log_warning(f"Invalid 'layers' specification in applyHatch for layer {layer_name}")
+                else:
+                    # If 'layers' is not specified, use the current layer
+                    hatch_config['applyHatch']['layers'] = [layer_name]
         
         # Store hatch configuration in the layer properties
         if layer_name not in self.all_layers or self.all_layers[layer_name] is None:
@@ -525,6 +506,48 @@ class LayerProcessor:
         else:
             log_warning(f"Unsupported type for layer {layer_name}: {type(geometry_or_gdf)}")
             return geometry_or_gdf
+
+    def _process_style(self, layer_name, style_config):
+        known_style_keys = {'layer', 'hatch', 'text'}
+        unknown_style_keys = set(style_config.keys()) - known_style_keys
+        if unknown_style_keys:
+            log_warning(f"Unknown style keys in layer {layer_name}: {', '.join(unknown_style_keys)}")
+
+        if 'layer' in style_config:
+            self._process_layer_style(layer_name, style_config['layer'])
+        if 'hatch' in style_config:
+            self._process_hatch_style(layer_name, style_config['hatch'])
+        if 'text' in style_config:
+            self._process_text_style(layer_name, style_config['text'])
+
+    def _process_layer_style(self, layer_name, layer_style):
+        known_style_keys = {'color', 'linetype', 'lineweight', 'plot', 'locked', 'frozen', 'is_on', 'vp_freeze', 'transparency'}
+        self._process_style_keys(layer_name, 'layer', layer_style, known_style_keys)
+
+    def _process_hatch_style(self, layer_name, hatch_style):
+        known_style_keys = {'pattern', 'scale', 'color', 'transparency'}
+        self._process_style_keys(layer_name, 'hatch', hatch_style, known_style_keys)
+
+    def _process_text_style(self, layer_name, text_style):
+        known_style_keys = {'color', 'height', 'font', 'style', 'alignment'}
+        self._process_style_keys(layer_name, 'text', text_style, known_style_keys)
+
+    def _process_style_keys(self, layer_name, style_type, style_dict, known_keys):
+        unknown_keys = set(style_dict.keys()) - known_keys
+        if unknown_keys:
+            log_warning(f"Unknown {style_type} style keys in layer {layer_name}: {', '.join(unknown_keys)}")
+
+        for key in style_dict.keys():
+            closest_match = min(known_keys, key=lambda x: self.levenshtein_distance(key, x))
+            if key != closest_match and self.levenshtein_distance(key, closest_match) <= 2:
+                log_warning(f"Possible typo in {style_type} style key for layer {layer_name}: '{key}'. Did you mean '{closest_match}'?")
+
+        if 'transparency' in style_dict:
+            style_dict['transparency'] = max(0, min(style_dict['transparency'], 1))
+
+
+
+
 
 
 

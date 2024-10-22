@@ -383,10 +383,11 @@ projects:
               color: "Dark Green"
       - name: Wald Schraffur
         update: true
-        hatchStyle:
-          pattern: 'ANSI31'
-          scale: 5
-        performHatch:
+        style:
+          hatch:
+            pattern: 'ANSI31'
+            scale: 5
+        applyHatch:
           layers:
             - Wald
       - name: Biotope Input

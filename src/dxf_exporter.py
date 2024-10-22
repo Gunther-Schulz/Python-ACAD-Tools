@@ -675,7 +675,14 @@ class DXFExporter:
     def _process_hatch(self, doc, msp, layer_name, layer_info):
         log_info(f"Processing hatch for layer: {layer_name}")
         
-        hatch_style = layer_info.get('hatchStyle', {})
+        # Check if applyHatch is present and True
+        apply_hatch = layer_info.get('applyHatch', False)
+        if not apply_hatch:
+            log_info(f"Hatch processing skipped for layer: {layer_name}")
+            return
+
+        style = layer_info.get('style', {})
+        hatch_style = style.get('hatch', {})
         if isinstance(hatch_style, str):
             hatch_style = self.project_loader.get_style(hatch_style)
         
@@ -685,23 +692,12 @@ class DXFExporter:
         # Merge with hatchStyle settings
         hatch_config = self.deep_merge(hatch_config, hatch_style)
         
-        # Check if performHatch is a boolean or dict
-        perform_hatch = layer_info.get('performHatch', False)
-        if isinstance(perform_hatch, bool):
-            if not perform_hatch:
-                log_info(f"Hatch processing skipped for layer: {layer_name}")
-                return
-            # If perform_hatch is True, continue with existing hatch_config
-        elif isinstance(perform_hatch, dict):
-            # Merge with performHatch settings from layer_info
-            hatch_config = self.deep_merge(hatch_config, perform_hatch)
-        
         if not hatch_config:
             log_info(f"No hatch configuration found for layer: {layer_name}")
             return
         
-        # Get the boundary geometry
-        boundary_layers = hatch_config.get('layers', [layer_name])
+        # Get the boundary layers
+        boundary_layers = apply_hatch.get('layers', [layer_name]) if isinstance(apply_hatch, dict) else [layer_name]
         boundary_geometry = self._get_boundary_geometry(boundary_layers)
         
         if boundary_geometry is None or boundary_geometry.is_empty:
@@ -785,6 +781,8 @@ class DXFExporter:
                 remove_entities_by_layer(msp, target_layer_name, self.script_identifier)
                 
             create_path_array(msp, source_layer_name, target_layer_name, block_name, spacing, scale, rotation)
+
+
 
 
 
