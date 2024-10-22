@@ -91,7 +91,10 @@ class StyleManager:
         elif isinstance(layer_style, dict) and 'hatch' in layer_style:
             hatch_config.update(layer_style['hatch'])
         
-        # We don't need to handle applyHatch here, as it's checked in _process_hatch
+        apply_hatch = layer_info.get('applyHatch', False)
+        if isinstance(apply_hatch, dict):
+            if 'layers' in apply_hatch:
+                hatch_config['layers'] = apply_hatch['layers']
         
         return hatch_config
 
