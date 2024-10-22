@@ -564,9 +564,10 @@ projects:
               - Baumabstand Puffer
               - FG Buffer
               - Biotoppuffer
-          - type: merge
-          - type: buffer
-            distance: -5
+              - Biotope
+          # - type: merge
+          # - type: buffer
+          #   distance: -5
           - type: intersection
             layers:
               - Geltungsbereich NW
@@ -589,16 +590,17 @@ projects:
           - type: buffer
             layers:
               - Grünfläche
-            distance: 5
+            distance: -5
+            joinStyle: round
           - type: difference
             layers:
               - Grünfläche
             # reverseDifference: true
-          # - type: intersection
-          #   layers:
-          #     - Geltungsbereich NW
-          #     - Geltungsbereich NO
-          #     - Geltungsbereich S
+          - type: intersection
+            layers:
+              - Geltungsbereich NW
+              - Geltungsbereich NO
+              - Geltungsbereich S
       
       # - name: "Biotope T-Symbol"
       #   update: true
@@ -666,45 +668,45 @@ projects:
       #   applyHatch:
       #       layers:
       #         - Grünfläche
-      - name: Baufeld
-        update: true
-        close: true
-        style:
-            layer:
-              color: "brilliant-red"
-              transparency: 0.6
-              lock: true
-              lineweight: 13
-              linetype: "ACAD_ISO02W100"
-            hatch:
-              individual_hatches: true
-        viewports:
-          - name: WorkView
-            style: baufeldSchraffur
-        operations:
-          - type: copy
-            layers:
-              - Geltungsbereich NW
-              - Geltungsbereich NO
-              - Geltungsbereich S
-          - type: difference
-            layers:
-              - Ausgleich
-              - Baumabstand Puffer
-              - Biotope
-              - FG Buffer
-          # - type: smooth
-          #   strength: 1.5
-      - name: Baufeld Schraffur
-        update: true
-        style: baufeldSchraffur
-        applyHatch:
-          layers:
-            - Baufeld
-          # individual_hatches: true
-          # pattern: 'ANSI31'
-          # scale: 50  # Adjust this value to change the hatch density
-          # color: "Blue"  # ACI color index for Light Red
+      # - name: Baufeld
+      #   update: true
+      #   close: true
+      #   style:
+      #       layer:
+      #         color: "brilliant-red"
+      #         transparency: 0.6
+      #         lock: true
+      #         lineweight: 13
+      #         linetype: "ACAD_ISO02W100"
+      #       hatch:
+      #         individual_hatches: true
+      #   viewports:
+      #     - name: WorkView
+      #       style: baufeldSchraffur
+      #   operations:
+      #     - type: copy
+      #       layers:
+      #         - Geltungsbereich NW
+      #         - Geltungsbereich NO
+      #         - Geltungsbereich S
+      #     - type: difference
+      #       layers:
+      #         - Ausgleich
+      #         - Baumabstand Puffer
+      #         - Biotope
+      #         - FG Buffer
+      #     # - type: smooth
+      #     #   strength: 1.5
+      # - name: Baufeld Schraffur
+      #   update: true
+      #   style: baufeldSchraffur
+      #   applyHatch:
+      #     layers:
+      #       - Baufeld
+      #     # individual_hatches: true
+      #     # pattern: 'ANSI31'
+      #     # scale: 50  # Adjust this value to change the hatch density
+      #     # color: "Blue"  # ACI color index for Light Red
       # - name: Baugrenze 2
       #   update: true
       #   style: 
