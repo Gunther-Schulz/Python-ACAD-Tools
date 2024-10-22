@@ -5,7 +5,7 @@ from src.operations.common_operations import _process_layer_info, _get_filtered_
 
 def create_filtered_geometry_layer(all_layers, project_settings, crs, layer_name, operation):
     log_info(f"Creating filtered geometry layer: {layer_name}")
-    source_layers = operation.get('layers', [])
+    source_layers = operation.get('layers', [layer_name])  # Default to current layer if not specified
     
     max_area = operation.get('maxArea', float('inf'))
     min_area = operation.get('minArea', 0)

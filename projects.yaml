@@ -612,6 +612,8 @@ projects:
               - Geltungsbereich NW
               - Geltungsbereich NO
               - Geltungsbereich S
+          - type: filterGeometry
+            minArea: 200
       
       # - name: "Biotope T-Symbol"
       #   update: true
