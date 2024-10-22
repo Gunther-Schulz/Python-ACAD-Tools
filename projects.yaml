@@ -590,11 +590,19 @@ projects:
           - name: WorkView
             style: schutzflaecheWorkView
         operations:
-          - type: buffer
+          - type: copy
             layers:
-              - Grünfläche
-            distance: 5
-            # joinStyle: round
+              - Grünfläche Input 
+              - Waldabstand
+              - Baumabstand Puffer
+              - FG Buffer
+              - Biotoppuffer
+              - Biotope
+          # - type: buffer
+          #   layers:
+          #     - Grünfläche
+          #   distance: 5
+          #   # joinStyle: round
           - type: difference
             layers:
               - Grünfläche
