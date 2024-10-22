@@ -80,29 +80,18 @@ class StyleManager:
             previous_row = current_row
         return previous_row[-1]
 
-    def get_hatch_config(self, layer_config):
+    def get_hatch_config(self, layer_info):
         hatch_config = self.default_hatch_settings.copy()
         
-        if 'style' in layer_config:
-            style = layer_config['style']
-            if isinstance(style, dict):
-                if 'hatch' in style:
-                    hatch_config.update(style['hatch'])
-            else:
-                style_preset, warning_generated = self.get_style(style)
-                if warning_generated:
-                    log_warning(f"Style preset '{style}' not found for hatch configuration.")
-                elif isinstance(style_preset, dict) and 'hatch' in style_preset:
-                    hatch_config.update(style_preset['hatch'])
+        layer_style = layer_info.get('style', {})
+        if isinstance(layer_style, str):
+            style_preset, _ = self.get_style(layer_style)
+            if style_preset and 'hatch' in style_preset:
+                hatch_config.update(style_preset['hatch'])
+        elif isinstance(layer_style, dict) and 'hatch' in layer_style:
+            hatch_config.update(layer_style['hatch'])
         
-        if 'applyHatch' in layer_config:
-            apply_hatch = layer_config['applyHatch']
-            if isinstance(apply_hatch, dict):
-                hatch_config.update(apply_hatch)
-            else:
-                hatch_config['apply'] = apply_hatch
-        
-        hatch_config['apply'] = hatch_config.get('apply', True)
+        # We don't need to handle applyHatch here, as it's checked in _process_hatch
         
         return hatch_config
 
@@ -167,3 +156,4 @@ class StyleManager:
             closest_match = min(known_keys, key=lambda x: self._levenshtein_distance(key, x))
             if key != closest_match and self._levenshtein_distance(key, closest_match) <= 2:
                 log_warning(f"Possible typo in {style_type} style key for layer {layer_name}: '{key}'. Did you mean '{closest_match}'?")
+

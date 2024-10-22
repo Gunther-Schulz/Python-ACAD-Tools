@@ -684,7 +684,8 @@ class DXFExporter:
         
         log_info(f"Hatch config: {hatch_config}")
 
-        if not hatch_config.get('applyHatch', False):
+        # Check if applyHatch is True in the layer_info
+        if not layer_info.get('applyHatch', False):
             log_info(f"Hatch processing skipped for layer: {layer_name}")
             return
 
@@ -772,6 +773,8 @@ class DXFExporter:
                 remove_entities_by_layer(msp, target_layer_name, self.script_identifier)
                 
             create_path_array(msp, source_layer_name, target_layer_name, block_name, spacing, scale, rotation)
+
+
 
 
 
