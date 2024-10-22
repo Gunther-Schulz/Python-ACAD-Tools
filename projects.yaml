@@ -383,7 +383,9 @@ projects:
               color: "Dark Green"
       - name: Wald Schraffur
         update: true
-        hatchStyle: waldHatch
+        hatchStyle:
+          pattern: 'ANSI31'
+          scale: 5
         performHatch:
           layers:
             - Wald
@@ -564,7 +566,11 @@ projects:
               - Geltungsbereich NW
               - Geltungsbereich NO
               - Geltungsbereich S
-
+      - name: Biotoppuffer Schraffur
+        hatchStyle: gruenflaecheHatch
+        performHatch:
+          layers:
+            - Biotoppuffer
       - name: Ausgleich
         update: true
         viewports:
@@ -586,7 +592,11 @@ projects:
         #   angleThreshold: 25  # Angles smaller than this will be blunted
         #   distance: 10.0  # Distance to move the vertex along the angle bisector
         outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/ausgleich.shp"
-      
+      - name: Ausgleich Schraffur
+        hatchStyle: ausgleichHatch
+        performHatch:
+          layers:
+            - Ausgleich
       - name: Schutzflächeumgrenzung
         update: true
         viewports:

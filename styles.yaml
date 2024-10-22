@@ -51,9 +51,6 @@
   waldHatch:
     pattern: 'ANSI31'
     scale: 5
-  waldSchraffur:
-    hatch:
-      pattern: "ANSI31"
   # waldLayer:
   #   color: "moderate-intense-chartreuse"
 

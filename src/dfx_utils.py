@@ -359,6 +359,10 @@ def create_hatch(msp, boundary_paths, style, project_loader, is_legend=False):
     
     hatch = msp.add_hatch()
     
+    # If style is a string, get the actual style dictionary
+    if isinstance(style, str):
+        style = project_loader.get_style(style)
+    
     pattern = style.get('pattern', 'SOLID')
     scale = style.get('scale', 1)
     
@@ -603,4 +607,5 @@ def create_path_array(msp, source_layer_name, target_layer_name, block_name, spa
             current_distance -= segment_length
 
     log_info(f"Path array created for source layer '{source_layer_name}' using block '{block_name}' and placed on target layer '{target_layer_name}'")
+
 

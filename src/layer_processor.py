@@ -316,38 +316,49 @@ class LayerProcessor:
             return gdf
     
 
-    def _process_hatch_config(self, layer_name, hatch_config):
-            log_info(f"Processing hatch configuration for layer: {layer_name}")
-            
-            # If 'layers' is not specified, use the current layer
-            if 'layers' not in hatch_config:
-                hatch_config['layers'] = [layer_name]
-                log_info(f"No boundary layers specified for hatch. Using current layer: {layer_name}")
-            
-            # Ensure all boundary layers are processed
-            for boundary_layer in hatch_config['layers']:
-                if boundary_layer not in self.all_layers:
-                    self.process_layer(boundary_layer, set())
-            
-            # Store hatch configuration in the layer properties
-            if layer_name not in self.all_layers or self.all_layers[layer_name] is None:
-                self.all_layers[layer_name] = gpd.GeoDataFrame(geometry=[], crs=self.crs)
-            
-            # Create a copy of the existing DataFrame
-            gdf = self.all_layers[layer_name].copy()
-            
-            # If 'attributes' column doesn't exist, create it
-            if 'attributes' not in gdf.columns:
-                gdf['attributes'] = None
-            
-            # Update the 'attributes' column with the hatch configuration
-            gdf.loc[:, 'attributes'] = gdf['attributes'].apply(lambda x: {} if x is None else x)
-            gdf.loc[:, 'attributes'] = gdf['attributes'].apply(lambda x: {**x, 'hatch_config': hatch_config})
-            
-            # Assign the modified DataFrame back to self.all_layers
-            self.all_layers[layer_name] = gdf
-            
-            log_info(f"Stored hatch configuration for layer: {layer_name}")
+    def _process_hatch_config(self, layer_name, layer_config):
+        log_info(f"Processing hatch configuration for layer: {layer_name}")
+        
+        hatch_config = {}
+        
+        # Process hatchStyle if it's present
+        if 'hatchStyle' in layer_config:
+            hatch_style = layer_config['hatchStyle']
+            if isinstance(hatch_style, str):
+                hatch_config['hatchStyle'] = self.project_loader.get_style(hatch_style)
+            else:
+                hatch_config['hatchStyle'] = hatch_style
+        
+        # Process performHatch if it's present
+        if 'performHatch' in layer_config:
+            perform_hatch = layer_config['performHatch']
+            if isinstance(perform_hatch, bool):
+                hatch_config['performHatch'] = perform_hatch
+            elif isinstance(perform_hatch, dict):
+                hatch_config['performHatch'] = perform_hatch
+                # If 'layers' is not specified, use the current layer
+                if 'layers' not in perform_hatch:
+                    hatch_config['performHatch']['layers'] = [layer_name]
+        
+        # Store hatch configuration in the layer properties
+        if layer_name not in self.all_layers or self.all_layers[layer_name] is None:
+            self.all_layers[layer_name] = gpd.GeoDataFrame(geometry=[], crs=self.crs)
+        
+        # Create a copy of the existing DataFrame
+        gdf = self.all_layers[layer_name].copy()
+        
+        # If 'attributes' column doesn't exist, create it
+        if 'attributes' not in gdf.columns:
+            gdf['attributes'] = None
+        
+        # Update the 'attributes' column with the hatch configuration
+        gdf.loc[:, 'attributes'] = gdf['attributes'].apply(lambda x: {} if x is None else x)
+        gdf.loc[:, 'attributes'] = gdf['attributes'].apply(lambda x: {**x, 'hatch_config': hatch_config})
+        
+        # Assign the modified DataFrame back to self.all_layers
+        self.all_layers[layer_name] = gdf
+        
+        log_info(f"Stored hatch configuration for layer: {layer_name}")
     
 
     def levenshtein_distance(self, s1, s2):
@@ -514,6 +525,9 @@ class LayerProcessor:
         else:
             log_warning(f"Unsupported type for layer {layer_name}: {type(geometry_or_gdf)}")
             return geometry_or_gdf
+
+
+
 
 
 
