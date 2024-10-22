@@ -90,193 +90,193 @@ projects:
     # dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Zeichnung/Plasten4.dxf"
     dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Zeichnung/dev/test.dxf"
     dumpOutputDir: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten//GIS/dxf_dump"
-    # legend:
-    #   title: "Planzeichen"
-    #   subtitle: "(gem. PlanzV 1990-PlanzV 90 v.18.12.1990)"
-    #   max_width: 160
-    #   title_spacing: 0      # Space after the main legend title
-    #   subtitle_spacing: 4   # Space after the main subtitle
-    #   group_spacing: 3      # Space between different groups in the legend
-    #   group_title_spacing: 2 # Space after each group's title
-    #   group_subtitle_spacing: 3 # Space after each group's subtitle
-    #   item_spacing: 4       # Space between individual items within a group
-    #   position:
-    #     x: 367841
-    #     y: 5942622
-    #   titleTextStyle:
-    #     height: 8
-    #     color: "darkslategrey-20"
-    #     text_style: "Arial"
-    #     # rotation: 45
-    #     # attachment_point: MTEXT_MIDDLE_CENTER
-    #     # flow_direction: MTEXT_LEFT_TO_RIGHT
-    #     # line_spacing_style: MTEXT_AT_LEAST
-    #     # line_spacing_factor: 1.5
-    #     # bg_fill: 1
-    #     # bg_fill_color: 'yellow'
-    #     # bg_fill_scale: 1.2
-    #     # underline: True
-    #     # overline: False
-    #     # strike_through: False
-    #     # oblique_angle: 15
-    #   titleSubtitleStyle:
-    #     height: 3.5
-    #     color: "Dark Gray"
-    #     text_style: "Arial"
-    #   groupTextStyle:
-    #     color: "Black"
-    #     height: 5
-    #     text_style: "Arial"
-    #   subtitleTextStyle:
-    #     color: "Black"
-    #     height: 3.5
-    #     text_style: "Arial"
-    #   itemTextStyle:
-    #     color: "Black"
-    #     height: 3
-    #     text_style: "Arial"
-    #     attachment_point: MTEXT_MIDDLE_LEFT
-    #   groups:
-    #     - name: "Art der baulichen Nutzung"
-    #       update: true
-    #       subtitle: "§ 9 Abs. 1 Nr. 1 BauGB"
-    #       items:
-    #         - name: "Sonstiges Sondergebiet (§ 11 Abs. 2 BauNVO) Zweckbestimmung: Energiegewinnung auf der Basis solarer Strahlungsenergie"
-    #           type: area
-    #           create_hatch: true
-    #           style: baufeldLayer
-    #           block_symbol: "Sonstiges Sondergebiet EBS"
-    #           block_symbol_scale: 2
-    #     - name: "Maß der baulichen Nutzung"
-    #       update: true
-    #       subtitle: "§ 9 Abs. 1 Nr. 1 BauGB"
-    #       items:
-    #         - name: "Grundflächenzahl"
-    #           type: empty
-    #           block_symbol: "GRZ"
-    #           block_symbol_scale: 2
-    #     - name: "Bauweise, Baulinien, Baugrenzen"
-    #       update: true
-    #       subtitle: "§ 9 Abs. 1 Nr. 2 BauGB"
-    #       items:
-    #         - name: "Baugrenze"
-    #           type: empty
-    #           block_symbol: "Baugrenze"   
-    #     - name: "Verkehrsflächen"
-    #       update: true
-    #       subtitle: "(§ 9 Abs. 1 Nr. 11 und Abs. 6 BauGB)"
-    #       items:
-    #         - name: "Verkehrsfläche besonderer Zweckbestimmung"
-    #           type: area
-    #           hatch_style: verkehrsflaeche
-    #         - name: "Verkehrsberuhigter Bereich"
-    #           type: empty
-    #           block_symbol: "Verkehrsberuhigter Bereich"
-    #           block_symbol_scale: 2
-    #         - name: "Privat"
-    #           type: empty
-    #           block_symbol: "Privat"
-    #           block_symbol_scale: 2
-    #     - name: "Grünflächen"
-    #       update: true
-    #       subtitle: "§ 9 Abs.1 Nr. 15 BauGB"
-    #       items:
-    #         - name: "Private Grünflächen"
-    #           type: area
-    #           hatch_style: gruenflaeche
-    #     - name: "Wasserflächen und Flächen für die Wasserwirtschaft, den Hochwasserschutz und die Regelung des Wasserabflusses"
-    #       update: true
-    #       subtitle: "§ 9 Abs. 1 Nr. 16 BauBG"
-    #       items:
-    #         - name: "Wasserflächen"
-    #           type: area
-    #           hatch_style: water
-    #     - name: "Planungen, Nutzungsregelungen, Maßnahmen und Flächen für Maßnahmen zum Schutz, zur Pflege und zur Entwicklung von Natur und Landschaft"
-    #       update: true
-    #       subtitle: "§ 9 Abs.1 Nr. 20 BauGB"
-    #       items:
-    #         - name: "Umgrenzung von Flächen für Maßnahmen zum Schutz, zur Pflege und zurEntwicklung von Natur und Landschaft"
-    #           type: empty
-    #     - name: "Sonstige Planzeichen"
-    #       update: true
-    #       items:
-    #         - name: "Grenze des räumlichen Geltungsbereiches des Bebauungsplans"
-    #           subtitle: "(§ 9 Abs. 7 BauGB)"
-    #           type: area
-    #           rectangle_style: geltungsbereich
-    #           create_hatch: false
-    #         - name: "Hauptversorgungs- und Hauptabwasserleitungen unterirdisch"
-    #           subtitle: "(§ 5 Abs. 2 Nr.4 und Abs. 4, § 9 Abs.1 Nr.1 u. Abs. 6)"
-    #           type: area
-    #           create_hatch: false
-    #           block_symbol: "Leitung oberirdisch"
-    #           block_symbol_scale: 2
-    #         - name: "Hauptversorgungs- und Hauptabwasserleitungen oberirdisch"
-    #           subtitle: "(§ 5 Abs. 2 Nr.4 und Abs. 4, § 9 Abs.1 Nr.1 u. Abs. 6)"
-    #           type: area
-    #           create_hatch: false
-    #           block_symbol: "Leitung unterirdisch"
-    #           block_symbol_scale: 2
-    #         - name: "Mit Geh-, Fahr- und Leitungsrechten zu belastende Flächen"
-    #           subtitle: "(§ 9 Abs.1 Nr.21 und Abs. 6 BauGB)"
-    #           type: area
-    #           create_hatch: false
-    #           rectangle_style: gfl1
-    #           block_symbol: "GFL1"
-    #           block_symbol_scale: 2
-    #         - name: "Mit Geh-, Fahr- und Leitungsrechten zu belastende Flächen"
-    #           subtitle: "(§ 9 Abs.1 Nr.21 und Abs. 6 BauGB)"
-    #           type: empty
-    #           create_hatch: false
-    #           block_symbol: "GFL2"
-    #           block_symbol_scale: 1.6
-    #     - name: "Darstellung ohne Normcharakter"
-    #       update: true
-    #       items:
-    #         - name: "Gemeindegrenze"
-    #           type: diagonal_line
-    #           style: gemeindegrenze
-    #         - name: "Gemarkungsgrenze"
-    #           type: line
-    #           style: gemarkungsgrenze
-    #         - name: "Flurgrenze"
-    #           type: line
-    #           style: flurgrenze
-    #         - name: "Flurstücksnummer\nFlurstücksgrenze"
-    #           type: empty
-    #           block_symbol: "Parcel"
-    #           block_symbol_scale: 1.4
-    #         - name: "anstehendes Gelände in Meter über NHN im amtlichen Höhenbezugssystem DHHN2016 als unterer Höhenbezugspunkt"
-    #           type: empty
-    #           block_symbol: "Contours"
-    #           block_symbol_scale: 1.4
-    #         - name: "Bemaßung in Meter"
-    #           type: empty
-    #           block_symbol: "Bemaßung"
-    #     - name: "Nachrichtliche Übernahme"
-    #       update: true
-    #       items:
-    #         - name: "gesetzlich geschützes Biotop § 9 Abs. 6 BauGB i. V. m. § 20 NatSchAG - MV"
-    #           type: area
-    #           create_hatch: false
-    #           rectangleStyle: gesGeschuetzesBiotop
-    #           block_symbol: "Gesetzlich geschütztes Biotop"
-    #           block_symbol_scale: 1.8
-    #         - name: "Wald"
-    #           type: area
-    #           hatch_style: waldSchraffur
-    #         - name: "Baum"
-    #           type: empty
-    #           block_symbol: "Baum"
-    #           block_symbol_scale: 1.8
-    #         - name: "Baum erhalten"
-    #           type: empty
-    #           block_symbol: "Baum erhalten"
-    #           block_symbol_scale: 1.8
-    #         - name: "Abgrenzung unterschiedlicher Nutzung, z. B. von Baugebieten, oder Abgrenzung des Maßes der Nutzung innerhalb eines Baugebiets z.B. § 1 Abs. 4 § 16 Abs. 5 BauNVO)"
-    #           type: empty
-    #           block_symbol: "Abgrenzung unterschiedlicher Nutzung"
-    #           block_symbol_scale: 1.4
+    legend:
+      title: "Planzeichen"
+      subtitle: "(gem. PlanzV 1990-PlanzV 90 v.18.12.1990)"
+      max_width: 160
+      title_spacing: 0      # Space after the main legend title
+      subtitle_spacing: 4   # Space after the main subtitle
+      group_spacing: 3      # Space between different groups in the legend
+      group_title_spacing: 2 # Space after each group's title
+      group_subtitle_spacing: 3 # Space after each group's subtitle
+      item_spacing: 4       # Space between individual items within a group
+      position:
+        x: 367841
+        y: 5942622
+      titleTextStyle:
+        height: 8
+        color: "darkslategrey-20"
+        text_style: "Arial"
+        # rotation: 45
+        # attachment_point: MTEXT_MIDDLE_CENTER
+        # flow_direction: MTEXT_LEFT_TO_RIGHT
+        # line_spacing_style: MTEXT_AT_LEAST
+        # line_spacing_factor: 1.5
+        # bg_fill: 1
+        # bg_fill_color: 'yellow'
+        # bg_fill_scale: 1.2
+        # underline: True
+        # overline: False
+        # strike_through: False
+        # oblique_angle: 15
+      titleSubtitleStyle:
+        height: 3.5
+        color: "Dark Gray"
+        text_style: "Arial"
+      groupTextStyle:
+        color: "Black"
+        height: 5
+        text_style: "Arial"
+      subtitleTextStyle:
+        color: "Black"
+        height: 3.5
+        text_style: "Arial"
+      itemTextStyle:
+        color: "Black"
+        height: 3
+        text_style: "Arial"
+        attachment_point: MTEXT_MIDDLE_LEFT
+      groups:
+        - name: "Art der baulichen Nutzung"
+          update: true
+          subtitle: "§ 9 Abs. 1 Nr. 1 BauGB"
+          items:
+            - name: "Sonstiges Sondergebiet (§ 11 Abs. 2 BauNVO) Zweckbestimmung: Energiegewinnung auf der Basis solarer Strahlungsenergie"
+              type: area
+              create_hatch: true
+              style: baufeldLayer
+              block_symbol: "Sonstiges Sondergebiet EBS"
+              block_symbol_scale: 2
+        - name: "Maß der baulichen Nutzung"
+          update: true
+          subtitle: "§ 9 Abs. 1 Nr. 1 BauGB"
+          items:
+            - name: "Grundflächenzahl"
+              type: empty
+              block_symbol: "GRZ"
+              block_symbol_scale: 2
+        - name: "Bauweise, Baulinien, Baugrenzen"
+          update: true
+          subtitle: "§ 9 Abs. 1 Nr. 2 BauGB"
+          items:
+            - name: "Baugrenze"
+              type: empty
+              block_symbol: "Baugrenze"   
+        - name: "Verkehrsflächen"
+          update: true
+          subtitle: "(§ 9 Abs. 1 Nr. 11 und Abs. 6 BauGB)"
+          items:
+            - name: "Verkehrsfläche besonderer Zweckbestimmung"
+              type: area
+              hatch_style: verkehrsflaeche
+            - name: "Verkehrsberuhigter Bereich"
+              type: empty
+              block_symbol: "Verkehrsberuhigter Bereich"
+              block_symbol_scale: 2
+            - name: "Privat"
+              type: empty
+              block_symbol: "Privat"
+              block_symbol_scale: 2
+        - name: "Grünflächen"
+          update: true
+          subtitle: "§ 9 Abs.1 Nr. 15 BauGB"
+          items:
+            - name: "Private Grünflächen"
+              type: area
+              hatch_style: gruenflaeche
+        - name: "Wasserflächen und Flächen für die Wasserwirtschaft, den Hochwasserschutz und die Regelung des Wasserabflusses"
+          update: true
+          subtitle: "§ 9 Abs. 1 Nr. 16 BauBG"
+          items:
+            - name: "Wasserflächen"
+              type: area
+              hatch_style: water
+        - name: "Planungen, Nutzungsregelungen, Maßnahmen und Flächen für Maßnahmen zum Schutz, zur Pflege und zur Entwicklung von Natur und Landschaft"
+          update: true
+          subtitle: "§ 9 Abs.1 Nr. 20 BauGB"
+          items:
+            - name: "Umgrenzung von Flächen für Maßnahmen zum Schutz, zur Pflege und zurEntwicklung von Natur und Landschaft"
+              type: empty
+        - name: "Sonstige Planzeichen"
+          update: true
+          items:
+            - name: "Grenze des räumlichen Geltungsbereiches des Bebauungsplans"
+              subtitle: "(§ 9 Abs. 7 BauGB)"
+              type: area
+              rectangle_style: geltungsbereich
+              create_hatch: false
+            - name: "Hauptversorgungs- und Hauptabwasserleitungen unterirdisch"
+              subtitle: "(§ 5 Abs. 2 Nr.4 und Abs. 4, § 9 Abs.1 Nr.1 u. Abs. 6)"
+              type: area
+              create_hatch: false
+              block_symbol: "Leitung oberirdisch"
+              block_symbol_scale: 2
+            - name: "Hauptversorgungs- und Hauptabwasserleitungen oberirdisch"
+              subtitle: "(§ 5 Abs. 2 Nr.4 und Abs. 4, § 9 Abs.1 Nr.1 u. Abs. 6)"
+              type: area
+              create_hatch: false
+              block_symbol: "Leitung unterirdisch"
+              block_symbol_scale: 2
+            - name: "Mit Geh-, Fahr- und Leitungsrechten zu belastende Flächen"
+              subtitle: "(§ 9 Abs.1 Nr.21 und Abs. 6 BauGB)"
+              type: area
+              create_hatch: false
+              rectangle_style: gfl1
+              block_symbol: "GFL1"
+              block_symbol_scale: 2
+            - name: "Mit Geh-, Fahr- und Leitungsrechten zu belastende Flächen"
+              subtitle: "(§ 9 Abs.1 Nr.21 und Abs. 6 BauGB)"
+              type: empty
+              create_hatch: false
+              block_symbol: "GFL2"
+              block_symbol_scale: 1.6
+        - name: "Darstellung ohne Normcharakter"
+          update: true
+          items:
+            - name: "Gemeindegrenze"
+              type: diagonal_line
+              style: gemeindegrenze
+            - name: "Gemarkungsgrenze"
+              type: line
+              style: gemarkungsgrenze
+            - name: "Flurgrenze"
+              type: line
+              style: flurgrenze
+            - name: "Flurstücksnummer\nFlurstücksgrenze"
+              type: empty
+              block_symbol: "Parcel"
+              block_symbol_scale: 1.4
+            - name: "anstehendes Gelände in Meter über NHN im amtlichen Höhenbezugssystem DHHN2016 als unterer Höhenbezugspunkt"
+              type: empty
+              block_symbol: "Contours"
+              block_symbol_scale: 1.4
+            - name: "Bemaßung in Meter"
+              type: empty
+              block_symbol: "Bemaßung"
+        - name: "Nachrichtliche Übernahme"
+          update: true
+          items:
+            - name: "gesetzlich geschützes Biotop § 9 Abs. 6 BauGB i. V. m. § 20 NatSchAG - MV"
+              type: area
+              create_hatch: false
+              rectangleStyle: gesGeschuetzesBiotop
+              block_symbol: "Gesetzlich geschütztes Biotop"
+              block_symbol_scale: 1.8
+            - name: "Wald"
+              type: area
+              hatch_style: waldSchraffur
+            - name: "Baum"
+              type: empty
+              block_symbol: "Baum"
+              block_symbol_scale: 1.8
+            - name: "Baum erhalten"
+              type: empty
+              block_symbol: "Baum erhalten"
+              block_symbol_scale: 1.8
+            - name: "Abgrenzung unterschiedlicher Nutzung, z. B. von Baugebieten, oder Abgrenzung des Maßes der Nutzung innerhalb eines Baugebiets z.B. § 1 Abs. 4 § 16 Abs. 5 BauNVO)"
+              type: empty
+              block_symbol: "Abgrenzung unterschiedlicher Nutzung"
+              block_symbol_scale: 1.4
     # pathArrays:
     #   - sourceLayer: "Biotope T-Symbol"
     #     targetLayer: "Biotope T-Symbol Array"
@@ -676,39 +676,38 @@ projects:
       #   applyHatch:
       #       layers:
       #         - Grünfläche
-      # - name: Baufeld
-      #   update: true
-      #   close: true
-      #   viewports:
-      #     - name: WorkView
-      #       style: 
-      #         color: "Light Red"
-      #   operations:
-      #     - type: copy
-      #       layers:
-      #         - Geltungsbereich NW
-      #         - Geltungsbereich NO
-      #         - Geltungsbereich S
-      #     - type: difference
-      #       layers:
-      #         - Ausgleich
-      #         - Baumabstand Puffer
-      #         - Biotope
-      #         - FG Buffer
-      #     # - type: smooth
-      #     #   strength: 1.5
-      #   outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/baufeld.shp"
-      # - name: Baufeld Schraffur
-      #   update: true
-      #   style: baufeldLayer
-      #   hatchStyle: baufeldHatch
-      #   applyHatch:
-      #     layers:
-      #       - Baufeld
-      #     # individual_hatches: true
-      #     # pattern: 'ANSI31'
-      #     # scale: 50  # Adjust this value to change the hatch density
-      #     # color: "Blue"  # ACI color index for Light Red
+      - name: Baufeld
+        update: true
+        close: true
+        style: baufeldSchraffur
+        viewports:
+          - name: WorkView
+            style: baufeldSchraffur
+        operations:
+          - type: copy
+            layers:
+              - Geltungsbereich NW
+              - Geltungsbereich NO
+              - Geltungsbereich S
+          - type: difference
+            layers:
+              - Ausgleich
+              - Baumabstand Puffer
+              - Biotope
+              - FG Buffer
+          # - type: smooth
+          #   strength: 1.5
+        outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/baufeld.shp"
+      - name: Baufeld Schraffur
+        update: true
+        style: baufeldSchraffur
+        applyHatch:
+          layers:
+            - Baufeld
+          # individual_hatches: true
+          # pattern: 'ANSI31'
+          # scale: 50  # Adjust this value to change the hatch density
+          # color: "Blue"  # ACI color index for Light Red
       # - name: Baugrenze 2
       #   update: true
       #   style: 
