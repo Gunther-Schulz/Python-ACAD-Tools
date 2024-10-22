@@ -207,7 +207,13 @@ class LayerProcessor:
                     self.write_shapefile(layer_name, output_path)
 
     def write_shapefile(self, layer_name):
-        log_info(f"Writing shapefile for layer {layer_name}")
+        log_info(f"Attempting to write shapefile for layer {layer_name}")
+        
+        # Check if the layer is a WMS/WMTS layer
+        if self.is_wmts_or_wms_layer(layer_name):
+            log_info(f"Skipping shapefile write for WMS/WMTS layer: {layer_name}")
+            return
+
         if layer_name in self.all_layers:
             gdf = self.all_layers[layer_name]
             log_info(f"Type of data for {layer_name}: {type(gdf)}")
@@ -483,6 +489,15 @@ class LayerProcessor:
             self.style_manager._process_hatch_style(layer_name, style_config)
         if 'text' in style_config:
             self.style_manager._process_text_style(layer_name, style_config['text'])
+
+    def is_wmts_or_wms_layer(self, layer_name):
+        layer_info = next((l for l in self.project_settings['geomLayers'] if l['name'] == layer_name), None)
+        if layer_info and 'operations' in layer_info:
+            return any(op['type'].lower() in ['wmts', 'wms'] for op in layer_info['operations'])
+        return False
+
+
+
 
 
 
