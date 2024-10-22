@@ -84,11 +84,16 @@ class StyleManager:
         hatch_config = self.default_hatch_settings.copy()
         
         if 'style' in layer_config:
-            style, warning_generated = self.get_style(layer_config['style'])
-            if warning_generated:
-                log_warning(f"Style preset '{layer_config['style']}' not found for hatch configuration.")
-            elif isinstance(style, dict) and 'hatch' in style:
-                hatch_config.update(style['hatch'])
+            style = layer_config['style']
+            if isinstance(style, dict):
+                if 'hatch' in style:
+                    hatch_config.update(style['hatch'])
+            else:
+                style_preset, warning_generated = self.get_style(style)
+                if warning_generated:
+                    log_warning(f"Style preset '{style}' not found for hatch configuration.")
+                elif isinstance(style_preset, dict) and 'hatch' in style_preset:
+                    hatch_config.update(style_preset['hatch'])
         
         if 'applyHatch' in layer_config:
             apply_hatch = layer_config['applyHatch']
@@ -102,11 +107,14 @@ class StyleManager:
         return hatch_config
 
     def process_layer_style(self, layer_name, layer_config):
-        style, warning_generated = self.get_style(layer_config.get('style', {}))
-        if warning_generated:
-            return {}
+        style = layer_config.get('style', {})
         
-        layer_style = style.get('layer', {}) if style else {}
+        if isinstance(style, str):
+            style, warning_generated = self.get_style(style)
+            if warning_generated:
+                return {}
+        
+        layer_style = style.get('layer', {}) if isinstance(style, dict) else {}
         
         properties = {
             'color': get_color_code(layer_style.get('color'), self.project_loader.name_to_aci),

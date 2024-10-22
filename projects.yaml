@@ -700,7 +700,12 @@ projects:
         outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/baufeld.shp"
       - name: Baufeld Schraffur
         update: true
-        style: baufeldSchraffur
+        style:
+            layer:
+              color: "brilliant-red"
+              transparency: 0.6
+            hatch:
+              individual_hatches: true
         applyHatch:
           layers:
             - Baufeld

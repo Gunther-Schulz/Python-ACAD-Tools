@@ -179,27 +179,31 @@ def ensure_layer_exists(doc, layer_name, layer_properties):
         existing_layer = doc.layers.get(layer_name)
         update_layer_properties(existing_layer, layer_properties)
 
-def update_layer_properties(layer, layer_properties):
+def update_layer_properties(layer, layer_properties, name_to_aci):
     if 'color' in layer_properties:
-        layer.color = layer_properties['color']
+        color = get_color_code(layer_properties['color'], name_to_aci)
+        if isinstance(color, tuple):
+            layer.rgb = color  # Set RGB color directly
+        elif isinstance(color, int):
+            layer.color = color  # Set ACI color directly
+        else:
+            log_warning(f"Invalid color value: {color}")
     if 'linetype' in layer_properties:
-        layer.linetype = layer_properties['linetype']
+        layer.dxf.linetype = layer_properties['linetype']
     if 'lineweight' in layer_properties:
-        layer.lineweight = layer_properties['lineweight']
+        layer.dxf.lineweight = layer_properties['lineweight']
     if 'transparency' in layer_properties:
-        # Convert the 0-1 transparency value to what ezdxf expects for layers
-        transparency = layer_properties['transparency']
-        if isinstance(transparency, (int, float)):
-            # Ensure the value is between 0 and 1
-            layer.transparency = min(max(transparency, 0), 1)
-        elif isinstance(transparency, str):
-            try:
-                transparency_value = float(transparency)
-                layer.transparency = min(max(transparency_value, 0), 1)
-            except ValueError:
-                print(f"Invalid transparency value for layer: {transparency}")
+        transparency = convert_transparency(layer_properties['transparency'])
+        if transparency is not None:
+            layer.transparency = transparency
     if 'plot' in layer_properties:
-        layer.plot = layer_properties['plot']
+        layer.dxf.plot = layer_properties['plot']
+    if 'lock' in layer_properties:
+        layer.dxf.locked = layer_properties['lock']
+    if 'frozen' in layer_properties:
+        layer.dxf.frozen = layer_properties['frozen']
+    if 'is_on' in layer_properties:
+        layer.on = layer_properties['is_on']
 
 # def load_standard_linetypes(doc):
 #     linetypes = doc.linetypes
@@ -603,6 +607,18 @@ def create_path_array(msp, source_layer_name, target_layer_name, block_name, spa
             current_distance -= segment_length
 
     log_info(f"Path array created for source layer '{source_layer_name}' using block '{block_name}' and placed on target layer '{target_layer_name}'")
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

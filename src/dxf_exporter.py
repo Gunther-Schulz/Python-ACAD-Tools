@@ -160,10 +160,9 @@ class DXFExporter:
     def process_single_layer(self, doc, msp, layer_name, layer_info):
         log_info(f"Processing layer: {layer_name}")
         
-        # Use StyleManager to get and validate the style
-        style, warning_generated = self.style_manager.get_style(layer_info.get('style', {}))
-        if warning_generated:
-            log_warning(f"Issue with style for layer '{layer_name}'")
+        # Process layer style
+        layer_properties = self.style_manager.process_layer_style(layer_name, layer_info)
+        self.apply_layer_properties(doc.layers.get(layer_name), layer_properties)
         
         if self.is_wmts_or_wms_layer(layer_info):
             self._process_wmts_layer(doc, msp, layer_name, layer_info)
@@ -173,8 +172,7 @@ class DXFExporter:
         if 'viewports' in layer_info:
             self._process_viewport_styles(doc, layer_name, layer_info['viewports'])
         
-        if style and 'hatch' in style:
-            self._process_hatch(doc, msp, layer_name, layer_info)
+        self._process_hatch(doc, msp, layer_name, layer_info)
 
     def _process_wmts_layer(self, doc, msp, layer_name, layer_info):
         log_info(f"Processing WMTS layer: {layer_name}")
@@ -193,14 +191,14 @@ class DXFExporter:
         if layer_name not in doc.layers:
             self.create_new_layer(doc, None, layer_name, layer_info, add_geometry=False)
         else:
-            self.update_layer_properties(doc.layers.get(layer_name), layer_info)
+            self.apply_layer_properties(doc.layers.get(layer_name), layer_info)
 
     def _ensure_label_layer_exists(self, doc, base_layer_name, layer_info):
         label_layer_name = f"{base_layer_name} Label"
         if label_layer_name not in doc.layers:
             self.create_new_layer(doc, None, label_layer_name, layer_info, add_geometry=False)
         else:
-            self.update_layer_properties(doc.layers.get(label_layer_name), layer_info)
+            self.apply_layer_properties(doc.layers.get(label_layer_name), layer_info)
 
     def update_layer_geometry(self, msp, layer_name, geo_data, layer_config):
         update_flag = layer_config.get('update', False)
@@ -249,9 +247,9 @@ class DXFExporter:
         
         return doc.layers.get(sanitized_layer_name)  # Update this line
 
-    def update_layer_properties(self, layer, layer_info):
+    def apply_layer_properties(self, layer, layer_info):
         properties = self.layer_properties[layer.dxf.name]
-        update_layer_properties(layer, properties)
+        update_layer_properties(layer, properties, self.name_to_aci)
         log_info(f"Updated layer properties: {properties}")
 
     def attach_custom_data(self, entity):
@@ -766,6 +764,12 @@ class DXFExporter:
                 remove_entities_by_layer(msp, target_layer_name, self.script_identifier)
                 
             create_path_array(msp, source_layer_name, target_layer_name, block_name, spacing, scale, rotation)
+
+
+
+
+
+
 
 
 
