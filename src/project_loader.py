@@ -36,6 +36,8 @@ class ProjectLoader:
             if 'operations' in layer:
                 self.process_operations(layer)
 
+        self.shapefile_output_dir = self.resolve_full_path(self.project_settings.get('shapefileOutputDir', ''))
+
     def process_operations(self, layer):
         if 'operations' in layer:
             new_operations = []

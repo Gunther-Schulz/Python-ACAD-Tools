@@ -41,6 +41,9 @@ class LayerProcessor:
             layer_name = layer['name']
 
             self.process_layer(layer, processed_layers)
+            
+            # Write shapefile for each processed layer
+            self.write_shapefile(layer_name)
 
         log_info("Finished processing layers.")
 
@@ -95,7 +98,7 @@ class LayerProcessor:
             log_info(f"Added layer {layer_name} without data")
     
         if 'outputShapeFile' in layer_obj:
-            self.write_shapefile(layer_name, layer_obj['outputShapeFile'])
+            self.write_shapefile(layer_name)
     
         if 'attributes' in layer_obj:
             if layer_name not in self.all_layers or self.all_layers[layer_name] is None:
@@ -203,8 +206,8 @@ class LayerProcessor:
                     output_path = self.project_loader.resolve_full_path(layer['outputShapeFile'])
                     self.write_shapefile(layer_name, output_path)
 
-    def write_shapefile(self, layer_name, output_path):
-        log_info(f"Writing shapefile for layer {layer_name}: {output_path}")
+    def write_shapefile(self, layer_name):
+        log_info(f"Writing shapefile for layer {layer_name}")
         if layer_name in self.all_layers:
             gdf = self.all_layers[layer_name]
             log_info(f"Type of data for {layer_name}: {type(gdf)}")
@@ -229,23 +232,11 @@ class LayerProcessor:
                 gdf = gdf[gdf['geometry'].notna()]
 
                 if not gdf.empty:
-                    full_path = self.project_loader.resolve_full_path(output_path)
-                    directory = os.path.dirname(full_path)
-                    parent_directory = os.path.dirname(directory)
-                    
-                    if os.path.exists(parent_directory):
-                        if not os.path.exists(directory):
-                            try:
-                                os.makedirs(directory, exist_ok=True)
-                                log_info(f"Created directory: {directory}")
-                            except Exception as e:
-                                log_error(f"Failed to create directory: {str(e)}")
-                                return
-                        try:
-                            gdf.to_file(full_path)
-                            log_info(f"Shapefile written for layer {layer_name}: {full_path}")
-                        except Exception as e:
-                            log_error(f"Error writing shapefile for layer '{layer_name}': {str(e)}")
+                    output_dir = self.project_loader.shapefile_output_dir
+                    os.makedirs(output_dir, exist_ok=True)
+                    full_path = os.path.join(output_dir, f"{layer_name}.shp")
+                    gdf.to_file(full_path)
+                    log_info(f"Shapefile written for layer {layer_name}: {full_path}")
                 else:
                     log_warning(f"No valid geometries found for layer {layer_name} after conversion")
             else:
@@ -492,6 +483,10 @@ class LayerProcessor:
             self.style_manager._process_hatch_style(layer_name, style_config)
         if 'text' in style_config:
             self.style_manager._process_text_style(layer_name, style_config['text'])
+
+
+
+
 
 
 
