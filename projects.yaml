@@ -679,7 +679,15 @@ projects:
       - name: Baufeld
         update: true
         close: true
-        style: baufeldSchraffur
+        style:
+            layer:
+              color: "brilliant-red"
+              transparency: 0.6
+              lock: true
+              lineweight: 13
+              linetype: "ACAD_ISO02W100"
+            hatch:
+              individual_hatches: true
         viewports:
           - name: WorkView
             style: baufeldSchraffur
@@ -704,6 +712,9 @@ projects:
             layer:
               color: "brilliant-red"
               transparency: 0.6
+              lock: true
+              lineweight: 13
+              linetype: "ACAD_ISO02W100"
             hatch:
               individual_hatches: true
         applyHatch:

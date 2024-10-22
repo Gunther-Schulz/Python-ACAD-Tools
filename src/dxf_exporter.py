@@ -165,11 +165,13 @@ class DXFExporter:
         
         # Ensure the layer exists
         if layer_name not in doc.layers:
-            doc.layers.new(name=layer_name)
+            new_layer = doc.layers.new(name=layer_name)
             log_info(f"Created new layer: {layer_name}")
+        else:
+            new_layer = doc.layers.get(layer_name)
         
         # Apply layer properties
-        self.apply_layer_properties(doc.layers.get(layer_name), layer_properties)
+        update_layer_properties(new_layer, layer_properties, self.name_to_aci)
         
         if self.is_wmts_or_wms_layer(layer_info):
             self._process_wmts_layer(doc, msp, layer_name, layer_info)
@@ -254,10 +256,9 @@ class DXFExporter:
         
         return doc.layers.get(sanitized_layer_name)  # Update this line
 
-    def apply_layer_properties(self, layer, layer_info):
-        properties = self.layer_properties[layer.dxf.name]
-        update_layer_properties(layer, properties, self.name_to_aci)
-        log_info(f"Updated layer properties: {properties}")
+    def apply_layer_properties(self, layer, layer_properties):
+        update_layer_properties(layer, layer_properties, self.name_to_aci)
+        log_info(f"Updated layer properties: {layer_properties}")
 
     def attach_custom_data(self, entity):
         attach_custom_data(entity, self.script_identifier)
@@ -771,6 +772,8 @@ class DXFExporter:
                 remove_entities_by_layer(msp, target_layer_name, self.script_identifier)
                 
             create_path_array(msp, source_layer_name, target_layer_name, block_name, spacing, scale, rotation)
+
+
 
 
 
