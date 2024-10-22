@@ -384,7 +384,9 @@ projects:
       - name: Wald Schraffur
         update: true
         style:
-          hatch: wald
+          hatch:
+            pattern: 'ANSI31'
+            scale: 5
         applyHatch:
           layers:
             - Wald
