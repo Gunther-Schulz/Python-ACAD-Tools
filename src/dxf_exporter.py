@@ -136,7 +136,7 @@ class DXFExporter:
                     'linetype': layer.dxf.linetype,
                     'lineweight': layer.dxf.lineweight,
                     'plot': layer.dxf.plot,
-                    'locked': layer.is_locked,
+                    'lock': layer.is_locked,
                     'frozen': layer.is_frozen,
                     'is_on': layer.is_on,
                     'transparency': layer.transparency

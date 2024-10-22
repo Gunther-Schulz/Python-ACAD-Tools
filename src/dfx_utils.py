@@ -199,9 +199,9 @@ def update_layer_properties(layer, layer_properties, name_to_aci):
     if 'plot' in layer_properties:
         layer.dxf.plot = layer_properties['plot']
     if 'lock' in layer_properties:
-        layer.dxf.locked = layer_properties['lock']
+        layer.lock() if layer_properties['lock'] else layer.unlock()
     if 'frozen' in layer_properties:
-        layer.dxf.frozen = layer_properties['frozen']
+        layer.freeze() if layer_properties['frozen'] else layer.thaw()
     if 'is_on' in layer_properties:
         layer.on = layer_properties['is_on']
 
@@ -607,6 +607,7 @@ def create_path_array(msp, source_layer_name, target_layer_name, block_name, spa
             current_distance -= segment_length
 
     log_info(f"Path array created for source layer '{source_layer_name}' using block '{block_name}' and placed on target layer '{target_layer_name}'")
+
 
 
 
