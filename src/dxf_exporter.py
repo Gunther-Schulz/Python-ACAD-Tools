@@ -18,6 +18,7 @@ from src.dfx_utils import (get_color_code, convert_transparency, attach_custom_d
                            ensure_layer_exists, update_layer_properties, 
                            set_drawing_properties, verify_dxf_settings, update_layer_geometry,
                            get_style, apply_style_to_entity, create_hatch, SCRIPT_IDENTIFIER, initialize_document, sanitize_layer_name, create_path_array)
+from src.style_manager import StyleManager
 
 class DXFExporter:
     def __init__(self, project_loader, layer_processor):
@@ -33,6 +34,7 @@ class DXFExporter:
         log_info(f"DXFExporter initialized with script identifier: {self.script_identifier}")
         self.setup_layers()
         self.viewports = {}
+        self.style_manager = StyleManager(project_loader)
         self.default_hatch_settings = {
             'pattern': 'SOLID',
             'scale': 1,
@@ -134,7 +136,7 @@ class DXFExporter:
                     'linetype': layer.dxf.linetype,
                     'lineweight': layer.dxf.lineweight,
                     'plot': layer.dxf.plot,
-                    'locked': layer.is_locked,
+                    'lock': layer.is_locked,
                     'frozen': layer.is_frozen,
                     'is_on': layer.is_on,
                     'transparency': layer.transparency
@@ -158,6 +160,19 @@ class DXFExporter:
     def process_single_layer(self, doc, msp, layer_name, layer_info):
         log_info(f"Processing layer: {layer_name}")
         
+        # Process layer style
+        layer_properties = self.style_manager.process_layer_style(layer_name, layer_info)
+        
+        # Ensure the layer exists
+        if layer_name not in doc.layers:
+            new_layer = doc.layers.new(name=layer_name)
+            log_info(f"Created new layer: {layer_name}")
+        else:
+            new_layer = doc.layers.get(layer_name)
+        
+        # Apply layer properties
+        update_layer_properties(new_layer, layer_properties, self.name_to_aci)
+        
         if self.is_wmts_or_wms_layer(layer_info):
             self._process_wmts_layer(doc, msp, layer_name, layer_info)
         else:
@@ -166,17 +181,7 @@ class DXFExporter:
         if 'viewports' in layer_info:
             self._process_viewport_styles(doc, layer_name, layer_info['viewports'])
         
-        should_process_hatch = 'performHatch' in layer_info
-        if 'style' in layer_info:
-            style = layer_info['style']
-            if isinstance(style, str):
-                style_dict = self.project_loader.get_style(style)
-            else:
-                style_dict = style
-            should_process_hatch = should_process_hatch or 'hatch' in style_dict
-
-        if should_process_hatch:
-            self._process_hatch(doc, msp, layer_name, layer_info)
+        self._process_hatch(doc, msp, layer_name, layer_info)
 
     def _process_wmts_layer(self, doc, msp, layer_name, layer_info):
         log_info(f"Processing WMTS layer: {layer_name}")
@@ -195,14 +200,14 @@ class DXFExporter:
         if layer_name not in doc.layers:
             self.create_new_layer(doc, None, layer_name, layer_info, add_geometry=False)
         else:
-            self.update_layer_properties(doc.layers.get(layer_name), layer_info)
+            self.apply_layer_properties(doc.layers.get(layer_name), layer_info)
 
     def _ensure_label_layer_exists(self, doc, base_layer_name, layer_info):
         label_layer_name = f"{base_layer_name} Label"
         if label_layer_name not in doc.layers:
             self.create_new_layer(doc, None, label_layer_name, layer_info, add_geometry=False)
         else:
-            self.update_layer_properties(doc.layers.get(label_layer_name), layer_info)
+            self.apply_layer_properties(doc.layers.get(label_layer_name), layer_info)
 
     def update_layer_geometry(self, msp, layer_name, geo_data, layer_config):
         update_flag = layer_config.get('update', False)
@@ -241,7 +246,7 @@ class DXFExporter:
         sanitized_layer_name = sanitize_layer_name(layer_name)  # Add this line
         properties = self.layer_properties[layer_name]
         
-        ensure_layer_exists(doc, sanitized_layer_name, properties)  # Update this line
+        ensure_layer_exists(doc, sanitized_layer_name, properties, self.name_to_aci)  # Update this line
         
         log_info(f"Created new layer: {sanitized_layer_name}")  # Update this line
         log_info(f"Layer properties: {properties}")
@@ -251,10 +256,9 @@ class DXFExporter:
         
         return doc.layers.get(sanitized_layer_name)  # Update this line
 
-    def update_layer_properties(self, layer, layer_info):
-        properties = self.layer_properties[layer.dxf.name]
-        update_layer_properties(layer, properties)
-        log_info(f"Updated layer properties: {properties}")
+    def apply_layer_properties(self, layer, layer_properties):
+        update_layer_properties(layer, layer_properties, self.name_to_aci)
+        log_info(f"Updated layer properties: {layer_properties}")
 
     def attach_custom_data(self, entity):
         attach_custom_data(entity, self.script_identifier)
@@ -629,34 +633,35 @@ class DXFExporter:
                 if viewport:
                     vp_handle = viewport.dxf.handle
                     
-                    # Check if layerStyle is a string (preset) or dict (inline)
-                    if isinstance(vp_style['layerStyle'], str):
-                        # It's a preset, get the style from project_loader
-                        style_dict = self.project_loader.get_style(vp_style['layerStyle'])
-                    else:
-                        # It's an inline style
-                        style_dict = vp_style['layerStyle']
-                    
-                    # Set color override
-                    color = get_color_code(style_dict.get('color'), self.name_to_aci)
-                    layer_overrides.set_color(vp_handle, color)
+                    # Use StyleManager to get the style
+                    style, warning_generated = self.style_manager.get_style(vp_style.get('style', {}))
+                    if warning_generated:
+                        log_warning(f"Style not found for viewport {vp_style['name']} on layer {layer_name}")
+                        continue
 
-                    # Set linetype override
-                    linetype = style_dict.get('linetype')
-                    if linetype:
-                        layer_overrides.set_linetype(vp_handle, linetype)
+                    if style and 'layer' in style:
+                        layer_style = style['layer']
+                        
+                        # Set color override
+                        color = get_color_code(layer_style.get('color'), self.project_loader.name_to_aci)
+                        layer_overrides.set_color(vp_handle, color)
 
-                    # Set lineweight override
-                    lineweight = style_dict.get('lineweight')
-                    if lineweight is not None:
-                        layer_overrides.set_lineweight(vp_handle, lineweight)
+                        # Set linetype override
+                        linetype = layer_style.get('linetype')
+                        if linetype:
+                            layer_overrides.set_linetype(vp_handle, linetype)
 
-                    # Set transparency override
-                    transparency = style_dict.get('transparency')
-                    if transparency is not None:
-                        # Ensure transparency is between 0 and 1
-                        transparency_value = max(0, min(transparency, 1))
-                        layer_overrides.set_transparency(vp_handle, transparency_value)
+                        # Set lineweight override
+                        lineweight = layer_style.get('lineweight')
+                        if lineweight is not None:
+                            layer_overrides.set_lineweight(vp_handle, lineweight)
+
+                        # Set transparency override
+                        transparency = layer_style.get('transparency')
+                        if transparency is not None:
+                            # Ensure transparency is between 0 and 1
+                            transparency_value = max(0, min(transparency, 1))
+                            layer_overrides.set_transparency(vp_handle, transparency_value)
 
                     log_info(f"Set viewport-specific properties for {vp_style['name']} on layer {layer_name}")
                 else:
@@ -675,29 +680,17 @@ class DXFExporter:
     def _process_hatch(self, doc, msp, layer_name, layer_info):
         log_info(f"Processing hatch for layer: {layer_name}")
         
-        # Check if applyHatch is present and True
+        hatch_config = self.style_manager.get_hatch_config(layer_info)
+        
+        log_info(f"Hatch config: {hatch_config}")
+
         apply_hatch = layer_info.get('applyHatch', False)
         if not apply_hatch:
             log_info(f"Hatch processing skipped for layer: {layer_name}")
             return
 
-        style = layer_info.get('style', {})
-        hatch_style = style.get('hatch', {})
-        if isinstance(hatch_style, str):
-            hatch_style = self.project_loader.get_style(hatch_style)
-        
-        # Start with default hatch settings
-        hatch_config = self.default_hatch_settings.copy()
-        
-        # Merge with hatchStyle settings
-        hatch_config = self.deep_merge(hatch_config, hatch_style)
-        
-        if not hatch_config:
-            log_info(f"No hatch configuration found for layer: {layer_name}")
-            return
-        
-        # Get the boundary layers
-        boundary_layers = apply_hatch.get('layers', [layer_name]) if isinstance(apply_hatch, dict) else [layer_name]
+        boundary_layers = hatch_config.get('layers', [layer_name])
+
         boundary_geometry = self._get_boundary_geometry(boundary_layers)
         
         if boundary_geometry is None or boundary_geometry.is_empty:
@@ -781,6 +774,32 @@ class DXFExporter:
                 remove_entities_by_layer(msp, target_layer_name, self.script_identifier)
                 
             create_path_array(msp, source_layer_name, target_layer_name, block_name, spacing, scale, rotation)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

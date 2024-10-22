@@ -19,6 +19,7 @@ from src.operations import (
     create_smooth_layer,
     _handle_contour_operation
 )
+from src.style_manager import StyleManager
 
 class LayerProcessor:
     def __init__(self, project_loader, plot_ops=False):
@@ -27,6 +28,7 @@ class LayerProcessor:
         self.project_settings = project_loader.project_settings
         self.crs = project_loader.crs
         self.plot_ops = plot_ops  # New flag for plotting operations
+        self.style_manager = StyleManager(project_loader)
     
     def process_layers(self):
         log_info("Starting to process layers...")
@@ -68,7 +70,11 @@ class LayerProcessor:
     
         # Process the new style structure
         if 'style' in layer_obj:
-            self._process_style(layer_name, layer_obj['style'])
+            style, warning_generated = self.style_manager.get_style(layer_obj['style'])
+            if warning_generated:
+                log_warning(f"Issue with style for layer '{layer_name}'")
+            if style is not None:
+                layer_obj['style'] = style
     
         # Load DXF layer if specified, regardless of operations
         if 'dxfLayer' in layer_obj:
@@ -291,52 +297,20 @@ class LayerProcessor:
     def _process_hatch_config(self, layer_name, layer_config):
         log_info(f"Processing hatch configuration for layer: {layer_name}")
         
-        hatch_config = {}
-        
-        # Process style if it's present
-        if 'style' in layer_config:
-            style = layer_config['style']
-            if 'hatch' in style:
-                hatch_style = style['hatch']
-                if isinstance(hatch_style, str):
-                    hatch_config['hatchStyle'] = self.project_loader.get_style(hatch_style)
-                else:
-                    hatch_config['hatchStyle'] = hatch_style
-        
-        # Process applyHatch if it's present
-        if 'applyHatch' in layer_config:
-            apply_hatch = layer_config['applyHatch']
-            hatch_config['applyHatch'] = apply_hatch
-            if isinstance(apply_hatch, dict):
-                # Handle 'layers' key for boundary layers
-                if 'layers' in apply_hatch:
-                    boundary_layers = apply_hatch['layers']
-                    if isinstance(boundary_layers, str):
-                        hatch_config['applyHatch']['layers'] = [boundary_layers]
-                    elif isinstance(boundary_layers, list):
-                        hatch_config['applyHatch']['layers'] = boundary_layers
-                    else:
-                        log_warning(f"Invalid 'layers' specification in applyHatch for layer {layer_name}")
-                else:
-                    # If 'layers' is not specified, use the current layer
-                    hatch_config['applyHatch']['layers'] = [layer_name]
+        hatch_config = self.style_manager.get_hatch_config(layer_config)
         
         # Store hatch configuration in the layer properties
         if layer_name not in self.all_layers or self.all_layers[layer_name] is None:
             self.all_layers[layer_name] = gpd.GeoDataFrame(geometry=[], crs=self.crs)
         
-        # Create a copy of the existing DataFrame
         gdf = self.all_layers[layer_name].copy()
         
-        # If 'attributes' column doesn't exist, create it
         if 'attributes' not in gdf.columns:
             gdf['attributes'] = None
         
-        # Update the 'attributes' column with the hatch configuration
         gdf.loc[:, 'attributes'] = gdf['attributes'].apply(lambda x: {} if x is None else x)
         gdf.loc[:, 'attributes'] = gdf['attributes'].apply(lambda x: {**x, 'hatch_config': hatch_config})
         
-        # Assign the modified DataFrame back to self.all_layers
         self.all_layers[layer_name] = gdf
         
         log_info(f"Stored hatch configuration for layer: {layer_name}")
@@ -508,42 +482,25 @@ class LayerProcessor:
             return geometry_or_gdf
 
     def _process_style(self, layer_name, style_config):
-        known_style_keys = {'layer', 'hatch', 'text'}
-        unknown_style_keys = set(style_config.keys()) - known_style_keys
-        if unknown_style_keys:
-            log_warning(f"Unknown style keys in layer {layer_name}: {', '.join(unknown_style_keys)}")
-
+        if isinstance(style_config, str):
+            # If style_config is a string, it's a preset name
+            style_config = self.project_loader.get_style(style_config)
+        
         if 'layer' in style_config:
-            self._process_layer_style(layer_name, style_config['layer'])
-        if 'hatch' in style_config:
-            self._process_hatch_style(layer_name, style_config['hatch'])
+            self.style_manager._process_layer_style(layer_name, style_config['layer'])
+        if 'hatch' in style_config or 'applyHatch' in style_config:
+            self.style_manager._process_hatch_style(layer_name, style_config)
         if 'text' in style_config:
-            self._process_text_style(layer_name, style_config['text'])
+            self.style_manager._process_text_style(layer_name, style_config['text'])
 
-    def _process_layer_style(self, layer_name, layer_style):
-        known_style_keys = {'color', 'linetype', 'lineweight', 'plot', 'locked', 'frozen', 'is_on', 'vp_freeze', 'transparency'}
-        self._process_style_keys(layer_name, 'layer', layer_style, known_style_keys)
 
-    def _process_hatch_style(self, layer_name, hatch_style):
-        known_style_keys = {'pattern', 'scale', 'color', 'transparency'}
-        self._process_style_keys(layer_name, 'hatch', hatch_style, known_style_keys)
 
-    def _process_text_style(self, layer_name, text_style):
-        known_style_keys = {'color', 'height', 'font', 'style', 'alignment'}
-        self._process_style_keys(layer_name, 'text', text_style, known_style_keys)
 
-    def _process_style_keys(self, layer_name, style_type, style_dict, known_keys):
-        unknown_keys = set(style_dict.keys()) - known_keys
-        if unknown_keys:
-            log_warning(f"Unknown {style_type} style keys in layer {layer_name}: {', '.join(unknown_keys)}")
 
-        for key in style_dict.keys():
-            closest_match = min(known_keys, key=lambda x: self.levenshtein_distance(key, x))
-            if key != closest_match and self.levenshtein_distance(key, closest_match) <= 2:
-                log_warning(f"Possible typo in {style_type} style key for layer {layer_name}: '{key}'. Did you mean '{closest_match}'?")
 
-        if 'transparency' in style_dict:
-            style_dict['transparency'] = max(0, min(style_dict['transparency'], 1))
+
+
+
 
 
 

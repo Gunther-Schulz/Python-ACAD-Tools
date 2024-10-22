@@ -171,35 +171,39 @@ def update_layer_geometry(msp, layer_name, script_identifier, update_function):
     # Add new geometry
     update_function()
 
-def ensure_layer_exists(doc, layer_name, layer_properties):
+def ensure_layer_exists(doc, layer_name, layer_properties, name_to_aci):
     if layer_name not in doc.layers:
         new_layer = doc.layers.new(layer_name)
-        update_layer_properties(new_layer, layer_properties)
+        update_layer_properties(new_layer, layer_properties, name_to_aci)
     else:
         existing_layer = doc.layers.get(layer_name)
-        update_layer_properties(existing_layer, layer_properties)
+        update_layer_properties(existing_layer, layer_properties, name_to_aci)
 
-def update_layer_properties(layer, layer_properties):
+def update_layer_properties(layer, layer_properties, name_to_aci):
     if 'color' in layer_properties:
-        layer.color = layer_properties['color']
+        color = get_color_code(layer_properties['color'], name_to_aci)
+        if isinstance(color, tuple):
+            layer.rgb = color  # Set RGB color directly
+        elif isinstance(color, int):
+            layer.color = color  # Set ACI color directly
+        else:
+            log_warning(f"Invalid color value: {color}")
     if 'linetype' in layer_properties:
-        layer.linetype = layer_properties['linetype']
+        layer.dxf.linetype = layer_properties['linetype']
     if 'lineweight' in layer_properties:
-        layer.lineweight = layer_properties['lineweight']
+        layer.dxf.lineweight = layer_properties['lineweight']
     if 'transparency' in layer_properties:
-        # Convert the 0-1 transparency value to what ezdxf expects for layers
-        transparency = layer_properties['transparency']
-        if isinstance(transparency, (int, float)):
-            # Ensure the value is between 0 and 1
-            layer.transparency = min(max(transparency, 0), 1)
-        elif isinstance(transparency, str):
-            try:
-                transparency_value = float(transparency)
-                layer.transparency = min(max(transparency_value, 0), 1)
-            except ValueError:
-                print(f"Invalid transparency value for layer: {transparency}")
+        transparency = convert_transparency(layer_properties['transparency'])
+        if transparency is not None:
+            layer.transparency = transparency
     if 'plot' in layer_properties:
-        layer.plot = layer_properties['plot']
+        layer.dxf.plot = layer_properties['plot']
+    if 'lock' in layer_properties:
+        layer.lock() if layer_properties['lock'] else layer.unlock()
+    if 'frozen' in layer_properties:
+        layer.freeze() if layer_properties['frozen'] else layer.thaw()
+    if 'is_on' in layer_properties:
+        layer.on = layer_properties['is_on']
 
 # def load_standard_linetypes(doc):
 #     linetypes = doc.linetypes
@@ -351,26 +355,22 @@ def apply_style_to_entity(entity, style, project_loader, loaded_styles, item_typ
         else:
             entity.dxf.style = text_style
 
-def create_hatch(msp, boundary_paths, style, project_loader, is_legend=False):
+def create_hatch(msp, boundary_paths, hatch_config, project_loader, is_legend=False):
     if is_legend:
-        log_info(f"Creating symbol hatch with style: {style}")
+        log_info(f"Creating symbol hatch with config: {hatch_config}")
     else:
-        log_info(f"Creating hatch with style: {style}")
+        log_info(f"Creating hatch with config: {hatch_config}")
     
     hatch = msp.add_hatch()
     
-    # If style is a string, get the actual style dictionary
-    if isinstance(style, str):
-        style = project_loader.get_style(style)
-    
-    pattern = style.get('pattern', 'SOLID')
-    scale = style.get('scale', 1)
+    pattern = hatch_config.get('pattern', 'SOLID')
+    scale = hatch_config.get('scale', 1)
     
     if pattern != 'SOLID':
         try:
             hatch.set_pattern_fill(pattern, scale=scale)
         except ezdxf.DXFValueError:
-            print(f"Invalid hatch pattern: {pattern}. Using SOLID instead.")
+            log_warning(f"Invalid hatch pattern: {pattern}. Using SOLID instead.")
             hatch.set_pattern_fill("SOLID")
     else:
         hatch.set_solid_fill()
@@ -378,20 +378,20 @@ def create_hatch(msp, boundary_paths, style, project_loader, is_legend=False):
     for path in boundary_paths:
         hatch.paths.add_polyline_path(path)
     
-    # Apply color and transparency only for legend items
-    if is_legend:
-        if 'color' in style:
-            color = get_color_code(style['color'], project_loader.name_to_aci)
-            if isinstance(color, tuple):
-                hatch.rgb = color  # Set RGB color directly
-            else:
-                hatch.dxf.color = color  # Set ACI color
-        if 'transparency' in style:
-            transparency = convert_transparency(style['transparency'])
-            if transparency is not None:
-                set_hatch_transparency(hatch, transparency)
+    # Apply color and transparency for both legend and non-legend hatches
+    if 'color' in hatch_config and hatch_config['color'] not in (None, 'BYLAYER'):
+        color = get_color_code(hatch_config['color'], project_loader.name_to_aci)
+        if isinstance(color, tuple):
+            hatch.rgb = color  # Set RGB color directly
+        else:
+            hatch.dxf.color = color  # Set ACI color
     else:
         hatch.dxf.color = ezdxf.const.BYLAYER
+
+    if 'transparency' in hatch_config and hatch_config['transparency'] not in (None, 'BYLAYER'):
+        transparency = convert_transparency(hatch_config['transparency'])
+        if transparency is not None:
+            set_hatch_transparency(hatch, transparency)
     
     return hatch
 
@@ -607,5 +607,27 @@ def create_path_array(msp, source_layer_name, target_layer_name, block_name, spa
             current_distance -= segment_length
 
     log_info(f"Path array created for source layer '{source_layer_name}' using block '{block_name}' and placed on target layer '{target_layer_name}'")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
