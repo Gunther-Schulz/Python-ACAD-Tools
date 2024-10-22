@@ -1,11 +1,11 @@
 import ezdxf
 from ezdxf.enums import TextEntityAlignment
 from ezdxf import const
-from src.dfx_utils import (get_color_code, attach_custom_data, 
+from src.dfx_utils import (convert_transparency, get_color_code, attach_custom_data, 
                            is_created_by_script, add_mtext, remove_entities_by_layer, 
                            ensure_layer_exists, get_style, SCRIPT_IDENTIFIER,
                            apply_style_to_entity,
-                           sanitize_layer_name, get_available_blocks, add_block_reference)
+                           sanitize_layer_name, get_available_blocks, add_block_reference, set_hatch_transparency)
 from ezdxf.math import Vec3
 from ezdxf import colors
 from src.utils import log_warning, log_error, log_info
@@ -99,10 +99,15 @@ class LegendCreator:
         item_name = item.get('name', '')
         item_type = item.get('type', 'empty')
         
+        # Handle both string and dictionary style inputs
+        style = item.get('style', {})
+        if isinstance(style, str):
+            style = self.get_style(style)
+        
         # Separate styles for different components
-        hatch_style = self.get_style(item.get('hatchStyle', {}))
-        layer_style = self.get_style(item.get('layerStyle', {}))
-        rectangle_style = self.get_style(item.get('rectangleStyle', {}))
+        hatch_style = self.get_style(style.get('hatch', {}))
+        layer_style = self.get_style(style.get('layer', {}))
+        rectangle_style = self.get_style(style.get('rectangle', {}))
         
         block_symbol = item.get('block_symbol')
         block_symbol_scale = item.get('block_symbol_scale', 1.0)
@@ -202,11 +207,26 @@ class LegendCreator:
         # Create hatch if specified
         if create_hatch:
             hatch_paths = [[(x1, y1), (x2, y1), (x2, y2), (x1, y2)]]
-            # Use only hatch-specific settings for the hatch
+            # Create hatch with is_legend=True
             hatch = dfx_utils.create_hatch(self.msp, hatch_paths, hatch_style, self.project_loader, is_legend=True)
             hatch.dxf.layer = layer_name
-            # Apply layer style properties to the hatch
-            self.apply_style(hatch, layer_style)
+            
+            # Apply hatch style properties directly to the hatch
+            if 'color' in hatch_style:
+                color = get_color_code(hatch_style['color'], self.project_loader.name_to_aci)
+                if isinstance(color, tuple):
+                    hatch.rgb = color
+                else:
+                    hatch.dxf.color = color
+            
+            if 'pattern' in hatch_style:
+                hatch.set_pattern_fill(hatch_style['pattern'], scale=hatch_style.get('scale', 1))
+            
+            if 'transparency' in hatch_style:
+                transparency = convert_transparency(hatch_style['transparency'])
+                if transparency is not None:
+                    set_hatch_transparency(hatch, transparency)
+            
             self.attach_custom_data(hatch)
             entities.append(hatch)
 
@@ -387,13 +407,21 @@ class LegendCreator:
 
     def get_style(self, style):
         if isinstance(style, str):
-            return self.project_loader.get_style(style)
-        return style
+            return self.project_loader.get_style(style) or {}
+        return style or {}
 
     def apply_style(self, entity, style):
         if isinstance(style, str):
             style = self.project_loader.get_style(style)
         apply_style_to_entity(entity, style, self.project_loader, self.loaded_styles)
+
+
+
+
+
+
+
+
 
 
 
