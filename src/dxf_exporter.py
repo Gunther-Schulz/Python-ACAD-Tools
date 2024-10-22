@@ -160,13 +160,10 @@ class DXFExporter:
     def process_single_layer(self, doc, msp, layer_name, layer_info):
         log_info(f"Processing layer: {layer_name}")
         
-        # Validate the style
-        if 'style' in layer_info:
-            style, warning_generated = self.style_manager.get_style(layer_info['style'])
-            if warning_generated:
-                log_warning(f"Issue with style for layer '{layer_name}'")
-            if style is not None:
-                layer_info['style'] = style
+        # Use StyleManager to get and validate the style
+        style, warning_generated = self.style_manager.get_style(layer_info.get('style', {}))
+        if warning_generated:
+            log_warning(f"Issue with style for layer '{layer_name}'")
         
         if self.is_wmts_or_wms_layer(layer_info):
             self._process_wmts_layer(doc, msp, layer_name, layer_info)
@@ -176,7 +173,7 @@ class DXFExporter:
         if 'viewports' in layer_info:
             self._process_viewport_styles(doc, layer_name, layer_info['viewports'])
         
-        if 'applyHatch' in layer_info or ('style' in layer_info and 'hatch' in layer_info['style']):
+        if style and 'hatch' in style:
             self._process_hatch(doc, msp, layer_name, layer_info)
 
     def _process_wmts_layer(self, doc, msp, layer_name, layer_info):
@@ -630,34 +627,35 @@ class DXFExporter:
                 if viewport:
                     vp_handle = viewport.dxf.handle
                     
-                    # Check if layerStyle is a string (preset) or dict (inline)
-                    if isinstance(vp_style['layerStyle'], str):
-                        # It's a preset, get the style from project_loader
-                        style_dict = self.project_loader.get_style(vp_style['layerStyle'])
-                    else:
-                        # It's an inline style
-                        style_dict = vp_style['layerStyle']
-                    
-                    # Set color override
-                    color = get_color_code(style_dict.get('color'), self.name_to_aci)
-                    layer_overrides.set_color(vp_handle, color)
+                    # Use StyleManager to get the style
+                    style, warning_generated = self.style_manager.get_style(vp_style.get('style', {}))
+                    if warning_generated:
+                        log_warning(f"Style not found for viewport {vp_style['name']} on layer {layer_name}")
+                        continue
 
-                    # Set linetype override
-                    linetype = style_dict.get('linetype')
-                    if linetype:
-                        layer_overrides.set_linetype(vp_handle, linetype)
+                    if style and 'layer' in style:
+                        layer_style = style['layer']
+                        
+                        # Set color override
+                        color = get_color_code(layer_style.get('color'), self.project_loader.name_to_aci)
+                        layer_overrides.set_color(vp_handle, color)
 
-                    # Set lineweight override
-                    lineweight = style_dict.get('lineweight')
-                    if lineweight is not None:
-                        layer_overrides.set_lineweight(vp_handle, lineweight)
+                        # Set linetype override
+                        linetype = layer_style.get('linetype')
+                        if linetype:
+                            layer_overrides.set_linetype(vp_handle, linetype)
 
-                    # Set transparency override
-                    transparency = style_dict.get('transparency')
-                    if transparency is not None:
-                        # Ensure transparency is between 0 and 1
-                        transparency_value = max(0, min(transparency, 1))
-                        layer_overrides.set_transparency(vp_handle, transparency_value)
+                        # Set lineweight override
+                        lineweight = layer_style.get('lineweight')
+                        if lineweight is not None:
+                            layer_overrides.set_lineweight(vp_handle, lineweight)
+
+                        # Set transparency override
+                        transparency = layer_style.get('transparency')
+                        if transparency is not None:
+                            # Ensure transparency is between 0 and 1
+                            transparency_value = max(0, min(transparency, 1))
+                            layer_overrides.set_transparency(vp_handle, transparency_value)
 
                     log_info(f"Set viewport-specific properties for {vp_style['name']} on layer {layer_name}")
                 else:
@@ -768,6 +766,7 @@ class DXFExporter:
                 remove_entities_by_layer(msp, target_layer_name, self.script_identifier)
                 
             create_path_array(msp, source_layer_name, target_layer_name, block_name, spacing, scale, rotation)
+
 
 
 

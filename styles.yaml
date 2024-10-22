@@ -2,98 +2,109 @@ styles:
 # Administrative Boundaries
 # ------------------------
 
-  flur:
-    locked: true
-    linetype: ACAD_ISO14W100
   flurgrenze:
-    linetype: "ACAD_ISO14W100"
-    lineweight: 50
+    layer:
+      locked: true
+      linetype: "ACAD_ISO14W100"
+      lineweight: 50
   flurWorkView:
-    color: "moderate-yellow"
+    layer:
+      color: "moderate-yellow"
 
-  gemarkung:
-    locked: true
-    linetype: ACAD_ISO12W100
   gemarkungsgrenze:
-    linetype: "ACAD_ISO12W100"
-    lineweight: 50
+    layer:
+      locked: true
+      linetype: "ACAD_ISO12W100"
+      lineweight: 50
   gemarkungWorkView:
-    color: "moderate-yellow"
+    layer:
+      color: "moderate-yellow"
 
-  gemeinde:
-    locked: true
-    linetype: ACAD_ISO10W100
   gemeindegrenze:
-    linetype: "ACAD_ISO10W100"
-    lineweight: 50
+    layer:
+      locked: true
+      linetype: "ACAD_ISO10W100"
+      lineweight: 50
   gemeindeWorkView:
-    color: "moderate-yellow"
+    layer:
+      color: "moderate-yellow"
 
   parcel:
-    locked: true
+    layer:
+      locked: true
   parcelWorkView:
-    color: "dark-grey"
+    layer:
+      color: "dark-grey"
 
 
 # Natural Features
 # ----------------
 
   biotopWorkView:
-    color: "brilliant-green"
+    layer:
+      color: "brilliant-green"
 
   gesGeschuetzesBiotop:
-    color: "brilliant-intense-orange"
-    linetype: "ACAD_ISO02W100"
-    lineweight: 30
+    layer:
+      color: "brilliant-intense-orange"
+      linetype: "ACAD_ISO02W100"
+      lineweight: 30
 
   schutzflaecheWorkView:
-    color: "moderate-intense-green"
+    layer:
+      color: "moderate-intense-green"
 
-  # wald:
-  #   hatch:
-  #     pattern: 'ANSI31'
-  #     scale: 5
-  # waldLayer:
-  #   color: "moderate-intense-chartreuse"
+  wald:
+    layer:     
+      color: "moderate-intense-chartreuse"
+    hatch:
+      pattern: 'ANSI31'
+      scale: 5
 
   water:
-    color: "brilliant-blue"
-    transparency: 0.6
+    layer:
+      color: "brilliant-blue"
+      transparency: 0.6
 
 
 # Urban Planning
 # --------------
 
-  ausgleichHatch:
+  ausgleich:
+    layer:
+      color: "moderate-intense-green"
+      transparency: 0.6
     hatch:
       individual_hatches: true
-  ausgleichWorkView:
-    color: "moderate-intense-green"
-    transparency: 0.6
 
-  baufeldHatch:
-    individual_hatches: true
-  baufeldLayer:
-    color: "brilliant-red"
-    transparency: 0.6
+  baufeld:
+    layer:
+      color: "brilliant-red"
+      transparency: 0.6
+    hatch:
+      individual_hatches: true
 
   geltungsbereich:
-    linetype: "ACAD_ISO02W100"
-    lineweight: 80
+    layer:
+      color: "red"
+      linetype: "ACAD_ISO02W100"
+      lineweight: 80
 
   gfl1:
-    linetype: "ACAD_ISO02W100"
+    layer:
+      linetype: "ACAD_ISO02W100"
 
-  gruenflaecheHatch:
+  gruenflaeche:
+    layer:
+      color: "brilliant-intense-chartreuse"
+      transparency: 0.6
     hatch:
       individual_hatches: true
-  gruenflaecheLayer:
-    color: "brilliant-intense-chartreuse"
-    transparency: 0.6
 
   verkehrsflaeche:
-    color: "248,215,49"
-    lineweight: 10
+    layer:
+      color: "248,215,49"
+      lineweight: 10
     hatch:
       individual_hatches: true
       pattern: "ANSI31"
