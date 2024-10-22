@@ -383,7 +383,8 @@ projects:
               color: "Dark Green"
       - name: Wald Schraffur
         update: true
-        style: wald
+        style:
+          hatch: wald
         applyHatch:
           layers:
             - Wald

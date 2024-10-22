@@ -21,7 +21,7 @@ class StyleManager:
         
         if 'style' in layer_config:
             style = self.get_style(layer_config['style'])
-            if 'hatch' in style:
+            if isinstance(style, dict) and 'hatch' in style:
                 hatch_config.update(style['hatch'])
         
         if 'applyHatch' in layer_config:
@@ -30,6 +30,8 @@ class StyleManager:
                 hatch_config.update(apply_hatch)
             else:
                 hatch_config['apply'] = apply_hatch
+        
+        hatch_config['apply'] = hatch_config.get('apply', True)
         
         return hatch_config
 

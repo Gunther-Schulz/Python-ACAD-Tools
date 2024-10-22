@@ -18,6 +18,7 @@ from src.dfx_utils import (get_color_code, convert_transparency, attach_custom_d
                            ensure_layer_exists, update_layer_properties, 
                            set_drawing_properties, verify_dxf_settings, update_layer_geometry,
                            get_style, apply_style_to_entity, create_hatch, SCRIPT_IDENTIFIER, initialize_document, sanitize_layer_name, create_path_array)
+from src.style_manager import StyleManager
 
 class DXFExporter:
     def __init__(self, project_loader, layer_processor):
@@ -33,6 +34,7 @@ class DXFExporter:
         log_info(f"DXFExporter initialized with script identifier: {self.script_identifier}")
         self.setup_layers()
         self.viewports = {}
+        self.style_manager = StyleManager(project_loader)
         self.default_hatch_settings = {
             'pattern': 'SOLID',
             'scale': 1,
@@ -666,37 +668,15 @@ class DXFExporter:
     def _process_hatch(self, doc, msp, layer_name, layer_info):
         log_info(f"Processing hatch for layer: {layer_name}")
         
-        # Check if applyHatch is present and True
-        apply_hatch = layer_info.get('applyHatch', False)
-        if not apply_hatch:
+        hatch_config = self.style_manager.get_hatch_config(layer_info)
+        
+        log_info(f"Hatch config: {hatch_config}")
+
+        if not hatch_config.get('apply', False):
             log_info(f"Hatch processing skipped for layer: {layer_name}")
             return
 
-        style = layer_info.get('style', {})
-        
-        # Handle both preset and local style definitions
-        if isinstance(style, str):
-            # It's a preset style
-            hatch_style = self.project_loader.get_style(style)
-        else:
-            # It's a local style definition
-            hatch_style = style
-
-        # Start with default hatch settings
-        hatch_config = self.default_hatch_settings.copy()
-        
-        # Merge with hatchStyle settings
-        if 'hatch' in hatch_style:
-            hatch_config = self.deep_merge(hatch_config, hatch_style['hatch'])
-        
-        log_info(f"Hatch config after merging: {hatch_config}")
-
-        if not hatch_config:
-            log_info(f"No hatch configuration found for layer: {layer_name}")
-            return
-        
-        # Get the boundary layers
-        boundary_layers = apply_hatch.get('layers', [layer_name]) if isinstance(apply_hatch, dict) else [layer_name]
+        boundary_layers = hatch_config.get('layers', [layer_name])
         boundary_geometry = self._get_boundary_geometry(boundary_layers)
         
         if boundary_geometry is None or boundary_geometry.is_empty:
@@ -780,6 +760,9 @@ class DXFExporter:
                 remove_entities_by_layer(msp, target_layer_name, self.script_identifier)
                 
             create_path_array(msp, source_layer_name, target_layer_name, block_name, spacing, scale, rotation)
+
+
+
 
 
 

@@ -366,7 +366,7 @@ def create_hatch(msp, boundary_paths, hatch_config, project_loader, is_legend=Fa
         try:
             hatch.set_pattern_fill(pattern, scale=scale)
         except ezdxf.DXFValueError:
-            print(f"Invalid hatch pattern: {pattern}. Using SOLID instead.")
+            log_warning(f"Invalid hatch pattern: {pattern}. Using SOLID instead.")
             hatch.set_pattern_fill("SOLID")
     else:
         hatch.set_solid_fill()
@@ -603,6 +603,7 @@ def create_path_array(msp, source_layer_name, target_layer_name, block_name, spa
             current_distance -= segment_length
 
     log_info(f"Path array created for source layer '{source_layer_name}' using block '{block_name}' and placed on target layer '{target_layer_name}'")
+
 
 
 

@@ -19,6 +19,7 @@ from src.operations import (
     create_smooth_layer,
     _handle_contour_operation
 )
+from src.style_manager import StyleManager
 
 class LayerProcessor:
     def __init__(self, project_loader, plot_ops=False):
@@ -27,6 +28,7 @@ class LayerProcessor:
         self.project_settings = project_loader.project_settings
         self.crs = project_loader.crs
         self.plot_ops = plot_ops  # New flag for plotting operations
+        self.style_manager = StyleManager(project_loader)
     
     def process_layers(self):
         log_info("Starting to process layers...")
@@ -291,53 +293,20 @@ class LayerProcessor:
     def _process_hatch_config(self, layer_name, layer_config):
         log_info(f"Processing hatch configuration for layer: {layer_name}")
         
-        hatch_config = {}
-        
-        # Process style if it's present
-        if 'style' in layer_config:
-            style = layer_config['style']
-            if isinstance(style, str):
-                # It's a preset style
-                style_config = self.project_loader.get_style(style)
-                if 'hatch' in style_config:
-                    hatch_config['hatchStyle'] = style_config['hatch']
-            elif isinstance(style, dict) and 'hatch' in style:
-                hatch_config['hatchStyle'] = style['hatch']
-        
-        # Process applyHatch if it's present
-        if 'applyHatch' in layer_config:
-            apply_hatch = layer_config['applyHatch']
-            hatch_config['applyHatch'] = apply_hatch
-            if isinstance(apply_hatch, dict):
-                # Handle 'layers' key for boundary layers
-                if 'layers' in apply_hatch:
-                    boundary_layers = apply_hatch['layers']
-                    if isinstance(boundary_layers, str):
-                        hatch_config['applyHatch']['layers'] = [boundary_layers]
-                    elif isinstance(boundary_layers, list):
-                        hatch_config['applyHatch']['layers'] = boundary_layers
-                    else:
-                        log_warning(f"Invalid 'layers' specification in applyHatch for layer {layer_name}")
-                else:
-                    # If 'layers' is not specified, use the current layer
-                    hatch_config['applyHatch']['layers'] = [layer_name]
+        hatch_config = self.style_manager.get_hatch_config(layer_config)
         
         # Store hatch configuration in the layer properties
         if layer_name not in self.all_layers or self.all_layers[layer_name] is None:
             self.all_layers[layer_name] = gpd.GeoDataFrame(geometry=[], crs=self.crs)
         
-        # Create a copy of the existing DataFrame
         gdf = self.all_layers[layer_name].copy()
         
-        # If 'attributes' column doesn't exist, create it
         if 'attributes' not in gdf.columns:
             gdf['attributes'] = None
         
-        # Update the 'attributes' column with the hatch configuration
         gdf.loc[:, 'attributes'] = gdf['attributes'].apply(lambda x: {} if x is None else x)
         gdf.loc[:, 'attributes'] = gdf['attributes'].apply(lambda x: {**x, 'hatch_config': hatch_config})
         
-        # Assign the modified DataFrame back to self.all_layers
         self.all_layers[layer_name] = gdf
         
         log_info(f"Stored hatch configuration for layer: {layer_name}")
@@ -549,6 +518,7 @@ class LayerProcessor:
 
         if 'transparency' in style_dict:
             style_dict['transparency'] = max(0, min(style_dict['transparency'], 1))
+
 
 
 
