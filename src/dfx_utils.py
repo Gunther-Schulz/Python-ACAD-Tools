@@ -378,21 +378,20 @@ def create_hatch(msp, boundary_paths, hatch_config, project_loader, is_legend=Fa
     for path in boundary_paths:
         hatch.paths.add_polyline_path(path)
     
-    if not is_legend:
-        # Apply color and transparency only for non-legend hatches
-        if 'color' in hatch_config and hatch_config['color'] not in (None, 'BYLAYER'):
-            color = get_color_code(hatch_config['color'], project_loader.name_to_aci)
-            if isinstance(color, tuple):
-                hatch.rgb = color  # Set RGB color directly
-            else:
-                hatch.dxf.color = color  # Set ACI color
+    # Apply color and transparency for both legend and non-legend hatches
+    if 'color' in hatch_config and hatch_config['color'] not in (None, 'BYLAYER'):
+        color = get_color_code(hatch_config['color'], project_loader.name_to_aci)
+        if isinstance(color, tuple):
+            hatch.rgb = color  # Set RGB color directly
         else:
-            hatch.dxf.color = ezdxf.const.BYLAYER
+            hatch.dxf.color = color  # Set ACI color
+    else:
+        hatch.dxf.color = ezdxf.const.BYLAYER
 
-        if 'transparency' in hatch_config and hatch_config['transparency'] not in (None, 'BYLAYER'):
-            transparency = convert_transparency(hatch_config['transparency'])
-            if transparency is not None:
-                set_hatch_transparency(hatch, transparency)
+    if 'transparency' in hatch_config and hatch_config['transparency'] not in (None, 'BYLAYER'):
+        transparency = convert_transparency(hatch_config['transparency'])
+        if transparency is not None:
+            set_hatch_transparency(hatch, transparency)
     
     return hatch
 
@@ -608,6 +607,7 @@ def create_path_array(msp, source_layer_name, target_layer_name, block_name, spa
             current_distance -= segment_length
 
     log_info(f"Path array created for source layer '{source_layer_name}' using block '{block_name}' and placed on target layer '{target_layer_name}'")
+
 
 
 
