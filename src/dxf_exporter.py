@@ -162,6 +162,13 @@ class DXFExporter:
         
         # Process layer style
         layer_properties = self.style_manager.process_layer_style(layer_name, layer_info)
+        
+        # Ensure the layer exists
+        if layer_name not in doc.layers:
+            doc.layers.new(name=layer_name)
+            log_info(f"Created new layer: {layer_name}")
+        
+        # Apply layer properties
         self.apply_layer_properties(doc.layers.get(layer_name), layer_properties)
         
         if self.is_wmts_or_wms_layer(layer_info):
@@ -237,7 +244,7 @@ class DXFExporter:
         sanitized_layer_name = sanitize_layer_name(layer_name)  # Add this line
         properties = self.layer_properties[layer_name]
         
-        ensure_layer_exists(doc, sanitized_layer_name, properties)  # Update this line
+        ensure_layer_exists(doc, sanitized_layer_name, properties, self.name_to_aci)  # Update this line
         
         log_info(f"Created new layer: {sanitized_layer_name}")  # Update this line
         log_info(f"Layer properties: {properties}")
@@ -676,7 +683,7 @@ class DXFExporter:
         
         log_info(f"Hatch config: {hatch_config}")
 
-        if not hatch_config.get('apply', False):
+        if not hatch_config.get('applyHatch', False):
             log_info(f"Hatch processing skipped for layer: {layer_name}")
             return
 
@@ -764,6 +771,9 @@ class DXFExporter:
                 remove_entities_by_layer(msp, target_layer_name, self.script_identifier)
                 
             create_path_array(msp, source_layer_name, target_layer_name, block_name, spacing, scale, rotation)
+
+
+
 
 
 

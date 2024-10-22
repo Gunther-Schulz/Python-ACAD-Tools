@@ -171,13 +171,13 @@ def update_layer_geometry(msp, layer_name, script_identifier, update_function):
     # Add new geometry
     update_function()
 
-def ensure_layer_exists(doc, layer_name, layer_properties):
+def ensure_layer_exists(doc, layer_name, layer_properties, name_to_aci):
     if layer_name not in doc.layers:
         new_layer = doc.layers.new(layer_name)
-        update_layer_properties(new_layer, layer_properties)
+        update_layer_properties(new_layer, layer_properties, name_to_aci)
     else:
         existing_layer = doc.layers.get(layer_name)
-        update_layer_properties(existing_layer, layer_properties)
+        update_layer_properties(existing_layer, layer_properties, name_to_aci)
 
 def update_layer_properties(layer, layer_properties, name_to_aci):
     if 'color' in layer_properties:
@@ -607,6 +607,7 @@ def create_path_array(msp, source_layer_name, target_layer_name, block_name, spa
             current_distance -= segment_length
 
     log_info(f"Path array created for source layer '{source_layer_name}' using block '{block_name}' and placed on target layer '{target_layer_name}'")
+
 
 
 

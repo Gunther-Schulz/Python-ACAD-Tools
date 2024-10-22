@@ -346,7 +346,7 @@ class LegendCreator:
         subtitle = self.legend_config.get('subtitle', '')
         layer_name = self.get_sanitized_layer_name("Legend_Title")
 
-        ensure_layer_exists(self.doc, layer_name, {})
+        ensure_layer_exists(self.doc, layer_name, {}, self.name_to_aci)
 
         if title:
             title_result = self.add_mtext(self.position['x'], self.current_y, title, layer_name, self.title_text_style, self.max_width)
@@ -394,6 +394,7 @@ class LegendCreator:
         if isinstance(style, str):
             style = self.project_loader.get_style(style)
         apply_style_to_entity(entity, style, self.project_loader, self.loaded_styles)
+
 
 
 
