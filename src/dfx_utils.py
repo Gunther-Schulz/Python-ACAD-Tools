@@ -351,20 +351,16 @@ def apply_style_to_entity(entity, style, project_loader, loaded_styles, item_typ
         else:
             entity.dxf.style = text_style
 
-def create_hatch(msp, boundary_paths, style, project_loader, is_legend=False):
+def create_hatch(msp, boundary_paths, hatch_config, project_loader, is_legend=False):
     if is_legend:
-        log_info(f"Creating symbol hatch with style: {style}")
+        log_info(f"Creating symbol hatch with config: {hatch_config}")
     else:
-        log_info(f"Creating hatch with style: {style}")
+        log_info(f"Creating hatch with config: {hatch_config}")
     
     hatch = msp.add_hatch()
     
-    # If style is a string, get the actual style dictionary
-    if isinstance(style, str):
-        style = project_loader.get_style(style)
-    
-    pattern = style.get('pattern', 'SOLID')
-    scale = style.get('scale', 1)
+    pattern = hatch_config.get('pattern', 'SOLID')
+    scale = hatch_config.get('scale', 1)
     
     if pattern != 'SOLID':
         try:
@@ -378,20 +374,20 @@ def create_hatch(msp, boundary_paths, style, project_loader, is_legend=False):
     for path in boundary_paths:
         hatch.paths.add_polyline_path(path)
     
-    # Apply color and transparency only for legend items
-    if is_legend:
-        if 'color' in style:
-            color = get_color_code(style['color'], project_loader.name_to_aci)
-            if isinstance(color, tuple):
-                hatch.rgb = color  # Set RGB color directly
-            else:
-                hatch.dxf.color = color  # Set ACI color
-        if 'transparency' in style:
-            transparency = convert_transparency(style['transparency'])
-            if transparency is not None:
-                set_hatch_transparency(hatch, transparency)
+    # Apply color and transparency
+    if 'color' in hatch_config:
+        color = get_color_code(hatch_config['color'], project_loader.name_to_aci)
+        if isinstance(color, tuple):
+            hatch.rgb = color  # Set RGB color directly
+        else:
+            hatch.dxf.color = color  # Set ACI color
     else:
         hatch.dxf.color = ezdxf.const.BYLAYER
+
+    if 'transparency' in hatch_config:
+        transparency = convert_transparency(hatch_config['transparency'])
+        if transparency is not None:
+            set_hatch_transparency(hatch, transparency)
     
     return hatch
 
@@ -607,5 +603,6 @@ def create_path_array(msp, source_layer_name, target_layer_name, block_name, spa
             current_distance -= segment_length
 
     log_info(f"Path array created for source layer '{source_layer_name}' using block '{block_name}' and placed on target layer '{target_layer_name}'")
+
 
 

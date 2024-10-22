@@ -48,9 +48,10 @@
   schutzflaecheWorkView:
     color: "moderate-intense-green"
 
-  waldHatch:
-    pattern: 'ANSI31'
-    scale: 5
+  wald:
+    hatch:
+      pattern: 'ANSI31'
+      scale: 5
   # waldLayer:
   #   color: "moderate-intense-chartreuse"
 

@@ -166,16 +166,7 @@ class DXFExporter:
         if 'viewports' in layer_info:
             self._process_viewport_styles(doc, layer_name, layer_info['viewports'])
         
-        should_process_hatch = 'performHatch' in layer_info
-        if 'style' in layer_info:
-            style = layer_info['style']
-            if isinstance(style, str):
-                style_dict = self.project_loader.get_style(style)
-            else:
-                style_dict = style
-            should_process_hatch = should_process_hatch or 'hatch' in style_dict
-
-        if should_process_hatch:
+        if 'applyHatch' in layer_info or ('style' in layer_info and 'hatch' in layer_info['style']):
             self._process_hatch(doc, msp, layer_name, layer_info)
 
     def _process_wmts_layer(self, doc, msp, layer_name, layer_info):
@@ -682,16 +673,24 @@ class DXFExporter:
             return
 
         style = layer_info.get('style', {})
-        hatch_style = style.get('hatch', {})
-        if isinstance(hatch_style, str):
-            hatch_style = self.project_loader.get_style(hatch_style)
         
+        # Handle both preset and local style definitions
+        if isinstance(style, str):
+            # It's a preset style
+            hatch_style = self.project_loader.get_style(style)
+        else:
+            # It's a local style definition
+            hatch_style = style
+
         # Start with default hatch settings
         hatch_config = self.default_hatch_settings.copy()
         
         # Merge with hatchStyle settings
-        hatch_config = self.deep_merge(hatch_config, hatch_style)
+        if 'hatch' in hatch_style:
+            hatch_config = self.deep_merge(hatch_config, hatch_style['hatch'])
         
+        log_info(f"Hatch config after merging: {hatch_config}")
+
         if not hatch_config:
             log_info(f"No hatch configuration found for layer: {layer_name}")
             return
@@ -781,6 +780,9 @@ class DXFExporter:
                 remove_entities_by_layer(msp, target_layer_name, self.script_identifier)
                 
             create_path_array(msp, source_layer_name, target_layer_name, block_name, spacing, scale, rotation)
+
+
+
 
 
 

@@ -296,12 +296,13 @@ class LayerProcessor:
         # Process style if it's present
         if 'style' in layer_config:
             style = layer_config['style']
-            if 'hatch' in style:
-                hatch_style = style['hatch']
-                if isinstance(hatch_style, str):
-                    hatch_config['hatchStyle'] = self.project_loader.get_style(hatch_style)
-                else:
-                    hatch_config['hatchStyle'] = hatch_style
+            if isinstance(style, str):
+                # It's a preset style
+                style_config = self.project_loader.get_style(style)
+                if 'hatch' in style_config:
+                    hatch_config['hatchStyle'] = style_config['hatch']
+            elif isinstance(style, dict) and 'hatch' in style:
+                hatch_config['hatchStyle'] = style['hatch']
         
         # Process applyHatch if it's present
         if 'applyHatch' in layer_config:
@@ -508,6 +509,10 @@ class LayerProcessor:
             return geometry_or_gdf
 
     def _process_style(self, layer_name, style_config):
+        if isinstance(style_config, str):
+            # If style_config is a string, it's a preset name
+            style_config = self.project_loader.get_style(style_config)
+        
         known_style_keys = {'layer', 'hatch', 'text'}
         unknown_style_keys = set(style_config.keys()) - known_style_keys
         if unknown_style_keys:
@@ -515,8 +520,8 @@ class LayerProcessor:
 
         if 'layer' in style_config:
             self._process_layer_style(layer_name, style_config['layer'])
-        if 'hatch' in style_config:
-            self._process_hatch_style(layer_name, style_config['hatch'])
+        if 'hatch' in style_config or 'applyHatch' in style_config:
+            self._process_hatch_config(layer_name, style_config)
         if 'text' in style_config:
             self._process_text_style(layer_name, style_config['text'])
 
@@ -544,6 +549,11 @@ class LayerProcessor:
 
         if 'transparency' in style_dict:
             style_dict['transparency'] = max(0, min(style_dict['transparency'], 1))
+
+
+
+
+
 
 
 
