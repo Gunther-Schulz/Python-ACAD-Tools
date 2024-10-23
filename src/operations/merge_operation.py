@@ -25,40 +25,23 @@ def create_merged_layer(all_layers, project_settings, crs, layer_name, operation
     log_info(f"Total geometries collected: {len(combined_geometries)}")
 
     if combined_geometries:
-        # Apply buffer trick
-        buffer_distance = 0.01  # Adjust this value as needed
-        log_info(f"Applying buffer trick with distance: {buffer_distance}")
-        
-        buffered_geometries = [geom.buffer(buffer_distance) for geom in combined_geometries]
-        log_info("Merging buffered geometries")
-        merged_geometry = unary_union(buffered_geometries)
-        log_info(f"Merged buffered geometry type: {merged_geometry.geom_type}")
-        
-        # Unbuffer to get back to original size
-        log_info("Unbuffering merged geometry")
-        unbuffered_geometry = merged_geometry.buffer(-buffer_distance)
-        log_info(f"Unbuffered geometry type: {unbuffered_geometry.geom_type}")
-        
-        # Simplify the unbuffered geometry
-        log_info("Simplifying unbuffered geometry")
-        simplified_geometry = unbuffered_geometry.simplify(0.1)
-        log_info(f"Simplified geometry type: {simplified_geometry.geom_type}")
+        merged_geometry = unary_union(combined_geometries)
         
         # If the result is a MultiPolygon, convert it to separate Polygons
-        if isinstance(simplified_geometry, MultiPolygon):
+        if isinstance(merged_geometry, MultiPolygon):
             log_info("Result is a MultiPolygon, separating into individual Polygons")
-            result_geometries = list(simplified_geometry.geoms)
-        elif isinstance(simplified_geometry, Polygon):
+            result_geometries = list(merged_geometry.geoms)
+        elif isinstance(merged_geometry, Polygon):
             log_info("Result is a single Polygon")
-            result_geometries = [simplified_geometry]
+            result_geometries = [merged_geometry]
         else:
-            log_info(f"Result is of type {type(simplified_geometry)}")
-            result_geometries = [simplified_geometry]
+            log_info(f"Result is of type {type(merged_geometry)}")
+            result_geometries = [merged_geometry]
         
         log_info(f"Number of resulting geometries: {len(result_geometries)}")
         
-        # Create a GeoDataFrame with the resulting geometries
-        result_gdf = gpd.GeoDataFrame(geometry=result_geometries, crs=crs)
+        # Create a GeoDataFrame with the resulting geometries and explode to singlepart
+        result_gdf = explode_to_singlepart(gpd.GeoDataFrame(geometry=result_geometries, crs=crs))
         all_layers[layer_name] = result_gdf
         log_info(f"Created merged layer '{layer_name}' with {len(result_gdf)} geometries")
         

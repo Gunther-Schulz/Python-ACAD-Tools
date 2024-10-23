@@ -13,6 +13,8 @@ import geopandas as gpd
 from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection, Point, MultiPoint
 from src.utils import log_info, log_warning, log_error
 import traceback
+import shutil
+import os
 
 from src.operations.common_operations import *
 from src.project_loader import ProjectLoader
@@ -187,42 +189,6 @@ def plot_operation_result(all_layers, project_settings, crs, layer_name, op_type
         plt.show()
 
 
-def write_shapefile(all_layers, project_settings, crs, layer_name, output_path, project_loader):
-        log_info(f"Writing shapefile for layer {layer_name}: {output_path}")
-        if layer_name in all_layers:
-            gdf = all_layers[layer_name]
-            log_info(f"Type of data for {layer_name}: {type(gdf)}")
-            log_info(f"Columns in the data: {gdf.columns.tolist() if hasattr(gdf, 'columns') else 'No columns'}")
-            log_info(f"CRS of the data: {gdf.crs if hasattr(gdf, 'crs') else 'No CRS'}")
-            log_info(f"Number of rows: {len(gdf) if hasattr(gdf, '__len__') else 'Unknown'}")
-            
-            if isinstance(gdf, gpd.GeoDataFrame):
-                log_info(f"Geometry column name: {gdf.geometry.name}")
-                log_info(f"Geometry types: {gdf.geometry.type.unique().tolist()}")
-                
-                # Handle GeometryCollection
-                def convert_geometry(geom):
-                    if isinstance(geom, GeometryCollection):
-                        polygons = [g for g in geom.geoms if isinstance(g, (Polygon, MultiPolygon))]
-                        if polygons:
-                            return MultiPolygon(polygons)
-                        return None
-                    return geom
-
-                gdf['geometry'] = gdf['geometry'].apply(convert_geometry)
-                gdf = gdf[gdf['geometry'].notna()]
-
-                if not gdf.empty:
-                    full_path = project_loader.resolve_full_path(output_path)
-                    gdf.to_file(full_path)
-                    log_info(f"Shapefile written for layer {layer_name}: {full_path}")
-                else:
-                    log_warning(f"No valid geometries found for layer {layer_name} after conversion")
-            else:
-                log_warning(f"Cannot write shapefile for layer {layer_name}: not a GeoDataFrame")
-        else:
-            log_warning(f"Cannot write shapefile for layer {layer_name}: layer not found")
-
 def _clean_single_geometry(all_layers, project_settings, crs, geometry):
     # Implement the cleaning logic here
     # For example:
@@ -239,23 +205,23 @@ def _clean_single_geometry(all_layers, project_settings, crs, geometry):
 
 
 def _remove_thin_growths(all_layers, project_settings, crs, geometry, threshold):
-        if isinstance(geometry, (Polygon, MultiPolygon)):
-            # Apply a negative buffer followed by a positive buffer
-            cleaned = geometry.buffer(-threshold).buffer(threshold)
-            
-            # Ensure the result is valid and of the same type as the input
-            cleaned = make_valid(cleaned)
-            if isinstance(geometry, Polygon) and isinstance(cleaned, MultiPolygon):
-                # If a Polygon became a MultiPolygon, take the largest part
-                largest = max(cleaned.geoms, key=lambda g: g.area)
-                return largest
-            return cleaned
-        elif isinstance(geometry, GeometryCollection):
-            cleaned_geoms = [_remove_thin_growths(geom, threshold) for geom in geometry.geoms]
-            return GeometryCollection([g for g in cleaned_geoms if g is not None])
-        else:
-            # For non-polygon geometries, return as is
-            return geometry
+    if isinstance(geometry, (Polygon, MultiPolygon)):
+        # Apply a negative buffer followed by a positive buffer
+        cleaned = geometry.buffer(-threshold).buffer(threshold)
+        
+        # Ensure the result is valid and of the same type as the input
+        cleaned = make_valid(cleaned)
+        if isinstance(geometry, Polygon) and isinstance(cleaned, MultiPolygon):
+            # If a Polygon became a MultiPolygon, take the largest part
+            largest = max(cleaned.geoms, key=lambda g: g.area)
+            return largest
+        return cleaned
+    elif isinstance(geometry, GeometryCollection):
+        cleaned_geoms = [_remove_thin_growths(all_layers, project_settings, crs, geom, threshold) for geom in geometry.geoms]
+        return GeometryCollection([g for g in cleaned_geoms if g is not None])
+    else:
+        # For non-polygon geometries, return as is
+        return geometry
 
 
 def _clean_polygon(all_layers, project_settings, crs, polygon, sliver_removal_distance, min_area):
@@ -325,29 +291,44 @@ def _remove_small_polygons(all_layers, project_settings, crs, geometry, min_area
             
 
 def _merge_close_vertices(all_layers, project_settings, crs, geometry, tolerance=0.1):
-        def merge_points(geom):
-            if isinstance(geom, LineString):
-                coords = list(geom.coords)
-                merged_coords = [coords[0]]
-                for coord in coords[1:]:
-                    if Point(coord).distance(Point(merged_coords[-1])) > tolerance:
-                        merged_coords.append(coord)
-                return LineString(merged_coords)
-            elif isinstance(geom, Polygon):
-                exterior_coords = merge_points(LineString(geom.exterior.coords)).coords
-                interiors = [merge_points(LineString(interior.coords)).coords for interior in geom.interiors]
-                return Polygon(exterior_coords, interiors)
-            elif isinstance(geom, MultiPolygon):
-                return MultiPolygon([merge_points(part) for part in geom.geoms])
-            elif isinstance(geom, MultiLineString):
-                return MultiLineString([merge_points(part) for part in geom.geoms])
+    def merge_points(geom):
+        if isinstance(geom, Polygon):
+            exterior_coords = list(geom.exterior.coords)
+            merged_exterior = [exterior_coords[0]]
+            for coord in exterior_coords[1:]:
+                if Point(coord).distance(Point(merged_exterior[-1])) > tolerance:
+                    merged_exterior.append(coord)
+            
+            interiors = []
+            for interior in geom.interiors:
+                interior_coords = list(interior.coords)
+                merged_interior = [interior_coords[0]]
+                for coord in interior_coords[1:]:
+                    if Point(coord).distance(Point(merged_interior[-1])) > tolerance:
+                        merged_interior.append(coord)
+                if len(merged_interior) >= 4:  # Keep only valid interior rings (4 points to close the ring)
+                    interiors.append(merged_interior)
+            
+            if len(merged_exterior) >= 4:  # 4 points to close the ring
+                return Polygon(merged_exterior, interiors)
             else:
-                return geom
-
-        if isinstance(geometry, GeometryCollection):
-            return GeometryCollection([merge_points(geom) for geom in geometry.geoms])
+                return None
+        elif isinstance(geom, MultiPolygon):
+            merged_polys = [merge_points(part) for part in geom.geoms]
+            merged_polys = [poly for poly in merged_polys if poly is not None]
+            if merged_polys:
+                return MultiPolygon(merged_polys)
+            else:
+                return None
         else:
-            return merge_points(geometry)
+            return None
+
+    if isinstance(geometry, GeometryCollection):
+        merged_geoms = [merge_points(geom) for geom in geometry.geoms if isinstance(geom, (Polygon, MultiPolygon))]
+        merged_geoms = [geom for geom in merged_geoms if geom is not None]
+        return GeometryCollection(merged_geoms) if merged_geoms else None
+    else:
+        return merge_points(geometry)
         
 
 def _clean_geometry(all_layers, project_settings, crs, geometry):
@@ -359,6 +340,7 @@ def _clean_geometry(all_layers, project_settings, crs, geometry):
 
 def _remove_empty_geometries(all_layers, project_settings, crs, layer_name, geometry):
         if isinstance(geometry, gpd.GeoDataFrame):
+            # Use both ~is_empty and notna() to filter out empty and null geometries
             non_empty = geometry[~geometry.geometry.is_empty & geometry.geometry.notna()]
             if non_empty.empty:
                 log_warning(f"All geometries in layer '{layer_name}' are empty or null")
@@ -435,6 +417,140 @@ def _create_generic_overlay_layer(all_layers, project_settings, crs, layer_name,
             result_gdf = gpd.GeoDataFrame(geometry=result_geometry, crs=base_geometry.crs)
             all_layers[layer_name] = result_gdf
             log_info(f"Created {overlay_type} layer: {layer_name} with {len(result_geometry)} geometries")
+
+
+def remove_non_polygons(geometry):
+    """Removes non-polygon elements from a geometry."""
+    log_info("Removing non-polygon elements")
+    if isinstance(geometry, GeometryCollection):
+        return GeometryCollection([geom for geom in geometry.geoms if isinstance(geom, (Polygon, MultiPolygon))])
+    elif isinstance(geometry, (Polygon, MultiPolygon)):
+        return geometry
+    else:
+        log_warning(f"Non-polygon geometry encountered. Removing.")
+        return None
+
+def clean_polygons(geometry):
+    """Cleans polygon geometries."""
+    log_info("Cleaning polygon geometries")
+    if isinstance(geometry, GeometryCollection):
+        cleaned = [_clean_geometry(geom) for geom in geometry.geoms if isinstance(geom, (Polygon, MultiPolygon))]
+    else:
+        cleaned = [_clean_geometry(geometry)]
+    return [poly for poly in cleaned if poly is not None]
+
+def remove_thin_growths(geometry, threshold):
+    """Removes thin growths from a geometry."""
+    log_info(f"Removing thin growths with threshold: {threshold}")
+    return _remove_thin_growths(geometry, threshold)
+
+def merge_close_vertices(geometry, tolerance):
+    """Merges close vertices in a geometry."""
+    log_info(f"Merging close vertices with tolerance: {tolerance}")
+    return _merge_close_vertices(geometry, tolerance)
+
+def apply_buffer_trick(geometry, buffer_distance):
+    """Applies the buffer trick to a geometry."""
+    log_info(f"Applying buffer trick with distance: {buffer_distance}")
+    buffered = geometry.buffer(buffer_distance)
+    return buffered.buffer(-buffer_distance)
+
+def final_union(geometries):
+    """Performs a final unary union on a list of geometries."""
+    log_info("Performing final unary union")
+    return unary_union(geometries)
+
+def explode_to_singlepart(geometry_or_gdf):
+    """
+    Converts multipart geometries to singlepart geometries.
+    
+    Args:
+    geometry_or_gdf: A Shapely geometry object or a GeoDataFrame
+    
+    Returns:
+    A GeoDataFrame with singlepart geometries
+    """
+    log_info("Exploding multipart geometries to singlepart")
+    
+    if isinstance(geometry_or_gdf, gpd.GeoDataFrame):
+        exploded = geometry_or_gdf.explode(index_parts=True)
+        exploded = exploded.reset_index(drop=True)
+    else:
+        if isinstance(geometry_or_gdf, GeometryCollection):
+            geometries = [geom for geom in geometry_or_gdf.geoms if isinstance(geom, (Polygon, MultiPolygon))]
+        elif isinstance(geometry_or_gdf, (MultiPolygon, Polygon)):
+            geometries = [geometry_or_gdf]
+        else:
+            log_warning(f"Unsupported geometry type for explosion: {type(geometry_or_gdf)}")
+            return gpd.GeoDataFrame(geometry=[geometry_or_gdf])
+        
+        exploded = gpd.GeoDataFrame(geometry=[])
+        for geom in geometries:
+            if isinstance(geom, MultiPolygon):
+                exploded = exploded.append(gpd.GeoDataFrame(geometry=list(geom.geoms)))
+            else:
+                exploded = exploded.append(gpd.GeoDataFrame(geometry=[geom]))
+    
+    log_info(f"Exploded {len(geometry_or_gdf) if isinstance(geometry_or_gdf, gpd.GeoDataFrame) else 1} "
+             f"multipart geometries into {len(exploded)} singlepart geometries")
+    return exploded
+
+def remove_geometry_types(geometry_or_gdf, remove_lines=False, remove_points=False, remove_polygons=False):
+    """
+    Removes specified geometry types and empty geometries from a geometry, GeoSeries, or GeoDataFrame.
+    
+    Args:
+    geometry_or_gdf: A Shapely geometry object, GeoSeries, or GeoDataFrame
+    remove_lines: Boolean, whether to remove LineString and MultiLineString geometries
+    remove_points: Boolean, whether to remove Point and MultiPoint geometries
+    remove_polygons: Boolean, whether to remove Polygon and MultiPolygon geometries
+    
+    Returns:
+    A GeoDataFrame or GeoSeries with the specified geometry types and empty geometries removed
+    """
+    log_info(f"Removing geometry types - Lines: {remove_lines}, Points: {remove_points}, Polygons: {remove_polygons}")
+    
+    def filter_geometry(geom):
+        if geom is None or geom.is_empty:
+            return None
+        if isinstance(geom, GeometryCollection):
+            filtered_geoms = []
+            for sub_geom in geom.geoms:
+                if sub_geom.is_empty:
+                    continue
+                if (remove_lines and isinstance(sub_geom, (LineString, MultiLineString))) or \
+                   (remove_points and isinstance(sub_geom, (Point, MultiPoint))) or \
+                   (remove_polygons and isinstance(sub_geom, (Polygon, MultiPolygon))):
+                    continue
+                filtered_geoms.append(sub_geom)
+            return GeometryCollection(filtered_geoms) if filtered_geoms else None
+        elif (remove_lines and isinstance(geom, (LineString, MultiLineString))) or \
+             (remove_points and isinstance(geom, (Point, MultiPoint))) or \
+             (remove_polygons and isinstance(geom, (Polygon, MultiPolygon))):
+            return None
+        return geom
+    
+    if isinstance(geometry_or_gdf, gpd.GeoDataFrame):
+        filtered_gdf = geometry_or_gdf.copy()
+        filtered_gdf['geometry'] = filtered_gdf['geometry'].apply(filter_geometry)
+        filtered_gdf = filtered_gdf[filtered_gdf['geometry'].notna() & ~filtered_gdf['geometry'].is_empty]
+        log_info(f"Removed geometries: {len(geometry_or_gdf) - len(filtered_gdf)}")
+        return filtered_gdf
+    elif isinstance(geometry_or_gdf, (gpd.GeoSeries, pd.Series)):
+        filtered_series = geometry_or_gdf.apply(filter_geometry)
+        filtered_series = filtered_series[filtered_series.notna() & ~filtered_series.is_empty]
+        log_info(f"Removed geometries: {len(geometry_or_gdf) - len(filtered_series)}")
+        return filtered_series
+    else:
+        filtered_geom = filter_geometry(geometry_or_gdf)
+        if filtered_geom is None or filtered_geom.is_empty:
+            log_warning("All geometries were removed or empty")
+            return gpd.GeoDataFrame(geometry=[])
+        return gpd.GeoDataFrame(geometry=[filtered_geom])
+
+
+
+
 
 
 

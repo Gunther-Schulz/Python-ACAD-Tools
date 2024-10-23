@@ -369,14 +369,14 @@ projects:
           - name: WorkView
             style: gemeindeWorkView
       - name: Grünfläche Input 
-        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/geltungsbereich_abstand.shp"
+        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/grünfläche_input_2.shp"
         close: true
       - name: Wald
         update: true
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/wald.shp"
         close: true
         operations:
-          - type: merge
+          - type: dissolve
         viewports:
           - name: WorkView
             style: wald
@@ -474,11 +474,11 @@ projects:
                 values:
                   - "Groß Plasten"
           - type: difference
+            useBufferTrick: true
             layers:
               - Wald
               - Baumabstand Puffer
               - Exclude
-              # - Exclude Acad
       - name: Geltungsbereich S
         update: true
         style: geltungsbereich
@@ -508,6 +508,8 @@ projects:
       - name: Waldabstand
         operations:
           - type: buffer
+            joinStyle: mitre
+            join_style: mitre
             layers:
               - Wald
             distance: 30
@@ -516,6 +518,8 @@ projects:
               - Geltungsbereich NW
               - Geltungsbereich NO
               - Geltungsbereich S
+          - type: filterGeometry
+            minArea: 200
       - name: Biotope
         update: true
         viewports:
@@ -566,16 +570,16 @@ projects:
               - Biotoppuffer
               - Biotope
           # - type: merge
-          # - type: buffer
-          #   distance: -5
+          - type: dissolve
+  
           - type: intersection
             layers:
               - Geltungsbereich NW
               - Geltungsbereich NO
               - Geltungsbereich S
           - type: buffer
-            distance: -5
-            joinStyle: round
+            distance: -3
+            # joinStyle: round
         # bluntAngles:
         #   angleThreshold: 25  # Angles smaller than this will be blunted
         #   distance: 10.0  # Distance to move the vertex along the angle bisector
@@ -590,20 +594,32 @@ projects:
           - name: WorkView
             style: schutzflaecheWorkView
         operations:
-          - type: buffer
+          - type: copy
             layers:
-              - Grünfläche
-            distance: 5
-            # joinStyle: round
+              - Grünfläche Input 
+              - Waldabstand
+              - Baumabstand Puffer
+              - FG Buffer
+              - Biotoppuffer
+              - Biotope
+          # - type: merge
+          - type: dissolve
+          # - type: buffer
+          #   layers:
+          #     - Grünfläche
+          #   distance: 5
+          #   # joinStyle: round
           - type: difference
             layers:
               - Grünfläche
-            # reverseDifference: true
+            # reverseDifference: false
           - type: intersection
             layers:
               - Geltungsbereich NW
               - Geltungsbereich NO
               - Geltungsbereich S
+          - type: filterGeometry
+            minArea: 200
       
       # - name: "Biotope T-Symbol"
       #   update: true
@@ -738,25 +754,25 @@ projects:
       #       layers:
       #         - Baufeld
       #       distance: -3
-      - name: WMTS DOP
-        # update: true
-        style: 
-          locked: true
-          # color: "White"
-        operations:
-          - type: wmts
-            url: "https://www.geodaten-mv.de/dienste/dop_wmts/wmts/1.0.0/WMTSCapabilities.xml"
-            layer: "mv_dop"
-            # zoom: "10"
-            proj: "ETRS89UTM33"
-            targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/DOP"
-            layers:
-              - Geltungsbereich NW
-              - Geltungsbereich NO
-              - Geltungsbereich S
-            buffer: 200
-            stitchTiles: true
-            # overwrite: true
+      # - name: WMTS DOP
+      #   # update: true
+      #   style: 
+      #     locked: true
+      #     # color: "White"
+      #   operations:
+      #     - type: wmts
+      #       url: "https://www.geodaten-mv.de/dienste/dop_wmts/wmts/1.0.0/WMTSCapabilities.xml"
+      #       layer: "mv_dop"
+      #       # zoom: "10"
+      #       proj: "ETRS89UTM33"
+      #       targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/DOP"
+      #       layers:
+      #         - Geltungsbereich NW
+      #         - Geltungsbereich NO
+      #         - Geltungsbereich S
+      #       buffer: 200
+      #       stitchTiles: true
+      #       # overwrite: true
       # - name: WMTS Basemap
       #   update: true
       #   color: Black

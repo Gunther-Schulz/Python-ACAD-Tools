@@ -25,8 +25,12 @@ def create_smooth_layer(all_layers, project_settings, crs, layer_name, operation
                 combined_geometry = combined_geometry.union(layer_geometry)
 
         if combined_geometry is not None:
+            buffer_distance = operation.get('bufferDistance', 0.001)
+            thin_growth_threshold = operation.get('thinGrowthThreshold', 0.001)
+            merge_vertices_tolerance = operation.get('mergeVerticesTolerance', 0.0001)
             smoothed_geometry = smooth_geometry(combined_geometry, strength)
-            all_layers[layer_name] = ensure_geodataframe(layer_name, gpd.GeoDataFrame(geometry=[smoothed_geometry], crs=crs))
+            cleaned_geometry = smoothed_geometry
+            all_layers[layer_name] = ensure_geodataframe(layer_name, gpd.GeoDataFrame(geometry=[cleaned_geometry], crs=crs))
             log_info(f"Created smooth layer: {layer_name}")
         else:
             log_warning(f"No valid source geometry found for smooth layer '{layer_name}'")
@@ -50,5 +54,7 @@ def smooth_geometry(all_layers, project_settings, crs, geometry, strength):
             smoothed = geometry.intersection(smoothed)
         
         return smoothed
+
+
 
 

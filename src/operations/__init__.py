@@ -8,6 +8,7 @@ from .merge_operation import create_merged_layer
 from .smooth_operation import create_smooth_layer
 from .contour_operation import _handle_contour_operation
 from .common_operations import _create_generic_overlay_layer
+from .dissolve_operation import create_dissolved_layer
 
 __all__ = [
     'create_copy_layer',
@@ -20,5 +21,6 @@ __all__ = [
     'create_smooth_layer',
     'handle_contour_operation',
     '_create_generic_overlay_layer',
-    '_handle_contour_operation'
+    '_handle_contour_operation',
+    'create_dissolved_layer'
 ]
