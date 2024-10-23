@@ -239,23 +239,23 @@ def _clean_single_geometry(all_layers, project_settings, crs, geometry):
 
 
 def _remove_thin_growths(all_layers, project_settings, crs, geometry, threshold):
-        if isinstance(geometry, (Polygon, MultiPolygon)):
-            # Apply a negative buffer followed by a positive buffer
-            cleaned = geometry.buffer(-threshold).buffer(threshold)
-            
-            # Ensure the result is valid and of the same type as the input
-            cleaned = make_valid(cleaned)
-            if isinstance(geometry, Polygon) and isinstance(cleaned, MultiPolygon):
-                # If a Polygon became a MultiPolygon, take the largest part
-                largest = max(cleaned.geoms, key=lambda g: g.area)
-                return largest
-            return cleaned
-        elif isinstance(geometry, GeometryCollection):
-            cleaned_geoms = [_remove_thin_growths(geom, threshold) for geom in geometry.geoms]
-            return GeometryCollection([g for g in cleaned_geoms if g is not None])
-        else:
-            # For non-polygon geometries, return as is
-            return geometry
+    if isinstance(geometry, (Polygon, MultiPolygon)):
+        # Apply a negative buffer followed by a positive buffer
+        cleaned = geometry.buffer(-threshold).buffer(threshold)
+        
+        # Ensure the result is valid and of the same type as the input
+        cleaned = make_valid(cleaned)
+        if isinstance(geometry, Polygon) and isinstance(cleaned, MultiPolygon):
+            # If a Polygon became a MultiPolygon, take the largest part
+            largest = max(cleaned.geoms, key=lambda g: g.area)
+            return largest
+        return cleaned
+    elif isinstance(geometry, GeometryCollection):
+        cleaned_geoms = [_remove_thin_growths(all_layers, project_settings, crs, geom, threshold) for geom in geometry.geoms]
+        return GeometryCollection([g for g in cleaned_geoms if g is not None])
+    else:
+        # For non-polygon geometries, return as is
+        return geometry
 
 
 def _clean_polygon(all_layers, project_settings, crs, polygon, sliver_removal_distance, min_area):
@@ -529,4 +529,7 @@ def explode_to_singlepart(geometry_or_gdf):
     log_info(f"Exploded {len(geometry_or_gdf) if isinstance(geometry_or_gdf, gpd.GeoDataFrame) else 1} "
              f"multipart geometries into {len(exploded)} singlepart geometries")
     return exploded
+
+
+
 

@@ -2,7 +2,7 @@ import geopandas as gpd
 from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection, Point, MultiPoint
 from src.utils import log_info, log_warning, log_error
 from shapely.ops import unary_union
-from src.operations.common_operations import _process_layer_info, _get_filtered_geometry
+from src.operations.common_operations import _process_layer_info, _get_filtered_geometry, prepare_and_clean_geometry
 from src.operations.common_operations import *
 
 def create_merged_layer(all_layers, project_settings, crs, layer_name, operation):
@@ -25,35 +25,23 @@ def create_merged_layer(all_layers, project_settings, crs, layer_name, operation
     log_info(f"Total geometries collected: {len(combined_geometries)}")
 
     if combined_geometries:
-        # Apply buffer trick
-        buffer_distance = 0.01  # Adjust this value as needed
-        log_info(f"Applying buffer trick with distance: {buffer_distance}")
-        
-        buffered_geometries = [geom.buffer(buffer_distance) for geom in combined_geometries]
-        log_info("Merging buffered geometries")
-        merged_geometry = unary_union(buffered_geometries)
-        log_info(f"Merged buffered geometry type: {merged_geometry.geom_type}")
-        
-        # Unbuffer to get back to original size
-        log_info("Unbuffering merged geometry")
-        unbuffered_geometry = merged_geometry.buffer(-buffer_distance)
-        log_info(f"Unbuffered geometry type: {unbuffered_geometry.geom_type}")
-        
-        # Simplify the unbuffered geometry
-        log_info("Simplifying unbuffered geometry")
-        simplified_geometry = unbuffered_geometry.simplify(0.1)
-        log_info(f"Simplified geometry type: {simplified_geometry.geom_type}")
+        merged_geometry = unary_union(combined_geometries)
+        buffer_distance = operation.get('bufferDistance', 0.001)
+        thin_growth_threshold = operation.get('thinGrowthThreshold', 0.001)
+        merge_vertices_tolerance = operation.get('mergeVerticesTolerance', 0.0001)
+        cleaned_geometry = prepare_and_clean_geometry(all_layers, project_settings, crs, merged_geometry, 
+                                                      buffer_distance, thin_growth_threshold, merge_vertices_tolerance)
         
         # If the result is a MultiPolygon, convert it to separate Polygons
-        if isinstance(simplified_geometry, MultiPolygon):
+        if isinstance(cleaned_geometry, MultiPolygon):
             log_info("Result is a MultiPolygon, separating into individual Polygons")
-            result_geometries = list(simplified_geometry.geoms)
-        elif isinstance(simplified_geometry, Polygon):
+            result_geometries = list(cleaned_geometry.geoms)
+        elif isinstance(cleaned_geometry, Polygon):
             log_info("Result is a single Polygon")
-            result_geometries = [simplified_geometry]
+            result_geometries = [cleaned_geometry]
         else:
-            log_info(f"Result is of type {type(simplified_geometry)}")
-            result_geometries = [simplified_geometry]
+            log_info(f"Result is of type {type(cleaned_geometry)}")
+            result_geometries = [cleaned_geometry]
         
         log_info(f"Number of resulting geometries: {len(result_geometries)}")
         

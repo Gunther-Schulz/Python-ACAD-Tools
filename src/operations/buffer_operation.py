@@ -5,56 +5,57 @@ from shapely.ops import unary_union
 from src.operations.common_operations import _process_layer_info, _get_filtered_geometry
 from src.operations.common_operations import *
 from src.operations.common_operations import explode_to_singlepart
+from src.operations.common_operations import prepare_and_clean_geometry
 
 def create_buffer_layer(all_layers, project_settings, crs, layer_name, operation):
-        log_info(f"Creating buffer layer: {layer_name}")
-        source_layers = operation.get('layers', [])
-        buffer_distance = operation['distance']
-        join_style = operation.get('joinStyle', 'mitre')  # Default to 'mitre' instead of 'round'
+    log_info(f"Creating buffer layer: {layer_name}")
+    log_info(f"Operation details: {operation}")
 
-        join_style_map = {'round': 1, 'mitre': 2, 'bevel': 3}
-        join_style_value = join_style_map.get(join_style, 2)  # Default to mitre (2) if not specified
+    source_layer_name = operation.get('sourceLayer')
+    if not source_layer_name:
+        log_warning(f"No source layer specified for buffer operation on {layer_name}")
+        return None
 
-        combined_geometry = None
-        for layer_info in source_layers:
-            source_layer_name, values = _process_layer_info(all_layers, project_settings, crs, layer_info)
-            if source_layer_name is None:
-                continue
+    source_geometry = all_layers.get(source_layer_name)
+    if source_geometry is None:
+        log_warning(f"Source layer '{source_layer_name}' not found for buffer operation on {layer_name}")
+        return None
 
-            layer_geometry = _get_filtered_geometry(all_layers, project_settings, crs, source_layer_name, values)
-            if layer_geometry is None:
-                continue
+    buffer_distance = operation.get('distance', 0)
+    log_info(f"Buffer distance: {buffer_distance}")
 
-            if combined_geometry is None:
-                combined_geometry = layer_geometry
-            else:
-                combined_geometry = combined_geometry.union(layer_geometry)
-
-        if combined_geometry is not None:
-            if isinstance(combined_geometry, gpd.GeoDataFrame):
-                buffered = combined_geometry.geometry.buffer(buffer_distance, cap_style=2, join_style=join_style_value)
-                buffered = buffered[~buffered.is_empty]  # Remove empty geometries
-                if buffered.empty:
-                    log_warning(f"Buffer operation resulted in empty geometry for layer {layer_name}")
-                    return None
-                result = explode_to_singlepart(gpd.GeoDataFrame(geometry=buffered, crs=crs))
-                
-                # Copy attributes from the original geometry
-                for col in combined_geometry.columns:
-                    if col != 'geometry':
-                        result[col] = combined_geometry[col].iloc[0]
-            else:
-                # Handle individual geometry objects
-                buffered = combined_geometry.buffer(buffer_distance, cap_style=2, join_style=join_style_value)
-                if buffered.is_empty:
-                    log_warning(f"Buffer operation resulted in empty geometry for layer {layer_name}")
-                    return None
-                result = explode_to_singlepart(gpd.GeoDataFrame(geometry=[buffered], crs=crs))
-            
-            return result
+    try:
+        if isinstance(source_geometry, gpd.GeoDataFrame):
+            buffered = source_geometry.geometry.buffer(buffer_distance)
         else:
-            log_warning(f"No valid geometry found for buffer operation on layer {layer_name}")
-            return None
+            buffered = source_geometry.buffer(buffer_distance)
+
+        # Apply prepare_and_clean_geometry to each geometry
+        if isinstance(buffered, gpd.GeoSeries):
+            cleaned = buffered.apply(lambda geom: prepare_and_clean_geometry(all_layers, project_settings, crs, geom,
+                                                                             buffer_distance=0.001,
+                                                                             thin_growth_threshold=0.001,
+                                                                             merge_vertices_tolerance=0.0001))
+        else:
+            cleaned = prepare_and_clean_geometry(all_layers, project_settings, crs, buffered,
+                                                 buffer_distance=0.001,
+                                                 thin_growth_threshold=0.001,
+                                                 merge_vertices_tolerance=0.0001)
+
+        # Create a new GeoDataFrame with the resulting geometries
+        if isinstance(cleaned, gpd.GeoSeries):
+            result_gdf = gpd.GeoDataFrame(geometry=cleaned, crs=crs)
+        else:
+            result_gdf = gpd.GeoDataFrame(geometry=[cleaned], crs=crs)
+
+        all_layers[layer_name] = result_gdf
+        log_info(f"Created buffer layer: {layer_name} with {len(result_gdf)} geometries")
+        return result_gdf
+    except Exception as e:
+        log_error(f"Error during buffer operation: {str(e)}")
+        import traceback
+        log_error(f"Traceback:\n{traceback.format_exc()}")
+        return None
 
 
 

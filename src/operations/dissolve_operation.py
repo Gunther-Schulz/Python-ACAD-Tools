@@ -6,7 +6,7 @@ import pandas as pd
 
 def create_dissolved_layer(all_layers, project_settings, crs, layer_name, operation):
     log_info(f"Creating dissolved layer: {layer_name}")
-    source_layers = operation.get('layers', [])
+    source_layers = operation.get('layers', [layer_name])  # Default to current layer if not specified
     dissolve_field = operation.get('dissolveField')
     buffer_distance = operation.get('bufferDistance', 0.01)
     thin_growth_threshold = operation.get('thinGrowthThreshold', 0.001)
@@ -14,7 +14,9 @@ def create_dissolved_layer(all_layers, project_settings, crs, layer_name, operat
 
     combined_gdf = None
     for layer_info in source_layers:
-        source_layer_name, values = _process_layer_info(all_layers, project_settings, crs, layer_info)
+        source_layer_name = layer_info if isinstance(layer_info, str) else layer_info.get('name')
+        values = None if isinstance(layer_info, str) else layer_info.get('values')
+        
         if source_layer_name is None:
             continue
 

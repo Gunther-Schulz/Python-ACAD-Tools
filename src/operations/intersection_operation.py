@@ -1,12 +1,12 @@
 import geopandas as gpd
 from src.utils import log_info, log_warning, log_error
 import traceback
-from src.operations.common_operations import _process_layer_info, _get_filtered_geometry, _clean_geometry
+from src.operations.common_operations import _process_layer_info, _get_filtered_geometry, _clean_geometry, prepare_and_clean_geometry
 from src.operations.common_operations import *
 from src.utils import log_info, log_warning, log_error
 import geopandas as gpd
 import traceback
-from src.operations.common_operations import _process_layer_info, _get_filtered_geometry, _clean_geometry
+from src.operations.common_operations import _process_layer_info, _get_filtered_geometry, _clean_geometry, prepare_and_clean_geometry
 
 def create_intersection_layer(all_layers, project_settings, crs, layer_name, operation):
     return _create_intersection_overlay_layer(all_layers, project_settings, crs, layer_name, operation, 'intersection')
@@ -58,7 +58,11 @@ def _create_intersection_overlay_layer(all_layers, project_settings, crs, layer_
             return
         
         # Apply a series of cleaning operations
-        result_geometry = _clean_geometry(all_layers, project_settings, crs, result_geometry)
+        buffer_distance = operation.get('bufferDistance', 0.001)
+        thin_growth_threshold = operation.get('thinGrowthThreshold', 0.001)
+        merge_vertices_tolerance = operation.get('mergeVerticesTolerance', 0.0001)
+        result_geometry = prepare_and_clean_geometry(all_layers, project_settings, crs, result_geometry, 
+                                                     buffer_distance, thin_growth_threshold, merge_vertices_tolerance)
         
         log_info(f"Applied {overlay_type} operation and cleaned up results")
     except Exception as e:
