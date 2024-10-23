@@ -1,7 +1,7 @@
 import geopandas as gpd
 from shapely.ops import unary_union
 from src.utils import log_info, log_warning
-from src.operations.common_operations import _process_layer_info, _get_filtered_geometry, apply_buffer_trick, prepare_and_clean_geometry
+from src.operations.common_operations import _process_layer_info, _get_filtered_geometry, apply_buffer_trick, prepare_and_clean_geometry, explode_to_singlepart
 import pandas as pd
 
 def create_dissolved_layer(all_layers, project_settings, crs, layer_name, operation):
@@ -41,9 +41,10 @@ def create_dissolved_layer(all_layers, project_settings, crs, layer_name, operat
             all_layers, project_settings, crs, geom, buffer_distance, thin_growth_threshold, merge_vertices_tolerance
         ))
         
-        # Clean up the resulting geometry
+        # Clean up the resulting geometry and explode to singlepart
         dissolved.geometry = dissolved.geometry.make_valid()
         dissolved = dissolved[~dissolved.is_empty]
+        dissolved = explode_to_singlepart(dissolved)
 
         all_layers[layer_name] = dissolved.set_crs(crs)
         log_info(f"Created dissolved layer: {layer_name} with {len(dissolved)} features")

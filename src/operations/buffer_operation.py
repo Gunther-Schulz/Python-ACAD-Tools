@@ -4,6 +4,7 @@ from src.utils import log_info, log_warning, log_error
 from shapely.ops import unary_union
 from src.operations.common_operations import _process_layer_info, _get_filtered_geometry
 from src.operations.common_operations import *
+from src.operations.common_operations import explode_to_singlepart
 
 def create_buffer_layer(all_layers, project_settings, crs, layer_name, operation):
         log_info(f"Creating buffer layer: {layer_name}")
@@ -36,7 +37,7 @@ def create_buffer_layer(all_layers, project_settings, crs, layer_name, operation
                 if buffered.empty:
                     log_warning(f"Buffer operation resulted in empty geometry for layer {layer_name}")
                     return None
-                result = gpd.GeoDataFrame(geometry=buffered, crs=crs)
+                result = explode_to_singlepart(gpd.GeoDataFrame(geometry=buffered, crs=crs))
                 
                 # Copy attributes from the original geometry
                 for col in combined_geometry.columns:
@@ -48,12 +49,13 @@ def create_buffer_layer(all_layers, project_settings, crs, layer_name, operation
                 if buffered.is_empty:
                     log_warning(f"Buffer operation resulted in empty geometry for layer {layer_name}")
                     return None
-                result = gpd.GeoDataFrame(geometry=[buffered], crs=crs)
+                result = explode_to_singlepart(gpd.GeoDataFrame(geometry=[buffered], crs=crs))
             
             return result
         else:
             log_warning(f"No valid geometry found for buffer operation on layer {layer_name}")
             return None
+
 
 
 

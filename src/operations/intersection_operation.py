@@ -71,10 +71,10 @@ def _create_intersection_overlay_layer(all_layers, project_settings, crs, layer_
         log_warning(f"No valid geometry created for {overlay_type} layer: {layer_name}")
         all_layers[layer_name] = gpd.GeoDataFrame(geometry=[], crs=base_geometry.crs)
     else:
-        # Create a new GeoDataFrame with the resulting geometries
-        result_gdf = gpd.GeoDataFrame(geometry=result_geometry, crs=base_geometry.crs)
+        # Create a new GeoDataFrame with the resulting geometries and explode to singlepart
+        result_gdf = explode_to_singlepart(gpd.GeoDataFrame(geometry=result_geometry, crs=base_geometry.crs))
         all_layers[layer_name] = result_gdf
-        log_info(f"Created {overlay_type} layer: {layer_name} with {len(result_geometry)} geometries")
+        log_info(f"Created {overlay_type} layer: {layer_name} with {len(result_gdf)} geometries")
 
     return all_layers[layer_name]
 

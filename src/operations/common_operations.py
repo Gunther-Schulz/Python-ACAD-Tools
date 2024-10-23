@@ -494,3 +494,39 @@ def prepare_and_clean_geometry(all_layers, project_settings, crs, geometry, buff
 
 # Make sure to import any necessary functions at the top of the file
 from shapely.ops import unary_union
+
+def explode_to_singlepart(geometry_or_gdf):
+    """
+    Converts multipart geometries to singlepart geometries.
+    
+    Args:
+    geometry_or_gdf: A Shapely geometry object or a GeoDataFrame
+    
+    Returns:
+    A GeoDataFrame with singlepart geometries
+    """
+    log_info("Exploding multipart geometries to singlepart")
+    
+    if isinstance(geometry_or_gdf, gpd.GeoDataFrame):
+        exploded = geometry_or_gdf.explode(index_parts=True)
+        exploded = exploded.reset_index(drop=True)
+    else:
+        if isinstance(geometry_or_gdf, GeometryCollection):
+            geometries = [geom for geom in geometry_or_gdf.geoms if isinstance(geom, (Polygon, MultiPolygon))]
+        elif isinstance(geometry_or_gdf, (MultiPolygon, Polygon)):
+            geometries = [geometry_or_gdf]
+        else:
+            log_warning(f"Unsupported geometry type for explosion: {type(geometry_or_gdf)}")
+            return gpd.GeoDataFrame(geometry=[geometry_or_gdf])
+        
+        exploded = gpd.GeoDataFrame(geometry=[])
+        for geom in geometries:
+            if isinstance(geom, MultiPolygon):
+                exploded = exploded.append(gpd.GeoDataFrame(geometry=list(geom.geoms)))
+            else:
+                exploded = exploded.append(gpd.GeoDataFrame(geometry=[geom]))
+    
+    log_info(f"Exploded {len(geometry_or_gdf) if isinstance(geometry_or_gdf, gpd.GeoDataFrame) else 1} "
+             f"multipart geometries into {len(exploded)} singlepart geometries")
+    return exploded
+
