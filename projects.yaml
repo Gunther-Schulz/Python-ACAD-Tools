@@ -526,7 +526,7 @@ projects:
           - name: WorkView
             style: biotopWorkView
         operations:
-          - type: merge
+          - type: dissolve
             layers:
               - Biotope Input
               - Geschütze Biotope
@@ -602,13 +602,7 @@ projects:
               - FG Buffer
               - Biotoppuffer
               - Biotope
-          # - type: merge
           - type: dissolve
-          # - type: buffer
-          #   layers:
-          #     - Grünfläche
-          #   distance: 5
-          #   # joinStyle: round
           - type: difference
             layers:
               - Grünfläche
@@ -1041,7 +1035,7 @@ projects:
         locked: false
         add: true
         operations:
-          - type: merge
+          - type: dissolve
             layers:
               - Grünflächeinput
               - Temp Grünfl
