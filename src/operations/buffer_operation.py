@@ -40,7 +40,6 @@ def create_buffer_layer(all_layers, project_settings, crs, layer_name, operation
             combined_geometry = source_geometry
         else:
             combined_geometry = combined_geometry.union(source_geometry)
-
     if combined_geometry is None:
         log_warning(f"No valid source geometry found for buffer operation on {layer_name}")
         return None
@@ -72,7 +71,6 @@ def create_buffer_layer(all_layers, project_settings, crs, layer_name, operation
                 result_geom = [geom for geom in result.geoms if isinstance(geom, (Polygon, MultiPolygon))]
             else:
                 result_geom = []
-
         result_gdf = gpd.GeoDataFrame(geometry=result_geom, crs=crs)
         all_layers[layer_name] = result_gdf
         log_info(f"Created buffer layer: {layer_name} with {len(result_geom)} geometries")
@@ -82,6 +80,7 @@ def create_buffer_layer(all_layers, project_settings, crs, layer_name, operation
         import traceback
         log_error(f"Traceback:\n{traceback.format_exc()}")
         return None
+
 
 
 

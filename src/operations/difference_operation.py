@@ -41,7 +41,6 @@ def create_difference_layer(all_layers, project_settings, crs, layer_name, opera
             overlay_geometry = layer_geometry
         else:
             overlay_geometry = overlay_geometry.union(layer_geometry)
-
     if overlay_geometry is None:
         log_warning(f"No valid overlay geometry found for layer {layer_name}")
         return None
@@ -54,20 +53,12 @@ def create_difference_layer(all_layers, project_settings, crs, layer_name, opera
         reverse_difference = _should_reverse_difference(all_layers, project_settings, crs, base_geometry, overlay_geometry)
         log_info(f"Auto-detected reverse_difference for {layer_name}: {reverse_difference}")
 
-    base_prepared = prepare_and_clean_geometry(all_layers, project_settings, crs, base_geometry, 
-                                               buffer_distance, thin_growth_threshold, merge_vertices_tolerance)
-    overlay_prepared = prepare_and_clean_geometry(all_layers, project_settings, crs, overlay_geometry, 
-                                                  buffer_distance, thin_growth_threshold, merge_vertices_tolerance)
-    
+    # Use base_geometry and overlay_geometry directly
     if reverse_difference:
-        result = overlay_prepared.difference(base_prepared)
+        result = overlay_geometry.difference(base_geometry)
     else:
-        result = base_prepared.difference(overlay_prepared)
+        result = base_geometry.difference(overlay_geometry)
     
-    # Additional cleaning step after the difference operation
-    result = prepare_and_clean_geometry(all_layers, project_settings, crs, result, 
-                                        buffer_distance/2, thin_growth_threshold, merge_vertices_tolerance)
-
     # Convert result to GeoSeries
     if isinstance(result, (Polygon, MultiPolygon, LineString, MultiLineString)):
         result = gpd.GeoSeries([result])
@@ -130,6 +121,7 @@ def _should_reverse_difference(all_layers, project_settings, crs, base_geometry,
         
         # Default to not reversing
         return False
+
 
 
 

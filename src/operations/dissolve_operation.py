@@ -37,11 +37,7 @@ def create_dissolved_layer(all_layers, project_settings, crs, layer_name, operat
             dissolved = gpd.GeoDataFrame(geometry=combined_gdf.geometry, data=combined_gdf[dissolve_field]).dissolve(by=dissolve_field, as_index=False)
         else:
             dissolved = gpd.GeoDataFrame(geometry=[unary_union(combined_gdf.geometry)])
-        
-        # Use prepare_and_clean_geometry instead of apply_buffer_trick
-        dissolved.geometry = dissolved.geometry.apply(lambda geom: prepare_and_clean_geometry(
-            all_layers, project_settings, crs, geom, buffer_distance, thin_growth_threshold, merge_vertices_tolerance
-        ))
+    
         
         # Clean up the resulting geometry and explode to singlepart
         dissolved.geometry = dissolved.geometry.make_valid()

@@ -26,22 +26,17 @@ def create_merged_layer(all_layers, project_settings, crs, layer_name, operation
 
     if combined_geometries:
         merged_geometry = unary_union(combined_geometries)
-        buffer_distance = operation.get('bufferDistance', 0.001)
-        thin_growth_threshold = operation.get('thinGrowthThreshold', 0.001)
-        merge_vertices_tolerance = operation.get('mergeVerticesTolerance', 0.0001)
-        cleaned_geometry = prepare_and_clean_geometry(all_layers, project_settings, crs, merged_geometry, 
-                                                      buffer_distance, thin_growth_threshold, merge_vertices_tolerance)
         
         # If the result is a MultiPolygon, convert it to separate Polygons
-        if isinstance(cleaned_geometry, MultiPolygon):
+        if isinstance(merged_geometry, MultiPolygon):
             log_info("Result is a MultiPolygon, separating into individual Polygons")
-            result_geometries = list(cleaned_geometry.geoms)
-        elif isinstance(cleaned_geometry, Polygon):
+            result_geometries = list(merged_geometry.geoms)
+        elif isinstance(merged_geometry, Polygon):
             log_info("Result is a single Polygon")
-            result_geometries = [cleaned_geometry]
+            result_geometries = [merged_geometry]
         else:
-            log_info(f"Result is of type {type(cleaned_geometry)}")
-            result_geometries = [cleaned_geometry]
+            log_info(f"Result is of type {type(merged_geometry)}")
+            result_geometries = [merged_geometry]
         
         log_info(f"Number of resulting geometries: {len(result_geometries)}")
         

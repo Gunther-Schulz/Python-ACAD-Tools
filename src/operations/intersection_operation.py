@@ -47,7 +47,6 @@ def _create_intersection_overlay_layer(all_layers, project_settings, crs, layer_
     if combined_overlay_geometry is None:
         log_warning(f"No valid overlay geometries found for layer '{layer_name}'")
         return
-
     try:
         if overlay_type == 'difference':
             result_geometry = base_geometry.geometry.difference(combined_overlay_geometry)
@@ -57,14 +56,7 @@ def _create_intersection_overlay_layer(all_layers, project_settings, crs, layer_
             log_warning(f"Unsupported overlay type: {overlay_type}")
             return
         
-        # Apply a series of cleaning operations
-        buffer_distance = operation.get('bufferDistance', 0.001)
-        thin_growth_threshold = operation.get('thinGrowthThreshold', 0.001)
-        merge_vertices_tolerance = operation.get('mergeVerticesTolerance', 0.0001)
-        result_geometry = prepare_and_clean_geometry(all_layers, project_settings, crs, result_geometry, 
-                                                     buffer_distance, thin_growth_threshold, merge_vertices_tolerance)
-        
-        log_info(f"Applied {overlay_type} operation and cleaned up results")
+        log_info(f"Applied {overlay_type} operation")
     except Exception as e:
         log_error(f"Error during {overlay_type} operation: {str(e)}")
         log_error(f"Traceback:\n{traceback.format_exc()}")
@@ -81,6 +73,7 @@ def _create_intersection_overlay_layer(all_layers, project_settings, crs, layer_
         log_info(f"Created {overlay_type} layer: {layer_name} with {len(result_gdf)} geometries")
 
     return all_layers[layer_name]
+
 
 
 
