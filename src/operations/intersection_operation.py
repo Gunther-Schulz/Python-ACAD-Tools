@@ -1,7 +1,7 @@
 import geopandas as gpd
 from src.utils import log_info, log_warning, log_error
 import traceback
-from src.operations.common_operations import _process_layer_info, _get_filtered_geometry, _clean_geometry, prepare_and_clean_geometry
+from src.operations.common_operations import _process_layer_info, _get_filtered_geometry, _clean_geometry, _remove_empty_geometries, prepare_and_clean_geometry
 from src.operations.common_operations import *
 from src.utils import log_info, log_warning, log_error
 import geopandas as gpd
@@ -62,13 +62,16 @@ def _create_intersection_overlay_layer(all_layers, project_settings, crs, layer_
         log_error(f"Traceback:\n{traceback.format_exc()}")
         return
 
-    # Check if result_geometry is empty
-    if result_geometry.empty:
+    # Create a new GeoDataFrame with the resulting geometries and explode to singlepart
+    result_gdf = explode_to_singlepart(gpd.GeoDataFrame(geometry=result_geometry, crs=base_geometry.crs))
+    
+    # Remove empty geometries
+    result_gdf = result_gdf[~result_gdf.geometry.is_empty]
+    
+    if result_gdf.empty:
         log_warning(f"No valid geometry created for {overlay_type} layer: {layer_name}")
         all_layers[layer_name] = gpd.GeoDataFrame(geometry=[], crs=base_geometry.crs)
     else:
-        # Create a new GeoDataFrame with the resulting geometries and explode to singlepart
-        result_gdf = explode_to_singlepart(gpd.GeoDataFrame(geometry=result_geometry, crs=base_geometry.crs))
         all_layers[layer_name] = result_gdf
         log_info(f"Created {overlay_type} layer: {layer_name} with {len(result_gdf)} geometries")
 

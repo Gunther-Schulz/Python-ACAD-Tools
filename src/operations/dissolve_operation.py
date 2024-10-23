@@ -1,7 +1,7 @@
 import geopandas as gpd
 from shapely.ops import unary_union
 from src.utils import log_info, log_warning
-from src.operations.common_operations import _process_layer_info, _get_filtered_geometry, apply_buffer_trick, prepare_and_clean_geometry, explode_to_singlepart
+from src.operations.common_operations import _process_layer_info, _get_filtered_geometry, apply_buffer_trick, prepare_and_clean_geometry, explode_to_singlepart, _remove_empty_geometries
 import pandas as pd
 
 def create_dissolved_layer(all_layers, project_settings, crs, layer_name, operation):
@@ -38,14 +38,20 @@ def create_dissolved_layer(all_layers, project_settings, crs, layer_name, operat
         else:
             dissolved = gpd.GeoDataFrame(geometry=[unary_union(combined_gdf.geometry)])
     
-        
         # Clean up the resulting geometry and explode to singlepart
         dissolved.geometry = dissolved.geometry.make_valid()
         dissolved = dissolved[~dissolved.is_empty]
         dissolved = explode_to_singlepart(dissolved)
+        
+        # Remove empty geometries
+        dissolved = dissolved[~dissolved.geometry.is_empty]
 
-        all_layers[layer_name] = dissolved.set_crs(crs)
-        log_info(f"Created dissolved layer: {layer_name} with {len(dissolved)} features")
+        if dissolved.empty:
+            log_warning(f"No valid geometry created for dissolved layer: {layer_name}")
+            all_layers[layer_name] = gpd.GeoDataFrame(geometry=[], crs=crs)
+        else:
+            all_layers[layer_name] = dissolved.set_crs(crs)
+            log_info(f"Created dissolved layer: {layer_name} with {len(dissolved)} features")
     else:
         log_warning(f"No valid source layers found for dissolve operation on {layer_name}")
         all_layers[layer_name] = gpd.GeoDataFrame(geometry=[], crs=crs)
