@@ -430,49 +430,69 @@ def apply_buffer_trick(geometry, buffer_distance=0.01):
     return unbuffered
 
 
-def prepare_and_clean_geometry(all_layers, project_settings, crs, geometry, buffer_distance=0.001, thin_growth_threshold=0.001, merge_vertices_tolerance=0.0001):
+def prepare_and_clean_geometry(all_layers, project_settings, crs, geometry, buffer_distance=0.001, thin_growth_threshold=0.001, merge_vertices_tolerance=0.0001, remove_non_polygons=False):
     """
     Prepares and cleans a geometry by applying multiple cleaning operations and the buffer trick.
-    Only processes polygon geometries, removing any non-polygon elements.
+    Optionally removes non-polygon elements based on the remove_non_polygons parameter.
     """
     log_info("Starting geometry preparation and cleaning")
     
     if isinstance(geometry, gpd.GeoDataFrame):
         geometry = geometry.geometry.unary_union
     
-    # Ensure we're working with a polygon or multipolygon
+    # Handle non-polygon geometries based on the remove_non_polygons parameter
     if isinstance(geometry, GeometryCollection):
-        geometry = GeometryCollection([geom for geom in geometry.geoms if isinstance(geom, (Polygon, MultiPolygon))])
+        if remove_non_polygons:
+            geometry = GeometryCollection([geom for geom in geometry.geoms if isinstance(geom, (Polygon, MultiPolygon))])
+        else:
+            # Process polygon and non-polygon geometries separately
+            polygons = [geom for geom in geometry.geoms if isinstance(geom, (Polygon, MultiPolygon))]
+            non_polygons = [geom for geom in geometry.geoms if not isinstance(geom, (Polygon, MultiPolygon))]
     elif not isinstance(geometry, (Polygon, MultiPolygon)):
-        log_warning(f"Non-polygon geometry encountered. Removing.")
-        return None
+        if remove_non_polygons:
+            log_warning(f"Non-polygon geometry encountered. Removing.")
+            return None
+        else:
+            # Keep non-polygon geometry as is
+            return geometry
     
-    # Clean the geometry
-    geometry = _clean_geometry(all_layers, project_settings, crs, geometry)
+    # Clean the polygon geometries
+    if 'polygons' in locals():
+        cleaned_polygons = [_clean_geometry(all_layers, project_settings, crs, poly) for poly in polygons]
+        cleaned_polygons = [poly for poly in cleaned_polygons if poly is not None]
+    else:
+        cleaned_polygons = [_clean_geometry(all_layers, project_settings, crs, geometry)]
+    
     log_info("Initial cleaning completed")
     
-    # Remove thin growths
-    geometry = _remove_thin_growths(all_layers, project_settings, crs, geometry, thin_growth_threshold)
-    log_info("Thin growths removed")
+    # Process cleaned polygons
+    processed_polygons = []
+    for poly in cleaned_polygons:
+        # Remove thin growths
+        poly = _remove_thin_growths(all_layers, project_settings, crs, poly, thin_growth_threshold)
+        log_info("Thin growths removed")
+        
+        # Merge close vertices
+        poly = _merge_close_vertices(all_layers, project_settings, crs, poly, merge_vertices_tolerance)
+        log_info("Close vertices merged")
+        
+        # Apply buffer trick
+        poly = apply_buffer_trick(poly, buffer_distance)
+        log_info("Buffer trick applied")
+        
+        processed_polygons.append(poly)
     
-    # Merge close vertices
-    geometry = _merge_close_vertices(all_layers, project_settings, crs, geometry, merge_vertices_tolerance)
-    log_info("Close vertices merged")
-    
-    # Apply buffer trick
-    geometry = apply_buffer_trick(geometry, buffer_distance)
-    log_info("Buffer trick applied")
-    
-    # Final unary union to ensure a single geometry
-    geometry = unary_union(geometry)
+    # Final unary union to ensure a single geometry for polygons
+    final_polygon = unary_union(processed_polygons)
     log_info("Final unary union applied")
     
-    # Ensure the final result is a polygon or multipolygon
-    if not isinstance(geometry, (Polygon, MultiPolygon)):
-        log_warning(f"Final geometry is not a polygon. Removing.")
-        return None
+    # Combine processed polygons with non-polygons if they exist
+    if not remove_non_polygons and 'non_polygons' in locals():
+        final_geometry = GeometryCollection([final_polygon] + non_polygons)
+    else:
+        final_geometry = final_polygon
     
-    return geometry
+    return final_geometry
 
 # Make sure to import any necessary functions at the top of the file
 from shapely.ops import unary_union
@@ -511,6 +531,7 @@ def explode_to_singlepart(geometry_or_gdf):
     log_info(f"Exploded {len(geometry_or_gdf) if isinstance(geometry_or_gdf, gpd.GeoDataFrame) else 1} "
              f"multipart geometries into {len(exploded)} singlepart geometries")
     return exploded
+
 
 
 
