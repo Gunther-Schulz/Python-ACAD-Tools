@@ -2,14 +2,16 @@ import geopandas as gpd
 from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection, Point, MultiPoint
 from src.utils import log_info, log_warning, log_error
 from shapely.ops import unary_union
-from src.operations.common_operations import _process_layer_info, _get_filtered_geometry, _remove_empty_geometries, _create_generic_overlay_layer
-from src.operations.common_operations import *
+from src.operations.common_operations import _process_layer_info, _get_filtered_geometry, _remove_empty_geometries, _create_generic_overlay_layer, apply_buffer_trick, _clean_geometry, _remove_thin_growths, _merge_close_vertices, prepare_and_clean_geometry
 from src.operations.intersection_operation import _create_intersection_overlay_layer
 
 def create_difference_layer(all_layers, project_settings, crs, layer_name, operation):
     log_info(f"Creating difference layer: {layer_name}")
     overlay_layers = operation.get('layers', [])
     manual_reverse = operation.get('reverseDifference')
+    buffer_distance = operation.get('bufferDistance', 0.001)  # Increased default value
+    thin_growth_threshold = operation.get('thinGrowthThreshold', 0.001)
+    merge_vertices_tolerance = operation.get('mergeVerticesTolerance', 0.0001)
     
     base_geometry = all_layers.get(layer_name)
     if base_geometry is None:
@@ -52,19 +54,21 @@ def create_difference_layer(all_layers, project_settings, crs, layer_name, opera
         reverse_difference = _should_reverse_difference(all_layers, project_settings, crs, base_geometry, overlay_geometry)
         log_info(f"Auto-detected reverse_difference for {layer_name}: {reverse_difference}")
 
-    if isinstance(base_geometry, gpd.GeoDataFrame):
-        base_union = base_geometry.geometry.unary_union
-        if reverse_difference:
-            result = overlay_geometry.difference(base_union)
-        else:
-            result = base_union.difference(overlay_geometry)
-    else:
-        if reverse_difference:
-            result = overlay_geometry.difference(base_geometry)
-        else:
-            result = base_geometry.difference(overlay_geometry)
+    base_prepared = prepare_and_clean_geometry(all_layers, project_settings, crs, base_geometry, 
+                                               buffer_distance, thin_growth_threshold, merge_vertices_tolerance)
+    overlay_prepared = prepare_and_clean_geometry(all_layers, project_settings, crs, overlay_geometry, 
+                                                  buffer_distance, thin_growth_threshold, merge_vertices_tolerance)
     
-    # Handle the result based on its type
+    if reverse_difference:
+        result = overlay_prepared.difference(base_prepared)
+    else:
+        result = base_prepared.difference(overlay_prepared)
+    
+    # Additional cleaning step after the difference operation
+    result = prepare_and_clean_geometry(all_layers, project_settings, crs, result, 
+                                        buffer_distance/2, thin_growth_threshold, merge_vertices_tolerance)
+
+    # Convert result to GeoSeries
     if isinstance(result, (Polygon, MultiPolygon, LineString, MultiLineString)):
         result = gpd.GeoSeries([result])
     elif not isinstance(result, gpd.GeoSeries):

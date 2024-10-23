@@ -1,7 +1,7 @@
 import geopandas as gpd
 from shapely.ops import unary_union
 from src.utils import log_info, log_warning
-from src.operations.common_operations import _process_layer_info, _get_filtered_geometry
+from src.operations.common_operations import _process_layer_info, _get_filtered_geometry, apply_buffer_trick
 import pandas as pd
 
 def create_dissolved_layer(all_layers, project_settings, crs, layer_name, operation):
@@ -29,16 +29,13 @@ def create_dissolved_layer(all_layers, project_settings, crs, layer_name, operat
             combined_gdf = pd.concat([combined_gdf, layer_geometry], ignore_index=True)
 
     if combined_gdf is not None and not combined_gdf.empty:
-        # Apply a small positive buffer
-        buffered = combined_gdf.geometry.buffer(buffer_distance)
-        
         if dissolve_field and dissolve_field in combined_gdf.columns:
-            dissolved = gpd.GeoDataFrame(geometry=buffered, data=combined_gdf[dissolve_field]).dissolve(by=dissolve_field, as_index=False)
+            dissolved = gpd.GeoDataFrame(geometry=combined_gdf.geometry, data=combined_gdf[dissolve_field]).dissolve(by=dissolve_field, as_index=False)
         else:
-            dissolved = gpd.GeoDataFrame(geometry=[unary_union(buffered)])
+            dissolved = gpd.GeoDataFrame(geometry=[unary_union(combined_gdf.geometry)])
         
-        # Apply a small negative buffer to return to original size
-        dissolved.geometry = dissolved.geometry.buffer(-buffer_distance)
+        # Apply buffer trick
+        dissolved.geometry = dissolved.geometry.apply(lambda geom: apply_buffer_trick(geom, buffer_distance))
         
         # Clean up the resulting geometry
         dissolved.geometry = dissolved.geometry.make_valid()

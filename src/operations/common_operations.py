@@ -437,10 +437,60 @@ def _create_generic_overlay_layer(all_layers, project_settings, crs, layer_name,
             log_info(f"Created {overlay_type} layer: {layer_name} with {len(result_geometry)} geometries")
 
 
+def apply_buffer_trick(geometry, buffer_distance=0.01):
+    log_info(f"Applying buffer trick with distance: {buffer_distance}")
+    
+    buffered = geometry.buffer(buffer_distance)
+    log_info(f"Buffered geometry type: {buffered.geom_type}")
+    
+    unbuffered = buffered.buffer(-buffer_distance)
+    log_info(f"Unbuffered geometry type: {unbuffered.geom_type}")
+    
+    return unbuffered
 
 
+def prepare_and_clean_geometry(all_layers, project_settings, crs, geometry, buffer_distance=0.001, thin_growth_threshold=0.001, merge_vertices_tolerance=0.0001):
+    """
+    Prepares and cleans a geometry by applying multiple cleaning operations and the buffer trick.
+    
+    Args:
+    all_layers (dict): Dictionary containing all layers.
+    project_settings (dict): Project settings.
+    crs: Coordinate Reference System.
+    geometry: Input geometry to be cleaned.
+    buffer_distance (float): Distance for buffer operations.
+    thin_growth_threshold (float): Threshold for removing thin growths.
+    merge_vertices_tolerance (float): Tolerance for merging close vertices.
+    
+    Returns:
+    Cleaned and prepared geometry.
+    """
+    log_info("Starting geometry preparation and cleaning")
+    
+    if isinstance(geometry, gpd.GeoDataFrame):
+        geometry = geometry.geometry.unary_union
+    
+    # Clean the geometry
+    geometry = _clean_geometry(all_layers, project_settings, crs, geometry)
+    log_info("Initial cleaning completed")
+    
+    # Remove thin growths
+    geometry = _remove_thin_growths(all_layers, project_settings, crs, geometry, thin_growth_threshold)
+    log_info("Thin growths removed")
+    
+    # Merge close vertices
+    geometry = _merge_close_vertices(all_layers, project_settings, crs, geometry, merge_vertices_tolerance)
+    log_info("Close vertices merged")
+    
+    # Apply buffer trick
+    geometry = apply_buffer_trick(geometry, buffer_distance)
+    log_info("Buffer trick applied")
+    
+    # Final unary union to ensure a single geometry
+    geometry = unary_union(geometry)
+    log_info("Final unary union applied")
+    
+    return geometry
 
-
-
-
-
+# Make sure to import any necessary functions at the top of the file
+from shapely.ops import unary_union

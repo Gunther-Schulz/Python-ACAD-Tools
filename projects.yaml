@@ -481,16 +481,12 @@ projects:
               - name: Gemeinde
                 values:
                   - "Groß Plasten"
-          # - type: dissolve
-          #   reverseDifference: false
-          #   layers:
-          #     - Wald
-          #     # - Baumabstand Puffer
-          #     - Exclude
           - type: difference
             reverseDifference: false
             layers:
-              - x
+              - Wald
+              # - Baumabstand Puffer
+              - Exclude
       # - name: Geltungsbereich S
       #   update: true
       #   style: geltungsbereich
