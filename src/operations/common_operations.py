@@ -435,6 +435,7 @@ def prepare_and_clean_geometry(all_layers, project_settings, crs, geometry, buff
     Prepares and cleans a geometry by applying multiple cleaning operations and the buffer trick.
     Optionally removes non-polygon elements based on the remove_non_polygons parameter.
     """
+    return geometry
     log_info("Starting geometry preparation and cleaning")
     
     if isinstance(geometry, gpd.GeoDataFrame):
@@ -507,6 +508,7 @@ def explode_to_singlepart(geometry_or_gdf):
     Returns:
     A GeoDataFrame with singlepart geometries
     """
+    return geometry_or_gdf
     log_info("Exploding multipart geometries to singlepart")
     
     if isinstance(geometry_or_gdf, gpd.GeoDataFrame):
