@@ -6,6 +6,7 @@ import ezdxf
 import math
 from geopandas import GeoSeries
 import os
+import shutil
 
 # Import operations individually
 from src.operations import (
@@ -254,6 +255,10 @@ class LayerProcessor:
                 if not gdf.empty:
                     output_dir = self.project_loader.shapefile_output_dir
                     os.makedirs(output_dir, exist_ok=True)
+                    
+                    # Delete all files in the output directory before writing new shapefiles
+                    self.delete_files_in_directory(output_dir)
+                    
                     full_path = os.path.join(output_dir, f"{layer_name}.shp")
                     gdf.to_file(full_path)
                     log_info(f"Shapefile written for layer {layer_name}: {full_path}")
@@ -263,6 +268,18 @@ class LayerProcessor:
                 log_warning(f"Cannot write shapefile for layer {layer_name}: not a GeoDataFrame")
         else:
             log_warning(f"Cannot write shapefile for layer {layer_name}: layer not found")
+
+    def delete_files_in_directory(self, directory):
+        log_info(f"Deleting all files in directory: {directory}")
+        for filename in os.listdir(directory):
+            file_path = os.path.join(directory, filename)
+            try:
+                if os.path.isfile(file_path) or os.path.islink(file_path):
+                    os.unlink(file_path)
+                elif os.path.isdir(file_path):
+                    shutil.rmtree(file_path)
+            except Exception as e:
+                log_warning(f"Failed to delete {file_path}. Reason: {e}")
 
     def load_dxf_layer(self, layer_name, dxf_layer_name):
             try:
@@ -509,6 +526,7 @@ class LayerProcessor:
         if layer_info and 'operations' in layer_info:
             return any(op['type'].lower() in ['wmts', 'wms'] for op in layer_info['operations'])
         return False
+
 
 
 

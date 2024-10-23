@@ -13,6 +13,8 @@ import geopandas as gpd
 from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection, Point, MultiPoint
 from src.utils import log_info, log_warning, log_error
 import traceback
+import shutil
+import os
 
 from src.operations.common_operations import *
 from src.project_loader import ProjectLoader
@@ -186,42 +188,6 @@ def plot_operation_result(all_layers, project_settings, crs, layer_name, op_type
         plt.tight_layout()
         plt.show()
 
-
-def write_shapefile(all_layers, project_settings, crs, layer_name, output_path, project_loader):
-        log_info(f"Writing shapefile for layer {layer_name}: {output_path}")
-        if layer_name in all_layers:
-            gdf = all_layers[layer_name]
-            log_info(f"Type of data for {layer_name}: {type(gdf)}")
-            log_info(f"Columns in the data: {gdf.columns.tolist() if hasattr(gdf, 'columns') else 'No columns'}")
-            log_info(f"CRS of the data: {gdf.crs if hasattr(gdf, 'crs') else 'No CRS'}")
-            log_info(f"Number of rows: {len(gdf) if hasattr(gdf, '__len__') else 'Unknown'}")
-            
-            if isinstance(gdf, gpd.GeoDataFrame):
-                log_info(f"Geometry column name: {gdf.geometry.name}")
-                log_info(f"Geometry types: {gdf.geometry.type.unique().tolist()}")
-                
-                # Handle GeometryCollection
-                def convert_geometry(geom):
-                    if isinstance(geom, GeometryCollection):
-                        polygons = [g for g in geom.geoms if isinstance(g, (Polygon, MultiPolygon))]
-                        if polygons:
-                            return MultiPolygon(polygons)
-                        return None
-                    return geom
-
-                gdf['geometry'] = gdf['geometry'].apply(convert_geometry)
-                gdf = gdf[gdf['geometry'].notna()]
-
-                if not gdf.empty:
-                    full_path = project_loader.resolve_full_path(output_path)
-                    gdf.to_file(full_path)
-                    log_info(f"Shapefile written for layer {layer_name}: {full_path}")
-                else:
-                    log_warning(f"No valid geometries found for layer {layer_name} after conversion")
-            else:
-                log_warning(f"Cannot write shapefile for layer {layer_name}: not a GeoDataFrame")
-        else:
-            log_warning(f"Cannot write shapefile for layer {layer_name}: layer not found")
 
 def _clean_single_geometry(all_layers, project_settings, crs, geometry):
     # Implement the cleaning logic here
@@ -545,6 +511,9 @@ def explode_to_singlepart(geometry_or_gdf):
     log_info(f"Exploded {len(geometry_or_gdf) if isinstance(geometry_or_gdf, gpd.GeoDataFrame) else 1} "
              f"multipart geometries into {len(exploded)} singlepart geometries")
     return exploded
+
+
+
 
 
 
