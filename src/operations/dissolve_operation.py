@@ -1,14 +1,16 @@
 import geopandas as gpd
 from shapely.ops import unary_union
 from src.utils import log_info, log_warning
-from src.operations.common_operations import _process_layer_info, _get_filtered_geometry, apply_buffer_trick
+from src.operations.common_operations import _process_layer_info, _get_filtered_geometry, apply_buffer_trick, prepare_and_clean_geometry
 import pandas as pd
 
 def create_dissolved_layer(all_layers, project_settings, crs, layer_name, operation):
     log_info(f"Creating dissolved layer: {layer_name}")
     source_layers = operation.get('layers', [])
     dissolve_field = operation.get('dissolveField')
-    buffer_distance = operation.get('bufferDistance', 0.01)  # Default small buffer distance
+    buffer_distance = operation.get('bufferDistance', 0.01)
+    thin_growth_threshold = operation.get('thinGrowthThreshold', 0.001)
+    merge_vertices_tolerance = operation.get('mergeVerticesTolerance', 0.0001)
 
     combined_gdf = None
     for layer_info in source_layers:
@@ -34,8 +36,10 @@ def create_dissolved_layer(all_layers, project_settings, crs, layer_name, operat
         else:
             dissolved = gpd.GeoDataFrame(geometry=[unary_union(combined_gdf.geometry)])
         
-        # Apply buffer trick
-        dissolved.geometry = dissolved.geometry.apply(lambda geom: apply_buffer_trick(geom, buffer_distance))
+        # Use prepare_and_clean_geometry instead of apply_buffer_trick
+        dissolved.geometry = dissolved.geometry.apply(lambda geom: prepare_and_clean_geometry(
+            all_layers, project_settings, crs, geom, buffer_distance, thin_growth_threshold, merge_vertices_tolerance
+        ))
         
         # Clean up the resulting geometry
         dissolved.geometry = dissolved.geometry.make_valid()

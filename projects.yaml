@@ -451,14 +451,6 @@ projects:
             layers:
               - name: Geltungsbereich NW
             distance: 2
-      - name: x
-        operations:
-          - type: dissolve
-            reverseDifference: false
-            layers:
-              - Wald
-              # - Baumabstand Puffer
-              - Exclude
       - name: Geltungsbereich NO
         update: true
         style: geltungsbereich
