@@ -17,7 +17,8 @@ from src.operations import (
     process_wmts_or_wms_layer,
     create_merged_layer,
     create_smooth_layer,
-    _handle_contour_operation
+    _handle_contour_operation,
+    create_dissolved_layer,
 )
 from src.style_manager import StyleManager
 from src.operations.filter_geometry_operation import create_filtered_geometry_layer
@@ -181,6 +182,11 @@ class LayerProcessor:
             result = create_smooth_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
         elif op_type == 'contour':
             result = _handle_contour_operation(self.all_layers, self.project_settings, self.crs, layer_name, operation)
+        elif op_type == 'filterGeometry':
+            print(f"---------------------Processing filterGeometry operation for layer {layer_name}")
+            result = create_filtered_geometry_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
+        elif op_type == 'dissolve':
+            result = create_dissolved_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
         else:
             log_warning(f"Unknown operation type: {op_type} for layer {layer_name}")
             return None
@@ -503,6 +509,8 @@ class LayerProcessor:
         if layer_info and 'operations' in layer_info:
             return any(op['type'].lower() in ['wmts', 'wms'] for op in layer_info['operations'])
         return False
+
+
 
 
 

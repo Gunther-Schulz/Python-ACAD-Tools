@@ -1,5 +1,5 @@
 import geopandas as gpd
-from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString
+from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection
 from src.utils import log_info, log_warning, log_error
 from src.operations.common_operations import _process_layer_info, _get_filtered_geometry
 
@@ -23,15 +23,13 @@ def create_filtered_geometry_layer(all_layers, project_settings, crs, layer_name
         if layer_geometry is None:
             continue
 
-        if isinstance(layer_geometry, (Polygon, MultiPolygon)):
-            filtered = filter_polygons(layer_geometry, max_area, min_area, max_width, min_width)
-        elif isinstance(layer_geometry, (LineString, MultiLineString)):
-            filtered = filter_linestrings(layer_geometry, max_width, min_width)
+        if isinstance(layer_geometry, GeometryCollection):
+            for geom in layer_geometry.geoms:
+                filtered = filter_geometry(geom, max_area, min_area, max_width, min_width)
+                filtered_geometries.extend(filtered)
         else:
-            log_warning(f"Unsupported geometry type for filtering: {type(layer_geometry)}")
-            continue
-
-        filtered_geometries.extend(filtered)
+            filtered = filter_geometry(layer_geometry, max_area, min_area, max_width, min_width)
+            filtered_geometries.extend(filtered)
 
     if filtered_geometries:
         result_gdf = gpd.GeoDataFrame(geometry=filtered_geometries, crs=crs)
@@ -42,6 +40,15 @@ def create_filtered_geometry_layer(all_layers, project_settings, crs, layer_name
         all_layers[layer_name] = gpd.GeoDataFrame(geometry=[], crs=crs)
 
     return all_layers[layer_name]
+
+def filter_geometry(geometry, max_area, min_area, max_width, min_width):
+    if isinstance(geometry, (Polygon, MultiPolygon)):
+        return filter_polygons(geometry, max_area, min_area, max_width, min_width)
+    elif isinstance(geometry, (LineString, MultiLineString)):
+        return filter_linestrings(geometry, max_width, min_width)
+    else:
+        log_warning(f"Unsupported geometry type for filtering: {type(geometry)}")
+        return []
 
 def filter_polygons(geometry, max_area, min_area, max_width, min_width):
     filtered = []

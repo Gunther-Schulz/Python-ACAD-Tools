@@ -16,3 +16,6 @@ When creating a dxf form scratch will be set but don't actually show up as such.
 
 ## Blunting
 Right now we choose which angles to plant by giving a maximum angle. If we run into the issue that we blunt angles we do not want to blunt one ise is to create a point layer and we mark all the angles we want to blunt and we let the script blunt ionly angles that are around that point.
+
+
+## Merge should really be dissolve

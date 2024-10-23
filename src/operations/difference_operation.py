@@ -45,7 +45,7 @@ def create_difference_layer(all_layers, project_settings, crs, layer_name, opera
         return None
 
     # Use manual override if provided, otherwise use auto-detection
-    if manual_reverse is not None:
+    if isinstance(manual_reverse, bool):
         reverse_difference = manual_reverse
         log_info(f"Using manual override for reverse_difference: {reverse_difference}")
     else:
