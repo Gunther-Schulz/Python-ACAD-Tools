@@ -369,7 +369,7 @@ projects:
           - name: WorkView
             style: gemeindeWorkView
       - name: Grünfläche Input 
-        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/geltungsbereich_abstand.shp"
+        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/grünfläche_input_2.shp"
         close: true
       - name: Wald
         update: true
@@ -508,6 +508,8 @@ projects:
       - name: Waldabstand
         operations:
           - type: buffer
+            joinStyle: mitre
+            join_style: mitre
             layers:
               - Wald
             distance: 30
@@ -559,16 +561,14 @@ projects:
         operations:
           - type: copy
             layers:
-              # - Grünfläche Input 
+              - Grünfläche Input 
               - Waldabstand
               # - Baumabstand Puffer
-              # - FG Buffer
-              # - Biotoppuffer
-              # - Biotope
+              - FG Buffer
+              - Biotoppuffer
+              - Biotope
           - type: merge
           - type: dissolve
-          - type: buffer
-            distance: -5
           - type: intersection
             layers:
               - Geltungsbereich NW
@@ -595,10 +595,11 @@ projects:
             layers:
               - Grünfläche Input 
               - Waldabstand
-              - Baumabstand Puffer
+              # - Baumabstand Puffer
               - FG Buffer
               - Biotoppuffer
               - Biotope
+          - type: merge
           - type: dissolve
           # - type: buffer
           #   layers:

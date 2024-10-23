@@ -12,7 +12,8 @@ def create_buffer_layer(all_layers, project_settings, crs, layer_name, operation
     log_info(f"Operation details: {operation}")
 
     buffer_distance = operation.get('distance', 0)
-    log_info(f"Buffer distance: {buffer_distance}")
+    join_style = operation.get('join_style', 'mitre')  # Default to 'mitre
+    log_info(f"Buffer distance: {buffer_distance}, Join style: {join_style}")
 
     source_layers = operation.get('layers', [layer_name])
     
@@ -37,7 +38,7 @@ def create_buffer_layer(all_layers, project_settings, crs, layer_name, operation
         return None
 
     try:
-        buffered = combined_geometry.buffer(buffer_distance)
+        buffered = combined_geometry.buffer(buffer_distance, join_style=join_style)
 
         cleaned = prepare_and_clean_geometry(all_layers, project_settings, crs, buffered,
                                              buffer_distance=0.001,
