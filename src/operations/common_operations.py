@@ -325,29 +325,44 @@ def _remove_small_polygons(all_layers, project_settings, crs, geometry, min_area
             
 
 def _merge_close_vertices(all_layers, project_settings, crs, geometry, tolerance=0.1):
-        def merge_points(geom):
-            if isinstance(geom, LineString):
-                coords = list(geom.coords)
-                merged_coords = [coords[0]]
-                for coord in coords[1:]:
-                    if Point(coord).distance(Point(merged_coords[-1])) > tolerance:
-                        merged_coords.append(coord)
-                return LineString(merged_coords)
-            elif isinstance(geom, Polygon):
-                exterior_coords = merge_points(LineString(geom.exterior.coords)).coords
-                interiors = [merge_points(LineString(interior.coords)).coords for interior in geom.interiors]
-                return Polygon(exterior_coords, interiors)
-            elif isinstance(geom, MultiPolygon):
-                return MultiPolygon([merge_points(part) for part in geom.geoms])
-            elif isinstance(geom, MultiLineString):
-                return MultiLineString([merge_points(part) for part in geom.geoms])
+    def merge_points(geom):
+        if isinstance(geom, Polygon):
+            exterior_coords = list(geom.exterior.coords)
+            merged_exterior = [exterior_coords[0]]
+            for coord in exterior_coords[1:]:
+                if Point(coord).distance(Point(merged_exterior[-1])) > tolerance:
+                    merged_exterior.append(coord)
+            
+            interiors = []
+            for interior in geom.interiors:
+                interior_coords = list(interior.coords)
+                merged_interior = [interior_coords[0]]
+                for coord in interior_coords[1:]:
+                    if Point(coord).distance(Point(merged_interior[-1])) > tolerance:
+                        merged_interior.append(coord)
+                if len(merged_interior) >= 4:  # Keep only valid interior rings (4 points to close the ring)
+                    interiors.append(merged_interior)
+            
+            if len(merged_exterior) >= 4:  # 4 points to close the ring
+                return Polygon(merged_exterior, interiors)
             else:
-                return geom
-
-        if isinstance(geometry, GeometryCollection):
-            return GeometryCollection([merge_points(geom) for geom in geometry.geoms])
+                return None
+        elif isinstance(geom, MultiPolygon):
+            merged_polys = [merge_points(part) for part in geom.geoms]
+            merged_polys = [poly for poly in merged_polys if poly is not None]
+            if merged_polys:
+                return MultiPolygon(merged_polys)
+            else:
+                return None
         else:
-            return merge_points(geometry)
+            return None
+
+    if isinstance(geometry, GeometryCollection):
+        merged_geoms = [merge_points(geom) for geom in geometry.geoms if isinstance(geom, (Polygon, MultiPolygon))]
+        merged_geoms = [geom for geom in merged_geoms if geom is not None]
+        return GeometryCollection(merged_geoms) if merged_geoms else None
+    else:
+        return merge_points(geometry)
         
 
 def _clean_geometry(all_layers, project_settings, crs, geometry):
@@ -452,23 +467,19 @@ def apply_buffer_trick(geometry, buffer_distance=0.01):
 def prepare_and_clean_geometry(all_layers, project_settings, crs, geometry, buffer_distance=0.001, thin_growth_threshold=0.001, merge_vertices_tolerance=0.0001):
     """
     Prepares and cleans a geometry by applying multiple cleaning operations and the buffer trick.
-    
-    Args:
-    all_layers (dict): Dictionary containing all layers.
-    project_settings (dict): Project settings.
-    crs: Coordinate Reference System.
-    geometry: Input geometry to be cleaned.
-    buffer_distance (float): Distance for buffer operations.
-    thin_growth_threshold (float): Threshold for removing thin growths.
-    merge_vertices_tolerance (float): Tolerance for merging close vertices.
-    
-    Returns:
-    Cleaned and prepared geometry.
+    Only processes polygon geometries, removing any non-polygon elements.
     """
     log_info("Starting geometry preparation and cleaning")
     
     if isinstance(geometry, gpd.GeoDataFrame):
         geometry = geometry.geometry.unary_union
+    
+    # Ensure we're working with a polygon or multipolygon
+    if isinstance(geometry, GeometryCollection):
+        geometry = GeometryCollection([geom for geom in geometry.geoms if isinstance(geom, (Polygon, MultiPolygon))])
+    elif not isinstance(geometry, (Polygon, MultiPolygon)):
+        log_warning(f"Non-polygon geometry encountered. Removing.")
+        return None
     
     # Clean the geometry
     geometry = _clean_geometry(all_layers, project_settings, crs, geometry)
@@ -489,6 +500,11 @@ def prepare_and_clean_geometry(all_layers, project_settings, crs, geometry, buff
     # Final unary union to ensure a single geometry
     geometry = unary_union(geometry)
     log_info("Final unary union applied")
+    
+    # Ensure the final result is a polygon or multipolygon
+    if not isinstance(geometry, (Polygon, MultiPolygon)):
+        log_warning(f"Final geometry is not a polygon. Removing.")
+        return None
     
     return geometry
 
@@ -529,6 +545,8 @@ def explode_to_singlepart(geometry_or_gdf):
     log_info(f"Exploded {len(geometry_or_gdf) if isinstance(geometry_or_gdf, gpd.GeoDataFrame) else 1} "
              f"multipart geometries into {len(exploded)} singlepart geometries")
     return exploded
+
+
 
 
 
