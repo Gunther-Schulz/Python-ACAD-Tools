@@ -187,7 +187,6 @@ class LayerProcessor:
         elif op_type == 'contour':
             result = _handle_contour_operation(self.all_layers, self.project_settings, self.crs, layer_name, operation)
         elif op_type == 'filterGeometry':
-            print(f"---------------------Processing filterGeometry operation for layer {layer_name}")
             result = create_filtered_geometry_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
         elif op_type == 'dissolve':
             result = create_dissolved_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)

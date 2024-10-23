@@ -1,7 +1,7 @@
 import geopandas as gpd
 from shapely.ops import unary_union
 from src.utils import log_info, log_warning
-from src.operations.common_operations import _process_layer_info, _get_filtered_geometry, apply_buffer_trick, prepare_and_clean_geometry, explode_to_singlepart, _remove_empty_geometries
+from src.operations.common_operations import explode_to_singlepart
 import pandas as pd
 
 def create_dissolved_layer(all_layers, project_settings, crs, layer_name, operation):
@@ -15,17 +15,11 @@ def create_dissolved_layer(all_layers, project_settings, crs, layer_name, operat
     combined_gdf = None
     for layer_info in source_layers:
         source_layer_name = layer_info if isinstance(layer_info, str) else layer_info.get('name')
-        values = None if isinstance(layer_info, str) else layer_info.get('values')
         
-        if source_layer_name is None:
+        if source_layer_name is None or source_layer_name not in all_layers:
             continue
 
-        layer_geometry = _get_filtered_geometry(all_layers, project_settings, crs, source_layer_name, values)
-        if layer_geometry is None:
-            continue
-
-        if not isinstance(layer_geometry, gpd.GeoDataFrame):
-            layer_geometry = gpd.GeoDataFrame(geometry=[layer_geometry], crs=crs)
+        layer_geometry = all_layers[source_layer_name]
 
         if combined_gdf is None:
             combined_gdf = layer_geometry
@@ -33,17 +27,20 @@ def create_dissolved_layer(all_layers, project_settings, crs, layer_name, operat
             combined_gdf = pd.concat([combined_gdf, layer_geometry], ignore_index=True)
 
     if combined_gdf is not None and not combined_gdf.empty:
+        # Remove empty geometries before processing
+        combined_gdf = combined_gdf[~combined_gdf.geometry.is_empty]
+
         if dissolve_field and dissolve_field in combined_gdf.columns:
             dissolved = gpd.GeoDataFrame(geometry=combined_gdf.geometry, data=combined_gdf[dissolve_field]).dissolve(by=dissolve_field, as_index=False)
         else:
             dissolved = gpd.GeoDataFrame(geometry=[unary_union(combined_gdf.geometry)])
-    
+        
         # Clean up the resulting geometry and explode to singlepart
         dissolved.geometry = dissolved.geometry.make_valid()
         dissolved = dissolved[~dissolved.is_empty]
         dissolved = explode_to_singlepart(dissolved)
         
-        # Remove empty geometries
+        # Remove empty geometries after processing
         dissolved = dissolved[~dissolved.geometry.is_empty]
 
         if dissolved.empty:

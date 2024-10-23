@@ -340,6 +340,7 @@ def _clean_geometry(all_layers, project_settings, crs, geometry):
 
 def _remove_empty_geometries(all_layers, project_settings, crs, layer_name, geometry):
         if isinstance(geometry, gpd.GeoDataFrame):
+            # Use both ~is_empty and notna() to filter out empty and null geometries
             non_empty = geometry[~geometry.geometry.is_empty & geometry.geometry.notna()]
             if non_empty.empty:
                 log_warning(f"All geometries in layer '{layer_name}' are empty or null")
@@ -503,7 +504,6 @@ def explode_to_singlepart(geometry_or_gdf):
     Returns:
     A GeoDataFrame with singlepart geometries
     """
-    # return geometry_or_gdf
     log_info("Exploding multipart geometries to singlepart")
     
     if isinstance(geometry_or_gdf, gpd.GeoDataFrame):
@@ -528,6 +528,61 @@ def explode_to_singlepart(geometry_or_gdf):
     log_info(f"Exploded {len(geometry_or_gdf) if isinstance(geometry_or_gdf, gpd.GeoDataFrame) else 1} "
              f"multipart geometries into {len(exploded)} singlepart geometries")
     return exploded
+
+def remove_geometry_types(geometry_or_gdf, remove_lines=False, remove_points=False, remove_polygons=False):
+    """
+    Removes specified geometry types and empty geometries from a geometry, GeoSeries, or GeoDataFrame.
+    
+    Args:
+    geometry_or_gdf: A Shapely geometry object, GeoSeries, or GeoDataFrame
+    remove_lines: Boolean, whether to remove LineString and MultiLineString geometries
+    remove_points: Boolean, whether to remove Point and MultiPoint geometries
+    remove_polygons: Boolean, whether to remove Polygon and MultiPolygon geometries
+    
+    Returns:
+    A GeoDataFrame or GeoSeries with the specified geometry types and empty geometries removed
+    """
+    log_info(f"Removing geometry types - Lines: {remove_lines}, Points: {remove_points}, Polygons: {remove_polygons}")
+    
+    def filter_geometry(geom):
+        if geom is None or geom.is_empty:
+            return None
+        if isinstance(geom, GeometryCollection):
+            filtered_geoms = []
+            for sub_geom in geom.geoms:
+                if sub_geom.is_empty:
+                    continue
+                if (remove_lines and isinstance(sub_geom, (LineString, MultiLineString))) or \
+                   (remove_points and isinstance(sub_geom, (Point, MultiPoint))) or \
+                   (remove_polygons and isinstance(sub_geom, (Polygon, MultiPolygon))):
+                    continue
+                filtered_geoms.append(sub_geom)
+            return GeometryCollection(filtered_geoms) if filtered_geoms else None
+        elif (remove_lines and isinstance(geom, (LineString, MultiLineString))) or \
+             (remove_points and isinstance(geom, (Point, MultiPoint))) or \
+             (remove_polygons and isinstance(geom, (Polygon, MultiPolygon))):
+            return None
+        return geom
+    
+    if isinstance(geometry_or_gdf, gpd.GeoDataFrame):
+        filtered_gdf = geometry_or_gdf.copy()
+        filtered_gdf['geometry'] = filtered_gdf['geometry'].apply(filter_geometry)
+        filtered_gdf = filtered_gdf[filtered_gdf['geometry'].notna() & ~filtered_gdf['geometry'].is_empty]
+        log_info(f"Removed geometries: {len(geometry_or_gdf) - len(filtered_gdf)}")
+        return filtered_gdf
+    elif isinstance(geometry_or_gdf, (gpd.GeoSeries, pd.Series)):
+        filtered_series = geometry_or_gdf.apply(filter_geometry)
+        filtered_series = filtered_series[filtered_series.notna() & ~filtered_series.is_empty]
+        log_info(f"Removed geometries: {len(geometry_or_gdf) - len(filtered_series)}")
+        return filtered_series
+    else:
+        filtered_geom = filter_geometry(geometry_or_gdf)
+        if filtered_geom is None or filtered_geom.is_empty:
+            log_warning("All geometries were removed or empty")
+            return gpd.GeoDataFrame(geometry=[])
+        return gpd.GeoDataFrame(geometry=[filtered_geom])
+
+
 
 
 

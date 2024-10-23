@@ -1,12 +1,12 @@
 import geopandas as gpd
 from src.utils import log_info, log_warning, log_error
 import traceback
-from src.operations.common_operations import _process_layer_info, _get_filtered_geometry, _clean_geometry, _remove_empty_geometries, prepare_and_clean_geometry
+from src.operations.common_operations import _process_layer_info, _get_filtered_geometry
 from src.operations.common_operations import *
 from src.utils import log_info, log_warning, log_error
 import geopandas as gpd
 import traceback
-from src.operations.common_operations import _process_layer_info, _get_filtered_geometry, _clean_geometry, prepare_and_clean_geometry
+
 
 def create_intersection_layer(all_layers, project_settings, crs, layer_name, operation):
     return _create_intersection_overlay_layer(all_layers, project_settings, crs, layer_name, operation, 'intersection')
@@ -56,16 +56,29 @@ def _create_intersection_overlay_layer(all_layers, project_settings, crs, layer_
             log_warning(f"Unsupported overlay type: {overlay_type}")
             return
         
-        log_info(f"Applied {overlay_type} operation")
+        # Remove lines and points from the result
+        result_geometry = remove_geometry_types(result_geometry, remove_lines=True, remove_points=True)
+        
+        # Remove empty geometries
+        result_geometry = result_geometry[~result_geometry.is_empty]
+        
+        log_info(f"Applied {overlay_type} operation, removed lines and points, and removed empty geometries")
     except Exception as e:
         log_error(f"Error during {overlay_type} operation: {str(e)}")
         log_error(f"Traceback:\n{traceback.format_exc()}")
         return
 
     # Create a new GeoDataFrame with the resulting geometries and explode to singlepart
-    result_gdf = explode_to_singlepart(gpd.GeoDataFrame(geometry=result_geometry, crs=base_geometry.crs))
+    if isinstance(result_geometry, gpd.GeoDataFrame):
+        result_gdf = result_geometry
+    elif isinstance(result_geometry, gpd.GeoSeries):
+        result_gdf = gpd.GeoDataFrame(geometry=result_geometry, crs=base_geometry.crs)
+    else:
+        result_gdf = gpd.GeoDataFrame(geometry=[result_geometry], crs=base_geometry.crs)
     
-    # Remove empty geometries
+    result_gdf = explode_to_singlepart(result_gdf)
+    
+    # Remove empty geometries again after exploding
     result_gdf = result_gdf[~result_gdf.geometry.is_empty]
     
     if result_gdf.empty:
