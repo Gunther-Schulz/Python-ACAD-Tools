@@ -8,6 +8,7 @@ def create_dissolved_layer(all_layers, project_settings, crs, layer_name, operat
     log_info(f"Creating dissolved layer: {layer_name}")
     source_layers = operation.get('layers', [])
     dissolve_field = operation.get('dissolveField')
+    buffer_distance = operation.get('bufferDistance', 0.01)  # Default small buffer distance
 
     combined_gdf = None
     for layer_info in source_layers:
@@ -28,12 +29,22 @@ def create_dissolved_layer(all_layers, project_settings, crs, layer_name, operat
             combined_gdf = pd.concat([combined_gdf, layer_geometry], ignore_index=True)
 
     if combined_gdf is not None and not combined_gdf.empty:
+        # Apply a small positive buffer
+        buffered = combined_gdf.geometry.buffer(buffer_distance)
+        
         if dissolve_field and dissolve_field in combined_gdf.columns:
-            dissolved = combined_gdf.dissolve(by=dissolve_field, as_index=False)
+            dissolved = gpd.GeoDataFrame(geometry=buffered, data=combined_gdf[dissolve_field]).dissolve(by=dissolve_field, as_index=False)
         else:
-            dissolved = gpd.GeoDataFrame(geometry=[unary_union(combined_gdf.geometry)], crs=crs)
+            dissolved = gpd.GeoDataFrame(geometry=[unary_union(buffered)])
+        
+        # Apply a small negative buffer to return to original size
+        dissolved.geometry = dissolved.geometry.buffer(-buffer_distance)
+        
+        # Clean up the resulting geometry
+        dissolved.geometry = dissolved.geometry.make_valid()
+        dissolved = dissolved[~dissolved.is_empty]
 
-        all_layers[layer_name] = dissolved
+        all_layers[layer_name] = dissolved.set_crs(crs)
         log_info(f"Created dissolved layer: {layer_name} with {len(dissolved)} features")
     else:
         log_warning(f"No valid source layers found for dissolve operation on {layer_name}")
