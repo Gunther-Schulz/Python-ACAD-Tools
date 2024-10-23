@@ -1,3 +1,4 @@
+import traceback
 from src.project_loader import ProjectLoader
 from src.utils import log_info, log_warning, log_error
 import geopandas as gpd
@@ -32,21 +33,23 @@ class LayerProcessor:
         self.crs = project_loader.crs
         self.plot_ops = plot_ops  # New flag for plotting operations
         self.style_manager = StyleManager(project_loader)
+        self.processed_layers = set()
     
     def process_layers(self):
         log_info("Starting to process layers...")
         
         self.setup_shapefiles()
 
-        processed_layers = set()
-
         for layer in self.project_settings['geomLayers']:
             layer_name = layer['name']
 
-            self.process_layer(layer, processed_layers)
+            self.process_layer(layer, self.processed_layers)
             
             # Write shapefile for each processed layer
             self.write_shapefile(layer_name)
+
+        # Delete residual shapefiles
+        self.delete_residual_shapefiles()
 
         log_info("Finished processing layers.")
 
@@ -69,7 +72,7 @@ class LayerProcessor:
             return
     
         # Check for unrecognized keys
-        recognized_keys = {'name', 'update', 'operations', 'shapeFile', 'dxfLayer', 'outputShapeFile', 'style', 'close', 'linetypeScale', 'linetypeGeneration', 'viewports', 'attributes', 'bluntAngles'}
+        recognized_keys = {'name', 'update', 'operations', 'shapeFile', 'dxfLayer', 'outputShapeFile', 'style', 'close', 'linetypeScale', 'linetypeGeneration', 'viewports', 'attributes', 'bluntAngles', 'label'}
         unrecognized_keys = set(layer_obj.keys()) - recognized_keys
         if unrecognized_keys:
             log_warning(f"Unrecognized keys in layer {layer_name}: {', '.join(unrecognized_keys)}")
@@ -210,10 +213,13 @@ class LayerProcessor:
                     if gdf is not None:
                         self.all_layers[layer_name] = gdf
                         log_info(f"Loaded shapefile for layer: {layer_name}")
+                        log_info(f"Layer {layer_name} info: CRS={gdf.crs}, Geometry type={gdf.geometry.type.unique()}, Number of features={len(gdf)}")
+                        log_info(f"First geometry in {layer_name}: {gdf.geometry.iloc[0].wkt[:100]}...")
                     else:
                         log_warning(f"Failed to load shapefile for layer: {layer_name}")
                 except Exception as e:
-                    log_warning(f"Failed to load shapefile for layer '{layer_name}': {str(e)}")
+                    log_error(f"Failed to load shapefile for layer '{layer_name}': {str(e)}")
+                    log_error(traceback.format_exc())
             elif 'dxfLayer' in layer:
                 gdf = self.load_dxf_layer(layer_name, layer['dxfLayer'])
                 self.all_layers[layer_name] = gdf
@@ -221,8 +227,17 @@ class LayerProcessor:
                     output_path = self.project_loader.resolve_full_path(layer['outputShapeFile'])
                     self.write_shapefile(layer_name, output_path)
 
+        # After loading all layers, log the contents of all_layers
+        for layer_name, gdf in self.all_layers.items():
+            if isinstance(gdf, gpd.GeoDataFrame):
+                log_info(f"Layer {layer_name} in all_layers: CRS={gdf.crs}, Geometry type={gdf.geometry.type.unique()}, Number of features={len(gdf)}")
+            else:
+                log_warning(f"Layer {layer_name} in all_layers is not a GeoDataFrame: {type(gdf)}")
+
     def write_shapefile(self, layer_name):
         log_info(f"Attempting to write shapefile for layer {layer_name}")
+
+        self.processed_layers.add(layer_name)
         
         # Check if the layer is a WMS/WMTS layer
         if self.is_wmts_or_wms_layer(layer_name):
@@ -256,8 +271,8 @@ class LayerProcessor:
                     output_dir = self.project_loader.shapefile_output_dir
                     os.makedirs(output_dir, exist_ok=True)
                     
-                    # Delete all files in the output directory before writing new shapefiles
-                    self.delete_files_in_directory(output_dir)
+                    # Delete only files for the current layer that will be overwritten
+                    self.delete_layer_files(output_dir, layer_name)
                     
                     full_path = os.path.join(output_dir, f"{layer_name}.shp")
                     gdf.to_file(full_path)
@@ -269,17 +284,19 @@ class LayerProcessor:
         else:
             log_warning(f"Cannot write shapefile for layer {layer_name}: layer not found")
 
-    def delete_files_in_directory(self, directory):
-        log_info(f"Deleting all files in directory: {directory}")
-        for filename in os.listdir(directory):
+    def delete_layer_files(self, directory, layer_name):
+        log_info(f"Deleting existing files for layer: {layer_name}")
+        shapefile_extensions = ['.shp', '.shx', '.dbf', '.prj', '.cpg', '.sbn', '.sbx', '.fbn', '.fbx', '.ain', '.aih', '.ixs', '.mxs', '.atx', '.xml']
+        files_to_delete = [f"{layer_name}{ext}" for ext in shapefile_extensions]
+        
+        for filename in files_to_delete:
             file_path = os.path.join(directory, filename)
-            try:
-                if os.path.isfile(file_path) or os.path.islink(file_path):
-                    os.unlink(file_path)
-                elif os.path.isdir(file_path):
-                    shutil.rmtree(file_path)
-            except Exception as e:
-                log_warning(f"Failed to delete {file_path}. Reason: {e}")
+            if os.path.exists(file_path):
+                try:
+                    os.remove(file_path)
+                    log_info(f"Deleted file: {filename}")
+                except Exception as e:
+                    log_warning(f"Failed to delete {file_path}. Reason: {e}")
 
     def load_dxf_layer(self, layer_name, dxf_layer_name):
             try:
@@ -526,6 +543,30 @@ class LayerProcessor:
         if layer_info and 'operations' in layer_info:
             return any(op['type'].lower() in ['wmts', 'wms'] for op in layer_info['operations'])
         return False
+
+    def delete_residual_shapefiles(self):
+        output_dir = self.project_loader.shapefile_output_dir
+        log_info(f"Checking for residual shapefiles in {output_dir}")
+        
+        for filename in os.listdir(output_dir):
+            file_path = os.path.join(output_dir, filename)
+            if os.path.isfile(file_path):
+                layer_name = os.path.splitext(filename)[0]
+                if layer_name not in self.processed_layers:
+                    try:
+                        os.remove(file_path)
+                        log_info(f"Deleted residual file: {filename}")
+                    except Exception as e:
+                        log_warning(f"Failed to delete residual file {file_path}. Reason: {e}")
+
+
+
+
+
+
+
+
+
 
 
 
