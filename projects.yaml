@@ -395,9 +395,9 @@ projects:
       #   dxfLayer: "Exclude Acad"
       - name: Baumabstand Puffer
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/baum_abstand.shp"
-        operations:
-          - type: buffer
-            distance: 5
+        # operations:
+        #   - type: buffer
+        #     distance: 5
             # joinStyle: round
       - name: Geschütze Biotope
         update: true

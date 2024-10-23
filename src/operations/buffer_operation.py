@@ -11,42 +11,40 @@ def create_buffer_layer(all_layers, project_settings, crs, layer_name, operation
     log_info(f"Creating buffer layer: {layer_name}")
     log_info(f"Operation details: {operation}")
 
-    source_layer_name = operation.get('sourceLayer')
-    if not source_layer_name:
-        log_warning(f"No source layer specified for buffer operation on {layer_name}")
-        return None
-
-    source_geometry = all_layers.get(source_layer_name)
-    if source_geometry is None:
-        log_warning(f"Source layer '{source_layer_name}' not found for buffer operation on {layer_name}")
-        return None
-
     buffer_distance = operation.get('distance', 0)
     log_info(f"Buffer distance: {buffer_distance}")
 
+    source_layers = operation.get('layers', [layer_name])
+    
+    combined_geometry = None
+    for layer_info in source_layers:
+        source_layer_name, values = _process_layer_info(all_layers, project_settings, crs, layer_info)
+        if source_layer_name is None or source_layer_name not in all_layers:
+            log_warning(f"Source layer '{source_layer_name}' not found for buffer operation on {layer_name}")
+            continue
+
+        source_geometry = _get_filtered_geometry(all_layers, project_settings, crs, source_layer_name, values)
+        if source_geometry is None:
+            continue
+
+        if combined_geometry is None:
+            combined_geometry = source_geometry
+        else:
+            combined_geometry = combined_geometry.union(source_geometry)
+
+    if combined_geometry is None:
+        log_warning(f"No valid source geometry found for buffer operation on {layer_name}")
+        return None
+
     try:
-        if isinstance(source_geometry, gpd.GeoDataFrame):
-            buffered = source_geometry.geometry.buffer(buffer_distance)
-        else:
-            buffered = source_geometry.buffer(buffer_distance)
+        buffered = combined_geometry.buffer(buffer_distance)
 
-        # Apply prepare_and_clean_geometry to each geometry
-        if isinstance(buffered, gpd.GeoSeries):
-            cleaned = buffered.apply(lambda geom: prepare_and_clean_geometry(all_layers, project_settings, crs, geom,
-                                                                             buffer_distance=0.001,
-                                                                             thin_growth_threshold=0.001,
-                                                                             merge_vertices_tolerance=0.0001))
-        else:
-            cleaned = prepare_and_clean_geometry(all_layers, project_settings, crs, buffered,
-                                                 buffer_distance=0.001,
-                                                 thin_growth_threshold=0.001,
-                                                 merge_vertices_tolerance=0.0001)
+        cleaned = prepare_and_clean_geometry(all_layers, project_settings, crs, buffered,
+                                             buffer_distance=0.001,
+                                             thin_growth_threshold=0.001,
+                                             merge_vertices_tolerance=0.0001)
 
-        # Create a new GeoDataFrame with the resulting geometries
-        if isinstance(cleaned, gpd.GeoSeries):
-            result_gdf = gpd.GeoDataFrame(geometry=cleaned, crs=crs)
-        else:
-            result_gdf = gpd.GeoDataFrame(geometry=[cleaned], crs=crs)
+        result_gdf = gpd.GeoDataFrame(geometry=[cleaned], crs=crs)
 
         all_layers[layer_name] = result_gdf
         log_info(f"Created buffer layer: {layer_name} with {len(result_gdf)} geometries")
@@ -56,6 +54,7 @@ def create_buffer_layer(all_layers, project_settings, crs, layer_name, operation
         import traceback
         log_error(f"Traceback:\n{traceback.format_exc()}")
         return None
+
 
 
 
