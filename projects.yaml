@@ -602,24 +602,24 @@ projects:
               - FG Buffer
               - Biotoppuffer
               - Biotope
-          # # - type: merge
-          # - type: dissolve
-          # # - type: buffer
-          # #   layers:
-          # #     - Grünfläche
-          # #   distance: 5
-          # #   # joinStyle: round
-          # - type: difference
+          # - type: merge
+          - type: dissolve
+          # - type: buffer
           #   layers:
           #     - Grünfläche
-          #   # reverseDifference: false
-          # - type: intersection
-          #   layers:
-          #     - Geltungsbereich NW
-          #     - Geltungsbereich NO
-          #     - Geltungsbereich S
-          # # - type: filterGeometry
-          # #   minArea: 200
+          #   distance: 5
+          #   # joinStyle: round
+          - type: difference
+            layers:
+              - Grünfläche
+            # reverseDifference: false
+          - type: intersection
+            layers:
+              - Geltungsbereich NW
+              - Geltungsbereich NO
+              - Geltungsbereich S
+          - type: filterGeometry
+            minArea: 200
       
       # - name: "Biotope T-Symbol"
       #   update: true
