@@ -1,7 +1,7 @@
 import geopandas as gpd
 from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection, Point, MultiPoint
 from src.utils import log_info, log_warning, log_error
-from src.operations.common_operations import _process_layer_info, _get_filtered_geometry, ensure_geodataframe, prepare_and_clean_geometry
+from src.operations.common_operations import _process_layer_info, _get_filtered_geometry, ensure_geodataframe
 from src.operations.common_operations import *
 
 def create_smooth_layer(all_layers, project_settings, crs, layer_name, operation):
@@ -29,8 +29,7 @@ def create_smooth_layer(all_layers, project_settings, crs, layer_name, operation
             thin_growth_threshold = operation.get('thinGrowthThreshold', 0.001)
             merge_vertices_tolerance = operation.get('mergeVerticesTolerance', 0.0001)
             smoothed_geometry = smooth_geometry(combined_geometry, strength)
-            cleaned_geometry = prepare_and_clean_geometry(all_layers, project_settings, crs, smoothed_geometry, 
-                                                          buffer_distance, thin_growth_threshold, merge_vertices_tolerance)
+            cleaned_geometry = smoothed_geometry
             all_layers[layer_name] = ensure_geodataframe(layer_name, gpd.GeoDataFrame(geometry=[cleaned_geometry], crs=crs))
             log_info(f"Created smooth layer: {layer_name}")
         else:

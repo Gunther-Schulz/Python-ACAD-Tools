@@ -4,8 +4,7 @@ from src.utils import log_info, log_warning, log_error
 from shapely.ops import unary_union
 from src.operations.common_operations import _process_layer_info, _get_filtered_geometry
 from src.operations.common_operations import *
-from src.operations.common_operations import explode_to_singlepart
-from src.operations.common_operations import prepare_and_clean_geometry
+
 
 def create_buffer_layer(all_layers, project_settings, crs, layer_name, operation):
     log_info(f"Creating buffer layer: {layer_name}")

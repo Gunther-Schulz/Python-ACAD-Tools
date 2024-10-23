@@ -2,7 +2,7 @@ import geopandas as gpd
 from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection, Point, MultiPoint
 from src.utils import log_info, log_warning, log_error
 from shapely.ops import unary_union
-from src.operations.common_operations import _process_layer_info, _get_filtered_geometry, _remove_empty_geometries, _create_generic_overlay_layer, apply_buffer_trick, _clean_geometry, _remove_thin_growths, _merge_close_vertices, prepare_and_clean_geometry, explode_to_singlepart
+from src.operations.common_operations import _process_layer_info, _get_filtered_geometry, _remove_empty_geometries, _create_generic_overlay_layer, apply_buffer_trick, _clean_geometry, _remove_thin_growths, _merge_close_vertices, explode_to_singlepart
 from src.operations.intersection_operation import _create_intersection_overlay_layer
 
 def create_difference_layer(all_layers, project_settings, crs, layer_name, operation):

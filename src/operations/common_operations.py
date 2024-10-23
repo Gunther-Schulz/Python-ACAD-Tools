@@ -460,40 +460,6 @@ def final_union(geometries):
     log_info("Performing final unary union")
     return unary_union(geometries)
 
-def prepare_and_clean_geometry(geometry, buffer_distance=0.001, thin_growth_threshold=0.001, merge_vertices_tolerance=0.0001, remove_non_polygons=False):
-    """
-    Prepares and cleans a geometry by applying multiple cleaning operations.
-    """
-    log_info("Starting geometry preparation and cleaning")
-    
-    if isinstance(geometry, gpd.GeoDataFrame):
-        geometry = geometry.geometry.unary_union
-    
-    if remove_non_polygons:
-        geometry = remove_non_polygons(geometry)
-        if geometry is None:
-            return None
-    
-    cleaned_polygons = clean_polygons(geometry)
-    
-    processed_polygons = []
-    for poly in cleaned_polygons:
-        poly = remove_thin_growths(poly, thin_growth_threshold)
-        poly = merge_close_vertices(poly, merge_vertices_tolerance)
-        poly = apply_buffer_trick(poly, buffer_distance)
-        processed_polygons.append(poly)
-    
-    final_geometry = final_union(processed_polygons)
-    
-    if not remove_non_polygons and isinstance(geometry, GeometryCollection):
-        non_polygons = [geom for geom in geometry.geoms if not isinstance(geom, (Polygon, MultiPolygon))]
-        final_geometry = GeometryCollection([final_geometry] + non_polygons)
-    
-    return final_geometry
-
-# Make sure to import any necessary functions at the top of the file
-from shapely.ops import unary_union
-
 def explode_to_singlepart(geometry_or_gdf):
     """
     Converts multipart geometries to singlepart geometries.
