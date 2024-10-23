@@ -474,7 +474,7 @@ projects:
                 values:
                   - "Groß Plasten"
           - type: difference
-            reverseDifference: false
+            useBufferTrick: true
             layers:
               - Wald
               - Baumabstand Puffer

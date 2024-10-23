@@ -12,6 +12,7 @@ def create_difference_layer(all_layers, project_settings, crs, layer_name, opera
     buffer_distance = operation.get('bufferDistance', 0.001)  # Increased default value
     thin_growth_threshold = operation.get('thinGrowthThreshold', 0.001)
     merge_vertices_tolerance = operation.get('mergeVerticesTolerance', 0.0001)
+    use_buffer_trick = operation.get('useBufferTrick', False)
     
     base_geometry = all_layers.get(layer_name)
     if base_geometry is None:
@@ -53,12 +54,21 @@ def create_difference_layer(all_layers, project_settings, crs, layer_name, opera
         reverse_difference = _should_reverse_difference(all_layers, project_settings, crs, base_geometry, overlay_geometry)
         log_info(f"Auto-detected reverse_difference for {layer_name}: {reverse_difference}")
 
+    if use_buffer_trick:
+        # Apply buffer trick to both base and overlay geometries
+        base_geometry = apply_buffer_trick(base_geometry, buffer_distance)
+        overlay_geometry = apply_buffer_trick(overlay_geometry, buffer_distance)
+
     # Use base_geometry and overlay_geometry directly
     if reverse_difference:
         result = overlay_geometry.difference(base_geometry)
     else:
         result = base_geometry.difference(overlay_geometry)
     
+    if use_buffer_trick:
+        # Apply inverse buffer to shrink the result back
+        result = apply_buffer_trick(result, -buffer_distance)
+
     # Convert result to GeoSeries
     if isinstance(result, (Polygon, MultiPolygon, LineString, MultiLineString)):
         result = gpd.GeoSeries([result])
