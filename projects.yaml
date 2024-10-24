@@ -441,9 +441,7 @@ projects:
               - Exclude
       - name: Geltungsbereich NW 2
         update: true
-        # close: false
         linetypeScale: 1
-        linetypeGeneration: false
         style: geltungsbereich2
         operations:
           - type: buffer
@@ -478,6 +476,15 @@ projects:
               - Wald
               - Baumabstand Puffer
               - Exclude
+      - name: Geltungsbereich NO 2
+        update: true
+        linetypeScale: 1
+        style: geltungsbereich2
+        operations:
+          - type: buffer
+            layers:
+              - name: Geltungsbereich NO
+            distance: 2
       - name: Geltungsbereich S
         update: true
         style: geltungsbereich
@@ -504,6 +511,15 @@ projects:
               - Wald
               - Baumabstand Puffer
               - Exclude
+      - name: Geltungsbereich S 2
+        update: true
+        linetypeScale: 1
+        style: geltungsbereich2
+        operations:
+          - type: buffer
+            layers:
+              - name: Geltungsbereich S
+            distance: 2
       - name: Waldabstand
         operations:
           - type: buffer
