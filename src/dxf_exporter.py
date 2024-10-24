@@ -383,8 +383,7 @@ class DXFExporter:
 
     def add_polygon_to_dxf(self, msp, geometry, layer_name):
         layer_properties = self.layer_properties[layer_name]
-        # For polygons, always set 'close' to True, regardless of layer properties
-        close = True
+        close = True  # For polygons, always set 'close' to True
 
         exterior_coords = list(geometry.exterior.coords)
         if len(exterior_coords) > 2:
@@ -394,10 +393,8 @@ class DXFExporter:
                 'ltscale': layer_properties.get('linetypeScale', 1.0)
             })
             self.attach_custom_data(polyline)
-            if layer_properties.get('linetypeGeneration', False):
-                polyline.dxf.flags |= LWPOLYLINE_PLINEGEN
-            else:
-                polyline.dxf.flags &= ~LWPOLYLINE_PLINEGEN
+            # Always apply linetype generation setting
+            polyline.dxf.flags |= ezdxf.lldxf.const.LWPOLYLINE_PLINEGEN
 
         for interior in geometry.interiors:
             interior_coords = list(interior.coords)
@@ -408,10 +405,8 @@ class DXFExporter:
                     'ltscale': layer_properties.get('linetypeScale', 1.0)
                 })
                 self.attach_custom_data(polyline)
-                if layer_properties.get('linetypeGeneration', False):
-                    polyline.dxf.flags |= LWPOLYLINE_PLINEGEN
-                else:
-                    polyline.dxf.flags &= ~LWPOLYLINE_PLINEGEN
+                # Always apply linetype generation setting
+                polyline.dxf.flags |= ezdxf.lldxf.const.LWPOLYLINE_PLINEGEN
 
     def add_linestring_to_dxf(self, msp, linestring, layer_name):
         points = list(linestring.coords)
@@ -768,6 +763,7 @@ class DXFExporter:
                 remove_entities_by_layer(msp, target_layer_name, self.script_identifier)
                 
             create_path_array(msp, source_layer_name, target_layer_name, block_name, spacing, scale, rotation)
+
 
 
 
