@@ -441,9 +441,9 @@ projects:
               - Exclude
       - name: Geltungsbereich NW 2
         update: true
-        close: true
+        # close: false
         linetypeScale: 1
-        linetypeGeneration: true
+        linetypeGeneration: false
         style: geltungsbereich2
         operations:
           - type: buffer

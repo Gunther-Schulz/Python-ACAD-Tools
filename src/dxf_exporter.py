@@ -383,40 +383,42 @@ class DXFExporter:
 
     def add_polygon_to_dxf(self, msp, geometry, layer_name):
         layer_properties = self.layer_properties[layer_name]
-        close = True  # For polygons, always set 'close' to True
-
         exterior_coords = list(geometry.exterior.coords)
         if len(exterior_coords) > 2:
             polyline = msp.add_lwpolyline(exterior_coords, dxfattribs={
                 'layer': layer_name, 
-                'closed': close,
+                'closed': layer_properties['close'],
                 'ltscale': layer_properties.get('linetypeScale', 1.0)
             })
             self.attach_custom_data(polyline)
-            # Always apply linetype generation setting
-            polyline.dxf.flags |= ezdxf.lldxf.const.LWPOLYLINE_PLINEGEN
+            # Apply linetype generation setting
+            if layer_properties['linetypeGeneration']:
+                polyline.dxf.flags |= LWPOLYLINE_PLINEGEN
+            else:
+                polyline.dxf.flags &= ~LWPOLYLINE_PLINEGEN
 
         for interior in geometry.interiors:
             interior_coords = list(interior.coords)
             if len(interior_coords) > 2:
                 polyline = msp.add_lwpolyline(interior_coords, dxfattribs={
                     'layer': layer_name, 
-                    'closed': close,
+                    'closed': layer_properties['close'],
                     'ltscale': layer_properties.get('linetypeScale', 1.0)
                 })
                 self.attach_custom_data(polyline)
-                # Always apply linetype generation setting
-                polyline.dxf.flags |= ezdxf.lldxf.const.LWPOLYLINE_PLINEGEN
+                # Apply linetype generation setting
+                if layer_properties['linetypeGeneration']:
+                    polyline.dxf.flags |= LWPOLYLINE_PLINEGEN
+                else:
+                    polyline.dxf.flags &= ~LWPOLYLINE_PLINEGEN
 
     def add_linestring_to_dxf(self, msp, linestring, layer_name):
         points = list(linestring.coords)
         layer_properties = self.layer_properties[layer_name]
-        # For linestrings, use the 'close' property from layer settings
-        close = layer_properties.get('close', False)
-        
-        if close and points[0] != points[-1]:
+
+        if layer_properties['close'] and points[0] != points[-1]:
             points.append(points[0])  # Close the linestring by adding the first point at the end
-        
+
         log_info(f"Adding linestring to layer {layer_name} with {len(points)} points")
         log_info(f"First point: {points[0][:2] if points else 'No points'}")
 
@@ -428,7 +430,7 @@ class DXFExporter:
                 points=points_2d,
                 dxfattribs={
                     'layer': layer_name,
-                    'closed': close,
+                    'closed': layer_properties['close'],
                     'ltscale': layer_properties['linetypeScale']
                 }
             )
@@ -436,7 +438,7 @@ class DXFExporter:
             # Set constant width to 0
             polyline.dxf.const_width = 0
             
-            # Set linetype generation using flags attribute
+            # Apply linetype generation setting
             if layer_properties['linetypeGeneration']:
                 polyline.dxf.flags |= LWPOLYLINE_PLINEGEN
             else:
@@ -475,8 +477,15 @@ class DXFExporter:
         properties['frozen'] = geom_style.get('frozen', False)
         properties['is_on'] = geom_style.get('is_on', True)
         properties['transparency'] = geom_style.get('transparency', 0)
-        properties['close'] = geom_style.get('close', True)
+        properties['close'] = geom_style.get('close', True)  # Default to True
         properties['linetypeScale'] = geom_style.get('linetypeScale', 1.0)
+        properties['linetypeGeneration'] = geom_style.get('linetypeGeneration', True)  # Default to True
+        
+        # Override defaults with values from the layer if they exist
+        if 'close' in layer:
+            properties['close'] = layer['close']
+        if 'linetypeGeneration' in layer:
+            properties['linetypeGeneration'] = layer['linetypeGeneration']
         
         self.layer_properties[layer_name] = properties
         self.colors[layer_name] = properties['color']
@@ -763,6 +772,7 @@ class DXFExporter:
                 remove_entities_by_layer(msp, target_layer_name, self.script_identifier)
                 
             create_path_array(msp, source_layer_name, target_layer_name, block_name, spacing, scale, rotation)
+
 
 
 
