@@ -35,12 +35,6 @@ class DXFExporter:
         self.setup_layers()
         self.viewports = {}
         self.style_manager = StyleManager(project_loader)
-        self.default_hatch_settings = {
-            'pattern': 'SOLID',
-            'scale': 1,
-            'color': None,  # Use layer color by default
-            'individual_hatches': False
-        }
         self.loaded_styles = set()  # Add this line to store loaded styles
 
     def setup_layers(self):
@@ -774,6 +768,7 @@ class DXFExporter:
                 remove_entities_by_layer(msp, target_layer_name, self.script_identifier)
                 
             create_path_array(msp, source_layer_name, target_layer_name, block_name, spacing, scale, rotation)
+
 
 
 

@@ -31,7 +31,7 @@ def get_color_code(color, name_to_aci):
             try:
                 return tuple(map(int, color.split(',')))
             except ValueError:
-                print(f"Invalid RGB color string: {color}")
+                log_warning(f"Invalid RGB color string: {color}")
                 return 7  # Default to white if invalid
         else:
             # It's a color name
@@ -49,7 +49,7 @@ def convert_transparency(transparency):
         try:
             return float(transparency)
         except ValueError:
-            print(f"Invalid transparency value: {transparency}")
+            log_warning(f"Invalid transparency value: {transparency}")
     return None
 
 def attach_custom_data(entity, script_identifier):
@@ -136,7 +136,7 @@ def is_created_by_script(entity, script_identifier):
         # It's not an error, just means the entity wasn't created by this script
         return False
     except Exception as e:
-        print(f"Unexpected error checking XDATA for entity {entity}: {str(e)}")
+        log_error(f"Unexpected error checking XDATA for entity {entity}: {str(e)}")
     return False
 
 def add_text(msp, text, x, y, layer_name, style_name, height=5, color=None):
@@ -161,7 +161,7 @@ def remove_entities_by_layer(msp, layer_name, script_identifier):
             msp.delete_entity(entity)
             delete_count += 1
         except Exception as e:
-            print(f"Error deleting entity: {e}")
+            log_error(f"Error deleting entity: {e}")
     return delete_count
 
 def update_layer_geometry(msp, layer_name, script_identifier, update_function):
@@ -281,10 +281,10 @@ def set_drawing_properties(doc):
 
 def verify_dxf_settings(filename):
     loaded_doc = ezdxf.readfile(filename)
-    print(f"INSUNITS after load: {loaded_doc.header['$INSUNITS']}")
-    print(f"LUNITS after load: {loaded_doc.header['$LUNITS']}")
-    print(f"LUPREC after load: {loaded_doc.header['$LUPREC']}")
-    print(f"AUPREC after load: {loaded_doc.header['$AUPREC']}")
+    log_info(f"INSUNITS after load: {loaded_doc.header['$INSUNITS']}")
+    log_info(f"LUNITS after load: {loaded_doc.header['$LUNITS']}")
+    log_info(f"LUPREC after load: {loaded_doc.header['$LUPREC']}")
+    log_info(f"AUPREC after load: {loaded_doc.header['$AUPREC']}")
 
 def get_style(style, project_loader):
     if isinstance(style, str):
@@ -378,7 +378,7 @@ def create_hatch(msp, boundary_paths, hatch_config, project_loader, is_legend=Fa
     for path in boundary_paths:
         hatch.paths.add_polyline_path(path)
     
-    # Apply color and transparency for both legend and non-legend hatches
+    # Apply color for both legend and non-legend hatches
     if 'color' in hatch_config and hatch_config['color'] not in (None, 'BYLAYER'):
         color = get_color_code(hatch_config['color'], project_loader.name_to_aci)
         if isinstance(color, tuple):
@@ -388,10 +388,13 @@ def create_hatch(msp, boundary_paths, hatch_config, project_loader, is_legend=Fa
     else:
         hatch.dxf.color = ezdxf.const.BYLAYER
 
-    if 'transparency' in hatch_config and hatch_config['transparency'] not in (None, 'BYLAYER'):
-        transparency = convert_transparency(hatch_config['transparency'])
-        if transparency is not None:
-            set_hatch_transparency(hatch, transparency)
+    # Check if 'transparency' key exists and set it only if specified
+    if 'transparency' in hatch_config:
+        transparency = hatch_config['transparency']
+        if transparency not in (None, 'BYLAYER'):
+            transparency_value = convert_transparency(transparency)
+            if transparency_value is not None:
+                set_hatch_transparency(hatch, transparency_value)
     
     return hatch
 
@@ -607,6 +610,8 @@ def create_path_array(msp, source_layer_name, target_layer_name, block_name, spa
             current_distance -= segment_length
 
     log_info(f"Path array created for source layer '{source_layer_name}' using block '{block_name}' and placed on target layer '{target_layer_name}'")
+
+
 
 
 

@@ -82,9 +82,8 @@ styles:
       color: "brilliant-red"
       transparency: 0.6
     hatch:
-      color: "brilliant-red"
-      transparency: 0.6
       individual_hatches: true
+      # transparency: 'BYLAYER'
 
   baugrenze:
     layer:
