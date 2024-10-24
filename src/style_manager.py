@@ -8,7 +8,8 @@ class StyleManager:
         self.default_hatch_settings = {
             'pattern': 'SOLID',
             'scale': 1,
-            'color': 'BYLAYER'
+            'color': 'BYLAYER',
+            'individual_hatches': True
         }
 
     def get_style(self, style_name_or_config):

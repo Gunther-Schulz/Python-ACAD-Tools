@@ -72,10 +72,11 @@ styles:
 # --------------
 
   schutzflächeumgrenzung:
-    hatch:
-      individual_hatches: true
+    layer:
       color: "moderate-intense-green"
       transparency: 0.6
+    hatch:
+      individual_hatches: true
 
   baufeld:
     layer:
@@ -83,7 +84,6 @@ styles:
       transparency: 0.6
     hatch:
       individual_hatches: true
-      # transparency: 'BYLAYER'
 
   baugrenze:
     layer:
@@ -107,9 +107,11 @@ styles:
       linetype: "ACAD_ISO02W100"
 
   grünfläche:
+    layer:
+      color: "brilliant-intense-chartreuse"
+      transparency: 0.6
     hatch:
       individual_hatches: true
-      color: "brilliant-intense-chartreuse"
 
   grünflächeWorkView:
     layer:
