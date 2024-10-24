@@ -551,7 +551,7 @@ projects:
               - Geltungsbereich NO
               - Geltungsbereich S
       - name: Biotoppuffer Schraffur
-        hatchStyle: gruenflaecheHatch
+        style: gruenflaecheHatch
         applyHatch:
           layers:
             - Biotoppuffer
@@ -584,7 +584,7 @@ projects:
         #   angleThreshold: 25  # Angles smaller than this will be blunted
         #   distance: 10.0  # Distance to move the vertex along the angle bisector
       - name: Grünfläche Schraffur
-        hatchStyle: ausgleichHatch
+        style: ausgleichHatch
         applyHatch:
           layers:
             - Grünfläche
@@ -687,35 +687,35 @@ projects:
       #   applyHatch:
       #       layers:
       #         - Grünfläche
-      # - name: Baufeld
-      #   update: true
-      #   close: true
-      #   style:
-      #       layer:
-      #         color: "brilliant-red"
-      #         transparency: 0.6
-      #         lock: true
-      #         lineweight: 13
-      #         linetype: "ACAD_ISO02W100"
-      #       hatch:
-      #         individual_hatches: true
-      #   viewports:
-      #     - name: WorkView
-      #       style: baufeldSchraffur
-      #   operations:
-      #     - type: copy
-      #       layers:
-      #         - Geltungsbereich NW
-      #         - Geltungsbereich NO
-      #         - Geltungsbereich S
-      #     - type: difference
-      #       layers:
-      #         - Ausgleich
-      #         - Baumabstand Puffer
-      #         - Biotope
-      #         - FG Buffer
-      #     # - type: smooth
-      #     #   strength: 1.5
+      - name: Baufeld
+        update: true
+        close: true
+        style:
+            layer:
+              color: "brilliant-red"
+              transparency: 0.6
+              lock: true
+              lineweight: 13
+              linetype: "ACAD_ISO02W100"
+            hatch:
+              individual_hatches: true
+        viewports:
+          - name: WorkView
+            style: baufeldSchraffur
+        operations:
+          - type: copy
+            layers:
+              - Geltungsbereich NW
+              - Geltungsbereich NO
+              - Geltungsbereich S
+          - type: difference
+            layers:
+              - Ausgleich
+              - Baumabstand Puffer
+              - Biotope
+              - FG Buffer
+          # - type: smooth
+          #   strength: 1.5
       # - name: Baufeld Schraffur
       #   update: true
       #   style: baufeldSchraffur

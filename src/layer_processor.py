@@ -72,7 +72,7 @@ class LayerProcessor:
             return
     
         # Check for unrecognized keys
-        recognized_keys = {'name', 'update', 'operations', 'shapeFile', 'dxfLayer', 'outputShapeFile', 'style', 'close', 'linetypeScale', 'linetypeGeneration', 'viewports', 'attributes', 'bluntAngles', 'label'}
+        recognized_keys = {'name', 'update', 'operations', 'shapeFile', 'dxfLayer', 'outputShapeFile', 'style', 'close', 'linetypeScale', 'linetypeGeneration', 'viewports', 'attributes', 'bluntAngles', 'label', 'applyHatch'}
         unrecognized_keys = set(layer_obj.keys()) - recognized_keys
         if unrecognized_keys:
             log_warning(f"Unrecognized keys in layer {layer_name}: {', '.join(unrecognized_keys)}")
@@ -278,8 +278,8 @@ class LayerProcessor:
                     log_info(f"Shapefile written for layer {layer_name}: {full_path}")
                 else:
                     log_warning(f"No valid geometries found for layer {layer_name} after conversion")
-            else:
-                log_warning(f"Cannot write shapefile for layer {layer_name}: not a GeoDataFrame")
+            # else:
+            #     log_warning(f"Cannot write shapefile for layer {layer_name}: not a GeoDataFrame")
         else:
             log_warning(f"Cannot write shapefile for layer {layer_name}: layer not found")
 
