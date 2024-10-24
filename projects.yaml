@@ -48,8 +48,8 @@ projects:
         update: true
         operations:
           - type: wms
-            url: "https://www.geodaten-mv.de/dienste/gebaeude_wms"
-            layer: "gebaeude"
+            url: "https://www.geodaten-mv.de/dienste/gebäude_wms"
+            layer: "gebäude"
             srs: "EPSG:25833"
             format: "image/png"
             targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/Gebäude"
@@ -168,7 +168,7 @@ projects:
           items:
             - name: "Verkehrsfläche besonderer Zweckbestimmung"
               type: area
-              hatch_style: verkehrsflaeche
+              hatch_style: verkehrsfläche
             - name: "Verkehrsberuhigter Bereich"
               type: empty
               block_symbol: "Verkehrsberuhigter Bereich"
@@ -183,7 +183,7 @@ projects:
           items:
             - name: "Private Grünflächen"
               type: area
-              hatch_style: gruenflaeche
+              hatch_style: grünfläche
         - name: "Wasserflächen und Flächen für die Wasserwirtschaft, den Hochwasserschutz und die Regelung des Wasserabflusses"
           update: true
           subtitle: "§ 9 Abs. 1 Nr. 16 BauBG"
@@ -330,9 +330,9 @@ projects:
     geomLayers:
       - name: Flur
         update: true
+        close: true
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/flur.shp"
         label: flurname
-        close: true
         linetypeScale: 0.2
         linetypeGeneration: true
         style: flur
@@ -344,13 +344,13 @@ projects:
         update: true
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/parcel.shp"
         label: label
-        close: true
         style: parcel
         viewports:
           - name: WorkView
             style: parcelWorkView
       - name: Gemarkung
         update: true
+        close: true
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/gemarkung.shp"
         label: gmkname
         linetypeGeneration: true
@@ -360,6 +360,7 @@ projects:
             style: gemarkungWorkView
       - name: Gemeinde
         update: true
+        close: true
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/gemeinde.shp"
         label: gen
         # linetypeScale: 0.2
@@ -370,7 +371,6 @@ projects:
             style: gemeindeWorkView
       - name: Grünfläche Input 
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/grünfläche_input_2.shp"
-        close: true
       - name: Wald
         update: true
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/wald.shp"
@@ -398,7 +398,6 @@ projects:
         operations:
           - type: buffer
             distance: 5
-            # joinStyle: round
       - name: Geschütze Biotope
         update: true
         # linetypeScale: 0.2
@@ -509,7 +508,6 @@ projects:
         operations:
           - type: buffer
             joinStyle: mitre
-            join_style: mitre
             layers:
               - Wald
             distance: 30
@@ -526,17 +524,17 @@ projects:
           - name: WorkView
             style: biotopWorkView
         operations:
-          - type: merge
+          - type: dissolve
             layers:
               - Biotope Input
               - Geschütze Biotope
       - name: Biotoppuffer
-        update: true
-        viewports:
-          - name: WorkView
-            style:
-              color: "brilliant-green"
-              linetype: "ACAD_ISO02W100"
+        # update: true
+        # viewports:
+        #   - name: WorkView
+        #     style:
+        #       color: "brilliant-green"
+        #       linetype: "ACAD_ISO02W100"
         operations:
           - type: buffer
             layers:
@@ -550,16 +548,16 @@ projects:
               - Geltungsbereich NW
               - Geltungsbereich NO
               - Geltungsbereich S
-      - name: Biotoppuffer Schraffur
-        style: gruenflaeche
-        applyHatch:
-          layers:
-            - Biotoppuffer
+      # - name: Biotoppuffer Schraffur
+      #   style: grünfläche
+      #   applyHatch:
+      #     layers:
+      #       - Biotoppuffer
       - name: Grünfläche
         update: true
         viewports:
           - name: WorkView
-            style: ausgleichWorkView
+            style: grünflächeWorkView
         operations:
           - type: copy
             layers:
@@ -569,7 +567,6 @@ projects:
               - FG Buffer
               - Biotoppuffer
               - Biotope
-          # - type: merge
           - type: dissolve
   
           - type: intersection
@@ -579,12 +576,12 @@ projects:
               - Geltungsbereich S
           - type: buffer
             distance: -3
-            # joinStyle: round
         # bluntAngles:
         #   angleThreshold: 25  # Angles smaller than this will be blunted
         #   distance: 10.0  # Distance to move the vertex along the angle bisector
       - name: Grünfläche Schraffur
-        style: ausgleich
+        update: true
+        style: grünfläche
         applyHatch:
           layers:
             - Grünfläche
@@ -592,7 +589,7 @@ projects:
         update: true
         viewports:
           - name: WorkView
-            style: schutzflaecheWorkView
+            style: schutzflächeWorkView
         operations:
           - type: copy
             layers:
@@ -602,172 +599,97 @@ projects:
               - FG Buffer
               - Biotoppuffer
               - Biotope
-          # - type: merge
           - type: dissolve
-          # - type: buffer
-          #   layers:
-          #     - Grünfläche
-          #   distance: 5
-          #   # joinStyle: round
           - type: difference
             layers:
               - Grünfläche
-            # reverseDifference: false
           - type: intersection
             layers:
               - Geltungsbereich NW
               - Geltungsbereich NO
               - Geltungsbereich S
-          - type: filterGeometry
-            minArea: 200
-      
-      # - name: "Biotope T-Symbol"
-      #   update: true
-      #   close: true
-      #   operations:
-      #     - type: buffer
-      #       distance: 5
-      #       layers:
-      #         - Biotope
-      #     - type: intersection
-      #       layers:
-      #         - Geltungsbereich NW
-      #         - Geltungsbereich NO
-      #         - Geltungsbereich S              
-      # - name: Ausgleich
-      #   update: true
-      #   close: true
-      #   viewports:
-      #     - name: WorkView
-      #       style: 
-      #         color: "Dark Green"
-      #   operations:
-      #     - type: copy
-      #       layers:
-      #         - Grünfläche Input 
-      #         - Waldabstand
-      #         - Baumabstand Puffer
-      #         - FG Buffer
-      #     - type: intersection
-      #       layers:
-      #         - Geltungsbereich NW
-      #         - Geltungsbereich NO
-      #         - Geltungsbereich S
-      #   bluntAngles:
-      #     angleThreshold: 25  # Angles smaller than this will be blunted
-      #     distance: 10.0  # Distance to move the vertex along the angle bisector
-      
-      # - name: Ausgleich Schraffur
-      #   update: true
-      #   hatchStyle: gruenflaecheLayer
-      #   applyHatch: true
-      #   operations:
-      #     - type: copy
-      #       layers:
-      #         - Ausgleich
-      #     # - type: difference
-      #     #   layers:
-      #     #     - Grünfläche
-      # - name: Grünfläche
-      #   update: true
-      #   close: true
-      #   viewports:
-      #     - name: WorkView
-      #       style: 
-      #         color: "Light Green"
-      #   operations:
-      #     - type: buffer
-      #       layers:
-      #         - Ausgleich
-      #       distance: -5
-      # - name: Grünfläche Schraffur
-      #   update: true
-      #   style: gruenflaecheLayer
-      #   hatchStyle: gruenflaecheHatch
-      #   applyHatch:
-      #       layers:
-      #         - Grünfläche
+          # - type: filterGeometry
+          #   minArea: 200
+      - name: Schutzflächeumgrenzung Schraffur
+        update: true
+        style: schutzflächeumgrenzung
+        applyHatch:
+          layers:
+            - Schutzflächeumgrenzung
       - name: Baufeld
         update: true
         close: true
-        style: baufeldSchraffur
+        style: baufeld
         viewports:
           - name: WorkView
-            style: baufeldSchraffur
+            style: baufeld
         operations:
-          # - type: copy
-          #   layers:
-          #     - Geltungsbereich NW
-          #     - Geltungsbereich NO
-          #     - Geltungsbereich S
-          #     # - Schutzflächeumgrenzung
-          #     # - Grünfläche
-          - type: difference
+          - type: copy
             layers:
-            #   - Schutzflächeumgrenzung
+              - Geltungsbereich NW
+              - Geltungsbereich NO
+              - Geltungsbereich S
+          - type: difference
+            # useBufferTrick: true
+            reverseDifference: false
+            layers:
+              - Schutzflächeumgrenzung
               - Grünfläche
-              # - Biotoppuffer
-              # - Biotope
-              # - FG Buffer
-          # - type: smooth
-          #   strength: 1.5
-      # - name: Baufeld Schraffur
-      #   update: true
-      #   style: baufeldSchraffur
-      #   applyHatch:
-      #     layers:
-      #       - Baufeld
-      #     # individual_hatches: true
-      #     # pattern: 'ANSI31'
-      #     # scale: 50  # Adjust this value to change the hatch density
-      #     # color: "Blue"  # ACI color index for Light Red
-      # - name: Baugrenze 2
-      #   update: true
-      #   style: 
-      #     color: "Green Blue"
-      #     lineweight: 60
-      #   close: true
-      #   operations:
-      #     - type: buffer
-      #       layers:
-      #         - Baufeld
-      #       distance: -3.4
-      # - name: Baugrenze
-      #   update: true
-      #   style: 
-      #     linetype: ACAD_ISO02W100
-      #     lineweight: 60
-      #   linetypeScale: 0.5
-      #   linetypeGeneration: true
-      #   close: true
-      #   viewports:
-      #     - name: WorkView
-      #       style: 
-      #         color: "Blue"
-      #   operations:
-      #     - type: buffer
-      #       layers:
-      #         - Baufeld
-      #       distance: -3
-      # - name: WMTS DOP
-      #   # update: true
-      #   style: 
-      #     locked: true
-      #     # color: "White"
-      #   operations:
-      #     - type: wmts
-      #       url: "https://www.geodaten-mv.de/dienste/dop_wmts/wmts/1.0.0/WMTSCapabilities.xml"
-      #       layer: "mv_dop"
-      #       # zoom: "10"
-      #       proj: "ETRS89UTM33"
-      #       targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/DOP"
-      #       layers:
-      #         - Geltungsbereich NW
-      #         - Geltungsbereich NO
-      #         - Geltungsbereich S
-      #       buffer: 200
-      #       stitchTiles: true
-      #       # overwrite: true
+      - name: Baufeld Schraffur
+        update: true
+        style: baufeld
+        applyHatch:
+          layers:
+            - Baufeld
+          # individual_hatches: true
+          # pattern: 'ANSI31'
+          # scale: 50  # Adjust this value to change the hatch density
+          # color: "Blue"  # ACI color index for Light Red
+      - name: Baugrenze 2
+        update: true
+        style: 
+          color: "Green Blue"
+          lineweight: 60
+        close: true
+        operations:
+          - type: buffer
+            layers:
+              - Baufeld
+            distance: -3.4
+      - name: Baugrenze
+        update: true
+        style: baugrenze
+        linetypeScale: 0.5
+        linetypeGeneration: true
+        close: true
+        viewports:
+          - name: WorkView
+            style: 
+              color: "Blue"
+        operations:
+          - type: buffer
+            layers:
+              - Baufeld
+            distance: -3
+      - name: WMTS DOP
+        # update: true
+        style: 
+          locked: true
+          # color: "White"
+        operations:
+          - type: wmts
+            url: "https://www.geodaten-mv.de/dienste/dop_wmts/wmts/1.0.0/WMTSCapabilities.xml"
+            layer: "mv_dop"
+            # zoom: "10"
+            proj: "ETRS89UTM33"
+            targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/DOP"
+            layers:
+              - Geltungsbereich NW
+              - Geltungsbereich NO
+              - Geltungsbereich S
+            buffer: 200
+            stitchTiles: true
+            # overwrite: true
       # - name: WMTS Basemap
       #   update: true
       #   color: Black
@@ -800,8 +722,8 @@ projects:
       #   update: true
       #   operations:
       #     - type: wms
-      #       url: "https://www.geodaten-mv.de/dienste/gebaeude_wms"
-      #       layer: "gebaeude"
+      #       url: "https://www.geodaten-mv.de/dienste/gebäude_wms"
+      #       layer: "gebäude"
       #       srs: "EPSG:25833"
       #       format: "image/png"
       #       targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/Gebäude"

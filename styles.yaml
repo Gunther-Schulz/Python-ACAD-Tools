@@ -50,7 +50,7 @@ styles:
       linetype: "ACAD_ISO02W100"
       lineweight: 30
 
-  schutzflaecheWorkView:
+  schutzflächeWorkView:
     layer:
       color: "moderate-intense-green"
 
@@ -60,6 +60,7 @@ styles:
     hatch:
       pattern: 'ANSI31'
       scale: 5
+      individual_hatches: true
 
   water:
     layer:
@@ -70,24 +71,30 @@ styles:
 # Urban Planning
 # --------------
 
-  ausgleich:
-    layer:
+  schutzflächeumgrenzung:
+    hatch:
+      individual_hatches: true
       color: "moderate-intense-green"
       transparency: 0.6
-    hatch:
-      individual_hatches: true
 
-  baufeldSchraffur:
+  baufeld:
     layer:
       color: "brilliant-red"
-      # lock: true
-      # lineweight: 13
-      # linetype: "ACAD_ISO02W100"
+      transparency: 0.6
     hatch:
       color: "brilliant-red"
       transparency: 0.6
       individual_hatches: true
 
+  baugrenze:
+    layer:
+      linetype: ACAD_ISO02W100
+      lineweight: 60
+
+  baugranze2:
+    layer:
+      color: "brilliant-blue"
+      # color: "brilliant-intense-azure"
   
 
   geltungsbereich:
@@ -100,14 +107,17 @@ styles:
     layer:
       linetype: "ACAD_ISO02W100"
 
-  gruenflaeche:
+  grünfläche:
+    hatch:
+      individual_hatches: true
+      color: "brilliant-intense-chartreuse"
+
+  grünflächeWorkView:
     layer:
       color: "brilliant-intense-chartreuse"
       transparency: 0.6
-    hatch:
-      individual_hatches: true
 
-  verkehrsflaeche:
+  verkehrsfläche:
     layer:
       color: "248,215,49"
       lineweight: 10
@@ -135,7 +145,7 @@ styles:
     # vp_freeze: false
     # transparency: 0.0
 
-  # verkehrsflaeche:
+  # verkehrsfläche:
     # color: "brilliant-orange"
     # scale: 20
     # angle: 80

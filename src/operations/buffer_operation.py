@@ -12,7 +12,7 @@ def create_buffer_layer(all_layers, project_settings, crs, layer_name, operation
 
     buffer_distance = operation.get('distance', 0)
     buffer_mode = operation.get('mode', 'off')
-    join_style = operation.get('join_style', 'mitre')
+    join_style = operation.get('joinStyle', 'mitre')
 
     # Map join style names to shapely constants
     join_style_map = {
