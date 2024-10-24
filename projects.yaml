@@ -444,7 +444,7 @@ projects:
         close: true
         linetypeScale: 1
         linetypeGeneration: true
-        style: geltungsbereich
+        style: geltungsbereich2
         operations:
           - type: buffer
             layers:
@@ -619,7 +619,6 @@ projects:
       - name: Baufeld
         update: true
         close: true
-        style: baufeld
         viewports:
           - name: WorkView
             style: baufeld
