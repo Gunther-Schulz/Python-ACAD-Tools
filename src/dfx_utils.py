@@ -582,6 +582,9 @@ def create_path_array(msp, source_layer_name, target_layer_name, block_name, spa
             start = Vec2(points[i][:2])
             end = Vec2(points[i+1][:2])
             segment_length = (end - start).magnitude
+            if segment_length == 0:
+                log_warning(f"Zero-length segment found between points {start} and {end}. Skipping this segment.")
+                continue
             segments.append((start, end, segment_length))
             total_length += segment_length
 
@@ -610,6 +613,7 @@ def create_path_array(msp, source_layer_name, target_layer_name, block_name, spa
             current_distance -= segment_length
 
     log_info(f"Path array created for source layer '{source_layer_name}' using block '{block_name}' and placed on target layer '{target_layer_name}'")
+
 
 
 

@@ -282,7 +282,7 @@ projects:
         targetLayer: "Schutzflächeumgrenzung T-Symbol Array"
         block: "T-Symbol"
         spacing: 10
-        # scale: 0.5
+        scale: 0.6
         # rotation: 90
     viewports:
       - name: MainView
@@ -629,6 +629,8 @@ projects:
               - Geltungsbereich NW
               - Geltungsbereich NO
               - Geltungsbereich S
+          - type: filterGeometry
+            minArea: 200
       - name: Schutzflächeumgrenzung Schraffur
         update: true
         style: schutzflächeumgrenzung
