@@ -143,8 +143,8 @@ projects:
           items:
             - name: "Sonstiges Sondergebiet (§ 11 Abs. 2 BauNVO) Zweckbestimmung: Energiegewinnung auf der Basis solarer Strahlungsenergie"
               type: area
-              create_hatch: true
-              style: baufeldSchraffur
+              # create_hatch: true
+              style: baufeldLegend
               block_symbol: "Sonstiges Sondergebiet EBS"
               block_symbol_scale: 2
         - name: "Maß der baulichen Nutzung"

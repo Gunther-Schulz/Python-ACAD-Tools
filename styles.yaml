@@ -85,6 +85,10 @@ styles:
     hatch:
       individual_hatches: true
 
+  baufeldLegend:
+    hatch:
+      color: "brilliant-red"
+      transparency: 0.6
 
   baugrenze:
     layer:
