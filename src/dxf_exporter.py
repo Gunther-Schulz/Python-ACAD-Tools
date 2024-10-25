@@ -762,12 +762,10 @@ class DXFExporter:
                 source_layer_name = config['sourceLayer']
                 target_layer_name = config.get('targetLayer', source_layer_name)
                 
-                # Check if the source layer exists in all_layers
                 if source_layer_name not in self.all_layers:
                     log_warning(f"Source layer '{source_layer_name}' does not exist in all_layers. Skipping path array creation for this configuration.")
                     continue
                 
-                # Clear the target layer before creating new path arrays
                 remove_entities_by_layer(msp, target_layer_name, self.script_identifier)
                 
                 block_name = config['block']
@@ -776,8 +774,12 @@ class DXFExporter:
                 rotation = config.get('rotation', 0.0)
                 buffer_distance = config.get('bufferDistance', 0.0)
                 show_debug_visual = config.get('showDebugVisual', False)
+                adjust_for_vertices = config.get('adjustForVertices', False)  # Default is now False
                 
-                create_path_array(msp, source_layer_name, target_layer_name, block_name, spacing, buffer_distance, scale, rotation, show_debug_visual, self.all_layers)
+                create_path_array(msp, source_layer_name, target_layer_name, block_name, 
+                                  spacing, buffer_distance, scale, rotation, 
+                                  show_debug_visual, self.all_layers, adjust_for_vertices)
+
 
 
 
