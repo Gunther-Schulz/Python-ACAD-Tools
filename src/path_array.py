@@ -138,7 +138,7 @@ def create_path_array(msp, source_layer_name, target_layer_name, block_name, spa
         while block_distance < total_length:
             point = polyline_geom.interpolate(block_distance)
             insertion_point = Vec2(point.x, point.y)
-            angle = get_angle_at_point(polyline_geom, block_distance / total_length)
+            angle = get_angle_at_point(polyline_geom, block_distance)
 
             rotated_block_shape = rotate_and_adjust_block(block_shape, block_base_point, insertion_point, angle)
             
@@ -154,7 +154,7 @@ def create_path_array(msp, source_layer_name, target_layer_name, block_name, spa
                     insertion_point,
                     target_layer_name,
                     scale=scale,
-                    rotation=math.degrees(angle) + rotation
+                    rotation=math.degrees(angle) + rotation  # Apply base rotation
                 )
                 if block_ref:
                     attach_custom_data(block_ref, SCRIPT_IDENTIFIER)
@@ -233,17 +233,18 @@ def plot_polygon(ax, polygon, color, alpha):
             x, y = geom.exterior.xy
             ax.fill(x, y, alpha=alpha, fc=color, ec='black')
 
-def get_angle_at_point(linestring, param):
-    # Get the angle of the tangent at the given parameter
-    point = linestring.interpolate(param, normalized=True)
-    if param == 0:
-        next_point = linestring.interpolate(0.01, normalized=True)
-        return math.atan2(next_point.y - point.y, next_point.x - point.x)
-    elif param == 1:
-        prev_point = linestring.interpolate(0.99, normalized=True)
-        return math.atan2(point.y - prev_point.y, point.x - prev_point.x)
-    else:
-        prev_point = linestring.interpolate(param - 0.01, normalized=True)
-        next_point = linestring.interpolate(param + 0.01, normalized=True)
-        return math.atan2(next_point.y - prev_point.y, next_point.x - prev_point.x)
-
+def get_angle_at_point(linestring, distance):
+    # Find the segment of the polyline where the block is to be placed
+    for i in range(len(linestring.coords) - 1):
+        start = Vec2(*linestring.coords[i])
+        end = Vec2(*linestring.coords[i + 1])
+        segment = LineString([start, end])
+        if segment.length >= distance:
+            # Calculate the angle of the segment
+            dx = end.x - start.x
+            dy = end.y - start.y
+            tangent_angle = math.atan2(dy, dx)
+            return tangent_angle  # Use tangent angle directly
+        else:
+            distance -= segment.length
+    return 0.0  # Default angle if something goes wrong
