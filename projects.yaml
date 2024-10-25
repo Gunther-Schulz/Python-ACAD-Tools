@@ -545,26 +545,26 @@ projects:
             layers:
               - Biotope Input
               - Geschütze Biotope
-      - name: Biotoppuffer
-        # update: true
-        # viewports:
-        #   - name: WorkView
-        #     style:
-        #       color: "brilliant-green"
-        #       linetype: "ACAD_ISO02W100"
-        operations:
-          - type: buffer
-            layers:
-              - Biotope
-            distance: 10
-          - type: difference
-            layers:
-              - Biotope
-          - type: intersection
-            layers:
-              - Geltungsbereich NW
-              - Geltungsbereich NO
-              - Geltungsbereich S
+      # - name: Biotoppuffer
+      #   update: true
+      #   viewports:
+      #     - name: WorkView
+      #       style:
+      #         color: "brilliant-green"
+      #         linetype: "ACAD_ISO02W100"
+      #   operations:
+      #     - type: buffer
+      #       layers:
+      #         - Biotope
+      #       distance: 10
+      #     - type: difference
+      #       layers:
+      #         - Biotope
+      #     - type: intersection
+      #       layers:
+      #         - Geltungsbereich NW
+      #         - Geltungsbereich NO
+      #         - Geltungsbereich S
       # - name: Biotoppuffer Schraffur
       #   style: grünfläche
       #   applyHatch:
@@ -582,7 +582,7 @@ projects:
               - Waldabstand
               - Baumabstand Puffer
               - FG Buffer
-              - Biotoppuffer
+              # - Biotoppuffer
               - Biotope
           - type: dissolve
   
@@ -614,7 +614,7 @@ projects:
               - Waldabstand
               - Baumabstand Puffer
               - FG Buffer
-              - Biotoppuffer
+              # - Biotoppuffer
               - Biotope
           - type: dissolve
           - type: difference
@@ -627,6 +627,34 @@ projects:
               - Geltungsbereich S
           # - type: filterGeometry
           #   minArea: 200
+      - name: Biotoppuffer
+        update: true
+        viewports:
+          - name: WorkView
+            style:
+              color: "brilliant-green"
+              linetype: "ACAD_ISO02W100"
+        operations:
+          - type: buffer
+            layers:
+              - Biotope
+            distance: 10
+          - type: difference
+            layers:
+              - Biotope
+              - Schutzflächeumgrenzung
+              - Grünfläche
+          - type: intersection
+            layers:
+              - Geltungsbereich NW
+              - Geltungsbereich NO
+              - Geltungsbereich S
+      - name: Biotoppuffer Schraffur
+        update: true
+        style: grünfläche
+        applyHatch:
+          layers:
+            - Biotoppuffer
       - name: Schutzflächeumgrenzung T-Symbol
         update: true
         close: false
@@ -638,7 +666,7 @@ projects:
               - Waldabstand
               - Baumabstand Puffer
               - FG Buffer
-              - Biotoppuffer
+              # - Biotoppuffer
               - Biotope
           - type: dissolve
           - type: intersection
@@ -672,6 +700,7 @@ projects:
             layers:
               - Schutzflächeumgrenzung
               - Grünfläche
+              - Biotoppuffer
       - name: Baufeld Schraffur
         update: true
         style: baufeld
