@@ -111,6 +111,8 @@ def create_path_array(msp, source_layer_name, target_layer_name, block_name, spa
     
     fig, ax = plt.subplots(figsize=(12, 8)) if debug_visual else (None, None)
 
+    placed_blocks = []  # List to store placed block shapes
+
     for polyline in polylines:
         points = [Vec2(p[0], p[1]) for p in polyline.get_points()]
         polyline_geom = LineString([(p.x, p.y) for p in points])
@@ -141,8 +143,9 @@ def create_path_array(msp, source_layer_name, target_layer_name, block_name, spa
             rotated_block_shape = rotate_and_adjust_block(block_shape, block_base_point, insertion_point, angle)
             
             is_inside = is_block_inside_buffer(rotated_block_shape, combined_area)
+            overlaps_existing = any(rotated_block_shape.intersects(placed) for placed in placed_blocks)
 
-            if is_inside:
+            if is_inside and not overlaps_existing:
                 color = 'green'
                 label = "Placed"
                 block_ref = add_block_reference(
@@ -155,6 +158,7 @@ def create_path_array(msp, source_layer_name, target_layer_name, block_name, spa
                 )
                 if block_ref:
                     attach_custom_data(block_ref, SCRIPT_IDENTIFIER)
+                    placed_blocks.append(rotated_block_shape)
             else:
                 color = 'red'
                 label = "Skipped"

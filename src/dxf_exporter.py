@@ -773,7 +773,7 @@ class DXFExporter:
             # Always clear the target layer before creating a new path array
             remove_entities_by_layer(msp, target_layer_name, self.script_identifier)
             
-            create_path_array(msp, source_layer_name, target_layer_name, block_name, spacing, buffer_distance, scale, rotation)
+            create_path_array(msp, source_layer_name, target_layer_name, block_name, spacing, buffer_distance, scale, rotation, True)
 
 
 
