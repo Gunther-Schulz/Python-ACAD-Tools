@@ -292,7 +292,8 @@ projects:
             spacing: 2
             scale: 0.6
             bufferDistance: 0.6
-            showDebugVisual: true
+            adjustForVertices: true
+            # showDebugVisual: true
     viewports:
       - name: MainView
         center: [425, 450]

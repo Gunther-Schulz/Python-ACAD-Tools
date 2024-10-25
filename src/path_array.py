@@ -99,7 +99,7 @@ def visualize_placement(ax, polyline_geom, combined_area, rotated_block_shape, i
     if 'Skipped Block' not in [l.get_label() for l in ax.get_lines()]:
         ax.plot([], [], color='red', marker='s', linestyle='None', markersize=10, label='Skipped Block')
 
-def create_path_array(msp, source_layer_name, target_layer_name, block_name, spacing, buffer_distance, scale=1.0, rotation=0.0, debug_visual=False, all_layers=None):
+def create_path_array(msp, source_layer_name, target_layer_name, block_name, spacing, buffer_distance, scale=1.0, rotation=0.0, debug_visual=False, all_layers=None, adjust_for_vertices=True):
     if block_name not in msp.doc.blocks:
         log_warning(f"Block '{block_name}' not found in the document")
         return
@@ -152,7 +152,7 @@ def create_path_array(msp, source_layer_name, target_layer_name, block_name, spa
                 log_info(f"Processing polyline: {polyline.wkt[:100]}...")  # Log first 100 characters of WKT
                 process_polyline(msp, polyline, block_shape, block_base_point, block_name, 
                                  target_layer_name, spacing, buffer_distance, scale, rotation, 
-                                 debug_visual, ax, placed_blocks)
+                                 debug_visual, ax, placed_blocks, adjust_for_vertices)
                 processed_geometries += 1
             else:
                 log_warning(f"Skipping invalid or empty polyline: {type(polyline)}")
@@ -239,7 +239,7 @@ def get_angle_at_point(linestring, distance):
 
 def process_polyline(msp, polyline_geom, block_shape, block_base_point, block_name, 
                      target_layer_name, spacing, buffer_distance, scale, rotation, 
-                     debug_visual, ax, placed_blocks):
+                     debug_visual, ax, placed_blocks, adjust_for_vertices):
     total_length = polyline_geom.length
     
     # Create a polygon from the polyline
@@ -256,7 +256,14 @@ def process_polyline(msp, polyline_geom, block_shape, block_base_point, block_na
     while block_distance < total_length:
         point = polyline_geom.interpolate(block_distance)
         insertion_point = Vec2(point.x, point.y)
-        angle = get_angle_at_point(polyline_geom, block_distance)
+        
+        # Get all nearby vertices and segments
+        vertex_info = get_nearby_vertices_and_segments(polyline_geom, point, tolerance=spacing/2)
+        
+        if adjust_for_vertices and vertex_info['vertices']:
+            angle = calculate_optimal_angle(vertex_info['segments'], block_shape)
+        else:
+            angle = get_angle_at_point(polyline_geom, block_distance)
 
         rotated_block_shape = rotate_and_adjust_block(block_shape, block_base_point, insertion_point, angle)
         
@@ -286,5 +293,42 @@ def process_polyline(msp, polyline_geom, block_shape, block_base_point, block_na
         
         block_distance += spacing
 
+def get_nearby_vertices_and_segments(linestring, point, tolerance):
+    vertices = []
+    segments = []
+    
+    for i, vertex in enumerate(linestring.coords):
+        if Point(vertex).distance(point) < tolerance:
+            vertices.append(i)
+    
+    if not vertices:
+        return {'vertices': [], 'segments': []}
+    
+    # Get all segments connected to the vertices
+    for i in range(vertices[0] - 1, vertices[-1] + 1):
+        if i >= 0 and i < len(linestring.coords) - 1:
+            segments.append(LineString([linestring.coords[i], linestring.coords[i+1]]))
+    
+    return {'vertices': vertices, 'segments': segments}
 
+def calculate_optimal_angle(segments, block_shape):
+    if not segments:
+        return 0
+    
+    # Calculate the average direction of all segments
+    avg_angle = sum(math.atan2(seg.coords[1][1] - seg.coords[0][1],
+                               seg.coords[1][0] - seg.coords[0][0]) for seg in segments) / len(segments)
+    
+    # Adjust the angle to maximize contact points
+    best_angle = avg_angle
+    max_contacts = 0
+    
+    for angle in [avg_angle + i * math.pi/180 for i in range(-10, 11)]:  # Check ±10 degrees
+        rotated_block = affinity.rotate(block_shape, angle, origin=(0, 0))
+        contacts = sum(rotated_block.touches(seg) for seg in segments)
+        if contacts > max_contacts:
+            max_contacts = contacts
+            best_angle = angle
+    
+    return best_angle
 
