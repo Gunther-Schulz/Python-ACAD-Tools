@@ -14,9 +14,12 @@ from ezdxf.math import Vec3
 from src.utils import log_info, log_warning, log_error
 import re
 import math
-from ezdxf.math import Vec2
+from ezdxf.math import Vec2, area
+from ezdxf.math import intersection_line_line_2d
 import os
 from ezdxf.lldxf.const import DXFValueError
+from shapely.geometry import Polygon, Point, LineString
+from shapely import MultiLineString, affinity, unary_union
 
 SCRIPT_IDENTIFIER = "Created by DXFExporter"
 
@@ -555,69 +558,226 @@ def add_block_reference(msp, block_name, insert_point, layer_name, scale=1.0, ro
         log_warning(f"Block '{block_name}' not found in the document")
         return None
 
-def create_path_array(msp, source_layer_name, target_layer_name, block_name, spacing, scale=1.0, rotation=0.0, margin=0.1):
+def create_path_array(msp, source_layer_name, target_layer_name, block_name, spacing, scale=1.0, rotation=0.0, overlap_margin=0.0):
     if block_name not in msp.doc.blocks:
         log_warning(f"Block '{block_name}' not found in the document")
         return
 
-    # Get block dimensions
     block = msp.doc.blocks[block_name]
-    block_width, block_height = get_block_dimensions(block)
-    block_width *= scale
-    block_height *= scale
+    block_shape = get_block_shape(block, scale)
+    
+    if block_shape is None:
+        log_warning(f"Could not determine shape for block '{block_name}'")
+        return
 
     polylines = msp.query(f'LWPOLYLINE[layer=="{source_layer_name}"]')
     
     for polyline in polylines:
-        points = polyline.get_points()
-        total_length = 0
-        segments = []
-
-        # Calculate total length and store segments
-        for i in range(len(points) - 1):
-            start = Vec2(points[i][:2])
-            end = Vec2(points[i+1][:2])
-            segment_length = (end - start).magnitude
-            if segment_length == 0:
-                continue
-            segments.append((start, end, segment_length))
-            total_length += segment_length
-
-        # Place blocks based on cumulative distance
-        block_distance = spacing / 2  # Start from half spacing to center the pattern
+        points = [Vec2(p[0], p[1]) for p in polyline.get_points()]
+        polyline_polygon = Polygon([(p.x, p.y) for p in points])
+        total_length = calculate_polyline_length(points)
+        
+        log_info(f"Polyline length: {total_length}, Number of points: {len(points)}")
+        
+        block_distance = spacing / 2
 
         while block_distance < total_length:
-            # Find the segment where the block should be placed
-            segment_start = 0
-            for start, end, segment_length in segments:
-                if segment_start + segment_length > block_distance:
-                    # Calculate the position within this segment
-                    t = (block_distance - segment_start) / segment_length
-                    insertion_point = start + (end - start) * t
-                    segment_direction = (end - start).normalize()
-                    angle = math.atan2(segment_direction.y, segment_direction.x)
+            param = block_distance / total_length
+            insertion_point, angle = point_at_param(points, param)
 
-                    # Check if the block is fully inside the polyline
-                    block_corners = get_block_corners(insertion_point, block_width, block_height, angle)
-                    if all(is_point_inside_polyline(corner, points) for corner in block_corners):
-                        block_ref = add_block_reference(
-                            msp,
-                            block_name,
-                            insertion_point,
-                            target_layer_name,
-                            scale=scale,
-                            rotation=rotation + math.degrees(angle)
-                        )
-                        
-                        if block_ref:
-                            attach_custom_data(block_ref, SCRIPT_IDENTIFIER)
-                    
-                    break
-                segment_start += segment_length
+            log_info(f"Trying to place block at {insertion_point}, angle: {math.degrees(angle)}")
+
+            rotated_block_shape = rotate_shape(block_shape, insertion_point, angle)
+            
+            if is_shape_sufficiently_inside(rotated_block_shape, polyline_polygon, overlap_margin):
+                block_ref = add_block_reference(
+                    msp,
+                    block_name,
+                    insertion_point,
+                    target_layer_name,
+                    scale=scale,
+                    rotation=rotation + math.degrees(angle)
+                )
+                
+                if block_ref:
+                    attach_custom_data(block_ref, SCRIPT_IDENTIFIER)
+                    log_info(f"Block placed at {insertion_point}")
+            else:
+                log_info(f"Block not placed at {insertion_point} due to insufficient overlap")
             
             block_distance += spacing
 
-    log_info(f"Path array created for source layer '{source_layer_name}' using block '{block_name}' and placed on target layer '{target_layer_name}'")
+    log_info(f"Path array creation completed for source layer '{source_layer_name}' using block '{block_name}'")
+
+def calculate_polyline_length(points):
+    total_length = 0
+    for i in range(len(points) - 1):
+        start = points[i]
+        end = points[i+1]
+        total_length += (end - start).magnitude
+    return total_length
+
+def point_at_param(points, param):
+    if param < 0 or param > 1:
+        raise ValueError("Parameter must be between 0 and 1")
+
+    total_length = calculate_polyline_length(points)
+    target_length = total_length * param
+    current_length = 0
+
+    for i in range(len(points) - 1):
+        start = points[i]
+        end = points[i+1]
+        segment_length = (end - start).magnitude
+        
+        if current_length + segment_length >= target_length:
+            t = (target_length - current_length) / segment_length
+            point = start.lerp(end, t)
+            angle = (end - start).angle
+            return point, angle
+        
+        current_length += segment_length
+
+    # If we reach here, return the last point and angle
+    last_point = points[-1]
+    last_angle = (points[-1] - points[-2]).angle
+    return last_point, last_angle
+
+def get_block_shape(block, scale):
+    shapes = []
+    for entity in block:
+        if entity.dxftype() == "LWPOLYLINE":
+            points = [(p[0] * scale, p[1] * scale) for p in entity.get_points()]
+            shapes.append(Polygon(points))
+        elif entity.dxftype() == "LINE":
+            start = (entity.dxf.start.x * scale, entity.dxf.start.y * scale)
+            end = (entity.dxf.end.x * scale, entity.dxf.end.y * scale)
+            shapes.append(LineString([start, end]))
+    
+    if not shapes:
+        log_warning(f"No suitable entities found in block '{block.name}'")
+        return None
+    
+    # Combine all shapes into a single shape
+    combined_shape = unary_union(shapes)
+    
+    # If the result is a MultiLineString, convert it to a Polygon
+    if isinstance(combined_shape, MultiLineString):
+        combined_shape = combined_shape.buffer(0.01)  # Small buffer to create a polygon
+    
+    # Check if we can determine a bounding box
+    if combined_shape.is_empty:
+        log_warning(f"Could not determine bounding box for block '{block.name}'")
+        return None
+    
+    # Log the bounding box size
+    minx, miny, maxx, maxy = combined_shape.bounds
+    width = maxx - minx
+    height = maxy - miny
+    print(f"Block '{block.name}' bounding box size: width={width}, height={height}")
+    log_info(f"Block '{block.name}' bounding box size: width={width}, height={height}")
+    
+    return combined_shape
+def rotate_shape(shape, center, angle):
+    # First, rotate the shape around its center
+    rotated = affinity.rotate(shape, angle, origin='center', use_radians=True)
+    
+    # Then, translate the rotated shape to the desired center
+    translated = affinity.translate(rotated, xoff=center.x, yoff=center.y)
+    
+    return translated
+
+def is_shape_sufficiently_inside(shape, polyline_polygon, overlap_margin):
+    if shape is None:
+        log_warning("Block shape is None")
+        return False
+
+    intersection_area = shape.intersection(polyline_polygon).area
+    shape_area = shape.area
+    
+    if shape_area == 0:
+        log_warning("Shape area is zero")
+        return False
+    
+    overlap_ratio = intersection_area / shape_area
+    required_overlap = 1 - overlap_margin
+    log_info(f"Overlap ratio: {overlap_ratio}, Required: {required_overlap}")
+    
+    return overlap_ratio >= required_overlap
+
+def is_point_inside_polyline(point, polyline_points):
+    n = len(polyline_points)
+    inside = False
+    p1x, p1y = polyline_points[0]
+    for i in range(n + 1):
+        p2x, p2y = polyline_points[i % n]
+        if point.y > min(p1y, p2y):
+            if point.y <= max(p1y, p2y):
+                if point.x <= max(p1x, p2x):
+                    if p1y != p2y:
+                        xinters = (point.y - p1y) * (p2x - p1x) / (p2y - p1y) + p1x
+                    if p1x == p2x or point.x <= xinters:
+                        inside = not inside
+        p1x, p1y = p2x, p2y
+    return inside
+
+def does_line_intersect_polyline(start, end, polyline_points):
+    for i in range(len(polyline_points)):
+        p1 = polyline_points[i]
+        p2 = polyline_points[(i + 1) % len(polyline_points)]
+        if do_lines_intersect(start, end, p1, p2):
+            return True
+    return False
+
+def do_lines_intersect(p1, p2, p3, p4):
+    def ccw(a, b, c):
+        return (c.y - a.y) * (b.x - a.x) > (b.y - a.y) * (c.x - a.x)
+    return ccw(p1, p3, p4) != ccw(p2, p3, p4) and ccw(p1, p2, p3) != ccw(p1, p2, p4)
+
+def clip_polygon(subject_polygon, clip_polygon):
+    from ezdxf.math import intersection_line_line_2d
+    
+    def inside(p, cp1, cp2):
+        return (cp2.x - cp1.x) * (p.y - cp1.y) > (cp2.y - cp1.y) * (p.x - cp1.x)
+    
+    output_list = subject_polygon
+    cp1 = clip_polygon[-1]
+    
+    for clip_vertex in clip_polygon:
+        cp2 = clip_vertex
+        input_list = output_list
+        output_list = []
+        if not input_list:
+            break
+        s = input_list[-1]
+        for subject_vertex in input_list:
+            e = subject_vertex
+            if inside(e, cp1, cp2):
+                if not inside(s, cp1, cp2):
+                    intersection = intersection_line_line_2d((cp1, cp2), (s, e))
+                    if intersection:
+                        output_list.append(intersection)
+                output_list.append(e)
+            elif inside(s, cp1, cp2):
+                intersection = intersection_line_line_2d((cp1, cp2), (s, e))
+                if intersection:
+                    output_list.append(intersection)
+            s = e
+        cp1 = cp2
+    
+    return output_list
+
+def calculate_polygon_area(points):
+    if len(points) < 3:
+        return 0.0
+    n = len(points)
+    area = 0.0
+    for i in range(n):
+        j = (i + 1) % n
+        area += points[i].x * points[j].y
+        area -= points[j].x * points[i].y
+    area = abs(area) / 2.0
+    return area
 
 def get_block_dimensions(block):
     min_x, min_y, max_x, max_y = float('inf'), float('inf'), float('-inf'), float('-inf')
@@ -683,20 +843,24 @@ def is_point_inside_or_near_polyline(point, polyline_points, margin):
     
     return False
 
-def is_point_inside_polyline(point, polyline_points):
-    x, y = point.x, point.y
-    inside = False
-    n = len(polyline_points)
-    
-    for i in range(n):
-        j = (i + 1) % n
-        xi, yi = polyline_points[i][:2]
-        xj, yj = polyline_points[j][:2]
-        
-        if ((yi > y) != (yj > y)) and (x < (xj - xi) * (y - yi) / (yj - yi) + xi):
-            inside = not inside
-    
-    return inside
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
