@@ -761,9 +761,8 @@ class DXFExporter:
             spacing = layer_config['spacing']
             scale = layer_config.get('scale', 1.0)
             rotation = layer_config.get('rotation', 0.0)
-            # margin = layer_config.get('margin', 0.2)  # Add margin parameter
-            # buffer_distance = layer_config.get('bufferDistance', 0.0)
-            buffer_distance = 0.6
+            buffer_distance = layer_config.get('bufferDistance', 0.0)
+
 
             # Check if the source layer exists
             if not msp.doc.layers.get(source_layer_name):

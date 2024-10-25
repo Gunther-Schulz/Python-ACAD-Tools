@@ -95,6 +95,32 @@ def is_block_inside_buffer(block_shape, buffer_polygon):
     # Check if all corners of the block are inside the buffer
     return all(Point(coord).within(buffer_polygon) for coord in block_shape.exterior.coords)
 
+def visualize_placement(ax, polyline_geom, combined_area, rotated_block_shape, insertion_point, color, label):
+    # Plot the polyline (only if it hasn't been plotted yet)
+    if 'Path Polyline' not in [l.get_label() for l in ax.get_lines()]:
+        x, y = polyline_geom.xy
+        ax.plot(x, y, color='blue', linewidth=2, label='Path Polyline')
+
+    # Plot the combined area (only if it hasn't been plotted yet)
+    if 'Combined Area Boundary' not in [l.get_label() for l in ax.get_lines()]:
+        x, y = combined_area.exterior.xy
+        ax.fill(x, y, alpha=0.2, fc='gray', ec='none')
+        ax.plot(x, y, color='blue', linewidth=2, linestyle='--', label='Combined Area Boundary')
+
+    # Plot block
+    block_patch = patches.Polygon(rotated_block_shape.exterior.coords, facecolor=color, edgecolor='black', alpha=0.7)
+    ax.add_patch(block_patch)
+    
+    ax.text(insertion_point.x, insertion_point.y, label, 
+            ha='center', va='center', fontsize=8, 
+            bbox=dict(facecolor='white', edgecolor='none', alpha=0.7))
+
+    # Add legend entries for placed and skipped blocks (only once)
+    if 'Placed Block' not in [l.get_label() for l in ax.get_lines()]:
+        ax.plot([], [], color='green', marker='s', linestyle='None', markersize=10, label='Placed Block')
+    if 'Skipped Block' not in [l.get_label() for l in ax.get_lines()]:
+        ax.plot([], [], color='red', marker='s', linestyle='None', markersize=10, label='Skipped Block')
+
 def create_path_array(msp, source_layer_name, target_layer_name, block_name, spacing, buffer_distance, scale=1.0, rotation=0.0, debug_visual=False):
     if block_name not in msp.doc.blocks:
         log_warning(f"Block '{block_name}' not found in the document")
@@ -127,12 +153,6 @@ def create_path_array(msp, source_layer_name, target_layer_name, block_name, spa
         # Combine the original polygon and the buffer
         combined_area = polyline_polygon.union(buffer_polygon)
         
-        if debug_visual:
-            # Plot the combined area
-            x, y = combined_area.exterior.xy
-            ax.fill(x, y, alpha=0.2, fc='gray', ec='none')
-            ax.plot(x, y, color='blue', linewidth=2, linestyle='--', label='Combined Area Boundary')
-
         block_distance = spacing / 2
 
         while block_distance < total_length:
@@ -164,13 +184,7 @@ def create_path_array(msp, source_layer_name, target_layer_name, block_name, spa
                 label = "Skipped"
             
             if debug_visual:
-                # Plot block
-                block_patch = patches.Polygon(rotated_block_shape.exterior.coords, facecolor=color, edgecolor='black', alpha=0.7)
-                ax.add_patch(block_patch)
-                
-                ax.text(insertion_point.x, insertion_point.y, label, 
-                        ha='center', va='center', fontsize=8, 
-                        bbox=dict(facecolor='white', edgecolor='none', alpha=0.7))
+                visualize_placement(ax, polyline_geom, combined_area, rotated_block_shape, insertion_point, color, label)
             
             block_distance += spacing
 
@@ -179,7 +193,9 @@ def create_path_array(msp, source_layer_name, target_layer_name, block_name, spa
         ax.set_title(f"Block Placement for {block_name}")
         ax.set_xlabel("X Coordinate")
         ax.set_ylabel("Y Coordinate")
-        ax.legend()
+        handles, labels = ax.get_legend_handles_labels()
+        by_label = dict(zip(labels, handles))
+        ax.legend(by_label.values(), by_label.keys())
         plt.tight_layout()
         plt.show()
 

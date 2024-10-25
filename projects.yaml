@@ -278,12 +278,13 @@ projects:
               block_symbol: "Abgrenzung unterschiedlicher Nutzung"
               block_symbol_scale: 1.4
     pathArrays:
-      - sourceLayer: "SchutzF"
+      - sourceLayer: "SchutzFlächenumgrenzung"
         targetLayer: "Schutzflächeumgrenzung T-Symbol Array"
         block: "T-Symbol"
         spacing: 10
         scale: 0.6
         # rotation: 90
+        bufferDistance: 0.6
     viewports:
       - name: MainView
         center: [425, 450]
@@ -626,7 +627,7 @@ projects:
               - Geltungsbereich S
           # - type: filterGeometry
           #   minArea: 200
-      - name: SchutzF
+      - name: SchutzFlächenumgrenzung T-Symbol
         update: true
         close: false
         plot: false
