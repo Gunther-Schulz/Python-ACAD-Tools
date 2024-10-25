@@ -754,24 +754,31 @@ class DXFExporter:
         apply_style_to_entity(entity, style, self.project_loader, self.loaded_styles)
 
     def create_path_arrays(self, msp):
-        for layer_config in self.project_settings.get('pathArrays', []):
-            source_layer_name = layer_config['sourceLayer']
-            target_layer_name = layer_config.get('targetLayer', source_layer_name)
-            block_name = layer_config['block']
-            spacing = layer_config['spacing']
-            scale = layer_config.get('scale', 1.0)
-            rotation = layer_config.get('rotation', 0.0)
-            buffer_distance = layer_config.get('bufferDistance', 0.0)
+        for group_name, layer_group in self.project_settings.get('pathArrays', {}).items():
+            log_info(f"Processing path array group: {group_name}")
+            path_array_configs = layer_group.get('pathArrays', [layer_group])
+            
+            for config in path_array_configs:
+                source_layer_name = config['sourceLayer']
+                target_layer_name = config.get('targetLayer', source_layer_name)
+                
+                # Check if the source layer exists in all_layers
+                if source_layer_name not in self.all_layers:
+                    log_warning(f"Source layer '{source_layer_name}' does not exist in all_layers. Skipping path array creation for this configuration.")
+                    continue
+                
+                # Clear the target layer before creating new path arrays
+                remove_entities_by_layer(msp, target_layer_name, self.script_identifier)
+                
+                block_name = config['block']
+                spacing = config['spacing']
+                scale = config.get('scale', 1.0)
+                rotation = config.get('rotation', 0.0)
+                buffer_distance = config.get('bufferDistance', 0.0)
+                show_debug_visual = config.get('showDebugVisual', False)
+                
+                create_path_array(msp, source_layer_name, target_layer_name, block_name, spacing, buffer_distance, scale, rotation, show_debug_visual, self.all_layers)
 
-            # Check if the source layer exists in all_layers
-            if source_layer_name not in self.all_layers:
-                log_warning(f"Source layer '{source_layer_name}' does not exist in all_layers. Skipping path array creation for this layer.")
-                continue
-            
-            # Always clear the target layer before creating a new path array
-            remove_entities_by_layer(msp, target_layer_name, self.script_identifier)
-            
-            create_path_array(msp, source_layer_name, target_layer_name, block_name, spacing, buffer_distance, scale, rotation, False, self.all_layers)
 
 
 

@@ -278,13 +278,21 @@ projects:
               block_symbol: "Abgrenzung unterschiedlicher Nutzung"
               block_symbol_scale: 1.4
     pathArrays:
-      - sourceLayer: "Schutzflächeumgrenzung"
-        targetLayer: "Schutzflächeumgrenzung T-Symbol Array"
-        block: "T-Symbol"
-        spacing: 10
-        scale: 0.6
-        # rotation: 90
-        bufferDistance: 0.6
+      TSymbolArrays:
+        pathArrays:
+          - sourceLayer: "Schutzflächeumgrenzung T-Symbol Temp"
+            targetLayer: "Schutzflächeumgrenzung T-Symbol Array"
+            block: "T-Symbol"
+            spacing: 7
+            scale: 0.6
+            bufferDistance: 0.6
+          - sourceLayer: "Schutzflächeumgrenzung T-Small Temp"
+            targetLayer: "Schutzflächeumgrenzung T-Small Array"
+            block: "T-Small"
+            spacing: 2
+            scale: 0.6
+            bufferDistance: 0.6
+            showDebugVisual: true
     viewports:
       - name: MainView
         center: [425, 450]
@@ -545,31 +553,6 @@ projects:
             layers:
               - Biotope Input
               - Geschütze Biotope
-      # - name: Biotoppuffer
-      #   update: true
-      #   viewports:
-      #     - name: WorkView
-      #       style:
-      #         color: "brilliant-green"
-      #         linetype: "ACAD_ISO02W100"
-      #   operations:
-      #     - type: buffer
-      #       layers:
-      #         - Biotope
-      #       distance: 10
-      #     - type: difference
-      #       layers:
-      #         - Biotope
-      #     - type: intersection
-      #       layers:
-      #         - Geltungsbereich NW
-      #         - Geltungsbereich NO
-      #         - Geltungsbereich S
-      # - name: Biotoppuffer Schraffur
-      #   style: grünfläche
-      #   applyHatch:
-      #     layers:
-      #       - Biotoppuffer
       - name: Grünfläche
         update: true
         viewports:
@@ -655,19 +638,15 @@ projects:
         applyHatch:
           layers:
             - Biotoppuffer
-      - name: Schutzflächeumgrenzung T-Symbol
-        update: true
+      - name: Schutzflächeumgrenzung T-Symbol Temp
+        # update: true
         close: false
         plot: false
         operations:
           - type: copy
             layers:
-              - Grünfläche Input 
-              - Waldabstand
-              - Baumabstand Puffer
-              - FG Buffer
-              # - Biotoppuffer
-              - Biotope
+              - Grünfläche
+              - Schutzflächeumgrenzung
           - type: dissolve
           - type: intersection
             layers:
@@ -676,6 +655,24 @@ projects:
               - Geltungsbereich S
           - type: filterGeometry
             minArea: 200
+      - name: Schutzflächeumgrenzung T-Small Temp
+        # update: true
+        close: false
+        plot: false
+        operations:
+          - type: copy
+            layers:
+              - Grünfläche
+              - Schutzflächeumgrenzung
+          - type: dissolve
+          - type: intersection
+            layers:
+              - Geltungsbereich NW
+              - Geltungsbereich NO
+              - Geltungsbereich S
+          - type: filterGeometry
+            maxArea: 200
+            minArea: 10
       - name: Schutzflächeumgrenzung Schraffur
         update: true
         style: schutzflächeumgrenzung
