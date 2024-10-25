@@ -30,50 +30,27 @@ import matplotlib.patches as patches
 from ezdxf.math import intersection_line_line_2d
 import geopandas as gpd
 
-# Set up file handler
-file_handler = logging.FileHandler('path_array_debug.log', mode='w')
-file_handler.setLevel(logging.DEBUG)
-file_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-file_handler.setFormatter(file_formatter)
-
-# Set up console handler
-console_handler = logging.StreamHandler(sys.stdout)
-console_handler.setLevel(logging.WARNING)
-console_formatter = logging.Formatter('%(levelname)s - %(message)s')
-console_handler.setFormatter(console_formatter)
-
-# Configure root logger
-logging.root.setLevel(logging.DEBUG)
-logging.root.addHandler(file_handler)
-logging.root.addHandler(console_handler)
-
-# Get logger for this module
-logger = logging.getLogger(__name__)
 
 def calculate_overlap_ratio(block_shape, polyline_geom):
-    logger.debug(f"Block shape: {block_shape}")
-    logger.debug(f"Polyline: {polyline_geom}")
 
     # Create a buffer around the polyline
     buffer_distance = 0.1
     polyline_buffer = polyline_geom.buffer(buffer_distance)
-    logger.debug(f"Polyline buffer: {polyline_buffer}")
+
 
     # Calculate areas
     block_area = block_shape.area
     intersection_area = block_shape.intersection(polyline_buffer).area
     outside_area = block_shape.difference(polyline_buffer).area
 
-    logger.debug(f"Block area: {block_area}")
-    logger.debug(f"Intersection area: {intersection_area}")
-    logger.debug(f"Outside area: {outside_area}")
+
 
     if block_area == 0:
-        logger.warning("Block area is zero!")
+
         return 100.0
 
     outside_percentage = (outside_area / block_area) * 100
-    logger.debug(f"Calculated outside percentage: {outside_percentage}")
+
 
     return round(outside_percentage, 1)
 
@@ -83,13 +60,12 @@ def calculate_inside_percentage(block_shape, polygon_geom):
     intersection_area = block_shape.intersection(polygon_geom).area
     
     if block_area == 0:
-        logger.warning("Block area is zero!")
+
         return 0.0  # Assume fully outside if block has no area
     
     inside_percentage = (intersection_area / block_area) * 100
     
-    logger.debug(f"Block area: {block_area}, Intersection area: {intersection_area}")
-    logger.debug(f"Inside percentage: {inside_percentage}")
+
     
     return round(inside_percentage, 1)
 
@@ -140,32 +116,51 @@ def create_path_array(msp, source_layer_name, target_layer_name, block_name, spa
         return
 
     source_geometry = all_layers[source_layer_name]
+    log_info(f"Source geometry type: {type(source_geometry)}")
     
+    if isinstance(source_geometry, gpd.GeoDataFrame):
+        if source_geometry.empty:
+            log_warning(f"Source geometry for layer '{source_layer_name}' is empty (GeoDataFrame)")
+            return
+        polylines = source_geometry.geometry
+        log_info(f"Number of geometries in GeoDataFrame: {len(polylines)}")
+    else:
+        if source_geometry.is_empty:
+            log_warning(f"Source geometry for layer '{source_layer_name}' is empty (single geometry)")
+            return
+        polylines = [source_geometry]
+        log_info(f"Single geometry type: {type(source_geometry)}")
+
     fig, ax = plt.subplots(figsize=(12, 8)) if debug_visual else (None, None)
 
     placed_blocks = []  # List to store placed block shapes
-
-    if isinstance(source_geometry, gpd.GeoDataFrame):
-        polylines = source_geometry.geometry
-    else:
-        polylines = [source_geometry]
+    processed_polylines = 0
 
     for polyline in polylines:
-        if isinstance(polyline, (LineString, MultiLineString)):
+        if isinstance(polyline, (LineString, MultiLineString)) and not polyline.is_empty:
+            log_info(f"Processing polyline: {polyline.wkt[:100]}...")  # Log first 100 characters of WKT
             process_polyline(msp, polyline, block_shape, block_base_point, block_name, 
                              target_layer_name, spacing, buffer_distance, scale, rotation, 
                              debug_visual, ax, placed_blocks)
+            processed_polylines += 1
+        else:
+            log_warning(f"Skipping invalid or empty polyline: {type(polyline)}")
+
+    log_info(f"Processed {processed_polylines} polylines")
 
     if debug_visual:
-        ax.set_aspect('equal', 'datalim')
-        ax.set_title(f"Block Placement for {block_name}")
-        ax.set_xlabel("X Coordinate")
-        ax.set_ylabel("Y Coordinate")
-        handles, labels = ax.get_legend_handles_labels()
-        by_label = dict(zip(labels, handles))
-        ax.legend(by_label.values(), by_label.keys())
-        plt.tight_layout()
-        plt.show()
+        if processed_polylines > 0:
+            ax.set_aspect('equal', 'datalim')
+            ax.set_title(f"Block Placement for {block_name}")
+            ax.set_xlabel("X Coordinate")
+            ax.set_ylabel("Y Coordinate")
+            handles, labels = ax.get_legend_handles_labels()
+            by_label = dict(zip(labels, handles))
+            ax.legend(by_label.values(), by_label.keys())
+            plt.tight_layout()
+            plt.show()
+        else:
+            log_warning("No valid polylines to visualize")
 
     log_info(f"Path array creation completed for source layer '{source_layer_name}' using block '{block_name}'")
 
@@ -183,11 +178,9 @@ def get_block_shape_and_base(block, scale):
             shapes.append(LineString([start, end]))
     
     if not shapes:
-        logger.warning(f"No shapes found in block {block.name}")
         return None, None
     
     combined_shape = unary_union(shapes)
-    logger.debug(f"Combined block shape: {combined_shape}")
     return combined_shape, base_point
 
 def rotate_and_adjust_block(block_shape, base_point, insertion_point, angle):
@@ -281,3 +274,4 @@ def process_polyline(msp, polyline_geom, block_shape, block_base_point, block_na
             visualize_placement(ax, polyline_geom, combined_area, rotated_block_shape, insertion_point, color, label)
         
         block_distance += spacing
+
