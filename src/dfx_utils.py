@@ -567,41 +567,48 @@ def create_path_array(msp, source_layer_name, target_layer_name, block_name, spa
         total_length = 0
         segments = []
 
+        # Calculate total length and store segments
         for i in range(len(points) - 1):
             start = Vec2(points[i][:2])
             end = Vec2(points[i+1][:2])
             segment_length = (end - start).magnitude
             if segment_length == 0:
-                log_warning(f"Zero-length segment found between points {start} and {end}. Skipping this segment.")
                 continue
             segments.append((start, end, segment_length))
             total_length += segment_length
 
-        current_distance = 0
-        for start, end, segment_length in segments:
-            segment_direction = (end - start).normalize()
-            
-            while current_distance < segment_length:
-                insertion_point = start + segment_direction * current_distance
-                angle = math.atan2(segment_direction.y, segment_direction.x)
-                
-                # Check if the insertion point is inside the polyline or within the margin
-                if is_point_inside_or_near_polyline(insertion_point, points, margin):
-                    block_ref = add_block_reference(
-                        msp,
-                        block_name,
-                        insertion_point,
-                        target_layer_name,
-                        scale=scale,
-                        rotation=rotation + math.degrees(angle)
-                    )
+        # Place blocks based on cumulative distance
+        cumulative_distance = 0
+        block_distance = spacing / 2  # Start from half spacing to center the pattern
+
+        while block_distance < total_length:
+            # Find the segment where the block should be placed
+            segment_start = 0
+            for start, end, segment_length in segments:
+                if segment_start + segment_length > block_distance:
+                    # Calculate the position within this segment
+                    t = (block_distance - segment_start) / segment_length
+                    insertion_point = start + (end - start) * t
+                    segment_direction = (end - start).normalize()
+                    angle = math.atan2(segment_direction.y, segment_direction.x)
+
+                    if is_point_inside_or_near_polyline(insertion_point, points, margin):
+                        block_ref = add_block_reference(
+                            msp,
+                            block_name,
+                            insertion_point,
+                            target_layer_name,
+                            scale=scale,
+                            rotation=rotation + math.degrees(angle)
+                        )
+                        
+                        if block_ref:
+                            attach_custom_data(block_ref, SCRIPT_IDENTIFIER)
                     
-                    if block_ref:
-                        attach_custom_data(block_ref, SCRIPT_IDENTIFIER)
-                
-                current_distance += spacing
+                    break
+                segment_start += segment_length
             
-            current_distance -= segment_length
+            block_distance += spacing
 
     log_info(f"Path array created for source layer '{source_layer_name}' using block '{block_name}' and placed on target layer '{target_layer_name}'")
 
@@ -645,6 +652,8 @@ def is_point_inside_polyline(point, polyline_points):
             inside = not inside
     
     return inside
+
+
 
 
 
