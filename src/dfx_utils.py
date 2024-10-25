@@ -25,6 +25,7 @@ from descartes import PolygonPatch
 import numpy as np
 import logging
 import sys
+import matplotlib.patches as patches
 
 # Set up file handler
 file_handler = logging.FileHandler('path_array_debug.log', mode='w')
@@ -627,7 +628,9 @@ def calculate_inside_percentage(block_shape, polygon_geom):
     return round(inside_percentage, 1)
 
 def is_block_inside_buffer(block_shape, buffer_polygon):
-    return block_shape.within(buffer_polygon)
+    # Check if all corners of the block are inside the buffer
+    ps = all(Point(coord).within(buffer_polygon) for coord in block_shape.exterior.coords)
+
 
 def create_path_array(msp, source_layer_name, target_layer_name, block_name, spacing, buffer_distance, scale=1.0, rotation=0.0):
     if block_name not in msp.doc.blocks:
@@ -650,19 +653,20 @@ def create_path_array(msp, source_layer_name, target_layer_name, block_name, spa
         polyline_geom = LineString([(p.x, p.y) for p in points])
         total_length = polyline_geom.length
         
-        # Plot base geometry
-        x, y = polyline_geom.xy
-        ax.plot(x, y, color='gray', linewidth=2, alpha=0.5)
+        # Create a polygon from the polyline
+        polyline_polygon = Polygon(polyline_geom)
         
-        log_info(f"Polyline length: {total_length}, Number of points: {len(points)}")
-        
-        # Create buffer with user-defined distance
+        # Create buffer around the polyline
         buffer_polygon = polyline_geom.buffer(buffer_distance)
         
-        # Plot the buffer area
-        x, y = buffer_polygon.exterior.xy
-        ax.fill(x, y, alpha=0.2, fc='gray', ec='none')
+        # Combine the original polygon and the buffer
+        combined_area = polyline_polygon.union(buffer_polygon)
         
+        # Plot the combined area
+        x, y = combined_area.exterior.xy
+        ax.fill(x, y, alpha=0.2, fc='gray', ec='none')
+        ax.plot(x, y, color='blue', linewidth=2, linestyle='--', label='Combined Area Boundary')
+
         block_distance = spacing / 2
 
         while block_distance < total_length:
@@ -670,13 +674,13 @@ def create_path_array(msp, source_layer_name, target_layer_name, block_name, spa
             insertion_point = Vec2(point.x, point.y)
             angle = get_angle_at_point(polyline_geom, block_distance / total_length)
 
-            log_info(f"Trying to place block at {insertion_point}, angle: {math.degrees(angle)}")
-
             rotated_block_shape = rotate_and_adjust_block(block_shape, block_base_point, insertion_point, angle)
             
-            is_inside = is_block_inside_buffer(rotated_block_shape, buffer_polygon)
+            is_inside = rotated_block_shape.within(combined_area)
 
             if is_inside:
+                color = 'green'
+                label = "Placed"
                 block_ref = add_block_reference(
                     msp,
                     block_name,
@@ -685,21 +689,16 @@ def create_path_array(msp, source_layer_name, target_layer_name, block_name, spa
                     scale=scale,
                     rotation=math.degrees(angle) + rotation
                 )
-                
                 if block_ref:
                     attach_custom_data(block_ref, SCRIPT_IDENTIFIER)
-                    log_info(f"Block placed at {insertion_point}")
-                color = 'green'
-                label = "Placed"
             else:
-                log_info(f"Block not placed at {insertion_point} as it's not completely inside the buffer")
                 color = 'red'
                 label = "Skipped"
             
             # Plot block
-            plot_polygon(ax, rotated_block_shape, color, 0.7)
+            block_patch = patches.Polygon(rotated_block_shape.exterior.coords, facecolor=color, edgecolor='black', alpha=0.7)
+            ax.add_patch(block_patch)
             
-            # Add label indicating if the block is placed or skipped
             ax.text(insertion_point.x, insertion_point.y, label, 
                     ha='center', va='center', fontsize=8, 
                     bbox=dict(facecolor='white', edgecolor='none', alpha=0.7))
@@ -1006,6 +1005,11 @@ def calculate_overlap_ratio(block_shape, polyline_geom):
     logger.debug(f"Overlap ratio: {overlap_ratio}, Inside percentage: {inside_percentage}")
     
     return round(inside_percentage, 1)
+
+
+
+
+
 
 
 
