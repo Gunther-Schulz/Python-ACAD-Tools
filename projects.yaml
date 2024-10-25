@@ -145,23 +145,23 @@ projects:
               type: area
               applyHatch: true
               style: baufeldLegend
-              block_symbol: "Sonstiges Sondergebiet EBS"
-              block_symbol_scale: 2
+              blockSymbol: "Sonstiges Sondergebiet EBS"
+              blockSymbolScale: 2
         - name: "Maß der baulichen Nutzung"
           update: true
           subtitle: "§ 9 Abs. 1 Nr. 1 BauGB"
           items:
             - name: "Grundflächenzahl"
               type: empty
-              block_symbol: "GRZ"
-              block_symbol_scale: 2
+              blockSymbol: "GRZ"
+              blockSymbolScale: 2
         - name: "Bauweise, Baulinien, Baugrenzen"
           update: true
           subtitle: "§ 9 Abs. 1 Nr. 2 BauGB"
           items:
             - name: "Baugrenze"
               type: empty
-              block_symbol: "Baugrenze"   
+              blockSymbol: "Baugrenze"   
         - name: "Verkehrsflächen"
           update: true
           subtitle: "(§ 9 Abs. 1 Nr. 11 und Abs. 6 BauGB)"
@@ -172,12 +172,12 @@ projects:
               style: verkehrsfläche
             - name: "Verkehrsberuhigter Bereich"
               type: empty
-              block_symbol: "Verkehrsberuhigter Bereich"
-              block_symbol_scale: 2
+              blockSymbol: "Verkehrsberuhigter Bereich"
+              blockSymbolScale: 2
             - name: "Privat"
               type: empty
-              block_symbol: "Privat"
-              block_symbol_scale: 2
+              blockSymbol: "Privat"
+              blockSymbolScale: 2
         - name: "Grünflächen"
           update: true
           subtitle: "§ 9 Abs.1 Nr. 15 BauGB"
@@ -206,33 +206,33 @@ projects:
             - name: "Grenze des räumlichen Geltungsbereiches des Bebauungsplans"
               subtitle: "(§ 9 Abs. 7 BauGB)"
               type: area
-              rectangle_style: geltungsbereich
+              rectangleStyle: geltungsbereich_2
               applyHatch: false
             - name: "Hauptversorgungs- und Hauptabwasserleitungen unterirdisch"
               subtitle: "(§ 5 Abs. 2 Nr.4 und Abs. 4, § 9 Abs.1 Nr.1 u. Abs. 6)"
               type: area
-              create_hatch: false
-              block_symbol: "Leitung oberirdisch"
-              block_symbol_scale: 2
+              applyHatch: false
+              blockSymbol: "Leitung oberirdisch"
+              blockSymbolScale: 2
             - name: "Hauptversorgungs- und Hauptabwasserleitungen oberirdisch"
               subtitle: "(§ 5 Abs. 2 Nr.4 und Abs. 4, § 9 Abs.1 Nr.1 u. Abs. 6)"
               type: area
               create_hatch: false
-              block_symbol: "Leitung unterirdisch"
-              block_symbol_scale: 2
+              blockSymbol: "Leitung unterirdisch"
+              blockSymbolScale: 2
             - name: "Mit Geh-, Fahr- und Leitungsrechten zu belastende Flächen"
               subtitle: "(§ 9 Abs.1 Nr.21 und Abs. 6 BauGB)"
               type: area
               create_hatch: false
-              rectangle_style: gfl1
-              block_symbol: "GFL1"
-              block_symbol_scale: 2
+              rectangleStyle: gfl1
+              blockSymbol: "GFL1"
+              blockSymbolScale: 2
             - name: "Mit Geh-, Fahr- und Leitungsrechten zu belastende Flächen"
               subtitle: "(§ 9 Abs.1 Nr.21 und Abs. 6 BauGB)"
               type: empty
               create_hatch: false
-              block_symbol: "GFL2"
-              block_symbol_scale: 1.6
+              blockSymbol: "GFL2"
+              blockSymbolScale: 1.6
         - name: "Darstellung ohne Normcharakter"
           update: true
           items:
@@ -247,15 +247,15 @@ projects:
               style: flurgrenze
             - name: "Flurstücksnummer\nFlurstücksgrenze"
               type: empty
-              block_symbol: "Parcel"
-              block_symbol_scale: 1.4
+              blockSymbol: "Parcel"
+              blockSymbolScale: 1.4
             - name: "anstehendes Gelände in Meter über NHN im amtlichen Höhenbezugssystem DHHN2016 als unterer Höhenbezugspunkt"
               type: empty
-              block_symbol: "Contours"
-              block_symbol_scale: 1.4
+              blockSymbol: "Contours"
+              blockSymbolScale: 1.4
             - name: "Bemaßung in Meter"
               type: empty
-              block_symbol: "Bemaßung"
+              blockSymbol: "Bemaßung"
         - name: "Nachrichtliche Übernahme"
           update: true
           items:
@@ -263,23 +263,23 @@ projects:
               type: area
               create_hatch: false
               rectangleStyle: gesGeschuetzesBiotop
-              block_symbol: "Gesetzlich geschütztes Biotop"
-              block_symbol_scale: 1.8
+              blockSymbol: "Gesetzlich geschütztes Biotop"
+              blockSymbolScale: 1.8
             - name: "Wald"
               type: area
               hatch_style: waldSchraffur
             - name: "Baum"
               type: empty
-              block_symbol: "Baum"
-              block_symbol_scale: 1.8
+              blockSymbol: "Baum"
+              blockSymbolScale: 1.8
             - name: "Baum erhalten"
               type: empty
-              block_symbol: "Baum erhalten"
-              block_symbol_scale: 1.8
+              blockSymbol: "Baum erhalten"
+              blockSymbolScale: 1.8
             - name: "Abgrenzung unterschiedlicher Nutzung, z. B. von Baugebieten, oder Abgrenzung des Maßes der Nutzung innerhalb eines Baugebiets z.B. § 1 Abs. 4 § 16 Abs. 5 BauNVO)"
               type: empty
-              block_symbol: "Abgrenzung unterschiedlicher Nutzung"
-              block_symbol_scale: 1.4
+              blockSymbol: "Abgrenzung unterschiedlicher Nutzung"
+              blockSymbolScale: 1.4
     pathArrays:
       TSymbolArrays:
         pathArrays:
@@ -455,7 +455,7 @@ projects:
       - name: Geltungsbereich NW 2
         update: true
         linetypeScale: 1
-        style: geltungsbereich2
+        style: geltungsbereich_2
         operations:
           - type: buffer
             layers:
@@ -492,7 +492,7 @@ projects:
       - name: Geltungsbereich NO 2
         update: true
         linetypeScale: 1
-        style: geltungsbereich2
+        style: geltungsbereich_2
         operations:
           - type: buffer
             layers:
@@ -527,7 +527,7 @@ projects:
       - name: Geltungsbereich S 2
         update: true
         linetypeScale: 1
-        style: geltungsbereich2
+        style: geltungsbereich_2
         operations:
           - type: buffer
             layers:

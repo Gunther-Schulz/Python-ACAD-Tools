@@ -105,7 +105,7 @@ styles:
     layer:
       color: "red"
 
-  geltungsbereich2:
+  geltungsbereich_2:
     layer:
       color: "deep-grey"
       linetype: "ACAD_ISO02W100"

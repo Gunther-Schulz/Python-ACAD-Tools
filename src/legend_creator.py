@@ -109,10 +109,10 @@ class LegendCreator:
         # Separate styles for different components
         hatch_style = self.get_style(style.get('hatch', {}))
         layer_style = self.get_style(style.get('layer', {}))
-        rectangle_style = self.get_style(style.get('rectangle', {}))
+        rectangle_style = self.get_style(item.get('rectangleStyle', {}))  # Changed from rectangle_style to rectangleStyle
         
-        block_symbol = item.get('block_symbol')
-        block_symbol_scale = item.get('block_symbol_scale', 1.0)
+        block_symbol = item.get('blockSymbol')  # Changed from block_symbol to blockSymbol
+        block_symbol_scale = item.get('blockSymbolScale', 1.0)  # Changed from block_symbol_scale to blockSymbolScale
         create_hatch = item.get('applyHatch', False)
 
         x1, y1 = self.position['x'], self.current_y
@@ -201,7 +201,10 @@ class LegendCreator:
         rectangle = self.msp.add_lwpolyline([(x1, y1), (x2, y1), (x2, y2), (x1, y2), (x1, y1)], dxfattribs={'layer': layer_name})
         
         # Apply the rectangle style to the rectangle
-        self.apply_style(rectangle, rectangle_style)
+        if isinstance(rectangle_style, dict) and 'layer' in rectangle_style:
+            self.apply_style(rectangle, rectangle_style['layer'])
+        else:
+            self.apply_style(rectangle, rectangle_style)
         
         self.attach_custom_data(rectangle)
         entities.append(rectangle)
@@ -421,7 +424,26 @@ class LegendCreator:
     def apply_style(self, entity, style):
         if isinstance(style, str):
             style = self.project_loader.get_style(style)
+        
+        if isinstance(style, dict):
+            for key, value in style.items():
+                if key == 'color':
+                    color = get_color_code(value, self.project_loader.name_to_aci)
+                    if isinstance(color, tuple):
+                        entity.rgb = color
+                    else:
+                        entity.dxf.color = color
+                elif key == 'linetype':
+                    entity.dxf.linetype = value
+                elif key == 'lineweight':
+                    entity.dxf.lineweight = value
+                elif key == 'transparency':
+                    entity.transparency = convert_transparency(value)
+                # Add more properties as needed
+
         apply_style_to_entity(entity, style, self.project_loader, self.loaded_styles)
+
+
 
 
 
