@@ -62,8 +62,8 @@ styles:
       scale: 5
       individual_hatches: true
 
-  water:
-    layer:
+  waterLegend:
+    hatch:
       color: "brilliant-blue"
       transparency: 0.6
 
@@ -119,8 +119,11 @@ styles:
     layer:
       color: "brilliant-intense-chartreuse"
       transparency: 0.6
+
+  grünflächeLegend:
     hatch:
-      individual_hatches: true
+      color: "brilliant-intense-chartreuse"
+      transparency: 0.6
 
   grünflächeWorkView:
     layer:
@@ -128,12 +131,11 @@ styles:
       transparency: 0.6
 
   verkehrsfläche:
-    layer:
-      color: "248,215,49"
-      lineweight: 10
     hatch:
       individual_hatches: true
       pattern: "ANSI31"
+      color: "248,215,49"
+      lineweight: 10
 
 
 # Commented Out Styles

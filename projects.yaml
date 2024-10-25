@@ -143,7 +143,7 @@ projects:
           items:
             - name: "Sonstiges Sondergebiet (§ 11 Abs. 2 BauNVO) Zweckbestimmung: Energiegewinnung auf der Basis solarer Strahlungsenergie"
               type: area
-              # create_hatch: true
+              applyHatch: true
               style: baufeldLegend
               block_symbol: "Sonstiges Sondergebiet EBS"
               block_symbol_scale: 2
@@ -168,7 +168,8 @@ projects:
           items:
             - name: "Verkehrsfläche besonderer Zweckbestimmung"
               type: area
-              hatch_style: verkehrsfläche
+              applyHatch: true
+              style: verkehrsfläche
             - name: "Verkehrsberuhigter Bereich"
               type: empty
               block_symbol: "Verkehrsberuhigter Bereich"
@@ -183,14 +184,16 @@ projects:
           items:
             - name: "Private Grünflächen"
               type: area
-              hatch_style: grünfläche
+              style: grünflächeLegend
+              applyHatch: true
         - name: "Wasserflächen und Flächen für die Wasserwirtschaft, den Hochwasserschutz und die Regelung des Wasserabflusses"
           update: true
           subtitle: "§ 9 Abs. 1 Nr. 16 BauBG"
           items:
             - name: "Wasserflächen"
               type: area
-              hatch_style: water
+              style: waterLegend
+              applyHatch: true
         - name: "Planungen, Nutzungsregelungen, Maßnahmen und Flächen für Maßnahmen zum Schutz, zur Pflege und zur Entwicklung von Natur und Landschaft"
           update: true
           subtitle: "§ 9 Abs.1 Nr. 20 BauGB"
@@ -204,7 +207,7 @@ projects:
               subtitle: "(§ 9 Abs. 7 BauGB)"
               type: area
               rectangle_style: geltungsbereich
-              create_hatch: false
+              applyHatch: false
             - name: "Hauptversorgungs- und Hauptabwasserleitungen unterirdisch"
               subtitle: "(§ 5 Abs. 2 Nr.4 und Abs. 4, § 9 Abs.1 Nr.1 u. Abs. 6)"
               type: area

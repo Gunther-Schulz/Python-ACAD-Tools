@@ -103,6 +103,8 @@ class LegendCreator:
         style = item.get('style', {})
         if isinstance(style, str):
             style = self.get_style(style)
+            if style is None:
+                log_warning(f"Style '{item.get('style')}' not found for legend item '{item_name}'")
         
         # Separate styles for different components
         hatch_style = self.get_style(style.get('hatch', {}))
@@ -111,7 +113,7 @@ class LegendCreator:
         
         block_symbol = item.get('block_symbol')
         block_symbol_scale = item.get('block_symbol_scale', 1.0)
-        create_hatch = item.get('create_hatch', True)
+        create_hatch = item.get('applyHatch', False)
 
         x1, y1 = self.position['x'], self.current_y
         x2, y2 = x1 + self.item_width, y1 - self.item_height
@@ -413,13 +415,19 @@ class LegendCreator:
 
     def get_style(self, style):
         if isinstance(style, str):
-            return self.project_loader.get_style(style) or {}
+            return self.project_loader.get_style(style)
         return style or {}
 
     def apply_style(self, entity, style):
         if isinstance(style, str):
             style = self.project_loader.get_style(style)
         apply_style_to_entity(entity, style, self.project_loader, self.loaded_styles)
+
+
+
+
+
+
 
 
 

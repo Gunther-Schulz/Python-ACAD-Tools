@@ -172,3 +172,5 @@ class StyleManager:
             if key != closest_match and self._levenshtein_distance(key, closest_match) <= 2:
                 log_warning(f"Possible typo in {style_type} style key for layer {layer_name}: '{key}'. Did you mean '{closest_match}'?")
 
+
+
