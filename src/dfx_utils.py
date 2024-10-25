@@ -558,6 +558,7 @@ def add_block_reference(msp, block_name, insert_point, layer_name, scale=1.0, ro
 def create_path_array(msp, source_layer_name, target_layer_name, block_name, spacing, scale=1.0, rotation=0.0):
     """
     Create a path array of blocks along polylines in the specified source layer and place them on the target layer.
+    Only place blocks that are inside the polyline.
     
     :param msp: Modelspace object
     :param source_layer_name: Name of the layer containing the polylines
@@ -596,23 +597,48 @@ def create_path_array(msp, source_layer_name, target_layer_name, block_name, spa
                 insertion_point = start + segment_direction * current_distance
                 angle = math.atan2(segment_direction.y, segment_direction.x)
                 
-                block_ref = add_block_reference(
-                    msp,
-                    block_name,
-                    insertion_point,
-                    target_layer_name,
-                    scale=scale,
-                    rotation=rotation + math.degrees(angle)
-                )
-                
-                if block_ref:
-                    attach_custom_data(block_ref, SCRIPT_IDENTIFIER)
+                # Check if the insertion point is inside the polyline
+                if is_point_inside_polyline(insertion_point, points):
+                    block_ref = add_block_reference(
+                        msp,
+                        block_name,
+                        insertion_point,
+                        target_layer_name,
+                        scale=scale,
+                        rotation=rotation + math.degrees(angle)
+                    )
+                    
+                    if block_ref:
+                        attach_custom_data(block_ref, SCRIPT_IDENTIFIER)
                 
                 current_distance += spacing
             
             current_distance -= segment_length
 
     log_info(f"Path array created for source layer '{source_layer_name}' using block '{block_name}' and placed on target layer '{target_layer_name}'")
+
+def is_point_inside_polyline(point, polyline_points):
+    """
+    Check if a point is inside a polyline using the ray-casting algorithm.
+    
+    :param point: Vec2 object representing the point to check
+    :param polyline_points: List of polyline points
+    :return: True if the point is inside the polyline, False otherwise
+    """
+    x, y = point.x, point.y
+    inside = False
+    n = len(polyline_points)
+    
+    for i in range(n):
+        j = (i + 1) % n
+        xi, yi = polyline_points[i][:2]
+        xj, yj = polyline_points[j][:2]
+        
+        if ((yi > y) != (yj > y)) and (x < (xj - xi) * (y - yi) / (yj - yi) + xi):
+            inside = not inside
+    
+    return inside
+
 
 
 
