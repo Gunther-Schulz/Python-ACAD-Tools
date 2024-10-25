@@ -610,8 +610,7 @@ def calculate_overlap_ratio(block_shape, polyline_geom):
 
     return round(outside_percentage, 1)
 
-def create_path_array(msp, source_layer_name, target_layer_name, block_name, spacing, scale=1.0, rotation=0.0, overlap_margin=0.1):
-    print("--------------",overlap_margin)
+def create_path_array(msp, source_layer_name, target_layer_name, block_name, spacing, scale=1.0, rotation=0.0, max_outside_percentage=0.0):
     if block_name not in msp.doc.blocks:
         log_warning(f"Block '{block_name}' not found in the document")
         return
@@ -636,10 +635,16 @@ def create_path_array(msp, source_layer_name, target_layer_name, block_name, spa
         x, y = polyline_geom.xy
         ax.plot(x, y, color='gray', linewidth=2, alpha=0.5)
         
-        logger.debug(f"Polyline points: {points}")
-        logger.debug(f"Total length: {total_length}")
-        
         log_info(f"Polyline length: {total_length}, Number of points: {len(points)}")
+        
+        # Convert source polyline to a polygon with a smaller buffer
+        buffer_distance = min(block_shape.bounds[2] - block_shape.bounds[0], 
+                              block_shape.bounds[3] - block_shape.bounds[1]) / 4
+        polygon_geom = polyline_geom.buffer(buffer_distance)
+        
+        # Plot the polygon area
+        x, y = polygon_geom.exterior.xy
+        ax.fill(x, y, alpha=0.2, fc='gray', ec='none')
         
         block_distance = spacing / 2
 
@@ -648,22 +653,16 @@ def create_path_array(msp, source_layer_name, target_layer_name, block_name, spa
             insertion_point = Vec2(point.x, point.y)
             angle = get_angle_at_point(polyline_geom, block_distance / total_length)
 
-            logger.debug(f"Insertion point: {insertion_point}, Angle: {math.degrees(angle)}")
+            log_info(f"Trying to place block at {insertion_point}, angle: {math.degrees(angle)}")
 
             rotated_block_shape = rotate_and_adjust_block(block_shape, block_base_point, insertion_point, angle)
             
-            logger.debug(f"Rotated block shape: {rotated_block_shape}")
-            logger.debug(f"Polyline geometry: {polyline_geom}")
+            outside_percentage = calculate_outside_percentage(rotated_block_shape, polygon_geom)
 
-            inside_percentage = calculate_overlap_ratio(rotated_block_shape, polyline_geom)
-            required_inside = (1 - overlap_margin) * 100
+            # Create a color based on the outside percentage
+            color = plt.cm.RdYlGn(1 - (outside_percentage / 100))  # Red (high outside %) to Green (low outside %)
 
-            logger.debug(f"Inside percentage: {inside_percentage}%, Required: {required_inside}%")
-
-            # Create a color based on the inside percentage
-            color = plt.cm.RdYlGn(inside_percentage / 100)  # Red to Green colormap
-
-            if inside_percentage >= required_inside:
+            if outside_percentage <= max_outside_percentage:
                 block_ref = add_block_reference(
                     msp,
                     block_name,
@@ -676,15 +675,14 @@ def create_path_array(msp, source_layer_name, target_layer_name, block_name, spa
                 if block_ref:
                     attach_custom_data(block_ref, SCRIPT_IDENTIFIER)
                     log_info(f"Block placed at {insertion_point}")
-                    # Plot placed block
-                    plot_polygon(ax, rotated_block_shape, color, 0.7)
             else:
-                log_info(f"Block not placed at {insertion_point} due to insufficient overlap")
-                # Plot skipped block
-                plot_polygon(ax, rotated_block_shape, color, 0.7)
+                log_info(f"Block not placed at {insertion_point} due to excessive outside area")
             
-            # Add label with inside percentage
-            ax.text(insertion_point.x, insertion_point.y, f"{inside_percentage:.1f}%", 
+            # Plot block with color based on outside percentage
+            plot_polygon(ax, rotated_block_shape, color, 0.7)
+            
+            # Add label with outside percentage
+            ax.text(insertion_point.x, insertion_point.y, f"{outside_percentage:.1f}%", 
                     ha='center', va='center', fontsize=8, 
                     bbox=dict(facecolor='white', edgecolor='none', alpha=0.7))
             
@@ -692,14 +690,31 @@ def create_path_array(msp, source_layer_name, target_layer_name, block_name, spa
 
     log_info(f"Path array creation completed for source layer '{source_layer_name}' using block '{block_name}'")
     
-    # Add a colorbar to show the inside percentage scale
-    sm = plt.cm.ScalarMappable(cmap=plt.cm.RdYlGn, norm=plt.Normalize(vmin=0, vmax=100))
+    # Add a colorbar to show the outside percentage scale
+    sm = plt.cm.ScalarMappable(cmap=plt.cm.RdYlGn_r, norm=plt.Normalize(vmin=0, vmax=100))
     sm.set_array([])
-    plt.colorbar(sm, label='Inside Percentage', ax=ax)
+    plt.colorbar(sm, label='Outside Percentage', ax=ax)
     
     ax.set_aspect('equal', 'datalim')
     plt.title(f"Block Placement for {source_layer_name}")
     plt.show()
+
+def calculate_outside_percentage(block_shape, polygon_geom):
+    # Calculate areas
+    block_area = block_shape.area
+    intersection_area = block_shape.intersection(polygon_geom).area
+    
+    if block_area == 0:
+        logger.warning("Block area is zero!")
+        return 100.0  # Assume fully outside if block has no area
+    
+    outside_area = block_area - intersection_area
+    outside_percentage = (outside_area / block_area) * 100
+    
+    logger.debug(f"Block area: {block_area}, Intersection area: {intersection_area}")
+    logger.debug(f"Outside area: {outside_area}, Outside percentage: {outside_percentage}")
+    
+    return round(outside_percentage, 1)
 
 def get_block_shape_and_base(block, scale):
     shapes = []
@@ -723,24 +738,21 @@ def get_block_shape_and_base(block, scale):
     return combined_shape, base_point
 
 def rotate_and_adjust_block(block_shape, base_point, insertion_point, angle):
-    logger.debug(f"Original block shape: {block_shape}")
-    logger.debug(f"Base point: {base_point}, Insertion point: {insertion_point}, Angle: {math.degrees(angle)}")
-
+    # Translate the block shape so that its base point is at the origin
     translated_shape = affinity.translate(block_shape, 
                                           xoff=-base_point.x, 
                                           yoff=-base_point.y)
-    logger.debug(f"Translated shape: {translated_shape}")
-
+    
+    # Rotate the translated shape around the origin
     rotated_shape = affinity.rotate(translated_shape, 
                                     angle=math.degrees(angle), 
                                     origin=(0, 0))
-    logger.debug(f"Rotated shape: {rotated_shape}")
-
+    
+    # Translate the rotated shape to the insertion point
     final_shape = affinity.translate(rotated_shape, 
                                      xoff=insertion_point.x, 
                                      yoff=insertion_point.y)
     
-    logger.debug(f"Final adjusted shape: {final_shape}")
     return final_shape
 
 def plot_polygon(ax, polygon, color, alpha):
@@ -988,6 +1000,7 @@ def calculate_overlap_ratio(block_shape, polyline_geom):
     logger.debug(f"Overlap ratio: {overlap_ratio}, Inside percentage: {inside_percentage}")
     
     return round(inside_percentage, 1)
+
 
 
 
