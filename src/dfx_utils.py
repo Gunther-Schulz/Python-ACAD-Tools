@@ -560,6 +560,12 @@ def create_path_array(msp, source_layer_name, target_layer_name, block_name, spa
         log_warning(f"Block '{block_name}' not found in the document")
         return
 
+    # Get block dimensions
+    block = msp.doc.blocks[block_name]
+    block_width, block_height = get_block_dimensions(block)
+    block_width *= scale
+    block_height *= scale
+
     polylines = msp.query(f'LWPOLYLINE[layer=="{source_layer_name}"]')
     
     for polyline in polylines:
@@ -577,14 +583,7 @@ def create_path_array(msp, source_layer_name, target_layer_name, block_name, spa
             segments.append((start, end, segment_length))
             total_length += segment_length
 
-        # Get block dimensions
-        block = msp.doc.blocks[block_name]
-        block_extents = block.get_extent()
-        block_width = (block_extents[1][0] - block_extents[0][0]) * scale
-        block_height = (block_extents[1][1] - block_extents[0][1]) * scale
-
         # Place blocks based on cumulative distance
-        cumulative_distance = 0
         block_distance = spacing / 2  # Start from half spacing to center the pattern
 
         while block_distance < total_length:
@@ -619,6 +618,26 @@ def create_path_array(msp, source_layer_name, target_layer_name, block_name, spa
             block_distance += spacing
 
     log_info(f"Path array created for source layer '{source_layer_name}' using block '{block_name}' and placed on target layer '{target_layer_name}'")
+
+def get_block_dimensions(block):
+    min_x, min_y, max_x, max_y = float('inf'), float('inf'), float('-inf'), float('-inf')
+    
+    for entity in block.entity_space:
+        if entity.dxftype() == "LWPOLYLINE":
+            for point in entity.get_points():
+                x, y = point[:2]
+                min_x = min(min_x, x)
+                min_y = min(min_y, y)
+                max_x = max(max_x, x)
+                max_y = max(max_y, y)
+    
+    if min_x == float('inf') or min_y == float('inf') or max_x == float('-inf') or max_y == float('-inf'):
+        log_warning(f"No LWPOLYLINE entities found in block '{block.name}'. Using default dimensions.")
+        return 1, 1  # Default dimensions if no LWPOLYLINE is found
+    
+    width = max_x - min_x
+    height = max_y - min_y
+    return width, height
 
 def get_block_corners(center, width, height, angle):
     half_width = width / 2
@@ -678,6 +697,7 @@ def is_point_inside_polyline(point, polyline_points):
             inside = not inside
     
     return inside
+
 
 
 
