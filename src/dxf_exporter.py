@@ -17,7 +17,8 @@ from src.dfx_utils import (get_color_code, convert_transparency, attach_custom_d
                            is_created_by_script, add_text, remove_entities_by_layer, 
                            ensure_layer_exists, update_layer_properties, 
                            set_drawing_properties, verify_dxf_settings, update_layer_geometry,
-                           get_style, apply_style_to_entity, create_hatch, SCRIPT_IDENTIFIER, initialize_document, sanitize_layer_name, create_path_array)
+                           get_style, apply_style_to_entity, create_hatch, SCRIPT_IDENTIFIER, initialize_document, sanitize_layer_name)
+from src.path_array import create_path_array
 from src.style_manager import StyleManager
 
 class DXFExporter:
