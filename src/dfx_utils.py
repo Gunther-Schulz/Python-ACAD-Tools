@@ -20,6 +20,9 @@ import os
 from ezdxf.lldxf.const import DXFValueError
 from shapely.geometry import Polygon, Point, LineString
 from shapely import MultiLineString, affinity, unary_union
+import matplotlib.pyplot as plt
+from descartes import PolygonPatch
+import numpy as np
 
 SCRIPT_IDENTIFIER = "Created by DXFExporter"
 
@@ -564,7 +567,7 @@ def create_path_array(msp, source_layer_name, target_layer_name, block_name, spa
         return
 
     block = msp.doc.blocks[block_name]
-    block_shape = get_block_shape(block, scale)
+    block_shape, block_base_point = get_block_shape_and_base(block, scale)
     
     if block_shape is None:
         log_warning(f"Could not determine shape for block '{block_name}'")
@@ -572,76 +575,145 @@ def create_path_array(msp, source_layer_name, target_layer_name, block_name, spa
 
     polylines = msp.query(f'LWPOLYLINE[layer=="{source_layer_name}"]')
     
+    fig, ax = plt.subplots(figsize=(12, 8))
+
     for polyline in polylines:
         points = [Vec2(p[0], p[1]) for p in polyline.get_points()]
-        polyline_polygon = Polygon([(p.x, p.y) for p in points])
-        total_length = calculate_polyline_length(points)
+        polyline_geom = LineString([(p.x, p.y) for p in points])
+        total_length = polyline_geom.length
+        
+        # Plot base geometry
+        x, y = polyline_geom.xy
+        ax.plot(x, y, color='gray', linewidth=2, alpha=0.5)
         
         log_info(f"Polyline length: {total_length}, Number of points: {len(points)}")
         
         block_distance = spacing / 2
 
         while block_distance < total_length:
-            param = block_distance / total_length
-            insertion_point, angle = point_at_param(points, param)
+            point = polyline_geom.interpolate(block_distance)
+            insertion_point = Vec2(point.x, point.y)
+            angle = get_angle_at_point(polyline_geom, block_distance / total_length)
 
             log_info(f"Trying to place block at {insertion_point}, angle: {math.degrees(angle)}")
 
-            rotated_block_shape = rotate_shape(block_shape, insertion_point, angle)
+            rotated_block_shape = rotate_and_adjust_block(block_shape, block_base_point, insertion_point, angle)
             
-            if is_shape_sufficiently_inside(rotated_block_shape, polyline_polygon, overlap_margin):
+            overlap_ratio = calculate_overlap_ratio(rotated_block_shape, polyline_geom)
+            required_overlap = 1 - overlap_margin
+            
+            if overlap_ratio >= required_overlap:
                 block_ref = add_block_reference(
                     msp,
                     block_name,
                     insertion_point,
                     target_layer_name,
                     scale=scale,
-                    rotation=rotation + math.degrees(angle)
+                    rotation=math.degrees(angle) + rotation
                 )
                 
                 if block_ref:
                     attach_custom_data(block_ref, SCRIPT_IDENTIFIER)
                     log_info(f"Block placed at {insertion_point}")
+                    # Plot placed block
+                    plot_polygon(ax, rotated_block_shape, 'green', 0.7)
             else:
                 log_info(f"Block not placed at {insertion_point} due to insufficient overlap")
+                # Plot skipped block
+                plot_polygon(ax, rotated_block_shape, 'red', 0.7)
+            
+            # Add label with overlap percentage
+            overlap_percentage = overlap_ratio * 100
+            ax.text(insertion_point.x, insertion_point.y, f"{overlap_percentage:.1f}%", 
+                    ha='center', va='center', fontsize=8)
             
             block_distance += spacing
 
     log_info(f"Path array creation completed for source layer '{source_layer_name}' using block '{block_name}'")
+    
+    ax.set_aspect('equal', 'datalim')
+    plt.title(f"Block Placement for {source_layer_name}")
+    plt.show()
 
-def calculate_polyline_length(points):
-    total_length = 0
-    for i in range(len(points) - 1):
-        start = points[i]
-        end = points[i+1]
-        total_length += (end - start).magnitude
-    return total_length
+def get_block_shape_and_base(block, scale):
+    shapes = []
+    base_point = Vec2(block.base_point[0] * scale, block.base_point[1] * scale)
+    
+    for entity in block:
+        if entity.dxftype() == "LWPOLYLINE":
+            points = [(p[0] * scale, p[1] * scale) for p in entity.get_points()]
+            shapes.append(Polygon(points))
+        elif entity.dxftype() == "LINE":
+            start = (entity.dxf.start.x * scale, entity.dxf.start.y * scale)
+            end = (entity.dxf.end.x * scale, entity.dxf.end.y * scale)
+            shapes.append(LineString([start, end]))
+    
+    if not shapes:
+        return None, None
+    
+    combined_shape = unary_union(shapes)
+    return combined_shape, base_point
 
-def point_at_param(points, param):
-    if param < 0 or param > 1:
-        raise ValueError("Parameter must be between 0 and 1")
+def rotate_and_adjust_block(block_shape, base_point, insertion_point, angle):
+    # Translate the block shape so that its base point is at the origin
+    translated_shape = affinity.translate(block_shape, 
+                                          xoff=-base_point.x, 
+                                          yoff=-base_point.y)
+    
+    # Rotate the translated shape around the origin
+    rotated_shape = affinity.rotate(translated_shape, 
+                                    angle=math.degrees(angle), 
+                                    origin=(0, 0))
+    
+    # Translate the rotated shape to the insertion point
+    final_shape = affinity.translate(rotated_shape, 
+                                     xoff=insertion_point.x, 
+                                     yoff=insertion_point.y)
+    
+    return final_shape
 
-    total_length = calculate_polyline_length(points)
-    target_length = total_length * param
-    current_length = 0
+def plot_polygon(ax, polygon, color, alpha):
+    if polygon.geom_type == 'Polygon':
+        x, y = polygon.exterior.xy
+        ax.fill(x, y, alpha=alpha, fc=color, ec='black')
+    elif polygon.geom_type == 'MultiPolygon':
+        for geom in polygon.geoms:
+            x, y = geom.exterior.xy
+            ax.fill(x, y, alpha=alpha, fc=color, ec='black')
 
-    for i in range(len(points) - 1):
-        start = points[i]
-        end = points[i+1]
-        segment_length = (end - start).magnitude
-        
-        if current_length + segment_length >= target_length:
-            t = (target_length - current_length) / segment_length
-            point = start.lerp(end, t)
-            angle = (end - start).angle
-            return point, angle
-        
-        current_length += segment_length
+def calculate_overlap_ratio(shape, polyline_geom):
+    # Create a small buffer around the polyline to give it some width
+    polyline_buffer = polyline_geom.buffer(0.1)
+    intersection_area = shape.intersection(polyline_buffer).area
+    shape_area = shape.area
+    
+    if shape_area == 0:
+        return 0
+    
+    return intersection_area / shape_area
 
-    # If we reach here, return the last point and angle
-    last_point = points[-1]
-    last_angle = (points[-1] - points[-2]).angle
-    return last_point, last_angle
+def get_angle_at_point(linestring, param):
+    # Get the angle of the tangent at the given parameter
+    point = linestring.interpolate(param, normalized=True)
+    if param == 0:
+        next_point = linestring.interpolate(0.01, normalized=True)
+        return math.atan2(next_point.y - point.y, next_point.x - point.x)
+    elif param == 1:
+        prev_point = linestring.interpolate(0.99, normalized=True)
+        return math.atan2(point.y - prev_point.y, point.x - prev_point.x)
+    else:
+        prev_point = linestring.interpolate(param - 0.01, normalized=True)
+        next_point = linestring.interpolate(param + 0.01, normalized=True)
+        return math.atan2(next_point.y - prev_point.y, next_point.x - prev_point.x)
+
+def rotate_shape(shape, center, angle):
+    # First, rotate the shape around its center
+    rotated = affinity.rotate(shape, math.degrees(angle), origin='center')
+    
+    # Then, translate the rotated shape to the desired center
+    translated = affinity.translate(rotated, xoff=center.x, yoff=center.y)
+    
+    return translated
 
 def get_block_shape(block, scale):
     shapes = []
@@ -678,14 +750,6 @@ def get_block_shape(block, scale):
     log_info(f"Block '{block.name}' bounding box size: width={width}, height={height}")
     
     return combined_shape
-def rotate_shape(shape, center, angle):
-    # First, rotate the shape around its center
-    rotated = affinity.rotate(shape, angle, origin='center', use_radians=True)
-    
-    # Then, translate the rotated shape to the desired center
-    translated = affinity.translate(rotated, xoff=center.x, yoff=center.y)
-    
-    return translated
 
 def is_shape_sufficiently_inside(shape, polyline_polygon, overlap_margin):
     if shape is None:
@@ -842,6 +906,23 @@ def is_point_inside_or_near_polyline(point, polyline_points, margin):
             continue
     
     return False
+
+def calculate_overlap_ratio(shape, polyline_polygon):
+    intersection_area = shape.intersection(polyline_polygon).area
+    shape_area = shape.area
+    
+    if shape_area == 0:
+        return 0
+    
+    return intersection_area / shape_area
+
+
+
+
+
+
+
+
 
 
 
