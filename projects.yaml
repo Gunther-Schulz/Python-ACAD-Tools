@@ -207,30 +207,25 @@ projects:
               subtitle: "(§ 9 Abs. 7 BauGB)"
               type: area
               rectangleStyle: geltungsbereich_2
-              applyHatch: false
             - name: "Hauptversorgungs- und Hauptabwasserleitungen unterirdisch"
               subtitle: "(§ 5 Abs. 2 Nr.4 und Abs. 4, § 9 Abs.1 Nr.1 u. Abs. 6)"
               type: area
-              applyHatch: false
               blockSymbol: "Leitung oberirdisch"
               blockSymbolScale: 2
             - name: "Hauptversorgungs- und Hauptabwasserleitungen oberirdisch"
               subtitle: "(§ 5 Abs. 2 Nr.4 und Abs. 4, § 9 Abs.1 Nr.1 u. Abs. 6)"
               type: area
-              create_hatch: false
               blockSymbol: "Leitung unterirdisch"
               blockSymbolScale: 2
             - name: "Mit Geh-, Fahr- und Leitungsrechten zu belastende Flächen"
               subtitle: "(§ 9 Abs.1 Nr.21 und Abs. 6 BauGB)"
               type: area
-              create_hatch: false
               rectangleStyle: gfl1
               blockSymbol: "GFL1"
               blockSymbolScale: 2
             - name: "Mit Geh-, Fahr- und Leitungsrechten zu belastende Flächen"
               subtitle: "(§ 9 Abs.1 Nr.21 und Abs. 6 BauGB)"
               type: empty
-              create_hatch: false
               blockSymbol: "GFL2"
               blockSymbolScale: 1.6
         - name: "Darstellung ohne Normcharakter"
@@ -261,13 +256,13 @@ projects:
           items:
             - name: "gesetzlich geschützes Biotop § 9 Abs. 6 BauGB i. V. m. § 20 NatSchAG - MV"
               type: area
-              create_hatch: false
               rectangleStyle: gesGeschuetzesBiotop
               blockSymbol: "Gesetzlich geschütztes Biotop"
               blockSymbolScale: 1.8
             - name: "Wald"
               type: area
-              hatch_style: waldSchraffur
+              style: wald
+              applyHatch: true
             - name: "Baum"
               type: empty
               blockSymbol: "Baum"
