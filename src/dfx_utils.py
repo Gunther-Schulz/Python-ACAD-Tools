@@ -577,6 +577,12 @@ def create_path_array(msp, source_layer_name, target_layer_name, block_name, spa
             segments.append((start, end, segment_length))
             total_length += segment_length
 
+        # Get block dimensions
+        block = msp.doc.blocks[block_name]
+        block_extents = block.get_extent()
+        block_width = (block_extents[1][0] - block_extents[0][0]) * scale
+        block_height = (block_extents[1][1] - block_extents[0][1]) * scale
+
         # Place blocks based on cumulative distance
         cumulative_distance = 0
         block_distance = spacing / 2  # Start from half spacing to center the pattern
@@ -592,7 +598,9 @@ def create_path_array(msp, source_layer_name, target_layer_name, block_name, spa
                     segment_direction = (end - start).normalize()
                     angle = math.atan2(segment_direction.y, segment_direction.x)
 
-                    if is_point_inside_or_near_polyline(insertion_point, points, margin):
+                    # Check if the block is fully inside the polyline
+                    block_corners = get_block_corners(insertion_point, block_width, block_height, angle)
+                    if all(is_point_inside_polyline(corner, points) for corner in block_corners):
                         block_ref = add_block_reference(
                             msp,
                             block_name,
@@ -611,6 +619,24 @@ def create_path_array(msp, source_layer_name, target_layer_name, block_name, spa
             block_distance += spacing
 
     log_info(f"Path array created for source layer '{source_layer_name}' using block '{block_name}' and placed on target layer '{target_layer_name}'")
+
+def get_block_corners(center, width, height, angle):
+    half_width = width / 2
+    half_height = height / 2
+    cos_angle = math.cos(angle)
+    sin_angle = math.sin(angle)
+    
+    corners = [
+        Vec2(center.x + (half_width * cos_angle - half_height * sin_angle),
+             center.y + (half_width * sin_angle + half_height * cos_angle)),
+        Vec2(center.x + (half_width * cos_angle + half_height * sin_angle),
+             center.y + (half_width * sin_angle - half_height * cos_angle)),
+        Vec2(center.x + (-half_width * cos_angle + half_height * sin_angle),
+             center.y + (-half_width * sin_angle - half_height * cos_angle)),
+        Vec2(center.x + (-half_width * cos_angle - half_height * sin_angle),
+             center.y + (-half_width * sin_angle + half_height * cos_angle))
+    ]
+    return corners
 
 def is_point_inside_or_near_polyline(point, polyline_points, margin):
     if is_point_inside_polyline(point, polyline_points):
