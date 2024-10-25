@@ -20,7 +20,7 @@ from ezdxf.math import intersection_line_line_2d
 import os
 from ezdxf.lldxf.const import DXFValueError
 from shapely.geometry import Polygon, Point, LineString
-from shapely import MultiLineString, affinity, unary_union
+from shapely import MultiLineString, MultiPolygon, affinity, unary_union
 import matplotlib.pyplot as plt
 from descartes import PolygonPatch
 import numpy as np
@@ -122,34 +122,45 @@ def create_path_array(msp, source_layer_name, target_layer_name, block_name, spa
         if source_geometry.empty:
             log_warning(f"Source geometry for layer '{source_layer_name}' is empty (GeoDataFrame)")
             return
-        polylines = source_geometry.geometry
-        log_info(f"Number of geometries in GeoDataFrame: {len(polylines)}")
+        geometries = source_geometry.geometry
+        log_info(f"Number of geometries in GeoDataFrame: {len(geometries)}")
     else:
         if source_geometry.is_empty:
             log_warning(f"Source geometry for layer '{source_layer_name}' is empty (single geometry)")
             return
-        polylines = [source_geometry]
+        geometries = [source_geometry]
         log_info(f"Single geometry type: {type(source_geometry)}")
 
     fig, ax = plt.subplots(figsize=(12, 8)) if debug_visual else (None, None)
 
     placed_blocks = []  # List to store placed block shapes
-    processed_polylines = 0
+    processed_geometries = 0
 
-    for polyline in polylines:
-        if isinstance(polyline, (LineString, MultiLineString)) and not polyline.is_empty:
-            log_info(f"Processing polyline: {polyline.wkt[:100]}...")  # Log first 100 characters of WKT
-            process_polyline(msp, polyline, block_shape, block_base_point, block_name, 
-                             target_layer_name, spacing, buffer_distance, scale, rotation, 
-                             debug_visual, ax, placed_blocks)
-            processed_polylines += 1
+    for geometry in geometries:
+        if isinstance(geometry, (LineString, MultiLineString)):
+            polylines = [geometry] if isinstance(geometry, LineString) else list(geometry.geoms)
+        elif isinstance(geometry, Polygon):
+            polylines = [LineString(geometry.exterior.coords)]
+        elif isinstance(geometry, MultiPolygon):
+            polylines = [LineString(poly.exterior.coords) for poly in geometry.geoms]
         else:
-            log_warning(f"Skipping invalid or empty polyline: {type(polyline)}")
+            log_warning(f"Skipping unsupported geometry type: {type(geometry)}")
+            continue
 
-    log_info(f"Processed {processed_polylines} polylines")
+        for polyline in polylines:
+            if isinstance(polyline, LineString) and not polyline.is_empty:
+                log_info(f"Processing polyline: {polyline.wkt[:100]}...")  # Log first 100 characters of WKT
+                process_polyline(msp, polyline, block_shape, block_base_point, block_name, 
+                                 target_layer_name, spacing, buffer_distance, scale, rotation, 
+                                 debug_visual, ax, placed_blocks)
+                processed_geometries += 1
+            else:
+                log_warning(f"Skipping invalid or empty polyline: {type(polyline)}")
+
+    log_info(f"Processed {processed_geometries} geometries")
 
     if debug_visual:
-        if processed_polylines > 0:
+        if processed_geometries > 0:
             ax.set_aspect('equal', 'datalim')
             ax.set_title(f"Block Placement for {block_name}")
             ax.set_xlabel("X Coordinate")
@@ -160,7 +171,7 @@ def create_path_array(msp, source_layer_name, target_layer_name, block_name, spa
             plt.tight_layout()
             plt.show()
         else:
-            log_warning("No valid polylines to visualize")
+            log_warning("No valid geometries to visualize")
 
     log_info(f"Path array creation completed for source layer '{source_layer_name}' using block '{block_name}'")
 
@@ -274,4 +285,6 @@ def process_polyline(msp, polyline_geom, block_shape, block_base_point, block_na
             visualize_placement(ax, polyline_geom, combined_area, rotated_block_shape, insertion_point, color, label)
         
         block_distance += spacing
+
+
 
