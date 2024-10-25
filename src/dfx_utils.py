@@ -45,7 +45,11 @@ def get_color_code(color, name_to_aci):
                 return 7  # Default to white if invalid
         else:
             # It's a color name
-            return name_to_aci.get(color.lower(), 7)
+            aci_code = name_to_aci.get(color.lower())
+            if aci_code is None:
+                log_warning(f"Color name '{color}' not found in ACI color mapping. Defaulting to white (7).")
+                return 7
+            return aci_code
     elif isinstance(color, (list, tuple)) and len(color) == 3:
         # It's already an RGB tuple
         return tuple(color)
@@ -564,6 +568,7 @@ def add_block_reference(msp, block_name, insert_point, layer_name, scale=1.0, ro
     else:
         log_warning(f"Block '{block_name}' not found in the document")
         return None
+
 
 
 

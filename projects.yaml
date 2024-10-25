@@ -34,7 +34,7 @@ projects:
       # - name: Contour
       #   update: false
       #   style:
-      #     color: Black
+      #     color: white
       #     locked: false
       #   update: false
       #   label: elevation
@@ -124,15 +124,15 @@ projects:
         color: "Dark Gray"
         text_style: "Arial"
       groupTextStyle:
-        color: "Black"
+        color: "white"
         height: 5
         text_style: "Arial"
       subtitleTextStyle:
-        color: "Black"
+        color: "white"
         height: 3.5
         text_style: "Arial"
       itemTextStyle:
-        color: "Black"
+        color: "white"
         height: 3
         text_style: "Arial"
         attachment_point: MTEXT_MIDDLE_LEFT
@@ -754,7 +754,7 @@ projects:
             # overwrite: true
       # - name: WMTS Basemap
       #   update: true
-      #   color: Black
+      #   color: white
       #   locked: true
       #   operations:
       #     - type: wmts
@@ -771,7 +771,7 @@ projects:
       # - name: Contour
       #   update: true
       #   style:
-      #     color: Black
+      #     color: white
       #     locked: false
       #   label: elevation
       #   operations:
@@ -1063,7 +1063,7 @@ projects:
             distance: -3
       - name: WMTS DOP
         # update: true
-        color: Black
+        color: white
         locked: true
         add: true
         operations:
@@ -1078,7 +1078,7 @@ projects:
             buffer: 100
       - name: WMTS Basemap
         # update: true
-        color: Black
+        color: white
         locked: true
         add: true
         operations:

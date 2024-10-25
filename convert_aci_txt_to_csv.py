@@ -1,6 +1,7 @@
 import csv
 import yaml
 from colorsys import rgb_to_hsv
+import random
 
 def rgb_to_hex(rgb):
     return '#{:02x}{:02x}{:02x}'.format(rgb[0], rgb[1], rgb[2])
@@ -93,9 +94,89 @@ def closest_colour(requested_colour, used_names):
 def get_colour_name(rgb_triplet, used_names):
     return closest_colour(rgb_triplet, used_names)
 
+def get_unique_color_name(rgb, used_names):
+    r, g, b = rgb
+    rgb_tuple = tuple(rgb)  # Convert rgb to a tuple for dictionary key
+
+    # If this RGB value already has a name, return it
+    if rgb_tuple in used_names:
+        return used_names[rgb_tuple]
+    
+    # Define basic colors
+    basic_colors = {
+        (255, 0, 0): "red",
+        (255, 255, 0): "yellow",
+        (0, 255, 0): "green",
+        (0, 255, 255): "cyan",
+        (0, 0, 255): "blue",
+        (255, 0, 255): "magenta",
+        (255, 255, 255): "white",
+        (128, 128, 128): "gray",
+        (0, 0, 0): "black"
+    }
+    
+    # Check if it's a basic color
+    if rgb_tuple in basic_colors:
+        used_names[rgb_tuple] = basic_colors[rgb_tuple]
+        return basic_colors[rgb_tuple]
+    
+    h, s, v = rgb_to_hsv(r/255, g/255, b/255)
+    
+    # Define more precise hue ranges and names
+    hue_names = [
+        "red", "vermilion", "orange", "amber", "yellow", "chartreuse", 
+        "lime", "spring-green", "green", "emerald", "mint", "teal", 
+        "cyan", "azure", "cerulean", "blue", "sapphire", "indigo", 
+        "violet", "purple", "magenta", "fuchsia", "rose", "crimson"
+    ]
+    
+    # Define saturation and value descriptors
+    sat_descs = ["pale", "soft", "vivid"]
+    val_descs = ["dark", "deep", "medium", "light", "bright"]
+    
+    # Get base hue name
+    hue_index = int(h * len(hue_names))
+    base_name = hue_names[hue_index]
+    
+    # Get saturation and value descriptors
+    sat_index = min(int(s * len(sat_descs)), len(sat_descs) - 1)
+    val_index = min(int(v * len(val_descs)), len(val_descs) - 1)
+    sat_desc = sat_descs[sat_index]
+    val_desc = val_descs[val_index]
+    
+    # Construct color name
+    if s < 0.1:  # Very low saturation
+        color_name = f"{val_desc}-gray"
+    elif v > 0.9 and s > 0.9:  # Very bright and saturated
+        color_name = base_name
+    elif s > 0.9:  # Highly saturated
+        color_name = f"{val_desc}-{base_name}"
+    elif v < 0.2:  # Very dark
+        color_name = f"dark-{base_name}"
+    else:
+        color_name = f"{val_desc}-{sat_desc}-{base_name}"
+    
+    # Ensure uniqueness
+    original_name = color_name
+    count = 0
+    while color_name in used_names.values():
+        count += 1
+        # Try alternative hue names
+        alt_hue_index = (hue_index + count) % len(hue_names)
+        alt_base_name = hue_names[alt_hue_index]
+        color_name = original_name.replace(base_name, alt_base_name)
+        
+        # If we've tried all hue names, start combining descriptors
+        if count >= len(hue_names):
+            color_name = f"{val_descs[val_index]}-{sat_descs[sat_index]}-{hue_names[hue_index]}-{count - len(hue_names) + 1}"
+    
+    used_names[rgb_tuple] = color_name
+    return color_name
+
 def convert_to_csv_css_and_yaml(input_file, output_csv, output_css, output_yaml):
     used_names = {}
     yaml_data = []
+    color_data = []
     
     with open(input_file, 'r') as infile, \
          open(output_csv, 'w', newline='') as outfile_csv, \
@@ -130,18 +211,15 @@ def convert_to_csv_css_and_yaml(input_file, output_csv, output_css, output_yaml)
             # Use 'Berechnet' values for RGB
             rgb = tuple(map(int, parts[4:7]))
             
-            if rgb in used_names:
-                color_name = used_names[rgb]
-            else:
-                color_name = closest_colour(rgb, used_names)
-                used_names[rgb] = color_name
+            color_name = get_unique_color_name(rgb, used_names)
+            used_names[rgb] = color_name
             
             # Write to CSV
             csv_writer.writerow([aci, autodesk, berechnet, ermittelt, color_name, f"rgb({rgb[0]}, {rgb[1]}, {rgb[2]})"])
             
-            # Write to CSS
+            # Store unique colors
             css_class_name = color_name.replace(' ', '-').lower()
-            outfile_css.write(f".{css_class_name} {{ color: rgb({rgb[0]}, {rgb[1]}, {rgb[2]}); }} /* ACI: {aci} */\n")
+            color_data.append((int(aci), css_class_name, rgb))
             
             # Prepare YAML data
             yaml_data.append({
@@ -149,6 +227,10 @@ def convert_to_csv_css_and_yaml(input_file, output_csv, output_css, output_yaml)
                 'name': color_name,
                 'rgb': list(rgb)
             })
+        
+        # Sort color_data by ACI code and write to CSS file
+        for aci, css_class_name, rgb in sorted(color_data, key=lambda x: x[0]):
+            outfile_css.write(f".{css_class_name} {{ color: rgb({rgb[0]}, {rgb[1]}, {rgb[2]}); }} /* ACI: {aci} */\n")
     
     # Write YAML file
     with open(output_yaml, 'w') as outfile_yaml:
