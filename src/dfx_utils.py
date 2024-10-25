@@ -23,6 +23,28 @@ from shapely import MultiLineString, affinity, unary_union
 import matplotlib.pyplot as plt
 from descartes import PolygonPatch
 import numpy as np
+import logging
+import sys
+
+# Set up file handler
+file_handler = logging.FileHandler('path_array_debug.log', mode='w')
+file_handler.setLevel(logging.DEBUG)
+file_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+file_handler.setFormatter(file_formatter)
+
+# Set up console handler
+console_handler = logging.StreamHandler(sys.stdout)
+console_handler.setLevel(logging.WARNING)
+console_formatter = logging.Formatter('%(levelname)s - %(message)s')
+console_handler.setFormatter(console_formatter)
+
+# Configure root logger
+logging.root.setLevel(logging.DEBUG)
+logging.root.addHandler(file_handler)
+logging.root.addHandler(console_handler)
+
+# Get logger for this module
+logger = logging.getLogger(__name__)
 
 SCRIPT_IDENTIFIER = "Created by DXFExporter"
 
@@ -561,7 +583,34 @@ def add_block_reference(msp, block_name, insert_point, layer_name, scale=1.0, ro
         log_warning(f"Block '{block_name}' not found in the document")
         return None
 
-def create_path_array(msp, source_layer_name, target_layer_name, block_name, spacing, scale=1.0, rotation=0.0, overlap_margin=0.0):
+def calculate_overlap_ratio(block_shape, polyline_geom):
+    logger.debug(f"Block shape: {block_shape}")
+    logger.debug(f"Polyline: {polyline_geom}")
+
+    # Create a buffer around the polyline
+    buffer_distance = 0.1
+    polyline_buffer = polyline_geom.buffer(buffer_distance)
+    logger.debug(f"Polyline buffer: {polyline_buffer}")
+
+    # Calculate areas
+    block_area = block_shape.area
+    intersection_area = block_shape.intersection(polyline_buffer).area
+    outside_area = block_shape.difference(polyline_buffer).area
+
+    logger.debug(f"Block area: {block_area}")
+    logger.debug(f"Intersection area: {intersection_area}")
+    logger.debug(f"Outside area: {outside_area}")
+
+    if block_area == 0:
+        logger.warning("Block area is zero!")
+        return 100.0
+
+    outside_percentage = (outside_area / block_area) * 100
+    logger.debug(f"Calculated outside percentage: {outside_percentage}")
+
+    return round(outside_percentage, 1)
+
+def create_path_array(msp, source_layer_name, target_layer_name, block_name, spacing, scale=1.0, rotation=0.0, overlap_margin=0.1):
     if block_name not in msp.doc.blocks:
         log_warning(f"Block '{block_name}' not found in the document")
         return
@@ -586,6 +635,9 @@ def create_path_array(msp, source_layer_name, target_layer_name, block_name, spa
         x, y = polyline_geom.xy
         ax.plot(x, y, color='gray', linewidth=2, alpha=0.5)
         
+        logger.debug(f"Polyline points: {points}")
+        logger.debug(f"Total length: {total_length}")
+        
         log_info(f"Polyline length: {total_length}, Number of points: {len(points)}")
         
         block_distance = spacing / 2
@@ -595,14 +647,19 @@ def create_path_array(msp, source_layer_name, target_layer_name, block_name, spa
             insertion_point = Vec2(point.x, point.y)
             angle = get_angle_at_point(polyline_geom, block_distance / total_length)
 
-            log_info(f"Trying to place block at {insertion_point}, angle: {math.degrees(angle)}")
+            logger.debug(f"Insertion point: {insertion_point}, Angle: {math.degrees(angle)}")
 
             rotated_block_shape = rotate_and_adjust_block(block_shape, block_base_point, insertion_point, angle)
             
-            overlap_ratio = calculate_overlap_ratio(rotated_block_shape, polyline_geom)
-            required_overlap = 1 - overlap_margin
-            
-            if overlap_ratio >= required_overlap:
+            logger.debug(f"Rotated block shape: {rotated_block_shape}")
+            logger.debug(f"Polyline geometry: {polyline_geom}")
+
+            overlap_percentage = calculate_overlap_ratio(rotated_block_shape, polyline_geom)
+            required_overlap = overlap_margin * 100
+
+            logger.debug(f"Overlap percentage: {overlap_percentage}%, Required: {required_overlap}%")
+
+            if overlap_percentage <= required_overlap:
                 block_ref = add_block_reference(
                     msp,
                     block_name,
@@ -618,13 +675,12 @@ def create_path_array(msp, source_layer_name, target_layer_name, block_name, spa
                     # Plot placed block
                     plot_polygon(ax, rotated_block_shape, 'green', 0.7)
             else:
-                log_info(f"Block not placed at {insertion_point} due to insufficient overlap")
+                log_info(f"Block not placed at {insertion_point} due to excessive overlap")
                 # Plot skipped block
                 plot_polygon(ax, rotated_block_shape, 'red', 0.7)
             
             # Add label with overlap percentage
-            overlap_percentage = overlap_ratio * 100
-            ax.text(insertion_point.x, insertion_point.y, f"{overlap_percentage:.1f}%", 
+            ax.text(insertion_point.x, insertion_point.y, f"{overlap_percentage}%", 
                     ha='center', va='center', fontsize=8)
             
             block_distance += spacing
@@ -649,27 +705,32 @@ def get_block_shape_and_base(block, scale):
             shapes.append(LineString([start, end]))
     
     if not shapes:
+        logger.warning(f"No shapes found in block {block.name}")
         return None, None
     
     combined_shape = unary_union(shapes)
+    logger.debug(f"Combined block shape: {combined_shape}")
     return combined_shape, base_point
 
 def rotate_and_adjust_block(block_shape, base_point, insertion_point, angle):
-    # Translate the block shape so that its base point is at the origin
+    logger.debug(f"Original block shape: {block_shape}")
+    logger.debug(f"Base point: {base_point}, Insertion point: {insertion_point}, Angle: {math.degrees(angle)}")
+
     translated_shape = affinity.translate(block_shape, 
                                           xoff=-base_point.x, 
                                           yoff=-base_point.y)
-    
-    # Rotate the translated shape around the origin
+    logger.debug(f"Translated shape: {translated_shape}")
+
     rotated_shape = affinity.rotate(translated_shape, 
                                     angle=math.degrees(angle), 
                                     origin=(0, 0))
-    
-    # Translate the rotated shape to the insertion point
+    logger.debug(f"Rotated shape: {rotated_shape}")
+
     final_shape = affinity.translate(rotated_shape, 
                                      xoff=insertion_point.x, 
                                      yoff=insertion_point.y)
     
+    logger.debug(f"Final adjusted shape: {final_shape}")
     return final_shape
 
 def plot_polygon(ax, polygon, color, alpha):
@@ -680,17 +741,6 @@ def plot_polygon(ax, polygon, color, alpha):
         for geom in polygon.geoms:
             x, y = geom.exterior.xy
             ax.fill(x, y, alpha=alpha, fc=color, ec='black')
-
-def calculate_overlap_ratio(shape, polyline_geom):
-    # Create a small buffer around the polyline to give it some width
-    polyline_buffer = polyline_geom.buffer(0.1)
-    intersection_area = shape.intersection(polyline_buffer).area
-    shape_area = shape.area
-    
-    if shape_area == 0:
-        return 0
-    
-    return intersection_area / shape_area
 
 def get_angle_at_point(linestring, param):
     # Get the angle of the tangent at the given parameter
@@ -907,14 +957,30 @@ def is_point_inside_or_near_polyline(point, polyline_points, margin):
     
     return False
 
-def calculate_overlap_ratio(shape, polyline_polygon):
-    intersection_area = shape.intersection(polyline_polygon).area
-    shape_area = shape.area
+def calculate_overlap_ratio(block_shape, polyline_geom):
+    # Create a buffer around the polyline to give it some width
+    buffer_distance = 0.1
+    polyline_buffer = polyline_geom.buffer(buffer_distance)
     
-    if shape_area == 0:
-        return 0
+    # Calculate areas
+    block_area = block_shape.area
+    intersection_area = block_shape.intersection(polyline_buffer).area
     
-    return intersection_area / shape_area
+    if block_area == 0:
+        logger.warning("Block area is zero!")
+        return 100.0  # Assume full overlap if block has no area
+    
+    overlap_ratio = intersection_area / block_area
+    outside_percentage = (1 - overlap_ratio) * 100
+    
+    logger.debug(f"Block area: {block_area}, Intersection area: {intersection_area}")
+    logger.debug(f"Overlap ratio: {overlap_ratio}, Outside percentage: {outside_percentage}")
+    
+    return round(outside_percentage, 1)
+
+
+
+
 
 
 
