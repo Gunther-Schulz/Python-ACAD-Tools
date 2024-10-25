@@ -555,19 +555,7 @@ def add_block_reference(msp, block_name, insert_point, layer_name, scale=1.0, ro
         log_warning(f"Block '{block_name}' not found in the document")
         return None
 
-def create_path_array(msp, source_layer_name, target_layer_name, block_name, spacing, scale=1.0, rotation=0.0):
-    """
-    Create a path array of blocks along polylines in the specified source layer and place them on the target layer.
-    Only place blocks that are inside the polyline.
-    
-    :param msp: Modelspace object
-    :param source_layer_name: Name of the layer containing the polylines
-    :param target_layer_name: Name of the layer where the array objects will be placed
-    :param block_name: Name of the block to be used in the array
-    :param spacing: Distance between block insertions
-    :param scale: Scale factor for the blocks (default: 1.0)
-    :param rotation: Rotation angle for the blocks in degrees (default: 0.0)
-    """
+def create_path_array(msp, source_layer_name, target_layer_name, block_name, spacing, scale=1.0, rotation=0.0, margin=0.1):
     if block_name not in msp.doc.blocks:
         log_warning(f"Block '{block_name}' not found in the document")
         return
@@ -597,8 +585,8 @@ def create_path_array(msp, source_layer_name, target_layer_name, block_name, spa
                 insertion_point = start + segment_direction * current_distance
                 angle = math.atan2(segment_direction.y, segment_direction.x)
                 
-                # Check if the insertion point is inside the polyline
-                if is_point_inside_polyline(insertion_point, points):
+                # Check if the insertion point is inside the polyline or within the margin
+                if is_point_inside_or_near_polyline(insertion_point, points, margin):
                     block_ref = add_block_reference(
                         msp,
                         block_name,
@@ -617,14 +605,33 @@ def create_path_array(msp, source_layer_name, target_layer_name, block_name, spa
 
     log_info(f"Path array created for source layer '{source_layer_name}' using block '{block_name}' and placed on target layer '{target_layer_name}'")
 
-def is_point_inside_polyline(point, polyline_points):
-    """
-    Check if a point is inside a polyline using the ray-casting algorithm.
+def is_point_inside_or_near_polyline(point, polyline_points, margin):
+    if is_point_inside_polyline(point, polyline_points):
+        return True
     
-    :param point: Vec2 object representing the point to check
-    :param polyline_points: List of polyline points
-    :return: True if the point is inside the polyline, False otherwise
-    """
+    # Check if the point is within the margin of any polyline edge
+    for i in range(len(polyline_points)):
+        start = Vec2(polyline_points[i][:2])
+        end = Vec2(polyline_points[(i + 1) % len(polyline_points)][:2])
+        
+        # Calculate the distance from the point to the line segment
+        line_vec = end - start
+        if line_vec.magnitude == 0:
+            continue  # Skip zero-length segments
+        point_vec = point - start
+        try:
+            projection = point_vec.project(line_vec)
+            if 0 <= projection.magnitude <= line_vec.magnitude:
+                distance = (point_vec - projection).magnitude
+                if distance <= margin:
+                    return True
+        except ZeroDivisionError:
+            log_warning(f"Zero-length vector encountered in is_point_inside_or_near_polyline. Skipping this segment.")
+            continue
+    
+    return False
+
+def is_point_inside_polyline(point, polyline_points):
     x, y = point.x, point.y
     inside = False
     n = len(polyline_points)
@@ -638,6 +645,8 @@ def is_point_inside_polyline(point, polyline_points):
             inside = not inside
     
     return inside
+
+
 
 
 
