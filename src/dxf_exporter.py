@@ -760,7 +760,9 @@ class DXFExporter:
             spacing = layer_config['spacing']
             scale = layer_config.get('scale', 1.0)
             rotation = layer_config.get('rotation', 0.0)
-            margin = layer_config.get('margin', 0.2)  # Add margin parameter
+            # margin = layer_config.get('margin', 0.2)  # Add margin parameter
+            # buffer_distance = layer_config.get('bufferDistance', 0.0)
+            buffer_distance = 2
 
             # Check if the source layer exists
             if not msp.doc.layers.get(source_layer_name):
@@ -770,7 +772,7 @@ class DXFExporter:
             # Always clear the target layer before creating a new path array
             remove_entities_by_layer(msp, target_layer_name, self.script_identifier)
             
-            create_path_array(msp, source_layer_name, target_layer_name, block_name, spacing, scale, rotation, margin)
+            create_path_array(msp, source_layer_name, target_layer_name, block_name, spacing, buffer_distance, scale, rotation)
 
 
 

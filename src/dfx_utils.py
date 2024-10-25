@@ -610,7 +610,26 @@ def calculate_overlap_ratio(block_shape, polyline_geom):
 
     return round(outside_percentage, 1)
 
-def create_path_array(msp, source_layer_name, target_layer_name, block_name, spacing, scale=1.0, rotation=0.0, max_outside_percentage=0.0):
+def calculate_inside_percentage(block_shape, polygon_geom):
+    # Calculate areas
+    block_area = block_shape.area
+    intersection_area = block_shape.intersection(polygon_geom).area
+    
+    if block_area == 0:
+        logger.warning("Block area is zero!")
+        return 0.0  # Assume fully outside if block has no area
+    
+    inside_percentage = (intersection_area / block_area) * 100
+    
+    logger.debug(f"Block area: {block_area}, Intersection area: {intersection_area}")
+    logger.debug(f"Inside percentage: {inside_percentage}")
+    
+    return round(inside_percentage, 1)
+
+def is_block_inside_buffer(block_shape, buffer_polygon):
+    return block_shape.within(buffer_polygon)
+
+def create_path_array(msp, source_layer_name, target_layer_name, block_name, spacing, buffer_distance, scale=1.0, rotation=0.0):
     if block_name not in msp.doc.blocks:
         log_warning(f"Block '{block_name}' not found in the document")
         return
@@ -637,13 +656,11 @@ def create_path_array(msp, source_layer_name, target_layer_name, block_name, spa
         
         log_info(f"Polyline length: {total_length}, Number of points: {len(points)}")
         
-        # Convert source polyline to a polygon with a smaller buffer
-        buffer_distance = min(block_shape.bounds[2] - block_shape.bounds[0], 
-                              block_shape.bounds[3] - block_shape.bounds[1]) / 4
-        polygon_geom = polyline_geom.buffer(buffer_distance)
+        # Create buffer with user-defined distance
+        buffer_polygon = polyline_geom.buffer(buffer_distance)
         
-        # Plot the polygon area
-        x, y = polygon_geom.exterior.xy
+        # Plot the buffer area
+        x, y = buffer_polygon.exterior.xy
         ax.fill(x, y, alpha=0.2, fc='gray', ec='none')
         
         block_distance = spacing / 2
@@ -657,12 +674,9 @@ def create_path_array(msp, source_layer_name, target_layer_name, block_name, spa
 
             rotated_block_shape = rotate_and_adjust_block(block_shape, block_base_point, insertion_point, angle)
             
-            outside_percentage = calculate_outside_percentage(rotated_block_shape, polygon_geom)
+            is_inside = is_block_inside_buffer(rotated_block_shape, buffer_polygon)
 
-            # Create a color based on the outside percentage
-            color = plt.cm.RdYlGn(1 - (outside_percentage / 100))  # Red (high outside %) to Green (low outside %)
-
-            if outside_percentage <= max_outside_percentage:
+            if is_inside:
                 block_ref = add_block_reference(
                     msp,
                     block_name,
@@ -675,46 +689,38 @@ def create_path_array(msp, source_layer_name, target_layer_name, block_name, spa
                 if block_ref:
                     attach_custom_data(block_ref, SCRIPT_IDENTIFIER)
                     log_info(f"Block placed at {insertion_point}")
+                color = 'green'
+                label = "Placed"
             else:
-                log_info(f"Block not placed at {insertion_point} due to excessive outside area")
+                log_info(f"Block not placed at {insertion_point} as it's not completely inside the buffer")
+                color = 'red'
+                label = "Skipped"
             
-            # Plot block with color based on outside percentage
+            # Plot block
             plot_polygon(ax, rotated_block_shape, color, 0.7)
             
-            # Add label with outside percentage
-            ax.text(insertion_point.x, insertion_point.y, f"{outside_percentage:.1f}%", 
+            # Add label indicating if the block is placed or skipped
+            ax.text(insertion_point.x, insertion_point.y, label, 
                     ha='center', va='center', fontsize=8, 
                     bbox=dict(facecolor='white', edgecolor='none', alpha=0.7))
             
             block_distance += spacing
 
-    log_info(f"Path array creation completed for source layer '{source_layer_name}' using block '{block_name}'")
-    
-    # Add a colorbar to show the outside percentage scale
-    sm = plt.cm.ScalarMappable(cmap=plt.cm.RdYlGn_r, norm=plt.Normalize(vmin=0, vmax=100))
-    sm.set_array([])
-    plt.colorbar(sm, label='Outside Percentage', ax=ax)
-    
     ax.set_aspect('equal', 'datalim')
-    plt.title(f"Block Placement for {source_layer_name}")
-    plt.show()
+    ax.set_title(f"Block Placement for {block_name}")
+    ax.set_xlabel("X Coordinate")
+    ax.set_ylabel("Y Coordinate")
 
-def calculate_outside_percentage(block_shape, polygon_geom):
-    # Calculate areas
-    block_area = block_shape.area
-    intersection_area = block_shape.intersection(polygon_geom).area
-    
-    if block_area == 0:
-        logger.warning("Block area is zero!")
-        return 100.0  # Assume fully outside if block has no area
-    
-    outside_area = block_area - intersection_area
-    outside_percentage = (outside_area / block_area) * 100
-    
-    logger.debug(f"Block area: {block_area}, Intersection area: {intersection_area}")
-    logger.debug(f"Outside area: {outside_area}, Outside percentage: {outside_percentage}")
-    
-    return round(outside_percentage, 1)
+    # Add a legend
+    from matplotlib.patches import Patch
+    legend_elements = [Patch(facecolor='green', edgecolor='green', label='Placed'),
+                       Patch(facecolor='red', edgecolor='red', label='Skipped')]
+    ax.legend(handles=legend_elements, loc='upper right')
+
+    plt.tight_layout()
+    plt.show()  # Show the plot instead of saving
+
+    log_info(f"Path array creation completed for source layer '{source_layer_name}' using block '{block_name}'")
 
 def get_block_shape_and_base(block, scale):
     shapes = []
@@ -1000,6 +1006,10 @@ def calculate_overlap_ratio(block_shape, polyline_geom):
     logger.debug(f"Overlap ratio: {overlap_ratio}, Inside percentage: {inside_percentage}")
     
     return round(inside_percentage, 1)
+
+
+
+
 
 
 
