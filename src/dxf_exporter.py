@@ -763,16 +763,16 @@ class DXFExporter:
             rotation = layer_config.get('rotation', 0.0)
             buffer_distance = layer_config.get('bufferDistance', 0.0)
 
-
-            # Check if the source layer exists
-            if not msp.doc.layers.get(source_layer_name):
-                log_warning(f"Source layer '{source_layer_name}' does not exist. Skipping path array creation for this layer.")
+            # Check if the source layer exists in all_layers
+            if source_layer_name not in self.all_layers:
+                log_warning(f"Source layer '{source_layer_name}' does not exist in all_layers. Skipping path array creation for this layer.")
                 continue
             
             # Always clear the target layer before creating a new path array
             remove_entities_by_layer(msp, target_layer_name, self.script_identifier)
             
-            create_path_array(msp, source_layer_name, target_layer_name, block_name, spacing, buffer_distance, scale, rotation, True)
+            create_path_array(msp, source_layer_name, target_layer_name, block_name, spacing, buffer_distance, scale, rotation, True, self.all_layers)
+
 
 
 

@@ -28,6 +28,8 @@ import logging
 import sys
 import matplotlib.patches as patches
 from ezdxf.math import intersection_line_line_2d
+import geopandas as gpd
+
 # Set up file handler
 file_handler = logging.FileHandler('path_array_debug.log', mode='w')
 file_handler.setLevel(logging.DEBUG)
@@ -121,7 +123,7 @@ def visualize_placement(ax, polyline_geom, combined_area, rotated_block_shape, i
     if 'Skipped Block' not in [l.get_label() for l in ax.get_lines()]:
         ax.plot([], [], color='red', marker='s', linestyle='None', markersize=10, label='Skipped Block')
 
-def create_path_array(msp, source_layer_name, target_layer_name, block_name, spacing, buffer_distance, scale=1.0, rotation=0.0, debug_visual=False):
+def create_path_array(msp, source_layer_name, target_layer_name, block_name, spacing, buffer_distance, scale=1.0, rotation=0.0, debug_visual=False, all_layers=None):
     if block_name not in msp.doc.blocks:
         log_warning(f"Block '{block_name}' not found in the document")
         return
@@ -133,60 +135,26 @@ def create_path_array(msp, source_layer_name, target_layer_name, block_name, spa
         log_warning(f"Could not determine shape for block '{block_name}'")
         return
 
-    polylines = msp.query(f'LWPOLYLINE[layer=="{source_layer_name}"]')
+    if all_layers is None or source_layer_name not in all_layers:
+        log_warning(f"Source layer '{source_layer_name}' not found in all_layers")
+        return
+
+    source_geometry = all_layers[source_layer_name]
     
     fig, ax = plt.subplots(figsize=(12, 8)) if debug_visual else (None, None)
 
     placed_blocks = []  # List to store placed block shapes
 
+    if isinstance(source_geometry, gpd.GeoDataFrame):
+        polylines = source_geometry.geometry
+    else:
+        polylines = [source_geometry]
+
     for polyline in polylines:
-        points = [Vec2(p[0], p[1]) for p in polyline.get_points()]
-        polyline_geom = LineString([(p.x, p.y) for p in points])
-        total_length = polyline_geom.length
-        
-        # Create a polygon from the polyline
-        polyline_polygon = Polygon(polyline_geom)
-        
-        # Create buffer around the polyline
-        buffer_polygon = polyline_geom.buffer(buffer_distance)
-        
-        # Combine the original polygon and the buffer
-        combined_area = polyline_polygon.union(buffer_polygon)
-        
-        block_distance = spacing / 2
-
-        while block_distance < total_length:
-            point = polyline_geom.interpolate(block_distance)
-            insertion_point = Vec2(point.x, point.y)
-            angle = get_angle_at_point(polyline_geom, block_distance)
-
-            rotated_block_shape = rotate_and_adjust_block(block_shape, block_base_point, insertion_point, angle)
-            
-            is_inside = is_block_inside_buffer(rotated_block_shape, combined_area)
-            overlaps_existing = any(rotated_block_shape.intersects(placed) for placed in placed_blocks)
-
-            if is_inside and not overlaps_existing:
-                color = 'green'
-                label = "Placed"
-                block_ref = add_block_reference(
-                    msp,
-                    block_name,
-                    insertion_point,
-                    target_layer_name,
-                    scale=scale,
-                    rotation=math.degrees(angle) + rotation  # Apply base rotation
-                )
-                if block_ref:
-                    attach_custom_data(block_ref, SCRIPT_IDENTIFIER)
-                    placed_blocks.append(rotated_block_shape)
-            else:
-                color = 'red'
-                label = "Skipped"
-            
-            if debug_visual:
-                visualize_placement(ax, polyline_geom, combined_area, rotated_block_shape, insertion_point, color, label)
-            
-            block_distance += spacing
+        if isinstance(polyline, (LineString, MultiLineString)):
+            process_polyline(msp, polyline, block_shape, block_base_point, block_name, 
+                             target_layer_name, spacing, buffer_distance, scale, rotation, 
+                             debug_visual, ax, placed_blocks)
 
     if debug_visual:
         ax.set_aspect('equal', 'datalim')
@@ -264,3 +232,52 @@ def get_angle_at_point(linestring, distance):
         else:
             distance -= segment.length
     return 0.0  # Default angle if something goes wrong
+
+def process_polyline(msp, polyline_geom, block_shape, block_base_point, block_name, 
+                     target_layer_name, spacing, buffer_distance, scale, rotation, 
+                     debug_visual, ax, placed_blocks):
+    total_length = polyline_geom.length
+    
+    # Create a polygon from the polyline
+    polyline_polygon = Polygon(polyline_geom)
+    
+    # Create buffer around the polyline
+    buffer_polygon = polyline_geom.buffer(buffer_distance)
+    
+    # Combine the original polygon and the buffer
+    combined_area = polyline_polygon.union(buffer_polygon)
+    
+    block_distance = spacing / 2
+
+    while block_distance < total_length:
+        point = polyline_geom.interpolate(block_distance)
+        insertion_point = Vec2(point.x, point.y)
+        angle = get_angle_at_point(polyline_geom, block_distance)
+
+        rotated_block_shape = rotate_and_adjust_block(block_shape, block_base_point, insertion_point, angle)
+        
+        is_inside = is_block_inside_buffer(rotated_block_shape, combined_area)
+        overlaps_existing = any(rotated_block_shape.intersects(placed) for placed in placed_blocks)
+
+        if is_inside and not overlaps_existing:
+            color = 'green'
+            label = "Placed"
+            block_ref = add_block_reference(
+                msp,
+                block_name,
+                insertion_point,
+                target_layer_name,
+                scale=scale,
+                rotation=math.degrees(angle) + rotation  # Apply base rotation
+            )
+            if block_ref:
+                attach_custom_data(block_ref, SCRIPT_IDENTIFIER)
+                placed_blocks.append(rotated_block_shape)
+        else:
+            color = 'red'
+            label = "Skipped"
+        
+        if debug_visual:
+            visualize_placement(ax, polyline_geom, combined_area, rotated_block_shape, insertion_point, color, label)
+        
+        block_distance += spacing
