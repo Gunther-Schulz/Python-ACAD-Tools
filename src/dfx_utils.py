@@ -611,6 +611,7 @@ def calculate_overlap_ratio(block_shape, polyline_geom):
     return round(outside_percentage, 1)
 
 def create_path_array(msp, source_layer_name, target_layer_name, block_name, spacing, scale=1.0, rotation=0.0, overlap_margin=0.1):
+    print("--------------",overlap_margin)
     if block_name not in msp.doc.blocks:
         log_warning(f"Block '{block_name}' not found in the document")
         return
@@ -654,12 +655,15 @@ def create_path_array(msp, source_layer_name, target_layer_name, block_name, spa
             logger.debug(f"Rotated block shape: {rotated_block_shape}")
             logger.debug(f"Polyline geometry: {polyline_geom}")
 
-            overlap_percentage = calculate_overlap_ratio(rotated_block_shape, polyline_geom)
-            required_overlap = overlap_margin * 100
+            inside_percentage = calculate_overlap_ratio(rotated_block_shape, polyline_geom)
+            required_inside = (1 - overlap_margin) * 100
 
-            logger.debug(f"Overlap percentage: {overlap_percentage}%, Required: {required_overlap}%")
+            logger.debug(f"Inside percentage: {inside_percentage}%, Required: {required_inside}%")
 
-            if overlap_percentage <= required_overlap:
+            # Create a color based on the inside percentage
+            color = plt.cm.RdYlGn(inside_percentage / 100)  # Red to Green colormap
+
+            if inside_percentage >= required_inside:
                 block_ref = add_block_reference(
                     msp,
                     block_name,
@@ -673,19 +677,25 @@ def create_path_array(msp, source_layer_name, target_layer_name, block_name, spa
                     attach_custom_data(block_ref, SCRIPT_IDENTIFIER)
                     log_info(f"Block placed at {insertion_point}")
                     # Plot placed block
-                    plot_polygon(ax, rotated_block_shape, 'green', 0.7)
+                    plot_polygon(ax, rotated_block_shape, color, 0.7)
             else:
-                log_info(f"Block not placed at {insertion_point} due to excessive overlap")
+                log_info(f"Block not placed at {insertion_point} due to insufficient overlap")
                 # Plot skipped block
-                plot_polygon(ax, rotated_block_shape, 'red', 0.7)
+                plot_polygon(ax, rotated_block_shape, color, 0.7)
             
-            # Add label with overlap percentage
-            ax.text(insertion_point.x, insertion_point.y, f"{overlap_percentage}%", 
-                    ha='center', va='center', fontsize=8)
+            # Add label with inside percentage
+            ax.text(insertion_point.x, insertion_point.y, f"{inside_percentage:.1f}%", 
+                    ha='center', va='center', fontsize=8, 
+                    bbox=dict(facecolor='white', edgecolor='none', alpha=0.7))
             
             block_distance += spacing
 
     log_info(f"Path array creation completed for source layer '{source_layer_name}' using block '{block_name}'")
+    
+    # Add a colorbar to show the inside percentage scale
+    sm = plt.cm.ScalarMappable(cmap=plt.cm.RdYlGn, norm=plt.Normalize(vmin=0, vmax=100))
+    sm.set_array([])
+    plt.colorbar(sm, label='Inside Percentage', ax=ax)
     
     ax.set_aspect('equal', 'datalim')
     plt.title(f"Block Placement for {source_layer_name}")
@@ -959,7 +969,8 @@ def is_point_inside_or_near_polyline(point, polyline_points, margin):
 
 def calculate_overlap_ratio(block_shape, polyline_geom):
     # Create a buffer around the polyline to give it some width
-    buffer_distance = 0.1
+    buffer_distance = max(block_shape.bounds[2] - block_shape.bounds[0], 
+                          block_shape.bounds[3] - block_shape.bounds[1]) / 2
     polyline_buffer = polyline_geom.buffer(buffer_distance)
     
     # Calculate areas
@@ -971,12 +982,13 @@ def calculate_overlap_ratio(block_shape, polyline_geom):
         return 100.0  # Assume full overlap if block has no area
     
     overlap_ratio = intersection_area / block_area
-    outside_percentage = (1 - overlap_ratio) * 100
+    inside_percentage = overlap_ratio * 100
     
     logger.debug(f"Block area: {block_area}, Intersection area: {intersection_area}")
-    logger.debug(f"Overlap ratio: {overlap_ratio}, Outside percentage: {outside_percentage}")
+    logger.debug(f"Overlap ratio: {overlap_ratio}, Inside percentage: {inside_percentage}")
     
-    return round(outside_percentage, 1)
+    return round(inside_percentage, 1)
+
 
 
 
