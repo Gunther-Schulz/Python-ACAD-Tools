@@ -120,60 +120,48 @@ def get_unique_color_name(rgb, used_names, aci):
         5: "blue",
         6: "magenta",
         7: "white",
-        8: "medium-grey",  # Changed from dark-grey
-        9: "light-grey",
-        250: "darker-grey",  # Changed from dark-grey
-        251: "dark-grey",   # Changed from grey
-        252: "grey",        # Changed from light-grey
-        253: "light-grey",  # Changed from very-light-grey
-        254: "pale-grey",   # Changed from off-white
-        255: "white"
+        8: "medium-grey",  # Changed from "steel" to "medium-grey"
+        9: "light-grey",   # Changed from "silver" to "light-grey"
+        250: "charcoal",
+        251: "granite",
+        252: "ash",
+        253: "platinum",
+        254: "ivory",
+        255: "real-white"
     }
     
     if aci in special_cases:
         return special_cases[aci]
     
     special_colors = {
-         10: "red", 20: "vermilion", 30: "orange", 40: "amber",
-        50: "yellow", 60: "lime", 70: "chartreuse", 80: "lime-green",
-        90: "green", 100: "bright-green", 110: "mint-green", 120: "aquamarine",
-        130: "cyan", 140: "sky-blue", 150: "azure", 160: "indigo",
+        10: "red", 20: "vermilion", 30: "orange", 40: "amber",
+        50: "yellow", 60: "lime", 70: "chartreuse", 80: "emerald",
+        90: "green", 100: "viridian", 110: "mint", 120: "aquamarine",
+        130: "cyan", 140: "azure", 150: "cerulean", 160: "indigo",
         170: "blue", 180: "violet", 190: "purple", 200: "lavender",
-        210: "magenta", 220: "fuchsia", 230: "deep-pink", 240: "rose"
+        210: "magenta", 220: "fuchsia", 230: "cerise", 240: "rose"
     }
     
     group_leader = (aci // 10) * 10
-    if group_leader in special_colors:
-        base_name = special_colors[group_leader]
-    else:
-        # Fallback to hue-based naming if not in a special color group
-        h, s, v = rgb_to_hsv(r/255, g/255, b/255)
-        hue_ranges = [
-            (0, 0.025, "red"), (0.025, 0.05, "vermilion"), (0.05, 0.085, "orange"),
-            (0.085, 0.12, "amber"), (0.12, 0.15, "yellow"), (0.15, 0.20, "lemon"),
-            (0.20, 0.275, "lime"), (0.275, 0.3125, "chartreuse"), (0.3125, 0.375, "green"),
-            (0.375, 0.46, "spring-green"), (0.46, 0.525, "cyan"), (0.525, 0.575, "azure"),
-            (0.575, 0.625, "blue"), (0.625, 0.7, "indigo"), (0.7, 0.8, "violet"),
-            (0.8, 0.875, "purple"), (0.875, 0.925, "magenta"), (0.925, 1.0, "rose")
-        ]
-        base_name = next((name for start, end, name in hue_ranges if start <= h < end), "red")
-    
-    group_position = aci % 10
+    base_name = special_colors.get(group_leader, "red")  # Default to "red" if not found
     
     position_names = [
-        "brilliant",
-        "brilliant-clear",
-        "bright-intense",
-        "bright-clear",
-        "moderate-intense",
-        "moderate-clear",
-        "medium-intense",
-        "medium-clear",
+        "",  # Empty string for the first color in the group
+        "light",
+        "strong",
+        "muted",
+        "medium",
+        "soft",
         "deep",
-        "dark"
+        "pale",
+        "dark",
+        "dusky"
     ]
     
-    color_name = f"{position_names[group_position]}-{base_name}"
+    group_position = aci % 10
+    position_name = position_names[group_position]
+    
+    color_name = base_name if group_position == 0 else f"{base_name}-{position_name}"
     
     used_names[rgb_tuple] = color_name
     return color_name
