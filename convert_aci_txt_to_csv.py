@@ -5,9 +5,9 @@ import random
 
 hue_names = [
     "red", "scarlet", "vermilion", "persimmon", "orange-red", "orange", "tangerine", "amber",
-    "marigold", "yellow-orange", "yellow", "lemon", "lime", "chartreuse", "green", "spring-green",
+    "marigold", "yellow-orange", "yellow", "lemon", "lime", "lime-green", "chartreuse", "green", "spring-green",
     "mint-green", "emerald", "forest-green", "teal-green", "teal",
-    "turquoise", "aqua", "cyan", "sky-blue", "azure", "cerulean", "cobalt", "blue",
+    "turquoise", "aqua", "cyan", "azure", "sky-blue", "cerulean", "cobalt", "blue",
     "royal-blue", "indigo", "violet", "purple", "lavender", "mauve", "magenta", "fuchsia",
     "hot-pink", "deep-pink", "rose", "crimson", "maroon"
 ]
@@ -120,14 +120,44 @@ def get_unique_color_name(rgb, used_names):
     if rgb_tuple in basic_colors:
         return basic_colors[rgb_tuple]
     
+    special_colors = {
+        (255, 0, 0): "red",
+        (255, 63, 0): "vermilion",
+        (255, 127, 0): "orange",
+        (255, 191, 0): "amber",
+        (255, 255, 0): "yellow",
+        (191, 255, 0): "lime",
+        (127, 255, 0): "chartreuse",
+        (63, 255, 0): "lime-green",
+        (0, 255, 0): "green",
+        (0, 255, 63): "bright-green",
+        (0, 255, 127): "mint-green",
+        (0, 255, 191): "aquamarine",
+        (0, 255, 255): "cyan",
+        (0, 191, 255): "sky-blue",
+        (0, 127, 255): "azure",
+        (0, 63, 255): "indigo",
+        (0, 0, 255): "blue",
+        (63, 0, 255): "violet",
+        (127, 0, 255): "purple",
+        (191, 0, 255): "lavender",
+        (255, 0, 255): "magenta",
+        (255, 0, 191): "fuchsia",
+        (255, 0, 127): "deep-pink",
+        (255, 0, 63): "rose"
+    }
+    
+    if rgb_tuple in special_colors:
+        return special_colors[rgb_tuple]
+    
     h, s, v = rgb_to_hsv(r/255, g/255, b/255)
 
-    # More precise hue ranges
+    # Adjusted hue ranges
     hue_ranges = [
         (0, 0.025, "red"), (0.025, 0.05, "vermilion"), (0.05, 0.085, "orange"),
         (0.085, 0.12, "amber"), (0.12, 0.15, "yellow"), (0.15, 0.20, "lemon"),
         (0.20, 0.275, "lime"), (0.275, 0.3125, "chartreuse"), (0.3125, 0.375, "green"),
-        (0.375, 0.475, "spring-green"), (0.475, 0.525, "cyan"), (0.525, 0.575, "azure"),
+        (0.375, 0.46, "spring-green"), (0.46, 0.525, "cyan"), (0.525, 0.575, "azure"),
         (0.575, 0.625, "blue"), (0.625, 0.7, "indigo"), (0.7, 0.8, "violet"),
         (0.8, 0.875, "purple"), (0.875, 0.925, "magenta"), (0.925, 1.0, "rose")
     ]
@@ -187,9 +217,9 @@ def convert_to_csv_css_and_yaml(input_file, output_csv, output_css, output_yaml)
     
     hue_names = [
         "red", "scarlet", "vermilion", "persimmon", "orange-red", "orange", "tangerine", "amber",
-        "marigold", "yellow-orange", "yellow", "lemon", "lime", "chartreuse", "green", "spring-green",
+        "marigold", "yellow-orange", "yellow", "lemon", "lime", "lime-green", "chartreuse", "green", "spring-green",
         "mint-green", "emerald", "forest-green", "teal-green", "teal",
-        "turquoise", "aqua", "cyan", "sky-blue", "azure", "cerulean", "cobalt", "blue",
+        "turquoise", "aqua", "cyan", "azure", "sky-blue", "cerulean", "cobalt", "blue",
         "royal-blue", "indigo", "violet", "purple", "lavender", "mauve", "magenta", "fuchsia",
         "hot-pink", "deep-pink", "rose", "crimson", "maroon"
     ]

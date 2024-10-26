@@ -44,7 +44,7 @@
 .dark-orange { color: rgb(38, 19, 0); } /* ACI: 38 */
 .dark-tangerine { color: rgb(38, 28, 19); } /* ACI: 39 */
 
-.yellow { color: rgb(255, 191, 0); } /* ACI: 40 */
+.amber { color: rgb(255, 191, 0); } /* ACI: 40 */
 .brilliant-soft-yellow { color: rgb(255, 223, 127); } /* ACI: 41 */
 .moderate-vivid-yellow { color: rgb(165, 124, 0); } /* ACI: 42 */
 .moderate-soft-yellow { color: rgb(165, 145, 82); } /* ACI: 43 */
@@ -64,7 +64,7 @@
 .dark-vivid-lemon { color: rgb(76, 76, 0); } /* ACI: 56 */
 .dark-soft-lemon { color: rgb(76, 76, 38); } /* ACI: 57 */
 .dark-lime { color: rgb(38, 38, 0); } /* ACI: 58 */
-.dark-chartreuse { color: rgb(38, 38, 19); } /* ACI: 59 */
+.dark-lime-green { color: rgb(38, 38, 19); } /* ACI: 59 */
 
 .lime { color: rgb(191, 255, 0); } /* ACI: 60 */
 .brilliant-soft-lime { color: rgb(223, 255, 127); } /* ACI: 61 */
@@ -74,74 +74,72 @@
 .medium-soft-lime { color: rgb(111, 127, 63); } /* ACI: 65 */
 .dark-vivid-lime { color: rgb(57, 76, 0); } /* ACI: 66 */
 .dark-soft-lime { color: rgb(66, 76, 38); } /* ACI: 67 */
-.dark-green { color: rgb(28, 38, 0); } /* ACI: 68 */
-.dark-spring-green { color: rgb(33, 38, 19); } /* ACI: 69 */
+.dark-chartreuse { color: rgb(28, 38, 0); } /* ACI: 68 */
+.dark-green { color: rgb(33, 38, 19); } /* ACI: 69 */
 
 .chartreuse { color: rgb(127, 255, 0); } /* ACI: 70 */
-.brilliant-soft-chartreuse { color: rgb(191, 255, 127); } /* ACI: 71 */
-.moderate-vivid-chartreuse { color: rgb(82, 165, 0); } /* ACI: 72 */
-.moderate-soft-chartreuse { color: rgb(124, 165, 82); } /* ACI: 73 */
-.medium-vivid-chartreuse { color: rgb(63, 127, 0); } /* ACI: 74 */
-.medium-soft-chartreuse { color: rgb(95, 127, 63); } /* ACI: 75 */
-.dark-vivid-chartreuse { color: rgb(38, 76, 0); } /* ACI: 76 */
-.dark-soft-chartreuse { color: rgb(57, 76, 38); } /* ACI: 77 */
-.dark-mint-green { color: rgb(19, 38, 0); } /* ACI: 78 */
-.dark-emerald { color: rgb(28, 38, 19); } /* ACI: 79 */
+.brilliant-soft-lime-green { color: rgb(191, 255, 127); } /* ACI: 71 */
+.moderate-vivid-lime-green { color: rgb(82, 165, 0); } /* ACI: 72 */
+.moderate-soft-lime-green { color: rgb(124, 165, 82); } /* ACI: 73 */
+.medium-vivid-lime-green { color: rgb(63, 127, 0); } /* ACI: 74 */
+.medium-soft-lime-green { color: rgb(95, 127, 63); } /* ACI: 75 */
+.dark-vivid-lime-green { color: rgb(38, 76, 0); } /* ACI: 76 */
+.dark-soft-lime-green { color: rgb(57, 76, 38); } /* ACI: 77 */
+.dark-spring-green { color: rgb(19, 38, 0); } /* ACI: 78 */
+.dark-mint-green { color: rgb(28, 38, 19); } /* ACI: 79 */
 
-.green { color: rgb(63, 255, 0); } /* ACI: 80 */
-.brilliant-soft-green { color: rgb(159, 255, 127); } /* ACI: 81 */
-.moderate-vivid-green { color: rgb(41, 165, 0); } /* ACI: 82 */
-.moderate-soft-green { color: rgb(103, 165, 82); } /* ACI: 83 */
-.medium-vivid-green { color: rgb(31, 127, 0); } /* ACI: 84 */
-.medium-soft-green { color: rgb(79, 127, 63); } /* ACI: 85 */
-.dark-vivid-green { color: rgb(19, 76, 0); } /* ACI: 86 */
-.dark-soft-green { color: rgb(47, 76, 38); } /* ACI: 87 */
-.dark-forest-green { color: rgb(9, 38, 0); } /* ACI: 88 */
-.dark-teal-green { color: rgb(23, 38, 19); } /* ACI: 89 */
+.lime-green { color: rgb(63, 255, 0); } /* ACI: 80 */
+.brilliant-soft-chartreuse { color: rgb(159, 255, 127); } /* ACI: 81 */
+.moderate-vivid-chartreuse { color: rgb(41, 165, 0); } /* ACI: 82 */
+.moderate-soft-chartreuse { color: rgb(103, 165, 82); } /* ACI: 83 */
+.medium-vivid-chartreuse { color: rgb(31, 127, 0); } /* ACI: 84 */
+.medium-soft-chartreuse { color: rgb(79, 127, 63); } /* ACI: 85 */
+.dark-vivid-chartreuse { color: rgb(19, 76, 0); } /* ACI: 86 */
+.dark-soft-chartreuse { color: rgb(47, 76, 38); } /* ACI: 87 */
+.dark-emerald { color: rgb(9, 38, 0); } /* ACI: 88 */
+.dark-forest-green { color: rgb(23, 38, 19); } /* ACI: 89 */
 
 .green { color: rgb(0, 255, 0); } /* ACI: 90 */
-.brilliant-soft-spring-green { color: rgb(127, 255, 127); } /* ACI: 91 */
-.moderate-vivid-spring-green { color: rgb(0, 165, 0); } /* ACI: 92 */
-.moderate-soft-spring-green { color: rgb(82, 165, 82); } /* ACI: 93 */
-.medium-vivid-spring-green { color: rgb(0, 127, 0); } /* ACI: 94 */
-.medium-soft-spring-green { color: rgb(63, 127, 63); } /* ACI: 95 */
-.dark-vivid-spring-green { color: rgb(0, 76, 0); } /* ACI: 96 */
-.dark-soft-spring-green { color: rgb(38, 76, 38); } /* ACI: 97 */
-.dark-teal { color: rgb(0, 38, 0); } /* ACI: 98 */
-.dark-turquoise { color: rgb(19, 38, 19); } /* ACI: 99 */
-
-.spring-green { color: rgb(0, 255, 63); } /* ACI: 100 */
-.brilliant-soft-mint-green { color: rgb(127, 255, 159); } /* ACI: 101 */
-.moderate-vivid-mint-green { color: rgb(0, 165, 41); } /* ACI: 102 */
-.moderate-soft-mint-green { color: rgb(82, 165, 103); } /* ACI: 103 */
-.medium-vivid-mint-green { color: rgb(0, 127, 31); } /* ACI: 104 */
-.medium-soft-mint-green { color: rgb(63, 127, 79); } /* ACI: 105 */
-.dark-vivid-mint-green { color: rgb(0, 76, 19); } /* ACI: 106 */
-.dark-soft-mint-green { color: rgb(38, 76, 47); } /* ACI: 107 */
-.dark-aqua { color: rgb(0, 38, 9); } /* ACI: 108 */
-.dark-cyan { color: rgb(19, 38, 23); } /* ACI: 109 */
+.brilliant-soft-green { color: rgb(127, 255, 127); } /* ACI: 91 */
+.moderate-vivid-green { color: rgb(0, 165, 0); } /* ACI: 92 */
+.moderate-soft-green { color: rgb(82, 165, 82); } /* ACI: 93 */
+.medium-vivid-green { color: rgb(0, 127, 0); } /* ACI: 94 */
+.medium-soft-green { color: rgb(63, 127, 63); } /* ACI: 95 */
+.dark-vivid-green { color: rgb(0, 76, 0); } /* ACI: 96 */
+.dark-soft-green { color: rgb(38, 76, 38); } /* ACI: 97 */
+.dark-teal-green { color: rgb(0, 38, 0); } /* ACI: 98 */
+.dark-teal { color: rgb(19, 38, 19); } /* ACI: 99 */
+.bright-green { color: rgb(0, 255, 63); } /* ACI: 100 */
+.brilliant-soft-spring-green { color: rgb(127, 255, 159); } /* ACI: 101 */
+.moderate-vivid-spring-green { color: rgb(0, 165, 41); } /* ACI: 102 */
+.moderate-soft-spring-green { color: rgb(82, 165, 103); } /* ACI: 103 */
+.medium-vivid-spring-green { color: rgb(0, 127, 31); } /* ACI: 104 */
+.medium-soft-spring-green { color: rgb(63, 127, 79); } /* ACI: 105 */
+.dark-vivid-spring-green { color: rgb(0, 76, 19); } /* ACI: 106 */
+.dark-soft-spring-green { color: rgb(38, 76, 47); } /* ACI: 107 */
+.dark-turquoise { color: rgb(0, 38, 9); } /* ACI: 108 */
+.dark-aqua { color: rgb(19, 38, 23); } /* ACI: 109 */
 
 .mint-green { color: rgb(0, 255, 127); } /* ACI: 110 */
-.brilliant-soft-emerald { color: rgb(127, 255, 191); } /* ACI: 111 */
-.moderate-vivid-emerald { color: rgb(0, 165, 82); } /* ACI: 112 */
-.moderate-soft-emerald { color: rgb(82, 165, 124); } /* ACI: 113 */
-.medium-vivid-emerald { color: rgb(0, 127, 63); } /* ACI: 114 */
-.medium-soft-emerald { color: rgb(63, 127, 95); } /* ACI: 115 */
-.dark-vivid-emerald { color: rgb(0, 76, 38); } /* ACI: 116 */
-.dark-soft-emerald { color: rgb(38, 76, 57); } /* ACI: 117 */
-.dark-sky-blue { color: rgb(0, 38, 19); } /* ACI: 118 */
+.brilliant-soft-mint-green { color: rgb(127, 255, 191); } /* ACI: 111 */
+.moderate-vivid-mint-green { color: rgb(0, 165, 82); } /* ACI: 112 */
+.moderate-soft-mint-green { color: rgb(82, 165, 124); } /* ACI: 113 */
+.medium-vivid-mint-green { color: rgb(0, 127, 63); } /* ACI: 114 */
+.medium-soft-mint-green { color: rgb(63, 127, 95); } /* ACI: 115 */
+.dark-vivid-mint-green { color: rgb(0, 76, 38); } /* ACI: 116 */
+.dark-soft-mint-green { color: rgb(38, 76, 57); } /* ACI: 117 */
+.dark-cyan { color: rgb(0, 38, 19); } /* ACI: 118 */
 .dark-azure { color: rgb(19, 38, 28); } /* ACI: 119 */
-
-.emerald { color: rgb(0, 255, 191); } /* ACI: 120 */
-.brilliant-soft-forest-green { color: rgb(127, 255, 223); } /* ACI: 121 */
-.moderate-vivid-forest-green { color: rgb(0, 165, 124); } /* ACI: 122 */
-.moderate-soft-forest-green { color: rgb(82, 165, 145); } /* ACI: 123 */
-.medium-vivid-forest-green { color: rgb(0, 127, 95); } /* ACI: 124 */
-.medium-soft-forest-green { color: rgb(63, 127, 111); } /* ACI: 125 */
-.dark-vivid-forest-green { color: rgb(0, 76, 57); } /* ACI: 126 */
-.dark-soft-forest-green { color: rgb(38, 76, 66); } /* ACI: 127 */
-.dark-cerulean { color: rgb(0, 38, 28); } /* ACI: 128 */
-.dark-cobalt { color: rgb(19, 38, 33); } /* ACI: 129 */
+.aquamarine { color: rgb(0, 255, 191); } /* ACI: 120 */
+.brilliant-soft-emerald { color: rgb(127, 255, 223); } /* ACI: 121 */
+.moderate-vivid-emerald { color: rgb(0, 165, 124); } /* ACI: 122 */
+.moderate-soft-emerald { color: rgb(82, 165, 145); } /* ACI: 123 */
+.medium-vivid-emerald { color: rgb(0, 127, 95); } /* ACI: 124 */
+.medium-soft-emerald { color: rgb(63, 127, 111); } /* ACI: 125 */
+.dark-vivid-emerald { color: rgb(0, 76, 57); } /* ACI: 126 */
+.dark-soft-emerald { color: rgb(38, 76, 66); } /* ACI: 127 */
+.dark-sky-blue { color: rgb(0, 38, 28); } /* ACI: 128 */
+.dark-cerulean { color: rgb(19, 38, 33); } /* ACI: 129 */
 
 .cyan { color: rgb(0, 255, 255); } /* ACI: 130 */
 .brilliant-soft-cyan { color: rgb(127, 255, 255); } /* ACI: 131 */
@@ -151,10 +149,10 @@
 .medium-soft-cyan { color: rgb(63, 127, 127); } /* ACI: 135 */
 .dark-vivid-cyan { color: rgb(0, 76, 76); } /* ACI: 136 */
 .dark-soft-cyan { color: rgb(38, 76, 76); } /* ACI: 137 */
-.dark-blue { color: rgb(0, 38, 38); } /* ACI: 138 */
-.dark-royal-blue { color: rgb(19, 38, 38); } /* ACI: 139 */
+.dark-cobalt { color: rgb(0, 38, 38); } /* ACI: 138 */
+.dark-blue { color: rgb(19, 38, 38); } /* ACI: 139 */
 
-.azure { color: rgb(0, 191, 255); } /* ACI: 140 */
+.sky-blue { color: rgb(0, 191, 255); } /* ACI: 140 */
 .brilliant-soft-azure { color: rgb(127, 223, 255); } /* ACI: 141 */
 .moderate-vivid-azure { color: rgb(0, 124, 165); } /* ACI: 142 */
 .moderate-soft-azure { color: rgb(82, 145, 165); } /* ACI: 143 */
@@ -162,10 +160,10 @@
 .medium-soft-azure { color: rgb(63, 111, 127); } /* ACI: 145 */
 .dark-vivid-azure { color: rgb(0, 57, 76); } /* ACI: 146 */
 .dark-soft-azure { color: rgb(38, 66, 76); } /* ACI: 147 */
-.dark-indigo { color: rgb(0, 28, 38); } /* ACI: 148 */
-.dark-violet { color: rgb(19, 33, 38); } /* ACI: 149 */
+.dark-royal-blue { color: rgb(0, 28, 38); } /* ACI: 148 */
+.dark-indigo { color: rgb(19, 33, 38); } /* ACI: 149 */
 
-.blue { color: rgb(0, 127, 255); } /* ACI: 150 */
+.azure { color: rgb(0, 127, 255); } /* ACI: 150 */
 .brilliant-soft-blue { color: rgb(127, 191, 255); } /* ACI: 151 */
 .moderate-vivid-blue { color: rgb(0, 82, 165); } /* ACI: 152 */
 .moderate-soft-blue { color: rgb(82, 124, 165); } /* ACI: 153 */
@@ -173,8 +171,8 @@
 .medium-soft-blue { color: rgb(63, 95, 127); } /* ACI: 155 */
 .dark-vivid-blue { color: rgb(0, 38, 76); } /* ACI: 156 */
 .dark-soft-blue { color: rgb(38, 57, 76); } /* ACI: 157 */
-.dark-purple { color: rgb(0, 19, 38); } /* ACI: 158 */
-.dark-lavender { color: rgb(19, 28, 38); } /* ACI: 159 */
+.dark-violet { color: rgb(0, 19, 38); } /* ACI: 158 */
+.dark-purple { color: rgb(19, 28, 38); } /* ACI: 159 */
 
 .indigo { color: rgb(0, 63, 255); } /* ACI: 160 */
 .brilliant-soft-indigo { color: rgb(127, 159, 255); } /* ACI: 161 */
@@ -184,8 +182,8 @@
 .medium-soft-indigo { color: rgb(63, 79, 127); } /* ACI: 165 */
 .dark-vivid-indigo { color: rgb(0, 19, 76); } /* ACI: 166 */
 .dark-soft-indigo { color: rgb(38, 47, 76); } /* ACI: 167 */
-.dark-mauve { color: rgb(0, 9, 38); } /* ACI: 168 */
-.dark-magenta { color: rgb(19, 23, 38); } /* ACI: 169 */
+.dark-lavender { color: rgb(0, 9, 38); } /* ACI: 168 */
+.dark-mauve { color: rgb(19, 23, 38); } /* ACI: 169 */
 
 .blue { color: rgb(0, 0, 255); } /* ACI: 170 */
 .brilliant-soft-violet { color: rgb(127, 127, 255); } /* ACI: 171 */
@@ -195,8 +193,8 @@
 .medium-soft-violet { color: rgb(63, 63, 127); } /* ACI: 175 */
 .dark-vivid-violet { color: rgb(0, 0, 76); } /* ACI: 176 */
 .dark-soft-violet { color: rgb(38, 38, 76); } /* ACI: 177 */
-.dark-fuchsia { color: rgb(0, 0, 38); } /* ACI: 178 */
-.dark-hot-pink { color: rgb(19, 19, 38); } /* ACI: 179 */
+.dark-magenta { color: rgb(0, 0, 38); } /* ACI: 178 */
+.dark-fuchsia { color: rgb(19, 19, 38); } /* ACI: 179 */
 
 .violet { color: rgb(63, 0, 255); } /* ACI: 180 */
 .brilliant-soft-purple { color: rgb(159, 127, 255); } /* ACI: 181 */
@@ -206,8 +204,8 @@
 .medium-soft-purple { color: rgb(79, 63, 127); } /* ACI: 185 */
 .dark-vivid-purple { color: rgb(19, 0, 76); } /* ACI: 186 */
 .dark-soft-purple { color: rgb(47, 38, 76); } /* ACI: 187 */
-.dark-deep-pink { color: rgb(9, 0, 38); } /* ACI: 188 */
-.dark-rose { color: rgb(23, 19, 38); } /* ACI: 189 */
+.dark-hot-pink { color: rgb(9, 0, 38); } /* ACI: 188 */
+.dark-deep-pink { color: rgb(23, 19, 38); } /* ACI: 189 */
 
 .purple { color: rgb(127, 0, 255); } /* ACI: 190 */
 .brilliant-soft-lavender { color: rgb(191, 127, 255); } /* ACI: 191 */
@@ -217,8 +215,8 @@
 .medium-soft-lavender { color: rgb(95, 63, 127); } /* ACI: 195 */
 .dark-vivid-lavender { color: rgb(38, 0, 76); } /* ACI: 196 */
 .dark-soft-lavender { color: rgb(57, 38, 76); } /* ACI: 197 */
-.dark-crimson { color: rgb(19, 0, 38); } /* ACI: 198 */
-.dark-maroon { color: rgb(28, 19, 38); } /* ACI: 199 */
+.dark-rose { color: rgb(19, 0, 38); } /* ACI: 198 */
+.dark-crimson { color: rgb(28, 19, 38); } /* ACI: 199 */
 
 .lavender { color: rgb(191, 0, 255); } /* ACI: 200 */
 .brilliant-soft-mauve { color: rgb(223, 127, 255); } /* ACI: 201 */
@@ -228,8 +226,8 @@
 .medium-soft-mauve { color: rgb(111, 63, 127); } /* ACI: 205 */
 .dark-vivid-mauve { color: rgb(57, 0, 76); } /* ACI: 206 */
 .dark-soft-mauve { color: rgb(66, 38, 76); } /* ACI: 207 */
-.dark-orange-red { color: rgb(28, 0, 38); } /* ACI: 208 */
-.dark-amber { color: rgb(33, 19, 38); } /* ACI: 209 */
+.dark-maroon { color: rgb(28, 0, 38); } /* ACI: 208 */
+.dark-orange-red { color: rgb(33, 19, 38); } /* ACI: 209 */
 
 .magenta { color: rgb(255, 0, 255); } /* ACI: 210 */
 .brilliant-soft-magenta { color: rgb(255, 127, 255); } /* ACI: 211 */
@@ -239,10 +237,10 @@
 .medium-soft-magenta { color: rgb(127, 63, 127); } /* ACI: 215 */
 .dark-vivid-magenta { color: rgb(76, 0, 76); } /* ACI: 216 */
 .dark-soft-magenta { color: rgb(76, 38, 76); } /* ACI: 217 */
-.dark-marigold { color: rgb(38, 0, 38); } /* ACI: 218 */
-.dark-yellow-orange { color: rgb(38, 19, 38); } /* ACI: 219 */
+.dark-amber { color: rgb(38, 0, 38); } /* ACI: 218 */
+.dark-marigold { color: rgb(38, 19, 38); } /* ACI: 219 */
 
-.magenta { color: rgb(255, 0, 191); } /* ACI: 220 */
+.fuchsia { color: rgb(255, 0, 191); } /* ACI: 220 */
 .brilliant-soft-fuchsia { color: rgb(255, 127, 223); } /* ACI: 221 */
 .moderate-vivid-fuchsia { color: rgb(165, 0, 124); } /* ACI: 222 */
 .moderate-soft-magenta { color: rgb(165, 82, 145); } /* ACI: 223 */
@@ -250,10 +248,10 @@
 .medium-soft-fuchsia { color: rgb(127, 63, 111); } /* ACI: 225 */
 .dark-vivid-fuchsia { color: rgb(76, 0, 57); } /* ACI: 226 */
 .dark-soft-fuchsia { color: rgb(76, 38, 66); } /* ACI: 227 */
-.dark-magenta { color: rgb(38, 0, 28); } /* ACI: 228 */
+.dark-yellow-orange { color: rgb(38, 0, 28); } /* ACI: 228 */
 .dark-magenta { color: rgb(38, 19, 33); } /* ACI: 229 */
 
-.fuchsia { color: rgb(255, 0, 127); } /* ACI: 230 */
+.deep-pink { color: rgb(255, 0, 127); } /* ACI: 230 */
 .brilliant-soft-hot-pink { color: rgb(255, 127, 191); } /* ACI: 231 */
 .moderate-vivid-hot-pink { color: rgb(165, 0, 82); } /* ACI: 232 */
 .moderate-soft-fuchsia { color: rgb(165, 82, 124); } /* ACI: 233 */
