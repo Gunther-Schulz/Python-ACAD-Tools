@@ -9,7 +9,7 @@ styles:
       lineweight: 50
   flurWorkView:
     layer:
-      color: "moderate-yellow"
+      color: "bright-soft-amber"
 
   gemarkungsgrenze:
     layer:
@@ -18,7 +18,7 @@ styles:
       lineweight: 50
   gemarkungWorkView:
     layer:
-      color: "moderate-yellow"
+      color: "bright-soft-amber"
 
   gemeindegrenze:
     layer:
@@ -27,7 +27,7 @@ styles:
       lineweight: 50
   gemeindeWorkView:
     layer:
-      color: "moderate-yellow"
+      color: "bright-soft-amber"
 
   parcel:
     layer:
