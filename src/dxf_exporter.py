@@ -94,6 +94,7 @@ class DXFExporter:
         # Create legend
         legend_creator = LegendCreator(doc, msp, self.project_loader, self.loaded_styles)
         legend_creator.create_legend()
+        self.create_path_arrays(msp)
         self.process_block_inserts(msp)  # Move this line before _cleanup_and_save
         self._cleanup_and_save(doc, msp)
 
@@ -142,8 +143,6 @@ class DXFExporter:
 
     def _cleanup_and_save(self, doc, msp):
         processed_layers = [layer['name'] for layer in self.project_settings['geomLayers']]
-        # block_insert_layers = [insert_config.get('name') for insert_config in self.project_settings.get('blockInserts', [])]
-        # layers_to_clean = [layer for layer in processed_layers if layer not in block_insert_layers]
         layers_to_clean = [layer for layer in processed_layers if layer not in self.all_layers]
         remove_entities_by_layer(msp, layers_to_clean, self.script_identifier)
         doc.saveas(self.dxf_filename)
