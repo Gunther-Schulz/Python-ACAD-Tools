@@ -3,6 +3,15 @@ import yaml
 from colorsys import rgb_to_hsv
 import random
 
+hue_names = [
+    "red", "scarlet", "vermilion", "persimmon", "orange-red", "orange", "tangerine", "amber",
+    "marigold", "yellow-orange", "yellow", "lemon", "lime", "chartreuse", "green", "spring-green",
+    "mint-green", "emerald", "forest-green", "teal-green", "teal",
+    "turquoise", "aqua", "cyan", "sky-blue", "azure", "cerulean", "cobalt", "blue",
+    "royal-blue", "indigo", "violet", "purple", "lavender", "mauve", "magenta", "fuchsia",
+    "hot-pink", "deep-pink", "rose", "crimson", "maroon"
+]
+
 def rgb_to_hex(rgb):
     return '#{:02x}{:02x}{:02x}'.format(rgb[0], rgb[1], rgb[2])
 
@@ -47,11 +56,12 @@ def closest_colour(requested_colour, used_names):
     # Determine base hue
     hue_names = [
         (0.025, "red"), (0.05, "vermilion"), (0.085, "orange"),
-        (0.12, "amber"), (0.17, "yellow"), (0.225, "chartreuse"),
-        (0.35, "green"), (0.475, "spring-green"), (0.525, "cyan"),
-        (0.575, "azure"), (0.625, "blue"), (0.7, "indigo"),
-        (0.8, "violet"), (0.875, "purple"), (0.925, "magenta"),
-        (0.975, "rose"), (1.0, "red")
+        (0.12, "amber"), (0.15, "yellow"), (0.20, "lemon"),
+        (0.275, "lime"), (0.325, "chartreuse"), (0.40, "green"),
+        (0.475, "spring-green"), (0.525, "cyan"), (0.575, "azure"),
+        (0.625, "blue"), (0.7, "indigo"), (0.8, "violet"),
+        (0.875, "purple"), (0.925, "magenta"), (0.975, "rose"),
+        (1.0, "red")
     ]
     base_hue = next((name for threshold, name in hue_names if h <= threshold), "red")
 
@@ -111,15 +121,18 @@ def get_unique_color_name(rgb, used_names):
         return basic_colors[rgb_tuple]
     
     h, s, v = rgb_to_hsv(r/255, g/255, b/255)
-    
-    hue_names = [
-        "red", "scarlet", "vermilion", "persimmon", "orange-red", "orange", "tangerine", "amber",
-        "marigold", "yellow-orange", "yellow", "lemon", "lime-yellow", "chartreuse", "lime",
-        "spring-green", "mint-green", "emerald", "green", "forest-green", "teal-green", "teal",
-        "turquoise", "aqua", "cyan", "sky-blue", "azure", "cerulean", "cobalt", "blue",
-        "royal-blue", "indigo", "violet", "purple", "lavender", "mauve", "magenta", "fuchsia",
-        "hot-pink", "deep-pink", "rose", "crimson", "maroon"
+
+    # More precise hue ranges
+    hue_ranges = [
+        (0, 0.025, "red"), (0.025, 0.05, "vermilion"), (0.05, 0.085, "orange"),
+        (0.085, 0.12, "amber"), (0.12, 0.15, "yellow"), (0.15, 0.20, "lemon"),
+        (0.20, 0.275, "lime"), (0.275, 0.3125, "chartreuse"), (0.3125, 0.375, "green"),
+        (0.375, 0.475, "spring-green"), (0.475, 0.525, "cyan"), (0.525, 0.575, "azure"),
+        (0.575, 0.625, "blue"), (0.625, 0.7, "indigo"), (0.7, 0.8, "violet"),
+        (0.8, 0.875, "purple"), (0.875, 0.925, "magenta"), (0.925, 1.0, "rose")
     ]
+
+    base_name = next((name for start, end, name in hue_ranges if start <= h < end), "red")
     
     grey_shades = [
         "charcoal", "graphite", "lead", "iron", "steel",
@@ -134,9 +147,6 @@ def get_unique_color_name(rgb, used_names):
     else:
         sat_descs = ["pale", "soft", "vivid"]
         val_descs = ["darkest", "darker", "dark", "deep", "medium", "moderate", "light", "bright", "brilliant"]
-        
-        hue_index = int(h * len(hue_names))
-        base_name = hue_names[hue_index]
         
         sat_desc = sat_descs[min(int(s * len(sat_descs)), len(sat_descs) - 1)]
         val_desc = val_descs[min(int(v * len(val_descs)), len(val_descs) - 1)]
@@ -177,8 +187,8 @@ def convert_to_csv_css_and_yaml(input_file, output_csv, output_css, output_yaml)
     
     hue_names = [
         "red", "scarlet", "vermilion", "persimmon", "orange-red", "orange", "tangerine", "amber",
-        "marigold", "yellow-orange", "yellow", "lemon", "lime-yellow", "chartreuse", "lime",
-        "spring-green", "mint-green", "emerald", "green", "forest-green", "teal-green", "teal",
+        "marigold", "yellow-orange", "yellow", "lemon", "lime", "chartreuse", "green", "spring-green",
+        "mint-green", "emerald", "forest-green", "teal-green", "teal",
         "turquoise", "aqua", "cyan", "sky-blue", "azure", "cerulean", "cobalt", "blue",
         "royal-blue", "indigo", "violet", "purple", "lavender", "mauve", "magenta", "fuchsia",
         "hot-pink", "deep-pink", "rose", "crimson", "maroon"
