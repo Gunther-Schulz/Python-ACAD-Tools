@@ -129,7 +129,7 @@ projects:
         text_style: "Arial"
       subtitleTextStyle:
         color: "white"
-        height: 3.5
+        height: 2.5
         text_style: "Arial"
       itemTextStyle:
         color: "white"
@@ -200,6 +200,11 @@ projects:
           items:
             - name: "Umgrenzung von Flächen für Maßnahmen zum Schutz, zur Pflege und zurEntwicklung von Natur und Landschaft"
               type: empty
+              blockSymbol: "Schutzflächeumgrenzung"
+            # - name: "Umgrenzung von Flächen für Maßnahmen zum Schutz, zur Pflege und zurEntwicklung von Natur und Landschaft"
+            #   type: empty
+            #   blockSymbol: "Schutzflächeumgrenzung Small"
+            #   blockSymbolScale: 1.8
         - name: "Sonstige Planzeichen"
           update: true
           items:
@@ -284,14 +289,14 @@ projects:
             spacing: 7
             scale: 0.6
             bufferDistance: 0.6
-          - sourceLayer: "Schutzflächeumgrenzung T-Small Temp"
-            targetLayer: "Schutzflächeumgrenzung T-Small Array"
-            block: "T-Small"
-            spacing: 2
-            scale: 0.6
-            bufferDistance: 0.6
-            adjustForVertices: true
-            # showDebugVisual: true
+          # - sourceLayer: "Schutzflächeumgrenzung T-Small Temp"
+          #   targetLayer: "Schutzflächeumgrenzung T-Small Array"
+          #   block: "T-Small"
+          #   spacing: 2
+          #   scale: 0.6
+          #   bufferDistance: 0.6
+          #   adjustForVertices: true
+          #   # showDebugVisual: true
     viewports:
       - name: MainView
         center: [425, 450]
@@ -654,24 +659,24 @@ projects:
               - Geltungsbereich S
           - type: filterGeometry
             minArea: 200
-      - name: Schutzflächeumgrenzung T-Small Temp
-        # update: true
-        close: false
-        plot: false
-        operations:
-          - type: copy
-            layers:
-              - Grünfläche
-              - Schutzflächeumgrenzung
-          - type: dissolve
-          - type: intersection
-            layers:
-              - Geltungsbereich NW
-              - Geltungsbereich NO
-              - Geltungsbereich S
-          - type: filterGeometry
-            maxArea: 200
-            minArea: 10
+      # - name: Schutzflächeumgrenzung T-Small Temp
+      #   # update: true
+      #   close: false
+      #   plot: false
+      #   operations:
+      #     - type: copy
+      #       layers:
+      #         - Grünfläche
+      #         - Schutzflächeumgrenzung
+      #     - type: dissolve
+      #     - type: intersection
+      #       layers:
+      #         - Geltungsbereich NW
+      #         - Geltungsbereich NO
+      #         - Geltungsbereich S
+      #     - type: filterGeometry
+      #       maxArea: 200
+      #       minArea: 10
       - name: Schutzflächeumgrenzung Schraffur
         update: true
         style: schutzflächeumgrenzung
@@ -707,32 +712,26 @@ projects:
           # pattern: 'ANSI31'
           # scale: 50  # Adjust this value to change the hatch density
           # color: "Blue"  # ACI color index for Light Red
-      - name: Baugrenze 2
-        update: true
-        style: 
-          color: "Green Blue"
-          lineweight: 60
-        close: true
-        operations:
-          - type: buffer
-            layers:
-              - Baufeld
-            distance: -3.4
       - name: Baugrenze
         update: true
         style: baugrenze
         linetypeScale: 0.5
         linetypeGeneration: true
         close: true
-        viewports:
-          - name: WorkView
-            style: 
-              color: "Blue"
         operations:
           - type: buffer
             layers:
               - Baufeld
             distance: -3
+      - name: Baugrenze 2
+        update: true
+        style: baugrenze_2
+        close: true
+        operations:
+          - type: buffer
+            layers:
+              - Baugrenze
+            distance: -0.4
       - name: WMTS DOP
         # update: true
         style: 

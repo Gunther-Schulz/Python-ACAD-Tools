@@ -51,6 +51,12 @@ styles:
       lineweight: 30
 
   wald:
+    hatch:
+      pattern: 'ANSI31'
+      scale: 5
+      individual_hatches: true
+
+  waldWorkView:
     layer:     
       color: "aquamarine-strong"
     hatch:

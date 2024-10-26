@@ -52,19 +52,21 @@ class LegendCreator:
         self.style_manager = StyleManager(project_loader)
 
     def create_legend(self):
-        self.selectively_remove_existing_legend()
+        self.clean_all_legend_layers()
         self.current_y = self.position['y']
         self.create_legend_title()
         for group in self.legend_config.get('groups', []):
             self.create_group(group)
 
-    def selectively_remove_existing_legend(self):
+    def clean_all_legend_layers(self):
+        # Remove entities from the Legend_Title layer
         remove_entities_by_layer(self.msp, "Legend_Title", self.script_identifier)
+
+        # Remove entities from all group layers
         for group in self.legend_config.get('groups', []):
-            if group.get('update', False):
-                group_name = group.get('name', '')
-                layer_name = f"Legend_{group_name}"
-                removed_count = remove_entities_by_layer(self.msp, layer_name, self.script_identifier)
+            group_name = group.get('name', '')
+            layer_name = self.get_sanitized_layer_name(f"Legend_{group_name}")
+            remove_entities_by_layer(self.msp, layer_name, self.script_identifier)
 
     def create_group(self, group):
         group_name = group.get('name', '')
@@ -442,6 +444,7 @@ class LegendCreator:
                 # Add more properties as needed
 
         apply_style_to_entity(entity, style, self.project_loader, self.loaded_styles)
+
 
 
 
