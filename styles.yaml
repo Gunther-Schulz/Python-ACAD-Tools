@@ -9,7 +9,7 @@ styles:
       lineweight: 50
   flurWorkView:
     layer:
-      color: "bright-soft-amber"
+      color: "amber-strong"
 
   gemarkungsgrenze:
     layer:
@@ -18,7 +18,7 @@ styles:
       lineweight: 50
   gemarkungWorkView:
     layer:
-      color: "bright-soft-amber"
+      color: "amber-strong"
 
   gemeindegrenze:
     layer:
@@ -27,14 +27,14 @@ styles:
       lineweight: 50
   gemeindeWorkView:
     layer:
-      color: "bright-soft-amber"
+      color: "amber-strong"
 
   parcel:
     layer:
       locked: true
   parcelWorkView:
     layer:
-      color: "dark-grey"
+      color: "charcoal"
 
 
 # Natural Features
@@ -42,17 +42,17 @@ styles:
 
   biotopWorkView:
     layer:
-      color: "brilliant-green"
+      color: "green-light"
 
   gesGeschuetzesBiotop:
     layer:
-      color: "brilliant-intense-orange"
+      color: "orange"
       linetype: "ACAD_ISO02W100"
       lineweight: 30
 
   wald:
     layer:     
-      color: "moderate-intense-chartreuse"
+      color: "aquamarine-strong"
     hatch:
       pattern: 'ANSI31'
       scale: 5
@@ -60,7 +60,7 @@ styles:
 
   waterLegend:
     hatch:
-      color: "brilliant-blue"
+      color: "indigo-light"
       transparency: 0.6
 
 
@@ -69,26 +69,26 @@ styles:
 
   schutzflächeumgrenzung:
     layer:
-      color: "moderate-intense-green"
+      color: "chartreuse-medium"
       transparency: 0.6
     hatch:
       individual_hatches: true
 
   schutzflächeWorkView:
     layer:
-      color: "moderate-intense-green"
+      color: "chartreuse-medium"
 
 
   baufeld:
     layer:
-      color: "brilliant-red"
+      color: "vermilion-light"
       transparency: 0.6
     hatch:
       individual_hatches: true
 
   baufeldLegend:
     hatch:
-      color: "brilliant-red"
+      color: "vermilion-light"
       transparency: 0.6
 
   baugrenze:
@@ -96,9 +96,9 @@ styles:
       linetype: ACAD_ISO02W100
       lineweight: 60
 
-  baugranze2:
+  baugrenze_2:
     layer:
-      color: "brilliant-blue"
+      color: "azure"
       # color: "brilliant-intense-azure"
   
 
@@ -108,7 +108,7 @@ styles:
 
   geltungsbereich_2:
     layer:
-      color: "deep-grey"
+      color: "granite"
       linetype: "ACAD_ISO02W100"
       lineweight: 80
 
@@ -118,17 +118,17 @@ styles:
 
   grünfläche:
     layer:
-      color: "brilliant-intense-chartreuse"
+      color: "lime"
       transparency: 0.6
 
   grünflächeLegend:
     hatch:
-      color: "brilliant-intense-chartreuse"
+      color: "lime"
       transparency: 0.6
 
   grünflächeWorkView:
     layer:
-      color: "brilliant-intense-chartreuse"
+      color: "lime"
       transparency: 0.6
 
   verkehrsfläche:

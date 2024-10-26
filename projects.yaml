@@ -105,7 +105,7 @@ projects:
         y: 5942622
       titleTextStyle:
         height: 8
-        color: "darkslategrey-20"
+        color: "red-dusky"
         text_style: "Arial"
         # rotation: 45
         # attachment_point: MTEXT_MIDDLE_CENTER
@@ -121,7 +121,7 @@ projects:
         # oblique_angle: 15
       titleSubtitleStyle:
         height: 3.5
-        color: "Dark Gray"
+        color: "red-dusky"
         text_style: "Arial"
       groupTextStyle:
         color: "white"
