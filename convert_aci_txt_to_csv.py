@@ -96,13 +96,11 @@ def get_colour_name(rgb_triplet, used_names):
 
 def get_unique_color_name(rgb, used_names):
     r, g, b = rgb
-    rgb_tuple = tuple(rgb)  # Convert rgb to a tuple for dictionary key
+    rgb_tuple = tuple(rgb)
 
-    # If this RGB value already has a name, return it
     if rgb_tuple in used_names:
         return used_names[rgb_tuple]
     
-    # Define basic colors
     basic_colors = {
         (255, 0, 0): "red",
         (255, 255, 0): "yellow",
@@ -115,60 +113,47 @@ def get_unique_color_name(rgb, used_names):
         (0, 0, 0): "black"
     }
     
-    # Check if it's a basic color
     if rgb_tuple in basic_colors:
         used_names[rgb_tuple] = basic_colors[rgb_tuple]
         return basic_colors[rgb_tuple]
     
     h, s, v = rgb_to_hsv(r/255, g/255, b/255)
     
-    # Define more precise hue ranges and names
     hue_names = [
         "red", "vermilion", "orange", "amber", "yellow", "chartreuse", 
-        "lime", "spring-green", "green", "emerald", "mint", "teal", 
+        "lime", "spring", "green", "emerald", "mint", "teal", 
         "cyan", "azure", "cerulean", "blue", "sapphire", "indigo", 
         "violet", "purple", "magenta", "fuchsia", "rose", "crimson"
     ]
     
-    # Define saturation and value descriptors
     sat_descs = ["pale", "soft", "vivid"]
     val_descs = ["dark", "deep", "medium", "light", "bright"]
     
-    # Get base hue name
     hue_index = int(h * len(hue_names))
     base_name = hue_names[hue_index]
     
-    # Get saturation and value descriptors
-    sat_index = min(int(s * len(sat_descs)), len(sat_descs) - 1)
-    val_index = min(int(v * len(val_descs)), len(val_descs) - 1)
-    sat_desc = sat_descs[sat_index]
-    val_desc = val_descs[val_index]
-    
-    # Construct color name
-    if s < 0.1:  # Very low saturation
-        color_name = f"{val_desc}-gray"
-    elif v > 0.9 and s > 0.9:  # Very bright and saturated
+    if s < 0.1:
+        color_name = "gray"
+    elif v > 0.9 and s > 0.9:
         color_name = base_name
-    elif s > 0.9:  # Highly saturated
-        color_name = f"{val_desc}-{base_name}"
-    elif v < 0.2:  # Very dark
+    elif s > 0.8:
+        color_name = f"{val_descs[min(int(v * len(val_descs)), len(val_descs) - 1)]}-{base_name}"
+    elif v < 0.2:
         color_name = f"dark-{base_name}"
     else:
+        sat_desc = sat_descs[min(int(s * len(sat_descs)), len(sat_descs) - 1)]
+        val_desc = val_descs[min(int(v * len(val_descs)), len(val_descs) - 1)]
         color_name = f"{val_desc}-{sat_desc}-{base_name}"
     
-    # Ensure uniqueness
-    original_name = color_name
-    count = 0
-    while color_name in used_names.values():
-        count += 1
-        # Try alternative hue names
-        alt_hue_index = (hue_index + count) % len(hue_names)
-        alt_base_name = hue_names[alt_hue_index]
-        color_name = original_name.replace(base_name, alt_base_name)
-        
-        # If we've tried all hue names, start combining descriptors
-        if count >= len(hue_names):
-            color_name = f"{val_descs[val_index]}-{sat_descs[sat_index]}-{hue_names[hue_index]}-{count - len(hue_names) + 1}"
+    if color_name in used_names.values():
+        for i in range(1, len(hue_names)):
+            new_hue = hue_names[(hue_index + i) % len(hue_names)]
+            new_name = color_name.replace(base_name, new_hue)
+            if new_name not in used_names.values():
+                color_name = new_name
+                break
+        else:
+            color_name = f"custom-{len(used_names)}"
     
     used_names[rgb_tuple] = color_name
     return color_name

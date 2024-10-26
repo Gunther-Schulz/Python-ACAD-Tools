@@ -47,7 +47,7 @@
   - 128
   - 128
 - aciCode: 9
-  name: light-gray
+  name: custom-8
   rgb:
   - 192
   - 192
@@ -287,7 +287,7 @@
   - 28
   - 0
 - aciCode: 49
-  name: dark-spring-green
+  name: dark-spring
   rgb:
   - 38
   - 33
@@ -473,49 +473,49 @@
   - 38
   - 19
 - aciCode: 80
-  name: spring-green
+  name: spring
   rgb:
   - 63
   - 255
   - 0
 - aciCode: 81
-  name: bright-soft-spring-green
+  name: bright-soft-spring
   rgb:
   - 159
   - 255
   - 127
 - aciCode: 82
-  name: light-spring-green
+  name: light-spring
   rgb:
   - 41
   - 165
   - 0
 - aciCode: 83
-  name: light-soft-spring-green
+  name: light-soft-spring
   rgb:
   - 103
   - 165
   - 82
 - aciCode: 84
-  name: medium-spring-green
+  name: medium-spring
   rgb:
   - 31
   - 127
   - 0
 - aciCode: 85
-  name: medium-soft-spring-green
+  name: medium-soft-spring
   rgb:
   - 79
   - 127
   - 63
 - aciCode: 86
-  name: deep-spring-green
+  name: deep-spring
   rgb:
   - 19
   - 76
   - 0
 - aciCode: 87
-  name: deep-soft-spring-green
+  name: deep-soft-spring
   rgb:
   - 47
   - 76
@@ -821,13 +821,13 @@
   - 76
   - 76
 - aciCode: 138
-  name: dark-vivid-cyan-1
+  name: custom-133
   rgb:
   - 0
   - 38
   - 38
 - aciCode: 139
-  name: dark-soft-cyan-1
+  name: custom-134
   rgb:
   - 19
   - 38
@@ -881,13 +881,13 @@
   - 66
   - 76
 - aciCode: 148
-  name: dark-vivid-azure-1
+  name: custom-143
   rgb:
   - 0
   - 28
   - 38
 - aciCode: 149
-  name: dark-soft-azure-1
+  name: custom-144
   rgb:
   - 19
   - 33
@@ -941,13 +941,13 @@
   - 57
   - 76
 - aciCode: 158
-  name: dark-vivid-cerulean-1
+  name: custom-153
   rgb:
   - 0
   - 19
   - 38
 - aciCode: 159
-  name: dark-soft-cerulean-1
+  name: custom-154
   rgb:
   - 19
   - 28
@@ -1001,13 +1001,13 @@
   - 47
   - 76
 - aciCode: 168
-  name: dark-vivid-blue-1
+  name: custom-163
   rgb:
   - 0
   - 9
   - 38
 - aciCode: 169
-  name: dark-soft-blue-1
+  name: custom-164
   rgb:
   - 19
   - 23
@@ -1061,13 +1061,13 @@
   - 38
   - 76
 - aciCode: 178
-  name: dark-vivid-sapphire-1
+  name: custom-172
   rgb:
   - 0
   - 0
   - 38
 - aciCode: 179
-  name: dark-soft-sapphire-1
+  name: custom-173
   rgb:
   - 19
   - 19
@@ -1121,13 +1121,13 @@
   - 38
   - 76
 - aciCode: 188
-  name: dark-vivid-sapphire-2
+  name: custom-182
   rgb:
   - 9
   - 0
   - 38
 - aciCode: 189
-  name: dark-soft-sapphire-2
+  name: custom-183
   rgb:
   - 23
   - 19
@@ -1181,13 +1181,13 @@
   - 38
   - 76
 - aciCode: 198
-  name: dark-vivid-violet-1
+  name: custom-192
   rgb:
   - 19
   - 0
   - 38
 - aciCode: 199
-  name: dark-soft-indigo-1
+  name: custom-193
   rgb:
   - 28
   - 19
@@ -1241,13 +1241,13 @@
   - 38
   - 76
 - aciCode: 208
-  name: dark-vivid-violet-2
+  name: custom-202
   rgb:
   - 28
   - 0
   - 38
 - aciCode: 209
-  name: dark-soft-violet-1
+  name: custom-203
   rgb:
   - 33
   - 19
@@ -1301,13 +1301,13 @@
   - 38
   - 76
 - aciCode: 218
-  name: dark-vivid-magenta-1
+  name: custom-211
   rgb:
   - 38
   - 0
   - 38
 - aciCode: 219
-  name: dark-soft-magenta-1
+  name: custom-212
   rgb:
   - 38
   - 19
@@ -1361,13 +1361,13 @@
   - 38
   - 66
 - aciCode: 228
-  name: dark-vivid-fuchsia-1
+  name: custom-221
   rgb:
   - 38
   - 0
   - 28
 - aciCode: 229
-  name: dark-soft-fuchsia-1
+  name: custom-222
   rgb:
   - 38
   - 19
@@ -1421,13 +1421,13 @@
   - 38
   - 57
 - aciCode: 238
-  name: dark-vivid-rose-1
+  name: custom-231
   rgb:
   - 38
   - 0
   - 19
 - aciCode: 239
-  name: dark-soft-rose-1
+  name: custom-232
   rgb:
   - 38
   - 19
@@ -1481,43 +1481,43 @@
   - 38
   - 47
 - aciCode: 248
-  name: dark-vivid-crimson-1
+  name: custom-241
   rgb:
   - 38
   - 0
   - 9
 - aciCode: 249
-  name: dark-soft-crimson-1
+  name: custom-242
   rgb:
   - 38
   - 19
   - 23
 - aciCode: 250
-  name: deep-gray
+  name: custom-243
   rgb:
   - 84
   - 84
   - 84
 - aciCode: 251
-  name: medium-gray
+  name: custom-244
   rgb:
   - 118
   - 118
   - 118
 - aciCode: 252
-  name: medium-pale-red-1
+  name: custom-245
   rgb:
   - 152
   - 152
   - 152
 - aciCode: 253
-  name: light-pale-red-1
+  name: custom-246
   rgb:
   - 186
   - 186
   - 186
 - aciCode: 254
-  name: bright-gray
+  name: custom-247
   rgb:
   - 220
   - 220
