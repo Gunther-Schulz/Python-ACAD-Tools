@@ -109,7 +109,6 @@ def get_unique_color_name(rgb, used_names):
         (0, 0, 255): "blue",
         (255, 0, 255): "magenta",
         (255, 255, 255): "white",
-        (128, 128, 128): "gray",
         (0, 0, 0): "black"
     }
     
@@ -119,41 +118,100 @@ def get_unique_color_name(rgb, used_names):
     
     h, s, v = rgb_to_hsv(r/255, g/255, b/255)
     
-    hue_names = [
-        "red", "vermilion", "orange", "amber", "yellow", "chartreuse", 
-        "lime", "spring", "green", "emerald", "mint", "teal", 
-        "cyan", "azure", "cerulean", "blue", "sapphire", "indigo", 
-        "violet", "purple", "magenta", "fuchsia", "rose", "crimson"
+    # Define grey shades with adjusted ranges
+    grey_shades = [
+        (0.05, "charcoal"),
+        (0.15, "graphite"),
+        (0.25, "slate"),
+        (0.35, "steel"),
+        (0.45, "silver"),
+        (0.55, "ash"),
+        (0.65, "pearl"),
+        (0.75, "smoke"),
+        (0.85, "mist"),
+        (0.95, "ivory")
     ]
     
-    sat_descs = ["pale", "soft", "vivid"]
-    val_descs = ["dark", "deep", "medium", "light", "bright"]
-    
-    hue_index = int(h * len(hue_names))
-    base_name = hue_names[hue_index]
-    
-    if s < 0.1:
-        color_name = "gray"
-    elif v > 0.9 and s > 0.9:
-        color_name = base_name
-    elif s > 0.8:
-        color_name = f"{val_descs[min(int(v * len(val_descs)), len(val_descs) - 1)]}-{base_name}"
-    elif v < 0.2:
-        color_name = f"dark-{base_name}"
-    else:
-        sat_desc = sat_descs[min(int(s * len(sat_descs)), len(sat_descs) - 1)]
-        val_desc = val_descs[min(int(v * len(val_descs)), len(val_descs) - 1)]
-        color_name = f"{val_desc}-{sat_desc}-{base_name}"
-    
-    if color_name in used_names.values():
-        for i in range(1, len(hue_names)):
-            new_hue = hue_names[(hue_index + i) % len(hue_names)]
-            new_name = color_name.replace(base_name, new_hue)
-            if new_name not in used_names.values():
-                color_name = new_name
+    # Check if the color is a shade of grey
+    if max(rgb) - min(rgb) <= 10:
+        for threshold, name in grey_shades:
+            if v <= threshold:
+                color_name = name
                 break
         else:
-            color_name = f"custom-{len(used_names)}"
+            color_name = "white"
+    else:
+        # Determine base hue
+        hue_names = [
+            "red", "vermilion", "orange", "amber", "yellow", "chartreuse", 
+            "lime", "spring", "green", "emerald", "mint", "teal", 
+            "cyan", "azure", "cerulean", "blue", "sapphire", "indigo", 
+            "violet", "purple", "magenta", "fuchsia", "rose", "crimson"
+        ]
+        
+        # Initialize hue_index and base_name
+        hue_index = int(h * len(hue_names))
+        base_name = hue_names[hue_index]
+        
+        # Determine brightness
+        brightness_levels = [
+            (0.15, "darkest"),
+            (0.25, "darker"),
+            (0.35, "dark"),
+            (0.45, "deep"),
+            (0.55, "medium"),
+            (0.65, "moderate"),
+            (0.75, "light"),
+            (0.85, "bright"),
+            (0.95, "vivid"),
+            (1.0, "brilliant")
+        ]
+        brightness = next((name for threshold, name in brightness_levels if v <= threshold), "brilliant")
+        
+        # Determine saturation
+        saturation_levels = [
+            (0.15, "greyed"),
+            (0.35, "muted"),
+            (0.55, "soft"),
+            (0.75, "clear"),
+            (1.0, "intense")
+        ]
+        saturation = next((name for threshold, name in saturation_levels if s <= threshold), "intense")
+        
+        if s < 0.1:
+            color_name = f"{brightness}-dark-{base_name}"
+        elif v > 0.9 and s > 0.9:
+            color_name = base_name
+        elif s > 0.8:
+            color_name = f"{brightness}-{base_name}"
+        elif v < 0.2:
+            color_name = f"dark-{base_name}"
+        else:
+            sat_desc = saturation
+            val_desc = brightness
+            color_name = f"{val_desc}-{sat_desc}-{base_name}"
+    
+    if color_name in used_names.values():
+        if color_name in [name for _, name in grey_shades] + ["white"]:
+            # For grey shades, try the next shade name
+            grey_names = [name for _, name in grey_shades] + ["white"]
+            current_index = grey_names.index(color_name)
+            for i in range(1, len(grey_names)):
+                new_name = grey_names[(current_index + i) % len(grey_names)]
+                if new_name not in used_names.values():
+                    color_name = new_name
+                    break
+            else:
+                color_name = f"custom-grey-{len(used_names)}"
+        else:
+            # If we still don't have a unique name, use grey shades as classifiers
+            for _, grey_name in grey_shades:
+                new_name = f"{grey_name}-{color_name}"
+                if new_name not in used_names.values():
+                    color_name = new_name
+                    break
+            else:
+                color_name = f"custom-{len(used_names)}"
     
     used_names[rgb_tuple] = color_name
     return color_name
