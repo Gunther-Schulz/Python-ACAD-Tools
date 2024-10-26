@@ -756,31 +756,45 @@ class DXFExporter:
         apply_style_to_entity(entity, style, self.project_loader, self.loaded_styles)
 
     def create_path_arrays(self, msp):
-        for group_name, layer_group in self.project_settings.get('pathArrays', {}).items():
-            log_info(f"Processing path array group: {group_name}")
-            path_array_configs = layer_group.get('pathArrays', [layer_group])
+        path_arrays = self.project_settings.get('pathArrays', [])
+        log_info(f"Processing {len(path_arrays)} path array configurations")
+        
+        for config in path_arrays:
+            name = config.get('name')
+            source_layer_name = config.get('sourceLayer')
+            update = config.get('update', False)  # Default is False
             
-            for config in path_array_configs:
-                source_layer_name = config['sourceLayer']
-                target_layer_name = config.get('targetLayer', source_layer_name)
-                
-                if source_layer_name not in self.all_layers:
-                    log_warning(f"Source layer '{source_layer_name}' does not exist in all_layers. Skipping path array creation for this configuration.")
-                    continue
-                
-                remove_entities_by_layer(msp, target_layer_name, self.script_identifier)
-                
-                block_name = config['block']
-                spacing = config['spacing']
-                scale = config.get('scale', 1.0)
-                rotation = config.get('rotation', 0.0)
-                buffer_distance = config.get('bufferDistance', 0.0)
-                show_debug_visual = config.get('showDebugVisual', False)
-                adjust_for_vertices = config.get('adjustForVertices', False)  # Default is now False
-                
-                create_path_array(msp, source_layer_name, target_layer_name, block_name, 
-                                  spacing, buffer_distance, scale, rotation, 
-                                  show_debug_visual, self.all_layers, adjust_for_vertices)
+            if not name or not source_layer_name:
+                log_warning(f"Invalid path array configuration: {config}")
+                continue
+            
+            if not update:
+                log_info(f"Skipping path array '{name}' as update flag is not set")
+                continue
+            
+            if source_layer_name not in self.all_layers:
+                log_warning(f"Source layer '{source_layer_name}' does not exist in all_layers. Skipping path array creation for this configuration.")
+                continue
+            
+            remove_entities_by_layer(msp, name, self.script_identifier)
+            
+            block_name = config['block']
+            spacing = config['spacing']
+            scale = config.get('scale', 1.0)
+            rotation = config.get('rotation', 0.0)
+            buffer_distance = config.get('bufferDistance', 0.0)
+            show_debug_visual = config.get('showDebugVisual', False)
+            adjust_for_vertices = config.get('adjustForVertices', False)
+            
+            log_info(f"Creating path array: {name}")
+            log_info(f"Source layer: {source_layer_name}")
+            log_info(f"Block: {block_name}, Spacing: {spacing}, Scale: {scale}")
+            
+            create_path_array(msp, source_layer_name, name, block_name, 
+                              spacing, buffer_distance, scale, rotation, 
+                              show_debug_visual, self.all_layers, adjust_for_vertices)
+        
+        log_info("Finished processing all path array configurations")
 
     def process_block_inserts(self, msp):
         block_inserts = self.project_settings.get('blockInserts', [])
@@ -793,6 +807,11 @@ class DXFExporter:
             scale = insert_config.get('scale', 1.0)
             rotation = insert_config.get('rotation', 0)
             position_config = insert_config.get('position', {})
+            update = insert_config.get('update', False)  # Default is False
+
+            if not update:
+                log_info(f"Skipping block insert '{output_layer}' as update flag is not set")
+                continue
 
             log_info(f"Processing block insert for target layer: {target_layer}, output layer: {output_layer}, block: {block_name}")
 
@@ -870,6 +889,7 @@ class DXFExporter:
         else:
             log_warning(f"Invalid position type '{position_type}'. Using centroid.")
             return geometry.centroid.coords[0]
+
 
 
 

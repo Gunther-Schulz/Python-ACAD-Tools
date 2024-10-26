@@ -281,22 +281,20 @@ projects:
               blockSymbol: "Abgrenzung unterschiedlicher Nutzung"
               blockSymbolScale: 1.4
     pathArrays:
-      TSymbolArrays:
-        pathArrays:
-          - sourceLayer: "Schutzflächeumgrenzung T-Symbol Temp"
-            targetLayer: "Schutzflächeumgrenzung T-Symbol Array"
-            block: "T-Symbol"
-            spacing: 7
-            scale: 0.6
-            bufferDistance: 0.6
-          # - sourceLayer: "Schutzflächeumgrenzung T-Small Temp"
-          #   targetLayer: "Schutzflächeumgrenzung T-Small Array"
-          #   block: "T-Small"
-          #   spacing: 2
-          #   scale: 0.6
-          #   bufferDistance: 0.6
-          #   adjustForVertices: true
-          #   # showDebugVisual: true
+      - name: "Schutzflächeumgrenzung T-Symbol Array"
+        sourceLayer: "Schutzflächeumgrenzung T-Symbol Temp"
+        block: "T-Symbol"
+        spacing: 7
+        scale: 0.6
+        bufferDistance: 0.6
+      - name: "Schutzflächeumgrenzung T-Small Array"
+        sourceLayer: "Schutzflächeumgrenzung T-Small Temp"
+        block: "T-Small"
+        spacing: 2
+        scale: 0.6
+        bufferDistance: 0.6
+        adjustForVertices: true
+        # showDebugVisual: true
     blockInserts:
     - name: "SO EBS Label"
       targetLayer: "Baufeld"
@@ -316,8 +314,8 @@ projects:
       position:
         type: "centroid"  # Options: centroid, center, random
         offset:
-          x: -40
-          y: 0
+          x: 0
+          y: -20
     viewports:
       - name: MainView
         center: [425, 450]
@@ -723,6 +721,8 @@ projects:
               - Schutzflächeumgrenzung
               - Grünfläche
               - Biotoppuffer
+          - type: filterGeometry
+            minArea: 200
       - name: Baufeld Schraffur
         update: true
         style: baufeld
