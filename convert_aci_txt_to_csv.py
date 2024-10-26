@@ -102,116 +102,68 @@ def get_unique_color_name(rgb, used_names):
         return used_names[rgb_tuple]
     
     basic_colors = {
-        (255, 0, 0): "red",
-        (255, 255, 0): "yellow",
-        (0, 255, 0): "green",
-        (0, 255, 255): "cyan",
-        (0, 0, 255): "blue",
-        (255, 0, 255): "magenta",
-        (255, 255, 255): "white",
-        (0, 0, 0): "black"
+        (255, 0, 0): "red", (255, 255, 0): "yellow", (0, 255, 0): "green",
+        (0, 255, 255): "cyan", (0, 0, 255): "blue", (255, 0, 255): "magenta",
+        (255, 255, 255): "white", (0, 0, 0): "black"
     }
     
     if rgb_tuple in basic_colors:
-        used_names[rgb_tuple] = basic_colors[rgb_tuple]
         return basic_colors[rgb_tuple]
     
     h, s, v = rgb_to_hsv(r/255, g/255, b/255)
     
-    # Define grey shades with adjusted ranges
+    hue_names = [
+        "red", "vermilion", "orange", "amber", "yellow", "chartreuse", 
+        "lime", "spring", "green", "emerald", "mint", "teal", 
+        "cyan", "azure", "cerulean", "blue", "sapphire", "indigo", 
+        "violet", "purple", "magenta", "fuchsia", "rose", "crimson"
+    ]
+    
     grey_shades = [
-        (0.05, "charcoal"),
-        (0.15, "graphite"),
-        (0.25, "slate"),
-        (0.35, "steel"),
-        (0.45, "silver"),
-        (0.55, "ash"),
-        (0.65, "pearl"),
-        (0.75, "smoke"),
-        (0.85, "mist"),
-        (0.95, "ivory")
+        "charcoal", "graphite", "lead", "iron", "steel",
+        "slate", "pewter", "nickel", "aluminum", "silver",
+        "ash", "smoke", "fog", "mist", "pearl"
     ]
     
     # Check if the color is a shade of grey
     if max(rgb) - min(rgb) <= 10:
-        for threshold, name in grey_shades:
-            if v <= threshold:
-                color_name = name
-                break
-        else:
-            color_name = "white"
+        shade_index = min(int(v * len(grey_shades)), len(grey_shades) - 1)
+        color_name = grey_shades[shade_index]
     else:
-        # Determine base hue
-        hue_names = [
-            "red", "vermilion", "orange", "amber", "yellow", "chartreuse", 
-            "lime", "spring", "green", "emerald", "mint", "teal", 
-            "cyan", "azure", "cerulean", "blue", "sapphire", "indigo", 
-            "violet", "purple", "magenta", "fuchsia", "rose", "crimson"
-        ]
+        sat_descs = ["pale", "soft", "vivid"]
+        val_descs = ["darkest", "darker", "dark", "deep", "medium", "moderate", "light", "bright", "brilliant"]
         
-        # Initialize hue_index and base_name
         hue_index = int(h * len(hue_names))
         base_name = hue_names[hue_index]
         
-        # Determine brightness
-        brightness_levels = [
-            (0.15, "darkest"),
-            (0.25, "darker"),
-            (0.35, "dark"),
-            (0.45, "deep"),
-            (0.55, "medium"),
-            (0.65, "moderate"),
-            (0.75, "light"),
-            (0.85, "bright"),
-            (0.95, "vivid"),
-            (1.0, "brilliant")
-        ]
-        brightness = next((name for threshold, name in brightness_levels if v <= threshold), "brilliant")
+        sat_desc = sat_descs[min(int(s * len(sat_descs)), len(sat_descs) - 1)]
+        val_desc = val_descs[min(int(v * len(val_descs)), len(val_descs) - 1)]
         
-        # Determine saturation
-        saturation_levels = [
-            (0.15, "greyed"),
-            (0.35, "muted"),
-            (0.55, "soft"),
-            (0.75, "clear"),
-            (1.0, "intense")
-        ]
-        saturation = next((name for threshold, name in saturation_levels if s <= threshold), "intense")
-        
-        if s < 0.1:
-            color_name = f"{brightness}-dark-{base_name}"
-        elif v > 0.9 and s > 0.9:
-            color_name = base_name
-        elif s > 0.8:
-            color_name = f"{brightness}-{base_name}"
+        if s < 0.2:
+            color_name = f"{val_desc}-{base_name}"
         elif v < 0.2:
             color_name = f"dark-{base_name}"
+        elif v > 0.8 and s > 0.8:
+            color_name = base_name
         else:
-            sat_desc = saturation
-            val_desc = brightness
             color_name = f"{val_desc}-{sat_desc}-{base_name}"
     
+    # Ensure uniqueness
     if color_name in used_names.values():
-        if color_name in [name for _, name in grey_shades] + ["white"]:
-            # For grey shades, try the next shade name
-            grey_names = [name for _, name in grey_shades] + ["white"]
-            current_index = grey_names.index(color_name)
-            for i in range(1, len(grey_names)):
-                new_name = grey_names[(current_index + i) % len(grey_names)]
+        if color_name in grey_shades:
+            for prefix in ["cool", "neutral", "warm"]:
+                new_name = f"{prefix}-{color_name}"
                 if new_name not in used_names.values():
                     color_name = new_name
                     break
-            else:
-                color_name = f"custom-grey-{len(used_names)}"
         else:
-            # If we still don't have a unique name, use grey shades as classifiers
-            for _, grey_name in grey_shades:
-                new_name = f"{grey_name}-{color_name}"
+            hue_index = hue_names.index(base_name)
+            for i in range(1, len(hue_names)):
+                new_hue = hue_names[(hue_index + i) % len(hue_names)]
+                new_name = color_name.replace(base_name, new_hue)
                 if new_name not in used_names.values():
                     color_name = new_name
                     break
-            else:
-                color_name = f"custom-{len(used_names)}"
     
     used_names[rgb_tuple] = color_name
     return color_name
@@ -220,6 +172,13 @@ def convert_to_csv_css_and_yaml(input_file, output_csv, output_css, output_yaml)
     used_names = {}
     yaml_data = []
     color_data = []
+    
+    hue_names = [
+        "red", "vermilion", "orange", "amber", "yellow", "chartreuse", 
+        "lime", "spring", "green", "emerald", "mint", "teal", 
+        "cyan", "azure", "cerulean", "blue", "sapphire", "indigo", 
+        "violet", "purple", "magenta", "fuchsia", "rose", "crimson"
+    ]
     
     with open(input_file, 'r') as infile, \
          open(output_csv, 'w', newline='') as outfile_csv, \
@@ -274,6 +233,14 @@ def convert_to_csv_css_and_yaml(input_file, output_csv, output_css, output_yaml)
         # Sort color_data by ACI code and write to CSS file
         for aci, css_class_name, rgb in sorted(color_data, key=lambda x: x[0]):
             outfile_css.write(f".{css_class_name} {{ color: rgb({rgb[0]}, {rgb[1]}, {rgb[2]}); }} /* ACI: {aci} */\n")
+            
+            # Check if the current color's base hue is in the hue_names list
+            base_hue = css_class_name.split('-')[-1]
+            if base_hue in hue_names:
+                # If it's the last color in its hue group, add an empty line
+                next_colors = [c for c in color_data if c[0] > aci]
+                if not next_colors or all(c[1].split('-')[-1] != base_hue for c in next_colors):
+                    outfile_css.write("\n")
     
     # Write YAML file
     with open(output_yaml, 'w') as outfile_yaml:
