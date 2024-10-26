@@ -297,6 +297,17 @@ projects:
           #   bufferDistance: 0.6
           #   adjustForVertices: true
           #   # showDebugVisual: true
+    blockInserts:
+    - name: "GRZ"
+      targetLayer: "Baufeld"
+      blockName: "GRZ"
+      scale: 1.0
+      rotation: 0
+      position:
+        type: "centroid"  # Options: centroid, center, random
+        offset:
+          x: 0
+          y: 0
     viewports:
       - name: MainView
         center: [425, 450]
