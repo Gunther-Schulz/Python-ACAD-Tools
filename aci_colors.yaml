@@ -41,19 +41,19 @@
   - 255
   - 255
 - aciCode: 8
-  name: deep-red
+  name: medium-grey
   rgb:
   - 128
   - 128
   - 128
 - aciCode: 9
-  name: dark-red
+  name: light-grey
   rgb:
   - 192
   - 192
   - 192
 - aciCode: 10
-  name: red
+  name: brilliant-red
   rgb:
   - 255
   - 0
@@ -293,7 +293,7 @@
   - 33
   - 19
 - aciCode: 50
-  name: yellow
+  name: brilliant-yellow
   rgb:
   - 255
   - 255
@@ -533,7 +533,7 @@
   - 38
   - 19
 - aciCode: 90
-  name: green
+  name: brilliant-green
   rgb:
   - 0
   - 255
@@ -773,7 +773,7 @@
   - 38
   - 33
 - aciCode: 130
-  name: cyan
+  name: brilliant-cyan
   rgb:
   - 0
   - 255
@@ -1013,7 +1013,7 @@
   - 23
   - 38
 - aciCode: 170
-  name: blue
+  name: brilliant-blue
   rgb:
   - 0
   - 0
@@ -1253,7 +1253,7 @@
   - 19
   - 38
 - aciCode: 210
-  name: magenta
+  name: brilliant-magenta
   rgb:
   - 255
   - 0
@@ -1493,31 +1493,31 @@
   - 19
   - 23
 - aciCode: 250
-  name: brilliant-red
+  name: darker-grey
   rgb:
   - 84
   - 84
   - 84
 - aciCode: 251
-  name: brilliant-clear-red
+  name: dark-grey
   rgb:
   - 118
   - 118
   - 118
 - aciCode: 252
-  name: bright-intense-red
+  name: grey
   rgb:
   - 152
   - 152
   - 152
 - aciCode: 253
-  name: bright-clear-red
+  name: light-grey
   rgb:
   - 186
   - 186
   - 186
 - aciCode: 254
-  name: moderate-intense-red
+  name: pale-grey
   rgb:
   - 220
   - 220

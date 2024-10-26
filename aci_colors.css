@@ -8,10 +8,10 @@
 .blue { color: rgb(0, 0, 255); } /* ACI: 5 */
 .magenta { color: rgb(255, 0, 255); } /* ACI: 6 */
 .white { color: rgb(255, 255, 255); } /* ACI: 7 */
-.deep-red { color: rgb(128, 128, 128); } /* ACI: 8 */
-.dark-red { color: rgb(192, 192, 192); } /* ACI: 9 */
+.medium-grey { color: rgb(128, 128, 128); } /* ACI: 8 */
+.light-grey { color: rgb(192, 192, 192); } /* ACI: 9 */
 
-.red { color: rgb(255, 0, 0); } /* ACI: 10 */
+.brilliant-red { color: rgb(255, 0, 0); } /* ACI: 10 */
 .brilliant-clear-red { color: rgb(255, 127, 127); } /* ACI: 11 */
 .bright-intense-red { color: rgb(165, 0, 0); } /* ACI: 12 */
 .bright-clear-red { color: rgb(165, 82, 82); } /* ACI: 13 */
@@ -55,7 +55,7 @@
 .deep-amber { color: rgb(38, 28, 0); } /* ACI: 48 */
 .dark-amber { color: rgb(38, 33, 19); } /* ACI: 49 */
 
-.yellow { color: rgb(255, 255, 0); } /* ACI: 50 */
+.brilliant-yellow { color: rgb(255, 255, 0); } /* ACI: 50 */
 .brilliant-clear-yellow { color: rgb(255, 255, 127); } /* ACI: 51 */
 .bright-intense-yellow { color: rgb(165, 165, 0); } /* ACI: 52 */
 .bright-clear-yellow { color: rgb(165, 165, 82); } /* ACI: 53 */
@@ -99,7 +99,7 @@
 .deep-lime-green { color: rgb(9, 38, 0); } /* ACI: 88 */
 .dark-lime-green { color: rgb(23, 38, 19); } /* ACI: 89 */
 
-.green { color: rgb(0, 255, 0); } /* ACI: 90 */
+.brilliant-green { color: rgb(0, 255, 0); } /* ACI: 90 */
 .brilliant-clear-green { color: rgb(127, 255, 127); } /* ACI: 91 */
 .bright-intense-green { color: rgb(0, 165, 0); } /* ACI: 92 */
 .bright-clear-green { color: rgb(82, 165, 82); } /* ACI: 93 */
@@ -143,7 +143,7 @@
 .deep-aquamarine { color: rgb(0, 38, 28); } /* ACI: 128 */
 .dark-aquamarine { color: rgb(19, 38, 33); } /* ACI: 129 */
 
-.cyan { color: rgb(0, 255, 255); } /* ACI: 130 */
+.brilliant-cyan { color: rgb(0, 255, 255); } /* ACI: 130 */
 .brilliant-clear-cyan { color: rgb(127, 255, 255); } /* ACI: 131 */
 .bright-intense-cyan { color: rgb(0, 165, 165); } /* ACI: 132 */
 .bright-clear-cyan { color: rgb(82, 165, 165); } /* ACI: 133 */
@@ -187,7 +187,7 @@
 .deep-indigo { color: rgb(0, 9, 38); } /* ACI: 168 */
 .dark-indigo { color: rgb(19, 23, 38); } /* ACI: 169 */
 
-.blue { color: rgb(0, 0, 255); } /* ACI: 170 */
+.brilliant-blue { color: rgb(0, 0, 255); } /* ACI: 170 */
 .brilliant-clear-blue { color: rgb(127, 127, 255); } /* ACI: 171 */
 .bright-intense-blue { color: rgb(0, 0, 165); } /* ACI: 172 */
 .bright-clear-blue { color: rgb(82, 82, 165); } /* ACI: 173 */
@@ -231,7 +231,7 @@
 .deep-lavender { color: rgb(28, 0, 38); } /* ACI: 208 */
 .dark-lavender { color: rgb(33, 19, 38); } /* ACI: 209 */
 
-.magenta { color: rgb(255, 0, 255); } /* ACI: 210 */
+.brilliant-magenta { color: rgb(255, 0, 255); } /* ACI: 210 */
 .brilliant-clear-magenta { color: rgb(255, 127, 255); } /* ACI: 211 */
 .bright-intense-magenta { color: rgb(165, 0, 165); } /* ACI: 212 */
 .bright-clear-magenta { color: rgb(165, 82, 165); } /* ACI: 213 */
@@ -274,9 +274,10 @@
 .medium-clear-rose { color: rgb(76, 38, 47); } /* ACI: 247 */
 .deep-rose { color: rgb(38, 0, 9); } /* ACI: 248 */
 .dark-rose { color: rgb(38, 19, 23); } /* ACI: 249 */
-.brilliant-red { color: rgb(84, 84, 84); } /* ACI: 250 */
-.brilliant-clear-red { color: rgb(118, 118, 118); } /* ACI: 251 */
-.bright-intense-red { color: rgb(152, 152, 152); } /* ACI: 252 */
-.bright-clear-red { color: rgb(186, 186, 186); } /* ACI: 253 */
-.moderate-intense-red { color: rgb(220, 220, 220); } /* ACI: 254 */
+
+.darker-grey { color: rgb(84, 84, 84); } /* ACI: 250 */
+.dark-grey { color: rgb(118, 118, 118); } /* ACI: 251 */
+.grey { color: rgb(152, 152, 152); } /* ACI: 252 */
+.light-grey { color: rgb(186, 186, 186); } /* ACI: 253 */
+.pale-grey { color: rgb(220, 220, 220); } /* ACI: 254 */
 .white { color: rgb(255, 255, 255); } /* ACI: 255 */
