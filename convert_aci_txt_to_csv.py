@@ -129,14 +129,12 @@ def get_unique_color_name(rgb, used_names, aci):
         210: "magenta", 220: "fuchsia", 230: "deep-pink", 240: "rose"
     }
     
-    h, s, v = rgb_to_hsv(r/255, g/255, b/255)
-    
-    # Find the group leader for this color
     group_leader = (aci // 10) * 10
     if group_leader in special_colors:
         base_name = special_colors[group_leader]
     else:
         # Fallback to hue-based naming if not in a special color group
+        h, s, v = rgb_to_hsv(r/255, g/255, b/255)
         hue_ranges = [
             (0, 0.025, "red"), (0.025, 0.05, "vermilion"), (0.05, 0.085, "orange"),
             (0.085, 0.12, "amber"), (0.12, 0.15, "yellow"), (0.15, 0.20, "lemon"),
@@ -147,33 +145,22 @@ def get_unique_color_name(rgb, used_names, aci):
         ]
         base_name = next((name for start, end, name in hue_ranges if start <= h < end), "red")
     
-    # Determine brightness
-    brightness_levels = [
-        (0.15, "darkest"), (0.25, "darker"), (0.35, "dark"),
-        (0.45, "deep"), (0.55, "medium"), (0.65, "moderate"),
-        (0.75, "light"), (0.85, "bright"), (0.95, "vivid"),
-        (1.0, "brilliant")
+    group_position = aci % 10
+    
+    position_names = [
+        "brilliant",
+        "brilliant-clear",
+        "bright-intense",
+        "bright-clear",
+        "moderate-intense",
+        "moderate-clear",
+        "medium-intense",
+        "medium-clear",
+        "deep",
+        "dark"
     ]
-    brightness = next((name for threshold, name in brightness_levels if v <= threshold), "brilliant")
-
-    # Determine saturation
-    saturation_levels = [
-        (0.15, "greyed"), (0.35, "muted"), (0.55, "soft"),
-        (0.75, "clear"), (1.0, "intense")
-    ]
-    saturation = next((name for threshold, name in saturation_levels if s <= threshold), "intense")
-
-    # Construct the final color name
-    if s < 0.1:  # Very low saturation, treat as neutral
-        color_name = f"{brightness}-{base_name}"
-    elif s < 0.3:  # Low saturation
-        color_name = f"{brightness}-muted-{base_name}"
-    elif v < 0.2:  # Very dark
-        color_name = f"dark-{base_name}"
-    elif v > 0.9 and s > 0.9:  # Very bright and saturated
-        color_name = f"bright-{base_name}"
-    else:
-        color_name = f"{brightness}-{saturation}-{base_name}"
+    
+    color_name = f"{position_names[group_position]}-{base_name}"
     
     used_names[rgb_tuple] = color_name
     return color_name
