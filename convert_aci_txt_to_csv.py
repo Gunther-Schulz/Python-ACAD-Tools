@@ -113,10 +113,12 @@ def get_unique_color_name(rgb, used_names):
     h, s, v = rgb_to_hsv(r/255, g/255, b/255)
     
     hue_names = [
-        "red", "vermilion", "orange", "amber", "yellow", "chartreuse", 
-        "lime", "spring", "green", "emerald", "mint", "teal", 
-        "cyan", "azure", "cerulean", "blue", "sapphire", "indigo", 
-        "violet", "purple", "magenta", "fuchsia", "rose", "crimson"
+        "red", "scarlet", "vermilion", "persimmon", "orange-red", "orange", "tangerine", "amber",
+        "marigold", "yellow-orange", "yellow", "lemon", "lime-yellow", "chartreuse", "lime",
+        "spring-green", "mint-green", "emerald", "green", "forest-green", "teal-green", "teal",
+        "turquoise", "aqua", "cyan", "sky-blue", "azure", "cerulean", "cobalt", "blue",
+        "royal-blue", "indigo", "violet", "purple", "lavender", "mauve", "magenta", "fuchsia",
+        "hot-pink", "deep-pink", "rose", "crimson", "maroon"
     ]
     
     grey_shades = [
@@ -174,10 +176,12 @@ def convert_to_csv_css_and_yaml(input_file, output_csv, output_css, output_yaml)
     color_data = []
     
     hue_names = [
-        "red", "vermilion", "orange", "amber", "yellow", "chartreuse", 
-        "lime", "spring", "green", "emerald", "mint", "teal", 
-        "cyan", "azure", "cerulean", "blue", "sapphire", "indigo", 
-        "violet", "purple", "magenta", "fuchsia", "rose", "crimson"
+        "red", "scarlet", "vermilion", "persimmon", "orange-red", "orange", "tangerine", "amber",
+        "marigold", "yellow-orange", "yellow", "lemon", "lime-yellow", "chartreuse", "lime",
+        "spring-green", "mint-green", "emerald", "green", "forest-green", "teal-green", "teal",
+        "turquoise", "aqua", "cyan", "sky-blue", "azure", "cerulean", "cobalt", "blue",
+        "royal-blue", "indigo", "violet", "purple", "lavender", "mauve", "magenta", "fuchsia",
+        "hot-pink", "deep-pink", "rose", "crimson", "maroon"
     ]
     
     with open(input_file, 'r') as infile, \
