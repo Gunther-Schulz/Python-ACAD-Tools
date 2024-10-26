@@ -1,5 +1,6 @@
 /* AutoCAD Color Index (ACI) colors */
 
+
 .red { color: rgb(255, 0, 0); } /* ACI: 1 */
 .yellow { color: rgb(255, 255, 0); } /* ACI: 2 */
 .green { color: rgb(0, 255, 0); } /* ACI: 3 */
@@ -9,6 +10,7 @@
 .white { color: rgb(255, 255, 255); } /* ACI: 7 */
 .nickel { color: rgb(128, 128, 128); } /* ACI: 8 */
 .smoke { color: rgb(192, 192, 192); } /* ACI: 9 */
+
 .red { color: rgb(255, 0, 0); } /* ACI: 10 */
 .brilliant-soft-red { color: rgb(255, 127, 127); } /* ACI: 11 */
 .moderate-vivid-red { color: rgb(165, 0, 0); } /* ACI: 12 */
@@ -18,9 +20,9 @@
 .dark-vivid-red { color: rgb(76, 0, 0); } /* ACI: 16 */
 .dark-soft-red { color: rgb(76, 38, 38); } /* ACI: 17 */
 .dark-red { color: rgb(38, 0, 0); } /* ACI: 18 */
-
 .dark-vermilion { color: rgb(38, 19, 19); } /* ACI: 19 */
-.vermilion { color: rgb(255, 63, 0); } /* ACI: 20 */
+
+.red { color: rgb(255, 63, 0); } /* ACI: 20 */
 .brilliant-soft-vermilion { color: rgb(255, 159, 127); } /* ACI: 21 */
 .moderate-vivid-vermilion { color: rgb(165, 41, 0); } /* ACI: 22 */
 .moderate-soft-vermilion { color: rgb(165, 103, 82); } /* ACI: 23 */
@@ -28,10 +30,10 @@
 .medium-soft-vermilion { color: rgb(127, 79, 63); } /* ACI: 25 */
 .dark-vivid-vermilion { color: rgb(76, 19, 0); } /* ACI: 26 */
 .dark-soft-vermilion { color: rgb(76, 47, 38); } /* ACI: 27 */
-
 .dark-orange { color: rgb(38, 9, 0); } /* ACI: 28 */
 .dark-amber { color: rgb(38, 23, 19); } /* ACI: 29 */
-.orange { color: rgb(255, 127, 0); } /* ACI: 30 */
+
+.vermilion { color: rgb(255, 127, 0); } /* ACI: 30 */
 .brilliant-soft-orange { color: rgb(255, 191, 127); } /* ACI: 31 */
 .moderate-vivid-orange { color: rgb(165, 82, 0); } /* ACI: 32 */
 .moderate-soft-orange { color: rgb(165, 124, 82); } /* ACI: 33 */
@@ -39,10 +41,10 @@
 .medium-soft-orange { color: rgb(127, 95, 63); } /* ACI: 35 */
 .dark-vivid-orange { color: rgb(76, 38, 0); } /* ACI: 36 */
 .dark-soft-orange { color: rgb(76, 57, 38); } /* ACI: 37 */
-
 .dark-yellow { color: rgb(38, 19, 0); } /* ACI: 38 */
 .dark-chartreuse { color: rgb(38, 28, 19); } /* ACI: 39 */
-.amber { color: rgb(255, 191, 0); } /* ACI: 40 */
+
+.orange { color: rgb(255, 191, 0); } /* ACI: 40 */
 .brilliant-soft-amber { color: rgb(255, 223, 127); } /* ACI: 41 */
 .moderate-vivid-amber { color: rgb(165, 124, 0); } /* ACI: 42 */
 .moderate-soft-amber { color: rgb(165, 145, 82); } /* ACI: 43 */
@@ -50,9 +52,9 @@
 .medium-soft-amber { color: rgb(127, 111, 63); } /* ACI: 45 */
 .dark-vivid-amber { color: rgb(76, 57, 0); } /* ACI: 46 */
 .dark-soft-amber { color: rgb(76, 66, 38); } /* ACI: 47 */
-
 .dark-lime { color: rgb(38, 28, 0); } /* ACI: 48 */
 .dark-spring { color: rgb(38, 33, 19); } /* ACI: 49 */
+
 .yellow { color: rgb(255, 255, 0); } /* ACI: 50 */
 .brilliant-soft-yellow { color: rgb(255, 255, 127); } /* ACI: 51 */
 .moderate-vivid-yellow { color: rgb(165, 165, 0); } /* ACI: 52 */
@@ -61,9 +63,9 @@
 .medium-soft-yellow { color: rgb(127, 127, 63); } /* ACI: 55 */
 .dark-vivid-yellow { color: rgb(76, 76, 0); } /* ACI: 56 */
 .dark-soft-yellow { color: rgb(76, 76, 38); } /* ACI: 57 */
-
 .dark-green { color: rgb(38, 38, 0); } /* ACI: 58 */
 .dark-emerald { color: rgb(38, 38, 19); } /* ACI: 59 */
+
 .chartreuse { color: rgb(191, 255, 0); } /* ACI: 60 */
 .brilliant-soft-chartreuse { color: rgb(223, 255, 127); } /* ACI: 61 */
 .moderate-vivid-chartreuse { color: rgb(124, 165, 0); } /* ACI: 62 */
@@ -72,9 +74,9 @@
 .medium-soft-chartreuse { color: rgb(111, 127, 63); } /* ACI: 65 */
 .dark-vivid-chartreuse { color: rgb(57, 76, 0); } /* ACI: 66 */
 .dark-soft-chartreuse { color: rgb(66, 76, 38); } /* ACI: 67 */
-
 .dark-mint { color: rgb(28, 38, 0); } /* ACI: 68 */
 .dark-teal { color: rgb(33, 38, 19); } /* ACI: 69 */
+
 .lime { color: rgb(127, 255, 0); } /* ACI: 70 */
 .brilliant-soft-lime { color: rgb(191, 255, 127); } /* ACI: 71 */
 .moderate-vivid-lime { color: rgb(82, 165, 0); } /* ACI: 72 */
@@ -83,9 +85,9 @@
 .medium-soft-lime { color: rgb(95, 127, 63); } /* ACI: 75 */
 .dark-vivid-lime { color: rgb(38, 76, 0); } /* ACI: 76 */
 .dark-soft-lime { color: rgb(57, 76, 38); } /* ACI: 77 */
-
 .dark-cyan { color: rgb(19, 38, 0); } /* ACI: 78 */
 .dark-azure { color: rgb(28, 38, 19); } /* ACI: 79 */
+
 .spring { color: rgb(63, 255, 0); } /* ACI: 80 */
 .brilliant-soft-spring { color: rgb(159, 255, 127); } /* ACI: 81 */
 .moderate-vivid-spring { color: rgb(41, 165, 0); } /* ACI: 82 */
@@ -94,9 +96,9 @@
 .medium-soft-spring { color: rgb(79, 127, 63); } /* ACI: 85 */
 .dark-vivid-spring { color: rgb(19, 76, 0); } /* ACI: 86 */
 .dark-soft-spring { color: rgb(47, 76, 38); } /* ACI: 87 */
-
 .dark-cerulean { color: rgb(9, 38, 0); } /* ACI: 88 */
 .dark-blue { color: rgb(23, 38, 19); } /* ACI: 89 */
+
 .green { color: rgb(0, 255, 0); } /* ACI: 90 */
 .brilliant-soft-green { color: rgb(127, 255, 127); } /* ACI: 91 */
 .moderate-vivid-green { color: rgb(0, 165, 0); } /* ACI: 92 */
@@ -105,10 +107,10 @@
 .medium-soft-green { color: rgb(63, 127, 63); } /* ACI: 95 */
 .dark-vivid-green { color: rgb(0, 76, 0); } /* ACI: 96 */
 .dark-soft-green { color: rgb(38, 76, 38); } /* ACI: 97 */
-
 .dark-sapphire { color: rgb(0, 38, 0); } /* ACI: 98 */
 .dark-indigo { color: rgb(19, 38, 19); } /* ACI: 99 */
-.emerald { color: rgb(0, 255, 63); } /* ACI: 100 */
+
+.green { color: rgb(0, 255, 63); } /* ACI: 100 */
 .brilliant-soft-emerald { color: rgb(127, 255, 159); } /* ACI: 101 */
 .moderate-vivid-emerald { color: rgb(0, 165, 41); } /* ACI: 102 */
 .moderate-soft-emerald { color: rgb(82, 165, 103); } /* ACI: 103 */
@@ -116,10 +118,10 @@
 .medium-soft-emerald { color: rgb(63, 127, 79); } /* ACI: 105 */
 .dark-vivid-emerald { color: rgb(0, 76, 19); } /* ACI: 106 */
 .dark-soft-emerald { color: rgb(38, 76, 47); } /* ACI: 107 */
-
 .dark-violet { color: rgb(0, 38, 9); } /* ACI: 108 */
 .dark-purple { color: rgb(19, 38, 23); } /* ACI: 109 */
-.mint { color: rgb(0, 255, 127); } /* ACI: 110 */
+
+.emerald { color: rgb(0, 255, 127); } /* ACI: 110 */
 .brilliant-soft-mint { color: rgb(127, 255, 191); } /* ACI: 111 */
 .moderate-vivid-mint { color: rgb(0, 165, 82); } /* ACI: 112 */
 .moderate-soft-mint { color: rgb(82, 165, 124); } /* ACI: 113 */
@@ -127,10 +129,10 @@
 .medium-soft-mint { color: rgb(63, 127, 95); } /* ACI: 115 */
 .dark-vivid-mint { color: rgb(0, 76, 38); } /* ACI: 116 */
 .dark-soft-mint { color: rgb(38, 76, 57); } /* ACI: 117 */
-
 .dark-magenta { color: rgb(0, 38, 19); } /* ACI: 118 */
 .dark-fuchsia { color: rgb(19, 38, 28); } /* ACI: 119 */
-.teal { color: rgb(0, 255, 191); } /* ACI: 120 */
+
+.mint { color: rgb(0, 255, 191); } /* ACI: 120 */
 .brilliant-soft-teal { color: rgb(127, 255, 223); } /* ACI: 121 */
 .moderate-vivid-teal { color: rgb(0, 165, 124); } /* ACI: 122 */
 .moderate-soft-teal { color: rgb(82, 165, 145); } /* ACI: 123 */
@@ -138,9 +140,9 @@
 .medium-soft-teal { color: rgb(63, 127, 111); } /* ACI: 125 */
 .dark-vivid-teal { color: rgb(0, 76, 57); } /* ACI: 126 */
 .dark-soft-teal { color: rgb(38, 76, 66); } /* ACI: 127 */
-
 .dark-rose { color: rgb(0, 38, 28); } /* ACI: 128 */
 .dark-crimson { color: rgb(19, 38, 33); } /* ACI: 129 */
+
 .cyan { color: rgb(0, 255, 255); } /* ACI: 130 */
 .brilliant-soft-cyan { color: rgb(127, 255, 255); } /* ACI: 131 */
 .moderate-vivid-cyan { color: rgb(0, 165, 165); } /* ACI: 132 */
@@ -174,7 +176,7 @@
 .dark-cerulean { color: rgb(0, 19, 38); } /* ACI: 158 */
 .dark-cerulean { color: rgb(19, 28, 38); } /* ACI: 159 */
 
-.sapphire { color: rgb(0, 63, 255); } /* ACI: 160 */
+.blue { color: rgb(0, 63, 255); } /* ACI: 160 */
 .brilliant-soft-blue { color: rgb(127, 159, 255); } /* ACI: 161 */
 .moderate-vivid-blue { color: rgb(0, 41, 165); } /* ACI: 162 */
 .moderate-soft-blue { color: rgb(82, 103, 165); } /* ACI: 163 */
@@ -184,8 +186,8 @@
 .dark-soft-blue { color: rgb(38, 47, 76); } /* ACI: 167 */
 .dark-blue { color: rgb(0, 9, 38); } /* ACI: 168 */
 .dark-blue { color: rgb(19, 23, 38); } /* ACI: 169 */
-.blue { color: rgb(0, 0, 255); } /* ACI: 170 */
 
+.blue { color: rgb(0, 0, 255); } /* ACI: 170 */
 .brilliant-soft-sapphire { color: rgb(127, 127, 255); } /* ACI: 171 */
 .moderate-vivid-sapphire { color: rgb(0, 0, 165); } /* ACI: 172 */
 .moderate-soft-sapphire { color: rgb(82, 82, 165); } /* ACI: 173 */
@@ -195,7 +197,8 @@
 .dark-soft-sapphire { color: rgb(38, 38, 76); } /* ACI: 177 */
 .dark-sapphire { color: rgb(0, 0, 38); } /* ACI: 178 */
 .dark-sapphire { color: rgb(19, 19, 38); } /* ACI: 179 */
-.indigo { color: rgb(63, 0, 255); } /* ACI: 180 */
+
+.sapphire { color: rgb(63, 0, 255); } /* ACI: 180 */
 .brilliant-soft-indigo { color: rgb(159, 127, 255); } /* ACI: 181 */
 .moderate-vivid-indigo { color: rgb(41, 0, 165); } /* ACI: 182 */
 .moderate-soft-indigo { color: rgb(103, 82, 165); } /* ACI: 183 */
@@ -206,7 +209,7 @@
 .dark-sapphire { color: rgb(9, 0, 38); } /* ACI: 188 */
 .dark-sapphire { color: rgb(23, 19, 38); } /* ACI: 189 */
 
-.violet { color: rgb(127, 0, 255); } /* ACI: 190 */
+.indigo { color: rgb(127, 0, 255); } /* ACI: 190 */
 .brilliant-soft-violet { color: rgb(191, 127, 255); } /* ACI: 191 */
 .moderate-vivid-violet { color: rgb(82, 0, 165); } /* ACI: 192 */
 .moderate-soft-violet { color: rgb(124, 82, 165); } /* ACI: 193 */
@@ -217,7 +220,7 @@
 .dark-violet { color: rgb(19, 0, 38); } /* ACI: 198 */
 .dark-indigo { color: rgb(28, 19, 38); } /* ACI: 199 */
 
-.purple { color: rgb(191, 0, 255); } /* ACI: 200 */
+.violet { color: rgb(191, 0, 255); } /* ACI: 200 */
 .brilliant-soft-purple { color: rgb(223, 127, 255); } /* ACI: 201 */
 .moderate-vivid-purple { color: rgb(124, 0, 165); } /* ACI: 202 */
 .moderate-soft-purple { color: rgb(145, 82, 165); } /* ACI: 203 */
@@ -225,7 +228,6 @@
 .medium-soft-purple { color: rgb(111, 63, 127); } /* ACI: 205 */
 .dark-vivid-purple { color: rgb(57, 0, 76); } /* ACI: 206 */
 .dark-soft-purple { color: rgb(66, 38, 76); } /* ACI: 207 */
-
 .dark-violet { color: rgb(28, 0, 38); } /* ACI: 208 */
 .dark-violet { color: rgb(33, 19, 38); } /* ACI: 209 */
 
@@ -272,7 +274,6 @@
 .dark-soft-crimson { color: rgb(76, 38, 47); } /* ACI: 247 */
 .dark-crimson { color: rgb(38, 0, 9); } /* ACI: 248 */
 .dark-crimson { color: rgb(38, 19, 23); } /* ACI: 249 */
-
 .steel { color: rgb(84, 84, 84); } /* ACI: 250 */
 .pewter { color: rgb(118, 118, 118); } /* ACI: 251 */
 .aluminum { color: rgb(152, 152, 152); } /* ACI: 252 */

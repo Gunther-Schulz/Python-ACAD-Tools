@@ -214,7 +214,6 @@ def convert_to_csv_css_and_yaml(input_file, output_csv, output_css, output_yaml)
             rgb = tuple(map(int, parts[4:7]))
             
             color_name = get_unique_color_name(rgb, used_names)
-            used_names[rgb] = color_name
             
             # Write to CSV
             csv_writer.writerow([aci, autodesk, berechnet, ermittelt, color_name, f"rgb({rgb[0]}, {rgb[1]}, {rgb[2]})"])
@@ -231,16 +230,15 @@ def convert_to_csv_css_and_yaml(input_file, output_csv, output_css, output_yaml)
             })
         
         # Sort color_data by ACI code and write to CSS file
+        previous_css_class_name = ""
         for aci, css_class_name, rgb in sorted(color_data, key=lambda x: x[0]):
+            # Add an empty line before single-word color names from hue_names
+            if css_class_name in hue_names and previous_css_class_name not in hue_names:
+                outfile_css.write("\n")
+            
             outfile_css.write(f".{css_class_name} {{ color: rgb({rgb[0]}, {rgb[1]}, {rgb[2]}); }} /* ACI: {aci} */\n")
             
-            # Check if the current color's base hue is in the hue_names list
-            base_hue = css_class_name.split('-')[-1]
-            if base_hue in hue_names:
-                # If it's the last color in its hue group, add an empty line
-                next_colors = [c for c in color_data if c[0] > aci]
-                if not next_colors or all(c[1].split('-')[-1] != base_hue for c in next_colors):
-                    outfile_css.write("\n")
+            previous_css_class_name = css_class_name
     
     # Write YAML file
     with open(output_yaml, 'w') as outfile_yaml:
