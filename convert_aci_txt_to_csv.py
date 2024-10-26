@@ -274,15 +274,15 @@ def convert_to_csv_css_and_yaml(input_file, output_csv, output_css, output_yaml)
             })
         
         # Sort color_data by ACI code and write to CSS file
-        previous_css_class_name = ""
+        previous_aci = 0
         for aci, css_class_name, rgb in sorted(color_data, key=lambda x: x[0]):
-            # Add an empty line before single-word color names from hue_names
-            if css_class_name in hue_names and previous_css_class_name not in hue_names:
+            # Add an empty line before each group of special colors
+            if aci in [1, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200, 210, 220, 230, 240]:
                 outfile_css.write("\n")
             
             outfile_css.write(f".{css_class_name} {{ color: rgb({rgb[0]}, {rgb[1]}, {rgb[2]}); }} /* ACI: {aci} */\n")
             
-            previous_css_class_name = css_class_name
+            previous_aci = aci
     
     # Write YAML file
     with open(output_yaml, 'w') as outfile_yaml:
