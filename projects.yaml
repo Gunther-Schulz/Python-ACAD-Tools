@@ -321,10 +321,11 @@ projects:
         center: [425, 450]
         width: 720
         height: 653
-      - name: WorkView
-        center: [780, 2000]
-        width: 720
-        height: 653
+        view_center: [356776, 5935095] 
+      # - name: WorkView
+      #   center: [780, 2000]
+      #   width: 720
+      #   height: 653
     # reports:
     #   - name: Anteilige Flurstücksgrößen innerhalb Geltungsbereich Nordwesten in Plasten
     #     type: area
