@@ -31,13 +31,24 @@ def process_wmts_or_wms_layer(all_layers, project_settings, crs, layer_name, ope
         'url': operation['url'],
         'layer': operation['layer'],
         'proj': operation.get('proj'),
-        'srs': operation.get('srs'),
-        'format': operation.get('format', 'image/png'),
+        'srs': operation.get('wmsOptions', {}).get('srs', operation.get('srs')),  # Fallback for backward compatibility
+        'format': operation.get('wmsOptions', {}).get('format', operation.get('format', 'image/png')),
         'sleep': operation.get('sleep', 0),
         'limit': operation.get('limit', 0),
         'postProcess': operation.get('postProcess', {}),
         'overwrite': overwrite_flag,
-        'zoom': zoom_level
+        'zoom': zoom_level,
+        # WMS specific options from wmsOptions
+        'styles': operation.get('wmsOptions', {}).get('styles', ''),
+        'transparent': operation.get('wmsOptions', {}).get('transparent', True),
+        'bgcolor': operation.get('wmsOptions', {}).get('bgcolor', '0xFFFFFF'),
+        'width': operation.get('wmsOptions', {}).get('width', 256),
+        'height': operation.get('wmsOptions', {}).get('height', 256),
+        'version': operation.get('wmsOptions', {}).get('version', '1.3.0'),
+        'time': operation.get('wmsOptions', {}).get('time'),
+        'elevation': operation.get('wmsOptions', {}).get('elevation'),
+        'dimensions': operation.get('wmsOptions', {}).get('dimensions', {}),
+        'imageTransparency': operation.get('wmsOptions', {}).get('imageTransparency', False)
     }
 
     service_info['postProcess']['removeText'] = operation.get('postProcess', {}).get('removeText', False)
