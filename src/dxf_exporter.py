@@ -579,26 +579,36 @@ class DXFExporter:
                 log_info(f"Viewport {vp_config['name']} already exists. Updating properties.")
                 viewport = existing_viewport
             else:
-                # Use the center coordinates from the configuration
-                center_x, center_y = vp_config['center']
+                # Use the top-left coordinates and calculate center
+                top_left_x, top_left_y = vp_config['top_left']
                 width = vp_config['width']
                 height = vp_config['height']
-                scale = vp_config.get('scale', 1.0)  # Default scale is 1.0 if not specified
                 
-                # Calculate the view height based on the scale
+                # Calculate center coordinates from top-left position
+                center_x = top_left_x + (width / 2)
+                center_y = top_left_y - (height / 2)
+                
+                # Handle both standard scale and custom scale
+                if 'custom_scale' in vp_config:
+                    scale = 1 / vp_config['custom_scale']
+                else:
+                    scale = vp_config.get('scale', 1.0)
+                    
                 view_height = height * scale
                 
-                # Create the viewport
+                # Create the viewport using calculated center
                 viewport = paper_space.add_viewport(
                     center=(center_x, center_y),
                     size=(width, height),
-                    view_center_point=(0, 0),  # This will be updated later
+                    view_center_point=vp_config['view_center'],
                     view_height=view_height
                 )
-                viewport.dxf.status = 1  # Activate the viewport
+                viewport.dxf.status = 1
                 viewport.dxf.layer = 'VIEWPORTS'
                 
-                # Store the viewport name as XDATA
+                if vp_config.get('lock_zoom', False):
+                    viewport.dxf.flags = viewport.dxf.flags | 1
+                
                 viewport.set_xdata(
                     'DXFEXPORTER',
                     [
@@ -916,6 +926,8 @@ class DXFExporter:
         else:
             log_warning(f"Invalid position type '{position_type}'. Using centroid.")
             return geometry.centroid.coords[0]
+
+
 
 
 

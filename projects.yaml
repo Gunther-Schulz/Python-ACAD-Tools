@@ -319,16 +319,25 @@ projects:
           y: -20
     viewports:
       - name: MainView
-        center: [425, 450]
+        top_left: [65, 776.5]
         width: 720
         height: 653
         view_center: [356027, 5935564] 
-        scale: 2
+        # scale: 2
+        custom_scale: 0.5
         lock_zoom: true
       # - name: WorkView
       #   center: [780, 2000]
       #   width: 720
       #   height: 653
+      - name: LegendView
+        top_left: [817, 842]
+        width: 180
+        height: 500
+        view_center: [356027, 5935564] 
+        # scale: 2
+        # custom_scale: 0.5
+        # lock_zoom: true
     # reports:
     #   - name: Anteilige Flurstücksgrößen innerhalb Geltungsbereich Nordwesten in Plasten
     #     type: area
