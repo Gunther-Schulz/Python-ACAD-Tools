@@ -375,16 +375,21 @@ def download_wms_tiles(wms_info: dict, geltungsbereich, buffer_distance: float, 
                 continue
 
             try:
-                img = wms.getmap(
-                    layers=[layer_id], 
-                    srs=srs, 
-                    bbox=tile_bbox, 
-                    size=(tile_width, tile_height),
-                    format=image_format,
-                    transparent=wms_info.get('transparent', True),
-                    bgcolor=wms_info.get('bgcolor', '0xFFFFFF'),
-                    styles=wms_info.get('styles', '')
-                )
+                wms_options = wms_info.get('wmsOptions', {})
+                
+                # Ensure transparent is set before bgcolor
+                params = {
+                    'layers': [layer_id],
+                    'srs': srs,
+                    'bbox': tile_bbox,
+                    'size': (tile_width, tile_height),
+                    'format': image_format,
+                    # 'transparent': wms_options.get('transparent', True),
+                    # 'bgcolor': wms_options.get('bgcolor', '0xFFFFFF'),  # Then bgcolor
+                    # 'styles': wms_options.get('styles', '')
+                }
+                
+                img = wms.getmap(**params)
                 
                 if color_map or alpha_color or grayscale or remove_text or retain_if_color_present:
                     pil_img = Image.open(BytesIO(img.read()))
@@ -553,5 +558,8 @@ def group_connected_tiles(tiles):
             groups.append(group)
 
     return groups
+
+
+
 
 

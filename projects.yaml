@@ -859,10 +859,10 @@ der Gemeinde Klein Belitz"
             wmsOptions:
               srs: "EPSG:25833"
               format: "image/png"
-              styles: ""  # Optional WMS style
+              # styles: ""  # Optional WMS style
               # version: "1.3.0"  # WMS version
               # transparent: true
-              bgcolor: "0xFFFFFF" # Doesn't work somehow. It's black.
+              # bgcolor: "0x0000FF" # Doesn't work somehow. It's black.
               width: 256
               height: 256
             targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/Gebäude"
@@ -870,7 +870,7 @@ der Gemeinde Klein Belitz"
               - Geltungsbereich NW
               # - Geltungsbereich NO
               # - Geltungsbereich S
-            buffer: 500
+            buffer: 1
             # zoom: 10
             # overwrite: true
             postProcess:
@@ -878,13 +878,13 @@ der Gemeinde Klein Belitz"
                 colors: ["#ff0000"]  # Images containing these colors will be made transparent
                 tolerance: 5  # Optional: color matching tolerance (0-255)
                 
-              colorMap:
-                  "#ff0000": "#808080"  # Map red to grey
-              # alphaColor: "#ffffff"  # Set white to fully transparent
-              alphaColor: "#000000"  # Set black to fully transparent
-              # tolerance: 30  # Increased tolerance to catch similar shades
-              grayscale: true
-              # removeText: true
+            #   colorMap:
+            #       "#ff0000": "#808080"  # Map red to grey
+              alphaColor: "#ffffff"  # Set white to fully transparent
+            #   alphaColor: "#000000"  # Set black to fully transparent
+            #   # tolerance: 30  # Increased tolerance to catch similar shades
+              # grayscale: true
+            #   # removeText: true
             stitchTiles: true
             overwrite: true
   - name: Torgelow
