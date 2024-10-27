@@ -13,7 +13,7 @@ from ezdxf import pattern
 
 from PIL import Image
 from src.legend_creator import LegendCreator
-from src.dfx_utils import (get_color_code, convert_transparency, attach_custom_data, 
+from src.dfx_utils import (add_block_reference, get_color_code, convert_transparency, attach_custom_data, 
                            is_created_by_script, add_text, remove_entities_by_layer, 
                            ensure_layer_exists, update_layer_properties, 
                            set_drawing_properties, verify_dxf_settings, update_layer_geometry,
@@ -92,8 +92,10 @@ class DXFExporter:
         self.create_viewports(doc, msp)
         self.process_layers(doc, msp)
         # Create legend
-        legend_creator = LegendCreator(doc, msp, self.project_loader, self.loaded_styles)  # Pass self.loaded_styles here
+        legend_creator = LegendCreator(doc, msp, self.project_loader, self.loaded_styles)
         legend_creator.create_legend()
+        self.create_path_arrays(msp)
+        self.process_block_inserts(msp)  # Move this line before _cleanup_and_save
         self._cleanup_and_save(doc, msp)
 
     def _prepare_dxf_document(self):
@@ -141,8 +143,8 @@ class DXFExporter:
 
     def _cleanup_and_save(self, doc, msp):
         processed_layers = [layer['name'] for layer in self.project_settings['geomLayers']]
-        remove_entities_by_layer(msp, processed_layers, self.script_identifier)
-        self.create_path_arrays(msp)
+        layers_to_clean = [layer for layer in processed_layers if layer not in self.all_layers]
+        remove_entities_by_layer(msp, layers_to_clean, self.script_identifier)
         doc.saveas(self.dxf_filename)
         log_info(f"DXF file saved: {self.dxf_filename}")
         verify_dxf_settings(self.dxf_filename)
@@ -754,63 +756,139 @@ class DXFExporter:
         apply_style_to_entity(entity, style, self.project_loader, self.loaded_styles)
 
     def create_path_arrays(self, msp):
-        for group_name, layer_group in self.project_settings.get('pathArrays', {}).items():
-            log_info(f"Processing path array group: {group_name}")
-            path_array_configs = layer_group.get('pathArrays', [layer_group])
+        path_arrays = self.project_settings.get('pathArrays', [])
+        log_info(f"Processing {len(path_arrays)} path array configurations")
+        
+        for config in path_arrays:
+            name = config.get('name')
+            source_layer_name = config.get('sourceLayer')
+            update = config.get('update', False)  # Default is False
             
-            for config in path_array_configs:
-                source_layer_name = config['sourceLayer']
-                target_layer_name = config.get('targetLayer', source_layer_name)
+            if not name or not source_layer_name:
+                log_warning(f"Invalid path array configuration: {config}")
+                continue
+            
+            if not update:
+                log_info(f"Skipping path array '{name}' as update flag is not set")
+                continue
+            
+            if source_layer_name not in self.all_layers:
+                log_warning(f"Source layer '{source_layer_name}' does not exist in all_layers. Skipping path array creation for this configuration.")
+                continue
+            
+            remove_entities_by_layer(msp, name, self.script_identifier)
+            
+            block_name = config['block']
+            spacing = config['spacing']
+            scale = config.get('scale', 1.0)
+            rotation = config.get('rotation', 0.0)
+            buffer_distance = config.get('bufferDistance', 0.0)
+            show_debug_visual = config.get('showDebugVisual', False)
+            adjust_for_vertices = config.get('adjustForVertices', False)
+            
+            log_info(f"Creating path array: {name}")
+            log_info(f"Source layer: {source_layer_name}")
+            log_info(f"Block: {block_name}, Spacing: {spacing}, Scale: {scale}")
+            
+            create_path_array(msp, source_layer_name, name, block_name, 
+                              spacing, buffer_distance, scale, rotation, 
+                              show_debug_visual, self.all_layers, adjust_for_vertices)
+        
+        log_info("Finished processing all path array configurations")
+
+    def process_block_inserts(self, msp):
+        block_inserts = self.project_settings.get('blockInserts', [])
+        log_info(f"Processing {len(block_inserts)} block insert configurations")
+        
+        for insert_config in block_inserts:
+            target_layer = insert_config.get('targetLayer')
+            output_layer = insert_config.get('name')
+            block_name = insert_config.get('blockName')
+            scale = insert_config.get('scale', 1.0)
+            rotation = insert_config.get('rotation', 0)
+            position_config = insert_config.get('position', {})
+            update = insert_config.get('update', False)  # Default is False
+
+            if not update:
+                log_info(f"Skipping block insert '{output_layer}' as update flag is not set")
+                continue
+
+            log_info(f"Processing block insert for target layer: {target_layer}, output layer: {output_layer}, block: {block_name}")
+
+            if not target_layer or not output_layer or not block_name:
+                log_warning(f"Invalid block insert configuration: {insert_config}")
+                continue
+
+            # Create the output layer if it doesn't exist
+            if output_layer not in self.layer_properties:
+                log_info(f"Creating new layer properties for: {output_layer}")
+                self.add_layer_properties(output_layer, {})
+
+            # Clear existing entities in the output layer
+            removed_count = remove_entities_by_layer(msp, output_layer, self.script_identifier)
+            log_info(f"Removed {removed_count} existing entities from layer: {output_layer}")
+
+            self.insert_blocks_on_layer(msp, target_layer, output_layer, block_name, scale, rotation, position_config)
+
+        log_info("Finished processing all block insert configurations")
+
+    def insert_blocks_on_layer(self, msp, target_layer, output_layer, block_name, scale, rotation, position_config):
+        position_type = position_config.get('type', 'centroid')
+        offset_x = position_config.get('offset', {}).get('x', 0)
+        offset_y = position_config.get('offset', {}).get('y', 0)
+
+        log_info(f"Attempting to insert blocks. Target layer: {target_layer}, Output layer: {output_layer}")
+        log_info(f"Available layers in self.all_layers: {', '.join(self.all_layers.keys())}")
+
+        if target_layer not in self.all_layers:
+            log_warning(f"Target layer '{target_layer}' not found in all_layers. Skipping block insertion.")
+            return
+
+        layer_data = self.all_layers[target_layer]
+        log_info(f"Layer data for {target_layer}: {layer_data}")
+
+        if not hasattr(layer_data, 'geometry'):
+            log_warning(f"Layer {target_layer} has no geometry attribute. Skipping block insertion.")
+            return
+
+        log_info(f"Number of geometries in {target_layer}: {len(layer_data.geometry)}")
+
+        for geometry in layer_data.geometry:
+            if isinstance(geometry, (Polygon, MultiPolygon)):
+                insert_point = self.get_insert_point(geometry, position_type)
+                insert_point = (insert_point[0] + offset_x, insert_point[1] + offset_y)
                 
-                if source_layer_name not in self.all_layers:
-                    log_warning(f"Source layer '{source_layer_name}' does not exist in all_layers. Skipping path array creation for this configuration.")
-                    continue
-                
-                remove_entities_by_layer(msp, target_layer_name, self.script_identifier)
-                
-                block_name = config['block']
-                spacing = config['spacing']
-                scale = config.get('scale', 1.0)
-                rotation = config.get('rotation', 0.0)
-                buffer_distance = config.get('bufferDistance', 0.0)
-                show_debug_visual = config.get('showDebugVisual', False)
-                adjust_for_vertices = config.get('adjustForVertices', False)  # Default is now False
-                
-                create_path_array(msp, source_layer_name, target_layer_name, block_name, 
-                                  spacing, buffer_distance, scale, rotation, 
-                                  show_debug_visual, self.all_layers, adjust_for_vertices)
+                log_info(f"Inserting block {block_name} at point {insert_point}")
+                block_ref = add_block_reference(
+                    msp,
+                    block_name,
+                    insert_point,
+                    output_layer,
+                    scale=scale,
+                    rotation=rotation
+                )
+                if block_ref:
+                    self.attach_custom_data(block_ref)
+                    log_info(f"Block {block_name} inserted successfully")
+                else:
+                    log_warning(f"Failed to insert block {block_name}")
 
+        log_info(f"Finished inserting blocks from target layer '{target_layer}' to output layer '{output_layer}'")
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    def get_insert_point(self, geometry, position_type):
+        if position_type == 'centroid':
+            return geometry.centroid.coords[0]
+        elif position_type == 'center':
+            return geometry.envelope.centroid.coords[0]
+        elif position_type == 'random':
+            minx, miny, maxx, maxy = geometry.bounds
+            while True:
+                point = Point(random.uniform(minx, maxx), random.uniform(miny, maxy))
+                if geometry.contains(point):
+                    return point.coords[0]
+        else:
+            log_warning(f"Invalid position type '{position_type}'. Using centroid.")
+            return geometry.centroid.coords[0]
 
 
 
