@@ -599,7 +599,9 @@ def add_text_insert(msp, text_config, layer_name, project_loader, script_identif
         height = style.get('height', 2.5)
         rotation = style.get('rotation', 0)
         style_name = style.get('font', 'Standard')
-        color = style.get('color', None)
+        
+        # Convert color using get_color_code
+        color = get_color_code(style.get('color'), project_loader.name_to_aci)
         alignment = style.get('alignment', 'LEFT')  # Default to left alignment
         
         # Create text entity
@@ -610,7 +612,7 @@ def add_text_insert(msp, text_config, layer_name, project_loader, script_identif
                 'height': height,
                 'rotation': rotation,
                 'style': style_name,
-                'color': color if color is not None else ezdxf.const.BYLAYER
+                'color': color  # Now using the converted color value
             }
         )
         
@@ -627,8 +629,8 @@ def add_text_insert(msp, text_config, layer_name, project_loader, script_identif
         align_type = alignment_dict.get(alignment.upper(), TextEntityAlignment.LEFT)
         text_entity.set_placement((x, y), align=align_type)
         
-        # Apply additional style properties
-        apply_style_to_entity(text_entity, style, project_loader, project_loader.loaded_styles, item_type='text')
+        # Apply additional style properties - Note: We don't pass loaded_styles here
+        apply_style_to_entity(text_entity, style, project_loader, None, item_type='text')
         
         # Attach custom data
         attach_custom_data(text_entity, script_identifier)
@@ -639,6 +641,7 @@ def add_text_insert(msp, text_config, layer_name, project_loader, script_identif
     except Exception as e:
         log_error(f"Failed to add text insert: {str(e)}")
         return None
+
 
 
 

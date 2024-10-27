@@ -936,7 +936,7 @@ class DXFExporter:
                 self.add_layer_properties(output_layer, {})
 
             # Add the text
-            add_text_insert(msp, text_config, output_layer, self.script_identifier)
+            add_text_insert(msp, text_config, output_layer, self.project_loader, self.script_identifier)
 
         log_info("Finished processing all block insert configurations")
 
@@ -1022,6 +1022,7 @@ class DXFExporter:
                 self.project_loader,
                 self.script_identifier
             )
+
 
 
 
