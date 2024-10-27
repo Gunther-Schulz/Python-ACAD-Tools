@@ -578,11 +578,16 @@ class DXFExporter:
                 log_info(f"Viewport {vp_config['name']} already exists. Skipping creation.")
                 self.viewports[vp_config['name']] = existing_viewport
             else:
+                # Calculate the center point of the viewport
+                center_x = vp_config['width'] / 2
+                center_y = vp_config['height'] / 2
+                
+                # Create the viewport
                 viewport = paper_space.add_viewport(
-                    center=vp_config['center'],
+                    center=(center_x, center_y),
                     size=(vp_config['width'], vp_config['height']),
-                    view_center_point=vp_config['target_view']['center'],
-                    view_height=vp_config['target_view']['height']
+                    view_center_point=(0, 0),  # Set the view center point to (0, 0) or adjust as needed
+                    view_height=vp_config['height']  # Use the viewport height as the view height
                 )
                 viewport.dxf.status = 1  # Activate the viewport
                 viewport.dxf.layer = 'VIEWPORTS'
