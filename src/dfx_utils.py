@@ -568,13 +568,28 @@ def add_block_reference(msp, block_name, insert_point, layer_name, scale=1.0, ro
         log_warning(f"Block '{block_name}' not found in the document")
         return None
 
-def add_text_insert(msp, text_config, layer_name, script_identifier):
+def add_text_insert(msp, text_config, layer_name, project_loader, script_identifier):
     """Add text at a specific position with given properties."""
     try:
+        # Check update flag
+        if not text_config.get('update', False):
+            log_info(f"Skipping text insert for layer '{layer_name}' as update flag is not set")
+            return None
+
+        # Remove existing text entities if updating
+        remove_entities_by_layer(msp, layer_name, script_identifier)
+
         # Extract text properties from config
         text = text_config.get('text', '')
         position = text_config.get('position', {'x': 0, 'y': 0})
         style = text_config.get('style', {})
+        
+        # Handle style presets
+        if isinstance(style, str):
+            style = project_loader.get_style(style)
+            if style is None:
+                log_warning(f"Style preset '{style}' not found. Using default style.")
+                style = {}
         
         # Get position coordinates
         x = position.get('x', 0)
@@ -612,6 +627,9 @@ def add_text_insert(msp, text_config, layer_name, script_identifier):
         align_type = alignment_dict.get(alignment.upper(), TextEntityAlignment.LEFT)
         text_entity.set_placement((x, y), align=align_type)
         
+        # Apply additional style properties
+        apply_style_to_entity(text_entity, style, project_loader, project_loader.loaded_styles, item_type='text')
+        
         # Attach custom data
         attach_custom_data(text_entity, script_identifier)
         
@@ -621,6 +639,7 @@ def add_text_insert(msp, text_config, layer_name, script_identifier):
     except Exception as e:
         log_error(f"Failed to add text insert: {str(e)}")
         return None
+
 
 
 

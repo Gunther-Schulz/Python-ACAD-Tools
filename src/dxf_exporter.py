@@ -96,7 +96,8 @@ class DXFExporter:
         legend_creator = LegendCreator(doc, msp, self.project_loader, self.loaded_styles)
         legend_creator.create_legend()
         self.create_path_arrays(msp)
-        self.process_block_inserts(msp)  # Move this line before _cleanup_and_save
+        self.process_block_inserts(msp)
+        self.process_text_inserts(msp)  # Add this line
         self._cleanup_and_save(doc, msp)
 
     def _prepare_dxf_document(self):
@@ -996,6 +997,32 @@ class DXFExporter:
         else:
             log_warning(f"Invalid position type '{position_type}'. Using centroid.")
             return geometry.centroid.coords[0]
+
+    def process_text_inserts(self, msp):
+        """Process text insert configurations."""
+        text_inserts = self.project_settings.get('textInserts', [])
+        log_info(f"Processing {len(text_inserts)} text insert configurations")
+        
+        for text_config in text_inserts:
+            output_layer = text_config.get('targetLayer')
+            if not output_layer:
+                log_warning(f"Invalid text insert configuration: {text_config}")
+                continue
+
+            # Create the output layer if it doesn't exist
+            if output_layer not in self.layer_properties:
+                log_info(f"Creating new layer properties for: {output_layer}")
+                self.add_layer_properties(output_layer, {})
+
+            # Process the text insert
+            add_text_insert(
+                msp,
+                text_config,
+                output_layer,
+                self.project_loader,
+                self.script_identifier
+            )
+
 
 
 

@@ -1,4 +1,6 @@
 styles:
+  mainTitle:
+    color: "blue"
 
 # viewport:
 #   layer:

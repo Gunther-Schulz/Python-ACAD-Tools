@@ -317,6 +317,15 @@ projects:
         offset:
           x: 0
           y: -20
+    textInserts:
+      - name: "Main Title"
+        targetLayer: "Plantext"
+        update: true
+        text: "Maxsolar"
+        position:
+          x: 66
+          y: 835
+        style: "mainTitle"  
     viewports:
       - name: MainView
         update: true
