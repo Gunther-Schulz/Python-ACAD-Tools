@@ -802,25 +802,25 @@ der Gemeinde Klein Belitz"
             layers:
               - Baugrenze
             distance: -0.4
-      - name: WMTS DOP
-        # update: true
-        style: 
-          locked: true
-          # color: "White"
-        operations:
-          - type: wmts
-            url: "https://www.geodaten-mv.de/dienste/dop_wmts/wmts/1.0.0/WMTSCapabilities.xml"
-            layer: "mv_dop"
-            # zoom: "10"
-            proj: "ETRS89UTM33"
-            targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/DOP"
-            layers:
-              - Geltungsbereich NW
-              - Geltungsbereich NO
-              - Geltungsbereich S
-            buffer: 200
-            stitchTiles: true
-            # overwrite: true
+      # - name: WMTS DOP
+      #   # update: true
+      #   style: 
+      #     locked: true
+      #     # color: "White"
+      #   operations:
+      #     - type: wmts
+      #       url: "https://www.geodaten-mv.de/dienste/dop_wmts/wmts/1.0.0/WMTSCapabilities.xml"
+      #       layer: "mv_dop"
+      #       # zoom: "10"
+      #       proj: "ETRS89UTM33"
+      #       targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/DOP"
+      #       layers:
+      #         - Geltungsbereich NW
+      #         - Geltungsbereich NO
+      #         - Geltungsbereich S
+      #       buffer: 200
+      #       stitchTiles: true
+      #       # overwrite: true
       # - name: WMTS Basemap
       #   update: true
       #   color: white
@@ -873,7 +873,7 @@ der Gemeinde Klein Belitz"
                 grayscale: true
                 # removeText: true
             stitchTiles: true
-            overwrite: true
+            # overwrite: true
   - name: Torgelow
     exportFormat: dxf
     dxfVersion: R2018
