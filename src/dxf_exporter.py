@@ -578,16 +578,21 @@ class DXFExporter:
                 log_info(f"Viewport {vp_config['name']} already exists. Updating properties.")
                 viewport = existing_viewport
             else:
-                # Calculate the center point of the viewport
-                center_x = vp_config['width'] / 2
-                center_y = vp_config['height'] / 2
+                # Use the center coordinates from the configuration
+                center_x, center_y = vp_config['center']
+                width = vp_config['width']
+                height = vp_config['height']
+                scale = vp_config.get('scale', 1.0)  # Default scale is 1.0 if not specified
+                
+                # Calculate the view height based on the scale
+                view_height = height * scale
                 
                 # Create the viewport
                 viewport = paper_space.add_viewport(
                     center=(center_x, center_y),
-                    size=(vp_config['width'], vp_config['height']),
+                    size=(width, height),
                     view_center_point=(0, 0),  # This will be updated later
-                    view_height=vp_config['height']  # Use the viewport height as the view height
+                    view_height=view_height
                 )
                 viewport.dxf.status = 1  # Activate the viewport
                 viewport.dxf.layer = 'VIEWPORTS'
@@ -608,6 +613,11 @@ class DXFExporter:
             if 'view_center' in vp_config:
                 viewport.dxf.view_center_point = (vp_config['view_center'][0], vp_config['view_center'][1])
                 log_info(f"Updated view center for viewport {vp_config['name']} to {viewport.dxf.view_center_point}")
+            
+            # Update the scale if it's specified
+            if 'scale' in vp_config:
+                viewport.dxf.view_height = viewport.dxf.height * vp_config['scale']
+                log_info(f"Updated scale for viewport {vp_config['name']} to 1:{vp_config['scale']}")
             
             self.viewports[vp_config['name']] = viewport
             log_info(f"Viewport {vp_config['name']} processed")
@@ -900,6 +910,8 @@ class DXFExporter:
         else:
             log_warning(f"Invalid position type '{position_type}'. Using centroid.")
             return geometry.centroid.coords[0]
+
+
 
 
 

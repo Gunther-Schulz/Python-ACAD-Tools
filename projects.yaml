@@ -321,7 +321,8 @@ projects:
         center: [425, 450]
         width: 720
         height: 653
-        view_center: [356776, 5935095] 
+        view_center: [356027, 5935564] 
+        scale: 2
       # - name: WorkView
       #   center: [780, 2000]
       #   width: 720
