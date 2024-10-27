@@ -1009,19 +1009,29 @@ class DXFExporter:
                 log_warning(f"Invalid text insert configuration: {text_config}")
                 continue
 
+            # Sanitize layer name
+            output_layer = sanitize_layer_name(output_layer)
+
             # Create the output layer if it doesn't exist
             if output_layer not in self.layer_properties:
                 log_info(f"Creating new layer properties for: {output_layer}")
                 self.add_layer_properties(output_layer, {})
+                ensure_layer_exists(msp.doc, output_layer, self.layer_properties[output_layer], self.name_to_aci)
 
             # Process the text insert
-            add_text_insert(
+            result = add_text_insert(
                 msp,
                 text_config,
                 output_layer,
                 self.project_loader,
                 self.script_identifier
             )
+            
+            if result is None:
+                log_warning(f"Failed to add text insert for layer '{output_layer}'")
+            else:
+                log_info(f"Successfully added text insert to layer '{output_layer}'")
+
 
 
 

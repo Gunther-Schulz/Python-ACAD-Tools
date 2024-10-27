@@ -576,8 +576,18 @@ def add_text_insert(msp, text_config, layer_name, project_loader, script_identif
             log_info(f"Skipping text insert for layer '{layer_name}' as update flag is not set")
             return None
 
+        # Sanitize layer name
+        layer_name = sanitize_layer_name(layer_name)
+        
+        # Get the correct space (model or paper)
+        doc = msp.doc
+        space = doc.paperspace() if text_config.get('paperspace', False) else doc.modelspace()
+        
+        # Ensure layer exists
+        ensure_layer_exists(doc, layer_name, {}, project_loader.name_to_aci)
+
         # Remove existing text entities if updating
-        remove_entities_by_layer(msp, layer_name, script_identifier)
+        remove_entities_by_layer(space, layer_name, script_identifier)
 
         # Extract text properties from config
         text = text_config.get('text', '')
@@ -590,6 +600,9 @@ def add_text_insert(msp, text_config, layer_name, project_loader, script_identif
             if style is None:
                 log_warning(f"Style preset '{style}' not found. Using default style.")
                 style = {}
+            # If style contains a text section, use that
+            if isinstance(style, dict) and 'text' in style:
+                style = style['text']
         
         # Get position coordinates
         x = position.get('x', 0)
@@ -599,48 +612,43 @@ def add_text_insert(msp, text_config, layer_name, project_loader, script_identif
         height = style.get('height', 2.5)
         rotation = style.get('rotation', 0)
         style_name = style.get('font', 'Standard')
+        max_width = style.get('width', None)  # Add max width support for MTEXT
         
         # Convert color using get_color_code
         color = get_color_code(style.get('color'), project_loader.name_to_aci)
-        alignment = style.get('alignment', 'LEFT')  # Default to left alignment
         
-        # Create text entity
-        text_entity = msp.add_text(
+        log_info(f"Adding MTEXT '{text}' to layer '{layer_name}' at ({x}, {y})")
+        
+        # Use add_mtext instead of add_text
+        result = add_mtext(
+            space,
             text,
-            dxfattribs={
-                'layer': layer_name,
-                'height': height,
-                'rotation': rotation,
-                'style': style_name,
-                'color': color  # Now using the converted color value
-            }
+            x,
+            y,
+            layer_name,
+            style_name,
+            text_style=style,
+            name_to_aci=project_loader.name_to_aci,
+            max_width=max_width
         )
         
-        # Set alignment
-        alignment_dict = {
-            'LEFT': TextEntityAlignment.LEFT,
-            'CENTER': TextEntityAlignment.CENTER,
-            'RIGHT': TextEntityAlignment.RIGHT,
-            'ALIGNED': TextEntityAlignment.ALIGNED,
-            'MIDDLE': TextEntityAlignment.MIDDLE,
-            'FIT': TextEntityAlignment.FIT
-        }
-        
-        align_type = alignment_dict.get(alignment.upper(), TextEntityAlignment.LEFT)
-        text_entity.set_placement((x, y), align=align_type)
-        
-        # Apply additional style properties - Note: We don't pass loaded_styles here
-        apply_style_to_entity(text_entity, style, project_loader, None, item_type='text')
+        if result is None or result[0] is None:
+            log_error(f"Failed to create MTEXT entity for text '{text}'")
+            return None
+            
+        text_entity = result[0]
         
         # Attach custom data
         attach_custom_data(text_entity, script_identifier)
         
-        log_info(f"Added text '{text}' at position ({x}, {y})")
+        log_info(f"Successfully added MTEXT '{text}' at position ({x}, {y})")
         return text_entity
         
     except Exception as e:
         log_error(f"Failed to add text insert: {str(e)}")
         return None
+
+
 
 
 
