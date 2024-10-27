@@ -854,7 +854,7 @@ der Gemeinde Klein Belitz"
         operations:
           - type: wms
             url: "https://www.geodaten-mv.de/dienste/gebaeude_wms"
-            layer: "gebäude"
+            layer: "gebaeude"
             srs: "EPSG:25833"
             format: "image/png"
             targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/Gebäude"
@@ -873,6 +873,7 @@ der Gemeinde Klein Belitz"
                 grayscale: true
                 # removeText: true
             stitchTiles: true
+            overwrite: true
   - name: Torgelow
     exportFormat: dxf
     dxfVersion: R2018

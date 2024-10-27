@@ -51,6 +51,18 @@ def process_wmts_or_wms_layer(all_layers, project_settings, crs, layer_name, ope
 
     if 'wmts' in operation['type'].lower():
         wmts = WebMapTileService(service_info['url'])
+        
+        # Print available layers and their tile matrix sets
+        log_info("Available layers and their tile matrix sets:")
+        for layer_id, layer_content in wmts.contents.items():
+            print(f"Layer: {layer_id}")
+            print(f"  Title: {layer_content.title}")
+            print(f"  Tile Matrix Sets:")
+            for tms in layer_content.tilematrixsetlinks.keys():
+                print(f"    • {tms}")
+            print()
+
+        layer = wmts.contents[layer_id]
         tile_matrix = wmts.tilematrixsets[service_info['proj']].tilematrix
         available_zooms = sorted(tile_matrix.keys(), key=int)
         
