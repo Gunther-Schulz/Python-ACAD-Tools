@@ -861,8 +861,8 @@ der Gemeinde Klein Belitz"
               format: "image/png"
               styles: ""  # Optional WMS style
               # version: "1.3.0"  # WMS version
-              transparent: true
-              # bgcolor: "0xFFFFFF"
+              # transparent: true
+              bgcolor: "0xFFFFFF" # Doesn't work somehow. It's black.
               width: 512
               height: 512
             targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/Gebäude"
@@ -870,13 +870,14 @@ der Gemeinde Klein Belitz"
               - Geltungsbereich NW
               # - Geltungsbereich NO
               # - Geltungsbereich S
-            buffer: 100
+            buffer: 500
             # zoom: 10
             # overwrite: true
-            postProcess:
-                colorMap:
+            # postProcess:
+                # colorMap:
                   # "#ff0000": "#808080"  # Map red to grey
-                alphaColor: "#ffffff"  # Set white to fully transparent
+                # alphaColor: "#ffffff"  # Set white to fully transparent
+                # alphaColor: "#000000"  # Set black to fully transparent
                 # tolerance: 30  # Increased tolerance to catch similar shades
                 # grayscale: true
                 # removeText: true

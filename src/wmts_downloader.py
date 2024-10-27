@@ -309,7 +309,8 @@ def download_wms_tiles(wms_info: dict, geltungsbereich, buffer_distance: float, 
 
     srs = wms_info['srs']
     image_format = wms_info.get('format', 'image/png')
-    tile_size = wms_info.get('tileSize', 256)
+    tile_width = wms_info.get('width', 256)
+    tile_height = wms_info.get('height', 256)
     sleep = wms_info.get('sleep', 0)
     limit_requests = wms_info.get('limit', 0)
     zoom = wms_info.get('zoom')
@@ -327,11 +328,10 @@ def download_wms_tiles(wms_info: dict, geltungsbereich, buffer_distance: float, 
     minx, miny, maxx, maxy = geltungsbereich_buffered.bounds
 
     # Calculate the number of tiles needed to cover the area
-    tile_width = tile_height = tile_size
     cols = math.ceil((maxx - minx) / tile_width)
     rows = math.ceil((maxy - miny) / tile_height)
 
-    log_info(f"Downloading {rows}x{cols} tiles")
+    log_info(f"Downloading {rows}x{cols} tiles with size {tile_width}x{tile_height}")
 
     downloaded_tiles = []
     download_count = 0
@@ -355,7 +355,16 @@ def download_wms_tiles(wms_info: dict, geltungsbereich, buffer_distance: float, 
                 continue
 
             try:
-                img = wms.getmap(layers=[layer_id], srs=srs, bbox=tile_bbox, size=(tile_size, tile_size), format=image_format)
+                img = wms.getmap(
+                    layers=[layer_id], 
+                    srs=srs, 
+                    bbox=tile_bbox, 
+                    size=(tile_width, tile_height),
+                    format=image_format,
+                    transparent=wms_info.get('transparent', True),
+                    bgcolor=wms_info.get('bgcolor', '0xFFFFFF'),
+                    styles=wms_info.get('styles', '')
+                )
                 
                 if color_map or alpha_color or grayscale or remove_text:
                     pil_img = Image.open(BytesIO(img.read()))
@@ -367,9 +376,9 @@ def download_wms_tiles(wms_info: dict, geltungsbereich, buffer_distance: float, 
 
                 # Write the world file with correct georeference information
                 with open(world_file_path, 'w') as wf:
-                    wf.write(f"{tile_width / tile_size}\n")  # pixel size in the x-direction
+                    wf.write(f"{tile_width / tile_width}\n")  # pixel size in the x-direction
                     wf.write("0\n0\n")  # rotation terms (usually 0)
-                    wf.write(f"-{tile_height / tile_size}\n")  # negative pixel size in the y-direction
+                    wf.write(f"-{tile_height / tile_height}\n")  # negative pixel size in the y-direction
                     wf.write(f"{tile_minx}\n")  # x-coordinate of the center of the upper-left pixel
                     wf.write(f"{tile_maxy}\n")  # y-coordinate of the center of the upper-left pixel
 
