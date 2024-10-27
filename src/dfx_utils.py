@@ -568,6 +568,61 @@ def add_block_reference(msp, block_name, insert_point, layer_name, scale=1.0, ro
         log_warning(f"Block '{block_name}' not found in the document")
         return None
 
+def add_text_insert(msp, text_config, layer_name, script_identifier):
+    """Add text at a specific position with given properties."""
+    try:
+        # Extract text properties from config
+        text = text_config.get('text', '')
+        position = text_config.get('position', {'x': 0, 'y': 0})
+        style = text_config.get('style', {})
+        
+        # Get position coordinates
+        x = position.get('x', 0)
+        y = position.get('y', 0)
+        
+        # Extract text style properties
+        height = style.get('height', 2.5)
+        rotation = style.get('rotation', 0)
+        style_name = style.get('font', 'Standard')
+        color = style.get('color', None)
+        alignment = style.get('alignment', 'LEFT')  # Default to left alignment
+        
+        # Create text entity
+        text_entity = msp.add_text(
+            text,
+            dxfattribs={
+                'layer': layer_name,
+                'height': height,
+                'rotation': rotation,
+                'style': style_name,
+                'color': color if color is not None else ezdxf.const.BYLAYER
+            }
+        )
+        
+        # Set alignment
+        alignment_dict = {
+            'LEFT': TextEntityAlignment.LEFT,
+            'CENTER': TextEntityAlignment.CENTER,
+            'RIGHT': TextEntityAlignment.RIGHT,
+            'ALIGNED': TextEntityAlignment.ALIGNED,
+            'MIDDLE': TextEntityAlignment.MIDDLE,
+            'FIT': TextEntityAlignment.FIT
+        }
+        
+        align_type = alignment_dict.get(alignment.upper(), TextEntityAlignment.LEFT)
+        text_entity.set_placement((x, y), align=align_type)
+        
+        # Attach custom data
+        attach_custom_data(text_entity, script_identifier)
+        
+        log_info(f"Added text '{text}' at position ({x}, {y})")
+        return text_entity
+        
+    except Exception as e:
+        log_error(f"Failed to add text insert: {str(e)}")
+        return None
+
+
 
 
 

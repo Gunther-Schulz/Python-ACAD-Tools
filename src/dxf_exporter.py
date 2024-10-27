@@ -18,7 +18,7 @@ from src.dfx_utils import (add_block_reference, get_color_code, convert_transpar
                            is_created_by_script, add_text, remove_entities_by_layer, 
                            ensure_layer_exists, update_layer_properties, 
                            set_drawing_properties, verify_dxf_settings, update_layer_geometry,
-                           get_style, apply_style_to_entity, create_hatch, SCRIPT_IDENTIFIER, initialize_document, sanitize_layer_name)
+                           get_style, apply_style_to_entity, create_hatch, SCRIPT_IDENTIFIER, initialize_document, sanitize_layer_name, add_text_insert)
 from src.path_array import create_path_array
 from src.style_manager import StyleManager
 
@@ -879,6 +879,7 @@ class DXFExporter:
         log_info("Finished processing all path array configurations")
 
     def process_block_inserts(self, msp):
+        # Process block inserts
         block_inserts = self.project_settings.get('blockInserts', [])
         log_info(f"Processing {len(block_inserts)} block insert configurations")
         
@@ -911,6 +912,30 @@ class DXFExporter:
             log_info(f"Removed {removed_count} existing entities from layer: {output_layer}")
 
             self.insert_blocks_on_layer(msp, target_layer, output_layer, block_name, scale, rotation, position_config)
+
+        # Process text inserts
+        text_inserts = self.project_settings.get('textInserts', [])
+        log_info(f"Processing {len(text_inserts)} text insert configurations")
+        
+        for text_config in text_inserts:
+            output_layer = text_config.get('targetLayer')
+            update = text_config.get('update', False)
+
+            if not update:
+                log_info(f"Skipping text insert for layer '{output_layer}' as update flag is not set")
+                continue
+
+            if not output_layer:
+                log_warning(f"Invalid text insert configuration: {text_config}")
+                continue
+
+            # Create the output layer if it doesn't exist
+            if output_layer not in self.layer_properties:
+                log_info(f"Creating new layer properties for: {output_layer}")
+                self.add_layer_properties(output_layer, {})
+
+            # Add the text
+            add_text_insert(msp, text_config, output_layer, self.script_identifier)
 
         log_info("Finished processing all block insert configurations")
 
@@ -971,6 +996,7 @@ class DXFExporter:
         else:
             log_warning(f"Invalid position type '{position_type}'. Using centroid.")
             return geometry.centroid.coords[0]
+
 
 
 
