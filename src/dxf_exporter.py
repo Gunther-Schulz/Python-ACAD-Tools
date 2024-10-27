@@ -600,9 +600,10 @@ class DXFExporter:
                     else:
                         viewport.dxf.color = color
                 
-                # Update other properties if they exist in config
+                # Update view center if specified
                 if 'viewCenter' in vp_config:
-                    viewport.dxf.view_center_point = vp_config['viewCenter']
+                    view_center = vp_config['viewCenter']
+                    viewport.dxf.view_center_point = (view_center['x'], view_center['y'], 0)
                 
                 if 'customScale' in vp_config:
                     viewport.dxf.view_height = viewport.dxf.height * (1 / vp_config['customScale'])
@@ -615,17 +616,19 @@ class DXFExporter:
                 log_info(f"Updated viewport {vp_config['name']} properties")
                 
             else:
-                # Create new viewport code (existing implementation)
+                # Create new viewport
                 width = vp_config['width']
                 height = vp_config['height']
                 
                 # Calculate center coordinates based on provided position
                 if 'topLeft' in vp_config:
-                    top_left_x, top_left_y = vp_config['topLeft']
-                    center_x = top_left_x + (width / 2)
-                    center_y = top_left_y - (height / 2)
+                    top_left = vp_config['topLeft']
+                    center_x = top_left['x'] + (width / 2)
+                    center_y = top_left['y'] - (height / 2)
                 elif 'center' in vp_config:
-                    center_x, center_y = vp_config['center']
+                    center = vp_config['center']
+                    center_x = center['x']
+                    center_y = center['y']
                 else:
                     log_warning(f"No position (topLeft or center) specified for viewport {vp_config['name']}")
                     continue
@@ -640,18 +643,21 @@ class DXFExporter:
                 
                 # Calculate view center based on provided view position
                 if 'viewTopLeft' in vp_config:
-                    view_top_left_x, view_top_left_y = vp_config['viewTopLeft']
-                    view_center_x = view_top_left_x + (width * scale / 2)
-                    view_center_y = view_top_left_y - (height * scale / 2)
-                    view_center = (view_center_x, view_center_y)
+                    view_top_left = vp_config['viewTopLeft']
+                    view_center_x = view_top_left['x'] + (width * scale / 2)
+                    view_center_y = view_top_left['y'] - (height * scale / 2)
+                    view_center_point = (view_center_x, view_center_y, 0)
+                elif 'viewCenter' in vp_config:
+                    view_center = vp_config['viewCenter']
+                    view_center_point = (view_center['x'], view_center['y'], 0)
                 else:
-                    view_center = vp_config.get('viewCenter')
+                    view_center_point = None
                 
                 # Create the viewport
                 viewport = paper_space.add_viewport(
                     center=(center_x, center_y),
                     size=(width, height),
-                    view_center_point=view_center,
+                    view_center_point=view_center_point,
                     view_height=view_height
                 )
                 viewport.dxf.status = 1
@@ -1031,6 +1037,8 @@ class DXFExporter:
                 log_warning(f"Failed to add text insert for layer '{output_layer}'")
             else:
                 log_info(f"Successfully added text insert to layer '{output_layer}'")
+
+
 
 
 

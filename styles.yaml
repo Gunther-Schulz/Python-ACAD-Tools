@@ -2,12 +2,12 @@ styles:
 
   mainTitle:
     text:
-      height: 5.0
+      height: 11.0
       font: "Arial"
       color: "white"
       alignment: "LEFT"
-      width: 100  # Maximum width before text wrapping
-      # attachment_point: "MIDDLE_LEFT"  # MTEXT specific alignment
+      width: 700  # Maximum width before text wrapping
+      attachment_point: "TOP_LEFT"  # MTEXT specific alignment
 
 # viewport:
 #   layer:

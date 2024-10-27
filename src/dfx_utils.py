@@ -612,14 +612,32 @@ def add_text_insert(msp, text_config, layer_name, project_loader, script_identif
         height = style.get('height', 2.5)
         rotation = style.get('rotation', 0)
         style_name = style.get('font', 'Standard')
-        max_width = style.get('width', None)  # Add max width support for MTEXT
+        max_width = style.get('width', None)
+        
+        # Convert attachment point
+        attachment_dict = {
+            'TOP_LEFT': MTEXT_TOP_LEFT,
+            'TOP_CENTER': MTEXT_TOP_CENTER,
+            'TOP_RIGHT': MTEXT_TOP_RIGHT,
+            'MIDDLE_LEFT': MTEXT_MIDDLE_LEFT,
+            'MIDDLE_CENTER': MTEXT_MIDDLE_CENTER,
+            'MIDDLE_RIGHT': MTEXT_MIDDLE_RIGHT,
+            'BOTTOM_LEFT': MTEXT_BOTTOM_LEFT,
+            'BOTTOM_CENTER': MTEXT_BOTTOM_CENTER,
+            'BOTTOM_RIGHT': MTEXT_BOTTOM_RIGHT
+        }
+        
+        attachment = attachment_dict.get(
+            style.get('attachment_point', 'TOP_LEFT').upper(),
+            MTEXT_TOP_LEFT
+        )
         
         # Convert color using get_color_code
         color = get_color_code(style.get('color'), project_loader.name_to_aci)
         
         log_info(f"Adding MTEXT '{text}' to layer '{layer_name}' at ({x}, {y})")
         
-        # Use add_mtext instead of add_text
+        # Use add_mtext with correct attachment point
         result = add_mtext(
             space,
             text,
@@ -627,7 +645,10 @@ def add_text_insert(msp, text_config, layer_name, project_loader, script_identif
             y,
             layer_name,
             style_name,
-            text_style=style,
+            text_style={
+                **style,
+                'attachment_point': attachment  # Pass the numeric constant
+            },
             name_to_aci=project_loader.name_to_aci,
             max_width=max_width
         )
@@ -647,6 +668,7 @@ def add_text_insert(msp, text_config, layer_name, project_loader, script_identif
     except Exception as e:
         log_error(f"Failed to add text insert: {str(e)}")
         return None
+
 
 
 
