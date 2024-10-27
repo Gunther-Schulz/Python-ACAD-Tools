@@ -255,7 +255,7 @@ projects:
               blockSymbolScale: 1.4
             - name: "Bemaßung in Meter"
               type: empty
-              blockSymbol: "Bemaßung"
+              blockSymbol: "Bemassung2"
         - name: "Nachrichtliche Übernahme"
           update: true
           items:
@@ -319,25 +319,31 @@ projects:
           y: -20
     viewports:
       - name: MainView
-        top_left: [65, 776.5]
+        update: true
+        color: "magenta"
+        topLeft: [65, 776.5]
         width: 720
         height: 653
-        view_center: [356027, 5935564] 
+        viewCenter: [356027, 5935564] 
         # scale: 2
-        custom_scale: 0.5
-        lock_zoom: true
-      # - name: WorkView
-      #   center: [780, 2000]
-      #   width: 720
-      #   height: 653
+        customScale: 0.5
+        # lockZoom: true
       - name: LegendView
-        top_left: [817, 842]
+        update: true
+        color: "magenta"
+        topLeft: [817, 842]
         width: 180
-        height: 500
-        view_center: [356027, 5935564] 
+        height: 700
+        viewTopLeft: [367838, 5942625]
         # scale: 2
-        # custom_scale: 0.5
-        # lock_zoom: true
+        # customScale: 0.5
+        # lockZoom: true
+      - name: WorkView
+        update: true
+        color: "magenta"
+        center: [780, 2000]
+        width: 720
+        height: 653
     # reports:
     #   - name: Anteilige Flurstücksgrößen innerhalb Geltungsbereich Nordwesten in Plasten
     #     type: area

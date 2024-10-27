@@ -97,7 +97,6 @@ def attach_custom_data(entity, script_identifier):
             xdata_set = True
     except ezdxf.lldxf.const.DXFValueError:
         # This exception is raised when the XDATA application ID doesn't exist
-        # We can safely add the XDATA in this case
         entity.set_xdata(
             'DXFEXPORTER',
             [
@@ -112,7 +111,7 @@ def attach_custom_data(entity, script_identifier):
     except Exception as e:
         log_error(f"Error setting XDATA for entity {entity.dxftype()}: {str(e)}")
 
-    # Set hyperlink
+    # Set hyperlink for all entities that support it
     if hasattr(entity, 'set_hyperlink'):
         try:
             existing_hyperlink = entity.get_hyperlink()
@@ -568,6 +567,8 @@ def add_block_reference(msp, block_name, insert_point, layer_name, scale=1.0, ro
     else:
         log_warning(f"Block '{block_name}' not found in the document")
         return None
+
+
 
 
 

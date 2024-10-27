@@ -573,67 +573,112 @@ class DXFExporter:
     def create_viewports(self, doc, msp):
         log_info("Creating viewports...")
         paper_space = doc.paperspace()
+        
+        # Ensure VIEWPORTS layer exists and set it to not plot
+        if 'VIEWPORTS' not in doc.layers:
+            doc.layers.new('VIEWPORTS')
+        viewports_layer = doc.layers.get('VIEWPORTS')
+        viewports_layer.dxf.plot = 0  # Set to not plot
+        
         for vp_config in self.project_settings.get('viewports', []):
+            # Check update flag - skip if not set to True
+            if not vp_config.get('update', False):
+                log_info(f"Skipping viewport {vp_config.get('name', 'unnamed')} as update flag is not set")
+                continue
+
             existing_viewport = self.get_viewport_by_name(doc, vp_config['name'])
             if existing_viewport:
                 log_info(f"Viewport {vp_config['name']} already exists. Updating properties.")
                 viewport = existing_viewport
+                
+                # Update existing viewport properties
+                if 'color' in vp_config:
+                    color = get_color_code(vp_config['color'], self.name_to_aci)
+                    if isinstance(color, tuple):
+                        viewport.rgb = color
+                    else:
+                        viewport.dxf.color = color
+                
+                # Update other properties if they exist in config
+                if 'viewCenter' in vp_config:
+                    viewport.dxf.view_center_point = vp_config['viewCenter']
+                
+                if 'customScale' in vp_config:
+                    viewport.dxf.view_height = viewport.dxf.height * (1 / vp_config['customScale'])
+                elif 'scale' in vp_config:
+                    viewport.dxf.view_height = viewport.dxf.height * vp_config['scale']
+                
+                if vp_config.get('lockZoom', False):
+                    viewport.dxf.flags = viewport.dxf.flags | 1
+                
+                log_info(f"Updated viewport {vp_config['name']} properties")
+                
             else:
-                # Use the top-left coordinates and calculate center
-                top_left_x, top_left_y = vp_config['top_left']
+                # Create new viewport code (existing implementation)
                 width = vp_config['width']
                 height = vp_config['height']
                 
-                # Calculate center coordinates from top-left position
-                center_x = top_left_x + (width / 2)
-                center_y = top_left_y - (height / 2)
-                
+                # Calculate center coordinates based on provided position
+                if 'topLeft' in vp_config:
+                    top_left_x, top_left_y = vp_config['topLeft']
+                    center_x = top_left_x + (width / 2)
+                    center_y = top_left_y - (height / 2)
+                elif 'center' in vp_config:
+                    center_x, center_y = vp_config['center']
+                else:
+                    log_warning(f"No position (topLeft or center) specified for viewport {vp_config['name']}")
+                    continue
+
                 # Handle both standard scale and custom scale
-                if 'custom_scale' in vp_config:
-                    scale = 1 / vp_config['custom_scale']
+                if 'customScale' in vp_config:
+                    scale = 1 / vp_config['customScale']
                 else:
                     scale = vp_config.get('scale', 1.0)
-                    
+                
                 view_height = height * scale
                 
-                # Create the viewport using calculated center
+                # Calculate view center based on provided view position
+                if 'viewTopLeft' in vp_config:
+                    view_top_left_x, view_top_left_y = vp_config['viewTopLeft']
+                    view_center_x = view_top_left_x + (width * scale / 2)
+                    view_center_y = view_top_left_y - (height * scale / 2)
+                    view_center = (view_center_x, view_center_y)
+                else:
+                    view_center = vp_config.get('viewCenter')
+                
+                # Create the viewport
                 viewport = paper_space.add_viewport(
                     center=(center_x, center_y),
                     size=(width, height),
-                    view_center_point=vp_config['view_center'],
+                    view_center_point=view_center,
                     view_height=view_height
                 )
                 viewport.dxf.status = 1
                 viewport.dxf.layer = 'VIEWPORTS'
                 
-                if vp_config.get('lock_zoom', False):
-                    viewport.dxf.flags = viewport.dxf.flags | 1
+                # Set viewport color if specified
+                if 'color' in vp_config:
+                    color = get_color_code(vp_config['color'], self.name_to_aci)
+                    if isinstance(color, tuple):
+                        viewport.rgb = color
+                    else:
+                        viewport.dxf.color = color
                 
-                viewport.set_xdata(
-                    'DXFEXPORTER',
-                    [
-                        (1000, self.script_identifier),
-                        (1002, '{'),
-                        (1000, 'VIEWPORT_NAME'),
-                        (1000, vp_config['name']),
-                        (1002, '}')
-                    ]
-                )
-            
-            # Update the view center point to the specified model space coordinate
-            if 'view_center' in vp_config:
-                viewport.dxf.view_center_point = (vp_config['view_center'][0], vp_config['view_center'][1])
-                log_info(f"Updated view center for viewport {vp_config['name']} to {viewport.dxf.view_center_point}")
-            
-            # Update the scale if it's specified
-            if 'scale' in vp_config:
-                viewport.dxf.view_height = viewport.dxf.height * vp_config['scale']
-                log_info(f"Updated scale for viewport {vp_config['name']} to 1:{vp_config['scale']}")
-            
-            # Lock the viewport zoom if specified
-            if vp_config.get('lock_zoom', False):
-                viewport.set_flag_state(const.VSF_LOCK_ZOOM, state=True)
-                log_info(f"Locked zoom for viewport {vp_config['name']}")
+                if vp_config.get('lockZoom', False):
+                    viewport.dxf.flags = viewport.dxf.flags | 1
+
+            # Attach custom data and identifier for both new and existing viewports
+            self.attach_custom_data(viewport)
+            viewport.set_xdata(
+                'DXFEXPORTER',
+                [
+                    (1000, self.script_identifier),
+                    (1002, '{'),
+                    (1000, 'VIEWPORT_NAME'),
+                    (1000, vp_config['name']),
+                    (1002, '}')
+                ]
+            )
             
             self.viewports[vp_config['name']] = viewport
             log_info(f"Viewport {vp_config['name']} processed")
@@ -926,6 +971,11 @@ class DXFExporter:
         else:
             log_warning(f"Invalid position type '{position_type}'. Using centroid.")
             return geometry.centroid.coords[0]
+
+
+
+
+
 
 
 

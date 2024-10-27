@@ -1,4 +1,10 @@
 styles:
+
+# viewport:
+#   layer:
+#     color: "magenta"
+#     plot: false
+
 # Administrative Boundaries
 # ------------------------
 
