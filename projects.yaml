@@ -821,22 +821,22 @@ der Gemeinde Klein Belitz"
             buffer: 200
             stitchTiles: true
             # overwrite: true
-      - name: WMTS Basemap
-        update: true
-        color: white
-        locked: true
-        operations:
-          - type: wmts
-            url: "https://sgx.geodatenzentrum.de/wmts_basemapde/1.0.0/WMTSCapabilities.xml"
-            layer: "de_basemapde_web_raster_farbe"
-            zoom: "10"
-            proj: "DE_EPSG_25833_ADV"
-            targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/Basemap"
-            layers:
-              - Geltungsbereich NW
-              - Geltungsbereich NO
-              - Geltungsbereich S
-            buffer: 200
+      # - name: WMTS Basemap
+      #   update: true
+      #   color: white
+      #   locked: true
+      #   operations:
+      #     - type: wmts
+      #       url: "https://sgx.geodatenzentrum.de/wmts_basemapde/1.0.0/WMTSCapabilities.xml"
+      #       layer: "de_basemapde_web_raster_farbe"
+      #       zoom: "10"
+      #       proj: "DE_EPSG_25833_ADV"
+      #       targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/Basemap"
+      #       layers:
+      #         - Geltungsbereich NW
+      #         - Geltungsbereich NO
+      #         - Geltungsbereich S
+      #       buffer: 200
       # - name: Contour
       #   update: true
       #   style:
@@ -853,7 +853,7 @@ der Gemeinde Klein Belitz"
         update: true
         operations:
           - type: wms
-            url: "https://www.geodaten-mv.de/dienste/gebäude_wms"
+            url: "https://www.geodaten-mv.de/dienste/gebaeude_wms"
             layer: "gebäude"
             srs: "EPSG:25833"
             format: "image/png"
