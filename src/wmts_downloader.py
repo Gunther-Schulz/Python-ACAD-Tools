@@ -332,8 +332,8 @@ def download_wms_tiles(wms_info: dict, geltungsbereich, buffer_distance: float, 
     tile_height = wms_info.get('height', 256)
     sleep = wms_info.get('sleep', 0)
     limit_requests = wms_info.get('limit', 0)
-    zoom = wms_info.get('zoom')
-
+    # Remove zoom reference here
+    
     post_process = wms_info.get('postProcess', {})
     color_map = post_process.get('colorMap', {})
     alpha_color = post_process.get('alphaColor')
@@ -558,6 +558,7 @@ def group_connected_tiles(tiles):
             groups.append(group)
 
     return groups
+
 
 
 
