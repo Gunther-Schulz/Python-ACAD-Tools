@@ -8,6 +8,7 @@ import geopandas as gpd
 import os
 from ezdxf.lldxf.const import LWPOLYLINE_PLINEGEN
 from ezdxf import pattern
+from ezdxf import const
 
 
 
@@ -619,6 +620,11 @@ class DXFExporter:
                 viewport.dxf.view_height = viewport.dxf.height * vp_config['scale']
                 log_info(f"Updated scale for viewport {vp_config['name']} to 1:{vp_config['scale']}")
             
+            # Lock the viewport zoom if specified
+            if vp_config.get('lock_zoom', False):
+                viewport.set_flag_state(const.VSF_LOCK_ZOOM, state=True)
+                log_info(f"Locked zoom for viewport {vp_config['name']}")
+            
             self.viewports[vp_config['name']] = viewport
             log_info(f"Viewport {vp_config['name']} processed")
         
@@ -910,6 +916,10 @@ class DXFExporter:
         else:
             log_warning(f"Invalid position type '{position_type}'. Using centroid.")
             return geometry.centroid.coords[0]
+
+
+
+
 
 
 

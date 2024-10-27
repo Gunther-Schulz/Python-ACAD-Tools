@@ -282,6 +282,7 @@ projects:
               blockSymbolScale: 1.4
     pathArrays:
       - name: "Schutzflächeumgrenzung T-Symbol Array"
+        update: true
         sourceLayer: "Schutzflächeumgrenzung T-Symbol Temp"
         block: "T-Symbol"
         spacing: 7
@@ -323,6 +324,7 @@ projects:
         height: 653
         view_center: [356027, 5935564] 
         scale: 2
+        lock_zoom: true
       # - name: WorkView
       #   center: [780, 2000]
       #   width: 720
