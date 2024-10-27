@@ -857,6 +857,7 @@ der Gemeinde Klein Belitz"
             layer: "gebaeude"
             srs: "EPSG:25833"
             format: "image/png"
+            imageTransparency: true # Enable background transparency
             targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/Gebäude"
             layers:
               - Geltungsbereich NW
@@ -867,10 +868,10 @@ der Gemeinde Klein Belitz"
             # overwrite: true
             postProcess:
                 colorMap:
-                  "#ff0000": "#808080"  # Map red to grey
+                  # "#ff0000": "#808080"  # Map red to grey
                 alphaColor: "#ffffff"  # Set white to fully transparent
                 # tolerance: 30  # Increased tolerance to catch similar shades
-                grayscale: true
+                # grayscale: true
                 # removeText: true
             stitchTiles: true
             # overwrite: true
