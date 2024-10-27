@@ -1,4 +1,19 @@
 styles:
+
+  mainTitle:
+    text:
+      height: 11.0
+      font: "Arial"
+      color: "white"
+      alignment: "LEFT"
+      width: 700  # Maximum width before text wrapping
+      attachment_point: "TOP_LEFT"  # MTEXT specific alignment
+
+# viewport:
+#   layer:
+#     color: "magenta"
+#     plot: false
+
 # Administrative Boundaries
 # ------------------------
 

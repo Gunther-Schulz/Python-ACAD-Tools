@@ -18,7 +18,7 @@ from src.dfx_utils import (add_block_reference, get_color_code, convert_transpar
                            is_created_by_script, add_text, remove_entities_by_layer, 
                            ensure_layer_exists, update_layer_properties, 
                            set_drawing_properties, verify_dxf_settings, update_layer_geometry,
-                           get_style, apply_style_to_entity, create_hatch, SCRIPT_IDENTIFIER, initialize_document, sanitize_layer_name)
+                           get_style, apply_style_to_entity, create_hatch, SCRIPT_IDENTIFIER, initialize_document, sanitize_layer_name, add_text_insert)
 from src.path_array import create_path_array
 from src.style_manager import StyleManager
 
@@ -96,7 +96,8 @@ class DXFExporter:
         legend_creator = LegendCreator(doc, msp, self.project_loader, self.loaded_styles)
         legend_creator.create_legend()
         self.create_path_arrays(msp)
-        self.process_block_inserts(msp)  # Move this line before _cleanup_and_save
+        self.process_block_inserts(msp)
+        self.process_text_inserts(msp)  # Add this line
         self._cleanup_and_save(doc, msp)
 
     def _prepare_dxf_document(self):
@@ -573,57 +574,118 @@ class DXFExporter:
     def create_viewports(self, doc, msp):
         log_info("Creating viewports...")
         paper_space = doc.paperspace()
+        
+        # Ensure VIEWPORTS layer exists and set it to not plot
+        if 'VIEWPORTS' not in doc.layers:
+            doc.layers.new('VIEWPORTS')
+        viewports_layer = doc.layers.get('VIEWPORTS')
+        viewports_layer.dxf.plot = 0  # Set to not plot
+        
         for vp_config in self.project_settings.get('viewports', []):
+            # Check update flag - skip if not set to True
+            if not vp_config.get('update', False):
+                log_info(f"Skipping viewport {vp_config.get('name', 'unnamed')} as update flag is not set")
+                continue
+
             existing_viewport = self.get_viewport_by_name(doc, vp_config['name'])
             if existing_viewport:
                 log_info(f"Viewport {vp_config['name']} already exists. Updating properties.")
                 viewport = existing_viewport
+                
+                # Update existing viewport properties
+                if 'color' in vp_config:
+                    color = get_color_code(vp_config['color'], self.name_to_aci)
+                    if isinstance(color, tuple):
+                        viewport.rgb = color
+                    else:
+                        viewport.dxf.color = color
+                
+                # Update view center if specified
+                if 'viewCenter' in vp_config:
+                    view_center = vp_config['viewCenter']
+                    viewport.dxf.view_center_point = (view_center['x'], view_center['y'], 0)
+                
+                if 'customScale' in vp_config:
+                    viewport.dxf.view_height = viewport.dxf.height * (1 / vp_config['customScale'])
+                elif 'scale' in vp_config:
+                    viewport.dxf.view_height = viewport.dxf.height * vp_config['scale']
+                
+                if vp_config.get('lockZoom', False):
+                    viewport.dxf.flags = viewport.dxf.flags | 1
+                
+                log_info(f"Updated viewport {vp_config['name']} properties")
+                
             else:
-                # Use the center coordinates from the configuration
-                center_x, center_y = vp_config['center']
+                # Create new viewport
                 width = vp_config['width']
                 height = vp_config['height']
-                scale = vp_config.get('scale', 1.0)  # Default scale is 1.0 if not specified
                 
-                # Calculate the view height based on the scale
+                # Calculate center coordinates based on provided position
+                if 'topLeft' in vp_config:
+                    top_left = vp_config['topLeft']
+                    center_x = top_left['x'] + (width / 2)
+                    center_y = top_left['y'] - (height / 2)
+                elif 'center' in vp_config:
+                    center = vp_config['center']
+                    center_x = center['x']
+                    center_y = center['y']
+                else:
+                    log_warning(f"No position (topLeft or center) specified for viewport {vp_config['name']}")
+                    continue
+
+                # Handle both standard scale and custom scale
+                if 'customScale' in vp_config:
+                    scale = 1 / vp_config['customScale']
+                else:
+                    scale = vp_config.get('scale', 1.0)
+                
                 view_height = height * scale
+                
+                # Calculate view center based on provided view position
+                if 'viewTopLeft' in vp_config:
+                    view_top_left = vp_config['viewTopLeft']
+                    view_center_x = view_top_left['x'] + (width * scale / 2)
+                    view_center_y = view_top_left['y'] - (height * scale / 2)
+                    view_center_point = (view_center_x, view_center_y, 0)
+                elif 'viewCenter' in vp_config:
+                    view_center = vp_config['viewCenter']
+                    view_center_point = (view_center['x'], view_center['y'], 0)
+                else:
+                    view_center_point = None
                 
                 # Create the viewport
                 viewport = paper_space.add_viewport(
                     center=(center_x, center_y),
                     size=(width, height),
-                    view_center_point=(0, 0),  # This will be updated later
+                    view_center_point=view_center_point,
                     view_height=view_height
                 )
-                viewport.dxf.status = 1  # Activate the viewport
+                viewport.dxf.status = 1
                 viewport.dxf.layer = 'VIEWPORTS'
                 
-                # Store the viewport name as XDATA
-                viewport.set_xdata(
-                    'DXFEXPORTER',
-                    [
-                        (1000, self.script_identifier),
-                        (1002, '{'),
-                        (1000, 'VIEWPORT_NAME'),
-                        (1000, vp_config['name']),
-                        (1002, '}')
-                    ]
-                )
-            
-            # Update the view center point to the specified model space coordinate
-            if 'view_center' in vp_config:
-                viewport.dxf.view_center_point = (vp_config['view_center'][0], vp_config['view_center'][1])
-                log_info(f"Updated view center for viewport {vp_config['name']} to {viewport.dxf.view_center_point}")
-            
-            # Update the scale if it's specified
-            if 'scale' in vp_config:
-                viewport.dxf.view_height = viewport.dxf.height * vp_config['scale']
-                log_info(f"Updated scale for viewport {vp_config['name']} to 1:{vp_config['scale']}")
-            
-            # Lock the viewport zoom if specified
-            if vp_config.get('lock_zoom', False):
-                viewport.set_flag_state(const.VSF_LOCK_ZOOM, state=True)
-                log_info(f"Locked zoom for viewport {vp_config['name']}")
+                # Set viewport color if specified
+                if 'color' in vp_config:
+                    color = get_color_code(vp_config['color'], self.name_to_aci)
+                    if isinstance(color, tuple):
+                        viewport.rgb = color
+                    else:
+                        viewport.dxf.color = color
+                
+                if vp_config.get('lockZoom', False):
+                    viewport.dxf.flags = viewport.dxf.flags | 1
+
+            # Attach custom data and identifier for both new and existing viewports
+            self.attach_custom_data(viewport)
+            viewport.set_xdata(
+                'DXFEXPORTER',
+                [
+                    (1000, self.script_identifier),
+                    (1002, '{'),
+                    (1000, 'VIEWPORT_NAME'),
+                    (1000, vp_config['name']),
+                    (1002, '}')
+                ]
+            )
             
             self.viewports[vp_config['name']] = viewport
             log_info(f"Viewport {vp_config['name']} processed")
@@ -824,6 +886,7 @@ class DXFExporter:
         log_info("Finished processing all path array configurations")
 
     def process_block_inserts(self, msp):
+        # Process block inserts
         block_inserts = self.project_settings.get('blockInserts', [])
         log_info(f"Processing {len(block_inserts)} block insert configurations")
         
@@ -856,6 +919,30 @@ class DXFExporter:
             log_info(f"Removed {removed_count} existing entities from layer: {output_layer}")
 
             self.insert_blocks_on_layer(msp, target_layer, output_layer, block_name, scale, rotation, position_config)
+
+        # Process text inserts
+        text_inserts = self.project_settings.get('textInserts', [])
+        log_info(f"Processing {len(text_inserts)} text insert configurations")
+        
+        for text_config in text_inserts:
+            output_layer = text_config.get('targetLayer')
+            update = text_config.get('update', False)
+
+            if not update:
+                log_info(f"Skipping text insert for layer '{output_layer}' as update flag is not set")
+                continue
+
+            if not output_layer:
+                log_warning(f"Invalid text insert configuration: {text_config}")
+                continue
+
+            # Create the output layer if it doesn't exist
+            if output_layer not in self.layer_properties:
+                log_info(f"Creating new layer properties for: {output_layer}")
+                self.add_layer_properties(output_layer, {})
+
+            # Add the text
+            add_text_insert(msp, text_config, output_layer, self.project_loader, self.script_identifier)
 
         log_info("Finished processing all block insert configurations")
 
@@ -916,6 +1003,53 @@ class DXFExporter:
         else:
             log_warning(f"Invalid position type '{position_type}'. Using centroid.")
             return geometry.centroid.coords[0]
+
+    def process_text_inserts(self, msp):
+        """Process text insert configurations."""
+        text_inserts = self.project_settings.get('textInserts', [])
+        log_info(f"Processing {len(text_inserts)} text insert configurations")
+        
+        for text_config in text_inserts:
+            output_layer = text_config.get('targetLayer')
+            if not output_layer:
+                log_warning(f"Invalid text insert configuration: {text_config}")
+                continue
+
+            # Sanitize layer name
+            output_layer = sanitize_layer_name(output_layer)
+
+            # Create the output layer if it doesn't exist
+            if output_layer not in self.layer_properties:
+                log_info(f"Creating new layer properties for: {output_layer}")
+                self.add_layer_properties(output_layer, {})
+                ensure_layer_exists(msp.doc, output_layer, self.layer_properties[output_layer], self.name_to_aci)
+
+            # Process the text insert
+            result = add_text_insert(
+                msp,
+                text_config,
+                output_layer,
+                self.project_loader,
+                self.script_identifier
+            )
+            
+            if result is None:
+                log_warning(f"Failed to add text insert for layer '{output_layer}'")
+            else:
+                log_info(f"Successfully added text insert to layer '{output_layer}'")
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

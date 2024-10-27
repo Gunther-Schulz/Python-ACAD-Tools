@@ -97,7 +97,6 @@ def attach_custom_data(entity, script_identifier):
             xdata_set = True
     except ezdxf.lldxf.const.DXFValueError:
         # This exception is raised when the XDATA application ID doesn't exist
-        # We can safely add the XDATA in this case
         entity.set_xdata(
             'DXFEXPORTER',
             [
@@ -112,7 +111,7 @@ def attach_custom_data(entity, script_identifier):
     except Exception as e:
         log_error(f"Error setting XDATA for entity {entity.dxftype()}: {str(e)}")
 
-    # Set hyperlink
+    # Set hyperlink for all entities that support it
     if hasattr(entity, 'set_hyperlink'):
         try:
             existing_hyperlink = entity.get_hyperlink()
@@ -568,6 +567,115 @@ def add_block_reference(msp, block_name, insert_point, layer_name, scale=1.0, ro
     else:
         log_warning(f"Block '{block_name}' not found in the document")
         return None
+
+def add_text_insert(msp, text_config, layer_name, project_loader, script_identifier):
+    """Add text at a specific position with given properties."""
+    try:
+        # Check update flag
+        if not text_config.get('update', False):
+            log_info(f"Skipping text insert for layer '{layer_name}' as update flag is not set")
+            return None
+
+        # Sanitize layer name
+        layer_name = sanitize_layer_name(layer_name)
+        
+        # Get the correct space (model or paper)
+        doc = msp.doc
+        space = doc.paperspace() if text_config.get('paperspace', False) else doc.modelspace()
+        
+        # Ensure layer exists
+        ensure_layer_exists(doc, layer_name, {}, project_loader.name_to_aci)
+
+        # Remove existing text entities if updating
+        remove_entities_by_layer(space, layer_name, script_identifier)
+
+        # Extract text properties from config
+        text = text_config.get('text', '')
+        position = text_config.get('position', {'x': 0, 'y': 0})
+        style = text_config.get('style', {})
+        
+        # Handle style presets
+        if isinstance(style, str):
+            style = project_loader.get_style(style)
+            if style is None:
+                log_warning(f"Style preset '{style}' not found. Using default style.")
+                style = {}
+            # If style contains a text section, use that
+            if isinstance(style, dict) and 'text' in style:
+                style = style['text']
+        
+        # Get position coordinates
+        x = position.get('x', 0)
+        y = position.get('y', 0)
+        
+        # Extract text style properties
+        height = style.get('height', 2.5)
+        rotation = style.get('rotation', 0)
+        style_name = style.get('font', 'Standard')
+        max_width = style.get('width', None)
+        
+        # Convert attachment point
+        attachment_dict = {
+            'TOP_LEFT': MTEXT_TOP_LEFT,
+            'TOP_CENTER': MTEXT_TOP_CENTER,
+            'TOP_RIGHT': MTEXT_TOP_RIGHT,
+            'MIDDLE_LEFT': MTEXT_MIDDLE_LEFT,
+            'MIDDLE_CENTER': MTEXT_MIDDLE_CENTER,
+            'MIDDLE_RIGHT': MTEXT_MIDDLE_RIGHT,
+            'BOTTOM_LEFT': MTEXT_BOTTOM_LEFT,
+            'BOTTOM_CENTER': MTEXT_BOTTOM_CENTER,
+            'BOTTOM_RIGHT': MTEXT_BOTTOM_RIGHT
+        }
+        
+        attachment = attachment_dict.get(
+            style.get('attachment_point', 'TOP_LEFT').upper(),
+            MTEXT_TOP_LEFT
+        )
+        
+        # Convert color using get_color_code
+        color = get_color_code(style.get('color'), project_loader.name_to_aci)
+        
+        log_info(f"Adding MTEXT '{text}' to layer '{layer_name}' at ({x}, {y})")
+        
+        # Use add_mtext with correct attachment point
+        result = add_mtext(
+            space,
+            text,
+            x,
+            y,
+            layer_name,
+            style_name,
+            text_style={
+                **style,
+                'attachment_point': attachment  # Pass the numeric constant
+            },
+            name_to_aci=project_loader.name_to_aci,
+            max_width=max_width
+        )
+        
+        if result is None or result[0] is None:
+            log_error(f"Failed to create MTEXT entity for text '{text}'")
+            return None
+            
+        text_entity = result[0]
+        
+        # Attach custom data
+        attach_custom_data(text_entity, script_identifier)
+        
+        log_info(f"Successfully added MTEXT '{text}' at position ({x}, {y})")
+        return text_entity
+        
+    except Exception as e:
+        log_error(f"Failed to add text insert: {str(e)}")
+        return None
+
+
+
+
+
+
+
+
 
 
 
