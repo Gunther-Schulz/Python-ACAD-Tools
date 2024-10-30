@@ -1055,13 +1055,13 @@ der Gemeinde Klein Belitz"
               - Geltungsbereich
           - type: filterGeometry
             minArea: 200
-      - name: Grünflächeinput
-        update: true
+      - name: Grünflächeinput 1
+        # update: true
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/input/grünfläche.shp"
-      - name: Temp Grünfl
+      - name: Grünflächeinput 2
         update: true
         operations:
-          - type: filter
+          - type: copy
             layers:
               - name: Parcel
                 values:
@@ -1069,8 +1069,17 @@ der Gemeinde Klein Belitz"
                   - "99"
                   - "100"
                   - "101"
-                  - "102"
-                  # - "103"
+                  - "102" 
+          - type: filter
+            layers:
+              # - name: Parcel
+              #   values:
+              #     - "97"
+              #     - "99"
+              #     - "100"
+              #     - "101"
+              #     - "102"
+              #     # - "103"
               - name: Flur
                 values:
                   - Flur 2
@@ -1086,18 +1095,19 @@ der Gemeinde Klein Belitz"
         operations:
           - type: dissolve
             layers:
-              - Grünflächeinput
-              - Temp Grünfl
-              - Wald Abstand
+              - Grünflächeinput 1
+              - Grünflächeinput 2
+              - Waldabstand
           - type: difference
             layers:
               - Weg Abstand
+              - Waldabstand
           - type: intersection
             layers:
               - Geltungsbereich
           - type: buffer
-            distance: -5
-            mode: keep # Keeps both the original geometries and the buffered ones
+            distance: -3
+          #   mode: keep # Keeps both the original geometries and the buffered ones
       # - name: Baufeld
       #   update: true
       #   color: "Light Red"
