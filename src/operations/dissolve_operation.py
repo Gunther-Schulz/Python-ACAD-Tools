@@ -51,31 +51,28 @@ def create_dissolved_layer(all_layers, project_settings, crs, layer_name, operat
         if dissolve_field and dissolve_field in combined_gdf.columns:
             dissolved = gpd.GeoDataFrame(geometry=combined_gdf.geometry, data=combined_gdf[dissolve_field]).dissolve(by=dissolve_field, as_index=False)
         else:
-            # First pass
+            # First pass - complete dissolve process
             dissolved = gpd.GeoDataFrame(geometry=[unary_union(combined_gdf.geometry)])
-            # Second pass if enabled
-            if double_pass:
-                dissolved = gpd.GeoDataFrame(geometry=[unary_union(dissolved.geometry)])
-
-        # Clean up the resulting geometry and explode to singlepart
-        if make_valid:
-            dissolved.geometry = dissolved.geometry.make_valid()
-        dissolved = dissolved[~dissolved.is_empty]
-        dissolved = explode_to_singlepart(dissolved)
-
-        if use_buffer_trick:
-            if merge_vertices:
-                # Merge vertices again before negative buffer
-                dissolved.geometry = dissolved.geometry.apply(
-                    lambda geom: _merge_close_vertices(all_layers, project_settings, crs, geom, tolerance=merge_vertices_tolerance)
-                )
-                dissolved = dissolved[dissolved.geometry.notna()]
-            # Apply negative buffer
-            dissolved.geometry = apply_buffer_trick(dissolved.geometry, -buffer_distance)
             if make_valid:
-                dissolved.geometry = dissolved.geometry.apply(make_valid_geometry)
-                dissolved = dissolved[dissolved.geometry.notna()]
-        
+                dissolved.geometry = dissolved.geometry.make_valid()
+            dissolved = dissolved[~dissolved.is_empty]
+            dissolved = explode_to_singlepart(dissolved)
+            
+            # Second pass if enabled - run the entire process again
+            if double_pass:
+                if use_buffer_trick:
+                    dissolved.geometry = apply_buffer_trick(dissolved.geometry, buffer_distance)
+                dissolved = gpd.GeoDataFrame(geometry=[unary_union(dissolved.geometry)])
+                if make_valid:
+                    dissolved.geometry = dissolved.geometry.make_valid()
+                dissolved = dissolved[~dissolved.is_empty]
+                dissolved = explode_to_singlepart(dissolved)
+                if use_buffer_trick:
+                    dissolved.geometry = apply_buffer_trick(dissolved.geometry, -buffer_distance)
+                    if make_valid:
+                        dissolved.geometry = dissolved.geometry.apply(make_valid_geometry)
+                        dissolved = dissolved[dissolved.geometry.notna()]
+
         # Remove empty geometries after processing
         dissolved = dissolved[~dissolved.geometry.is_empty]
 
