@@ -97,7 +97,7 @@ class DXFExporter:
         legend_creator.create_legend()
         self.create_path_arrays(msp)
         self.process_block_inserts(msp)
-        self.process_text_inserts(msp)  # Add this line
+        self.process_text_inserts(msp)  # Call text inserts separately
         self._cleanup_and_save(doc, msp)
 
     def _prepare_dxf_document(self):
@@ -938,42 +938,6 @@ class DXFExporter:
 
             self.insert_blocks_on_layer(msp, target_layer, output_layer, block_name, scale, rotation, position_config)
 
-        # Process text inserts
-        text_inserts = self.project_settings.get('textInserts', [])
-        log_info(f"Processing {len(text_inserts)} text insert configurations")
-        
-        for text_config in text_inserts:
-            output_layer = text_config.get('targetLayer')
-            updateDxf = text_config.get('updateDxf', False)  # Default to False
-
-            if not updateDxf:
-                log_info(f"Skipping text insert for layer '{output_layer}' as updateDxf flag is not set")
-                continue
-
-            if not output_layer:
-                log_warning(f"Invalid text insert configuration: {text_config}")
-                continue
-
-            # Create the output layer if it doesn't exist
-            if output_layer not in self.layer_properties:
-                log_info(f"Creating new layer properties for: {output_layer}")
-                self.add_layer_properties(output_layer, {})
-                ensure_layer_exists(msp.doc, output_layer, self.layer_properties[output_layer], self.name_to_aci)
-
-            # Process the text insert
-            result = add_text_insert(
-                msp,
-                text_config,
-                output_layer,
-                self.project_loader,
-                self.script_identifier
-            )
-            
-            if result is None:
-                log_warning(f"Failed to add text insert for layer '{output_layer}'")
-            else:
-                log_info(f"Successfully added text insert to layer '{output_layer}'")
-
         log_info("Finished processing all block insert configurations")
 
     def insert_blocks_on_layer(self, msp, target_layer, output_layer, block_name, scale, rotation, position_config):
@@ -1035,40 +999,44 @@ class DXFExporter:
             return geometry.centroid.coords[0]
 
     def process_text_inserts(self, msp):
+        """Process text inserts from project settings."""
         text_inserts = self.project_settings.get('textInserts', [])
         log_info(f"Processing {len(text_inserts)} text insert configurations")
         
         for text_config in text_inserts:
-            output_layer = text_config.get('targetLayer')
-            updateDxf = text_config.get('updateDxf', False)  # Default to False
+            try:
+                # Get basic configuration
+                name = text_config.get('name')
+                output_layer = text_config.get('targetLayer')
+                update_dxf = text_config.get('updateDxf', False)
 
-            if not updateDxf:
-                log_info(f"Skipping text insert for layer '{output_layer}' as updateDxf flag is not set")
+                log_info(f"Processing text insert: {name} for layer {output_layer}")
+
+                if not update_dxf:
+                    log_info(f"Skipping text insert '{name}' as updateDxf flag is not set")
+                    continue
+
+                if not output_layer:
+                    log_warning(f"Missing target layer in text insert configuration: {name}")
+                    continue
+
+                # Add text insert using the utility function
+                text_entity = add_text_insert(
+                    msp,
+                    text_config,
+                    output_layer,
+                    self.project_loader,
+                    self.script_identifier
+                )
+
+                if text_entity:
+                    log_info(f"Successfully processed text insert '{name}'")
+                else:
+                    log_warning(f"Failed to process text insert '{name}'")
+
+            except Exception as e:
+                log_error(f"Error processing text insert: {str(e)}")
                 continue
-
-            if not output_layer:
-                log_warning(f"Invalid text insert configuration: {text_config}")
-                continue
-
-            # Create the output layer if it doesn't exist
-            if output_layer not in self.layer_properties:
-                log_info(f"Creating new layer properties for: {output_layer}")
-                self.add_layer_properties(output_layer, {})
-                ensure_layer_exists(msp.doc, output_layer, self.layer_properties[output_layer], self.name_to_aci)
-
-            # Process the text insert
-            result = add_text_insert(
-                msp,
-                text_config,
-                output_layer,
-                self.project_loader,
-                self.script_identifier
-            )
-            
-            if result is None:
-                log_warning(f"Failed to add text insert for layer '{output_layer}'")
-            else:
-                log_info(f"Successfully added text insert to layer '{output_layer}'")
 
 
 

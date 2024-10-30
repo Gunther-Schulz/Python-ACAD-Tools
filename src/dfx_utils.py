@@ -572,8 +572,8 @@ def add_text_insert(msp, text_config, layer_name, project_loader, script_identif
     """Add text at a specific position with given properties."""
     try:
         # Check update flag
-        if not text_config.get('update', False):
-            log_info(f"Skipping text insert for layer '{layer_name}' as update flag is not set")
+        if not text_config.get('updateDxf', False):
+            log_info(f"Skipping text insert for layer '{layer_name}' as updateDxf flag is not set")
             return None
 
         # Sanitize layer name
@@ -592,13 +592,14 @@ def add_text_insert(msp, text_config, layer_name, project_loader, script_identif
         # Extract text properties from config
         text = text_config.get('text', '')
         position = text_config.get('position', {'x': 0, 'y': 0})
-        style = text_config.get('style', {})
+        style_name = text_config.get('style')
         
         # Handle style presets
-        if isinstance(style, str):
-            style = project_loader.get_style(style)
+        style = {}
+        if style_name:
+            style = project_loader.get_style(style_name)
             if style is None:
-                log_warning(f"Style preset '{style}' not found. Using default style.")
+                log_warning(f"Style preset '{style_name}' not found. Using default style.")
                 style = {}
             # If style contains a text section, use that
             if isinstance(style, dict) and 'text' in style:
@@ -611,7 +612,7 @@ def add_text_insert(msp, text_config, layer_name, project_loader, script_identif
         # Extract text style properties
         height = style.get('height', 2.5)
         rotation = style.get('rotation', 0)
-        style_name = style.get('font', 'Standard')
+        font = style.get('font', 'Standard')
         max_width = style.get('width', None)
         
         # Convert attachment point
@@ -639,12 +640,12 @@ def add_text_insert(msp, text_config, layer_name, project_loader, script_identif
         
         # Use add_mtext with correct attachment point
         result = add_mtext(
-            space,
+            space,  # Use the correct space (paper or model)
             text,
             x,
             y,
             layer_name,
-            style_name,
+            font,
             text_style={
                 **style,
                 'attachment_point': attachment  # Pass the numeric constant
