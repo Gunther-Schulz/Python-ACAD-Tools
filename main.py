@@ -157,8 +157,8 @@ def print_layer_settings():
             "description": "Name of the layer",
             "type": "string"
         },
-        "update": {
-            "description": "Whether to update the layer",
+        "updateDxf": {
+            "description": "Whether to update the layer in the DXF file",
             "type": "boolean"
         },
         "shapeFile": {

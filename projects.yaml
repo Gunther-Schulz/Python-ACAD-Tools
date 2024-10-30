@@ -1,5 +1,5 @@
 # add - only adds the layer if it does not exist in the dxf file
-# update - updates the layer if it exists in the dxf file
+# updateDxf - updateDxfs the layer if it exists in the dxf file
 # folderPrefix: "~/IONOS HiDrive"
 folderPrefix: "~/hidrive"
 projects:
@@ -12,31 +12,31 @@ projects:
     dumpOutputDir: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/dxf_dump"
     geomLayers:
       - name: Geltungsbereich
-        update: false
+        updateDxf: false
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/geltungsbereich.shp"
       - name: WasserBodenVerband
-        update: false
+        updateDxf: false
         style:
           color: "Light Blue"
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/Grundlagen/wasser_bodeverband/5LV11_PVA-Fhof.shp"
       - name: WBVGrünfläche
-        update: false
+        updateDxf: false
         operations:
           - type: buffer
             layers:
               - WasserBodenVerband
             distance: 7
       - name: Externer Ausgleich
-        update: false
+        updateDxf: false
         style:
           color: "Light Blue"
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/Lagefaktor_var1/compensatory/Ausgleich_Acker/Ausgleich.shp"
       # - name: Contour
-      #   update: false
+      #   updateDxf: false
       #   style:
       #     color: white
       #     locked: false
-      #   update: false
+      #   updateDxf: false
       #   label: elevation
       #   operations:
       #     - type: contour
@@ -45,7 +45,7 @@ projects:
       #         - Geltungsbereich
       #       buffer: 1000
       - name: WMS Gebäude
-        update: true
+        updateDxf: true
         operations:
           - type: wms
             url: "https://www.geodaten-mv.de/dienste/gebäude_wms"
@@ -66,7 +66,7 @@ projects:
                 grayscale: true
                 # removeText: true
       # - name: WMS Höhenlinien
-      #   update: true
+      #   updateDxf: true
       #   operations:
       #     - type: wms
       #       url: "https://www.geodaten-mv.de/dienste/dgm_wms"
@@ -138,7 +138,7 @@ projects:
         attachment_point: MTEXT_MIDDLE_LEFT
       groups:
         - name: "Art der baulichen Nutzung"
-          update: true
+          updateDxf: true
           subtitle: "§ 9 Abs. 1 Nr. 1 BauGB"
           items:
             - name: "Sonstiges Sondergebiet (§ 11 Abs. 2 BauNVO) Zweckbestimmung: Energiegewinnung auf der Basis solarer Strahlungsenergie"
@@ -148,7 +148,7 @@ projects:
               blockSymbol: "Sonstiges Sondergebiet EBS"
               blockSymbolScale: 2
         - name: "Maß der baulichen Nutzung"
-          update: true
+          updateDxf: true
           subtitle: "§ 9 Abs. 1 Nr. 1 BauGB"
           items:
             - name: "Grundflächenzahl"
@@ -156,14 +156,14 @@ projects:
               blockSymbol: "GRZ"
               blockSymbolScale: 2
         - name: "Bauweise, Baulinien, Baugrenzen"
-          update: true
+          updateDxf: true
           subtitle: "§ 9 Abs. 1 Nr. 2 BauGB"
           items:
             - name: "Baugrenze"
               type: empty
               blockSymbol: "Baugrenze"   
         - name: "Verkehrsflächen"
-          update: true
+          updateDxf: true
           subtitle: "(§ 9 Abs. 1 Nr. 11 und Abs. 6 BauGB)"
           items:
             - name: "Verkehrsfläche besonderer Zweckbestimmung"
@@ -179,7 +179,7 @@ projects:
               blockSymbol: "Privat"
               blockSymbolScale: 2
         - name: "Grünflächen"
-          update: true
+          updateDxf: true
           subtitle: "§ 9 Abs.1 Nr. 15 BauGB"
           items:
             - name: "Private Grünflächen"
@@ -187,7 +187,7 @@ projects:
               style: grünflächeLegend
               applyHatch: true
         - name: "Wasserflächen und Flächen für die Wasserwirtschaft, den Hochwasserschutz und die Regelung des Wasserabflusses"
-          update: true
+          updateDxf: true
           subtitle: "§ 9 Abs. 1 Nr. 16 BauBG"
           items:
             - name: "Wasserflächen"
@@ -195,7 +195,7 @@ projects:
               style: waterLegend
               applyHatch: true
         - name: "Planungen, Nutzungsregelungen, Maßnahmen und Flächen für Maßnahmen zum Schutz, zur Pflege und zur Entwicklung von Natur und Landschaft"
-          update: true
+          updateDxf: true
           subtitle: "§ 9 Abs.1 Nr. 20 BauGB"
           items:
             - name: "Umgrenzung von Flächen für Maßnahmen zum Schutz, zur Pflege und zurEntwicklung von Natur und Landschaft"
@@ -206,7 +206,7 @@ projects:
             #   blockSymbol: "Schutzflächeumgrenzung Small"
             #   blockSymbolScale: 1.8
         - name: "Sonstige Planzeichen"
-          update: true
+          updateDxf: true
           items:
             - name: "Grenze des räumlichen Geltungsbereiches des Bebauungsplans"
               subtitle: "(§ 9 Abs. 7 BauGB)"
@@ -234,7 +234,7 @@ projects:
               blockSymbol: "GFL2"
               blockSymbolScale: 1.6
         - name: "Darstellung ohne Normcharakter"
-          update: true
+          updateDxf: true
           items:
             - name: "Gemeindegrenze"
               type: diagonal_line
@@ -257,7 +257,7 @@ projects:
               type: empty
               blockSymbol: "Bemassung2"
         - name: "Nachrichtliche Übernahme"
-          update: true
+          updateDxf: true
           items:
             - name: "gesetzlich geschützes Biotop § 9 Abs. 6 BauGB i. V. m. § 20 NatSchAG - MV"
               type: area
@@ -282,7 +282,7 @@ projects:
               blockSymbolScale: 1.4
     pathArrays:
       - name: "Schutzflächeumgrenzung T-Symbol Array"
-        update: true
+        updateDxf: true
         sourceLayer: "Schutzflächeumgrenzung T-Symbol Temp"
         block: "T-Symbol"
         spacing: 7
@@ -298,7 +298,7 @@ projects:
         # showDebugVisual: true
     blockInserts:
     - name: "SO EBS Label"
-      update: true
+      updateDxf: true
       targetLayer: "Baufeld"
       blockName: "Sonstiges Sondergebiet EBS"
       scale: 6.0
@@ -309,7 +309,7 @@ projects:
           x: 0
           y: 0
     - name: "GRZ Label"
-      update: true
+      updateDxf: true
       targetLayer: "Baufeld"
       blockName: "GRZ"
       scale: 4.0
@@ -322,7 +322,7 @@ projects:
     textInserts:
       - name: "Main Title"
         targetLayer: "Plantext"
-        update: true
+        updateDxf: true
         paperspace: true  # Add this to place text in paper space
         text: "Entwurf: Vorhabensbezogener Bebauungsplan Nr. 3 „Solarpark Friedrichshof“
 der Gemeinde Klein Belitz"
@@ -332,7 +332,7 @@ der Gemeinde Klein Belitz"
         style: "mainTitle"  # Style can include width for text wrapping
     viewports:
     - name: MainView
-      update: true
+      updateDxf: true
       color: "magenta"
       topLeft:
         x: 65
@@ -345,7 +345,7 @@ der Gemeinde Klein Belitz"
       customScale: 0.5
       lockZoom: true
     - name: LegendView
-      update: true
+      updateDxf: true
       color: "magenta"
       topLeft:
         x: 817
@@ -359,7 +359,7 @@ der Gemeinde Klein Belitz"
       # customScale: 0.5
       lockZoom: true
     - name: WorkView
-      update: true
+      updateDxf: true
       color: "magenta"
       center:
         x: 780
@@ -370,7 +370,7 @@ der Gemeinde Klein Belitz"
         x: 356027
         y: 5935564
     - name: WorkView2
-      update: true
+      updateDxf: true
       color: "magenta"
       center:
         x: 1780
@@ -410,7 +410,7 @@ der Gemeinde Klein Belitz"
     #     includeTotalArea: true
     geomLayers:
       - name: Flur
-        update: true
+        updateDxf: true
         close: true
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/flur.shp"
         label: flurname
@@ -422,7 +422,7 @@ der Gemeinde Klein Belitz"
           - name: WorkView
             style: flurWorkView
       - name: Parcel
-        update: true
+        updateDxf: true
         close: true
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/parcel.shp"
         label: label
@@ -431,7 +431,7 @@ der Gemeinde Klein Belitz"
           - name: WorkView
             style: parcelWorkView
       - name: Gemarkung
-        update: true
+        updateDxf: true
         close: true
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/gemarkung.shp"
         label: gmkname
@@ -441,7 +441,7 @@ der Gemeinde Klein Belitz"
           - name: WorkView
             style: gemarkungWorkView
       - name: Gemeinde
-        update: true
+        updateDxf: true
         close: true
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/gemeinde.shp"
         label: gen
@@ -454,7 +454,7 @@ der Gemeinde Klein Belitz"
       - name: Grünfläche Input 
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/grünfläche_input_2.shp"
       - name: Wald
-        update: true
+        updateDxf: true
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/wald.shp"
         close: true
         operations:
@@ -463,7 +463,7 @@ der Gemeinde Klein Belitz"
           - name: WorkView
             style: wald
       - name: Wald Schraffur
-        update: true
+        updateDxf: true
         style: wald
         applyHatch:
           layers:
@@ -473,7 +473,7 @@ der Gemeinde Klein Belitz"
       - name: Exclude
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/exclude.shp"
       # - name: Exclude Acad
-      #   update: false
+      #   updateDxf: false
       #   dxfLayer: "Exclude Acad"
       - name: Baumabstand Puffer
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/baum_abstand.shp"
@@ -481,7 +481,7 @@ der Gemeinde Klein Belitz"
           - type: buffer
             distance: 5
       - name: Geschütze Biotope
-        update: true
+        updateDxf: true
         # linetypeScale: 0.2
         linetypeGeneration: true
         style: gesGeschuetzesBiotop
@@ -492,7 +492,7 @@ der Gemeinde Klein Belitz"
             distance: 5
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/FG.shp"
       - name: Geltungsbereich NW
-        update: true
+        updateDxf: true
         style: geltungsbereich
         operations:
           - type: copy
@@ -522,7 +522,7 @@ der Gemeinde Klein Belitz"
               - Baumabstand Puffer
               - Exclude
       - name: Geltungsbereich NW 2
-        update: true
+        updateDxf: true
         linetypeScale: 1
         style: geltungsbereich_2
         operations:
@@ -531,7 +531,7 @@ der Gemeinde Klein Belitz"
               - name: Geltungsbereich NW
             distance: 2
       - name: Geltungsbereich NO
-        update: true
+        updateDxf: true
         style: geltungsbereich
         close: true
         operations:
@@ -559,7 +559,7 @@ der Gemeinde Klein Belitz"
               - Baumabstand Puffer
               - Exclude
       - name: Geltungsbereich NO 2
-        update: true
+        updateDxf: true
         linetypeScale: 1
         style: geltungsbereich_2
         operations:
@@ -568,7 +568,7 @@ der Gemeinde Klein Belitz"
               - name: Geltungsbereich NO
             distance: 2
       - name: Geltungsbereich S
-        update: true
+        updateDxf: true
         style: geltungsbereich
         close: true
         operations:
@@ -594,7 +594,7 @@ der Gemeinde Klein Belitz"
               - Baumabstand Puffer
               - Exclude
       - name: Geltungsbereich S 2
-        update: true
+        updateDxf: true
         linetypeScale: 1
         style: geltungsbereich_2
         operations:
@@ -617,7 +617,7 @@ der Gemeinde Klein Belitz"
           - type: filterGeometry
             minArea: 200
       - name: Biotope
-        update: true
+        updateDxf: true
         viewports:
           - name: WorkView
             style: biotopWorkView
@@ -627,7 +627,7 @@ der Gemeinde Klein Belitz"
               - Biotope Input
               - Geschütze Biotope
       - name: Grünfläche
-        update: true
+        updateDxf: true
         viewports:
           - name: WorkView
             style: grünflächeWorkView
@@ -653,13 +653,13 @@ der Gemeinde Klein Belitz"
         #   angleThreshold: 25  # Angles smaller than this will be blunted
         #   distance: 10.0  # Distance to move the vertex along the angle bisector
       - name: Grünfläche Schraffur
-        update: true
+        updateDxf: true
         style: grünfläche
         applyHatch:
           layers:
             - Grünfläche
       - name: Schutzflächeumgrenzung
-        update: true
+        updateDxf: true
         viewports:
           - name: WorkView
             style: schutzflächeWorkView
@@ -684,7 +684,7 @@ der Gemeinde Klein Belitz"
           # - type: filterGeometry
           #   minArea: 200
       - name: Biotoppuffer
-        update: true
+        updateDxf: true
         viewports:
           - name: WorkView
             style:
@@ -706,13 +706,13 @@ der Gemeinde Klein Belitz"
               - Geltungsbereich NO
               - Geltungsbereich S
       - name: Biotoppuffer Schraffur
-        update: true
+        updateDxf: true
         style: grünfläche
         applyHatch:
           layers:
             - Biotoppuffer
       - name: Schutzflächeumgrenzung T-Symbol Temp
-        # update: true
+        # updateDxf: true
         close: false
         plot: false
         operations:
@@ -729,7 +729,7 @@ der Gemeinde Klein Belitz"
           - type: filterGeometry
             minArea: 200
       # - name: Schutzflächeumgrenzung T-Small Temp
-      #   # update: true
+      #   # updateDxf: true
       #   close: false
       #   plot: false
       #   operations:
@@ -747,13 +747,13 @@ der Gemeinde Klein Belitz"
       #       maxArea: 200
       #       minArea: 10
       - name: Schutzflächeumgrenzung Schraffur
-        update: true
+        updateDxf: true
         style: schutzflächeumgrenzung
         applyHatch:
           layers:
             - Schutzflächeumgrenzung
       - name: Baufeld
-        update: true
+        updateDxf: true
         close: true
         viewports:
           - name: WorkView
@@ -774,13 +774,13 @@ der Gemeinde Klein Belitz"
           - type: filterGeometry
             minArea: 200
       - name: Baufeld Schraffur
-        update: true
+        updateDxf: true
         style: baufeld
         applyHatch:
           layers:
             - Baufeld
       - name: Baugrenze 2
-        update: true
+        updateDxf: true
         style: baugrenze_2
         close: true
         operations:
@@ -789,7 +789,7 @@ der Gemeinde Klein Belitz"
               - Baugrenze
             distance: -0.4
       - name: Baugrenze
-        update: true
+        updateDxf: true
         style: baugrenze
         linetypeScale: 0.5
         linetypeGeneration: true
@@ -800,7 +800,7 @@ der Gemeinde Klein Belitz"
               - Baufeld
             distance: -3
       # - name: WMTS DOP
-      #   # update: true
+      #   # updateDxf: true
       #   style: 
       #     locked: true
       #     # color: "White"
@@ -819,7 +819,7 @@ der Gemeinde Klein Belitz"
       #       stitchTiles: true
       #       # overwrite: true
       # - name: WMTS Basemap
-      #   update: true
+      #   updateDxf: true
       #   color: white
       #   locked: true
       #   operations:
@@ -835,7 +835,7 @@ der Gemeinde Klein Belitz"
       #         - Geltungsbereich S
       #       buffer: 200
       # - name: Contour
-      #   update: true
+      #   updateDxf: true
       #   style:
       #     color: white
       #     locked: false
@@ -847,7 +847,7 @@ der Gemeinde Klein Belitz"
       #         - Geltungsbereich NW
       #       buffer: 1000
       # - name: WMS Gebäude
-      #   # update: true
+      #   # updateDxf: true
       #   operations:
       #     - type: wms
       #       # overwrite: true
@@ -891,7 +891,7 @@ der Gemeinde Klein Belitz"
     shapefileOutputDir: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/generated"
     geomLayers:
       - name: Flur
-        update: true
+        updateDxf: true
         close: true
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/input/flur2.shp"
         label: flurname
@@ -903,7 +903,7 @@ der Gemeinde Klein Belitz"
           - name: WorkView
             style: flurWorkView
       - name: Parcel
-        update: true
+        updateDxf: true
         close: true
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/input/parcel2.shp"
         label: label
@@ -912,7 +912,7 @@ der Gemeinde Klein Belitz"
           - name: WorkView
             style: parcelWorkView
       - name: Gemarkung
-        update: true
+        updateDxf: true
         close: true
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/input/gemarkung2.shp"
         label: gmkname
@@ -922,7 +922,7 @@ der Gemeinde Klein Belitz"
           - name: WorkView
             style: gemarkungWorkView
       - name: Gemeinde
-        update: true
+        updateDxf: true
         close: true
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/input/gemeinde2.shp"
         label: gen
@@ -932,7 +932,7 @@ der Gemeinde Klein Belitz"
           - name: WorkView
             style: gemeindeWorkView
       - name: Wald
-        update: true
+        updateDxf: true
         close: true
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/input/wald.shp"
         close: true
@@ -942,7 +942,7 @@ der Gemeinde Klein Belitz"
           - name: WorkView
             style: wald
       - name: Wald Schraffur
-        update: true
+        updateDxf: true
         style: wald
         applyHatch:
           layers:
@@ -955,7 +955,7 @@ der Gemeinde Klein Belitz"
       #   close: true
       #   locked: false
       - name: Straße
-        update: true
+        updateDxf: true
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/input/abstand.shp"
       # - name: Biotope Puffer
       #   color: "Light Green"
@@ -971,14 +971,14 @@ der Gemeinde Klein Belitz"
       #       layers:
       #         - Geltungsbereich
       - name: Straße Abstand
-        update: true # I think this is optional, if that layer does not already exists in the dxf file, but it cant hurt and makes sure that it updates
+        updateDxf: true # I think this is optional, if that layer does not already exists in the dxf file, but it cant hurt and makes sure that it updateDxfs
         operations:
           - type: buffer
             layers: 
               - Straße
             distance: 7
       # - name: Flur Offset
-      #   update: true
+      #   updateDxf: true
       #   color: "Light Green"
       #   close: false
       #   locked: false
@@ -989,10 +989,10 @@ der Gemeinde Klein Belitz"
       #         - Flur
       #       distance: 10
       - name: Weg
-        update: true
+        updateDxf: true
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/input/weg.shp"
       - name: Weg Abstand
-        update: true
+        updateDxf: true
         operations:
           # - type: buffer
           #   layers:
@@ -1002,7 +1002,7 @@ der Gemeinde Klein Belitz"
             layers:
               - Weg
       - name: Geltungsbereich
-        update: true
+        updateDxf: true
         style: geltungsbereich
         operations:
           - type: copy
@@ -1052,10 +1052,10 @@ der Gemeinde Klein Belitz"
           - type: filterGeometry
             minArea: 200
       - name: Grünflächeinput 1
-        # update: true
+        # updateDxf: true
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/input/grünfläche.shp"
       - name: Grünflächeinput 2
-        update: true
+        updateDxf: true
         operations:
           - type: copy
             layers:
@@ -1086,7 +1086,7 @@ der Gemeinde Klein Belitz"
                 values:
                   - Torgelow am See
       - name: Grünfläche
-        update: true
+        updateDxf: true
         style: grünfläche
         operations:
           - type: dissolve
@@ -1111,13 +1111,13 @@ der Gemeinde Klein Belitz"
           - type: buffer
             distance: -3
       - name: Grünfläche Schraffur
-        update: true
+        updateDxf: true
         style: grünfläche
         applyHatch:
           layers:
             - Grünfläche
       - name: Schutzflächeumgrenzung
-        update: true
+        updateDxf: true
         viewports:
           - name: WorkView
             style: schutzflächeWorkView
@@ -1143,7 +1143,7 @@ der Gemeinde Klein Belitz"
             layers:
               - Geltungsbereich
       - name: Baufeld
-        update: true
+        updateDxf: true
         close: true
         viewports:
           - name: WorkView
@@ -1158,17 +1158,16 @@ der Gemeinde Klein Belitz"
             layers:
               - Schutzflächeumgrenzung
               - Grünfläche
-              - Biotoppuffer
           - type: filterGeometry
             minArea: 200
       - name: Baufeld Schraffur
-        update: true
+        updateDxf: true
         style: baufeld
         applyHatch:
           layers:
             - Baufeld
       - name: Baugrenze 2
-        update: true
+        updateDxf: true
         style: baugrenze_2
         close: true
         operations:
@@ -1177,7 +1176,7 @@ der Gemeinde Klein Belitz"
               - Baugrenze
             distance: -0.4
       - name: Baugrenze
-        update: true
+        updateDxf: true
         style: baugrenze
         linetypeScale: 0.5
         linetypeGeneration: true
@@ -1188,7 +1187,7 @@ der Gemeinde Klein Belitz"
               - Baufeld
             distance: -3
       - name: WMTS DOP
-        # update: true
+        # updateDxf: true
         style: 
           locked: true
           # color: "White"
@@ -1205,7 +1204,7 @@ der Gemeinde Klein Belitz"
             stitchTiles: true
             # overwrite: true
       # - name: WMTS Basemap
-      #   # update: true
+      #   # updateDxf: true
       #   color: white
       #   locked: true
       #   add: true

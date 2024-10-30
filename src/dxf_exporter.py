@@ -153,7 +153,7 @@ class DXFExporter:
 
     def process_layers(self, doc, msp):
         for layer_info in self.project_settings['geomLayers']:
-            if layer_info.get('update', False):
+            if layer_info.get('updateDxf', False):
                 self.process_single_layer(doc, msp, layer_info['name'], layer_info)
 
     def process_single_layer(self, doc, msp, layer_name, layer_info):
@@ -209,12 +209,12 @@ class DXFExporter:
             self.apply_layer_properties(doc.layers.get(label_layer_name), layer_info)
 
     def update_layer_geometry(self, msp, layer_name, geo_data, layer_config):
-        update_flag = layer_config.get('update', False)
+        update_flag = layer_config.get('updateDxf', False)
         
         log_info(f"Updating layer geometry for {layer_name}. Update flag: {update_flag}")
         
         if not update_flag:
-            log_info(f"Skipping geometry update for layer {layer_name} as 'update' flag is not set")
+            log_info(f"Skipping geometry update for layer {layer_name} as 'updateDxf' flag is not set")
             return
 
         def update_function():
@@ -869,14 +869,14 @@ class DXFExporter:
         for config in path_arrays:
             name = config.get('name')
             source_layer_name = config.get('sourceLayer')
-            update = config.get('update', False)  # Default is False
+            updateDxf = config.get('updateDxf', False)  # Default is False
             
             if not name or not source_layer_name:
                 log_warning(f"Invalid path array configuration: {config}")
                 continue
             
-            if not update:
-                log_info(f"Skipping path array '{name}' as update flag is not set")
+            if not updateDxf:
+                log_info(f"Skipping path array '{name}' as updateDxf flag is not set")
                 continue
             
             if source_layer_name not in self.all_layers:
@@ -915,10 +915,10 @@ class DXFExporter:
             scale = insert_config.get('scale', 1.0)
             rotation = insert_config.get('rotation', 0)
             position_config = insert_config.get('position', {})
-            update = insert_config.get('update', False)  # Default is False
+            updateDxf = insert_config.get('updateDxf', False)  # Default is False
 
-            if not update:
-                log_info(f"Skipping block insert '{output_layer}' as update flag is not set")
+            if not updateDxf:
+                log_info(f"Skipping block insert '{output_layer}' as updateDxf flag is not set")
                 continue
 
             log_info(f"Processing block insert for target layer: {target_layer}, output layer: {output_layer}, block: {block_name}")
@@ -944,10 +944,10 @@ class DXFExporter:
         
         for text_config in text_inserts:
             output_layer = text_config.get('targetLayer')
-            update = text_config.get('update', False)
+            updateDxf = text_config.get('updateDxf', False)
 
-            if not update:
-                log_info(f"Skipping text insert for layer '{output_layer}' as update flag is not set")
+            if not updateDxf:
+                log_info(f"Skipping text insert for layer '{output_layer}' as updateDxf flag is not set")
                 continue
 
             if not output_layer:
@@ -958,9 +958,21 @@ class DXFExporter:
             if output_layer not in self.layer_properties:
                 log_info(f"Creating new layer properties for: {output_layer}")
                 self.add_layer_properties(output_layer, {})
+                ensure_layer_exists(msp.doc, output_layer, self.layer_properties[output_layer], self.name_to_aci)
 
-            # Add the text
-            add_text_insert(msp, text_config, output_layer, self.project_loader, self.script_identifier)
+            # Process the text insert
+            result = add_text_insert(
+                msp,
+                text_config,
+                output_layer,
+                self.project_loader,
+                self.script_identifier
+            )
+            
+            if result is None:
+                log_warning(f"Failed to add text insert for layer '{output_layer}'")
+            else:
+                log_info(f"Successfully added text insert to layer '{output_layer}'")
 
         log_info("Finished processing all block insert configurations")
 
