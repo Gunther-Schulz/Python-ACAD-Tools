@@ -1096,53 +1096,56 @@ der Gemeinde Klein Belitz"
           - type: dissolve
             useBufferTrick: true
             bufferDistance: 0.01
-            # doublePass: true
+            # doubleUnion: true
             useAsymmetricBuffer: true
-            useSnapToGrid: true
+            # useSnapToGrid: true
             # mergeVertices: true
             # mergeVerticesTolerance: 20
             layers:
               - Grünflächeinput 1
               - Grünflächeinput 2
               - Waldabstand
-          # - type: dissolve
-          #   useBufferTrick: true
-          #   bufferDistance: 0.01
+          - type: difference
+            reverseDifference: false
+            layers:
+              - Weg Abstand
+          - type: intersection
+            layers:
+              - Geltungsbereich
+          - type: buffer
+            distance: -3
+      - name: Grünfläche Schraffur
+        update: true
+        style: grünfläche
+        applyHatch:
+          layers:
+            - Grünfläche
+      - name: Schutzflächeumgrenzung
+        update: true
+        viewports:
+          - name: WorkView
+            style: schutzflächeWorkView
+        operations:
+          - type: copy
+            layers:
+              - Grünflächeinput 1
+              - Grünflächeinput 2
+              - Waldabstand
+          - type: dissolve
+            useBufferTrick: true
+            bufferDistance: 0.01
+            # doubleUnion: true
+            useAsymmetricBuffer: true
+            # useSnapToGrid: true
             # mergeVertices: true
             # mergeVerticesTolerance: 20
-          # - type: difference
-          #   reverseDifference: false
-          #   layers:
-          #     - Weg Abstand
-          # - type: intersection
-          #   layers:
-          #     - Geltungsbereich
-          # - type: buffer
-          #   distance: -3
-      # - name: Grünfläche Schraffur
-      #   update: true
-      #   style: grünfläche
-      #   applyHatch:
-      #     layers:
-      #       - Grünfläche
-      # - name: Schutzflächeumgrenzung
-      #   update: true
-      #   viewports:
-      #     - name: WorkView
-      #       style: schutzflächeWorkView
-      #   operations:
-      #     - type: copy
-      #       layers:
-      #         - Grünflächeinput 1
-      #         - Grünflächeinput 2
-      #         - Waldabstand
-      #     - type: dissolve
-      #     - type: difference
-      #       layers:
-      #         - Grünfläche
-      #     - type: intersection
-      #       layers:
-      #         - Geltungsbereich
+          - type: difference
+            reverseDifference: false
+            layers:
+              - Grünfläche
+          - type: intersection
+            layers:
+              - Geltungsbereich
       # - name: Baufeld
       #   update: true
       #   color: "Light Red"

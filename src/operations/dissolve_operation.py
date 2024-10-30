@@ -11,7 +11,7 @@ def create_dissolved_layer(all_layers, project_settings, crs, layer_name, operat
     buffer_distance = operation.get('bufferDistance', 0.01)
     use_buffer_trick = operation.get('useBufferTrick', False)
     merge_vertices = operation.get('mergeVertices', False)
-    double_pass = operation.get('doublePass', False)
+    use_double_union = operation.get('useDoubleUnion', True)
     use_asymmetric_buffer = operation.get('useAsymmetricBuffer', False)
     use_snap_to_grid = operation.get('useSnapToGrid', False)
     merge_vertices_tolerance = operation.get('mergeVerticesTolerance', buffer_distance/2)
@@ -65,11 +65,12 @@ def create_dissolved_layer(all_layers, project_settings, crs, layer_name, operat
         if dissolve_field and dissolve_field in combined_gdf.columns:
             dissolved = gpd.GeoDataFrame(geometry=combined_gdf.geometry, data=combined_gdf[dissolve_field]).dissolve(by=dissolve_field, as_index=False)
         else:
-            # Snap vertices to grid before dissolving
-            combined_gdf.geometry = combined_gdf.geometry.apply(
-                lambda geom: snap_vertices_to_grid(geom, grid_size)
-            )
+            # First unary_union
             dissolved = gpd.GeoDataFrame(geometry=[unary_union(combined_gdf.geometry)])
+            # Second unary_union if enabled
+            if use_double_union:
+                dissolved = gpd.GeoDataFrame(geometry=[unary_union(dissolved.geometry)])
+            
             if make_valid:
                 dissolved.geometry = dissolved.geometry.make_valid()
             dissolved = dissolved[~dissolved.is_empty]
