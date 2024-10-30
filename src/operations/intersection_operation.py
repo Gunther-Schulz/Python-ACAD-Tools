@@ -45,7 +45,11 @@ def _create_intersection_overlay_layer(all_layers, project_settings, crs, layer_
             combined_overlay_geometry = combined_overlay_geometry.union(overlay_geometry)
 
     if combined_overlay_geometry is None:
-        log_warning(f"No valid overlay geometries found for layer '{layer_name}'")
+        log_warning(format_operation_warning(
+            layer_name,
+            overlay_type,
+            "No valid overlay geometries found"
+        ))
         return
     try:
         if overlay_type == 'difference':

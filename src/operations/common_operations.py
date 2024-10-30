@@ -549,6 +549,10 @@ def remove_geometry_types(geometry_or_gdf, remove_lines=False, remove_points=Fal
         return gpd.GeoDataFrame(geometry=[filtered_geom])
 
 
+def format_operation_warning(layer_name, operation_type, message):
+    return f"[Layer: {layer_name}] [{operation_type}] {message}"
+
+
 
 
 

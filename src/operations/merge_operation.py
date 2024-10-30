@@ -49,8 +49,11 @@ def create_merged_layer(all_layers, project_settings, crs, layer_name, operation
         for i, geom in enumerate(result_gdf.geometry):
             log_info(f"Geometry {i+1}: {geom.geom_type}, Area: {geom.area}, Length: {geom.length}")
     else:
-        log_warning(f"No valid source geometries found for merged layer '{layer_name}'")
-        # Return an empty GeoDataFrame to maintain consistency
+        log_warning(format_operation_warning(
+            layer_name,
+            "merge",
+            "No valid source geometries found for merged layer"
+        ))
         all_layers[layer_name] = gpd.GeoDataFrame(geometry=[], crs=crs)
 
     return all_layers[layer_name]

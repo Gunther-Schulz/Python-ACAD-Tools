@@ -75,9 +75,11 @@ def create_buffer_layer(all_layers, project_settings, crs, layer_name, operation
         log_info(f"Created buffer layer: {layer_name} with {len(result_geom)} geometries")
         return result_gdf
     except Exception as e:
-        log_error(f"Error during buffer operation: {str(e)}")
-        import traceback
-        log_error(f"Traceback:\n{traceback.format_exc()}")
+        log_error(format_operation_warning(
+            layer_name,
+            "buffer",
+            f"Error during buffer operation: {str(e)}"
+        ))
         return None
 
 
