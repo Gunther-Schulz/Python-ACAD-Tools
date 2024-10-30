@@ -1094,6 +1094,8 @@ der Gemeinde Klein Belitz"
         style: grünfläche
         operations:
           - type: dissolve
+            useBufferTrick: true
+            bufferDistance: 0.1
             layers:
               - Grünflächeinput 1
               - Grünflächeinput 2

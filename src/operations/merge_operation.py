@@ -2,7 +2,7 @@ import geopandas as gpd
 from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection, Point, MultiPoint
 from src.utils import log_info, log_warning, log_error
 from shapely.ops import unary_union
-from src.operations.common_operations import _process_layer_info, _get_filtered_geometry
+from src.operations.common_operations import _process_layer_info, _get_filtered_geometry, make_valid_geometry
 from src.operations.common_operations import *
 
 def create_merged_layer(all_layers, project_settings, crs, layer_name, operation):
@@ -25,6 +25,11 @@ def create_merged_layer(all_layers, project_settings, crs, layer_name, operation
     log_info(f"Total geometries collected: {len(combined_geometries)}")
 
     if combined_geometries:
+        make_valid = operation.get('makeValid', True)
+        if make_valid:
+            combined_geometries = [make_valid_geometry(geom) for geom in combined_geometries]
+            combined_geometries = [geom for geom in combined_geometries if geom is not None]
+        
         merged_geometry = unary_union(combined_geometries)
         
         # If the result is a MultiPolygon, convert it to separate Polygons

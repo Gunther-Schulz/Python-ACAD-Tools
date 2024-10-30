@@ -1,7 +1,7 @@
 import geopandas as gpd
 from shapely.ops import unary_union
 from src.utils import log_info, log_warning
-from src.operations.common_operations import explode_to_singlepart
+from src.operations.common_operations import explode_to_singlepart, apply_buffer_trick, make_valid_geometry
 import pandas as pd
 
 def create_dissolved_layer(all_layers, project_settings, crs, layer_name, operation):
@@ -9,8 +9,10 @@ def create_dissolved_layer(all_layers, project_settings, crs, layer_name, operat
     source_layers = operation.get('layers', [layer_name])  # Default to current layer if not specified
     dissolve_field = operation.get('dissolveField')
     buffer_distance = operation.get('bufferDistance', 0.01)
+    use_buffer_trick = operation.get('useBufferTrick', False)
     thin_growth_threshold = operation.get('thinGrowthThreshold', 0.001)
     merge_vertices_tolerance = operation.get('mergeVerticesTolerance', 0.0001)
+    make_valid = operation.get('makeValid', True)
 
     combined_gdf = None
     for layer_info in source_layers:
@@ -30,6 +32,13 @@ def create_dissolved_layer(all_layers, project_settings, crs, layer_name, operat
         # Remove empty geometries before processing
         combined_gdf = combined_gdf[~combined_gdf.geometry.is_empty]
 
+        if make_valid and combined_gdf is not None:
+            combined_gdf.geometry = combined_gdf.geometry.apply(make_valid_geometry)
+            combined_gdf = combined_gdf[combined_gdf.geometry.notna()]
+
+        if use_buffer_trick:
+            combined_gdf.geometry = apply_buffer_trick(combined_gdf.geometry, buffer_distance)
+
         if dissolve_field and dissolve_field in combined_gdf.columns:
             dissolved = gpd.GeoDataFrame(geometry=combined_gdf.geometry, data=combined_gdf[dissolve_field]).dissolve(by=dissolve_field, as_index=False)
         else:
@@ -39,6 +48,9 @@ def create_dissolved_layer(all_layers, project_settings, crs, layer_name, operat
         dissolved.geometry = dissolved.geometry.make_valid()
         dissolved = dissolved[~dissolved.is_empty]
         dissolved = explode_to_singlepart(dissolved)
+
+        if use_buffer_trick:
+            dissolved.geometry = apply_buffer_trick(dissolved.geometry, -buffer_distance)
         
         # Remove empty geometries after processing
         dissolved = dissolved[~dissolved.geometry.is_empty]

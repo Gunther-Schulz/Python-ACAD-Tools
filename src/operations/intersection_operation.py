@@ -19,6 +19,7 @@ def _create_intersection_overlay_layer(all_layers, project_settings, crs, layer_
     log_info(f"Operation details: {operation}")
     
     overlay_layers = operation.get('layers', [])
+    make_valid = operation.get('makeValid', True)
     
     if not overlay_layers:
         log_warning(f"No overlay layers specified for {layer_name}")
@@ -29,6 +30,10 @@ def _create_intersection_overlay_layer(all_layers, project_settings, crs, layer_
         log_warning(f"Base layer '{layer_name}' not found for {overlay_type} operation")
         return
     
+    if make_valid:
+        base_geometry.geometry = base_geometry.geometry.apply(make_valid_geometry)
+        base_geometry = base_geometry[base_geometry.geometry.notna()]
+    
     combined_overlay_geometry = None
     for layer_info in overlay_layers:
         overlay_layer_name, values = _process_layer_info(all_layers, project_settings, crs, layer_info)
@@ -38,6 +43,11 @@ def _create_intersection_overlay_layer(all_layers, project_settings, crs, layer_
         overlay_geometry = _get_filtered_geometry(all_layers, project_settings, crs, overlay_layer_name, values)
         if overlay_geometry is None:
             continue
+
+        if make_valid:
+            overlay_geometry = make_valid_geometry(overlay_geometry)
+            if overlay_geometry is None:
+                continue
 
         if combined_overlay_geometry is None:
             combined_overlay_geometry = overlay_geometry

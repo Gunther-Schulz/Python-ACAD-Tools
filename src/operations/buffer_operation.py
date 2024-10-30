@@ -2,7 +2,7 @@ import geopandas as gpd
 from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection, Point, MultiPoint
 from src.utils import log_info, log_warning, log_error
 from shapely.ops import unary_union
-from src.operations.common_operations import _process_layer_info, _get_filtered_geometry
+from src.operations.common_operations import _process_layer_info, _get_filtered_geometry, make_valid_geometry
 from src.operations.common_operations import *
 
 
@@ -42,6 +42,11 @@ def create_buffer_layer(all_layers, project_settings, crs, layer_name, operation
     if combined_geometry is None:
         log_warning(f"No valid source geometry found for buffer operation on {layer_name}")
         return None
+
+    make_valid = operation.get('makeValid', True)
+
+    if make_valid and combined_geometry is not None:
+        combined_geometry = make_valid_geometry(combined_geometry)
 
     try:
         if buffer_mode == 'outer':

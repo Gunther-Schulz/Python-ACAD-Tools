@@ -553,6 +553,27 @@ def format_operation_warning(layer_name, operation_type, message):
     return f"[Layer: {layer_name}] [{operation_type}] {message}"
 
 
+def make_valid_geometry(geometry):
+    """Makes a geometry valid, handling various geometry types."""
+    if geometry is None or geometry.is_empty:
+        return None
+    if geometry.is_valid:
+        return geometry
+    try:
+        valid_geom = make_valid(geometry)
+        if isinstance(valid_geom, (MultiPolygon, Polygon, LineString, MultiLineString)):
+            return valid_geom
+        elif isinstance(valid_geom, GeometryCollection):
+            valid_parts = [g for g in valid_geom.geoms if isinstance(g, (Polygon, MultiPolygon, LineString, MultiLineString))]
+            if valid_parts:
+                return GeometryCollection(valid_parts)
+        log_warning(f"Unable to fix geometry: {valid_geom.geom_type}")
+        return None
+    except Exception as e:
+        log_warning(f"Error fixing geometry: {e}")
+        return None
+
+
 
 
 
