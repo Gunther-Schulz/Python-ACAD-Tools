@@ -9,7 +9,7 @@ projects:
     crs: EPSG:25833
     dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/Zeichnung/24 09.25 Friedrichshof  Zeichnung -2.dxf"
     # dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/Zeichnung/test.dxf"
-    dumpOutputDir: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/dxf_dump"
+    dxfDumpOutputDir: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/dxf_dump"
     geomLayers:
       - name: Geltungsbereich
         updateDxf: false
@@ -88,7 +88,7 @@ projects:
     crs: EPSG:25833
     # dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Zeichnung/Plasten4.dxf"
     dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Zeichnung/dev/test.dxf"
-    dumpOutputDir: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten//GIS/dxf_dump"
+    # dxfDumpOutputDir: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten//GIS/dxf_dump"
     shapefileOutputDir: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated"
     legend:
       title: "Planzeichen"
@@ -887,7 +887,7 @@ der Gemeinde Klein Belitz"
     dxfVersion: R2018
     crs: EPSG:25833
     dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/Zeichnung/Torgelow.dxf"
-    # dumpOutputDir: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/dxf_dump"
+    # dxfDumpOutputDir: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/dxf_dump"
     shapefileOutputDir: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/generated"
     geomLayers:
       - name: Flur
@@ -895,7 +895,6 @@ der Gemeinde Klein Belitz"
         close: true
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/input/flur2.shp"
         label: flurname
-        linetypeScale: 0.2
         linetypeGeneration: true
         style: flur
         style: flurgrenze
@@ -947,52 +946,17 @@ der Gemeinde Klein Belitz"
         applyHatch:
           layers:
             - Wald
-      # - name: Biotope
-      #   add: true
-      #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/input/biotope.shp"
-      #   label: biotopn
-      #   color: "Green"
-      #   close: true
-      #   locked: false
       - name: Straße
-        updateDxf: true
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/input/abstand.shp"
-      # - name: Biotope Puffer
-      #   color: "Light Green"
-      #   close: true
-      #   locked: false
-      #   add: true
-      #   operations:
-      #     - type: buffer
-      #       layers:
-      #         - Biotope
-      #       distance: 5
-      #     - type: intersection
-      #       layers:
-      #         - Geltungsbereich
       - name: Straße Abstand
-        updateDxf: true # I think this is optional, if that layer does not already exists in the dxf file, but it cant hurt and makes sure that it updateDxfs
         operations:
           - type: buffer
             layers: 
               - Straße
             distance: 7
-      # - name: Flur Offset
-      #   updateDxf: true
-      #   color: "Light Green"
-      #   close: false
-      #   locked: false
-      #   add: true
-      #   operations:
-      #     - type: buffer
-      #       layers:
-      #         - Flur
-      #       distance: 10
       - name: Weg
-        updateDxf: true
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/input/weg.shp"
       - name: Weg Abstand
-        updateDxf: true
         operations:
           # - type: buffer
           #   layers:
@@ -1052,10 +1016,8 @@ der Gemeinde Klein Belitz"
           - type: filterGeometry
             minArea: 200
       - name: Grünflächeinput 1
-        # updateDxf: true
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/input/grünfläche.shp"
       - name: Grünflächeinput 2
-        updateDxf: true
         operations:
           - type: copy
             layers:

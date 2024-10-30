@@ -30,8 +30,8 @@ class ProjectProcessor:
         folder_prefix = self.project_loader.folder_prefix
         dxf_filename = self.project_loader.dxf_filename
         
-        if 'dumpOutputDir' in project_settings:
-            dump_output_dir = os.path.expanduser(os.path.join(folder_prefix, project_settings['dumpOutputDir']))
+        if 'dxfDumpOutputDir' in project_settings:
+            dump_output_dir = os.path.expanduser(os.path.join(folder_prefix, project_settings['dxfDumpOutputDir']))
             
             if os.path.exists(dxf_filename) and dump_output_dir:
                 print(f"Dumping DXF to shapefiles: {dxf_filename} -> {dump_output_dir}")

@@ -156,11 +156,11 @@ def main():
             folder_prefix = project_config.get('folderPrefix', '')
             dxf_filename = os.path.expanduser(os.path.join(folder_prefix, project_config.get('dxfFilename', '')))
             
-            if 'dumpOutputDir' not in project_config:
-                print("Error: 'dumpOutputDir' not specified in project configuration.")
+            if 'dxfDumpOutputDir' not in project_config:
+                print("Error: 'dxfDumpOutputDir' not specified in project configuration.")
                 return
 
-            dump_output_dir = os.path.expanduser(os.path.join(folder_prefix, project_config['dumpOutputDir']))
+            dump_output_dir = os.path.expanduser(os.path.join(folder_prefix, project_config['dxfDumpOutputDir']))
             
             print(f"DXF filename: {dxf_filename}")
             print(f"Dump output directory: {dump_output_dir}")
