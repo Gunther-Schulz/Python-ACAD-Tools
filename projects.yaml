@@ -309,7 +309,7 @@ projects:
           x: 0
           y: 0
     - name: "GRZ Label"
-      # update: true
+      update: true
       targetLayer: "Baufeld"
       blockName: "GRZ"
       scale: 4.0
@@ -423,6 +423,7 @@ der Gemeinde Klein Belitz"
             style: flurWorkView
       - name: Parcel
         update: true
+        close: true
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/parcel.shp"
         label: label
         style: parcel
@@ -802,41 +803,41 @@ der Gemeinde Klein Belitz"
             layers:
               - Baugrenze
             distance: -0.4
-      - name: WMTS DOP
-        # update: true
-        style: 
-          locked: true
-          # color: "White"
-        operations:
-          - type: wmts
-            url: "https://www.geodaten-mv.de/dienste/dop_wmts/wmts/1.0.0/WMTSCapabilities.xml"
-            layer: "mv_dop"
-            # zoom: "10"
-            proj: "ETRS89UTM33"
-            targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/DOP"
-            layers:
-              - Geltungsbereich NW
-              - Geltungsbereich NO
-              - Geltungsbereich S
-            buffer: 200
-            stitchTiles: true
-            # overwrite: true
-      - name: WMTS Basemap
-        update: true
-        color: white
-        locked: true
-        operations:
-          - type: wmts
-            url: "https://sgx.geodatenzentrum.de/wmts_basemapde/1.0.0/WMTSCapabilities.xml"
-            layer: "de_basemapde_web_raster_farbe"
-            zoom: "10"
-            proj: "DE_EPSG_25833_ADV"
-            targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/Basemap"
-            layers:
-              - Geltungsbereich NW
-              - Geltungsbereich NO
-              - Geltungsbereich S
-            buffer: 200
+      # - name: WMTS DOP
+      #   # update: true
+      #   style: 
+      #     locked: true
+      #     # color: "White"
+      #   operations:
+      #     - type: wmts
+      #       url: "https://www.geodaten-mv.de/dienste/dop_wmts/wmts/1.0.0/WMTSCapabilities.xml"
+      #       layer: "mv_dop"
+      #       # zoom: "10"
+      #       proj: "ETRS89UTM33"
+      #       targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/DOP"
+      #       layers:
+      #         - Geltungsbereich NW
+      #         - Geltungsbereich NO
+      #         - Geltungsbereich S
+      #       buffer: 200
+      #       stitchTiles: true
+      #       # overwrite: true
+      # - name: WMTS Basemap
+      #   update: true
+      #   color: white
+      #   locked: true
+      #   operations:
+      #     - type: wmts
+      #       url: "https://sgx.geodatenzentrum.de/wmts_basemapde/1.0.0/WMTSCapabilities.xml"
+      #       layer: "de_basemapde_web_raster_farbe"
+      #       zoom: "10"
+      #       proj: "DE_EPSG_25833_ADV"
+      #       targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/Basemap"
+      #       layers:
+      #         - Geltungsbereich NW
+      #         - Geltungsbereich NO
+      #         - Geltungsbereich S
+      #       buffer: 200
       # - name: Contour
       #   update: true
       #   style:
@@ -849,117 +850,117 @@ der Gemeinde Klein Belitz"
       #       layers:
       #         - Geltungsbereich NW
       #       buffer: 1000
-      - name: WMS Gebäude
-        update: true
-        operations:
-          - type: wms
-            url: "https://www.geodaten-mv.de/dienste/gebäude_wms"
-            layer: "gebäude"
-            srs: "EPSG:25833"
-            format: "image/png"
-            targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/Gebäude"
-            layers:
-              - Geltungsbereich NW
-              - Geltungsbereich NO
-              - Geltungsbereich S
-            buffer: 100
-            zoom: 10
-            # overwrite: true
-            postProcess:
-                colorMap:
-                  "#ff0000": "#808080"  # Map red to grey
-                alphaColor: "#ffffff"  # Set white to fully transparent
-                # tolerance: 30  # Increased tolerance to catch similar shades
-                grayscale: true
-                # removeText: true
-            stitchTiles: true
+      # - name: WMS Gebäude
+      #   # update: true
+      #   operations:
+      #     - type: wms
+      #       # overwrite: true
+      #       url: "https://www.geodaten-mv.de/dienste/gebaeude_wms"
+      #       layer: "gebaeude"
+      #       imageTransparency: true
+      #       wmsOptions:
+      #         srs: "EPSG:25833"
+      #         format: "image/png"
+      #         # styles: ""  # Optional WMS style
+      #         # version: "1.3.0"  # WMS version
+      #         # transparent: true
+      #         # bgcolor: "0x0000FF" # Doesn't work somehow. It's black always.
+      #       width: 4096
+      #       height: 4096
+      #       targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/Gebäude"
+      #       layers:
+      #         - Geltungsbereich NW
+      #         - Geltungsbereich NO
+      #         - Geltungsbereich S
+      #       buffer: 500
+      #       postProcess:
+      #         retainIfColorPresent:
+      #           colors: ["#ff0000"]  # Images containing these colors will be made transparent
+      #           tolerance: 5  # Optional: color matching tolerance (0-255)
+                
+      #         colorMap:
+      #             "#ff0000": "#808080"  # Map red to grey
+      #         alphaColor: "#ffffff"  # Set white to fully transparent
+      #       #   alphaColor: "#000000"  # Set black to fully transparent
+      #       #   # tolerance: 30  # Increased tolerance to catch similar shades
+      #         grayscale: true
+      #       #   # removeText: true
+      #       stitchTiles: true
   - name: Torgelow
     exportFormat: dxf
     dxfVersion: R2018
     crs: EPSG:25833
-    dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/Zeichnung/torgelow.dxf"
+    dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/Zeichnung/Torgelow.dxf"
+    # dumpOutputDir: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/dxf_dump"
+    shapefileOutputDir: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/generated"
     geomLayers:
       - name: Flur
         update: true
-        add: true
-        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/flur2.shp"
-        label: "flurname"
-        linetype: Continuous
-        lineweight: 13
-        plot: false
-        locked: true
-        frozen: false
-        is_on: true
-        vp_freeze: false
-        # transparency: 0.0
+        close: true
+        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/input/flur2.shp"
+        label: flurname
+        linetypeScale: 0.2
+        linetypeGeneration: true
+        style: flur
+        style: flurgrenze
+        viewports:
+          - name: WorkView
+            style: flurWorkView
       - name: Parcel
         update: true
-        add: true
-        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/parcel2.shp"
-        label: label
-        color: White
-        linetype: ACAD_ISO11W100
-        lineweight: 30
-        plot: true
-        frozen: false
-        is_on: true 
-        vp_freeze: false
-        # transparency: 0.0
-        locked: true
         close: true
+        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/input/parcel2.shp"
+        label: label
+        style: parcel
+        viewports:
+          - name: WorkView
+            style: parcelWorkView
       - name: Gemarkung
         update: true
-        add: true
-        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/gemarkung2.shp"
+        close: true
+        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/input/gemarkung2.shp"
         label: gmkname
-        color: White
-        linetype: Continuous
-        lineweight: 13
-        plot: false
-        locked: false
-        frozen: false
-        is_on: true
-        vp_freeze: false
-        # transparency: 0.0
+        linetypeGeneration: true
+        style: gemarkungsgrenze
+        viewports:
+          - name: WorkView
+            style: gemarkungWorkView
       - name: Gemeinde
         update: true
-        add: true
-        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/gemeinde2.shp"
+        close: true
+        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/input/gemeinde2.shp"
         label: gen
-        color: White
-        linetype: Continuous
-        lineweight: 13
-        plot: false
-        locked: false
-        frozen: false
-        is_on: true
-        vp_freeze: false
-        # transparency: 0.0
+        linetypeGeneration: true
+        style: gemeindegrenze
+        viewports:
+          - name: WorkView
+            style: gemeindeWorkView
       - name: Wald
         update: true
-        add: true
-        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/wald.shp"
-        label: waldname
-        color: Dark Green
-        linetype: Continuous
-        lineweight: 13
-        plot: true
-        locked: false
-        frozen: false
-        is_on: true
-        vp_freeze: false
-        # transparency: 0.0
         close: true
+        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/input/wald.shp"
+        close: true
+        operations:
+          - type: dissolve
+        viewports:
+          - name: WorkView
+            style: wald
+      - name: Wald Schraffur
+        update: true
+        style: wald
+        applyHatch:
+          layers:
+            - Wald
       # - name: Biotope
       #   add: true
-      #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/biotope.shp"
+      #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/input/biotope.shp"
       #   label: biotopn
       #   color: "Green"
       #   close: true
       #   locked: false
       - name: Straße
         update: true
-        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/abstand.shp"
+        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/input/abstand.shp"
       # - name: Biotope Puffer
       #   color: "Light Green"
       #   close: true
@@ -993,7 +994,7 @@ der Gemeinde Klein Belitz"
       #       distance: 10
       - name: Weg
         update: true
-        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/weg.shp"
+        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/input/weg.shp"
       - name: Weg Abstand
         update: true
         operations:
@@ -1006,10 +1007,7 @@ der Gemeinde Klein Belitz"
               - Weg
       - name: Geltungsbereich
         update: true
-        color: "Red"
-        locked: false
-        close: false
-        add: true
+        style: geltungsbereich
         operations:
           - type: copy
             layers:
@@ -1043,27 +1041,27 @@ der Gemeinde Klein Belitz"
               - Wald
               - Straße Abstand
               - Weg Abstand
-      - name: Wald Abstand
-        update: true
-        color: "Light Green"
-        close: true
-        locked: false
-        # add: true
+          - type: filterGeometry
+            minArea: 10
+      - name: Waldabstand
         operations:
           - type: buffer
+            joinStyle: mitre
             layers:
               - Wald
             distance: 30
           - type: intersection
             layers:
               - Geltungsbereich
-      - name: Grünflächeinput
-        update: true
-        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/grünfläche.shp"
-      - name: Temp Grünfl
+          - type: filterGeometry
+            minArea: 200
+      - name: Grünflächeinput 1
+        # update: true
+        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/input/grünfläche.shp"
+      - name: Grünflächeinput 2
         update: true
         operations:
-          - type: filter
+          - type: copy
             layers:
               - name: Parcel
                 values:
@@ -1071,8 +1069,17 @@ der Gemeinde Klein Belitz"
                   - "99"
                   - "100"
                   - "101"
-                  - "102"
-                  # - "103"
+                  - "102" 
+          - type: filter
+            layers:
+              # - name: Parcel
+              #   values:
+              #     - "97"
+              #     - "99"
+              #     - "100"
+              #     - "101"
+              #     - "102"
+              #     # - "103"
               - name: Flur
                 values:
                   - Flur 2
@@ -1084,79 +1091,117 @@ der Gemeinde Klein Belitz"
                   - Torgelow am See
       - name: Grünfläche
         update: true
-        color: "Light Green"
-        close: true
-        locked: false
-        add: true
+        style: grünfläche
         operations:
-          - type: merge
+          - type: dissolve
+            useBufferTrick: true
+            bufferDistance: 0.01
+            # doubleUnion: true
+            useAsymmetricBuffer: true
+            # useSnapToGrid: true
+            # mergeVertices: true
+            # mergeVerticesTolerance: 20
             layers:
-              - Grünflächeinput
-              - Temp Grünfl
-              - Wald Abstand
+              - Grünflächeinput 1
+              - Grünflächeinput 2
+              - Waldabstand
           - type: difference
+            reverseDifference: false
             layers:
               - Weg Abstand
           - type: intersection
             layers:
               - Geltungsbereich
           - type: buffer
-            distance: -5
-            mode: keep # Keeps both the original geometries and the buffered ones
-      - name: Baufeld
+            distance: -3
+      - name: Grünfläche Schraffur
         update: true
-        color: "Light Red"
-        locked: false
-        close: true
-        textColor: "White"
-        add: true
+        style: grünfläche
+        applyHatch:
+          layers:
+            - Grünfläche
+      - name: Schutzflächeumgrenzung
+        update: true
+        viewports:
+          - name: WorkView
+            style: schutzflächeWorkView
         operations:
           - type: copy
             layers:
-              - Geltungsbereich
-          # - type: difference
-          #   layers:
-          #     - Biotope
-          #     - Wald Abstand
-          #     - Grünfläche
-      - name: Baugrenze
-        update: true
-        color: "Blue"
-        locked: false
-        close: true
-        add: true
-        operations:
-          - type: buffer
+              - Grünflächeinput 1
+              - Grünflächeinput 2
+              - Waldabstand
+          - type: dissolve
+            useBufferTrick: true
+            bufferDistance: 0.01
+            # doubleUnion: true
+            useAsymmetricBuffer: true
+            # useSnapToGrid: true
+            # mergeVertices: true
+            # mergeVerticesTolerance: 20
+          - type: difference
+            reverseDifference: false
             layers:
-              - Baufeld
-            distance: -3
+              - Grünfläche
+          - type: intersection
+            layers:
+              - Geltungsbereich
+      # - name: Baufeld
+      #   update: true
+      #   color: "Light Red"
+      #   locked: false
+      #   close: true
+      #   textColor: "White"
+      #   add: true
+      #   operations:
+      #     - type: copy
+      #       layers:
+      #         - Geltungsbereich
+      #     # - type: difference
+      #     #   layers:
+      #     #     - Biotope
+      #     #     - Wald Abstand
+      #     #     - Grünfläche
+      # - name: Baugrenze
+      #   update: true
+      #   color: "Blue"
+      #   locked: false
+      #   close: true
+      #   add: true
+      #   operations:
+      #     - type: buffer
+      #       layers:
+      #         - Baufeld
+      #       distance: -3
       - name: WMTS DOP
         # update: true
-        color: white
-        locked: true
-        add: true
+        style: 
+          locked: true
+          # color: "White"
         operations:
           - type: wmts
             url: "https://www.geodaten-mv.de/dienste/dop_wmts/wmts/1.0.0/WMTSCapabilities.xml"
             layer: "mv_dop"
-            zoom: "10"
+            # zoom: "10"
             proj: "ETRS89UTM33"
-            targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/DOP"
-            layers:
-              - Geltungsbereich
-            buffer: 100
-      - name: WMTS Basemap
-        # update: true
-        color: white
-        locked: true
-        add: true
-        operations:
-          - type: wmts
-            url: "https://sgx.geodatenzentrum.de/wmts_basemapde/1.0.0/WMTSCapabilities.xml"
-            layer: "de_basemapde_web_raster_farbe"
-            zoom: "10"
-            proj: "DE_EPSG_25833_ADV"
-            targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/Basemap"
+            targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/DOP"
             layers:
               - Geltungsbereich
             buffer: 200
+            stitchTiles: true
+            # overwrite: true
+      - name: WMTS Basemap
+      #   # update: true
+      #   color: white
+      #   locked: true
+      #   add: true
+      #   operations:
+      #     - type: wmts
+      #       url: "https://sgx.geodatenzentrum.de/wmts_basemapde/1.0.0/WMTSCapabilities.xml"
+      #       layer: "de_basemapde_web_raster_farbe"
+      #       zoom: "10"
+      #       proj: "DE_EPSG_25833_ADV"
+      #       targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/Basemap"
+      #       layers:
+      #         - Geltungsbereich
+      #       buffer: 200

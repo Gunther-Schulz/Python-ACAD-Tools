@@ -1,13 +1,14 @@
 import geopandas as gpd
 from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection, Point, MultiPoint
 from src.utils import log_info, log_warning, log_error
-from src.operations.common_operations import _process_layer_info, _get_filtered_geometry, ensure_geodataframe
+from src.operations.common_operations import _process_layer_info, _get_filtered_geometry, ensure_geodataframe, make_valid_geometry
 from src.operations.common_operations import *
 
 def create_smooth_layer(all_layers, project_settings, crs, layer_name, operation):
         log_info(f"Creating smooth layer: {layer_name}")
         source_layers = operation.get('layers', [])
         strength = operation.get('strength', 1.0)  # Default strength to 1.0
+        make_valid = operation.get('makeValid', True)
 
         combined_geometry = None
         for layer_info in source_layers:
@@ -25,10 +26,14 @@ def create_smooth_layer(all_layers, project_settings, crs, layer_name, operation
                 combined_geometry = combined_geometry.union(layer_geometry)
 
         if combined_geometry is not None:
+            if make_valid and combined_geometry is not None:
+                combined_geometry = make_valid_geometry(combined_geometry)
             buffer_distance = operation.get('bufferDistance', 0.001)
             thin_growth_threshold = operation.get('thinGrowthThreshold', 0.001)
             merge_vertices_tolerance = operation.get('mergeVerticesTolerance', 0.0001)
             smoothed_geometry = smooth_geometry(combined_geometry, strength)
+            if make_valid:
+                smoothed_geometry = make_valid_geometry(smoothed_geometry)
             cleaned_geometry = smoothed_geometry
             all_layers[layer_name] = ensure_geodataframe(layer_name, gpd.GeoDataFrame(geometry=[cleaned_geometry], crs=crs))
             log_info(f"Created smooth layer: {layer_name}")

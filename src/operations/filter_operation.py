@@ -39,6 +39,12 @@ def create_filtered_layer(all_layers, project_settings, crs, layer_name, operati
 
         # If no geometries are left after filtering, break early
         if filtered_gdf.empty:
+            log_warning(format_operation_warning(
+                layer_name,
+                "filter",
+                "No geometries left after filtering"
+            ))
+            all_layers[layer_name] = gpd.GeoDataFrame(geometry=[], crs=crs)
             break
 
     if not filtered_gdf.empty:

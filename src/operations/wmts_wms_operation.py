@@ -16,8 +16,12 @@ def process_wmts_or_wms_layer(all_layers, project_settings, crs, layer_name, ope
     
     zoom_folder = os.path.join(target_folder, f"zoom_{zoom_level}") if zoom_level else target_folder
     
-    layer_info = next((l for l in project_settings['geomLayers'] if l['name'] == layer_name), None)
-    update_flag = layer_info.get('update', False) if layer_info else False
+    # Get update flag from operation first, then layer_info as fallback
+    update_flag = operation.get('update', None)
+    if update_flag is None:
+        layer_info = next((l for l in project_settings['geomLayers'] if l['name'] == layer_name), None)
+        update_flag = layer_info.get('update', False) if layer_info else False
+    
     overwrite_flag = operation.get('overwrite', False)
     
     os.makedirs(zoom_folder, exist_ok=True)
@@ -31,13 +35,24 @@ def process_wmts_or_wms_layer(all_layers, project_settings, crs, layer_name, ope
         'url': operation['url'],
         'layer': operation['layer'],
         'proj': operation.get('proj'),
-        'srs': operation.get('srs'),
-        'format': operation.get('format', 'image/png'),
+        'srs': operation.get('wmsOptions', {}).get('srs', operation.get('srs')),  # Fallback for backward compatibility
+        'format': operation.get('wmsOptions', {}).get('format', operation.get('format', 'image/png')),
         'sleep': operation.get('sleep', 0),
         'limit': operation.get('limit', 0),
         'postProcess': operation.get('postProcess', {}),
         'overwrite': overwrite_flag,
-        'zoom': zoom_level
+        'zoom': zoom_level,
+        # WMS specific options from wmsOptions
+        'styles': operation.get('wmsOptions', {}).get('styles', ''),
+        'transparent': operation.get('wmsOptions', {}).get('transparent', True),
+        'bgcolor': operation.get('wmsOptions', {}).get('bgcolor', '0xFFFFFF'),
+        'width': operation.get('wmsOptions', {}).get('width', 256),
+        'height': operation.get('wmsOptions', {}).get('height', 256),
+        'version': operation.get('wmsOptions', {}).get('version', '1.3.0'),
+        'time': operation.get('wmsOptions', {}).get('time'),
+        'elevation': operation.get('wmsOptions', {}).get('elevation'),
+        'dimensions': operation.get('wmsOptions', {}).get('dimensions', {}),
+        'imageTransparency': operation.get('wmsOptions', {}).get('imageTransparency', False)
     }
 
     service_info['postProcess']['removeText'] = operation.get('postProcess', {}).get('removeText', False)
@@ -49,30 +64,41 @@ def process_wmts_or_wms_layer(all_layers, project_settings, crs, layer_name, ope
     log_info(f"Service info: {service_info}")
     log_info(f"Layers to process: {layers}")
 
-    wmts = WebMapTileService(service_info['url'])
-    tile_matrix = wmts.tilematrixsets[service_info['proj']].tilematrix
-    available_zooms = sorted(tile_matrix.keys(), key=int)
-    
-    requested_zoom = service_info.get('zoom')
-    
-    if requested_zoom is None:
-        # Use the highest available zoom level if not specified
-        chosen_zoom = available_zooms[-1]
-        log_info(f"No zoom level specified. Using highest available zoom: {chosen_zoom}")
-    else:
-        # Try to use the manually specified zoom level
-        if str(requested_zoom) in available_zooms:
-            chosen_zoom = str(requested_zoom)
+    if 'wmts' in operation['type'].lower():
+        wmts = WebMapTileService(service_info['url'])
+        
+        # Print available layers and their tile matrix sets
+        log_info("Available layers and their tile matrix sets:")
+        for layer_id, layer_content in wmts.contents.items():
+            print(f"Layer: {layer_id}")
+            print(f"  Title: {layer_content.title}")
+            print(f"  Tile Matrix Sets:")
+            for tms in layer_content.tilematrixsetlinks.keys():
+                print(f"    • {tms}")
+            print()
+
+        layer = wmts.contents[layer_id]
+        tile_matrix = wmts.tilematrixsets[service_info['proj']].tilematrix
+        available_zooms = sorted(tile_matrix.keys(), key=int)
+        
+        requested_zoom = service_info.get('zoom')
+        
+        if requested_zoom is None:
+            chosen_zoom = available_zooms[-1]
+            log_info(f"No zoom level specified. Using highest available zoom: {chosen_zoom}")
         else:
-            error_message = (
-                f"Error: Zoom level {requested_zoom} not available for projection {service_info['proj']}.\n"
-                f"Available zoom levels: {', '.join(available_zooms)}.\n"
-                f"Please choose a zoom level from the available options or remove the 'zoom' key to use the highest available zoom."
-            )
-            raise ValueError(error_message)
-    
-    service_info['zoom'] = chosen_zoom
-    log_info(f"Using zoom level: {chosen_zoom}")
+            if str(requested_zoom) in available_zooms:
+                chosen_zoom = str(requested_zoom)
+            else:
+                error_message = (
+                    f"Error: Zoom level {requested_zoom} not available for projection {service_info['proj']}.\n"
+                    f"Available zoom levels: {', '.join(available_zooms)}.\n"
+                    f"Please choose a zoom level from the available options or remove the 'zoom' key to use the highest available zoom."
+                )
+                raise ValueError(error_message)
+        
+        service_info['zoom'] = chosen_zoom
+        log_info(f"Using zoom level: {chosen_zoom}")
     
     all_tiles = []
     for layer in layers:
@@ -99,7 +125,7 @@ def process_wmts_or_wms_layer(all_layers, project_settings, crs, layer_name, ope
                         f"Please choose a zoom level from the available options."
                     )
                     raise ValueError(error_message)
-            else:
+            else:  # WMS
                 downloaded_tiles = download_wms_tiles(service_info, layer_geometry, buffer_distance, zoom_folder, update=update_flag, overwrite=overwrite_flag)
                 tile_matrix_zoom = None
 

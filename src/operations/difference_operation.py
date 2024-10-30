@@ -2,7 +2,7 @@ import geopandas as gpd
 from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection, Point, MultiPoint
 from src.utils import log_info, log_warning, log_error
 from shapely.ops import unary_union
-from src.operations.common_operations import _process_layer_info, _get_filtered_geometry, _remove_empty_geometries, _create_generic_overlay_layer, apply_buffer_trick, _clean_geometry, _remove_thin_growths, _merge_close_vertices, explode_to_singlepart
+from src.operations.common_operations import _process_layer_info, _get_filtered_geometry, _remove_empty_geometries, _create_generic_overlay_layer, apply_buffer_trick, _clean_geometry, _remove_thin_growths, _merge_close_vertices, explode_to_singlepart, format_operation_warning, make_valid_geometry
 from src.operations.intersection_operation import _create_intersection_overlay_layer
 
 def create_difference_layer(all_layers, project_settings, crs, layer_name, operation):
@@ -13,6 +13,7 @@ def create_difference_layer(all_layers, project_settings, crs, layer_name, opera
     thin_growth_threshold = operation.get('thinGrowthThreshold', 0.001)
     merge_vertices_tolerance = operation.get('mergeVerticesTolerance', 0.0001)
     use_buffer_trick = operation.get('useBufferTrick', False)
+    make_valid = operation.get('makeValid', True)
     
     base_geometry = all_layers.get(layer_name)
     if base_geometry is None:
@@ -50,6 +51,9 @@ def create_difference_layer(all_layers, project_settings, crs, layer_name, opera
     if isinstance(manual_reverse, bool):
         reverse_difference = manual_reverse
         log_info(f"Using manual override for reverse_difference: {reverse_difference}")
+    elif manual_reverse == "auto":
+        reverse_difference = _should_reverse_difference(all_layers, project_settings, crs, base_geometry, overlay_geometry)
+        log_info(f"Using explicit auto-detection for reverse_difference: {reverse_difference}")
     else:
         reverse_difference = _should_reverse_difference(all_layers, project_settings, crs, base_geometry, overlay_geometry)
         log_info(f"Auto-detected reverse_difference for {layer_name}: {reverse_difference}")
@@ -68,13 +72,30 @@ def create_difference_layer(all_layers, project_settings, crs, layer_name, opera
     if use_buffer_trick:
         # Apply inverse buffer to shrink the result back
         result = apply_buffer_trick(result, -buffer_distance)
+        if make_valid:
+            result = result.apply(make_valid_geometry)
+            result = result[result.notna()]
 
     # Convert result to GeoSeries
     if isinstance(result, (Polygon, MultiPolygon, LineString, MultiLineString)):
         result = gpd.GeoSeries([result])
+    elif isinstance(result, gpd.GeoDataFrame):
+        result = result.geometry  # Convert GeoDataFrame to GeoSeries
     elif not isinstance(result, gpd.GeoSeries):
-        log_warning(f"Unexpected result type: {type(result)}")
-        return None
+        log_warning(format_operation_warning(
+            layer_name,
+            "difference",
+            f"Unexpected result type: {type(result)}, attempting to convert to GeoSeries"
+        ))
+        try:
+            result = gpd.GeoSeries(result)
+        except Exception as e:
+            log_error(format_operation_warning(
+                layer_name,
+                "difference",
+                f"Failed to convert result to GeoSeries: {str(e)}"
+            ))
+            return None
 
     result = result[~result.is_empty & result.notna()]
     

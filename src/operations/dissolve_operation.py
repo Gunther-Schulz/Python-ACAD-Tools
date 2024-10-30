@@ -1,16 +1,22 @@
 import geopandas as gpd
 from shapely.ops import unary_union
 from src.utils import log_info, log_warning
-from src.operations.common_operations import explode_to_singlepart
+from src.operations.common_operations import explode_to_singlepart, apply_buffer_trick, make_valid_geometry, _merge_close_vertices, snap_vertices_to_grid
 import pandas as pd
 
 def create_dissolved_layer(all_layers, project_settings, crs, layer_name, operation):
     log_info(f"Creating dissolved layer: {layer_name}")
-    source_layers = operation.get('layers', [layer_name])  # Default to current layer if not specified
+    source_layers = operation.get('layers', [layer_name])
     dissolve_field = operation.get('dissolveField')
     buffer_distance = operation.get('bufferDistance', 0.01)
-    thin_growth_threshold = operation.get('thinGrowthThreshold', 0.001)
-    merge_vertices_tolerance = operation.get('mergeVerticesTolerance', 0.0001)
+    use_buffer_trick = operation.get('useBufferTrick', False)
+    merge_vertices = operation.get('mergeVertices', False)
+    use_double_union = operation.get('useDoubleUnion', True)
+    use_asymmetric_buffer = operation.get('useAsymmetricBuffer', False)
+    use_snap_to_grid = operation.get('useSnapToGrid', False)
+    merge_vertices_tolerance = operation.get('mergeVerticesTolerance', buffer_distance/2)
+    grid_size = operation.get('gridSize', buffer_distance/10)
+    make_valid = operation.get('makeValid', True)
 
     combined_gdf = None
     for layer_info in source_layers:
@@ -30,16 +36,46 @@ def create_dissolved_layer(all_layers, project_settings, crs, layer_name, operat
         # Remove empty geometries before processing
         combined_gdf = combined_gdf[~combined_gdf.geometry.is_empty]
 
+        if make_valid and combined_gdf is not None:
+            combined_gdf.geometry = combined_gdf.geometry.apply(make_valid_geometry)
+            combined_gdf = combined_gdf[combined_gdf.geometry.notna()]
+
+        if use_buffer_trick:
+            if merge_vertices:
+                combined_gdf.geometry = combined_gdf.geometry.apply(
+                    lambda geom: _merge_close_vertices(all_layers, project_settings, crs, geom, tolerance=merge_vertices_tolerance)
+                )
+                combined_gdf = combined_gdf[combined_gdf.geometry.notna()]
+            
+            if use_asymmetric_buffer:
+                # Apply asymmetric buffer trick
+                initial_buffer = buffer_distance * 1.1
+                reverse_buffer = -(buffer_distance * 0.9)
+                combined_gdf.geometry = combined_gdf.geometry.buffer(initial_buffer, join_style=2)
+                combined_gdf.geometry = combined_gdf.geometry.buffer(reverse_buffer, join_style=2)
+            else:
+                # Apply regular buffer trick
+                combined_gdf.geometry = apply_buffer_trick(combined_gdf.geometry, buffer_distance)
+
+            if use_snap_to_grid:
+                combined_gdf.geometry = combined_gdf.geometry.apply(
+                    lambda geom: snap_vertices_to_grid(geom, grid_size)
+                )
+
         if dissolve_field and dissolve_field in combined_gdf.columns:
             dissolved = gpd.GeoDataFrame(geometry=combined_gdf.geometry, data=combined_gdf[dissolve_field]).dissolve(by=dissolve_field, as_index=False)
         else:
+            # First unary_union
             dissolved = gpd.GeoDataFrame(geometry=[unary_union(combined_gdf.geometry)])
-        
-        # Clean up the resulting geometry and explode to singlepart
-        dissolved.geometry = dissolved.geometry.make_valid()
-        dissolved = dissolved[~dissolved.is_empty]
-        dissolved = explode_to_singlepart(dissolved)
-        
+            # Second unary_union if enabled
+            if use_double_union:
+                dissolved = gpd.GeoDataFrame(geometry=[unary_union(dissolved.geometry)])
+            
+            if make_valid:
+                dissolved.geometry = dissolved.geometry.make_valid()
+            dissolved = dissolved[~dissolved.is_empty]
+            dissolved = explode_to_singlepart(dissolved)
+
         # Remove empty geometries after processing
         dissolved = dissolved[~dissolved.geometry.is_empty]
 

@@ -450,10 +450,10 @@ def merge_close_vertices(geometry, tolerance):
     return _merge_close_vertices(geometry, tolerance)
 
 def apply_buffer_trick(geometry, buffer_distance):
-    """Applies the buffer trick to a geometry."""
+    """Applies the buffer trick to a geometry using mitre join style for sharper corners."""
     log_info(f"Applying buffer trick with distance: {buffer_distance}")
-    buffered = geometry.buffer(buffer_distance)
-    return buffered.buffer(-buffer_distance)
+    buffered = geometry.buffer(buffer_distance, join_style=2)  # 2 = mitre
+    return buffered.buffer(-buffer_distance, join_style=2)  # 2 = mitre
 
 def final_union(geometries):
     """Performs a final unary union on a list of geometries."""
@@ -547,6 +547,49 @@ def remove_geometry_types(geometry_or_gdf, remove_lines=False, remove_points=Fal
             log_warning("All geometries were removed or empty")
             return gpd.GeoDataFrame(geometry=[])
         return gpd.GeoDataFrame(geometry=[filtered_geom])
+
+
+def format_operation_warning(layer_name, operation_type, message):
+    return f"[Layer: {layer_name}] [{operation_type}] {message}"
+
+
+def make_valid_geometry(geometry):
+    """Makes a geometry valid, handling various geometry types."""
+    if geometry is None or geometry.is_empty:
+        return None
+    if geometry.is_valid:
+        return geometry
+    try:
+        valid_geom = make_valid(geometry)
+        if isinstance(valid_geom, (MultiPolygon, Polygon, LineString, MultiLineString)):
+            return valid_geom
+        elif isinstance(valid_geom, GeometryCollection):
+            valid_parts = [g for g in valid_geom.geoms if isinstance(g, (Polygon, MultiPolygon, LineString, MultiLineString))]
+            if valid_parts:
+                return GeometryCollection(valid_parts)
+        log_warning(f"Unable to fix geometry: {valid_geom.geom_type}")
+        return None
+    except Exception as e:
+        log_warning(f"Error fixing geometry: {e}")
+        return None
+
+
+def snap_vertices_to_grid(geometry, grid_size):
+    """Snaps vertices to a grid to help align geometries before operations."""
+    def round_to_grid(coord):
+        x, y = coord
+        return (round(x / grid_size) * grid_size, 
+                round(y / grid_size) * grid_size)
+    
+    if isinstance(geometry, Polygon):
+        exterior_coords = [round_to_grid(coord) for coord in geometry.exterior.coords]
+        interiors = [[round_to_grid(coord) for coord in interior.coords] 
+                    for interior in geometry.interiors]
+        return Polygon(exterior_coords, interiors)
+    elif isinstance(geometry, MultiPolygon):
+        return MultiPolygon([snap_vertices_to_grid(poly, grid_size) 
+                           for poly in geometry.geoms])
+    return geometry
 
 
 

@@ -278,6 +278,16 @@ class DXFExporter:
         log_info(f"Image path: {image_path}")
         log_info(f"World file path: {world_file_path}")
 
+        # Get layer configuration
+        layer_info = next((l for l in self.project_settings['geomLayers'] if l['name'] == layer_name), None)
+        use_transparency = False
+        
+        if layer_info and 'operations' in layer_info:
+            for op in layer_info['operations']:
+                if op['type'] in ['wms', 'wmts']:
+                    use_transparency = op.get('imageTransparency', False)
+                    break
+
         # Ensure the layer exists with proper properties
         if layer_name not in self.layer_properties:
             self.add_layer_properties(layer_name, {
@@ -325,19 +335,27 @@ class DXFExporter:
             size_in_units=size_in_units,
             image_def=image_def,
             rotation=0,
-            dxfattribs={'layer': layer_name}
+            dxfattribs={
+                'layer': layer_name,
+            }
         )
         self.attach_custom_data(image)
 
         # Set the image path as a relative path
         image.dxf.image_def_handle = image_def.dxf.handle
-        image.dxf.flags = 3  # Set bit 0 and 1 to indicate relative path
+        
+        # Set flags based on transparency setting
+        if use_transparency:
+            # Image.SHOW_IMAGE (1) | Image.SHOW_WHEN_NOT_ALIGNED (2) | Image.USE_TRANSPARENCY (8)
+            image.dxf.flags = 1 | 2 | 8
+            log_info(f"Added image with transparency enabled: {image}")
+        else:
+            # Image.SHOW_IMAGE (1) | Image.SHOW_WHEN_NOT_ALIGNED (2)
+            image.dxf.flags = 1 | 2
+            log_info(f"Added image without transparency: {image}")
 
         # Set the $PROJECTNAME header variable to an empty string
         msp.doc.header['$PROJECTNAME'] = ''
-
-        # Enable background transparency
-        log_info(f"Added image with transparency: {image}")
 
     def add_geometries_to_dxf(self, msp, geo_data, layer_name):
         log_info(f"Adding geometries to DXF for layer: {layer_name}")
@@ -1037,6 +1055,7 @@ class DXFExporter:
                 log_warning(f"Failed to add text insert for layer '{output_layer}'")
             else:
                 log_info(f"Successfully added text insert to layer '{output_layer}'")
+
 
 
 

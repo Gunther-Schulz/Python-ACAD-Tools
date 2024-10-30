@@ -59,7 +59,7 @@ def remove_geobasis_text(img):
     # Convert back to PIL Image
     return Image.fromarray(cv2.cvtColor(cv_img, cv2.COLOR_BGR2RGB))
 
-def post_process_image(img, color_map, alpha_color, tolerance=30, grayscale=False, remove_text=False):
+def post_process_image(img, color_map, alpha_color, tolerance=30, grayscale=False, remove_text=False, retain_if_color_present=None):
     log_info("Starting post-processing of image")
     
     # Convert to RGB initially (no alpha)
@@ -72,6 +72,25 @@ def post_process_image(img, color_map, alpha_color, tolerance=30, grayscale=Fals
         log_info("Text removal not requested, skipping")
     
     data = np.array(img)
+    
+    # Check if we should retain this image based on color presence
+    if retain_if_color_present and 'colors' in retain_if_color_present:
+        filter_tolerance = retain_if_color_present.get('tolerance', 5)
+        log_info(f"Checking for required colors: {retain_if_color_present['colors']} with tolerance {filter_tolerance}")
+        
+        # Check if ANY of the specified colors are present
+        found_any_color = False
+        for color in retain_if_color_present['colors']:
+            target_rgb = np.array(hex_to_rgb(color))
+            distances = np.apply_along_axis(lambda x: color_distance(x, target_rgb), 2, data)
+            if np.any(distances <= filter_tolerance):
+                found_any_color = True
+                break
+        
+        # If none of the specified colors were found, make the image transparent
+        if not found_any_color:
+            log_info("None of the specified colors found, creating transparent image")
+            return Image.new('RGBA', img.size, (0, 0, 0, 0))
     
     if color_map:
         for target_color, replacement_color in color_map.items():
@@ -168,6 +187,7 @@ def write_world_file(file_name, extension, col, row, matrix, zoom_folder) -> str
     return world_file_path
 
 def download_wmts_tiles(wmts_info: dict, geltungsbereich, buffer_distance: float, target_folder: str, update: bool = False, overwrite: bool = False) -> list:
+    print(f"Starting WMTS download to target folder: {target_folder}")
     capabilities_url = wmts_info['url']
     wmts = WebMapTileService(capabilities_url)
     layer_id = wmts_info['layer']
@@ -284,9 +304,9 @@ def download_wmts_tiles(wmts_info: dict, geltungsbereich, buffer_distance: float
     return downloaded_tiles
 
 def download_wms_tiles(wms_info: dict, geltungsbereich, buffer_distance: float, target_folder: str, update: bool = False, overwrite: bool = False) -> list:
-    log_info(f"Starting download_wms_tiles with the following parameters:")
-    log_info(f"WMS Info: {wms_info}")
-    log_info(f"Buffer distance: {buffer_distance}")
+    log_info(f"Starting WMS download to target folder: {target_folder}")
+    log_info(f"WMS URL: {wms_info['url']}")
+    log_info(f"Layer: {wms_info['layer']}")
     log_info(f"Target folder: {target_folder}")
     log_info(f"Update: {update}, Overwrite: {overwrite}")
 
@@ -308,29 +328,30 @@ def download_wms_tiles(wms_info: dict, geltungsbereich, buffer_distance: float, 
 
     srs = wms_info['srs']
     image_format = wms_info.get('format', 'image/png')
-    tile_size = wms_info.get('tileSize', 256)
+    tile_width = wms_info.get('width', 256)
+    tile_height = wms_info.get('height', 256)
     sleep = wms_info.get('sleep', 0)
     limit_requests = wms_info.get('limit', 0)
-    zoom = wms_info.get('zoom')
-
+    # Remove zoom reference here
+    
     post_process = wms_info.get('postProcess', {})
     color_map = post_process.get('colorMap', {})
     alpha_color = post_process.get('alphaColor')
     tolerance = post_process.get('tolerance', 30)
     grayscale = post_process.get('grayscale', False)
     remove_text = post_process.get('removeText', False)
+    retain_if_color_present = post_process.get('retainIfColorPresent')  # Updated name
 
-    log_info(f"Post-processing config: color_map={color_map}, alpha_color={alpha_color}, tolerance={tolerance}, grayscale={grayscale}, remove_text={remove_text}")
+    log_info(f"Post-processing config: color_map={color_map}, alpha_color={alpha_color}, tolerance={tolerance}, grayscale={grayscale}, remove_text={remove_text}, retain_if_color_present={retain_if_color_present}")
 
     geltungsbereich_buffered = geltungsbereich.buffer(buffer_distance)
     minx, miny, maxx, maxy = geltungsbereich_buffered.bounds
 
     # Calculate the number of tiles needed to cover the area
-    tile_width = tile_height = tile_size
     cols = math.ceil((maxx - minx) / tile_width)
     rows = math.ceil((maxy - miny) / tile_height)
 
-    log_info(f"Downloading {rows}x{cols} tiles")
+    log_info(f"Downloading {rows}x{cols} tiles with size {tile_width}x{tile_height}")
 
     downloaded_tiles = []
     download_count = 0
@@ -354,11 +375,25 @@ def download_wms_tiles(wms_info: dict, geltungsbereich, buffer_distance: float, 
                 continue
 
             try:
-                img = wms.getmap(layers=[layer_id], srs=srs, bbox=tile_bbox, size=(tile_size, tile_size), format=image_format)
+                wms_options = wms_info.get('wmsOptions', {})
                 
-                if color_map or alpha_color or grayscale or remove_text:
+                # Ensure transparent is set before bgcolor
+                params = {
+                    'layers': [layer_id],
+                    'srs': srs,
+                    'bbox': tile_bbox,
+                    'size': (tile_width, tile_height),
+                    'format': image_format,
+                    # 'transparent': wms_options.get('transparent', True),
+                    # 'bgcolor': wms_options.get('bgcolor', '0xFFFFFF'),  # Then bgcolor
+                    # 'styles': wms_options.get('styles', '')
+                }
+                
+                img = wms.getmap(**params)
+                
+                if color_map or alpha_color or grayscale or remove_text or retain_if_color_present:
                     pil_img = Image.open(BytesIO(img.read()))
-                    pil_img = post_process_image(pil_img, color_map, alpha_color, tolerance, grayscale, remove_text)
+                    pil_img = post_process_image(pil_img, color_map, alpha_color, tolerance, grayscale, remove_text, retain_if_color_present)
                     pil_img.save(image_path, 'PNG')
                 else:
                     with open(image_path, 'wb') as out:
@@ -366,9 +401,9 @@ def download_wms_tiles(wms_info: dict, geltungsbereich, buffer_distance: float, 
 
                 # Write the world file with correct georeference information
                 with open(world_file_path, 'w') as wf:
-                    wf.write(f"{tile_width / tile_size}\n")  # pixel size in the x-direction
+                    wf.write(f"{tile_width / tile_width}\n")  # pixel size in the x-direction
                     wf.write("0\n0\n")  # rotation terms (usually 0)
-                    wf.write(f"-{tile_height / tile_size}\n")  # negative pixel size in the y-direction
+                    wf.write(f"-{tile_height / tile_height}\n")  # negative pixel size in the y-direction
                     wf.write(f"{tile_minx}\n")  # x-coordinate of the center of the upper-left pixel
                     wf.write(f"{tile_maxy}\n")  # y-coordinate of the center of the upper-left pixel
 
@@ -523,3 +558,9 @@ def group_connected_tiles(tiles):
             groups.append(group)
 
     return groups
+
+
+
+
+
+

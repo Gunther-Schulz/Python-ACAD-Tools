@@ -2,7 +2,7 @@ import geopandas as gpd
 from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection, Point, MultiPoint
 from src.utils import log_info, log_warning, log_error
 from shapely.ops import unary_union
-from src.operations.common_operations import _process_layer_info, _get_filtered_geometry
+from src.operations.common_operations import _process_layer_info, _get_filtered_geometry, make_valid_geometry
 from src.operations.common_operations import *
 
 
@@ -43,6 +43,11 @@ def create_buffer_layer(all_layers, project_settings, crs, layer_name, operation
         log_warning(f"No valid source geometry found for buffer operation on {layer_name}")
         return None
 
+    make_valid = operation.get('makeValid', True)
+
+    if make_valid and combined_geometry is not None:
+        combined_geometry = make_valid_geometry(combined_geometry)
+
     try:
         if buffer_mode == 'outer':
             buffered = combined_geometry.buffer(buffer_distance, cap_style=2, join_style=join_style_value)
@@ -70,14 +75,25 @@ def create_buffer_layer(all_layers, project_settings, crs, layer_name, operation
                 result_geom = [geom for geom in result.geoms if isinstance(geom, (Polygon, MultiPolygon))]
             else:
                 result_geom = []
+
+        # After buffer operations and before converting to result_geom
+        if make_valid:
+            if buffer_mode == 'keep':
+                result = [make_valid_geometry(geom) if geom is not None else None for geom in result]
+                result = [geom for geom in result if geom is not None]
+            else:
+                result = make_valid_geometry(result)
+
         result_gdf = gpd.GeoDataFrame(geometry=result_geom, crs=crs)
         all_layers[layer_name] = result_gdf
         log_info(f"Created buffer layer: {layer_name} with {len(result_geom)} geometries")
         return result_gdf
     except Exception as e:
-        log_error(f"Error during buffer operation: {str(e)}")
-        import traceback
-        log_error(f"Traceback:\n{traceback.format_exc()}")
+        log_error(format_operation_warning(
+            layer_name,
+            "buffer",
+            f"Error during buffer operation: {str(e)}"
+        ))
         return None
 
 
