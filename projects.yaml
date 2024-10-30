@@ -309,7 +309,7 @@ projects:
           x: 0
           y: 0
     - name: "GRZ Label"
-      # update: true
+      update: true
       targetLayer: "Baufeld"
       blockName: "GRZ"
       scale: 4.0
@@ -849,42 +849,42 @@ der Gemeinde Klein Belitz"
       #       layers:
       #         - Geltungsbereich NW
       #       buffer: 1000
-      - name: WMS Gebäude
-        # update: true
-        operations:
-          - type: wms
-            # overwrite: true
-            url: "https://www.geodaten-mv.de/dienste/gebaeude_wms"
-            layer: "gebaeude"
-            imageTransparency: true
-            wmsOptions:
-              srs: "EPSG:25833"
-              format: "image/png"
-              # styles: ""  # Optional WMS style
-              # version: "1.3.0"  # WMS version
-              # transparent: true
-              # bgcolor: "0x0000FF" # Doesn't work somehow. It's black always.
-            width: 4096
-            height: 4096
-            targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/Gebäude"
-            layers:
-              - Geltungsbereich NW
-              - Geltungsbereich NO
-              - Geltungsbereich S
-            buffer: 500
-            postProcess:
-              retainIfColorPresent:
-                colors: ["#ff0000"]  # Images containing these colors will be made transparent
-                tolerance: 5  # Optional: color matching tolerance (0-255)
+      # - name: WMS Gebäude
+      #   # update: true
+      #   operations:
+      #     - type: wms
+      #       # overwrite: true
+      #       url: "https://www.geodaten-mv.de/dienste/gebaeude_wms"
+      #       layer: "gebaeude"
+      #       imageTransparency: true
+      #       wmsOptions:
+      #         srs: "EPSG:25833"
+      #         format: "image/png"
+      #         # styles: ""  # Optional WMS style
+      #         # version: "1.3.0"  # WMS version
+      #         # transparent: true
+      #         # bgcolor: "0x0000FF" # Doesn't work somehow. It's black always.
+      #       width: 4096
+      #       height: 4096
+      #       targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/Gebäude"
+      #       layers:
+      #         - Geltungsbereich NW
+      #         - Geltungsbereich NO
+      #         - Geltungsbereich S
+      #       buffer: 500
+      #       postProcess:
+      #         retainIfColorPresent:
+      #           colors: ["#ff0000"]  # Images containing these colors will be made transparent
+      #           tolerance: 5  # Optional: color matching tolerance (0-255)
                 
-              colorMap:
-                  "#ff0000": "#808080"  # Map red to grey
-              alphaColor: "#ffffff"  # Set white to fully transparent
-            #   alphaColor: "#000000"  # Set black to fully transparent
-            #   # tolerance: 30  # Increased tolerance to catch similar shades
-              grayscale: true
-            #   # removeText: true
-            stitchTiles: true
+      #         colorMap:
+      #             "#ff0000": "#808080"  # Map red to grey
+      #         alphaColor: "#ffffff"  # Set white to fully transparent
+      #       #   alphaColor: "#000000"  # Set black to fully transparent
+      #       #   # tolerance: 30  # Increased tolerance to catch similar shades
+      #         grayscale: true
+      #       #   # removeText: true
+      #       stitchTiles: true
   - name: Torgelow
     exportFormat: dxf
     dxfVersion: R2018

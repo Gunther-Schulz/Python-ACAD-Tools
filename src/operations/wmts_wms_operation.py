@@ -16,8 +16,12 @@ def process_wmts_or_wms_layer(all_layers, project_settings, crs, layer_name, ope
     
     zoom_folder = os.path.join(target_folder, f"zoom_{zoom_level}") if zoom_level else target_folder
     
-    layer_info = next((l for l in project_settings['geomLayers'] if l['name'] == layer_name), None)
-    update_flag = layer_info.get('update', False) if layer_info else False
+    # Get update flag from operation first, then layer_info as fallback
+    update_flag = operation.get('update', None)
+    if update_flag is None:
+        layer_info = next((l for l in project_settings['geomLayers'] if l['name'] == layer_name), None)
+        update_flag = layer_info.get('update', False) if layer_info else False
+    
     overwrite_flag = operation.get('overwrite', False)
     
     os.makedirs(zoom_folder, exist_ok=True)
