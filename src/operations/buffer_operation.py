@@ -75,6 +75,15 @@ def create_buffer_layer(all_layers, project_settings, crs, layer_name, operation
                 result_geom = [geom for geom in result.geoms if isinstance(geom, (Polygon, MultiPolygon))]
             else:
                 result_geom = []
+
+        # After buffer operations and before converting to result_geom
+        if make_valid:
+            if buffer_mode == 'keep':
+                result = [make_valid_geometry(geom) if geom is not None else None for geom in result]
+                result = [geom for geom in result if geom is not None]
+            else:
+                result = make_valid_geometry(result)
+
         result_gdf = gpd.GeoDataFrame(geometry=result_geom, crs=crs)
         all_layers[layer_name] = result_gdf
         log_info(f"Created buffer layer: {layer_name} with {len(result_geom)} geometries")

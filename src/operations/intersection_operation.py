@@ -82,6 +82,10 @@ def _create_intersection_overlay_layer(all_layers, project_settings, crs, layer_
         log_error(f"Traceback:\n{traceback.format_exc()}")
         return
 
+    if make_valid:
+        result_geometry = result_geometry.apply(make_valid_geometry)
+        result_geometry = result_geometry[result_geometry.notna()]
+
     # Create a new GeoDataFrame with the resulting geometries and explode to singlepart
     if isinstance(result_geometry, gpd.GeoDataFrame):
         result_gdf = result_geometry

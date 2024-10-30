@@ -72,6 +72,9 @@ def create_difference_layer(all_layers, project_settings, crs, layer_name, opera
     if use_buffer_trick:
         # Apply inverse buffer to shrink the result back
         result = apply_buffer_trick(result, -buffer_distance)
+        if make_valid:
+            result = result.apply(make_valid_geometry)
+            result = result[result.notna()]
 
     # Convert result to GeoSeries
     if isinstance(result, (Polygon, MultiPolygon, LineString, MultiLineString)):

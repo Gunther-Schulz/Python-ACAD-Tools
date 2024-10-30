@@ -1095,15 +1095,23 @@ der Gemeinde Klein Belitz"
         operations:
           - type: dissolve
             useBufferTrick: true
-            bufferDistance: 0.1
+            bufferDistance: 0.01
+            doublePass: true
+            # mergeVertices: true
+            # mergeVerticesTolerance: 20
             layers:
               - Grünflächeinput 1
               - Grünflächeinput 2
               - Waldabstand
-          - type: difference
-            reverseDifference: false
-            layers:
-              - Weg Abstand
+          - type: dissolve
+            useBufferTrick: true
+            bufferDistance: 0.01
+            # mergeVertices: true
+            # mergeVerticesTolerance: 20
+          # - type: difference
+          #   reverseDifference: false
+          #   layers:
+          #     - Weg Abstand
           # - type: intersection
           #   layers:
           #     - Geltungsbereich

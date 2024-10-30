@@ -32,6 +32,8 @@ def create_smooth_layer(all_layers, project_settings, crs, layer_name, operation
             thin_growth_threshold = operation.get('thinGrowthThreshold', 0.001)
             merge_vertices_tolerance = operation.get('mergeVerticesTolerance', 0.0001)
             smoothed_geometry = smooth_geometry(combined_geometry, strength)
+            if make_valid:
+                smoothed_geometry = make_valid_geometry(smoothed_geometry)
             cleaned_geometry = smoothed_geometry
             all_layers[layer_name] = ensure_geodataframe(layer_name, gpd.GeoDataFrame(geometry=[cleaned_geometry], crs=crs))
             log_info(f"Created smooth layer: {layer_name}")

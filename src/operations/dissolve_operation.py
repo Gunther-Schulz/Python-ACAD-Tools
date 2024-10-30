@@ -1,7 +1,7 @@
 import geopandas as gpd
 from shapely.ops import unary_union
 from src.utils import log_info, log_warning
-from src.operations.common_operations import explode_to_singlepart, apply_buffer_trick, make_valid_geometry
+from src.operations.common_operations import explode_to_singlepart, apply_buffer_trick, make_valid_geometry, _merge_close_vertices
 import pandas as pd
 
 def create_dissolved_layer(all_layers, project_settings, crs, layer_name, operation):
@@ -10,8 +10,10 @@ def create_dissolved_layer(all_layers, project_settings, crs, layer_name, operat
     dissolve_field = operation.get('dissolveField')
     buffer_distance = operation.get('bufferDistance', 0.01)
     use_buffer_trick = operation.get('useBufferTrick', False)
+    merge_vertices = operation.get('mergeVertices', False)  # Default to False
+    double_pass = operation.get('doublePass', True)  # New flag, default to True
     thin_growth_threshold = operation.get('thinGrowthThreshold', 0.001)
-    merge_vertices_tolerance = operation.get('mergeVerticesTolerance', 0.0001)
+    merge_vertices_tolerance = operation.get('mergeVerticesTolerance', buffer_distance/2)
     make_valid = operation.get('makeValid', True)
 
     combined_gdf = None
@@ -37,20 +39,42 @@ def create_dissolved_layer(all_layers, project_settings, crs, layer_name, operat
             combined_gdf = combined_gdf[combined_gdf.geometry.notna()]
 
         if use_buffer_trick:
+            if merge_vertices:
+                # First merge close vertices
+                combined_gdf.geometry = combined_gdf.geometry.apply(
+                    lambda geom: _merge_close_vertices(all_layers, project_settings, crs, geom, tolerance=merge_vertices_tolerance)
+                )
+                combined_gdf = combined_gdf[combined_gdf.geometry.notna()]
+            # Then apply buffer trick with mitre join
             combined_gdf.geometry = apply_buffer_trick(combined_gdf.geometry, buffer_distance)
 
         if dissolve_field and dissolve_field in combined_gdf.columns:
             dissolved = gpd.GeoDataFrame(geometry=combined_gdf.geometry, data=combined_gdf[dissolve_field]).dissolve(by=dissolve_field, as_index=False)
         else:
+            # First pass
             dissolved = gpd.GeoDataFrame(geometry=[unary_union(combined_gdf.geometry)])
-        
+            # Second pass if enabled
+            if double_pass:
+                dissolved = gpd.GeoDataFrame(geometry=[unary_union(dissolved.geometry)])
+
         # Clean up the resulting geometry and explode to singlepart
-        dissolved.geometry = dissolved.geometry.make_valid()
+        if make_valid:
+            dissolved.geometry = dissolved.geometry.make_valid()
         dissolved = dissolved[~dissolved.is_empty]
         dissolved = explode_to_singlepart(dissolved)
 
         if use_buffer_trick:
+            if merge_vertices:
+                # Merge vertices again before negative buffer
+                dissolved.geometry = dissolved.geometry.apply(
+                    lambda geom: _merge_close_vertices(all_layers, project_settings, crs, geom, tolerance=merge_vertices_tolerance)
+                )
+                dissolved = dissolved[dissolved.geometry.notna()]
+            # Apply negative buffer
             dissolved.geometry = apply_buffer_trick(dissolved.geometry, -buffer_distance)
+            if make_valid:
+                dissolved.geometry = dissolved.geometry.apply(make_valid_geometry)
+                dissolved = dissolved[dissolved.geometry.notna()]
         
         # Remove empty geometries after processing
         dissolved = dissolved[~dissolved.geometry.is_empty]

@@ -450,10 +450,10 @@ def merge_close_vertices(geometry, tolerance):
     return _merge_close_vertices(geometry, tolerance)
 
 def apply_buffer_trick(geometry, buffer_distance):
-    """Applies the buffer trick to a geometry."""
+    """Applies the buffer trick to a geometry using mitre join style for sharper corners."""
     log_info(f"Applying buffer trick with distance: {buffer_distance}")
-    buffered = geometry.buffer(buffer_distance)
-    return buffered.buffer(-buffer_distance)
+    buffered = geometry.buffer(buffer_distance, join_style=2)  # 2 = mitre
+    return buffered.buffer(-buffer_distance, join_style=2)  # 2 = mitre
 
 def final_union(geometries):
     """Performs a final unary union on a list of geometries."""
