@@ -153,7 +153,7 @@ class DXFExporter:
 
     def process_layers(self, doc, msp):
         for layer_info in self.project_settings['geomLayers']:
-            if layer_info.get('updateDxf', False):
+            if layer_info.get('updateDxf', False):  # Default to False
                 self.process_single_layer(doc, msp, layer_info['name'], layer_info)
 
     def process_single_layer(self, doc, msp, layer_name, layer_info):
@@ -209,7 +209,7 @@ class DXFExporter:
             self.apply_layer_properties(doc.layers.get(label_layer_name), layer_info)
 
     def update_layer_geometry(self, msp, layer_name, geo_data, layer_config):
-        update_flag = layer_config.get('updateDxf', False)
+        update_flag = layer_config.get('updateDxf', False)  # Default to False
         
         log_info(f"Updating layer geometry for {layer_name}. Update flag: {update_flag}")
         
@@ -600,8 +600,8 @@ class DXFExporter:
         viewports_layer.dxf.plot = 0  # Set to not plot
         
         for vp_config in self.project_settings.get('viewports', []):
-            # Check update flag - skip if not set to True
-            if not vp_config.get('update', False):
+            # Check update flag - default to False
+            if not vp_config.get('updateDxf', False):
                 log_info(f"Skipping viewport {vp_config.get('name', 'unnamed')} as update flag is not set")
                 continue
 
@@ -944,7 +944,7 @@ class DXFExporter:
         
         for text_config in text_inserts:
             output_layer = text_config.get('targetLayer')
-            updateDxf = text_config.get('updateDxf', False)
+            updateDxf = text_config.get('updateDxf', False)  # Default to False
 
             if not updateDxf:
                 log_info(f"Skipping text insert for layer '{output_layer}' as updateDxf flag is not set")
@@ -1035,18 +1035,20 @@ class DXFExporter:
             return geometry.centroid.coords[0]
 
     def process_text_inserts(self, msp):
-        """Process text insert configurations."""
         text_inserts = self.project_settings.get('textInserts', [])
         log_info(f"Processing {len(text_inserts)} text insert configurations")
         
         for text_config in text_inserts:
             output_layer = text_config.get('targetLayer')
+            updateDxf = text_config.get('updateDxf', False)  # Default to False
+
+            if not updateDxf:
+                log_info(f"Skipping text insert for layer '{output_layer}' as updateDxf flag is not set")
+                continue
+
             if not output_layer:
                 log_warning(f"Invalid text insert configuration: {text_config}")
                 continue
-
-            # Sanitize layer name
-            output_layer = sanitize_layer_name(output_layer)
 
             # Create the output layer if it doesn't exist
             if output_layer not in self.layer_properties:

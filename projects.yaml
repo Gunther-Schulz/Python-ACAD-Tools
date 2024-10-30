@@ -889,6 +889,277 @@ der Gemeinde Klein Belitz"
     dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/Zeichnung/Torgelow.dxf"
     # dxfDumpOutputDir: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/dxf_dump"
     shapefileOutputDir: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/generated"
+    legend:
+      title: "Planzeichen"
+      subtitle: "(gem. PlanzV 1990-PlanzV 90 v.18.12.1990)"
+      max_width: 160
+      title_spacing: 0      # Space after the main legend title
+      subtitle_spacing: 4   # Space after the main subtitle
+      group_spacing: 3      # Space between different groups in the legend
+      group_title_spacing: 2 # Space after each group's title
+      group_subtitle_spacing: 3 # Space after each group's subtitle
+      item_spacing: 4       # Space between individual items within a group
+      position:
+        x: 357774
+        y: 5941939
+      titleTextStyle:
+        height: 8
+        color: "red-dusky"
+        text_style: "Arial"
+        # rotation: 45
+        # attachment_point: MTEXT_MIDDLE_CENTER
+        # flow_direction: MTEXT_LEFT_TO_RIGHT
+        # line_spacing_style: MTEXT_AT_LEAST
+        # line_spacing_factor: 1.5
+        # bg_fill: 1
+        # bg_fill_color: 'yellow'
+        # bg_fill_scale: 1.2
+        # underline: True
+        # overline: False
+        # strike_through: False
+        # oblique_angle: 15
+      titleSubtitleStyle:
+        height: 3.5
+        color: "red-dusky"
+        text_style: "Arial"
+      groupTextStyle:
+        color: "white"
+        height: 5
+        text_style: "Arial"
+      subtitleTextStyle:
+        color: "white"
+        height: 2.5
+        text_style: "Arial"
+      itemTextStyle:
+        color: "white"
+        height: 3
+        text_style: "Arial"
+        attachment_point: MTEXT_MIDDLE_LEFT
+      groups:
+        - name: "Art der baulichen Nutzung"
+          updateDxf: true
+          subtitle: "§ 9 Abs. 1 Nr. 1 BauGB"
+          items:
+            - name: "Sonstiges Sondergebiet (§ 11 Abs. 2 BauNVO) Zweckbestimmung: Energiegewinnung auf der Basis solarer Strahlungsenergie"
+              type: area
+              applyHatch: true
+              style: baufeldLegend
+              blockSymbol: "Sonstiges Sondergebiet EBS"
+              blockSymbolScale: 2
+        - name: "Maß der baulichen Nutzung"
+          updateDxf: true
+          subtitle: "§ 9 Abs. 1 Nr. 1 BauGB"
+          items:
+            - name: "Grundflächenzahl"
+              type: empty
+              blockSymbol: "GRZ"
+              blockSymbolScale: 2
+        - name: "Bauweise, Baulinien, Baugrenzen"
+          updateDxf: true
+          subtitle: "§ 9 Abs. 1 Nr. 2 BauGB"
+          items:
+            - name: "Baugrenze"
+              type: empty
+              blockSymbol: "Baugrenze"   
+        - name: "Verkehrsflächen"
+          updateDxf: true
+          subtitle: "(§ 9 Abs. 1 Nr. 11 und Abs. 6 BauGB)"
+          items:
+            - name: "Verkehrsfläche besonderer Zweckbestimmung"
+              type: area
+              applyHatch: true
+              style: verkehrsfläche
+            - name: "Verkehrsberuhigter Bereich"
+              type: empty
+              blockSymbol: "Verkehrsberuhigter Bereich"
+              blockSymbolScale: 2
+            - name: "Privat"
+              type: empty
+              blockSymbol: "Privat"
+              blockSymbolScale: 2
+        - name: "Grünflächen"
+          updateDxf: true
+          subtitle: "§ 9 Abs.1 Nr. 15 BauGB"
+          items:
+            - name: "Private Grünflächen"
+              type: area
+              style: grünflächeLegend
+              applyHatch: true
+        - name: "Wasserflächen und Flächen für die Wasserwirtschaft, den Hochwasserschutz und die Regelung des Wasserabflusses"
+          updateDxf: true
+          subtitle: "§ 9 Abs. 1 Nr. 16 BauBG"
+          items:
+            - name: "Wasserflächen"
+              type: area
+              style: waterLegend
+              applyHatch: true
+        - name: "Planungen, Nutzungsregelungen, Maßnahmen und Flächen für Maßnahmen zum Schutz, zur Pflege und zur Entwicklung von Natur und Landschaft"
+          updateDxf: true
+          subtitle: "§ 9 Abs.1 Nr. 20 BauGB"
+          items:
+            - name: "Umgrenzung von Flächen für Maßnahmen zum Schutz, zur Pflege und zurEntwicklung von Natur und Landschaft"
+              type: empty
+              blockSymbol: "Schutzflächeumgrenzung"
+            # - name: "Umgrenzung von Flächen für Maßnahmen zum Schutz, zur Pflege und zurEntwicklung von Natur und Landschaft"
+            #   type: empty
+            #   blockSymbol: "Schutzflächeumgrenzung Small"
+            #   blockSymbolScale: 1.8
+        - name: "Sonstige Planzeichen"
+          updateDxf: true
+          items:
+            - name: "Grenze des räumlichen Geltungsbereiches des Bebauungsplans"
+              subtitle: "(§ 9 Abs. 7 BauGB)"
+              type: area
+              rectangleStyle: geltungsbereich_2
+            - name: "Hauptversorgungs- und Hauptabwasserleitungen unterirdisch"
+              subtitle: "(§ 5 Abs. 2 Nr.4 und Abs. 4, § 9 Abs.1 Nr.1 u. Abs. 6)"
+              type: area
+              blockSymbol: "Leitung oberirdisch"
+              blockSymbolScale: 2
+            - name: "Hauptversorgungs- und Hauptabwasserleitungen oberirdisch"
+              subtitle: "(§ 5 Abs. 2 Nr.4 und Abs. 4, § 9 Abs.1 Nr.1 u. Abs. 6)"
+              type: area
+              blockSymbol: "Leitung unterirdisch"
+              blockSymbolScale: 2
+            - name: "Mit Geh-, Fahr- und Leitungsrechten zu belastende Flächen"
+              subtitle: "(§ 9 Abs.1 Nr.21 und Abs. 6 BauGB)"
+              type: area
+              rectangleStyle: gfl1
+              blockSymbol: "GFL1"
+              blockSymbolScale: 2
+            - name: "Mit Geh-, Fahr- und Leitungsrechten zu belastende Flächen"
+              subtitle: "(§ 9 Abs.1 Nr.21 und Abs. 6 BauGB)"
+              type: empty
+              blockSymbol: "GFL2"
+              blockSymbolScale: 1.6
+        - name: "Darstellung ohne Normcharakter"
+          updateDxf: true
+          items:
+            - name: "Gemeindegrenze"
+              type: diagonal_line
+              style: gemeindegrenze
+            - name: "Gemarkungsgrenze"
+              type: line
+              style: gemarkungsgrenze
+            - name: "Flurgrenze"
+              type: line
+              style: flurgrenze
+            - name: "Flurstücksnummer\nFlurstücksgrenze"
+              type: empty
+              blockSymbol: "Parcel"
+              blockSymbolScale: 1.4
+            - name: "anstehendes Gelände in Meter über NHN im amtlichen Höhenbezugssystem DHHN2016 als unterer Höhenbezugspunkt"
+              type: empty
+              blockSymbol: "Contours"
+              blockSymbolScale: 1.4
+            - name: "Bemaßung in Meter"
+              type: empty
+              blockSymbol: "Bemassung2"
+        - name: "Nachrichtliche Übernahme"
+          updateDxf: true
+          items:
+            - name: "gesetzlich geschützes Biotop § 9 Abs. 6 BauGB i. V. m. § 20 NatSchAG - MV"
+              type: area
+              rectangleStyle: gesGeschuetzesBiotop
+              blockSymbol: "Gesetzlich geschütztes Biotop"
+              blockSymbolScale: 1.8
+            - name: "Wald"
+              type: area
+              style: wald
+              applyHatch: true
+            - name: "Baum"
+              type: empty
+              blockSymbol: "Baum"
+              blockSymbolScale: 1.8
+            - name: "Baum erhalten"
+              type: empty
+              blockSymbol: "Baum erhalten"
+              blockSymbolScale: 1.8
+            - name: "Abgrenzung unterschiedlicher Nutzung, z. B. von Baugebieten, oder Abgrenzung des Maßes der Nutzung innerhalb eines Baugebiets z.B. § 1 Abs. 4 § 16 Abs. 5 BauNVO)"
+              type: empty
+              blockSymbol: "Abgrenzung unterschiedlicher Nutzung"
+              blockSymbolScale: 1.4
+    blockInserts:
+    - name: "SO EBS Label"
+      updateDxf: true
+      targetLayer: "Baufeld"
+      blockName: "Sonstiges Sondergebiet EBS"
+      scale: 6.0
+      rotation: 0
+      position:
+        type: "centroid"  # Options: centroid, center, random
+        offset:
+          x: 0
+          y: 0
+    - name: "GRZ Label"
+      updateDxf: true
+      targetLayer: "Baufeld"
+      blockName: "GRZ"
+      scale: 4.0
+      rotation: 0
+      position:
+        type: "centroid"  # Options: centroid, center, random
+        offset:
+          x: 0
+          y: -20
+    textInserts:
+      - name: "Main Title"
+        updateDxf: true
+        targetLayer: "Plantext"
+        paperspace: true  # Add this to place text in paper space
+        text: "Entwurf: Vorhabensbezogener Bebauungsplan Nr. 3 „Solarpark Friedrichshof“
+der Gemeinde Klein Belitz"
+        position:
+          x: 66
+          y: 840
+        style: "mainTitle"  # Style can include width for text wrapping    
+    viewports:
+    - name: MainView
+      updateDxf: true
+      color: "magenta"
+      topLeft:
+        x: 65
+        y: 776.5
+      width: 720
+      height: 653
+      viewCenter:
+        x: 351016
+        y: 5936541
+      customScale: 0.5
+      lockZoom: true
+    - name: LegendView
+      updateDxf: true
+      color: "magenta"
+      topLeft:
+        x: 817
+        y: 842
+      width: 180
+      height: 700
+      viewTopLeft:
+        x: 357774
+        y: 5941939
+      # scale: 2
+      # customScale: 0.5
+      lockZoom: true
+    - name: WorkView
+      updateDxf: true
+      color: "magenta"
+      center:
+        x: 780
+        y: 2000
+      width: 720
+      height: 653
+      viewCenter:
+        x: 356027
+        y: 5935564
+    pathArrays:
+      - name: "Schutzflächeumgrenzung T-Symbol Array"
+        updateDxf: true
+        sourceLayer: "Schutzflächeumgrenzung T-Symbol Temp"
+        block: "T-Symbol"
+        spacing: 7
+        scale: 0.6
+        bufferDistance: 0.6
     geomLayers:
       - name: Flur
         updateDxf: true
@@ -1104,6 +1375,21 @@ der Gemeinde Klein Belitz"
           - type: intersection
             layers:
               - Geltungsbereich
+      - name: Schutzflächeumgrenzung T-Symbol Temp
+        # updateDxf: true
+        close: false
+        plot: false
+        operations:
+          - type: copy
+            layers:
+              - Grünfläche
+              - Schutzflächeumgrenzung
+          - type: dissolve
+          - type: intersection
+            layers:
+              - Geltungsbereich
+          - type: filterGeometry
+            minArea: 200
       - name: Baufeld
         updateDxf: true
         close: true
