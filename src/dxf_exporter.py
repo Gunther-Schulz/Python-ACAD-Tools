@@ -681,6 +681,24 @@ class DXFExporter:
                 viewport.dxf.status = 1
                 viewport.dxf.layer = 'VIEWPORTS'
                 
+                # Clear all 3D-related flags and only set essential 2D flags
+                viewport.dxf.flags = 0  # First clear all flags
+                
+                # Set only the necessary flags for 2D viewing:
+                # VSF_FAST_ZOOM (128/0x80) - Enables fast zoom
+                # VSF_GRID_MODE (512/0x200) - Enables grid mode if needed
+                viewport.dxf.flags = 128 | 512
+                
+                # Set render mode to 2D Optimized
+                viewport.dxf.render_mode = 0  # 0 = 2D Optimized (classic 2D)
+                
+                # Ensure view direction is straight top-down
+                viewport.dxf.view_direction_vector = (0, 0, 1)
+                
+                # Additional flags if needed (like zoom lock)
+                if vp_config.get('lockZoom', False):
+                    viewport.dxf.flags |= 16384  # VSF_LOCK_ZOOM
+                
                 # Set viewport color if specified
                 if 'color' in vp_config:
                     color = get_color_code(vp_config['color'], self.name_to_aci)
@@ -689,9 +707,8 @@ class DXFExporter:
                     else:
                         viewport.dxf.color = color
                 
-                if vp_config.get('lockZoom', False):
-                    viewport.dxf.flags = viewport.dxf.flags | 1
-
+                log_info(f"Updated viewport {vp_config['name']} properties")
+                
             # Attach custom data and identifier for both new and existing viewports
             self.attach_custom_data(viewport)
             viewport.set_xdata(
