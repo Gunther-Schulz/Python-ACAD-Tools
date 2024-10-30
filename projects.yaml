@@ -1099,15 +1099,38 @@ der Gemeinde Klein Belitz"
               - Grünflächeinput 2
               - Waldabstand
           - type: difference
+            reverseDifference: false
             layers:
               - Weg Abstand
-              - Waldabstand
-          - type: intersection
-            layers:
-              - Geltungsbereich
-          - type: buffer
-            distance: -3
-          #   mode: keep # Keeps both the original geometries and the buffered ones
+          # - type: intersection
+          #   layers:
+          #     - Geltungsbereich
+          # - type: buffer
+          #   distance: -3
+      # - name: Grünfläche Schraffur
+      #   update: true
+      #   style: grünfläche
+      #   applyHatch:
+      #     layers:
+      #       - Grünfläche
+      # - name: Schutzflächeumgrenzung
+      #   update: true
+      #   viewports:
+      #     - name: WorkView
+      #       style: schutzflächeWorkView
+      #   operations:
+      #     - type: copy
+      #       layers:
+      #         - Grünflächeinput 1
+      #         - Grünflächeinput 2
+      #         - Waldabstand
+      #     - type: dissolve
+      #     - type: difference
+      #       layers:
+      #         - Grünfläche
+      #     - type: intersection
+      #       layers:
+      #         - Geltungsbereich
       # - name: Baufeld
       #   update: true
       #   color: "Light Red"

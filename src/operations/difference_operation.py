@@ -50,6 +50,9 @@ def create_difference_layer(all_layers, project_settings, crs, layer_name, opera
     if isinstance(manual_reverse, bool):
         reverse_difference = manual_reverse
         log_info(f"Using manual override for reverse_difference: {reverse_difference}")
+    elif manual_reverse == "auto":
+        reverse_difference = _should_reverse_difference(all_layers, project_settings, crs, base_geometry, overlay_geometry)
+        log_info(f"Using explicit auto-detection for reverse_difference: {reverse_difference}")
     else:
         reverse_difference = _should_reverse_difference(all_layers, project_settings, crs, base_geometry, overlay_geometry)
         log_info(f"Auto-detected reverse_difference for {layer_name}: {reverse_difference}")
@@ -72,13 +75,23 @@ def create_difference_layer(all_layers, project_settings, crs, layer_name, opera
     # Convert result to GeoSeries
     if isinstance(result, (Polygon, MultiPolygon, LineString, MultiLineString)):
         result = gpd.GeoSeries([result])
+    elif isinstance(result, gpd.GeoDataFrame):
+        result = result.geometry  # Convert GeoDataFrame to GeoSeries
     elif not isinstance(result, gpd.GeoSeries):
         log_warning(format_operation_warning(
             layer_name,
             "difference",
-            f"Unexpected result type: {type(result)}"
+            f"Unexpected result type: {type(result)}, attempting to convert to GeoSeries"
         ))
-        return None
+        try:
+            result = gpd.GeoSeries(result)
+        except Exception as e:
+            log_error(format_operation_warning(
+                layer_name,
+                "difference",
+                f"Failed to convert result to GeoSeries: {str(e)}"
+            ))
+            return None
 
     result = result[~result.is_empty & result.notna()]
     
