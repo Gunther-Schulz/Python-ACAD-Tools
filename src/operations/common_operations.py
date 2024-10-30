@@ -574,6 +574,24 @@ def make_valid_geometry(geometry):
         return None
 
 
+def snap_vertices_to_grid(geometry, grid_size):
+    """Snaps vertices to a grid to help align geometries before operations."""
+    def round_to_grid(coord):
+        x, y = coord
+        return (round(x / grid_size) * grid_size, 
+                round(y / grid_size) * grid_size)
+    
+    if isinstance(geometry, Polygon):
+        exterior_coords = [round_to_grid(coord) for coord in geometry.exterior.coords]
+        interiors = [[round_to_grid(coord) for coord in interior.coords] 
+                    for interior in geometry.interiors]
+        return Polygon(exterior_coords, interiors)
+    elif isinstance(geometry, MultiPolygon):
+        return MultiPolygon([snap_vertices_to_grid(poly, grid_size) 
+                           for poly in geometry.geoms])
+    return geometry
+
+
 
 
 
