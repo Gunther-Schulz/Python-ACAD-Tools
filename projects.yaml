@@ -521,6 +521,13 @@ der Gemeinde Klein Belitz"
               - Wald
               - Baumabstand Puffer
               - Exclude
+          - type: report
+            outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/geltungsbereich_nw_report.json"
+            calculate:
+              - area
+              - perimeter
+              - centroid
+              - bounds
           # - type: dissolve
       - name: Geltungsbereich NW 2
         updateDxf: true

@@ -24,6 +24,7 @@ from src.operations import (
 )
 from src.style_manager import StyleManager
 from src.operations.filter_geometry_operation import create_filtered_geometry_layer
+from src.operations.report_operation import create_report_layer
 
 class LayerProcessor:
     def __init__(self, project_loader, plot_ops=False):
@@ -190,6 +191,8 @@ class LayerProcessor:
             result = create_filtered_geometry_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
         elif op_type == 'dissolve':
             result = create_dissolved_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
+        elif op_type == 'report':
+            result = create_report_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
         else:
             log_warning(f"Unknown operation type: {op_type} for layer {layer_name}")
             return None
