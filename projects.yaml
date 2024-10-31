@@ -521,7 +521,7 @@ der Gemeinde Klein Belitz"
               - Wald
               - Baumabstand Puffer
               - Exclude
-          - type: dissolve
+          # - type: dissolve
       - name: Geltungsbereich NW 2
         updateDxf: true
         linetypeScale: 1

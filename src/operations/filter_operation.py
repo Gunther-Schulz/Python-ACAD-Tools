@@ -14,6 +14,9 @@ def create_filtered_layer(all_layers, project_settings, crs, layer_name, operati
     source_gdf = all_layers[layer_name]
     filtered_gdf = source_gdf.copy()
 
+    # Track columns and values to add
+    columns_to_add = {}
+
     for layer_info in operation['layers']:
         source_layer_name, values = _process_layer_info(all_layers, project_settings, crs, layer_info)
         if source_layer_name is None:
@@ -26,6 +29,9 @@ def create_filtered_layer(all_layers, project_settings, crs, layer_name, operati
             continue
 
         log_info(f"Filter geometry type for {source_layer_name}: {type(filter_geometry)}")
+
+        # Store the column name and values for later addition
+        columns_to_add[source_layer_name] = values[0] if values else None
 
         # Explode MultiPolygon into individual Polygons
         filtered_gdf = explode_to_singlepart(filtered_gdf)
@@ -48,6 +54,11 @@ def create_filtered_layer(all_layers, project_settings, crs, layer_name, operati
             break
 
     if not filtered_gdf.empty:
+        # Add the stored columns and values
+        for col_name, value in columns_to_add.items():
+            if value is not None:
+                filtered_gdf[col_name] = value
+
         all_layers[layer_name] = ensure_geodataframe(all_layers, project_settings, crs, layer_name, filtered_gdf)
     else:
         log_warning(f"No geometries left after filtering for layer: {layer_name}")
