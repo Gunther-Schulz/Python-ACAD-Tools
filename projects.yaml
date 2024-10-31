@@ -521,6 +521,14 @@ der Gemeinde Klein Belitz"
               - Wald
               - Baumabstand Puffer
               - Exclude
+          - type: report
+            outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/geltungsbereich_nw_report.json"
+            calculate:
+              - area
+              - perimeter
+              - centroid
+              - bounds
+          - type: dissolve
       - name: Geltungsbereich NW 2
         updateDxf: true
         linetypeScale: 1
@@ -558,6 +566,7 @@ der Gemeinde Klein Belitz"
               - Wald
               - Baumabstand Puffer
               - Exclude
+          - type: dissolve
       - name: Geltungsbereich NO 2
         updateDxf: true
         linetypeScale: 1
@@ -593,6 +602,7 @@ der Gemeinde Klein Belitz"
               - Wald
               - Baumabstand Puffer
               - Exclude
+          - type: dissolve
       - name: Geltungsbereich S 2
         updateDxf: true
         linetypeScale: 1
@@ -626,8 +636,7 @@ der Gemeinde Klein Belitz"
             layers:
               - Biotope Input
               - Geschütze Biotope
-      - name: Grünfläche
-        updateDxf: true
+      - name: Grünfläche Schutzfläche
         viewports:
           - name: WorkView
             style: grünflächeWorkView
@@ -641,13 +650,20 @@ der Gemeinde Klein Belitz"
               # - Biotoppuffer
               - Biotope
           - type: dissolve
-  
           - type: intersection
             layers:
               - Geltungsbereich NW
               - Geltungsbereich NO
               - Geltungsbereich S
+      - name: Grünfläche
+        updateDxf: true
+        viewports:
+          - name: WorkView
+            style: grünflächeWorkView
+        operations:
           - type: buffer
+            layers:
+              - Grünfläche Schutzfläche
             distance: -3
         # bluntAngles:
         #   angleThreshold: 25  # Angles smaller than this will be blunted
@@ -666,13 +682,7 @@ der Gemeinde Klein Belitz"
         operations:
           - type: copy
             layers:
-              - Grünfläche Input 
-              - Waldabstand
-              - Baumabstand Puffer
-              - FG Buffer
-              # - Biotoppuffer
-              - Biotope
-          - type: dissolve
+              - Grünfläche Schutzfläche
           - type: difference
             layers:
               - Grünfläche
@@ -728,24 +738,24 @@ der Gemeinde Klein Belitz"
               - Geltungsbereich S
           - type: filterGeometry
             minArea: 200
-      # - name: Schutzflächeumgrenzung T-Small Temp
-      #   # updateDxf: true
-      #   close: false
-      #   plot: false
-      #   operations:
-      #     - type: copy
-      #       layers:
-      #         - Grünfläche
-      #         - Schutzflächeumgrenzung
-      #     - type: dissolve
-      #     - type: intersection
-      #       layers:
-      #         - Geltungsbereich NW
-      #         - Geltungsbereich NO
-      #         - Geltungsbereich S
-      #     - type: filterGeometry
-      #       maxArea: 200
-      #       minArea: 10
+      # # - name: Schutzflächeumgrenzung T-Small Temp
+      # #   # updateDxf: true
+      # #   close: false
+      # #   plot: false
+      # #   operations:
+      # #     - type: copy
+      # #       layers:
+      # #         - Grünfläche
+      # #         - Schutzflächeumgrenzung
+      # #     - type: dissolve
+      # #     - type: intersection
+      # #       layers:
+      # #         - Geltungsbereich NW
+      # #         - Geltungsbereich NO
+      # #         - Geltungsbereich S
+      # #     - type: filterGeometry
+      # #       maxArea: 200
+      # #       minArea: 10
       - name: Schutzflächeumgrenzung Schraffur
         updateDxf: true
         style: schutzflächeumgrenzung
@@ -773,6 +783,8 @@ der Gemeinde Klein Belitz"
               - Biotoppuffer
           - type: filterGeometry
             minArea: 200
+            geometryTypes:
+              - Polygon
       - name: Baufeld Schraffur
         updateDxf: true
         style: baufeld
@@ -799,89 +811,89 @@ der Gemeinde Klein Belitz"
             layers:
               - Baufeld
             distance: -3
-      # - name: WMTS DOP
-      #   # updateDxf: true
-      #   style: 
-      #     locked: true
-      #     # color: "White"
-      #   operations:
-      #     - type: wmts
-      #       url: "https://www.geodaten-mv.de/dienste/dop_wmts/wmts/1.0.0/WMTSCapabilities.xml"
-      #       layer: "mv_dop"
-      #       # zoom: "10"
-      #       proj: "ETRS89UTM33"
-      #       targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/DOP"
-      #       layers:
-      #         - Geltungsbereich NW
-      #         - Geltungsbereich NO
-      #         - Geltungsbereich S
-      #       buffer: 200
-      #       stitchTiles: true
-      #       # overwrite: true
-      # - name: WMTS Basemap
-      #   updateDxf: true
-      #   color: white
-      #   locked: true
-      #   operations:
-      #     - type: wmts
-      #       url: "https://sgx.geodatenzentrum.de/wmts_basemapde/1.0.0/WMTSCapabilities.xml"
-      #       layer: "de_basemapde_web_raster_farbe"
-      #       zoom: "10"
-      #       proj: "DE_EPSG_25833_ADV"
-      #       targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/Basemap"
-      #       layers:
-      #         - Geltungsbereich NW
-      #         - Geltungsbereich NO
-      #         - Geltungsbereich S
-      #       buffer: 200
-      # - name: Contour
-      #   updateDxf: true
-      #   style:
-      #     color: white
-      #     locked: false
-      #   label: elevation
-      #   operations:
-      #     - type: contour
-      #       url: "https://www.geodaten-mv.de/dienste/dgm_atom?type=dataset&id=df758744-b2a1-4d39-b34c-9ec5bf9b4372"
-      #       layers:
-      #         - Geltungsbereich NW
-      #       buffer: 1000
-      # - name: WMS Gebäude
-      #   # updateDxf: true
-      #   operations:
-      #     - type: wms
-      #       # overwrite: true
-      #       url: "https://www.geodaten-mv.de/dienste/gebaeude_wms"
-      #       layer: "gebaeude"
-      #       imageTransparency: true
-      #       wmsOptions:
-      #         srs: "EPSG:25833"
-      #         format: "image/png"
-      #         # styles: ""  # Optional WMS style
-      #         # version: "1.3.0"  # WMS version
-      #         # transparent: true
-      #         # bgcolor: "0x0000FF" # Doesn't work somehow. It's black always.
-      #       width: 4096
-      #       height: 4096
-      #       targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/Gebäude"
-      #       layers:
-      #         - Geltungsbereich NW
-      #         - Geltungsbereich NO
-      #         - Geltungsbereich S
-      #       buffer: 500
-      #       postProcess:
-      #         retainIfColorPresent:
-      #           colors: ["#ff0000"]  # Images containing these colors will be made transparent
-      #           tolerance: 5  # Optional: color matching tolerance (0-255)
+      # # - name: WMTS DOP
+      # #   # updateDxf: true
+      # #   style: 
+      # #     locked: true
+      # #     # color: "White"
+      # #   operations:
+      # #     - type: wmts
+      # #       url: "https://www.geodaten-mv.de/dienste/dop_wmts/wmts/1.0.0/WMTSCapabilities.xml"
+      # #       layer: "mv_dop"
+      # #       # zoom: "10"
+      # #       proj: "ETRS89UTM33"
+      # #       targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/DOP"
+      # #       layers:
+      # #         - Geltungsbereich NW
+      # #         - Geltungsbereich NO
+      # #         - Geltungsbereich S
+      # #       buffer: 200
+      # #       stitchTiles: true
+      # #       # overwrite: true
+      # # - name: WMTS Basemap
+      # #   updateDxf: true
+      # #   color: white
+      # #   locked: true
+      # #   operations:
+      # #     - type: wmts
+      # #       url: "https://sgx.geodatenzentrum.de/wmts_basemapde/1.0.0/WMTSCapabilities.xml"
+      # #       layer: "de_basemapde_web_raster_farbe"
+      # #       zoom: "10"
+      # #       proj: "DE_EPSG_25833_ADV"
+      # #       targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/Basemap"
+      # #       layers:
+      # #         - Geltungsbereich NW
+      # #         - Geltungsbereich NO
+      # #         - Geltungsbereich S
+      # #       buffer: 200
+      # # - name: Contour
+      # #   updateDxf: true
+      # #   style:
+      # #     color: white
+      # #     locked: false
+      # #   label: elevation
+      # #   operations:
+      # #     - type: contour
+      # #       url: "https://www.geodaten-mv.de/dienste/dgm_atom?type=dataset&id=df758744-b2a1-4d39-b34c-9ec5bf9b4372"
+      # #       layers:
+      # #         - Geltungsbereich NW
+      # #       buffer: 1000
+      # # - name: WMS Gebäude
+      # #   # updateDxf: true
+      # #   operations:
+      # #     - type: wms
+      # #       # overwrite: true
+      # #       url: "https://www.geodaten-mv.de/dienste/gebaeude_wms"
+      # #       layer: "gebaeude"
+      # #       imageTransparency: true
+      # #       wmsOptions:
+      # #         srs: "EPSG:25833"
+      # #         format: "image/png"
+      # #         # styles: ""  # Optional WMS style
+      # #         # version: "1.3.0"  # WMS version
+      # #         # transparent: true
+      # #         # bgcolor: "0x0000FF" # Doesn't work somehow. It's black always.
+      # #       width: 4096
+      # #       height: 4096
+      # #       targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/Gebäude"
+      # #       layers:
+      # #         - Geltungsbereich NW
+      # #         - Geltungsbereich NO
+      # #         - Geltungsbereich S
+      # #       buffer: 500
+      # #       postProcess:
+      # #         retainIfColorPresent:
+      # #           colors: ["#ff0000"]  # Images containing these colors will be made transparent
+      # #           tolerance: 5  # Optional: color matching tolerance (0-255)
                 
-      #         colorMap:
-      #             "#ff0000": "#808080"  # Map red to grey
-      #         alphaColor: "#ffffff"  # Set white to fully transparent
-      #       #   alphaColor: "#000000"  # Set black to fully transparent
-      #       #   # tolerance: 30  # Increased tolerance to catch similar shades
-      #         grayscale: true
-      #       #   # removeText: true
-      #       stitchTiles: true
+      # #         colorMap:
+      # #             "#ff0000": "#808080"  # Map red to grey
+      # #         alphaColor: "#ffffff"  # Set white to fully transparent
+      # #       #   alphaColor: "#000000"  # Set black to fully transparent
+      # #       #   # tolerance: 30  # Increased tolerance to catch similar shades
+      # #         grayscale: true
+      # #       #   # removeText: true
+      # #       stitchTiles: true
   - name: Torgelow
     exportFormat: dxf
     dxfVersion: R2018

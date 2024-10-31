@@ -4,6 +4,7 @@ import sys
 import pyproj
 from pyproj import CRS
 import traceback
+import yaml
 
 # Setup logging
 def setup_logging():
@@ -75,3 +76,64 @@ def setup_proj():
         log_info(f"PROJ version (from pyproj): {proj_version}")
     except Exception as e:
         log_error(f"Error getting PROJ version: {str(e)}")
+
+def get_folder_prefix():
+    """Get the global folder prefix from projects.yaml"""
+    try:
+        with open('projects.yaml', 'r') as file:
+            data = yaml.safe_load(file)
+            return data.get('folderPrefix', '')
+    except Exception as e:
+        log_error(f"Error reading folder prefix from projects.yaml: {str(e)}")
+        return ''
+
+def resolve_path(path, folder_prefix=''):
+    """
+    Resolves a path by expanding user directory and joining with optional folder prefix.
+    
+    Args:
+        path (str): The path to resolve
+        folder_prefix (str, optional): Prefix to prepend to the path. If empty, will be read from projects.yaml
+        
+    Returns:
+        str: The resolved absolute path
+    """
+    if not path:
+        return ''
+    
+    # Get folder prefix from projects.yaml if not provided
+    if not folder_prefix:
+        folder_prefix = get_folder_prefix()
+    
+    # First expand user directory in folder_prefix (if it exists)
+    if folder_prefix:
+        folder_prefix = os.path.expanduser(folder_prefix)
+        folder_prefix = os.path.abspath(folder_prefix)
+        
+        # If path is relative, join it with folder_prefix
+        if not os.path.isabs(path):
+            return os.path.join(folder_prefix, path)
+    
+    # If we get here, either there's no folder_prefix or path is absolute
+    expanded_path = os.path.expanduser(path)
+    return os.path.abspath(expanded_path)
+
+def ensure_path_exists(path):
+    """
+    Check if a path exists. Returns True if the path exists, False otherwise.
+    Does not create directories.
+    
+    Args:
+        path (str): The path to check
+        
+    Returns:
+        bool: True if path exists, False otherwise
+    """
+    directory = os.path.dirname(path)
+    if not directory:
+        return True
+        
+    exists = os.path.exists(directory)
+    if not exists:
+        log_warning(f"Directory does not exist: {directory}")
+    return exists

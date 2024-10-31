@@ -7,6 +7,7 @@ from shapely.geometry import Polygon, MultiPolygon
 import pyproj
 import re
 import yaml
+from src.utils import resolve_path, ensure_path_exists, log_warning, log_error
 
 def polygon_area(polygon):
     """Calculate the area of a polygon."""
@@ -154,25 +155,18 @@ def main():
         project_config = load_project_config(args.project_name)
         if project_config:
             folder_prefix = project_config.get('folderPrefix', '')
-            dxf_filename = os.path.expanduser(os.path.join(folder_prefix, project_config.get('dxfFilename', '')))
+            dxf_filename = resolve_path(project_config.get('dxfFilename', ''), folder_prefix)
+            dump_output_dir = resolve_path(project_config.get('dxfDumpOutputDir', ''), folder_prefix)
             
-            if 'dxfDumpOutputDir' not in project_config:
-                print("Error: 'dxfDumpOutputDir' not specified in project configuration.")
+            if not os.path.exists(dxf_filename):
+                log_error(f"DXF file not found: {dxf_filename}")
                 return
-
-            dump_output_dir = os.path.expanduser(os.path.join(folder_prefix, project_config['dxfDumpOutputDir']))
-            
-            print(f"DXF filename: {dxf_filename}")
-            print(f"Dump output directory: {dump_output_dir}")
-            
-            if os.path.exists(dxf_filename) and dump_output_dir:
-                dxf_to_shapefiles(dxf_filename, dump_output_dir)
-            else:
-                print("Error: DXF file not found or dump output directory not specified in project configuration.")
-                if not os.path.exists(dxf_filename):
-                    print(f"DXF file does not exist: {dxf_filename}")
-                if not dump_output_dir:
-                    print("Dump output directory not specified.")
+                
+            if not ensure_path_exists(dump_output_dir):
+                log_warning(f"Dump output directory does not exist: {dump_output_dir}")
+                return
+                
+            dxf_to_shapefiles(dxf_filename, dump_output_dir)
         else:
             print(f"Error: Project '{args.project_name}' not found in projects.yaml")
     elif args.dxf_file and args.output_folder:

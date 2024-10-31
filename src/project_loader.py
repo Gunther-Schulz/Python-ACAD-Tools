@@ -1,6 +1,6 @@
 import yaml
 import os
-from src.utils import log_info, log_warning, log_error
+from src.utils import log_info, log_warning, log_error, resolve_path
 
 class ProjectLoader:
     def __init__(self, project_name: str):
@@ -26,8 +26,8 @@ class ProjectLoader:
                 raise ValueError(f"Project {project_name} not found.")
 
         self.crs = self.project_settings['crs']
-        self.dxf_filename = self.resolve_full_path(self.project_settings['dxfFilename'])
-        self.template_dxf = self.resolve_full_path(self.project_settings.get('template', '')) if self.project_settings.get('template') else None
+        self.dxf_filename = resolve_path(self.project_settings['dxfFilename'], self.folder_prefix)
+        self.template_dxf = resolve_path(self.project_settings.get('template', ''), self.folder_prefix) if self.project_settings.get('template') else None
         self.export_format = self.project_settings.get('exportFormat', 'dxf')
         self.dxf_version = self.project_settings.get('dxfVersion', 'R2010')
 
@@ -52,7 +52,7 @@ class ProjectLoader:
             layer['operations'] = new_operations
 
     def resolve_full_path(self, path: str) -> str:
-        return os.path.abspath(os.path.expanduser(os.path.join(self.folder_prefix, path)))
+        return resolve_path(path, self.folder_prefix)
 
     def load_styles(self):
         with open('styles.yaml', 'r') as file:

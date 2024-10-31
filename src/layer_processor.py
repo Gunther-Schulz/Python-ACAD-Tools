@@ -1,6 +1,6 @@
 import traceback
 from src.project_loader import ProjectLoader
-from src.utils import log_info, log_warning, log_error
+from src.utils import log_info, log_warning, log_error, resolve_path, ensure_path_exists
 import geopandas as gpd
 from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection, Point, LinearRing
 import ezdxf
@@ -24,6 +24,7 @@ from src.operations import (
 )
 from src.style_manager import StyleManager
 from src.operations.filter_geometry_operation import create_filtered_geometry_layer
+from src.operations.report_operation import create_report_layer
 
 class LayerProcessor:
     def __init__(self, project_loader, plot_ops=False):
@@ -190,6 +191,8 @@ class LayerProcessor:
             result = create_filtered_geometry_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
         elif op_type == 'dissolve':
             result = create_dissolved_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
+        elif op_type == 'report':
+            result = create_report_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
         else:
             log_warning(f"Unknown operation type: {op_type} for layer {layer_name}")
             return None
@@ -205,7 +208,7 @@ class LayerProcessor:
         for layer in self.project_settings['geomLayers']:
             layer_name = layer['name']
             if 'shapeFile' in layer:
-                shapefile_path = self.project_loader.resolve_full_path(layer['shapeFile'])
+                shapefile_path = resolve_path(layer['shapeFile'], self.project_loader.folder_prefix)
                 try:
                     gdf = gpd.read_file(shapefile_path)
                     gdf = self.standardize_layer_crs(layer_name, gdf)
@@ -267,8 +270,10 @@ class LayerProcessor:
                 gdf = gdf[gdf['geometry'].notna()]
 
                 if not gdf.empty:
-                    output_dir = self.project_loader.shapefile_output_dir
-                    os.makedirs(output_dir, exist_ok=True)
+                    output_dir = resolve_path(self.project_loader.shapefile_output_dir)
+                    if not ensure_path_exists(output_dir):
+                        log_warning(f"Shapefile output directory does not exist: {output_dir}")
+                        return
                     
                     # Delete only files for the current layer that will be overwritten
                     self.delete_layer_files(output_dir, layer_name)

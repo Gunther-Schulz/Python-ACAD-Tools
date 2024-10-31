@@ -6,7 +6,7 @@ from scipy.ndimage import gaussian_filter
 import geopandas as gpd
 from shapely.geometry import LineString, box
 from shapely.ops import linemerge, unary_union
-from src.utils import log_info, log_warning, log_error
+from src.utils import log_info, log_warning, log_error, resolve_path
 from skimage import measure
 import os
 import zipfile
@@ -101,7 +101,7 @@ def process_contour(operation, geltungsbereich, buffer_distance, project_crs):
     shape_files = []
     for link in relevant_links:
         download_url = link.get('href')
-        cached_zip = get_cached_file(download_url, 'zip')
+        cached_zip = resolve_path(get_cached_file(download_url, 'zip'), CACHE_DIR)
         if cached_zip is None:
             try:
                 response = requests.get(download_url)
@@ -114,7 +114,7 @@ def process_contour(operation, geltungsbereich, buffer_distance, project_crs):
     
         # Extract files from zip if not already extracted
         zip_hash = os.path.basename(cached_zip).split('.')[0]
-        extracted_dir = os.path.join(CACHE_DIR, zip_hash)
+        extracted_dir = resolve_path(os.path.join(CACHE_DIR, zip_hash))
         if not os.path.exists(extracted_dir):
             os.makedirs(extracted_dir)
             with zipfile.ZipFile(cached_zip, 'r') as zip_ref:
