@@ -65,7 +65,23 @@ def _create_intersection_overlay_layer(all_layers, project_settings, crs, layer_
         if overlay_type == 'difference':
             result_geometry = base_geometry.geometry.difference(combined_overlay_geometry)
         elif overlay_type == 'intersection':
-            result_geometry = base_geometry.geometry.intersection(combined_overlay_geometry)
+            result_parts_with_attrs = []
+            for idx, row in base_geometry.iterrows():
+                intersected_geom = row.geometry.intersection(combined_overlay_geometry)
+                if not intersected_geom.is_empty:
+                    result_parts_with_attrs.append({
+                        'geometry': intersected_geom,
+                        'attrs': {col: row[col] for col in base_geometry.columns if col != 'geometry'}
+                    })
+            
+            if result_parts_with_attrs:
+                result_geometry = gpd.GeoDataFrame(
+                    geometry=[part['geometry'] for part in result_parts_with_attrs],
+                    data=[part['attrs'] for part in result_parts_with_attrs],
+                    crs=crs
+                )
+            else:
+                result_geometry = gpd.GeoDataFrame(geometry=[], crs=crs)
         else:
             log_warning(f"Unsupported overlay type: {overlay_type}")
             return
@@ -74,7 +90,10 @@ def _create_intersection_overlay_layer(all_layers, project_settings, crs, layer_
         result_geometry = remove_geometry_types(result_geometry, remove_lines=True, remove_points=True)
         
         # Remove empty geometries
-        result_geometry = result_geometry[~result_geometry.is_empty]
+        if isinstance(result_geometry, gpd.GeoDataFrame):
+            result_geometry = result_geometry[~result_geometry.geometry.is_empty]
+        else:
+            result_geometry = result_geometry[~result_geometry.is_empty]
         
         log_info(f"Applied {overlay_type} operation, removed lines and points, and removed empty geometries")
     except Exception as e:
@@ -83,8 +102,12 @@ def _create_intersection_overlay_layer(all_layers, project_settings, crs, layer_
         return
 
     if make_valid:
-        result_geometry = result_geometry.apply(make_valid_geometry)
-        result_geometry = result_geometry[result_geometry.notna()]
+        if isinstance(result_geometry, gpd.GeoDataFrame):
+            result_geometry['geometry'] = result_geometry['geometry'].apply(make_valid_geometry)
+            result_geometry = result_geometry[result_geometry['geometry'].notna()]
+        else:
+            result_geometry = result_geometry.apply(make_valid_geometry)
+            result_geometry = result_geometry[result_geometry.notna()]
 
     # Create a new GeoDataFrame with the resulting geometries and explode to singlepart
     if isinstance(result_geometry, gpd.GeoDataFrame):
