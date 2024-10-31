@@ -1,9 +1,8 @@
 import geopandas as gpd
 import json
 import os
-from src.utils import log_info, log_warning, log_error
+from src.utils import log_info, log_warning, log_error, resolve_path, ensure_path_exists
 from src.operations.common_operations import _process_layer_info, ensure_geodataframe
-from src.utils import resolve_path
 
 def create_report_layer(all_layers, project_settings, crs, layer_name, operation):
     log_info(f"Creating report for layer: {layer_name}")
@@ -68,10 +67,10 @@ def create_report_layer(all_layers, project_settings, crs, layer_name, operation
         'features': features_data
     }
     
-    # Ensure directory exists - use the full resolved path
-    output_dir = os.path.dirname(output_file)
-    if output_dir:
-        os.makedirs(output_dir, exist_ok=True)
+    # Check if directory exists before writing - use the full resolved path
+    if not ensure_path_exists(output_file):
+        log_warning(f"Directory for {output_file} does not exist. Skipping report generation.")
+        return all_layers[layer_name]
     
     # Write to JSON file
     try:
