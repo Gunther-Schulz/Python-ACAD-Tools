@@ -528,7 +528,7 @@ der Gemeinde Klein Belitz"
               - perimeter
               - centroid
               - bounds
-          # - type: dissolve
+          - type: dissolve
       - name: Geltungsbereich NW 2
         updateDxf: true
         linetypeScale: 1

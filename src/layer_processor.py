@@ -1,6 +1,6 @@
 import traceback
 from src.project_loader import ProjectLoader
-from src.utils import log_info, log_warning, log_error, resolve_path
+from src.utils import log_info, log_warning, log_error, resolve_path, ensure_path_exists
 import geopandas as gpd
 from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection, Point, LinearRing
 import ezdxf
@@ -270,8 +270,10 @@ class LayerProcessor:
                 gdf = gdf[gdf['geometry'].notna()]
 
                 if not gdf.empty:
-                    output_dir = self.project_loader.shapefile_output_dir
-                    os.makedirs(output_dir, exist_ok=True)
+                    output_dir = resolve_path(self.project_loader.shapefile_output_dir)
+                    if not ensure_path_exists(output_dir):
+                        log_warning(f"Shapefile output directory does not exist: {output_dir}")
+                        return
                     
                     # Delete only files for the current layer that will be overwritten
                     self.delete_layer_files(output_dir, layer_name)

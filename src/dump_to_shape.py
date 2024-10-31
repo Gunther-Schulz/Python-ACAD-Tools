@@ -7,7 +7,7 @@ from shapely.geometry import Polygon, MultiPolygon
 import pyproj
 import re
 import yaml
-from src.utils import resolve_path
+from src.utils import resolve_path, ensure_path_exists, log_warning, log_error
 
 def polygon_area(polygon):
     """Calculate the area of a polygon."""
@@ -158,17 +158,15 @@ def main():
             dxf_filename = resolve_path(project_config.get('dxfFilename', ''), folder_prefix)
             dump_output_dir = resolve_path(project_config.get('dxfDumpOutputDir', ''), folder_prefix)
             
-            print(f"DXF filename: {dxf_filename}")
-            print(f"Dump output directory: {dump_output_dir}")
-            
-            if os.path.exists(dxf_filename) and dump_output_dir:
-                dxf_to_shapefiles(dxf_filename, dump_output_dir)
-            else:
-                print("Error: DXF file not found or dump output directory not specified in project configuration.")
-                if not os.path.exists(dxf_filename):
-                    print(f"DXF file does not exist: {dxf_filename}")
-                if not dump_output_dir:
-                    print("Dump output directory not specified.")
+            if not os.path.exists(dxf_filename):
+                log_error(f"DXF file not found: {dxf_filename}")
+                return
+                
+            if not ensure_path_exists(dump_output_dir):
+                log_warning(f"Dump output directory does not exist: {dump_output_dir}")
+                return
+                
+            dxf_to_shapefiles(dxf_filename, dump_output_dir)
         else:
             print(f"Error: Project '{args.project_name}' not found in projects.yaml")
     elif args.dxf_file and args.output_folder:

@@ -130,4 +130,10 @@ def ensure_path_exists(path):
         bool: True if path exists, False otherwise
     """
     directory = os.path.dirname(path)
-    return os.path.exists(directory) if directory else True
+    if not directory:
+        return True
+        
+    exists = os.path.exists(directory)
+    if not exists:
+        log_warning(f"Directory does not exist: {directory}")
+    return exists

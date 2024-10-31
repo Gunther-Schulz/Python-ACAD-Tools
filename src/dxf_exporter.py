@@ -3,7 +3,7 @@ import shutil
 import traceback
 import ezdxf
 from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection, Point
-from src.utils import log_info, log_warning, log_error, resolve_path
+from src.utils import ensure_path_exists, log_info, log_warning, log_error, resolve_path
 import geopandas as gpd
 import os
 from ezdxf.lldxf.const import LWPOLYLINE_PLINEGEN
@@ -144,6 +144,10 @@ class DXFExporter:
             log_info(f"Loaded existing layer: {layer_name}")
 
     def _cleanup_and_save(self, doc, msp):
+        if not ensure_path_exists(self.dxf_filename):
+            log_warning(f"Directory for DXF file {self.dxf_filename} does not exist. Cannot save file.")
+            return
+        
         processed_layers = [layer['name'] for layer in self.project_settings['geomLayers']]
         layers_to_clean = [layer for layer in processed_layers if layer not in self.all_layers]
         remove_entities_by_layer(msp, layers_to_clean, self.script_identifier)
