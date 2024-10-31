@@ -605,132 +605,132 @@ der Gemeinde Klein Belitz"
             layers:
               - name: Geltungsbereich S
             distance: 2
-      # - name: Waldabstand
-      #   operations:
-      #     - type: buffer
-      #       joinStyle: mitre
-      #       layers:
-      #         - Wald
-      #       distance: 30
-      #     - type: intersection
-      #       layers:
-      #         - Geltungsbereich NW
-      #         - Geltungsbereich NO
-      #         - Geltungsbereich S
-      #     - type: filterGeometry
-      #       minArea: 200
-      # - name: Biotope
-      #   updateDxf: true
-      #   viewports:
-      #     - name: WorkView
-      #       style: biotopWorkView
-      #   operations:
-      #     - type: dissolve
-      #       layers:
-      #         - Biotope Input
-      #         - Geschütze Biotope
-      # - name: Grünfläche
-      #   updateDxf: true
-      #   viewports:
-      #     - name: WorkView
-      #       style: grünflächeWorkView
-      #   operations:
-      #     - type: copy
-      #       layers:
-      #         - Grünfläche Input 
-      #         - Waldabstand
-      #         - Baumabstand Puffer
-      #         - FG Buffer
-      #         # - Biotoppuffer
-      #         - Biotope
-      #     - type: dissolve
-  
-      #     - type: intersection
-      #       layers:
-      #         - Geltungsbereich NW
-      #         - Geltungsbereich NO
-      #         - Geltungsbereich S
-      #     - type: buffer
-      #       distance: -3
-      #   # bluntAngles:
-      #   #   angleThreshold: 25  # Angles smaller than this will be blunted
-      #   #   distance: 10.0  # Distance to move the vertex along the angle bisector
-      # - name: Grünfläche Schraffur
-      #   updateDxf: true
-      #   style: grünfläche
-      #   applyHatch:
-      #     layers:
-      #       - Grünfläche
-      # - name: Schutzflächeumgrenzung
-      #   updateDxf: true
-      #   viewports:
-      #     - name: WorkView
-      #       style: schutzflächeWorkView
-      #   operations:
-      #     - type: copy
-      #       layers:
-      #         - Grünfläche Input 
-      #         - Waldabstand
-      #         - Baumabstand Puffer
-      #         - FG Buffer
-      #         # - Biotoppuffer
-      #         - Biotope
-      #     - type: dissolve
-      #     - type: difference
-      #       layers:
-      #         - Grünfläche
-      #     - type: intersection
-      #       layers:
-      #         - Geltungsbereich NW
-      #         - Geltungsbereich NO
-      #         - Geltungsbereich S
-      #     # - type: filterGeometry
-      #     #   minArea: 200
-      # - name: Biotoppuffer
-      #   updateDxf: true
-      #   viewports:
-      #     - name: WorkView
-      #       style:
-      #         color: "brilliant-green"
-      #         linetype: "ACAD_ISO02W100"
-      #   operations:
-      #     - type: buffer
-      #       layers:
-      #         - Biotope
-      #       distance: 10
-      #     - type: difference
-      #       layers:
-      #         - Biotope
-      #         - Schutzflächeumgrenzung
-      #         - Grünfläche
-      #     - type: intersection
-      #       layers:
-      #         - Geltungsbereich NW
-      #         - Geltungsbereich NO
-      #         - Geltungsbereich S
-      # - name: Biotoppuffer Schraffur
-      #   updateDxf: true
-      #   style: grünfläche
-      #   applyHatch:
-      #     layers:
-      #       - Biotoppuffer
-      # - name: Schutzflächeumgrenzung T-Symbol Temp
-      #   # updateDxf: true
-      #   close: false
-      #   plot: false
-      #   operations:
-      #     - type: copy
-      #       layers:
-      #         - Grünfläche
-      #         - Schutzflächeumgrenzung
-      #     - type: dissolve
-      #     - type: intersection
-      #       layers:
-      #         - Geltungsbereich NW
-      #         - Geltungsbereich NO
-      #         - Geltungsbereich S
-      #     - type: filterGeometry
-      #       minArea: 200
+      - name: Waldabstand
+        operations:
+          - type: buffer
+            joinStyle: mitre
+            layers:
+              - Wald
+            distance: 30
+          - type: intersection
+            layers:
+              - Geltungsbereich NW
+              - Geltungsbereich NO
+              - Geltungsbereich S
+          - type: filterGeometry
+            minArea: 200
+      - name: Biotope
+        updateDxf: true
+        viewports:
+          - name: WorkView
+            style: biotopWorkView
+        operations:
+          - type: dissolve
+            layers:
+              - Biotope Input
+              - Geschütze Biotope
+      - name: Grünfläche Schutzfläche
+        viewports:
+          - name: WorkView
+            style: grünflächeWorkView
+        operations:
+          - type: copy
+            layers:
+              - Grünfläche Input 
+              - Waldabstand
+              - Baumabstand Puffer
+              - FG Buffer
+              # - Biotoppuffer
+              - Biotope
+          - type: dissolve
+          - type: intersection
+            layers:
+              - Geltungsbereich NW
+              - Geltungsbereich NO
+              - Geltungsbereich S
+      - name: Grünfläche
+        updateDxf: true
+        viewports:
+          - name: WorkView
+            style: grünflächeWorkView
+        operations:
+          - type: buffer
+            layers:
+              - Grünfläche Schutzfläche
+            distance: -3
+        # bluntAngles:
+        #   angleThreshold: 25  # Angles smaller than this will be blunted
+        #   distance: 10.0  # Distance to move the vertex along the angle bisector
+      - name: Grünfläche Schraffur
+        updateDxf: true
+        style: grünfläche
+        applyHatch:
+          layers:
+            - Grünfläche
+      - name: Schutzflächeumgrenzung
+        updateDxf: true
+        viewports:
+          - name: WorkView
+            style: schutzflächeWorkView
+        operations:
+          - type: copy
+            layers:
+              - Grünfläche Schutzfläche
+          - type: difference
+            layers:
+              - Grünfläche
+          - type: intersection
+            layers:
+              - Geltungsbereich NW
+              - Geltungsbereich NO
+              - Geltungsbereich S
+          # - type: filterGeometry
+          #   minArea: 200
+      - name: Biotoppuffer
+        updateDxf: true
+        viewports:
+          - name: WorkView
+            style:
+              color: "brilliant-green"
+              linetype: "ACAD_ISO02W100"
+        operations:
+          - type: buffer
+            layers:
+              - Biotope
+            distance: 10
+          - type: difference
+            layers:
+              - Biotope
+              - Schutzflächeumgrenzung
+              - Grünfläche
+          - type: intersection
+            layers:
+              - Geltungsbereich NW
+              - Geltungsbereich NO
+              - Geltungsbereich S
+      - name: Biotoppuffer Schraffur
+        updateDxf: true
+        style: grünfläche
+        applyHatch:
+          layers:
+            - Biotoppuffer
+      - name: Schutzflächeumgrenzung T-Symbol Temp
+        # updateDxf: true
+        close: false
+        plot: false
+        operations:
+          - type: copy
+            layers:
+              - Grünfläche
+              - Schutzflächeumgrenzung
+          - type: dissolve
+          - type: intersection
+            layers:
+              - Geltungsbereich NW
+              - Geltungsbereich NO
+              - Geltungsbereich S
+          - type: filterGeometry
+            minArea: 200
       # # - name: Schutzflächeumgrenzung T-Small Temp
       # #   # updateDxf: true
       # #   close: false
@@ -749,59 +749,61 @@ der Gemeinde Klein Belitz"
       # #     - type: filterGeometry
       # #       maxArea: 200
       # #       minArea: 10
-      # - name: Schutzflächeumgrenzung Schraffur
-      #   updateDxf: true
-      #   style: schutzflächeumgrenzung
-      #   applyHatch:
-      #     layers:
-      #       - Schutzflächeumgrenzung
-      # - name: Baufeld
-      #   updateDxf: true
-      #   close: true
-      #   viewports:
-      #     - name: WorkView
-      #       style: baufeld
-      #   operations:
-      #     - type: copy
-      #       layers:
-      #         - Geltungsbereich NW
-      #         - Geltungsbereich NO
-      #         - Geltungsbereich S
-      #     - type: difference
-      #       # useBufferTrick: true
-      #       reverseDifference: false
-      #       layers:
-      #         - Schutzflächeumgrenzung
-      #         - Grünfläche
-      #         - Biotoppuffer
-      #     - type: filterGeometry
-      #       minArea: 200
-      # - name: Baufeld Schraffur
-      #   updateDxf: true
-      #   style: baufeld
-      #   applyHatch:
-      #     layers:
-      #       - Baufeld
-      # - name: Baugrenze 2
-      #   updateDxf: true
-      #   style: baugrenze_2
-      #   close: true
-      #   operations:
-      #     - type: buffer
-      #       layers:
-      #         - Baugrenze
-      #       distance: -0.4
-      # - name: Baugrenze
-      #   updateDxf: true
-      #   style: baugrenze
-      #   linetypeScale: 0.5
-      #   linetypeGeneration: true
-      #   close: true
-      #   operations:
-      #     - type: buffer
-      #       layers:
-      #         - Baufeld
-      #       distance: -3
+      - name: Schutzflächeumgrenzung Schraffur
+        updateDxf: true
+        style: schutzflächeumgrenzung
+        applyHatch:
+          layers:
+            - Schutzflächeumgrenzung
+      - name: Baufeld
+        updateDxf: true
+        close: true
+        viewports:
+          - name: WorkView
+            style: baufeld
+        operations:
+          - type: copy
+            layers:
+              - Geltungsbereich NW
+              - Geltungsbereich NO
+              - Geltungsbereich S
+          - type: difference
+            # useBufferTrick: true
+            reverseDifference: false
+            layers:
+              - Schutzflächeumgrenzung
+              - Grünfläche
+              - Biotoppuffer
+          - type: filterGeometry
+            minArea: 200
+            geometryTypes:
+              - Polygon
+      - name: Baufeld Schraffur
+        updateDxf: true
+        style: baufeld
+        applyHatch:
+          layers:
+            - Baufeld
+      - name: Baugrenze 2
+        updateDxf: true
+        style: baugrenze_2
+        close: true
+        operations:
+          - type: buffer
+            layers:
+              - Baugrenze
+            distance: -0.4
+      - name: Baugrenze
+        updateDxf: true
+        style: baugrenze
+        linetypeScale: 0.5
+        linetypeGeneration: true
+        close: true
+        operations:
+          - type: buffer
+            layers:
+              - Baufeld
+            distance: -3
       # # - name: WMTS DOP
       # #   # updateDxf: true
       # #   style: 

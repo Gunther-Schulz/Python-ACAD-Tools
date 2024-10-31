@@ -5,12 +5,25 @@ from src.operations.common_operations import _process_layer_info, _get_filtered_
 
 def create_filtered_geometry_layer(all_layers, project_settings, crs, layer_name, operation):
     log_info(f"Creating filtered geometry layer: {layer_name}")
-    source_layers = operation.get('layers', [layer_name])  # Default to current layer if not specified
+    source_layers = operation.get('layers', [layer_name])
     
     max_area = operation.get('maxArea', float('inf'))
     min_area = operation.get('minArea', 0)
     max_width = operation.get('maxWidth', float('inf'))
     min_width = operation.get('minWidth', 0)
+    geometry_types = operation.get('geometryTypes', None)
+
+    # Map Multi variants to their base type
+    geometry_type_mapping = {
+        'MultiPolygon': 'Polygon',
+        'MultiLineString': 'LineString',
+        'MultiPoint': 'Point'
+    }
+    
+    if geometry_types:
+        # Normalize geometry types to base types
+        geometry_types = [geometry_type_mapping.get(gt, gt) for gt in geometry_types]
+        log_info(f"Filtering for geometry types: {geometry_types}")
     
     filtered_geometries = []
     
@@ -25,11 +38,17 @@ def create_filtered_geometry_layer(all_layers, project_settings, crs, layer_name
 
         if isinstance(layer_geometry, GeometryCollection):
             for geom in layer_geometry.geoms:
+                # Get base type for the geometry
+                base_type = geometry_type_mapping.get(geom.geom_type, geom.geom_type)
+                if geometry_types and base_type not in geometry_types:
+                    continue
                 filtered = filter_geometry(geom, max_area, min_area, max_width, min_width)
                 filtered_geometries.extend(filtered)
         else:
-            filtered = filter_geometry(layer_geometry, max_area, min_area, max_width, min_width)
-            filtered_geometries.extend(filtered)
+            base_type = geometry_type_mapping.get(layer_geometry.geom_type, layer_geometry.geom_type)
+            if not geometry_types or base_type in geometry_types:
+                filtered = filter_geometry(layer_geometry, max_area, min_area, max_width, min_width)
+                filtered_geometries.extend(filtered)
 
     if filtered_geometries:
         result_gdf = explode_to_singlepart(gpd.GeoDataFrame(geometry=filtered_geometries, crs=crs))
