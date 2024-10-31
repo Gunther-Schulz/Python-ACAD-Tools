@@ -26,8 +26,8 @@ class ProjectLoader:
                 raise ValueError(f"Project {project_name} not found.")
 
         self.crs = self.project_settings['crs']
-        self.dxf_filename = self.resolve_full_path(self.project_settings['dxfFilename'])
-        self.template_dxf = self.resolve_full_path(self.project_settings.get('template', '')) if self.project_settings.get('template') else None
+        self.dxf_filename = resolve_path(self.project_settings['dxfFilename'], self.folder_prefix)
+        self.template_dxf = resolve_path(self.project_settings.get('template', ''), self.folder_prefix) if self.project_settings.get('template') else None
         self.export_format = self.project_settings.get('exportFormat', 'dxf')
         self.dxf_version = self.project_settings.get('dxfVersion', 'R2010')
 

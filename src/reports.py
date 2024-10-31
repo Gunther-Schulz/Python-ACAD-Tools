@@ -6,6 +6,7 @@ import csv
 import os
 
 from src.project_loader import ProjectLoader
+from src.utils import resolve_path
 
 def generate_area_report(base_layer: gpd.GeoDataFrame, cover_layer: gpd.GeoDataFrame, 
                          output_file: str, report_name: str, project_loader: ProjectLoader,
@@ -53,11 +54,11 @@ def generate_area_report(base_layer: gpd.GeoDataFrame, cover_layer: gpd.GeoDataF
     result_gdf = gpd.GeoDataFrame(results, geometry='Geometry', crs=base_layer.crs)
 
     # Save to CSV
-    csv_file = project_loader.resolve_full_path(f"{output_file}.csv")
+    csv_file = resolve_path(f"{output_file}.csv", project_loader.folder_prefix)
     result_gdf.drop('Geometry', axis=1).to_csv(csv_file, index=False, float_format='%.2f')
 
     # Save to Excel
-    excel_file = project_loader.resolve_full_path(f"{output_file}.xlsx")
+    excel_file = resolve_path(f"{output_file}.xlsx", project_loader.folder_prefix)
     with pd.ExcelWriter(excel_file, engine='openpyxl') as writer:
         df = result_gdf.drop('Geometry', axis=1)
         df.to_excel(writer, sheet_name='Area Report', index=False, startrow=1)
