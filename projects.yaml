@@ -516,92 +516,95 @@ der Gemeinde Klein Belitz"
               - name: Gemeinde
                 values:
                   - "Groß Plasten"
-          # - type: difference
-          #   layers:
-          #     - Wald
-          #     - Baumabstand Puffer
-          #     - Exclude
-      # - name: Geltungsbereich NW 2
-      #   updateDxf: true
-      #   linetypeScale: 1
-      #   style: geltungsbereich_2
-      #   operations:
-      #     - type: buffer
-      #       layers:
-      #         - name: Geltungsbereich NW
-      #       distance: 2
-      # - name: Geltungsbereich NO
-      #   updateDxf: true
-      #   style: geltungsbereich
-      #   close: true
-      #   operations:
-      #     - type: copy
-      #       layers:
-      #         - name: Parcel
-      #           values:
-      #             - "24/8"
-      #             - "24/9"
-      #     - type: filter
-      #       layers:
-      #         - name: Flur
-      #           values:
-      #             - "Flur 1"
-      #         - name: Gemarkung
-      #           values:
-      #             - "Groß Plasten"
-      #         - name: Gemeinde
-      #           values:
-      #             - "Groß Plasten"
-      #     - type: difference
-      #       useBufferTrick: true
-      #       layers:
-      #         - Wald
-      #         - Baumabstand Puffer
-      #         - Exclude
-      # - name: Geltungsbereich NO 2
-      #   updateDxf: true
-      #   linetypeScale: 1
-      #   style: geltungsbereich_2
-      #   operations:
-      #     - type: buffer
-      #       layers:
-      #         - name: Geltungsbereich NO
-      #       distance: 2
-      # - name: Geltungsbereich S
-      #   updateDxf: true
-      #   style: geltungsbereich
-      #   close: true
-      #   operations:
-      #     - type: copy
-      #       layers:
-      #         - name: Parcel
-      #           values:
-      #             - "41/1"
-      #     - type: filter
-      #       layers:
-      #         - name: Flur
-      #           values:
-      #             - "Flur 2"
-      #         - name: Gemarkung
-      #           values:
-      #             - "Klein Plasten"
-      #         - name: Gemeinde
-      #           values:
-      #             - "Groß Plasten"
-      #     - type: difference
-      #       layers:
-      #         - Wald
-      #         - Baumabstand Puffer
-      #         - Exclude
-      # - name: Geltungsbereich S 2
-      #   updateDxf: true
-      #   linetypeScale: 1
-      #   style: geltungsbereich_2
-      #   operations:
-      #     - type: buffer
-      #       layers:
-      #         - name: Geltungsbereich S
-      #       distance: 2
+          - type: difference
+            layers:
+              - Wald
+              - Baumabstand Puffer
+              - Exclude
+          - type: dissolve
+      - name: Geltungsbereich NW 2
+        updateDxf: true
+        linetypeScale: 1
+        style: geltungsbereich_2
+        operations:
+          - type: buffer
+            layers:
+              - name: Geltungsbereich NW
+            distance: 2
+      - name: Geltungsbereich NO
+        updateDxf: true
+        style: geltungsbereich
+        close: true
+        operations:
+          - type: copy
+            layers:
+              - name: Parcel
+                values:
+                  - "24/8"
+                  - "24/9"
+          - type: filter
+            layers:
+              - name: Flur
+                values:
+                  - "Flur 1"
+              - name: Gemarkung
+                values:
+                  - "Groß Plasten"
+              - name: Gemeinde
+                values:
+                  - "Groß Plasten"
+          - type: difference
+            useBufferTrick: true
+            layers:
+              - Wald
+              - Baumabstand Puffer
+              - Exclude
+          - type: dissolve
+      - name: Geltungsbereich NO 2
+        updateDxf: true
+        linetypeScale: 1
+        style: geltungsbereich_2
+        operations:
+          - type: buffer
+            layers:
+              - name: Geltungsbereich NO
+            distance: 2
+      - name: Geltungsbereich S
+        updateDxf: true
+        style: geltungsbereich
+        close: true
+        operations:
+          - type: copy
+            layers:
+              - name: Parcel
+                values:
+                  - "41/1"
+          - type: filter
+            layers:
+              - name: Flur
+                values:
+                  - "Flur 2"
+              - name: Gemarkung
+                values:
+                  - "Klein Plasten"
+              - name: Gemeinde
+                values:
+                  - "Groß Plasten"
+          - type: difference
+            layers:
+              - Wald
+              - Baumabstand Puffer
+              - Exclude
+          - type: dissolve
+      - name: Geltungsbereich S 2
+        updateDxf: true
+        linetypeScale: 1
+        style: geltungsbereich_2
+        operations:
+          - type: buffer
+            layers:
+              - name: Geltungsbereich S
+            distance: 2
       # - name: Waldabstand
       #   operations:
       #     - type: buffer
