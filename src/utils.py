@@ -75,3 +75,18 @@ def setup_proj():
         log_info(f"PROJ version (from pyproj): {proj_version}")
     except Exception as e:
         log_error(f"Error getting PROJ version: {str(e)}")
+
+def resolve_path(path, folder_prefix=''):
+    """
+    Resolves a path by expanding user directory and joining with optional folder prefix.
+    
+    Args:
+        path (str): The path to resolve
+        folder_prefix (str, optional): Prefix to prepend to the path
+        
+    Returns:
+        str: The resolved absolute path
+    """
+    if not path:
+        return ''
+    return os.path.expanduser(os.path.join(folder_prefix, path))

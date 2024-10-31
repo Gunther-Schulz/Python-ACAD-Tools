@@ -1,8 +1,8 @@
 import geopandas as gpd
 import json
+import os
 from src.utils import log_info, log_warning, log_error
 from src.operations.common_operations import _process_layer_info, ensure_geodataframe
-import os
 
 def create_report_layer(all_layers, project_settings, crs, layer_name, operation):
     log_info(f"Creating report for layer: {layer_name}")
@@ -15,6 +15,16 @@ def create_report_layer(all_layers, project_settings, crs, layer_name, operation
     
     # Get output file path from operation
     output_file = operation.get('outputFile', f"{layer_name}_report.json")
+    
+    # Use project_loader to resolve the full path
+    project_loader = project_settings.get('project_loader')
+    if project_loader:
+        output_file = project_loader.resolve_full_path(output_file)
+    else:
+        # Fallback to old method if project_loader is not available
+        folder_prefix = project_settings.get('folderPrefix', '')
+        if folder_prefix:
+            output_file = os.path.join(folder_prefix, output_file)
     
     # Get additional columns to calculate
     calculate_columns = operation.get('calculate', [])

@@ -7,6 +7,7 @@ from shapely.geometry import Polygon, MultiPolygon
 import pyproj
 import re
 import yaml
+from utils import resolve_path
 
 def polygon_area(polygon):
     """Calculate the area of a polygon."""
@@ -154,13 +155,8 @@ def main():
         project_config = load_project_config(args.project_name)
         if project_config:
             folder_prefix = project_config.get('folderPrefix', '')
-            dxf_filename = os.path.expanduser(os.path.join(folder_prefix, project_config.get('dxfFilename', '')))
-            
-            if 'dxfDumpOutputDir' not in project_config:
-                print("Error: 'dxfDumpOutputDir' not specified in project configuration.")
-                return
-
-            dump_output_dir = os.path.expanduser(os.path.join(folder_prefix, project_config['dxfDumpOutputDir']))
+            dxf_filename = resolve_path(project_config.get('dxfFilename', ''), folder_prefix)
+            dump_output_dir = resolve_path(project_config.get('dxfDumpOutputDir', ''), folder_prefix)
             
             print(f"DXF filename: {dxf_filename}")
             print(f"Dump output directory: {dump_output_dir}")
