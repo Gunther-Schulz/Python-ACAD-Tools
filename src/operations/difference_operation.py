@@ -25,6 +25,10 @@ def create_difference_layer(all_layers, project_settings, crs, layer_name, opera
         log_warning(f"No valid geometries in base layer '{layer_name}' after removing empty geometries")
         return None
 
+    # After removing empty geometries, explode to preserve individual features
+    if isinstance(base_geometry, gpd.GeoDataFrame):
+        base_geometry = explode_to_singlepart(base_geometry)
+
     overlay_geometry = None
     for layer_info in overlay_layers:
         overlay_layer_name, values = _process_layer_info(all_layers, project_settings, crs, layer_info)
@@ -63,11 +67,22 @@ def create_difference_layer(all_layers, project_settings, crs, layer_name, opera
         base_geometry = apply_buffer_trick(base_geometry, buffer_distance)
         overlay_geometry = apply_buffer_trick(overlay_geometry, buffer_distance)
 
-    # Use base_geometry and overlay_geometry directly
-    if reverse_difference:
-        result = overlay_geometry.difference(base_geometry)
+    # Modify the difference operation to preserve features
+    if isinstance(base_geometry, gpd.GeoDataFrame):
+        result_parts = []
+        for idx, row in base_geometry.iterrows():
+            if reverse_difference:
+                diff = overlay_geometry.difference(row.geometry)
+            else:
+                diff = row.geometry.difference(overlay_geometry)
+            if not diff.is_empty:
+                result_parts.append(diff)
+        result = gpd.GeoSeries(result_parts)
     else:
-        result = base_geometry.difference(overlay_geometry)
+        if reverse_difference:
+            result = overlay_geometry.difference(base_geometry)
+        else:
+            result = base_geometry.difference(overlay_geometry)
     
     if use_buffer_trick:
         # Apply inverse buffer to shrink the result back

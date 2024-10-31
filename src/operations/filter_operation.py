@@ -28,7 +28,7 @@ def create_filtered_layer(all_layers, project_settings, crs, layer_name, operati
         log_info(f"Filter geometry type for {source_layer_name}: {type(filter_geometry)}")
 
         # Explode MultiPolygon into individual Polygons
-        filtered_gdf = filtered_gdf.explode(index_parts=False)
+        filtered_gdf = explode_to_singlepart(filtered_gdf)
 
         # Apply a small buffer to handle edge-on-edge proximity
         small_buffer = -1
