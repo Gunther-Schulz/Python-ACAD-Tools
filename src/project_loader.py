@@ -1,6 +1,6 @@
 import yaml
 import os
-from src.utils import log_info, log_warning, log_error
+from src.utils import log_info, log_warning, log_error, resolve_path
 
 class ProjectLoader:
     def __init__(self, project_name: str):
@@ -52,7 +52,7 @@ class ProjectLoader:
             layer['operations'] = new_operations
 
     def resolve_full_path(self, path: str) -> str:
-        return os.path.abspath(os.path.expanduser(os.path.join(self.folder_prefix, path)))
+        return resolve_path(path, self.folder_prefix)
 
     def load_styles(self):
         with open('styles.yaml', 'r') as file:

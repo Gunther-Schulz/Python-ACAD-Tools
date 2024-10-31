@@ -3,7 +3,7 @@ import shutil
 import traceback
 import ezdxf
 from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection, Point
-from src.utils import log_info, log_warning, log_error
+from src.utils import log_info, log_warning, log_error, resolve_path
 import geopandas as gpd
 import os
 from ezdxf.lldxf.const import LWPOLYLINE_PLINEGEN
@@ -107,7 +107,7 @@ class DXFExporter:
 
     def _backup_existing_file(self):
         if os.path.exists(self.dxf_filename):
-            backup_filename = f"{self.dxf_filename}.ezdxf_bak"
+            backup_filename = resolve_path(f"{self.dxf_filename}.ezdxf_bak")
             shutil.copy2(self.dxf_filename, backup_filename)
             log_info(f"Created backup of existing DXF file: {backup_filename}")
 

@@ -3,6 +3,7 @@ import json
 import os
 from src.utils import log_info, log_warning, log_error
 from src.operations.common_operations import _process_layer_info, ensure_geodataframe
+from src.utils import resolve_path
 
 def create_report_layer(all_layers, project_settings, crs, layer_name, operation):
     log_info(f"Creating report for layer: {layer_name}")
@@ -16,15 +17,9 @@ def create_report_layer(all_layers, project_settings, crs, layer_name, operation
     # Get output file path from operation
     output_file = operation.get('outputFile', f"{layer_name}_report.json")
     
-    # Use project_loader to resolve the full path
-    project_loader = project_settings.get('project_loader')
-    if project_loader:
-        output_file = project_loader.resolve_full_path(output_file)
-    else:
-        # Fallback to old method if project_loader is not available
-        folder_prefix = project_settings.get('folderPrefix', '')
-        if folder_prefix:
-            output_file = os.path.join(folder_prefix, output_file)
+    # Use resolve_path to get the full path
+    folder_prefix = project_settings.get('folderPrefix', '')
+    output_file = resolve_path(output_file, folder_prefix)
     
     # Get additional columns to calculate
     calculate_columns = operation.get('calculate', [])
@@ -73,8 +68,10 @@ def create_report_layer(all_layers, project_settings, crs, layer_name, operation
         'features': features_data
     }
     
-    # Ensure directory exists
-    os.makedirs(os.path.dirname(output_file) if os.path.dirname(output_file) else '.', exist_ok=True)
+    # Ensure directory exists - use the full resolved path
+    output_dir = os.path.dirname(output_file)
+    if output_dir:
+        os.makedirs(output_dir, exist_ok=True)
     
     # Write to JSON file
     try:

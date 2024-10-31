@@ -1,6 +1,6 @@
 import traceback
 from src.project_loader import ProjectLoader
-from src.utils import log_info, log_warning, log_error
+from src.utils import log_info, log_warning, log_error, resolve_path
 import geopandas as gpd
 from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection, Point, LinearRing
 import ezdxf
@@ -208,7 +208,7 @@ class LayerProcessor:
         for layer in self.project_settings['geomLayers']:
             layer_name = layer['name']
             if 'shapeFile' in layer:
-                shapefile_path = self.project_loader.resolve_full_path(layer['shapeFile'])
+                shapefile_path = resolve_path(layer['shapeFile'], self.project_loader.folder_prefix)
                 try:
                     gdf = gpd.read_file(shapefile_path)
                     gdf = self.standardize_layer_crs(layer_name, gdf)

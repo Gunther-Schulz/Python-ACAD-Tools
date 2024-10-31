@@ -4,6 +4,7 @@ import sys
 import pyproj
 from pyproj import CRS
 import traceback
+import yaml
 
 # Setup logging
 def setup_logging():
@@ -76,17 +77,43 @@ def setup_proj():
     except Exception as e:
         log_error(f"Error getting PROJ version: {str(e)}")
 
+def get_folder_prefix():
+    """Get the global folder prefix from projects.yaml"""
+    try:
+        with open('projects.yaml', 'r') as file:
+            data = yaml.safe_load(file)
+            return data.get('folderPrefix', '')
+    except Exception as e:
+        log_error(f"Error reading folder prefix from projects.yaml: {str(e)}")
+        return ''
+
 def resolve_path(path, folder_prefix=''):
     """
     Resolves a path by expanding user directory and joining with optional folder prefix.
     
     Args:
         path (str): The path to resolve
-        folder_prefix (str, optional): Prefix to prepend to the path
+        folder_prefix (str, optional): Prefix to prepend to the path. If empty, will be read from projects.yaml
         
     Returns:
         str: The resolved absolute path
     """
     if not path:
         return ''
-    return os.path.expanduser(os.path.join(folder_prefix, path))
+    
+    # Get folder prefix from projects.yaml if not provided
+    if not folder_prefix:
+        folder_prefix = get_folder_prefix()
+    
+    # First expand user directory in folder_prefix (if it exists)
+    if folder_prefix:
+        folder_prefix = os.path.expanduser(folder_prefix)
+        folder_prefix = os.path.abspath(folder_prefix)
+        
+        # If path is relative, join it with folder_prefix
+        if not os.path.isabs(path):
+            return os.path.join(folder_prefix, path)
+    
+    # If we get here, either there's no folder_prefix or path is absolute
+    expanded_path = os.path.expanduser(path)
+    return os.path.abspath(expanded_path)
