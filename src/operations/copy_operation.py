@@ -10,9 +10,10 @@ def create_copy_layer(all_layers, project_settings, crs, layer_name, operation):
     
     combined_gdf = None
     for layer_info in source_layers:
-        source_layer_name = layer_info['name'] if isinstance(layer_info, dict) else layer_info
-        values = layer_info.get('values', []) if isinstance(layer_info, dict) else []
-        
+        source_layer_name, values = _process_layer_info(all_layers, project_settings, crs, layer_info)
+        if source_layer_name is None:
+            continue
+            
         if source_layer_name not in all_layers:
             log_warning(f"Source layer '{source_layer_name}' not found")
             continue
@@ -20,12 +21,14 @@ def create_copy_layer(all_layers, project_settings, crs, layer_name, operation):
         # Get the source layer and make a copy
         source_gdf = all_layers[source_layer_name].copy()
         
-        # Apply value filtering if values are specified
+        # Apply value filtering if values are specified using project settings
         if values:
-            if 'OBJECTID' in source_gdf.columns:
-                source_gdf = source_gdf[source_gdf['OBJECTID'].astype(str).isin([str(v) for v in values])]
+            label_column = next((l['label'] for l in project_settings['geomLayers'] if l['name'] == source_layer_name), None)
+            if label_column and label_column in source_gdf.columns:
+                source_gdf = source_gdf[source_gdf[label_column].astype(str).isin([str(v) for v in values])]
+                log_info(f"Filtered {source_layer_name} using column '{label_column}': {len(source_gdf)} features remaining")
             else:
-                log_warning(f"Cannot filter values: OBJECTID column not found in {source_layer_name}")
+                log_warning(f"Label column for layer '{source_layer_name}' not found in project settings or data")
         
         if source_gdf.empty:
             continue

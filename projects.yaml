@@ -505,31 +505,31 @@ der Gemeinde Klein Belitz"
                   - "6"
                   - "7"
                   - "14"
-          # - type: filter
-          #   layers:
-          #     - name: Flur
-          #       values:
-          #         - "Flur 1"
-          #     - name: Gemarkung
-          #       values:
-          #         - "Groß Plasten"
-          #     - name: Gemeinde
-          #       values:
-          #         - "Groß Plasten"
+          - type: filter
+            layers:
+              - name: Flur
+                values:
+                  - "Flur 1"
+              - name: Gemarkung
+                values:
+                  - "Groß Plasten"
+              - name: Gemeinde
+                values:
+                  - "Groß Plasten"
           # - type: difference
           #   layers:
           #     - Wald
           #     - Baumabstand Puffer
           #     - Exclude
-      - name: Geltungsbereich NW 2
-        updateDxf: true
-        linetypeScale: 1
-        style: geltungsbereich_2
-        operations:
-          - type: buffer
-            layers:
-              - name: Geltungsbereich NW
-            distance: 2
+      # - name: Geltungsbereich NW 2
+      #   updateDxf: true
+      #   linetypeScale: 1
+      #   style: geltungsbereich_2
+      #   operations:
+      #     - type: buffer
+      #       layers:
+      #         - name: Geltungsbereich NW
+      #       distance: 2
       # - name: Geltungsbereich NO
       #   updateDxf: true
       #   style: geltungsbereich
