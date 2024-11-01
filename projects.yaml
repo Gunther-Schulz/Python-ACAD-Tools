@@ -985,8 +985,7 @@ der Gemeinde Klein Belitz"
         operations:
           - type: copy
             layers:
-              - Grünfläche
-              - Schutzflächeumgrenzung
+              - Ausgleichsfläche Gesamt
           - type: dissolve
           - type: intersection
             layers:
@@ -1018,7 +1017,15 @@ der Gemeinde Klein Belitz"
         style: schutzflächeumgrenzung
         applyHatch:
           layers:
-            - Schutzflächeumgrenzung
+            - Ausgleich Schutzflächeumgrenzung
+      - name: Baufeld Negative
+        operations:
+          - type: copy
+            layers:
+              - Ausgleichsfläche Gesamt
+              - Biotope
+              - Biotoppuffer
+          - type: dissolve
       - name: Baufeld
         updateDxf: true
         close: true
@@ -1035,13 +1042,35 @@ der Gemeinde Klein Belitz"
             # useBufferTrick: true
             reverseDifference: false
             layers:
-              - Schutzflächeumgrenzung
-              - Grünfläche
-              - Biotoppuffer
-          - type: filterGeometry
-            minArea: 200
-            geometryTypes:
-              - Polygon
+              - Baufeld Negative
+          # - type: filterGeometry
+          #   minArea: 200
+          #   geometryTypes:
+          #     - Polygon
+      # - name: Baufeld
+      #   updateDxf: true
+      #   close: true
+      #   viewports:
+      #     - name: WorkView
+      #       style: baufeld
+      #   operations:
+      #     - type: copy
+      #       layers:
+      #         - Ausgleichsfläche Gesamt
+      #         - Biotope
+      #         - Biotoppuffer
+      #     - type: dissolve
+      #     - type: difference
+      #       # useBufferTrick: true
+      #       # reverseDifference: false
+      #       layers:
+      #         - Geltungsbereich NW
+      #         - Geltungsbereich NO
+      #         - Geltungsbereich S
+      #     # - type: filterGeometry
+      #     #   minArea: 200
+      #     #   geometryTypes:
+      #     #     - Polygon
       - name: Baufeld Schraffur
         updateDxf: true
         style: baufeld
