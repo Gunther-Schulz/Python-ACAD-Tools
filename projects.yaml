@@ -162,22 +162,22 @@ projects:
             - name: "Baugrenze"
               type: empty
               blockSymbol: "Baugrenze"   
-        - name: "Verkehrsflächen"
-          updateDxf: true
-          subtitle: "(§ 9 Abs. 1 Nr. 11 und Abs. 6 BauGB)"
-          items:
-            - name: "Verkehrsfläche besonderer Zweckbestimmung"
-              type: area
-              applyHatch: true
-              style: verkehrsfläche
-            - name: "Verkehrsberuhigter Bereich"
-              type: empty
-              blockSymbol: "Verkehrsberuhigter Bereich"
-              blockSymbolScale: 2
-            - name: "Privat"
-              type: empty
-              blockSymbol: "Privat"
-              blockSymbolScale: 2
+        # - name: "Verkehrsflächen"
+        #   updateDxf: true
+        #   subtitle: "(§ 9 Abs. 1 Nr. 11 und Abs. 6 BauGB)"
+        #   items:
+        #     - name: "Verkehrsfläche besonderer Zweckbestimmung"
+        #       type: area
+        #       applyHatch: true
+        #       style: verkehrsfläche
+        #     - name: "Verkehrsberuhigter Bereich"
+        #       type: empty
+        #       blockSymbol: "Verkehrsberuhigter Bereich"
+        #       blockSymbolScale: 2
+        #     - name: "Privat"
+        #       type: empty
+        #       blockSymbol: "Privat"
+        #       blockSymbolScale: 2
         - name: "Grünflächen"
           updateDxf: true
           subtitle: "§ 9 Abs.1 Nr. 15 BauGB"
@@ -186,14 +186,14 @@ projects:
               type: area
               style: grünflächeLegend
               applyHatch: true
-        - name: "Wasserflächen und Flächen für die Wasserwirtschaft, den Hochwasserschutz und die Regelung des Wasserabflusses"
-          updateDxf: true
-          subtitle: "§ 9 Abs. 1 Nr. 16 BauBG"
-          items:
-            - name: "Wasserflächen"
-              type: area
-              style: waterLegend
-              applyHatch: true
+        # - name: "Wasserflächen und Flächen für die Wasserwirtschaft, den Hochwasserschutz und die Regelung des Wasserabflusses"
+        #   updateDxf: true
+        #   subtitle: "§ 9 Abs. 1 Nr. 16 BauBG"
+        #   items:
+        #     - name: "Wasserflächen"
+        #       type: area
+        #       style: waterLegend
+        #       applyHatch: true
         - name: "Planungen, Nutzungsregelungen, Maßnahmen und Flächen für Maßnahmen zum Schutz, zur Pflege und zur Entwicklung von Natur und Landschaft"
           updateDxf: true
           subtitle: "§ 9 Abs.1 Nr. 20 BauGB"
@@ -328,7 +328,7 @@ projects:
 der Gemeinde Klein Belitz"
         position:
           x: 66
-          y: 840
+          y: 977.5
         style: "mainTitle"  # Style can include width for text wrapping
     viewports:
     - name: MainView
@@ -336,9 +336,9 @@ der Gemeinde Klein Belitz"
       color: "magenta"
       topLeft:
         x: 65
-        y: 776.5
-      width: 720
-      height: 653
+        y: 914
+      width: 535
+      height: 368
       viewCenter:
         x: 356027
         y: 5935564
@@ -384,6 +384,24 @@ der Gemeinde Klein Belitz"
       # scale: 2
       # customScale: 0.5
       lockZoom: true
+    - name: Übersichtskarte
+      updateDxf: true
+      color: "magenta"
+      topLeft:
+        x: 1780
+        y: -1776.5
+      width: 720
+      height: 653
+      viewCenter:
+        x: 357679
+        y: 5932197
+      scale: 5
+      visibleLayers:
+        - Geltungsbereich NW
+        - Geltungsbereich NO
+        - Geltungsbereich S
+        - Geltungsbereich Hatches
+      # lockZoom: true
     - name: WorkView
       updateDxf: true
       color: "magenta"
@@ -564,6 +582,14 @@ der Gemeinde Klein Belitz"
             layers:
               - name: Geltungsbereich NW
             distance: 2
+      - name: Geltungsbereich Hatches
+        updateDxf: true
+        style: geltungsbereichHatches
+        applyHatch:
+          layers:
+            - Geltungsbereich NW
+            - Geltungsbereich NO
+            - Geltungsbereich S
       - name: Geltungsbereich NO
         updateDxf: true
         style: geltungsbereich

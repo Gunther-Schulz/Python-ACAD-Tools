@@ -614,11 +614,8 @@ class DXFExporter:
                 log_info(f"Viewport {vp_config['name']} already exists. Updating properties.")
                 viewport = existing_viewport
                 
-                # Reset viewport flags and properties for 2D viewing
-                viewport.dxf.flags = 0  # Clear all flags first
-                viewport.dxf.flags = 128 | 512  # Set only VSF_FAST_ZOOM (128) and VSF_GRID_MODE (512)
-                viewport.dxf.render_mode = 0  # 2D Optimized
-                viewport.dxf.view_direction_vector = (0, 0, 1)  # Straight top-down view
+                # Set 2D properties
+                self.set_viewport_2d_properties(viewport)
                 
                 # Update existing viewport properties
                 if 'color' in vp_config:
@@ -690,10 +687,8 @@ class DXFExporter:
                 viewport.dxf.status = 1
                 viewport.dxf.layer = 'VIEWPORTS'
                 
-                # Set 2D-specific properties
-                viewport.dxf.flags = 128 | 512  # VSF_FAST_ZOOM (128) and VSF_GRID_MODE (512)
-                viewport.dxf.render_mode = 0  # 2D Optimized
-                viewport.dxf.view_direction_vector = (0, 0, 1)  # Straight top-down view
+                # Set 2D properties
+                self.set_viewport_2d_properties(viewport)
                 
                 # Set zoom lock if specified
                 if vp_config.get('lockZoom', False):
@@ -706,6 +701,25 @@ class DXFExporter:
                         viewport.rgb = color
                     else:
                         viewport.dxf.color = color
+
+            # After creating or updating the viewport, handle layer visibility
+            if 'visibleLayers' in vp_config:
+                # Use the layer names directly from the list
+                visible_layers = set(vp_config['visibleLayers'])
+                
+                # Get all document layers except for special layers
+                all_layers = set(layer.dxf.name for layer in doc.layers if 
+                               layer.dxf.name not in ['0', 'DEFPOINTS', 'VIEWPORTS'])
+                
+                # Use the viewport's frozen_layers property
+                frozen_layers = []
+                for layer_name in all_layers:
+                    if layer_name not in visible_layers:
+                        frozen_layers.append(layer_name)
+                
+                # Set all frozen layers at once
+                viewport.frozen_layers = frozen_layers
+                log_info(f"Set frozen layers for viewport {vp_config['name']}: {frozen_layers}")
 
             # Attach custom data and identifier
             self.attach_custom_data(viewport)
@@ -1052,6 +1066,14 @@ class DXFExporter:
             except Exception as e:
                 log_error(f"Error processing text insert: {str(e)}")
                 continue
+
+    def set_viewport_2d_properties(self, viewport):
+        """Set viewport properties to ensure strict 2D behavior."""
+        viewport.dxf.flags = 0  # Clear all flags first
+        viewport.dxf.flags = 128 | 512  # Set only VSF_FAST_ZOOM (128) and VSF_GRID_MODE (512)
+        viewport.dxf.render_mode = 0  # 2D Optimized
+        viewport.dxf.view_direction_vector = (0, 0, 1)  # Straight top-down view
+        log_info("Set viewport to strict 2D mode")
 
 
 

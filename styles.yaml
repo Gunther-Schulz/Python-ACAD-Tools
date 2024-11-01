@@ -160,6 +160,12 @@ styles:
       lineweight: 10
 
 
+  geltungsbereichHatches:
+    hatch:
+      color: "red"
+      pattern: "ANSI31"
+      lineweight: 80
+
 # Commented Out Styles
 # --------------------
 
