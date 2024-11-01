@@ -166,15 +166,59 @@ def add_text(msp, text, x, y, layer_name, style_name, height=5, color=None):
     )
     return text_entity
 
-def remove_entities_by_layer(msp, layer_name, script_identifier):
-    entities_to_delete = [entity for entity in msp.query(f'*[layer=="{layer_name}"]') if is_created_by_script(entity, script_identifier)]
+def remove_entities_by_layer(msp, layer_names, script_identifier):
+    doc = msp.doc
+    key_func = doc.layers.key
     delete_count = 0
-    for entity in entities_to_delete:
-        try:
-            msp.delete_entity(entity)
-            delete_count += 1
-        except Exception as e:
-            log_error(f"Error deleting entity: {e}")
+    
+    # Convert single layer name to list
+    if isinstance(layer_names, str):
+        layer_names = [layer_names]
+    
+    # Convert layer names to keys
+    layer_keys = [key_func(layer_name) for layer_name in layer_names]
+    
+    # Use trashcan context manager for safe entity deletion
+    with doc.entitydb.trashcan() as trash:
+        for entity in doc.entitydb.values():
+            if not entity.dxf.hasattr("layer"):
+                continue
+                
+            if key_func(entity.dxf.layer) in layer_keys and is_created_by_script(entity, script_identifier):
+                try:
+                    # Clear any XDATA before deletion
+                    try:
+                        entity.discard_xdata('DXFEXPORTER')
+                    except:
+                        pass
+
+                    # Clear any hyperlinks if supported
+                    if hasattr(entity, 'set_hyperlink'):
+                        try:
+                            entity.remove_hyperlink()
+                        except:
+                            pass
+
+                    # Remove any extension dictionary
+                    if hasattr(entity, 'has_extension_dict') and entity.has_extension_dict:
+                        try:
+                            entity.discard_extension_dict()
+                        except:
+                            pass
+
+                    # Add to trashcan for safe deletion
+                    trash.add(entity.dxf.handle)
+                    delete_count += 1
+                    
+                except Exception as e:
+                    log_error(f"Error preparing entity for deletion: {e}")
+    
+    # Force database update
+    try:
+        doc.entitydb.purge()
+    except:
+        pass
+    
     return delete_count
 
 def update_layer_geometry(msp, layer_name, script_identifier, update_function):
