@@ -614,6 +614,12 @@ class DXFExporter:
                 log_info(f"Viewport {vp_config['name']} already exists. Updating properties.")
                 viewport = existing_viewport
                 
+                # Reset viewport flags and properties for 2D viewing
+                viewport.dxf.flags = 0  # Clear all flags first
+                viewport.dxf.flags = 128 | 512  # Set only VSF_FAST_ZOOM (128) and VSF_GRID_MODE (512)
+                viewport.dxf.render_mode = 0  # 2D Optimized
+                viewport.dxf.view_direction_vector = (0, 0, 1)  # Straight top-down view
+                
                 # Update existing viewport properties
                 if 'color' in vp_config:
                     color = get_color_code(vp_config['color'], self.name_to_aci)
@@ -632,17 +638,16 @@ class DXFExporter:
                 elif 'scale' in vp_config:
                     viewport.dxf.view_height = viewport.dxf.height * vp_config['scale']
                 
+                # Set zoom lock if specified
                 if vp_config.get('lockZoom', False):
-                    viewport.dxf.flags = viewport.dxf.flags | 1
-                
-                log_info(f"Updated viewport {vp_config['name']} properties")
+                    viewport.dxf.flags |= 16384  # VSF_LOCK_ZOOM
                 
             else:
-                # Create new viewport
+                # Create new viewport with 2D settings
                 width = vp_config['width']
                 height = vp_config['height']
                 
-                # Calculate center coordinates based on provided position
+                # Calculate center coordinates
                 if 'topLeft' in vp_config:
                     top_left = vp_config['topLeft']
                     center_x = top_left['x'] + (width / 2)
@@ -652,10 +657,10 @@ class DXFExporter:
                     center_x = center['x']
                     center_y = center['y']
                 else:
-                    log_warning(f"No position (topLeft or center) specified for viewport {vp_config['name']}")
+                    log_warning(f"No position specified for viewport {vp_config['name']}")
                     continue
 
-                # Handle both standard scale and custom scale
+                # Calculate view parameters
                 if 'customScale' in vp_config:
                     scale = 1 / vp_config['customScale']
                 else:
@@ -663,7 +668,7 @@ class DXFExporter:
                 
                 view_height = height * scale
                 
-                # Calculate view center based on provided view position
+                # Calculate view center
                 if 'viewTopLeft' in vp_config:
                     view_top_left = vp_config['viewTopLeft']
                     view_center_x = view_top_left['x'] + (width * scale / 2)
@@ -675,7 +680,7 @@ class DXFExporter:
                 else:
                     view_center_point = None
                 
-                # Create the viewport
+                # Create viewport with 2D settings
                 viewport = paper_space.add_viewport(
                     center=(center_x, center_y),
                     size=(width, height),
@@ -685,21 +690,12 @@ class DXFExporter:
                 viewport.dxf.status = 1
                 viewport.dxf.layer = 'VIEWPORTS'
                 
-                # Clear all 3D-related flags and only set essential 2D flags
-                viewport.dxf.flags = 0  # First clear all flags
+                # Set 2D-specific properties
+                viewport.dxf.flags = 128 | 512  # VSF_FAST_ZOOM (128) and VSF_GRID_MODE (512)
+                viewport.dxf.render_mode = 0  # 2D Optimized
+                viewport.dxf.view_direction_vector = (0, 0, 1)  # Straight top-down view
                 
-                # Set only the necessary flags for 2D viewing:
-                # VSF_FAST_ZOOM (128/0x80) - Enables fast zoom
-                # VSF_GRID_MODE (512/0x200) - Enables grid mode if needed
-                viewport.dxf.flags = 128 | 512
-                
-                # Set render mode to 2D Optimized
-                viewport.dxf.render_mode = 0  # 0 = 2D Optimized (classic 2D)
-                
-                # Ensure view direction is straight top-down
-                viewport.dxf.view_direction_vector = (0, 0, 1)
-                
-                # Additional flags if needed (like zoom lock)
+                # Set zoom lock if specified
                 if vp_config.get('lockZoom', False):
                     viewport.dxf.flags |= 16384  # VSF_LOCK_ZOOM
                 
@@ -710,10 +706,8 @@ class DXFExporter:
                         viewport.rgb = color
                     else:
                         viewport.dxf.color = color
-                
-                log_info(f"Updated viewport {vp_config['name']} properties")
-                
-            # Attach custom data and identifier for both new and existing viewports
+
+            # Attach custom data and identifier
             self.attach_custom_data(viewport)
             viewport.set_xdata(
                 'DXFEXPORTER',
