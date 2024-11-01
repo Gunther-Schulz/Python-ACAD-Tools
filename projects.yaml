@@ -788,7 +788,7 @@ der Gemeinde Klein Belitz"
             layers:
               - Geltungsbereich NW
           - type: report
-            outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/grünfläche_schutzfläche_report.json"
+            outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/grünfläche_schutzfläche_report_nw.json"
             calculate:
               - area
               - perimeter
@@ -1064,6 +1064,66 @@ der Gemeinde Klein Belitz"
               - Geltungsbereich S
           - type: report
             outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/baugrenze_s_report.json"
+            calculate:
+              - area
+              - perimeter
+              - centroid
+              - bounds
+            decimalPlaces:
+              area: 0
+      - name: Baufeldstreifen Report NW
+        operations:
+          - type: copy
+            layers:
+              - Baufeld
+          - type: difference
+            layers:
+              - Baugrenze
+          - type: intersection
+            layers:
+              - Geltungsbereich NW
+          - type: report
+            outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/baufeldstreifen_nw_report.json"
+            calculate:
+              - area
+              - perimeter
+              - centroid
+              - bounds
+            decimalPlaces:
+              area: 0
+      - name: Baufeldstreifen Report NO
+        operations:
+          - type: copy
+            layers:
+              - Baufeld
+          - type: difference
+            layers:
+              - Baugrenze
+          - type: intersection
+            layers:
+              - Geltungsbereich NO
+          - type: report
+            outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/baufeldstreifen_no_report.json"
+            calculate:
+              - area
+              - perimeter
+              - centroid
+              - bounds
+            decimalPlaces:
+              area: 0
+      - name: Baufeldstreifen Report S
+        operations:
+          - type: copy
+            layers:
+              - Baufeld
+          - type: difference
+            layers:
+              - Baugrenze
+          - type: intersection
+            layers:
+              - Geltungsbereich S
+          - type: report
+            outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/baufeldstreifen_s_report.json"
             calculate:
               - area
               - perimeter
