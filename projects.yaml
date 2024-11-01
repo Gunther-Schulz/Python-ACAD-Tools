@@ -345,6 +345,7 @@ der Gemeinde Klein Belitz"
       customScale: 0.5
       frozenLayers:
         - Geltungsbereich Hatches
+        - WMTS Basemap
       # lockZoom: true
     - name: MainView2
       updateDxf: true
@@ -360,6 +361,7 @@ der Gemeinde Klein Belitz"
       customScale: 0.5
       frozenLayers:
         - Geltungsbereich Hatches
+        - WMTS Basemap
       # lockZoom: true
     - name: MainView3
       updateDxf: true
@@ -375,6 +377,7 @@ der Gemeinde Klein Belitz"
       customScale: 0.5
       frozenLayers:
         - Geltungsbereich Hatches
+        - WMTS Basemap
       # lockZoom: true
     - name: LegendView
       updateDxf: true
@@ -387,6 +390,8 @@ der Gemeinde Klein Belitz"
       viewTopLeft:
         x: 367838
         y: 5942625
+      frozenLayers:
+        - WMTS Basemap
       # scale: 2
       # customScale: 0.5
       lockZoom: true
@@ -420,6 +425,9 @@ der Gemeinde Klein Belitz"
       viewCenter:
         x: 356027
         y: 5935564
+      frozenLayers:
+        - WMTS Basemap
+        - Geltungsbereich Hatches
     - name: WorkView2
       updateDxf: true
       color: "magenta"
@@ -431,6 +439,9 @@ der Gemeinde Klein Belitz"
       viewCenter:
         x: 356027
         y: 5935564
+      frozenLayers:
+        - WMTS Basemap
+        - Geltungsbereich Hatches
     # reports:
     #   - name: Anteilige Flurstücksgrößen innerhalb Geltungsbereich Nordwesten in Plasten
     #     type: area
@@ -625,6 +636,13 @@ der Gemeinde Klein Belitz"
               - Wald
               - Baumabstand Puffer
               - Exclude
+          - type: report
+            outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/geltungsbereich_no_report.json"
+            calculate:
+              - area
+              - perimeter
+              - centroid
+              - bounds
           - type: dissolve
       - name: Geltungsbereich NO 2
         updateDxf: true
@@ -661,6 +679,13 @@ der Gemeinde Klein Belitz"
               - Wald
               - Baumabstand Puffer
               - Exclude
+          - type: report
+            outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/geltungsbereich_s_report.json"
+            calculate:
+              - area
+              - perimeter
+              - centroid
+              - bounds
           - type: dissolve
       - name: Geltungsbereich S 2
         updateDxf: true
@@ -714,6 +739,51 @@ der Gemeinde Klein Belitz"
               - Geltungsbereich NW
               - Geltungsbereich NO
               - Geltungsbereich S
+      - name: Grünfläache Schutzfläche Report NW
+        operations:
+          - type: copy
+            layers:
+              - Grünfläche Schutzfläche
+          - type: intersection
+            layers:
+              - Geltungsbereich NW
+          - type: report
+            outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/grünfläche_schutzfläche_report.json"
+            calculate:
+              - area
+              - perimeter
+              - centroid
+              - bounds
+      - name: Grünfläche Schutzfläche Report NO
+        operations:
+          - type: copy
+            layers:
+              - Grünfläche Schutzfläche
+          - type: intersection
+            layers:
+              - Geltungsbereich NO
+          - type: report
+            outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/grünfläche_schutzfläche_report_no.json"
+            calculate:
+              - area
+              - perimeter
+              - centroid
+              - bounds
+      - name: Grünfläche Schutzfläche Report S
+        operations:
+          - type: copy
+            layers:
+              - Grünfläche Schutzfläche
+          - type: intersection
+            layers:
+              - Geltungsbereich S
+          - type: report
+            outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/grünfläche_schutzfläche_report_s.json"
+            calculate:
+              - area
+              - perimeter
+              - centroid
+              - bounds
       - name: Grünfläche
         updateDxf: true
         viewports:
@@ -870,12 +940,51 @@ der Gemeinde Klein Belitz"
             layers:
               - Baufeld
             distance: -3
-      # # - name: WMTS DOP
-      # #   # updateDxf: true
-      # #   style: 
-      # #     locked: true
-      # #     # color: "White"
-      # #   operations:
+      - name: Baugrenze Report NW
+        operations:
+          - type: copy
+            layers:
+              - Baugrenze
+          - type: intersection
+            layers:
+              - Geltungsbereich NW
+          - type: report
+            outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/baugrenze_nw_report.json"
+            calculate:
+              - area
+              - perimeter
+              - centroid
+              - bounds
+      - name: Baugrenze Report NO
+        operations:
+          - type: copy
+            layers:
+              - Baugrenze
+          - type: intersection
+            layers:
+              - Geltungsbereich NO
+          - type: report
+            outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/baugrenze_no_report.json"
+            calculate:
+              - area
+              - perimeter
+              - centroid
+              - bounds
+      - name: Baugrenze Report S
+        operations:
+          - type: copy
+            layers:
+              - Baugrenze
+          - type: intersection
+            layers:
+              - Geltungsbereich S
+          - type: report
+            outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/baugrenze_s_report.json"
+            calculate:
+              - area
+              - perimeter
+              - centroid
+              - bounds
       # #     - type: wmts
       # #       url: "https://www.geodaten-mv.de/dienste/dop_wmts/wmts/1.0.0/WMTSCapabilities.xml"
       # #       layer: "mv_dop"
@@ -891,8 +1000,6 @@ der Gemeinde Klein Belitz"
       # #       # overwrite: true
       - name: WMTS Basemap
         # updateDxf: true
-        color: white
-        locked: true
         operations:
           - type: wmts
             url: "https://sgx.geodatenzentrum.de/wmts_basemapde/1.0.0/WMTSCapabilities.xml"
