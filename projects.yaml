@@ -590,6 +590,8 @@ der Gemeinde Klein Belitz"
               - perimeter
               - centroid
               - bounds
+            decimalPlaces:
+              area: 0
           - type: dissolve
       - name: Geltungsbereich NW 2
         updateDxf: true
@@ -643,6 +645,8 @@ der Gemeinde Klein Belitz"
               - perimeter
               - centroid
               - bounds
+            decimalPlaces:
+              area: 0
           - type: dissolve
       - name: Geltungsbereich NO 2
         updateDxf: true
@@ -686,6 +690,8 @@ der Gemeinde Klein Belitz"
               - perimeter
               - centroid
               - bounds
+            decimalPlaces:
+              area: 0
           - type: dissolve
       - name: Geltungsbereich S 2
         updateDxf: true
@@ -720,6 +726,40 @@ der Gemeinde Klein Belitz"
             layers:
               - Biotope Input
               - Geschütze Biotope
+      - name: Biotop Report NW
+        operations:
+          - type: copy
+            layers:
+              - Biotope
+          - type: intersection
+            layers:
+              - Geltungsbereich NW
+          - type: report
+            outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/biotop_report_nw.json"
+            calculate:
+              - area
+              - perimeter
+              - centroid
+              - bounds
+            decimalPlaces:
+              area: 0
+      - name: Biotop Report S
+        operations:
+          - type: copy
+            layers:
+              - Biotope
+          - type: intersection
+            layers:
+              - Geltungsbereich S
+          - type: report
+            outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/biotop_report_s.json"
+            calculate:
+              - area
+              - perimeter
+              - centroid
+              - bounds
+            decimalPlaces:
+              area: 0
       - name: Grünfläche Schutzfläche
         viewports:
           - name: WorkView
@@ -754,6 +794,8 @@ der Gemeinde Klein Belitz"
               - perimeter
               - centroid
               - bounds
+            decimalPlaces:
+              area: 0
       - name: Grünfläche Schutzfläche Report NO
         operations:
           - type: copy
@@ -769,6 +811,8 @@ der Gemeinde Klein Belitz"
               - perimeter
               - centroid
               - bounds
+            decimalPlaces:
+              area: 0
       - name: Grünfläche Schutzfläche Report S
         operations:
           - type: copy
@@ -784,6 +828,8 @@ der Gemeinde Klein Belitz"
               - perimeter
               - centroid
               - bounds
+            decimalPlaces:
+              area: 0
       - name: Grünfläche
         updateDxf: true
         viewports:
@@ -850,6 +896,40 @@ der Gemeinde Klein Belitz"
         applyHatch:
           layers:
             - Biotoppuffer
+      - name: Biotoppuffer Report NW
+        operations:
+          - type: copy
+            layers:
+              - Biotoppuffer
+          - type: intersection
+            layers:
+              - Geltungsbereich NW
+          - type: report
+            outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/biotoppuffer_report_nw.json"
+            calculate:
+              - area
+              - perimeter
+              - centroid
+              - bounds
+            decimalPlaces:
+              area: 0
+      - name: Biotoppuffer Report S
+        operations:
+          - type: copy
+            layers:
+              - Biotoppuffer
+          - type: intersection
+            layers:
+              - Geltungsbereich S
+          - type: report
+            outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/biotoppuffer_report_s.json"
+            calculate:
+              - area
+              - perimeter
+              - centroid
+              - bounds
+            decimalPlaces:
+              area: 0
       - name: Schutzflächeumgrenzung T-Symbol Temp
         # updateDxf: true
         close: false
@@ -955,6 +1035,8 @@ der Gemeinde Klein Belitz"
               - perimeter
               - centroid
               - bounds
+            decimalPlaces:
+              area: 0
       - name: Baugrenze Report NO
         operations:
           - type: copy
@@ -970,6 +1052,8 @@ der Gemeinde Klein Belitz"
               - perimeter
               - centroid
               - bounds
+            decimalPlaces:
+              area: 0
       - name: Baugrenze Report S
         operations:
           - type: copy
@@ -985,6 +1069,8 @@ der Gemeinde Klein Belitz"
               - perimeter
               - centroid
               - bounds
+            decimalPlaces:
+              area: 0
       # #     - type: wmts
       # #       url: "https://www.geodaten-mv.de/dienste/dop_wmts/wmts/1.0.0/WMTSCapabilities.xml"
       # #       layer: "mv_dop"
