@@ -1041,12 +1041,16 @@ der Gemeinde Klein Belitz"
           - type: difference
             # useBufferTrick: true
             reverseDifference: false
-            layers:
-              - Baufeld Negative
-          # - type: filterGeometry
-          #   minArea: 200
-          #   geometryTypes:
-          #     - Polygon
+            operations:
+              - type: dissolve
+                layers:
+                  - Ausgleichsfläche Gesamt
+                  - Biotope
+                  - Biotoppuffer
+          - type: filterGeometry
+            minArea: 200
+            geometryTypes:
+              - Polygon
       # - name: Baufeld
       #   updateDxf: true
       #   close: true
