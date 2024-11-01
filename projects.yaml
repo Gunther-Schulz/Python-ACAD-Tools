@@ -343,7 +343,33 @@ der Gemeinde Klein Belitz"
         x: 356027
         y: 5935564
       customScale: 0.5
-      lockZoom: true
+      # lockZoom: true
+    - name: MainView2
+      updateDxf: true
+      color: "magenta"
+      topLeft:
+        x: 65
+        y: -776.5
+      width: 720
+      height: 653
+      viewCenter:
+        x: 358159
+        y: 5936012
+      customScale: 0.5
+      # lockZoom: true
+    - name: MainView3
+      updateDxf: true
+      color: "magenta"
+      topLeft:
+        x: 1780
+        y: -776.5
+      width: 720
+      height: 653
+      viewCenter:
+        x: 357679
+        y: 5932197
+      customScale: 0.5
+      # lockZoom: true
     - name: LegendView
       updateDxf: true
       color: "magenta"
