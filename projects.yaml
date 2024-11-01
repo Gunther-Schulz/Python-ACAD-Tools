@@ -932,8 +932,7 @@ der Gemeinde Klein Belitz"
           - type: difference
             layers:
               - Biotope
-              - Schutzflächeumgrenzung
-              - Grünfläche
+              - Ausgleichsfläche Gesamt
           - type: intersection
             layers:
               - Geltungsbereich NW
