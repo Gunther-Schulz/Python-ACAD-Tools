@@ -161,10 +161,13 @@ styles:
 
 
   geltungsbereichHatches:
-    hatch:
+    layer:
       color: "red"
+      lineweight: 50
+    hatch:
       pattern: "ANSI31"
-      lineweight: 80
+      patternScale: 10
+
 
 # Commented Out Styles
 # --------------------

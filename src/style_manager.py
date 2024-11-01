@@ -7,7 +7,7 @@ class StyleManager:
         self.styles = project_loader.styles  # Load all styles from project_loader
         self.default_hatch_settings = {
             'pattern': 'SOLID',
-            'scale': 1,
+            'patternScale': 1,
             'color': 'BYLAYER',
             'individual_hatches': True
         }
@@ -47,7 +47,7 @@ class StyleManager:
         self._validate_style_keys(layer_name, 'layer', layer_style, known_style_keys)
 
     def _validate_hatch_style(self, layer_name, hatch_style):
-        known_style_keys = {'pattern', 'scale', 'color', 'transparency'}
+        known_style_keys = {'pattern', 'patternScale', 'color', 'transparency'}
         self._validate_style_keys(layer_name, 'hatch', hatch_style, known_style_keys)
 
     def _validate_text_style(self, layer_name, text_style):
@@ -155,7 +155,7 @@ class StyleManager:
         self._process_style_keys(layer_name, 'layer', layer_style, known_style_keys)
 
     def _process_hatch_style(self, layer_name, hatch_style):
-        known_style_keys = {'pattern', 'scale', 'color', 'transparency'}
+        known_style_keys = {'pattern', 'patternScale', 'color', 'transparency'}
         self._process_style_keys(layer_name, 'hatch', hatch_style, known_style_keys)
 
     def _process_text_style(self, layer_name, text_style):
