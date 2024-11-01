@@ -2,7 +2,7 @@ import geopandas as gpd
 from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection, Point, MultiPoint
 from src.utils import log_info, log_warning, log_error
 from shapely.ops import unary_union
-from src.operations.common_operations import _process_layer_info, _get_filtered_geometry, make_valid_geometry
+from src.operations.common_operations import _process_layer_info, _get_filtered_geometry, make_valid_geometry, format_operation_warning
 from src.operations.common_operations import *
 
 
@@ -14,13 +14,12 @@ def create_buffer_layer(all_layers, project_settings, crs, layer_name, operation
     buffer_mode = operation.get('mode', 'off')
     join_style = operation.get('joinStyle', 'mitre')
 
-    # Map join style names to shapely constants
     join_style_map = {
         'round': 1,
         'mitre': 2,
         'bevel': 3
     }
-    join_style_value = join_style_map.get(join_style, 2)  # Default to 'mitre' if invalid
+    join_style_value = join_style_map.get(join_style, 2)
 
     source_layers = operation.get('layers', [layer_name])
     
@@ -28,19 +27,41 @@ def create_buffer_layer(all_layers, project_settings, crs, layer_name, operation
     for layer_info in source_layers:
         source_layer_name, values = _process_layer_info(all_layers, project_settings, crs, layer_info)
         if source_layer_name is None or source_layer_name not in all_layers:
-            log_warning(f"Source layer '{source_layer_name}' not found for buffer operation on {layer_name}")
+            log_warning(format_operation_warning(
+                layer_name,
+                "buffer",
+                f"Source layer '{source_layer_name}' not found"
+            ))
             continue
 
         source_geometry = _get_filtered_geometry(all_layers, project_settings, crs, source_layer_name, values)
         if source_geometry is None:
+            log_warning(format_operation_warning(
+                layer_name,
+                "buffer",
+                f"Failed to get filtered geometry for layer '{source_layer_name}'"
+            ))
             continue
 
         if combined_geometry is None:
             combined_geometry = source_geometry
         else:
-            combined_geometry = combined_geometry.union(source_geometry)
+            try:
+                combined_geometry = combined_geometry.union(source_geometry)
+            except Exception as e:
+                log_warning(format_operation_warning(
+                    layer_name,
+                    "buffer",
+                    f"Error combining geometries: {str(e)}"
+                ))
+                continue
+
     if combined_geometry is None:
-        log_warning(f"No valid source geometry found for buffer operation on {layer_name}")
+        log_warning(format_operation_warning(
+            layer_name,
+            "buffer",
+            "No valid source geometry found"
+        ))
         return None
 
     make_valid = operation.get('makeValid', True)
