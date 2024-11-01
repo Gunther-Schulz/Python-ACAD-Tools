@@ -337,11 +337,11 @@ der Gemeinde Klein Belitz"
       topLeft:
         x: 65
         y: 914
-      width: 535
       height: 368
+      width: 535
       viewCenter:
-        x: 356027
-        y: 5935564
+        x: 356092
+        y: 5935489
       customScale: 0.5
       frozenLayers:
         - Geltungsbereich Hatches
@@ -352,11 +352,11 @@ der Gemeinde Klein Belitz"
       topLeft:
         x: 65
         y: -776.5
-      width: 720
       height: 653
+      width: 720
       viewCenter:
-        x: 358159
-        y: 5936012
+        x: 358163
+        y: 5935966
       customScale: 0.5
       frozenLayers:
         - Geltungsbereich Hatches
@@ -367,11 +367,11 @@ der Gemeinde Klein Belitz"
       topLeft:
         x: 1780
         y: -776.5
-      width: 720
       height: 653
+      width: 720
       viewCenter:
-        x: 357679
-        y: 5932197
+        x: 357645
+        y: 5932178
       customScale: 0.5
       frozenLayers:
         - Geltungsbereich Hatches
@@ -382,8 +382,8 @@ der Gemeinde Klein Belitz"
       topLeft:
         x: 817
         y: 842
-      width: 180
       height: 700
+      width: 180
       viewTopLeft:
         x: 367838
         y: 5942625
@@ -394,19 +394,20 @@ der Gemeinde Klein Belitz"
       updateDxf: true
       color: "magenta"
       topLeft:
-        x: 1780
-        y: -1776.5
-      width: 720
-      height: 653
+        x: 705
+        y: 686
+      height: 366
+      width: 181
       viewCenter:
-        x: 357679
-        y: 5932197
-      scale: 5
+        x: 357129
+        y: 5934148
+      customScale: 0.05
       visibleLayers:
         - Geltungsbereich NW
         - Geltungsbereich NO
         - Geltungsbereich S
         - Geltungsbereich Hatches
+        - WMTS Basemap
       # lockZoom: true
     - name: WorkView
       updateDxf: true
@@ -414,8 +415,8 @@ der Gemeinde Klein Belitz"
       center:
         x: 780
         y: 2000
-      width: 720
       height: 653
+      width: 720
       viewCenter:
         x: 356027
         y: 5935564
@@ -425,8 +426,8 @@ der Gemeinde Klein Belitz"
       center:
         x: 1780
         y: 2000
-      width: 720
       height: 653
+      width: 720
       viewCenter:
         x: 356027
         y: 5935564
@@ -888,23 +889,24 @@ der Gemeinde Klein Belitz"
       # #       buffer: 200
       # #       stitchTiles: true
       # #       # overwrite: true
-      # # - name: WMTS Basemap
-      # #   updateDxf: true
-      # #   color: white
-      # #   locked: true
-      # #   operations:
-      # #     - type: wmts
-      # #       url: "https://sgx.geodatenzentrum.de/wmts_basemapde/1.0.0/WMTSCapabilities.xml"
-      # #       layer: "de_basemapde_web_raster_farbe"
-      # #       zoom: "10"
-      # #       proj: "DE_EPSG_25833_ADV"
-      # #       targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/Basemap"
-      # #       layers:
-      # #         - Geltungsbereich NW
-      # #         - Geltungsbereich NO
-      # #         - Geltungsbereich S
-      # #       buffer: 200
-      # # - name: Contour
+      - name: WMTS Basemap
+        # updateDxf: true
+        color: white
+        locked: true
+        operations:
+          - type: wmts
+            url: "https://sgx.geodatenzentrum.de/wmts_basemapde/1.0.0/WMTSCapabilities.xml"
+            layer: "de_basemapde_web_raster_farbe"
+            zoom: "10"
+            proj: "DE_EPSG_25833_ADV"
+            targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/Basemap"
+            layers:
+              - Geltungsbereich NW
+              - Geltungsbereich NO
+              - Geltungsbereich S
+            buffer: 2000
+            stitchTiles: true
+      - name: Contour
       # #   updateDxf: true
       # #   style:
       # #     color: white
