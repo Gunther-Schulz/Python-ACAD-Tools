@@ -343,6 +343,8 @@ der Gemeinde Klein Belitz"
         x: 356027
         y: 5935564
       customScale: 0.5
+      frozenLayers:
+        - Geltungsbereich Hatches
       # lockZoom: true
     - name: MainView2
       updateDxf: true
@@ -356,6 +358,8 @@ der Gemeinde Klein Belitz"
         x: 358159
         y: 5936012
       customScale: 0.5
+      frozenLayers:
+        - Geltungsbereich Hatches
       # lockZoom: true
     - name: MainView3
       updateDxf: true
@@ -369,6 +373,8 @@ der Gemeinde Klein Belitz"
         x: 357679
         y: 5932197
       customScale: 0.5
+      frozenLayers:
+        - Geltungsbereich Hatches
       # lockZoom: true
     - name: LegendView
       updateDxf: true

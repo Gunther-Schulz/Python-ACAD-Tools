@@ -614,6 +614,10 @@ class DXFExporter:
                 log_info(f"Viewport {vp_config['name']} already exists. Updating properties.")
                 viewport = existing_viewport
                 
+                # Clear existing frozen layers
+                viewport.frozen_layers = []
+                log_info(f"Cleared existing frozen layers for viewport {vp_config['name']}")
+                
                 # Set 2D properties
                 self.set_viewport_2d_properties(viewport)
                 
@@ -702,24 +706,33 @@ class DXFExporter:
                     else:
                         viewport.dxf.color = color
 
-            # After creating or updating the viewport, handle layer visibility
+            # Handle layer visibility for both new and existing viewports
+            all_layers = set(layer.dxf.name for layer in doc.layers if 
+                            layer.dxf.name not in ['0', 'DEFPOINTS', 'VIEWPORTS'])
+            
+            frozen_layers = []
+
+            # Handle visibleLayers (all others will be frozen)
             if 'visibleLayers' in vp_config:
-                # Use the layer names directly from the list
                 visible_layers = set(vp_config['visibleLayers'])
-                
-                # Get all document layers except for special layers
-                all_layers = set(layer.dxf.name for layer in doc.layers if 
-                               layer.dxf.name not in ['0', 'DEFPOINTS', 'VIEWPORTS'])
-                
-                # Use the viewport's frozen_layers property
-                frozen_layers = []
-                for layer_name in all_layers:
-                    if layer_name not in visible_layers:
-                        frozen_layers.append(layer_name)
-                
-                # Set all frozen layers at once
+                frozen_layers = [layer for layer in all_layers if layer not in visible_layers]
+                log_info(f"Using visibleLayers setting for viewport {vp_config['name']}")
+                log_info(f"Visible layers: {visible_layers}")
+                log_info(f"Layers to be frozen: {frozen_layers}")
+
+            # Handle frozenLayers (explicitly frozen layers)
+            elif 'frozenLayers' in vp_config:
+                frozen_layers = vp_config['frozenLayers']
+                log_info(f"Using frozenLayers setting for viewport {vp_config['name']}")
+                log_info(f"Layers to be frozen: {frozen_layers}")
+
+            # Set frozen layers on viewport
+            if frozen_layers:
                 viewport.frozen_layers = frozen_layers
-                log_info(f"Set frozen layers for viewport {vp_config['name']}: {frozen_layers}")
+                log_info(f"Updated frozen layers for viewport {vp_config['name']}")
+                log_info(f"Current frozen layers: {viewport.frozen_layers}")
+            else:
+                log_info(f"No layer visibility changes for viewport {vp_config['name']}")
 
             # Attach custom data and identifier
             self.attach_custom_data(viewport)
