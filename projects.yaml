@@ -717,7 +717,6 @@ der Gemeinde Klein Belitz"
           - type: filterGeometry
             minArea: 200
       - name: Biotope
-        updateDxf: true
         viewports:
           - name: WorkView
             style: biotopWorkView
@@ -726,11 +725,61 @@ der Gemeinde Klein Belitz"
             layers:
               - Biotope Input
               - Geschütze Biotope
-      - name: Biotop Report NW
+      - name: Biotope Ausserhalb Geltungsbereich
+        updateDxf: true
         operations:
           - type: copy
             layers:
               - Biotope
+          - type: difference
+            layers:
+              - Geltungsbereich NW
+              - Geltungsbereich NO
+              - Geltungsbereich S
+      - name: Biotope Innerhalb Geltungsbereich
+        operations:
+          - type: copy
+            layers:
+              - Biotope
+          - type: intersection
+            layers:
+              - Geltungsbereich NW
+              - Geltungsbereich NO
+              - Geltungsbereich S
+      - name: Biotope Innerhalb Geltungsbereich Grünfläche
+        updateDxf: true
+        operations:
+          - type: copy
+            layers:
+              - Biotope Innerhalb Geltungsbereich
+          - type: buffer
+            distance: -3
+      - name: Biotope Innerhalb Geltungsbereich Schutzfläche
+        updateDxf: true
+        operations:
+          - type: copy
+            layers:
+              - Biotope Innerhalb Geltungsbereich
+          - type: difference
+            layers:
+              - Biotope Innerhalb Geltungsbereich Grünfläche
+      - name: Biotope Innerhalb Geltungsbereich Grünfläche Schraffur
+        updateDxf: true
+        style: grünfläche
+        applyHatch:
+          layers:
+            - Biotope Innerhalb Geltungsbereich Grünfläche
+      - name: Biotope Innerhalb Geltungsbereich Schutzfläche Schraffur
+        updateDxf: true
+        style: schutzflächeumgrenzung
+        applyHatch:
+          layers:
+            - Biotope Innerhalb Geltungsbereich Schutzfläche
+      - name: Biotop Report NW
+        operations:
+          - type: copy
+            layers:
+              - Biotope Innerhalb Geltungsbereich
           - type: intersection
             layers:
               - Geltungsbereich NW
@@ -747,7 +796,7 @@ der Gemeinde Klein Belitz"
         operations:
           - type: copy
             layers:
-              - Biotope
+              - Biotope Innerhalb Geltungsbereich
           - type: intersection
             layers:
               - Geltungsbereich S
@@ -760,7 +809,7 @@ der Gemeinde Klein Belitz"
               - bounds
             decimalPlaces:
               area: 0
-      - name: Grünfläche Schutzfläche
+      - name: Ausgleichsfläche Gesamt
         viewports:
           - name: WorkView
             style: grünflächeWorkView
@@ -772,18 +821,18 @@ der Gemeinde Klein Belitz"
               - Baumabstand Puffer
               - FG Buffer
               # - Biotoppuffer
-              - Biotope
+              # - Biotope
           - type: dissolve
           - type: intersection
             layers:
               - Geltungsbereich NW
               - Geltungsbereich NO
               - Geltungsbereich S
-      - name: Grünfläache Schutzfläche Report NW
+      - name: Ausgleichsfläche Report NW
         operations:
           - type: copy
             layers:
-              - Grünfläche Schutzfläche
+              - Ausgleichsfläche Gesamt
           - type: intersection
             layers:
               - Geltungsbereich NW
@@ -796,11 +845,11 @@ der Gemeinde Klein Belitz"
               - bounds
             decimalPlaces:
               area: 0
-      - name: Grünfläche Schutzfläche Report NO
+      - name: Ausgleichsfläche Report NO
         operations:
           - type: copy
             layers:
-              - Grünfläche Schutzfläche
+              - Ausgleichsfläche Gesamt
           - type: intersection
             layers:
               - Geltungsbereich NO
@@ -813,11 +862,11 @@ der Gemeinde Klein Belitz"
               - bounds
             decimalPlaces:
               area: 0
-      - name: Grünfläche Schutzfläche Report S
+      - name: Ausgleichsfläche Report S
         operations:
           - type: copy
             layers:
-              - Grünfläche Schutzfläche
+              - Ausgleichsfläche Gesamt
           - type: intersection
             layers:
               - Geltungsbereich S
@@ -830,7 +879,7 @@ der Gemeinde Klein Belitz"
               - bounds
             decimalPlaces:
               area: 0
-      - name: Grünfläche
+      - name: Ausgleich Grünfläche
         updateDxf: true
         viewports:
           - name: WorkView
@@ -838,18 +887,18 @@ der Gemeinde Klein Belitz"
         operations:
           - type: buffer
             layers:
-              - Grünfläche Schutzfläche
+              - Ausgleichsfläche Gesamt
             distance: -3
         # bluntAngles:
         #   angleThreshold: 25  # Angles smaller than this will be blunted
         #   distance: 10.0  # Distance to move the vertex along the angle bisector
-      - name: Grünfläche Schraffur
+      - name: Ausgleich Grünfläche Schraffur
         updateDxf: true
         style: grünfläche
         applyHatch:
           layers:
-            - Grünfläche
-      - name: Schutzflächeumgrenzung
+            - Ausgleich Grünfläche
+      - name: Ausgleich Schutzflächeumgrenzung
         updateDxf: true
         viewports:
           - name: WorkView
@@ -857,10 +906,10 @@ der Gemeinde Klein Belitz"
         operations:
           - type: copy
             layers:
-              - Grünfläche Schutzfläche
+              - Ausgleichsfläche Gesamt
           - type: difference
             layers:
-              - Grünfläche
+              - Ausgleich Grünfläche
           - type: intersection
             layers:
               - Geltungsbereich NW
