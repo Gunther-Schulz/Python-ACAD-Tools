@@ -21,6 +21,7 @@ from src.dfx_utils import (add_block_reference, get_color_code, convert_transpar
                            get_style, apply_style_to_entity, create_hatch, SCRIPT_IDENTIFIER, initialize_document, sanitize_layer_name, add_text_insert)
 from src.path_array import create_path_array
 from src.style_manager import StyleManager
+from src.viewport_manager import ViewportManager
 
 class DXFExporter:
     def __init__(self, project_loader, layer_processor):
@@ -35,8 +36,13 @@ class DXFExporter:
         self.name_to_aci = project_loader.name_to_aci
         log_info(f"DXFExporter initialized with script identifier: {self.script_identifier}")
         self.setup_layers()
-        self.viewports = {}
         self.style_manager = StyleManager(project_loader)
+        self.viewport_manager = ViewportManager(
+            self.project_settings, 
+            self.script_identifier,
+            self.name_to_aci,
+            self.style_manager
+        )
         self.loaded_styles = set()  # Add this line to store loaded styles
 
     def setup_layers(self):
@@ -90,7 +96,7 @@ class DXFExporter:
         self.loaded_styles = initialize_document(doc)
         msp = doc.modelspace()
         self.register_app_id(doc)
-        self.create_viewports(doc, msp)
+        self.viewport_manager.create_viewports(doc, msp)
         self.process_layers(doc, msp)
         # Create legend
         legend_creator = LegendCreator(doc, msp, self.project_loader, self.loaded_styles)
@@ -593,155 +599,6 @@ class DXFExporter:
             else:
                 log_info(f"Entity {entity} has no 'get_hyperlink' method")
 
-    def create_viewports(self, doc, msp):
-        log_info("Creating viewports...")
-        paper_space = doc.paperspace()
-        
-        # Ensure VIEWPORTS layer exists and set it to not plot
-        if 'VIEWPORTS' not in doc.layers:
-            doc.layers.new('VIEWPORTS')
-        viewports_layer = doc.layers.get('VIEWPORTS')
-        viewports_layer.dxf.plot = 0  # Set to not plot
-        
-        for vp_config in self.project_settings.get('viewports', []):
-            # Check update flag - default to False
-            if not vp_config.get('updateDxf', False):
-                log_info(f"Skipping viewport {vp_config.get('name', 'unnamed')} as update flag is not set")
-                continue
-
-            existing_viewport = self.get_viewport_by_name(doc, vp_config['name'])
-            if existing_viewport:
-                log_info(f"Viewport {vp_config['name']} already exists. Updating properties.")
-                viewport = existing_viewport
-                
-                # Reset viewport flags and properties for 2D viewing
-                viewport.dxf.flags = 0  # Clear all flags first
-                viewport.dxf.flags = 128 | 512  # Set only VSF_FAST_ZOOM (128) and VSF_GRID_MODE (512)
-                viewport.dxf.render_mode = 0  # 2D Optimized
-                viewport.dxf.view_direction_vector = (0, 0, 1)  # Straight top-down view
-                
-                # Update existing viewport properties
-                if 'color' in vp_config:
-                    color = get_color_code(vp_config['color'], self.name_to_aci)
-                    if isinstance(color, tuple):
-                        viewport.rgb = color
-                    else:
-                        viewport.dxf.color = color
-                
-                # Update view center if specified
-                if 'viewCenter' in vp_config:
-                    view_center = vp_config['viewCenter']
-                    viewport.dxf.view_center_point = (view_center['x'], view_center['y'], 0)
-                
-                if 'customScale' in vp_config:
-                    viewport.dxf.view_height = viewport.dxf.height * (1 / vp_config['customScale'])
-                elif 'scale' in vp_config:
-                    viewport.dxf.view_height = viewport.dxf.height * vp_config['scale']
-                
-                # Set zoom lock if specified
-                if vp_config.get('lockZoom', False):
-                    viewport.dxf.flags |= 16384  # VSF_LOCK_ZOOM
-                
-            else:
-                # Create new viewport with 2D settings
-                width = vp_config['width']
-                height = vp_config['height']
-                
-                # Calculate center coordinates
-                if 'topLeft' in vp_config:
-                    top_left = vp_config['topLeft']
-                    center_x = top_left['x'] + (width / 2)
-                    center_y = top_left['y'] - (height / 2)
-                elif 'center' in vp_config:
-                    center = vp_config['center']
-                    center_x = center['x']
-                    center_y = center['y']
-                else:
-                    log_warning(f"No position specified for viewport {vp_config['name']}")
-                    continue
-
-                # Calculate view parameters
-                if 'customScale' in vp_config:
-                    scale = 1 / vp_config['customScale']
-                else:
-                    scale = vp_config.get('scale', 1.0)
-                
-                view_height = height * scale
-                
-                # Calculate view center
-                if 'viewTopLeft' in vp_config:
-                    view_top_left = vp_config['viewTopLeft']
-                    view_center_x = view_top_left['x'] + (width * scale / 2)
-                    view_center_y = view_top_left['y'] - (height * scale / 2)
-                    view_center_point = (view_center_x, view_center_y, 0)
-                elif 'viewCenter' in vp_config:
-                    view_center = vp_config['viewCenter']
-                    view_center_point = (view_center['x'], view_center['y'], 0)
-                else:
-                    view_center_point = None
-                
-                # Create viewport with 2D settings
-                viewport = paper_space.add_viewport(
-                    center=(center_x, center_y),
-                    size=(width, height),
-                    view_center_point=view_center_point,
-                    view_height=view_height
-                )
-                viewport.dxf.status = 1
-                viewport.dxf.layer = 'VIEWPORTS'
-                
-                # Set 2D-specific properties
-                viewport.dxf.flags = 128 | 512  # VSF_FAST_ZOOM (128) and VSF_GRID_MODE (512)
-                viewport.dxf.render_mode = 0  # 2D Optimized
-                viewport.dxf.view_direction_vector = (0, 0, 1)  # Straight top-down view
-                
-                # Set zoom lock if specified
-                if vp_config.get('lockZoom', False):
-                    viewport.dxf.flags |= 16384  # VSF_LOCK_ZOOM
-                
-                # Set viewport color if specified
-                if 'color' in vp_config:
-                    color = get_color_code(vp_config['color'], self.name_to_aci)
-                    if isinstance(color, tuple):
-                        viewport.rgb = color
-                    else:
-                        viewport.dxf.color = color
-
-            # Attach custom data and identifier
-            self.attach_custom_data(viewport)
-            viewport.set_xdata(
-                'DXFEXPORTER',
-                [
-                    (1000, self.script_identifier),
-                    (1002, '{'),
-                    (1000, 'VIEWPORT_NAME'),
-                    (1000, vp_config['name']),
-                    (1002, '}')
-                ]
-            )
-            
-            self.viewports[vp_config['name']] = viewport
-            log_info(f"Viewport {vp_config['name']} processed")
-        
-        return self.viewports
-
-    def get_viewport_by_name(self, doc, name):
-        for layout in doc.layouts:
-            for entity in layout:
-                if entity.dxftype() == 'VIEWPORT':
-                    try:
-                        xdata = entity.get_xdata('DXFEXPORTER')
-                        if xdata:
-                            in_viewport_section = False
-                            for code, value in xdata:
-                                if code == 1000 and value == 'VIEWPORT_NAME':
-                                    in_viewport_section = True
-                                elif in_viewport_section and code == 1000 and value == name:
-                                    return entity
-                    except ezdxf.lldxf.const.DXFValueError:
-                        continue
-        return None
-
     def _process_viewport_styles(self, doc, layer_name, viewport_styles):
         layer = doc.layers.get(layer_name)
         if layer is None:
@@ -1052,6 +909,24 @@ class DXFExporter:
             except Exception as e:
                 log_error(f"Error processing text insert: {str(e)}")
                 continue
+
+    def get_viewport_by_name(self, doc, name):
+        """Retrieve a viewport by its name using xdata."""
+        for layout in doc.layouts:
+            for entity in layout:
+                if entity.dxftype() == 'VIEWPORT':
+                    try:
+                        xdata = entity.get_xdata('DXFEXPORTER')
+                        if xdata:
+                            in_viewport_section = False
+                            for code, value in xdata:
+                                if code == 1000 and value == 'VIEWPORT_NAME':
+                                    in_viewport_section = True
+                                elif in_viewport_section and code == 1000 and value == name:
+                                    return entity
+                    except:
+                        continue
+        return None
 
 
 

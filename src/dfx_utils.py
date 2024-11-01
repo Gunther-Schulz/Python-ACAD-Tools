@@ -413,6 +413,15 @@ def apply_style_to_entity(entity, style, project_loader, loaded_styles, item_typ
             entity.dxf.style = text_style
 
 def create_hatch(msp, boundary_paths, hatch_config, project_loader, is_legend=False):
+    """Creates a hatch entity with the given configuration.
+    
+    Args:
+        msp: ModelSpace or PaperSpace to add the hatch to
+        boundary_paths: List of vertices defining the hatch boundary
+        hatch_config: Dictionary containing hatch configuration
+        project_loader: ProjectLoader instance for color mapping
+        is_legend: Boolean indicating if this is a legend hatch
+    """
     if is_legend:
         log_info(f"Creating symbol hatch with config: {hatch_config}")
     else:
@@ -421,37 +430,41 @@ def create_hatch(msp, boundary_paths, hatch_config, project_loader, is_legend=Fa
     hatch = msp.add_hatch()
     
     pattern = hatch_config.get('pattern', 'SOLID')
-    scale = hatch_config.get('scale', 1)
+    pattern_scale = hatch_config.get('patternScale', 1)
     
     if pattern != 'SOLID':
         try:
-            hatch.set_pattern_fill(pattern, scale=scale)
+            hatch.set_pattern_fill(pattern, scale=pattern_scale)
         except ezdxf.DXFValueError:
             log_warning(f"Invalid hatch pattern: {pattern}. Using SOLID instead.")
             hatch.set_pattern_fill("SOLID")
     else:
         hatch.set_solid_fill()
 
-    for path in boundary_paths:
-        hatch.paths.add_polyline_path(path)
+    # Add boundary paths
+    if isinstance(boundary_paths, list):
+        for path in boundary_paths:
+            hatch.paths.add_polyline_path(path)
+    else:
+        # Single boundary case
+        vertices = list(boundary_paths.exterior.coords)
+        hatch.paths.add_polyline_path(vertices)
     
-    # Apply color for both legend and non-legend hatches
+    # Apply color
     if 'color' in hatch_config and hatch_config['color'] not in (None, 'BYLAYER'):
         color = get_color_code(hatch_config['color'], project_loader.name_to_aci)
         if isinstance(color, tuple):
-            hatch.rgb = color  # Set RGB color directly
+            hatch.rgb = color
         else:
-            hatch.dxf.color = color  # Set ACI color
+            hatch.dxf.color = color
     else:
         hatch.dxf.color = ezdxf.const.BYLAYER
 
-    # Check if 'transparency' key exists and set it only if specified
+    # Apply transparency
     if 'transparency' in hatch_config:
-        transparency = hatch_config['transparency']
-        if transparency not in (None, 'BYLAYER'):
-            transparency_value = convert_transparency(transparency)
-            if transparency_value is not None:
-                set_hatch_transparency(hatch, transparency_value)
+        transparency = convert_transparency(hatch_config['transparency'])
+        if transparency is not None:
+            set_hatch_transparency(hatch, transparency)
     
     return hatch
 

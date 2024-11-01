@@ -162,22 +162,22 @@ projects:
             - name: "Baugrenze"
               type: empty
               blockSymbol: "Baugrenze"   
-        - name: "Verkehrsflächen"
-          updateDxf: true
-          subtitle: "(§ 9 Abs. 1 Nr. 11 und Abs. 6 BauGB)"
-          items:
-            - name: "Verkehrsfläche besonderer Zweckbestimmung"
-              type: area
-              applyHatch: true
-              style: verkehrsfläche
-            - name: "Verkehrsberuhigter Bereich"
-              type: empty
-              blockSymbol: "Verkehrsberuhigter Bereich"
-              blockSymbolScale: 2
-            - name: "Privat"
-              type: empty
-              blockSymbol: "Privat"
-              blockSymbolScale: 2
+        # - name: "Verkehrsflächen"
+        #   updateDxf: true
+        #   subtitle: "(§ 9 Abs. 1 Nr. 11 und Abs. 6 BauGB)"
+        #   items:
+        #     - name: "Verkehrsfläche besonderer Zweckbestimmung"
+        #       type: area
+        #       applyHatch: true
+        #       style: verkehrsfläche
+        #     - name: "Verkehrsberuhigter Bereich"
+        #       type: empty
+        #       blockSymbol: "Verkehrsberuhigter Bereich"
+        #       blockSymbolScale: 2
+        #     - name: "Privat"
+        #       type: empty
+        #       blockSymbol: "Privat"
+        #       blockSymbolScale: 2
         - name: "Grünflächen"
           updateDxf: true
           subtitle: "§ 9 Abs.1 Nr. 15 BauGB"
@@ -186,14 +186,14 @@ projects:
               type: area
               style: grünflächeLegend
               applyHatch: true
-        - name: "Wasserflächen und Flächen für die Wasserwirtschaft, den Hochwasserschutz und die Regelung des Wasserabflusses"
-          updateDxf: true
-          subtitle: "§ 9 Abs. 1 Nr. 16 BauBG"
-          items:
-            - name: "Wasserflächen"
-              type: area
-              style: waterLegend
-              applyHatch: true
+        # - name: "Wasserflächen und Flächen für die Wasserwirtschaft, den Hochwasserschutz und die Regelung des Wasserabflusses"
+        #   updateDxf: true
+        #   subtitle: "§ 9 Abs. 1 Nr. 16 BauBG"
+        #   items:
+        #     - name: "Wasserflächen"
+        #       type: area
+        #       style: waterLegend
+        #       applyHatch: true
         - name: "Planungen, Nutzungsregelungen, Maßnahmen und Flächen für Maßnahmen zum Schutz, zur Pflege und zur Entwicklung von Natur und Landschaft"
           updateDxf: true
           subtitle: "§ 9 Abs.1 Nr. 20 BauGB"
@@ -328,7 +328,7 @@ projects:
 der Gemeinde Klein Belitz"
         position:
           x: 66
-          y: 840
+          y: 977.5
         style: "mainTitle"  # Style can include width for text wrapping
     viewports:
     - name: MainView
@@ -336,13 +336,16 @@ der Gemeinde Klein Belitz"
       color: "magenta"
       topLeft:
         x: 65
-        y: 776.5
-      width: 720
-      height: 653
+        y: 914
+      height: 368
+      width: 535
       viewCenter:
-        x: 356027
-        y: 5935564
+        x: 356092
+        y: 5935489
       customScale: 0.5
+      frozenLayers:
+        - Geltungsbereich Hatches
+        - WMTS Basemap
       # lockZoom: true
     - name: MainView2
       updateDxf: true
@@ -350,12 +353,15 @@ der Gemeinde Klein Belitz"
       topLeft:
         x: 65
         y: -776.5
-      width: 720
       height: 653
+      width: 720
       viewCenter:
-        x: 358159
-        y: 5936012
+        x: 358163
+        y: 5935966
       customScale: 0.5
+      frozenLayers:
+        - Geltungsbereich Hatches
+        - WMTS Basemap
       # lockZoom: true
     - name: MainView3
       updateDxf: true
@@ -363,12 +369,15 @@ der Gemeinde Klein Belitz"
       topLeft:
         x: 1780
         y: -776.5
-      width: 720
       height: 653
+      width: 720
       viewCenter:
-        x: 357679
-        y: 5932197
+        x: 357645
+        y: 5932178
       customScale: 0.5
+      frozenLayers:
+        - Geltungsbereich Hatches
+        - WMTS Basemap
       # lockZoom: true
     - name: LegendView
       updateDxf: true
@@ -376,36 +385,63 @@ der Gemeinde Klein Belitz"
       topLeft:
         x: 817
         y: 842
-      width: 180
       height: 700
+      width: 180
       viewTopLeft:
         x: 367838
         y: 5942625
+      frozenLayers:
+        - WMTS Basemap
       # scale: 2
       # customScale: 0.5
       lockZoom: true
+    - name: Übersichtskarte
+      updateDxf: true
+      color: "magenta"
+      topLeft:
+        x: 705
+        y: 686
+      height: 366
+      width: 181
+      viewCenter:
+        x: 357129
+        y: 5934148
+      customScale: 0.05
+      visibleLayers:
+        - Geltungsbereich NW
+        - Geltungsbereich NO
+        - Geltungsbereich S
+        - Geltungsbereich Hatches
+        - WMTS Basemap
+      # lockZoom: true
     - name: WorkView
       updateDxf: true
       color: "magenta"
       center:
         x: 780
         y: 2000
-      width: 720
       height: 653
+      width: 720
       viewCenter:
         x: 356027
         y: 5935564
+      frozenLayers:
+        - WMTS Basemap
+        - Geltungsbereich Hatches
     - name: WorkView2
       updateDxf: true
       color: "magenta"
       center:
         x: 1780
         y: 2000
-      width: 720
       height: 653
+      width: 720
       viewCenter:
         x: 356027
         y: 5935564
+      frozenLayers:
+        - WMTS Basemap
+        - Geltungsbereich Hatches
     # reports:
     #   - name: Anteilige Flurstücksgrößen innerhalb Geltungsbereich Nordwesten in Plasten
     #     type: area
@@ -564,6 +600,14 @@ der Gemeinde Klein Belitz"
             layers:
               - name: Geltungsbereich NW
             distance: 2
+      - name: Geltungsbereich Hatches
+        updateDxf: true
+        style: geltungsbereichHatches
+        applyHatch:
+          layers:
+            - Geltungsbereich NW
+            - Geltungsbereich NO
+            - Geltungsbereich S
       - name: Geltungsbereich NO
         updateDxf: true
         style: geltungsbereich
@@ -592,6 +636,13 @@ der Gemeinde Klein Belitz"
               - Wald
               - Baumabstand Puffer
               - Exclude
+          - type: report
+            outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/geltungsbereich_no_report.json"
+            calculate:
+              - area
+              - perimeter
+              - centroid
+              - bounds
           - type: dissolve
       - name: Geltungsbereich NO 2
         updateDxf: true
@@ -628,6 +679,13 @@ der Gemeinde Klein Belitz"
               - Wald
               - Baumabstand Puffer
               - Exclude
+          - type: report
+            outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/geltungsbereich_s_report.json"
+            calculate:
+              - area
+              - perimeter
+              - centroid
+              - bounds
           - type: dissolve
       - name: Geltungsbereich S 2
         updateDxf: true
@@ -681,6 +739,51 @@ der Gemeinde Klein Belitz"
               - Geltungsbereich NW
               - Geltungsbereich NO
               - Geltungsbereich S
+      - name: Grünfläache Schutzfläche Report NW
+        operations:
+          - type: copy
+            layers:
+              - Grünfläche Schutzfläche
+          - type: intersection
+            layers:
+              - Geltungsbereich NW
+          - type: report
+            outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/grünfläche_schutzfläche_report.json"
+            calculate:
+              - area
+              - perimeter
+              - centroid
+              - bounds
+      - name: Grünfläche Schutzfläche Report NO
+        operations:
+          - type: copy
+            layers:
+              - Grünfläche Schutzfläche
+          - type: intersection
+            layers:
+              - Geltungsbereich NO
+          - type: report
+            outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/grünfläche_schutzfläche_report_no.json"
+            calculate:
+              - area
+              - perimeter
+              - centroid
+              - bounds
+      - name: Grünfläche Schutzfläche Report S
+        operations:
+          - type: copy
+            layers:
+              - Grünfläche Schutzfläche
+          - type: intersection
+            layers:
+              - Geltungsbereich S
+          - type: report
+            outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/grünfläche_schutzfläche_report_s.json"
+            calculate:
+              - area
+              - perimeter
+              - centroid
+              - bounds
       - name: Grünfläche
         updateDxf: true
         viewports:
@@ -837,12 +940,51 @@ der Gemeinde Klein Belitz"
             layers:
               - Baufeld
             distance: -3
-      # # - name: WMTS DOP
-      # #   # updateDxf: true
-      # #   style: 
-      # #     locked: true
-      # #     # color: "White"
-      # #   operations:
+      - name: Baugrenze Report NW
+        operations:
+          - type: copy
+            layers:
+              - Baugrenze
+          - type: intersection
+            layers:
+              - Geltungsbereich NW
+          - type: report
+            outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/baugrenze_nw_report.json"
+            calculate:
+              - area
+              - perimeter
+              - centroid
+              - bounds
+      - name: Baugrenze Report NO
+        operations:
+          - type: copy
+            layers:
+              - Baugrenze
+          - type: intersection
+            layers:
+              - Geltungsbereich NO
+          - type: report
+            outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/baugrenze_no_report.json"
+            calculate:
+              - area
+              - perimeter
+              - centroid
+              - bounds
+      - name: Baugrenze Report S
+        operations:
+          - type: copy
+            layers:
+              - Baugrenze
+          - type: intersection
+            layers:
+              - Geltungsbereich S
+          - type: report
+            outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/baugrenze_s_report.json"
+            calculate:
+              - area
+              - perimeter
+              - centroid
+              - bounds
       # #     - type: wmts
       # #       url: "https://www.geodaten-mv.de/dienste/dop_wmts/wmts/1.0.0/WMTSCapabilities.xml"
       # #       layer: "mv_dop"
@@ -856,23 +998,22 @@ der Gemeinde Klein Belitz"
       # #       buffer: 200
       # #       stitchTiles: true
       # #       # overwrite: true
-      # # - name: WMTS Basemap
-      # #   updateDxf: true
-      # #   color: white
-      # #   locked: true
-      # #   operations:
-      # #     - type: wmts
-      # #       url: "https://sgx.geodatenzentrum.de/wmts_basemapde/1.0.0/WMTSCapabilities.xml"
-      # #       layer: "de_basemapde_web_raster_farbe"
-      # #       zoom: "10"
-      # #       proj: "DE_EPSG_25833_ADV"
-      # #       targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/Basemap"
-      # #       layers:
-      # #         - Geltungsbereich NW
-      # #         - Geltungsbereich NO
-      # #         - Geltungsbereich S
-      # #       buffer: 200
-      # # - name: Contour
+      - name: WMTS Basemap
+        # updateDxf: true
+        operations:
+          - type: wmts
+            url: "https://sgx.geodatenzentrum.de/wmts_basemapde/1.0.0/WMTSCapabilities.xml"
+            layer: "de_basemapde_web_raster_farbe"
+            zoom: "10"
+            proj: "DE_EPSG_25833_ADV"
+            targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/Basemap"
+            layers:
+              - Geltungsbereich NW
+              - Geltungsbereich NO
+              - Geltungsbereich S
+            buffer: 2000
+            stitchTiles: true
+      - name: Contour
       # #   updateDxf: true
       # #   style:
       # #     color: white
