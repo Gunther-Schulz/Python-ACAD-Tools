@@ -776,48 +776,55 @@ class DXFExporter:
         log_info("Finished processing all path array configurations")
 
     def process_block_inserts(self, msp):
+        """Process block inserts from project settings."""
         block_inserts = self.project_settings.get('blockInserts', [])
         log_info(f"Processing {len(block_inserts)} block insert configurations")
         
         for insert_config in block_inserts:
-            target_layer = insert_config.get('targetLayer')
-            points_layer = insert_config.get('pointsLayer')
-            output_layer = insert_config.get('name')
-            block_name = insert_config.get('blockName')
-            scale = insert_config.get('scale', 1.0)
-            rotation = insert_config.get('rotation', 0)
-            position_config = insert_config.get('position', {})
-            updateDxf = insert_config.get('updateDxf', False)
+            try:
+                # Get basic configuration
+                source_layer = insert_config.get('sourceLayer')  # Single source layer for all cases
+                output_layer = insert_config.get('name')
+                block_name = insert_config.get('blockName')
+                scale = insert_config.get('scale', 1.0)
+                rotation = insert_config.get('rotation', 0)
+                position_config = insert_config.get('position', {})
+                offset = position_config.get('offset') if position_config else insert_config.get('offset')
+                updateDxf = insert_config.get('updateDxf', False)
 
-            if not updateDxf:
-                log_info(f"Skipping block insert '{output_layer}' as updateDxf flag is not set")
+                if not updateDxf:
+                    log_info(f"Skipping block insert '{output_layer}' as updateDxf flag is not set")
+                    continue
+
+                log_info(f"Processing block insert for output layer: {output_layer}, block: {block_name}")
+
+                if not output_layer or not block_name or not source_layer:
+                    log_warning(f"Missing required configuration (name, blockName, or sourceLayer): {insert_config}")
+                    continue
+
+                # Create the output layer if it doesn't exist
+                if output_layer not in self.layer_properties:
+                    log_info(f"Creating new layer properties for: {output_layer}")
+                    self.add_layer_properties(output_layer, {})
+
+                # Clear existing entities in the output layer
+                removed_count = remove_entities_by_layer(msp, output_layer, self.script_identifier)
+                log_info(f"Removed {removed_count} existing entities from layer: {output_layer}")
+
+                if position_config:
+                    # Insert blocks based on geometries with positioning rules
+                    self.insert_blocks_on_layer(msp, source_layer, output_layer, block_name, scale, rotation, position_config)
+                else:
+                    # Insert blocks directly at points from source layer
+                    self.insert_blocks_at_points(msp, source_layer, output_layer, block_name, scale, rotation, offset)
+
+            except Exception as e:
+                log_error(f"Error processing block insert: {str(e)}")
                 continue
-
-            log_info(f"Processing block insert for output layer: {output_layer}, block: {block_name}")
-
-            if not output_layer or not block_name:
-                log_warning(f"Invalid block insert configuration: {insert_config}")
-                continue
-
-            # Create the output layer if it doesn't exist
-            if output_layer not in self.layer_properties:
-                log_info(f"Creating new layer properties for: {output_layer}")
-                self.add_layer_properties(output_layer, {})
-
-            # Clear existing entities in the output layer
-            removed_count = remove_entities_by_layer(msp, output_layer, self.script_identifier)
-            log_info(f"Removed {removed_count} existing entities from layer: {output_layer}")
-
-            if points_layer:
-                self.insert_blocks_at_points(msp, points_layer, output_layer, block_name, scale, rotation)
-            elif target_layer:
-                self.insert_blocks_on_layer(msp, target_layer, output_layer, block_name, scale, rotation, position_config)
-            else:
-                log_warning(f"Neither target_layer nor points_layer specified for block insert: {output_layer}")
 
         log_info("Finished processing all block insert configurations")
 
-    def insert_blocks_at_points(self, msp, points_layer, output_layer, block_name, scale, rotation):
+    def insert_blocks_at_points(self, msp, points_layer, output_layer, block_name, scale, rotation, offset=None):
         """Insert blocks at specific points from a points layer."""
         if points_layer not in self.all_layers:
             log_warning(f"Points layer '{points_layer}' not found in all_layers. Skipping block insertion.")
@@ -830,9 +837,14 @@ class DXFExporter:
             log_warning(f"Layer {points_layer} has no geometry attribute. Skipping block insertion.")
             return
 
+        # Get offset values
+        offset_x = offset.get('x', 0) if offset else 0
+        offset_y = offset.get('y', 0) if offset else 0
+
         for point_geom in layer_data.geometry:
             if hasattr(point_geom, 'x') and hasattr(point_geom, 'y'):
-                insert_point = (point_geom.x, point_geom.y)
+                # Apply offset to insertion point
+                insert_point = (point_geom.x + offset_x, point_geom.y + offset_y)
                 
                 log_info(f"Inserting block {block_name} at point {insert_point}")
                 block_ref = add_block_reference(

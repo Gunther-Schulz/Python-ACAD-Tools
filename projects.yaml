@@ -299,31 +299,39 @@ projects:
     blockInserts:
     - name: "SO EBS Label"
       updateDxf: true
-      targetLayer: "Baufeld"
       blockName: "Sonstiges Sondergebiet EBS"
       scale: 6.0
       rotation: 0
-      position:
-        type: "centroid"  # Options: centroid, center, random
-        offset:
-          x: 0
-          y: 0
+      sourceLayer: "Baufeld Label Points"
+      # position:
+      #   type: "centroid"  # Options: centroid, center, random
+      #   offset:
+      #     x: 0
+      #     y: 0
     - name: "GRZ Label"
       updateDxf: true
-      targetLayer: "Baufeld"
       blockName: "GRZ"
       scale: 4.0
       rotation: 0
-      position:
-        type: "centroid"  # Options: centroid, center, random
-        offset:
-          x: 0
-          y: -20
+      sourceLayer: "Baufeld Label Points"
+      offset:
+        x: 0
+        y: -20
+      # position:
+      #   type: "centroid"  # Options: centroid, center, random
+      #   offset:
+      #     x: 0
+      #     y: -20
     - name: "Bäume Ausserhalb"
       updateDxf: true
-      targetLayer: "Baufeld"
       blockName: "Baum"
-      pointsLayer: "Baum Points"
+      sourceLayer: "Baum Points"
+    - name: "Gesetzlich geschütztes Biotop Symbol"
+      updateDxf: true
+      blockName: "Gesetzlich geschütztes Biotop"
+      sourceLayer: Geschütze Biotope 2
+      position:
+        type: "centroid"
     textInserts:
       - name: "Main Title"
         targetLayer: "Plantext"
@@ -501,6 +509,8 @@ der Gemeinde Klein Belitz"
             minArea: 200
             geometryTypes:
               - Polygon
+      - name: Baufeld Label Points
+        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/baufeld_label_points.shp"
       - name: Baum Points
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/baum_points.shp"
       - name: Flur
