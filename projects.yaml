@@ -471,6 +471,31 @@ der Gemeinde Klein Belitz"
     #     includeLabels: true
     #     includeTotalArea: true
     geomLayers:
+      - name: Baufeld
+        updateDxf: true
+        close: true
+        viewports:
+          - name: WorkView
+            style: baufeld
+        operations:
+          - type: copy
+            layers:
+              - Geltungsbereich NW
+              - Geltungsbereich NO
+              - Geltungsbereich S
+          - type: difference
+            # useBufferTrick: true
+            reverseDifference: false
+            operations:
+              - type: dissolve
+                layers:
+                  - Ausgleichsfläche Gesamt
+                  - Biotope
+                  - Biotoppuffer
+          - type: filterGeometry
+            minArea: 200
+            geometryTypes:
+              - Polygon
       - name: Flur
         updateDxf: true
         close: true
@@ -543,11 +568,18 @@ der Gemeinde Klein Belitz"
           - type: buffer
             distance: 5
       - name: Geschütze Biotope
+        # updateDxf: true
+        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/gesch_biotope.shp"
+      - name: Geschütze Biotope 2
         updateDxf: true
         # linetypeScale: 0.2
         linetypeGeneration: true
         style: gesGeschuetzesBiotop
-        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/gesch_biotope.shp"
+        operations:
+          - type: buffer
+            layers:
+              - Geschütze Biotope
+            distance: 0.5
       - name: FG Buffer
         operations:
           - type: buffer
@@ -590,6 +622,8 @@ der Gemeinde Klein Belitz"
               - perimeter
               - centroid
               - bounds
+            decimalPlaces:
+              area: 0
           - type: dissolve
       - name: Geltungsbereich NW 2
         updateDxf: true
@@ -643,6 +677,8 @@ der Gemeinde Klein Belitz"
               - perimeter
               - centroid
               - bounds
+            decimalPlaces:
+              area: 0
           - type: dissolve
       - name: Geltungsbereich NO 2
         updateDxf: true
@@ -686,6 +722,8 @@ der Gemeinde Klein Belitz"
               - perimeter
               - centroid
               - bounds
+            decimalPlaces:
+              area: 0
           - type: dissolve
       - name: Geltungsbereich S 2
         updateDxf: true
@@ -711,7 +749,6 @@ der Gemeinde Klein Belitz"
           - type: filterGeometry
             minArea: 200
       - name: Biotope
-        updateDxf: true
         viewports:
           - name: WorkView
             style: biotopWorkView
@@ -720,7 +757,91 @@ der Gemeinde Klein Belitz"
             layers:
               - Biotope Input
               - Geschütze Biotope
-      - name: Grünfläche Schutzfläche
+      - name: Biotope Ausserhalb Geltungsbereich
+        updateDxf: true
+        operations:
+          - type: copy
+            layers:
+              - Biotope
+          - type: difference
+            layers:
+              - Geltungsbereich NW
+              - Geltungsbereich NO
+              - Geltungsbereich S
+      - name: Biotope Innerhalb Geltungsbereich
+        operations:
+          - type: copy
+            layers:
+              - Biotope
+          - type: intersection
+            layers:
+              - Geltungsbereich NW
+              - Geltungsbereich NO
+              - Geltungsbereich S
+      - name: Biotope Innerhalb Geltungsbereich Grünfläche
+        updateDxf: true
+        operations:
+          - type: copy
+            layers:
+              - Biotope Innerhalb Geltungsbereich
+          - type: buffer
+            distance: -3
+      - name: Biotope Innerhalb Geltungsbereich Schutzfläche
+        updateDxf: true
+        operations:
+          - type: copy
+            layers:
+              - Biotope Innerhalb Geltungsbereich
+          - type: difference
+            layers:
+              - Biotope Innerhalb Geltungsbereich Grünfläche
+      - name: Biotope Innerhalb Geltungsbereich Grünfläche Schraffur
+        updateDxf: true
+        style: grünfläche
+        applyHatch:
+          layers:
+            - Biotope Innerhalb Geltungsbereich Grünfläche
+      - name: Biotope Innerhalb Geltungsbereich Schutzfläche Schraffur
+        updateDxf: true
+        style: schutzflächeumgrenzung
+        applyHatch:
+          layers:
+            - Biotope Innerhalb Geltungsbereich Schutzfläche
+      - name: Biotop Report NW
+        operations:
+          - type: copy
+            layers:
+              - Biotope Innerhalb Geltungsbereich
+          - type: intersection
+            layers:
+              - Geltungsbereich NW
+          - type: report
+            outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/biotop_report_nw.json"
+            calculate:
+              - area
+              - perimeter
+              - centroid
+              - bounds
+            decimalPlaces:
+              area: 0
+      - name: Biotop Report S
+        operations:
+          - type: copy
+            layers:
+              - Biotope Innerhalb Geltungsbereich
+          - type: intersection
+            layers:
+              - Geltungsbereich S
+          - type: report
+            outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/biotop_report_s.json"
+            calculate:
+              - area
+              - perimeter
+              - centroid
+              - bounds
+            decimalPlaces:
+              area: 0
+      - name: Ausgleichsfläche Gesamt
         viewports:
           - name: WorkView
             style: grünflächeWorkView
@@ -732,33 +853,35 @@ der Gemeinde Klein Belitz"
               - Baumabstand Puffer
               - FG Buffer
               # - Biotoppuffer
-              - Biotope
+              # - Biotope
           - type: dissolve
           - type: intersection
             layers:
               - Geltungsbereich NW
               - Geltungsbereich NO
               - Geltungsbereich S
-      - name: Grünfläache Schutzfläche Report NW
+      - name: Ausgleichsfläche Report NW
         operations:
           - type: copy
             layers:
-              - Grünfläche Schutzfläche
+              - Ausgleichsfläche Gesamt
           - type: intersection
             layers:
               - Geltungsbereich NW
           - type: report
-            outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/grünfläche_schutzfläche_report.json"
+            outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/grünfläche_schutzfläche_report_nw.json"
             calculate:
               - area
               - perimeter
               - centroid
               - bounds
-      - name: Grünfläche Schutzfläche Report NO
+            decimalPlaces:
+              area: 0
+      - name: Ausgleichsfläche Report NO
         operations:
           - type: copy
             layers:
-              - Grünfläche Schutzfläche
+              - Ausgleichsfläche Gesamt
           - type: intersection
             layers:
               - Geltungsbereich NO
@@ -769,11 +892,13 @@ der Gemeinde Klein Belitz"
               - perimeter
               - centroid
               - bounds
-      - name: Grünfläche Schutzfläche Report S
+            decimalPlaces:
+              area: 0
+      - name: Ausgleichsfläche Report S
         operations:
           - type: copy
             layers:
-              - Grünfläche Schutzfläche
+              - Ausgleichsfläche Gesamt
           - type: intersection
             layers:
               - Geltungsbereich S
@@ -784,7 +909,9 @@ der Gemeinde Klein Belitz"
               - perimeter
               - centroid
               - bounds
-      - name: Grünfläche
+            decimalPlaces:
+              area: 0
+      - name: Ausgleich Grünfläche
         updateDxf: true
         viewports:
           - name: WorkView
@@ -792,18 +919,18 @@ der Gemeinde Klein Belitz"
         operations:
           - type: buffer
             layers:
-              - Grünfläche Schutzfläche
+              - Ausgleichsfläche Gesamt
             distance: -3
         # bluntAngles:
         #   angleThreshold: 25  # Angles smaller than this will be blunted
         #   distance: 10.0  # Distance to move the vertex along the angle bisector
-      - name: Grünfläche Schraffur
+      - name: Ausgleich Grünfläche Schraffur
         updateDxf: true
         style: grünfläche
         applyHatch:
           layers:
-            - Grünfläche
-      - name: Schutzflächeumgrenzung
+            - Ausgleich Grünfläche
+      - name: Ausgleich Schutzflächeumgrenzung
         updateDxf: true
         viewports:
           - name: WorkView
@@ -811,10 +938,10 @@ der Gemeinde Klein Belitz"
         operations:
           - type: copy
             layers:
-              - Grünfläche Schutzfläche
+              - Ausgleichsfläche Gesamt
           - type: difference
             layers:
-              - Grünfläche
+              - Ausgleich Grünfläche
           - type: intersection
             layers:
               - Geltungsbereich NW
@@ -835,10 +962,11 @@ der Gemeinde Klein Belitz"
               - Biotope
             distance: 10
           - type: difference
-            layers:
-              - Biotope
-              - Schutzflächeumgrenzung
-              - Grünfläche
+            operations:
+              - type: dissolve
+                layers:
+                  - Biotope
+                  - Ausgleichsfläche Gesamt
           - type: intersection
             layers:
               - Geltungsbereich NW
@@ -850,6 +978,40 @@ der Gemeinde Klein Belitz"
         applyHatch:
           layers:
             - Biotoppuffer
+      - name: Biotoppuffer Report NW
+        operations:
+          - type: copy
+            layers:
+              - Biotoppuffer
+          - type: intersection
+            layers:
+              - Geltungsbereich NW
+          - type: report
+            outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/biotoppuffer_report_nw.json"
+            calculate:
+              - area
+              - perimeter
+              - centroid
+              - bounds
+            decimalPlaces:
+              area: 0
+      - name: Biotoppuffer Report S
+        operations:
+          - type: copy
+            layers:
+              - Biotoppuffer
+          - type: intersection
+            layers:
+              - Geltungsbereich S
+          - type: report
+            outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/biotoppuffer_report_s.json"
+            calculate:
+              - area
+              - perimeter
+              - centroid
+              - bounds
+            decimalPlaces:
+              area: 0
       - name: Schutzflächeumgrenzung T-Symbol Temp
         # updateDxf: true
         close: false
@@ -857,8 +1019,8 @@ der Gemeinde Klein Belitz"
         operations:
           - type: copy
             layers:
-              - Grünfläche
-              - Schutzflächeumgrenzung
+              - Ausgleichsfläche Gesamt
+              - Biotope Innerhalb Geltungsbereich
           - type: dissolve
           - type: intersection
             layers:
@@ -890,30 +1052,40 @@ der Gemeinde Klein Belitz"
         style: schutzflächeumgrenzung
         applyHatch:
           layers:
-            - Schutzflächeumgrenzung
-      - name: Baufeld
-        updateDxf: true
-        close: true
-        viewports:
-          - name: WorkView
-            style: baufeld
+            - Ausgleich Schutzflächeumgrenzung
+      - name: Baufeld Negative
         operations:
           - type: copy
             layers:
-              - Geltungsbereich NW
-              - Geltungsbereich NO
-              - Geltungsbereich S
-          - type: difference
-            # useBufferTrick: true
-            reverseDifference: false
-            layers:
-              - Schutzflächeumgrenzung
-              - Grünfläche
+              - Ausgleichsfläche Gesamt
+              - Biotope
               - Biotoppuffer
-          - type: filterGeometry
-            minArea: 200
-            geometryTypes:
-              - Polygon
+          - type: dissolve
+      # - name: Baufeld
+      #   updateDxf: true
+      #   close: true
+      #   viewports:
+      #     - name: WorkView
+      #       style: baufeld
+      #   operations:
+      #     - type: copy
+      #       layers:
+      #         - Geltungsbereich NW
+      #         - Geltungsbereich NO
+      #         - Geltungsbereich S
+      #     - type: difference
+      #       # useBufferTrick: true
+      #       reverseDifference: false
+      #       operations:
+      #         - type: dissolve
+      #           layers:
+      #             - Ausgleichsfläche Gesamt
+      #             - Biotope
+      #             - Biotoppuffer
+      #     - type: filterGeometry
+      #       minArea: 200
+      #       geometryTypes:
+      #         - Polygon
       - name: Baufeld Schraffur
         updateDxf: true
         style: baufeld
@@ -955,6 +1127,8 @@ der Gemeinde Klein Belitz"
               - perimeter
               - centroid
               - bounds
+            decimalPlaces:
+              area: 0
       - name: Baugrenze Report NO
         operations:
           - type: copy
@@ -970,6 +1144,8 @@ der Gemeinde Klein Belitz"
               - perimeter
               - centroid
               - bounds
+            decimalPlaces:
+              area: 0
       - name: Baugrenze Report S
         operations:
           - type: copy
@@ -985,6 +1161,68 @@ der Gemeinde Klein Belitz"
               - perimeter
               - centroid
               - bounds
+            decimalPlaces:
+              area: 0
+      - name: Baufeldstreifen Report NW
+        operations:
+          - type: copy
+            layers:
+              - Baufeld
+          - type: difference
+            layers:
+              - Baugrenze
+          - type: intersection
+            layers:
+              - Geltungsbereich NW
+          - type: report
+            outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/baufeldstreifen_nw_report.json"
+            calculate:
+              - area
+              - perimeter
+              - centroid
+              - bounds
+            decimalPlaces:
+              area: 0
+      - name: Baufeldstreifen Report NO
+        operations:
+          - type: copy
+            layers:
+              - Baufeld
+          - type: difference
+            layers:
+              - Baugrenze
+          - type: intersection
+            layers:
+              - Geltungsbereich NO
+          - type: report
+            outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/baufeldstreifen_no_report.json"
+            calculate:
+              - area
+              - perimeter
+              - centroid
+              - bounds
+            decimalPlaces:
+              area: 0
+      - name: Baufeldstreifen Report S
+        operations:
+          - type: copy
+            layers:
+              - Baufeld
+          - type: difference
+            layers:
+              - Baugrenze
+          - type: intersection
+            layers:
+              - Geltungsbereich S
+          - type: report
+            outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/baufeldstreifen_s_report.json"
+            calculate:
+              - area
+              - perimeter
+              - centroid
+              - bounds
+            decimalPlaces:
+              area: 0
       # #     - type: wmts
       # #       url: "https://www.geodaten-mv.de/dienste/dop_wmts/wmts/1.0.0/WMTSCapabilities.xml"
       # #       layer: "mv_dop"

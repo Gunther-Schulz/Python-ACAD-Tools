@@ -18,12 +18,20 @@ def create_difference_layer(all_layers, project_settings, crs, layer_name, opera
     
     base_geometry = all_layers.get(layer_name)
     if base_geometry is None:
-        log_warning(f"Base layer '{layer_name}' not found for difference operation")
+        log_warning(format_operation_warning(
+            layer_name,
+            "difference",
+            f"Base layer '{layer_name}' not found"
+        ))
         return None
 
     base_geometry = _remove_empty_geometries(all_layers, project_settings, crs, layer_name, base_geometry)
     if base_geometry is None or base_geometry.empty:
-        log_warning(f"No valid geometries in base layer '{layer_name}' after removing empty geometries")
+        log_warning(format_operation_warning(
+            layer_name,
+            "difference",
+            f"No valid geometries in base layer after removing empty geometries"
+        ))
         return None
 
     # After removing empty geometries, explode to preserve individual features
@@ -36,6 +44,14 @@ def create_difference_layer(all_layers, project_settings, crs, layer_name, opera
         if overlay_layer_name is None:
             continue
 
+        if overlay_layer_name not in all_layers:
+            log_warning(format_operation_warning(
+                layer_name,
+                "difference",
+                f"Overlay layer '{overlay_layer_name}' not found"
+            ))
+            continue
+
         layer_geometry = all_layers[overlay_layer_name].copy()
         
         # Apply value filtering if values are specified using project settings
@@ -45,7 +61,11 @@ def create_difference_layer(all_layers, project_settings, crs, layer_name, opera
                 layer_geometry = layer_geometry[layer_geometry[label_column].astype(str).isin([str(v) for v in values])]
                 log_info(f"Filtered {overlay_layer_name} using column '{label_column}': {len(layer_geometry)} features remaining")
             else:
-                log_warning(f"Label column for layer '{overlay_layer_name}' not found in project settings or data")
+                log_warning(format_operation_warning(
+                    layer_name,
+                    "difference",
+                    f"Label column for layer '{overlay_layer_name}' not found in project settings or data"
+                ))
                 continue
 
         if layer_geometry.empty:
@@ -59,7 +79,11 @@ def create_difference_layer(all_layers, project_settings, crs, layer_name, opera
             overlay_geometry = pd.concat([overlay_geometry, layer_geometry], ignore_index=True)
 
     if overlay_geometry is None or overlay_geometry.empty:
-        log_warning(f"No valid overlay geometry found for layer {layer_name}")
+        log_warning(format_operation_warning(
+            layer_name,
+            "difference",
+            "No valid overlay geometry found"
+        ))
         return None
 
     # Use manual override if provided, otherwise use auto-detection
@@ -124,7 +148,7 @@ def create_difference_layer(all_layers, project_settings, crs, layer_name, opera
         try:
             result = gpd.GeoSeries(result)
         except Exception as e:
-            log_error(format_operation_warning(
+            log_warning(format_operation_warning(
                 layer_name,
                 "difference",
                 f"Failed to convert result to GeoSeries: {str(e)}"
@@ -134,7 +158,11 @@ def create_difference_layer(all_layers, project_settings, crs, layer_name, opera
     result = result[~result.is_empty & result.notna()]
     
     if result.empty:
-        log_warning(f"Difference operation resulted in empty geometry for layer {layer_name}")
+        log_warning(format_operation_warning(
+            layer_name,
+            "difference",
+            "Difference operation resulted in empty geometry"
+        ))
         return None
     
     result_gdf = explode_to_singlepart(gpd.GeoDataFrame(geometry=result, crs=crs))

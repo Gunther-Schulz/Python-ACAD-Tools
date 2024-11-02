@@ -3,15 +3,10 @@ from src.utils import log_info, log_warning, log_error
 import traceback
 from src.operations.common_operations import _process_layer_info, _get_filtered_geometry
 from src.operations.common_operations import *
-from src.utils import log_info, log_warning, log_error
-import geopandas as gpd
-import traceback
 
 
 def create_intersection_layer(all_layers, project_settings, crs, layer_name, operation):
     return _create_intersection_overlay_layer(all_layers, project_settings, crs, layer_name, operation, 'intersection')
-
-
 
 
 def _create_intersection_overlay_layer(all_layers, project_settings, crs, layer_name, operation, overlay_type):
@@ -22,37 +17,75 @@ def _create_intersection_overlay_layer(all_layers, project_settings, crs, layer_
     make_valid = operation.get('makeValid', True)
     
     if not overlay_layers:
-        log_warning(f"No overlay layers specified for {layer_name}")
-        return
+        log_warning(format_operation_warning(
+            layer_name,
+            overlay_type,
+            "No overlay layers specified"
+        ))
+        return None
     
     base_geometry = all_layers.get(layer_name)
     if base_geometry is None:
-        log_warning(f"Base layer '{layer_name}' not found for {overlay_type} operation")
-        return
+        log_warning(format_operation_warning(
+            layer_name,
+            overlay_type,
+            f"Base layer '{layer_name}' not found"
+        ))
+        return None
     
     if make_valid:
         base_geometry.geometry = base_geometry.geometry.apply(make_valid_geometry)
         base_geometry = base_geometry[base_geometry.geometry.notna()]
+        if base_geometry.empty:
+            log_warning(format_operation_warning(
+                layer_name,
+                overlay_type,
+                "Base geometry is empty after making valid"
+            ))
+            return None
     
     combined_overlay_geometry = None
     for layer_info in overlay_layers:
         overlay_layer_name, values = _process_layer_info(all_layers, project_settings, crs, layer_info)
         if overlay_layer_name is None:
+            log_warning(format_operation_warning(
+                layer_name,
+                overlay_type,
+                f"Invalid overlay layer info: {layer_info}"
+            ))
             continue
 
         overlay_geometry = _get_filtered_geometry(all_layers, project_settings, crs, overlay_layer_name, values)
         if overlay_geometry is None:
+            log_warning(format_operation_warning(
+                layer_name,
+                overlay_type,
+                f"Failed to get filtered geometry for layer '{overlay_layer_name}'"
+            ))
             continue
 
         if make_valid:
             overlay_geometry = make_valid_geometry(overlay_geometry)
             if overlay_geometry is None:
+                log_warning(format_operation_warning(
+                    layer_name,
+                    overlay_type,
+                    f"Failed to make valid geometry for layer '{overlay_layer_name}'"
+                ))
                 continue
 
         if combined_overlay_geometry is None:
             combined_overlay_geometry = overlay_geometry
         else:
-            combined_overlay_geometry = combined_overlay_geometry.union(overlay_geometry)
+            try:
+                combined_overlay_geometry = combined_overlay_geometry.union(overlay_geometry)
+            except Exception as e:
+                log_warning(format_operation_warning(
+                    layer_name,
+                    overlay_type,
+                    f"Error combining overlay geometries: {str(e)}"
+                ))
+                continue
 
     if combined_overlay_geometry is None:
         log_warning(format_operation_warning(
@@ -60,7 +93,7 @@ def _create_intersection_overlay_layer(all_layers, project_settings, crs, layer_
             overlay_type,
             "No valid overlay geometries found"
         ))
-        return
+        return None
     try:
         if overlay_type == 'difference':
             result_geometry = base_geometry.geometry.difference(combined_overlay_geometry)
@@ -84,7 +117,7 @@ def _create_intersection_overlay_layer(all_layers, project_settings, crs, layer_
                 result_geometry = gpd.GeoDataFrame(geometry=[], crs=crs)
         else:
             log_warning(f"Unsupported overlay type: {overlay_type}")
-            return
+            return None
         
         # Remove lines and points from the result
         result_geometry = remove_geometry_types(result_geometry, remove_lines=True, remove_points=True)
@@ -99,7 +132,7 @@ def _create_intersection_overlay_layer(all_layers, project_settings, crs, layer_
     except Exception as e:
         log_error(f"Error during {overlay_type} operation: {str(e)}")
         log_error(f"Traceback:\n{traceback.format_exc()}")
-        return
+        return None
 
     if make_valid:
         if isinstance(result_geometry, gpd.GeoDataFrame):

@@ -157,16 +157,27 @@ class LayerProcessor:
         log_info(f"Processing operation for layer {layer_name}: {op_type}")
         log_info(f"Operation details: {operation}")
         
-        # Process dependent layers first
+        # Process sub-operations first if they exist
+        if 'operations' in operation:
+            for sub_op in operation['operations']:
+                # Create a temporary layer for sub-operation results
+                temp_layer_name = f"{layer_name}_temp_{op_type}"
+                self.process_operation(temp_layer_name, sub_op, processed_layers)
+                # Add the result to the operation's layers
+                if 'layers' not in operation:
+                    operation['layers'] = []
+                operation['layers'].append(temp_layer_name)
+
+        # Process dependent layers if specified
         if 'layers' in operation:
             for dep_layer_info in operation['layers']:
                 dep_layer_name = dep_layer_info['name'] if isinstance(dep_layer_info, dict) else dep_layer_info
                 log_info(f"Processing dependent layer: {dep_layer_name}")
                 self.process_layer(dep_layer_name, processed_layers)
         else:
-            # If 'layers' key is missing, apply the operation on the calling layer
+            # If neither 'layers' nor 'operations' keys exist, use the current layer
             operation['layers'] = [layer_name]
-    
+
         # Perform the operation
         result = None
         if op_type == 'copy':
@@ -202,6 +213,11 @@ class LayerProcessor:
             if self.plot_ops:
                 self.plot_operation_result(layer_name, op_type, result)
     
+        # Clean up temporary layers
+        if 'operations' in operation:
+            for temp_layer in [l for l in self.all_layers.keys() if l.startswith(f"{layer_name}_temp_")]:
+                del self.all_layers[temp_layer]
+
         return result
 
     def setup_shapefiles(self):
