@@ -471,6 +471,31 @@ der Gemeinde Klein Belitz"
     #     includeLabels: true
     #     includeTotalArea: true
     geomLayers:
+      - name: Baufeld
+        updateDxf: true
+        close: true
+        viewports:
+          - name: WorkView
+            style: baufeld
+        operations:
+          - type: copy
+            layers:
+              - Geltungsbereich NW
+              - Geltungsbereich NO
+              - Geltungsbereich S
+          - type: difference
+            # useBufferTrick: true
+            reverseDifference: false
+            operations:
+              - type: dissolve
+                layers:
+                  - Ausgleichsfläche Gesamt
+                  - Biotope
+                  - Biotoppuffer
+          - type: filterGeometry
+            minArea: 200
+            geometryTypes:
+              - Polygon
       - name: Flur
         updateDxf: true
         close: true
@@ -543,11 +568,18 @@ der Gemeinde Klein Belitz"
           - type: buffer
             distance: 5
       - name: Geschütze Biotope
+        # updateDxf: true
+        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/gesch_biotope.shp"
+      - name: Geschütze Biotope 2
         updateDxf: true
         # linetypeScale: 0.2
         linetypeGeneration: true
         style: gesGeschuetzesBiotop
-        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/gesch_biotope.shp"
+        operations:
+          - type: buffer
+            layers:
+              - Geschütze Biotope
+            distance: 0.5
       - name: FG Buffer
         operations:
           - type: buffer
@@ -930,9 +962,11 @@ der Gemeinde Klein Belitz"
               - Biotope
             distance: 10
           - type: difference
-            layers:
-              - Biotope
-              - Ausgleichsfläche Gesamt
+            operations:
+              - type: dissolve
+                layers:
+                  - Biotope
+                  - Ausgleichsfläche Gesamt
           - type: intersection
             layers:
               - Geltungsbereich NW
@@ -986,7 +1020,7 @@ der Gemeinde Klein Belitz"
           - type: copy
             layers:
               - Ausgleichsfläche Gesamt
-              - Biotope Innerhalb Geltungsbereich Schutzfläche
+              - Biotope Innerhalb Geltungsbereich
           - type: dissolve
           - type: intersection
             layers:
@@ -1027,31 +1061,31 @@ der Gemeinde Klein Belitz"
               - Biotope
               - Biotoppuffer
           - type: dissolve
-      - name: Baufeld
-        updateDxf: true
-        close: true
-        viewports:
-          - name: WorkView
-            style: baufeld
-        operations:
-          - type: copy
-            layers:
-              - Geltungsbereich NW
-              - Geltungsbereich NO
-              - Geltungsbereich S
-          - type: difference
-            # useBufferTrick: true
-            reverseDifference: false
-            operations:
-              - type: dissolve
-                layers:
-                  - Ausgleichsfläche Gesamt
-                  - Biotope
-                  - Biotoppuffer
-          - type: filterGeometry
-            minArea: 200
-            geometryTypes:
-              - Polygon
+      # - name: Baufeld
+      #   updateDxf: true
+      #   close: true
+      #   viewports:
+      #     - name: WorkView
+      #       style: baufeld
+      #   operations:
+      #     - type: copy
+      #       layers:
+      #         - Geltungsbereich NW
+      #         - Geltungsbereich NO
+      #         - Geltungsbereich S
+      #     - type: difference
+      #       # useBufferTrick: true
+      #       reverseDifference: false
+      #       operations:
+      #         - type: dissolve
+      #           layers:
+      #             - Ausgleichsfläche Gesamt
+      #             - Biotope
+      #             - Biotoppuffer
+      #     - type: filterGeometry
+      #       minArea: 200
+      #       geometryTypes:
+      #         - Polygon
       - name: Baufeld Schraffur
         updateDxf: true
         style: baufeld
