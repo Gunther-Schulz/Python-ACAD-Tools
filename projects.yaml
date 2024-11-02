@@ -319,6 +319,11 @@ projects:
         offset:
           x: 0
           y: -20
+    - name: "Bäume Ausserhalb"
+      updateDxf: true
+      targetLayer: "Baufeld"
+      blockName: "Baum"
+      pointsLayer: "Baum Points"
     textInserts:
       - name: "Main Title"
         targetLayer: "Plantext"
@@ -496,6 +501,8 @@ der Gemeinde Klein Belitz"
             minArea: 200
             geometryTypes:
               - Polygon
+      - name: Baum Points
+        shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/baum_points.shp"
       - name: Flur
         updateDxf: true
         close: true
