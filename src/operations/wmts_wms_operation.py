@@ -11,16 +11,17 @@ def process_wmts_or_wms_layer(all_layers, project_settings, crs, layer_name, ope
     log_info(f"Processing WMTS/WMS layer: {layer_name}")
     log_info(f"Operation details: {operation}")
     
+    layer_info = next((l for l in project_settings['geomLayers'] if l['name'] == layer_name), None)
+    update_flag = operation.get('update', layer_info.get('updateDxf', False) if layer_info else False)
+    
+    if not update_flag:
+        log_info(f"Skipping WMTS/WMS download for {layer_name} as updateDxf is False")
+        return all_layers.get(layer_name, None)
+    
     target_folder = project_loader.resolve_full_path(operation['targetFolder'])
     zoom_level = operation.get('zoom')
     
     zoom_folder = os.path.join(target_folder, f"zoom_{zoom_level}") if zoom_level else target_folder
-    
-    # Get update flag from operation first, then layer_info as fallback
-    update_flag = operation.get('update', None)
-    if update_flag is None:
-        layer_info = next((l for l in project_settings['geomLayers'] if l['name'] == layer_name), None)
-        update_flag = layer_info.get('update', False) if layer_info else False
     
     overwrite_flag = operation.get('overwrite', False)
     
