@@ -15,8 +15,14 @@ styles:
       font: "Arial"
       color: "white"
       alignment: "LEFT"
-      width: 700  # Maximum width before text wrapping
+      width: 175  # Maximum width before text wrapping
       attachment_point: "TOP_LEFT"  # MTEXT specific alignment
+      paragraph:
+        align: "CENTER"  # Can be LEFT, RIGHT, CENTER, JUSTIFIED, or DISTRIBUTED
+        # indent: 1  # First line indentation (multiplied by char_height)
+        # left: 0    # Left margin indentation
+        # right: 0   # Right margin indentation
+        # tab_stops: []  # List of tab stop positions
 
 # viewport:
 #   layer:

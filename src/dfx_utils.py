@@ -26,6 +26,8 @@ import numpy as np
 import logging
 import sys
 import matplotlib.patches as patches
+from ezdxf.tools.text import ParagraphProperties, MTextParagraphAlignment
+from ezdxf.tools.text import MTextEditor
 
 
 SCRIPT_IDENTIFIER = "Created by DXFExporter"
@@ -479,7 +481,34 @@ def set_hatch_transparency(hatch, transparency):
 def add_mtext(msp, text, x, y, layer_name, style_name, text_style=None, name_to_aci=None, max_width=None):
     log_info(f"Adding MTEXT: text='{text}', x={x}, y={y}, layer='{layer_name}', style='{style_name}', max_width={max_width}")
     
-    sanitized_text = text.replace('\n', '\\P')
+    # Create MText editor for advanced paragraph formatting
+    editor = MTextEditor()
+    
+    # Get paragraph alignment from style
+    alignment_map = {
+        'LEFT': MTextParagraphAlignment.LEFT,
+        'RIGHT': MTextParagraphAlignment.RIGHT,
+        'CENTER': MTextParagraphAlignment.CENTER,
+        'JUSTIFIED': MTextParagraphAlignment.JUSTIFIED,
+        'DISTRIBUTED': MTextParagraphAlignment.DISTRIBUTED
+    }
+    
+    # Get paragraph properties from text_style
+    if text_style and 'paragraph' in text_style:
+        para_props = text_style['paragraph']
+        props = ParagraphProperties(
+            indent=para_props.get('indent', 0),
+            left=para_props.get('left', 0),
+            right=para_props.get('right', 0),
+            align=alignment_map.get(para_props.get('align', 'LEFT').upper(), MTextParagraphAlignment.LEFT),
+            tab_stops=para_props.get('tab_stops', tuple())
+        )
+        editor.paragraph(props)
+    
+    # Add the text content
+    for paragraph in text.split('\n'):
+        editor.append(paragraph)
+        editor.append('\\P')  # Add paragraph break
     
     dxfattribs = {
         'style': style_name,
@@ -490,6 +519,7 @@ def add_mtext(msp, text, x, y, layer_name, style_name, text_style=None, name_to_
         'width': max_width if max_width is not None else 0,
     }
     
+    # Apply other text style properties
     if text_style:
         if 'color' in text_style:
             dxfattribs['color'] = get_color_code(text_style['color'], name_to_aci)
@@ -511,7 +541,7 @@ def add_mtext(msp, text, x, y, layer_name, style_name, text_style=None, name_to_
             dxfattribs['box_fill_scale'] = text_style['bg_fill_scale']
     
     try:
-        mtext = msp.add_mtext(sanitized_text, dxfattribs=dxfattribs)
+        mtext = msp.add_mtext(str(editor), dxfattribs=dxfattribs)
         attach_custom_data(mtext, SCRIPT_IDENTIFIER)
         
         # Apply additional formatting if specified
