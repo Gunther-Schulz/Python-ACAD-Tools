@@ -985,9 +985,14 @@ class DXFExporter:
                 doc = msp.doc
                 space = doc.paperspace() if text_config.get('paperspace', False) else doc.modelspace()
 
-                # Clear existing entities in the output layer
-                removed_count = remove_entities_by_layer(space, output_layer, self.script_identifier)
-                log_info(f"Removed {removed_count} existing entities from layer: {output_layer}")
+                # Only clear existing entities if this is the first text for this layer
+                if not hasattr(self, '_processed_text_layers'):
+                    self._processed_text_layers = set()
+                    
+                if output_layer not in self._processed_text_layers:
+                    removed_count = remove_entities_by_layer(space, output_layer, self.script_identifier)
+                    log_info(f"Removed {removed_count} existing entities from layer: {output_layer}")
+                    self._processed_text_layers.add(output_layer)
 
                 position_type = position_config.get('type')
                 if position_type == 'absolute':

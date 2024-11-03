@@ -344,16 +344,16 @@ der Gemeinde Klein Belitz"
           x: 1650
           y: 856
         style: "mainTitle"  # Style can include width for text wrapping
-      # - name: "Map Header"
-      #   targetLayer: "Plantext"
-      #   updateDxf: true
-      #   paperspace: true  # Add this to place text in paper space
-      #   text: "Teil A: Planzeichnung i. M. 1:2.000"
-      #   position:
-      #     type: "absolute"
-      #     x: 1650
-      #     y: 808
-      #   style: "mapheader"  # Style can include width for text wrapping
+      - name: "Map Header"
+        targetLayer: "Plantext"
+        updateDxf: true
+        paperspace: true  # Add this to place text in paper space
+        text: "Teil A: Planzeichnung i. M. 1:2.000"
+        position:
+          type: "absolute"
+          x: 1650
+          y: 808
+        style: "mapheader"  # Style can include width for text wrapping
     viewports:
     - name: MainView
       updateDxf: true
