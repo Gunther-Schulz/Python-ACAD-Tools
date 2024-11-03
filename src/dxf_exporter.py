@@ -783,7 +783,7 @@ class DXFExporter:
         for insert_config in block_inserts:
             try:
                 # Get basic configuration
-                source_layer = insert_config.get('sourceLayer')  # Single source layer for all cases
+                source_layer = insert_config.get('sourceLayer')
                 output_layer = insert_config.get('name')
                 block_name = insert_config.get('blockName')
                 scale = insert_config.get('scale', 1.0)
@@ -791,6 +791,12 @@ class DXFExporter:
                 position_config = insert_config.get('position', {})
                 offset = position_config.get('offset') if position_config else insert_config.get('offset')
                 updateDxf = insert_config.get('updateDxf', False)
+                paperspace = insert_config.get('paperspace', False)
+
+                # Skip source layer check for absolute positioning
+                if position_config.get('type') != 'absolute' and not source_layer:
+                    log_warning(f"Missing sourceLayer in block insert configuration: {insert_config}")
+                    continue
 
                 if not updateDxf:
                     log_info(f"Skipping block insert '{output_layer}' as updateDxf flag is not set")
@@ -802,21 +808,26 @@ class DXFExporter:
                     log_warning(f"Missing required configuration (name, blockName, or sourceLayer): {insert_config}")
                     continue
 
+                # Get the correct space based on paperspace flag
+                doc = msp.doc
+                space = doc.paperspace() if paperspace else doc.modelspace()
+                log_info(f"Using {'paper space' if paperspace else 'model space'} for block insert '{output_layer}'")
+
                 # Create the output layer if it doesn't exist
                 if output_layer not in self.layer_properties:
                     log_info(f"Creating new layer properties for: {output_layer}")
                     self.add_layer_properties(output_layer, {})
 
                 # Clear existing entities in the output layer
-                removed_count = remove_entities_by_layer(msp, output_layer, self.script_identifier)
+                removed_count = remove_entities_by_layer(space, output_layer, self.script_identifier)
                 log_info(f"Removed {removed_count} existing entities from layer: {output_layer}")
 
                 if position_config:
                     # Insert blocks based on geometries with positioning rules
-                    self.insert_blocks_on_layer(msp, source_layer, output_layer, block_name, scale, rotation, position_config)
+                    self.insert_blocks_on_layer(space, source_layer, output_layer, block_name, scale, rotation, position_config)
                 else:
                     # Insert blocks directly at points from source layer
-                    self.insert_blocks_at_points(msp, source_layer, output_layer, block_name, scale, rotation, offset)
+                    self.insert_blocks_at_points(space, source_layer, output_layer, block_name, scale, rotation, offset)
 
             except Exception as e:
                 log_error(f"Error processing block insert: {str(e)}")
@@ -824,7 +835,7 @@ class DXFExporter:
 
         log_info("Finished processing all block insert configurations")
 
-    def insert_blocks_at_points(self, msp, points_layer, output_layer, block_name, scale, rotation, offset=None):
+    def insert_blocks_at_points(self, space, points_layer, output_layer, block_name, scale, rotation, offset=None):
         """Insert blocks at specific points from a points layer."""
         if points_layer not in self.all_layers:
             log_warning(f"Points layer '{points_layer}' not found in all_layers. Skipping block insertion.")
@@ -848,7 +859,7 @@ class DXFExporter:
                 
                 log_info(f"Inserting block {block_name} at point {insert_point}")
                 block_ref = add_block_reference(
-                    msp,
+                    space,
                     block_name,
                     insert_point,
                     output_layer,
@@ -861,11 +872,34 @@ class DXFExporter:
                 else:
                     log_warning(f"Failed to insert block {block_name}")
 
-    def insert_blocks_on_layer(self, msp, target_layer, output_layer, block_name, scale, rotation, position_config):
+    def insert_blocks_on_layer(self, space, target_layer, output_layer, block_name, scale, rotation, position_config):
         position_type = position_config.get('type', 'centroid')
         offset_x = position_config.get('offset', {}).get('x', 0)
         offset_y = position_config.get('offset', {}).get('y', 0)
 
+        # Handle absolute positioning
+        if position_type == 'absolute':
+            x = position_config.get('x', 0)
+            y = position_config.get('y', 0)
+            insert_point = (x + offset_x, y + offset_y)
+            
+            log_info(f"Inserting block {block_name} at absolute position {insert_point}")
+            block_ref = add_block_reference(
+                space,
+                block_name,
+                insert_point,
+                output_layer,
+                scale=scale,
+                rotation=rotation
+            )
+            if block_ref:
+                self.attach_custom_data(block_ref)
+                log_info(f"Block {block_name} inserted successfully")
+            else:
+                log_warning(f"Failed to insert block {block_name}")
+            return
+
+        # Rest of the existing positioning logic
         log_info(f"Attempting to insert blocks. Target layer: {target_layer}, Output layer: {output_layer}")
         log_info(f"Available layers in self.all_layers: {', '.join(self.all_layers.keys())}")
 
@@ -889,7 +923,7 @@ class DXFExporter:
                 
                 log_info(f"Inserting block {block_name} at point {insert_point}")
                 block_ref = add_block_reference(
-                    msp,
+                    space,
                     block_name,
                     insert_point,
                     output_layer,
@@ -905,7 +939,11 @@ class DXFExporter:
         log_info(f"Finished inserting blocks from target layer '{target_layer}' to output layer '{output_layer}'")
 
     def get_insert_point(self, geometry, position_type):
-        if position_type == 'centroid':
+        if position_type == 'absolute':
+            # This shouldn't be called for absolute positioning
+            log_warning("Absolute positioning doesn't use geometry-based insert points")
+            return (0, 0)
+        elif position_type == 'centroid':
             return geometry.centroid.coords[0]
         elif position_type == 'center':
             return geometry.envelope.centroid.coords[0]
