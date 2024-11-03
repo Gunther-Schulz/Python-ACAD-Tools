@@ -643,9 +643,6 @@ def add_text_insert(msp, text_config, layer_name, project_loader, script_identif
         # Ensure layer exists
         ensure_layer_exists(doc, layer_name, {}, project_loader.name_to_aci)
 
-        # Remove existing text entities if updating
-        remove_entities_by_layer(space, layer_name, script_identifier)
-
         # Extract text properties from config
         text = text_config.get('text', '')
         position = text_config.get('position', {'x': 0, 'y': 0})
@@ -697,7 +694,7 @@ def add_text_insert(msp, text_config, layer_name, project_loader, script_identif
         
         # Use add_mtext with correct attachment point
         result = add_mtext(
-            space,  # Use the correct space (paper or model)
+            space,
             text,
             x,
             y,
@@ -705,7 +702,7 @@ def add_text_insert(msp, text_config, layer_name, project_loader, script_identif
             font,
             text_style={
                 **style,
-                'attachment_point': attachment  # Pass the numeric constant
+                'attachment_point': attachment
             },
             name_to_aci=project_loader.name_to_aci,
             max_width=max_width

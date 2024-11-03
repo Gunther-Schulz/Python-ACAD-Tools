@@ -967,7 +967,9 @@ class DXFExporter:
                 # Get basic configuration
                 name = text_config.get('name')
                 output_layer = text_config.get('targetLayer')
+                source_layer = text_config.get('sourceLayer')
                 update_dxf = text_config.get('updateDxf', False)
+                position_config = text_config.get('position', {})
 
                 log_info(f"Processing text insert: {name} for layer {output_layer}")
 
@@ -979,23 +981,64 @@ class DXFExporter:
                     log_warning(f"Missing target layer in text insert configuration: {name}")
                     continue
 
-                # Add text insert using the utility function
-                text_entity = add_text_insert(
-                    msp,
-                    text_config,
-                    output_layer,
-                    self.project_loader,
-                    self.script_identifier
-                )
+                # Get the correct space based on paperspace flag
+                doc = msp.doc
+                space = doc.paperspace() if text_config.get('paperspace', False) else doc.modelspace()
 
-                if text_entity:
-                    log_info(f"Successfully processed text insert '{name}'")
+                # Clear existing entities in the output layer
+                removed_count = remove_entities_by_layer(space, output_layer, self.script_identifier)
+                log_info(f"Removed {removed_count} existing entities from layer: {output_layer}")
+
+                position_type = position_config.get('type')
+                if position_type == 'absolute':
+                    # Handle absolute positioning
+                    x = position_config.get('x', 0)
+                    y = position_config.get('y', 0)
+                    offset_x = position_config.get('offset', {}).get('x', 0)
+                    offset_y = position_config.get('offset', {}).get('y', 0)
+                    insert_point = (x + offset_x, y + offset_y)
+                    
+                    text_entity = add_text_insert(
+                        space,
+                        {**text_config, 'position': {'x': insert_point[0], 'y': insert_point[1]}},
+                        output_layer,
+                        self.project_loader,
+                        self.script_identifier
+                    )
+                elif source_layer:
+                    # Handle geometry-based positioning
+                    if source_layer not in self.all_layers:
+                        log_warning(f"Source layer '{source_layer}' not found in all_layers")
+                        continue
+
+                    layer_data = self.all_layers[source_layer]
+                    if not hasattr(layer_data, 'geometry'):
+                        log_warning(f"Layer {source_layer} has no geometry attribute")
+                        continue
+
+                    offset_x = position_config.get('offset', {}).get('x', 0)
+                    offset_y = position_config.get('offset', {}).get('y', 0)
+
+                    for geometry in layer_data.geometry:
+                        insert_point = self.get_insert_point(geometry, position_type)
+                        insert_point = (insert_point[0] + offset_x, insert_point[1] + offset_y)
+                        
+                        text_entity = add_text_insert(
+                            space,
+                            {**text_config, 'position': {'x': insert_point[0], 'y': insert_point[1]}},
+                            output_layer,
+                            self.project_loader,
+                            self.script_identifier
+                        )
+
                 else:
-                    log_warning(f"Failed to process text insert '{name}'")
+                    log_warning(f"No valid positioning configuration for text insert '{name}'")
 
             except Exception as e:
                 log_error(f"Error processing text insert: {str(e)}")
                 continue
+
+        log_info("Finished processing all text insert configurations")
 
     def get_viewport_by_name(self, doc, name):
         """Retrieve a viewport by its name using xdata."""
