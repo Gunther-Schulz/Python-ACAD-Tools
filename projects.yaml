@@ -477,10 +477,11 @@ der Gemeinde Klein Belitz"
         updateDxf: true
         paperspace: true  # Add this to place text in paper space
         justification: "CENTER" 
-        text: "VORENTWURF
-SATZUNG DER GEMEINDE GROß PLASTEN
-ÜBER DEN BEBAUUNGSPLAN NR: 6
-„Solarpark am Devener Weg“"
+        text: "VORENTWURF\n
+SATZUNG DER GEMEINDE\n
+GROß PLASTEN\n
+ÜBER DEN BEBAUUNGSPLAN\n 
+NR: 6 „Solarpark am Devener Weg“"
         position:
           type: "absolute"
           x: 2399
