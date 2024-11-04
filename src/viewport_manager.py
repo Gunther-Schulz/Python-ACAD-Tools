@@ -1,6 +1,6 @@
 from ezdxf.lldxf import const
 from src.utils import log_info, log_warning
-from src.dfx_utils import get_color_code
+from src.dfx_utils import get_color_code, attach_custom_data
 
 class ViewportManager:
     def __init__(self, project_settings, script_identifier, name_to_aci, style_manager):
@@ -140,7 +140,7 @@ class ViewportManager:
         if not hasattr(viewport, 'xdata'):
             viewport.xdata = {}
             
-        self.attach_custom_data(viewport)
+        self.attach_custom_data(viewport, vp_config['name'])
         viewport.set_xdata(
             'DXFEXPORTER',
             [
@@ -187,12 +187,8 @@ class ViewportManager:
             return height * vp_config['scale']
         return height
 
-    def attach_custom_data(self, entity):
-        """Attaches custom data to an entity."""
-        entity.set_xdata(
-            'DXFEXPORTER',
-            [(1000, self.script_identifier)]
-        )
+    def attach_custom_data(self, entity, entity_name=None):
+        attach_custom_data(entity, self.script_identifier, entity_name)
 
     def get_viewport_by_name(self, doc, name):
         """Retrieve a viewport by its name using xdata."""

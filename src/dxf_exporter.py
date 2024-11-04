@@ -270,8 +270,8 @@ class DXFExporter:
         update_layer_properties(layer, layer_properties, self.name_to_aci)
         log_info(f"Updated layer properties: {layer_properties}")
 
-    def attach_custom_data(self, entity):
-        attach_custom_data(entity, self.script_identifier)
+    def attach_custom_data(self, entity, entity_name=None):
+        attach_custom_data(entity, self.script_identifier, entity_name)
 
     def is_created_by_script(self, entity):
         return is_created_by_script(entity, self.script_identifier)
@@ -415,7 +415,7 @@ class DXFExporter:
             elif self.is_generated_layer(layer_name) and self.has_labels(layer_info):
                 self.add_label_to_dxf(msp, geometry, layer_name, layer_name)
 
-    def add_polygon_to_dxf(self, msp, geometry, layer_name):
+    def add_polygon_to_dxf(self, msp, geometry, layer_name, entity_name=None):
         layer_properties = self.layer_properties[layer_name]
         exterior_coords = list(geometry.exterior.coords)
         if len(exterior_coords) > 2:
@@ -424,7 +424,7 @@ class DXFExporter:
                 'closed': layer_properties['close'],
                 'ltscale': layer_properties.get('linetypeScale', 1.0)
             })
-            self.attach_custom_data(polyline)
+            self.attach_custom_data(polyline, entity_name)
             # Apply linetype generation setting
             if layer_properties['linetypeGeneration']:
                 polyline.dxf.flags |= LWPOLYLINE_PLINEGEN
@@ -439,14 +439,14 @@ class DXFExporter:
                     'closed': layer_properties['close'],
                     'ltscale': layer_properties.get('linetypeScale', 1.0)
                 })
-                self.attach_custom_data(polyline)
+                self.attach_custom_data(polyline, entity_name)
                 # Apply linetype generation setting
                 if layer_properties['linetypeGeneration']:
                     polyline.dxf.flags |= LWPOLYLINE_PLINEGEN
                 else:
                     polyline.dxf.flags &= ~LWPOLYLINE_PLINEGEN
 
-    def add_linestring_to_dxf(self, msp, linestring, layer_name):
+    def add_linestring_to_dxf(self, msp, linestring, layer_name, entity_name=None):
         points = list(linestring.coords)
         layer_properties = self.layer_properties[layer_name]
 
@@ -478,7 +478,7 @@ class DXFExporter:
             else:
                 polyline.dxf.flags &= ~LWPOLYLINE_PLINEGEN
             
-            self.attach_custom_data(polyline)
+            self.attach_custom_data(polyline, entity_name)
             log_info(f"Successfully added polyline to layer {layer_name}")
             log_info(f"Polyline properties: {polyline.dxf.all_existing_dxf_attribs()}")
         except Exception as e:
@@ -570,17 +570,17 @@ class DXFExporter:
         self.attach_custom_data(text_entity)  # Attach custom data to text entities
         return text_entity
 
-    def add_geometry_to_dxf(self, msp, geometry, layer_name):
+    def add_geometry_to_dxf(self, msp, geometry, layer_name, entity_name=None):
         if isinstance(geometry, (Polygon, MultiPolygon)):
-            self.add_polygon_to_dxf(msp, geometry, layer_name)
+            self.add_polygon_to_dxf(msp, geometry, layer_name, entity_name)
         elif isinstance(geometry, LineString):
-            self.add_linestring_to_dxf(msp, geometry, layer_name)
+            self.add_linestring_to_dxf(msp, geometry, layer_name, entity_name)
         elif isinstance(geometry, MultiLineString):
             for line in geometry.geoms:
-                self.add_linestring_to_dxf(msp, line, layer_name)
+                self.add_linestring_to_dxf(msp, line, layer_name, entity_name)
         elif isinstance(geometry, GeometryCollection):
             for geom in geometry.geoms:
-                self.add_geometry_to_dxf(msp, geom, layer_name)
+                self.add_geometry_to_dxf(msp, geom, layer_name, entity_name)
         else:
             log_warning(f"Unsupported geometry type for layer {layer_name}: {type(geometry)}")
 

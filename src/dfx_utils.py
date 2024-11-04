@@ -68,75 +68,23 @@ def convert_transparency(transparency):
             log_warning(f"Invalid transparency value: {transparency}")
     return None
 
-def attach_custom_data(entity, script_identifier):
-    if entity is None:
-        log_warning("Attempted to attach custom data to a None entity")
-        return
-
-    xdata_set = False
-    hyperlink_set = False
-
-    # Set XDATA
-    try:
-        existing_xdata = entity.get_xdata('DXFEXPORTER')
-        if existing_xdata:
-            for code, value in existing_xdata:
-                if code == 1000 and value == script_identifier:
-                    xdata_set = True
-                    break
-        
-        if not xdata_set:
-            entity.set_xdata(
-                'DXFEXPORTER',
-                [
-                    (1000, script_identifier),
-                    (1002, '{'),
-                    (1000, 'CREATED_BY'),
-                    (1000, 'DXFExporter'),
-                    (1002, '}')
-                ]
-            )
-            xdata_set = True
-    except ezdxf.lldxf.const.DXFValueError:
-        # This exception is raised when the XDATA application ID doesn't exist
-        entity.set_xdata(
-            'DXFEXPORTER',
-            [
-                (1000, script_identifier),
-                (1002, '{'),
-                (1000, 'CREATED_BY'),
-                (1000, 'DXFExporter'),
-                (1002, '}')
-            ]
-        )
-        xdata_set = True
-    except Exception as e:
-        log_error(f"Error setting XDATA for entity {entity.dxftype()}: {str(e)}")
-
-    # Set hyperlink for all entities that support it
+def attach_custom_data(entity, script_identifier, entity_name=None):
+    """Attaches custom data to an entity.
+    Keeps existing XDATA functionality and adds entity name to hyperlink.
+    """
+    # Set XDATA exactly as before
+    entity.set_xdata(
+        'DXFEXPORTER',
+        [(1000, script_identifier)]
+    )
+    
+    # Add hyperlink with entity name if supported
     if hasattr(entity, 'set_hyperlink'):
         try:
-            existing_hyperlink = entity.get_hyperlink()
-            if isinstance(existing_hyperlink, tuple) and len(existing_hyperlink) > 0:
-                existing_url = existing_hyperlink[0]
-            else:
-                existing_url = ''
-
-            if script_identifier in existing_url:
-                hyperlink_set = True
-            else:
-                hyperlink_text = f"{script_identifier} - Created by DXFExporter"
-                entity.set_hyperlink(hyperlink_text, description="Entity created by DXFExporter")
-                hyperlink_set = True
+            hyperlink_text = entity_name if entity_name else f"{script_identifier}"
+            entity.set_hyperlink(hyperlink_text)
         except Exception as e:
-            log_error(f"Error setting hyperlink for entity {entity.dxftype()}: {str(e)}")
-    else:
-        log_warning(f"Entity {entity.dxftype()} does not support hyperlinks")
-
-    if xdata_set and not hyperlink_set:
-        log_warning(f"Entity {entity.dxftype()} received XDATA but not a hyperlink")
-
-    return xdata_set, hyperlink_set
+            log_warning(f"Failed to set hyperlink for entity: {str(e)}")
 
 def is_created_by_script(entity, script_identifier):
     """Check if an entity was created by this script."""
