@@ -187,10 +187,6 @@ def write_world_file(file_name, extension, col, row, matrix, zoom_folder) -> str
     return world_file_path
 
 def download_wmts_tiles(wmts_info: dict, geltungsbereich, buffer_distance: float, target_folder: str, update: bool = False, overwrite: bool = False) -> list:
-    if not update:
-        log_info("Skipping WMTS download as update flag is False")
-        return []
-        
     print(f"Starting WMTS download to target folder: {target_folder}")
     capabilities_url = wmts_info['url']
     wmts = WebMapTileService(capabilities_url)
@@ -308,10 +304,6 @@ def download_wmts_tiles(wmts_info: dict, geltungsbereich, buffer_distance: float
     return downloaded_tiles
 
 def download_wms_tiles(wms_info: dict, geltungsbereich, buffer_distance: float, target_folder: str, update: bool = False, overwrite: bool = False) -> list:
-    if not update:
-        log_info("Skipping WMS download as update flag is False")
-        return []
-        
     log_info(f"Starting WMS download to target folder: {target_folder}")
     log_info(f"WMS URL: {wms_info['url']}")
     log_info(f"Layer: {wms_info['layer']}")

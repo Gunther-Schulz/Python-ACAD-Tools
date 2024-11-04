@@ -1,3 +1,4 @@
+from ezdxf.lldxf import const
 from src.utils import log_info, log_warning
 from src.dfx_utils import get_color_code
 
@@ -110,6 +111,9 @@ class ViewportManager:
         # Set zoom lock if specified
         if vp_config.get('lockZoom', False):
             viewport.dxf.flags |= 16384  # VSF_LOCK_ZOOM
+            
+        # Add clipped corners if specified
+        self.set_clipped_corners(viewport, vp_config)
 
     def _update_viewport_layers(self, doc, viewport, vp_config):
         """Updates layer visibility settings for the viewport."""
@@ -132,6 +136,10 @@ class ViewportManager:
 
     def _attach_viewport_metadata(self, viewport, vp_config):
         """Attaches custom data and identifiers to the viewport."""
+        # Initialize xdata if needed
+        if not hasattr(viewport, 'xdata'):
+            viewport.xdata = {}
+            
         self.attach_custom_data(viewport)
         viewport.set_xdata(
             'DXFEXPORTER',
@@ -203,3 +211,57 @@ class ViewportManager:
                     except:
                         continue
         return None
+
+    def set_clipped_corners(self, viewport, vp_config):
+        """Sets custom viewport shape using a clipping boundary.
+        
+        Args:
+            viewport: The viewport entity to modify
+            vp_config: The viewport configuration dictionary containing 'clipPath' coordinates
+        """
+        if 'clipPath' not in vp_config:
+            return
+
+        # First, create a new viewport with the same properties
+        doc = viewport.doc
+        pspace = doc.paperspace()
+        
+        # Create new viewport with same properties
+        new_viewport = pspace.add_viewport(
+            center=viewport.dxf.center,
+            size=(viewport.dxf.width, viewport.dxf.height),
+            view_center_point=viewport.dxf.view_center_point,
+            view_height=viewport.dxf.view_height
+        )
+        
+        # Copy all important properties
+        new_viewport.dxf.status = viewport.dxf.status
+        new_viewport.dxf.layer = viewport.dxf.layer
+        new_viewport.frozen_layers = viewport.frozen_layers
+        new_viewport.dxf.flags = viewport.dxf.flags
+        new_viewport.dxf.render_mode = viewport.dxf.render_mode
+        new_viewport.dxf.view_direction_vector = viewport.dxf.view_direction_vector
+        
+        # Copy xdata if it exists
+        try:
+            if hasattr(viewport, 'xdata') and viewport.xdata:
+                new_viewport.xdata = viewport.xdata.copy()
+        except:
+            pass
+        
+        # Create clipping boundary
+        path_points = vp_config['clipPath']
+        boundary = pspace.add_lwpolyline(path_points)
+        boundary.dxf.layer = 'VIEWPORTS'
+        
+        # Apply clipping
+        new_viewport.dxf.flags |= const.VSF_NON_RECTANGULAR_CLIPPING
+        new_viewport.dxf.clipping_boundary_handle = boundary.dxf.handle
+        
+        # Delete the old viewport
+        pspace.delete_entity(viewport)
+        
+        # Attach metadata to new viewport
+        self._attach_viewport_metadata(new_viewport, vp_config)
+        
+        return new_viewport
