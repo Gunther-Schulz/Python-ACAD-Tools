@@ -9,7 +9,16 @@ styles:
       width: 700  # Maximum width before text wrapping
       attachment_point: "TOP_LEFT"  # MTEXT specific alignment
 
-  mapheader:
+  mapHeader:
+    text:
+      height: 9.0
+      font: "Arial"
+      color: "white"
+      alignment: "LEFT"
+      width: 200  # Maximum width before text wrapping
+      attachment_point: "TOP_LEFT"  # MTEXT specific alignment
+
+  satzungstext:
     text:
       height: 9.0
       font: "Arial"

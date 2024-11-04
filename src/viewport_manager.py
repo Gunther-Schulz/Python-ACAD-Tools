@@ -136,6 +136,10 @@ class ViewportManager:
 
     def _attach_viewport_metadata(self, viewport, vp_config):
         """Attaches custom data and identifiers to the viewport."""
+        # Initialize xdata if needed
+        if not hasattr(viewport, 'xdata'):
+            viewport.xdata = {}
+            
         self.attach_custom_data(viewport)
         viewport.set_xdata(
             'DXFEXPORTER',
@@ -209,77 +213,55 @@ class ViewportManager:
         return None
 
     def set_clipped_corners(self, viewport, vp_config):
-        """Sets clipped corners for a viewport if specified in the config.
+        """Sets custom viewport shape using a clipping boundary.
         
         Args:
             viewport: The viewport entity to modify
-            vp_config: The viewport configuration dictionary
+            vp_config: The viewport configuration dictionary containing 'clipPath' coordinates
         """
-        if 'clippedCorners' not in vp_config:
+        if 'clipPath' not in vp_config:
             return
-            
-        clips = vp_config['clippedCorners']
-        width = viewport.dxf.width
-        height = viewport.dxf.height
-        center = viewport.dxf.center
-        
-        # Calculate corner points
-        tl = (center.x - width/2, center.y + height/2)  # top left
-        tr = (center.x + width/2, center.y + height/2)  # top right
-        br = (center.x + width/2, center.y - height/2)  # bottom right
-        bl = (center.x - width/2, center.y - height/2)  # bottom left
-        
-        # Create path with clipped corners
-        path = []
-        
-        # Top left corner
-        if clips.get('topLeft', 0) > 0:
-            clip_size = min(clips['topLeft'], width/2, height/2)
-            path.extend([
-                (tl[0], tl[1] - clip_size),
-                (tl[0] + clip_size, tl[1])
-            ])
-        else:
-            path.append(tl)
-            
-        # Top right corner
-        if clips.get('topRight', 0) > 0:
-            clip_size = min(clips['topRight'], width/2, height/2)
-            path.extend([
-                (tr[0] - clip_size, tr[1]),
-                (tr[0], tr[1] - clip_size)
-            ])
-        else:
-            path.append(tr)
-            
-        # Bottom right corner
-        if clips.get('bottomRight', 0) > 0:
-            clip_size = min(clips['bottomRight'], width/2, height/2)
-            path.extend([
-                (br[0], br[1] + clip_size),
-                (br[0] - clip_size, br[1])
-            ])
-        else:
-            path.append(br)
-            
-        # Bottom left corner
-        if clips.get('bottomLeft', 0) > 0:
-            clip_size = min(clips['bottomLeft'], width/2, height/2)
-            path.extend([
-                (bl[0] + clip_size, bl[1]),
-                (bl[0], bl[1] + clip_size)
-            ])
-        else:
-            path.append(bl)
-        
-        # Close the path
-        path.append(path[0])
-        
-        # Create a lightweight polyline for the clipping boundary in paperspace
+
+        # First, create a new viewport with the same properties
         doc = viewport.doc
         pspace = doc.paperspace()
-        lwpolyline = pspace.add_lwpolyline(path)
         
-        # Enable non-rectangular clipping
-        viewport.dxf.flags |= const.VSF_NON_RECTANGULAR_CLIPPING
-        viewport.dxf.clipping_boundary_handle = lwpolyline.dxf.handle
+        # Create new viewport with same properties
+        new_viewport = pspace.add_viewport(
+            center=viewport.dxf.center,
+            size=(viewport.dxf.width, viewport.dxf.height),
+            view_center_point=viewport.dxf.view_center_point,
+            view_height=viewport.dxf.view_height
+        )
+        
+        # Copy all important properties
+        new_viewport.dxf.status = viewport.dxf.status
+        new_viewport.dxf.layer = viewport.dxf.layer
+        new_viewport.frozen_layers = viewport.frozen_layers
+        new_viewport.dxf.flags = viewport.dxf.flags
+        new_viewport.dxf.render_mode = viewport.dxf.render_mode
+        new_viewport.dxf.view_direction_vector = viewport.dxf.view_direction_vector
+        
+        # Copy xdata if it exists
+        try:
+            if hasattr(viewport, 'xdata') and viewport.xdata:
+                new_viewport.xdata = viewport.xdata.copy()
+        except:
+            pass
+        
+        # Create clipping boundary
+        path_points = vp_config['clipPath']
+        boundary = pspace.add_lwpolyline(path_points)
+        boundary.dxf.layer = 'VIEWPORTS'
+        
+        # Apply clipping
+        new_viewport.dxf.flags |= const.VSF_NON_RECTANGULAR_CLIPPING
+        new_viewport.dxf.clipping_boundary_handle = boundary.dxf.handle
+        
+        # Delete the old viewport
+        pspace.delete_entity(viewport)
+        
+        # Attach metadata to new viewport
+        self._attach_viewport_metadata(new_viewport, vp_config)
+        
+        return new_viewport
