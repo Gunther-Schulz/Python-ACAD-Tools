@@ -163,22 +163,22 @@ projects:
               - name: "Baugrenze"
                 type: empty
                 blockSymbol: "Baugrenze"   
-          # - name: "Verkehrsflächen"
-          #   updateDxf: true
-          #   subtitle: "(§ 9 Abs. 1 Nr. 11 und Abs. 6 BauGB)"
-          #   items:
-          #     - name: "Verkehrsfläche besonderer Zweckbestimmung"
-          #       type: area
-          #       applyHatch: true
-          #       style: verkehrsfläche
-          #     - name: "Verkehrsberuhigter Bereich"
-          #       type: empty
-          #       blockSymbol: "Verkehrsberuhigter Bereich"
-          #       blockSymbolScale: 2
-          #     - name: "Privat"
-          #       type: empty
-          #       blockSymbol: "Privat"
-          #       blockSymbolScale: 2
+          - name: "Verkehrsflächen"
+            updateDxf: true
+            subtitle: "(§ 9 Abs. 1 Nr. 11 und Abs. 6 BauGB)"
+            items:
+              - name: "Verkehrsfläche besonderer Zweckbestimmung"
+                type: area
+                applyHatch: true
+                style: verkehrsfläche
+              - name: "Verkehrsberuhigter Bereich"
+                type: empty
+                blockSymbol: "Verkehrsberuhigter Bereich"
+                blockSymbolScale: 2
+              - name: "Privat"
+                type: empty
+                blockSymbol: "Privat"
+                blockSymbolScale: 2
           - name: "Grünflächen"
             updateDxf: true
             subtitle: "§ 9 Abs.1 Nr. 15 BauGB"
@@ -187,14 +187,14 @@ projects:
                 type: area
                 style: grünflächeLegend
                 applyHatch: true
-          # - name: "Wasserflächen und Flächen für die Wasserwirtschaft, den Hochwasserschutz und die Regelung des Wasserabflusses"
-          #   updateDxf: true
-          #   subtitle: "§ 9 Abs. 1 Nr. 16 BauBG"
-          #   items:
-          #     - name: "Wasserflächen"
-          #       type: area
-          #       style: waterLegend
-          #       applyHatch: true
+          - name: "Wasserflächen und Flächen für die Wasserwirtschaft, den Hochwasserschutz und die Regelung des Wasserabflusses"
+            updateDxf: true
+            subtitle: "§ 9 Abs. 1 Nr. 16 BauBG"
+            items:
+              - name: "Wasserflächen"
+                type: area
+                style: waterLegend
+                applyHatch: true
           - name: "Planungen, Nutzungsregelungen, Maßnahmen und Flächen für Maßnahmen zum Schutz, zur Pflege und zur Entwicklung von Natur und Landschaft"
             updateDxf: true
             subtitle: "§ 9 Abs.1 Nr. 20 BauGB"
@@ -202,10 +202,6 @@ projects:
               - name: "Umgrenzung von Flächen für Maßnahmen zum Schutz, zur Pflege und zurEntwicklung von Natur und Landschaft"
                 type: empty
                 blockSymbol: "Schutzflächeumgrenzung"
-              # - name: "Umgrenzung von Flächen für Maßnahmen zum Schutz, zur Pflege und zurEntwicklung von Natur und Landschaft"
-              #   type: empty
-              #   blockSymbol: "Schutzflächeumgrenzung Small"
-              #   blockSymbolScale: 1.8
           - name: "Sonstige Planzeichen"
             updateDxf: true
             items:
@@ -389,11 +385,6 @@ projects:
           - name: "Nachrichtliche Übernahme"
             updateDxf: true
             items:
-              - name: "gesetzlich geschützes Biotop § 9 Abs. 6 BauGB i. V. m. § 20 NatSchAG - MV"
-                type: area
-                rectangleStyle: gesGeschuetzesBiotop
-                blockSymbol: "Gesetzlich geschütztes Biotop"
-                blockSymbolScale: 1.8
               - name: "Wald"
                 type: area
                 style: wald
@@ -697,226 +688,229 @@ NR: 6 „Solarpark am Devener Weg“"
           y: 248
         style: "satzungstext"  # Style can include width for text wrapping    
     viewports:
-    - name: MainView
-      updateDxf: true
-      color: "magenta"
-      topLeft:
-        x: 65
-        y: 914
-      height: 368
-      width: 535
-      viewCenter:
-        x: 356092
-        y: 5935489
-      customScale: 0.5
-      frozenLayers:
-        - Geltungsbereich Hatches
-        - WMTS Basemap
-      # lockZoom: true
-    - name: MainView2
-      updateDxf: true
-      color: "magenta"
-      topLeft:
-        x: 65
-        y: -776.5
-      height: 653
-      width: 720
-      viewCenter:
-        x: 358163
-        y: 5935966
-      customScale: 0.5
-      frozenLayers:
-        - Geltungsbereich Hatches
-        - WMTS Basemap
-      # lockZoom: true
-    - name: MainView3
-      updateDxf: true
-      color: "magenta"
-      topLeft:
-        x: 1780
-        y: -776.5
-      height: 653
-      width: 720
-      viewCenter:
-        x: 357645
-        y: 5932178
-      customScale: 0.5
-      frozenLayers:
-        - Geltungsbereich Hatches
-        - WMTS Basemap
-      # lockZoom: true
-    - name: LegendView
-      updateDxf: true
-      color: "magenta"
-      topLeft:
-        x: 817
-        y: 842
-      height: 700
-      width: 180
-      viewTopLeft:
-        x: 367838
-        y: 5942625
-      frozenLayers:
-        - WMTS Basemap
-      # scale: 2
-      # customScale: 0.5
-      lockZoom: true
-    - name: Übersichtskarte
-      updateDxf: true
-      color: "magenta"
-      topLeft:
-        x: 705
-        y: 686
-      height: 366
-      width: 181
-      viewCenter:
-        x: 357129
-        y: 5934148
-      customScale: 0.05
-      visibleLayers:
-        - Geltungsbereich NW
-        - Geltungsbereich NO
-        - Geltungsbereich S
-        - Geltungsbereich Hatches
-        - WMTS Basemap
-      # lockZoom: true
-    - name: WorkView
-      updateDxf: true
-      color: "magenta"
-      center:
-        x: 780
-        y: 2000
-      height: 653
-      width: 720
-      viewCenter:
-        x: 356027
-        y: 5935564
-      frozenLayers:
-        - WMTS Basemap
-        - Geltungsbereich Hatches
-    - name: WorkView2
-      updateDxf: true
-      color: "magenta"
-      center:
-        x: 1780
-        y: 2000
-      height: 653
-      width: 720
-      viewCenter:
-        x: 356027
-        y: 5935564
-      frozenLayers:
-        - WMTS Basemap
-        - Geltungsbereich Hatches
-    # NW Map Viewports
-    # --------------
-    - name: MapViewportNW
-      updateDxf: true
-      color: "magenta"
-      topLeft:
-        x: 2401
-        y: 395
-      height: 163
-      width: 172
-      viewCenter:
-        x: 356092
-        y: 5935489
-      # customScale: 0.5
-      scale: 1.25
-      frozenLayers:
-        - Geltungsbereich Hatches
-        - WMTS Basemap
-      # lockZoom: true
-    - name: LegendViewportNW
-      updateDxf: true
-      color: "magenta"
-      topLeft:
-        x: 2396
-        y: 857
-      height: 432
-      width: 180
-      viewTopLeft:
-        x: 368330
-        y: 5942622
-      frozenLayers:
-        - WMTS Basemap
-      # scale: 2
-      # customScale: 0.5
-      lockZoom: true
-    - name: ÜbersichtskarteNW
-      updateDxf: true
-      color: "magenta"
-      topLeft:
-        x: 2400
-        y: 385
-      height: 163
-      width: 172
-      viewCenter:
-        x: 356028
-        y: 5935564
-      scale: 30
-      visibleLayers:
-        - Geltungsbereich NW
-        # - Geltungsbereich NO
-        # - Geltungsbereich S
-        - Geltungsbereich Hatches
-        - WMTS Basemap
-      # lockZoom: true
-    # NO Map Viewports
-    # --------------
-    - name: MapViewportNO
-      updateDxf: true
-      color: "magenta"
-      topLeft:
-        x: 2401
-        y: 395
-      height: 163
-      width: 172
-      viewCenter:
-        x: 358132
-        y: 5935986
-      # customScale: 0.5
-      scale: 1.25
-      frozenLayers:
-        - Geltungsbereich Hatches
-        - WMTS Basemap
-      # lockZoom: true
-    - name: LegendViewportNO
-      updateDxf: true
-      color: "magenta"
-      topLeft:
-        x: 2396
-        y: 857
-      height: 432
-      width: 180
-      viewTopLeft:
-        x: 368841
-        y: 5942622
-      frozenLayers:
-        - WMTS Basemap
-      # scale: 2
-      # customScale: 0.5
-      lockZoom: true
-    - name: ÜbersichtskarteNO
-      updateDxf: true
-      color: "magenta"
-      topLeft:
-        x: 2400
-        y: 385
-      height: 163
-      width: 172
-      viewCenter:
-        x: 358132
-        y: 5935986
-      scale: 30
-      visibleLayers:
-        - Geltungsbereich NO
-        # - Geltungsbereich NW
-        # - Geltungsbereich S
-        - Geltungsbereich Hatches
-        - WMTS Basemap
-      # lockZoom: true
-    # reports:
+    #   - name: MainView
+    #     updateDxf: true
+    #     color: "magenta"
+    #     topLeft:
+    #       x: 65
+    #       y: 914
+    #     height: 368
+    #     width: 535
+    #     viewCenter:
+    #       x: 356092
+    #       y: 5935489
+    #     customScale: 0.5
+    #     frozenLayers:
+    #       - Geltungsbereich Hatches
+    #       - WMTS Basemap
+    #     # lockZoom: true
+    #   - name: MainView2
+    #     updateDxf: true
+    #     color: "magenta"
+    #     topLeft:
+    #       x: 65
+    #       y: -776.5
+    #     height: 653
+    #     width: 720
+    #     viewCenter:
+    #       x: 358163
+    #       y: 5935966
+    #     customScale: 0.5
+    #     frozenLayers:
+    #       - Geltungsbereich Hatches
+    #       - WMTS Basemap
+    #     # lockZoom: true
+    #   - name: MainView3
+    #     updateDxf: true
+    #     color: "magenta"
+    #     topLeft:
+    #       x: 1780
+    #       y: -776.5
+    #     height: 653
+    #     width: 720
+    #     viewCenter:
+    #       x: 357645
+    #       y: 5932178
+    #     customScale: 0.5
+    #     frozenLayers:
+    #       - Geltungsbereich Hatches
+    #       - WMTS Basemap
+    #     # lockZoom: true
+    #   - name: LegendView
+    #     updateDxf: true
+    #     color: "magenta"
+    #     topLeft:
+    #       x: 817
+    #       y: 842
+    #     height: 700
+    #     width: 180
+    #     viewTopLeft:
+    #       x: 367838
+    #       y: 5942625
+    #     frozenLayers:
+    #       - WMTS Basemap
+    #     # scale: 2
+    #     # customScale: 0.5
+    #     lockZoom: true
+    #   - name: Übersichtskarte
+    #     updateDxf: true
+    #     color: "magenta"
+    #     topLeft:
+    #       x: 705
+    #       y: 686
+    #     height: 366
+    #     width: 181
+    #     viewCenter:
+    #       x: 357129
+    #       y: 5934148
+    #     customScale: 0.05
+    #     visibleLayers:
+    #       - Geltungsbereich NW
+    #       - Geltungsbereich NO
+    #       - Geltungsbereich S
+    #       - Geltungsbereich Hatches
+    #       - WMTS Basemap
+    #     # lockZoom: true
+    #   - name: WorkView
+    #     updateDxf: true
+    #     color: "magenta"
+    #     center:
+    #       x: 780
+    #       y: 2000
+    #     height: 653
+    #     width: 720
+    #     viewCenter:
+    #       x: 356027
+    #       y: 5935564
+    #     frozenLayers:
+    #       - WMTS Basemap
+    #       - Geltungsbereich Hatches
+    #   - name: WorkView2
+    #     updateDxf: true
+    #     color: "magenta"
+    #     center:
+    #       x: 1780
+    #       y: 2000
+    #     height: 653
+    #     width: 720
+    #     viewCenter:
+    #       x: 356027
+    #       y: 5935564
+    #     frozenLayers:
+    #       - WMTS Basemap
+    #       - Geltungsbereich Hatches
+      # NW Map Viewports
+      # --------------
+      - name: MapViewportNW
+        updateDxf: true
+        color: "magenta"
+        topLeft:
+          x: 1651
+          y: 790
+        height: 630
+        width: 720
+        viewCenter:
+          x: 356092
+          y: 5935489
+        # customScale: 0.5
+        scale: 1.25
+        frozenLayers:
+          - Geltungsbereich Hatch NW
+          - Geltungsbereich Hatch S
+          - Geltungsbereich Hatch NO
+          - WMTS Basemap
+        # lockZoom: true
+      - name: LegendViewportNW
+        updateDxf: true
+        color: "magenta"
+        topLeft:
+          x: 2396
+          y: 857
+        height: 432
+        width: 180
+        viewTopLeft:
+          x: 368330
+          y: 5942622
+        frozenLayers:
+          - WMTS Basemap
+        # scale: 2
+        # customScale: 0.5
+        lockZoom: true
+      - name: ÜbersichtskarteNW
+        updateDxf: true
+        color: "magenta"
+        topLeft:
+          x: 2400
+          y: 385
+        height: 163
+        width: 172
+        viewCenter:
+          x: 356028
+          y: 5935564
+        scale: 30
+        visibleLayers:
+          - Geltungsbereich NW
+          # - Geltungsbereich NO
+          # - Geltungsbereich S
+          - Geltungsbereich Hatch NW
+          - WMTS Basemap
+        # lockZoom: true
+      # NO Map Viewports
+      # --------------
+      - name: MapViewportNO
+        updateDxf: true
+        color: "magenta"
+        topLeft:
+          x: 3651
+          y: 790
+        height: 630
+        width: 720
+        viewCenter:
+          x: 358132
+          y: 5935986
+        # customScale: 0.5
+        scale: 1.25
+        frozenLayers:
+          - Geltungsbereich Hatch NO
+          - Geltungsbereich Hatch S
+          - Geltungsbereich Hatch NW
+          - WMTS Basemap
+        # lockZoom: true
+      - name: LegendViewportNO
+        updateDxf: true
+        color: "magenta"
+        topLeft:
+          x: 4396
+          y: 857
+        height: 432
+        width: 180
+        viewTopLeft:
+          x: 368330
+          y: 5942622
+        frozenLayers:
+          - WMTS Basemap
+        # scale: 2
+        # customScale: 0.5
+        lockZoom: true
+      - name: ÜbersichtskarteNO
+        updateDxf: true
+        color: "magenta"
+        topLeft:
+          x: 4400
+          y: 385
+        height: 163
+        width: 172
+        viewCenter:
+          x: 358132
+          y: 5935986
+        scale: 30
+        visibleLayers:
+          - Geltungsbereich NO
+          # - Geltungsbereich NW
+          # - Geltungsbereich S
+          - Geltungsbereich Hatch NO
+          - WMTS Basemap
+        # lockZoom: true
     #   - name: Anteilige Flurstücksgrößen innerhalb Geltungsbereich Nordwesten in Plasten
     #     type: area
     #     baseLayer: Parcel
@@ -1112,13 +1106,23 @@ NR: 6 „Solarpark am Devener Weg“"
             layers:
               - name: Geltungsbereich NW
             distance: 2
-      - name: Geltungsbereich Hatches
+      - name: Geltungsbereich Hatch NW
         updateDxf: true
         style: geltungsbereichHatches
         applyHatch:
           layers:
             - Geltungsbereich NW
+      - name: Geltungsbereich Hatch NO
+        updateDxf: true
+        style: geltungsbereichHatches
+        applyHatch:
+          layers:
             - Geltungsbereich NO
+      - name: Geltungsbereich Hatch S
+        updateDxf: true
+        style: geltungsbereichHatches
+        applyHatch:
+          layers:
             - Geltungsbereich S
       - name: Geltungsbereich NO
         updateDxf: true
@@ -1714,22 +1718,22 @@ NR: 6 „Solarpark am Devener Weg“"
       # #       buffer: 200
       # #       stitchTiles: true
       # #       # overwrite: true
-      - name: WMTS Basemap
-        # updateDxf: true
-        operations:
-          - type: wmts
-            url: "https://sgx.geodatenzentrum.de/wmts_basemapde/1.0.0/WMTSCapabilities.xml"
-            layer: "de_basemapde_web_raster_farbe"
-            zoom: "10"
-            proj: "DE_EPSG_25833_ADV"
-            targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/Basemap"
-            layers:
-              - Geltungsbereich NW
-              - Geltungsbereich NO
-              - Geltungsbereich S
-            buffer: 2000
-            stitchTiles: true
-      - name: Contour
+      # - name: WMTS Basemap
+      #   # updateDxf: true
+      #   operations:
+      #     - type: wmts
+      #       url: "https://sgx.geodatenzentrum.de/wmts_basemapde/1.0.0/WMTSCapabilities.xml"
+      #       layer: "de_basemapde_web_raster_farbe"
+      #       zoom: "10"
+      #       proj: "DE_EPSG_25833_ADV"
+      #       targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/Basemap"
+      #       layers:
+      #         - Geltungsbereich NW
+      #         - Geltungsbereich NO
+      #         - Geltungsbereich S
+      #       buffer: 2000
+      #       stitchTiles: true
+      # - name: Contour
       # #   updateDxf: true
       # #   style:
       # #     color: white

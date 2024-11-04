@@ -1,5 +1,5 @@
 from ezdxf.lldxf import const
-from src.utils import log_info, log_warning
+from src.utils import log_info, log_warning, log_error
 from src.dfx_utils import get_color_code, attach_custom_data
 
 class ViewportManager:
@@ -11,22 +11,7 @@ class ViewportManager:
         self.viewports = {}
 
     def create_viewports(self, doc, msp):
-        """Creates or updates viewports based on configuration.
-        
-        Properties updated for EXISTING viewports:
-        - 2D properties (flags, render_mode, view_direction_vector)
-        - color (if specified)
-        - view_center_point (if specified)
-        - view_height (based on scale)
-        - frozen_layers
-        - zoom lock
-        
-        Properties set ONLY for NEW viewports:
-        - size (width, height)
-        - center position
-        - status
-        - layer assignment
-        """
+        """Creates or updates viewports based on configuration."""
         paper_space = doc.paperspace()
         
         # Ensure VIEWPORTS layer exists and set it to not plot
@@ -35,18 +20,44 @@ class ViewportManager:
         viewports_layer = doc.layers.get('VIEWPORTS')
         viewports_layer.dxf.plot = 0
         
-        for vp_config in self.project_settings.get('viewports', []):
-            if not vp_config.get('updateDxf', False):
-                log_info(f"Skipping viewport {vp_config.get('name', 'unnamed')} as update flag is not set")
-                continue
+        # Log the total number of viewport configurations
+        viewport_configs = self.project_settings.get('viewports', [])
+        log_info(f"Found {len(viewport_configs)} viewport configurations")
+        
+        for vp_config in viewport_configs:
+            try:
+                name = vp_config.get('name', 'unnamed')
+                log_info(f"Starting to process viewport configuration: {name}")
+                
+                # Log all the key configuration values
+                log_info(f"Viewport {name} configuration: updateDxf={vp_config.get('updateDxf', False)}, "
+                        f"topLeft={vp_config.get('topLeft', None)}, "
+                        f"height={vp_config.get('height', None)}, "
+                        f"width={vp_config.get('width', None)}")
+                
+                if not vp_config.get('updateDxf', False):
+                    log_info(f"Skipping viewport {name} as update flag is not set")
+                    continue
 
-            viewport = self._create_or_get_viewport(paper_space, vp_config)
-            self._update_viewport_properties(viewport, vp_config)
-            self._update_viewport_layers(doc, viewport, vp_config)
-            self._attach_viewport_metadata(viewport, vp_config)
-            
-            self.viewports[vp_config['name']] = viewport
-            
+                viewport = self._create_or_get_viewport(paper_space, vp_config)
+                if viewport is None:
+                    log_warning(f"Failed to create or get viewport: {name}")
+                    continue
+                    
+                self._update_viewport_properties(viewport, vp_config)
+                self._update_viewport_layers(doc, viewport, vp_config)
+                self._attach_viewport_metadata(viewport, vp_config)
+                
+                self.viewports[name] = viewport
+                log_info(f"Successfully processed viewport: {name}")
+                
+            except Exception as e:
+                log_error(f"Error processing viewport {vp_config.get('name', 'unnamed')}: {str(e)}")
+                import traceback
+                log_error(f"Traceback: {traceback.format_exc()}")
+                continue
+                
+        log_info(f"Completed viewport processing. Created/updated {len(self.viewports)} viewports")
         return self.viewports
 
     def _create_or_get_viewport(self, paper_space, vp_config):
@@ -119,6 +130,9 @@ class ViewportManager:
         """Updates layer visibility settings for the viewport."""
         all_layers = set(layer.dxf.name for layer in doc.layers if 
                         layer.dxf.name not in ['0', 'DEFPOINTS', 'VIEWPORTS'])
+        
+        # Clear existing frozen layers first
+        viewport.frozen_layers = []
         
         frozen_layers = []
         
