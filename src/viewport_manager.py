@@ -1,3 +1,4 @@
+from ezdxf.lldxf import const
 from src.utils import log_info, log_warning
 from src.dfx_utils import get_color_code
 
@@ -110,6 +111,9 @@ class ViewportManager:
         # Set zoom lock if specified
         if vp_config.get('lockZoom', False):
             viewport.dxf.flags |= 16384  # VSF_LOCK_ZOOM
+            
+        # Add clipped corners if specified
+        self.set_clipped_corners(viewport, vp_config)
 
     def _update_viewport_layers(self, doc, viewport, vp_config):
         """Updates layer visibility settings for the viewport."""
@@ -203,3 +207,79 @@ class ViewportManager:
                     except:
                         continue
         return None
+
+    def set_clipped_corners(self, viewport, vp_config):
+        """Sets clipped corners for a viewport if specified in the config.
+        
+        Args:
+            viewport: The viewport entity to modify
+            vp_config: The viewport configuration dictionary
+        """
+        if 'clippedCorners' not in vp_config:
+            return
+            
+        clips = vp_config['clippedCorners']
+        width = viewport.dxf.width
+        height = viewport.dxf.height
+        center = viewport.dxf.center
+        
+        # Calculate corner points
+        tl = (center.x - width/2, center.y + height/2)  # top left
+        tr = (center.x + width/2, center.y + height/2)  # top right
+        br = (center.x + width/2, center.y - height/2)  # bottom right
+        bl = (center.x - width/2, center.y - height/2)  # bottom left
+        
+        # Create path with clipped corners
+        path = []
+        
+        # Top left corner
+        if clips.get('topLeft', 0) > 0:
+            clip_size = min(clips['topLeft'], width/2, height/2)
+            path.extend([
+                (tl[0], tl[1] - clip_size),
+                (tl[0] + clip_size, tl[1])
+            ])
+        else:
+            path.append(tl)
+            
+        # Top right corner
+        if clips.get('topRight', 0) > 0:
+            clip_size = min(clips['topRight'], width/2, height/2)
+            path.extend([
+                (tr[0] - clip_size, tr[1]),
+                (tr[0], tr[1] - clip_size)
+            ])
+        else:
+            path.append(tr)
+            
+        # Bottom right corner
+        if clips.get('bottomRight', 0) > 0:
+            clip_size = min(clips['bottomRight'], width/2, height/2)
+            path.extend([
+                (br[0], br[1] + clip_size),
+                (br[0] - clip_size, br[1])
+            ])
+        else:
+            path.append(br)
+            
+        # Bottom left corner
+        if clips.get('bottomLeft', 0) > 0:
+            clip_size = min(clips['bottomLeft'], width/2, height/2)
+            path.extend([
+                (bl[0] + clip_size, bl[1]),
+                (bl[0], bl[1] + clip_size)
+            ])
+        else:
+            path.append(bl)
+        
+        # Close the path
+        path.append(path[0])
+        
+        # Create a lightweight polyline for the clipping boundary in paperspace
+        doc = viewport.doc
+        pspace = doc.paperspace()
+        lwpolyline = pspace.add_lwpolyline(path)
+        
+        # Enable non-rectangular clipping
+        viewport.dxf.flags |= const.VSF_NON_RECTANGULAR_CLIPPING
+        viewport.dxf.clipping_boundary_handle = lwpolyline.dxf.handle

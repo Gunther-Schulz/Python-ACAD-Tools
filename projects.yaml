@@ -616,6 +616,9 @@ NR: 6 „Solarpark am Devener Weg“"
       frozenLayers:
         - Geltungsbereich Hatches
         - WMTS Basemap
+      clippedCorners:
+        topLeft: 200
+        bottomRight: 200
       # lockZoom: true
     - name: LegendViewportNW
       updateDxf: true
