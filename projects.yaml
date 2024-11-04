@@ -398,6 +398,134 @@ projects:
                 type: area
                 style: wald
                 applyHatch: true
+      # Legend NO
+      # ---------
+      - id: "Legend NO"
+        title: "Planzeichen"
+        subtitle: "(gem. PlanzV 1990-PlanzV 90 v.18.12.1990)"
+        max_width: 160
+        title_spacing: 0      # Space after the main legend title
+        subtitle_spacing: 4   # Space after the main subtitle
+        group_spacing: 3      # Space between different groups in the legend
+        group_title_spacing: 2 # Space after each group's title
+        group_subtitle_spacing: 3 # Space after each group's subtitle
+        item_spacing: 4       # Space between individual items within a group
+        position:
+          x: 368841
+          y: 5942622
+        titleTextStyle:
+          height: 8
+          color: "red-dusky"
+          text_style: "Arial"
+        titleSubtitleStyle:
+          height: 3.5
+          color: "red-dusky"
+          text_style: "Arial"
+        groupTextStyle:
+          color: "white"
+          height: 5
+          text_style: "Arial"
+        subtitleTextStyle:
+          color: "white"
+          height: 2.5
+          text_style: "Arial"
+        itemTextStyle:
+          color: "white"
+          height: 3
+          text_style: "Arial"
+          attachment_point: MTEXT_MIDDLE_LEFT
+        groups:
+          - name: "Art der baulichen Nutzung"
+            updateDxf: true
+            subtitle: "§ 9 Abs. 1 Nr. 1 BauGB"
+            items:
+              - name: "Sonstiges Sondergebiet (§ 11 Abs. 2 BauNVO) Zweckbestimmung: Energiegewinnung auf der Basis solarer Strahlungsenergie"
+                type: area
+                applyHatch: true
+                style: baufeldLegend
+                blockSymbol: "Sonstiges Sondergebiet EBS"
+                blockSymbolScale: 2
+          - name: "Maß der baulichen Nutzung"
+            updateDxf: true
+            subtitle: "§ 9 Abs. 1 Nr. 1 BauGB"
+            items:
+              - name: "Grundflächenzahl"
+                type: empty
+                blockSymbol: "GRZ"
+                blockSymbolScale: 2
+          - name: "Bauweise, Baulinien, Baugrenzen"
+            updateDxf: true
+            subtitle: "§ 9 Abs. 1 Nr. 2 BauGB"
+            items:
+              - name: "Baugrenze"
+                type: empty
+                blockSymbol: "Baugrenze"   
+          - name: "Grünflächen"
+            updateDxf: true
+            subtitle: "§ 9 Abs.1 Nr. 15 BauGB"
+            items:
+              - name: "Private Grünflächen"
+                type: area
+                style: grünflächeLegend
+                applyHatch: true
+          - name: "Planungen, Nutzungsregelungen, Maßnahmen und Flächen für Maßnahmen zum Schutz, zur Pflege und zur Entwicklung von Natur und Landschaft"
+            updateDxf: true
+            subtitle: "§ 9 Abs.1 Nr. 20 BauGB"
+            items:
+              - name: "Umgrenzung von Flächen für Maßnahmen zum Schutz, zur Pflege und zurEntwicklung von Natur und Landschaft"
+                type: empty
+                blockSymbol: "Schutzflächeumgrenzung"
+          - name: "Sonstige Planzeichen"
+            updateDxf: true
+            items:
+              - name: "Grenze des räumlichen Geltungsbereiches des Bebauungsplans"
+                subtitle: "(§ 9 Abs. 7 BauGB)"
+                type: area
+                rectangleStyle: geltungsbereich_2
+              - name: "Hauptversorgungs- und Hauptabwasserleitungen unterirdisch"
+                subtitle: "(§ 5 Abs. 2 Nr.4 und Abs. 4, § 9 Abs.1 Nr.1 u. Abs. 6)"
+                type: area
+                blockSymbol: "Leitung oberirdisch"
+                blockSymbolScale: 2
+          - name: "Darstellung ohne Normcharakter"
+            updateDxf: true
+            items:
+              - name: "Gemeindegrenze"
+                type: line
+                style: gemeindegrenze
+              - name: "Gemarkungsgrenze"
+                type: line
+                style: gemarkungsgrenze
+              - name: "Flurgrenze"
+                type: line
+                style: flurgrenze
+              - name: "Flurstücksnummer\nFlurstücksgrenze"
+                type: empty
+                blockSymbol: "Parcel"
+                blockSymbolScale: 1.4
+              - name: "anstehendes Gelände in Meter über NHN im amtlichen Höhenbezugssystem DHHN2016 als unterer Höhenbezugspunkt"
+                type: empty
+                blockSymbol: "Contours"
+                blockSymbolScale: 1.4
+              - name: "Bemaßung in Meter"
+                type: empty
+                blockSymbol: "Bemassung2"
+          - name: "Nachrichtliche Übernahme"
+            updateDxf: true
+            items:
+              - name: "gesetzlich geschützes Biotop § 9 Abs. 6 BauGB i. V. m. § 20 NatSchAG - MV"
+                type: area
+                rectangleStyle: gesGeschuetzesBiotop
+                blockSymbol: "Gesetzlich geschütztes Biotop"
+                blockSymbolScale: 1.8
+              - name: "Wald"
+                type: area
+                style: wald
+                applyHatch: true
+              - name: "Baum"
+                type: empty
+                blockSymbol: "Baum"
+                blockSymbolScale: 1.8
     pathArrays:
       - name: "Schutzflächeumgrenzung T-Symbol Array"
         updateDxf: true
@@ -415,51 +543,61 @@ projects:
         adjustForVertices: true
         # showDebugVisual: true
     blockInserts:
-    - name: "SO EBS Label"
-      updateDxf: true
-      blockName: "Sonstiges Sondergebiet EBS"
-      scale: 6.0
-      rotation: 0
-      sourceLayer: "Baufeld Label Points"
-      # position:
-      #   type: "centroid"  # Options: centroid, center, random
-      #   offset:
-      #     x: 0
-      #     y: 0
-    - name: "GRZ Label"
-      updateDxf: true
-      blockName: "GRZ"
-      scale: 4.0
-      rotation: 0
-      sourceLayer: "Baufeld Label Points"
-      offset:
-        x: 0
-        y: -20
-      # position:
-      #   type: "centroid"  # Options: centroid, center, random
-      #   offset:
-      #     x: 0
-      #     y: -20
-    - name: "Bäume Ausserhalb"
-      updateDxf: true
-      blockName: "Baum"
-      sourceLayer: "Baum Points"
-    - name: "Gesetzlich geschütztes Biotop Symbol"
-      updateDxf: true
-      blockName: "Gesetzlich geschütztes Biotop"
-      sourceLayer: Geschütze Biotope 2
-      position:
-        type: "centroid"
-    # NW Block Inserts
-    # --------------
-    - name: "NW PBS Logo"
-      updateDxf: true
-      blockName: "Firmenlogo"
-      paperspace: true
-      position:
-        type: "absolute"
-        x: 1489
-        y: 186
+      - name: "SO EBS Label"
+        updateDxf: true
+        blockName: "Sonstiges Sondergebiet EBS"
+        scale: 6.0
+        rotation: 0
+        sourceLayer: "Baufeld Label Points"
+        # position:
+        #   type: "centroid"  # Options: centroid, center, random
+        #   offset:
+        #     x: 0
+        #     y: 0
+      - name: "GRZ Label"
+        updateDxf: true
+        blockName: "GRZ"
+        scale: 4.0
+        rotation: 0
+        sourceLayer: "Baufeld Label Points"
+        offset:
+          x: 0
+          y: -20
+        # position:
+        #   type: "centroid"  # Options: centroid, center, random
+        #   offset:
+        #     x: 0
+        #     y: -20
+      - name: "Bäume Ausserhalb"
+        updateDxf: true
+        blockName: "Baum"
+        sourceLayer: "Baum Points"
+      - name: "Gesetzlich geschütztes Biotop Symbol"
+        updateDxf: true
+        blockName: "Gesetzlich geschütztes Biotop"
+        sourceLayer: Geschütze Biotope 2
+        position:
+          type: "centroid"
+      # NW Block Inserts
+      # --------------
+      - name: "NW PBS Logo"
+        updateDxf: true
+        blockName: "Firmenlogo"
+        paperspace: true
+        position:
+          type: "absolute"
+          x: 1489
+          y: 186
+      # NO Block Inserts
+      # --------------
+      - name: "NO PBS Logo"
+        updateDxf: true
+        blockName: "Firmenlogo"
+        paperspace: true
+        position:
+          type: "absolute"
+          x: 3489
+          y: 186
     textInserts:
       # NW Text Inserts
       # --------------
@@ -509,7 +647,55 @@ NR: 6 „Solarpark am Devener Weg“"
           x: 2590
           y: 248
         style: "satzungstext"  # Style can include width for text wrapping
-    # Note: Biewports don't get replaced even if updateDxf is true, only their properties get udpated (no the dimensions)
+      # Note: Biewports don't get replaced even if updateDxf is true, only their properties get udpated (no the dimensions)
+      # NO Text Inserts
+      # --------------
+      - name: "Main Title NO"
+        targetLayer: "Plantext"
+        updateDxf: true
+        paperspace: true  # Add this to place text in paper space
+        text: "Entwurf: Vorhabensbezogener Bebauungsplan Nr. 6 „Solarpark am Devener Weg“
+der Gemeinde Klein Belitz"
+        position:
+          type: "absolute"
+          x: 3650
+          y: 856
+        style: "mainTitle"  # Style can include width for text wrapping
+      - name: "Map Header NO"
+        targetLayer: "Plantext"
+        updateDxf: true
+        paperspace: true  # Add this to place text in paper space
+        text: "Teil A: Planzeichnung i. M. 1:2.000"
+        position:
+          type: "absolute"
+          x: 3650
+          y: 808
+        style: "mapHeader"  # Style can include width for text wrapping
+      - name: "Übersichtslarte Header NO"
+        targetLayer: "Plantext"
+        updateDxf: true
+        paperspace: true  # Add this to place text in paper space
+        text: "Übersichtskarte i. M. 1:5.000"
+        position:
+          type: "absolute"
+          x: 4400
+          y: 399
+        style: "übersichtskarteHeader"  # Style can include width for text wrapping
+      - name: "Satzungs NO"
+        targetLayer: "Plantext"
+        updateDxf: true
+        paperspace: true  # Add this to place text in paper space
+        justification: "CENTER" 
+        text: "VORENTWURF\n
+SATZUNG DER GEMEINDE\n
+GROß PLASTEN\n
+ÜBER DEN BEBAUUNGSPLAN\n 
+NR: 6 „Solarpark am Devener Weg“"
+        position:
+          type: "absolute"
+          x: 4590
+          y: 248
+        style: "satzungstext"  # Style can include width for text wrapping    
     viewports:
     - name: MainView
       updateDxf: true
@@ -640,17 +826,6 @@ NR: 6 „Solarpark am Devener Weg“"
       frozenLayers:
         - Geltungsbereich Hatches
         - WMTS Basemap
-      # clipPath:
-      #   - [0, 0]      # Start bottom-left
-      #   - [200, 0]    # Bottom-right
-      #   - [200, 100]  # Up to middle-right
-      #   - [100, 100]  # Left to middle
-      #   - [100, 150]  # Up to top
-      #   - [0, 150]    # Top-left
-      #   - [0, 0]      # Close path
-      # # clippedCorners:
-      #   topLeft: 200
-      #   bottomRight: 200
       # lockZoom: true
     - name: LegendViewportNW
       updateDxf: true
@@ -683,6 +858,60 @@ NR: 6 „Solarpark am Devener Weg“"
       visibleLayers:
         - Geltungsbereich NW
         # - Geltungsbereich NO
+        # - Geltungsbereich S
+        - Geltungsbereich Hatches
+        - WMTS Basemap
+      # lockZoom: true
+    # NO Map Viewports
+    # --------------
+    - name: MapViewportNO
+      updateDxf: true
+      color: "magenta"
+      topLeft:
+        x: 2401
+        y: 395
+      height: 163
+      width: 172
+      viewCenter:
+        x: 358132
+        y: 5935986
+      # customScale: 0.5
+      scale: 1.25
+      frozenLayers:
+        - Geltungsbereich Hatches
+        - WMTS Basemap
+      # lockZoom: true
+    - name: LegendViewportNO
+      updateDxf: true
+      color: "magenta"
+      topLeft:
+        x: 2396
+        y: 857
+      height: 432
+      width: 180
+      viewTopLeft:
+        x: 368841
+        y: 5942622
+      frozenLayers:
+        - WMTS Basemap
+      # scale: 2
+      # customScale: 0.5
+      lockZoom: true
+    - name: ÜbersichtskarteNO
+      updateDxf: true
+      color: "magenta"
+      topLeft:
+        x: 2400
+        y: 385
+      height: 163
+      width: 172
+      viewCenter:
+        x: 358132
+        y: 5935986
+      scale: 30
+      visibleLayers:
+        - Geltungsbereich NO
+        # - Geltungsbereich NW
         # - Geltungsbereich S
         - Geltungsbereich Hatches
         - WMTS Basemap
