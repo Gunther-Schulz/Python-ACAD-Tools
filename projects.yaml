@@ -504,6 +504,129 @@ projects:
           - name: "Nachrichtliche Übernahme"
             updateDxf: true
             items:
+              - name: "Wald"
+                type: area
+                style: wald
+                applyHatch: true
+              - name: "Baum"
+                type: empty
+                blockSymbol: "Baum"
+                blockSymbolScale: 1.8
+      # Legend S
+      # ---------
+      - id: "Legend S"
+        title: "Planzeichen"
+        subtitle: "(gem. PlanzV 1990-PlanzV 90 v.18.12.1990)"
+        max_width: 160
+        title_spacing: 0      # Space after the main legend title
+        subtitle_spacing: 4   # Space after the main subtitle
+        group_spacing: 3      # Space between different groups in the legend
+        group_title_spacing: 2 # Space after each group's title
+        group_subtitle_spacing: 3 # Space after each group's subtitle
+        item_spacing: 4       # Space between individual items within a group
+        position:
+          x: 369341
+          y: 5942622
+        titleTextStyle:
+          height: 8
+          color: "red-dusky"
+          text_style: "Arial"
+        titleSubtitleStyle:
+          height: 3.5
+          color: "red-dusky"
+          text_style: "Arial"
+        groupTextStyle:
+          color: "white"
+          height: 5
+          text_style: "Arial"
+        subtitleTextStyle:
+          color: "white"
+          height: 2.5
+          text_style: "Arial"
+        itemTextStyle:
+          color: "white"
+          height: 3
+          text_style: "Arial"
+          attachment_point: MTEXT_MIDDLE_LEFT
+        groups:
+          - name: "Art der baulichen Nutzung"
+            updateDxf: true
+            subtitle: "§ 9 Abs. 1 Nr. 1 BauGB"
+            items:
+              - name: "Sonstiges Sondergebiet (§ 11 Abs. 2 BauNVO) Zweckbestimmung: Energiegewinnung auf der Basis solarer Strahlungsenergie"
+                type: area
+                applyHatch: true
+                style: baufeldLegend
+                blockSymbol: "Sonstiges Sondergebiet EBS"
+                blockSymbolScale: 2
+          - name: "Maß der baulichen Nutzung"
+            updateDxf: true
+            subtitle: "§ 9 Abs. 1 Nr. 1 BauGB"
+            items:
+              - name: "Grundflächenzahl"
+                type: empty
+                blockSymbol: "GRZ"
+                blockSymbolScale: 2
+          - name: "Bauweise, Baulinien, Baugrenzen"
+            updateDxf: true
+            subtitle: "§ 9 Abs. 1 Nr. 2 BauGB"
+            items:
+              - name: "Baugrenze"
+                type: empty
+                blockSymbol: "Baugrenze"   
+          - name: "Grünflächen"
+            updateDxf: true
+            subtitle: "§ 9 Abs.1 Nr. 15 BauGB"
+            items:
+              - name: "Private Grünflächen"
+                type: area
+                style: grünflächeLegend
+                applyHatch: true
+          - name: "Planungen, Nutzungsregelungen, Maßnahmen und Flächen für Maßnahmen zum Schutz, zur Pflege und zur Entwicklung von Natur und Landschaft"
+            updateDxf: true
+            subtitle: "§ 9 Abs.1 Nr. 20 BauGB"
+            items:
+              - name: "Umgrenzung von Flächen für Maßnahmen zum Schutz, zur Pflege und zurEntwicklung von Natur und Landschaft"
+                type: empty
+                blockSymbol: "Schutzflächeumgrenzung"
+          - name: "Sonstige Planzeichen"
+            updateDxf: true
+            items:
+              - name: "Grenze des räumlichen Geltungsbereiches des Bebauungsplans"
+                subtitle: "(§ 9 Abs. 7 BauGB)"
+                type: area
+                rectangleStyle: geltungsbereich_2
+              - name: "Hauptversorgungs- und Hauptabwasserleitungen unterirdisch"
+                subtitle: "(§ 5 Abs. 2 Nr.4 und Abs. 4, § 9 Abs.1 Nr.1 u. Abs. 6)"
+                type: area
+                blockSymbol: "Leitung oberirdisch"
+                blockSymbolScale: 2
+          - name: "Darstellung ohne Normcharakter"
+            updateDxf: true
+            items:
+              - name: "Gemeindegrenze"
+                type: line
+                style: gemeindegrenze
+              - name: "Gemarkungsgrenze"
+                type: line
+                style: gemarkungsgrenze
+              - name: "Flurgrenze"
+                type: line
+                style: flurgrenze
+              - name: "Flurstücksnummer\nFlurstücksgrenze"
+                type: empty
+                blockSymbol: "Parcel"
+                blockSymbolScale: 1.4
+              - name: "anstehendes Gelände in Meter über NHN im amtlichen Höhenbezugssystem DHHN2016 als unterer Höhenbezugspunkt"
+                type: empty
+                blockSymbol: "Contours"
+                blockSymbolScale: 1.4
+              - name: "Bemaßung in Meter"
+                type: empty
+                blockSymbol: "Bemassung2"
+          - name: "Nachrichtliche Übernahme"
+            updateDxf: true
+            items:
               - name: "gesetzlich geschützes Biotop § 9 Abs. 6 BauGB i. V. m. § 20 NatSchAG - MV"
                 type: area
                 rectangleStyle: gesGeschuetzesBiotop
@@ -513,10 +636,6 @@ projects:
                 type: area
                 style: wald
                 applyHatch: true
-              - name: "Baum"
-                type: empty
-                blockSymbol: "Baum"
-                blockSymbolScale: 1.8
     pathArrays:
       - name: "Schutzflächeumgrenzung T-Symbol Array"
         updateDxf: true
@@ -579,6 +698,14 @@ projects:
           type: "absolute"
           x: 1489
           y: 186
+      - name: "NW Nordpfeil"
+        updateDxf: true
+        blockName: "Nordpfeil"
+        paperspace: true
+        position:
+          type: "absolute"
+          x: 2557
+          y: 364
       # NO Block Inserts
       # --------------
       - name: "NO PBS Logo"
@@ -589,6 +716,16 @@ projects:
           type: "absolute"
           x: 3489
           y: 186
+      # S Block Inserts
+      # --------------
+      - name: "NO PBS Logo"
+        updateDxf: true
+        blockName: "Firmenlogo"
+        paperspace: true
+        position:
+          type: "absolute"
+          x: 5489
+          y: 186
     textInserts:
       # NW Text Inserts
       # --------------
@@ -597,7 +734,7 @@ projects:
         updateDxf: true
         paperspace: true  # Add this to place text in paper space
         text: "Entwurf: Vorhabensbezogener Bebauungsplan Nr. 6 „Solarpark am Devener Weg“
-der Gemeinde Klein Belitz"
+der Gemeinde Groß Plasten"
         position:
           type: "absolute"
           x: 1650
@@ -607,7 +744,7 @@ der Gemeinde Klein Belitz"
         targetLayer: "Plantext"
         updateDxf: true
         paperspace: true  # Add this to place text in paper space
-        text: "Teil A: Planzeichnung i. M. 1:2.000"
+        text: "Teil A: Planzeichnung i. M. 1:1.250"
         position:
           type: "absolute"
           x: 1650
@@ -645,8 +782,8 @@ NR: 6 „Solarpark am Devener Weg“"
         targetLayer: "Plantext"
         updateDxf: true
         paperspace: true  # Add this to place text in paper space
-        text: "Entwurf: Vorhabensbezogener Bebauungsplan Nr. 6 „Solarpark am Devener Weg“
-der Gemeinde Klein Belitz"
+        text: "Entwurf: Vorhabensbezogener Bebauungsplan Nr. 5 „Solarpark am Spargelberg“
+der Gemeinde Groß Plasten"
         position:
           type: "absolute"
           x: 3650
@@ -656,7 +793,7 @@ der Gemeinde Klein Belitz"
         targetLayer: "Plantext"
         updateDxf: true
         paperspace: true  # Add this to place text in paper space
-        text: "Teil A: Planzeichnung i. M. 1:2.000"
+        text: "Teil A: Planzeichnung i. M. 1:1.000"
         position:
           type: "absolute"
           x: 3650
@@ -686,7 +823,55 @@ NR: 6 „Solarpark am Devener Weg“"
           type: "absolute"
           x: 4590
           y: 248
-        style: "satzungstext"  # Style can include width for text wrapping    
+        style: "satzungstext"  # Style can include width for text wrapping
+      # S Text Inserts
+      # --------------
+      - name: "Main Title S"
+        targetLayer: "Plantext"
+        updateDxf: true
+        paperspace: true  # Add this to place text in paper space
+        text: "Entwurf: Vorhabensbezogener Bebauungsplan Nr. 7 „Solarpark an der Straße nach Rockow“
+der Gemeinde Groß Plasten"
+        position:
+          type: "absolute"
+          x: 5650
+          y: 856
+        style: "mainTitle"  # Style can include width for text wrapping
+      - name: "Map Header S"
+        targetLayer: "Plantext"
+        updateDxf: true
+        paperspace: true  # Add this to place text in paper space
+        text: "Teil A: Planzeichnung i. M. 1:1.000"
+        position:
+          type: "absolute"
+          x: 5650
+          y: 808
+        style: "mapHeader"  # Style can include width for text wrapping
+      - name: "Übersichtslarte Header S"
+        targetLayer: "Plantext"
+        updateDxf: true
+        paperspace: true  # Add this to place text in paper space
+        text: "Übersichtskarte i. M. 1:5.000"
+        position:
+          type: "absolute"
+          x: 6400
+          y: 399
+        style: "übersichtskarteHeader"  # Style can include width for text wrapping
+      - name: "Satzungs S"
+        targetLayer: "Plantext"
+        updateDxf: true
+        paperspace: true  # Add this to place text in paper space
+        justification: "CENTER" 
+        text: "VORENTWURF\n
+SATZUNG DER GEMEINDE\n
+GROß PLASTEN\n
+ÜBER DEN BEBAUUNGSPLAN\n 
+NR: 6 „Solarpark am Devener Weg“"
+        position:
+          type: "absolute"
+          x: 6590
+          y: 248
+        style: "satzungstext"  # Style can include width for text wrapping  
     viewports:
     #   - name: MainView
     #     updateDxf: true
@@ -866,10 +1051,10 @@ NR: 6 „Solarpark am Devener Weg“"
         height: 630
         width: 720
         viewCenter:
-          x: 358132
-          y: 5935986
+          x: 358168
+          y: 5935944
         # customScale: 0.5
-        scale: 1.25
+        scale: 1
         frozenLayers:
           - Geltungsbereich Hatch NO
           - Geltungsbereich Hatch S
@@ -882,10 +1067,10 @@ NR: 6 „Solarpark am Devener Weg“"
         topLeft:
           x: 4396
           y: 857
-        height: 432
+        height: 450
         width: 180
         viewTopLeft:
-          x: 368330
+          x: 368830
           y: 5942622
         frozenLayers:
           - WMTS Basemap
@@ -909,6 +1094,60 @@ NR: 6 „Solarpark am Devener Weg“"
           # - Geltungsbereich NW
           # - Geltungsbereich S
           - Geltungsbereich Hatch NO
+          - WMTS Basemap
+        # lockZoom: true
+      # S Map Viewports
+      # --------------
+      - name: MapViewportS
+        updateDxf: true
+        color: "magenta"
+        topLeft:
+          x: 5651
+          y: 790
+        height: 630
+        width: 720
+        viewCenter:
+          x: 357643
+          y: 5932185
+        # customScale: 0.5
+        scale: 1
+        frozenLayers:
+          - Geltungsbereich Hatch NO
+          - Geltungsbereich Hatch S
+          - Geltungsbereich Hatch NW
+          - WMTS Basemap
+        # lockZoom: true
+      - name: LegendViewportS
+        updateDxf: true
+        color: "magenta"
+        topLeft:
+          x: 6396
+          y: 857
+        height: 450
+        width: 180
+        viewTopLeft:
+          x: 369330
+          y: 5942622
+        frozenLayers:
+          - WMTS Basemap
+        # scale: 2
+        # customScale: 0.5
+        lockZoom: true
+      - name: ÜbersichtskarteS
+        updateDxf: true
+        color: "magenta"
+        topLeft:
+          x: 6400
+          y: 385
+        height: 163
+        width: 172
+        viewCenter:
+          x: 357673
+          y: 5932189
+        scale: 30
+        visibleLayers:
+          - Geltungsbereich S
+          - Geltungsbereich Hatch S
           - WMTS Basemap
         # lockZoom: true
     #   - name: Anteilige Flurstücksgrößen innerhalb Geltungsbereich Nordwesten in Plasten
@@ -1745,42 +1984,76 @@ NR: 6 „Solarpark am Devener Weg“"
       # #       layers:
       # #         - Geltungsbereich NW
       # #       buffer: 1000
-      # # - name: WMS Gebäude
-      # #   # updateDxf: true
-      # #   operations:
-      # #     - type: wms
-      # #       # overwrite: true
-      # #       url: "https://www.geodaten-mv.de/dienste/gebaeude_wms"
-      # #       layer: "gebaeude"
-      # #       imageTransparency: true
-      # #       wmsOptions:
-      # #         srs: "EPSG:25833"
-      # #         format: "image/png"
-      # #         # styles: ""  # Optional WMS style
-      # #         # version: "1.3.0"  # WMS version
-      # #         # transparent: true
-      # #         # bgcolor: "0x0000FF" # Doesn't work somehow. It's black always.
-      # #       width: 4096
-      # #       height: 4096
-      # #       targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/Gebäude"
-      # #       layers:
-      # #         - Geltungsbereich NW
-      # #         - Geltungsbereich NO
-      # #         - Geltungsbereich S
-      # #       buffer: 500
-      # #       postProcess:
-      # #         retainIfColorPresent:
-      # #           colors: ["#ff0000"]  # Images containing these colors will be made transparent
-      # #           tolerance: 5  # Optional: color matching tolerance (0-255)
-                
-      # #         colorMap:
-      # #             "#ff0000": "#808080"  # Map red to grey
-      # #         alphaColor: "#ffffff"  # Set white to fully transparent
-      # #       #   alphaColor: "#000000"  # Set black to fully transparent
-      # #       #   # tolerance: 30  # Increased tolerance to catch similar shades
-      # #         grayscale: true
-      # #       #   # removeText: true
-      # #       stitchTiles: true
+      # - name: WMS Gebäude
+      #   updateDxf: true
+      #   operations:
+      #     - type: wms
+      #       # overwrite: true
+      #       url: "https://www.geodaten-mv.de/dienste/gebaeude_wms"
+      #       layer: "gebaeude"
+      #       imageTransparency: true
+      #       wmsOptions:
+      #         srs: "EPSG:25833"
+      #         format: "image/png"
+      #         # styles: ""  # Optional WMS style
+      #         # version: "1.3.0"  # WMS version
+      #         # transparent: true
+      #         # bgcolor: "0x0000FF" # Doesn't work somehow. It's black always.
+      #         # width: 4096
+      #         # height: 4096
+      #       targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/Gebäude"
+      #       layers:
+      #         - Geltungsbereich NW
+      #         - Geltungsbereich NO
+      #         - Geltungsbereich S
+      #       buffer: 500
+      #       postProcess:
+      #         retainIfColorPresent:
+      #           colors: ["#ff0000"]  # Images containing these colors will be made transparent
+      #           tolerance: 5  # Optional: color matching tolerance (0-255)                
+      #         colorMap:
+      #             "#ff0000": "#808080"  # Map red to grey
+      #         alphaColor: "#ffffff"  # Set white to fully transparent
+      #       #   alphaColor: "#000000"  # Set black to fully transparent
+      #       #   # tolerance: 30  # Increased tolerance to catch similar shades
+      #         grayscale: true
+      #       #   # removeText: true
+      #       stitchTiles: true
+      # - name: WMS Höhenlinien
+      #   updateDxf: true
+      #   operations:
+      #     - type: wms
+      #       overwrite: true
+      #       url: "https://www.geodaten-mv.de/dienste/dgm_wms"
+      #       layer: "hohenlinien"
+      #       imageTransparency: true
+      #       wmsOptions:
+      #         srs: "EPSG:25833"
+      #         format: "image/png"
+      #         # styles: ""  # Optional WMS style
+      #         # version: "1.3.0"  # WMS version
+      #         # transparent: true
+      #         # bgcolor: "0x0000FF" # Doesn't work somehow. It's black always.
+      #         width: 4096
+      #         height: 4096
+      #       targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/Höhenlinien"
+      #       layers:
+      #         - Geltungsbereich NW
+      #         - Geltungsbereich NO
+      #         - Geltungsbereich S
+      #       buffer: 500
+      #       postProcess:
+      #       #   retainIfColorPresent:
+      #       #     colors: ["#ff0000"]  # Images containing these colors will be made transparent
+      #       #     tolerance: 5  # Optional: color matching tolerance (0-255)                
+      #       #   colorMap:
+      #       #       "#ff0000": "#808080"  # Map red to grey
+      #         alphaColor: "#ffffff"  # Set white to fully transparent
+      #       # #   alphaColor: "#000000"  # Set black to fully transparent
+      #       # #   # tolerance: 30  # Increased tolerance to catch similar shades
+      #       #   grayscale: true
+      #       # #   # removeText: true
+      #       # # stitchTiles: true
   - name: Torgelow
     exportFormat: dxf
     dxfVersion: R2018

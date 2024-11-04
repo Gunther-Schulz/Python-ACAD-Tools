@@ -778,28 +778,79 @@ class DXFExporter:
 
     def process_block_inserts(self, msp):
         if not self.block_inserts:
+            log_info("No block inserts configured, skipping...")
             return
 
         for insert_config in self.block_inserts:
-            output_layer = insert_config.get('name')
-            block_name = insert_config.get('blockName')
-            source_layer = insert_config.get('sourceLayer')
-            paperspace = insert_config.get('paperspace', False)
-            scale = insert_config.get('scale', 1.0)
-            rotation = insert_config.get('rotation', 0)
-            position_config = insert_config.get('position')
-            offset = insert_config.get('offset', {'x': 0, 'y': 0})
+            try:
+                # Extract configuration
+                output_layer = insert_config.get('name')
+                block_name = insert_config.get('blockName')
+                source_layer = insert_config.get('sourceLayer')
+                paperspace = insert_config.get('paperspace', False)
+                scale = insert_config.get('scale', 1.0)
+                rotation = insert_config.get('rotation', 0)
+                position_config = insert_config.get('position', {})
+                offset = insert_config.get('offset', {'x': 0, 'y': 0})
+                update_dxf = insert_config.get('updateDxf', False)
 
-            # Only require sourceLayer if not using absolute positioning
-            if not output_layer or not block_name:
-                log_warning(f"Missing required configuration (name or blockName): {insert_config}")
-                continue
-            
-            if not source_layer and (not position_config or position_config.get('type') != 'absolute'):
-                log_warning(f"Missing required sourceLayer for non-absolute positioning: {insert_config}")
+                if not update_dxf:
+                    log_info(f"Skipping block insert '{output_layer}' as updateDxf flag is not set")
+                    continue
+
+                if not output_layer or not block_name:
+                    log_warning(f"Missing required configuration (name or blockName): {insert_config}")
+                    continue
+
+                # Get the correct space based on paperspace flag
+                doc = msp.doc
+                space = doc.paperspace() if paperspace else doc.modelspace()
+
+                # Remove existing blocks in this layer
+                remove_entities_by_layer(space, output_layer, self.script_identifier)
+
+                # Handle different insertion methods based on configuration
+                if position_config and position_config.get('type') == 'absolute':
+                    self.insert_blocks_on_layer(
+                        space, 
+                        source_layer, 
+                        output_layer, 
+                        block_name, 
+                        scale, 
+                        rotation, 
+                        position_config
+                    )
+                elif source_layer:
+                    # Check if it's a points layer
+                    if any(op.get('type') == 'points' for op in self.project_settings.get('geomLayers', []) 
+                        if op.get('name') == source_layer):
+                        self.insert_blocks_at_points(
+                            space,
+                            source_layer,
+                            output_layer,
+                            block_name,
+                            scale,
+                            rotation,
+                            offset
+                        )
+                    else:
+                        self.insert_blocks_on_layer(
+                            space,
+                            source_layer,
+                            output_layer,
+                            block_name,
+                            scale,
+                            rotation,
+                            position_config
+                        )
+                else:
+                    log_warning(f"Invalid block insert configuration: {insert_config}")
+
+            except Exception as e:
+                log_error(f"Error processing block insert: {str(e)}")
                 continue
 
-            # Rest of the method remains the same...
+        log_info("Finished processing all block insert configurations")
 
     def insert_blocks_at_points(self, space, points_layer, output_layer, block_name, scale, rotation, offset=None):
         """Insert blocks at specific points from a points layer."""
@@ -850,6 +901,7 @@ class DXFExporter:
             insert_point = (x + offset_x, y + offset_y)
             
             log_info(f"Inserting block {block_name} at absolute position {insert_point}")
+            print(f"Inserting block {block_name} at absolute position {insert_point}")
             block_ref = add_block_reference(
                 space,
                 block_name,
