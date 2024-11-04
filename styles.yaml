@@ -18,6 +18,16 @@ styles:
       width: 200  # Maximum width before text wrapping
       attachment_point: "TOP_LEFT"  # MTEXT specific alignment
 
+  übersichtskarteHeader:
+    text:
+      height: 7.0
+      font: "Arial"
+      color: "white"
+      alignment: "LEFT"
+      width: 200  # Maximum width before text wrapping
+      attachment_point: "TOP_LEFT"  # MTEXT specific alignment
+
+
   satzungstext:
     text:
       height: 9.0
