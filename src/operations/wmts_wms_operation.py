@@ -31,115 +31,100 @@ def process_wmts_or_wms_layer(all_layers, project_settings, crs, layer_name, ope
 
     layers = operation.get('layers', [])
     buffer_distance = operation.get('buffer', 100)
+    
+    # Base service info configuration
     service_info = {
         'url': operation['url'],
         'layer': operation['layer'],
         'proj': operation.get('proj'),
-        'srs': operation.get('wmsOptions', {}).get('srs', operation.get('srs')),  # Fallback for backward compatibility
+        'srs': operation.get('wmsOptions', {}).get('srs', operation.get('srs')),
         'format': operation.get('wmsOptions', {}).get('format', operation.get('format', 'image/png')),
         'sleep': operation.get('sleep', 0),
         'limit': operation.get('limit', 0),
         'postProcess': operation.get('postProcess', {}),
         'overwrite': overwrite_flag,
         'zoom': zoom_level,
-        # WMS specific options from wmsOptions
-        'styles': operation.get('wmsOptions', {}).get('styles', ''),
-        'transparent': operation.get('wmsOptions', {}).get('transparent', True),
-        'bgcolor': operation.get('wmsOptions', {}).get('bgcolor', '0xFFFFFF'),
-        'width': operation.get('wmsOptions', {}).get('width', 256),
-        'height': operation.get('wmsOptions', {}).get('height', 256),
-        'version': operation.get('wmsOptions', {}).get('version', '1.3.0'),
-        'time': operation.get('wmsOptions', {}).get('time'),
-        'elevation': operation.get('wmsOptions', {}).get('elevation'),
-        'dimensions': operation.get('wmsOptions', {}).get('dimensions', {}),
-        'imageTransparency': operation.get('wmsOptions', {}).get('imageTransparency', False)
+        **operation.get('wmsOptions', {})
     }
-
-    service_info['postProcess']['removeText'] = operation.get('postProcess', {}).get('removeText', False)
-    service_info['postProcess']['textRemovalMethod'] = operation.get('postProcess', {}).get('textRemovalMethod', 'tesseract')
 
     stitch_tiles = operation.get('stitchTiles', False)
     service_info['stitchTiles'] = stitch_tiles
 
-    log_info(f"Service info: {service_info}")
-    log_info(f"Layers to process: {layers}")
-
+    # Initialize WMTS if needed
+    tile_matrix_zoom = None
     if 'wmts' in operation['type'].lower():
         wmts = WebMapTileService(service_info['url'])
-        
-        # Print available layers and their tile matrix sets
-        log_info("Available layers and their tile matrix sets:")
-        for layer_id, layer_content in wmts.contents.items():
-            print(f"Layer: {layer_id}")
-            print(f"  Title: {layer_content.title}")
-            print(f"  Tile Matrix Sets:")
-            for tms in layer_content.tilematrixsetlinks.keys():
-                print(f"    • {tms}")
-            print()
-
-        layer = wmts.contents[layer_id]
         tile_matrix = wmts.tilematrixsets[service_info['proj']].tilematrix
         available_zooms = sorted(tile_matrix.keys(), key=int)
         
+        # Zoom level validation and selection
         requested_zoom = service_info.get('zoom')
+        chosen_zoom = str(requested_zoom) if requested_zoom is not None else available_zooms[-1]
         
-        if requested_zoom is None:
-            chosen_zoom = available_zooms[-1]
-            log_info(f"No zoom level specified. Using highest available zoom: {chosen_zoom}")
-        else:
-            if str(requested_zoom) in available_zooms:
-                chosen_zoom = str(requested_zoom)
-            else:
-                error_message = (
-                    f"Error: Zoom level {requested_zoom} not available for projection {service_info['proj']}.\n"
-                    f"Available zoom levels: {', '.join(available_zooms)}.\n"
-                    f"Please choose a zoom level from the available options or remove the 'zoom' key to use the highest available zoom."
-                )
-                raise ValueError(error_message)
+        if str(requested_zoom) not in available_zooms:
+            error_message = (
+                f"Error: Zoom level {requested_zoom} not available for projection {service_info['proj']}.\n"
+                f"Available zoom levels: {', '.join(available_zooms)}."
+            )
+            raise ValueError(error_message)
         
         service_info['zoom'] = chosen_zoom
-        log_info(f"Using zoom level: {chosen_zoom}")
-    
-    all_tiles = []
+        tile_matrix_zoom = tile_matrix[chosen_zoom]
+
+    # Process each layer separately
+    all_processed_tiles = []
     for layer in layers:
-        if layer in all_layers:
-            layer_geometry = all_layers[layer]
-            if isinstance(layer_geometry, gpd.GeoDataFrame):
-                layer_geometry = layer_geometry.geometry.unary_union
-
-            log_info(f"Downloading tiles for layer: {layer}")
-            log_info(f"Layer geometry type: {type(layer_geometry)}")
-            log_info(f"Layer geometry bounds: {layer_geometry.bounds}")
-
-            if 'wmts' in operation['type'].lower():
-                downloaded_tiles = download_wmts_tiles(service_info, layer_geometry, buffer_distance, zoom_folder, update=update_flag, overwrite=overwrite_flag)
-                wmts = WebMapTileService(service_info['url'])
-                tile_matrix = wmts.tilematrixsets[service_info['proj']].tilematrix
-                try:
-                    tile_matrix_zoom = tile_matrix[str(service_info['zoom'])]
-                except KeyError:
-                    available_zooms = sorted(tile_matrix.keys())
-                    error_message = (
-                        f"Error: Zoom level {service_info['zoom']} not available for projection {service_info['proj']}.\n"
-                        f"Available zoom levels: {', '.join(available_zooms)}.\n"
-                        f"Please choose a zoom level from the available options."
-                    )
-                    raise ValueError(error_message)
-            else:  # WMS
-                downloaded_tiles = download_wms_tiles(service_info, layer_geometry, buffer_distance, zoom_folder, update=update_flag, overwrite=overwrite_flag)
-                tile_matrix_zoom = None
-
-            if stitch_tiles:
-                processed_tiles = process_and_stitch_tiles(service_info, downloaded_tiles, tile_matrix_zoom, zoom_folder, layer)
-                all_tiles.extend(processed_tiles)
-            else:
-                all_tiles.extend(downloaded_tiles)
-        else:
+        if layer not in all_layers:
             log_warning(f"Layer {layer} not found for WMTS/WMS download of {layer_name}")
+            continue
 
-    all_layers[layer_name] = all_tiles
-    log_info(f"Total tiles for {layer_name}: {len(all_tiles)}")
+        log_info(f"Processing layer: {layer}")
+        layer_geometry = all_layers[layer]
+        if isinstance(layer_geometry, gpd.GeoDataFrame):
+            layer_geometry = layer_geometry.geometry.unary_union
+
+        # Create layer-specific folder
+        layer_folder = os.path.join(zoom_folder, layer.replace(" ", "_"))
+        os.makedirs(layer_folder, exist_ok=True)
+
+        # Update service info for this specific layer
+        layer_service_info = service_info.copy()
+        layer_service_info['targetFolder'] = layer_folder
+
+        # Download tiles for this layer
+        if 'wmts' in operation['type'].lower():
+            downloaded_tiles = download_wmts_tiles(
+                layer_service_info, 
+                layer_geometry, 
+                buffer_distance, 
+                layer_folder, 
+                update=update_flag, 
+                overwrite=overwrite_flag
+            )
+        else:
+            downloaded_tiles = download_wms_tiles(
+                layer_service_info, 
+                layer_geometry, 
+                buffer_distance, 
+                layer_folder, 
+                update=update_flag, 
+                overwrite=overwrite_flag
+            )
+
+        # Process tiles for this layer
+        if stitch_tiles and downloaded_tiles:
+            processed_tiles = process_and_stitch_tiles(
+                layer_service_info, 
+                downloaded_tiles, 
+                tile_matrix_zoom, 
+                layer_folder, 
+                f"{layer_name}_{layer}"
+            )
+            all_processed_tiles.extend(processed_tiles)
+        else:
+            all_processed_tiles.extend(downloaded_tiles)
+
+    all_layers[layer_name] = all_processed_tiles
+    log_info(f"Total processed tiles for {layer_name}: {len(all_processed_tiles)}")
 
     return all_layers[layer_name]
-
-
