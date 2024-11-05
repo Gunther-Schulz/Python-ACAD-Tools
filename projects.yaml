@@ -355,7 +355,7 @@ projects:
           - name: "Sonstige Planzeichen"
             updateDxf: true
             items:
-              - name: "Grenze des räumlichen Geltungsbereiches des Bebauungsplans"
+              - name: "Grenze des räumlichen Geltungsbereiches des Bebauungsplans\n(§ 9 Abs. 7 BauGB)"
                 subtitle: "(§ 9 Abs. 7 BauGB)"
                 type: area
                 rectangleStyle: geltungsbereich_2
@@ -469,15 +469,10 @@ projects:
           - name: "Sonstige Planzeichen"
             updateDxf: true
             items:
-              - name: "Grenze des räumlichen Geltungsbereiches des Bebauungsplans"
+              - name: "Grenze des räumlichen Geltungsbereiches des Bebauungsplans\n(§ 9 Abs. 7 BauGB)"
                 subtitle: "(§ 9 Abs. 7 BauGB)"
                 type: area
                 rectangleStyle: geltungsbereich_2
-              - name: "Hauptversorgungs- und Hauptabwasserleitungen unterirdisch"
-                subtitle: "(§ 5 Abs. 2 Nr.4 und Abs. 4, § 9 Abs.1 Nr.1 u. Abs. 6)"
-                type: area
-                blockSymbol: "Leitung oberirdisch"
-                blockSymbolScale: 2
           - name: "Darstellung ohne Normcharakter"
             updateDxf: true
             items:
@@ -592,7 +587,7 @@ projects:
           - name: "Sonstige Planzeichen"
             updateDxf: true
             items:
-              - name: "Grenze des räumlichen Geltungsbereiches des Bebauungsplans"
+              - name: "Grenze des räumlichen Geltungsbereiches des Bebauungsplans\n(§ 9 Abs. 7 BauGB)"
                 subtitle: "(§ 9 Abs. 7 BauGB)"
                 type: area
                 rectangleStyle: geltungsbereich_2
@@ -659,11 +654,8 @@ projects:
         scale: 6.0
         rotation: 0
         sourceLayer: "Baufeld Label Points"
-        # position:
-        #   type: "centroid"  # Options: centroid, center, random
-        #   offset:
-        #     x: 0
-        #     y: 0
+        position:
+          type: "points"  # Options: centroid, center, random
       - name: "GRZ Label"
         updateDxf: true
         blockName: "GRZ"
@@ -696,7 +688,7 @@ projects:
         paperspace: true
         position:
           type: "absolute"
-          x: 1489
+          x: 2489
           y: 186
       - name: "NW Nordpfeil"
         updateDxf: true
@@ -714,8 +706,16 @@ projects:
         paperspace: true
         position:
           type: "absolute"
-          x: 3489
+          x: 4489
           y: 186
+      - name: "NO Nordpfeil"
+        updateDxf: true
+        blockName: "Nordpfeil"
+        paperspace: true
+        position:
+          type: "absolute"
+          x: 4557
+          y: 364
       # S Block Inserts
       # --------------
       - name: "NO PBS Logo"
@@ -724,8 +724,16 @@ projects:
         paperspace: true
         position:
           type: "absolute"
-          x: 5489
+          x: 6489
           y: 186
+      - name: "S Nordpfeil"
+        updateDxf: true
+        blockName: "Nordpfeil"
+        paperspace: true
+        position:
+          type: "absolute"
+          x: 6557
+          y: 364
     textInserts:
       # NW Text Inserts
       # --------------
@@ -733,7 +741,7 @@ projects:
         targetLayer: "Plantext"
         updateDxf: true
         paperspace: true  # Add this to place text in paper space
-        text: "Entwurf: Vorhabensbezogener Bebauungsplan Nr. 6 „Solarpark am Devener Weg“
+        text: "Vorentwurf: Vorhabensbezogener Bebauungsplan Nr. 6 „Solarpark am Devener Weg“
 der Gemeinde Groß Plasten"
         position:
           type: "absolute"
@@ -744,7 +752,7 @@ der Gemeinde Groß Plasten"
         targetLayer: "Plantext"
         updateDxf: true
         paperspace: true  # Add this to place text in paper space
-        text: "Teil A: Planzeichnung i. M. 1:1.250"
+        text: "Teil A: Planzeichnung i. M. 1:1.500"
         position:
           type: "absolute"
           x: 1650
@@ -754,7 +762,7 @@ der Gemeinde Groß Plasten"
         targetLayer: "Plantext"
         updateDxf: true
         paperspace: true  # Add this to place text in paper space
-        text: "Übersichtskarte i. M. 1:5.000"
+        text: "Übersichtskarte i. M. 1:30.000"
         position:
           type: "absolute"
           x: 2400
@@ -768,12 +776,12 @@ der Gemeinde Groß Plasten"
         text: "VORENTWURF\n
 SATZUNG DER GEMEINDE\n
 GROß PLASTEN\n
-ÜBER DEN BEBAUUNGSPLAN\n 
+ÜBER DEN VORHABENSBEZOGENER BEBAUUNGSPLAN\n 
 NR: 6 „Solarpark am Devener Weg“"
         position:
           type: "absolute"
           x: 2590
-          y: 248
+          y: 265
         style: "satzungstext"  # Style can include width for text wrapping
       # Note: Biewports don't get replaced even if updateDxf is true, only their properties get udpated (no the dimensions)
       # NO Text Inserts
@@ -782,7 +790,7 @@ NR: 6 „Solarpark am Devener Weg“"
         targetLayer: "Plantext"
         updateDxf: true
         paperspace: true  # Add this to place text in paper space
-        text: "Entwurf: Vorhabensbezogener Bebauungsplan Nr. 5 „Solarpark am Spargelberg“
+        text: "Vorentwurf: Vorhabensbezogener Bebauungsplan Nr. 5 „Solarpark am Spargelberg“
 der Gemeinde Groß Plasten"
         position:
           type: "absolute"
@@ -793,7 +801,7 @@ der Gemeinde Groß Plasten"
         targetLayer: "Plantext"
         updateDxf: true
         paperspace: true  # Add this to place text in paper space
-        text: "Teil A: Planzeichnung i. M. 1:1.000"
+        text: "Teil A: Planzeichnung i. M. 1:1.500"
         position:
           type: "absolute"
           x: 3650
@@ -803,7 +811,7 @@ der Gemeinde Groß Plasten"
         targetLayer: "Plantext"
         updateDxf: true
         paperspace: true  # Add this to place text in paper space
-        text: "Übersichtskarte i. M. 1:5.000"
+        text: "Übersichtskarte i. M. 1:30.000"
         position:
           type: "absolute"
           x: 4400
@@ -817,12 +825,12 @@ der Gemeinde Groß Plasten"
         text: "VORENTWURF\n
 SATZUNG DER GEMEINDE\n
 GROß PLASTEN\n
-ÜBER DEN BEBAUUNGSPLAN\n 
-NR: 6 „Solarpark am Devener Weg“"
+ÜBER DEN VORHABENSBEZOGENEN BEBAUUNGSPLAN\n 
+NR: 5 „Solarpark am Spargelberg“"
         position:
           type: "absolute"
           x: 4590
-          y: 248
+          y: 265
         style: "satzungstext"  # Style can include width for text wrapping
       # S Text Inserts
       # --------------
@@ -830,7 +838,7 @@ NR: 6 „Solarpark am Devener Weg“"
         targetLayer: "Plantext"
         updateDxf: true
         paperspace: true  # Add this to place text in paper space
-        text: "Entwurf: Vorhabensbezogener Bebauungsplan Nr. 7 „Solarpark an der Straße nach Rockow“
+        text: "Vorentwurf: Vorhabensbezogener Bebauungsplan Nr. 7 „Solarpark an der Straße nach Rockow“
 der Gemeinde Groß Plasten"
         position:
           type: "absolute"
@@ -841,7 +849,7 @@ der Gemeinde Groß Plasten"
         targetLayer: "Plantext"
         updateDxf: true
         paperspace: true  # Add this to place text in paper space
-        text: "Teil A: Planzeichnung i. M. 1:1.000"
+        text: "Teil A: Planzeichnung i. M. 1:1.500"
         position:
           type: "absolute"
           x: 5650
@@ -851,7 +859,7 @@ der Gemeinde Groß Plasten"
         targetLayer: "Plantext"
         updateDxf: true
         paperspace: true  # Add this to place text in paper space
-        text: "Übersichtskarte i. M. 1:5.000"
+        text: "Übersichtskarte i. M. 1:30.000"
         position:
           type: "absolute"
           x: 6400
@@ -865,12 +873,12 @@ der Gemeinde Groß Plasten"
         text: "VORENTWURF\n
 SATZUNG DER GEMEINDE\n
 GROß PLASTEN\n
-ÜBER DEN BEBAUUNGSPLAN\n 
-NR: 6 „Solarpark am Devener Weg“"
+ÜBER DEN VORHABENSBEZOGENEN BEBAUUNGSPLAN\n 
+NR: 7 „Solarpark an der Straße nach Rockow“"
         position:
           type: "absolute"
           x: 6590
-          y: 248
+          y: 265
         style: "satzungstext"  # Style can include width for text wrapping  
     viewports:
     #   - name: MainView
@@ -998,7 +1006,7 @@ NR: 6 „Solarpark am Devener Weg“"
           x: 356092
           y: 5935489
         # customScale: 0.5
-        scale: 1.25
+        scale: 1.5
         frozenLayers:
           - Geltungsbereich Hatch NW
           - Geltungsbereich Hatch S
@@ -1054,7 +1062,7 @@ NR: 6 „Solarpark am Devener Weg“"
           x: 358168
           y: 5935944
         # customScale: 0.5
-        scale: 1
+        scale: 1.5
         frozenLayers:
           - Geltungsbereich Hatch NO
           - Geltungsbereich Hatch S
@@ -1110,7 +1118,7 @@ NR: 6 „Solarpark am Devener Weg“"
           x: 357643
           y: 5932185
         # customScale: 0.5
-        scale: 1
+        scale: 1.5
         frozenLayers:
           - Geltungsbereich Hatch NO
           - Geltungsbereich Hatch S
@@ -1204,8 +1212,10 @@ NR: 6 „Solarpark am Devener Weg“"
             geometryTypes:
               - Polygon
       - name: Baufeld Label Points
+        type: "points"
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/baufeld_label_points.shp"
       - name: Baum Points
+        type: points
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/baum_points.shp"
       - name: Flur
         updateDxf: true
