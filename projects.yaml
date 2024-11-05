@@ -653,16 +653,16 @@ projects:
         blockName: "Sonstiges Sondergebiet EBS"
         scale: 6.0
         rotation: 0
-        sourceLayer: "Baufeld Label Points"
         position:
+          sourceLayer: "Baufeld Label Points"
           type: "points"  # Options: centroid, center, random
       - name: "GRZ Label"
         updateDxf: true
         blockName: "GRZ"
         scale: 4.0
         rotation: 0
-        sourceLayer: "Baufeld Label Points"
         position:
+          sourceLayer: "Baufeld Label Points"
           type: "points"
           offset:
             x: 0
@@ -670,15 +670,15 @@ projects:
       - name: "Bäume Ausserhalb"
         updateDxf: true
         blockName: "Baum"
-        sourceLayer: "Baum Points"
         position:
+          sourceLayer: "Baum Points"
           type: "points"
       - name: "Gesetzlich geschütztes Biotop Symbol"
         updateDxf: true
         blockName: "Gesetzlich geschütztes Biotop"
-        sourceLayer: Geschütze Biotope 2
         position:
-          type: "centroid"
+          sourceLayer: Geschütze Biotope 2
+          type: "polygon"
       # NW Block Inserts
       # --------------
       - name: "NW PBS Logo"
