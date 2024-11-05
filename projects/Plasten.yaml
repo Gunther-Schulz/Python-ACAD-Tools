@@ -1698,31 +1698,6 @@ geomLayers:
           - Biotope
           - Biotoppuffer
       - type: dissolve
-  # - name: Baufeld
-  #   updateDxf: true
-  #   close: true
-  #   viewports:
-  #     - name: WorkView
-  #       style: baufeld
-  #   operations:
-  #     - type: copy
-  #       layers:
-  #         - Geltungsbereich NW
-  #         - Geltungsbereich NO
-  #         - Geltungsbereich S
-  #     - type: difference
-  #       # useBufferTrick: true
-  #       reverseDifference: false
-  #       operations:
-  #         - type: dissolve
-  #           layers:
-  #             - Ausgleichsfläche Gesamt
-  #             - Biotope
-  #             - Biotoppuffer
-  #     - type: filterGeometry
-  #       minArea: 200
-  #       geometryTypes:
-  #         - Polygon
   - name: Baufeld Schraffur
     updateDxf: true
     style: baufeld
@@ -1860,19 +1835,19 @@ geomLayers:
           - bounds
         decimalPlaces:
           area: 0
-  # #     - type: wmts
-  # #       url: "https://www.geodaten-mv.de/dienste/dop_wmts/wmts/1.0.0/WMTSCapabilities.xml"
-  # #       layer: "mv_dop"
-  # #       # zoom: "10"
-  # #       proj: "ETRS89UTM33"
-  # #       targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/DOP"
-  # #       layers:
-  # #         - Geltungsbereich NW
-  # #         - Geltungsbereich NO
-  # #         - Geltungsbereich S
-  # #       buffer: 200
-  # #       stitchTiles: true
-  # #       # overwrite: true
+  #     - type: wmts
+  #       url: "https://www.geodaten-mv.de/dienste/dop_wmts/wmts/1.0.0/WMTSCapabilities.xml"
+  #       layer: "mv_dop"
+  #       # zoom: "10"
+  #       proj: "ETRS89UTM33"
+  #       targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/DOP"
+  #       layers:
+  #         - Geltungsbereich NW
+  #         - Geltungsbereich NO
+  #         - Geltungsbereich S
+  #       buffer: 200
+  #       stitchTiles: true
+  #       # overwrite: true
   # - name: WMTS Basemap
   #   # updateDxf: true
   #   operations:
@@ -1889,17 +1864,17 @@ geomLayers:
   #       buffer: 2000
   #       stitchTiles: true
   # - name: Contour
-  # #   updateDxf: true
-  # #   style:
-  # #     color: white
-  # #     locked: false
-  # #   label: elevation
-  # #   operations:
-  # #     - type: contour
-  # #       url: "https://www.geodaten-mv.de/dienste/dgm_atom?type=dataset&id=df758744-b2a1-4d39-b34c-9ec5bf9b4372"
-  # #       layers:
-  # #         - Geltungsbereich NW
-  # #       buffer: 1000
+  #   updateDxf: true
+  #   style:
+  #     color: white
+  #     locked: false
+  #   label: elevation
+  #   operations:
+  #     - type: contour
+  #       url: "https://www.geodaten-mv.de/dienste/dgm_atom?type=dataset&id=df758744-b2a1-4d39-b34c-9ec5bf9b4372"
+  #       layers:
+  #         - Geltungsbereich NW
+  #       buffer: 1000
   - name: WMS Gebäude
     # updateDxf: true
     operations:
