@@ -1,0 +1,305 @@
+viewports:
+#   - name: MainView
+#     updateDxf: true
+#     color: "magenta"
+#     topLeft:
+#       x: 65
+#       y: 914
+#     height: 368
+#     width: 535
+#     viewCenter:
+#       x: 356092
+#       y: 5935489
+#     customScale: 0.5
+#     frozenLayers:
+#       - Geltungsbereich Hatches
+#       - WMTS Basemap
+#     # lockZoom: true
+#   - name: MainView2
+#     updateDxf: true
+#     color: "magenta"
+#     topLeft:
+#       x: 65
+#       y: -776.5
+#     height: 653
+#     width: 720
+#     viewCenter:
+#       x: 358163
+#       y: 5935966
+#     customScale: 0.5
+#     frozenLayers:
+#       - Geltungsbereich Hatches
+#       - WMTS Basemap
+#     # lockZoom: true
+#   - name: MainView3
+#     updateDxf: true
+#     color: "magenta"
+#     topLeft:
+#       x: 1780
+#       y: -776.5
+#     height: 653
+#     width: 720
+#     viewCenter:
+#       x: 357645
+#       y: 5932178
+#     customScale: 0.5
+#     frozenLayers:
+#       - Geltungsbereich Hatches
+#       - WMTS Basemap
+#     # lockZoom: true
+#   - name: LegendView
+#     updateDxf: true
+#     color: "magenta"
+#     topLeft:
+#       x: 817
+#       y: 842
+#     height: 700
+#     width: 180
+#     viewTopLeft:
+#       x: 367838
+#       y: 5942625
+#     frozenLayers:
+#       - WMTS Basemap
+#     # scale: 2
+#     # customScale: 0.5
+#     lockZoom: true
+#   - name: Übersichtskarte
+#     updateDxf: true
+#     color: "magenta"
+#     topLeft:
+#       x: 705
+#       y: 686
+#     height: 366
+#     width: 181
+#     viewCenter:
+#       x: 357129
+#       y: 5934148
+#     customScale: 0.05
+#     visibleLayers:
+#       - Geltungsbereich NW
+#       - Geltungsbereich NO
+#       - Geltungsbereich S
+#       - Geltungsbereich Hatches
+#       - WMTS Basemap
+#     # lockZoom: true
+  - name: WorkView
+    updateDxf: true
+    color: "magenta"
+    center:
+      x: 780
+      y: 2000
+    height: 653
+    width: 720
+    viewCenter:
+      x: 356027
+      y: 5935564
+    frozenLayers:
+      - WMTS Basemap
+      - Geltungsbereich Hatches
+  - name: WorkView2
+    updateDxf: true
+    color: "magenta"
+    center:
+      x: 1780
+      y: 2000
+    height: 653
+    width: 720
+    viewCenter:
+      x: 356027
+      y: 5935564
+    frozenLayers:
+      - WMTS Basemap
+      - Geltungsbereich Hatches
+  # NW Map Viewports
+  # --------------
+  - name: MapViewportNW
+    updateDxf: true
+    color: "magenta"
+    topLeft:
+      x: 1651
+      y: 790
+    height: 630
+    width: 720
+    viewCenter:
+      x: 356092
+      y: 5935489
+    # customScale: 0.5
+    scale: 1.5
+    frozenLayers:
+      - Geltungsbereich Hatch NW
+      - Geltungsbereich Hatch S
+      - Geltungsbereich Hatch NO
+      - WMTS Basemap
+    # lockZoom: true
+  - name: LegendViewportNW
+    updateDxf: true
+    color: "magenta"
+    topLeft:
+      x: 2396
+      y: 857
+    height: 432
+    width: 180
+    viewTopLeft:
+      x: 368330
+      y: 5942622
+    frozenLayers:
+      - WMTS Basemap
+    # scale: 2
+    # customScale: 0.5
+    lockZoom: true
+  - name: ÜbersichtskarteNW
+    updateDxf: true
+    color: "magenta"
+    topLeft:
+      x: 2400
+      y: 385
+    height: 163
+    width: 172
+    viewCenter:
+      x: 356028
+      y: 5935564
+    scale: 30
+    visibleLayers:
+      - Geltungsbereich NW
+      # - Geltungsbereich NO
+      # - Geltungsbereich S
+      - Geltungsbereich Hatch NW
+      - WMTS Basemap
+    # lockZoom: true
+  # NO Map Viewports
+  # --------------
+  - name: MapViewportNO
+    updateDxf: true
+    color: "magenta"
+    topLeft:
+      x: 3651
+      y: 790
+    height: 630
+    width: 720
+    viewCenter:
+      x: 358168
+      y: 5935944
+    # customScale: 0.5
+    scale: 1.5
+    frozenLayers:
+      - Geltungsbereich Hatch NO
+      - Geltungsbereich Hatch S
+      - Geltungsbereich Hatch NW
+      - WMTS Basemap
+    # lockZoom: true
+  - name: LegendViewportNO
+    updateDxf: true
+    color: "magenta"
+    topLeft:
+      x: 4396
+      y: 857
+    height: 450
+    width: 180
+    viewTopLeft:
+      x: 368830
+      y: 5942622
+    frozenLayers:
+      - WMTS Basemap
+    # scale: 2
+    # customScale: 0.5
+    lockZoom: true
+  - name: ÜbersichtskarteNO
+    updateDxf: true
+    color: "magenta"
+    topLeft:
+      x: 4400
+      y: 385
+    height: 163
+    width: 172
+    viewCenter:
+      x: 358132
+      y: 5935986
+    scale: 30
+    visibleLayers:
+      - Geltungsbereich NO
+      # - Geltungsbereich NW
+      # - Geltungsbereich S
+      - Geltungsbereich Hatch NO
+      - WMTS Basemap
+    # lockZoom: true
+  # S Map Viewports
+  # --------------
+  - name: MapViewportS
+    updateDxf: true
+    color: "magenta"
+    topLeft:
+      x: 5651
+      y: 790
+    height: 630
+    width: 720
+    viewCenter:
+      x: 357643
+      y: 5932185
+    # customScale: 0.5
+    scale: 1.5
+    frozenLayers:
+      - Geltungsbereich Hatch NO
+      - Geltungsbereich Hatch S
+      - Geltungsbereich Hatch NW
+      - WMTS Basemap
+    # lockZoom: true
+  - name: LegendViewportS
+    updateDxf: true
+    color: "magenta"
+    topLeft:
+      x: 6396
+      y: 857
+    height: 450
+    width: 180
+    viewTopLeft:
+      x: 369330
+      y: 5942622
+    frozenLayers:
+      - WMTS Basemap
+    # scale: 2
+    # customScale: 0.5
+    lockZoom: true
+  - name: ÜbersichtskarteS
+    updateDxf: true
+    color: "magenta"
+    topLeft:
+      x: 6400
+      y: 385
+    height: 163
+    width: 172
+    viewCenter:
+      x: 357673
+      y: 5932189
+    scale: 30
+    visibleLayers:
+      - Geltungsbereich S
+      - Geltungsbereich Hatch S
+      - WMTS Basemap
+    # lockZoom: true
+#   - name: Anteilige Flurstücksgrößen innerhalb Geltungsbereich Nordwesten in Plasten
+#     type: area
+#     baseLayer: Parcel
+#     coverLayer: Geltungsbereich NW
+#     output:
+#       format: csv
+#       file: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Ausgabe Karten und Daten/ZAV/areas_geltungsbereich_nw_by_parcel"
+#     includeLabels: true
+#     includeTotalArea: true
+#   - name: Anteilige Flurstücksgrößen innerhalb Geltungsbereich Nordosten in Plasten
+#     type: area
+#     baseLayer: Parcel
+#     coverLayer: Geltungsbereich NO
+#     output:
+#       format: csv
+#       file: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Ausgabe Karten und Daten/ZAV/areas_geltungsbereich_no_by_parcel"
+#     includeLabels: true
+#     includeTotalArea: true
+#   - name: Anteilige Flurstücksgrößen innerhalb Geltungsbereich Süden in Plasten
+#     type: area
+#     baseLayer: Parcel
+#     coverLayer: Geltungsbereich S
+#     output:
+#       format: csv
+#       file: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Ausgabe Karten und Daten/ZAV/areas_geltungsbereich_s_by_parcel"
+#     includeLabels: true
+#     includeTotalArea: true

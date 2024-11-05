@@ -1,0 +1,855 @@
+geomLayers:
+  - name: Baufeld
+    updateDxf: true
+    close: true
+    viewports:
+      - name: WorkView
+        style: baufeld
+    operations:
+      - type: copy
+        layers:
+          - Geltungsbereich NW
+          - Geltungsbereich NO
+          - Geltungsbereich S
+      - type: difference
+        # useBufferTrick: true
+        reverseDifference: false
+        operations:
+          - type: dissolve
+            layers:
+              - Ausgleichsfläche Gesamt
+              - Biotope
+              - Biotoppuffer
+      - type: filterGeometry
+        minArea: 200
+        geometryTypes:
+          - Polygon
+  - name: Baufeld Label Points
+    type: "points"
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/baufeld_label_points.shp"
+  - name: Baum Points
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/baum_points.shp"
+  - name: Flur
+    updateDxf: true
+    close: true
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/flur.shp"
+    label: flurname
+    linetypeScale: 0.2
+    linetypeGeneration: true
+    style: flurgrenze
+    viewports:
+      - name: WorkView
+        style: flurWorkView
+  - name: Parcel
+    # updateDxf: true Don't enable. Moved Numbers already in DXF
+    close: true
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/parcel.shp"
+    label: label
+    style: parcel
+    viewports:
+      - name: WorkView
+        style: parcelWorkView
+  - name: Gemarkung
+    updateDxf: true
+    close: true
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/gemarkung.shp"
+    label: gmkname
+    linetypeGeneration: true
+    style: gemarkungsgrenze
+    viewports:
+      - name: WorkView
+        style: gemarkungWorkView
+  - name: Gemeinde
+    updateDxf: true
+    close: true
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/gemeinde.shp"
+    label: gen
+    # linetypeScale: 0.2
+    linetypeGeneration: true
+    style: gemeindegrenze
+    viewports:
+      - name: WorkView
+        style: gemeindeWorkView
+  - name: Grünfläche Input 
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/grünfläche_input_2.shp"
+  - name: Wald
+    updateDxf: true
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/wald.shp"
+    close: true
+    viewports:
+      - name: WorkView
+        style: waldWorkView
+    operations:
+      - type: dissolve
+  - name: Wald Schraffur
+    updateDxf: true
+    style: wald
+    viewports:
+      - name: WorkView
+        style: waldWorkView
+    applyHatch:
+      layers:
+        - Wald
+  - name: Biotope Input
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/biotope.shp"
+  - name: Exclude
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/exclude.shp"
+  # - name: Exclude Acad
+  #   updateDxf: false
+  #   dxfLayer: "Exclude Acad"
+  - name: Baumabstand Puffer
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/baum_abstand.shp"
+    operations:
+      - type: buffer
+        distance: 5
+  - name: Geschütze Biotope
+    # updateDxf: true
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/gesch_biotope.shp"
+  - name: Geschütze Biotope 2
+    updateDxf: true
+    # linetypeScale: 0.2
+    linetypeGeneration: true
+    style: gesGeschuetzesBiotop
+    operations:
+      - type: buffer
+        layers:
+          - Geschütze Biotope
+        distance: 0.5
+  - name: FG Buffer
+    operations:
+      - type: buffer
+        distance: 5
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/FG.shp"
+  - name: Geltungsbereich NW
+    updateDxf: true
+    style: geltungsbereich
+    operations:
+      - type: copy
+        layers:
+          - name: Parcel
+            values:
+              - "1"
+              - "2"
+              - "4"
+              - "6"
+              - "7"
+              - "14"
+      - type: filter
+        layers:
+          - name: Flur
+            values:
+              - "Flur 1"
+          - name: Gemarkung
+            values:
+              - "Groß Plasten"
+          - name: Gemeinde
+            values:
+              - "Groß Plasten"
+      - type: difference
+        layers:
+          - Wald
+          - Baumabstand Puffer
+          - Exclude
+      - type: report
+        outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/geltungsbereich_nw_report.json"
+        calculate:
+          - area
+          - perimeter
+          - centroid
+          - bounds
+        decimalPlaces:
+          area: 0
+      - type: dissolve
+  - name: Geltungsbereich NW 2
+    updateDxf: true
+    linetypeScale: 1
+    style: geltungsbereich_2
+    operations:
+      - type: buffer
+        layers:
+          - name: Geltungsbereich NW
+        distance: 2
+  - name: Geltungsbereich Hatch NW
+    updateDxf: true
+    style: geltungsbereichHatches
+    applyHatch:
+      layers:
+        - Geltungsbereich NW
+  - name: Geltungsbereich Hatch NO
+    updateDxf: true
+    style: geltungsbereichHatches
+    applyHatch:
+      layers:
+        - Geltungsbereich NO
+  - name: Geltungsbereich Hatch S
+    updateDxf: true
+    style: geltungsbereichHatches
+    applyHatch:
+      layers:
+        - Geltungsbereich S
+  - name: Geltungsbereich NO
+    updateDxf: true
+    style: geltungsbereich
+    close: true
+    operations:
+      - type: copy
+        layers:
+          - name: Parcel
+            values:
+              - "24/8"
+              - "24/9"
+      - type: filter
+        layers:
+          - name: Flur
+            values:
+              - "Flur 1"
+          - name: Gemarkung
+            values:
+              - "Groß Plasten"
+          - name: Gemeinde
+            values:
+              - "Groß Plasten"
+      - type: difference
+        useBufferTrick: true
+        layers:
+          - Wald
+          - Baumabstand Puffer
+          - Exclude
+      - type: report
+        outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/geltungsbereich_no_report.json"
+        calculate:
+          - area
+          - perimeter
+          - centroid
+          - bounds
+        decimalPlaces:
+          area: 0
+      - type: dissolve
+  - name: Geltungsbereich NO 2
+    updateDxf: true
+    linetypeScale: 1
+    style: geltungsbereich_2
+    operations:
+      - type: buffer
+        layers:
+          - name: Geltungsbereich NO
+        distance: 2
+  - name: Geltungsbereich S
+    updateDxf: true
+    style: geltungsbereich
+    close: true
+    operations:
+      - type: copy
+        layers:
+          - name: Parcel
+            values:
+              - "41/1"
+      - type: filter
+        layers:
+          - name: Flur
+            values:
+              - "Flur 2"
+          - name: Gemarkung
+            values:
+              - "Klein Plasten"
+          - name: Gemeinde
+            values:
+              - "Groß Plasten"
+      - type: difference
+        layers:
+          - Wald
+          - Baumabstand Puffer
+          - Exclude
+      - type: report
+        outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/geltungsbereich_s_report.json"
+        calculate:
+          - area
+          - perimeter
+          - centroid
+          - bounds
+        decimalPlaces:
+          area: 0
+      - type: dissolve
+  - name: Geltungsbereich S 2
+    updateDxf: true
+    linetypeScale: 1
+    style: geltungsbereich_2
+    operations:
+      - type: buffer
+        layers:
+          - name: Geltungsbereich S
+        distance: 2
+  - name: Waldabstand
+    operations:
+      - type: buffer
+        joinStyle: mitre
+        layers:
+          - Wald
+        distance: 30
+      - type: intersection
+        layers:
+          - Geltungsbereich NW
+          - Geltungsbereich NO
+          - Geltungsbereich S
+      - type: filterGeometry
+        minArea: 200
+  - name: Biotope
+    viewports:
+      - name: WorkView
+        style: biotopWorkView
+    operations:
+      - type: dissolve
+        layers:
+          - Biotope Input
+          - Geschütze Biotope
+  - name: Biotope Ausserhalb Geltungsbereich
+    updateDxf: true
+    operations:
+      - type: copy
+        layers:
+          - Biotope
+      - type: difference
+        layers:
+          - Geltungsbereich NW
+          - Geltungsbereich NO
+          - Geltungsbereich S
+  - name: Biotope Innerhalb Geltungsbereich
+    operations:
+      - type: copy
+        layers:
+          - Biotope
+      - type: intersection
+        layers:
+          - Geltungsbereich NW
+          - Geltungsbereich NO
+          - Geltungsbereich S
+  - name: Biotope Innerhalb Geltungsbereich Grünfläche
+    updateDxf: true
+    operations:
+      - type: copy
+        layers:
+          - Biotope Innerhalb Geltungsbereich
+      - type: buffer
+        distance: -3
+  - name: Biotope Innerhalb Geltungsbereich Schutzfläche
+    updateDxf: true
+    operations:
+      - type: copy
+        layers:
+          - Biotope Innerhalb Geltungsbereich
+      - type: difference
+        layers:
+          - Biotope Innerhalb Geltungsbereich Grünfläche
+  - name: Biotope Innerhalb Geltungsbereich Grünfläche Schraffur
+    updateDxf: true
+    style: grünfläche
+    applyHatch:
+      layers:
+        - Biotope Innerhalb Geltungsbereich Grünfläche
+  - name: Biotope Innerhalb Geltungsbereich Schutzfläche Schraffur
+    updateDxf: true
+    style: schutzflächeumgrenzung
+    applyHatch:
+      layers:
+        - Biotope Innerhalb Geltungsbereich Schutzfläche
+  - name: Biotop Report NW
+    operations:
+      - type: copy
+        layers:
+          - Biotope Innerhalb Geltungsbereich
+      - type: intersection
+        layers:
+          - Geltungsbereich NW
+      - type: report
+        outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/biotop_report_nw.json"
+        calculate:
+          - area
+          - perimeter
+          - centroid
+          - bounds
+        decimalPlaces:
+          area: 0
+  - name: Biotop Report S
+    operations:
+      - type: copy
+        layers:
+          - Biotope Innerhalb Geltungsbereich
+      - type: intersection
+        layers:
+          - Geltungsbereich S
+      - type: report
+        outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/biotop_report_s.json"
+        calculate:
+          - area
+          - perimeter
+          - centroid
+          - bounds
+        decimalPlaces:
+          area: 0
+  - name: Ausgleichsfläche Gesamt
+    viewports:
+      - name: WorkView
+        style: grünflächeWorkView
+    operations:
+      - type: copy
+        layers:
+          - Grünfläche Input 
+          - Waldabstand
+          - Baumabstand Puffer
+          - FG Buffer
+          # - Biotoppuffer
+          # - Biotope
+      - type: dissolve
+      - type: intersection
+        layers:
+          - Geltungsbereich NW
+          - Geltungsbereich NO
+          - Geltungsbereich S
+  - name: Ausgleichsfläche Report NW
+    operations:
+      - type: copy
+        layers:
+          - Ausgleichsfläche Gesamt
+      - type: intersection
+        layers:
+          - Geltungsbereich NW
+      - type: report
+        outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/grünfläche_schutzfläche_report_nw.json"
+        calculate:
+          - area
+          - perimeter
+          - centroid
+          - bounds
+        decimalPlaces:
+          area: 0
+  - name: Ausgleichsfläche Report NO
+    operations:
+      - type: copy
+        layers:
+          - Ausgleichsfläche Gesamt
+      - type: intersection
+        layers:
+          - Geltungsbereich NO
+      - type: report
+        outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/grünfläche_schutzfläche_report_no.json"
+        calculate:
+          - area
+          - perimeter
+          - centroid
+          - bounds
+        decimalPlaces:
+          area: 0
+  - name: Ausgleichsfläche Report S
+    operations:
+      - type: copy
+        layers:
+          - Ausgleichsfläche Gesamt
+      - type: intersection
+        layers:
+          - Geltungsbereich S
+      - type: report
+        outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/grünfläche_schutzfläche_report_s.json"
+        calculate:
+          - area
+          - perimeter
+          - centroid
+          - bounds
+        decimalPlaces:
+          area: 0
+  - name: Ausgleich Grünfläche
+    updateDxf: true
+    viewports:
+      - name: WorkView
+        style: grünflächeWorkView
+    operations:
+      - type: buffer
+        layers:
+          - Ausgleichsfläche Gesamt
+        distance: -3
+    # bluntAngles:
+    #   angleThreshold: 25  # Angles smaller than this will be blunted
+    #   distance: 10.0  # Distance to move the vertex along the angle bisector
+  - name: Ausgleich Grünfläche Schraffur
+    updateDxf: true
+    style: grünfläche
+    applyHatch:
+      layers:
+        - Ausgleich Grünfläche
+  - name: Ausgleich Schutzflächeumgrenzung
+    updateDxf: true
+    viewports:
+      - name: WorkView
+        style: schutzflächeWorkView
+    operations:
+      - type: copy
+        layers:
+          - Ausgleichsfläche Gesamt
+      - type: difference
+        layers:
+          - Ausgleich Grünfläche
+      - type: intersection
+        layers:
+          - Geltungsbereich NW
+          - Geltungsbereich NO
+          - Geltungsbereich S
+      # - type: filterGeometry
+      #   minArea: 200
+  - name: Biotoppuffer
+    updateDxf: true
+    viewports:
+      - name: WorkView
+        style:
+          color: "brilliant-green"
+          linetype: "ACAD_ISO02W100"
+    operations:
+      - type: buffer
+        layers:
+          - Biotope
+        distance: 10
+      - type: difference
+        operations:
+          - type: dissolve
+            layers:
+              - Biotope
+              - Ausgleichsfläche Gesamt
+      - type: intersection
+        layers:
+          - Geltungsbereich NW
+          - Geltungsbereich NO
+          - Geltungsbereich S
+  - name: Biotoppuffer Schraffur
+    updateDxf: true
+    style: grünfläche
+    applyHatch:
+      layers:
+        - Biotoppuffer
+  - name: Biotoppuffer Report NW
+    operations:
+      - type: copy
+        layers:
+          - Biotoppuffer
+      - type: intersection
+        layers:
+          - Geltungsbereich NW
+      - type: report
+        outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/biotoppuffer_report_nw.json"
+        calculate:
+          - area
+          - perimeter
+          - centroid
+          - bounds
+        decimalPlaces:
+          area: 0
+  - name: Biotoppuffer Report S
+    operations:
+      - type: copy
+        layers:
+          - Biotoppuffer
+      - type: intersection
+        layers:
+          - Geltungsbereich S
+      - type: report
+        outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/biotoppuffer_report_s.json"
+        calculate:
+          - area
+          - perimeter
+          - centroid
+          - bounds
+        decimalPlaces:
+          area: 0
+  - name: Schutzflächeumgrenzung T-Symbol Temp
+    # updateDxf: true
+    close: false
+    plot: false
+    operations:
+      - type: copy
+        layers:
+          - Ausgleichsfläche Gesamt
+          - Biotope Innerhalb Geltungsbereich
+      - type: dissolve
+      - type: intersection
+        layers:
+          - Geltungsbereich NW
+          - Geltungsbereich NO
+          - Geltungsbereich S
+      - type: filterGeometry
+        minArea: 200
+  # # - name: Schutzflächeumgrenzung T-Small Temp
+  # #   # updateDxf: true
+  # #   close: false
+  # #   plot: false
+  # #   operations:
+  # #     - type: copy
+  # #       layers:
+  # #         - Grünfläche
+  # #         - Schutzflächeumgrenzung
+  # #     - type: dissolve
+  # #     - type: intersection
+  # #       layers:
+  # #         - Geltungsbereich NW
+  # #         - Geltungsbereich NO
+  # #         - Geltungsbereich S
+  # #     - type: filterGeometry
+  # #       maxArea: 200
+  # #       minArea: 10
+  - name: Schutzflächeumgrenzung Schraffur
+    updateDxf: true
+    style: schutzflächeumgrenzung
+    applyHatch:
+      layers:
+        - Ausgleich Schutzflächeumgrenzung
+  - name: Baufeld Negative
+    operations:
+      - type: copy
+        layers:
+          - Ausgleichsfläche Gesamt
+          - Biotope
+          - Biotoppuffer
+      - type: dissolve
+  - name: Baufeld Schraffur
+    updateDxf: true
+    style: baufeld
+    applyHatch:
+      layers:
+        - Baufeld
+  - name: Baugrenze 2
+    updateDxf: true
+    style: baugrenze_2
+    close: true
+    operations:
+      - type: buffer
+        layers:
+          - Baugrenze
+        distance: -0.4
+  - name: Baugrenze
+    updateDxf: true
+    style: baugrenze
+    linetypeScale: 0.5
+    linetypeGeneration: true
+    close: true
+    operations:
+      - type: buffer
+        layers:
+          - Baufeld
+        distance: -3
+  - name: Baugrenze Report NW
+    operations:
+      - type: copy
+        layers:
+          - Baugrenze
+      - type: intersection
+        layers:
+          - Geltungsbereich NW
+      - type: report
+        outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/baugrenze_nw_report.json"
+        calculate:
+          - area
+          - perimeter
+          - centroid
+          - bounds
+        decimalPlaces:
+          area: 0
+  - name: Baugrenze Report NO
+    operations:
+      - type: copy
+        layers:
+          - Baugrenze
+      - type: intersection
+        layers:
+          - Geltungsbereich NO
+      - type: report
+        outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/baugrenze_no_report.json"
+        calculate:
+          - area
+          - perimeter
+          - centroid
+          - bounds
+        decimalPlaces:
+          area: 0
+  - name: Baugrenze Report S
+    operations:
+      - type: copy
+        layers:
+          - Baugrenze
+      - type: intersection
+        layers:
+          - Geltungsbereich S
+      - type: report
+        outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/baugrenze_s_report.json"
+        calculate:
+          - area
+          - perimeter
+          - centroid
+          - bounds
+        decimalPlaces:
+          area: 0
+  - name: Baufeldstreifen Report NW
+    operations:
+      - type: copy
+        layers:
+          - Baufeld
+      - type: difference
+        layers:
+          - Baugrenze
+      - type: intersection
+        layers:
+          - Geltungsbereich NW
+      - type: report
+        outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/baufeldstreifen_nw_report.json"
+        calculate:
+          - area
+          - perimeter
+          - centroid
+          - bounds
+        decimalPlaces:
+          area: 0
+  - name: Baufeldstreifen Report NO
+    operations:
+      - type: copy
+        layers:
+          - Baufeld
+      - type: difference
+        layers:
+          - Baugrenze
+      - type: intersection
+        layers:
+          - Geltungsbereich NO
+      - type: report
+        outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/baufeldstreifen_no_report.json"
+        calculate:
+          - area
+          - perimeter
+          - centroid
+          - bounds
+        decimalPlaces:
+          area: 0
+  - name: Baufeldstreifen Report S
+    operations:
+      - type: copy
+        layers:
+          - Baufeld
+      - type: difference
+        layers:
+          - Baugrenze
+      - type: intersection
+        layers:
+          - Geltungsbereich S
+      - type: report
+        outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/baufeldstreifen_s_report.json"
+        calculate:
+          - area
+          - perimeter
+          - centroid
+          - bounds
+        decimalPlaces:
+          area: 0
+  #     - type: wmts
+  #       url: "https://www.geodaten-mv.de/dienste/dop_wmts/wmts/1.0.0/WMTSCapabilities.xml"
+  #       layer: "mv_dop"
+  #       # zoom: "10"
+  #       proj: "ETRS89UTM33"
+  #       targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/DOP"
+  #       layers:
+  #         - Geltungsbereich NW
+  #         - Geltungsbereich NO
+  #         - Geltungsbereich S
+  #       buffer: 200
+  #       stitchTiles: true
+  #       # overwrite: true
+  # - name: WMTS Basemap
+  #   # updateDxf: true
+  #   operations:
+  #     - type: wmts
+  #       url: "https://sgx.geodatenzentrum.de/wmts_basemapde/1.0.0/WMTSCapabilities.xml"
+  #       layer: "de_basemapde_web_raster_farbe"
+  #       zoom: "10"
+  #       proj: "DE_EPSG_25833_ADV"
+  #       targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/Basemap"
+  #       layers:
+  #         - Geltungsbereich NW
+  #         - Geltungsbereich NO
+  #         - Geltungsbereich S
+  #       buffer: 2000
+  #       stitchTiles: true
+  # - name: Contour
+  #   updateDxf: true
+  #   style:
+  #     color: white
+  #     locked: false
+  #   label: elevation
+  #   operations:
+  #     - type: contour
+  #       url: "https://www.geodaten-mv.de/dienste/dgm_atom?type=dataset&id=df758744-b2a1-4d39-b34c-9ec5bf9b4372"
+  #       layers:
+  #         - Geltungsbereich NW
+  #       buffer: 1000
+  - name: WMS Gebäude
+    # updateDxf: true
+    operations:
+      - type: wms
+        # overwrite: true
+        url: "https://www.geodaten-mv.de/dienste/gebaeude_wms"
+        layer: "gebaeude"
+        imageTransparency: true
+        wmsOptions:
+          srs: "EPSG:25833"
+          format: "image/png"
+          # styles: ""  # Optional WMS style
+          # version: "1.3.0"  # WMS version
+          # transparent: true
+          # bgcolor: "0x0000FF" # Doesn't work somehow. It's black always.
+          # width: 4096
+          # height: 4096
+        targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/Gebäude"
+        layers:
+          - Geltungsbereich NW
+          - Geltungsbereich NO
+          - Geltungsbereich S
+        buffer: 500
+        postProcess:
+          retainIfColorPresent:
+            colors: ["#ff0000"]  # Images containing these colors will be made transparent
+            tolerance: 5  # Optional: color matching tolerance (0-255)                
+          colorMap:
+              "#ff0000": "#808080"  # Map red to grey
+          alphaColor: "#ffffff"  # Set white to fully transparent
+        #   alphaColor: "#000000"  # Set black to fully transparent
+        #   # tolerance: 30  # Increased tolerance to catch similar shades
+          grayscale: true
+        #   # removeText: true
+        stitchTiles: true
+  - name: WMS Höhenlinien
+    # updateDxf: true
+    operations:
+      - type: wms
+        # overwrite: true
+        url: "https://www.geodaten-mv.de/dienste/dgm_wms"
+        layer: "hohenlinien"
+        imageTransparency: true
+        wmsOptions:
+          srs: "EPSG:25833"
+          format: "image/png"
+          # styles: ""  # Optional WMS style
+          # version: "1.3.0"  # WMS version
+          # transparent: true
+          # bgcolor: "0x0000FF" # Doesn't work somehow. It's black always.
+          width: 4096
+          height: 4096
+        targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/Höhenlinien"
+        layers:
+          - Geltungsbereich NW
+          - Geltungsbereich NO
+          - Geltungsbereich S
+        buffer: 500
+        postProcess:
+        #   retainIfColorPresent:
+        #     colors: ["#ff0000"]  # Images containing these colors will be made transparent
+        #     tolerance: 5  # Optional: color matching tolerance (0-255)                
+        #   colorMap:
+        #       "#ff0000": "#808080"  # Map red to grey
+          alphaColor: "#ffffff"  # Set white to fully transparent
+        # #   alphaColor: "#000000"  # Set black to fully transparent
+        # #   # tolerance: 30  # Increased tolerance to catch similar shades
+        #   grayscale: true
+        # #   # removeText: true
+        # # stitchTiles: true

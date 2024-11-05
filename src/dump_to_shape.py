@@ -135,14 +135,12 @@ def dxf_to_shapefiles(dxf_path, output_folder):
     print(f"CRS source: {crs_source}")
 
 def load_project_config(project_name):
-    with open('projects.yaml', 'r') as file:
-        config = yaml.safe_load(file)
-    
-    for project in config['projects']:
-        if project['name'] == project_name:
-            return project
-    
-    return None
+    project_file = os.path.join('projects', f'{project_name}.yaml')
+    if not os.path.exists(project_file):
+        return None
+        
+    with open(project_file, 'r') as file:
+        return yaml.safe_load(file)
 
 def main():
     parser = argparse.ArgumentParser(description="Convert DXF layers to shapefiles with holes cut out by inner polygons")
