@@ -5,6 +5,7 @@ from src.utils import log_info, log_warning, log_error, resolve_path
 class ProjectLoader:
     def __init__(self, project_name: str):
         self.project_name = project_name
+        self.project_dir = os.path.join('projects', self.project_name)
         self.load_global_settings()
         self.load_project_settings()
         self.load_color_mapping()
@@ -17,15 +18,53 @@ class ProjectLoader:
             self.folder_prefix = data.get('folderPrefix', '')
             self.log_file = data.get('logFile', './log.txt')
 
+    def load_yaml_file(self, filename, required=True):
+        """Helper to load YAML files from project directory"""
+        filepath = os.path.join(self.project_dir, filename)
+        if os.path.exists(filepath):
+            with open(filepath, 'r') as file:
+                return yaml.safe_load(file)
+        elif required:
+            raise ValueError(f"Required config file not found: {filepath}")
+        return {}
+
     def load_project_settings(self):
-        """Load project specific settings from projects/[project_name].yaml"""
-        project_file = os.path.join('projects', f'{self.project_name}.yaml')
-        if not os.path.exists(project_file):
-            raise ValueError(f"Project file not found: {project_file}")
+        """Load project specific settings from modular config files"""
+        # First check if project directory exists
+        if not os.path.exists(self.project_dir):
+            # Try loading legacy single file
+            legacy_file = os.path.join('projects', f'{self.project_name}.yaml')
+            if os.path.exists(legacy_file):
+                with open(legacy_file, 'r') as file:
+                    self.project_settings = yaml.safe_load(file)
+            else:
+                raise ValueError(f"Neither project directory nor legacy file found for {self.project_name}")
+        else:
+            # Load main project settings
+            main_settings = self.load_yaml_file('project.yaml', required=True)
+            
+            # Load optional modular configs
+            legends = self.load_yaml_file('legends.yaml', required=False)
+            geom_layers = self.load_yaml_file('geom_layers.yaml', required=False)
+            viewports = self.load_yaml_file('viewports.yaml', required=False)
+            reports = self.load_yaml_file('reports.yaml', required=False)
+            block_inserts = self.load_yaml_file('block_inserts.yaml', required=False)
+            text_inserts = self.load_yaml_file('text_inserts.yaml', required=False)
+            path_arrays = self.load_yaml_file('path_arrays.yaml', required=False)
 
-        with open(project_file, 'r') as file:
-            self.project_settings = yaml.safe_load(file)
+            # Merge all configurations
+            self.project_settings = {
+                **main_settings,
+                'legends': legends.get('legends', []),
+                'geomLayers': geom_layers.get('geomLayers', []),
+                'viewports': viewports.get('viewports', []),
+                'reports': reports.get('reports', []),
+                'blockInserts': block_inserts.get('blockInserts', []),
+                'textInserts': text_inserts.get('textInserts', []),
+                'pathArrays': path_arrays.get('pathArrays', [])
+            }
 
+        # Process core settings
         self.crs = self.project_settings['crs']
         self.dxf_filename = resolve_path(self.project_settings['dxfFilename'], self.folder_prefix)
         self.template_dxf = resolve_path(self.project_settings.get('template', ''), self.folder_prefix) if self.project_settings.get('template') else None
@@ -71,7 +110,7 @@ class ProjectLoader:
             self.aci_to_name = {v: k for k, v in self.name_to_aci.items()}
 
     def load_styles(self):
-        """Load styles from styles.yaml"""
+        """Load styles from root styles.yaml"""
         try:
             with open('styles.yaml', 'r') as file:
                 style_data = yaml.safe_load(file)

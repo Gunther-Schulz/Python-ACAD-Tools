@@ -1,0 +1,131 @@
+textInserts:
+  # NW Text Inserts
+  # --------------
+  - name: "Main Title NW"
+    targetLayer: "Plantext"
+    updateDxf: true
+    paperspace: true  # Add this to place text in paper space
+    text: "Vorentwurf: Vorhabensbezogener Bebauungsplan Nr. 6 „Solarpark am Devener Weg“\nder Gemeinde Groß Plasten"
+    position:
+      type: "absolute"
+      x: 1650
+      y: 856
+    style: "mainTitle"  # Style can include width for text wrapping
+  - name: "Map Header NW"
+    targetLayer: "Plantext"
+    updateDxf: true
+    paperspace: true  # Add this to place text in paper space
+    text: "Teil A: Planzeichnung i. M. 1:1.500"
+    position:
+      type: "absolute"
+      x: 1650
+      y: 808
+    style: "mapHeader"  # Style can include width for text wrapping
+  - name: "Übersichtslarte Header NW"
+    targetLayer: "Plantext"
+    updateDxf: true
+    paperspace: true  # Add this to place text in paper space
+    text: "Übersichtskarte i. M. 1:30.000"
+    position:
+      type: "absolute"
+      x: 2400
+      y: 399
+    style: "übersichtskarteHeader"  # Style can include width for text wrapping
+  - name: "Satzungs NW"
+    targetLayer: "Plantext"
+    updateDxf: true
+    paperspace: true  # Add this to place text in paper space
+    justification: "CENTER" 
+    text: "VORENTWURF\nSATZUNG DER GEMEINDE\nGROß PLASTEN\nÜBER DEN VORHABENSBEZOGENER BEBAUUNGSPLAN\nNR: 6 „Solarpark am Devener Weg“"
+    position:
+      type: "absolute"
+      x: 2590
+      y: 265
+    style: "satzungstext"  # Style can include width for text wrapping
+  # Note: Biewports don't get replaced even if updateDxf is true, only their properties get udpated (no the dimensions)
+  # NO Text Inserts
+  # --------------
+  - name: "Main Title NO"
+    targetLayer: "Plantext"
+    updateDxf: true
+    paperspace: true  # Add this to place text in paper space
+    text: "Vorentwurf: Vorhabensbezogener Bebauungsplan Nr. 5 „Solarpark am Spargelberg“\nder Gemeinde Groß Plasten"
+    position:
+      type: "absolute"
+      x: 3650
+      y: 856
+    style: "mainTitle"  # Style can include width for text wrapping
+  - name: "Map Header NO"
+    targetLayer: "Plantext"
+    updateDxf: true
+    paperspace: true  # Add this to place text in paper space
+    text: "Teil A: Planzeichnung i. M. 1:1.500"
+    position:
+      type: "absolute"
+      x: 3650
+      y: 808
+    style: "mapHeader"  # Style can include width for text wrapping
+  - name: "Übersichtslarte Header NO"
+    targetLayer: "Plantext"
+    updateDxf: true
+    paperspace: true  # Add this to place text in paper space
+    text: "Übersichtskarte i. M. 1:30.000"
+    position:
+      type: "absolute"
+      x: 4400
+      y: 399
+    style: "übersichtskarteHeader"  # Style can include width for text wrapping
+  - name: "Satzungs NO"
+    targetLayer: "Plantext"
+    updateDxf: true
+    paperspace: true  # Add this to place text in paper space
+    justification: "CENTER" 
+    text: "VORENTWURF\nSATZUNG DER GEMEINDE\nGROß PLASTEN\nÜBER DEN VORHABENSBEZOGENEN BEBAUUNGSPLAN\nNR: 5 „Solarpark am Spargelberg“"
+    position:
+      type: "absolute"
+      x: 4590
+      y: 265
+    style: "satzungstext"  # Style can include width for text wrapping
+  # S Text Inserts
+  # --------------
+  - name: "Main Title S"
+    targetLayer: "Plantext"
+    updateDxf: true
+    paperspace: true  # Add this to place text in paper space
+    text: "Vorentwurf: Vorhabensbezogener Bebauungsplan Nr. 7 „Solarpark an der Straße nach Rockow“ der Gemeinde Groß Plasten"
+    position:
+      type: "absolute"
+      x: 5650
+      y: 856
+    style: "mainTitle"  # Style can include width for text wrapping
+  - name: "Map Header S"
+    targetLayer: "Plantext"
+    updateDxf: true
+    paperspace: true  # Add this to place text in paper space
+    text: "Teil A: Planzeichnung i. M. 1:1.500"
+    position:
+      type: "absolute"
+      x: 5650
+      y: 808
+    style: "mapHeader"  # Style can include width for text wrapping
+  - name: "Übersichtslarte Header S"
+    targetLayer: "Plantext"
+    updateDxf: true
+    paperspace: true  # Add this to place text in paper space
+    text: "Übersichtskarte i. M. 1:30.000"
+    position:
+      type: "absolute"
+      x: 6400
+      y: 399
+    style: "übersichtskarteHeader"  # Style can include width for text wrapping
+  - name: "Satzungs S"
+    targetLayer: "Plantext"
+    updateDxf: true
+    paperspace: true  # Add this to place text in paper space
+    justification: "CENTER" 
+    text: "VORENTWURF\nSATZUNG DER GEMEINDE\nGROß PLASTEN\nÜBER DEN VORHABENSBEZOGENEN BEBAUUNGSPLAN\nNR: 7 „Solarpark an der Straße nach Rockow“"
+    position:
+      type: "absolute"
+      x: 6590
+      y: 265
+    style: "satzungstext"  # Style can include width for text wrapping  
