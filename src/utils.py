@@ -138,65 +138,98 @@ def ensure_path_exists(path):
         log_warning(f"Directory does not exist: {directory}")
     return exists
 
-def create_sample_project(project_name):
-    """Creates a sample project file with basic settings."""
-    # Create projects directory if it doesn't exist
-    projects_dir = 'projects'
-    if not os.path.exists(projects_dir):
-        os.makedirs(projects_dir)
-    
-    # Create global settings if they don't exist
-    if not os.path.exists('projects.yaml'):
-        global_settings = {
-            'folderPrefix': '~/Documents/Projects',
-            'logFile': './log.txt',
-            'styles': {
-                'default': {
-                    'layer': {
-                        'color': 'white',
-                        'lineweight': 0.25
-                    }
-                },
-                'highlight': {
-                    'layer': {
-                        'color': 'red',
-                        'lineweight': 0.5
-                    }
-                }
-            }
-        }
-        with open('projects.yaml', 'w') as file:
-            yaml.dump(global_settings, file, default_flow_style=False)
-    
-    project_file = os.path.join(projects_dir, f'{project_name}.yaml')
-    
-    sample_project = {
-        'name': project_name,
+def create_sample_project(project_name: str) -> str:
+    """Create a new project with the modular directory structure and sample files"""
+    project_dir = os.path.join('projects', project_name)
+    os.makedirs(project_dir, exist_ok=True)
+
+    # Sample configurations for each module
+    project_yaml = {
         'crs': 'EPSG:25833',
-        'dxfFilename': f'data/{project_name.lower()}.dxf',
-        'dxfVersion': 'R2010',
+        'dxfFilename': 'output/project.dxf',
+        'template': 'templates/template.dxf',
         'exportFormat': 'dxf',
-        'shapefileOutputDir': 'output/shapefiles',
-        'dxfDumpOutputDir': 'output/dxf_dump',
-        'geomLayers': [
-            {
-                'name': 'Buildings',
-                'dxfLayer': 'BUILDINGS',
-                'style': {
-                    'color': 'red',
-                    'lineweight': 0.35
-                },
-                'operations': [
-                    {
-                        'type': 'buffer',
-                        'distance': 1.0
-                    }
-                ]
-            }
-        ]
+        'dxfVersion': 'R2010',
+        'shapefileOutputDir': 'output/shapefiles'
     }
-    
-    with open(project_file, 'w') as file:
-        yaml.dump(sample_project, file, default_flow_style=False)
-    
-    return project_file
+
+    geom_layers_yaml = {
+        'geomLayers': [{
+            'name': 'Sample Layer',
+            'shapeFile': 'input/sample.shp',
+            'style': 'sampleStyle',
+            'updateDxf': True
+        }]
+    }
+
+    legends_yaml = {
+        'legends': [{
+            'name': 'Sample Legend',
+            'position': {'x': 100, 'y': 100},
+            'items': [{'text': 'Sample Legend Item', 'style': 'legendStyle'}]
+        }]
+    }
+
+    viewports_yaml = {
+        'viewports': [{
+            'name': 'MainView',
+            'center': {'x': 0, 'y': 0},
+            'scale': 1000,
+            'rotation': 0
+        }]
+    }
+
+    block_inserts_yaml = {
+        'blockInserts': [{
+            'name': 'Sample Block',
+            'blockName': 'SampleBlock',
+            'updateDxf': True,
+            'position': {
+                'type': 'absolute',
+                'x': 0,
+                'y': 0
+            }
+        }]
+    }
+
+    text_inserts_yaml = {
+        'textInserts': [{
+            'name': 'Sample Text',
+            'targetLayer': 'Text',
+            'updateDxf': True,
+            'text': 'Sample Text',
+            'position': {
+                'type': 'absolute',
+                'x': 0,
+                'y': 0
+            }
+        }]
+    }
+
+    path_arrays_yaml = {
+        'pathArrays': [{
+            'name': 'Sample Array',
+            'blockName': 'ArrayBlock',
+            'spacing': 10,
+            'path': 'Sample Path Layer'
+        }]
+    }
+
+    # Write all configuration files
+    files_to_create = {
+        'project.yaml': project_yaml,
+        'geom_layers.yaml': geom_layers_yaml,
+        'legends.yaml': legends_yaml,
+        'viewports.yaml': viewports_yaml,
+        'block_inserts.yaml': block_inserts_yaml,
+        'text_inserts.yaml': text_inserts_yaml,
+        'path_arrays.yaml': path_arrays_yaml
+    }
+
+    for filename, content in files_to_create.items():
+        filepath = os.path.join(project_dir, filename)
+        with open(filepath, 'w') as f:
+            yaml.dump(content, f, default_flow_style=False, sort_keys=False, allow_unicode=True)
+
+    log_info(f"Created new project directory structure at: {project_dir}")
+    return project_dir
