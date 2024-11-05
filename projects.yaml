@@ -740,8 +740,7 @@ projects:
         targetLayer: "Plantext"
         updateDxf: true
         paperspace: true  # Add this to place text in paper space
-        text: "Vorentwurf: Vorhabensbezogener Bebauungsplan Nr. 6 „Solarpark am Devener Weg“
-der Gemeinde Groß Plasten"
+        text: "Vorentwurf: Vorhabensbezogener Bebauungsplan Nr. 6 „Solarpark am Devener Weg“\nder Gemeinde Groß Plasten"
         position:
           type: "absolute"
           x: 1650
@@ -772,11 +771,7 @@ der Gemeinde Groß Plasten"
         updateDxf: true
         paperspace: true  # Add this to place text in paper space
         justification: "CENTER" 
-        text: "VORENTWURF\n
-SATZUNG DER GEMEINDE\n
-GROß PLASTEN\n
-ÜBER DEN VORHABENSBEZOGENER BEBAUUNGSPLAN\n 
-NR: 6 „Solarpark am Devener Weg“"
+        text: "VORENTWURF\nSATZUNG DER GEMEINDE\nGROß PLASTEN\nÜBER DEN VORHABENSBEZOGENER BEBAUUNGSPLAN\nNR: 6 „Solarpark am Devener Weg“"
         position:
           type: "absolute"
           x: 2590
@@ -789,8 +784,7 @@ NR: 6 „Solarpark am Devener Weg“"
         targetLayer: "Plantext"
         updateDxf: true
         paperspace: true  # Add this to place text in paper space
-        text: "Vorentwurf: Vorhabensbezogener Bebauungsplan Nr. 5 „Solarpark am Spargelberg“
-der Gemeinde Groß Plasten"
+        text: "Vorentwurf: Vorhabensbezogener Bebauungsplan Nr. 5 „Solarpark am Spargelberg“\nder Gemeinde Groß Plasten"
         position:
           type: "absolute"
           x: 3650
@@ -821,11 +815,7 @@ der Gemeinde Groß Plasten"
         updateDxf: true
         paperspace: true  # Add this to place text in paper space
         justification: "CENTER" 
-        text: "VORENTWURF\n
-SATZUNG DER GEMEINDE\n
-GROß PLASTEN\n
-ÜBER DEN VORHABENSBEZOGENEN BEBAUUNGSPLAN\n 
-NR: 5 „Solarpark am Spargelberg“"
+        text: "VORENTWURF\nSATZUNG DER GEMEINDE\nGROß PLASTEN\nÜBER DEN VORHABENSBEZOGENEN BEBAUUNGSPLAN\nNR: 5 „Solarpark am Spargelberg“"
         position:
           type: "absolute"
           x: 4590
@@ -837,8 +827,7 @@ NR: 5 „Solarpark am Spargelberg“"
         targetLayer: "Plantext"
         updateDxf: true
         paperspace: true  # Add this to place text in paper space
-        text: "Vorentwurf: Vorhabensbezogener Bebauungsplan Nr. 7 „Solarpark an der Straße nach Rockow“
-der Gemeinde Groß Plasten"
+        text: "Vorentwurf: Vorhabensbezogener Bebauungsplan Nr. 7 „Solarpark an der Straße nach Rockow“ der Gemeinde Groß Plasten"
         position:
           type: "absolute"
           x: 5650
@@ -869,11 +858,7 @@ der Gemeinde Groß Plasten"
         updateDxf: true
         paperspace: true  # Add this to place text in paper space
         justification: "CENTER" 
-        text: "VORENTWURF\n
-SATZUNG DER GEMEINDE\n
-GROß PLASTEN\n
-ÜBER DEN VORHABENSBEZOGENEN BEBAUUNGSPLAN\n 
-NR: 7 „Solarpark an der Straße nach Rockow“"
+        text: "VORENTWURF\nSATZUNG DER GEMEINDE\nGROß PLASTEN\nÜBER DEN VORHABENSBEZOGENEN BEBAUUNGSPLAN\nNR: 7 „Solarpark an der Straße nach Rockow“"
         position:
           type: "absolute"
           x: 6590
@@ -963,34 +948,34 @@ NR: 7 „Solarpark an der Straße nach Rockow“"
     #       - Geltungsbereich Hatches
     #       - WMTS Basemap
     #     # lockZoom: true
-    #   - name: WorkView
-    #     updateDxf: true
-    #     color: "magenta"
-    #     center:
-    #       x: 780
-    #       y: 2000
-    #     height: 653
-    #     width: 720
-    #     viewCenter:
-    #       x: 356027
-    #       y: 5935564
-    #     frozenLayers:
-    #       - WMTS Basemap
-    #       - Geltungsbereich Hatches
-    #   - name: WorkView2
-    #     updateDxf: true
-    #     color: "magenta"
-    #     center:
-    #       x: 1780
-    #       y: 2000
-    #     height: 653
-    #     width: 720
-    #     viewCenter:
-    #       x: 356027
-    #       y: 5935564
-    #     frozenLayers:
-    #       - WMTS Basemap
-    #       - Geltungsbereich Hatches
+      - name: WorkView
+        updateDxf: true
+        color: "magenta"
+        center:
+          x: 780
+          y: 2000
+        height: 653
+        width: 720
+        viewCenter:
+          x: 356027
+          y: 5935564
+        frozenLayers:
+          - WMTS Basemap
+          - Geltungsbereich Hatches
+      - name: WorkView2
+        updateDxf: true
+        color: "magenta"
+        center:
+          x: 1780
+          y: 2000
+        height: 653
+        width: 720
+        viewCenter:
+          x: 356027
+          y: 5935564
+        frozenLayers:
+          - WMTS Basemap
+          - Geltungsbereich Hatches
       # NW Map Viewports
       # --------------
       - name: MapViewportNW
@@ -1222,7 +1207,6 @@ NR: 7 „Solarpark an der Straße nach Rockow“"
         label: flurname
         linetypeScale: 0.2
         linetypeGeneration: true
-        style: flur
         style: flurgrenze
         viewports:
           - name: WorkView
@@ -1265,12 +1249,12 @@ NR: 7 „Solarpark an der Straße nach Rockow“"
         close: true
         operations:
           - type: dissolve
-        viewports:
-          - name: WorkView
-            style: wald
       - name: Wald Schraffur
         updateDxf: true
         style: wald
+        viewports:
+          - name: WorkView
+            style: waldWorkView
         applyHatch:
           layers:
             - Wald
@@ -2287,8 +2271,7 @@ NR: 7 „Solarpark an der Straße nach Rockow“"
         updateDxf: true
         targetLayer: "Plantext"
         paperspace: true  # Add this to place text in paper space
-        text: "Entwurf: Vorhabensbezogener Bebauungsplan Nr. 3 „Solarpark Friedrichshof“
-der Gemeinde Klein Belitz"
+        text: "Entwurf: Vorhabensbezogener Bebauungsplan Nr. 3 „Solarpark Friedrichshof“ der Gemeinde Klein Belitz"
         position:
           x: 66
           y: 840
@@ -2347,7 +2330,7 @@ der Gemeinde Klein Belitz"
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/input/flur2.shp"
         label: flurname
         linetypeGeneration: true
-        style: flur
+
         style: flurgrenze
         viewports:
           - name: WorkView
@@ -2385,7 +2368,6 @@ der Gemeinde Klein Belitz"
         updateDxf: true
         close: true
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/input/wald.shp"
-        close: true
         operations:
           - type: dissolve
         viewports:
