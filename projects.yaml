@@ -389,7 +389,10 @@ projects:
                 type: area
                 style: wald
                 applyHatch: true
-      # Legend NO
+              - name: "Gebäude - Bestand"
+                type: empty
+                blockSymbol: "Gebäude"
+    # Legend NO
       # ---------
       - id: "Legend NO"
         title: "Planzeichen"
@@ -507,6 +510,9 @@ projects:
                 type: empty
                 blockSymbol: "Baum"
                 blockSymbolScale: 1.8
+              # - name: "Gebäude - Bestand"
+              #   type: empty
+              #   blockSymbol: "Gebäude"
       # Legend S
       # ---------
       - id: "Legend S"
@@ -949,7 +955,7 @@ projects:
     #       - WMTS Basemap
     #     # lockZoom: true
       - name: WorkView
-        updateDxf: true
+        # updateDxf: true
         color: "magenta"
         center:
           x: 780
@@ -1212,7 +1218,7 @@ projects:
           - name: WorkView
             style: flurWorkView
       - name: Parcel
-        updateDxf: true
+        # updateDxf: true Don't enable. Moved Numbers already in DXF
         close: true
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/parcel.shp"
         label: label
@@ -1247,6 +1253,9 @@ projects:
         updateDxf: true
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/wald.shp"
         close: true
+        viewports:
+          - name: WorkView
+            style: waldWorkView
         operations:
           - type: dissolve
       - name: Wald Schraffur
@@ -1976,41 +1985,41 @@ projects:
       # #       layers:
       # #         - Geltungsbereich NW
       # #       buffer: 1000
-      # - name: WMS Gebäude
-      #   updateDxf: true
-      #   operations:
-      #     - type: wms
-      #       # overwrite: true
-      #       url: "https://www.geodaten-mv.de/dienste/gebaeude_wms"
-      #       layer: "gebaeude"
-      #       imageTransparency: true
-      #       wmsOptions:
-      #         srs: "EPSG:25833"
-      #         format: "image/png"
-      #         # styles: ""  # Optional WMS style
-      #         # version: "1.3.0"  # WMS version
-      #         # transparent: true
-      #         # bgcolor: "0x0000FF" # Doesn't work somehow. It's black always.
-      #         # width: 4096
-      #         # height: 4096
-      #       targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/Gebäude"
-      #       layers:
-      #         - Geltungsbereich NW
-      #         - Geltungsbereich NO
-      #         - Geltungsbereich S
-      #       buffer: 500
-      #       postProcess:
-      #         retainIfColorPresent:
-      #           colors: ["#ff0000"]  # Images containing these colors will be made transparent
-      #           tolerance: 5  # Optional: color matching tolerance (0-255)                
-      #         colorMap:
-      #             "#ff0000": "#808080"  # Map red to grey
-      #         alphaColor: "#ffffff"  # Set white to fully transparent
-      #       #   alphaColor: "#000000"  # Set black to fully transparent
-      #       #   # tolerance: 30  # Increased tolerance to catch similar shades
-      #         grayscale: true
-      #       #   # removeText: true
-      #       stitchTiles: true
+      - name: WMS Gebäude
+        updateDxf: true
+        operations:
+          - type: wms
+            overwrite: true
+            url: "https://www.geodaten-mv.de/dienste/gebaeude_wms"
+            layer: "gebaeude"
+            imageTransparency: true
+            wmsOptions:
+              srs: "EPSG:25833"
+              format: "image/png"
+              # styles: ""  # Optional WMS style
+              # version: "1.3.0"  # WMS version
+              # transparent: true
+              # bgcolor: "0x0000FF" # Doesn't work somehow. It's black always.
+              # width: 4096
+              # height: 4096
+            targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/Gebäude"
+            layers:
+              - Geltungsbereich NW
+              - Geltungsbereich NO
+              - Geltungsbereich S
+            buffer: 500
+            postProcess:
+              retainIfColorPresent:
+                colors: ["#ff0000"]  # Images containing these colors will be made transparent
+                tolerance: 5  # Optional: color matching tolerance (0-255)                
+              colorMap:
+                  "#ff0000": "#808080"  # Map red to grey
+              alphaColor: "#ffffff"  # Set white to fully transparent
+            #   alphaColor: "#000000"  # Set black to fully transparent
+            #   # tolerance: 30  # Increased tolerance to catch similar shades
+              grayscale: true
+            #   # removeText: true
+            stitchTiles: true
       # - name: WMS Höhenlinien
       #   updateDxf: true
       #   operations:
