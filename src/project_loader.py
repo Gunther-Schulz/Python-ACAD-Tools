@@ -11,17 +11,20 @@ class ProjectLoader:
         self.load_styles()
 
     def load_global_settings(self):
+        """Load global settings from projects.yaml"""
         with open('projects.yaml', 'r') as file:
             data = yaml.safe_load(file)
-            self.project_config = data
             self.folder_prefix = data.get('folderPrefix', '')
             self.log_file = data.get('logFile', './log.txt')
 
     def load_project_settings(self):
-        projects = self.project_config['projects']
-        self.project_settings = next((project for project in projects if project['name'] == self.project_name), None)
-        if not self.project_settings:
-            raise ValueError(f"Project {self.project_name} not found.")
+        """Load project specific settings from projects/[project_name].yaml"""
+        project_file = os.path.join('projects', f'{self.project_name}.yaml')
+        if not os.path.exists(project_file):
+            raise ValueError(f"Project file not found: {project_file}")
+
+        with open(project_file, 'r') as file:
+            self.project_settings = yaml.safe_load(file)
 
         self.crs = self.project_settings['crs']
         self.dxf_filename = resolve_path(self.project_settings['dxfFilename'], self.folder_prefix)
@@ -30,7 +33,7 @@ class ProjectLoader:
         self.dxf_version = self.project_settings.get('dxfVersion', 'R2010')
 
         # Process layers to handle operations
-        for layer in self.project_settings['geomLayers']:
+        for layer in self.project_settings.get('geomLayers', []):
             if 'operations' in layer:
                 self.process_operations(layer)
 
