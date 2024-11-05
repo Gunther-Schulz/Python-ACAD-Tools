@@ -137,3 +137,66 @@ def ensure_path_exists(path):
     if not exists:
         log_warning(f"Directory does not exist: {directory}")
     return exists
+
+def create_sample_project(project_name):
+    """Creates a sample project file with basic settings."""
+    # Create projects directory if it doesn't exist
+    projects_dir = 'projects'
+    if not os.path.exists(projects_dir):
+        os.makedirs(projects_dir)
+    
+    # Create global settings if they don't exist
+    if not os.path.exists('projects.yaml'):
+        global_settings = {
+            'folderPrefix': '~/Documents/Projects',
+            'logFile': './log.txt',
+            'styles': {
+                'default': {
+                    'layer': {
+                        'color': 'white',
+                        'lineweight': 0.25
+                    }
+                },
+                'highlight': {
+                    'layer': {
+                        'color': 'red',
+                        'lineweight': 0.5
+                    }
+                }
+            }
+        }
+        with open('projects.yaml', 'w') as file:
+            yaml.dump(global_settings, file, default_flow_style=False)
+    
+    project_file = os.path.join(projects_dir, f'{project_name}.yaml')
+    
+    sample_project = {
+        'name': project_name,
+        'crs': 'EPSG:25833',
+        'dxfFilename': f'data/{project_name.lower()}.dxf',
+        'dxfVersion': 'R2010',
+        'exportFormat': 'dxf',
+        'shapefileOutputDir': 'output/shapefiles',
+        'dxfDumpOutputDir': 'output/dxf_dump',
+        'geomLayers': [
+            {
+                'name': 'Buildings',
+                'dxfLayer': 'BUILDINGS',
+                'style': {
+                    'color': 'red',
+                    'lineweight': 0.35
+                },
+                'operations': [
+                    {
+                        'type': 'buffer',
+                        'distance': 1.0
+                    }
+                ]
+            }
+        ]
+    }
+    
+    with open(project_file, 'w') as file:
+        yaml.dump(sample_project, file, default_flow_style=False)
+    
+    return project_file

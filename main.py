@@ -9,7 +9,7 @@ import traceback
 from src.project_loader import ProjectLoader
 from src.layer_processor import LayerProcessor
 from src.dxf_exporter import DXFExporter
-from src.utils import log_error, setup_logging, setup_proj
+from src.utils import create_sample_project, log_error, setup_logging, setup_proj
 from src.dump_to_shape import dxf_to_shapefiles
 from src.reports import process_all_reports
 
@@ -227,6 +227,19 @@ def print_layer_settings():
             for option, description in details['options'].items():
                 print(f"    - {option}: {description}")
 
+def list_available_projects():
+    projects_dir = 'projects'
+    if not os.path.exists(projects_dir):
+        os.makedirs(projects_dir)
+        print(f"Created projects directory: {projects_dir}")
+        return []
+    
+    projects = []
+    for file in os.listdir(projects_dir):
+        if file.endswith('.yaml'):
+            projects.append(file[:-5])  # Remove .yaml extension
+    return projects
+
 def main():
     setup_logging()
     setup_proj()
@@ -236,9 +249,19 @@ def main():
     parser.add_argument('--plot-ops', action='store_true', help="Plot the result of each operation")
     parser.add_argument('-l', '--list-operations', action='store_true', help="List all possible layer operations and their options")
     parser.add_argument('-s', '--list-settings', action='store_true', help="List all possible layer settings and their options")
-    parser.add_argument('--dxf-file', help="Path to the input DXF file (for dump_to_shape functionality)")
-    parser.add_argument('--output-folder', help="Path to the output folder for shapefiles (for dump_to_shape functionality)")
+    parser.add_argument('--list-projects', action='store_true', help="List all available projects")
+    parser.add_argument('--create-project', action='store_true', help="Create a new project with basic settings")
     args = parser.parse_args()
+
+    if args.list_projects:
+        projects = list_available_projects()
+        if projects:
+            print("Available projects:")
+            for project in projects:
+                print(f"  - {project}")
+        else:
+            print("No projects found.")
+        return
 
     if args.list_operations:
         print_layer_operations()
@@ -249,13 +272,25 @@ def main():
         return
 
     if not args.project_name:
-        parser.error("project_name is required unless --list-operations or --list-settings is specified")
+        parser.error("project_name is required unless --list-operations, --list-settings, or --list-projects is specified")
+
+    if args.create_project:
+        project_file = create_sample_project(args.project_name)
+        print(f"Created sample project file: {project_file}")
+        print("Please edit this file with your project-specific settings.")
+        return
 
     print(f"Processing project: {args.project_name}")
 
     try:
         processor = ProjectProcessor(args.project_name, plot_ops=args.plot_ops)
         processor.run()
+    except ValueError as e:
+        if "Project file not found" in str(e):
+            print(str(e))
+            print("\nTip: Use --create-project to create a new project file")
+        else:
+            raise
     except Exception as e:
         error_type = type(e).__name__
         error_message = str(e)
