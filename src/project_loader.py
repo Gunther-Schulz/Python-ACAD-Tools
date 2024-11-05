@@ -38,7 +38,21 @@ class ProjectLoader:
                 with open(legacy_file, 'r') as file:
                     self.project_settings = yaml.safe_load(file)
             else:
-                raise ValueError(f"Neither project directory nor legacy file found for {self.project_name}")
+                available_projects = []
+                # Check both directories and yaml files
+                for item in os.listdir('projects'):
+                    if os.path.isdir(os.path.join('projects', item)):
+                        available_projects.append(item)
+                    elif item.endswith('.yaml'):
+                        available_projects.append(item[:-5])  # Remove .yaml extension
+                
+                error_msg = f"Project '{self.project_name}' not found.\n\nAvailable projects:"
+                if available_projects:
+                    error_msg += "\n  - " + "\n  - ".join(sorted(available_projects))
+                else:
+                    error_msg += "\n  No projects found."
+                error_msg += "\n\nTip: Use --create-project to create a new project"
+                raise ValueError(error_msg)
         else:
             # Load main project settings
             main_settings = self.load_yaml_file('project.yaml', required=True)
@@ -47,7 +61,6 @@ class ProjectLoader:
             legends = self.load_yaml_file('legends.yaml', required=False)
             geom_layers = self.load_yaml_file('geom_layers.yaml', required=False)
             viewports = self.load_yaml_file('viewports.yaml', required=False)
-            reports = self.load_yaml_file('reports.yaml', required=False)
             block_inserts = self.load_yaml_file('block_inserts.yaml', required=False)
             text_inserts = self.load_yaml_file('text_inserts.yaml', required=False)
             path_arrays = self.load_yaml_file('path_arrays.yaml', required=False)
@@ -58,7 +71,6 @@ class ProjectLoader:
                 'legends': legends.get('legends', []),
                 'geomLayers': geom_layers.get('geomLayers', []),
                 'viewports': viewports.get('viewports', []),
-                'reports': reports.get('reports', []),
                 'blockInserts': block_inserts.get('blockInserts', []),
                 'textInserts': text_inserts.get('textInserts', []),
                 'pathArrays': path_arrays.get('pathArrays', [])

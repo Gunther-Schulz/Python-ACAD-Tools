@@ -266,9 +266,17 @@ def main():
         parser.error("project_name is required unless --list-operations, --list-settings, or --list-projects is specified")
 
     if args.create_project:
-        project_file = create_sample_project(args.project_name)
-        print(f"Created sample project file: {project_file}")
-        print("Please edit this file with your project-specific settings.")
+        project_dir = create_sample_project(args.project_name)
+        print(f"\nCreated new project directory: {project_dir}")
+        print("\nThe following files were created with sample configurations:")
+        print("  - project.yaml         (required core settings)")
+        print("  - geom_layers.yaml     (geometry layer definitions)")
+        print("  - legends.yaml         (legend configurations)")
+        print("  - viewports.yaml       (viewport settings)")
+        print("  - block_inserts.yaml   (block insertion definitions)")
+        print("  - text_inserts.yaml    (text insertion definitions)")
+        print("  - path_arrays.yaml     (path array definitions)")
+        print("\nPlease edit these files with your project-specific settings.")
         return
 
     print(f"Processing project: {args.project_name}")
@@ -277,9 +285,9 @@ def main():
         processor = ProjectProcessor(args.project_name, plot_ops=args.plot_ops)
         processor.run()
     except ValueError as e:
-        if "Project file not found" in str(e):
-            print(str(e))
-            print("\nTip: Use --create-project to create a new project file")
+        if "Project" in str(e) and "not found" in str(e):
+            print(str(e))  # Print the enhanced error message with available projects
+            sys.exit(1)
         else:
             raise
     except Exception as e:
