@@ -1,7 +1,7 @@
 import ezdxf
 from ezdxf.enums import TextEntityAlignment
 from ezdxf import const
-from src.dfx_utils import (convert_transparency, get_color_code, attach_custom_data, 
+from src.dxf_utils import (convert_transparency, get_color_code, attach_custom_data, 
                            is_created_by_script, add_mtext, remove_entities_by_layer, 
                            ensure_layer_exists, get_style, SCRIPT_IDENTIFIER,
                            apply_style_to_entity,
@@ -9,7 +9,7 @@ from src.dfx_utils import (convert_transparency, get_color_code, attach_custom_d
 from ezdxf.math import Vec3
 from ezdxf import colors
 from src.utils import log_warning, log_error, log_info
-from src import dfx_utils
+from . import dxf_utils
 from ezdxf.math import BoundingBox
 from ezdxf.lldxf.const import MTEXT_TOP_LEFT  # Add this line
 from ezdxf import bbox
@@ -248,7 +248,7 @@ class LegendCreator:
 
         if create_hatch:
             hatch_paths = [[(x1, y1), (x2, y1), (x2, y2), (x1, y2)]]
-            hatch = dfx_utils.create_hatch(self.msp, hatch_paths, hatch_style, self.project_loader, is_legend=True)
+            hatch = dxf_utils.create_hatch(self.msp, hatch_paths, hatch_style, self.project_loader, is_legend=True)
             hatch.dxf.layer = layer_name
             
             if 'color' in hatch_style:

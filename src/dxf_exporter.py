@@ -14,7 +14,7 @@ from ezdxf import const
 
 from PIL import Image
 from src.legend_creator import LegendCreator
-from src.dfx_utils import (add_block_reference, get_color_code, convert_transparency, attach_custom_data, 
+from src.dxf_utils import (add_block_reference, get_color_code, convert_transparency, attach_custom_data, 
                            is_created_by_script, add_text, remove_entities_by_layer, 
                            ensure_layer_exists, update_layer_properties, 
                            set_drawing_properties, verify_dxf_settings, update_layer_geometry,

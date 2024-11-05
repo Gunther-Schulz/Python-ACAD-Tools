@@ -11,7 +11,7 @@ from ezdxf.lldxf.const import (
 )
 from ezdxf.enums import TextEntityAlignment
 from ezdxf.math import Vec3
-from src.dfx_utils import SCRIPT_IDENTIFIER, add_block_reference, attach_custom_data
+from src.dxf_utils import SCRIPT_IDENTIFIER, add_block_reference, attach_custom_data
 from src.utils import log_info, log_warning, log_error
 import re
 import math

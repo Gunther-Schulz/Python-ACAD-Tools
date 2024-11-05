@@ -1,5 +1,5 @@
 from src.utils import log_info, log_warning
-from src.dfx_utils import get_color_code
+from src.dxf_utils import get_color_code
 
 class StyleManager:
     def __init__(self, project_loader):
