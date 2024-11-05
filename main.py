@@ -1,8 +1,5 @@
 import sys
-from ezdxf.addons import odafc
 import argparse
-from fiona.errors import DriverIOError
-import yaml
 import os
 import traceback
 
@@ -11,9 +8,6 @@ from src.layer_processor import LayerProcessor
 from src.dxf_exporter import DXFExporter
 from src.utils import create_sample_project, log_error, setup_logging, setup_proj
 from src.dump_to_shape import dxf_to_shapefiles
-from src.reports import process_all_reports
-
-import src.easyocr_patch
 
 class ProjectProcessor:
     def __init__(self, project_name: str, plot_ops=False):
@@ -38,9 +32,6 @@ class ProjectProcessor:
                 dxf_to_shapefiles(dxf_filename, dump_output_dir)
             else:
                 print("Skipping DXF dump: DXF file not found or dump output directory not specified.")
-
-        # Process reports
-        process_all_reports(self.project_loader.project_settings, self.layer_processor.all_layers, self.project_loader)
 
 def print_layer_operations():
     operations = {
