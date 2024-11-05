@@ -102,7 +102,7 @@ styles:
   wald:
     hatch:
       pattern: 'ANSI31'
-      scale: 5
+      patternScale: 5
       individual_hatches: true
 
   waldWorkView:
@@ -149,11 +149,12 @@ styles:
   baugrenze:
     layer:
       linetype: ACAD_ISO02W100
-      lineweight: 60
+      lineweight: 50
 
   baugrenze_2:
     layer:
       color: "azure"
+      lineweight: 50
       # color: "brilliant-intense-azure"
   
 
@@ -165,7 +166,7 @@ styles:
     layer:
       color: "granite"
       linetype: "ACAD_ISO02W100"
-      lineweight: 80
+      lineweight: 180
 
   gfl1:
     layer:

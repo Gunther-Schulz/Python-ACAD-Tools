@@ -270,8 +270,8 @@ class DXFExporter:
         update_layer_properties(layer, layer_properties, self.name_to_aci)
         log_info(f"Updated layer properties: {layer_properties}")
 
-    def attach_custom_data(self, entity):
-        attach_custom_data(entity, self.script_identifier)
+    def attach_custom_data(self, entity, entity_name=None):
+        attach_custom_data(entity, self.script_identifier, entity_name)
 
     def is_created_by_script(self, entity):
         return is_created_by_script(entity, self.script_identifier)
@@ -415,7 +415,7 @@ class DXFExporter:
             elif self.is_generated_layer(layer_name) and self.has_labels(layer_info):
                 self.add_label_to_dxf(msp, geometry, layer_name, layer_name)
 
-    def add_polygon_to_dxf(self, msp, geometry, layer_name):
+    def add_polygon_to_dxf(self, msp, geometry, layer_name, entity_name=None):
         layer_properties = self.layer_properties[layer_name]
         exterior_coords = list(geometry.exterior.coords)
         if len(exterior_coords) > 2:
@@ -424,7 +424,7 @@ class DXFExporter:
                 'closed': layer_properties['close'],
                 'ltscale': layer_properties.get('linetypeScale', 1.0)
             })
-            self.attach_custom_data(polyline)
+            self.attach_custom_data(polyline, entity_name)
             # Apply linetype generation setting
             if layer_properties['linetypeGeneration']:
                 polyline.dxf.flags |= LWPOLYLINE_PLINEGEN
@@ -439,14 +439,14 @@ class DXFExporter:
                     'closed': layer_properties['close'],
                     'ltscale': layer_properties.get('linetypeScale', 1.0)
                 })
-                self.attach_custom_data(polyline)
+                self.attach_custom_data(polyline, entity_name)
                 # Apply linetype generation setting
                 if layer_properties['linetypeGeneration']:
                     polyline.dxf.flags |= LWPOLYLINE_PLINEGEN
                 else:
                     polyline.dxf.flags &= ~LWPOLYLINE_PLINEGEN
 
-    def add_linestring_to_dxf(self, msp, linestring, layer_name):
+    def add_linestring_to_dxf(self, msp, linestring, layer_name, entity_name=None):
         points = list(linestring.coords)
         layer_properties = self.layer_properties[layer_name]
 
@@ -478,7 +478,7 @@ class DXFExporter:
             else:
                 polyline.dxf.flags &= ~LWPOLYLINE_PLINEGEN
             
-            self.attach_custom_data(polyline)
+            self.attach_custom_data(polyline, entity_name)
             log_info(f"Successfully added polyline to layer {layer_name}")
             log_info(f"Polyline properties: {polyline.dxf.all_existing_dxf_attribs()}")
         except Exception as e:
@@ -570,17 +570,17 @@ class DXFExporter:
         self.attach_custom_data(text_entity)  # Attach custom data to text entities
         return text_entity
 
-    def add_geometry_to_dxf(self, msp, geometry, layer_name):
+    def add_geometry_to_dxf(self, msp, geometry, layer_name, entity_name=None):
         if isinstance(geometry, (Polygon, MultiPolygon)):
-            self.add_polygon_to_dxf(msp, geometry, layer_name)
+            self.add_polygon_to_dxf(msp, geometry, layer_name, entity_name)
         elif isinstance(geometry, LineString):
-            self.add_linestring_to_dxf(msp, geometry, layer_name)
+            self.add_linestring_to_dxf(msp, geometry, layer_name, entity_name)
         elif isinstance(geometry, MultiLineString):
             for line in geometry.geoms:
-                self.add_linestring_to_dxf(msp, line, layer_name)
+                self.add_linestring_to_dxf(msp, line, layer_name, entity_name)
         elif isinstance(geometry, GeometryCollection):
             for geom in geometry.geoms:
-                self.add_geometry_to_dxf(msp, geom, layer_name)
+                self.add_geometry_to_dxf(msp, geom, layer_name, entity_name)
         else:
             log_warning(f"Unsupported geometry type for layer {layer_name}: {type(geometry)}")
 
@@ -777,239 +777,87 @@ class DXFExporter:
         log_info("Finished processing all path array configurations")
 
     def process_block_inserts(self, msp):
-        if not self.block_inserts:
-            return
-
-        for insert_config in self.block_inserts:
-            output_layer = insert_config.get('name')
-            block_name = insert_config.get('blockName')
-            source_layer = insert_config.get('sourceLayer')
-            paperspace = insert_config.get('paperspace', False)
-            scale = insert_config.get('scale', 1.0)
-            rotation = insert_config.get('rotation', 0)
-            position_config = insert_config.get('position')
-            offset = insert_config.get('offset', {'x': 0, 'y': 0})
-
-            # Only require sourceLayer if not using absolute positioning
-            if not output_layer or not block_name:
-                log_warning(f"Missing required configuration (name or blockName): {insert_config}")
-                continue
-            
-            if not source_layer and (not position_config or position_config.get('type') != 'absolute'):
-                log_warning(f"Missing required sourceLayer for non-absolute positioning: {insert_config}")
-                continue
-
-            # Rest of the method remains the same...
-
-    def insert_blocks_at_points(self, space, points_layer, output_layer, block_name, scale, rotation, offset=None):
-        """Insert blocks at specific points from a points layer."""
-        if points_layer not in self.all_layers:
-            log_warning(f"Points layer '{points_layer}' not found in all_layers. Skipping block insertion.")
-            return
-
-        layer_data = self.all_layers[points_layer]
-        log_info(f"Processing points from layer: {points_layer}")
-
-        if not hasattr(layer_data, 'geometry'):
-            log_warning(f"Layer {points_layer} has no geometry attribute. Skipping block insertion.")
-            return
-
-        # Get offset values
-        offset_x = offset.get('x', 0) if offset else 0
-        offset_y = offset.get('y', 0) if offset else 0
-
-        for point_geom in layer_data.geometry:
-            if hasattr(point_geom, 'x') and hasattr(point_geom, 'y'):
-                # Apply offset to insertion point
-                insert_point = (point_geom.x + offset_x, point_geom.y + offset_y)
-                
-                log_info(f"Inserting block {block_name} at point {insert_point}")
-                block_ref = add_block_reference(
-                    space,
-                    block_name,
-                    insert_point,
-                    output_layer,
-                    scale=scale,
-                    rotation=rotation
-                )
-                if block_ref:
-                    self.attach_custom_data(block_ref)
-                    log_info(f"Block {block_name} inserted successfully")
-                else:
-                    log_warning(f"Failed to insert block {block_name}")
-
-    def insert_blocks_on_layer(self, space, target_layer, output_layer, block_name, scale, rotation, position_config):
-        position_type = position_config.get('type', 'centroid')
-        offset_x = position_config.get('offset', {}).get('x', 0)
-        offset_y = position_config.get('offset', {}).get('y', 0)
-
-        # Handle absolute positioning
-        if position_type == 'absolute':
-            x = position_config.get('x', 0)
-            y = position_config.get('y', 0)
-            insert_point = (x + offset_x, y + offset_y)
-            
-            log_info(f"Inserting block {block_name} at absolute position {insert_point}")
-            block_ref = add_block_reference(
-                space,
-                block_name,
-                insert_point,
-                output_layer,
-                scale=scale,
-                rotation=rotation
-            )
-            if block_ref:
-                self.attach_custom_data(block_ref)
-                log_info(f"Block {block_name} inserted successfully")
-            else:
-                log_warning(f"Failed to insert block {block_name}")
-            return
-
-        # Rest of the existing positioning logic
-        log_info(f"Attempting to insert blocks. Target layer: {target_layer}, Output layer: {output_layer}")
-        log_info(f"Available layers in self.all_layers: {', '.join(self.all_layers.keys())}")
-
-        if target_layer not in self.all_layers:
-            log_warning(f"Target layer '{target_layer}' not found in all_layers. Skipping block insertion.")
-            return
-
-        layer_data = self.all_layers[target_layer]
-        log_info(f"Layer data for {target_layer}: {layer_data}")
-
-        if not hasattr(layer_data, 'geometry'):
-            log_warning(f"Layer {target_layer} has no geometry attribute. Skipping block insertion.")
-            return
-
-        log_info(f"Number of geometries in {target_layer}: {len(layer_data.geometry)}")
-
-        for geometry in layer_data.geometry:
-            if isinstance(geometry, (Polygon, MultiPolygon)):
-                insert_point = self.get_insert_point(geometry, position_type)
-                insert_point = (insert_point[0] + offset_x, insert_point[1] + offset_y)
-                
-                log_info(f"Inserting block {block_name} at point {insert_point}")
-                block_ref = add_block_reference(
-                    space,
-                    block_name,
-                    insert_point,
-                    output_layer,
-                    scale=scale,
-                    rotation=rotation
-                )
-                if block_ref:
-                    self.attach_custom_data(block_ref)
-                    log_info(f"Block {block_name} inserted successfully")
-                else:
-                    log_warning(f"Failed to insert block {block_name}")
-
-        log_info(f"Finished inserting blocks from target layer '{target_layer}' to output layer '{output_layer}'")
-
-    def get_insert_point(self, geometry, position_type):
-        if position_type == 'absolute':
-            # This shouldn't be called for absolute positioning
-            log_warning("Absolute positioning doesn't use geometry-based insert points")
-            return (0, 0)
-        elif position_type == 'centroid':
-            return geometry.centroid.coords[0]
-        elif position_type == 'center':
-            return geometry.envelope.centroid.coords[0]
-        elif position_type == 'random':
-            minx, miny, maxx, maxy = geometry.bounds
-            while True:
-                point = Point(random.uniform(minx, maxx), random.uniform(miny, maxy))
-                if geometry.contains(point):
-                    return point.coords[0]
-        else:
-            log_warning(f"Invalid position type '{position_type}'. Using centroid.")
-            return geometry.centroid.coords[0]
+        self.process_inserts(msp, 'block')
 
     def process_text_inserts(self, msp):
-        """Process text inserts from project settings."""
-        text_inserts = self.project_settings.get('textInserts', [])
-        log_info(f"Processing {len(text_inserts)} text insert configurations")
+        self.process_inserts(msp, 'text')
+
+    def process_inserts(self, msp, insert_type='block'):
+        configs = self.project_settings.get(f'{insert_type}Inserts', [])
+        log_info(f"Processing {len(configs)} {insert_type} insert configurations")
         
-        for text_config in text_inserts:
+        doc = msp.doc
+        
+        # Track layers that need cleaning
+        layers_to_clean = set()
+        
+        # First pass: collect all target layers
+        for config in configs:
+            if config.get('updateDxf', False):
+                output_layer = config.get('targetLayer', config.get('name'))
+                if output_layer:
+                    layers_to_clean.add(output_layer)
+        
+        # Clean all target layers once
+        for layer in layers_to_clean:
+            space = doc.paperspace() if configs[0].get('paperspace', False) else doc.modelspace()
+            remove_entities_by_layer(space, layer, self.script_identifier)
+        
+        # Second pass: process inserts
+        for config in configs:
             try:
-                # Get basic configuration
-                name = text_config.get('name')
-                output_layer = text_config.get('targetLayer')
-                source_layer = text_config.get('sourceLayer')
-                update_dxf = text_config.get('updateDxf', False)
-                position_config = text_config.get('position', {})
-
-                log_info(f"Processing text insert: {name} for layer {output_layer}")
-
+                # Extract common configuration
+                name = config.get('name')
+                output_layer = config.get('targetLayer', name)
+                update_dxf = config.get('updateDxf', False)
+                
                 if not update_dxf:
-                    log_info(f"Skipping text insert '{name}' as updateDxf flag is not set")
+                    log_info(f"Skipping {insert_type} insert '{name}' as updateDxf flag is not set")
                     continue
 
                 if not output_layer:
-                    log_warning(f"Missing target layer in text insert configuration: {name}")
+                    log_warning(f"Missing required configuration for {insert_type} insert: {config}")
                     continue
 
-                # Get the correct space based on paperspace flag
-                doc = msp.doc
-                space = doc.paperspace() if text_config.get('paperspace', False) else doc.modelspace()
+                # Get the correct space
+                space = doc.paperspace() if config.get('paperspace', False) else doc.modelspace()
 
-                # Only clear existing entities if this is the first text for this layer
-                if not hasattr(self, '_processed_text_layers'):
-                    self._processed_text_layers = set()
-                    
-                if output_layer not in self._processed_text_layers:
-                    removed_count = remove_entities_by_layer(space, output_layer, self.script_identifier)
-                    log_info(f"Removed {removed_count} existing entities from layer: {output_layer}")
-                    self._processed_text_layers.add(output_layer)
-
-                position_type = position_config.get('type')
-                if position_type == 'absolute':
-                    # Handle absolute positioning
-                    x = position_config.get('x', 0)
-                    y = position_config.get('y', 0)
-                    offset_x = position_config.get('offset', {}).get('x', 0)
-                    offset_y = position_config.get('offset', {}).get('y', 0)
-                    insert_point = (x + offset_x, y + offset_y)
-                    
-                    text_entity = add_text_insert(
-                        space,
-                        {**text_config, 'position': {'x': insert_point[0], 'y': insert_point[1]}},
-                        output_layer,
-                        self.project_loader,
-                        self.script_identifier
-                    )
-                elif source_layer:
-                    # Handle geometry-based positioning
-                    if source_layer not in self.all_layers:
-                        log_warning(f"Source layer '{source_layer}' not found in all_layers")
-                        continue
-
-                    layer_data = self.all_layers[source_layer]
-                    if not hasattr(layer_data, 'geometry'):
-                        log_warning(f"Layer {source_layer} has no geometry attribute")
-                        continue
-
-                    offset_x = position_config.get('offset', {}).get('x', 0)
-                    offset_y = position_config.get('offset', {}).get('y', 0)
-
-                    for geometry in layer_data.geometry:
-                        insert_point = self.get_insert_point(geometry, position_type)
-                        insert_point = (insert_point[0] + offset_x, insert_point[1] + offset_y)
-                        
-                        text_entity = add_text_insert(
-                            space,
-                            {**text_config, 'position': {'x': insert_point[0], 'y': insert_point[1]}},
-                            output_layer,
-                            self.project_loader,
-                            self.script_identifier
-                        )
-
-                else:
-                    log_warning(f"No valid positioning configuration for text insert '{name}'")
+                # Insert entities using common insertion method with correct space
+                if insert_type == 'block':
+                    self.insert_blocks(space, config)
+                else:  # text
+                    self.insert_text(space, config)
 
             except Exception as e:
-                log_error(f"Error processing text insert: {str(e)}")
+                log_error(f"Error processing {insert_type} insert: {str(e)}")
                 continue
 
-        log_info("Finished processing all text insert configurations")
+        log_info(f"Finished processing all {insert_type} insert configurations")
+
+    def insert_blocks(self, space, config):
+        points = self.get_insertion_points(config.get('position', {}))
+        for point in points:
+            block_ref = add_block_reference(
+                space,
+                config['blockName'],
+                point,
+                config['name'],
+                scale=config.get('scale', 1.0),
+                rotation=config.get('rotation', 0)
+            )
+            if block_ref:
+                self.attach_custom_data(block_ref)
+
+    def insert_text(self, space, config):
+        points = self.get_insertion_points(config.get('position', {}))
+        for point in points:
+            text_entity = add_text_insert(
+                space,
+                {**config, 'position': {'x': point[0], 'y': point[1]}},
+                config['targetLayer'],
+                self.project_loader,
+                self.script_identifier
+            )
 
     def get_viewport_by_name(self, doc, name):
         """Retrieve a viewport by its name using xdata."""
@@ -1028,6 +876,82 @@ class DXFExporter:
                     except:
                         continue
         return None
+
+    def get_insertion_points(self, position_config):
+        """Common method to get insertion points for both blocks and text."""
+        points = []
+        position_type = position_config.get('type', 'polygon')
+        offset_x = position_config.get('offset', {}).get('x', 0)
+        offset_y = position_config.get('offset', {}).get('y', 0)
+        source_layer = position_config.get('sourceLayer')
+
+        # Handle absolute positioning
+        if position_type == 'absolute':
+            x = position_config.get('x', 0)
+            y = position_config.get('y', 0)
+            points.append((x + offset_x, y + offset_y))
+            return points
+
+        # For non-absolute positioning, we need a source layer
+        if not source_layer:
+            log_warning("Source layer required for non-absolute positioning")
+            return points
+
+        # Handle geometry-based positioning
+        if source_layer not in self.all_layers:
+            log_warning(f"Source layer '{source_layer}' not found in all_layers")
+            return points
+
+        layer_data = self.all_layers[source_layer]
+        if not hasattr(layer_data, 'geometry'):
+            log_warning(f"Layer {source_layer} has no geometry attribute")
+            return points
+
+        # Process each geometry based on type and method
+        for geometry in layer_data.geometry:
+            insert_point = self.get_insert_point(geometry, position_config)
+            points.append((insert_point[0] + offset_x, insert_point[1] + offset_y))
+
+        return points
+
+    def get_insert_point(self, geometry, position_config):
+        position_type = position_config.get('type', 'polygon')
+        position_method = position_config.get('method', 'centroid')
+
+        if position_type == 'absolute':
+            log_warning("Absolute positioning doesn't use geometry-based insert points")
+            return (0, 0)
+        
+        elif position_type == 'polygon':
+            if position_method == 'centroid':
+                return geometry.centroid.coords[0]
+            elif position_method == 'center':
+                return geometry.envelope.centroid.coords[0]
+            elif position_method == 'random':
+                minx, miny, maxx, maxy = geometry.bounds
+                while True:
+                    point = Point(random.uniform(minx, maxx), random.uniform(miny, maxy))
+                    if geometry.contains(point):
+                        return point.coords[0]
+                    
+        elif position_type == 'line':
+            if position_method == 'start':
+                return geometry.coords[0]
+            elif position_method == 'end':
+                return geometry.coords[-1]
+            elif position_method == 'middle':
+                return geometry.interpolate(0.5, normalized=True).coords[0]
+            elif position_method == 'random':
+                distance = random.random()
+                return geometry.interpolate(distance, normalized=True).coords[0]
+        
+        elif position_type == 'points':
+            if hasattr(geometry, 'coords'):
+                return geometry.coords[0]
+        
+        # Default fallback
+        log_warning(f"Invalid position type '{position_type}' or method '{position_method}'. Using polygon centroid.")
+        return geometry.centroid.coords[0]
 
 
 
