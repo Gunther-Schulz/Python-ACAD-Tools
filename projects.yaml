@@ -662,18 +662,17 @@ projects:
         scale: 4.0
         rotation: 0
         sourceLayer: "Baufeld Label Points"
-        offset:
-          x: 0
-          y: -20
-        # position:
-        #   type: "centroid"  # Options: centroid, center, random
-        #   offset:
-        #     x: 0
-        #     y: -20
+        position:
+          type: "points"
+          offset:
+            x: 0
+            y: -20
       - name: "Bäume Ausserhalb"
         updateDxf: true
         blockName: "Baum"
         sourceLayer: "Baum Points"
+        position:
+          type: "points"
       - name: "Gesetzlich geschütztes Biotop Symbol"
         updateDxf: true
         blockName: "Gesetzlich geschütztes Biotop"
@@ -1215,7 +1214,6 @@ NR: 7 „Solarpark an der Straße nach Rockow“"
         type: "points"
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/baufeld_label_points.shp"
       - name: Baum Points
-        type: points
         shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/baum_points.shp"
       - name: Flur
         updateDxf: true

@@ -1081,6 +1081,62 @@ class DXFExporter:
                         continue
         return None
 
+    def get_insertion_points(self, source_layer, position_config):
+        """Common method to get insertion points for both blocks and text."""
+        points = []
+        position_type = position_config.get('type', 'centroid')
+        offset_x = position_config.get('offset', {}).get('x', 0)
+        offset_y = position_config.get('offset', {}).get('y', 0)
+
+        # Handle absolute positioning
+        if position_type == 'absolute':
+            x = position_config.get('x', 0)
+            y = position_config.get('y', 0)
+            points.append((x + offset_x, y + offset_y))
+            return points
+
+        # Handle geometry-based positioning
+        if source_layer not in self.all_layers:
+            log_warning(f"Source layer '{source_layer}' not found in all_layers")
+            return points
+
+        layer_data = self.all_layers[source_layer]
+        if not hasattr(layer_data, 'geometry'):
+            log_warning(f"Layer {source_layer} has no geometry attribute")
+            return points
+
+        # Get points based on geometry
+        for geometry in layer_data.geometry:
+            insert_point = self.get_insert_point(geometry, position_type)
+            points.append((insert_point[0] + offset_x, insert_point[1] + offset_y))
+
+        return points
+
+    def insert_blocks(self, space, config):
+        points = self.get_insertion_points(config['sourceLayer'], config.get('position', {}))
+        for point in points:
+            block_ref = add_block_reference(
+                space,
+                config['blockName'],
+                point,
+                config['name'],
+                scale=config.get('scale', 1.0),
+                rotation=config.get('rotation', 0)
+            )
+            if block_ref:
+                self.attach_custom_data(block_ref)
+
+    def insert_text(self, space, config):
+        points = self.get_insertion_points(config['sourceLayer'], config.get('position', {}))
+        for point in points:
+            text_entity = add_text_insert(
+                space,
+                {**config, 'position': {'x': point[0], 'y': point[1]}},
+                config['targetLayer'],
+                self.project_loader,
+                self.script_identifier
+            )
+
 
 
 
