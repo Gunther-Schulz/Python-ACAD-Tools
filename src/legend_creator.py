@@ -256,7 +256,7 @@ class LegendCreator:
 
         if create_hatch:
             hatch_paths = [[(x1, y1), (x2, y1), (x2, y2), (x1, y2)]]
-            hatch = dxf_utils.create_hatch(self.msp, hatch_paths, hatch_style, self.project_loader, is_legend=True)
+            hatch = dxf_utils.create_hatch(self.msp, hatch_paths, hatch_style, self.project_loader)
             hatch.dxf.layer = layer_name
             
             if 'color' in hatch_style:

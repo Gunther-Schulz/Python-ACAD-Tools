@@ -49,7 +49,10 @@ geomLayers:
         style: wald
   - name: Wald Schraffur
     updateDxf: true
-    style: wald
+    style: 
+      preset: wald
+      hatch:
+        scale: 10
     applyHatch:
       layers:
         - Wald

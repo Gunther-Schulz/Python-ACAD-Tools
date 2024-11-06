@@ -125,11 +125,12 @@ class DXFExporter:
             log_info(f"Loaded existing DXF file: {self.dxf_filename}")
             self.load_existing_layers(doc)
             self.check_existing_entities(doc)
+            # Print settings for existing file
+            set_drawing_properties(doc)
         else:
             doc = ezdxf.new(dxfversion=dxf_version)
             log_info(f"Created new DXF file with version: {dxf_version}")
             set_drawing_properties(doc)
-            # load_standard_linetypes(doc)
         return doc
 
     def load_existing_layers(self, doc):
@@ -690,7 +691,7 @@ class DXFExporter:
         
         for geometry in geometries:
             hatch_paths = self._get_hatch_paths(geometry)
-            hatch = create_hatch(msp, hatch_paths, hatch_config, self.project_loader, is_legend=False)
+            hatch = create_hatch(msp, hatch_paths, hatch_config, self.project_loader)
             hatch.dxf.layer = layer_name
             self.attach_custom_data(hatch)
 

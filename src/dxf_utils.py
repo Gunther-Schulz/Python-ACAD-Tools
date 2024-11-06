@@ -281,17 +281,136 @@ def update_layer_properties(layer, layer_properties, name_to_aci):
 #         log_info(f"Linetype {name} already exists")
 
 def set_drawing_properties(doc):
-    doc.header['$INSUNITS'] = 6  # Assuming meters, adjust if needed
-    doc.header['$LUNITS'] = 2  # Assuming decimal units
+    # Set the properties
+    doc.header['$MEASUREMENT'] = 1  # 1 for metric, 0 for imperial
+    doc.header['$INSUNITS'] = 6  # 6 for meters
+    doc.header['$LUNITS'] = 2  # 2 for decimal units
     doc.header['$LUPREC'] = 4  # Precision for linear units
     doc.header['$AUPREC'] = 4  # Precision for angular units
+    
+    # Define meaning of values
+    measurement_meaning = {
+        0: "Imperial (inches, feet)",
+        1: "Metric (millimeters, meters)"
+    }
+    
+    insunits_meaning = {
+        0: "Unitless",
+        1: "Inches",
+        2: "Feet",
+        3: "Miles",
+        4: "Millimeters",
+        5: "Centimeters",
+        6: "Meters",
+        7: "Kilometers",
+        8: "Microinches",
+        9: "Mils",
+        10: "Yards",
+        11: "Angstroms",
+        12: "Nanometers",
+        13: "Microns",
+        14: "Decimeters",
+        15: "Decameters",
+        16: "Hectometers",
+        17: "Gigameters",
+        18: "Astronomical units",
+        19: "Light years",
+        20: "Parsecs"
+    }
+    
+    lunits_meaning = {
+        1: "Scientific",
+        2: "Decimal",
+        3: "Engineering",
+        4: "Architectural",
+        5: "Fractional"
+    }
+    
+    # Log and print the settings with their meanings
+    log_info("\n=== Drawing Properties Set ===")
+    print("\n=== Drawing Properties Set ===")
+    
+    # MEASUREMENT
+    measurement_msg = f"$MEASUREMENT: {doc.header['$MEASUREMENT']} - {measurement_meaning.get(doc.header['$MEASUREMENT'], 'Unknown')}"
+    log_info(measurement_msg)
+    print(measurement_msg)
+    
+    # INSUNITS
+    insunits_msg = f"$INSUNITS: {doc.header['$INSUNITS']} - {insunits_meaning.get(doc.header['$INSUNITS'], 'Unknown')}"
+    log_info(insunits_msg)
+    print(insunits_msg)
+    
+    # LUNITS
+    lunits_msg = f"$LUNITS: {doc.header['$LUNITS']} - {lunits_meaning.get(doc.header['$LUNITS'], 'Unknown')}"
+    log_info(lunits_msg)
+    print(lunits_msg)
+    
+    # LUPREC
+    luprec_msg = f"$LUPREC: {doc.header['$LUPREC']} - Linear units precision (number of decimal places)"
+    log_info(luprec_msg)
+    print(luprec_msg)
+    
+    # AUPREC
+    auprec_msg = f"$AUPREC: {doc.header['$AUPREC']} - Angular units precision (number of decimal places)"
+    log_info(auprec_msg)
+    print(auprec_msg)
+    
+    print("\n=== End of Drawing Properties ===")
+    log_info("=== End of Drawing Properties ===\n")
 
 def verify_dxf_settings(filename):
     loaded_doc = ezdxf.readfile(filename)
-    log_info(f"INSUNITS after load: {loaded_doc.header['$INSUNITS']}")
-    log_info(f"LUNITS after load: {loaded_doc.header['$LUNITS']}")
-    log_info(f"LUPREC after load: {loaded_doc.header['$LUPREC']}")
-    log_info(f"AUPREC after load: {loaded_doc.header['$AUPREC']}")
+    
+    # Define meaning of values
+    measurement_meaning = {
+        0: "Imperial (inches, feet)",
+        1: "Metric (millimeters, meters)"
+    }
+    
+    insunits_meaning = {
+        0: "Unitless", 1: "Inches", 2: "Feet", 3: "Miles",
+        4: "Millimeters", 5: "Centimeters", 6: "Meters", 7: "Kilometers",
+        8: "Microinches", 9: "Mils", 10: "Yards", 11: "Angstroms",
+        12: "Nanometers", 13: "Microns", 14: "Decimeters", 15: "Decameters",
+        16: "Hectometers", 17: "Gigameters", 18: "Astronomical units",
+        19: "Light years", 20: "Parsecs"
+    }
+    
+    lunits_meaning = {
+        1: "Scientific", 2: "Decimal", 3: "Engineering",
+        4: "Architectural", 5: "Fractional"
+    }
+
+    print("\n=== Verifying DXF Settings ===")
+    log_info("\n=== Verifying DXF Settings ===")
+
+    measurement = loaded_doc.header.get('$MEASUREMENT', None)
+    measurement_msg = f"$MEASUREMENT: {measurement} - {measurement_meaning.get(measurement, 'Unknown')}"
+    print(measurement_msg)
+    log_info(measurement_msg)
+
+    insunits = loaded_doc.header.get('$INSUNITS', None)
+    insunits_msg = f"$INSUNITS: {insunits} - {insunits_meaning.get(insunits, 'Unknown')}"
+    print(insunits_msg)
+    log_info(insunits_msg)
+
+    lunits = loaded_doc.header.get('$LUNITS', None)
+    lunits_msg = f"$LUNITS: {lunits} - {lunits_meaning.get(lunits, 'Unknown')}"
+    print(lunits_msg)
+    log_info(lunits_msg)
+
+    luprec = loaded_doc.header.get('$LUPREC', None)
+    luprec_msg = f"$LUPREC: {luprec} - Linear units precision (decimal places)"
+    print(luprec_msg)
+    log_info(luprec_msg)
+
+    auprec = loaded_doc.header.get('$AUPREC', None)
+    auprec_msg = f"$AUPREC: {auprec} - Angular units precision (decimal places)"
+    print(auprec_msg)
+    log_info(auprec_msg)
+
+    print("=== End of DXF Settings Verification ===\n")
+    log_info("=== End of DXF Settings Verification ===\n")
 
 def get_style(style, project_loader):
     if isinstance(style, str):
@@ -362,7 +481,7 @@ def apply_style_to_entity(entity, style, project_loader, loaded_styles, item_typ
         else:
             entity.dxf.style = text_style
 
-def create_hatch(msp, boundary_paths, hatch_config, project_loader, is_legend=False):
+def create_hatch(msp, boundary_paths, hatch_config, project_loader):
     hatch = msp.add_hatch()
     
     pattern = hatch_config.get('pattern', 'SOLID')
