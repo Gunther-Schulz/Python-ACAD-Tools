@@ -12,13 +12,16 @@ viewports:
       y: 5936541
     customScale: 0.5
     lockZoom: true
+    frozenLayers:
+      - Geltungsbereich Hatch
+      - WMTS Basemap
   - name: Legend
     updateDxf: true
     color: "magenta"
     topLeft:
       x: 817
       y: 842
-    height: 632
+    height: 395
     width: 180
     viewTopLeft:
       x: 367839
@@ -28,20 +31,20 @@ viewports:
     # scale: 2
     # customScale: 0.5
     lockZoom: true
-  # - name: Übersichtskarte
-  #   updateDxf: true
-  #   color: "magenta"
-  #   topLeft:
-  #     x: 2400
-  #     y: 385
-  #   height: 163
-  #   width: 172
-  #   viewCenter:
-  #     x: 356028
-  #     y: 5935564
-  #   scale: 30
-  #   visibleLayers:
-  #     - Geltungsbereich 
-  #     - Geltungsbereich Hatch
-  #     - WMTS Basemap
-  #   # lockZoom: true
+  - name: Übersichtskarte
+    updateDxf: true
+    color: "magenta"
+    topLeft:
+      x: 817
+      y: 407
+    height: 163
+    width: 172
+    viewCenter:
+      x: 351013
+      y: 5936537
+    scale: 30
+    visibleLayers:
+      - Geltungsbereich 
+      - Geltungsbereich Hatch
+      - WMTS Basemap
+    # lockZoom: true
