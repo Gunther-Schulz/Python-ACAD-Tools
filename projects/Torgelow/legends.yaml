@@ -171,7 +171,10 @@ legends:
           #   blockSymbolScale: 1.8
           - name: "Wald"
             type: area
-            style: waldLegend
+            style: 
+              preset: waldLegend
+              hatch:
+                scale: 1.5
             applyHatch: true
           # - name: "Baum"
           #   type: empty

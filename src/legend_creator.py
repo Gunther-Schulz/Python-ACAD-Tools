@@ -266,15 +266,6 @@ class LegendCreator:
                 else:
                     hatch.dxf.color = color
             
-            if 'pattern' in hatch_style:
-                pattern = hatch_style['pattern']
-                scale = hatch_style.get('scale', 1)
-                try:
-                    hatch.set_pattern_fill(pattern, scale=scale)
-                except ezdxf.DXFValueError:
-                    log_warning(f"Invalid hatch pattern: {pattern}. Using SOLID instead.")
-                    hatch.set_solid_fill()
-            
             if 'transparency' in hatch_style:
                 transparency = convert_transparency(hatch_style['transparency'])
                 if transparency is not None:
