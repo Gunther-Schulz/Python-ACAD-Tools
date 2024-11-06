@@ -105,6 +105,11 @@ styles:
       patternScale: 5
       individual_hatches: true
 
+  waldLegend:
+    hatch:
+      pattern: 'ANSI31'
+      patternScale: 3
+
   waldWorkView:
     layer:     
       color: "aquamarine-strong"

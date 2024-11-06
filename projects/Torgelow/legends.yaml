@@ -13,7 +13,7 @@
 #     y: 5941939
 #   titleTextStyle:
 #     height: 8
-#     color: "red-dusky"
+#     color: "white"
 #     text_style: "Arial"
 #     # rotation: 45
 #     # attachment_point: MTEXT_MIDDLE_CENTER
@@ -29,7 +29,7 @@
 #     # oblique_angle: 15
 #   titleSubtitleStyle:
 #     height: 3.5
-#     color: "red-dusky"
+#     color: "white"
 #     text_style: "Arial"
 #   groupTextStyle:
 #     color: "white"
