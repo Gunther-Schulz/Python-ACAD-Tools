@@ -19,7 +19,12 @@ def process_wmts_or_wms_layer(all_layers, project_settings, crs, layer_name, ope
     # Get update flag from operation first, then layer_info as fallback
     update_flag = operation.get('update', None)
     if update_flag is None:
-        layer_info = next((l for l in project_settings['geomLayers'] if l['name'] == layer_name), None)
+        # Check in both geomLayers and wmts_wms_layers
+        layer_info = (
+            # next((l for l in project_settings.get('geomLayers', []) if l['name'] == layer_name), None) or
+            next((l for l in project_settings.get('wmtsLayers', []) if l['name'] == layer_name), None) or
+            next((l for l in project_settings.get('wmsLayers', []) if l['name'] == layer_name), None)
+        )
         update_flag = layer_info.get('update', False) if layer_info else False
     
     overwrite_flag = operation.get('overwrite', False)
