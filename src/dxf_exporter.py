@@ -614,8 +614,11 @@ class DXFExporter:
                 if viewport:
                     vp_handle = viewport.dxf.handle
                     
-                    # Use StyleManager to get the style
-                    style, warning_generated = self.style_manager.get_style(vp_style.get('style', {}))
+                    # Validate and get the style
+                    style_config = vp_style.get('style', {})
+                    self.style_manager.validate_style(layer_name, style_config)
+                    style, warning_generated = self.style_manager.get_style(style_config)
+                    
                     if warning_generated:
                         log_warning(f"Style not found for viewport {vp_style['name']} on layer {layer_name}")
                         continue

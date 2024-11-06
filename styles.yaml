@@ -144,7 +144,7 @@ styles:
 
   baugrenze:
     layer:
-      linetype: ACAD_ISO02W100
+      linetype: ACAD_ISO011W100
       lineweight: 50
 
   baugrenze_2:

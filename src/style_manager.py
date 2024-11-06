@@ -1,5 +1,6 @@
 from src.utils import log_info, log_warning
 from src.dxf_utils import get_color_code
+import re
 
 class StyleManager:
     def __init__(self, project_loader):
@@ -22,29 +23,42 @@ class StyleManager:
         return style_name_or_config, False
 
     def validate_style(self, layer_name, style_config):
-        style, warning_generated = self.get_style(style_config)
-        if warning_generated:
-            return
-        
-        if style is None:
-            log_warning(f"Style for layer '{layer_name}' not found.")
-            return
-        
-        known_style_keys = {'layer', 'hatch', 'text'}
-        unknown_style_keys = set(style.keys()) - known_style_keys
-        if unknown_style_keys:
-            log_warning(f"Unknown style keys in layer {layer_name}: {', '.join(unknown_style_keys)}")
+        """Validates the complete style configuration for a layer"""
+        if isinstance(style_config, str):
+            style, warning_generated = self.get_style(style_config)
+            if warning_generated:
+                return False
+        else:
+            style = style_config
 
+        # if not style:
+        #     log_warning(f"No style found for layer '{layer_name}'")
+        #     return False
+
+        # Validate each style component
         if 'layer' in style:
             self._validate_layer_style(layer_name, style['layer'])
         if 'hatch' in style:
             self._validate_hatch_style(layer_name, style['hatch'])
         if 'text' in style:
             self._validate_text_style(layer_name, style['text'])
+        
+        return True
 
     def _validate_layer_style(self, layer_name, layer_style):
         known_style_keys = {'color', 'linetype', 'lineweight', 'plot', 'locked', 'frozen', 'is_on', 'transparency'}
         self._validate_style_keys(layer_name, 'layer', layer_style, known_style_keys)
+        # Add linetype validation
+        if 'linetype' in layer_style:
+            linetype = layer_style['linetype']
+            if linetype.startswith('ACAD_'):
+                # Regular expression pattern for valid ACAD linetypes
+                acad_pattern = r'^ACAD_ISO\d{2}W100$'
+                if not re.match(acad_pattern, linetype):
+                    log_warning(f"Invalid ACAD linetype format '{linetype}' in layer '{layer_name}'. "
+                              f"ACAD ISO linetypes should follow the pattern 'ACAD_ISOxxW100' where xx is a two-digit number.")
+            elif not self.project_loader.doc.linetypes.has_entry(linetype):
+                log_warning(f"Linetype '{linetype}' in layer '{layer_name}' does not exist. Using default linetype.")
 
     def _validate_hatch_style(self, layer_name, hatch_style):
         known_style_keys = {'pattern', 'patternScale', 'color', 'transparency'}
@@ -112,6 +126,9 @@ class StyleManager:
 
     def process_layer_style(self, layer_name, layer_config):
         style = layer_config.get('style', {})
+        
+        # Validate style before processing
+        self.validate_style(layer_name, style)
         
         if isinstance(style, str):
             style, warning_generated = self.get_style(style)

@@ -1,23 +1,27 @@
-# blockInserts:
-# - name: "SO EBS Label"
-#   updateDxf: true
-#   targetLayer: "Baufeld"
-#   blockName: "Sonstiges Sondergebiet EBS"
-#   scale: 6.0
-#   rotation: 0
-#   position:
-#     type: "centroid"  # Options: centroid, center, random
-#     offset:
-#       x: 0
-#       y: 0
-# - name: "GRZ Label"
-#   updateDxf: true
-#   targetLayer: "Baufeld"
-#   blockName: "GRZ"
-#   scale: 4.0
-#   rotation: 0
-#   position:
-#     type: "centroid"  # Options: centroid, center, random
-#     offset:
-#       x: 0
-#       y: -20
+blockInserts:
+- name: "SO EBS Label"
+  updateDxf: true
+  targetLayer: "Baufeld"
+  blockName: "Sonstiges Sondergebiet EBS"
+  scale: 6.0
+  rotation: 0
+  position:
+    type: "polygon"
+    method: "centroid"  # Options: centroid, center, random
+    sourceLayer: "Baufeld"
+    offset:
+      x: 0
+      y: 0
+- name: "GRZ Label"
+  updateDxf: true
+  targetLayer: "Baufeld"
+  blockName: "GRZ"
+  scale: 4.0
+  rotation: 0
+  position:
+    type: "polygon"
+    method: "centroid"  # Options: centroid, center, random
+    sourceLayer: "Baufeld"
+    offset:
+      x: 0
+      y: -20
