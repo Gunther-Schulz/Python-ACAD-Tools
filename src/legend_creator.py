@@ -256,7 +256,16 @@ class LegendCreator:
 
         if create_hatch:
             hatch_paths = [[(x1, y1), (x2, y1), (x2, y2), (x1, y2)]]
-            hatch = dxf_utils.create_hatch(self.msp, hatch_paths, hatch_style, self.project_loader)
+            
+            # Create a layer_info-like structure for the style manager
+            legend_layer_info = {
+                'style': {'hatch': hatch_style}  # Match the structure expected by style_manager
+            }
+            
+            # Use the same style processing as regular geometry
+            hatch_config = self.style_manager.get_hatch_config(legend_layer_info)
+            
+            hatch = dxf_utils.create_hatch(self.msp, hatch_paths, hatch_config, self.project_loader)
             hatch.dxf.layer = layer_name
             
             if 'color' in hatch_style:
