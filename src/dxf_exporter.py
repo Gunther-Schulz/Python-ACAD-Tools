@@ -174,8 +174,15 @@ class DXFExporter:
     def process_layers(self, doc, msp):
         # Process all layers in project settings
         for layer_name, layer_data in self.all_layers.items():
-            layer_info = self.layer_properties.get(layer_name, {})
+            layer_info = next(
+                (l for l in self.project_settings.get('wmtsLayers', []) if l['name'] == layer_name),
+                next((l for l in self.project_settings.get('wmsLayers', []) if l['name'] == layer_name),
+                next((l for l in self.project_settings.get('geomLayers', []) if l['name'] == layer_name), None))
+            )
             
+            if not layer_info:
+                continue
+                
             if isinstance(layer_data, list) and layer_data and isinstance(layer_data[0], tuple):
                 # This is a WMTS/WMS layer
                 self._process_wmts_layer(doc, msp, layer_name, layer_info)
@@ -211,7 +218,10 @@ class DXFExporter:
 
     def _process_wmts_layer(self, doc, msp, layer_name, layer_info):
         log_info(f"Processing WMTS layer: {layer_name}")
-        self.create_new_layer(doc, msp, layer_name, layer_info)
+        if layer_name in self.all_layers:
+            geo_data = self.all_layers[layer_name]
+            if isinstance(geo_data, list) and all(isinstance(item, tuple) for item in geo_data):
+                self.add_wmts_xrefs_to_dxf(msp, geo_data, layer_name)
 
     def _process_regular_layer(self, doc, msp, layer_name, layer_info):
         self._ensure_layer_exists(doc, layer_name, layer_info)
