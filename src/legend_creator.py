@@ -154,8 +154,16 @@ class LegendCreator:
         item_name = item.get('name', '')
         item_type = item.get('type', 'empty')
         
-        style = self.get_style(item.get('style', {}))
+        # Modified style handling
+        style = item.get('style', {})
+        if isinstance(style, dict) and 'preset' in style:
+            preset_style, _ = self.style_manager.get_style(style['preset'])
+            # Deep merge the preset with any overrides
+            style = self.style_manager.deep_merge(preset_style or {}, {k: v for k, v in style.items() if k != 'preset'})
+        else:
+            style = self.get_style(style)
         
+        # Get the processed styles
         hatch_style = self.get_style(style.get('hatch', {}))
         layer_style = self.get_style(style.get('layer', {}))
         rectangle_style = self.get_style(item.get('rectangleStyle', {}))

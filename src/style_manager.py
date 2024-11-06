@@ -14,12 +14,32 @@ class StyleManager:
         }
 
     def get_style(self, style_name_or_config):
+        print(f"get_style input: {style_name_or_config}")  # Debug
         if isinstance(style_name_or_config, str):
             style = self.styles.get(style_name_or_config)
+            print(f"Found preset: {style}")  # Debug
             if style is None:
                 log_warning(f"Style preset '{style_name_or_config}' not found.")
-                return None, True  # Return None and True to indicate a warning was logged
-            return style, False  # Return the style and False to indicate no warning
+                return None, True
+            return style, False
+        elif isinstance(style_name_or_config, dict) and 'preset' in style_name_or_config:
+            preset_name = style_name_or_config['preset']
+            preset = self.styles.get(preset_name)
+            print(f"Found preset for {preset_name}: {preset}")  # Debug
+            if preset is None:
+                log_warning(f"Style preset '{preset_name}' not found.")
+                return style_name_or_config, True
+            
+            # Remove the preset key from overrides
+            overrides = dict(style_name_or_config)
+            del overrides['preset']
+            print(f"Overrides: {overrides}")  # Debug
+            
+            # Deep merge the preset with overrides
+            merged_style = self.deep_merge(preset, overrides)
+            print(f"Merged result: {merged_style}")  # Debug
+            return merged_style, False
+        
         return style_name_or_config, False
 
     def validate_style(self, layer_name, style_config):
@@ -95,15 +115,27 @@ class StyleManager:
         return previous_row[-1]
 
     def get_hatch_config(self, layer_info):
+        print(f"\nget_hatch_config input: {layer_info}")  # Debug
         hatch_config = self.default_hatch_settings.copy()
+        print(f"Initial hatch_config: {hatch_config}")  # Debug
         
         layer_style = layer_info.get('style', {})
+        print(f"Layer style: {layer_style}")  # Debug
         if isinstance(layer_style, str):
             style_preset, _ = self.get_style(layer_style)
             if style_preset and 'hatch' in style_preset:
                 hatch_config.update(style_preset['hatch'])
         elif isinstance(layer_style, dict):
-            if 'hatch' in layer_style:
+            if 'preset' in layer_style:
+                # Get the preset first
+                preset_style, _ = self.get_style(layer_style)
+                if preset_style and 'hatch' in preset_style:
+                    # Merge preset with any hatch overrides
+                    if 'hatch' in layer_style:
+                        hatch_config = self.deep_merge(preset_style['hatch'], layer_style['hatch'])
+                    else:
+                        hatch_config.update(preset_style['hatch'])
+            elif 'hatch' in layer_style:
                 hatch_config.update(layer_style['hatch'])
             elif 'layer' in layer_style:
                 # Use layer settings for hatch if no specific hatch settings are provided
@@ -159,12 +191,22 @@ class StyleManager:
         return style.get('text', {}) if style else {}
 
     def deep_merge(self, dict1, dict2):
+        """
+        Deep merge two dictionaries, merging at all levels instead of replacing.
+        dict1 is the base (preset), dict2 contains the overrides
+        """
         result = dict1.copy()
+        
         for key, value in dict2.items():
-            if isinstance(value, dict):
-                result[key] = self.deep_merge(result.get(key, {}), value)
+            if (key in result and 
+                isinstance(result[key], dict) and 
+                isinstance(value, dict)):
+                # Recursively merge nested dictionaries
+                result[key] = self.deep_merge(result[key], value)
             else:
+                # For non-dict values or new keys, just update/add the value
                 result[key] = value
+        
         return result
 
     def _process_layer_style(self, layer_name, layer_style):

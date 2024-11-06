@@ -108,7 +108,7 @@ styles:
   waldLegend:
     hatch:
       pattern: 'ANSI31'
-      scale: 3
+      scale: 2
 
   waldWorkView:
     layer:     
