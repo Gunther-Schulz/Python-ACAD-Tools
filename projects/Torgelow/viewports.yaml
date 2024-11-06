@@ -1,39 +1,47 @@
 viewports:
-- name: MainView
-  updateDxf: true
-  color: "magenta"
-  topLeft:
-    x: 65
-    y: 776.5
-  width: 720
-  height: 653
-  viewCenter:
-    x: 351016
-    y: 5936541
-  customScale: 0.5
-  lockZoom: true
-- name: LegendView
-  updateDxf: true
-  color: "magenta"
-  topLeft:
-    x: 817
-    y: 842
-  width: 180
-  height: 700
-  viewTopLeft:
-    x: 357774
-    y: 5941939
-  # scale: 2
-  # customScale: 0.5
-  lockZoom: true
-- name: WorkView
-  updateDxf: true
-  color: "magenta"
-  center:
-    x: 780
-    y: 2000
-  width: 720
-  height: 653
-  viewCenter:
-    x: 356027
-    y: 5935564
+  - name: MainView
+    updateDxf: true
+    color: "magenta"
+    topLeft:
+      x: 65
+      y: 776.5
+    width: 720
+    height: 653
+    viewCenter:
+      x: 351016
+      y: 5936541
+    customScale: 0.5
+    lockZoom: true
+  - name: Legend
+    updateDxf: true
+    color: "magenta"
+    topLeft:
+      x: 817
+      y: 842
+    height: 632
+    width: 180
+    viewTopLeft:
+      x: 367839
+      y: 5942627
+    frozenLayers:
+      - WMTS Basemap
+    # scale: 2
+    # customScale: 0.5
+    lockZoom: true
+  # - name: Übersichtskarte
+  #   updateDxf: true
+  #   color: "magenta"
+  #   topLeft:
+  #     x: 2400
+  #     y: 385
+  #   height: 163
+  #   width: 172
+  #   viewCenter:
+  #     x: 356028
+  #     y: 5935564
+  #   scale: 30
+  #   visibleLayers:
+  #     - Geltungsbereich 
+  #     - Geltungsbereich Hatch
+  #     - WMTS Basemap
+  #   # lockZoom: true

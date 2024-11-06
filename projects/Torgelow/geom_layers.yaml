@@ -5,7 +5,6 @@ geomLayers:
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/input/flur2.shp"
     label: flurname
     linetypeGeneration: true
-
     style: flurgrenze
     viewports:
       - name: WorkView
