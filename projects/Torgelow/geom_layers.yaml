@@ -277,23 +277,23 @@ geomLayers:
         layers:
           - Baufeld
         distance: -3
-  - name: WMTS DOP
-    # updateDxf: true
-    style: 
-      locked: true
-      # color: "White"
-    operations:
-      - type: wmts
-        url: "https://www.geodaten-mv.de/dienste/dop_wmts/wmts/1.0.0/WMTSCapabilities.xml"
-        layer: "mv_dop"
-        # zoom: "10"
-        proj: "ETRS89UTM33"
-        targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/DOP"
-        layers:
-          - Geltungsbereich
-        buffer: 200
-        stitchTiles: true
-        # overwrite: true
+  # - name: WMTS DOP
+  #   # updateDxf: true
+  #   style: 
+  #     locked: true
+  #     # color: "White"
+  #   operations:
+  #     - type: wmts
+  #       url: "https://www.geodaten-mv.de/dienste/dop_wmts/wmts/1.0.0/WMTSCapabilities.xml"
+  #       layer: "mv_dop"
+  #       zoom: "10"
+  #       proj: "ETRS89UTM33"
+  #       targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/DOP"
+  #       layers:
+  #         - Geltungsbereich
+  #       buffer: 200
+  #       stitchTiles: true
+  #       # overwrite: true
   # - name: WMTS Basemap
   #   # updateDxf: true
   #   color: white

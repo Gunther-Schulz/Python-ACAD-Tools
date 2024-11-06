@@ -1,9 +1,10 @@
-textInserts:
-- name: Sample Text
-  targetLayer: Text
-  updateDxf: true
-  text: Sample Text
-  position:
-    type: absolute
-    x: 0
-    y: 0
+# textInserts:
+#   - name: "Main Title"
+#     updateDxf: true
+#     targetLayer: "Plantext"
+#     paperspace: true  # Add this to place text in paper space
+#     text: "Entwurf: Vorhabensbezogener Bebauungsplan Nr. 3 „Solarpark Friedrichshof“ der Gemeinde Klein Belitz"
+#     position:
+#       x: 66
+#       y: 840
+#     style: "mainTitle"  # Style can include width for text wrapping    

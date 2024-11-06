@@ -57,15 +57,15 @@ class ProjectLoader:
             # Load main project settings
             main_settings = self.load_yaml_file('project.yaml', required=True)
             
-            # Load optional modular configs
-            legends = self.load_yaml_file('legends.yaml', required=False)
-            geom_layers = self.load_yaml_file('geom_layers.yaml', required=False)
-            viewports = self.load_yaml_file('viewports.yaml', required=False)
-            block_inserts = self.load_yaml_file('block_inserts.yaml', required=False)
-            text_inserts = self.load_yaml_file('text_inserts.yaml', required=False)
-            path_arrays = self.load_yaml_file('path_arrays.yaml', required=False)
+            # Load optional modular configs and handle None cases
+            legends = self.load_yaml_file('legends.yaml', required=False) or {}
+            geom_layers = self.load_yaml_file('geom_layers.yaml', required=False) or {}
+            viewports = self.load_yaml_file('viewports.yaml', required=False) or {}
+            block_inserts = self.load_yaml_file('block_inserts.yaml', required=False) or {}
+            text_inserts = self.load_yaml_file('text_inserts.yaml', required=False) or {}
+            path_arrays = self.load_yaml_file('path_arrays.yaml', required=False) or {}
 
-            # Merge all configurations
+            # Merge all configurations with safe defaults
             self.project_settings = {
                 **main_settings,
                 'legends': legends.get('legends', []),
