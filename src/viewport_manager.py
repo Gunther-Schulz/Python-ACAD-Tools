@@ -1,3 +1,4 @@
+import traceback
 from ezdxf.lldxf import const
 from src.utils import log_info, log_warning, log_error
 from src.dxf_utils import get_color_code, attach_custom_data
@@ -20,21 +21,12 @@ class ViewportManager:
         viewports_layer = doc.layers.get('VIEWPORTS')
         viewports_layer.dxf.plot = 0
         
-        # Log the total number of viewport configurations
         viewport_configs = self.project_settings.get('viewports', [])
         log_info(f"Found {len(viewport_configs)} viewport configurations")
         
         for vp_config in viewport_configs:
             try:
                 name = vp_config.get('name', 'unnamed')
-                log_info(f"Starting to process viewport configuration: {name}")
-                
-                # Log all the key configuration values
-                log_info(f"Viewport {name} configuration: updateDxf={vp_config.get('updateDxf', False)}, "
-                        f"topLeft={vp_config.get('topLeft', None)}, "
-                        f"height={vp_config.get('height', None)}, "
-                        f"width={vp_config.get('width', None)}")
-                
                 if not vp_config.get('updateDxf', False):
                     log_info(f"Skipping viewport {name} as update flag is not set")
                     continue
@@ -47,16 +39,14 @@ class ViewportManager:
                 self._update_viewport_properties(viewport, vp_config)
                 self._update_viewport_layers(doc, viewport, vp_config)
                 self._attach_viewport_metadata(viewport, vp_config)
-                
                 self.viewports[name] = viewport
                 log_info(f"Successfully processed viewport: {name}")
                 
             except Exception as e:
                 log_error(f"Error processing viewport {vp_config.get('name', 'unnamed')}: {str(e)}")
-                import traceback
                 log_error(f"Traceback: {traceback.format_exc()}")
                 continue
-                
+        
         log_info(f"Completed viewport processing. Created/updated {len(self.viewports)} viewports")
         return self.viewports
 
@@ -128,23 +118,13 @@ class ViewportManager:
 
     def _update_viewport_layers(self, doc, viewport, vp_config):
         """Updates layer visibility settings for the viewport."""
-        # Get all potential layers from different sources
+        # Get all actual layers from the document except system layers
         all_layers = set()
         
-        # Add existing layers
-        all_layers.update(layer.dxf.name for layer in doc.layers if 
-                         layer.dxf.name not in ['0', 'DEFPOINTS', 'VIEWPORTS'])
-        
-        # Add layers from path arrays
-        path_arrays = self.project_settings.get('pathArrays', [])
-        for array in path_arrays:
-            if 'sourceLayer' in array:
-                all_layers.add(array['sourceLayer'])
-        
-        # Add WMTS/WMS layers
-        wmts_layers = self.project_settings.get('wmtsLayers', [])
-        wms_layers = self.project_settings.get('wmsLayers', [])
-        all_layers.update(layer['name'] for layer in wmts_layers + wms_layers)
+        # First collect all layers that actually exist in the document
+        for layer in doc.layers:
+            if layer.dxf.name not in ['0', 'DEFPOINTS', 'VIEWPORTS']:
+                all_layers.add(layer.dxf.name)
         
         # Clear existing frozen layers first
         viewport.frozen_layers = []
@@ -157,6 +137,7 @@ class ViewportManager:
             frozen_layers = [layer for layer in all_layers if layer not in visible_layers]
             viewport.frozen_layers = frozen_layers
             log_info(f"Set {len(frozen_layers)} layers as frozen (all except visible) for viewport {vp_config['name']}")
+            log_info(f"Frozen layers: {frozen_layers}")
             
         elif 'frozenLayers' in vp_config:
             viewport.frozen_layers = vp_config['frozenLayers']
