@@ -1,7 +1,7 @@
 - Layer order
 - relative positioning for paperspace items to each other
 - get center of a layer to iuse to setthe viewport model view center
-- intelligent placemez for flurstücke (might be hard and/or not worth it)
+- intelligent placemez for flurstücke (might be hard and/or not worth it). Is there a library for that?
 - generate better geometry for flur/gematrkung/gemeinde that doesnt overlay each other (hard one)
 - cut rectangles from vp corners (tried, couldmt get it to work. docs lacking)
 
