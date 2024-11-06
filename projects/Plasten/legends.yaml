@@ -14,7 +14,7 @@ legends:
       y: 5942622
     titleTextStyle:
       height: 8
-      color: "red-dusky"
+      color: "white"
       text_style: "Arial"
       # rotation: 45
       # attachment_point: MTEXT_MIDDLE_CENTER
@@ -30,7 +30,7 @@ legends:
       # oblique_angle: 15
     titleSubtitleStyle:
       height: 3.5
-      color: "red-dusky"
+      color: "white"
       text_style: "Arial"
     groupTextStyle:
       color: "white"
@@ -171,7 +171,7 @@ legends:
             blockSymbolScale: 1.8
           - name: "Wald"
             type: area
-            style: wald
+            style: waldLegend
             applyHatch: true
           - name: "Baum"
             type: empty
@@ -196,15 +196,15 @@ legends:
     group_subtitle_spacing: 3 # Space after each group's subtitle
     item_spacing: 4       # Space between individual items within a group
     position:
-      x: 368330
-      y: 5942622
+      x: 368340
+      y: 5942620
     titleTextStyle:
       height: 8
-      color: "red-dusky"
+      color: "white"
       text_style: "Arial"
     titleSubtitleStyle:
       height: 3.5
-      color: "red-dusky"
+      color: "white"
       text_style: "Arial"
     groupTextStyle:
       color: "white"
@@ -295,7 +295,7 @@ legends:
         items:
           - name: "Wald"
             type: area
-            style: wald
+            style: waldLegend
             applyHatch: true
           - name: "Gebäude - Bestand"
             type: empty
@@ -314,14 +314,14 @@ legends:
     item_spacing: 4       # Space between individual items within a group
     position:
       x: 368841
-      y: 5942622
+      y: 5942620
     titleTextStyle:
       height: 8
-      color: "red-dusky"
+      color: "white"
       text_style: "Arial"
     titleSubtitleStyle:
       height: 3.5
-      color: "red-dusky"
+      color: "white"
       text_style: "Arial"
     groupTextStyle:
       color: "white"
@@ -412,15 +412,15 @@ legends:
         items:
           - name: "Wald"
             type: area
-            style: wald
+            style: waldLegend
             applyHatch: true
           - name: "Baum"
             type: empty
             blockSymbol: "Baum"
             blockSymbolScale: 1.8
-          # - name: "Gebäude - Bestand"
-          #   type: empty
-          #   blockSymbol: "Gebäude"
+          - name: "Gebäude - Bestand"
+            type: empty
+            blockSymbol: "Gebäude"
   # Legend S
   # ---------
   - id: "Legend S"
@@ -435,14 +435,14 @@ legends:
     item_spacing: 4       # Space between individual items within a group
     position:
       x: 369341
-      y: 5942622
+      y: 5942620
     titleTextStyle:
       height: 8
-      color: "red-dusky"
+      color: "white"
       text_style: "Arial"
     titleSubtitleStyle:
       height: 3.5
-      color: "red-dusky"
+      color: "white"
       text_style: "Arial"
     groupTextStyle:
       color: "white"
@@ -543,5 +543,5 @@ legends:
             blockSymbolScale: 1.8
           - name: "Wald"
             type: area
-            style: wald
+            style: waldLegend
             applyHatch: true

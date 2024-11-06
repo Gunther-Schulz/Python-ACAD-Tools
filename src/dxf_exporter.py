@@ -125,11 +125,12 @@ class DXFExporter:
             log_info(f"Loaded existing DXF file: {self.dxf_filename}")
             self.load_existing_layers(doc)
             self.check_existing_entities(doc)
+            # Print settings for existing file
+            set_drawing_properties(doc)
         else:
             doc = ezdxf.new(dxfversion=dxf_version)
             log_info(f"Created new DXF file with version: {dxf_version}")
             set_drawing_properties(doc)
-            # load_standard_linetypes(doc)
         return doc
 
     def load_existing_layers(self, doc):
@@ -614,8 +615,11 @@ class DXFExporter:
                 if viewport:
                     vp_handle = viewport.dxf.handle
                     
-                    # Use StyleManager to get the style
-                    style, warning_generated = self.style_manager.get_style(vp_style.get('style', {}))
+                    # Validate and get the style
+                    style_config = vp_style.get('style', {})
+                    self.style_manager.validate_style(layer_name, style_config)
+                    style, warning_generated = self.style_manager.get_style(style_config)
+                    
                     if warning_generated:
                         log_warning(f"Style not found for viewport {vp_style['name']} on layer {layer_name}")
                         continue
@@ -678,7 +682,7 @@ class DXFExporter:
             log_warning(f"No valid boundary geometry found for hatch in layer: {layer_name}")
             return
         
-        individual_hatches = hatch_config.get('individual_hatches', False)
+        individual_hatches = hatch_config.get('individual_hatches', True)
 
         if individual_hatches:
             geometries = [boundary_geometry] if isinstance(boundary_geometry, (Polygon, LineString)) else list(boundary_geometry.geoms)
@@ -687,7 +691,7 @@ class DXFExporter:
         
         for geometry in geometries:
             hatch_paths = self._get_hatch_paths(geometry)
-            hatch = create_hatch(msp, hatch_paths, hatch_config, self.project_loader, is_legend=False)
+            hatch = create_hatch(msp, hatch_paths, hatch_config, self.project_loader)
             hatch.dxf.layer = layer_name
             self.attach_custom_data(hatch)
 

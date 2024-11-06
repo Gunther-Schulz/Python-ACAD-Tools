@@ -1,9 +1,42 @@
 textInserts:
-- name: Sample Text
-  targetLayer: Text
-  updateDxf: true
-  text: Sample Text
-  position:
-    type: absolute
-    x: 0
-    y: 0
+  - name: "Main Title"
+    updateDxf: true
+    targetLayer: "Plantext"
+    paperspace: true  # Add this to place text in paper space
+    text: "Entwurf: vorhabensbezogener Bebauungsplan Nr. 06 „Solarpark an der Lindenallee“\nder Gemeinde Torgelow am See"
+    position:
+      type: absolute
+      x: 66
+      y: 840
+    style: "mainTitle"  # Style can include width for text wrapping
+  - name: "Map Header"
+    targetLayer: "Plantext"
+    updateDxf: true
+    paperspace: true  # Add this to place text in paper space
+    text: "Teil A: Planzeichnung i. M. 1:2.000"
+    position:
+      type: "absolute"
+      x: 66
+      y: 788
+    style: "mapHeader"  # Style can include width for text wrapping
+  - name: "Übersichtslarte Header"
+    targetLayer: "Plantext"
+    updateDxf: true
+    paperspace: true  # Add this to place text in paper space
+    text: "Übersichtskarte i. M. 1:30.000"
+    position:
+      type: "absolute"
+      x: 817
+      y: 420
+    style: "übersichtskarteHeader"  # Style can include width for text wrapping
+  - name: "Satzung"
+    targetLayer: "Plantext"
+    updateDxf: true
+    paperspace: true  # Add this to place text in paper space
+    justification: "CENTER" 
+    text: "VORENTWURF\nSATZUNG DER GEMEINDE\nTORGELOW AM SEE\nÜBER DEN VORHABENSBEZOGENER BEBAUUNGSPLAN\nNR: 06 „SOLARPARK AN DER LINDENALLEE“"
+    position:
+      type: "absolute"
+      x: 1012
+      y: 248
+    style: "satzungstext"  # Style can include width for text wrapping

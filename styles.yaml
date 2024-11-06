@@ -102,8 +102,13 @@ styles:
   wald:
     hatch:
       pattern: 'ANSI31'
-      patternScale: 5
+      scale: 5
       individual_hatches: true
+
+  waldLegend:
+    hatch:
+      pattern: 'ANSI31'
+      scale: 2
 
   waldWorkView:
     layer:     
@@ -144,7 +149,7 @@ styles:
 
   baugrenze:
     layer:
-      linetype: ACAD_ISO02W100
+      linetype: ACAD_ISO11W100
       lineweight: 50
 
   baugrenze_2:
@@ -197,7 +202,7 @@ styles:
       lineweight: 50
     hatch:
       pattern: "ANSI31"
-      patternScale: 10
+      scale: 10
 
 
 # Commented Out Styles
