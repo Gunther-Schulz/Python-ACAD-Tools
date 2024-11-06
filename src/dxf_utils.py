@@ -363,24 +363,10 @@ def apply_style_to_entity(entity, style, project_loader, loaded_styles, item_typ
             entity.dxf.style = text_style
 
 def create_hatch(msp, boundary_paths, hatch_config, project_loader, is_legend=False):
-    """Creates a hatch entity with the given configuration.
-    
-    Args:
-        msp: ModelSpace or PaperSpace to add the hatch to
-        boundary_paths: List of vertices defining the hatch boundary
-        hatch_config: Dictionary containing hatch configuration
-        project_loader: ProjectLoader instance for color mapping
-        is_legend: Boolean indicating if this is a legend hatch
-    """
-    if is_legend:
-        log_info(f"Creating symbol hatch with config: {hatch_config}")
-    else:
-        log_info(f"Creating hatch with config: {hatch_config}")
-    
     hatch = msp.add_hatch()
     
     pattern = hatch_config.get('pattern', 'SOLID')
-    pattern_scale = hatch_config.get('patternScale', 1)
+    pattern_scale = hatch_config.get('scale', 1)
     
     if pattern != 'SOLID':
         try:
@@ -399,7 +385,7 @@ def create_hatch(msp, boundary_paths, hatch_config, project_loader, is_legend=Fa
         # Single boundary case
         vertices = list(boundary_paths.exterior.coords)
         hatch.paths.add_polyline_path(vertices)
-    
+
     # Apply color
     if 'color' in hatch_config and hatch_config['color'] not in (None, 'BYLAYER'):
         color = get_color_code(hatch_config['color'], project_loader.name_to_aci)
