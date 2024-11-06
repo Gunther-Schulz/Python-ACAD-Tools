@@ -101,14 +101,20 @@ class DXFExporter:
         self.loaded_styles = initialize_document(doc)
         msp = doc.modelspace()
         self.register_app_id(doc)
-        self.viewport_manager.create_viewports(doc, msp)
+        
+        # First process all layers to ensure they exist
         self.process_layers(doc, msp)
+        self.create_path_arrays(msp)
+        
+        # Then create viewports after all layers are created
+        self.viewport_manager.create_viewports(doc, msp)
+        
         # Create legend
         legend_creator = LegendCreator(doc, msp, self.project_loader, self.loaded_styles)
         legend_creator.create_legend()
-        self.create_path_arrays(msp)
+        
         self.process_block_inserts(msp)
-        self.process_text_inserts(msp)  # Call text inserts separately
+        self.process_text_inserts(msp)
         self._cleanup_and_save(doc, msp)
 
     def _prepare_dxf_document(self):

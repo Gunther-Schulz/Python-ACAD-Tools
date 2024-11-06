@@ -128,9 +128,23 @@ class ViewportManager:
 
     def _update_viewport_layers(self, doc, viewport, vp_config):
         """Updates layer visibility settings for the viewport."""
-        # Get all layers except system layers
-        all_layers = set(layer.dxf.name for layer in doc.layers if 
-                        layer.dxf.name not in ['0', 'DEFPOINTS', 'VIEWPORTS'])
+        # Get all potential layers from different sources
+        all_layers = set()
+        
+        # Add existing layers
+        all_layers.update(layer.dxf.name for layer in doc.layers if 
+                         layer.dxf.name not in ['0', 'DEFPOINTS', 'VIEWPORTS'])
+        
+        # Add layers from path arrays
+        path_arrays = self.project_settings.get('pathArrays', [])
+        for array in path_arrays:
+            if 'sourceLayer' in array:
+                all_layers.add(array['sourceLayer'])
+        
+        # Add WMTS/WMS layers
+        wmts_layers = self.project_settings.get('wmtsLayers', [])
+        wms_layers = self.project_settings.get('wmsLayers', [])
+        all_layers.update(layer['name'] for layer in wmts_layers + wms_layers)
         
         # Clear existing frozen layers first
         viewport.frozen_layers = []
@@ -138,13 +152,15 @@ class ViewportManager:
         if 'visibleLayers' in vp_config:
             # Convert visible layers to a set for faster lookup
             visible_layers = set(vp_config['visibleLayers'])
+            
             # Freeze all layers that are not in the visible_layers list
             frozen_layers = [layer for layer in all_layers if layer not in visible_layers]
             viewport.frozen_layers = frozen_layers
-            log_info(f"Set {len(frozen_layers)} layers as frozen for viewport {vp_config['name']}")
+            log_info(f"Set {len(frozen_layers)} layers as frozen (all except visible) for viewport {vp_config['name']}")
+            
         elif 'frozenLayers' in vp_config:
             viewport.frozen_layers = vp_config['frozenLayers']
-            log_info(f"Using frozenLayers setting for viewport {vp_config['name']}")
+            log_info(f"Set explicit frozen layers for viewport {vp_config['name']}")
 
     def _attach_viewport_metadata(self, viewport, vp_config):
         """Attaches custom data and identifiers to the viewport."""
