@@ -1,10 +1,11 @@
-# textInserts:
-#   - name: "Main Title"
-#     updateDxf: true
-#     targetLayer: "Plantext"
-#     paperspace: true  # Add this to place text in paper space
-#     text: "Entwurf: Vorhabensbezogener Bebauungsplan Nr. 3 „Solarpark Friedrichshof“ der Gemeinde Klein Belitz"
-#     position:
-#       x: 66
-#       y: 840
-#     style: "mainTitle"  # Style can include width for text wrapping    
+textInserts:
+  - name: "Main Title"
+    updateDxf: true
+    targetLayer: "Plantext"
+    paperspace: true  # Add this to place text in paper space
+    text: "Entwurf: vorhabensbezogener Bebauungsplan Nr. 06 „Solarpark an der Lindenallee“ der Gemeinde Torgelow am See"
+    position:
+      type: absolute
+      x: 66
+      y: 840
+    style: "mainTitle"  # Style can include width for text wrapping    

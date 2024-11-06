@@ -418,9 +418,9 @@ legends:
             type: empty
             blockSymbol: "Baum"
             blockSymbolScale: 1.8
-          # - name: "Gebäude - Bestand"
-          #   type: empty
-          #   blockSymbol: "Gebäude"
+          - name: "Gebäude - Bestand"
+            type: empty
+            blockSymbol: "Gebäude"
   # Legend S
   # ---------
   - id: "Legend S"
