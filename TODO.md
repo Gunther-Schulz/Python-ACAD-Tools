@@ -1,3 +1,4 @@
+- Ability to remove unused layers
 - Layer order
 - relative positioning for paperspace items to each other
 - get center of a layer to iuse to setthe viewport model view center
