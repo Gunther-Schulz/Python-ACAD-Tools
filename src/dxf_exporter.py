@@ -172,23 +172,25 @@ class DXFExporter:
         verify_dxf_settings(self.dxf_filename)
 
     def process_layers(self, doc, msp):
-        # Process all layers in project settings
-        for layer_name, layer_data in self.all_layers.items():
-            layer_info = next(
-                (l for l in self.project_settings.get('wmtsLayers', []) if l['name'] == layer_name),
-                next((l for l in self.project_settings.get('wmsLayers', []) if l['name'] == layer_name),
-                next((l for l in self.project_settings.get('geomLayers', []) if l['name'] == layer_name), None))
-            )
-            
-            if not layer_info:
-                continue
-                
-            if isinstance(layer_data, list) and layer_data and isinstance(layer_data[0], tuple):
-                # This is a WMTS/WMS layer
-                self._process_wmts_layer(doc, msp, layer_name, layer_info)
-            else:
-                # This is a regular geometric layer
+        # First process geometric layers (including hatches)
+        geom_layers = self.project_settings.get('geomLayers', [])
+        for layer_info in geom_layers:
+            layer_name = layer_info['name']
+            if layer_name in self.all_layers:
                 self._process_regular_layer(doc, msp, layer_name, layer_info)
+                
+                # Process hatches after the regular geometry
+                if 'applyHatch' in layer_info:
+                    self._process_hatch(doc, msp, layer_name, layer_info)
+
+        # Then process WMTS/WMS layers
+        wmts_layers = self.project_settings.get('wmtsLayers', [])
+        wms_layers = self.project_settings.get('wmsLayers', [])
+        
+        for layer_info in wmts_layers + wms_layers:
+            layer_name = layer_info['name']
+            if layer_name in self.all_layers:
+                self._process_wmts_layer(doc, msp, layer_name, layer_info)
 
     def process_single_layer(self, doc, msp, layer_name, layer_info):
         log_info(f"Processing layer: {layer_name}")
@@ -716,7 +718,6 @@ class DXFExporter:
             return
 
         boundary_layers = hatch_config.get('layers', [layer_name])
-
         boundary_geometry = self._get_boundary_geometry(boundary_layers)
         
         if boundary_geometry is None or boundary_geometry.is_empty:
@@ -732,9 +733,10 @@ class DXFExporter:
         
         for geometry in geometries:
             hatch_paths = self._get_hatch_paths(geometry)
-            hatch = create_hatch(msp, hatch_paths, hatch_config, self.project_loader)
-            hatch.dxf.layer = layer_name
-            self.attach_custom_data(hatch)
+            if hatch_paths:
+                hatch = create_hatch(msp, hatch_paths, hatch_config, self.project_loader)
+                hatch.dxf.layer = layer_name
+                self.attach_custom_data(hatch)
 
         log_info(f"Added hatch{'es' if individual_hatches else ''} to layer: {layer_name}")
 
