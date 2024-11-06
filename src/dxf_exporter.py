@@ -218,9 +218,17 @@ class DXFExporter:
 
     def _process_wmts_layer(self, doc, msp, layer_name, layer_info):
         log_info(f"Processing WMTS layer: {layer_name}")
+        
+        # Ensure layer exists with proper properties
+        self._ensure_layer_exists(doc, layer_name, layer_info)
+        
+        # Get the tile data from all_layers
         if layer_name in self.all_layers:
             geo_data = self.all_layers[layer_name]
             if isinstance(geo_data, list) and all(isinstance(item, tuple) for item in geo_data):
+                # Remove existing entities from the layer
+                remove_entities_by_layer(msp, layer_name, self.script_identifier)
+                # Add new xrefs
                 self.add_wmts_xrefs_to_dxf(msp, geo_data, layer_name)
 
     def _process_regular_layer(self, doc, msp, layer_name, layer_info):
@@ -312,13 +320,17 @@ class DXFExporter:
 
     def add_image_with_worldfile(self, msp, image_path, world_file_path, layer_name):
         log_info(f"Adding image with worldfile for layer: {layer_name}")
+        print(f"Adding image with worldfile for layer: {layer_name}")
         log_info(f"Image path: {image_path}")
         log_info(f"World file path: {world_file_path}")
 
-        # Get layer configuration
-        layer_info = next((l for l in self.project_settings['geomLayers'] if l['name'] == layer_name), None)
-        use_transparency = False
+        # Get layer configuration from both WMTS and WMS layers
+        layer_info = (
+            next((l for l in self.project_settings.get('wmtsLayers', []) if l['name'] == layer_name), None) or
+            next((l for l in self.project_settings.get('wmsLayers', []) if l['name'] == layer_name), None)
+        )
         
+        use_transparency = False
         if layer_info and 'operations' in layer_info:
             for op in layer_info['operations']:
                 if op['type'] in ['wms', 'wmts']:
@@ -386,6 +398,7 @@ class DXFExporter:
             # Image.SHOW_IMAGE (1) | Image.SHOW_WHEN_NOT_ALIGNED (2) | Image.USE_TRANSPARENCY (8)
             image.dxf.flags = 1 | 2 | 8
             log_info(f"Added image with transparency enabled: {image}")
+            print(f"Added image with transparency enabled: {image}")
         else:
             # Image.SHOW_IMAGE (1) | Image.SHOW_WHEN_NOT_ALIGNED (2)
             image.dxf.flags = 1 | 2

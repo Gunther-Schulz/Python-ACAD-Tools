@@ -69,7 +69,7 @@ wmsLayers:
     updateDxf: true
     operations:
       - type: wms
-        # overwrite: true
+        overwrite: true
         url: "https://www.geodaten-mv.de/dienste/dgm_wms"
         layer: "hohenlinien"
         imageTransparency: true
