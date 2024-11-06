@@ -35,33 +35,37 @@ class DXFExporter:
         self.colors = {}
         self.name_to_aci = project_loader.name_to_aci
         self.block_inserts = self.project_settings.get('blockInserts', [])
+        self.style_manager = StyleManager(project_loader)
         log_info(f"DXFExporter initialized with script identifier: {self.script_identifier}")
         self.setup_layers()
-        self.style_manager = StyleManager(project_loader)
         self.viewport_manager = ViewportManager(
             self.project_settings, 
             self.script_identifier,
             self.name_to_aci,
             self.style_manager
         )
-        self.loaded_styles = set()  # Add this line to store loaded styles
+        self.loaded_styles = set()
 
     def setup_layers(self):
+        # Setup geom layers
         for layer in self.project_settings['geomLayers']:
+            self._setup_single_layer(layer)
+        
+        # Setup WMTS/WMS layers
+        for layer in self.project_settings.get('wmtsLayers', []):
+            self._setup_single_layer(layer)
+        for layer in self.project_settings.get('wmsLayers', []):
             self._setup_single_layer(layer)
 
     def _setup_single_layer(self, layer):
         layer_name = layer['name']
         
-        # If layerStyle is a string, get the preset style
-        if 'layerStyle' in layer and isinstance(layer['layerStyle'], str):
-            layer['layerStyle'] = self.project_loader.get_style(layer['layerStyle'])
-        
-        # If hatchStyle is a string, get the preset style
-        if 'hatchStyle' in layer and isinstance(layer['hatchStyle'], str):
-            layer['hatchStyle'] = self.project_loader.get_style(layer['hatchStyle'])
-        
-        self.add_layer_properties(layer_name, layer)
+        # Process layer style
+        if 'style' in layer:
+            layer_style = self.style_manager.process_layer_style(layer_name, layer)
+            self.add_layer_properties(layer_name, layer, layer_style)
+        else:
+            self.add_layer_properties(layer_name, layer)
         
         if not self.is_wmts_or_wms_layer(layer) and not layer_name.endswith(' Label'):
             if self.has_labels(layer):
@@ -156,7 +160,11 @@ class DXFExporter:
             log_warning(f"Directory for DXF file {self.dxf_filename} does not exist. Cannot save file.")
             return
         
-        processed_layers = [layer['name'] for layer in self.project_settings['geomLayers']]
+        processed_layers = (
+            [layer['name'] for layer in self.project_settings['geomLayers']] +
+            [layer['name'] for layer in self.project_settings.get('wmtsLayers', [])] +
+            [layer['name'] for layer in self.project_settings.get('wmsLayers', [])]
+        )
         layers_to_clean = [layer for layer in processed_layers if layer not in self.all_layers]
         remove_entities_by_layer(msp, layers_to_clean, self.script_identifier)
         doc.saveas(self.dxf_filename)
@@ -164,9 +172,16 @@ class DXFExporter:
         verify_dxf_settings(self.dxf_filename)
 
     def process_layers(self, doc, msp):
-        for layer_info in self.project_settings['geomLayers']:
-            if layer_info.get('updateDxf', False):  # Default to False
-                self.process_single_layer(doc, msp, layer_info['name'], layer_info)
+        # Process all layers in project settings
+        for layer_name, layer_data in self.all_layers.items():
+            layer_info = self.layer_properties.get(layer_name, {})
+            
+            if isinstance(layer_data, list) and layer_data and isinstance(layer_data[0], tuple):
+                # This is a WMTS/WMS layer
+                self._process_wmts_layer(doc, msp, layer_name, layer_info)
+            else:
+                # This is a regular geometric layer
+                self._process_regular_layer(doc, msp, layer_name, layer_info)
 
     def process_single_layer(self, doc, msp, layer_name, layer_info):
         log_info(f"Processing layer: {layer_name}")
@@ -500,30 +515,33 @@ class DXFExporter:
         for layer in self.project_settings['geomLayers']:
             self.add_layer_properties(layer['name'], layer)
 
-    def add_layer_properties(self, layer_name, layer):
+    def add_layer_properties(self, layer_name, layer, processed_style=None):
         properties = {}
-        geom_style = layer.get('layerStyle', {})
         
-        properties['color'] = get_color_code(geom_style.get('color'), self.name_to_aci)
-        properties['linetype'] = geom_style.get('linetype', 'Continuous')
-        properties['lineweight'] = geom_style.get('lineweight', 0)
-        properties['plot'] = geom_style.get('plot', True)
-        properties['locked'] = geom_style.get('locked', False)
-        properties['frozen'] = geom_style.get('frozen', False)
-        properties['is_on'] = geom_style.get('is_on', True)
-        properties['transparency'] = geom_style.get('transparency', 0)
-        properties['close'] = geom_style.get('close', True)  # Default to True
-        properties['linetypeScale'] = geom_style.get('linetypeScale', 1.0)
-        properties['linetypeGeneration'] = geom_style.get('linetypeGeneration', True)  # Default to True
+        # Get the style configuration
+        if processed_style:
+            # Use the processed style from StyleManager
+            properties.update(processed_style)
+        else:
+            # Get the style from layer configuration
+            style_config = layer.get('style')
+            if style_config:
+                properties.update(self.style_manager.process_layer_style(layer_name, layer))
         
-        # Override defaults with values from the layer if they exist
-        if 'close' in layer:
-            properties['close'] = layer['close']
-        if 'linetypeGeneration' in layer:
-            properties['linetypeGeneration'] = layer['linetypeGeneration']
+        # Always apply these properties, whether from style or direct layer config
+        properties['color'] = properties.get('color') or get_color_code(layer.get('color'), self.name_to_aci)
+        properties['linetype'] = properties.get('linetype', layer.get('linetype', 'CONTINUOUS'))
+        properties['plot'] = properties.get('plot', layer.get('plot', True))
+        properties['locked'] = properties.get('locked', layer.get('locked', False))
+        properties['frozen'] = properties.get('frozen', layer.get('frozen', False))
+        properties['is_on'] = properties.get('is_on', layer.get('is_on', True))
+        properties['transparency'] = properties.get('transparency', layer.get('transparency', 0))
+        properties['close'] = layer.get('close', True)
+        properties['linetypeScale'] = layer.get('linetypeScale', 1.0)
+        properties['linetypeGeneration'] = layer.get('linetypeGeneration', True)
         
         self.layer_properties[layer_name] = properties
-        self.colors[layer_name] = properties['color']
+        self.colors[layer_name] = properties.get('color')
 
     def is_wmts_or_wms_layer(self, layer_name):
         layer_info = next((l for l in self.project_settings['geomLayers'] if l['name'] == layer_name), None)

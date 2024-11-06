@@ -581,10 +581,14 @@ class LayerProcessor:
             self.style_manager._process_text_style(layer_name, style_config['text'])
 
     def is_wmts_or_wms_layer(self, layer_name):
-        layer_info = next((l for l in self.project_settings['geomLayers'] if l['name'] == layer_name), None)
-        if layer_info and 'operations' in layer_info:
-            return any(op['type'].lower() in ['wmts', 'wms'] for op in layer_info['operations'])
-        return False
+        # Check in all layer types
+        layer_info = (
+            next((l for l in self.project_settings.get('wmtsLayers', []) if l['name'] == layer_name), None) or
+            next((l for l in self.project_settings.get('wmsLayers', []) if l['name'] == layer_name), None) or
+            next((l for l in self.project_settings.get('geomLayers', []) if l['name'] == layer_name and 
+                 any(op.get('type', '').lower() in ['wmts', 'wms'] for op in l.get('operations', []))), None)
+        )
+        return layer_info is not None
 
     def delete_residual_shapefiles(self):
         output_dir = self.project_loader.shapefile_output_dir
