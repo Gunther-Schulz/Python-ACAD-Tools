@@ -266,6 +266,13 @@ def main():
         parser.error("project_name is required unless --list-operations, --list-settings, or --list-projects is specified")
 
     if args.create_project:
+        # Check if project already exists
+        project_dir = os.path.join('projects', args.project_name)
+        if os.path.exists(project_dir):
+            print(f"\nError: Project '{args.project_name}' already exists at: {project_dir}")
+            print("Please choose a different project name or remove the existing project directory.")
+            sys.exit(1)
+            
         project_dir = create_sample_project(args.project_name)
         print(f"\nCreated new project directory: {project_dir}")
         print("\nThe following files were created with sample configurations:")

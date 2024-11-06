@@ -1,0 +1,8 @@
+blockInserts:
+- name: Sample Block
+  blockName: SampleBlock
+  updateDxf: true
+  position:
+    type: absolute
+    x: 0
+    y: 0

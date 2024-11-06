@@ -1,0 +1,311 @@
+geomLayers:
+  - name: Flur
+    updateDxf: true
+    close: true
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/input/flur2.shp"
+    label: flurname
+    linetypeGeneration: true
+
+    style: flurgrenze
+    viewports:
+      - name: WorkView
+        style: flurWorkView
+  - name: Parcel
+    updateDxf: true
+    close: true
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/input/parcel2.shp"
+    label: label
+    style: parcel
+    viewports:
+      - name: WorkView
+        style: parcelWorkView
+  - name: Gemarkung
+    updateDxf: true
+    close: true
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/input/gemarkung2.shp"
+    label: gmkname
+    linetypeGeneration: true
+    style: gemarkungsgrenze
+    viewports:
+      - name: WorkView
+        style: gemarkungWorkView
+  - name: Gemeinde
+    updateDxf: true
+    close: true
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/input/gemeinde2.shp"
+    label: gen
+    linetypeGeneration: true
+    style: gemeindegrenze
+    viewports:
+      - name: WorkView
+        style: gemeindeWorkView
+  - name: Wald
+    updateDxf: true
+    close: true
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/input/wald.shp"
+    operations:
+      - type: dissolve
+    viewports:
+      - name: WorkView
+        style: wald
+  - name: Wald Schraffur
+    updateDxf: true
+    style: wald
+    applyHatch:
+      layers:
+        - Wald
+  - name: Straße
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/input/abstand.shp"
+  - name: Straße Abstand
+    operations:
+      - type: buffer
+        layers: 
+          - Straße
+        distance: 7
+  - name: Weg
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/input/weg.shp"
+  - name: Weg Abstand
+    operations:
+      # - type: buffer
+      #   layers:
+      #     - Weg
+      #   distance: 1
+      - type: copy
+        layers:
+          - Weg
+  - name: Geltungsbereich
+    updateDxf: true
+    style: geltungsbereich
+    operations:
+      - type: copy
+        layers:
+          - name: Parcel
+            values:
+              - "81"
+              - "87/1"
+              - "89"
+              - "95"
+              - "96"
+              - "97"
+              - "99"
+              - "100"
+              - "101"
+              - "102"
+              - "103"
+              - "104"
+      - type: filter
+        layers:
+          - name: Flur
+            values:
+              - Flur 2
+          - name: Gemarkung
+            values:
+              - Torgelow am See
+          - name: Gemeinde
+            values:
+              - Torgelow am See
+      - type: difference
+        layers:
+          - Wald
+          - Straße Abstand
+          - Weg Abstand
+      - type: filterGeometry
+        minArea: 10
+  - name: Waldabstand
+    operations:
+      - type: buffer
+        joinStyle: mitre
+        layers:
+          - Wald
+        distance: 30
+      - type: intersection
+        layers:
+          - Geltungsbereich
+      - type: filterGeometry
+        minArea: 200
+  - name: Grünflächeinput 1
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/input/grünfläche.shp"
+  - name: Grünflächeinput 2
+    operations:
+      - type: copy
+        layers:
+          - name: Parcel
+            values:
+              - "97"
+              - "99"
+              - "100"
+              - "101"
+              - "102" 
+      - type: filter
+        layers:
+          # - name: Parcel
+          #   values:
+          #     - "97"
+          #     - "99"
+          #     - "100"
+          #     - "101"
+          #     - "102"
+          #     # - "103"
+          - name: Flur
+            values:
+              - Flur 2
+          - name: Gemarkung
+            values:
+              - Torgelow am See
+          - name: Gemeinde
+            values:
+              - Torgelow am See
+  - name: Grünfläche
+    updateDxf: true
+    style: grünfläche
+    operations:
+      - type: dissolve
+        useBufferTrick: true
+        bufferDistance: 0.01
+        # doubleUnion: true
+        useAsymmetricBuffer: true
+        # useSnapToGrid: true
+        # mergeVertices: true
+        # mergeVerticesTolerance: 20
+        layers:
+          - Grünflächeinput 1
+          - Grünflächeinput 2
+          - Waldabstand
+      - type: difference
+        reverseDifference: false
+        layers:
+          - Weg Abstand
+      - type: intersection
+        layers:
+          - Geltungsbereich
+      - type: buffer
+        distance: -3
+  - name: Grünfläche Schraffur
+    updateDxf: true
+    style: grünfläche
+    applyHatch:
+      layers:
+        - Grünfläche
+  - name: Schutzflächeumgrenzung
+    updateDxf: true
+    viewports:
+      - name: WorkView
+        style: schutzflächeWorkView
+    operations:
+      - type: copy
+        layers:
+          - Grünflächeinput 1
+          - Grünflächeinput 2
+          - Waldabstand
+      - type: dissolve
+        useBufferTrick: true
+        bufferDistance: 0.01
+        # doubleUnion: true
+        useAsymmetricBuffer: true
+        # useSnapToGrid: true
+        # mergeVertices: true
+        # mergeVerticesTolerance: 20
+      - type: difference
+        reverseDifference: false
+        layers:
+          - Grünfläche
+      - type: intersection
+        layers:
+          - Geltungsbereich
+  - name: Schutzflächeumgrenzung Schraffur
+    updateDxf: true
+    style: schutzflächeumgrenzung
+    applyHatch:
+      layers:
+        - Schutzflächeumgrenzung
+  - name: Schutzflächeumgrenzung T-Symbol Temp
+    # updateDxf: true
+    close: false
+    plot: false
+    operations:
+      - type: copy
+        layers:
+          - Grünfläche
+          - Schutzflächeumgrenzung
+      - type: dissolve
+      - type: intersection
+        layers:
+          - Geltungsbereich
+      - type: filterGeometry
+        minArea: 200
+  - name: Baufeld
+    updateDxf: true
+    close: true
+    viewports:
+      - name: WorkView
+        style: baufeld
+    operations:
+      - type: copy
+        layers:
+          - Geltungsbereich
+      - type: difference
+        # useBufferTrick: true
+        reverseDifference: false
+        layers:
+          - Schutzflächeumgrenzung
+          - Grünfläche
+      - type: filterGeometry
+        minArea: 200
+  - name: Baufeld Schraffur
+    updateDxf: true
+    style: baufeld
+    applyHatch:
+      layers:
+        - Baufeld
+  - name: Baugrenze 2
+    updateDxf: true
+    style: baugrenze_2
+    close: true
+    operations:
+      - type: buffer
+        layers:
+          - Baugrenze
+        distance: -0.4
+  - name: Baugrenze
+    updateDxf: true
+    style: baugrenze
+    linetypeScale: 0.5
+    linetypeGeneration: true
+    close: true
+    operations:
+      - type: buffer
+        layers:
+          - Baufeld
+        distance: -3
+  - name: WMTS DOP
+    # updateDxf: true
+    style: 
+      locked: true
+      # color: "White"
+    operations:
+      - type: wmts
+        url: "https://www.geodaten-mv.de/dienste/dop_wmts/wmts/1.0.0/WMTSCapabilities.xml"
+        layer: "mv_dop"
+        # zoom: "10"
+        proj: "ETRS89UTM33"
+        targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/DOP"
+        layers:
+          - Geltungsbereich
+        buffer: 200
+        stitchTiles: true
+        # overwrite: true
+  # - name: WMTS Basemap
+  #   # updateDxf: true
+  #   color: white
+  #   locked: true
+  #   add: true
+  #   operations:
+  #     - type: wmts
+  #       url: "https://sgx.geodatenzentrum.de/wmts_basemapde/1.0.0/WMTSCapabilities.xml"
+  #       layer: "de_basemapde_web_raster_farbe"
+  #       zoom: "10"
+  #       proj: "DE_EPSG_25833_ADV"
+  #       targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/Basemap"
+  #       layers:
+  #         - Geltungsbereich
+  #       buffer: 200
