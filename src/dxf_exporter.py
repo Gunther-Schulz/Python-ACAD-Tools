@@ -681,7 +681,7 @@ class DXFExporter:
             log_warning(f"No valid boundary geometry found for hatch in layer: {layer_name}")
             return
         
-        individual_hatches = hatch_config.get('individual_hatches', False)
+        individual_hatches = hatch_config.get('individual_hatches', True)
 
         if individual_hatches:
             geometries = [boundary_geometry] if isinstance(boundary_geometry, (Polygon, LineString)) else list(boundary_geometry.geoms)

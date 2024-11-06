@@ -31,9 +31,9 @@ class StyleManager:
         else:
             style = style_config
 
-        # if not style:
-        #     log_warning(f"No style found for layer '{layer_name}'")
-        #     return False
+        if not style:
+            log_info(f"No style found for layer '{layer_name}'")
+            return False
 
         # Validate each style component
         if 'layer' in style:
@@ -61,7 +61,7 @@ class StyleManager:
                 log_warning(f"Linetype '{linetype}' in layer '{layer_name}' does not exist. Using default linetype.")
 
     def _validate_hatch_style(self, layer_name, hatch_style):
-        known_style_keys = {'pattern', 'patternScale', 'color', 'transparency'}
+        known_style_keys = {'pattern', 'patternScale', 'color', 'transparency', 'individual_hatches', 'layers'}
         self._validate_style_keys(layer_name, 'hatch', hatch_style, known_style_keys)
 
     def _validate_text_style(self, layer_name, text_style):
