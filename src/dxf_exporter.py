@@ -844,21 +844,35 @@ class DXFExporter:
         
         doc = msp.doc
         
-        # First pass: collect all names that need cleaning
-        layers_to_clean = set()
-        for config in configs:
-            if config.get('updateDxf', False):
-                name = config.get('name')
-                if name:
-                    layers_to_clean.add(name)
-        
-        # Clean all layers at once
-        for layer_name in layers_to_clean:
-            # Get the correct space for cleaning
-            space = doc.paperspace() if any(c.get('paperspace', False) for c in configs) else doc.modelspace()
-            # Remove all entities in this layer that were created by our script
-            remove_entities_by_layer(space, layer_name, self.script_identifier)
-            log_info(f"Cleaned existing entities from layer: {layer_name}")
+        if insert_type == 'block':
+            # First pass: collect all names that need cleaning for blocks
+            layers_to_clean = set()
+            for config in configs:
+                if config.get('updateDxf', False):
+                    name = config.get('name')
+                    if name:
+                        layers_to_clean.add(name)
+            
+            # Clean all block layers at once
+            for layer_name in layers_to_clean:
+                space = doc.paperspace() if any(c.get('paperspace', False) for c in configs) else doc.modelspace()
+                remove_entities_by_layer(space, layer_name, self.script_identifier)
+                log_info(f"Cleaned existing entities from layer: {layer_name}")
+        else:
+            # For text inserts, clean by target layer or name
+            layers_to_clean = set()
+            for config in configs:
+                if config.get('updateDxf', False):
+                    # Use targetLayer if specified, otherwise use name
+                    layer_name = config.get('targetLayer', config.get('name'))
+                    if layer_name:
+                        layers_to_clean.add(layer_name)
+            
+            # Clean all text layers at once
+            for layer_name in layers_to_clean:
+                space = doc.paperspace() if any(c.get('paperspace', False) for c in configs) else doc.modelspace()
+                remove_entities_by_layer(space, layer_name, self.script_identifier)
+                log_info(f"Cleaned existing entities from layer: {layer_name}")
         
         # Second pass: process inserts
         for config in configs:
@@ -907,11 +921,14 @@ class DXFExporter:
 
     def insert_text(self, space, config):
         points = self.get_insertion_points(config.get('position', {}))
+        # Use targetLayer if specified, otherwise use name as the layer
+        layer_name = config.get('targetLayer', config.get('name'))
+        
         for point in points:
             text_entity = add_text_insert(
                 space,
                 {**config, 'position': {'x': point[0], 'y': point[1]}},
-                config['targetLayer'],
+                layer_name,  # Use the determined layer name
                 self.project_loader,
                 self.script_identifier
             )
