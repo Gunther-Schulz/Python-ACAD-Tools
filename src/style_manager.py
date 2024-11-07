@@ -132,8 +132,6 @@ class StyleManager:
             elif 'layer' in layer_style:
                 # Use layer settings for hatch if no specific hatch settings are provided
                 layer_settings = layer_style['layer']
-                if 'color' in layer_settings:
-                    hatch_config['color'] = layer_settings['color']
                 if 'transparency' in layer_settings:
                     hatch_config['transparency'] = layer_settings['transparency']
         
@@ -142,9 +140,8 @@ class StyleManager:
             if 'layers' in apply_hatch:
                 hatch_config['layers'] = apply_hatch['layers']
         
-        # Ensure color is set to 'BYLAYER' if not specified
-        if 'color' not in hatch_config or hatch_config['color'] is None:
-            hatch_config['color'] = 'BYLAYER'
+        # Always force color to BYLAYER
+        hatch_config['color'] = 'BYLAYER'
         
         return hatch_config
 

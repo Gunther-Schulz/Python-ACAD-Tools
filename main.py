@@ -283,6 +283,7 @@ def main():
         print("  - block_inserts.yaml   (block insertion definitions)")
         print("  - text_inserts.yaml    (text insertion definitions)")
         print("  - path_arrays.yaml     (path array definitions)")
+        print("  - web_services.yaml    (WMS/WMTS service configurations)")
         print("\nPlease edit these files with your project-specific settings.")
         return
 

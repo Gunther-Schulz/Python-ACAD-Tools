@@ -215,6 +215,49 @@ def create_sample_project(project_name: str) -> str:
         }]
     }
 
+    # Create web_services.yaml with sample configuration
+    web_services_yaml = {
+        'wmsServices': {
+            'sample_wms': {
+                'url': 'https://example.com/wms',
+                'layer': 'sample_layer',
+                'srs': 'EPSG:3857',
+                'format': 'image/png',
+                'targetFolder': 'wms_cache',
+                'buffer': 100,
+                'zoom': 15,
+                'overwrite': False,
+                'postProcess': {
+                    'colorMap': {'255,255,255': '0,0,0'},
+                    'alphaColor': '255,255,255',
+                    'grayscale': False,
+                    'removeText': False
+                }
+            }
+        },
+        'wmtsServices': {
+            'sample_wmts': {
+                'url': 'https://example.com/wmts',
+                'layer': 'sample_layer',
+                'srs': 'EPSG:3857',
+                'format': 'image/png',
+                'targetFolder': 'wmts_cache',
+                'buffer': 100,
+                'zoom': 15,
+                'overwrite': False,
+                'postProcess': {
+                    'colorMap': {'255,255,255': '0,0,0'},
+                    'alphaColor': '255,255,255',
+                    'grayscale': False,
+                    'removeText': False
+                }
+            }
+        }
+    }
+
+    with open(os.path.join(project_dir, 'web_services.yaml'), 'w') as f:
+        yaml.dump(web_services_yaml, f, default_flow_style=False, sort_keys=False)
+
     # Write all configuration files
     files_to_create = {
         'project.yaml': project_yaml,

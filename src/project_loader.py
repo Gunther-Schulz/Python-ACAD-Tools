@@ -88,12 +88,32 @@ class ProjectLoader:
         if self.shapefile_output_dir:
             os.makedirs(self.shapefile_output_dir, exist_ok=True)
 
-        # Process layers
+        # First load all layers
+        wmts_layers, wms_layers = self.load_wmts_wms_layers()
+        self.project_settings['wmtsLayers'] = wmts_layers
+        self.project_settings['wmsLayers'] = wms_layers
+
+        # Then process all layer operations
         for layer in self.project_settings.get('geomLayers', []):
             if 'operations' in layer:
                 self.process_operations(layer)
             if 'shapeFile' in layer:
                 layer['shapeFile'] = self.resolve_full_path(layer['shapeFile'])
+
+        # Process WMTS/WMS layers operations
+        for layer in self.project_settings.get('wmtsLayers', []):
+            if 'operations' in layer:
+                self.process_operations(layer)
+                # Set type for each operation
+                for operation in layer['operations']:
+                    operation['type'] = 'wmts'
+
+        for layer in self.project_settings.get('wmsLayers', []):
+            if 'operations' in layer:
+                self.process_operations(layer)
+                # Set type for each operation
+                for operation in layer['operations']:
+                    operation['type'] = 'wms'
 
     def process_operations(self, layer):
         """Process and validate operations in a layer"""
@@ -142,3 +162,16 @@ class ProjectLoader:
     def resolve_full_path(self, path: str) -> str:
         """Resolve a path using the folder prefix"""
         return resolve_path(path, self.folder_prefix)
+
+    def load_wmts_wms_layers(self):
+        wmts_wms_file = os.path.join(self.project_dir, 'wmts_wms_layers.yaml')
+        if not os.path.exists(wmts_wms_file):
+            return [], []
+        
+        with open(wmts_wms_file, 'r', encoding='utf-8') as f:
+            wmts_wms_config = yaml.safe_load(f)
+        
+        wmts_layers = wmts_wms_config.get('wmtsLayers', [])
+        wms_layers = wmts_wms_config.get('wmsLayers', [])
+        
+        return wmts_layers, wms_layers

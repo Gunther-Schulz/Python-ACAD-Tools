@@ -35,33 +35,37 @@ class DXFExporter:
         self.colors = {}
         self.name_to_aci = project_loader.name_to_aci
         self.block_inserts = self.project_settings.get('blockInserts', [])
+        self.style_manager = StyleManager(project_loader)
         log_info(f"DXFExporter initialized with script identifier: {self.script_identifier}")
         self.setup_layers()
-        self.style_manager = StyleManager(project_loader)
         self.viewport_manager = ViewportManager(
             self.project_settings, 
             self.script_identifier,
             self.name_to_aci,
             self.style_manager
         )
-        self.loaded_styles = set()  # Add this line to store loaded styles
+        self.loaded_styles = set()
 
     def setup_layers(self):
+        # Setup geom layers
         for layer in self.project_settings['geomLayers']:
+            self._setup_single_layer(layer)
+        
+        # Setup WMTS/WMS layers
+        for layer in self.project_settings.get('wmtsLayers', []):
+            self._setup_single_layer(layer)
+        for layer in self.project_settings.get('wmsLayers', []):
             self._setup_single_layer(layer)
 
     def _setup_single_layer(self, layer):
         layer_name = layer['name']
         
-        # If layerStyle is a string, get the preset style
-        if 'layerStyle' in layer and isinstance(layer['layerStyle'], str):
-            layer['layerStyle'] = self.project_loader.get_style(layer['layerStyle'])
-        
-        # If hatchStyle is a string, get the preset style
-        if 'hatchStyle' in layer and isinstance(layer['hatchStyle'], str):
-            layer['hatchStyle'] = self.project_loader.get_style(layer['hatchStyle'])
-        
-        self.add_layer_properties(layer_name, layer)
+        # Process layer style
+        if 'style' in layer:
+            layer_style = self.style_manager.process_layer_style(layer_name, layer)
+            self.add_layer_properties(layer_name, layer, layer_style)
+        else:
+            self.add_layer_properties(layer_name, layer)
         
         if not self.is_wmts_or_wms_layer(layer) and not layer_name.endswith(' Label'):
             if self.has_labels(layer):
@@ -97,14 +101,23 @@ class DXFExporter:
         self.loaded_styles = initialize_document(doc)
         msp = doc.modelspace()
         self.register_app_id(doc)
-        self.viewport_manager.create_viewports(doc, msp)
+        
+        # First ensure all layers exist
+        # self._ensure_all_layers_exist(doc)
+        
+        # Then process all content
         self.process_layers(doc, msp)
+        self.create_path_arrays(msp)
+        self.process_block_inserts(msp)
+        self.process_text_inserts(msp)
+        
         # Create legend
         legend_creator = LegendCreator(doc, msp, self.project_loader, self.loaded_styles)
         legend_creator.create_legend()
-        self.create_path_arrays(msp)
-        self.process_block_inserts(msp)
-        self.process_text_inserts(msp)  # Call text inserts separately
+        
+        # Create and configure viewports after ALL content exists
+        self.viewport_manager.create_viewports(doc, msp)
+        
         self._cleanup_and_save(doc, msp)
 
     def _prepare_dxf_document(self):
@@ -156,7 +169,11 @@ class DXFExporter:
             log_warning(f"Directory for DXF file {self.dxf_filename} does not exist. Cannot save file.")
             return
         
-        processed_layers = [layer['name'] for layer in self.project_settings['geomLayers']]
+        processed_layers = (
+            [layer['name'] for layer in self.project_settings['geomLayers']] +
+            [layer['name'] for layer in self.project_settings.get('wmtsLayers', [])] +
+            [layer['name'] for layer in self.project_settings.get('wmsLayers', [])]
+        )
         layers_to_clean = [layer for layer in processed_layers if layer not in self.all_layers]
         remove_entities_by_layer(msp, layers_to_clean, self.script_identifier)
         doc.saveas(self.dxf_filename)
@@ -164,9 +181,25 @@ class DXFExporter:
         verify_dxf_settings(self.dxf_filename)
 
     def process_layers(self, doc, msp):
-        for layer_info in self.project_settings['geomLayers']:
-            if layer_info.get('updateDxf', False):  # Default to False
-                self.process_single_layer(doc, msp, layer_info['name'], layer_info)
+        # First process geometric layers (including hatches)
+        geom_layers = self.project_settings.get('geomLayers', [])
+        for layer_info in geom_layers:
+            layer_name = layer_info['name']
+            if layer_name in self.all_layers:
+                self._process_regular_layer(doc, msp, layer_name, layer_info)
+                
+                # Process hatches after the regular geometry
+                if 'applyHatch' in layer_info:
+                    self._process_hatch(doc, msp, layer_name, layer_info)
+
+        # Then process WMTS/WMS layers
+        wmts_layers = self.project_settings.get('wmtsLayers', [])
+        wms_layers = self.project_settings.get('wmsLayers', [])
+        
+        for layer_info in wmts_layers + wms_layers:
+            layer_name = layer_info['name']
+            if layer_name in self.all_layers:
+                self._process_wmts_layer(doc, msp, layer_name, layer_info)
 
     def process_single_layer(self, doc, msp, layer_name, layer_info):
         log_info(f"Processing layer: {layer_name}")
@@ -196,7 +229,18 @@ class DXFExporter:
 
     def _process_wmts_layer(self, doc, msp, layer_name, layer_info):
         log_info(f"Processing WMTS layer: {layer_name}")
-        self.create_new_layer(doc, msp, layer_name, layer_info)
+        
+        # Ensure layer exists with proper properties
+        self._ensure_layer_exists(doc, layer_name, layer_info)
+        
+        # Get the tile data from all_layers
+        if layer_name in self.all_layers:
+            geo_data = self.all_layers[layer_name]
+            if isinstance(geo_data, list) and all(isinstance(item, tuple) for item in geo_data):
+                # Remove existing entities from the layer
+                remove_entities_by_layer(msp, layer_name, self.script_identifier)
+                # Add new xrefs
+                self.add_wmts_xrefs_to_dxf(msp, geo_data, layer_name)
 
     def _process_regular_layer(self, doc, msp, layer_name, layer_info):
         self._ensure_layer_exists(doc, layer_name, layer_info)
@@ -287,13 +331,17 @@ class DXFExporter:
 
     def add_image_with_worldfile(self, msp, image_path, world_file_path, layer_name):
         log_info(f"Adding image with worldfile for layer: {layer_name}")
+        print(f"Adding image with worldfile for layer: {layer_name}")
         log_info(f"Image path: {image_path}")
         log_info(f"World file path: {world_file_path}")
 
-        # Get layer configuration
-        layer_info = next((l for l in self.project_settings['geomLayers'] if l['name'] == layer_name), None)
-        use_transparency = False
+        # Get layer configuration from both WMTS and WMS layers
+        layer_info = (
+            next((l for l in self.project_settings.get('wmtsLayers', []) if l['name'] == layer_name), None) or
+            next((l for l in self.project_settings.get('wmsLayers', []) if l['name'] == layer_name), None)
+        )
         
+        use_transparency = False
         if layer_info and 'operations' in layer_info:
             for op in layer_info['operations']:
                 if op['type'] in ['wms', 'wmts']:
@@ -361,6 +409,7 @@ class DXFExporter:
             # Image.SHOW_IMAGE (1) | Image.SHOW_WHEN_NOT_ALIGNED (2) | Image.USE_TRANSPARENCY (8)
             image.dxf.flags = 1 | 2 | 8
             log_info(f"Added image with transparency enabled: {image}")
+            print(f"Added image with transparency enabled: {image}")
         else:
             # Image.SHOW_IMAGE (1) | Image.SHOW_WHEN_NOT_ALIGNED (2)
             image.dxf.flags = 1 | 2
@@ -500,30 +549,33 @@ class DXFExporter:
         for layer in self.project_settings['geomLayers']:
             self.add_layer_properties(layer['name'], layer)
 
-    def add_layer_properties(self, layer_name, layer):
+    def add_layer_properties(self, layer_name, layer, processed_style=None):
         properties = {}
-        geom_style = layer.get('layerStyle', {})
         
-        properties['color'] = get_color_code(geom_style.get('color'), self.name_to_aci)
-        properties['linetype'] = geom_style.get('linetype', 'Continuous')
-        properties['lineweight'] = geom_style.get('lineweight', 0)
-        properties['plot'] = geom_style.get('plot', True)
-        properties['locked'] = geom_style.get('locked', False)
-        properties['frozen'] = geom_style.get('frozen', False)
-        properties['is_on'] = geom_style.get('is_on', True)
-        properties['transparency'] = geom_style.get('transparency', 0)
-        properties['close'] = geom_style.get('close', True)  # Default to True
-        properties['linetypeScale'] = geom_style.get('linetypeScale', 1.0)
-        properties['linetypeGeneration'] = geom_style.get('linetypeGeneration', True)  # Default to True
+        # Get the style configuration
+        if processed_style:
+            # Use the processed style from StyleManager
+            properties.update(processed_style)
+        else:
+            # Get the style from layer configuration
+            style_config = layer.get('style')
+            if style_config:
+                properties.update(self.style_manager.process_layer_style(layer_name, layer))
         
-        # Override defaults with values from the layer if they exist
-        if 'close' in layer:
-            properties['close'] = layer['close']
-        if 'linetypeGeneration' in layer:
-            properties['linetypeGeneration'] = layer['linetypeGeneration']
+        # Always apply these properties, whether from style or direct layer config
+        properties['color'] = properties.get('color') or get_color_code(layer.get('color'), self.name_to_aci)
+        properties['linetype'] = properties.get('linetype', layer.get('linetype', 'CONTINUOUS'))
+        properties['plot'] = properties.get('plot', layer.get('plot', True))
+        properties['locked'] = properties.get('locked', layer.get('locked', False))
+        properties['frozen'] = properties.get('frozen', layer.get('frozen', False))
+        properties['is_on'] = properties.get('is_on', layer.get('is_on', True))
+        properties['transparency'] = properties.get('transparency', layer.get('transparency', 0))
+        properties['close'] = layer.get('close', True)
+        properties['linetypeScale'] = layer.get('linetypeScale', 1.0)
+        properties['linetypeGeneration'] = layer.get('linetypeGeneration', True)
         
         self.layer_properties[layer_name] = properties
-        self.colors[layer_name] = properties['color']
+        self.colors[layer_name] = properties.get('color')
 
     def is_wmts_or_wms_layer(self, layer_name):
         layer_info = next((l for l in self.project_settings['geomLayers'] if l['name'] == layer_name), None)
@@ -675,7 +727,6 @@ class DXFExporter:
             return
 
         boundary_layers = hatch_config.get('layers', [layer_name])
-
         boundary_geometry = self._get_boundary_geometry(boundary_layers)
         
         if boundary_geometry is None or boundary_geometry.is_empty:
@@ -691,9 +742,10 @@ class DXFExporter:
         
         for geometry in geometries:
             hatch_paths = self._get_hatch_paths(geometry)
-            hatch = create_hatch(msp, hatch_paths, hatch_config, self.project_loader)
-            hatch.dxf.layer = layer_name
-            self.attach_custom_data(hatch)
+            if hatch_paths:
+                hatch = create_hatch(msp, hatch_paths, hatch_config, self.project_loader)
+                hatch.dxf.layer = layer_name
+                self.attach_custom_data(hatch)
 
         log_info(f"Added hatch{'es' if individual_hatches else ''} to layer: {layer_name}")
 
@@ -956,6 +1008,35 @@ class DXFExporter:
         # Default fallback
         log_warning(f"Invalid position type '{position_type}' or method '{position_method}'. Using polygon centroid.")
         return geometry.centroid.coords[0]
+
+    # def _ensure_all_layers_exist(self, doc):
+    #     """Ensures all layers exist in the document before viewport creation."""
+    #     # Create layers for path arrays
+    #     path_arrays = self.project_settings.get('pathArrays', [])
+    #     for array in path_arrays:
+    #         if 'name' in array:
+    #             layer_name = array['name']
+    #             if layer_name not in doc.layers:
+    #                 doc.layers.new(layer_name)
+    #                 log_info(f"Created layer for path array: {layer_name}")
+        
+    #     # Create layers for block inserts
+    #     block_inserts = self.project_settings.get('blockInserts', [])
+    #     for insert in block_inserts:
+    #         if 'targetLayer' in insert:
+    #             layer_name = insert['targetLayer']
+    #             if layer_name not in doc.layers:
+    #                 doc.layers.new(layer_name)
+    #                 log_info(f"Created layer for block insert: {layer_name}")
+        
+    #     # Create layers for text inserts
+    #     text_inserts = self.project_settings.get('textInserts', [])
+    #     for insert in text_inserts:
+    #         if 'targetLayer' in insert:
+    #             layer_name = insert['targetLayer']
+    #             if layer_name not in doc.layers:
+    #                 doc.layers.new(layer_name)
+    #                 log_info(f"Created layer for text insert: {layer_name}")
 
 
 
