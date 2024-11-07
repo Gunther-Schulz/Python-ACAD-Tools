@@ -103,7 +103,7 @@ class DXFExporter:
         self.register_app_id(doc)
         
         # First ensure all layers exist
-        self._ensure_all_layers_exist(doc)
+        # self._ensure_all_layers_exist(doc)
         
         # Then process all content
         self.process_layers(doc, msp)
@@ -1009,34 +1009,34 @@ class DXFExporter:
         log_warning(f"Invalid position type '{position_type}' or method '{position_method}'. Using polygon centroid.")
         return geometry.centroid.coords[0]
 
-    def _ensure_all_layers_exist(self, doc):
-        """Ensures all layers exist in the document before viewport creation."""
-        # Create layers for path arrays
-        path_arrays = self.project_settings.get('pathArrays', [])
-        for array in path_arrays:
-            if 'name' in array:
-                layer_name = array['name']
-                if layer_name not in doc.layers:
-                    doc.layers.new(layer_name)
-                    log_info(f"Created layer for path array: {layer_name}")
+    # def _ensure_all_layers_exist(self, doc):
+    #     """Ensures all layers exist in the document before viewport creation."""
+    #     # Create layers for path arrays
+    #     path_arrays = self.project_settings.get('pathArrays', [])
+    #     for array in path_arrays:
+    #         if 'name' in array:
+    #             layer_name = array['name']
+    #             if layer_name not in doc.layers:
+    #                 doc.layers.new(layer_name)
+    #                 log_info(f"Created layer for path array: {layer_name}")
         
-        # Create layers for block inserts
-        block_inserts = self.project_settings.get('blockInserts', [])
-        for insert in block_inserts:
-            if 'targetLayer' in insert:
-                layer_name = insert['targetLayer']
-                if layer_name not in doc.layers:
-                    doc.layers.new(layer_name)
-                    log_info(f"Created layer for block insert: {layer_name}")
+    #     # Create layers for block inserts
+    #     block_inserts = self.project_settings.get('blockInserts', [])
+    #     for insert in block_inserts:
+    #         if 'targetLayer' in insert:
+    #             layer_name = insert['targetLayer']
+    #             if layer_name not in doc.layers:
+    #                 doc.layers.new(layer_name)
+    #                 log_info(f"Created layer for block insert: {layer_name}")
         
-        # Create layers for text inserts
-        text_inserts = self.project_settings.get('textInserts', [])
-        for insert in text_inserts:
-            if 'targetLayer' in insert:
-                layer_name = insert['targetLayer']
-                if layer_name not in doc.layers:
-                    doc.layers.new(layer_name)
-                    log_info(f"Created layer for text insert: {layer_name}")
+    #     # Create layers for text inserts
+    #     text_inserts = self.project_settings.get('textInserts', [])
+    #     for insert in text_inserts:
+    #         if 'targetLayer' in insert:
+    #             layer_name = insert['targetLayer']
+    #             if layer_name not in doc.layers:
+    #                 doc.layers.new(layer_name)
+    #                 log_info(f"Created layer for text insert: {layer_name}")
 
 
 
