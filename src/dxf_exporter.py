@@ -844,38 +844,37 @@ class DXFExporter:
         
         doc = msp.doc
         
-        # Track layers that need cleaning
+        # First pass: collect all names that need cleaning
         layers_to_clean = set()
-        
-        # First pass: collect all target layers
         for config in configs:
             if config.get('updateDxf', False):
-                output_layer = config.get('targetLayer', config.get('name'))
-                if output_layer:
-                    layers_to_clean.add(output_layer)
+                name = config.get('name')
+                if name:
+                    layers_to_clean.add(name)
         
-        # Clean all target layers once
-        for layer in layers_to_clean:
-            space = doc.paperspace() if configs[0].get('paperspace', False) else doc.modelspace()
-            remove_entities_by_layer(space, layer, self.script_identifier)
+        # Clean all layers at once
+        for layer_name in layers_to_clean:
+            # Get the correct space for cleaning
+            space = doc.paperspace() if any(c.get('paperspace', False) for c in configs) else doc.modelspace()
+            # Remove all entities in this layer that were created by our script
+            remove_entities_by_layer(space, layer_name, self.script_identifier)
+            log_info(f"Cleaned existing entities from layer: {layer_name}")
         
         # Second pass: process inserts
         for config in configs:
             try:
-                # Extract common configuration
                 name = config.get('name')
-                output_layer = config.get('targetLayer', name)
                 update_dxf = config.get('updateDxf', False)
                 
                 if not update_dxf:
                     log_info(f"Skipping {insert_type} insert '{name}' as updateDxf flag is not set")
                     continue
 
-                if not output_layer:
-                    log_warning(f"Missing required configuration for {insert_type} insert: {config}")
+                if not name:
+                    log_warning(f"Missing name for {insert_type} insert: {config}")
                     continue
 
-                # Get the correct space
+                # Get the correct space for insertion
                 space = doc.paperspace() if config.get('paperspace', False) else doc.modelspace()
 
                 # Insert entities using common insertion method with correct space
@@ -892,12 +891,14 @@ class DXFExporter:
 
     def insert_blocks(self, space, config):
         points = self.get_insertion_points(config.get('position', {}))
+        name = config.get('name')  # Use name as the layer
+        
         for point in points:
             block_ref = add_block_reference(
                 space,
                 config['blockName'],
                 point,
-                config['name'],
+                name,  # Use name as the layer
                 scale=config.get('scale', 1.0),
                 rotation=config.get('rotation', 0)
             )
