@@ -294,6 +294,43 @@ geomLayers:
         layers:
           - Baufeld
         distance: -3
+  - name: Baugrenze Report
+    operations:
+      - type: copy
+        layers:
+          - Baugrenze
+      - type: intersection
+        layers:
+          - Geltungsbereich
+      - type: report
+        outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/reports/baugrenze_report.json"
+        calculate:
+          - area
+          - perimeter
+          - centroid
+          - bounds
+        decimalPlaces:
+          area: 0
+  - name: Baufeldstreifen Report
+    operations:
+      - type: copy
+        layers:
+          - Baufeld
+      - type: difference
+        layers:
+          - Baugrenze
+      - type: intersection
+        layers:
+          - Geltungsbereich
+      - type: report
+        outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/reports/baufeldstreifen_report.json"
+        calculate:
+          - area
+          - perimeter
+          - centroid
+          - bounds
+        decimalPlaces:
+          area: 0
   # - name: Contour
   #   updateDxf: true
   #   style:
