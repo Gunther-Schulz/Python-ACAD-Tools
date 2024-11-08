@@ -70,21 +70,38 @@ def convert_transparency(transparency):
 
 def attach_custom_data(entity, script_identifier, entity_name=None):
     """Attaches custom data to an entity.
-    Keeps existing XDATA functionality and adds entity name to hyperlink.
+    Checks for existing XDATA to prevent duplicates.
     """
-    # Set XDATA exactly as before
-    entity.set_xdata(
-        'DXFEXPORTER',
-        [(1000, script_identifier)]
-    )
-    
-    # Add hyperlink with entity name if supported
-    if hasattr(entity, 'set_hyperlink'):
-        try:
-            hyperlink_text = entity_name if entity_name else f"{script_identifier}"
-            entity.set_hyperlink(hyperlink_text)
-        except Exception as e:
-            log_warning(f"Failed to set hyperlink for entity: {str(e)}")
+    try:
+        # Check if XDATA already exists
+        existing_xdata = entity.get_xdata('DXFEXPORTER')
+        if existing_xdata and any(item[1] == script_identifier for item in existing_xdata):
+            return
+    except ezdxf.lldxf.const.DXFValueError:
+        # This is expected when the entity has no XDATA yet
+        pass
+    except Exception as e:
+        log_warning(f"Error checking existing XDATA: {str(e)}")
+        return
+
+    try:
+        # Set XDATA
+        entity.set_xdata(
+            'DXFEXPORTER',
+            [(1000, script_identifier)]
+        )
+        
+        # Add hyperlink with entity name if supported
+        if hasattr(entity, 'set_hyperlink'):
+            try:
+                hyperlink_text = entity_name if entity_name else f"{script_identifier}"
+                # Only set hyperlink if it doesn't already exist
+                if not entity.get_hyperlink():
+                    entity.set_hyperlink(hyperlink_text)
+            except Exception as e:
+                log_warning(f"Failed to set hyperlink for entity: {str(e)}")
+    except Exception as e:
+        log_warning(f"Failed to attach custom data to entity: {str(e)}")
 
 def is_created_by_script(entity, script_identifier):
     """Check if an entity was created by this script."""

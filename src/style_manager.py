@@ -40,23 +40,30 @@ class StyleManager:
     def validate_style(self, layer_name, style_config):
         """Validates the complete style configuration for a layer"""
         if isinstance(style_config, str):
+            # Validate preset style
             style, warning_generated = self.get_style(style_config)
             if warning_generated:
                 return False
-        else:
-            style = style_config
-
-        if not style:
-            log_info(f"No style found for layer '{layer_name}'")
-            return False
-
-        # Validate each style component
-        if 'layer' in style:
-            self._validate_layer_style(layer_name, style['layer'])
-        if 'hatch' in style:
-            self._validate_hatch_style(layer_name, style['hatch'])
-        if 'text' in style:
-            self._validate_text_style(layer_name, style['text'])
+        elif isinstance(style_config, dict):
+            # Validate inline style
+            if 'preset' in style_config:
+                # Handle preset with overrides
+                preset_style, warning_generated = self.get_style(style_config['preset'])
+                if warning_generated:
+                    return False
+                # Validate overrides
+                self._validate_style_overrides(layer_name, style_config)
+            else:
+                # Handle pure inline style
+                for style_type, style_dict in style_config.items():
+                    if style_type == 'layer':
+                        self._validate_layer_style(layer_name, style_dict)
+                    elif style_type == 'hatch':
+                        self._validate_hatch_style(layer_name, style_dict)
+                    elif style_type == 'text':
+                        self._validate_text_style(layer_name, style_dict)
+                    else:
+                        log_warning(f"Unknown style type '{style_type}' in layer '{layer_name}'")
         
         return True
 
@@ -152,10 +159,12 @@ class StyleManager:
         self.validate_style(layer_name, style)
         
         if isinstance(style, str):
+            # Handle preset style
             style, warning_generated = self.get_style(style)
             if warning_generated:
                 return {}
         
+        # Handle both preset and inline styles
         layer_style = style.get('layer', {}) if isinstance(style, dict) else {}
         
         properties = {
@@ -219,6 +228,20 @@ class StyleManager:
             closest_match = min(known_keys, key=lambda x: self._levenshtein_distance(key, x))
             if key != closest_match and self._levenshtein_distance(key, closest_match) <= 2:
                 log_warning(f"Possible typo in {style_type} style key for layer {layer_name}: '{key}'. Did you mean '{closest_match}'?")
+
+    def _validate_style_overrides(self, layer_name, style_config):
+        """Validates style overrides when using a preset"""
+        for key, value in style_config.items():
+            if key != 'preset':
+                if key in ['layer', 'hatch', 'text']:
+                    if key == 'layer':
+                        self._validate_layer_style(layer_name, value)
+                    elif key == 'hatch':
+                        self._validate_hatch_style(layer_name, value)
+                    elif key == 'text':
+                        self._validate_text_style(layer_name, value)
+                else:
+                    log_warning(f"Unknown style override key '{key}' in layer '{layer_name}'")
 
 
 
