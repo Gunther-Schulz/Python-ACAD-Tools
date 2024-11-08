@@ -90,6 +90,8 @@ geomLayers:
         layers:
           - Geschütze Biotope
         distance: 0.5
+  - name: Gastrasse
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/gastrasse.shp"
   - name: FG Line
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/FG_Ausschnitt.shp"
   - name: FG Buffer
