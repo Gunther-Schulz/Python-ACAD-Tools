@@ -297,7 +297,7 @@ def download_wmts_tiles(wmts_info: dict, geltungsbereich, buffer_distance: float
     return downloaded_tiles
 
 def download_wms_tiles(wms_info: dict, geltungsbereich, buffer_distance: float, target_folder: str, overwrite: bool = False) -> list:
-    print(f"Starting WMS download to target folder: {target_folder}")  # Added this print
+    print(f"Starting WMS download to target folder: {target_folder}")
     log_info(f"WMS URL: {wms_info['url']}")
     log_info(f"Layer: {wms_info['layer']}")
     log_info(f"Target folder: {target_folder}")
@@ -363,15 +363,11 @@ def download_wms_tiles(wms_info: dict, geltungsbereich, buffer_distance: float, 
             world_file_path = os.path.join(target_folder, f'{file_name}.pgw')
 
             if os.path.exists(image_path) and os.path.exists(world_file_path) and not overwrite:
-                print(f"Tile already exists: {image_path}")
                 downloaded_tiles.append((image_path, world_file_path))
                 skip_count += 1
                 continue
 
             try:
-                print(f"Downloading WMS tile to: {image_path}")
-                wms_options = wms_info.get('wmsOptions', {})
-                
                 params = {
                     'layers': [layer_id],
                     'srs': srs,

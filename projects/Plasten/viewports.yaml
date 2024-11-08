@@ -1,87 +1,4 @@
 viewports:
-#   - name: MainView
-#     updateDxf: true
-#     color: "magenta"
-#     topLeft:
-#       x: 65
-#       y: 914
-#     height: 368
-#     width: 535
-#     viewCenter:
-#       x: 356092
-#       y: 5935489
-#     customScale: 0.5
-#     frozenLayers:
-#       - Geltungsbereich Hatches
-#       - WMTS Basemap
-#     # lockZoom: true
-#   - name: MainView2
-#     updateDxf: true
-#     color: "magenta"
-#     topLeft:
-#       x: 65
-#       y: -776.5
-#     height: 653
-#     width: 720
-#     viewCenter:
-#       x: 358163
-#       y: 5935966
-#     customScale: 0.5
-#     frozenLayers:
-#       - Geltungsbereich Hatches
-#       - WMTS Basemap
-#     # lockZoom: true
-#   - name: MainView3
-#     updateDxf: true
-#     color: "magenta"
-#     topLeft:
-#       x: 1780
-#       y: -776.5
-#     height: 653
-#     width: 720
-#     viewCenter:
-#       x: 357645
-#       y: 5932178
-#     customScale: 0.5
-#     frozenLayers:
-#       - Geltungsbereich Hatches
-#       - WMTS Basemap
-#     # lockZoom: true
-#   - name: LegendView
-#     updateDxf: true
-#     color: "magenta"
-#     topLeft:
-#       x: 817
-#       y: 842
-#     height: 700
-#     width: 180
-#     viewTopLeft:
-#       x: 367838
-#       y: 5942625
-#     frozenLayers:
-#       - WMTS Basemap
-#     # scale: 2
-#     # customScale: 0.5
-#     lockZoom: true
-#   - name: Übersichtskarte
-#     updateDxf: true
-#     color: "magenta"
-#     topLeft:
-#       x: 705
-#       y: 686
-#     height: 366
-#     width: 181
-#     viewCenter:
-#       x: 357129
-#       y: 5934148
-#     customScale: 0.05
-#     visibleLayers:
-#       - Geltungsbereich NW
-#       - Geltungsbereich NO
-#       - Geltungsbereich S
-#       - Geltungsbereich Hatches
-#       - WMTS Basemap
-#     # lockZoom: true
   - name: WorkView
     updateDxf: true
     color: "magenta"
@@ -95,7 +12,9 @@ viewports:
       y: 5935564
     frozenLayers:
       - WMTS Basemap
-      - Geltungsbereich Hatches
+      - Geltungsbereich Hatch NW
+      - Geltungsbereich Hatch NO
+      - Geltungsbereich Hatch S
   - name: WorkView2
     updateDxf: true
     color: "magenta"
@@ -109,7 +28,9 @@ viewports:
       y: 5935564
     frozenLayers:
       - WMTS Basemap
-      - Geltungsbereich Hatches
+      - Geltungsbereich Hatch NW
+      - Geltungsbereich Hatch NO
+      - Geltungsbereich Hatch S
   # NW Map Viewports
   # --------------
   - name: MapViewportNW

@@ -14,3 +14,9 @@ pathArrays:
     bufferDistance: 0.6
     adjustForVertices: true
     # showDebugVisual: true
+  - name: "FG Line Array"
+    sourceLayer: "FG Line"
+    block: "FG Line"
+    spacing: 5
+    scale: 0.6
+    # bufferDistance: 0.6

@@ -68,7 +68,7 @@ geomLayers:
   - name: Biotope Input
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/biotope.shp"
   - name: Exclude
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/exclude.shp"
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/exclude_v2.shp"
   # - name: Exclude Acad
   #   updateDxf: false
   #   dxfLayer: "Exclude Acad"
@@ -90,11 +90,20 @@ geomLayers:
         layers:
           - Geschütze Biotope
         distance: 0.5
+  - name: FG Line
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/FG_Ausschnitt.shp"
   - name: FG Buffer
     operations:
       - type: buffer
+        layers:
+          - FG Line
         distance: 5
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/FG.shp"
+  - name: Gebäude 150m Abstand Buffer
+    updateDxf: true
+    operations:
+      - type: buffer
+        distance: 150
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/gebäude_150m_abstand.shp"
   - name: Geltungsbereich NW
     updateDxf: true
     style: geltungsbereich
@@ -368,6 +377,7 @@ geomLayers:
     operations:
       - type: copy
         layers:
+          - Gebäude 150m Abstand Buffer
           - Grünfläche Input 
           - Waldabstand
           - Baumabstand Puffer
