@@ -566,7 +566,7 @@ geomLayers:
       - type: copy
         layers:
           - Ausgleichsfläche Gesamt
-          - Biotope Innerhalb Geltungsbereich
+          # - Biotope Innerhalb Geltungsbereich
       - type: dissolve
       - type: intersection
         layers:
