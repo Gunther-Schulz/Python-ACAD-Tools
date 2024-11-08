@@ -105,12 +105,7 @@ def create_path_array(msp, source_layer_name, target_layer_name, block_name, spa
         return
 
     block = msp.doc.blocks[block_name]
-    block_shape, block_base_point = get_block_shape_and_base(block, scale)
     
-    if block_shape is None:
-        log_warning(f"Could not determine shape for block '{block_name}'")
-        return
-
     if all_layers is None or source_layer_name not in all_layers:
         log_warning(f"Source layer '{source_layer_name}' not found in all_layers")
         return
@@ -138,24 +133,36 @@ def create_path_array(msp, source_layer_name, target_layer_name, block_name, spa
 
     for geometry in geometries:
         if isinstance(geometry, (LineString, MultiLineString)):
-            polylines = [geometry] if isinstance(geometry, LineString) else list(geometry.geoms)
-        elif isinstance(geometry, Polygon):
-            polylines = [LineString(geometry.exterior.coords)]
-        elif isinstance(geometry, MultiPolygon):
-            polylines = [LineString(poly.exterior.coords) for poly in geometry.geoms]
+            # For lines, we only need the base point
+            base_point = Vec2(block.base_point[0] * scale, block.base_point[1] * scale)
+            
+            # Handle lines separately
+            if isinstance(geometry, LineString):
+                process_line(msp, geometry, block_name, target_layer_name, spacing, scale, rotation)
+            else:  # MultiLineString
+                for line in geometry.geoms:
+                    process_line(msp, line, block_name, target_layer_name, spacing, scale, rotation)
+        elif isinstance(geometry, (Polygon, MultiPolygon)):
+            # For polygons, we need both shape and base point
+            block_shape, block_base_point = get_block_shape_and_base(block, scale)
+            if block_shape is None:
+                log_warning(f"Could not determine shape for block '{block_name}'")
+                return
+                
+            # Use existing polygon logic unchanged
+            if isinstance(geometry, Polygon):
+                polylines = [LineString(geometry.exterior.coords)]
+            else:  # MultiPolygon
+                polylines = [LineString(poly.exterior.coords) for poly in geometry.geoms]
+            
+            for polyline in polylines:
+                if isinstance(polyline, LineString) and not polyline.is_empty:
+                    process_polyline(msp, polyline, block_shape, block_base_point, block_name, 
+                                   target_layer_name, spacing, buffer_distance, scale, rotation, 
+                                   debug_visual, ax, placed_blocks, adjust_for_vertices)
         else:
             log_warning(f"Skipping unsupported geometry type: {type(geometry)}")
             continue
-
-        for polyline in polylines:
-            if isinstance(polyline, LineString) and not polyline.is_empty:
-                log_info(f"Processing polyline: {polyline.wkt[:100]}...")  # Log first 100 characters of WKT
-                process_polyline(msp, polyline, block_shape, block_base_point, block_name, 
-                                 target_layer_name, spacing, buffer_distance, scale, rotation, 
-                                 debug_visual, ax, placed_blocks, adjust_for_vertices)
-                processed_geometries += 1
-            else:
-                log_warning(f"Skipping invalid or empty polyline: {type(polyline)}")
 
     log_info(f"Processed {processed_geometries} geometries")
 
@@ -331,4 +338,34 @@ def calculate_optimal_angle(segments, block_shape):
             best_angle = angle
     
     return best_angle
+
+# New function to handle lines
+def process_line(msp, line, block_name, target_layer_name, spacing, scale, rotation):
+    if line.is_empty:
+        return
+        
+    total_length = line.length
+    current_distance = spacing / 2
+
+    while current_distance < total_length:
+        point = line.interpolate(current_distance)
+        insertion_point = Vec2(point.x, point.y)
+        
+        # Calculate angle based on the line direction at this point
+        angle = get_angle_at_point(line, current_distance)
+        
+        # Add block reference
+        block_ref = add_block_reference(
+            msp,
+            block_name,
+            insertion_point,
+            target_layer_name,
+            scale=scale,
+            rotation=math.degrees(angle) + rotation
+        )
+        
+        if block_ref:
+            attach_custom_data(block_ref, SCRIPT_IDENTIFIER)
+            
+        current_distance += spacing
 
