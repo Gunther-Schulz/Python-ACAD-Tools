@@ -6,17 +6,18 @@ pathArrays:
     spacing: 7
     scale: 0.6
     bufferDistance: 0.6
-  - name: "Schutzflächeumgrenzung T-Small Array"
-    sourceLayer: "Schutzflächeumgrenzung T-Small Temp"
-    block: "T-Small"
-    spacing: 2
-    scale: 0.6
-    bufferDistance: 0.6
-    adjustForVertices: true
-    # showDebugVisual: true
-  - name: "FG Line Array"
-    sourceLayer: "FG Line"
-    block: "FG Line"
-    spacing: 5
-    scale: 0.6
+  # - name: "FG Line Array"
+  #   updateDxf: true
+  #   sourceLayer: "FG Line"
+  #   block: "Leitung oberirdisch Symbol"
+  #   spacing: 1.5
+  #   # scale: 0.6
+  #   # bufferDistance: 0.6
+  - name: "Gastrasse Array"
+    updateDxf: true
+    sourceLayer: "Gastrasse"
+    block: "Leitung oberirdisch Symbol"
+    # block: "T-Symbol"
+    spacing: 1.5
+    # scale: 0.6
     # bufferDistance: 0.6
