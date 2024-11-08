@@ -60,61 +60,54 @@ def remove_geobasis_text(img):
     return Image.fromarray(cv2.cvtColor(cv_img, cv2.COLOR_BGR2RGB))
 
 def post_process_image(img, color_map, alpha_color, tolerance=30, grayscale=False, remove_text=False, retain_if_color_present=None):
-    log_info("Starting post-processing of image")
+    # Convert to numpy array once at the start
+    data = np.array(img.convert('RGB'))
     
-    # Convert to RGB initially (no alpha)
-    img = img.convert('RGB')
-    
-    if remove_text:
-        log_info("Text removal requested, processing image")
-        img = remove_geobasis_text(img)
-    else:
-        log_info("Text removal not requested, skipping")
-    
-    data = np.array(img)
-    
-    # Check if we should retain this image based on color presence
+    # If we need to check for specific colors, do it first to potentially skip processing
     if retain_if_color_present and 'colors' in retain_if_color_present:
         filter_tolerance = retain_if_color_present.get('tolerance', 5)
-        log_info(f"Checking for required colors: {retain_if_color_present['colors']} with tolerance {filter_tolerance}")
+        # Convert target colors to numpy arrays once
+        target_colors = [np.array(hex_to_rgb(color)) for color in retain_if_color_present['colors']]
         
-        # Check if ANY of the specified colors are present
+        # Vectorized color check
         found_any_color = False
-        for color in retain_if_color_present['colors']:
-            target_rgb = np.array(hex_to_rgb(color))
-            distances = np.apply_along_axis(lambda x: color_distance(x, target_rgb), 2, data)
+        for target_rgb in target_colors:
+            # Broadcast subtraction and compute distances in one operation
+            distances = np.sqrt(np.sum((data - target_rgb) ** 2, axis=2))
             if np.any(distances <= filter_tolerance):
                 found_any_color = True
                 break
         
-        # If none of the specified colors were found, make the image transparent
         if not found_any_color:
-            log_info("None of the specified colors found, creating transparent image")
             return Image.new('RGBA', img.size, (0, 0, 0, 0))
     
+    # Apply color mapping if needed
     if color_map:
         for target_color, replacement_color in color_map.items():
-            distances = np.apply_along_axis(lambda x: color_distance(x, np.array(hex_to_rgb(target_color))), 2, data)
+            target_rgb = np.array(hex_to_rgb(target_color))
+            replacement_rgb = np.array(hex_to_rgb(replacement_color))
+            # Vectorized color replacement
+            distances = np.sqrt(np.sum((data - target_rgb) ** 2, axis=2))
             mask = distances <= tolerance
-            data[mask] = hex_to_rgb(replacement_color)
+            data[mask] = replacement_rgb
     
+    # Convert to grayscale if needed
     if grayscale:
-        log_info("Converting to grayscale")
-        gray_data = np.array(ImageOps.grayscale(Image.fromarray(data)))
-        data = np.dstack((gray_data, gray_data, gray_data))
+        # Use mean across RGB channels for grayscale conversion
+        gray_data = np.mean(data, axis=2).astype(np.uint8)
+        data = np.stack((gray_data,) * 3, axis=-1)
     
-    # Add alpha channel as the last step
+    # Add alpha channel if needed
     if alpha_color:
-        log_info(f"Applying alpha color: {alpha_color}")
-        alpha_channel = np.ones(data.shape[:2], dtype=np.uint8) * 255
-        alpha_distances = np.apply_along_axis(lambda x: color_distance(x, np.array(hex_to_rgb(alpha_color))), 2, data)
-        alpha_mask = alpha_distances <= tolerance
-        alpha_channel[alpha_mask] = 0
+        alpha_rgb = np.array(hex_to_rgb(alpha_color))
+        # Compute alpha mask in one operation
+        distances = np.sqrt(np.sum((data - alpha_rgb) ** 2, axis=2))
+        alpha_channel = np.where(distances <= tolerance, 0, 255).astype(np.uint8)
         data = np.dstack((data, alpha_channel))
     
-    result_img = Image.fromarray(data, 'RGBA' if alpha_color else 'RGB')
-    log_info("Post-processing completed")
-    return result_img
+    # Convert back to PIL Image
+    mode = 'RGBA' if alpha_color else 'RGB'
+    return Image.fromarray(data, mode)
 
 def hex_to_rgb(hex_color):
     return tuple(int(hex_color.lstrip('#')[i:i+2], 16) for i in (0, 2, 4))
@@ -304,7 +297,7 @@ def download_wmts_tiles(wmts_info: dict, geltungsbereich, buffer_distance: float
     return downloaded_tiles
 
 def download_wms_tiles(wms_info: dict, geltungsbereich, buffer_distance: float, target_folder: str, overwrite: bool = False) -> list:
-    log_info(f"Starting WMS download to target folder: {target_folder}")
+    print(f"Starting WMS download to target folder: {target_folder}")  # Added this print
     log_info(f"WMS URL: {wms_info['url']}")
     log_info(f"Layer: {wms_info['layer']}")
     log_info(f"Target folder: {target_folder}")
@@ -370,23 +363,21 @@ def download_wms_tiles(wms_info: dict, geltungsbereich, buffer_distance: float, 
             world_file_path = os.path.join(target_folder, f'{file_name}.pgw')
 
             if os.path.exists(image_path) and os.path.exists(world_file_path) and not overwrite:
+                print(f"Tile already exists: {image_path}")
                 downloaded_tiles.append((image_path, world_file_path))
                 skip_count += 1
                 continue
 
             try:
+                print(f"Downloading WMS tile to: {image_path}")
                 wms_options = wms_info.get('wmsOptions', {})
                 
-                # Ensure transparent is set before bgcolor
                 params = {
                     'layers': [layer_id],
                     'srs': srs,
                     'bbox': tile_bbox,
                     'size': (tile_width, tile_height),
                     'format': image_format,
-                    # 'transparent': wms_options.get('transparent', True),
-                    # 'bgcolor': wms_options.get('bgcolor', '0xFFFFFF'),  # Then bgcolor
-                    # 'styles': wms_options.get('styles', '')
                 }
                 
                 img = wms.getmap(**params)

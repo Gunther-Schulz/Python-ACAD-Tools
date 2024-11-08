@@ -287,9 +287,9 @@ legends:
             type: empty
             blockSymbol: "Contours"
             blockSymbolScale: 1.4
-          - name: "Bemaßung in Meter"
-            type: empty
-            blockSymbol: "Bemassung2"
+          # - name: "Bemaßung in Meter"
+          #   type: empty
+          #   blockSymbol: "Bemassung2"
       - name: "Nachrichtliche Übernahme"
         updateDxf: true
         items:

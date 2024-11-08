@@ -17,7 +17,7 @@ wmtsLayers:
   #       stitchTiles: true
   #       # overwrite: true
   - name: WMTS Basemap
-    updateDxf: true
+    # updateDxf: true
     operations:
       - type: wmts
         url: "https://sgx.geodatenzentrum.de/wmts_basemapde/1.0.0/WMTSCapabilities.xml"
