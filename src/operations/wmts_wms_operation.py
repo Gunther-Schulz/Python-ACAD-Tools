@@ -16,23 +16,25 @@ def process_wmts_or_wms_layer(all_layers, project_settings, crs, layer_name, ope
     
     zoom_folder = os.path.join(target_folder, f"zoom_{zoom_level}") if zoom_level else target_folder
     
-    # Get update flag from operation first, then layer_info as fallback
-    update_flag = operation.get('update', None)
-    if update_flag is None:
-        # Check in both geomLayers and wmts_wms_layers
-        layer_info = (
-            # next((l for l in project_settings.get('geomLayers', []) if l['name'] == layer_name), None) or
-            next((l for l in project_settings.get('wmtsLayers', []) if l['name'] == layer_name), None) or
-            next((l for l in project_settings.get('wmsLayers', []) if l['name'] == layer_name), None)
-        )
-        update_flag = layer_info.get('update', False) if layer_info else False
+    # Get updateDxf flag from layer info first - this is the master switch
+    layer_info = (
+        next((l for l in project_settings.get('wmtsLayers', []) if l['name'] == layer_name), None) or
+        next((l for l in project_settings.get('wmsLayers', []) if l['name'] == layer_name), None)
+    )
+    update_dxf = layer_info.get('updateDxf', False) if layer_info else False
     
-    overwrite_flag = operation.get('overwrite', False)
+    # If updateDxf is False, no updates should happen regardless of other flags
+    if not update_dxf:
+        overwrite_flag = False
+    else:
+        # Only if updateDxf is True, we check the overwrite flag
+        overwrite_flag = operation.get('overwrite', False)
+    
+    log_info(f"UpdateDxf: {update_dxf}, Overwrite flag: {overwrite_flag}")
     
     os.makedirs(zoom_folder, exist_ok=True)
     
     log_info(f"Target folder path: {zoom_folder}")
-    log_info(f"Update flag: {update_flag}, Overwrite flag: {overwrite_flag}")
 
     layers = operation.get('layers', [])
     buffer_distance = operation.get('buffer', 100)
@@ -103,7 +105,6 @@ def process_wmts_or_wms_layer(all_layers, project_settings, crs, layer_name, ope
                 layer_geometry, 
                 buffer_distance, 
                 layer_folder, 
-                update=update_flag, 
                 overwrite=overwrite_flag
             )
         else:
@@ -112,7 +113,6 @@ def process_wmts_or_wms_layer(all_layers, project_settings, crs, layer_name, ope
                 layer_geometry, 
                 buffer_distance, 
                 layer_folder, 
-                update=update_flag, 
                 overwrite=overwrite_flag
             )
 

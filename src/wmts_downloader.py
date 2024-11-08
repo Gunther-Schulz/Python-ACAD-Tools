@@ -186,7 +186,7 @@ def write_world_file(file_name, extension, col, row, matrix, zoom_folder) -> str
 
     return world_file_path
 
-def download_wmts_tiles(wmts_info: dict, geltungsbereich, buffer_distance: float, target_folder: str, update: bool = False, overwrite: bool = False) -> list:
+def download_wmts_tiles(wmts_info: dict, geltungsbereich, buffer_distance: float, target_folder: str, overwrite: bool = False) -> list:
     print(f"Starting WMTS download to target folder: {target_folder}")
     capabilities_url = wmts_info['url']
     wmts = WebMapTileService(capabilities_url)
@@ -250,7 +250,7 @@ def download_wmts_tiles(wmts_info: dict, geltungsbereich, buffer_distance: float
         min_col, max_col, min_row, max_row = filter_row_cols_by_bbox(
             tile_matrix_zoom, bbox)
 
-        log_info(f"Starting download_wmts_tiles with update={update}, overwrite={overwrite}")
+        log_info(f"Starting download_wmts_tiles with overwrite={overwrite}")
         log_info(f"Target folder: {target_folder}")
         log_info(f"Requested format: {wmts_info.get('format', 'image/png')}")
 
@@ -260,7 +260,7 @@ def download_wmts_tiles(wmts_info: dict, geltungsbereich, buffer_distance: float
                 
                 exists, file_path, existing_extension = tile_already_exists(file_name, requested_extension, zoom_folder)
                 
-                if exists and (not update or (update and not overwrite)):
+                if exists and not overwrite:
                     world_file_path = f'{zoom_folder}/{file_name}.{get_world_file_extension(existing_extension)}'
                     downloaded_tiles.append((file_path, world_file_path))
                     skip_count += 1
@@ -303,12 +303,12 @@ def download_wmts_tiles(wmts_info: dict, geltungsbereich, buffer_distance: float
 
     return downloaded_tiles
 
-def download_wms_tiles(wms_info: dict, geltungsbereich, buffer_distance: float, target_folder: str, update: bool = False, overwrite: bool = False) -> list:
+def download_wms_tiles(wms_info: dict, geltungsbereich, buffer_distance: float, target_folder: str, overwrite: bool = False) -> list:
     log_info(f"Starting WMS download to target folder: {target_folder}")
     log_info(f"WMS URL: {wms_info['url']}")
     log_info(f"Layer: {wms_info['layer']}")
     log_info(f"Target folder: {target_folder}")
-    log_info(f"Update: {update}, Overwrite: {overwrite}")
+    log_info(f"Overwrite: {overwrite}")
 
     capabilities_url = wms_info['url']
     try:
@@ -369,7 +369,7 @@ def download_wms_tiles(wms_info: dict, geltungsbereich, buffer_distance: float, 
             image_path = os.path.join(target_folder, f'{file_name}.png')
             world_file_path = os.path.join(target_folder, f'{file_name}.pgw')
 
-            if os.path.exists(image_path) and os.path.exists(world_file_path) and (not update or (update and not overwrite)):
+            if os.path.exists(image_path) and os.path.exists(world_file_path) and not overwrite:
                 downloaded_tiles.append((image_path, world_file_path))
                 skip_count += 1
                 continue
