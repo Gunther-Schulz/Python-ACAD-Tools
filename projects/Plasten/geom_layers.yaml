@@ -99,6 +99,11 @@ geomLayers:
           - Gastrasse
         distance: 10
   - name: FG Line
+    updateDxf: true
+    close: false
+    style:
+      layer:
+        color: "blue"
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/FG_Ausschnitt.shp"
   - name: FG Buffer
     operations:

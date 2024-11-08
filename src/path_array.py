@@ -344,28 +344,75 @@ def process_line(msp, line, block_name, target_layer_name, spacing, scale, rotat
     if line.is_empty:
         return
         
+    coords = list(line.coords)
     total_length = line.length
     current_distance = spacing / 2
-
+    
     while current_distance < total_length:
         point = line.interpolate(current_distance)
         insertion_point = Vec2(point.x, point.y)
         
-        # Calculate angle based on the line direction at this point
-        angle = get_angle_at_point(line, current_distance)
+        # Find current segment
+        accumulated_length = 0
+        current_segment_index = 0
         
-        # Add block reference
+        for i in range(len(coords) - 1):
+            segment = LineString([coords[i], coords[i + 1]])
+            if accumulated_length + segment.length >= current_distance:
+                current_segment_index = i
+                break
+            accumulated_length += segment.length
+            
+        # Calculate distance from start of current segment
+        local_distance = current_distance - accumulated_length
+        segment = LineString([coords[current_segment_index], coords[current_segment_index + 1]])
+        
+        # Get angles for current and next segment (if exists)
+        curr_angle = math.atan2(
+            coords[current_segment_index + 1][1] - coords[current_segment_index][1],
+            coords[current_segment_index + 1][0] - coords[current_segment_index][0]
+        )
+        
+        # If we're approaching a corner and not at the last segment
+        if current_segment_index < len(coords) - 2:
+            next_angle = math.atan2(
+                coords[current_segment_index + 2][1] - coords[current_segment_index + 1][1],
+                coords[current_segment_index + 2][0] - coords[current_segment_index + 1][0]
+            )
+            
+            # Normalize angle difference to ensure shortest rotation path
+            angle_diff = next_angle - curr_angle
+            if angle_diff > math.pi:
+                angle_diff -= 2 * math.pi
+            elif angle_diff < -math.pi:
+                angle_diff += 2 * math.pi
+                
+            # Calculate distance to next corner
+            dist_to_corner = segment.length - local_distance
+            
+            # If we're within spacing distance of the corner
+            if dist_to_corner < spacing:
+                # Calculate interpolation factor (0 at spacing distance, 1 at corner)
+                t = 1 - (dist_to_corner / spacing)
+                # Smoothly interpolate between angles
+                final_angle = curr_angle + (angle_diff * t)
+            else:
+                final_angle = curr_angle
+        else:
+            final_angle = curr_angle
+            
+        # Add block reference with interpolated angle
         block_ref = add_block_reference(
             msp,
             block_name,
             insertion_point,
             target_layer_name,
             scale=scale,
-            rotation=math.degrees(angle) + rotation
+            rotation=math.degrees(final_angle) + rotation
         )
         
         if block_ref:
             attach_custom_data(block_ref, SCRIPT_IDENTIFIER)
-            
+        
         current_distance += spacing
 
