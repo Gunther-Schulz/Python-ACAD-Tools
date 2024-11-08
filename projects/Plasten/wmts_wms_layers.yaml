@@ -5,7 +5,7 @@ wmtsLayers:
       - type: wmts
         url: "https://www.geodaten-mv.de/dienste/dop_wmts/wmts/1.0.0/WMTSCapabilities.xml"
         layer: "mv_dop"
-        # zoom: "10"
+        zoom: "10"
         proj: "ETRS89UTM33"
         targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/DOP"
         layers:
