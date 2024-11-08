@@ -230,6 +230,12 @@ class DXFExporter:
     def _process_wmts_layer(self, doc, msp, layer_name, layer_info):
         log_info(f"Processing WMTS layer: {layer_name}")
         
+        # Check updateDxf flag early and skip all processing if false
+        update_flag = layer_info.get('updateDxf', False)
+        if not update_flag:
+            log_info(f"Skipping layer {layer_name} - updateDxf is False")
+            return  # Return early without modifying anything
+        
         # Ensure layer exists with proper properties
         self._ensure_layer_exists(doc, layer_name, layer_info)
         
@@ -272,7 +278,7 @@ class DXFExporter:
         if not update_flag:
             log_info(f"Skipping geometry update for layer {layer_name} as 'updateDxf' flag is not set")
             return
-
+        
         def update_function():
             # Remove existing geometry and labels
             log_info(f"Removing existing geometry from layer {layer_name}")
