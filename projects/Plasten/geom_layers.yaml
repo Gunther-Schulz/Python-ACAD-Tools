@@ -461,6 +461,7 @@ geomLayers:
         layers:
           - Ausgleichsfläche Gesamt
         distance: -3
+        joinStyle: round
     # bluntAngles:
     #   angleThreshold: 25  # Angles smaller than this will be blunted
     #   distance: 10.0  # Distance to move the vertex along the angle bisector

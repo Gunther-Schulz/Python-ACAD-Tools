@@ -6,13 +6,13 @@ pathArrays:
     spacing: 7
     scale: 0.6
     bufferDistance: 0.6
-  # - name: "FG Line Array"
-  #   updateDxf: true
-  #   sourceLayer: "FG Line"
-  #   block: "Leitung oberirdisch Symbol"
-  #   spacing: 1.5
-  #   # scale: 0.6
-  #   # bufferDistance: 0.6
+  - name: "FG Line Array"
+    updateDxf: true
+    sourceLayer: "FG Line"
+    block: "Leitung oberirdisch Symbol"
+    spacing: 8
+    # scale: 0.6
+    # bufferDistance: 0.6
   - name: "Gastrasse Array"
     updateDxf: true
     sourceLayer: "Gastrasse"
