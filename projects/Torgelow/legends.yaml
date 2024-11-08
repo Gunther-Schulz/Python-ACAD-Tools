@@ -188,3 +188,6 @@ legends:
           #   type: empty
           #   blockSymbol: "Abgrenzung unterschiedlicher Nutzung"
           #   blockSymbolScale: 1.4
+          - name: "Gebäude - Bestand"
+            type: empty
+            blockSymbol: "Gebäude"

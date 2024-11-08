@@ -1,4 +1,6 @@
 geomLayers:
+  - name: Baum Points
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/input/bäume_input.shp"
   - name: Flur
     updateDxf: true
     close: true
@@ -75,6 +77,11 @@ geomLayers:
       - type: copy
         layers:
           - Weg
+  - name: FG Buffer
+    operations:
+      - type: buffer
+        distance: 5
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/input/graben_input.shp"
   - name: Geltungsbereich
     updateDxf: true
     style: geltungsbereich
@@ -111,6 +118,7 @@ geomLayers:
           - Wald
           - Straße Abstand
           - Weg Abstand
+          - FG Buffer
       - type: filterGeometry
         minArea: 10
   - name: Geltungsbereich 2

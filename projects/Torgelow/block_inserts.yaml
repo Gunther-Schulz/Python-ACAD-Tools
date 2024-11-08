@@ -1,4 +1,10 @@
 blockInserts:
+  - name: "Bäume Ausserhalb"
+    updateDxf: true
+    blockName: "Baum"
+    position:
+      sourceLayer: "Baum Points"
+      type: "points"
   - name: "SO EBS Label"
     updateDxf: true
 

@@ -31,10 +31,10 @@ wmtsLayers:
         stitchTiles: true
 wmsLayers:
   - name: WMS Gebäude
-    # updateDxf: true
+    updateDxf: true
     operations:
       - type: wms
-        # overwrite: true
+        overwrite: true
         url: "https://www.geodaten-mv.de/dienste/gebaeude_wms"
         layer: "gebaeude"
         imageTransparency: true
@@ -45,8 +45,8 @@ wmsLayers:
           # version: "1.3.0"  # WMS version
           # transparent: true
           # bgcolor: "0x0000FF" # Doesn't work somehow. It's black always.
-          # width: 4096
-          # height: 4096
+          width: 4096
+          height: 4096
         targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/Gebäude"
         layers:
           - Geltungsbereich
