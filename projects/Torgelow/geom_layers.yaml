@@ -130,6 +130,7 @@ geomLayers:
           - bounds
         decimalPlaces:
           area: 0
+      # - type: dissolve
   - name: Geltungsbereich 2
     updateDxf: true
     linetypeScale: 1
