@@ -21,7 +21,7 @@ viewports:
     topLeft:
       x: 817
       y: 842
-    height: 410
+    height: 435
     width: 180
     viewTopLeft:
       x: 367839
@@ -36,7 +36,7 @@ viewports:
     color: "magenta"
     topLeft:
       x: 817
-      y: 407
+      y: 370
     height: 163
     width: 172
     viewCenter:
@@ -47,4 +47,4 @@ viewports:
       - Geltungsbereich 
       - Geltungsbereich Hatch
       - WMTS Basemap
-    # lockZoom: true
+    lockZoom: true

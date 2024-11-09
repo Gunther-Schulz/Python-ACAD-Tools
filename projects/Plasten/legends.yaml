@@ -267,6 +267,16 @@ legends:
             subtitle: "(§ 9 Abs. 7 BauGB)"
             type: area
             rectangleStyle: geltungsbereich_2
+          - name: "Hauptversorgungs- und Hauptabwasserleitungen unterirdisch"
+            subtitle: "(§ 5 Abs. 2 Nr.4 und Abs. 4, § 9 Abs.1 Nr.1 u. Abs. 6)"
+            type: area
+            blockSymbol: "Leitung oberirdisch"
+            blockSymbolScale: 2
+          # - name: "Hauptversorgungs- und Hauptabwasserleitungen oberirdisch"
+          #   subtitle: "(§ 5 Abs. 2 Nr.4 und Abs. 4, § 9 Abs.1 Nr.1 u. Abs. 6)"
+          #   type: area
+          #   blockSymbol: "Leitung unterirdisch"
+          #   blockSymbolScale: 2
       - name: "Darstellung ohne Normcharakter"
         updateDxf: true
         items:
@@ -384,6 +394,11 @@ legends:
             subtitle: "(§ 9 Abs. 7 BauGB)"
             type: area
             rectangleStyle: geltungsbereich_2
+          - name: "Hauptversorgungs- und Hauptabwasserleitungen unterirdisch"
+            subtitle: "(§ 5 Abs. 2 Nr.4 und Abs. 4, § 9 Abs.1 Nr.1 u. Abs. 6)"
+            type: area
+            blockSymbol: "Leitung oberirdisch"
+            blockSymbolScale: 2
       - name: "Darstellung ohne Normcharakter"
         updateDxf: true
         items:
@@ -404,9 +419,9 @@ legends:
             type: empty
             blockSymbol: "Contours"
             blockSymbolScale: 1.4
-          - name: "Bemaßung in Meter"
-            type: empty
-            blockSymbol: "Bemassung2"
+          # - name: "Bemaßung in Meter"
+          #   type: empty
+          #   blockSymbol: "Bemassung2"
       - name: "Nachrichtliche Übernahme"
         updateDxf: true
         items:
@@ -530,9 +545,9 @@ legends:
             type: empty
             blockSymbol: "Contours"
             blockSymbolScale: 1.4
-          - name: "Bemaßung in Meter"
-            type: empty
-            blockSymbol: "Bemassung2"
+          # - name: "Bemaßung in Meter"
+          #   type: empty
+          #   blockSymbol: "Bemassung2"
       - name: "Nachrichtliche Übernahme"
         updateDxf: true
         items:

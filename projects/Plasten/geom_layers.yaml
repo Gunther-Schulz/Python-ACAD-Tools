@@ -99,7 +99,7 @@ geomLayers:
           - Gastrasse
         distance: 10
   - name: FG Line
-    updateDxf: true
+    # updateDxf: true
     close: false
     style:
       layer:
@@ -279,7 +279,6 @@ geomLayers:
   - name: Waldabstand
     operations:
       - type: buffer
-        joinStyle: mitre
         layers:
           - Wald
         distance: 30
@@ -310,16 +309,16 @@ geomLayers:
           - Geltungsbereich NW
           - Geltungsbereich NO
           - Geltungsbereich S
-  # - name: Biotope Innerhalb Geltungsbereich
-  #   operations:
-  #     - type: copy
-  #       layers:
-  #         - Biotope
-  #     - type: intersection
-  #       layers:
-  #         - Geltungsbereich NW
-  #         - Geltungsbereich NO
-  #         - Geltungsbereich S
+  - name: Biotope Innerhalb Geltungsbereich
+    operations:
+      - type: copy
+        layers:
+          - Biotope
+      - type: intersection
+        layers:
+          - Geltungsbereich NW
+          - Geltungsbereich NO
+          - Geltungsbereich S
   # - name: Biotope Innerhalb Geltungsbereich Grünfläche
   #   updateDxf: true
   #   operations:
@@ -349,40 +348,40 @@ geomLayers:
   #   applyHatch:
   #     layers:
   #       - Biotope Innerhalb Geltungsbereich Schutzfläche
-  # - name: Biotop Report NW
-  #   operations:
-  #     - type: copy
-  #       layers:
-  #         - Biotope Innerhalb Geltungsbereich
-  #     - type: intersection
-  #       layers:
-  #         - Geltungsbereich NW
-  #     - type: report
-  #       outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/biotop_report_nw.json"
-  #       calculate:
-  #         - area
-  #         - perimeter
-  #         - centroid
-  #         - bounds
-  #       decimalPlaces:
-  #         area: 0
-  # - name: Biotop Report S
-  #   operations:
-  #     - type: copy
-  #       layers:
-  #         - Biotope Innerhalb Geltungsbereich
-  #     - type: intersection
-  #       layers:
-  #         - Geltungsbereich S
-  #     - type: report
-  #       outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/biotop_report_s.json"
-  #       calculate:
-  #         - area
-  #         - perimeter
-  #         - centroid
-  #         - bounds
-  #       decimalPlaces:
-  #         area: 0
+  - name: Biotop Report NW
+    operations:
+      - type: copy
+        layers:
+          - Biotope Innerhalb Geltungsbereich
+      - type: intersection
+        layers:
+          - Geltungsbereich NW
+      - type: report
+        outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/biotop_report_nw.json"
+        calculate:
+          - area
+          - perimeter
+          - centroid
+          - bounds
+        decimalPlaces:
+          area: 0
+  - name: Biotop Report S
+    operations:
+      - type: copy
+        layers:
+          - Biotope Innerhalb Geltungsbereich
+      - type: intersection
+        layers:
+          - Geltungsbereich S
+      - type: report
+        outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/biotop_report_s.json"
+        calculate:
+          - area
+          - perimeter
+          - centroid
+          - bounds
+        decimalPlaces:
+          area: 0
   - name: Ausgleichsfläche Gesamt
     viewports:
       - name: WorkView
@@ -397,8 +396,6 @@ geomLayers:
           - Waldabstand
           - Baumabstand Puffer
           - FG Buffer
-          # - Biotoppuffer
-          # - Biotope
       - type: dissolve
       - type: intersection
         layers:

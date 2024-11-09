@@ -121,6 +121,15 @@ geomLayers:
           - FG Buffer
       - type: filterGeometry
         minArea: 10
+      - type: report
+        outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/reports/geltungsbereich_report.json"
+        calculate:
+          - area
+          - perimeter
+          - centroid
+          - bounds
+        decimalPlaces:
+          area: 0
   - name: Geltungsbereich 2
     updateDxf: true
     linetypeScale: 1

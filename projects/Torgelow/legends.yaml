@@ -176,10 +176,10 @@ legends:
               hatch:
                 scale: 1.5
             applyHatch: true
-          # - name: "Baum"
-          #   type: empty
-          #   blockSymbol: "Baum"
-          #   blockSymbolScale: 1.8
+          - name: "Baum"
+            type: empty
+            blockSymbol: "Baum"
+            blockSymbolScale: 1.8
           # - name: "Baum erhalten"
           #   type: empty
           #   blockSymbol: "Baum erhalten"

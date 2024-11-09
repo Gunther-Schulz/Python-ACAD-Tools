@@ -51,7 +51,7 @@ viewports:
       - Geltungsbereich Hatch S
       - Geltungsbereich Hatch NO
       - WMTS Basemap
-    # lockZoom: true
+    lockZoom: true
   - name: LegendViewportNW
     updateDxf: true
     color: "magenta"
@@ -86,7 +86,7 @@ viewports:
       # - Geltungsbereich S
       - Geltungsbereich Hatch NW
       - WMTS Basemap
-    # lockZoom: true
+    lockZoom: true
   # NO Map Viewports
   # --------------
   - name: MapViewportNO
@@ -107,7 +107,7 @@ viewports:
       - Geltungsbereich Hatch S
       - Geltungsbereich Hatch NW
       - WMTS Basemap
-    # lockZoom: true
+    lockZoom: true
   - name: LegendViewportNO
     updateDxf: true
     color: "magenta"
@@ -142,7 +142,7 @@ viewports:
       # - Geltungsbereich S
       - Geltungsbereich Hatch NO
       - WMTS Basemap
-    # lockZoom: true
+    lockZoom: true
   # S Map Viewports
   # --------------
   - name: MapViewportS
@@ -163,7 +163,7 @@ viewports:
       - Geltungsbereich Hatch S
       - Geltungsbereich Hatch NW
       - WMTS Basemap
-    # lockZoom: true
+    lockZoom: true
   - name: LegendViewportS
     updateDxf: true
     color: "magenta"
@@ -196,4 +196,4 @@ viewports:
       - Geltungsbereich S
       - Geltungsbereich Hatch S
       - WMTS Basemap
-    # lockZoom: true
+    lockZoom: true
