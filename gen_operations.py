@@ -138,7 +138,7 @@ def main():
         'buffer_operation.py': ['create_buffer_layer'],
         'copy_operation.py': ['create_copy_layer'],
         'difference_operation.py': ['create_difference_layer', '_should_reverse_difference'],
-        'filter_operation.py': ['create_filtered_layer'],
+        'filter_operation.py': ['create_filtered_by_intersection_layer'],
         'intersection_operation.py': ['create_intersection_layer', '_create_overlay_layer'],
         'merge_operation.py': ['create_merged_layer'],
         'smooth_operation.py': ['create_smooth_layer', 'smooth_geometry'],

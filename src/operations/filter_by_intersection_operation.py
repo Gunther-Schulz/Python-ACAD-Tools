@@ -4,7 +4,7 @@ from src.utils import log_info, log_warning, log_error
 from src.operations.common_operations import _process_layer_info, _get_filtered_geometry, ensure_geodataframe
 from src.operations.common_operations import *
 
-def create_filtered_layer(all_layers, project_settings, crs, layer_name, operation):
+def create_filtered_by_intersection_layer(all_layers, project_settings, crs, layer_name, operation):
     log_info(f"Creating filtered layer: {layer_name}")
     
     if layer_name not in all_layers:

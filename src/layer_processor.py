@@ -15,7 +15,7 @@ from src.operations import (
     create_buffer_layer,
     create_difference_layer,
     create_intersection_layer,
-    create_filtered_layer,
+    create_filtered_by_intersection_layer,
     process_wmts_or_wms_layer,
     create_merged_layer,
     create_smooth_layer,
@@ -210,8 +210,8 @@ class LayerProcessor:
             result = create_difference_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
         elif op_type == 'intersection':
             result = create_intersection_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
-        elif op_type == 'filter':
-            result = create_filtered_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
+        elif op_type == 'filterByIntersection':
+            result = create_filtered_by_intersection_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
         elif op_type == 'wmts' or op_type == 'wms':
             result = process_wmts_or_wms_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation, self.project_loader)
         elif op_type == 'merge':
