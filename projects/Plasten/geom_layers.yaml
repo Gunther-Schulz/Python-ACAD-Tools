@@ -131,7 +131,7 @@ geomLayers:
               - "6"
               - "7"
               - "14"
-      - type: filter
+      - type: filterByIntersection
         layers:
           - name: Flur
             values:
@@ -195,7 +195,7 @@ geomLayers:
             values:
               - "24/8"
               - "24/9"
-      - type: filter
+      - type: filterByIntersection
         layers:
           - name: Flur
             values:
@@ -241,7 +241,7 @@ geomLayers:
           - name: Parcel
             values:
               - "41/1"
-      - type: filter
+      - type: filterByIntersection
         layers:
           - name: Flur
             values:
