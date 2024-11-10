@@ -37,6 +37,6 @@ textInserts:
     text: "VORENTWURF\nSATZUNG DER GEMEINDE\nTORGELOW AM SEE\nÜBER DEN VORHABENSBEZOGENER BEBAUUNGSPLAN\nNR: 06 „SOLARPARK AN DER LINDENALLEE“"
     position:
       type: "absolute"
-      x: 1012
+      x: 1009
       y: 248
     style: "satzungstext"  # Style can include width for text wrapping

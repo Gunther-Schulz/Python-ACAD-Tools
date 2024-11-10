@@ -125,9 +125,9 @@ geomLayers:
         outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/reports/geltungsbereich_report.json"
         calculate:
           - area
-          - perimeter
-          - centroid
-          - bounds
+          # - perimeter
+          # - centroid
+          # - bounds
         decimalPlaces:
           area: 0
       - type: dissolve
@@ -213,6 +213,10 @@ geomLayers:
       - type: intersection
         layers:
           - Geltungsbereich
+      - type: report
+        outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/reports/grünfläche_report.json"
+        calculate:
+          - area
       - type: buffer
         distance: -3
   - name: Grünfläche Schraffur
