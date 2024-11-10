@@ -22,10 +22,11 @@ def create_report_layer(all_layers, project_settings, crs, layer_name, operation
     
     # Get additional columns to calculate and decimal places configuration
     calculate_columns = operation.get('calculate', [])
+    feature_columns = operation.get('featureColumns', [])  # New: specify which columns to include
     decimal_places = operation.get('decimalPlaces', {
         'area': 2,
         'perimeter': 2,
-        'coordinates': 6  # For centroid and bounds
+        'coordinates': 6
     })
     
     # Create report data and summary data
@@ -35,27 +36,26 @@ def create_report_layer(all_layers, project_settings, crs, layer_name, operation
     # Initialize summary accumulators
     if 'area' in calculate_columns:
         summary['area'] = {
-            'total': 0,
-            'min': float('inf'),
-            'max': float('-inf'),
-            'count': 0
+            'total': 0, 'min': float('inf'), 'max': float('-inf'), 'count': 0
         }
     
     if 'perimeter' in calculate_columns:
         summary['perimeter'] = {
-            'total': 0,
-            'min': float('inf'),
-            'max': float('-inf'),
-            'count': 0
+            'total': 0, 'min': float('inf'), 'max': float('-inf'), 'count': 0
         }
     
     for idx, row in source_gdf.iterrows():
         feature_data = {}
         
-        # Add all existing columns
-        for column in row.index:
-            if column != 'geometry':
-                feature_data[column] = row[column]
+        # Add only specified columns or all columns if none specified
+        if feature_columns:
+            for column in feature_columns:
+                if column in row.index and column != 'geometry':
+                    feature_data[column] = row[column]
+        else:
+            for column in row.index:
+                if column != 'geometry':
+                    feature_data[column] = row[column]
         
         # Calculate additional columns and update summaries
         if 'area' in calculate_columns and hasattr(row.geometry, 'area'):
