@@ -113,6 +113,11 @@ geomLayers:
           - name: Gemeinde
             values:
               - Torgelow am See
+      - type: calculate
+        calculations:        
+          - type: area
+            as: original_area
+            decimalPlaces: 0
       - type: difference
         layers:
           - Wald
@@ -121,13 +126,27 @@ geomLayers:
           - FG Buffer
       - type: filterGeometry
         minArea: 10
+      # Calculate new areas and compare
+      - type: calculate
+        calculations:
+          - type: area
+            as: final_area
+            decimalPlaces: 0
+          - type: compare
+            value1: original_area
+            value2: final_area
+            operator: eq
+            margin: 1.0
+            as: area_unchanged
       - type: report
         outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/reports/geltungsbereich_report.json"
+        featureColumns:
+          - label
+          - original_area
+          - final_area
+          - area_unchanged
         calculate:
           - area
-          # - perimeter
-          # - centroid
-          # - bounds
         decimalPlaces:
           area: 0
       - type: dissolve

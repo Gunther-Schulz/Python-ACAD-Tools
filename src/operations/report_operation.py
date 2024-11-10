@@ -22,10 +22,11 @@ def create_report_layer(all_layers, project_settings, crs, layer_name, operation
     
     # Get additional columns to calculate and decimal places configuration
     calculate_columns = operation.get('calculate', [])
+    feature_columns = operation.get('featureColumns', [])  # New: specify which columns to include
     decimal_places = operation.get('decimalPlaces', {
         'area': 2,
         'perimeter': 2,
-        'coordinates': 6  # For centroid and bounds
+        'coordinates': 6
     })
     
     # Create report data and summary data
@@ -35,32 +36,34 @@ def create_report_layer(all_layers, project_settings, crs, layer_name, operation
     # Initialize summary accumulators
     if 'area' in calculate_columns:
         summary['area'] = {
-            'total': 0,
-            'min': float('inf'),
-            'max': float('-inf'),
-            'count': 0
+            'total': 0, 'min': float('inf'), 'max': float('-inf'), 'count': 0
         }
     
     if 'perimeter' in calculate_columns:
         summary['perimeter'] = {
-            'total': 0,
-            'min': float('inf'),
-            'max': float('-inf'),
-            'count': 0
+            'total': 0, 'min': float('inf'), 'max': float('-inf'), 'count': 0
         }
     
     for idx, row in source_gdf.iterrows():
         feature_data = {}
         
-        # Add all existing columns
-        for column in row.index:
-            if column != 'geometry':
-                feature_data[column] = row[column]
+        # Add only specified columns or all columns if none specified
+        if feature_columns:
+            for column in feature_columns:
+                if column in row.index and column != 'geometry':
+                    feature_data[column] = row[column]
+        else:
+            for column in row.index:
+                if column != 'geometry':
+                    feature_data[column] = row[column]
         
         # Calculate additional columns and update summaries
         if 'area' in calculate_columns and hasattr(row.geometry, 'area'):
             area = round(row.geometry.area, decimal_places.get('area', 2))
-            feature_data['area'] = area
+            # Only add to feature_data if area is in featureColumns or featureColumns is empty
+            if not feature_columns or 'area' in feature_columns:
+                feature_data['area'] = area
+            # Always update summary
             summary['area']['total'] += area
             summary['area']['min'] = min(summary['area']['min'], area)
             summary['area']['max'] = max(summary['area']['max'], area)
@@ -68,7 +71,10 @@ def create_report_layer(all_layers, project_settings, crs, layer_name, operation
             
         if 'perimeter' in calculate_columns and hasattr(row.geometry, 'length'):
             perimeter = round(row.geometry.length, decimal_places.get('perimeter', 2))
-            feature_data['perimeter'] = perimeter
+            # Only add to feature_data if perimeter is in featureColumns or featureColumns is empty
+            if not feature_columns or 'perimeter' in feature_columns:
+                feature_data['perimeter'] = perimeter
+            # Always update summary
             summary['perimeter']['total'] += perimeter
             summary['perimeter']['min'] = min(summary['perimeter']['min'], perimeter)
             summary['perimeter']['max'] = max(summary['perimeter']['max'], perimeter)
@@ -77,20 +83,24 @@ def create_report_layer(all_layers, project_settings, crs, layer_name, operation
         if 'centroid' in calculate_columns and hasattr(row.geometry, 'centroid'):
             centroid = row.geometry.centroid
             coord_decimals = decimal_places.get('coordinates', 6)
-            feature_data['centroid'] = {
-                'x': round(centroid.x, coord_decimals),
-                'y': round(centroid.y, coord_decimals)
-            }
+            # Only add to feature_data if centroid is in featureColumns or featureColumns is empty
+            if not feature_columns or 'centroid' in feature_columns:
+                feature_data['centroid'] = {
+                    'x': round(centroid.x, coord_decimals),
+                    'y': round(centroid.y, coord_decimals)
+                }
             
         if 'bounds' in calculate_columns:
             bounds = row.geometry.bounds
             coord_decimals = decimal_places.get('coordinates', 6)
-            feature_data['bounds'] = {
-                'minx': round(bounds[0], coord_decimals),
-                'miny': round(bounds[1], coord_decimals),
-                'maxx': round(bounds[2], coord_decimals),
-                'maxy': round(bounds[3], coord_decimals)
-            }
+            # Only add to feature_data if bounds is in featureColumns or featureColumns is empty
+            if not feature_columns or 'bounds' in feature_columns:
+                feature_data['bounds'] = {
+                    'minx': round(bounds[0], coord_decimals),
+                    'miny': round(bounds[1], coord_decimals),
+                    'maxx': round(bounds[2], coord_decimals),
+                    'maxy': round(bounds[3], coord_decimals)
+                }
             
         features_data.append(feature_data)
     
