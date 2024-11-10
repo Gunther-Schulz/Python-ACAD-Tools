@@ -136,15 +136,18 @@ geomLayers:
             value1: original_area
             value2: final_area
             operator: eq
-            margin: 1.0
+            margin: 2.0
             as: area_unchanged
       - type: report
         outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/reports/geltungsbereich_report.json"
         featureColumns:
           - label
+          - area_unchanged
           - original_area
           - final_area
-          - area_unchanged
+          - Flur
+          - Gemarkung
+          - Gemeinde
         calculate:
           - area
         decimalPlaces:
