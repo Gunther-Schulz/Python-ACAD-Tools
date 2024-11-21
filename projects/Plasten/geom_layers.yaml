@@ -98,6 +98,10 @@ geomLayers:
         layers:
           - Gastrasse
         distance: 10
+  - name: Straßenflurstückskante
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/straßenflürstückskante.shp"
+  - name: Heckenkante
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/heckenkante.shp"
   - name: FG Line
     # updateDxf: true
     close: false
@@ -333,6 +337,33 @@ geomLayers:
         layers:
           - name: Geltungsbereich S
         distance: 2
+  - name: Hecke
+    updateDxf: true
+    operations:
+      - type: buffer
+        layers:
+          - Heckenkante
+        distance: 5
+      - type: intersection
+        layers:
+          - Geltungsbereich NW
+          - Geltungsbereich NO
+          - Geltungsbereich S
+  - name: Straßenflurstückskante Buffer 20m
+    operations:
+      - type: buffer
+        layers:
+          - Straßenflurstückskante
+        distance: 20
+      - type: difference
+        reverseDifference: false # defualt is "auto"
+        layers:
+          - Hecke
+      - type: intersection
+        layers:
+          - Geltungsbereich NW
+          - Geltungsbereich NO
+          - Geltungsbereich S
   - name: Waldabstand
     operations:
       - type: buffer
@@ -453,6 +484,7 @@ geomLayers:
           - Waldabstand
           - Baumabstand Puffer
           - FG Buffer
+          - Straßenflurstückskante Buffer 20m
       - type: dissolve
       - type: intersection
         layers:
@@ -658,6 +690,7 @@ geomLayers:
       - type: copy
         layers:
           - Ausgleichsfläche Gesamt
+          - Hecke
           - Biotope
           - Biotoppuffer
       - type: dissolve
