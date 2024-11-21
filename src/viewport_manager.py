@@ -130,18 +130,13 @@ class ViewportManager:
         viewport.frozen_layers = []
         
         if 'visibleLayers' in vp_config:
-            # Convert visible layers to a set for faster lookup
-            visible_layers = set(vp_config['visibleLayers'])
-            
-            # Freeze all layers that are not in the visible_layers list
+            # Filter out non-existent layers
+            visible_layers = set(layer for layer in vp_config['visibleLayers'] if layer in all_layers)
             frozen_layers = [layer for layer in all_layers if layer not in visible_layers]
             viewport.frozen_layers = frozen_layers
-            log_info(f"Set {len(frozen_layers)} layers as frozen (all except visible) for viewport {vp_config['name']}")
-            log_info(f"Frozen layers: {frozen_layers}")
-            
         elif 'frozenLayers' in vp_config:
-            viewport.frozen_layers = vp_config['frozenLayers']
-            log_info(f"Set explicit frozen layers for viewport {vp_config['name']}")
+            # Filter out non-existent layers
+            viewport.frozen_layers = [layer for layer in vp_config['frozenLayers'] if layer in all_layers]
 
     def _attach_viewport_metadata(self, viewport, vp_config):
         """Attaches custom data and identifiers to the viewport."""

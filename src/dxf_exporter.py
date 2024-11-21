@@ -204,10 +204,16 @@ class DXFExporter:
     def process_single_layer(self, doc, msp, layer_name, layer_info):
         log_info(f"Processing layer: {layer_name}")
         
+        # Check updateDxf flag early
+        update_flag = layer_info.get('updateDxf', False)
+        if not update_flag:
+            log_info(f"Skipping layer creation and update for {layer_name} as 'updateDxf' flag is not set")
+            return
+        
         # Process layer style
         layer_properties = self.style_manager.process_layer_style(layer_name, layer_info)
         
-        # Ensure the layer exists
+        # Create and process layer only if updateDxf is True
         if layer_name not in doc.layers:
             new_layer = doc.layers.new(name=layer_name)
             log_info(f"Created new layer: {layer_name}")
@@ -233,10 +239,10 @@ class DXFExporter:
         # Check updateDxf flag early and skip all processing if false
         update_flag = layer_info.get('updateDxf', False)
         if not update_flag:
-            log_info(f"Skipping layer {layer_name} - updateDxf is False")
-            return  # Return early without modifying anything
+            log_info(f"Skipping layer creation and update for {layer_name} - updateDxf is False")
+            return
         
-        # Ensure layer exists with proper properties
+        # Only create and update if updateDxf is True
         self._ensure_layer_exists(doc, layer_name, layer_info)
         
         # Get the tile data from all_layers
@@ -249,6 +255,12 @@ class DXFExporter:
                 self.add_wmts_xrefs_to_dxf(msp, geo_data, layer_name)
 
     def _process_regular_layer(self, doc, msp, layer_name, layer_info):
+        # Check updateDxf flag early
+        update_flag = layer_info.get('updateDxf', False)
+        if not update_flag:
+            log_info(f"Skipping layer creation and update for {layer_name} as 'updateDxf' flag is not set")
+            return
+        
         self._ensure_layer_exists(doc, layer_name, layer_info)
         
         if self.has_labels(layer_info):
