@@ -147,13 +147,32 @@ geomLayers:
           - Wald
           - Baumabstand Puffer
           - Exclude
+      - type: filterGeometry
+        minArea: 10
+      # Calculate new areas and compare
+      - type: calculate
+        calculations:
+          - type: area
+            as: final_area
+            decimalPlaces: 0
+          - type: compare
+            value1: original_area
+            value2: final_area
+            operator: eq
+            margin: 2.0
+            as: area_unchanged
       - type: report
-        outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/geltungsbereich_nw_report.json"
+        outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/geltungsbereich_6_report.json"
+        featureColumns:
+          - label
+          - area_unchanged
+          - original_area
+          - final_area
+          - Flur
+          - Gemarkung
+          - Gemeinde
         calculate:
           - area
-          - perimeter
-          - centroid
-          - bounds
         decimalPlaces:
           area: 0
       - type: dissolve
@@ -212,13 +231,32 @@ geomLayers:
           - Wald
           - Baumabstand Puffer
           - Exclude
+      - type: filterGeometry
+        minArea: 10
+      # Calculate new areas and compare
+      - type: calculate
+        calculations:
+          - type: area
+            as: final_area
+            decimalPlaces: 0
+          - type: compare
+            value1: original_area
+            value2: final_area
+            operator: eq
+            margin: 2.0
+            as: area_unchanged
       - type: report
-        outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/geltungsbereich_no_report.json"
+        outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/geltungsbereich_5_report.json"
+        featureColumns:
+          - label
+          - area_unchanged
+          - original_area
+          - final_area
+          - Flur
+          - Gemarkung
+          - Gemeinde
         calculate:
           - area
-          - perimeter
-          - centroid
-          - bounds
         decimalPlaces:
           area: 0
       - type: dissolve
@@ -257,13 +295,32 @@ geomLayers:
           - Wald
           - Baumabstand Puffer
           - Exclude
+      - type: filterGeometry
+        minArea: 10
+      # Calculate new areas and compare
+      - type: calculate
+        calculations:
+          - type: area
+            as: final_area
+            decimalPlaces: 0
+          - type: compare
+            value1: original_area
+            value2: final_area
+            operator: eq
+            margin: 2.0
+            as: area_unchanged
       - type: report
-        outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/geltungsbereich_s_report.json"
+        outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/geltungsbereich_7_report.json"
+        featureColumns:
+          - label
+          - area_unchanged
+          - original_area
+          - final_area
+          - Flur
+          - Gemarkung
+          - Gemeinde
         calculate:
           - area
-          - perimeter
-          - centroid
-          - bounds
         decimalPlaces:
           area: 0
       - type: dissolve

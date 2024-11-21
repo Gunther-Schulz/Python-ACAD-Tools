@@ -12,7 +12,7 @@ geomLayers:
       - name: WorkView
         style: flurWorkView
   - name: Parcel
-    updateDxf: true
+    # updateDxf: true # Already moved lables to new positions
     close: true
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/input/parcel2.shp"
     label: label

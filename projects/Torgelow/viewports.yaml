@@ -1,4 +1,21 @@
 viewports:
+  - name: WorkView
+    updateDxf: true
+    color: "magenta"
+    center:
+      x: 780
+      y: 2000
+    height: 653
+    width: 720
+    viewCenter:
+      x: 351016
+      y: 5936541
+    frozenLayers:
+      - WMTS Basemap
+      - Geltungsbereich Hatches
+      - Baufeld Schraffur
+      - Grünflächen Schraffur
+      - Schutzflächen Schraffur
   - name: MainView
     updateDxf: true
     color: "magenta"
