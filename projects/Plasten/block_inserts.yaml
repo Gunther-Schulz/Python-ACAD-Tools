@@ -88,5 +88,9 @@ blockInserts:
     updateDxf: true
     blockName: "EinAusfahrt"
     position:
-      sourceLayer: "EinAusfahrt Points"
-      type: "points"
+      sourceLayer: "EinAusfahrt Line"
+      type: "line"
+      method: "middle"
+    # position:
+    #   sourceLayer: "EinAusfahrt Points"
+    #   type: "points"
