@@ -1,0 +1,8 @@
+# legends:
+# - name: Sample Legend
+#   position:
+#     x: 100
+#     y: 100
+#   items:
+#   - text: Sample Legend Item
+#     style: legendStyle

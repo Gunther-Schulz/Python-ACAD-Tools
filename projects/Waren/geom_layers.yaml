@@ -1,1 +1,5 @@
-geomLayers:
+# geomLayers:
+# - name: Sample Layer
+#   shapeFile: input/sample.shp
+#   style: sampleStyle
+#   updateDxf: true
