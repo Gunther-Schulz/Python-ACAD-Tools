@@ -860,32 +860,29 @@ class DXFExporter:
         log_info("Finished processing all path array configurations")
 
     def process_text_inserts(self, msp):
-        """Process text inserts in both modelspace and paperspace."""
-        configs = self.project_settings.get('textInserts', [])
-        if not configs:
-            log_info("No text insert configurations found")
+        """Process text inserts for both model and paper space."""
+        text_inserts = self.project_settings.get('textInserts', [])
+        if not text_inserts:
+            log_info("No text inserts found in project settings")
             return
 
-        doc = msp.doc
+        log_info(f"Processing {len(text_inserts)} text insert configurations")
         
-        # Process modelspace text inserts
-        modelspace_configs = [c for c in configs if not c.get('paperspace', False)]
-        for config in modelspace_configs:
+        # Process each text insert
+        for config in text_inserts:
             try:
                 if not config.get('updateDxf', False):
+                    log_info(f"Skipping text insert '{config.get('name')}' as updateDxf is false")
                     continue
-
+                    
                 layer_name = config.get('targetLayer')
                 if not layer_name:
+                    log_warning(f"No target layer specified for text insert '{config.get('name')}'")
                     continue
 
-                # Remove existing entities from modelspace layer
-                removed = remove_entities_by_layer(doc.modelspace(), layer_name, self.script_identifier)
-                log_info(f"Removed {removed} existing entities from modelspace layer {layer_name}")
-
-                # Add new text to modelspace
+                # Let add_text_insert handle the space selection and text placement
                 text_entity = add_text_insert(
-                    doc.modelspace(),
+                    msp,  # Pass the modelspace, add_text_insert will handle paperspace if needed
                     config,
                     layer_name,
                     self.project_loader,
@@ -893,50 +890,15 @@ class DXFExporter:
                 )
                 
                 if text_entity:
-                    log_info(f"Successfully added text insert to modelspace: {config.get('name')}")
-                
+                    space_type = "paperspace" if config.get('paperspace', False) else "modelspace"
+                    log_info(f"Successfully added text insert '{config.get('name')}' to {space_type}")
+                else:
+                    log_warning(f"Failed to add text insert '{config.get('name')}'")
+                    
             except Exception as e:
-                log_error(f"Error processing modelspace text insert: {str(e)}")
+                log_error(f"Error processing text insert '{config.get('name')}': {str(e)}")
+                log_error(f"Traceback:\n{traceback.format_exc()}")
                 continue
-
-        # Process paperspace text inserts
-        paperspace_configs = [c for c in configs if c.get('paperspace', True)]
-        if paperspace_configs:
-            try:
-                # Get the first paperspace layout - corrected approach
-                layout = next(layout for layout in doc.layouts if layout.dxf.name != 'Model')
-                
-                for config in paperspace_configs:
-                    try:
-                        if not config.get('updateDxf', False):
-                            continue
-
-                        layer_name = config.get('targetLayer')
-                        if not layer_name:
-                            continue
-
-                        # Remove existing entities from paperspace layer
-                        removed = remove_entities_by_layer(layout, layer_name, self.script_identifier)
-                        log_info(f"Removed {removed} existing entities from paperspace layer {layer_name}")
-
-                        # Add new text to paperspace
-                        text_entity = add_text_insert(
-                            layout,
-                            config,
-                            layer_name,
-                            self.project_loader,
-                            self.script_identifier
-                        )
-                        
-                        if text_entity:
-                            log_info(f"Successfully added text insert to paperspace: {config.get('name')}")
-                        
-                    except Exception as e:
-                        log_error(f"Error processing paperspace text insert '{config.get('name')}': {str(e)}")
-                        continue
-                        
-            except Exception as e:
-                log_error(f"Error accessing paperspace layout: {str(e)}")
 
     def get_viewport_by_name(self, doc, name):
         """Retrieve a viewport by its name using xdata."""
