@@ -105,9 +105,10 @@ legends:
             applyHatch: true
       - name: "Planungen, Nutzungsregelungen, Maßnahmen und Flächen für Maßnahmen zum Schutz, zur Pflege und zur Entwicklung von Natur und Landschaft"
         updateDxf: true
-        subtitle: "§ 9 Abs.1 Nr. 20 BauGB"
+        subtitle: "(§ 5 Abs. 2 Nr. 10 und Abs. 4, § 9 Abs. 1 Nr. 20, 25 und Abs. 6 BauGB)"
         items:
           - name: "Umgrenzung von Flächen für Maßnahmen zum Schutz, zur Pflege und zurEntwicklung von Natur und Landschaft"
+            subtitle: "(§ 5 Abs. 2 Nr. 10 und Abs. 4, § 9 Abs. 1 Nr. 20 und Abs. 6 BauGB)"
             type: empty
             blockSymbol: "Schutzflächeumgrenzung"
       - name: "Sonstige Planzeichen"
@@ -255,9 +256,10 @@ legends:
             applyHatch: true
       - name: "Planungen, Nutzungsregelungen, Maßnahmen und Flächen für Maßnahmen zum Schutz, zur Pflege und zur Entwicklung von Natur und Landschaft"
         updateDxf: true
-        subtitle: "§ 9 Abs.1 Nr. 20 BauGB"
+        subtitle: "(§ 5 Abs. 2 Nr. 10 und Abs. 4, § 9 Abs. 1 Nr. 20, 25 und Abs. 6 BauGB)"
         items:
           - name: "Umgrenzung von Flächen für Maßnahmen zum Schutz, zur Pflege und zurEntwicklung von Natur und Landschaft"
+            subtitle: "(§ 5 Abs. 2 Nr. 10 und Abs. 4, § 9 Abs. 1 Nr. 20 und Abs. 6 BauGB)"
             type: empty
             blockSymbol: "Schutzflächeumgrenzung"
       - name: "Sonstige Planzeichen"
@@ -372,14 +374,14 @@ legends:
           - name: "Baugrenze"
             type: empty
             blockSymbol: "Baugrenze"
-      - name: "Verkehrsflächen"
-        updateDxf: true
-        subtitle: "(§ 9 Abs. 1 Nr. 11 und Abs. 6 BauGB)"
-        items:
-          - name: "Verkehrsfläche besonderer Zweckbestimmung"
-            type: area
-            applyHatch: true
-            style: verkehrsfläche
+      # - name: "Verkehrsflächen"
+      #   updateDxf: true
+      #   subtitle: "(§ 9 Abs. 1 Nr. 11 und Abs. 6 BauGB)"
+      #   items:
+      #     - name: "Verkehrsfläche besonderer Zweckbestimmung"
+      #       type: area
+      #       applyHatch: true
+      #       style: verkehrsfläche
       - name: "Grünflächen"
         updateDxf: true
         subtitle: "§ 9 Abs.1 Nr. 15 BauGB"
@@ -390,15 +392,20 @@ legends:
             applyHatch: true
       - name: "Planungen, Nutzungsregelungen, Maßnahmen und Flächen für Maßnahmen zum Schutz, zur Pflege und zur Entwicklung von Natur und Landschaft"
         updateDxf: true
-        subtitle: "§ 9 Abs.1 Nr. 20 BauGB"
+        subtitle: "(§ 5 Abs. 2 Nr. 10 und Abs. 4, § 9 Abs. 1 Nr. 20, 25 und Abs. 6 BauGB)"
         items:
           - name: "Umgrenzung von Flächen für Maßnahmen zum Schutz, zur Pflege und zurEntwicklung von Natur und Landschaft"
+            subtitle: "(§ 5 Abs. 2 Nr. 10 und Abs. 4, § 9 Abs. 1 Nr. 20 und Abs. 6 BauGB)"
             type: empty
             blockSymbol: "Schutzflächeumgrenzung"
+          - name: "Umgrenzung von Flächen zum Anpflanzen von Bäumen, Sträuchern und sonstigen Bepflanzungen"
+            subtitle: "(§ 9 Abs. 1 Nr. 25 Buchstabe a) und Abs. 6 BauGB)"
+            type: empty
+            blockSymbol: "Bepflanzungen Legende"
       - name: "Sonstige Planzeichen"
         updateDxf: true
         items:
-          - name: "Grenze des räumlichen Geltungsbereiches des Bebauungsplans\n(§ 9 Abs. 7 BauGB)"
+          - name: "Grenze des räumlichen Geltungsbereiches des Bebauungsplans"
             subtitle: "(§ 9 Abs. 7 BauGB)"
             type: area
             rectangleStyle: geltungsbereich_2
@@ -516,9 +523,10 @@ legends:
             applyHatch: true
       - name: "Planungen, Nutzungsregelungen, Maßnahmen und Flächen für Maßnahmen zum Schutz, zur Pflege und zur Entwicklung von Natur und Landschaft"
         updateDxf: true
-        subtitle: "§ 9 Abs.1 Nr. 20 BauGB"
+        subtitle: "(§ 5 Abs. 2 Nr. 10 und Abs. 4, § 9 Abs. 1 Nr. 20, 25 und Abs. 6 BauGB)"
         items:
           - name: "Umgrenzung von Flächen für Maßnahmen zum Schutz, zur Pflege und zurEntwicklung von Natur und Landschaft"
+            subtitle: "(§ 5 Abs. 2 Nr. 10 und Abs. 4, § 9 Abs. 1 Nr. 20 und Abs. 6 BauGB)"
             type: empty
             blockSymbol: "Schutzflächeumgrenzung"
       - name: "Sonstige Planzeichen"

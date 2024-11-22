@@ -145,6 +145,8 @@ class BlockInsertManager:
     def get_insert_point(self, geometry, position_config):
         position_type = position_config.get('type', 'absolute')
         position_method = position_config.get('method', 'centroid')
+        # Get the perpendicular offset distance
+        line_offset = position_config.get('lineOffset', 0)
 
         # Default rotation is None (will use config rotation instead)
         rotation = None
@@ -155,22 +157,40 @@ class BlockInsertManager:
                 return ((0, 0), rotation)
             
             elif position_type == 'line':
-                if position_method == 'middle':
-                    coords = list(geometry.coords)
-                    if len(coords) >= 2:
+                coords = list(geometry.coords)
+                if len(coords) >= 2:
+                    if position_method == 'middle':
                         point = geometry.interpolate(0.5, normalized=True)
                         # Calculate rotation angle from line direction
                         start, end = coords[0], coords[-1]
                         dx = end[0] - start[0]
                         dy = end[1] - start[1]
                         rotation = math.degrees(math.atan2(dy, dx))
-                        return (tuple(point.coords[0][:2]), rotation)  # Take only x,y coordinates
-                elif position_method == 'start':
-                    coords = list(geometry.coords)
-                    return (tuple(coords[0][:2]), rotation)  # Take only x,y coordinates
-                elif position_method == 'end':
-                    coords = list(geometry.coords)
-                    return (tuple(coords[-1][:2]), rotation)  # Take only x,y coordinates
+                        
+                        # Apply perpendicular offset if specified
+                        if line_offset != 0:
+                            # Calculate perpendicular vector
+                            length = math.sqrt(dx*dx + dy*dy)
+                            if length > 0:
+                                # Normalize and rotate 90 degrees
+                                nx, ny = -dy/length, dx/length
+                                point_coords = point.coords[0]
+                                return ((point_coords[0] + nx*line_offset, point_coords[1] + ny*line_offset), rotation)
+                        
+                        return (tuple(point.coords[0][:2]), rotation)
+                    
+                    elif position_method in ['start', 'end']:
+                        base_point = coords[0] if position_method == 'start' else coords[-1]
+                        if line_offset != 0:
+                            # Calculate direction vector
+                            dx = coords[1][0] - coords[0][0] if position_method == 'start' else coords[-1][0] - coords[-2][0]
+                            dy = coords[1][1] - coords[0][1] if position_method == 'start' else coords[-1][1] - coords[-2][1]
+                            length = math.sqrt(dx*dx + dy*dy)
+                            if length > 0:
+                                # Normalize and rotate 90 degrees
+                                nx, ny = -dy/length, dx/length
+                                return ((base_point[0] + nx*line_offset, base_point[1] + ny*line_offset), rotation)
+                        return (tuple(base_point[:2]), rotation)
             
             elif position_type == 'points':
                 if hasattr(geometry, 'coords'):
