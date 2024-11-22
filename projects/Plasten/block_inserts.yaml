@@ -65,7 +65,7 @@ blockInserts:
     position:
       type: "absolute"
       x: 4557
-      y: 364
+      y: 314
   # S Block Inserts
   # --------------
   - name: "NO PBS Logo"
@@ -84,3 +84,15 @@ blockInserts:
       type: "absolute"
       x: 6557
       y: 364
+  - name: EinAusfahrt
+    updateDxf: true
+    blockName: "EinAusfahrt"
+    scale: 0.6
+    position:
+      sourceLayer: "EinAusfahrt Line"
+      type: "line"
+      method: "middle"
+      lineOffset: -2
+    # position:
+    #   sourceLayer: "EinAusfahrt Points"
+    #   type: "points"

@@ -1,4 +1,10 @@
 geomLayers:
+  # - name: EinAusfahrt Points
+  #   type: "points"
+  #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/einausfahrt_points.shp"
+  - name: EinAusfahrt Line
+    type: "line"
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/einausfahrt_line.shp"
   - name: Baufeld Label Points
     type: "points"
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/baufeld_label_points.shp"
@@ -76,6 +82,7 @@ geomLayers:
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/baum_abstand.shp"
     operations:
       - type: buffer
+        capStyle: flat
         distance: 5
   - name: Geschütze Biotope
     # updateDxf: true
@@ -98,6 +105,12 @@ geomLayers:
         layers:
           - Gastrasse
         distance: 10
+  - name: Straßenflurstückskante
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/straßenflürstückskante.shp"
+  - name: Heckenkante
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/heckenkante.shp"
+  - name: Einfahrt Line Reference
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/einfahrt_line.shp"
   - name: FG Line
     # updateDxf: true
     close: false
@@ -142,6 +155,11 @@ geomLayers:
           - name: Gemeinde
             values:
               - "Groß Plasten"
+      - type: calculate
+        calculations:
+          - type: area
+            as: original_area
+            decimalPlaces: 0
       - type: difference
         layers:
           - Wald
@@ -225,8 +243,13 @@ geomLayers:
           - name: Gemeinde
             values:
               - "Groß Plasten"
+      - type: calculate
+        calculations:
+          - type: area
+            as: original_area
+            decimalPlaces: 0
       - type: difference
-        useBufferTrick: true
+        # useBufferTrick: true
         layers:
           - Wald
           - Baumabstand Puffer
@@ -290,6 +313,11 @@ geomLayers:
           - name: Gemeinde
             values:
               - "Groß Plasten"
+      - type: calculate
+        calculations:
+          - type: area
+            as: original_area
+            decimalPlaces: 0
       - type: difference
         layers:
           - Wald
@@ -333,12 +361,77 @@ geomLayers:
         layers:
           - name: Geltungsbereich S
         distance: 2
+  - name: Einfahrt Line
+    operations:
+      - type: directionalLine
+        relativeAngle: true
+        length: 23
+        angle: 270
+        layers:
+          - Einfahrt Line Reference
+  - name: Einfahrt
+    # updateDxf: true
+    close: true
+    operations:
+      - type: buffer
+        startCapStyle: round
+        endCapStyle: flat
+        layers:
+          - Einfahrt Line
+        distance: 5
+      - type: intersection
+        layers:
+          - Geltungsbereich NW
+          - Geltungsbereich NO
+          - Geltungsbereich S
+  # - name: Einfahrt Schraffur
+  #   updateDxf: true
+  #   style: verkehrsfläche
+  #   applyHatch:
+  #     layers:
+  #       - Einfahrt
+  - name: Heckenkante Buffer
+    operations:
+      - type: buffer
+        layers:
+          - Heckenkante
+        distance: 5
+      - type: difference
+        reverseDifference: false
+        # useBufferTrick: true
+        layers:
+          - Gastrasse Buffer
+          - Einfahrt
+      - type: intersection
+        layers:
+          - Geltungsbereich NW
+          - Geltungsbereich NO
+          - Geltungsbereich S
+  - name: Straßenflurstückskante Buffer 20m
+    operations:
+      - type: buffer
+        layers:
+          - Straßenflurstückskante
+        distance: 20
+      - type: difference
+        reverseDifference: false # default is "auto"
+        layers:
+          - Heckenkante Buffer
+      # - type: intersection
+      #   layers:
+      #     - Geltungsbereich NW
+      #     - Geltungsbereich NO
+      #     - Geltungsbereich S
   - name: Waldabstand
     operations:
       - type: buffer
         layers:
           - Wald
         distance: 30
+      - type: difference
+        reverseDifference: false
+        layers:
+          - Heckenkante Buffer
       - type: intersection
         layers:
           - Geltungsbereich NW
@@ -453,6 +546,12 @@ geomLayers:
           - Waldabstand
           - Baumabstand Puffer
           - FG Buffer
+          - Straßenflurstückskante Buffer 20m
+      - type: difference
+        reverseDifference: false
+        layers:
+          - Heckenkante Buffer
+          - Einfahrt
       - type: dissolve
       - type: intersection
         layers:
@@ -549,6 +648,25 @@ geomLayers:
           - Geltungsbereich S
       # - type: filterGeometry
       #   minArea: 200
+  - name: Hecke
+    updateDxf: true
+    operations:
+      - type: copy
+        layers:
+          - Heckenkante Buffer
+      - type: difference
+        reverseDifference: false
+        useBufferTrick: true
+        layers:
+          - Ausgleichsfläche Gesamt
+      - type: filterGeometry
+        minArea: 10
+  - name: Hecke Schraffur
+    updateDxf: true
+    style: grünfläche
+    applyHatch:
+      layers:
+        - Hecke
   - name: Biotoppuffer
     updateDxf: true
     viewports:
@@ -658,6 +776,7 @@ geomLayers:
       - type: copy
         layers:
           - Ausgleichsfläche Gesamt
+          - Hecke
           - Biotope
           - Biotoppuffer
       - type: dissolve
@@ -680,6 +799,7 @@ geomLayers:
           - type: dissolve
             layers:
               - Ausgleichsfläche Gesamt
+              - Hecke
               - Biotope
               - Biotoppuffer
       - type: filterGeometry
@@ -712,6 +832,10 @@ geomLayers:
         layers:
           - Baufeld
         distance: -3
+      - type: difference
+        reverseDifference: false
+        layers:
+          - Einfahrt
   - name: Baugrenze Report NW
     operations:
       - type: copy

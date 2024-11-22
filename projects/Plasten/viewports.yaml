@@ -114,7 +114,7 @@ viewports:
     topLeft:
       x: 4396
       y: 857
-    height: 450
+    height: 500
     width: 180
     viewTopLeft:
       x: 368830
@@ -129,8 +129,8 @@ viewports:
     color: "magenta"
     topLeft:
       x: 4400
-      y: 385
-    height: 163
+      y: 335
+    height: 113
     width: 172
     viewCenter:
       x: 358132

@@ -141,14 +141,15 @@ class StyleManager:
                 layer_settings = layer_style['layer']
                 if 'transparency' in layer_settings:
                     hatch_config['transparency'] = layer_settings['transparency']
+                if 'color' in layer_settings:
+                    hatch_config['color'] = layer_settings['color']
+                if 'lineweight' in layer_settings:
+                    hatch_config['lineweight'] = layer_settings['lineweight']
         
         apply_hatch = layer_info.get('applyHatch', False)
         if isinstance(apply_hatch, dict):
             if 'layers' in apply_hatch:
                 hatch_config['layers'] = apply_hatch['layers']
-        
-        # Always force color to BYLAYER
-        hatch_config['color'] = 'BYLAYER'
         
         return hatch_config
 

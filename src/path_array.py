@@ -99,7 +99,7 @@ def visualize_placement(ax, polyline_geom, combined_area, rotated_block_shape, i
     if 'Skipped Block' not in [l.get_label() for l in ax.get_lines()]:
         ax.plot([], [], color='red', marker='s', linestyle='None', markersize=10, label='Skipped Block')
 
-def create_path_array(msp, source_layer_name, target_layer_name, block_name, spacing, buffer_distance, scale=1.0, rotation=0.0, debug_visual=False, all_layers=None, adjust_for_vertices=True):
+def create_path_array(msp, source_layer_name, target_layer_name, block_name, spacing, buffer_distance, scale=1.0, rotation=0.0, debug_visual=False, all_layers=None, adjust_for_vertices=True, path_offset=0):
     if block_name not in msp.doc.blocks:
         log_warning(f"Block '{block_name}' not found in the document")
         return
@@ -159,7 +159,7 @@ def create_path_array(msp, source_layer_name, target_layer_name, block_name, spa
                 if isinstance(polyline, LineString) and not polyline.is_empty:
                     process_polyline(msp, polyline, block_shape, block_base_point, block_name, 
                                    target_layer_name, spacing, buffer_distance, scale, rotation, 
-                                   debug_visual, ax, placed_blocks, adjust_for_vertices)
+                                   debug_visual, ax, placed_blocks, adjust_for_vertices, path_offset)
         else:
             log_warning(f"Skipping unsupported geometry type: {type(geometry)}")
             continue
@@ -187,19 +187,60 @@ def get_block_shape_and_base(block, scale):
     base_point = Vec2(block.base_point[0] * scale, block.base_point[1] * scale)
     
     for entity in block:
-        if entity.dxftype() == "LWPOLYLINE":
+        entity_type = entity.dxftype()
+        
+        if entity_type == "LWPOLYLINE":
             points = [(p[0] * scale, p[1] * scale) for p in entity.get_points()]
             shapes.append(Polygon(points))
-        elif entity.dxftype() == "LINE":
+        elif entity_type == "LINE":
             start = (entity.dxf.start.x * scale, entity.dxf.start.y * scale)
             end = (entity.dxf.end.x * scale, entity.dxf.end.y * scale)
             shapes.append(LineString([start, end]))
+        elif entity_type == "CIRCLE":
+            # Create a polygon approximating the circle
+            center_x = entity.dxf.center.x * scale
+            center_y = entity.dxf.center.y * scale
+            radius = entity.dxf.radius * scale
+            
+            # Create a circle approximation with more points for better accuracy
+            num_points = 64  # Increased from 32 for better accuracy
+            angles = np.linspace(0, 2*np.pi, num_points)
+            points = []
+            for angle in angles:
+                x = center_x + radius * np.cos(angle)
+                y = center_y + radius * np.sin(angle)
+                points.append((x, y))
+            # Close the polygon by adding the first point again
+            points.append(points[0])
+            
+            try:
+                circle_polygon = Polygon(points)
+                if not circle_polygon.is_valid:
+                    log_warning("Invalid circle polygon created, attempting to fix...")
+                    circle_polygon = circle_polygon.buffer(0)  # Try to fix invalid geometry
+                
+                if circle_polygon.is_valid and circle_polygon.area > 0:
+                    shapes.append(circle_polygon)
+                    log_info(f"Successfully created circle polygon with area: {circle_polygon.area}")
+                else:
+                    log_warning(f"Failed to create valid circle polygon. Area: {circle_polygon.area}")
+            except Exception as e:
+                log_warning(f"Error creating circle polygon: {str(e)}")
     
     if not shapes:
+        log_warning("No supported shapes found in block")
         return None, None
     
-    combined_shape = unary_union(shapes)
-    return combined_shape, base_point
+    try:
+        combined_shape = unary_union(shapes)
+        if combined_shape.is_valid and combined_shape.area > 0:
+            return combined_shape, base_point
+        else:
+            log_warning("Created invalid or zero-area combined shape")
+            return None, None
+    except Exception as e:
+        log_warning(f"Error creating combined shape: {str(e)}")
+        return None, None
 
 def rotate_and_adjust_block(block_shape, base_point, insertion_point, angle):
     # Translate the block shape so that its base point is at the origin
@@ -246,8 +287,27 @@ def get_angle_at_point(linestring, distance):
 
 def process_polyline(msp, polyline_geom, block_shape, block_base_point, block_name, 
                      target_layer_name, spacing, buffer_distance, scale, rotation, 
-                     debug_visual, ax, placed_blocks, adjust_for_vertices):
+                     debug_visual, ax, placed_blocks, adjust_for_vertices, path_offset=0):
     total_length = polyline_geom.length
+    
+    # Create offset path for block placement
+    if path_offset != 0:
+        try:
+            # Positive offset moves points inside
+            offset_path = polyline_geom.parallel_offset(
+                path_offset, 
+                'left',  # 'left' creates offset towards inside
+                join_style=2,  # Round join style
+                mitre_limit=2.0
+            )
+            if offset_path.is_empty:
+                log_warning("Failed to create offset path, using original path")
+                offset_path = polyline_geom
+        except Exception as e:
+            log_warning(f"Error creating offset path: {str(e)}, using original path")
+            offset_path = polyline_geom
+    else:
+        offset_path = polyline_geom
     
     # Create a polygon from the polyline
     polyline_polygon = Polygon(polyline_geom)
@@ -259,9 +319,9 @@ def process_polyline(msp, polyline_geom, block_shape, block_base_point, block_na
     combined_area = polyline_polygon.union(buffer_polygon)
     
     block_distance = spacing / 2
-
+    
     while block_distance < total_length:
-        point = polyline_geom.interpolate(block_distance)
+        point = offset_path.interpolate(block_distance)
         insertion_point = Vec2(point.x, point.y)
         
         # Get all nearby vertices and segments
@@ -271,26 +331,29 @@ def process_polyline(msp, polyline_geom, block_shape, block_base_point, block_na
             angle = calculate_optimal_angle(vertex_info['segments'], block_shape)
         else:
             angle = get_angle_at_point(polyline_geom, block_distance)
-
+        
+        
         rotated_block_shape = rotate_and_adjust_block(block_shape, block_base_point, insertion_point, angle)
         
         is_inside = is_block_inside_buffer(rotated_block_shape, combined_area)
         overlaps_existing = any(rotated_block_shape.intersects(placed) for placed in placed_blocks)
-
+        
+        
         if is_inside and not overlaps_existing:
-            color = 'green'
-            label = "Placed"
             block_ref = add_block_reference(
                 msp,
                 block_name,
                 insertion_point,
                 target_layer_name,
                 scale=scale,
-                rotation=math.degrees(angle) + rotation  # Apply base rotation
+                rotation=math.degrees(angle) + rotation
             )
             if block_ref:
+                log_info("Successfully placed block")
                 attach_custom_data(block_ref, SCRIPT_IDENTIFIER)
                 placed_blocks.append(rotated_block_shape)
+            else:
+                log_warning("Failed to create block reference")
         else:
             color = 'red'
             label = "Skipped"
