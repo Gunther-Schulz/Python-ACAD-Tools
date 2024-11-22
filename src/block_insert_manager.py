@@ -1,7 +1,7 @@
 import random
 from shapely.geometry import Point
 from src.utils import log_info, log_warning, log_error
-from src.dxf_utils import add_block_reference, add_text_insert, remove_entities_by_layer
+from src.dxf_utils import add_block_reference, remove_entities_by_layer, attach_custom_data
 
 
 class BlockInsertManager:
@@ -93,7 +93,7 @@ class BlockInsertManager:
                 rotation=config.get('rotation', 0)
             )
             if block_ref:
-                self.attach_custom_data(block_ref)
+                attach_custom_data(block_ref, self.script_identifier)
 
 
     def get_insertion_points(self, position_config):

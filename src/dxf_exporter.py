@@ -860,7 +860,32 @@ class DXFExporter:
         log_info("Finished processing all path array configurations")
 
     def process_text_inserts(self, msp):
-        self.process_inserts(msp, 'text')
+        """Process text inserts in the modelspace or paperspace."""
+        configs = self.project_settings.get('textInserts', [])
+        
+        for config in configs:
+            if not config.get('updateDxf', False):
+                continue
+            
+            target_layer = config.get('targetLayer')
+            if not target_layer:
+                log_warning("No target layer specified for text insert")
+                continue
+
+            # Remove existing text entities from the target layer
+            remove_entities_by_layer(msp, target_layer, self.script_identifier)
+
+            # Create text entity using add_text_insert which handles all the YAML config options
+            text_entity = add_text_insert(
+                msp=msp,
+                text_config=config,
+                layer_name=target_layer,
+                project_loader=self.project_loader,
+                script_identifier=self.script_identifier
+            )
+            
+            if text_entity:
+                self.attach_custom_data(text_entity)
 
     def get_viewport_by_name(self, doc, name):
         """Retrieve a viewport by its name using xdata."""
