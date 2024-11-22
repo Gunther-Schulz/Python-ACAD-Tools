@@ -265,7 +265,7 @@ legends:
       - name: "Sonstige Planzeichen"
         updateDxf: true
         items:
-          - name: "Grenze des räumlichen Geltungsbereiches des Bebauungsplans\n(§ 9 Abs. 7 BauGB)"
+          - name: "Grenze des räumlichen Geltungsbereiches des Bebauungsplans"
             subtitle: "(§ 9 Abs. 7 BauGB)"
             type: area
             rectangleStyle: geltungsbereich_2
@@ -532,7 +532,7 @@ legends:
       - name: "Sonstige Planzeichen"
         updateDxf: true
         items:
-          - name: "Grenze des räumlichen Geltungsbereiches des Bebauungsplans\n(§ 9 Abs. 7 BauGB)"
+          - name: "Grenze des räumlichen Geltungsbereiches des Bebauungsplans"
             subtitle: "(§ 9 Abs. 7 BauGB)"
             type: area
             rectangleStyle: geltungsbereich_2

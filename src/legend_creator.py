@@ -152,6 +152,7 @@ class LegendCreator:
 
     def create_item(self, item, layer_name):
         item_name = item.get('name', '')
+        item_subtitle = item.get('subtitle', '')
         item_type = item.get('type', 'empty')
         
         # Modified style handling
@@ -201,6 +202,8 @@ class LegendCreator:
         item_center_y = (item_bbox.extmin.y + item_bbox.extmax.y) / 2
 
         text_x = x2 + self.text_offset
+        
+        # Create name text first
         text_result = add_mtext(
             self.msp,
             item_name,
@@ -219,17 +222,47 @@ class LegendCreator:
             return
 
         text_entity, actual_text_height = text_result
+        entities = [text_entity]
 
-        text_bbox = bbox.extents([text_entity])
+        # Add subtitle if present
+        if item_subtitle:
+            subtitle_y = item_center_y - actual_text_height - self.group_subtitle_spacing
+            subtitle_result = add_mtext(
+                self.msp,
+                item_subtitle,
+                text_x,
+                subtitle_y,
+                sanitized_layer_name,
+                self.subtitle_text_style.get('text_style', 'Standard'),
+                self.subtitle_text_style,
+                self.project_loader.name_to_aci,
+                self.max_width - self.item_width - self.text_offset
+            )
+            
+            if subtitle_result is not None and subtitle_result[0] is not None:
+                subtitle_entity, subtitle_height = subtitle_result
+                entities.append(subtitle_entity)
+
+        # Calculate combined bounding box
+        text_bbox = bbox.BoundingBox()
+        for entity in entities:
+            text_bbox.extend(bbox.extents([entity]))
+
         text_center_y = (text_bbox.extmin.y + text_bbox.extmax.y) / 2
         vertical_adjustment = item_center_y - text_center_y
-        text_entity.translate(0, vertical_adjustment, 0)
+        
+        # Adjust position of all text entities
+        for entity in entities:
+            entity.translate(0, vertical_adjustment, 0)
 
-        text_bbox = bbox.extents([text_entity])
+        text_bbox = bbox.BoundingBox()
+        for entity in entities:
+            text_bbox.extend(bbox.extents([entity]))
+        
         combined_bbox = item_bbox.union(text_bbox)
 
         vertical_offset = self.current_y - combined_bbox.extmax.y
-        for entity in item_entities + [text_entity]:
+        for entity in item_entities + entities:
             if entity:
                 entity.translate(0, vertical_offset, 0)
 
@@ -237,7 +270,8 @@ class LegendCreator:
 
         self.current_y -= total_height + self.item_spacing
 
-        for entity in item_entities + [text_entity]:
+        # Attach custom data to all entities
+        for entity in item_entities + entities:
             if entity:
                 attach_custom_data(entity, self.script_identifier)
 
