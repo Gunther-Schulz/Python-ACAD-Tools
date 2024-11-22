@@ -25,13 +25,14 @@ def create_buffer_layer(all_layers, project_settings, crs, layer_name, operation
     
     cap_style_map = {
         'round': 1,
-        'square': 2,
-        'flat': 3
+        'flat': 2,
+        'square': 3
     }
     
     join_style_value = join_style_map.get(join_style, 2)
     start_cap_value = cap_style_map.get(start_cap_style, 2)
     end_cap_value = cap_style_map.get(end_cap_style, 2)
+    print(f"Layer: {layer_name}, Join style: {join_style}, Start cap: {start_cap_style}, End cap: {end_cap_style}")
 
     source_layers = operation.get('layers', [layer_name])
     
