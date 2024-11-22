@@ -73,7 +73,7 @@ textInserts:
     position:
       type: "absolute"
       x: 4400
-      y: 399
+      y: 349
     style: "übersichtskarteHeader"  # Style can include width for text wrapping
   - name: "Satzungs NO"
     targetLayer: "Plantext"

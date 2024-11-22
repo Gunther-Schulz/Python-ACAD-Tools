@@ -866,9 +866,29 @@ class DXFExporter:
             log_info("No text inserts found in project settings")
             return
 
-        log_info(f"Processing {len(text_inserts)} text insert configurations")
+        # First, identify all layers that will get new text
+        target_layers = {
+            config['targetLayer'] 
+            for config in text_inserts 
+            if config.get('updateDxf', False) and 'targetLayer' in config
+        }
         
-        # Process each text insert
+        log_warning(f"Clearing text from layers: {', '.join(target_layers)}")
+        
+        # Clear each target layer in both model and paper space
+        doc = msp.doc
+        for layer_name in target_layers:
+            # Clear modelspace
+            remove_entities_by_layer(msp, layer_name, self.script_identifier)
+            
+            # Clear paperspace
+            psp = doc.paperspace()
+            remove_entities_by_layer(psp, layer_name, self.script_identifier)
+            
+            log_warning(f"Cleared all entities from layer: {layer_name}")
+        
+        # Now add all new text inserts
+        log_info(f"Processing {len(text_inserts)} text insert configurations")
         for config in text_inserts:
             try:
                 if not config.get('updateDxf', False):
@@ -880,9 +900,9 @@ class DXFExporter:
                     log_warning(f"No target layer specified for text insert '{config.get('name')}'")
                     continue
 
-                # Let add_text_insert handle the space selection and text placement
+                # Add new text insert
                 text_entity = add_text_insert(
-                    msp,  # Pass the modelspace, add_text_insert will handle paperspace if needed
+                    msp,
                     config,
                     layer_name,
                     self.project_loader,
@@ -891,7 +911,7 @@ class DXFExporter:
                 
                 if text_entity:
                     space_type = "paperspace" if config.get('paperspace', False) else "modelspace"
-                    log_info(f"Successfully added text insert '{config.get('name')}' to {space_type}")
+                    log_warning(f"Successfully added text insert '{config.get('name')}' to {space_type}")
                 else:
                     log_warning(f"Failed to add text insert '{config.get('name')}'")
                     
