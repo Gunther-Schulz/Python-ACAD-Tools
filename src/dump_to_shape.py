@@ -3,7 +3,7 @@ import os
 import ezdxf
 import shapefile
 from ezdxf.entities import LWPolyline, Polyline
-from shapely.geometry import Polygon, MultiPolygon
+from shapely.geometry import Polygon, MultiPolygon, LineString, Point
 import pyproj
 import re
 import yaml
@@ -38,32 +38,77 @@ def write_prj_file(output_path, crs):
         prj_file.write(wkt)
 
 def merge_dxf_layer_to_shapefile(dxf_path, output_folder, layer_name, entities, crs):
+    points = []
+    lines = []
     polygons = []
+    
     for entity in entities:
         if isinstance(entity, (LWPolyline, Polyline)):
-            points = list(entity.vertices())
-            if len(points) >= 3:  # Ensure it's a valid polygon
-                # Ensure the polygon is closed
-                if points[0] != points[-1]:
-                    points.append(points[0])
-                polygons.append(Polygon(points))
+            points_list = list(entity.vertices())
+            if len(points_list) >= 2:
+                if entity.closed or (points_list[0] == points_list[-1]):
+                    if len(points_list) >= 4:
+                        try:
+                            poly = Polygon(points_list)
+                            if poly.is_valid and not poly.is_empty:
+                                polygons.append(poly)
+                        except Exception as e:
+                            log_warning(f"Invalid polygon in layer {layer_name}: {e}")
+                else:
+                    try:
+                        line = LineString(points_list)
+                        if line.is_valid and not line.is_empty and line.length > 0:
+                            lines.append(line)
+                    except Exception as e:
+                        log_warning(f"Invalid line in layer {layer_name}: {e}")
+        elif isinstance(entity, (ezdxf.entities.Point)):
+            try:
+                point = Point(entity.dxf.location[:2])
+                if point.is_valid and not point.is_empty:
+                    points.append(point)
+            except Exception as e:
+                log_warning(f"Invalid point in layer {layer_name}: {e}")
+
+    # Create appropriate shapefile based on geometry type, only if we have valid geometries
+    if points:
+        valid_points = [p for p in points if p.is_valid and not p.is_empty]
+        if valid_points:
+            shp_path = os.path.join(output_folder, f"{layer_name}.shp")
+            with shapefile.Writer(shp_path, shapeType=shapefile.POINT) as shp:
+                shp.field('Layer', 'C', 40)
+                for point in valid_points:
+                    shp.point(point.x, point.y)
+                    shp.record(Layer=layer_name)
+            write_prj_file(shp_path, crs)
+        else:
+            log_warning(f"No valid points found in layer {layer_name}")
+        
+    if lines:
+        valid_lines = [l for l in lines if l.is_valid and not l.is_empty and l.length > 0]
+        if valid_lines:
+            shp_path = os.path.join(output_folder, f"{layer_name}.shp")
+            with shapefile.Writer(shp_path, shapeType=shapefile.POLYLINE) as shp:
+                shp.field('Layer', 'C', 40)
+                for line in valid_lines:
+                    shp.line([list(line.coords)])
+                    shp.record(Layer=layer_name)
+            write_prj_file(shp_path, crs)
+        else:
+            log_warning(f"No valid lines found in layer {layer_name}")
 
     if polygons:
-        # Merge all polygons into a MultiPolygon
-        merged_polygons = MultiPolygon(polygons)
-
-        # Create a shapefile for the merged result
-        shp_path = os.path.join(output_folder, f"{layer_name}.shp")
-        with shapefile.Writer(shp_path, shapeType=shapefile.POLYGON) as shp:
-            shp.field('Layer', 'C', 40)
-            
-            # Add each polygon separately
-            for poly in merged_polygons.geoms:
-                shp.poly([list(poly.exterior.coords)] + [list(interior.coords) for interior in poly.interiors])
-                shp.record(Layer=layer_name)
-
-        # Write the .prj file
-        write_prj_file(shp_path, crs)
+        valid_polygons = [p for p in polygons if p.is_valid and not p.is_empty and p.area > 0]
+        if valid_polygons:
+            shp_path = os.path.join(output_folder, f"{layer_name}.shp")
+            with shapefile.Writer(shp_path, shapeType=shapefile.POLYGON) as shp:
+                shp.field('Layer', 'C', 40)
+                for poly in valid_polygons:
+                    if poly.is_valid and not poly.is_empty and poly.area > 0:
+                        shp.poly([list(poly.exterior.coords)] + [list(interior.coords) for interior in poly.interiors])
+                        shp.record(Layer=layer_name)
+            write_prj_file(shp_path, crs)
+        else:
+            log_warning(f"No valid polygons found in layer {layer_name}")
 
 def dxf_to_shapefiles(dxf_path, output_folder):
     # Clear the contents of the output folder
