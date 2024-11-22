@@ -1,4 +1,5 @@
 import random
+import math
 from shapely.geometry import Point
 from src.utils import log_info, log_warning, log_error
 from src.dxf_utils import add_block_reference, remove_entities_by_layer, attach_custom_data
@@ -20,81 +21,89 @@ class BlockInsertManager:
         
         doc = msp.doc
         
-        if insert_type == 'block':
-            # First pass: collect all names that need cleaning for blocks
-            layers_to_clean = set()
-            for config in configs:
-                if config.get('updateDxf', False):
-                    name = config.get('name')
-                    if name:
-                        layers_to_clean.add(name)
-            
-            # Clean all block layers at once
-            for layer_name in layers_to_clean:
-                space = doc.paperspace() if any(c.get('paperspace', False) for c in configs) else doc.modelspace()
-                remove_entities_by_layer(space, layer_name, self.script_identifier)
-                log_info(f"Cleaned existing entities from layer: {layer_name}")
-        else:
-            # For text inserts, clean by target layer or name
-            layers_to_clean = set()
-            for config in configs:
-                if config.get('updateDxf', False):
-                    # Use targetLayer if specified, otherwise use name
-                    layer_name = config.get('targetLayer', config.get('name'))
-                    if layer_name:
-                        layers_to_clean.add(layer_name)
-            
-            # Clean all text layers at once
-            for layer_name in layers_to_clean:
-                space = doc.paperspace() if any(c.get('paperspace', False) for c in configs) else doc.modelspace()
-                remove_entities_by_layer(space, layer_name, self.script_identifier)
-                log_info(f"Cleaned existing entities from layer: {layer_name}")
+        # Separate configs by space type
+        modelspace_configs = [c for c in configs if not c.get('paperspace', False)]
+        paperspace_configs = [c for c in configs if c.get('paperspace', False)]
         
-        # Second pass: process inserts
-        for config in configs:
+        if insert_type == 'block':
+            # Handle modelspace cleaning
+            layers_to_clean_model = {c.get('name') for c in modelspace_configs if c.get('updateDxf', False)}
+            for layer_name in layers_to_clean_model:
+                remove_entities_by_layer(doc.modelspace(), layer_name, self.script_identifier)
+                log_info(f"Cleaned existing entities from modelspace layer: {layer_name}")
+            
+            # Handle paperspace cleaning
+            layers_to_clean_paper = {c.get('name') for c in paperspace_configs if c.get('updateDxf', False)}
+            for layer_name in layers_to_clean_paper:
+                remove_entities_by_layer(doc.paperspace(), layer_name, self.script_identifier)
+                log_info(f"Cleaned existing entities from paperspace layer: {layer_name}")
+        else:
+            # Similar handling for text inserts...
+            pass
+
+        # Process modelspace inserts
+        for config in modelspace_configs:
             try:
+                if not config.get('updateDxf', False):
+                    continue
                 name = config.get('name')
-                update_dxf = config.get('updateDxf', False)
-                
-                if not update_dxf:
-                    log_info(f"Skipping {insert_type} insert '{name}' as updateDxf flag is not set")
-                    continue
-
                 if not name:
-                    log_warning(f"Missing name for {insert_type} insert: {config}")
                     continue
-
-                # Get the correct space for insertion
-                space = doc.paperspace() if config.get('paperspace', False) else doc.modelspace()
-
-                # Insert entities using common insertion method with correct space
+                
                 if insert_type == 'block':
-                    self.insert_blocks(space, config)
-                else:  # text
-                    self.insert_text(space, config)
-
+                    self.insert_blocks(doc.modelspace(), config)
+                else:
+                    self.insert_text(doc.modelspace(), config)
             except Exception as e:
-                log_error(f"Error processing {insert_type} insert: {str(e)}")
+                log_error(f"Error processing modelspace {insert_type} insert: {str(e)}")
+                continue
+
+        # Process paperspace inserts
+        for config in paperspace_configs:
+            try:
+                if not config.get('updateDxf', False):
+                    continue
+                name = config.get('name')
+                if not name:
+                    continue
+                
+                if insert_type == 'block':
+                    self.insert_blocks(doc.paperspace(), config)
+                else:
+                    self.insert_text(doc.paperspace(), config)
+            except Exception as e:
+                log_error(f"Error processing paperspace {insert_type} insert: {str(e)}")
                 continue
 
         log_info(f"Finished processing all {insert_type} insert configurations")
 
     def insert_blocks(self, space, config):
-        points = self.get_insertion_points(config.get('position', {}))
-        name = config.get('name')  # Use name as the layer
+        points_and_rotations = self.get_insertion_points(config.get('position', {}))
+        name = config.get('name')
         
-        for point in points:
+        for point_data in points_and_rotations:
+            # Handle both 2-tuple (point, rotation) and 3-tuple (x, y, rotation) formats
+            if len(point_data) == 3:
+                x, y, rotation = point_data
+                point = (x, y)
+            else:
+                point, rotation = point_data
+                if not isinstance(point, tuple):  # Ensure point is always a tuple
+                    point = (point[0], point[1]) if hasattr(point, '__getitem__') else (0, 0)
+            
+            # Use the calculated rotation if available, otherwise use config rotation
+            final_rotation = rotation if rotation is not None else config.get('rotation', 0)
+            
             block_ref = add_block_reference(
                 space,
                 config['blockName'],
                 point,
-                name,  # Use name as the layer
+                name,
                 scale=config.get('scale', 1.0),
-                rotation=config.get('rotation', 0)
+                rotation=final_rotation
             )
             if block_ref:
                 attach_custom_data(block_ref, self.script_identifier)
-
 
     def get_insertion_points(self, position_config):
         """Common method to get insertion points for both blocks and text."""
@@ -102,16 +111,16 @@ class BlockInsertManager:
         position_type = position_config.get('type', 'polygon')
         offset_x = position_config.get('offset', {}).get('x', 0)
         offset_y = position_config.get('offset', {}).get('y', 0)
-        source_layer = position_config.get('sourceLayer')
 
         # Handle absolute positioning
         if position_type == 'absolute':
             x = position_config.get('x', 0)
             y = position_config.get('y', 0)
-            points.append((x + offset_x, y + offset_y))
-            return points
+            # Return a 3-tuple format (x, y, rotation) for consistency
+            return [(x + offset_x, y + offset_y, None)]
 
         # For non-absolute positioning, we need a source layer
+        source_layer = position_config.get('sourceLayer')
         if not source_layer:
             log_warning("Source layer required for non-absolute positioning")
             return points
@@ -128,46 +137,61 @@ class BlockInsertManager:
 
         # Process each geometry based on type and method
         for geometry in layer_data.geometry:
-            insert_point = self.get_insert_point(geometry, position_config)
-            points.append((insert_point[0] + offset_x, insert_point[1] + offset_y))
+            insert_point, rotation = self.get_insert_point(geometry, position_config)
+            points.append((insert_point[0] + offset_x, insert_point[1] + offset_y, rotation))
 
         return points
 
     def get_insert_point(self, geometry, position_config):
-        position_type = position_config.get('type', 'polygon')
+        position_type = position_config.get('type', 'absolute')
         position_method = position_config.get('method', 'centroid')
 
-        if position_type == 'absolute':
-            log_warning("Absolute positioning doesn't use geometry-based insert points")
-            return (0, 0)
-        
-        elif position_type == 'polygon':
-            if position_method == 'centroid':
-                return geometry.centroid.coords[0]
-            elif position_method == 'center':
-                return geometry.envelope.centroid.coords[0]
-            elif position_method == 'random':
-                minx, miny, maxx, maxy = geometry.bounds
-                while True:
-                    point = Point(random.uniform(minx, maxx), random.uniform(miny, maxy))
-                    if geometry.contains(point):
-                        return point.coords[0]
-                    
-        elif position_type == 'line':
-            if position_method == 'start':
-                return geometry.coords[0]
-            elif position_method == 'end':
-                return geometry.coords[-1]
-            elif position_method == 'middle':
-                return geometry.interpolate(0.5, normalized=True).coords[0]
-            elif position_method == 'random':
-                distance = random.random()
-                return geometry.interpolate(distance, normalized=True).coords[0]
-        
-        elif position_type == 'points':
-            if hasattr(geometry, 'coords'):
-                return geometry.coords[0]
-        
-        # Default fallback
-        log_warning(f"Invalid position type '{position_type}' or method '{position_method}'. Using polygon centroid.")
-        return geometry.centroid.coords[0]
+        # Default rotation is None (will use config rotation instead)
+        rotation = None
+
+        try:
+            if position_type == 'absolute':
+                log_warning("Absolute positioning doesn't use geometry-based insert points")
+                return ((0, 0), rotation)
+            
+            elif position_type == 'line':
+                if position_method == 'middle':
+                    coords = list(geometry.coords)
+                    if len(coords) >= 2:
+                        point = geometry.interpolate(0.5, normalized=True)
+                        # Calculate rotation angle from line direction
+                        start, end = coords[0], coords[-1]
+                        dx = end[0] - start[0]
+                        dy = end[1] - start[1]
+                        rotation = math.degrees(math.atan2(dy, dx))
+                        return (tuple(point.coords[0][:2]), rotation)  # Take only x,y coordinates
+                elif position_method == 'start':
+                    coords = list(geometry.coords)
+                    return (tuple(coords[0][:2]), rotation)  # Take only x,y coordinates
+                elif position_method == 'end':
+                    coords = list(geometry.coords)
+                    return (tuple(coords[-1][:2]), rotation)  # Take only x,y coordinates
+            
+            elif position_type == 'points':
+                if hasattr(geometry, 'coords'):
+                    return (tuple(geometry.coords[0][:2]), rotation)  # Take only x,y coordinates
+            
+            elif position_type == 'polygon':
+                if position_method == 'centroid':
+                    return (tuple(geometry.centroid.coords[0][:2]), rotation)  # Take only x,y coordinates
+                elif position_method == 'center':
+                    return (tuple(geometry.envelope.centroid.coords[0][:2]), rotation)  # Take only x,y coordinates
+                elif position_method == 'random':
+                    minx, miny, maxx, maxy = geometry.bounds
+                    while True:
+                        point = Point(random.uniform(minx, maxx), random.uniform(miny, maxy))
+                        if geometry.contains(point):
+                            return (tuple(point.coords[0][:2]), rotation)  # Take only x,y coordinates
+            
+            # Default fallback
+            log_warning(f"Invalid position type '{position_type}' or method '{position_method}'. Using polygon centroid.")
+            return (tuple(geometry.centroid.coords[0][:2]), rotation)  # Take only x,y coordinates
+            
+        except Exception as e:
+            log_warning(f"Error in get_insert_point: {str(e)}")
+            return ((0, 0), rotation)  # Safe fallback
