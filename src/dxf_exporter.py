@@ -873,19 +873,9 @@ class DXFExporter:
             if config.get('updateDxf', False) and 'targetLayer' in config
         }
         
-        log_warning(f"Clearing text from layers: {', '.join(target_layers)}")
-        
-        # Clear each target layer in both model and paper space
-        doc = msp.doc
+        # Clear each target layer (will handle both model and paper space)
         for layer_name in target_layers:
-            # Clear modelspace
             remove_entities_by_layer(msp, layer_name, self.script_identifier)
-            
-            # Clear paperspace
-            psp = doc.paperspace()
-            remove_entities_by_layer(psp, layer_name, self.script_identifier)
-            
-            log_warning(f"Cleared all entities from layer: {layer_name}")
         
         # Now add all new text inserts
         log_info(f"Processing {len(text_inserts)} text insert configurations")
@@ -911,7 +901,6 @@ class DXFExporter:
                 
                 if text_entity:
                     space_type = "paperspace" if config.get('paperspace', False) else "modelspace"
-                    log_warning(f"Successfully added text insert '{config.get('name')}' to {space_type}")
                 else:
                     log_warning(f"Failed to add text insert '{config.get('name')}'")
                     

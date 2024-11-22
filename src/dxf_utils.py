@@ -134,6 +134,13 @@ def add_text(msp, text, x, y, layer_name, style_name, height=5, color=None):
     return text_entity
 
 def remove_entities_by_layer(msp, layer_names, script_identifier):
+    """Remove entities from both model and paper space for given layer(s).
+    
+    Args:
+        msp: Modelspace or Paperspace object (used to get doc reference)
+        layer_names: String or list of strings with layer name(s)
+        script_identifier: Identifier to check if entity was created by this script
+    """
     doc = msp.doc
     key_func = doc.layers.key
     delete_count = 0
@@ -147,38 +154,40 @@ def remove_entities_by_layer(msp, layer_names, script_identifier):
     
     # Use trashcan context manager for safe entity deletion
     with doc.entitydb.trashcan() as trash:
-        for entity in doc.entitydb.values():
-            if not entity.dxf.hasattr("layer"):
-                continue
-                
-            if key_func(entity.dxf.layer) in layer_keys and is_created_by_script(entity, script_identifier):
-                try:
-                    # Clear any XDATA before deletion
-                    try:
-                        entity.discard_xdata('DXFEXPORTER')
-                    except:
-                        pass
-
-                    # Clear any hyperlinks if supported
-                    if hasattr(entity, 'set_hyperlink'):
-                        try:
-                            entity.remove_hyperlink()
-                        except:
-                            pass
-
-                    # Remove any extension dictionary
-                    if hasattr(entity, 'has_extension_dict') and entity.has_extension_dict:
-                        try:
-                            entity.discard_extension_dict()
-                        except:
-                            pass
-
-                    # Add to trashcan for safe deletion
-                    trash.add(entity.dxf.handle)
-                    delete_count += 1
+        # Process all entities in both model and paper space
+        for space in [doc.modelspace(), doc.paperspace()]:
+            for entity in doc.entitydb.values():
+                if not entity.dxf.hasattr("layer"):
+                    continue
                     
-                except Exception as e:
-                    log_error(f"Error preparing entity for deletion: {e}")
+                if key_func(entity.dxf.layer) in layer_keys and is_created_by_script(entity, script_identifier):
+                    try:
+                        # Clear any XDATA before deletion
+                        try:
+                            entity.discard_xdata('DXFEXPORTER')
+                        except:
+                            pass
+
+                        # Clear any hyperlinks if supported
+                        if hasattr(entity, 'set_hyperlink'):
+                            try:
+                                entity.remove_hyperlink()
+                            except:
+                                pass
+
+                        # Remove any extension dictionary
+                        if hasattr(entity, 'has_extension_dict') and entity.has_extension_dict:
+                            try:
+                                entity.discard_extension_dict()
+                            except:
+                                pass
+
+                        # Add to trashcan for safe deletion
+                        trash.add(entity.dxf.handle)
+                        delete_count += 1
+                        
+                    except Exception as e:
+                        log_error(f"Error preparing entity for deletion: {e}")
     
     # Force database update
     try:
