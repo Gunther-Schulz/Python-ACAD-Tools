@@ -53,12 +53,12 @@ def merge_dxf_layer_to_shapefile(dxf_path, output_folder, layer_name, entities, 
         merged_polygons = MultiPolygon(polygons)
 
         # Create a shapefile for the merged result
-        shp_path = os.path.join(output_folder, f"{layer_name}_merged.shp")
+        shp_path = os.path.join(output_folder, f"{layer_name}.shp")
         with shapefile.Writer(shp_path, shapeType=shapefile.POLYGON) as shp:
             shp.field('Layer', 'C', 40)
             
             # Add each polygon separately
-            for poly in merged_polygons.geoms:  # Use .geoms to iterate over individual polygons
+            for poly in merged_polygons.geoms:
                 shp.poly([list(poly.exterior.coords)] + [list(interior.coords) for interior in poly.interiors])
                 shp.record(Layer=layer_name)
 
