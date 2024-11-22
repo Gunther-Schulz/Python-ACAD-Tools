@@ -155,6 +155,11 @@ geomLayers:
           - name: Gemeinde
             values:
               - "Groß Plasten"
+      - type: calculate
+        calculations:
+          - type: area
+            as: original_area
+            decimalPlaces: 0
       - type: difference
         layers:
           - Wald
@@ -238,8 +243,13 @@ geomLayers:
           - name: Gemeinde
             values:
               - "Groß Plasten"
+      - type: calculate
+        calculations:
+          - type: area
+            as: original_area
+            decimalPlaces: 0
       - type: difference
-        useBufferTrick: true
+        # useBufferTrick: true
         layers:
           - Wald
           - Baumabstand Puffer
@@ -303,6 +313,11 @@ geomLayers:
           - name: Gemeinde
             values:
               - "Groß Plasten"
+      - type: calculate
+        calculations:
+          - type: area
+            as: original_area
+            decimalPlaces: 0
       - type: difference
         layers:
           - Wald

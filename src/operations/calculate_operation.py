@@ -41,7 +41,7 @@ def create_calculate_layer(all_layers, project_settings, crs, layer_name, operat
             column_name = calc.get('as', f"{value1}_{operator}_{value2}")
             
             if value1 not in source_gdf.columns or value2 not in source_gdf.columns:
-                log_warning(f"One or both columns not found for comparison: {value1}, {value2}")
+                log_warning(f"Layer '{layer_name}': One or both columns not found for comparison: {value1}, {value2}")
                 continue
                 
             if operator == 'eq':
