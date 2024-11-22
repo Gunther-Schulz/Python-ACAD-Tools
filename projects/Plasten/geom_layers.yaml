@@ -109,7 +109,8 @@ geomLayers:
     close: true
     operations:
       - type: buffer
-        capStyle: round
+        startCapStyle: round
+        endCapStyle: flat
         layers:
           - Einfahrt Line
         distance: 5
