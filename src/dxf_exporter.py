@@ -873,16 +873,16 @@ class DXFExporter:
             if config.get('updateDxf', False) and 'targetLayer' in config
         }
         
-        # Clear each target layer (will handle both model and paper space)
+        log_info(f"Processing text inserts for layers: {', '.join(target_layers)}")
+        
+        # Clear each target layer (remove_entities_by_layer handles both spaces)
         for layer_name in target_layers:
             remove_entities_by_layer(msp, layer_name, self.script_identifier)
         
-        # Now add all new text inserts
-        log_info(f"Processing {len(text_inserts)} text insert configurations")
+        # Add all new text inserts
         for config in text_inserts:
             try:
                 if not config.get('updateDxf', False):
-                    log_info(f"Skipping text insert '{config.get('name')}' as updateDxf is false")
                     continue
                     
                 layer_name = config.get('targetLayer')
@@ -890,7 +890,6 @@ class DXFExporter:
                     log_warning(f"No target layer specified for text insert '{config.get('name')}'")
                     continue
 
-                # Add new text insert
                 text_entity = add_text_insert(
                     msp,
                     config,
@@ -901,13 +900,13 @@ class DXFExporter:
                 
                 if text_entity:
                     space_type = "paperspace" if config.get('paperspace', False) else "modelspace"
+                    log_info(f"Added text insert '{config.get('name')}' to {space_type}")
                 else:
                     log_warning(f"Failed to add text insert '{config.get('name')}'")
                     
             except Exception as e:
                 log_error(f"Error processing text insert '{config.get('name')}': {str(e)}")
                 log_error(f"Traceback:\n{traceback.format_exc()}")
-                continue
 
     def get_viewport_by_name(self, doc, name):
         """Retrieve a viewport by its name using xdata."""

@@ -19,60 +19,38 @@ class BlockInsertManager:
         configs = self.project_settings.get(f'{insert_type}Inserts', [])
         log_info(f"Processing {len(configs)} {insert_type} insert configurations")
         
-        doc = msp.doc
+        # Group configs by target layer
+        layers_to_clean = {
+            c.get('name') 
+            for c in configs 
+            if c.get('updateDxf', False) and c.get('name')
+        }
         
-        # Separate configs by space type
-        modelspace_configs = [c for c in configs if not c.get('paperspace', False)]
-        paperspace_configs = [c for c in configs if c.get('paperspace', False)]
-        
-        if insert_type == 'block':
-            # Handle modelspace cleaning
-            layers_to_clean_model = {c.get('name') for c in modelspace_configs if c.get('updateDxf', False)}
-            for layer_name in layers_to_clean_model:
-                remove_entities_by_layer(doc.modelspace(), layer_name, self.script_identifier)
-                log_info(f"Cleaned existing entities from modelspace layer: {layer_name}")
-            
-            # Handle paperspace cleaning
-            layers_to_clean_paper = {c.get('name') for c in paperspace_configs if c.get('updateDxf', False)}
-            for layer_name in layers_to_clean_paper:
-                remove_entities_by_layer(doc.paperspace(), layer_name, self.script_identifier)
-                log_info(f"Cleaned existing entities from paperspace layer: {layer_name}")
-        else:
-            # Similar handling for text inserts...
-            pass
+        # Clean layers (remove_entities_by_layer handles both spaces)
+        for layer_name in layers_to_clean:
+            remove_entities_by_layer(msp, layer_name, self.script_identifier)
+            log_info(f"Cleaned existing entities from layer: {layer_name}")
 
-        # Process modelspace inserts
-        for config in modelspace_configs:
+        # Process all inserts
+        for config in configs:
             try:
                 if not config.get('updateDxf', False):
                     continue
+                
                 name = config.get('name')
                 if not name:
                     continue
                 
-                if insert_type == 'block':
-                    self.insert_blocks(doc.modelspace(), config)
-                else:
-                    self.insert_text(doc.modelspace(), config)
-            except Exception as e:
-                log_error(f"Error processing modelspace {insert_type} insert: {str(e)}")
-                continue
-
-        # Process paperspace inserts
-        for config in paperspace_configs:
-            try:
-                if not config.get('updateDxf', False):
-                    continue
-                name = config.get('name')
-                if not name:
-                    continue
+                # Get the correct space for this insert
+                space = msp.doc.paperspace() if config.get('paperspace', False) else msp.doc.modelspace()
                 
                 if insert_type == 'block':
-                    self.insert_blocks(doc.paperspace(), config)
+                    self.insert_blocks(space, config)
                 else:
-                    self.insert_text(doc.paperspace(), config)
+                    self.insert_text(space, config)
+                
             except Exception as e:
-                log_error(f"Error processing paperspace {insert_type} insert: {str(e)}")
+                log_error(f"Error processing {insert_type} insert '{config.get('name')}': {str(e)}")
                 continue
 
         log_info(f"Finished processing all {insert_type} insert configurations")
