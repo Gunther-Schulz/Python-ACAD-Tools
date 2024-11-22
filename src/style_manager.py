@@ -147,9 +147,6 @@ class StyleManager:
             if 'layers' in apply_hatch:
                 hatch_config['layers'] = apply_hatch['layers']
         
-        # Always force color to BYLAYER
-        hatch_config['color'] = 'BYLAYER'
-        
         return hatch_config
 
     def process_layer_style(self, layer_name, layer_config):
