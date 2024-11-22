@@ -102,6 +102,22 @@ geomLayers:
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/straßenflürstückskante.shp"
   - name: Heckenkante
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/heckenkante.shp"
+  - name: Einfahrt Line
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/einfahrt_line.shp"
+  - name: Einfahrt
+    updateDxf: true
+    close: true
+    operations:
+      - type: buffer
+        capStyle: round
+        layers:
+          - Einfahrt Line
+        distance: 5
+  - name: Einfahrt Schraffur
+    style: verkehrsfläche
+    applyHatch:
+      layers:
+        - Einfahrt
   - name: FG Line
     # updateDxf: true
     close: false
@@ -343,6 +359,12 @@ geomLayers:
         layers:
           - Heckenkante
         distance: 5
+      - type: difference
+        reverseDifference: false
+        # useBufferTrick: true
+        layers:
+          - Gastrasse Buffer
+          - Einfahrt
       - type: intersection
         layers:
           - Geltungsbereich NW
@@ -492,6 +514,7 @@ geomLayers:
         reverseDifference: false
         layers:
           - Heckenkante Buffer
+          - Einfahrt
       - type: dissolve
       - type: intersection
         layers:
@@ -740,6 +763,7 @@ geomLayers:
             layers:
               - Ausgleichsfläche Gesamt
               - Hecke
+              - Einfahrt
               - Biotope
               - Biotoppuffer
       - type: filterGeometry
