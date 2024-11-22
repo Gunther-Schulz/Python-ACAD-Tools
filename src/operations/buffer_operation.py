@@ -1,7 +1,7 @@
 import geopandas as gpd
 from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection, Point, MultiPoint
 from src.utils import log_info, log_warning, log_error
-from shapely.ops import unary_union
+from shapely.ops import unary_union, split
 from src.operations.common_operations import _process_layer_info, _get_filtered_geometry, make_valid_geometry, format_operation_warning
 from src.operations.common_operations import *
 
@@ -14,6 +14,8 @@ def create_buffer_layer(all_layers, project_settings, crs, layer_name, operation
     buffer_mode = operation.get('mode', 'off')
     join_style = operation.get('joinStyle', 'mitre')
     cap_style = operation.get('capStyle', 'square')
+    start_cap_style = operation.get('startCapStyle', cap_style)
+    end_cap_style = operation.get('endCapStyle', cap_style)
 
     join_style_map = {
         'round': 1,
@@ -28,7 +30,8 @@ def create_buffer_layer(all_layers, project_settings, crs, layer_name, operation
     }
     
     join_style_value = join_style_map.get(join_style, 2)
-    cap_style_value = cap_style_map.get(cap_style, 2)
+    start_cap_value = cap_style_map.get(start_cap_style, 2)
+    end_cap_value = cap_style_map.get(end_cap_style, 2)
 
     source_layers = operation.get('layers', [layer_name])
     
@@ -78,17 +81,58 @@ def create_buffer_layer(all_layers, project_settings, crs, layer_name, operation
     if make_valid and combined_geometry is not None:
         combined_geometry = make_valid_geometry(combined_geometry)
 
+    def buffer_with_different_caps(geom, distance, start_cap, end_cap, join_style):
+        if not isinstance(geom, (LineString, MultiLineString)):
+            # For non-line geometries, use regular buffer
+            return geom.buffer(distance, cap_style=start_cap, join_style=join_style)
+
+        if isinstance(geom, MultiLineString):
+            # Handle each line separately
+            buffered_parts = [buffer_with_different_caps(line, distance, start_cap, end_cap, join_style) 
+                            for line in geom.geoms]
+            return unary_union(buffered_parts)
+
+        # For single LineString
+        if start_cap == end_cap:
+            # If caps are the same, use regular buffer
+            return geom.buffer(distance, cap_style=start_cap, join_style=join_style)
+
+        # Get start and end points
+        start_point = Point(geom.coords[0])
+        end_point = Point(geom.coords[-1])
+
+        # Create buffers with different caps
+        buffer1 = geom.buffer(distance, cap_style=start_cap, join_style=join_style)
+        buffer2 = geom.buffer(distance, cap_style=end_cap, join_style=join_style)
+
+        # Create small circles around start and end points
+        start_circle = start_point.buffer(distance * 1.5)
+        end_circle = end_point.buffer(distance * 1.5)
+
+        # Combine the results
+        result = (
+            (buffer1.intersection(start_circle))
+            .union(buffer2.intersection(end_circle))
+            .union(buffer1.difference(start_circle).difference(end_circle))
+        )
+
+        return result
+
     try:
         if buffer_mode == 'outer':
-            buffered = combined_geometry.buffer(buffer_distance, cap_style=cap_style_value, join_style=join_style_value)
+            buffered = buffer_with_different_caps(combined_geometry, buffer_distance, 
+                                                start_cap_value, end_cap_value, join_style_value)
             result = buffered.difference(combined_geometry)
         elif buffer_mode == 'inner':
-            result = combined_geometry.buffer(-buffer_distance, cap_style=cap_style_value, join_style=join_style_value)
+            result = buffer_with_different_caps(combined_geometry, -buffer_distance,
+                                              start_cap_value, end_cap_value, join_style_value)
         elif buffer_mode == 'keep':
-            buffered = combined_geometry.buffer(buffer_distance, cap_style=cap_style_value, join_style=join_style_value)
+            buffered = buffer_with_different_caps(combined_geometry, buffer_distance,
+                                                start_cap_value, end_cap_value, join_style_value)
             result = [combined_geometry, buffered]
         else:  # 'off' or any other value
-            result = combined_geometry.buffer(buffer_distance, cap_style=cap_style_value, join_style=join_style_value)
+            result = buffer_with_different_caps(combined_geometry, buffer_distance,
+                                              start_cap_value, end_cap_value, join_style_value)
 
         # Ensure the result is a valid geometry type for shapefiles
         if buffer_mode == 'keep':
