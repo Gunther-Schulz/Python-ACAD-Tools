@@ -84,3 +84,9 @@ blockInserts:
       type: "absolute"
       x: 6557
       y: 364
+  - name: EinAusfahrt
+    updateDxf: true
+    blockName: "EinAusfahrt"
+    position:
+      sourceLayer: "EinAusfahrt Points"
+      type: "points"

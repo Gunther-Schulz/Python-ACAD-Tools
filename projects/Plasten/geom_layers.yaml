@@ -1,4 +1,7 @@
 geomLayers:
+  - name: EinAusfahrt Points
+    type: "points"
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/einausfahrt_points.shp"
   - name: Baufeld Label Points
     type: "points"
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/baufeld_label_points.shp"
@@ -76,6 +79,7 @@ geomLayers:
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/baum_abstand.shp"
     operations:
       - type: buffer
+        capStyle: flat
         distance: 5
   - name: Geschütze Biotope
     # updateDxf: true
@@ -343,12 +347,12 @@ geomLayers:
     operations:
       - type: directionalLine
         relativeAngle: true
-        length: 20.001
+        length: 23
         angle: 270
         layers:
           - Einfahrt Line Reference
   - name: Einfahrt
-    updateDxf: true
+    # updateDxf: true
     close: true
     operations:
       - type: buffer
@@ -362,12 +366,12 @@ geomLayers:
           - Geltungsbereich NW
           - Geltungsbereich NO
           - Geltungsbereich S
-  - name: Einfahrt Schraffur
-    updateDxf: true
-    style: verkehrsfläche
-    applyHatch:
-      layers:
-        - Einfahrt
+  # - name: Einfahrt Schraffur
+  #   updateDxf: true
+  #   style: verkehrsfläche
+  #   applyHatch:
+  #     layers:
+  #       - Einfahrt
   - name: Heckenkante Buffer
     operations:
       - type: buffer
@@ -778,7 +782,6 @@ geomLayers:
             layers:
               - Ausgleichsfläche Gesamt
               - Hecke
-              - Einfahrt
               - Biotope
               - Biotoppuffer
       - type: filterGeometry
@@ -811,6 +814,10 @@ geomLayers:
         layers:
           - Baufeld
         distance: -3
+      - type: difference
+        reverseDifference: false
+        layers:
+          - Einfahrt
   - name: Baugrenze Report NW
     operations:
       - type: copy

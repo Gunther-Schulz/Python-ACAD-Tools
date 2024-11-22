@@ -21,3 +21,11 @@ pathArrays:
     spacing: 8 #  For line paths: includes the block length (block length + spacing)
     # scale: 0.6
     # bufferDistance: 0.6
+  - name: "Hecke Array"
+    updateDxf: true
+    sourceLayer: "Hecke"
+    block: "Bepflanzungen"
+    spacing: 3
+    pathOffset: -1
+    scale: 0.4
+    # bufferDistance: 10

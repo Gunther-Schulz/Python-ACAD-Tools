@@ -532,6 +532,10 @@ def create_hatch(msp, boundary_paths, hatch_config, project_loader):
     else:
         hatch.dxf.color = ezdxf.const.BYLAYER
 
+    # Apply lineweight
+    if 'lineweight' in hatch_config:
+        hatch.dxf.lineweight = hatch_config['lineweight']
+
     # Apply transparency
     if 'transparency' in hatch_config:
         transparency = convert_transparency(hatch_config['transparency'])

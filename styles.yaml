@@ -193,7 +193,7 @@ styles:
       individual_hatches: true
       pattern: "ANSI31"
       color: "248,215,49"
-      lineweight: 10
+      lineweight: 60
 
 
   geltungsbereichHatches:
