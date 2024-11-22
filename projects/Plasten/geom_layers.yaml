@@ -337,8 +337,7 @@ geomLayers:
         layers:
           - name: Geltungsbereich S
         distance: 2
-  - name: Hecke
-    updateDxf: true
+  - name: Heckenkante Buffer
     operations:
       - type: buffer
         layers:
@@ -356,20 +355,24 @@ geomLayers:
           - Straßenflurstückskante
         distance: 20
       - type: difference
-        reverseDifference: false # defualt is "auto"
+        reverseDifference: false # default is "auto"
         layers:
-          - Hecke
-      - type: intersection
-        layers:
-          - Geltungsbereich NW
-          - Geltungsbereich NO
-          - Geltungsbereich S
+          - Heckenkante Buffer
+      # - type: intersection
+      #   layers:
+      #     - Geltungsbereich NW
+      #     - Geltungsbereich NO
+      #     - Geltungsbereich S
   - name: Waldabstand
     operations:
       - type: buffer
         layers:
           - Wald
         distance: 30
+      - type: difference
+        reverseDifference: false
+        layers:
+          - Heckenkante Buffer
       - type: intersection
         layers:
           - Geltungsbereich NW
@@ -485,6 +488,10 @@ geomLayers:
           - Baumabstand Puffer
           - FG Buffer
           - Straßenflurstückskante Buffer 20m
+      - type: difference
+        reverseDifference: false
+        layers:
+          - Heckenkante Buffer
       - type: dissolve
       - type: intersection
         layers:
@@ -581,6 +588,25 @@ geomLayers:
           - Geltungsbereich S
       # - type: filterGeometry
       #   minArea: 200
+  - name: Hecke
+    updateDxf: true
+    operations:
+      - type: copy
+        layers:
+          - Heckenkante Buffer
+      - type: difference
+        reverseDifference: false
+        useBufferTrick: true
+        layers:
+          - Ausgleichsfläche Gesamt
+      - type: filterGeometry
+        minArea: 10
+  - name: Hecke Schraffur
+    updateDxf: true
+    style: grünfläche
+    applyHatch:
+      layers:
+        - Hecke
   - name: Biotoppuffer
     updateDxf: true
     viewports:
@@ -713,6 +739,7 @@ geomLayers:
           - type: dissolve
             layers:
               - Ausgleichsfläche Gesamt
+              - Hecke
               - Biotope
               - Biotoppuffer
       - type: filterGeometry
