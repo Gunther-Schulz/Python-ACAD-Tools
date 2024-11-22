@@ -226,7 +226,10 @@ class LegendCreator:
 
         # Add subtitle if present
         if item_subtitle:
-            subtitle_y = item_center_y - actual_text_height - self.group_subtitle_spacing
+            # Get the actual bounding box of the main text to account for multiple lines
+            main_text_bbox = bbox.extents([text_entity])
+            subtitle_y = main_text_bbox.extmin.y - self.group_subtitle_spacing  # Position below the last line
+            
             subtitle_result = add_mtext(
                 self.msp,
                 item_subtitle,
