@@ -105,7 +105,7 @@ legends:
       #       applyHatch: true
       - name: "Planungen, Nutzungsregelungen, Maßnahmen und Flächen für Maßnahmen zum Schutz, zur Pflege und zur Entwicklung von Natur und Landschaft"
         updateDxf: true
-        subtitle: "(§ 5 Abs. 2 Nr. 10 und Abs. 4, § 9 Abs. 1 Nr. 20, 25 und Abs. 6 BauGB)"
+        subtitle: "§ 9 Abs.1 Nr. 20 BauGB"
         items:
           - name: "Umgrenzung von Flächen für Maßnahmen zum Schutz, zur Pflege und zurEntwicklung von Natur und Landschaft"
             subtitle: "(§ 5 Abs. 2 Nr. 10 und Abs. 4, § 9 Abs. 1 Nr. 20 und Abs. 6 BauGB)"
