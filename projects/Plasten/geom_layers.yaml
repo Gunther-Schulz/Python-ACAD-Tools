@@ -104,29 +104,6 @@ geomLayers:
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/heckenkante.shp"
   - name: Einfahrt Line Reference
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/einfahrt_line.shp"
-  - name: Einfahrt Line2
-    operations:
-      - type: directionalLine
-        relativeAngle: true
-        length: 40
-        angle: 90
-        layers:
-          - Einfahrt Line Reference
-  - name: Einfahrt
-    updateDxf: true
-    close: true
-    operations:
-      - type: buffer
-        startCapStyle: round
-        endCapStyle: flat
-        layers:
-          - Einfahrt Line Reference
-        distance: 20
-  - name: Einfahrt Schraffur
-    style: verkehrsfläche
-    applyHatch:
-      layers:
-        - Einfahrt
   - name: FG Line
     # updateDxf: true
     close: false
@@ -362,6 +339,35 @@ geomLayers:
         layers:
           - name: Geltungsbereich S
         distance: 2
+  - name: Einfahrt Line
+    operations:
+      - type: directionalLine
+        relativeAngle: true
+        length: 20.001
+        angle: 270
+        layers:
+          - Einfahrt Line Reference
+  - name: Einfahrt
+    updateDxf: true
+    close: true
+    operations:
+      - type: buffer
+        startCapStyle: round
+        endCapStyle: flat
+        layers:
+          - Einfahrt Line
+        distance: 5
+      - type: intersection
+        layers:
+          - Geltungsbereich NW
+          - Geltungsbereich NO
+          - Geltungsbereich S
+  - name: Einfahrt Schraffur
+    updateDxf: true
+    style: verkehrsfläche
+    applyHatch:
+      layers:
+        - Einfahrt
   - name: Heckenkante Buffer
     operations:
       - type: buffer
