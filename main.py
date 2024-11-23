@@ -11,9 +11,20 @@ from src.dump_to_shape import dxf_to_shapefiles
 
 class ProjectProcessor:
     def __init__(self, project_name: str, plot_ops=False):
-        self.project_loader = ProjectLoader(project_name)
-        self.layer_processor = LayerProcessor(self.project_loader, plot_ops)
-        self.dxf_exporter = DXFExporter(self.project_loader, self.layer_processor)
+        try:
+            self.project_loader = ProjectLoader(project_name)
+            if not self.project_loader.project_settings:
+                raise ValueError(f"Could not load settings for project '{project_name}'. Please check if the project files exist and are valid YAML.")
+            self.layer_processor = LayerProcessor(self.project_loader, plot_ops)
+            self.dxf_exporter = DXFExporter(self.project_loader, self.layer_processor)
+        except Exception as e:
+            available_projects = list_available_projects()
+            error_msg = f"Error initializing project '{project_name}': {str(e)}\n"
+            if available_projects:
+                error_msg += "\nAvailable projects:\n" + "\n".join(f"  - {p}" for p in available_projects)
+            else:
+                error_msg += "\nNo projects found. Use --create-project to create a new project."
+            raise ValueError(error_msg)
 
     def run(self):
         self.layer_processor.process_layers()
@@ -293,11 +304,8 @@ def main():
         processor = ProjectProcessor(args.project_name, plot_ops=args.plot_ops)
         processor.run()
     except ValueError as e:
-        if "Project" in str(e) and "not found" in str(e):
-            print(str(e))  # Print the enhanced error message with available projects
-            sys.exit(1)
-        else:
-            raise
+        print(f"\nError: {str(e)}")
+        sys.exit(1)
     except Exception as e:
         error_type = type(e).__name__
         error_message = str(e)
@@ -307,7 +315,7 @@ def main():
         log_error(f"Error Message: {error_message}")
         log_error(f"Traceback:\n{traceback_str}")
         
-        print(f"An error occurred: {error_type}")
+        print(f"\nAn unexpected error occurred: {error_type}")
         print(f"Error details: {error_message}")
         print("Check the log file for the full traceback.")
         

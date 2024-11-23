@@ -1,0 +1,9 @@
+# textInserts:
+# - name: Sample Text
+#   targetLayer: Text
+#   updateDxf: true
+#   text: Sample Text
+#   position:
+#     type: absolute
+#     x: 0
+#     y: 0

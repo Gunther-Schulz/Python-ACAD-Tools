@@ -108,7 +108,6 @@ legends:
         subtitle: "§ 9 Abs.1 Nr. 20 BauGB"
         items:
           - name: "Umgrenzung von Flächen für Maßnahmen zum Schutz, zur Pflege und zur Entwicklung von Natur und Landschaft"
-            subtitle: "(§ 5 Abs. 2 Nr. 10 und Abs. 4, § 9 Abs. 1 Nr. 20 und Abs. 6 BauGB)"
             type: empty
             blockSymbol: "Schutzflächeumgrenzung"
       - name: "Sonstige Planzeichen"
@@ -259,7 +258,6 @@ legends:
         subtitle: "§ 9 Abs.1 Nr. 20 BauGB"
         items:
           - name: "Umgrenzung von Flächen für Maßnahmen zum Schutz, zur Pflege und zur Entwicklung von Natur und Landschaft"
-            subtitle: "(§ 5 Abs. 2 Nr. 10 und Abs. 4, § 9 Abs. 1 Nr. 20 und Abs. 6 BauGB)"
             type: empty
             blockSymbol: "Schutzflächeumgrenzung"
       - name: "Sonstige Planzeichen"
@@ -378,7 +376,7 @@ legends:
         updateDxf: true
         subtitle: "(§ 9 Abs. 1 Nr. 11 und Abs. 6 BauGB)"
         items:
-          - name: "EinAusfahrt"
+          - name: "Ein- und Ausfahrt"
             # subtitle: "(§ 9 Abs. 1 Nr. 4, 11 und Abs. 6 BauGB)"
             type: empty
             blockSymbol: "EinAusfahrt"
@@ -395,7 +393,6 @@ legends:
         subtitle: "§ 9 Abs.1 Nr. 20 BauGB"
         items:
           - name: "Umgrenzung von Flächen für Maßnahmen zum Schutz, zur Pflege und zur Entwicklung von Natur und Landschaft"
-            subtitle: "(§ 5 Abs. 2 Nr. 10 und Abs. 4, § 9 Abs. 1 Nr. 20 und Abs. 6 BauGB)"
             type: empty
             blockSymbol: "Schutzflächeumgrenzung"
           - name: "Umgrenzung von Flächen zum Anpflanzen von Bäumen, Sträuchern und sonstigen Bepflanzungen"
@@ -451,6 +448,9 @@ legends:
           - name: "Gebäude - Bestand"
             type: empty
             blockSymbol: "Gebäude"
+          - name: "Blendschutzzaun"
+            type: line
+            style: blendschutzzaun
   # Legend S
   # ---------
   - id: "Legend S"
@@ -526,7 +526,6 @@ legends:
         subtitle: "§ 9 Abs.1 Nr. 20 BauGB"
         items:
           - name: "Umgrenzung von Flächen für Maßnahmen zum Schutz, zur Pflege und zur Entwicklung von Natur und Landschaft"
-            subtitle: "(§ 5 Abs. 2 Nr. 10 und Abs. 4, § 9 Abs. 1 Nr. 20 und Abs. 6 BauGB)"
             type: empty
             blockSymbol: "Schutzflächeumgrenzung"
       - name: "Sonstige Planzeichen"
