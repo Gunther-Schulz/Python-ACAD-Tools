@@ -1,5 +1,5 @@
 import traceback
-from dump_to_shape import merge_dxf_layer_to_shapefile
+from src.dump_to_shape import merge_dxf_layer_to_shapefile
 from src.project_loader import ProjectLoader
 from src.utils import log_info, log_warning, log_error, resolve_path, ensure_path_exists
 import geopandas as gpd
@@ -258,7 +258,13 @@ class LayerProcessor:
                 log_info(f"Updating shapefile from source layer for: {layer_name}")
                 gdf = self.load_dxf_layer(layer_name, layer['sourceLayer'])
                 if not gdf.empty:
-                    output_path = resolve_path(layer['shapeFile'], self.project_loader.folder_prefix)
+                    # Ensure proper path resolution using folder prefix
+                    output_path = os.path.join(
+                        self.project_loader.folder_prefix,
+                        layer['shapeFile']
+                    )
+                    # Ensure directory exists
+                    os.makedirs(os.path.dirname(output_path), exist_ok=True)
                     gdf.to_file(output_path)
                     log_info(f"Updated shapefile from source layer: {output_path}")
             
@@ -369,8 +375,8 @@ class LayerProcessor:
             msp = doc.modelspace()
             entities = msp.query(f'*[layer=="{dxf_layer_name}"]')
             
-            # Create temporary directory for shapefile
-            temp_dir = os.path.join(self.project_loader.folder_prefix, '_temp')
+            # Create temporary directory in system temp
+            temp_dir = os.path.join('/tmp', 'python_acad_tools')
             os.makedirs(temp_dir, exist_ok=True)
             
             # Use existing merge_dxf_layer_to_shapefile function
