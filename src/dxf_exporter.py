@@ -524,8 +524,10 @@ class DXFExporter:
         points = list(linestring.coords)
         layer_properties = self.layer_properties[layer_name]
 
-        if layer_properties['close'] and points[0] != points[-1]:
-            points.append(points[0])  # Close the linestring by adding the first point at the end
+        # For linestrings, we should not close them unless explicitly requested
+        # and the first and last points are already the same
+        should_close = (layer_properties['close'] and 
+                       points[0] == points[-1])
 
         log_info(f"Adding linestring to layer {layer_name} with {len(points)} points")
         log_info(f"First point: {points[0][:2] if points else 'No points'}")
@@ -538,7 +540,7 @@ class DXFExporter:
                 points=points_2d,
                 dxfattribs={
                     'layer': layer_name,
-                    'closed': layer_properties['close'],
+                    'closed': should_close,
                     'ltscale': layer_properties['linetypeScale']
                 }
             )
