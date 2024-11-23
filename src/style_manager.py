@@ -68,7 +68,7 @@ class StyleManager:
         return True
 
     def _validate_layer_style(self, layer_name, layer_style):
-        known_style_keys = {'color', 'linetype', 'lineweight', 'plot', 'locked', 'frozen', 'is_on', 'transparency'}
+        known_style_keys = {'color', 'linetype', 'lineweight', 'plot', 'locked', 'frozen', 'is_on', 'transparency', 'linetypeScale'}
         self._validate_style_keys(layer_name, 'layer', layer_style, known_style_keys)
         # Add linetype validation
         if 'linetype' in layer_style:

@@ -163,7 +163,7 @@ styles:
       linetype: DASHED
       color: yellow
       lineweight: 50
-      linetype_scale: 0.5
+      linetypeScale: 0.5
 
 
   geltungsbereich:

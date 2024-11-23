@@ -489,12 +489,11 @@ def apply_style_to_entity(entity, style, project_loader, loaded_styles, item_typ
             # If the entity doesn't have a transparency attribute, we don't need to do anything
             pass
 
-    # Apply specific styles based on item type
-    if item_type == 'line':
-        if 'linetype_scale' in style:
-            entity.dxf.ltscale = style['linetype_scale']
-        else:
-            entity.dxf.ltscale = 1.0  # Default scale
+    # Apply linetype scale if specified
+    if 'linetypeScale' in style:
+        entity.dxf.ltscale = float(style['linetypeScale'])
+    else:
+        entity.dxf.ltscale = 1.0  # Default scale
 
     if 'text_style' in style:
         text_style = style['text_style']
