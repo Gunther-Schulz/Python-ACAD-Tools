@@ -251,6 +251,17 @@ class LayerProcessor:
     def setup_shapefiles(self):
         for layer in self.project_settings['geomLayers']:
             layer_name = layer['name']
+            
+            # First check if we need to update from a source DXF layer
+            if 'sourceLayer' in layer and 'shapeFile' in layer:
+                log_info(f"Updating shapefile from source layer for: {layer_name}")
+                gdf = self.load_dxf_layer(layer_name, layer['sourceLayer'])
+                if not gdf.empty:
+                    output_path = resolve_path(layer['shapeFile'], self.project_loader.folder_prefix)
+                    gdf.to_file(output_path)
+                    log_info(f"Updated shapefile from source layer: {output_path}")
+            
+            # Then load the shapefile (whether it was just updated or not)
             if 'shapeFile' in layer:
                 shapefile_path = resolve_path(layer['shapeFile'], self.project_loader.folder_prefix)
                 try:
@@ -259,8 +270,6 @@ class LayerProcessor:
                     if gdf is not None:
                         self.all_layers[layer_name] = gdf
                         log_info(f"Loaded shapefile for layer: {layer_name}")
-                        log_info(f"Layer {layer_name} info: CRS={gdf.crs}, Geometry type={gdf.geometry.type.unique()}, Number of features={len(gdf)}")
-                        log_info(f"First geometry in {layer_name}: {gdf.geometry.iloc[0].wkt[:100]}...")
                     else:
                         log_warning(f"Failed to load shapefile for layer: {layer_name}")
                 except Exception as e:
