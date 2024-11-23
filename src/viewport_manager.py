@@ -90,6 +90,9 @@ class ViewportManager:
         # Set 2D properties
         self.set_viewport_2d_properties(viewport)
         
+        # Set hyperlink to viewport name
+        viewport.set_hyperlink(vp_config['name'])
+        
         # Update color if specified
         if 'color' in vp_config:
             color = get_color_code(vp_config['color'], self.name_to_aci)
@@ -248,6 +251,15 @@ class ViewportManager:
                 new_viewport.xdata = viewport.xdata.copy()
         except:
             pass
+            
+        # Copy hyperlink from original viewport
+        if hasattr(viewport, 'get_hyperlink'):
+            hyperlink = viewport.get_hyperlink()
+            if hyperlink:
+                new_viewport.set_hyperlink(hyperlink)
+        else:
+            # Set hyperlink to viewport name if not already set
+            new_viewport.set_hyperlink(vp_config['name'])
         
         # Create clipping boundary
         path_points = vp_config['clipPath']
