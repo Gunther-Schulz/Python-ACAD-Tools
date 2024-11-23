@@ -12,6 +12,7 @@ viewports:
       y: 5935564
     frozenLayers:
       - WMTS Basemap
+      - WMTS DOP
       - Geltungsbereich Hatch NW
       - Geltungsbereich Hatch NO
       - Geltungsbereich Hatch S
@@ -28,6 +29,7 @@ viewports:
       y: 5935564
     frozenLayers:
       - WMTS Basemap
+      - WMTS DOP
       - Geltungsbereich Hatch NW
       - Geltungsbereich Hatch NO
       - Geltungsbereich Hatch S
@@ -51,6 +53,7 @@ viewports:
       - Geltungsbereich Hatch S
       - Geltungsbereich Hatch NO
       - WMTS Basemap
+      - WMTS DOP
     lockZoom: true
   - name: LegendViewportNW
     updateDxf: true
@@ -65,6 +68,7 @@ viewports:
       y: 5942622
     frozenLayers:
       - WMTS Basemap
+      - WMTS DOP
     # scale: 2
     # customScale: 0.5
     lockZoom: true
@@ -107,6 +111,7 @@ viewports:
       - Geltungsbereich Hatch S
       - Geltungsbereich Hatch NW
       - WMTS Basemap
+      - WMTS DOP
     lockZoom: true
   - name: LegendViewportNO
     updateDxf: true
@@ -114,13 +119,14 @@ viewports:
     topLeft:
       x: 4396
       y: 857
-    height: 500
+    height: 524
     width: 180
     viewTopLeft:
       x: 368830
       y: 5942622
     frozenLayers:
       - WMTS Basemap
+      - WMTS DOP
     # scale: 2
     # customScale: 0.5
     lockZoom: true
@@ -129,8 +135,8 @@ viewports:
     color: "magenta"
     topLeft:
       x: 4400
-      y: 335
-    height: 113
+      y: 311
+    height: 89
     width: 172
     viewCenter:
       x: 358132
@@ -163,6 +169,7 @@ viewports:
       - Geltungsbereich Hatch S
       - Geltungsbereich Hatch NW
       - WMTS Basemap
+      - WMTS DOP
     lockZoom: true
   - name: LegendViewportS
     updateDxf: true
@@ -177,6 +184,7 @@ viewports:
       y: 5942622
     frozenLayers:
       - WMTS Basemap
+      - WMTS DOP
     # scale: 2
     # customScale: 0.5
     lockZoom: true

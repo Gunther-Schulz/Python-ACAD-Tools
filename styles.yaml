@@ -158,6 +158,13 @@ styles:
       lineweight: 50
       # color: "brilliant-intense-azure"
   
+  blendschutzzaun:
+    layer:
+      linetype: DASHED
+      color: yellow
+      lineweight: 50
+      linetype_scale: 0.5
+
 
   geltungsbereich:
     layer:
