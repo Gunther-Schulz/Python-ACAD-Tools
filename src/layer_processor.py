@@ -1,4 +1,5 @@
 import traceback
+from dump_to_shape import merge_dxf_layer_to_shapefile
 from src.project_loader import ProjectLoader
 from src.utils import log_info, log_warning, log_error, resolve_path, ensure_path_exists
 import geopandas as gpd
@@ -356,44 +357,53 @@ class LayerProcessor:
                     log_warning(f"Failed to delete {file_path}. Reason: {e}")
 
     def load_dxf_layer(self, layer_name, dxf_layer_name):
-            try:
-                log_info(f"Attempting to load DXF layer '{dxf_layer_name}' for layer: {layer_name}")
-                doc = ezdxf.readfile(self.project_loader.dxf_filename)
-                msp = doc.modelspace()
-                
-                geometries = []
-                for entity in msp.query(f'*[layer=="{dxf_layer_name}"]'):
-                    if isinstance(entity, (ezdxf.entities.LWPolyline, ezdxf.entities.Polyline)):
-                        points = list(entity.vertices())
-                        if len(points) >= 2:
-                            if entity.closed or (points[0] == points[-1]):
-                                geometries.append(Polygon(points))
-                            else:
-                                geometries.append(LineString(points))
-                    else:
-                        log_info(f"Skipping entity of type {type(entity)} in layer '{dxf_layer_name}'")
-                
-                log_info(f"Found {len(geometries)} geometries in DXF layer '{dxf_layer_name}'")
-                
-                if geometries:
-                    gdf = gpd.GeoDataFrame(geometry=geometries, crs=self.crs)
-                    self.all_layers[layer_name] = gdf
-                    log_info(f"Loaded DXF layer '{dxf_layer_name}' for layer: {layer_name} with {len(gdf)} features")
-                    log_info(f"Type of self.all_layers[{layer_name}]: {type(self.all_layers[layer_name])}")
-                else:
-                    log_warning(f"No valid geometries found in DXF layer '{dxf_layer_name}' for layer: {layer_name}")
-                    gdf = gpd.GeoDataFrame(geometry=[], crs=self.crs)
-                    self.all_layers[layer_name] = gdf
-                
-            except Exception as e:
-                log_error(f"Failed to load DXF layer '{dxf_layer_name}' for layer '{layer_name}': {str(e)}")
-                import traceback
-                log_error(traceback.format_exc())
-                gdf = gpd.GeoDataFrame(geometry=[], crs=self.crs)
-                self.all_layers[layer_name] = gdf
+        try:
+            log_info(f"Attempting to load DXF layer '{dxf_layer_name}' for layer: {layer_name}")
+            doc = ezdxf.readfile(self.project_loader.dxf_filename)
             
-            log_info(f"Final state of self.all_layers[{layer_name}]: {self.all_layers[layer_name]}")
-            return gdf
+            # Check if source layer exists
+            if dxf_layer_name not in doc.layers:
+                log_warning(f"Source layer '{dxf_layer_name}' does not exist in DXF file")
+                return gpd.GeoDataFrame(geometry=[], crs=self.crs)
+            
+            msp = doc.modelspace()
+            entities = msp.query(f'*[layer=="{dxf_layer_name}"]')
+            
+            # Create temporary directory for shapefile
+            temp_dir = os.path.join(self.project_loader.folder_prefix, '_temp')
+            os.makedirs(temp_dir, exist_ok=True)
+            
+            # Use existing merge_dxf_layer_to_shapefile function
+            merge_dxf_layer_to_shapefile(
+                self.project_loader.dxf_filename,
+                temp_dir,
+                layer_name,
+                entities,
+                self.crs
+            )
+            
+            # Read the generated shapefile
+            temp_shp = os.path.join(temp_dir, f"{layer_name}.shp")
+            if os.path.exists(temp_shp):
+                gdf = gpd.read_file(temp_shp)
+                
+                # Clean up temporary files
+                for ext in ['.shp', '.shx', '.dbf', '.prj']:
+                    temp_file = os.path.join(temp_dir, f"{layer_name}{ext}")
+                    if os.path.exists(temp_file):
+                        os.remove(temp_file)
+                    
+                if not gdf.empty:
+                    log_info(f"Successfully loaded {len(gdf)} features from DXF layer '{dxf_layer_name}'")
+                    return gdf
+                
+            log_warning(f"No valid geometries found in DXF layer '{dxf_layer_name}'")
+            return gpd.GeoDataFrame(geometry=[], crs=self.crs)
+            
+        except Exception as e:
+            log_error(f"Failed to load DXF layer '{dxf_layer_name}': {str(e)}")
+            log_error(traceback.format_exc())
+            return gpd.GeoDataFrame(geometry=[], crs=self.crs)
     
 
     def _process_hatch_config(self, layer_name, layer_config):
