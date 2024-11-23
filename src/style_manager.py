@@ -68,7 +68,15 @@ class StyleManager:
         return True
 
     def _validate_layer_style(self, layer_name, layer_style):
-        known_style_keys = {'color', 'linetype', 'lineweight', 'plot', 'locked', 'frozen', 'is_on', 'transparency', 'linetypeScale'}
+        # Layer-level properties
+        layer_properties = {'color', 'linetype', 'lineweight', 'plot', 'locked', 'frozen', 
+                       'is_on', 'transparency'}
+    
+        # Entity-level properties
+        entity_properties = {'linetypeScale', 'close', 'linetypeGeneration'}
+    
+        # Validate all properties
+        known_style_keys = layer_properties | entity_properties
         self._validate_style_keys(layer_name, 'layer', layer_style, known_style_keys)
         # Add linetype validation
         if 'linetype' in layer_style:
@@ -81,6 +89,11 @@ class StyleManager:
                               f"ACAD ISO linetypes should follow the pattern 'ACAD_ISOxxW100' where xx is a two-digit number.")
             elif not self.project_loader.doc.linetypes.has_entry(linetype):
                 log_warning(f"Linetype '{linetype}' in layer '{layer_name}' does not exist. Using default linetype.")
+        
+        if 'linetypeScale' in layer_style:
+            scale = layer_style['linetypeScale']
+            if not isinstance(scale, (int, float)) or scale <= 0:
+                log_warning(f"Invalid linetypeScale value '{scale}' in layer '{layer_name}'. Must be a positive number.")
 
     def _validate_hatch_style(self, layer_name, hatch_style):
         known_style_keys = {'pattern', 'scale', 'color', 'transparency', 'individual_hatches', 'layers'}
@@ -160,7 +173,6 @@ class StyleManager:
         self.validate_style(layer_name, style)
         
         if isinstance(style, str):
-            # Handle preset style
             style, warning_generated = self.get_style(style)
             if warning_generated:
                 return {}
@@ -168,7 +180,8 @@ class StyleManager:
         # Handle both preset and inline styles
         layer_style = style.get('layer', {}) if isinstance(style, dict) else {}
         
-        properties = {
+        # Layer-level properties
+        layer_properties = {
             'color': get_color_code(layer_style.get('color'), self.project_loader.name_to_aci),
             'linetype': layer_style.get('linetype', 'Continuous'),
             'lineweight': layer_style.get('lineweight', 0),
@@ -177,12 +190,20 @@ class StyleManager:
             'frozen': layer_style.get('frozen', False),
             'is_on': layer_style.get('is_on', True),
             'transparency': layer_style.get('transparency', 0),
-            'close': layer_style.get('close', False),
-            'linetypeScale': layer_style.get('linetypeScale', 1.0),
-            'linetypeGeneration': layer_style.get('linetypeGeneration', True)
         }
         
-        return properties
+        # Entity-level properties - only include if explicitly set
+        entity_properties = {}
+        entity_level_keys = {'linetypeScale', 'linetypeGeneration', 'close'}
+        
+        for key in entity_level_keys:
+            if key in layer_style:
+                entity_properties[key] = layer_style[key]
+        
+        if entity_properties:
+            layer_properties['entityProperties'] = entity_properties
+        
+        return layer_properties
 
     def process_text_style(self, layer_name, layer_config):
         style, warning_generated = self.get_style(layer_config.get('style', {}))

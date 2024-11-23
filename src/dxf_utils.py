@@ -30,7 +30,11 @@ from ezdxf.tools.text import ParagraphProperties, MTextParagraphAlignment
 from ezdxf.tools.text import MTextEditor
 
 
+
 SCRIPT_IDENTIFIER = "Created by DXFExporter"
+
+# Constants for DXF flags
+LWPOLYLINE_PLINEGEN = 0x80  # Linetype generation flag for polylines
 
 def get_color_code(color, name_to_aci):
     if color is None:
@@ -451,64 +455,38 @@ def linetype_exists(doc, linetype):
     return linetype in doc.linetypes
 
 def apply_style_to_entity(entity, style, project_loader, loaded_styles, item_type='area'):
-    if entity.dxftype() == 'MTEXT':
-        if 'height' in style:
-            entity.dxf.char_height = style['height']
-        if 'font' in style:
-            entity.dxf.style = style['font']
+    # Layer properties are already handled at layer creation
     
-    if 'color' in style:
-        color = get_color_code(style['color'], project_loader.name_to_aci)
-        if isinstance(color, tuple):
-            entity.rgb = color  # Set RGB color directly
-        else:
-            entity.dxf.color = color  # Set ACI color
-    else:
-        entity.dxf.color = ezdxf.const.BYLAYER
+    # Handle entity-level properties
+    entity_properties = {
+        'linetypeScale': ('ltscale', 1.0, float),
+        'linetypeGeneration': ('flags', True, bool),
+        'close': ('closed', False, bool)
+    }
     
-    if 'linetype' in style:
-        linetype = style['linetype']
-        if linetype_exists(entity.doc, linetype):
-            entity.dxf.linetype = linetype
-        else:
-            log_warning(f"Linetype '{linetype}' is not defined in the current DXF object. Using 'BYLAYER' instead.")
-            entity.dxf.linetype = 'BYLAYER'
-    
-    if 'lineweight' in style:
-        entity.dxf.lineweight = style['lineweight']
-    
-    # Set transparency for all entity types
-    if 'transparency' in style:
-        transparency = convert_transparency(style['transparency'])
-        if transparency is not None:
-            try:
-                entity.transparency = transparency
-            except Exception as e:
-                print(f"Warning: Could not set transparency for {entity.dxftype()}. Error: {str(e)}")
-    else:
-        # To set transparency to ByLayer, we'll try to remove the attribute if it exists
-        try:
-            del entity.transparency
-        except AttributeError:
-            # If the entity doesn't have a transparency attribute, we don't need to do anything
-            pass
-
-    # Apply linetype scale if specified
+    # Apply linetype scale first if present
     if 'linetypeScale' in style:
-        entity.dxf.ltscale = float(style['linetypeScale'])
-    else:
-        entity.dxf.ltscale = 1.0  # Default scale
-
-    if 'text_style' in style:
-        text_style = style['text_style']
-        if text_style not in loaded_styles:
-            log_warning(f"Text style '{text_style}' was not loaded during initialization. Using 'Standard' instead.")
-            entity.dxf.style = 'Standard'
-        elif text_style not in entity.doc.styles:
-            log_warning(f"Text style '{text_style}' is not defined in the current DXF object. Using 'Standard' instead.")
-            entity.dxf.style = 'Standard'
-        else:
-            entity.dxf.style = text_style
+        try:
+            scale = float(style['linetypeScale'])
+            entity.dxf.ltscale = scale
+        except (ValueError, AttributeError) as e:
+            log_warning(f"Failed to set linetype scale: {str(e)}")
+    
+    # Handle other properties
+    for style_key, (dxf_attr, default, converter) in entity_properties.items():
+        if style_key == 'linetypeScale':
+            continue  # Already handled above
+            
+        if style_key in style:
+            value = converter(style[style_key])
+            if dxf_attr == 'flags':
+                current_flags = getattr(entity.dxf, 'flags', 0)
+                if value:
+                    entity.dxf.flags = current_flags | LWPOLYLINE_PLINEGEN
+                else:
+                    entity.dxf.flags = current_flags & ~LWPOLYLINE_PLINEGEN
+            elif dxf_attr == 'closed':
+                entity.closed = value
 
 def create_hatch(msp, boundary_paths, hatch_config, project_loader):
     hatch = msp.add_hatch()
