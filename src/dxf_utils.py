@@ -314,6 +314,10 @@ def set_drawing_properties(doc):
     doc.header['$LUPREC'] = 4  # Precision for linear units
     doc.header['$AUPREC'] = 4  # Precision for angular units
     
+    # Add global linetype scale
+    doc.header['$LTSCALE'] = 1.0  # Global linetype scale
+    doc.header['$PSLTSCALE'] = 1  # Paper space linetype scaling
+    
     # Define meaning of values
     measurement_meaning = {
         0: "Imperial (inches, feet)",

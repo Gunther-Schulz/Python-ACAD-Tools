@@ -523,17 +523,11 @@ class DXFExporter:
     def add_linestring_to_dxf(self, msp, linestring, layer_name, entity_name=None):
         points = list(linestring.coords)
         layer_properties = self.layer_properties[layer_name]
-
-        # For linestrings, we should not close them unless explicitly requested
-        # and the first and last points are already the same
-        should_close = (layer_properties['close'] and 
-                       points[0] == points[-1])
-
-        log_info(f"Adding linestring to layer {layer_name} with {len(points)} points")
-        log_info(f"First point: {points[0][:2] if points else 'No points'}")
-
+        
+        # Only close if explicitly requested in properties
+        should_close = layer_properties.get('close', False)
+        
         try:
-            # Extract only x and y coordinates
             points_2d = [(p[0], p[1]) for p in points]
             
             polyline = msp.add_lwpolyline(
@@ -541,7 +535,7 @@ class DXFExporter:
                 dxfattribs={
                     'layer': layer_name,
                     'closed': should_close,
-                    'ltscale': layer_properties['linetypeScale']
+                    'ltscale': float(layer_properties.get('linetypeScale', 1.0))
                 }
             )
             
@@ -549,17 +543,21 @@ class DXFExporter:
             polyline.dxf.const_width = 0
             
             # Apply linetype generation setting
-            if layer_properties['linetypeGeneration']:
+            if layer_properties.get('linetypeGeneration', True):
                 polyline.dxf.flags |= LWPOLYLINE_PLINEGEN
             else:
                 polyline.dxf.flags &= ~LWPOLYLINE_PLINEGEN
             
-            self.attach_custom_data(polyline, entity_name)
-            log_info(f"Successfully added polyline to layer {layer_name}")
-            log_info(f"Polyline properties: {polyline.dxf.all_existing_dxf_attribs()}")
+            # Apply the style to entity
+            apply_style_to_entity(polyline, layer_properties, self.project_loader, self.loaded_styles, 'line')
+            
+            if entity_name:
+                self.attach_custom_data(polyline, entity_name)
+                
+            return polyline
         except Exception as e:
-            log_error(f"Error adding polyline to layer {layer_name}: {str(e)}")
-            log_error(f"Points causing error: {points_2d}")
+            log_error(f"Failed to add linestring to layer {layer_name}: {str(e)}")
+            return None
 
     def add_label_to_dxf(self, msp, geometry, label, layer_name):
         centroid = self.get_geometry_centroid(geometry)
@@ -588,18 +586,7 @@ class DXFExporter:
             if style_config:
                 properties.update(self.style_manager.process_layer_style(layer_name, layer))
         
-        # Always apply these properties, whether from style or direct layer config
-        properties['color'] = properties.get('color') or get_color_code(layer.get('color'), self.name_to_aci)
-        properties['linetype'] = properties.get('linetype', layer.get('linetype', 'CONTINUOUS'))
-        properties['plot'] = properties.get('plot', layer.get('plot', True))
-        properties['locked'] = properties.get('locked', layer.get('locked', False))
-        properties['frozen'] = properties.get('frozen', layer.get('frozen', False))
-        properties['is_on'] = properties.get('is_on', layer.get('is_on', True))
-        properties['transparency'] = properties.get('transparency', layer.get('transparency', 0))
-        properties['close'] = layer.get('close', True)
-        properties['linetypeScale'] = layer.get('linetypeScale', 1.0)
-        properties['linetypeGeneration'] = layer.get('linetypeGeneration', True)
-        
+        # Store the properties
         self.layer_properties[layer_name] = properties
         self.colors[layer_name] = properties.get('color')
 
@@ -1032,7 +1019,6 @@ class DXFExporter:
     #             if layer_name not in doc.layers:
     #                 doc.layers.new(layer_name)
     #                 log_info(f"Created layer for text insert: {layer_name}")
-
 
 
 

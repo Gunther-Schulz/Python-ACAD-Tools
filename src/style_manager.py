@@ -177,8 +177,9 @@ class StyleManager:
             'frozen': layer_style.get('frozen', False),
             'is_on': layer_style.get('is_on', True),
             'transparency': layer_style.get('transparency', 0),
-            'close': layer_style.get('close', True),
+            'close': layer_style.get('close', False),
             'linetypeScale': layer_style.get('linetypeScale', 1.0),
+            'linetypeGeneration': layer_style.get('linetypeGeneration', True)
         }
         
         return properties
