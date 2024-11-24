@@ -208,24 +208,24 @@ geomLayers:
         layers:
           - name: Geltungsbereich NW
         distance: 2
-  - name: Geltungsbereich Hatch NW
-    updateDxf: true
-    style: geltungsbereichHatches
-    applyHatch:
-      layers:
-        - Geltungsbereich NW
-  - name: Geltungsbereich Hatch NO
-    updateDxf: true
-    style: geltungsbereichHatches
-    applyHatch:
-      layers:
-        - Geltungsbereich NO
-  - name: Geltungsbereich Hatch S
-    updateDxf: true
-    style: geltungsbereichHatches
-    applyHatch:
-      layers:
-        - Geltungsbereich S
+  # - name: Geltungsbereich Hatch NW
+  #   updateDxf: true
+  #   style: geltungsbereichHatches
+  #   applyHatch:
+  #     layers:
+  #       - Geltungsbereich NW
+  # - name: Geltungsbereich Hatch NO
+  #   updateDxf: true
+  #   style: geltungsbereichHatches
+  #   applyHatch:
+  #     layers:
+  #       - Geltungsbereich NO
+  # - name: Geltungsbereich Hatch S
+  #   updateDxf: true
+  #   style: geltungsbereichHatches
+  #   applyHatch:
+  #     layers:
+  #       - Geltungsbereich S
   - name: Geltungsbereich NO
     updateDxf: true
     style: geltungsbereich
@@ -366,6 +366,24 @@ geomLayers:
         layers:
           - name: Geltungsbereich S
         distance: 2
+  - name: Geltungsbereich Hatch NW
+    updateDxf: true
+    style: geltungsbereichHatches
+    applyHatch:
+      layers:
+        - Geltungsbereich NW
+  - name: Geltungsbereich Hatch NO
+    updateDxf: true
+    style: geltungsbereichHatches
+    applyHatch:
+      layers:
+        - Geltungsbereich NO
+  - name: Geltungsbereich Hatch S
+    updateDxf: true
+    style: geltungsbereichHatches
+    applyHatch:
+      layers:
+        - Geltungsbereich S
   - name: Einfahrt Line
     operations:
       - type: directionalLine
@@ -585,6 +603,7 @@ geomLayers:
       - type: copy
         layers:
           - Ausgleichsfläche Gesamt
+          - Hecke
       - type: intersection
         layers:
           - Geltungsbereich NO
