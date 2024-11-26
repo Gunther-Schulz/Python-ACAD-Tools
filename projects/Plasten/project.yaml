@@ -20,10 +20,14 @@ reducedDxf:
     - Hecke
     - Wald
     - Biotope
+    # - Ausgleich Grünfläche
+    # - Ausgleich Schutzflächeumgrenzung
     - Ausgleichsfläche Gesamt
     - Biotoppuffer
     - Baufeld
     - Baugrenze
+    - FG Line
+    - Gastrasse
   processFromScratch: false
   # Each type is processed only if specified in the processTypes list
   # For layers-based types (geom, wmts, wms), only processes layers listed in reducedDxf.layers

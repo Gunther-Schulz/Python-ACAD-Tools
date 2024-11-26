@@ -407,6 +407,9 @@ geomLayers:
           - Geltungsbereich NW
           - Geltungsbereich NO
           - Geltungsbereich S
+      - type: dissolve
+        useBufferTrick: true
+  
   # - name: Einfahrt Schraffur
   #   updateDxf: true
   #   style: verkehrsfläche
@@ -556,6 +559,7 @@ geomLayers:
         decimalPlaces:
           area: 0
   - name: Ausgleichsfläche Gesamt
+    updateDxf: true
     viewports:
       - name: WorkView
         style: grünflächeWorkView
@@ -804,6 +808,7 @@ geomLayers:
           - Biotope
           - Biotoppuffer
       - type: dissolve
+        useBufferTrick: true
   - name: Baufeld
     updateDxf: true
     close: true
@@ -817,7 +822,7 @@ geomLayers:
           - Geltungsbereich NO
           - Geltungsbereich S
       - type: difference
-        # useBufferTrick: true
+        useBufferTrick: true
         reverseDifference: false
         operations:
           - type: dissolve

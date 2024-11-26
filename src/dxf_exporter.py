@@ -1197,29 +1197,43 @@ class DXFExporter:
                         log_info(f"Copying entities for layer: {layer_name}")
                         
                         # Copy main layer entities
+                        entity_count = 0
                         for entity in original_msp.query(f'*[layer=="{layer_name}"]'):
                             try:
                                 new_entity = entity.copy()
                                 # Ensure the entity is properly linked to the layer
                                 new_entity.dxf.layer = layer_name
                                 reduced_msp.add_entity(new_entity)
+                                entity_count += 1
                             except Exception as e:
                                 log_warning(f"Failed to copy entity in layer {layer_name}: {str(e)}")
                                 continue
+                        
+                        if entity_count == 0:
+                            log_warning(f"No geometry was copied for layer: {layer_name}")
+                        else:
+                            log_info(f"Copied {entity_count} entities for layer: {layer_name}")
                         
                         # Copy label layer entities
                         label_layer_name = f"{layer_name} Label"
                         if label_layer_name in original_doc.layers:
                             log_info(f"Copying entities for label layer: {label_layer_name}")
+                            label_count = 0
                             for entity in original_msp.query(f'*[layer=="{label_layer_name}"]'):
                                 try:
                                     new_entity = entity.copy()
                                     # Ensure the entity is properly linked to the layer
                                     new_entity.dxf.layer = label_layer_name
                                     reduced_msp.add_entity(new_entity)
+                                    label_count += 1
                                 except Exception as e:
                                     log_warning(f"Failed to copy entity in layer {label_layer_name}: {str(e)}")
                                     continue
+                            
+                            if label_count == 0:
+                                log_warning(f"No labels were copied for layer: {label_layer_name}")
+                            else:
+                                log_info(f"Copied {label_count} labels for layer: {label_layer_name}")
                     else:
                         log_warning(f"Layer {layer_name} not found in main DXF")
             
