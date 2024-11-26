@@ -9,6 +9,21 @@ shapefileOutputDir: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - 
 reducedDxf:
   layers:
     - Parcel
+    # - Flur
+    - Gemarkung
+    - Gemeinde
+    # - Geschütze Biotope
+    # - Geltungsbereich NW
+    # - Geltungsbereich NO
+    # - Geltungsbereich S
+    # - Einfahrt
+    # - Hecke
+    # - Wald
+    # - Biotope
+    # - Ausgleichsfläche Gesamt
+    # - Biotoppuffer
+    # - Baufeld
+    # - Baugrenze
   processFromScratch: false
   # Each type is processed only if specified in the processTypes list
   # For layers-based types (geom, wmts, wms), only processes layers listed in reducedDxf.layers
