@@ -2,6 +2,7 @@ import random
 import shutil
 import traceback
 import ezdxf
+from pathlib import Path
 from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection, Point
 from src.utils import ensure_path_exists, log_info, log_warning, log_error, resolve_path
 import geopandas as gpd
@@ -102,29 +103,38 @@ class DXFExporter:
         self.colors[label_layer_name] = label_properties['color']
 
     def export_to_dxf(self):
-        log_info("Starting DXF export...")
-        doc = self._prepare_dxf_document()
-        self.loaded_styles = initialize_document(doc)
-        msp = doc.modelspace()
-        self.register_app_id(doc)
-        
-        # First ensure all layers exist
-        # self._ensure_all_layers_exist(doc)
-        
-        # Then process all content
-        self.process_layers(doc, msp)
-        self.create_path_arrays(msp)
-        self.block_insert_manager.process_block_inserts(msp)
-        self.process_text_inserts(msp)
-        
-        # Create legend
-        legend_creator = LegendCreator(doc, msp, self.project_loader, self.loaded_styles)
-        legend_creator.create_legend()
-        
-        # Create and configure viewports after ALL content exists
-        self.viewport_manager.create_viewports(doc, msp)
-        
-        self._cleanup_and_save(doc, msp)
+        """Main export method."""
+        try:
+            log_info("Starting DXF export...")
+            doc = self._prepare_dxf_document()
+            self.loaded_styles = initialize_document(doc)
+            msp = doc.modelspace()
+            self.register_app_id(doc)
+            
+            # First ensure all layers exist
+            # self._ensure_all_layers_exist(doc)
+            
+            # Then process all content
+            self.process_layers(doc, msp)
+            self.create_path_arrays(msp)
+            self.block_insert_manager.process_block_inserts(msp)
+            self.process_text_inserts(msp)
+            
+            # Create legend
+            legend_creator = LegendCreator(doc, msp, self.project_loader, self.loaded_styles)
+            legend_creator.create_legend()
+            
+            # Create and configure viewports after ALL content exists
+            self.viewport_manager.create_viewports(doc, msp)
+            
+            self._cleanup_and_save(doc, msp)
+            
+            # After successful export, create reduced version if configured
+            self.create_reduced_dxf()
+            
+        except Exception as e:
+            log_error(f"Error during DXF export: {str(e)}")
+            raise
 
     def _prepare_dxf_document(self):
         self._backup_existing_file()
@@ -139,13 +149,26 @@ class DXFExporter:
 
     def _load_or_create_dxf(self):
         dxf_version = self.project_settings.get('dxfVersion', 'R2010')
+        template_filename = self.project_settings.get('templateDxfFilename')
+        
         if os.path.exists(self.dxf_filename):
             doc = ezdxf.readfile(self.dxf_filename)
             log_info(f"Loaded existing DXF file: {self.dxf_filename}")
             self.load_existing_layers(doc)
             self.check_existing_entities(doc)
-            # Print settings for existing file
             set_drawing_properties(doc)
+        elif template_filename:
+            # Use project_loader's folder prefix for template path
+            full_template_path = os.path.join(self.project_loader.folder_prefix, template_filename)
+            if os.path.exists(full_template_path):
+                doc = ezdxf.readfile(full_template_path)
+                log_info(f"Created new DXF file from template: {full_template_path}")
+                set_drawing_properties(doc)
+            else:
+                log_warning(f"Template file not found at: {full_template_path}")
+                doc = ezdxf.new(dxfversion=dxf_version)
+                log_info(f"Created new DXF file with version: {dxf_version}")
+                set_drawing_properties(doc)
         else:
             doc = ezdxf.new(dxfversion=dxf_version)
             log_info(f"Created new DXF file with version: {dxf_version}")
@@ -1032,6 +1055,58 @@ class DXFExporter:
     #             if layer_name not in doc.layers:
     #                 doc.layers.new(layer_name)
     #                 log_info(f"Created layer for text insert: {layer_name}")
+
+    def create_reduced_dxf(self):
+        """Create a reduced version of the DXF file with only specified layers in modelspace."""
+        if not self.project_settings.get('reducedDxfLayers'):
+            log_info("No reducedDxfLayers specified in project settings, skipping reduced DXF creation")
+            return
+
+        template_filename = self.project_settings.get('templateDxfFilename')
+        
+        # Create new DXF document from template if it exists, otherwise create new
+        if template_filename:
+            # Use project_loader's folder prefix for template path
+            full_template_path = os.path.join(self.project_loader.folder_prefix, template_filename)
+            if os.path.exists(full_template_path):
+                reduced_doc = ezdxf.readfile(full_template_path)
+                log_info(f"Created reduced DXF from template: {full_template_path}")
+            else:
+                log_warning(f"Template file not found at: {full_template_path}")
+                reduced_doc = ezdxf.new(self.project_settings.get('dxfVersion', 'R2010'))
+                log_info("Created new reduced DXF file")
+        else:
+            reduced_doc = ezdxf.new(self.project_settings.get('dxfVersion', 'R2010'))
+            log_info("Created new reduced DXF file")
+        
+        reduced_msp = reduced_doc.modelspace()
+
+        # Get original document
+        original_doc = ezdxf.readfile(self.dxf_filename)
+        original_msp = original_doc.modelspace()
+
+        # Get list of layers to include
+        layers_to_include = self.project_settings.get('reducedDxfLayers', [])
+        
+        # Copy specified layers and their entities
+        for layer_name in layers_to_include:
+            if layer_name in original_doc.layers:
+                # Copy layer properties
+                layer_properties = original_doc.layers.get(layer_name).dxf.all_existing_dxf_attribs()
+                if layer_name not in reduced_doc.layers:
+                    reduced_doc.layers.new(name=layer_name, dxfattribs=layer_properties)
+                
+                # Copy entities from this layer
+                for entity in original_msp.query(f'*[layer=="{layer_name}"]'):
+                    reduced_msp.add_entity(entity.copy())
+
+        # Generate reduced DXF filename
+        original_path = Path(self.dxf_filename)
+        reduced_path = original_path.parent / f"{original_path.stem}_reduced{original_path.suffix}"
+        
+        # Save reduced DXF
+        reduced_doc.saveas(str(reduced_path))
+        log_info(f"Created reduced DXF file: {reduced_path}")
 
 
 
