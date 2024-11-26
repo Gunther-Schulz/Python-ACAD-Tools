@@ -158,8 +158,8 @@ class DXFExporter:
             self.check_existing_entities(doc)
             set_drawing_properties(doc)
         elif template_filename:
-            # Use project_loader's folder prefix for template path
-            full_template_path = os.path.join(self.project_loader.folder_prefix, template_filename)
+            # Use resolve_path with folder prefix
+            full_template_path = resolve_path(template_filename, self.project_loader.folder_prefix)
             if os.path.exists(full_template_path):
                 doc = ezdxf.readfile(full_template_path)
                 log_info(f"Created new DXF file from template: {full_template_path}")
@@ -1058,47 +1058,50 @@ class DXFExporter:
 
     def create_reduced_dxf(self):
         """Create a reduced version of the DXF file with only specified layers in modelspace."""
-        if not self.project_settings.get('reducedDxfLayers'):
+        reduced_layers = self.project_settings.get('reducedDxfLayers')
+        if not reduced_layers:
             log_info("No reducedDxfLayers specified in project settings, skipping reduced DXF creation")
             return
 
         template_filename = self.project_settings.get('templateDxfFilename')
+        if not template_filename:
+            log_warning("No templateDxfFilename specified in project settings, required for reduced DXF creation")
+            return
         
-        # Create new DXF document from template if it exists, otherwise create new
-        if template_filename:
-            # Use project_loader's folder prefix for template path
-            full_template_path = os.path.join(self.project_loader.folder_prefix, template_filename)
-            if os.path.exists(full_template_path):
-                reduced_doc = ezdxf.readfile(full_template_path)
-                log_info(f"Created reduced DXF from template: {full_template_path}")
-            else:
-                log_warning(f"Template file not found at: {full_template_path}")
-                reduced_doc = ezdxf.new(self.project_settings.get('dxfVersion', 'R2010'))
-                log_info("Created new reduced DXF file")
-        else:
-            reduced_doc = ezdxf.new(self.project_settings.get('dxfVersion', 'R2010'))
-            log_info("Created new reduced DXF file")
+        # Create new DXF document from template
+        template_path = resolve_path(template_filename, self.project_loader.folder_prefix)
+        if not os.path.exists(template_path):
+            log_warning(f"Template file not found at: {template_path}")
+            return
         
+        # Start with a fresh template
+        reduced_doc = ezdxf.readfile(template_path)
+        log_info(f"Created reduced DXF from template: {template_path}")
         reduced_msp = reduced_doc.modelspace()
 
-        # Get original document
-        original_doc = ezdxf.readfile(self.dxf_filename)
-        original_msp = original_doc.modelspace()
-
-        # Get list of layers to include
-        layers_to_include = self.project_settings.get('reducedDxfLayers', [])
-        
-        # Copy specified layers and their entities
-        for layer_name in layers_to_include:
-            if layer_name in original_doc.layers:
-                # Copy layer properties
-                layer_properties = original_doc.layers.get(layer_name).dxf.all_existing_dxf_attribs()
-                if layer_name not in reduced_doc.layers:
-                    reduced_doc.layers.new(name=layer_name, dxfattribs=layer_properties)
+        # Process only geom layers that are in reducedDxfLayers
+        for layer_info in self.project_settings.get('geomLayers', []):
+            layer_name = layer_info['name']
+            
+            if layer_name not in reduced_layers:
+                continue
+            
+            log_info(f"Processing reduced layer: {layer_name}")
+            
+            # Create a modified layer config with updateDxf forced to True
+            modified_layer_info = layer_info.copy()
+            modified_layer_info['updateDxf'] = True
+            
+            # Ensure layer exists with proper properties
+            self._ensure_layer_exists(reduced_doc, layer_name, modified_layer_info)
+            
+            # Process layer geometry if it exists in all_layers
+            if layer_name in self.all_layers:
+                self.update_layer_geometry(reduced_msp, layer_name, self.all_layers[layer_name], modified_layer_info)
                 
-                # Copy entities from this layer
-                for entity in original_msp.query(f'*[layer=="{layer_name}"]'):
-                    reduced_msp.add_entity(entity.copy())
+                # If layer has labels, process them too
+                if self.has_labels(modified_layer_info):
+                    self._ensure_label_layer_exists(reduced_doc, layer_name, modified_layer_info)
 
         # Generate reduced DXF filename
         original_path = Path(self.dxf_filename)
