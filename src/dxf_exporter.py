@@ -1170,44 +1170,81 @@ class DXFExporter:
 
         else:
             log_info("Copying reduced DXF layers from main DXF")
-            # Copy layers from the main DXF file
-            original_doc = ezdxf.readfile(self.dxf_filename)
-            original_msp = original_doc.modelspace()
+            try:
+                # Copy layers from the main DXF file
+                original_doc = ezdxf.readfile(self.dxf_filename)
+                original_msp = original_doc.modelspace()
 
-            # Copy specified layers and their entities
-            for layer_name in reduced_layers:
-                if layer_name in original_doc.layers:
-                    log_info(f"Copying layer from main DXF: {layer_name}")
-                    
-                    # Copy layer properties
-                    layer_properties = original_doc.layers.get(layer_name).dxf.all_existing_dxf_attribs()
-                    if layer_name not in reduced_doc.layers:
-                        reduced_doc.layers.new(name=layer_name, dxfattribs=layer_properties)
-                    
-                    # Copy entities from this layer
-                    for entity in original_msp.query(f'*[layer=="{layer_name}"]'):
-                        reduced_msp.add_entity(entity.copy())
+                # First pass: Create all layers
+                for layer_name in reduced_layers:
+                    if layer_name in original_doc.layers:
+                        log_info(f"Creating layer: {layer_name}")
+                        layer_properties = original_doc.layers.get(layer_name).dxf.all_existing_dxf_attribs()
+                        if layer_name not in reduced_doc.layers:
+                            reduced_doc.layers.new(name=layer_name, dxfattribs=layer_properties)
                         
-                    # Check for and copy associated label layer if it exists
-                    label_layer_name = f"{layer_name} Label"
-                    if label_layer_name in original_doc.layers:
-                        log_info(f"Copying label layer: {label_layer_name}")
-                        if label_layer_name not in reduced_doc.layers:
-                            label_properties = original_doc.layers.get(label_layer_name).dxf.all_existing_dxf_attribs()
-                            reduced_doc.layers.new(name=label_layer_name, dxfattribs=label_properties)
+                        # Create label layer if it exists
+                        label_layer_name = f"{layer_name} Label"
+                        if label_layer_name in original_doc.layers:
+                            log_info(f"Creating label layer: {label_layer_name}")
+                            if label_layer_name not in reduced_doc.layers:
+                                label_properties = original_doc.layers.get(label_layer_name).dxf.all_existing_dxf_attribs()
+                                reduced_doc.layers.new(name=label_layer_name, dxfattribs=label_properties)
+
+                # Second pass: Copy entities layer by layer
+                for layer_name in reduced_layers:
+                    if layer_name in original_doc.layers:
+                        log_info(f"Copying entities for layer: {layer_name}")
                         
-                        for entity in original_msp.query(f'*[layer=="{label_layer_name}"]'):
-                            reduced_msp.add_entity(entity.copy())
-                else:
-                    log_warning(f"Layer {layer_name} not found in main DXF")
+                        # Copy main layer entities
+                        for entity in original_msp.query(f'*[layer=="{layer_name}"]'):
+                            try:
+                                new_entity = entity.copy()
+                                # Ensure the entity is properly linked to the layer
+                                new_entity.dxf.layer = layer_name
+                                reduced_msp.add_entity(new_entity)
+                            except Exception as e:
+                                log_warning(f"Failed to copy entity in layer {layer_name}: {str(e)}")
+                                continue
+                        
+                        # Copy label layer entities
+                        label_layer_name = f"{layer_name} Label"
+                        if label_layer_name in original_doc.layers:
+                            log_info(f"Copying entities for label layer: {label_layer_name}")
+                            for entity in original_msp.query(f'*[layer=="{label_layer_name}"]'):
+                                try:
+                                    new_entity = entity.copy()
+                                    # Ensure the entity is properly linked to the layer
+                                    new_entity.dxf.layer = label_layer_name
+                                    reduced_msp.add_entity(new_entity)
+                                except Exception as e:
+                                    log_warning(f"Failed to copy entity in layer {label_layer_name}: {str(e)}")
+                                    continue
+                    else:
+                        log_warning(f"Layer {layer_name} not found in main DXF")
+            
+            except Exception as e:
+                log_error(f"Error during layer copying: {str(e)}")
+                raise
 
         # Generate reduced DXF filename
         original_path = Path(self.dxf_filename)
         reduced_path = original_path.parent / f"{original_path.stem}_reduced{original_path.suffix}"
         
-        # Save reduced DXF
-        reduced_doc.saveas(str(reduced_path))
-        log_info(f"Created reduced DXF file: {reduced_path}")
+        try:
+            # Audit and clean up the document before saving
+            auditor = reduced_doc.audit()
+            if len(auditor.errors) > 0:
+                log_warning(f"Found {len(auditor.errors)} issues during audit")
+                for error in auditor.errors:
+                    log_warning(f"Audit error: {error}")
+            
+            # Save reduced DXF
+            reduced_doc.saveas(str(reduced_path))
+            log_info(f"Created reduced DXF file: {reduced_path}")
+        except Exception as e:
+            log_error(f"Error saving reduced DXF: {str(e)}")
+            raise
 
 
 
