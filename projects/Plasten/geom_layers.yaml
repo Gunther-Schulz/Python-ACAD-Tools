@@ -561,11 +561,11 @@ geomLayers:
   - name: Ausgleichsfläche Gesamt
     updateDxf: true
     # style: baufeld
-    style: baugrenze_2
-    # style:
-    #   layer:
-    #     color: "lime"
-    #     plot: false
+    # style: baugrenze_2
+    style:
+      layer:
+        color: "lime"
+        plot: false
     viewports:
       - name: WorkView
         style: grünflächeWorkView
