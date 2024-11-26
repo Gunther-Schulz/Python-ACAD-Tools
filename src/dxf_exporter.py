@@ -1057,10 +1057,14 @@ class DXFExporter:
     #                 log_info(f"Created layer for text insert: {layer_name}")
 
     def create_reduced_dxf(self):
-        """Create a reduced version of the DXF file with only specified layers in modelspace."""
-        reduced_layers = self.project_settings.get('reducedDxfLayers')
+        """
+        Create a reduced version of the DXF file. Can either:
+        1. Process layers from scratch (if processFromScratch=True in settings)
+        2. Copy layers from the main DXF (if processFromScratch=False or not specified)
+        """
+        reduced_layers = self.project_settings.get('reduced_dxf_layers')
         if not reduced_layers:
-            log_info("No reducedDxfLayers specified in project settings, skipping reduced DXF creation")
+            log_info("No reduced_dxf_layers specified in project settings, skipping reduced DXF creation")
             return
 
         template_filename = self.project_settings.get('templateDxfFilename')
@@ -1079,29 +1083,66 @@ class DXFExporter:
         log_info(f"Created reduced DXF from template: {template_path}")
         reduced_msp = reduced_doc.modelspace()
 
-        # Process only geom layers that are in reducedDxfLayers
-        for layer_info in self.project_settings.get('geomLayers', []):
-            layer_name = layer_info['name']
-            
-            if layer_name not in reduced_layers:
-                continue
-            
-            log_info(f"Processing reduced layer: {layer_name}")
-            
-            # Create a modified layer config with updateDxf forced to True
-            modified_layer_info = layer_info.copy()
-            modified_layer_info['updateDxf'] = True
-            
-            # Ensure layer exists with proper properties
-            self._ensure_layer_exists(reduced_doc, layer_name, modified_layer_info)
-            
-            # Process layer geometry if it exists in all_layers
-            if layer_name in self.all_layers:
-                self.update_layer_geometry(reduced_msp, layer_name, self.all_layers[layer_name], modified_layer_info)
+        # Check if we should process from scratch or copy from main DXF
+        process_from_scratch = self.project_settings.get('reduced_dxf_process_from_scratch', False)
+        
+        if process_from_scratch:
+            log_info("Processing reduced DXF layers from scratch")
+            # Process only geom layers that are in reduced_dxf_layers
+            for layer_info in self.project_settings.get('geomLayers', []):
+                layer_name = layer_info['name']
                 
-                # If layer has labels, process them too
-                if self.has_labels(modified_layer_info):
-                    self._ensure_label_layer_exists(reduced_doc, layer_name, modified_layer_info)
+                if layer_name not in reduced_layers:
+                    continue
+                    
+                log_info(f"Processing reduced layer from scratch: {layer_name}")
+                
+                # Create a modified layer config with updateDxf forced to True
+                modified_layer_info = layer_info.copy()
+                modified_layer_info['updateDxf'] = True
+                
+                # Ensure layer exists with proper properties
+                self._ensure_layer_exists(reduced_doc, layer_name, modified_layer_info)
+                
+                # Process layer geometry if it exists in all_layers
+                if layer_name in self.all_layers:
+                    self.update_layer_geometry(reduced_msp, layer_name, self.all_layers[layer_name], modified_layer_info)
+                    
+                    # If layer has labels, process them too
+                    if self.has_labels(modified_layer_info):
+                        self._ensure_label_layer_exists(reduced_doc, layer_name, modified_layer_info)
+        else:
+            log_info("Copying reduced DXF layers from main DXF")
+            # Copy layers from the main DXF file
+            original_doc = ezdxf.readfile(self.dxf_filename)
+            original_msp = original_doc.modelspace()
+
+            # Copy specified layers and their entities
+            for layer_name in reduced_layers:
+                if layer_name in original_doc.layers:
+                    log_info(f"Copying layer from main DXF: {layer_name}")
+                    
+                    # Copy layer properties
+                    layer_properties = original_doc.layers.get(layer_name).dxf.all_existing_dxf_attribs()
+                    if layer_name not in reduced_doc.layers:
+                        reduced_doc.layers.new(name=layer_name, dxfattribs=layer_properties)
+                    
+                    # Copy entities from this layer
+                    for entity in original_msp.query(f'*[layer=="{layer_name}"]'):
+                        reduced_msp.add_entity(entity.copy())
+                        
+                    # Check for and copy associated label layer if it exists
+                    label_layer_name = f"{layer_name} Label"
+                    if label_layer_name in original_doc.layers:
+                        log_info(f"Copying label layer: {label_layer_name}")
+                        if label_layer_name not in reduced_doc.layers:
+                            label_properties = original_doc.layers.get(label_layer_name).dxf.all_existing_dxf_attribs()
+                            reduced_doc.layers.new(name=label_layer_name, dxfattribs=label_properties)
+                        
+                        for entity in original_msp.query(f'*[layer=="{label_layer_name}"]'):
+                            reduced_msp.add_entity(entity.copy())
+                else:
+                    log_warning(f"Layer {layer_name} not found in main DXF")
 
         # Generate reduced DXF filename
         original_path = Path(self.dxf_filename)
