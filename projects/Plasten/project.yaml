@@ -17,7 +17,7 @@ reducedDxf:
     - Geltungsbereich NW
     - Geltungsbereich NO
     - Geltungsbereich S
-    - Einfahrt
+    - Einfahrt # Blocks copying is not working right now
     - Hecke
     - Wald
     - Biotope
