@@ -1062,10 +1062,13 @@ class DXFExporter:
         1. Process layers from scratch (if processFromScratch=True in settings)
         2. Copy layers from the main DXF (if processFromScratch=False or not specified)
         """
-        reduced_layers = self.project_settings.get('reduced_dxf_layers')
-        if not reduced_layers:
-            log_info("No reduced_dxf_layers specified in project settings, skipping reduced DXF creation")
+        reduced_settings = self.project_settings.get('reducedDxf', {})
+        if not reduced_settings or 'layers' not in reduced_settings:
+            log_info("No reducedDxf.layers specified in project settings, skipping reduced DXF creation")
             return
+
+        reduced_layers = reduced_settings['layers']
+        process_from_scratch = reduced_settings.get('processFromScratch', False)
 
         template_filename = self.project_settings.get('templateDxfFilename')
         if not template_filename:
@@ -1082,9 +1085,6 @@ class DXFExporter:
         reduced_doc = ezdxf.readfile(template_path)
         log_info(f"Created reduced DXF from template: {template_path}")
         reduced_msp = reduced_doc.modelspace()
-
-        # Check if we should process from scratch or copy from main DXF
-        process_from_scratch = self.project_settings.get('reduced_dxf_process_from_scratch', False)
         
         if process_from_scratch:
             log_info("Processing reduced DXF layers from scratch")
