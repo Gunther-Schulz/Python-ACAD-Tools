@@ -560,6 +560,10 @@ geomLayers:
           area: 0
   - name: Ausgleichsfläche Gesamt
     updateDxf: true
+    style:
+      layer:
+        color: "lime"
+        plot: false
     viewports:
       - name: WorkView
         style: grünflächeWorkView
