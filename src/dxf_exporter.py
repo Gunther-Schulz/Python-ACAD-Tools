@@ -1211,7 +1211,7 @@ class DXFExporter:
                 original_doc = ezdxf.readfile(self.dxf_filename)
                 original_msp = original_doc.modelspace()
 
-                # First pass: Create all layers
+                # First pass: Create all layers and copy block definitions
                 for layer_name in reduced_layers:
                     if layer_name in original_doc.layers:
                         log_info(f"Creating layer: {layer_name}")
@@ -1227,6 +1227,30 @@ class DXFExporter:
                                 label_properties = original_doc.layers.get(label_layer_name).dxf.all_existing_dxf_attribs()
                                 reduced_doc.layers.new(name=label_layer_name, dxfattribs=label_properties)
 
+                # Copy block definitions before copying entities
+                for entity in original_msp.query('INSERT'):
+                    block_name = entity.dxf.name
+                    if block_name not in reduced_doc.blocks:
+                        try:
+                            # Get the block definition from the original document
+                            original_block = original_doc.blocks[block_name]
+                            # Create a new block in the reduced document
+                            new_block = reduced_doc.blocks.new(name=block_name)
+                            
+                            # Copy all entities from the original block to the new block
+                            for block_entity in original_block:
+                                try:
+                                    new_entity = block_entity.copy()
+                                    new_block.add_entity(new_entity)
+                                except Exception as e:
+                                    log_warning(f"Failed to copy entity in block {block_name}: {str(e)}")
+                                    continue
+                            
+                            log_info(f"Copied block definition: {block_name}")
+                        except Exception as e:
+                            log_warning(f"Failed to copy block definition {block_name}: {str(e)}")
+                            continue
+
                 # Second pass: Copy entities layer by layer
                 for layer_name in reduced_layers:
                     if layer_name in original_doc.layers:
@@ -1236,15 +1260,31 @@ class DXFExporter:
                         entity_count = 0
                         for entity in original_msp.query(f'*[layer=="{layer_name}"]'):
                             try:
-                                new_entity = entity.copy()
-                                # Ensure the entity is properly linked to the layer
-                                new_entity.dxf.layer = layer_name
-                                reduced_msp.add_entity(new_entity)
+                                if entity.dxftype() == 'INSERT':
+                                    # Handle block references using add_block_reference
+                                    block_name = entity.dxf.name
+                                    insert_point = (entity.dxf.insert.x, entity.dxf.insert.y)
+                                    scale = entity.dxf.xscale  # Assuming uniform scaling
+                                    rotation = entity.dxf.rotation
+                                    
+                                    new_entity = add_block_reference(
+                                        reduced_msp,
+                                        block_name,
+                                        insert_point,
+                                        layer_name,
+                                        scale=scale,
+                                        rotation=rotation
+                                    )
+                                else:
+                                    new_entity = entity.copy()
+                                    new_entity.dxf.layer = layer_name
+                                    reduced_msp.add_entity(new_entity)
+                                
                                 entity_count += 1
                             except Exception as e:
                                 log_warning(f"Failed to copy entity in layer {layer_name}: {str(e)}")
                                 continue
-                        
+                            
                         if entity_count == 0:
                             log_warning(f"No geometry was copied for layer: {layer_name}")
                         else:
