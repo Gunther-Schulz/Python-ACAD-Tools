@@ -32,13 +32,27 @@ from src.operations.report_operation import create_report_layer
 class LayerProcessor:
     def __init__(self, project_loader, plot_ops=False):
         self.project_loader = project_loader
-        self.all_layers = {}
         self.project_settings = project_loader.project_settings
         self.crs = project_loader.crs
-        self.plot_ops = plot_ops  # New flag for plotting operations
+        self.all_layers = {}
+        self.plot_ops = plot_ops
         self.style_manager = StyleManager(project_loader)
         self.processed_layers = set()
+        self.dxf_doc = None
+        self.pending_dxf_layers = []
     
+    def set_dxf_document(self, doc):
+        """Set the DXF document from DXFExporter and process any pending layers"""
+        self.dxf_doc = doc
+        log_info("DXF document reference set in LayerProcessor")
+        
+        # Process any pending DXF layers
+        if self.pending_dxf_layers:
+            log_info(f"Processing {len(self.pending_dxf_layers)} pending DXF layers")
+            for layer_name, dxf_layer_name in self.pending_dxf_layers:
+                self.load_dxf_layer(layer_name, dxf_layer_name)
+            self.pending_dxf_layers = []  # Clear the pending list
+
     def process_layers(self):
         log_info("Starting to process layers...")
         
@@ -83,7 +97,6 @@ class LayerProcessor:
             return
 
         log_info(f"Processing layer: {layer_name}")
-        log_info(f"Layer object: {layer_obj}")
         
         # Early return for temp layers that don't exist in settings
         if layer_obj is None:
@@ -92,15 +105,15 @@ class LayerProcessor:
             log_warning(f"Layer {layer_name} not found in project settings")
             return
 
-        # Only check for unrecognized keys if we have a valid layer_obj
-        recognized_keys = {'name', 'updateDxf', 'operations', 'shapeFile', 'type','dxfLayer', 'outputShapeFile', 
-                          'style', 'close', 'linetypeScale', 'linetypeGeneration', 'viewports', 'attributes', 
-                          'bluntAngles', 'label', 'applyHatch', 'plot'}
+        # Check for unrecognized keys
+        recognized_keys = {'name', 'updateDxf', 'operations', 'shapeFile', 'type', 'sourceLayer', 
+                          'outputShapeFile', 'style', 'close', 'linetypeScale', 'linetypeGeneration', 
+                          'viewports', 'attributes', 'bluntAngles', 'label', 'applyHatch', 'plot'}
         unrecognized_keys = set(layer_obj.keys()) - recognized_keys
         if unrecognized_keys:
             log_warning(f"Unrecognized keys in layer {layer_name}: {', '.join(unrecognized_keys)}")
 
-        # Process the new style structure
+        # Process style
         if 'style' in layer_obj:
             style, warning_generated = self.style_manager.get_style(layer_obj['style'])
             if warning_generated:
@@ -108,21 +121,26 @@ class LayerProcessor:
             if style is not None:
                 layer_obj['style'] = style
 
-        # Load DXF layer if specified, regardless of operations
-        if 'dxfLayer' in layer_obj:
-            self.load_dxf_layer(layer_name, layer_obj['dxfLayer'])
+        # Load DXF layer if specified
+        if 'sourceLayer' in layer_obj:
+            dxf_layer_name = layer_obj['sourceLayer']
+            if self.dxf_doc is None:
+                # Add to pending list instead of trying to load immediately
+                self.pending_dxf_layers.append((layer_name, dxf_layer_name))
+                log_info(f"Added '{layer_name}' with source layer '{dxf_layer_name}' to pending DXF layers queue")
+            else:
+                self.load_dxf_layer(layer_name, dxf_layer_name)
 
+        # Process operations
         if 'operations' in layer_obj:
             result_geometry = None
             for operation in layer_obj['operations']:
-                # Set type for WMTS/WMS layers if not already set
                 if layer_obj.get('type') in ['wmts', 'wms']:
                     operation['type'] = layer_obj['type']
                 result_geometry = self.process_operation(layer_name, operation, processed_layers)
             if result_geometry is not None:
                 self.all_layers[layer_name] = result_geometry
         elif 'shapeFile' in layer_obj:
-            # The shapefile should have been loaded in setup_shapefiles
             if layer_name not in self.all_layers:
                 log_warning(f"Shapefile for layer {layer_name} was not loaded properly")
         elif 'dxfLayer' not in layer_obj:
@@ -365,14 +383,17 @@ class LayerProcessor:
     def load_dxf_layer(self, layer_name, dxf_layer_name):
         try:
             log_info(f"Attempting to load DXF layer '{dxf_layer_name}' for layer: {layer_name}")
-            doc = ezdxf.readfile(self.project_loader.dxf_filename)
+            
+            if self.dxf_doc is None:
+                # Instead of warning, return empty GDF silently since this is handled by pending layers
+                return gpd.GeoDataFrame(geometry=[], crs=self.crs)
             
             # Check if source layer exists
-            if dxf_layer_name not in doc.layers:
+            if dxf_layer_name not in self.dxf_doc.layers:
                 log_warning(f"Source layer '{dxf_layer_name}' does not exist in DXF file")
                 return gpd.GeoDataFrame(geometry=[], crs=self.crs)
             
-            msp = doc.modelspace()
+            msp = self.dxf_doc.modelspace()
             entities = msp.query(f'*[layer=="{dxf_layer_name}"]')
             
             # Create temporary directory in system temp

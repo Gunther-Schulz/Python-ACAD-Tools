@@ -107,6 +107,10 @@ class DXFExporter:
         try:
             log_info("Starting DXF export...")
             doc = self._prepare_dxf_document()
+            
+            # Share the document with LayerProcessor
+            self.layer_processor.set_dxf_document(doc)
+            
             self.loaded_styles = initialize_document(doc)
             msp = doc.modelspace()
             self.register_app_id(doc)
