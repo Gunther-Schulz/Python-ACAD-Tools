@@ -560,8 +560,6 @@ geomLayers:
           area: 0
   - name: Ausgleichsfläche Gesamt
     updateDxf: true
-    # style: baufeld
-    # style: baugrenze_2
     style:
       layer:
         color: "lime"

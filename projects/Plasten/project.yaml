@@ -8,6 +8,7 @@ dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten
 shapefileOutputDir: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated"
 reducedDxf:
   layers:
+    - 0-BLOCKS
     - Parcel
     - Flur
     - Gemarkung
