@@ -10,3 +10,15 @@ reducedDxf:
   layers:
     - Parcel
   processFromScratch: false
+  # Each type is processed only if specified in the processTypes list
+  # For layers-based types (geom, wmts, wms), only processes layers listed in reducedDxf.layers
+  # Legends and viewports are processed in their entirety if included in processTypes
+  # processTypes: # only applicable if processFromScratch is true
+  #   - geomLayers
+  #   - textInserts
+  #   - blockInserts
+  #   - wmtsLayers
+  #   - wmsLayers
+  #   - pathArrays
+  #   - legends
+  #   - viewports

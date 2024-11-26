@@ -1060,7 +1060,9 @@ class DXFExporter:
         """
         Create a reduced version of the DXF file. Can either:
         1. Process layers from scratch (if processFromScratch=True in settings)
+           - Processes only the types specified in processTypes
         2. Copy layers from the main DXF (if processFromScratch=False or not specified)
+           - Simply copies the specified layers from the main DXF
         """
         reduced_settings = self.project_settings.get('reducedDxf', {})
         if not reduced_settings or 'layers' not in reduced_settings:
@@ -1069,6 +1071,7 @@ class DXFExporter:
 
         reduced_layers = reduced_settings['layers']
         process_from_scratch = reduced_settings.get('processFromScratch', False)
+        process_types = reduced_settings.get('processTypes', [])
 
         template_filename = self.project_settings.get('templateDxfFilename')
         if not template_filename:
@@ -1087,30 +1090,84 @@ class DXFExporter:
         reduced_msp = reduced_doc.modelspace()
         
         if process_from_scratch:
-            log_info("Processing reduced DXF layers from scratch")
-            # Process only geom layers that are in reduced_dxf_layers
-            for layer_info in self.project_settings.get('geomLayers', []):
-                layer_name = layer_info['name']
-                
-                if layer_name not in reduced_layers:
-                    continue
+            log_info(f"Processing reduced DXF from scratch with types: {process_types}")
+            
+            # Process geom layers
+            if 'geomLayers' in process_types:
+                for layer_info in self.project_settings.get('geomLayers', []):
+                    layer_name = layer_info['name']
+                    if layer_name not in reduced_layers:
+                        continue
                     
-                log_info(f"Processing reduced layer from scratch: {layer_name}")
-                
-                # Create a modified layer config with updateDxf forced to True
-                modified_layer_info = layer_info.copy()
-                modified_layer_info['updateDxf'] = True
-                
-                # Ensure layer exists with proper properties
-                self._ensure_layer_exists(reduced_doc, layer_name, modified_layer_info)
-                
-                # Process layer geometry if it exists in all_layers
-                if layer_name in self.all_layers:
-                    self.update_layer_geometry(reduced_msp, layer_name, self.all_layers[layer_name], modified_layer_info)
+                    log_info(f"Processing reduced geom layer: {layer_name}")
+                    modified_layer_info = layer_info.copy()
+                    modified_layer_info['updateDxf'] = True
                     
-                    # If layer has labels, process them too
-                    if self.has_labels(modified_layer_info):
-                        self._ensure_label_layer_exists(reduced_doc, layer_name, modified_layer_info)
+                    self._ensure_layer_exists(reduced_doc, layer_name, modified_layer_info)
+                    if layer_name in self.all_layers:
+                        self.update_layer_geometry(reduced_msp, layer_name, self.all_layers[layer_name], modified_layer_info)
+                        if self.has_labels(modified_layer_info):
+                            self._ensure_label_layer_exists(reduced_doc, layer_name, modified_layer_info)
+
+            # Process WMTS layers
+            if 'wmtsLayers' in process_types:
+                for layer_info in self.project_settings.get('wmtsLayers', []):
+                    layer_name = layer_info['name']
+                    if layer_name not in reduced_layers:
+                        continue
+                    self._process_wmts_layer(reduced_doc, reduced_msp, layer_name, layer_info)
+
+            # Process WMS layers
+            if 'wmsLayers' in process_types:
+                for layer_info in self.project_settings.get('wmsLayers', []):
+                    layer_name = layer_info['name']
+                    if layer_name not in reduced_layers:
+                        continue
+                    self._process_wmts_layer(reduced_doc, reduced_msp, layer_name, layer_info)
+
+            # Process text inserts
+            if 'textInserts' in process_types:
+                text_inserts = self.project_settings.get('textInserts', [])
+                for config in text_inserts:
+                    layer_name = config.get('targetLayer')
+                    if not layer_name or layer_name not in reduced_layers:
+                        continue
+                    
+                    log_info(f"Processing reduced text insert for layer: {layer_name}")
+                    modified_config = config.copy()
+                    modified_config['updateDxf'] = True
+                    
+                    add_text_insert(
+                        reduced_msp,
+                        modified_config,
+                        layer_name,
+                        self.project_loader,
+                        self.script_identifier
+                    )
+
+            # Process block inserts
+            if 'blockInserts' in process_types:
+                self.block_insert_manager.process_block_inserts(
+                    reduced_msp,
+                    filter_layers=reduced_layers
+                )
+
+            # Process path arrays
+            if 'pathArrays' in process_types:
+                path_arrays = self.project_settings.get('pathArrays', [])
+                for array in path_arrays:
+                    if array.get('targetLayer') in reduced_layers:
+                        create_path_array(reduced_msp, array, self.project_loader)
+
+            # Create legend
+            if 'legends' in process_types:
+                legend_creator = LegendCreator(reduced_doc, reduced_msp, self.project_loader, self.loaded_styles)
+                legend_creator.create_legend()
+
+            # Create viewports
+            if 'viewports' in process_types:
+                self.viewport_manager.create_viewports(reduced_doc, reduced_msp)
+
         else:
             log_info("Copying reduced DXF layers from main DXF")
             # Copy layers from the main DXF file
