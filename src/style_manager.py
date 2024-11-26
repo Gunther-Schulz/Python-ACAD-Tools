@@ -120,6 +120,7 @@ class StyleManager:
     def _validate_layer_style(self, layer_name, layer_style):
         known_style_keys = {'color', 'linetype', 'lineweight', 'plot', 'locked', 'frozen', 'is_on', 'transparency', 'linetypeScale'}
         self._validate_style_keys(layer_name, 'layer', layer_style, known_style_keys)
+        
         # Add linetype validation
         if 'linetype' in layer_style:
             linetype = layer_style['linetype']
@@ -129,8 +130,6 @@ class StyleManager:
                 if not re.match(acad_pattern, linetype):
                     log_warning(f"Invalid ACAD linetype format '{linetype}' in layer '{layer_name}'. "
                               f"ACAD ISO linetypes should follow the pattern 'ACAD_ISOxxW100' where xx is a two-digit number.")
-            elif not self.project_loader.doc.linetypes.has_entry(linetype):
-                log_warning(f"Linetype '{linetype}' in layer '{layer_name}' does not exist. Using default linetype.")
 
     def _validate_hatch_style(self, layer_name, hatch_style):
         known_style_keys = {'pattern', 'scale', 'color', 'transparency', 'individual_hatches', 'layers'}

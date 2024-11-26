@@ -321,6 +321,14 @@ class DXFExporter:
             return
         
         def update_function():
+            # First update the layer style
+            layer = msp.doc.layers.get(layer_name)
+            if layer:
+                # Process and apply the layer style
+                layer_properties = self.style_manager.process_layer_style(layer_name, layer_config)
+                update_layer_properties(layer, layer_properties, self.name_to_aci)
+                log_info(f"Updated style for layer {layer_name}")
+            
             # Remove existing geometry and labels
             log_info(f"Removing existing geometry from layer {layer_name}")
             remove_entities_by_layer(msp, layer_name, self.script_identifier)
