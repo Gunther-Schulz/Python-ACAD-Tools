@@ -692,11 +692,35 @@ class DXFExporter:
         elif isinstance(geometry, MultiLineString):
             for line in geometry.geoms:
                 self.add_linestring_to_dxf(msp, line, layer_name, entity_name)
+        elif isinstance(geometry, Point):
+            self.add_point_to_dxf(msp, geometry, layer_name, entity_name)
         elif isinstance(geometry, GeometryCollection):
             for geom in geometry.geoms:
                 self.add_geometry_to_dxf(msp, geom, layer_name, entity_name)
         else:
             log_warning(f"Unsupported geometry type for layer {layer_name}: {type(geometry)}")
+
+    def add_point_to_dxf(self, msp, point, layer_name, entity_name=None):
+        """Add a point geometry to the DXF file."""
+        try:
+            # Get point coordinates
+            x, y = point.x, point.y
+            
+            # Create a POINT entity
+            point_entity = msp.add_point(
+                (x, y),
+                dxfattribs={
+                    'layer': layer_name,
+                }
+            )
+            
+            # Attach custom data
+            self.attach_custom_data(point_entity, entity_name)
+            
+            log_info(f"Added point at ({x}, {y}) to layer {layer_name}")
+            
+        except Exception as e:
+            log_error(f"Error adding point to layer {layer_name}: {str(e)}")
 
     def verify_entity_hyperlinks(self, msp, layer_name):
         log_info(f"Verifying hyperlinks for entities in layer {layer_name}")

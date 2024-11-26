@@ -14,6 +14,11 @@ geomLayers:
     type: "points"
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/baufeld_label_points.shp"
   - name: Baum Points
+    updateDxf: true
+    style:
+      layer:
+        color: "green"
+        plot: false
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/baum_points.shp"
   - name: Flur
     updateDxf: true
@@ -103,6 +108,11 @@ geomLayers:
           - Geschütze Biotope
         distance: 0.5
   - name: Gastrasse
+    updateDxf: true
+    style:
+      layer:
+        color: "orange"
+        plot: false
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/gastrasse.shp"
   - name: Gastrasse Buffer
     operations:
@@ -117,11 +127,11 @@ geomLayers:
   - name: Einfahrt Line Reference
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/einfahrt_line.shp"
   - name: FG Line
-    # updateDxf: true
-    close: false
+    updateDxf: true
     style:
       layer:
         color: "blue"
+        plot: false
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/FG_Ausschnitt.shp"
   - name: FG Buffer
     operations:
