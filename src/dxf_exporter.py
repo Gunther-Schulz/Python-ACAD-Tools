@@ -15,7 +15,7 @@ from ezdxf import const
 
 from PIL import Image
 from src.legend_creator import LegendCreator
-from src.dxf_utils import (add_block_reference, get_color_code, convert_transparency, attach_custom_data, 
+from src.dxf_utils import (get_color_code,attach_custom_data, 
                            is_created_by_script, add_text, remove_entities_by_layer, 
                            ensure_layer_exists, update_layer_properties, 
                            set_drawing_properties, verify_dxf_settings, update_layer_geometry,
@@ -1127,6 +1127,14 @@ class DXFExporter:
         
         if process_from_scratch:
             log_info(f"Processing reduced DXF from scratch with types: {process_types}")
+            entity_counts = {
+                'geomLayers': 0,
+                'wmtsLayers': 0,
+                'wmsLayers': 0,
+                'textInserts': 0,
+                'blockInserts': 0,
+                'pathArrays': 0
+            }
             
             # Process geom layers
             if 'geomLayers' in process_types:
@@ -1144,6 +1152,7 @@ class DXFExporter:
                         self.update_layer_geometry(reduced_msp, layer_name, self.all_layers[layer_name], modified_layer_info)
                         if self.has_labels(modified_layer_info):
                             self._ensure_label_layer_exists(reduced_doc, layer_name, modified_layer_info)
+                        entity_counts['geomLayers'] += 1
 
             # Process WMTS layers
             if 'wmtsLayers' in process_types:
@@ -1152,6 +1161,7 @@ class DXFExporter:
                     if layer_name not in reduced_layers:
                         continue
                     self._process_wmts_layer(reduced_doc, reduced_msp, layer_name, layer_info)
+                    entity_counts['wmtsLayers'] += 1
 
             # Process WMS layers
             if 'wmsLayers' in process_types:
@@ -1160,6 +1170,7 @@ class DXFExporter:
                     if layer_name not in reduced_layers:
                         continue
                     self._process_wmts_layer(reduced_doc, reduced_msp, layer_name, layer_info)
+                    entity_counts['wmsLayers'] += 1
 
             # Process text inserts
             if 'textInserts' in process_types:
@@ -1180,6 +1191,7 @@ class DXFExporter:
                         self.project_loader,
                         self.script_identifier
                     )
+                    entity_counts['textInserts'] += 1
 
             # Process block inserts
             if 'blockInserts' in process_types:
@@ -1187,6 +1199,7 @@ class DXFExporter:
                     reduced_msp,
                     filter_layers=reduced_layers
                 )
+                entity_counts['blockInserts'] += 1
 
             # Process path arrays
             if 'pathArrays' in process_types:
@@ -1194,6 +1207,7 @@ class DXFExporter:
                 for array in path_arrays:
                     if array.get('targetLayer') in reduced_layers:
                         create_path_array(reduced_msp, array, self.project_loader)
+                        entity_counts['pathArrays'] += 1
 
             # Create legend
             if 'legends' in process_types:
@@ -1204,6 +1218,11 @@ class DXFExporter:
             if 'viewports' in process_types:
                 self.viewport_manager.create_viewports(reduced_doc, reduced_msp)
 
+            # Log warnings for empty types
+            for process_type, count in entity_counts.items():
+                if process_type in process_types and count == 0:
+                    log_warning(f"No {process_type} were copied to the reduced DXF")
+
         else:
             log_info("Copying reduced DXF layers from main DXF")
             try:
@@ -1211,108 +1230,43 @@ class DXFExporter:
                 original_doc = ezdxf.readfile(self.dxf_filename)
                 original_msp = original_doc.modelspace()
 
-                # First pass: Create all layers and copy block definitions
+                # Track layers with no entities
+                empty_layers = []
+                
+                # Copy layers and their entities
                 for layer_name in reduced_layers:
                     if layer_name in original_doc.layers:
-                        log_info(f"Creating layer: {layer_name}")
-                        layer_properties = original_doc.layers.get(layer_name).dxf.all_existing_dxf_attribs()
+                        log_info(f"Processing layer: {layer_name}")
+                        
+                        # Create the layer in reduced doc
                         if layer_name not in reduced_doc.layers:
+                            layer_properties = original_doc.layers.get(layer_name).dxf.all_existing_dxf_attribs()
                             reduced_doc.layers.new(name=layer_name, dxfattribs=layer_properties)
                         
-                        # Create label layer if it exists
-                        label_layer_name = f"{layer_name} Label"
-                        if label_layer_name in original_doc.layers:
-                            log_info(f"Creating label layer: {label_layer_name}")
-                            if label_layer_name not in reduced_doc.layers:
-                                label_properties = original_doc.layers.get(label_layer_name).dxf.all_existing_dxf_attribs()
-                                reduced_doc.layers.new(name=label_layer_name, dxfattribs=label_properties)
-
-                # Copy block definitions before copying entities
-                for entity in original_msp.query('INSERT'):
-                    block_name = entity.dxf.name
-                    if block_name not in reduced_doc.blocks:
-                        try:
-                            # Get the block definition from the original document
-                            original_block = original_doc.blocks[block_name]
-                            # Create a new block in the reduced document
-                            new_block = reduced_doc.blocks.new(name=block_name)
-                            
-                            # Copy all entities from the original block to the new block
-                            for block_entity in original_block:
-                                try:
-                                    new_entity = block_entity.copy()
-                                    new_block.add_entity(new_entity)
-                                except Exception as e:
-                                    log_warning(f"Failed to copy entity in block {block_name}: {str(e)}")
-                                    continue
-                            
-                            log_info(f"Copied block definition: {block_name}")
-                        except Exception as e:
-                            log_warning(f"Failed to copy block definition {block_name}: {str(e)}")
-                            continue
-
-                # Second pass: Copy entities layer by layer
-                for layer_name in reduced_layers:
-                    if layer_name in original_doc.layers:
-                        log_info(f"Copying entities for layer: {layer_name}")
-                        
-                        # Copy main layer entities
+                        # Copy entities for this layer
                         entity_count = 0
                         for entity in original_msp.query(f'*[layer=="{layer_name}"]'):
                             try:
-                                if entity.dxftype() == 'INSERT':
-                                    # Handle block references using add_block_reference
-                                    block_name = entity.dxf.name
-                                    insert_point = (entity.dxf.insert.x, entity.dxf.insert.y)
-                                    scale = entity.dxf.xscale  # Assuming uniform scaling
-                                    rotation = entity.dxf.rotation
-                                    
-                                    new_entity = add_block_reference(
-                                        reduced_msp,
-                                        block_name,
-                                        insert_point,
-                                        layer_name,
-                                        scale=scale,
-                                        rotation=rotation
-                                    )
-                                else:
-                                    new_entity = entity.copy()
-                                    new_entity.dxf.layer = layer_name
-                                    reduced_msp.add_entity(new_entity)
-                                
+                                new_entity = entity.copy()
+                                reduced_msp.add_entity(new_entity)
                                 entity_count += 1
                             except Exception as e:
                                 log_warning(f"Failed to copy entity in layer {layer_name}: {str(e)}")
                                 continue
-                            
+                        
                         if entity_count == 0:
-                            log_warning(f"No geometry was copied for layer: {layer_name}")
+                            empty_layers.append(layer_name)
+                            log_warning(f"No entities were copied for layer: {layer_name}")
                         else:
                             log_info(f"Copied {entity_count} entities for layer: {layer_name}")
-                        
-                        # Copy label layer entities
-                        label_layer_name = f"{layer_name} Label"
-                        if label_layer_name in original_doc.layers:
-                            log_info(f"Copying entities for label layer: {label_layer_name}")
-                            label_count = 0
-                            for entity in original_msp.query(f'*[layer=="{label_layer_name}"]'):
-                                try:
-                                    new_entity = entity.copy()
-                                    # Ensure the entity is properly linked to the layer
-                                    new_entity.dxf.layer = label_layer_name
-                                    reduced_msp.add_entity(new_entity)
-                                    label_count += 1
-                                except Exception as e:
-                                    log_warning(f"Failed to copy entity in layer {label_layer_name}: {str(e)}")
-                                    continue
-                            
-                            if label_count == 0:
-                                log_warning(f"No labels were copied for layer: {label_layer_name}")
-                            else:
-                                log_info(f"Copied {label_count} labels for layer: {label_layer_name}")
                     else:
-                        log_warning(f"Layer {layer_name} not found in main DXF")
-            
+                        empty_layers.append(layer_name)
+                        log_warning(f"Layer {layer_name} not found in original DXF")
+                
+                # Summary of empty layers
+                if empty_layers:
+                    log_warning(f"The following layers have no entities: {', '.join(empty_layers)}")
+
             except Exception as e:
                 log_error(f"Error during layer copying: {str(e)}")
                 raise
