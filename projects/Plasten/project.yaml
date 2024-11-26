@@ -9,13 +9,13 @@ shapefileOutputDir: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - 
 reducedDxf:
   layers:
     - 0-BLOCKS
+    - EinAusfahrt
     - Baum Points
     - Parcel
     - Flur
     - Gemarkung
     - Gemeinde
     - Geschütze Biotope
-    - Einfahrt # Blocks copying is not working right now
     - Hecke
     - Wald
     - Biotope
