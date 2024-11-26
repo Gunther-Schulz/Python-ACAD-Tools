@@ -8,6 +8,11 @@ geomLayers:
   #   type: "points"
   #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/einausfahrt_points.shp"
   - name: EinAusfahrt Line
+    updateDxf: true
+    style:
+      layer:
+        color: "magenta"
+        plot: false
     type: "line"
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/einausfahrt_line.shp"
   - name: Baufeld Label Points

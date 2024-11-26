@@ -30,6 +30,8 @@ reducedDxf:
     - Geltungsbereich NW
     - Geltungsbereich NO
     - Geltungsbereich S
+    - EinAusfahrt Line
+    - Bemaßung
   processFromScratch: false
   # Each type is processed only if specified in the processTypes list
   # For layers-based types (geom, wmts, wms), only processes layers listed in reducedDxf.layers
