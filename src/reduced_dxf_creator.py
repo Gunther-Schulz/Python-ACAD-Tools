@@ -172,7 +172,16 @@ class ReducedDXFCreator:
             original_msp = original_doc.modelspace()
             empty_layers = []
             
+            # Create a set of all layers to copy, including label layers
+            layers_to_copy = set(reduced_layers)
             for layer_name in reduced_layers:
+                label_layer = f"{layer_name} Label"
+                # Check if the label layer exists in the original document
+                if label_layer in original_doc.layers:
+                    layers_to_copy.add(label_layer)
+                    log_info(f"Adding associated label layer: {label_layer}")
+            
+            for layer_name in layers_to_copy:
                 self._copy_layer(reduced_doc, reduced_msp, original_doc, original_msp, layer_name, empty_layers)
             
             if empty_layers:
