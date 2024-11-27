@@ -100,7 +100,10 @@ geomLayers:
         capStyle: flat
         distance: 5
   - name: Geschütze Biotope
-    # updateDxf: true
+    updateDxf: true
+    style:
+      layer:
+        plot: false
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/gesch_biotope.shp"
   - name: Geschütze Biotope 2
     updateDxf: true
@@ -481,6 +484,10 @@ geomLayers:
       - type: filterGeometry
         minArea: 200
   - name: Biotope
+    updateDxf: true
+    style:
+      layer:
+        plot: false
     viewports:
       - name: WorkView
         style: biotopWorkView
