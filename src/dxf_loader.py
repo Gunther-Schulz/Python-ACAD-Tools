@@ -9,8 +9,10 @@ def load_dxf_layer(layer_name, dxf_layer_name, dxf_doc, project_loader, crs):
         log_warning(f"Attempting to load DXF layer '{dxf_layer_name}' for layer: {layer_name}")
         
         if dxf_doc is None:
-            # Instead of warning, return empty GDF silently since this is handled by pending layers
+            log_warning("DXF document is None during DXF layer loading")
             return gpd.GeoDataFrame(geometry=[], crs=crs)
+        else:
+            log_warning("DXF document is loaded during DXF layer loading")
         
         # Check if source layer exists
         if dxf_layer_name not in dxf_doc.layers:
