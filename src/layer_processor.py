@@ -28,7 +28,6 @@ from src.operations import (
 from src.style_manager import StyleManager
 from src.operations.filter_geometry_operation import create_filtered_geometry_layer
 from src.operations.report_operation import create_report_layer
-# from src.dxf_loader import load_dxf_layer
 
 class LayerProcessor:
     def __init__(self, project_loader, plot_ops=False):
@@ -46,13 +45,6 @@ class LayerProcessor:
         """Set the DXF document from DXFExporter and process any pending layers"""
         self.dxf_doc = doc
         log_info("DXF document reference set in LayerProcessor")
-        
-        # # Process any pending DXF layers
-        # if self.pending_dxf_layers:
-        #     log_info(f"Processing {len(self.pending_dxf_layers)} pending DXF layers")
-        #     for layer_name, dxf_layer_name in self.pending_dxf_layers:
-        #         self.load_dxf_layer(layer_name, dxf_layer_name)
-        #     self.pending_dxf_layers = []  # Clear the pending list
 
     def process_layers(self):
         log_info("Starting to process layers...")
@@ -121,16 +113,6 @@ class LayerProcessor:
                 log_warning(f"Issue with style for layer '{layer_name}'")
             if style is not None:
                 layer_obj['style'] = style
-
-        # # Load DXF layer if specified
-        # if 'sourceLayer' in layer_obj:
-        #     dxf_layer_name = layer_obj['sourceLayer']
-        #     if self.dxf_doc is None:
-        #         # Add to pending list instead of trying to load immediately
-        #         self.pending_dxf_layers.append((layer_name, dxf_layer_name))
-        #         log_info(f"Added '{layer_name}' with source layer '{dxf_layer_name}' to pending DXF layers queue")
-        #     else:
-        #         self.load_dxf_layer(layer_name, dxf_layer_name)
 
         # Process operations
         if 'operations' in layer_obj:
@@ -271,21 +253,6 @@ class LayerProcessor:
     def setup_shapefiles(self):
         for layer in self.project_settings['geomLayers']:
             layer_name = layer['name']
-            
-            # # First check if we need to update from a source DXF layer
-            # if 'sourceLayer' in layer and 'shapeFile' in layer:
-            #     log_info(f"Updating shapefile from source layer for: {layer_name}")
-            #     gdf = self.load_dxf_layer(layer_name, layer['sourceLayer'])
-            #     if not gdf.empty:
-            #         # Ensure proper path resolution using folder prefix
-            #         output_path = os.path.join(
-            #             self.project_loader.folder_prefix,
-            #             layer['shapeFile']
-            #         )
-            #         # Ensure directory exists
-            #         os.makedirs(os.path.dirname(output_path), exist_ok=True)
-            #         gdf.to_file(output_path)
-            #         log_info(f"Updated shapefile from source layer: {output_path}")
             
             # Then load the shapefile (whether it was just updated or not)
             if 'shapeFile' in layer:
