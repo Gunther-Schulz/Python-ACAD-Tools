@@ -1,0 +1,4 @@
+updateFromSource:
+  - name: Blendschutzzaun
+    sourceLayer: "Blendschutzzaun Input"
+    outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/output/blendschutzzaun.shp"
