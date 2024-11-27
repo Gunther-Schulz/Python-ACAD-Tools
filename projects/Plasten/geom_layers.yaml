@@ -1,6 +1,5 @@
 geomLayers:
   - name: "Blendschutzzaun"
-    sourceLayer: "Blendschutzzaun Input"  # Optional: include to update from AutoCAD
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/blendschutzzaun.shp"  # Required: this is the source for further processing
     style: blendschutzzaun
     updateDxf: true
