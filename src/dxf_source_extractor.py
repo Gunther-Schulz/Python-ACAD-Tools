@@ -1,7 +1,7 @@
 import ezdxf
 import geopandas as gpd
 from pathlib import Path
-from src.utils import log_warning, log_warning, log_error, resolve_path, ensure_path_exists
+from src.utils import log_info, log_warning, log_error, resolve_path, ensure_path_exists
 from src.dump_to_shape import merge_dxf_layer_to_shapefile
 
 class DXFSourceExtractor:
@@ -46,14 +46,13 @@ class DXFSourceExtractor:
                 log_error(f"Could not create output directory: {output_dir}")
                 return
 
+            # Get all entities from the source layer
+            msp = doc.modelspace()
+            entities = msp.query(f'*[layer=="{source_layer}"]')
+
             # Extract geometries from DXF layer and convert to shapefile
-            gdf = merge_dxf_layer_to_shapefile(doc, source_layer, self.crs)
+            # Use the full output path instead of creating a file based on the layer name
+            merge_dxf_layer_to_shapefile(doc, str(Path(full_output_path).parent), Path(full_output_path).name.replace('.shp', ''), entities, self.crs)
             
-            if gdf is not None and not gdf.empty:
-                gdf.to_file(full_output_path)
-                log_warning(f"Successfully exported {len(gdf)} geometries to: {full_output_path}")
-            else:
-                log_warning(f"No geometries found in layer: {source_layer}")
-                
         except Exception as e:
             log_error(f"Error processing DXF extract for layer {source_layer}: {str(e)}")

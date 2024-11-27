@@ -32,7 +32,7 @@ class ProjectProcessor:
             raise ValueError(error_msg)
 
     def run(self):
-        doc = self.dxf_exporter.load_dxf()
+        doc = self.dxf_exporter._load_or_create_dxf()
         self.layer_processor.set_dxf_document(doc)
         self.layer_processor.process_layers()
         self.dxf_exporter.export_to_dxf()

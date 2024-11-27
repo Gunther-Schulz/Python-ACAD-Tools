@@ -153,10 +153,6 @@ class DXFExporter:
             shutil.copy2(self.dxf_filename, backup_filename)
             log_info(f"Created backup of existing DXF file: {backup_filename}")
 
-    def load_dxf(self):
-        """Public method to load or create DXF document"""
-        return self._load_or_create_dxf()
-
     def _load_or_create_dxf(self):
         dxf_version = self.project_settings.get('dxfVersion', 'R2010')
         template_filename = self.project_settings.get('templateDxfFilename')
@@ -174,6 +170,7 @@ class DXFExporter:
             self.load_existing_layers(doc)
             self.check_existing_entities(doc)
             set_drawing_properties(doc)
+            return doc
         elif template_filename:
             # Use resolve_path with folder prefix
             full_template_path = resolve_path(template_filename, self.project_loader.folder_prefix)
