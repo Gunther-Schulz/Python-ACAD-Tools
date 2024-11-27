@@ -153,13 +153,24 @@ class DXFExporter:
             shutil.copy2(self.dxf_filename, backup_filename)
             log_info(f"Created backup of existing DXF file: {backup_filename}")
 
+    def load_dxf(self):
+        """Public method to load or create DXF document"""
+        return self._load_or_create_dxf()
+
     def _load_or_create_dxf(self):
         dxf_version = self.project_settings.get('dxfVersion', 'R2010')
         template_filename = self.project_settings.get('templateDxfFilename')
         
+        # Load or create the DXF document
         if os.path.exists(self.dxf_filename):
             doc = ezdxf.readfile(self.dxf_filename)
             log_info(f"Loaded existing DXF file: {self.dxf_filename}")
+            
+            # Process DXF extracts immediately after loading
+            from src.dxf_source_extractor import DXFSourceExtractor
+            extractor = DXFSourceExtractor(self.project_loader)
+            extractor.process_extracts(doc)
+            
             self.load_existing_layers(doc)
             self.check_existing_entities(doc)
             set_drawing_properties(doc)
