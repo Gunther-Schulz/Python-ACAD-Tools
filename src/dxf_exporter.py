@@ -53,6 +53,7 @@ class DXFExporter:
             self.all_layers,
             self.script_identifier
         )
+        self.reduced_dxf_creator = ReducedDXFCreator(self)
 
     def setup_layers(self):
         # Setup geom layers
@@ -135,7 +136,7 @@ class DXFExporter:
             self._cleanup_and_save(doc, msp)
             
             # After successful export, create reduced version if configured
-            self.create_reduced_dxf()
+            self.reduced_dxf_creator.create_reduced_dxf()
             
         except Exception as e:
             log_error(f"Error during DXF export: {str(e)}")
@@ -987,11 +988,6 @@ class DXFExporter:
                     except:
                         continue
         return None
-
-    def create_reduced_dxf(self):
-        """Create a reduced version of the DXF file."""
-        reduced_creator = ReducedDXFCreator(self)
-        reduced_creator.create_reduced_dxf()
 
 
 
