@@ -382,7 +382,7 @@ class LayerProcessor:
 
     def load_dxf_layer(self, layer_name, dxf_layer_name):
         try:
-            log_info(f"Attempting to load DXF layer '{dxf_layer_name}' for layer: {layer_name}")
+            log_warning(f"Attempting to load DXF layer '{dxf_layer_name}' for layer: {layer_name}")
             
             if self.dxf_doc is None:
                 # Instead of warning, return empty GDF silently since this is handled by pending layers
@@ -392,6 +392,8 @@ class LayerProcessor:
             if dxf_layer_name not in self.dxf_doc.layers:
                 log_warning(f"Source layer '{dxf_layer_name}' does not exist in DXF file")
                 return gpd.GeoDataFrame(geometry=[], crs=self.crs)
+            else:
+                log_info(f"Source layer '{dxf_layer_name}' exists in DXF file")
             
             msp = self.dxf_doc.modelspace()
             entities = msp.query(f'*[layer=="{dxf_layer_name}"]')
