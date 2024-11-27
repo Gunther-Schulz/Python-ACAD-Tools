@@ -215,13 +215,33 @@ class ReducedDXFCreator:
 
     def _copy_layer_entities(self, reduced_msp, original_msp, layer_name):
         entity_count = 0
-        for entity in original_msp.query(f'*[layer=="{layer_name}"]'):
+        
+        # Query for all entities including block references (INSERT entities)
+        query = f'*[layer=="{layer_name}"]'
+        
+        for entity in original_msp.query(query):
             try:
+                # If this is a block reference, ensure the block definition exists in reduced doc
+                if entity.dxftype() == 'INSERT':
+                    block_name = entity.dxf.name
+                    if block_name not in reduced_msp.doc.blocks:
+                        # Get the block definition from original doc
+                        original_block = original_msp.doc.blocks[block_name]
+                        # Create new block in reduced doc
+                        new_block = reduced_msp.doc.blocks.new(name=block_name)
+                        # Copy all entities from original block to new block
+                        for block_entity in original_block:
+                            new_block.add_entity(block_entity.copy())
+                        log_info(f"Copied block definition: {block_name}")
+                
+                # Copy the entity (works for both regular entities and block references)
                 new_entity = entity.copy()
                 reduced_msp.add_entity(new_entity)
                 entity_count += 1
+                
             except Exception as e:
                 log_warning(f"Failed to copy entity in layer {layer_name}: {str(e)}")
+        
         return entity_count
 
     def _save_reduced_dxf(self, reduced_doc):
