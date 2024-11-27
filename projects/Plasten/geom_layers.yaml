@@ -12,6 +12,7 @@ geomLayers:
     style:
       layer:
         color: "magenta"
+        lineweight: 50
         plot: false
     type: "line"
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/einausfahrt_line.shp"

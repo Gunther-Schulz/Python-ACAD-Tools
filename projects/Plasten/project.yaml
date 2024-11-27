@@ -11,6 +11,7 @@ reducedDxf:
     - 0-BLOCKS
     - EinAusfahrt
     - Baum Points
+    - Bäume Ausserhalb
     - Parcel
     - Flur
     - Gemarkung
@@ -31,6 +32,7 @@ reducedDxf:
     - Geltungsbereich NO
     - Geltungsbereich S
     - EinAusfahrt Line
+    - Blendschutzzaun
     - Bemaßung
   processFromScratch: false
   # Each type is processed only if specified in the processTypes list
