@@ -25,6 +25,7 @@ from src.style_manager import StyleManager
 from src.viewport_manager import ViewportManager
 from src.block_insert_manager import BlockInsertManager
 from src.reduced_dxf_creator import ReducedDXFCreator
+from src.dxf_source_extractor import DXFSourceExtractor
 
 class DXFExporter:
     def __init__(self, project_loader, layer_processor):
@@ -39,6 +40,7 @@ class DXFExporter:
         self.name_to_aci = project_loader.name_to_aci
         self.block_inserts = self.project_settings.get('blockInserts', [])
         self.style_manager = StyleManager(project_loader)
+        self.source_extractor = None  # Initialize as None
         log_info(f"DXFExporter initialized with script identifier: {self.script_identifier}")
         self.setup_layers()
         self.viewport_manager = ViewportManager(
@@ -162,10 +164,10 @@ class DXFExporter:
             doc = ezdxf.readfile(self.dxf_filename)
             log_info(f"Loaded existing DXF file: {self.dxf_filename}")
             
-            # Process DXF extracts immediately after loading
-            from src.dxf_source_extractor import DXFSourceExtractor
-            extractor = DXFSourceExtractor(self.project_loader)
-            extractor.process_extracts(doc)
+            # Initialize source extractor only once
+            if self.source_extractor is None:
+                self.source_extractor = DXFSourceExtractor(self.project_loader)
+                self.source_extractor.process_extracts(doc)  # Process extracts once
             
             self.load_existing_layers(doc)
             self.check_existing_entities(doc)
@@ -224,7 +226,10 @@ class DXFExporter:
         verify_dxf_settings(self.dxf_filename)
 
     def process_layers(self, doc, msp):
-        # First process geometric layers (including hatches)
+        # Remove any duplicate source extraction here
+        # The extraction was already done in _load_or_create_dxf
+        
+        # Rest of the method remains unchanged
         geom_layers = self.project_settings.get('geomLayers', [])
         for layer_info in geom_layers:
             layer_name = layer_info['name']

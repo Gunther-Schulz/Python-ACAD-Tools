@@ -6,35 +6,35 @@ dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten
 # dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Zeichnung/dev/test.dxf"
 # dxfDumpOutputDir: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/dxf_dump"
 shapefileOutputDir: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated"
-reducedDxf:
-  layers:
-    - 0-BLOCKS
-    - EinAusfahrt
-    - Baum Points
-    - Bäume Ausserhalb
-    - Parcel
-    - Flur
-    - Gemarkung
-    - Gemeinde
-    - Geschütze Biotope
-    - Hecke
-    - Wald
-    - Biotope
-    # - Ausgleich Grünfläche
-    # - Ausgleich Schutzflächeumgrenzung
-    - Ausgleichsfläche Gesamt
-    - Biotoppuffer
-    - Baufeld
-    - Baugrenze
-    - FG Line
-    - Gastrasse
-    - Geltungsbereich NW
-    - Geltungsbereich NO
-    - Geltungsbereich S
-    - EinAusfahrt Line
-    - Blendschutzzaun
-    - Bemaßung
-  processFromScratch: false
+# reducedDxf:
+#   layers:
+#     - 0-BLOCKS
+#     - EinAusfahrt
+#     - Baum Points
+#     - Bäume Ausserhalb
+#     - Parcel
+#     - Flur
+#     - Gemarkung
+#     - Gemeinde
+#     - Geschütze Biotope
+#     - Hecke
+#     - Wald
+#     - Biotope
+#     # - Ausgleich Grünfläche
+#     # - Ausgleich Schutzflächeumgrenzung
+#     - Ausgleichsfläche Gesamt
+#     - Biotoppuffer
+#     - Baufeld
+#     - Baugrenze
+#     - FG Line
+#     - Gastrasse
+#     - Geltungsbereich NW
+#     - Geltungsbereich NO
+#     - Geltungsbereich S
+#     - EinAusfahrt Line
+#     - Blendschutzzaun
+#     - Bemaßung
+#   processFromScratch: false
   # Each type is processed only if specified in the processTypes list
   # For layers-based types (geom, wmts, wms), only processes layers listed in reducedDxf.layers
   # Legends and viewports are processed in their entirety if included in processTypes
