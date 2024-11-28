@@ -15,8 +15,6 @@ class DXFSourceExtractor:
         if not self.dxf_extracts:
             log_warning("No DXF extracts configured in updateFromSource")
             return
-
-        log_warning("Processing DXF extracts...")
         
         for extract in self.dxf_extracts:
             source_layer = extract.get('sourceLayer')
@@ -34,7 +32,7 @@ class DXFSourceExtractor:
 
     def _process_single_extract(self, doc, source_layer, output_file):
         """Extract geometries from a single DXF layer and save to shapefile"""
-        log_warning(f"Extracting geometries from DXF layer: {source_layer}")
+        print(f"Extracting geometries from DXF layer: {source_layer}")
         
         try:
             # Resolve the full output path

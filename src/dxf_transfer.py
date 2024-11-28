@@ -15,7 +15,6 @@ class DXFTransfer:
                 log_info(f"Found transfer config: {transfer}")
         
     def process_transfers(self, working_doc):
-        log_warning(f"Processing {len(self.transfers)} DXF transfers")
         """Process all DXF transfers defined in configuration"""
         if not self.transfers:
             return
@@ -167,13 +166,9 @@ class DXFTransfer:
                     dxfattribs = {k: v for k, v in entity.dxfattribs().items() if k != 'handle'}
                     dxfattribs['layer'] = target_layer_name
                     
-                    # Update counter for this entity type
-                    entity_counts[dxftype] = entity_counts.get(dxftype, 0) + 1
+                    # Create new entity based on type
+                    new_entity = None
                     
-                    if dxftype == 'MTEXT':
-                        log_info(f"MTEXT content: {entity.text}")
-                        log_info(f"MTEXT attributes: {dxfattribs}")
-                        
                     if dxftype == 'LINE':
                         new_entity = msp.add_line(
                             start=entity.dxf.start,
@@ -304,7 +299,10 @@ class DXFTransfer:
                         log_warning(f"Unsupported entity type for copy: {dxftype}")
                         continue
                     
-                    attach_custom_data(new_entity, entity)
+                    # Important: Attach custom data to mark as created by our script
+                    if new_entity:
+                        attach_custom_data(new_entity, 'DXFEXPORTER')
+                        entity_counts[dxftype] = entity_counts.get(dxftype, 0) + 1
                     
                 except Exception as e:
                     log_warning(f"Failed to copy entity of type {dxftype}: {str(e)}")
@@ -312,13 +310,13 @@ class DXFTransfer:
                     entity_counts[dxftype] = entity_counts.get(dxftype, 1) - 1
         
         # Log final counts
-        log_warning("=== Entity Transfer Summary ===")
+        print("=== Entity Transfer Summary ===")
         if not entity_counts:
-            log_warning("No entities were transferred")
+            print("No entities were transferred")
         else:
             for entity_type, count in entity_counts.items():
-                log_warning(f"Transferred {count} {entity_type} entities")
-        log_warning("===========================")
+                print(f"Transferred {count} {entity_type} entities")
+        print("===========================")
         
         return entity_counts  # Return counts for potential further use
 
