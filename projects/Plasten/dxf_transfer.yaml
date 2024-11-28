@@ -5,7 +5,7 @@ dxfTransfer:
       - fromLayer: "Parcel Label"
         entityTypes:
           - LWPOLYLINE
-          # - MTEXT
+          - MTEXT
           - TEXT
           # - INSERT
 

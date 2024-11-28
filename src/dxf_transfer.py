@@ -1,6 +1,6 @@
 import ezdxf
 from src.utils import log_info, log_warning, log_error, resolve_path
-from src.dxf_utils import ensure_layer_exists, remove_entities_by_layer, update_layer_properties, attach_custom_data
+from src.dxf_utils import ensure_layer_exists, remove_entities_by_layer, update_layer_properties, attach_custom_data, sanitize_layer_name, initialize_document
 
 class DXFTransfer:
     def __init__(self, project_loader):
@@ -79,9 +79,16 @@ class DXFTransfer:
                     external_doc = ezdxf.new()
                     log_info("Created new empty DXF file")
             
+            # Initialize the document with standard styles
+            initialize_document(external_doc)
+            
             for transfer in transfer_config.get('transfers', []):
                 from_layer = transfer.get('fromLayer')
                 to_layer = transfer.get('toLayer')
+                
+                # Sanitize layer names
+                from_layer = sanitize_layer_name(from_layer)
+                to_layer = sanitize_layer_name(to_layer) if to_layer else from_layer
                 
                 # First remove existing entities from target layer
                 if to_layer == 'same' or to_layer is None:
@@ -111,6 +118,9 @@ class DXFTransfer:
 
     def _transfer_entities(self, from_doc, to_doc, from_layer, to_layer=None, entity_types=None, entity_filter=None):
         """Transfer entities between documents (modelspace only)"""
+        # Initialize counters
+        entity_counts = {}
+        
         if from_layer == '*':
             layers = from_doc.layers
         else:
@@ -128,25 +138,20 @@ class DXFTransfer:
                 log_warning(f"Source layer not found: {source_layer_name}")
                 continue
             
-            # Get layer properties from source layer
-            layer_properties = {
-                'color': layer.dxf.color,
-                'linetype': layer.dxf.linetype,
-                'lineweight': layer.dxf.lineweight,
-                'plot': layer.dxf.plot,
-                'transparency': getattr(layer.dxf, 'transparency', 0),
-            }
-            
-            # Ensure target layer exists with same properties
-            ensure_layer_exists(to_doc, target_layer_name, layer_properties, self.name_to_aci)
-            
             # Get entities from source layer (modelspace only)
             entities = from_doc.modelspace().query(f'*[layer=="{source_layer_name}"]')
             
+            # Debug: Log what we found
+            log_info(f"Found {len(entities)} entities on layer '{source_layer_name}'")
+            entity_types_found = set(e.dxftype() for e in entities)
+            log_info(f"Entity types found on layer: {entity_types_found}")
+            
             # Apply entity type filter if specified
             if entity_types:
+                log_info(f"Filtering for entity types: {entity_types}")
                 entities = [e for e in entities if e.dxftype() in entity_types]
-                
+                log_info(f"After filtering: {len(entities)} entities")
+            
             # Apply custom filter if specified
             if entity_filter:
                 entities = self._apply_filter(entities, entity_filter)
@@ -156,9 +161,19 @@ class DXFTransfer:
             for entity in entities:
                 try:
                     dxftype = entity.dxftype()
-                    dxfattribs = entity.dxfattribs()
+                    log_info(f"Processing entity of type: {dxftype}")
+                    
+                    # Create a clean copy of attributes without handle
+                    dxfattribs = {k: v for k, v in entity.dxfattribs().items() if k != 'handle'}
                     dxfattribs['layer'] = target_layer_name
                     
+                    # Update counter for this entity type
+                    entity_counts[dxftype] = entity_counts.get(dxftype, 0) + 1
+                    
+                    if dxftype == 'MTEXT':
+                        log_info(f"MTEXT content: {entity.text}")
+                        log_info(f"MTEXT attributes: {dxfattribs}")
+                        
                     if dxftype == 'LINE':
                         new_entity = msp.add_line(
                             start=entity.dxf.start,
@@ -293,6 +308,19 @@ class DXFTransfer:
                     
                 except Exception as e:
                     log_warning(f"Failed to copy entity of type {dxftype}: {str(e)}")
+                    # Decrement counter if entity failed to copy
+                    entity_counts[dxftype] = entity_counts.get(dxftype, 1) - 1
+        
+        # Log final counts
+        log_warning("=== Entity Transfer Summary ===")
+        if not entity_counts:
+            log_warning("No entities were transferred")
+        else:
+            for entity_type, count in entity_counts.items():
+                log_warning(f"Transferred {count} {entity_type} entities")
+        log_warning("===========================")
+        
+        return entity_counts  # Return counts for potential further use
 
     def _apply_filter(self, entities, filter_config):
         """Apply filter configuration to entities"""
