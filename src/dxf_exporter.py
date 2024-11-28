@@ -26,6 +26,7 @@ from src.viewport_manager import ViewportManager
 from src.block_insert_manager import BlockInsertManager
 from src.reduced_dxf_creator import ReducedDXFCreator
 from src.dxf_source_extractor import DXFSourceExtractor
+from src.dxf_transfer import DXFTransfer
 
 class DXFExporter:
     def __init__(self, project_loader, layer_processor):
@@ -56,6 +57,7 @@ class DXFExporter:
             self.script_identifier
         )
         self.reduced_dxf_creator = ReducedDXFCreator(self)
+        self.dxf_transfer = DXFTransfer(project_loader)
 
     def setup_layers(self):
         # Setup geom layers
@@ -139,6 +141,9 @@ class DXFExporter:
             
             # After successful export, create reduced version if configured
             self.reduced_dxf_creator.create_reduced_dxf()
+            
+            # Process DXF transfers after initial document setup
+            self.dxf_transfer.process_transfers(doc)
             
         except Exception as e:
             log_error(f"Error during DXF export: {str(e)}")
