@@ -6,8 +6,15 @@ class DXFTransfer:
     def __init__(self, project_loader):
         self.project_loader = project_loader
         self.transfers = project_loader.project_settings.get('dxfTransfer', [])
+        log_info(f"DXFTransfer initialized with {len(self.transfers)} transfers")
+        if not self.transfers:
+            log_warning("No DXF transfers found in project settings")
+        else:
+            for transfer in self.transfers:
+                log_info(f"Found transfer config: {transfer}")
         
     def process_transfers(self, working_doc):
+        log_warning(f"Processing {len(self.transfers)} DXF transfers")
         """Process all DXF transfers defined in configuration"""
         if not self.transfers:
             return

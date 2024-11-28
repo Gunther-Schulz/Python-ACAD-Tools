@@ -97,6 +97,15 @@ class ProjectLoader:
                 for operation in layer['operations']:
                     operation['type'] = 'wms'
 
+        # Load and merge DXF transfer settings if they exist
+        dxf_transfer_path = os.path.join(self.project_dir, 'dxf_transfer.yaml')
+        if os.path.exists(dxf_transfer_path):
+            with open(dxf_transfer_path, 'r', encoding='utf-8') as f:
+                dxf_transfer_settings = yaml.safe_load(f)
+                if dxf_transfer_settings and 'dxfTransfer' in dxf_transfer_settings:
+                    self.project_settings['dxfTransfer'] = dxf_transfer_settings['dxfTransfer']
+                    log_info(f"Loaded DXF transfer settings from {dxf_transfer_path}")
+
     def process_operations(self, layer):
         """Process and validate operations in a layer"""
         if 'operations' in layer:
