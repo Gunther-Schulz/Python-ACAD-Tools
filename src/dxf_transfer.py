@@ -6,6 +6,7 @@ class DXFTransfer:
     def __init__(self, project_loader):
         self.project_loader = project_loader
         self.transfers = project_loader.project_settings.get('dxfTransfer', [])
+        self.name_to_aci = project_loader.name_to_aci
         log_info(f"DXFTransfer initialized with {len(self.transfers)} transfers")
         if not self.transfers:
             log_warning("No DXF transfers found in project settings")
@@ -115,9 +116,17 @@ class DXFTransfer:
                 log_warning(f"Source layer not found: {source_layer_name}")
                 continue
             
+            # Get layer properties from source layer
+            layer_properties = {
+                'color': layer.dxf.color,
+                'linetype': layer.dxf.linetype,
+                'lineweight': layer.dxf.lineweight,
+                'plot': layer.dxf.plot,
+                'transparency': getattr(layer.dxf, 'transparency', 0),
+            }
+            
             # Ensure target layer exists with same properties
-            ensure_layer_exists(to_doc, target_layer_name)
-            update_layer_properties(to_doc.layers.get(target_layer_name), layer)
+            ensure_layer_exists(to_doc, target_layer_name, layer_properties, self.name_to_aci)
             
             # Get entities from source layer
             entities = from_doc.modelspace().query(f'*[layer=="{source_layer_name}"]')
