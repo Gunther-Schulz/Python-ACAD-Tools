@@ -46,14 +46,17 @@ def merge_dxf_layer_to_shapefile(dxf_path, output_folder, layer_name, entities, 
         if isinstance(entity, (LWPolyline, Polyline)):
             points_list = list(entity.vertices())
             if len(points_list) >= 2:
-                if entity.closed or (points_list[0] == points_list[-1]):
-                    if len(points_list) >= 4:
-                        try:
-                            poly = Polygon(points_list)
-                            if poly.is_valid and not poly.is_empty:
-                                polygons.append(poly)
-                        except Exception as e:
-                            log_warning(f"Invalid polygon in layer {layer_name}: {e}")
+                # Always treat as polygon if entity has closed property set to True
+                if hasattr(entity, 'closed') and entity.closed and len(points_list) >= 3:
+                    try:
+                        # Ensure the polygon is closed by adding first point if needed
+                        if points_list[0] != points_list[-1]:
+                            points_list.append(points_list[0])
+                        poly = Polygon(points_list)
+                        if poly.is_valid and not poly.is_empty:
+                            polygons.append(poly)
+                    except Exception as e:
+                        log_warning(f"Invalid polygon in layer {layer_name}: {e}")
                 else:
                     try:
                         line = LineString(points_list)

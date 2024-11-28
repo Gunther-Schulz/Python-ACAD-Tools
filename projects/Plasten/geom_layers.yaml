@@ -1,14 +1,29 @@
 geomLayers:
+  - name: "Blendschutzzaun"
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/blendschutzzaun.shp"  # Required: this is the source for further processing
+    style: blendschutzzaun
+    updateDxf: true
   # - name: EinAusfahrt Points
   #   type: "points"
   #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/einausfahrt_points.shp"
   - name: EinAusfahrt Line
+    updateDxf: true
+    style:
+      layer:
+        color: "magenta"
+        lineweight: 50
+        plot: false
     type: "line"
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/einausfahrt_line.shp"
   - name: Baufeld Label Points
     type: "points"
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/baufeld_label_points.shp"
   - name: Baum Points
+    updateDxf: true
+    style:
+      layer:
+        color: "green"
+        plot: false
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/baum_points.shp"
   - name: Flur
     updateDxf: true
@@ -85,7 +100,10 @@ geomLayers:
         capStyle: flat
         distance: 5
   - name: Geschütze Biotope
-    # updateDxf: true
+    updateDxf: true
+    style:
+      layer:
+        plot: false
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/gesch_biotope.shp"
   - name: Geschütze Biotope 2
     updateDxf: true
@@ -98,6 +116,11 @@ geomLayers:
           - Geschütze Biotope
         distance: 0.5
   - name: Gastrasse
+    updateDxf: true
+    style:
+      layer:
+        color: "orange"
+        plot: false
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/gastrasse.shp"
   - name: Gastrasse Buffer
     operations:
@@ -112,11 +135,11 @@ geomLayers:
   - name: Einfahrt Line Reference
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/einfahrt_line.shp"
   - name: FG Line
-    # updateDxf: true
-    close: false
+    updateDxf: true
     style:
       layer:
         color: "blue"
+        plot: false
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/FG_Ausschnitt.shp"
   - name: FG Buffer
     operations:
@@ -203,24 +226,24 @@ geomLayers:
         layers:
           - name: Geltungsbereich NW
         distance: 2
-  - name: Geltungsbereich Hatch NW
-    updateDxf: true
-    style: geltungsbereichHatches
-    applyHatch:
-      layers:
-        - Geltungsbereich NW
-  - name: Geltungsbereich Hatch NO
-    updateDxf: true
-    style: geltungsbereichHatches
-    applyHatch:
-      layers:
-        - Geltungsbereich NO
-  - name: Geltungsbereich Hatch S
-    updateDxf: true
-    style: geltungsbereichHatches
-    applyHatch:
-      layers:
-        - Geltungsbereich S
+  # - name: Geltungsbereich Hatch NW
+  #   updateDxf: true
+  #   style: geltungsbereichHatches
+  #   applyHatch:
+  #     layers:
+  #       - Geltungsbereich NW
+  # - name: Geltungsbereich Hatch NO
+  #   updateDxf: true
+  #   style: geltungsbereichHatches
+  #   applyHatch:
+  #     layers:
+  #       - Geltungsbereich NO
+  # - name: Geltungsbereich Hatch S
+  #   updateDxf: true
+  #   style: geltungsbereichHatches
+  #   applyHatch:
+  #     layers:
+  #       - Geltungsbereich S
   - name: Geltungsbereich NO
     updateDxf: true
     style: geltungsbereich
@@ -361,6 +384,24 @@ geomLayers:
         layers:
           - name: Geltungsbereich S
         distance: 2
+  - name: Geltungsbereich Hatch NW
+    updateDxf: true
+    style: geltungsbereichHatches
+    applyHatch:
+      layers:
+        - Geltungsbereich NW
+  - name: Geltungsbereich Hatch NO
+    updateDxf: true
+    style: geltungsbereichHatches
+    applyHatch:
+      layers:
+        - Geltungsbereich NO
+  - name: Geltungsbereich Hatch S
+    updateDxf: true
+    style: geltungsbereichHatches
+    applyHatch:
+      layers:
+        - Geltungsbereich S
   - name: Einfahrt Line
     operations:
       - type: directionalLine
@@ -384,6 +425,9 @@ geomLayers:
           - Geltungsbereich NW
           - Geltungsbereich NO
           - Geltungsbereich S
+      - type: dissolve
+        useBufferTrick: true
+  
   # - name: Einfahrt Schraffur
   #   updateDxf: true
   #   style: verkehrsfläche
@@ -440,6 +484,10 @@ geomLayers:
       - type: filterGeometry
         minArea: 200
   - name: Biotope
+    updateDxf: true
+    style:
+      layer:
+        plot: false
     viewports:
       - name: WorkView
         style: biotopWorkView
@@ -533,6 +581,11 @@ geomLayers:
         decimalPlaces:
           area: 0
   - name: Ausgleichsfläche Gesamt
+    updateDxf: true
+    style:
+      layer:
+        color: "lime"
+        plot: false
     viewports:
       - name: WorkView
         style: grünflächeWorkView
@@ -580,6 +633,7 @@ geomLayers:
       - type: copy
         layers:
           - Ausgleichsfläche Gesamt
+          - Hecke
       - type: intersection
         layers:
           - Geltungsbereich NO
@@ -780,6 +834,7 @@ geomLayers:
           - Biotope
           - Biotoppuffer
       - type: dissolve
+        useBufferTrick: true
   - name: Baufeld
     updateDxf: true
     close: true
@@ -793,7 +848,7 @@ geomLayers:
           - Geltungsbereich NO
           - Geltungsbereich S
       - type: difference
-        # useBufferTrick: true
+        useBufferTrick: true
         reverseDifference: false
         operations:
           - type: dissolve

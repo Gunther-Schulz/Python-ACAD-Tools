@@ -2,6 +2,7 @@ import random
 import shutil
 import traceback
 import ezdxf
+from pathlib import Path
 from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection, Point
 from src.utils import ensure_path_exists, log_info, log_warning, log_error, resolve_path
 import geopandas as gpd
@@ -14,7 +15,7 @@ from ezdxf import const
 
 from PIL import Image
 from src.legend_creator import LegendCreator
-from src.dxf_utils import (add_block_reference, get_color_code, convert_transparency, attach_custom_data, 
+from src.dxf_utils import (get_color_code,attach_custom_data, 
                            is_created_by_script, add_text, remove_entities_by_layer, 
                            ensure_layer_exists, update_layer_properties, 
                            set_drawing_properties, verify_dxf_settings, update_layer_geometry,
@@ -23,6 +24,8 @@ from src.path_array import create_path_array
 from src.style_manager import StyleManager
 from src.viewport_manager import ViewportManager
 from src.block_insert_manager import BlockInsertManager
+from src.reduced_dxf_creator import ReducedDXFCreator
+from src.dxf_source_extractor import DXFSourceExtractor
 
 class DXFExporter:
     def __init__(self, project_loader, layer_processor):
@@ -37,6 +40,7 @@ class DXFExporter:
         self.name_to_aci = project_loader.name_to_aci
         self.block_inserts = self.project_settings.get('blockInserts', [])
         self.style_manager = StyleManager(project_loader)
+        self.source_extractor = None  # Initialize as None
         log_info(f"DXFExporter initialized with script identifier: {self.script_identifier}")
         self.setup_layers()
         self.viewport_manager = ViewportManager(
@@ -51,6 +55,7 @@ class DXFExporter:
             self.all_layers,
             self.script_identifier
         )
+        self.reduced_dxf_creator = ReducedDXFCreator(self)
 
     def setup_layers(self):
         # Setup geom layers
@@ -102,29 +107,42 @@ class DXFExporter:
         self.colors[label_layer_name] = label_properties['color']
 
     def export_to_dxf(self):
-        log_info("Starting DXF export...")
-        doc = self._prepare_dxf_document()
-        self.loaded_styles = initialize_document(doc)
-        msp = doc.modelspace()
-        self.register_app_id(doc)
-        
-        # First ensure all layers exist
-        # self._ensure_all_layers_exist(doc)
-        
-        # Then process all content
-        self.process_layers(doc, msp)
-        self.create_path_arrays(msp)
-        self.block_insert_manager.process_block_inserts(msp)
-        self.process_text_inserts(msp)
-        
-        # Create legend
-        legend_creator = LegendCreator(doc, msp, self.project_loader, self.loaded_styles)
-        legend_creator.create_legend()
-        
-        # Create and configure viewports after ALL content exists
-        self.viewport_manager.create_viewports(doc, msp)
-        
-        self._cleanup_and_save(doc, msp)
+        """Main export method."""
+        try:
+            log_info("Starting DXF export...")
+            doc = self._prepare_dxf_document()
+            
+            # Share the document with LayerProcessor
+            self.layer_processor.set_dxf_document(doc)
+            
+            self.loaded_styles = initialize_document(doc)
+            msp = doc.modelspace()
+            self.register_app_id(doc)
+            
+            # First ensure all layers exist
+            # self._ensure_all_layers_exist(doc)
+            
+            # Then process all content
+            self.process_layers(doc, msp)
+            self.create_path_arrays(msp)
+            self.block_insert_manager.process_block_inserts(msp)
+            self.process_text_inserts(msp)
+            
+            # Create legend
+            legend_creator = LegendCreator(doc, msp, self.project_loader, self.loaded_styles)
+            legend_creator.create_legend()
+            
+            # Create and configure viewports after ALL content exists
+            self.viewport_manager.create_viewports(doc, msp)
+            
+            self._cleanup_and_save(doc, msp)
+            
+            # After successful export, create reduced version if configured
+            self.reduced_dxf_creator.create_reduced_dxf()
+            
+        except Exception as e:
+            log_error(f"Error during DXF export: {str(e)}")
+            raise
 
     def _prepare_dxf_document(self):
         self._backup_existing_file()
@@ -139,13 +157,34 @@ class DXFExporter:
 
     def _load_or_create_dxf(self):
         dxf_version = self.project_settings.get('dxfVersion', 'R2010')
+        template_filename = self.project_settings.get('templateDxfFilename')
+        
+        # Load or create the DXF document
         if os.path.exists(self.dxf_filename):
             doc = ezdxf.readfile(self.dxf_filename)
             log_info(f"Loaded existing DXF file: {self.dxf_filename}")
+            
+            # Initialize source extractor only once
+            if self.source_extractor is None:
+                self.source_extractor = DXFSourceExtractor(self.project_loader)
+                self.source_extractor.process_extracts(doc)  # Process extracts once
+            
             self.load_existing_layers(doc)
             self.check_existing_entities(doc)
-            # Print settings for existing file
             set_drawing_properties(doc)
+            return doc
+        elif template_filename:
+            # Use resolve_path with folder prefix
+            full_template_path = resolve_path(template_filename, self.project_loader.folder_prefix)
+            if os.path.exists(full_template_path):
+                doc = ezdxf.readfile(full_template_path)
+                log_info(f"Created new DXF file from template: {full_template_path}")
+                set_drawing_properties(doc)
+            else:
+                log_warning(f"Template file not found at: {full_template_path}")
+                doc = ezdxf.new(dxfversion=dxf_version)
+                log_info(f"Created new DXF file with version: {dxf_version}")
+                set_drawing_properties(doc)
         else:
             doc = ezdxf.new(dxfversion=dxf_version)
             log_info(f"Created new DXF file with version: {dxf_version}")
@@ -187,7 +226,10 @@ class DXFExporter:
         verify_dxf_settings(self.dxf_filename)
 
     def process_layers(self, doc, msp):
-        # First process geometric layers (including hatches)
+        # Remove any duplicate source extraction here
+        # The extraction was already done in _load_or_create_dxf
+        
+        # Rest of the method remains unchanged
         geom_layers = self.project_settings.get('geomLayers', [])
         for layer_info in geom_layers:
             layer_name = layer_info['name']
@@ -298,6 +340,14 @@ class DXFExporter:
             return
         
         def update_function():
+            # First update the layer style
+            layer = msp.doc.layers.get(layer_name)
+            if layer:
+                # Process and apply the layer style
+                layer_properties = self.style_manager.process_layer_style(layer_name, layer_config)
+                update_layer_properties(layer, layer_properties, self.name_to_aci)
+                log_info(f"Updated style for layer {layer_name}")
+            
             # Remove existing geometry and labels
             log_info(f"Removing existing geometry from layer {layer_name}")
             remove_entities_by_layer(msp, layer_name, self.script_identifier)
@@ -524,8 +574,10 @@ class DXFExporter:
         points = list(linestring.coords)
         layer_properties = self.layer_properties[layer_name]
 
-        if layer_properties['close'] and points[0] != points[-1]:
-            points.append(points[0])  # Close the linestring by adding the first point at the end
+        # For linestrings, we should not close them unless explicitly requested
+        # and the first and last points are already the same
+        should_close = (layer_properties['close'] and 
+                       points[0] == points[-1])
 
         log_info(f"Adding linestring to layer {layer_name} with {len(points)} points")
         log_info(f"First point: {points[0][:2] if points else 'No points'}")
@@ -538,7 +590,7 @@ class DXFExporter:
                 points=points_2d,
                 dxfattribs={
                     'layer': layer_name,
-                    'closed': layer_properties['close'],
+                    'closed': should_close,
                     'ltscale': layer_properties['linetypeScale']
                 }
             )
@@ -655,11 +707,35 @@ class DXFExporter:
         elif isinstance(geometry, MultiLineString):
             for line in geometry.geoms:
                 self.add_linestring_to_dxf(msp, line, layer_name, entity_name)
+        elif isinstance(geometry, Point):
+            self.add_point_to_dxf(msp, geometry, layer_name, entity_name)
         elif isinstance(geometry, GeometryCollection):
             for geom in geometry.geoms:
                 self.add_geometry_to_dxf(msp, geom, layer_name, entity_name)
         else:
             log_warning(f"Unsupported geometry type for layer {layer_name}: {type(geometry)}")
+
+    def add_point_to_dxf(self, msp, point, layer_name, entity_name=None):
+        """Add a point geometry to the DXF file."""
+        try:
+            # Get point coordinates
+            x, y = point.x, point.y
+            
+            # Create a POINT entity
+            point_entity = msp.add_point(
+                (x, y),
+                dxfattribs={
+                    'layer': layer_name,
+                }
+            )
+            
+            # Attach custom data
+            self.attach_custom_data(point_entity, entity_name)
+            
+            log_info(f"Added point at ({x}, {y}) to layer {layer_name}")
+            
+        except Exception as e:
+            log_error(f"Error adding point to layer {layer_name}: {str(e)}")
 
     def verify_entity_hyperlinks(self, msp, layer_name):
         log_info(f"Verifying hyperlinks for entities in layer {layer_name}")
@@ -925,114 +1001,6 @@ class DXFExporter:
                     except:
                         continue
         return None
-
-    # def get_insertion_points(self, position_config):
-    #     """Common method to get insertion points for both blocks and text."""
-    #     points = []
-    #     position_type = position_config.get('type', 'polygon')
-    #     offset_x = position_config.get('offset', {}).get('x', 0)
-    #     offset_y = position_config.get('offset', {}).get('y', 0)
-    #     source_layer = position_config.get('sourceLayer')
-
-    #     # Handle absolute positioning
-    #     if position_type == 'absolute':
-    #         x = position_config.get('x', 0)
-    #         y = position_config.get('y', 0)
-    #         points.append((x + offset_x, y + offset_y))
-    #         return points
-
-    #     # For non-absolute positioning, we need a source layer
-    #     if not source_layer:
-    #         log_warning("Source layer required for non-absolute positioning")
-    #         return points
-
-    #     # Handle geometry-based positioning
-    #     if source_layer not in self.all_layers:
-    #         log_warning(f"Source layer '{source_layer}' not found in all_layers")
-    #         return points
-
-    #     layer_data = self.all_layers[source_layer]
-    #     if not hasattr(layer_data, 'geometry'):
-    #         log_warning(f"Layer {source_layer} has no geometry attribute")
-    #         return points
-
-    #     # Process each geometry based on type and method
-    #     for geometry in layer_data.geometry:
-    #         insert_point = self.get_insert_point(geometry, position_config)
-    #         points.append((insert_point[0] + offset_x, insert_point[1] + offset_y))
-
-    #     return points
-
-    # def get_insert_point(self, geometry, position_config):
-    #     position_type = position_config.get('type', 'polygon')
-    #     position_method = position_config.get('method', 'centroid')
-
-    #     if position_type == 'absolute':
-    #         log_warning("Absolute positioning doesn't use geometry-based insert points")
-    #         return (0, 0)
-        
-    #     elif position_type == 'polygon':
-    #         if position_method == 'centroid':
-    #             return geometry.centroid.coords[0]
-    #         elif position_method == 'center':
-    #             return geometry.envelope.centroid.coords[0]
-    #         elif position_method == 'random':
-    #             minx, miny, maxx, maxy = geometry.bounds
-    #             while True:
-    #                 point = Point(random.uniform(minx, maxx), random.uniform(miny, maxy))
-    #                 if geometry.contains(point):
-    #                     return point.coords[0]
-                    
-    #     elif position_type == 'line':
-    #         if position_method == 'start':
-    #             return geometry.coords[0]
-    #         elif position_method == 'end':
-    #             return geometry.coords[-1]
-    #         elif position_method == 'middle':
-    #             return geometry.interpolate(0.5, normalized=True).coords[0]
-    #         elif position_method == 'random':
-    #             distance = random.random()
-    #             return geometry.interpolate(distance, normalized=True).coords[0]
-        
-    #     elif position_type == 'points':
-    #         if hasattr(geometry, 'coords'):
-    #             return geometry.coords[0]
-        
-    #     # Default fallback
-    #     log_warning(f"Invalid position type '{position_type}' or method '{position_method}'. Using polygon centroid.")
-    #     return geometry.centroid.coords[0]
-
-    # def _ensure_all_layers_exist(self, doc):
-    #     """Ensures all layers exist in the document before viewport creation."""
-    #     # Create layers for path arrays
-    #     path_arrays = self.project_settings.get('pathArrays', [])
-    #     for array in path_arrays:
-    #         if 'name' in array:
-    #             layer_name = array['name']
-    #             if layer_name not in doc.layers:
-    #                 doc.layers.new(layer_name)
-    #                 log_info(f"Created layer for path array: {layer_name}")
-        
-    #     # Create layers for block inserts
-    #     block_inserts = self.project_settings.get('blockInserts', [])
-    #     for insert in block_inserts:
-    #         if 'targetLayer' in insert:
-    #             layer_name = insert['targetLayer']
-    #             if layer_name not in doc.layers:
-    #                 doc.layers.new(layer_name)
-    #                 log_info(f"Created layer for block insert: {layer_name}")
-        
-    #     # Create layers for text inserts
-    #     text_inserts = self.project_settings.get('textInserts', [])
-    #     for insert in text_inserts:
-    #         if 'targetLayer' in insert:
-    #             layer_name = insert['targetLayer']
-    #             if layer_name not in doc.layers:
-    #                 doc.layers.new(layer_name)
-    #                 log_info(f"Created layer for text insert: {layer_name}")
-
-
-
 
 
 

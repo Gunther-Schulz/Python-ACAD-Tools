@@ -6,6 +6,7 @@ class ProjectLoader:
     def __init__(self, project_name: str):
         self.project_name = project_name
         self.project_dir = os.path.join('projects', self.project_name)
+        self.project_settings = {}
         self.load_global_settings()
         self.load_project_settings()
         self.load_color_mapping()
@@ -30,51 +31,32 @@ class ProjectLoader:
 
     def load_project_settings(self):
         """Load project specific settings from modular config files"""
-        # First check if project directory exists
-        if not os.path.exists(self.project_dir):
-            # Try loading legacy single file
-            legacy_file = os.path.join('projects', f'{self.project_name}.yaml')
-            if os.path.exists(legacy_file):
-                with open(legacy_file, 'r') as file:
-                    self.project_settings = yaml.safe_load(file)
-            else:
-                available_projects = []
-                # Check both directories and yaml files
-                for item in os.listdir('projects'):
-                    if os.path.isdir(os.path.join('projects', item)):
-                        available_projects.append(item)
-                    elif item.endswith('.yaml'):
-                        available_projects.append(item[:-5])  # Remove .yaml extension
-                
-                error_msg = f"Project '{self.project_name}' not found.\n\nAvailable projects:"
-                if available_projects:
-                    error_msg += "\n  - " + "\n  - ".join(sorted(available_projects))
-                else:
-                    error_msg += "\n  No projects found."
-                error_msg += "\n\nTip: Use --create-project to create a new project"
-                raise ValueError(error_msg)
-        else:
-            # Load main project settings
-            main_settings = self.load_yaml_file('project.yaml', required=True)
-            
-            # Load optional modular configs and handle None cases
-            legends = self.load_yaml_file('legends.yaml', required=False) or {}
-            geom_layers = self.load_yaml_file('geom_layers.yaml', required=False) or {}
-            viewports = self.load_yaml_file('viewports.yaml', required=False) or {}
-            block_inserts = self.load_yaml_file('block_inserts.yaml', required=False) or {}
-            text_inserts = self.load_yaml_file('text_inserts.yaml', required=False) or {}
-            path_arrays = self.load_yaml_file('path_arrays.yaml', required=False) or {}
+        # Load main project settings
+        main_settings = self.load_yaml_file('project.yaml', required=True)
+        
+        # Load additional configurations
+        geom_layers = self.load_yaml_file('geom_layers.yaml', required=False) or {}
+        legends = self.load_yaml_file('legends.yaml', required=False) or {}
+        viewports = self.load_yaml_file('viewports.yaml', required=False) or {}
+        block_inserts = self.load_yaml_file('block_inserts.yaml', required=False) or {}
+        text_inserts = self.load_yaml_file('text_inserts.yaml', required=False) or {}
+        path_arrays = self.load_yaml_file('path_arrays.yaml', required=False) or {}
+        wmts_wms_layers = self.load_yaml_file('wmts_wms_layers.yaml', required=False) or {}
+        update_from_source = self.load_yaml_file('update_from_source.yaml', required=False) or {}
 
-            # Merge all configurations with safe defaults
-            self.project_settings = {
-                **main_settings,
-                'legends': legends.get('legends', []),
-                'geomLayers': geom_layers.get('geomLayers', []),
-                'viewports': viewports.get('viewports', []),
-                'blockInserts': block_inserts.get('blockInserts', []),
-                'textInserts': text_inserts.get('textInserts', []),
-                'pathArrays': path_arrays.get('pathArrays', [])
-            }
+        # Merge all configurations with safe defaults
+        self.project_settings = {
+            **main_settings,
+            'geomLayers': geom_layers.get('geomLayers', []),
+            'legends': legends.get('legends', []),
+            'viewports': viewports.get('viewports', []),
+            'blockInserts': block_inserts.get('blockInserts', []),
+            'textInserts': text_inserts.get('textInserts', []),
+            'pathArrays': path_arrays.get('pathArrays', []),
+            'wmtsLayers': wmts_wms_layers.get('wmtsLayers', []),
+            'wmsLayers': wmts_wms_layers.get('wmsLayers', []),
+            'updateFromSource': update_from_source.get('updateFromSource', [])  # Ensure this is loaded
+        }
 
         # Process core settings
         self.crs = self.project_settings['crs']

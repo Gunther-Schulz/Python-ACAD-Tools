@@ -15,8 +15,13 @@ class ProjectProcessor:
             self.project_loader = ProjectLoader(project_name)
             if not self.project_loader.project_settings:
                 raise ValueError(f"Could not load settings for project '{project_name}'. Please check if the project files exist and are valid YAML.")
+            
+            # Initialize LayerProcessor first
             self.layer_processor = LayerProcessor(self.project_loader, plot_ops)
+            
+            # Pass the initialized LayerProcessor to DXFExporter
             self.dxf_exporter = DXFExporter(self.project_loader, self.layer_processor)
+            
         except Exception as e:
             available_projects = list_available_projects()
             error_msg = f"Error initializing project '{project_name}': {str(e)}\n"
@@ -27,10 +32,11 @@ class ProjectProcessor:
             raise ValueError(error_msg)
 
     def run(self):
+        doc = self.dxf_exporter._load_or_create_dxf()
+        self.layer_processor.set_dxf_document(doc)
         self.layer_processor.process_layers()
         self.dxf_exporter.export_to_dxf()
         
-        # Run the dumping process after exporting to DXF
         project_settings = self.project_loader.project_settings
         folder_prefix = self.project_loader.folder_prefix
         dxf_filename = self.project_loader.dxf_filename

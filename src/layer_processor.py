@@ -1,4 +1,5 @@
 import traceback
+from src.dump_to_shape import merge_dxf_layer_to_shapefile
 from src.project_loader import ProjectLoader
 from src.utils import log_info, log_warning, log_error, resolve_path, ensure_path_exists
 import geopandas as gpd
@@ -31,13 +32,20 @@ from src.operations.report_operation import create_report_layer
 class LayerProcessor:
     def __init__(self, project_loader, plot_ops=False):
         self.project_loader = project_loader
-        self.all_layers = {}
         self.project_settings = project_loader.project_settings
         self.crs = project_loader.crs
-        self.plot_ops = plot_ops  # New flag for plotting operations
+        self.all_layers = {}
+        self.plot_ops = plot_ops
         self.style_manager = StyleManager(project_loader)
         self.processed_layers = set()
+        self.dxf_doc = None
+        self.pending_dxf_layers = []
     
+    def set_dxf_document(self, doc):
+        """Set the DXF document from DXFExporter and process any pending layers"""
+        self.dxf_doc = doc
+        log_info("DXF document reference set in LayerProcessor")
+
     def process_layers(self):
         log_info("Starting to process layers...")
         
@@ -82,7 +90,6 @@ class LayerProcessor:
             return
 
         log_info(f"Processing layer: {layer_name}")
-        log_info(f"Layer object: {layer_obj}")
         
         # Early return for temp layers that don't exist in settings
         if layer_obj is None:
@@ -91,15 +98,15 @@ class LayerProcessor:
             log_warning(f"Layer {layer_name} not found in project settings")
             return
 
-        # Only check for unrecognized keys if we have a valid layer_obj
-        recognized_keys = {'name', 'updateDxf', 'operations', 'shapeFile', 'type','dxfLayer', 'outputShapeFile', 
-                          'style', 'close', 'linetypeScale', 'linetypeGeneration', 'viewports', 'attributes', 
-                          'bluntAngles', 'label', 'applyHatch', 'plot'}
+        # Check for unrecognized keys
+        recognized_keys = {'name', 'updateDxf', 'operations', 'shapeFile', 'type', 'sourceLayer', 
+                          'outputShapeFile', 'style', 'close', 'linetypeScale', 'linetypeGeneration', 
+                          'viewports', 'attributes', 'bluntAngles', 'label', 'applyHatch', 'plot'}
         unrecognized_keys = set(layer_obj.keys()) - recognized_keys
         if unrecognized_keys:
             log_warning(f"Unrecognized keys in layer {layer_name}: {', '.join(unrecognized_keys)}")
 
-        # Process the new style structure
+        # Process style
         if 'style' in layer_obj:
             style, warning_generated = self.style_manager.get_style(layer_obj['style'])
             if warning_generated:
@@ -107,21 +114,16 @@ class LayerProcessor:
             if style is not None:
                 layer_obj['style'] = style
 
-        # Load DXF layer if specified, regardless of operations
-        if 'dxfLayer' in layer_obj:
-            self.load_dxf_layer(layer_name, layer_obj['dxfLayer'])
-
+        # Process operations
         if 'operations' in layer_obj:
             result_geometry = None
             for operation in layer_obj['operations']:
-                # Set type for WMTS/WMS layers if not already set
                 if layer_obj.get('type') in ['wmts', 'wms']:
                     operation['type'] = layer_obj['type']
                 result_geometry = self.process_operation(layer_name, operation, processed_layers)
             if result_geometry is not None:
                 self.all_layers[layer_name] = result_geometry
         elif 'shapeFile' in layer_obj:
-            # The shapefile should have been loaded in setup_shapefiles
             if layer_name not in self.all_layers:
                 log_warning(f"Shapefile for layer {layer_name} was not loaded properly")
         elif 'dxfLayer' not in layer_obj:
@@ -251,6 +253,8 @@ class LayerProcessor:
     def setup_shapefiles(self):
         for layer in self.project_settings['geomLayers']:
             layer_name = layer['name']
+            
+            # Then load the shapefile (whether it was just updated or not)
             if 'shapeFile' in layer:
                 shapefile_path = resolve_path(layer['shapeFile'], self.project_loader.folder_prefix)
                 try:
@@ -259,15 +263,13 @@ class LayerProcessor:
                     if gdf is not None:
                         self.all_layers[layer_name] = gdf
                         log_info(f"Loaded shapefile for layer: {layer_name}")
-                        log_info(f"Layer {layer_name} info: CRS={gdf.crs}, Geometry type={gdf.geometry.type.unique()}, Number of features={len(gdf)}")
-                        log_info(f"First geometry in {layer_name}: {gdf.geometry.iloc[0].wkt[:100]}...")
                     else:
                         log_warning(f"Failed to load shapefile for layer: {layer_name}")
                 except Exception as e:
                     log_error(f"Failed to load shapefile for layer '{layer_name}': {str(e)}")
                     log_error(traceback.format_exc())
             elif 'dxfLayer' in layer:
-                gdf = self.load_dxf_layer(layer_name, layer['dxfLayer'])
+                # gdf = self.load_dxf_layer(layer_name, layer['dxfLayer'])
                 self.all_layers[layer_name] = gdf
                 if 'outputShapeFile' in layer:
                     output_path = self.project_loader.resolve_full_path(layer['outputShapeFile'])
@@ -346,46 +348,8 @@ class LayerProcessor:
                 except Exception as e:
                     log_warning(f"Failed to delete {file_path}. Reason: {e}")
 
-    def load_dxf_layer(self, layer_name, dxf_layer_name):
-            try:
-                log_info(f"Attempting to load DXF layer '{dxf_layer_name}' for layer: {layer_name}")
-                doc = ezdxf.readfile(self.project_loader.dxf_filename)
-                msp = doc.modelspace()
-                
-                geometries = []
-                for entity in msp.query(f'*[layer=="{dxf_layer_name}"]'):
-                    if isinstance(entity, (ezdxf.entities.LWPolyline, ezdxf.entities.Polyline)):
-                        points = list(entity.vertices())
-                        if len(points) >= 2:
-                            if entity.closed or (points[0] == points[-1]):
-                                geometries.append(Polygon(points))
-                            else:
-                                geometries.append(LineString(points))
-                    else:
-                        log_info(f"Skipping entity of type {type(entity)} in layer '{dxf_layer_name}'")
-                
-                log_info(f"Found {len(geometries)} geometries in DXF layer '{dxf_layer_name}'")
-                
-                if geometries:
-                    gdf = gpd.GeoDataFrame(geometry=geometries, crs=self.crs)
-                    self.all_layers[layer_name] = gdf
-                    log_info(f"Loaded DXF layer '{dxf_layer_name}' for layer: {layer_name} with {len(gdf)} features")
-                    log_info(f"Type of self.all_layers[{layer_name}]: {type(self.all_layers[layer_name])}")
-                else:
-                    log_warning(f"No valid geometries found in DXF layer '{dxf_layer_name}' for layer: {layer_name}")
-                    gdf = gpd.GeoDataFrame(geometry=[], crs=self.crs)
-                    self.all_layers[layer_name] = gdf
-                
-            except Exception as e:
-                log_error(f"Failed to load DXF layer '{dxf_layer_name}' for layer '{layer_name}': {str(e)}")
-                import traceback
-                log_error(traceback.format_exc())
-                gdf = gpd.GeoDataFrame(geometry=[], crs=self.crs)
-                self.all_layers[layer_name] = gdf
-            
-            log_info(f"Final state of self.all_layers[{layer_name}]: {self.all_layers[layer_name]}")
-            return gdf
-    
+    # def load_dxf_layer(self, layer_name, dxf_layer_name):
+    #     return load_dxf_layer(layer_name, dxf_layer_name, self.dxf_doc, self.project_loader, self.crs)
 
     def _process_hatch_config(self, layer_name, layer_config):
         log_info(f"Processing hatch configuration for layer: {layer_name}")
@@ -610,56 +574,3 @@ class LayerProcessor:
                         log_info(f"Deleted residual file: {filename}")
                     except Exception as e:
                         log_warning(f"Failed to delete residual file {file_path}. Reason: {e}")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

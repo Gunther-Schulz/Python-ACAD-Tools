@@ -15,7 +15,7 @@ textInserts:
     targetLayer: "Plantext"
     updateDxf: true
     paperspace: true  # Add this to place text in paper space
-    text: "Teil A: Planzeichnung i. M. 1:1.500"
+    text: "Teil A: Planzeichnung i. M. 1:1500"
     position:
       type: "absolute"
       x: 1650
@@ -59,7 +59,7 @@ textInserts:
     targetLayer: "Plantext"
     updateDxf: true
     paperspace: true  # Add this to place text in paper space
-    text: "Teil A: Planzeichnung i. M. 1:1.500"
+    text: "Teil A: Planzeichnung i. M. 1:1500"
     position:
       type: "absolute"
       x: 3650
@@ -73,7 +73,7 @@ textInserts:
     position:
       type: "absolute"
       x: 4400
-      y: 325
+      y: 310
     style: "übersichtskarteHeader"  # Style can include width for text wrapping
   - name: "Satzungs NO"
     targetLayer: "Plantext"
@@ -102,7 +102,7 @@ textInserts:
     targetLayer: "Plantext"
     updateDxf: true
     paperspace: true  # Add this to place text in paper space
-    text: "Teil A: Planzeichnung i. M. 1:1.500"
+    text: "Teil A: Planzeichnung i. M. 1:1500"
     position:
       type: "absolute"
       x: 5650

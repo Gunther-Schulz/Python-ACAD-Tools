@@ -15,25 +15,46 @@ class StyleManager:
 
     def get_style(self, style_name_or_config):
         if isinstance(style_name_or_config, str):
+            # Handle preset style
             style = self.styles.get(style_name_or_config)
             if style is None:
                 log_warning(f"Style preset '{style_name_or_config}' not found.")
                 return None, True
             return style, False
-        elif isinstance(style_name_or_config, dict) and 'preset' in style_name_or_config:
-            preset_name = style_name_or_config['preset']
-            preset = self.styles.get(preset_name)
-            if preset is None:
-                log_warning(f"Style preset '{preset_name}' not found.")
-                return style_name_or_config, True
-            
-            # Remove the preset key from overrides
-            overrides = dict(style_name_or_config)
-            del overrides['preset']
-            
-            # Deep merge the preset with overrides
-            merged_style = self.deep_merge(preset, overrides)
-            return merged_style, False
+        elif isinstance(style_name_or_config, dict):
+            if 'preset' in style_name_or_config:
+                # Handle preset with overrides (old way - kept for backward compatibility)
+                preset_name = style_name_or_config['preset']
+                preset = self.styles.get(preset_name)
+                if preset is None:
+                    log_warning(f"Style preset '{preset_name}' not found.")
+                    return style_name_or_config, True
+                
+                # Remove the preset key from overrides
+                overrides = dict(style_name_or_config)
+                del overrides['preset']
+                
+                # Deep merge the preset with overrides
+                merged_style = self.deep_merge(preset, overrides)
+                return merged_style, False
+            elif 'styleOverride' in style_name_or_config:
+                # Handle new style override system
+                preset_name = style_name_or_config.get('style')
+                if not preset_name or not isinstance(preset_name, str):
+                    log_warning("styleOverride requires a valid preset name in 'style' key")
+                    return style_name_or_config, True
+                
+                preset = self.styles.get(preset_name)
+                if preset is None:
+                    log_warning(f"Style preset '{preset_name}' not found.")
+                    return style_name_or_config, True
+                
+                # Deep merge the preset with overrides
+                merged_style = self.deep_merge(preset, style_name_or_config['styleOverride'])
+                return merged_style, False
+            else:
+                # Handle pure inline style
+                return style_name_or_config, False
         
         return style_name_or_config, False
 
@@ -45,6 +66,35 @@ class StyleManager:
             if warning_generated:
                 return False
         elif isinstance(style_config, dict):
+            # Validate inline style or style with overrides
+            if 'preset' in style_config:
+                # Handle old-style preset with overrides
+                preset_style, warning_generated = self.get_style(style_config['preset'])
+                if warning_generated:
+                    return False
+                # Validate overrides
+                self._validate_style_overrides(layer_name, style_config)
+            elif 'styleOverride' in style_config:
+                # Handle new-style overrides
+                if 'style' not in style_config or not isinstance(style_config['style'], str):
+                    log_warning(f"Layer '{layer_name}' has styleOverride but no valid preset name in 'style' key")
+                    return False
+                preset_style, warning_generated = self.get_style(style_config['style'])
+                if warning_generated:
+                    return False
+                # Validate overrides
+                self._validate_style_overrides(layer_name, style_config['styleOverride'])
+            else:
+                # Handle pure inline style
+                for style_type, style_dict in style_config.items():
+                    if style_type == 'layer':
+                        self._validate_layer_style(layer_name, style_dict)
+                    elif style_type == 'hatch':
+                        self._validate_hatch_style(layer_name, style_dict)
+                    elif style_type == 'text':
+                        self._validate_text_style(layer_name, style_dict)
+                    else:
+                        log_warning(f"Unknown style type '{style_type}' in layer '{layer_name}'")
             # Validate inline style
             if 'preset' in style_config:
                 # Handle preset with overrides
@@ -70,6 +120,7 @@ class StyleManager:
     def _validate_layer_style(self, layer_name, layer_style):
         known_style_keys = {'color', 'linetype', 'lineweight', 'plot', 'locked', 'frozen', 'is_on', 'transparency', 'linetypeScale'}
         self._validate_style_keys(layer_name, 'layer', layer_style, known_style_keys)
+        
         # Add linetype validation
         if 'linetype' in layer_style:
             linetype = layer_style['linetype']
@@ -79,8 +130,6 @@ class StyleManager:
                 if not re.match(acad_pattern, linetype):
                     log_warning(f"Invalid ACAD linetype format '{linetype}' in layer '{layer_name}'. "
                               f"ACAD ISO linetypes should follow the pattern 'ACAD_ISOxxW100' where xx is a two-digit number.")
-            elif not self.project_loader.doc.linetypes.has_entry(linetype):
-                log_warning(f"Linetype '{linetype}' in layer '{layer_name}' does not exist. Using default linetype.")
 
     def _validate_hatch_style(self, layer_name, hatch_style):
         known_style_keys = {'pattern', 'scale', 'color', 'transparency', 'individual_hatches', 'layers'}
@@ -154,19 +203,31 @@ class StyleManager:
         return hatch_config
 
     def process_layer_style(self, layer_name, layer_config):
+        """Process layer style with support for presets, inline styles, and overrides"""
         style = layer_config.get('style', {})
+        style_override = layer_config.get('styleOverride', {})
         
         # Validate style before processing
         self.validate_style(layer_name, style)
         
+        final_style = {}
+        
+        # Process base style (either preset or inline)
         if isinstance(style, str):
             # Handle preset style
-            style, warning_generated = self.get_style(style)
-            if warning_generated:
-                return {}
+            preset_style, warning_generated = self.get_style(style)
+            if not warning_generated and preset_style:
+                final_style = preset_style
+        elif isinstance(style, dict):
+            # Handle inline style
+            final_style = style
         
-        # Handle both preset and inline styles
-        layer_style = style.get('layer', {}) if isinstance(style, dict) else {}
+        # Apply style overrides if they exist
+        if style_override:
+            final_style = self.deep_merge(final_style, style_override)
+        
+        # Extract layer properties from the processed style
+        layer_style = final_style.get('layer', {})
         
         properties = {
             'color': get_color_code(layer_style.get('color'), self.project_loader.name_to_aci),
