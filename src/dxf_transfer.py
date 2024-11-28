@@ -98,7 +98,7 @@ class DXFTransfer:
             log_error(f"Error saving to {external_dxf}: {str(e)}")
 
     def _transfer_entities(self, from_doc, to_doc, from_layer, to_layer=None, entity_types=None, entity_filter=None):
-        """Transfer entities between documents"""
+        """Transfer entities between documents (modelspace only)"""
         if from_layer == '*':
             layers = from_doc.layers
         else:
@@ -128,7 +128,7 @@ class DXFTransfer:
             # Ensure target layer exists with same properties
             ensure_layer_exists(to_doc, target_layer_name, layer_properties, self.name_to_aci)
             
-            # Get entities from source layer
+            # Get entities from source layer (modelspace only)
             entities = from_doc.modelspace().query(f'*[layer=="{source_layer_name}"]')
             
             # Apply entity type filter if specified
@@ -139,17 +139,63 @@ class DXFTransfer:
             if entity_filter:
                 entities = self._apply_filter(entities, entity_filter)
             
-            # Copy entities to target document
+            # Copy entities to target document's modelspace
+            msp = to_doc.modelspace()
             for entity in entities:
                 try:
-                    new_entity = to_doc.modelspace().add_entity_in_layout(
-                        entity.dxftype(),
-                        dxfattribs=entity.dxfattribs()
-                    )
-                    new_entity.dxf.layer = target_layer_name
+                    dxftype = entity.dxftype()
+                    dxfattribs = entity.dxfattribs()
+                    dxfattribs['layer'] = target_layer_name
+                    
+                    if dxftype == 'LINE':
+                        new_entity = msp.add_line(
+                            start=entity.dxf.start,
+                            end=entity.dxf.end,
+                            dxfattribs=dxfattribs
+                        )
+                    elif dxftype == 'CIRCLE':
+                        new_entity = msp.add_circle(
+                            center=entity.dxf.center,
+                            radius=entity.dxf.radius,
+                            dxfattribs=dxfattribs
+                        )
+                    elif dxftype == 'ARC':
+                        new_entity = msp.add_arc(
+                            center=entity.dxf.center,
+                            radius=entity.dxf.radius,
+                            start_angle=entity.dxf.start_angle,
+                            end_angle=entity.dxf.end_angle,
+                            dxfattribs=dxfattribs
+                        )
+                    elif dxftype == 'LWPOLYLINE':
+                        new_entity = msp.add_lwpolyline(
+                            points=entity.get_points(),
+                            dxfattribs=dxfattribs
+                        )
+                    elif dxftype == 'TEXT':
+                        new_entity = msp.add_text(
+                            text=entity.dxf.text,
+                            dxfattribs=dxfattribs
+                        )
+                    elif dxftype == 'MTEXT':
+                        new_entity = msp.add_mtext(
+                            text=entity.text,
+                            dxfattribs=dxfattribs
+                        )
+                    elif dxftype == 'INSERT':
+                        new_entity = msp.add_blockref(
+                            name=entity.dxf.name,
+                            insert=entity.dxf.insert,
+                            dxfattribs=dxfattribs
+                        )
+                    else:
+                        log_warning(f"Unsupported entity type for copy: {dxftype}")
+                        continue
+                    
                     attach_custom_data(new_entity, entity)
+                    
                 except Exception as e:
-                    log_warning(f"Failed to copy entity: {str(e)}")
+                    log_warning(f"Failed to copy entity of type {dxftype}: {str(e)}")
 
     def _apply_filter(self, entities, filter_config):
         """Apply filter configuration to entities"""
