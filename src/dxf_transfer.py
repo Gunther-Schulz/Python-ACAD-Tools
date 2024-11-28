@@ -59,13 +59,25 @@ class DXFTransfer:
     def _process_save(self, external_dxf, transfer_config, working_doc):
         """Save entities from working document to external DXF"""
         try:
-            # Create new or open existing external DXF
+            # Try to open existing file first
             try:
                 external_doc = ezdxf.readfile(external_dxf)
                 log_info(f"Opened existing external DXF: {external_dxf}")
             except:
-                external_doc = ezdxf.new()
-                log_info(f"Created new external DXF: {external_dxf}")
+                # If file doesn't exist, try to use template
+                template_dxf = self.project_loader.project_settings.get('templateDxfFilename')
+                if template_dxf:
+                    template_path = resolve_path(template_dxf, self.project_loader.folder_prefix)
+                    try:
+                        external_doc = ezdxf.readfile(template_path)
+                        log_info(f"Created new external DXF from template: {template_path}")
+                    except Exception as e:
+                        log_warning(f"Failed to load template DXF {template_path}: {str(e)}")
+                        external_doc = ezdxf.new()
+                        log_info("Created new empty DXF file")
+                else:
+                    external_doc = ezdxf.new()
+                    log_info("Created new empty DXF file")
             
             for transfer in transfer_config.get('transfers', []):
                 from_layer = transfer.get('fromLayer')
@@ -188,6 +200,48 @@ class DXFTransfer:
                             insert=entity.dxf.insert,
                             dxfattribs=dxfattribs
                         )
+                    elif dxftype == 'DIMENSION':
+                        # Handle different dimension types
+                        dimtype = entity.dimtype
+                        if dimtype == 0:  # Linear dimension
+                            new_entity = msp.add_linear_dim(
+                                base=entity.dxf.defpoint,  # Dimension line location
+                                p1=entity.dxf.defpoint2,   # First extension line
+                                p2=entity.dxf.defpoint3,   # Second extension line
+                                dxfattribs=dxfattribs
+                            )
+                        elif dimtype == 1:  # Aligned dimension
+                            new_entity = msp.add_aligned_dim(
+                                p1=entity.dxf.defpoint2,   # First extension line
+                                p2=entity.dxf.defpoint3,   # Second extension line
+                                location=entity.dxf.defpoint,  # Dimension line location
+                                dxfattribs=dxfattribs
+                            )
+                        elif dimtype == 2:  # Angular dimension
+                            new_entity = msp.add_angular_dim(
+                                center=entity.dxf.defpoint,
+                                p1=entity.dxf.defpoint2,
+                                p2=entity.dxf.defpoint3,
+                                location=entity.get_dim_line_point(),
+                                dxfattribs=dxfattribs
+                            )
+                        elif dimtype == 3:  # Diameter dimension
+                            new_entity = msp.add_diameter_dim(
+                                center=entity.dxf.defpoint,
+                                radius=entity.measurement,
+                                angle=0,
+                                dxfattribs=dxfattribs
+                            )
+                        elif dimtype == 4:  # Radius dimension
+                            new_entity = msp.add_radius_dim(
+                                center=entity.dxf.defpoint,
+                                radius=entity.measurement,
+                                angle=0,
+                                dxfattribs=dxfattribs
+                            )
+                        else:
+                            log_warning(f"Unsupported dimension type: {dimtype}")
+                            continue
                     else:
                         log_warning(f"Unsupported entity type for copy: {dxftype}")
                         continue
