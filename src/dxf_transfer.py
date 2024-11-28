@@ -165,6 +165,49 @@ class DXFTransfer:
                             end=entity.dxf.end,
                             dxfattribs=dxfattribs
                         )
+                    elif dxftype == 'POINT':
+                        new_entity = msp.add_point(
+                            location=entity.dxf.location,
+                            dxfattribs=dxfattribs
+                        )
+                    elif dxftype == 'HATCH':
+                        # Get the boundary paths
+                        paths = []
+                        for path in entity.paths:
+                            if path.path_type_flags & 2:  # Polyline path
+                                points = [(vertex[0], vertex[1]) for vertex in path.vertices]
+                                paths.append(points)
+                            else:  # Edge path
+                                edges = []
+                                for edge in path.edges:
+                                    if edge.EDGE_TYPE == "LineEdge":
+                                        edges.extend([edge.start, edge.end])
+                                if edges:
+                                    paths.append(edges)
+                        
+                        # Create new hatch
+                        new_entity = msp.add_hatch(
+                            color=entity.dxf.color,
+                            dxfattribs={
+                                **dxfattribs,
+                                'pattern_name': entity.dxf.pattern_name,
+                                'solid_fill': entity.dxf.solid_fill,
+                                'pattern_scale': entity.dxf.pattern_scale,
+                                'pattern_angle': entity.dxf.pattern_angle,
+                            }
+                        )
+                        
+                        # Add the boundary paths
+                        for path in paths:
+                            try:
+                                new_entity.paths.add_polyline_path(
+                                    path,
+                                    is_closed=True,
+                                    flags=1
+                                )
+                            except Exception as e:
+                                log_warning(f"Failed to add hatch boundary path: {str(e)}")
+                            
                     elif dxftype == 'CIRCLE':
                         new_entity = msp.add_circle(
                             center=entity.dxf.center,
@@ -214,7 +257,7 @@ class DXFTransfer:
                             new_entity = msp.add_aligned_dim(
                                 p1=entity.dxf.defpoint2,   # First extension line
                                 p2=entity.dxf.defpoint3,   # Second extension line
-                                location=entity.dxf.defpoint,  # Dimension line location
+                                distance=entity.dxf.defpoint[1],  # Distance from the dimension line to p1/p2
                                 dxfattribs=dxfattribs
                             )
                         elif dimtype == 2:  # Angular dimension
@@ -222,7 +265,7 @@ class DXFTransfer:
                                 center=entity.dxf.defpoint,
                                 p1=entity.dxf.defpoint2,
                                 p2=entity.dxf.defpoint3,
-                                location=entity.get_dim_line_point(),
+                                distance=entity.dxf.defpoint[1],  # Distance from dimension line to center
                                 dxfattribs=dxfattribs
                             )
                         elif dimtype == 3:  # Diameter dimension
