@@ -75,6 +75,7 @@ geomLayers:
         - Grünfläche
       distance: -3
       joinStyle: round
+      skipIslands: true
 - name: Grünfläche Schraffur
   updateDxf: true
   style: grünfläche

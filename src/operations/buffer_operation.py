@@ -2,7 +2,7 @@ import geopandas as gpd
 from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection, Point, MultiPoint
 from src.utils import log_info, log_warning, log_error
 from shapely.ops import unary_union, split
-from src.operations.common_operations import _process_layer_info, _get_filtered_geometry, make_valid_geometry, format_operation_warning
+from src.operations.common_operations import _process_layer_info, _get_filtered_geometry, make_valid_geometry, format_operation_warning, remove_islands
 from src.operations.common_operations import *
 
 
@@ -81,6 +81,20 @@ def create_buffer_layer(all_layers, project_settings, crs, layer_name, operation
 
     if make_valid and combined_geometry is not None:
         combined_geometry = make_valid_geometry(combined_geometry)
+
+    skip_islands = operation.get('skipIslands', False)
+    
+    if skip_islands and combined_geometry is not None:
+
+        combined_geometry = remove_islands(combined_geometry)
+        if combined_geometry is None:
+            log_warning(format_operation_warning(
+                layer_name,
+                "buffer",
+                "No geometry remained after removing islands"
+            ))
+            return None
+        log_info(f"Removed islands from input geometry for layer: {layer_name}")
 
     def buffer_with_different_caps(geom, distance, start_cap, end_cap, join_style):
         if not isinstance(geom, (LineString, MultiLineString)):

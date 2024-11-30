@@ -592,6 +592,66 @@ def snap_vertices_to_grid(geometry, grid_size):
     return geometry
 
 
+def remove_islands(geometry):
+    """
+    Removes island polygons (polygons completely contained within other polygons).
+    Only keeps the containing polygons, discarding any polygons that are completely
+    contained within others.
+    """
+    if geometry is None or geometry.is_empty:
+        log_warning("remove_islands: Input geometry is None or empty")
+        return None
+
+    # Convert input to list of polygons
+    if isinstance(geometry, Polygon):
+        log_warning(f"remove_islands: Input is single Polygon")
+        polygons = [geometry]
+    elif isinstance(geometry, MultiPolygon):
+        log_warning(f"remove_islands: Input is MultiPolygon with {len(geometry.geoms)} parts")
+        polygons = list(geometry.geoms)
+    elif isinstance(geometry, GeometryCollection):
+        log_warning(f"remove_islands: Input is GeometryCollection with {len(geometry.geoms)} parts")
+        polygons = [g for g in geometry.geoms if isinstance(g, (Polygon, MultiPolygon))]
+        # Further split any MultiPolygons
+        expanded_polygons = []
+        for poly in polygons:
+            if isinstance(poly, MultiPolygon):
+                expanded_polygons.extend(list(poly.geoms))
+            else:
+                expanded_polygons.append(poly)
+        polygons = expanded_polygons
+        log_warning(f"remove_islands: After expanding MultiPolygons, have {len(polygons)} polygons")
+    else:
+        log_warning(f"remove_islands: Unsupported geometry type: {type(geometry)}")
+        return geometry
+
+    # Find non-island polygons
+    result_polygons = []
+    for i, poly in enumerate(polygons):
+        is_island = False
+        for j, other_poly in enumerate(polygons):
+            if i != j:
+                if other_poly.contains(poly):
+                    log_warning(f"remove_islands: Polygon {i} is contained within polygon {j}")
+                    is_island = True
+                    break
+        if not is_island:
+            log_warning(f"remove_islands: Keeping polygon {i} (not an island)")
+            result_polygons.append(poly)
+        else:
+            log_warning(f"remove_islands: Removing polygon {i} (is an island)")
+
+    if not result_polygons:
+        log_warning("remove_islands: No polygons remained after removing islands")
+        return None
+    elif len(result_polygons) == 1:
+        log_warning("remove_islands: Returning single polygon")
+        return result_polygons[0]
+    else:
+        log_warning(f"remove_islands: Returning MultiPolygon with {len(result_polygons)} parts")
+        return MultiPolygon(result_polygons)
+
+
 
 
 
