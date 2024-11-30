@@ -3,6 +3,7 @@ import json
 import os
 from src.utils import log_info, log_warning, log_error, resolve_path, ensure_path_exists
 from src.operations.common_operations import _process_layer_info, ensure_geodataframe
+from src.operations.calculate_operation import create_calculate_layer
 
 def create_report_layer(all_layers, project_settings, crs, layer_name, operation):
     log_info(f"Creating report for layer: {layer_name}")
@@ -11,43 +12,48 @@ def create_report_layer(all_layers, project_settings, crs, layer_name, operation
         log_warning(f"Layer '{layer_name}' not found for reporting")
         return
 
-    source_gdf = all_layers[layer_name]
+    source_gdf = all_layers[layer_name].copy()
     
     # Get output file path from operation
     output_file = operation.get('outputFile', f"{layer_name}_report.json")
-    
-    # Use resolve_path to get the full path
     folder_prefix = project_settings.get('folderPrefix', '')
     output_file = resolve_path(output_file, folder_prefix)
     
-    # Get additional columns to calculate and decimal places configuration
+    # Get configuration
     calculate_columns = operation.get('calculate', [])
-    feature_columns = operation.get('featureColumns', [])  # New: specify which columns to include
-    decimal_places = operation.get('decimalPlaces', {
-        'area': 2,
-        'perimeter': 2,
-        'coordinates': 6
-    })
+    feature_columns = operation.get('featureColumns', [])
+    decimal_places = operation.get('decimalPlaces', {})
+    
+    # Use calculate operation to compute metrics
+    if calculate_columns:
+        calculations = []
+        for calc in calculate_columns:
+            calculations.append({
+                'type': calc,
+                'decimalPlaces': decimal_places.get(calc)
+            })
+        
+        calculate_operation = {
+            'calculations': calculations
+        }
+        source_gdf = create_calculate_layer(all_layers, project_settings, crs, layer_name, calculate_operation)
     
     # Create report data and summary data
     features_data = []
     summary = {}
     
-    # Initialize summary accumulators
-    if 'area' in calculate_columns:
-        summary['area'] = {
-            'total': 0, 'min': float('inf'), 'max': float('-inf'), 'count': 0
-        }
+    # Initialize summary accumulators for each calculated column
+    for calc in calculate_columns:
+        if calc in ['area', 'perimeter']:  # Only summarize numeric calculations
+            summary[calc] = {
+                'total': 0, 'min': float('inf'), 'max': float('-inf'), 'count': 0
+            }
     
-    if 'perimeter' in calculate_columns:
-        summary['perimeter'] = {
-            'total': 0, 'min': float('inf'), 'max': float('-inf'), 'count': 0
-        }
-    
+    # Process each feature
     for idx, row in source_gdf.iterrows():
         feature_data = {}
         
-        # Add only specified columns or all columns if none specified
+        # Add specified columns or all columns except geometry
         if feature_columns:
             for column in feature_columns:
                 if column in row.index and column != 'geometry':
@@ -57,73 +63,31 @@ def create_report_layer(all_layers, project_settings, crs, layer_name, operation
                 if column != 'geometry':
                     feature_data[column] = row[column]
         
-        # Calculate additional columns and update summaries
-        if 'area' in calculate_columns and hasattr(row.geometry, 'area'):
-            area = round(row.geometry.area, decimal_places.get('area', 2))
-            # Only add to feature_data if area is in featureColumns or featureColumns is empty
-            if not feature_columns or 'area' in feature_columns:
-                feature_data['area'] = area
-            # Always update summary
-            summary['area']['total'] += area
-            summary['area']['min'] = min(summary['area']['min'], area)
-            summary['area']['max'] = max(summary['area']['max'], area)
-            summary['area']['count'] += 1
-            
-        if 'perimeter' in calculate_columns and hasattr(row.geometry, 'length'):
-            perimeter = round(row.geometry.length, decimal_places.get('perimeter', 2))
-            # Only add to feature_data if perimeter is in featureColumns or featureColumns is empty
-            if not feature_columns or 'perimeter' in feature_columns:
-                feature_data['perimeter'] = perimeter
-            # Always update summary
-            summary['perimeter']['total'] += perimeter
-            summary['perimeter']['min'] = min(summary['perimeter']['min'], perimeter)
-            summary['perimeter']['max'] = max(summary['perimeter']['max'], perimeter)
-            summary['perimeter']['count'] += 1
-            
-        if 'centroid' in calculate_columns and hasattr(row.geometry, 'centroid'):
-            centroid = row.geometry.centroid
-            coord_decimals = decimal_places.get('coordinates', 6)
-            # Only add to feature_data if centroid is in featureColumns or featureColumns is empty
-            if not feature_columns or 'centroid' in feature_columns:
-                feature_data['centroid'] = {
-                    'x': round(centroid.x, coord_decimals),
-                    'y': round(centroid.y, coord_decimals)
-                }
-            
-        if 'bounds' in calculate_columns:
-            bounds = row.geometry.bounds
-            coord_decimals = decimal_places.get('coordinates', 6)
-            # Only add to feature_data if bounds is in featureColumns or featureColumns is empty
-            if not feature_columns or 'bounds' in feature_columns:
-                feature_data['bounds'] = {
-                    'minx': round(bounds[0], coord_decimals),
-                    'miny': round(bounds[1], coord_decimals),
-                    'maxx': round(bounds[2], coord_decimals),
-                    'maxy': round(bounds[3], coord_decimals)
-                }
-            
+        # Update summaries for numeric calculations
+        for calc in calculate_columns:
+            if calc in ['area', 'perimeter'] and calc in row.index:
+                value = row[calc]
+                summary[calc]['total'] += value
+                summary[calc]['min'] = min(summary[calc]['min'], value)
+                summary[calc]['max'] = max(summary[calc]['max'], value)
+                summary[calc]['count'] += 1
+        
         features_data.append(feature_data)
     
     # Calculate averages and clean up summaries
-    for metric in ['area', 'perimeter']:
-        if metric in summary:
-            if summary[metric]['count'] > 0:
-                summary[metric]['average'] = round(summary[metric]['total'] / summary[metric]['count'], 2)
-                if summary[metric]['min'] == float('inf'):
-                    summary[metric]['min'] = 0
-                if summary[metric]['max'] == float('-inf'):
-                    summary[metric]['max'] = 0
-                summary[metric]['min'] = round(summary[metric]['min'], 2)
-                summary[metric]['max'] = round(summary[metric]['max'], 2)
-                summary[metric]['total'] = round(summary[metric]['total'], 2)
-            else:
-                summary[metric] = {
-                    'total': 0,
-                    'min': 0,
-                    'max': 0,
-                    'average': 0,
-                    'count': 0
-                }
+    for metric in summary:
+        if summary[metric]['count'] > 0:
+            summary[metric]['average'] = round(summary[metric]['total'] / summary[metric]['count'], 2)
+            if summary[metric]['min'] == float('inf'):
+                summary[metric]['min'] = 0
+            if summary[metric]['max'] == float('-inf'):
+                summary[metric]['max'] = 0
+            for key in ['min', 'max', 'total']:
+                summary[metric][key] = round(summary[metric][key], 2)
+        else:
+            summary[metric] = {
+                'total': 0, 'min': 0, 'max': 0, 'average': 0, 'count': 0
+            }
     
     # Create report object
     report = {
@@ -134,18 +98,15 @@ def create_report_layer(all_layers, project_settings, crs, layer_name, operation
         'features': features_data
     }
     
-    # Check if directory exists before writing
-    if not ensure_path_exists(output_file):
+    # Write report to file
+    if ensure_path_exists(output_file):
+        try:
+            with open(output_file, 'w', encoding='utf-8') as f:
+                json.dump(report, f, indent=2, ensure_ascii=False)
+            log_info(f"Report written to {output_file}")
+        except Exception as e:
+            log_error(f"Error writing report to {output_file}: {str(e)}")
+    else:
         log_warning(f"Directory for {output_file} does not exist. Skipping report generation.")
-        return all_layers[layer_name]
     
-    # Write to JSON file
-    try:
-        with open(output_file, 'w', encoding='utf-8') as f:
-            json.dump(report, f, indent=2, ensure_ascii=False)
-        log_info(f"Report written to {output_file}")
-    except Exception as e:
-        log_error(f"Error writing report to {output_file}: {str(e)}")
-    
-    # Return the original layer unchanged
     return all_layers[layer_name]
