@@ -1,5 +1,18 @@
-# geomLayers:
-# - name: Sample Layer
-#   shapeFile: input/sample.shp
-#   style: sampleStyle
-#   updateDxf: true
+geomLayers:
+- name: Grünfläche Input from source
+  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/grünfläche_input_from_source.shp"
+- name: Moor
+  updateDxf: true
+  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/moor.shp"
+- name: "ges. geschützte Biotope"
+  updateDxf: true
+  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/ges. geschützte biotope.shp"
+- name: Grünfläche
+  updateDxf: true
+  operations:
+    - type: copy
+      layers:
+        - "Grünfläche Input from source"
+        - Moor
+        - "ges. geschützte Biotope"
+

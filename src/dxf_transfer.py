@@ -9,7 +9,7 @@ class DXFTransfer:
         self.name_to_aci = project_loader.name_to_aci
         log_info(f"DXFTransfer initialized with {len(self.transfers)} transfers")
         if not self.transfers:
-            log_warning("No DXF transfers found in project settings")
+            log_info("No DXF transfers found in project settings")
         else:
             for transfer in self.transfers:
                 log_info(f"Found transfer config: {transfer}")
