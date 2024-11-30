@@ -897,22 +897,22 @@ def cleanup_document(doc):
             used_blocks.add(insert.dxf.name)
             
         # Remove unused blocks
-        for block in list(doc.blocks):  # Blocks section is directly iterable
-            block_name = block.name  # Get block name
+        for block in list(doc.blocks):
+            block_name = block.name
             
-            # Skip special blocks (those starting with '_' or '*')
-            if block_name.startswith('_') or block_name.startswith('*'):
+            # Skip special blocks, used blocks, and AutoCAD special blocks
+            if (block_name.startswith('_') or 
+                block_name.startswith('*') or 
+                block_name.startswith('A$C') or 
+                block_name in used_blocks):
                 continue
                 
-            # Skip AutoCAD special blocks
-            if block_name.startswith('A$C'):
-                continue
-                
-            if block_name not in used_blocks:
-                try:
-                    doc.blocks.delete_block(block_name)
-                    log_info(f"Removed unused block: {block_name}")
-                except Exception as e:
+            try:
+                doc.blocks.delete_block(block_name)
+                log_info(f"Removed unused block: {block_name}")
+            except Exception as e:
+                # Only log errors that aren't related to block being in use
+                if "still in use" not in str(e):
                     log_warning(f"Could not remove block {block_name}: {str(e)}")
         
         # Purge unused layers
