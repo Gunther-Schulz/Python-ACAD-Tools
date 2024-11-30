@@ -19,4 +19,32 @@ geomLayers:
         - Moor
         - "ges gesch Biotope"
     - type: dissolve
-
+- name: Ausgleich Grünfläche
+  updateDxf: true
+  operations:
+    - type: buffer
+      layers:
+        - Grünfläche
+      distance: -3
+      joinStyle: round
+- name: Grünfläche Schraffur
+  updateDxf: true
+  style: grünfläche
+  applyHatch:
+    layers:
+      - Ausgleich Grünfläche
+- name: Ausgleich Schutzflächeumgrenzung
+  updateDxf: true
+  operations:
+    - type: copy
+      layers:
+        - Grünfläche
+    - type: difference
+      layers:
+        - Ausgleich Grünfläche
+- name: Grünfläche T-Linie Symbol Schraffur
+  updateDxf: true
+  style: schutzflächeumgrenzung
+  applyHatch:
+    layers:
+      - Ausgleich Schutzflächeumgrenzung
