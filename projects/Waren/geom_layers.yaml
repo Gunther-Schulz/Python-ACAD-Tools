@@ -1,7 +1,49 @@
 geomLayers:
+- name: Parcel
+  label: label
+  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/parcel.shp"
+- name: Flur
+  label: flurname
+  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/flur.shp"
+- name: Gemarkung
+  label: gmkname
+  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/gemarkung.shp"
+- name: Gemeinde
+  label: gen
+  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/gemeinde.shp"
 - name: Geltungsbereich
   updateDxf: true
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/geltungsbereich.shp"
+  operations:
+    - type: calculate
+      calculations:
+        - type: area
+          as: area
+          decimalPlaces: 0
+    - type: report
+      outputFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/reports/geltungsbereich_report.json"
+      featureColumns:
+        - area
+      decimalPlaces:
+        area: 0
+  # operations:
+  #   - type: calculate
+  #     calculations:
+  #       - type: area
+  #         as: area
+  #         decimalPlaces: 0
+  #   - type: report
+  #     outputFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/reports/geltungsbereich_report.json"
+  #     featureColumns:
+  #       - Parcel
+  #       - area
+  #       - Flur
+  #       - Gemarkung
+  #       - Gemeinde
+  #     calculate:
+  #       - area
+  #     decimalPlaces:
+  #       area: 0
 - name: Grünfläche Input from source
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/grünfläche_input_from_source.shp"
 - name: Moor
@@ -10,6 +52,8 @@ geomLayers:
 - name: "ges gesch Biotope"
   # updateDxf: true
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/ges. geschützte Biotope.shp"
+- name: Graben
+  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/graben.shp"
 - name: Grünfläche
   updateDxf: true
   operations:
@@ -19,6 +63,10 @@ geomLayers:
         - Moor
         - "ges gesch Biotope"
     - type: dissolve
+    - type: difference
+      reverseDifference: false
+      layers:
+        - Graben
 - name: Ausgleich Grünfläche
   updateDxf: true
   operations:
