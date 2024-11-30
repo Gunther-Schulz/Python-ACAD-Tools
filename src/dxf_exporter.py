@@ -99,25 +99,37 @@ class DXFExporter:
         return 'label' in layer or 'labelStyle' in layer
 
     def _setup_label_layer(self, base_layer_name, base_layer):
+        if 'label' not in base_layer:
+            return
+
         label_layer_name = f"{base_layer_name} Label"
-        label_properties = self.layer_properties[base_layer_name].copy()
-        
-        layerStyle = base_layer.get('layerStyle', {})
-        label_style = base_layer.get('labelStyle', {})
-        
-        # Apply label style properties, falling back to base style if not specified
-        for key, value in label_style.items():
-            if key == 'color':
-                label_properties['color'] = get_color_code(value, self.name_to_aci)
-            else:
-                label_properties[key] = value
-        
-        # If no color is specified in label_style, use the base layer color or default to white
-        if 'color' not in label_style:
-            label_properties['color'] = get_color_code(layerStyle.get('color'), self.name_to_aci)
-        
+
+        # Default properties for label layers
+        default_label_properties = {
+            'layer': {
+                'color': 'White',
+                'linetype': 'CONTINUOUS',
+                'lineweight': 0.13,
+                'plot': True,
+                'locked': False,
+                'frozen': False,
+                'is_on': True
+            },
+            'entity': {
+                'close': False
+            }
+        }
+
+        try:
+            # Try to get base layer properties first
+            label_properties = self.layer_properties[base_layer_name].copy()
+        except KeyError:
+            # If base layer properties don't exist, use defaults for label layer
+            label_properties = default_label_properties
+
+        # Add the label layer to layer_properties
         self.layer_properties[label_layer_name] = label_properties
-        self.colors[label_layer_name] = label_properties['color']
+        self.colors[label_layer_name] = label_properties['layer']['color']
 
     def export_to_dxf(self):
         """Main export method."""
