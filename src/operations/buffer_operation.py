@@ -2,7 +2,7 @@ import geopandas as gpd
 from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection, Point, MultiPoint
 from src.utils import log_info, log_warning, log_error
 from shapely.ops import unary_union, split
-from src.operations.common_operations import _process_layer_info, _get_filtered_geometry, make_valid_geometry, format_operation_warning
+from src.operations.common_operations import _process_layer_info, _get_filtered_geometry, make_valid_geometry, format_operation_warning, remove_islands
 from src.operations.common_operations import *
 
 
@@ -82,10 +82,41 @@ def create_buffer_layer(all_layers, project_settings, crs, layer_name, operation
     if make_valid and combined_geometry is not None:
         combined_geometry = make_valid_geometry(combined_geometry)
 
-    def buffer_with_different_caps(geom, distance, start_cap, end_cap, join_style):
+    skip_islands = operation.get('skipIslands', False)
+    preserve_islands = operation.get('preserveIslands', False)
+    
+    if (skip_islands or preserve_islands) and combined_geometry is not None:
+        combined_geometry = remove_islands(combined_geometry, preserve=preserve_islands)
+        if combined_geometry is None:
+            log_warning(format_operation_warning(
+                layer_name,
+                "buffer",
+                "No geometry remained after processing islands"
+            ))
+            return None
+        log_info(f"Processed islands from input geometry for layer: {layer_name}")
+
+    def buffer_with_different_caps(geom, distance, start_cap, end_cap, join_style, preserve_holes=False):
         if not isinstance(geom, (LineString, MultiLineString)):
-            # For non-line geometries, use regular buffer
-            return geom.buffer(distance, cap_style=start_cap, join_style=join_style)
+            if preserve_holes and isinstance(geom, (Polygon, MultiPolygon)):
+                # For polygons with holes when preserving islands:
+                if isinstance(geom, Polygon):
+                    # Buffer exterior with specified distance
+                    exterior = Polygon(geom.exterior.coords).buffer(distance, cap_style=start_cap, join_style=join_style)
+                    # Buffer holes with distance 0 (preserve them as-is)
+                    holes = [Polygon(interior.coords).buffer(0) for interior in geom.interiors]
+                    # Cut the preserved holes from the buffered exterior
+                    result = exterior
+                    for hole in holes:
+                        result = result.difference(hole)
+                    return result
+                else:  # MultiPolygon
+                    buffered_parts = [buffer_with_different_caps(part, distance, start_cap, end_cap, join_style, preserve_holes=True) 
+                                    for part in geom.geoms]
+                    return unary_union(buffered_parts)
+            else:
+                # Regular buffer for other cases
+                return geom.buffer(distance, cap_style=start_cap, join_style=join_style)
 
         if isinstance(geom, MultiLineString):
             # Handle each line separately
@@ -120,20 +151,16 @@ def create_buffer_layer(all_layers, project_settings, crs, layer_name, operation
         return result
 
     try:
-        if buffer_mode == 'outer':
-            buffered = buffer_with_different_caps(combined_geometry, buffer_distance, 
-                                                start_cap_value, end_cap_value, join_style_value)
-            result = buffered.difference(combined_geometry)
-        elif buffer_mode == 'inner':
-            result = buffer_with_different_caps(combined_geometry, -buffer_distance,
-                                              start_cap_value, end_cap_value, join_style_value)
-        elif buffer_mode == 'keep':
-            buffered = buffer_with_different_caps(combined_geometry, buffer_distance,
-                                                start_cap_value, end_cap_value, join_style_value)
-            result = [combined_geometry, buffered]
-        else:  # 'off' or any other value
+        if preserve_islands:
+            # For preserveIslands, buffer the main parts with the specified distance
+            # and the holes with distance 0
             result = buffer_with_different_caps(combined_geometry, buffer_distance,
-                                              start_cap_value, end_cap_value, join_style_value)
+                                          start_cap_value, end_cap_value, join_style_value,
+                                          preserve_holes=True)
+        else:
+            # For skipIslands or normal operation, apply regular buffer
+            result = buffer_with_different_caps(combined_geometry, buffer_distance,
+                                          start_cap_value, end_cap_value, join_style_value)
 
         # Ensure the result is a valid geometry type for shapefiles
         if buffer_mode == 'keep':

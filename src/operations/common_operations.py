@@ -592,6 +592,44 @@ def snap_vertices_to_grid(geometry, grid_size):
     return geometry
 
 
+def remove_islands(geometry, preserve=False):
+    """
+    For polygons with holes:
+    - skipIslands (preserve=False): completely remove holes
+    - preserveIslands (preserve=True): keep holes (they'll be buffered with distance 0)
+    """
+    if geometry is None or geometry.is_empty:
+        log_warning("remove_islands: Input geometry is None or empty")
+        return None
+
+    log_warning(f"remove_islands: Input geometry type: {geometry.geom_type}")
+    
+    def process_polygon(poly):
+        # If the polygon has no holes/interiors, keep it as is
+        if not poly.interiors:
+            log_warning(f"remove_islands: Polygon has no holes, keeping as is")
+            return poly
+            
+        # If it has holes (from the ditch difference)
+        log_warning(f"remove_islands: Found polygon with {len(poly.interiors)} holes")
+        
+        if preserve:
+            # For preserveIslands, return the whole polygon (with holes) to be buffered
+            return poly
+        else:
+            # For skipIslands, return only the exterior
+            return Polygon(poly.exterior.coords)
+
+    # Handle different geometry types
+    if isinstance(geometry, Polygon):
+        return process_polygon(geometry)
+    elif isinstance(geometry, MultiPolygon):
+        processed = [process_polygon(poly) for poly in geometry.geoms]
+        return MultiPolygon([p for p in processed if p is not None])
+    else:
+        return geometry
+
+
 
 
 
