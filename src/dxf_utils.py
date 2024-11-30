@@ -897,19 +897,35 @@ def cleanup_document(doc):
         
         # Purge unused layers
         for layer in list(doc.layers):
+            layer_name = layer.dxf.name
+            
+            # Skip system layers (0, Defpoints)
+            if layer_name in ['0', 'Defpoints']:
+                continue
+                
             # Check if the layer has any entities
-            has_entities = any(
-                entity.dxf.layer == layer.dxf.name
-                for entity in modelspace
-            ) or any(
-                entity.dxf.layer == layer.dxf.name
-                for entity in paperspace
-            )
+            has_entities = False
+            
+            # Check modelspace
+            for entity in modelspace:
+                if entity.dxf.layer == layer_name:
+                    has_entities = True
+                    break
+                    
+            # If not found in modelspace, check paperspace
+            if not has_entities:
+                for entity in paperspace:
+                    if entity.dxf.layer == layer_name:
+                        has_entities = True
+                        break
+            
+            # Remove empty layer
             if not has_entities:
                 try:
-                    doc.layers.remove(layer.dxf.name)
+                    doc.layers.remove(layer_name)
+                    log_info(f"Removed empty layer: {layer_name}")
                 except Exception as e:
-                    log_warning(f"Could not remove layer {layer.dxf.name}: {str(e)}")
+                    log_warning(f"Could not remove layer {layer_name}: {str(e)}")
         
         # Purge unused linetypes
         for linetype in list(doc.linetypes):
