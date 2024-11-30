@@ -56,6 +56,9 @@ geomLayers:
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/graben.shp"
 - name: Grünfläche
   updateDxf: true
+  style:
+    layer:
+      color: "blue"
   operations:
     - type: copy
       layers:
@@ -69,6 +72,9 @@ geomLayers:
         - Graben
 - name: Ausgleich Grünfläche
   updateDxf: true
+  style:
+    layer:
+      color: "chartreuse-medium"
   operations:
     - type: buffer
       layers:
@@ -76,24 +82,28 @@ geomLayers:
       distance: -3
       joinStyle: round
       skipIslands: true
+    - type: difference
+      reverseDifference: false
+      layers:
+        - Graben
 - name: Grünfläche Schraffur
   updateDxf: true
   style: grünfläche
   applyHatch:
     layers:
       - Ausgleich Grünfläche
-- name: Ausgleich Schutzflächeumgrenzung
-  updateDxf: true
-  operations:
-    - type: copy
-      layers:
-        - Grünfläche
-    - type: difference
-      layers:
-        - Ausgleich Grünfläche
-- name: Grünfläche T-Linie Symbol Schraffur
-  updateDxf: true
-  style: schutzflächeumgrenzung
-  applyHatch:
-    layers:
-      - Ausgleich Schutzflächeumgrenzung
+# - name: Ausgleich Schutzflächeumgrenzung
+#   updateDxf: true
+#   operations:
+#     - type: copy
+#       layers:
+#         - Grünfläche
+#     - type: difference
+#       layers:
+#         - Ausgleich Grünfläche
+# - name: Grünfläche T-Linie Symbol Schraffur
+#   updateDxf: true
+#   style: schutzflächeumgrenzung
+#   applyHatch:
+#     layers:
+#       - Ausgleich Schutzflächeumgrenzung

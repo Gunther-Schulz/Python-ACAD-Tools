@@ -83,18 +83,18 @@ def create_buffer_layer(all_layers, project_settings, crs, layer_name, operation
         combined_geometry = make_valid_geometry(combined_geometry)
 
     skip_islands = operation.get('skipIslands', False)
+    preserve_islands = operation.get('preserveIslands', False)
     
-    if skip_islands and combined_geometry is not None:
-
-        combined_geometry = remove_islands(combined_geometry)
+    if (skip_islands or preserve_islands) and combined_geometry is not None:
+        combined_geometry = remove_islands(combined_geometry, preserve=preserve_islands)
         if combined_geometry is None:
             log_warning(format_operation_warning(
                 layer_name,
                 "buffer",
-                "No geometry remained after removing islands"
+                "No geometry remained after processing islands"
             ))
             return None
-        log_info(f"Removed islands from input geometry for layer: {layer_name}")
+        log_info(f"Processed islands from input geometry for layer: {layer_name}")
 
     def buffer_with_different_caps(geom, distance, start_cap, end_cap, join_style):
         if not isinstance(geom, (LineString, MultiLineString)):
@@ -134,18 +134,21 @@ def create_buffer_layer(all_layers, project_settings, crs, layer_name, operation
         return result
 
     try:
-        if buffer_mode == 'outer':
-            buffered = buffer_with_different_caps(combined_geometry, buffer_distance, 
+        if preserve_islands:
+            # Split the geometry into main parts and islands
+            main_geom, island_geom = remove_islands(combined_geometry, preserve=True, split=True)
+            
+            # Buffer the main geometry
+            result_main = buffer_with_different_caps(main_geom, buffer_distance, 
                                                 start_cap_value, end_cap_value, join_style_value)
-            result = buffered.difference(combined_geometry)
-        elif buffer_mode == 'inner':
-            result = buffer_with_different_caps(combined_geometry, -buffer_distance,
-                                              start_cap_value, end_cap_value, join_style_value)
-        elif buffer_mode == 'keep':
-            buffered = buffer_with_different_caps(combined_geometry, buffer_distance,
-                                                start_cap_value, end_cap_value, join_style_value)
-            result = [combined_geometry, buffered]
-        else:  # 'off' or any other value
+            
+            # Create holes in the buffered result using the original islands
+            if island_geom is not None:
+                result = result_main.difference(island_geom)
+            else:
+                result = result_main
+        else:
+            # Regular buffer operation
             result = buffer_with_different_caps(combined_geometry, buffer_distance,
                                               start_cap_value, end_cap_value, join_style_value)
 

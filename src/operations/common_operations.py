@@ -592,64 +592,61 @@ def snap_vertices_to_grid(geometry, grid_size):
     return geometry
 
 
-def remove_islands(geometry):
+def remove_islands(geometry, preserve=False, split=False):
     """
-    Removes island polygons (polygons completely contained within other polygons).
-    Only keeps the containing polygons, discarding any polygons that are completely
-    contained within others.
+    For polygons with holes (created by ditch difference operations),
+    either skip the holes entirely (preserve=False) or keep them with zero buffer (preserve=True).
+    If split=True, returns (main_geometry, island_geometry) tuple.
     """
     if geometry is None or geometry.is_empty:
         log_warning("remove_islands: Input geometry is None or empty")
-        return None
+        return None if not split else (None, None)
 
-    # Convert input to list of polygons
-    if isinstance(geometry, Polygon):
-        log_warning(f"remove_islands: Input is single Polygon")
-        polygons = [geometry]
-    elif isinstance(geometry, MultiPolygon):
-        log_warning(f"remove_islands: Input is MultiPolygon with {len(geometry.geoms)} parts")
-        polygons = list(geometry.geoms)
-    elif isinstance(geometry, GeometryCollection):
-        log_warning(f"remove_islands: Input is GeometryCollection with {len(geometry.geoms)} parts")
-        polygons = [g for g in geometry.geoms if isinstance(g, (Polygon, MultiPolygon))]
-        # Further split any MultiPolygons
-        expanded_polygons = []
-        for poly in polygons:
-            if isinstance(poly, MultiPolygon):
-                expanded_polygons.extend(list(poly.geoms))
-            else:
-                expanded_polygons.append(poly)
-        polygons = expanded_polygons
-        log_warning(f"remove_islands: After expanding MultiPolygons, have {len(polygons)} polygons")
-    else:
-        log_warning(f"remove_islands: Unsupported geometry type: {type(geometry)}")
-        return geometry
-
-    # Find non-island polygons
-    result_polygons = []
-    for i, poly in enumerate(polygons):
-        is_island = False
-        for j, other_poly in enumerate(polygons):
-            if i != j:
-                if other_poly.contains(poly):
-                    log_warning(f"remove_islands: Polygon {i} is contained within polygon {j}")
-                    is_island = True
-                    break
-        if not is_island:
-            log_warning(f"remove_islands: Keeping polygon {i} (not an island)")
-            result_polygons.append(poly)
+    log_warning(f"remove_islands: Input geometry type: {geometry.geom_type}")
+    
+    def process_polygon(poly):
+        # If the polygon has no holes/interiors, keep it as is
+        if not poly.interiors:
+            log_warning(f"remove_islands: Polygon has no holes, keeping as is")
+            return (poly, None) if split else poly
+            
+        # If it has holes (from the ditch difference)
+        log_warning(f"remove_islands: Found polygon with {len(poly.interiors)} holes")
+        
+        exterior = Polygon(poly.exterior.coords)
+        holes = [Polygon(interior.coords) for interior in poly.interiors]
+        
+        if split:
+            return (exterior, MultiPolygon(holes) if len(holes) > 1 else holes[0])
+        elif preserve:
+            return MultiPolygon([exterior] + holes)
         else:
-            log_warning(f"remove_islands: Removing polygon {i} (is an island)")
+            return exterior
 
-    if not result_polygons:
-        log_warning("remove_islands: No polygons remained after removing islands")
-        return None
-    elif len(result_polygons) == 1:
-        log_warning("remove_islands: Returning single polygon")
-        return result_polygons[0]
+    # Handle different geometry types
+    if isinstance(geometry, Polygon):
+        return process_polygon(geometry)
+    elif isinstance(geometry, MultiPolygon):
+        processed = [process_polygon(poly) for poly in geometry.geoms]
+        if split:
+            # Separate main geometries and islands
+            mains, islands = zip(*processed)
+            main_geom = MultiPolygon([p for p in mains if p is not None])
+            island_geom = MultiPolygon([p for p in islands if p is not None])
+            return main_geom, island_geom
+        else:
+            if preserve:
+                # Flatten all polygons
+                all_polygons = []
+                for result in processed:
+                    if isinstance(result, MultiPolygon):
+                        all_polygons.extend(list(result.geoms))
+                    else:
+                        all_polygons.append(result)
+                return MultiPolygon(all_polygons)
+            return MultiPolygon(processed)
     else:
-        log_warning(f"remove_islands: Returning MultiPolygon with {len(result_polygons)} parts")
-        return MultiPolygon(result_polygons)
+        return geometry if not split else (geometry, None)
 
 
 
