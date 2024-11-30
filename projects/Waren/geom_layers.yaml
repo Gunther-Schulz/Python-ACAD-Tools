@@ -2,11 +2,11 @@ geomLayers:
 - name: Grünfläche Input from source
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/grünfläche_input_from_source.shp"
 - name: Moor
-  updateDxf: true
+  # updateDxf: true
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/moor.shp"
-- name: "ges. geschützte Biotope"
-  updateDxf: true
-  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/ges. geschützte biotope.shp"
+- name: "ges gesch Biotope"
+  # updateDxf: true
+  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/ges. geschützte Biotope.shp"
 - name: Grünfläche
   updateDxf: true
   operations:
@@ -14,5 +14,6 @@ geomLayers:
       layers:
         - "Grünfläche Input from source"
         - Moor
-        - "ges. geschützte Biotope"
+        - "ges gesch Biotope"
+    - type: dissolve
 

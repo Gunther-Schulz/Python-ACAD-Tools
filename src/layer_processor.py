@@ -9,6 +9,7 @@ import math
 from geopandas import GeoSeries
 import os
 import shutil
+import fiona
 
 # Import operations individually
 from src.operations import (
@@ -258,6 +259,10 @@ class LayerProcessor:
             if 'shapeFile' in layer:
                 shapefile_path = resolve_path(layer['shapeFile'], self.project_loader.folder_prefix)
                 try:
+                    if not os.path.exists(shapefile_path):
+                        log_warning(f"Shapefile not found for layer '{layer_name}' at path: {shapefile_path}")
+                        continue
+
                     gdf = gpd.read_file(shapefile_path)
                     gdf = self.standardize_layer_crs(layer_name, gdf)
                     if gdf is not None:
@@ -265,6 +270,9 @@ class LayerProcessor:
                         log_info(f"Loaded shapefile for layer: {layer_name}")
                     else:
                         log_warning(f"Failed to load shapefile for layer: {layer_name}")
+                except fiona.errors.DriverError as e:
+                    log_warning(f"Shapefile not found or inaccessible for layer '{layer_name}' at path: {shapefile_path}")
+                    log_warning(f"Error details: {str(e)}")
                 except Exception as e:
                     log_error(f"Failed to load shapefile for layer '{layer_name}': {str(e)}")
                     log_error(traceback.format_exc())
