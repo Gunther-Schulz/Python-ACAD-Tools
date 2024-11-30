@@ -28,6 +28,7 @@ import sys
 import matplotlib.patches as patches
 from ezdxf.tools.text import ParagraphProperties, MTextParagraphAlignment
 from ezdxf.tools.text import MTextEditor
+import traceback
 
 
 SCRIPT_IDENTIFIER = "Created by DXFExporter"
@@ -69,28 +70,24 @@ def convert_transparency(transparency):
     return None
 
 def attach_custom_data(entity, script_identifier, entity_name=None):
-    """Attaches custom data to an entity.
-    Checks for existing XDATA to prevent duplicates.
-    """
+    """Attaches custom data to an entity with proper cleanup of existing data."""
     try:
-        # Check if XDATA already exists
-        existing_xdata = entity.get_xdata('DXFEXPORTER')
-        if existing_xdata and any(item[1] == script_identifier for item in existing_xdata):
-            return
-    except ezdxf.lldxf.const.DXFValueError:
-        # This is expected when the entity has no XDATA yet
-        pass
-    except Exception as e:
-        log_warning(f"Error checking existing XDATA: {str(e)}")
-        return
-
-    try:
-        # Set XDATA
+        # NEW: Clear any existing XDATA first
+        try:
+            entity.discard_xdata('DXFEXPORTER')
+        except:
+            pass
+            
+        # Set new XDATA
         entity.set_xdata(
             'DXFEXPORTER',
             [(1000, script_identifier)]
         )
         
+        # NEW: Ensure entity is properly added to the document database
+        if hasattr(entity, 'doc') and entity.doc:
+            entity.doc.entitydb.add(entity)
+            
         # Add hyperlink with entity name if supported
         if hasattr(entity, 'set_hyperlink'):
             try:
@@ -134,13 +131,6 @@ def add_text(msp, text, x, y, layer_name, style_name, height=5, color=None):
     return text_entity
 
 def remove_entities_by_layer(msp, layer_names, script_identifier):
-    """Remove entities from both model and paper space for given layer(s).
-    
-    Args:
-        msp: Modelspace or Paperspace object (used to get doc reference)
-        layer_names: String or list of strings with layer name(s)
-        script_identifier: Identifier to check if entity was created by this script
-    """
     doc = msp.doc
     key_func = doc.layers.key
     delete_count = 0
@@ -175,25 +165,49 @@ def remove_entities_by_layer(msp, layer_names, script_identifier):
                             except:
                                 pass
 
-                        # Remove any extension dictionary
+                        # Clear any extension dictionary
                         if hasattr(entity, 'has_extension_dict') and entity.has_extension_dict:
                             try:
                                 entity.discard_extension_dict()
                             except:
                                 pass
 
+                        # Clean up any reactors
+                        if hasattr(entity, 'reactors') and entity.reactors is not None:  # Add None check
+                            for reactor in entity.reactors:
+                                try:
+                                    trash.add(reactor)
+                                except:
+                                    pass
+                        
+                        # Clean up any dependent entities (like dimensions)
+                        if hasattr(entity, 'dependent_entities'):
+                            try:
+                                dependents = entity.dependent_entities()
+                                if dependents is not None:  # Add None check
+                                    for dependent in dependents:
+                                        try:
+                                            trash.add(dependent.dxf.handle)
+                                        except:
+                                            pass
+                            except:
+                                pass
+                        
                         # Add to trashcan for safe deletion
                         trash.add(entity.dxf.handle)
                         delete_count += 1
                         
                     except Exception as e:
-                        log_error(f"Error preparing entity for deletion: {e}")
+                        log_error(f"Error preparing entity for deletion: {str(e)}")
+                        log_error(f"Traceback:\n{traceback.format_exc()}")
+                        continue  # Continue with next entity even if this one fails
     
-    # Force database update
+    # Force database purge and audit
     try:
         doc.entitydb.purge()
-    except:
-        pass
+        doc.audit()
+    except Exception as e:
+        log_error(f"Error during document cleanup: {str(e)}")
     
     return delete_count
 
@@ -835,6 +849,116 @@ def add_text_insert(msp, text_config, layer_name, project_loader, script_identif
     except Exception as e:
         log_error(f"Failed to add text insert: {str(e)}")
         return None
+
+def cleanup_document(doc):
+    """Perform thorough document cleanup."""
+    try:
+        # Run audit to fix potential structural issues
+        auditor = doc.audit()
+        if len(auditor.errors) > 0:
+            log_warning(f"Audit found {len(auditor.errors)} issues")
+        
+        # Clean up empty groups
+        for group in doc.groups:
+            if len(group) == 0:
+                doc.groups.remove(group.dxf.name)
+        
+        # Purge unused blocks
+        modelspace = doc.modelspace()
+        paperspace = doc.paperspace()
+        used_blocks = set()
+        
+        # Check modelspace for block references
+        for insert in modelspace.query('INSERT'):
+            used_blocks.add(insert.dxf.name)
+            
+        # Check paperspace for block references
+        for insert in paperspace.query('INSERT'):
+            used_blocks.add(insert.dxf.name)
+            
+        # Remove unused blocks
+        for block in list(doc.blocks):  # Blocks section is directly iterable
+            block_name = block.name  # Get block name
+            
+            # Skip special blocks (those starting with '_' or '*')
+            if block_name.startswith('_') or block_name.startswith('*'):
+                continue
+                
+            # Skip AutoCAD special blocks
+            if block_name.startswith('A$C'):
+                continue
+                
+            if block_name not in used_blocks:
+                try:
+                    doc.blocks.delete_block(block_name)
+                    log_info(f"Removed unused block: {block_name}")
+                except Exception as e:
+                    log_warning(f"Could not remove block {block_name}: {str(e)}")
+        
+        # Purge unused layers
+        for layer in list(doc.layers):
+            layer_name = layer.dxf.name
+            
+            # Skip system layers (0, Defpoints)
+            if layer_name in ['0', 'Defpoints']:
+                continue
+                
+            # Check if the layer has any entities
+            has_entities = False
+            
+            # Check modelspace
+            for entity in modelspace:
+                if entity.dxf.layer == layer_name:
+                    has_entities = True
+                    break
+                    
+            # If not found in modelspace, check paperspace
+            if not has_entities:
+                for entity in paperspace:
+                    if entity.dxf.layer == layer_name:
+                        has_entities = True
+                        break
+            
+            # Remove empty layer
+            if not has_entities:
+                try:
+                    doc.layers.remove(layer_name)
+                    log_info(f"Removed empty layer: {layer_name}")
+                except Exception as e:
+                    log_warning(f"Could not remove layer {layer_name}: {str(e)}")
+        
+        # Purge unused linetypes
+        for linetype in list(doc.linetypes):
+            try:
+                doc.linetypes.remove(linetype.dxf.name)
+            except Exception as e:
+                # Skip if linetype is in use or is a default linetype
+                continue
+        
+        # Purge unused text styles
+        for style in list(doc.styles):
+            try:
+                doc.styles.remove(style.dxf.name)
+            except Exception as e:
+                # Skip if style is in use or is a default style
+                continue
+        
+        # Purge unused dimension styles
+        for dimstyle in list(doc.dimstyles):
+            try:
+                doc.dimstyles.remove(dimstyle.dxf.name)
+            except Exception as e:
+                # Skip if dimstyle is in use or is a default style
+                continue
+        
+        # Force database update
+        doc.entitydb.purge()
+        
+        log_info("Document cleanup completed successfully")
+        
+    except Exception as e:
+        log_error(f"Error during document cleanup: {str(e)}")
+        log_error(f"Traceback:\n{traceback.format_exc()}")
 
 
 
