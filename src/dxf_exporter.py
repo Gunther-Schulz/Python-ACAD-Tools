@@ -336,42 +336,38 @@ class DXFExporter:
             self.apply_layer_properties(doc.layers.get(label_layer_name), layer_info)
 
     def update_layer_geometry(self, msp, layer_name, geo_data, layer_config):
-        update_flag = layer_config.get('updateDxf', False)  # Default to False
-        
-        log_info(f"Updating layer geometry for {layer_name}. Update flag: {update_flag}")
+        update_flag = layer_config.get('updateDxf', False)
         
         if not update_flag:
             log_info(f"Skipping geometry update for layer {layer_name} as 'updateDxf' flag is not set")
             return
         
         def update_function():
-            # First update the layer style
+            # Only update layer style if explicitly configured
             layer = msp.doc.layers.get(layer_name)
-            if layer:
-                # Process and apply the layer style
+            if layer and (layer_config.get('style') or any(key in layer_config for key in [
+                'color', 'linetype', 'lineweight', 'plot', 'locked', 
+                'frozen', 'is_on', 'transparency'
+            ])):
                 layer_properties = self.style_manager.process_layer_style(layer_name, layer_config)
                 update_layer_properties(layer, layer_properties, self.name_to_aci)
                 log_info(f"Updated style for layer {layer_name}")
             
-            # Remove existing geometry and labels
+            # Remove and update geometry
             log_info(f"Removing existing geometry from layer {layer_name}")
             remove_entities_by_layer(msp, layer_name, self.script_identifier)
             
-            # Remove existing labels
+            # Remove existing labels if they exist
             label_layer_name = f"{layer_name} Label"
             log_info(f"Removing existing labels from layer {label_layer_name}")
             remove_entities_by_layer(msp, label_layer_name, self.script_identifier)
 
-            # Add new geometry and labels
+            # Add new geometry
             log_info(f"Adding new geometry to layer {layer_name}")
             if isinstance(geo_data, list) and all(isinstance(item, tuple) for item in geo_data):
                 self.add_wmts_xrefs_to_dxf(msp, geo_data, layer_name)
             else:
                 self.add_geometries_to_dxf(msp, geo_data, layer_name)
-
-            # Verify hyperlinks after adding new entities
-            self.verify_entity_hyperlinks(msp, layer_name)
-            self.verify_entity_hyperlinks(msp, label_layer_name)
 
         update_layer_geometry(msp, layer_name, self.script_identifier, update_function)
 
@@ -545,17 +541,26 @@ class DXFExporter:
                 self.add_label_to_dxf(msp, geometry, layer_name, layer_name)
 
     def add_polygon_to_dxf(self, msp, geometry, layer_name, entity_name=None):
-        layer_properties = self.layer_properties[layer_name]
+        layer_properties = self.layer_properties.get(layer_name, {})
+        entity_properties = layer_properties.get('entity', {})
+        
+        dxfattribs = {
+            'layer': layer_name,
+            'closed': entity_properties.get('close', True),  # Default to True for polygons
+        }
+        
+        # Add any other entity-level properties
+        if 'linetypeScale' in entity_properties:
+            dxfattribs['ltscale'] = entity_properties['linetypeScale']
+        if 'linetypeGeneration' in entity_properties:
+            dxfattribs['flags'] = entity_properties['linetypeGeneration']
+
         exterior_coords = list(geometry.exterior.coords)
         if len(exterior_coords) > 2:
-            polyline = msp.add_lwpolyline(exterior_coords, dxfattribs={
-                'layer': layer_name, 
-                'closed': layer_properties['close'],
-                'ltscale': layer_properties.get('linetypeScale', 1.0)
-            })
+            polyline = msp.add_lwpolyline(exterior_coords, dxfattribs=dxfattribs)
             self.attach_custom_data(polyline, entity_name)
             # Apply linetype generation setting
-            if layer_properties['linetypeGeneration']:
+            if entity_properties.get('linetypeGeneration'):
                 polyline.dxf.flags |= LWPOLYLINE_PLINEGEN
             else:
                 polyline.dxf.flags &= ~LWPOLYLINE_PLINEGEN
@@ -563,14 +568,10 @@ class DXFExporter:
         for interior in geometry.interiors:
             interior_coords = list(interior.coords)
             if len(interior_coords) > 2:
-                polyline = msp.add_lwpolyline(interior_coords, dxfattribs={
-                    'layer': layer_name, 
-                    'closed': layer_properties['close'],
-                    'ltscale': layer_properties.get('linetypeScale', 1.0)
-                })
+                polyline = msp.add_lwpolyline(interior_coords, dxfattribs=dxfattribs)
                 self.attach_custom_data(polyline, entity_name)
                 # Apply linetype generation setting
-                if layer_properties['linetypeGeneration']:
+                if entity_properties.get('linetypeGeneration'):
                     polyline.dxf.flags |= LWPOLYLINE_PLINEGEN
                 else:
                     polyline.dxf.flags &= ~LWPOLYLINE_PLINEGEN
@@ -627,36 +628,61 @@ class DXFExporter:
         self.attach_custom_data(text_entity)  # Attach custom data to label entities
 
     def initialize_layer_properties(self):
+        # Only process layers that explicitly have style configurations
         for layer in self.project_settings['geomLayers']:
-            self.add_layer_properties(layer['name'], layer)
+            if (layer.get('style') or 
+                any(key in layer for key in [
+                    'color', 'linetype', 'lineweight', 'plot', 'locked', 
+                    'frozen', 'is_on', 'transparency', 'close', 'linetypeScale', 
+                    'linetypeGeneration'
+                ])):
+                self.add_layer_properties(layer['name'], layer)
 
     def add_layer_properties(self, layer_name, layer, processed_style=None):
-        properties = {}
-        
+        # Skip ALL property processing if no explicit style or properties are specified
+        if not (processed_style or 
+                layer.get('style') or 
+                any(key in layer for key in [
+                    'color', 'linetype', 'lineweight', 'plot', 'locked', 
+                    'frozen', 'is_on', 'transparency', 'close', 'linetypeScale', 
+                    'linetypeGeneration'
+                ])):
+            # Don't store anything for layers without explicit properties
+            return
+
         # Get the style configuration
         if processed_style:
-            # Use the processed style from StyleManager
-            properties.update(processed_style)
+            properties = processed_style
         else:
-            # Get the style from layer configuration
             style_config = layer.get('style')
             if style_config:
-                properties.update(self.style_manager.process_layer_style(layer_name, layer))
-        
-        # Always apply these properties, whether from style or direct layer config
-        properties['color'] = properties.get('color') or get_color_code(layer.get('color'), self.name_to_aci)
-        properties['linetype'] = properties.get('linetype', layer.get('linetype', 'CONTINUOUS'))
-        properties['plot'] = properties.get('plot', layer.get('plot', True))
-        properties['locked'] = properties.get('locked', layer.get('locked', False))
-        properties['frozen'] = properties.get('frozen', layer.get('frozen', False))
-        properties['is_on'] = properties.get('is_on', layer.get('is_on', True))
-        properties['transparency'] = properties.get('transparency', layer.get('transparency', 0))
-        properties['close'] = layer.get('close', True)
-        properties['linetypeScale'] = layer.get('linetypeScale', 1.0)
-        properties['linetypeGeneration'] = layer.get('linetypeGeneration', True)
-        
-        self.layer_properties[layer_name] = properties
-        self.colors[layer_name] = properties.get('color')
+                properties = self.style_manager.process_layer_style(layer_name, layer)
+            else:
+                properties = {}
+
+        # Layer-level properties (only include if explicitly set)
+        layer_properties = {}
+        for prop in ['color', 'linetype', 'lineweight', 'plot', 'locked', 
+                     'frozen', 'is_on', 'transparency']:
+            if prop in layer or prop in properties:
+                layer_properties[prop] = properties.get(prop) or layer.get(prop)
+
+        # Entity-level properties (only include if explicitly set)
+        entity_properties = {}
+        for prop in ['close', 'linetypeScale', 'linetypeGeneration']:
+            if prop in layer:
+                entity_properties[prop] = layer.get(prop)
+
+        # Only store properties if they're not empty
+        if layer_properties or entity_properties:
+            self.layer_properties[layer_name] = {
+                'layer': layer_properties,
+                'entity': entity_properties
+            }
+
+        # Store color for quick access if defined
+        if 'color' in layer_properties:
+            self.colors[layer_name] = layer_properties['color']
 
     def is_wmts_or_wms_layer(self, layer_name):
         layer_info = next((l for l in self.project_settings['geomLayers'] if l['name'] == layer_name), None)
@@ -1006,6 +1032,23 @@ class DXFExporter:
                     except:
                         continue
         return None
+
+    def export_geometry_to_dxf(self, geometry, layer_info, doc):
+        layer_name = layer_info['name']
+        
+        # First check if we have any layer properties stored
+        layer_properties = self.layer_properties.get(layer_name, {})
+        
+        # Only create layer if it doesn't exist, without modifying properties
+        ensure_layer_exists(doc, layer_name)
+        
+        # Only apply properties if they were explicitly set (not empty dicts)
+        if layer_properties.get('layer') or layer_properties.get('entity'):
+            layer = doc.layers[layer_name]
+            if layer_properties.get('layer'):
+                update_layer_properties(layer, layer_properties['layer'])
+        
+        # Process the geometry...
 
 
 

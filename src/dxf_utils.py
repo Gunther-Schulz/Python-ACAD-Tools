@@ -218,15 +218,18 @@ def update_layer_geometry(msp, layer_name, script_identifier, update_function):
     # Add new geometry
     update_function()
 
-def ensure_layer_exists(doc, layer_name, layer_properties, name_to_aci):
+def ensure_layer_exists(doc, layer_name, color=None):
     if layer_name not in doc.layers:
-        new_layer = doc.layers.new(layer_name)
-        update_layer_properties(new_layer, layer_properties, name_to_aci)
-    else:
-        existing_layer = doc.layers.get(layer_name)
-        update_layer_properties(existing_layer, layer_properties, name_to_aci)
+        # Only set color when creating a new layer
+        dxfattribs = {'color': color if color is not None else 7}
+        doc.layers.new(name=layer_name, dxfattribs=dxfattribs)
+    return doc.layers[layer_name]
 
 def update_layer_properties(layer, layer_properties, name_to_aci):
+    # Skip if no properties provided
+    if not layer_properties:
+        return
+        
     if 'color' in layer_properties:
         color = get_color_code(layer_properties['color'], name_to_aci)
         if isinstance(color, tuple):
