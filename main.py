@@ -6,8 +6,9 @@ import traceback
 from src.project_loader import ProjectLoader
 from src.layer_processor import LayerProcessor
 from src.dxf_exporter import DXFExporter
-from src.utils import create_sample_project, log_error, setup_logging, setup_proj
+from src.utils import create_sample_project, log_error, log_info, setup_logging, setup_proj
 from src.dump_to_shape import dxf_to_shapefiles
+from src.dxf_utils import cleanup_document
 
 class ProjectProcessor:
     def __init__(self, project_name: str, plot_ops=False):
@@ -21,6 +22,8 @@ class ProjectProcessor:
             
             # Pass the initialized LayerProcessor to DXFExporter
             self.dxf_exporter = DXFExporter(self.project_loader, self.layer_processor)
+            
+            self.doc = None  # Add this to store the document reference
             
         except Exception as e:
             available_projects = list_available_projects()
@@ -49,6 +52,16 @@ class ProjectProcessor:
                 dxf_to_shapefiles(dxf_filename, dump_output_dir)
             else:
                 print("Skipping DXF dump: DXF file not found or dump output directory not specified.")
+
+    def process(self):
+        doc = self.dxf_exporter._load_or_create_dxf()
+        self.layer_processor.set_dxf_document(doc)
+        self.layer_processor.process_layers()
+        self.dxf_exporter.export_to_dxf()
+        
+        # Store and return the document reference
+        self.doc = doc
+        return doc
 
 def print_layer_operations():
     operations = {
@@ -255,6 +268,7 @@ def main():
     parser = argparse.ArgumentParser(description="Process and export project data to DXF.")
     parser.add_argument("project_name", nargs="?", help="Name of the project to process")
     parser.add_argument('--plot-ops', action='store_true', help="Plot the result of each operation")
+    parser.add_argument('--cleanup', action='store_true', help="Perform thorough document cleanup after processing")
     parser.add_argument('-l', '--list-operations', action='store_true', help="List all possible layer operations and their options")
     parser.add_argument('-s', '--list-settings', action='store_true', help="List all possible layer settings and their options")
     parser.add_argument('--list-projects', action='store_true', help="List all available projects")
@@ -307,8 +321,16 @@ def main():
     print(f"Processing project: {args.project_name}")
 
     try:
-        processor = ProjectProcessor(args.project_name, plot_ops=args.plot_ops)
-        processor.run()
+        if args.project_name:
+            processor = ProjectProcessor(args.project_name, args.plot_ops)
+            doc = processor.process()
+            
+            # Add cleanup step if requested
+            if args.cleanup:
+                log_info("Performing document cleanup...")
+                cleanup_document(doc)
+                log_info("Document cleanup completed")
+                
     except ValueError as e:
         print(f"\nError: {str(e)}")
         sys.exit(1)

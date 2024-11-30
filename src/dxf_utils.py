@@ -850,6 +850,100 @@ def add_text_insert(msp, text_config, layer_name, project_loader, script_identif
         log_error(f"Failed to add text insert: {str(e)}")
         return None
 
+def cleanup_document(doc):
+    """Perform thorough document cleanup."""
+    try:
+        # Run audit to fix potential structural issues
+        auditor = doc.audit()
+        if len(auditor.errors) > 0:
+            log_warning(f"Audit found {len(auditor.errors)} issues")
+        
+        # Clean up empty groups
+        for group in doc.groups:
+            if len(group) == 0:
+                doc.groups.remove(group.dxf.name)
+        
+        # Purge unused blocks
+        modelspace = doc.modelspace()
+        paperspace = doc.paperspace()
+        used_blocks = set()
+        
+        # Check modelspace for block references
+        for insert in modelspace.query('INSERT'):
+            used_blocks.add(insert.dxf.name)
+            
+        # Check paperspace for block references
+        for insert in paperspace.query('INSERT'):
+            used_blocks.add(insert.dxf.name)
+            
+        # Remove unused blocks
+        for block in list(doc.blocks):  # Blocks section is directly iterable
+            block_name = block.name  # Get block name
+            
+            # Skip special blocks (those starting with '_' or '*')
+            if block_name.startswith('_') or block_name.startswith('*'):
+                continue
+                
+            # Skip AutoCAD special blocks
+            if block_name.startswith('A$C'):
+                continue
+                
+            if block_name not in used_blocks:
+                try:
+                    doc.blocks.delete_block(block_name)
+                    log_info(f"Removed unused block: {block_name}")
+                except Exception as e:
+                    log_warning(f"Could not remove block {block_name}: {str(e)}")
+        
+        # Purge unused layers
+        for layer in list(doc.layers):
+            # Check if the layer has any entities
+            has_entities = any(
+                entity.dxf.layer == layer.dxf.name
+                for entity in modelspace
+            ) or any(
+                entity.dxf.layer == layer.dxf.name
+                for entity in paperspace
+            )
+            if not has_entities:
+                try:
+                    doc.layers.remove(layer.dxf.name)
+                except Exception as e:
+                    log_warning(f"Could not remove layer {layer.dxf.name}: {str(e)}")
+        
+        # Purge unused linetypes
+        for linetype in list(doc.linetypes):
+            try:
+                doc.linetypes.remove(linetype.dxf.name)
+            except Exception as e:
+                # Skip if linetype is in use or is a default linetype
+                continue
+        
+        # Purge unused text styles
+        for style in list(doc.styles):
+            try:
+                doc.styles.remove(style.dxf.name)
+            except Exception as e:
+                # Skip if style is in use or is a default style
+                continue
+        
+        # Purge unused dimension styles
+        for dimstyle in list(doc.dimstyles):
+            try:
+                doc.dimstyles.remove(dimstyle.dxf.name)
+            except Exception as e:
+                # Skip if dimstyle is in use or is a default style
+                continue
+        
+        # Force database update
+        doc.entitydb.purge()
+        
+        log_info("Document cleanup completed successfully")
+        
+    except Exception as e:
+        log_error(f"Error during document cleanup: {str(e)}")
+        log_error(f"Traceback:\n{traceback.format_exc()}")
+
 
 
 
