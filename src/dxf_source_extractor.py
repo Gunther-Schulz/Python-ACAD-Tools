@@ -13,7 +13,7 @@ class DXFSourceExtractor:
     def process_extracts(self, doc):
         """Process all DXF extracts defined in updateFromSource configuration"""
         if not self.dxf_extracts:
-            log_warning("No DXF extracts configured in updateFromSource")
+            log_info("No DXF extracts configured in updateFromSource")
             return
         
         for extract in self.dxf_extracts:

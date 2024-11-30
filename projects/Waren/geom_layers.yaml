@@ -1,4 +1,7 @@
 geomLayers:
+- name: Geltungsbereich
+  updateDxf: true
+  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/geltungsbereich.shp"
 - name: Grünfläche Input from source
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/grünfläche_input_from_source.shp"
 - name: Moor

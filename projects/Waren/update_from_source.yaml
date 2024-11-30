@@ -1,3 +1,5 @@
-updateFromSource:
-  - sourceLayer: "Grünfläche"
-    outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/grünfläche_input_from_source.shp"
+# updateFromSource:
+#   - sourceLayer: "Grünfläche"
+#     outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/grünfläche_input_from_source.shp"
+#   - sourceLayer: "Geltungsbereich"
+#     outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/geltungsbereich.shp"
