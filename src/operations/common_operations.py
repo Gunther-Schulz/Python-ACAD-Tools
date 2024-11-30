@@ -592,15 +592,15 @@ def snap_vertices_to_grid(geometry, grid_size):
     return geometry
 
 
-def remove_islands(geometry, preserve=False, split=False):
+def remove_islands(geometry, preserve=False):
     """
-    For polygons with holes (created by ditch difference operations),
-    either skip the holes entirely (preserve=False) or keep them with zero buffer (preserve=True).
-    If split=True, returns (main_geometry, island_geometry) tuple.
+    For polygons with holes:
+    - skipIslands (preserve=False): completely remove holes
+    - preserveIslands (preserve=True): keep holes (they'll be buffered with distance 0)
     """
     if geometry is None or geometry.is_empty:
         log_warning("remove_islands: Input geometry is None or empty")
-        return None if not split else (None, None)
+        return None
 
     log_warning(f"remove_islands: Input geometry type: {geometry.geom_type}")
     
@@ -608,45 +608,26 @@ def remove_islands(geometry, preserve=False, split=False):
         # If the polygon has no holes/interiors, keep it as is
         if not poly.interiors:
             log_warning(f"remove_islands: Polygon has no holes, keeping as is")
-            return (poly, None) if split else poly
+            return poly
             
         # If it has holes (from the ditch difference)
         log_warning(f"remove_islands: Found polygon with {len(poly.interiors)} holes")
         
-        exterior = Polygon(poly.exterior.coords)
-        holes = [Polygon(interior.coords) for interior in poly.interiors]
-        
-        if split:
-            return (exterior, MultiPolygon(holes) if len(holes) > 1 else holes[0])
-        elif preserve:
-            return MultiPolygon([exterior] + holes)
+        if preserve:
+            # For preserveIslands, return the whole polygon (with holes) to be buffered
+            return poly
         else:
-            return exterior
+            # For skipIslands, return only the exterior
+            return Polygon(poly.exterior.coords)
 
     # Handle different geometry types
     if isinstance(geometry, Polygon):
         return process_polygon(geometry)
     elif isinstance(geometry, MultiPolygon):
         processed = [process_polygon(poly) for poly in geometry.geoms]
-        if split:
-            # Separate main geometries and islands
-            mains, islands = zip(*processed)
-            main_geom = MultiPolygon([p for p in mains if p is not None])
-            island_geom = MultiPolygon([p for p in islands if p is not None])
-            return main_geom, island_geom
-        else:
-            if preserve:
-                # Flatten all polygons
-                all_polygons = []
-                for result in processed:
-                    if isinstance(result, MultiPolygon):
-                        all_polygons.extend(list(result.geoms))
-                    else:
-                        all_polygons.append(result)
-                return MultiPolygon(all_polygons)
-            return MultiPolygon(processed)
+        return MultiPolygon([p for p in processed if p is not None])
     else:
-        return geometry if not split else (geometry, None)
+        return geometry
 
 
 

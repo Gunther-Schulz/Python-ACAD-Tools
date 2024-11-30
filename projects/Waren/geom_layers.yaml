@@ -81,29 +81,33 @@ geomLayers:
         - Grünfläche
       distance: -3
       joinStyle: round
-      skipIslands: true
-    - type: difference
-      reverseDifference: false
-      layers:
-        - Graben
+      # skipIslands: true
+      preserveIslands: true
+    # - type: difference
+    #   reverseDifference: false
+    #   layers:
+    #     - Graben
 - name: Grünfläche Schraffur
   updateDxf: true
   style: grünfläche
   applyHatch:
     layers:
       - Ausgleich Grünfläche
-# - name: Ausgleich Schutzflächeumgrenzung
-#   updateDxf: true
-#   operations:
-#     - type: copy
-#       layers:
-#         - Grünfläche
-#     - type: difference
-#       layers:
-#         - Ausgleich Grünfläche
-# - name: Grünfläche T-Linie Symbol Schraffur
-#   updateDxf: true
-#   style: schutzflächeumgrenzung
-#   applyHatch:
-#     layers:
-#       - Ausgleich Schutzflächeumgrenzung
+- name: Ausgleich Schutzflächeumgrenzung
+  updateDxf: true
+  style:
+    layer:
+      color: "yellow-medium"
+  operations:
+    - type: copy
+      layers:
+        - Grünfläche
+    - type: difference
+      layers:
+        - Ausgleich Grünfläche
+- name: Grünfläche T-Linie Symbol Schraffur
+  updateDxf: true
+  style: schutzflächeumgrenzung
+  applyHatch:
+    layers:
+      - Ausgleich Schutzflächeumgrenzung
