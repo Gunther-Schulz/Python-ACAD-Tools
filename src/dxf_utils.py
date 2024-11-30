@@ -218,11 +218,28 @@ def update_layer_geometry(msp, layer_name, script_identifier, update_function):
     # Add new geometry
     update_function()
 
-def ensure_layer_exists(doc, layer_name, color=None):
+def ensure_layer_exists(doc, layer_name, properties=None, name_to_aci=None):
+    """Ensures a layer exists in the document with the given properties."""
     if layer_name not in doc.layers:
-        # Only set color when creating a new layer
-        dxfattribs = {'color': color if color is not None else 7}
-        doc.layers.new(name=layer_name, dxfattribs=dxfattribs)
+        dxfattribs = {}
+        if properties:
+            if 'color' in properties:
+                color = get_color_code(properties['color'], name_to_aci) if name_to_aci else properties['color']
+                dxfattribs['color'] = color
+            if 'linetype' in properties:
+                dxfattribs['linetype'] = properties['linetype']
+            if 'lineweight' in properties:
+                dxfattribs['lineweight'] = properties['lineweight']
+            if 'plot' in properties:
+                dxfattribs['plot'] = properties['plot']
+        
+        new_layer = doc.layers.new(name=layer_name, dxfattribs=dxfattribs)
+        
+        # Apply additional properties if provided
+        if properties:
+            update_layer_properties(new_layer, properties, name_to_aci)
+            
+        return new_layer
     return doc.layers[layer_name]
 
 def update_layer_properties(layer, layer_properties, name_to_aci):
@@ -683,7 +700,7 @@ def get_mtext_constant(value):
     return mtext_constants.get(value, value)
 
 def sanitize_layer_name(name):
-    # Define a set of allowed characters, including German-specific ones and space
+    # Define a set of allowed characters, including German-specific ones, space, dash, and underscore
     allowed_chars = r'a-zA-Z0-9_\-öüäßÖÜÄ '
     
     # Replace disallowed characters with underscores

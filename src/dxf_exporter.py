@@ -63,6 +63,17 @@ class DXFExporter:
         # Setup geom layers
         for layer in self.project_settings['geomLayers']:
             self._setup_single_layer(layer)
+            
+            # Also setup properties for any layers created through operations
+            if 'operations' in layer:
+                result_layer_name = layer['name']
+                if result_layer_name not in self.layer_properties:
+                    # Initialize with default properties if not already set
+                    self.add_layer_properties(result_layer_name, {
+                        'color': "White",  # Default color
+                        'locked': False,
+                        'close': True
+                    })
         
         # Setup WMTS/WMS layers
         for layer in self.project_settings.get('wmtsLayers', []):
