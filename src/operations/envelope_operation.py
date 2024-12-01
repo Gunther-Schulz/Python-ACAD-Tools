@@ -59,11 +59,14 @@ def create_optimal_envelope(polygon):
     if polygon is None:
         return None
         
-    # Get polygon coordinates
+    # Get polygon coordinates and true centroid
     coords = np.array(polygon.exterior.coords)
+    center = np.array([polygon.centroid.x, polygon.centroid.y])  # Using true centroid instead of mean
+    
+    # Center coordinates on true centroid
+    coords_centered = coords - center
     
     # Find principal direction using PCA
-    coords_centered = coords - np.mean(coords, axis=0)
     cov_matrix = np.cov(coords_centered.T)
     eigenvalues, eigenvectors = np.linalg.eig(cov_matrix)
     
@@ -72,9 +75,8 @@ def create_optimal_envelope(polygon):
     perpendicular = np.array([-main_direction[1], main_direction[0]])
     
     # Project points onto the principal directions
-    center = np.mean(coords, axis=0)
-    proj_main = np.dot(coords - center, main_direction)
-    proj_perp = np.dot(coords - center, perpendicular)
+    proj_main = np.dot(coords_centered, main_direction)
+    proj_perp = np.dot(coords_centered, perpendicular)
     
     # Calculate envelope dimensions
     half_width = (np.max(proj_main) - np.min(proj_main)) / 2
