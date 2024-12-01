@@ -63,16 +63,102 @@ def create_envelope_layer(all_layers, project_settings, crs, layer_name, operati
     log_info(f"Created envelope layer: {layer_name} with {len(result_geometries)} envelopes")
     return result_gdf
 
+def detect_bend(polygon, bend_threshold=20):
+    """
+    Optimized bend detection focusing on major structural bends.
+    """
+    coords = np.array(polygon.exterior.coords)
+    
+    # Calculate vectors and lengths
+    vectors = np.diff(coords, axis=0)
+    lengths = np.linalg.norm(vectors, axis=1)
+    total_length = np.sum(lengths)
+    
+    # Quick exit if we have very small segments
+    if np.any(lengths < 1e-10):
+        return False
+        
+    # Only consider segments that are major parts of the shape (at least 20% of total length)
+    significant_mask = lengths > (total_length * 0.2)
+    significant_vectors = vectors[significant_mask]
+    
+    if len(significant_vectors) < 2:
+        return False
+    
+    # Normalize significant vectors
+    significant_vectors = significant_vectors / np.linalg.norm(significant_vectors, axis=1)[:, np.newaxis]
+    
+    # Calculate angles between major segments
+    angles = []
+    for i in range(len(significant_vectors)-1):
+        dot_product = np.dot(significant_vectors[i], significant_vectors[i+1])
+        angle = np.arccos(np.clip(dot_product, -1.0, 1.0)) * 180 / np.pi
+        angles.append(angle)
+    
+    if not angles:
+        return False
+    
+    max_angle = max(angles)
+    print(f"Max angle between major segments: {max_angle}")
+    
+    # Look for angles close to 90 degrees (typical for L-shaped bends)
+    return abs(max_angle - 90) < 30  # Detect angles between 60 and 120 degrees
+
+def split_at_bend(polygon):
+    """
+    Optimized polygon splitting.
+    """
+    coords = np.array(polygon.exterior.coords)
+    vectors = np.diff(coords, axis=0)
+    lengths = np.linalg.norm(vectors, axis=1)
+    vectors = vectors / lengths[:, np.newaxis]
+    
+    dot_products = np.sum(vectors[:-1] * vectors[1:], axis=1)
+    angles = np.arccos(np.clip(dot_products, -1.0, 1.0)) * 180 / np.pi
+    
+    bend_idx = np.argmax(angles) + 1
+    
+    # Create polygons directly without buffering
+    points1 = coords[:bend_idx + 2]
+    points2 = coords[bend_idx:]
+    
+    # Create polygons directly without convex hull
+    poly1 = Polygon(points1)
+    poly2 = Polygon(points2)
+    
+    # If either polygon is invalid, try to fix it
+    if not poly1.is_valid or not poly2.is_valid:
+        # Try using the original polygon's buffer to create valid parts
+        line1 = LineString(points1)
+        line2 = LineString(points2)
+        buffer_distance = polygon.area / (2 * polygon.length)
+        poly1 = line1.buffer(buffer_distance)
+        poly2 = line2.buffer(buffer_distance)
+    
+    return poly1, poly2
+
 def create_optimal_envelope(polygon, padding=0, min_ratio=None, cap_style='square'):
     """
-    Create an envelope with optimal orientation for the polygon.
-    If min_ratio is set, skips polygons where length/width ratio is less than min_ratio.
-    cap_style can be 'square' (default) or 'round'
+    Optimized envelope creation with bend handling.
     """
-    if polygon is None:
+    if polygon is None or not polygon.is_valid:
         return None
     
-    # First get the minimum rotated rectangle
+    # First check for major bends before any other processing
+    if polygon.area / polygon.convex_hull.area < 0.98:
+        has_bend = detect_bend(polygon)
+        print(f"Convexity ratio: {polygon.area / polygon.convex_hull.area}, Has bend: {has_bend}")
+        if has_bend:
+            part1, part2 = split_at_bend(polygon)
+            envelope1 = create_optimal_envelope(part1, padding, min_ratio, cap_style)
+            envelope2 = create_optimal_envelope(part2, padding, min_ratio, cap_style)
+            if envelope1 and envelope2:
+                return unary_union([envelope1, envelope2])
+            else:
+                print("Splitting failed, using original polygon")
+                return polygon.minimum_rotated_rectangle
+    
+    # Get the minimum rotated rectangle and continue with regular envelope creation
     min_rect = polygon.minimum_rotated_rectangle
     min_rect_coords = np.array(min_rect.exterior.coords)
     
