@@ -29,7 +29,8 @@ geomLayers:
       layers:
         - Baum_Laubbaum Buffer
       padding: 0.2
-      min_ratio: 1.5
+      minRatio: 1.5
+      capStyle: round
 - name: Str-Leitungsabschnitt-NS
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/str_leitungsabschnitt_ns.shp"
 - name: Str-Leitungsabschnitt-NS Buffer
@@ -102,6 +103,8 @@ geomLayers:
         area: 0
 - name: Grünfläche Input from source
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/grünfläche_input_from_source.shp"
+- name: Grünfläche Input
+  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/grünfläche_input.shp"
 - name: Moor
   # updateDxf: true
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/moor.shp"
@@ -119,8 +122,13 @@ geomLayers:
     - type: copy
       layers:
         - "Grünfläche Input from source"
+        - "Grünfläche Input"
         - Moor
         - "ges gesch Biotope"
+    - type: dissolve
+    - type: intersection
+      layers:
+        - Geltungsbereich
     - type: dissolve
     - type: difference
       reverseDifference: false
@@ -213,4 +221,4 @@ geomLayers:
       layers:
         - Str-Leitungsabschnitt-NS Buffer
         - Leitung Buffer
-        - Baum_Laubbaum Buffer
+        - Baum_Laubbaum Envelope

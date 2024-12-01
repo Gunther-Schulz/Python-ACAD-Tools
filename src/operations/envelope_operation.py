@@ -1,8 +1,10 @@
 import geopandas as gpd
 import numpy as np
-from shapely.geometry import box, MultiPolygon, Polygon, LineString
+from shapely.geometry import box, MultiPolygon, Polygon, LineString, Point
+from shapely.ops import unary_union
 from src.utils import log_info, log_warning
 from src.operations.common_operations import _process_layer_info, format_operation_warning
+from scipy.spatial import distance
 
 def create_envelope_layer(all_layers, project_settings, crs, layer_name, operation):
     """
@@ -15,7 +17,13 @@ def create_envelope_layer(all_layers, project_settings, crs, layer_name, operati
         source_layers = [layer_name]
     
     padding = operation.get('padding', 0)
-    min_ratio = operation.get('min_ratio', None)  # Get min_ratio from operation config
+    min_ratio = operation.get('minRatio', None)
+    cap_style = operation.get('capStyle', 'square').lower()
+    
+    if cap_style not in ['square', 'round']:
+        log_warning(f"Invalid capStyle '{cap_style}', using 'square'")
+        cap_style = 'square'
+    
     result_geometries = []
     
     # Process each input layer
@@ -31,13 +39,12 @@ def create_envelope_layer(all_layers, project_settings, crs, layer_name, operati
         # Process each geometry
         for geom in source_gdf.geometry:
             if isinstance(geom, MultiPolygon):
-                # Handle each part of a MultiPolygon separately
                 for part in geom.geoms:
-                    envelope = create_optimal_envelope(part, padding, min_ratio)
+                    envelope = create_optimal_envelope(part, padding, min_ratio, cap_style)
                     if envelope:
                         result_geometries.append(envelope)
             else:
-                envelope = create_optimal_envelope(geom, padding, min_ratio)
+                envelope = create_optimal_envelope(geom, padding, min_ratio, cap_style)
                 if envelope:
                     result_geometries.append(envelope)
     
@@ -56,10 +63,11 @@ def create_envelope_layer(all_layers, project_settings, crs, layer_name, operati
     log_info(f"Created envelope layer: {layer_name} with {len(result_geometries)} envelopes")
     return result_gdf
 
-def create_optimal_envelope(polygon, padding=0, min_ratio=None):
+def create_optimal_envelope(polygon, padding=0, min_ratio=None, cap_style='square'):
     """
     Create an envelope with optimal orientation for the polygon.
     If min_ratio is set, skips polygons where length/width ratio is less than min_ratio.
+    cap_style can be 'square' (default) or 'round'
     """
     if polygon is None:
         return None
@@ -72,40 +80,53 @@ def create_optimal_envelope(polygon, padding=0, min_ratio=None):
     edges = min_rect_coords[1:] - min_rect_coords[:-1]
     edge_lengths = np.sqrt(np.sum(edges**2, axis=1))
     
-    # Check ratio if min_ratio is set
+    # Check ratio if min_ratio is not None
     if min_ratio is not None:
         length = max(edge_lengths)
         width = min(edge_lengths)
         ratio = length / width if width > 0 else float('inf')
         if ratio < min_ratio:
-            return polygon  # Return original polygon instead of creating envelope
+            return polygon
     
     longest_idx = np.argmax(edge_lengths)
     
-    # Get the exact direction from the longest edge of the minimum rotated rectangle
+    # Get the exact direction from the longest edge
     direction = edges[longest_idx] / edge_lengths[longest_idx]
     perpendicular = np.array([-direction[1], direction[0]])
     
-    # Now create our envelope using this exact orientation
     center = np.array([polygon.centroid.x, polygon.centroid.y])
-    
-    # Project original polygon onto these directions
     original_coords = np.array(polygon.exterior.coords)
     coords_centered = original_coords - center
     
-    # Calculate exact dimensions needed
+    # Calculate dimensions
     proj_main = np.dot(coords_centered, direction)
     proj_perp = np.dot(coords_centered, perpendicular)
     
     half_width = (np.max(proj_main) - np.min(proj_main)) / 2 + padding
     half_height = (np.max(proj_perp) - np.min(proj_perp)) / 2 + padding
     
-    # Create envelope corners using the minimum rotated rectangle's orientation
-    corners = [
-        center + half_width * direction + half_height * perpendicular,
-        center + half_width * direction - half_height * perpendicular,
-        center - half_width * direction - half_height * perpendicular,
-        center - half_width * direction + half_height * perpendicular
-    ]
-    
-    return Polygon(corners)
+    if cap_style == 'round':
+        # Create a rectangle slightly shorter than the full length
+        rect_width = half_width - half_height  # Reduce rectangle width by radius
+        rect_corners = [
+            center + rect_width * direction + half_height * perpendicular,
+            center + rect_width * direction - half_height * perpendicular,
+            center - rect_width * direction - half_height * perpendicular,
+            center - rect_width * direction + half_height * perpendicular
+        ]
+        rect = Polygon(rect_corners)
+        
+        # Create circles at the ends
+        right_circle = Point(center + rect_width * direction).buffer(half_height)
+        left_circle = Point(center - rect_width * direction).buffer(half_height)
+        
+        # Union of rectangle and circles
+        return unary_union([rect, right_circle, left_circle])
+    else:  # square ends (default)
+        corners = [
+            center + half_width * direction + half_height * perpendicular,
+            center + half_width * direction - half_height * perpendicular,
+            center - half_width * direction - half_height * perpendicular,
+            center - half_width * direction + half_height * perpendicular
+        ]
+        return Polygon(corners)
