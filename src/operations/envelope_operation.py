@@ -58,36 +58,41 @@ def create_optimal_envelope(polygon):
     """Create an envelope with optimal orientation for the polygon."""
     if polygon is None:
         return None
-        
-    # Get polygon coordinates and true centroid
-    coords = np.array(polygon.exterior.coords)
-    center = np.array([polygon.centroid.x, polygon.centroid.y])  # Using true centroid instead of mean
     
-    # Center coordinates on true centroid
-    coords_centered = coords - center
+    # First get the minimum rotated rectangle
+    min_rect = polygon.minimum_rotated_rectangle
+    min_rect_coords = np.array(min_rect.exterior.coords)
     
-    # Find principal direction using PCA
-    cov_matrix = np.cov(coords_centered.T)
-    eigenvalues, eigenvectors = np.linalg.eig(cov_matrix)
+    # Calculate the orientation from the minimum rotated rectangle
+    edges = min_rect_coords[1:] - min_rect_coords[:-1]
+    edge_lengths = np.sqrt(np.sum(edges**2, axis=1))
+    longest_idx = np.argmax(edge_lengths)
     
-    # Get the principal direction (eigenvector with largest eigenvalue)
-    main_direction = eigenvectors[:, np.argmax(np.abs(eigenvalues))]
-    perpendicular = np.array([-main_direction[1], main_direction[0]])
+    # Get the exact direction from the longest edge of the minimum rotated rectangle
+    direction = edges[longest_idx] / edge_lengths[longest_idx]
+    perpendicular = np.array([-direction[1], direction[0]])
     
-    # Project points onto the principal directions
-    proj_main = np.dot(coords_centered, main_direction)
+    # Now create our envelope using this exact orientation
+    # but with dimensions from the original polygon
+    center = np.array([polygon.centroid.x, polygon.centroid.y])
+    
+    # Project original polygon onto these directions
+    original_coords = np.array(polygon.exterior.coords)
+    coords_centered = original_coords - center
+    
+    # Calculate exact dimensions needed
+    proj_main = np.dot(coords_centered, direction)
     proj_perp = np.dot(coords_centered, perpendicular)
     
-    # Calculate envelope dimensions
     half_width = (np.max(proj_main) - np.min(proj_main)) / 2
     half_height = (np.max(proj_perp) - np.min(proj_perp)) / 2
     
-    # Create envelope corners
+    # Create envelope corners using the minimum rotated rectangle's orientation
     corners = [
-        center + half_width * main_direction + half_height * perpendicular,
-        center + half_width * main_direction - half_height * perpendicular,
-        center - half_width * main_direction - half_height * perpendicular,
-        center - half_width * main_direction + half_height * perpendicular
+        center + half_width * direction + half_height * perpendicular,
+        center + half_width * direction - half_height * perpendicular,
+        center - half_width * direction - half_height * perpendicular,
+        center - half_width * direction + half_height * perpendicular
     ]
     
     return Polygon(corners)
