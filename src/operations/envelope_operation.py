@@ -65,73 +65,44 @@ def create_envelope_layer(all_layers, project_settings, crs, layer_name, operati
 
 def detect_bend(polygon):
     """
-    Simplified bend detection focusing on major structural bends.
-    Uses minimum rotated rectangle to detect significant non-rectangular shapes.
+    Simplified bend detection using minimum rotated rectangle.
     """
-    # Get the minimum rotated rectangle
     min_rect = polygon.minimum_rotated_rectangle
-    
-    # Compare area of polygon to its minimum rotated rectangle
     area_ratio = polygon.area / min_rect.area
-    print(f"Area ratio (polygon/rectangle): {area_ratio}")
-    
-    # If the polygon fills less than 80% of its minimum rotated rectangle,
-    # it likely has a significant bend
     return area_ratio < 0.8
 
 def split_at_bend(polygon):
     """
-    Optimized polygon splitting.
+    Simple polygon splitting using minimum rotated rectangle.
     """
-    coords = np.array(polygon.exterior.coords)
-    vectors = np.diff(coords, axis=0)
-    lengths = np.linalg.norm(vectors, axis=1)
-    vectors = vectors / lengths[:, np.newaxis]
+    min_rect = polygon.minimum_rotated_rectangle
+    bbox = min_rect.bounds
+    mid_x = (bbox[0] + bbox[2]) / 2
     
-    dot_products = np.sum(vectors[:-1] * vectors[1:], axis=1)
-    angles = np.arccos(np.clip(dot_products, -1.0, 1.0)) * 180 / np.pi
+    # Split box in half
+    box1 = box(bbox[0], bbox[1], mid_x, bbox[3])
+    box2 = box(mid_x, bbox[1], bbox[2], bbox[3])
     
-    bend_idx = np.argmax(angles) + 1
-    
-    # Create polygons directly without buffering
-    points1 = coords[:bend_idx + 2]
-    points2 = coords[bend_idx:]
-    
-    # Create polygons directly without convex hull
-    poly1 = Polygon(points1)
-    poly2 = Polygon(points2)
-    
-    # If either polygon is invalid, try to fix it
-    if not poly1.is_valid or not poly2.is_valid:
-        # Try using the original polygon's buffer to create valid parts
-        line1 = LineString(points1)
-        line2 = LineString(points2)
-        buffer_distance = polygon.area / (2 * polygon.length)
-        poly1 = line1.buffer(buffer_distance)
-        poly2 = line2.buffer(buffer_distance)
-    
-    return poly1, poly2
+    return polygon.intersection(box1), polygon.intersection(box2)
 
-def create_optimal_envelope(polygon, padding=0, min_ratio=None, cap_style='square'):
+def create_optimal_envelope(polygon, padding=0, min_ratio=None, cap_style='square', recursion_depth=0):
     """
     Optimized envelope creation with bend handling.
     """
     if polygon is None or not polygon.is_valid:
         return None
+        
+    # Limit recursion depth and minimum size
+    if recursion_depth > 2 or polygon.area < 1e-6:
+        return polygon.minimum_rotated_rectangle
     
-    # First check for major bends before any other processing
-    has_bend = detect_bend(polygon)
-    print(f"Has bend: {has_bend}")
-    
-    if has_bend:
+    if detect_bend(polygon):
         part1, part2 = split_at_bend(polygon)
-        envelope1 = create_optimal_envelope(part1, padding, min_ratio, cap_style)
-        envelope2 = create_optimal_envelope(part2, padding, min_ratio, cap_style)
-        if envelope1 and envelope2:
-            return unary_union([envelope1, envelope2])
-        else:
-            print("Splitting failed, using original polygon")
-            return polygon.minimum_rotated_rectangle
+        if part1.is_valid and part2.is_valid:
+            envelope1 = create_optimal_envelope(part1, padding, min_ratio, cap_style, recursion_depth + 1)
+            envelope2 = create_optimal_envelope(part2, padding, min_ratio, cap_style, recursion_depth + 1)
+            if envelope1 and envelope2:
+                return unary_union([envelope1, envelope2])
     
     # Get the minimum rotated rectangle and continue with regular envelope creation
     min_rect = polygon.minimum_rotated_rectangle
