@@ -4,7 +4,8 @@ geomLayers:
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/baum_laubbaum.shp"
   operations:
     - type: circle
-      radiusField: radius
+      # radiusField: radius
+      radius: 10
 - name: Baum_Laubbaum Line
   updateDxf: true
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/baum_laubbaum.shp"
@@ -222,3 +223,7 @@ geomLayers:
         - Str-Leitungsabschnitt-NS Buffer
         - Leitung Buffer
         - Baum_Laubbaum Envelope
+    # - type: buffer
+    #   distance: -6
+    # - type: buffer
+    #   distance: 6
