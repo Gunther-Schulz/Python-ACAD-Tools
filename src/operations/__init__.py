@@ -13,6 +13,7 @@ from .calculate_operation import create_calculate_layer
 from .directional_line_operation import create_directional_line_layer
 from .circle_operation import create_circle_layer
 from .connect_points_operation import create_connect_points_layer
+from .envelope_operation import create_envelope_layer
 
 __all__ = [
     'create_copy_layer',
@@ -30,5 +31,6 @@ __all__ = [
     'create_calculate_layer',
     'create_directional_line_layer',
     'create_circle_layer',
-    'create_connect_points_layer'
+    'create_connect_points_layer',
+    'create_envelope_layer'
 ]

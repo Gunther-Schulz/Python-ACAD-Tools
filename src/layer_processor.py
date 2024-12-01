@@ -26,7 +26,8 @@ from src.operations import (
     create_calculate_layer,
     create_directional_line_layer,
     create_circle_layer,
-    create_connect_points_layer
+    create_connect_points_layer,
+    create_envelope_layer
 )
 from src.style_manager import StyleManager
 from src.operations.filter_geometry_operation import create_filtered_geometry_layer
@@ -241,6 +242,8 @@ class LayerProcessor:
             result = create_circle_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
         elif op_type == 'connect-points':
             result = create_connect_points_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
+        elif op_type == 'envelope':
+            result = create_envelope_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
         else:
             log_warning(f"Unknown operation type: {op_type} for layer {layer_name}")
             return None
