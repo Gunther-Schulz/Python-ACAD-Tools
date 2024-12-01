@@ -73,17 +73,50 @@ def detect_bend(polygon):
 
 def split_at_bend(polygon):
     """
-    Simple polygon splitting using minimum rotated rectangle.
+    Split polygon perpendicular to the segments at the bend point.
     """
-    min_rect = polygon.minimum_rotated_rectangle
-    bbox = min_rect.bounds
-    mid_x = (bbox[0] + bbox[2]) / 2
+    # Get polygon coordinates
+    coords = np.array(polygon.exterior.coords)
+    vectors = np.diff(coords, axis=0)
+    lengths = np.linalg.norm(vectors, axis=1)
+    vectors = vectors / lengths[:, np.newaxis]
     
-    # Split box in half
-    box1 = box(bbox[0], bbox[1], mid_x, bbox[3])
-    box2 = box(mid_x, bbox[1], bbox[2], bbox[3])
+    # Calculate angles between segments
+    dot_products = np.sum(vectors[:-1] * vectors[1:], axis=1)
+    angles = np.arccos(np.clip(dot_products, -1.0, 1.0)) * 180 / np.pi
     
-    return polygon.intersection(box1), polygon.intersection(box2)
+    # Find the bend point
+    bend_idx = np.argmax(angles)
+    bend_point = coords[bend_idx + 1]
+    
+    # Get directions of segments before and after bend
+    dir_before = vectors[bend_idx]
+    dir_after = vectors[bend_idx + 1]
+    
+    # Calculate perpendicular direction at bend (average of perpendiculars)
+    perp_before = np.array([-dir_before[1], dir_before[0]])
+    perp_after = np.array([-dir_after[1], dir_after[0]])
+    split_direction = (perp_before + perp_after) / 2
+    split_direction = split_direction / np.linalg.norm(split_direction)
+    
+    # Create a line perpendicular to the bend direction
+    line_length = polygon.bounds[2] - polygon.bounds[0] + polygon.bounds[3] - polygon.bounds[1]
+    split_line = LineString([
+        bend_point - line_length * split_direction,
+        bend_point + line_length * split_direction
+    ])
+    
+    # Split the polygon with this line
+    split_poly = polygon.difference(split_line.buffer(0.1))
+    
+    if isinstance(split_poly, MultiPolygon):
+        polys = list(split_poly.geoms)
+        if len(polys) >= 2:
+            return polys[0], polys[1]
+    
+    # Fallback: split along the perpendicular of the average direction
+    return polygon.intersection(box(*polygon.bounds[:2], bend_point[0], polygon.bounds[3])), \
+           polygon.intersection(box(bend_point[0], polygon.bounds[1], *polygon.bounds[2:]))
 
 def create_optimal_envelope(polygon, padding=0, min_ratio=None, cap_style='square', recursion_depth=0):
     """
