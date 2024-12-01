@@ -63,46 +63,21 @@ def create_envelope_layer(all_layers, project_settings, crs, layer_name, operati
     log_info(f"Created envelope layer: {layer_name} with {len(result_geometries)} envelopes")
     return result_gdf
 
-def detect_bend(polygon, bend_threshold=20):
+def detect_bend(polygon):
     """
-    Optimized bend detection focusing on major structural bends.
+    Simplified bend detection focusing on major structural bends.
+    Uses minimum rotated rectangle to detect significant non-rectangular shapes.
     """
-    coords = np.array(polygon.exterior.coords)
+    # Get the minimum rotated rectangle
+    min_rect = polygon.minimum_rotated_rectangle
     
-    # Calculate vectors and lengths
-    vectors = np.diff(coords, axis=0)
-    lengths = np.linalg.norm(vectors, axis=1)
-    total_length = np.sum(lengths)
+    # Compare area of polygon to its minimum rotated rectangle
+    area_ratio = polygon.area / min_rect.area
+    print(f"Area ratio (polygon/rectangle): {area_ratio}")
     
-    # Quick exit if we have very small segments
-    if np.any(lengths < 1e-10):
-        return False
-        
-    # Only consider segments that are major parts of the shape (at least 20% of total length)
-    significant_mask = lengths > (total_length * 0.2)
-    significant_vectors = vectors[significant_mask]
-    
-    if len(significant_vectors) < 2:
-        return False
-    
-    # Normalize significant vectors
-    significant_vectors = significant_vectors / np.linalg.norm(significant_vectors, axis=1)[:, np.newaxis]
-    
-    # Calculate angles between major segments
-    angles = []
-    for i in range(len(significant_vectors)-1):
-        dot_product = np.dot(significant_vectors[i], significant_vectors[i+1])
-        angle = np.arccos(np.clip(dot_product, -1.0, 1.0)) * 180 / np.pi
-        angles.append(angle)
-    
-    if not angles:
-        return False
-    
-    max_angle = max(angles)
-    print(f"Max angle between major segments: {max_angle}")
-    
-    # Look for angles close to 90 degrees (typical for L-shaped bends)
-    return abs(max_angle - 90) < 30  # Detect angles between 60 and 120 degrees
+    # If the polygon fills less than 80% of its minimum rotated rectangle,
+    # it likely has a significant bend
+    return area_ratio < 0.8
 
 def split_at_bend(polygon):
     """
@@ -145,18 +120,18 @@ def create_optimal_envelope(polygon, padding=0, min_ratio=None, cap_style='squar
         return None
     
     # First check for major bends before any other processing
-    if polygon.area / polygon.convex_hull.area < 0.98:
-        has_bend = detect_bend(polygon)
-        print(f"Convexity ratio: {polygon.area / polygon.convex_hull.area}, Has bend: {has_bend}")
-        if has_bend:
-            part1, part2 = split_at_bend(polygon)
-            envelope1 = create_optimal_envelope(part1, padding, min_ratio, cap_style)
-            envelope2 = create_optimal_envelope(part2, padding, min_ratio, cap_style)
-            if envelope1 and envelope2:
-                return unary_union([envelope1, envelope2])
-            else:
-                print("Splitting failed, using original polygon")
-                return polygon.minimum_rotated_rectangle
+    has_bend = detect_bend(polygon)
+    print(f"Has bend: {has_bend}")
+    
+    if has_bend:
+        part1, part2 = split_at_bend(polygon)
+        envelope1 = create_optimal_envelope(part1, padding, min_ratio, cap_style)
+        envelope2 = create_optimal_envelope(part2, padding, min_ratio, cap_style)
+        if envelope1 and envelope2:
+            return unary_union([envelope1, envelope2])
+        else:
+            print("Splitting failed, using original polygon")
+            return polygon.minimum_rotated_rectangle
     
     # Get the minimum rotated rectangle and continue with regular envelope creation
     min_rect = polygon.minimum_rotated_rectangle
