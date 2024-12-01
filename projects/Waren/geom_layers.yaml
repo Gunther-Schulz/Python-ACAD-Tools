@@ -24,26 +24,39 @@ geomLayers:
       outputFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/reports/geltungsbereich_report.json"
       featureColumns:
         - area
+      calculate:
+        - area
       decimalPlaces:
         area: 0
-  # operations:
-  #   - type: calculate
-  #     calculations:
-  #       - type: area
-  #         as: area
-  #         decimalPlaces: 0
-  #   - type: report
-  #     outputFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/reports/geltungsbereich_report.json"
-  #     featureColumns:
-  #       - Parcel
-  #       - area
-  #       - Flur
-  #       - Gemarkung
-  #       - Gemeinde
-  #     calculate:
-  #       - area
-  #     decimalPlaces:
-  #       area: 0
+# Report only
+- name: Parcel Intersections
+  updateDxf: false
+  operations:
+    - type: copy
+      layers:
+        - name: Parcel
+    - type: intersection
+      layers:
+        - name: Geltungsbereich
+    - type: filterGeometry
+      minArea: 10
+      geometryTypes:
+        - Polygon
+    - type: calculate
+      calculations:
+        - type: area
+          as: intersection_area
+          decimalPlaces: 0
+    - type: report
+      outputFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/reports/parcel_intersections_report.json"
+      featureColumns:
+        - label
+        - intersection_area
+      calculate:
+        - area
+      decimalPlaces:
+        intersection_area: 0
+        area: 0
 - name: Grünfläche Input from source
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/grünfläche_input_from_source.shp"
 - name: Moor
@@ -56,9 +69,9 @@ geomLayers:
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/graben.shp"
 - name: Grünfläche
   updateDxf: true
-  style:
-    layer:
-      color: "blue"
+  # style:
+  #   layer:
+  #     color: "blue"
   operations:
     - type: copy
       layers:
@@ -72,9 +85,9 @@ geomLayers:
         - Graben
 - name: Ausgleich Grünfläche
   updateDxf: true
-  style:
-    layer:
-      color: "chartreuse-medium"
+  # style:
+  #   layer:
+  #     color: "chartreuse-medium"
   operations:
     - type: buffer
       layers:
@@ -83,10 +96,6 @@ geomLayers:
       joinStyle: round
       # skipIslands: true
       preserveIslands: true
-    # - type: difference
-    #   reverseDifference: false
-    #   layers:
-    #     - Graben
 - name: Grünfläche Schraffur
   updateDxf: true
   style: grünfläche
@@ -95,9 +104,9 @@ geomLayers:
       - Ausgleich Grünfläche
 - name: Ausgleich Schutzflächeumgrenzung
   updateDxf: true
-  style:
-    layer:
-      color: "yellow-medium"
+  # style:
+  #   layer:
+  #     color: "yellow-medium"
   operations:
     - type: copy
       layers:
@@ -111,3 +120,52 @@ geomLayers:
   applyHatch:
     layers:
       - Ausgleich Schutzflächeumgrenzung
+- name: Baufeld
+  updateDxf: true
+  close: true
+  operations:
+    - type: copy
+      layers:
+        - Geltungsbereich
+    - type: difference
+      useBufferTrick: true
+      reverseDifference: false
+      operations:
+        - type: dissolve
+          layers:
+            - Grünfläche
+            - Graben
+    - type: filterGeometry
+      minArea: 200
+      geometryTypes:
+        - Polygon
+- name: Baufeld Schraffur
+  updateDxf: true
+  style: baufeld
+  applyHatch:
+    layers:
+      - Baufeld
+- name: Baugrenze 2
+  updateDxf: true
+  style: baugrenze_2
+  close: true
+  operations:
+    - type: buffer
+      layers:
+        - Baugrenze
+      distance: -0.4
+- name: Baugrenze
+  updateDxf: true
+  style: baugrenze
+  linetypeScale: 0.5
+  linetypeGeneration: true
+  close: true
+  operations:
+    - type: buffer
+      layers:
+        - Baufeld
+      distance: -3
+    # - type: difference
+    #   reverseDifference: false
+    #   layers:
+    #     - Einfahrt

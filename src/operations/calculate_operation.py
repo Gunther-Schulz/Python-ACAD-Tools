@@ -1,5 +1,7 @@
 import geopandas as gpd
 from src.utils import log_info, log_warning, log_error
+import decimal
+from decimal import Decimal, ROUND_HALF_UP
 
 def create_calculate_layer(all_layers, project_settings, crs, layer_name, operation):
     log_info(f"Creating calculate layer: {layer_name}")
@@ -23,7 +25,12 @@ def create_calculate_layer(all_layers, project_settings, crs, layer_name, operat
             source_gdf[column_name] = source_gdf.geometry.area
             decimal_places = calc.get('decimalPlaces')
             if decimal_places is not None:
-                source_gdf[column_name] = source_gdf[column_name].round(decimal_places)
+                source_gdf[column_name] = source_gdf[column_name].apply(
+                    lambda x: float(Decimal(str(x)).quantize(
+                        Decimal('1e-{}'.format(decimal_places)), 
+                        rounding=ROUND_HALF_UP
+                    ))
+                )
                 
         elif calc_type == 'perimeter':
             column_name = calc.get('as', 'perimeter')
