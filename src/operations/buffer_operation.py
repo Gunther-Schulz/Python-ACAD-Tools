@@ -152,31 +152,38 @@ def create_buffer_layer(all_layers, project_settings, crs, layer_name, operation
 
     try:
         if preserve_islands:
-            # For preserveIslands, buffer the main parts with the specified distance
-            # and the holes with distance 0
             result = buffer_with_different_caps(combined_geometry, buffer_distance,
                                           start_cap_value, end_cap_value, join_style_value,
                                           preserve_holes=True)
         else:
-            # For skipIslands or normal operation, apply regular buffer
             result = buffer_with_different_caps(combined_geometry, buffer_distance,
                                           start_cap_value, end_cap_value, join_style_value)
 
-        # Ensure the result is a valid geometry type for shapefiles
+        # Convert MultiPolygons to individual Polygons
+        result_geom = []
         if buffer_mode == 'keep':
-            result_geom = []
             for geom in result:
-                if isinstance(geom, (Polygon, MultiPolygon)):
+                if isinstance(geom, Polygon):
                     result_geom.append(geom)
+                elif isinstance(geom, MultiPolygon):
+                    result_geom.extend(list(geom.geoms))
                 elif isinstance(geom, GeometryCollection):
-                    result_geom.extend([g for g in geom.geoms if isinstance(g, (Polygon, MultiPolygon))])
+                    for g in geom.geoms:
+                        if isinstance(g, Polygon):
+                            result_geom.append(g)
+                        elif isinstance(g, MultiPolygon):
+                            result_geom.extend(list(g.geoms))
         else:
-            if isinstance(result, (Polygon, MultiPolygon)):
+            if isinstance(result, Polygon):
                 result_geom = [result]
+            elif isinstance(result, MultiPolygon):
+                result_geom = list(result.geoms)
             elif isinstance(result, GeometryCollection):
-                result_geom = [geom for geom in result.geoms if isinstance(geom, (Polygon, MultiPolygon))]
-            else:
-                result_geom = []
+                for geom in result.geoms:
+                    if isinstance(geom, Polygon):
+                        result_geom.append(geom)
+                    elif isinstance(geom, MultiPolygon):
+                        result_geom.extend(list(geom.geoms))
 
         # After buffer operations and before converting to result_geom
         if make_valid:
