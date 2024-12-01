@@ -11,6 +11,7 @@ from .common_operations import _create_generic_overlay_layer
 from .dissolve_operation import create_dissolved_layer
 from .calculate_operation import create_calculate_layer
 from .directional_line_operation import create_directional_line_layer
+from .circle_operation import create_circle_layer
 
 __all__ = [
     'create_copy_layer',
@@ -26,5 +27,6 @@ __all__ = [
     '_handle_contour_operation',
     'create_dissolved_layer',
     'create_calculate_layer',
-    'create_directional_line_layer'
+    'create_directional_line_layer',
+    'create_circle_layer'
 ]

@@ -25,6 +25,7 @@ from src.operations import (
     create_dissolved_layer,
     create_calculate_layer,
     create_directional_line_layer,
+    create_circle_layer
 )
 from src.style_manager import StyleManager
 from src.operations.filter_geometry_operation import create_filtered_geometry_layer
@@ -235,6 +236,8 @@ class LayerProcessor:
             result = create_calculate_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
         elif op_type == 'directionalLine':
             result = create_directional_line_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
+        elif op_type == 'circle':
+            result = create_circle_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
         else:
             log_warning(f"Unknown operation type: {op_type} for layer {layer_name}")
             return None
