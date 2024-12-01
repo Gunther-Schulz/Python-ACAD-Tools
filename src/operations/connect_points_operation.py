@@ -37,6 +37,16 @@ def create_connect_points_layer(all_layers, project_settings, crs, layer_name, o
         all_layers[layer_name] = gpd.GeoDataFrame(geometry=[], crs=crs)
         return None
     
+    if len(all_points) == 1:
+        # If there's only one point, we can't create a line
+        log_warning(format_operation_warning(
+            layer_name,
+            "connect-points",
+            "Only one point found - cannot create connecting line"
+        ))
+        all_layers[layer_name] = gpd.GeoDataFrame(geometry=[], crs=crs)
+        return None
+    
     # Convert points to numpy array for efficient distance calculation
     points_array = np.array(all_points)
     
@@ -64,7 +74,7 @@ def create_connect_points_layer(all_layers, project_settings, crs, layer_name, o
         path.append(next_point_idx)
         remaining_points.remove(next_point_idx)
     
-    # Create the connected line
+    # Create the connected line (no need to close the path)
     connected_points = [points_array[i] for i in path]
     line = LineString(connected_points)
     
@@ -72,5 +82,5 @@ def create_connect_points_layer(all_layers, project_settings, crs, layer_name, o
     result_gdf = gpd.GeoDataFrame(geometry=[line], crs=crs)
     all_layers[layer_name] = result_gdf
     
-    log_warning(f"Created connect points layer: {layer_name} connecting {len(all_points)} points")
+    log_info(f"Created connect points layer: {layer_name} connecting {len(all_points)} points")
     return result_gdf 
