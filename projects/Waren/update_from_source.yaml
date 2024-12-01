@@ -1,7 +1,10 @@
-# updateFromSource:
+updateFromSource:
+- name: Str-Leitungsabschnitt-NS
+  sourceLayer: "Str-Leitungsabschnitt-NS"
+  outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/str_leitungsabschnitt_ns.shp"
 #   - sourceLayer: "Graben"
 #     outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/graben.shp"
-#   - sourceLayer: "Grünfläche"
-#     outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/grünfläche_input_from_source.shp"
+- sourceLayer: "Grünfläche"
+  outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/grünfläche_input_from_source.shp"
 #   - sourceLayer: "Geltungsbereich"
 #     outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/geltungsbereich.shp"

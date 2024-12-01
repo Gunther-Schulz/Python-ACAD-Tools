@@ -1,4 +1,16 @@
 geomLayers:
+- name: Str-Leitungsabschnitt-NS
+  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/str_leitungsabschnitt_ns.shp"
+- name: Str-Leitungsabschnitt-NS Buffer
+  operations:
+    - type: buffer
+      layers:
+        - Str-Leitungsabschnitt-NS
+      distance: 2
+      capStyle: flat
+      joinStyle: flat
+- name: Leitung Buffer
+  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/leitung_buffer.shp"
 - name: Parcel
   label: label
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/parcel.shp"
@@ -165,7 +177,8 @@ geomLayers:
       layers:
         - Baufeld
       distance: -3
-    # - type: difference
-    #   reverseDifference: false
-    #   layers:
-    #     - Einfahrt
+    - type: difference
+      reverseDifference: false
+      layers:
+        - Str-Leitungsabschnitt-NS Buffer
+        - Leitung Buffer
