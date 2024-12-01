@@ -14,6 +14,7 @@ def create_envelope_layer(all_layers, project_settings, crs, layer_name, operati
     if not source_layers:
         source_layers = [layer_name]
     
+    padding = operation.get('padding', 0)  # Get padding from operation config
     result_geometries = []
     
     # Process each input layer
@@ -31,11 +32,11 @@ def create_envelope_layer(all_layers, project_settings, crs, layer_name, operati
             if isinstance(geom, MultiPolygon):
                 # Handle each part of a MultiPolygon separately
                 for part in geom.geoms:
-                    envelope = create_optimal_envelope(part)
+                    envelope = create_optimal_envelope(part, padding)
                     if envelope:
                         result_geometries.append(envelope)
             else:
-                envelope = create_optimal_envelope(geom)
+                envelope = create_optimal_envelope(geom, padding)
                 if envelope:
                     result_geometries.append(envelope)
     
@@ -54,7 +55,7 @@ def create_envelope_layer(all_layers, project_settings, crs, layer_name, operati
     log_info(f"Created envelope layer: {layer_name} with {len(result_geometries)} envelopes")
     return result_gdf
 
-def create_optimal_envelope(polygon):
+def create_optimal_envelope(polygon, padding=0):
     """Create an envelope with optimal orientation for the polygon."""
     if polygon is None:
         return None
@@ -84,8 +85,8 @@ def create_optimal_envelope(polygon):
     proj_main = np.dot(coords_centered, direction)
     proj_perp = np.dot(coords_centered, perpendicular)
     
-    half_width = (np.max(proj_main) - np.min(proj_main)) / 2
-    half_height = (np.max(proj_perp) - np.min(proj_perp)) / 2
+    half_width = (np.max(proj_main) - np.min(proj_main)) / 2 + padding
+    half_height = (np.max(proj_perp) - np.min(proj_perp)) / 2 + padding
     
     # Create envelope corners using the minimum rotated rectangle's orientation
     corners = [
