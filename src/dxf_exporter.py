@@ -60,6 +60,9 @@ class DXFExporter:
         self.dxf_transfer = DXFTransfer(project_loader)
 
     def setup_layers(self):
+        # Initialize default properties for ALL layers first
+        self.initialize_layer_properties()
+        
         # Setup geom layers
         for layer in self.project_settings['geomLayers']:
             self._setup_single_layer(layer)
@@ -84,12 +87,29 @@ class DXFExporter:
     def _setup_single_layer(self, layer):
         layer_name = layer['name']
         
-        # Process layer style
+        # Ensure layer has properties, even if just defaults
+        if layer_name not in self.layer_properties:
+            default_properties = {
+                'layer': {
+                    'color': 'White',
+                    'linetype': 'CONTINUOUS',
+                    'lineweight': 0.13,
+                    'plot': True,
+                    'locked': False,
+                    'frozen': False,
+                    'is_on': True
+                },
+                'entity': {
+                    'close': False
+                }
+            }
+            self.layer_properties[layer_name] = default_properties
+            self.colors[layer_name] = default_properties['layer']['color']
+        
+        # Process layer style if it exists
         if 'style' in layer:
             layer_style = self.style_manager.process_layer_style(layer_name, layer)
             self.add_layer_properties(layer_name, layer, layer_style)
-        else:
-            self.add_layer_properties(layer_name, layer)
         
         if not self.is_wmts_or_wms_layer(layer) and not layer_name.endswith(' Label'):
             if self.has_labels(layer):
@@ -635,15 +655,42 @@ class DXFExporter:
         self.attach_custom_data(text_entity)  # Attach custom data to label entities
 
     def initialize_layer_properties(self):
-        # Only process layers that explicitly have style configurations
+        # Process all geom layers, not just those with style configurations
         for layer in self.project_settings['geomLayers']:
+            layer_name = layer['name']
+            
+            # If the layer already has properties defined, skip it
+            if layer_name in self.layer_properties:
+                continue
+            
+            # Set default properties if none are specified
+            default_properties = {
+                'layer': {
+                    'color': 'White',  # Default color
+                    'linetype': 'CONTINUOUS',
+                    'lineweight': 0.13,
+                    'plot': True,
+                    'locked': False,
+                    'frozen': False,
+                    'is_on': True
+                },
+                'entity': {
+                    'close': False  # Default for points/lines
+                }
+            }
+            
+            # If layer has explicit properties, use those instead of defaults
             if (layer.get('style') or 
                 any(key in layer for key in [
                     'color', 'linetype', 'lineweight', 'plot', 'locked', 
                     'frozen', 'is_on', 'transparency', 'close', 'linetypeScale', 
                     'linetypeGeneration'
                 ])):
-                self.add_layer_properties(layer['name'], layer)
+                self.add_layer_properties(layer_name, layer)
+            else:
+                # Use defaults if no explicit properties
+                self.layer_properties[layer_name] = default_properties
+                self.colors[layer_name] = default_properties['layer']['color']
 
     def add_layer_properties(self, layer_name, layer, processed_style=None):
         # Skip ALL property processing if no explicit style or properties are specified
