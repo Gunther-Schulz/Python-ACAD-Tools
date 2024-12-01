@@ -5,19 +5,23 @@ geomLayers:
   operations:
     - type: circle
       radiusField: radius
-# - name: Baum_Laubbaum Line
-#   updateDxf: true
-#   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/baum_laubbaum.shp"
-#   operations:
-#     - type: connect-points
-#       maxDistance: 10
-- name: Baum_Laubbaum Buffer
-  # updateDxf: true
+- name: Baum_Laubbaum Line
+  updateDxf: true
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/baum_laubbaum.shp"
   operations:
+    - type: connect-points
+      maxDistance: 27
+- name: Baum_Laubbaum Buffer
+  # updateDxf: true
+  operations:
     - type: buffer
+      layers:
+        - Baum_Laubbaum
+        - Baum_Laubbaum Line
       distance: 10
-    # - type: envelope
+      capStyle: round
+      joinStyle: round
+    - type: dissolve
 - name: Baum_Laubbaum Envelope
   # updateDxf: true
   operations:
