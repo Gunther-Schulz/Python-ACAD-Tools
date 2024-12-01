@@ -14,3 +14,4 @@ updateFromSource:
   sourceDxf: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/Zeichnung/PV Waren_Entwurfsvermessung_2024-04-07_VB_Haff_arbeits_edit_PBS.dxf"
   preprocessors: 
     - "block_exploder"
+    - "circle_extractor"

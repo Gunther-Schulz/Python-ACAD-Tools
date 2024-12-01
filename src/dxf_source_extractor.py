@@ -3,7 +3,8 @@ import geopandas as gpd
 from pathlib import Path
 from src.utils import log_info, log_warning, log_error, resolve_path, ensure_path_exists
 from src.dump_to_shape import merge_dxf_layer_to_shapefile
-from src.preprocessors.block_exploder import extract_circle_centers_from_blocks
+from src.preprocessors.block_exploder import explode_blocks
+from src.preprocessors.circle_extractor import extract_circle_centers
 
 class DXFSourceExtractor:
     def __init__(self, project_loader):
@@ -11,7 +12,8 @@ class DXFSourceExtractor:
         self.dxf_extracts = project_loader.project_settings.get('updateFromSource', [])
         self.crs = project_loader.crs
         self.preprocessors = {
-            'block_exploder': extract_circle_centers_from_blocks
+            'block_exploder': explode_blocks,
+            'circle_extractor': extract_circle_centers
         }
 
     def process_extracts(self, default_doc):
@@ -73,10 +75,17 @@ class DXFSourceExtractor:
                     log_info(f"Preprocessor {preprocessor} produced {len(processed_data)} features")
                 
                 # Convert final processed data to GeoDataFrame and save
-                points_df = gpd.GeoDataFrame(
-                    geometry=[gpd.points_from_xy([p[0]], [p[1]])[0] for p in processed_data],
-                    crs=self.crs
-                )
+                if isinstance(processed_data[0], dict):  # Check if we have features with attributes
+                    points_df = gpd.GeoDataFrame(
+                        geometry=[gpd.points_from_xy([p['coords'][0]], [p['coords'][1]])[0] for p in processed_data],
+                        data=[p['attributes'] for p in processed_data],
+                        crs=self.crs
+                    )
+                else:  # Backward compatibility for simple coordinate tuples
+                    points_df = gpd.GeoDataFrame(
+                        geometry=[gpd.points_from_xy([p[0]], [p[1]])[0] for p in processed_data],
+                        crs=self.crs
+                    )
                 points_df.to_file(full_output_path)
                 log_info(f"Saved {len(processed_data)} processed features to {full_output_path}")
             else:
