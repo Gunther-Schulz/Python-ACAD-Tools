@@ -29,6 +29,7 @@ geomLayers:
       layers:
         - Baum_Laubbaum Buffer
       padding: 0.2
+      min_ratio: 1.5
 - name: Str-Leitungsabschnitt-NS
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/str_leitungsabschnitt_ns.shp"
 - name: Str-Leitungsabschnitt-NS Buffer

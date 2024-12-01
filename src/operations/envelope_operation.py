@@ -14,7 +14,8 @@ def create_envelope_layer(all_layers, project_settings, crs, layer_name, operati
     if not source_layers:
         source_layers = [layer_name]
     
-    padding = operation.get('padding', 0)  # Get padding from operation config
+    padding = operation.get('padding', 0)
+    min_ratio = operation.get('min_ratio', None)  # Get min_ratio from operation config
     result_geometries = []
     
     # Process each input layer
@@ -32,11 +33,11 @@ def create_envelope_layer(all_layers, project_settings, crs, layer_name, operati
             if isinstance(geom, MultiPolygon):
                 # Handle each part of a MultiPolygon separately
                 for part in geom.geoms:
-                    envelope = create_optimal_envelope(part, padding)
+                    envelope = create_optimal_envelope(part, padding, min_ratio)
                     if envelope:
                         result_geometries.append(envelope)
             else:
-                envelope = create_optimal_envelope(geom, padding)
+                envelope = create_optimal_envelope(geom, padding, min_ratio)
                 if envelope:
                     result_geometries.append(envelope)
     
@@ -55,8 +56,11 @@ def create_envelope_layer(all_layers, project_settings, crs, layer_name, operati
     log_info(f"Created envelope layer: {layer_name} with {len(result_geometries)} envelopes")
     return result_gdf
 
-def create_optimal_envelope(polygon, padding=0):
-    """Create an envelope with optimal orientation for the polygon."""
+def create_optimal_envelope(polygon, padding=0, min_ratio=None):
+    """
+    Create an envelope with optimal orientation for the polygon.
+    If min_ratio is set, skips polygons where length/width ratio is less than min_ratio.
+    """
     if polygon is None:
         return None
     
@@ -67,6 +71,15 @@ def create_optimal_envelope(polygon, padding=0):
     # Calculate the orientation from the minimum rotated rectangle
     edges = min_rect_coords[1:] - min_rect_coords[:-1]
     edge_lengths = np.sqrt(np.sum(edges**2, axis=1))
+    
+    # Check ratio if min_ratio is set
+    if min_ratio is not None:
+        length = max(edge_lengths)
+        width = min(edge_lengths)
+        ratio = length / width if width > 0 else float('inf')
+        if ratio < min_ratio:
+            return polygon  # Return original polygon instead of creating envelope
+    
     longest_idx = np.argmax(edge_lengths)
     
     # Get the exact direction from the longest edge of the minimum rotated rectangle
@@ -74,7 +87,6 @@ def create_optimal_envelope(polygon, padding=0):
     perpendicular = np.array([-direction[1], direction[0]])
     
     # Now create our envelope using this exact orientation
-    # but with dimensions from the original polygon
     center = np.array([polygon.centroid.x, polygon.centroid.y])
     
     # Project original polygon onto these directions
