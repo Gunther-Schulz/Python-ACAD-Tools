@@ -599,46 +599,30 @@ class DXFExporter:
                 else:
                     polyline.dxf.flags &= ~LWPOLYLINE_PLINEGEN
 
-    def add_linestring_to_dxf(self, msp, linestring, layer_name, entity_name=None):
-        points = list(linestring.coords)
-        layer_properties = self.layer_properties[layer_name]
+    def add_linestring_to_dxf(self, msp, geometry, layer_name):
+        """Add a LineString geometry to the DXF modelspace."""
+        coords = list(geometry.coords)
+        if not coords:
+            return
 
-        # For linestrings, we should not close them unless explicitly requested
-        # and the first and last points are already the same
-        should_close = (layer_properties['close'] and 
-                       points[0] == points[-1])
-
-        log_info(f"Adding linestring to layer {layer_name} with {len(points)} points")
-        log_info(f"First point: {points[0][:2] if points else 'No points'}")
-
-        try:
-            # Extract only x and y coordinates
-            points_2d = [(p[0], p[1]) for p in points]
-            
-            polyline = msp.add_lwpolyline(
-                points=points_2d,
-                dxfattribs={
-                    'layer': layer_name,
-                    'closed': should_close,
-                    'ltscale': layer_properties['linetypeScale']
-                }
-            )
-            
-            # Set constant width to 0
-            polyline.dxf.const_width = 0
-            
-            # Apply linetype generation setting
-            if layer_properties['linetypeGeneration']:
-                polyline.dxf.flags |= LWPOLYLINE_PLINEGEN
-            else:
-                polyline.dxf.flags &= ~LWPOLYLINE_PLINEGEN
-            
-            self.attach_custom_data(polyline, entity_name)
-            log_info(f"Successfully added polyline to layer {layer_name}")
-            log_info(f"Polyline properties: {polyline.dxf.all_existing_dxf_attribs()}")
-        except Exception as e:
-            log_error(f"Error adding polyline to layer {layer_name}: {str(e)}")
-            log_error(f"Points causing error: {points_2d}")
+        layer_properties = self.layer_properties.get(layer_name, {})
+        # Default to False for LineStrings if 'close' is not specified
+        should_close = layer_properties.get('close', False) if 'close' in layer_properties else False
+        
+        # Create polyline
+        polyline = msp.add_lwpolyline(coords)
+        polyline.dxf.layer = layer_name
+        
+        if should_close:
+            polyline.close(True)
+        
+        # Apply style if available
+        if layer_properties:
+            style = get_style(layer_properties, self.project_loader)
+            if style:
+                apply_style_to_entity(polyline, style, self.project_loader, self.loaded_styles)
+        
+        self.attach_custom_data(polyline)
 
     def add_label_to_dxf(self, msp, geometry, label, layer_name):
         centroid = self.get_geometry_centroid(geometry)
@@ -757,7 +741,7 @@ class DXFExporter:
         if isinstance(geometry, (Polygon, MultiPolygon)):
             self.add_polygon_to_dxf(msp, geometry, layer_name, entity_name)
         elif isinstance(geometry, LineString):
-            self.add_linestring_to_dxf(msp, geometry, layer_name, entity_name)
+            self.add_linestring_to_dxf(msp, geometry, layer_name)
         elif isinstance(geometry, MultiLineString):
             for line in geometry.geoms:
                 self.add_linestring_to_dxf(msp, line, layer_name, entity_name)
