@@ -10,7 +10,16 @@ geomLayers:
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/baum_laubbaum.shp"
   operations:
     - type: connect-points
-      maxDistance: 20
+      maxDistance: 10
+- name: Baum_Laubbaum Buffer
+  # updateDxf: true
+  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/baum_laubbaum.shp"
+  operations:
+    - type: buffer
+      layers:
+        - Baum_Laubbaum Line
+        - Baum_Laubbaum
+      distance: 10
 - name: Str-Leitungsabschnitt-NS
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/str_leitungsabschnitt_ns.shp"
 - name: Str-Leitungsabschnitt-NS Buffer
@@ -194,3 +203,4 @@ geomLayers:
       layers:
         - Str-Leitungsabschnitt-NS Buffer
         - Leitung Buffer
+        - Baum_Laubbaum Buffer
