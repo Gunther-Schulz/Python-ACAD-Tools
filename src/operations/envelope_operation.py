@@ -125,6 +125,19 @@ def create_optimal_envelope(polygon, padding=0, min_ratio=None, cap_style='squar
     if polygon is None or not polygon.is_valid:
         return None
         
+    # First check min_ratio before doing any bend processing
+    min_rect = polygon.minimum_rotated_rectangle
+    rect_coords = np.array(min_rect.exterior.coords)
+    edges = rect_coords[1:] - rect_coords[:-1]
+    edge_lengths = np.sqrt(np.sum(edges**2, axis=1))
+    
+    if min_ratio is not None:
+        length = max(edge_lengths)
+        width = min(edge_lengths)
+        ratio = length / width if width > 0 else float('inf')
+        if ratio < min_ratio:
+            return polygon  # Return original polygon if it doesn't meet min_ratio
+    
     # Limit recursion depth and minimum size
     if recursion_depth > 2 or polygon.area < 1e-6:
         return polygon.minimum_rotated_rectangle
@@ -137,6 +150,7 @@ def create_optimal_envelope(polygon, padding=0, min_ratio=None, cap_style='squar
             if envelope1 and envelope2:
                 return unary_union([envelope1, envelope2])
     
+    # Continue with regular envelope creation
     # Get the minimum rotated rectangle and continue with regular envelope creation
     min_rect = polygon.minimum_rotated_rectangle
     min_rect_coords = np.array(min_rect.exterior.coords)
