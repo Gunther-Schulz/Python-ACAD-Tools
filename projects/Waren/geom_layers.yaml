@@ -227,7 +227,7 @@ geomLayers:
         - Str-Leitungsabschnitt-NS Buffer
         - Leitung Buffer
         - Baum_Laubbaum Envelope
-    # - type: buffer
-    #   distance: -6
-    # - type: buffer
-    #   distance: 6
+    - type: buffer
+      distance: -6
+    - type: buffer
+      distance: 6
