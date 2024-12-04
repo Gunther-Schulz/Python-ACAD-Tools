@@ -304,6 +304,13 @@ class LayerProcessor:
         """Write a layer to shapefile. Returns True if successful, False otherwise."""
         log_debug(f"Attempting to write shapefile for layer {layer_name}")
         
+        # Skip hatch layers
+        layer_info = next((layer for layer in self.project_settings.get('geomLayers', []) 
+                          if layer.get('name') == layer_name), None)
+        if layer_info and 'applyHatch' in layer_info:
+            log_debug(f"Skipping export of hatch layer: {layer_name}")
+            return True
+        
         if layer_name not in self.all_layers:
             log_warning(f"Cannot write shapefile for layer {layer_name}: layer not found")
             return False
