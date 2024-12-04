@@ -318,29 +318,51 @@ class DXFProcessor:
                 log_warning(f"No entities found in layer: {source_layer}")
                 return
             
+            # Apply preprocessors if any
+            if preprocessors:
+                for preprocessor_name in preprocessors:
+                    preprocessor = self.preprocessors.get(preprocessor_name)
+                    if preprocessor:
+                        # Pass both entities and layer_name to preprocessor
+                        entities = preprocessor(entities, source_layer)
+                        log_debug(f"Applied preprocessor: {preprocessor_name}")
+                    else:
+                        log_warning(f"Preprocessor not found: {preprocessor_name}")
+            
             geometries = []
             attributes = []
             
-            for entity in entities:
-                if isinstance(entity, (LWPolyline, Polyline)):
-                    points = list(entity.vertices())
-                    if len(points) >= 3:
-                        if points[0] != points[-1]:
-                            points.append(points[0])
-                        polygon = Polygon(points)
-                        if polygon.is_valid and not polygon.is_empty:
-                            geometries.append(polygon)
+            # Process the entities (which might now be preprocessed)
+            for entity_data in entities:
+                # Handle both raw entities and preprocessed entity data
+                if isinstance(entity_data, dict):
+                    # Handle preprocessed data (e.g., from circle_extractor)
+                    if 'coords' in entity_data:
+                        point = Point(entity_data['coords'])
+                        if point.is_valid and not point.is_empty:
+                            geometries.append(point)
+                            attributes.append(entity_data.get('attributes', {}))
+                else:
+                    # Handle regular entities
+                    if isinstance(entity_data, (LWPolyline, Polyline)):
+                        points = list(entity_data.vertices())
+                        if len(points) >= 3:
+                            if points[0] != points[-1]:
+                                points.append(points[0])
+                            polygon = Polygon(points)
+                            if polygon.is_valid and not polygon.is_empty:
+                                geometries.append(polygon)
+                                attributes.append({})
+                    elif isinstance(entity_data, ezdxf.entities.Line):
+                        line = LineString([entity_data.dxf.start, entity_data.dxf.end])
+                        if line.is_valid and not line.is_empty:
+                            geometries.append(line)
                             attributes.append({})
-                elif isinstance(entity, ezdxf.entities.Line):
-                    line = LineString([entity.dxf.start, entity.dxf.end])
-                    if line.is_valid and not line.is_empty:
-                        geometries.append(line)
-                        attributes.append({})
-                elif isinstance(entity, ezdxf.entities.Point):
-                    point = Point(entity.dxf.location[:2])
-                    if point.is_valid and not point.is_empty:
-                        geometries.append(point)
-                        attributes.append({})
+                    elif isinstance(entity_data, ezdxf.entities.Point):
+                        point = Point(entity_data.dxf.location[:2])
+                        if point.is_valid and not point.is_empty:
+                            geometries.append(point)
+                            attributes.append({})
             
             if geometries:
                 gdf = gpd.GeoDataFrame(geometry=geometries, data=attributes, crs=self.crs)
