@@ -32,6 +32,7 @@ from src.operations import (
 from src.style_manager import StyleManager
 from src.operations.filter_geometry_operation import create_filtered_geometry_layer
 from src.operations.report_operation import create_report_layer
+from src.shapefile_utils import write_shapefile
 
 class LayerProcessor:
     def __init__(self, project_loader, plot_ops=False):
@@ -300,56 +301,21 @@ class LayerProcessor:
                 log_warning(f"Layer {layer_name} in all_layers is not a GeoDataFrame: {type(gdf)}")
 
     def write_shapefile(self, layer_name):
+        """Write a layer to shapefile. Returns True if successful, False otherwise."""
         log_debug(f"Attempting to write shapefile for layer {layer_name}")
-
-        self.processed_layers.add(layer_name)
         
-        # Check if the layer is a WMS/WMTS layer
-        if self.is_wmts_or_wms_layer(layer_name):
-            log_debug(f"Skipping shapefile write for WMS/WMTS layer: {layer_name}")
-            return
-
-        if layer_name in self.all_layers:
-            gdf = self.all_layers[layer_name]
-            log_debug(f"Type of data for {layer_name}: {type(gdf)}")
-            log_debug(f"Columns in the data: {gdf.columns.tolist() if hasattr(gdf, 'columns') else 'No columns'}")
-            log_debug(f"CRS of the data: {gdf.crs if hasattr(gdf, 'crs') else 'No CRS'}")
-            log_debug(f"Number of rows: {len(gdf) if hasattr(gdf, '__len__') else 'Unknown'}")
-            
-            if isinstance(gdf, gpd.GeoDataFrame):
-                log_debug(f"Geometry column name: {gdf.geometry.name}")
-                log_debug(f"Geometry types: {gdf.geometry.type.unique().tolist()}")
-                
-                # Handle GeometryCollection
-                def convert_geometry(geom):
-                    if isinstance(geom, GeometryCollection):
-                        polygons = [g for g in geom.geoms if isinstance(g, (Polygon, MultiPolygon))]
-                        if polygons:
-                            return MultiPolygon(polygons)
-                        return None
-                    return geom
-
-                gdf['geometry'] = gdf['geometry'].apply(convert_geometry)
-                gdf = gdf[gdf['geometry'].notna()]
-
-                if not gdf.empty:
-                    output_dir = resolve_path(self.project_loader.shapefile_output_dir)
-                    if not ensure_path_exists(output_dir):
-                        log_warning(f"Shapefile output directory does not exist: {output_dir}")
-                        return
-                    
-                    # Delete only files for the current layer that will be overwritten
-                    self.delete_layer_files(output_dir, layer_name)
-                    
-                    full_path = os.path.join(output_dir, f"{layer_name}.shp")
-                    gdf.to_file(full_path)
-                    log_debug(f"Shapefile written for layer {layer_name}: {full_path}")
-                else:
-                    log_warning(f"No valid geometries found for layer {layer_name} after conversion")
-            # else:
-            #     log_warning(f"Cannot write shapefile for layer {layer_name}: not a GeoDataFrame")
-        else:
+        if layer_name not in self.all_layers:
             log_warning(f"Cannot write shapefile for layer {layer_name}: layer not found")
+            return False
+        
+        gdf = self.all_layers[layer_name]
+        output_dir = resolve_path(self.project_loader.shapefile_output_dir)
+        output_path = os.path.join(output_dir, f"{layer_name}.shp")
+        
+        success = write_shapefile(gdf, output_path)
+        if success:
+            self.processed_layers.add(layer_name)
+        return success
 
     def delete_layer_files(self, directory, layer_name):
         log_debug(f"Deleting existing files for layer: {layer_name}")

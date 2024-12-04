@@ -9,12 +9,12 @@ updateFromSource:
 # #   - sourceLayer: "Geltungsbereich"
 # #     outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/geltungsbereich.shp"
 
-# - sourceLayer: "T--Baum_Laubbaum"
-#   outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/baum_laubbaum.shp"
-#   sourceDxf: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/Zeichnung/PV Waren_Entwurfsvermessung_2024-04-07_VB_Haff_arbeits_edit_PBS.dxf"
-#   preprocessors: 
-#     - "block_exploder"
-#     - "circle_extractor"
+- sourceLayer: "T--Baum_Laubbaum"
+  outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/baum_laubbaum.shp"
+  sourceDxf: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/Zeichnung/PV Waren_Entwurfsvermessung_2024-04-07_VB_Haff_arbeits_edit_PBS.dxf"
+  preprocessors: 
+    - "block_exploder"
+    - "circle_extractor"
 
 - sourceLayer: "L--Gas-HD_LEIT"
   outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/gas_edit.shp"
