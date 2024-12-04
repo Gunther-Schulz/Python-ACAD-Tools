@@ -11,11 +11,9 @@ from ezdxf.lldxf.const import LWPOLYLINE_PLINEGEN
 from ezdxf import pattern
 from ezdxf import const
 
-
-
 from PIL import Image
 from src.legend_creator import LegendCreator
-from src.dxf_utils import (get_color_code,attach_custom_data, 
+from src.dxf_utils import (get_color_code, attach_custom_data, 
                            is_created_by_script, add_text, remove_entities_by_layer, 
                            ensure_layer_exists, update_layer_properties, 
                            set_drawing_properties, verify_dxf_settings, update_layer_geometry,
@@ -25,8 +23,7 @@ from src.style_manager import StyleManager
 from src.viewport_manager import ViewportManager
 from src.block_insert_manager import BlockInsertManager
 from src.reduced_dxf_creator import ReducedDXFCreator
-from src.dxf_source_extractor import DXFSourceExtractor
-from src.dxf_transfer import DXFTransfer
+from src.dxf_processor import DXFProcessor
 
 class DXFExporter:
     def __init__(self, project_loader, layer_processor):
@@ -41,7 +38,7 @@ class DXFExporter:
         self.name_to_aci = project_loader.name_to_aci
         self.block_inserts = self.project_settings.get('blockInserts', [])
         self.style_manager = StyleManager(project_loader)
-        self.source_extractor = None  # Initialize as None
+        self.dxf_processor = project_loader.dxf_processor
         log_debug(f"DXFExporter initialized with script identifier: {self.script_identifier}")
         self.setup_layers()
         self.viewport_manager = ViewportManager(
@@ -57,7 +54,6 @@ class DXFExporter:
             self.script_identifier
         )
         self.reduced_dxf_creator = ReducedDXFCreator(self)
-        self.dxf_transfer = DXFTransfer(project_loader)
 
     def setup_layers(self):
         # Initialize default properties for ALL layers first
@@ -151,11 +147,12 @@ class DXFExporter:
         self.layer_properties[label_layer_name] = label_properties
         self.colors[label_layer_name] = label_properties['layer']['color']
 
-    def export_to_dxf(self):
+    def export_to_dxf(self, skip_dxf_processor=False):
         """Main export method."""
         try:
             log_debug("Starting DXF export...")
-            doc = self._prepare_dxf_document()
+            # Pass skip_dxf_processor to _load_or_create_dxf
+            doc = self._prepare_dxf_document(skip_dxf_processor)
             
             # Share the document with LayerProcessor
             self.layer_processor.set_dxf_document(doc)
@@ -164,10 +161,7 @@ class DXFExporter:
             msp = doc.modelspace()
             self.register_app_id(doc)
             
-            # First ensure all layers exist
-            # self._ensure_all_layers_exist(doc)
-            
-            # Then process all content
+            # Process all content
             self.process_layers(doc, msp)
             self.create_path_arrays(msp)
             self.block_insert_manager.process_block_inserts(msp)
@@ -185,16 +179,13 @@ class DXFExporter:
             # After successful export, create reduced version if configured
             self.reduced_dxf_creator.create_reduced_dxf()
             
-            # Process DXF transfers after initial document setup
-            self.dxf_transfer.process_transfers(doc)
-            
         except Exception as e:
             log_error(f"Error during DXF export: {str(e)}")
             raise
 
-    def _prepare_dxf_document(self):
+    def _prepare_dxf_document(self, skip_dxf_processor=False):
         self._backup_existing_file()
-        doc = self._load_or_create_dxf()
+        doc = self._load_or_create_dxf(skip_dxf_processor)
         return doc
 
     def _backup_existing_file(self):
@@ -203,26 +194,26 @@ class DXFExporter:
             shutil.copy2(self.dxf_filename, backup_filename)
             log_debug(f"Created backup of existing DXF file: {backup_filename}")
 
-    def _load_or_create_dxf(self):
+    def _load_or_create_dxf(self, skip_dxf_processor=False):
         dxf_version = self.project_settings.get('dxfVersion', 'R2010')
         template_filename = self.project_settings.get('templateDxfFilename')
         
         # Load or create the DXF document
+        doc = None
         if os.path.exists(self.dxf_filename):
             doc = ezdxf.readfile(self.dxf_filename)
             log_debug(f"Loaded existing DXF file: {self.dxf_filename}")
             
-            # Initialize source extractor only once
-            if self.source_extractor is None:
-                self.source_extractor = DXFSourceExtractor(self.project_loader)
-                self.source_extractor.process_extracts(doc)  # Process extracts once
+            # Run DXF processor on existing document only if not skipped
+            if not skip_dxf_processor and self.project_loader.dxf_processor:
+                log_info("DXF processor found, running operations on existing document")
+                self.project_loader.dxf_processor.process_all(doc)
             
             self.load_existing_layers(doc)
             self.check_existing_entities(doc)
             set_drawing_properties(doc)
-            return doc
         elif template_filename:
-            # Use resolve_path with folder prefix
+            # Use template if available
             full_template_path = resolve_path(template_filename, self.project_loader.folder_prefix)
             if os.path.exists(full_template_path):
                 doc = ezdxf.readfile(full_template_path)
@@ -237,6 +228,12 @@ class DXFExporter:
             doc = ezdxf.new(dxfversion=dxf_version)
             log_debug(f"Created new DXF file with version: {dxf_version}")
             set_drawing_properties(doc)
+
+        # Run DXF processor on new document only if not skipped
+        if doc and not os.path.exists(self.dxf_filename) and not skip_dxf_processor and self.project_loader.dxf_processor:
+            log_debug("Running DXF processor on new document")
+            self.project_loader.dxf_processor.process_all(doc)
+
         return doc
 
     def load_existing_layers(self, doc):
@@ -416,18 +413,24 @@ class DXFExporter:
 
     def create_new_layer(self, doc, msp, layer_name, layer_info, add_geometry=True):
         log_debug(f"Creating new layer: {layer_name}")
-        sanitized_layer_name = sanitize_layer_name(layer_name)  # Add this line
+        sanitized_layer_name = sanitize_layer_name(layer_name)  
         properties = self.layer_properties[layer_name]
         
-        ensure_layer_exists(doc, sanitized_layer_name, properties, self.name_to_aci)  # Update this line
+        # Update this line to only pass required arguments
+        ensure_layer_exists(doc, sanitized_layer_name)
         
-        log_debug(f"Created new layer: {sanitized_layer_name}")  # Update this line
+        # Apply properties after layer creation
+        if properties:
+            layer = doc.layers.get(sanitized_layer_name)
+            update_layer_properties(layer, properties, self.name_to_aci)
+        
+        log_debug(f"Created new layer: {sanitized_layer_name}")
         log_debug(f"Layer properties: {properties}")
         
         if add_geometry and layer_name in self.all_layers:
-            self.update_layer_geometry(msp, sanitized_layer_name, self.all_layers[layer_name], layer_info)  # Update this line
+            self.update_layer_geometry(msp, sanitized_layer_name, self.all_layers[layer_name], layer_info)
         
-        return doc.layers.get(sanitized_layer_name)  # Update this line
+        return doc.layers.get(sanitized_layer_name)
 
     def apply_layer_properties(self, layer, layer_properties):
         update_layer_properties(layer, layer_properties, self.name_to_aci)

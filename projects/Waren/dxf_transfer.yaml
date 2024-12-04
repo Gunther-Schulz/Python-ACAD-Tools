@@ -1,8 +1,0 @@
-# dxfTransfer:
-#   - externalDxf: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/Zeichnung/PV Waren_Entwurfsvermessung_2024-04-07_VB_Haff_arbeits_edit_PBS.dxf"
-#     direction: "load"
-#     transfers:
-#       - fromLayer: "T--Baum_Laubbaum"
-#         toLayer: "T--Baum_Laubbaum"
-#         entityTypes:
-#           - POINT
