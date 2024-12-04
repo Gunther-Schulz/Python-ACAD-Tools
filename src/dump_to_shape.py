@@ -41,6 +41,8 @@ def merge_dxf_layer_to_shapefile(dxf_path, output_folder, layer_name, entities, 
     points = []
     lines = []
     polygons = []
+
+    print(f"---------Processing DXF layer to shapefile {layer_name}")
     
     for entity in entities:
         if isinstance(entity, (LWPolyline, Polyline)):
@@ -112,6 +114,8 @@ def merge_dxf_layer_to_shapefile(dxf_path, output_folder, layer_name, entities, 
             write_prj_file(shp_path, crs)
         else:
             log_warning(f"No valid polygons found in layer {layer_name}")
+
+    print(f"---------Finished processing DXF layer to shapefile {layer_name}")
 
 def dxf_to_shapefiles(dxf_path, output_folder):
     # Clear the contents of the output folder

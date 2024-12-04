@@ -6,12 +6,31 @@ from pyproj import CRS
 import traceback
 import yaml
 
+# Add this near the top of the file, after the imports
+def set_log_level(level):
+    """Set the logging level for both file and console handlers"""
+    log_level = level.upper()
+    root_logger = logging.getLogger('')
+    
+    # Set level for root logger (affects file handler)
+    root_logger.setLevel(getattr(logging, log_level))
+    
+    # Set level for console handler
+    for handler in root_logger.handlers:
+        if isinstance(handler, logging.StreamHandler):
+            handler.setLevel(getattr(logging, log_level))
+            break
+
 # Setup logging
-def setup_logging():
-    logging.basicConfig(filename='convert.log', filemode='w', level=logging.INFO, 
-                        format='%(asctime)s - %(levelname)s - %(message)s')
+def setup_logging(log_level='INFO'):
+    logging.basicConfig(
+        filename='convert.log',
+        filemode='w',
+        level=getattr(logging, log_level.upper(), logging.INFO),
+        format='%(asctime)s - %(levelname)s - %(message)s'
+    )
     console = logging.StreamHandler()
-    console.setLevel(logging.WARNING)
+    console.setLevel(getattr(logging, log_level.upper(), logging.WARNING))
     formatter = logging.Formatter('%(levelname)s - %(message)s')
     console.setFormatter(formatter)
     logging.getLogger('').addHandler(console)
@@ -27,6 +46,9 @@ def log_error(message):
     logging.error(f"\033[91mError: {message}\033[0m")
     if error_traceback != "NoneType: None\n":
         logging.error(f"Traceback:\n{error_traceback}")
+
+def log_debug(message):
+    logging.debug(message)
 
 # PROJ setup
 def setup_proj():

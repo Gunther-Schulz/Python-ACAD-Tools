@@ -6,7 +6,7 @@ import traceback
 from src.project_loader import ProjectLoader
 from src.layer_processor import LayerProcessor
 from src.dxf_exporter import DXFExporter
-from src.utils import create_sample_project, log_error, log_info, setup_logging, setup_proj
+from src.utils import create_sample_project, log_error, log_info, setup_logging, setup_proj, set_log_level
 from src.dump_to_shape import dxf_to_shapefiles
 from src.dxf_utils import cleanup_document
 
@@ -273,7 +273,14 @@ def main():
     parser.add_argument('-s', '--list-settings', action='store_true', help="List all possible layer settings and their options")
     parser.add_argument('--list-projects', action='store_true', help="List all available projects")
     parser.add_argument('--create-project', action='store_true', help="Create a new project with basic settings")
+    parser.add_argument('--log-level', 
+                       choices=['DEBUG', 'INFO', 'WARNING', 'ERROR'],
+                       default='INFO',
+                       help='Set the logging level')
     args = parser.parse_args()
+
+    # Set the log level before any processing
+    set_log_level(args.log_level)
 
     if args.list_projects:
         projects = list_available_projects()

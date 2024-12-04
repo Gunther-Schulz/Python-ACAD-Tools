@@ -349,7 +349,6 @@ def process_polyline(msp, polyline_geom, block_shape, block_base_point, block_na
                 rotation=math.degrees(angle) + rotation
             )
             if block_ref:
-                log_info("Successfully placed block")
                 attach_custom_data(block_ref, SCRIPT_IDENTIFIER)
                 placed_blocks.append(rotated_block_shape)
             else:
