@@ -1,4 +1,16 @@
 geomLayers:
+- name: Gas_HD_LEIT
+  updateDxf: true
+  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/gas_edit.shp"
+- name: Gas_HD_LEIT Buffer
+  updateDxf: true
+  operations:
+    - type: buffer
+      layers:
+        - Gas_HD_LEIT
+      distance: 3
+      # capStyle: round
+      joinStyle: round
 - name: Baum_Laubbaum Points
   # updateDxf: true
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/baum_laubbaum.shp"
@@ -130,6 +142,7 @@ geomLayers:
         - "Grünfläche Input"
         - Moor
         - "ges gesch Biotope"
+        - Gas_HD_LEIT Buffer
     - type: dissolve
     - type: intersection
       layers:

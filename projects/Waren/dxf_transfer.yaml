@@ -6,6 +6,3 @@
 #         toLayer: "T--Baum_Laubbaum"
 #         entityTypes:
 #           - POINT
-#         filter:
-#           preprocessor:
-#             type: "block_exploder"
