@@ -1,5 +1,7 @@
 import ezdxf
 import traceback
+from ezdxf.entities.lwpolyline import LWPolyline
+from ezdxf.entities.polyline import Polyline
 from src.utils import log_info, log_warning, log_error, resolve_path, log_debug
 from src.dxf_utils import ensure_layer_exists, attach_custom_data, sanitize_layer_name, initialize_document
 from src.preprocessors.block_exploder import explode_blocks
@@ -316,123 +318,45 @@ class DXFProcessor:
                 log_warning(f"No entities found in layer: {source_layer}")
                 return
             
-            if preprocessors:
-                # Process through each preprocessor in sequence
-                processed_data = entities
-                for preprocessor in preprocessors:
-                    if preprocessor not in self.preprocessors:
-                        log_warning(f"Preprocessor '{preprocessor}' not found, skipping")
-                        continue
-                    
-                    log_debug(f"Applying preprocessor: {preprocessor}")
-                    processed_data = self.preprocessors[preprocessor](processed_data, source_layer)
-                    log_debug(f"Preprocessor {preprocessor} produced {len(processed_data)} features")
+            geometries = []
+            attributes = []
+            
+            for entity in entities:
+                if isinstance(entity, (LWPolyline, Polyline)):
+                    points = list(entity.vertices())
+                    if len(points) >= 3:
+                        if points[0] != points[-1]:
+                            points.append(points[0])
+                        polygon = Polygon(points)
+                        if polygon.is_valid and not polygon.is_empty:
+                            geometries.append(polygon)
+                            attributes.append({})
+                elif isinstance(entity, ezdxf.entities.Line):
+                    line = LineString([entity.dxf.start, entity.dxf.end])
+                    if line.is_valid and not line.is_empty:
+                        geometries.append(line)
+                        attributes.append({})
+                elif isinstance(entity, ezdxf.entities.Point):
+                    point = Point(entity.dxf.location[:2])
+                    if point.is_valid and not point.is_empty:
+                        geometries.append(point)
+                        attributes.append({})
+            
+            if geometries:
+                gdf = gpd.GeoDataFrame(geometry=geometries, data=attributes, crs=self.crs)
                 
-                # Convert processed data to GeoDataFrame
-                if isinstance(processed_data[0], dict):
-                    points_df = gpd.GeoDataFrame(
-                        geometry=[gpd.points_from_xy([p['coords'][0]], [p['coords'][1]])[0] for p in processed_data],
-                        data=[p['attributes'] for p in processed_data],
-                        crs=self.crs
-                    )
-                else:
-                    points_df = gpd.GeoDataFrame(
-                        geometry=[gpd.points_from_xy([p[0]], [p[1]])[0] for p in processed_data],
-                        crs=self.crs
-                    )
+                # Verify geometry types are consistent
+                unique_geom_types = set(gdf.geometry.geom_type)
+                if len(unique_geom_types) > 1:
+                    log_warning(f"Mixed geometry types found in layer {source_layer}: {unique_geom_types}")
                 
-                if points_df.to_file(full_output_path):
-                    log_debug(f"Successfully saved {len(processed_data)} processed features")
+                if write_shapefile(gdf, full_output_path):
+                    log_debug(f"Successfully saved {len(geometries)} features")
                 else:
-                    log_error(f"Failed to write {len(processed_data)} processed features")
-                    
+                    log_error(f"Failed to write {len(geometries)} features")
             else:
-                # Convert DXF entities directly to geometries
-                geometries = []
-                attributes = []
-                unsupported_types = set()
-                entity_counts = {}
+                log_warning(f"No valid geometries found in layer {source_layer}")
                 
-                for entity in entities:
-                    dxftype = entity.dxftype()
-                    entity_counts[dxftype] = entity_counts.get(dxftype, 0) + 1
-                    
-                    try:
-                        geom = None
-                        attrs = {}
-                        
-                        if dxftype == 'LINE':
-                            geom = LineString([(entity.dxf.start[0], entity.dxf.start[1]), 
-                                             (entity.dxf.end[0], entity.dxf.end[1])])
-                        
-                        elif dxftype == 'CIRCLE':
-                            geom = Point(entity.dxf.center[0], entity.dxf.center[1])
-                            attrs['radius'] = entity.dxf.radius
-                        
-                        elif dxftype == 'POINT':
-                            geom = Point(entity.dxf.location[0], entity.dxf.location[1])
-                        
-                        elif dxftype == 'LWPOLYLINE':
-                            points = [(vertex[0], vertex[1]) for vertex in entity.get_points()]
-                            if len(points) > 1:
-                                if entity.closed:
-                                    points.append(points[0])
-                                    geom = Polygon(points)
-                                else:
-                                    geom = LineString(points)
-                        
-                        elif dxftype == 'ARC':
-                            start_angle = math.degrees(entity.dxf.start_angle)
-                            end_angle = math.degrees(entity.dxf.end_angle)
-                            radius = entity.dxf.radius
-                            center = entity.dxf.center
-                            
-                            num_segments = 32
-                            if end_angle < start_angle:
-                                end_angle += 360
-                            angles = np.linspace(start_angle, end_angle, num_segments)
-                            
-                            points = []
-                            for angle in angles:
-                                rad_angle = math.radians(angle)
-                                x = center[0] + radius * math.cos(rad_angle)
-                                y = center[1] + radius * math.sin(rad_angle)
-                                points.append((x, y))
-                            
-                            geom = LineString(points)
-                        
-                        elif dxftype == 'HATCH':
-                            boundaries = []
-                            for path in entity.paths:
-                                points = [(vertex[0], vertex[1]) for vertex in path.vertices]
-                                if len(points) > 2:
-                                    points.append(points[0])
-                                    boundaries.append(Polygon(points))
-                            if boundaries:
-                                geom = MultiPolygon(boundaries)
-                        
-                        if geom:
-                            geometries.append(geom)
-                            attributes.append(attrs)
-                        else:
-                            unsupported_types.add(dxftype)
-                            
-                    except Exception as e:
-                        log_warning(f"Error processing {dxftype}: {str(e)}")
-                        continue
-                
-                if geometries:
-                    gdf = gpd.GeoDataFrame(geometry=geometries, data=attributes, crs=self.crs)
-                    if write_shapefile(gdf, full_output_path):
-                        log_debug(f"Successfully saved {len(geometries)} features")
-                    else:
-                        log_error(f"Failed to write {len(geometries)} features")
-                else:
-                    if unsupported_types:
-                        log_warning(f"No supported geometries found. Unsupported types: {', '.join(sorted(unsupported_types))}")
-                    else:
-                        log_warning(f"No geometries found. Entity counts: {entity_counts}")
-                        
         except Exception as e:
             log_error(f"Error processing DXF extract for layer {source_layer}: {str(e)}")
             log_error(f"Traceback:\n{traceback.format_exc()}") 
