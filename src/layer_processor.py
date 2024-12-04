@@ -309,6 +309,14 @@ class LayerProcessor:
             return False
         
         gdf = self.all_layers[layer_name]
+        if gdf is None:
+            log_warning(f"Cannot write shapefile for layer {layer_name}: layer data is None")
+            return False
+        
+        if not isinstance(gdf, gpd.GeoDataFrame):
+            log_warning(f"Cannot write shapefile for layer {layer_name}: data is not a GeoDataFrame (type: {type(gdf)})")
+            return False
+        
         output_dir = resolve_path(self.project_loader.shapefile_output_dir)
         output_path = os.path.join(output_dir, f"{layer_name}.shp")
         

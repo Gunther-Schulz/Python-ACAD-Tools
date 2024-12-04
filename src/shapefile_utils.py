@@ -2,6 +2,7 @@ import os
 import geopandas as gpd
 from pathlib import Path
 from src.utils import log_debug, log_error, log_warning, ensure_path_exists
+import traceback
 
 def write_shapefile(gdf: gpd.GeoDataFrame, output_path: str, delete_existing: bool = True) -> bool:
     """
@@ -16,6 +17,18 @@ def write_shapefile(gdf: gpd.GeoDataFrame, output_path: str, delete_existing: bo
         bool: True if successful, False otherwise
     """
     try:
+        if gdf is None:
+            log_error(f"Cannot write shapefile {output_path}: GeoDataFrame is None")
+            return False
+            
+        if not isinstance(gdf, gpd.GeoDataFrame):
+            log_error(f"Cannot write shapefile {output_path}: Input is not a GeoDataFrame "
+                     f"(type: {type(gdf).__name__})")
+            return False
+            
+        if len(gdf) == 0:
+            log_warning(f"Writing empty shapefile {output_path}")
+            
         output_dir = str(Path(output_path).parent)
         layer_name = Path(output_path).stem
         
@@ -41,6 +54,7 @@ def write_shapefile(gdf: gpd.GeoDataFrame, output_path: str, delete_existing: bo
             
     except Exception as e:
         log_error(f"Error writing shapefile {output_path}: {str(e)}")
+        log_error(f"Traceback:\n{traceback.format_exc()}")
         return False
 
 def _delete_existing_shapefile(directory: str, layer_name: str):
