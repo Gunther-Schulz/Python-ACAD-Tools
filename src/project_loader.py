@@ -1,6 +1,7 @@
 import yaml
 import os
 from src.utils import log_info, log_warning, log_error, resolve_path, log_debug
+from src.dxf_processor import DXFProcessor
 
 class ProjectLoader:
     def __init__(self, project_name: str):
@@ -11,6 +12,7 @@ class ProjectLoader:
         self.load_project_settings()
         self.load_color_mapping()
         self.load_styles()
+        self.load_dxf_operations()
 
     def load_global_settings(self):
         """Load global settings from projects.yaml"""
@@ -42,7 +44,6 @@ class ProjectLoader:
         text_inserts = self.load_yaml_file('text_inserts.yaml', required=False) or {}
         path_arrays = self.load_yaml_file('path_arrays.yaml', required=False) or {}
         wmts_wms_layers = self.load_yaml_file('wmts_wms_layers.yaml', required=False) or {}
-        update_from_source = self.load_yaml_file('update_from_source.yaml', required=False) or {}
 
         # Merge all configurations with safe defaults
         self.project_settings = {
@@ -54,8 +55,7 @@ class ProjectLoader:
             'textInserts': text_inserts.get('textInserts', []),
             'pathArrays': path_arrays.get('pathArrays', []),
             'wmtsLayers': wmts_wms_layers.get('wmtsLayers', []),
-            'wmsLayers': wmts_wms_layers.get('wmsLayers', []),
-            'updateFromSource': update_from_source.get('updateFromSource', [])  # Ensure this is loaded
+            'wmsLayers': wmts_wms_layers.get('wmsLayers', [])
         }
 
         # Process core settings
@@ -70,12 +70,12 @@ class ProjectLoader:
         if self.shapefile_output_dir:
             os.makedirs(self.shapefile_output_dir, exist_ok=True)
 
-        # First load all layers
+        # Load WMTS/WMS layers
         wmts_layers, wms_layers = self.load_wmts_wms_layers()
         self.project_settings['wmtsLayers'] = wmts_layers
         self.project_settings['wmsLayers'] = wms_layers
 
-        # Then process all layer operations
+        # Process layer operations
         for layer in self.project_settings.get('geomLayers', []):
             if 'operations' in layer:
                 self.process_operations(layer)
@@ -86,39 +86,23 @@ class ProjectLoader:
         for layer in self.project_settings.get('wmtsLayers', []):
             if 'operations' in layer:
                 self.process_operations(layer)
-                # Set type for each operation
                 for operation in layer['operations']:
                     operation['type'] = 'wmts'
 
         for layer in self.project_settings.get('wmsLayers', []):
             if 'operations' in layer:
                 self.process_operations(layer)
-                # Set type for each operation
                 for operation in layer['operations']:
                     operation['type'] = 'wms'
 
-        # Load and merge DXF transfer settings if they exist
-        dxf_transfer_path = os.path.join(self.project_dir, 'dxf_transfer.yaml')
-        if os.path.exists(dxf_transfer_path):
-            with open(dxf_transfer_path, 'r', encoding='utf-8') as f:
-                dxf_transfer_settings = yaml.safe_load(f)
-                if dxf_transfer_settings and 'dxfTransfer' in dxf_transfer_settings:
-                    self.project_settings['dxfTransfer'] = dxf_transfer_settings['dxfTransfer']
-                    log_debug(f"Loaded DXF transfer settings from {dxf_transfer_path}")
-
-    def process_operations(self, layer):
-        """Process and validate operations in a layer"""
-        if 'operations' in layer:
-            new_operations = []
-            for operation in layer['operations']:
-                if isinstance(operation, dict) and 'type' in operation:
-                    new_operations.append(operation)
-                else:
-                    layer_name = layer.get('name', 'Unknown')
-                    error_message = f"Invalid operation found in layer '{layer_name}': {operation}."
-                    log_error(error_message)
-                    raise ValueError(error_message)
-            layer['operations'] = new_operations
+        # Load DXF operations settings
+        dxf_operations_path = os.path.join(self.project_dir, 'dxf_operations.yaml')
+        if os.path.exists(dxf_operations_path):
+            with open(dxf_operations_path, 'r', encoding='utf-8') as f:
+                dxf_operations_settings = yaml.safe_load(f)
+                if dxf_operations_settings:
+                    self.project_settings['dxfOperations'] = dxf_operations_settings
+                    log_debug(f"Loaded DXF operations settings from {dxf_operations_path}")
 
     def load_color_mapping(self):
         """Load color mapping from aci_colors.yaml"""
@@ -166,3 +150,25 @@ class ProjectLoader:
         wms_layers = wmts_wms_config.get('wmsLayers', [])
         
         return wmts_layers, wms_layers
+
+    def process_operations(self, layer):
+        """Process and validate operations in a layer"""
+        if 'operations' in layer:
+            new_operations = []
+            for operation in layer['operations']:
+                if isinstance(operation, dict) and 'type' in operation:
+                    new_operations.append(operation)
+                else:
+                    layer_name = layer.get('name', 'Unknown')
+                    error_message = f"Invalid operation found in layer '{layer_name}': {operation}."
+                    log_error(error_message)
+                    raise ValueError(error_message)
+            layer['operations'] = new_operations
+
+    def load_dxf_operations(self):
+        """Initialize DXFProcessor with loaded operations"""
+        if 'dxfOperations' in self.project_settings:
+            self.dxf_processor = DXFProcessor(self)
+            log_debug("DXFProcessor initialized with loaded operations")
+        else:
+            log_warning("No DXF operations found in project settings")

@@ -4,6 +4,7 @@ import traceback
 import ezdxf
 from pathlib import Path
 from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection, Point
+from dxf_source_extractor import DXFSourceExtractor
 from src.utils import ensure_path_exists, log_info, log_warning, log_error, resolve_path, log_debug
 import geopandas as gpd
 import os
@@ -11,11 +12,9 @@ from ezdxf.lldxf.const import LWPOLYLINE_PLINEGEN
 from ezdxf import pattern
 from ezdxf import const
 
-
-
 from PIL import Image
 from src.legend_creator import LegendCreator
-from src.dxf_utils import (get_color_code,attach_custom_data, 
+from src.dxf_utils import (get_color_code, attach_custom_data, 
                            is_created_by_script, add_text, remove_entities_by_layer, 
                            ensure_layer_exists, update_layer_properties, 
                            set_drawing_properties, verify_dxf_settings, update_layer_geometry,
@@ -25,8 +24,7 @@ from src.style_manager import StyleManager
 from src.viewport_manager import ViewportManager
 from src.block_insert_manager import BlockInsertManager
 from src.reduced_dxf_creator import ReducedDXFCreator
-from src.dxf_source_extractor import DXFSourceExtractor
-from src.dxf_transfer import DXFTransfer
+from src.dxf_processor import DXFProcessor
 
 class DXFExporter:
     def __init__(self, project_loader, layer_processor):
@@ -41,7 +39,7 @@ class DXFExporter:
         self.name_to_aci = project_loader.name_to_aci
         self.block_inserts = self.project_settings.get('blockInserts', [])
         self.style_manager = StyleManager(project_loader)
-        self.source_extractor = None  # Initialize as None
+        self.dxf_processor = DXFProcessor(project_loader)
         log_debug(f"DXFExporter initialized with script identifier: {self.script_identifier}")
         self.setup_layers()
         self.viewport_manager = ViewportManager(
@@ -57,7 +55,6 @@ class DXFExporter:
             self.script_identifier
         )
         self.reduced_dxf_creator = ReducedDXFCreator(self)
-        self.dxf_transfer = DXFTransfer(project_loader)
 
     def setup_layers(self):
         # Initialize default properties for ALL layers first
@@ -164,10 +161,7 @@ class DXFExporter:
             msp = doc.modelspace()
             self.register_app_id(doc)
             
-            # First ensure all layers exist
-            # self._ensure_all_layers_exist(doc)
-            
-            # Then process all content
+            # Process all content
             self.process_layers(doc, msp)
             self.create_path_arrays(msp)
             self.block_insert_manager.process_block_inserts(msp)
@@ -185,8 +179,8 @@ class DXFExporter:
             # After successful export, create reduced version if configured
             self.reduced_dxf_creator.create_reduced_dxf()
             
-            # Process DXF transfers after initial document setup
-            self.dxf_transfer.process_transfers(doc)
+            # Process DXF operations using the new DXFProcessor
+            self.dxf_processor.process_all(doc)
             
         except Exception as e:
             log_error(f"Error during DXF export: {str(e)}")
