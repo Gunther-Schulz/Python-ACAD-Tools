@@ -151,7 +151,7 @@ class DXFExporter:
         """Main export method."""
         try:
             log_debug("Starting DXF export...")
-            # Pass skip_dxf_processor to _prepare_dxf_document
+            # Pass skip_dxf_processor to _load_or_create_dxf
             doc = self._prepare_dxf_document(skip_dxf_processor)
             
             # Share the document with LayerProcessor
@@ -185,7 +185,7 @@ class DXFExporter:
 
     def _prepare_dxf_document(self, skip_dxf_processor=False):
         self._backup_existing_file()
-        doc = self._load_or_create_dxf(skip_dxf_processor=skip_dxf_processor)
+        doc = self._load_or_create_dxf(skip_dxf_processor)
         return doc
 
     def _backup_existing_file(self):
@@ -413,18 +413,24 @@ class DXFExporter:
 
     def create_new_layer(self, doc, msp, layer_name, layer_info, add_geometry=True):
         log_debug(f"Creating new layer: {layer_name}")
-        sanitized_layer_name = sanitize_layer_name(layer_name)  # Add this line
+        sanitized_layer_name = sanitize_layer_name(layer_name)  
         properties = self.layer_properties[layer_name]
         
-        ensure_layer_exists(doc, sanitized_layer_name, properties, self.name_to_aci)  # Update this line
+        # Update this line to only pass required arguments
+        ensure_layer_exists(doc, sanitized_layer_name)
         
-        log_debug(f"Created new layer: {sanitized_layer_name}")  # Update this line
+        # Apply properties after layer creation
+        if properties:
+            layer = doc.layers.get(sanitized_layer_name)
+            update_layer_properties(layer, properties, self.name_to_aci)
+        
+        log_debug(f"Created new layer: {sanitized_layer_name}")
         log_debug(f"Layer properties: {properties}")
         
         if add_geometry and layer_name in self.all_layers:
-            self.update_layer_geometry(msp, sanitized_layer_name, self.all_layers[layer_name], layer_info)  # Update this line
+            self.update_layer_geometry(msp, sanitized_layer_name, self.all_layers[layer_name], layer_info)
         
-        return doc.layers.get(sanitized_layer_name)  # Update this line
+        return doc.layers.get(sanitized_layer_name)
 
     def apply_layer_properties(self, layer, layer_properties):
         update_layer_properties(layer, layer_properties, self.name_to_aci)
