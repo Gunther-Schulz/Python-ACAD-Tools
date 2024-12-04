@@ -151,12 +151,18 @@ class DXFExporter:
         """Main export method."""
         try:
             log_debug("Starting DXF export...")
-            # Pass skip_dxf_processor to _load_or_create_dxf
-            doc = self._prepare_dxf_document(skip_dxf_processor)
             
-            # Share the document with LayerProcessor
+            # Load DXF once
+            doc = self._load_or_create_dxf(skip_dxf_processor=True)  # Load without processing
+            
+            # First, process DXF operations (if any)
+            if not skip_dxf_processor and self.project_loader.dxf_processor:
+                log_info("Processing DXF operations first...")
+                self.project_loader.dxf_processor.process_all(doc)
+                log_info("DXF operations completed")
+            
+            # Then proceed with geometry layers and other processing
             self.layer_processor.set_dxf_document(doc)
-            
             self.loaded_styles = initialize_document(doc)
             msp = doc.modelspace()
             self.register_app_id(doc)
@@ -174,6 +180,7 @@ class DXFExporter:
             # Create and configure viewports after ALL content exists
             self.viewport_manager.create_viewports(doc, msp)
             
+            # Save once at the end
             self._cleanup_and_save(doc, msp)
             
             # After successful export, create reduced version if configured
