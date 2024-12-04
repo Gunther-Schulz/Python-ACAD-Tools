@@ -13,6 +13,9 @@ import numpy as np
 from src.shapefile_utils import write_shapefile
 from pathlib import Path
 
+# Define a constant for the polygon closure tolerance
+POLYGON_CLOSURE_TOLERANCE = 1.0
+
 class DXFProcessor:
     def __init__(self, project_loader):
         self.project_loader = project_loader
@@ -351,15 +354,17 @@ class DXFProcessor:
                     if isinstance(entity_data, (LWPolyline, Polyline)):
                         points_list = list(entity_data.vertices())
                         if len(points_list) >= 2:
+                            # Check both the closed attribute and if endpoints match (within tolerance)
                             is_closed = (
                                 (hasattr(entity_data, 'closed') and entity_data.closed) or
                                 (len(points_list) >= 3 and 
-                                 abs(points_list[0][0] - points_list[-1][0]) < 1.0 and 
-                                 abs(points_list[0][1] - points_list[-1][1]) < 1.0)
+                                 abs(points_list[0][0] - points_list[-1][0]) < POLYGON_CLOSURE_TOLERANCE and 
+                                 abs(points_list[0][1] - points_list[-1][1]) < POLYGON_CLOSURE_TOLERANCE)
                             )
                             
                             if is_closed and len(points_list) >= 3:
-                                if abs(points_list[0][0] - points_list[-1][0]) >= 1.0 or abs(points_list[0][1] - points_list[-1][1]) >= 1.0:
+                                # Ensure the polygon is closed by adding first point if needed
+                                if abs(points_list[0][0] - points_list[-1][0]) >= POLYGON_CLOSURE_TOLERANCE or abs(points_list[0][1] - points_list[-1][1]) >= POLYGON_CLOSURE_TOLERANCE:
                                     points_list.append(points_list[0])
                                 polygon = Polygon(points_list)
                                 if polygon.is_valid and not polygon.is_empty:
