@@ -31,6 +31,13 @@ def write_shapefile(gdf: gpd.GeoDataFrame, output_path: str, delete_existing: bo
             log_error(f"Mixed geometry types found in GeoDataFrame: {geom_types}")
             return False
 
+        # Convert long suffixes to short ones
+        output_path = (
+            output_path.replace('_points.', '_pt.')
+            .replace('_lines.', '_ln.')
+            .replace('_polygons.', '_pl.')
+        )
+
         output_dir = str(Path(output_path).parent)
         layer_name = Path(output_path).stem
         
