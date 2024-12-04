@@ -17,18 +17,20 @@ def write_shapefile(gdf: gpd.GeoDataFrame, output_path: str, delete_existing: bo
         bool: True if successful, False otherwise
     """
     try:
-        if gdf is None:
-            log_error(f"Cannot write shapefile {output_path}: GeoDataFrame is None")
+        if gdf is None or len(gdf) == 0:
+            log_warning(f"Skipping empty GeoDataFrame for {output_path}")
             return False
             
         if not isinstance(gdf, gpd.GeoDataFrame):
-            log_error(f"Cannot write shapefile {output_path}: Input is not a GeoDataFrame "
-                     f"(type: {type(gdf).__name__})")
+            log_error(f"Cannot write shapefile {output_path}: Input is not a GeoDataFrame")
             return False
-            
-        if len(gdf) == 0:
-            log_warning(f"Writing empty shapefile {output_path}")
-            
+
+        # Verify geometry types are consistent
+        geom_types = set(gdf.geometry.geom_type)
+        if len(geom_types) > 1:
+            log_error(f"Mixed geometry types found in GeoDataFrame: {geom_types}")
+            return False
+
         output_dir = str(Path(output_path).parent)
         layer_name = Path(output_path).stem
         
@@ -44,13 +46,7 @@ def write_shapefile(gdf: gpd.GeoDataFrame, output_path: str, delete_existing: bo
         # Write the shapefile
         gdf.to_file(output_path)
         
-        # Verify all components were written
-        if _verify_shapefile_components(output_dir, layer_name):
-            log_debug(f"Successfully wrote shapefile: {output_path}")
-            return True
-        else:
-            log_error(f"Failed to write complete shapefile: {output_path}")
-            return False
+        return _verify_shapefile_components(output_dir, layer_name)
             
     except Exception as e:
         log_error(f"Error writing shapefile {output_path}: {str(e)}")

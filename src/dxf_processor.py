@@ -11,6 +11,7 @@ from shapely.geometry import LineString, Point, Polygon, MultiPolygon
 import math
 import numpy as np
 from src.shapefile_utils import write_shapefile
+from pathlib import Path
 
 class DXFProcessor:
     def __init__(self, project_loader):
@@ -329,56 +330,64 @@ class DXFProcessor:
                     else:
                         log_warning(f"Preprocessor not found: {preprocessor_name}")
             
-            geometries = []
-            attributes = []
-            
-            # Process the entities (which might now be preprocessed)
+            # Separate geometries by type
+            points = []
+            lines = []
+            polygons = []
+            point_attrs = []
+            line_attrs = []
+            polygon_attrs = []
+
             for entity_data in entities:
-                # Handle both raw entities and preprocessed entity data
                 if isinstance(entity_data, dict):
                     # Handle preprocessed data (e.g., from circle_extractor)
                     if 'coords' in entity_data:
                         point = Point(entity_data['coords'])
                         if point.is_valid and not point.is_empty:
-                            geometries.append(point)
-                            attributes.append(entity_data.get('attributes', {}))
+                            points.append(point)
+                            point_attrs.append(entity_data.get('attributes', {}))
                 else:
                     # Handle regular entities
                     if isinstance(entity_data, (LWPolyline, Polyline)):
-                        points = list(entity_data.vertices())
-                        if len(points) >= 3:
-                            if points[0] != points[-1]:
-                                points.append(points[0])
-                            polygon = Polygon(points)
-                            if polygon.is_valid and not polygon.is_empty:
-                                geometries.append(polygon)
-                                attributes.append({})
+                        points_list = list(entity_data.vertices())
+                        if len(points_list) >= 2:
+                            is_closed = entity_data.closed if hasattr(entity_data, 'closed') else False
+                            
+                            if is_closed and len(points_list) >= 3:
+                                if points_list[0] != points_list[-1]:
+                                    points_list.append(points_list[0])
+                                polygon = Polygon(points_list)
+                                if polygon.is_valid and not polygon.is_empty:
+                                    polygons.append(polygon)
+                                    polygon_attrs.append({})
+                            else:
+                                line = LineString(points_list)
+                                if line.is_valid and not line.is_empty:
+                                    lines.append(line)
+                                    line_attrs.append({})
                     elif isinstance(entity_data, ezdxf.entities.Line):
                         line = LineString([entity_data.dxf.start, entity_data.dxf.end])
                         if line.is_valid and not line.is_empty:
-                            geometries.append(line)
-                            attributes.append({})
+                            lines.append(line)
+                            line_attrs.append({})
                     elif isinstance(entity_data, ezdxf.entities.Point):
                         point = Point(entity_data.dxf.location[:2])
                         if point.is_valid and not point.is_empty:
-                            geometries.append(point)
-                            attributes.append({})
-            
-            if geometries:
-                gdf = gpd.GeoDataFrame(geometry=geometries, data=attributes, crs=self.crs)
-                
-                # Verify geometry types are consistent
-                unique_geom_types = set(gdf.geometry.geom_type)
-                if len(unique_geom_types) > 1:
-                    log_warning(f"Mixed geometry types found in layer {source_layer}: {unique_geom_types}")
-                
-                if write_shapefile(gdf, full_output_path):
-                    log_debug(f"Successfully saved {len(geometries)} features")
-                else:
-                    log_error(f"Failed to write {len(geometries)} features")
-            else:
-                log_warning(f"No valid geometries found in layer {source_layer}")
-                
+                            points.append(point)
+                            point_attrs.append({})
+
+            # Write separate shapefiles for each geometry type
+            base_path = str(Path(full_output_path).with_suffix(''))
+            if points:
+                point_gdf = gpd.GeoDataFrame(geometry=points, data=point_attrs, crs=self.crs)
+                write_shapefile(point_gdf, f"{base_path}_points.shp")
+            if lines:
+                line_gdf = gpd.GeoDataFrame(geometry=lines, data=line_attrs, crs=self.crs)
+                write_shapefile(line_gdf, f"{base_path}_lines.shp")
+            if polygons:
+                polygon_gdf = gpd.GeoDataFrame(geometry=polygons, data=polygon_attrs, crs=self.crs)
+                write_shapefile(polygon_gdf, f"{base_path}_polygons.shp")
+
         except Exception as e:
             log_error(f"Error processing DXF extract for layer {source_layer}: {str(e)}")
             log_error(f"Traceback:\n{traceback.format_exc()}") 
