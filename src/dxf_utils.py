@@ -218,29 +218,14 @@ def update_layer_geometry(msp, layer_name, script_identifier, update_function):
     # Add new geometry
     update_function()
 
-def ensure_layer_exists(doc, layer_name, properties=None, name_to_aci=None):
-    """Ensures a layer exists in the document with the given properties."""
-    if layer_name not in doc.layers:
-        dxfattribs = {}
-        if properties:
-            if 'color' in properties:
-                color = get_color_code(properties['color'], name_to_aci) if name_to_aci else properties['color']
-                dxfattribs['color'] = color
-            if 'linetype' in properties:
-                dxfattribs['linetype'] = properties['linetype']
-            if 'lineweight' in properties:
-                dxfattribs['lineweight'] = properties['lineweight']
-            if 'plot' in properties:
-                dxfattribs['plot'] = properties['plot']
-        
-        new_layer = doc.layers.new(name=layer_name, dxfattribs=dxfattribs)
-        
-        # Apply additional properties if provided
-        if properties:
-            update_layer_properties(new_layer, properties, name_to_aci)
-            
-        return new_layer
-    return doc.layers[layer_name]
+def ensure_layer_exists(doc, layer_name):
+    """Ensure that a layer exists in the DXF document."""
+    if not doc.layers.has_entry(layer_name):
+        doc.layers.new(name=layer_name)
+        log_debug(f"Created new layer: {layer_name}")
+    else:
+        log_debug(f"Layer already exists: {layer_name}")
+    return doc.layers.get(layer_name)
 
 def update_layer_properties(layer, layer_properties, name_to_aci):
     # Skip if no properties provided
