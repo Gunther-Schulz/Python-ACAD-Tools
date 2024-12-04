@@ -1,5 +1,5 @@
 import traceback
-from src.dump_to_shape import merge_dxf_layer_to_shapefile
+# from src.dump_to_shape import merge_dxf_layer_to_shapefile
 from src.project_loader import ProjectLoader
 from src.utils import log_info, log_warning, log_error, resolve_path, ensure_path_exists, log_debug
 import geopandas as gpd

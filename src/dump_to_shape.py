@@ -45,8 +45,10 @@ def merge_dxf_layer_to_shapefile(dxf_path, output_folder, layer_name, entities, 
     log_info(f"Processing DXF layer to shapefile {layer_name}")
     
     for entity in entities:
+        log_debug(f"Processing entity: {entity}")
         if isinstance(entity, (LWPolyline, Polyline)):
             points_list = list(entity.vertices())
+            log_debug(f"Entity vertices: {points_list}")
             if len(points_list) >= 2:
                 # Always treat as polygon if entity has closed property set to True
                 if hasattr(entity, 'closed') and entity.closed and len(points_list) >= 3:
@@ -55,6 +57,7 @@ def merge_dxf_layer_to_shapefile(dxf_path, output_folder, layer_name, entities, 
                         if points_list[0] != points_list[-1]:
                             points_list.append(points_list[0])
                         poly = Polygon(points_list)
+                        log_debug(f"Created polygon: {poly}")
                         if poly.is_valid and not poly.is_empty:
                             polygons.append(poly)
                     except Exception as e:
@@ -62,6 +65,7 @@ def merge_dxf_layer_to_shapefile(dxf_path, output_folder, layer_name, entities, 
                 else:
                     try:
                         line = LineString(points_list)
+                        log_debug(f"Created line: {line}")
                         if line.is_valid and not line.is_empty and line.length > 0:
                             lines.append(line)
                     except Exception as e:
@@ -69,14 +73,22 @@ def merge_dxf_layer_to_shapefile(dxf_path, output_folder, layer_name, entities, 
         elif isinstance(entity, (ezdxf.entities.Point)):
             try:
                 point = Point(entity.dxf.location[:2])
+                log_debug(f"Created point: {point}")
                 if point.is_valid and not point.is_empty:
                     points.append(point)
             except Exception as e:
                 log_warning(f"Invalid point in layer {layer_name}: {e}")
 
+    log_debug(f"Total valid points: {len(points)}, lines: {len(lines)}, polygons: {len(polygons)}")
+
+    # Add warning if no valid geometries found
+    if not points and not lines and not polygons:
+        log_warning(f"No valid geometries found in layer {layer_name}. No shapefile will be created.")
+
     # Create appropriate shapefile based on geometry type, only if we have valid geometries
     if points:
         valid_points = [p for p in points if p.is_valid and not p.is_empty]
+        log_debug(f"Valid points: {valid_points}")
         if valid_points:
             shp_path = os.path.join(output_folder, f"{layer_name}.shp")
             with shapefile.Writer(shp_path, shapeType=shapefile.POINT) as shp:
@@ -90,6 +102,7 @@ def merge_dxf_layer_to_shapefile(dxf_path, output_folder, layer_name, entities, 
         
     if lines:
         valid_lines = [l for l in lines if l.is_valid and not l.is_empty and l.length > 0]
+        log_debug(f"Valid lines: {valid_lines}")
         if valid_lines:
             shp_path = os.path.join(output_folder, f"{layer_name}.shp")
             with shapefile.Writer(shp_path, shapeType=shapefile.POLYLINE) as shp:
@@ -103,6 +116,7 @@ def merge_dxf_layer_to_shapefile(dxf_path, output_folder, layer_name, entities, 
 
     if polygons:
         valid_polygons = [p for p in polygons if p.is_valid and not p.is_empty and p.area > 0]
+        log_debug(f"Valid polygons: {valid_polygons}")
         if valid_polygons:
             shp_path = os.path.join(output_folder, f"{layer_name}.shp")
             with shapefile.Writer(shp_path, shapeType=shapefile.POLYGON) as shp:
