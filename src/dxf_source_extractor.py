@@ -1,6 +1,7 @@
 import ezdxf
 import geopandas as gpd
 from pathlib import Path
+import traceback
 
 from shapely import MultiPolygon
 from src.utils import log_info, log_warning, log_error, resolve_path, ensure_path_exists, log_debug
@@ -68,7 +69,7 @@ class DXFSourceExtractor:
 
             msp = doc.modelspace()
             entities = msp.query(f'*[layer=="{source_layer}"]')
-            log_debug(f"Number of entities found: {len(entities)}")
+            log_debug(f"Number of entities found in {source_layer}: {len(entities)}")
 
             if preprocessors:
                 # Process through each preprocessor in sequence
@@ -106,15 +107,18 @@ class DXFSourceExtractor:
                 # Convert DXF entities directly to geometries
                 geometries = []
                 attributes = []
-                unsupported_types = set()  # Keep track of unique unsupported types
+                unsupported_types = set()
+                entity_counts = {}  # Track count of each entity type
                 
                 for entity in entities:
                     dxftype = entity.dxftype()
+                    entity_counts[dxftype] = entity_counts.get(dxftype, 0) + 1
                     geom = None
                     attrs = {}
 
                     try:
                         if dxftype == 'LINE':
+                            log_debug(f"Processing LINE in {source_layer}")
                             geom = LineString([(entity.dxf.start[0], entity.dxf.start[1]), 
                                              (entity.dxf.end[0], entity.dxf.end[1])])
                         
@@ -126,7 +130,9 @@ class DXFSourceExtractor:
                             geom = Point(entity.dxf.location[0], entity.dxf.location[1])
                         
                         elif dxftype == 'LWPOLYLINE':
+                            log_debug(f"Processing LWPOLYLINE in {source_layer}")
                             points = [(vertex[0], vertex[1]) for vertex in entity.get_points()]
+                            log_debug(f"LWPOLYLINE points: {points}")
                             if len(points) > 1:
                                 if entity.closed:
                                     points.append(points[0])
@@ -135,8 +141,10 @@ class DXFSourceExtractor:
                                     geom = LineString(points)
                         
                         elif dxftype == 'POLYLINE':
+                            log_debug(f"Processing POLYLINE in {source_layer}")
                             points = [(vertex.dxf.location[0], vertex.dxf.location[1]) 
                                     for vertex in entity.vertices]
+                            log_debug(f"POLYLINE points: {points}")
                             if len(points) > 1:
                                 if entity.is_closed:
                                     points.append(points[0])
@@ -214,18 +222,23 @@ class DXFSourceExtractor:
                             log_warning(f"Block reference processing not fully implemented for {entity.dxf.name}")
                         
                         if geom:
+                            log_debug(f"Successfully created geometry for {dxftype} in {source_layer}")
                             geometries.append(geom)
                             attributes.append(attrs)
                         else:
-                            unsupported_types.add(dxftype)  # Add to set of unsupported types
+                            log_debug(f"No geometry created for {dxftype} in {source_layer}")
+                            unsupported_types.add(dxftype)
                     
                     except Exception as e:
-                        log_warning(f"Error processing entity {dxftype}: {str(e)}")
+                        log_warning(f"Error processing {dxftype} in {source_layer}: {str(e)}")
+                        log_warning(f"Traceback:\n{traceback.format_exc()}")
                         continue
+                
+                log_debug(f"Entity type counts in {source_layer}: {entity_counts}")
                 
                 if geometries:
                     gdf = gpd.GeoDataFrame(geometry=geometries, data=attributes, crs=self.crs)
-                    log_debug(f"GeoDataFrame created with {len(gdf)} features")
+                    log_debug(f"GeoDataFrame created with {len(gdf)} features from {source_layer}")
                     if write_shapefile(gdf, full_output_path):
                         log_debug(f"Successfully saved shapefile to {full_output_path}")
                     else:
@@ -235,7 +248,9 @@ class DXFSourceExtractor:
                         log_warning(f"No supported geometries found in layer {source_layer}. "
                                   f"Unsupported entity types: {', '.join(sorted(unsupported_types))}")
                     else:
-                        log_warning(f"No geometries found in layer {source_layer}")
+                        log_warning(f"No geometries found in layer {source_layer}. "
+                                  f"Entity counts: {entity_counts}")
                 
         except Exception as e:
             log_error(f"Error processing DXF extract for layer {source_layer}: {str(e)}")
+            log_error(f"Traceback:\n{traceback.format_exc()}")
