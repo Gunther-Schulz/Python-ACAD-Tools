@@ -4,6 +4,65 @@ from pathlib import Path
 from src.utils import log_debug, log_error, log_warning, ensure_path_exists
 import traceback
 
+def _normalize_field_name(name: str, max_length: int = 10) -> str:
+    """
+    Normalize field names to be shapefile-compatible.
+    
+    Args:
+        name: Original field name
+        max_length: Maximum length for the field name (10 for shapefiles)
+    
+    Returns:
+        Normalized field name
+    """
+    # Common abbreviations for longer words
+    abbreviations = {
+        'intersection': 'isect',
+        'area': 'ar',
+        'length': 'len',
+        'distance': 'dist',
+        'coordinate': 'coord',
+        'position': 'pos',
+        'elevation': 'elev',
+        'height': 'ht',
+        'width': 'wd',
+        'diameter': 'dia',
+        'radius': 'rad',
+        'number': 'num',
+        'description': 'desc',
+        'identifier': 'id',
+        'reference': 'ref',
+        'category': 'cat',
+        'attribute': 'attr',
+        'parameter': 'param',
+        'calculation': 'calc',
+        'measurement': 'meas'
+    }
+    
+    # First try to replace common words with abbreviations
+    name_lower = name.lower()
+    for word, abbrev in abbreviations.items():
+        if word in name_lower:
+            name = name.replace(word, abbrev)
+    
+    # If still too long, intelligently truncate
+    if len(name) > max_length:
+        # Remove vowels from the middle of the string, keeping first and last characters
+        vowels = 'aeiouAEIOU'
+        chars = list(name)
+        for i in range(1, len(chars) - 1):
+            if len(''.join(chars)) <= max_length:
+                break
+            if chars[i] in vowels:
+                chars[i] = ''
+        name = ''.join(chars)
+        
+        # If still too long, truncate to max_length
+        if len(name) > max_length:
+            name = name[:max_length]
+    
+    return name
+
 def write_shapefile(gdf: gpd.GeoDataFrame, output_path: str, delete_existing: bool = True) -> bool:
     """
     Write a GeoDataFrame to a shapefile.
@@ -37,6 +96,15 @@ def write_shapefile(gdf: gpd.GeoDataFrame, output_path: str, delete_existing: bo
             .replace('_lines.', '_ln.')
             .replace('_polygons.', '_pl.')
         )
+
+        # Normalize column names
+        rename_dict = {col: _normalize_field_name(col) for col in gdf.columns if col != 'geometry'}
+        if rename_dict:
+            # Log column name changes
+            for original, normalized in rename_dict.items():
+                if original != normalized:
+                    log_debug(f"Normalized field name: '{original}' to '{normalized}'")
+            gdf = gdf.rename(columns=rename_dict)
 
         output_dir = str(Path(output_path).parent)
         layer_name = Path(output_path).stem
