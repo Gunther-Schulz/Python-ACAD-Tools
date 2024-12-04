@@ -23,17 +23,27 @@ def set_log_level(level):
 
 # Setup logging
 def setup_logging(log_level='INFO'):
+    # Convert log_level to uppercase and get the corresponding logging level
+    log_level = log_level.upper()
+    level = getattr(logging, log_level, logging.INFO)
+    
     logging.basicConfig(
         filename='convert.log',
         filemode='w',
-        level=getattr(logging, log_level.upper(), logging.INFO),
+        level=level,
         format='%(asctime)s - %(levelname)s - %(message)s'
     )
+    
+    # Create console handler with default level WARNING
     console = logging.StreamHandler()
-    console.setLevel(getattr(logging, log_level.upper(), logging.WARNING))
+    console.setLevel(logging.WARNING)  # Default to WARNING for console
     formatter = logging.Formatter('%(levelname)s - %(message)s')
     console.setFormatter(formatter)
     logging.getLogger('').addHandler(console)
+    
+    # Override console level if a different log level is specified
+    if level != logging.INFO:
+        console.setLevel(level)
 
 def log_info(*messages):
     logging.info(' '.join(str(msg) for msg in messages))

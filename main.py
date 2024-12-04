@@ -262,9 +262,6 @@ def list_available_projects():
     return projects
 
 def main():
-    setup_logging()
-    setup_proj()
-
     parser = argparse.ArgumentParser(description="Process and export project data to DXF.")
     parser.add_argument("project_name", nargs="?", help="Name of the project to process")
     parser.add_argument('--plot-ops', action='store_true', help="Plot the result of each operation")
@@ -279,7 +276,8 @@ def main():
                        help='Set the logging level')
     args = parser.parse_args()
 
-    # Set the log level before any processing
+    # Initialize logging with the specified level
+    setup_logging(args.log_level)
     set_log_level(args.log_level)
 
     if args.list_projects:
