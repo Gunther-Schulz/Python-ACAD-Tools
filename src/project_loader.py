@@ -10,9 +10,9 @@ class ProjectLoader:
         self.project_settings = {}
         self.load_global_settings()
         self.load_project_settings()
+        self.load_dxf_operations()
         self.load_color_mapping()
         self.load_styles()
-        self.load_dxf_operations()
 
     def load_global_settings(self):
         """Load global settings from projects.yaml"""
@@ -172,3 +172,4 @@ class ProjectLoader:
             log_debug("DXFProcessor initialized with loaded operations")
         else:
             log_warning("No DXF operations found in project settings")
+            self.dxf_processor = None  # Set to None if no operations

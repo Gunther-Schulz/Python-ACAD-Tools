@@ -4,7 +4,6 @@ import traceback
 import ezdxf
 from pathlib import Path
 from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection, Point
-from dxf_source_extractor import DXFSourceExtractor
 from src.utils import ensure_path_exists, log_info, log_warning, log_error, resolve_path, log_debug
 import geopandas as gpd
 import os
@@ -39,7 +38,7 @@ class DXFExporter:
         self.name_to_aci = project_loader.name_to_aci
         self.block_inserts = self.project_settings.get('blockInserts', [])
         self.style_manager = StyleManager(project_loader)
-        self.dxf_processor = DXFProcessor(project_loader)
+        self.dxf_processor = project_loader.dxf_processor
         log_debug(f"DXFExporter initialized with script identifier: {self.script_identifier}")
         self.setup_layers()
         self.viewport_manager = ViewportManager(
@@ -179,7 +178,7 @@ class DXFExporter:
             # After successful export, create reduced version if configured
             self.reduced_dxf_creator.create_reduced_dxf()
             
-            # Process DXF operations using the new DXFProcessor
+            # Process DXF operations using DXFProcessor
             self.dxf_processor.process_all(doc)
             
         except Exception as e:
@@ -202,21 +201,22 @@ class DXFExporter:
         template_filename = self.project_settings.get('templateDxfFilename')
         
         # Load or create the DXF document
+        doc = None
         if os.path.exists(self.dxf_filename):
             doc = ezdxf.readfile(self.dxf_filename)
             log_debug(f"Loaded existing DXF file: {self.dxf_filename}")
             
-            # Initialize source extractor only once
-            if self.source_extractor is None:
-                self.source_extractor = DXFSourceExtractor(self.project_loader)
-                self.source_extractor.process_extracts(doc)  # Process extracts once
+            # Run DXF processor on existing document
+            if self.project_loader.dxf_processor:
+                log_info("DXF processor found, running operations on existing document")
+                log_debug("Running DXF processor on existing document")
+                self.project_loader.dxf_processor.process_all(doc)
             
             self.load_existing_layers(doc)
             self.check_existing_entities(doc)
             set_drawing_properties(doc)
-            return doc
         elif template_filename:
-            # Use resolve_path with folder prefix
+            # Use template if available
             full_template_path = resolve_path(template_filename, self.project_loader.folder_prefix)
             if os.path.exists(full_template_path):
                 doc = ezdxf.readfile(full_template_path)
@@ -231,6 +231,12 @@ class DXFExporter:
             doc = ezdxf.new(dxfversion=dxf_version)
             log_debug(f"Created new DXF file with version: {dxf_version}")
             set_drawing_properties(doc)
+
+        # Run DXF processor on new document if it wasn't run on existing one
+        if doc and not os.path.exists(self.dxf_filename) and self.project_loader.dxf_processor:
+            log_debug("Running DXF processor on new document")
+            self.project_loader.dxf_processor.process_all(doc)
+
         return doc
 
     def load_existing_layers(self, doc):
