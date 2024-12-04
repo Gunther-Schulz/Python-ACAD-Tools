@@ -331,12 +331,12 @@ class DXFProcessor:
                         log_warning(f"Preprocessor not found: {preprocessor_name}")
             
             # Separate geometries by type
-            points = []
-            lines = []
-            polygons = []
-            point_attrs = []
-            line_attrs = []
-            polygon_attrs = []
+            pt = []  # Points
+            ln = []  # Lines
+            pl = []  # Polygons
+            pt_attrs = []
+            ln_attrs = []
+            pl_attrs = []
 
             for entity_data in entities:
                 if isinstance(entity_data, dict):
@@ -344,48 +344,53 @@ class DXFProcessor:
                     if 'coords' in entity_data:
                         point = Point(entity_data['coords'])
                         if point.is_valid and not point.is_empty:
-                            points.append(point)
-                            point_attrs.append(entity_data.get('attributes', {}))
+                            pt.append(point)
+                            pt_attrs.append(entity_data.get('attributes', {}))
                 else:
                     # Handle regular entities
                     if isinstance(entity_data, (LWPolyline, Polyline)):
                         points_list = list(entity_data.vertices())
                         if len(points_list) >= 2:
-                            is_closed = entity_data.closed if hasattr(entity_data, 'closed') else False
+                            is_closed = (
+                                (hasattr(entity_data, 'closed') and entity_data.closed) or
+                                (len(points_list) >= 3 and 
+                                 abs(points_list[0][0] - points_list[-1][0]) < 1e-10 and 
+                                 abs(points_list[0][1] - points_list[-1][1]) < 1e-10)
+                            )
                             
                             if is_closed and len(points_list) >= 3:
-                                if points_list[0] != points_list[-1]:
+                                if abs(points_list[0][0] - points_list[-1][0]) >= 1e-10 or abs(points_list[0][1] - points_list[-1][1]) >= 1e-10:
                                     points_list.append(points_list[0])
                                 polygon = Polygon(points_list)
                                 if polygon.is_valid and not polygon.is_empty:
-                                    polygons.append(polygon)
-                                    polygon_attrs.append({})
+                                    pl.append(polygon)
+                                    pl_attrs.append({})
                             else:
                                 line = LineString(points_list)
                                 if line.is_valid and not line.is_empty:
-                                    lines.append(line)
-                                    line_attrs.append({})
+                                    ln.append(line)
+                                    ln_attrs.append({})
                     elif isinstance(entity_data, ezdxf.entities.Line):
                         line = LineString([entity_data.dxf.start, entity_data.dxf.end])
                         if line.is_valid and not line.is_empty:
-                            lines.append(line)
-                            line_attrs.append({})
+                            ln.append(line)
+                            ln_attrs.append({})
                     elif isinstance(entity_data, ezdxf.entities.Point):
                         point = Point(entity_data.dxf.location[:2])
                         if point.is_valid and not point.is_empty:
-                            points.append(point)
-                            point_attrs.append({})
+                            pt.append(point)
+                            pt_attrs.append({})
 
             # Write separate shapefiles for each geometry type
             base_path = str(Path(full_output_path).with_suffix(''))
-            if points:
-                point_gdf = gpd.GeoDataFrame(geometry=points, data=point_attrs, crs=self.crs)
+            if pt:
+                point_gdf = gpd.GeoDataFrame(geometry=pt, data=pt_attrs, crs=self.crs)
                 write_shapefile(point_gdf, f"{base_path}_points.shp")
-            if lines:
-                line_gdf = gpd.GeoDataFrame(geometry=lines, data=line_attrs, crs=self.crs)
+            if ln:
+                line_gdf = gpd.GeoDataFrame(geometry=ln, data=ln_attrs, crs=self.crs)
                 write_shapefile(line_gdf, f"{base_path}_lines.shp")
-            if polygons:
-                polygon_gdf = gpd.GeoDataFrame(geometry=polygons, data=polygon_attrs, crs=self.crs)
+            if pl:
+                polygon_gdf = gpd.GeoDataFrame(geometry=pl, data=pl_attrs, crs=self.crs)
                 write_shapefile(polygon_gdf, f"{base_path}_polygons.shp")
 
         except Exception as e:
