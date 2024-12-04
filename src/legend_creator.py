@@ -8,7 +8,7 @@ from src.dxf_utils import (convert_transparency, get_color_code, attach_custom_d
                            sanitize_layer_name, get_available_blocks, add_block_reference, set_hatch_transparency)
 from ezdxf.math import Vec3
 from ezdxf import colors
-from src.utils import log_warning, log_error, log_info
+from src.utils import log_warning, log_error, log_info, log_debug
 from . import dxf_utils
 from ezdxf.math import BoundingBox
 from ezdxf.lldxf.const import MTEXT_TOP_LEFT  # Add this line
@@ -176,7 +176,7 @@ class LegendCreator:
         x1, y1 = self.position['x'], self.current_y
         x2, y2 = x1 + self.item_width, y1 - self.item_height
 
-        log_info(f"Creating item: {item_name}, type: {item_type}, symbol: {block_symbol}")
+        log_debug(f"Creating item: {item_name}, type: {item_type}, symbol: {block_symbol}")
         
         sanitized_layer_name = self.get_sanitized_layer_name(layer_name)
 

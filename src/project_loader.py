@@ -1,6 +1,6 @@
 import yaml
 import os
-from src.utils import log_info, log_warning, log_error, resolve_path
+from src.utils import log_info, log_warning, log_error, resolve_path, log_debug
 
 class ProjectLoader:
     def __init__(self, project_name: str):
@@ -104,7 +104,7 @@ class ProjectLoader:
                 dxf_transfer_settings = yaml.safe_load(f)
                 if dxf_transfer_settings and 'dxfTransfer' in dxf_transfer_settings:
                     self.project_settings['dxfTransfer'] = dxf_transfer_settings['dxfTransfer']
-                    log_info(f"Loaded DXF transfer settings from {dxf_transfer_path}")
+                    log_debug(f"Loaded DXF transfer settings from {dxf_transfer_path}")
 
     def process_operations(self, layer):
         """Process and validate operations in a layer"""
@@ -147,7 +147,7 @@ class ProjectLoader:
         if isinstance(style_name, dict):
             return style_name
         style = self.styles.get(style_name, {})
-        log_info(f"Retrieved style for '{style_name}': {style}")
+        log_debug(f"Retrieved style for '{style_name}': {style}")
         return style
 
     def resolve_full_path(self, path: str) -> str:

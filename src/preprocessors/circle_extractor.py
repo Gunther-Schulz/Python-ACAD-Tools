@@ -1,4 +1,4 @@
-from src.utils import log_info, log_warning, log_error
+from src.utils import log_info, log_warning, log_error, log_debug
 
 def extract_circle_centers(entities, layer_name):
     """
@@ -46,5 +46,5 @@ def extract_circle_centers(entities, layer_name):
                     }
                 })
     
-    log_info(f"Extracted {len(circle_features)} circle centers with attributes from layer {layer_name}")
+    log_debug(f"Extracted {len(circle_features)} circle centers with attributes from layer {layer_name}")
     return circle_features 

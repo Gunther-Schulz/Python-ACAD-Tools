@@ -1,13 +1,13 @@
 import geopandas as gpd
 from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection, Point, MultiPoint
-from src.utils import log_info, log_warning, log_error
+from src.utils import log_info, log_warning, log_error, log_debug
 from shapely.ops import unary_union
 from src.operations.common_operations import _process_layer_info, _get_filtered_geometry, _remove_empty_geometries, _create_generic_overlay_layer, apply_buffer_trick, _clean_geometry, _remove_thin_growths, _merge_close_vertices, explode_to_singlepart, format_operation_warning, make_valid_geometry
 from src.operations.intersection_operation import _create_intersection_overlay_layer
 import pandas as pd
 
 def create_difference_layer(all_layers, project_settings, crs, layer_name, operation):
-    log_info(f"Creating difference layer: {layer_name}")
+    log_debug(f"Creating difference layer: {layer_name}")
     overlay_layers = operation.get('layers', [])
     manual_reverse = operation.get('reverseDifference')
     buffer_distance = operation.get('bufferDistance', 0.001)  # Increased default value
@@ -59,7 +59,7 @@ def create_difference_layer(all_layers, project_settings, crs, layer_name, opera
             label_column = next((l['label'] for l in project_settings['geomLayers'] if l['name'] == overlay_layer_name), None)
             if label_column and label_column in layer_geometry.columns:
                 layer_geometry = layer_geometry[layer_geometry[label_column].astype(str).isin([str(v) for v in values])]
-                log_info(f"Filtered {overlay_layer_name} using column '{label_column}': {len(layer_geometry)} features remaining")
+                log_debug(f"Filtered {overlay_layer_name} using column '{label_column}': {len(layer_geometry)} features remaining")
             else:
                 log_warning(format_operation_warning(
                     layer_name,
@@ -89,13 +89,13 @@ def create_difference_layer(all_layers, project_settings, crs, layer_name, opera
     # Use manual override if provided, otherwise use auto-detection
     if isinstance(manual_reverse, bool):
         reverse_difference = manual_reverse
-        log_info(f"Using manual override for reverse_difference: {reverse_difference}")
+        log_debug(f"Using manual override for reverse_difference: {reverse_difference}")
     elif manual_reverse == "auto":
         reverse_difference = _should_reverse_difference(all_layers, project_settings, crs, base_geometry, overlay_geometry)
-        log_info(f"Using explicit auto-detection for reverse_difference: {reverse_difference}")
+        log_debug(f"Using explicit auto-detection for reverse_difference: {reverse_difference}")
     else:
         reverse_difference = _should_reverse_difference(all_layers, project_settings, crs, base_geometry, overlay_geometry)
-        log_info(f"Auto-detected reverse_difference for {layer_name}: {reverse_difference}")
+        log_debug(f"Auto-detected reverse_difference for {layer_name}: {reverse_difference}")
 
     if use_buffer_trick:
         # Apply buffer trick to both base and overlay geometries

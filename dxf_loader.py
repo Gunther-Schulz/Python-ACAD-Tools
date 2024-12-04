@@ -19,7 +19,7 @@ def load_dxf_layer(layer_name, dxf_layer_name, dxf_doc, project_loader, crs):
             log_warning(f"Source layer '{dxf_layer_name}' does not exist in DXF file")
             return gpd.GeoDataFrame(geometry=[], crs=crs)
         else:
-            log_info(f"Source layer '{dxf_layer_name}' exists in DXF file")
+            log_debug(f"Source layer '{dxf_layer_name}' exists in DXF file")
         
         msp = dxf_doc.modelspace()
         entities = msp.query(f'*[layer=="{dxf_layer_name}"]')
@@ -49,7 +49,7 @@ def load_dxf_layer(layer_name, dxf_layer_name, dxf_doc, project_loader, crs):
                     os.remove(temp_file)
                 
             if not gdf.empty:
-                log_info(f"Successfully loaded {len(gdf)} features from DXF layer '{dxf_layer_name}'")
+                log_debug(f"Successfully loaded {len(gdf)} features from DXF layer '{dxf_layer_name}'")
                 return gdf
             
         log_warning(f"No valid geometries found in DXF layer '{dxf_layer_name}'")

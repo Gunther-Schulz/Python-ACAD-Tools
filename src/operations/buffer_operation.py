@@ -1,14 +1,14 @@
 import geopandas as gpd
 from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection, Point, MultiPoint
-from src.utils import log_info, log_warning, log_error
+from src.utils import log_info, log_warning, log_error, log_debug
 from shapely.ops import unary_union, split
 from src.operations.common_operations import _process_layer_info, _get_filtered_geometry, make_valid_geometry, format_operation_warning, remove_islands
 from src.operations.common_operations import *
 
 
 def create_buffer_layer(all_layers, project_settings, crs, layer_name, operation):
-    log_info(f"Creating buffer layer: {layer_name}")
-    log_info(f"Operation details: {operation}")
+    log_debug(f"Creating buffer layer: {layer_name}")
+    log_debug(f"Operation details: {operation}")
 
     buffer_distance = operation.get('distance', 0)
     buffer_mode = operation.get('mode', 'off')
@@ -32,7 +32,7 @@ def create_buffer_layer(all_layers, project_settings, crs, layer_name, operation
     join_style_value = join_style_map.get(join_style, 2)
     start_cap_value = cap_style_map.get(start_cap_style, 2)
     end_cap_value = cap_style_map.get(end_cap_style, 2)
-    print(f"Layer: {layer_name}, Join style: {join_style}, Start cap: {start_cap_style}, End cap: {end_cap_style}")
+    log_debug(f"Layer: {layer_name}, Join style: {join_style}, Start cap: {start_cap_style}, End cap: {end_cap_style}")
 
     source_layers = operation.get('layers', [layer_name])
     
@@ -94,7 +94,7 @@ def create_buffer_layer(all_layers, project_settings, crs, layer_name, operation
                 "No geometry remained after processing islands"
             ))
             return None
-        log_info(f"Processed islands from input geometry for layer: {layer_name}")
+        log_debug(f"Processed islands from input geometry for layer: {layer_name}")
 
     def buffer_with_different_caps(geom, distance, start_cap, end_cap, join_style, preserve_holes=False):
         if not isinstance(geom, (LineString, MultiLineString)):
@@ -195,7 +195,7 @@ def create_buffer_layer(all_layers, project_settings, crs, layer_name, operation
 
         result_gdf = gpd.GeoDataFrame(geometry=result_geom, crs=crs)
         all_layers[layer_name] = result_gdf
-        log_info(f"Created buffer layer: {layer_name} with {len(result_geom)} geometries")
+        log_debug(f"Created buffer layer: {layer_name} with {len(result_geom)} geometries")
         return result_gdf
     except Exception as e:
         log_error(format_operation_warning(

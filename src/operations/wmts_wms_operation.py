@@ -1,6 +1,6 @@
 import geopandas as gpd
 from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection, Point, MultiPoint
-from src.utils import log_info, log_warning, log_error
+from src.utils import log_info, log_warning, log_error, log_debug
 import os
 from src.wmts_downloader import download_wmts_tiles, download_wms_tiles, process_and_stitch_tiles
 from owslib.wmts import WebMapTileService
@@ -8,7 +8,7 @@ from src.project_loader import ProjectLoader
 from src.operations.common_operations import *
 
 def process_wmts_or_wms_layer(all_layers, project_settings, crs, layer_name, operation, project_loader):
-    log_info(f"Processing WMTS/WMS layer: {layer_name}")
+    log_debug(f"Processing WMTS/WMS layer: {layer_name}")
     
     # Get updateDxf flag from layer info first - this is the master switch
     layer_info = (
@@ -19,10 +19,10 @@ def process_wmts_or_wms_layer(all_layers, project_settings, crs, layer_name, ope
     
     # If updateDxf is False, no updates should happen regardless of other flags
     if not update_dxf:
-        log_info(f"Skipping layer {layer_name} - updateDxf is False")
+        log_debug(f"Skipping layer {layer_name} - updateDxf is False")
         return []  # Return early, don't process anything
     
-    log_info(f"Operation details: {operation}")
+    log_debug(f"Operation details: {operation}")
     
     target_folder = project_loader.resolve_full_path(operation['targetFolder'])
     zoom_level = operation.get('zoom')
@@ -30,10 +30,10 @@ def process_wmts_or_wms_layer(all_layers, project_settings, crs, layer_name, ope
     
     # Only if updateDxf is True, we check the overwrite flag
     overwrite_flag = operation.get('overwrite', False)
-    log_info(f"UpdateDxf: {update_dxf}, Overwrite flag: {overwrite_flag}")
+    log_debug(f"UpdateDxf: {update_dxf}, Overwrite flag: {overwrite_flag}")
     
     os.makedirs(zoom_folder, exist_ok=True)
-    log_info(f"Target folder path: {zoom_folder}")
+    log_debug(f"Target folder path: {zoom_folder}")
 
     layers = operation.get('layers', [])
     buffer_distance = operation.get('buffer', 100)
@@ -89,7 +89,7 @@ def process_wmts_or_wms_layer(all_layers, project_settings, crs, layer_name, ope
             log_warning(f"Layer {layer} not found for WMTS/WMS download of {layer_name}")
             continue
 
-        log_info(f"Processing layer: {layer}")
+        log_debug(f"Processing layer: {layer}")
         layer_geometry = all_layers[layer]
         if isinstance(layer_geometry, gpd.GeoDataFrame):
             layer_geometry = layer_geometry.geometry.unary_union
@@ -134,6 +134,6 @@ def process_wmts_or_wms_layer(all_layers, project_settings, crs, layer_name, ope
             all_processed_tiles.extend(downloaded_tiles)
 
     all_layers[layer_name] = all_processed_tiles
-    log_info(f"Total processed tiles for {layer_name}: {len(all_processed_tiles)}")
+    log_debug(f"Total processed tiles for {layer_name}: {len(all_processed_tiles)}")
 
     return all_layers[layer_name]

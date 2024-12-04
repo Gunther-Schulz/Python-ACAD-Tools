@@ -1,13 +1,13 @@
 import geopandas as gpd
 from shapely.geometry import Polygon, box
-from src.utils import log_info, log_warning
+from src.utils import log_info, log_warning, log_debug
 from src.operations.common_operations import _process_layer_info, format_operation_warning
 
 def create_bounding_box_layer(all_layers, project_settings, crs, layer_name, operation):
     """
     Creates a bounding box (rectangle) that encompasses all input geometries.
     """
-    log_info(f"Creating bounding box layer: {layer_name}")
+    log_debug(f"Creating bounding box layer: {layer_name}")
     
     source_layers = operation.get('layers', [])
     if not source_layers:
@@ -68,5 +68,5 @@ def create_bounding_box_layer(all_layers, project_settings, crs, layer_name, ope
     result_gdf = gpd.GeoDataFrame(geometry=[bbox], crs=crs)
     all_layers[layer_name] = result_gdf
     
-    log_info(f"Created bounding box layer: {layer_name}")
+    log_debug(f"Created bounding box layer: {layer_name}")
     return result_gdf 

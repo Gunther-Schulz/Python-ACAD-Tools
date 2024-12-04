@@ -1,10 +1,10 @@
 import geopandas as gpd
-from src.utils import log_info, log_warning, log_error
+from src.utils import log_info, log_warning, log_error, log_debug
 import decimal
 from decimal import Decimal, ROUND_HALF_UP
 
 def create_calculate_layer(all_layers, project_settings, crs, layer_name, operation):
-    log_info(f"Creating calculate layer: {layer_name}")
+    log_debug(f"Creating calculate layer: {layer_name}")
     
     if layer_name not in all_layers:
         log_warning(f"Layer '{layer_name}' not found for calculation")

@@ -11,7 +11,7 @@ from ezdxf.lldxf.const import (
 )
 from ezdxf.enums import TextEntityAlignment
 from ezdxf.math import Vec3
-from src.utils import log_info, log_warning, log_error
+from src.utils import log_info, log_warning, log_error, log_debug
 import re
 import math
 from ezdxf.math import Vec2, area
@@ -325,7 +325,7 @@ def update_layer_properties(layer, layer_properties, name_to_aci):
 
 #     # Verify that all linetypes are present
 #     for name in linetypes:
-#         log_info(f"Linetype '{name}' is present in the document.")
+#         log_debug(f"Linetype '{name}' is present in the document.")
 
 #     # Set a default linetype scale
 #     doc.header['$LTSCALE'] = 1.0  # Adjust this value as needed
@@ -334,11 +334,11 @@ def update_layer_properties(layer, layer_properties, name_to_aci):
 #     if name not in linetypes:
 #         try:
 #             linetypes.add(name, pattern, description=description)
-#             log_info(f"Added linetype: {name}")
+#             log_debug(f"Added linetype: {name}")
 #         except Exception as e:
 #             log_warning(f"Failed to add linetype {name}: {str(e)}")
 #     else:
-#         log_info(f"Linetype {name} already exists")
+#         log_debug(f"Linetype {name} already exists")
 
 def set_drawing_properties(doc):
     # Set the properties
@@ -387,36 +387,29 @@ def set_drawing_properties(doc):
     }
     
     # Log and print the settings with their meanings
-    log_info("\n=== Drawing Properties Set ===")
-    print("\n=== Drawing Properties Set ===")
+    log_debug("\n=== Drawing Properties Set ===")
     
     # MEASUREMENT
     measurement_msg = f"$MEASUREMENT: {doc.header['$MEASUREMENT']} - {measurement_meaning.get(doc.header['$MEASUREMENT'], 'Unknown')}"
-    log_info(measurement_msg)
-    print(measurement_msg)
+    log_debug(measurement_msg)
     
     # INSUNITS
     insunits_msg = f"$INSUNITS: {doc.header['$INSUNITS']} - {insunits_meaning.get(doc.header['$INSUNITS'], 'Unknown')}"
-    log_info(insunits_msg)
-    print(insunits_msg)
+    log_debug(insunits_msg)
     
     # LUNITS
     lunits_msg = f"$LUNITS: {doc.header['$LUNITS']} - {lunits_meaning.get(doc.header['$LUNITS'], 'Unknown')}"
-    log_info(lunits_msg)
-    print(lunits_msg)
+    log_debug(lunits_msg)
     
     # LUPREC
     luprec_msg = f"$LUPREC: {doc.header['$LUPREC']} - Linear units precision (number of decimal places)"
-    log_info(luprec_msg)
-    print(luprec_msg)
+    log_debug(luprec_msg)
     
     # AUPREC
     auprec_msg = f"$AUPREC: {doc.header['$AUPREC']} - Angular units precision (number of decimal places)"
-    log_info(auprec_msg)
-    print(auprec_msg)
+    log_debug(auprec_msg)
     
-    print("\n=== End of Drawing Properties ===")
-    log_info("=== End of Drawing Properties ===\n")
+    log_debug("\n=== End of Drawing Properties ===")
 
 def verify_dxf_settings(filename):
     loaded_doc = ezdxf.readfile(filename)
@@ -441,36 +434,29 @@ def verify_dxf_settings(filename):
         4: "Architectural", 5: "Fractional"
     }
 
-    print("\n=== Verifying DXF Settings ===")
-    log_info("\n=== Verifying DXF Settings ===")
+    log_debug("\n=== Verifying DXF Settings ===")
 
     measurement = loaded_doc.header.get('$MEASUREMENT', None)
     measurement_msg = f"$MEASUREMENT: {measurement} - {measurement_meaning.get(measurement, 'Unknown')}"
-    print(measurement_msg)
-    log_info(measurement_msg)
+    log_debug(measurement_msg)
 
     insunits = loaded_doc.header.get('$INSUNITS', None)
     insunits_msg = f"$INSUNITS: {insunits} - {insunits_meaning.get(insunits, 'Unknown')}"
-    print(insunits_msg)
-    log_info(insunits_msg)
+    log_debug(insunits_msg)
 
     lunits = loaded_doc.header.get('$LUNITS', None)
     lunits_msg = f"$LUNITS: {lunits} - {lunits_meaning.get(lunits, 'Unknown')}"
-    print(lunits_msg)
-    log_info(lunits_msg)
+    log_debug(lunits_msg)
 
     luprec = loaded_doc.header.get('$LUPREC', None)
     luprec_msg = f"$LUPREC: {luprec} - Linear units precision (decimal places)"
-    print(luprec_msg)
-    log_info(luprec_msg)
+    log_debug(luprec_msg)
 
     auprec = loaded_doc.header.get('$AUPREC', None)
     auprec_msg = f"$AUPREC: {auprec} - Angular units precision (decimal places)"
-    print(auprec_msg)
-    log_info(auprec_msg)
+    log_debug(auprec_msg)
 
-    print("=== End of DXF Settings Verification ===\n")
-    log_info("=== End of DXF Settings Verification ===\n")
+    log_debug("=== End of DXF Settings Verification ===\n")
 
 def get_style(style, project_loader):
     if isinstance(style, str):
@@ -514,7 +500,7 @@ def apply_style_to_entity(entity, style, project_loader, loaded_styles, item_typ
             try:
                 entity.transparency = transparency
             except Exception as e:
-                print(f"Warning: Could not set transparency for {entity.dxftype()}. Error: {str(e)}")
+                log_info(f"Could not set transparency for {entity.dxftype()}. Error: {str(e)}")
     else:
         # To set transparency to ByLayer, we'll try to remove the attribute if it exists
         try:
@@ -595,7 +581,7 @@ def set_hatch_transparency(hatch, transparency):
         hatch.dxf.transparency = colors.float2transparency(ezdxf_transparency)
 
 def add_mtext(msp, text, x, y, layer_name, style_name, text_style=None, name_to_aci=None, max_width=None):
-    log_info(f"Adding MTEXT: text='{text}', x={x}, y={y}, layer='{layer_name}', style='{style_name}', max_width={max_width}")
+    log_debug(f"Adding MTEXT: text='{text}', x={x}, y={y}, layer='{layer_name}', style='{style_name}', max_width={max_width}")
     
     # Create MText editor for advanced paragraph formatting
     editor = MTextEditor()
@@ -671,7 +657,7 @@ def add_mtext(msp, text, x, y, layer_name, style_name, text_style=None, name_to_
             if 'oblique_angle' in text_style:
                 mtext.text = f"\\Q{text_style['oblique_angle']};{mtext.text}"
         
-        log_info("MTEXT added successfully")
+        log_debug("MTEXT added successfully")
         
         # Calculate and return the actual height of the MTEXT entity
         actual_height = mtext.dxf.char_height * mtext.dxf.line_spacing_factor * len(text.split('\n'))
@@ -741,7 +727,7 @@ def load_standard_text_styles(doc):
                 style.dxf.oblique = 0.0  # Default oblique angle
                 style.dxf.last_height = 2.5  # Default last height
                 loaded_styles.add(style_name)
-                log_info(f"Added standard text style: {style_name}")
+                log_debug(f"Added standard text style: {style_name}")
             except ezdxf.lldxf.const.DXFTableEntryError:
                 log_warning(f"Failed to add standard text style: {style_name}")
         else:
@@ -776,7 +762,7 @@ def add_text_insert(msp, text_config, layer_name, project_loader, script_identif
     try:
         # Check update flag
         if not text_config.get('updateDxf', False):
-            log_info(f"Skipping text insert for layer '{layer_name}' as updateDxf flag is not set")
+            log_debug(f"Skipping text insert for layer '{layer_name}' as updateDxf flag is not set")
             return None
 
         # Sanitize layer name
@@ -836,7 +822,7 @@ def add_text_insert(msp, text_config, layer_name, project_loader, script_identif
         # Convert color using get_color_code
         color = get_color_code(style.get('color'), project_loader.name_to_aci)
         
-        log_info(f"Adding MTEXT '{text}' to layer '{layer_name}' at ({x}, {y})")
+        log_debug(f"Adding MTEXT '{text}' to layer '{layer_name}' at ({x}, {y})")
         
         # Use add_mtext with correct attachment point
         result = add_mtext(
@@ -863,7 +849,7 @@ def add_text_insert(msp, text_config, layer_name, project_loader, script_identif
         # Attach custom data
         attach_custom_data(text_entity, script_identifier)
         
-        log_info(f"Successfully added MTEXT '{text}' at position ({x}, {y})")
+        log_debug(f"Successfully added MTEXT '{text}' at position ({x}, {y})")
         return text_entity
         
     except Exception as e:
@@ -909,7 +895,7 @@ def cleanup_document(doc):
                 
             try:
                 doc.blocks.delete_block(block_name)
-                log_info(f"Removed unused block: {block_name}")
+                log_debug(f"Removed unused block: {block_name}")
             except Exception as e:
                 # Only log errors that aren't related to block being in use
                 if "still in use" not in str(e):
@@ -943,7 +929,7 @@ def cleanup_document(doc):
             if not has_entities:
                 try:
                     doc.layers.remove(layer_name)
-                    log_info(f"Removed empty layer: {layer_name}")
+                    log_debug(f"Removed empty layer: {layer_name}")
                 except Exception as e:
                     log_warning(f"Could not remove layer {layer_name}: {str(e)}")
         
@@ -974,7 +960,7 @@ def cleanup_document(doc):
         # Force database update
         doc.entitydb.purge()
         
-        log_info("Document cleanup completed successfully")
+        log_debug("Document cleanup completed successfully")
         
     except Exception as e:
         log_error(f"Error during document cleanup: {str(e)}")

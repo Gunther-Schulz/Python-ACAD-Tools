@@ -1,12 +1,12 @@
 import geopandas as gpd
 import json
 import os
-from src.utils import log_info, log_warning, log_error, resolve_path, ensure_path_exists
+from src.utils import log_info, log_warning, log_error, resolve_path, ensure_path_exists, log_debug
 from src.operations.common_operations import _process_layer_info, ensure_geodataframe
 from src.operations.calculate_operation import create_calculate_layer
 
 def create_report_layer(all_layers, project_settings, crs, layer_name, operation):
-    log_info(f"Creating report for layer: {layer_name}")
+    log_debug(f"Creating report for layer: {layer_name}")
     
     if layer_name not in all_layers:
         log_warning(f"Layer '{layer_name}' not found for reporting")
@@ -103,7 +103,7 @@ def create_report_layer(all_layers, project_settings, crs, layer_name, operation
         try:
             with open(output_file, 'w', encoding='utf-8') as f:
                 json.dump(report, f, indent=2, ensure_ascii=False)
-            log_info(f"Report written to {output_file}")
+            log_debug(f"Report written to {output_file}")
         except Exception as e:
             log_error(f"Error writing report to {output_file}: {str(e)}")
     else:

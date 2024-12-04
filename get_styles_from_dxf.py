@@ -60,4 +60,4 @@ output = {"layers": layers}
 with open("template_styles.yaml", "w", encoding='utf-8') as output_file:
     yaml.dump(output, output_file, default_flow_style=False, sort_keys=False, allow_unicode=True)
 
-print("Layer styles have been written to template_styles.yaml")
+log_info("Layer styles have been written to template_styles.yaml")

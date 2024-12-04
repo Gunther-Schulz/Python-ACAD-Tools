@@ -1,11 +1,11 @@
 import geopandas as gpd
 from shapely.geometry import LineString, MultiLineString, Point, MultiPoint
-from src.utils import log_info, log_warning, log_error
+from src.utils import log_info, log_warning, log_error, log_debug
 from src.operations.common_operations import _process_layer_info, _get_filtered_geometry
 import math
 
 def create_directional_line_layer(all_layers, project_settings, crs, layer_name, operation):
-    log_info(f"Creating directional line layer: {layer_name}")
+    log_debug(f"Creating directional line layer: {layer_name}")
     
     # Get operation parameters
     source_layers = operation.get('layers', [])
@@ -99,7 +99,7 @@ def create_directional_line_layer(all_layers, project_settings, crs, layer_name,
     if result_lines:
         result_gdf = gpd.GeoDataFrame(geometry=result_lines, crs=crs)
         all_layers[layer_name] = result_gdf
-        log_info(f"Created directional line layer: {layer_name} with {len(result_lines)} lines")
+        log_debug(f"Created directional line layer: {layer_name} with {len(result_lines)} lines")
         return result_gdf
     else:
         log_warning(f"No directional lines created for layer: {layer_name}")

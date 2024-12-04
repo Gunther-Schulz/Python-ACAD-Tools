@@ -7,7 +7,7 @@ from shapely.geometry import Polygon, MultiPolygon, LineString, Point
 import pyproj
 import re
 import yaml
-from src.utils import resolve_path, ensure_path_exists, log_warning, log_error
+from src.utils import resolve_path, ensure_path_exists, log_warning, log_error, log_debug, log_info
 
 def polygon_area(polygon):
     """Calculate the area of a polygon."""
@@ -25,7 +25,7 @@ def get_crs_from_dxf(dxf_path):
         return pyproj.CRS.from_epsg(epsg), f"EPSG:{epsg} found in DXF file"
 
     # If not found, return the default EPSG:25833 (ETRS89 / UTM zone 33N)
-    print("Warning: CRS not found in DXF file. Using default EPSG:25833 (ETRS89 / UTM zone 33N).")
+    log_info("CRS not found in DXF file. Using default EPSG:25833 (ETRS89 / UTM zone 33N).")
     return pyproj.CRS.from_epsg(25833), "Default EPSG:25833 (ETRS89 / UTM zone 33N) used"
 
 def write_prj_file(output_path, crs):
@@ -41,10 +41,14 @@ def merge_dxf_layer_to_shapefile(dxf_path, output_folder, layer_name, entities, 
     points = []
     lines = []
     polygons = []
+
+    log_info(f"Processing DXF layer to shapefile {layer_name}")
     
     for entity in entities:
+        log_debug(f"Processing entity: {entity}")
         if isinstance(entity, (LWPolyline, Polyline)):
             points_list = list(entity.vertices())
+            log_debug(f"Entity vertices: {points_list}")
             if len(points_list) >= 2:
                 # Always treat as polygon if entity has closed property set to True
                 if hasattr(entity, 'closed') and entity.closed and len(points_list) >= 3:
@@ -53,6 +57,7 @@ def merge_dxf_layer_to_shapefile(dxf_path, output_folder, layer_name, entities, 
                         if points_list[0] != points_list[-1]:
                             points_list.append(points_list[0])
                         poly = Polygon(points_list)
+                        log_debug(f"Created polygon: {poly}")
                         if poly.is_valid and not poly.is_empty:
                             polygons.append(poly)
                     except Exception as e:
@@ -60,6 +65,7 @@ def merge_dxf_layer_to_shapefile(dxf_path, output_folder, layer_name, entities, 
                 else:
                     try:
                         line = LineString(points_list)
+                        log_debug(f"Created line: {line}")
                         if line.is_valid and not line.is_empty and line.length > 0:
                             lines.append(line)
                     except Exception as e:
@@ -67,14 +73,22 @@ def merge_dxf_layer_to_shapefile(dxf_path, output_folder, layer_name, entities, 
         elif isinstance(entity, (ezdxf.entities.Point)):
             try:
                 point = Point(entity.dxf.location[:2])
+                log_debug(f"Created point: {point}")
                 if point.is_valid and not point.is_empty:
                     points.append(point)
             except Exception as e:
                 log_warning(f"Invalid point in layer {layer_name}: {e}")
 
+    log_debug(f"Total valid points: {len(points)}, lines: {len(lines)}, polygons: {len(polygons)}")
+
+    # Add warning if no valid geometries found
+    if not points and not lines and not polygons:
+        log_warning(f"No valid geometries found in layer {layer_name}. No shapefile will be created.")
+
     # Create appropriate shapefile based on geometry type, only if we have valid geometries
     if points:
         valid_points = [p for p in points if p.is_valid and not p.is_empty]
+        log_debug(f"Valid points: {valid_points}")
         if valid_points:
             shp_path = os.path.join(output_folder, f"{layer_name}.shp")
             with shapefile.Writer(shp_path, shapeType=shapefile.POINT) as shp:
@@ -88,6 +102,7 @@ def merge_dxf_layer_to_shapefile(dxf_path, output_folder, layer_name, entities, 
         
     if lines:
         valid_lines = [l for l in lines if l.is_valid and not l.is_empty and l.length > 0]
+        log_debug(f"Valid lines: {valid_lines}")
         if valid_lines:
             shp_path = os.path.join(output_folder, f"{layer_name}.shp")
             with shapefile.Writer(shp_path, shapeType=shapefile.POLYLINE) as shp:
@@ -101,6 +116,7 @@ def merge_dxf_layer_to_shapefile(dxf_path, output_folder, layer_name, entities, 
 
     if polygons:
         valid_polygons = [p for p in polygons if p.is_valid and not p.is_empty and p.area > 0]
+        log_debug(f"Valid polygons: {valid_polygons}")
         if valid_polygons:
             shp_path = os.path.join(output_folder, f"{layer_name}.shp")
             with shapefile.Writer(shp_path, shapeType=shapefile.POLYGON) as shp:
@@ -113,6 +129,8 @@ def merge_dxf_layer_to_shapefile(dxf_path, output_folder, layer_name, entities, 
         else:
             log_warning(f"No valid polygons found in layer {layer_name}")
 
+    log_info(f"Finished processing DXF layer to shapefile {layer_name}")
+
 def dxf_to_shapefiles(dxf_path, output_folder):
     # Clear the contents of the output folder
     if os.path.exists(output_folder):
@@ -124,7 +142,7 @@ def dxf_to_shapefiles(dxf_path, output_folder):
                 elif os.path.isdir(file_path):
                     os.rmdir(file_path)
             except Exception as e:
-                print(f'Failed to delete {file_path}. Reason: {e}')
+                log_info(f'Failed to delete {file_path}. Reason: {e}')
     else:
         os.makedirs(output_folder)
 
@@ -174,13 +192,13 @@ def dxf_to_shapefiles(dxf_path, output_folder):
             merge_dxf_layer_to_shapefile(dxf_path, output_folder, layer_name, entities, crs)
 
     if error_summary:
-        print("\nError Summary:")
+        log_info("\nError Summary:")
         for layer, count in error_summary.items():
-            print(f"  Layer '{layer}': {count} errors while processing holes")
-        print("These errors are typically due to invalid geometries or topology conflicts")
+            log_info(f"  Layer '{layer}': {count} errors while processing holes")
+        log_info("These errors are typically due to invalid geometries or topology conflicts")
 
-    print(f"\nCRS being used: {crs}")
-    print(f"CRS source: {crs_source}")
+    log_info(f"\nCRS being used: {crs}")
+    log_info(f"CRS source: {crs_source}")
 
 def load_project_config(project_name):
     project_file = os.path.join('projects', f'{project_name}.yaml')
@@ -214,11 +232,11 @@ def main():
                 
             dxf_to_shapefiles(dxf_filename, dump_output_dir)
         else:
-            print(f"Error: Project '{args.project_name}' not found in projects.yaml")
+            log_info(f"Error: Project '{args.project_name}' not found in projects.yaml")
     elif args.dxf_file and args.output_folder:
         dxf_to_shapefiles(args.dxf_file, args.output_folder)
     else:
-        print("Error: Please provide either a project name or both DXF file and output folder.")
+        log_info("Error: Please provide either a project name or both DXF file and output folder.")
 
 if __name__ == "__main__":
     main()

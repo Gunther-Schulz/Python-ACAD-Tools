@@ -1,11 +1,11 @@
 import geopandas as gpd
 from shapely.ops import unary_union
-from src.utils import log_info, log_warning
+from src.utils import log_info, log_warning, log_debug
 from src.operations.common_operations import format_operation_warning, explode_to_singlepart, apply_buffer_trick, make_valid_geometry, _merge_close_vertices, snap_vertices_to_grid
 import pandas as pd
 
 def create_dissolved_layer(all_layers, project_settings, crs, layer_name, operation):
-    log_info(f"Creating dissolved layer: {layer_name}")
+    log_debug(f"Creating dissolved layer: {layer_name}")
     source_layers = operation.get('layers', [layer_name])
     dissolve_field = operation.get('dissolveField')
     buffer_distance = operation.get('bufferDistance', 0.01)
@@ -101,6 +101,6 @@ def create_dissolved_layer(all_layers, project_settings, crs, layer_name, operat
         all_layers[layer_name] = gpd.GeoDataFrame(geometry=[], crs=crs)
     else:
         all_layers[layer_name] = dissolved.set_crs(crs)
-        log_info(f"Created dissolved layer: {layer_name} with {len(dissolved)} features")
+        log_debug(f"Created dissolved layer: {layer_name} with {len(dissolved)} features")
 
     return all_layers[layer_name]

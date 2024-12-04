@@ -1,10 +1,10 @@
 import geopandas as gpd
 from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection
-from src.utils import log_info, log_warning, log_error
+from src.utils import log_info, log_warning, log_error, log_debug
 from src.operations.common_operations import _process_layer_info, _get_filtered_geometry, explode_to_singlepart
 
 def create_filtered_geometry_layer(all_layers, project_settings, crs, layer_name, operation):
-    log_info(f"Creating filtered geometry layer: {layer_name}")
+    log_debug(f"Creating filtered geometry layer: {layer_name}")
     
     # Get the input layer
     input_gdf = all_layers[layer_name].copy()
@@ -26,7 +26,7 @@ def create_filtered_geometry_layer(all_layers, project_settings, crs, layer_name
     
     if not result_gdf.empty:
         all_layers[layer_name] = result_gdf
-        log_info(f"Created filtered geometry layer '{layer_name}' with {len(result_gdf)} geometries")
+        log_debug(f"Created filtered geometry layer '{layer_name}' with {len(result_gdf)} geometries")
     else:
         log_warning(f"No geometries passed the filter for layer '{layer_name}'")
         all_layers[layer_name] = gpd.GeoDataFrame(geometry=[], crs=crs)

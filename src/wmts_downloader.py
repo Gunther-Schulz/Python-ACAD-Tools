@@ -4,7 +4,7 @@ import os
 import math
 import time
 import mimetypes
-from src.utils import log_info, log_warning, log_error
+from src.utils import log_info, log_warning, log_error, log_debug
 from PIL import Image, ImageOps
 from io import BytesIO
 from collections import defaultdict
@@ -23,7 +23,7 @@ def color_distance(c1, c2):
     return np.sqrt(np.sum((c1 - c2) ** 2))
  
 def remove_geobasis_text(img):
-    log_info("Attempting to remove GeoBasis-DE/MV text using EasyOCR")
+    log_debug("Attempting to remove GeoBasis-DE/MV text using EasyOCR")
     
     # Convert PIL Image to OpenCV format
     cv_img = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
@@ -40,7 +40,7 @@ def remove_geobasis_text(img):
     
     texts_to_remove = []
     for (bbox, text, prob) in results:
-        log_info(f"EasyOCR detected text: {text} (confidence: {prob})")
+        log_debug(f"EasyOCR detected text: {text} (confidence: {prob})")
         texts_to_remove.append(text)
         (top_left, top_right, bottom_right, bottom_left) = bbox
         x = int(min(top_left[0], bottom_left[0]))
@@ -52,9 +52,9 @@ def remove_geobasis_text(img):
     
     # Print the texts that will be removed
     if texts_to_remove:
-        log_info(f"The following text will be removed: {', '.join(texts_to_remove)}")
+        log_debug(f"The following text will be removed: {', '.join(texts_to_remove)}")
     else:
-        log_info("No text detected for removal")
+        log_debug("No text detected for removal")
     
     # Convert back to PIL Image
     return Image.fromarray(cv2.cvtColor(cv_img, cv2.COLOR_BGR2RGB))
@@ -180,7 +180,7 @@ def write_world_file(file_name, extension, col, row, matrix, zoom_folder) -> str
     return world_file_path
 
 def download_wmts_tiles(wmts_info: dict, geltungsbereich, buffer_distance: float, target_folder: str, overwrite: bool = False) -> list:
-    print(f"Starting WMTS download to target folder: {target_folder}")
+    log_info(f"Starting WMTS download to target folder: {target_folder}")
     capabilities_url = wmts_info['url']
     wmts = WebMapTileService(capabilities_url)
     layer_id = wmts_info['layer']
@@ -206,9 +206,9 @@ def download_wmts_tiles(wmts_info: dict, geltungsbereich, buffer_distance: float
         wmts = WebMapTileService(capabilities_url)
 
         layer = wmts.contents[layer_id]
-        log_info(f"Available tile matrix sets:")
+        log_debug(f"Available tile matrix sets:")
         for tms in wmts.contents[layer_id].tilematrixsetlinks.keys():
-            print(f"  • {tms}")
+            log_info(f"  • {tms}")
 
         if proj not in layer.tilematrixsetlinks:
             raise ValueError(
@@ -217,7 +217,7 @@ def download_wmts_tiles(wmts_info: dict, geltungsbereich, buffer_distance: float
         tile_matrix_set = layer.tilematrixsetlinks[proj]
 
         tile_matrix = wmts.tilematrixsets[proj].tilematrix
-        log_info(f"Available zoom levels: {', '.join(tile_matrix.keys())}")
+        log_debug(f"Available zoom levels: {', '.join(tile_matrix.keys())}")
 
         if str(zoom) not in tile_matrix:
             raise ValueError(
@@ -237,15 +237,15 @@ def download_wmts_tiles(wmts_info: dict, geltungsbereich, buffer_distance: float
             min_col = 0
             max_col = tile_matrix_zoom.matrixwidth
 
-        print(
+        log_info(
             f"Tile matrix limits - Min row: {min_row}, Max row: {max_row}, Min col: {min_col}, Max col: {max_col}")
 
         min_col, max_col, min_row, max_row = filter_row_cols_by_bbox(
             tile_matrix_zoom, bbox)
 
-        log_info(f"Starting download_wmts_tiles with overwrite={overwrite}")
-        log_info(f"Target folder: {target_folder}")
-        log_info(f"Requested format: {wmts_info.get('format', 'image/png')}")
+        log_debug(f"Starting download_wmts_tiles with overwrite={overwrite}")
+        log_debug(f"Target folder: {target_folder}")
+        log_debug(f"Requested format: {wmts_info.get('format', 'image/png')}")
 
         for row in range(min_row, max_row):
             for col in range(min_col, max_col):
@@ -278,7 +278,7 @@ def download_wmts_tiles(wmts_info: dict, geltungsbereich, buffer_distance: float
                 download_count += 1
 
                 if limit_requests and download_count >= limit_requests:
-                    print(f"Reached download limit of {limit_requests}")
+                    log_info(f"Reached download limit of {limit_requests}")
                     break
 
                 if sleep:
@@ -288,20 +288,20 @@ def download_wmts_tiles(wmts_info: dict, geltungsbereich, buffer_distance: float
             break
 
     except Exception as e:
-        print(f'Error: {e}')
+        log_info(f'Error: {e}')
 
-    log_info(f"Total tiles processed: {download_count + skip_count}")
-    log_info(f"Tiles downloaded: {download_count}")
-    log_info(f"Tiles skipped (already exist): {skip_count}")
+    log_debug(f"Total tiles processed: {download_count + skip_count}")
+    log_debug(f"Tiles downloaded: {download_count}")
+    log_debug(f"Tiles skipped (already exist): {skip_count}")
 
     return downloaded_tiles
 
 def download_wms_tiles(wms_info: dict, geltungsbereich, buffer_distance: float, target_folder: str, overwrite: bool = False) -> list:
-    print(f"Starting WMS download to target folder: {target_folder}")
-    log_info(f"WMS URL: {wms_info['url']}")
-    log_info(f"Layer: {wms_info['layer']}")
-    log_info(f"Target folder: {target_folder}")
-    log_info(f"Overwrite: {overwrite}")
+    log_info(f"Starting WMS download to target folder: {target_folder}")
+    log_debug(f"WMS URL: {wms_info['url']}")
+    log_debug(f"Layer: {wms_info['layer']}")
+    log_debug(f"Target folder: {target_folder}")
+    log_debug(f"Overwrite: {overwrite}")
 
     capabilities_url = wms_info['url']
     try:
@@ -310,9 +310,9 @@ def download_wms_tiles(wms_info: dict, geltungsbereich, buffer_distance: float, 
         log_error(f"Failed to connect to WMS service: {str(e)}")
         return []
 
-    print("Available layers from WMS endpoint:")
+    log_info("Available layers from WMS endpoint:")
     for layer_name, layer in wms.contents.items():
-        print(f"  • {layer_name}: {layer.title}")
+        log_info(f"  • {layer_name}: {layer.title}")
 
     layer_id = wms_info['layer']
     if layer_id not in wms.contents:
@@ -335,7 +335,7 @@ def download_wms_tiles(wms_info: dict, geltungsbereich, buffer_distance: float, 
     remove_text = post_process.get('removeText', False)
     retain_if_color_present = post_process.get('retainIfColorPresent')  # Updated name
 
-    log_info(f"Post-processing config: color_map={color_map}, alpha_color={alpha_color}, tolerance={tolerance}, grayscale={grayscale}, remove_text={remove_text}, retain_if_color_present={retain_if_color_present}")
+    log_debug(f"Post-processing config: color_map={color_map}, alpha_color={alpha_color}, tolerance={tolerance}, grayscale={grayscale}, remove_text={remove_text}, retain_if_color_present={retain_if_color_present}")
 
     geltungsbereich_buffered = geltungsbereich.buffer(buffer_distance)
     minx, miny, maxx, maxy = geltungsbereich_buffered.bounds
@@ -344,7 +344,7 @@ def download_wms_tiles(wms_info: dict, geltungsbereich, buffer_distance: float, 
     cols = math.ceil((maxx - minx) / tile_width)
     rows = math.ceil((maxy - miny) / tile_height)
 
-    log_info(f"Downloading {rows}x{cols} tiles with size {tile_width}x{tile_height}")
+    log_debug(f"Downloading {rows}x{cols} tiles with size {tile_width}x{tile_height}")
 
     downloaded_tiles = []
     download_count = 0
@@ -396,22 +396,22 @@ def download_wms_tiles(wms_info: dict, geltungsbereich, buffer_distance: float, 
 
                 downloaded_tiles.append((image_path, world_file_path))
                 download_count += 1
-                log_info(f"Downloaded and processed tile {download_count}: {file_name}")
+                log_debug(f"Downloaded and processed tile {download_count}: {file_name}")
 
             except Exception as e:
                 log_error(f"Failed to download or process tile {file_name}: {str(e)}")
                 log_error(f"Traceback: {traceback.format_exc()}")
 
             if limit_requests and download_count >= limit_requests:
-                log_info(f"Reached download limit of {limit_requests}")
+                log_debug(f"Reached download limit of {limit_requests}")
                 return downloaded_tiles
 
             if sleep:
                 time.sleep(sleep)
 
-    log_info(f"Total WMS tiles processed: {download_count + skip_count}")
-    log_info(f"WMS tiles downloaded: {download_count}")
-    log_info(f"WMS tiles skipped (already exist): {skip_count}")
+    log_debug(f"Total WMS tiles processed: {download_count + skip_count}")
+    log_debug(f"WMS tiles downloaded: {download_count}")
+    log_debug(f"WMS tiles skipped (already exist): {skip_count}")
     return downloaded_tiles
 
 def stitch_tiles(tiles, tile_matrix):
@@ -484,10 +484,10 @@ def stitch_tiles(tiles, tile_matrix):
     return stitched_image, world_file_content
 
 def process_and_stitch_tiles(wmts_info: dict, downloaded_tiles: list, tile_matrix_zoom, zoom_folder: str, layer_name: str) -> list:
-    log_info(f"Stitching tiles for layer: {layer_name}")
+    log_debug(f"Stitching tiles for layer: {layer_name}")
     
     if not downloaded_tiles:
-        log_info(f"No tiles to stitch for layer {layer_name}")
+        log_debug(f"No tiles to stitch for layer {layer_name}")
         return []
     
     stitched_image, world_file_content = stitch_tiles(downloaded_tiles, tile_matrix_zoom)
@@ -500,14 +500,14 @@ def process_and_stitch_tiles(wmts_info: dict, downloaded_tiles: list, tile_matri
     should_overwrite = wmts_info.get('overwrite', False)
     
     if files_exist and not should_overwrite:
-        log_info(f"Stitched image already exists and overwrite is not enabled: {stitched_image_path}")
+        log_debug(f"Stitched image already exists and overwrite is not enabled: {stitched_image_path}")
         return [(stitched_image_path, world_file_path)]
     
     stitched_image.save(stitched_image_path)
-    log_info(f"Saved stitched image: {stitched_image_path}")
+    log_debug(f"Saved stitched image: {stitched_image_path}")
     with open(world_file_path, 'w') as f:
         f.write(world_file_content)
-    log_info(f"Saved world file: {world_file_path}")
+    log_debug(f"Saved world file: {world_file_path}")
     
     return [(stitched_image_path, world_file_path)]
 

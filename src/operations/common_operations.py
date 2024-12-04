@@ -21,11 +21,10 @@ from src.project_loader import ProjectLoader
 from shapely.ops import unary_union, linemerge
 import geopandas as gpd
 from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection
-from src.utils import log_info, log_warning
 import matplotlib.pyplot as plt
 import geopandas as gpd
 from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection
-from src.utils import log_info, log_warning, log_error
+from src.utils import log_info, log_warning, log_error, log_debug
 
 
 
@@ -35,13 +34,13 @@ def _get_filtered_geometry(all_layers, project_settings, crs, layer_name, values
             return None
 
         source_gdf = all_layers[layer_name]
-        log_info(f"Initial number of geometries in {layer_name}: {len(source_gdf)}")
+        log_debug(f"Initial number of geometries in {layer_name}: {len(source_gdf)}")
 
         if values:
             label_column = next((l['label'] for l in project_settings['geomLayers'] if l['name'] == layer_name), None)
             if label_column and label_column in source_gdf.columns:
                 filtered_gdf = source_gdf[source_gdf[label_column].astype(str).isin(values)].copy()
-                log_info(f"Number of geometries after filtering by values: {len(filtered_gdf)}")
+                log_debug(f"Number of geometries after filtering by values: {len(filtered_gdf)}")
             else:
                 log_warning(f"Label column '{label_column}' not found in layer '{layer_name}'")
                 return None
@@ -81,7 +80,7 @@ def _get_filtered_geometry(all_layers, project_settings, crs, layer_name, values
             plt.savefig(f"invalid_geometries_{layer_name}.png", dpi=300)
             plt.close()
 
-            log_info(f"Plot saved as invalid_geometries_{layer_name}.png")
+            log_debug(f"Plot saved as invalid_geometries_{layer_name}.png")
 
         # Attempt to fix invalid geometries
         def fix_geometry(geom):
@@ -103,7 +102,7 @@ def _get_filtered_geometry(all_layers, project_settings, crs, layer_name, values
 
         filtered_gdf['geometry'] = filtered_gdf['geometry'].apply(fix_geometry)
         filtered_gdf = filtered_gdf[filtered_gdf['geometry'].notna()]
-        log_info(f"Number of valid geometries after fixing: {len(filtered_gdf)}")
+        log_debug(f"Number of valid geometries after fixing: {len(filtered_gdf)}")
 
         if filtered_gdf.empty:
             log_warning(f"No valid geometries found for layer '{layer_name}'")
@@ -111,7 +110,7 @@ def _get_filtered_geometry(all_layers, project_settings, crs, layer_name, values
 
         try:
             union_result = unary_union(filtered_gdf.geometry.tolist())
-            log_info(f"Unary union result type for {layer_name}: {type(union_result)}")
+            log_debug(f"Unary union result type for {layer_name}: {type(union_result)}")
             return union_result
         except Exception as e:
             log_error(f"Error performing unary_union on filtered geometries: {e}")
@@ -150,24 +149,24 @@ def ensure_geodataframe(all_layers, project_settings, crs, layer_name, geometry)
 
 def standardize_layer_crs(all_layers, project_settings, crs, layer_name, geometry_or_gdf):
         target_crs = crs
-        log_info(f"Standardizing CRS for layer: {layer_name}")
+        log_debug(f"Standardizing CRS for layer: {layer_name}")
 
         if isinstance(geometry_or_gdf, gpd.GeoDataFrame):
-            log_info(f"Original CRS: {geometry_or_gdf.crs}")
+            log_debug(f"Original CRS: {geometry_or_gdf.crs}")
             if geometry_or_gdf.crs is None:
                 log_warning(f"Layer {layer_name} has no CRS. Setting to target CRS: {target_crs}")
                 geometry_or_gdf.set_crs(target_crs, inplace=True)
             elif geometry_or_gdf.crs != target_crs:
-                log_info(f"Transforming layer {layer_name} from {geometry_or_gdf.crs} to {target_crs}")
+                log_debug(f"Transforming layer {layer_name} from {geometry_or_gdf.crs} to {target_crs}")
                 geometry_or_gdf = geometry_or_gdf.to_crs(target_crs)
-            log_info(f"Final CRS for layer {layer_name}: {geometry_or_gdf.crs}")
+            log_debug(f"Final CRS for layer {layer_name}: {geometry_or_gdf.crs}")
             return geometry_or_gdf
         elif isinstance(geometry_or_gdf, gpd.GeoSeries):
             return standardize_layer_crs(layer_name, gpd.GeoDataFrame(geometry=geometry_or_gdf))
         elif isinstance(geometry_or_gdf, (Polygon, MultiPolygon, LineString, MultiLineString)):
-            log_info(f"Processing individual geometry for layer: {layer_name}")
+            log_debug(f"Processing individual geometry for layer: {layer_name}")
             gdf = gpd.GeoDataFrame(geometry=[geometry_or_gdf], crs=target_crs)
-            log_info(f"Created GeoDataFrame with CRS: {gdf.crs}")
+            log_debug(f"Created GeoDataFrame with CRS: {gdf.crs}")
             return gdf.geometry.iloc[0]
         else:
             log_warning(f"Unsupported type for layer {layer_name}: {type(geometry_or_gdf)}")
@@ -179,7 +178,7 @@ def plot_operation_result(all_layers, project_settings, crs, layer_name, op_type
         if isinstance(result, gpd.GeoDataFrame):
             result.plot(ax=plt.gca())
         elif isinstance(result, list):  # For WMTS tiles
-            log_info(f"WMTS layer {layer_name} cannot be plotted directly.")
+            log_debug(f"WMTS layer {layer_name} cannot be plotted directly.")
             return
         else:
             gpd.GeoSeries([result]).plot(ax=plt.gca())
@@ -242,7 +241,7 @@ def _clean_polygon(all_layers, project_settings, crs, polygon, sliver_removal_di
             return polygon
 
         if cleaned_polygon.area < min_area:
-            log_info(f"Polygon area ({cleaned_polygon.area}) is below minimum ({min_area}). Removing.")
+            log_debug(f"Polygon area ({cleaned_polygon.area}) is below minimum ({min_area}). Removing.")
             return None
 
         return cleaned_polygon
@@ -356,8 +355,8 @@ def _remove_empty_geometries(all_layers, project_settings, crs, layer_name, geom
             return None
 
 def _create_generic_overlay_layer(all_layers, project_settings, crs, layer_name, operation, overlay_type):
-        log_info(f"Creating {overlay_type} layer: {layer_name}")
-        log_info(f"Operation details: {operation}")
+        log_debug(f"Creating {overlay_type} layer: {layer_name}")
+        log_debug(f"Operation details: {operation}")
         
         overlay_layers = operation.get('layers', [])
         
@@ -401,7 +400,7 @@ def _create_generic_overlay_layer(all_layers, project_settings, crs, layer_name,
             # Apply a series of cleaning operations
             result_geometry = _clean_geometry(result_geometry)
             
-            log_info(f"Applied {overlay_type} operation and cleaned up results")
+            log_debug(f"Applied {overlay_type} operation and cleaned up results")
         except Exception as e:
             log_error(f"Error during {overlay_type} operation: {str(e)}")
             import traceback
@@ -416,12 +415,12 @@ def _create_generic_overlay_layer(all_layers, project_settings, crs, layer_name,
             # Create a new GeoDataFrame with the resulting geometries
             result_gdf = gpd.GeoDataFrame(geometry=result_geometry, crs=base_geometry.crs)
             all_layers[layer_name] = result_gdf
-            log_info(f"Created {overlay_type} layer: {layer_name} with {len(result_geometry)} geometries")
+            log_debug(f"Created {overlay_type} layer: {layer_name} with {len(result_geometry)} geometries")
 
 
 def remove_non_polygons(geometry):
     """Removes non-polygon elements from a geometry."""
-    log_info("Removing non-polygon elements")
+    log_debug("Removing non-polygon elements")
     if isinstance(geometry, GeometryCollection):
         return GeometryCollection([geom for geom in geometry.geoms if isinstance(geom, (Polygon, MultiPolygon))])
     elif isinstance(geometry, (Polygon, MultiPolygon)):
@@ -432,7 +431,7 @@ def remove_non_polygons(geometry):
 
 def clean_polygons(geometry):
     """Cleans polygon geometries."""
-    log_info("Cleaning polygon geometries")
+    log_debug("Cleaning polygon geometries")
     if isinstance(geometry, GeometryCollection):
         cleaned = [_clean_geometry(geom) for geom in geometry.geoms if isinstance(geom, (Polygon, MultiPolygon))]
     else:
@@ -441,23 +440,23 @@ def clean_polygons(geometry):
 
 def remove_thin_growths(geometry, threshold):
     """Removes thin growths from a geometry."""
-    log_info(f"Removing thin growths with threshold: {threshold}")
+    log_debug(f"Removing thin growths with threshold: {threshold}")
     return _remove_thin_growths(geometry, threshold)
 
 def merge_close_vertices(geometry, tolerance):
     """Merges close vertices in a geometry."""
-    log_info(f"Merging close vertices with tolerance: {tolerance}")
+    log_debug(f"Merging close vertices with tolerance: {tolerance}")
     return _merge_close_vertices(geometry, tolerance)
 
 def apply_buffer_trick(geometry, buffer_distance):
     """Applies the buffer trick to a geometry using mitre join style for sharper corners."""
-    log_info(f"Applying buffer trick with distance: {buffer_distance}")
+    log_debug(f"Applying buffer trick with distance: {buffer_distance}")
     buffered = geometry.buffer(buffer_distance, join_style=2)  # 2 = mitre
     return buffered.buffer(-buffer_distance, join_style=2)  # 2 = mitre
 
 def final_union(geometries):
     """Performs a final unary union on a list of geometries."""
-    log_info("Performing final unary union")
+    log_debug("Performing final unary union")
     return unary_union(geometries)
 
 def explode_to_singlepart(geometry_or_gdf):
@@ -470,7 +469,7 @@ def explode_to_singlepart(geometry_or_gdf):
     Returns:
     A GeoDataFrame with singlepart geometries
     """
-    log_info("Exploding multipart geometries to singlepart")
+    log_debug("Exploding multipart geometries to singlepart")
     
     if isinstance(geometry_or_gdf, gpd.GeoDataFrame):
         exploded = geometry_or_gdf.explode(index_parts=True)
@@ -491,7 +490,7 @@ def explode_to_singlepart(geometry_or_gdf):
             else:
                 exploded = exploded.append(gpd.GeoDataFrame(geometry=[geom]))
     
-    log_info(f"Exploded {len(geometry_or_gdf) if isinstance(geometry_or_gdf, gpd.GeoDataFrame) else 1} "
+    log_debug(f"Exploded {len(geometry_or_gdf) if isinstance(geometry_or_gdf, gpd.GeoDataFrame) else 1} "
              f"multipart geometries into {len(exploded)} singlepart geometries")
     return exploded
 
@@ -508,7 +507,7 @@ def remove_geometry_types(geometry_or_gdf, remove_lines=False, remove_points=Fal
     Returns:
     A GeoDataFrame or GeoSeries with the specified geometry types and empty geometries removed
     """
-    log_info(f"Removing geometry types - Lines: {remove_lines}, Points: {remove_points}, Polygons: {remove_polygons}")
+    log_debug(f"Removing geometry types - Lines: {remove_lines}, Points: {remove_points}, Polygons: {remove_polygons}")
     
     def filter_geometry(geom):
         if geom is None or geom.is_empty:
@@ -534,12 +533,12 @@ def remove_geometry_types(geometry_or_gdf, remove_lines=False, remove_points=Fal
         filtered_gdf = geometry_or_gdf.copy()
         filtered_gdf['geometry'] = filtered_gdf['geometry'].apply(filter_geometry)
         filtered_gdf = filtered_gdf[filtered_gdf['geometry'].notna() & ~filtered_gdf['geometry'].is_empty]
-        log_info(f"Removed geometries: {len(geometry_or_gdf) - len(filtered_gdf)}")
+        log_debug(f"Removed geometries: {len(geometry_or_gdf) - len(filtered_gdf)}")
         return filtered_gdf
     elif isinstance(geometry_or_gdf, (gpd.GeoSeries, pd.Series)):
         filtered_series = geometry_or_gdf.apply(filter_geometry)
         filtered_series = filtered_series[filtered_series.notna() & ~filtered_series.is_empty]
-        log_info(f"Removed geometries: {len(geometry_or_gdf) - len(filtered_series)}")
+        log_debug(f"Removed geometries: {len(geometry_or_gdf) - len(filtered_series)}")
         return filtered_series
     else:
         filtered_geom = filter_geometry(geometry_or_gdf)
@@ -599,19 +598,19 @@ def remove_islands(geometry, preserve=False):
     - preserveIslands (preserve=True): keep holes (they'll be buffered with distance 0)
     """
     if geometry is None or geometry.is_empty:
-        log_warning("remove_islands: Input geometry is None or empty")
+        log_debug("remove_islands: Input geometry is None or empty")
         return None
 
-    log_warning(f"remove_islands: Input geometry type: {geometry.geom_type}")
+    log_debug(f"remove_islands: Input geometry type: {geometry.geom_type}")
     
     def process_polygon(poly):
         # If the polygon has no holes/interiors, keep it as is
         if not poly.interiors:
-            log_warning(f"remove_islands: Polygon has no holes, keeping as is")
+            log_debug(f"remove_islands: Polygon has no holes, keeping as is")
             return poly
             
         # If it has holes (from the ditch difference)
-        log_warning(f"remove_islands: Found polygon with {len(poly.interiors)} holes")
+        log_debug(f"remove_islands: Found polygon with {len(poly.interiors)} holes")
         
         if preserve:
             # For preserveIslands, return the whole polygon (with holes) to be buffered

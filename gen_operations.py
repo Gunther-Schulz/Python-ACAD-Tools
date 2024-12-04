@@ -5,10 +5,10 @@ import shutil
 def remove_existing_files():
     if os.path.exists('src/layer_processor.py'):
         os.remove('src/layer_processor.py')
-        print("Removed existing layer_processor.py")
+        log_info("Removed existing layer_processor.py")
     if os.path.exists('src/operations'):
         shutil.rmtree('src/operations')
-        print("Removed existing operations directory")
+        log_info("Removed existing operations directory")
 
 def create_directory_structure():
     os.makedirs('src/operations', exist_ok=True)
@@ -183,7 +183,7 @@ def main():
     layer_processor_content = add_imports(layer_processor_content, 'layer_processor.py')
     create_file('src/layer_processor.py', layer_processor_content)
 
-    print("Files and directories created successfully!")
+    log_info("Files and directories created successfully!")
 
 if __name__ == "__main__":
     main()
