@@ -100,9 +100,10 @@ class ProjectLoader:
         if os.path.exists(dxf_operations_path):
             with open(dxf_operations_path, 'r', encoding='utf-8') as f:
                 dxf_operations_settings = yaml.safe_load(f)
-                if dxf_operations_settings:
-                    self.project_settings['dxfOperations'] = dxf_operations_settings
-                    log_debug(f"Loaded DXF operations settings from {dxf_operations_path}")
+                if dxf_operations_settings and 'dxfOperations' in dxf_operations_settings:
+                    self.project_settings['dxfOperations'] = dxf_operations_settings['dxfOperations']
+                    log_debug(f"Loaded DXF operations: {len(dxf_operations_settings['dxfOperations'].get('extracts', []))} extracts, "
+                             f"{len(dxf_operations_settings['dxfOperations'].get('transfers', []))} transfers")
 
     def load_color_mapping(self):
         """Load color mapping from aci_colors.yaml"""

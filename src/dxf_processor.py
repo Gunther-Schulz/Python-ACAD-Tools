@@ -8,6 +8,7 @@ import geopandas as gpd
 from shapely.geometry import LineString, Point, Polygon, MultiPolygon
 import math
 import numpy as np
+from src.shapefile_utils import write_shapefile
 
 class DXFProcessor:
     def __init__(self, project_loader):
@@ -422,7 +423,7 @@ class DXFProcessor:
                 
                 if geometries:
                     gdf = gpd.GeoDataFrame(geometry=geometries, data=attributes, crs=self.crs)
-                    if gdf.to_file(full_output_path):
+                    if write_shapefile(gdf, full_output_path):
                         log_debug(f"Successfully saved {len(geometries)} features")
                     else:
                         log_error(f"Failed to write {len(geometries)} features")
