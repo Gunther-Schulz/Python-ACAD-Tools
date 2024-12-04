@@ -1,9 +1,11 @@
 geomLayers:
+- name: Zuwegung Weg
+  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/zuwegung_weg.shp"
 - name: Gas_HD_LEIT
   updateDxf: true
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/gas_edit_ln.shp"
 - name: Gas_HD_LEIT Buffer
-  updateDxf: true
+  # updateDxf: true
   operations:
     - type: buffer
       layers:
@@ -58,8 +60,18 @@ geomLayers:
       distance: 2
       capStyle: flat
       joinStyle: flat
-- name: Leitung Buffer
-  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/leitung_buffer.shp"
+- name: Stromkabel-MS_unterirdisch_LEIT
+  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/stromkabel_ms_unterirdisch_ln.shp"
+- name: Stromkabel-MS_unterirdisch_LEIT Buffer
+  operations:
+    - type: buffer
+      layers:
+        - Stromkabel-MS_unterirdisch_LEIT
+      distance: 2
+      capStyle: flat
+      joinStyle: flat
+# - name: Leitung Buffer
+#   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/leitung_buffer.shp"
 - name: Parcel
   label: label
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/parcel.shp"
@@ -72,10 +84,35 @@ geomLayers:
 - name: Gemeinde
   label: gen
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/gemeinde.shp"
+- name: Geltungsbereich Input
+  # updateDxf: true
+  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/geltungsbereich_pl.shp"
+- name: Exclude
+  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/exclude.shp"
+- name: Exclude 2
+  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/exclude2.shp"
+- name: Exclude 3
+  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/exclude_3.shp"
+- name: Exclude Bahn
+  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/exclude_bahn.shp"
+- name: Exclude Allee
+  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/exclude_allee.shp"
 - name: Geltungsbereich
   updateDxf: true
-  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/geltungsbereich_pl.shp"
   operations:
+    - type: dissolve
+      layers:
+        - Geltungsbereich Input
+    #     - Zuwegung Weg
+    - type: difference
+      reverseDifference: false
+      layers:
+        - Exclude
+        - Exclude 2
+        - Exclude 3
+        - Exclude Bahn
+        - Exclude Allee
+    - type: dissolve
     - type: calculate
       calculations:
         - type: area
@@ -120,8 +157,10 @@ geomLayers:
         area: 0
 - name: Grünfläche Input from source
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/grünfläche_input_from_source_pl.shp"
-- name: Grünfläche Input
-  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/grünfläche_input.shp"
+# - name: Grünfläche Input
+#   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/grünfläche_input.shp"
+- name: Baum_Laubbaum Envelope
+  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/Baum_Laubbaum Envelope.shp"
 - name: Moor
   # updateDxf: true
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/moor.shp"
@@ -139,7 +178,8 @@ geomLayers:
     - type: copy
       layers:
         - "Grünfläche Input from source"
-        - "Grünfläche Input"
+        # - "Grünfläche Input"
+        # - Baum_Laubbaum Envelope
         - Moor
         - "ges gesch Biotope"
         - "Gas_HD_LEIT Buffer"
@@ -148,6 +188,10 @@ geomLayers:
       layers:
         - Geltungsbereich
     - type: dissolve
+    - type: filterGeometry
+      minArea: 100
+      geometryTypes:
+        - Polygon
     - type: difference
       reverseDifference: false
       layers:
@@ -161,7 +205,8 @@ geomLayers:
     - type: buffer
       layers:
         - Grünfläche
-      distance: -3
+      # distance: -3
+      distance: -1
       joinStyle: round
       # skipIslands: true
       preserveIslands: true
@@ -238,9 +283,10 @@ geomLayers:
       reverseDifference: false
       layers:
         - Str-Leitungsabschnitt-NS Buffer
-        - Leitung Buffer
+        # - Leitung Buffer
+        - Stromkabel-MS_unterirdisch_LEIT Buffer
         - Baum_Laubbaum Envelope
-    - type: buffer
-      distance: -6
-    - type: buffer
-      distance: 6
+    # - type: buffer
+    #   distance: -6
+    # - type: buffer
+    #   distance: 6

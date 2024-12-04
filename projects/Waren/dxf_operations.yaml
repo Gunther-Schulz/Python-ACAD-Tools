@@ -1,29 +1,48 @@
-dxfOperations:
-  extracts:
-    - name: Str-Leitungsabschnitt-NS
-      sourceLayer: "Str-Leitungsabschnitt-NS"
-      outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/str_leitungsabschnitt_ns.shp"
-    - sourceLayer: "Graben"
-      outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/graben.shp"
-    - sourceLayer: "Grünfläche"
-      outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/grünfläche_input_from_source.shp"
-    - sourceLayer: "Geltungsbereich"
-      outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/geltungsbereich.shp"
-    - sourceLayer: "T--Baum_Laubbaum"
-      outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/baum_laubbaum.shp"
-      sourceDxf: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/Zeichnung/PV Waren_Entwurfsvermessung_2024-04-07_VB_Haff_arbeits_edit_PBS.dxf"
-      preprocessors: 
-        - "block_exploder"
-        - "circle_extractor"
-    - sourceLayer: "L--Gas-HD_LEIT"
-      outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/gas_edit.shp"
-      sourceDxf: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/Grundlagen/PV Waren_Entwurfsvermessung_2024-11-29_VB_Haff-24-12-03.dxf"
+# dxfOperations:
+#   extracts:
+#     - name: Str-Leitungsabschnitt-NS
+#       sourceLayer: "Str-Leitungsabschnitt-NS"
+#       outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/str_leitungsabschnitt_ns.shp"
+#       sourceDxf: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/Grundlagen/Stadtwerke/24 12.02/2024-12-02 sww mwazv warenshof gegenüber dorfstraße 67.dxf"
+#     - sourceLayer: "Graben"
+#       outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/graben.shp"
+#     - sourceLayer: "Grünfläche"
+#       outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/grünfläche_input_from_source.shp"
+#     - sourceLayer: "Geltungsbereich"
+#       outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/geltungsbereich.shp"
+#     - sourceLayer: "T--Baum_Laubbaum"
+#       outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/baum_laubbaum.shp"
+#       sourceDxf: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/Zeichnung/PV Waren_Entwurfsvermessung_2024-04-07_VB_Haff_arbeits_edit_PBS.dxf"
+#       preprocessors: 
+#         - "block_exploder"
+#         - "circle_extractor"
+#     - sourceLayer: "L--Gas-HD_LEIT"
+#       outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/gas_edit.shp"
+#       sourceDxf: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/Grundlagen/PV Waren_Entwurfsvermessung_2024-11-29_VB_Haff-24-12-03.dxf"
+    # - sourceLayer: "08 Hilfslinie"
+    #   outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/maxsolar_08_hilfslinie.shp"
+    #   sourceDxf: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/Grundlagen/20241125_GM_Waren I_bereinigt.dxf"
+    # - sourceLayer: "08 Bestand Mittelspannung"
+    #   outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/maxsolar_08_bestand_mittelspannung.shp"
+    #   sourceDxf: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/Grundlagen/20241125_GM_Waren I_bereinigt.dxf"
+
+
+    # - sourceLayer: "L--Stromkabel-MS_unterirdisch_LEIT"
+    #   outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/stromkabel_ms_unterirdisch.shp"
+    #   sourceDxf: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/Grundlagen/PV Waren_Entwurfsvermessung_2024-11-29_VB_Haff-24-12-03.dxf"
+    # - sourceLayer: "Blendschutzzaun"
+    #   outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/blendschutzzaun.shp"
+    #   sourceDxf: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/Zeichnung/24 11.22 Warenshof Zeichnung.dxf"
+    # - sourceLayer: "T--Nutzungsartengrenze"
+    #   outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/nutzungsartengrenze.shp"
+    #   sourceDxf: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/Grundlagen/PV Waren_Entwurfsvermessung_2024-11-29_VB_Haff-24-12-03.dxf"
+
 
   # transfers:
   #   - externalDxf: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/Zeichnung/PV Waren_Entwurfsvermessung_2024-04-07_VB_Haff_arbeits_edit_PBS.dxf"
   #     direction: "load"
   #     operations:
-  #       - fromLayer: "T--Baum_Laubbaum"
-  #         toLayer: "T--Baum_Laubbaum"
-  #         entityTypes:
-  #           - POINT 
+  #       - fromLayer: "Blendschutzzaun"
+  #         toLayer: "Blendschutzzaun"
+  #         # entityTypes:
+  #         #   - POINT 

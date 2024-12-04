@@ -4,5 +4,7 @@ pathArrays:
     sourceLayer: "Ausgleich Schutzflächeumgrenzung"
     block: "T-Symbol"
     spacing: 7
-    scale: 0.6
-    bufferDistance: 0.6
+    # scale: 0.6
+    # bufferDistance: 0.6
+    scale: 0.2
+    bufferDistance: 0.2
