@@ -147,11 +147,12 @@ class DXFExporter:
         self.layer_properties[label_layer_name] = label_properties
         self.colors[label_layer_name] = label_properties['layer']['color']
 
-    def export_to_dxf(self):
+    def export_to_dxf(self, skip_dxf_processor=False):
         """Main export method."""
         try:
             log_debug("Starting DXF export...")
-            doc = self._prepare_dxf_document()
+            # Pass skip_dxf_processor to _prepare_dxf_document
+            doc = self._prepare_dxf_document(skip_dxf_processor)
             
             # Share the document with LayerProcessor
             self.layer_processor.set_dxf_document(doc)
@@ -178,16 +179,13 @@ class DXFExporter:
             # After successful export, create reduced version if configured
             self.reduced_dxf_creator.create_reduced_dxf()
             
-            # Process DXF operations using DXFProcessor
-            self.dxf_processor.process_all(doc)
-            
         except Exception as e:
             log_error(f"Error during DXF export: {str(e)}")
             raise
 
-    def _prepare_dxf_document(self):
+    def _prepare_dxf_document(self, skip_dxf_processor=False):
         self._backup_existing_file()
-        doc = self._load_or_create_dxf()
+        doc = self._load_or_create_dxf(skip_dxf_processor=skip_dxf_processor)
         return doc
 
     def _backup_existing_file(self):
@@ -196,7 +194,7 @@ class DXFExporter:
             shutil.copy2(self.dxf_filename, backup_filename)
             log_debug(f"Created backup of existing DXF file: {backup_filename}")
 
-    def _load_or_create_dxf(self):
+    def _load_or_create_dxf(self, skip_dxf_processor=False):
         dxf_version = self.project_settings.get('dxfVersion', 'R2010')
         template_filename = self.project_settings.get('templateDxfFilename')
         
@@ -206,10 +204,9 @@ class DXFExporter:
             doc = ezdxf.readfile(self.dxf_filename)
             log_debug(f"Loaded existing DXF file: {self.dxf_filename}")
             
-            # Run DXF processor on existing document
-            if self.project_loader.dxf_processor:
+            # Run DXF processor on existing document only if not skipped
+            if not skip_dxf_processor and self.project_loader.dxf_processor:
                 log_info("DXF processor found, running operations on existing document")
-                log_debug("Running DXF processor on existing document")
                 self.project_loader.dxf_processor.process_all(doc)
             
             self.load_existing_layers(doc)
@@ -232,8 +229,8 @@ class DXFExporter:
             log_debug(f"Created new DXF file with version: {dxf_version}")
             set_drawing_properties(doc)
 
-        # Run DXF processor on new document if it wasn't run on existing one
-        if doc and not os.path.exists(self.dxf_filename) and self.project_loader.dxf_processor:
+        # Run DXF processor on new document only if not skipped
+        if doc and not os.path.exists(self.dxf_filename) and not skip_dxf_processor and self.project_loader.dxf_processor:
             log_debug("Running DXF processor on new document")
             self.project_loader.dxf_processor.process_all(doc)
 
