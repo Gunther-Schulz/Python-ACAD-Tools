@@ -563,7 +563,7 @@ class DXFExporter:
             log_warning(f"Unexpected data type for layer {layer_name}: {type(geo_data)}")
             return
 
-        log_info(f"add_geometries_to_dxf Layer Name: {layer_name}")
+        log_debug(f"add_geometries_to_dxf Layer Name: {layer_name}")
         for idx, geometry in enumerate(geometries):
             if isinstance(geometry, Polygon):
                 self.add_polygon_to_dxf(msp, geometry, layer_name)

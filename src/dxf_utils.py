@@ -388,35 +388,28 @@ def set_drawing_properties(doc):
     
     # Log and print the settings with their meanings
     log_debug("\n=== Drawing Properties Set ===")
-    log_info("\n=== Drawing Properties Set ===")
     
     # MEASUREMENT
     measurement_msg = f"$MEASUREMENT: {doc.header['$MEASUREMENT']} - {measurement_meaning.get(doc.header['$MEASUREMENT'], 'Unknown')}"
     log_debug(measurement_msg)
-    log_info(measurement_msg)
     
     # INSUNITS
     insunits_msg = f"$INSUNITS: {doc.header['$INSUNITS']} - {insunits_meaning.get(doc.header['$INSUNITS'], 'Unknown')}"
     log_debug(insunits_msg)
-    log_info(insunits_msg)
     
     # LUNITS
     lunits_msg = f"$LUNITS: {doc.header['$LUNITS']} - {lunits_meaning.get(doc.header['$LUNITS'], 'Unknown')}"
     log_debug(lunits_msg)
-    log_info(lunits_msg)
     
     # LUPREC
     luprec_msg = f"$LUPREC: {doc.header['$LUPREC']} - Linear units precision (number of decimal places)"
     log_debug(luprec_msg)
-    log_info(luprec_msg)
     
     # AUPREC
     auprec_msg = f"$AUPREC: {doc.header['$AUPREC']} - Angular units precision (number of decimal places)"
     log_debug(auprec_msg)
-    log_info(auprec_msg)
     
-    log_info("\n=== End of Drawing Properties ===")
-    log_debug("=== End of Drawing Properties ===\n")
+    log_debug("\n=== End of Drawing Properties ===")
 
 def verify_dxf_settings(filename):
     loaded_doc = ezdxf.readfile(filename)
@@ -441,35 +434,28 @@ def verify_dxf_settings(filename):
         4: "Architectural", 5: "Fractional"
     }
 
-    log_info("\n=== Verifying DXF Settings ===")
     log_debug("\n=== Verifying DXF Settings ===")
 
     measurement = loaded_doc.header.get('$MEASUREMENT', None)
     measurement_msg = f"$MEASUREMENT: {measurement} - {measurement_meaning.get(measurement, 'Unknown')}"
-    log_info(measurement_msg)
     log_debug(measurement_msg)
 
     insunits = loaded_doc.header.get('$INSUNITS', None)
     insunits_msg = f"$INSUNITS: {insunits} - {insunits_meaning.get(insunits, 'Unknown')}"
-    log_info(insunits_msg)
     log_debug(insunits_msg)
 
     lunits = loaded_doc.header.get('$LUNITS', None)
     lunits_msg = f"$LUNITS: {lunits} - {lunits_meaning.get(lunits, 'Unknown')}"
-    log_info(lunits_msg)
     log_debug(lunits_msg)
 
     luprec = loaded_doc.header.get('$LUPREC', None)
     luprec_msg = f"$LUPREC: {luprec} - Linear units precision (decimal places)"
-    log_info(luprec_msg)
     log_debug(luprec_msg)
 
     auprec = loaded_doc.header.get('$AUPREC', None)
     auprec_msg = f"$AUPREC: {auprec} - Angular units precision (decimal places)"
-    log_info(auprec_msg)
     log_debug(auprec_msg)
 
-    log_info("=== End of DXF Settings Verification ===\n")
     log_debug("=== End of DXF Settings Verification ===\n")
 
 def get_style(style, project_loader):
@@ -514,7 +500,7 @@ def apply_style_to_entity(entity, style, project_loader, loaded_styles, item_typ
             try:
                 entity.transparency = transparency
             except Exception as e:
-                log_info(f"Warning: Could not set transparency for {entity.dxftype()}. Error: {str(e)}")
+                log_info(f"Could not set transparency for {entity.dxftype()}. Error: {str(e)}")
     else:
         # To set transparency to ByLayer, we'll try to remove the attribute if it exists
         try:

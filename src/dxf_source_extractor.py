@@ -50,7 +50,7 @@ class DXFSourceExtractor:
 
     def _process_single_extract(self, doc, source_layer, output_file, preprocessors=None):
         """Extract geometries from a single DXF layer and save to shapefile"""
-        log_info(f"Extracting geometries from DXF layer: {source_layer}")
+        log_debug(f"Extracting geometries from DXF layer: {source_layer}")
         
         try:
             full_output_path = resolve_path(output_file, self.project_loader.folder_prefix)

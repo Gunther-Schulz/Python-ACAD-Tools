@@ -32,7 +32,7 @@ def create_buffer_layer(all_layers, project_settings, crs, layer_name, operation
     join_style_value = join_style_map.get(join_style, 2)
     start_cap_value = cap_style_map.get(start_cap_style, 2)
     end_cap_value = cap_style_map.get(end_cap_style, 2)
-    log_info(f"Layer: {layer_name}, Join style: {join_style}, Start cap: {start_cap_style}, End cap: {end_cap_style}")
+    log_debug(f"Layer: {layer_name}, Join style: {join_style}, Start cap: {start_cap_style}, End cap: {end_cap_style}")
 
     source_layers = operation.get('layers', [layer_name])
     

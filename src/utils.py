@@ -39,7 +39,7 @@ def log_info(*messages):
     logging.info(' '.join(str(msg) for msg in messages))
 
 def log_warning(message):
-    logging.warning(f"\033[93mWarning: {message}\033[0m")
+    logging.warning(f"\033[93m{message}\033[0m")
 
 def log_error(message):
     error_traceback = traceback.format_exc()
@@ -68,34 +68,34 @@ def setup_proj():
     for directory in proj_data_dirs:
         if os.path.exists(os.path.join(directory, 'proj.db')):
             os.environ['PROJ_LIB'] = directory
-            log_info(f"Set PROJ_LIB to: {directory}")
+            log_debug(f"Set PROJ_LIB to: {directory}")
             break
     else:
         log_warning("Could not find proj.db in any of the standard locations.")
 
     os.environ['PROJ_NETWORK'] = 'OFF'
-    log_info("Set PROJ_NETWORK to OFF")
+    log_debug("Set PROJ_NETWORK to OFF")
 
     pyproj.datadir.set_data_dir(os.environ['PROJ_LIB'])
-    log_info(f"PyProj data directory: {pyproj.datadir.get_data_dir()}")
-    log_info(f"PyProj version: {pyproj.__version__}")
+    log_debug(f"PyProj data directory: {pyproj.datadir.get_data_dir()}")
+    log_debug(f"PyProj version: {pyproj.__version__}")
 
     try:
         crs = CRS("EPSG:4326")
-        log_info(f"Successfully created CRS object: {crs}")
+        log_debug(f"Successfully created CRS object: {crs}")
     except Exception as e:
         log_error(f"Error creating CRS object: {str(e)}")
 
     try:
         transformer = pyproj.Transformer.from_crs("EPSG:4326", "EPSG:3857", always_xy=True)
         result = transformer.transform(0, 0)
-        log_info(f"Successfully performed transformation: {result}")
+        log_debug(f"Successfully performed transformation: {result}")
     except Exception as e:
         log_error(f"Error performing transformation: {str(e)}")
 
     try:
         proj_version = pyproj.__proj_version__
-        log_info(f"PROJ version (from pyproj): {proj_version}")
+        log_debug(f"PROJ version (from pyproj): {proj_version}")
     except Exception as e:
         log_error(f"Error getting PROJ version: {str(e)}")
 

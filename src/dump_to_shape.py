@@ -7,7 +7,7 @@ from shapely.geometry import Polygon, MultiPolygon, LineString, Point
 import pyproj
 import re
 import yaml
-from src.utils import resolve_path, ensure_path_exists, log_warning, log_error, log_debug
+from src.utils import resolve_path, ensure_path_exists, log_warning, log_error, log_debug, log_info
 
 def polygon_area(polygon):
     """Calculate the area of a polygon."""
@@ -25,7 +25,7 @@ def get_crs_from_dxf(dxf_path):
         return pyproj.CRS.from_epsg(epsg), f"EPSG:{epsg} found in DXF file"
 
     # If not found, return the default EPSG:25833 (ETRS89 / UTM zone 33N)
-    log_info("Warning: CRS not found in DXF file. Using default EPSG:25833 (ETRS89 / UTM zone 33N).")
+    log_info("CRS not found in DXF file. Using default EPSG:25833 (ETRS89 / UTM zone 33N).")
     return pyproj.CRS.from_epsg(25833), "Default EPSG:25833 (ETRS89 / UTM zone 33N) used"
 
 def write_prj_file(output_path, crs):
