@@ -8,28 +8,21 @@ import yaml
 
 # Add this near the top of the file, after the imports
 def set_log_level(level):
-    """Set the logging level for both file and console handlers"""
+    """Set the logging level for console handler only"""
     log_level = level.upper()
     root_logger = logging.getLogger('')
     
-    # Set level for root logger (affects file handler)
-    root_logger.setLevel(getattr(logging, log_level))
-    
-    # Set level for console handler
+    # Only modify console handler level
     for handler in root_logger.handlers:
-        if isinstance(handler, logging.StreamHandler):
+        if isinstance(handler, logging.StreamHandler) and not isinstance(handler, logging.FileHandler):
             handler.setLevel(getattr(logging, log_level))
             break
 
 # Setup logging
-def setup_logging(log_level='INFO'):
-    # Set logging levels for external libraries first
+def setup_logging(console_level='INFO'):
+    # Set logging levels for external libraries
     logging.getLogger('fiona').setLevel(logging.WARNING)
     logging.getLogger('osgeo').setLevel(logging.WARNING)
-    
-    # Convert log_level to uppercase and get the corresponding logging level
-    log_level = log_level.upper()
-    level = getattr(logging, log_level, logging.INFO)
     
     # Create logs directory if it doesn't exist
     os.makedirs('logs', exist_ok=True)
@@ -38,11 +31,11 @@ def setup_logging(log_level='INFO'):
     file_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
     console_formatter = logging.Formatter('%(levelname)s - %(message)s')
     
-    # Setup root logger
+    # Setup root logger to capture everything
     root_logger = logging.getLogger('')
-    root_logger.setLevel(logging.DEBUG)  # Capture all levels
+    root_logger.setLevel(logging.DEBUG)  # Always capture all levels
     
-    # Create and configure handlers for different log levels
+    # Create and configure handlers
     handlers = {
         'debug': logging.FileHandler('logs/debug.log', mode='w'),
         'info': logging.FileHandler('logs/info.log', mode='w'),
@@ -51,21 +44,14 @@ def setup_logging(log_level='INFO'):
         'console': logging.StreamHandler()
     }
     
-    # Set levels and formatters for each handler
-    # debug.log gets everything (DEBUG and above)
+    # Set levels for file handlers (these won't change based on console_level)
     handlers['debug'].setLevel(logging.DEBUG)
-    # info.log gets INFO and above
     handlers['info'].setLevel(logging.INFO)
-    # warning.log gets WARNING and above
     handlers['warning'].setLevel(logging.WARNING)
-    # error.log gets only ERROR
     handlers['error'].setLevel(logging.ERROR)
-    # Console shows WARNING by default, but can be overridden
-    handlers['console'].setLevel(logging.WARNING)
     
-    # Override console level if specified
-    if level != logging.INFO:
-        handlers['console'].setLevel(level)
+    # Set console level based on parameter
+    handlers['console'].setLevel(getattr(logging, console_level.upper()))
     
     # Add formatters to handlers
     for handler in handlers.values():
