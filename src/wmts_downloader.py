@@ -180,7 +180,7 @@ def write_world_file(file_name, extension, col, row, matrix, zoom_folder) -> str
     return world_file_path
 
 def download_wmts_tiles(wmts_info: dict, geltungsbereich, buffer_distance: float, target_folder: str, overwrite: bool = False) -> list:
-    print(f"Starting WMTS download to target folder: {target_folder}")
+    log_info(f"Starting WMTS download to target folder: {target_folder}")
     capabilities_url = wmts_info['url']
     wmts = WebMapTileService(capabilities_url)
     layer_id = wmts_info['layer']
@@ -208,7 +208,7 @@ def download_wmts_tiles(wmts_info: dict, geltungsbereich, buffer_distance: float
         layer = wmts.contents[layer_id]
         log_debug(f"Available tile matrix sets:")
         for tms in wmts.contents[layer_id].tilematrixsetlinks.keys():
-            print(f"  • {tms}")
+            log_info(f"  • {tms}")
 
         if proj not in layer.tilematrixsetlinks:
             raise ValueError(
@@ -237,7 +237,7 @@ def download_wmts_tiles(wmts_info: dict, geltungsbereich, buffer_distance: float
             min_col = 0
             max_col = tile_matrix_zoom.matrixwidth
 
-        print(
+        log_info(
             f"Tile matrix limits - Min row: {min_row}, Max row: {max_row}, Min col: {min_col}, Max col: {max_col}")
 
         min_col, max_col, min_row, max_row = filter_row_cols_by_bbox(
@@ -278,7 +278,7 @@ def download_wmts_tiles(wmts_info: dict, geltungsbereich, buffer_distance: float
                 download_count += 1
 
                 if limit_requests and download_count >= limit_requests:
-                    print(f"Reached download limit of {limit_requests}")
+                    log_info(f"Reached download limit of {limit_requests}")
                     break
 
                 if sleep:
@@ -288,7 +288,7 @@ def download_wmts_tiles(wmts_info: dict, geltungsbereich, buffer_distance: float
             break
 
     except Exception as e:
-        print(f'Error: {e}')
+        log_info(f'Error: {e}')
 
     log_debug(f"Total tiles processed: {download_count + skip_count}")
     log_debug(f"Tiles downloaded: {download_count}")
@@ -297,7 +297,7 @@ def download_wmts_tiles(wmts_info: dict, geltungsbereich, buffer_distance: float
     return downloaded_tiles
 
 def download_wms_tiles(wms_info: dict, geltungsbereich, buffer_distance: float, target_folder: str, overwrite: bool = False) -> list:
-    print(f"Starting WMS download to target folder: {target_folder}")
+    log_info(f"Starting WMS download to target folder: {target_folder}")
     log_debug(f"WMS URL: {wms_info['url']}")
     log_debug(f"Layer: {wms_info['layer']}")
     log_debug(f"Target folder: {target_folder}")
@@ -310,9 +310,9 @@ def download_wms_tiles(wms_info: dict, geltungsbereich, buffer_distance: float, 
         log_error(f"Failed to connect to WMS service: {str(e)}")
         return []
 
-    print("Available layers from WMS endpoint:")
+    log_info("Available layers from WMS endpoint:")
     for layer_name, layer in wms.contents.items():
-        print(f"  • {layer_name}: {layer.title}")
+        log_info(f"  • {layer_name}: {layer.title}")
 
     layer_id = wms_info['layer']
     if layer_id not in wms.contents:

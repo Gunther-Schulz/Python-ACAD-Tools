@@ -310,13 +310,13 @@ class DXFTransfer:
                     entity_counts[dxftype] = entity_counts.get(dxftype, 1) - 1
         
         # Log final counts
-        print("=== Entity Transfer Summary ===")
+        log_info("=== Entity Transfer Summary ===")
         if not entity_counts:
-            print("No entities were transferred")
+            log_info("No entities were transferred")
         else:
             for entity_type, count in entity_counts.items():
-                print(f"Transferred {count} {entity_type} entities")
-        print("===========================")
+                log_info(f"Transferred {count} {entity_type} entities")
+        log_info("===========================")
         
         return entity_counts  # Return counts for potential further use
 

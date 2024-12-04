@@ -255,6 +255,6 @@ output_css = 'aci_colors.css'
 output_yaml = 'aci_colors.yaml'
 
 convert_to_csv_css_and_yaml(input_file, output_csv, output_css, output_yaml)
-print(f"Conversion complete. CSV file saved as {output_csv}")
-print(f"CSS file saved as {output_css}")
-print(f"YAML file saved as {output_yaml}")
+log_info(f"Conversion complete. CSV file saved as {output_csv}")
+log_info(f"CSS file saved as {output_css}")
+log_info(f"YAML file saved as {output_yaml}")

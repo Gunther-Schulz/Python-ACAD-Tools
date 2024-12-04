@@ -48,10 +48,10 @@ class ProjectProcessor:
             dump_output_dir = os.path.expanduser(os.path.join(folder_prefix, project_settings['dxfDumpOutputDir']))
             
             if os.path.exists(dxf_filename) and dump_output_dir:
-                print(f"Dumping DXF to shapefiles: {dxf_filename} -> {dump_output_dir}")
+                log_info(f"Dumping DXF to shapefiles: {dxf_filename} -> {dump_output_dir}")
                 dxf_to_shapefiles(dxf_filename, dump_output_dir)
             else:
-                print("Skipping DXF dump: DXF file not found or dump output directory not specified.")
+                log_info("Skipping DXF dump: DXF file not found or dump output directory not specified.")
 
     def process(self):
         doc = self.dxf_exporter._load_or_create_dxf()
@@ -159,18 +159,18 @@ def print_layer_operations():
         }
     }
 
-    print("Available Layer Operations:")
+    log_info("Available Layer Operations:")
     for op, details in operations.items():
-        print(f"\n{op.upper()}:")
-        print(f"  Description: {details['description']}")
-        print("  Options:")
+        log_info(f"\n{op.upper()}:")
+        log_info(f"  Description: {details['description']}")
+        log_info("  Options:")
         for option, description in details['options'].items():
             if isinstance(description, dict):
-                print(f"    - {option}:")
+                log_info(f"    - {option}:")
                 for sub_option, sub_description in description.items():
-                    print(f"      - {sub_option}: {sub_description}")
+                    log_info(f"      - {sub_option}: {sub_description}")
             else:
-                print(f"    - {option}: {description}")
+                log_info(f"    - {option}: {description}")
 
 def print_layer_settings():
     settings = {
@@ -237,22 +237,22 @@ def print_layer_settings():
         }
     }
 
-    print("Available Layer Settings:")
+    log_info("Available Layer Settings:")
     for setting, details in settings.items():
-        print(f"\n{setting.upper()}:")
-        print(f"  Description: {details['description']}")
+        log_info(f"\n{setting.upper()}:")
+        log_info(f"  Description: {details['description']}")
         if 'type' in details:
-            print(f"  Type: {details['type']}")
+            log_info(f"  Type: {details['type']}")
         if 'options' in details:
-            print("  Options:")
+            log_info("  Options:")
             for option, description in details['options'].items():
-                print(f"    - {option}: {description}")
+                log_info(f"    - {option}: {description}")
 
 def list_available_projects():
     projects_dir = 'projects'
     if not os.path.exists(projects_dir):
         os.makedirs(projects_dir)
-        print(f"Created projects directory: {projects_dir}")
+        log_info(f"Created projects directory: {projects_dir}")
         return []
     
     projects = []
@@ -285,11 +285,11 @@ def main():
     if args.list_projects:
         projects = list_available_projects()
         if projects:
-            print("Available projects:")
+            log_info("Available projects:")
             for project in projects:
-                print(f"  - {project}")
+                log_info(f"  - {project}")
         else:
-            print("No projects found.")
+            log_info("No projects found.")
         return
 
     if args.list_operations:
@@ -307,25 +307,25 @@ def main():
         # Check if project already exists
         project_dir = os.path.join('projects', args.project_name)
         if os.path.exists(project_dir):
-            print(f"\nError: Project '{args.project_name}' already exists at: {project_dir}")
-            print("Please choose a different project name or remove the existing project directory.")
+            log_info(f"\nError: Project '{args.project_name}' already exists at: {project_dir}")
+            log_info("Please choose a different project name or remove the existing project directory.")
             sys.exit(1)
             
         project_dir = create_sample_project(args.project_name)
-        print(f"\nCreated new project directory: {project_dir}")
-        print("\nThe following files were created with sample configurations:")
-        print("  - project.yaml         (required core settings)")
-        print("  - geom_layers.yaml     (geometry layer definitions)")
-        print("  - legends.yaml         (legend configurations)")
-        print("  - viewports.yaml       (viewport settings)")
-        print("  - block_inserts.yaml   (block insertion definitions)")
-        print("  - text_inserts.yaml    (text insertion definitions)")
-        print("  - path_arrays.yaml     (path array definitions)")
-        print("  - web_services.yaml    (WMS/WMTS service configurations)")
-        print("\nPlease edit these files with your project-specific settings.")
+        log_info(f"\nCreated new project directory: {project_dir}")
+        log_info("\nThe following files were created with sample configurations:")
+        log_info("  - project.yaml         (required core settings)")
+        log_info("  - geom_layers.yaml     (geometry layer definitions)")
+        log_info("  - legends.yaml         (legend configurations)")
+        log_info("  - viewports.yaml       (viewport settings)")
+        log_info("  - block_inserts.yaml   (block insertion definitions)")
+        log_info("  - text_inserts.yaml    (text insertion definitions)")
+        log_info("  - path_arrays.yaml     (path array definitions)")
+        log_info("  - web_services.yaml    (WMS/WMTS service configurations)")
+        log_info("\nPlease edit these files with your project-specific settings.")
         return
 
-    print(f"Processing project: {args.project_name}")
+    log_info(f"Processing project: {args.project_name}")
 
     try:
         if args.project_name:
@@ -339,7 +339,7 @@ def main():
                 log_debug("Document cleanup completed")
                 
     except ValueError as e:
-        print(f"\nError: {str(e)}")
+        log_info(f"\nError: {str(e)}")
         sys.exit(1)
     except Exception as e:
         error_type = type(e).__name__
@@ -350,9 +350,9 @@ def main():
         log_error(f"Error Message: {error_message}")
         log_error(f"Traceback:\n{traceback_str}")
         
-        print(f"\nAn unexpected error occurred: {error_type}")
-        print(f"Error details: {error_message}")
-        print("Check the log file for the full traceback.")
+        log_info(f"\nAn unexpected error occurred: {error_type}")
+        log_info(f"Error details: {error_message}")
+        log_info("Check the log file for the full traceback.")
         
         sys.exit(1)
 

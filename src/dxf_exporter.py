@@ -449,7 +449,7 @@ class DXFExporter:
 
     def add_image_with_worldfile(self, msp, image_path, world_file_path, layer_name):
         log_debug(f"Adding image with worldfile for layer: {layer_name}")
-        print(f"Adding image with worldfile for layer: {layer_name}")
+        log_info(f"Adding image with worldfile for layer: {layer_name}")
         log_debug(f"Image path: {image_path}")
         log_debug(f"World file path: {world_file_path}")
 
@@ -527,7 +527,7 @@ class DXFExporter:
             # Image.SHOW_IMAGE (1) | Image.SHOW_WHEN_NOT_ALIGNED (2) | Image.USE_TRANSPARENCY (8)
             image.dxf.flags = 1 | 2 | 8
             log_debug(f"Added image with transparency enabled: {image}")
-            print(f"Added image with transparency enabled: {image}")
+            log_info(f"Added image with transparency enabled: {image}")
         else:
             # Image.SHOW_IMAGE (1) | Image.SHOW_WHEN_NOT_ALIGNED (2)
             image.dxf.flags = 1 | 2
@@ -563,7 +563,7 @@ class DXFExporter:
             log_warning(f"Unexpected data type for layer {layer_name}: {type(geo_data)}")
             return
 
-        print(f"add_geometries_to_dxf Layer Name: {layer_name}")
+        log_info(f"add_geometries_to_dxf Layer Name: {layer_name}")
         for idx, geometry in enumerate(geometries):
             if isinstance(geometry, Polygon):
                 self.add_polygon_to_dxf(msp, geometry, layer_name)

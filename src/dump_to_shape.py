@@ -25,7 +25,7 @@ def get_crs_from_dxf(dxf_path):
         return pyproj.CRS.from_epsg(epsg), f"EPSG:{epsg} found in DXF file"
 
     # If not found, return the default EPSG:25833 (ETRS89 / UTM zone 33N)
-    print("Warning: CRS not found in DXF file. Using default EPSG:25833 (ETRS89 / UTM zone 33N).")
+    log_info("Warning: CRS not found in DXF file. Using default EPSG:25833 (ETRS89 / UTM zone 33N).")
     return pyproj.CRS.from_epsg(25833), "Default EPSG:25833 (ETRS89 / UTM zone 33N) used"
 
 def write_prj_file(output_path, crs):
@@ -42,7 +42,7 @@ def merge_dxf_layer_to_shapefile(dxf_path, output_folder, layer_name, entities, 
     lines = []
     polygons = []
 
-    print(f"---------Processing DXF layer to shapefile {layer_name}")
+    log_info(f"---------Processing DXF layer to shapefile {layer_name}")
     
     for entity in entities:
         if isinstance(entity, (LWPolyline, Polyline)):
@@ -115,7 +115,7 @@ def merge_dxf_layer_to_shapefile(dxf_path, output_folder, layer_name, entities, 
         else:
             log_warning(f"No valid polygons found in layer {layer_name}")
 
-    print(f"---------Finished processing DXF layer to shapefile {layer_name}")
+    log_info(f"---------Finished processing DXF layer to shapefile {layer_name}")
 
 def dxf_to_shapefiles(dxf_path, output_folder):
     # Clear the contents of the output folder
@@ -128,7 +128,7 @@ def dxf_to_shapefiles(dxf_path, output_folder):
                 elif os.path.isdir(file_path):
                     os.rmdir(file_path)
             except Exception as e:
-                print(f'Failed to delete {file_path}. Reason: {e}')
+                log_info(f'Failed to delete {file_path}. Reason: {e}')
     else:
         os.makedirs(output_folder)
 
@@ -178,13 +178,13 @@ def dxf_to_shapefiles(dxf_path, output_folder):
             merge_dxf_layer_to_shapefile(dxf_path, output_folder, layer_name, entities, crs)
 
     if error_summary:
-        print("\nError Summary:")
+        log_info("\nError Summary:")
         for layer, count in error_summary.items():
-            print(f"  Layer '{layer}': {count} errors while processing holes")
-        print("These errors are typically due to invalid geometries or topology conflicts")
+            log_info(f"  Layer '{layer}': {count} errors while processing holes")
+        log_info("These errors are typically due to invalid geometries or topology conflicts")
 
-    print(f"\nCRS being used: {crs}")
-    print(f"CRS source: {crs_source}")
+    log_info(f"\nCRS being used: {crs}")
+    log_info(f"CRS source: {crs_source}")
 
 def load_project_config(project_name):
     project_file = os.path.join('projects', f'{project_name}.yaml')
@@ -218,11 +218,11 @@ def main():
                 
             dxf_to_shapefiles(dxf_filename, dump_output_dir)
         else:
-            print(f"Error: Project '{args.project_name}' not found in projects.yaml")
+            log_info(f"Error: Project '{args.project_name}' not found in projects.yaml")
     elif args.dxf_file and args.output_folder:
         dxf_to_shapefiles(args.dxf_file, args.output_folder)
     else:
-        print("Error: Please provide either a project name or both DXF file and output folder.")
+        log_info("Error: Please provide either a project name or both DXF file and output folder.")
 
 if __name__ == "__main__":
     main()
