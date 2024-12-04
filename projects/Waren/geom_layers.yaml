@@ -142,7 +142,7 @@ geomLayers:
         - "Grünfläche Input"
         - Moor
         - "ges gesch Biotope"
-        - Gas_HD_LEIT Buffer
+        - "Gas_HD_LEIT Buffer"
     - type: dissolve
     - type: intersection
       layers:
