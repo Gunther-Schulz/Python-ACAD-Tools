@@ -7,7 +7,7 @@ from shapely.geometry import Polygon, MultiPolygon, LineString, Point
 import pyproj
 import re
 import yaml
-from src.utils import resolve_path, ensure_path_exists, log_warning, log_error
+from src.utils import resolve_path, ensure_path_exists, log_warning, log_error, log_debug
 
 def polygon_area(polygon):
     """Calculate the area of a polygon."""

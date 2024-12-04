@@ -1,11 +1,11 @@
 import geopandas as gpd
 from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection, Point, MultiPoint
-from src.utils import log_info, log_warning, log_error
+from src.utils import log_info, log_warning, log_error, log_debug
 from src.operations.common_operations import _process_layer_info, _get_filtered_geometry, ensure_geodataframe, make_valid_geometry
 from src.operations.common_operations import *
 
 def create_smooth_layer(all_layers, project_settings, crs, layer_name, operation):
-        log_info(f"Creating smooth layer: {layer_name}")
+        log_debug(f"Creating smooth layer: {layer_name}")
         source_layers = operation.get('layers', [])
         strength = operation.get('strength', 1.0)  # Default strength to 1.0
         make_valid = operation.get('makeValid', True)
@@ -36,7 +36,7 @@ def create_smooth_layer(all_layers, project_settings, crs, layer_name, operation
                 smoothed_geometry = make_valid_geometry(smoothed_geometry)
             cleaned_geometry = smoothed_geometry
             all_layers[layer_name] = ensure_geodataframe(layer_name, gpd.GeoDataFrame(geometry=[cleaned_geometry], crs=crs))
-            log_info(f"Created smooth layer: {layer_name}")
+            log_debug(f"Created smooth layer: {layer_name}")
         else:
             log_warning(f"No valid source geometry found for smooth layer '{layer_name}'")
             all_layers[layer_name] = gpd.GeoDataFrame(geometry=[], crs=crs)

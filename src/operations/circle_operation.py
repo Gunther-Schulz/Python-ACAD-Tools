@@ -1,10 +1,10 @@
 import geopandas as gpd
 from shapely.geometry import Point, LineString, Polygon, MultiPolygon, MultiLineString, MultiPoint
-from src.utils import log_info, log_warning, log_error
+from src.utils import log_info, log_warning, log_error, log_debug
 from src.operations.common_operations import _process_layer_info, _get_filtered_geometry, format_operation_warning
 
 def create_circle_layer(all_layers, project_settings, crs, layer_name, operation):
-    log_info(f"Creating circle layer: {layer_name}")
+    log_debug(f"Creating circle layer: {layer_name}")
     
     source_layers = operation.get('layers', [])
     radius = operation.get('radius')  # Fixed radius if specified
@@ -56,7 +56,7 @@ def create_circle_layer(all_layers, project_settings, crs, layer_name, operation
     if result_circles:
         result_gdf = gpd.GeoDataFrame(geometry=result_circles, crs=crs)
         all_layers[layer_name] = result_gdf
-        log_info(f"Created circle layer: {layer_name} with {len(result_circles)} circles")
+        log_debug(f"Created circle layer: {layer_name} with {len(result_circles)} circles")
         return result_gdf
     else:
         log_warning(format_operation_warning(

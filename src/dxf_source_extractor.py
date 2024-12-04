@@ -1,7 +1,7 @@
 import ezdxf
 import geopandas as gpd
 from pathlib import Path
-from src.utils import log_info, log_warning, log_error, resolve_path, ensure_path_exists
+from src.utils import log_info, log_warning, log_error, resolve_path, ensure_path_exists, log_debug
 from src.dump_to_shape import merge_dxf_layer_to_shapefile
 from src.preprocessors.block_exploder import explode_blocks
 from src.preprocessors.circle_extractor import extract_circle_centers
@@ -19,7 +19,7 @@ class DXFSourceExtractor:
     def process_extracts(self, default_doc):
         """Process all DXF extracts defined in updateFromSource configuration"""
         if not self.dxf_extracts:
-            log_info("No DXF extracts configured in updateFromSource")
+            log_debug("No DXF extracts configured in updateFromSource")
             return
         
         for extract in self.dxf_extracts:
@@ -70,9 +70,9 @@ class DXFSourceExtractor:
                         log_warning(f"Preprocessor '{preprocessor}' not found, skipping")
                         continue
                     
-                    log_info(f"Applying preprocessor: {preprocessor}")
+                    log_debug(f"Applying preprocessor: {preprocessor}")
                     processed_data = self.preprocessors[preprocessor](processed_data, source_layer)
-                    log_info(f"Preprocessor {preprocessor} produced {len(processed_data)} features")
+                    log_debug(f"Preprocessor {preprocessor} produced {len(processed_data)} features")
                 
                 # Convert final processed data to GeoDataFrame and save
                 if isinstance(processed_data[0], dict):  # Check if we have features with attributes
@@ -87,7 +87,7 @@ class DXFSourceExtractor:
                         crs=self.crs
                     )
                 points_df.to_file(full_output_path)
-                log_info(f"Saved {len(processed_data)} processed features to {full_output_path}")
+                log_debug(f"Saved {len(processed_data)} processed features to {full_output_path}")
             else:
                 # Use existing merge_dxf_layer_to_shapefile for standard processing
                 merge_dxf_layer_to_shapefile(

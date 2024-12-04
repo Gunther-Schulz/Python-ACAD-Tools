@@ -1,7 +1,7 @@
 import random
 import math
 from shapely.geometry import Point
-from src.utils import log_info, log_warning, log_error
+from src.utils import log_info, log_warning, log_error, log_debug
 from src.dxf_utils import add_block_reference, remove_entities_by_layer, attach_custom_data
 
 
@@ -17,7 +17,7 @@ class BlockInsertManager:
 
     def process_inserts(self, msp, insert_type='block'):
         configs = self.project_settings.get(f'{insert_type}Inserts', [])
-        log_info(f"Processing {len(configs)} {insert_type} insert configurations")
+        log_debug(f"Processing {len(configs)} {insert_type} insert configurations")
         
         # Group configs by target layer
         layers_to_clean = {
@@ -29,7 +29,7 @@ class BlockInsertManager:
         # Clean layers (remove_entities_by_layer handles both spaces)
         for layer_name in layers_to_clean:
             remove_entities_by_layer(msp, layer_name, self.script_identifier)
-            log_info(f"Cleaned existing entities from layer: {layer_name}")
+            log_debug(f"Cleaned existing entities from layer: {layer_name}")
 
         # Process all inserts
         for config in configs:
@@ -53,7 +53,7 @@ class BlockInsertManager:
                 log_error(f"Error processing {insert_type} insert '{config.get('name')}': {str(e)}")
                 continue
 
-        log_info(f"Finished processing all {insert_type} insert configurations")
+        log_debug(f"Finished processing all {insert_type} insert configurations")
 
     def insert_blocks(self, space, config):
         points_and_rotations = self.get_insertion_points(config.get('position', {}))

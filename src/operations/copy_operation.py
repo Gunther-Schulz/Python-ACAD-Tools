@@ -1,11 +1,11 @@
 import geopandas as gpd
 import pandas as pd
 from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection, Point, MultiPoint
-from src.utils import log_info, log_warning, log_error
+from src.utils import log_info, log_warning, log_error, log_debug
 from src.operations.common_operations import format_operation_warning, _process_layer_info, _get_filtered_geometry, explode_to_singlepart
 
 def create_copy_layer(all_layers, project_settings, crs, layer_name, operation):
-    log_info(f"Creating copy layer: {layer_name}")
+    log_debug(f"Creating copy layer: {layer_name}")
     source_layers = operation.get('layers', [])
     
     combined_gdf = None
@@ -28,7 +28,7 @@ def create_copy_layer(all_layers, project_settings, crs, layer_name, operation):
             label_column = next((l['label'] for l in project_settings['geomLayers'] if l['name'] == source_layer_name), None)
             if label_column and label_column in source_gdf.columns:
                 source_gdf = source_gdf[source_gdf[label_column].astype(str).isin([str(v) for v in values])]
-                log_info(f"Filtered {source_layer_name} using column '{label_column}': {len(source_gdf)} features remaining")
+                log_debug(f"Filtered {source_layer_name} using column '{label_column}': {len(source_gdf)} features remaining")
             else:
                 log_warning(format_operation_warning(
                     layer_name,
@@ -53,7 +53,7 @@ def create_copy_layer(all_layers, project_settings, crs, layer_name, operation):
     if combined_gdf is not None and not combined_gdf.empty:
         combined_gdf = explode_to_singlepart(combined_gdf)
         all_layers[layer_name] = combined_gdf
-        log_info(f"Created copy layer: {layer_name} with {len(combined_gdf)} separate features")
+        log_debug(f"Created copy layer: {layer_name} with {len(combined_gdf)} separate features")
     else:
         log_warning(format_operation_warning(
             layer_name,

@@ -1,4 +1,4 @@
-from src.utils import log_info, log_warning, log_error
+from src.utils import log_info, log_warning, log_error, log_debug
 
 def explode_blocks(entities, layer_name):
     """
@@ -41,5 +41,5 @@ def explode_blocks(entities, layer_name):
             log_warning(f"Error exploding block: {str(e)}")
             continue
     
-    log_info(f"Exploded {len(exploded_entities)} blocks in layer {layer_name}")
+    log_debug(f"Exploded {len(exploded_entities)} blocks in layer {layer_name}")
     return exploded_entities

@@ -12,7 +12,7 @@ from ezdxf.lldxf.const import (
 from ezdxf.enums import TextEntityAlignment
 from ezdxf.math import Vec3
 from src.dxf_utils import SCRIPT_IDENTIFIER, add_block_reference, attach_custom_data
-from src.utils import log_info, log_warning, log_error
+from src.utils import log_info, log_warning, log_error, log_debug
 import re
 import math
 from ezdxf.math import Vec2, area
@@ -111,20 +111,20 @@ def create_path_array(msp, source_layer_name, target_layer_name, block_name, spa
         return
 
     source_geometry = all_layers[source_layer_name]
-    log_info(f"Source geometry type: {type(source_geometry)}")
+    log_debug(f"Source geometry type: {type(source_geometry)}")
     
     if isinstance(source_geometry, gpd.GeoDataFrame):
         if source_geometry.empty:
             log_warning(f"Source geometry for layer '{source_layer_name}' is empty (GeoDataFrame)")
             return
         geometries = source_geometry.geometry
-        log_info(f"Number of geometries in GeoDataFrame: {len(geometries)}")
+        log_debug(f"Number of geometries in GeoDataFrame: {len(geometries)}")
     else:
         if source_geometry.is_empty:
             log_warning(f"Source geometry for layer '{source_layer_name}' is empty (single geometry)")
             return
         geometries = [source_geometry]
-        log_info(f"Single geometry type: {type(source_geometry)}")
+        log_debug(f"Single geometry type: {type(source_geometry)}")
 
     fig, ax = plt.subplots(figsize=(12, 8)) if debug_visual else (None, None)
 
@@ -164,7 +164,7 @@ def create_path_array(msp, source_layer_name, target_layer_name, block_name, spa
             log_warning(f"Skipping unsupported geometry type: {type(geometry)}")
             continue
 
-    log_info(f"Processed {processed_geometries} geometries")
+    log_debug(f"Processed {processed_geometries} geometries")
 
     if debug_visual:
         if processed_geometries > 0:
@@ -180,7 +180,7 @@ def create_path_array(msp, source_layer_name, target_layer_name, block_name, spa
         else:
             log_warning("No valid geometries to visualize")
 
-    log_info(f"Path array creation completed for source layer '{source_layer_name}' using block '{block_name}'")
+    log_debug(f"Path array creation completed for source layer '{source_layer_name}' using block '{block_name}'")
 
 def get_block_shape_and_base(block, scale):
     shapes = []
@@ -221,7 +221,7 @@ def get_block_shape_and_base(block, scale):
                 
                 if circle_polygon.is_valid and circle_polygon.area > 0:
                     shapes.append(circle_polygon)
-                    log_info(f"Successfully created circle polygon with area: {circle_polygon.area}")
+                    log_debug(f"Successfully created circle polygon with area: {circle_polygon.area}")
                 else:
                     log_warning(f"Failed to create valid circle polygon. Area: {circle_polygon.area}")
             except Exception as e:

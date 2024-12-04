@@ -1,12 +1,12 @@
 import geopandas as gpd
 from shapely.geometry import Point, LineString, MultiPoint
-from src.utils import log_info, log_warning, log_error
+from src.utils import log_info, log_warning, log_error, log_debug
 from src.operations.common_operations import _process_layer_info, _get_filtered_geometry, format_operation_warning
 import numpy as np
 from scipy.spatial.distance import cdist
 
 def create_connect_points_layer(all_layers, project_settings, crs, layer_name, operation):
-    log_info(f"Creating connect points layer: {layer_name}")
+    log_debug(f"Creating connect points layer: {layer_name}")
     
     source_layers = operation.get('layers', [])
     if not source_layers:
@@ -107,7 +107,7 @@ def create_connect_points_layer(all_layers, project_settings, crs, layer_name, o
                 connected_points = [group_points[i] for i in path]
                 lines.append(LineString(connected_points))
             elif len(group) == 1:
-                log_info(f"Group with single point found - skipping line creation")
+                log_debug(f"Group with single point found - skipping line creation")
         
         if not lines:
             log_warning(format_operation_warning(
@@ -122,7 +122,7 @@ def create_connect_points_layer(all_layers, project_settings, crs, layer_name, o
         result_gdf = gpd.GeoDataFrame(geometry=lines, crs=crs)
         all_layers[layer_name] = result_gdf
         
-        log_info(f"Created connect points layer: {layer_name} with {len(lines)} separate lines")
+        log_debug(f"Created connect points layer: {layer_name} with {len(lines)} separate lines")
         return result_gdf
         
     else:
@@ -148,5 +148,5 @@ def create_connect_points_layer(all_layers, project_settings, crs, layer_name, o
         result_gdf = gpd.GeoDataFrame(geometry=[line], crs=crs)
         all_layers[layer_name] = result_gdf
         
-        log_info(f"Created connect points layer: {layer_name} connecting {len(all_points)} points")
+        log_debug(f"Created connect points layer: {layer_name} connecting {len(all_points)} points")
         return result_gdf 

@@ -1,5 +1,5 @@
 import geopandas as gpd
-from src.utils import log_info, log_warning, log_error
+from src.utils import log_info, log_warning, log_error, log_debug
 import traceback
 from src.operations.common_operations import _process_layer_info, _get_filtered_geometry
 from src.operations.common_operations import *
@@ -10,8 +10,8 @@ def create_intersection_layer(all_layers, project_settings, crs, layer_name, ope
 
 
 def _create_intersection_overlay_layer(all_layers, project_settings, crs, layer_name, operation, overlay_type):
-    log_info(f"Creating {overlay_type} layer: {layer_name}")
-    log_info(f"Operation details: {operation}")
+    log_debug(f"Creating {overlay_type} layer: {layer_name}")
+    log_debug(f"Operation details: {operation}")
     
     overlay_layers = operation.get('layers', [])
     make_valid = operation.get('makeValid', True)
@@ -128,7 +128,7 @@ def _create_intersection_overlay_layer(all_layers, project_settings, crs, layer_
         else:
             result_geometry = result_geometry[~result_geometry.is_empty]
         
-        log_info(f"Applied {overlay_type} operation, removed lines and points, and removed empty geometries")
+        log_debug(f"Applied {overlay_type} operation, removed lines and points, and removed empty geometries")
     except Exception as e:
         log_error(f"Error during {overlay_type} operation: {str(e)}")
         log_error(f"Traceback:\n{traceback.format_exc()}")
@@ -160,7 +160,7 @@ def _create_intersection_overlay_layer(all_layers, project_settings, crs, layer_
         all_layers[layer_name] = gpd.GeoDataFrame(geometry=[], crs=base_geometry.crs)
     else:
         all_layers[layer_name] = result_gdf
-        log_info(f"Created {overlay_type} layer: {layer_name} with {len(result_gdf)} geometries")
+        log_debug(f"Created {overlay_type} layer: {layer_name} with {len(result_gdf)} geometries")
 
     return all_layers[layer_name]
 

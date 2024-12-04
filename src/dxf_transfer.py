@@ -1,5 +1,5 @@
 import ezdxf
-from src.utils import log_info, log_warning, log_error, resolve_path
+from src.utils import log_info, log_warning, log_error, resolve_path, log_debug
 from src.dxf_utils import ensure_layer_exists, remove_entities_by_layer, update_layer_properties, attach_custom_data, sanitize_layer_name, initialize_document
 
 class DXFTransfer:
@@ -7,12 +7,12 @@ class DXFTransfer:
         self.project_loader = project_loader
         self.transfers = project_loader.project_settings.get('dxfTransfer', [])
         self.name_to_aci = project_loader.name_to_aci
-        log_info(f"DXFTransfer initialized with {len(self.transfers)} transfers")
+        log_debug(f"DXFTransfer initialized with {len(self.transfers)} transfers")
         if not self.transfers:
-            log_info("No DXF transfers found in project settings")
+            log_debug("No DXF transfers found in project settings")
         else:
             for transfer in self.transfers:
-                log_info(f"Found transfer config: {transfer}")
+                log_debug(f"Found transfer config: {transfer}")
         
     def process_transfers(self, working_doc):
         """Process all DXF transfers defined in configuration"""
@@ -40,7 +40,7 @@ class DXFTransfer:
         """Load entities from external DXF into working document"""
         try:
             external_doc = ezdxf.readfile(external_dxf)
-            log_info(f"Loading from external DXF: {external_dxf}")
+            log_debug(f"Loading from external DXF: {external_dxf}")
             
             for transfer in transfer_config.get('transfers', []):
                 self._transfer_entities(
@@ -61,7 +61,7 @@ class DXFTransfer:
             # Try to open existing file first
             try:
                 external_doc = ezdxf.readfile(external_dxf)
-                log_info(f"Opened existing external DXF: {external_dxf}")
+                log_debug(f"Opened existing external DXF: {external_dxf}")
             except:
                 # If file doesn't exist, try to use template
                 template_dxf = self.project_loader.project_settings.get('templateDxfFilename')
@@ -69,14 +69,14 @@ class DXFTransfer:
                     template_path = resolve_path(template_dxf, self.project_loader.folder_prefix)
                     try:
                         external_doc = ezdxf.readfile(template_path)
-                        log_info(f"Created new external DXF from template: {template_path}")
+                        log_debug(f"Created new external DXF from template: {template_path}")
                     except Exception as e:
                         log_warning(f"Failed to load template DXF {template_path}: {str(e)}")
                         external_doc = ezdxf.new()
-                        log_info("Created new empty DXF file")
+                        log_debug("Created new empty DXF file")
                 else:
                     external_doc = ezdxf.new()
-                    log_info("Created new empty DXF file")
+                    log_debug("Created new empty DXF file")
             
             # Initialize the document with standard styles
             initialize_document(external_doc)
@@ -96,7 +96,7 @@ class DXFTransfer:
                     target_layer_name = to_layer
                     
                 if from_layer != '*':  # Only remove if not copying all layers
-                    log_info(f"Removing existing entities from layer: {target_layer_name}")
+                    log_debug(f"Removing existing entities from layer: {target_layer_name}")
                     remove_entities_by_layer(external_doc.modelspace(), target_layer_name, 'DXFEXPORTER')
                 
                 # Then transfer new entities
@@ -110,7 +110,7 @@ class DXFTransfer:
                 )
                 
             external_doc.saveas(external_dxf)
-            log_info(f"Saved to external DXF: {external_dxf}")
+            log_debug(f"Saved to external DXF: {external_dxf}")
             
         except Exception as e:
             log_error(f"Error saving to {external_dxf}: {str(e)}")
@@ -141,15 +141,15 @@ class DXFTransfer:
             entities = from_doc.modelspace().query(f'*[layer=="{source_layer_name}"]')
             
             # Debug: Log what we found
-            log_info(f"Found {len(entities)} entities on layer '{source_layer_name}'")
+            log_debug(f"Found {len(entities)} entities on layer '{source_layer_name}'")
             entity_types_found = set(e.dxftype() for e in entities)
-            log_info(f"Entity types found on layer: {entity_types_found}")
+            log_debug(f"Entity types found on layer: {entity_types_found}")
             
             # Apply entity type filter if specified
             if entity_types:
-                log_info(f"Filtering for entity types: {entity_types}")
+                log_debug(f"Filtering for entity types: {entity_types}")
                 entities = [e for e in entities if e.dxftype() in entity_types]
-                log_info(f"After filtering: {len(entities)} entities")
+                log_debug(f"After filtering: {len(entities)} entities")
             
             # Apply custom filter if specified
             if entity_filter:
@@ -160,7 +160,7 @@ class DXFTransfer:
             for entity in entities:
                 try:
                     dxftype = entity.dxftype()
-                    log_info(f"Processing entity of type: {dxftype}")
+                    log_debug(f"Processing entity of type: {dxftype}")
                     
                     # Create a clean copy of attributes without handle
                     dxfattribs = {k: v for k, v in entity.dxfattribs().items() if k != 'handle'}

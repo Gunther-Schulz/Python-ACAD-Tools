@@ -1,6 +1,6 @@
 import ezdxf
 from pathlib import Path
-from src.utils import resolve_path, log_info, log_warning, log_error
+from src.utils import resolve_path, log_info, log_warning, log_error, log_debug
 from src.legend_creator import LegendCreator
 from src.dxf_utils import add_text_insert
 from src.path_array import create_path_array
@@ -25,7 +25,7 @@ class ReducedDXFCreator:
         """
         reduced_settings = self.project_settings.get('reducedDxf', {})
         if not reduced_settings or 'layers' not in reduced_settings:
-            log_info("No reducedDxf.layers specified in project settings, skipping reduced DXF creation")
+            log_debug("No reducedDxf.layers specified in project settings, skipping reduced DXF creation")
             return
 
         reduced_layers = reduced_settings['layers']
@@ -55,11 +55,11 @@ class ReducedDXFCreator:
             return None, None
         
         reduced_doc = ezdxf.readfile(template_path)
-        log_info(f"Created reduced DXF from template: {template_path}")
+        log_debug(f"Created reduced DXF from template: {template_path}")
         return reduced_doc, reduced_doc.modelspace()
 
     def _process_from_scratch(self, reduced_doc, reduced_msp, reduced_layers, process_types):
-        log_info(f"Processing reduced DXF from scratch with types: {process_types}")
+        log_debug(f"Processing reduced DXF from scratch with types: {process_types}")
         entity_counts = self._initialize_entity_counts()
         
         self._process_geom_layers(reduced_doc, reduced_msp, reduced_layers, process_types, entity_counts)
@@ -90,7 +90,7 @@ class ReducedDXFCreator:
             if layer_name not in reduced_layers:
                 continue
             
-            log_info(f"Processing reduced geom layer: {layer_name}")
+            log_debug(f"Processing reduced geom layer: {layer_name}")
             modified_layer_info = layer_info.copy()
             modified_layer_info['updateDxf'] = True
             
@@ -122,7 +122,7 @@ class ReducedDXFCreator:
             if not layer_name or layer_name not in reduced_layers:
                 continue
             
-            log_info(f"Processing reduced text insert for layer: {layer_name}")
+            log_debug(f"Processing reduced text insert for layer: {layer_name}")
             modified_config = config.copy()
             modified_config['updateDxf'] = True
             
@@ -166,7 +166,7 @@ class ReducedDXFCreator:
                 log_warning(f"No {process_type} were copied to the reduced DXF")
 
     def _copy_from_main_dxf(self, reduced_doc, reduced_msp, reduced_layers):
-        log_info("Copying reduced DXF layers from main DXF")
+        log_debug("Copying reduced DXF layers from main DXF")
         try:
             original_doc = ezdxf.readfile(self.dxf_filename)
             original_msp = original_doc.modelspace()
@@ -179,7 +179,7 @@ class ReducedDXFCreator:
                 # Check if the label layer exists in the original document
                 if label_layer in original_doc.layers:
                     layers_to_copy.add(label_layer)
-                    log_info(f"Adding associated label layer: {label_layer}")
+                    log_debug(f"Adding associated label layer: {label_layer}")
             
             for layer_name in layers_to_copy:
                 self._copy_layer(reduced_doc, reduced_msp, original_doc, original_msp, layer_name, empty_layers)
@@ -197,7 +197,7 @@ class ReducedDXFCreator:
             log_warning(f"Layer {layer_name} not found in original DXF")
             return
 
-        log_info(f"Processing layer: {layer_name}")
+        log_debug(f"Processing layer: {layer_name}")
         
         # Create the layer in reduced doc if it doesn't exist
         if layer_name not in reduced_doc.layers:
@@ -211,7 +211,7 @@ class ReducedDXFCreator:
             empty_layers.append(layer_name)
             log_warning(f"No entities were copied for layer: {layer_name}")
         else:
-            log_info(f"Copied {entity_count} entities for layer: {layer_name}")
+            log_debug(f"Copied {entity_count} entities for layer: {layer_name}")
 
     def _copy_layer_entities(self, reduced_msp, original_msp, layer_name):
         entity_count = 0
@@ -232,7 +232,7 @@ class ReducedDXFCreator:
                         # Copy all entities from original block to new block
                         for block_entity in original_block:
                             new_block.add_entity(block_entity.copy())
-                        log_info(f"Copied block definition: {block_name}")
+                        log_debug(f"Copied block definition: {block_name}")
                 
                 # Copy the entity (works for both regular entities and block references)
                 new_entity = entity.copy()
@@ -262,4 +262,4 @@ class ReducedDXFCreator:
                 log_warning(f"Audit error: {error}")
         
         reduced_doc.saveas(str(reduced_path))
-        log_info(f"Created reduced DXF file: {reduced_path}")
+        log_debug(f"Created reduced DXF file: {reduced_path}")

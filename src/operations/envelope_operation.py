@@ -2,7 +2,7 @@ import geopandas as gpd
 import numpy as np
 from shapely.geometry import box, MultiPolygon, Polygon, LineString, Point
 from shapely.ops import unary_union
-from src.utils import log_info, log_warning
+from src.utils import log_info, log_warning, log_debug
 from src.operations.common_operations import _process_layer_info, format_operation_warning
 from scipy.spatial import distance
 
@@ -10,7 +10,7 @@ def create_envelope_layer(all_layers, project_settings, crs, layer_name, operati
     """
     Creates a minimum-area bounding rectangle (envelope) for each input geometry.
     """
-    log_info(f"Creating envelope layer: {layer_name}")
+    log_debug(f"Creating envelope layer: {layer_name}")
     
     source_layers = operation.get('layers', [])
     if not source_layers:
@@ -60,7 +60,7 @@ def create_envelope_layer(all_layers, project_settings, crs, layer_name, operati
     result_gdf = gpd.GeoDataFrame(geometry=result_geometries, crs=crs)
     all_layers[layer_name] = result_gdf
     
-    log_info(f"Created envelope layer: {layer_name} with {len(result_geometries)} envelopes")
+    log_debug(f"Created envelope layer: {layer_name} with {len(result_geometries)} envelopes")
     return result_gdf
 
 def detect_bend(polygon):

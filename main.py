@@ -6,7 +6,7 @@ import traceback
 from src.project_loader import ProjectLoader
 from src.layer_processor import LayerProcessor
 from src.dxf_exporter import DXFExporter
-from src.utils import create_sample_project, log_error, log_info, setup_logging, setup_proj, set_log_level
+from src.utils import create_sample_project, log_error, log_info, setup_logging, setup_proj, set_log_level, log_debug
 from src.dump_to_shape import dxf_to_shapefiles
 from src.dxf_utils import cleanup_document
 
@@ -334,9 +334,9 @@ def main():
             
             # Add cleanup step if requested
             if args.cleanup:
-                log_info("Performing document cleanup...")
+                log_debug("Performing document cleanup...")
                 cleanup_document(doc)
-                log_info("Document cleanup completed")
+                log_debug("Document cleanup completed")
                 
     except ValueError as e:
         print(f"\nError: {str(e)}")

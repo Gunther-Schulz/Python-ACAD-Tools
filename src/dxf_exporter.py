@@ -4,7 +4,7 @@ import traceback
 import ezdxf
 from pathlib import Path
 from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection, Point
-from src.utils import ensure_path_exists, log_info, log_warning, log_error, resolve_path
+from src.utils import ensure_path_exists, log_info, log_warning, log_error, resolve_path, log_debug
 import geopandas as gpd
 import os
 from ezdxf.lldxf.const import LWPOLYLINE_PLINEGEN
@@ -42,7 +42,7 @@ class DXFExporter:
         self.block_inserts = self.project_settings.get('blockInserts', [])
         self.style_manager = StyleManager(project_loader)
         self.source_extractor = None  # Initialize as None
-        log_info(f"DXFExporter initialized with script identifier: {self.script_identifier}")
+        log_debug(f"DXFExporter initialized with script identifier: {self.script_identifier}")
         self.setup_layers()
         self.viewport_manager = ViewportManager(
             self.project_settings, 
@@ -154,7 +154,7 @@ class DXFExporter:
     def export_to_dxf(self):
         """Main export method."""
         try:
-            log_info("Starting DXF export...")
+            log_debug("Starting DXF export...")
             doc = self._prepare_dxf_document()
             
             # Share the document with LayerProcessor
@@ -201,7 +201,7 @@ class DXFExporter:
         if os.path.exists(self.dxf_filename):
             backup_filename = resolve_path(f"{self.dxf_filename}.ezdxf_bak")
             shutil.copy2(self.dxf_filename, backup_filename)
-            log_info(f"Created backup of existing DXF file: {backup_filename}")
+            log_debug(f"Created backup of existing DXF file: {backup_filename}")
 
     def _load_or_create_dxf(self):
         dxf_version = self.project_settings.get('dxfVersion', 'R2010')
@@ -210,7 +210,7 @@ class DXFExporter:
         # Load or create the DXF document
         if os.path.exists(self.dxf_filename):
             doc = ezdxf.readfile(self.dxf_filename)
-            log_info(f"Loaded existing DXF file: {self.dxf_filename}")
+            log_debug(f"Loaded existing DXF file: {self.dxf_filename}")
             
             # Initialize source extractor only once
             if self.source_extractor is None:
@@ -226,21 +226,21 @@ class DXFExporter:
             full_template_path = resolve_path(template_filename, self.project_loader.folder_prefix)
             if os.path.exists(full_template_path):
                 doc = ezdxf.readfile(full_template_path)
-                log_info(f"Created new DXF file from template: {full_template_path}")
+                log_debug(f"Created new DXF file from template: {full_template_path}")
                 set_drawing_properties(doc)
             else:
                 log_warning(f"Template file not found at: {full_template_path}")
                 doc = ezdxf.new(dxfversion=dxf_version)
-                log_info(f"Created new DXF file with version: {dxf_version}")
+                log_debug(f"Created new DXF file with version: {dxf_version}")
                 set_drawing_properties(doc)
         else:
             doc = ezdxf.new(dxfversion=dxf_version)
-            log_info(f"Created new DXF file with version: {dxf_version}")
+            log_debug(f"Created new DXF file with version: {dxf_version}")
             set_drawing_properties(doc)
         return doc
 
     def load_existing_layers(self, doc):
-        log_info("Loading existing layers from DXF file")
+        log_debug("Loading existing layers from DXF file")
         for layer in doc.layers:
             layer_name = layer.dxf.name
             if layer_name not in self.layer_properties:
@@ -255,7 +255,7 @@ class DXFExporter:
                     'transparency': layer.transparency
                 }
                 self.colors[layer_name] = layer.color
-            log_info(f"Loaded existing layer: {layer_name}")
+            log_debug(f"Loaded existing layer: {layer_name}")
 
     def _cleanup_and_save(self, doc, msp):
         if not ensure_path_exists(self.dxf_filename):
@@ -270,7 +270,7 @@ class DXFExporter:
         layers_to_clean = [layer for layer in processed_layers if layer not in self.all_layers]
         remove_entities_by_layer(msp, layers_to_clean, self.script_identifier)
         doc.saveas(self.dxf_filename)
-        log_info(f"DXF file saved: {self.dxf_filename}")
+        log_debug(f"DXF file saved: {self.dxf_filename}")
         verify_dxf_settings(self.dxf_filename)
 
     def process_layers(self, doc, msp):
@@ -298,12 +298,12 @@ class DXFExporter:
                 self._process_wmts_layer(doc, msp, layer_name, layer_info)
 
     def process_single_layer(self, doc, msp, layer_name, layer_info):
-        log_info(f"Processing layer: {layer_name}")
+        log_debug(f"Processing layer: {layer_name}")
         
         # Check updateDxf flag early
         update_flag = layer_info.get('updateDxf', False)
         if not update_flag:
-            log_info(f"Skipping layer creation and update for {layer_name} as 'updateDxf' flag is not set")
+            log_debug(f"Skipping layer creation and update for {layer_name} as 'updateDxf' flag is not set")
             return
         
         # Process layer style
@@ -312,7 +312,7 @@ class DXFExporter:
         # Create and process layer only if updateDxf is True
         if layer_name not in doc.layers:
             new_layer = doc.layers.new(name=layer_name)
-            log_info(f"Created new layer: {layer_name}")
+            log_debug(f"Created new layer: {layer_name}")
         else:
             new_layer = doc.layers.get(layer_name)
         
@@ -330,12 +330,12 @@ class DXFExporter:
         self._process_hatch(doc, msp, layer_name, layer_info)
 
     def _process_wmts_layer(self, doc, msp, layer_name, layer_info):
-        log_info(f"Processing WMTS layer: {layer_name}")
+        log_debug(f"Processing WMTS layer: {layer_name}")
         
         # Check updateDxf flag early and skip all processing if false
         update_flag = layer_info.get('updateDxf', False)
         if not update_flag:
-            log_info(f"Skipping layer creation and update for {layer_name} - updateDxf is False")
+            log_debug(f"Skipping layer creation and update for {layer_name} - updateDxf is False")
             return
         
         # Only create and update if updateDxf is True
@@ -354,7 +354,7 @@ class DXFExporter:
         # Check updateDxf flag early
         update_flag = layer_info.get('updateDxf', False)
         if not update_flag:
-            log_info(f"Skipping layer creation and update for {layer_name} as 'updateDxf' flag is not set")
+            log_debug(f"Skipping layer creation and update for {layer_name} as 'updateDxf' flag is not set")
             return
         
         self._ensure_layer_exists(doc, layer_name, layer_info)
@@ -382,7 +382,7 @@ class DXFExporter:
         update_flag = layer_config.get('updateDxf', False)
         
         if not update_flag:
-            log_info(f"Skipping geometry update for layer {layer_name} as 'updateDxf' flag is not set")
+            log_debug(f"Skipping geometry update for layer {layer_name} as 'updateDxf' flag is not set")
             return
         
         def update_function():
@@ -394,19 +394,19 @@ class DXFExporter:
             ])):
                 layer_properties = self.style_manager.process_layer_style(layer_name, layer_config)
                 update_layer_properties(layer, layer_properties, self.name_to_aci)
-                log_info(f"Updated style for layer {layer_name}")
+                log_debug(f"Updated style for layer {layer_name}")
             
             # Remove and update geometry
-            log_info(f"Removing existing geometry from layer {layer_name}")
+            log_debug(f"Removing existing geometry from layer {layer_name}")
             remove_entities_by_layer(msp, layer_name, self.script_identifier)
             
             # Remove existing labels if they exist
             label_layer_name = f"{layer_name} Label"
-            log_info(f"Removing existing labels from layer {label_layer_name}")
+            log_debug(f"Removing existing labels from layer {label_layer_name}")
             remove_entities_by_layer(msp, label_layer_name, self.script_identifier)
 
             # Add new geometry
-            log_info(f"Adding new geometry to layer {layer_name}")
+            log_debug(f"Adding new geometry to layer {layer_name}")
             if isinstance(geo_data, list) and all(isinstance(item, tuple) for item in geo_data):
                 self.add_wmts_xrefs_to_dxf(msp, geo_data, layer_name)
             else:
@@ -415,14 +415,14 @@ class DXFExporter:
         update_layer_geometry(msp, layer_name, self.script_identifier, update_function)
 
     def create_new_layer(self, doc, msp, layer_name, layer_info, add_geometry=True):
-        log_info(f"Creating new layer: {layer_name}")
+        log_debug(f"Creating new layer: {layer_name}")
         sanitized_layer_name = sanitize_layer_name(layer_name)  # Add this line
         properties = self.layer_properties[layer_name]
         
         ensure_layer_exists(doc, sanitized_layer_name, properties, self.name_to_aci)  # Update this line
         
-        log_info(f"Created new layer: {sanitized_layer_name}")  # Update this line
-        log_info(f"Layer properties: {properties}")
+        log_debug(f"Created new layer: {sanitized_layer_name}")  # Update this line
+        log_debug(f"Layer properties: {properties}")
         
         if add_geometry and layer_name in self.all_layers:
             self.update_layer_geometry(msp, sanitized_layer_name, self.all_layers[layer_name], layer_info)  # Update this line
@@ -431,7 +431,7 @@ class DXFExporter:
 
     def apply_layer_properties(self, layer, layer_properties):
         update_layer_properties(layer, layer_properties, self.name_to_aci)
-        log_info(f"Updated layer properties: {layer_properties}")
+        log_debug(f"Updated layer properties: {layer_properties}")
 
     def attach_custom_data(self, entity, entity_name=None):
         attach_custom_data(entity, self.script_identifier, entity_name)
@@ -440,18 +440,18 @@ class DXFExporter:
         return is_created_by_script(entity, self.script_identifier)
 
     def add_wmts_xrefs_to_dxf(self, msp, tile_data, layer_name):
-        log_info(f"Adding WMTS xrefs to DXF for layer: {layer_name}")
+        log_debug(f"Adding WMTS xrefs to DXF for layer: {layer_name}")
         
         for image_path, world_file_path in tile_data:
             self.add_image_with_worldfile(msp, image_path, world_file_path, layer_name)
 
-        log_info(f"Added {len(tile_data)} WMTS xrefs to layer: {layer_name}")
+        log_debug(f"Added {len(tile_data)} WMTS xrefs to layer: {layer_name}")
 
     def add_image_with_worldfile(self, msp, image_path, world_file_path, layer_name):
-        log_info(f"Adding image with worldfile for layer: {layer_name}")
+        log_debug(f"Adding image with worldfile for layer: {layer_name}")
         print(f"Adding image with worldfile for layer: {layer_name}")
-        log_info(f"Image path: {image_path}")
-        log_info(f"World file path: {world_file_path}")
+        log_debug(f"Image path: {image_path}")
+        log_debug(f"World file path: {world_file_path}")
 
         # Get layer configuration from both WMTS and WMS layers
         layer_info = (
@@ -482,7 +482,7 @@ class DXFExporter:
         relative_image_path = os.path.relpath(
             image_path, os.path.dirname(self.dxf_filename))
         relative_image_path = convert_to_windows_path(relative_image_path)
-        log_info(f"Relative image path: {relative_image_path}")
+        log_debug(f"Relative image path: {relative_image_path}")
 
         # Read the world file to get the transformation parameters
         with open(world_file_path, 'r') as wf:
@@ -492,7 +492,7 @@ class DXFExporter:
             e = float(wf.readline().strip())
             c = float(wf.readline().strip())
             f = float(wf.readline().strip())
-        log_info(f"World file parameters: a={a}, d={d}, b={b}, e={e}, c={c}, f={f}")
+        log_debug(f"World file parameters: a={a}, d={d}, b={b}, e={e}, c={c}, f={f}")
 
         # Get image dimensions
         with Image.open(image_path) as img:
@@ -501,8 +501,8 @@ class DXFExporter:
         # Calculate the insertion point (bottom-left corner)
         insert_point = (c, f - abs(e) * img_height)
         size_in_units = (abs(a) * img_width, abs(e) * img_height)
-        log_info(f"Insertion point: {insert_point}")
-        log_info(f"Size in units: {size_in_units}")
+        log_debug(f"Insertion point: {insert_point}")
+        log_debug(f"Size in units: {size_in_units}")
 
         # Create the image definition with the relative Windows-style path
         image_def = msp.doc.add_image_def(filename=relative_image_path, size_in_pixel=(img_width, img_height))
@@ -526,18 +526,18 @@ class DXFExporter:
         if use_transparency:
             # Image.SHOW_IMAGE (1) | Image.SHOW_WHEN_NOT_ALIGNED (2) | Image.USE_TRANSPARENCY (8)
             image.dxf.flags = 1 | 2 | 8
-            log_info(f"Added image with transparency enabled: {image}")
+            log_debug(f"Added image with transparency enabled: {image}")
             print(f"Added image with transparency enabled: {image}")
         else:
             # Image.SHOW_IMAGE (1) | Image.SHOW_WHEN_NOT_ALIGNED (2)
             image.dxf.flags = 1 | 2
-            log_info(f"Added image without transparency: {image}")
+            log_debug(f"Added image without transparency: {image}")
 
         # Set the $PROJECTNAME header variable to an empty string
         msp.doc.header['$PROJECTNAME'] = ''
 
     def add_geometries_to_dxf(self, msp, geo_data, layer_name):
-        log_info(f"Adding geometries to DXF for layer: {layer_name}")
+        log_debug(f"Adding geometries to DXF for layer: {layer_name}")
         
         layer_info = next((l for l in self.project_settings['geomLayers'] if l['name'] == layer_name), {})
         
@@ -546,7 +546,7 @@ class DXFExporter:
             return
 
         if geo_data is None:
-            log_info(f"No geometry data available for layer: {layer_name}")
+            log_debug(f"No geometry data available for layer: {layer_name}")
             return
 
         if isinstance(geo_data, gpd.GeoDataFrame):
@@ -817,13 +817,13 @@ class DXFExporter:
             # Attach custom data
             self.attach_custom_data(point_entity, entity_name)
             
-            log_info(f"Added point at ({x}, {y}) to layer {layer_name}")
+            log_debug(f"Added point at ({x}, {y}) to layer {layer_name}")
             
         except Exception as e:
             log_error(f"Error adding point to layer {layer_name}: {str(e)}")
 
     def verify_entity_hyperlinks(self, msp, layer_name):
-        log_info(f"Verifying hyperlinks for entities in layer {layer_name}")
+        log_debug(f"Verifying hyperlinks for entities in layer {layer_name}")
         for entity in msp.query(f'*[layer=="{layer_name}"]'):
             if hasattr(entity, 'get_hyperlink'):
                 pass
@@ -831,12 +831,12 @@ class DXFExporter:
                 log_warning(f"Entity {entity.dxftype()} in layer {layer_name} has no 'get_hyperlink' method")
 
     def check_existing_entities(self, doc):
-        log_info("Checking existing entities in the DXF file")
+        log_debug("Checking existing entities in the DXF file")
         for entity in doc.modelspace():
             if hasattr(entity, 'get_hyperlink'):
                 hyperlink = entity.get_hyperlink()
             else:
-                log_info(f"Entity {entity} has no 'get_hyperlink' method")
+                log_debug(f"Entity {entity} has no 'get_hyperlink' method")
 
     def _process_viewport_styles(self, doc, layer_name, viewport_styles):
         layer = doc.layers.get(layer_name)
@@ -885,7 +885,7 @@ class DXFExporter:
                             transparency_value = max(0, min(transparency, 1))
                             layer_overrides.set_transparency(vp_handle, transparency_value)
 
-                    log_info(f"Set viewport-specific properties for {vp_style['name']} on layer {layer_name}")
+                    log_debug(f"Set viewport-specific properties for {vp_style['name']} on layer {layer_name}")
                 else:
                     log_warning(f"Viewport {vp_style['name']} not found")
             except Exception as e:
@@ -900,15 +900,15 @@ class DXFExporter:
             doc.appids.new('DXFEXPORTER')
 
     def _process_hatch(self, doc, msp, layer_name, layer_info):
-        log_info(f"Processing hatch for layer: {layer_name}")
+        log_debug(f"Processing hatch for layer: {layer_name}")
         
         hatch_config = self.style_manager.get_hatch_config(layer_info)
         
-        log_info(f"Hatch config: {hatch_config}")
+        log_debug(f"Hatch config: {hatch_config}")
 
         apply_hatch = layer_info.get('applyHatch', False)
         if not apply_hatch:
-            log_info(f"Hatch processing skipped for layer: {layer_name}")
+            log_debug(f"Hatch processing skipped for layer: {layer_name}")
             return
 
         boundary_layers = hatch_config.get('layers', [layer_name])
@@ -932,7 +932,7 @@ class DXFExporter:
                 hatch.dxf.layer = layer_name
                 self.attach_custom_data(hatch)
 
-        log_info(f"Added hatch{'es' if individual_hatches else ''} to layer: {layer_name}")
+        log_debug(f"Added hatch{'es' if individual_hatches else ''} to layer: {layer_name}")
 
     def _get_boundary_geometry(self, boundary_layers):
         combined_geometry = None
@@ -978,7 +978,7 @@ class DXFExporter:
 
     def create_path_arrays(self, msp):
         path_arrays = self.project_settings.get('pathArrays', [])
-        log_info(f"Processing {len(path_arrays)} path array configurations")
+        log_debug(f"Processing {len(path_arrays)} path array configurations")
         
         for config in path_arrays:
             name = config.get('name')
@@ -990,7 +990,7 @@ class DXFExporter:
                 continue
             
             if not updateDxf:
-                log_info(f"Skipping path array '{name}' as updateDxf flag is not set")
+                log_debug(f"Skipping path array '{name}' as updateDxf flag is not set")
                 continue
             
             if source_layer_name not in self.all_layers:
@@ -1008,23 +1008,23 @@ class DXFExporter:
             show_debug_visual = config.get('showDebugVisual', False)
             adjust_for_vertices = config.get('adjustForVertices', False)
             
-            log_info(f"Creating path array: {name}")
-            log_info(f"Source layer: {source_layer_name}")
-            log_info(f"Block: {block_name}, Spacing: {spacing}, Scale: {scale}")
-            log_info(f"Path offset: {path_offset}")
+            log_debug(f"Creating path array: {name}")
+            log_debug(f"Source layer: {source_layer_name}")
+            log_debug(f"Block: {block_name}, Spacing: {spacing}, Scale: {scale}")
+            log_debug(f"Path offset: {path_offset}")
             
             create_path_array(msp, source_layer_name, name, block_name, 
                              spacing, buffer_distance, scale, rotation, 
                              show_debug_visual, self.all_layers, 
                              adjust_for_vertices, path_offset)
         
-        log_info("Finished processing all path array configurations")
+        log_debug("Finished processing all path array configurations")
 
     def process_text_inserts(self, msp):
         """Process text inserts for both model and paper space."""
         text_inserts = self.project_settings.get('textInserts', [])
         if not text_inserts:
-            log_info("No text inserts found in project settings")
+            log_debug("No text inserts found in project settings")
             return
 
         # First, identify all layers that will get new text
@@ -1034,7 +1034,7 @@ class DXFExporter:
             if config.get('updateDxf', False) and 'targetLayer' in config
         }
         
-        log_info(f"Processing text inserts for layers: {', '.join(target_layers)}")
+        log_debug(f"Processing text inserts for layers: {', '.join(target_layers)}")
         
         # Clear each target layer (remove_entities_by_layer handles both spaces)
         for layer_name in target_layers:
@@ -1061,7 +1061,7 @@ class DXFExporter:
                 
                 if text_entity:
                     space_type = "paperspace" if config.get('paperspace', False) else "modelspace"
-                    log_info(f"Added text insert '{config.get('name')}' to {space_type}")
+                    log_debug(f"Added text insert '{config.get('name')}' to {space_type}")
                 else:
                     log_warning(f"Failed to add text insert '{config.get('name')}'")
                     

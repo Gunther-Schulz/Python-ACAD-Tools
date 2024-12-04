@@ -1,4 +1,4 @@
-from src.utils import log_info, log_warning
+from src.utils import log_info, log_warning, log_debug, log_error
 from src.dxf_utils import get_color_code
 import re
 

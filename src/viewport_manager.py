@@ -1,6 +1,6 @@
 import traceback
 from ezdxf.lldxf import const
-from src.utils import log_info, log_warning, log_error
+from src.utils import log_info, log_warning, log_error, log_debug
 from src.dxf_utils import get_color_code, attach_custom_data
 
 class ViewportManager:
@@ -22,13 +22,13 @@ class ViewportManager:
         viewports_layer.dxf.plot = 0
         
         viewport_configs = self.project_settings.get('viewports', [])
-        log_info(f"Found {len(viewport_configs)} viewport configurations")
+        log_debug(f"Found {len(viewport_configs)} viewport configurations")
         
         for vp_config in viewport_configs:
             try:
                 name = vp_config.get('name', 'unnamed')
                 if not vp_config.get('updateDxf', False):
-                    log_info(f"Skipping viewport {name} as update flag is not set")
+                    log_debug(f"Skipping viewport {name} as update flag is not set")
                     continue
 
                 viewport = self._create_or_get_viewport(paper_space, vp_config)
@@ -40,14 +40,14 @@ class ViewportManager:
                 self._update_viewport_layers(doc, viewport, vp_config)
                 self._attach_viewport_metadata(viewport, vp_config)
                 self.viewports[name] = viewport
-                log_info(f"Successfully processed viewport: {name}")
+                log_debug(f"Successfully processed viewport: {name}")
                 
             except Exception as e:
                 log_error(f"Error processing viewport {vp_config.get('name', 'unnamed')}: {str(e)}")
                 log_error(f"Traceback: {traceback.format_exc()}")
                 continue
         
-        log_info(f"Completed viewport processing. Created/updated {len(self.viewports)} viewports")
+        log_debug(f"Completed viewport processing. Created/updated {len(self.viewports)} viewports")
         return self.viewports
 
     def _create_or_get_viewport(self, paper_space, vp_config):
@@ -55,7 +55,7 @@ class ViewportManager:
         existing_viewport = self.get_viewport_by_name(paper_space.doc, vp_config['name'])
         
         if existing_viewport:
-            log_info(f"Viewport {vp_config['name']} already exists. Updating properties.")
+            log_debug(f"Viewport {vp_config['name']} already exists. Updating properties.")
             return existing_viewport
         
         # Create new viewport with physical properties
@@ -74,7 +74,7 @@ class ViewportManager:
         viewport.dxf.status = 1
         viewport.dxf.layer = 'VIEWPORTS'
         
-        log_info(f"Created new viewport: {vp_config['name']}")
+        log_debug(f"Created new viewport: {vp_config['name']}")
         return viewport
 
     def set_viewport_2d_properties(self, viewport):
@@ -83,7 +83,7 @@ class ViewportManager:
         viewport.dxf.flags = 128 | 512  # Set only VSF_FAST_ZOOM (128) and VSF_GRID_MODE (512)
         viewport.dxf.render_mode = 0  # 2D Optimized
         viewport.dxf.view_direction_vector = (0, 0, 1)  # Straight top-down view
-        log_info("Set viewport to strict 2D mode")
+        log_debug("Set viewport to strict 2D mode")
 
     def _update_viewport_properties(self, viewport, vp_config):
         """Updates properties for both new and existing viewports."""

@@ -1,11 +1,11 @@
 import geopandas as gpd
 from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection, Point, MultiPoint
-from src.utils import log_info, log_warning, log_error
+from src.utils import log_info, log_warning, log_error, log_debug
 from src.operations.common_operations import _process_layer_info, _get_filtered_geometry, ensure_geodataframe
 from src.operations.common_operations import *
 
 def create_filtered_by_intersection_layer(all_layers, project_settings, crs, layer_name, operation):
-    log_info(f"Creating filtered layer: {layer_name}")
+    log_debug(f"Creating filtered layer: {layer_name}")
     
     if layer_name not in all_layers:
         log_warning(f"Layer '{layer_name}' not found for filtering")
@@ -22,13 +22,13 @@ def create_filtered_by_intersection_layer(all_layers, project_settings, crs, lay
         if source_layer_name is None:
             continue
 
-        log_info(f"Processing filter layer: {source_layer_name}")
+        log_debug(f"Processing filter layer: {source_layer_name}")
 
         filter_geometry = _get_filtered_geometry(all_layers, project_settings, crs, source_layer_name, values)
         if filter_geometry is None:
             continue
 
-        log_info(f"Filter geometry type for {source_layer_name}: {type(filter_geometry)}")
+        log_debug(f"Filter geometry type for {source_layer_name}: {type(filter_geometry)}")
 
         # Store the column name and values for later addition
         columns_to_add[source_layer_name] = values[0] if values else None
