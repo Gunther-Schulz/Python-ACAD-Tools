@@ -52,11 +52,16 @@ def setup_logging(log_level='INFO'):
     }
     
     # Set levels and formatters for each handler
+    # debug.log gets everything (DEBUG and above)
     handlers['debug'].setLevel(logging.DEBUG)
+    # info.log gets INFO and above
     handlers['info'].setLevel(logging.INFO)
+    # warning.log gets WARNING and above
     handlers['warning'].setLevel(logging.WARNING)
+    # error.log gets only ERROR
     handlers['error'].setLevel(logging.ERROR)
-    handlers['console'].setLevel(logging.WARNING)  # Default console to WARNING
+    # Console shows WARNING by default, but can be overridden
+    handlers['console'].setLevel(logging.WARNING)
     
     # Override console level if specified
     if level != logging.INFO:
