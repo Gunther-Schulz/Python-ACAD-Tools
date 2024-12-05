@@ -3,6 +3,7 @@ import geopandas as gpd
 from pathlib import Path
 from src.utils import log_debug, log_error, log_warning, ensure_path_exists
 import traceback
+from typing import Set, Optional
 
 def _normalize_field_name(name: str, max_length: int = 10) -> str:
     """
@@ -63,6 +64,24 @@ def _normalize_field_name(name: str, max_length: int = 10) -> str:
     
     return name
 
+def _validate_geometry_types(geom_types: Set[str], layer_name: str) -> Optional[str]:
+    if not geom_types:
+        return None
+    
+    # Handle case where None is mixed with a single valid type
+    if None in geom_types and len(geom_types) == 2:
+        valid_types = geom_types - {None}
+        if len(valid_types) == 1:
+            valid_type = valid_types.pop()
+            log_warning(f"When saving Layer '{layer_name}': Mixed None and {valid_type} geometry types found. Using {valid_type}.")
+            return valid_type
+
+    if len(geom_types) > 1:
+        log_error(f"Layer '{layer_name}': Mixed geometry types found: {geom_types}")
+        return None
+
+    return geom_types.pop() if None not in geom_types else None
+
 def write_shapefile(gdf: gpd.GeoDataFrame, output_path: str, delete_existing: bool = True) -> bool:
     """
     Write a GeoDataFrame to a shapefile.
@@ -86,8 +105,8 @@ def write_shapefile(gdf: gpd.GeoDataFrame, output_path: str, delete_existing: bo
 
         # Verify geometry types are consistent
         geom_types = set(gdf.geometry.geom_type)
-        if len(geom_types) > 1:
-            log_error(f"Mixed geometry types found in GeoDataFrame: {geom_types}")
+        valid_geom_type = _validate_geometry_types(geom_types, output_path)
+        if valid_geom_type is None:
             return False
 
         # Convert long suffixes to short ones
