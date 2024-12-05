@@ -68,8 +68,11 @@ def log_warning(message):
     logging.warning(f"\033[93m{message}\033[0m")
 
 def log_error(message):
+    import traceback
+    stack = traceback.extract_stack()
+    caller = stack[-2]  # Get caller's info
     error_traceback = traceback.format_exc()
-    logging.error(f"\033[91mError: {message}\033[0m")
+    logging.error(f"\033[91mError: {message} (from {caller.filename}:{caller.lineno})\033[0m")
     if error_traceback != "NoneType: None\n":
         logging.error(f"Traceback:\n{error_traceback}")
 
