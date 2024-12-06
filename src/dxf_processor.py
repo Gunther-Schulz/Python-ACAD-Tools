@@ -283,7 +283,7 @@ class DXFProcessor:
         """Process all DXF extracts defined in configuration"""
         if not self.extracts:
             return
-            
+        
         for extract in self.extracts:
             source_layer = extract.get('sourceLayer')
             output_file = extract.get('outputShapeFile')
@@ -308,19 +308,30 @@ class DXFProcessor:
                 log_warning(f"Source layer '{source_layer}' not found in DXF document")
                 continue
                 
-            self._process_single_extract(doc, source_layer, output_file, preprocessors)
+            self._process_single_extract(doc, source_layer, output_file, preprocessors, extract)
 
-    def _process_single_extract(self, doc, source_layer, output_file, preprocessors=None):
+    def _process_single_extract(self, doc, source_layer, output_file, preprocessors=None, extract=None):
         """Process a single DXF extract operation"""
         try:
             full_output_path = resolve_path(output_file, self.project_loader.folder_prefix)
             
+            # Build query string based on entity types if specified
+            entity_types = extract.get('entityTypes', [])
+            if entity_types and len(entity_types) == 1:
+                query = f'{entity_types[0]}[layer=="{source_layer}"]'
+            else:
+                query = f'*[layer=="{source_layer}"]'
+            
             # Get all entities from the source layer
-            entities = doc.modelspace().query(f'*[layer=="{source_layer}"]')
+            entities = doc.modelspace().query(query)
             
             if not entities:
                 log_warning(f"No entities found in layer '{source_layer}' in document: {doc.filename}")
                 return
+            
+            # If multiple entity types specified, filter after query
+            if entity_types and len(entity_types) > 1:
+                entities = [e for e in entities if e.dxftype() in entity_types]
             
             # Apply preprocessors if any
             if preprocessors:
@@ -352,35 +363,49 @@ class DXFProcessor:
                 else:
                     # Handle regular entities
                     if isinstance(entity_data, (LWPolyline, Polyline)):
-                        points_list = list(entity_data.vertices())
-                        if len(points_list) >= 2:
-                            # Check both the closed attribute and if endpoints match (within tolerance)
-                            is_closed = (
-                                (hasattr(entity_data, 'closed') and entity_data.closed) or
-                                (len(points_list) >= 3 and 
-                                 abs(points_list[0][0] - points_list[-1][0]) < POLYGON_CLOSURE_TOLERANCE and 
-                                 abs(points_list[0][1] - points_list[-1][1]) < POLYGON_CLOSURE_TOLERANCE)
-                            )
-                            
-                            if is_closed and len(points_list) >= 3:
-                                # Ensure the polygon is closed by adding first point if needed
-                                if abs(points_list[0][0] - points_list[-1][0]) >= POLYGON_CLOSURE_TOLERANCE or abs(points_list[0][1] - points_list[-1][1]) >= POLYGON_CLOSURE_TOLERANCE:
-                                    points_list.append(points_list[0])
-                                polygon = Polygon(points_list)
-                                if polygon.is_valid and not polygon.is_empty:
-                                    # Split MultiPolygon into constituent polygons
-                                    if isinstance(polygon, MultiPolygon):
-                                        for p in polygon.geoms:
-                                            pl.append(p)
+                        try:
+                            # Get vertices and convert DXFVertex objects to coordinate tuples if needed
+                            points_list = []
+                            for vertex in entity_data.vertices():
+                                if hasattr(vertex, 'dxf'):
+                                    points_list.append((vertex.dxf.location.x, vertex.dxf.location.y))
+                                else:
+                                    points_list.append(vertex)
+                                    
+                            if len(points_list) >= 2:
+                                # Check both the closed attribute and if endpoints match (within tolerance)
+                                is_closed = (
+                                    (hasattr(entity_data, 'closed') and entity_data.closed) or
+                                    (len(points_list) >= 3 and 
+                                     abs(points_list[0][0] - points_list[-1][0]) < POLYGON_CLOSURE_TOLERANCE and 
+                                     abs(points_list[0][1] - points_list[-1][1]) < POLYGON_CLOSURE_TOLERANCE)
+                                )
+                                
+                                if is_closed and len(points_list) >= 3:
+                                    # Ensure the polygon is closed by adding first point if needed
+                                    if abs(points_list[0][0] - points_list[-1][0]) >= POLYGON_CLOSURE_TOLERANCE or abs(points_list[0][1] - points_list[-1][1]) >= POLYGON_CLOSURE_TOLERANCE:
+                                        points_list.append(points_list[0])
+                                    polygon = Polygon(points_list)
+                                    if polygon.is_valid and not polygon.is_empty:
+                                        # Split MultiPolygon into constituent polygons
+                                        if isinstance(polygon, MultiPolygon):
+                                            for p in polygon.geoms:
+                                                pl.append(p)
+                                                pl_attrs.append({})
+                                        else:
+                                            pl.append(polygon)
                                             pl_attrs.append({})
-                                    else:
-                                        pl.append(polygon)
-                                        pl_attrs.append({})
-                            else:
-                                line = LineString(points_list)
-                                if line.is_valid and not line.is_empty:
-                                    ln.append(line)
-                                    ln_attrs.append({})
+                                else:
+                                    line = LineString(points_list)
+                                    if line.is_valid and not line.is_empty:
+                                        ln.append(line)
+                                        ln_attrs.append({})
+                        except Exception as e:
+                            entity_type = entity_data.dxftype() if hasattr(entity_data, 'dxftype') else type(entity_data).__name__
+                            entity_handle = getattr(entity_data, 'dxf', {}).get('handle', 'unknown')
+                            log_warning(f"Failed to process {entity_type} entity (handle: {entity_handle}) in layer '{source_layer}': {str(e)}")
+                            continue
+                        
                     elif isinstance(entity_data, ezdxf.entities.Line):
                         line = LineString([entity_data.dxf.start, entity_data.dxf.end])
                         if line.is_valid and not line.is_empty:
