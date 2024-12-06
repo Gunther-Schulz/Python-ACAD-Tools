@@ -56,11 +56,14 @@ class LayerProcessor:
         
         self.setup_shapefiles()
 
+        shapefile_output_dir = self.project_loader.shapefile_output_dir
+
         # Process geometric layers
         for layer in self.project_settings['geomLayers']:
             layer_name = layer['name']
             self.process_layer(layer, self.processed_layers)
-            self.write_shapefile(layer_name)
+            if shapefile_output_dir:
+                self.write_shapefile(layer_name)
 
         # Process WMTS layers
         for layer in self.project_settings.get('wmtsLayers', []):
@@ -560,6 +563,12 @@ class LayerProcessor:
 
     def delete_residual_shapefiles(self):
         output_dir = self.project_loader.shapefile_output_dir
+        
+        # Skip only if this specific setting is not configured
+        if not output_dir:
+            log_debug("Skipping residual shapefile cleanup - no shapefileOutputDir configured in project settings")
+            return
+        
         log_debug(f"Checking for residual shapefiles in {output_dir}")
         
         for filename in os.listdir(output_dir):
