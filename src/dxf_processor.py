@@ -284,14 +284,12 @@ class DXFProcessor:
         if not self.extracts:
             return
         
-        for extract in self.extracts:
-            source_layer = extract.get('sourceLayer')
-            output_file = extract.get('outputShapeFile')
-            source_dxf = extract.get('sourceDxf')
-            preprocessors = extract.get('preprocessors', [])
+        for extract_config in self.extracts:
+            source_dxf = extract_config.get('sourceDxf')
+            layers = extract_config.get('layers', [])
             
-            if not source_layer or not output_file:
-                log_warning(f"Skipping invalid DXF extract configuration: {extract}")
+            if not layers:
+                log_warning(f"Skipping extract configuration without layers: {extract_config}")
                 continue
             
             # Load alternative DXF if specified
@@ -304,11 +302,21 @@ class DXFProcessor:
                     log_error(f"Failed to load alternative DXF {source_dxf}: {str(e)}")
                     continue
             
-            if source_layer not in doc.layers:
-                log_warning(f"Source layer '{source_layer}' not found in DXF document")
-                continue
+            # Process each layer configuration
+            for layer_config in layers:
+                source_layer = layer_config.get('sourceLayer')
+                output_file = layer_config.get('outputShapeFile')
+                preprocessors = layer_config.get('preprocessors', [])
                 
-            self._process_single_extract(doc, source_layer, output_file, preprocessors, extract)
+                if not source_layer or not output_file:
+                    log_warning(f"Skipping invalid layer configuration: {layer_config}")
+                    continue
+                
+                if source_layer not in doc.layers:
+                    log_warning(f"Source layer '{source_layer}' not found in DXF document")
+                    continue
+                
+                self._process_single_extract(doc, source_layer, output_file, preprocessors, layer_config)
 
     def _process_single_extract(self, doc, source_layer, output_file, preprocessors=None, extract=None):
         """Process a single DXF extract operation"""
