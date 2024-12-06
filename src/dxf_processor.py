@@ -319,7 +319,7 @@ class DXFProcessor:
             entities = doc.modelspace().query(f'*[layer=="{source_layer}"]')
             
             if not entities:
-                log_warning(f"No entities found in layer: {source_layer}")
+                log_warning(f"No entities found in layer '{source_layer}' in document: {doc.filename}")
                 return
             
             # Apply preprocessors if any
@@ -368,8 +368,14 @@ class DXFProcessor:
                                     points_list.append(points_list[0])
                                 polygon = Polygon(points_list)
                                 if polygon.is_valid and not polygon.is_empty:
-                                    pl.append(polygon)
-                                    pl_attrs.append({})
+                                    # Split MultiPolygon into constituent polygons
+                                    if isinstance(polygon, MultiPolygon):
+                                        for p in polygon.geoms:
+                                            pl.append(p)
+                                            pl_attrs.append({})
+                                    else:
+                                        pl.append(polygon)
+                                        pl_attrs.append({})
                             else:
                                 line = LineString(points_list)
                                 if line.is_valid and not line.is_empty:

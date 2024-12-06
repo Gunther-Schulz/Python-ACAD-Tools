@@ -76,6 +76,11 @@ def _validate_geometry_types(geom_types: Set[str], layer_name: str) -> Optional[
             log_warning(f"When saving Layer '{layer_name}': Mixed None and {valid_type} geometry types found. Using {valid_type}.")
             return valid_type
 
+    # Handle mixed Polygon and MultiPolygon case
+    if geom_types == {'Polygon', 'MultiPolygon'}:
+        log_warning(f"Layer '{layer_name}': Mixed Polygon and MultiPolygon types found. Using Polygon (MultiPolygons will be exploded).")
+        return 'Polygon'
+
     if len(geom_types) > 1:
         log_error(f"Layer '{layer_name}': Mixed geometry types found: {geom_types}")
         return None
@@ -108,6 +113,11 @@ def write_shapefile(gdf: gpd.GeoDataFrame, output_path: str, delete_existing: bo
         valid_geom_type = _validate_geometry_types(geom_types, output_path)
         if valid_geom_type is None:
             return False
+
+        # Explode MultiPolygons if mixed with Polygons
+        if 'MultiPolygon' in geom_types and valid_geom_type == 'Polygon':
+            gdf = gdf.explode(index_parts=True).reset_index(drop=True)
+            log_debug(f"Exploded MultiPolygons into individual Polygons")
 
         # Convert long suffixes to short ones
         output_path = (
