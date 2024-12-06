@@ -364,14 +364,33 @@ class DXFProcessor:
                     # Handle regular entities
                     if isinstance(entity_data, (LWPolyline, Polyline)):
                         try:
-                            # Get vertices and convert DXFVertex objects to coordinate tuples if needed
                             points_list = []
-                            for vertex in entity_data.vertices():
-                                if hasattr(vertex, 'dxf'):
-                                    points_list.append((vertex.dxf.location.x, vertex.dxf.location.y))
-                                else:
-                                    points_list.append(vertex)
-                                    
+                            
+                            if isinstance(entity_data, LWPolyline):
+                                # LWPolyline stores points as (x, y, start_width, end_width, bulge)
+                                try:
+                                    for point in entity_data.get_points():
+                                        # Take only x,y coordinates from the 5-tuple
+                                        points_list.append((point[0], point[1]))
+                                except Exception as e:
+                                    log_warning(f"Failed to get points from LWPOLYLINE in layer '{source_layer}': {str(e)}")
+                                    continue
+                            else:
+                                # Regular POLYLINE needs different vertex handling
+                                try:
+                                    # For regular POLYLINE, vertices is a list property, not a method
+                                    if hasattr(entity_data, 'vertices'):
+                                        for vertex in entity_data.vertices:
+                                            if hasattr(vertex, 'dxf'):
+                                                # Get coordinates from DXFVertex
+                                                points_list.append((vertex.dxf.location.x, vertex.dxf.location.y))
+                                            else:
+                                                # Direct coordinate access
+                                                points_list.append((vertex[0], vertex[1]))
+                                except Exception as e:
+                                    log_warning(f"Failed to get vertices from POLYLINE in layer '{source_layer}': {str(e)}")
+                                    continue
+
                             if len(points_list) >= 2:
                                 # Check both the closed attribute and if endpoints match (within tolerance)
                                 is_closed = (
