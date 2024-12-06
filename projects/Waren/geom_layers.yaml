@@ -1,9 +1,14 @@
 geomLayers:
-- name: Zuwegung Weg
-  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/zuwegung_weg.shp"
+# - name: Zuwegung Weg
+#   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/zuwegung_weg.shp"
+- name: Zuwegung Mittellinie
+  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/maxsolar_zuwegung_mittellinie_ln.shp"
+- name: Leitung Mittelspannung Zuwegung
+  updateDxf: true
+  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/maxsolar_leitung_ms_zuwegung_ln.shp"
 - name: Gas_HD_LEIT
   updateDxf: true
-  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/gas_edit_ln.shp"
+  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/vermessung_gas_hd_ln.shp"
 - name: Gas_HD_LEIT Buffer
   # updateDxf: true
   operations:
@@ -15,7 +20,7 @@ geomLayers:
       joinStyle: round
 - name: Baum_Laubbaum Points
   # updateDxf: true
-  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/baum_laubbaum_pt.shp"
+  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/vermessung_baum_laubbaum_pt.shp"
 - name: Baum_Laubbaum Circle
   updateDxf: true
   operations:
@@ -26,7 +31,7 @@ geomLayers:
       radius: 10
 - name: Baum_Laubbaum Line
   updateDxf: true
-  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/baum_laubbaum_pt.shp"
+  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/vermessung_baum_laubbaum_pt.shp"
   operations:
     - type: connect-points
       maxDistance: 27
@@ -51,7 +56,8 @@ geomLayers:
       minRatio: 1.5
       capStyle: round
 - name: Str-Leitungsabschnitt-NS
-  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/str_leitungsabschnitt_ns_ln.shp"
+  updateDxf: true
+  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/stadtwerke_str_leitungsabschnitt_ns.shp"
 - name: Str-Leitungsabschnitt-NS Buffer
   operations:
     - type: buffer
@@ -61,7 +67,11 @@ geomLayers:
       capStyle: flat
       joinStyle: flat
 - name: Stromkabel-MS_unterirdisch_LEIT
-  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/stromkabel_ms_unterirdisch_ln.shp"
+  updateDxf: true
+  style:
+    layer:
+      color: "red"
+  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/vermessung_stromkabel_ms_unterirdisch_ln.shp"
 - name: Stromkabel-MS_unterirdisch_LEIT Buffer
   operations:
     - type: buffer
@@ -97,6 +107,8 @@ geomLayers:
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/exclude_bahn.shp"
 - name: Exclude Allee
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/exclude_allee.shp"
+- name: Baugrenze Exclude
+  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/baugrenze_exclude.shp"
 - name: Geltungsbereich
   updateDxf: true
   operations:
@@ -110,7 +122,6 @@ geomLayers:
         - Exclude
         - Exclude 2
         - Exclude 3
-        - Exclude Bahn
         - Exclude Allee
     - type: dissolve
     - type: calculate
@@ -286,6 +297,8 @@ geomLayers:
         # - Leitung Buffer
         - Stromkabel-MS_unterirdisch_LEIT Buffer
         - Baum_Laubbaum Envelope
+        - Baugrenze Exclude
+        - Exclude Bahn
     # - type: buffer
     #   distance: -6
     # - type: buffer
