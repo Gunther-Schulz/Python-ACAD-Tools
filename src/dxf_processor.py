@@ -15,7 +15,7 @@ from src.shapefile_utils import write_shapefile
 from pathlib import Path
 
 # Define a constant for the polygon closure tolerance
-POLYGON_CLOSURE_TOLERANCE = 1.0
+POLYGON_CLOSURE_TOLERANCE = 0.5
 
 class DXFProcessor:
     def __init__(self, project_loader):
