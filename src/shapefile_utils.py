@@ -108,6 +108,22 @@ def write_shapefile(gdf: gpd.GeoDataFrame, output_path: str, delete_existing: bo
             log_error(f"Cannot write shapefile {output_path}: Input is not a GeoDataFrame")
             return False
 
+        # Validate geometry with detailed information
+        invalid_geoms = ~gdf.geometry.is_valid
+        if invalid_geoms.any():
+            invalid_count = invalid_geoms.sum()
+            invalid_indices = gdf.index[invalid_geoms].tolist()
+            invalid_reasons = []
+            for geom in gdf[invalid_geoms].geometry:
+                if geom is None:
+                    invalid_reasons.append("Geometry is None")
+                else:
+                    invalid_reasons.append(geom.explain_validity())
+            
+            log_warning(f"Found {invalid_count} invalid geometries in {output_path}")
+            for idx, reason in zip(invalid_indices, invalid_reasons):
+                log_warning(f"  - Feature at index {idx}: {reason}")
+
         # Verify geometry types are consistent
         geom_types = set(gdf.geometry.geom_type)
         valid_geom_type = _validate_geometry_types(geom_types, output_path)
