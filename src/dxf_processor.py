@@ -6,6 +6,7 @@ from src.utils import log_info, log_warning, log_error, resolve_path, log_debug
 from src.dxf_utils import ensure_layer_exists, attach_custom_data, sanitize_layer_name, initialize_document
 from src.preprocessors.block_exploder import explode_blocks
 from src.preprocessors.circle_extractor import extract_circle_centers
+from src.preprocessors.block_basepoint_extractor import extract_block_basepoints
 import geopandas as gpd
 from shapely.geometry import LineString, Point, Polygon, MultiPolygon
 import math
@@ -29,7 +30,8 @@ class DXFProcessor:
         # Register preprocessors
         self.preprocessors = {
             'block_exploder': explode_blocks,
-            'circle_extractor': extract_circle_centers
+            'circle_extractor': extract_circle_centers,
+            'block_basepoint_extractor': extract_block_basepoints
         }
         
         log_debug(f"DXFProcessor initialized with {len(self.transfers)} transfers and {len(self.extracts)} extracts")
@@ -340,6 +342,10 @@ class DXFProcessor:
             # If multiple entity types specified, filter after query
             if entity_types and len(entity_types) > 1:
                 entities = [e for e in entities if e.dxftype() in entity_types]
+            
+            # Apply filter if specified
+            if extract.get('filter'):
+                entities = [entity for entity in entities if eval(extract['filter'])]
             
             # Apply preprocessors if any
             if preprocessors:
