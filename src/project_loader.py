@@ -26,7 +26,11 @@ class ProjectLoader:
         filepath = os.path.join(self.project_dir, filename)
         if os.path.exists(filepath):
             with open(filepath, 'r') as file:
-                return yaml.safe_load(file)
+                data = yaml.safe_load(file)
+                if data is None:  # File is empty or contains only comments
+                    log_debug(f"File {filename} is empty or contains only comments")
+                    return {}
+                return data
         elif required:
             raise ValueError(f"Required config file not found: {filepath}")
         return {}
@@ -145,7 +149,7 @@ class ProjectLoader:
             return [], []
         
         with open(wmts_wms_file, 'r', encoding='utf-8') as f:
-            wmts_wms_config = yaml.safe_load(f)
+            wmts_wms_config = yaml.safe_load(f) or {}  # Use empty dict if None
         
         wmts_layers = wmts_wms_config.get('wmtsLayers', [])
         wms_layers = wmts_wms_config.get('wmsLayers', [])

@@ -6,7 +6,10 @@ import pandas as pd
 
 def create_dissolved_layer(all_layers, project_settings, crs, layer_name, operation):
     log_debug(f"Creating dissolved layer: {layer_name}")
-    source_layers = operation.get('layers', [layer_name])
+    source_layers = operation.get('layers', [])
+    if layer_name in all_layers:
+        source_layers = [layer_name] + source_layers  # Include existing layer plus specified layers
+    
     dissolve_field = operation.get('dissolveField')
     buffer_distance = operation.get('bufferDistance', 0.01)
     use_buffer_trick = operation.get('useBufferTrick', False)

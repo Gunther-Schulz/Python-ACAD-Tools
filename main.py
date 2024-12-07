@@ -32,7 +32,13 @@ class ProjectProcessor:
                 error_msg += "\nAvailable projects:\n" + "\n".join(f"  - {p}" for p in available_projects)
             else:
                 error_msg += "\nNo projects found. Use --create-project to create a new project."
-            raise ValueError(error_msg)
+            
+            # Log the full traceback before raising the error
+            log_error(f"Error initializing project '{project_name}':")
+            log_error(f"Error details: {str(e)}")
+            log_error(f"Traceback:\n{traceback.format_exc()}")
+            
+            raise ValueError(error_msg) from e
 
     def run(self):
         # Load the document and process DXF operations early
@@ -341,7 +347,13 @@ def main():
                 log_debug("Document cleanup completed")
                 
     except ValueError as e:
-        log_info(f"\nError: {str(e)}")
+        error_message = str(e)
+        traceback_str = traceback.format_exc()
+        
+        log_error(f"Error Message: {error_message}")
+        log_error(f"Traceback:\n{traceback_str}")
+        
+        log_info(f"\nError: {error_message}")
         sys.exit(1)
     except Exception as e:
         error_type = type(e).__name__

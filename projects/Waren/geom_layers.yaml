@@ -1,8 +1,11 @@
 geomLayers:
 # - name: Zuwegung Weg
 #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/zuwegung_weg.shp"
-- name: Zuwegung Mittellinie
+- name: Zuwegung
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/maxsolar_zuwegung_mittellinie_ln.shp"
+  operations:
+    - type: buffer
+      distance: 4
 - name: Leitung Mittelspannung Zuwegung
   updateDxf: true
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/maxsolar_leitung_ms_zuwegung_ln.shp"
@@ -57,7 +60,7 @@ geomLayers:
       capStyle: round
 - name: Str-Leitungsabschnitt-NS
   updateDxf: true
-  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/stadtwerke_str_leitungsabschnitt_ns.shp"
+  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/stadtwerke_str_leitungsabschnitt_ns_ln.shp"
 - name: Str-Leitungsabschnitt-NS Buffer
   operations:
     - type: buffer
@@ -103,8 +106,11 @@ geomLayers:
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/exclude2.shp"
 - name: Exclude 3
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/exclude_3.shp"
-- name: Exclude Bahn
+- name: Exclude Bahn Buffer
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/exclude_bahn.shp"
+  operations:
+    - type: buffer
+      distance: 5
 - name: Exclude Allee
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/exclude_allee.shp"
 - name: Baugrenze Exclude
@@ -123,7 +129,10 @@ geomLayers:
         - Exclude 2
         - Exclude 3
         - Exclude Allee
+        - Exclude Bahn Buffer
     - type: dissolve
+      layers:
+        - Zuwegung
     - type: calculate
       calculations:
         - type: area
@@ -298,7 +307,6 @@ geomLayers:
         - Stromkabel-MS_unterirdisch_LEIT Buffer
         - Baum_Laubbaum Envelope
         - Baugrenze Exclude
-        - Exclude Bahn
     # - type: buffer
     #   distance: -6
     # - type: buffer
