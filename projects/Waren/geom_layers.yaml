@@ -1,6 +1,8 @@
 geomLayers:
 # - name: Zuwegung Weg
 #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/zuwegung_weg.shp"
+- name: Exclude Böschung
+  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/exclude_böschung.shp"
 - name: Exclude Zuwegung
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/exclude_zuwegung.shp"
 - name: Zuwegung
@@ -91,8 +93,18 @@ geomLayers:
       distance: 2
       capStyle: flat
       joinStyle: flat
-# - name: Leitung Buffer
-#   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/leitung_buffer.shp"
+- name: Leitung Ontras Gas
+  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/input_leitungsverlauf_ontras_gas_ln.shp"
+- name: Leitung Ontras TK
+  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/input_leitungsverlauf_ontras_tk_ln.shp"
+- name: Leitung Ontras Gas Buffer
+  operations:
+    - type: buffer
+      layers:
+        - Leitung Ontras Gas
+      distance: 10
+      # capStyle: round
+      joinStyle: round
 - name: Parcel
   label: label
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/parcel.shp"
@@ -138,6 +150,7 @@ geomLayers:
         - Exclude 3
         - Exclude Allee
         - Exclude Bahn Buffer
+        - Exclude Böschung
     # - type: dissolve
     #   layers:
     #     - Zuwegung
@@ -185,8 +198,8 @@ geomLayers:
         area: 0
 - name: Grünfläche Input from source
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/grünfläche_input_from_source_pl.shp"
-# - name: Grünfläche Input
-#   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/grünfläche_input.shp"
+- name: Grünfläche Input
+  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/grünfläche_input.shp"
 - name: Baum_Laubbaum Envelope
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/Baum_Laubbaum Envelope.shp"
 - name: Moor
@@ -206,11 +219,12 @@ geomLayers:
     - type: copy
       layers:
         - "Grünfläche Input from source"
-        # - "Grünfläche Input"
+        - "Grünfläche Input"
         # - Baum_Laubbaum Envelope
         - Moor
         - "ges gesch Biotope"
         - "Gas_HD_LEIT Buffer"
+        - Leitung Ontras Gas Buffer
     - type: dissolve
     - type: intersection
       layers:
