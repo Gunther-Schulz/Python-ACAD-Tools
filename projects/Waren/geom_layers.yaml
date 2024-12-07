@@ -1,11 +1,19 @@
 geomLayers:
 # - name: Zuwegung Weg
 #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/zuwegung_weg.shp"
+- name: Exclude Zuwegung
+  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/exclude_zuwegung.shp"
 - name: Zuwegung
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/maxsolar_zuwegung_mittellinie_ln.shp"
+  updateDxf: true
   operations:
     - type: buffer
       distance: 4
+      capStyle: square
+    - type: difference
+      reverseDifference: false
+      layers:
+        - Exclude Zuwegung
 - name: Leitung Mittelspannung Zuwegung
   updateDxf: true
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/maxsolar_leitung_ms_zuwegung_ln.shp"
@@ -121,7 +129,7 @@ geomLayers:
     - type: dissolve
       layers:
         - Geltungsbereich Input
-    #     - Zuwegung Weg
+        - Zuwegung
     - type: difference
       reverseDifference: false
       layers:
@@ -130,9 +138,9 @@ geomLayers:
         - Exclude 3
         - Exclude Allee
         - Exclude Bahn Buffer
-    - type: dissolve
-      layers:
-        - Zuwegung
+    # - type: dissolve
+    #   layers:
+    #     - Zuwegung
     - type: calculate
       calculations:
         - type: area
@@ -269,6 +277,7 @@ geomLayers:
           layers:
             - Grünfläche
             - Graben
+            - Zuwegung
     - type: filterGeometry
       minArea: 200
       geometryTypes:
