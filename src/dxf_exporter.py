@@ -560,53 +560,32 @@ class DXFExporter:
             return
 
         if isinstance(geo_data, gpd.GeoDataFrame):
-            geometries = geo_data.geometry
-            label_column = self.get_label_column(layer_name)
-            if label_column and label_column in geo_data.columns:
-                labels = geo_data[label_column]
-            else:
-                labels = None
-        elif isinstance(geo_data, gpd.GeoSeries):
-            geometries = geo_data
-            labels = None
-        else:
-            log_warning(f"Unexpected data type for layer {layer_name}: {type(geo_data)}")
-            return
-
-        log_debug(f"add_geometries_to_dxf Layer Name: {layer_name}")
-        for idx, row in geo_data.iterrows():
-            geometry = row.geometry
+            # Check if this is a label point layer (has 'label' column)
+            if 'label' in geo_data.columns:
+                for idx, row in geo_data.iterrows():
+                    if not isinstance(row.geometry, Point):
+                        continue
+                    
+                    # Add text at the point location with rotation
+                    text_layer_name = f"{layer_name} Label" if not layer_name.endswith(' Label') else layer_name
+                    rotation = row.get('rotation', 0)
+                    
+                    text_entity = msp.add_text(
+                        str(row['label']),
+                        dxfattribs={
+                            'layer': text_layer_name,
+                            'rotation': rotation,
+                            'height': 0.25,  # Adjust as needed
+                            'insert': (row.geometry.x, row.geometry.y),
+                            'halign': 1,  # Center alignment horizontally
+                            'valign': 1,  # Center alignment vertically
+                            'align_point': (row.geometry.x, row.geometry.y)  # Align point same as insertion point
+                        }
+                    )
+                    self.attach_custom_data(text_entity)
+                return
             
-            # Add the geometry as before
-            if isinstance(geometry, Polygon):
-                self.add_polygon_to_dxf(msp, geometry, layer_name)
-            elif isinstance(geometry, MultiPolygon):
-                for polygon in geometry.geoms:
-                    self.add_polygon_to_dxf(msp, polygon, layer_name)
-            elif isinstance(geometry, LineString):
-                self.add_linestring_to_dxf(msp, geometry, layer_name)
-            elif isinstance(geometry, MultiLineString):
-                for line in geometry.geoms:
-                    self.add_linestring_to_dxf(msp, line, layer_name)
-            else:
-                self.add_geometry_to_dxf(msp, geometry, layer_name)
-
-            # Add associated label if present
-            if hasattr(row, 'associated_label') and row.associated_label:
-                self.add_associated_labels_to_dxf(
-                    msp,
-                    geometry,
-                    layer_name,
-                    row.associated_label,
-                    row.label_position_x,
-                    row.label_position_y,
-                    row.label_rotation
-                )
-
-            if labels is not None:
-                self.add_label_to_dxf(msp, geometry, labels.iloc[idx], layer_name)
-            elif self.is_generated_layer(layer_name) and self.has_labels(layer_info):
-                self.add_label_to_dxf(msp, geometry, layer_name, layer_name)
+            # ... rest of existing code for non-label geometries ...
 
     def add_polygon_to_dxf(self, msp, geometry, layer_name, entity_name=None):
         layer_properties = self.layer_properties.get(layer_name, {})

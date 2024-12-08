@@ -19,65 +19,88 @@ def safe_distance(geom1, geom2):
     except Exception:
         return float('inf')
 
+def create_label_points_for_line(line, label_text, label_spacing=None, offset=0):
+    """Create points along a line for label placement with optional spacing and offset."""
+    if label_spacing is None:
+        # If no spacing specified, just use the midpoint
+        point = line.interpolate(0.5, normalized=True)
+        mid_distance = line.length / 2
+        p1 = line.interpolate(mid_distance - 0.1)
+        p2 = line.interpolate(mid_distance + 0.1)
+        angle = math.degrees(math.atan2(p2.y - p1.y, p2.x - p1.x))
+        
+        # Apply offset perpendicular to line direction
+        if offset != 0:
+            dx = -(p2.y - p1.y) * offset / math.sqrt((p2.x - p1.x)**2 + (p2.y - p1.y)**2)
+            dy = (p2.x - p1.x) * offset / math.sqrt((p2.x - p1.x)**2 + (p2.y - p1.y)**2)
+            point = Point(point.x + dx, point.y + dy)
+            
+        return [(point, label_text, angle)]
+    
+    # Calculate points along the line at specified intervals
+    length = line.length
+    current_distance = 0
+    points = []
+    
+    while current_distance <= length:
+        point = line.interpolate(current_distance)
+        
+        # Calculate angle at this point by looking slightly ahead and behind
+        look_distance = min(0.1, label_spacing / 10)  # Use smaller of 0.1 or 1/10th of spacing
+        p1 = line.interpolate(max(0, current_distance - look_distance))
+        p2 = line.interpolate(min(length, current_distance + look_distance))
+        
+        # Calculate angle based on the local line direction
+        angle = math.degrees(math.atan2(p2.y - p1.y, p2.x - p1.x))
+        
+        # Apply offset perpendicular to line direction
+        if offset != 0:
+            dx = -(p2.y - p1.y) * offset / math.sqrt((p2.x - p1.x)**2 + (p2.y - p1.y)**2)
+            dy = (p2.x - p1.x) * offset / math.sqrt((p2.x - p1.x)**2 + (p2.y - p1.y)**2)
+            point = Point(point.x + dx, point.y + dy)
+        
+        # Adjust angle if it's upside down (keep text readable)
+        if angle < -90 or angle > 90:
+            angle += 180
+            if angle > 180:
+                angle -= 360
+        
+        points.append((point, label_text, angle))
+        current_distance += label_spacing
+    
+    return points
+
+def create_point_label(point, label_text, offset=0):
+    """Create a label point for a point geometry with offset."""
+    if offset == 0:
+        return (point, label_text, 0)
+    
+    # Place label to the right of the point by default
+    new_point = Point(point.x + offset, point.y)
+    return (new_point, label_text, 0)
+
+def create_polygon_label(polygon, label_text):
+    """Create a label point for a polygon geometry."""
+    # Use representative point instead of centroid to ensure the point is inside
+    point = polygon.representative_point()
+    return (point, label_text, 0)
+
 def create_label_association_layer(all_layers, project_settings, crs, layer_name, operation):
     """Associates labels from a point layer with geometries from another layer."""
     log_debug(f"Creating label association layer: {layer_name}")
-    log_debug(f"Operation details: {operation}")
     
-    # Get source layers
+    # Get operation parameters
     source_layers = operation.get('layers', [layer_name])
     label_layer_name = operation.get('labelLayer')
     label_column = operation.get('labelColumn', 'label')
+    label_spacing = operation.get('labelSpacing')  # For line labels
+    label_offset = operation.get('labelOffset', 0)  # New offset parameter
     
     if not label_layer_name:
         log_warning(format_operation_warning(
             layer_name,
             "labelAssociation",
             "Missing required labelLayer parameter"
-        ))
-        return None
-    
-    combined_geometry = None
-    
-    # Process source layers
-    for layer_info in source_layers:
-        source_layer_name, values = _process_layer_info(all_layers, project_settings, crs, layer_info)
-        if source_layer_name is None or source_layer_name not in all_layers:
-            log_warning(format_operation_warning(
-                layer_name,
-                "labelAssociation",
-                f"Source layer '{source_layer_name}' not found"
-            ))
-            continue
-
-        source_geometry = _get_filtered_geometry(all_layers, project_settings, crs, source_layer_name, values)
-        
-        if source_geometry is None:
-            log_warning(format_operation_warning(
-                layer_name,
-                "labelAssociation",
-                f"Failed to get filtered geometry for layer '{source_layer_name}'"
-            ))
-            continue
-
-        if combined_geometry is None:
-            combined_geometry = source_geometry
-        else:
-            try:
-                combined_geometry = combined_geometry.union(source_geometry)
-            except Exception as e:
-                log_warning(format_operation_warning(
-                    layer_name,
-                    "labelAssociation",
-                    f"Error combining geometries: {str(e)}"
-                ))
-                continue
-    
-    if combined_geometry is None:
-        log_warning(format_operation_warning(
-            layer_name,
-            "labelAssociation",
-            "No valid source geometry found"
         ))
         return None
     
@@ -91,157 +114,70 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
         ))
         return None
     
-    # Create result GeoDataFrame with the combined geometry
-    result_gdf = gpd.GeoDataFrame(geometry=[combined_geometry] if isinstance(combined_geometry, (Point, LineString, Polygon))
-                                 else list(combined_geometry.geoms), crs=crs)
+    # Create a GeoDataFrame to store label points
+    label_points = []
     
-    result_gdf['associated_label'] = None
-    result_gdf['label_position_x'] = None
-    result_gdf['label_position_y'] = None
-    result_gdf['label_rotation'] = None
-    
-    # Process each label point
-    for idx, label_row in label_layer.iterrows():
-        if label_column not in label_row:
+    # Process each source layer
+    for layer_info in source_layers:
+        source_layer_name, values = _process_layer_info(all_layers, project_settings, crs, layer_info)
+        if source_layer_name is None or source_layer_name not in all_layers:
             continue
             
-        label_point = label_row.geometry
-        if not isinstance(label_point, Point) or not label_point.is_valid or label_point.is_empty:
+        source_geometry = _get_filtered_geometry(all_layers, project_settings, crs, source_layer_name, values)
+        if source_geometry is None:
             continue
             
-        label_text = str(label_row[label_column])
+        # Process each geometry in the source layer
+        if isinstance(source_geometry, (Point, LineString, Polygon)):
+            geometries = [source_geometry]
+        else:
+            geometries = list(source_geometry.geoms)
         
-        try:
-            # Find closest geometry
+        for geometry in geometries:
+            # Find closest label point
             min_dist = float('inf')
-            closest_idx = None
+            closest_label = None
             
-            for i, geom_row in result_gdf.iterrows():
-                dist = safe_distance(geom_row.geometry, label_point)
-                if dist < min_dist:
-                    min_dist = dist
-                    closest_idx = i
-            
-            if closest_idx is None:
-                continue
-            
-            # Calculate label position and rotation
-            position, rotation = calculate_label_position(
-                result_gdf.loc[closest_idx].geometry,
-                label_point
-            )
-            
-            # Store the association
-            result_gdf.at[closest_idx, 'associated_label'] = label_text
-            result_gdf.at[closest_idx, 'label_position_x'] = position.x
-            result_gdf.at[closest_idx, 'label_position_y'] = position.y
-            result_gdf.at[closest_idx, 'label_rotation'] = rotation
-            
-        except Exception as e:
-            log_warning(format_operation_warning(
-                layer_name,
-                "labelAssociation",
-                f"Error processing label at index {idx}: {str(e)}"
-            ))
-            continue
-    
-    log_debug(f"Created label association layer: {layer_name} with {len(result_gdf)} geometries")
-    return result_gdf
-
-def calculate_label_position(geometry, label_point):
-    """Calculate optimal position and rotation for label based on geometry type."""
-    
-    if isinstance(geometry, (Polygon, MultiPolygon)):
-        # For polygons, use centroid
-        try:
-            position = geometry.centroid
-            if not position.is_valid:
-                position = label_point
-            rotation = 0
-        except Exception:
-            position = label_point
-            rotation = 0
-        
-    elif isinstance(geometry, LineString):
-        # For lines, find closest point on line and calculate rotation
-        try:
-            # Get line coordinates
-            coords = list(geometry.coords)
-            if len(coords) < 2:
-                position = label_point
-                rotation = 0
-                return position, rotation
-
-            # Find closest point on line using coordinate-based approach
-            min_dist = float('inf')
-            closest_point = None
-            segment_start_idx = 0
-            
-            for i in range(len(coords) - 1):
-                p1 = coords[i]
-                p2 = coords[i + 1]
-                
-                # Calculate projection point on line segment
-                line_vec = (p2[0] - p1[0], p2[1] - p1[1])
-                point_vec = (label_point.x - p1[0], label_point.y - p1[1])
-                line_len = line_vec[0]**2 + line_vec[1]**2
-                
-                if line_len == 0:
+            for idx, label_row in label_layer.iterrows():
+                if label_column not in label_row:
                     continue
                     
-                t = max(0, min(1, (point_vec[0]*line_vec[0] + point_vec[1]*line_vec[1]) / line_len))
-                proj_x = p1[0] + t * line_vec[0]
-                proj_y = p1[1] + t * line_vec[1]
-                
-                # Calculate distance to projection point
-                dist = ((label_point.x - proj_x)**2 + (label_point.y - proj_y)**2)**0.5
-                
+                label_point = label_row.geometry
+                if not isinstance(label_point, Point) or not label_point.is_valid or label_point.is_empty:
+                    continue
+                    
+                dist = safe_distance(geometry, label_point)
                 if dist < min_dist:
                     min_dist = dist
-                    closest_point = (proj_x, proj_y)
-                    segment_start_idx = i
-
-            if closest_point is None:
-                position = label_point
-                rotation = 0
-                return position, rotation
-
-            # Create point from closest position
-            position = Point(closest_point)
-
-            # Calculate rotation based on segment direction
-            start = coords[segment_start_idx]
-            end = coords[segment_start_idx + 1]
-            dx = end[0] - start[0]
-            dy = end[1] - start[1]
+                    closest_label = (label_row[label_column], label_point)
             
-            # Use arctan2 and handle potential division by zero
-            if abs(dx) > 1e-10 or abs(dy) > 1e-10:
-                rotation = math.degrees(math.atan2(dy, dx))
-            else:
-                rotation = 0
+            if closest_label is None:
+                continue
                 
-        except Exception as e:
-            log_warning(f"Error calculating line label position: {str(e)}")
-            position = label_point
-            rotation = 0
+            label_text, label_point = closest_label
             
-    elif isinstance(geometry, Point):
-        # For points, offset the label slightly to the right
-        try:
-            position = Point(geometry.x + 0.5, geometry.y)
-            rotation = 0
-        except Exception:
-            position = label_point
-            rotation = 0
-        
-    else:
-        position = label_point
-        rotation = 0
+            # Create label points based on geometry type
+            if isinstance(geometry, LineString) and label_spacing is not None:
+                new_points = create_label_points_for_line(geometry, label_text, label_spacing, label_offset)
+                label_points.extend(new_points)
+            elif isinstance(geometry, Polygon):
+                label_points.append(create_polygon_label(geometry, label_text))
+            elif isinstance(geometry, Point):
+                label_points.append(create_point_label(geometry, label_text, label_offset))
+            else:
+                point = geometry.interpolate(0.5, normalized=True)
+                label_points.append((point, label_text, 0))
     
-    # Final validation
-    if not isinstance(position, Point) or not position.is_valid:
-        position = label_point
-        rotation = 0
-        
-    return position, rotation
+    # Create result GeoDataFrame
+    if not label_points:
+        return None
+    
+    result_data = {
+        'geometry': [p[0] for p in label_points],
+        'label': [p[1] for p in label_points],
+        'rotation': [p[2] for p in label_points]
+    }
+    
+    result_gdf = gpd.GeoDataFrame(result_data, crs=crs)
+    log_debug(f"Created label association layer with {len(result_gdf)} label points")
+    return result_gdf
