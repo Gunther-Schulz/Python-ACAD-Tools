@@ -79,10 +79,35 @@ def create_point_label(point, label_text, offset=0):
     new_point = Point(point.x + offset, point.y)
     return (new_point, label_text, 0)
 
-def create_polygon_label(polygon, label_text):
-    """Create a label point for a polygon geometry."""
-    # Use representative point instead of centroid to ensure the point is inside
+def create_polygon_label(polygon, label_text, offset=0):
+    """Create a label point for a polygon geometry with offset."""
+    # Get the base point inside the polygon
     point = polygon.representative_point()
+    
+    if offset == 0:
+        return (point, label_text, 0)
+    
+    # If offset is requested, move the point in the direction of the polygon's center
+    centroid = polygon.centroid
+    if point.equals(centroid):
+        # If representative point is at centroid, offset to the right
+        return (Point(point.x + offset, point.y), label_text, 0)
+    
+    # Calculate direction vector from centroid to representative point
+    dx = point.x - centroid.x
+    dy = point.y - centroid.y
+    distance = math.sqrt(dx*dx + dy*dy)
+    
+    # Normalize and apply offset
+    if distance > 0:
+        dx = dx/distance * offset
+        dy = dy/distance * offset
+        new_point = Point(point.x + dx, point.y + dy)
+        # Check if new point is still inside polygon
+        if not polygon.contains(new_point):
+            return (point, label_text, 0)
+        return (new_point, label_text, 0)
+    
     return (point, label_text, 0)
 
 def create_label_association_layer(all_layers, project_settings, crs, layer_name, operation):
@@ -161,7 +186,7 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
                 new_points = create_label_points_for_line(geometry, label_text, label_spacing, label_offset)
                 label_points.extend(new_points)
             elif isinstance(geometry, Polygon):
-                label_points.append(create_polygon_label(geometry, label_text))
+                label_points.append(create_polygon_label(geometry, label_text, label_offset))
             elif isinstance(geometry, Point):
                 label_points.append(create_point_label(geometry, label_text, label_offset))
             else:
