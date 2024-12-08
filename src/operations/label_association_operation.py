@@ -7,18 +7,26 @@ import math
 import numpy as np
 from src.style_manager import StyleManager
 
-def get_line_placement_positions(line, label_length):
+def get_line_placement_positions(line, label_length, text_height=2.5):
     """Get possible label positions along a line with improved corner handling."""
     line_length = line.length
-    step = line_length / 20  # Sample 20 points along the line
-    positions = []
     
-    current_dist = 0
-    while current_dist <= line_length:
+    # Calculate step size based on text height
+    step = max(text_height, line_length / 20)  # Use text height as minimum step
+    
+    # Calculate actual space needed for text
+    # Typical width-to-height ratio is around 0.6 for most fonts
+    # Add some padding (1.2) to ensure text doesn't crowd corners
+    text_width = label_length * text_height * 0.6 * 1.2
+    
+    positions = []
+    current_dist = text_width / 2  # Start half text width from the start
+    
+    while current_dist <= (line_length - text_width / 2):  # Stop half text width from the end
         point = line.interpolate(current_dist)
         
         # Look both ahead and behind to detect corners
-        look_dist = min(step, label_length / 2)
+        look_dist = max(text_width / 2, step)  # Use half text width as minimum look distance
         behind_dist = max(0, current_dist - look_dist)
         ahead_dist = min(line_length, current_dist + look_dist)
         
@@ -45,9 +53,8 @@ def get_line_placement_positions(line, label_length):
         
         # Check if we have enough straight space for the label
         space_ahead = line_length - current_dist
-        if space_ahead >= label_length:
+        if space_ahead >= text_width / 2:  # Only need half text width ahead since we're centered
             # Calculate a score for this position
-            # Higher score = better position (straighter, away from corners)
             score = 1.0
             if angle_diff < 10:  # Very straight
                 score += 2.0
