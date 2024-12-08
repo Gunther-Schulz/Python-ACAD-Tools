@@ -11,6 +11,7 @@ def create_buffer_layer(all_layers, project_settings, crs, layer_name, operation
     log_debug(f"Operation details: {operation}")
 
     buffer_distance = operation.get('distance', 0)
+    buffer_field = operation.get('distanceField', None)
     buffer_mode = operation.get('mode', 'off')
     join_style = operation.get('joinStyle', 'mitre')
     cap_style = operation.get('capStyle', 'square')
@@ -37,6 +38,8 @@ def create_buffer_layer(all_layers, project_settings, crs, layer_name, operation
     source_layers = operation.get('layers', [layer_name])
     
     combined_geometry = None
+    combined_distances = []  # New list to store per-feature distances
+    
     for layer_info in source_layers:
         source_layer_name, values = _process_layer_info(all_layers, project_settings, crs, layer_info)
         if source_layer_name is None or source_layer_name not in all_layers:
@@ -47,7 +50,9 @@ def create_buffer_layer(all_layers, project_settings, crs, layer_name, operation
             ))
             continue
 
+        source_layer = all_layers[source_layer_name]
         source_geometry = _get_filtered_geometry(all_layers, project_settings, crs, source_layer_name, values)
+        
         if source_geometry is None:
             log_warning(format_operation_warning(
                 layer_name,
@@ -55,6 +60,24 @@ def create_buffer_layer(all_layers, project_settings, crs, layer_name, operation
                 f"Failed to get filtered geometry for layer '{source_layer_name}'"
             ))
             continue
+
+        # Handle per-feature buffer distances
+        if buffer_field and buffer_field in source_layer.columns:
+            if isinstance(source_geometry, (Polygon, LineString, Point)):
+                # Single geometry case
+                feature_distance = source_layer[source_layer.geometry == source_geometry][buffer_field].iloc[0]
+                combined_distances.append(float(feature_distance))
+            else:
+                # Multiple geometries case
+                for geom in source_geometry.geoms:
+                    feature_distance = source_layer[source_layer.geometry == geom][buffer_field].iloc[0]
+                    combined_distances.append(float(feature_distance))
+        else:
+            # Use global buffer distance if no field specified or field not found
+            if isinstance(source_geometry, (Polygon, LineString, Point)):
+                combined_distances.append(buffer_distance)
+            else:
+                combined_distances.extend([buffer_distance] * len(list(source_geometry.geoms)))
 
         if combined_geometry is None:
             combined_geometry = source_geometry
@@ -151,47 +174,43 @@ def create_buffer_layer(all_layers, project_settings, crs, layer_name, operation
         return result
 
     try:
-        if preserve_islands:
-            result = buffer_with_different_caps(combined_geometry, buffer_distance,
-                                          start_cap_value, end_cap_value, join_style_value,
-                                          preserve_holes=True)
-        else:
-            result = buffer_with_different_caps(combined_geometry, buffer_distance,
-                                          start_cap_value, end_cap_value, join_style_value)
-
-        # Convert MultiPolygons to individual Polygons
         result_geom = []
-        if buffer_mode == 'keep':
-            for geom in result:
-                if isinstance(geom, Polygon):
-                    result_geom.append(geom)
-                elif isinstance(geom, MultiPolygon):
-                    result_geom.extend(list(geom.geoms))
-                elif isinstance(geom, GeometryCollection):
-                    for g in geom.geoms:
-                        if isinstance(g, Polygon):
-                            result_geom.append(g)
-                        elif isinstance(g, MultiPolygon):
-                            result_geom.extend(list(g.geoms))
+        if buffer_field:
+            # Handle per-feature buffering
+            for geom, dist in zip(combined_geometry.geoms, combined_distances):
+                if preserve_islands:
+                    buffered = buffer_with_different_caps(geom, dist,
+                                                        start_cap_value, end_cap_value, join_style_value,
+                                                        preserve_holes=True)
+                else:
+                    buffered = buffer_with_different_caps(geom, dist,
+                                                        start_cap_value, end_cap_value, join_style_value)
+                if isinstance(buffered, Polygon):
+                    result_geom.append(buffered)
+                elif isinstance(buffered, (MultiPolygon, GeometryCollection)):
+                    result_geom.extend([g for g in buffered.geoms if isinstance(g, Polygon)])
         else:
+            # Existing single-distance buffer logic
+            if preserve_islands:
+                result = buffer_with_different_caps(combined_geometry, buffer_distance,
+                                              start_cap_value, end_cap_value, join_style_value,
+                                              preserve_holes=True)
+            else:
+                result = buffer_with_different_caps(combined_geometry, buffer_distance,
+                                              start_cap_value, end_cap_value, join_style_value)
+
+            # Process the result into result_geom list
             if isinstance(result, Polygon):
                 result_geom = [result]
             elif isinstance(result, MultiPolygon):
                 result_geom = list(result.geoms)
             elif isinstance(result, GeometryCollection):
-                for geom in result.geoms:
-                    if isinstance(geom, Polygon):
-                        result_geom.append(geom)
-                    elif isinstance(geom, MultiPolygon):
-                        result_geom.extend(list(geom.geoms))
+                result_geom = [geom for geom in result.geoms if isinstance(geom, Polygon)]
 
-        # After buffer operations and before converting to result_geom
+        # After buffer operations and before converting to GeoDataFrame
         if make_valid:
-            if buffer_mode == 'keep':
-                result = [make_valid_geometry(geom) if geom is not None else None for geom in result]
-                result = [geom for geom in result if geom is not None]
-            else:
-                result = make_valid_geometry(result)
+            result_geom = [make_valid_geometry(geom) if geom is not None else None for geom in result_geom]
+            result_geom = [geom for geom in result_geom if geom is not None]
 
         result_gdf = gpd.GeoDataFrame(geometry=result_geom, crs=crs)
         all_layers[layer_name] = result_gdf
