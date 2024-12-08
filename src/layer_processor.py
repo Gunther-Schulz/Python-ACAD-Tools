@@ -251,7 +251,7 @@ class LayerProcessor:
         elif op_type == 'envelope':
             result = create_envelope_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
         elif op_type == 'labelAssociation':
-            result = create_label_association_layer(self.all_layers, self.project_settings, self.crs, operation)
+            result = create_label_association_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
         else:
             log_warning(f"Unknown operation type: {op_type} for layer {layer_name}")
             return None

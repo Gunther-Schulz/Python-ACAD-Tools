@@ -1,6 +1,7 @@
 from shapely.ops import nearest_points
 from shapely.geometry import Point, LineString, Polygon, MultiPolygon
 import geopandas as gpd
+from src.operations.common_operations import _get_filtered_geometry, _process_layer_info, format_operation_warning
 from src.utils import log_debug, log_warning
 import math
 import numpy as np
@@ -18,48 +19,86 @@ def safe_distance(geom1, geom2):
     except Exception:
         return float('inf')
 
-def create_label_association_layer(all_layers, project_settings, crs, operation_config):
+def create_label_association_layer(all_layers, project_settings, crs, layer_name, operation):
     """Associates labels from a point layer with geometries from another layer."""
+    log_debug(f"Creating label association layer: {layer_name}")
+    log_debug(f"Operation details: {operation}")
     
-    # Get required parameters
-    geometry_layer_name = operation_config.get('geometryLayer')
-    label_layer_name = operation_config.get('labelLayer')
-    label_column = operation_config.get('labelColumn', 'label')
+    # Get source layers
+    source_layers = operation.get('layers', [layer_name])
+    label_layer_name = operation.get('labelLayer')
+    label_column = operation.get('labelColumn', 'label')
     
-    if not geometry_layer_name or not label_layer_name:
-        log_warning("Missing required parameters for label association operation")
+    if not label_layer_name:
+        log_warning(format_operation_warning(
+            layer_name,
+            "labelAssociation",
+            "Missing required labelLayer parameter"
+        ))
         return None
     
-    # Get the input layers
-    geometry_layer = all_layers.get(geometry_layer_name)
+    combined_geometry = None
+    
+    # Process source layers
+    for layer_info in source_layers:
+        source_layer_name, values = _process_layer_info(all_layers, project_settings, crs, layer_info)
+        if source_layer_name is None or source_layer_name not in all_layers:
+            log_warning(format_operation_warning(
+                layer_name,
+                "labelAssociation",
+                f"Source layer '{source_layer_name}' not found"
+            ))
+            continue
+
+        source_geometry = _get_filtered_geometry(all_layers, project_settings, crs, source_layer_name, values)
+        
+        if source_geometry is None:
+            log_warning(format_operation_warning(
+                layer_name,
+                "labelAssociation",
+                f"Failed to get filtered geometry for layer '{source_layer_name}'"
+            ))
+            continue
+
+        if combined_geometry is None:
+            combined_geometry = source_geometry
+        else:
+            try:
+                combined_geometry = combined_geometry.union(source_geometry)
+            except Exception as e:
+                log_warning(format_operation_warning(
+                    layer_name,
+                    "labelAssociation",
+                    f"Error combining geometries: {str(e)}"
+                ))
+                continue
+    
+    if combined_geometry is None:
+        log_warning(format_operation_warning(
+            layer_name,
+            "labelAssociation",
+            "No valid source geometry found"
+        ))
+        return None
+    
+    # Get label layer
     label_layer = all_layers.get(label_layer_name)
-    
-    if geometry_layer is None or label_layer is None:
-        log_warning(f"Could not find input layers: {geometry_layer_name} or {label_layer_name}")
+    if label_layer is None:
+        log_warning(format_operation_warning(
+            layer_name,
+            "labelAssociation",
+            f"Label layer '{label_layer_name}' not found"
+        ))
         return None
     
-    log_debug(f"Processing label association between {geometry_layer_name} and {label_layer_name}")
+    # Create result GeoDataFrame with the combined geometry
+    result_gdf = gpd.GeoDataFrame(geometry=[combined_geometry] if isinstance(combined_geometry, (Point, LineString, Polygon))
+                                 else list(combined_geometry.geoms), crs=crs)
     
-    # Create result GeoDataFrame
-    result_gdf = geometry_layer.copy()
     result_gdf['associated_label'] = None
     result_gdf['label_position_x'] = None
     result_gdf['label_position_y'] = None
     result_gdf['label_rotation'] = None
-    
-    # Filter and prepare valid geometries
-    valid_mask = geometry_layer.geometry.is_valid & ~geometry_layer.geometry.isna() & ~geometry_layer.geometry.is_empty
-    valid_geoms = geometry_layer[valid_mask].copy()
-    
-    if len(valid_geoms) < len(geometry_layer):
-        log_warning(f"Filtered out {len(geometry_layer) - len(valid_geoms)} invalid geometries")
-    
-    if len(valid_geoms) == 0:
-        log_warning("No valid geometries to process")
-        return result_gdf
-    
-    # Create spatial index for valid geometries
-    valid_geoms_prep = [prep(geom) for geom in valid_geoms.geometry]
     
     # Process each label point
     for idx, label_row in label_layer.iterrows():
@@ -68,47 +107,45 @@ def create_label_association_layer(all_layers, project_settings, crs, operation_
             
         label_point = label_row.geometry
         if not isinstance(label_point, Point) or not label_point.is_valid or label_point.is_empty:
-            log_warning(f"Skipping invalid point geometry in label layer at index {idx}")
             continue
             
         label_text = str(label_row[label_column])
         
         try:
-            # Find closest geometry using prepared geometries
+            # Find closest geometry
             min_dist = float('inf')
             closest_idx = None
             
-            for i, (geom_idx, geom_row) in enumerate(valid_geoms.iterrows()):
-                if valid_geoms_prep[i].contains(label_point):
-                    min_dist = 0
-                    closest_idx = geom_idx
-                    break
-                    
+            for i, geom_row in result_gdf.iterrows():
                 dist = safe_distance(geom_row.geometry, label_point)
                 if dist < min_dist:
                     min_dist = dist
-                    closest_idx = geom_idx
+                    closest_idx = i
             
-            if closest_idx is None or min_dist == float('inf'):
-                log_warning(f"No valid geometry found for label point at index {idx}")
+            if closest_idx is None:
                 continue
             
-            closest_geom = valid_geoms.loc[closest_idx].geometry
+            # Calculate label position and rotation
+            position, rotation = calculate_label_position(
+                result_gdf.loc[closest_idx].geometry,
+                label_point
+            )
             
-            # Calculate label position and rotation based on geometry type
-            position, rotation = calculate_label_position(closest_geom, label_point)
-            
-            # Store the association with coordinates
+            # Store the association
             result_gdf.at[closest_idx, 'associated_label'] = label_text
             result_gdf.at[closest_idx, 'label_position_x'] = position.x
             result_gdf.at[closest_idx, 'label_position_y'] = position.y
             result_gdf.at[closest_idx, 'label_rotation'] = rotation
             
         except Exception as e:
-            log_warning(f"Error processing label at index {idx}: {str(e)}")
+            log_warning(format_operation_warning(
+                layer_name,
+                "labelAssociation",
+                f"Error processing label at index {idx}: {str(e)}"
+            ))
             continue
     
-    log_debug(f"Created {len(result_gdf[result_gdf['associated_label'].notna()])} label associations")
+    log_debug(f"Created label association layer: {layer_name} with {len(result_gdf)} geometries")
     return result_gdf
 
 def calculate_label_position(geometry, label_point):
