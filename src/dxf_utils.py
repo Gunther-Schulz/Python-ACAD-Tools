@@ -451,34 +451,117 @@ def get_style(style, project_loader):
 def linetype_exists(doc, linetype):
     return linetype in doc.linetypes
 
-def apply_style_to_entity(entity, style, project_loader, loaded_styles, item_type='area'):
-    if entity.dxftype() == 'MTEXT':
-        if 'height' in style:
-            entity.dxf.char_height = style['height']
-        if 'font' in style:
-            entity.dxf.style = style['font']
+def _apply_text_style_properties(entity, text_style, name_to_aci=None):
+    """Apply common text style properties to a text entity (MTEXT or TEXT)."""
+    if not text_style:
+        return
+
+    # Basic properties
+    if 'height' in text_style:
+        entity.dxf.char_height = text_style['height']
+    if 'font' in text_style:
+        entity.dxf.style = text_style['font']
     
+    # Color
+    if 'color' in text_style:
+        color = get_color_code(text_style['color'], name_to_aci)
+        if isinstance(color, tuple):
+            entity.rgb = color
+        else:
+            entity.dxf.color = color
+
+    # Attachment point
+    if 'attachmentPoint' in text_style:
+        attachment_map = {
+            'TOP_LEFT': 1, 'TOP_CENTER': 2, 'TOP_RIGHT': 3,
+            'MIDDLE_LEFT': 4, 'MIDDLE_CENTER': 5, 'MIDDLE_RIGHT': 6,
+            'BOTTOM_LEFT': 7, 'BOTTOM_CENTER': 8, 'BOTTOM_RIGHT': 9
+        }
+        attachment_key = text_style['attachmentPoint'].upper()
+        if attachment_key in attachment_map:
+            entity.dxf.attachment_point = attachment_map[attachment_key]
+
+    # Flow direction (MTEXT specific)
+    if hasattr(entity, 'dxf.flow_direction') and 'flowDirection' in text_style:
+        flow_map = {
+            'LEFT_TO_RIGHT': 1,
+            'TOP_TO_BOTTOM': 3,
+            'BY_STYLE': 5
+        }
+        flow_key = text_style['flowDirection'].upper()
+        if flow_key in flow_map:
+            entity.dxf.flow_direction = flow_map[flow_key]
+
+    # Line spacing (MTEXT specific)
+    if hasattr(entity, 'dxf.line_spacing_style'):
+        if 'lineSpacingStyle' in text_style:
+            spacing_map = {
+                'AT_LEAST': 1,
+                'EXACT': 2
+            }
+            spacing_key = text_style['lineSpacingStyle'].upper()
+            if spacing_key in spacing_map:
+                entity.dxf.line_spacing_style = spacing_map[spacing_key]
+
+        if 'lineSpacingFactor' in text_style:
+            factor = float(text_style['lineSpacingFactor'])
+            if 0.25 <= factor <= 4.00:
+                entity.dxf.line_spacing_factor = factor
+
+    # Background fill
+    if hasattr(entity, 'set_bg_color'):
+        if 'bgFill' in text_style and text_style['bgFill']:
+            bg_color = text_style.get('bgFillColor')
+            bg_scale = text_style.get('bgFillScale', 1.5)
+            if bg_color:
+                entity.set_bg_color(bg_color, scale=bg_scale)
+
+    # Rotation
+    if 'rotation' in text_style:
+        entity.dxf.rotation = float(text_style['rotation'])
+
+    # Paragraph properties
+    if 'paragraph' in text_style and hasattr(entity, 'text'):
+        para = text_style['paragraph']
+        if 'align' in para:
+            align_map = {
+                'LEFT': '\\pql;',
+                'CENTER': '\\pqc;',
+                'RIGHT': '\\pqr;',
+                'JUSTIFIED': '\\pqj;',
+                'DISTRIBUTED': '\\pqd;'
+            }
+            align_key = para['align'].upper()
+            if align_key in align_map:
+                current_text = entity.text
+                entity.text = f"{align_map[align_key]}{current_text}"
+
+def apply_style_to_entity(entity, style, project_loader, loaded_styles=None, item_type='area'):
+    """Apply style properties to any DXF entity."""
+    if entity.dxftype() in ('MTEXT', 'TEXT'):
+        _apply_text_style_properties(entity, style, project_loader.name_to_aci)
+    
+    # Apply non-text properties
     if 'color' in style:
         color = get_color_code(style['color'], project_loader.name_to_aci)
         if isinstance(color, tuple):
-            entity.rgb = color  # Set RGB color directly
+            entity.rgb = color
         else:
-            entity.dxf.color = color  # Set ACI color
+            entity.dxf.color = color
     else:
         entity.dxf.color = ezdxf.const.BYLAYER
     
     if 'linetype' in style:
-        linetype = style['linetype']
-        if linetype_exists(entity.doc, linetype):
-            entity.dxf.linetype = linetype
+        if linetype_exists(entity.doc, style['linetype']):
+            entity.dxf.linetype = style['linetype']
         else:
-            log_warning(f"Linetype '{linetype}' is not defined in the current DXF object. Using 'BYLAYER' instead.")
+            log_warning(f"Linetype '{style['linetype']}' not defined. Using 'BYLAYER'.")
             entity.dxf.linetype = 'BYLAYER'
     
     if 'lineweight' in style:
         entity.dxf.lineweight = style['lineweight']
     
-    # Set transparency for all entity types
+    # Set transparency
     if 'transparency' in style:
         transparency = convert_transparency(style['transparency'])
         if transparency is not None:
@@ -487,29 +570,16 @@ def apply_style_to_entity(entity, style, project_loader, loaded_styles, item_typ
             except Exception as e:
                 log_info(f"Could not set transparency for {entity.dxftype()}. Error: {str(e)}")
     else:
-        # To set transparency to ByLayer, we'll try to remove the attribute if it exists
         try:
             del entity.transparency
         except AttributeError:
-            # If the entity doesn't have a transparency attribute, we don't need to do anything
             pass
 
-    # Apply linetype scale if specified
+    # Apply linetype scale
     if 'linetypeScale' in style:
         entity.dxf.ltscale = float(style['linetypeScale'])
     else:
-        entity.dxf.ltscale = 1.0  # Default scale
-
-    if 'text_style' in style:
-        text_style = style['text_style']
-        if text_style not in loaded_styles:
-            log_warning(f"Text style '{text_style}' was not loaded during initialization. Using 'Standard' instead.")
-            entity.dxf.style = 'Standard'
-        elif text_style not in entity.doc.styles:
-            log_warning(f"Text style '{text_style}' is not defined in the current DXF object. Using 'Standard' instead.")
-            entity.dxf.style = 'Standard'
-        else:
-            entity.dxf.style = text_style
+        entity.dxf.ltscale = 1.0
 
 def create_hatch(msp, boundary_paths, hatch_config, project_loader):
     hatch = msp.add_hatch()
@@ -587,78 +657,8 @@ def add_mtext(msp, text, x, y, layer_name, style_name, text_style=None, name_to_
         # Create the MTEXT entity
         mtext = msp.add_mtext(text, dxfattribs=dxfattribs)
         
-        # Apply color
-        if 'color' in text_style:
-            color = get_color_code(text_style['color'], name_to_aci)
-            if isinstance(color, tuple):
-                mtext.rgb = color
-            else:
-                mtext.dxf.color = color
-
-        # Set attachment point
-        if 'attachmentPoint' in text_style:
-            attachment_map = {
-                'TOP_LEFT': 1, 'TOP_CENTER': 2, 'TOP_RIGHT': 3,
-                'MIDDLE_LEFT': 4, 'MIDDLE_CENTER': 5, 'MIDDLE_RIGHT': 6,
-                'BOTTOM_LEFT': 7, 'BOTTOM_CENTER': 8, 'BOTTOM_RIGHT': 9
-            }
-            attachment_key = text_style['attachmentPoint'].upper()
-            if attachment_key in attachment_map:
-                mtext.dxf.attachment_point = attachment_map[attachment_key]
-
-        # Set flow direction
-        if 'flowDirection' in text_style:
-            flow_map = {
-                'LEFT_TO_RIGHT': 1,
-                'TOP_TO_BOTTOM': 3,
-                'BY_STYLE': 5
-            }
-            flow_key = text_style['flowDirection'].upper()
-            if flow_key in flow_map:
-                mtext.dxf.flow_direction = flow_map[flow_key]
-
-        # Set line spacing
-        if 'lineSpacingStyle' in text_style:
-            spacing_map = {
-                'AT_LEAST': 1,
-                'EXACT': 2
-            }
-            spacing_key = text_style['lineSpacingStyle'].upper()
-            if spacing_key in spacing_map:
-                mtext.dxf.line_spacing_style = spacing_map[spacing_key]
-
-        if 'lineSpacingFactor' in text_style:
-            factor = float(text_style['lineSpacingFactor'])
-            if 0.25 <= factor <= 4.00:
-                mtext.dxf.line_spacing_factor = factor
-
-        # Set background fill
-        if 'bgFill' in text_style and text_style['bgFill']:
-            bg_color = text_style.get('bgFillColor')
-            bg_scale = text_style.get('bgFillScale', 1.5)
-            if bg_color:
-                mtext.set_bg_color(bg_color, scale=bg_scale)
-
-        # Set rotation
-        if 'rotation' in text_style:
-            mtext.dxf.rotation = float(text_style['rotation'])
-
-        # Set paragraph properties
-        if 'paragraph' in text_style:
-            para = text_style['paragraph']
-            if 'align' in para:
-                # Note: Paragraph alignment is handled through MTEXT formatting codes
-                align_map = {
-                    'LEFT': '\\pql;',
-                    'CENTER': '\\pqc;',
-                    'RIGHT': '\\pqr;',
-                    'JUSTIFIED': '\\pqj;',
-                    'DISTRIBUTED': '\\pqd;'
-                }
-                align_key = para['align'].upper()
-                if align_key in align_map:
-                    text = f"{align_map[align_key]}{text}"
-                    mtext.text = text
+        # Apply common text style properties
+        _apply_text_style_properties(mtext, text_style, name_to_aci)
 
         # Attach custom data
         attach_custom_data(mtext, SCRIPT_IDENTIFIER)

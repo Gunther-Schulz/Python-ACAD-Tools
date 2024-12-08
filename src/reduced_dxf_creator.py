@@ -2,7 +2,7 @@ import ezdxf
 from pathlib import Path
 from src.utils import resolve_path, log_info, log_warning, log_error, log_debug
 from src.legend_creator import LegendCreator
-from src.dxf_utils import add_text_insert, add_mtext
+from src.dxf_utils import add_mtext
 from src.path_array import create_path_array
 
 class ReducedDXFCreator:
