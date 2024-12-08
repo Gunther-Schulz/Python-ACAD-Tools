@@ -145,8 +145,8 @@ def get_polygon_anchor_position(polygon, text_width, text_height):
 
 def get_point_label_position(point, label_text, text_height, offset=0):
     """Get best label position for a point using Mapbox's approach."""
-    # Try multiple positions around the point
-    candidates = []
+    # Convert label_text to string and handle None/empty values
+    label_text = str(label_text) if label_text is not None else ""
     
     # Calculate text dimensions
     text_width = len(label_text) * text_height * 0.6
@@ -168,6 +168,7 @@ def get_point_label_position(point, label_text, text_height, offset=0):
     if offset == 0:
         offset = text_height * 0.5
     
+    candidates = []
     for angle, (dx, dy) in zip(angles, base_offsets):
         # Calculate position
         x = point.x + dx * offset
@@ -186,9 +187,11 @@ def get_point_label_position(point, label_text, text_height, offset=0):
     # Return the position with highest score
     best_candidate = max(candidates, key=lambda x: x[2])
     return (best_candidate[0], best_candidate[1])
-
 def get_best_label_position(geometry, label_text, offset=0, text_height=2.5, label_spacing=1.0):
     """Find best label position using improved corner handling."""
+    # Convert label_text to string at the entry point
+    label_text = str(label_text) if label_text is not None else ""
+    
     if isinstance(geometry, LineString):
         label_length = len(label_text) * text_height * 0.8
         positions = get_line_placement_positions(
@@ -226,15 +229,17 @@ def get_best_label_position(geometry, label_text, offset=0, text_height=2.5, lab
             
         return result_positions
     
-    # For Point and Polygon, return single position as list
     elif isinstance(geometry, Point):
-        # ... existing Point code ...
-        return [(point, label_text, 0)]
+        point_result = get_point_label_position(geometry, label_text, text_height, offset)
+        if point_result:
+            point, angle = point_result
+            return [(point, label_text, angle)]
+        return None
     
     elif isinstance(geometry, Polygon):
-        # ... existing Polygon code ...
+        text_width = len(str(label_text)) * text_height * 0.6
+        point = get_polygon_anchor_position(geometry, text_width, text_height)
         return [(point, label_text, 0)]
-    
     return None
 
 def create_label_association_layer(all_layers, project_settings, crs, layer_name, operation):
@@ -305,6 +310,7 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
                 continue
             
             label_text, _ = closest_label
+            label_text = str(label_text) if label_text is not None else ""
             
             # Get best position(s) for this label
             results = get_best_label_position(
