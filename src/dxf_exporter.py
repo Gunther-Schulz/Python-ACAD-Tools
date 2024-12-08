@@ -955,7 +955,8 @@ class DXFExporter:
 
         for text_config in text_inserts:
             try:
-                layer_name = text_config.get('layer', 'text')
+                # Get target layer
+                layer_name = text_config.get('targetLayer', 'Plantext')  # Default to 'Plantext' layer
                 
                 # Skip if updateDxf is False
                 if not text_config.get('updateDxf', False):
@@ -967,7 +968,7 @@ class DXFExporter:
                 
                 # Get text properties
                 text = text_config.get('text', '')
-                position = text_config.get('position', {'x': 0, 'y': 0})
+                position = text_config.get('position', {})
                 x = position.get('x', 0)
                 y = position.get('y', 0)
                 
@@ -979,9 +980,12 @@ class DXFExporter:
                     if style and 'text' in style:
                         text_style = style['text']
                 
+                # Get the correct space (model or paper)
+                space = msp.doc.paperspace() if text_config.get('paperspace', False) else msp.doc.modelspace()
+                
                 # Create MTEXT entity
                 result = add_mtext(
-                    msp,
+                    space,
                     text,
                     x,
                     y,
@@ -989,7 +993,7 @@ class DXFExporter:
                     text_style.get('font', 'Standard'),
                     text_style=text_style,
                     name_to_aci=self.name_to_aci,
-                    max_width=text_style.get('maxWidth')
+                    max_width=text_style.get('width')
                 )
                 
                 if result and result[0]:

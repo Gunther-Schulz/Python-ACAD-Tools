@@ -45,7 +45,11 @@ class ProjectLoader:
         legends = self.load_yaml_file('legends.yaml', required=False) or {}
         viewports = self.load_yaml_file('viewports.yaml', required=False) or {}
         block_inserts = self.load_yaml_file('block_inserts.yaml', required=False) or {}
-        text_inserts = self.load_yaml_file('text_inserts.yaml', required=False) or {}
+        text_inserts = self.load_yaml_file('text_inserts.yaml', required=False)
+        if text_inserts:
+            log_debug(f"Loaded {len(text_inserts.get('textInserts', []))} text inserts from text_inserts.yaml")
+        else:
+            log_debug("No text inserts found in text_inserts.yaml")
         path_arrays = self.load_yaml_file('path_arrays.yaml', required=False) or {}
         wmts_wms_layers = self.load_yaml_file('wmts_wms_layers.yaml', required=False) or {}
 
