@@ -5,8 +5,7 @@ styles:
       height: 3.0
       font: "Arial"
       color: "white"
-      attachmentPoint: "MIDDLE_LEFT"
-      justify: "LEFT"
+      attachmentPoint: "MIDDLE_RIGHT"
       paragraph:
         align: "LEFT"
 

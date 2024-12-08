@@ -353,7 +353,16 @@ class DXFExporter:
                 'color', 'linetype', 'lineweight', 'plot', 'locked', 
                 'frozen', 'is_on', 'transparency'
             ])):
+                # Get layer properties but preserve text properties
                 layer_properties = self.style_manager.process_layer_style(layer_name, layer_config)
+                
+                # Don't update text-specific properties here
+                if 'text' in layer_config.get('style', {}):
+                    log_debug(f"Preserving text properties for layer {layer_name}")
+                    # Remove any text-related properties that might override MTEXT settings
+                    for key in ['style', 'attachment_point']:
+                        layer_properties.pop(key, None)
+                
                 update_layer_properties(layer, layer_properties, self.name_to_aci)
                 log_debug(f"Updated style for layer {layer_name}")
             
@@ -1057,8 +1066,14 @@ class DXFExporter:
         
         # Get style information
         style_name = layer_info.get('style')
+        log_debug(f"Style name from layer_info: {style_name}")  # Should show 'baumLabel'
+        
         if style_name:
-            style = self.style_manager.process_layer_style(layer_name, layer_info)
+            # Get the full style from the style manager
+            style, warning = self.style_manager.get_style(style_name)  # Unpack the tuple
+            log_debug(f"Full style loaded from style manager: {style}")
+            if warning:
+                log_warning(f"Warning when loading style '{style_name}'")
         else:
             style = {}
         
@@ -1071,9 +1086,11 @@ class DXFExporter:
             label_text = str(row['label'])
             rotation = float(row['rotation'])
             
-            # Create MTEXT entity
-            text_style = style.get('text', {}).copy()  # Make a copy to modify
-            text_style['rotation'] = rotation  # Add rotation to the style
+            # Create a deep copy of the text style and add rotation
+            text_style = style.get('text', {}).copy()
+            log_debug(f"Text style before adding rotation: {text_style}")
+            text_style['rotation'] = rotation
+            log_debug(f"Text style after adding rotation: {text_style}")
             
             mtext, _ = add_mtext(
                 msp,
