@@ -17,7 +17,7 @@ from src.dxf_utils import (get_color_code, attach_custom_data,
                            is_created_by_script, add_text, remove_entities_by_layer, 
                            ensure_layer_exists, update_layer_properties, 
                            set_drawing_properties, verify_dxf_settings, update_layer_geometry,
-                           get_style, apply_style_to_entity, create_hatch, SCRIPT_IDENTIFIER, initialize_document, sanitize_layer_name, add_text_insert)
+                           get_style, apply_style_to_entity, create_hatch, SCRIPT_IDENTIFIER, initialize_document, sanitize_layer_name, add_text_insert, add_mtext, get_mtext_constant)
 from src.path_array import create_path_array
 from src.style_manager import StyleManager
 from src.viewport_manager import ViewportManager
@@ -512,6 +512,11 @@ class DXFExporter:
             return
 
         if isinstance(geo_data, gpd.GeoDataFrame):
+            # Check if this is a label layer from labelAssociation operation
+            if 'label' in geo_data.columns and 'rotation' in geo_data.columns:
+                self.add_label_points_to_dxf(msp, geo_data, layer_name, layer_info)
+                return
+            
             geometries = geo_data.geometry
         elif isinstance(geo_data, gpd.GeoSeries):
             geometries = geo_data
@@ -1024,6 +1029,48 @@ class DXFExporter:
                 update_layer_properties(layer, layer_properties['layer'])
         
         # Process the geometry...
+
+    def add_label_points_to_dxf(self, msp, geo_data, layer_name, layer_info):
+        """Add label points with rotation to DXF."""
+        log_debug(f"Adding label points to DXF for layer: {layer_name}")
+        
+        # Get style information
+        style_name = layer_info.get('style')
+        if style_name:
+            style = self.style_manager.process_layer_style(layer_name, layer_info)
+        else:
+            style = {}
+        
+        # Process each label point
+        for idx, row in geo_data.iterrows():
+            if not isinstance(row.geometry, Point):
+                continue
+            
+            point = row.geometry
+            label_text = str(row['label'])
+            rotation = float(row['rotation'])
+            
+            # Create MTEXT entity
+            text_style = style.get('text', {})
+            text_style.update({
+                'rotation': rotation,
+                'attachment_point': get_mtext_constant('MTEXT_MIDDLE_LEFT')
+            })
+            
+            mtext, _ = add_mtext(
+                msp,
+                label_text,
+                point.x,
+                point.y,
+                layer_name,
+                text_style.get('font', 'Standard'),
+                text_style=text_style,
+                name_to_aci=self.name_to_aci
+            )
+            
+            if mtext:
+                self.attach_custom_data(mtext)
+                log_debug(f"Added label '{label_text}' at ({point.x}, {point.y}) with rotation {rotation}")
 
 
 
