@@ -81,6 +81,7 @@ geomLayers:
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/vermessung_stromkabel_ms_unterirdisch_besc_pt.shp"
 - name: "Stromkabel-MS_unterirdisch_LEIT Label"
   updateDxf: true
+  style: übersichtskarteHeader
   operations:
     - type: copy
       layers:

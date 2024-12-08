@@ -1115,21 +1115,52 @@ class DXFExporter:
         
         text_layer_name = f"{layer_name} Label"
         
-        # Create text entity
+        # Get style settings for the layer
+        layer_properties = self.layer_properties.get(layer_name, {})
+        style_name = layer_properties.get('style')
+        style_settings = {}
+        
+        if style_name:
+            # Get text style settings from StyleManager
+            style_settings = self.style_manager.get_text_style_settings(style_name)
+        
+        # Default text settings
+        text_settings = {
+            'layer': text_layer_name,
+            'char_height': 0.25,
+            'rotation': label_rotation or 0,
+            'attachment_point': 5,  # Middle center
+            'color': 'white',  # Default color
+            'style': 'Standard'  # Default style
+        }
+        
+        # Update with style settings if available
+        if style_settings and 'text' in style_settings:
+            text_style = style_settings['text']
+            if 'height' in text_style:
+                text_settings['char_height'] = text_style['height']
+            if 'font' in text_style:
+                text_settings['style'] = text_style['font']
+            if 'color' in text_style:
+                text_settings['color'] = text_style['color']
+            # Handle alignment if specified
+            if 'attachment_point' in text_style:
+                text_settings['attachment_point'] = self.style_manager.get_attachment_point(text_style['attachment_point'])
+        
+        # Convert color name to ACI color code if needed
+        if isinstance(text_settings['color'], str):
+            text_settings['color'] = get_color_code(text_settings['color'], self.name_to_aci)
+        
+        # Create text entity with style settings
         text_entity = msp.add_mtext(
             label_text,
-            dxfattribs={
-                'layer': text_layer_name,
-                'char_height': 0.25,  # Adjust as needed
-                'rotation': label_rotation or 0,
-                'attachment_point': 5,  # Middle center
-            }
+            dxfattribs=text_settings
         )
         
         # Position the text using x,y coordinates
         text_entity.set_location(
             (label_position_x, label_position_y),
-            attachment_point=5
+            attachment_point=text_settings['attachment_point']
         )
         
         # Attach custom data
