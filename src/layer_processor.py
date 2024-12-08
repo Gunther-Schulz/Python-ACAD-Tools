@@ -27,12 +27,14 @@ from src.operations import (
     create_directional_line_layer,
     create_circle_layer,
     create_connect_points_layer,
-    create_envelope_layer
+    create_envelope_layer,
+    create_label_association_layer
 )
 from src.style_manager import StyleManager
 from src.operations.filter_geometry_operation import create_filtered_geometry_layer
 from src.operations.report_operation import create_report_layer
 from src.shapefile_utils import write_shapefile
+from src.operations.label_association_operation import create_label_association_layer
 
 class LayerProcessor:
     def __init__(self, project_loader, plot_ops=False):
@@ -248,6 +250,8 @@ class LayerProcessor:
             result = create_connect_points_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
         elif op_type == 'envelope':
             result = create_envelope_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
+        elif op_type == 'labelAssociation':
+            result = create_label_association_layer(self.all_layers, self.project_settings, self.crs, operation)
         else:
             log_warning(f"Unknown operation type: {op_type} for layer {layer_name}")
             return None

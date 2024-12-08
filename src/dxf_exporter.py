@@ -574,7 +574,10 @@ class DXFExporter:
             return
 
         log_debug(f"add_geometries_to_dxf Layer Name: {layer_name}")
-        for idx, geometry in enumerate(geometries):
+        for idx, row in geo_data.iterrows():
+            geometry = row.geometry
+            
+            # Add the geometry as before
             if isinstance(geometry, Polygon):
                 self.add_polygon_to_dxf(msp, geometry, layer_name)
             elif isinstance(geometry, MultiPolygon):
@@ -587,6 +590,17 @@ class DXFExporter:
                     self.add_linestring_to_dxf(msp, line, layer_name)
             else:
                 self.add_geometry_to_dxf(msp, geometry, layer_name)
+
+            # Add associated label if present
+            if hasattr(row, 'associated_label') and row.associated_label:
+                self.add_associated_labels_to_dxf(
+                    msp,
+                    geometry,
+                    layer_name,
+                    row.associated_label,
+                    row.label_position,
+                    row.label_rotation
+                )
 
             if labels is not None:
                 self.add_label_to_dxf(msp, geometry, labels.iloc[idx], layer_name)
@@ -1113,6 +1127,35 @@ class DXFExporter:
                 update_layer_properties(layer, layer_properties['layer'])
         
         # Process the geometry...
+
+    def add_associated_labels_to_dxf(self, msp, geometry, layer_name, label_text, label_position, label_rotation):
+        """Add associated labels to geometries with proper positioning."""
+        if not label_text or not label_position:
+            return
+        
+        text_layer_name = f"{layer_name} Label"
+        
+        # Create text entity
+        text_entity = msp.add_mtext(
+            label_text,
+            dxfattribs={
+                'layer': text_layer_name,
+                'char_height': 0.25,  # Adjust as needed
+                'rotation': label_rotation or 0,
+                'attachment_point': 5,  # Middle center
+            }
+        )
+        
+        # Position the text
+        text_entity.set_location(
+            (label_position.x, label_position.y),
+            attachment_point=5
+        )
+        
+        # Attach custom data
+        self.attach_custom_data(text_entity)
+        
+        return text_entity
 
 
 
