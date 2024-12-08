@@ -5,6 +5,7 @@ from src.operations.common_operations import _get_filtered_geometry, _process_la
 from src.utils import log_debug, log_warning
 import math
 import numpy as np
+from src.style_manager import StyleManager
 
 def get_line_placement_positions(line, label_length):
     """Get possible label positions along a line with improved corner handling."""
@@ -146,11 +147,12 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
     label_column = operation.get('labelColumn', 'label')
     label_offset = operation.get('labelOffset', 0)
     
-    # Get style information
-    layer_info = project_settings.get('geomLayers', {}).get(layer_name, {})
-    style_name = layer_info.get('style')
-    style_settings = project_settings.get('styles', {}).get(style_name, {})
-    text_height = style_settings.get('text', {}).get('height', 2.5)  # Default text height if not specified
+    # Get style information using StyleManager
+    style_manager = StyleManager(project_settings)
+    layer_info = next((layer for layer in project_settings.get('geomLayers', []) 
+                      if layer.get('name') == layer_name), {})
+    style = style_manager.process_layer_style(layer_name, layer_info)
+    text_height = style.get('text', {}).get('height', 2.5)  # Default text height if not specified
     
     if not label_layer_name:
         log_warning(format_operation_warning(
