@@ -74,7 +74,7 @@ geomLayers:
   updateDxf: true
   style:
     layer:
-      color: "red"
+      color: "magenta"
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/vermessung_stromkabel_ms_unterirdisch_ln.shp"
 - name: Stromkabel-MS_unterirdisch_LEIT Label Points
   # updateDxf: true
