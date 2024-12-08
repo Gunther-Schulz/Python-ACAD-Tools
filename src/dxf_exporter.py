@@ -17,7 +17,7 @@ from src.dxf_utils import (get_color_code, attach_custom_data,
                            is_created_by_script, add_text, remove_entities_by_layer, 
                            ensure_layer_exists, update_layer_properties, 
                            set_drawing_properties, verify_dxf_settings, update_layer_geometry,
-                           get_style, apply_style_to_entity, create_hatch, SCRIPT_IDENTIFIER, initialize_document, sanitize_layer_name, add_text_insert)
+                           get_style, apply_style_to_entity, create_hatch, SCRIPT_IDENTIFIER, initialize_document, sanitize_layer_name, add_text_insert, add_mtext, get_mtext_constant)
 from src.path_array import create_path_array
 from src.style_manager import StyleManager
 from src.viewport_manager import ViewportManager
@@ -562,27 +562,58 @@ class DXFExporter:
         if isinstance(geo_data, gpd.GeoDataFrame):
             # Check if this is a label point layer (has 'label' column)
             if 'label' in geo_data.columns:
+                # Get style settings
+                style_name = layer_info.get('style')
+                text_style = {}
+                if style_name:
+                    style = self.project_loader.get_style(style_name)
+                    if style and 'text' in style:
+                        text_style = style['text'].copy()  # Make a copy to avoid modifying original
+                        
+                        # Convert attachment point using the same mapping as in add_text_insert
+                        attachment_dict = {
+                            'TOP_LEFT': const.MTEXT_TOP_LEFT,
+                            'TOP_CENTER': const.MTEXT_TOP_CENTER,
+                            'TOP_RIGHT': const.MTEXT_TOP_RIGHT,
+                            'MIDDLE_LEFT': const.MTEXT_MIDDLE_LEFT,
+                            'MIDDLE_CENTER': const.MTEXT_MIDDLE_CENTER,
+                            'MIDDLE_RIGHT': const.MTEXT_MIDDLE_RIGHT,
+                            'BOTTOM_LEFT': const.MTEXT_BOTTOM_LEFT,
+                            'BOTTOM_CENTER': const.MTEXT_BOTTOM_CENTER,
+                            'BOTTOM_RIGHT': const.MTEXT_BOTTOM_RIGHT
+                        }
+                        
+                        if 'attachment_point' in text_style:
+                            text_style['attachment_point'] = attachment_dict.get(
+                                text_style['attachment_point'].upper(),
+                                const.MTEXT_MIDDLE_CENTER  # Default to middle center
+                            )
+
                 for idx, row in geo_data.iterrows():
                     if not isinstance(row.geometry, Point):
                         continue
                     
-                    # Add text at the point location with rotation
                     text_layer_name = f"{layer_name} Label" if not layer_name.endswith(' Label') else layer_name
                     rotation = row.get('rotation', 0)
                     
-                    text_entity = msp.add_text(
+                    # Use add_mtext from dxf_utils which handles all text styling
+                    text_entity, _ = add_mtext(
+                        msp,
                         str(row['label']),
-                        dxfattribs={
-                            'layer': text_layer_name,
-                            'rotation': rotation,
-                            'height': 0.25,  # Adjust as needed
-                            'insert': (row.geometry.x, row.geometry.y),
-                            'halign': 1,  # Center alignment horizontally
-                            'valign': 1,  # Center alignment vertically
-                            'align_point': (row.geometry.x, row.geometry.y)  # Align point same as insertion point
-                        }
+                        row.geometry.x,
+                        row.geometry.y,
+                        text_layer_name,
+                        text_style.get('font', 'Standard'),
+                        text_style=text_style,
+                        name_to_aci=self.name_to_aci
                     )
-                    self.attach_custom_data(text_entity)
+                    
+                    if text_entity:
+                        # Apply rotation after creation
+                        if rotation:
+                            text_entity.dxf.rotation = rotation
+                        
+                        self.attach_custom_data(text_entity)
                 return
             
             # ... rest of existing code for non-label geometries ...

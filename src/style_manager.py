@@ -305,32 +305,6 @@ class StyleManager:
                 else:
                     log_warning(f"Unknown style override key '{key}' in layer '{layer_name}'")
 
-    def get_text_style_settings(self, style_name):
-        """Get text style settings for a given style name."""
-        if not style_name:
-            return {}
-        
-        style = self.styles.get(style_name, {})
-        if not style:
-            log_warning(f"Style '{style_name}' not found")
-            return {}
-        
-        return style
-
-    def get_attachment_point(self, attachment_point_str):
-        """Convert text attachment point string to ezdxf constant."""
-        attachment_points = {
-            'TOP_LEFT': 1,
-            'TOP_CENTER': 2,
-            'TOP_RIGHT': 3,
-            'MIDDLE_LEFT': 4,
-            'MIDDLE_CENTER': 5,
-            'MIDDLE_RIGHT': 6,
-            'BOTTOM_LEFT': 7,
-            'BOTTOM_CENTER': 8,
-            'BOTTOM_RIGHT': 9
-        }
-        return attachment_points.get(attachment_point_str.upper(), 5)  # Default to middle center
 
 
 
