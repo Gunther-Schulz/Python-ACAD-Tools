@@ -652,13 +652,14 @@ def add_mtext(msp, text, x, y, layer_name, style_name, text_style=None, name_to_
             dxfattribs['line_spacing_factor'] = text_style['lineSpacingFactor']
             
         if 'bgFill' in text_style:
-            dxfattribs['bg_fill'] = text_style['bgFill']
-            
-        if 'bgFillColor' in text_style:
-            dxfattribs['bg_fill_color'] = get_color_code(text_style['bgFillColor'], name_to_aci)
-            
-        if 'bgFillScale' in text_style:
-            dxfattribs['box_fill_scale'] = text_style['bgFillScale']
+            dxfattribs['bg_fill'] = 1  # Enable background fill
+            if 'bgFillColor' in text_style:
+                dxfattribs['bg_fill_color'] = get_color_code(text_style['bgFillColor'], name_to_aci)
+            if 'bgFillScale' in text_style:
+                # Ensure scale is a reasonable value
+                scale = float(text_style['bgFillScale'])
+                scale = max(0.1, min(scale, 5.0))  # Limit between 0.1 and 5.0
+                dxfattribs['bg_fill_scale'] = scale
             
         if 'obliqueAngle' in text_style:
             dxfattribs['oblique_angle'] = text_style['obliqueAngle']

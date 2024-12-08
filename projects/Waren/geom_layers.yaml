@@ -36,7 +36,7 @@ geomLayers:
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/vermessung_baum_laubbaum_pt.shp"
 - name: Baum_Laubbaum Label
   updateDxf: true
-  style: leitungsLabel
+  # style: leitungsLabel
   operations:
     - type: copy
       layers:

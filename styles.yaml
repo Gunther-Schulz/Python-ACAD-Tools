@@ -5,6 +5,9 @@ styles:
       height: 3.0
       font: "Arial"
       color: "white"
+      bgFill: true
+      bgFillColor: "ivory"
+      bgFillScale: 1.2
       paragraph:
         align: "LEFT"
 
@@ -20,7 +23,7 @@ styles:
       lineSpacingFactor: 1.2
       bgFill: true
       bgFillColor: "blue"
-      bgFillScale: 1.5
+      bgFillScale: 1.1
       underline: false
       overline: false
       strikeThrough: false
