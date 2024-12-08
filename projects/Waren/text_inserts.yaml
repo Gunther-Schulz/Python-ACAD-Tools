@@ -1,16 +1,16 @@
-textInserts:
-  # NW Text Inserts
-  # --------------
-  - name: "Main Title NW"
-    targetLayer: "Plantext"
-    updateDxf: true
-    paperspace: true  # Add this to place text in paper space
-    text: "Vorentwurf: xxxxxxxxxxxxxxxxxxxxxxxxx paskü üfalüwf üf üflüfw üpw fpüwlfwü fwüplfüfwelüpwfl wü üplf weüplf üplf wüpwfelüpwfeTEXTXTZSXZTXSZSTXZSTKXSZTKXSKZTS"
-    position:
-      type: "absolute"
-      x: 1500
-      y: 1000
-    style: "mainTitle"  # Style can include width for text wrapping
+# textInserts:
+#   # NW Text Inserts
+#   # --------------
+#   - name: "Main Title NW"
+#     targetLayer: "Plantext"
+#     updateDxf: true
+#     paperspace: true  # Add this to place text in paper space
+#     text: "Vorentwurf: xxxxxxxxxxxxxxxxxxxxxxxxx paskü üfalüwf üf üflüfw üpw fpüwlfwü fwüplfüfwelüpwfl wü üplf weüplf üplf wüpwfelüpwfeTEXTXTZSXZTXSZSTXZSTKXSZTKXSKZTS"
+#     position:
+#       type: "absolute"
+#       x: 1500
+#       y: 1000
+#     style: "mainTitle"  # Style can include width for text wrapping
   # - name: "Map Header NW"
   #   targetLayer: "Plantext"
   #   updateDxf: true

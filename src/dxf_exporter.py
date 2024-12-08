@@ -953,6 +953,15 @@ class DXFExporter:
             log_debug("No text inserts found in project settings")
             return
 
+        # First, collect all unique target layers
+        target_layers = {text_config.get('targetLayer', 'Plantext') for text_config in text_inserts}
+        
+        # Remove all existing text entities from these layers
+        for layer_name in target_layers:
+            log_debug(f"Removing existing text entities from layer: {layer_name}")
+            remove_entities_by_layer(msp, layer_name, self.script_identifier)
+
+        # Now process new text inserts
         for text_config in text_inserts:
             try:
                 # Get target layer
@@ -998,7 +1007,7 @@ class DXFExporter:
                 
                 if result and result[0]:
                     mtext = result[0]
-                    attach_custom_data(mtext, self.script_identifier)
+                    self.attach_custom_data(mtext)
                     log_debug(f"Added text insert: '{text}' at ({x}, {y})")
                 else:
                     log_warning(f"Failed to create text insert for '{text}'")
