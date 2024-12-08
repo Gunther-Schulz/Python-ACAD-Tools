@@ -6,7 +6,6 @@ styles:
       font: "Arial"
       color: "white"
       attachmentPoint: "MIDDLE_LEFT"
-      justify: "LEFT"
       paragraph:
         align: "LEFT"
 

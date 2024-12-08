@@ -566,135 +566,68 @@ def set_hatch_transparency(hatch, transparency):
         hatch.dxf.transparency = colors.float2transparency(ezdxf_transparency)
 
 def add_mtext(msp, text, x, y, layer_name, style_name, text_style=None, name_to_aci=None, max_width=None):
-    log_debug(f"Adding MTEXT: text='{text}', x={x}, y={y}, layer='{layer_name}', style='{style_name}', max_width={max_width}")
+    log_debug(f"=== Starting MTEXT creation ===")
+    log_debug(f"Text: '{text}'")
+    log_debug(f"Position: ({x}, {y})")
+    log_debug(f"Layer: '{layer_name}'")
+    log_debug(f"Style name: '{style_name}'")
+    log_debug(f"Text style config: {text_style}")
     
-    # Create MText editor for advanced paragraph formatting
-    editor = MTextEditor()
-    
-    # Get paragraph properties from text_style
-    if text_style and 'paragraph' in text_style:
-        para_props = text_style['paragraph']
-        alignment_map = {
-            'LEFT': MTextParagraphAlignment.LEFT,
-            'RIGHT': MTextParagraphAlignment.RIGHT,
-            'CENTER': MTextParagraphAlignment.CENTER,
-            'JUSTIFIED': MTextParagraphAlignment.JUSTIFIED,
-            'DISTRIBUTED': MTextParagraphAlignment.DISTRIBUTED
-        }
-        
-        props = ParagraphProperties(
-            indent=para_props.get('indent', 0),
-            left=para_props.get('leftMargin', 0),  # Changed from left
-            right=para_props.get('rightMargin', 0),  # Changed from right
-            align=alignment_map.get(para_props.get('align', 'LEFT').upper(), MTextParagraphAlignment.LEFT),
-            tab_stops=para_props.get('tabStops', tuple())
-        )
-        editor.paragraph(props)
-    
-    # Add the text content
-    for paragraph in text.split('\n'):
-        editor.append(paragraph)
-        editor.append('\\P')  # Add paragraph break
-    
-    # Build dxfattribs with camelCase properties
+    # Build basic dxfattribs
     dxfattribs = {
         'style': style_name,
         'layer': layer_name,
         'char_height': text_style.get('height', 2.5),
-        'insert': Vec3(x, y, 0),
         'width': text_style.get('maxWidth', max_width) if max_width is not None else 0,
+        'insert': (x, y)
     }
+    log_debug(f"Initial dxfattribs: {dxfattribs}")
 
-    # Map attachment points
+    # Map attachment points to the correct DXF constants
     attachment_map = {
-        'TOP_LEFT': MTEXT_TOP_LEFT,
-        'TOP_CENTER': MTEXT_TOP_CENTER,
-        'TOP_RIGHT': MTEXT_TOP_RIGHT,
-        'MIDDLE_LEFT': MTEXT_MIDDLE_LEFT,
-        'MIDDLE_CENTER': MTEXT_MIDDLE_CENTER,
-        'MIDDLE_RIGHT': MTEXT_MIDDLE_RIGHT,
-        'BOTTOM_LEFT': MTEXT_BOTTOM_LEFT,
-        'BOTTOM_CENTER': MTEXT_BOTTOM_CENTER,
-        'BOTTOM_RIGHT': MTEXT_BOTTOM_RIGHT
+        'TOP_LEFT': 1,
+        'TOP_CENTER': 2,
+        'TOP_RIGHT': 3,
+        'MIDDLE_LEFT': 4,
+        'MIDDLE_CENTER': 5,
+        'MIDDLE_RIGHT': 6,
+        'BOTTOM_LEFT': 7,
+        'BOTTOM_CENTER': 8,
+        'BOTTOM_RIGHT': 9
     }
 
-    # Map flow directions
-    flow_direction_map = {
-        'LEFT_TO_RIGHT': MTEXT_LEFT_TO_RIGHT,
-        'TOP_TO_BOTTOM': MTEXT_TOP_TO_BOTTOM,
-        'BY_STYLE': MTEXT_BY_STYLE
-    }
-
-    # Map line spacing styles
-    spacing_style_map = {
-        'AT_LEAST': MTEXT_AT_LEAST,
-        'EXACT': MTEXT_EXACT
-    }
-    
-    # Apply text style properties
-    if text_style:
-        if 'color' in text_style:
-            dxfattribs['color'] = get_color_code(text_style['color'], name_to_aci)
-            
-        if 'attachmentPoint' in text_style:
-            attachment = text_style['attachmentPoint'].upper()
-            dxfattribs['attachment_point'] = attachment_map.get(attachment, MTEXT_TOP_LEFT)
-            
-        if 'flowDirection' in text_style:
-            flow_dir = text_style['flowDirection'].upper()
-            dxfattribs['flow_direction'] = flow_direction_map.get(flow_dir, MTEXT_LEFT_TO_RIGHT)
-            
-        if 'lineSpacingStyle' in text_style:
-            spacing_style = text_style['lineSpacingStyle'].upper()
-            dxfattribs['line_spacing_style'] = spacing_style_map.get(spacing_style, MTEXT_AT_LEAST)
-            
-        if 'lineSpacingFactor' in text_style:
-            dxfattribs['line_spacing_factor'] = text_style['lineSpacingFactor']
-            
-        if 'bgFill' in text_style:
-            dxfattribs['bg_fill'] = 1  # Enable background fill
-            if 'bgFillColor' in text_style:
-                dxfattribs['bg_fill_color'] = get_color_code(text_style['bgFillColor'], name_to_aci)
-            if 'bgFillScale' in text_style:
-                # Ensure scale is a reasonable value
-                scale = float(text_style['bgFillScale'])
-                scale = max(0.1, min(scale, 5.0))  # Limit between 0.1 and 5.0
-                dxfattribs['bg_fill_scale'] = scale
-            
-        if 'obliqueAngle' in text_style:
-            dxfattribs['oblique_angle'] = text_style['obliqueAngle']
-        
-        if 'rotation' in text_style:
-            dxfattribs['rotation'] = text_style['rotation']
-    
     try:
-        mtext = msp.add_mtext(str(editor), dxfattribs=dxfattribs)
+        # Create the MTEXT entity
+        mtext = msp.add_mtext(text, dxfattribs=dxfattribs)
+        log_debug(f"Created MTEXT entity: {mtext}")
+        
+        # Set attachment point directly
+        print(text_style)
+        if text_style and 'attachmentPoint' in text_style:
+            attachment_key = text_style['attachmentPoint'].upper()
+            log_debug(f"Attempting to set attachment point: {attachment_key}")
+            if attachment_key in attachment_map:
+                attachment_value = attachment_map[attachment_key]
+                mtext.dxf.attachment_point = attachment_value
+                log_debug(f"Set attachment_point to {attachment_key} ({attachment_value})")
+            else:
+                log_debug(f"Warning: Invalid attachment point key: {attachment_key}")
+        else:
+            log_debug("No attachment point specified in text style")
+        
+        # Set rotation if specified
+        if text_style and 'rotation' in text_style:
+            mtext.dxf.rotation = text_style['rotation']
+            log_debug(f"Set rotation to {text_style['rotation']}")
+        
         attach_custom_data(mtext, SCRIPT_IDENTIFIER)
-        
-        # Apply additional text formatting
-        if text_style:
-            formatting = []
-            if text_style.get('underline'):
-                formatting.append(('\\L', '\\l'))
-            if text_style.get('overline'):
-                formatting.append(('\\O', '\\o'))
-            if text_style.get('strikeThrough'):
-                formatting.append(('\\K', '\\k'))
-                
-            # Apply all formatting
-            text_content = mtext.text
-            for start, end in formatting:
-                text_content = f"{start}{text_content}{end}"
-            mtext.text = text_content
-        
-        log_debug("MTEXT added successfully")
-        
-        # Calculate and return the actual height
         actual_height = mtext.dxf.char_height * mtext.dxf.line_spacing_factor * len(text.split('\n'))
+        log_debug(f"=== Completed MTEXT creation ===")
         return mtext, actual_height
         
     except Exception as e:
         log_error(f"Failed to add MTEXT: {str(e)}")
+        log_error(f"Traceback:\n{traceback.format_exc()}")
         return None, 0
 
 def get_mtext_constant(value):
