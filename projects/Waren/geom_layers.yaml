@@ -34,14 +34,13 @@ geomLayers:
 - name: Baum_Laubbaum Points
   # updateDxf: true
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/vermessung_baum_laubbaum_pt.shp"
-- name: Baum_Laubbaum Circle
+- name: Baum_Laubbaum Krone
   updateDxf: true
   operations:
     - type: circle
       layers:
         - Baum_Laubbaum Points
-      # radiusField: radius
-      radius: 10
+      radiusField: Krone_R
 - name: Baum_Laubbaum Line
   updateDxf: true
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/vermessung_baum_laubbaum_pt.shp"
