@@ -66,10 +66,12 @@ dxfOperations:
         #   outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/vermessung_gas_hd.shp"
         # - sourceLayer: "T--Nutzungsartengrenze"
         #   outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/vermessung_nutzungsartengrenze.shp"
-        # - sourceLayer: "L--Stromkabel-MS_unterirdisch_LEIT"
-        - sourceLayer: "L--Stromkabel-MS_unterirdisch_BESC"
-          # preprocessors:
+        - sourceLayer: "L--Stromkabel-MS_unterirdisch_LEIT"
           outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/vermessung_stromkabel_ms_unterirdisch.shp"
+        - sourceLayer: "L--Stromkabel-MS_unteridisch_BESC"
+          preprocessors:
+            - "basepoint_extractor"
+          outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/vermessung_stromkabel_ms_unterirdisch_besc.shp"
         # - sourceLayer: "T--Strasse_befestigt_OK"
         #   outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/vermessung_strasse_befestigt_ok.shp"
         # - sourceLayer: "T--Böschung_eindeut_UK"
