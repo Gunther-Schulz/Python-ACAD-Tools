@@ -1,33 +1,16 @@
-import random
-import ezdxf
-from ezdxf import enums
-from ezdxf import colors
-from ezdxf.lldxf.const import (
-    MTEXT_TOP_LEFT, MTEXT_TOP_CENTER, MTEXT_TOP_RIGHT,
-    MTEXT_MIDDLE_LEFT, MTEXT_MIDDLE_CENTER, MTEXT_MIDDLE_RIGHT,
-    MTEXT_BOTTOM_LEFT, MTEXT_BOTTOM_CENTER, MTEXT_BOTTOM_RIGHT,
-    MTEXT_LEFT_TO_RIGHT, MTEXT_TOP_TO_BOTTOM, MTEXT_BY_STYLE,
-    MTEXT_AT_LEAST, MTEXT_EXACT
-)
-from ezdxf.enums import TextEntityAlignment
-from ezdxf.math import Vec3
+
 from src.dxf_utils import SCRIPT_IDENTIFIER, add_block_reference, attach_custom_data
 from src.utils import log_info, log_warning, log_error, log_debug
 import re
 import math
-from ezdxf.math import Vec2, area
-from ezdxf.math import intersection_line_line_2d
-import os
-from ezdxf.lldxf.const import DXFValueError
+from ezdxf.math import Vec2
 from shapely.geometry import Polygon, Point, LineString
 from shapely import MultiLineString, MultiPolygon, affinity, unary_union
 import matplotlib.pyplot as plt
-from descartes import PolygonPatch
 import numpy as np
 import logging
 import sys
 import matplotlib.patches as patches
-from ezdxf.math import intersection_line_line_2d
 import geopandas as gpd
 
 
