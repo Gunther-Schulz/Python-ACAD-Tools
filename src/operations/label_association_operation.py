@@ -7,8 +7,7 @@ import math
 import numpy as np
 
 def get_line_placement_positions(line, label_length):
-    """Get possible label positions along a line using Mapbox's approach."""
-    # Sample points along the line at regular intervals
+    """Get possible label positions along a line with improved corner handling."""
     line_length = line.length
     step = line_length / 20  # Sample 20 points along the line
     positions = []
@@ -16,19 +15,50 @@ def get_line_placement_positions(line, label_length):
     current_dist = 0
     while current_dist <= line_length:
         point = line.interpolate(current_dist)
-        # Look ahead to get angle
-        next_dist = min(current_dist + step, line_length)
-        next_point = line.interpolate(next_dist)
         
+        # Look both ahead and behind to detect corners
+        look_dist = min(step, label_length / 2)
+        behind_dist = max(0, current_dist - look_dist)
+        ahead_dist = min(line_length, current_dist + look_dist)
+        
+        point_behind = line.interpolate(behind_dist)
+        point_ahead = line.interpolate(ahead_dist)
+        
+        # Calculate angles between segments
+        angle_diff = 0  # Default to 0 for start/end points
+        if behind_dist < current_dist and ahead_dist > current_dist:
+            angle1 = math.atan2(point.y - point_behind.y, point.x - point_behind.x)
+            angle2 = math.atan2(point_ahead.y - point.y, point_ahead.x - point.x)
+            angle_diff = abs(math.degrees(angle2 - angle1))
+            
+            # Skip corners (where angle difference is significant)
+            if angle_diff > 30:  # Adjust this threshold as needed
+                current_dist += step
+                continue
+        
+        # Use the ahead point for angle calculation
         angle = math.degrees(math.atan2(
-            next_point.y - point.y,
-            next_point.x - point.x
+            point_ahead.y - point.y,
+            point_ahead.x - point.x
         ))
         
-        # Check if we have enough space for the label
+        # Check if we have enough straight space for the label
         space_ahead = line_length - current_dist
         if space_ahead >= label_length:
-            positions.append((point, angle))
+            # Calculate a score for this position
+            # Higher score = better position (straighter, away from corners)
+            score = 1.0
+            if angle_diff < 10:  # Very straight
+                score += 2.0
+            elif angle_diff < 20:  # Mostly straight
+                score += 1.0
+            
+            # Prefer middle sections of the line
+            relative_pos = current_dist / line_length
+            if 0.3 <= relative_pos <= 0.7:
+                score += 1.0
+                
+            positions.append((point, angle, score))
         
         current_dist += step
     
@@ -49,15 +79,13 @@ def get_polygon_anchor_position(polygon):
     return polygon.representative_point()
 
 def get_best_label_position(geometry, label_text, offset=0):
-    """Find best label position using Mapbox-style placement strategies."""
+    """Find best label position using improved corner handling."""
     if isinstance(geometry, Point):
         if offset == 0:
             return (geometry, label_text, 0)
-        # For points, offset to the right (Mapbox's default)
         return (Point(geometry.x + offset, geometry.y), label_text, 0)
     
     elif isinstance(geometry, LineString):
-        # For lines, try to find the longest straight segment that can fit the label
         label_length = len(label_text) * 0.5  # Approximate length needed
         positions = get_line_placement_positions(geometry, label_length)
         
@@ -68,9 +96,8 @@ def get_best_label_position(geometry, label_text, offset=0):
             p2 = geometry.interpolate(0.55, normalized=True)
             angle = math.degrees(math.atan2(p2.y - p1.y, p2.x - p1.x))
         else:
-            # Use the middle position from the candidates
-            middle_idx = len(positions) // 2
-            point, angle = positions[middle_idx]
+            # Use the position with the highest score
+            point, angle, _ = max(positions, key=lambda x: x[2])
         
         # Apply offset perpendicular to line direction
         if offset != 0:
