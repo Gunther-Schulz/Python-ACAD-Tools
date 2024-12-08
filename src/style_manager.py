@@ -166,6 +166,7 @@ class StyleManager:
             'overline',
             'strikeThrough',
             'obliqueAngle',
+            'rotation',
             'paragraph'
         }
 

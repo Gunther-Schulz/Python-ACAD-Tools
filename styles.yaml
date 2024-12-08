@@ -8,8 +8,8 @@ styles:
       bgFill: true
       bgFillColor: "ivory"
       bgFillScale: 1.2
-      paragraph:
-        align: "LEFT"
+      # paragraph:
+      #   align: "LEFT"
 
   mainTitle:
     text:

@@ -663,6 +663,9 @@ def add_mtext(msp, text, x, y, layer_name, style_name, text_style=None, name_to_
             
         if 'obliqueAngle' in text_style:
             dxfattribs['oblique_angle'] = text_style['obliqueAngle']
+        
+        if 'rotation' in text_style:
+            dxfattribs['rotation'] = text_style['rotation']
     
     try:
         mtext = msp.add_mtext(str(editor), dxfattribs=dxfattribs)

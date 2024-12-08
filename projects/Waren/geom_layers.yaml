@@ -43,7 +43,7 @@ geomLayers:
         - Baum_Laubbaum Points
     - type: labelAssociation
       labelColumn: "Krone_D"
-      labelOffset: 1
+      # labelOffset: 1
 - name: Baum_Laubbaum Krone
   updateDxf: true
   operations:

@@ -1059,11 +1059,8 @@ class DXFExporter:
             rotation = float(row['rotation'])
             
             # Create MTEXT entity
-            text_style = style.get('text', {})
-            text_style.update({
-                'rotation': rotation,
-                'attachment_point': get_mtext_constant('MTEXT_MIDDLE_LEFT')
-            })
+            text_style = style.get('text', {}).copy()  # Make a copy to modify
+            text_style['rotation'] = rotation  # Add rotation to the style
             
             mtext, _ = add_mtext(
                 msp,

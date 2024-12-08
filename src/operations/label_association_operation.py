@@ -261,7 +261,8 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
     layer_info = next((layer for layer in project_settings.get('geomLayers', []) 
                       if layer.get('name') == layer_name), {})
     style = style_manager.process_layer_style(layer_name, layer_info)
-    text_height = style.get('text', {}).get('height', 2.5)  # Default text height if not specified
+    text_style = style.get('text', {})
+    text_height = text_style.get('height', 2.5)
     
     # Get label layer
     label_layer = all_layers.get(label_layer_name)
@@ -335,5 +336,9 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
     }
     
     result_gdf = gpd.GeoDataFrame(result_data, crs=crs)
+    
+    # Store the text style in the GeoDataFrame's metadata for use during DXF creation
+    result_gdf.attrs['text_style'] = text_style
+    
     log_debug(f"Created label association layer with {len(result_gdf)} label points")
     return result_gdf
