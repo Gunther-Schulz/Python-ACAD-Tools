@@ -566,6 +566,7 @@ def set_hatch_transparency(hatch, transparency):
         hatch.dxf.transparency = colors.float2transparency(ezdxf_transparency)
 
 def add_mtext(msp, text, x, y, layer_name, style_name, text_style=None, name_to_aci=None, max_width=None):
+    """Add MTEXT entity with comprehensive style support."""
     log_debug(f"=== Starting MTEXT creation ===")
     log_debug(f"Text: '{text}'")
     log_debug(f"Position: ({x}, {y})")
@@ -581,72 +582,95 @@ def add_mtext(msp, text, x, y, layer_name, style_name, text_style=None, name_to_
         'width': text_style.get('maxWidth', max_width) if max_width is not None else 0,
         'insert': (x, y)
     }
-    log_debug(f"Initial dxfattribs: {dxfattribs}")
-
-    # Map attachment points to the correct DXF constants
-    attachment_map = {
-        'TOP_LEFT': 1,
-        'TOP_CENTER': 2,
-        'TOP_RIGHT': 3,
-        'MIDDLE_LEFT': 4,
-        'MIDDLE_CENTER': 5,
-        'MIDDLE_RIGHT': 6,
-        'BOTTOM_LEFT': 7,
-        'BOTTOM_CENTER': 8,
-        'BOTTOM_RIGHT': 9
-    }
 
     try:
         # Create the MTEXT entity
         mtext = msp.add_mtext(text, dxfattribs=dxfattribs)
-        log_debug(f"Created MTEXT entity: {mtext}")
         
-        # Set attachment point directly
-        if text_style and 'attachmentPoint' in text_style:
-            attachment_key = text_style['attachmentPoint'].upper()
-            log_debug(f"Attempting to set attachment point: {attachment_key}")
-            if attachment_key in attachment_map:
-                attachment_value = attachment_map[attachment_key]
-                mtext.dxf.attachment_point = attachment_value
-                log_debug(f"Set attachment_point to {attachment_key} ({attachment_value})")
+        # Apply color
+        if 'color' in text_style:
+            color = get_color_code(text_style['color'], name_to_aci)
+            if isinstance(color, tuple):
+                mtext.rgb = color
             else:
-                log_debug(f"Warning: Invalid attachment point key: {attachment_key}")
-        else:
-            log_debug("No attachment point specified in text style")
-        
-        # Set rotation if specified
-        if text_style and 'rotation' in text_style:
-            mtext.dxf.rotation = text_style['rotation']
-            log_debug(f"Set rotation to {text_style['rotation']}")
-        
+                mtext.dxf.color = color
+
+        # Set attachment point
+        if 'attachmentPoint' in text_style:
+            attachment_map = {
+                'TOP_LEFT': 1, 'TOP_CENTER': 2, 'TOP_RIGHT': 3,
+                'MIDDLE_LEFT': 4, 'MIDDLE_CENTER': 5, 'MIDDLE_RIGHT': 6,
+                'BOTTOM_LEFT': 7, 'BOTTOM_CENTER': 8, 'BOTTOM_RIGHT': 9
+            }
+            attachment_key = text_style['attachmentPoint'].upper()
+            if attachment_key in attachment_map:
+                mtext.dxf.attachment_point = attachment_map[attachment_key]
+
+        # Set flow direction
+        if 'flowDirection' in text_style:
+            flow_map = {
+                'LEFT_TO_RIGHT': 1,
+                'TOP_TO_BOTTOM': 3,
+                'BY_STYLE': 5
+            }
+            flow_key = text_style['flowDirection'].upper()
+            if flow_key in flow_map:
+                mtext.dxf.flow_direction = flow_map[flow_key]
+
+        # Set line spacing
+        if 'lineSpacingStyle' in text_style:
+            spacing_map = {
+                'AT_LEAST': 1,
+                'EXACT': 2
+            }
+            spacing_key = text_style['lineSpacingStyle'].upper()
+            if spacing_key in spacing_map:
+                mtext.dxf.line_spacing_style = spacing_map[spacing_key]
+
+        if 'lineSpacingFactor' in text_style:
+            factor = float(text_style['lineSpacingFactor'])
+            if 0.25 <= factor <= 4.00:
+                mtext.dxf.line_spacing_factor = factor
+
+        # Set background fill
+        if 'bgFill' in text_style and text_style['bgFill']:
+            bg_color = text_style.get('bgFillColor')
+            bg_scale = text_style.get('bgFillScale', 1.5)
+            if bg_color:
+                mtext.set_bg_color(bg_color, scale=bg_scale)
+
+        # Set rotation
+        if 'rotation' in text_style:
+            mtext.dxf.rotation = float(text_style['rotation'])
+
+        # Set paragraph properties
+        if 'paragraph' in text_style:
+            para = text_style['paragraph']
+            if 'align' in para:
+                # Note: Paragraph alignment is handled through MTEXT formatting codes
+                align_map = {
+                    'LEFT': '\\pql;',
+                    'CENTER': '\\pqc;',
+                    'RIGHT': '\\pqr;',
+                    'JUSTIFIED': '\\pqj;',
+                    'DISTRIBUTED': '\\pqd;'
+                }
+                align_key = para['align'].upper()
+                if align_key in align_map:
+                    text = f"{align_map[align_key]}{text}"
+                    mtext.text = text
+
+        # Attach custom data
         attach_custom_data(mtext, SCRIPT_IDENTIFIER)
-        actual_height = mtext.dxf.char_height * mtext.dxf.line_spacing_factor * len(text.split('\n'))
-        log_debug(f"=== Completed MTEXT creation ===")
-        return mtext, actual_height
         
+        log_debug(f"=== Completed MTEXT creation ===")
+        actual_height = mtext.dxf.char_height * mtext.dxf.line_spacing_factor * len(text.split('\n'))
+        return mtext, actual_height
+
     except Exception as e:
         log_error(f"Failed to add MTEXT: {str(e)}")
         log_error(f"Traceback:\n{traceback.format_exc()}")
         return None, 0
-
-def get_mtext_constant(value):
-    mtext_constants = {
-        'MTEXT_TOP_LEFT': MTEXT_TOP_LEFT,
-        'MTEXT_TOP_CENTER': MTEXT_TOP_CENTER,
-        'MTEXT_TOP_RIGHT': MTEXT_TOP_RIGHT,
-        'MTEXT_MIDDLE_LEFT': MTEXT_MIDDLE_LEFT,
-        'MTEXT_MIDDLE_CENTER': MTEXT_MIDDLE_CENTER,
-        'MTEXT_MIDDLE_RIGHT': MTEXT_MIDDLE_RIGHT,
-        'MTEXT_BOTTOM_LEFT': MTEXT_BOTTOM_LEFT,
-        'MTEXT_BOTTOM_CENTER': MTEXT_BOTTOM_CENTER,
-        'MTEXT_BOTTOM_RIGHT': MTEXT_BOTTOM_RIGHT,
-        'MTEXT_LEFT_TO_RIGHT': MTEXT_LEFT_TO_RIGHT,
-        'MTEXT_TOP_TO_BOTTOM': MTEXT_TOP_TO_BOTTOM,
-        'MTEXT_BY_STYLE': MTEXT_BY_STYLE,
-        'MTEXT_AT_LEAST': MTEXT_AT_LEAST,
-        'MTEXT_EXACT': MTEXT_EXACT
-    }
-    return mtext_constants.get(value, value)
 
 def sanitize_layer_name(name):
     # Define a set of allowed characters, including German-specific ones, space, dash, and underscore
