@@ -17,7 +17,7 @@ from src.dxf_utils import (get_color_code, attach_custom_data,
                            is_created_by_script, add_text, remove_entities_by_layer, 
                            ensure_layer_exists, update_layer_properties, 
                            set_drawing_properties, verify_dxf_settings, update_layer_geometry,
-                           get_style, apply_style_to_entity, create_hatch, SCRIPT_IDENTIFIER, initialize_document, sanitize_layer_name, add_text_insert, add_mtext, get_mtext_constant)
+                           get_style, apply_style_to_entity, create_hatch, SCRIPT_IDENTIFIER, initialize_document, sanitize_layer_name, add_text_insert)
 from src.path_array import create_path_array
 from src.style_manager import StyleManager
 from src.viewport_manager import ViewportManager
@@ -106,46 +106,6 @@ class DXFExporter:
         if 'style' in layer:
             layer_style = self.style_manager.process_layer_style(layer_name, layer)
             self.add_layer_properties(layer_name, layer, layer_style)
-        
-        if not self.is_wmts_or_wms_layer(layer) and not layer_name.endswith(' Label'):
-            if self.has_labels(layer):
-                self._setup_label_layer(layer_name, layer)
-
-    def has_labels(self, layer):
-        return 'label' in layer or 'labelStyle' in layer
-
-    def _setup_label_layer(self, base_layer_name, base_layer):
-        if 'label' not in base_layer:
-            return
-
-        label_layer_name = f"{base_layer_name} Label"
-
-        # Default properties for label layers
-        default_label_properties = {
-            'layer': {
-                'color': 'White',
-                'linetype': 'CONTINUOUS',
-                'lineweight': 0.13,
-                'plot': True,
-                'locked': False,
-                'frozen': False,
-                'is_on': True
-            },
-            'entity': {
-                'close': False
-            }
-        }
-
-        try:
-            # Try to get base layer properties first
-            label_properties = self.layer_properties[base_layer_name].copy()
-        except KeyError:
-            # If base layer properties don't exist, use defaults for label layer
-            label_properties = default_label_properties
-
-        # Add the label layer to layer_properties
-        self.layer_properties[label_layer_name] = label_properties
-        self.colors[label_layer_name] = label_properties['layer']['color']
 
     def export_to_dxf(self, skip_dxf_processor=False):
         """Main export method."""
@@ -363,9 +323,6 @@ class DXFExporter:
         
         self._ensure_layer_exists(doc, layer_name, layer_info)
         
-        if self.has_labels(layer_info):
-            self._ensure_label_layer_exists(doc, layer_name, layer_info)
-        
         if layer_name in self.all_layers:
             self.update_layer_geometry(msp, layer_name, self.all_layers[layer_name], layer_info)
 
@@ -404,11 +361,6 @@ class DXFExporter:
             log_debug(f"Removing existing geometry from layer {layer_name}")
             remove_entities_by_layer(msp, layer_name, self.script_identifier)
             
-            # Remove existing labels if they exist
-            label_layer_name = f"{layer_name} Label"
-            log_debug(f"Removing existing labels from layer {label_layer_name}")
-            remove_entities_by_layer(msp, label_layer_name, self.script_identifier)
-
             # Add new geometry
             log_debug(f"Adding new geometry to layer {layer_name}")
             if isinstance(geo_data, list) and all(isinstance(item, tuple) for item in geo_data):
@@ -560,63 +512,27 @@ class DXFExporter:
             return
 
         if isinstance(geo_data, gpd.GeoDataFrame):
-            # Check if this is a label point layer (has 'label' column)
-            if 'label' in geo_data.columns:
-                # Get style settings
-                style_name = layer_info.get('style')
-                text_style = {}
-                if style_name:
-                    style = self.project_loader.get_style(style_name)
-                    if style and 'text' in style:
-                        text_style = style['text'].copy()  # Make a copy to avoid modifying original
-                        
-                        # Convert attachment point using the same mapping as in add_text_insert
-                        attachment_dict = {
-                            'TOP_LEFT': const.MTEXT_TOP_LEFT,
-                            'TOP_CENTER': const.MTEXT_TOP_CENTER,
-                            'TOP_RIGHT': const.MTEXT_TOP_RIGHT,
-                            'MIDDLE_LEFT': const.MTEXT_MIDDLE_LEFT,
-                            'MIDDLE_CENTER': const.MTEXT_MIDDLE_CENTER,
-                            'MIDDLE_RIGHT': const.MTEXT_MIDDLE_RIGHT,
-                            'BOTTOM_LEFT': const.MTEXT_BOTTOM_LEFT,
-                            'BOTTOM_CENTER': const.MTEXT_BOTTOM_CENTER,
-                            'BOTTOM_RIGHT': const.MTEXT_BOTTOM_RIGHT
-                        }
-                        
-                        if 'attachment_point' in text_style:
-                            text_style['attachment_point'] = attachment_dict.get(
-                                text_style['attachment_point'].upper(),
-                                const.MTEXT_MIDDLE_CENTER  # Default to middle center
-                            )
+            geometries = geo_data.geometry
+        elif isinstance(geo_data, gpd.GeoSeries):
+            geometries = geo_data
+        else:
+            log_warning(f"Unexpected data type for layer {layer_name}: {type(geo_data)}")
+            return
 
-                for idx, row in geo_data.iterrows():
-                    if not isinstance(row.geometry, Point):
-                        continue
-                    
-                    text_layer_name = f"{layer_name} Label" if not layer_name.endswith(' Label') else layer_name
-                    rotation = row.get('rotation', 0)
-                    
-                    # Use add_mtext from dxf_utils which handles all text styling
-                    text_entity, _ = add_mtext(
-                        msp,
-                        str(row['label']),
-                        row.geometry.x,
-                        row.geometry.y,
-                        text_layer_name,
-                        text_style.get('font', 'Standard'),
-                        text_style=text_style,
-                        name_to_aci=self.name_to_aci
-                    )
-                    
-                    if text_entity:
-                        # Apply rotation after creation
-                        if rotation:
-                            text_entity.dxf.rotation = rotation
-                        
-                        self.attach_custom_data(text_entity)
-                return
-            
-            # ... rest of existing code for non-label geometries ...
+        log_debug(f"add_geometries_to_dxf Layer Name: {layer_name}")
+        for geometry in geometries:
+            if isinstance(geometry, Polygon):
+                self.add_polygon_to_dxf(msp, geometry, layer_name)
+            elif isinstance(geometry, MultiPolygon):
+                for polygon in geometry.geoms:
+                    self.add_polygon_to_dxf(msp, polygon, layer_name)
+            elif isinstance(geometry, LineString):
+                self.add_linestring_to_dxf(msp, geometry, layer_name)
+            elif isinstance(geometry, MultiLineString):
+                for line in geometry.geoms:
+                    self.add_linestring_to_dxf(msp, line, layer_name)
+            else:
+                self.add_geometry_to_dxf(msp, geometry, layer_name)
 
     def add_polygon_to_dxf(self, msp, geometry, layer_name, entity_name=None):
         layer_properties = self.layer_properties.get(layer_name, {})
@@ -678,16 +594,6 @@ class DXFExporter:
                 apply_style_to_entity(polyline, style, self.project_loader, self.loaded_styles)
         
         self.attach_custom_data(polyline)
-
-    def add_label_to_dxf(self, msp, geometry, label, layer_name):
-        centroid = self.get_geometry_centroid(geometry)
-        if centroid is None:
-            log_warning(f"Could not determine centroid for geometry in layer {layer_name}")
-            return
-
-        text_layer_name = f"{layer_name} Label" if not layer_name.endswith(' Label') else layer_name
-        text_entity = self.add_text(msp, str(label), centroid.x, centroid.y, text_layer_name, 'Standard')
-        self.attach_custom_data(text_entity)  # Attach custom data to label entities
 
     def initialize_layer_properties(self):
         # Process all geom layers, not just those with style configurations
@@ -786,12 +692,6 @@ class DXFExporter:
                 return 'operation' in layer and 'shapeFile' not in layer
         return False
         
-    def get_label_column(self, layer_name):
-        for layer in self.project_settings['geomLayers']:
-            if layer['name'] == layer_name and 'label' in layer:
-                return layer['label']
-        return None
-    
     def get_geometry_centroid(self, geometry):
         if isinstance(geometry, (Polygon, MultiPolygon)):
             return geometry.centroid
@@ -805,20 +705,6 @@ class DXFExporter:
                 return self.get_geometry_centroid(geometry.geoms[0])
         return None
     
-    def add_text(self, msp, text, x, y, layer_name, style_name):
-        text_layer_name = f"{layer_name} Label" if not layer_name.endswith(' Label') else layer_name
-        
-        text_entity = msp.add_text(text, dxfattribs={
-            'style': style_name,
-            'layer': text_layer_name,
-            'insert': (x, y),
-            'align_point': (x, y),
-            'halign': 1,
-            'valign': 1
-        })
-        self.attach_custom_data(text_entity)  # Attach custom data to text entities
-        return text_entity
-
     def add_geometry_to_dxf(self, msp, geometry, layer_name, entity_name=None):
         if isinstance(geometry, (Polygon, MultiPolygon)):
             self.add_polygon_to_dxf(msp, geometry, layer_name, entity_name)
@@ -1138,66 +1024,6 @@ class DXFExporter:
                 update_layer_properties(layer, layer_properties['layer'])
         
         # Process the geometry...
-
-    def add_associated_labels_to_dxf(self, msp, geometry, layer_name, label_text, label_position_x, label_position_y, label_rotation):
-        """Add associated labels to geometries with proper positioning."""
-        if not label_text or label_position_x is None or label_position_y is None:
-            return
-        
-        text_layer_name = f"{layer_name} Label"
-        
-        # Get style settings for the layer
-        layer_properties = self.layer_properties.get(layer_name, {})
-        style_name = layer_properties.get('style')
-        style_settings = {}
-        
-        if style_name:
-            # Get text style settings from StyleManager
-            style_settings = self.style_manager.get_text_style_settings(style_name)
-        
-        # Default text settings
-        text_settings = {
-            'layer': text_layer_name,
-            'char_height': 0.25,
-            'rotation': label_rotation or 0,
-            'attachment_point': 5,  # Middle center
-            'color': 'white',  # Default color
-            'style': 'Standard'  # Default style
-        }
-        
-        # Update with style settings if available
-        if style_settings and 'text' in style_settings:
-            text_style = style_settings['text']
-            if 'height' in text_style:
-                text_settings['char_height'] = text_style['height']
-            if 'font' in text_style:
-                text_settings['style'] = text_style['font']
-            if 'color' in text_style:
-                text_settings['color'] = text_style['color']
-            # Handle alignment if specified
-            if 'attachment_point' in text_style:
-                text_settings['attachment_point'] = self.style_manager.get_attachment_point(text_style['attachment_point'])
-        
-        # Convert color name to ACI color code if needed
-        if isinstance(text_settings['color'], str):
-            text_settings['color'] = get_color_code(text_settings['color'], self.name_to_aci)
-        
-        # Create text entity with style settings
-        text_entity = msp.add_mtext(
-            label_text,
-            dxfattribs=text_settings
-        )
-        
-        # Position the text using x,y coordinates
-        text_entity.set_location(
-            (label_position_x, label_position_y),
-            attachment_point=text_settings['attachment_point']
-        )
-        
-        # Attach custom data
-        self.attach_custom_data(text_entity)
-        
-        return text_entity
 
 
 
