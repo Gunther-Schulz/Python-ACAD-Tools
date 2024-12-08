@@ -4,8 +4,22 @@ import re
 
 class StyleManager:
     def __init__(self, project_loader):
-        self.project_loader = project_loader
-        self.styles = project_loader.styles  # Load all styles from project_loader
+        """Initialize StyleManager with either a ProjectLoader instance or project settings dict."""
+        if hasattr(project_loader, 'styles'):
+            # If given a ProjectLoader instance
+            self.styles = project_loader.styles
+            self.name_to_aci = project_loader.name_to_aci
+            self.project_loader = project_loader
+        else:
+            # If given project settings dictionary directly
+            self.styles = project_loader.get('styles', {})
+            # For direct dictionary usage, we need a default color mapping
+            self.name_to_aci = {
+                'white': 7, 'red': 1, 'yellow': 2, 'green': 3, 
+                'cyan': 4, 'blue': 5, 'magenta': 6
+            }
+            self.project_loader = None
+
         self.default_hatch_settings = {
             'pattern': 'SOLID',
             'scale': 1,
@@ -230,7 +244,7 @@ class StyleManager:
         layer_style = final_style.get('layer', {})
         
         properties = {
-            'color': get_color_code(layer_style.get('color'), self.project_loader.name_to_aci),
+            'color': get_color_code(layer_style.get('color'), self.name_to_aci),
             'linetype': layer_style.get('linetype', 'Continuous'),
             'lineweight': layer_style.get('lineweight', 0),
             'plot': layer_style.get('plot', True),
@@ -304,6 +318,7 @@ class StyleManager:
                         self._validate_text_style(layer_name, value)
                 else:
                     log_warning(f"Unknown style override key '{key}' in layer '{layer_name}'")
+
 
 
 
