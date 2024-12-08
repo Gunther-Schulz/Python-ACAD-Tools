@@ -598,7 +598,8 @@ class DXFExporter:
                     geometry,
                     layer_name,
                     row.associated_label,
-                    row.label_position,
+                    row.label_position_x,
+                    row.label_position_y,
                     row.label_rotation
                 )
 
@@ -1128,9 +1129,9 @@ class DXFExporter:
         
         # Process the geometry...
 
-    def add_associated_labels_to_dxf(self, msp, geometry, layer_name, label_text, label_position, label_rotation):
+    def add_associated_labels_to_dxf(self, msp, geometry, layer_name, label_text, label_position_x, label_position_y, label_rotation):
         """Add associated labels to geometries with proper positioning."""
-        if not label_text or not label_position:
+        if not label_text or label_position_x is None or label_position_y is None:
             return
         
         text_layer_name = f"{layer_name} Label"
@@ -1146,9 +1147,9 @@ class DXFExporter:
             }
         )
         
-        # Position the text
+        # Position the text using x,y coordinates
         text_entity.set_location(
-            (label_position.x, label_position.y),
+            (label_position_x, label_position_y),
             attachment_point=5
         )
         
