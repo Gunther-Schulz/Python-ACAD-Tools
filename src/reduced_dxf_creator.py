@@ -2,7 +2,7 @@ import ezdxf
 from pathlib import Path
 from src.utils import resolve_path, log_info, log_warning, log_error, log_debug
 from src.legend_creator import LegendCreator
-from src.dxf_utils import add_text_insert
+from src.dxf_utils import add_text_insert, add_mtext
 from src.path_array import create_path_array
 
 class ReducedDXFCreator:
@@ -123,17 +123,46 @@ class ReducedDXFCreator:
                 continue
             
             log_debug(f"Processing reduced text insert for layer: {layer_name}")
-            modified_config = config.copy()
-            modified_config['updateDxf'] = True
             
-            add_text_insert(
+            # Skip if not marked for update
+            if not config.get('updateDxf', False):
+                log_debug(f"Skipping text insert for layer '{layer_name}' as updateDxf flag is not set")
+                continue
+
+            # Get position
+            position = config.get('position', {'x': 0, 'y': 0})
+            x = position.get('x', 0)
+            y = position.get('y', 0)
+            
+            # Get style information
+            style_name = config.get('style')
+            if style_name:
+                style, warning = self.project_loader.style_manager.get_style(style_name)
+                if warning:
+                    log_warning(f"Warning when loading style '{style_name}'")
+                    style = {}
+            else:
+                style = {}
+            
+            text_style = style.get('text', {})
+            
+            # Create MTEXT
+            mtext, _ = add_mtext(
                 reduced_msp,
-                modified_config,
+                config.get('text', ''),
+                x,
+                y,
                 layer_name,
-                self.project_loader,
-                self.script_identifier
+                text_style.get('font', 'Standard'),
+                text_style=text_style,
+                name_to_aci=self.project_loader.name_to_aci
             )
-            entity_counts['textInserts'] += 1
+            
+            if mtext:
+                # Attach custom data
+                mtext.set_xdata(self.script_identifier, [('TEXT_INSERT', None)])
+                entity_counts['textInserts'] += 1
+                log_debug(f"Added text insert to layer: {layer_name}")
 
     def _process_block_inserts(self, reduced_msp, reduced_layers, process_types, entity_counts):
         if 'blockInserts' in process_types:
