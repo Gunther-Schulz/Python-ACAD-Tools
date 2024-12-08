@@ -34,6 +34,16 @@ geomLayers:
 - name: Baum_Laubbaum Points
   # updateDxf: true
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/vermessung_baum_laubbaum_pt.shp"
+- name: Baum_Laubbaum Label
+  updateDxf: true
+  style: leitungsLabel
+  operations:
+    - type: copy
+      layers:
+        - Baum_Laubbaum Points
+    - type: labelAssociation
+      labelColumn: "Krone_D"
+      labelOffset: 1
 - name: Baum_Laubbaum Krone
   updateDxf: true
   operations:
@@ -87,7 +97,6 @@ geomLayers:
       layers:
         - Stromkabel-MS_unterirdisch_LEIT
     - type: labelAssociation
-      # geometryLayer: "Stromkabel-MS_unterirdisch_LEIT"
       labelLayer: "Stromkabel-MS_unterirdisch_LEIT Label Points"
       labelColumn: "label"
       labelOffset: 1

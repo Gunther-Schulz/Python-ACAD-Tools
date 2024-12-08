@@ -243,7 +243,7 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
     
     # Get operation parameters
     source_layers = operation.get('layers', [layer_name])
-    label_layer_name = operation.get('labelLayer')
+    label_layer_name = operation.get('labelLayer', layer_name)  # Default to current layer
     label_column = operation.get('labelColumn', 'label')
     label_offset = operation.get('labelOffset', 0)
     
@@ -257,14 +257,6 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
                       if layer.get('name') == layer_name), {})
     style = style_manager.process_layer_style(layer_name, layer_info)
     text_height = style.get('text', {}).get('height', 2.5)  # Default text height if not specified
-    
-    if not label_layer_name:
-        log_warning(format_operation_warning(
-            layer_name,
-            "labelAssociation",
-            "Missing required labelLayer parameter"
-        ))
-        return None
     
     # Get label layer
     label_layer = all_layers.get(label_layer_name)
