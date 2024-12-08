@@ -566,89 +566,68 @@ def set_hatch_transparency(hatch, transparency):
         hatch.dxf.transparency = colors.float2transparency(ezdxf_transparency)
 
 def add_mtext(msp, text, x, y, layer_name, style_name, text_style=None, name_to_aci=None, max_width=None):
-    log_debug(f"Adding MTEXT: text='{text}', x={x}, y={y}, layer='{layer_name}', style='{style_name}', max_width={max_width}")
+    log_debug(f"=== Starting MTEXT creation ===")
+    log_debug(f"Text: '{text}'")
+    log_debug(f"Position: ({x}, {y})")
+    log_debug(f"Layer: '{layer_name}'")
+    log_debug(f"Style name: '{style_name}'")
+    log_debug(f"Text style config: {text_style}")
     
-    # Create MText editor for advanced paragraph formatting
-    editor = MTextEditor()
-    
-    # Get paragraph alignment from style
-    alignment_map = {
-        'LEFT': MTextParagraphAlignment.LEFT,
-        'RIGHT': MTextParagraphAlignment.RIGHT,
-        'CENTER': MTextParagraphAlignment.CENTER,
-        'JUSTIFIED': MTextParagraphAlignment.JUSTIFIED,
-        'DISTRIBUTED': MTextParagraphAlignment.DISTRIBUTED
-    }
-    
-    # Get paragraph properties from text_style
-    if text_style and 'paragraph' in text_style:
-        para_props = text_style['paragraph']
-        props = ParagraphProperties(
-            indent=para_props.get('indent', 0),
-            left=para_props.get('left', 0),
-            right=para_props.get('right', 0),
-            align=alignment_map.get(para_props.get('align', 'LEFT').upper(), MTextParagraphAlignment.LEFT),
-            tab_stops=para_props.get('tab_stops', tuple())
-        )
-        editor.paragraph(props)
-    
-    # Add the text content
-    for paragraph in text.split('\n'):
-        editor.append(paragraph)
-        editor.append('\\P')  # Add paragraph break
-    
+    # Build basic dxfattribs
     dxfattribs = {
         'style': style_name,
         'layer': layer_name,
         'char_height': text_style.get('height', 2.5),
-        'insert': Vec3(x, y, 0),
-        'attachment_point': MTEXT_MIDDLE_LEFT,
-        'width': max_width if max_width is not None else 0,
+        'width': text_style.get('maxWidth', max_width) if max_width is not None else 0,
+        'insert': (x, y)
     }
-    
-    # Apply other text style properties
-    if text_style:
-        if 'color' in text_style:
-            dxfattribs['color'] = get_color_code(text_style['color'], name_to_aci)
-        if 'rotation' in text_style:
-            dxfattribs['rotation'] = text_style['rotation']
-        if 'attachment_point' in text_style:
-            dxfattribs['attachment_point'] = get_mtext_constant(text_style['attachment_point'])
-        if 'flow_direction' in text_style:
-            dxfattribs['flow_direction'] = get_mtext_constant(text_style['flow_direction'])
-        if 'line_spacing_style' in text_style:
-            dxfattribs['line_spacing_style'] = get_mtext_constant(text_style['line_spacing_style'])
-        if 'line_spacing_factor' in text_style:
-            dxfattribs['line_spacing_factor'] = text_style['line_spacing_factor']
-        if 'bg_fill' in text_style:
-            dxfattribs['bg_fill'] = text_style['bg_fill']
-        if 'bg_fill_color' in text_style:
-            dxfattribs['bg_fill_color'] = get_color_code(text_style['bg_fill_color'], name_to_aci)
-        if 'bg_fill_scale' in text_style:
-            dxfattribs['box_fill_scale'] = text_style['bg_fill_scale']
-    
+    log_debug(f"Initial dxfattribs: {dxfattribs}")
+
+    # Map attachment points to the correct DXF constants
+    attachment_map = {
+        'TOP_LEFT': 1,
+        'TOP_CENTER': 2,
+        'TOP_RIGHT': 3,
+        'MIDDLE_LEFT': 4,
+        'MIDDLE_CENTER': 5,
+        'MIDDLE_RIGHT': 6,
+        'BOTTOM_LEFT': 7,
+        'BOTTOM_CENTER': 8,
+        'BOTTOM_RIGHT': 9
+    }
+
     try:
-        mtext = msp.add_mtext(str(editor), dxfattribs=dxfattribs)
+        # Create the MTEXT entity
+        mtext = msp.add_mtext(text, dxfattribs=dxfattribs)
+        log_debug(f"Created MTEXT entity: {mtext}")
+        
+        # Set attachment point directly
+        print(text_style)
+        if text_style and 'attachmentPoint' in text_style:
+            attachment_key = text_style['attachmentPoint'].upper()
+            log_debug(f"Attempting to set attachment point: {attachment_key}")
+            if attachment_key in attachment_map:
+                attachment_value = attachment_map[attachment_key]
+                mtext.dxf.attachment_point = attachment_value
+                log_debug(f"Set attachment_point to {attachment_key} ({attachment_value})")
+            else:
+                log_debug(f"Warning: Invalid attachment point key: {attachment_key}")
+        else:
+            log_debug("No attachment point specified in text style")
+        
+        # Set rotation if specified
+        if text_style and 'rotation' in text_style:
+            mtext.dxf.rotation = text_style['rotation']
+            log_debug(f"Set rotation to {text_style['rotation']}")
+        
         attach_custom_data(mtext, SCRIPT_IDENTIFIER)
-        
-        # Apply additional formatting if specified
-        if text_style:
-            if 'underline' in text_style and text_style['underline']:
-                mtext.text = f"\\L{mtext.text}\\l"
-            if 'overline' in text_style and text_style['overline']:
-                mtext.text = f"\\O{mtext.text}\\o"
-            if 'strike_through' in text_style and text_style['strike_through']:
-                mtext.text = f"\\K{mtext.text}\\k"
-            if 'oblique_angle' in text_style:
-                mtext.text = f"\\Q{text_style['oblique_angle']};{mtext.text}"
-        
-        log_debug("MTEXT added successfully")
-        
-        # Calculate and return the actual height of the MTEXT entity
         actual_height = mtext.dxf.char_height * mtext.dxf.line_spacing_factor * len(text.split('\n'))
+        log_debug(f"=== Completed MTEXT creation ===")
         return mtext, actual_height
+        
     except Exception as e:
         log_error(f"Failed to add MTEXT: {str(e)}")
+        log_error(f"Traceback:\n{traceback.format_exc()}")
         return None, 0
 
 def get_mtext_constant(value):

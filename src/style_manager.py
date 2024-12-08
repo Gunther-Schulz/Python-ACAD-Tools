@@ -150,8 +150,80 @@ class StyleManager:
         self._validate_style_keys(layer_name, 'hatch', hatch_style, known_style_keys)
 
     def _validate_text_style(self, layer_name, text_style):
-        known_style_keys = {'color', 'height', 'font', 'style', 'alignment'}
+        known_style_keys = {
+            'color',
+            'height',
+            'font',
+            'maxWidth',
+            'attachmentPoint',
+            'flowDirection',
+            'lineSpacingStyle',
+            'lineSpacingFactor',
+            'bgFill',
+            'bgFillColor', 
+            'bgFillScale',
+            'underline',
+            'overline',
+            'strikeThrough',
+            'obliqueAngle',
+            'rotation',
+            'paragraph'
+        }
+
+        # Validate main text style keys
         self._validate_style_keys(layer_name, 'text', text_style, known_style_keys)
+
+        # Validate paragraph properties if present
+        if 'paragraph' in text_style:
+            known_paragraph_keys = {
+                'align',
+                'indent',
+                'leftMargin',
+                'rightMargin',
+                'tabStops'
+            }
+            self._validate_style_keys(
+                layer_name,
+                'text.paragraph',
+                text_style['paragraph'],
+                known_paragraph_keys
+            )
+
+            # Validate alignment value
+            valid_alignments = {'LEFT', 'RIGHT', 'CENTER', 'JUSTIFIED', 'DISTRIBUTED'}
+            if 'align' in text_style['paragraph']:
+                alignment = text_style['paragraph']['align'].upper()
+                if alignment not in valid_alignments:
+                    log_warning(f"Invalid paragraph alignment '{alignment}' in layer {layer_name}. "
+                              f"Valid values are: {', '.join(valid_alignments)}")
+
+        # Validate attachment point value
+        if 'attachmentPoint' in text_style:
+            valid_attachment_points = {
+                'TOP_LEFT', 'TOP_CENTER', 'TOP_RIGHT',
+                'MIDDLE_LEFT', 'MIDDLE_CENTER', 'MIDDLE_RIGHT',
+                'BOTTOM_LEFT', 'BOTTOM_CENTER', 'BOTTOM_RIGHT'
+            }
+            attachment_point = text_style['attachmentPoint'].upper()
+            if attachment_point not in valid_attachment_points:
+                log_warning(f"Invalid attachment point '{attachment_point}' in layer {layer_name}. "
+                          f"Valid values are: {', '.join(valid_attachment_points)}")
+
+        # Validate flow direction
+        if 'flowDirection' in text_style:
+            valid_flow_directions = {'LEFT_TO_RIGHT', 'TOP_TO_BOTTOM', 'BY_STYLE'}
+            flow_direction = text_style['flowDirection'].upper()
+            if flow_direction not in valid_flow_directions:
+                log_warning(f"Invalid flow direction '{flow_direction}' in layer {layer_name}. "
+                          f"Valid values are: {', '.join(valid_flow_directions)}")
+
+        # Validate line spacing style
+        if 'lineSpacingStyle' in text_style:
+            valid_spacing_styles = {'AT_LEAST', 'EXACT'}
+            spacing_style = text_style['lineSpacingStyle'].upper()
+            if spacing_style not in valid_spacing_styles:
+                log_warning(f"Invalid line spacing style '{spacing_style}' in layer {layer_name}. "
+                          f"Valid values are: {', '.join(valid_spacing_styles)}")
 
     def _validate_style_keys(self, layer_name, style_type, style_dict, known_keys):
         unknown_keys = set(style_dict.keys()) - known_keys

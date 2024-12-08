@@ -400,30 +400,107 @@ class LegendCreator:
 
     def add_mtext(self, x, y, text, layer_name, text_style, max_width=None):
         try:
-            style_name = text_style.get('text_style', 'Standard')
+            style_name = text_style.get('font', 'Standard')
             if style_name not in self.loaded_styles:
                 log_warning(f"Text style '{style_name}' was not loaded during initialization. Using 'Standard' instead.")
                 style_name = 'Standard'
 
+            # Create MText editor for paragraph formatting
+            editor = dxf_utils.MTextEditor()
+            
+            # Handle paragraph properties
+            if 'paragraph' in text_style:
+                para_props = text_style['paragraph']
+                alignment_map = {
+                    'LEFT': dxf_utils.MTextParagraphAlignment.LEFT,
+                    'RIGHT': dxf_utils.MTextParagraphAlignment.RIGHT,
+                    'CENTER': dxf_utils.MTextParagraphAlignment.CENTER,
+                    'JUSTIFIED': dxf_utils.MTextParagraphAlignment.JUSTIFIED,
+                    'DISTRIBUTED': dxf_utils.MTextParagraphAlignment.DISTRIBUTED
+                }
+                
+                props = dxf_utils.ParagraphProperties(
+                    indent=para_props.get('indent', 0),
+                    left=para_props.get('leftMargin', 0),
+                    right=para_props.get('rightMargin', 0),
+                    align=alignment_map.get(para_props.get('align', 'LEFT').upper(), 
+                                         dxf_utils.MTextParagraphAlignment.LEFT),
+                    tab_stops=para_props.get('tabStops', tuple())
+                )
+                editor.paragraph(props)
+
+            # Add text content
+            for paragraph in text.split('\n'):
+                editor.append(paragraph)
+                editor.append('\\P')  # Add paragraph break
+
+            # Build dxfattribs with camelCase properties
             dxfattribs = {
                 'style': style_name,
-                'char_height': text_style.get('height', 2.5),
-                'width': max_width,
-                'attachment_point': MTEXT_TOP_LEFT,
                 'layer': layer_name,
+                'char_height': text_style.get('height', 2.5),
+                'width': text_style.get('maxWidth', max_width) if max_width is not None else 0,
             }
-            
+
+            # Apply text style properties
             if 'color' in text_style:
                 dxfattribs['color'] = get_color_code(text_style['color'], self.name_to_aci)
-            
-            mtext = self.msp.add_mtext(text, dxfattribs=dxfattribs)
+                
+            if 'attachmentPoint' in text_style:
+                attachment = text_style['attachmentPoint'].upper()
+                dxfattribs['attachment_point'] = dxf_utils.attachment_map.get(attachment, MTEXT_TOP_LEFT)
+                
+            if 'flowDirection' in text_style:
+                flow_dir = text_style['flowDirection'].upper()
+                dxfattribs['flow_direction'] = dxf_utils.flow_direction_map.get(flow_dir, 
+                                             dxf_utils.MTEXT_LEFT_TO_RIGHT)
+                
+            if 'lineSpacingStyle' in text_style:
+                spacing_style = text_style['lineSpacingStyle'].upper()
+                dxfattribs['line_spacing_style'] = dxf_utils.spacing_style_map.get(spacing_style, 
+                                                  dxf_utils.MTEXT_AT_LEAST)
+                
+            if 'lineSpacingFactor' in text_style:
+                dxfattribs['line_spacing_factor'] = text_style['lineSpacingFactor']
+                
+            if 'bgFill' in text_style:
+                dxfattribs['bg_fill'] = text_style['bgFill']
+                
+            if 'bgFillColor' in text_style:
+                dxfattribs['bg_fill_color'] = get_color_code(text_style['bgFillColor'], self.name_to_aci)
+                
+            if 'bgFillScale' in text_style:
+                dxfattribs['box_fill_scale'] = text_style['bgFillScale']
+                
+            if 'obliqueAngle' in text_style:
+                dxfattribs['oblique_angle'] = text_style['obliqueAngle']
+
+            # Create MTEXT entity
+            mtext = self.msp.add_mtext(str(editor), dxfattribs=dxfattribs)
             mtext.set_location((x, y))
+            
+            # Apply additional text formatting
+            if text_style:
+                formatting = []
+                if text_style.get('underline'):
+                    formatting.append(('\\L', '\\l'))
+                if text_style.get('overline'):
+                    formatting.append(('\\O', '\\o'))
+                if text_style.get('strikeThrough'):
+                    formatting.append(('\\K', '\\k'))
+                    
+                # Apply all formatting
+                text_content = mtext.text
+                for start, end in formatting:
+                    text_content = f"{start}{text_content}{end}"
+                mtext.text = text_content
             
             bounding_box = bbox.extents([mtext])
             actual_height = bounding_box.size.y
             
             attach_custom_data(mtext, self.script_identifier)
             return mtext, actual_height
+            
         except Exception as e:
             log_error(f"Error creating MTEXT: {str(e)}")
             return None, 0

@@ -1,38 +1,67 @@
 styles:
 
+  baumLabel:
+    text:
+      height: 3.0
+      font: "Arial"
+      color: "white"
+      attachmentPoint: "MIDDLE_LEFT"
+      paragraph:
+        align: "LEFT"
+
   leitungsLabel:
     text:
       height: 3.0
       font: "Arial"
       color: "white"
-      alignment: "LEFT"
+      # bgFill: true
+      # bgFillColor: "ivory"
+      # bgFillScale: 1.2
+      attachmentPoint: "BOTTOM_LEFT"
+      paragraph:
+        align: "LEFT"
 
   mainTitle:
     text:
       height: 11.0
       font: "Arial"
       color: "white"
-      alignment: "LEFT"
-      width: 700  # Maximum width before text wrapping
-      attachment_point: "TOP_LEFT"  # MTEXT specific alignment
+      maxWidth: 700
+      attachmentPoint: "TOP_LEFT"
+      flowDirection: "LEFT_TO_RIGHT"
+      lineSpacingStyle: "AT_LEAST"
+      lineSpacingFactor: 1.2
+      bgFill: true
+      bgFillColor: "blue"
+      bgFillScale: 1.1
+      underline: false
+      overline: false
+      strikeThrough: false
+      obliqueAngle: 0
+      paragraph:
+        align: "LEFT"
+        indent: 1
+        leftMargin: 0
+        rightMargin: 0
+        tabStops: []
 
   mapHeader:
     text:
       height: 9.0
       font: "Arial"
       color: "white"
-      alignment: "LEFT"
-      width: 200  # Maximum width before text wrapping
-      attachment_point: "TOP_LEFT"  # MTEXT specific alignment
+      maxWidth: 200
+      attachmentPoint: "TOP_LEFT"
 
   übersichtskarteHeader:
     text:
       height: 7.0
       font: "Arial"
       color: "white"
-      alignment: "LEFT"
-      width: 200  # Maximum width before text wrapping
-      attachment_point: "TOP_LEFT"  # MTEXT specific alignment
+      maxWidth: 200
+      attachmentPoint: "TOP_LEFT"
+      paragraph:
+        align: "LEFT"
 
 
   satzungstext:

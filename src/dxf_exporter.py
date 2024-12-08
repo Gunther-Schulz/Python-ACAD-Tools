@@ -353,7 +353,16 @@ class DXFExporter:
                 'color', 'linetype', 'lineweight', 'plot', 'locked', 
                 'frozen', 'is_on', 'transparency'
             ])):
+                # Get layer properties but preserve text properties
                 layer_properties = self.style_manager.process_layer_style(layer_name, layer_config)
+                
+                # Don't update text-specific properties here
+                if 'text' in layer_config.get('style', {}):
+                    log_debug(f"Preserving text properties for layer {layer_name}")
+                    # Remove any text-related properties that might override MTEXT settings
+                    for key in ['style', 'attachment_point']:
+                        layer_properties.pop(key, None)
+                
                 update_layer_properties(layer, layer_properties, self.name_to_aci)
                 log_debug(f"Updated style for layer {layer_name}")
             
@@ -947,52 +956,73 @@ class DXFExporter:
         log_debug("Finished processing all path array configurations")
 
     def process_text_inserts(self, msp):
-        """Process text inserts for both model and paper space."""
+        """Process text inserts from project settings."""
         text_inserts = self.project_settings.get('textInserts', [])
         if not text_inserts:
             log_debug("No text inserts found in project settings")
             return
 
-        # First, identify all layers that will get new text
-        target_layers = {
-            config['targetLayer'] 
-            for config in text_inserts 
-            if config.get('updateDxf', False) and 'targetLayer' in config
-        }
+        # First, collect all unique target layers
+        target_layers = {text_config.get('targetLayer', 'Plantext') for text_config in text_inserts}
         
-        log_debug(f"Processing text inserts for layers: {', '.join(target_layers)}")
-        
-        # Clear each target layer (remove_entities_by_layer handles both spaces)
+        # Remove all existing text entities from these layers
         for layer_name in target_layers:
+            log_debug(f"Removing existing text entities from layer: {layer_name}")
             remove_entities_by_layer(msp, layer_name, self.script_identifier)
-        
-        # Add all new text inserts
-        for config in text_inserts:
-            try:
-                if not config.get('updateDxf', False):
-                    continue
-                    
-                layer_name = config.get('targetLayer')
-                if not layer_name:
-                    log_warning(f"No target layer specified for text insert '{config.get('name')}'")
-                    continue
 
-                text_entity = add_text_insert(
-                    msp,
-                    config,
+        # Now process new text inserts
+        for text_config in text_inserts:
+            try:
+                # Get target layer
+                layer_name = text_config.get('targetLayer', 'Plantext')  # Default to 'Plantext' layer
+                
+                # Skip if updateDxf is False
+                if not text_config.get('updateDxf', False):
+                    log_debug(f"Skipping text insert for layer '{layer_name}' as updateDxf flag is not set")
+                    continue
+                
+                # Ensure layer exists
+                ensure_layer_exists(msp.doc, layer_name)
+                
+                # Get text properties
+                text = text_config.get('text', '')
+                position = text_config.get('position', {})
+                x = position.get('x', 0)
+                y = position.get('y', 0)
+                
+                # Get style configuration
+                style_name = text_config.get('style')
+                text_style = {}
+                if style_name:
+                    style = self.style_manager.get_style(style_name)
+                    if style and 'text' in style:
+                        text_style = style['text']
+                
+                # Get the correct space (model or paper)
+                space = msp.doc.paperspace() if text_config.get('paperspace', False) else msp.doc.modelspace()
+                
+                # Create MTEXT entity
+                result = add_mtext(
+                    space,
+                    text,
+                    x,
+                    y,
                     layer_name,
-                    self.project_loader,
-                    self.script_identifier
+                    text_style.get('font', 'Standard'),
+                    text_style=text_style,
+                    name_to_aci=self.name_to_aci,
+                    max_width=text_style.get('width')
                 )
                 
-                if text_entity:
-                    space_type = "paperspace" if config.get('paperspace', False) else "modelspace"
-                    log_debug(f"Added text insert '{config.get('name')}' to {space_type}")
+                if result and result[0]:
+                    mtext = result[0]
+                    self.attach_custom_data(mtext)
+                    log_debug(f"Added text insert: '{text}' at ({x}, {y})")
                 else:
-                    log_warning(f"Failed to add text insert '{config.get('name')}'")
+                    log_warning(f"Failed to create text insert for '{text}'")
                     
             except Exception as e:
-                log_error(f"Error processing text insert '{config.get('name')}': {str(e)}")
+                log_error(f"Error processing text insert: {str(e)}")
                 log_error(f"Traceback:\n{traceback.format_exc()}")
 
     def get_viewport_by_name(self, doc, name):
@@ -1036,8 +1066,14 @@ class DXFExporter:
         
         # Get style information
         style_name = layer_info.get('style')
+        log_debug(f"Style name from layer_info: {style_name}")  # Should show 'baumLabel'
+        
         if style_name:
-            style = self.style_manager.process_layer_style(layer_name, layer_info)
+            # Get the full style from the style manager
+            style, warning = self.style_manager.get_style(style_name)  # Unpack the tuple
+            log_debug(f"Full style loaded from style manager: {style}")
+            if warning:
+                log_warning(f"Warning when loading style '{style_name}'")
         else:
             style = {}
         
@@ -1050,12 +1086,11 @@ class DXFExporter:
             label_text = str(row['label'])
             rotation = float(row['rotation'])
             
-            # Create MTEXT entity
-            text_style = style.get('text', {})
-            text_style.update({
-                'rotation': rotation,
-                'attachment_point': get_mtext_constant('MTEXT_MIDDLE_LEFT')
-            })
+            # Create a deep copy of the text style and add rotation
+            text_style = style.get('text', {}).copy()
+            log_debug(f"Text style before adding rotation: {text_style}")
+            text_style['rotation'] = rotation
+            log_debug(f"Text style after adding rotation: {text_style}")
             
             mtext, _ = add_mtext(
                 msp,

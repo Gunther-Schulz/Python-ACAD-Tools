@@ -7,65 +7,68 @@ import math
 import numpy as np
 from src.style_manager import StyleManager
 
-def get_line_placement_positions(line, label_length, text_height=2.5, label_spacing=1.0):
-    """Calculate label positions along a line with controlled spacing between labels."""
-    log_debug(f"get_line_placement_positions called with label_spacing: {label_spacing}")
-    
+def get_line_placement_positions(line, label_length, text_height=2.5):
+    """Get possible label positions along a line with improved corner handling."""
     line_length = line.length
-    text_width = label_length * text_height * 0.6
-    step = text_width * (1 + label_spacing)  # Space between labels
     
-    log_debug(f"Spacing calculation details:")
-    log_debug(f"  text_width: {text_width}")
-    log_debug(f"  label_spacing: {label_spacing}")
-    log_debug(f"  step size: {step}")
+    # Calculate step size based on text height
+    step = max(text_height, line_length / 20)  # Use text height as minimum step
+    
+    # Calculate actual space needed for text
+    # Typical width-to-height ratio is around 0.6 for most fonts
+    # Add some padding (1.2) to ensure text doesn't crowd corners
+    text_width = label_length * text_height * 0.6 * 1.2
     
     positions = []
-    current_dist = text_width/2
+    current_dist = text_width / 2  # Start half text width from the start
     
-    while current_dist <= (line_length - text_width/2):
+    while current_dist <= (line_length - text_width / 2):  # Stop half text width from the end
         point = line.interpolate(current_dist)
         
-        # Look ahead and behind to detect corners
-        look_dist = text_width/4
+        # Look both ahead and behind to detect corners
+        look_dist = max(text_width / 2, step)  # Use half text width as minimum look distance
         behind_dist = max(0, current_dist - look_dist)
         ahead_dist = min(line_length, current_dist + look_dist)
         
         point_behind = line.interpolate(behind_dist)
         point_ahead = line.interpolate(ahead_dist)
         
-        # Calculate angle for this segment
+        # Calculate angles between segments
+        angle_diff = 0  # Default to 0 for start/end points
+        if behind_dist < current_dist and ahead_dist > current_dist:
+            angle1 = math.atan2(point.y - point_behind.y, point.x - point_behind.x)
+            angle2 = math.atan2(point_ahead.y - point.y, point_ahead.x - point.x)
+            angle_diff = abs(math.degrees(angle2 - angle1))
+            
+            # Skip corners (where angle difference is significant)
+            if angle_diff > 30:  # Adjust this threshold as needed
+                current_dist += step
+                continue
+        
+        # Use the ahead point for angle calculation
         angle = math.degrees(math.atan2(
             point_ahead.y - point.y,
             point_ahead.x - point.x
         ))
         
-        # Calculate angles between segments
-        angle_diff = 0
-        if behind_dist < current_dist and ahead_dist > current_dist:
-            angle1 = math.atan2(point.y - point_behind.y, point.x - point_behind.x)
-            angle2 = math.atan2(point_ahead.y - point.y, point_ahead.x - point.x)
-            angle_diff = abs(math.degrees(angle2 - angle1))
+        # Check if we have enough straight space for the label
+        space_ahead = line_length - current_dist
+        if space_ahead >= text_width / 2:  # Only need half text width ahead since we're centered
+            # Calculate a score for this position
+            score = 1.0
+            if angle_diff < 10:  # Very straight
+                score += 2.0
+            elif angle_diff < 20:  # Mostly straight
+                score += 1.0
+            
+            # Prefer middle sections of the line
+            relative_pos = current_dist / line_length
+            if 0.3 <= relative_pos <= 0.7:
+                score += 1.0
+                
+            positions.append((point, angle, score))
         
-        # Skip corners
-        if angle_diff > 30:
-            current_dist += step/2  # Skip shorter distance at corners
-            continue
-            
-        # Score this position
-        score = 1.0
-        if angle_diff < 10:
-            score += 2.0
-        elif angle_diff < 20:
-            score += 1.0
-            
-        # Prefer middle sections
-        relative_pos = current_dist / line_length
-        if 0.3 <= relative_pos <= 0.7:
-            score += 1.0
-            
-        positions.append((point, angle, score))
-        current_dist += step  # Move to next position using label spacing
+        current_dist += step
     
     return positions
 
@@ -145,8 +148,8 @@ def get_polygon_anchor_position(polygon, text_width, text_height):
 
 def get_point_label_position(point, label_text, text_height, offset=0):
     """Get best label position for a point using Mapbox's approach."""
-    # Convert label_text to string and handle None/empty values
-    label_text = str(label_text) if label_text is not None else ""
+    # Try multiple positions around the point
+    candidates = []
     
     # Calculate text dimensions
     text_width = len(label_text) * text_height * 0.6
@@ -168,7 +171,6 @@ def get_point_label_position(point, label_text, text_height, offset=0):
     if offset == 0:
         offset = text_height * 0.5
     
-    candidates = []
     for angle, (dx, dy) in zip(angles, base_offsets):
         # Calculate position
         x = point.x + dx * offset
@@ -187,59 +189,63 @@ def get_point_label_position(point, label_text, text_height, offset=0):
     # Return the position with highest score
     best_candidate = max(candidates, key=lambda x: x[2])
     return (best_candidate[0], best_candidate[1])
-def get_best_label_position(geometry, label_text, offset=0, text_height=2.5, label_spacing=1.0):
+
+def get_best_label_position(geometry, label_text, offset=0, text_height=2.5):
     """Find best label position using improved corner handling."""
-    # Convert label_text to string at the entry point
-    label_text = str(label_text) if label_text is not None else ""
+    if isinstance(geometry, Point):
+        if offset == 0:
+            return (geometry, label_text, 0)
+        return (Point(geometry.x + offset, geometry.y), label_text, 0)
     
-    if isinstance(geometry, LineString):
-        label_length = len(label_text) * text_height * 0.8
-        positions = get_line_placement_positions(
-            geometry, 
-            label_length, 
-            text_height=text_height,
-            label_spacing=label_spacing
-        )
+    elif isinstance(geometry, LineString):
+        # Adjust label length based on text height and character count
+        # This is an approximation - adjust multiplier as needed for your font
+        label_length = len(label_text) * text_height * 0.8  # 0.8 is character width to height ratio
+        positions = get_line_placement_positions(geometry, label_length)
         
         if not positions:
-            # Fallback to midpoint
+            # Fallback to midpoint if no good positions found
             point = geometry.interpolate(0.5, normalized=True)
             p1 = geometry.interpolate(0.45, normalized=True)
             p2 = geometry.interpolate(0.55, normalized=True)
             angle = math.degrees(math.atan2(p2.y - p1.y, p2.x - p1.x))
-            return [(point, label_text, angle)]  # Return as list for consistency
+        else:
+            # Use the position with the highest score
+            point, angle, _ = max(positions, key=lambda x: x[2])
         
-        # Return ALL positions, not just the best one
-        result_positions = []
-        for point, angle, score in positions:
-            # Apply offset if needed
-            if offset != 0:
-                rad_angle = math.radians(angle)
-                dx = -math.sin(rad_angle) * offset
-                dy = math.cos(rad_angle) * offset
-                point = Point(point.x + dx, point.y + dy)
+        # Apply offset perpendicular to line direction
+        if offset != 0:
+            rad_angle = math.radians(angle)
+            dx = -math.sin(rad_angle) * offset
+            dy = math.cos(rad_angle) * offset
+            point = Point(point.x + dx, point.y + dy)
+        
+        # Adjust angle for readability
+        if abs(angle) > 90:
+            angle += 180
+        if angle > 180:
+            angle -= 360
             
-            # Adjust angle for readability
-            if abs(angle) > 90:
-                angle += 180
-            if angle > 180:
-                angle -= 360
-                
-            result_positions.append((point, label_text, angle))
-            
-        return result_positions
-    
-    elif isinstance(geometry, Point):
-        point_result = get_point_label_position(geometry, label_text, text_height, offset)
-        if point_result:
-            point, angle = point_result
-            return [(point, label_text, angle)]
-        return None
+        return (point, label_text, angle)
     
     elif isinstance(geometry, Polygon):
-        text_width = len(str(label_text)) * text_height * 0.6
-        point = get_polygon_anchor_position(geometry, text_width, text_height)
-        return [(point, label_text, 0)]
+        point = get_polygon_anchor_position(geometry)
+        
+        if offset != 0:
+            # Move point away from centroid
+            centroid = geometry.centroid
+            if not point.equals(centroid):
+                dx = point.x - centroid.x
+                dy = point.y - centroid.y
+                dist = math.sqrt(dx*dx + dy*dy)
+                if dist > 0:
+                    point = Point(
+                        point.x + (dx/dist * offset),
+                        point.y + (dy/dist * offset)
+                    )
+        
+        return (point, label_text, 0)
+    
     return None
 
 def create_label_association_layer(all_layers, project_settings, crs, layer_name, operation):
@@ -261,7 +267,16 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
     layer_info = next((layer for layer in project_settings.get('geomLayers', []) 
                       if layer.get('name') == layer_name), {})
     style = style_manager.process_layer_style(layer_name, layer_info)
-    text_height = style.get('text', {}).get('height', 2.5)  # Default text height if not specified
+    text_style = style.get('text', {}).copy()  # Make a copy of text style
+    text_height = text_style.get('height', 2.5)  # Default text height if not specified
+    
+    if not label_layer_name:
+        log_warning(format_operation_warning(
+            layer_name,
+            "labelAssociation",
+            "Missing required labelLayer parameter"
+        ))
+        return None
     
     # Get label layer
     label_layer = all_layers.get(label_layer_name)
@@ -310,19 +325,11 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
                 continue
             
             label_text, _ = closest_label
-            label_text = str(label_text) if label_text is not None else ""
             
-            # Get best position(s) for this label
-            results = get_best_label_position(
-                geometry, 
-                label_text, 
-                label_offset, 
-                text_height, 
-                label_spacing=label_spacing
-            )
-            
-            if results:
-                label_points.extend(results)  # Add all positions for line labels
+            # Get best position for this label, passing text height
+            result = get_best_label_position(geometry, label_text, label_offset, text_height)
+            if result:
+                label_points.append(result)
     
     # Create result GeoDataFrame
     if not label_points:
@@ -335,5 +342,10 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
     }
     
     result_gdf = gpd.GeoDataFrame(result_data, crs=crs)
+    
+    # Store the text style in the GeoDataFrame's metadata
+    # This will be used by dxf_exporter.py when creating the MTEXT entities
+    result_gdf.attrs['text_style'] = text_style
+    
     log_debug(f"Created label association layer with {len(result_gdf)} label points")
     return result_gdf
