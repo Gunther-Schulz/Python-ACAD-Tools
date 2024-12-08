@@ -8,8 +8,9 @@ styles:
       bgFill: true
       bgFillColor: "ivory"
       bgFillScale: 1.2
-      # paragraph:
-      #   align: "LEFT"
+      attachmentPoint: "BOTTOM_LEFT"
+      paragraph:
+        align: "LEFT"
 
   mainTitle:
     text:
