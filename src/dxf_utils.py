@@ -571,24 +571,23 @@ def add_mtext(msp, text, x, y, layer_name, style_name, text_style=None, name_to_
     # Create MText editor for advanced paragraph formatting
     editor = MTextEditor()
     
-    # Get paragraph alignment from style
-    alignment_map = {
-        'LEFT': MTextParagraphAlignment.LEFT,
-        'RIGHT': MTextParagraphAlignment.RIGHT,
-        'CENTER': MTextParagraphAlignment.CENTER,
-        'JUSTIFIED': MTextParagraphAlignment.JUSTIFIED,
-        'DISTRIBUTED': MTextParagraphAlignment.DISTRIBUTED
-    }
-    
     # Get paragraph properties from text_style
     if text_style and 'paragraph' in text_style:
         para_props = text_style['paragraph']
+        alignment_map = {
+            'LEFT': MTextParagraphAlignment.LEFT,
+            'RIGHT': MTextParagraphAlignment.RIGHT,
+            'CENTER': MTextParagraphAlignment.CENTER,
+            'JUSTIFIED': MTextParagraphAlignment.JUSTIFIED,
+            'DISTRIBUTED': MTextParagraphAlignment.DISTRIBUTED
+        }
+        
         props = ParagraphProperties(
             indent=para_props.get('indent', 0),
-            left=para_props.get('left', 0),
-            right=para_props.get('right', 0),
+            left=para_props.get('leftMargin', 0),  # Changed from left
+            right=para_props.get('rightMargin', 0),  # Changed from right
             align=alignment_map.get(para_props.get('align', 'LEFT').upper(), MTextParagraphAlignment.LEFT),
-            tab_stops=para_props.get('tab_stops', tuple())
+            tab_stops=para_props.get('tabStops', tuple())
         )
         editor.paragraph(props)
     
@@ -597,56 +596,99 @@ def add_mtext(msp, text, x, y, layer_name, style_name, text_style=None, name_to_
         editor.append(paragraph)
         editor.append('\\P')  # Add paragraph break
     
+    # Build dxfattribs with camelCase properties
     dxfattribs = {
         'style': style_name,
         'layer': layer_name,
         'char_height': text_style.get('height', 2.5),
         'insert': Vec3(x, y, 0),
-        'attachment_point': MTEXT_MIDDLE_LEFT,
-        'width': max_width if max_width is not None else 0,
+        'width': text_style.get('maxWidth', max_width) if max_width is not None else 0,
+    }
+
+    # Map attachment points
+    attachment_map = {
+        'TOP_LEFT': MTEXT_TOP_LEFT,
+        'TOP_CENTER': MTEXT_TOP_CENTER,
+        'TOP_RIGHT': MTEXT_TOP_RIGHT,
+        'MIDDLE_LEFT': MTEXT_MIDDLE_LEFT,
+        'MIDDLE_CENTER': MTEXT_MIDDLE_CENTER,
+        'MIDDLE_RIGHT': MTEXT_MIDDLE_RIGHT,
+        'BOTTOM_LEFT': MTEXT_BOTTOM_LEFT,
+        'BOTTOM_CENTER': MTEXT_BOTTOM_CENTER,
+        'BOTTOM_RIGHT': MTEXT_BOTTOM_RIGHT
+    }
+
+    # Map flow directions
+    flow_direction_map = {
+        'LEFT_TO_RIGHT': MTEXT_LEFT_TO_RIGHT,
+        'TOP_TO_BOTTOM': MTEXT_TOP_TO_BOTTOM,
+        'BY_STYLE': MTEXT_BY_STYLE
+    }
+
+    # Map line spacing styles
+    spacing_style_map = {
+        'AT_LEAST': MTEXT_AT_LEAST,
+        'EXACT': MTEXT_EXACT
     }
     
-    # Apply other text style properties
+    # Apply text style properties
     if text_style:
         if 'color' in text_style:
             dxfattribs['color'] = get_color_code(text_style['color'], name_to_aci)
-        if 'rotation' in text_style:
-            dxfattribs['rotation'] = text_style['rotation']
-        if 'attachment_point' in text_style:
-            dxfattribs['attachment_point'] = get_mtext_constant(text_style['attachment_point'])
-        if 'flow_direction' in text_style:
-            dxfattribs['flow_direction'] = get_mtext_constant(text_style['flow_direction'])
-        if 'line_spacing_style' in text_style:
-            dxfattribs['line_spacing_style'] = get_mtext_constant(text_style['line_spacing_style'])
-        if 'line_spacing_factor' in text_style:
-            dxfattribs['line_spacing_factor'] = text_style['line_spacing_factor']
-        if 'bg_fill' in text_style:
-            dxfattribs['bg_fill'] = text_style['bg_fill']
-        if 'bg_fill_color' in text_style:
-            dxfattribs['bg_fill_color'] = get_color_code(text_style['bg_fill_color'], name_to_aci)
-        if 'bg_fill_scale' in text_style:
-            dxfattribs['box_fill_scale'] = text_style['bg_fill_scale']
+            
+        if 'attachmentPoint' in text_style:
+            attachment = text_style['attachmentPoint'].upper()
+            dxfattribs['attachment_point'] = attachment_map.get(attachment, MTEXT_TOP_LEFT)
+            
+        if 'flowDirection' in text_style:
+            flow_dir = text_style['flowDirection'].upper()
+            dxfattribs['flow_direction'] = flow_direction_map.get(flow_dir, MTEXT_LEFT_TO_RIGHT)
+            
+        if 'lineSpacingStyle' in text_style:
+            spacing_style = text_style['lineSpacingStyle'].upper()
+            dxfattribs['line_spacing_style'] = spacing_style_map.get(spacing_style, MTEXT_AT_LEAST)
+            
+        if 'lineSpacingFactor' in text_style:
+            dxfattribs['line_spacing_factor'] = text_style['lineSpacingFactor']
+            
+        if 'bgFill' in text_style:
+            dxfattribs['bg_fill'] = text_style['bgFill']
+            
+        if 'bgFillColor' in text_style:
+            dxfattribs['bg_fill_color'] = get_color_code(text_style['bgFillColor'], name_to_aci)
+            
+        if 'bgFillScale' in text_style:
+            dxfattribs['box_fill_scale'] = text_style['bgFillScale']
+            
+        if 'obliqueAngle' in text_style:
+            dxfattribs['oblique_angle'] = text_style['obliqueAngle']
     
     try:
         mtext = msp.add_mtext(str(editor), dxfattribs=dxfattribs)
         attach_custom_data(mtext, SCRIPT_IDENTIFIER)
         
-        # Apply additional formatting if specified
+        # Apply additional text formatting
         if text_style:
-            if 'underline' in text_style and text_style['underline']:
-                mtext.text = f"\\L{mtext.text}\\l"
-            if 'overline' in text_style and text_style['overline']:
-                mtext.text = f"\\O{mtext.text}\\o"
-            if 'strike_through' in text_style and text_style['strike_through']:
-                mtext.text = f"\\K{mtext.text}\\k"
-            if 'oblique_angle' in text_style:
-                mtext.text = f"\\Q{text_style['oblique_angle']};{mtext.text}"
+            formatting = []
+            if text_style.get('underline'):
+                formatting.append(('\\L', '\\l'))
+            if text_style.get('overline'):
+                formatting.append(('\\O', '\\o'))
+            if text_style.get('strikeThrough'):
+                formatting.append(('\\K', '\\k'))
+                
+            # Apply all formatting
+            text_content = mtext.text
+            for start, end in formatting:
+                text_content = f"{start}{text_content}{end}"
+            mtext.text = text_content
         
         log_debug("MTEXT added successfully")
         
-        # Calculate and return the actual height of the MTEXT entity
+        # Calculate and return the actual height
         actual_height = mtext.dxf.char_height * mtext.dxf.line_spacing_factor * len(text.split('\n'))
         return mtext, actual_height
+        
     except Exception as e:
         log_error(f"Failed to add MTEXT: {str(e)}")
         return None, 0
