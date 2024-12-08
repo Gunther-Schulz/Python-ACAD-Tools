@@ -49,6 +49,16 @@ class ProjectLoader:
         path_arrays = self.load_yaml_file('path_arrays.yaml', required=False) or {}
         wmts_wms_layers = self.load_yaml_file('wmts_wms_layers.yaml', required=False) or {}
 
+        # Check for duplicate layer names
+        layer_names = {}
+        for idx, layer in enumerate(geom_layers.get('geomLayers', [])):
+            name = layer.get('name')
+            if name in layer_names:
+                log_warning(f"Duplicate layer name found: '{name}' at positions {layer_names[name]} and {idx}. " 
+                           f"The first definition will be used, subsequent definitions will be ignored.")
+            else:
+                layer_names[name] = idx
+        
         # Merge all configurations with safe defaults
         self.project_settings = {
             **main_settings,
