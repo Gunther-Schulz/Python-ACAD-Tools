@@ -78,7 +78,7 @@ def get_polygon_anchor_position(polygon):
     # If centroid is outside, use representative point
     return polygon.representative_point()
 
-def get_best_label_position(geometry, label_text, offset=0):
+def get_best_label_position(geometry, label_text, offset=0, text_height=2.5):
     """Find best label position using improved corner handling."""
     if isinstance(geometry, Point):
         if offset == 0:
@@ -86,7 +86,9 @@ def get_best_label_position(geometry, label_text, offset=0):
         return (Point(geometry.x + offset, geometry.y), label_text, 0)
     
     elif isinstance(geometry, LineString):
-        label_length = len(label_text) * 0.5  # Approximate length needed
+        # Adjust label length based on text height and character count
+        # This is an approximation - adjust multiplier as needed for your font
+        label_length = len(label_text) * text_height * 0.8  # 0.8 is character width to height ratio
         positions = get_line_placement_positions(geometry, label_length)
         
         if not positions:
@@ -144,6 +146,12 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
     label_column = operation.get('labelColumn', 'label')
     label_offset = operation.get('labelOffset', 0)
     
+    # Get style information
+    layer_info = project_settings.get('geomLayers', {}).get(layer_name, {})
+    style_name = layer_info.get('style')
+    style_settings = project_settings.get('styles', {}).get(style_name, {})
+    text_height = style_settings.get('text', {}).get('height', 2.5)  # Default text height if not specified
+    
     if not label_layer_name:
         log_warning(format_operation_warning(
             layer_name,
@@ -200,8 +208,8 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
             
             label_text, _ = closest_label
             
-            # Get best position for this label
-            result = get_best_label_position(geometry, label_text, label_offset)
+            # Get best position for this label, passing text height
+            result = get_best_label_position(geometry, label_text, label_offset, text_height)
             if result:
                 label_points.append(result)
     
