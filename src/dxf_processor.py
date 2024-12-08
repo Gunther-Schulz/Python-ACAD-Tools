@@ -6,7 +6,7 @@ from src.utils import log_info, log_warning, log_error, resolve_path, log_debug
 from src.dxf_utils import ensure_layer_exists, attach_custom_data, sanitize_layer_name, initialize_document
 from src.preprocessors.block_exploder import explode_blocks
 from src.preprocessors.circle_extractor import extract_circle_centers
-from src.preprocessors.block_basepoint_extractor import extract_block_basepoints
+from src.preprocessors.basepoint_extractor import extract_entity_basepoints
 import geopandas as gpd
 from shapely.geometry import LineString, Point, Polygon, MultiPolygon
 import math
@@ -31,7 +31,7 @@ class DXFProcessor:
         self.preprocessors = {
             'block_exploder': explode_blocks,
             'circle_extractor': extract_circle_centers,
-            'block_basepoint_extractor': extract_block_basepoints
+            'basepoint_extractor': extract_entity_basepoints
         }
         
         log_debug(f"DXFProcessor initialized with {len(self.transfers)} transfers and {len(self.extracts)} extracts")
@@ -452,15 +452,23 @@ class DXFProcessor:
 
             # Write separate shapefiles for each geometry type
             base_path = str(Path(full_output_path).with_suffix(''))
+            geometries_written = False
+            
             if pt:
                 point_gdf = gpd.GeoDataFrame(geometry=pt, data=pt_attrs, crs=self.crs)
                 write_shapefile(point_gdf, f"{base_path}_points.shp")
+                geometries_written = True
             if ln:
                 line_gdf = gpd.GeoDataFrame(geometry=ln, data=ln_attrs, crs=self.crs)
                 write_shapefile(line_gdf, f"{base_path}_lines.shp")
+                geometries_written = True
             if pl:
                 polygon_gdf = gpd.GeoDataFrame(geometry=pl, data=pl_attrs, crs=self.crs)
                 write_shapefile(polygon_gdf, f"{base_path}_polygons.shp")
+                geometries_written = True
+                
+            if not geometries_written:
+                log_warning(f"No valid geometries found to write for layer '{source_layer}' in {doc.filename}")
 
         except Exception as e:
             log_error(f"Error processing DXF extract for layer {source_layer}: {str(e)}")
