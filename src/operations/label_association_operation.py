@@ -72,19 +72,123 @@ def get_line_placement_positions(line, label_length, text_height=2.5):
     
     return positions
 
-def get_polygon_anchor_position(polygon):
+def get_polygon_anchor_position(polygon, text_width, text_height):
     """Get the best anchor position for a polygon using Mapbox's approach."""
-    # Try to find a position that's:
-    # 1. Inside the polygon
-    # 2. Away from edges
-    # 3. Centered in the largest inscribed circle
+    # Try multiple candidate positions and score them
+    candidates = []
     
+    # 1. Try centroid
     centroid = polygon.centroid
     if polygon.contains(centroid):
-        return centroid
+        score = 1.0
+        # Bonus for being far from edges
+        min_dist_to_boundary = polygon.boundary.distance(centroid)
+        score += min_dist_to_boundary / (text_width * 0.5)  # Scale by text size
+        candidates.append((centroid, score))
     
-    # If centroid is outside, use representative point
-    return polygon.representative_point()
+    # 2. Try pole of inaccessibility (point furthest from boundary)
+    try:
+        from shapely.ops import polylabel
+        pole = polylabel(polygon, tolerance=text_height/10)
+        if polygon.contains(pole):
+            score = 1.5  # Higher base score than centroid
+            min_dist_to_boundary = polygon.boundary.distance(pole)
+            score += min_dist_to_boundary / (text_width * 0.5)
+            candidates.append((pole, score))
+    except Exception:
+        pass
+    
+    # 3. Try representative point as fallback
+    rep_point = polygon.representative_point()
+    if polygon.contains(rep_point):
+        score = 0.5  # Lower base score
+        min_dist_to_boundary = polygon.boundary.distance(rep_point)
+        score += min_dist_to_boundary / (text_width * 0.5)
+        candidates.append((rep_point, score))
+    
+    # 4. Try points along major axis using oriented envelope
+    try:
+        # Get oriented envelope (minimum rotated rectangle)
+        mbr = polygon.minimum_rotated_rectangle  # New Shapely way
+        if mbr is None:  # Fallback for older Shapely versions
+            mbr = polygon.envelope
+            
+        coords = list(mbr.exterior.coords)
+        
+        # Calculate lengths of rectangle sides
+        side1 = LineString([coords[0], coords[1]])
+        side2 = LineString([coords[1], coords[2]])
+        
+        # Determine major axis
+        if side1.length > side2.length:
+            major_axis = [coords[0], coords[1]]
+        else:
+            major_axis = [coords[1], coords[2]]
+        
+        # Try points along major axis
+        for t in [0.3, 0.4, 0.5, 0.6, 0.7]:
+            x = major_axis[0][0] + t * (major_axis[1][0] - major_axis[0][0])
+            y = major_axis[0][1] + t * (major_axis[1][1] - major_axis[0][1])
+            point = Point(x, y)
+            if polygon.contains(point):
+                score = 0.8  # Medium base score
+                min_dist_to_boundary = polygon.boundary.distance(point)
+                score += min_dist_to_boundary / (text_width * 0.5)
+                candidates.append((point, score))
+    except Exception as e:
+        log_debug(f"Error calculating major axis points: {str(e)}")
+        pass
+    
+    if not candidates:
+        # Ultimate fallback: use centroid regardless of containment
+        return polygon.centroid
+    
+    # Return the position with highest score
+    return max(candidates, key=lambda x: x[1])[0]
+
+def get_point_label_position(point, label_text, text_height, offset=0):
+    """Get best label position for a point using Mapbox's approach."""
+    # Try multiple positions around the point
+    candidates = []
+    
+    # Calculate text dimensions
+    text_width = len(label_text) * text_height * 0.6
+    
+    # Define possible positions (clockwise from right)
+    angles = [0, 45, 90, 135, 180, 225, 270, 315]
+    base_offsets = [
+        (1, 0),    # Right
+        (1, 1),    # Top-right
+        (0, 1),    # Top
+        (-1, 1),   # Top-left
+        (-1, 0),   # Left
+        (-1, -1),  # Bottom-left
+        (0, -1),   # Bottom
+        (1, -1),   # Bottom-right
+    ]
+    
+    # Default offset distance based on text height if not specified
+    if offset == 0:
+        offset = text_height * 0.5
+    
+    for angle, (dx, dy) in zip(angles, base_offsets):
+        # Calculate position
+        x = point.x + dx * offset
+        y = point.y + dy * offset
+        candidate = Point(x, y)
+        
+        # Score based on position (prefer right side, then top, etc.)
+        score = 1.0
+        if dx > 0:  # Right side
+            score += 0.5
+        if dy > 0:  # Top half
+            score += 0.3
+            
+        candidates.append((candidate, angle, score))
+    
+    # Return the position with highest score
+    best_candidate = max(candidates, key=lambda x: x[2])
+    return (best_candidate[0], best_candidate[1])
 
 def get_best_label_position(geometry, label_text, offset=0, text_height=2.5):
     """Find best label position using improved corner handling."""
