@@ -602,7 +602,6 @@ def add_mtext(msp, text, x, y, layer_name, style_name, text_style=None, name_to_
         log_debug(f"Created MTEXT entity: {mtext}")
         
         # Set attachment point directly
-        print(text_style)
         if text_style and 'attachmentPoint' in text_style:
             attachment_key = text_style['attachmentPoint'].upper()
             log_debug(f"Attempting to set attachment point: {attachment_key}")
