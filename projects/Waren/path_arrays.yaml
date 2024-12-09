@@ -8,17 +8,17 @@ pathArrays:
     # bufferDistance: 0.6
     scale: 0.2
     bufferDistance: 0.2
-  - name: "Stromkabel-MS_unterirdisch_LEIT Symbol"
+  - name: "Leitungen Path Symbol"
     updateDxf: true
-    sourceLayer: "Stromkabel-MS_unterirdisch_LEIT"
+    sourceLayer: "Leitungen Path"
     block: "Leitung unterirdisch"
     spacing: 5
-    scale: 0.6
+    # scale: 0.6
     bufferDistance: 0.2
-  - name: "Str-Leitungsabschnitt-NS Symbol"
-    updateDxf: true
-    sourceLayer: "Str-Leitungsabschnitt-NS"
-    block: "Leitung unterirdisch"
-    spacing: 5
-    scale: 0.6
-    bufferDistance: 0.2
+  # - name: "Str-Leitungsabschnitt-NS Symbol"
+  #   updateDxf: true
+  #   sourceLayer: "Str-Leitungsabschnitt-NS"
+  #   block: "Leitung unterirdisch"
+  #   spacing: 5
+  #   scale: 0.6
+  #   bufferDistance: 0.2

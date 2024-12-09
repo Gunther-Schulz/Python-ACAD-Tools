@@ -2,7 +2,7 @@ styles:
 
   baumLabel:
     text:
-      height: 3.0
+      height: 1
       font: "Arial"
       color: "white"
       attachmentPoint: "MIDDLE_LEFT"
@@ -13,9 +13,9 @@ styles:
     layer:
       color: "red"
 
-  leitungsLabel:
+  leitungLabel:
     text:
-      height: 3.0
+      height: 1.5
       font: "Arial"
       color: "white"
       # bgFill: true

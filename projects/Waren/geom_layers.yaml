@@ -1,40 +1,22 @@
 geomLayers:
 
-### Zuwegung ###
-- name: Zuwegung
-  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/maxsolar_zuwegung_mittellinie_ln.shp"
-  updateDxf: true
-  operations:
-    - type: buffer
-      distance: 4
-      capStyle: square
-    - type: difference
-      reverseDifference: false
-      layers:
-        - Exclude Zuwegung
-
 ### Leitung ###
-- name: Leitung Mittelspannung Zuwegung
-  updateDxf: true
-  style: leitung
-  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/maxsolar_leitung_ms_zuwegung_ln.shp"
 
-- name: Gas_HD_LEIT
-  updateDxf: true
-  style: leitung
-  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/vermessung_gas_hd_ln.shp"
-- name: Gas_HD_LEIT Buffer
-  operations:
-    - type: buffer
-      layers:
-        - Gas_HD_LEIT
-      distance: 3
-      # capStyle: round
-      joinStyle: round
-
+# Stadtwerke
 - name: Str-Leitungsabschnitt-NS
   updateDxf: true
+  style: leitung
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/stadtwerke_str_leitungsabschnitt_ns_ln.shp"
+- name: Str-Leitungsabschnitt-NS Label
+  updateDxf: true
+  style: leitungLabel
+  operations:
+    - type: copy
+      layers:
+        - Str-Leitungsabschnitt-NS
+    - type: labelAssociation
+      label: Strom Niederspannung
+      labelOffset: 1
 - name: Str-Leitungsabschnitt-NS Buffer
   operations:
     - type: buffer
@@ -44,18 +26,149 @@ geomLayers:
       capStyle: flat
       joinStyle: flat
 
+- name: Was-Leitungsabschnitt-VN
+  updateDxf: true
+  style: leitung
+  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/stadtwerke_was_leitungsabschnitt_vn_ln.shp"
+- name: Was-Leitungsabschnitt-VN Label
+  updateDxf: true
+  style: leitungLabel
+  operations:
+    - type: copy
+      layers:
+        - Was-Leitungsabschnitt-VN
+    - type: labelAssociation
+      label: Wasser VN
+      labelOffset: 1
+- name: Was-Leitungsabschnitt-VN Buffer
+  operations:
+    - type: buffer
+      layers:
+        - Was-Leitungsabschnitt-VN
+      distance: 2
+      capStyle: flat
+      joinStyle: flat
+
+- name: Was-Leitungsabschnitt-AN
+  updateDxf: true
+  style: leitung
+  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/stadtwerke_was_leitungsabschnitt_an_ln.shp"
+- name: Was-Leitungsabschnitt-AN Label
+  updateDxf: true
+  style: leitungLabel
+  operations:
+    - type: copy
+      layers:
+        - Was-Leitungsabschnitt-AN
+    - type: labelAssociation
+      label: Wasser AN
+      labelOffset: 1
+- name: Was-Leitungsabschnitt-AN Buffer
+  operations:
+    - type: buffer
+      layers:
+        - Was-Leitungsabschnitt-AN
+      distance: 2
+      capStyle: flat
+      joinStyle: flat
+
+- name: Gas-Leitungsabschnitt-VN
+  updateDxf: true
+  style: leitung
+  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/stadtwerke_gas_leitungsabschnitt_vn_ln.shp"
+- name: Gas-Leitungsabschnitt-VN Label
+  updateDxf: true
+  style: leitungLabel
+  operations:
+    - type: copy
+      layers:
+        - Gas-Leitungsabschnitt-VN
+    - type: labelAssociation
+      label: Gas VN
+      labelOffset: 1
+- name: Gas-Leitungsabschnitt-VN Buffer
+  operations:
+    - type: buffer
+      layers:
+        - Gas-Leitungsabschnitt-VN
+      distance: 2
+      capStyle: flat
+      joinStyle: flat
+
+# ONTRAS
+- name: Leitung Ontras Gas
+  updateDxf: true
+  style: leitung
+  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/input_leitungsverlauf_ontras_gas_ln.shp"
+- name: Leitung Ontras Gas Label
+  updateDxf: true
+  style: leitungLabel
+  operations:
+    - type: copy
+      layers:
+        - Leitung Ontras Gas
+    - type: labelAssociation
+      label: Gas
+      labelOffset: 1
+
+- name: Leitung Ontras TK
+  updateDxf: true
+  style: leitung
+  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/input_leitungsverlauf_ontras_tk_ln.shp"
+- name: Leitung Ontras TK Label
+  updateDxf: true
+  style: leitungLabel
+  operations:
+    - type: copy
+      layers:
+        - Leitung Ontras TK
+    - type: labelAssociation
+      label: Telekommunikation
+      labelOffset: 1
+- name: Leitung Ontras Buffer
+  operations:
+    - type: buffer
+      layers:
+        - Leitung Ontras Gas
+        - Leitung Ontras TK
+      distance: 10
+      # capStyle: round
+      joinStyle: round
+
+# Vermessung
+- name: Gas_HD_LEIT # Edis Gas
+  updateDxf: true
+  style: leitung
+  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/vermessung_gas_hd_ln.shp"
+- name: Gas_HD_LEIT Label
+  updateDxf: true
+  style: leitungLabel
+  operations:
+    - type: copy
+      layers:
+        - Gas_HD_LEIT
+    - type: labelAssociation
+      label: Gas Hochdruck
+      labelOffset: 1
+- name: Gas_HD_LEIT Buffer
+  operations:
+    - type: buffer
+      layers:
+        - Gas_HD_LEIT
+      distance: 3
+      # capStyle: round
+      joinStyle: round
+
 - name: Stromkabel-MS_unterirdisch_LEIT
   updateDxf: true
-  style:
-    layer:
-      color: "magenta"
+  style: leitung
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/vermessung_stromkabel_ms_unterirdisch_ln.shp"
 - name: Stromkabel-MS_unterirdisch_LEIT Label Points
   # updateDxf: true
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/vermessung_stromkabel_ms_unterirdisch_besc_pt.shp"
 - name: "Stromkabel-MS_unterirdisch_LEIT Label"
   updateDxf: true
-  style: leitungsLabel
+  style: leitungLabel
   operations:
     - type: copy
       layers:
@@ -72,19 +185,49 @@ geomLayers:
       distance: 2
       capStyle: flat
       joinStyle: flat
-      
-- name: Leitung Ontras Gas
-  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/input_leitungsverlauf_ontras_gas_ln.shp"
-- name: Leitung Ontras TK
-  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/input_leitungsverlauf_ontras_tk_ln.shp"
-- name: Leitung Ontras Gas Buffer
+
+# Maxsolar (Vermessung)
+- name: Leitung Mittelspannung Zuwegung
+  updateDxf: true
+  style: leitung
+  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/maxsolar_leitung_ms_zuwegung_ln.shp"
+- name: Leitung Mittelspannung Zuwegung Label
+  updateDxf: true
+  style: leitungLabel
   operations:
-    - type: buffer
+    - type: copy
       layers:
+        - Leitung Mittelspannung Zuwegung
+    - type: labelAssociation
+      label: Strom Mittelspannung
+      labelOffset: 1
+
+- name: Leitungen Path
+  operations:
+    - type: dissolve
+      layers:
+        - Str-Leitungsabschnitt-NS
+        - Was-Leitungsabschnitt-VN
+        - Was-Leitungsabschnitt-AN
+        - Gas-Leitungsabschnitt-VN
         - Leitung Ontras Gas
-      distance: 10
-      # capStyle: round
-      joinStyle: round
+        - Leitung Ontras TK
+        - Gas_HD_LEIT
+        - Stromkabel-MS_unterirdisch_LEIT
+        - Leitung Mittelspannung Zuwegung
+        # - Leitung Telekom
+- name: Leitungen Buffer
+  operations:
+    - type: dissolve
+      layers:
+        - Str-Leitungsabschnitt-NS Buffer
+        - Was-Leitungsabschnitt-VN Buffer
+        - Was-Leitungsabschnitt-AN Buffer
+        - Gas-Leitungsabschnitt-VN Buffer
+        - Leitung Ontras Buffer
+        - Gas_HD_LEIT Buffer
+        - Stromkabel-MS_unterirdisch_LEIT Buffer
+        # - Leitung Telekom Buffer
 
 ### Baum ###
 - name: Baum_Laubbaum Points
@@ -120,7 +263,8 @@ geomLayers:
     - type: connect-points
       maxDistance: 27
     - type: buffer
-      distance: 10
+      # distance: 10
+      distance: 7
       capStyle: round
       joinStyle: round
     - type: dissolve
@@ -146,6 +290,8 @@ geomLayers:
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/exclude2.shp"
 - name: Exclude 3
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/exclude_3.shp"
+- name: Exclude Leitung
+  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/exclude_leitung.shp"
 - name: Exclude Bahn Buffer
   # It is already a buffered shape
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/exclude_bahn.shp"
@@ -156,9 +302,27 @@ geomLayers:
 - name: Baugrenze Exclude
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/baugrenze_exclude.shp"
 
+### Zuwegung ###
+- name: Zuwegung
+  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/maxsolar_zuwegung_mittellinie_ln.shp"
+  updateDxf: true
+  operations:
+    - type: buffer
+      distance: 2
+      capStyle: square
+    - type: difference
+      reverseDifference: false
+      layers:
+        - Exclude Zuwegung
+- name: Zuwegung Schraffur
+  updateDxf: true
+  style: verkehrsfläche
+  applyHatch:
+    layers:
+      - Zuwegung
+
 ### Geltungsbereich ###
 - name: Geltungsbereich Input
-  # updateDxf: true
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/geltungsbereich_pl.shp"
 - name: Geltungsbereich
   updateDxf: true
@@ -175,6 +339,8 @@ geomLayers:
         - Exclude 3
         # - Exclude Bahn Buffer
         # - Exclude Böschung
+        - Exclude Leitung
+        - Baum_Laubbaum Envelope
     - type: calculate
       calculations:
         - type: area
@@ -245,8 +411,8 @@ geomLayers:
         # - Baum_Laubbaum Buffer
         - Moor
         - "ges gesch Biotope"
-        - "Gas_HD_LEIT Buffer"
-        - Leitung Ontras Gas Buffer
+        - Leitung Ontras Buffer
+        - Gas_HD_LEIT Buffer
     - type: dissolve
     - type: intersection
       layers:
@@ -349,9 +515,7 @@ geomLayers:
     - type: difference
       reverseDifference: false
       layers:
-        - Str-Leitungsabschnitt-NS Buffer
-        # - Leitung Buffer
-        - Stromkabel-MS_unterirdisch_LEIT Buffer
+        - Leitungen Buffer
         - Baum_Laubbaum Envelope
         - Baum_Laubbaum Buffer
         - Baugrenze Exclude
