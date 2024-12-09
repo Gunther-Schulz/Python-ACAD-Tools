@@ -340,6 +340,11 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
     
     # Create result GeoDataFrame
     if not label_points:
+        log_warning(format_operation_warning(
+            layer_name,
+            "labelAssociation",
+            "No labels were successfully placed"
+        ))
         return None
     
     result_data = {
