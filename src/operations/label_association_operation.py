@@ -342,6 +342,7 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
         isinstance(x[0], Point)        # Points last
     ))
     
+    
     # Create collision grid (Mapbox uses tile-based grid)
     placed_labels = []
     collision_boxes = []
