@@ -252,6 +252,7 @@ geomLayers:
 
 - name: Leitungen Labels
   updateDxf: true
+  style: leitung
   operations:
     - type: labelAssociation
       labelSpacing: 200
