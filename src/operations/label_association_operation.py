@@ -154,6 +154,12 @@ def get_line_placement_positions(line, label_length, text_height=2.5):
             point_ahead.x - point.x
         ))
         
+        # Normalize angle to ensure text is never upside down (-90 to 90 degrees)
+        if angle > 90:
+            angle -= 180
+        elif angle < -90:
+            angle += 180
+        
         # Check if we have enough straight space for the label
         space_ahead = line_length - current_dist
         if space_ahead >= text_width / 2:  # Only need half text width ahead since we're centered
@@ -433,6 +439,12 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
                 dx = point_after.x - point_before.x
                 dy = point_after.y - point_before.y
                 angle = math.degrees(math.atan2(dy, dx))
+                
+                # Add this normalization to fix upside-down labels
+                if angle > 90:
+                    angle -= 180
+                elif angle < -90:
+                    angle += 180
                 
                 features_list.append({
                     'geometry': point,
