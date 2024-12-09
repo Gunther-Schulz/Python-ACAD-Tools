@@ -253,59 +253,56 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
     log_debug(f"Creating label association layer: {layer_name}")
     
     # Get operation parameters
-    source_layers = operation.get('layers', [layer_name])
-    static_label = operation.get('label')
-    
-    # Only get label layer info if we're not using a static label
-    if static_label is None:
-        label_layer_name = operation.get('labelLayer', layer_name)
-        label_column = operation.get('labelColumn', 'label')
-        
-        if not label_layer_name:
-            log_warning(format_operation_warning(
-                layer_name,
-                "labelAssociation",
-                "Missing required labelLayer parameter"
-            ))
-            return None
-            
-        # Get label layer
-        label_layer = all_layers.get(label_layer_name)
-        if label_layer is None:
-            log_warning(format_operation_warning(
-                layer_name,
-                "labelAssociation",
-                f"Label layer '{label_layer_name}' not found"
-            ))
-            return None
-    
-    label_offset = operation.get('labelOffset', 0)
-    
-    # Get label spacing parameter (1.0 means space between labels equals label width)
-    label_spacing = operation.get('labelSpacing', 1.0)
-    log_debug(f"Label spacing from config: {label_spacing}")
+    source_layers = operation.get('sourceLayers', [{'name': layer_name}])  # Updated to use new structure
+    label_points = []
     
     # Get style information using StyleManager
     style_manager = StyleManager(project_settings)
     layer_info = next((layer for layer in project_settings.get('geomLayers', []) 
                       if layer.get('name') == layer_name), {})
     style = style_manager.process_layer_style(layer_name, layer_info)
-    text_style = style.get('text', {}).copy()  # Make a copy of text style
-    text_height = text_style.get('height', 2.5)  # Default text height if not specified
+    text_style = style.get('text', {}).copy()
+    text_height = text_style.get('height', 2.5)
     
-    label_points = []
-    
-    # Process each source layer
-    for layer_info in source_layers:
-        source_layer_name, values = _process_layer_info(all_layers, project_settings, crs, layer_info)
-        if source_layer_name is None or source_layer_name not in all_layers:
+    # Process each source layer configuration
+    for source_config in source_layers:
+        source_layer_name = source_config.get('name')
+        if not source_layer_name:
             continue
+            
+        # Handle static label from source config
+        static_label = source_config.get('label')
+        label_offset = source_config.get('labelOffset', operation.get('labelOffset', 0))
         
-        source_geometry = _get_filtered_geometry(all_layers, project_settings, crs, source_layer_name, values)
+        # Only get label layer info if we're not using a static label
+        if static_label is None:
+            label_layer_name = source_config.get('labelLayer')
+            label_column = source_config.get('labelColumn', 'label')
+            
+            if not label_layer_name:
+                log_warning(format_operation_warning(
+                    layer_name,
+                    "labelAssociation",
+                    f"Missing required labelLayer parameter for {source_layer_name}"
+                ))
+                continue
+                
+            # Get label layer
+            label_layer = all_layers.get(label_layer_name)
+            if label_layer is None:
+                log_warning(format_operation_warning(
+                    layer_name,
+                    "labelAssociation",
+                    f"Label layer '{label_layer_name}' not found"
+                ))
+                continue
+        
+        # Get source geometry
+        source_geometry = _get_filtered_geometry(all_layers, project_settings, crs, source_layer_name, None)
         if source_geometry is None:
             continue
-        
-        # Process each geometry
+            
+        # Process geometries (rest of the existing logic)
         if isinstance(source_geometry, (Point, LineString, Polygon)):
             geometries = [source_geometry]
         else:
@@ -337,8 +334,8 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
             result = get_best_label_position(geometry, label_text, label_offset, text_height)
             if result:
                 label_points.append(result)
-    
-    # Create result GeoDataFrame
+
+    # Rest of the function remains the same
     if not label_points:
         log_warning(format_operation_warning(
             layer_name,
@@ -354,9 +351,6 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
     }
     
     result_gdf = gpd.GeoDataFrame(result_data, crs=crs)
-    
-    # Store the text style in the GeoDataFrame's metadata
-    # This will be used by dxf_exporter.py when creating the MTEXT entities
     result_gdf.attrs['text_style'] = text_style
     
     log_debug(f"Created label association layer with {len(result_gdf)} label points")
