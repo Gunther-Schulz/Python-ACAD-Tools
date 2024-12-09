@@ -299,13 +299,62 @@ def get_point_label_position(point, label_text, text_height, offset=0):
     best_candidate = max(candidates, key=lambda x: x[2])
     return (best_candidate[0], best_candidate[1])
 
-def check_label_collision(point, existing_labels, buffer_distance=2.0):
-    """Check if a label position collides with existing labels using QGIS geometry."""
-    new_label_geom = QgsGeometry.fromPointXY(QgsPointXY(point.x, point.y))
-    new_label_buffer = new_label_geom.buffer(buffer_distance, 5)
+def calculate_label_box(point, width, height, angle, settings=None):
+    """Calculate a rotated rectangle representing label bounds."""
+    from shapely.affinity import rotate, translate
     
+    # Default settings if none provided
+    if settings is None:
+        settings = {
+            'width_factor': 1.3,      # 30% extra width
+            'height_factor': 1.5,     # 50% extra height
+            'buffer_factor': 0.2,     # 20% text height buffer
+        }
+    
+    # Apply dimension factors
+    width *= settings['width_factor']
+    height *= settings['height_factor']
+    
+    # Create basic rectangle
+    dx = width / 2
+    dy = height / 2
+    box = Polygon([
+        (-dx, -dy), (dx, -dy),
+        (dx, dy), (-dx, dy),
+        (-dx, -dy)
+    ])
+    
+    # Rotate and translate to position
+    box = rotate(box, angle, origin=(0, 0))
+    box = translate(box, point.x, point.y)
+    
+    # Add padding buffer
+    box = box.buffer(height * settings['buffer_factor'])
+    
+    return box
+
+def check_label_collision(point, label_text, angle, existing_labels, text_height, settings=None):
+    """Check if a label position collides with existing labels using rotated boxes."""
+    if settings is None:
+        settings = {
+            'width_factor': 1.3,
+            'height_factor': 1.5,
+            'buffer_factor': 0.2,
+            'collision_margin': 0.25,  # Extra margin for collision detection
+        }
+    
+    # Calculate text dimensions
+    text_width = len(label_text) * text_height * 0.6
+    
+    # Create rotated box for new label
+    new_box = calculate_label_box(point, text_width, text_height, angle, settings)
+    
+    # Add extra buffer for checking
+    check_box = new_box.buffer(text_height * settings['collision_margin'])
+    
+    # Check collision with existing labels
     for existing_label in existing_labels:
-        if existing_label.intersects(new_label_buffer):
+        if check_box.intersects(existing_label):
             return True
     return False
 
@@ -329,7 +378,7 @@ def get_best_label_position(geometry, label_text, offset=0, text_height=2.5, exi
         
         # Try positions until finding one without collision
         for point, angle, score in positions:
-            if not check_label_collision(point, existing_labels, text_height):
+            if not check_label_collision(point, label_text, angle, existing_labels, text_height):
                 return (point, label_text, angle)
         
         # If all positions collide, return the highest scoring position
@@ -348,7 +397,7 @@ def get_best_label_position(geometry, label_text, offset=0, text_height=2.5, exi
         point = get_polygon_anchor_position(geometry, len(label_text) * text_height * 0.6, text_height)
         
         # Check for collisions and try to adjust if needed
-        if check_label_collision(point, existing_labels, text_height):
+        if check_label_collision(point, label_text, 0, existing_labels, text_height):
             # Try alternative positions within the polygon
             centroid = geometry.centroid
             alternatives = [
@@ -361,7 +410,7 @@ def get_best_label_position(geometry, label_text, offset=0, text_height=2.5, exi
             ]
             
             for alt_point in alternatives:
-                if geometry.contains(alt_point) and not check_label_collision(alt_point, existing_labels, text_height):
+                if geometry.contains(alt_point) and not check_label_collision(alt_point, label_text, 0, existing_labels, text_height):
                     point = alt_point
                     break
         
@@ -384,12 +433,12 @@ def get_best_label_position(geometry, label_text, offset=0, text_height=2.5, exi
 
 def try_resolve_collision(point, angle, existing_labels, text_height, label_text):
     """Try to resolve label collision by moving the label in the optimal direction."""
-    buffer_distance = text_height * len(label_text) * 0.3
-    original_geom = QgsGeometry.fromPointXY(QgsPointXY(point.x, point.y))
+    # Create rotated box for the new label
+    text_width = len(label_text) * text_height * 0.6
+    label_box = calculate_label_box(point, text_width, text_height, angle)
     
     # First check if there's a collision
-    label_buffer = original_geom.buffer(buffer_distance, 5)
-    colliding_labels = [label for label in existing_labels if label.intersects(label_buffer)]
+    colliding_labels = [label for label in existing_labels if label.intersects(label_box)]
     
     if not colliding_labels:
         return point, False
@@ -398,10 +447,9 @@ def try_resolve_collision(point, angle, existing_labels, text_height, label_text
     collision_vectors = []
     for colliding_label in colliding_labels:
         # Get centroid of colliding label
-        centroid = colliding_label.centroid()
-        centroid_point = centroid.asPoint()  # Convert to QgsPointXY
-        dx = point.x - centroid_point.x()  # Use x() method
-        dy = point.y - centroid_point.y()  # Use y() method
+        centroid = colliding_label.centroid
+        dx = point.x - centroid.x
+        dy = point.y - centroid.y
         collision_vectors.append((dx, dy))
     
     # Calculate average collision vector
@@ -433,10 +481,9 @@ def try_resolve_collision(point, angle, existing_labels, text_height, label_text
     # Try each offset until finding a non-colliding position
     for offset_x, offset_y in offsets:
         new_point = Point(point.x + offset_x, point.y + offset_y)
-        new_geom = QgsGeometry.fromPointXY(QgsPointXY(new_point.x, new_point.y))
-        new_buffer = new_geom.buffer(buffer_distance, 5)
+        new_box = calculate_label_box(new_point, text_width, text_height, angle)
         
-        if not any(label.intersects(new_buffer) for label in existing_labels):
+        if not any(label.intersects(new_box) for label in existing_labels):
             return new_point, True
     
     # If no resolution found, try larger offsets as last resort
@@ -444,16 +491,41 @@ def try_resolve_collision(point, angle, existing_labels, text_height, label_text
     for dx, dy in [(last_resort_offset, 0), (-last_resort_offset, 0), 
                    (0, last_resort_offset), (0, -last_resort_offset)]:
         new_point = Point(point.x + dx, point.y + dy)
-        new_geom = QgsGeometry.fromPointXY(QgsPointXY(new_point.x, new_point.y))
-        new_buffer = new_geom.buffer(buffer_distance, 5)
+        new_box = calculate_label_box(new_point, text_width, text_height, angle)
         
-        if not any(label.intersects(new_buffer) for label in existing_labels):
+        if not any(label.intersects(new_box) for label in existing_labels):
             return new_point, True
     
     return point, False
 
+def get_label_buffer(point, label_text, text_height):
+    """Create a buffer based on actual text dimensions."""
+    # Calculate actual text dimensions
+    # Typical width-to-height ratio is around 0.6 for most fonts
+    text_width = len(label_text) * text_height * 0.6  # Width per character
+    text_height = text_height * 1.2  # Add some vertical padding
+    
+    # Create buffer that fully encompasses the text
+    # Using the diagonal of the text box to ensure rotation-safe coverage
+    buffer_distance = math.sqrt((text_width/2)**2 + (text_height/2)**2)
+    
+    # Add extra padding (20%) for visual separation
+    buffer_distance *= 1.2
+    
+    label_geom = QgsGeometry.fromPointXY(QgsPointXY(point.x, point.y))
+    return label_geom.buffer(buffer_distance, 5)
+
 def create_label_association_layer(all_layers, project_settings, crs, layer_name, operation):
     """Creates label points along lines using QGIS PAL labeling system."""
+    
+    # Get label spacing settings from operation config
+    label_settings = operation.get('labelSettings', {})
+    spacing_settings = {
+        'width_factor': label_settings.get('widthFactor', 1.3),
+        'height_factor': label_settings.get('heightFactor', 1.5),
+        'buffer_factor': label_settings.get('bufferFactor', 0.2),
+        'collision_margin': label_settings.get('collisionMargin', 0.25),
+    }
     
     # Get text height from style
     style_manager = StyleManager(project_settings)
@@ -461,14 +533,14 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
                       if layer.get('name') == layer_name), {})
     style = style_manager.process_layer_style(layer_name, layer_info)
     text_style = style.get('text', {}).copy()
-    text_height = text_style.get('height', 2.5)
+    text_height = text_style.get('height', 2.5)  # Get actual text height from style
     
     # Track source layers for statistics
     source_layer_counts = {}
     source_layers = operation.get('sourceLayers', [{'name': layer_name}])
     
-    # Track existing label positions for collision detection
-    existing_label_geometries = []
+    # Track existing label boxes instead of simple buffers
+    existing_label_boxes = []
     features_list = []
     
     # Process each source layer
@@ -478,6 +550,7 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
             continue
             
         label_text = source_config.get('label', '')
+        # Use source-specific spacing if provided, otherwise fall back to global spacing
         spacing = source_config.get('labelSpacing', 100)
         source_layer_counts[source_layer_name] = 0
         
@@ -499,7 +572,6 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
             source_layer_counts[source_layer_name] += 1
             line_length = line.length
             
-            # Calculate positions along the line
             current_distance = spacing / 2
             while current_distance < line_length:
                 point = line.interpolate(current_distance)
@@ -519,12 +591,7 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
                     angle += 180
                 
                 # Check for collisions with existing labels
-                label_geom = QgsGeometry.fromPointXY(QgsPointXY(point.x, point.y))
-                buffer_distance = text_height * len(label_text) * 0.3
-                label_buffer = label_geom.buffer(buffer_distance, 5)
-                
-                # If collision detected, try sliding along the line
-                if any(existing_label.intersects(label_buffer) for existing_label in existing_label_geometries):
+                if check_label_collision(point, label_text, angle, existing_label_boxes, text_height, spacing_settings):
                     found_position = False
                     slide_distance = spacing * 0.2  # Start with small increments
                     max_slide = spacing * 0.8  # Don't slide more than 80% of spacing
@@ -534,10 +601,7 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
                         # Try forward
                         if current_distance + current_slide < line_length:
                             test_point = line.interpolate(current_distance + current_slide)
-                            test_geom = QgsGeometry.fromPointXY(QgsPointXY(test_point.x, test_point.y))
-                            test_buffer = test_geom.buffer(buffer_distance, 5)
-                            
-                            if not any(existing_label.intersects(test_buffer) for existing_label in existing_label_geometries):
+                            if not check_label_collision(test_point, label_text, angle, existing_label_boxes, text_height, spacing_settings):
                                 point = test_point
                                 current_distance += current_slide
                                 found_position = True
@@ -546,10 +610,7 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
                         # Try backward
                         if current_distance - current_slide > 0:
                             test_point = line.interpolate(current_distance - current_slide)
-                            test_geom = QgsGeometry.fromPointXY(QgsPointXY(test_point.x, test_point.y))
-                            test_buffer = test_geom.buffer(buffer_distance, 5)
-                            
-                            if not any(existing_label.intersects(test_buffer) for existing_label in existing_label_geometries):
+                            if not check_label_collision(test_point, label_text, angle, existing_label_boxes, text_height, spacing_settings):
                                 point = test_point
                                 current_distance -= current_slide
                                 found_position = True
@@ -557,10 +618,9 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
                         
                         current_slide += slide_distance
                     
-                    # If we couldn't find a non-colliding position by sliding, try the original collision resolution
                     if not found_position:
                         new_point, resolved = try_resolve_collision(
-                            point, angle, existing_label_geometries, text_height, label_text
+                            point, angle, existing_label_boxes, text_height, label_text
                         )
                         if resolved:
                             point = new_point
@@ -576,8 +636,14 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
                         'rotation': angle
                     }
                 })
-                new_label_geom = QgsGeometry.fromPointXY(QgsPointXY(point.x, point.y))
-                existing_label_geometries.append(new_label_geom.buffer(buffer_distance, 5))
+                
+                # Add rotated box to tracking with settings
+                label_box = calculate_label_box(point, 
+                                             len(label_text) * text_height * 0.6,
+                                             text_height,
+                                             angle,
+                                             spacing_settings)
+                existing_label_boxes.append(label_box)
                 
                 current_distance += spacing
     
@@ -612,25 +678,3 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
     result_gdf.attrs['text_style'] = text_style
     
     return result_gdf
-
-def calculate_label_box(point, width, height, angle):
-    """Calculate a rotated rectangle representing label bounds."""
-    from shapely.affinity import rotate, translate
-    
-    # Create basic rectangle
-    dx = width / 2
-    dy = height / 2
-    box = Polygon([
-        (-dx, -dy), (dx, -dy),
-        (dx, dy), (-dx, dy),
-        (-dx, -dy)
-    ])
-    
-    # Rotate and translate to position
-    box = rotate(box, angle, origin=(0, 0))
-    box = translate(box, point.x, point.y)
-    
-    # Add padding (Mapbox uses 2px)
-    box = box.buffer(height * 0.1)  # 10% of text height as padding
-    
-    return box
