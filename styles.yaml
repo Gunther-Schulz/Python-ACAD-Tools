@@ -1,6 +1,6 @@
 styles:
 
-  baumLabel:
+  baum:
     text:
       height: 1
       font: "Arial"
@@ -12,8 +12,6 @@ styles:
   leitung:
     layer:
       color: "red"
-
-  leitungLabel:
     text:
       height: 1.5
       font: "Arial"

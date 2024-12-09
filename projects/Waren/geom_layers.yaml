@@ -9,7 +9,7 @@ geomLayers:
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/stadtwerke_str_leitungsabschnitt_ns_ln.shp"
 - name: Str-Leitungsabschnitt-NS Label
   updateDxf: true
-  style: leitungLabel
+  style:  leitung
   operations:
     - type: copy
       layers:
@@ -32,7 +32,7 @@ geomLayers:
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/stadtwerke_was_leitungsabschnitt_vn_ln.shp"
 - name: Was-Leitungsabschnitt-VN Label
   updateDxf: true
-  style: leitungLabel
+  style:  leitung
   operations:
     - type: copy
       layers:
@@ -55,7 +55,7 @@ geomLayers:
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/stadtwerke_was_leitungsabschnitt_an_ln.shp"
 - name: Was-Leitungsabschnitt-AN Label
   updateDxf: true
-  style: leitungLabel
+  style:  leitung
   operations:
     - type: copy
       layers:
@@ -78,7 +78,7 @@ geomLayers:
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/stadtwerke_gas_leitungsabschnitt_vn_ln.shp"
 - name: Gas-Leitungsabschnitt-VN Label
   updateDxf: true
-  style: leitungLabel
+  style:  leitung
   operations:
     - type: copy
       layers:
@@ -102,7 +102,7 @@ geomLayers:
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/input_leitungsverlauf_ontras_gas_ln.shp"
 - name: Leitung Ontras Gas Label
   updateDxf: true
-  style: leitungLabel
+  style:  leitung
   operations:
     - type: copy
       layers:
@@ -117,7 +117,7 @@ geomLayers:
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/input_leitungsverlauf_ontras_tk_ln.shp"
 - name: Leitung Ontras TK Label
   updateDxf: true
-  style: leitungLabel
+  style:  leitung
   operations:
     - type: copy
       layers:
@@ -142,7 +142,7 @@ geomLayers:
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/vermessung_gas_hd_ln.shp"
 - name: Gas_HD_LEIT Label
   updateDxf: true
-  style: leitungLabel
+  style:  leitung
   operations:
     - type: copy
       layers:
@@ -168,7 +168,7 @@ geomLayers:
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/vermessung_stromkabel_ms_unterirdisch_besc_pt.shp"
 - name: "Stromkabel-MS_unterirdisch_LEIT Label"
   updateDxf: true
-  style: leitungLabel
+  style:  leitung
   operations:
     - type: copy
       layers:
@@ -193,7 +193,7 @@ geomLayers:
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/maxsolar_leitung_ms_zuwegung_ln.shp"
 - name: Leitung Mittelspannung Zuwegung Label
   updateDxf: true
-  style: leitungLabel
+  style:  leitung
   operations:
     - type: copy
       layers:
@@ -210,13 +210,13 @@ geomLayers:
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/input_leitungsverlauf_telekom_ln.shp"
 - name: Leitung Telekom Label
   updateDxf: true
-  style: leitungLabel
+  style:  leitung
   operations:
     - type: copy
       layers:
         - Leitung Telekom
     - type: labelAssociation
-      label: Telekommunikation
+      label: Telekom
       labelOffset: 1
 - name: Leitung Telekom Buffer
   operations:
@@ -233,7 +233,7 @@ geomLayers:
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/input_leitungsverlauf_edis_ln.shp"
 - name: Leitung Edis Label
   updateDxf: true
-  style: leitungLabel
+  style:  leitung
   operations:
     - type: copy
       layers:
@@ -283,7 +283,7 @@ geomLayers:
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/vermessung_baum_laubbaum_pt.shp"
 - name: Baum_Laubbaum Label
   updateDxf: true
-  style: baumLabel
+  style: baum
   operations:
     - type: copy
       layers:
