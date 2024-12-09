@@ -2,6 +2,8 @@ import os
 import sys
 from pathlib import Path
 
+from shapely import MultiLineString
+
 # Set Qt platform to xcb before any Qt imports
 os.environ['QT_QPA_PLATFORM'] = 'xcb'
 # Disable GUI for headless operation
@@ -86,19 +88,27 @@ import math
 import numpy as np
 from src.style_manager import StyleManager
 from qgis.core import (
-    QgsLabelingEngineSettings,
     QgsPalLayerSettings,
-    QgsTextFormat,
     QgsVectorLayer,
-    QgsPoint,
-    QgsGeometry,
     QgsFeature,
+    QgsGeometry,
+    QgsPointXY,
+    QgsField,
+    QgsFields,
+    QgsPoint,
     QgsApplication,
+    QgsTextFormat,
+    Qgis,
     QgsVectorLayerSimpleLabeling,
-    QgsFields
+    QgsUnitTypes,
+    QgsWkbTypes,
+    QgsProperty,
+    QgsRenderContext,
+    QgsMapToPixel
 )
-from PyQt5.QtGui import QColor
-import processing
+
+# Log QGIS version for debugging
+log_warning(f"QGIS Version: {Qgis.QGIS_VERSION}")
 
 def get_line_placement_positions(line, label_length, text_height=2.5):
     """Get possible label positions along a line with improved corner handling."""
@@ -283,46 +293,71 @@ def get_point_label_position(point, label_text, text_height, offset=0):
     best_candidate = max(candidates, key=lambda x: x[2])
     return (best_candidate[0], best_candidate[1])
 
-def get_best_label_position(geometry, label_text, offset=0, text_height=2.5):
-    """Find best label position using improved corner handling."""
+def check_label_collision(point, existing_labels, buffer_distance=2.0):
+    """Check if a label position collides with existing labels using QGIS geometry."""
+    new_label_geom = QgsGeometry.fromPointXY(QgsPointXY(point.x, point.y))
+    new_label_buffer = new_label_geom.buffer(buffer_distance, 5)
+    
+    for existing_label in existing_labels:
+        if existing_label.intersects(new_label_buffer):
+            return True
+    return False
+
+def get_best_label_position(geometry, label_text, offset=0, text_height=2.5, existing_labels=None):
+    """Find best label position using QGIS labeling engine and collision detection."""
+    if existing_labels is None:
+        existing_labels = []
+    
     if isinstance(geometry, Point):
         if offset == 0:
             return (geometry, label_text, 0)
         return (Point(geometry.x + offset, geometry.y), label_text, 0)
     
     elif isinstance(geometry, LineString):
-        # Adjust label length based on text height and character count
-        # This is an approximation - adjust multiplier as needed for your font
-        label_length = len(label_text) * text_height * 0.8  # 0.8 is character width to height ratio
-        positions = get_line_placement_positions(geometry, label_length)
+        # Get all possible positions
+        label_length = len(label_text) * text_height * 0.8
+        positions = get_line_placement_positions(geometry, label_length, text_height)
         
-        if not positions:
-            # Fallback to midpoint if no good positions found
-            point = geometry.interpolate(0.5, normalized=True)
-            p1 = geometry.interpolate(0.45, normalized=True)
-            p2 = geometry.interpolate(0.55, normalized=True)
-            angle = math.degrees(math.atan2(p2.y - p1.y, p2.x - p1.x))
-        else:
-            # Use the position with the highest score
-            point, angle, _ = max(positions, key=lambda x: x[2])
+        # Sort positions by score
+        positions.sort(key=lambda x: x[2], reverse=True)
         
-        # Apply offset perpendicular to line direction
-        if offset != 0:
-            rad_angle = math.radians(angle)
-            dx = -math.sin(rad_angle) * offset
-            dy = math.cos(rad_angle) * offset
-            point = Point(point.x + dx, point.y + dy)
+        # Try positions until finding one without collision
+        for point, angle, score in positions:
+            if not check_label_collision(point, existing_labels, text_height):
+                return (point, label_text, angle)
         
-        # Adjust angle for readability
-        if abs(angle) > 90:
-            angle += 180
-        if angle > 180:
-            angle -= 360
-            
+        # If all positions collide, return the highest scoring position
+        if positions:
+            return (positions[0][0], label_text, positions[0][1])
+        
+        # Fallback to midpoint if no positions found
+        point = geometry.interpolate(0.5, normalized=True)
+        p1 = geometry.interpolate(0.45, normalized=True)
+        p2 = geometry.interpolate(0.55, normalized=True)
+        angle = math.degrees(math.atan2(p2.y - p1.y, p2.x - p1.x))
         return (point, label_text, angle)
     
     elif isinstance(geometry, Polygon):
-        point = get_polygon_anchor_position(geometry)
+        # Get candidate positions
+        point = get_polygon_anchor_position(geometry, len(label_text) * text_height * 0.6, text_height)
+        
+        # Check for collisions and try to adjust if needed
+        if check_label_collision(point, existing_labels, text_height):
+            # Try alternative positions within the polygon
+            centroid = geometry.centroid
+            alternatives = [
+                geometry.representative_point(),
+                centroid,
+                Point(point.x + text_height, point.y),
+                Point(point.x - text_height, point.y),
+                Point(point.x, point.y + text_height),
+                Point(point.x, point.y - text_height)
+            ]
+            
+            for alt_point in alternatives:
+                if geometry.contains(alt_point) and not check_label_collision(alt_point, existing_labels, text_height):
+                    point = alt_point
+                    break
         
         if offset != 0:
             # Move point away from centroid
@@ -342,9 +377,9 @@ def get_best_label_position(geometry, label_text, offset=0, text_height=2.5):
     return None
 
 def create_label_association_layer(all_layers, project_settings, crs, layer_name, operation):
-    """Associates labels from a point layer with geometries from another layer using QGIS PAL."""
+    """Creates label points along lines using QGIS PAL labeling system."""
     
-    # Get style information
+    # Get text height from style
     style_manager = StyleManager(project_settings)
     layer_info = next((layer for layer in project_settings.get('geomLayers', []) 
                       if layer.get('name') == layer_name), {})
@@ -352,81 +387,88 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
     text_style = style.get('text', {}).copy()
     text_height = text_style.get('height', 2.5)
     
-    # Create temporary vector layer for labels
-    memory_layer = QgsVectorLayer("Point?crs=" + crs, "temp_labels", "memory")
-    provider = memory_layer.dataProvider()
-    
-    # Add fields using the new recommended way
-    fields = QgsFields()
-    field = QgsField()
-    field.setName("label")
-    field.setType(QVariant.String)
-    fields.append(field)
-    provider.addAttributes(fields)
-    memory_layer.updateFields()
-    
-    # Process source layers and add features
+    # Track source layers for statistics
+    source_layer_counts = {}
     source_layers = operation.get('sourceLayers', [{'name': layer_name}])
-    features_list = []  # List to store features for GeoDataFrame
     
+    # Process each source layer
+    features_list = []
     for source_config in source_layers:
         source_layer_name = source_config.get('name')
         if not source_layer_name:
             continue
             
-        # Get source geometry and labels
+        label_text = source_config.get('label', '')
+        spacing = source_config.get('labelSpacing', 100)
+        source_layer_counts[source_layer_name] = 0
+        
+        # Get source geometry
         source_geometry = _get_filtered_geometry(all_layers, project_settings, crs, source_layer_name, None)
-        if source_geometry is None:
+        if source_geometry is None or source_geometry.is_empty:
             continue
             
-        # Convert geometries to QGIS features
-        if isinstance(source_geometry, (Point, LineString, Polygon)):
+        # Convert to list of LineStrings
+        if isinstance(source_geometry, LineString):
             geometries = [source_geometry]
-        else:
+        elif isinstance(source_geometry, MultiLineString):
             geometries = list(source_geometry.geoms)
+        else:
+            continue
             
-        for geometry in geometries:
-            label_text = source_config.get('label', '')
+        # Process each line
+        for line in geometries:
+            source_layer_counts[source_layer_name] += 1
+            line_length = line.length
             
-            # Calculate optimal label position
-            offset = source_config.get('offset', 0)
-            label_position = get_best_label_position(geometry, label_text, offset, text_height)
-            
-            if label_position:
-                point, text, angle = label_position
+            # Calculate positions along the line
+            current_distance = spacing / 2  # Start at half spacing for centering
+            while current_distance < line_length:
+                point = line.interpolate(current_distance)
                 
-                # Add to features list for GeoDataFrame with the calculated point
+                # Calculate angle at this point
+                delta = spacing * 0.1  # Small distance for angle calculation
+                point_before = line.interpolate(max(0, current_distance - delta))
+                point_after = line.interpolate(min(line_length, current_distance + delta))
+                
+                dx = point_after.x - point_before.x
+                dy = point_after.y - point_before.y
+                angle = math.degrees(math.atan2(dy, dx))
+                
                 features_list.append({
-                    'geometry': point,  # Use the calculated point instead of original geometry
+                    'geometry': point,
                     'properties': {
-                        'label': text,
-                        'rotation': angle  # Store the angle for potential future use
+                        'label': label_text,
+                        'rotation': angle
                     }
                 })
+                
+                current_distance += spacing
     
-    # Configure labeling settings
-    label_settings = QgsPalLayerSettings()
-    text_format = QgsTextFormat()
+    # Log statistics
+    for source_name, count in source_layer_counts.items():
+        placed_labels = len([
+            f for f in features_list 
+            if f['properties']['label'] == next(
+                (sl['label'] for sl in source_layers if sl['name'] == source_name), 
+                ''
+            )
+        ])
+        
+        if placed_labels < count:
+            warning_message = (
+                f"Only {placed_labels} of {count} possible label positions were used for source layer '{source_name}'. "
+                "Check the layer geometry and label spacing settings."
+            )
+            log_warning(
+                format_operation_warning(
+                    layer_name,
+                    'label_association',
+                    warning_message
+                )
+            )
     
-    # Apply text styling
-    text_format.setSize(text_height)
-    text_format.setColor(QColor(text_style.get('color', '#000000')))
-    
-    # Configure label settings
-    label_settings.setFormat(text_format)
-    label_settings.fieldName = "label"
-    label_settings.placement = QgsPalLayerSettings.AroundPoint
-    label_settings.priority = 5
-    label_settings.enabled = True
-    
-    # Apply settings to layer
-    labeling = QgsVectorLayerSimpleLabeling(label_settings)
-    memory_layer.setLabeling(labeling)
-    memory_layer.setLabelsEnabled(True)
-    
-    # Create GeoDataFrame directly from features list
+    # Create result GeoDataFrame
     if not features_list:
-        # Return empty GeoDataFrame with correct structure
         return gpd.GeoDataFrame({'geometry': [], 'label': []}, geometry='geometry', crs=crs)
     
     result_gdf = gpd.GeoDataFrame.from_features(features_list, crs=crs)
