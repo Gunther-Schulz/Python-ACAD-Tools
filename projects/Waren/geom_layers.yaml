@@ -257,6 +257,7 @@ geomLayers:
     - type: labelAssociation
       labelSpacing: 200
       labelSettings:
+        labelOffset: 2
         widthFactor: 2      # Makes label box 30% wider than the text width
         heightFactor: 1.5     # Makes label box 50% taller than the text height
         bufferFactor: 0.2     # Adds 20% of text height as padding around the label box
@@ -264,37 +265,38 @@ geomLayers:
       sourceLayers:
         - name: Str-Leitungsabschnitt-NS
           label: Strom Niederspannung
-          labelOffset: 1
+
         - name: Was-Leitungsabschnitt-VN
           label: Wasser VN
-          labelOffset: 1
+
         - name: Was-Leitungsabschnitt-AN
           label: Wasser AN
-          labelOffset: 1
+
         - name: Gas-Leitungsabschnitt-VN
           label: Gas VN
-          labelOffset: 1
+
         - name: Leitung Ontras Gas
           label: Gas Ontras
-          labelOffset: 1
+
         - name: Leitung Ontras TK
           label: Telekom Ontras
-          labelOffset: 1
+
         - name: Gas_HD_LEIT
           label: Gas Hochdruck
-          labelOffset: 1
+
         - name: Stromkabel-MS_unterirdisch_LEIT
           label: Stromkabel MS unterirdisch
-          labelOffset: 1
+
         - name: Leitung Mittelspannung Zuwegung
           label: Strom Mittelspannung Zuwegung
-          labelOffset: 1
+
         - name: Leitung Telekom
           label: Telekom
-          labelOffset: 1
+          labelOffset: -2
+
         - name: Leitung Edis
           label: Strom Edis
-          labelOffset: 1
+
 
 
 

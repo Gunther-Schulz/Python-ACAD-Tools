@@ -518,7 +518,7 @@ def get_label_buffer(point, label_text, text_height):
 def create_label_association_layer(all_layers, project_settings, crs, layer_name, operation):
     """Creates label points along lines using QGIS PAL labeling system."""
     
-    # Get label spacing settings from operation config
+    # Get global label spacing settings from operation config
     label_settings = operation.get('labelSettings', {})
     spacing_settings = {
         'width_factor': label_settings.get('widthFactor', 1.3),
@@ -526,6 +526,9 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
         'buffer_factor': label_settings.get('bufferFactor', 0.2),
         'collision_margin': label_settings.get('collisionMargin', 0.25),
     }
+    
+    # Get global label offset
+    global_label_offset = float(label_settings.get('labelOffset', 0))
     
     # Get text height from style
     style_manager = StyleManager(project_settings)
@@ -550,8 +553,12 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
             continue
             
         label_text = source_config.get('label', '')
-        # Use source-specific spacing if provided, otherwise fall back to global spacing
+        # Use source-specific spacing and offset if provided, otherwise fall back to global
         spacing = source_config.get('labelSpacing', 100)
+        label_offset = float(source_config.get('labelOffset', global_label_offset))
+        
+        log_debug(f"Processing layer {source_layer_name} with offset: {label_offset}")
+        
         source_layer_counts[source_layer_name] = 0
         
         # Get source geometry
@@ -574,9 +581,10 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
             
             current_distance = spacing / 2
             while current_distance < line_length:
+                # Get initial point position
                 point = line.interpolate(current_distance)
                 
-                # Calculate angle
+                # Calculate angle before applying offset
                 delta = spacing * 0.1
                 point_before = line.interpolate(max(0, current_distance - delta))
                 point_after = line.interpolate(min(line_length, current_distance + delta))
@@ -585,11 +593,28 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
                 dy = point_after.y - point_before.y
                 angle = math.degrees(math.atan2(dy, dx))
                 
+                # Store original direction before normalization
+                offset_multiplier = 1
+                if angle > 90 or angle < -90:
+                    offset_multiplier = -1
+                
+                # Normalize angle for text orientation
                 if angle > 90:
                     angle -= 180
                 elif angle < -90:
                     angle += 180
                 
+                # Apply perpendicular offset if specified
+                if abs(label_offset) > 0.0001:  # Use small epsilon for float comparison
+                    # Normalize the perpendicular vector
+                    length = math.sqrt(dx*dx + dy*dy)
+                    if length > 0:
+                        # Calculate perpendicular offset (rotate 90 degrees)
+                        # Multiply by offset_multiplier to maintain consistent offset direction
+                        px = (-dy/length) * label_offset * offset_multiplier
+                        py = (dx/length) * label_offset * offset_multiplier
+                        point = Point(point.x + px, point.y + py)
+
                 # Check for collisions with existing labels
                 if check_label_collision(point, label_text, angle, existing_label_boxes, text_height, spacing_settings):
                     found_position = False
