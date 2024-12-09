@@ -1,3 +1,82 @@
+import os
+import sys
+from pathlib import Path
+
+# Set Qt platform to xcb before any Qt imports
+os.environ['QT_QPA_PLATFORM'] = 'xcb'
+# Disable GUI for headless operation
+os.environ['QT_QPA_PLATFORM'] = 'offscreen'
+
+# Get conda environment path
+conda_prefix = os.environ.get('CONDA_PREFIX')
+if conda_prefix:
+    # Add QGIS Python paths
+    qgis_python_paths = [
+        os.path.join(conda_prefix, 'share', 'qgis', 'python'),
+        os.path.join(conda_prefix, 'lib', 'python3.10', 'site-packages'),
+        os.path.join(conda_prefix, 'share', 'qgis', 'python', 'plugins'),
+    ]
+    
+    # Add paths to sys.path if they exist
+    for path in qgis_python_paths:
+        if os.path.exists(path) and path not in sys.path:
+            sys.path.append(path)
+            print(f"Added QGIS path: {path}")
+    
+    # Set QGIS prefix path
+    os.environ['QGIS_PREFIX_PATH'] = conda_prefix
+    
+    # Set library path
+    lib_path = os.path.join(conda_prefix, 'lib')
+    if os.path.exists(lib_path):
+        current_lib_path = os.environ.get('LD_LIBRARY_PATH', '')
+        os.environ['LD_LIBRARY_PATH'] = f"{lib_path}:{current_lib_path}"
+        print(f"Added to LD_LIBRARY_PATH: {lib_path}")
+
+# Print debug information
+print("\nPython path:")
+for p in sys.path:
+    print(f"  {p}")
+
+print("\nLibrary path:")
+print(os.environ.get('LD_LIBRARY_PATH', 'Not set'))
+
+# Now try to import QGIS modules
+try:
+    from qgis.core import *
+    from qgis.PyQt.QtCore import QVariant
+    from qgis.PyQt import QtCore
+    print("\nSuccessfully imported QGIS modules")
+except ImportError as e:
+    print(f"\nError importing QGIS modules: {e}")
+    print("Detailed error information:")
+    import traceback
+    traceback.print_exc()
+    raise
+
+# Initialize QGIS Application in headless mode
+QgsApplication.setPrefixPath(os.environ['QGIS_PREFIX_PATH'], True)
+qgs = QgsApplication([], False)  # False means non-GUI
+qgs.initQgis()
+
+# Import and initialize processing
+from qgis.analysis import QgsNativeAlgorithms
+import processing
+from processing.core.Processing import Processing
+from qgis.core import (
+    QgsField,
+    QgsVectorLayer,
+    QgsFeature,
+    QgsGeometry,
+    QgsProject,
+    QgsCoordinateReferenceSystem,
+    QgsProcessingFeedback
+)
+
+# Initialize Processing framework
+Processing.initialize()
+QgsApplication.processingRegistry().addProvider(QgsNativeAlgorithms())
+
 from shapely.ops import nearest_points
 from shapely.geometry import Point, LineString, Polygon, MultiPolygon
 import geopandas as gpd
@@ -6,6 +85,18 @@ from src.utils import log_debug, log_warning
 import math
 import numpy as np
 from src.style_manager import StyleManager
+from qgis.core import (
+    QgsLabelingEngineSettings,
+    QgsPalLayerSettings,
+    QgsTextFormat,
+    QgsVectorLayer,
+    QgsPoint,
+    QgsGeometry,
+    QgsFeature,
+    QgsApplication
+)
+from PyQt5.QtGui import QColor
+import processing
 
 def get_line_placement_positions(line, label_length, text_height=2.5):
     """Get possible label positions along a line with improved corner handling."""
@@ -249,19 +340,9 @@ def get_best_label_position(geometry, label_text, offset=0, text_height=2.5):
     return None
 
 def create_label_association_layer(all_layers, project_settings, crs, layer_name, operation):
-    """Associates labels from a point layer with geometries from another layer."""
-    log_debug(f"Creating label association layer: {layer_name}")
+    """Associates labels from a point layer with geometries from another layer using QGIS PAL."""
     
-    # Get operation parameters
-    source_layers = operation.get('sourceLayers', [{'name': layer_name}])
-    label_points = []
-    
-    # Track which source layers have placed labels
-    source_layer_placement_status = {
-        source_config['name']: False for source_config in source_layers
-    }
-    
-    # Get style information using StyleManager
+    # Get style information
     style_manager = StyleManager(project_settings)
     layer_info = next((layer for layer in project_settings.get('geomLayers', []) 
                       if layer.get('name') == layer_name), {})
@@ -269,125 +350,84 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
     text_style = style.get('text', {}).copy()
     text_height = text_style.get('height', 2.5)
     
-    # Process each source layer configuration
+    # Create temporary vector layer for labels
+    memory_layer = QgsVectorLayer("Point?crs=" + crs, "temp_labels", "memory")
+    provider = memory_layer.dataProvider()
+    
+    # Add fields using the new recommended way
+    fields = QgsFields()
+    field = QgsField()
+    field.setName("label")
+    field.setType(QVariant.String)
+    fields.append(field)
+    provider.addAttributes(fields)
+    memory_layer.updateFields()
+    
+    # Process source layers and add features
+    source_layers = operation.get('sourceLayers', [{'name': layer_name}])
+    features_list = []  # List to store features for GeoDataFrame
+    
     for source_config in source_layers:
         source_layer_name = source_config.get('name')
         if not source_layer_name:
             continue
             
-        # Handle static label from source config
-        static_label = source_config.get('label')
-        label_offset = source_config.get('labelOffset', operation.get('labelOffset', 0))
-        
-        # Only get label layer info if we're not using a static label
-        if static_label is None:
-            label_layer_name = source_config.get('labelLayer')
-            label_column = source_config.get('labelColumn', 'label')
-            
-            if not label_layer_name:
-                log_warning(format_operation_warning(
-                    layer_name,
-                    "labelAssociation",
-                    f"Missing required labelLayer parameter for {source_layer_name}"
-                ))
-                continue
-                
-            # Get label layer
-            label_layer = all_layers.get(label_layer_name)
-            if label_layer is None:
-                log_warning(format_operation_warning(
-                    layer_name,
-                    "labelAssociation",
-                    f"Label layer '{label_layer_name}' not found"
-                ))
-                continue
-        
-        # Get source geometry
+        # Get source geometry and labels
         source_geometry = _get_filtered_geometry(all_layers, project_settings, crs, source_layer_name, None)
         if source_geometry is None:
             continue
             
-        # Process geometries (rest of the existing logic)
+        # Convert geometries to QGIS features
         if isinstance(source_geometry, (Point, LineString, Polygon)):
             geometries = [source_geometry]
         else:
             geometries = list(source_geometry.geoms)
-        
-        for geometry in geometries:
-            if static_label is not None:
-                label_text = static_label
-            else:
-                # Find closest label point (existing logic)
-                min_dist = float('inf')
-                closest_label = None
-                
-                for idx, label_row in label_layer.iterrows():
-                    if label_column not in label_row:
-                        continue
-                    
-                    label_point = label_row.geometry
-                    dist = geometry.distance(label_point)
-                    if dist < min_dist:
-                        min_dist = dist
-                        closest_label = (label_row[label_column], label_point)
-                
-                if closest_label is None:
-                    continue
-                
-                label_text, _ = closest_label
             
-            result = get_best_label_position(geometry, label_text, label_offset, text_height)
-            if result:
-                label_points.append((result[0], result[1], result[2], source_layer_name))  # Add source layer name
+        for geometry in geometries:
+            # Add to QGIS layer
+            feature = QgsFeature()
+            qgs_geom = QgsGeometry.fromWkt(geometry.wkt)
+            feature.setGeometry(qgs_geom)
+            
+            # Get label text
+            label_text = source_config.get('label', '')
+            feature.setAttributes([label_text])
+            provider.addFeature(feature)
+            
+            # Add to features list for GeoDataFrame
+            features_list.append({
+                'geometry': geometry,
+                'properties': {'label': label_text}
+            })
     
-    # Process label points with collision detection
-    placed_labels = []
-    collision_boxes = []
+    # Configure labeling settings
+    label_settings = QgsPalLayerSettings()
+    text_format = QgsTextFormat()
     
-    for point, label_text, angle, source_name in label_points:
-        # Calculate label dimensions (approximate)
-        text_width = len(label_text) * text_height * 0.6
-        
-        # Create collision box (rotated rectangle)
-        box = calculate_label_box(point, text_width, text_height, angle)
-        
-        # Check for collisions with already placed labels
-        has_collision = any(box.intersects(existing_box) 
-                          for existing_box in collision_boxes)
-        
-        if not has_collision:
-            placed_labels.append((point, label_text, angle))
-            collision_boxes.append(box)
-            source_layer_placement_status[source_name] = True
+    # Apply text styling
+    text_format.setSize(text_height)
+    text_format.setColor(QColor(text_style.get('color', '#000000')))
     
-    # Check and warn about unplaced labels
-    for source_name, has_label in source_layer_placement_status.items():
-        if not has_label:
-            log_warning(format_operation_warning(
-                layer_name,
-                "labelAssociation",
-                f"No labels were successfully placed for source layer '{source_name}'"
-            ))
+    # Configure label settings
+    label_settings.setFormat(text_format)
+    label_settings.fieldName = "label"
+    label_settings.placement = QgsPalLayerSettings.AroundPoint
+    label_settings.priority = 5
+    label_settings.enabled = True
     
-    if not placed_labels:
-        log_warning(format_operation_warning(
-            layer_name,
-            "labelAssociation",
-            "No labels were successfully placed for any source layer"
-        ))
-        return None
+    # Apply settings to layer
+    labeling = QgsVectorLayerSimpleLabeling(label_settings)
+    memory_layer.setLabeling(labeling)
+    memory_layer.setLabelsEnabled(True)
     
-    # Create result
-    result_data = {
-        'geometry': [p[0] for p in placed_labels],
-        'label': [p[1] for p in placed_labels],
-        'rotation': [p[2] for p in placed_labels]
-    }
+    # Create GeoDataFrame directly from features list
+    if not features_list:
+        # Return empty GeoDataFrame with correct structure
+        return gpd.GeoDataFrame({'geometry': [], 'label': []}, geometry='geometry', crs=crs)
     
-    result_gdf = gpd.GeoDataFrame(result_data, crs=crs)
+    result_gdf = gpd.GeoDataFrame.from_features(features_list, crs=crs)
     result_gdf.attrs['text_style'] = text_style
     
-    log_debug(f"Created label association layer with {len(result_gdf)} label points")
     return result_gdf
 
 def calculate_label_box(point, width, height, angle):

@@ -1,10 +1,34 @@
 import logging
 import os
 import sys
+from pathlib import Path
 import pyproj
 from pyproj import CRS
 import traceback
 import yaml
+
+# Set environment variables before any other imports
+conda_prefix = os.environ.get('CONDA_PREFIX')
+if conda_prefix:
+    # Set PROJ_LIB
+    proj_lib = Path(conda_prefix) / 'share' / 'proj'
+    if proj_lib.exists():
+        os.environ['PROJ_LIB'] = str(proj_lib)
+        print(f"Set PROJ_LIB to: {proj_lib}")  # Debug print
+    
+    # Set SSL certificate path
+    ca_bundle = Path(conda_prefix) / 'ssl' / 'cacert.pem'
+    if ca_bundle.exists():
+        os.environ['CURL_CA_BUNDLE'] = str(ca_bundle)
+        os.environ['SSL_CERT_FILE'] = str(ca_bundle)
+        print(f"Set SSL certificate path to: {ca_bundle}")  # Debug print
+
+# Now import required packages
+try:
+    from pyproj import CRS
+    print("Successfully imported pyproj")  # Debug print
+except ImportError as e:
+    print(f"Error importing pyproj: {e}")
 
 # Add this near the top of the file, after the imports
 def set_log_level(level):
@@ -94,52 +118,35 @@ def log_debug(message):
 
 # PROJ setup
 def setup_proj():
-    if 'PROJ_DATA' in os.environ:
-        log_info(f"Unsetting PROJ_DATA (was set to: {os.environ['PROJ_DATA']})")
-        del os.environ['PROJ_DATA']
-
-    proj_data_dirs = [
-        '/usr/share/proj',
-        '/usr/local/share/proj',
-        '/opt/homebrew/share/proj',
-        'C:\\Program Files\\PROJ\\share',
-        '/home/g/.conda/envs/qgis/share/proj',
-        os.path.join(sys.prefix, 'share', 'proj'),
-    ]
-
-    for directory in proj_data_dirs:
-        if os.path.exists(os.path.join(directory, 'proj.db')):
-            os.environ['PROJ_LIB'] = directory
-            log_debug(f"Set PROJ_LIB to: {directory}")
-            break
-    else:
-        log_warning("Could not find proj.db in any of the standard locations.")
-
-    os.environ['PROJ_NETWORK'] = 'OFF'
-    log_debug("Set PROJ_NETWORK to OFF")
-
-    pyproj.datadir.set_data_dir(os.environ['PROJ_LIB'])
-    log_debug(f"PyProj data directory: {pyproj.datadir.get_data_dir()}")
-    log_debug(f"PyProj version: {pyproj.__version__}")
-
+    """Setup PROJ environment and configuration"""
+    conda_prefix = os.environ.get('CONDA_PREFIX')
+    if conda_prefix:
+        # Set PROJ paths
+        proj_lib = Path(conda_prefix) / 'share' / 'proj'
+        if proj_lib.exists():
+            os.environ['PROJ_LIB'] = str(proj_lib)
+            pyproj.datadir.set_data_dir(str(proj_lib))
+            print(f"Set PROJ data directory to: {proj_lib}")
+        
+        # Set network settings
+        os.environ['PROJ_NETWORK'] = 'OFF'
+        
+        # Set SSL certificates
+        ca_bundle = Path(conda_prefix) / 'ssl' / 'cacert.pem'
+        if ca_bundle.exists():
+            os.environ['CURL_CA_BUNDLE'] = str(ca_bundle)
+            os.environ['SSL_CERT_FILE'] = str(ca_bundle)
+            print(f"Set SSL certificate path to: {ca_bundle}")
+    
+    # Verify PROJ setup
     try:
         crs = CRS("EPSG:4326")
-        log_debug(f"Successfully created CRS object: {crs}")
+        print(f"Successfully created CRS object: {crs}")
     except Exception as e:
-        log_error(f"Error creating CRS object: {str(e)}")
+        print(f"Error creating CRS object: {str(e)}")
 
-    try:
-        transformer = pyproj.Transformer.from_crs("EPSG:4326", "EPSG:3857", always_xy=True)
-        result = transformer.transform(0, 0)
-        log_debug(f"Successfully performed transformation: {result}")
-    except Exception as e:
-        log_error(f"Error performing transformation: {str(e)}")
-
-    try:
-        proj_version = pyproj.__proj_version__
-        log_debug(f"PROJ version (from pyproj): {proj_version}")
-    except Exception as e:
-        log_error(f"Error getting PROJ version: {str(e)}")
+# Call setup_proj() before any other imports
+setup_proj()
 
 def get_folder_prefix():
     """Get the global folder prefix from projects.yaml"""
