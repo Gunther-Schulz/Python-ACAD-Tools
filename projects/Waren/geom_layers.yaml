@@ -251,6 +251,7 @@ geomLayers:
       joinStyle: flat
 
 - name: Leitungen Labels
+  updateDxf: true
   operations:
     - type: labelAssociation
       sourceLayers: 
