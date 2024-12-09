@@ -67,7 +67,14 @@ def log_info(*messages):
 def log_warning(message):
     logging.warning(f"\033[93m{message}\033[0m")
 
-def log_error(message):
+def log_error(message, abort=True):
+    """
+    Log an error message and optionally abort execution.
+    
+    Args:
+        message (str): The error message to log
+        abort (bool, optional): Whether to abort execution. Defaults to True.
+    """
     import traceback
     stack = traceback.extract_stack()
     caller = stack[-2]  # Get caller's info
@@ -75,6 +82,9 @@ def log_error(message):
     logging.error(f"\033[91mError: {message} (from {caller.filename}:{caller.lineno})\033[0m")
     if error_traceback != "NoneType: None\n":
         logging.error(f"Traceback:\n{error_traceback}")
+    
+    if abort:
+        sys.exit(1)
 
 def log_debug(message):
     import traceback

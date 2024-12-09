@@ -281,6 +281,35 @@ class LayerProcessor:
                         continue
 
                     gdf = gpd.read_file(shapefile_path)
+                    
+                    # Validate geometries
+                    invalid_geometries = []
+                    null_geometries = []
+                    for idx, geom in enumerate(gdf.geometry):
+                        if geom is None:
+                            null_geometries.append(idx)
+                            continue
+                            
+                        if not geom.is_valid:
+                            reason = self._get_geometry_error(geom)
+                            invalid_geometries.append((idx, reason))
+                        elif geom.is_empty:
+                            invalid_geometries.append((idx, "Empty geometry"))
+                        elif isinstance(geom, (Polygon, MultiPolygon)):
+                            # Check for self-intersection in polygons
+                            if not geom.exterior.is_simple:
+                                invalid_geometries.append((idx, "Self-intersecting polygon"))
+                
+                    if null_geometries:
+                        log_warning(f"Null geometries found in layer '{layer_name}' at indices: {null_geometries}")
+                    
+                    if invalid_geometries:
+                        error_msg = f"Invalid geometries found in layer '{layer_name}':\n"
+                        for idx, reason in invalid_geometries:
+                            error_msg += f"  - Feature {idx}: {reason}\n"
+                        log_error(error_msg)
+                        raise ValueError(error_msg)
+
                     gdf = self.standardize_layer_crs(layer_name, gdf)
                     if gdf is not None:
                         self.all_layers[layer_name] = gdf
@@ -585,3 +614,17 @@ class LayerProcessor:
                         log_debug(f"Deleted residual file: {filename}")
                     except Exception as e:
                         log_warning(f"Failed to delete residual file {file_path}. Reason: {e}")
+
+    def _get_geometry_error(self, geom):
+        """Helper method to get detailed geometry validation error"""
+        try:
+            from shapely.validation import explain_validity
+            explanation = explain_validity(geom)
+            if explanation == 'Valid Geometry':
+                return None
+            return explanation
+        except Exception:
+            # Fallback if explain_validity is not available
+            if not geom.is_valid:
+                return "Invalid geometry"
+            return None
