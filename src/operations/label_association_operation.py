@@ -254,8 +254,31 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
     
     # Get operation parameters
     source_layers = operation.get('layers', [layer_name])
-    label_layer_name = operation.get('labelLayer', layer_name)  # Default to current layer
-    label_column = operation.get('labelColumn', 'label')
+    static_label = operation.get('label')
+    
+    # Only get label layer info if we're not using a static label
+    if static_label is None:
+        label_layer_name = operation.get('labelLayer', layer_name)
+        label_column = operation.get('labelColumn', 'label')
+        
+        if not label_layer_name:
+            log_warning(format_operation_warning(
+                layer_name,
+                "labelAssociation",
+                "Missing required labelLayer parameter"
+            ))
+            return None
+            
+        # Get label layer
+        label_layer = all_layers.get(label_layer_name)
+        if label_layer is None:
+            log_warning(format_operation_warning(
+                layer_name,
+                "labelAssociation",
+                f"Label layer '{label_layer_name}' not found"
+            ))
+            return None
+    
     label_offset = operation.get('labelOffset', 0)
     
     # Get label spacing parameter (1.0 means space between labels equals label width)
@@ -269,24 +292,6 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
     style = style_manager.process_layer_style(layer_name, layer_info)
     text_style = style.get('text', {}).copy()  # Make a copy of text style
     text_height = text_style.get('height', 2.5)  # Default text height if not specified
-    
-    if not label_layer_name:
-        log_warning(format_operation_warning(
-            layer_name,
-            "labelAssociation",
-            "Missing required labelLayer parameter"
-        ))
-        return None
-    
-    # Get label layer
-    label_layer = all_layers.get(label_layer_name)
-    if label_layer is None:
-        log_warning(format_operation_warning(
-            layer_name,
-            "labelAssociation",
-            f"Label layer '{label_layer_name}' not found"
-        ))
-        return None
     
     label_points = []
     
@@ -307,26 +312,28 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
             geometries = list(source_geometry.geoms)
         
         for geometry in geometries:
-            # Find closest label point
-            min_dist = float('inf')
-            closest_label = None
-            
-            for idx, label_row in label_layer.iterrows():
-                if label_column not in label_row:
+            if static_label is not None:
+                label_text = static_label
+            else:
+                # Find closest label point (existing logic)
+                min_dist = float('inf')
+                closest_label = None
+                
+                for idx, label_row in label_layer.iterrows():
+                    if label_column not in label_row:
+                        continue
+                    
+                    label_point = label_row.geometry
+                    dist = geometry.distance(label_point)
+                    if dist < min_dist:
+                        min_dist = dist
+                        closest_label = (label_row[label_column], label_point)
+                
+                if closest_label is None:
                     continue
                 
-                label_point = label_row.geometry
-                dist = geometry.distance(label_point)
-                if dist < min_dist:
-                    min_dist = dist
-                    closest_label = (label_row[label_column], label_point)
+                label_text, _ = closest_label
             
-            if closest_label is None:
-                continue
-            
-            label_text, _ = closest_label
-            
-            # Get best position for this label, passing text height
             result = get_best_label_position(geometry, label_text, label_offset, text_height)
             if result:
                 label_points.append(result)
