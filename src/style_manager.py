@@ -146,7 +146,7 @@ class StyleManager:
                               f"ACAD ISO linetypes should follow the pattern 'ACAD_ISOxxW100' where xx is a two-digit number.")
 
     def _validate_hatch_style(self, layer_name, hatch_style):
-        known_style_keys = {'pattern', 'scale', 'color', 'transparency', 'individual_hatches', 'layers'}
+        known_style_keys = {'pattern', 'scale', 'color', 'transparency', 'individual_hatches', 'layers', 'lineweight'}
         self._validate_style_keys(layer_name, 'hatch', hatch_style, known_style_keys)
 
     def _validate_text_style(self, layer_name, text_style):

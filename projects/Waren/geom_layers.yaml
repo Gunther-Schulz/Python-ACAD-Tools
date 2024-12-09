@@ -202,6 +202,54 @@ geomLayers:
       label: Strom Mittelspannung
       labelOffset: 1
 
+# Bestand-Zeichnung
+
+- name: Leitung Telekom
+  updateDxf: true
+  style: leitung
+  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/input_leitungsverlauf_telekom_ln.shp"
+- name: Leitung Telekom Label
+  updateDxf: true
+  style: leitungLabel
+  operations:
+    - type: copy
+      layers:
+        - Leitung Telekom
+    - type: labelAssociation
+      label: Telekommunikation
+      labelOffset: 1
+- name: Leitung Telekom Buffer
+  operations:
+    - type: buffer
+      layers:
+        - Leitung Telekom
+      distance: 15
+      capStyle: flat
+      joinStyle: flat
+
+- name: Leitung Edis
+  updateDxf: true
+  style: leitung
+  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/input_leitungsverlauf_edis_ln.shp"
+- name: Leitung Edis Label
+  updateDxf: true
+  style: leitungLabel
+  operations:
+    - type: copy
+      layers:
+        - Leitung Edis
+    - type: labelAssociation
+      label: Strom Edis
+      labelOffset: 1
+- name: Leitung Edis Buffer
+  operations:
+    - type: buffer
+      layers:
+        - Leitung Edis
+      distance: 2 # Gechätzt, müsste nachschauen
+      capStyle: flat
+      joinStyle: flat
+
 - name: Leitungen Path
   operations:
     - type: dissolve
@@ -215,7 +263,8 @@ geomLayers:
         - Gas_HD_LEIT
         - Stromkabel-MS_unterirdisch_LEIT
         - Leitung Mittelspannung Zuwegung
-        # - Leitung Telekom
+        - Leitung Telekom
+        - Leitung Edis
 - name: Leitungen Buffer
   operations:
     - type: dissolve
@@ -227,8 +276,8 @@ geomLayers:
         - Leitung Ontras Buffer
         - Gas_HD_LEIT Buffer
         - Stromkabel-MS_unterirdisch_LEIT Buffer
-        # - Leitung Telekom Buffer
-
+        - Leitung Telekom Buffer
+        - Leitung Edis Buffer
 ### Baum ###
 - name: Baum_Laubbaum Points
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/vermessung_baum_laubbaum_pt.shp"
