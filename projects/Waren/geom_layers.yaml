@@ -250,20 +250,20 @@ geomLayers:
       capStyle: flat
       joinStyle: flat
 
-# - name: Leitungen Labels
-#   operations:
-#     - type: labelAssociation
-#       sourceLayers: 
-#         - name: Leitung Edis
-#           label: Strom Edis
-#           labelOffset: 1
-#         - name: Leitung Telekom
-#           label: Telekom
-#           labelOffset: 1
-#         - name: Stromkabel-MS_unterirdisch_LEIT
-#           labelLayer: "Stromkabel-MS_unterirdisch_LEIT Label Points"
-#           labelColumn: "label"
-#           labelOffset: 1
+- name: Leitungen Labels
+  operations:
+    - type: labelAssociation
+      sourceLayers: 
+        - name: Leitung Edis
+          label: Strom Edis
+          labelOffset: 1
+        - name: Leitung Telekom
+          label: Telekom
+          labelOffset: 1
+        - name: Stromkabel-MS_unterirdisch_LEIT
+          labelLayer: "Stromkabel-MS_unterirdisch_LEIT Label Points"
+          labelColumn: "label"
+          labelOffset: 1
 
 
 - name: Leitungen Path
