@@ -47,17 +47,21 @@ def setup_logging(console_level='INFO'):
     # Set logging levels for external libraries
     logging.getLogger('fiona').setLevel(logging.WARNING)
     logging.getLogger('osgeo').setLevel(logging.WARNING)
+    logging.getLogger('pyogrio._io').setLevel(logging.WARNING)
     
     # Create logs directory if it doesn't exist
     os.makedirs('logs', exist_ok=True)
     
     # Create formatters
     file_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-    console_formatter = logging.Formatter('%(levelname)s - %(message)s')
+    console_formatter = logging.Formatter('%(levelname)s:%(name)s:%(message)s')  # This format shows logger name
     
     # Setup root logger to capture everything
     root_logger = logging.getLogger('')
     root_logger.setLevel(logging.DEBUG)  # Always capture all levels
+    
+    # Clear existing handlers
+    root_logger.handlers.clear()
     
     # Create and configure handlers
     handlers = {
