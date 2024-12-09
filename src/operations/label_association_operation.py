@@ -382,6 +382,76 @@ def get_best_label_position(geometry, label_text, offset=0, text_height=2.5, exi
     
     return None
 
+def try_resolve_collision(point, angle, existing_labels, text_height, label_text):
+    """Try to resolve label collision by moving the label in the optimal direction."""
+    buffer_distance = text_height * len(label_text) * 0.3
+    original_geom = QgsGeometry.fromPointXY(QgsPointXY(point.x, point.y))
+    
+    # First check if there's a collision
+    label_buffer = original_geom.buffer(buffer_distance, 5)
+    colliding_labels = [label for label in existing_labels if label.intersects(label_buffer)]
+    
+    if not colliding_labels:
+        return point, False
+    
+    # Calculate the main direction of collision
+    collision_vectors = []
+    for colliding_label in colliding_labels:
+        # Get centroid of colliding label
+        centroid = colliding_label.centroid()
+        centroid_point = centroid.asPoint()  # Convert to QgsPointXY
+        dx = point.x - centroid_point.x()  # Use x() method
+        dy = point.y - centroid_point.y()  # Use y() method
+        collision_vectors.append((dx, dy))
+    
+    # Calculate average collision vector
+    avg_dx = sum(v[0] for v in collision_vectors) / len(collision_vectors)
+    avg_dy = sum(v[1] for v in collision_vectors) / len(collision_vectors)
+    
+    # Determine if collision is more horizontal or vertical
+    is_horizontal = abs(avg_dx) > abs(avg_dy)
+    
+    # Try different offsets based on the collision direction
+    offsets = []
+    base_offset = text_height * 1.2  # Base offset distance
+    
+    if is_horizontal:
+        # Try horizontal offsets first, then diagonal
+        offsets = [
+            (math.copysign(base_offset, avg_dx), 0),  # Horizontal
+            (math.copysign(base_offset, avg_dx), base_offset/2),  # Diagonal up
+            (math.copysign(base_offset, avg_dx), -base_offset/2),  # Diagonal down
+        ]
+    else:
+        # Try vertical offsets first, then diagonal
+        offsets = [
+            (0, math.copysign(base_offset, avg_dy)),  # Vertical
+            (base_offset/2, math.copysign(base_offset, avg_dy)),  # Diagonal right
+            (-base_offset/2, math.copysign(base_offset, avg_dy)),  # Diagonal left
+        ]
+    
+    # Try each offset until finding a non-colliding position
+    for offset_x, offset_y in offsets:
+        new_point = Point(point.x + offset_x, point.y + offset_y)
+        new_geom = QgsGeometry.fromPointXY(QgsPointXY(new_point.x, new_point.y))
+        new_buffer = new_geom.buffer(buffer_distance, 5)
+        
+        if not any(label.intersects(new_buffer) for label in existing_labels):
+            return new_point, True
+    
+    # If no resolution found, try larger offsets as last resort
+    last_resort_offset = base_offset * 2
+    for dx, dy in [(last_resort_offset, 0), (-last_resort_offset, 0), 
+                   (0, last_resort_offset), (0, -last_resort_offset)]:
+        new_point = Point(point.x + dx, point.y + dy)
+        new_geom = QgsGeometry.fromPointXY(QgsPointXY(new_point.x, new_point.y))
+        new_buffer = new_geom.buffer(buffer_distance, 5)
+        
+        if not any(label.intersects(new_buffer) for label in existing_labels):
+            return new_point, True
+    
+    return point, False
+
 def create_label_association_layer(all_layers, project_settings, crs, layer_name, operation):
     """Creates label points along lines using QGIS PAL labeling system."""
     
@@ -397,8 +467,11 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
     source_layer_counts = {}
     source_layers = operation.get('sourceLayers', [{'name': layer_name}])
     
-    # Process each source layer
+    # Track existing label positions for collision detection
+    existing_label_geometries = []
     features_list = []
+    
+    # Process each source layer
     for source_config in source_layers:
         source_layer_name = source_config.get('name')
         if not source_layer_name:
@@ -427,12 +500,12 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
             line_length = line.length
             
             # Calculate positions along the line
-            current_distance = spacing / 2  # Start at half spacing for centering
+            current_distance = spacing / 2
             while current_distance < line_length:
                 point = line.interpolate(current_distance)
                 
-                # Calculate angle at this point
-                delta = spacing * 0.1  # Small distance for angle calculation
+                # Calculate angle
+                delta = spacing * 0.1
                 point_before = line.interpolate(max(0, current_distance - delta))
                 point_after = line.interpolate(min(line_length, current_distance + delta))
                 
@@ -440,19 +513,37 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
                 dy = point_after.y - point_before.y
                 angle = math.degrees(math.atan2(dy, dx))
                 
-                # Add this normalization to fix upside-down labels
                 if angle > 90:
                     angle -= 180
                 elif angle < -90:
                     angle += 180
                 
-                features_list.append({
-                    'geometry': point,
-                    'properties': {
-                        'label': label_text,
-                        'rotation': angle
-                    }
-                })
+                # Check for collisions with existing labels
+                collision = False
+                label_geom = QgsGeometry.fromPointXY(QgsPointXY(point.x, point.y))
+                buffer_distance = text_height * len(label_text) * 0.3
+                label_buffer = label_geom.buffer(buffer_distance, 5)
+                
+                if any(existing_label.intersects(label_buffer) for existing_label in existing_label_geometries):
+                    # Try to resolve collision
+                    new_point, resolved = try_resolve_collision(
+                        point, angle, existing_label_geometries, text_height, label_text
+                    )
+                    if resolved:
+                        point = new_point
+                    else:
+                        collision = True
+                
+                if not collision:
+                    features_list.append({
+                        'geometry': point,
+                        'properties': {
+                            'label': label_text,
+                            'rotation': angle
+                        }
+                    })
+                    new_label_geom = QgsGeometry.fromPointXY(QgsPointXY(point.x, point.y))
+                    existing_label_geometries.append(new_label_geom.buffer(buffer_distance, 5))
                 
                 current_distance += spacing
     
