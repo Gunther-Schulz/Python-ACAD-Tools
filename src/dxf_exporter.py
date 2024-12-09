@@ -520,7 +520,6 @@ class DXFExporter:
             log_debug(f"No geometry data available for layer: {layer_name}")
             return
 
-        print("------", layer_name)
         if layer_name == "Leitungen Labels":
             log_warning(layer_name)
         if isinstance(geo_data, gpd.GeoDataFrame):

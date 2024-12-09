@@ -253,8 +253,13 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
     log_debug(f"Creating label association layer: {layer_name}")
     
     # Get operation parameters
-    source_layers = operation.get('sourceLayers', [{'name': layer_name}])  # Updated to use new structure
+    source_layers = operation.get('sourceLayers', [{'name': layer_name}])
     label_points = []
+    
+    # Track which source layers have placed labels
+    source_layer_placement_status = {
+        source_config['name']: False for source_config in source_layers
+    }
     
     # Get style information using StyleManager
     style_manager = StyleManager(project_settings)
@@ -333,21 +338,13 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
             
             result = get_best_label_position(geometry, label_text, label_offset, text_height)
             if result:
-                label_points.append(result)
-
-    # Sort labels by importance/priority
-    label_points.sort(key=lambda x: (
-        isinstance(x[0], LineString),  # Lines first
-        isinstance(x[0], Polygon),     # Then polygons
-        isinstance(x[0], Point)        # Points last
-    ))
+                label_points.append((result[0], result[1], result[2], source_layer_name))  # Add source layer name
     
-    
-    # Create collision grid (Mapbox uses tile-based grid)
+    # Process label points with collision detection
     placed_labels = []
     collision_boxes = []
     
-    for point, label_text, angle in label_points:
+    for point, label_text, angle, source_name in label_points:
         # Calculate label dimensions (approximate)
         text_width = len(label_text) * text_height * 0.6
         
@@ -361,8 +358,26 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
         if not has_collision:
             placed_labels.append((point, label_text, angle))
             collision_boxes.append(box)
+            source_layer_placement_status[source_name] = True
     
-    # Create result only with non-colliding labels
+    # Check and warn about unplaced labels
+    for source_name, has_label in source_layer_placement_status.items():
+        if not has_label:
+            log_warning(format_operation_warning(
+                layer_name,
+                "labelAssociation",
+                f"No labels were successfully placed for source layer '{source_name}'"
+            ))
+    
+    if not placed_labels:
+        log_warning(format_operation_warning(
+            layer_name,
+            "labelAssociation",
+            "No labels were successfully placed for any source layer"
+        ))
+        return None
+    
+    # Create result
     result_data = {
         'geometry': [p[0] for p in placed_labels],
         'label': [p[1] for p in placed_labels],
