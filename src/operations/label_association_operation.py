@@ -519,31 +519,65 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
                     angle += 180
                 
                 # Check for collisions with existing labels
-                collision = False
                 label_geom = QgsGeometry.fromPointXY(QgsPointXY(point.x, point.y))
                 buffer_distance = text_height * len(label_text) * 0.3
                 label_buffer = label_geom.buffer(buffer_distance, 5)
                 
+                # If collision detected, try sliding along the line
                 if any(existing_label.intersects(label_buffer) for existing_label in existing_label_geometries):
-                    # Try to resolve collision
-                    new_point, resolved = try_resolve_collision(
-                        point, angle, existing_label_geometries, text_height, label_text
-                    )
-                    if resolved:
-                        point = new_point
-                    else:
-                        collision = True
+                    found_position = False
+                    slide_distance = spacing * 0.2  # Start with small increments
+                    max_slide = spacing * 0.8  # Don't slide more than 80% of spacing
+                    current_slide = slide_distance
+                    
+                    while current_slide <= max_slide:
+                        # Try forward
+                        if current_distance + current_slide < line_length:
+                            test_point = line.interpolate(current_distance + current_slide)
+                            test_geom = QgsGeometry.fromPointXY(QgsPointXY(test_point.x, test_point.y))
+                            test_buffer = test_geom.buffer(buffer_distance, 5)
+                            
+                            if not any(existing_label.intersects(test_buffer) for existing_label in existing_label_geometries):
+                                point = test_point
+                                current_distance += current_slide
+                                found_position = True
+                                break
+                        
+                        # Try backward
+                        if current_distance - current_slide > 0:
+                            test_point = line.interpolate(current_distance - current_slide)
+                            test_geom = QgsGeometry.fromPointXY(QgsPointXY(test_point.x, test_point.y))
+                            test_buffer = test_geom.buffer(buffer_distance, 5)
+                            
+                            if not any(existing_label.intersects(test_buffer) for existing_label in existing_label_geometries):
+                                point = test_point
+                                current_distance -= current_slide
+                                found_position = True
+                                break
+                        
+                        current_slide += slide_distance
+                    
+                    # If we couldn't find a non-colliding position by sliding, try the original collision resolution
+                    if not found_position:
+                        new_point, resolved = try_resolve_collision(
+                            point, angle, existing_label_geometries, text_height, label_text
+                        )
+                        if resolved:
+                            point = new_point
+                        else:
+                            current_distance += spacing
+                            continue
                 
-                if not collision:
-                    features_list.append({
-                        'geometry': point,
-                        'properties': {
-                            'label': label_text,
-                            'rotation': angle
-                        }
-                    })
-                    new_label_geom = QgsGeometry.fromPointXY(QgsPointXY(point.x, point.y))
-                    existing_label_geometries.append(new_label_geom.buffer(buffer_distance, 5))
+                # Add the label at the final position
+                features_list.append({
+                    'geometry': point,
+                    'properties': {
+                        'label': label_text,
+                        'rotation': angle
+                    }
+                })
+                new_label_geom = QgsGeometry.fromPointXY(QgsPointXY(point.x, point.y))
+                existing_label_geometries.append(new_label_geom.buffer(buffer_distance, 5))
                 
                 current_distance += spacing
     
