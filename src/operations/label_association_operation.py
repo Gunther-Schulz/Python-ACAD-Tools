@@ -335,19 +335,37 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
             if result:
                 label_points.append(result)
 
-    # Rest of the function remains the same
-    if not label_points:
-        log_warning(format_operation_warning(
-            layer_name,
-            "labelAssociation",
-            "No labels were successfully placed"
-        ))
-        return None
+    # Sort labels by importance/priority
+    label_points.sort(key=lambda x: (
+        isinstance(x[0], LineString),  # Lines first
+        isinstance(x[0], Polygon),     # Then polygons
+        isinstance(x[0], Point)        # Points last
+    ))
     
+    # Create collision grid (Mapbox uses tile-based grid)
+    placed_labels = []
+    collision_boxes = []
+    
+    for point, label_text, angle in label_points:
+        # Calculate label dimensions (approximate)
+        text_width = len(label_text) * text_height * 0.6
+        
+        # Create collision box (rotated rectangle)
+        box = calculate_label_box(point, text_width, text_height, angle)
+        
+        # Check for collisions with already placed labels
+        has_collision = any(box.intersects(existing_box) 
+                          for existing_box in collision_boxes)
+        
+        if not has_collision:
+            placed_labels.append((point, label_text, angle))
+            collision_boxes.append(box)
+    
+    # Create result only with non-colliding labels
     result_data = {
-        'geometry': [p[0] for p in label_points],
-        'label': [p[1] for p in label_points],
-        'rotation': [p[2] for p in label_points]
+        'geometry': [p[0] for p in placed_labels],
+        'label': [p[1] for p in placed_labels],
+        'rotation': [p[2] for p in placed_labels]
     }
     
     result_gdf = gpd.GeoDataFrame(result_data, crs=crs)
@@ -355,3 +373,25 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
     
     log_debug(f"Created label association layer with {len(result_gdf)} label points")
     return result_gdf
+
+def calculate_label_box(point, width, height, angle):
+    """Calculate a rotated rectangle representing label bounds."""
+    from shapely.affinity import rotate, translate
+    
+    # Create basic rectangle
+    dx = width / 2
+    dy = height / 2
+    box = Polygon([
+        (-dx, -dy), (dx, -dy),
+        (dx, dy), (-dx, dy),
+        (-dx, -dy)
+    ])
+    
+    # Rotate and translate to position
+    box = rotate(box, angle, origin=(0, 0))
+    box = translate(box, point.x, point.y)
+    
+    # Add padding (Mapbox uses 2px)
+    box = box.buffer(height * 0.1)  # 10% of text height as padding
+    
+    return box
