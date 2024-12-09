@@ -93,7 +93,9 @@ from qgis.core import (
     QgsPoint,
     QgsGeometry,
     QgsFeature,
-    QgsApplication
+    QgsApplication,
+    QgsVectorLayerSimpleLabeling,
+    QgsFields
 )
 from PyQt5.QtGui import QColor
 import processing
@@ -384,21 +386,23 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
             geometries = list(source_geometry.geoms)
             
         for geometry in geometries:
-            # Add to QGIS layer
-            feature = QgsFeature()
-            qgs_geom = QgsGeometry.fromWkt(geometry.wkt)
-            feature.setGeometry(qgs_geom)
-            
-            # Get label text
             label_text = source_config.get('label', '')
-            feature.setAttributes([label_text])
-            provider.addFeature(feature)
             
-            # Add to features list for GeoDataFrame
-            features_list.append({
-                'geometry': geometry,
-                'properties': {'label': label_text}
-            })
+            # Calculate optimal label position
+            offset = source_config.get('offset', 0)
+            label_position = get_best_label_position(geometry, label_text, offset, text_height)
+            
+            if label_position:
+                point, text, angle = label_position
+                
+                # Add to features list for GeoDataFrame with the calculated point
+                features_list.append({
+                    'geometry': point,  # Use the calculated point instead of original geometry
+                    'properties': {
+                        'label': text,
+                        'rotation': angle  # Store the angle for potential future use
+                    }
+                })
     
     # Configure labeling settings
     label_settings = QgsPalLayerSettings()
