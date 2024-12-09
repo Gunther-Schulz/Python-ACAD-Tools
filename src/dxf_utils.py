@@ -21,7 +21,8 @@ from ezdxf.lldxf.const import DXFValueError
 from shapely.geometry import Polygon, Point, LineString
 from shapely import MultiLineString, affinity, unary_union
 import matplotlib.pyplot as plt
-from descartes import PolygonPatch
+from matplotlib.patches import PathPatch
+from matplotlib.path import Path
 import numpy as np
 import logging
 import sys
@@ -853,6 +854,27 @@ def cleanup_document(doc):
     except Exception as e:
         log_error(f"Error during document cleanup: {str(e)}")
         log_error(f"Traceback:\n{traceback.format_exc()}")
+
+def polygon_patch(polygon):
+    """Convert Shapely polygon to matplotlib patch"""
+    def ring_coding(x):
+        codes = np.ones(len(x), dtype=Path.code_type) * Path.LINETO
+        codes[0] = Path.MOVETO
+        return codes
+
+    def ring_coord(x):
+        return np.array(x).reshape(-1, 2)
+
+    vertices = []
+    codes = []
+    for ring in [polygon.exterior] + list(polygon.interiors):
+        vertices.append(ring_coord(ring.coords))
+        codes.append(ring_coding(ring.coords))
+    
+    vertices = np.concatenate(vertices)
+    codes = np.concatenate(codes)
+    
+    return PathPatch(Path(vertices, codes))
 
 
 

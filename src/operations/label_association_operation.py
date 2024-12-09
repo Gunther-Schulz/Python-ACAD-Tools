@@ -1,3 +1,84 @@
+import os
+import sys
+from pathlib import Path
+
+from shapely import MultiLineString
+
+# Set Qt platform to xcb before any Qt imports
+os.environ['QT_QPA_PLATFORM'] = 'xcb'
+# Disable GUI for headless operation
+os.environ['QT_QPA_PLATFORM'] = 'offscreen'
+
+# Get conda environment path
+conda_prefix = os.environ.get('CONDA_PREFIX')
+if conda_prefix:
+    # Add QGIS Python paths
+    qgis_python_paths = [
+        os.path.join(conda_prefix, 'share', 'qgis', 'python'),
+        os.path.join(conda_prefix, 'lib', 'python3.10', 'site-packages'),
+        os.path.join(conda_prefix, 'share', 'qgis', 'python', 'plugins'),
+    ]
+    
+    # Add paths to sys.path if they exist
+    for path in qgis_python_paths:
+        if os.path.exists(path) and path not in sys.path:
+            sys.path.append(path)
+            print(f"Added QGIS path: {path}")
+    
+    # Set QGIS prefix path
+    os.environ['QGIS_PREFIX_PATH'] = conda_prefix
+    
+    # Set library path
+    lib_path = os.path.join(conda_prefix, 'lib')
+    if os.path.exists(lib_path):
+        current_lib_path = os.environ.get('LD_LIBRARY_PATH', '')
+        os.environ['LD_LIBRARY_PATH'] = f"{lib_path}:{current_lib_path}"
+        print(f"Added to LD_LIBRARY_PATH: {lib_path}")
+
+# Print debug information
+print("\nPython path:")
+for p in sys.path:
+    print(f"  {p}")
+
+print("\nLibrary path:")
+print(os.environ.get('LD_LIBRARY_PATH', 'Not set'))
+
+# Now try to import QGIS modules
+try:
+    from qgis.core import *
+    from qgis.PyQt.QtCore import QVariant
+    from qgis.PyQt import QtCore
+    print("\nSuccessfully imported QGIS modules")
+except ImportError as e:
+    print(f"\nError importing QGIS modules: {e}")
+    print("Detailed error information:")
+    import traceback
+    traceback.print_exc()
+    raise
+
+# Initialize QGIS Application in headless mode
+QgsApplication.setPrefixPath(os.environ['QGIS_PREFIX_PATH'], True)
+qgs = QgsApplication([], False)  # False means non-GUI
+qgs.initQgis()
+
+# Import and initialize processing
+from qgis.analysis import QgsNativeAlgorithms
+import processing
+from processing.core.Processing import Processing
+from qgis.core import (
+    QgsField,
+    QgsVectorLayer,
+    QgsFeature,
+    QgsGeometry,
+    QgsProject,
+    QgsCoordinateReferenceSystem,
+    QgsProcessingFeedback
+)
+
+# Initialize Processing framework
+Processing.initialize()
+QgsApplication.processingRegistry().addProvider(QgsNativeAlgorithms())
+
 from shapely.ops import nearest_points
 from shapely.geometry import Point, LineString, Polygon, MultiPolygon
 import geopandas as gpd
@@ -6,6 +87,28 @@ from src.utils import log_debug, log_warning
 import math
 import numpy as np
 from src.style_manager import StyleManager
+from qgis.core import (
+    QgsPalLayerSettings,
+    QgsVectorLayer,
+    QgsFeature,
+    QgsGeometry,
+    QgsPointXY,
+    QgsField,
+    QgsFields,
+    QgsPoint,
+    QgsApplication,
+    QgsTextFormat,
+    Qgis,
+    QgsVectorLayerSimpleLabeling,
+    QgsUnitTypes,
+    QgsWkbTypes,
+    QgsProperty,
+    QgsRenderContext,
+    QgsMapToPixel
+)
+
+# Log QGIS version for debugging
+log_warning(f"QGIS Version: {Qgis.QGIS_VERSION}")
 
 def get_line_placement_positions(line, label_length, text_height=2.5):
     """Get possible label positions along a line with improved corner handling."""
@@ -50,6 +153,12 @@ def get_line_placement_positions(line, label_length, text_height=2.5):
             point_ahead.y - point.y,
             point_ahead.x - point.x
         ))
+        
+        # Normalize angle to ensure text is never upside down (-90 to 90 degrees)
+        if angle > 90:
+            angle -= 180
+        elif angle < -90:
+            angle += 180
         
         # Check if we have enough straight space for the label
         space_ahead = line_length - current_dist
@@ -190,46 +299,120 @@ def get_point_label_position(point, label_text, text_height, offset=0):
     best_candidate = max(candidates, key=lambda x: x[2])
     return (best_candidate[0], best_candidate[1])
 
-def get_best_label_position(geometry, label_text, offset=0, text_height=2.5):
-    """Find best label position using improved corner handling."""
+def calculate_label_box(point, width, height, angle, settings=None):
+    """Calculate a rotated rectangle representing label bounds."""
+    from shapely.affinity import rotate, translate
+    
+    # Default settings if none provided
+    if settings is None:
+        settings = {
+            'width_factor': 1.3,      # 30% extra width
+            'height_factor': 1.5,     # 50% extra height
+            'buffer_factor': 0.2,     # 20% text height buffer
+        }
+    
+    # Apply dimension factors
+    width *= settings['width_factor']
+    height *= settings['height_factor']
+    
+    # Create basic rectangle
+    dx = width / 2
+    dy = height / 2
+    box = Polygon([
+        (-dx, -dy), (dx, -dy),
+        (dx, dy), (-dx, dy),
+        (-dx, -dy)
+    ])
+    
+    # Rotate and translate to position
+    box = rotate(box, angle, origin=(0, 0))
+    box = translate(box, point.x, point.y)
+    
+    # Add padding buffer
+    box = box.buffer(height * settings['buffer_factor'])
+    
+    return box
+
+def check_label_collision(point, label_text, angle, existing_labels, text_height, settings=None):
+    """Check if a label position collides with existing labels using rotated boxes."""
+    if settings is None:
+        settings = {
+            'width_factor': 1.3,
+            'height_factor': 1.5,
+            'buffer_factor': 0.2,
+            'collision_margin': 0.25,  # Extra margin for collision detection
+        }
+    
+    # Calculate text dimensions
+    text_width = len(label_text) * text_height * 0.6
+    
+    # Create rotated box for new label
+    new_box = calculate_label_box(point, text_width, text_height, angle, settings)
+    
+    # Add extra buffer for checking
+    check_box = new_box.buffer(text_height * settings['collision_margin'])
+    
+    # Check collision with existing labels
+    for existing_label in existing_labels:
+        if check_box.intersects(existing_label):
+            return True
+    return False
+
+def get_best_label_position(geometry, label_text, offset=0, text_height=2.5, existing_labels=None):
+    """Find best label position using QGIS labeling engine and collision detection."""
+    if existing_labels is None:
+        existing_labels = []
+    
     if isinstance(geometry, Point):
         if offset == 0:
             return (geometry, label_text, 0)
         return (Point(geometry.x + offset, geometry.y), label_text, 0)
     
     elif isinstance(geometry, LineString):
-        # Adjust label length based on text height and character count
-        # This is an approximation - adjust multiplier as needed for your font
-        label_length = len(label_text) * text_height * 0.8  # 0.8 is character width to height ratio
-        positions = get_line_placement_positions(geometry, label_length)
+        # Get all possible positions
+        label_length = len(label_text) * text_height * 0.8
+        positions = get_line_placement_positions(geometry, label_length, text_height)
         
-        if not positions:
-            # Fallback to midpoint if no good positions found
-            point = geometry.interpolate(0.5, normalized=True)
-            p1 = geometry.interpolate(0.45, normalized=True)
-            p2 = geometry.interpolate(0.55, normalized=True)
-            angle = math.degrees(math.atan2(p2.y - p1.y, p2.x - p1.x))
-        else:
-            # Use the position with the highest score
-            point, angle, _ = max(positions, key=lambda x: x[2])
+        # Sort positions by score
+        positions.sort(key=lambda x: x[2], reverse=True)
         
-        # Apply offset perpendicular to line direction
-        if offset != 0:
-            rad_angle = math.radians(angle)
-            dx = -math.sin(rad_angle) * offset
-            dy = math.cos(rad_angle) * offset
-            point = Point(point.x + dx, point.y + dy)
+        # Try positions until finding one without collision
+        for point, angle, score in positions:
+            if not check_label_collision(point, label_text, angle, existing_labels, text_height):
+                return (point, label_text, angle)
         
-        # Adjust angle for readability
-        if abs(angle) > 90:
-            angle += 180
-        if angle > 180:
-            angle -= 360
-            
+        # If all positions collide, return the highest scoring position
+        if positions:
+            return (positions[0][0], label_text, positions[0][1])
+        
+        # Fallback to midpoint if no positions found
+        point = geometry.interpolate(0.5, normalized=True)
+        p1 = geometry.interpolate(0.45, normalized=True)
+        p2 = geometry.interpolate(0.55, normalized=True)
+        angle = math.degrees(math.atan2(p2.y - p1.y, p2.x - p1.x))
         return (point, label_text, angle)
     
     elif isinstance(geometry, Polygon):
-        point = get_polygon_anchor_position(geometry)
+        # Get candidate positions
+        point = get_polygon_anchor_position(geometry, len(label_text) * text_height * 0.6, text_height)
+        
+        # Check for collisions and try to adjust if needed
+        if check_label_collision(point, label_text, 0, existing_labels, text_height):
+            # Try alternative positions within the polygon
+            centroid = geometry.centroid
+            alternatives = [
+                geometry.representative_point(),
+                centroid,
+                Point(point.x + text_height, point.y),
+                Point(point.x - text_height, point.y),
+                Point(point.x, point.y + text_height),
+                Point(point.x, point.y - text_height)
+            ]
+            
+            for alt_point in alternatives:
+                if geometry.contains(alt_point) and not check_label_collision(alt_point, label_text, 0, existing_labels, text_height):
+                    point = alt_point
+                    break
         
         if offset != 0:
             # Move point away from centroid
@@ -248,116 +431,250 @@ def get_best_label_position(geometry, label_text, offset=0, text_height=2.5):
     
     return None
 
-def create_label_association_layer(all_layers, project_settings, crs, layer_name, operation):
-    """Associates labels from a point layer with geometries from another layer."""
-    log_debug(f"Creating label association layer: {layer_name}")
+def try_resolve_collision(point, angle, existing_labels, text_height, label_text):
+    """Try to resolve label collision by moving the label in the optimal direction."""
+    # Create rotated box for the new label
+    text_width = len(label_text) * text_height * 0.6
+    label_box = calculate_label_box(point, text_width, text_height, angle)
     
-    # Get operation parameters
-    source_layers = operation.get('layers', [layer_name])
-    static_label = operation.get('label')
+    # First check if there's a collision
+    colliding_labels = [label for label in existing_labels if label.intersects(label_box)]
     
-    # Only get label layer info if we're not using a static label
-    if static_label is None:
-        label_layer_name = operation.get('labelLayer', layer_name)
-        label_column = operation.get('labelColumn', 'label')
+    if not colliding_labels:
+        return point, False
+    
+    # Calculate the main direction of collision
+    collision_vectors = []
+    for colliding_label in colliding_labels:
+        # Get centroid of colliding label
+        centroid = colliding_label.centroid
+        dx = point.x - centroid.x
+        dy = point.y - centroid.y
+        collision_vectors.append((dx, dy))
+    
+    # Calculate average collision vector
+    avg_dx = sum(v[0] for v in collision_vectors) / len(collision_vectors)
+    avg_dy = sum(v[1] for v in collision_vectors) / len(collision_vectors)
+    
+    # Determine if collision is more horizontal or vertical
+    is_horizontal = abs(avg_dx) > abs(avg_dy)
+    
+    # Try different offsets based on the collision direction
+    offsets = []
+    base_offset = text_height * 1.2  # Base offset distance
+    
+    if is_horizontal:
+        # Try horizontal offsets first, then diagonal
+        offsets = [
+            (math.copysign(base_offset, avg_dx), 0),  # Horizontal
+            (math.copysign(base_offset, avg_dx), base_offset/2),  # Diagonal up
+            (math.copysign(base_offset, avg_dx), -base_offset/2),  # Diagonal down
+        ]
+    else:
+        # Try vertical offsets first, then diagonal
+        offsets = [
+            (0, math.copysign(base_offset, avg_dy)),  # Vertical
+            (base_offset/2, math.copysign(base_offset, avg_dy)),  # Diagonal right
+            (-base_offset/2, math.copysign(base_offset, avg_dy)),  # Diagonal left
+        ]
+    
+    # Try each offset until finding a non-colliding position
+    for offset_x, offset_y in offsets:
+        new_point = Point(point.x + offset_x, point.y + offset_y)
+        new_box = calculate_label_box(new_point, text_width, text_height, angle)
         
-        if not label_layer_name:
-            log_warning(format_operation_warning(
-                layer_name,
-                "labelAssociation",
-                "Missing required labelLayer parameter"
-            ))
-            return None
-            
-        # Get label layer
-        label_layer = all_layers.get(label_layer_name)
-        if label_layer is None:
-            log_warning(format_operation_warning(
-                layer_name,
-                "labelAssociation",
-                f"Label layer '{label_layer_name}' not found"
-            ))
-            return None
+        if not any(label.intersects(new_box) for label in existing_labels):
+            return new_point, True
     
-    label_offset = operation.get('labelOffset', 0)
+    # If no resolution found, try larger offsets as last resort
+    last_resort_offset = base_offset * 2
+    for dx, dy in [(last_resort_offset, 0), (-last_resort_offset, 0), 
+                   (0, last_resort_offset), (0, -last_resort_offset)]:
+        new_point = Point(point.x + dx, point.y + dy)
+        new_box = calculate_label_box(new_point, text_width, text_height, angle)
+        
+        if not any(label.intersects(new_box) for label in existing_labels):
+            return new_point, True
     
-    # Get label spacing parameter (1.0 means space between labels equals label width)
-    label_spacing = operation.get('labelSpacing', 1.0)
-    log_debug(f"Label spacing from config: {label_spacing}")
+    return point, False
+
+def get_label_buffer(point, label_text, text_height):
+    """Create a buffer based on actual text dimensions."""
+    # Calculate actual text dimensions
+    # Typical width-to-height ratio is around 0.6 for most fonts
+    text_width = len(label_text) * text_height * 0.6  # Width per character
+    text_height = text_height * 1.2  # Add some vertical padding
     
-    # Get style information using StyleManager
+    # Create buffer that fully encompasses the text
+    # Using the diagonal of the text box to ensure rotation-safe coverage
+    buffer_distance = math.sqrt((text_width/2)**2 + (text_height/2)**2)
+    
+    # Add extra padding (20%) for visual separation
+    buffer_distance *= 1.2
+    
+    label_geom = QgsGeometry.fromPointXY(QgsPointXY(point.x, point.y))
+    return label_geom.buffer(buffer_distance, 5)
+
+def create_label_association_layer(all_layers, project_settings, crs, layer_name, operation):
+    """Creates label points along lines using QGIS PAL labeling system."""
+    
+    # Get label spacing settings from operation config
+    label_settings = operation.get('labelSettings', {})
+    spacing_settings = {
+        'width_factor': label_settings.get('widthFactor', 1.3),
+        'height_factor': label_settings.get('heightFactor', 1.5),
+        'buffer_factor': label_settings.get('bufferFactor', 0.2),
+        'collision_margin': label_settings.get('collisionMargin', 0.25),
+    }
+    
+    # Get text height from style
     style_manager = StyleManager(project_settings)
     layer_info = next((layer for layer in project_settings.get('geomLayers', []) 
                       if layer.get('name') == layer_name), {})
     style = style_manager.process_layer_style(layer_name, layer_info)
-    text_style = style.get('text', {}).copy()  # Make a copy of text style
-    text_height = text_style.get('height', 2.5)  # Default text height if not specified
+    text_style = style.get('text', {}).copy()
+    text_height = text_style.get('height', 2.5)  # Get actual text height from style
     
-    label_points = []
+    # Track source layers for statistics
+    source_layer_counts = {}
+    source_layers = operation.get('sourceLayers', [{'name': layer_name}])
+    
+    # Track existing label boxes instead of simple buffers
+    existing_label_boxes = []
+    features_list = []
     
     # Process each source layer
-    for layer_info in source_layers:
-        source_layer_name, values = _process_layer_info(all_layers, project_settings, crs, layer_info)
-        if source_layer_name is None or source_layer_name not in all_layers:
+    for source_config in source_layers:
+        source_layer_name = source_config.get('name')
+        if not source_layer_name:
             continue
-        
-        source_geometry = _get_filtered_geometry(all_layers, project_settings, crs, source_layer_name, values)
-        if source_geometry is None:
-            continue
-        
-        # Process each geometry
-        if isinstance(source_geometry, (Point, LineString, Polygon)):
-            geometries = [source_geometry]
-        else:
-            geometries = list(source_geometry.geoms)
-        
-        for geometry in geometries:
-            if static_label is not None:
-                label_text = static_label
-            else:
-                # Find closest label point (existing logic)
-                min_dist = float('inf')
-                closest_label = None
-                
-                for idx, label_row in label_layer.iterrows():
-                    if label_column not in label_row:
-                        continue
-                    
-                    label_point = label_row.geometry
-                    dist = geometry.distance(label_point)
-                    if dist < min_dist:
-                        min_dist = dist
-                        closest_label = (label_row[label_column], label_point)
-                
-                if closest_label is None:
-                    continue
-                
-                label_text, _ = closest_label
             
-            result = get_best_label_position(geometry, label_text, label_offset, text_height)
-            if result:
-                label_points.append(result)
+        label_text = source_config.get('label', '')
+        # Use source-specific spacing if provided, otherwise fall back to global spacing
+        spacing = source_config.get('labelSpacing', 100)
+        source_layer_counts[source_layer_name] = 0
+        
+        # Get source geometry
+        source_geometry = _get_filtered_geometry(all_layers, project_settings, crs, source_layer_name, None)
+        if source_geometry is None or source_geometry.is_empty:
+            continue
+            
+        # Convert to list of LineStrings
+        if isinstance(source_geometry, LineString):
+            geometries = [source_geometry]
+        elif isinstance(source_geometry, MultiLineString):
+            geometries = list(source_geometry.geoms)
+        else:
+            continue
+            
+        # Process each line
+        for line in geometries:
+            source_layer_counts[source_layer_name] += 1
+            line_length = line.length
+            
+            current_distance = spacing / 2
+            while current_distance < line_length:
+                point = line.interpolate(current_distance)
+                
+                # Calculate angle
+                delta = spacing * 0.1
+                point_before = line.interpolate(max(0, current_distance - delta))
+                point_after = line.interpolate(min(line_length, current_distance + delta))
+                
+                dx = point_after.x - point_before.x
+                dy = point_after.y - point_before.y
+                angle = math.degrees(math.atan2(dy, dx))
+                
+                if angle > 90:
+                    angle -= 180
+                elif angle < -90:
+                    angle += 180
+                
+                # Check for collisions with existing labels
+                if check_label_collision(point, label_text, angle, existing_label_boxes, text_height, spacing_settings):
+                    found_position = False
+                    slide_distance = spacing * 0.2  # Start with small increments
+                    max_slide = spacing * 0.8  # Don't slide more than 80% of spacing
+                    current_slide = slide_distance
+                    
+                    while current_slide <= max_slide:
+                        # Try forward
+                        if current_distance + current_slide < line_length:
+                            test_point = line.interpolate(current_distance + current_slide)
+                            if not check_label_collision(test_point, label_text, angle, existing_label_boxes, text_height, spacing_settings):
+                                point = test_point
+                                current_distance += current_slide
+                                found_position = True
+                                break
+                        
+                        # Try backward
+                        if current_distance - current_slide > 0:
+                            test_point = line.interpolate(current_distance - current_slide)
+                            if not check_label_collision(test_point, label_text, angle, existing_label_boxes, text_height, spacing_settings):
+                                point = test_point
+                                current_distance -= current_slide
+                                found_position = True
+                                break
+                        
+                        current_slide += slide_distance
+                    
+                    if not found_position:
+                        new_point, resolved = try_resolve_collision(
+                            point, angle, existing_label_boxes, text_height, label_text
+                        )
+                        if resolved:
+                            point = new_point
+                        else:
+                            current_distance += spacing
+                            continue
+                
+                # Add the label at the final position
+                features_list.append({
+                    'geometry': point,
+                    'properties': {
+                        'label': label_text,
+                        'rotation': angle
+                    }
+                })
+                
+                # Add rotated box to tracking with settings
+                label_box = calculate_label_box(point, 
+                                             len(label_text) * text_height * 0.6,
+                                             text_height,
+                                             angle,
+                                             spacing_settings)
+                existing_label_boxes.append(label_box)
+                
+                current_distance += spacing
+    
+    # Log statistics
+    for source_name, count in source_layer_counts.items():
+        placed_labels = len([
+            f for f in features_list 
+            if f['properties']['label'] == next(
+                (sl['label'] for sl in source_layers if sl['name'] == source_name), 
+                ''
+            )
+        ])
+        
+        if placed_labels < count:
+            warning_message = (
+                f"Only {placed_labels} of {count} possible label positions were used for source layer '{source_name}'. "
+                "Check the layer geometry and label spacing settings."
+            )
+            log_warning(
+                format_operation_warning(
+                    layer_name,
+                    'label_association',
+                    warning_message
+                )
+            )
     
     # Create result GeoDataFrame
-    if not label_points:
-        log_warning(format_operation_warning(
-            layer_name,
-            "labelAssociation",
-            "No labels were successfully placed"
-        ))
-        return None
+    if not features_list:
+        return gpd.GeoDataFrame({'geometry': [], 'label': []}, geometry='geometry', crs=crs)
     
-    result_data = {
-        'geometry': [p[0] for p in label_points],
-        'label': [p[1] for p in label_points],
-        'rotation': [p[2] for p in label_points]
-    }
-    
-    result_gdf = gpd.GeoDataFrame(result_data, crs=crs)
-    
-    # Store the text style in the GeoDataFrame's metadata
-    # This will be used by dxf_exporter.py when creating the MTEXT entities
+    result_gdf = gpd.GeoDataFrame.from_features(features_list, crs=crs)
     result_gdf.attrs['text_style'] = text_style
     
-    log_debug(f"Created label association layer with {len(result_gdf)} label points")
     return result_gdf
