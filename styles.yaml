@@ -9,6 +9,10 @@ styles:
       paragraph:
         align: "LEFT"
 
+  leitung:
+    layer:
+      color: "red"
+
   leitungsLabel:
     text:
       height: 3.0
