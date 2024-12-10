@@ -131,7 +131,7 @@ class LayerProcessor:
             # Check for unrecognized keys
             recognized_keys = {'name', 'updateDxf', 'operations', 'shapeFile', 'type', 'sourceLayer', 
                               'outputShapeFile', 'style', 'close', 'linetypeScale', 'linetypeGeneration', 
-                              'viewports', 'attributes', 'bluntAngles', 'label', 'applyHatch', 'plot'}
+                              'viewports', 'attributes', 'bluntAngles', 'label', 'applyHatch', 'plot', 'outputShapeFileDirectory'}
             unrecognized_keys = set(layer_obj.keys()) - recognized_keys
             if unrecognized_keys:
                 log_warning(f"Unrecognized keys in layer {layer_name}: {', '.join(unrecognized_keys)}")

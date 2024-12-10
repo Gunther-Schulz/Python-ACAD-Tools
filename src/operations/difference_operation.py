@@ -9,7 +9,17 @@ import pandas as pd
 def create_difference_layer(all_layers, project_settings, crs, layer_name, operation):
     log_debug(f"Creating difference layer: {layer_name}")
     overlay_layers = operation.get('layers', [])
-    manual_reverse = operation.get('reverseDifference')
+    
+    # Make reverseDifference mandatory
+    if 'reverseDifference' not in operation:
+        log_warning(format_operation_warning(
+            layer_name,
+            "difference",
+            "reverseDifference parameter is required but was not provided"
+        ))
+        return None
+    manual_reverse = operation['reverseDifference']
+    
     buffer_distance = operation.get('bufferDistance', 0.001)  # Increased default value
     thin_growth_threshold = operation.get('thinGrowthThreshold', 0.001)
     merge_vertices_tolerance = operation.get('mergeVerticesTolerance', 0.0001)
