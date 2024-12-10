@@ -688,6 +688,35 @@ geomLayers:
 
 # Construction
 
+- name: Construction SF
+  operations:
+    - type: copy
+      layers:
+        - Baugrenze
+    - type: intersection
+      layers:
+        - Biotoptyp Sonstiges Feuchtgrünland
+    - type: dissolve
+    - type: filterGeometry
+      geometryTypes:
+        - Polygon
+      minArea: 10
+  saveToLagefaktor: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/Lagefaktor/Waren_2/construction"
+
+- name: Construction Sandacker
+  operations:
+    - type: copy
+      layers:
+        - Baugrenze
+    - type: intersection
+      layers:
+        - Biotoptyp Sandacker
+    - type: dissolve
+    - type: filterGeometry
+      geometryTypes:
+        - Polygon
+      minArea: 10
+  saveToLagefaktor: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/Lagefaktor/Waren_2/construction"
 
 
 # Compensatory
