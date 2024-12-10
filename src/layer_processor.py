@@ -131,7 +131,7 @@ class LayerProcessor:
             # Check for unrecognized keys
             recognized_keys = {'name', 'updateDxf', 'operations', 'shapeFile', 'type', 'sourceLayer', 
                               'outputShapeFile', 'style', 'close', 'linetypeScale', 'linetypeGeneration', 
-                              'viewports', 'attributes', 'bluntAngles', 'label', 'applyHatch', 'plot', 'outputShapeFileDirectory'}
+                              'viewports', 'attributes', 'bluntAngles', 'label', 'applyHatch', 'plot', 'saveToLagefaktor'}
             unrecognized_keys = set(layer_obj.keys()) - recognized_keys
             if unrecognized_keys:
                 log_warning(f"Unrecognized keys in layer {layer_name}: {', '.join(unrecognized_keys)}")
@@ -391,15 +391,36 @@ class LayerProcessor:
             output_path = os.path.join(output_dir, f"{layer_name}.shp")
             success &= write_shapefile(gdf, output_path)
         
-        # Write to custom output directory if specified
-        if layer_info and 'outputShapeFileDirectory' in layer_info:
-            custom_output_dir = resolve_path(layer_info['outputShapeFileDirectory'], self.project_loader.folder_prefix)
-            if os.path.exists(custom_output_dir):
-                output_path = os.path.join(custom_output_dir, f"{layer_name}.shp")
-                success &= write_shapefile(gdf, output_path)
-                log_debug(f"Wrote additional shapefile to custom directory: {output_path}")
+        # Write to Lagefaktor directory if specified
+        if layer_info and 'saveToLagefaktor' in layer_info:
+            base_dir = resolve_path(layer_info['saveToLagefaktor'], self.project_loader.folder_prefix)
+            if os.path.exists(base_dir):
+                # Create layer-specific directory path
+                layer_dir = os.path.join(base_dir, layer_name)
+                
+                # Remove existing layer directory and its contents if it exists
+                if os.path.exists(layer_dir):
+                    try:
+                        shutil.rmtree(layer_dir)
+                        log_debug(f"Removed existing directory: {layer_dir}")
+                    except Exception as e:
+                        log_warning(f"Failed to remove directory {layer_dir}. Reason: {e}")
+                        success = False
+                        
+                # Create new layer directory
+                try:
+                    os.makedirs(layer_dir)
+                    log_debug(f"Created directory: {layer_dir}")
+                    
+                    # Write shapefile to the layer directory
+                    output_path = os.path.join(layer_dir, f"{layer_name}.shp")
+                    success &= write_shapefile(gdf, output_path)
+                    log_debug(f"Wrote shapefile to Lagefaktor directory: {output_path}")
+                except Exception as e:
+                    log_warning(f"Failed to create directory or write shapefile at {layer_dir}. Reason: {e}")
+                    success = False
             else:
-                log_warning(f"Custom output directory does not exist: {custom_output_dir}")
+                log_warning(f"Lagefaktor base directory does not exist: {base_dir}")
                 success = False
         
         if success:
