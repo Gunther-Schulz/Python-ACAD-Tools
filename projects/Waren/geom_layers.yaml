@@ -643,13 +643,75 @@ geomLayers:
 
 # Biotoptypen
 - name: Biotoptyp Sonstiges Feuchtgrünland # Unchanging
-  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/GFD - Sonstiges Feuchtgrünland.shp"
+  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/GFD - Sonstiges Feuchtgrünland.shp"  
+  operations:
+    - type: intersection
+      layers:
+        - Geltungsbereich
+    - type: dissolve
+    - type: filterGeometry
+      geometryTypes:
+        - Polygon
 
 - name: Biotoptyp Sandacker
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/ACS - Sandacker.shp"
+  operations:
+    - type: intersection
+      layers:
+        - Geltungsbereich
+    - type: dissolve
+    - type: filterGeometry
+      geometryTypes:
+        - Polygon
+
+
+
+# Unchanging
+- name: Unchanging
+  operations:
+    - type: copy
+      layers:
+        - Geltungsbereich
+    - type: difference
+      reverseDifference: false
+      layers:
+        - Baugrenze
+        - Grünfläche
+    - type: copy
+      layers:
+        - Biotoptyp Sonstiges Feuchtgrünland
+    - type: dissolve
+    - type: filterGeometry
+      geometryTypes:
+        - Polygon
+  saveToLagefaktor: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/Lagefaktor/Waren_2/unchanging"
+
+# Construction
+
+
 
 # Compensatory
-- name: Compensatory SF
+# Can be skipped because Unchanging matches Biotoptyp Sonstiges Feuchtgrünland
+# - name: Compensatory SF
+#   operations:
+#     - type: copy
+#       layers:
+#         - Grünfläche
+#     - type: difference
+#       reverseDifference: false
+#       layers:
+#         - Unchanging
+#     - type: intersection
+#       layers:
+#         - Biotoptyp Sonstiges Feuchtgrünland
+#     - type: dissolve
+#     - type: filterGeometry
+#       geometryTypes:
+#         - Polygon
+#       minArea: 2000
+#   saveToLagefaktor: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/Lagefaktor/Waren_2/compensatory"
+
+- name: Compensatory Sandacker
   operations:
     - type: copy
       layers:
@@ -657,6 +719,45 @@ geomLayers:
     - type: difference
       reverseDifference: false
       layers:
-        - Biotoptyp Sonstiges Feuchtgrünland
-  outputShapeFileDirectory: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/Lagefaktor/Waren_2/compensatory/Compensatory SF"
+        - Unchanging
+    - type: intersection
+      layers:
+        - Biotoptyp Sandacker
+    - type: dissolve
+    - type: filterGeometry
+      geometryTypes:
+        - Polygon
+      minArea: 2000
+  saveToLagefaktor: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/Lagefaktor/Waren_2/compensatory"
 
+# # Unchanging
+# - name: Unchanging Sonstiges Feuchtgrünland
+#   operations:
+#     - type: copy
+#       layers:
+#         - Biotoptyp Sonstiges Feuchtgrünland
+#     - type: difference
+#       reverseDifference: false
+#       layers:
+#         - Baugrenze
+#         - Compensatory SF
+#         - Compensatory Sandacker
+#   saveToLagefaktor: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/Lagefaktor/Waren_2/unchanging"
+
+# - name: Unchanging Sandacker
+#   operations:
+#     - type: copy
+#       layers:
+#         - Biotoptyp Sandacker
+#     - type: difference
+#       reverseDifference: false
+#       layers:
+#         - Baugrenze
+#         - Compensatory SF
+#         - Compensatory Sandacker
+#     - type: dissolve
+#     - type: filterGeometry
+#       geometryTypes:
+#         - Polygon
+#       minArea: 10
+#   saveToLagefaktor: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/Lagefaktor/Waren_2/unchanging"
