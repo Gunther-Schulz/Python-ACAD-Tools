@@ -8,7 +8,9 @@ def create_copy_layer(all_layers, project_settings, crs, layer_name, operation):
     log_debug(f"Creating copy layer: {layer_name}")
     source_layers = operation.get('layers', [])
     
-    combined_gdf = None
+    # Initialize combined_gdf with existing layer if it exists
+    combined_gdf = all_layers[layer_name].copy() if layer_name in all_layers else None
+    
     for layer_info in source_layers:
         source_layer_name, values = _process_layer_info(all_layers, project_settings, crs, layer_info)
         if source_layer_name is None:
@@ -53,13 +55,15 @@ def create_copy_layer(all_layers, project_settings, crs, layer_name, operation):
     if combined_gdf is not None and not combined_gdf.empty:
         combined_gdf = explode_to_singlepart(combined_gdf)
         all_layers[layer_name] = combined_gdf
-        log_debug(f"Created copy layer: {layer_name} with {len(combined_gdf)} separate features")
+        log_debug(f"Updated copy layer: {layer_name} with {len(combined_gdf)} separate features")
     else:
         log_warning(format_operation_warning(
             layer_name,
             "copy",
             "No valid source layers found"
         ))
-        all_layers[layer_name] = gpd.GeoDataFrame(geometry=[], crs=crs)
+        # Only create empty GeoDataFrame if layer doesn't exist
+        if layer_name not in all_layers:
+            all_layers[layer_name] = gpd.GeoDataFrame(geometry=[], crs=crs)
 
     return all_layers[layer_name]
