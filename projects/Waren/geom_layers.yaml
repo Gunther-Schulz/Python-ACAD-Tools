@@ -620,7 +620,40 @@ geomLayers:
         - Baugrenze Exclude
         - Exclude Bahn Buffer
         - Exclude Böschung
+    - type: calculate
+      calculations:
+        - type: area
+          as: area
+          decimalPlaces: 0
+    - type: report
+      outputFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/reports/baugrenze_report.json"
+      featureColumns:
+        - area
+      calculate:
+        - area
+      decimalPlaces:
+        area: 0
     # - type: buffer
     #   distance: -6
     # - type: buffer
     #   distance: 6
+
+### Ausgleich ###
+
+# Biotoptypen
+- name: Biotoptyp Sonstiges Feuchtgrünland # Unchanging
+  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/GFD - Sonstiges Feuchtgrünland.shp"
+
+- name: Biotoptyp Sandacker
+  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/ACS - Sandacker.shp"
+
+# Compensatory
+- name: Compensatory SF
+  operations:
+    - type: copy
+      layers:
+        - Grünfläche
+    - type: intersection
+      layers:
+        - Biotoptyp Sonstiges Feuchtgrünland
+  outputShapeFileDirectory: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/Lagefaktor/Waren_2/compensatory/Compensatory SF"
