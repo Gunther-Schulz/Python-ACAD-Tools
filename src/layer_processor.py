@@ -383,10 +383,25 @@ class LayerProcessor:
             log_warning(f"Cannot write shapefile for layer {layer_name}: data is not a GeoDataFrame (type: {type(gdf)})")
             return False
         
-        output_dir = resolve_path(self.project_loader.shapefile_output_dir)
-        output_path = os.path.join(output_dir, f"{layer_name}.shp")
+        success = True
         
-        success = write_shapefile(gdf, output_path)
+        # Write to default output directory
+        if self.project_loader.shapefile_output_dir:
+            output_dir = resolve_path(self.project_loader.shapefile_output_dir)
+            output_path = os.path.join(output_dir, f"{layer_name}.shp")
+            success &= write_shapefile(gdf, output_path)
+        
+        # Write to custom output directory if specified
+        if layer_info and 'outputShapeFileDirectory' in layer_info:
+            custom_output_dir = resolve_path(layer_info['outputShapeFileDirectory'], self.project_loader.folder_prefix)
+            if os.path.exists(custom_output_dir):
+                output_path = os.path.join(custom_output_dir, f"{layer_name}.shp")
+                success &= write_shapefile(gdf, output_path)
+                log_debug(f"Wrote additional shapefile to custom directory: {output_path}")
+            else:
+                log_warning(f"Custom output directory does not exist: {custom_output_dir}")
+                success = False
+        
         if success:
             self.processed_layers.add(layer_name)
         return success
