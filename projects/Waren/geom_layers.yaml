@@ -836,10 +836,52 @@ geomLayers:
   # saveToLagefaktor: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/Lagefaktor/Waren_2/scope"
 
 
+- name: "Buffer 100"
+  operations:
+    - type: buffer
+      layers:
+        - Interference
+      distance: 100
+    - type: dissolve
+    - type: filterGeometry
+      geometryTypes:
+        - polygon
+      minArea: 1
 
+- name: "Buffer >100<625"
+  operations:
+    - type: buffer
+      layers:
+        - Interference
+      distance: 625
+    - type: dissolve
+    - type: difference
+      reverseDifference: false
+      layers:
+        - "Buffer 100"
+    - type: dissolve
+    - type: filterGeometry
+      geometryTypes:
+        - polygon
+      minArea: 1
 
-
-
+# - name: "Buffer >625"
+#   operations:
+#     - type: copy
+#       layers:
+#         - Geltungsbereich
+#         - Ausgleich Extern
+#     - type: dissolve
+#     - type: difference
+#       reverseDifference: false
+#       layers:
+#         - "Buffer 100"
+#         - "Buffer >100<625"
+#     - type: dissolve
+#     - type: filterGeometry
+#       geometryTypes:
+#         - polygon
+#       minArea: 1
 
 
 
