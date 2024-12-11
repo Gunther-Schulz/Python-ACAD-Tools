@@ -12,7 +12,8 @@ def create_lagefaktor_layer(all_layers, project_settings, crs, layer_name, opera
     
     try:
         grz = operation.get('grz', 0.5)
-        lagefaktor_config = operation.get('lagefaktor', [])
+        # Handle both 'lagefaktor' and 'context' keys for backward compatibility
+        lagefaktor_config = operation.get('lagefaktor', operation.get('context', []))
         
         # Process construction scores
         if 'construction' in operation:
@@ -34,7 +35,13 @@ def create_lagefaktor_layer(all_layers, project_settings, crs, layer_name, opera
         # Combine results if both exist
         if construction_results is not None and compensatory_results is not None:
             return pd.concat([construction_results, compensatory_results])
-        return construction_results if construction_results is not None else compensatory_results
+        
+        result = construction_results if construction_results is not None else compensatory_results
+        if result is not None:
+            log_info(f"Successfully processed {layer_name} with {len(result)} features")
+        else:
+            log_warning(f"No results generated for {layer_name}")
+        return result
         
     except Exception as e:
         log_error(f"Error in Lagefaktor operation: {str(e)}")
