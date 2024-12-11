@@ -233,15 +233,12 @@ def _generate_protocol(result_gdf, parcel_layer, parcel_label, grz, output_dir, 
         return
 
     try:
-        # First do the overlay
-        parcels = gpd.overlay(result_gdf, parcel_layer, how='intersection')
-        
-        # Then create the mask on the overlaid data
-        comp_mask = ~parcels['name'].str.contains('construction', case=False)
-        
-        # Calculate totals
-        total_comp_score = parcels[comp_mask]['score'].sum()
-        total_const_score = parcels[~comp_mask]['score'].sum()
+        # Calculate totals using the original result_gdf
+        const_mask = result_gdf['name'].str.contains('construction', case=False)
+        total_const_score = float(result_gdf[const_mask]['score'].sum())
+        total_const_area = float(result_gdf[const_mask]['area'].sum())
+        total_comp_score = float(result_gdf[~const_mask]['score'].sum())
+        total_comp_area = float(result_gdf[~const_mask]['area'].sum())
         
         protocol = {
             'Ausgleichsprotokoll': {
@@ -249,11 +246,11 @@ def _generate_protocol(result_gdf, parcel_layer, parcel_label, grz, output_dir, 
                 'Gesamt': {
                     'Kompensation': {
                         'Score': round(total_comp_score, 2),
-                        'Fläche': round(parcels[comp_mask]['area'].sum(), 2)
+                        'Fläche': round(total_comp_area, 2)
                     },
                     'Konstruktion': {
                         'Score': round(total_const_score, 2),
-                        'Fläche': round(parcels[~comp_mask]['area'].sum(), 2)
+                        'Fläche': round(total_const_area, 2)
                     }
                 },
                 'Score Delta': round(total_comp_score - total_const_score, 2),
@@ -261,51 +258,53 @@ def _generate_protocol(result_gdf, parcel_layer, parcel_label, grz, output_dir, 
             }
         }
 
-        # Process each parcel
-        for parcel_id, parcel_data in parcels.groupby(parcel_label):
-            parcel_comp_mask = ~parcel_data['name'].str.contains('construction', case=False)
+        # Process parcels using overlay with result_gdf
+        parcels = gpd.overlay(result_gdf, parcel_layer, how='intersection')
+        
+        # Group by parcel label
+        for parcel_id, parcel_group in parcels.groupby(parcel_label):
+            const_mask = parcel_group['name'].str.contains('construction', case=False)
             
             parcel_info = {
-                'Fläche': round(parcel_data['area'].sum(), 2),
+                'Fläche': round(float(parcel_group['area'].sum()), 2),
                 'Kompensation': [],
                 'Konstruktion': []
             }
-
-            # Process compensatory areas
-            comp_data = parcel_data[parcel_comp_mask]
-            for _, row in comp_data.iterrows():
-                comp_info = {
-                    'Biotoptyp': row['name'],
-                    'Flurstücksanteilsgröße': round(row['area'], 2),
-                    'Zone': row['buffer_zone'],
-                    'Score': round(row['score'], 2)
-                }
-                parcel_info['Kompensation'].append(comp_info)
-
+            
             # Process construction areas
-            const_data = parcel_data[~parcel_comp_mask]
-            for _, row in const_data.iterrows():
-                const_info = {
-                    'Biotoptyp': row['name'],
-                    'Flurstücksanteilsgröße': round(row['area'], 2),
-                    'Zone': row['buffer_zone'],
-                    'Score': round(row['score'], 2)
+            const_data = parcel_group[const_mask]
+            for (zone, name), zone_data in const_data.groupby(['buffer_zone', 'name']):
+                info = {
+                    'Biotoptyp': name,
+                    'Flurstücksanteilsgröße': round(float(zone_data['area'].sum()), 2),
+                    'Zone': zone,
+                    'Score': round(float(zone_data['score'].sum()), 2)
                 }
-                parcel_info['Konstruktion'].append(const_info)
+                parcel_info['Konstruktion'].append(info)
+            
+            # Process compensation areas
+            comp_data = parcel_group[~const_mask]
+            for (zone, name), zone_data in comp_data.groupby(['buffer_zone', 'name']):
+                info = {
+                    'Biotoptyp': name,
+                    'Flurstücksanteilsgröße': round(float(zone_data['area'].sum()), 2),
+                    'Zone': zone,
+                    'Score': round(float(zone_data['score'].sum()), 2)
+                }
+                parcel_info['Kompensation'].append(info)
 
             protocol['Ausgleichsprotokoll']['Flurstücke'][str(parcel_id)] = parcel_info
 
-        # Save protocol - Fix the path resolution
+        # Save protocol
         filename = f"protocol_{layer_name}.yaml"
         output_path = resolve_path(os.path.join(output_dir, filename))
         
-        # Check if directory exists (but don't create it)
         if not os.path.exists(os.path.dirname(output_path)):
             log_error(f"Output directory does not exist: {os.path.dirname(output_path)}")
             return
         
         with open(output_path, 'w', encoding='utf-8') as f:
-            yaml.dump(protocol, f, allow_unicode=True, sort_keys=False)
+            yaml.dump(protocol, f, allow_unicode=True, sort_keys=False, default_flow_style=False)
         
         log_info(f"Protocol saved to {output_path}")
 
