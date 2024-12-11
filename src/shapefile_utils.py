@@ -16,6 +16,10 @@ def _normalize_field_name(name: str, max_length: int = 10) -> str:
     Returns:
         Normalized field name
     """
+    # If name is already short enough, return it as-is
+    if len(name) <= max_length:
+        return name
+        
     # Common abbreviations for longer words
     abbreviations = {
         'intersection': 'isect',
@@ -40,27 +44,41 @@ def _normalize_field_name(name: str, max_length: int = 10) -> str:
         'measurement': 'meas'
     }
     
-    # First try to replace common words with abbreviations
-    name_lower = name.lower()
-    for word, abbrev in abbreviations.items():
-        if word in name_lower:
-            name = name.replace(word, abbrev)
+    # Split name into words
+    words = name.split('_')
     
-    # If still too long, intelligently truncate
+    # Try abbreviating one word at a time until we're under the limit
+    for i in range(len(words)):
+        current_word = words[i].lower()
+        if current_word in abbreviations:
+            test_words = words.copy()
+            test_words[i] = abbreviations[current_word]
+            test_name = '_'.join(test_words)
+            if len(test_name) <= max_length:
+                return test_name
+    
+    # If still too long, remove vowels from the middle of words
     if len(name) > max_length:
-        # Remove vowels from the middle of the string, keeping first and last characters
         vowels = 'aeiouAEIOU'
-        chars = list(name)
-        for i in range(1, len(chars) - 1):
-            if len(''.join(chars)) <= max_length:
+        words = name.split('_')
+        for i in range(len(words)):
+            if len(''.join(words)) <= max_length:
                 break
-            if chars[i] in vowels:
-                chars[i] = ''
-        name = ''.join(chars)
-        
-        # If still too long, truncate to max_length
-        if len(name) > max_length:
-            name = name[:max_length]
+            # Keep first and last character, remove vowels from middle
+            word = words[i]
+            if len(word) > 3:
+                chars = list(word)
+                for j in range(1, len(chars) - 1):
+                    if len('_'.join(words)) <= max_length:
+                        break
+                    if chars[j] in vowels:
+                        chars[j] = ''
+                words[i] = ''.join(chars)
+        name = '_'.join(words)
+    
+    # If still too long, truncate
+    if len(name) > max_length:
+        name = name[:max_length]
     
     return name
 
