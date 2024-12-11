@@ -662,6 +662,9 @@ geomLayers:
 - name: Biotoptyp Sandacker
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/ACS - Sandacker.shp"
   operations:
+    - type: copy
+      layers:
+        - Zuwegung
     - type: intersection
       layers:
         - Geltungsbereich
