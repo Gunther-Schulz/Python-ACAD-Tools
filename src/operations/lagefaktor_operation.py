@@ -240,20 +240,16 @@ def _generate_protocol(result_gdf, parcel_layer, parcel_label, grz, output_dir, 
         total_comp_score = float(result_gdf[~const_mask]['score'].sum())
         total_comp_area = float(result_gdf[~const_mask]['area'].sum())
         
+        # Determine if we're doing construction or compensation
+        is_construction = total_const_score > 0
+        
         protocol = {
             'Ausgleichsprotokoll': {
                 'GRZ': grz,
                 'Gesamt': {
-                    'Kompensation': {
-                        'Score': round(total_comp_score, 2),
-                        'Fläche': round(total_comp_area, 2)
-                    },
-                    'Konstruktion': {
-                        'Score': round(total_const_score, 2),
-                        'Fläche': round(total_const_area, 2)
-                    }
+                    'Score': round(total_const_score if is_construction else total_comp_score, 2),
+                    'Fläche': round(total_const_area if is_construction else total_comp_area, 2)
                 },
-                'Score Delta': round(total_comp_score - total_const_score, 2),
                 'Flurstücke': {}
             }
         }
@@ -263,35 +259,23 @@ def _generate_protocol(result_gdf, parcel_layer, parcel_label, grz, output_dir, 
         
         # Group by parcel label
         for parcel_id, parcel_group in parcels.groupby(parcel_label):
-            const_mask = parcel_group['name'].str.contains('construction', case=False)
-            
             parcel_info = {
                 'Fläche': round(float(parcel_group['area'].sum()), 2),
-                'Kompensation': [],
-                'Konstruktion': []
+                'Kompensation' if not is_construction else 'Konstruktion': []
             }
             
-            # Process construction areas
-            const_data = parcel_group[const_mask]
-            for (zone, name), zone_data in const_data.groupby(['buffer_zone', 'name']):
+            # Process areas
+            for (zone, name), zone_data in parcel_group.groupby(['buffer_zone', 'name']):
                 info = {
                     'Biotoptyp': name,
                     'Flurstücksanteilsgröße': round(float(zone_data['area'].sum()), 2),
                     'Zone': zone,
                     'Score': round(float(zone_data['score'].sum()), 2)
                 }
-                parcel_info['Konstruktion'].append(info)
-            
-            # Process compensation areas
-            comp_data = parcel_group[~const_mask]
-            for (zone, name), zone_data in comp_data.groupby(['buffer_zone', 'name']):
-                info = {
-                    'Biotoptyp': name,
-                    'Flurstücksanteilsgröße': round(float(zone_data['area'].sum()), 2),
-                    'Zone': zone,
-                    'Score': round(float(zone_data['score'].sum()), 2)
-                }
-                parcel_info['Kompensation'].append(info)
+                if is_construction:
+                    parcel_info['Konstruktion'].append(info)
+                else:
+                    parcel_info['Kompensation'].append(info)
 
             protocol['Ausgleichsprotokoll']['Flurstücke'][str(parcel_id)] = parcel_info
 
