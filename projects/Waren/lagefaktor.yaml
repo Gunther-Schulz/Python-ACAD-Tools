@@ -1,0 +1,30 @@
+- name: Ausgleich
+  grz: 0.5
+  construction:
+    layers:
+      - layer: Construction SF
+        baseValue: 6
+      - layer: Construction Sandacker
+        baseValue: 1
+    lagefaktorValues:
+      <100: 0.75
+      '>100<625': 1
+      '>625': 1.25
+  # compensatory:
+  #   layers:
+  #     - layer: Compensatory Sandacker
+  #       baseValue: 0
+  #       compensatoryMeasureValue: 3
+  #     - layer: Compensatory Extern
+  #       baseValue: 0
+  #       compensatoryMeasureValue: 3
+  # clip:
+  #   layers:
+  #     - layers:
+  #         - Unchanging
+  # scope:
+  #   layers:
+  #     - layers:
+  #         - Geltungsbereich
+  #         - Ausgleich Extern
+
