@@ -8,19 +8,15 @@ def create_lagefaktor_layer(all_layers, project_settings, crs, layer_name, opera
     """Process Lagefaktor calculations for construction and compensatory areas."""
     log_info(f"-----------------Processing Lagefaktor operation for layer: {layer_name}")
     
-    # Create GeoDataFrames to store results
-    construction_results = None
-    compensatory_results = None
-    
     try:
         grz = operation.get('grz', 0.5)
         parcel_layer_name = operation.get('parcelLayer')
-        parcel_label = operation.get('parcelLabel', 'name')  # Default to 'name' if not specified
+        parcel_label = operation.get('parcelLabel', 'name')
         protokol_output_dir = operation.get('protokolOutputDir')
-        # Handle both 'lagefaktor' and 'context' keys for backward compatibility
         lagefaktor_config = operation.get('lagefaktor', operation.get('context', []))
         
         # Process construction scores
+        construction_results = None
         if 'construction' in operation:
             construction_results = _process_construction(
                 all_layers,
@@ -30,6 +26,7 @@ def create_lagefaktor_layer(all_layers, project_settings, crs, layer_name, opera
             )
             
         # Process compensatory scores
+        compensatory_results = None
         if 'compensatory' in operation:
             compensatory_results = _process_compensatory(
                 all_layers,
@@ -42,28 +39,32 @@ def create_lagefaktor_layer(all_layers, project_settings, crs, layer_name, opera
             result = pd.concat([construction_results, compensatory_results])
         else:
             result = construction_results if construction_results is not None else compensatory_results
-        
+
         if result is not None:
-            # Assign sequential IDs to the final combined result
+            # Explode MultiPolygons into individual Polygons
+            result = result.explode(index_parts=True).reset_index(drop=True)
+            
+            # Reassign IDs after explosion
             result['id'] = range(1, len(result) + 1)
-            # Reorder columns to put ID first
             cols = ['id'] + [col for col in result.columns if col != 'id']
             result = result[cols]
-            print(result)
+            
+            # Generate protocol if needed
+            if protokol_output_dir and protokol_output_dir.strip():
+                _generate_protocol(
+                    result,
+                    all_layers.get(parcel_layer_name),
+                    parcel_label,
+                    grz,
+                    protokol_output_dir,
+                    layer_name
+                )
+            
             log_info(f"Successfully processed {layer_name} with {len(result)} features")
+            print(result)
+            return result
 
-        # Only generate protocol if protokolOutputDir is explicitly set
-        if protokol_output_dir and result is not None and protokol_output_dir.strip():
-            _generate_protocol(
-                result,
-                all_layers.get(parcel_layer_name),
-                parcel_label,
-                grz,
-                protokol_output_dir,
-                layer_name
-            )
-
-        return result
+        return None
         
     except Exception as e:
         log_error(f"Error in Lagefaktor operation: {str(e)}")
@@ -258,61 +259,38 @@ def _generate_protocol(result_gdf, parcel_layer, parcel_label, grz, output_dir, 
         import warnings
         with warnings.catch_warnings():
             warnings.filterwarnings('ignore', message='.*keep_geom_type=True.*')
+            # Calculate intersection with original geometries (before explosion)
             parcels = gpd.overlay(result_gdf, parcel_layer, how='intersection')
-        
-        # Calculate totals using the original result_gdf
-        const_mask = result_gdf['name'].str.contains('construction', case=False)
-        total_const_score = float(result_gdf[const_mask]['score'].sum())
-        total_const_area = float(result_gdf[const_mask]['area'].sum())
-        total_comp_score = float(result_gdf[~const_mask]['score'].sum())
-        total_comp_area = float(result_gdf[~const_mask]['area'].sum())
-        
-        # Determine if we're doing construction or compensation
-        is_construction = total_const_score > 0
         
         protocol = {
             'Ausgleichsprotokoll': {
-                'Typ': 'Kompensation' if not is_construction else 'Konstruktion',
+                'Typ': 'Konstruktion',
                 'GRZ': grz,
                 'Gesamt': {
-                    'Score': round(total_const_score if is_construction else total_comp_score, 2),
-                    'Fläche': round(total_const_area if is_construction else total_comp_area, 2)
+                    'Score': round(float(result_gdf['score'].sum()), 2),
+                    'Fläche': round(float(result_gdf['area'].sum()), 2)
                 },
                 'Flurstücke': {}
             }
         }
 
-        # Group by parcel label
+        # Group by parcel label and process each parcel's intersections
         for parcel_id, parcel_group in parcels.groupby(parcel_label):
             parcel_info = {
                 'Fläche': round(float(parcel_group['area'].sum()), 2),
                 'Maßnahmen': []
             }
             
-            # Process areas
-            for (zone, name), zone_data in parcel_group.groupby(['buffer_zone', 'name']):
+            # Process each intersection within the parcel
+            for _, intersection in parcel_group.iterrows():
                 info = {
-                    'ID': int(zone_data['id'].iloc[0]),
-                    'Biotoptyp': name,
-                    'Flurstücksanteilsgröße': round(float(zone_data['area'].sum()), 2),
-                    'Zone': zone,
-                    'Ausgangswert': float(zone_data['base_value'].iloc[0]),
-                    'Score': round(float(zone_data['score'].sum()), 2)
+                    'ID': int(intersection['id']),
+                    'Biotoptyp': intersection['name'],
+                    'Flurstücksanteilsgröße': round(float(intersection.geometry.area), 2),
+                    'Zone': intersection['buffer_zone'],
+                    'Ausgangswert': float(intersection['base_value']),
+                    'Score': round(float(intersection['score']), 2)
                 }
-                
-                # Add Zielwert only for compensatory areas
-                if not is_construction and 'compensatory_value' in zone_data:
-                    # Create new dict with desired order
-                    info = {
-                        'ID': info['ID'],
-                        'Biotoptyp': info['Biotoptyp'],
-                        'Flurstücksanteilsgröße': info['Flurstücksanteilsgröße'],
-                        'Zone': info['Zone'],
-                        'Ausgangswert': info['Ausgangswert'],
-                        'Zielwert': float(zone_data['compensatory_value'].iloc[0]),
-                        'Score': info['Score']
-                    }
-                
                 parcel_info['Maßnahmen'].append(info)
 
             protocol['Ausgleichsprotokoll']['Flurstücke'][str(parcel_id)] = parcel_info
@@ -320,10 +298,6 @@ def _generate_protocol(result_gdf, parcel_layer, parcel_label, grz, output_dir, 
         # Save protocol
         filename = f"protocol_{layer_name}.yaml"
         output_path = resolve_path(os.path.join(output_dir, filename))
-        
-        if not os.path.exists(os.path.dirname(output_path)):
-            log_error(f"Output directory does not exist: {os.path.dirname(output_path)}")
-            return
         
         with open(output_path, 'w', encoding='utf-8') as f:
             yaml.dump(protocol, f, allow_unicode=True, sort_keys=False, default_flow_style=False)
