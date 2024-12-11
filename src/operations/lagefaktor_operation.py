@@ -245,10 +245,6 @@ def _generate_protocol(result_gdf, parcel_layer, parcel_label, grz, output_dir, 
         return
 
     try:
-        # Debug column names
-        log_debug(f"Result GDF columns: {result_gdf.columns.tolist()}")
-        log_debug(f"Sample row from result_gdf: {result_gdf.iloc[0].to_dict()}")
-        
         # Calculate totals using the original result_gdf
         const_mask = result_gdf['name'].str.contains('construction', case=False)
         total_const_score = float(result_gdf[const_mask]['score'].sum())
@@ -261,6 +257,7 @@ def _generate_protocol(result_gdf, parcel_layer, parcel_label, grz, output_dir, 
         
         protocol = {
             'Ausgleichsprotokoll': {
+                'Typ': 'Kompensation' if not is_construction else 'Konstruktion',
                 'GRZ': grz,
                 'Gesamt': {
                     'Score': round(total_const_score if is_construction else total_comp_score, 2),
@@ -272,14 +269,12 @@ def _generate_protocol(result_gdf, parcel_layer, parcel_label, grz, output_dir, 
 
         # Process parcels using overlay with result_gdf
         parcels = gpd.overlay(result_gdf, parcel_layer, how='intersection')
-        log_debug(f"Parcels columns after overlay: {parcels.columns.tolist()}")
-        log_debug(f"Sample row from parcels: {parcels.iloc[0].to_dict()}")
         
         # Group by parcel label
         for parcel_id, parcel_group in parcels.groupby(parcel_label):
             parcel_info = {
                 'Fläche': round(float(parcel_group['area'].sum()), 2),
-                'Kompensation' if not is_construction else 'Konstruktion': []
+                'Maßnahmen': []
             }
             
             # Process areas
@@ -288,13 +283,23 @@ def _generate_protocol(result_gdf, parcel_layer, parcel_label, grz, output_dir, 
                     'Biotoptyp': name,
                     'Flurstücksanteilsgröße': round(float(zone_data['area'].sum()), 2),
                     'Zone': zone,
+                    'Ausgangswert': float(zone_data['base_value'].iloc[0]),
                     'Score': round(float(zone_data['score'].sum()), 2)
                 }
                 
-                if is_construction:
-                    parcel_info['Konstruktion'].append(info)
-                else:
-                    parcel_info['Kompensation'].append(info)
+                # Add Zielwert only for compensatory areas
+                if not is_construction and 'compensatory_value' in zone_data:
+                    # Create new dict with desired order
+                    info = {
+                        'Biotoptyp': info['Biotoptyp'],
+                        'Flurstücksanteilsgröße': info['Flurstücksanteilsgröße'],
+                        'Zone': info['Zone'],
+                        'Ausgangswert': info['Ausgangswert'],
+                        'Zielwert': float(zone_data['compensatory_value'].iloc[0]),
+                        'Score': info['Score']
+                    }
+                
+                parcel_info['Maßnahmen'].append(info)
 
             protocol['Ausgleichsprotokoll']['Flurstücke'][str(parcel_id)] = parcel_info
 
