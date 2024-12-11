@@ -10,7 +10,7 @@ from geopandas import GeoSeries
 import os
 import shutil
 import fiona
-from src.lagefaktor import LagefaktorProcessor
+from src.style_manager import StyleManager
 
 # Import operations individually
 from src.operations import (
@@ -49,7 +49,6 @@ class LayerProcessor:
         self.processed_layers = set()
         self.dxf_doc = None
         self.pending_dxf_layers = []
-        self.lagefaktor_processor = LagefaktorProcessor(project_loader)
     
     def set_dxf_document(self, doc):
         """Set the DXF document from DXFExporter and process any pending layers"""
@@ -69,40 +68,6 @@ class LayerProcessor:
             self.process_layer(layer, self.processed_layers)
             if shapefile_output_dir:
                 self.write_shapefile(layer_name)
-
-        # Process Lagefaktor calculations after geometric layers
-        log_debug("Starting Lagefaktor processing...")
-        try:
-            construction_results, compensatory_results = self.lagefaktor_processor.process_scores(self)
-            
-            # Save Lagefaktor results if they exist
-            if construction_results is not None or compensatory_results is not None:
-                for area_config in self.lagefaktor_processor.config:
-                    area_name = area_config['name']
-                    output_dir = area_config.get('outputDir')
-                    
-                    if output_dir:
-                        output_dir = resolve_path(output_dir, self.project_loader.folder_prefix)
-                        ensure_path_exists(output_dir)
-                        
-                        # Save construction results
-                        if construction_results is not None:
-                            area_construction = construction_results[construction_results['area_name'] == area_name]
-                            if not area_construction.empty:
-                                construction_layer_name = f"{area_name}_construction_results"
-                                self.all_layers[construction_layer_name] = area_construction
-                                self.write_shapefile(construction_layer_name)
-                        
-                        # Save compensatory results
-                        if compensatory_results is not None:
-                            area_compensatory = compensatory_results[compensatory_results['area_name'] == area_name]
-                            if not area_compensatory.empty:
-                                compensatory_layer_name = f"{area_name}_compensatory_results"
-                                self.all_layers[compensatory_layer_name] = area_compensatory
-                                self.write_shapefile(compensatory_layer_name)
-                            
-        except Exception as e:
-            log_error(f"Error during Lagefaktor processing: {str(e)}")
 
         # Process WMTS layers
         for layer in self.project_settings.get('wmtsLayers', []):
