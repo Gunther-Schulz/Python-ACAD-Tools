@@ -44,6 +44,12 @@ def create_lagefaktor_layer(all_layers, project_settings, crs, layer_name, opera
             result = construction_results if construction_results is not None else compensatory_results
         
         if result is not None:
+            # Assign sequential IDs to the final combined result
+            result['id'] = range(1, len(result) + 1)
+            # Reorder columns to put ID first
+            cols = ['id'] + [col for col in result.columns if col != 'id']
+            result = result[cols]
+            print(result)
             log_info(f"Successfully processed {layer_name} with {len(result)} features")
 
         # Only generate protocol if protokolOutputDir is explicitly set
@@ -93,7 +99,6 @@ def _process_construction(all_layers, construction_config, lagefaktor_config, gr
     if area_construction_total > 0:
         log_info(f"Total construction score: {area_construction_total:.2f}")
     
-    print(result_gdf)
     return result_gdf
 
 def _process_compensatory(all_layers, compensatory_config, lagefaktor_config):
@@ -125,7 +130,6 @@ def _process_compensatory(all_layers, compensatory_config, lagefaktor_config):
     if area_compensatory_total > 0:
         log_info(f"Total compensatory score: {area_compensatory_total:.2f}")
     
-    print(result_gdf)
     return result_gdf
 
 def _process_layer_scores(all_layers, layer_name, base_value, lagefaktor_config, is_construction=True, grz=None, compensatory_value=None):
@@ -199,8 +203,13 @@ def _process_layer_scores(all_layers, layer_name, base_value, lagefaktor_config,
     if result_gdf is not None:
         # Define base columns to keep
         keep_columns = [
-            'feature_id', 'name', 'buffer_zone', 'distance', 'area', 'score',
-            'base_value',  # Added for both types
+            'feature_id', 
+            'name', 
+            'buffer_zone', 
+            'distance', 
+            'area', 
+            'score',
+            'base_value',
             'geometry'
         ]
         
@@ -283,6 +292,7 @@ def _generate_protocol(result_gdf, parcel_layer, parcel_label, grz, output_dir, 
             # Process areas
             for (zone, name), zone_data in parcel_group.groupby(['buffer_zone', 'name']):
                 info = {
+                    'ID': int(zone_data['id'].iloc[0]),
                     'Biotoptyp': name,
                     'Flurstücksanteilsgröße': round(float(zone_data['area'].sum()), 2),
                     'Zone': zone,
@@ -294,6 +304,7 @@ def _generate_protocol(result_gdf, parcel_layer, parcel_label, grz, output_dir, 
                 if not is_construction and 'compensatory_value' in zone_data:
                     # Create new dict with desired order
                     info = {
+                        'ID': info['ID'],
                         'Biotoptyp': info['Biotoptyp'],
                         'Flurstücksanteilsgröße': info['Flurstücksanteilsgröße'],
                         'Zone': info['Zone'],
