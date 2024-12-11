@@ -161,16 +161,20 @@ class LagefaktorProcessor:
             log_warning(f"Layer {layer_name} is empty")
             return None
 
-        # Create a copy to avoid modifying the original
         result_gdf = None
         
-        # Process each lagefaktor zone separately
+        # Store GRZ factors for logging
+        if is_construction:
+            factor_a = grz if grz else 0.5
+            factor_b = 0.2
+            factor_c = 0.6
+            factor_sum = factor_b + factor_c
+        
         for lf_config in lagefaktor_config:
             buffer_layer = layer_processor.all_layers.get(lf_config['sourceLayer'])
             if buffer_layer is None:
                 continue
             
-            # Intersect with this buffer
             intersection = gpd.overlay(layer_gdf, buffer_layer, how='intersection')
             
             if not intersection.empty:
@@ -181,30 +185,16 @@ class LagefaktorProcessor:
                 zone_gdf['name'] = layer_name
                 zone_gdf['buffer_zone'] = lf_config['sourceLayer']
                 zone_gdf['distance'] = lf_config['distance']
-                
-                # Calculate areas
                 zone_gdf['area'] = zone_gdf.geometry.area
 
                 if is_construction:
-                    # Construction calculation
                     zone_gdf['base_times_lage'] = zone_gdf['base_value'] * zone_gdf['lagefaktor']
                     zone_gdf['initial_value'] = zone_gdf['base_times_lage'] * zone_gdf['area']
-                    
-                    factor_a = grz if grz else 0.5
-                    factor_b = 0.2
-                    factor_c = 0.6
-                    factor_sum = factor_b + factor_c
-                    
                     zone_gdf['adjusted_value'] = zone_gdf['initial_value'] * factor_a
                     zone_gdf['final_value'] = zone_gdf['adjusted_value'] * factor_sum
                     zone_gdf['score'] = zone_gdf['final_value'].round(2)
                     
-                    zone_gdf['factor_a'] = factor_a
-                    zone_gdf['factor_b'] = factor_b
-                    zone_gdf['factor_c'] = factor_c
-                    
                 else:
-                    # Compensatory calculation
                     zone_gdf['eligible'] = True
                     zone_gdf['compensat'] = compensatory_value
                     zone_gdf['initial_value'] = zone_gdf['compensat'] - zone_gdf['base_value']
@@ -215,7 +205,6 @@ class LagefaktorProcessor:
                     zone_gdf['protected_final_v'] = zone_gdf['final_value'] * zone_gdf['prot_value']
                     zone_gdf['score'] = zone_gdf['protected_final_v'].round(2)
 
-                # Concatenate with previous results
                 if result_gdf is None:
                     result_gdf = zone_gdf
                 else:
@@ -224,7 +213,7 @@ class LagefaktorProcessor:
                 # Log calculations for this zone
                 for _, row in zone_gdf.iterrows():
                     if is_construction:
-                        self._log_construction_calculation(area_name, row)
+                        self._log_construction_calculation(area_name, row, factor_a, factor_b, factor_c)
                     elif row['eligible']:
                         self._log_compensatory_calculation(area_name, row)
                     else:
@@ -234,6 +223,10 @@ class LagefaktorProcessor:
             layer_score = result_gdf['score'].sum()
             score_type = "Construction" if is_construction else "Compensatory"
             log_info(f"{score_type} score for {area_name} - {layer_name}: {layer_score:.2f}")
+
+            # Select only relevant columns
+            relevant_columns = ['feature_id', 'name', 'buffer_zone', 'distance', 'area', 'score', 'geometry']
+            result_gdf = result_gdf[relevant_columns]
 
         return result_gdf
 
@@ -419,7 +412,7 @@ class LagefaktorProcessor:
         )
         log_debug(protocol_message)
 
-    def _log_construction_calculation(self, area_name, row):
+    def _log_construction_calculation(self, area_name, row, factor_a, factor_b, factor_c):
         """Log the details of a construction calculation."""
         log_debug(f"Construction Score Calculation for {area_name}:\n"
                   f"  Feature ID: {row['feature_id']}\n"
@@ -429,10 +422,10 @@ class LagefaktorProcessor:
                   f"  Lagefaktor: {row['lagefaktor']}\n"
                   f"  Step 1 (Base * Lagefaktor): {row['base_times_lage']:.2f}\n"
                   f"  Step 2 (Step 1 * Area) = Initial Value: {row['initial_value']:.2f}\n"
-                  f"  Step 3 (Initial * Factor A [{row['factor_a']}]) = Adjusted Value: {row['adjusted_value']:.2f}\n"
-                  f"  Step 4 (Factor B + Factor C = {row['factor_b']} + {row['factor_c']}): {row['factor_b'] + row['factor_c']:.2f}\n"
+                  f"  Step 3 (Initial * Factor A [{factor_a}]) = Adjusted Value: {row['adjusted_value']:.2f}\n"
+                  f"  Step 4 (Factor B + Factor C = {factor_b} + {factor_c}): {factor_b + factor_c:.2f}\n"
                   f"  Step 5 (Adjusted * (B+C)) = Final Value: {row['final_value']:.2f}\n"
-                  f"  GRZ Factors (a,b,c): {row['factor_a']}, {row['factor_b']}, {row['factor_c']}\n"
+                  f"  GRZ Factors (a,b,c): {factor_a}, {factor_b}, {factor_c}\n"
                   f"  Final Score: {row['score']}\n"
                   f"-------------------")
 
