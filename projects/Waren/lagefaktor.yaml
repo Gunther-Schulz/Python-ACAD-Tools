@@ -25,6 +25,9 @@
       - layer: Compensatory Extern
         baseValue: 0
         compensatoryMeasureValue: 3
+  # parcel:
+  #   layer: Parcel
+  #   field: label
   # clip:
   #   layers:
   #     - layers:

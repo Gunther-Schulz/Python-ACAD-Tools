@@ -816,12 +816,12 @@ geomLayers:
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/Störquellen.shp"
   saveToLagefaktor: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/Lagefaktor/Waren_2/interference"
 
-# Parcel
-- name: Parcel_Lagefaktor
-  operations:
-    - type: copy
-      layers:
-        - Parcel
+# # Parcel
+# - name: Parcel_Lagefaktor
+#   operations:
+#     - type: copy
+#       layers:
+#         - Parcel
   # saveToLagefaktor: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/Lagefaktor/Waren_2/parcel"
 
 # # Scope
