@@ -255,12 +255,16 @@ def _generate_protocol(result_gdf, parcel_layer, parcel_label, grz, output_dir, 
         return
 
     try:
-        # Suppress specific overlay warning
-        import warnings
-        with warnings.catch_warnings():
-            warnings.filterwarnings('ignore', message='.*keep_geom_type=True.*')
-            # Calculate intersection with original geometries (before explosion)
-            parcels = gpd.overlay(result_gdf, parcel_layer, how='intersection')
+        # First, find which parcels actually intersect with our result geometries
+        result_union = result_gdf.unary_union
+        intersecting_parcels = parcel_layer[parcel_layer.intersects(result_union)]
+        
+        if intersecting_parcels.empty:
+            log_warning("No intersecting parcels found")
+            return
+            
+        # Now calculate intersections only for relevant parcels
+        parcels = gpd.overlay(intersecting_parcels, result_gdf, how='intersection')
         
         protocol = {
             'Ausgleichsprotokoll': {
@@ -274,28 +278,31 @@ def _generate_protocol(result_gdf, parcel_layer, parcel_label, grz, output_dir, 
             }
         }
 
-        # Group by parcel label and process each parcel's intersections
         for parcel_id, parcel_group in parcels.groupby(parcel_label):
-            parcel_info = {
-                'Fläche': round(float(parcel_group['area'].sum()), 2),
-                'Maßnahmen': []
-            }
-            
-            # Process each intersection within the parcel
+            measures = []
             for _, intersection in parcel_group.iterrows():
-                info = {
-                    'ID': int(intersection['id']),
-                    'Biotoptyp': intersection['name'],
-                    'Flurstücksanteilsgröße': round(float(intersection.geometry.area), 2),
-                    'Zone': intersection['buffer_zone'],
-                    'Ausgangswert': float(intersection['base_value']),
-                    'Score': round(float(intersection['score']), 2)
+                area = intersection.geometry.area
+                if area > 0.01:  # Only include if area is significant
+                    # Calculate partial score based on area proportion
+                    area_proportion = area / intersection['area']
+                    partial_score = intersection['score'] * area_proportion
+                    
+                    measures.append({
+                        'ID': int(intersection['id']),
+                        'Biotoptyp': intersection['name'],
+                        'Flurstücksanteilsgröße': round(float(area), 2),
+                        'Zone': intersection['buffer_zone'],
+                        'Ausgangswert': float(intersection['base_value']),
+                        'Teilscore': round(float(partial_score), 2)
+                    })
+            
+            # Only add to protocol if there are actual measures
+            if measures:
+                protocol['Ausgleichsprotokoll']['Flurstücke'][str(parcel_id)] = {
+                    'Fläche': round(float(sum(m['Flurstücksanteilsgröße'] for m in measures)), 2),
+                    'Maßnahmen': measures
                 }
-                parcel_info['Maßnahmen'].append(info)
 
-            protocol['Ausgleichsprotokoll']['Flurstücke'][str(parcel_id)] = parcel_info
-
-        # Save protocol
         filename = f"protocol_{layer_name}.yaml"
         output_path = resolve_path(os.path.join(output_dir, filename))
         
