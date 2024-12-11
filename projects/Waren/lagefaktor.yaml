@@ -16,15 +16,14 @@
         baseValue: 6
       - layer: Construction Sandacker
         baseValue: 1
-
-  # compensatory:
-  #   layers:
-  #     - layer: Compensatory Sandacker
-  #       baseValue: 0
-  #       compensatoryMeasureValue: 3
-  #     - layer: Compensatory Extern
-  #       baseValue: 0
-  #       compensatoryMeasureValue: 3
+  compensatory:
+    layers:
+      - layer: Compensatory Sandacker
+        baseValue: 0
+        compensatoryMeasureValue: 3
+      - layer: Compensatory Extern
+        baseValue: 0
+        compensatoryMeasureValue: 3
   # clip:
   #   layers:
   #     - layers:

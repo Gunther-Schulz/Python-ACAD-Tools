@@ -72,7 +72,7 @@ class LayerProcessor:
         # Process Lagefaktor calculations after geometric layers
         log_debug("Starting Lagefaktor processing...")
         try:
-            self.lagefaktor_processor.process_construction_scores(self)
+            self.lagefaktor_processor.process_scores(self)
         except Exception as e:
             log_error(f"Error during Lagefaktor processing: {str(e)}")
 
