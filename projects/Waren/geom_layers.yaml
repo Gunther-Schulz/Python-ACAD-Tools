@@ -887,8 +887,46 @@ geomLayers:
 #       minArea: 1
 
 
+- name: Ausgleich Construction
+  operations:
+    - type: lagefaktor
+      grz: 0.5
+      context:
+        - distance: "<100"
+          value: 0.75
+          sourceLayer: "Buffer 100"
+        - distance: ">100<625"
+          value: 1
+          sourceLayer: "Buffer >100<625"
+        # - distance: ">625"
+        #   value: 1.25
+        #   geometry: "Buffer >625"
+      construction:
+        layers:
+          - layer: Construction SF
+            baseValue: 6
+          - layer: Construction Sandacker
+            baseValue: 1
 
-
+- name: Ausgleich Compensatory
+  operations:
+    - type: lagefaktor
+      grz: 0.5
+      context:
+        - distance: "<100"
+          value: 0.75
+          sourceLayer: "Buffer 100"
+        - distance: ">100<625"
+          value: 1
+          sourceLayer: "Buffer >100<625"
+      compensatory:
+        layers:
+          - layer: Compensatory Sandacker
+            baseValue: 0
+            compensatoryMeasureValue: 3
+          - layer: Compensatory Extern
+            baseValue: 0
+            compensatoryMeasureValue: 3
 
 
 
