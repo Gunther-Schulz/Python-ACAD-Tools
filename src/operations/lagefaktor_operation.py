@@ -93,6 +93,7 @@ def _process_construction(all_layers, construction_config, lagefaktor_config, gr
     if area_construction_total > 0:
         log_info(f"Total construction score: {area_construction_total:.2f}")
     
+    print(result_gdf)
     return result_gdf
 
 def _process_compensatory(all_layers, compensatory_config, lagefaktor_config):
@@ -124,6 +125,7 @@ def _process_compensatory(all_layers, compensatory_config, lagefaktor_config):
     if area_compensatory_total > 0:
         log_info(f"Total compensatory score: {area_compensatory_total:.2f}")
     
+    print(result_gdf)
     return result_gdf
 
 def _process_layer_scores(all_layers, layer_name, base_value, lagefaktor_config, is_construction=True, grz=None, compensatory_value=None):
@@ -272,6 +274,7 @@ def _generate_protocol(result_gdf, parcel_layer, parcel_label, grz, output_dir, 
                     'Zone': zone,
                     'Score': round(float(zone_data['score'].sum()), 2)
                 }
+                
                 if is_construction:
                     parcel_info['Konstruktion'].append(info)
                 else:
