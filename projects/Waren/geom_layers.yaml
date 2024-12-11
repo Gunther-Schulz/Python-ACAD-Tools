@@ -821,19 +821,19 @@ geomLayers:
         - Parcel
   # saveToLagefaktor: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/Lagefaktor/Waren_2/parcel"
 
-# Scope
-- name: Scope
-  operations:
-    - type: copy
-      layers:
-        - Geltungsbereich
-        - Ausgleich Extern
-    - type: dissolve
-    - type: filterGeometry
-      geometryTypes:
-        - polygon
-      minArea: 1
-  # saveToLagefaktor: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/Lagefaktor/Waren_2/scope"
+# # Scope
+# - name: Scope
+#   operations:
+#     - type: copy
+#       layers:
+#         - Geltungsbereich
+#         - Ausgleich Extern
+#     - type: dissolve
+#     - type: filterGeometry
+#       geometryTypes:
+#         - polygon
+#       minArea: 1
+#   # saveToLagefaktor: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/Lagefaktor/Waren_2/scope"
 
 
 - name: "Buffer 100"

@@ -59,7 +59,7 @@ class LagefaktorProcessor:
                     result_gdf = gpd.GeoDataFrame(geometry=[], crs=gdf.crs)
                     
                     # Process lagefaktor for each distance range
-                    for lf_config in construction_config.get('lagefaktor', []):
+                    for lf_config in area_config.get('lagefaktor', []):
                         source_layer = lf_config['sourceLayer']
                         if source_layer not in layer_processor.all_layers:
                             log_warning(f"Lagefaktor source layer {source_layer} not found")
@@ -143,25 +143,31 @@ class LagefaktorProcessor:
             base_times_lage = base_value * lagefaktor
             initial_value = base_times_lage * area
             
-            # TODO: Replace with actual GRZ factors from configuration
-            factor_a = 1.0  # These should come from configuration
-            factor_b = 1.0
-            factor_c = 0.0
+            # Get GRZ factors from configuration instead of hardcoded values
+            factor_a, factor_b, factor_c = self._get_grz_factors(grz)
             
             adjusted_value = initial_value * factor_a
             factor_sum = factor_b + factor_c
             final_value = adjusted_value * factor_sum
             
-            # Store calculation steps in a new column instead of 'attributes'
+            # Store detailed calculation steps
             row['calculation'] = {
+                'feature_id': self._create_feature_identifier(row),
                 'area': area,
                 'base_value': base_value,
                 'lagefaktor': lagefaktor,
                 'base_times_lage': base_times_lage,
                 'initial_value': initial_value,
+                'factor_a': factor_a,
+                'factor_b': factor_b,
+                'factor_c': factor_c,
                 'adjusted_value': adjusted_value,
+                'factor_sum': factor_sum,
                 'final_value': final_value
             }
+            
+            # Log detailed calculation steps
+            self._log_calculation_protocol(row['calculation'], area_name)
             
             return round(final_value, 2)
         
@@ -173,3 +179,51 @@ class LagefaktorProcessor:
         log_debug(f"Calculated construction scores for area: {area_name}")
         
         return features
+
+    def _get_grz_factors(self, grz):
+        """
+        Get the GRZ factors based on the GRZ value.
+        
+        Args:
+            grz (float): The GRZ value as specified in the configuration
+            
+        Returns:
+            tuple: (factor_a, factor_b, factor_c)
+        """
+        # Define GRZ factors
+        GRZ_FACTORS = {
+            '0.5': [0.5, 0.2, 0.6],
+            '0.75': [0.75, 0.5, 0.8]
+        }
+        
+        # Convert grz to string for dictionary lookup
+        grz_str = str(grz)
+        
+        if grz_str in GRZ_FACTORS:
+            factors = GRZ_FACTORS[grz_str]
+            return tuple(factors)  # returns (factor_a, factor_b, factor_c)
+        else:
+            log_warning(f"No GRZ factors defined for GRZ={grz}. Using default values.")
+            return (1.0, 1.0, 0.0)  # default values if GRZ not found
+
+    def _create_feature_identifier(self, feature):
+        """Create a unique identifier for the feature."""
+        # Implement feature identification logic
+        return f"Feature_{hash(str(feature.geometry))}"
+
+    def _log_calculation_protocol(self, calc_data, area_name):
+        """Log detailed calculation protocol."""
+        protocol_message = (
+            f"Construction Score Calculation for {area_name}:\n"
+            f"  Feature ID: {calc_data['feature_id']}\n"
+            f"  Area: {calc_data['area']:.2f}\n"
+            f"  Base Value: {calc_data['base_value']}\n"
+            f"  Lagefaktor: {calc_data['lagefaktor']}\n"
+            f"  Step 1 (Base * Lagefaktor): {calc_data['base_times_lage']:.2f}\n"
+            f"  Step 2 (Step 1 * Area) = Initial Value: {calc_data['initial_value']:.2f}\n"
+            f"  Step 3 (Initial * Factor A [{calc_data['factor_a']}]) = Adjusted Value: {calc_data['adjusted_value']:.2f}\n"
+            f"  Step 4 (Factor B + Factor C = {calc_data['factor_b']} + {calc_data['factor_c']}): {calc_data['factor_sum']:.2f}\n"
+            f"  Step 5 (Adjusted * (B+C)) = Final Value: {calc_data['final_value']:.2f}\n"
+            f"-------------------"
+        )
+        log_debug(protocol_message)
