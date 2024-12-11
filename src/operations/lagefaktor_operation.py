@@ -1,6 +1,8 @@
 import geopandas as gpd
 import pandas as pd
-from src.utils import log_debug, log_warning, log_error, log_info
+from src.utils import log_debug, log_warning, log_error, log_info, resolve_path
+import yaml
+import os
 
 def create_lagefaktor_layer(all_layers, project_settings, crs, layer_name, operation):
     """Process Lagefaktor calculations for construction and compensatory areas."""
@@ -12,6 +14,9 @@ def create_lagefaktor_layer(all_layers, project_settings, crs, layer_name, opera
     
     try:
         grz = operation.get('grz', 0.5)
+        parcel_layer_name = operation.get('parcelLayer')
+        parcel_label = operation.get('parcelLabel', 'name')  # Default to 'name' if not specified
+        protokol_output_dir = operation.get('protokolOutputDir')
         # Handle both 'lagefaktor' and 'context' keys for backward compatibility
         lagefaktor_config = operation.get('lagefaktor', operation.get('context', []))
         
@@ -34,13 +39,24 @@ def create_lagefaktor_layer(all_layers, project_settings, crs, layer_name, opera
         
         # Combine results if both exist
         if construction_results is not None and compensatory_results is not None:
-            return pd.concat([construction_results, compensatory_results])
+            result = pd.concat([construction_results, compensatory_results])
+        else:
+            result = construction_results if construction_results is not None else compensatory_results
         
-        result = construction_results if construction_results is not None else compensatory_results
         if result is not None:
             log_info(f"Successfully processed {layer_name} with {len(result)} features")
-        else:
-            log_warning(f"No results generated for {layer_name}")
+
+        # Only generate protocol if protokolOutputDir is explicitly set
+        if protokol_output_dir and result is not None and protokol_output_dir.strip():
+            _generate_protocol(
+                result,
+                all_layers.get(parcel_layer_name),
+                parcel_label,
+                grz,
+                protokol_output_dir,
+                layer_name
+            )
+
         return result
         
     except Exception as e:
@@ -209,3 +225,91 @@ def _log_compensatory_calculation(layer_name, row):
               f"  Step 4 (Final * Protection): {row['final_value']:.2f} * {row['prot_value']} = {row['protected_final_v']:.2f}\n"
               f"  Final Score: {row['score']:.2f}\n"
               f"-------------------") 
+
+def _generate_protocol(result_gdf, parcel_layer, parcel_label, grz, output_dir, layer_name):
+    """Generate and save protocol in YAML format."""
+    if parcel_layer is None:
+        log_warning("Parcel layer not found, skipping protocol generation")
+        return
+
+    try:
+        # First do the overlay
+        parcels = gpd.overlay(result_gdf, parcel_layer, how='intersection')
+        
+        # Then create the mask on the overlaid data
+        comp_mask = ~parcels['name'].str.contains('construction', case=False)
+        
+        # Calculate totals
+        total_comp_score = parcels[comp_mask]['score'].sum()
+        total_const_score = parcels[~comp_mask]['score'].sum()
+        
+        protocol = {
+            'Ausgleichsprotokoll': {
+                'GRZ': grz,
+                'Gesamt': {
+                    'Kompensation': {
+                        'Score': round(total_comp_score, 2),
+                        'Fläche': round(parcels[comp_mask]['area'].sum(), 2)
+                    },
+                    'Konstruktion': {
+                        'Score': round(total_const_score, 2),
+                        'Fläche': round(parcels[~comp_mask]['area'].sum(), 2)
+                    }
+                },
+                'Score Delta': round(total_comp_score - total_const_score, 2),
+                'Flurstücke': {}
+            }
+        }
+
+        # Process each parcel
+        for parcel_id, parcel_data in parcels.groupby(parcel_label):
+            parcel_comp_mask = ~parcel_data['name'].str.contains('construction', case=False)
+            
+            parcel_info = {
+                'Fläche': round(parcel_data['area'].sum(), 2),
+                'Kompensation': [],
+                'Konstruktion': []
+            }
+
+            # Process compensatory areas
+            comp_data = parcel_data[parcel_comp_mask]
+            for _, row in comp_data.iterrows():
+                comp_info = {
+                    'Biotoptyp': row['name'],
+                    'Flurstücksanteilsgröße': round(row['area'], 2),
+                    'Zone': row['buffer_zone'],
+                    'Score': round(row['score'], 2)
+                }
+                parcel_info['Kompensation'].append(comp_info)
+
+            # Process construction areas
+            const_data = parcel_data[~parcel_comp_mask]
+            for _, row in const_data.iterrows():
+                const_info = {
+                    'Biotoptyp': row['name'],
+                    'Flurstücksanteilsgröße': round(row['area'], 2),
+                    'Zone': row['buffer_zone'],
+                    'Score': round(row['score'], 2)
+                }
+                parcel_info['Konstruktion'].append(const_info)
+
+            protocol['Ausgleichsprotokoll']['Flurstücke'][str(parcel_id)] = parcel_info
+
+        # Save protocol - Fix the path resolution
+        filename = f"protocol_{layer_name}.yaml"
+        output_path = resolve_path(os.path.join(output_dir, filename))
+        
+        # Check if directory exists (but don't create it)
+        if not os.path.exists(os.path.dirname(output_path)):
+            log_error(f"Output directory does not exist: {os.path.dirname(output_path)}")
+            return
+        
+        with open(output_path, 'w', encoding='utf-8') as f:
+            yaml.dump(protocol, f, allow_unicode=True, sort_keys=False)
+        
+        log_info(f"Protocol saved to {output_path}")
+
+    except Exception as e:
+        log_error(f"Error generating protocol: {str(e)}")
+        import traceback
+        log_error(f"Traceback:\n{traceback.format_exc()}")

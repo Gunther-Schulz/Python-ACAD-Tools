@@ -699,32 +699,31 @@ geomLayers:
 #       minArea: 1
 #   # saveToLagefaktor: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/Lagefaktor/Waren_2/changing"
 
-# # Unchanging
-# - name: Unchanging
-#   operations:
-#     - type: copy
-#       layers:
-#         - Geltungsbereich
-#     - type: difference
-#       reverseDifference: false
-#       layers:
-#         - Baufeld
-#         - Grünfläche
-#         - Ausgleich Extern
-#         - Zuwegung
-#     - type: dissolve
-#     - type: copy
-#       layers:
-#         - Biotoptyp Sonstiges Feuchtgrünland
-#     - type: dissolve
-#     - type: filterGeometry
-#       geometryTypes:
-#         - polygon
-#       minArea: 1
-#   # saveToLagefaktor: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/Lagefaktor/Waren_2/unchanging"
+# Unchanging
+- name: Unchanging
+  operations:
+    - type: copy
+      layers:
+        - Geltungsbereich
+    - type: difference
+      reverseDifference: false
+      layers:
+        - Baufeld
+        - Grünfläche
+        - Ausgleich Extern
+        - Zuwegung
+    - type: dissolve
+    - type: copy
+      layers:
+        - Biotoptyp Sonstiges Feuchtgrünland
+    - type: dissolve
+    - type: filterGeometry
+      geometryTypes:
+        - polygon
+      minArea: 1
+  # saveToLagefaktor: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/Lagefaktor/Waren_2/unchanging"
 
 # Construction
-
 - name: Construction SF
   operations:
     - type: copy
