@@ -9,16 +9,36 @@ def create_filtered_geometry_layer(all_layers, project_settings, crs, layer_name
     # Get the input layer
     input_gdf = all_layers[layer_name].copy()
     
+    # Define geometry type mappings
+    GEOMETRY_TYPE_GROUPS = {
+        'polygon': ['Polygon', 'MultiPolygon'],
+        'line': ['LineString', 'MultiLineString'],
+        'point': ['Point', 'MultiPoint']
+    }
+    
     # Get filter parameters
     max_area = operation.get('maxArea', float('inf'))
     min_area = operation.get('minArea', 0)
     max_width = operation.get('maxWidth', float('inf'))
     min_width = operation.get('minWidth', 0)
+    geometry_types = operation.get('geometryTypes', None)
     
-    # Apply filters to each geometry while preserving attributes
+    if geometry_types:
+        # Convert simplified types to actual geometry types
+        allowed_types = []
+        for geom_type in geometry_types:
+            geom_type_lower = geom_type.lower()
+            if geom_type_lower not in GEOMETRY_TYPE_GROUPS:
+                log_warning(f"Unrecognized geometry type '{geom_type}' in filter for layer '{layer_name}'. "
+                          f"Valid types are: {', '.join(GEOMETRY_TYPE_GROUPS.keys())}")
+            else:
+                allowed_types.extend(GEOMETRY_TYPE_GROUPS[geom_type_lower])
+    
+    # Create combined mask for all filters
     mask = input_gdf.geometry.apply(lambda geom: 
         min_area <= geom.area <= max_area and 
-        min_width <= estimate_width(geom) <= max_width
+        min_width <= estimate_width(geom) <= max_width and
+        (geometry_types is None or geom.geom_type in allowed_types)
     )
     
     # Filter the GeoDataFrame
