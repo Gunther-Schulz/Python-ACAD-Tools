@@ -24,6 +24,7 @@ class LagefaktorProcessor:
     def process_construction_scores(self, layer_processor):
         """Process construction scores for all configured areas."""
         log_info(f"-------------Processing construction scores for {len(self.config)} areas")
+        
         for area_config in self.config:
             if 'construction' not in area_config:
                 continue
@@ -31,6 +32,7 @@ class LagefaktorProcessor:
             area_name = area_config['name']
             grz = area_config.get('grz', 0.0)
             construction_config = area_config['construction']
+            area_total = 0  # Track total for this area
             
             try:
                 # Process each construction layer
@@ -58,14 +60,23 @@ class LagefaktorProcessor:
                     
                     # Calculate construction scores
                     scored_gdf = self._calculate_construction_scores(gdf, grz, area_name)
+                    layer_score = scored_gdf['score'].sum()
+                    area_total += layer_score
+                    
+                    # Log layer score
+                    log_info(f"Construction score for {area_name} - {layer_name}: {layer_score:.2f}")
                     
                     # Update the layer in layer_processor
                     layer_processor.all_layers[layer_name] = scored_gdf
                     
                     log_debug(f"Processed construction scores for layer: {layer_name}")
                     
+                # Log area total
+                log_info(f"Total construction score for {area_name}: {area_total:.2f}")
+                    
             except Exception as e:
                 log_error(f"Error processing construction scores for area {area_name}: {str(e)}")
+        
 
     def _get_lagefaktor_value(self, area, lagefaktor_values):
         """Determine the lagefaktor value based on area."""
@@ -131,10 +142,6 @@ class LagefaktorProcessor:
         
         # Calculate scores
         features['score'] = features.apply(calculate_score, axis=1)
-        
-        # Log the total score for this area
-        total_score = features['score'].sum()
-        log_info(f"Total construction score for area {area_name}: {total_score:.2f}")
         
         log_debug(f"Calculated construction scores for area: {area_name}")
         return features
