@@ -1,4 +1,5 @@
 - name: Ausgleich Calculation
+  outputDir: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/Lagefaktor/Waren_2_new/"
   grz: 0.5
   lagefaktor:
     - distance: "<100"

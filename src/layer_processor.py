@@ -72,7 +72,34 @@ class LayerProcessor:
         # Process Lagefaktor calculations after geometric layers
         log_debug("Starting Lagefaktor processing...")
         try:
-            self.lagefaktor_processor.process_scores(self)
+            construction_results, compensatory_results = self.lagefaktor_processor.process_scores(self)
+            
+            # Save Lagefaktor results if they exist
+            if construction_results is not None or compensatory_results is not None:
+                for area_config in self.lagefaktor_processor.config:
+                    area_name = area_config['name']
+                    output_dir = area_config.get('outputDir')
+                    
+                    if output_dir:
+                        output_dir = resolve_path(output_dir, self.project_loader.folder_prefix)
+                        ensure_path_exists(output_dir)
+                        
+                        # Save construction results
+                        if construction_results is not None:
+                            area_construction = construction_results[construction_results['area_name'] == area_name]
+                            if not area_construction.empty:
+                                construction_layer_name = f"{area_name}_construction_results"
+                                self.all_layers[construction_layer_name] = area_construction
+                                self.write_shapefile(construction_layer_name)
+                        
+                        # Save compensatory results
+                        if compensatory_results is not None:
+                            area_compensatory = compensatory_results[compensatory_results['area_name'] == area_name]
+                            if not area_compensatory.empty:
+                                compensatory_layer_name = f"{area_name}_compensatory_results"
+                                self.all_layers[compensatory_layer_name] = area_compensatory
+                                self.write_shapefile(compensatory_layer_name)
+                            
         except Exception as e:
             log_error(f"Error during Lagefaktor processing: {str(e)}")
 

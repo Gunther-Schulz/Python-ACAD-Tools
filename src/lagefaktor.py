@@ -24,132 +24,222 @@ class LagefaktorProcessor:
     def process_scores(self, layer_processor):
         """Process both construction and compensatory scores for all configured areas."""
         log_info(f"-------------Processing scores for {len(self.config)} areas")
-        total_construction_score = 0
-        total_compensatory_score = 0
+        
+        # Create GeoDataFrames to store all results
+        construction_results = None
+        compensatory_results = None
         
         for area_config in self.config:
             area_name = area_config['name']
             grz = area_config.get('grz', 0.0)
-            area_construction_total = 0
-            area_compensatory_total = 0
+            output_dir = area_config.get('outputDir', '')
             
             try:
                 # Process construction scores
                 if 'construction' in area_config:
-                    construction_config = area_config['construction']
-                    for layer_config in construction_config['layers']:
-                        layer_name = layer_config['layer']
-                        base_value = layer_config['baseValue']
+                    construction_gdf = self._process_area_construction(
+                        layer_processor,
+                        area_config,
+                        area_name,
+                        grz=grz
+                    )
+                    
+                    if construction_gdf is not None:
+                        construction_gdf['area_name'] = area_name
+                        if construction_results is None:
+                            construction_results = construction_gdf
+                        else:
+                            construction_results = pd.concat([construction_results, construction_gdf])
                         
-                        layer_score = self._process_layer_scores(
-                            layer_processor,
-                            layer_name,
-                            base_value,
-                            area_config.get('lagefaktor', []),
-                            area_name,
-                            is_construction=True,
-                            grz=grz
-                        )
-                        
-                        if layer_score is not None:
-                            area_construction_total += layer_score
-                            
+                        # Save to layer processor
+                        layer_name = f"{area_name}_construction_results"
+                        layer_processor.all_layers[layer_name] = construction_gdf
+                        if output_dir:
+                            layer_processor.write_shapefile(layer_name)
+                
                 # Process compensatory scores
                 if 'compensatory' in area_config:
-                    compensatory_config = area_config['compensatory']
-                    for layer_config in compensatory_config['layers']:
-                        layer_name = layer_config['layer']
-                        base_value = layer_config['baseValue']
-                        compensatory_value = layer_config['compensatoryMeasureValue']
+                    compensatory_gdf = self._process_area_compensatory(
+                        layer_processor,
+                        area_config,
+                        area_name
+                    )
+                    
+                    if compensatory_gdf is not None:
+                        compensatory_gdf['area_name'] = area_name
+                        if compensatory_results is None:
+                            compensatory_results = compensatory_gdf
+                        else:
+                            compensatory_results = pd.concat([compensatory_results, compensatory_gdf])
                         
-                        layer_score = self._process_layer_scores(
-                            layer_processor,
-                            layer_name,
-                            base_value,
-                            area_config.get('lagefaktor', []),
-                            area_name,
-                            is_construction=False,
-                            compensatory_value=compensatory_value
-                        )
-                        
-                        if layer_score is not None:
-                            area_compensatory_total += layer_score
+                        # Save to layer processor
+                        layer_name = f"{area_name}_compensatory_results"
+                        layer_processor.all_layers[layer_name] = compensatory_gdf
+                        if output_dir:
+                            layer_processor.write_shapefile(layer_name)
                 
-                # Log area totals
-                if 'construction' in area_config:
-                    log_info(f"Total construction score for {area_name}: {area_construction_total:.2f}")
-                    total_construction_score += area_construction_total
-                    
-                if 'compensatory' in area_config:
-                    log_info(f"Total compensatory score for {area_name}: {area_compensatory_total:.2f}")
-                    total_compensatory_score += area_compensatory_total
-                    
             except Exception as e:
                 log_error(f"Error processing scores for area {area_name}: {str(e)}")
                 import traceback
                 log_error(f"Traceback:\n{traceback.format_exc()}")
         
-        # Log final totals
-        log_info(f"Total construction score across all areas: {total_construction_score:.2f}")
-        log_info(f"Total compensatory score across all areas: {total_compensatory_score:.2f}")
-        log_info(f"Final balance (Compensatory - Construction): {(total_compensatory_score - total_construction_score):.2f}")
+        return construction_results, compensatory_results
 
-    def _process_layer_scores(self, layer_processor, layer_name, base_value, lagefaktor_config, area_name, 
-                             is_construction=True, grz=None, compensatory_value=None):
+    def _process_area_construction(self, layer_processor, area_config, area_name, grz):
+        """Process construction scores for a single area."""
+        area_construction_total = 0
+        result_gdf = None
+        
+        construction_config = area_config['construction']
+        for layer_config in construction_config['layers']:
+            layer_name = layer_config['layer']
+            base_value = layer_config['baseValue']
+            
+            layer_gdf = self._process_layer_scores(
+                layer_processor,
+                layer_name,
+                base_value,
+                area_config.get('lagefaktor', []),
+                area_name,
+                is_construction=True,
+                grz=grz
+            )
+            
+            if layer_gdf is not None:
+                area_construction_total += layer_gdf['score'].sum()
+                if result_gdf is None:
+                    result_gdf = layer_gdf
+                else:
+                    result_gdf = pd.concat([result_gdf, layer_gdf])
+        
+        if area_construction_total > 0:
+            log_info(f"Total construction score for {area_name}: {area_construction_total:.2f}")
+        
+        return result_gdf
+
+    def _process_area_compensatory(self, layer_processor, area_config, area_name):
+        """Process compensatory scores for a single area."""
+        area_compensatory_total = 0
+        result_gdf = None
+        
+        compensatory_config = area_config['compensatory']
+        for layer_config in compensatory_config['layers']:
+            layer_name = layer_config['layer']
+            base_value = layer_config['baseValue']
+            compensatory_value = layer_config['compensatoryMeasureValue']
+            
+            layer_gdf = self._process_layer_scores(
+                layer_processor,
+                layer_name,
+                base_value,
+                area_config.get('lagefaktor', []),
+                area_name,
+                is_construction=False,
+                compensatory_value=compensatory_value
+            )
+            
+            if layer_gdf is not None:
+                area_compensatory_total += layer_gdf['score'].sum()
+                if result_gdf is None:
+                    result_gdf = layer_gdf
+                else:
+                    result_gdf = pd.concat([result_gdf, layer_gdf])
+        
+        if area_compensatory_total > 0:
+            log_info(f"Total compensatory score for {area_name}: {area_compensatory_total:.2f}")
+        
+        return result_gdf
+
+    def _process_layer_scores(self, layer_processor, layer_name, base_value, lagefaktor_config, area_name, is_construction=True, grz=None, compensatory_value=None):
         """Process scores for a single layer."""
         if layer_name not in layer_processor.all_layers:
-            log_warning(f"Layer {layer_name} not found for calculation")
+            log_warning(f"Layer {layer_name} not found in processed layers")
             return None
-            
-        # Get the layer's GeoDataFrame
-        gdf = layer_processor.all_layers[layer_name].copy()
-        if gdf is None or len(gdf) == 0:
+
+        layer_gdf = layer_processor.all_layers[layer_name]
+        if layer_gdf.empty:
             log_warning(f"Layer {layer_name} is empty")
             return None
-            
-        # Add values to features
-        gdf['base_value'] = base_value
-        if not is_construction:
-            gdf['compensat'] = compensatory_value
-        gdf['eligible'] = True
+
+        # Create a copy to avoid modifying the original
+        result_gdf = layer_gdf.copy()
+        result_gdf['base_value'] = base_value
+        result_gdf['lagefaktor'] = 1.0  # Default lagefaktor
+        result_gdf['feature_id'] = [f"Feature_{hash(geom.wkb)}" for geom in result_gdf.geometry]
+        result_gdf['name'] = layer_name  # Add feature type/name
         
-        # Process lagefaktor
-        processed_areas = gpd.GeoDataFrame(geometry=[], crs=gdf.crs)
-        result_gdf = gpd.GeoDataFrame(geometry=[], crs=gdf.crs)
-        
+        # Process lagefaktor intersections
+        processed_areas = gpd.GeoDataFrame(geometry=[])
         for lf_config in lagefaktor_config:
-            source_layer = lf_config['sourceLayer']
-            if source_layer not in layer_processor.all_layers:
-                log_warning(f"Lagefaktor source layer {source_layer} not found")
+            buffer_layer = layer_processor.all_layers.get(lf_config['sourceLayer'])
+            if buffer_layer is None:
                 continue
-                
-            buffer_gdf = layer_processor.all_layers[source_layer]
-            intersection = gpd.overlay(gdf, buffer_gdf, how='intersection')
+            
+            intersection = gpd.overlay(
+                result_gdf[~result_gdf.geometry.isin(processed_areas.geometry)],
+                buffer_layer,
+                how='intersection'
+            )
+            
             if not intersection.empty:
                 intersection['lagefaktor'] = lf_config['value']
-                result_gdf = pd.concat([result_gdf, intersection])
+                result_gdf.loc[result_gdf.geometry.isin(intersection.geometry), 'lagefaktor'] = lf_config['value']
                 processed_areas = pd.concat([processed_areas, intersection])
-        
-        if result_gdf.empty:
-            log_warning(f"No areas in layer '{layer_name}' intersect with any buffer zones")
-            return None
-        
-        # Calculate scores based on type
+
+        # Calculate areas
+        result_gdf['area'] = result_gdf.geometry.area
+
         if is_construction:
-            scored_gdf = self._calculate_construction_scores(result_gdf, grz, area_name)
+            # Construction calculation aligned with add_construction_score
+            result_gdf['base_times_lage'] = result_gdf['base_value'] * result_gdf['lagefaktor']
+            result_gdf['initial_value'] = result_gdf['base_times_lage'] * result_gdf['area']
+            
+            # Get GRZ factors
+            factor_a = grz if grz else 0.5  # Default if not specified
+            factor_b = 0.2
+            factor_c = 0.6
+            factor_sum = factor_b + factor_c
+            
+            result_gdf['adjusted_value'] = result_gdf['initial_value'] * factor_a
+            result_gdf['final_value'] = result_gdf['adjusted_value'] * factor_sum
+            result_gdf['score'] = result_gdf['final_value'].round(2)
+            
+            # Store GRZ factors for logging
+            result_gdf['factor_a'] = factor_a
+            result_gdf['factor_b'] = factor_b
+            result_gdf['factor_c'] = factor_c
+            
+            # Log calculation details
+            for _, row in result_gdf.iterrows():
+                self._log_construction_calculation(area_name, row)
+            
         else:
-            scored_gdf = self._calculate_compensatory_scores(result_gdf, area_name)
-        
-        layer_score = scored_gdf['score'].sum()
-        
-        # Log layer score
+            # Compensatory calculation aligned with calculate_compensatory_score
+            result_gdf['eligible'] = True  # Default to eligible
+            result_gdf['compensat'] = compensatory_value
+            result_gdf['initial_value'] = result_gdf['compensat'] - result_gdf['base_value']
+            result_gdf['area_value'] = result_gdf['area']
+            result_gdf['adjusted_value'] = result_gdf['initial_value'] * result_gdf['area_value']
+            
+            # Protection value handling (simplified version)
+            result_gdf['prot_value'] = 1  # Default protection value
+            
+            result_gdf['final_value'] = result_gdf['adjusted_value'] * result_gdf['lagefaktor']
+            result_gdf['protected_final_v'] = result_gdf['final_value'] * result_gdf['prot_value']
+            result_gdf['score'] = result_gdf['protected_final_v'].round(2)
+            
+            # Log calculation details
+            for _, row in result_gdf.iterrows():
+                if row['eligible']:
+                    self._log_compensatory_calculation(area_name, row)
+                else:
+                    log_debug(f"Feature marked as not eligible - Feature ID: {row['feature_id']} - Feature Type: {row['name']} - Score: 0")
+
+        layer_score = result_gdf['score'].sum()
         score_type = "Construction" if is_construction else "Compensatory"
         log_info(f"{score_type} score for {area_name} - {layer_name}: {layer_score:.2f}")
-        
-        # Update the layer in layer_processor
-        layer_processor.all_layers[layer_name] = scored_gdf
-        
-        return layer_score
+
+        return result_gdf
 
     def _get_lagefaktor_value(self, area, lagefaktor_values):
         """Determine the lagefaktor value based on area."""
@@ -332,3 +422,33 @@ class LagefaktorProcessor:
             f"-------------------"
         )
         log_debug(protocol_message)
+
+    def _log_construction_calculation(self, area_name, row):
+        """Log the details of a construction calculation."""
+        log_debug(f"Construction Score Calculation for {area_name}:\n"
+                  f"  Feature ID: {row['feature_id']}\n"
+                  f"  Feature Type: {row['name']}\n"
+                  f"  Area: {row['area']:.2f}\n"
+                  f"  Base Value: {row['base_value']}\n"
+                  f"  Lagefaktor: {row['lagefaktor']}\n"
+                  f"  Step 1 (Base * Lagefaktor): {row['base_times_lage']:.2f}\n"
+                  f"  Step 2 (Step 1 * Area) = Initial Value: {row['initial_value']:.2f}\n"
+                  f"  Step 3 (Initial * Factor A [{row['factor_a']}]) = Adjusted Value: {row['adjusted_value']:.2f}\n"
+                  f"  Step 4 (Factor B + Factor C = {row['factor_b']} + {row['factor_c']}): {row['factor_b'] + row['factor_c']:.2f}\n"
+                  f"  Step 5 (Adjusted * (B+C)) = Final Value: {row['final_value']:.2f}\n"
+                  f"  GRZ Factors (a,b,c): {row['factor_a']}, {row['factor_b']}, {row['factor_c']}\n"
+                  f"  Final Score: {row['score']}\n"
+                  f"-------------------")
+
+    def _log_compensatory_calculation(self, area_name, row):
+        """Log the details of a compensatory calculation."""
+        log_debug(f"Compensatory Score Calculation for {area_name}:\n"
+                  f"  Feature ID: {row['feature_id']}\n"
+                  f"  Feature Type: {row['name']}\n"
+                  f"  Area: {row['area']:.2f}\n"
+                  f"  Step 1 (Compensatory - Base): {row['compensat']} - {row['base_value']} = {row['initial_value']}\n"
+                  f"  Step 2 (Initial * Area): {row['initial_value']} * {row['area_value']:.2f} = {row['adjusted_value']:.2f}\n"
+                  f"  Step 3 (Adjusted * Lagefaktor): {row['adjusted_value']:.2f} * {row['lagefaktor']} = {row['final_value']:.2f}\n"
+                  f"  Step 4 (Final * Protection): {row['final_value']:.2f} * {row['prot_value']} = {row['protected_final_v']:.2f}\n"
+                  f"  Final Score: {row['score']:.2f}\n"
+                  f"-------------------")
