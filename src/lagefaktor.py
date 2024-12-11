@@ -24,6 +24,7 @@ class LagefaktorProcessor:
     def process_construction_scores(self, layer_processor):
         """Process construction scores for all configured areas."""
         log_info(f"-------------Processing construction scores for {len(self.config)} areas")
+        total_score_all_areas = 0
         
         for area_config in self.config:
             if 'construction' not in area_config:
@@ -32,7 +33,7 @@ class LagefaktorProcessor:
             area_name = area_config['name']
             grz = area_config.get('grz', 0.0)
             construction_config = area_config['construction']
-            area_total = 0  # Track total for this area
+            area_total = 0
             
             try:
                 # Process each construction layer
@@ -45,7 +46,7 @@ class LagefaktorProcessor:
                         continue
                         
                     # Get the layer's GeoDataFrame
-                    gdf = layer_processor.all_layers[layer_name]
+                    gdf = layer_processor.all_layers[layer_name].copy()
                     if gdf is None or len(gdf) == 0:
                         log_warning(f"Layer {layer_name} is empty")
                         continue
@@ -53,13 +54,41 @@ class LagefaktorProcessor:
                     # Add base value to features
                     gdf['base_value'] = base_value
                     
-                    # Calculate Lagefaktor based on area
-                    gdf['lagefaktor'] = gdf.geometry.area.apply(
-                        lambda x: self._get_lagefaktor_value(x, construction_config['lagefaktorValues'])
-                    )
+                    # Keep track of processed areas
+                    processed_areas = gpd.GeoDataFrame(geometry=[], crs=gdf.crs)
+                    result_gdf = gpd.GeoDataFrame(geometry=[], crs=gdf.crs)
                     
-                    # Calculate construction scores
-                    scored_gdf = self._calculate_construction_scores(gdf, grz, area_name)
+                    # Process lagefaktor for each distance range
+                    for lf_config in construction_config.get('lagefaktor', []):
+                        source_layer = lf_config['sourceLayer']
+                        if source_layer not in layer_processor.all_layers:
+                            log_warning(f"Lagefaktor source layer {source_layer} not found")
+                            continue
+                            
+                        # Intersect with buffer layer
+                        buffer_gdf = layer_processor.all_layers[source_layer]
+                        intersection = gpd.overlay(gdf, buffer_gdf, how='intersection')
+                        if not intersection.empty:
+                            intersection['lagefaktor'] = lf_config['value']
+                            result_gdf = pd.concat([result_gdf, intersection])
+                            processed_areas = pd.concat([processed_areas, intersection])
+                    
+                    # Check for unprocessed areas
+                    if not processed_areas.empty:
+                        unprocessed = gdf[~gdf.geometry.intersects(processed_areas.geometry.union_all())]
+                    else:
+                        unprocessed = gdf
+                        
+                    if not unprocessed.empty:
+                        log_warning(f"Found areas in layer '{layer_name}' that don't intersect with any buffer zone. "
+                                  f"These areas will be excluded from the calculation.")
+                        
+                    if result_gdf.empty:
+                        log_warning(f"No areas in layer '{layer_name}' intersect with any buffer zones")
+                        continue
+                    
+                    # Calculate scores
+                    scored_gdf = self._calculate_construction_scores(result_gdf, grz, area_name)
                     layer_score = scored_gdf['score'].sum()
                     area_total += layer_score
                     
@@ -69,13 +98,15 @@ class LagefaktorProcessor:
                     # Update the layer in layer_processor
                     layer_processor.all_layers[layer_name] = scored_gdf
                     
-                    log_debug(f"Processed construction scores for layer: {layer_name}")
-                    
-                # Log area total
                 log_info(f"Total construction score for {area_name}: {area_total:.2f}")
-                    
+                total_score_all_areas += area_total
+                        
             except Exception as e:
                 log_error(f"Error processing construction scores for area {area_name}: {str(e)}")
+                import traceback
+                log_error(f"Traceback:\n{traceback.format_exc()}")
+        
+        log_info(f"Total construction score across all areas: {total_score_all_areas:.2f}")
         
 
     def _get_lagefaktor_value(self, area, lagefaktor_values):
@@ -103,7 +134,6 @@ class LagefaktorProcessor:
 
     def _calculate_construction_scores(self, features, grz, area_name):
         """Calculate construction scores for features."""
-        # Add score calculation
         def calculate_score(row):
             area = row.geometry.area
             base_value = row['base_value']
@@ -122,8 +152,8 @@ class LagefaktorProcessor:
             factor_sum = factor_b + factor_c
             final_value = adjusted_value * factor_sum
             
-            # Log calculation steps
-            calculation_steps = {
+            # Store calculation steps in a new column instead of 'attributes'
+            row['calculation'] = {
                 'area': area,
                 'base_value': base_value,
                 'lagefaktor': lagefaktor,
@@ -133,15 +163,13 @@ class LagefaktorProcessor:
                 'final_value': final_value
             }
             
-            # Add calculation steps to row attributes
-            if 'attributes' not in row:
-                row['attributes'] = {}
-            row['attributes']['calculation'] = calculation_steps
-            
             return round(final_value, 2)
         
         # Calculate scores
         features['score'] = features.apply(calculate_score, axis=1)
         
+        # Log the total score for this area
+        total_score = features['score'].sum()
         log_debug(f"Calculated construction scores for area: {area_name}")
+        
         return features
