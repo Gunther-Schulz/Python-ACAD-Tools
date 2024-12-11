@@ -162,82 +162,78 @@ class LagefaktorProcessor:
             return None
 
         # Create a copy to avoid modifying the original
-        result_gdf = layer_gdf.copy()
-        result_gdf['base_value'] = base_value
-        result_gdf['lagefaktor'] = 1.0  # Default lagefaktor
-        result_gdf['feature_id'] = [f"Feature_{hash(geom.wkb)}" for geom in result_gdf.geometry]
-        result_gdf['name'] = layer_name  # Add feature type/name
+        result_gdf = None
         
-        # Process lagefaktor intersections
-        processed_areas = gpd.GeoDataFrame(geometry=[])
+        # Process each lagefaktor zone separately
         for lf_config in lagefaktor_config:
             buffer_layer = layer_processor.all_layers.get(lf_config['sourceLayer'])
             if buffer_layer is None:
                 continue
             
-            intersection = gpd.overlay(
-                result_gdf[~result_gdf.geometry.isin(processed_areas.geometry)],
-                buffer_layer,
-                how='intersection'
-            )
+            # Intersect with this buffer
+            intersection = gpd.overlay(layer_gdf, buffer_layer, how='intersection')
             
             if not intersection.empty:
-                intersection['lagefaktor'] = lf_config['value']
-                result_gdf.loc[result_gdf.geometry.isin(intersection.geometry), 'lagefaktor'] = lf_config['value']
-                processed_areas = pd.concat([processed_areas, intersection])
+                zone_gdf = intersection.copy()
+                zone_gdf['base_value'] = base_value
+                zone_gdf['lagefaktor'] = lf_config['value']
+                zone_gdf['feature_id'] = [f"Feature_{hash(geom.wkb)}" for geom in zone_gdf.geometry]
+                zone_gdf['name'] = layer_name
+                zone_gdf['buffer_zone'] = lf_config['sourceLayer']
+                zone_gdf['distance'] = lf_config['distance']
+                
+                # Calculate areas
+                zone_gdf['area'] = zone_gdf.geometry.area
 
-        # Calculate areas
-        result_gdf['area'] = result_gdf.geometry.area
-
-        if is_construction:
-            # Construction calculation aligned with add_construction_score
-            result_gdf['base_times_lage'] = result_gdf['base_value'] * result_gdf['lagefaktor']
-            result_gdf['initial_value'] = result_gdf['base_times_lage'] * result_gdf['area']
-            
-            # Get GRZ factors
-            factor_a = grz if grz else 0.5  # Default if not specified
-            factor_b = 0.2
-            factor_c = 0.6
-            factor_sum = factor_b + factor_c
-            
-            result_gdf['adjusted_value'] = result_gdf['initial_value'] * factor_a
-            result_gdf['final_value'] = result_gdf['adjusted_value'] * factor_sum
-            result_gdf['score'] = result_gdf['final_value'].round(2)
-            
-            # Store GRZ factors for logging
-            result_gdf['factor_a'] = factor_a
-            result_gdf['factor_b'] = factor_b
-            result_gdf['factor_c'] = factor_c
-            
-            # Log calculation details
-            for _, row in result_gdf.iterrows():
-                self._log_construction_calculation(area_name, row)
-            
-        else:
-            # Compensatory calculation aligned with calculate_compensatory_score
-            result_gdf['eligible'] = True  # Default to eligible
-            result_gdf['compensat'] = compensatory_value
-            result_gdf['initial_value'] = result_gdf['compensat'] - result_gdf['base_value']
-            result_gdf['area_value'] = result_gdf['area']
-            result_gdf['adjusted_value'] = result_gdf['initial_value'] * result_gdf['area_value']
-            
-            # Protection value handling (simplified version)
-            result_gdf['prot_value'] = 1  # Default protection value
-            
-            result_gdf['final_value'] = result_gdf['adjusted_value'] * result_gdf['lagefaktor']
-            result_gdf['protected_final_v'] = result_gdf['final_value'] * result_gdf['prot_value']
-            result_gdf['score'] = result_gdf['protected_final_v'].round(2)
-            
-            # Log calculation details
-            for _, row in result_gdf.iterrows():
-                if row['eligible']:
-                    self._log_compensatory_calculation(area_name, row)
+                if is_construction:
+                    # Construction calculation
+                    zone_gdf['base_times_lage'] = zone_gdf['base_value'] * zone_gdf['lagefaktor']
+                    zone_gdf['initial_value'] = zone_gdf['base_times_lage'] * zone_gdf['area']
+                    
+                    factor_a = grz if grz else 0.5
+                    factor_b = 0.2
+                    factor_c = 0.6
+                    factor_sum = factor_b + factor_c
+                    
+                    zone_gdf['adjusted_value'] = zone_gdf['initial_value'] * factor_a
+                    zone_gdf['final_value'] = zone_gdf['adjusted_value'] * factor_sum
+                    zone_gdf['score'] = zone_gdf['final_value'].round(2)
+                    
+                    zone_gdf['factor_a'] = factor_a
+                    zone_gdf['factor_b'] = factor_b
+                    zone_gdf['factor_c'] = factor_c
+                    
                 else:
-                    log_debug(f"Feature marked as not eligible - Feature ID: {row['feature_id']} - Feature Type: {row['name']} - Score: 0")
+                    # Compensatory calculation
+                    zone_gdf['eligible'] = True
+                    zone_gdf['compensat'] = compensatory_value
+                    zone_gdf['initial_value'] = zone_gdf['compensat'] - zone_gdf['base_value']
+                    zone_gdf['area_value'] = zone_gdf['area']
+                    zone_gdf['adjusted_value'] = zone_gdf['initial_value'] * zone_gdf['area_value']
+                    zone_gdf['prot_value'] = 1
+                    zone_gdf['final_value'] = zone_gdf['adjusted_value'] * zone_gdf['lagefaktor']
+                    zone_gdf['protected_final_v'] = zone_gdf['final_value'] * zone_gdf['prot_value']
+                    zone_gdf['score'] = zone_gdf['protected_final_v'].round(2)
 
-        layer_score = result_gdf['score'].sum()
-        score_type = "Construction" if is_construction else "Compensatory"
-        log_info(f"{score_type} score for {area_name} - {layer_name}: {layer_score:.2f}")
+                # Concatenate with previous results
+                if result_gdf is None:
+                    result_gdf = zone_gdf
+                else:
+                    result_gdf = pd.concat([result_gdf, zone_gdf])
+
+                # Log calculations for this zone
+                for _, row in zone_gdf.iterrows():
+                    if is_construction:
+                        self._log_construction_calculation(area_name, row)
+                    elif row['eligible']:
+                        self._log_compensatory_calculation(area_name, row)
+                    else:
+                        log_debug(f"Feature marked as not eligible - Feature ID: {row['feature_id']} - Feature Type: {row['name']} - Score: 0")
+
+        if result_gdf is not None:
+            layer_score = result_gdf['score'].sum()
+            score_type = "Construction" if is_construction else "Compensatory"
+            log_info(f"{score_type} score for {area_name} - {layer_name}: {layer_score:.2f}")
 
         return result_gdf
 
@@ -452,3 +448,128 @@ class LagefaktorProcessor:
                   f"  Step 4 (Final * Protection): {row['final_value']:.2f} * {row['prot_value']} = {row['protected_final_v']:.2f}\n"
                   f"  Final Score: {row['score']:.2f}\n"
                   f"-------------------")
+
+    def _write_calculation_log(self, area_config, construction_results, compensatory_results):
+        """Write detailed calculation log as YAML to the output directory."""
+        import yaml
+        from datetime import datetime
+        from pathlib import Path
+
+        output_dir = area_config.get('outputDir', '')
+        if not output_dir:
+            log_warning("No output directory specified for calculation log")
+            return
+
+        # Create full log structure
+        calculation_log = {
+            'metadata': {
+                'timestamp': datetime.now().isoformat(),
+                'area_name': area_config['name'],
+                'grz': area_config.get('grz', 0.5)
+            },
+            'lagefaktor_configuration': {
+                'buffers': [
+                    {
+                        'distance': lf['distance'],
+                        'value': lf['value'],
+                        'source_layer': lf['sourceLayer']
+                    } for lf in area_config.get('lagefaktor', [])
+                ]
+            },
+            'construction_calculations': [],
+            'compensatory_calculations': [],
+            'summary': {
+                'construction': {
+                    'total_score': 0,
+                    'layer_scores': {}
+                },
+                'compensatory': {
+                    'total_score': 0,
+                    'layer_scores': {}
+                }
+            }
+        }
+
+        # Add construction calculations
+        if construction_results is not None:
+            for layer_name, group in construction_results.groupby('name'):
+                layer_calculations = []
+                layer_total = 0
+                
+                for _, row in group.iterrows():
+                    calc = {
+                        'feature_id': row['feature_id'],
+                        'area': float(row['area']),
+                        'base_value': float(row['base_value']),
+                        'lagefaktor': float(row['lagefaktor']),
+                        'calculation_steps': {
+                            'step1_base_times_lage': float(row['base_times_lage']),
+                            'step2_initial_value': float(row['initial_value']),
+                            'step3_adjusted_value': float(row['adjusted_value']),
+                            'grz_factors': {
+                                'factor_a': float(row['factor_a']),
+                                'factor_b': float(row['factor_b']),
+                                'factor_c': float(row['factor_c'])
+                            },
+                            'step4_factor_sum': float(row['factor_b'] + row['factor_c']),
+                            'step5_final_value': float(row['final_value'])
+                        },
+                        'final_score': float(row['score'])
+                    }
+                    layer_calculations.append(calc)
+                    layer_total += float(row['score'])
+
+                calculation_log['construction_calculations'].append({
+                    'layer_name': layer_name,
+                    'base_value': float(group['base_value'].iloc[0]),
+                    'features': layer_calculations,
+                    'layer_total_score': layer_total
+                })
+                calculation_log['summary']['construction']['layer_scores'][layer_name] = layer_total
+                calculation_log['summary']['construction']['total_score'] += layer_total
+
+        # Add compensatory calculations
+        if compensatory_results is not None:
+            for layer_name, group in compensatory_results.groupby('name'):
+                layer_calculations = []
+                layer_total = 0
+                
+                for _, row in group.iterrows():
+                    calc = {
+                        'feature_id': row['feature_id'],
+                        'area': float(row['area']),
+                        'base_value': float(row['base_value']),
+                        'compensatory_value': float(row['compensat']),
+                        'lagefaktor': float(row['lagefaktor']),
+                        'calculation_steps': {
+                            'step1_initial_value': float(row['initial_value']),
+                            'step2_area_value': float(row['area_value']),
+                            'step3_adjusted_value': float(row['adjusted_value']),
+                            'step4_final_value': float(row['final_value']),
+                            'protection_value': float(row['prot_value']),
+                            'protected_final_value': float(row['protected_final_v'])
+                        },
+                        'final_score': float(row['score'])
+                    }
+                    layer_calculations.append(calc)
+                    layer_total += float(row['score'])
+
+                calculation_log['compensatory_calculations'].append({
+                    'layer_name': layer_name,
+                    'base_value': float(group['base_value'].iloc[0]),
+                    'compensatory_value': float(group['compensat'].iloc[0]),
+                    'features': layer_calculations,
+                    'layer_total_score': layer_total
+                })
+                calculation_log['summary']['compensatory']['layer_scores'][layer_name] = layer_total
+                calculation_log['summary']['compensatory']['total_score'] += layer_total
+
+        # Write to file
+        output_path = Path(output_dir) / f"calculation_log_{area_config['name'].replace(' ', '_')}.yaml"
+        try:
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(output_path, 'w', encoding='utf-8') as f:
+                yaml.dump(calculation_log, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
+            log_info(f"Calculation log written to {output_path}")
+        except Exception as e:
+            log_error(f"Error writing calculation log: {str(e)}")
