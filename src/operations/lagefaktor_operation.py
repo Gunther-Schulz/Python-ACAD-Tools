@@ -173,6 +173,7 @@ def _process_layer_scores(all_layers, layer_name, base_value, lagefaktor_config,
                 zone_gdf['score'] = zone_gdf['final_value'].round(2)
                 
             else:
+                zone_gdf['compensatory_value'] = compensatory_value
                 zone_gdf['eligible'] = True
                 zone_gdf['compensat'] = compensatory_value
                 zone_gdf['initial_value'] = zone_gdf['compensat'] - zone_gdf['base_value']
@@ -196,9 +197,18 @@ def _process_layer_scores(all_layers, layer_name, base_value, lagefaktor_config,
                     _log_compensatory_calculation(layer_name, row)
 
     if result_gdf is not None:
-        # Select only relevant columns
-        relevant_columns = ['feature_id', 'name', 'buffer_zone', 'distance', 'area', 'score', 'geometry']
-        result_gdf = result_gdf[relevant_columns]
+        # Define base columns to keep
+        keep_columns = [
+            'feature_id', 'name', 'buffer_zone', 'distance', 'area', 'score',
+            'base_value',  # Added for both types
+            'geometry'
+        ]
+        
+        # Add compensatory_value column only if it exists (for compensatory areas)
+        if not is_construction and 'compensatory_value' in result_gdf.columns:
+            keep_columns.append('compensatory_value')
+            
+        return result_gdf[keep_columns]
 
     return result_gdf
 
@@ -235,6 +245,10 @@ def _generate_protocol(result_gdf, parcel_layer, parcel_label, grz, output_dir, 
         return
 
     try:
+        # Debug column names
+        log_debug(f"Result GDF columns: {result_gdf.columns.tolist()}")
+        log_debug(f"Sample row from result_gdf: {result_gdf.iloc[0].to_dict()}")
+        
         # Calculate totals using the original result_gdf
         const_mask = result_gdf['name'].str.contains('construction', case=False)
         total_const_score = float(result_gdf[const_mask]['score'].sum())
@@ -258,6 +272,8 @@ def _generate_protocol(result_gdf, parcel_layer, parcel_label, grz, output_dir, 
 
         # Process parcels using overlay with result_gdf
         parcels = gpd.overlay(result_gdf, parcel_layer, how='intersection')
+        log_debug(f"Parcels columns after overlay: {parcels.columns.tolist()}")
+        log_debug(f"Sample row from parcels: {parcels.iloc[0].to_dict()}")
         
         # Group by parcel label
         for parcel_id, parcel_group in parcels.groupby(parcel_label):
