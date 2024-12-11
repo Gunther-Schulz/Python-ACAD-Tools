@@ -11,11 +11,12 @@ class LagefaktorProcessor:
     def _load_lagefaktor_config(self):
         """Load the lagefaktor configuration from the project."""
         try:
-            config_path = Path(self.project_loader.folder_prefix) / 'lagefaktor.yaml'
-            if not config_path.exists():
-                log_warning(f"Lagefaktor config not found at {config_path}")
+            # Use project_loader to load the lagefaktor config
+            config = self.project_loader.load_yaml_file('lagefaktor.yaml', required=False)
+            if not config:
+                log_warning("No Lagefaktor configuration found in project directory")
                 return []
-            return self.project_loader.load_yaml(config_path)
+            return config
         except Exception as e:
             log_error(f"Error loading lagefaktor config: {str(e)}")
             return []

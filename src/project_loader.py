@@ -192,3 +192,12 @@ class ProjectLoader:
         else:
             log_info("No DXF operations found in project settings")
             self.dxf_processor = None  # Set to None if no operations
+
+    def load_lagefaktor_config(self):
+        """Load Lagefaktor configuration from project directory"""
+        config = self.load_yaml_file('lagefaktor.yaml', required=False)
+        if config:
+            log_debug(f"Loaded Lagefaktor configuration with {len(config)} areas")
+        else:
+            log_debug("No Lagefaktor configuration found")
+        return config

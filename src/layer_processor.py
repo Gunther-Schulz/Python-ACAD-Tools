@@ -10,6 +10,7 @@ from geopandas import GeoSeries
 import os
 import shutil
 import fiona
+from src.lagefaktor import LagefaktorProcessor
 
 # Import operations individually
 from src.operations import (
@@ -47,6 +48,7 @@ class LayerProcessor:
         self.processed_layers = set()
         self.dxf_doc = None
         self.pending_dxf_layers = []
+        self.lagefaktor_processor = LagefaktorProcessor(project_loader)
     
     def set_dxf_document(self, doc):
         """Set the DXF document from DXFExporter and process any pending layers"""
@@ -66,6 +68,13 @@ class LayerProcessor:
             self.process_layer(layer, self.processed_layers)
             if shapefile_output_dir:
                 self.write_shapefile(layer_name)
+
+        # Process Lagefaktor calculations after geometric layers
+        log_debug("Starting Lagefaktor processing...")
+        try:
+            self.lagefaktor_processor.process_construction_scores(self)
+        except Exception as e:
+            log_error(f"Error during Lagefaktor processing: {str(e)}")
 
         # Process WMTS layers
         for layer in self.project_settings.get('wmtsLayers', []):
