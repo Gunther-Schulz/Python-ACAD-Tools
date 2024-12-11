@@ -483,6 +483,39 @@ geomLayers:
         intersection_area: 0
         area: 0
 
+
+# Biotoptypen
+- name: Biotoptyp Sonstiges Feuchtgrünland # Unchanging
+  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/GFD - Sonstiges Feuchtgrünland.shp"  
+  operations:
+    - type: intersection
+      layers:
+        - Geltungsbereich
+    - type: dissolve
+    - type: filterGeometry
+    - type: dissolve
+    - type: filterGeometry
+      geometryTypes:
+        - polygon
+      minArea: 1
+
+- name: Biotoptyp Sandacker
+  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/ACS - Sandacker.shp"
+  operations:
+    - type: copy
+      layers:
+        - Zuwegung
+    - type: intersection
+      layers:
+        - Geltungsbereich
+    - type: dissolve
+    - type: filterGeometry
+      geometryTypes:
+        - polygon
+      minArea: 1
+
+
+
 ### Grünfläche ###
 - name: Grünfläche Input from source
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/grünfläche_input_from_source_pl.shp"
@@ -512,6 +545,7 @@ geomLayers:
         - "ges gesch Biotope"
         - Leitung Ontras Buffer
         - Gas_HD_LEIT Buffer
+        - Biotoptyp Sonstiges Feuchtgrünland
     - type: dissolve
     - type: intersection
       layers:
@@ -644,35 +678,35 @@ geomLayers:
 
 ### Ausgleich ###
 
-# Biotoptypen
-- name: Biotoptyp Sonstiges Feuchtgrünland # Unchanging
-  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/GFD - Sonstiges Feuchtgrünland.shp"  
-  operations:
-    - type: intersection
-      layers:
-        - Geltungsbereich
-    - type: dissolve
-    - type: filterGeometry
-    - type: dissolve
-    - type: filterGeometry
-      geometryTypes:
-        - polygon
-      minArea: 1
+# # Biotoptypen
+# - name: Biotoptyp Sonstiges Feuchtgrünland # Unchanging
+#   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/GFD - Sonstiges Feuchtgrünland.shp"  
+#   operations:
+#     - type: intersection
+#       layers:
+#         - Geltungsbereich
+#     - type: dissolve
+#     - type: filterGeometry
+#     - type: dissolve
+#     - type: filterGeometry
+#       geometryTypes:
+#         - polygon
+#       minArea: 1
 
-- name: Biotoptyp Sandacker
-  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/ACS - Sandacker.shp"
-  operations:
-    - type: copy
-      layers:
-        - Zuwegung
-    - type: intersection
-      layers:
-        - Geltungsbereich
-    - type: dissolve
-    - type: filterGeometry
-      geometryTypes:
-        - polygon
-      minArea: 1
+# - name: Biotoptyp Sandacker
+#   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/ACS - Sandacker.shp"
+#   operations:
+#     - type: copy
+#       layers:
+#         - Zuwegung
+#     - type: intersection
+#       layers:
+#         - Geltungsbereich
+#     - type: dissolve
+#     - type: filterGeometry
+#       geometryTypes:
+#         - polygon
+#       minArea: 1
 
 # Externer Ausgleich
 - name: Ausgleich Extern
