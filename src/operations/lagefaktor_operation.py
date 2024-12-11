@@ -245,6 +245,12 @@ def _generate_protocol(result_gdf, parcel_layer, parcel_label, grz, output_dir, 
         return
 
     try:
+        # Suppress specific overlay warning
+        import warnings
+        with warnings.catch_warnings():
+            warnings.filterwarnings('ignore', message='.*keep_geom_type=True.*')
+            parcels = gpd.overlay(result_gdf, parcel_layer, how='intersection')
+        
         # Calculate totals using the original result_gdf
         const_mask = result_gdf['name'].str.contains('construction', case=False)
         total_const_score = float(result_gdf[const_mask]['score'].sum())
@@ -267,9 +273,6 @@ def _generate_protocol(result_gdf, parcel_layer, parcel_label, grz, output_dir, 
             }
         }
 
-        # Process parcels using overlay with result_gdf
-        parcels = gpd.overlay(result_gdf, parcel_layer, how='intersection')
-        
         # Group by parcel label
         for parcel_id, parcel_group in parcels.groupby(parcel_label):
             parcel_info = {
