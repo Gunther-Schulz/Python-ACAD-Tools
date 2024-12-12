@@ -178,11 +178,18 @@ def _process_layer_scores(all_layers, layer_name, base_value, lagefaktor_config,
             small_areas = intersections[intersections['parcel_coverage'] < threshold]
             
             if not small_areas.empty:
-                # Instead of removing entire features, just subtract the small areas
-                small_geometries = small_areas.geometry.unary_union
-                # Difference operation keeps everything EXCEPT the small areas
-                layer_gdf['geometry'] = layer_gdf.geometry.difference(small_geometries)
-                log_info(f"Removed {len(small_areas)} small areas from {layer_name}")
+                # Get the boundary of the original geometries
+                layer_boundaries = layer_gdf.geometry.boundary.unary_union
+                
+                # Only keep small areas that touch the boundary
+                edge_small_areas = small_areas[small_areas.geometry.intersects(layer_boundaries)]
+                
+                if not edge_small_areas.empty:
+                    # Instead of removing entire features, just subtract the small areas at edges
+                    small_geometries = edge_small_areas.geometry.unary_union
+                    # Difference operation keeps everything EXCEPT the small areas
+                    layer_gdf['geometry'] = layer_gdf.geometry.difference(small_geometries)
+                    log_info(f"Removed {len(edge_small_areas)} small edge areas from {layer_name}")
 
     result_gdf = None
     
