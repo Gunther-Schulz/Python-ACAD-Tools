@@ -1,9 +1,4 @@
-
-
 from shapely import MultiLineString
-
-
-
 from shapely.ops import nearest_points
 from shapely.geometry import Point, LineString, Polygon, MultiPolygon
 import geopandas as gpd
@@ -12,6 +7,7 @@ from src.utils import log_debug, log_warning
 import math
 import numpy as np
 from src.style_manager import StyleManager
+import networkx as nx
 
 
 def get_line_placement_positions(line, label_length, text_height=2.5):
@@ -403,9 +399,9 @@ def try_resolve_collision(point, angle, existing_labels, text_height, label_text
     return point, False
 
 def create_label_association_layer(all_layers, project_settings, crs, layer_name, operation):
-    """Creates label points along lines using QGIS PAL labeling system."""
+    """Creates label points along lines using networkx for optimal label placement."""
     
-    # Get global label spacing settings from operation config
+    # Get settings from operation config (keeping existing settings logic)
     label_settings = operation.get('labelSettings', {})
     spacing_settings = {
         'width_factor': label_settings.get('widthFactor', 1.3),
@@ -414,24 +410,23 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
         'collision_margin': label_settings.get('collisionMargin', 0.25),
     }
     
-    # Get global label offset
     global_label_offset = float(label_settings.get('labelOffset', 0))
     
-    # Get text height from style
+    # Get text style (keeping existing style logic)
     style_manager = StyleManager(project_settings)
     layer_info = next((layer for layer in project_settings.get('geomLayers', []) 
                       if layer.get('name') == layer_name), {})
     style = style_manager.process_layer_style(layer_name, layer_info)
     text_style = style.get('text', {}).copy()
-    text_height = text_style.get('height', 2.5)  # Get actual text height from style
+    text_height = text_style.get('height', 2.5)
     
-    # Track source layers for statistics
+    # Track statistics
     source_layer_counts = {}
     source_layers = operation.get('sourceLayers', [{'name': layer_name}])
-    
-    # Track existing label boxes instead of simple buffers
-    existing_label_boxes = []
     features_list = []
+    
+    # Create graph for label conflict resolution
+    G = nx.Graph()
     
     # Process each source layer
     for source_config in source_layers:
@@ -440,11 +435,8 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
             continue
             
         label_text = source_config.get('label', '')
-        # Use source-specific spacing and offset if provided, otherwise fall back to global
         spacing = source_config.get('labelSpacing', 100)
         label_offset = float(source_config.get('labelOffset', global_label_offset))
-        
-        log_debug(f"Processing layer {source_layer_name} with offset: {label_offset}")
         
         source_layer_counts[source_layer_name] = 0
         
@@ -452,114 +444,58 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
         source_geometry = _get_filtered_geometry(all_layers, project_settings, crs, source_layer_name, None)
         if source_geometry is None or source_geometry.is_empty:
             continue
-            
+        
         # Convert to list of LineStrings
-        if isinstance(source_geometry, LineString):
-            geometries = [source_geometry]
-        elif isinstance(source_geometry, MultiLineString):
-            geometries = list(source_geometry.geoms)
-        else:
-            continue
-            
-        # Process each line
+        geometries = [source_geometry] if isinstance(source_geometry, LineString) else list(source_geometry.geoms)
+        
+        # Generate candidate positions
+        candidates = []
         for line in geometries:
             source_layer_counts[source_layer_name] += 1
-            line_length = line.length
             
-            current_distance = spacing / 2
-            while current_distance < line_length:
-                # Get initial point position
-                point = line.interpolate(current_distance)
-                
-                # Calculate angle before applying offset
+            # Generate evenly spaced candidates along line
+            for dist in np.arange(spacing/2, line.length, spacing):
+                point = line.interpolate(dist)
+                # Calculate angle (similar to existing logic)
                 delta = spacing * 0.1
-                point_before = line.interpolate(max(0, current_distance - delta))
-                point_after = line.interpolate(min(line_length, current_distance + delta))
+                point_before = line.interpolate(max(0, dist - delta))
+                point_after = line.interpolate(min(line.length, dist + delta))
+                angle = math.degrees(math.atan2(
+                    point_after.y - point_before.y,
+                    point_after.x - point_before.x
+                ))
                 
-                dx = point_after.x - point_before.x
-                dy = point_after.y - point_before.y
-                angle = math.degrees(math.atan2(dy, dx))
+                # Normalize angle
+                if angle > 90: angle -= 180
+                elif angle < -90: angle += 180
                 
-                # Store original direction before normalization
-                offset_multiplier = 1
-                if angle > 90 or angle < -90:
-                    offset_multiplier = -1
-                
-                # Normalize angle for text orientation
-                if angle > 90:
-                    angle -= 180
-                elif angle < -90:
-                    angle += 180
-                
-                # Apply perpendicular offset if specified
-                if abs(label_offset) > 0.0001:  # Use small epsilon for float comparison
-                    # Normalize the perpendicular vector
-                    length = math.sqrt(dx*dx + dy*dy)
-                    if length > 0:
-                        # Calculate perpendicular offset (rotate 90 degrees)
-                        # Multiply by offset_multiplier to maintain consistent offset direction
-                        px = (-dy/length) * label_offset * offset_multiplier
-                        py = (dx/length) * label_offset * offset_multiplier
-                        point = Point(point.x + px, point.y + py)
-
-                # Check for collisions with existing labels
-                if check_label_collision(point, label_text, angle, existing_label_boxes, text_height, spacing_settings):
-                    found_position = False
-                    slide_distance = spacing * 0.2  # Start with small increments
-                    max_slide = spacing * 0.8  # Don't slide more than 80% of spacing
-                    current_slide = slide_distance
-                    
-                    while current_slide <= max_slide:
-                        # Try forward
-                        if current_distance + current_slide < line_length:
-                            test_point = line.interpolate(current_distance + current_slide)
-                            if not check_label_collision(test_point, label_text, angle, existing_label_boxes, text_height, spacing_settings):
-                                point = test_point
-                                current_distance += current_slide
-                                found_position = True
-                                break
-                        
-                        # Try backward
-                        if current_distance - current_slide > 0:
-                            test_point = line.interpolate(current_distance - current_slide)
-                            if not check_label_collision(test_point, label_text, angle, existing_label_boxes, text_height, spacing_settings):
-                                point = test_point
-                                current_distance -= current_slide
-                                found_position = True
-                                break
-                        
-                        current_slide += slide_distance
-                    
-                    if not found_position:
-                        new_point, resolved = try_resolve_collision(
-                            point, angle, existing_label_boxes, text_height, label_text
-                        )
-                        if resolved:
-                            point = new_point
-                        else:
-                            current_distance += spacing
-                            continue
-                
-                # Add the label at the final position
-                features_list.append({
-                    'geometry': point,
-                    'properties': {
-                        'label': label_text,
-                        'rotation': angle
-                    }
-                })
-                
-                # Add rotated box to tracking with settings
-                label_box = calculate_label_box(point, 
-                                             len(label_text) * text_height * 0.6,
-                                             text_height,
-                                             angle,
-                                             spacing_settings)
-                existing_label_boxes.append(label_box)
-                
-                current_distance += spacing
+                candidates.append((point, angle, label_text))
+        
+        # Add nodes and edges to graph for conflict resolution
+        for i, (point1, angle1, text1) in enumerate(candidates):
+            node_id = f"{source_layer_name}_{i}"
+            G.add_node(node_id, pos=point1, angle=angle1, text=text1)
+            
+            # Add edges between conflicting labels
+            for j, (point2, angle2, text2) in enumerate(candidates[i+1:], i+1):
+                if check_label_collision(point1, text1, angle1, [calculate_label_box(point2, len(text2) * text_height * 0.6, text_height, angle2)], text_height, spacing_settings):
+                    G.add_edge(f"{source_layer_name}_{i}", f"{source_layer_name}_{j}")
     
-    # Log statistics
+    # Find maximum independent set for non-conflicting labels
+    independent_set = nx.maximal_independent_set(G)
+    
+    # Create features from selected positions
+    for node_id in independent_set:
+        node = G.nodes[node_id]
+        features_list.append({
+            'geometry': node['pos'],
+            'properties': {
+                'label': node['text'],
+                'rotation': node['angle']
+            }
+        })
+    
+    # Log statistics (keeping existing warning logic)
     for source_name, count in source_layer_counts.items():
         placed_labels = len([
             f for f in features_list 
