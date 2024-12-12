@@ -146,6 +146,24 @@ def _process_layer_scores(all_layers, layer_name, base_value, lagefaktor_config,
         log_warning(f"Layer {layer_name} is empty")
         return None
 
+    # Get parcel layer from all_layers
+    parcel_layer = all_layers.get('Parcel')
+    if parcel_layer is not None:
+        # Calculate intersection with parcels and get proportion of each parcel
+        intersections = gpd.overlay(layer_gdf, parcel_layer, how='intersection')
+        if not intersections.empty:
+            # Calculate the proportion of each parcel that the intersection represents
+            intersections['parcel_proportion'] = intersections.geometry.area / intersections.geometry.area.groupby(intersections.index).transform('sum')
+            
+            # Identify geometries that take up less than 1% of any parcel
+            small_areas = intersections[intersections['parcel_proportion'] < 0.01]
+            
+            if not small_areas.empty:
+                # Remove these small areas from the original layer_gdf
+                small_geometries = small_areas.geometry.unary_union
+                layer_gdf = layer_gdf[~layer_gdf.geometry.intersects(small_geometries)]
+                log_info(f"Removed {len(small_areas)} small areas from {layer_name}")
+
     result_gdf = None
     
     # Store GRZ factors for logging
