@@ -287,14 +287,20 @@ def _generate_protocol(result_gdf, parcel_layer, parcel_label, grz, output_dir, 
                     area_proportion = area / intersection['area']
                     partial_score = intersection['score'] * area_proportion
                     
-                    measures.append({
+                    measure = {
                         'ID': int(intersection['id']),
                         'Biotoptyp': intersection['name'],
                         'Flurstücksanteilsgröße': round(float(area), 2),
                         'Zone': intersection['buffer_zone'],
                         'Ausgangswert': float(intersection['base_value']),
                         'Teilscore': round(float(partial_score), 2)
-                    })
+                    }
+                    
+                    # Add Zielwert if compensatory_value exists
+                    if 'compensatory_value' in intersection:
+                        measure['Zielwert'] = float(intersection['compensatory_value'])
+                    
+                    measures.append(measure)
             
             # Only add to protocol if there are actual measures
             if measures:
