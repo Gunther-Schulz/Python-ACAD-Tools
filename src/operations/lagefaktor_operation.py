@@ -3,6 +3,7 @@ import pandas as pd
 from src.utils import log_debug, log_warning, log_error, log_info, resolve_path
 import yaml
 import os
+from openpyxl.styles import Alignment, Font, PatternFill
 
 def create_lagefaktor_layer(all_layers, project_settings, crs, layer_name, operation):
     """Process Lagefaktor calculations for construction and compensatory areas."""
@@ -307,7 +308,7 @@ def _process_layer_scores(all_layers, layer_name, base_value, lagefaktor_config,
     return result_gdf
 
 def _generate_protocol(result_gdf, parcel_layer, parcel_label, grz, output_dir, layer_name):
-    """Generate and save protocol in YAML format."""
+    """Generate and save protocol in YAML and Excel formats."""
     if parcel_layer is None:
         log_warning("Parcel layer not found, skipping protocol generation")
         return
@@ -383,13 +384,91 @@ def _generate_protocol(result_gdf, parcel_layer, parcel_label, grz, output_dir, 
                     'Maßnahmen': measures
                 }
 
-        filename = f"protocol_{layer_name}.yaml"
-        output_path = resolve_path(os.path.join(output_dir, filename))
+        # Generate Excel protocol
+        excel_filename = f"protocol_{layer_name}.xlsx"
+        excel_path = resolve_path(os.path.join(output_dir, excel_filename))
         
-        with open(output_path, 'w', encoding='utf-8') as f:
-            yaml.dump(protocol, f, allow_unicode=True, sort_keys=False, default_flow_style=False)
-        
-        log_info(f"Protocol saved to {output_path}")
+        # Create Excel writer object
+        with pd.ExcelWriter(excel_path, engine='openpyxl') as writer:
+            # Overview sheet
+            overview_data = {
+                'Parameter': ['Typ', 'GRZ', 'Gesamt Score', 'Gesamt Flächengröße'],
+                'Wert': [
+                    protocol_type,
+                    grz,
+                    round(float(result_gdf['score'].sum()), 2),
+                    round(float(result_gdf['area'].sum()), 2)
+                ]
+            }
+            overview_df = pd.DataFrame(overview_data)
+            overview_df.to_excel(writer, sheet_name='Übersicht', index=False)
+
+            # Flächen-Id sheet
+            areas_data = []
+            for _, feature in result_gdf.iterrows():
+                area_entry = {
+                    'Flächen-Id': feature['id'],
+                    'Flächengröße': round(float(feature['area']), 2),
+                    'Biotoptyp': feature['name'],
+                    'Ausgangswert': float(feature['base_value']),
+                    'Score': round(float(feature['score']), 2)
+                }
+                if 'compensatory_value' in feature:
+                    area_entry['Zielwert'] = float(feature['compensatory_value'])
+                areas_data.append(area_entry)
+            
+            areas_df = pd.DataFrame(areas_data)
+            areas_df.to_excel(writer, sheet_name='Flächen', index=False)
+
+            # Flurstücke sheet
+            parcels_data = []
+            result_union = result_gdf.unary_union
+            intersecting_parcels = parcel_layer[parcel_layer.intersects(result_union)]
+            parcels = gpd.overlay(intersecting_parcels, result_gdf, how='intersection')
+            
+            for _, intersection in parcels.iterrows():
+                area = intersection.geometry.area
+                if area > 0.01:
+                    area_proportion = area / intersection['area']
+                    partial_score = intersection['score'] * area_proportion
+                    
+                    parcel_entry = {
+                        'Flurstück': intersection[parcel_label],
+                        'Flächen-Id': int(intersection['id']),
+                        'Biotoptyp': intersection['name'],
+                        'Flurstücksanteilsgröße': round(float(area), 2),
+                        'Zone': intersection['buffer_zone'],
+                        'Ausgangswert': float(intersection['base_value']),
+                        'Teilscore': round(float(partial_score), 2)
+                    }
+                    if 'compensatory_value' in intersection:
+                        parcel_entry['Zielwert'] = float(intersection['compensatory_value'])
+                    parcels_data.append(parcel_entry)
+            
+            parcels_df = pd.DataFrame(parcels_data)
+            parcels_df.to_excel(writer, sheet_name='Flurstücke', index=False)
+
+            # Apply formatting
+            for sheet_name in writer.sheets:
+                worksheet = writer.sheets[sheet_name]
+                for column in worksheet.columns:
+                    max_length = 0
+                    column = [cell for cell in column]
+                    for cell in column:
+                        try:
+                            if len(str(cell.value)) > max_length:
+                                max_length = len(str(cell.value))
+                        except:
+                            pass
+                    adjusted_width = (max_length + 2)
+                    worksheet.column_dimensions[column[0].column_letter].width = adjusted_width
+
+                # Format headers
+                for cell in worksheet[1]:
+                    cell.font = Font(bold=True)
+                    cell.fill = PatternFill(start_color='E0E0E0', end_color='E0E0E0', fill_type='solid')
+
+        log_info(f"Excel protocol saved to {excel_path}")
 
     except Exception as e:
         log_error(f"Error generating protocol: {str(e)}")
