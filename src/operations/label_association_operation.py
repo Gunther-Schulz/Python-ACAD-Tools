@@ -428,7 +428,10 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
     collision_graph = nx.Graph()
     label_candidates = []
     node_counter = 0
-
+    
+    # Track candidates per layer
+    candidate_counts = {}
+    
     # Process each source layer to generate candidates
     for source_config in source_layers:
         source_layer_name = source_config.get('name')
@@ -438,7 +441,7 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
         label_text = source_config.get('label', '')
         label_offset = float(source_config.get('labelOffset', global_label_offset))
         
-        source_layer_counts[source_layer_name] = 0
+        candidate_counts[source_layer_name] = 0
         
         # Get source geometry
         source_geometry = _get_filtered_geometry(all_layers, project_settings, crs, source_layer_name, None)
@@ -454,8 +457,6 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
 
         # Generate candidates for this layer
         for geom in geometries:
-            source_layer_counts[source_layer_name] += 1
-            
             # Get potential positions based on geometry type
             positions = []
             if isinstance(geom, LineString):
@@ -482,6 +483,7 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
                 )
                 label_candidates.append(node_id)
                 node_counter += 1
+                candidate_counts[source_layer_name] += 1
 
     # Build edges for collisions between all candidates
     text_boxes = {}
@@ -582,39 +584,43 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
             }
         })
 
-    # Log distribution statistics
-    for layer, count in layer_counts.items():
-        log_warning(f"DEBUG - Layer {layer}: {count} labels placed")
-
-    # Log statistics with detailed counting
-    for source_name, count in source_layer_counts.items():
-        # Count labels specifically for this source layer
-        source_label = next((sl['label'] for sl in source_layers if sl['name'] == source_name), '')
+    # Log summary statistics
+    for layer, count in candidate_counts.items():
+        # Get placed labels for this layer
         placed_labels = len([
             f for f in features_list 
-            if f['properties']['label'] == source_label
+            if f['properties']['source_layer'] == layer
         ])
         
-        # Debug logging
-        log_warning(f"DEBUG - Source layer: {source_name}")
-        log_warning(f"DEBUG - Total geometries count: {count}")
-        log_warning(f"DEBUG - Selected nodes for this layer: {len([n for n in selected_nodes if n.startswith(source_name)])}")
-        log_warning(f"DEBUG - Features with matching label: {placed_labels}")
-        log_warning(f"DEBUG - Label text being matched: '{source_label}'")
+        # Get source geometry using the same method as for candidate generation
+        source_geometry = _get_filtered_geometry(all_layers, project_settings, crs, layer, None)
+        total_line_length = 0
         
-        if placed_labels < count:
-            warning_message = (
-                f"Only {placed_labels} of {count} possible label positions were used for source layer '{source_name}'. "
-                "Check the layer geometry and label spacing settings."
-            )
-            log_warning(
-                format_operation_warning(
-                    layer_name,
-                    'label_association',
-                    warning_message
-                )
-            )
-    
+        if source_geometry is not None and not source_geometry.is_empty:
+            # Handle single or multiple geometries
+            if isinstance(source_geometry, (LineString, Point, Polygon)):
+                geometries = [source_geometry]
+            else:
+                geometries = list(source_geometry.geoms)
+            
+            # Calculate total length
+            for geom in geometries:
+                if isinstance(geom, LineString):
+                    total_line_length += geom.length
+                elif isinstance(geom, MultiLineString):
+                    total_line_length += sum(line.length for line in geom.geoms)
+        
+        if total_line_length > 0:
+            # Calculate labels per unit length (per 100 map units)
+            labels_per_length = (placed_labels * 100.0) / total_line_length
+            
+            log_warning(f"Layer: {layer} - Placed {placed_labels} of {count} candidate positions. "
+                       f"Line length: {total_line_length:.1f}, "
+                       f"Labels per 100 units: {labels_per_length:.3f}")
+        else:
+            log_warning(f"Layer: {layer} - Placed {placed_labels} of {count} candidate positions. "
+                       f"No line length calculated.")
+
     # Create result GeoDataFrame
     if not features_list:
         return gpd.GeoDataFrame({'geometry': [], 'label': []}, geometry='geometry', crs=crs)
