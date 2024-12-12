@@ -218,12 +218,7 @@ def _process_layer_scores(all_layers, layer_name, base_value, lagefaktor_config,
             else:
                 result_gdf = pd.concat([result_gdf, zone_gdf])
 
-            # Log calculations
-            for _, row in zone_gdf.iterrows():
-                if is_construction:
-                    _log_construction_calculation(layer_name, row, factor_a, factor_b, factor_c)
-                elif row['eligible']:
-                    _log_compensatory_calculation(layer_name, row)
+
 
     if result_gdf is not None:
         # Define base columns to keep
@@ -246,32 +241,6 @@ def _process_layer_scores(all_layers, layer_name, base_value, lagefaktor_config,
 
     return result_gdf
 
-def _log_construction_calculation(layer_name, row, factor_a, factor_b, factor_c):
-    """Log construction calculation details."""
-    log_debug(f"Construction Score Calculation for {layer_name}:\n"
-              f"  Feature ID: {row['feature_id']}\n"
-              f"  Area: {row['area']:.2f}\n"
-              f"  Base Value: {row['base_value']}\n"
-              f"  Lagefaktor: {row['lagefaktor']}\n"
-              f"  Step 1 (Base * Lagefaktor): {row['base_times_lage']:.2f}\n"
-              f"  Step 2 (Step 1 * Area): {row['initial_value']:.2f}\n"
-              f"  Step 3 (Initial * Factor A [{factor_a}]): {row['adjusted_value']:.2f}\n"
-              f"  Step 4 (Factor B + Factor C = {factor_b} + {factor_c}): {factor_b + factor_c:.2f}\n"
-              f"  Final Score: {row['score']:.2f}\n"
-              f"-------------------")
-
-def _log_compensatory_calculation(layer_name, row):
-    """Log compensatory calculation details."""
-    log_debug(f"Compensatory Score Calculation for {layer_name}:\n"
-              f"  Feature ID: {row['feature_id']}\n"
-              f"  Area: {row['area']:.2f}\n"
-              f"  Step 1 (Compensatory - Base): {row['compensat']} - {row['base_value']} = {row['initial_value']}\n"
-              f"  Step 2 (Initial * Area): {row['initial_value']} * {row['area_value']:.2f} = {row['adjusted_value']:.2f}\n"
-              f"  Step 3 (Adjusted * Lagefaktor): {row['adjusted_value']:.2f} * {row['lagefaktor']} = {row['final_value']:.2f}\n"
-              f"  Step 4 (Final * Protection): {row['final_value']:.2f} * {row['prot_value']} = {row['protected_final_v']:.2f}\n"
-              f"  Final Score: {row['score']:.2f}\n"
-              f"-------------------") 
-
 def _generate_protocol(result_gdf, parcel_layer, parcel_label, grz, output_dir, layer_name):
     """Generate and save protocol in YAML format."""
     if parcel_layer is None:
@@ -279,18 +248,17 @@ def _generate_protocol(result_gdf, parcel_layer, parcel_label, grz, output_dir, 
         return
 
     try:
-        # Determine protocol type based on presence of compensatory_value
         protocol_type = "Kompensation" if 'compensatory_value' in result_gdf.columns else "Konstruktion"
         
         protocol = {
             'Ausgleichsprotokoll': {
-                'Typ': protocol_type,  # Set type based on protocol_type
+                'Typ': protocol_type,
                 'GRZ': grz,
                 'Gesamt': {
                     'Score': round(float(result_gdf['score'].sum()), 2),
-                    'Fläche': round(float(result_gdf['area'].sum()), 2)
+                    'Flächengröße': round(float(result_gdf['area'].sum()), 2)
                 },
-                'ID': {},
+                'Flächen-Id': {},
                 'Flurstücke': {}
             }
         }
@@ -309,7 +277,7 @@ def _generate_protocol(result_gdf, parcel_layer, parcel_label, grz, output_dir, 
         # Add ID section - using the actual IDs from result_gdf
         for _, feature in result_gdf.iterrows():
             id_entry = {
-                'Fläche': round(float(feature['area']), 2),
+                'Flächengröße': round(float(feature['area']), 2),
                 'Biotoptyp': feature['name'],
                 'Ausgangswert': float(feature['base_value']),
                 'Score': round(float(feature['score']), 2)
@@ -319,7 +287,7 @@ def _generate_protocol(result_gdf, parcel_layer, parcel_label, grz, output_dir, 
             if 'compensatory_value' in feature:
                 id_entry['Zielwert'] = float(feature['compensatory_value'])
             
-            protocol['Ausgleichsprotokoll']['ID'][str(feature['id'])] = id_entry
+            protocol['Ausgleichsprotokoll']['Flächen-Id'][str(feature['id'])] = id_entry
 
         # Flurstücke section
         for parcel_id, parcel_group in parcels.groupby(parcel_label):
@@ -331,7 +299,7 @@ def _generate_protocol(result_gdf, parcel_layer, parcel_label, grz, output_dir, 
                     partial_score = intersection['score'] * area_proportion
                     
                     measure = {
-                        'ID': int(intersection['id']),  # Use the actual ID from result_gdf
+                        'Flächen-Id': int(intersection['id']),  # Use the actual ID from result_gdf
                         'Biotoptyp': intersection['name'],
                         'Flurstücksanteilsgröße': round(float(area), 2),
                         'Zone': intersection['buffer_zone'],
@@ -346,7 +314,7 @@ def _generate_protocol(result_gdf, parcel_layer, parcel_label, grz, output_dir, 
             
             if measures:
                 protocol['Ausgleichsprotokoll']['Flurstücke'][str(parcel_id)] = {
-                    'Fläche': round(float(sum(m['Flurstücksanteilsgröße'] for m in measures)), 2),
+                    'Flächengröße': round(float(sum(m['Flurstücksanteilsgröße'] for m in measures)), 2),
                     'Maßnahmen': measures
                 }
 
