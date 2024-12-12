@@ -873,7 +873,9 @@ geomLayers:
       grz: 0.5
       parcelLayer: "Parcel"
       parcelLabel: "label"
-      minParcelAreaPercent: 1
+      edgeAreaRange: 1
+      #   min: 3.5   # in square units
+      #   max: 4  # in square units
       protokolOutputDir: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/Lagefaktor/Waren_2_new"
       context:
         - distance: "<100"
