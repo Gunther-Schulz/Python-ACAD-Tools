@@ -49,16 +49,16 @@ def create_lagefaktor_layer(all_layers, project_settings, crs, layer_name, opera
             cols = ['id'] + [col for col in result.columns if col != 'id']
             result = result[cols]
             
-            # # Generate protocol if needed
-            # if protokol_output_dir and protokol_output_dir.strip():
-            #     _generate_protocol(
-            #         result,
-            #         all_layers.get(parcel_layer_name),
-            #         parcel_label,
-            #         grz,
-            #         protokol_output_dir,
-            #         layer_name
-            #     )
+            # Generate protocol if needed
+            if protokol_output_dir and protokol_output_dir.strip():
+                _generate_protocol(
+                    result,
+                    all_layers.get(parcel_layer_name),
+                    parcel_label,
+                    grz,
+                    protokol_output_dir,
+                    layer_name
+                )
             
             log_info(f"Successfully processed {layer_name} with {len(result)} features")
             print(result)
@@ -99,8 +99,7 @@ def _process_construction(all_layers, construction_config, lagefaktor_config, gr
     
     if area_construction_total > 0:
         log_info(f"Total construction score: {area_construction_total:.2f}")
-
-    print("FIRST",result_gdf)
+        log_info(f"Total construction area: {result_gdf['area'].sum():.2f}")
     
     return result_gdf
 
@@ -132,6 +131,7 @@ def _process_compensatory(all_layers, compensatory_config, lagefaktor_config):
     
     if area_compensatory_total > 0:
         log_info(f"Total compensatory score: {area_compensatory_total:.2f}")
+        log_info(f"Total compensatory area: {result_gdf['area'].sum():.2f}")
     
     return result_gdf
 
@@ -290,7 +290,10 @@ def _generate_protocol(result_gdf, parcel_layer, parcel_label, grz, output_dir, 
         
         # Add ID section - using unique values
         for unique_id in result_gdf.index.unique():
+            # Get the first row if there are multiple rows with the same index
             feature = result_gdf.loc[unique_id]
+            if isinstance(feature, pd.DataFrame) or isinstance(feature, pd.Series):
+                feature = feature.iloc[0] if isinstance(feature, pd.DataFrame) else feature
             
             id_entry = {
                 'Fläche': round(float(feature['area']), 2),
