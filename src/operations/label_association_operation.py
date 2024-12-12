@@ -499,39 +499,75 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
             if box1.intersects(box2):
                 collision_graph.add_edge(node1_id, node2_id)
 
-    # Convert scores to weights for maximum weight independent set
-    weights = {
-        node_id: collision_graph.nodes[node_id]['score']
-        for node_id in collision_graph.nodes()
-    }
-
-    # Convert to weighted graph for NetworkX
+    # Create weighted graph for NetworkX with layer information
     weighted_graph = nx.Graph()
-    for node_id in collision_graph.nodes():
-        weighted_graph.add_node(node_id, weight=weights[node_id])
+    nodes_by_layer = {}
     
-    # Add edges from collision graph
+    # Group nodes by layer and add to graph
+    for node_id in collision_graph.nodes():
+        node = collision_graph.nodes[node_id]
+        layer_name = node['layer']
+        weight = node['score']
+        
+        weighted_graph.add_node(node_id, 
+                              weight=weight,
+                              layer=layer_name)
+        
+        nodes_by_layer.setdefault(layer_name, []).append(node_id)
+    
+    # Add collision edges
     weighted_graph.add_edges_from(collision_graph.edges())
 
-    # Use NetworkX's approximation algorithm for maximum weight independent set
+    # Initialize selection tracking
     selected_nodes = set()
     remaining_nodes = set(weighted_graph.nodes())
-    
+    layer_counts = {layer: 0 for layer in nodes_by_layer.keys()}
+
+    # Process nodes layer by layer in rounds
     while remaining_nodes:
-        # Select node with highest weight-to-degree ratio
-        node_scores = {
-            n: weighted_graph.nodes[n]['weight'] / (weighted_graph.degree(n) + 1)
-            for n in remaining_nodes
-        }
-        best_node = max(node_scores.items(), key=lambda x: x[1])[0]
+        # Sort layers by current label count (ascending) to give priority to underrepresented layers
+        layers_by_priority = sorted(nodes_by_layer.keys(), 
+                                  key=lambda l: layer_counts[l])
         
-        # Add to selected set
-        selected_nodes.add(best_node)
+        made_selection = False
         
-        # Remove selected node and its neighbors
-        neighbors = set(weighted_graph.neighbors(best_node))
-        remaining_nodes.remove(best_node)
-        remaining_nodes -= neighbors
+        # Try to select one node from each layer
+        for layer in layers_by_priority:
+            layer_candidates = set(nodes_by_layer[layer]) & remaining_nodes
+            if not layer_candidates:
+                continue
+                
+            # Create subgraph of candidates and their conflicts
+            candidate_subgraph = weighted_graph.subgraph(layer_candidates)
+            
+            if not candidate_subgraph.nodes:
+                continue
+            
+            # Select best candidate based on weight and conflicts
+            candidate_scores = {
+                n: (weighted_graph.nodes[n]['weight'] / 
+                    (1 + sum(1 for neighbor in weighted_graph.neighbors(n) 
+                            if neighbor in selected_nodes)))
+                for n in candidate_subgraph.nodes
+            }
+            
+            if candidate_scores:
+                best_candidate = max(candidate_scores.items(), key=lambda x: x[1])[0]
+                
+                # Check if adding this candidate would create conflicts
+                if not any(neighbor in selected_nodes 
+                          for neighbor in weighted_graph.neighbors(best_candidate)):
+                    selected_nodes.add(best_candidate)
+                    layer_counts[layer] += 1
+                    made_selection = True
+                    
+                    # Remove selected node and update remaining nodes
+                    remaining_nodes.remove(best_candidate)
+                    remaining_nodes -= set(weighted_graph.neighbors(best_candidate))
+        
+        # If no selections were made in this round, break to avoid infinite loop
+        if not made_selection:
+            break
 
     # Create features from selected positions
     features_list = []
@@ -545,6 +581,10 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
                 'source_layer': node['layer']
             }
         })
+
+    # Log distribution statistics
+    for layer, count in layer_counts.items():
+        log_warning(f"DEBUG - Layer {layer}: {count} labels placed")
 
     # Log statistics with detailed counting
     for source_name, count in source_layer_counts.items():
