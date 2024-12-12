@@ -463,6 +463,12 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
                 text_width = len(label_text) * text_height * 0.6
                 positions = get_line_placement_positions(geom, text_width, text_height)
                 positions = [(pos[0], pos[1], pos[2]) for pos in positions]  # point, angle, score
+            elif isinstance(geom, MultiLineString):
+                text_width = len(label_text) * text_height * 0.6
+                # Process each line in the MultiLineString
+                for line in geom.geoms:
+                    line_positions = get_line_placement_positions(line, text_width, text_height)
+                    positions.extend([(pos[0], pos[1], pos[2]) for pos in line_positions])
             elif isinstance(geom, Polygon):
                 point = get_polygon_anchor_position(geom, len(label_text) * text_height * 0.6, text_height)
                 positions = [(point, 0, 1.0)]  # Single position with 0 rotation
