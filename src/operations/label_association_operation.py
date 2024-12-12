@@ -1,83 +1,8 @@
-import os
-import sys
-from pathlib import Path
+
 
 from shapely import MultiLineString
 
-# Set Qt platform to xcb before any Qt imports
-os.environ['QT_QPA_PLATFORM'] = 'xcb'
-# Disable GUI for headless operation
-os.environ['QT_QPA_PLATFORM'] = 'offscreen'
 
-# Get conda environment path
-conda_prefix = os.environ.get('CONDA_PREFIX')
-if conda_prefix:
-    # Add QGIS Python paths
-    qgis_python_paths = [
-        os.path.join(conda_prefix, 'share', 'qgis', 'python'),
-        os.path.join(conda_prefix, 'lib', 'python3.10', 'site-packages'),
-        os.path.join(conda_prefix, 'share', 'qgis', 'python', 'plugins'),
-    ]
-    
-    # Add paths to sys.path if they exist
-    for path in qgis_python_paths:
-        if os.path.exists(path) and path not in sys.path:
-            sys.path.append(path)
-            print(f"Added QGIS path: {path}")
-    
-    # Set QGIS prefix path
-    os.environ['QGIS_PREFIX_PATH'] = conda_prefix
-    
-    # Set library path
-    lib_path = os.path.join(conda_prefix, 'lib')
-    if os.path.exists(lib_path):
-        current_lib_path = os.environ.get('LD_LIBRARY_PATH', '')
-        os.environ['LD_LIBRARY_PATH'] = f"{lib_path}:{current_lib_path}"
-        print(f"Added to LD_LIBRARY_PATH: {lib_path}")
-
-# Print debug information
-print("\nPython path:")
-for p in sys.path:
-    print(f"  {p}")
-
-print("\nLibrary path:")
-print(os.environ.get('LD_LIBRARY_PATH', 'Not set'))
-
-# Now try to import QGIS modules
-try:
-    from qgis.core import *
-    from qgis.PyQt.QtCore import QVariant
-    from qgis.PyQt import QtCore
-    print("\nSuccessfully imported QGIS modules")
-except ImportError as e:
-    print(f"\nError importing QGIS modules: {e}")
-    print("Detailed error information:")
-    import traceback
-    traceback.print_exc()
-    raise
-
-# Initialize QGIS Application in headless mode
-QgsApplication.setPrefixPath(os.environ['QGIS_PREFIX_PATH'], True)
-qgs = QgsApplication([], False)  # False means non-GUI
-qgs.initQgis()
-
-# Import and initialize processing
-from qgis.analysis import QgsNativeAlgorithms
-import processing
-from processing.core.Processing import Processing
-from qgis.core import (
-    QgsField,
-    QgsVectorLayer,
-    QgsFeature,
-    QgsGeometry,
-    QgsProject,
-    QgsCoordinateReferenceSystem,
-    QgsProcessingFeedback
-)
-
-# Initialize Processing framework
-Processing.initialize()
-QgsApplication.processingRegistry().addProvider(QgsNativeAlgorithms())
 
 from shapely.ops import nearest_points
 from shapely.geometry import Point, LineString, Polygon, MultiPolygon
@@ -87,28 +12,7 @@ from src.utils import log_debug, log_warning
 import math
 import numpy as np
 from src.style_manager import StyleManager
-from qgis.core import (
-    QgsPalLayerSettings,
-    QgsVectorLayer,
-    QgsFeature,
-    QgsGeometry,
-    QgsPointXY,
-    QgsField,
-    QgsFields,
-    QgsPoint,
-    QgsApplication,
-    QgsTextFormat,
-    Qgis,
-    QgsVectorLayerSimpleLabeling,
-    QgsUnitTypes,
-    QgsWkbTypes,
-    QgsProperty,
-    QgsRenderContext,
-    QgsMapToPixel
-)
 
-# Log QGIS version for debugging
-log_warning(f"QGIS Version: {Qgis.QGIS_VERSION}")
 
 def get_line_placement_positions(line, label_length, text_height=2.5):
     """Get possible label positions along a line with improved corner handling."""
@@ -497,23 +401,6 @@ def try_resolve_collision(point, angle, existing_labels, text_height, label_text
             return new_point, True
     
     return point, False
-
-def get_label_buffer(point, label_text, text_height):
-    """Create a buffer based on actual text dimensions."""
-    # Calculate actual text dimensions
-    # Typical width-to-height ratio is around 0.6 for most fonts
-    text_width = len(label_text) * text_height * 0.6  # Width per character
-    text_height = text_height * 1.2  # Add some vertical padding
-    
-    # Create buffer that fully encompasses the text
-    # Using the diagonal of the text box to ensure rotation-safe coverage
-    buffer_distance = math.sqrt((text_width/2)**2 + (text_height/2)**2)
-    
-    # Add extra padding (20%) for visual separation
-    buffer_distance *= 1.2
-    
-    label_geom = QgsGeometry.fromPointXY(QgsPointXY(point.x, point.y))
-    return label_geom.buffer(buffer_distance, 5)
 
 def create_label_association_layer(all_layers, project_settings, crs, layer_name, operation):
     """Creates label points along lines using QGIS PAL labeling system."""
