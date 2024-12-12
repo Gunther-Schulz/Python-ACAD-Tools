@@ -255,6 +255,22 @@ def _generate_protocol(result_gdf, parcel_layer, parcel_label, grz, output_dir, 
         return
 
     try:
+        # Determine protocol type based on presence of compensatory_value
+        protocol_type = "Kompensation" if 'compensatory_value' in result_gdf.columns else "Konstruktion"
+        
+        protocol = {
+            'Ausgleichsprotokoll': {
+                'Typ': protocol_type,  # Set type based on protocol_type
+                'GRZ': grz,
+                'Gesamt': {
+                    'Score': round(float(result_gdf['score'].sum()), 2),
+                    'Fläche': round(float(result_gdf['area'].sum()), 2)
+                },
+                'ID': {},
+                'Flurstücke': {}
+            }
+        }
+
         # First, find which parcels actually intersect with our result geometries
         result_union = result_gdf.unary_union
         intersecting_parcels = parcel_layer[parcel_layer.intersects(result_union)]
@@ -266,29 +282,34 @@ def _generate_protocol(result_gdf, parcel_layer, parcel_label, grz, output_dir, 
         # Now calculate intersections only for relevant parcels
         parcels = gpd.overlay(intersecting_parcels, result_gdf, how='intersection')
         
-        protocol = {
-            'Ausgleichsprotokoll': {
-                'Typ': 'Konstruktion',
-                'GRZ': grz,
-                'Gesamt': {
-                    'Score': round(float(result_gdf['score'].sum()), 2),
-                    'Fläche': round(float(result_gdf['area'].sum()), 2)
-                },
-                'Flurstücke': {}
+        # Add ID section - using unique values
+        for unique_id in result_gdf.index.unique():
+            feature = result_gdf.loc[unique_id]
+            
+            id_entry = {
+                'Fläche': round(float(feature['area']), 2),
+                'Biotoptyp': feature['name'],
+                'Ausgangswert': float(feature['base_value']),
+                'Score': round(float(feature['score']), 2)
             }
-        }
+            
+            # Add Zielwert only for compensatory measures
+            if 'compensatory_value' in feature:
+                id_entry['Zielwert'] = float(feature['compensatory_value'])
+            
+            protocol['Ausgleichsprotokoll']['ID'][str(unique_id + 1)] = id_entry
 
+        # Flurstücke section
         for parcel_id, parcel_group in parcels.groupby(parcel_label):
             measures = []
-            for _, intersection in parcel_group.iterrows():
+            for idx, intersection in parcel_group.iterrows():
                 area = intersection.geometry.area
                 if area > 0.01:  # Only include if area is significant
-                    # Calculate partial score based on area proportion
                     area_proportion = area / intersection['area']
                     partial_score = intersection['score'] * area_proportion
                     
                     measure = {
-                        'ID': int(intersection['id']),
+                        'ID': idx + 1,  # Adding 1 because index is 0-based
                         'Biotoptyp': intersection['name'],
                         'Flurstücksanteilsgröße': round(float(area), 2),
                         'Zone': intersection['buffer_zone'],
@@ -296,13 +317,11 @@ def _generate_protocol(result_gdf, parcel_layer, parcel_label, grz, output_dir, 
                         'Teilscore': round(float(partial_score), 2)
                     }
                     
-                    # Add Zielwert if compensatory_value exists
                     if 'compensatory_value' in intersection:
                         measure['Zielwert'] = float(intersection['compensatory_value'])
                     
                     measures.append(measure)
             
-            # Only add to protocol if there are actual measures
             if measures:
                 protocol['Ausgleichsprotokoll']['Flurstücke'][str(parcel_id)] = {
                     'Fläche': round(float(sum(m['Flurstücksanteilsgröße'] for m in measures)), 2),
