@@ -306,13 +306,8 @@ def _generate_protocol(result_gdf, parcel_layer, parcel_label, grz, output_dir, 
         # Now calculate intersections only for relevant parcels
         parcels = gpd.overlay(intersecting_parcels, result_gdf, how='intersection')
         
-        # Add ID section - using unique values
-        for unique_id in result_gdf.index.unique():
-            # Get the first row if there are multiple rows with the same index
-            feature = result_gdf.loc[unique_id]
-            if isinstance(feature, pd.DataFrame) or isinstance(feature, pd.Series):
-                feature = feature.iloc[0] if isinstance(feature, pd.DataFrame) else feature
-            
+        # Add ID section - using the actual IDs from result_gdf
+        for _, feature in result_gdf.iterrows():
             id_entry = {
                 'Fläche': round(float(feature['area']), 2),
                 'Biotoptyp': feature['name'],
@@ -324,19 +319,19 @@ def _generate_protocol(result_gdf, parcel_layer, parcel_label, grz, output_dir, 
             if 'compensatory_value' in feature:
                 id_entry['Zielwert'] = float(feature['compensatory_value'])
             
-            protocol['Ausgleichsprotokoll']['ID'][str(unique_id + 1)] = id_entry
+            protocol['Ausgleichsprotokoll']['ID'][str(feature['id'])] = id_entry
 
         # Flurstücke section
         for parcel_id, parcel_group in parcels.groupby(parcel_label):
             measures = []
-            for idx, intersection in parcel_group.iterrows():
+            for _, intersection in parcel_group.iterrows():
                 area = intersection.geometry.area
                 if area > 0.01:  # Only include if area is significant
                     area_proportion = area / intersection['area']
                     partial_score = intersection['score'] * area_proportion
                     
                     measure = {
-                        'ID': idx + 1,  # Adding 1 because index is 0-based
+                        'ID': int(intersection['id']),  # Use the actual ID from result_gdf
                         'Biotoptyp': intersection['name'],
                         'Flurstücksanteilsgröße': round(float(area), 2),
                         'Zone': intersection['buffer_zone'],
