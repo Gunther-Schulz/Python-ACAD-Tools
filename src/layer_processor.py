@@ -10,6 +10,7 @@ from geopandas import GeoSeries
 import os
 import shutil
 import fiona
+from src.style_manager import StyleManager
 
 # Import operations individually
 from src.operations import (
@@ -35,6 +36,7 @@ from src.operations.filter_geometry_operation import create_filtered_geometry_la
 from src.operations.report_operation import create_report_layer
 from src.shapefile_utils import write_shapefile
 from src.operations.label_association_operation import create_label_association_layer
+from src.operations.lagefaktor_operation import create_lagefaktor_layer
 
 class LayerProcessor:
     def __init__(self, project_loader, plot_ops=False):
@@ -275,6 +277,8 @@ class LayerProcessor:
             result = create_envelope_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
         elif op_type == 'labelAssociation':
             result = create_label_association_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
+        elif op_type == 'lagefaktor':
+            result = create_lagefaktor_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
         else:
             log_warning(f"Unknown operation type: {op_type} for layer {layer_name}")
             return None
