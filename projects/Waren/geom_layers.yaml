@@ -429,7 +429,6 @@ geomLayers:
     - type: dissolve
       layers:
         - Geltungsbereich Input
-        - Zuwegung
     - type: difference
       reverseDifference: false
       layers:
@@ -440,6 +439,10 @@ geomLayers:
         # - Exclude Böschung
         - Exclude Leitung
         - Baum_Laubbaum Envelope
+    - type: copy
+      layers:
+        - Zuwegung
+    - type: dissolve
     - type: calculate
       calculations:
         - type: area
@@ -799,6 +802,8 @@ geomLayers:
     - type: buffer
       layers:
         - Interference
+      joinStyle: round
+      capStyle: round
       distance: 100
     - type: dissolve
     - type: filterGeometry
@@ -812,6 +817,8 @@ geomLayers:
       layers:
         - Interference
       distance: 625
+      joinStyle: round
+      capStyle: round
     - type: dissolve
     - type: difference
       reverseDifference: false
@@ -827,8 +834,9 @@ geomLayers:
 #   operations:
 #     - type: copy
 #       layers:
-#         - Geltungsbereich
-#         - Ausgleich Extern
+#         - Interference
+#       joinStyle: round
+#       capStyle: round
 #     - type: dissolve
 #     - type: difference
 #       reverseDifference: false
