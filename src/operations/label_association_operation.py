@@ -10,26 +10,22 @@ from src.style_manager import StyleManager
 import networkx as nx
 
 
-def get_line_placement_positions(line, label_length, text_height=2.5):
-    """Get possible label positions along a line with improved corner handling."""
+def get_line_placement_positions(line, text_width, text_height):
+    """Get candidate positions along a line with improved angle calculation."""
+    positions = []
     line_length = line.length
     
-    # Calculate step size based on text height
-    step = max(text_height, line_length / 20)  # Use text height as minimum step
+    # Adjust step size based on text dimensions
+    step = min(text_width * 0.8, line_length / 2)  # Ensure at least 2 candidates for short lines
     
-    # Calculate actual space needed for text
-    # Typical width-to-height ratio is around 0.6 for most fonts
-    # Add some padding (1.2) to ensure text doesn't crowd corners
-    text_width = label_length * text_height * 0.6 * 1.2
+    # Look-ahead/behind distance for angle calculation
+    look_dist = text_width * 0.5  # Use half text width for angle calculation
     
-    positions = []
-    current_dist = text_width / 2  # Start half text width from the start
-    
-    while current_dist <= (line_length - text_width / 2):  # Stop half text width from the end
+    current_dist = 0
+    while current_dist <= line_length:
         point = line.interpolate(current_dist)
         
-        # Look both ahead and behind to detect corners
-        look_dist = max(text_width / 2, step)  # Use half text width as minimum look distance
+        # Calculate points before and after for better angle determination
         behind_dist = max(0, current_dist - look_dist)
         ahead_dist = min(line_length, current_dist + look_dist)
         
@@ -233,18 +229,49 @@ def calculate_label_box(point, width, height, angle, settings=None):
     
     return box
 
-def check_label_collision(point, label_text, angle, existing_labels, text_height, settings=None):
-    """Check if a label position collides with existing labels using rotated boxes."""
+def calculate_text_dimensions(label_text, text_style):
+    """Calculate actual text dimensions based on style settings."""
+    # Get font size from style, with fallbacks
+    font_size = text_style.get('height', 2.5)  # Default 2.5 if not specified
+    
+    # Get font settings that affect width
+    font_weight = text_style.get('weight', 'normal')
+    font_family = text_style.get('family', 'Arial')
+    
+    # Width multiplier based on font weight
+    weight_factor = 1.0
+    if font_weight in ['bold', 'heavy']:
+        weight_factor = 1.2
+    elif font_weight == 'light':
+        weight_factor = 0.9
+    
+    # Base character width (empirically determined for common fonts)
+    char_width_factor = {
+        'Arial': 0.6,
+        'Helvetica': 0.6,
+        'Times New Roman': 0.55,
+        'Courier New': 0.65,
+        'Verdana': 0.7,
+    }.get(font_family, 0.6)  # Default to Arial metrics if font not found
+    
+    # Calculate dimensions
+    text_width = len(label_text) * font_size * char_width_factor * weight_factor
+    text_height = font_size
+    
+    return text_width, text_height
+
+def check_label_collision(point, label_text, angle, existing_labels, text_style, settings=None):
+    """Check if a label position collides with existing labels using NetworkX for optimization."""
     if settings is None:
         settings = {
             'width_factor': 1.3,
             'height_factor': 1.5,
             'buffer_factor': 0.2,
-            'collision_margin': 0.25,  # Extra margin for collision detection
+            'collision_margin': 0.25,
         }
     
-    # Calculate text dimensions
-    text_width = len(label_text) * text_height * 0.6
+    # Calculate actual text dimensions
+    text_width, text_height = calculate_text_dimensions(label_text, text_style)
     
     # Create rotated box for new label
     new_box = calculate_label_box(point, text_width, text_height, angle, settings)
@@ -332,70 +359,42 @@ def get_best_label_position(geometry, label_text, offset=0, text_height=2.5, exi
     return None
 
 def try_resolve_collision(point, angle, existing_labels, text_height, label_text):
-    """Try to resolve label collision by moving the label in the optimal direction."""
-    # Create rotated box for the new label
+    """Try to resolve label collision by moving the label using NetworkX."""
+    # Create a conflict graph
+    G = nx.Graph()
+    
+    # Add the new label as node 0
     text_width = len(label_text) * text_height * 0.6
-    label_box = calculate_label_box(point, text_width, text_height, angle)
+    new_box = calculate_label_box(point, text_width, text_height, angle)
+    G.add_node(0, box=new_box, point=point)
     
-    # First check if there's a collision
-    colliding_labels = [label for label in existing_labels if label.intersects(label_box)]
+    # Add existing labels as nodes and create edges for conflicts
+    for i, label_box in enumerate(existing_labels, 1):
+        G.add_node(i, box=label_box)
+        if new_box.intersects(label_box):
+            G.add_edge(0, i)
     
-    if not colliding_labels:
+    if not G.edges(0):  # No conflicts
         return point, False
     
-    # Calculate the main direction of collision
-    collision_vectors = []
-    for colliding_label in colliding_labels:
-        # Get centroid of colliding label
-        centroid = colliding_label.centroid
-        dx = point.x - centroid.x
-        dy = point.y - centroid.y
-        collision_vectors.append((dx, dy))
+    # Calculate repulsion vectors using NetworkX's spring_layout
+    pos = nx.spring_layout(
+        G,
+        k=text_height * 2,  # Optimal distance between nodes
+        iterations=50,
+        pos={i: (n['box'].centroid.x, n['box'].centroid.y) for i, n in G.nodes(data=True)},
+        fixed=range(1, len(G.nodes()))  # Keep existing labels fixed
+    )
     
-    # Calculate average collision vector
-    avg_dx = sum(v[0] for v in collision_vectors) / len(collision_vectors)
-    avg_dy = sum(v[1] for v in collision_vectors) / len(collision_vectors)
+    # Get the new position for our label
+    new_pos = pos[0]
+    new_point = Point(new_pos[0], new_pos[1])
     
-    # Determine if collision is more horizontal or vertical
-    is_horizontal = abs(avg_dx) > abs(avg_dy)
-    
-    # Try different offsets based on the collision direction
-    offsets = []
-    base_offset = text_height * 1.2  # Base offset distance
-    
-    if is_horizontal:
-        # Try horizontal offsets first, then diagonal
-        offsets = [
-            (math.copysign(base_offset, avg_dx), 0),  # Horizontal
-            (math.copysign(base_offset, avg_dx), base_offset/2),  # Diagonal up
-            (math.copysign(base_offset, avg_dx), -base_offset/2),  # Diagonal down
-        ]
-    else:
-        # Try vertical offsets first, then diagonal
-        offsets = [
-            (0, math.copysign(base_offset, avg_dy)),  # Vertical
-            (base_offset/2, math.copysign(base_offset, avg_dy)),  # Diagonal right
-            (-base_offset/2, math.copysign(base_offset, avg_dy)),  # Diagonal left
-        ]
-    
-    # Try each offset until finding a non-colliding position
-    for offset_x, offset_y in offsets:
-        new_point = Point(point.x + offset_x, point.y + offset_y)
-        new_box = calculate_label_box(new_point, text_width, text_height, angle)
+    # Verify if new position resolves conflicts
+    new_box = calculate_label_box(new_point, text_width, text_height, angle)
+    if not any(label.intersects(new_box) for label in existing_labels):
+        return new_point, True
         
-        if not any(label.intersects(new_box) for label in existing_labels):
-            return new_point, True
-    
-    # If no resolution found, try larger offsets as last resort
-    last_resort_offset = base_offset * 2
-    for dx, dy in [(last_resort_offset, 0), (-last_resort_offset, 0), 
-                   (0, last_resort_offset), (0, -last_resort_offset)]:
-        new_point = Point(point.x + dx, point.y + dy)
-        new_box = calculate_label_box(new_point, text_width, text_height, angle)
-        
-        if not any(label.intersects(new_box) for label in existing_labels):
-            return new_point, True
-    
     return point, False
 
 def create_label_association_layer(all_layers, project_settings, crs, layer_name, operation):
@@ -425,17 +424,18 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
     source_layers = operation.get('sourceLayers', [{'name': layer_name}])
     features_list = []
     
-    # Create graph for label conflict resolution
-    G = nx.Graph()
-    
-    # Process each source layer
+    # Create a single graph for all labels across all source layers
+    collision_graph = nx.Graph()
+    label_candidates = []
+    node_counter = 0
+
+    # Process each source layer to generate candidates
     for source_config in source_layers:
         source_layer_name = source_config.get('name')
         if not source_layer_name:
             continue
             
         label_text = source_config.get('label', '')
-        spacing = source_config.get('labelSpacing', 100)
         label_offset = float(source_config.get('labelOffset', global_label_offset))
         
         source_layer_counts[source_layer_name] = 0
@@ -444,126 +444,108 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
         source_geometry = _get_filtered_geometry(all_layers, project_settings, crs, source_layer_name, None)
         if source_geometry is None or source_geometry.is_empty:
             continue
-        
-        # Convert to list of LineStrings
-        geometries = [source_geometry] if isinstance(source_geometry, LineString) else list(source_geometry.geoms)
-        
-        # Generate candidate positions
-        candidates = []
-        log_warning(f"DEBUG - Processing layer {source_layer_name}")
-        log_warning(f"DEBUG - Number of geometries: {len(geometries)}")
-        
-        for line in geometries:
+
+        # Convert to list of geometries
+        geometries = []
+        if isinstance(source_geometry, (LineString, Point, Polygon)):
+            geometries = [source_geometry]
+        else:
+            geometries = list(source_geometry.geoms)
+
+        # Generate candidates for this layer
+        for geom in geometries:
             source_layer_counts[source_layer_name] += 1
-            log_warning(f"DEBUG - Line length: {line.length}")
-            log_warning(f"DEBUG - Spacing value: {spacing}")
             
-            # Generate evenly spaced candidates along line
-            if line.length < spacing:
-                # For short lines, place one label in the middle
-                candidates.append((
-                    line.interpolate(0.5, normalized=True),  # middle point
-                    angle,
-                    label_text
-                ))
-            else:
-                # For longer lines, use spacing as before
-                for dist in np.arange(spacing/2, line.length, spacing):
-                    point = line.interpolate(dist)
-                    # Calculate angle (similar to existing logic)
-                    delta = spacing * 0.1
-                    point_before = line.interpolate(max(0, dist - delta))
-                    point_after = line.interpolate(min(line.length, dist + delta))
-                    angle = math.degrees(math.atan2(
-                        point_after.y - point_before.y,
-                        point_after.x - point_before.x
-                    ))
-                    
-                    # Normalize angle
-                    if angle > 90: angle -= 180
-                    elif angle < -90: angle += 180
-                    
-                    candidates.append((point, angle, label_text))
-            
-            log_warning(f"DEBUG - Generated {len(candidates)} candidates for this line")
-        
-        # Add nodes and edges to graph for conflict resolution
-        for i, (point1, angle1, text1) in enumerate(candidates):
-            node_id = f"{source_layer_name}_{i}"
-            G.add_node(node_id, pos=point1, angle=angle1, text=text1)
-            
-            # Add edges between conflicting labels
-            for j, (point2, angle2, text2) in enumerate(candidates[i+1:], i+1):
-                if check_label_collision(point1, text1, angle1, [calculate_label_box(point2, len(text2) * text_height * 0.6, text_height, angle2)], text_height, spacing_settings):
-                    G.add_edge(f"{source_layer_name}_{i}", f"{source_layer_name}_{j}")
+            # Get potential positions based on geometry type
+            positions = []
+            if isinstance(geom, LineString):
+                text_width = len(label_text) * text_height * 0.6
+                positions = get_line_placement_positions(geom, text_width, text_height)
+                positions = [(pos[0], pos[1], pos[2]) for pos in positions]  # point, angle, score
+            elif isinstance(geom, Polygon):
+                point = get_polygon_anchor_position(geom, len(label_text) * text_height * 0.6, text_height)
+                positions = [(point, 0, 1.0)]  # Single position with 0 rotation
+            elif isinstance(geom, Point):
+                point, angle = get_point_label_position(geom, label_text, text_height, label_offset)
+                positions = [(point, angle, 1.0)]
+
+            # Add nodes to graph for each candidate position
+            for pos, angle, score in positions:
+                node_id = f"{source_layer_name}_{node_counter}"
+                collision_graph.add_node(
+                    node_id,
+                    pos=pos,
+                    angle=angle,
+                    text=label_text,
+                    score=score,
+                    layer=source_layer_name
+                )
+                label_candidates.append(node_id)
+                node_counter += 1
+
+    # Build edges for collisions between all candidates
+    text_boxes = {}
+    for node_id in collision_graph.nodes():
+        node = collision_graph.nodes[node_id]
+        text_width, text_height = calculate_text_dimensions(node['text'], text_style)
+        box = calculate_label_box(node['pos'], text_width, text_height, node['angle'], spacing_settings)
+        text_boxes[node_id] = box
+
+    # Add edges for colliding labels
+    for i, node1_id in enumerate(label_candidates):
+        box1 = text_boxes[node1_id]
+        for node2_id in label_candidates[i+1:]:
+            box2 = text_boxes[node2_id]
+            if box1.intersects(box2):
+                collision_graph.add_edge(node1_id, node2_id)
+
+    # Convert scores to weights for maximum weight independent set
+    weights = {
+        node_id: collision_graph.nodes[node_id]['score']
+        for node_id in collision_graph.nodes()
+    }
+
+    # Convert to weighted graph for NetworkX
+    weighted_graph = nx.Graph()
+    for node_id in collision_graph.nodes():
+        weighted_graph.add_node(node_id, weight=weights[node_id])
     
-    # Group nodes by source layer
-    nodes_by_layer = {}
-    for node_id in G.nodes():
-        layer_name = node_id.split('_')[0]  # Extract layer name from node_id
-        if layer_name not in nodes_by_layer:
-            nodes_by_layer[layer_name] = []
-        nodes_by_layer[layer_name].append(node_id)
-    
-    # First, ensure at least one label per layer
+    # Add edges from collision graph
+    weighted_graph.add_edges_from(collision_graph.edges())
+
+    # Use NetworkX's approximation algorithm for maximum weight independent set
     selected_nodes = set()
-    remaining_nodes = set(G.nodes())
+    remaining_nodes = set(weighted_graph.nodes())
     
-    for layer_name, layer_nodes in nodes_by_layer.items():
-        if not layer_nodes:
-            log_warning(f"DEBUG - No candidate nodes for layer: {layer_name}")
-            continue
-            
-        # Debug the candidates
-        log_warning(f"DEBUG - Attempting to place label for layer: {layer_name}")
-        log_warning(f"DEBUG - Number of candidate positions: {len(layer_nodes)}")
-        
-        # Find the node with the least conflicts within this layer
-        conflicts = [(n, len([e for e in G.edges(n) if e[1] in remaining_nodes])) 
-                    for n in layer_nodes if n in remaining_nodes]
-        
-        if not conflicts:
-            log_warning(f"DEBUG - No valid candidates remain for layer: {layer_name}")
-            continue
-            
-        best_node = min(conflicts, key=lambda x: x[1])[0]
-        
-        log_warning(f"DEBUG - Selected node {best_node} with {conflicts[conflicts.index((best_node, min(conflicts, key=lambda x: x[1])[1]))][1]} conflicts")
-        
-        selected_nodes.add(best_node)
-        remaining_nodes.remove(best_node)
-        
-        # Remove conflicting nodes from consideration
-        conflicting = set(G.neighbors(best_node))
-        remaining_nodes -= conflicting
-    
-    # Then fill in with additional non-conflicting labels
     while remaining_nodes:
-        # Find node with least conflicts among remaining nodes
-        best_node = min(
-            remaining_nodes,
-            key=lambda n: len([e for e in G.edges(n) if e[1] in remaining_nodes])
-        )
+        # Select node with highest weight-to-degree ratio
+        node_scores = {
+            n: weighted_graph.nodes[n]['weight'] / (weighted_graph.degree(n) + 1)
+            for n in remaining_nodes
+        }
+        best_node = max(node_scores.items(), key=lambda x: x[1])[0]
         
+        # Add to selected set
         selected_nodes.add(best_node)
-        remaining_nodes.remove(best_node)
         
-        # Remove conflicting nodes
-        conflicting = set(G.neighbors(best_node))
-        remaining_nodes -= conflicting
-    
-    # Create features from selected positions (replacing the independent set code)
+        # Remove selected node and its neighbors
+        neighbors = set(weighted_graph.neighbors(best_node))
+        remaining_nodes.remove(best_node)
+        remaining_nodes -= neighbors
+
+    # Create features from selected positions
     features_list = []
     for node_id in selected_nodes:
-        node = G.nodes[node_id]
+        node = collision_graph.nodes[node_id]
         features_list.append({
             'geometry': node['pos'],
             'properties': {
                 'label': node['text'],
-                'rotation': node['angle']
+                'rotation': node['angle'],
+                'source_layer': node['layer']
             }
         })
-    
+
     # Log statistics with detailed counting
     for source_name, count in source_layer_counts.items():
         # Count labels specifically for this source layer
