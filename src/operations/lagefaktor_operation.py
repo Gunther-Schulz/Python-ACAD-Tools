@@ -149,19 +149,29 @@ def _process_layer_scores(all_layers, layer_name, base_value, lagefaktor_config,
     # Get parcel layer from all_layers
     parcel_layer = all_layers.get('Parcel')
     if parcel_layer is not None:
-        # Calculate intersection with parcels and get proportion of each parcel
+        # Calculate intersection with parcels
         intersections = gpd.overlay(layer_gdf, parcel_layer, how='intersection')
         if not intersections.empty:
-            # Calculate the proportion of each parcel that the intersection represents
-            intersections['parcel_proportion'] = intersections.geometry.area / intersections.geometry.area.groupby(intersections.index).transform('sum')
+            # Calculate intersection areas
+            intersections['intersection_area'] = intersections.geometry.area
             
-            # Identify geometries that take up less than 1% of any parcel
-            small_areas = intersections[intersections['parcel_proportion'] < 0.01]
+            # Get the total area of each parcel
+            parcel_areas = parcel_layer.geometry.area
+            
+            # Map parcel areas to intersections
+            intersections['parcel_area'] = intersections.index.map(parcel_areas)
+            
+            # Calculate what percentage of each parcel is covered by the intersection
+            intersections['parcel_coverage'] = intersections['intersection_area'] / intersections['parcel_area']
+            
+            # Find intersections that cover less than 1% of their respective parcels
+            small_areas = intersections[intersections['parcel_coverage'] < 0.01]
             
             if not small_areas.empty:
-                # Remove these small areas from the original layer_gdf
+                # Instead of removing entire features, just subtract the small areas
                 small_geometries = small_areas.geometry.unary_union
-                layer_gdf = layer_gdf[~layer_gdf.geometry.intersects(small_geometries)]
+                # Difference operation keeps everything EXCEPT the small areas
+                layer_gdf['geometry'] = layer_gdf.geometry.difference(small_geometries)
                 log_info(f"Removed {len(small_areas)} small areas from {layer_name}")
 
     result_gdf = None
