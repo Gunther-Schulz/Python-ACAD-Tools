@@ -489,6 +489,16 @@ geomLayers:
 #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/grünfläche_input_from_source_pl.shp"
 - name: Grünfläche Input
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/grünfläche_input.shp"
+- name: Grünflache Input near Graben
+  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/grünfläche_input_near_graben.shp"
+  operations:
+    - type: dissolve
+    - type: buffer # to prevent error: Could not add feature to layer at index 0: Coordinates with non-finite values are not allowed (from /home/g/dev/Gunther-Schulz/Python-ACAD-Tools/src/shapefile_utils.py:190
+      distance: 0.01
+    - type: filterGeometry
+      geometryTypes:
+        - polygon
+      # minArea: 1
 - name: Moor
   # updateDxf: true
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/moor.shp"
@@ -507,6 +517,7 @@ geomLayers:
       layers:
         # - "Grünfläche Input from source"
         - "Grünfläche Input"
+        - "Grünflache Input near Graben"
         # - Baum_Laubbaum Envelope
         # - Baum_Laubbaum Buffer
         - Moor
