@@ -450,26 +450,42 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
         
         # Generate candidate positions
         candidates = []
+        log_warning(f"DEBUG - Processing layer {source_layer_name}")
+        log_warning(f"DEBUG - Number of geometries: {len(geometries)}")
+        
         for line in geometries:
             source_layer_counts[source_layer_name] += 1
+            log_warning(f"DEBUG - Line length: {line.length}")
+            log_warning(f"DEBUG - Spacing value: {spacing}")
             
             # Generate evenly spaced candidates along line
-            for dist in np.arange(spacing/2, line.length, spacing):
-                point = line.interpolate(dist)
-                # Calculate angle (similar to existing logic)
-                delta = spacing * 0.1
-                point_before = line.interpolate(max(0, dist - delta))
-                point_after = line.interpolate(min(line.length, dist + delta))
-                angle = math.degrees(math.atan2(
-                    point_after.y - point_before.y,
-                    point_after.x - point_before.x
+            if line.length < spacing:
+                # For short lines, place one label in the middle
+                candidates.append((
+                    line.interpolate(0.5, normalized=True),  # middle point
+                    angle,
+                    label_text
                 ))
-                
-                # Normalize angle
-                if angle > 90: angle -= 180
-                elif angle < -90: angle += 180
-                
-                candidates.append((point, angle, label_text))
+            else:
+                # For longer lines, use spacing as before
+                for dist in np.arange(spacing/2, line.length, spacing):
+                    point = line.interpolate(dist)
+                    # Calculate angle (similar to existing logic)
+                    delta = spacing * 0.1
+                    point_before = line.interpolate(max(0, dist - delta))
+                    point_after = line.interpolate(min(line.length, dist + delta))
+                    angle = math.degrees(math.atan2(
+                        point_after.y - point_before.y,
+                        point_after.x - point_before.x
+                    ))
+                    
+                    # Normalize angle
+                    if angle > 90: angle -= 180
+                    elif angle < -90: angle += 180
+                    
+                    candidates.append((point, angle, label_text))
+            
+            log_warning(f"DEBUG - Generated {len(candidates)} candidates for this line")
         
         # Add nodes and edges to graph for conflict resolution
         for i, (point1, angle1, text1) in enumerate(candidates):
@@ -481,11 +497,64 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
                 if check_label_collision(point1, text1, angle1, [calculate_label_box(point2, len(text2) * text_height * 0.6, text_height, angle2)], text_height, spacing_settings):
                     G.add_edge(f"{source_layer_name}_{i}", f"{source_layer_name}_{j}")
     
-    # Find maximum independent set for non-conflicting labels
-    independent_set = nx.maximal_independent_set(G)
+    # Group nodes by source layer
+    nodes_by_layer = {}
+    for node_id in G.nodes():
+        layer_name = node_id.split('_')[0]  # Extract layer name from node_id
+        if layer_name not in nodes_by_layer:
+            nodes_by_layer[layer_name] = []
+        nodes_by_layer[layer_name].append(node_id)
     
-    # Create features from selected positions
-    for node_id in independent_set:
+    # First, ensure at least one label per layer
+    selected_nodes = set()
+    remaining_nodes = set(G.nodes())
+    
+    for layer_name, layer_nodes in nodes_by_layer.items():
+        if not layer_nodes:
+            log_warning(f"DEBUG - No candidate nodes for layer: {layer_name}")
+            continue
+            
+        # Debug the candidates
+        log_warning(f"DEBUG - Attempting to place label for layer: {layer_name}")
+        log_warning(f"DEBUG - Number of candidate positions: {len(layer_nodes)}")
+        
+        # Find the node with the least conflicts within this layer
+        conflicts = [(n, len([e for e in G.edges(n) if e[1] in remaining_nodes])) 
+                    for n in layer_nodes if n in remaining_nodes]
+        
+        if not conflicts:
+            log_warning(f"DEBUG - No valid candidates remain for layer: {layer_name}")
+            continue
+            
+        best_node = min(conflicts, key=lambda x: x[1])[0]
+        
+        log_warning(f"DEBUG - Selected node {best_node} with {conflicts[conflicts.index((best_node, min(conflicts, key=lambda x: x[1])[1]))][1]} conflicts")
+        
+        selected_nodes.add(best_node)
+        remaining_nodes.remove(best_node)
+        
+        # Remove conflicting nodes from consideration
+        conflicting = set(G.neighbors(best_node))
+        remaining_nodes -= conflicting
+    
+    # Then fill in with additional non-conflicting labels
+    while remaining_nodes:
+        # Find node with least conflicts among remaining nodes
+        best_node = min(
+            remaining_nodes,
+            key=lambda n: len([e for e in G.edges(n) if e[1] in remaining_nodes])
+        )
+        
+        selected_nodes.add(best_node)
+        remaining_nodes.remove(best_node)
+        
+        # Remove conflicting nodes
+        conflicting = set(G.neighbors(best_node))
+        remaining_nodes -= conflicting
+    
+    # Create features from selected positions (replacing the independent set code)
+    features_list = []
+    for node_id in selected_nodes:
         node = G.nodes[node_id]
         features_list.append({
             'geometry': node['pos'],
@@ -495,15 +564,21 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
             }
         })
     
-    # Log statistics (keeping existing warning logic)
+    # Log statistics with detailed counting
     for source_name, count in source_layer_counts.items():
+        # Count labels specifically for this source layer
+        source_label = next((sl['label'] for sl in source_layers if sl['name'] == source_name), '')
         placed_labels = len([
             f for f in features_list 
-            if f['properties']['label'] == next(
-                (sl['label'] for sl in source_layers if sl['name'] == source_name), 
-                ''
-            )
+            if f['properties']['label'] == source_label
         ])
+        
+        # Debug logging
+        log_warning(f"DEBUG - Source layer: {source_name}")
+        log_warning(f"DEBUG - Total geometries count: {count}")
+        log_warning(f"DEBUG - Selected nodes for this layer: {len([n for n in selected_nodes if n.startswith(source_name)])}")
+        log_warning(f"DEBUG - Features with matching label: {placed_labels}")
+        log_warning(f"DEBUG - Label text being matched: '{source_label}'")
         
         if placed_labels < count:
             warning_message = (
