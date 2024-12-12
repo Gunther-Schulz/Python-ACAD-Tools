@@ -13,6 +13,7 @@ def create_lagefaktor_layer(all_layers, project_settings, crs, layer_name, opera
         parcel_layer_name = operation.get('parcelLayer')
         parcel_label = operation.get('parcelLabel', 'name')
         protokol_output_dir = operation.get('protokolOutputDir')
+        min_parcel_area_percent = operation.get('minParcelAreaPercent', None)
         lagefaktor_config = operation.get('lagefaktor', operation.get('context', []))
         
         # Process construction scores
@@ -22,7 +23,8 @@ def create_lagefaktor_layer(all_layers, project_settings, crs, layer_name, opera
                 all_layers,
                 operation['construction'],
                 lagefaktor_config,
-                grz
+                grz,
+                min_parcel_area_percent
             )
             
         # Process compensatory scores
@@ -31,7 +33,8 @@ def create_lagefaktor_layer(all_layers, project_settings, crs, layer_name, opera
             compensatory_results = _process_compensatory(
                 all_layers,
                 operation['compensatory'],
-                lagefaktor_config
+                lagefaktor_config,
+                min_parcel_area_percent
             )
         
         # Combine results if both exist
@@ -72,7 +75,7 @@ def create_lagefaktor_layer(all_layers, project_settings, crs, layer_name, opera
         log_error(f"Traceback:\n{traceback.format_exc()}")
         return None
 
-def _process_construction(all_layers, construction_config, lagefaktor_config, grz):
+def _process_construction(all_layers, construction_config, lagefaktor_config, grz, min_parcel_area_percent):
     """Process construction scores."""
     result_gdf = None
     area_construction_total = 0
@@ -87,7 +90,8 @@ def _process_construction(all_layers, construction_config, lagefaktor_config, gr
             base_value,
             lagefaktor_config,
             is_construction=True,
-            grz=grz
+            grz=grz,
+            min_parcel_area_percent=min_parcel_area_percent
         )
         
         if layer_gdf is not None:
@@ -103,7 +107,7 @@ def _process_construction(all_layers, construction_config, lagefaktor_config, gr
     
     return result_gdf
 
-def _process_compensatory(all_layers, compensatory_config, lagefaktor_config):
+def _process_compensatory(all_layers, compensatory_config, lagefaktor_config, min_parcel_area_percent):
     """Process compensatory scores."""
     result_gdf = None
     area_compensatory_total = 0
@@ -119,7 +123,8 @@ def _process_compensatory(all_layers, compensatory_config, lagefaktor_config):
             base_value,
             lagefaktor_config,
             is_construction=False,
-            compensatory_value=compensatory_value
+            compensatory_value=compensatory_value,
+            min_parcel_area_percent=min_parcel_area_percent
         )
         
         if layer_gdf is not None:
@@ -135,7 +140,9 @@ def _process_compensatory(all_layers, compensatory_config, lagefaktor_config):
     
     return result_gdf
 
-def _process_layer_scores(all_layers, layer_name, base_value, lagefaktor_config, is_construction=True, grz=None, compensatory_value=None):
+def _process_layer_scores(all_layers, layer_name, base_value, lagefaktor_config, 
+                         is_construction=True, grz=None, compensatory_value=None, 
+                         min_parcel_area_percent=None):
     """Process scores for a single layer."""
     if layer_name not in all_layers:
         log_warning(f"Layer {layer_name} not found in processed layers")
@@ -148,7 +155,7 @@ def _process_layer_scores(all_layers, layer_name, base_value, lagefaktor_config,
 
     # Get parcel layer from all_layers
     parcel_layer = all_layers.get('Parcel')
-    if parcel_layer is not None:
+    if parcel_layer is not None and min_parcel_area_percent is not None:
         # Calculate intersection with parcels
         intersections = gpd.overlay(layer_gdf, parcel_layer, how='intersection')
         if not intersections.empty:
@@ -164,8 +171,11 @@ def _process_layer_scores(all_layers, layer_name, base_value, lagefaktor_config,
             # Calculate what percentage of each parcel is covered by the intersection
             intersections['parcel_coverage'] = intersections['intersection_area'] / intersections['parcel_area']
             
-            # Find intersections that cover less than 1% of their respective parcels
-            small_areas = intersections[intersections['parcel_coverage'] < 0.01]
+            # Convert percentage from config (e.g., 1) to decimal (0.01)
+            threshold = min_parcel_area_percent / 100.0
+            
+            # Find intersections that cover less than the specified percentage of their respective parcels
+            small_areas = intersections[intersections['parcel_coverage'] < threshold]
             
             if not small_areas.empty:
                 # Instead of removing entire features, just subtract the small areas
