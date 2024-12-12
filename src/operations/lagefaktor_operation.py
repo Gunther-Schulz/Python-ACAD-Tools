@@ -42,23 +42,23 @@ def create_lagefaktor_layer(all_layers, project_settings, crs, layer_name, opera
 
         if result is not None:
             # Explode MultiPolygons into individual Polygons
-            result = result.explode(index_parts=True).reset_index(drop=True)
+            # result = result.explode(index_parts=True).reset_index(drop=True)
             
             # Reassign IDs after explosion
             result['id'] = range(1, len(result) + 1)
             cols = ['id'] + [col for col in result.columns if col != 'id']
             result = result[cols]
             
-            # Generate protocol if needed
-            if protokol_output_dir and protokol_output_dir.strip():
-                _generate_protocol(
-                    result,
-                    all_layers.get(parcel_layer_name),
-                    parcel_label,
-                    grz,
-                    protokol_output_dir,
-                    layer_name
-                )
+            # # Generate protocol if needed
+            # if protokol_output_dir and protokol_output_dir.strip():
+            #     _generate_protocol(
+            #         result,
+            #         all_layers.get(parcel_layer_name),
+            #         parcel_label,
+            #         grz,
+            #         protokol_output_dir,
+            #         layer_name
+            #     )
             
             log_info(f"Successfully processed {layer_name} with {len(result)} features")
             print(result)
@@ -99,6 +99,8 @@ def _process_construction(all_layers, construction_config, lagefaktor_config, gr
     
     if area_construction_total > 0:
         log_info(f"Total construction score: {area_construction_total:.2f}")
+
+    print("FIRST",result_gdf)
     
     return result_gdf
 
@@ -158,7 +160,11 @@ def _process_layer_scores(all_layers, layer_name, base_value, lagefaktor_config,
         if buffer_layer is None:
             continue
         
+        # Perform overlay operation
         intersection = gpd.overlay(layer_gdf, buffer_layer, how='intersection')
+        
+        # Explode any MultiPolygons that were created during overlay
+        intersection = intersection.explode(index_parts=True).reset_index(drop=True)
         
         if not intersection.empty:
             zone_gdf = intersection.copy()
