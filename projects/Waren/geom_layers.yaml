@@ -492,7 +492,7 @@ geomLayers:
   style: leitung
   operations:
     - type: labelAssociation
-      # showLog: true
+      showLog: true
       labelSettings:
         labelSpacing: 100
         labelOffset: 1
@@ -507,7 +507,10 @@ geomLayers:
           # - Blendschutzzaun
           - Zuwegung
           - Baum_Laubbaum Buffer
-        # labelOffset: 2
+        widthFactor: 2.0       # Increased from 1.3 to 2.0 to account for full text width
+        heightFactor: 2.0      # Increased from 1.5 to 2.0 to give more vertical clearance
+        bufferFactor: 1.0      # Increased from 0.2 to 1.0 (100% of text height as buffer)
+        collisionMargin: 0.5   # Increased from 0.25 to 0.5 for more spacing between features
         # widthFactor: 2      # Makes label box 30% wider than the text width
         # heightFactor: 1.5     # Makes label box 50% taller than the text height
         # bufferFactor: 0.2     # Adds 20% of text height as padding around the label box
