@@ -14,19 +14,16 @@ if conda_prefix:
     proj_lib = Path(conda_prefix) / 'share' / 'proj'
     if proj_lib.exists():
         os.environ['PROJ_LIB'] = str(proj_lib)
-        print(f"Set PROJ_LIB to: {proj_lib}")  # Debug print
     
     # Set SSL certificate path
     ca_bundle = Path(conda_prefix) / 'ssl' / 'cacert.pem'
     if ca_bundle.exists():
         os.environ['CURL_CA_BUNDLE'] = str(ca_bundle)
         os.environ['SSL_CERT_FILE'] = str(ca_bundle)
-        print(f"Set SSL certificate path to: {ca_bundle}")  # Debug print
 
 # Now import required packages
 try:
     from pyproj import CRS
-    print("Successfully imported pyproj")  # Debug print
 except ImportError as e:
     print(f"Error importing pyproj: {e}")
 
@@ -130,7 +127,6 @@ def setup_proj():
         if proj_lib.exists():
             os.environ['PROJ_LIB'] = str(proj_lib)
             pyproj.datadir.set_data_dir(str(proj_lib))
-            print(f"Set PROJ data directory to: {proj_lib}")
         
         # Set network settings
         os.environ['PROJ_NETWORK'] = 'OFF'
@@ -140,12 +136,10 @@ def setup_proj():
         if ca_bundle.exists():
             os.environ['CURL_CA_BUNDLE'] = str(ca_bundle)
             os.environ['SSL_CERT_FILE'] = str(ca_bundle)
-            print(f"Set SSL certificate path to: {ca_bundle}")
     
     # Verify PROJ setup
     try:
         crs = CRS("EPSG:4326")
-        print(f"Successfully created CRS object: {crs}")
     except Exception as e:
         print(f"Error creating CRS object: {str(e)}")
 
