@@ -10,16 +10,20 @@ from src.style_manager import StyleManager
 import networkx as nx
 
 
-def get_line_placement_positions(line, text_width, text_height):
+def get_line_placement_positions(line, text_width, text_height, step=None):
     """Get candidate positions along a line with improved angle calculation."""
     positions = []
     line_length = line.length
     
-    # Adjust step size based on text dimensions
-    step = min(text_width * 0.8, line_length / 2)  # Ensure at least 2 candidates for short lines
+    # Use provided step if specified, otherwise calculate default
+    if step is None:
+        step = min(text_width * 0.8, line_length / 2)  # Default calculation
+    
+    # Ensure step is not larger than line length
+    step = min(step, line_length)
     
     # Look-ahead/behind distance for angle calculation
-    look_dist = text_width * 0.5  # Use half text width for angle calculation
+    look_dist = text_width * 0.5
     
     current_dist = 0
     while current_dist <= line_length:
@@ -402,12 +406,13 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
     
     # Get settings from operation config
     label_settings = operation.get('labelSettings', {})
-    show_log = operation.get('showLog', False)  # Moved to operation level
+    show_log = operation.get('showLog', False)
     spacing_settings = {
         'width_factor': label_settings.get('widthFactor', 1.3),
         'height_factor': label_settings.get('heightFactor', 1.5),
         'buffer_factor': label_settings.get('bufferFactor', 0.2),
         'collision_margin': label_settings.get('collisionMargin', 0.25),
+        'label_spacing': label_settings.get('labelSpacing', None)
     }
     
     global_label_offset = float(label_settings.get('labelOffset', 0))
@@ -462,7 +467,12 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
             positions = []
             if isinstance(geom, LineString):
                 text_width = len(label_text) * text_height * 0.6
-                positions = get_line_placement_positions(geom, text_width, text_height)
+                if spacing_settings['label_spacing']:
+                    step = float(spacing_settings['label_spacing'])
+                else:
+                    step = text_width * 0.8
+                    
+                positions = get_line_placement_positions(geom, text_width, text_height, step)
                 positions = [(pos[0], pos[1], pos[2]) for pos in positions]  # point, angle, score
             elif isinstance(geom, MultiLineString):
                 text_width = len(label_text) * text_height * 0.6
