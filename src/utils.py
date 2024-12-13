@@ -6,6 +6,7 @@ import pyproj
 from pyproj import CRS
 import traceback
 import yaml
+import warnings
 
 # Set environment variables before any other imports
 conda_prefix = os.environ.get('CONDA_PREFIX')
@@ -85,6 +86,12 @@ def setup_logging(console_level='INFO'):
         else:
             handler.setFormatter(console_formatter)
         root_logger.addHandler(handler)
+    
+    # Route warnings through our logging system
+    warnings.showwarning = warning_to_logger
+    
+    # Specifically for unary_union warnings
+    warnings.filterwarnings('always', message='.*overflow encountered in unary_union.*')
 
 def log_info(*messages):
     logging.info(' '.join(str(msg) for msg in messages))
@@ -345,3 +352,17 @@ def create_sample_project(project_name: str) -> str:
 
     log_info(f"Created new project directory structure at: {project_dir}")
     return project_dir
+
+def warning_to_logger(message, category, filename, lineno, file=None, line=None):
+    """Convert warnings to log messages with stack traces"""
+    import traceback
+    stack = traceback.extract_stack()[:-1]  # Remove this function from stack
+    stack_trace = ''.join(traceback.format_list(stack))
+    
+    log_message = f"""Warning: {message}
+    File: {filename}
+    Line: {lineno}
+    Stack trace:
+    {stack_trace}
+    """
+    logging.warning(log_message)
