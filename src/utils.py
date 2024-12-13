@@ -354,53 +354,56 @@ def create_sample_project(project_name: str) -> str:
     return project_dir
 
 def warning_to_logger(message, category, filename, lineno, file=None, line=None):
-    """Convert warnings to log messages with stack traces"""
+    """Convert warnings to log messages with operation context"""
     import traceback
+    import inspect
     from src.operations.common_operations import format_operation_warning
     
-    # Get the full stack trace
-    stack = traceback.extract_stack()[:-1]
+    # Get the current call stack
+    current_stack = inspect.stack()
     
-    # Find the relevant operation call from src/operations
-    operation_frame = None
-    for frame in stack:
-        if 'src/operations' in frame.filename:
-            operation_frame = frame
-            break
-    
-    # Find the process_operation call from layer_processor to get layer_name and op_type
-    layer_processor_frame = None
-    for frame in stack:
-        if 'process_operation' in frame.name and 'layer_processor.py' in frame.filename:
-            layer_processor_frame = frame
-            break
-    
-    # Extract operation context
+    # Find the operation context
     layer_name = None
-    operation_type = None
-    if layer_processor_frame:
-        try:
-            frame_locals = layer_processor_frame.frame.f_locals
-            layer_name = frame_locals.get('layer_name')
-            operation = frame_locals.get('operation')
-            if operation:
-                operation_type = operation.get('type')
-        except:
-            pass
+    op_type = None
     
-    # Format the warning message
-    if layer_name and operation_type:
-        formatted_message = format_operation_warning(layer_name, operation_type, str(message))
+    # Look through the stack for operation context
+    for frame_info in current_stack:
+        frame = frame_info.frame
+        code = frame_info.code_context[0] if frame_info.code_context else ''
+        
+        # Check if we're in an operation
+        if '/operations/' in frame_info.filename:
+            # Try to get layer_name from locals
+            if 'layer_name' in frame.f_locals:
+                layer_name = frame.f_locals['layer_name']
+            elif 'self' in frame.f_locals and hasattr(frame.f_locals['self'], 'layer_name'):
+                layer_name = frame.f_locals['self'].layer_name
+                
+            # Try to get operation type
+            if 'operation' in frame.f_locals:
+                op_type = frame.f_locals['operation'].get('type')
+            else:
+                # Try to get from filename
+                op_name = frame_info.filename.split('/')[-1]
+                if op_name.endswith('_operation.py'):
+                    op_type = op_name[:-12]
+            
+            if layer_name:
+                break
+    
+    # Format the message
+    if layer_name:
+        formatted_message = format_operation_warning(layer_name, op_type or 'unknown', str(message))
     else:
         formatted_message = str(message)
     
-    # Create the log message with the correct source file
-    source_info = f"File: {operation_frame.filename if operation_frame else filename}"
-    source_line = f"Line: {operation_frame.lineno if operation_frame else lineno}"
-    
-    log_message = f"""Warning: {formatted_message}
-    {source_info}
-    {source_line}
-    """
+    log_message = f"""\033[38;5;166mWarning: {formatted_message}
+    File: {filename}
+    Line: {lineno}
+    \033[0m"""
     
     logging.warning(log_message)
+
+# Set up the warning capture at module import
+import warnings
+warnings.showwarning = warning_to_logger
