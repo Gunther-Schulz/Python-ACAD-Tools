@@ -497,16 +497,16 @@ geomLayers:
         labelSpacing: 100
         labelOffset: 1
         # avoidAllGeometries: true
-        avoidLayers:
-          - Baugrenze
-          - Baugrenze 2
-          - Geltungsbereich
-          - Geltungsbereich 2
-          - Grünfläche
-          - Baufeld
-          # - Blendschutzzaun
-          - Zuwegung
-          - Baum_Laubbaum Buffer
+        # avoidLayers:
+        #   - Baugrenze
+        #   - Baugrenze 2
+        #   - Geltungsbereich
+        #   - Geltungsbereich 2
+        #   - Grünfläche
+        #   - Baufeld
+        #   # - Blendschutzzaun
+        #   - Zuwegung
+        #   - Baum_Laubbaum Buffer
         widthFactor: 2.0       # Increased from 1.3 to 2.0 to account for full text width
         heightFactor: 2.0      # Increased from 1.5 to 2.0 to give more vertical clearance
         bufferFactor: 1.0      # Increased from 0.2 to 1.0 (100% of text height as buffer)

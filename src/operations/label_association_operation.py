@@ -401,34 +401,16 @@ def try_resolve_collision(point, angle, existing_labels, text_height, label_text
         
     return point, False
 
-def create_label_association_layer(all_layers, project_settings, crs, layer_name, operation):
-    """Creates label points along lines using networkx for optimal label placement."""
-    
-    # Get settings from operation config
+def _initialize_label_settings(operation, project_settings, layer_name):
+    """Initialize and return label settings from operation config."""
     label_settings = operation.get('labelSettings', {})
     show_log = operation.get('showLog', False)
-    avoid_all_geometries = label_settings.get('avoidAllGeometries', False)
-    avoid_layers = label_settings.get('avoidLayers', [])  # New config option for specific layers
-    spacing_settings = {
-        'width_factor': label_settings.get('widthFactor', 1.3),
-        'height_factor': label_settings.get('heightFactor', 1.5),
-        'buffer_factor': label_settings.get('bufferFactor', 0.2),
-        'collision_margin': label_settings.get('collisionMargin', 0.25),
-        'label_spacing': label_settings.get('labelSpacing', None)
-    }
     
-    global_label_offset = float(label_settings.get('labelOffset', 0))
-    
-    # Debug the style resolution
+    # Get style settings
     style_manager = StyleManager(project_settings)
-    
-    # Get the style from the layer config
-    layer_info = next((layer for layer in project_settings.get('geomLayers', []) 
-                      if layer.get('name') == layer_name), {})
-    
-    # Use get_style to get the base style
-    style, _ = style_manager.get_style('leitung')  # Get the base 'leitung' style
+    style, _ = style_manager.get_style('leitung')
     text_style = style.get('text', {}) if style else {}
+    text_height = float(text_style.get('height', 1.5))
     
     if show_log:
         log_info(f"""
@@ -436,71 +418,32 @@ Style Resolution Debug:
 ├─ Layer Name: {layer_name}
 ├─ Base Style: {style}
 └─ Text Style: {text_style}
+Final Text Height: {text_height} (from style)
 """)
-
-    # Get text height from resolved style
-    text_height = float(text_style.get('height', 1.5))
     
-    if show_log:
-        log_info(f"Final Text Height: {text_height} (from style)")
-
-    # Adjust buffer settings based on text height
+    # Compile spacing settings
     spacing_settings = {
         'width_factor': label_settings.get('widthFactor', 1.3),
         'height_factor': label_settings.get('heightFactor', 1.5),
-        'buffer_factor': label_settings.get('bufferFactor', text_height * 0.5),  # Scale with text height
-        'collision_margin': label_settings.get('collisionMargin', text_height * 0.25),  # Scale with text height
+        'buffer_factor': label_settings.get('bufferFactor', text_height * 0.5),
+        'collision_margin': label_settings.get('collisionMargin', text_height * 0.25),
         'label_spacing': label_settings.get('labelSpacing', None)
     }
     
-    # Track statistics
-    source_layer_counts = {}
-    source_layers = operation.get('sourceLayers', [{'name': layer_name}])
-    features_list = []
-    
-    # Create a single graph for all labels across all source layers
-    collision_graph = nx.Graph()
-    label_candidates = []
-    node_counter = 0
-    
-    # Track candidates per layer
-    candidate_counts = {}
+    return {
+        'text_style': text_style,
+        'text_height': text_height,
+        'spacing_settings': spacing_settings,
+        'show_log': show_log,
+        'avoid_all_geometries': label_settings.get('avoidAllGeometries', False),
+        'avoid_layers': label_settings.get('avoidLayers', []),
+        'global_label_offset': float(label_settings.get('labelOffset', 0))
+    }
 
-    def convert_to_line_geometry(geom):
-        """Convert polygons to boundaries, keep lines, ignore points."""
-        if isinstance(geom, (Polygon, MultiPolygon)):
-            return geom.boundary
-        elif isinstance(geom, (LineString, MultiLineString)):
-            return geom
-        elif hasattr(geom, 'geoms'):  # Handle geometry collections
-            lines = []
-            for g in geom.geoms:
-                if isinstance(g, (Polygon, MultiPolygon)):
-                    lines.append(g.boundary)
-                elif isinstance(g, (LineString, MultiLineString)):
-                    lines.append(g)
-                # Points are ignored
-            return MultiLineString(lines) if len(lines) > 1 else lines[0] if lines else None
-        return None  # Return None for points or unsupported geometries
-
-    # Track source geometries for collision checking
-    source_geometries = {}
-    
-    # Process each source layer to generate candidates
-    for source_config in source_layers:
-        source_layer_name = source_config.get('name')
-        if not source_layer_name:
-            continue
-            
-        # Get source geometry and convert to lines only
-        source_geometry = _get_filtered_geometry(all_layers, project_settings, crs, source_layer_name, None)
-        if source_geometry is not None and not source_geometry.is_empty:
-            line_geometry = convert_to_line_geometry(source_geometry)
-            if line_geometry is not None:
-                source_geometries[source_layer_name] = line_geometry
-
-    # Track geometries to avoid
+def _collect_geometries_to_avoid(all_layers, project_settings, crs, avoid_all_geometries, avoid_layers, show_log):
+    """Collect geometries that labels should avoid."""
     geometries_to_avoid = {}
+    
     if avoid_all_geometries:
         for layer_info in project_settings.get('geomLayers', []):
             layer_to_check = layer_info.get('name')
@@ -519,71 +462,52 @@ Style Resolution Debug:
                     geometries_to_avoid[layer_to_check] = line_geometry
                     if show_log:
                         log_info(f"Adding layer {layer_to_check} to avoidance list")
+    
+    return geometries_to_avoid
 
-    # Process each source layer to generate candidates
+def _generate_label_candidates(source_layers, all_layers, project_settings, crs, settings):
+    """Generate label candidates for all source layers."""
+    collision_graph = nx.Graph()
+    # Store settings and other necessary data in the graph
+    collision_graph.graph['settings'] = settings
+    collision_graph.graph['source_layers'] = source_layers
+    collision_graph.graph['source_geometries'] = {}
+    collision_graph.graph['geometries_to_avoid'] = {}
+    
+    label_candidates = []
+    node_counter = 0
+    candidate_counts = {}
+    source_geometries = {}
+    
     for source_config in source_layers:
         source_layer_name = source_config.get('name')
         if not source_layer_name:
             continue
             
         label_text = source_config.get('label', '')
-        label_offset = float(source_config.get('labelOffset', global_label_offset))
+        label_offset = float(source_config.get('labelOffset', settings['global_label_offset']))
         
         candidate_counts[source_layer_name] = 0
         
-        # Get source geometry and store it
+        # Get and process source geometry
         source_geometry = _get_filtered_geometry(all_layers, project_settings, crs, source_layer_name, None)
         if source_geometry is None or source_geometry.is_empty:
             continue
             
-        # Convert polygon source geometries to boundaries
-        if isinstance(source_geometry, (Polygon, MultiPolygon)):
-            source_geometry = source_geometry.boundary
-        elif hasattr(source_geometry, 'geoms'):  # Handle geometry collections
-            boundaries = []
-            for g in source_geometry.geoms:
-                if isinstance(g, (Polygon, MultiPolygon)):
-                    boundaries.append(g.boundary)
-                else:
-                    boundaries.append(g)
-            source_geometry = MultiLineString(boundaries) if len(boundaries) > 1 else boundaries[0]
+        source_geometry = convert_to_line_geometry(source_geometry)
+        if source_geometry is None:
+            continue
             
         source_geometries[source_layer_name] = source_geometry
+        collision_graph.graph['source_geometries'][source_layer_name] = source_geometry
         
-        # Convert to list of geometries
-        geometries = []
-        if isinstance(source_geometry, (LineString, Point, Polygon)):
-            geometries = [source_geometry]
-        else:
-            geometries = list(source_geometry.geoms)
-
-        # Generate candidates for this layer
+        # Generate candidates for each geometry
+        geometries = [source_geometry] if isinstance(source_geometry, (LineString, Point, Polygon)) else list(source_geometry.geoms)
+        
         for geom in geometries:
-            # Get potential positions based on geometry type
-            positions = []
-            if isinstance(geom, LineString):
-                text_width = len(label_text) * text_height * 0.6
-                if spacing_settings['label_spacing']:
-                    step = float(spacing_settings['label_spacing'])
-                else:
-                    step = text_width * 0.8
-                    
-                positions = get_line_placement_positions(geom, text_width, text_height, step)
-                positions = [(pos[0], pos[1], pos[2]) for pos in positions]  # point, angle, score
-            elif isinstance(geom, MultiLineString):
-                text_width = len(label_text) * text_height * 0.6
-                # Process each line in the MultiLineString
-                for line in geom.geoms:
-                    line_positions = get_line_placement_positions(line, text_width, text_height)
-                    positions.extend([(pos[0], pos[1], pos[2]) for pos in line_positions])
-            elif isinstance(geom, Polygon):
-                point = get_polygon_anchor_position(geom, len(label_text) * text_height * 0.6, text_height)
-                positions = [(point, 0, 1.0)]  # Single position with 0 rotation
-            elif isinstance(geom, Point):
-                point, angle = get_point_label_position(geom, label_text, text_height, label_offset)
-                positions = [(point, angle, 1.0)]
-
-            # Add nodes to graph for each candidate position
+            positions = _get_positions_for_geometry(geom, label_text, settings['text_height'], 
+                                                 settings['spacing_settings'], label_offset)
+            
             for pos, angle, score in positions:
                 node_id = f"{source_layer_name}_{node_counter}"
                 collision_graph.add_node(
@@ -597,27 +521,114 @@ Style Resolution Debug:
                 label_candidates.append(node_id)
                 node_counter += 1
                 candidate_counts[source_layer_name] += 1
+    
+    return collision_graph, label_candidates, candidate_counts, source_geometries
 
-    # Add debug logging
-    if show_log:
-        log_info(f"""
-Label Settings:
-├─ Text Height: {text_height}
-├─ Width Factor: {spacing_settings['width_factor']}
-├─ Height Factor: {spacing_settings['height_factor']}
-├─ Buffer Factor: {spacing_settings['buffer_factor']}
-└─ Collision Margin: {spacing_settings['collision_margin']}
-""")
+def _get_positions_for_geometry(geom, label_text, text_height, spacing_settings, label_offset):
+    """Get label positions for a specific geometry."""
+    positions = []
+    text_width = len(label_text) * text_height * 0.6
+    
+    if isinstance(geom, LineString):
+        step = float(spacing_settings['label_spacing']) if spacing_settings['label_spacing'] else text_width * 0.8
+        positions = get_line_placement_positions(geom, text_width, text_height, step)
+        positions = [(pos[0], pos[1], pos[2]) for pos in positions]
+    elif isinstance(geom, MultiLineString):
+        for line in geom.geoms:
+            line_positions = get_line_placement_positions(line, text_width, text_height)
+            positions.extend([(pos[0], pos[1], pos[2]) for pos in line_positions])
+    elif isinstance(geom, Polygon):
+        point = get_polygon_anchor_position(geom, text_width, text_height)
+        positions = [(point, 0, 1.0)]
+    elif isinstance(geom, Point):
+        point, angle = get_point_label_position(geom, label_text, text_height, label_offset)
+        positions = [(point, angle, 1.0)]
+    
+    return positions
 
-    # Build edges for collisions between all candidates
+def create_label_association_layer(all_layers, project_settings, crs, layer_name, operation):
+    """Creates label points along lines using networkx for optimal label placement."""
+    # Initialize settings
+    settings = _initialize_label_settings(operation, project_settings, layer_name)
+    
+    # Get geometries to avoid
+    geometries_to_avoid = _collect_geometries_to_avoid(
+        all_layers, project_settings, crs, 
+        settings['avoid_all_geometries'], 
+        settings['avoid_layers'], 
+        settings['show_log']
+    )
+    
+    # Generate candidates
+    source_layers = operation.get('sourceLayers', [{'name': layer_name}])
+    collision_graph, label_candidates, candidate_counts, source_geometries = _generate_label_candidates(
+        source_layers, all_layers, project_settings, crs, settings
+    )
+    
+    # Store geometries to avoid in the graph
+    collision_graph.graph['geometries_to_avoid'] = geometries_to_avoid
+    
+    # Process candidates and build collision graph
+    text_boxes = _process_candidates_and_build_collision_graph(
+        collision_graph, label_candidates, settings, source_layers,
+        source_geometries, geometries_to_avoid
+    )
+    
+    # Select final labels
+    selected_nodes = _select_final_labels(collision_graph, label_candidates)
+    
+    # Create features from selected positions
+    features_list = _create_features_from_selected_nodes(collision_graph, selected_nodes)
+    
+    # Log statistics if needed
+    if settings['show_log']:
+        _log_label_statistics(features_list, candidate_counts, all_layers, project_settings, crs, settings)
+    
+    # Create and return result GeoDataFrame
+    if not features_list:
+        return gpd.GeoDataFrame({'geometry': [], 'label': []}, geometry='geometry', crs=crs)
+    
+    result_gdf = gpd.GeoDataFrame.from_features(features_list, crs=crs)
+    result_gdf.attrs['text_style'] = settings['text_style']
+    
+    return result_gdf
+
+def convert_to_line_geometry(geometry):
+    """Convert various geometry types to line geometry."""
+    if geometry is None:
+        return None
+    
+    if isinstance(geometry, (LineString, MultiLineString)):
+        return geometry
+    elif isinstance(geometry, Point):
+        return geometry  # Keep points as-is
+    elif isinstance(geometry, Polygon):
+        return geometry.exterior  # Convert polygon to its boundary
+    elif isinstance(geometry, MultiPolygon):
+        lines = [poly.exterior for poly in geometry.geoms]
+        return MultiLineString(lines)
+    return None
+
+def _process_candidates_and_build_collision_graph(collision_graph, label_candidates, settings, source_layers, source_geometries, geometries_to_avoid):
+    """Process candidates and build collision graph."""
     text_boxes = {}
+    # Group nodes by layer
+    nodes_by_layer = {}
     for node_id in collision_graph.nodes():
         node = collision_graph.nodes[node_id]
-        text_width = len(node['text']) * text_height * 0.6
+        layer_name = node['layer']
+        nodes_by_layer.setdefault(layer_name, []).append(node_id)
+        
+    # Create weighted graph for NetworkX
+    weighted_graph = nx.Graph()
+    
+    for node_id in collision_graph.nodes():
+        node = collision_graph.nodes[node_id]
+        text_width = len(node['text']) * settings['text_height'] * 0.6
         
         # Get layer-specific offset, fallback to global offset
         layer_config = next((l for l in source_layers if l['name'] == node['layer']), {})
-        offset = float(layer_config.get('labelOffset', global_label_offset))
+        offset = float(layer_config.get('labelOffset', settings['global_label_offset']))
         
         # Apply offset to position
         point = node['pos']
@@ -629,23 +640,28 @@ Label Settings:
             point = Point(new_x, new_y)
         
         # Create box with offset-adjusted position
-        box = calculate_label_box(point, text_width, text_height, angle, spacing_settings)
+        box = calculate_label_box(point, text_width, settings['text_height'], angle, settings['spacing_settings'])
         text_boxes[node_id] = box
         
         node['adjusted_pos'] = point
         
+        # Add node to weighted graph
+        weighted_graph.add_node(node_id, 
+                              weight=node['score'],
+                              layer=node['layer'])
+        
         # Calculate buffer distance based on actual text height
-        base_buffer = text_height * spacing_settings['buffer_factor']
+        base_buffer = settings['text_height'] * settings['spacing_settings']['buffer_factor']
         offset_buffer = abs(offset) * 0.5
         buffer_distance = max(base_buffer, offset_buffer)
         
         # Debug logging for collision checking
-        if show_log and node_id.endswith('_0'):  # Log only first node for each layer
+        if settings['show_log'] and node_id.endswith('_0'):
             log_info(f"""
 Checking collisions for {node['layer']}:
 ├─ Text: {node['text']}
 ├─ Text Width: {text_width}
-├ Text Height: {text_height}
+├ Text Height: {settings['text_height']}
 ├─ Offset: {offset}
 ├─ Buffer Distance: {buffer_distance}
 ├─ Box Bounds: {box.bounds}
@@ -655,12 +671,12 @@ Checking collisions for {node['layer']}:
         source_geom = source_geometries.get(node['layer'])
         if source_geom:
             min_distance = source_geom.distance(box)
-            if show_log and node_id.endswith('_0'):
+            if settings['show_log'] and node_id.endswith('_0'):
                 log_info(f"├─ Distance to source geometry: {min_distance}")
             if min_distance < buffer_distance:
                 penalty = 1.0 - (min_distance / buffer_distance)
                 node['score'] *= (1.0 - penalty * 0.5)
-                if show_log and node_id.endswith('_0'):
+                if settings['show_log'] and node_id.endswith('_0'):
                     log_info(f"└─ Applied source penalty: {penalty}")
         
         # Check avoided geometries with logging
@@ -668,12 +684,12 @@ Checking collisions for {node['layer']}:
             for layer_name, geom in geometries_to_avoid.items():
                 if layer_name != node['layer']:
                     min_distance = geom.distance(box)
-                    if show_log and node_id.endswith('_0'):
+                    if settings['show_log'] and node_id.endswith('_0'):
                         log_info(f"├─ Distance to {layer_name}: {min_distance}")
                     if min_distance < buffer_distance:
                         penalty = 1.0 - (min_distance / buffer_distance)
                         node['score'] *= (1.0 - penalty * 0.3)
-                        if show_log and node_id.endswith('_0'):
+                        if settings['show_log'] and node_id.endswith('_0'):
                             log_info(f"└─ Applied avoidance penalty: {penalty}")
 
     # Add edges for colliding labels
@@ -682,53 +698,38 @@ Checking collisions for {node['layer']}:
         for node2_id in label_candidates[i+1:]:
             box2 = text_boxes[node2_id]
             if box1.intersects(box2):
-                collision_graph.add_edge(node1_id, node2_id)
+                weighted_graph.add_edge(node1_id, node2_id)
 
-    # Create weighted graph for NetworkX with layer information
-    weighted_graph = nx.Graph()
-    nodes_by_layer = {}
-    
-    # Group nodes by layer and add to graph
-    for node_id in collision_graph.nodes():
-        node = collision_graph.nodes[node_id]
-        layer_name = node['layer']
-        weight = node['score']
-        
-        weighted_graph.add_node(node_id, 
-                              weight=weight,
-                              layer=layer_name)
-        
-        nodes_by_layer.setdefault(layer_name, []).append(node_id)
-    
-    # Add collision edges
-    weighted_graph.add_edges_from(collision_graph.edges())
+    return text_boxes, weighted_graph, nodes_by_layer
 
-    # Initialize selection tracking
+def _select_final_labels(collision_graph, label_candidates):
+    """Select final labels based on the collision graph."""
+    text_boxes, weighted_graph, nodes_by_layer = _process_candidates_and_build_collision_graph(
+        collision_graph, label_candidates, collision_graph.graph['settings'],
+        collision_graph.graph['source_layers'], collision_graph.graph['source_geometries'],
+        collision_graph.graph['geometries_to_avoid']
+    )
+    
     selected_nodes = set()
     remaining_nodes = set(weighted_graph.nodes())
     layer_counts = {layer: 0 for layer in nodes_by_layer.keys()}
 
-    # Process nodes layer by layer in rounds
     while remaining_nodes:
-        # Sort layers by current label count (ascending) to give priority to underrepresented layers
         layers_by_priority = sorted(nodes_by_layer.keys(), 
                                   key=lambda l: layer_counts[l])
         
         made_selection = False
         
-        # Try to select one node from each layer
         for layer in layers_by_priority:
             layer_candidates = set(nodes_by_layer[layer]) & remaining_nodes
             if not layer_candidates:
                 continue
                 
-            # Create subgraph of candidates and their conflicts
             candidate_subgraph = weighted_graph.subgraph(layer_candidates)
             
             if not candidate_subgraph.nodes:
                 continue
             
-            # Select best candidate based on weight and conflicts
             candidate_scores = {
                 n: (weighted_graph.nodes[n]['weight'] / 
                     (1 + sum(1 for neighbor in weighted_graph.neighbors(n) 
@@ -739,22 +740,22 @@ Checking collisions for {node['layer']}:
             if candidate_scores:
                 best_candidate = max(candidate_scores.items(), key=lambda x: x[1])[0]
                 
-                # Check if adding this candidate would create conflicts
                 if not any(neighbor in selected_nodes 
                           for neighbor in weighted_graph.neighbors(best_candidate)):
                     selected_nodes.add(best_candidate)
                     layer_counts[layer] += 1
                     made_selection = True
                     
-                    # Remove selected node and update remaining nodes
                     remaining_nodes.remove(best_candidate)
                     remaining_nodes -= set(weighted_graph.neighbors(best_candidate))
         
-        # If no selections were made in this round, break to avoid infinite loop
         if not made_selection:
             break
 
-    # Create features from selected positions
+    return selected_nodes
+
+def _create_features_from_selected_nodes(collision_graph, selected_nodes):
+    """Create features from selected positions."""
     features_list = []
     for node_id in selected_nodes:
         node = collision_graph.nodes[node_id]
@@ -771,8 +772,11 @@ Checking collisions for {node['layer']}:
             }
         })
 
-    # Log summary statistics
-    if show_log:
+    return features_list
+
+def _log_label_statistics(features_list, candidate_counts, all_layers, project_settings, crs, settings):
+    """Log label statistics if needed."""
+    if settings['show_log']:
         for layer, count in candidate_counts.items():
             placed_labels = len([
                 f for f in features_list 
@@ -808,12 +812,3 @@ Layer: {layer}
 ├─ Placed Labels: {placed_labels}/{count} candidates
 └─ No line length calculated
 """)
-
-    # Create result GeoDataFrame
-    if not features_list:
-        return gpd.GeoDataFrame({'geometry': [], 'label': []}, geometry='geometry', crs=crs)
-    
-    result_gdf = gpd.GeoDataFrame.from_features(features_list, crs=crs)
-    result_gdf.attrs['text_style'] = text_style
-    
-    return result_gdf
