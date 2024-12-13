@@ -444,7 +444,7 @@ def _generate_protocol(result_gdf, parcel_layer, parcel_label, grz, output_dir, 
                 ]
             }
             overview_df = pd.DataFrame(overview_data)
-            overview_df.to_excel(writer, sheet_name='��bersicht', index=False)
+            overview_df.to_excel(writer, sheet_name='Übersicht', index=False)
 
             # Flächen-Id sheet
             areas_data = []
@@ -455,9 +455,7 @@ def _generate_protocol(result_gdf, parcel_layer, parcel_label, grz, output_dir, 
                     'Biotoptyp': feature['name'],
                     'Ausgangswert': float(feature['base_value']),
                     'Fläche_x_Wert': round(float(feature['initial_value']), 2),
-                    'Fläche_x_GRZ': round(float(feature['adjusted_value']), 2),
-                    'FinaleEingriffspunkte': round(float(feature['final_value']), 2),
-                    'Score': round(float(feature['score']), 2)
+                    'Finale Eingriffspunkte': round(float(feature['final_value']), 2),
                 }
                 
                 # Add construction-specific fields only if they exist
