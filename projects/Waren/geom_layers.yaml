@@ -148,83 +148,7 @@ geomLayers:
       capStyle: flat
       joinStyle: flat
 
-- name: Leitungen Labels
-  updateDxf: true
-  style: leitung
-  operations:
-    - type: labelAssociation
-      # showLog: true
-      labelSettings:
-        labelSpacing: 100
-        labelOffset: 1
-        # labelOffset: 2
-        # widthFactor: 2      # Makes label box 30% wider than the text width
-        # heightFactor: 1.5     # Makes label box 50% taller than the text height
-        # bufferFactor: 0.2     # Adds 20% of text height as padding around the label box
-        # collisionMargin: 0.25 # Adds 25% extra space when checking for collisions with other labels
-      sourceLayers:
-        - name: Leitung Str-Leitungsabschnitt-NS
-          label: Strom Niederspannung
 
-        - name: Leitung Was-Leitungsabschnitt-VN
-          label: Wasser VN
-
-        - name: Leitung Was-Leitungsabschnitt-AN
-          label: Wasser AN
-
-        - name: Leitung Gas-Leitungsabschnitt-VN
-          label: Gas VN
-
-        - name: Leitung Ontras Gas
-          label: Gas Ontras
-
-        - name: Leitung Ontras TK
-          label: TKOntras
-          labelOffset: -2.3
-
-        - name: Leitung Gas_HD_LEIT
-          label: Gas Hochdruck
-
-        - name: Leitung Stromkabel-MS_unterirdisch_LEIT
-          label: Stromkabel MS unterirdisch
-
-        - name: Leitung Mittelspannung Zuwegung
-          label: Strom Mittelspannung Zuwegung
-
-        - name: Leitung Telekom
-          label: Telekom
-
-        - name: Leitung Edis
-          label: Strom Edis
-
-- name: Leitungen Path
-  operations:
-    - type: dissolve
-      layers:
-        - Leitung Str-Leitungsabschnitt-NS
-        - Leitung Was-Leitungsabschnitt-VN
-        - Leitung Was-Leitungsabschnitt-AN
-        - Leitung Gas-Leitungsabschnitt-VN
-        - Leitung Ontras Gas
-        - Leitung Ontras TK
-        - Leitung Gas_HD_LEIT
-        - Leitung Stromkabel-MS_unterirdisch_LEIT
-        - Leitung Mittelspannung Zuwegung
-        - Leitung Telekom
-        - Leitung Edis
-- name: Leitungen Buffer
-  operations:
-    - type: dissolve
-      layers:
-        - Leitung Str-Leitungsabschnitt-NS Buffer
-        - Leitung Was-Leitungsabschnitt-VN Buffer
-        - Leitung Was-Leitungsabschnitt-AN Buffer
-        - Leitung Gas-Leitungsabschnitt-VN Buffer
-        - Leitung Ontras Buffer
-        - Leitung Gas_HD_LEIT Buffer
-        - Leitung Stromkabel-MS_unterirdisch_LEIT Buffer
-        - Leitung Telekom Buffer
-        - Leitung Edis Buffer
 ### Baum ###
 - name: Baum_Laubbaum Points
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/vermessung_baum_laubbaum_pt.shp"
@@ -354,6 +278,15 @@ geomLayers:
         - area
       decimalPlaces:
         area: 0
+- name: Geltungsbereich 2
+  updateDxf: true
+  linetypeScale: 1
+  style: geltungsbereich_2
+  operations:
+    - type: buffer
+      layers:
+        - name: Geltungsbereich
+      distance: 2
 # Report only
 - name: Parcel Intersections
   updateDxf: false
@@ -552,7 +485,96 @@ geomLayers:
     # - type: buffer
     #   distance: 6
 
+### Place Leitung Labels ###
 
+- name: Leitungen Labels
+  updateDxf: true
+  style: leitung
+  operations:
+    - type: labelAssociation
+      # showLog: true
+      labelSettings:
+        labelSpacing: 100
+        labelOffset: 1
+        # avoidAllGeometries: true
+        avoidLayers:
+          - Baugrenze
+          - Baugrenze 2
+          - Geltungsbereich
+          - Geltungsbereich 2
+          - Grünfläche
+          - Baufeld
+          # - Blendschutzzaun
+          - Zuwegung
+          - Baum_Laubbaum Buffer
+        # labelOffset: 2
+        # widthFactor: 2      # Makes label box 30% wider than the text width
+        # heightFactor: 1.5     # Makes label box 50% taller than the text height
+        # bufferFactor: 0.2     # Adds 20% of text height as padding around the label box
+        # collisionMargin: 0.25 # Adds 25% extra space when checking for collisions with other labels
+      sourceLayers:
+        - name: Leitung Str-Leitungsabschnitt-NS
+          label: Strom Niederspannung
+
+        - name: Leitung Was-Leitungsabschnitt-VN
+          label: Wasser VN
+
+        - name: Leitung Was-Leitungsabschnitt-AN
+          label: Wasser AN
+
+        - name: Leitung Gas-Leitungsabschnitt-VN
+          label: Gas VN
+
+        - name: Leitung Ontras Gas
+          label: Gas Ontras
+
+        - name: Leitung Ontras TK
+          label: TKOntras
+          labelOffset: -2.3
+
+        - name: Leitung Gas_HD_LEIT
+          label: Gas Hochdruck
+
+        - name: Leitung Stromkabel-MS_unterirdisch_LEIT
+          label: Stromkabel MS unterirdisch
+
+        - name: Leitung Mittelspannung Zuwegung
+          label: Strom Mittelspannung Zuwegung
+
+        - name: Leitung Telekom
+          label: Telekom
+
+        - name: Leitung Edis
+          label: Strom Edis
+
+- name: Leitungen Path
+  operations:
+    - type: dissolve
+      layers:
+        - Leitung Str-Leitungsabschnitt-NS
+        - Leitung Was-Leitungsabschnitt-VN
+        - Leitung Was-Leitungsabschnitt-AN
+        - Leitung Gas-Leitungsabschnitt-VN
+        - Leitung Ontras Gas
+        - Leitung Ontras TK
+        - Leitung Gas_HD_LEIT
+        - Leitung Stromkabel-MS_unterirdisch_LEIT
+        - Leitung Mittelspannung Zuwegung
+        - Leitung Telekom
+        - Leitung Edis
+- name: Leitungen Buffer
+  operations:
+    - type: dissolve
+      layers:
+        - Leitung Str-Leitungsabschnitt-NS Buffer
+        - Leitung Was-Leitungsabschnitt-VN Buffer
+        - Leitung Was-Leitungsabschnitt-AN Buffer
+        - Leitung Gas-Leitungsabschnitt-VN Buffer
+        - Leitung Ontras Buffer
+        - Leitung Gas_HD_LEIT Buffer
+        - Leitung Stromkabel-MS_unterirdisch_LEIT Buffer
+        - Leitung Telekom Buffer
+        - Leitung Edis Buffer
 
 
 ### Ausgleich ###

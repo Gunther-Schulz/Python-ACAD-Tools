@@ -407,6 +407,8 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
     # Get settings from operation config
     label_settings = operation.get('labelSettings', {})
     show_log = operation.get('showLog', False)
+    avoid_all_geometries = label_settings.get('avoidAllGeometries', False)
+    avoid_layers = label_settings.get('avoidLayers', [])  # New config option for specific layers
     spacing_settings = {
         'width_factor': label_settings.get('widthFactor', 1.3),
         'height_factor': label_settings.get('heightFactor', 1.5),
@@ -437,10 +439,61 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
     
     # Track candidates per layer
     candidate_counts = {}
-    
+
+    def convert_to_line_geometry(geom):
+        """Convert polygons to boundaries, keep lines, ignore points."""
+        if isinstance(geom, (Polygon, MultiPolygon)):
+            return geom.boundary
+        elif isinstance(geom, (LineString, MultiLineString)):
+            return geom
+        elif hasattr(geom, 'geoms'):  # Handle geometry collections
+            lines = []
+            for g in geom.geoms:
+                if isinstance(g, (Polygon, MultiPolygon)):
+                    lines.append(g.boundary)
+                elif isinstance(g, (LineString, MultiLineString)):
+                    lines.append(g)
+                # Points are ignored
+            return MultiLineString(lines) if len(lines) > 1 else lines[0] if lines else None
+        return None  # Return None for points or unsupported geometries
+
     # Track source geometries for collision checking
     source_geometries = {}
     
+    # Process each source layer to generate candidates
+    for source_config in source_layers:
+        source_layer_name = source_config.get('name')
+        if not source_layer_name:
+            continue
+            
+        # Get source geometry and convert to lines only
+        source_geometry = _get_filtered_geometry(all_layers, project_settings, crs, source_layer_name, None)
+        if source_geometry is not None and not source_geometry.is_empty:
+            line_geometry = convert_to_line_geometry(source_geometry)
+            if line_geometry is not None:
+                source_geometries[source_layer_name] = line_geometry
+
+    # Track geometries to avoid
+    geometries_to_avoid = {}
+    if avoid_all_geometries:
+        for layer_info in project_settings.get('geomLayers', []):
+            layer_to_check = layer_info.get('name')
+            if layer_to_check:
+                geom = _get_filtered_geometry(all_layers, project_settings, crs, layer_to_check, None)
+                if geom is not None and not geom.is_empty:
+                    line_geometry = convert_to_line_geometry(geom)
+                    if line_geometry is not None:
+                        geometries_to_avoid[layer_to_check] = line_geometry
+    elif avoid_layers:
+        for layer_to_check in avoid_layers:
+            geom = _get_filtered_geometry(all_layers, project_settings, crs, layer_to_check, None)
+            if geom is not None and not geom.is_empty:
+                line_geometry = convert_to_line_geometry(geom)
+                if line_geometry is not None:
+                    geometries_to_avoid[layer_to_check] = line_geometry
+                    if show_log:
+                        log_info(f"Adding layer {layer_to_check} to avoidance list")
+
     # Process each source layer to generate candidates
     for source_config in source_layers:
         source_layer_name = source_config.get('name')
@@ -456,6 +509,18 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
         source_geometry = _get_filtered_geometry(all_layers, project_settings, crs, source_layer_name, None)
         if source_geometry is None or source_geometry.is_empty:
             continue
+            
+        # Convert polygon source geometries to boundaries
+        if isinstance(source_geometry, (Polygon, MultiPolygon)):
+            source_geometry = source_geometry.boundary
+        elif hasattr(source_geometry, 'geoms'):  # Handle geometry collections
+            boundaries = []
+            for g in source_geometry.geoms:
+                if isinstance(g, (Polygon, MultiPolygon)):
+                    boundaries.append(g.boundary)
+                else:
+                    boundaries.append(g)
+            source_geometry = MultiLineString(boundaries) if len(boundaries) > 1 else boundaries[0]
             
         source_geometries[source_layer_name] = source_geometry
         
@@ -515,17 +580,28 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
         box = calculate_label_box(node['pos'], text_width, text_height, node['angle'], spacing_settings)
         text_boxes[node_id] = box
         
-        # Add penalty for overlapping with source geometry
+        # Always check source geometry
         source_geom = source_geometries.get(node['layer'])
         if source_geom:
-            # Calculate distance to source geometry
             min_distance = source_geom.distance(box)
             buffer_distance = text_height * spacing_settings['buffer_factor']
             
-            # Reduce score if too close to source geometry
             if min_distance < buffer_distance:
                 penalty = 1.0 - (min_distance / buffer_distance)
-                node['score'] *= (1.0 - penalty * 0.5)  # Reduce score by up to 50%
+                node['score'] *= (1.0 - penalty * 0.5)
+        
+        # Check specified geometries to avoid
+        if geometries_to_avoid:
+            for layer_name, geom in geometries_to_avoid.items():
+                # Skip source layer as it's already handled
+                if layer_name != node['layer']:
+                    min_distance = geom.distance(box)
+                    buffer_distance = text_height * spacing_settings['buffer_factor']
+                    
+                    if min_distance < buffer_distance:
+                        penalty = 1.0 - (min_distance / buffer_distance)
+                        # Use a smaller penalty for non-source geometries
+                        node['score'] *= (1.0 - penalty * 0.3)
 
     # Add edges for colliding labels
     for i, node1_id in enumerate(label_candidates):
