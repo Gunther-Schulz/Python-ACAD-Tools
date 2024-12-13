@@ -3,94 +3,58 @@ geomLayers:
 ### Leitung ###
 
 # Stadtwerke
-- name: Str-Leitungsabschnitt-NS
+- name: Leitung Str-Leitungsabschnitt-NS
   updateDxf: true
   style: leitung
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/stadtwerke_str_leitungsabschnitt_ns_ln.shp"
-# - name: Str-Leitungsabschnitt-NS Label
-#   updateDxf: true
-#   style:  leitung
-#   operations:
-#     - type: copy
-#       layers:
-#         - Str-Leitungsabschnitt-NS
-#     - type: labelAssociation
-#       label: Strom Niederspannung
-#       labelOffset: 1
-- name: Str-Leitungsabschnitt-NS Buffer
+
+- name: Leitung Str-Leitungsabschnitt-NS Buffer
   operations:
     - type: buffer
       layers:
-        - Str-Leitungsabschnitt-NS
+        - Leitung Str-Leitungsabschnitt-NS
       distance: 2
       capStyle: flat
       joinStyle: flat
 
-- name: Was-Leitungsabschnitt-VN
+- name: Leitung Was-Leitungsabschnitt-VN
   updateDxf: true
   style: leitung
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/stadtwerke_was_leitungsabschnitt_vn_ln.shp"
-# - name: Was-Leitungsabschnitt-VN Label
-#   updateDxf: true
-#   style:  leitung
-#   operations:
-#     - type: copy
-#       layers:
-#         - Was-Leitungsabschnitt-VN
-#     - type: labelAssociation
-#       label: Wasser VN
-#       labelOffset: 1
-- name: Was-Leitungsabschnitt-VN Buffer
+
+- name: Leitung Was-Leitungsabschnitt-VN Buffer
   operations:
     - type: buffer
       layers:
-        - Was-Leitungsabschnitt-VN
+        - Leitung Was-Leitungsabschnitt-VN
       distance: 2
       capStyle: flat
       joinStyle: flat
 
-- name: Was-Leitungsabschnitt-AN
+- name: Leitung Was-Leitungsabschnitt-AN
   updateDxf: true
   style: leitung
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/stadtwerke_was_leitungsabschnitt_an_ln.shp"
-# - name: Was-Leitungsabschnitt-AN Label
-#   updateDxf: true
-#   style:  leitung
-#   operations:
-#     - type: copy
-#       layers:
-#         - Was-Leitungsabschnitt-AN
-#     - type: labelAssociation
-#       label: Wasser AN
-#       labelOffset: 1
-- name: Was-Leitungsabschnitt-AN Buffer
+#
+- name: Leitung Was-Leitungsabschnitt-AN Buffer
   operations:
     - type: buffer
       layers:
-        - Was-Leitungsabschnitt-AN
+        - Leitung Was-Leitungsabschnitt-AN
       distance: 2
       capStyle: flat
       joinStyle: flat
 
-- name: Gas-Leitungsabschnitt-VN
+- name: Leitung Gas-Leitungsabschnitt-VN
   updateDxf: true
   style: leitung
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/stadtwerke_gas_leitungsabschnitt_vn_ln.shp"
-# - name: Gas-Leitungsabschnitt-VN Label
-#   updateDxf: true
-#   style:  leitung
-#   operations:
-#     - type: copy
-#       layers:
-#         - Gas-Leitungsabschnitt-VN
-#     - type: labelAssociation
-#       label: Gas VN
-#       labelOffset: 1
-- name: Gas-Leitungsabschnitt-VN Buffer
+
+- name: Leitung Gas-Leitungsabschnitt-VN Buffer
   operations:
     - type: buffer
       layers:
-        - Gas-Leitungsabschnitt-VN
+        - Leitung Gas-Leitungsabschnitt-VN
       distance: 2
       capStyle: flat
       joinStyle: flat
@@ -100,31 +64,12 @@ geomLayers:
   updateDxf: true
   style: leitung
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/input_leitungsverlauf_ontras_gas_ln.shp"
-# - name: Leitung Ontras Gas Label
-#   updateDxf: true
-#   style:  leitung
-#   operations:
-#     - type: copy
-#       layers:
-#         - Leitung Ontras Gas
-#     - type: labelAssociation
-#       label: Gas
-#       labelOffset: 1
 
 - name: Leitung Ontras TK
   updateDxf: true
   style: leitung
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/input_leitungsverlauf_ontras_tk_ln.shp"
-# - name: Leitung Ontras TK Label
-#   updateDxf: true
-#   style:  leitung
-#   operations:
-#     - type: copy
-#       layers:
-#         - Leitung Ontras TK
-#     - type: labelAssociation
-#       label: Telekommunikation
-#       labelOffset: 1
+
 - name: Leitung Ontras Buffer
   operations:
     - type: buffer
@@ -136,52 +81,33 @@ geomLayers:
       joinStyle: round
 
 # Vermessung
-- name: Gas_HD_LEIT # Edis Gas
+- name: Leitung Gas_HD_LEIT # Edis Gas
   updateDxf: true
   style: leitung
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/vermessung_gas_hd_ln.shp"
-# - name: Gas_HD_LEIT Label
-#   updateDxf: true
-#   style:  leitung
-#   operations:
-#     - type: copy
-#       layers:
-#         - Gas_HD_LEIT
-#     - type: labelAssociation
-#       label: Gas Hochdruck
-#       labelOffset: 1
-- name: Gas_HD_LEIT Buffer
+
+- name: Leitung Gas_HD_LEIT Buffer
   operations:
     - type: buffer
       layers:
-        - Gas_HD_LEIT
+        - Leitung Gas_HD_LEIT
       distance: 3
       # capStyle: round
       joinStyle: round
 
-- name: Stromkabel-MS_unterirdisch_LEIT
+- name: Leitung Stromkabel-MS_unterirdisch_LEIT
   updateDxf: true
   style: leitung
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/vermessung_stromkabel_ms_unterirdisch_ln.shp"
-- name: Stromkabel-MS_unterirdisch_LEIT Label Points
+- name: Leitung Stromkabel-MS_unterirdisch_LEIT Label Points
   # updateDxf: true
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/vermessung_stromkabel_ms_unterirdisch_besc_pt.shp"
-# - name: "Stromkabel-MS_unterirdisch_LEIT Label"
-#   updateDxf: true
-#   style:  leitung
-#   operations:
-#     - type: copy
-#       layers:
-#         - Stromkabel-MS_unterirdisch_LEIT
-#     - type: labelAssociation
-#       labelLayer: "Stromkabel-MS_unterirdisch_LEIT Label Points"
-#       labelColumn: "label"
-#       labelOffset: 1
-- name: Stromkabel-MS_unterirdisch_LEIT Buffer
+
+- name: Leitung Stromkabel-MS_unterirdisch_LEIT Buffer
   operations:
     - type: buffer
       layers:
-        - Stromkabel-MS_unterirdisch_LEIT
+        - Leitung Stromkabel-MS_unterirdisch_LEIT
       distance: 2
       capStyle: flat
       joinStyle: flat
@@ -191,16 +117,6 @@ geomLayers:
   updateDxf: true
   style: leitung
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/maxsolar_leitung_ms_zuwegung_ln.shp"
-# - name: Leitung Mittelspannung Zuwegung Label
-#   updateDxf: true
-#   style:  leitung
-  # operations:
-  #   - type: copy
-  #     layers:
-  #       - Leitung Mittelspannung Zuwegung
-  #   - type: labelAssociation
-  #     label: Strom Mittelspannung
-  #     labelOffset: 1
 
 # Bestand-Zeichnung
 
@@ -208,16 +124,7 @@ geomLayers:
   updateDxf: true
   style: leitung
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/input_leitungsverlauf_telekom_ln.shp"
-# - name: Leitung Telekom Label
-#   updateDxf: true
-#   style:  leitung
-#   operations:
-#     - type: copy
-#       layers:
-#         - Leitung Telekom
-#     - type: labelAssociation
-#       label: Telekom
-#       labelOffset: 1
+
 - name: Leitung Telekom Buffer
   operations:
     - type: buffer
@@ -231,16 +138,7 @@ geomLayers:
   updateDxf: true
   style: leitung
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/input_leitungsverlauf_edis_ln.shp"
-# - name: Leitung Edis Label
-#   updateDxf: true
-#   style:  leitung
-#   operations:
-#     - type: copy
-#       layers:
-#         - Leitung Edis
-#     - type: labelAssociation
-#       label: Strom Edis
-#       labelOffset: 1
+
 - name: Leitung Edis Buffer
   operations:
     - type: buffer
@@ -263,28 +161,28 @@ geomLayers:
         bufferFactor: 0.2     # Adds 20% of text height as padding around the label box
         collisionMargin: 0.25 # Adds 25% extra space when checking for collisions with other labels
       sourceLayers:
-        - name: Str-Leitungsabschnitt-NS
+        - name: Leitung Str-Leitungsabschnitt-NS
           label: Strom Niederspannung
 
-        - name: Was-Leitungsabschnitt-VN
+        - name: Leitung Was-Leitungsabschnitt-VN
           label: Wasser VN
 
-        - name: Was-Leitungsabschnitt-AN
+        - name: Leitung Was-Leitungsabschnitt-AN
           label: Wasser AN
 
-        - name: Gas-Leitungsabschnitt-VN
+        - name: Leitung Gas-Leitungsabschnitt-VN
           label: Gas VN
 
         - name: Leitung Ontras Gas
           label: Gas Ontras
 
         - name: Leitung Ontras TK
-          label: Telekom Ontras
+          label: TKOntras
 
-        - name: Gas_HD_LEIT
+        - name: Leitung Gas_HD_LEIT
           label: Gas Hochdruck
 
-        - name: Stromkabel-MS_unterirdisch_LEIT
+        - name: Leitung Stromkabel-MS_unterirdisch_LEIT
           label: Stromkabel MS unterirdisch
 
         - name: Leitung Mittelspannung Zuwegung
@@ -297,21 +195,18 @@ geomLayers:
         - name: Leitung Edis
           label: Strom Edis
 
-
-
-
 - name: Leitungen Path
   operations:
     - type: dissolve
       layers:
-        - Str-Leitungsabschnitt-NS
-        - Was-Leitungsabschnitt-VN
-        - Was-Leitungsabschnitt-AN
-        - Gas-Leitungsabschnitt-VN
+        - Leitung Str-Leitungsabschnitt-NS
+        - Leitung Was-Leitungsabschnitt-VN
+        - Leitung Was-Leitungsabschnitt-AN
+        - Leitung Gas-Leitungsabschnitt-VN
         - Leitung Ontras Gas
         - Leitung Ontras TK
-        - Gas_HD_LEIT
-        - Stromkabel-MS_unterirdisch_LEIT
+        - Leitung Gas_HD_LEIT
+        - Leitung Stromkabel-MS_unterirdisch_LEIT
         - Leitung Mittelspannung Zuwegung
         - Leitung Telekom
         - Leitung Edis
@@ -319,13 +214,13 @@ geomLayers:
   operations:
     - type: dissolve
       layers:
-        - Str-Leitungsabschnitt-NS Buffer
-        - Was-Leitungsabschnitt-VN Buffer
-        - Was-Leitungsabschnitt-AN Buffer
-        - Gas-Leitungsabschnitt-VN Buffer
+        - Leitung Str-Leitungsabschnitt-NS Buffer
+        - Leitung Was-Leitungsabschnitt-VN Buffer
+        - Leitung Was-Leitungsabschnitt-AN Buffer
+        - Leitung Gas-Leitungsabschnitt-VN Buffer
         - Leitung Ontras Buffer
-        - Gas_HD_LEIT Buffer
-        - Stromkabel-MS_unterirdisch_LEIT Buffer
+        - Leitung Gas_HD_LEIT Buffer
+        - Leitung Stromkabel-MS_unterirdisch_LEIT Buffer
         - Leitung Telekom Buffer
         - Leitung Edis Buffer
 ### Baum ###
