@@ -438,6 +438,9 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
     # Track candidates per layer
     candidate_counts = {}
     
+    # Track source geometries for collision checking
+    source_geometries = {}
+    
     # Process each source layer to generate candidates
     for source_config in source_layers:
         source_layer_name = source_config.get('name')
@@ -449,11 +452,13 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
         
         candidate_counts[source_layer_name] = 0
         
-        # Get source geometry
+        # Get source geometry and store it
         source_geometry = _get_filtered_geometry(all_layers, project_settings, crs, source_layer_name, None)
         if source_geometry is None or source_geometry.is_empty:
             continue
-
+            
+        source_geometries[source_layer_name] = source_geometry
+        
         # Convert to list of geometries
         geometries = []
         if isinstance(source_geometry, (LineString, Point, Polygon)):
@@ -509,6 +514,18 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
         text_width, text_height = calculate_text_dimensions(node['text'], text_style)
         box = calculate_label_box(node['pos'], text_width, text_height, node['angle'], spacing_settings)
         text_boxes[node_id] = box
+        
+        # Add penalty for overlapping with source geometry
+        source_geom = source_geometries.get(node['layer'])
+        if source_geom:
+            # Calculate distance to source geometry
+            min_distance = source_geom.distance(box)
+            buffer_distance = text_height * spacing_settings['buffer_factor']
+            
+            # Reduce score if too close to source geometry
+            if min_distance < buffer_distance:
+                penalty = 1.0 - (min_distance / buffer_distance)
+                node['score'] *= (1.0 - penalty * 0.5)  # Reduce score by up to 50%
 
     # Add edges for colliding labels
     for i, node1_id in enumerate(label_candidates):
