@@ -781,6 +781,7 @@ geomLayers:
       parcelLayer: "Parcel"
       parcelLabel: "label"
       minParcelAreaPercent: 1
+      showLog: true
       protokolOutputDir: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/Lagefaktor/Waren_2_new"
       context:
         - distance: "<100"
@@ -802,6 +803,7 @@ geomLayers:
 - name: Ausgleich Compensatory
   operations:
     - type: lagefaktor
+      # showLog: true
       grz: 0.5
       parcelLayer: "Parcel"
       parcelLabel: "label"

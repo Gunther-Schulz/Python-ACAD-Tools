@@ -243,13 +243,23 @@ def _process_layer_scores(all_layers, layer_name, base_value, lagefaktor_config,
                         log_info(f"Removed {len(edge_small_areas)} small edge areas from {layer_name}")
 
     result_gdf = None
-    
-    # Store GRZ factors for logging
+    # Calculate the correct factor_sum based on GRZ formula
     if is_construction:
-        factor_a = grz if grz else 0.5
-        factor_b = 0.2
-        factor_c = 0.6
-        factor_sum = factor_b + factor_c
+        factor_a = grz
+        # Determine factors based on GRZ value
+        if grz <= 0.5:
+            factor_b = 1 - 0.4  # Factor for GRZ portion (Überschirmte Fläche)
+            factor_c = 1 - 0.8  # Factor for non-GRZ portion (Zwischenmodulflächen)
+        elif 0.51 <= grz <= 0.75:
+            factor_b = 1 - 0.2  # Factor for GRZ portion (Überschirmte Fläche)
+            factor_c = 1 - 0.5  # Factor for non-GRZ portion (Zwischenmodulflächen)
+        else:
+            log_warning(f"GRZ value {grz} is outside the supported range (0-0.75). Using default factors.")
+            factor_b = 1 - 0.4
+            factor_c = 1 - 0.8
+        
+        # Calculate: (GRZ * factor_b + (1-GRZ) * factor_c) * 2
+        factor_sum = ((grz * factor_b) + ((1-grz) * factor_c)) * 2
     
     for lf_config in lagefaktor_config:
         buffer_layer = all_layers.get(lf_config['sourceLayer'])
@@ -276,6 +286,7 @@ def _process_layer_scores(all_layers, layer_name, base_value, lagefaktor_config,
                 zone_gdf['base_times_lage'] = zone_gdf['base_value'] * zone_gdf['lagefaktor']
                 zone_gdf['initial_value'] = zone_gdf['base_times_lage'] * zone_gdf['area']
                 zone_gdf['adjusted_value'] = zone_gdf['initial_value'] * factor_a
+                # Use the correctly calculated factor_sum
                 zone_gdf['final_value'] = zone_gdf['adjusted_value'] * factor_sum
                 zone_gdf['score'] = zone_gdf['final_value'].round(2)
                 
