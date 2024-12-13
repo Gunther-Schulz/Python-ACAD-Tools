@@ -53,10 +53,8 @@ def create_lagefaktor_layer(all_layers, project_settings, crs, layer_name, opera
             # Explode MultiPolygons into individual Polygons
             # result = result.explode(index_parts=True).reset_index(drop=True)
             
-            # Reassign IDs after explosion
+            # Add IDs without reordering columns
             result['id'] = range(1, len(result) + 1)
-            cols = ['id'] + [col for col in result.columns if col != 'id']
-            result = result[cols]
             
             # Generate protocol if needed
             if protokol_output_dir and protokol_output_dir.strip():
@@ -160,6 +158,9 @@ def _process_layer_scores(all_layers, layer_name, base_value, lagefaktor_config,
                          min_parcel_area_percent=None, edge_area_range=None):
     """Process scores for a single layer."""
     show_log = lagefaktor_config[0].get('showLog', False) if lagefaktor_config else False
+    
+    if is_construction and show_log:
+        log_debug(f"Processing construction layer: {layer_name}")
     
     if layer_name not in all_layers:
         log_warning(f"Layer {layer_name} not found in processed layers")
@@ -289,8 +290,12 @@ def _process_layer_scores(all_layers, layer_name, base_value, lagefaktor_config,
                 zone_gdf['base_times_lage'] = zone_gdf['base_value'] * zone_gdf['lagefaktor']
                 zone_gdf['initial_value'] = zone_gdf['base_times_lage'] * zone_gdf['area']
                 zone_gdf['adjusted_value'] = zone_gdf['initial_value'] * factor_a
+                # Calculate grz_factor_value: Fläche x GRZ x factor_b x 2
+                zone_gdf['grz_factor_value'] = zone_gdf['adjusted_value'] * factor_b * 2
                 zone_gdf['final_value'] = zone_gdf['adjusted_value'] * factor_sum
                 zone_gdf['score'] = zone_gdf['final_value'].round(2)
+                if show_log:
+                    log_debug(f"Added grz_factor_value to zone_gdf. Columns: {zone_gdf.columns.tolist()}")
                 
             else:
                 zone_gdf['compensatory_value'] = compensatory_value
@@ -312,7 +317,7 @@ def _process_layer_scores(all_layers, layer_name, base_value, lagefaktor_config,
 
 
     if result_gdf is not None:
-        # Define base columns to keep
+        # Base columns for both types
         keep_columns = [
             'feature_id', 
             'name', 
@@ -327,8 +332,11 @@ def _process_layer_scores(all_layers, layer_name, base_value, lagefaktor_config,
             'geometry'
         ]
         
-        # Add compensatory_value column only if it exists (for compensatory areas)
-        if not is_construction and 'compensatory_value' in result_gdf.columns:
+        # For construction: include grz_factor_value
+        if is_construction:
+            keep_columns.append('grz_factor_value')
+        # For compensatory: include compensatory_value
+        elif 'compensatory_value' in result_gdf.columns:
             keep_columns.append('compensatory_value')
             
         return result_gdf[keep_columns]
@@ -344,7 +352,7 @@ def _generate_protocol(result_gdf, parcel_layer, parcel_label, grz, output_dir, 
         return
 
     try:
-        protocol_type = "Kompensation" if 'compensatory_value' in result_gdf.columns else "Konstruktion"
+        protocol_type = "Konstruktion" if 'grz_factor_value' in result_gdf.columns else "Kompensation"
         
         protocol = {
             'Ausgleichsprotokoll': {
@@ -359,17 +367,6 @@ def _generate_protocol(result_gdf, parcel_layer, parcel_label, grz, output_dir, 
             }
         }
 
-        # First, find which parcels actually intersect with our result geometries
-        result_union = result_gdf.unary_union
-        intersecting_parcels = parcel_layer[parcel_layer.intersects(result_union)]
-        
-        if intersecting_parcels.empty:
-            log_warning("No intersecting parcels found")
-            return
-            
-        # Now calculate intersections only for relevant parcels
-        parcels = gpd.overlay(intersecting_parcels, result_gdf, how='intersection')
-        
         # Add ID section - using the actual IDs from result_gdf
         for _, feature in result_gdf.iterrows():
             id_entry = {
@@ -382,12 +379,25 @@ def _generate_protocol(result_gdf, parcel_layer, parcel_label, grz, output_dir, 
                 'Score': round(float(feature['score']), 2)
             }
             
-            # Add Zielwert only for compensatory measures
-            if 'compensatory_value' in feature:
+            # Add construction-specific fields
+            if protocol_type == "Konstruktion":
+                id_entry['Fläche_x_GRZ_x_Faktor'] = round(float(feature['grz_factor_value']), 2)
+            elif 'compensatory_value' in feature:
                 id_entry['Zielwert'] = float(feature['compensatory_value'])
             
-            protocol['Ausgleichsprotokoll']['Flächen-Id'][str(feature['id'])] = id_entry
+            protocol['Ausgleichsprotokoll']['Flächen-Id'][str(feature['feature_id'])] = id_entry
 
+        # First, find which parcels actually intersect with our result geometries
+        result_union = result_gdf.unary_union
+        intersecting_parcels = parcel_layer[parcel_layer.intersects(result_union)]
+        
+        if intersecting_parcels.empty:
+            log_warning("No intersecting parcels found")
+            return
+            
+        # Now calculate intersections only for relevant parcels
+        parcels = gpd.overlay(intersecting_parcels, result_gdf, how='intersection')
+        
         # Flurstücke section
         for parcel_id, parcel_group in parcels.groupby(parcel_label):
             measures = []
@@ -449,8 +459,13 @@ def _generate_protocol(result_gdf, parcel_layer, parcel_label, grz, output_dir, 
                     'FinaleEingriffspunkte': round(float(feature['final_value']), 2),
                     'Score': round(float(feature['score']), 2)
                 }
+                
+                # Add construction-specific fields only if they exist
+                if 'grz_factor_value' in feature:
+                    area_entry['Fläche_x_GRZ_x_Faktor'] = round(float(feature['grz_factor_value']), 2)
                 if 'compensatory_value' in feature:
                     area_entry['Zielwert'] = float(feature['compensatory_value'])
+                    
                 areas_data.append(area_entry)
             
             areas_df = pd.DataFrame(areas_data)
