@@ -3,7 +3,7 @@ from shapely.ops import nearest_points
 from shapely.geometry import Point, LineString, Polygon, MultiPolygon
 import geopandas as gpd
 from src.operations.common_operations import _get_filtered_geometry, _process_layer_info, format_operation_warning
-from src.utils import log_debug, log_warning
+from src.utils import log_debug, log_warning, log_info
 import math
 import numpy as np
 from src.style_manager import StyleManager
@@ -400,8 +400,9 @@ def try_resolve_collision(point, angle, existing_labels, text_height, label_text
 def create_label_association_layer(all_layers, project_settings, crs, layer_name, operation):
     """Creates label points along lines using networkx for optimal label placement."""
     
-    # Get settings from operation config (keeping existing settings logic)
+    # Get settings from operation config
     label_settings = operation.get('labelSettings', {})
+    show_log = operation.get('showLog', False)  # Moved to operation level
     spacing_settings = {
         'width_factor': label_settings.get('widthFactor', 1.3),
         'height_factor': label_settings.get('heightFactor', 1.5),
@@ -591,41 +592,42 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
         })
 
     # Log summary statistics
-    for layer, count in candidate_counts.items():
-        # Get placed labels for this layer
-        placed_labels = len([
-            f for f in features_list 
-            if f['properties']['source_layer'] == layer
-        ])
-        
-        # Get source geometry using the same method as for candidate generation
-        source_geometry = _get_filtered_geometry(all_layers, project_settings, crs, layer, None)
-        total_line_length = 0
-        
-        if source_geometry is not None and not source_geometry.is_empty:
-            # Handle single or multiple geometries
-            if isinstance(source_geometry, (LineString, Point, Polygon)):
-                geometries = [source_geometry]
+    if show_log:
+        for layer, count in candidate_counts.items():
+            placed_labels = len([
+                f for f in features_list 
+                if f['properties']['source_layer'] == layer
+            ])
+            
+            source_geometry = _get_filtered_geometry(all_layers, project_settings, crs, layer, None)
+            total_line_length = 0
+            
+            if source_geometry is not None and not source_geometry.is_empty:
+                if isinstance(source_geometry, (LineString, Point, Polygon)):
+                    geometries = [source_geometry]
+                else:
+                    geometries = list(source_geometry.geoms)
+                
+                for geom in geometries:
+                    if isinstance(geom, LineString):
+                        total_line_length += geom.length
+                    elif isinstance(geom, MultiLineString):
+                        total_line_length += sum(line.length for line in geom.geoms)
+            
+            if total_line_length > 0:
+                labels_per_length = (placed_labels * 100.0) / total_line_length
+                log_info(f"""
+Layer: {layer}
+├─ Placed Labels: {placed_labels}/{count} candidates
+├─ Line Length: {total_line_length:.1f} units
+└─ Density: {labels_per_length:.2f} labels per 100 units
+""")
             else:
-                geometries = list(source_geometry.geoms)
-            
-            # Calculate total length
-            for geom in geometries:
-                if isinstance(geom, LineString):
-                    total_line_length += geom.length
-                elif isinstance(geom, MultiLineString):
-                    total_line_length += sum(line.length for line in geom.geoms)
-        
-        if total_line_length > 0:
-            # Calculate labels per unit length (per 100 map units)
-            labels_per_length = (placed_labels * 100.0) / total_line_length
-            
-            log_warning(f"Layer: {layer} - Placed {placed_labels} of {count} candidate positions. "
-                       f"Line length: {total_line_length:.1f}, "
-                       f"Labels per 100 units: {labels_per_length:.3f}")
-        else:
-            log_warning(f"Layer: {layer} - Placed {placed_labels} of {count} candidate positions. "
-                       f"No line length calculated.")
+                log_info(f"""
+Layer: {layer}
+├─ Placed Labels: {placed_labels}/{count} candidates
+└─ No line length calculated
+""")
 
     # Create result GeoDataFrame
     if not features_list:

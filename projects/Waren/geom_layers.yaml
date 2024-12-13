@@ -153,6 +153,7 @@ geomLayers:
   style: leitung
   operations:
     - type: labelAssociation
+      # showLog: true
       labelSpacing: 200
       labelSettings:
         labelOffset: 2
@@ -421,7 +422,7 @@ geomLayers:
         - Moor
         - "ges gesch Biotope"
         - Leitung Ontras Buffer
-        - Gas_HD_LEIT Buffer
+        - Leitung Gas_HD_LEIT Buffer
     - type: dissolve
     - type: intersection
       layers:
