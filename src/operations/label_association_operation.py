@@ -592,12 +592,29 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
     features_list = []
     for node_id in selected_nodes:
         node = collision_graph.nodes[node_id]
+        point = node['pos']
+        angle = node['angle']
+        layer_name = node['layer']
+        
+        # Get layer-specific offset, fallback to global offset
+        layer_config = next((l for l in source_layers if l['name'] == layer_name), {})
+        offset = float(layer_config.get('labelOffset', global_label_offset))
+        
+        # Apply offset perpendicular to line direction
+        if offset != 0:
+            # Convert angle to radians and add 90 degrees (perpendicular)
+            angle_rad = math.radians(angle + 90)
+            # Calculate offset position
+            new_x = point.x + offset * math.cos(angle_rad)
+            new_y = point.y + offset * math.sin(angle_rad)
+            point = Point(new_x, new_y)
+        
         features_list.append({
-            'geometry': node['pos'],
+            'geometry': point,
             'properties': {
                 'label': node['text'],
-                'rotation': node['angle'],
-                'source_layer': node['layer']
+                'rotation': angle,
+                'source_layer': layer_name
             }
         })
 

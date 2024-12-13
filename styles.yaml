@@ -206,7 +206,7 @@ styles:
 
   geltungsbereich:
     layer:
-      color: "red"
+      color: "yellow"
 
   geltungsbereich_2:
     layer:
