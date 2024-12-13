@@ -397,7 +397,9 @@ def warning_to_logger(message, category, filename, lineno, file=None, line=None)
     else:
         formatted_message = str(message)
     
-    log_message = f"""\033[38;5;166mWarning: {formatted_message}
+    log_message = f"""\033[38;5;166mWarning: 
+    [Layer: {layer_name}] [{op_type or 'unknown'}]
+    {str(message)}
     File: {filename}
     Line: {lineno}
     \033[0m"""

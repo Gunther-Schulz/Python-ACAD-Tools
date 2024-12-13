@@ -7,7 +7,9 @@ from openpyxl.styles import Alignment, Font, PatternFill
 
 def create_lagefaktor_layer(all_layers, project_settings, crs, layer_name, operation):
     """Process Lagefaktor calculations for construction and compensatory areas."""
-    log_info(f"-----------------Processing Lagefaktor operation for layer: {layer_name}")
+    show_log = operation.get('showLog', False)
+    if show_log:
+        log_info(f"-----------------Processing Lagefaktor operation for layer: {layer_name}")
     
     try:
         grz = operation.get('grz', 0.5)
@@ -67,8 +69,13 @@ def create_lagefaktor_layer(all_layers, project_settings, crs, layer_name, opera
                     layer_name
                 )
             
-            log_info(f"Successfully processed {layer_name} with {len(result)} features")
-            print(result)
+            if show_log:
+                log_info(f"Successfully processed {layer_name} with {len(result)} features")
+                log_info(f"Result DataFrame summary for {layer_name}:")
+                log_info(f"Total features: {len(result)}")
+                log_info(f"Total area: {result['area'].sum():.2f}")
+                log_info(f"Total score: {result['score'].sum():.2f}")
+                log_info(f"Columns: {', '.join(result.columns)}")
             return result
 
         return None
@@ -81,6 +88,7 @@ def create_lagefaktor_layer(all_layers, project_settings, crs, layer_name, opera
 
 def _process_construction(all_layers, construction_config, lagefaktor_config, grz, min_parcel_area_percent, edge_area_range):
     """Process construction scores."""
+    show_log = construction_config.get('showLog', False)
     result_gdf = None
     area_construction_total = 0
     
@@ -106,7 +114,7 @@ def _process_construction(all_layers, construction_config, lagefaktor_config, gr
             else:
                 result_gdf = pd.concat([result_gdf, layer_gdf])
     
-    if area_construction_total > 0:
+    if area_construction_total > 0 and show_log:
         log_info(f"Total construction score: {area_construction_total:.2f}")
         log_info(f"Total construction area: {result_gdf['area'].sum():.2f}")
     
@@ -114,6 +122,7 @@ def _process_construction(all_layers, construction_config, lagefaktor_config, gr
 
 def _process_compensatory(all_layers, compensatory_config, lagefaktor_config, min_parcel_area_percent, edge_area_range):
     """Process compensatory scores."""
+    show_log = compensatory_config.get('showLog', False)
     result_gdf = None
     area_compensatory_total = 0
     
@@ -140,7 +149,7 @@ def _process_compensatory(all_layers, compensatory_config, lagefaktor_config, mi
             else:
                 result_gdf = pd.concat([result_gdf, layer_gdf])
     
-    if area_compensatory_total > 0:
+    if area_compensatory_total > 0 and show_log:
         log_info(f"Total compensatory score: {area_compensatory_total:.2f}")
         log_info(f"Total compensatory area: {result_gdf['area'].sum():.2f}")
     
@@ -150,6 +159,8 @@ def _process_layer_scores(all_layers, layer_name, base_value, lagefaktor_config,
                          is_construction=True, grz=None, compensatory_value=None, 
                          min_parcel_area_percent=None, edge_area_range=None):
     """Process scores for a single layer."""
+    show_log = lagefaktor_config[0].get('showLog', False) if lagefaktor_config else False
+    
     if layer_name not in all_layers:
         log_warning(f"Layer {layer_name} not found in processed layers")
         return None
@@ -228,7 +239,8 @@ def _process_layer_scores(all_layers, layer_name, base_value, lagefaktor_config,
                     small_geometries = edge_small_areas.geometry.unary_union
                     # Difference operation keeps everything EXCEPT the small areas
                     layer_gdf['geometry'] = layer_gdf.geometry.difference(small_geometries)
-                    log_info(f"Removed {len(edge_small_areas)} small edge areas from {layer_name}")
+                    if not edge_small_areas.empty and show_log:
+                        log_info(f"Removed {len(edge_small_areas)} small edge areas from {layer_name}")
 
     result_gdf = None
     
@@ -309,6 +321,8 @@ def _process_layer_scores(all_layers, layer_name, base_value, lagefaktor_config,
 
 def _generate_protocol(result_gdf, parcel_layer, parcel_label, grz, output_dir, layer_name):
     """Generate and save protocol in YAML and Excel formats."""
+    show_log = result_gdf.attrs.get('show_log', False) if hasattr(result_gdf, 'attrs') else False
+    
     if parcel_layer is None:
         log_warning("Parcel layer not found, skipping protocol generation")
         return
@@ -467,8 +481,8 @@ def _generate_protocol(result_gdf, parcel_layer, parcel_label, grz, output_dir, 
                 for cell in worksheet[1]:
                     cell.font = Font(bold=True)
                     cell.fill = PatternFill(start_color='E0E0E0', end_color='E0E0E0', fill_type='solid')
-
-        log_info(f"Excel protocol saved to {excel_path}")
+        if show_log:
+            log_info(f"Excel protocol saved to {excel_path}")
 
     except Exception as e:
         log_error(f"Error generating protocol: {str(e)}")
