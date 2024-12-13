@@ -356,13 +356,51 @@ def create_sample_project(project_name: str) -> str:
 def warning_to_logger(message, category, filename, lineno, file=None, line=None):
     """Convert warnings to log messages with stack traces"""
     import traceback
-    stack = traceback.extract_stack()[:-1]  # Remove this function from stack
-    stack_trace = ''.join(traceback.format_list(stack))
+    from src.operations.common_operations import format_operation_warning
     
-    log_message = f"""Warning: {message}
-    File: {filename}
-    Line: {lineno}
-    Stack trace:
-    {stack_trace}
+    # Get the full stack trace
+    stack = traceback.extract_stack()[:-1]
+    
+    # Find the relevant operation call from src/operations
+    operation_frame = None
+    for frame in stack:
+        if 'src/operations' in frame.filename:
+            operation_frame = frame
+            break
+    
+    # Find the process_operation call from layer_processor to get layer_name and op_type
+    layer_processor_frame = None
+    for frame in stack:
+        if 'process_operation' in frame.name and 'layer_processor.py' in frame.filename:
+            layer_processor_frame = frame
+            break
+    
+    # Extract operation context
+    layer_name = None
+    operation_type = None
+    if layer_processor_frame:
+        try:
+            frame_locals = layer_processor_frame.frame.f_locals
+            layer_name = frame_locals.get('layer_name')
+            operation = frame_locals.get('operation')
+            if operation:
+                operation_type = operation.get('type')
+        except:
+            pass
+    
+    # Format the warning message
+    if layer_name and operation_type:
+        formatted_message = format_operation_warning(layer_name, operation_type, str(message))
+    else:
+        formatted_message = str(message)
+    
+    # Create the log message with the correct source file
+    source_info = f"File: {operation_frame.filename if operation_frame else filename}"
+    source_line = f"Line: {operation_frame.lineno if operation_frame else lineno}"
+    
+    log_message = f"""Warning: {formatted_message}
+    {source_info}
+    {source_line}
     """
+    
     logging.warning(log_message)
