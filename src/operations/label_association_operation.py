@@ -559,6 +559,119 @@ def _get_positions_for_geometry(geom, label_text, text_height, spacing_settings,
     
     return positions
 
+def _build_collision_network(collision_graph, label_candidates, settings, source_layers, source_geometries, geometries_to_avoid):
+    """Build a NetworkX graph representing all collision relationships."""
+    G = nx.Graph()
+    text_boxes = {}
+    
+    # Add all label candidates as nodes
+    for node_id in label_candidates:
+        node = collision_graph.nodes[node_id]
+        text_width = len(node['text']) * settings['text_height'] * 0.6
+        
+        # Get layer-specific offset
+        layer_config = next((l for l in source_layers if l['name'] == node['layer']), {})
+        layer_offset = layer_config.get('labelOffset', {
+            'x': settings['global_label_offset_x'],
+            'y': settings['global_label_offset_y']
+        })
+        offset_x, offset_y = _get_offset_values(layer_offset)
+        
+        # Apply offset to position
+        point = node['pos']
+        angle = node['angle']
+        if offset_x != 0 or offset_y != 0:
+            point = _apply_offset_to_point(point, offset_x, offset_y, angle)
+        
+        # Create label box
+        box = calculate_label_box(point, text_width, settings['text_height'], angle, settings['spacing_settings'])
+        text_boxes[node_id] = box
+        
+        # Store adjusted position
+        node['adjusted_pos'] = point
+        
+        # Add node to graph with initial score
+        base_score = node['score']
+        G.add_node(node_id, 
+                  weight=base_score,
+                  box=box,
+                  layer=node['layer'],
+                  text=node['text'])
+        
+        # Check geometry intersections
+        buffer_distance = settings['text_height'] * settings['spacing_settings']['buffer_factor']
+        
+        # Check source geometry intersections
+        source_geom = source_geometries.get(node['layer'])
+        if source_geom:
+            intersection_score = _calculate_geometry_intersection_score(box, source_geom, buffer_distance)
+            G.nodes[node_id]['weight'] *= intersection_score
+        
+        # Check avoided geometries intersections
+        if geometries_to_avoid:
+            for avoid_layer, avoid_geom in geometries_to_avoid.items():
+                if avoid_layer != node['layer']:
+                    intersection_score = _calculate_geometry_intersection_score(box, avoid_geom, buffer_distance)
+                    G.nodes[node_id]['weight'] *= intersection_score
+    
+    # Add edges for label-label collisions
+    for i, node1_id in enumerate(label_candidates):
+        box1 = text_boxes[node1_id]
+        for node2_id in label_candidates[i+1:]:
+            box2 = text_boxes[node2_id]
+            if box1.intersects(box2):
+                # Calculate intersection area relative to box areas
+                intersection_area = box1.intersection(box2).area
+                union_area = box1.area + box2.area - intersection_area
+                overlap_ratio = intersection_area / union_area
+                G.add_edge(node1_id, node2_id, weight=overlap_ratio)
+    
+    return G, text_boxes
+
+def _calculate_geometry_intersection_score(box, geometry, buffer_distance):
+    """Calculate a score based on how much a label box intersects with geometry."""
+    if geometry is None:
+        return 1.0
+    
+    # Buffer the geometry for more conservative collision detection
+    buffered_geom = geometry.buffer(buffer_distance)
+    
+    if box.intersects(buffered_geom):
+        intersection = box.intersection(buffered_geom)
+        intersection_ratio = intersection.area / box.area
+        # Return a score between 0 and 1, where 0 means complete overlap
+        return max(0.0, 1.0 - intersection_ratio * 2)
+    return 1.0
+
+def _select_optimal_labels(G, settings):
+    """Select optimal label positions using NetworkX's maximum independent set."""
+    selected_nodes = set()
+    remaining_nodes = set(G.nodes())
+    
+    while remaining_nodes:
+        # Calculate scores for remaining nodes
+        node_scores = {}
+        for node in remaining_nodes:
+            base_weight = G.nodes[node]['weight']
+            # Penalize nodes that conflict with already selected nodes
+            conflict_penalty = sum(G.edges[node, selected]['weight'] 
+                                 for selected in selected_nodes 
+                                 if G.has_edge(node, selected))
+            node_scores[node] = base_weight * (1.0 - conflict_penalty)
+        
+        if not node_scores:
+            break
+            
+        # Select the node with highest score
+        best_node = max(node_scores.items(), key=lambda x: x[1])[0]
+        selected_nodes.add(best_node)
+        
+        # Remove the selected node and its neighbors from consideration
+        remaining_nodes.remove(best_node)
+        remaining_nodes -= set(G.neighbors(best_node))
+    
+    return selected_nodes
+
 def create_label_association_layer(all_layers, project_settings, crs, layer_name, operation):
     """Creates label points along lines using networkx for optimal label placement."""
     # Initialize settings
@@ -578,17 +691,14 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
         source_layers, all_layers, project_settings, crs, settings
     )
     
-    # Store geometries to avoid in the graph
-    collision_graph.graph['geometries_to_avoid'] = geometries_to_avoid
-    
-    # Process candidates and build collision graph
-    text_boxes = _process_candidates_and_build_collision_graph(
-        collision_graph, label_candidates, settings, source_layers,
-        source_geometries, geometries_to_avoid
+    # Build collision network
+    G, text_boxes = _build_collision_network(
+        collision_graph, label_candidates, settings,
+        source_layers, source_geometries, geometries_to_avoid
     )
     
-    # Select final labels
-    selected_nodes = _select_final_labels(collision_graph, label_candidates)
+    # Select optimal labels
+    selected_nodes = _select_optimal_labels(G, settings)
     
     # Create features from selected positions
     features_list = _create_features_from_selected_nodes(collision_graph, selected_nodes)
@@ -658,154 +768,6 @@ def _apply_offset_to_point(point, offset_x, offset_y, angle=None):
     else:
         # Without rotation, x is horizontal and y is vertical
         return Point(point.x + offset_x, point.y + offset_y)
-
-def _process_candidates_and_build_collision_graph(collision_graph, label_candidates, settings, source_layers, source_geometries, geometries_to_avoid):
-    """Process candidates and build collision graph."""
-    text_boxes = {}
-    # Group nodes by layer
-    nodes_by_layer = {}
-    for node_id in collision_graph.nodes():
-        node = collision_graph.nodes[node_id]
-        layer_name = node['layer']
-        nodes_by_layer.setdefault(layer_name, []).append(node_id)
-        
-    # Create weighted graph for NetworkX
-    weighted_graph = nx.Graph()
-    
-    for node_id in collision_graph.nodes():
-        node = collision_graph.nodes[node_id]
-        text_width = len(node['text']) * settings['text_height'] * 0.6
-        
-        # Get layer-specific offset, fallback to global offset
-        layer_config = next((l for l in source_layers if l['name'] == node['layer']), {})
-        layer_offset = layer_config.get('labelOffset', {
-            'x': settings['global_label_offset_x'],
-            'y': settings['global_label_offset_y']
-        })
-        offset_x, offset_y = _get_offset_values(layer_offset)
-        
-        # Apply offset to position
-        point = node['pos']
-        angle = node['angle']
-        if offset_x != 0 or offset_y != 0:
-            point = _apply_offset_to_point(point, offset_x, offset_y, angle)
-        
-        # Create box with offset-adjusted position
-        box = calculate_label_box(point, text_width, settings['text_height'], angle, settings['spacing_settings'])
-        text_boxes[node_id] = box
-        
-        node['adjusted_pos'] = point
-        
-        # Add node to weighted graph
-        weighted_graph.add_node(node_id, 
-                              weight=node['score'],
-                              layer=node['layer'])
-        
-        # Calculate buffer distance based on actual text height
-        base_buffer = settings['text_height'] * settings['spacing_settings']['buffer_factor']
-        offset_magnitude = math.sqrt(offset_x**2 + offset_y**2)
-        offset_buffer = offset_magnitude * 0.5
-        buffer_distance = max(base_buffer, offset_buffer)
-        
-        # Debug logging for collision checking
-        if settings['show_log'] and node_id.endswith('_0'):
-            log_info(f"""
-Checking collisions for {node['layer']}:
-├─ Text: {node['text']}
-├─ Text Width: {text_width}
-├─ Text Height: {settings['text_height']}
-├─ Offset X: {offset_x}
-├─ Offset Y: {offset_y}
-├─ Buffer Distance: {buffer_distance}
-├─ Box Bounds: {box.bounds}
-""")
-        
-        # Check source geometry with logging
-        source_geom = source_geometries.get(node['layer'])
-        if source_geom:
-            min_distance = source_geom.distance(box)
-            if settings['show_log'] and node_id.endswith('_0'):
-                log_info(f"├─ Distance to source geometry: {min_distance}")
-            if min_distance < buffer_distance:
-                penalty = 1.0 - (min_distance / buffer_distance)
-                node['score'] *= (1.0 - penalty * 0.5)
-                if settings['show_log'] and node_id.endswith('_0'):
-                    log_info(f"└─ Applied source penalty: {penalty}")
-        
-        # Check avoided geometries with logging
-        if geometries_to_avoid:
-            for layer_name, geom in geometries_to_avoid.items():
-                if layer_name != node['layer']:
-                    min_distance = geom.distance(box)
-                    if settings['show_log'] and node_id.endswith('_0'):
-                        log_info(f"├─ Distance to {layer_name}: {min_distance}")
-                    if min_distance < buffer_distance:
-                        penalty = 1.0 - (min_distance / buffer_distance)
-                        node['score'] *= (1.0 - penalty * 0.3)
-                        if settings['show_log'] and node_id.endswith('_0'):
-                            log_info(f"└─ Applied avoidance penalty: {penalty}")
-
-    # Add edges for colliding labels
-    for i, node1_id in enumerate(label_candidates):
-        box1 = text_boxes[node1_id]
-        for node2_id in label_candidates[i+1:]:
-            box2 = text_boxes[node2_id]
-            if box1.intersects(box2):
-                weighted_graph.add_edge(node1_id, node2_id)
-
-    return text_boxes, weighted_graph, nodes_by_layer
-
-def _select_final_labels(collision_graph, label_candidates):
-    """Select final labels based on the collision graph."""
-    text_boxes, weighted_graph, nodes_by_layer = _process_candidates_and_build_collision_graph(
-        collision_graph, label_candidates, collision_graph.graph['settings'],
-        collision_graph.graph['source_layers'], collision_graph.graph['source_geometries'],
-        collision_graph.graph['geometries_to_avoid']
-    )
-    
-    selected_nodes = set()
-    remaining_nodes = set(weighted_graph.nodes())
-    layer_counts = {layer: 0 for layer in nodes_by_layer.keys()}
-
-    while remaining_nodes:
-        layers_by_priority = sorted(nodes_by_layer.keys(), 
-                                  key=lambda l: layer_counts[l])
-        
-        made_selection = False
-        
-        for layer in layers_by_priority:
-            layer_candidates = set(nodes_by_layer[layer]) & remaining_nodes
-            if not layer_candidates:
-                continue
-                
-            candidate_subgraph = weighted_graph.subgraph(layer_candidates)
-            
-            if not candidate_subgraph.nodes:
-                continue
-            
-            candidate_scores = {
-                n: (weighted_graph.nodes[n]['weight'] / 
-                    (1 + sum(1 for neighbor in weighted_graph.neighbors(n) 
-                            if neighbor in selected_nodes)))
-                for n in candidate_subgraph.nodes
-            }
-            
-            if candidate_scores:
-                best_candidate = max(candidate_scores.items(), key=lambda x: x[1])[0]
-                
-                if not any(neighbor in selected_nodes 
-                          for neighbor in weighted_graph.neighbors(best_candidate)):
-                    selected_nodes.add(best_candidate)
-                    layer_counts[layer] += 1
-                    made_selection = True
-                    
-                    remaining_nodes.remove(best_candidate)
-                    remaining_nodes -= set(weighted_graph.neighbors(best_candidate))
-        
-        if not made_selection:
-            break
-
-    return selected_nodes
 
 def _create_features_from_selected_nodes(collision_graph, selected_nodes):
     """Create features from selected positions."""
