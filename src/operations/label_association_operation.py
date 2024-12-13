@@ -419,13 +419,39 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
     
     global_label_offset = float(label_settings.get('labelOffset', 0))
     
-    # Get text style (keeping existing style logic)
+    # Debug the style resolution
     style_manager = StyleManager(project_settings)
+    
+    # Get the style from the layer config
     layer_info = next((layer for layer in project_settings.get('geomLayers', []) 
                       if layer.get('name') == layer_name), {})
-    style = style_manager.process_layer_style(layer_name, layer_info)
-    text_style = style.get('text', {}).copy()
-    text_height = text_style.get('height', 2.5)
+    
+    # Use get_style to get the base style
+    style, _ = style_manager.get_style('leitung')  # Get the base 'leitung' style
+    text_style = style.get('text', {}) if style else {}
+    
+    if show_log:
+        log_info(f"""
+Style Resolution Debug:
+├─ Layer Name: {layer_name}
+├─ Base Style: {style}
+└─ Text Style: {text_style}
+""")
+
+    # Get text height from resolved style
+    text_height = float(text_style.get('height', 1.5))
+    
+    if show_log:
+        log_info(f"Final Text Height: {text_height} (from style)")
+
+    # Adjust buffer settings based on text height
+    spacing_settings = {
+        'width_factor': label_settings.get('widthFactor', 1.3),
+        'height_factor': label_settings.get('heightFactor', 1.5),
+        'buffer_factor': label_settings.get('bufferFactor', text_height * 0.5),  # Scale with text height
+        'collision_margin': label_settings.get('collisionMargin', text_height * 0.25),  # Scale with text height
+        'label_spacing': label_settings.get('labelSpacing', None)
+    }
     
     # Track statistics
     source_layer_counts = {}
@@ -572,36 +598,83 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
                 node_counter += 1
                 candidate_counts[source_layer_name] += 1
 
+    # Add debug logging
+    if show_log:
+        log_info(f"""
+Label Settings:
+├─ Text Height: {text_height}
+├─ Width Factor: {spacing_settings['width_factor']}
+├─ Height Factor: {spacing_settings['height_factor']}
+├─ Buffer Factor: {spacing_settings['buffer_factor']}
+└─ Collision Margin: {spacing_settings['collision_margin']}
+""")
+
     # Build edges for collisions between all candidates
     text_boxes = {}
     for node_id in collision_graph.nodes():
         node = collision_graph.nodes[node_id]
-        text_width, text_height = calculate_text_dimensions(node['text'], text_style)
-        box = calculate_label_box(node['pos'], text_width, text_height, node['angle'], spacing_settings)
+        text_width = len(node['text']) * text_height * 0.6
+        
+        # Get layer-specific offset, fallback to global offset
+        layer_config = next((l for l in source_layers if l['name'] == node['layer']), {})
+        offset = float(layer_config.get('labelOffset', global_label_offset))
+        
+        # Apply offset to position
+        point = node['pos']
+        angle = node['angle']
+        if offset != 0:
+            angle_rad = math.radians(angle + 90)
+            new_x = point.x + offset * math.cos(angle_rad)
+            new_y = point.y + offset * math.sin(angle_rad)
+            point = Point(new_x, new_y)
+        
+        # Create box with offset-adjusted position
+        box = calculate_label_box(point, text_width, text_height, angle, spacing_settings)
         text_boxes[node_id] = box
         
-        # Always check source geometry
+        node['adjusted_pos'] = point
+        
+        # Calculate buffer distance based on actual text height
+        base_buffer = text_height * spacing_settings['buffer_factor']
+        offset_buffer = abs(offset) * 0.5
+        buffer_distance = max(base_buffer, offset_buffer)
+        
+        # Debug logging for collision checking
+        if show_log and node_id.endswith('_0'):  # Log only first node for each layer
+            log_info(f"""
+Checking collisions for {node['layer']}:
+├─ Text: {node['text']}
+├─ Text Width: {text_width}
+├ Text Height: {text_height}
+├─ Offset: {offset}
+├─ Buffer Distance: {buffer_distance}
+├─ Box Bounds: {box.bounds}
+""")
+        
+        # Check source geometry with logging
         source_geom = source_geometries.get(node['layer'])
         if source_geom:
             min_distance = source_geom.distance(box)
-            buffer_distance = text_height * spacing_settings['buffer_factor']
-            
+            if show_log and node_id.endswith('_0'):
+                log_info(f"├─ Distance to source geometry: {min_distance}")
             if min_distance < buffer_distance:
                 penalty = 1.0 - (min_distance / buffer_distance)
                 node['score'] *= (1.0 - penalty * 0.5)
+                if show_log and node_id.endswith('_0'):
+                    log_info(f"└─ Applied source penalty: {penalty}")
         
-        # Check specified geometries to avoid
+        # Check avoided geometries with logging
         if geometries_to_avoid:
             for layer_name, geom in geometries_to_avoid.items():
-                # Skip source layer as it's already handled
                 if layer_name != node['layer']:
                     min_distance = geom.distance(box)
-                    buffer_distance = text_height * spacing_settings['buffer_factor']
-                    
+                    if show_log and node_id.endswith('_0'):
+                        log_info(f"├─ Distance to {layer_name}: {min_distance}")
                     if min_distance < buffer_distance:
                         penalty = 1.0 - (min_distance / buffer_distance)
-                        # Use a smaller penalty for non-source geometries
                         node['score'] *= (1.0 - penalty * 0.3)
+                        if show_log and node_id.endswith('_0'):
+                            log_info(f"└─ Applied avoidance penalty: {penalty}")
 
     # Add edges for colliding labels
     for i, node1_id in enumerate(label_candidates):
@@ -685,29 +758,16 @@ def create_label_association_layer(all_layers, project_settings, crs, layer_name
     features_list = []
     for node_id in selected_nodes:
         node = collision_graph.nodes[node_id]
-        point = node['pos']
+        # Use the already offset-adjusted position
+        point = node['adjusted_pos']
         angle = node['angle']
-        layer_name = node['layer']
-        
-        # Get layer-specific offset, fallback to global offset
-        layer_config = next((l for l in source_layers if l['name'] == layer_name), {})
-        offset = float(layer_config.get('labelOffset', global_label_offset))
-        
-        # Apply offset perpendicular to line direction
-        if offset != 0:
-            # Convert angle to radians and add 90 degrees (perpendicular)
-            angle_rad = math.radians(angle + 90)
-            # Calculate offset position
-            new_x = point.x + offset * math.cos(angle_rad)
-            new_y = point.y + offset * math.sin(angle_rad)
-            point = Point(new_x, new_y)
         
         features_list.append({
             'geometry': point,
             'properties': {
                 'label': node['text'],
                 'rotation': angle,
-                'source_layer': layer_name
+                'source_layer': node['layer']
             }
         })
 
