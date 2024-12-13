@@ -495,7 +495,8 @@ geomLayers:
       showLog: true
       labelSettings:
         labelSpacing: 100
-        labelOffset: 1
+        labelOffset:
+          y: 1
         # avoidAllGeometries: true
         # avoidLayers:
         #   - Baugrenze
@@ -533,8 +534,8 @@ geomLayers:
 
         - name: Leitung Ontras TK
           label: TKOntras
-          labelOffset: -2.3
-
+          labelOffset:
+            y: -2.3
         - name: Leitung Gas_HD_LEIT
           label: Gas Hochdruck
 

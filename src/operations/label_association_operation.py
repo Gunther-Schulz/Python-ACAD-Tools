@@ -430,6 +430,10 @@ Final Text Height: {text_height} (from style)
         'label_spacing': label_settings.get('labelSpacing', None)
     }
     
+    # Handle labelOffset which can be a number, dict, or list
+    label_offset = label_settings.get('labelOffset', 0)
+    offset_x, offset_y = _get_offset_values(label_offset)
+    
     return {
         'text_style': text_style,
         'text_height': text_height,
@@ -437,7 +441,8 @@ Final Text Height: {text_height} (from style)
         'show_log': show_log,
         'avoid_all_geometries': label_settings.get('avoidAllGeometries', False),
         'avoid_layers': label_settings.get('avoidLayers', []),
-        'global_label_offset': float(label_settings.get('labelOffset', 0))
+        'global_label_offset_x': offset_x,
+        'global_label_offset_y': offset_y
     }
 
 def _collect_geometries_to_avoid(all_layers, project_settings, crs, avoid_all_geometries, avoid_layers, show_log):
@@ -485,7 +490,13 @@ def _generate_label_candidates(source_layers, all_layers, project_settings, crs,
             continue
             
         label_text = source_config.get('label', '')
-        label_offset = float(source_config.get('labelOffset', settings['global_label_offset']))
+        # Handle layer-specific offset, falling back to global offset
+        layer_offset = source_config.get('labelOffset', {
+            'x': settings['global_label_offset_x'],
+            'y': settings['global_label_offset_y']
+        })
+        offset_x, offset_y = _get_offset_values(layer_offset, 
+                                              default_offset=settings['global_label_offset_x'])
         
         candidate_counts[source_layer_name] = 0
         
@@ -506,7 +517,7 @@ def _generate_label_candidates(source_layers, all_layers, project_settings, crs,
         
         for geom in geometries:
             positions = _get_positions_for_geometry(geom, label_text, settings['text_height'], 
-                                                 settings['spacing_settings'], label_offset)
+                                                 settings['spacing_settings'], (offset_x, offset_y))
             
             for pos, angle, score in positions:
                 node_id = f"{source_layer_name}_{node_counter}"
@@ -516,7 +527,9 @@ def _generate_label_candidates(source_layers, all_layers, project_settings, crs,
                     angle=angle,
                     text=label_text,
                     score=score,
-                    layer=source_layer_name
+                    layer=source_layer_name,
+                    offset_x=offset_x,
+                    offset_y=offset_y
                 )
                 label_candidates.append(node_id)
                 node_counter += 1
@@ -609,6 +622,43 @@ def convert_to_line_geometry(geometry):
         return MultiLineString(lines)
     return None
 
+def _get_offset_values(offset_config, default_offset=0):
+    """Convert offset config to x,y values."""
+    if isinstance(offset_config, (int, float)):
+        # If single number, use it for both x and y
+        return float(offset_config), float(offset_config)
+    elif isinstance(offset_config, dict):
+        # Get x and y values from dict, default to 0 if not specified
+        return float(offset_config.get('x', 0)), float(offset_config.get('y', 0))
+    elif isinstance(offset_config, (list, tuple)) and len(offset_config) >= 2:
+        # If list/tuple with at least 2 values, use first two as x,y
+        return float(offset_config[0]), float(offset_config[1])
+    else:
+        # Default fallback
+        return float(default_offset), float(default_offset)
+
+def _apply_offset_to_point(point, offset_x, offset_y, angle=None):
+    """Apply x,y offset to point, considering rotation angle.
+    
+    Args:
+        point: The base point to offset
+        offset_x: Offset along text direction (positive = right, negative = left)
+        offset_y: Offset perpendicular to text (positive = up, negative = down)
+        angle: Text rotation angle in degrees
+    """
+    if angle is not None:
+        # Convert angle to radians
+        angle_rad = math.radians(angle)
+        # Calculate rotated offsets
+        # x offset along text direction
+        # y offset perpendicular to text direction
+        rotated_x = offset_x * math.cos(angle_rad) - offset_y * math.sin(angle_rad)
+        rotated_y = offset_x * math.sin(angle_rad) + offset_y * math.cos(angle_rad)
+        return Point(point.x + rotated_x, point.y + rotated_y)
+    else:
+        # Without rotation, x is horizontal and y is vertical
+        return Point(point.x + offset_x, point.y + offset_y)
+
 def _process_candidates_and_build_collision_graph(collision_graph, label_candidates, settings, source_layers, source_geometries, geometries_to_avoid):
     """Process candidates and build collision graph."""
     text_boxes = {}
@@ -628,16 +678,17 @@ def _process_candidates_and_build_collision_graph(collision_graph, label_candida
         
         # Get layer-specific offset, fallback to global offset
         layer_config = next((l for l in source_layers if l['name'] == node['layer']), {})
-        offset = float(layer_config.get('labelOffset', settings['global_label_offset']))
+        layer_offset = layer_config.get('labelOffset', {
+            'x': settings['global_label_offset_x'],
+            'y': settings['global_label_offset_y']
+        })
+        offset_x, offset_y = _get_offset_values(layer_offset)
         
         # Apply offset to position
         point = node['pos']
         angle = node['angle']
-        if offset != 0:
-            angle_rad = math.radians(angle + 90)
-            new_x = point.x + offset * math.cos(angle_rad)
-            new_y = point.y + offset * math.sin(angle_rad)
-            point = Point(new_x, new_y)
+        if offset_x != 0 or offset_y != 0:
+            point = _apply_offset_to_point(point, offset_x, offset_y, angle)
         
         # Create box with offset-adjusted position
         box = calculate_label_box(point, text_width, settings['text_height'], angle, settings['spacing_settings'])
@@ -652,7 +703,8 @@ def _process_candidates_and_build_collision_graph(collision_graph, label_candida
         
         # Calculate buffer distance based on actual text height
         base_buffer = settings['text_height'] * settings['spacing_settings']['buffer_factor']
-        offset_buffer = abs(offset) * 0.5
+        offset_magnitude = math.sqrt(offset_x**2 + offset_y**2)
+        offset_buffer = offset_magnitude * 0.5
         buffer_distance = max(base_buffer, offset_buffer)
         
         # Debug logging for collision checking
@@ -661,8 +713,9 @@ def _process_candidates_and_build_collision_graph(collision_graph, label_candida
 Checking collisions for {node['layer']}:
 ├─ Text: {node['text']}
 ├─ Text Width: {text_width}
-├ Text Height: {settings['text_height']}
-├─ Offset: {offset}
+├─ Text Height: {settings['text_height']}
+├─ Offset X: {offset_x}
+├─ Offset Y: {offset_y}
 ├─ Buffer Distance: {buffer_distance}
 ├─ Box Bounds: {box.bounds}
 """)
