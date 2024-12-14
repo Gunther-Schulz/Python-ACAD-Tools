@@ -186,10 +186,9 @@ def get_point_label_position(point, label_text, text_height, offset=0, point_pos
     if point_position and point_position.lower() in POSITION_MAP:  # Make case-insensitive
         # Use only the specified position
         angle, (dx, dy) = POSITION_MAP[point_position.lower()]
-        x = point.x + dx * offset_x
-        y = point.y + dy * offset_y
-        candidate = Point(x, y)
-        candidates.append((candidate, angle, 2.0))  # Higher score for specified position
+        # Apply offset to create adjusted position
+        adjusted_pos = _apply_offset_to_point(point, dx * offset_x, dy * offset_y, angle)
+        candidates.append((adjusted_pos, angle, 2.0))  # Higher score for specified position
     else:
         # Use all positions if no override
         angles = [0, 45, 90, 135, 180, 225, 270, 315]
@@ -205,9 +204,8 @@ def get_point_label_position(point, label_text, text_height, offset=0, point_pos
         ]
         
         for angle, (dx, dy) in zip(angles, base_offsets):
-            x = point.x + dx * offset_x
-            y = point.y + dy * offset_y
-            candidate = Point(x, y)
+            # Use the existing offset application function
+            adjusted_pos = _apply_offset_to_point(point, dx * offset_x, dy * offset_y, angle)
             
             score = 1.0
             if dx > 0:  # Right side
@@ -215,7 +213,7 @@ def get_point_label_position(point, label_text, text_height, offset=0, point_pos
             if dy > 0:  # Top half
                 score += 0.3
                 
-            candidates.append((candidate, angle, score))
+            candidates.append((adjusted_pos, angle, score))
     
     best_candidate = max(candidates, key=lambda x: x[2])
     return (best_candidate[0], best_candidate[1])
@@ -422,13 +420,13 @@ def try_resolve_collision(point, angle, existing_labels, text_height, label_text
         
     return point, False
 
-def _initialize_label_settings(operation, project_settings, layer_name):
+def _initialize_label_settings(operation, project_loader, layer_name):
     """Initialize and return label settings from operation config."""
     label_settings = operation.get('labelSettings', {})
     show_log = operation.get('showLog', False)
     
     # Get style settings
-    style_manager = StyleManager(project_settings)
+    style_manager = StyleManager(project_loader)
     style, _ = style_manager.get_style('leitung')
     text_style = style.get('text', {}) if style else {}
     text_height = float(text_style.get('height', 1.5))
@@ -550,7 +548,7 @@ def _generate_label_candidates(source_layers, all_layers, project_settings, crs,
                                                          (offset_x, offset_y),
                                                          point_position)  # Pass point_position here
                     
-                    for pos, angle, score in positions:
+                    for pos, angle, score, box in positions:
                         node_id = f"{source_layer_name}_{node_counter}"
                         collision_graph.add_node(
                             node_id,
@@ -560,7 +558,8 @@ def _generate_label_candidates(source_layers, all_layers, project_settings, crs,
                             score=score,
                             layer=source_layer_name,
                             offset_x=offset_x,
-                            offset_y=offset_y
+                            offset_y=offset_y,
+                            box=box  # Add box to node attributes
                         )
                         label_candidates.append(node_id)
                         node_counter += 1
@@ -580,10 +579,11 @@ def _generate_label_candidates(source_layers, all_layers, project_settings, crs,
         
         for geom in geometries:
             positions = _get_positions_for_geometry(geom, label_text, settings['text_height'], 
-                                                 settings['spacing_settings'], (offset_x, offset_y),
+                                                 settings['spacing_settings'], 
+                                                 (offset_x, offset_y),
                                                  point_position)  # Pass point_position here
             
-            for pos, angle, score in positions:
+            for pos, angle, score, box in positions:
                 node_id = f"{source_layer_name}_{node_counter}"
                 collision_graph.add_node(
                     node_id,
@@ -593,7 +593,8 @@ def _generate_label_candidates(source_layers, all_layers, project_settings, crs,
                     score=score,
                     layer=source_layer_name,
                     offset_x=offset_x,
-                    offset_y=offset_y
+                    offset_y=offset_y,
+                    box=box  # Add box to node attributes
                 )
                 label_candidates.append(node_id)
                 node_counter += 1
@@ -608,18 +609,23 @@ def _get_positions_for_geometry(geom, label_text, text_height, spacing_settings,
     
     if isinstance(geom, Point):
         point, angle = get_point_label_position(geom, label_text, text_height, label_offset, point_position)
-        positions = [(point, angle, 1.0)]
+        # Create text box for collision detection
+        box = calculate_label_box(point, text_width, text_height, angle)
+        positions = [(point, angle, 1.0, box)]  # Include text box in return value
     elif isinstance(geom, LineString):
         step = float(spacing_settings['label_spacing']) if spacing_settings['label_spacing'] else text_width * 0.8
-        positions = get_line_placement_positions(geom, text_width, text_height, step)
-        positions = [(pos[0], pos[1], pos[2]) for pos in positions]
+        line_positions = get_line_placement_positions(geom, text_width, text_height, step)
+        positions = [(pos[0], pos[1], pos[2], calculate_label_box(pos[0], text_width, text_height, pos[1])) 
+                    for pos in line_positions]
     elif isinstance(geom, MultiLineString):
         for line in geom.geoms:
             line_positions = get_line_placement_positions(line, text_width, text_height)
-            positions.extend([(pos[0], pos[1], pos[2]) for pos in line_positions])
+            positions.extend([(pos[0], pos[1], pos[2], calculate_label_box(pos[0], text_width, text_height, pos[1])) 
+                            for pos in line_positions])
     elif isinstance(geom, Polygon):
         point = get_polygon_anchor_position(geom, text_width, text_height)
-        positions = [(point, 0, 1.0)]
+        box = calculate_label_box(point, text_width, text_height, 0)
+        positions = [(point, 0, 1.0, box)]
     
     return positions
 
@@ -736,49 +742,87 @@ def _select_optimal_labels(G, settings):
     
     return selected_nodes
 
-def create_label_association_layer(all_layers, project_settings, crs, layer_name, operation):
-    """Creates label points along lines using networkx for optimal label placement."""
-    # Initialize settings
-    settings = _initialize_label_settings(operation, project_settings, layer_name)
-    
-    # Get geometries to avoid
-    geometries_to_avoid = _collect_geometries_to_avoid(
-        all_layers, project_settings, crs, 
-        settings['avoid_all_geometries'], 
-        settings['avoid_layers'], 
-        settings['show_log']
-    )
-    
-    # Generate candidates
-    source_layers = operation.get('sourceLayers', [{'name': layer_name}])
-    collision_graph, label_candidates, candidate_counts, source_geometries = _generate_label_candidates(
-        source_layers, all_layers, project_settings, crs, settings
-    )
-    
-    # Build collision network
-    G, text_boxes = _build_collision_network(
-        collision_graph, label_candidates, settings,
-        source_layers, source_geometries, geometries_to_avoid
-    )
-    
-    # Select optimal labels
-    selected_nodes = _select_optimal_labels(G, settings)
-    
-    # Create features from selected positions
-    features_list = _create_features_from_selected_nodes(collision_graph, selected_nodes)
-    
-    # Log statistics if needed
-    if settings['show_log']:
-        _log_label_statistics(features_list, candidate_counts, all_layers, project_settings, crs, settings)
-    
-    # Create and return result GeoDataFrame
-    if not features_list:
+def create_label_association_layer(all_layers, project_settings, crs, layer_name, operation, project_loader):
+    """Create label association layer."""
+    try:
+        # Get style settings
+        style_manager = StyleManager(project_loader)
+        style_name = operation.get('style')  # First try operation style
+        base_style = style_manager.get_style(style_name) if style_name else {}
+        
+        if not base_style:
+            # Try to get style from layer configuration
+            layer_config = next((layer for layer in project_settings.get('layers', []) 
+                              if layer.get('name') == layer_name), {})
+            style_name = layer_config.get('style')
+            base_style = style_manager.get_style(style_name) if style_name else {}
+        
+        text_style = base_style[0].get('text', {}) if isinstance(base_style, tuple) else base_style.get('text', {})
+        
+        # Debug style resolution
+        log_info(f"""
+Style Resolution Debug:
+├─ Layer Name: {layer_name}
+├─ Base Style: {style_name}
+└─ Text Style: {text_style}""")
+        
+        # Get text height from style or default
+        text_height = text_style.get('height', 1.5)
+        log_info(f"Final Text Height: {text_height} (from style)")
+        
+        settings = {
+            'text_height': text_height,
+            'text_style': text_style,
+            'spacing_settings': operation.get('spacing', {}),
+            'global_label_offset_x': operation.get('labelOffsetX', 0),
+            'global_label_offset_y': operation.get('labelOffsetY', 0),
+            'show_log': operation.get('showLog', False)
+        }
+        
+        # Initialize settings
+        settings = _initialize_label_settings(operation, project_loader, layer_name)
+        
+        # Get geometries to avoid
+        geometries_to_avoid = _collect_geometries_to_avoid(
+            all_layers, project_settings, crs, 
+            settings['avoid_all_geometries'], 
+            settings['avoid_layers'], 
+            settings['show_log']
+        )
+        
+        # Generate candidates
+        source_layers = operation.get('sourceLayers', [{'name': layer_name}])
+        collision_graph, label_candidates, candidate_counts, source_geometries = _generate_label_candidates(
+            source_layers, all_layers, project_settings, crs, settings
+        )
+        
+        # Build collision network
+        G, text_boxes = _build_collision_network(
+            collision_graph, label_candidates, settings,
+            source_layers, source_geometries, geometries_to_avoid
+        )
+        
+        # Select optimal labels
+        selected_nodes = _select_optimal_labels(G, settings)
+        
+        # Create features from selected positions
+        features_list = _create_features_from_selected_nodes(collision_graph, selected_nodes)
+        
+        # Log statistics if needed
+        if settings['show_log']:
+            _log_label_statistics(features_list, candidate_counts, all_layers, project_settings, crs, settings)
+        
+        # Create and return result GeoDataFrame
+        if not features_list:
+            return gpd.GeoDataFrame({'geometry': [], 'label': []}, geometry='geometry', crs=crs)
+        
+        result_gdf = gpd.GeoDataFrame.from_features(features_list, crs=crs)
+        result_gdf.attrs['text_style'] = settings['text_style']
+        
+        return result_gdf
+    except Exception as e:
+        log_warning(f"Error creating label association layer: {str(e)}")
         return gpd.GeoDataFrame({'geometry': [], 'label': []}, geometry='geometry', crs=crs)
-    
-    result_gdf = gpd.GeoDataFrame.from_features(features_list, crs=crs)
-    result_gdf.attrs['text_style'] = settings['text_style']
-    
-    return result_gdf
 
 def convert_to_line_geometry(geometry):
     """Convert various geometry types to line geometry."""

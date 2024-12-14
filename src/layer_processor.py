@@ -276,7 +276,9 @@ class LayerProcessor:
         elif op_type == 'envelope':
             result = create_envelope_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
         elif op_type == 'labelAssociation':
-            result = create_label_association_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
+            result = create_label_association_layer(self.all_layers, self.project_settings, 
+                                                 self.crs, layer_name, operation, 
+                                                 self.project_loader)
         elif op_type == 'lagefaktor':
             result = create_lagefaktor_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
         else:

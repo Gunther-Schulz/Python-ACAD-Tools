@@ -490,6 +490,7 @@ geomLayers:
         - name: Baum_Laubbaum Points
           labelColumn: "label_ml"
           pointPosition: right
+          labelOffset: 2.5
 
 
 - name: Leitungen Labels
