@@ -249,15 +249,14 @@ def _process_layer_scores(all_layers, layer_name, base_value, lagefaktor_config,
         factor_a = grz
         # Determine factors based on GRZ value
         if grz <= 0.5:
-            factor_b = 1 - 0.4  # Factor for GRZ portion (Überschirmte Fläche)
-            factor_c = 1 - 0.8  # Factor for non-GRZ portion (Zwischenmodulflächen)
+            factor_b = 0.6  # Factor for GRZ portion (Überschirmte Fläche)
+            factor_c = 0.2  # Factor for non-GRZ portion (Zwischenmodulflächen)
         elif 0.51 <= grz <= 0.75:
-            factor_b = 1 - 0.2  # Factor for GRZ portion (Überschirmte Fläche)
-            factor_c = 1 - 0.5  # Factor for non-GRZ portion (Zwischenmodulflächen)
+            factor_b = 0.8  # Factor for GRZ portion (Überschirmte Fläche)
+            factor_c = 0.5  # Factor for non-GRZ portion (Zwischenmodulflächen)
         else:
-            log_warning(f"GRZ value {grz} is outside the supported range (0-0.75). Using default factors.")
-            factor_b = 1 - 0.4  # Factor for GRZ portion (Überschirmte Fläche)
-            factor_c = 1 - 0.8  # Factor for non-GRZ portion (Zwischenmodulflächen)
+            log_error(f"GRZ value {grz} is outside the supported range (0-0.75)")
+            return None
         
         # Calculate: (GRZ * factor_b + (1-GRZ) * factor_c) * 2
         factor_sum = ((grz * factor_b) + ((1-grz) * factor_c)) * 2
@@ -488,7 +487,7 @@ def _generate_protocol(result_gdf, parcel_layer, parcel_label, grz, output_dir, 
                         'Flurstücksanteilsgröße': round(float(area), 2),
                         'Zone': intersection['buffer_zone'],
                         'Ausgangswert': float(intersection['base_value']),
-                        'Teilscore': round(float(partial_score), 2)
+                        'Finale Ausgleichspunkte': round(float(partial_score), 2)
                     }
                     if 'compensatory_value' in intersection:
                         parcel_entry['Zielwert'] = float(intersection['compensatory_value'])

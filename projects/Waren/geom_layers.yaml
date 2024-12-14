@@ -152,16 +152,6 @@ geomLayers:
 ### Baum ###
 - name: Baum_Laubbaum Points
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/vermessung_baum_laubbaum_pt.shp"
-# - name: Baum_Laubbaum Label
-#   updateDxf: true
-#   style: baum
-#   operations:
-#     - type: copy
-#       layers:
-#         - Baum_Laubbaum Points
-#     - type: labelAssociation
-#       labelColumn: "label_ml"
-#       labelOffset: 1
 - name: Baum_Laubbaum Krone
   updateDxf: true
   operations:
@@ -486,6 +476,23 @@ geomLayers:
     #   distance: 6
 
 ### Place Leitung Labels ###
+
+- name: Baum_Laubbaum Label
+  updateDxf: true
+  style: baum
+  operations:
+    - type: copy
+      layers:
+        - Baum_Laubbaum Points
+    - type: labelAssociation
+      showLog: true
+      # labelSettings:
+      #   labelColumn: "label_ml"
+      #   labelOffset: 1
+      sourceLayers:
+        - name: Baum_Laubbaum Points
+          labelColumn: "label_ml"
+
 
 - name: Leitungen Labels
   updateDxf: true

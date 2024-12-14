@@ -163,6 +163,10 @@ def get_point_label_position(point, label_text, text_height, offset=0):
     # Calculate text dimensions
     text_width = len(label_text) * text_height * 0.6
     
+    # Handle offset as tuple (x,y) or single value
+    offset_x = offset[0] if isinstance(offset, (tuple, list)) else offset
+    offset_y = offset[1] if isinstance(offset, (tuple, list)) and len(offset) > 1 else offset
+    
     # Define possible positions (clockwise from right)
     angles = [0, 45, 90, 135, 180, 225, 270, 315]
     base_offsets = [
@@ -177,13 +181,13 @@ def get_point_label_position(point, label_text, text_height, offset=0):
     ]
     
     # Default offset distance based on text height if not specified
-    if offset == 0:
-        offset = text_height * 0.5
+    if offset_x == 0 and offset_y == 0:
+        offset_x = offset_y = text_height * 0.5
     
     for angle, (dx, dy) in zip(angles, base_offsets):
-        # Calculate position
-        x = point.x + dx * offset
-        y = point.y + dy * offset
+        # Calculate position with separate x and y offsets
+        x = point.x + dx * offset_x
+        y = point.y + dy * offset_y
         candidate = Point(x, y)
         
         # Score based on position (prefer right side, then top, etc.)
@@ -489,8 +493,10 @@ def _generate_label_candidates(source_layers, all_layers, project_settings, crs,
         if not source_layer_name:
             continue
             
+        # Get label text or column name
         label_text = source_config.get('label', '')
-        # Handle layer-specific offset, falling back to global offset
+        label_column = source_config.get('labelColumn', None)
+        
         layer_offset = source_config.get('labelOffset', {
             'x': settings['global_label_offset_x'],
             'y': settings['global_label_offset_y']
@@ -505,6 +511,44 @@ def _generate_label_candidates(source_layers, all_layers, project_settings, crs,
         if source_geometry is None or source_geometry.is_empty:
             continue
             
+        # If using labelColumn, get the corresponding GeoDataFrame
+        if label_column:
+            source_gdf = all_layers.get(source_layer_name)
+            if source_gdf is not None and label_column in source_gdf.columns:
+                # Process each geometry with its corresponding label
+                for idx, row in source_gdf.iterrows():
+                    geom = row.geometry
+                    if geom is None or geom.is_empty:
+                        continue
+                    
+                    feature_label = str(row[label_column])
+                    line_geom = convert_to_line_geometry(geom)
+                    if line_geom is None:
+                        continue
+                        
+                    positions = _get_positions_for_geometry(line_geom, feature_label, 
+                                                         settings['text_height'], 
+                                                         settings['spacing_settings'], 
+                                                         (offset_x, offset_y))
+                    
+                    for pos, angle, score in positions:
+                        node_id = f"{source_layer_name}_{node_counter}"
+                        collision_graph.add_node(
+                            node_id,
+                            pos=pos,
+                            angle=angle,
+                            text=feature_label,
+                            score=score,
+                            layer=source_layer_name,
+                            offset_x=offset_x,
+                            offset_y=offset_y
+                        )
+                        label_candidates.append(node_id)
+                        node_counter += 1
+                        candidate_counts[source_layer_name] += 1
+                continue
+        
+        # Original functionality for non-labelColumn cases
         source_geometry = convert_to_line_geometry(source_geometry)
         if source_geometry is None:
             continue
