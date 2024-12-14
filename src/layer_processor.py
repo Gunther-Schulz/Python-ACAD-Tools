@@ -29,7 +29,8 @@ from src.operations import (
     create_circle_layer,
     create_connect_points_layer,
     create_envelope_layer,
-    create_label_association_layer
+    create_label_association_layer,
+    create_filtered_by_column_layer
 )
 from src.style_manager import StyleManager
 from src.operations.filter_geometry_operation import create_filtered_geometry_layer
@@ -281,6 +282,8 @@ class LayerProcessor:
                                                  self.project_loader)
         elif op_type == 'lagefaktor':
             result = create_lagefaktor_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
+        elif op_type == 'filterByColumn':
+            result = create_filtered_by_column_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
         else:
             log_warning(f"Unknown operation type: {op_type} for layer {layer_name}")
             return None

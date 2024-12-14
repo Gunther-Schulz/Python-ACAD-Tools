@@ -1,5 +1,14 @@
 styles:
 
+  wasserschutz:
+    layer:
+      lineweight: 13
+
+  wasserschutz 2:
+    layer:
+      color: "blue"
+      lineweight: 80
+
   baum:
     text:
       height: 1
@@ -8,7 +17,7 @@ styles:
       attachmentPoint: "MIDDLE_LEFT"
       paragraph:
         align: "LEFT"
-        
+
   baumStamm:
     hatch:
       individual_hatches: true

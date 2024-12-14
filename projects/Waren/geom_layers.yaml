@@ -1,5 +1,56 @@
 geomLayers:
 
+### Wasserschutz ###
+- name: wasserrechtliche Festsetzung 3b
+  updateDxf: true
+  style: wasserschutz
+  operations:
+    # - type: filterByColumn
+    #   column: "zone"
+    #   operator: "eq"
+    #   value:
+    #     - "3b"
+    #     - "3a"
+    #     - "1"
+    - type: dissolve
+  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/Grundlagen/Trinkwasserschutzzone/Wasserschutzgebiete_MSE.shp"
+
+- name: wasserrechtliche Festsetzung 3b 2
+  updateDxf: true
+  style: wasserschutz 2
+  operations:
+    - type: buffer
+      layers:
+        - wasserrechtliche Festsetzung 3b
+      distance: -0.8
+      capStyle: flat
+      joinStyle: flat
+
+- name: wasserrechtliche Festsetzung 2b
+  updateDxf: true
+  style: wasserschutz
+  operations:
+    - type: filterByColumn
+      column: "zone"
+      operator: "in"
+      value:
+        - "3a"
+        - "1"
+    - type: dissolve
+  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/Grundlagen/Trinkwasserschutzzone/Wasserschutzgebiete_MSE.shp"
+
+- name: wasserrechtliche Festsetzung 2b 2
+  updateDxf: true
+  style: wasserschutz 2
+  operations:
+    - type: buffer
+      layers:
+        - wasserrechtliche Festsetzung 2b
+      distance: -0.8
+      capStyle: flat
+      joinStyle: flat
+
+
 ### Leitung ###
 
 # Stadtwerke
