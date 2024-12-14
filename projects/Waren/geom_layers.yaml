@@ -497,13 +497,13 @@ geomLayers:
   style: baum
   operations:
     - type: labelAssociation
-      showLog: true
+      # showLog: true
       sourceLayers:
         - name: Baum_Laubbaum Points
           labelColumn: "label_ml"
           pointPosition: right
           labelOffset:
-            x: 2.5
+            x: "Krone_R + 0.5"
             y: 0
 
 
@@ -512,7 +512,7 @@ geomLayers:
   style: leitung
   operations:
     - type: labelAssociation
-      showLog: true
+      # showLog: true
       labelSettings:
         labelSpacing: 100
         labelOffset:
@@ -537,12 +537,12 @@ geomLayers:
         # bufferFactor: 0.2     # Adds 20% of text height as padding around the label box
         # collisionMargin: 0.25 # Adds 25% extra space when checking for collisions with other labels
       sourceLayers:
-        - name: Baum_Laubbaum Points
-          labelColumn: "label_ml"
-          pointPosition: right
-          labelOffset:
-            x: 2.5
-            y: 0
+        # - name: Baum_Laubbaum Points
+        #   labelColumn: "label_ml"
+        #   pointPosition: right
+        #   labelOffset:
+        #     x: 2.5
+        #     y: 0
 
         - name: Leitung Str-Leitungsabschnitt-NS
           label: Strom Niederspannung
@@ -560,7 +560,7 @@ geomLayers:
           label: Gas Ontras
 
         - name: Leitung Ontras TK
-          label: TKOntras
+          label: TK Ontras
           labelOffset:
             y: -2.3
         - name: Leitung Gas_HD_LEIT
@@ -808,7 +808,7 @@ geomLayers:
       parcelLayer: "Parcel"
       parcelLabel: "label"
       minParcelAreaPercent: 1
-      showLog: true
+      # showLog: true
       protokolOutputDir: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/Lagefaktor/Waren_2_new"
       context:
         - distance: "<100"

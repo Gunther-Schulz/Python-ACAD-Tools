@@ -492,7 +492,6 @@ def _collect_geometries_to_avoid(all_layers, project_settings, crs, avoid_all_ge
 def _generate_label_candidates(source_layers, all_layers, project_settings, crs, settings):
     """Generate label candidates for all source layers."""
     collision_graph = nx.Graph()
-    # Store settings and other necessary data in the graph
     collision_graph.graph['settings'] = settings
     collision_graph.graph['source_layers'] = source_layers
     collision_graph.graph['source_geometries'] = {}
@@ -511,94 +510,98 @@ def _generate_label_candidates(source_layers, all_layers, project_settings, crs,
         # Get label text or column name
         label_text = source_config.get('label', '')
         label_column = source_config.get('labelColumn', None)
-        point_position = source_config.get('pointPosition', None)  # Get pointPosition from config
+        point_position = source_config.get('pointPosition', None)
         
         layer_offset = source_config.get('labelOffset', {
             'x': settings['global_label_offset_x'],
             'y': settings['global_label_offset_y']
         })
-        offset_x, offset_y = _get_offset_values(layer_offset, 
-                                              default_offset=settings['global_label_offset_x'])
         
         candidate_counts[source_layer_name] = 0
         
-        # Get and process source geometry
+        # Get source geometry and GeoDataFrame
+        source_gdf = all_layers.get(source_layer_name)
         source_geometry = _get_filtered_geometry(all_layers, project_settings, crs, source_layer_name, None)
-        if source_geometry is None or source_geometry.is_empty:
-            continue
-            
-        # If using labelColumn, get the corresponding GeoDataFrame
-        if label_column:
-            source_gdf = all_layers.get(source_layer_name)
-            if source_gdf is not None and label_column in source_gdf.columns:
-                # Process each geometry with its corresponding label
-                for idx, row in source_gdf.iterrows():
-                    geom = row.geometry
-                    if geom is None or geom.is_empty:
-                        continue
-                    
-                    feature_label = str(row[label_column])
-                    line_geom = convert_to_line_geometry(geom)
-                    if line_geom is None:
-                        continue
-                        
-                    positions = _get_positions_for_geometry(line_geom, feature_label, 
-                                                         settings['text_height'], 
-                                                         settings['spacing_settings'], 
-                                                         (offset_x, offset_y),
-                                                         point_position)  # Pass point_position here
-                    
-                    for pos, angle, score, box in positions:
-                        node_id = f"{source_layer_name}_{node_counter}"
-                        collision_graph.add_node(
-                            node_id,
-                            pos=pos,
-                            angle=angle,
-                            text=feature_label,
-                            score=score,
-                            layer=source_layer_name,
-                            offset_x=offset_x,
-                            offset_y=offset_y,
-                            box=box  # Add box to node attributes
-                        )
-                        label_candidates.append(node_id)
-                        node_counter += 1
-                        candidate_counts[source_layer_name] += 1
-                continue
         
-        # Original functionality for non-labelColumn cases
-        source_geometry = convert_to_line_geometry(source_geometry)
-        if source_geometry is None:
+        if source_geometry is None or source_geometry.is_empty:
             continue
             
         source_geometries[source_layer_name] = source_geometry
         collision_graph.graph['source_geometries'][source_layer_name] = source_geometry
         
-        # Generate candidates for each geometry
-        geometries = [source_geometry] if isinstance(source_geometry, (LineString, Point, Polygon)) else list(source_geometry.geoms)
-        
-        for geom in geometries:
-            positions = _get_positions_for_geometry(geom, label_text, settings['text_height'], 
-                                                 settings['spacing_settings'], 
-                                                 (offset_x, offset_y),
-                                                 point_position)  # Pass point_position here
+        # If using labelColumn, process each feature individually
+        if label_column and source_gdf is not None and label_column in source_gdf.columns:
+            for idx, row in source_gdf.iterrows():
+                geom = row.geometry
+                if geom is None or geom.is_empty:
+                    continue
+                
+                feature_label = str(row[label_column])
+                line_geom = convert_to_line_geometry(geom)
+                if line_geom is None:
+                    continue
+                    
+                # Get offset values for this specific feature
+                offset_x, offset_y = _get_offset_values(layer_offset, 
+                                                      settings['global_label_offset_x'],
+                                                      feature_row=row)
+                
+                positions = _get_positions_for_geometry(line_geom, feature_label, 
+                                                     settings['text_height'], 
+                                                     settings['spacing_settings'], 
+                                                     (offset_x, offset_y),
+                                                     point_position)
+                
+                for pos, angle, score, box in positions:
+                    node_id = f"{source_layer_name}_{node_counter}"
+                    collision_graph.add_node(
+                        node_id,
+                        pos=pos,
+                        angle=angle,
+                        text=feature_label,
+                        score=score,
+                        layer=source_layer_name,
+                        offset_x=offset_x,
+                        offset_y=offset_y,
+                        box=box
+                    )
+                    label_candidates.append(node_id)
+                    node_counter += 1
+                    candidate_counts[source_layer_name] += 1
+                    
+        else:
+            # Process geometry without per-feature attributes
+            offset_x, offset_y = _get_offset_values(layer_offset, settings['global_label_offset_x'])
             
-            for pos, angle, score, box in positions:
-                node_id = f"{source_layer_name}_{node_counter}"
-                collision_graph.add_node(
-                    node_id,
-                    pos=pos,
-                    angle=angle,
-                    text=label_text,
-                    score=score,
-                    layer=source_layer_name,
-                    offset_x=offset_x,
-                    offset_y=offset_y,
-                    box=box  # Add box to node attributes
-                )
-                label_candidates.append(node_id)
-                node_counter += 1
-                candidate_counts[source_layer_name] += 1
+            geometries = [source_geometry] if isinstance(source_geometry, (LineString, Point, Polygon)) else list(source_geometry.geoms)
+            
+            for geom in geometries:
+                line_geom = convert_to_line_geometry(geom)
+                if line_geom is None:
+                    continue
+                    
+                positions = _get_positions_for_geometry(line_geom, label_text, 
+                                                     settings['text_height'], 
+                                                     settings['spacing_settings'], 
+                                                     (offset_x, offset_y),
+                                                     point_position)
+                
+                for pos, angle, score, box in positions:
+                    node_id = f"{source_layer_name}_{node_counter}"
+                    collision_graph.add_node(
+                        node_id,
+                        pos=pos,
+                        angle=angle,
+                        text=label_text,
+                        score=score,
+                        layer=source_layer_name,
+                        offset_x=offset_x,
+                        offset_y=offset_y,
+                        box=box
+                    )
+                    label_candidates.append(node_id)
+                    node_counter += 1
+                    candidate_counts[source_layer_name] += 1
     
     return collision_graph, label_candidates, candidate_counts, source_geometries
 
@@ -840,20 +843,89 @@ def convert_to_line_geometry(geometry):
         return MultiLineString(lines)
     return None
 
-def _get_offset_values(offset_config, default_offset=0):
-    """Convert offset config to x,y values."""
+def _parse_offset_expression(expression, feature_row):
+    """Parse an offset expression that may include column names and arithmetic.
+    
+    Args:
+        expression: String expression like "Krone_R + 2" or just "Krone_R"
+        feature_row: Row from GeoDataFrame containing column values
+    """
+    if not isinstance(expression, str):
+        return expression
+        
+    # Split the expression into parts
+    parts = expression.split()
+    
+    # If it's just a column name
+    if len(parts) == 1:
+        try:
+            return float(feature_row[parts[0]])
+        except (KeyError, ValueError, TypeError):
+            return 0
+            
+    # Handle basic arithmetic: column_name operator number
+    if len(parts) == 3 and parts[1] in ['+', '-', '*', '/']:
+        try:
+            column_value = float(feature_row[parts[0]])
+            number = float(parts[2])
+            
+            if parts[1] == '+':
+                return column_value + number
+            elif parts[1] == '-':
+                return column_value - number
+            elif parts[1] == '*':
+                return column_value * number
+            elif parts[1] == '/':
+                return column_value / number if number != 0 else 0
+                
+        except (KeyError, ValueError, TypeError):
+            return 0
+            
+    return 0
+
+def _get_offset_values(offset_config, default_offset=0, feature_row=None):
+    """Convert offset config to x,y values.
+    
+    Args:
+        offset_config: Number, dict with x/y values or column names/expressions, or list/tuple
+        default_offset: Default offset value if not specified
+        feature_row: Optional row from GeoDataFrame for column-based offsets
+    """
+    # Handle dictionary configuration
+    if isinstance(offset_config, dict):
+        x_value = offset_config.get('x', 0)
+        y_value = offset_config.get('y', 0)
+        
+        # Get x offset (either from expression/column or direct value)
+        if isinstance(x_value, str) and feature_row is not None:
+            x_offset = _parse_offset_expression(x_value, feature_row)
+        else:
+            try:
+                x_offset = float(x_value) if x_value is not None else 0
+            except (ValueError, TypeError):
+                x_offset = 0
+            
+        # Get y offset (either from expression/column or direct value)
+        if isinstance(y_value, str) and feature_row is not None:
+            y_offset = _parse_offset_expression(y_value, feature_row)
+        else:
+            try:
+                y_offset = float(y_value) if y_value is not None else 0
+            except (ValueError, TypeError):
+                y_offset = 0
+            
+        return x_offset, y_offset
+    
+    # Handle simple numeric value
     if isinstance(offset_config, (int, float)):
-        # If single number, use it for both x and y
         return float(offset_config), float(offset_config)
-    elif isinstance(offset_config, dict):
-        # Get x and y values from dict, default to 0 if not specified
-        return float(offset_config.get('x', 0)), float(offset_config.get('y', 0))
-    elif isinstance(offset_config, (list, tuple)) and len(offset_config) >= 2:
-        # If list/tuple with at least 2 values, use first two as x,y
+    
+    # Handle list/tuple
+    if isinstance(offset_config, (list, tuple)) and len(offset_config) >= 2:
         return float(offset_config[0]), float(offset_config[1])
-    else:
-        # Default fallback
-        return float(default_offset), float(default_offset)
+    
+    # Default case
+    return float(default_offset), float(default_offset)
 
 def _apply_offset_to_point(point, offset_x, offset_y, angle=None):
     """Apply x,y offset to point, considering rotation angle.
