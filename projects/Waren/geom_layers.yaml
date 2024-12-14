@@ -486,12 +486,10 @@ geomLayers:
         - Baum_Laubbaum Points
     - type: labelAssociation
       showLog: true
-      # labelSettings:
-      #   labelColumn: "label_ml"
-      #   labelOffset: 1
       sourceLayers:
         - name: Baum_Laubbaum Points
           labelColumn: "label_ml"
+          pointPosition: right
 
 
 - name: Leitungen Labels

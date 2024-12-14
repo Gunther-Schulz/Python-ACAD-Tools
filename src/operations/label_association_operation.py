@@ -155,7 +155,7 @@ def get_polygon_anchor_position(polygon, text_width, text_height):
     # Return the position with highest score
     return max(candidates, key=lambda x: x[1])[0]
 
-def get_point_label_position(point, label_text, text_height, offset=0):
+def get_point_label_position(point, label_text, text_height, offset=0, point_position=None):
     """Get best label position for a point using Mapbox's approach."""
     # Try multiple positions around the point
     candidates = []
@@ -168,38 +168,55 @@ def get_point_label_position(point, label_text, text_height, offset=0):
     offset_y = offset[1] if isinstance(offset, (tuple, list)) and len(offset) > 1 else offset
     
     # Define possible positions (clockwise from right)
-    angles = [0, 45, 90, 135, 180, 225, 270, 315]
-    base_offsets = [
-        (1, 0),    # Right
-        (1, 1),    # Top-right
-        (0, 1),    # Top
-        (-1, 1),   # Top-left
-        (-1, 0),   # Left
-        (-1, -1),  # Bottom-left
-        (0, -1),   # Bottom
-        (1, -1),   # Bottom-right
-    ]
+    POSITION_MAP = {
+        "right": (0, (1, 0)),      # 0 degrees
+        "top-right": (45, (1, 1)),
+        "top": (90, (0, 1)),
+        "top-left": (135, (-1, 1)),
+        "left": (180, (-1, 0)),
+        "bottom-left": (225, (-1, -1)),
+        "bottom": (270, (0, -1)),
+        "bottom-right": (315, (1, -1))
+    }
     
     # Default offset distance based on text height if not specified
     if offset_x == 0 and offset_y == 0:
         offset_x = offset_y = text_height * 0.5
     
-    for angle, (dx, dy) in zip(angles, base_offsets):
-        # Calculate position with separate x and y offsets
+    if point_position and point_position.lower() in POSITION_MAP:  # Make case-insensitive
+        # Use only the specified position
+        angle, (dx, dy) = POSITION_MAP[point_position.lower()]
         x = point.x + dx * offset_x
         y = point.y + dy * offset_y
         candidate = Point(x, y)
+        candidates.append((candidate, angle, 2.0))  # Higher score for specified position
+    else:
+        # Use all positions if no override
+        angles = [0, 45, 90, 135, 180, 225, 270, 315]
+        base_offsets = [
+            (1, 0),    # Right
+            (1, 1),    # Top-right
+            (0, 1),    # Top
+            (-1, 1),   # Top-left
+            (-1, 0),   # Left
+            (-1, -1),  # Bottom-left
+            (0, -1),   # Bottom
+            (1, -1),   # Bottom-right
+        ]
         
-        # Score based on position (prefer right side, then top, etc.)
-        score = 1.0
-        if dx > 0:  # Right side
-            score += 0.5
-        if dy > 0:  # Top half
-            score += 0.3
+        for angle, (dx, dy) in zip(angles, base_offsets):
+            x = point.x + dx * offset_x
+            y = point.y + dy * offset_y
+            candidate = Point(x, y)
             
-        candidates.append((candidate, angle, score))
+            score = 1.0
+            if dx > 0:  # Right side
+                score += 0.5
+            if dy > 0:  # Top half
+                score += 0.3
+                
+            candidates.append((candidate, angle, score))
     
-    # Return the position with highest score
     best_candidate = max(candidates, key=lambda x: x[2])
     return (best_candidate[0], best_candidate[1])
 
@@ -496,6 +513,7 @@ def _generate_label_candidates(source_layers, all_layers, project_settings, crs,
         # Get label text or column name
         label_text = source_config.get('label', '')
         label_column = source_config.get('labelColumn', None)
+        point_position = source_config.get('pointPosition', None)  # Get pointPosition from config
         
         layer_offset = source_config.get('labelOffset', {
             'x': settings['global_label_offset_x'],
@@ -529,7 +547,8 @@ def _generate_label_candidates(source_layers, all_layers, project_settings, crs,
                     positions = _get_positions_for_geometry(line_geom, feature_label, 
                                                          settings['text_height'], 
                                                          settings['spacing_settings'], 
-                                                         (offset_x, offset_y))
+                                                         (offset_x, offset_y),
+                                                         point_position)  # Pass point_position here
                     
                     for pos, angle, score in positions:
                         node_id = f"{source_layer_name}_{node_counter}"
@@ -561,7 +580,8 @@ def _generate_label_candidates(source_layers, all_layers, project_settings, crs,
         
         for geom in geometries:
             positions = _get_positions_for_geometry(geom, label_text, settings['text_height'], 
-                                                 settings['spacing_settings'], (offset_x, offset_y))
+                                                 settings['spacing_settings'], (offset_x, offset_y),
+                                                 point_position)  # Pass point_position here
             
             for pos, angle, score in positions:
                 node_id = f"{source_layer_name}_{node_counter}"
@@ -581,12 +601,15 @@ def _generate_label_candidates(source_layers, all_layers, project_settings, crs,
     
     return collision_graph, label_candidates, candidate_counts, source_geometries
 
-def _get_positions_for_geometry(geom, label_text, text_height, spacing_settings, label_offset):
+def _get_positions_for_geometry(geom, label_text, text_height, spacing_settings, label_offset, point_position=None):
     """Get label positions for a specific geometry."""
     positions = []
     text_width = len(label_text) * text_height * 0.6
     
-    if isinstance(geom, LineString):
+    if isinstance(geom, Point):
+        point, angle = get_point_label_position(geom, label_text, text_height, label_offset, point_position)
+        positions = [(point, angle, 1.0)]
+    elif isinstance(geom, LineString):
         step = float(spacing_settings['label_spacing']) if spacing_settings['label_spacing'] else text_width * 0.8
         positions = get_line_placement_positions(geom, text_width, text_height, step)
         positions = [(pos[0], pos[1], pos[2]) for pos in positions]
@@ -597,9 +620,6 @@ def _get_positions_for_geometry(geom, label_text, text_height, spacing_settings,
     elif isinstance(geom, Polygon):
         point = get_polygon_anchor_position(geom, text_width, text_height)
         positions = [(point, 0, 1.0)]
-    elif isinstance(geom, Point):
-        point, angle = get_point_label_position(geom, label_text, text_height, label_offset)
-        positions = [(point, angle, 1.0)]
     
     return positions
 
