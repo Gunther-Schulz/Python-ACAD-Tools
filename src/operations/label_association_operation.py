@@ -11,75 +11,171 @@ import networkx as nx
 
 
 def get_line_placement_positions(line, text_width, text_height, step=None):
-    """Get candidate positions along a line with improved angle calculation."""
+    """Get candidate positions along a line with improved corner detection using NetworkX."""
     positions = []
     line_length = line.length
     
     # Use provided step if specified, otherwise calculate default
     if step is None:
-        step = min(text_width * 0.8, line_length / 2)  # Default calculation
+        step = min(text_width * 0.8, line_length / 2)
     
     # Ensure step is not larger than line length
     step = min(step, line_length)
     
-    # Look-ahead/behind distance for angle calculation
-    look_dist = text_width * 0.5
+    # Create a graph to analyze line topology
+    G = nx.Graph()
+    coords = list(line.coords)
+    for i in range(len(coords)-1):
+        segment = LineString([coords[i], coords[i+1]])
+        G.add_edge(i, i+1, 
+                  weight=segment.length,
+                  geometry=segment)
     
     current_dist = 0
     while current_dist <= line_length:
         point = line.interpolate(current_dist)
         
-        # Calculate points before and after for better angle determination
-        behind_dist = max(0, current_dist - look_dist)
-        ahead_dist = min(line_length, current_dist + look_dist)
+        # Calculate space ahead for label placement
+        space_ahead = line_length - current_dist
         
-        point_behind = line.interpolate(behind_dist)
-        point_ahead = line.interpolate(ahead_dist)
+        # Find nearest line segment using NetworkX
+        nearest_vertex = min(range(len(coords)), 
+                           key=lambda i: Point(coords[i]).distance(point))
         
-        # Calculate angles between segments
-        angle_diff = 0  # Default to 0 for start/end points
-        if behind_dist < current_dist and ahead_dist > current_dist:
-            angle1 = math.atan2(point.y - point_behind.y, point.x - point_behind.x)
-            angle2 = math.atan2(point_ahead.y - point.y, point_ahead.x - point.x)
-            angle_diff = abs(math.degrees(angle2 - angle1))
-            
-            # Skip corners (where angle difference is significant)
-            if angle_diff > 30:  # Adjust this threshold as needed
-                current_dist += step
-                continue
+        # Get local line context using NetworkX neighborhood
+        local_context = nx.ego_graph(G, nearest_vertex, radius=2)
         
-        # Use the ahead point for angle calculation
-        angle = math.degrees(math.atan2(
-            point_ahead.y - point.y,
-            point_ahead.x - point.x
-        ))
+        # Calculate angle using local context
+        angle = _calculate_local_angle(point, local_context, coords)
         
-        # Normalize angle to ensure text is never upside down (-90 to 90 degrees)
+        # Normalize angle
         if angle > 90:
             angle -= 180
         elif angle < -90:
             angle += 180
         
-        # Check if we have enough straight space for the label
-        space_ahead = line_length - current_dist
-        if space_ahead >= text_width / 2:  # Only need half text width ahead since we're centered
-            # Calculate a score for this position
-            score = 1.0
-            if angle_diff < 10:  # Very straight
-                score += 2.0
-            elif angle_diff < 20:  # Mostly straight
-                score += 1.0
-            
-            # Prefer middle sections of the line
-            relative_pos = current_dist / line_length
-            if 0.3 <= relative_pos <= 0.7:
-                score += 1.0
-                
+        # Calculate corner penalty using NetworkX path analysis
+        corner_penalty = _calculate_corner_penalty(G, point, coords, text_width)
+        
+        # Calculate curvature score using NetworkX
+        curvature_score = _calculate_curvature_score(local_context, coords)
+        
+        # Calculate final position score
+        score = 1.0 + curvature_score
+        
+        # Penalize positions near corners
+        score -= corner_penalty
+        
+        # Prefer middle sections
+        relative_pos = current_dist / line_length
+        if 0.3 <= relative_pos <= 0.7:
+            score += 1.0
+        
+        # Only add position if score is acceptable and there's enough space
+        if score > 0.3 and space_ahead >= text_width / 2:
             positions.append((point, angle, score))
         
         current_dist += step
     
     return positions
+
+def _calculate_local_angle(point, local_context, coords):
+    """Calculate angle at a point using local network context."""
+    edges = list(local_context.edges(data=True))
+    if not edges:
+        return 0
+    
+    # Get nearby segments
+    segments = [edge[2]['geometry'] for edge in edges]
+    
+    # Find closest segment
+    closest_segment = min(segments, key=lambda s: s.distance(point))
+    
+    # Calculate angle along closest segment
+    coords = list(closest_segment.coords)
+    return math.degrees(math.atan2(
+        coords[-1][1] - coords[0][1],
+        coords[-1][0] - coords[0][0]
+    ))
+
+def _calculate_corner_penalty(G, point, coords, text_width):
+    """Calculate corner penalty using NetworkX path analysis."""
+    corner_penalty = 0
+    
+    # Find vertices within text_width distance
+    nearest_vertex = min(range(len(coords)), 
+                        key=lambda i: Point(coords[i]).distance(point))
+    
+    # Use NetworkX to find nearby vertices
+    nearby_vertices = nx.single_source_dijkstra_path_length(G, nearest_vertex, 
+                                                          cutoff=text_width)
+    
+    for v in nearby_vertices:
+        if v > 0 and v < len(coords)-1:
+            # Get local subgraph for angle calculation
+            local_graph = nx.ego_graph(G, v, radius=1)
+            if len(local_graph) >= 3:
+                # Calculate angle at vertex
+                prev_point = coords[v-1]
+                curr_point = coords[v]
+                next_point = coords[v+1]
+                angle = _calculate_vertex_angle(prev_point, curr_point, next_point)
+                
+                if angle < 150:  # Angle threshold for corners
+                    dist_to_corner = Point(coords[v]).distance(point)
+                    # Progressive penalty based on distance and angle
+                    angle_factor = (150 - angle) / 150  # More penalty for sharper angles
+                    distance_factor = max(0, 1 - (dist_to_corner / text_width))
+                    corner_penalty += angle_factor * distance_factor
+    
+    return corner_penalty
+
+def _calculate_curvature_score(local_context, coords):
+    """Calculate curvature score using NetworkX local structure analysis."""
+    if len(local_context) < 3:
+        return 0
+    
+    # Calculate average angle change between consecutive segments
+    angles = []
+    edges = list(local_context.edges())
+    for i in range(len(edges)-1):
+        if edges[i][1] == edges[i+1][0]:  # Connected segments
+            v1 = edges[i]
+            v2 = edges[i+1]
+            angle = _calculate_vertex_angle(
+                coords[v1[0]], 
+                coords[v1[1]], 
+                coords[v2[1]]
+            )
+            angles.append(angle)
+    
+    if not angles:
+        return 0
+    
+    # Convert angles to curvature score
+    avg_angle = sum(angles) / len(angles)
+    if avg_angle > 170:  # Nearly straight
+        return 2.0
+    elif avg_angle > 150:  # Slightly curved
+        return 1.0
+    else:  # Significantly curved
+        return 0.0
+
+def _calculate_vertex_angle(p1, p2, p3):
+    """Calculate angle at vertex p2 in degrees."""
+    v1 = np.array([p1[0] - p2[0], p1[1] - p2[1]])
+    v2 = np.array([p3[0] - p2[0], p3[1] - p2[1]])
+    
+    dot_product = np.dot(v1, v2)
+    norms = np.linalg.norm(v1) * np.linalg.norm(v2)
+    
+    if norms == 0:
+        return 180
+    
+    cos_angle = dot_product / norms
+    cos_angle = min(1.0, max(-1.0, cos_angle))  # Ensure domain of arccos
+    
+    return math.degrees(math.acos(cos_angle))
 
 def get_polygon_anchor_position(polygon, text_width, text_height):
     """Get the best anchor position for a polygon using Mapbox's approach."""
@@ -706,15 +802,42 @@ def _calculate_geometry_intersection_score(box, geometry, buffer_distance):
     if geometry is None:
         return 1.0
     
-    # Buffer the geometry for more conservative collision detection
+    corner_penalty = 0  # Initialize corner_penalty for all cases
+    
+    # Create a graph for analyzing line topology
+    if isinstance(geometry, (LineString, MultiLineString)):
+        G = nx.Graph()
+        if isinstance(geometry, LineString):
+            coords = list(geometry.coords)
+        else:
+            coords = [c for line in geometry.geoms for c in line.coords]
+            
+        for i in range(len(coords)-1):
+            G.add_edge(i, i+1, weight=Point(coords[i]).distance(Point(coords[i+1])))
+        
+        # Find corners
+        corners = []
+        for i in range(1, len(coords)-1):
+            angle = _calculate_vertex_angle(coords[i-1], coords[i], coords[i+1])
+            if angle < 150:  # Angle threshold for corners
+                corners.append(Point(coords[i]))
+        
+        # Calculate corner proximity penalty
+        for corner in corners:
+            dist = corner.distance(box.centroid)
+            if dist < buffer_distance * 2:  # Increased buffer for corners
+                corner_penalty += max(0, 1 - (dist / (buffer_distance * 2)))
+    
+    # Buffer the geometry for collision detection
     buffered_geom = geometry.buffer(buffer_distance)
     
     if box.intersects(buffered_geom):
         intersection = box.intersection(buffered_geom)
         intersection_ratio = intersection.area / box.area
-        # Return a score between 0 and 1, where 0 means complete overlap
-        return max(0.0, 1.0 - intersection_ratio * 2)
-    return 1.0
+        # Include corner penalty in final score
+        return max(0.0, 1.0 - (intersection_ratio * 2 + corner_penalty))
+    
+    return 1.0 - min(1.0, corner_penalty)  # Still apply corner penalty even without intersection
 
 def _select_optimal_labels(G, settings):
     """Select optimal label positions using NetworkX's maximum independent set."""
