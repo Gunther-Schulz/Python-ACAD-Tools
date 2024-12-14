@@ -8,6 +8,10 @@ styles:
       attachmentPoint: "MIDDLE_LEFT"
       paragraph:
         align: "LEFT"
+        
+  baumStamm:
+    hatch:
+      individual_hatches: true
 
   leitung:
     layer:

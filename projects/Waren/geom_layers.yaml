@@ -154,11 +154,26 @@ geomLayers:
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/vermessung_baum_laubbaum_pt.shp"
 - name: Baum_Laubbaum Krone
   updateDxf: true
+  style: baum
   operations:
     - type: circle
       layers:
         - Baum_Laubbaum Points
       radiusField: Krone_R
+- name: Baum_Laubbaum Stamm
+  updateDxf: true
+  style: baum
+  operations:
+    - type: circle
+      layers:
+        - Baum_Laubbaum Points
+      radiusField: Stamm_R
+- name: Baum_Laubbaum Stamm Schraffur
+  updateDxf: true
+  style: baumStamm
+  applyHatch:
+    layers:
+      - Baum_Laubbaum Stamm
 - name: Baum_Laubbaum Buffer
   operations:
     - type: buffer
@@ -481,16 +496,15 @@ geomLayers:
   updateDxf: true
   style: baum
   operations:
-    - type: copy
-      layers:
-        - Baum_Laubbaum Points
     - type: labelAssociation
       showLog: true
       sourceLayers:
         - name: Baum_Laubbaum Points
           labelColumn: "label_ml"
           pointPosition: right
-          labelOffset: 2.5
+          labelOffset:
+            x: 2.5
+            y: 0
 
 
 - name: Leitungen Labels
@@ -523,6 +537,13 @@ geomLayers:
         # bufferFactor: 0.2     # Adds 20% of text height as padding around the label box
         # collisionMargin: 0.25 # Adds 25% extra space when checking for collisions with other labels
       sourceLayers:
+        - name: Baum_Laubbaum Points
+          labelColumn: "label_ml"
+          pointPosition: right
+          labelOffset:
+            x: 2.5
+            y: 0
+
         - name: Leitung Str-Leitungsabschnitt-NS
           label: Strom Niederspannung
 
