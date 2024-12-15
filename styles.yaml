@@ -10,8 +10,6 @@ styles:
       lineweight: 80
 
   baum:
-    # layer:
-    #   lineweight: 13
     text:
       height: 1
       font: "Arial"

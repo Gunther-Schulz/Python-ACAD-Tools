@@ -37,7 +37,7 @@ geomLayers:
     - type: buffer
       layers:
         - wasserrechtliche Festsetzung 3b
-      distance: -0.8
+      distance: -1
       capStyle: flat
       joinStyle: flat
 
@@ -568,7 +568,7 @@ geomLayers:
           labelColumn: "label_ml"
           pointPosition: right
           labelOffset:
-            x: -"Krone_R + 0.5"
+            x: "-(Krone_R) + 0.5"
             y: 0
 
 
