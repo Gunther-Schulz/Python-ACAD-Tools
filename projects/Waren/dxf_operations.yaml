@@ -95,15 +95,15 @@ dxfOperations:
     #     - sourceLayer: "Zuwegung Mittellinie"
     #       outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/maxsolar_zuwegung_mittellinie.shp"
 
-  # transfers:
-  #   - externalDxf: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/Grundlagen/PV Waren_Entwurfsvermessung_2024-11-29_VB_Haff-24-12-03.dxf"
-  #     direction: "load"
-  #     operations:
-  #       - fromLayer: "T--Strasse_befestigt_OK"
-  #         toLayer: "T--Strasse_befestigt_OK"
-  #         entityTypes:
-  #           - LWPOLYLINE
-  #       - fromLayer: "T--Strasse_BESC"
-  #         toLayer: "T--Strasse_BESC"
-  #         entityTypes:
-  #           - MTEXT
+  transfers:
+    - externalDxf: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/Grundlagen/PV Waren_Entwurfsvermessung_2024-11-29_VB_Haff-24-12-03.dxf"
+      direction: "load"
+      operations:
+        - fromLayer: "T--Strasse_befestigt_OK"
+          toLayer: "T--Strasse_befestigt_OK"
+          entityTypes:
+            - LWPOLYLINE
+        - fromLayer: "T--Strasse_BESC"
+          toLayer: "T--Strasse_BESC"
+          entityTypes:
+            - MTEXT

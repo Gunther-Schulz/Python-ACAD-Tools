@@ -1,8 +1,17 @@
-# blockInserts:
-# - name: Sample Block
-#   blockName: SampleBlock
-#   updateDxf: true
-#   position:
-#     type: absolute
-#     x: 0
-#     y: 0
+blockInserts:
+  # Adjusted position already in DXF (nördlich)
+  # - name: EinAusfahrt
+  #   updateDxf: true
+  #   blockName: "EinAusfahrt"
+  #   scale: 0.6
+  #   position:
+  #     sourceLayer: "EinAusfahrt Line"
+  #     type: "line"
+  #     method: "middle"
+  #     lineOffset: 2
+  - name: "Gesetzlich geschütztes Biotop Symbol"
+    updateDxf: true
+    blockName: "Gesetzlich geschütztes Biotop"
+    position:
+      sourceLayer: ges gesch Biotope
+      type: "polygon"

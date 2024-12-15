@@ -1,10 +1,16 @@
 geomLayers:
 
-# Already modified in drawing (linetypeScale)
-- name: Blendschutzzaun
-  updateDxf: true
-  style: blendschutzzaun
-  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/blendschutzzaun_ln.shp"
+# - name: EinAusfahrt Points
+#   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/EinAusfahrt.shp"
+
+- name: EinAusfahrt Line
+  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/EinAusfahrt Line.shp"
+
+# Already modified in drawing (linetype generation, linetypeScale)
+# - name: Blendschutzzaun
+#   updateDxf: true
+#   style: blendschutzzaun
+#   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/blendschutzzaun_ln.shp"
 
 # ### Wasserschutz ###
 # - name: wasserrechtliche Festsetzung 3b
@@ -37,7 +43,7 @@ geomLayers:
     - type: buffer
       layers:
         - wasserrechtliche Festsetzung 3b
-      distance: -1
+      distance: -0.85
       capStyle: flat
       joinStyle: flat
 
@@ -220,6 +226,7 @@ geomLayers:
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/vermessung_baum_laubbaum_pt.shp"
 - name: Baum_Laubbaum Krone
   updateDxf: true
+  style: baum
   operations:
     - type: circle
       layers:
@@ -335,7 +342,14 @@ geomLayers:
       layers:
         - Zuwegung
     - type: dissolve
-    - type: calculate
+    - type: buffer
+      distance: -2
+      joinStyle: mitre
+      capStyle: flat
+    - type: buffer
+      distance: 2
+      joinStyle: mitre
+      capStyle: flat
       calculations:
         - type: area
           as: area
@@ -348,15 +362,30 @@ geomLayers:
         - area
       decimalPlaces:
         area: 0
+
+# Modified in DXF (linetype generation)
 - name: Geltungsbereich 2
   updateDxf: true
   linetypeScale: 1
   style: geltungsbereich_2
   operations:
-    - type: buffer
+    - type: copy
       layers:
-        - name: Geltungsbereich
+        - Geltungsbereich
+    - type: dissolve
+    - type: buffer
       distance: 2
+      joinStyle: round
+      capStyle: round
+    - type: buffer
+      distance: -2
+      joinStyle: mitre
+      capStyle: flat
+    - type: buffer
+      distance: 2
+      joinStyle: mitre
+      capStyle: flat
+
 # Report only
 - name: Parcel Intersections
   updateDxf: false
@@ -408,9 +437,31 @@ geomLayers:
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/moor.shp"
 - name: "ges gesch Biotope"
   # updateDxf: true
+  # style: gesGeschuetzesBiotop
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/ges. geschützte Biotope.shp"
+- name: "ges gesch Biotope 2"
+  updateDxf: true
+  style: gesGeschuetzesBiotop
+  operations:
+    - type: copy
+      layers:
+        - "ges gesch Biotope"
+    - type: buffer
+      distance: 1
+      capStyle: round
+      joinStyle: round
 - name: Graben
+  operations:
+    - type: intersection
+      layers:
+        - Geltungsbereich
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/vermessung_graben_pl.shp"
+- name: Graben Schraffur
+  updateDxf: true
+  style: graben
+  applyHatch:
+    layers:
+      - Graben
 - name: Grünfläche
   updateDxf: true
   # style:
@@ -568,80 +619,82 @@ geomLayers:
           labelColumn: "label_ml"
           pointPosition: right
           labelOffset:
-            x: "-(Krone_R) + 0.5"
+            x: "-(Krone_R) - 11"
             y: 0
 
 
-# - name: Leitungen Labels
-#   updateDxf: true
-#   style: leitung
-#   operations:
-#     - type: labelAssociation
-#       # showLog: true
-#       labelSettings:
-#         labelSpacing: 100
-#         labelOffset:
-#           y: 1
-#         # avoidAllGeometries: true
-#         # avoidLayers:
-#         #   - Baugrenze
-#         #   - Baugrenze 2
-#         #   - Geltungsbereich
-#         #   - Geltungsbereich 2
-#         #   - Grünfläche
-#         #   - Baufeld
-#         #   # - Blendschutzzaun
-#         #   - Zuwegung
-#         #   - Baum_Laubbaum Buffer
-#         widthFactor: 2.0       # Increased from 1.3 to 2.0 to account for full text width
-#         heightFactor: 2.0      # Increased from 1.5 to 2.0 to give more vertical clearance
-#         bufferFactor: 1.0      # Increased from 0.2 to 1.0 (100% of text height as buffer)
-#         collisionMargin: 0.5   # Increased from 0.25 to 0.5 for more spacing between features
-#         # widthFactor: 2      # Makes label box 30% wider than the text width
-#         # heightFactor: 1.5     # Makes label box 50% taller than the text height
-#         # bufferFactor: 0.2     # Adds 20% of text height as padding around the label box
-#         # collisionMargin: 0.25 # Adds 25% extra space when checking for collisions with other labels
-#       sourceLayers:
-#         # - name: Baum_Laubbaum Points
-#         #   labelColumn: "label_ml"
-#         #   pointPosition: right
-#         #   labelOffset:
-#         #     x: 2.5
-#         #     y: 0
+- name: Leitungen Labels
+  updateDxf: true
+  style: leitung
+  operations:
+    - type: labelAssociation
+      # showLog: true
+      labelSettings:
+        labelSpacing: 100
+        labelOffset:
+          y: 1
+        # avoidAllGeometries: true
+        # avoidLayers:
+        #   - Baugrenze
+        #   - Baugrenze 2
+        #   - Geltungsbereich
+        #   - Geltungsbereich 2
+        #   - Grünfläche
+        #   - Baufeld
+        #   # - Blendschutzzaun
+        #   - Zuwegung
+        #   - Baum_Laubbaum Buffer
+        widthFactor: 2.0       # Increased from 1.3 to 2.0 to account for full text width
+        heightFactor: 2.0      # Increased from 1.5 to 2.0 to give more vertical clearance
+        bufferFactor: 1.0      # Increased from 0.2 to 1.0 (100% of text height as buffer)
+        collisionMargin: 0.5   # Increased from 0.25 to 0.5 for more spacing between features
+        # widthFactor: 2      # Makes label box 30% wider than the text width
+        # heightFactor: 1.5     # Makes label box 50% taller than the text height
+        # bufferFactor: 0.2     # Adds 20% of text height as padding around the label box
+        # collisionMargin: 0.25 # Adds 25% extra space when checking for collisions with other labels
+      sourceLayers:
+        # - name: Baum_Laubbaum Points
+        #   labelColumn: "label_ml"
+        #   pointPosition: right
+        #   labelOffset:
+        #     x: 2.5
+        #     y: 0
 
-#         - name: Leitung Str-Leitungsabschnitt-NS
-#           label: Strom Niederspannung
+        - name: Leitung Str-Leitungsabschnitt-NS
+          label: Strom Niederspannung
 
-#         - name: Leitung Was-Leitungsabschnitt-VN
-#           label: Wasser VN
+        - name: Leitung Was-Leitungsabschnitt-VN
+          label: Wasser VN
 
-#         - name: Leitung Was-Leitungsabschnitt-AN
-#           label: Wasser AN
+        - name: Leitung Was-Leitungsabschnitt-AN
+          label: Wasser AN
 
-#         - name: Leitung Gas-Leitungsabschnitt-VN
-#           label: Gas VN
+        - name: Leitung Gas-Leitungsabschnitt-VN
+          label: Gas VN
 
-#         - name: Leitung Ontras Gas
-#           label: Gas Ontras
+        - name: Leitung Ontras Gas
+          label: Gas Ontras
 
-#         - name: Leitung Ontras TK
-#           label: TK Ontras
-#           labelOffset:
-#             y: -2.3
-#         - name: Leitung Gas_HD_LEIT
-#           label: Gas Hochdruck
+        - name: Leitung Ontras TK
+          label: TK Ontras
+          labelOffset:
+            y: -2.3
+        - name: Leitung Gas_HD_LEIT
+          label: Gas Hochdruck
 
-#         - name: Leitung Stromkabel-MS_unterirdisch_LEIT
-#           label: Stromkabel MS unterirdisch
+        - name: Leitung Stromkabel-MS_unterirdisch_LEIT
+          label: Stromkabel MS unterirdisch
+          labelOffset:
+            y: 4
 
-#         - name: Leitung Mittelspannung Zuwegung
-#           label: Strom Mittelspannung Zuwegung
+        - name: Leitung Mittelspannung Zuwegung
+          label: Strom Mittelspannung Zuwegung
 
-#         - name: Leitung Telekom
-#           label: Telekom
+        - name: Leitung Telekom
+          label: Telekom
 
-#         - name: Leitung Edis
-#           label: Strom Edis
+        - name: Leitung Edis
+          label: Strom Edis
 
 - name: Leitungen Path
   operations:

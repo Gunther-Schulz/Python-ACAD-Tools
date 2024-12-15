@@ -5,7 +5,7 @@ from src.dxf_utils import (convert_transparency, get_color_code, attach_custom_d
                            is_created_by_script, add_mtext, remove_entities_by_layer, 
                            ensure_layer_exists, get_style, SCRIPT_IDENTIFIER,
                            apply_style_to_entity,
-                           sanitize_layer_name, get_available_blocks, add_block_reference, set_hatch_transparency)
+                           sanitize_layer_name, get_available_blocks, add_block_reference, set_hatch_transparency, update_layer_properties)
 from ezdxf.math import Vec3
 from ezdxf import colors
 from src.utils import log_warning, log_error, log_info, log_debug
@@ -100,7 +100,13 @@ class LegendCreator:
         legend_id = legend_config.get('id', 'default')
         layer_name = self.get_sanitized_layer_name(f"Legend_{legend_id}_Title")
         
-        ensure_layer_exists(self.doc, layer_name, {}, self.name_to_aci)
+        # First ensure layer exists
+        ensure_layer_exists(self.doc, layer_name)
+        
+        # Then update layer properties if needed
+        layer = self.doc.layers.get(layer_name)
+        if layer:
+            update_layer_properties(layer, {}, self.name_to_aci)
 
         if title:
             title_result = self.add_mtext(self.position['x'], self.current_y, title, layer_name, self.title_text_style, self.max_width)
