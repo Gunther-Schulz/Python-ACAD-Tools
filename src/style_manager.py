@@ -31,7 +31,7 @@ class StyleManager:
         self.default_layer_settings = {
             'color': 'White',
             'linetype': 'CONTINUOUS',
-            'lineweight': 0.13,
+            'lineweight': 13,
             'plot': True,
             'locked': False,
             'frozen': False,
