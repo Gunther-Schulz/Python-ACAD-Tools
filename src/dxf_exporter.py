@@ -347,25 +347,20 @@ class DXFExporter:
             return
         
         def update_function():
-            # Only update layer style if explicitly configured
             layer = msp.doc.layers.get(layer_name)
-            if layer and (layer_config.get('style') or any(key in layer_config for key in [
-                'color', 'linetype', 'lineweight', 'plot', 'locked', 
-                'frozen', 'is_on', 'transparency'
-            ])):
-                # Get layer properties but preserve text properties
-                layer_properties = self.style_manager.process_layer_style(layer_name, layer_config)
+            if layer:
+                # Get properties from StyleManager - either from config or defaults
+                style_properties = {}
+                if layer_config.get('style'):
+                    # If a style is specified in config, use it
+                    style_properties = self.style_manager.process_layer_style(layer_name, layer_config)
+                else:
+                    # If no style specified, use StyleManager defaults
+                    style_properties = self.style_manager.default_layer_settings.copy()
                 
-                # Don't update text-specific properties here
-                if 'text' in layer_config.get('style', {}):
-                    log_debug(f"Preserving text properties for layer {layer_name}")
-                    # Remove any text-related properties that might override MTEXT settings
-                    for key in ['style', 'attachment_point']:
-                        layer_properties.pop(key, None)
-                
-                update_layer_properties(layer, layer_properties, self.name_to_aci)
-                log_debug(f"Updated style for layer {layer_name}")
-            
+                # Update the layer with properties from StyleManager
+                update_layer_properties(layer, style_properties, self.name_to_aci)
+
             # Remove and update geometry
             log_debug(f"Removing existing geometry from layer {layer_name}")
             remove_entities_by_layer(msp, layer_name, self.script_identifier)
