@@ -970,41 +970,52 @@ def _parse_offset_expression(expression, feature_row):
     """Parse an offset expression that may include column names and arithmetic.
     
     Args:
-        expression: String expression like "Krone_R + 2" or just "Krone_R"
+        expression: String expression like "-(Krone_R) + 0.5" or "Krone_R * 2"
         feature_row: Row from GeoDataFrame containing column values
     """
     if not isinstance(expression, str):
         return expression
         
-    # Split the expression into parts
-    parts = expression.split()
-    
-    # If it's just a column name
-    if len(parts) == 1:
-        try:
-            return float(feature_row[parts[0]])
-        except (KeyError, ValueError, TypeError):
-            return 0
-            
-    # Handle basic arithmetic: column_name operator number
-    if len(parts) == 3 and parts[1] in ['+', '-', '*', '/']:
-        try:
-            column_value = float(feature_row[parts[0]])
-            number = float(parts[2])
-            
-            if parts[1] == '+':
-                return column_value + number
-            elif parts[1] == '-':
-                return column_value - number
-            elif parts[1] == '*':
-                return column_value * number
-            elif parts[1] == '/':
-                return column_value / number if number != 0 else 0
-                
-        except (KeyError, ValueError, TypeError):
-            return 0
-            
-    return 0
+    try:
+        # Handle negative values at start of expression
+        expression = expression.replace("-(", "-1*(")
+        
+        # Split the expression into tokens, preserving operators
+        tokens = []
+        current_token = ""
+        operators = {'+', '-', '*', '/', '(', ')'}
+        
+        for char in expression:
+            if char.isspace():
+                if current_token:
+                    tokens.append(current_token)
+                    current_token = ""
+            elif char in operators:
+                if current_token:
+                    tokens.append(current_token)
+                    current_token = ""
+                tokens.append(char)
+            else:
+                current_token += char
+        if current_token:
+            tokens.append(current_token)
+        
+        # Replace column names with their values
+        for i, token in enumerate(tokens):
+            if token not in operators and not any(c in token for c in '0123456789.'):
+                # This token is likely a column name
+                try:
+                    tokens[i] = str(float(feature_row[token.strip()]))
+                except (KeyError, ValueError):
+                    return 0  # Return 0 if column not found
+        
+        # Reconstruct and evaluate the expression
+        expression = ''.join(tokens)
+        return float(eval(expression))
+        
+    except (SyntaxError, NameError, TypeError, ZeroDivisionError):
+        log_warning(f"Error parsing offset expression: {expression}")
+        return 0
 
 def _get_offset_values(offset_config, default_offset=0, feature_row=None):
     """Convert offset config to x,y values.
