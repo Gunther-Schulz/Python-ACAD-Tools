@@ -1,19 +1,34 @@
 geomLayers:
 
-### Wasserschutz ###
+# Already modified in drawing (linetypeScale)
+- name: Blendschutzzaun
+  updateDxf: true
+  style: blendschutzzaun
+  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/blendschutzzaun_ln.shp"
+
+# ### Wasserschutz ###
+# - name: wasserrechtliche Festsetzung 3b
+#   updateDxf: true
+#   style: wasserschutz
+#   operations:
+#     # - type: filterByColumn
+#     #   column: "zone"
+#     #   operator: "eq"
+#     #   value:
+#     #     - "3b"
+#     #     - "3a"
+#     #     - "1"
+#     - type: dissolve
+#     - type: buffer
+#       distance: -1.5
+#       capStyle: flat
+#       joinStyle: flat
+#   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/wasserrechtliche Festsetzung 3b.shp"
+
 - name: wasserrechtliche Festsetzung 3b
   updateDxf: true
   style: wasserschutz
-  operations:
-    # - type: filterByColumn
-    #   column: "zone"
-    #   operator: "eq"
-    #   value:
-    #     - "3b"
-    #     - "3a"
-    #     - "1"
-    - type: dissolve
-  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/Grundlagen/Trinkwasserschutzzone/Wasserschutzgebiete_MSE.shp"
+  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/wasserrechtliche Festsetzung 3b_pl.shp"
 
 - name: wasserrechtliche Festsetzung 3b 2
   updateDxf: true
@@ -26,29 +41,29 @@ geomLayers:
       capStyle: flat
       joinStyle: flat
 
-- name: wasserrechtliche Festsetzung 2b
-  updateDxf: true
-  style: wasserschutz
-  operations:
-    - type: filterByColumn
-      column: "zone"
-      operator: "in"
-      value:
-        - "3a"
-        - "1"
-    - type: dissolve
-  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/Grundlagen/Trinkwasserschutzzone/Wasserschutzgebiete_MSE.shp"
+# - name: wasserrechtliche Festsetzung 2b
+#   updateDxf: true
+#   style: wasserschutz
+#   operations:
+#     - type: filterByColumn
+#       column: "zone"
+#       operator: "in"
+#       value:
+#         - "3a"
+#         - "1"
+#     - type: dissolve
+#   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/Grundlagen/Trinkwasserschutzzone/Wasserschutzgebiete_MSE.shp"
 
-- name: wasserrechtliche Festsetzung 2b 2
-  updateDxf: true
-  style: wasserschutz 2
-  operations:
-    - type: buffer
-      layers:
-        - wasserrechtliche Festsetzung 2b
-      distance: -0.8
-      capStyle: flat
-      joinStyle: flat
+# - name: wasserrechtliche Festsetzung 2b 2
+#   updateDxf: true
+#   style: wasserschutz 2
+#   operations:
+#     - type: buffer
+#       layers:
+#         - wasserrechtliche Festsetzung 2b
+#       distance: -0.8
+#       capStyle: flat
+#       joinStyle: flat
 
 
 ### Leitung ###
@@ -554,80 +569,80 @@ geomLayers:
           labelColumn: "label_ml"
           pointPosition: right
           labelOffset:
-            x: "Krone_R + 0.5"
+            x: -"Krone_R + 0.5"
             y: 0
 
 
-- name: Leitungen Labels
-  updateDxf: true
-  style: leitung
-  operations:
-    - type: labelAssociation
-      # showLog: true
-      labelSettings:
-        labelSpacing: 100
-        labelOffset:
-          y: 1
-        # avoidAllGeometries: true
-        # avoidLayers:
-        #   - Baugrenze
-        #   - Baugrenze 2
-        #   - Geltungsbereich
-        #   - Geltungsbereich 2
-        #   - Grünfläche
-        #   - Baufeld
-        #   # - Blendschutzzaun
-        #   - Zuwegung
-        #   - Baum_Laubbaum Buffer
-        widthFactor: 2.0       # Increased from 1.3 to 2.0 to account for full text width
-        heightFactor: 2.0      # Increased from 1.5 to 2.0 to give more vertical clearance
-        bufferFactor: 1.0      # Increased from 0.2 to 1.0 (100% of text height as buffer)
-        collisionMargin: 0.5   # Increased from 0.25 to 0.5 for more spacing between features
-        # widthFactor: 2      # Makes label box 30% wider than the text width
-        # heightFactor: 1.5     # Makes label box 50% taller than the text height
-        # bufferFactor: 0.2     # Adds 20% of text height as padding around the label box
-        # collisionMargin: 0.25 # Adds 25% extra space when checking for collisions with other labels
-      sourceLayers:
-        # - name: Baum_Laubbaum Points
-        #   labelColumn: "label_ml"
-        #   pointPosition: right
-        #   labelOffset:
-        #     x: 2.5
-        #     y: 0
+# - name: Leitungen Labels
+#   updateDxf: true
+#   style: leitung
+#   operations:
+#     - type: labelAssociation
+#       # showLog: true
+#       labelSettings:
+#         labelSpacing: 100
+#         labelOffset:
+#           y: 1
+#         # avoidAllGeometries: true
+#         # avoidLayers:
+#         #   - Baugrenze
+#         #   - Baugrenze 2
+#         #   - Geltungsbereich
+#         #   - Geltungsbereich 2
+#         #   - Grünfläche
+#         #   - Baufeld
+#         #   # - Blendschutzzaun
+#         #   - Zuwegung
+#         #   - Baum_Laubbaum Buffer
+#         widthFactor: 2.0       # Increased from 1.3 to 2.0 to account for full text width
+#         heightFactor: 2.0      # Increased from 1.5 to 2.0 to give more vertical clearance
+#         bufferFactor: 1.0      # Increased from 0.2 to 1.0 (100% of text height as buffer)
+#         collisionMargin: 0.5   # Increased from 0.25 to 0.5 for more spacing between features
+#         # widthFactor: 2      # Makes label box 30% wider than the text width
+#         # heightFactor: 1.5     # Makes label box 50% taller than the text height
+#         # bufferFactor: 0.2     # Adds 20% of text height as padding around the label box
+#         # collisionMargin: 0.25 # Adds 25% extra space when checking for collisions with other labels
+#       sourceLayers:
+#         # - name: Baum_Laubbaum Points
+#         #   labelColumn: "label_ml"
+#         #   pointPosition: right
+#         #   labelOffset:
+#         #     x: 2.5
+#         #     y: 0
 
-        - name: Leitung Str-Leitungsabschnitt-NS
-          label: Strom Niederspannung
+#         - name: Leitung Str-Leitungsabschnitt-NS
+#           label: Strom Niederspannung
 
-        - name: Leitung Was-Leitungsabschnitt-VN
-          label: Wasser VN
+#         - name: Leitung Was-Leitungsabschnitt-VN
+#           label: Wasser VN
 
-        - name: Leitung Was-Leitungsabschnitt-AN
-          label: Wasser AN
+#         - name: Leitung Was-Leitungsabschnitt-AN
+#           label: Wasser AN
 
-        - name: Leitung Gas-Leitungsabschnitt-VN
-          label: Gas VN
+#         - name: Leitung Gas-Leitungsabschnitt-VN
+#           label: Gas VN
 
-        - name: Leitung Ontras Gas
-          label: Gas Ontras
+#         - name: Leitung Ontras Gas
+#           label: Gas Ontras
 
-        - name: Leitung Ontras TK
-          label: TK Ontras
-          labelOffset:
-            y: -2.3
-        - name: Leitung Gas_HD_LEIT
-          label: Gas Hochdruck
+#         - name: Leitung Ontras TK
+#           label: TK Ontras
+#           labelOffset:
+#             y: -2.3
+#         - name: Leitung Gas_HD_LEIT
+#           label: Gas Hochdruck
 
-        - name: Leitung Stromkabel-MS_unterirdisch_LEIT
-          label: Stromkabel MS unterirdisch
+#         - name: Leitung Stromkabel-MS_unterirdisch_LEIT
+#           label: Stromkabel MS unterirdisch
 
-        - name: Leitung Mittelspannung Zuwegung
-          label: Strom Mittelspannung Zuwegung
+#         - name: Leitung Mittelspannung Zuwegung
+#           label: Strom Mittelspannung Zuwegung
 
-        - name: Leitung Telekom
-          label: Telekom
+#         - name: Leitung Telekom
+#           label: Telekom
 
-        - name: Leitung Edis
-          label: Strom Edis
+#         - name: Leitung Edis
+#           label: Strom Edis
 
 - name: Leitungen Path
   operations:

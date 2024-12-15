@@ -213,8 +213,8 @@ styles:
     layer:
       linetype: DASHED
       color: yellow
-      lineweight: 50
-      linetypeScale: 0.5
+      lineweight: 35
+    # linetypeScale: 0.2 #TODO: we need to fix out code so that we differentiate between enitity level styling and layer styling
 
 
   geltungsbereich:

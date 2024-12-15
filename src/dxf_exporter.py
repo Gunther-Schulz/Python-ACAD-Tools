@@ -618,23 +618,7 @@ class DXFExporter:
             if layer_name in self.layer_properties:
                 continue
             
-            # Set default properties if none are specified
-            default_properties = {
-                'layer': {
-                    'color': 'White',  # Default color
-                    'linetype': 'CONTINUOUS',
-                    'lineweight': 0.13,
-                    'plot': True,
-                    'locked': False,
-                    'frozen': False,
-                    'is_on': True
-                },
-                'entity': {
-                    'close': False  # Default for points/lines
-                }
-            }
-            
-            # If layer has explicit properties, use those instead of defaults
+            # Let StyleManager handle ALL defaults - remove hardcoded values
             if (layer.get('style') or 
                 any(key in layer for key in [
                     'color', 'linetype', 'lineweight', 'plot', 'locked', 
@@ -642,10 +626,6 @@ class DXFExporter:
                     'linetypeGeneration'
                 ])):
                 self.add_layer_properties(layer_name, layer)
-            else:
-                # Use defaults if no explicit properties
-                self.layer_properties[layer_name] = default_properties
-                self.colors[layer_name] = default_properties['layer']['color']
 
     def add_layer_properties(self, layer_name, layer, processed_style=None):
         # Skip ALL property processing if no explicit style or properties are specified

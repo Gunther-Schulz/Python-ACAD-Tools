@@ -27,6 +27,20 @@ class StyleManager:
             'individual_hatches': True
         }
 
+        # Add default layer settings
+        self.default_layer_settings = {
+            'color': 'White',
+            'linetype': 'CONTINUOUS',
+            'lineweight': 0.13,
+            'plot': True,
+            'locked': False,
+            'frozen': False,
+            'is_on': True,
+            'transparency': 0,
+            'close': True,
+            'linetypeScale': 1.0
+        }
+
     def get_style(self, style_name_or_config):
         if isinstance(style_name_or_config, str):
             # Handle preset style
