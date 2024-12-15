@@ -623,50 +623,18 @@ class DXFExporter:
                 self.add_layer_properties(layer_name, layer)
 
     def add_layer_properties(self, layer_name, layer, processed_style=None):
-        # Skip ALL property processing if no explicit style or properties are specified
-        if not (processed_style or 
-                layer.get('style') or 
-                any(key in layer for key in [
-                    'color', 'linetype', 'lineweight', 'plot', 'locked', 
-                    'frozen', 'is_on', 'transparency', 'close', 'linetypeScale', 
-                    'linetypeGeneration'
-                ])):
-            # Don't store anything for layers without explicit properties
-            return
-
-        # Get the style configuration
-        if processed_style:
-            properties = processed_style
-        else:
-            style_config = layer.get('style')
-            if style_config:
-                properties = self.style_manager.process_layer_style(layer_name, layer)
-            else:
-                properties = {}
-
-        # Layer-level properties (only include if explicitly set)
-        layer_properties = {}
-        for prop in ['color', 'linetype', 'lineweight', 'plot', 'locked', 
-                     'frozen', 'is_on', 'transparency']:
-            if prop in layer or prop in properties:
-                layer_properties[prop] = properties.get(prop) or layer.get(prop)
-
-        # Entity-level properties (only include if explicitly set)
-        entity_properties = {}
-        for prop in ['close', 'linetypeScale', 'linetypeGeneration']:
-            if prop in layer:
-                entity_properties[prop] = layer.get(prop)
-
-        # Only store properties if they're not empty
-        if layer_properties or entity_properties:
-            self.layer_properties[layer_name] = {
-                'layer': layer_properties,
-                'entity': entity_properties
-            }
-
-        # Store color for quick access if defined
-        if 'color' in layer_properties:
-            self.colors[layer_name] = layer_properties['color']
+        # Always get properties from StyleManager
+        properties = processed_style or self.style_manager.process_layer_style(layer_name, layer)
+        
+        # Store the properties
+        self.layer_properties[layer_name] = {
+            'layer': properties,
+            'entity': {}  # Entity properties if needed
+        }
+        
+        # Store color for quick access
+        if 'color' in properties:
+            self.colors[layer_name] = properties['color']
 
     def is_wmts_or_wms_layer(self, layer_name):
         layer_info = next((l for l in self.project_settings['geomLayers'] if l['name'] == layer_name), None)
