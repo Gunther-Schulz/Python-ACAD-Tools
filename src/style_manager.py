@@ -304,43 +304,29 @@ class StyleManager:
 
     def process_layer_style(self, layer_name, layer_config):
         """Process layer style with support for presets, inline styles, and overrides"""
-        style = layer_config.get('style', {})
-        style_override = layer_config.get('styleOverride', {})
+        # Initialize with default settings
+        properties = self.default_layer_settings.copy()
         
-        # Validate style before processing
-        self.validate_style(layer_name, style)
-        
-        final_style = {}
-        
-        # Process base style (either preset or inline)
-        if isinstance(style, str):
-            # Handle preset style
-            preset_style, warning_generated = self.get_style(style)
-            if not warning_generated and preset_style:
-                final_style = preset_style
-        elif isinstance(style, dict):
-            # Handle inline style
-            final_style = style
-        
-        # Apply style overrides if they exist
-        if style_override:
-            final_style = self.deep_merge(final_style, style_override)
-        
-        # Extract layer properties from the processed style
-        layer_style = final_style.get('layer', {})
-        
-        properties = {
-            'color': get_color_code(layer_style.get('color'), self.name_to_aci),
-            'linetype': layer_style.get('linetype', 'Continuous'),
-            'lineweight': layer_style.get('lineweight', 0),
-            'plot': layer_style.get('plot', True),
-            'locked': layer_style.get('locked', False),
-            'frozen': layer_style.get('frozen', False),
-            'is_on': layer_style.get('is_on', True),
-            'transparency': layer_style.get('transparency', 0),
-            'close': layer_style.get('close', True),
-            'linetypeScale': layer_style.get('linetypeScale', 1.0),
-        }
+        # Handle the style configuration
+        if 'style' in layer_config:
+            style_config = layer_config['style']
+            
+            # Get the style (handles both preset strings and inline dictionaries)
+            style, warning_generated = self.get_style(style_config)
+            
+            if not warning_generated and style is not None:
+                # Extract layer settings from the style
+                layer_style = style.get('layer', {}) if isinstance(style, dict) else {}
+                
+                # Apply the style properties
+                if 'color' in layer_style:
+                    properties['color'] = get_color_code(layer_style['color'], self.name_to_aci)
+                
+                # Handle all other properties
+                for key in ['linetype', 'lineweight', 'plot', 'locked', 'frozen', 
+                           'is_on', 'transparency', 'close', 'linetypeScale']:
+                    if key in layer_style:
+                        properties[key] = layer_style[key]
         
         return properties
 
