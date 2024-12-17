@@ -7,7 +7,7 @@ styles:
 
   wasserschutz:
     layer:
-      lineweight: 13
+      lineweight: 20
 
   wasserschutz 2:
     layer:

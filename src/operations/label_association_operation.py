@@ -585,6 +585,27 @@ def _collect_geometries_to_avoid(all_layers, project_settings, crs, avoid_all_ge
     
     return geometries_to_avoid
 
+def _should_add_label(feature_row):
+    """Check if label should be added based on add_label column.
+    
+    Args:
+        feature_row: pandas Series containing feature attributes
+        
+    Returns:
+        bool: True if label should be added, False otherwise
+    """
+    # If add_label column doesn't exist in the Series, always add label
+    if 'add_label' not in feature_row.index:
+        return True
+        
+    try:
+        # Convert to int in case it's a string or float
+        add_label_value = int(feature_row['add_label'])
+        return add_label_value == 1
+    except (ValueError, TypeError):
+        # If conversion fails, default to True
+        return True
+
 def _generate_label_candidates(source_layers, all_layers, project_settings, crs, settings):
     """Generate label candidates for all source layers."""
     collision_graph = nx.Graph()
@@ -628,6 +649,10 @@ def _generate_label_candidates(source_layers, all_layers, project_settings, crs,
         # If using labelColumn, process each feature individually
         if label_column and source_gdf is not None and label_column in source_gdf.columns:
             for idx, row in source_gdf.iterrows():
+                # Check if label should be added for this feature
+                if not _should_add_label(row):
+                    continue
+                    
                 geom = row.geometry
                 if geom is None or geom.is_empty:
                     continue
