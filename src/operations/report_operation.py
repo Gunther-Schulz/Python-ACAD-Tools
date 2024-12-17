@@ -1,5 +1,6 @@
 import geopandas as gpd
 import json
+import yaml  # Add this import at the top with other imports
 import os
 from src.utils import log_info, log_warning, log_error, resolve_path, ensure_path_exists, log_debug
 from src.operations.common_operations import _process_layer_info, ensure_geodataframe
@@ -101,8 +102,12 @@ def create_report_layer(all_layers, project_settings, crs, layer_name, operation
     # Write report to file
     if ensure_path_exists(output_file):
         try:
+            # Change file extension to .yaml if it ends with .json
+            if output_file.lower().endswith('.json'):
+                output_file = output_file[:-5] + '.yaml'
+            
             with open(output_file, 'w', encoding='utf-8') as f:
-                json.dump(report, f, indent=2, ensure_ascii=False)
+                yaml.dump(report, f, sort_keys=False, allow_unicode=True, default_flow_style=False)
             log_debug(f"Report written to {output_file}")
         except Exception as e:
             log_error(f"Error writing report to {output_file}: {str(e)}")

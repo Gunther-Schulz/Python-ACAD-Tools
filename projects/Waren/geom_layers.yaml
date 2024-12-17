@@ -343,11 +343,11 @@ geomLayers:
         - Zuwegung
     - type: dissolve
     - type: buffer
-      distance: -2
+      distance: -0.1
       joinStyle: mitre
       capStyle: flat
     - type: buffer
-      distance: 2
+      distance: 0.1
       joinStyle: mitre
       capStyle: flat
       calculations:
@@ -393,6 +393,11 @@ geomLayers:
     - type: copy
       layers:
         - name: Parcel
+    - type: calculate
+      calculations:
+        - type: area
+          as: parcel_area
+          decimalPlaces: 0
     - type: intersection
       layers:
         - name: Geltungsbereich
@@ -409,6 +414,7 @@ geomLayers:
       outputFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/reports/parcel_intersections_report.json"
       featureColumns:
         - label
+        - parcel_area
         - intersection_area
       calculate:
         - area
@@ -492,6 +498,10 @@ geomLayers:
       reverseDifference: false
       layers:
         - Graben
+    - type: report
+      outputFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/reports/grünfläche_report.json"
+      calculate:
+        - area
 - name: Ausgleich Grünfläche
   updateDxf: true
   # style:
@@ -502,7 +512,7 @@ geomLayers:
       layers:
         - Grünfläche
       # distance: -3
-      distance: -1
+      distance: -2
       joinStyle: round
       # skipIslands: true
       preserveIslands: true
@@ -605,6 +615,25 @@ geomLayers:
     #   distance: -6
     # - type: buffer
     #   distance: 6
+- name: Baufeldstreifen Report
+  operations:
+    - type: copy
+      layers:
+        - Baufeld
+    - type: difference
+      reverseDifference: false
+      layers:
+        - Baugrenze
+    - type: intersection
+      layers:
+        - Geltungsbereich
+    - type: report
+      outputFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/reports/baufeldstreifen_report.json"
+      calculate:
+        - area
+        - perimeter
+      decimalPlaces:
+        area: 0
 
 ### Place Leitung Labels ###
 
@@ -681,6 +710,8 @@ geomLayers:
             y: -2.3
         - name: Leitung Gas_HD_LEIT
           label: Gas Hochdruck
+          labelOffset:
+            y: 4
 
         - name: Leitung Stromkabel-MS_unterirdisch_LEIT
           label: Stromkabel MS unterirdisch
@@ -688,7 +719,7 @@ geomLayers:
             y: 4
 
         - name: Leitung Mittelspannung Zuwegung
-          label: Strom Mittelspannung Zuwegung
+          label: Strom Mittelspannung
 
         - name: Leitung Telekom
           label: Telekom
@@ -725,6 +756,15 @@ geomLayers:
         - Leitung Telekom Buffer
         - Leitung Edis Buffer
 
+
+- name: Leitung Ontras Buffer Path
+  operations:
+    - type: copy
+      layers:
+        - Leitung Ontras Buffer
+    - type: intersection
+      layers:
+        - Geltungsbereich
 
 ### Ausgleich ###
 # 20 Stunden Arbeit 10.12. und 11.12.2024

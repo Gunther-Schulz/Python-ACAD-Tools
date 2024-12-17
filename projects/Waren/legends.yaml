@@ -103,10 +103,13 @@ legends:
         updateDxf: true
         subtitle: "§ 9 Abs. 1 Nr. 16 BauBG"
         items:
-          - name: "Wasserflächen"
+          - name: "Wasserflächen - 026-163-00"
             type: area
             style: waterLegend
             applyHatch: true
+          - name: "Umgrenzung der Flächen mit wasserrechtlichen Festsetzungen - Vorbehaltsgebiet Trinkwassersicherung Zone IIIB"
+            type: empty
+            blockSymbol: "Umgrenzung der Flächen mit wasserrechtlichen Festsetzungen"
       - name: "Planungen, Nutzungsregelungen, Maßnahmen und Flächen für Maßnahmen zum Schutz, zur Pflege und zur Entwicklung von Natur und Landschaft"
         updateDxf: true
         subtitle: "§ 9 Abs.1 Nr. 20 BauGB"
@@ -137,11 +140,11 @@ legends:
           #   rectangleStyle: gfl1
           #   blockSymbol: "GFL1"
           #   blockSymbolScale: 2
-          # - name: "Mit Geh-, Fahr- und Leitungsrechten zu belastende Flächen"
-          #   subtitle: "(§ 9 Abs.1 Nr.21 und Abs. 6 BauGB)"
-          #   type: empty
-          #   blockSymbol: "GFL2"
-          #   blockSymbolScale: 1.6
+          - name: "Mit Geh-, Fahr- und Leitungsrechten zu belastende Flächen"
+            subtitle: "(§ 9 Abs.1 Nr.21 und Abs. 6 BauGB)"
+            type: empty
+            blockSymbol: "GFL Symbol"
+            blockSymbolScale: 1.6
       - name: "Darstellung ohne Normcharakter"
         updateDxf: true
         items:
@@ -172,12 +175,16 @@ legends:
             type: area
             rectangleStyle: gesGeschuetzesBiotop
             blockSymbol: "Gesetzlich geschütztes Biotop"
-            blockSymbolScale: 1.8
+            blockSymbolScale: 3
           # - name: "Wald"
           #   type: area
           #   style: waldLegend
           #   applyHatch: true
-          - name: "Baum"
+          - name: "Einzelbaum"
+            type: empty
+            blockSymbol: "Baum"
+            blockSymbolScale: 1.8
+          - name: "Alleebäume"
             type: empty
             blockSymbol: "Baum"
             blockSymbolScale: 1.8

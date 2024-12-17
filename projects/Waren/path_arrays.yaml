@@ -6,7 +6,7 @@ pathArrays:
     spacing: 7
     # scale: 0.6
     # bufferDistance: 0.6
-    scale: 0.2
+    scale: 0.4
     bufferDistance: 0.2
   - name: "Leitungen Path Symbol"
     updateDxf: true
@@ -22,3 +22,10 @@ pathArrays:
   #   spacing: 5
   #   scale: 0.6
   #   bufferDistance: 0.2
+  - name: "Leitung Ontras Buffer Symbol"
+    updateDxf: true
+    sourceLayer: "Leitung Ontras Buffer Path"
+    block: "GFL Symbol"
+    spacing: 5
+    scale: 0.4
+    bufferDistance: 0.2
