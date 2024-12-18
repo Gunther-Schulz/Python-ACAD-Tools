@@ -12,7 +12,7 @@ def create_buffer_layer(all_layers, project_settings, crs, layer_name, operation
 
     buffer_distance = operation.get('distance', 0)
     buffer_field = operation.get('distanceField', None)
-    buffer_mode = operation.get('mode', 'off')
+    buffer_mode = operation.get('mode', 'normal')
     join_style = operation.get('joinStyle', 'mitre')
     cap_style = operation.get('capStyle', 'square')
     start_cap_style = operation.get('startCapStyle', cap_style)
@@ -138,6 +138,20 @@ def create_buffer_layer(all_layers, project_settings, crs, layer_name, operation
                                     for part in geom.geoms]
                     return unary_union(buffered_parts)
             else:
+                # Add ring buffer logic for polygons
+                if isinstance(geom, (Polygon, MultiPolygon)):
+                    if buffer_mode == 'ring':
+                        ring_width = abs(distance)  # Use absolute value for consistent width
+                        if distance >= 0:
+                            # Positive buffer: outer ring
+                            outer_buffer = geom.buffer(ring_width, cap_style=start_cap, join_style=join_style)
+                            inner_buffer = geom.buffer(0, cap_style=start_cap, join_style=join_style)  # Use 0 instead of 0.001
+                            return outer_buffer.difference(inner_buffer)
+                        else:
+                            # Negative buffer: inner ring
+                            outer_buffer = geom.buffer(0, cap_style=start_cap, join_style=join_style)  # Use original boundary
+                            inner_buffer = geom.buffer(-ring_width, cap_style=start_cap, join_style=join_style)
+                            return outer_buffer.difference(inner_buffer)
                 # Regular buffer for other cases
                 return geom.buffer(distance, cap_style=start_cap, join_style=join_style)
 

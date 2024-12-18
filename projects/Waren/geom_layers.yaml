@@ -485,14 +485,15 @@ geomLayers:
     - type: intersection
       layers:
         - Geltungsbereich
-  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/vermessung_graben_pl.shp"
+  # shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/vermessung_graben_pl.shp"
+  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/Graben_edit.shp"
 - name: Graben Schraffur
   updateDxf: true
   style: graben
   applyHatch:
     layers:
       - Graben
-- name: Grünfläche
+- name: Grünfläche und Graben
   updateDxf: true
   # style:
   #   layer:
@@ -518,6 +519,19 @@ geomLayers:
       minArea: 100
       geometryTypes:
         - polygon
+    # - type: difference
+    #   reverseDifference: false
+    #   layers:
+    #     - Graben
+    # - type: report
+    #   outputFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/reports/grünfläche_report.json"
+    #   calculate:
+    #     - area
+- name: Grünfläche
+  operations:
+    - type: copy
+      layers:
+        - Grünfläche und Graben
     - type: difference
       reverseDifference: false
       layers:
@@ -556,12 +570,17 @@ geomLayers:
   operations:
     - type: copy
       layers:
-        - Grünfläche
-        - Graben
-    - type: difference
-      reverseDifference: auto
-      layers:
-        - Ausgleich Grünfläche
+        - Grünfläche und Graben
+        # - Graben
+    - type: buffer
+      # distance: -3
+      distance: -2
+      joinStyle: round
+      mode: ring
+    # - type: difference
+    #   reverseDifference: false
+    #   layers:
+    #     - Grünfläche und Graben
 - name: Grünfläche T-Linie Symbol Schraffur
   updateDxf: true
   style: schutzflächeumgrenzung
