@@ -135,6 +135,7 @@ def remove_entities_by_layer(msp, layer_names, script_identifier):
     doc = msp.doc
     key_func = doc.layers.key
     delete_count = 0
+    problem_entities = []
     
     # Convert single layer name to list
     if isinstance(layer_names, str):
@@ -143,72 +144,73 @@ def remove_entities_by_layer(msp, layer_names, script_identifier):
     # Convert layer names to keys
     layer_keys = [key_func(layer_name) for layer_name in layer_names]
     
-    # Use trashcan context manager for safe entity deletion
-    with doc.entitydb.trashcan() as trash:
-        # Process all entities in both model and paper space
-        for space in [doc.modelspace(), doc.paperspace()]:
-            for entity in doc.entitydb.values():
-                if not entity.dxf.hasattr("layer"):
+    # First pass: collect problematic entities
+    for space in [doc.modelspace(), doc.paperspace()]:
+        for entity in doc.entitydb.values():
+            try:
+                if not hasattr(entity, 'dxf') or not entity.dxf.hasattr("layer"):
                     continue
                     
                 if key_func(entity.dxf.layer) in layer_keys and is_created_by_script(entity, script_identifier):
                     try:
-                        # Clear any XDATA before deletion
-                        try:
-                            entity.discard_xdata('DXFEXPORTER')
-                        except:
-                            pass
-
-                        # Clear any hyperlinks if supported
-                        if hasattr(entity, 'set_hyperlink'):
-                            try:
-                                entity.remove_hyperlink()
-                            except:
-                                pass
-
-                        # Clear any extension dictionary
-                        if hasattr(entity, 'has_extension_dict') and entity.has_extension_dict:
-                            try:
-                                entity.discard_extension_dict()
-                            except:
-                                pass
-
-                        # Clean up any reactors
-                        if hasattr(entity, 'reactors') and entity.reactors is not None:  # Add None check
-                            for reactor in entity.reactors:
-                                try:
-                                    trash.add(reactor)
-                                except:
-                                    pass
-                        
-                        # Clean up any dependent entities (like dimensions)
-                        if hasattr(entity, 'dependent_entities'):
-                            try:
-                                dependents = entity.dependent_entities()
-                                if dependents is not None:  # Add None check
-                                    for dependent in dependents:
-                                        try:
-                                            trash.add(dependent.dxf.handle)
-                                        except:
-                                            pass
-                            except:
-                                pass
-                        
-                        # Add to trashcan for safe deletion
-                        trash.add(entity.dxf.handle)
-                        delete_count += 1
-                        
+                        # Test if we can safely handle this entity
+                        _ = entity.dxf.handle
                     except Exception as e:
-                        log_error(f"Error preparing entity for deletion: {str(e)}")
-                        log_error(f"Traceback:\n{traceback.format_exc()}")
-                        continue  # Continue with next entity even if this one fails
+                        problem_entities.append((entity, str(e)))
+            except AttributeError:
+                continue
     
-    # Force database purge and audit
+    # If there are problem entities, show summary and ask for confirmation
+    if problem_entities:
+        log_warning(f"\nFound {len(problem_entities)} potentially problematic entities:")
+        error_types = {}
+        for _, error in problem_entities:
+            error_types[error] = error_types.get(error, 0) + 1
+        
+        for error, count in error_types.items():
+            log_warning(f"- {count} entities with error: {error}")
+        
+        # Ask for confirmation
+        response = input("\nDo you want to proceed with deletion? (y/N): ").lower()
+        if response != 'y':
+            log_info("Deletion cancelled by user")
+            return 0
+    
+    # Proceed with deletion
+    with doc.entitydb.trashcan() as trash:
+        for space in [doc.modelspace(), doc.paperspace()]:
+            for entity in doc.entitydb.values():
+                try:
+                    if not hasattr(entity, 'dxf') or not entity.dxf.hasattr("layer"):
+                        continue
+                        
+                    if key_func(entity.dxf.layer) in layer_keys and is_created_by_script(entity, script_identifier):
+                        try:
+                            # Clear any XDATA before deletion
+                            try:
+                                entity.discard_xdata('DXFEXPORTER')
+                            except:
+                                pass
+
+                            # Add to trashcan for safe deletion
+                            trash.add(entity.dxf.handle)
+                            delete_count += 1
+                            
+                        except Exception as e:
+                            continue
+                except AttributeError:
+                    continue
+    
+    # Try to perform cleanup operations
     try:
         doc.entitydb.purge()
+    except Exception as e:
+        log_warning(f"Database purge failed: {str(e)}")
+
+    try:
         doc.audit()
     except Exception as e:
-        log_error(f"Error during document cleanup: {str(e)}")
+        log_warning(f"Document audit failed (this is not critical): {str(e)}")
     
     return delete_count
 

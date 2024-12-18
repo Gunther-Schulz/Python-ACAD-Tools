@@ -389,7 +389,7 @@ geomLayers:
 
 # Modified in DXF (linetype generation)
 - name: Geltungsbereich 2
-  updateDxf: true
+  # updateDxf: true  # updated manually linetypeGeneration
   linetypeScale: 1
   style: geltungsbereich_2
   operations:
@@ -532,9 +532,11 @@ geomLayers:
   #   layer:
   #     color: "chartreuse-medium"
   operations:
-    - type: buffer
+    - type: copy
       layers:
         - Grünfläche
+    - type: dissolve
+    - type: buffer
       # distance: -3
       distance: -2
       joinStyle: round
@@ -555,6 +557,7 @@ geomLayers:
     - type: copy
       layers:
         - Grünfläche
+        - Graben
     - type: difference
       reverseDifference: auto
       layers:
@@ -594,7 +597,7 @@ geomLayers:
     layers:
       - Baufeld
 - name: Baugrenze 2
-  updateDxf: true
+  # updateDxf: true # linetypeGeneration
   style: baugrenze_2
   close: true
   operations:
@@ -603,7 +606,7 @@ geomLayers:
         - Baugrenze
       distance: -0.4
 - name: Baugrenze
-  # updateDxf: true
+  # updateDxf: true # linetypeGeneration
   style: baugrenze
   linetypeScale: 0.5
   # linetypeGeneration: true
@@ -662,7 +665,7 @@ geomLayers:
 ### Place Leitung Labels ###
 
 - name: Baum_Laubbaum Label
-  updateDxf: true
+  # updateDxf: true # modified placement
   style: baum
   operations:
     - type: labelAssociation
