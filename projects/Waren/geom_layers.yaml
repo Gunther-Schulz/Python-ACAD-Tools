@@ -804,6 +804,7 @@ geomLayers:
 
 
 - name: Leitung Ontras Buffer Path
+  updateDxf: true
   operations:
     - type: copy
       layers:
