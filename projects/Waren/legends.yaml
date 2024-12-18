@@ -126,8 +126,8 @@ legends:
             rectangleStyle: geltungsbereich_2
           - name: "Hauptversorgungs- und Hauptabwasserleitungen unterirdisch"
             subtitle: "(§ 5 Abs. 2 Nr.4 und Abs. 4, § 9 Abs.1 Nr.1 u. Abs. 6)"
-            type: area
-            blockSymbol: "Leitung oberirdisch"
+            type: empty
+            blockSymbol: "Leitung unterirdisch Legend"
             blockSymbolScale: 2
           # - name: "Hauptversorgungs- und Hauptabwasserleitungen oberirdisch"
           #   subtitle: "(§ 5 Abs. 2 Nr.4 und Abs. 4, § 9 Abs.1 Nr.1 u. Abs. 6)"
@@ -143,8 +143,8 @@ legends:
           - name: "Mit Geh-, Fahr- und Leitungsrechten zu belastende Flächen"
             subtitle: "(§ 9 Abs.1 Nr.21 und Abs. 6 BauGB)"
             type: empty
-            blockSymbol: "GFL Symbol"
-            blockSymbolScale: 1.6
+            blockSymbol: "GFL Legend"
+            blockSymbolScale: 1
       - name: "Darstellung ohne Normcharakter"
         updateDxf: true
         items:
@@ -176,6 +176,9 @@ legends:
             rectangleStyle: gesGeschuetzesBiotop
             blockSymbol: "Gesetzlich geschütztes Biotop"
             blockSymbolScale: 3
+          - name: "Blendschutzzaun"
+            type: line
+            style: blendschutzzaun
           # - name: "Wald"
           #   type: area
           #   style: waldLegend
@@ -184,9 +187,9 @@ legends:
             type: empty
             blockSymbol: "Baum"
             blockSymbolScale: 1.8
-          - name: "Alleebäume"
+          - name: "Alleebaum"
             type: empty
-            blockSymbol: "Baum"
+            blockSymbol: "Alleebaum"
             blockSymbolScale: 1.8
           # - name: "Baum erhalten"
           #   type: empty

@@ -25,6 +25,10 @@ styles:
       paragraph:
         align: "LEFT"
 
+  alleeBaum:
+    layer:
+      color: "chartreuse-strong"
+
   baumStamm:
     hatch:
       individual_hatches: true
@@ -209,12 +213,16 @@ styles:
     layer:
       linetype: ACAD_ISO11W100
       lineweight: 50
+    entity:
+      linetypeGeneration: true
+
 
   baugrenze_2:
     layer:
       color: "azure"
       lineweight: 50
-      # color: "brilliant-intense-azure"
+    entity:
+      linetypeGeneration: true
   
   blendschutzzaun:
     layer:
