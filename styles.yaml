@@ -229,8 +229,13 @@ styles:
       linetype: DASHED
       color: yellow
       lineweight: 35
-    # linetypeScale: 0.2 #TODO: we need to fix out code so that we differentiate between enitity level styling and layer styling
+    # linetypeScale: 0.2 #TODO: we need to fix our code so that we differentiate between enitity level styling and layer styling
 
+  abstandSchienenweg:
+    layer:
+      color: "lavender"
+      linetype: "CENTER2"
+      lineweight: 80
 
   geltungsbereich:
     layer:
@@ -242,6 +247,20 @@ styles:
       linetype: "ACAD_ISO02W100"
       lineweight: 120
 
+  geltungsbereichFPlan:
+    layer:
+      color: "vermilion-strong"
+      linetype: "ACAD_ISO02W100"
+      lineweight: 300
+    hatch:
+      pattern: "ANSI31"
+      scale: 10
+      color: "orange"
+
+  geltungsbereichFPlanMiniMap:
+    hatch:
+      color: "red"
+      transparency: 0.3
   gfl1:
     layer:
       linetype: "ACAD_ISO02W100"

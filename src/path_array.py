@@ -1,4 +1,3 @@
-
 from src.dxf_utils import SCRIPT_IDENTIFIER, add_block_reference, attach_custom_data
 from src.utils import log_info, log_warning, log_error, log_debug
 import re
@@ -82,7 +81,7 @@ def visualize_placement(ax, polyline_geom, combined_area, rotated_block_shape, i
     if 'Skipped Block' not in [l.get_label() for l in ax.get_lines()]:
         ax.plot([], [], color='red', marker='s', linestyle='None', markersize=10, label='Skipped Block')
 
-def create_path_array(msp, source_layer_name, target_layer_name, block_name, spacing, buffer_distance, scale=1.0, rotation=0.0, debug_visual=False, all_layers=None, adjust_for_vertices=True, path_offset=0):
+def create_path_array(msp, source_layer_name, target_layer_name, block_name, spacing, buffer_distance, scale=1.0, rotation=0.0, debug_visual=False, all_layers=None, adjust_for_vertices=True, path_offset=0, all_edges=False):
     if block_name not in msp.doc.blocks:
         log_warning(f"Block '{block_name}' not found in the document")
         return
@@ -115,37 +114,48 @@ def create_path_array(msp, source_layer_name, target_layer_name, block_name, spa
     processed_geometries = 0
 
     for geometry in geometries:
+        # Convert geometry to lines first
+        lines_to_process = []
+        
         if isinstance(geometry, (LineString, MultiLineString)):
-            # For lines, we only need the base point
-            base_point = Vec2(block.base_point[0] * scale, block.base_point[1] * scale)
-            
-            # Handle lines separately
             if isinstance(geometry, LineString):
-                process_line(msp, geometry, block_name, target_layer_name, spacing, scale, rotation)
+                lines_to_process.append(geometry)
             else:  # MultiLineString
-                for line in geometry.geoms:
-                    process_line(msp, line, block_name, target_layer_name, spacing, scale, rotation)
+                lines_to_process.extend(list(geometry.geoms))
+        
         elif isinstance(geometry, (Polygon, MultiPolygon)):
-            # For polygons, we need both shape and base point
+            # Get block shape first
             block_shape, block_base_point = get_block_shape_and_base(block, scale)
             if block_shape is None:
                 log_warning(f"Could not determine shape for block '{block_name}'")
                 return
-                
-            # Use existing polygon logic unchanged
+
+            # Convert polygons to lines
             if isinstance(geometry, Polygon):
-                polylines = [LineString(geometry.exterior.coords)]
+                # Always add exterior boundary
+                lines_to_process.append(LineString(geometry.exterior.coords))
+                # Add interior rings if all_edges is True
+                if all_edges:
+                    for interior in geometry.interiors:
+                        lines_to_process.append(LineString(interior.coords))
             else:  # MultiPolygon
-                polylines = [LineString(poly.exterior.coords) for poly in geometry.geoms]
-            
-            for polyline in polylines:
-                if isinstance(polyline, LineString) and not polyline.is_empty:
-                    process_polyline(msp, polyline, block_shape, block_base_point, block_name, 
+                for poly in geometry.geoms:
+                    lines_to_process.append(LineString(poly.exterior.coords))
+                    if all_edges:
+                        for interior in poly.interiors:
+                            lines_to_process.append(LineString(interior.coords))
+
+        # Process all lines
+        for line in lines_to_process:
+            if isinstance(line, LineString) and not line.is_empty:
+                if isinstance(geometry, (LineString, MultiLineString)):
+                    # For pure lines, use simpler process_line function
+                    process_line(msp, line, block_name, target_layer_name, spacing, scale, rotation)
+                else:
+                    # For lines derived from polygons, use process_polyline with buffer
+                    process_polyline(msp, line, block_shape, block_base_point, block_name, 
                                    target_layer_name, spacing, buffer_distance, scale, rotation, 
                                    debug_visual, ax, placed_blocks, adjust_for_vertices, path_offset)
-        else:
-            log_warning(f"Skipping unsupported geometry type: {type(geometry)}")
-            continue
 
     log_debug(f"Processed {processed_geometries} geometries")
 
@@ -276,11 +286,10 @@ def process_polyline(msp, polyline_geom, block_shape, block_base_point, block_na
     # Create offset path for block placement
     if path_offset != 0:
         try:
-            # Positive offset moves points inside
             offset_path = polyline_geom.parallel_offset(
                 path_offset, 
-                'left',  # 'left' creates offset towards inside
-                join_style=2,  # Round join style
+                'left',
+                join_style=2,
                 mitre_limit=2.0
             )
             if offset_path.is_empty:
@@ -292,14 +301,8 @@ def process_polyline(msp, polyline_geom, block_shape, block_base_point, block_na
     else:
         offset_path = polyline_geom
     
-    # Create a polygon from the polyline
-    polyline_polygon = Polygon(polyline_geom)
-    
-    # Create buffer around the polyline
+    # Create buffer around just this line segment
     buffer_polygon = polyline_geom.buffer(buffer_distance)
-    
-    # Combine the original polygon and the buffer
-    combined_area = polyline_polygon.union(buffer_polygon)
     
     block_distance = spacing / 2
     
@@ -307,22 +310,22 @@ def process_polyline(msp, polyline_geom, block_shape, block_base_point, block_na
         point = offset_path.interpolate(block_distance)
         insertion_point = Vec2(point.x, point.y)
         
-        # Get all nearby vertices and segments
-        vertex_info = get_nearby_vertices_and_segments(polyline_geom, point, tolerance=spacing/2)
-        
-        if adjust_for_vertices and vertex_info['vertices']:
-            angle = calculate_optimal_angle(vertex_info['segments'], block_shape)
+        # Get angle at current point
+        if adjust_for_vertices:
+            vertex_info = get_nearby_vertices_and_segments(polyline_geom, point, tolerance=spacing/2)
+            if vertex_info['vertices']:
+                angle = calculate_optimal_angle(vertex_info['segments'], block_shape)
+            else:
+                angle = get_angle_at_point(polyline_geom, block_distance)
         else:
             angle = get_angle_at_point(polyline_geom, block_distance)
         
-        
         rotated_block_shape = rotate_and_adjust_block(block_shape, block_base_point, insertion_point, angle)
         
-        is_inside = is_block_inside_buffer(rotated_block_shape, combined_area)
+        # Only check for overlap with existing blocks
         overlaps_existing = any(rotated_block_shape.intersects(placed) for placed in placed_blocks)
         
-        
-        if is_inside and not overlaps_existing:
+        if not overlaps_existing:
             block_ref = add_block_reference(
                 msp,
                 block_name,
@@ -336,12 +339,11 @@ def process_polyline(msp, polyline_geom, block_shape, block_base_point, block_na
                 placed_blocks.append(rotated_block_shape)
             else:
                 log_warning("Failed to create block reference")
-        else:
-            color = 'red'
-            label = "Skipped"
         
         if debug_visual:
-            visualize_placement(ax, polyline_geom, combined_area, rotated_block_shape, insertion_point, color, label)
+            color = 'green' if not overlaps_existing else 'red'
+            label = "Placed" if not overlaps_existing else "Skipped"
+            visualize_placement(ax, polyline_geom, buffer_polygon, rotated_block_shape, insertion_point, color, label)
         
         block_distance += spacing
 

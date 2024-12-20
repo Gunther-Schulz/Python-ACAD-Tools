@@ -22,10 +22,18 @@ pathArrays:
   #   spacing: 5
   #   scale: 0.6
   #   bufferDistance: 0.2
-  - name: "Leitung Ontras Buffer Symbol"
-    updateDxf: true
-    sourceLayer: "Leitung Ontras Buffer Path"
-    block: "GFL Symbol"
-    spacing: 5
-    scale: 0.4
-    bufferDistance: 0.2
+  # - name: "Leitung Ontras Buffer Symbol"
+  #   updateDxf: true
+  #   sourceLayer: "Leitung Ontras Buffer Path"
+  #   block: "GFL Symbol"
+  #   spacing: 5
+  #   scale: 0.4
+  #   bufferDistance: 0.2
+  # - name: "Leitung Buffer Symbol" # alreyd modified in dxf
+  #   updateDxf: true
+  #   sourceLayer: Leitungen Ontras Buffer Path
+  #   block: "GFL Symbol"
+  #   spacing: 5
+  #   scale: 0.3
+  #   bufferDistance: 0.2
+  #   all_edges: true 

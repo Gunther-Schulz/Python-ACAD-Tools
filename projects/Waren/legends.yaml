@@ -13,7 +13,7 @@ legends:
       x: 349445
       y: 5936524
     titleTextStyle:
-      height: 8
+      height: 6
       color: "white"
       text_style: "Arial"
       # rotation: 45
@@ -34,7 +34,7 @@ legends:
       text_style: "Arial"
     groupTextStyle:
       color: "white"
-      height: 5
+      height: 3.5
       text_style: "Arial"
     subtitleTextStyle:
       color: "white"
@@ -124,11 +124,11 @@ legends:
             subtitle: "(§ 9 Abs. 7 BauGB)"
             type: area
             rectangleStyle: geltungsbereich_2
-          - name: "Hauptversorgungs- und Hauptabwasserleitungen unterirdisch"
-            subtitle: "(§ 5 Abs. 2 Nr.4 und Abs. 4, § 9 Abs.1 Nr.1 u. Abs. 6)"
-            type: empty
-            blockSymbol: "Leitung unterirdisch Legend"
-            blockSymbolScale: 2
+          # - name: "Hauptversorgungs- und Hauptabwasserleitungen unterirdisch"
+          #   subtitle: "(§ 5 Abs. 2 Nr.4 und Abs. 4, § 9 Abs.1 Nr.1 u. Abs. 6)"
+          #   type: empty
+          #   blockSymbol: "Leitung unterirdisch Legend"
+          #   blockSymbolScale: 2
           # - name: "Hauptversorgungs- und Hauptabwasserleitungen oberirdisch"
           #   subtitle: "(§ 5 Abs. 2 Nr.4 und Abs. 4, § 9 Abs.1 Nr.1 u. Abs. 6)"
           #   type: area
@@ -145,6 +145,10 @@ legends:
             type: empty
             blockSymbol: "GFL Legend"
             blockSymbolScale: 1
+          - name: "Mit Geh-, Fahr- und Leitungsrechten zu belastende Flächen"
+            subtitle: "(§ 9 Abs.1 Nr.21 und Abs. 6 BauGB)"
+            type: area
+            rectangleStyle: gfl1
       - name: "Darstellung ohne Normcharakter"
         updateDxf: true
         items:
@@ -199,3 +203,32 @@ legends:
           #   type: empty
           #   blockSymbol: "Abgrenzung unterschiedlicher Nutzung"
           #   blockSymbolScale: 1.4
+          - name: "Abstand gemessen vom Schienenweg"
+            type: empty
+            blockSymbol: "Abstand 100 200"
+            # blockSymbolScale: 1
+          - name: "Hauptversorgungs- und Hauptabwasserleitungen unterirdisch - Stadtwerke"
+            # subtitle: "(§ 5 Abs. 2 Nr.4 und Abs. 4, § 9 Abs.1 Nr.1 u. Abs. 6)"
+            type: empty
+            blockSymbol: "Leitung blue"
+            blockSymbolScale: 2
+          - name: "Hauptversorgungsleitungen unterirdisch - Ontras"
+            # subtitle: "(§ 5 Abs. 2 Nr.4 und Abs. 4, § 9 Abs.1 Nr.1 u. Abs. 6)"
+            type: empty
+            blockSymbol: "Leitung orange"
+            blockSymbolScale: 2
+          - name: "Hauptversorgungsleitungen unterirdisch - Edis"
+            # subtitle: "(§ 5 Abs. 2 Nr.4 und Abs. 4, § 9 Abs.1 Nr.1 u. Abs. 6)"
+            type: empty
+            blockSymbol: "Leitung green"
+            blockSymbolScale: 2
+          - name: "Hauptversorgungsleitungen unterirdisch - Unbekannt"
+            # subtitle: "(§ 5 Abs. 2 Nr.4 und Abs. 4, § 9 Abs.1 Nr.1 u. Abs. 6)"
+            type: empty
+            blockSymbol: "Leitung red"
+            blockSymbolScale: 2
+          - name: "Hauptversorgungsleitungen unterirdisch - Telekom"
+            # subtitle: "(§ 5 Abs. 2 Nr.4 und Abs. 4, § 9 Abs.1 Nr.1 u. Abs. 6)"
+            type: empty
+            blockSymbol: "Leitung magenta"
+            blockSymbolScale: 2

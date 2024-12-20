@@ -1,5 +1,12 @@
 geomLayers:
 
+# Abstand gessen vom Schienenweg
+# Schon verändert in Zeichnung
+# - name: Bahntrasse
+#   updateDxf: true
+#   style: bahntrasse
+#   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/bahntrasse_ln.shp"
+
 # - name: EinAusfahrt Points
 #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/EinAusfahrt.shp"
 
@@ -77,7 +84,9 @@ geomLayers:
 # Stadtwerke
 - name: Leitung Str-Leitungsabschnitt-NS
   updateDxf: true
-  style: leitung
+  style:
+    layer:
+      color: "blue"
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/stadtwerke_str_leitungsabschnitt_ns_ln.shp"
 
 - name: Leitung Str-Leitungsabschnitt-NS Buffer
@@ -91,7 +100,9 @@ geomLayers:
 
 - name: Leitung Was-Leitungsabschnitt-VN
   updateDxf: true
-  style: leitung
+  style:
+    layer:
+      color: "blue"
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/stadtwerke_was_leitungsabschnitt_vn_ln.shp"
 
 - name: Leitung Was-Leitungsabschnitt-VN Buffer
@@ -105,7 +116,9 @@ geomLayers:
 
 - name: Leitung Was-Leitungsabschnitt-AN
   updateDxf: true
-  style: leitung
+  style:
+    layer:
+      color: "blue"
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/stadtwerke_was_leitungsabschnitt_an_ln.shp"
 #
 - name: Leitung Was-Leitungsabschnitt-AN Buffer
@@ -119,7 +132,9 @@ geomLayers:
 
 - name: Leitung Gas-Leitungsabschnitt-VN
   updateDxf: true
-  style: leitung
+  style:
+    layer:
+      color: "blue"
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/stadtwerke_gas_leitungsabschnitt_vn_ln.shp"
 
 - name: Leitung Gas-Leitungsabschnitt-VN Buffer
@@ -134,12 +149,16 @@ geomLayers:
 # ONTRAS
 - name: Leitung Ontras Gas
   updateDxf: true
-  style: leitung
+  style:
+    layer:
+      color: "orange"
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/input_leitungsverlauf_ontras_gas_ln.shp"
 
 - name: Leitung Ontras TK
   updateDxf: true
-  style: leitung
+  style:
+    layer:
+      color: "orange"
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/input_leitungsverlauf_ontras_tk_ln.shp"
 
 - name: Leitung Ontras Buffer
@@ -155,7 +174,9 @@ geomLayers:
 # Vermessung
 - name: Leitung Gas_HD_LEIT # Edis Gas
   updateDxf: true
-  style: leitung
+  style:
+    layer:
+      color: "green"
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/vermessung_gas_hd_ln.shp"
 
 - name: Leitung Gas_HD_LEIT Buffer
@@ -169,7 +190,9 @@ geomLayers:
 
 - name: Leitung Stromkabel-MS_unterirdisch_LEIT
   updateDxf: true
-  style: leitung
+  style:
+    layer:
+      color: "red"
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/vermessung_stromkabel_ms_unterirdisch_ln.shp"
 - name: Leitung Stromkabel-MS_unterirdisch_LEIT Label Points
   # updateDxf: true
@@ -187,14 +210,18 @@ geomLayers:
 # Maxsolar (Vermessung)
 - name: Leitung Mittelspannung Zuwegung
   updateDxf: true
-  style: leitung
+  style:
+    layer:
+      color: "red"
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/maxsolar_leitung_ms_zuwegung_ln.shp"
 
 # Bestand-Zeichnung
 
 - name: Leitung Telekom
   updateDxf: true
-  style: leitung
+  style:
+    layer:
+      color: "magenta"
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/input_leitungsverlauf_telekom_ln.shp"
 
 - name: Leitung Telekom Buffer
@@ -208,7 +235,9 @@ geomLayers:
 
 - name: Leitung Edis
   updateDxf: true
-  style: leitung
+  style:
+    layer:
+      color: "green"
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/input_leitungsverlauf_edis_ln.shp"
 
 - name: Leitung Edis Buffer
@@ -322,6 +351,8 @@ geomLayers:
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/exclude_zuwegung.shp"
 - name: Baugrenze Exclude
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/baugrenze_exclude.shp"
+- name: Exclude Grünfläche
+  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/exclude_grünfläche.shp"
 
 ### Zuwegung ###
 - name: Zuwegung
@@ -345,6 +376,7 @@ geomLayers:
 ### Geltungsbereich ###
 - name: Geltungsbereich Input
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/geltungsbereich_pl.shp"
+
 - name: Geltungsbereich
   updateDxf: true
   style: geltungsbereich
@@ -352,6 +384,7 @@ geomLayers:
     - type: dissolve
       layers:
         - Geltungsbereich Input
+        - Zuwegung
     - type: difference
       reverseDifference: false
       layers:
@@ -410,6 +443,27 @@ geomLayers:
       joinStyle: mitre
       capStyle: flat
 
+- name: Geltungsbereich F-Plan
+  updateDxf: true # linetype generation
+  style: geltungsbereichFPlan
+  operations:
+    - type: copy
+      layers:
+        - Geltungsbereich
+- name: Geltungsbereich F-Plan Schraffur
+  updateDxf: true # linetype generation
+  style: geltungsbereichFPlan
+  applyHatch:
+    layers:
+      - Geltungsbereich F-Plan
+
+- name: Geltungsbereich F-Plan MiniMap Schraffur
+  updateDxf: true # linetype generation
+  style: geltungsbereichFPlanMiniMap
+  applyHatch:
+    layers:
+      - Geltungsbereich F-Plan
+
 # Report only
 - name: Parcel Intersections
   updateDxf: false
@@ -463,10 +517,10 @@ geomLayers:
         - polygon
       # minArea: 1
 - name: Moor
-  # updateDxf: true
-  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/moor.shp"
+  updateDxf: true
+  shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/Moor.shp"
 - name: "ges gesch Biotope"
-  # updateDxf: true
+  updateDxf: true
   # style: gesGeschuetzesBiotop
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/ges. geschützte Biotope.shp"
 - name: "ges gesch Biotope 2"
@@ -509,7 +563,12 @@ geomLayers:
         - Moor
         - "ges gesch Biotope"
         - Leitung Ontras Buffer
-        - Leitung Gas_HD_LEIT Buffer
+        # - Leitung Gas_HD_LEIT Buffer
+    - type: dissolve
+    - type: difference
+      reverseDifference: false
+      layers:
+        - Exclude Grünfläche
     - type: dissolve
     - type: intersection
       layers:
@@ -616,7 +675,7 @@ geomLayers:
     layers:
       - Baufeld
 - name: Baugrenze 2
-  # updateDxf: true # linetypeGeneration
+  updateDxf: true # linetypeGeneration
   style: baugrenze_2
   close: true
   operations:
@@ -625,7 +684,7 @@ geomLayers:
         - Baugrenze
       distance: -0.4
 - name: Baugrenze
-  # updateDxf: true # linetypeGeneration
+  updateDxf: true # linetypeGeneration
   style: baugrenze
   linetypeScale: 0.5
   # linetypeGeneration: true
@@ -635,10 +694,13 @@ geomLayers:
       layers:
         - Baufeld
       distance: -3
+      joinStyle: round
+      capStyle: round
     - type: difference
       reverseDifference: false
       layers:
         - Leitungen Buffer
+        - Leitungen Ontras Buffer Path
         - Baum_Laubbaum Envelope
         - Baum_Laubbaum Buffer
         - Baugrenze Exclude
@@ -788,7 +850,9 @@ geomLayers:
         - Leitung Mittelspannung Zuwegung
         - Leitung Telekom
         - Leitung Edis
+
 - name: Leitungen Buffer
+  updateDxf: true
   operations:
     - type: dissolve
       layers:
@@ -796,15 +860,17 @@ geomLayers:
         - Leitung Was-Leitungsabschnitt-VN Buffer
         - Leitung Was-Leitungsabschnitt-AN Buffer
         - Leitung Gas-Leitungsabschnitt-VN Buffer
-        - Leitung Ontras Buffer
+        # - Leitung Ontras Buffer
         - Leitung Gas_HD_LEIT Buffer
         - Leitung Stromkabel-MS_unterirdisch_LEIT Buffer
         - Leitung Telekom Buffer
         - Leitung Edis Buffer
+    - type: intersection
+      layers:
+        - Geltungsbereich
 
-
-- name: Leitung Ontras Buffer Path
-  updateDxf: true
+- name: Leitungen Ontras Buffer Path
+  # updateDxf: true
   operations:
     - type: copy
       layers:
@@ -812,6 +878,21 @@ geomLayers:
     - type: intersection
       layers:
         - Geltungsbereich
+
+- name: Leitungen Buffer Path
+  # updateDxf: true # Schon modifiziert in DXF (lintetype generation and scale)
+  style: gfl1
+  operations:
+    - type: copy
+      layers:
+        - Leitungen Buffer
+    - type: buffer
+      distance: -0.7
+    - type: difference
+      reverseDifference: false
+      layers:
+        - Leitungen Ontras Buffer Path
+
 
 ### Ausgleich ###
 # 20 Stunden Arbeit 10.12. und 11.12.2024

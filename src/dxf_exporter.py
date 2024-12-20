@@ -885,16 +885,18 @@ class DXFExporter:
             path_offset = config.get('pathOffset', 0.0)
             show_debug_visual = config.get('showDebugVisual', False)
             adjust_for_vertices = config.get('adjustForVertices', False)
+            all_edges = config.get('all_edges', False)
             
             log_debug(f"Creating path array: {name}")
             log_debug(f"Source layer: {source_layer_name}")
             log_debug(f"Block: {block_name}, Spacing: {spacing}, Scale: {scale}")
             log_debug(f"Path offset: {path_offset}")
+            log_debug(f"All edges: {all_edges}")
             
             create_path_array(msp, source_layer_name, name, block_name, 
                              spacing, buffer_distance, scale, rotation, 
                              show_debug_visual, self.all_layers, 
-                             adjust_for_vertices, path_offset)
+                             adjust_for_vertices, path_offset, all_edges)
         
         log_debug("Finished processing all path array configurations")
 

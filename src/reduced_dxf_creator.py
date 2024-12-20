@@ -2,8 +2,9 @@ import ezdxf
 from pathlib import Path
 from src.utils import resolve_path, log_info, log_warning, log_error, log_debug
 from src.legend_creator import LegendCreator
-from src.dxf_utils import add_mtext
+from src.dxf_utils import add_mtext, attach_custom_data
 from src.path_array import create_path_array
+import traceback
 
 class ReducedDXFCreator:
     def __init__(self, dxf_exporter):
@@ -250,28 +251,127 @@ class ReducedDXFCreator:
         
         for entity in original_msp.query(query):
             try:
-                # If this is a block reference, ensure the block definition exists in reduced doc
-                if entity.dxftype() == 'INSERT':
+                # Create a new entity based on type
+                dxftype = entity.dxftype()
+                
+                # Get basic properties that all entities have
+                common_attribs = {
+                    'layer': layer_name,
+                    'color': entity.dxf.color if hasattr(entity.dxf, 'color') else None,
+                    'linetype': entity.dxf.linetype if hasattr(entity.dxf, 'linetype') else 'CONTINUOUS',
+                    'lineweight': entity.dxf.lineweight if hasattr(entity.dxf, 'lineweight') else -1,
+                }
+                
+                if dxftype == 'LWPOLYLINE':
+                    # For polylines, create completely new entity with points
+                    points = [(p[0], p[1], p[2] if len(p) > 2 else 0.0) for p in entity.get_points()]
+                    new_entity = reduced_msp.add_lwpolyline(
+                        points,
+                        dxfattribs=common_attribs
+                    )
+                    # Copy closed status
+                    if hasattr(entity.dxf, 'closed'):
+                        new_entity.dxf.closed = entity.dxf.closed
+                    
+                elif dxftype == 'LINE':
+                    # For lines, create new with start and end points
+                    new_entity = reduced_msp.add_line(
+                        start=entity.dxf.start,
+                        end=entity.dxf.end,
+                        dxfattribs=common_attribs
+                    )
+                    
+                elif dxftype == 'CIRCLE':
+                    # For circles, create new with center and radius
+                    new_entity = reduced_msp.add_circle(
+                        center=entity.dxf.center,
+                        radius=entity.dxf.radius,
+                        dxfattribs=common_attribs
+                    )
+                    
+                elif dxftype == 'ARC':
+                    # For arcs, create new with all arc properties
+                    new_entity = reduced_msp.add_arc(
+                        center=entity.dxf.center,
+                        radius=entity.dxf.radius,
+                        start_angle=entity.dxf.start_angle,
+                        end_angle=entity.dxf.end_angle,
+                        dxfattribs=common_attribs
+                    )
+                    
+                elif dxftype == 'HATCH':
+                    # Create new hatch
+                    new_entity = reduced_msp.add_hatch(
+                        color=entity.dxf.color,
+                        dxfattribs=common_attribs
+                    )
+                    # Copy pattern data
+                    if hasattr(entity, 'pattern'):
+                        new_entity.set_pattern_fill(
+                            entity.pattern.name,
+                            scale=entity.pattern.scale
+                        )
+                    # Copy boundary paths
+                    for path in entity.paths:
+                        new_entity.paths.add_path(path.copy())
+                    
+                elif dxftype == 'INSERT':
+                    # Handle block references
                     block_name = entity.dxf.name
                     if block_name not in reduced_msp.doc.blocks:
-                        # Get the block definition from original doc
-                        original_block = original_msp.doc.blocks[block_name]
-                        # Create new block in reduced doc
-                        new_block = reduced_msp.doc.blocks.new(name=block_name)
-                        # Copy all entities from original block to new block
-                        for block_entity in original_block:
-                            new_block.add_entity(block_entity.copy())
-                        log_debug(f"Copied block definition: {block_name}")
+                        self._copy_block_definition(entity.doc, reduced_msp.doc, block_name)
+                    
+                    # Create new block reference with all properties
+                    insert_attribs = common_attribs.copy()
+                    insert_attribs.update({
+                        'name': block_name,
+                        'insert': entity.dxf.insert,
+                        'xscale': entity.dxf.xscale,
+                        'yscale': entity.dxf.yscale,
+                        'rotation': entity.dxf.rotation
+                    })
+                    new_entity = reduced_msp.add_blockref(
+                        block_name,
+                        insert_attribs['insert'],
+                        dxfattribs=insert_attribs
+                    )
                 
-                # Copy the entity (works for both regular entities and block references)
-                new_entity = entity.copy()
-                reduced_msp.add_entity(new_entity)
+                else:
+                    # For unsupported types, try basic copy but with new attributes
+                    new_entity = reduced_msp.add_entity(entity.dxftype())
+                    for key, value in common_attribs.items():
+                        if hasattr(new_entity.dxf, key):
+                            setattr(new_entity.dxf, key, value)
+                
+                # Attach custom data with minimal information
+                new_entity.set_xdata(
+                    'DXFEXPORTER',
+                    [(1000, self.script_identifier)]
+                )
+                
                 entity_count += 1
                 
             except Exception as e:
                 log_warning(f"Failed to copy entity in layer {layer_name}: {str(e)}")
         
         return entity_count
+
+    def _copy_block_definition(self, source_doc, target_doc, block_name):
+        """Copy a block definition from source document to target document."""
+        try:
+            source_block = source_doc.blocks[block_name]
+            new_block = target_doc.blocks.new(name=block_name)
+            
+            for entity in source_block:
+                try:
+                    self._clean_entity_for_copy(entity)
+                    new_entity = entity.copy()
+                    new_block.add_entity(new_entity)
+                except Exception as e:
+                    log_warning(f"Failed to copy entity in block {block_name}: {str(e)}")
+                
+        except Exception as e:
+            log_warning(f"Failed to copy block definition {block_name}: {str(e)}")
 
     def _save_reduced_dxf(self, reduced_doc):
         original_path = Path(self.dxf_filename)
@@ -284,11 +384,152 @@ class ReducedDXFCreator:
             raise
 
     def _audit_and_save(self, reduced_doc, reduced_path):
-        auditor = reduced_doc.audit()
-        if len(auditor.errors) > 0:
-            log_warning(f"Found {len(auditor.errors)} issues during audit")
-            for error in auditor.errors:
-                log_warning(f"Audit error: {error}")
-        
-        reduced_doc.saveas(str(reduced_path))
-        log_debug(f"Created reduced DXF file: {reduced_path}")
+        """Perform a thorough audit and fix issues before saving."""
+        try:
+            # First run validation which includes audit and fixes
+            log_info("Running DXF validation...")
+            is_valid = reduced_doc.validate(print_report=True)
+            if is_valid:
+                log_info("✓ Document passed initial validation")
+            else:
+                log_warning("Document validation found unfixable errors")
+            
+            # Run a thorough audit
+            log_info("Running detailed audit...")
+            auditor = reduced_doc.audit()
+            
+            # Fix any issues found
+            if len(auditor.errors) == 0:
+                log_info("✓ No issues found during audit")
+            else:
+                log_warning(f"Found {len(auditor.errors)} issues during audit")
+                for error in auditor.errors:
+                    log_warning(f"Audit error: {error}")
+                    
+                # Let the auditor fix the issues it can
+                if auditor.has_fixes:
+                    log_info("Applying fixes...")
+                    auditor.apply_fixes()
+                    log_info("✓ Fixes applied successfully")
+            
+            # Clean up the document
+            self._cleanup_document(reduced_doc)
+            
+            # Run a final validation to verify everything is okay
+            log_info("Running final validation...")
+            final_valid = reduced_doc.validate(print_report=True)
+            if final_valid:
+                log_info("✓ Document passed final validation")
+            else:
+                log_warning("Document still contains unfixable errors after cleanup")
+            
+            # Save the document
+            reduced_doc.saveas(str(reduced_path))
+            log_info(f"✓ Created reduced DXF file: {reduced_path}")
+            
+        except Exception as e:
+            log_error(f"Error during audit and save: {str(e)}")
+            log_error(f"Traceback:\n{traceback.format_exc()}")
+            raise
+
+    def _cleanup_document(self, doc):
+        """Clean up the document by removing unused resources."""
+        try:
+            modelspace = doc.modelspace()
+            paperspace = doc.paperspace()
+            
+            # Audit groups first
+            log_debug("Auditing groups...")
+            if hasattr(doc, 'groups'):
+                # Remove empty groups and invalid handles from all groups
+                doc.groups.audit(doc.audit())
+                
+                # Audit each group individually
+                for group in doc.groups.groups():
+                    group.audit(doc.audit())
+                    if len(group) == 0:
+                        try:
+                            doc.groups.delete(group)
+                            log_debug(f"Removed empty group")
+                        except Exception as e:
+                            log_warning(f"Could not remove empty group: {str(e)}")
+            
+            # Purge unused blocks
+            for block in list(doc.blocks):
+                try:
+                    if not block.is_alive:
+                        doc.blocks.remove(block.name)
+                        log_debug(f"Removed unused block: {block.name}")
+                except Exception as e:
+                    if "still in use" not in str(e):
+                        log_warning(f"Could not remove block {block.name}: {str(e)}")
+            
+            # Purge unused layers
+            for layer in list(doc.layers):
+                layer_name = layer.dxf.name
+                
+                # Skip system layers
+                if layer_name in ['0', 'Defpoints']:
+                    continue
+                
+                # Check if layer has any entities
+                has_entities = False
+                for entity in modelspace:
+                    if entity.dxf.layer == layer_name:
+                        has_entities = True
+                        break
+                if not has_entities:
+                    for entity in paperspace:
+                        if entity.dxf.layer == layer_name:
+                            has_entities = True
+                            break
+                
+                # Remove empty layer
+                if not has_entities:
+                    try:
+                        doc.layers.remove(layer_name)
+                        log_debug(f"Removed empty layer: {layer_name}")
+                    except Exception as e:
+                        log_warning(f"Could not remove layer {layer_name}: {str(e)}")
+            
+            # Force database update
+            doc.entitydb.purge()
+            
+            log_debug("Document cleanup completed successfully")
+            
+        except Exception as e:
+            log_error(f"Error during document cleanup: {str(e)}")
+            log_error(f"Traceback:\n{traceback.format_exc()}")
+
+    def _clean_entity_for_copy(self, entity):
+        """Prepare an entity for copying by cleaning up any problematic attributes."""
+        try:
+            # Only try to remove XDATA if the entity has appdata
+            if hasattr(entity, 'appdata') and entity.appdata:
+                for appid in list(entity.appdata.keys()):  # Create a list to avoid modification during iteration
+                    try:
+                        entity.discard_xdata(appid)
+                    except:
+                        pass
+            
+            # Clear any reactors
+            if hasattr(entity.dxf, 'reactors'):
+                entity.dxf.reactors = []
+            
+            # Clear any handles
+            if hasattr(entity.dxf, 'handle'):
+                entity.dxf.handle = None
+            
+            # Clear owner
+            if hasattr(entity.dxf, 'owner'):
+                entity.dxf.owner = None
+
+            # Clear any hyperlinks
+            if hasattr(entity, 'get_hyperlink') and entity.get_hyperlink():
+                try:
+                    entity.remove_hyperlink()
+                except:
+                    pass
+
+        except Exception as e:
+            log_warning(f"Error cleaning entity for copy: {str(e)}")
