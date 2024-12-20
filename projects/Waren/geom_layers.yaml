@@ -215,6 +215,15 @@ geomLayers:
       color: "red"
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/maxsolar_leitung_ms_zuwegung_ln.shp"
 
+- name: Leitung Mittelspannung Zuwegung Buffer
+  operations:
+    - type: buffer
+      layers:
+        - Leitung Mittelspannung Zuwegung
+      distance: 2
+      capStyle: flat
+      joinStyle: flat
+
 # Bestand-Zeichnung
 
 - name: Leitung Telekom
@@ -863,6 +872,7 @@ geomLayers:
         # - Leitung Ontras Buffer
         - Leitung Gas_HD_LEIT Buffer
         - Leitung Stromkabel-MS_unterirdisch_LEIT Buffer
+        - Leitung Mittelspannung Zuwegung Buffer
         - Leitung Telekom Buffer
         - Leitung Edis Buffer
     - type: intersection
