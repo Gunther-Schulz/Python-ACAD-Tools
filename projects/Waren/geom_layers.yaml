@@ -987,6 +987,21 @@ geomLayers:
         - polygon
       minArea: 1
 
+  - name: Construction ODS
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/Zuwegungsabschnitt Biotoptyp ODS.shp"
+    operations:
+      - type: filterGeometry
+        geometryTypes:
+          - polygon
+        minArea: 1
+
+  - name: Construction RHU
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/Zuwegungsabschnitt Biotoptyp RHU.shp"
+    operations:
+      - type: filterGeometry
+        geometryTypes:
+          - polygon
+        minArea: 1
 
 # Compensatory
 # Can be skipped because Unchanging matches Biotoptyp Sonstiges Feuchtgrünland ?????????????????????????????????????ß
@@ -1122,6 +1137,10 @@ geomLayers:
             baseValue: 6
           - layer: Construction Sandacker
             baseValue: 1
+          - layer: Construction ODS
+            baseValue: 1
+          - layer: Construction RHU
+            baseValue: 3
 
 - name: Ausgleich Compensatory
   operations:
