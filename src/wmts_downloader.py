@@ -10,7 +10,6 @@ from io import BytesIO
 from collections import defaultdict
 import numpy as np
 import cv2
-import pytesseract
 import easyocr
 import traceback
 # import logging
@@ -19,25 +18,28 @@ import src.easyocr_patch
 # This will also log INFO
 # logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
+
 def color_distance(c1, c2):
     return np.sqrt(np.sum((c1 - c2) ** 2))
- 
+
+
 def remove_geobasis_text(img):
     log_debug("Attempting to remove GeoBasis-DE/MV text using EasyOCR")
-    
+
     # Convert PIL Image to OpenCV format
     cv_img = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
-    
+
     # Initialize EasyOCR
     reader = easyocr.Reader(['de', 'en'])
-    
+
     # Focus on the top portion of the image, but use full width
     height, width = cv_img.shape[:2]
     roi = cv_img[0:int(height*0.09), 0:width]
-    
+
     # Perform text detection with lower confidence threshold
-    results = reader.readtext(roi, min_size=3, low_text=0.1, text_threshold=0.3, link_threshold=0.1, width_ths=0.05)
-    
+    results = reader.readtext(roi, min_size=3, low_text=0.1,
+                              text_threshold=0.3, link_threshold=0.1, width_ths=0.05)
+
     texts_to_remove = []
     for (bbox, text, prob) in results:
         log_debug(f"EasyOCR detected text: {text} (confidence: {prob})")
@@ -49,26 +51,29 @@ def remove_geobasis_text(img):
         h = int(max(bottom_left[1], bottom_right[1]) - y)
         # Instead of inpainting, fill the area with white
         cv2.rectangle(roi, (x, y), (x+w, y+h), (255, 255, 255), -1)
-    
+
     # Print the texts that will be removed
     if texts_to_remove:
-        log_debug(f"The following text will be removed: {', '.join(texts_to_remove)}")
+        log_debug(f"The following text will be removed: {
+                  ', '.join(texts_to_remove)}")
     else:
         log_debug("No text detected for removal")
-    
+
     # Convert back to PIL Image
     return Image.fromarray(cv2.cvtColor(cv_img, cv2.COLOR_BGR2RGB))
+
 
 def post_process_image(img, color_map, alpha_color, tolerance=30, grayscale=False, remove_text=False, retain_if_color_present=None):
     # Convert to numpy array once at the start
     data = np.array(img.convert('RGB'))
-    
+
     # If we need to check for specific colors, do it first to potentially skip processing
     if retain_if_color_present and 'colors' in retain_if_color_present:
         filter_tolerance = retain_if_color_present.get('tolerance', 5)
         # Convert target colors to numpy arrays once
-        target_colors = [np.array(hex_to_rgb(color)) for color in retain_if_color_present['colors']]
-        
+        target_colors = [np.array(hex_to_rgb(color))
+                         for color in retain_if_color_present['colors']]
+
         # Vectorized color check
         found_any_color = False
         for target_rgb in target_colors:
@@ -77,10 +82,10 @@ def post_process_image(img, color_map, alpha_color, tolerance=30, grayscale=Fals
             if np.any(distances <= filter_tolerance):
                 found_any_color = True
                 break
-        
+
         if not found_any_color:
             return Image.new('RGBA', img.size, (0, 0, 0, 0))
-    
+
     # Apply color mapping if needed
     if color_map:
         for target_color, replacement_color in color_map.items():
@@ -90,27 +95,30 @@ def post_process_image(img, color_map, alpha_color, tolerance=30, grayscale=Fals
             distances = np.sqrt(np.sum((data - target_rgb) ** 2, axis=2))
             mask = distances <= tolerance
             data[mask] = replacement_rgb
-    
+
     # Convert to grayscale if needed
     if grayscale:
         # Use mean across RGB channels for grayscale conversion
         gray_data = np.mean(data, axis=2).astype(np.uint8)
         data = np.stack((gray_data,) * 3, axis=-1)
-    
+
     # Add alpha channel if needed
     if alpha_color:
         alpha_rgb = np.array(hex_to_rgb(alpha_color))
         # Compute alpha mask in one operation
         distances = np.sqrt(np.sum((data - alpha_rgb) ** 2, axis=2))
-        alpha_channel = np.where(distances <= tolerance, 0, 255).astype(np.uint8)
+        alpha_channel = np.where(
+            distances <= tolerance, 0, 255).astype(np.uint8)
         data = np.dstack((data, alpha_channel))
-    
+
     # Convert back to PIL Image
     mode = 'RGBA' if alpha_color else 'RGB'
     return Image.fromarray(data, mode)
 
+
 def hex_to_rgb(hex_color):
     return tuple(int(hex_color.lstrip('#')[i:i+2], 16) for i in (0, 2, 4))
+
 
 def filter_row_cols_by_bbox(matrix, bbox):
     a = matrix.scaledenominator * 0.00028
@@ -178,6 +186,7 @@ def write_world_file(file_name, extension, col, row, matrix, zoom_folder) -> str
         f.write('%f\n%d\n%d\n%f\n%f\n%f' % (a, 0, 0, e, left, top))
 
     return world_file_path
+
 
 def download_wmts_tiles(wmts_info: dict, geltungsbereich, buffer_distance: float, target_folder: str, overwrite: bool = False) -> list:
     log_info(f"Starting WMTS download to target folder: {target_folder}")
@@ -249,21 +258,25 @@ def download_wmts_tiles(wmts_info: dict, geltungsbereich, buffer_distance: float
 
         for row in range(min_row, max_row):
             for col in range(min_col, max_col):
-                file_name = f'{layer_id}__{proj.replace(":", "-")}_row-{row}_col-{col}_zoom-{zoom}'
-                
-                exists, file_path, existing_extension = tile_already_exists(file_name, requested_extension, zoom_folder)
-                
+                file_name = f'{layer_id}__{proj.replace(
+                    ":", "-")}_row-{row}_col-{col}_zoom-{zoom}'
+
+                exists, file_path, existing_extension = tile_already_exists(
+                    file_name, requested_extension, zoom_folder)
+
                 if exists and not overwrite:
-                    world_file_path = f'{zoom_folder}/{file_name}.{get_world_file_extension(existing_extension)}'
+                    world_file_path = f'{
+                        zoom_folder}/{file_name}.{get_world_file_extension(existing_extension)}'
                     downloaded_tiles.append((file_path, world_file_path))
                     skip_count += 1
                     continue
 
                 img = wmts.gettile(layer=layer_id, tilematrixset=proj,
-                                tilematrix=zoom_str, row=row, column=col, format=requested_format)
+                                   tilematrix=zoom_str, row=row, column=col, format=requested_format)
 
                 content_type = img.info().get('Content-Type', requested_format)
-                actual_extension = mimetypes.guess_extension(content_type, strict=False)
+                actual_extension = mimetypes.guess_extension(
+                    content_type, strict=False)
                 if actual_extension is None:
                     actual_extension = requested_extension
                 else:
@@ -296,6 +309,7 @@ def download_wmts_tiles(wmts_info: dict, geltungsbereich, buffer_distance: float
 
     return downloaded_tiles
 
+
 def download_wms_tiles(wms_info: dict, geltungsbereich, buffer_distance: float, target_folder: str, overwrite: bool = False) -> list:
     log_info(f"Starting WMS download to target folder: {target_folder}")
     log_debug(f"WMS URL: {wms_info['url']}")
@@ -305,7 +319,8 @@ def download_wms_tiles(wms_info: dict, geltungsbereich, buffer_distance: float, 
 
     capabilities_url = wms_info['url']
     try:
-        wms = WebMapService(capabilities_url, version=wms_info.get('version', '1.3.0'))
+        wms = WebMapService(
+            capabilities_url, version=wms_info.get('version', '1.3.0'))
     except Exception as e:
         log_error(f"Failed to connect to WMS service: {str(e)}")
         return []
@@ -316,7 +331,8 @@ def download_wms_tiles(wms_info: dict, geltungsbereich, buffer_distance: float, 
 
     layer_id = wms_info['layer']
     if layer_id not in wms.contents:
-        log_error(f"Layer '{layer_id}' not found in WMS service. Please choose from the available layers listed above.")
+        log_error(f"Layer '{
+                  layer_id}' not found in WMS service. Please choose from the available layers listed above.")
         return []
 
     srs = wms_info['srs']
@@ -326,16 +342,18 @@ def download_wms_tiles(wms_info: dict, geltungsbereich, buffer_distance: float, 
     sleep = wms_info.get('sleep', 0)
     limit_requests = wms_info.get('limit', 0)
     # Remove zoom reference here
-    
+
     post_process = wms_info.get('postProcess', {})
     color_map = post_process.get('colorMap', {})
     alpha_color = post_process.get('alphaColor')
     tolerance = post_process.get('tolerance', 30)
     grayscale = post_process.get('grayscale', False)
     remove_text = post_process.get('removeText', False)
-    retain_if_color_present = post_process.get('retainIfColorPresent')  # Updated name
+    retain_if_color_present = post_process.get(
+        'retainIfColorPresent')  # Updated name
 
-    log_debug(f"Post-processing config: color_map={color_map}, alpha_color={alpha_color}, tolerance={tolerance}, grayscale={grayscale}, remove_text={remove_text}, retain_if_color_present={retain_if_color_present}")
+    log_debug(f"Post-processing config: color_map={color_map}, alpha_color={alpha_color}, tolerance={
+              tolerance}, grayscale={grayscale}, remove_text={remove_text}, retain_if_color_present={retain_if_color_present}")
 
     geltungsbereich_buffered = geltungsbereich.buffer(buffer_distance)
     minx, miny, maxx, maxy = geltungsbereich_buffered.bounds
@@ -344,7 +362,8 @@ def download_wms_tiles(wms_info: dict, geltungsbereich, buffer_distance: float, 
     cols = math.ceil((maxx - minx) / tile_width)
     rows = math.ceil((maxy - miny) / tile_height)
 
-    log_debug(f"Downloading {rows}x{cols} tiles with size {tile_width}x{tile_height}")
+    log_debug(f"Downloading {rows}x{cols} tiles with size {
+              tile_width}x{tile_height}")
 
     downloaded_tiles = []
     download_count = 0
@@ -353,12 +372,14 @@ def download_wms_tiles(wms_info: dict, geltungsbereich, buffer_distance: float, 
     for row in range(rows):
         for col in range(cols):
             tile_minx = minx + col * tile_width
-            tile_miny = maxy - (row + 1) * tile_height  # Start from top-left corner
+            # Start from top-left corner
+            tile_miny = maxy - (row + 1) * tile_height
             tile_maxx = tile_minx + tile_width
             tile_maxy = tile_miny + tile_height
             tile_bbox = (tile_minx, tile_miny, tile_maxx, tile_maxy)
 
-            file_name = f'{layer_id}__{srs.replace(":", "-")}_row-{row}_col-{col}'
+            file_name = f'{layer_id}__{
+                srs.replace(":", "-")}_row-{row}_col-{col}'
             image_path = os.path.join(target_folder, f'{file_name}.png')
             world_file_path = os.path.join(target_folder, f'{file_name}.pgw')
 
@@ -375,12 +396,13 @@ def download_wms_tiles(wms_info: dict, geltungsbereich, buffer_distance: float, 
                     'size': (tile_width, tile_height),
                     'format': image_format,
                 }
-                
+
                 img = wms.getmap(**params)
-                
+
                 if color_map or alpha_color or grayscale or remove_text or retain_if_color_present:
                     pil_img = Image.open(BytesIO(img.read()))
-                    pil_img = post_process_image(pil_img, color_map, alpha_color, tolerance, grayscale, remove_text, retain_if_color_present)
+                    pil_img = post_process_image(
+                        pil_img, color_map, alpha_color, tolerance, grayscale, remove_text, retain_if_color_present)
                     pil_img.save(image_path, 'PNG')
                 else:
                     with open(image_path, 'wb') as out:
@@ -388,18 +410,24 @@ def download_wms_tiles(wms_info: dict, geltungsbereich, buffer_distance: float, 
 
                 # Write the world file with correct georeference information
                 with open(world_file_path, 'w') as wf:
-                    wf.write(f"{tile_width / tile_width}\n")  # pixel size in the x-direction
+                    # pixel size in the x-direction
+                    wf.write(f"{tile_width / tile_width}\n")
                     wf.write("0\n0\n")  # rotation terms (usually 0)
-                    wf.write(f"-{tile_height / tile_height}\n")  # negative pixel size in the y-direction
-                    wf.write(f"{tile_minx}\n")  # x-coordinate of the center of the upper-left pixel
-                    wf.write(f"{tile_maxy}\n")  # y-coordinate of the center of the upper-left pixel
+                    # negative pixel size in the y-direction
+                    wf.write(f"-{tile_height / tile_height}\n")
+                    # x-coordinate of the center of the upper-left pixel
+                    wf.write(f"{tile_minx}\n")
+                    # y-coordinate of the center of the upper-left pixel
+                    wf.write(f"{tile_maxy}\n")
 
                 downloaded_tiles.append((image_path, world_file_path))
                 download_count += 1
-                log_debug(f"Downloaded and processed tile {download_count}: {file_name}")
+                log_debug(f"Downloaded and processed tile {
+                          download_count}: {file_name}")
 
             except Exception as e:
-                log_error(f"Failed to download or process tile {file_name}: {str(e)}")
+                log_error(f"Failed to download or process tile {
+                          file_name}: {str(e)}")
                 log_error(f"Traceback: {traceback.format_exc()}")
 
             if limit_requests and download_count >= limit_requests:
@@ -413,6 +441,7 @@ def download_wms_tiles(wms_info: dict, geltungsbereich, buffer_distance: float, 
     log_debug(f"WMS tiles downloaded: {download_count}")
     log_debug(f"WMS tiles skipped (already exist): {skip_count}")
     return downloaded_tiles
+
 
 def stitch_tiles(tiles, tile_matrix):
     if not tiles:
@@ -428,22 +457,25 @@ def stitch_tiles(tiles, tile_matrix):
             if part.startswith('row-'):
                 row = int(part.split('-')[1])
             elif part.startswith('col-'):
-                col = int(part.split('-')[1].split('.')[0])  # Remove file extension
-        
+                # Remove file extension
+                col = int(part.split('-')[1].split('.')[0])
+
         # If row and col are not found, try to extract from WMS filename format
         if row is None or col is None:
             parts = filename.replace('.png', '').split('_')
             if len(parts) >= 2:
                 row = int(parts[-2])
                 col = int(parts[-1])
-        
+
         if row is not None and col is not None:
             tile_info.append((row, col, tile_path))
         else:
-            log_warning(f"Could not extract row and column from filename: {filename}")
+            log_warning(
+                f"Could not extract row and column from filename: {filename}")
 
     if not tile_info:
-        raise ValueError("Could not extract row and column information from tile filenames")
+        raise ValueError(
+            "Could not extract row and column information from tile filenames")
 
     min_row = min(info[0] for info in tile_info)
     max_row = max(info[0] for info in tile_info)
@@ -461,14 +493,17 @@ def stitch_tiles(tiles, tile_matrix):
 
     for row, col, tile_path in tile_info:
         img = Image.open(tile_path)
-        stitched_image.paste(img, ((col - min_col) * tile_width, (row - min_row) * tile_height))
+        stitched_image.paste(
+            img, ((col - min_col) * tile_width, (row - min_row) * tile_height))
 
     # Calculate world file content
     if tile_matrix:
         pixel_size_x = tile_matrix.scaledenominator * 0.00028
         pixel_size_y = -pixel_size_x
-        left = tile_matrix.topleftcorner[0] + min_col * tile_width * pixel_size_x
-        top = tile_matrix.topleftcorner[1] + min_row * tile_height * pixel_size_y
+        left = tile_matrix.topleftcorner[0] + \
+            min_col * tile_width * pixel_size_x
+        top = tile_matrix.topleftcorner[1] + \
+            min_row * tile_height * pixel_size_y
     else:
         # For WMS, we need to calculate these values from the world files
         world_file_path = tiles[0][1]
@@ -476,40 +511,47 @@ def stitch_tiles(tiles, tile_matrix):
             world_file_content = wf.readlines()
         pixel_size_x = float(world_file_content[0])
         pixel_size_y = float(world_file_content[3])
-        left = float(world_file_content[4]) + min_col * tile_width * pixel_size_x
-        top = float(world_file_content[5]) + min_row * tile_height * pixel_size_y
+        left = float(world_file_content[4]) + \
+            min_col * tile_width * pixel_size_x
+        top = float(world_file_content[5]) + \
+            min_row * tile_height * pixel_size_y
 
     world_file_content = f"{pixel_size_x}\n0\n0\n{pixel_size_y}\n{left}\n{top}"
 
     return stitched_image, world_file_content
 
+
 def process_and_stitch_tiles(wmts_info: dict, downloaded_tiles: list, tile_matrix_zoom, zoom_folder: str, layer_name: str) -> list:
     log_debug(f"Stitching tiles for layer: {layer_name}")
-    
+
     if not downloaded_tiles:
         log_debug(f"No tiles to stitch for layer {layer_name}")
         return []
-    
-    stitched_image, world_file_content = stitch_tiles(downloaded_tiles, tile_matrix_zoom)
-    
+
+    stitched_image, world_file_content = stitch_tiles(
+        downloaded_tiles, tile_matrix_zoom)
+
     base_filename = f"{layer_name}_stitched"
     stitched_image_path = os.path.join(zoom_folder, f"{base_filename}.png")
     world_file_path = os.path.join(zoom_folder, f"{base_filename}.pgw")
-    
-    files_exist = os.path.exists(stitched_image_path) or os.path.exists(world_file_path)
+
+    files_exist = os.path.exists(
+        stitched_image_path) or os.path.exists(world_file_path)
     should_overwrite = wmts_info.get('overwrite', False)
-    
+
     if files_exist and not should_overwrite:
-        log_debug(f"Stitched image already exists and overwrite is not enabled: {stitched_image_path}")
+        log_debug(f"Stitched image already exists and overwrite is not enabled: {
+                  stitched_image_path}")
         return [(stitched_image_path, world_file_path)]
-    
+
     stitched_image.save(stitched_image_path)
     log_debug(f"Saved stitched image: {stitched_image_path}")
     with open(world_file_path, 'w') as f:
         f.write(world_file_content)
     log_debug(f"Saved world file: {world_file_path}")
-    
+
     return [(stitched_image_path, world_file_path)]
+
 
 def group_connected_tiles(tiles):
     tile_dict = {}
@@ -545,9 +587,3 @@ def group_connected_tiles(tiles):
             groups.append(group)
 
     return groups
-
-
-
-
-
-
