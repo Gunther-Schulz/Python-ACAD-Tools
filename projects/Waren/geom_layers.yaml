@@ -521,7 +521,7 @@ geomLayers:
           - polygon
         # minArea: 1
   - name: Moor
-    updateDxf: true
+    # updateDxf: true
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/Moor.shp"
   - name: "ges gesch Biotope"
     updateDxf: true
@@ -896,6 +896,51 @@ geomLayers:
         reverseDifference: false
         layers:
           - Leitungen Ontras Buffer Path
+
+  - name: Hendrik Report - Alle Leitungen Buffer
+    operations:
+      - type: copy
+        layers:
+          - Leitungen Buffer
+          - Leitung Ontras Buffer
+      - type: dissolve
+      - type: intersection
+        layers:
+          - Geltungsbereich
+      - type: dissolve
+      - type: report
+        outputFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/reports/hendrik_alle_leitungen_buffer_report.json"
+        calculate:
+          - area
+        decimalPlaces:
+          area: 0
+
+  - name: Hendrik Report - Alle Leitungen Buffer Ausgleich
+    operations:
+      - type: copy
+        layers:
+          - Leitungen Buffer
+          - Leitung Ontras Buffer
+      - type: dissolve
+      - type: intersection
+        layers:
+          - Grünfläche
+      - type: intersection
+        layers:
+          - Geltungsbereich
+      - type: dissolve
+      - type: filterGeometry
+        geometryTypes:
+          - polygon
+        minArea: 2000
+      - type: dissolve
+      - type: report
+        outputFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/reports/hendrik_alle_leitungen_buffer_ausgleich_report.json"
+        calculate:
+          - area
+        decimalPlaces:
+          area: 0
+
 
   ### Ausgleich ###
   # 20 Stunden Arbeit 10.12. und 11.12.2024
