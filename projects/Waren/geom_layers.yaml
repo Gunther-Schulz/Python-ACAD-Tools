@@ -1207,3 +1207,22 @@ geomLayers:
             - layer: Compensatory Extern
               baseValue: 0
               compensatoryMeasureValue: 3
+
+  # This is purely for display in QGIS. If I have had more time, I woudl have done this more programmatically/properly.
+  - name: Wird nicht überplant
+    operations:
+      - type: copy
+        layers:
+          - Geltungsbereich
+          - Unchanging
+      - type: difference
+        reverseDifference: false
+        layers:
+          - Baufeld
+          # - Hendrik Report - Alle Leitungen Buffer
+          - Ausgleich Compensatory
+      - type: dissolve
+      - type: filterGeometry
+        geometryTypes:
+          - polygon
+        minArea: 2000
