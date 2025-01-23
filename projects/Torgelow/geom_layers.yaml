@@ -119,6 +119,7 @@ geomLayers:
             as: original_area
             decimalPlaces: 0
       - type: difference
+        reverseDifference: auto
         layers:
           - Wald
           - Straße Abstand
@@ -351,8 +352,6 @@ geomLayers:
         calculate:
           - area
           - perimeter
-          - centroid
-          - bounds
         decimalPlaces:
           area: 0
   - name: Baufeldstreifen Report
@@ -361,6 +360,7 @@ geomLayers:
         layers:
           - Baufeld
       - type: difference
+        reverseDifference: auto
         layers:
           - Baugrenze
       - type: intersection
@@ -371,8 +371,6 @@ geomLayers:
         calculate:
           - area
           - perimeter
-          - centroid
-          - bounds
         decimalPlaces:
           area: 0
   # - name: Contour

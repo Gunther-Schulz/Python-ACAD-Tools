@@ -71,10 +71,15 @@ legends:
           - name: "Baugrenze"
             type: empty
             blockSymbol: "Baugrenze"   
-      # - name: "Verkehrsflächen"
-      #   updateDxf: true
-      #   subtitle: "(§ 9 Abs. 1 Nr. 11 und Abs. 6 BauGB)"
-      #   items:
+            blockSymbolScale: 3
+      - name: "Verkehrsflächen"
+        updateDxf: true
+        subtitle: "(§ 9 Abs. 1 Nr. 11 und Abs. 6 BauGB)"
+        items:
+          - name: "Einfahrtbereich"
+            # subtitle: "(§ 9 Abs. 1 Nr. 4, 11 und Abs. 6 BauGB)"
+            type: empty
+            blockSymbol: "Einfahrtbereich"
       #     - name: "Verkehrsfläche besonderer Zweckbestimmung"
       #       type: area
       #       applyHatch: true
