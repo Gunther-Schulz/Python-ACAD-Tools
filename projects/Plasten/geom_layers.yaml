@@ -188,6 +188,7 @@ geomLayers:
           - Wald
           - Baumabstand Puffer
           - Exclude
+        reverseDifference: false
       - type: filterGeometry
         minArea: 10
       # Calculate new areas and compare
@@ -277,6 +278,7 @@ geomLayers:
           - Wald
           - Baumabstand Puffer
           - Exclude
+        reverseDifference: false
       - type: filterGeometry
         minArea: 10
       # Calculate new areas and compare
@@ -346,6 +348,7 @@ geomLayers:
           - Wald
           - Baumabstand Puffer
           - Exclude
+        reverseDifference: false
       - type: filterGeometry
         minArea: 10
       # Calculate new areas and compare
@@ -507,6 +510,7 @@ geomLayers:
           - Geltungsbereich NW
           - Geltungsbereich NO
           - Geltungsbereich S
+        reverseDifference: false
   - name: Biotope Innerhalb Geltungsbereich
     operations:
       - type: copy
@@ -559,8 +563,6 @@ geomLayers:
         calculate:
           - area
           - perimeter
-          - centroid
-          - bounds
         decimalPlaces:
           area: 0
   - name: Biotop Report S
@@ -576,8 +578,6 @@ geomLayers:
         calculate:
           - area
           - perimeter
-          - centroid
-          - bounds
         decimalPlaces:
           area: 0
   - name: Ausgleichsfläche Gesamt
@@ -624,8 +624,6 @@ geomLayers:
         calculate:
           - area
           - perimeter
-          - centroid
-          - bounds
         decimalPlaces:
           area: 0
   - name: Ausgleichsfläche Report NO
@@ -642,8 +640,6 @@ geomLayers:
         calculate:
           - area
           - perimeter
-          - centroid
-          - bounds
         decimalPlaces:
           area: 0
   - name: Ausgleichsfläche Report S
@@ -659,8 +655,6 @@ geomLayers:
         calculate:
           - area
           - perimeter
-          - centroid
-          - bounds
         decimalPlaces:
           area: 0
   - name: Ausgleich Grünfläche
@@ -695,6 +689,7 @@ geomLayers:
       - type: difference
         layers:
           - Ausgleich Grünfläche
+        reverseDifference: false
       - type: intersection
         layers:
           - Geltungsbereich NW
@@ -739,6 +734,7 @@ geomLayers:
             layers:
               - Biotope
               - Ausgleichsfläche Gesamt
+        reverseDifference: false
       - type: intersection
         layers:
           - Geltungsbereich NW
@@ -763,8 +759,6 @@ geomLayers:
         calculate:
           - area
           - perimeter
-          - centroid
-          - bounds
         decimalPlaces:
           area: 0
   - name: Biotoppuffer Report S
@@ -780,8 +774,6 @@ geomLayers:
         calculate:
           - area
           - perimeter
-          - centroid
-          - bounds
         decimalPlaces:
           area: 0
   - name: Schutzflächeumgrenzung T-Symbol Temp
@@ -904,8 +896,6 @@ geomLayers:
         calculate:
           - area
           - perimeter
-          - centroid
-          - bounds
         decimalPlaces:
           area: 0
   - name: Baugrenze Report NO
@@ -921,8 +911,6 @@ geomLayers:
         calculate:
           - area
           - perimeter
-          - centroid
-          - bounds
         decimalPlaces:
           area: 0
   - name: Baugrenze Report S
@@ -938,8 +926,6 @@ geomLayers:
         calculate:
           - area
           - perimeter
-          - centroid
-          - bounds
         decimalPlaces:
           area: 0
   - name: Baufeldstreifen Report NW
@@ -950,6 +936,7 @@ geomLayers:
       - type: difference
         layers:
           - Baugrenze
+        reverseDifference: false
       - type: intersection
         layers:
           - Geltungsbereich NW
@@ -958,8 +945,6 @@ geomLayers:
         calculate:
           - area
           - perimeter
-          - centroid
-          - bounds
         decimalPlaces:
           area: 0
   - name: Baufeldstreifen Report NO
@@ -970,6 +955,7 @@ geomLayers:
       - type: difference
         layers:
           - Baugrenze
+        reverseDifference: false
       - type: intersection
         layers:
           - Geltungsbereich NO
@@ -978,8 +964,6 @@ geomLayers:
         calculate:
           - area
           - perimeter
-          - centroid
-          - bounds
         decimalPlaces:
           area: 0
   - name: Baufeldstreifen Report S
@@ -990,6 +974,7 @@ geomLayers:
       - type: difference
         layers:
           - Baugrenze
+        reverseDifference: false
       - type: intersection
         layers:
           - Geltungsbereich S
@@ -998,8 +983,6 @@ geomLayers:
         calculate:
           - area
           - perimeter
-          - centroid
-          - bounds
         decimalPlaces:
           area: 0
   # - name: Contour

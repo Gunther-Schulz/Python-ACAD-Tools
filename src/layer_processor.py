@@ -329,8 +329,14 @@ class LayerProcessor:
                             invalid_geometries.append((idx, "Empty geometry"))
                         elif isinstance(geom, (Polygon, MultiPolygon)):
                             # Check for self-intersection in polygons
-                            if not geom.exterior.is_simple:
-                                invalid_geometries.append((idx, "Self-intersecting polygon"))
+                            if isinstance(geom, Polygon):
+                                if not geom.exterior.is_simple:
+                                    invalid_geometries.append((idx, "Self-intersecting polygon"))
+                            else:  # MultiPolygon
+                                for poly in geom.geoms:
+                                    if not poly.exterior.is_simple:
+                                        invalid_geometries.append((idx, "Self-intersecting polygon in MultiPolygon"))
+                                        break
                 
                     if null_geometries:
                         log_warning(f"Null geometries found in layer '{layer_name}' at indices: {null_geometries}")
