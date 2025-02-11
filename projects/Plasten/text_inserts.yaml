@@ -36,7 +36,7 @@ textInserts:
     updateDxf: true
     paperspace: true  # Add this to place text in paper space
     justification: "CENTER" 
-    text: "VORENTWURF\nSATZUNG DER GEMEINDE\nGROß PLASTEN\nÜBER DEN VORHABENSBEZOGENER BEBAUUNGSPLAN\nNR: 6 „Solarpark am Devener Weg“"
+    text: "VORENTWURF\nSATZUNG DER GEMEINDE\nGROß PLASTEN\nÜBER DEN VORHABENSBEZOGENEN BEBAUUNGSPLAN\nNR: 6 „Solarpark am Devener Weg“"
     position:
       type: "absolute"
       x: 2590
