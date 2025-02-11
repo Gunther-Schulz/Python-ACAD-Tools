@@ -51,6 +51,9 @@ class Application:
             # Load or create DXF document
             self._initialize_document()
             
+            # Share document with all processors
+            self._share_document()
+            
             # Download map layers if configured
             if self.config.project_config.wmts_layers or self.config.project_config.wms_layers:
                 log_info("Processing map layers...")
@@ -59,13 +62,11 @@ class Application:
             # Process geometry layers
             if self.config.project_config.geom_layers:
                 log_info("Processing geometry layers...")
-                self.layer_processor.set_dxf_document(self.doc)
                 self.layer_processor.process_layers()
             
             # Export processed layers to DXF
             if self.layer_processor.processed_layers:
                 log_info("Exporting to DXF...")
-                self.dxf_exporter.set_dxf_document(self.doc)
                 self.dxf_exporter.export_to_dxf(
                     self.layer_processor.processed_layers
                 )
@@ -73,19 +74,16 @@ class Application:
             # Create legends if configured
             if self.config.project_config.legends:
                 log_info("Creating legends...")
-                self.legend_creator.set_dxf_document(self.doc)
                 self.legend_creator.create_legends()
             
             # Process block insertions if configured
             if self.config.project_config.block_inserts:
                 log_info("Processing block insertions...")
-                self.block_manager.set_dxf_document(self.doc)
                 self.block_manager.process_block_inserts()
             
             # Process text insertions if configured
             if self.config.project_config.text_inserts:
                 log_info("Processing text insertions...")
-                self.text_manager.set_dxf_document(self.doc)
                 self.text_manager.process_text_inserts()
             
             # Save final document
@@ -96,27 +94,70 @@ class Application:
         except Exception as e:
             log_error(f"Error during processing: {str(e)}")
             raise
-        finally:
-            self._cleanup()
+
+    def _share_document(self) -> None:
+        """Share the document with all processors."""
+        if not self.doc:
+            return
+            
+        processors = [
+            self.layer_processor,
+            self.dxf_exporter,
+            self.legend_creator,
+            self.map_downloader,
+            self.block_manager,
+            self.text_manager
+        ]
+        
+        for processor in processors:
+            processor.set_dxf_document(self.doc)
+            log_debug(f"Shared document with {processor.__class__.__name__}")
 
     def _initialize_document(self) -> None:
         """Initialize the DXF document."""
         try:
-            # Try to load template if specified
-            if self.config.project_config.template_dxf:
-                template_path = self.config.project_config.template_dxf
-                log_info(f"Loading template DXF: {template_path}")
-                self.doc = load_document(template_path)
+            dxf_path = Path(self.config.project_config.dxf_filename)
             
-            # Try to load existing file
-            elif Path(self.config.project_config.dxf_filename).exists():
-                log_info(f"Loading existing DXF: {self.config.project_config.dxf_filename}")
-                self.doc = load_document(self.config.project_config.dxf_filename)
+            # Create backup of existing file if it exists
+            if dxf_path.exists():
+                backup_path = dxf_path.with_suffix('.dxf.bak')
+                try:
+                    from shutil import copy2
+                    copy2(dxf_path, backup_path)
+                    log_debug(f"Created backup of existing DXF file: {backup_path}")
+                except Exception as e:
+                    log_warning(f"Failed to create backup: {str(e)}")
+
+            # Try to load existing file first
+            if dxf_path.exists():
+                log_info(f"Loading existing DXF: {dxf_path}")
+                self.doc = load_document(dxf_path)
+                log_debug("Successfully loaded existing DXF file")
             
-            # Create new document
+            # Try to load template if specified and no existing file
+            elif self.config.project_config.template_dxf:
+                template_path = Path(self.config.project_config.template_dxf)
+                if template_path.exists():
+                    log_info(f"Loading template DXF: {template_path}")
+                    self.doc = load_document(template_path)
+                    log_debug("Successfully loaded template DXF file")
+                else:
+                    log_warning(f"Template file not found: {template_path}")
+                    log_info("Creating new DXF document")
+                    self.doc = ezdxf.new(self.config.project_config.dxf_version)
+            
+            # Create new document as last resort
             else:
                 log_info("Creating new DXF document")
                 self.doc = ezdxf.new(self.config.project_config.dxf_version)
+            
+            # Validate the document
+            if self.doc:
+                auditor = self.doc.audit()
+                if len(auditor.errors) > 0:
+                    log_warning(f"DXF document has {len(auditor.errors)} validation errors")
+                    for error in auditor.errors:
+                        log_warning(f"  - {error}")
             
         except Exception as e:
             log_error(f"Error initializing DXF document: {str(e)}")
@@ -125,29 +166,13 @@ class Application:
     def _save_document(self) -> None:
         """Save the DXF document."""
         if not self.doc:
+            log_warning("No document to save")
             return
             
         try:
-            # Create output directory if needed
-            output_path = Path(self.config.project_config.dxf_filename)
-            output_path.parent.mkdir(parents=True, exist_ok=True)
-            
-            # Save document
-            save_document(
-                self.doc,
-                output_path,
-                encoding='utf-8'
-            )
-            log_info(f"Saved DXF document to {output_path}")
-            
-        except Exception as e:
-            log_error(f"Error saving DXF document: {str(e)}")
-            raise
-
-    def _cleanup(self) -> None:
-        """Clean up resources."""
-        try:
-            # Clean up processors
+            # Phase 1: Processor cleanup
+            log_debug("Starting processor cleanup...")
+            cleanup_errors = []
             for processor in [
                 self.layer_processor,
                 self.dxf_exporter,
@@ -156,13 +181,39 @@ class Application:
                 self.block_manager,
                 self.text_manager
             ]:
-                processor.cleanup()
+                try:
+                    processor.cleanup()
+                    log_debug(f"Cleaned up {processor.__class__.__name__}")
+                except Exception as e:
+                    error_msg = f"Error cleaning up {processor.__class__.__name__}: {str(e)}"
+                    cleanup_errors.append(error_msg)
+                    log_warning(error_msg)
             
-            # Clean up document
-            if self.doc:
-                cleanup_document(self.doc)
+            if cleanup_errors:
+                log_warning("Some cleanup operations failed but continuing with save")
             
-            log_debug("Cleanup completed")
+            # Phase 2: Prepare output directory
+            output_path = Path(self.config.project_config.dxf_filename)
+            try:
+                output_path.parent.mkdir(parents=True, exist_ok=True)
+                log_debug(f"Ensured output directory exists: {output_path.parent}")
+            except Exception as e:
+                log_error(f"Failed to create output directory: {str(e)}")
+                raise
+            
+            # Phase 3: Save document
+            log_info(f"Saving DXF document to: {output_path}")
+            try:
+                save_document(
+                    self.doc,
+                    output_path,
+                    encoding='utf-8'
+                )
+                log_info("Document saved successfully")
+            except Exception as e:
+                log_error(f"Failed to save document: {str(e)}")
+                raise
             
         except Exception as e:
-            log_warning(f"Error during cleanup: {str(e)}") 
+            log_error(f"Error during save process: {str(e)}")
+            raise 

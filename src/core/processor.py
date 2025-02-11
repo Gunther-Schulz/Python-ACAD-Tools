@@ -146,6 +146,7 @@ class BaseProcessor:
         This method should be overridden by subclasses to perform
         any necessary cleanup.
         """
+        # Base implementation does nothing
         pass
 
     def __enter__(self):

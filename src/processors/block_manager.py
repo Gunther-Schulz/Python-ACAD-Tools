@@ -192,8 +192,12 @@ class BlockManager(BaseProcessor):
 
     def cleanup(self) -> None:
         """Clean up resources."""
-        # Purge unused blocks
-        if self.doc:
-            deleted_blocks = self.doc.blocks.purge()
-            if deleted_blocks:
-                log_debug(f"Purged {len(deleted_blocks)} unused blocks") 
+        # Try to purge unused blocks if supported
+        if self.doc and hasattr(self.doc.blocks, 'purge'):
+            try:
+                deleted_blocks = self.doc.blocks.purge()
+                if deleted_blocks:
+                    log_debug(f"Purged {len(deleted_blocks)} unused blocks")
+            except Exception as e:
+                log_warning(f"Error purging unused blocks: {str(e)}")
+                pass 

@@ -234,8 +234,12 @@ class TextManager(BaseProcessor):
 
     def cleanup(self) -> None:
         """Clean up resources."""
-        # Purge unused text styles
-        if self.doc:
-            deleted_styles = self.doc.styles.purge()
-            if deleted_styles:
-                log_debug(f"Purged {len(deleted_styles)} unused text styles") 
+        # Try to purge unused text styles if supported
+        if self.doc and hasattr(self.doc.styles, 'purge'):
+            try:
+                deleted_styles = self.doc.styles.purge()
+                if deleted_styles:
+                    log_debug(f"Purged {len(deleted_styles)} unused text styles")
+            except Exception as e:
+                log_warning(f"Error purging unused text styles: {str(e)}")
+                pass 

@@ -56,31 +56,35 @@ def save_document(doc: Drawing, filepath: Union[str, Path], encoding: str = 'utf
     log_info(f"Saved DXF document to {filepath}")
 
 def cleanup_document(doc: Drawing) -> None:
-    """Clean up unused resources in a DXF document.
+    """Clean up a DXF document by removing unused elements.
     
     Args:
-        doc: DXF document to clean
+        doc: The DXF document to clean up
     """
     try:
-        # Purge unused entities from the database
-        try:
-            doc.entitydb.purge()
-            log_debug("Purged unused entities from database")
-        except Exception as e:
-            log_warning(f"Database purge failed: {str(e)}")
-
-        # Audit the document
-        try:
-            auditor = doc.audit()
-            if len(auditor.errors) > 0:
-                log_warning(f"DXF document has {len(auditor.errors)} validation errors")
-                for error in auditor.errors:
-                    log_warning(f"DXF validation error: {error}")
-        except Exception as e:
-            log_warning(f"Document audit failed (this is not critical): {str(e)}")
-
+        # Try to purge unused blocks, layers, linetypes, etc.
+        if hasattr(doc.blocks, 'purge'):
+            doc.blocks.purge()
+        if hasattr(doc.layers, 'purge'):
+            doc.layers.purge()
+        if hasattr(doc.linetypes, 'purge'):
+            doc.linetypes.purge()
+        if hasattr(doc.styles, 'purge'):
+            doc.styles.purge()
+        if hasattr(doc.dimstyles, 'purge'):
+            doc.dimstyles.purge()
+            
+        # Audit and fix document
+        auditor = doc.audit()
+        if len(auditor.errors) > 0:
+            log_warning(f"Found {len(auditor.errors)} issues during document audit")
+            for error in auditor.errors:
+                log_warning(f"  - {error}")
+                
     except Exception as e:
         log_warning(f"Error during document cleanup: {str(e)}")
+        # Continue without cleanup if it fails
+        pass
 
 def copy_entity(entity: DXFGraphic, target_layout: Layout, 
                 properties: Optional[Dict[str, Any]] = None) -> DXFGraphic:

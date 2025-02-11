@@ -57,12 +57,23 @@ class ConfigManager:
             ValueError: If required file doesn't exist
         """
         try:
+            log_debug(f"Attempting to load YAML file: {filepath}")
             with open(filepath, 'r', encoding='utf-8') as file:
                 data = yaml.safe_load(file)
-                return data if data is not None else {}
+                if data is None:
+                    log_warning(f"YAML file is empty or invalid: {filepath}")
+                    return {}
+                log_debug(f"Successfully loaded YAML file: {filepath}")
+                return data
         except FileNotFoundError:
             if required:
                 raise ValueError(f"Required config file not found: {filepath}")
+            log_warning(f"Optional config file not found: {filepath}")
+            return {}
+        except yaml.YAMLError as e:
+            log_error(f"Error parsing YAML file {filepath}: {str(e)}")
+            if required:
+                raise
             return {}
 
     def _load_global_config(self) -> GlobalConfig:
@@ -80,6 +91,8 @@ class ConfigManager:
         
         # Load modular configurations
         geom_layers = self._load_yaml_file(self.project_dir / 'geom_layers.yaml', required=False)
+        log_debug(f"Loaded geom_layers config: {geom_layers}")
+        
         legends = self._load_yaml_file(self.project_dir / 'legends.yaml', required=False)
         viewports = self._load_yaml_file(self.project_dir / 'viewports.yaml', required=False)
         block_inserts = self._load_yaml_file(self.project_dir / 'block_inserts.yaml', required=False)
@@ -100,7 +113,7 @@ class ConfigManager:
         template_dxf = None
         if 'templateDxfFilename' in main_settings:
             template_dxf = self.resolve_path(main_settings['templateDxfFilename'])
-            log_info(f"Using template DXF: {template_dxf}")
+            log_debug(f"Found template DXF path: {template_dxf}")
 
         return ProjectConfig(
             crs=main_settings['crs'],
@@ -148,23 +161,37 @@ class ConfigManager:
 
     def _validate_layer_names(self, layers: List[Dict[str, Any]]) -> None:
         """Validate layer names for uniqueness"""
+        log_debug(f"Validating {len(layers)} layer names for uniqueness")
         layer_names = {}
         for idx, layer in enumerate(layers):
             name = layer.get('name')
+            if not name:
+                log_warning(f"Layer at position {idx} has no name")
+                continue
             if name in layer_names:
                 raise ValueError(
                     f"Duplicate layer name found: '{name}' at positions {layer_names[name]} and {idx}"
                 )
             layer_names[name] = idx
+            log_debug(f"Validated layer name: {name}")
+        log_debug("Layer name validation complete")
 
     def _process_geom_layers(self, layers: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Process geometry layers, resolving paths and validating operations"""
+        log_debug(f"Processing {len(layers)} geometry layers")
+        processed_layers = []
         for layer in layers:
-            if 'shapeFile' in layer:
-                layer['shapeFile'] = self.resolve_path(layer['shapeFile'])
-            if 'operations' in layer:
-                layer['operations'] = self._validate_operations(layer['operations'], layer.get('name', 'Unknown'))
-        return layers
+            try:
+                if 'shapeFile' in layer:
+                    layer['shapeFile'] = self.resolve_path(layer['shapeFile'])
+                if 'operations' in layer:
+                    layer['operations'] = self._validate_operations(layer['operations'], layer.get('name', 'Unknown'))
+                processed_layers.append(layer)
+                log_debug(f"Processed layer: {layer.get('name', 'Unknown')}")
+            except Exception as e:
+                log_error(f"Error processing layer {layer.get('name', 'Unknown')}: {str(e)}")
+                raise
+        return processed_layers
 
     def _validate_operations(self, operations: List[Dict[str, Any]], layer_name: str) -> List[Dict[str, Any]]:
         """Validate layer operations"""

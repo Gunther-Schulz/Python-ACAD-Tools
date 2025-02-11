@@ -57,24 +57,30 @@ class LayerProcessor(BaseProcessor):
             return
 
         log_info(f"Processing layer: {layer_name}")
+        log_debug(f"Layer config: {layer_config}")
 
         # Load source data
         gdf = self._load_source_data(layer_config)
         if gdf is None or len(gdf) == 0:
             log_warning(f"No data loaded for layer {layer_name}")
             return
+        
+        log_debug(f"Loaded {len(gdf)} features for layer {layer_name}")
 
         # Apply operations
         if 'operations' in layer_config:
+            log_debug(f"Applying operations for layer {layer_name}")
             gdf = self._apply_operations(gdf, layer_config['operations'])
 
         # Apply style
         if 'style' in layer_config:
+            log_debug(f"Applying style for layer {layer_name}")
             style = self.get_style(layer_config['style'])
             self._apply_layer_style(layer_name, style)
 
         # Store processed layer
         self.processed_layers[layer_name] = gdf
+        log_debug(f"Stored processed layer {layer_name} with {len(gdf)} features")
 
         # Export to shapefile if configured
         if 'outputShapeFile' in layer_config:
@@ -92,11 +98,23 @@ class LayerProcessor(BaseProcessor):
             GeoDataFrame with source data or None if loading fails
         """
         if 'shapeFile' in layer_config:
-            shapefile = self.resolve_path(layer_config['shapeFile'])
+            shapefile_path = self.resolve_path(layer_config['shapeFile'])
+            log_debug(f"Loading shapefile from: {shapefile_path}")
             try:
-                return gpd.read_file(shapefile)
+                gdf = gpd.read_file(shapefile_path)
+                log_debug(f"Successfully loaded shapefile with {len(gdf)} features")
+                
+                # Transform CRS if needed
+                if gdf.crs is None:
+                    log_warning(f"Shapefile has no CRS defined, assuming {self.config.project_config.crs}")
+                    gdf.set_crs(self.config.project_config.crs, inplace=True)
+                elif gdf.crs != self.config.project_config.crs:
+                    log_debug(f"Transforming CRS from {gdf.crs} to {self.config.project_config.crs}")
+                    gdf = gdf.to_crs(self.config.project_config.crs)
+                
+                return gdf
             except Exception as e:
-                log_error(f"Error loading shapefile {shapefile}: {str(e)}")
+                log_error(f"Failed to load shapefile: {str(e)}")
                 return None
         elif 'dxfLayer' in layer_config:
             return self._load_from_dxf(layer_config['dxfLayer'])

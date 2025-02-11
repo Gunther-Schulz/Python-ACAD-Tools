@@ -24,101 +24,123 @@ class DXFExporter(BaseProcessor):
             config_manager: Configuration manager instance
         """
         super().__init__(config_manager)
-        self.template_doc: Optional[Drawing] = None
-        self._initialize()
-
-    def _initialize(self) -> None:
-        """Initialize DXF exporter resources."""
-        # Load template if specified
-        if self.config.project_config.template_dxf:
-            try:
-                self.template_doc = load_document(
-                    self.config.project_config.template_dxf
-                )
-                log_info(f"Loaded template DXF: {self.config.project_config.template_dxf}")
-            except Exception as e:
-                log_error(f"Error loading template DXF: {str(e)}")
-                self.template_doc = None
+        self.doc: Optional[Drawing] = None
 
     def export_to_dxf(self, processed_layers: Dict[str, gpd.GeoDataFrame]) -> None:
-        """Export processed layers to DXF.
+        """Export processed layers to DXF and apply operations.
         
         Args:
             processed_layers: Dictionary of layer name to GeoDataFrame
         """
-        # Create or load base document
-        self.doc = self._load_or_create_dxf()
         if not self.doc:
+            log_error("No document set for export. Call set_dxf_document() first.")
             return
-
+            
         try:
-            # Process each layer
+            log_info("Starting DXF export...")
+            
+            # Phase 1: Setup and validation
+            log_debug("Setting up layers...")
+            self._setup_layers(processed_layers)
+            
+            # Get target layout
+            layout = get_layout(self.doc)
+            log_debug("Using model space layout")
+            
+            # Phase 2: Export geometries
+            log_debug("Exporting geometries to layers...")
             for layer_name, gdf in processed_layers.items():
-                self._export_layer(layer_name, gdf)
-
-            # Apply DXF operations if configured
+                if not gdf.empty:
+                    try:
+                        self._export_layer(layer_name, gdf, layout)
+                        log_debug(f"Successfully exported layer: {layer_name}")
+                    except Exception as e:
+                        log_error(f"Failed to export layer {layer_name}: {str(e)}")
+                        raise
+            
+            # Phase 3: Apply DXF operations
             if self.config.project_config.dxf_operations:
-                self._apply_dxf_operations()
-
-            # Clean up and save
-            cleanup_document(self.doc)
-            save_document(
-                self.doc,
-                self.config.project_config.dxf_filename,
-                encoding='utf-8'
-            )
-            log_info(f"Exported DXF to {self.config.project_config.dxf_filename}")
-
+                log_info("Applying DXF operations...")
+                try:
+                    self._apply_dxf_operations()
+                    log_debug("DXF operations completed successfully")
+                except Exception as e:
+                    log_error(f"Failed to apply DXF operations: {str(e)}")
+                    raise
+            
+            log_info("DXF export completed successfully")
+            
         except Exception as e:
-            log_error(f"Error exporting to DXF: {str(e)}")
+            log_error(f"Error during DXF export: {str(e)}")
             raise
 
-    def _load_or_create_dxf(self) -> Optional[Drawing]:
-        """Load existing DXF or create new one.
+    def _setup_layers(self, processed_layers: Dict[str, gpd.GeoDataFrame]) -> None:
+        """Setup DXF layers with proper properties.
         
-        Returns:
-            DXF document or None if creation fails
+        Args:
+            processed_layers: Dictionary of layer name to GeoDataFrame
         """
-        dxf_path = Path(self.config.project_config.dxf_filename)
-        
-        try:
-            if self.template_doc:
-                # Use template as base
-                doc = self.template_doc
-                log_info("Using template as base document")
-            elif dxf_path.exists():
-                # Load existing file
-                doc = load_document(dxf_path)
-                log_info(f"Loaded existing DXF: {dxf_path}")
-            else:
-                # Create new document
-                doc = create_document(self.config.project_config.dxf_version)
-                log_info(f"Created new DXF document with version {self.config.project_config.dxf_version}")
-            
-            return doc
+        for layer_name in processed_layers.keys():
+            try:
+                # Get layer config from project settings
+                layer_config = next(
+                    (l for l in self.config.project_config.geom_layers if l['name'] == layer_name),
+                    None
+                )
+                
+                if not layer_config:
+                    log_warning(f"No configuration found for layer: {layer_name}")
+                    continue
+                
+                # Create layer if it doesn't exist
+                if layer_name not in self.doc.layers:
+                    self.doc.layers.new(layer_name)
+                    log_debug(f"Created new layer: {layer_name}")
+                
+                # Apply layer properties from style
+                if 'style' in layer_config:
+                    layer = self.doc.layers.get(layer_name)
+                    style = self.get_style(layer_config['style'])
+                    
+                    # Apply basic properties
+                    if 'color' in style:
+                        layer.color = self.get_color_code(style['color'])
+                    if 'linetype' in style:
+                        layer.linetype = style['linetype']
+                    if 'lineweight' in style:
+                        layer.lineweight = style['lineweight']
+                    
+                    # Apply status properties
+                    layer.plot = style.get('plot', True)
+                    layer.locked = style.get('locked', False)
+                    layer.frozen = style.get('frozen', False)
+                    layer.off = not style.get('is_on', True)
+                    
+                    # Apply transparency if specified
+                    if 'transparency' in style:
+                        try:
+                            transparency = float(style['transparency'])
+                            if 0 <= transparency <= 1:
+                                layer.transparency = int(transparency * 100)
+                        except (ValueError, TypeError):
+                            log_warning(f"Invalid transparency value for layer {layer_name}")
+                    
+                    log_debug(f"Applied style properties to layer: {layer_name}")
+                
+            except Exception as e:
+                log_error(f"Error setting up layer {layer_name}: {str(e)}")
+                raise
 
-        except Exception as e:
-            log_error(f"Error creating/loading DXF document: {str(e)}")
-            return None
-
-    def _export_layer(self, layer_name: str, gdf: gpd.GeoDataFrame) -> None:
+    def _export_layer(self, layer_name: str, gdf: gpd.GeoDataFrame, layout: Layout) -> None:
         """Export a GeoDataFrame to a DXF layer.
         
         Args:
             layer_name: Name of the layer
             gdf: GeoDataFrame to export
+            layout: Target layout
         """
-        if not self.validate_document():
-            return
-
-        # Ensure layer exists
-        if layer_name not in self.doc.layers:
-            self.doc.layers.new(layer_name)
-            log_debug(f"Created new layer: {layer_name}")
-
-        # Get target layout
-        layout = get_layout(self.doc)
-
+        log_debug(f"Exporting geometries to layer: {layer_name}")
+        
         # Export each geometry
         for geom in gdf.geometry:
             try:
