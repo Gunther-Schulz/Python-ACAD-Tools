@@ -61,25 +61,46 @@ def cleanup_document(doc: Drawing) -> None:
     Args:
         doc: DXF document to clean
     """
-    # Purge unused layers
-    deleted_layers = doc.layers.purge()
-    if deleted_layers:
-        log_debug(f"Purged {len(deleted_layers)} unused layers")
+    try:
+        # Purge unused blocks
+        deleted_blocks = doc.blocks.purge()
+        if deleted_blocks:
+            log_debug(f"Purged {len(deleted_blocks)} unused blocks")
 
-    # Purge unused linetypes
-    deleted_linetypes = doc.linetypes.purge()
-    if deleted_linetypes:
-        log_debug(f"Purged {len(deleted_linetypes)} unused linetypes")
+        # Purge unused linetypes
+        deleted_linetypes = doc.linetypes.purge()
+        if deleted_linetypes:
+            log_debug(f"Purged {len(deleted_linetypes)} unused linetypes")
 
-    # Purge unused text styles
-    deleted_styles = doc.styles.purge()
-    if deleted_styles:
-        log_debug(f"Purged {len(deleted_styles)} unused text styles")
+        # Purge unused text styles
+        deleted_styles = doc.styles.purge()
+        if deleted_styles:
+            log_debug(f"Purged {len(deleted_styles)} unused text styles")
 
-    # Purge unused blocks
-    deleted_blocks = doc.blocks.purge()
-    if deleted_blocks:
-        log_debug(f"Purged {len(deleted_blocks)} unused blocks")
+        # Purge unused dimension styles
+        deleted_dimstyles = doc.dimstyles.purge()
+        if deleted_dimstyles:
+            log_debug(f"Purged {len(deleted_dimstyles)} unused dimension styles")
+
+        # Purge unused appids
+        deleted_appids = doc.appids.purge()
+        if deleted_appids:
+            log_debug(f"Purged {len(deleted_appids)} unused appids")
+
+        # Purge unused viewports
+        deleted_viewports = doc.viewports.purge()
+        if deleted_viewports:
+            log_debug(f"Purged {len(deleted_viewports)} unused viewports")
+
+        # Audit the document
+        auditor = doc.audit()
+        if len(auditor.errors) > 0:
+            log_warning(f"DXF document has {len(auditor.errors)} validation errors")
+            for error in auditor.errors:
+                log_warning(f"DXF validation error: {error}")
+
+    except Exception as e:
+        log_warning(f"Error during document cleanup: {str(e)}")
 
 def copy_entity(entity: DXFGraphic, target_layout: Layout, 
                 properties: Optional[Dict[str, Any]] = None) -> DXFGraphic:

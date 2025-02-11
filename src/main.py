@@ -3,8 +3,8 @@ import sys
 import argparse
 from pathlib import Path
 
-from core.application import Application
-from utils.logging import log_error
+from src.core.application import Application
+from src.utils.logging import log_error
 
 def parse_args() -> argparse.Namespace:
     """Parse command line arguments.

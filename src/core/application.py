@@ -3,18 +3,18 @@ from pathlib import Path
 import ezdxf
 from ezdxf.document import Drawing
 
-from core.config import ConfigManager
-from core.processor import BaseProcessor
-from utils.logging import (
+from src.core.config import ConfigManager
+from src.core.processor import BaseProcessor
+from src.utils.logging import (
     setup_logging, log_debug, log_info, log_warning, log_error
 )
-from utils.dxf import load_document, save_document, cleanup_document
-from processors.layer_processor import LayerProcessor
-from processors.dxf_exporter import DXFExporter
-from processors.legend_creator import LegendCreator
-from processors.map_downloader import MapDownloader
-from processors.block_manager import BlockManager
-from processors.text_manager import TextManager
+from src.utils.dxf import load_document, save_document, cleanup_document
+from src.processors.layer_processor import LayerProcessor
+from src.processors.dxf_exporter import DXFExporter
+from src.processors.legend_creator import LegendCreator
+from src.processors.map_downloader import MapDownloader
+from src.processors.block_manager import BlockManager
+from src.processors.text_manager import TextManager
 
 class Application:
     """Main application class coordinating all CAD/GIS operations."""

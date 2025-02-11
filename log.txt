@@ -1,0 +1,6 @@
+2025-02-11 19:28:16 - INFO - Initialized application for project: Torgelow2
+2025-02-11 19:28:16 - INFO - Loading existing DXF: /home/g/hidrive/Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/Zeichnung/dev/25 01.29. Torgelow.dxf
+2025-02-11 19:28:16 - INFO - Saved DXF document to /home/g/hidrive/Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/Zeichnung/dev/25 01.29. Torgelow.dxf
+2025-02-11 19:28:16 - INFO - Saved DXF document to /home/g/hidrive/Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/Zeichnung/dev/25 01.29. Torgelow.dxf
+2025-02-11 19:28:16 - INFO - Processing completed successfully
+2025-02-11 19:28:16 - WARNING - Error during cleanup: 'LayerTable' object has no attribute 'purge'
