@@ -1,0 +1,64 @@
+# Example configuration for geometry labels
+labels:
+  # Label parcels with their IDs
+  - name: "Parcel Labels"
+    updateDxf: true
+    targetLayer: "Parcel Labels"
+    style: "parcelLabel"  # Reference to a style defined in styles.yaml
+    # Get text from geometry attribute
+    attribute: "parcel_id"
+    placement:
+      position: "centroid"  # centroid, center, boundary, along_line
+      offset:
+        x: 0
+        y: 0
+      rotation: 0
+      avoidCollisions: true
+      minDistance: 2.0
+      leaderLine: true
+      leaderStyle:
+        color: "white"
+
+  # Label roads with names
+  - name: "Road Labels"
+    updateDxf: true
+    targetLayer: "Road Labels"
+    style: "roadLabel"
+    # Use template with multiple attributes
+    template: "{name} ({type})"
+    placement:
+      position: "along_line"
+      labelSpacing: 100  # Space between repeated labels on long lines
+      avoidCollisions: true
+      minDistance: 5.0
+
+  # Static label example
+  - name: "Area Label"
+    updateDxf: true
+    targetLayer: "Area Labels"
+    style: "areaLabel"
+    # Static text
+    text: "Protected Area"
+    placement:
+      position: "center"
+      rotation: 45  # Rotate text 45 degrees
+      avoidCollisions: true
+      leaderLine: true
+
+  # Complex example with multiple options
+  - name: "Building Labels"
+    updateDxf: true
+    targetLayer: "Building Labels"
+    style: "buildingLabel"
+    # Template with conditional formatting
+    template: "Building {number}{' (Historic)' if historic else ''}"
+    placement:
+      position: "centroid"
+      offset:
+        x: 2
+        y: 2
+      avoidCollisions: true
+      minDistance: 3.0
+      leaderLine: true
+      leaderStyle:
+        color: "cyan" 

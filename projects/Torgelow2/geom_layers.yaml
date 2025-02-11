@@ -3,4 +3,17 @@ geomLayers:
     updateDxf: true
     close: true
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/input/flur2.shp"
- 
+    # Add labels for Flur
+    labels:
+      updateDxf: true
+      targetLayer: "Flur Labels"
+      # style: "flurLabel"  # Define this in styles.yaml
+      # You can use attribute from shapefile
+      attribute: "flurname"  # Replace with actual attribute name from shapefile
+      placement:
+        position: "centroid"
+        avoidCollisions: true
+        minDistance: 2.0
+        leaderLine: true
+        leaderStyle:
+          color: "white"
