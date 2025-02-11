@@ -156,13 +156,16 @@ class LabelPlacer:
         try:
             dxfattribs = {
                 'layer': layer,
-                'height': char_height,
+                'char_height': char_height,
                 'rotation': rotation
             }
             
             # Apply style properties
             if 'color' in style:
-                dxfattribs['color'] = style['color']
+                # Get color code using config manager's get_color_code method
+                color_code = self.style_manager.get_color_code(style['color'])
+                dxfattribs['color'] = color_code
+
             if 'style' in style:
                 dxfattribs['style'] = style['style']
 
@@ -189,12 +192,17 @@ class LabelPlacer:
             options.leader_style = {'color': 7}  # Default white
 
         try:
+            # Get color code using config manager's get_color_code method
+            color = options.leader_style.get('color', 7)
+            if isinstance(color, str):
+                color = self.style_manager.get_color_code(color)
+
             points = [(anchor.x, anchor.y), text_pos]
             self.layout.add_lwpolyline(
                 points,
                 dxfattribs={
                     'layer': mtext.dxf.layer,
-                    'color': options.leader_style.get('color', 7)
+                    'color': color
                 }
             )
         except Exception as e:

@@ -124,14 +124,17 @@ class ProjectLoader:
                              f"{len(dxf_operations_settings['dxfOperations'].get('transfers', []))} transfers")
 
     def load_color_mapping(self):
-        """Load color mapping from aci_colors.yaml"""
+        """Load color mapping from project's aci_colors.yaml"""
         try:
-            with open('aci_colors.yaml', 'r') as file:
+            # Try to load from project directory first
+            project_aci_file = os.path.join(self.project_dir, 'aci_colors.yaml')
+            with open(project_aci_file, 'r') as file:
                 color_data = yaml.safe_load(file)
                 self.name_to_aci = {item['name'].lower(): item['aciCode'] for item in color_data}
                 self.aci_to_name = {item['aciCode']: item['name'] for item in color_data}
+                log_debug(f"Loaded color mapping from project-specific aci_colors.yaml")
         except FileNotFoundError:
-            log_warning("aci_colors.yaml not found. Using default color mapping.")
+            log_warning("No project-specific aci_colors.yaml found. Using default color mapping.")
             self.name_to_aci = {'white': 7, 'red': 1, 'yellow': 2, 'green': 3, 'cyan': 4, 'blue': 5, 'magenta': 6}
             self.aci_to_name = {v: k for k, v in self.name_to_aci.items()}
 

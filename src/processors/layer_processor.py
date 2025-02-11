@@ -365,8 +365,8 @@ class LayerProcessor(BaseProcessor):
 
         if self.label_processor is None:
             log_debug("Initializing label processor")
-            # Pass self as the style manager since BaseProcessor has get_style method
-            self.label_processor = LabelProcessor(self.doc.modelspace(), self)
+            # Pass config_manager as the style manager since it has the color mapping
+            self.label_processor = LabelProcessor(self.doc.modelspace(), self.config)
 
         try:
             log_debug(f"Attempting to process labels for {len(geometries)} geometries")

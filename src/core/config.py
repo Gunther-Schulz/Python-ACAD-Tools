@@ -135,21 +135,18 @@ class ConfigManager:
         )
 
     def _load_color_mapping(self) -> Dict[str, Dict[str, int]]:
-        """Load color mapping from aci_colors.yaml"""
+        """Load color mapping from central aci_colors.yaml"""
         try:
+            # Load from central aci_colors.yaml
             color_data = self._load_yaml_file('aci_colors.yaml')
+            log_debug(f"Loaded color mapping from central aci_colors.yaml")
             return {
                 'name_to_aci': {item['name'].lower(): item['aciCode'] for item in color_data},
                 'aci_to_name': {item['aciCode']: item['name'] for item in color_data}
             }
-        except (FileNotFoundError, ValueError):
-            # Fallback to default color mapping
-            default_mapping = {'white': 7, 'red': 1, 'yellow': 2, 'green': 3, 
-                             'cyan': 4, 'blue': 5, 'magenta': 6}
-            return {
-                'name_to_aci': default_mapping,
-                'aci_to_name': {v: k for k, v in default_mapping.items()}
-            }
+        except (FileNotFoundError, ValueError) as e:
+            log_error(f"Failed to load central aci_colors.yaml: {str(e)}")
+            raise ValueError("Central aci_colors.yaml is required but not found")
 
     def _load_styles(self) -> Dict[str, Any]:
         """Load styles from project-specific styles.yaml only"""
