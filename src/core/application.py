@@ -3,18 +3,18 @@ from pathlib import Path
 import ezdxf
 from ezdxf.document import Drawing
 
-from src.core.config import ConfigManager
-from src.core.processor import BaseProcessor
-from src.utils.logging import (
+from pycad.core.config import ConfigManager
+from pycad.core.processor import BaseProcessor
+from pycad.utils.logging import (
     setup_logging, log_debug, log_info, log_warning, log_error
 )
-from src.processors.dxf.dxf import load_document, save_document, cleanup_document
-from src.processors.layer_processor import LayerProcessor
-from src.processors.dxf_exporter import DXFExporter
-from src.processors.legend_creator import LegendCreator
-from src.processors.map_downloader import MapDownloader
-from src.processors.block_manager import BlockManager
-from src.processors.text_manager import TextManager
+from pycad.processors.dxf.dxf import load_document, save_document, cleanup_document
+from pycad.processors.layer_processor import LayerProcessor
+from pycad.processors.dxf_exporter import DXFExporter
+from pycad.processors.legend_creator import LegendCreator
+from pycad.processors.map_downloader import MapDownloader
+from pycad.processors.block_manager import BlockManager
+from pycad.processors.text_manager import TextManager
 
 class Application:
     """Main application class coordinating all CAD/GIS operations."""

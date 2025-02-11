@@ -21,16 +21,11 @@ dependencies = [
 ]
 
 [project.scripts]
-pycad = "src.main:main"
+pycad = "pycad.main:main"
 
 [tool.setuptools]
-package-dir = {"" = "."}
-packages = [
-    "src",
-    "src.core",
-    "src.utils",
-    "src.processors"
-]
+package-dir = {"pycad" = "src"}
+packages = ["pycad"]
 
 [tool.setuptools.package-data]
 "*" = ["*.yaml"] 

@@ -3,13 +3,17 @@ import geopandas as gpd
 from shapely.geometry import LineString, Point, Polygon, MultiPolygon, MultiLineString
 import ezdxf
 from pathlib import Path
+import numpy as np
 
 from ..core.processor import BaseProcessor
 from ..core.config import ConfigManager
 from ..utils.logging import log_debug, log_info, log_warning, log_error
-from .dxf.geometry import (
-    buffer_geometry, smooth_geometry, offset_geometry,
-    simplify_geometry, transform_geometry
+from .label_processor import LabelProcessor
+from ..core.operations import (
+    create_buffer_layer, create_intersection_layer, create_union_layer,
+    create_difference_layer, create_dissolve_layer, create_copy_layer,
+    create_filtered_geometry_layer, create_label_association_layer,
+    create_lagefaktor_layer, create_filtered_by_column_layer
 )
 
 class LayerProcessor(BaseProcessor):
@@ -23,6 +27,7 @@ class LayerProcessor(BaseProcessor):
         """
         super().__init__(config_manager)
         self.processed_layers: Dict[str, gpd.GeoDataFrame] = {}
+        self.label_processor = None  # Will be initialized when needed
         self._initialize()
 
     def _initialize(self) -> None:
@@ -181,167 +186,45 @@ class LayerProcessor(BaseProcessor):
             log_warning(f"Error converting {dxftype} entity: {str(e)}")
             return None
 
-    def _apply_operations(self, gdf: gpd.GeoDataFrame, 
-                         operations: List[Dict[str, Any]]) -> gpd.GeoDataFrame:
+    def _apply_operations(self, gdf: gpd.GeoDataFrame, operation: Dict[str, Any]) -> Optional[gpd.GeoDataFrame]:
         """Apply operations to a GeoDataFrame.
         
         Args:
             gdf: Input GeoDataFrame
-            operations: List of operations to apply
+            operation: Operation configuration
             
         Returns:
-            Processed GeoDataFrame
+            Processed GeoDataFrame or None if operation fails
         """
-        result = gdf.copy()
+        op_type = operation.get('type', '').lower()
         
-        for op in operations:
-            op_type = op.get('type', '').lower()
-            
-            try:
-                if op_type == 'buffer':
-                    result = self._apply_buffer(result, op)
-                elif op_type == 'smooth':
-                    result = self._apply_smooth(result, op)
-                elif op_type == 'simplify':
-                    result = self._apply_simplify(result, op)
-                elif op_type == 'offset':
-                    result = self._apply_offset(result, op)
-                elif op_type == 'transform':
-                    result = self._apply_transform(result, op)
-                elif op_type == 'filter':
-                    result = self._apply_filter(result, op)
-                else:
-                    log_warning(f"Unknown operation type: {op_type}")
-            except Exception as e:
-                log_error(f"Error applying {op_type} operation: {str(e)}")
-                raise
-        
-        return result
-
-    def _apply_buffer(self, gdf: gpd.GeoDataFrame, op: Dict[str, Any]) -> gpd.GeoDataFrame:
-        """Apply buffer operation to geometries.
-        
-        Args:
-            gdf: Input GeoDataFrame
-            op: Buffer operation parameters
-            
-        Returns:
-            GeoDataFrame with buffered geometries
-        """
-        distance = op.get('distance', 0.0)
-        resolution = op.get('resolution', 16)
-        cap_style = op.get('capStyle', 1)
-        join_style = op.get('joinStyle', 1)
-        mitre_limit = op.get('mitreLimit', 5.0)
-
-        gdf.geometry = gdf.geometry.apply(lambda g: buffer_geometry(
-            g, distance, resolution, cap_style, join_style, mitre_limit
-        ))
-        return gdf
-
-    def _apply_smooth(self, gdf: gpd.GeoDataFrame, op: Dict[str, Any]) -> gpd.GeoDataFrame:
-        """Apply smoothing operation to geometries.
-        
-        Args:
-            gdf: Input GeoDataFrame
-            op: Smooth operation parameters
-            
-        Returns:
-            GeoDataFrame with smoothed geometries
-        """
-        smoothing = op.get('smoothing', 0.5)
-        preserve_topology = op.get('preserveTopology', True)
-
-        gdf.geometry = gdf.geometry.apply(lambda g: smooth_geometry(
-            g, smoothing, preserve_topology
-        ))
-        return gdf
-
-    def _apply_simplify(self, gdf: gpd.GeoDataFrame, op: Dict[str, Any]) -> gpd.GeoDataFrame:
-        """Apply simplification operation to geometries.
-        
-        Args:
-            gdf: Input GeoDataFrame
-            op: Simplify operation parameters
-            
-        Returns:
-            GeoDataFrame with simplified geometries
-        """
-        tolerance = op.get('tolerance', 0.1)
-        preserve_topology = op.get('preserveTopology', True)
-
-        gdf.geometry = gdf.geometry.apply(lambda g: simplify_geometry(
-            g, tolerance, preserve_topology
-        ))
-        return gdf
-
-    def _apply_offset(self, gdf: gpd.GeoDataFrame, op: Dict[str, Any]) -> gpd.GeoDataFrame:
-        """Apply offset operation to geometries.
-        
-        Args:
-            gdf: Input GeoDataFrame
-            op: Offset operation parameters
-            
-        Returns:
-            GeoDataFrame with offset geometries
-        """
-        distance = op.get('distance', 0.0)
-        side = op.get('side', 'both')
-        resolution = op.get('resolution', 16)
-        join_style = op.get('joinStyle', 1)
-        mitre_limit = op.get('mitreLimit', 5.0)
-
-        gdf.geometry = gdf.geometry.apply(lambda g: offset_geometry(
-            g, distance, side, resolution, join_style, mitre_limit
-        ))
-        return gdf
-
-    def _apply_transform(self, gdf: gpd.GeoDataFrame, op: Dict[str, Any]) -> gpd.GeoDataFrame:
-        """Apply transformation operation to geometries.
-        
-        Args:
-            gdf: Input GeoDataFrame
-            op: Transform operation parameters
-            
-        Returns:
-            GeoDataFrame with transformed geometries
-        """
-        translation = (
-            op.get('translate', {}).get('x', 0.0),
-            op.get('translate', {}).get('y', 0.0)
-        ) if 'translate' in op else None
-
-        rotation = op.get('rotate', {}).get('angle') if 'rotate' in op else None
-
-        scale_factors = (
-            op.get('scale', {}).get('x', 1.0),
-            op.get('scale', {}).get('y', 1.0)
-        ) if 'scale' in op else None
-
-        origin = op.get('origin', 'center')
-
-        gdf.geometry = gdf.geometry.apply(lambda g: transform_geometry(
-            g, translation, rotation, scale_factors, origin
-        ))
-        return gdf
-
-    def _apply_filter(self, gdf: gpd.GeoDataFrame, op: Dict[str, Any]) -> gpd.GeoDataFrame:
-        """Apply filter operation to geometries.
-        
-        Args:
-            gdf: Input GeoDataFrame
-            op: Filter operation parameters
-            
-        Returns:
-            Filtered GeoDataFrame
-        """
-        if 'expression' in op:
-            try:
-                return gdf.query(op['expression'])
-            except Exception as e:
-                log_error(f"Error applying filter expression: {str(e)}")
-                return gdf
-        return gdf
+        try:
+            if op_type == 'buffer':
+                return create_buffer_layer(gdf, operation)
+            elif op_type == 'intersection':
+                return create_intersection_layer(gdf, operation)
+            elif op_type == 'union':
+                return create_union_layer(gdf, operation)
+            elif op_type == 'difference':
+                return create_difference_layer(gdf, operation)
+            elif op_type == 'dissolve':
+                return create_dissolve_layer(gdf, operation)
+            elif op_type == 'copy':
+                return create_copy_layer(gdf, operation)
+            elif op_type == 'filter':
+                return create_filtered_geometry_layer(gdf, operation)
+            elif op_type == 'labelassociation':
+                return create_label_association_layer(gdf, operation)
+            elif op_type == 'lagefaktor':
+                return create_lagefaktor_layer(gdf, operation)
+            elif op_type == 'filterbycolumn':
+                return create_filtered_by_column_layer(gdf, operation)
+            else:
+                log_warning(f"Unknown operation type: {op_type}")
+                return None
+        except Exception as e:
+            log_error(f"Error applying {op_type} operation: {str(e)}")
+            return None
 
     def _apply_layer_style(self, layer_name: str, style: Dict[str, Any]) -> None:
         """Apply style properties to a DXF layer.
@@ -350,4 +233,136 @@ class LayerProcessor(BaseProcessor):
             layer_name: Name of the layer
             style: Style properties to apply
         """
-        self.apply_layer_properties(layer_name, style) 
+        self.apply_layer_properties(layer_name, style)
+
+    def process_layer(self, layer, processed_layers, processing_stack=None):
+        """
+        Process a layer and its dependencies.
+        
+        Args:
+            layer: Layer name or configuration dictionary
+            processed_layers: Set of already processed layer names
+            processing_stack: List of layers currently being processed (for cycle detection)
+        """
+        if processing_stack is None:
+            processing_stack = []
+
+        if isinstance(layer, str):
+            layer_name = layer
+            layer_obj = (
+                next((l for l in self.config.project_config.geom_layers if l['name'] == layer_name), None) or
+                next((l for l in self.config.project_config.wmts_layers if l['name'] == layer_name), None) or
+                next((l for l in self.config.project_config.wms_layers if l['name'] == layer_name), None)
+            )
+        else:
+            layer_name = layer['name']
+            layer_obj = layer
+
+        # Check for cycles
+        if layer_name in processing_stack:
+            cycle = ' -> '.join(processing_stack + [layer_name])
+            log_error(f"Circular dependency detected: {cycle}")
+            return
+
+        # If already processed, skip
+        if layer_name in processed_layers:
+            return
+
+        processing_stack.append(layer_name)
+        log_debug(f"Processing layer: {layer_name}")
+        
+        try:
+            # Early return for temp layers that don't exist in settings
+            if layer_obj is None:
+                if "_temp_" in layer_name:
+                    return
+                log_warning(f"Layer {layer_name} not found in project settings")
+                return
+
+            # Check for unrecognized keys
+            recognized_keys = {'name', 'updateDxf', 'operations', 'shapeFile', 'type', 'sourceLayer', 
+                              'outputShapeFile', 'style', 'close', 'linetypeScale', 'linetypeGeneration', 
+                              'viewports', 'attributes', 'label', 'labels', 'applyHatch', 
+                              'plot', 'saveToLagefaktor'}
+            unrecognized_keys = set(layer_obj.keys()) - recognized_keys
+            if unrecognized_keys:
+                log_warning(f"Unrecognized keys in layer {layer_name}: {', '.join(unrecognized_keys)}")
+
+            # Process style
+            if 'style' in layer_obj:
+                style, warning_generated = self.get_style(layer_obj['style'])
+                if warning_generated:
+                    log_warning(f"Issue with style for layer '{layer_name}'")
+                if style is not None:
+                    layer_obj['style'] = style
+
+            # Process operations
+            if 'operations' in layer_obj:
+                result_geometry = None
+                for operation in layer_obj['operations']:
+                    if layer_obj.get('type') in ['wmts', 'wms']:
+                        operation['type'] = layer_obj['type']
+                    result_geometry = self._apply_operations(self.processed_layers[layer_name], operation)
+                if result_geometry is not None:
+                    self.processed_layers[layer_name] = result_geometry
+            elif 'shapeFile' in layer_obj:
+                if layer_name not in self.processed_layers:
+                    log_warning(f"Shapefile for layer {layer_name} was not loaded properly")
+            elif 'dxfLayer' not in layer_obj:
+                self.processed_layers[layer_name] = None
+                log_debug(f"Added layer {layer_name} without data")
+
+            # Process labels if configured
+            if 'labels' in layer_obj and layer_name in self.processed_layers:
+                self._process_layer_labels(layer_obj['labels'], self.processed_layers[layer_name])
+
+            if 'outputShapeFile' in layer_obj:
+                self.write_shapefile(layer_name)
+
+            if 'attributes' in layer_obj:
+                if layer_name not in self.processed_layers or self.processed_layers[layer_name] is None:
+                    self.processed_layers[layer_name] = gpd.GeoDataFrame(geometry=[], crs=self.config.project_config.crs)
+                
+                gdf = self.processed_layers[layer_name]
+                if 'attributes' not in gdf.columns:
+                    gdf['attributes'] = None
+                
+                gdf['attributes'] = gdf['attributes'].apply(lambda x: {} if x is None else x)
+                for key, value in layer_obj['attributes'].items():
+                    gdf['attributes'] = gdf['attributes'].apply(lambda x: {**x, key: value})
+                
+                self.processed_layers[layer_name] = gdf
+
+            if 'filterGeometry' in layer_obj:
+                filter_config = layer_obj['filterGeometry']
+                filtered_layer = create_filtered_geometry_layer(self.processed_layers, self.config.project_config, self.config.project_config.crs, layer_name, filter_config)
+                if filtered_layer is not None:
+                    self.processed_layers[layer_name] = filtered_layer
+                log_debug(f"Applied geometry filter to layer '{layer_name}'")
+
+        finally:
+            processing_stack.remove(layer_name)
+            processed_layers.add(layer_name)
+
+    def _process_layer_labels(self, label_config: Dict[str, Any], geometries: gpd.GeoDataFrame) -> None:
+        """Process labels for a layer."""
+        if not label_config.get('updateDxf', True):
+            return
+
+        if self.label_processor is None:
+            self.label_processor = LabelProcessor(self.config.project_config.msp, self.get_style)
+
+        try:
+            self.label_processor.process_labels(label_config, geometries)
+        except Exception as e:
+            log_error(f"Error processing labels: {str(e)}")
+
+    def write_shapefile(self, layer_name: str) -> None:
+        """Export processed layer to shapefile."""
+        if layer_name not in self.processed_layers or self.processed_layers[layer_name] is None:
+            log_warning(f"Layer {layer_name} not found in processed layers")
+            return
+
+        output_path = self.resolve_path(f"{layer_name}.shp")
+        self.processed_layers[layer_name].to_file(output_path)
+        log_info(f"Exported layer {layer_name} to {output_path}") 

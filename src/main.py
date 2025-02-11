@@ -3,8 +3,8 @@ import sys
 import argparse
 from pathlib import Path
 
-from src.core.application import Application
-from src.utils.logging import log_error
+from pycad.core.application import Application
+from pycad.utils.logging import log_error
 
 def parse_args() -> argparse.Namespace:
     """Parse command line arguments.
@@ -13,17 +13,16 @@ def parse_args() -> argparse.Namespace:
         Parsed arguments
     """
     parser = argparse.ArgumentParser(
-        description='CAD/GIS Processing Tool'
+        description='Python CAD/GIS Tools'
     )
     
     parser.add_argument(
-        'project',
-        help='Name of the project to process'
+        'project_dir',
+        help='Project directory'
     )
     
     parser.add_argument(
         '--log-level',
-        choices=['DEBUG', 'INFO', 'WARNING', 'ERROR'],
         default='INFO',
         help='Set the logging level'
     )
@@ -41,7 +40,7 @@ def main() -> int:
         args = parse_args()
         
         # Create and run application
-        app = Application(args.project)
+        app = Application(args.project_dir)
         app.run()
         
         return 0

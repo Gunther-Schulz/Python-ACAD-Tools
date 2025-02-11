@@ -7,7 +7,7 @@ geomLayers:
     labels:
       updateDxf: true
       targetLayer: "Flur Labels"
-      # style: "flurLabel"  # Define this in styles.yaml
+      style: "flurLabel"  # Style defined in styles.yaml
       # You can use attribute from shapefile
       attribute: "flurname"  # Replace with actual attribute name from shapefile
       placement:

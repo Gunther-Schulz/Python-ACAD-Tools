@@ -1,0 +1,7 @@
+styles:
+  flurLabel:
+    text:
+      height: 3.5
+      color: "white"
+      style: "Standard"
+      # Add any other text style properties you need 
