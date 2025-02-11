@@ -87,6 +87,13 @@ class LayerProcessor(BaseProcessor):
         self.processed_layers[layer_name] = gdf
         log_debug(f"Stored processed layer {layer_name} with {len(gdf)} features")
 
+        # Process labels if configured
+        if 'labels' in layer_config:
+            log_debug(f"Found labels configuration for layer {layer_name}")
+            self._process_layer_labels(layer_config['labels'], gdf)
+        else:
+            log_debug(f"No labels configuration found for layer {layer_name}")
+
         # Export to shapefile if configured
         if 'outputShapeFile' in layer_config:
             output_path = self.resolve_path(layer_config['outputShapeFile'])
@@ -346,14 +353,25 @@ class LayerProcessor(BaseProcessor):
 
     def _process_layer_labels(self, label_config: Dict[str, Any], geometries: gpd.GeoDataFrame) -> None:
         """Process labels for a layer."""
+        log_debug(f"Processing labels with config: {label_config}")
+        
         if not label_config.get('updateDxf', True):
+            log_debug("Label processing skipped due to updateDxf=False")
+            return
+
+        if not self.doc:
+            log_warning("No DXF document available for label processing")
             return
 
         if self.label_processor is None:
-            self.label_processor = LabelProcessor(self.config.project_config.msp, self.get_style)
+            log_debug("Initializing label processor")
+            # Pass self as the style manager since BaseProcessor has get_style method
+            self.label_processor = LabelProcessor(self.doc.modelspace(), self)
 
         try:
+            log_debug(f"Attempting to process labels for {len(geometries)} geometries")
             self.label_processor.process_labels(label_config, geometries)
+            log_debug("Label processing completed successfully")
         except Exception as e:
             log_error(f"Error processing labels: {str(e)}")
 

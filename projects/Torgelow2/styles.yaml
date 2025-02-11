@@ -3,5 +3,8 @@ styles:
     text:
       height: 3.5
       color: "white"
-      style: "Standard"
-      # Add any other text style properties you need 
+      font: "Standard"
+      attachmentPoint: "MIDDLE_CENTER"
+      paragraph:
+        align: "CENTER"
+  # Add any other style properties you need 

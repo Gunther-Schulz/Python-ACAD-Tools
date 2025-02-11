@@ -152,11 +152,15 @@ class ConfigManager:
             }
 
     def _load_styles(self) -> Dict[str, Any]:
-        """Load styles from root styles.yaml"""
+        """Load styles from project-specific styles.yaml only"""
+        # Only try to load project-specific styles
         try:
-            style_data = self._load_yaml_file('styles.yaml')
-            return style_data.get('styles', {})
+            project_style_data = self._load_yaml_file(self.project_dir / 'styles.yaml')
+            styles = project_style_data.get('styles', {})
+            log_debug(f"Loaded styles from project-specific styles.yaml")
+            return styles
         except (FileNotFoundError, ValueError):
+            log_warning("No project-specific styles.yaml found. Using project.yaml styles.")
             return self.project_config.styles
 
     def _validate_layer_names(self, layers: List[Dict[str, Any]]) -> None:
