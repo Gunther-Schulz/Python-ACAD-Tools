@@ -3,6 +3,7 @@ import yaml
 from typing import Dict, List, Optional, Union, Any
 from dataclasses import dataclass
 from pathlib import Path
+from ..utils.logging import log_debug, log_info, log_warning, log_error
 
 @dataclass
 class GlobalConfig:
@@ -95,10 +96,16 @@ class ConfigManager:
         if shapefile_output_dir:
             os.makedirs(shapefile_output_dir, exist_ok=True)
 
+        # Handle template DXF filename
+        template_dxf = None
+        if 'templateDxfFilename' in main_settings:
+            template_dxf = self.resolve_path(main_settings['templateDxfFilename'])
+            log_info(f"Using template DXF: {template_dxf}")
+
         return ProjectConfig(
             crs=main_settings['crs'],
             dxf_filename=self.resolve_path(main_settings['dxfFilename']),
-            template_dxf=self.resolve_path(main_settings.get('template', '')) if main_settings.get('template') else None,
+            template_dxf=template_dxf,
             export_format=main_settings.get('exportFormat', 'dxf'),
             dxf_version=main_settings.get('dxfVersion', 'R2010'),
             shapefile_output_dir=shapefile_output_dir,
