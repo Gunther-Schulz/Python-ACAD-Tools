@@ -7,7 +7,7 @@ from pathlib import Path
 from ..core.processor import BaseProcessor
 from ..core.config import ConfigManager
 from ..utils.logging import log_debug, log_info, log_warning, log_error
-from ..utils.geometry import (
+from .dxf.geometry import (
     buffer_geometry, smooth_geometry, offset_geometry,
     simplify_geometry, transform_geometry
 )

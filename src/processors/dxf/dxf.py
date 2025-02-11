@@ -6,7 +6,7 @@ from ezdxf.layouts import Layout
 from ezdxf.entities import DXFGraphic
 from pathlib import Path
 
-from .logging import log_debug, log_info, log_warning, log_error
+from ...utils.logging import log_debug, log_info, log_warning, log_error
 
 def create_document(dxf_version: str = 'R2010') -> Drawing:
     """Create a new DXF document.

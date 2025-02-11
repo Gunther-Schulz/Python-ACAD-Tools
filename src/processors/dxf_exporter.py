@@ -9,10 +9,11 @@ from pathlib import Path
 from ..core.processor import BaseProcessor
 from ..core.config import ConfigManager
 from ..utils.logging import log_debug, log_info, log_warning, log_error
-from ..utils.dxf import (
+from .dxf.dxf import (
     create_document, load_document, save_document,
     cleanup_document, get_layout, copy_entity
 )
+from .dxf.text import add_labels_from_gdf
 
 class DXFExporter(BaseProcessor):
     """Processor for exporting geometries to DXF format."""
@@ -47,13 +48,34 @@ class DXFExporter(BaseProcessor):
             layout = get_layout(self.doc)
             log_debug("Using model space layout")
             
-            # Phase 2: Export geometries
-            log_debug("Exporting geometries to layers...")
+            # Phase 2: Export geometries and labels
+            log_debug("Exporting geometries and labels to layers...")
             for layer_name, gdf in processed_layers.items():
                 if not gdf.empty:
                     try:
+                        # Export geometries
                         self._export_layer(layer_name, gdf, layout)
-                        log_debug(f"Successfully exported layer: {layer_name}")
+                        log_debug(f"Successfully exported geometries for layer: {layer_name}")
+                        
+                        # Add labels if configured
+                        layer_config = self._get_layer_config(layer_name)
+                        if layer_config and 'label' in layer_config:
+                            label_layer = f"{layer_name}_Labels"
+                            self._setup_label_layer(label_layer)
+                            
+                            # Get text style from layer config
+                            text_style = self._get_text_style(layer_config)
+                            
+                            # Add labels
+                            add_labels_from_gdf(
+                                layout=layout,
+                                gdf=gdf,
+                                label_column=layer_config['label'],
+                                layer=label_layer,
+                                **text_style
+                            )
+                            log_debug(f"Added labels for layer: {layer_name}")
+                            
                     except Exception as e:
                         log_error(f"Failed to export layer {layer_name}: {str(e)}")
                         raise
@@ -304,4 +326,68 @@ class DXFExporter(BaseProcessor):
                     copy_entity(entity, target)
         except Exception as e:
             log_error(f"Error applying transfer operation: {str(e)}")
-            raise 
+            raise
+
+    def _setup_label_layer(self, layer_name: str) -> None:
+        """Setup a layer for labels with appropriate properties.
+        
+        Args:
+            layer_name: Name of the label layer
+        """
+        if layer_name not in self.doc.layers:
+            self.doc.layers.new(layer_name)
+            log_debug(f"Created new label layer: {layer_name}")
+            
+        # Set default properties for label layer
+        layer = self.doc.layers.get(layer_name)
+        layer.color = 7  # White
+        layer.linetype = "Continuous"
+        layer.lineweight = -3  # Default
+        layer.plot = True
+
+    def _get_layer_config(self, layer_name: str) -> Optional[Dict[str, Any]]:
+        """Get configuration for a layer from project settings.
+        
+        Args:
+            layer_name: Name of the layer
+            
+        Returns:
+            Layer configuration dictionary or None if not found
+        """
+        return next(
+            (l for l in self.config.project_config.geom_layers if l['name'] == layer_name),
+            None
+        )
+
+    def _get_text_style(self, layer_config: Dict[str, Any]) -> Dict[str, Any]:
+        """Get text style properties from layer configuration.
+        
+        Args:
+            layer_config: Layer configuration dictionary
+            
+        Returns:
+            Dictionary of text style properties
+        """
+        style = {}
+        
+        # Get style from layer config
+        if 'style' in layer_config:
+            layer_style = self.get_style(layer_config['style'])
+            if layer_style:
+                # Text height
+                if 'text_height' in layer_style:
+                    style['text_height'] = layer_style['text_height']
+                
+                # Text style name
+                if 'text_style' in layer_style:
+                    style['text_style'] = layer_style['text_style']
+                
+                # Additional text properties
+                if 'text_color' in layer_style:
+                    style['color'] = layer_style['text_color']
+                if 'text_rotation' in layer_style:
+                    style['rotation'] = layer_style['text_rotation']
+                if 'text_alignment' in layer_style:
+                    style['alignment'] = layer_style['text_alignment']
+        
+        return style 

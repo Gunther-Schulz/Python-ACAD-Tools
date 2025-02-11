@@ -7,7 +7,7 @@ from pathlib import Path
 from ..core.processor import BaseProcessor
 from ..core.config import ConfigManager
 from ..utils.logging import log_debug, log_info, log_warning, log_error
-from ..utils.dxf import get_layout
+from .dxf.dxf import get_layout
 
 class BlockManager(BaseProcessor):
     """Processor for managing block insertions in DXF documents."""

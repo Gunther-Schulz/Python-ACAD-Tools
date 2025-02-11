@@ -8,7 +8,7 @@ from src.core.processor import BaseProcessor
 from src.utils.logging import (
     setup_logging, log_debug, log_info, log_warning, log_error
 )
-from src.utils.dxf import load_document, save_document, cleanup_document
+from src.processors.dxf.dxf import load_document, save_document, cleanup_document
 from src.processors.layer_processor import LayerProcessor
 from src.processors.dxf_exporter import DXFExporter
 from src.processors.legend_creator import LegendCreator

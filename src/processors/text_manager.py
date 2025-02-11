@@ -8,7 +8,7 @@ import math
 from ..core.processor import BaseProcessor
 from ..core.config import ConfigManager
 from ..utils.logging import log_debug, log_info, log_warning, log_error
-from ..utils.dxf import get_layout, create_text
+from .dxf.dxf import get_layout, create_text
 
 class TextManager(BaseProcessor):
     """Processor for managing text insertions in DXF documents."""
