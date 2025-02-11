@@ -1,0 +1,1 @@
+"""Core package containing main application components.""" 

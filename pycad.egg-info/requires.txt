@@ -1,0 +1,8 @@
+ezdxf
+geopandas
+numpy
+owslib
+pillow
+pyproj
+pyyaml
+shapely

@@ -1,0 +1,2 @@
+[console_scripts]
+pycad = src.main:main

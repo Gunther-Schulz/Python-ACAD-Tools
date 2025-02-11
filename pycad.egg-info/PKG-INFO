@@ -1,3 +1,19 @@
+Metadata-Version: 2.2
+Name: pycad
+Version: 0.1.0
+Summary: Python-based CAD/GIS processing tool
+License: MIT
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+Requires-Dist: ezdxf
+Requires-Dist: geopandas
+Requires-Dist: numpy
+Requires-Dist: owslib
+Requires-Dist: pillow
+Requires-Dist: pyproj
+Requires-Dist: pyyaml
+Requires-Dist: shapely
+
 # Python CAD/GIS Tools
 
 A Python-based CAD/GIS processing tool for automating DXF operations and handling various geospatial data formats.
