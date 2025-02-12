@@ -60,7 +60,17 @@ class LayerProcessor:
                     self.process_operation(layer_name, operation, processed_layers, processing_stack)
                     
             # Write shapefile if needed
-            if layer.get('outputShapeFile'):
+            # Check if we should write shapefile based on various conditions
+            should_write_shapefile = (
+                layer_name in self.all_layers and  # Layer exists in memory
+                (
+                    layer.get('outputShapeFile') or  # Explicit output path specified
+                    self.project_settings.get('shapefileOutputDir')  # Global output directory specified
+                )
+            )
+            
+            if should_write_shapefile:
+                log_debug(f"Writing shapefile for processed layer: {layer_name}")
                 self.shapefile_handler.write_shapefile(layer_name)
                 
             processed_layers.add(layer_name)
