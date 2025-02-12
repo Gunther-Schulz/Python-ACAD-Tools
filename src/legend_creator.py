@@ -16,7 +16,7 @@ from ezdxf.math import BoundingBox
 from ezdxf.lldxf.const import MTEXT_TOP_LEFT  # Add this line
 from ezdxf import bbox
 import os
-from src.style_manager import StyleManager
+from src.dxf_exporter import StyleManager
 from src.dxf_exporter.utils import (
     convert_transparency,
     get_color_code,

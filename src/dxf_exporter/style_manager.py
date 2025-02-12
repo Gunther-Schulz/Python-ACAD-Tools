@@ -1,7 +1,7 @@
 """Module for managing styles in DXF files."""
 
 from src.utils import log_info, log_warning, log_debug, log_error
-from src.dxf_exporter.utils import get_color_code
+from .utils import get_color_code
 import re
 
 class StyleManager:
@@ -391,8 +391,4 @@ class StyleManager:
                     elif key == 'text':
                         self._validate_text_style(layer_name, value)
                 else:
-                    log_warning(f"Unknown style override key '{key}' in layer '{layer_name}'")
-
-
-
-
+                    log_warning(f"Unknown style override key '{key}' in layer '{layer_name}'") 

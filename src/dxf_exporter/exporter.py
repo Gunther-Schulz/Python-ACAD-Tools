@@ -19,7 +19,7 @@ from .geometry_processor import GeometryProcessor
 from .text_processor import TextProcessor
 from .hatch_processor import HatchProcessor
 from .path_array_processor import PathArrayProcessor
-from src.style_manager import StyleManager
+from .style_manager import StyleManager
 from src.viewport_manager import ViewportManager
 from src.block_insert_manager import BlockInsertManager
 from src.reduced_dxf_creator import ReducedDXFCreator

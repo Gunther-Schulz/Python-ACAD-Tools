@@ -10,7 +10,7 @@ from geopandas import GeoSeries
 import os
 import shutil
 import fiona
-from src.style_manager import StyleManager
+from src.dxf_exporter import StyleManager
 
 # Import operations individually
 from src.operations import (
@@ -32,7 +32,6 @@ from src.operations import (
     create_label_association_layer,
     create_filtered_by_column_layer
 )
-from src.style_manager import StyleManager
 from src.operations.filter_geometry_operation import create_filtered_geometry_layer
 from src.operations.report_operation import create_report_layer
 from src.shapefile_utils import write_shapefile

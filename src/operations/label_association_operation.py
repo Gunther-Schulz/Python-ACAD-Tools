@@ -6,7 +6,7 @@ from src.operations.common_operations import _get_filtered_geometry, _process_la
 from src.utils import log_debug, log_warning, log_info
 import math
 import numpy as np
-from src.style_manager import StyleManager
+from src.dxf_exporter import StyleManager
 import networkx as nx
 
 

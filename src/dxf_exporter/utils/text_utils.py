@@ -1,6 +1,8 @@
 """Utilities for handling text in DXF files."""
 
 import traceback
+import ezdxf
+from ezdxf.lldxf import enums
 from src.utils import log_debug, log_error, log_warning
 from .constants import SCRIPT_IDENTIFIER
 from .entity_utils import attach_custom_data
