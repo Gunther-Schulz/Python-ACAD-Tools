@@ -137,6 +137,15 @@ class DXFExporter:
     def process_layers(self, doc, msp):
         """Process all layers in the document"""
         geom_layers = self.project_settings.get('geomLayers', [])
+        
+        # First, clean up all layers that will be updated
+        for layer_info in geom_layers:
+            layer_name = layer_info['name']
+            if layer_info.get('updateDxf', False):  # Only clean layers that are marked for update
+                log_debug(f"Cleaning existing entities from layer: {layer_name}")
+                remove_entities_by_layer(msp, layer_name, self.script_identifier)
+        
+        # Then process each layer
         for layer_info in geom_layers:
             layer_name = layer_info['name']
             if layer_name in self.all_layers:
