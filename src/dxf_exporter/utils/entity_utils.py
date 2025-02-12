@@ -3,7 +3,7 @@
 import ezdxf
 from ezdxf.lldxf import const
 from ezdxf import colors
-from src.utils import log_warning, log_info, log_error
+from src.utils import log_warning, log_info, log_error, log_debug
 from .constants import SCRIPT_IDENTIFIER
 from .style_utils import get_color_code, convert_transparency
 
@@ -62,7 +62,7 @@ def remove_entities_by_layer(msp, layer_names, script_identifier):
                     removed_count += 1
             
             if removed_count > 0:
-                log_info(f"Removed {removed_count} entities from layer: {layer_name}")
+                log_debug(f"Removed {removed_count} entities from layer: {layer_name}")
                 
         except Exception as e:
             log_warning(f"Error removing entities from layer {layer_name}: {str(e)}")

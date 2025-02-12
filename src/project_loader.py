@@ -182,5 +182,5 @@ class ProjectLoader:
             self.dxf_processor = DXFProcessor(self)
             log_debug("DXFProcessor initialized with loaded operations")
         else:
-            log_info("No DXF operations found in project settings")
+            log_debug("No DXF operations found in project settings")
             self.dxf_processor = None  # Set to None if no operations
