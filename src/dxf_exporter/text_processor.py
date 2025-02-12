@@ -1,5 +1,12 @@
+"""Module for processing text in DXF files."""
+
 from src.utils import log_debug, log_warning, log_error
-from src.dxf_utils import ensure_layer_exists, add_mtext, attach_custom_data
+from .utils import (
+    SCRIPT_IDENTIFIER,
+    ensure_layer_exists,
+    add_mtext,
+    attach_custom_data
+)
 
 class TextProcessor:
     def __init__(self, script_identifier, project_loader, style_manager, layer_manager):
