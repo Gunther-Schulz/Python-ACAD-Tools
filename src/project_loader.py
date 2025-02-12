@@ -145,14 +145,6 @@ class ProjectLoader:
             log_warning("styles.yaml not found. Using project-specific styles.")
             self.styles = self.project_settings.get('styles', {})
 
-    def get_style(self, style_name):
-        """Get a style by name from the loaded styles"""
-        if isinstance(style_name, dict):
-            return style_name
-        style = self.styles.get(style_name, {})
-        log_debug(f"Retrieved style for '{style_name}': {style}")
-        return style
-
     def resolve_full_path(self, path: str) -> str:
         """Resolve a path using the folder prefix"""
         return resolve_path(path, self.folder_prefix)

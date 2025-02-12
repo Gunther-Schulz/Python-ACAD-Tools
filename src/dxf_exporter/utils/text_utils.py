@@ -2,7 +2,7 @@
 
 import traceback
 import ezdxf
-from ezdxf.lldxf import enums
+from ezdxf.enums import TextEntityAlignment
 from src.utils import log_debug, log_error, log_warning
 from .constants import SCRIPT_IDENTIFIER
 from .entity_utils import attach_custom_data
@@ -140,6 +140,6 @@ def add_text(msp, text, x, y, layer_name, style_name, height=5, color=None):
     })
     text_entity.set_placement(
         (x, y),
-        align=enums.TextEntityAlignment.LEFT
+        align=TextEntityAlignment.LEFT
     )
     return text_entity 

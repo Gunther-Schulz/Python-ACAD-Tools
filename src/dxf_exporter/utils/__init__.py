@@ -28,7 +28,7 @@ from .layer_utils import (
 from .style_utils import (
     get_color_code,
     convert_transparency,
-    get_style
+    deep_merge
 )
 from .text_utils import (
     add_mtext,
@@ -55,7 +55,7 @@ __all__ = [
     'sanitize_layer_name',
     'get_color_code',
     'convert_transparency',
-    'get_style',
+    'deep_merge',
     'add_mtext',
     'add_text'
 ] 

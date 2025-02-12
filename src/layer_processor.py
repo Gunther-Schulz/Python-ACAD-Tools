@@ -10,7 +10,7 @@ from geopandas import GeoSeries
 import os
 import shutil
 import fiona
-from src.dxf_exporter import StyleManager
+from src.dxf_exporter.style_manager import StyleManager
 
 # Import operations individually
 from src.operations import (
@@ -648,7 +648,7 @@ class LayerProcessor:
     def _process_style(self, layer_name, style_config):
         if isinstance(style_config, str):
             # If style_config is a string, it's a preset name
-            style_config = self.project_loader.get_style(style_config)
+            style_config, _ = self.style_manager.get_style(style_config)
         
         if 'layer' in style_config:
             self.style_manager._process_layer_style(layer_name, style_config['layer'])

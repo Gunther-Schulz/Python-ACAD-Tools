@@ -1,4 +1,5 @@
-from .exporter import DXFExporter
-from .style_manager import StyleManager
+"""DXF exporter package."""
 
-__all__ = ['DXFExporter', 'StyleManager']
+from .exporter import DXFExporter
+
+__all__ = ['DXFExporter']

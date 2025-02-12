@@ -38,50 +38,6 @@ def convert_transparency(transparency):
             log_warning(f"Invalid transparency value: {transparency}")
     return None
 
-def get_style(style_name_or_config, styles=None):
-    """Get style configuration from either a preset name or inline configuration.
-    
-    Args:
-        style_name_or_config: Either a string (preset name) or dict (inline style)
-        styles: Dictionary of available style presets
-    
-    Returns:
-        tuple: (style_dict, warning_generated)
-            style_dict: The resolved style configuration
-            warning_generated: True if there were any warnings during resolution
-    """
-    if styles is None:
-        styles = {}
-        
-    if isinstance(style_name_or_config, str):
-        # Handle preset style
-        style = styles.get(style_name_or_config)
-        if style is None:
-            log_warning(f"Style preset '{style_name_or_config}' not found.")
-            return None, True
-        return style, False
-    elif isinstance(style_name_or_config, dict):
-        if 'preset' in style_name_or_config:
-            # Handle preset with overrides
-            preset_name = style_name_or_config['preset']
-            preset = styles.get(preset_name)
-            if preset is None:
-                log_warning(f"Style preset '{preset_name}' not found.")
-                return style_name_or_config, True
-            
-            # Remove the preset key from overrides
-            overrides = dict(style_name_or_config)
-            del overrides['preset']
-            
-            # Deep merge the preset with overrides
-            merged_style = deep_merge(preset, overrides)
-            return merged_style, False
-        else:
-            # Handle pure inline style
-            return style_name_or_config, False
-    
-    return style_name_or_config, False
-
 def deep_merge(dict1, dict2):
     """Deep merge two dictionaries."""
     result = dict1.copy()
