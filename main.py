@@ -1,14 +1,17 @@
+#!/usr/bin/env python3
+
 import sys
 import argparse
 import os
 import traceback
 
+from src.utils import log_info, log_warning, log_error
 from src.project_loader import ProjectLoader
 from src.layer_processor import LayerProcessor
 from src.dxf_exporter import DXFExporter
-from src.utils import create_sample_project, log_error, log_info, setup_logging, setup_proj, set_log_level, log_debug
+from src.dxf_exporter.utils import cleanup_document
+from src.utils import create_sample_project, log_debug, setup_logging, setup_proj, set_log_level
 from src.dump_to_shape import dxf_to_shapefiles
-from src.dxf_utils import cleanup_document
 
 class ProjectProcessor:
     def __init__(self, project_name: str, plot_ops=False):

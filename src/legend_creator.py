@@ -1,3 +1,5 @@
+"""Module for creating legends in DXF files."""
+
 import ezdxf
 from ezdxf.enums import TextEntityAlignment
 from ezdxf import const
@@ -15,6 +17,13 @@ from ezdxf.lldxf.const import MTEXT_TOP_LEFT  # Add this line
 from ezdxf import bbox
 import os
 from src.style_manager import StyleManager
+from src.dxf_exporter.utils import (
+    convert_transparency,
+    get_color_code,
+    attach_custom_data,
+    add_mtext,
+    add_text
+)
 
 class LegendCreator:
     def __init__(self, doc, msp, project_loader, loaded_styles):

@@ -10,6 +10,7 @@ from src.dxf_exporter.utils import (
     load_standard_text_styles,
     # Entity utils
     attach_custom_data,
+    remove_entities_by_layer,
     is_created_by_script,
     apply_style_to_entity,
     # Geometry utils
@@ -24,10 +25,10 @@ from src.dxf_exporter.utils import (
     # Style utils
     get_color_code,
     convert_transparency,
+    get_style,
     # Text utils
     add_mtext,
-    add_text,
-    _apply_text_style_properties
+    add_text
 )
 
 __all__ = [
@@ -38,6 +39,7 @@ __all__ = [
     'initialize_document',
     'load_standard_text_styles',
     'attach_custom_data',
+    'remove_entities_by_layer',
     'is_created_by_script',
     'apply_style_to_entity',
     'create_hatch',
@@ -49,9 +51,9 @@ __all__ = [
     'sanitize_layer_name',
     'get_color_code',
     'convert_transparency',
+    'get_style',
     'add_mtext',
-    'add_text',
-    '_apply_text_style_properties'
+    'add_text'
 ]
 
 

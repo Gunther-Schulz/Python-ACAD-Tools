@@ -1,7 +1,9 @@
+"""Module for processing geometry in DXF files."""
+
 from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, Point, GeometryCollection
 import geopandas as gpd
 from src.utils import log_debug, log_warning
-from src.dxf_utils import attach_custom_data
+from .utils import attach_custom_data
 from ezdxf.lldxf.const import LWPOLYLINE_PLINEGEN
 
 class GeometryProcessor:

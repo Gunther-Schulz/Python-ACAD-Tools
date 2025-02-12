@@ -1,8 +1,8 @@
+"""Module for managing layers in DXF files."""
+
 import ezdxf
 from src.utils import log_debug, log_warning
-from src.dxf_utils import (
-    ensure_layer_exists, update_layer_properties, sanitize_layer_name
-)
+from .utils import ensure_layer_exists, update_layer_properties, sanitize_layer_name
 
 class LayerManager:
     def __init__(self, project_loader, style_manager):

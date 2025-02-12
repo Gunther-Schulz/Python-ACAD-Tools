@@ -1,5 +1,11 @@
-from src.dxf_utils import SCRIPT_IDENTIFIER, add_block_reference, attach_custom_data
-from src.utils import log_info, log_warning, log_error, log_debug
+"""Module for creating path arrays in DXF files."""
+
+from src.utils import log_debug, log_warning
+from src.dxf_exporter.utils import (
+    SCRIPT_IDENTIFIER,
+    add_block_reference,
+    attach_custom_data
+)
 import re
 import math
 from ezdxf.math import Vec2
@@ -81,7 +87,7 @@ def visualize_placement(ax, polyline_geom, combined_area, rotated_block_shape, i
     if 'Skipped Block' not in [l.get_label() for l in ax.get_lines()]:
         ax.plot([], [], color='red', marker='s', linestyle='None', markersize=10, label='Skipped Block')
 
-def create_path_array(msp, source_layer_name, target_layer_name, block_name, spacing, buffer_distance, scale=1.0, rotation=0.0, debug_visual=False, all_layers=None, adjust_for_vertices=True, path_offset=0, all_edges=False):
+def create_path_array(msp, source_layer_name, target_layer_name, block_name, spacing, buffer_distance=0.0, scale=1.0, rotation=0.0, show_debug_visual=False, all_layers=None, adjust_for_vertices=False, path_offset=0.0, all_edges=False):
     if block_name not in msp.doc.blocks:
         log_warning(f"Block '{block_name}' not found in the document")
         return
@@ -108,7 +114,7 @@ def create_path_array(msp, source_layer_name, target_layer_name, block_name, spa
         geometries = [source_geometry]
         log_debug(f"Single geometry type: {type(source_geometry)}")
 
-    fig, ax = plt.subplots(figsize=(12, 8)) if debug_visual else (None, None)
+    fig, ax = plt.subplots(figsize=(12, 8)) if show_debug_visual else (None, None)
 
     placed_blocks = []  # List to store placed block shapes
     processed_geometries = 0
@@ -155,11 +161,11 @@ def create_path_array(msp, source_layer_name, target_layer_name, block_name, spa
                     # For lines derived from polygons, use process_polyline with buffer
                     process_polyline(msp, line, block_shape, block_base_point, block_name, 
                                    target_layer_name, spacing, buffer_distance, scale, rotation, 
-                                   debug_visual, ax, placed_blocks, adjust_for_vertices, path_offset)
+                                   show_debug_visual, ax, placed_blocks, adjust_for_vertices, path_offset)
 
     log_debug(f"Processed {processed_geometries} geometries")
 
-    if debug_visual:
+    if show_debug_visual:
         if processed_geometries > 0:
             ax.set_aspect('equal', 'datalim')
             ax.set_title(f"Block Placement for {block_name}")
@@ -280,7 +286,7 @@ def get_angle_at_point(linestring, distance):
 
 def process_polyline(msp, polyline_geom, block_shape, block_base_point, block_name, 
                      target_layer_name, spacing, buffer_distance, scale, rotation, 
-                     debug_visual, ax, placed_blocks, adjust_for_vertices, path_offset=0):
+                     show_debug_visual, ax, placed_blocks, adjust_for_vertices, path_offset=0):
     total_length = polyline_geom.length
     
     # Create offset path for block placement
@@ -340,7 +346,7 @@ def process_polyline(msp, polyline_geom, block_shape, block_base_point, block_na
             else:
                 log_warning("Failed to create block reference")
         
-        if debug_visual:
+        if show_debug_visual:
             color = 'green' if not overlaps_existing else 'red'
             label = "Placed" if not overlaps_existing else "Skipped"
             visualize_placement(ax, polyline_geom, buffer_polygon, rotated_block_shape, insertion_point, color, label)

@@ -1,5 +1,8 @@
 """Utilities for handling geometry in DXF files."""
 
+import ezdxf
+from ezdxf.lldxf import const
+from ezdxf import colors
 from src.utils import log_warning
 from .constants import SCRIPT_IDENTIFIER
 from .entity_utils import attach_custom_data

@@ -1,5 +1,7 @@
+"""Module for processing hatches in DXF files."""
+
 from src.utils import log_debug, log_warning
-from src.dxf_utils import create_hatch, attach_custom_data
+from .utils import create_hatch, attach_custom_data
 
 class HatchProcessor:
     def __init__(self, script_identifier, project_loader, style_manager, layer_manager):
