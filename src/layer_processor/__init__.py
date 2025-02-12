@@ -1,5 +1,6 @@
 """Main layer processor module."""
 
+from src.utils import log_debug, log_warning, log_error
 from src.dxf_exporter.style_manager import StyleManager
 from .shapefile_handler import ShapefileHandler
 from .geometry_handler import GeometryHandler

@@ -1,7 +1,7 @@
 """Module for handling shapefile operations."""
 
 import os
-from src.utils import log_warning, log_error, log_debug
+from src.utils import log_warning, log_error, log_debug, resolve_path
 from src.shapefile_utils import (
     write_shapefile,
     _delete_existing_shapefile,
@@ -15,6 +15,7 @@ class ShapefileHandler:
         self.project_settings = layer_processor.project_settings
         self.all_layers = layer_processor.all_layers
         self.crs = layer_processor.crs
+        self.folder_prefix = layer_processor.project_loader.folder_prefix
 
     def setup_shapefiles(self):
         """Set up shapefiles for all layers."""
@@ -58,9 +59,12 @@ class ShapefileHandler:
             log_warning(f"No shapefileOutputDir specified in project settings")
             return False
 
+        # Resolve the output directory with folder prefix
+        output_dir = resolve_path(output_dir, self.folder_prefix)
+
         # If outputShapeFile is specified in layer config, use that path
         if layer_info.get('outputShapeFile'):
-            output_file = layer_info['outputShapeFile']
+            output_file = resolve_path(layer_info['outputShapeFile'], self.folder_prefix)
         else:
             # Otherwise construct path in the output directory
             output_file = os.path.join(output_dir, f"{layer_name}.shp")
