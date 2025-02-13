@@ -6,12 +6,16 @@ geomLayers:
     close: true
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/input/flur2.shp"
     simpleLabel: flurname  # Keep this as a string
-    style:
-      text:
-        height: 20.5  # Text height
-        font: "Arial"  # Font family
-        style: "Arial"  # Explicitly set style name
-        color: "red"  # Text color
-        attachmentPoint: "MIDDLE_LEFT"  # Text attachment point
-        paragraph:
-          align: "LEFT"  # Text alignment
+    style: flurgrenze
+    viewports:
+      - name: WorkView
+        style: flurWorkView
+    # style:
+    #   text:
+    #     height: 20.5  # Text height
+    #     font: "Arial"  # Font family
+    #     style: "Arial"  # Explicitly set style name
+    #     color: "red"  # Text color
+    #     attachmentPoint: "MIDDLE_LEFT"  # Text attachment point
+    #     paragraph:
+    #       align: "LEFT"  # Text alignment

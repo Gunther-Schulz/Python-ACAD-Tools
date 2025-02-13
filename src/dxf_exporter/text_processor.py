@@ -9,6 +9,17 @@ from .utils import (
     attach_custom_data
 )
 
+# Define default text style properties
+DEFAULT_TEXT_STYLE = {
+    'height': 2.5,  # Default text height
+    'font': 'Arial',  # Default font
+    'color': 'white',  # Default color (ACI code 7)
+    'attachmentPoint': 'MIDDLE_LEFT',  # Default attachment point
+    'paragraph': {
+        'align': 'LEFT'  # Default alignment
+    }
+}
+
 class TextProcessor:
     def __init__(self, script_identifier, project_loader, style_manager, layer_manager):
         self.project_loader = project_loader
@@ -49,11 +60,11 @@ class TextProcessor:
                 
                 # Get style configuration
                 style_name = text_config.get('style')
-                text_style = {}
+                text_style = DEFAULT_TEXT_STYLE.copy()  # Start with defaults
                 if style_name:
                     style = self.style_manager.get_style(style_name)
                     if style and 'text' in style:
-                        text_style = style['text']
+                        text_style.update(style['text'])  # Override defaults with style settings
                 
                 # Get the correct space (model or paper)
                 space = msp.doc.paperspace() if text_config.get('paperspace', False) else msp.doc.modelspace()
@@ -87,10 +98,16 @@ class TextProcessor:
         
         # Get style information from layer_info
         style = layer_info.get('style', {})
+        text_style = DEFAULT_TEXT_STYLE.copy()  # Start with defaults
+        
         if isinstance(style, dict) and 'text' in style:
-            text_style = style['text']
-        else:
-            text_style = style
+            text_style.update(style['text'])  # Override defaults with style settings
+        elif isinstance(style, str):
+            # If style is a string, it's a preset name
+            preset_style, _ = self.style_manager.get_style(style)
+            if preset_style and 'text' in preset_style:
+                text_style.update(preset_style['text'])
+        
         log_debug(f"Text style config: {text_style}")
         
         # Process each label point

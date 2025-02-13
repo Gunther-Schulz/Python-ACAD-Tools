@@ -136,14 +136,49 @@ class ProjectLoader:
             self.aci_to_name = {v: k for k, v in self.name_to_aci.items()}
 
     def load_styles(self):
-        """Load styles from root styles.yaml"""
+        """Load and merge styles from both root and project-specific styles.yaml files.
+        Project-specific styles override root styles when they share the same preset name."""
+        root_styles = {}
+        project_styles = {}
+
+        # First load root styles
         try:
             with open('styles.yaml', 'r') as file:
                 style_data = yaml.safe_load(file)
-                self.styles = style_data.get('styles', {})
+                root_styles = style_data.get('styles', {})
+                log_debug("Loaded root styles from styles.yaml")
         except FileNotFoundError:
-            log_warning("styles.yaml not found. Using project-specific styles.")
-            self.styles = self.project_settings.get('styles', {})
+            log_debug("No root styles.yaml found")
+
+        # Then load project-specific styles
+        project_style_data = self.load_yaml_file('styles.yaml', required=False)
+        if project_style_data:
+            project_styles = project_style_data.get('styles', {})
+            log_debug("Loaded project-specific styles from project/styles.yaml")
+
+        # Merge styles, with project styles taking precedence
+        self.styles = {**root_styles, **project_styles}
+
+        # Log what happened
+        if root_styles and project_styles:
+            # Find which styles were overridden
+            overridden = set(root_styles.keys()) & set(project_styles.keys())
+            if overridden:
+                log_debug(f"Project styles override root styles for: {', '.join(overridden)}")
+            # Find which styles were only in project
+            project_only = set(project_styles.keys()) - set(root_styles.keys())
+            if project_only:
+                log_debug(f"Styles only in project: {', '.join(project_only)}")
+            # Find which styles were only in root
+            root_only = set(root_styles.keys()) - set(project_styles.keys())
+            if root_only:
+                log_debug(f"Styles only in root: {', '.join(root_only)}")
+        elif root_styles:
+            log_debug("Using only root styles")
+        elif project_styles:
+            log_debug("Using only project-specific styles")
+        else:
+            log_warning("No styles found in either root or project. Using empty styles.")
 
     def resolve_full_path(self, path: str) -> str:
         """Resolve a path using the folder prefix"""
