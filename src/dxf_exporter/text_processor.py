@@ -61,24 +61,22 @@ class TextProcessor:
                 space = msp.doc.paperspace() if text_config.get('paperspace', False) else msp.doc.modelspace()
                 
                 # Create MTEXT entity
-                result = add_mtext(
+                mtext, _ = add_mtext(
                     space,
                     text,
                     x,
                     y,
                     layer_name,
-                    text_style.get('font', self.default_text_style['font']),
+                    text_style.get('font', DEFAULT_TEXT_STYLE['font']),
                     text_style=text_style,
-                    name_to_aci=self.name_to_aci,
-                    max_width=text_style.get('width')
+                    name_to_aci=self.name_to_aci
                 )
                 
-                if result and result[0]:
-                    mtext = result[0]
+                if mtext:
                     attach_custom_data(mtext, self.script_identifier)
-                    log_debug(f"Added text insert: '{text}' at ({x}, {y})")
+                    log_debug(f"Added text insert: '{text}' at ({x}, {y}) on layer '{layer_name}'")
                 else:
-                    log_warning(f"Failed to create text insert for '{text}'")
+                    log_warning(f"Failed to add text insert: '{text}' at ({x}, {y}) on layer '{layer_name}'")
                     
             except Exception as e:
                 log_error(f"Error processing text insert: {str(e)}")
@@ -95,7 +93,7 @@ class TextProcessor:
             text_style.update(style['text'])  # Override defaults with style settings
         elif isinstance(style, str):
             # If style is a string, it's a preset name
-            preset_style, _ = self.style_manager.get_style(style)
+            preset_style = self.style_manager.get_style(style)
             if preset_style and 'text' in preset_style:
                 text_style.update(preset_style['text'])
         
@@ -112,8 +110,9 @@ class TextProcessor:
                 # Get the label text
                 label_text = str(row['label'])
                 
-                # Get rotation (default to 0 if not present)
-                rotation = float(row.get('rotation', 0))
+                # Get rotation (default to style rotation)
+                rotation = float(row.get('rotation', text_style.get('rotation', DEFAULT_TEXT_STYLE['rotation'])))
+                text_style['rotation'] = rotation
                 
                 # Create text entity
                 add_mtext(
@@ -122,7 +121,7 @@ class TextProcessor:
                     point.x,
                     point.y,
                     layer_name,
-                    text_style.get('font', self.default_text_style['font']),
+                    text_style.get('font', DEFAULT_TEXT_STYLE['font']),
                     text_style=text_style,
                     name_to_aci=self.name_to_aci
                 )

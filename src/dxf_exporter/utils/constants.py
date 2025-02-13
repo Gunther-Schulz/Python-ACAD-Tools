@@ -1,3 +1,4 @@
-"""Constants used across the DXF exporter."""
+"""Constants used across the DXF exporter module."""
 
-SCRIPT_IDENTIFIER = "Created by DXFExporter" 
+# Script identifier for custom data
+SCRIPT_IDENTIFIER = 'DXFEXPORTER' 

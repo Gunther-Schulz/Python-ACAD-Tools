@@ -3,7 +3,8 @@
 import ezdxf
 from ezdxf.lldxf import const
 from src.core.utils import log_warning, log_info, log_error, log_debug
-from .constants import SCRIPT_IDENTIFIER, DEFAULT_COLOR_MAPPING
+from .constants import SCRIPT_IDENTIFIER
+from .style_defaults import DEFAULT_COLOR_MAPPING
 
 def get_color_code(color, name_to_aci):
     if color is None:

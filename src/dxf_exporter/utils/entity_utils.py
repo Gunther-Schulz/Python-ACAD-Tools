@@ -8,6 +8,7 @@ from .constants import SCRIPT_IDENTIFIER
 from .style_utils import get_color_code, convert_transparency
 from .style_defaults import (
     DEFAULT_ENTITY_STYLE,
+    DEFAULT_TEXT_STYLE,
     TEXT_ATTACHMENT_POINTS,
     VALID_ATTACHMENT_POINTS,
     TEXT_FLOW_DIRECTIONS,
@@ -93,7 +94,7 @@ def is_created_by_script(entity, script_identifier):
 def apply_style_to_entity(entity, style, project_loader, loaded_styles=None):
     """Apply style properties to an entity."""
     if not style:
-        return
+        style = DEFAULT_ENTITY_STYLE.copy()
 
     # Get linetype
     if 'linetype' in style:
@@ -115,10 +116,12 @@ def apply_style_to_entity(entity, style, project_loader, loaded_styles=None):
         else:
             entity.dxf.color = color
     else:
-        entity.dxf.color = ezdxf.const.BYLAYER
+        entity.dxf.color = get_color_code(DEFAULT_ENTITY_STYLE['color'], None)
     
     if 'lineweight' in style:
         entity.dxf.lineweight = style['lineweight']
+    else:
+        entity.dxf.lineweight = DEFAULT_ENTITY_STYLE['lineweight']
     
     # Set transparency
     if 'transparency' in style:
@@ -130,7 +133,7 @@ def apply_style_to_entity(entity, style, project_loader, loaded_styles=None):
                 log_info(f"Could not set transparency for {entity.dxftype()}. Error: {str(e)}")
     else:
         try:
-            del entity.transparency
+            entity.transparency = DEFAULT_ENTITY_STYLE['transparency']
         except AttributeError:
             pass
 
@@ -138,62 +141,54 @@ def apply_style_to_entity(entity, style, project_loader, loaded_styles=None):
     if 'linetypeScale' in style:
         entity.dxf.ltscale = float(style['linetypeScale'])
     else:
-        entity.dxf.ltscale = 1.0
+        entity.dxf.ltscale = DEFAULT_ENTITY_STYLE['linetypeScale']
 
 def _apply_text_style_properties(entity, text_style, name_to_aci=None):
     """Apply text-specific style properties."""
     if not text_style:
-        return
+        text_style = DEFAULT_TEXT_STYLE.copy()
 
     # Basic properties
-    if 'height' in text_style:
-        entity.dxf.char_height = text_style['height']
-    if 'font' in text_style:
-        entity.dxf.style = text_style['font']
+    entity.dxf.char_height = text_style.get('height', DEFAULT_TEXT_STYLE['height'])
+    entity.dxf.style = text_style.get('font', DEFAULT_TEXT_STYLE['font'])
     
     # Color
-    if 'color' in text_style:
-        color = get_color_code(text_style['color'], name_to_aci)
-        if isinstance(color, tuple):
-            entity.rgb = color
-        else:
-            entity.dxf.color = color
+    color = get_color_code(text_style.get('color', DEFAULT_TEXT_STYLE['color']), name_to_aci)
+    if isinstance(color, tuple):
+        entity.rgb = color
+    else:
+        entity.dxf.color = color
 
     # Attachment point
-    if 'attachmentPoint' in text_style:
-        attachment_key = text_style['attachmentPoint'].upper()
-        if attachment_key in TEXT_ATTACHMENT_POINTS:
-            entity.dxf.attachment_point = TEXT_ATTACHMENT_POINTS[attachment_key]
+    attachment_key = text_style.get('attachmentPoint', DEFAULT_TEXT_STYLE['attachmentPoint']).upper()
+    if attachment_key in TEXT_ATTACHMENT_POINTS:
+        entity.dxf.attachment_point = TEXT_ATTACHMENT_POINTS[attachment_key]
 
     # Flow direction (MTEXT specific)
-    if hasattr(entity, 'dxf.flow_direction') and 'flowDirection' in text_style:
-        flow_key = text_style['flowDirection'].upper()
+    if hasattr(entity, 'dxf.flow_direction'):
+        flow_key = text_style.get('flowDirection', DEFAULT_TEXT_STYLE['flowDirection']).upper()
         if flow_key in TEXT_FLOW_DIRECTIONS:
             entity.dxf.flow_direction = TEXT_FLOW_DIRECTIONS[flow_key]
 
     # Line spacing (MTEXT specific)
     if hasattr(entity, 'dxf.line_spacing_style'):
-        if 'lineSpacingStyle' in text_style:
-            spacing_key = text_style['lineSpacingStyle'].upper()
-            if spacing_key in TEXT_LINE_SPACING_STYLES:
-                entity.dxf.line_spacing_style = TEXT_LINE_SPACING_STYLES[spacing_key]
+        spacing_key = text_style.get('lineSpacingStyle', DEFAULT_TEXT_STYLE['lineSpacingStyle']).upper()
+        if spacing_key in TEXT_LINE_SPACING_STYLES:
+            entity.dxf.line_spacing_style = TEXT_LINE_SPACING_STYLES[spacing_key]
 
-        if 'lineSpacingFactor' in text_style:
-            factor = float(text_style['lineSpacingFactor'])
-            if 0.25 <= factor <= 4.00:
-                entity.dxf.line_spacing_factor = factor
+        factor = text_style.get('lineSpacingFactor', DEFAULT_TEXT_STYLE['lineSpacingFactor'])
+        entity.dxf.line_spacing_factor = factor
 
     # Background fill
     if hasattr(entity, 'set_bg_color'):
-        if 'bgFill' in text_style and text_style['bgFill']:
-            bg_color = text_style.get('bgFillColor')
-            bg_scale = text_style.get('bgFillScale', 1.5)
+        if text_style.get('bgFill', DEFAULT_TEXT_STYLE['bgFill']):
+            bg_color = text_style.get('bgFillColor', DEFAULT_TEXT_STYLE['bgFillColor'])
+            bg_scale = text_style.get('bgFillScale', DEFAULT_TEXT_STYLE['bgFillScale'])
             if bg_color:
                 entity.set_bg_color(bg_color, scale=bg_scale)
 
     # Rotation
-    if 'rotation' in text_style:
-        entity.dxf.rotation = float(text_style['rotation'])
+    entity.dxf.rotation = float(text_style.get('rotation', DEFAULT_TEXT_STYLE['rotation']))
 
 def linetype_exists(doc, linetype_name):
     """Check if a linetype exists in the document."""

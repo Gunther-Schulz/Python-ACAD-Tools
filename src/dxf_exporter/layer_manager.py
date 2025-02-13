@@ -128,27 +128,27 @@ class LayerManager:
         """Get properties for a specific layer"""
         return self.layer_properties.get(layer_name, {})
 
-    def create_layer(self, name, properties=None):
-        """Create a new layer with given properties."""
-        if properties is None:
-            properties = self.default_layer_style.copy()
+    def create_layer(self, layer_name: str, layer_style: dict = None) -> None:
+        """Create a new layer in the DXF document."""
+        if layer_name in self.layer_properties:
+            return
+
+        # Use default style if none provided
+        if layer_style is None:
+            layer_style = self.default_layer_style
+
+        # Create the layer
+        self.layer_properties[layer_name] = {
+            'layer': layer_style,
+            'entity': {}
+        }
         
-        layer = self.doc.layers.new(name)
-        
-        # Set layer properties
-        if 'color' in properties:
-            layer.color = properties['color']
-        if 'linetype' in properties:
-            layer.linetype = properties['linetype']
-        if 'lineweight' in properties:
-            layer.lineweight = properties['lineweight']
-        if 'plot' in properties:
-            layer.plot = properties['plot']
-        if 'locked' in properties:
-            layer.locked = properties['locked']
-        if 'frozen' in properties:
-            layer.frozen = properties['frozen']
-        if 'is_on' in properties:
-            layer.is_on = properties['is_on']
-        
-        return layer
+        # Apply style properties
+        layer = self.doc.layers.new(name=layer_name)
+        layer.color = layer_style.get('color', self.default_layer_style['color'])
+        layer.linetype = layer_style.get('linetype', self.default_layer_style['linetype'])
+        layer.lineweight = layer_style.get('lineweight', self.default_layer_style['lineweight'])
+        layer.plot = layer_style.get('plot', self.default_layer_style['plot'])
+        layer.locked = layer_style.get('locked', self.default_layer_style['locked'])
+        layer.frozen = layer_style.get('frozen', self.default_layer_style['frozen'])
+        layer.is_on = layer_style.get('is_on', self.default_layer_style['is_on'])

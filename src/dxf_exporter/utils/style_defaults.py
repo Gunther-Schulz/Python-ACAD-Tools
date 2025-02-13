@@ -1,14 +1,5 @@
 """Module containing all default style settings for DXF entities."""
 
-# Default layer names
-DEFAULT_LAYER_NAMES = {
-    'text': 'Plantext',  # Default layer for text entities
-    'hatch': 'Hatch',    # Default layer for hatch entities
-    'block': 'Blocks',   # Default layer for block references
-    'viewport': 'VIEWPORTS',  # Default layer for viewports
-    'legend': 'Legend'    # Default layer for legend elements
-}
-
 # Text attachment point mappings
 TEXT_ATTACHMENT_POINTS = {
     'TOP_LEFT': 1, 'TOP_CENTER': 2, 'TOP_RIGHT': 3,
@@ -183,4 +174,13 @@ DEFAULT_COLOR_MAPPING = {
     'dark_gray': 250,
     'bylayer': 256,
     'byblock': 0
+}
+
+# Default layer names
+DEFAULT_LAYER_NAMES = {
+    'text': 'Text',  # Default layer for text entities
+    'hatch': 'Hatch',  # Default layer for hatch entities
+    'block': 'Blocks',  # Default layer for block references
+    'viewport': 'VIEWPORTS',  # Default layer for viewports
+    'legend': 'Legend'  # Default layer for legend elements
 } 
