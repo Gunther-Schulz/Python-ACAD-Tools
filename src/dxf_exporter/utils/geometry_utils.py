@@ -7,7 +7,10 @@ from src.core.utils import log_warning, log_info, log_error, log_debug
 from .constants import SCRIPT_IDENTIFIER
 from .entity_utils import attach_custom_data
 from .style_utils import get_color_code, convert_transparency
-from .style_defaults import DEFAULT_HATCH_STYLE
+from .style_defaults import (
+    DEFAULT_HATCH_STYLE,
+    DEFAULT_BLOCK_STYLE
+)
 
 def create_hatch(msp, paths, hatch_config, project_loader):
     """Create a hatch entity with the given paths and configuration."""
@@ -15,13 +18,13 @@ def create_hatch(msp, paths, hatch_config, project_loader):
         # Get pattern from config or default
         pattern = hatch_config.get('pattern', DEFAULT_HATCH_STYLE['pattern'])
         
-        # Create hatch
-        hatch = msp.add_hatch(color=1)  # Default color will be overridden
+        # Create hatch with default color from style
+        hatch = msp.add_hatch(color=get_color_code(DEFAULT_HATCH_STYLE['color'], project_loader.name_to_aci))
         
         # Set pattern
         if pattern != DEFAULT_HATCH_STYLE['pattern']:
             try:
-                hatch.set_pattern_fill(pattern, scale=hatch_config.get('scale', 1))
+                hatch.set_pattern_fill(pattern, scale=hatch_config.get('scale', DEFAULT_HATCH_STYLE['scale']))
             except Exception as e:
                 log_warning(f"Failed to set pattern '{pattern}': {str(e)}")
                 hatch.set_pattern_fill(DEFAULT_HATCH_STYLE['pattern'])
@@ -54,13 +57,14 @@ def set_hatch_transparency(hatch, transparency):
 def get_available_blocks(doc):
     return set(block.name for block in doc.blocks if not block.name.startswith('*'))
 
-def add_block_reference(msp, block_name, insert_point, layer_name, scale=1.0, rotation=0.0):
+def add_block_reference(msp, block_name, insert_point, layer_name, scale=None, rotation=None):
+    """Add a block reference with style support."""
     if block_name in msp.doc.blocks:
         block_ref = msp.add_blockref(block_name, insert_point)
         block_ref.dxf.layer = layer_name
-        block_ref.dxf.xscale = scale
-        block_ref.dxf.yscale = scale
-        block_ref.dxf.rotation = rotation
+        block_ref.dxf.xscale = scale if scale is not None else DEFAULT_BLOCK_STYLE['scale']
+        block_ref.dxf.yscale = scale if scale is not None else DEFAULT_BLOCK_STYLE['scale']
+        block_ref.dxf.rotation = rotation if rotation is not None else DEFAULT_BLOCK_STYLE['rotation']
         attach_custom_data(block_ref, SCRIPT_IDENTIFIER)
         return block_ref
     else:

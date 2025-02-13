@@ -3,11 +3,12 @@
 from src.core.utils import log_debug, log_warning
 from .utils import remove_entities_by_layer
 from src.dxf.path_array import create_path_array
+from .utils.style_defaults import DEFAULT_PATH_ARRAY_STYLE
 
 class PathArrayProcessor:
-    def __init__(self, script_identifier, project_loader):
+    def __init__(self, project_loader, style_manager):
         self.project_loader = project_loader
-        self.script_identifier = script_identifier
+        self.style_manager = style_manager
         self.all_layers = {}
 
     def create_path_arrays(self, msp):
@@ -36,8 +37,8 @@ class PathArrayProcessor:
             
             block_name = config['block']
             spacing = config['spacing']
-            scale = config.get('scale', 1.0)
-            rotation = config.get('rotation', 0.0)
+            scale = config.get('scale', DEFAULT_PATH_ARRAY_STYLE['scale'])
+            rotation = config.get('rotation', DEFAULT_PATH_ARRAY_STYLE['rotation'])
             buffer_distance = config.get('bufferDistance', 0.0)
             path_offset = config.get('pathOffset', 0.0)
             show_debug_visual = config.get('showDebugVisual', False)

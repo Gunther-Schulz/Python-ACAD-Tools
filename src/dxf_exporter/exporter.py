@@ -41,7 +41,7 @@ class DXFExporter:
         self.geometry_processor = GeometryProcessor(self.script_identifier, project_loader, self.style_manager, self.layer_manager)
         self.text_processor = TextProcessor(self.script_identifier, project_loader, self.style_manager, self.layer_manager)
         self.hatch_processor = HatchProcessor(self.script_identifier, project_loader, self.style_manager, self.layer_manager)
-        self.path_array_processor = PathArrayProcessor(self.script_identifier, project_loader)
+        self.path_array_processor = PathArrayProcessor(project_loader, self.style_manager)
         
         # Set up additional managers
         self.viewport_manager = ViewportManager(

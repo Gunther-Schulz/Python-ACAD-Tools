@@ -9,7 +9,9 @@ from .utils.style_defaults import (
     DEFAULT_ENTITY_STYLE,
     VALID_STYLE_PROPERTIES,
     DEFAULT_COLOR_MAPPING,
-    VALID_ATTACHMENT_POINTS
+    VALID_ATTACHMENT_POINTS,
+    VALID_TEXT_ALIGNMENTS,
+    TEXT_LINE_SPACING_STYLES
 )
 import re
 
@@ -35,6 +37,7 @@ class StyleManager:
         self.default_entity_settings = DEFAULT_ENTITY_STYLE.copy()
 
     def get_style(self, style_name_or_config):
+        """Get style configuration with support for presets and inline styles."""
         if isinstance(style_name_or_config, str):
             # Handle preset style
             style = self.styles.get(style_name_or_config)
@@ -43,23 +46,8 @@ class StyleManager:
                 return None, True
             return style, False
         elif isinstance(style_name_or_config, dict):
-            if 'preset' in style_name_or_config:
-                # Handle preset with overrides (old way - kept for backward compatibility)
-                preset_name = style_name_or_config['preset']
-                preset = self.styles.get(preset_name)
-                if preset is None:
-                    log_warning(f"Style preset '{preset_name}' not found.")
-                    return style_name_or_config, True
-                
-                # Remove the preset key from overrides
-                overrides = dict(style_name_or_config)
-                del overrides['preset']
-                
-                # Deep merge the preset with overrides
-                merged_style = self.deep_merge(preset, overrides)
-                return merged_style, False
-            elif 'styleOverride' in style_name_or_config:
-                # Handle new style override system
+            if 'styleOverride' in style_name_or_config:
+                # Handle style override system
                 preset_name = style_name_or_config.get('style')
                 if not preset_name or not isinstance(preset_name, str):
                     log_warning("styleOverride requires a valid preset name in 'style' key")
@@ -157,6 +145,7 @@ class StyleManager:
         self._validate_style_keys(layer_name, 'hatch', hatch_style, known_style_keys)
 
     def _validate_text_style(self, layer_name, text_style):
+        """Validate text style properties."""
         known_style_keys = {
             'color',
             'height',
@@ -197,12 +186,11 @@ class StyleManager:
             )
 
             # Validate alignment value
-            valid_alignments = {'LEFT', 'RIGHT', 'CENTER', 'JUSTIFIED', 'DISTRIBUTED'}
             if 'align' in text_style['paragraph']:
                 alignment = text_style['paragraph']['align'].upper()
-                if alignment not in valid_alignments:
+                if alignment not in VALID_TEXT_ALIGNMENTS:
                     log_warning(f"Invalid paragraph alignment '{alignment}' in layer {layer_name}. "
-                              f"Valid values are: {', '.join(valid_alignments)}")
+                              f"Valid values are: {', '.join(VALID_TEXT_ALIGNMENTS)}")
 
         # Validate attachment point value
         if 'attachmentPoint' in text_style:
@@ -221,11 +209,10 @@ class StyleManager:
 
         # Validate line spacing style
         if 'lineSpacingStyle' in text_style:
-            valid_spacing_styles = {'AT_LEAST', 'EXACT'}
             spacing_style = text_style['lineSpacingStyle'].upper()
-            if spacing_style not in valid_spacing_styles:
+            if spacing_style not in TEXT_LINE_SPACING_STYLES:
                 log_warning(f"Invalid line spacing style '{spacing_style}' in layer {layer_name}. "
-                          f"Valid values are: {', '.join(valid_spacing_styles)}")
+                          f"Valid values are: {', '.join(TEXT_LINE_SPACING_STYLES.keys())}")
 
     def _validate_style_keys(self, layer_name, style_type, style_dict, known_keys):
         unknown_keys = set(style_dict.keys()) - known_keys
@@ -291,7 +278,7 @@ class StyleManager:
         return hatch_config
 
     def process_layer_style(self, layer_name, layer_config):
-        """Process layer style with support for presets, inline styles, and overrides"""
+        """Process layer style with support for presets and inline styles."""
         # Initialize with default settings
         properties = self.default_layer_settings.copy()
         

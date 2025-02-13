@@ -19,76 +19,67 @@ from .style_defaults import (
 def _apply_text_style_properties(entity, text_style, name_to_aci=None):
     """Apply common text style properties to a text entity (MTEXT or TEXT)."""
     if not text_style:
-        return
+        text_style = DEFAULT_TEXT_STYLE.copy()
 
     # Basic properties
-    if 'height' in text_style:
-        entity.dxf.char_height = text_style['height']
-    if 'font' in text_style:
-        entity.dxf.style = text_style['font']
+    entity.dxf.char_height = text_style.get('height', DEFAULT_TEXT_STYLE['height'])
+    entity.dxf.style = text_style.get('font', DEFAULT_TEXT_STYLE['font'])
     
     # Color
-    if 'color' in text_style:
-        color = get_color_code(text_style['color'], name_to_aci)
-        if isinstance(color, tuple):
-            entity.rgb = color
-        else:
-            entity.dxf.color = color
+    color = get_color_code(text_style.get('color', DEFAULT_TEXT_STYLE['color']), name_to_aci)
+    if isinstance(color, tuple):
+        entity.rgb = color
+    else:
+        entity.dxf.color = color
 
     # Attachment point
-    if 'attachmentPoint' in text_style:
-        attachment_key = text_style['attachmentPoint'].upper()
-        if attachment_key in TEXT_ATTACHMENT_POINTS:
-            entity.dxf.attachment_point = TEXT_ATTACHMENT_POINTS[attachment_key]
+    attachment_key = text_style.get('attachmentPoint', DEFAULT_TEXT_STYLE['attachmentPoint']).upper()
+    if attachment_key in TEXT_ATTACHMENT_POINTS:
+        entity.dxf.attachment_point = TEXT_ATTACHMENT_POINTS[attachment_key]
 
     # Flow direction (MTEXT specific)
-    if hasattr(entity, 'dxf.flow_direction') and 'flowDirection' in text_style:
-        flow_key = text_style['flowDirection'].upper()
+    if hasattr(entity, 'dxf.flow_direction'):
+        flow_key = text_style.get('flowDirection', 'LEFT_TO_RIGHT').upper()
         if flow_key in TEXT_FLOW_DIRECTIONS:
             entity.dxf.flow_direction = TEXT_FLOW_DIRECTIONS[flow_key]
 
     # Line spacing (MTEXT specific)
     if hasattr(entity, 'dxf.line_spacing_style'):
-        if 'lineSpacingStyle' in text_style:
-            spacing_key = text_style['lineSpacingStyle'].upper()
-            if spacing_key in TEXT_LINE_SPACING_STYLES:
-                entity.dxf.line_spacing_style = TEXT_LINE_SPACING_STYLES[spacing_key]
+        spacing_key = text_style.get('lineSpacingStyle', 'AT_LEAST').upper()
+        if spacing_key in TEXT_LINE_SPACING_STYLES:
+            entity.dxf.line_spacing_style = TEXT_LINE_SPACING_STYLES[spacing_key]
 
-        if 'lineSpacingFactor' in text_style:
-            factor = float(text_style['lineSpacingFactor'])
-            min_factor, max_factor = VALID_STYLE_PROPERTIES['text']['lineSpacingFactor'][1]
-            if min_factor <= factor <= max_factor:
-                entity.dxf.line_spacing_factor = factor
+        factor = text_style.get('lineSpacingFactor', 1.0)
+        min_factor, max_factor = VALID_STYLE_PROPERTIES['text']['lineSpacingFactor'][1]
+        if min_factor <= factor <= max_factor:
+            entity.dxf.line_spacing_factor = factor
 
     # Background fill
     if hasattr(entity, 'set_bg_color'):
-        if 'bgFill' in text_style and text_style['bgFill']:
+        if text_style.get('bgFill', False):
             bg_color = text_style.get('bgFillColor')
             min_scale, max_scale = VALID_STYLE_PROPERTIES['text']['bgFillScale'][1]
-            default_scale = (min_scale + max_scale) / 2
-            bg_scale = text_style.get('bgFillScale', default_scale)
+            bg_scale = text_style.get('bgFillScale', (min_scale + max_scale) / 2)
             if bg_color:
                 entity.set_bg_color(bg_color, scale=bg_scale)
 
     # Rotation
-    if 'rotation' in text_style:
-        entity.dxf.rotation = float(text_style['rotation'])
+    entity.dxf.rotation = float(text_style.get('rotation', 0.0))
 
     # Paragraph properties
     if 'paragraph' in text_style and hasattr(entity, 'text'):
         para = text_style['paragraph']
-        if 'align' in para:
-            align_map = {
-                'LEFT': '\\pql;',
-                'CENTER': '\\pqc;',
-                'RIGHT': '\\pqr;',
-                'JUSTIFIED': '\\pqj;',
-                'DISTRIBUTED': '\\pqd;'
-            }
-            align_key = para['align'].upper()
-            if align_key in align_map:
-                current_text = entity.text
-                entity.text = f"{align_map[align_key]}{current_text}"
+        align_map = {
+            'LEFT': '\\pql;',
+            'CENTER': '\\pqc;',
+            'RIGHT': '\\pqr;',
+            'JUSTIFIED': '\\pqj;',
+            'DISTRIBUTED': '\\pqd;'
+        }
+        align_key = para.get('align', DEFAULT_TEXT_STYLE['paragraph']['align']).upper()
+        if align_key in align_map:
+            current_text = entity.text
+            entity.text = f"{align_map[align_key]}{current_text}"
 
 def get_text_attachment_point(attachment_key):
     """Get the DXF attachment point value for a given key."""
@@ -135,17 +126,28 @@ def add_mtext(msp, text, x, y, layer_name, style_name, text_style=None, name_to_
         log_error(f"Traceback:\n{traceback.format_exc()}")
         return None, 0
 
-def add_text(msp, text, x, y, layer_name, style_name, height=None, color=None):
+def add_text(msp, text, x, y, layer_name, style_name, text_style=None, name_to_aci=None):
     """Add TEXT entity with style support."""
+    # Use text_style if provided, otherwise use defaults
+    if text_style is None:
+        text_style = DEFAULT_TEXT_STYLE.copy()
+
     text_entity = msp.add_text(text, dxfattribs={
         'style': style_name,
         'layer': layer_name,
         'insert': (x, y),
-        'height': height if height is not None else DEFAULT_TEXT_STYLE['height'],
-        'color': color if color is not None else ezdxf.const.BYLAYER
+        'height': text_style.get('height', DEFAULT_TEXT_STYLE['height']),
+        'color': get_color_code(text_style.get('color', DEFAULT_TEXT_STYLE['color']), name_to_aci)
     })
+
+    # Set placement based on attachment point
+    attachment_point = text_style.get('attachmentPoint', DEFAULT_TEXT_STYLE['attachmentPoint'])
     text_entity.set_placement(
         (x, y),
-        align=TextEntityAlignment.LEFT
+        align=get_text_attachment_point(attachment_point)
     )
+
+    # Apply any additional text style properties
+    _apply_text_style_properties(text_entity, text_style, name_to_aci)
+    
     return text_entity 

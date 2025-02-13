@@ -154,4 +154,24 @@ STANDARD_TEXT_STYLES = [
     ('Romans', 'Romans', 0.0),
     ('Romand', 'Romand', 0.0),
     ('Romant', 'Romant', 0.0)
-] 
+]
+
+# Text alignment values
+VALID_TEXT_ALIGNMENTS = {
+    'LEFT', 'RIGHT', 'CENTER', 'JUSTIFIED', 'DISTRIBUTED'
+}
+
+# Default block reference properties
+DEFAULT_BLOCK_STYLE = {
+    'scale': 1.0,
+    'rotation': 0.0,
+    'color': 'BYLAYER',
+    'linetype': 'BYLAYER'
+}
+
+# Default path array properties
+DEFAULT_PATH_ARRAY_STYLE = {
+    'scale': 1.0,
+    'rotation': 0.0,
+    'spacing': 1.0
+} 
