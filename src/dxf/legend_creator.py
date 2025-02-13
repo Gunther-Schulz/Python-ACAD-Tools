@@ -30,6 +30,7 @@ from src.dxf_exporter.utils import (
     create_hatch
 )
 from ezdxf.lldxf import const
+from ..dxf_exporter.utils.style_defaults import DEFAULT_TEXT_STYLE
 
 class LegendCreator:
     def __init__(self, doc, msp, project_loader, loaded_styles):
@@ -45,6 +46,7 @@ class LegendCreator:
         self.layer_name_cache = {}
         self.name_to_aci = project_loader.name_to_aci
         self.style_manager = StyleManager(project_loader)
+        self.default_text_style = DEFAULT_TEXT_STYLE.copy()
         
         self.initialize_default_settings()
 
@@ -421,10 +423,10 @@ class LegendCreator:
 
     def add_mtext(self, x, y, text, layer_name, text_style, max_width=None):
         try:
-            style_name = text_style.get('font', 'Standard')
-            if style_name not in self.loaded_styles:
-                log_warning(f"Text style '{style_name}' was not loaded during initialization. Using 'Standard' instead.")
-                style_name = 'Standard'
+            style_name = text_style.get('font', self.default_text_style['font'])
+            if style_name not in self.doc.styles:
+                log_warning(f"Text style '{style_name}' was not loaded during initialization. Using '{self.default_text_style['font']}' instead.")
+                style_name = self.default_text_style['font']
 
             # Create MText editor for paragraph formatting
             editor = ezdxf.tools.text.MTextEditor()

@@ -1,11 +1,13 @@
 """Module for handling style operations."""
 
 from src.core.utils import log_warning
+from ..dxf_exporter.utils.style_defaults import DEFAULT_HATCH_STYLE
 
 class StyleHandler:
     def __init__(self, layer_processor):
         self.layer_processor = layer_processor
         self.style_manager = layer_processor.style_manager
+        self.default_hatch_style = DEFAULT_HATCH_STYLE.copy()
 
     def _process_style(self, layer_name, style_config):
         """Process style configuration for a layer."""
@@ -49,3 +51,12 @@ class StyleHandler:
         })
 
         return hatch_config 
+
+    def process_hatch_style(self, layer_config):
+        """Process hatch style configuration."""
+        return {
+            'pattern': layer_config.get('hatchPattern', self.default_hatch_style['pattern']),
+            'scale': layer_config.get('hatchScale', self.default_hatch_style['scale']),
+            'color': layer_config.get('hatchColor', self.default_hatch_style['color']),
+            'transparency': layer_config.get('hatchTransparency', self.default_hatch_style['transparency'])
+        } 

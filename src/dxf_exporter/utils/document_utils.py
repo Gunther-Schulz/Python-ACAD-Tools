@@ -3,6 +3,7 @@
 import ezdxf
 import traceback
 from src.core.utils import log_debug, log_warning, log_error
+from .style_defaults import DEFAULT_TEXT_STYLE, STANDARD_TEXT_STYLES
 
 def set_drawing_properties(doc):
     # Set the properties
@@ -237,34 +238,11 @@ def initialize_document(doc):
     return loaded_styles
 
 def load_standard_text_styles(doc):
-    standard_styles = [
-        ('Standard', 'Arial', 0.0),
-        ('Arial', 'Arial', 0.0),
-        ('Arial Narrow', 'Arial Narrow', 0.0),
-        ('Isocpeur', 'Isocpeur', 0.0),
-        ('Isocp', 'Isocp', 0.0),
-        ('Romantic', 'Romantic', 0.0),
-        ('Romans', 'Romans', 0.0),
-        ('Romand', 'Romand', 0.0),
-        ('Romant', 'Romant', 0.0),
-    ]
-
-    loaded_styles = set()
-
-    for style_name, font, height in standard_styles:
+    """Load standard text styles into the document."""
+    for style_name, font_name, oblique_angle in STANDARD_TEXT_STYLES:
         if style_name not in doc.styles:
-            try:
-                style = doc.styles.new(style_name)
-                style.dxf.font = font
-                style.dxf.height = height
-                style.dxf.width = 1.0  # Default width factor
-                style.dxf.oblique = 0.0  # Default oblique angle
-                style.dxf.last_height = 2.5  # Default last height
-                loaded_styles.add(style_name)
-                log_debug(f"Added standard text style: {style_name}")
-            except ezdxf.lldxf.const.DXFTableEntryError:
-                log_warning(f"Failed to add standard text style: {style_name}")
-        else:
-            loaded_styles.add(style_name)
-
-    return loaded_styles 
+            doc.styles.new(style_name, dxfattribs={
+                'font': font_name,
+                'width': 1.0,
+                'oblique': oblique_angle
+            }) 

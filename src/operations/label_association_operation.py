@@ -8,6 +8,7 @@ import math
 import numpy as np
 from src.dxf_exporter.style_manager import StyleManager
 import networkx as nx
+from ..dxf_exporter.utils.style_defaults import DEFAULT_TEXT_STYLE
 
 
 def get_line_placement_positions(line, text_width, text_height, step=None):
@@ -1166,3 +1167,21 @@ Layer: {layer}
 ├─ Placed Labels: {placed_labels}/{count} candidates
 └─ No line length calculated
 """)
+
+class LabelAssociationOperation:
+    def __init__(self, project_loader):
+        self.project_loader = project_loader
+        self.default_text_style = DEFAULT_TEXT_STYLE.copy()
+        
+    def _get_text_properties(self, text_style):
+        """Get text properties from style."""
+        font_family = text_style.get('family', self.default_text_style['font'])
+        font_size = text_style.get('height', self.default_text_style['height'])
+        
+        # Font size scaling factors for different fonts
+        font_scale_factors = {
+            self.default_text_style['font']: 0.6
+        }
+        
+        scale_factor = font_scale_factors.get(font_family, 0.6)  # Default scale factor if font not found
+        return font_family, font_size, scale_factor

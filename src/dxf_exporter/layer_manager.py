@@ -3,6 +3,7 @@
 import ezdxf
 from src.core.utils import log_debug, log_warning
 from .utils import ensure_layer_exists, update_layer_properties, sanitize_layer_name
+from .utils.style_defaults import DEFAULT_LAYER_STYLE
 
 class LayerManager:
     def __init__(self, project_loader, style_manager):
@@ -12,6 +13,8 @@ class LayerManager:
         self.colors = {}
         self.name_to_aci = project_loader.name_to_aci
         self.all_layers = {}
+        self.doc = None
+        self.default_layer_style = DEFAULT_LAYER_STYLE.copy()
         self.setup_layers()
 
     def setup_layers(self):
@@ -46,22 +49,13 @@ class LayerManager:
         
         # Ensure layer has properties, even if just defaults
         if layer_name not in self.layer_properties:
-            default_properties = {
-                'layer': {
-                    'color': 'White',
-                    'linetype': 'CONTINUOUS',
-                    'lineweight': 0.13,
-                    'plot': True,
-                    'locked': False,
-                    'frozen': False,
-                    'is_on': True
-                },
+            self.layer_properties[layer_name] = {
+                'layer': self.default_layer_style.copy(),
                 'entity': {
                     'close': False
                 }
             }
-            self.layer_properties[layer_name] = default_properties
-            self.colors[layer_name] = default_properties['layer']['color']
+            self.colors[layer_name] = self.default_layer_style['color']
         
         # Process layer style if it exists
         if 'style' in layer:
@@ -133,3 +127,28 @@ class LayerManager:
     def get_layer_properties(self, layer_name):
         """Get properties for a specific layer"""
         return self.layer_properties.get(layer_name, {})
+
+    def create_layer(self, name, properties=None):
+        """Create a new layer with given properties."""
+        if properties is None:
+            properties = self.default_layer_style.copy()
+        
+        layer = self.doc.layers.new(name)
+        
+        # Set layer properties
+        if 'color' in properties:
+            layer.color = properties['color']
+        if 'linetype' in properties:
+            layer.linetype = properties['linetype']
+        if 'lineweight' in properties:
+            layer.lineweight = properties['lineweight']
+        if 'plot' in properties:
+            layer.plot = properties['plot']
+        if 'locked' in properties:
+            layer.locked = properties['locked']
+        if 'frozen' in properties:
+            layer.frozen = properties['frozen']
+        if 'is_on' in properties:
+            layer.is_on = properties['is_on']
+        
+        return layer

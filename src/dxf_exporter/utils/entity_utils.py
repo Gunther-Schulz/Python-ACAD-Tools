@@ -6,6 +6,7 @@ from ezdxf import colors
 from src.core.utils import log_warning, log_info, log_error, log_debug
 from .constants import SCRIPT_IDENTIFIER
 from .style_utils import get_color_code, convert_transparency
+from .style_defaults import DEFAULT_ENTITY_STYLE
 
 def attach_custom_data(entity, script_identifier, entity_name=None):
     """Attaches custom data to an entity with proper cleanup of existing data."""
@@ -83,37 +84,32 @@ def is_created_by_script(entity, script_identifier):
         log_error(f"Unexpected error checking XDATA for entity {entity}: {str(e)}")
     return False
 
-def apply_style_to_entity(entity, style, name_to_aci=None):
-    """Apply style properties to any DXF entity.
-    
-    Args:
-        entity: The DXF entity to style
-        style: Style configuration dictionary
-        name_to_aci: Optional mapping of color names to ACI codes
-    """
+def apply_style_to_entity(entity, style, project_loader, loaded_styles=None):
+    """Apply style properties to an entity."""
     if not style:
         return
 
+    # Get linetype
+    if 'linetype' in style:
+        if style['linetype'] not in entity.doc.linetypes:
+            log_warning(f"Linetype '{style['linetype']}' not defined. Using '{DEFAULT_ENTITY_STYLE['linetype']}'.")
+            entity.dxf.linetype = DEFAULT_ENTITY_STYLE['linetype']
+        else:
+            entity.dxf.linetype = style['linetype']
+
     # Handle text-specific properties
     if entity.dxftype() in ('MTEXT', 'TEXT'):
-        _apply_text_style_properties(entity, style, name_to_aci)
+        _apply_text_style_properties(entity, style, loaded_styles)
     
     # Apply non-text properties
     if 'color' in style:
-        color = get_color_code(style['color'], name_to_aci)
+        color = get_color_code(style['color'], loaded_styles)
         if isinstance(color, tuple):
             entity.rgb = color
         else:
             entity.dxf.color = color
     else:
         entity.dxf.color = ezdxf.const.BYLAYER
-    
-    if 'linetype' in style:
-        if linetype_exists(entity.doc, style['linetype']):
-            entity.dxf.linetype = style['linetype']
-        else:
-            log_warning(f"Linetype '{style['linetype']}' not defined. Using 'BYLAYER'.")
-            entity.dxf.linetype = 'BYLAYER'
     
     if 'lineweight' in style:
         entity.dxf.lineweight = style['lineweight']

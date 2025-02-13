@@ -7,52 +7,41 @@ from src.core.utils import log_warning, log_info, log_error, log_debug
 from .constants import SCRIPT_IDENTIFIER
 from .entity_utils import attach_custom_data
 from .style_utils import get_color_code, convert_transparency
+from .style_defaults import DEFAULT_HATCH_STYLE
 
-def create_hatch(msp, boundary_paths, hatch_config, project_loader):
-    hatch = msp.add_hatch()
-    
-    pattern = hatch_config.get('pattern', 'SOLID')
-    pattern_scale = hatch_config.get('scale', 1)
-    
-    if pattern != 'SOLID':
-        try:
-            hatch.set_pattern_fill(pattern, scale=pattern_scale)
-        except ezdxf.DXFValueError:
-            log_warning(f"Invalid hatch pattern: {pattern}. Using SOLID instead.")
-            hatch.set_pattern_fill("SOLID")
-    else:
-        hatch.set_solid_fill()
-
-    # Add boundary paths
-    if isinstance(boundary_paths, list):
-        for path in boundary_paths:
+def create_hatch(msp, paths, hatch_config, project_loader):
+    """Create a hatch entity with the given paths and configuration."""
+    try:
+        # Get pattern from config or default
+        pattern = hatch_config.get('pattern', DEFAULT_HATCH_STYLE['pattern'])
+        
+        # Create hatch
+        hatch = msp.add_hatch(color=1)  # Default color will be overridden
+        
+        # Set pattern
+        if pattern != DEFAULT_HATCH_STYLE['pattern']:
+            try:
+                hatch.set_pattern_fill(pattern, scale=hatch_config.get('scale', 1))
+            except Exception as e:
+                log_warning(f"Failed to set pattern '{pattern}': {str(e)}")
+                hatch.set_pattern_fill(DEFAULT_HATCH_STYLE['pattern'])
+        
+        # Add paths
+        for path in paths:
             hatch.paths.add_polyline_path(path)
-    else:
-        # Single boundary case
-        vertices = list(boundary_paths.exterior.coords)
-        hatch.paths.add_polyline_path(vertices)
-
-    # Apply color
-    if 'color' in hatch_config and hatch_config['color'] not in (None, 'BYLAYER'):
-        color = get_color_code(hatch_config['color'], project_loader.name_to_aci)
-        if isinstance(color, tuple):
-            hatch.rgb = color
-        else:
-            hatch.dxf.color = color
-    else:
-        hatch.dxf.color = ezdxf.const.BYLAYER
-
-    # Apply lineweight
-    if 'lineweight' in hatch_config:
-        hatch.dxf.lineweight = hatch_config['lineweight']
-
-    # Apply transparency
-    if 'transparency' in hatch_config:
-        transparency = convert_transparency(hatch_config['transparency'])
-        if transparency is not None:
-            set_hatch_transparency(hatch, transparency)
-    
-    return hatch
+        
+        # Set color if specified
+        if 'color' in hatch_config and hatch_config['color'] not in (None, 'BYLAYER'):
+            color = get_color_code(hatch_config['color'], project_loader.name_to_aci)
+            if isinstance(color, tuple):
+                hatch.rgb = color
+            else:
+                hatch.dxf.color = color
+        
+        return hatch
+    except Exception as e:
+        log_warning(f"Error creating hatch: {str(e)}")
+        return None
 
 def set_hatch_transparency(hatch, transparency):
     """Set the transparency of a hatch entity."""

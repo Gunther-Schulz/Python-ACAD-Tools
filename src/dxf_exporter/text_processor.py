@@ -17,6 +17,7 @@ class TextProcessor:
         self.layer_manager = layer_manager
         self.script_identifier = script_identifier
         self.name_to_aci = project_loader.name_to_aci
+        self.default_text_style = DEFAULT_TEXT_STYLE.copy()
 
     def process_text_inserts(self, msp):
         """Process text inserts from project settings."""
@@ -50,7 +51,7 @@ class TextProcessor:
                 
                 # Get style configuration
                 style_name = text_config.get('style')
-                text_style = DEFAULT_TEXT_STYLE.copy()  # Start with defaults
+                text_style = self.default_text_style.copy()  # Start with defaults
                 if style_name:
                     style = self.style_manager.get_style(style_name)
                     if style and 'text' in style:
@@ -66,7 +67,7 @@ class TextProcessor:
                     x,
                     y,
                     layer_name,
-                    text_style.get('font', 'Standard'),
+                    text_style.get('font', self.default_text_style['font']),
                     text_style=text_style,
                     name_to_aci=self.name_to_aci,
                     max_width=text_style.get('width')
@@ -88,7 +89,7 @@ class TextProcessor:
         
         # Get style information from layer_info
         style = layer_info.get('style', {})
-        text_style = DEFAULT_TEXT_STYLE.copy()  # Start with defaults
+        text_style = self.default_text_style.copy()  # Start with defaults
         
         if isinstance(style, dict) and 'text' in style:
             text_style.update(style['text'])  # Override defaults with style settings
@@ -121,7 +122,7 @@ class TextProcessor:
                     point.x,
                     point.y,
                     layer_name,
-                    text_style.get('font', 'Standard'),
+                    text_style.get('font', self.default_text_style['font']),
                     text_style=text_style,
                     name_to_aci=self.name_to_aci
                 )
