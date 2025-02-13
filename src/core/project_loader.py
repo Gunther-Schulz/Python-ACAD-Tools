@@ -2,6 +2,7 @@ import yaml
 import os
 from src.core.utils import log_info, log_warning, log_error, resolve_path, log_debug
 from src.dxf.dxf_processor import DXFProcessor
+from src.dxf_exporter.utils.style_defaults import DEFAULT_COLOR_MAPPING
 
 class ProjectLoader:
     def __init__(self, project_name: str):
@@ -132,7 +133,7 @@ class ProjectLoader:
                 self.aci_to_name = {item['aciCode']: item['name'] for item in color_data}
         except FileNotFoundError:
             log_warning("aci_colors.yaml not found. Using default color mapping.")
-            self.name_to_aci = {'white': 7, 'red': 1, 'yellow': 2, 'green': 3, 'cyan': 4, 'blue': 5, 'magenta': 6}
+            self.name_to_aci = DEFAULT_COLOR_MAPPING
             self.aci_to_name = {v: k for k, v in self.name_to_aci.items()}
 
     def load_styles(self):

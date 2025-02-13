@@ -8,17 +8,7 @@ from .utils import (
     add_mtext,
     attach_custom_data
 )
-
-# Define default text style properties
-DEFAULT_TEXT_STYLE = {
-    'height': 2.5,  # Default text height
-    'font': 'Arial',  # Default font
-    'color': 'white',  # Default color (ACI code 7)
-    'attachmentPoint': 'MIDDLE_LEFT',  # Default attachment point
-    'paragraph': {
-        'align': 'LEFT'  # Default alignment
-    }
-}
+from .utils.style_defaults import DEFAULT_TEXT_STYLE
 
 class TextProcessor:
     def __init__(self, script_identifier, project_loader, style_manager, layer_manager):

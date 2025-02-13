@@ -2,6 +2,14 @@
 
 from src.core.utils import log_warning, log_info, log_error, log_debug
 from .utils import get_color_code, convert_transparency, deep_merge
+from .utils.style_defaults import (
+    DEFAULT_TEXT_STYLE,
+    DEFAULT_LAYER_STYLE,
+    DEFAULT_HATCH_STYLE,
+    DEFAULT_ENTITY_STYLE,
+    VALID_STYLE_PROPERTIES,
+    DEFAULT_COLOR_MAPPING
+)
 import re
 
 class StyleManager:
@@ -16,32 +24,14 @@ class StyleManager:
             # If given project settings dictionary directly
             self.styles = project_loader.get('styles', {})
             # For direct dictionary usage, we need a default color mapping
-            self.name_to_aci = {
-                'white': 7, 'red': 1, 'yellow': 2, 'green': 3, 
-                'cyan': 4, 'blue': 5, 'magenta': 6
-            }
+            self.name_to_aci = DEFAULT_COLOR_MAPPING
             self.project_loader = None
 
-        self.default_hatch_settings = {
-            'pattern': 'SOLID',
-            'scale': 1,
-            'color': 'BYLAYER',
-            'individual_hatches': True
-        }
-
-        # Add default layer settings
-        self.default_layer_settings = {
-            'color': 'White',
-            'linetype': 'CONTINUOUS',
-            'lineweight': 13,
-            'plot': True,
-            'locked': False,
-            'frozen': False,
-            'is_on': True,
-            'transparency': 0,
-            'close': True,
-            'linetypeScale': 1.0
-        }
+        # Initialize with defaults from style_defaults
+        self.default_hatch_settings = DEFAULT_HATCH_STYLE.copy()
+        self.default_layer_settings = DEFAULT_LAYER_STYLE.copy()
+        self.default_text_settings = DEFAULT_TEXT_STYLE.copy()
+        self.default_entity_settings = DEFAULT_ENTITY_STYLE.copy()
 
     def get_style(self, style_name_or_config):
         if isinstance(style_name_or_config, str):
