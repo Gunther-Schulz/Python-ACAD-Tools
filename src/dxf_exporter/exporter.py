@@ -166,11 +166,20 @@ class DXFExporter:
         if layer_name in self.all_layers:
             geo_data = self.all_layers[layer_name]
             
-            # Check if this is a label layer
-            if isinstance(geo_data, gpd.GeoDataFrame) and 'label' in geo_data.columns and 'rotation' in geo_data.columns:
-                self.text_processor.add_label_points_to_dxf(msp, geo_data, layer_name, layer_info)
-            else:
+            # First process the geometry
+            if isinstance(geo_data, gpd.GeoDataFrame):
                 self.geometry_processor.add_geometries_to_dxf(msp, geo_data, layer_name)
+            
+            # Then add labels if configured
+            if isinstance(geo_data, gpd.GeoDataFrame):
+                label_field = layer_info.get('label')
+                if 'label' in geo_data.columns and 'rotation' in geo_data.columns:
+                    # Label points with rotation from label association
+                    self.text_processor.add_label_points_to_dxf(msp, geo_data, layer_name, layer_info)
+                elif label_field and label_field in geo_data.columns:
+                    # Simple labels from YAML label key
+                    geo_data['label'] = geo_data[label_field]
+                    self.text_processor.add_label_points_to_dxf(msp, geo_data, layer_name, layer_info)
             
             # Process hatch if configured
             if layer_info.get('applyHatch'):

@@ -1,5 +1,6 @@
 """Utilities for handling DXF layers."""
 
+import re
 import ezdxf
 from ezdxf.lldxf import const
 from src.core.utils import log_warning, log_info, log_error, log_debug

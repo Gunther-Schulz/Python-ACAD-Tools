@@ -1,6 +1,8 @@
 geomLayers:
+  - name: Baum Points
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/input/bäume_input.shp"
   - name: Flur
     updateDxf: true
     close: true
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/input/flur2.shp"
-    # label: flurname
+    label: flurname

@@ -1,5 +1,6 @@
 """Module for processing text in DXF files."""
 
+from shapely.geometry import Point
 from src.core.utils import log_debug, log_warning, log_error
 from .utils import (
     SCRIPT_IDENTIFIER,
@@ -98,31 +99,31 @@ class TextProcessor:
             style = {}
         
         # Process each label point
-        for idx, row in geo_data.iterrows():
-            if not hasattr(row, 'geometry') or not hasattr(row.geometry, 'x'):
-                continue
-            
-            point = row.geometry
-            label_text = str(row['label'])
-            rotation = float(row['rotation'])
-            
-            # Create a deep copy of the text style and add rotation
-            text_style = style.get('text', {}).copy()
-            log_debug(f"Text style before adding rotation: {text_style}")
-            text_style['rotation'] = rotation
-            log_debug(f"Text style after adding rotation: {text_style}")
-            
-            mtext, _ = add_mtext(
-                msp,
-                label_text,
-                point.x,
-                point.y,
-                layer_name,
-                text_style.get('font', 'Standard'),
-                text_style=text_style,
-                name_to_aci=self.name_to_aci
-            )
-            
-            if mtext:
-                attach_custom_data(mtext, self.script_identifier)
+        for _, row in geo_data.iterrows():
+            try:
+                # Get the point geometry (centroid if not a point)
+                point = row.geometry
+                if not isinstance(point, Point):
+                    point = point.centroid
+                
+                # Get the label text
+                label_text = str(row['label'])
+                
+                # Get rotation (default to 0 if not present)
+                rotation = float(row.get('rotation', 0))
+                
+                # Create text entity
+                add_mtext(
+                    msp,
+                    label_text,
+                    point.x,
+                    point.y,
+                    layer_name,
+                    style.get('font', 'Standard'),
+                    text_style=style,
+                    name_to_aci=self.name_to_aci
+                )
+                
                 log_debug(f"Added label '{label_text}' at ({point.x}, {point.y}) with rotation {rotation}")
+            except Exception as e:
+                log_error(f"Error adding label point: {str(e)}")
