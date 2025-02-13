@@ -21,6 +21,19 @@ VALID_ATTACHMENT_POINTS = {
     'BOTTOM_LEFT', 'BOTTOM_CENTER', 'BOTTOM_RIGHT'
 }
 
+# Text flow direction mappings
+TEXT_FLOW_DIRECTIONS = {
+    'LEFT_TO_RIGHT': 1,
+    'TOP_TO_BOTTOM': 3,
+    'BY_STYLE': 5
+}
+
+# Text line spacing style mappings
+TEXT_LINE_SPACING_STYLES = {
+    'AT_LEAST': 1,
+    'EXACT': 2
+}
+
 # Default text style properties
 DEFAULT_TEXT_STYLE = {
     'height': 2.5,  # Default text height

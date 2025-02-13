@@ -9,7 +9,9 @@ from .style_utils import get_color_code, convert_transparency
 from .style_defaults import (
     DEFAULT_ENTITY_STYLE,
     TEXT_ATTACHMENT_POINTS,
-    VALID_ATTACHMENT_POINTS
+    VALID_ATTACHMENT_POINTS,
+    TEXT_FLOW_DIRECTIONS,
+    TEXT_LINE_SPACING_STYLES
 )
 
 def attach_custom_data(entity, script_identifier, entity_name=None):
@@ -165,25 +167,16 @@ def _apply_text_style_properties(entity, text_style, name_to_aci=None):
 
     # Flow direction (MTEXT specific)
     if hasattr(entity, 'dxf.flow_direction') and 'flowDirection' in text_style:
-        flow_map = {
-            'LEFT_TO_RIGHT': 1,
-            'TOP_TO_BOTTOM': 3,
-            'BY_STYLE': 5
-        }
         flow_key = text_style['flowDirection'].upper()
-        if flow_key in flow_map:
-            entity.dxf.flow_direction = flow_map[flow_key]
+        if flow_key in TEXT_FLOW_DIRECTIONS:
+            entity.dxf.flow_direction = TEXT_FLOW_DIRECTIONS[flow_key]
 
     # Line spacing (MTEXT specific)
     if hasattr(entity, 'dxf.line_spacing_style'):
         if 'lineSpacingStyle' in text_style:
-            spacing_map = {
-                'AT_LEAST': 1,
-                'EXACT': 2
-            }
             spacing_key = text_style['lineSpacingStyle'].upper()
-            if spacing_key in spacing_map:
-                entity.dxf.line_spacing_style = spacing_map[spacing_key]
+            if spacing_key in TEXT_LINE_SPACING_STYLES:
+                entity.dxf.line_spacing_style = TEXT_LINE_SPACING_STYLES[spacing_key]
 
         if 'lineSpacingFactor' in text_style:
             factor = float(text_style['lineSpacingFactor'])
