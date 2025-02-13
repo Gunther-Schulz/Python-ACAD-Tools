@@ -85,18 +85,13 @@ class TextProcessor:
         """Add label points with rotation to DXF."""
         log_debug(f"Adding label points to DXF for layer: {layer_name}")
         
-        # Get style information
-        style_name = layer_info.get('style')
-        log_debug(f"Style name from layer_info: {style_name}")
-        
-        if style_name:
-            # Get the full style from the style manager
-            style, warning = self.style_manager.get_style(style_name)
-            log_debug(f"Full style loaded from style manager: {style}")
-            if warning:
-                log_warning(f"Warning when loading style '{style_name}'")
+        # Get style information from layer_info
+        style = layer_info.get('style', {})
+        if isinstance(style, dict) and 'text' in style:
+            text_style = style['text']
         else:
-            style = {}
+            text_style = style
+        log_debug(f"Text style config: {text_style}")
         
         # Process each label point
         for _, row in geo_data.iterrows():
@@ -119,8 +114,8 @@ class TextProcessor:
                     point.x,
                     point.y,
                     layer_name,
-                    style.get('font', 'Standard'),
-                    text_style=style,
+                    text_style.get('font', 'Standard'),
+                    text_style=text_style,
                     name_to_aci=self.name_to_aci
                 )
                 
