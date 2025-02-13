@@ -12,7 +12,8 @@ from .style_defaults import (
     TEXT_ATTACHMENT_POINTS,
     VALID_ATTACHMENT_POINTS,
     TEXT_FLOW_DIRECTIONS,
-    TEXT_LINE_SPACING_STYLES
+    TEXT_LINE_SPACING_STYLES,
+    VALID_STYLE_PROPERTIES
 )
 
 def _apply_text_style_properties(entity, text_style, name_to_aci=None):
@@ -36,14 +37,9 @@ def _apply_text_style_properties(entity, text_style, name_to_aci=None):
 
     # Attachment point
     if 'attachmentPoint' in text_style:
-        attachment_map = {
-            'TOP_LEFT': 1, 'TOP_CENTER': 2, 'TOP_RIGHT': 3,
-            'MIDDLE_LEFT': 4, 'MIDDLE_CENTER': 5, 'MIDDLE_RIGHT': 6,
-            'BOTTOM_LEFT': 7, 'BOTTOM_CENTER': 8, 'BOTTOM_RIGHT': 9
-        }
         attachment_key = text_style['attachmentPoint'].upper()
-        if attachment_key in attachment_map:
-            entity.dxf.attachment_point = attachment_map[attachment_key]
+        if attachment_key in TEXT_ATTACHMENT_POINTS:
+            entity.dxf.attachment_point = TEXT_ATTACHMENT_POINTS[attachment_key]
 
     # Flow direction (MTEXT specific)
     if hasattr(entity, 'dxf.flow_direction') and 'flowDirection' in text_style:
@@ -60,14 +56,17 @@ def _apply_text_style_properties(entity, text_style, name_to_aci=None):
 
         if 'lineSpacingFactor' in text_style:
             factor = float(text_style['lineSpacingFactor'])
-            if 0.25 <= factor <= 4.00:
+            min_factor, max_factor = VALID_STYLE_PROPERTIES['text']['lineSpacingFactor'][1]
+            if min_factor <= factor <= max_factor:
                 entity.dxf.line_spacing_factor = factor
 
     # Background fill
     if hasattr(entity, 'set_bg_color'):
         if 'bgFill' in text_style and text_style['bgFill']:
             bg_color = text_style.get('bgFillColor')
-            bg_scale = text_style.get('bgFillScale', 1.5)
+            min_scale, max_scale = VALID_STYLE_PROPERTIES['text']['bgFillScale'][1]
+            default_scale = (min_scale + max_scale) / 2
+            bg_scale = text_style.get('bgFillScale', default_scale)
             if bg_color:
                 entity.set_bg_color(bg_color, scale=bg_scale)
 
@@ -112,7 +111,7 @@ def add_mtext(msp, text, x, y, layer_name, style_name, text_style=None, name_to_
     dxfattribs = {
         'style': style_name,
         'layer': layer_name,
-        'char_height': text_style.get('height', 2.5),
+        'char_height': text_style.get('height', DEFAULT_TEXT_STYLE['height']),
         'width': text_style.get('maxWidth', max_width) if max_width is not None else 0,
         'insert': (x, y)
     }
