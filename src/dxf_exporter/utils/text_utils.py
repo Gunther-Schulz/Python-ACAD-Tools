@@ -7,6 +7,11 @@ from src.core.utils import log_warning, log_info, log_error, log_debug
 from .constants import SCRIPT_IDENTIFIER
 from .entity_utils import attach_custom_data
 from .style_utils import get_color_code
+from .style_defaults import (
+    DEFAULT_TEXT_STYLE,
+    TEXT_ATTACHMENT_POINTS,
+    VALID_ATTACHMENT_POINTS
+)
 
 def _apply_text_style_properties(entity, text_style, name_to_aci=None):
     """Apply common text style properties to a text entity (MTEXT or TEXT)."""
@@ -92,6 +97,14 @@ def _apply_text_style_properties(entity, text_style, name_to_aci=None):
             if align_key in align_map:
                 current_text = entity.text
                 entity.text = f"{align_map[align_key]}{current_text}"
+
+def get_text_attachment_point(attachment_key):
+    """Get the DXF attachment point value for a given key."""
+    attachment_key = attachment_key.upper()
+    if attachment_key in TEXT_ATTACHMENT_POINTS:
+        return TEXT_ATTACHMENT_POINTS[attachment_key]
+    log_warning(f"Invalid attachment point '{attachment_key}'. Using default.")
+    return TEXT_ATTACHMENT_POINTS[DEFAULT_TEXT_STYLE['attachmentPoint']]
 
 def add_mtext(msp, text, x, y, layer_name, style_name, text_style=None, name_to_aci=None, max_width=None):
     """Add MTEXT entity with comprehensive style support."""

@@ -1,5 +1,26 @@
 """Module containing all default style settings for DXF entities."""
 
+# Default layer names
+DEFAULT_LAYER_NAMES = {
+    'text': 'Plantext',  # Default layer for text entities
+    'hatch': 'Hatch',    # Default layer for hatch entities
+    'block': 'Blocks'    # Default layer for block references
+}
+
+# Text attachment point mappings
+TEXT_ATTACHMENT_POINTS = {
+    'TOP_LEFT': 1, 'TOP_CENTER': 2, 'TOP_RIGHT': 3,
+    'MIDDLE_LEFT': 4, 'MIDDLE_CENTER': 5, 'MIDDLE_RIGHT': 6,
+    'BOTTOM_LEFT': 7, 'BOTTOM_CENTER': 8, 'BOTTOM_RIGHT': 9
+}
+
+# Valid text attachment points
+VALID_ATTACHMENT_POINTS = {
+    'TOP_LEFT', 'TOP_CENTER', 'TOP_RIGHT',
+    'MIDDLE_LEFT', 'MIDDLE_CENTER', 'MIDDLE_RIGHT',
+    'BOTTOM_LEFT', 'BOTTOM_CENTER', 'BOTTOM_RIGHT'
+}
+
 # Default text style properties
 DEFAULT_TEXT_STYLE = {
     'height': 2.5,  # Default text height

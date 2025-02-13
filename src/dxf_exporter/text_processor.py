@@ -8,7 +8,7 @@ from .utils import (
     add_mtext,
     attach_custom_data
 )
-from .utils.style_defaults import DEFAULT_TEXT_STYLE
+from .utils.style_defaults import DEFAULT_TEXT_STYLE, DEFAULT_LAYER_NAMES
 
 class TextProcessor:
     def __init__(self, script_identifier, project_loader, style_manager, layer_manager):
@@ -27,13 +27,13 @@ class TextProcessor:
             return
 
         # First, collect all unique target layers
-        target_layers = {text_config.get('targetLayer', 'Plantext') for text_config in text_inserts}
+        target_layers = {text_config.get('targetLayer', DEFAULT_LAYER_NAMES['text']) for text_config in text_inserts}
         
         # Now process new text inserts
         for text_config in text_inserts:
             try:
                 # Get target layer
-                layer_name = text_config.get('targetLayer', 'Plantext')  # Default to 'Plantext' layer
+                layer_name = text_config.get('targetLayer', DEFAULT_LAYER_NAMES['text'])
                 
                 # Skip if updateDxf is False
                 if not text_config.get('updateDxf', False):

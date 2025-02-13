@@ -8,7 +8,8 @@ from .utils.style_defaults import (
     DEFAULT_HATCH_STYLE,
     DEFAULT_ENTITY_STYLE,
     VALID_STYLE_PROPERTIES,
-    DEFAULT_COLOR_MAPPING
+    DEFAULT_COLOR_MAPPING,
+    VALID_ATTACHMENT_POINTS
 )
 import re
 
@@ -205,15 +206,10 @@ class StyleManager:
 
         # Validate attachment point value
         if 'attachmentPoint' in text_style:
-            valid_attachment_points = {
-                'TOP_LEFT', 'TOP_CENTER', 'TOP_RIGHT',
-                'MIDDLE_LEFT', 'MIDDLE_CENTER', 'MIDDLE_RIGHT',
-                'BOTTOM_LEFT', 'BOTTOM_CENTER', 'BOTTOM_RIGHT'
-            }
             attachment_point = text_style['attachmentPoint'].upper()
-            if attachment_point not in valid_attachment_points:
+            if attachment_point not in VALID_ATTACHMENT_POINTS:
                 log_warning(f"Invalid attachment point '{attachment_point}' in layer {layer_name}. "
-                          f"Valid values are: {', '.join(valid_attachment_points)}")
+                          f"Valid values are: {', '.join(VALID_ATTACHMENT_POINTS)}")
 
         # Validate flow direction
         if 'flowDirection' in text_style:

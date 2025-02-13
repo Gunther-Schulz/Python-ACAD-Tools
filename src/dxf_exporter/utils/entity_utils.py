@@ -6,7 +6,11 @@ from ezdxf import colors
 from src.core.utils import log_warning, log_info, log_error, log_debug
 from .constants import SCRIPT_IDENTIFIER
 from .style_utils import get_color_code, convert_transparency
-from .style_defaults import DEFAULT_ENTITY_STYLE
+from .style_defaults import (
+    DEFAULT_ENTITY_STYLE,
+    TEXT_ATTACHMENT_POINTS,
+    VALID_ATTACHMENT_POINTS
+)
 
 def attach_custom_data(entity, script_identifier, entity_name=None):
     """Attaches custom data to an entity with proper cleanup of existing data."""
@@ -155,14 +159,9 @@ def _apply_text_style_properties(entity, text_style, name_to_aci=None):
 
     # Attachment point
     if 'attachmentPoint' in text_style:
-        attachment_map = {
-            'TOP_LEFT': 1, 'TOP_CENTER': 2, 'TOP_RIGHT': 3,
-            'MIDDLE_LEFT': 4, 'MIDDLE_CENTER': 5, 'MIDDLE_RIGHT': 6,
-            'BOTTOM_LEFT': 7, 'BOTTOM_CENTER': 8, 'BOTTOM_RIGHT': 9
-        }
         attachment_key = text_style['attachmentPoint'].upper()
-        if attachment_key in attachment_map:
-            entity.dxf.attachment_point = attachment_map[attachment_key]
+        if attachment_key in TEXT_ATTACHMENT_POINTS:
+            entity.dxf.attachment_point = TEXT_ATTACHMENT_POINTS[attachment_key]
 
     # Flow direction (MTEXT specific)
     if hasattr(entity, 'dxf.flow_direction') and 'flowDirection' in text_style:
