@@ -58,13 +58,15 @@ def get_available_blocks(doc):
     return set(block.name for block in doc.blocks if not block.name.startswith('*'))
 
 def add_block_reference(msp, block_name, insert_point, layer_name, scale=None, rotation=None):
-    """Add a block reference with style support."""
+    """Add a block reference with proper defaults."""
     if block_name in msp.doc.blocks:
         block_ref = msp.add_blockref(block_name, insert_point)
         block_ref.dxf.layer = layer_name
         block_ref.dxf.xscale = scale if scale is not None else DEFAULT_BLOCK_STYLE['scale']
         block_ref.dxf.yscale = scale if scale is not None else DEFAULT_BLOCK_STYLE['scale']
         block_ref.dxf.rotation = rotation if rotation is not None else DEFAULT_BLOCK_STYLE['rotation']
+        block_ref.dxf.color = get_color_code(DEFAULT_BLOCK_STYLE['color'], None)
+        block_ref.dxf.linetype = DEFAULT_BLOCK_STYLE['linetype']
         attach_custom_data(block_ref, SCRIPT_IDENTIFIER)
         return block_ref
     else:

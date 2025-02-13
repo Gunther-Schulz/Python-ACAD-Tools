@@ -4,7 +4,9 @@
 DEFAULT_LAYER_NAMES = {
     'text': 'Plantext',  # Default layer for text entities
     'hatch': 'Hatch',    # Default layer for hatch entities
-    'block': 'Blocks'    # Default layer for block references
+    'block': 'Blocks',   # Default layer for block references
+    'viewport': 'VIEWPORTS',  # Default layer for viewports
+    'legend': 'Legend'    # Default layer for legend elements
 }
 
 # Text attachment point mappings
@@ -31,7 +33,9 @@ TEXT_FLOW_DIRECTIONS = {
 # Text line spacing style mappings
 TEXT_LINE_SPACING_STYLES = {
     'AT_LEAST': 1,
-    'EXACT': 2
+    'EXACT': 2,
+    'MULTIPLE': 3,
+    'DEFAULT': 4
 }
 
 # Default text style properties
@@ -40,8 +44,23 @@ DEFAULT_TEXT_STYLE = {
     'font': 'Arial',  # Default font
     'color': 'white',  # Default color (ACI code 7)
     'attachmentPoint': 'MIDDLE_LEFT',  # Default attachment point
+    'flowDirection': 'LEFT_TO_RIGHT',  # Default flow direction
+    'lineSpacingStyle': 'AT_LEAST',  # Default line spacing style
+    'lineSpacingFactor': 1.0,  # Default line spacing factor
+    'bgFill': False,  # Default background fill setting
+    'bgFillColor': None,  # Default background fill color
+    'bgFillScale': 1.5,  # Default background fill scale
+    'underline': False,  # Default underline setting
+    'overline': False,  # Default overline setting
+    'strikeThrough': False,  # Default strikethrough setting
+    'obliqueAngle': 0,  # Default oblique angle
+    'rotation': 0,  # Default rotation angle
     'paragraph': {
-        'align': 'LEFT'  # Default alignment
+        'align': 'LEFT',  # Default alignment
+        'indent': 0,  # Default indentation
+        'leftMargin': 0,  # Default left margin
+        'rightMargin': 0,  # Default right margin
+        'tabStops': []  # Default tab stops
     }
 }
 
@@ -71,79 +90,72 @@ DEFAULT_HATCH_STYLE = {
 
 # Default entity style properties (for non-specific entities)
 DEFAULT_ENTITY_STYLE = {
-    'color': 'BYLAYER',
-    'linetype': 'BYLAYER',
-    'lineweight': 'BYLAYER',
-    'transparency': 0,
-    'linetypeScale': 1.0
+    'color': 'BYLAYER',  # Default color
+    'linetype': 'BYLAYER',  # Default linetype
+    'lineweight': 'BYLAYER',  # Default lineweight
+    'transparency': 0,  # Default transparency
+    'linetypeScale': 1.0  # Default linetype scale
 }
 
-# Valid style properties and their allowed values
+# Default block reference properties
+DEFAULT_BLOCK_STYLE = {
+    'scale': 1.0,  # Default scale factor
+    'rotation': 0.0,  # Default rotation angle
+    'color': 'BYLAYER',  # Default color
+    'linetype': 'BYLAYER',  # Default linetype
+    'lineweight': 'BYLAYER'  # Default lineweight
+}
+
+# Default path array properties
+DEFAULT_PATH_ARRAY_STYLE = {
+    'scale': 1.0,  # Default scale factor
+    'rotation': 0.0,  # Default rotation angle
+    'spacing': 1.0,  # Default spacing between elements
+    'align': True,  # Default alignment setting
+    'tangent': True,  # Default tangent setting
+    'adjustForVertices': False,  # Default vertex adjustment setting
+    'pathOffset': 0.0,  # Default path offset
+    'bufferDistance': 0.0  # Default buffer distance
+}
+
+# Valid style properties and their constraints
 VALID_STYLE_PROPERTIES = {
     'text': {
-        'color': str,  # Color name or RGB tuple
-        'height': (int, float),
-        'font': str,
-        'maxWidth': (int, float),
-        'attachmentPoint': {
-            'TOP_LEFT', 'TOP_CENTER', 'TOP_RIGHT',
-            'MIDDLE_LEFT', 'MIDDLE_CENTER', 'MIDDLE_RIGHT',
-            'BOTTOM_LEFT', 'BOTTOM_CENTER', 'BOTTOM_RIGHT'
-        },
-        'flowDirection': {'LEFT_TO_RIGHT', 'TOP_TO_BOTTOM', 'BY_STYLE'},
-        'lineSpacingStyle': {'AT_LEAST', 'EXACT'},
-        'lineSpacingFactor': (float, (0.25, 4.00)),  # (type, (min, max))
-        'bgFill': bool,
-        'bgFillColor': str,
-        'bgFillScale': (float, (0.1, 5.0)),
-        'underline': bool,
-        'overline': bool,
-        'strikeThrough': bool,
-        'obliqueAngle': (float, (-85, 85)),
-        'rotation': (float, (0, 360))
+        'height': {'min': 0.1, 'max': 1000.0},
+        'lineSpacingFactor': {'min': 0.25, 'max': 4.0},
+        'bgFillScale': {'min': 1.1, 'max': 5.0},
+        'obliqueAngle': {'min': -85, 'max': 85},
+        'rotation': {'min': -360, 'max': 360}
     },
     'layer': {
-        'color': str,
-        'linetype': str,
-        'lineweight': (int, float),
-        'plot': bool,
-        'locked': bool,
-        'frozen': bool,
-        'is_on': bool,
-        'transparency': (int, (0, 100)),
-        'linetypeScale': (float, (0.01, 1000.0))
+        'lineweight': {'min': -3, 'max': 211},
+        'transparency': {'min': 0, 'max': 255},
+        'linetypeScale': {'min': 0.01, 'max': 1000.0}
     },
     'hatch': {
-        'pattern': str,
-        'scale': (float, (0.01, 1000.0)),
-        'color': str,
-        'transparency': (int, (0, 100)),
-        'individual_hatches': bool,
-        'lineweight': (int, float)
+        'scale': {'min': 0.01, 'max': 1000.0},
+        'transparency': {'min': 0, 'max': 255},
+        'lineweight': {'min': -3, 'max': 211}
+    },
+    'block': {
+        'scale': {'min': 0.01, 'max': 1000.0},
+        'rotation': {'min': -360, 'max': 360}
+    },
+    'path_array': {
+        'scale': {'min': 0.01, 'max': 1000.0},
+        'rotation': {'min': -360, 'max': 360},
+        'spacing': {'min': 0.1, 'max': 1000.0},
+        'pathOffset': {'min': -1000.0, 'max': 1000.0},
+        'bufferDistance': {'min': 0.0, 'max': 1000.0}
     }
 }
 
-# Default paragraph properties for text
-DEFAULT_PARAGRAPH_STYLE = {
-    'align': 'LEFT',
-    'indent': 0,
-    'leftMargin': 0,
-    'rightMargin': 0,
-    'tabStops': []
+# Valid text alignments
+VALID_TEXT_ALIGNMENTS = {
+    'LEFT', 'RIGHT', 'CENTER', 'JUSTIFIED', 'DISTRIBUTED'
 }
 
-# Mapping of color names to ACI codes (fallback if aci_colors.yaml is not found)
-DEFAULT_COLOR_MAPPING = {
-    'white': 7,
-    'red': 1,
-    'yellow': 2,
-    'green': 3,
-    'cyan': 4,
-    'blue': 5,
-    'magenta': 6
-}
-
-# Standard text styles to be loaded into DXF documents
+# Standard text styles (name, font, oblique angle)
 STANDARD_TEXT_STYLES = [
     ('Standard', 'Arial', 0.0),
     ('Arial', 'Arial', 0.0),
@@ -156,22 +168,19 @@ STANDARD_TEXT_STYLES = [
     ('Romant', 'Romant', 0.0)
 ]
 
-# Text alignment values
-VALID_TEXT_ALIGNMENTS = {
-    'LEFT', 'RIGHT', 'CENTER', 'JUSTIFIED', 'DISTRIBUTED'
-}
-
-# Default block reference properties
-DEFAULT_BLOCK_STYLE = {
-    'scale': 1.0,
-    'rotation': 0.0,
-    'color': 'BYLAYER',
-    'linetype': 'BYLAYER'
-}
-
-# Default path array properties
-DEFAULT_PATH_ARRAY_STYLE = {
-    'scale': 1.0,
-    'rotation': 0.0,
-    'spacing': 1.0
+# Default color mapping (fallback if aci_colors.yaml is not found)
+DEFAULT_COLOR_MAPPING = {
+    'white': 7,
+    'red': 1,
+    'yellow': 2,
+    'green': 3,
+    'cyan': 4,
+    'blue': 5,
+    'magenta': 6,
+    'black': 0,
+    'gray': 8,
+    'light_gray': 9,
+    'dark_gray': 250,
+    'bylayer': 256,
+    'byblock': 0
 } 

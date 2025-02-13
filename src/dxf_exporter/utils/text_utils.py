@@ -49,26 +49,27 @@ def _apply_text_style_properties(entity, text_style, name_to_aci=None):
         if spacing_key in TEXT_LINE_SPACING_STYLES:
             entity.dxf.line_spacing_style = TEXT_LINE_SPACING_STYLES[spacing_key]
 
-        factor = text_style.get('lineSpacingFactor', 1.0)
+        factor = text_style.get('lineSpacingFactor', DEFAULT_TEXT_STYLE.get('lineSpacingFactor', 1.0))
         min_factor, max_factor = VALID_STYLE_PROPERTIES['text']['lineSpacingFactor'][1]
         if min_factor <= factor <= max_factor:
             entity.dxf.line_spacing_factor = factor
 
     # Background fill
     if hasattr(entity, 'set_bg_color'):
-        if text_style.get('bgFill', False):
-            bg_color = text_style.get('bgFillColor')
+        if text_style.get('bgFill', DEFAULT_TEXT_STYLE.get('bgFill', False)):
+            bg_color = text_style.get('bgFillColor', DEFAULT_TEXT_STYLE.get('bgFillColor', None))
             min_scale, max_scale = VALID_STYLE_PROPERTIES['text']['bgFillScale'][1]
-            bg_scale = text_style.get('bgFillScale', (min_scale + max_scale) / 2)
+            bg_scale = text_style.get('bgFillScale', DEFAULT_TEXT_STYLE.get('bgFillScale', (min_scale + max_scale) / 2))
             if bg_color:
                 entity.set_bg_color(bg_color, scale=bg_scale)
 
     # Rotation
-    entity.dxf.rotation = float(text_style.get('rotation', 0.0))
+    entity.dxf.rotation = float(text_style.get('rotation', DEFAULT_TEXT_STYLE.get('rotation', 0.0)))
 
     # Paragraph properties
     if 'paragraph' in text_style and hasattr(entity, 'text'):
         para = text_style['paragraph']
+        default_para = DEFAULT_TEXT_STYLE['paragraph']
         align_map = {
             'LEFT': '\\pql;',
             'CENTER': '\\pqc;',
@@ -76,7 +77,7 @@ def _apply_text_style_properties(entity, text_style, name_to_aci=None):
             'JUSTIFIED': '\\pqj;',
             'DISTRIBUTED': '\\pqd;'
         }
-        align_key = para.get('align', DEFAULT_TEXT_STYLE['paragraph']['align']).upper()
+        align_key = para.get('align', default_para['align']).upper()
         if align_key in align_map:
             current_text = entity.text
             entity.text = f"{align_map[align_key]}{current_text}"

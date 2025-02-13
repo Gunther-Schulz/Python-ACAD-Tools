@@ -3,11 +3,11 @@
 import ezdxf
 from ezdxf.lldxf import const
 from src.core.utils import log_warning, log_info, log_error, log_debug
-from .constants import SCRIPT_IDENTIFIER
+from .constants import SCRIPT_IDENTIFIER, DEFAULT_COLOR_MAPPING
 
 def get_color_code(color, name_to_aci):
     if color is None:
-        return 7  # Default to 7 (white) if no color is specified
+        return DEFAULT_COLOR_MAPPING['white']  # Default to white if no color is specified
     if isinstance(color, int):
         return color  # Return ACI code as-is
     elif isinstance(color, str):
@@ -17,19 +17,22 @@ def get_color_code(color, name_to_aci):
                 return tuple(map(int, color.split(',')))
             except ValueError:
                 log_warning(f"Invalid RGB color string: {color}")
-                return 7  # Default to white if invalid
+                return DEFAULT_COLOR_MAPPING['white']  # Default to white if invalid
         else:
             # It's a color name
-            aci_code = name_to_aci.get(color.lower())
+            if name_to_aci:
+                aci_code = name_to_aci.get(color.lower())
+            else:
+                aci_code = DEFAULT_COLOR_MAPPING.get(color.lower())
             if aci_code is None:
-                log_warning(f"Color name '{color}' not found in ACI color mapping. Defaulting to white (7).")
-                return 7
+                log_warning(f"Color name '{color}' not found in color mapping. Defaulting to white.")
+                return DEFAULT_COLOR_MAPPING['white']
             return aci_code
     elif isinstance(color, (list, tuple)) and len(color) == 3:
         # It's already an RGB tuple
         return tuple(color)
     else:
-        return 7  # Default to 7 (white) for any other type
+        return DEFAULT_COLOR_MAPPING['white']  # Default to white for any other type
 
 def convert_transparency(transparency):
     if isinstance(transparency, (int, float)):
