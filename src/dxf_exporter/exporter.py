@@ -172,13 +172,13 @@ class DXFExporter:
             
             # Then add labels if configured
             if isinstance(geo_data, gpd.GeoDataFrame):
-                label_field = layer_info.get('label')
+                simple_label_field = layer_info.get('simpleLabel')
                 if 'label' in geo_data.columns and 'rotation' in geo_data.columns:
                     # Label points with rotation from label association
                     self.text_processor.add_label_points_to_dxf(msp, geo_data, layer_name, layer_info)
-                elif label_field and label_field in geo_data.columns:
-                    # Simple labels from YAML label key
-                    geo_data['label'] = geo_data[label_field]
+                elif simple_label_field and simple_label_field in geo_data.columns:
+                    # Simple labels from YAML simpleLabel key
+                    geo_data['label'] = geo_data[simple_label_field]
                     self.text_processor.add_label_points_to_dxf(msp, geo_data, layer_name, layer_info)
             
             # Process hatch if configured

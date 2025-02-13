@@ -5,4 +5,4 @@ geomLayers:
     updateDxf: true
     close: true
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/input/flur2.shp"
-    label: flurname
+    simpleLabel: flurname
