@@ -1,7 +1,7 @@
 import yaml
 import os
-from src.utils import log_info, log_warning, log_error, resolve_path, log_debug
-from src.dxf_processor import DXFProcessor
+from src.core.utils import log_info, log_warning, log_error, resolve_path, log_debug
+from src.dxf.dxf_processor import DXFProcessor
 
 class ProjectLoader:
     def __init__(self, project_name: str):

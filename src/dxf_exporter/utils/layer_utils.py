@@ -1,7 +1,9 @@
-"""Utilities for handling layers in DXF files."""
+"""Utilities for handling DXF layers."""
 
-import re
-from src.utils import log_debug, log_warning
+import ezdxf
+from ezdxf.lldxf import const
+from src.core.utils import log_warning, log_info, log_error, log_debug
+from .constants import SCRIPT_IDENTIFIER
 from .style_utils import get_color_code, convert_transparency
 
 def ensure_layer_exists(doc, layer_name):

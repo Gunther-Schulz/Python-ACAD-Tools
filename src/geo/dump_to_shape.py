@@ -1,3 +1,5 @@
+"""Module for dumping DXF to shapefiles."""
+
 import argparse
 import os
 import ezdxf
@@ -7,7 +9,9 @@ from shapely.geometry import Polygon, MultiPolygon, LineString, Point
 import pyproj
 import re
 import yaml
-from src.utils import resolve_path, ensure_path_exists, log_warning, log_error, log_debug, log_info
+from src.core.utils import resolve_path, ensure_path_exists, log_warning, log_error, log_debug, log_info
+import geopandas as gpd
+from shapely.ops import unary_union
 
 def polygon_area(polygon):
     """Calculate the area of a polygon."""

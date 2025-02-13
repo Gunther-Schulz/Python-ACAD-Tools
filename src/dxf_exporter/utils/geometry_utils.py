@@ -3,7 +3,7 @@
 import ezdxf
 from ezdxf.lldxf import const
 from ezdxf import colors
-from src.utils import log_warning
+from src.core.utils import log_warning, log_info, log_error, log_debug
 from .constants import SCRIPT_IDENTIFIER
 from .entity_utils import attach_custom_data
 from .style_utils import get_color_code, convert_transparency

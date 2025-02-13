@@ -1,7 +1,7 @@
 """Module for managing styles in DXF files."""
 
-from src.utils import log_info, log_warning, log_debug, log_error
-from .utils import get_color_code
+from src.core.utils import log_warning, log_info, log_error, log_debug
+from .utils import get_color_code, convert_transparency, deep_merge
 import re
 
 class StyleManager:

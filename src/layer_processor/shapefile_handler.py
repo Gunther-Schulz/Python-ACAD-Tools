@@ -1,8 +1,8 @@
 """Module for handling shapefile operations."""
 
 import os
-from src.utils import log_warning, log_error, log_debug, resolve_path
-from src.shapefile_utils import (
+from src.core.utils import log_warning, log_error, log_debug, resolve_path
+from src.geo.shapefile_utils import (
     write_shapefile,
     _delete_existing_shapefile,
     _verify_shapefile_components

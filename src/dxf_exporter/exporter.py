@@ -5,7 +5,7 @@ import os
 import shutil
 import geopandas as gpd
 from pathlib import Path
-from src.utils import ensure_path_exists, log_info, log_warning, log_error, resolve_path, log_debug
+from src.core.utils import ensure_path_exists, log_info, log_warning, log_error, resolve_path, log_debug
 from .utils import (
     SCRIPT_IDENTIFIER,
     initialize_document,
@@ -20,10 +20,10 @@ from .text_processor import TextProcessor
 from .hatch_processor import HatchProcessor
 from .path_array_processor import PathArrayProcessor
 from .style_manager import StyleManager
-from src.viewport_manager import ViewportManager
-from src.block_insert_manager import BlockInsertManager
-from src.reduced_dxf_creator import ReducedDXFCreator
-from src.legend_creator import LegendCreator
+from src.dxf.viewport_manager import ViewportManager
+from src.dxf.block_insert_manager import BlockInsertManager
+from src.dxf.reduced_dxf_creator import ReducedDXFCreator
+from src.dxf.legend_creator import LegendCreator
 
 class DXFExporter:
     def __init__(self, project_loader, layer_processor):

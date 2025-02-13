@@ -1,7 +1,9 @@
+"""Utilities for handling shapefile operations."""
+
 import os
 import geopandas as gpd
 from pathlib import Path
-from src.utils import log_debug, log_error, log_warning, ensure_path_exists
+from src.core.utils import log_debug, log_error, log_warning, ensure_path_exists
 import traceback
 from typing import Set, Optional
 

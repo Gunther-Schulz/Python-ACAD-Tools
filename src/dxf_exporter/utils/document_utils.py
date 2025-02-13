@@ -2,7 +2,7 @@
 
 import ezdxf
 import traceback
-from src.utils import log_debug, log_warning, log_error
+from src.core.utils import log_debug, log_warning, log_error
 
 def set_drawing_properties(doc):
     # Set the properties

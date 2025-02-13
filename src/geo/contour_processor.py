@@ -1,12 +1,14 @@
+"""Module for processing contours."""
+
 import requests
 import xml.etree.ElementTree as ET
 import rasterio
 import numpy as np
 from scipy.ndimage import gaussian_filter
 import geopandas as gpd
-from shapely.geometry import LineString, box
+from shapely.geometry import LineString, box, MultiLineString
 from shapely.ops import linemerge, unary_union
-from src.utils import log_info, log_warning, log_error, resolve_path, log_debug
+from src.core.utils import log_info, log_warning, log_error, resolve_path, log_debug
 from skimage import measure
 import os
 import zipfile

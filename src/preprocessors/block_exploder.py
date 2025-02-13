@@ -1,4 +1,6 @@
-from src.utils import log_info, log_warning, log_error, log_debug
+"""Module for exploding blocks in DXF files."""
+
+from src.core.utils import log_info, log_warning, log_error, log_debug
 
 def explode_blocks(entities, layer_name):
     """

@@ -3,7 +3,7 @@
 import random
 import math
 from shapely.geometry import Point
-from src.utils import log_info, log_warning, log_error, log_debug
+from src.core.utils import log_info, log_warning, log_error, log_debug
 from src.dxf_exporter.utils import (
     add_block_reference,
     remove_entities_by_layer,

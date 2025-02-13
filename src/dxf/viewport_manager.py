@@ -2,7 +2,7 @@
 
 import traceback
 from ezdxf.lldxf import const
-from src.utils import log_info, log_warning, log_error, log_debug
+from src.core.utils import log_info, log_warning, log_error, log_debug
 from src.dxf_exporter.utils import get_color_code, attach_custom_data
 
 class ViewportManager:

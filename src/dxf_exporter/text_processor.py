@@ -1,6 +1,6 @@
 """Module for processing text in DXF files."""
 
-from src.utils import log_debug, log_warning, log_error
+from src.core.utils import log_debug, log_warning, log_error
 from .utils import (
     SCRIPT_IDENTIFIER,
     ensure_layer_exists,

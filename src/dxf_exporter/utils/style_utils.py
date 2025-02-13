@@ -1,6 +1,9 @@
 """Utilities for handling styles and colors in DXF files."""
 
-from src.utils import log_warning
+import ezdxf
+from ezdxf.lldxf import const
+from src.core.utils import log_warning, log_info, log_error, log_debug
+from .constants import SCRIPT_IDENTIFIER
 
 def get_color_code(color, name_to_aci):
     if color is None:

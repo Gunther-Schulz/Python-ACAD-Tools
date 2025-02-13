@@ -1,10 +1,12 @@
+"""Module for downloading WMTS tiles."""
+
 from owslib.wmts import WebMapTileService
 from owslib.wms import WebMapService
 import os
 import math
 import time
 import mimetypes
-from src.utils import log_info, log_warning, log_error, log_debug
+from src.core.utils import log_info, log_warning, log_error, log_debug
 from PIL import Image, ImageOps
 from io import BytesIO
 from collections import defaultdict

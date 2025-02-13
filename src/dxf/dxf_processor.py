@@ -1,15 +1,20 @@
 """Module for processing DXF files."""
 
+import os
 import ezdxf
 import traceback
 from ezdxf.entities.lwpolyline import LWPolyline
 from ezdxf.entities.polyline import Polyline
-from src.utils import log_info, log_warning, log_error, resolve_path, log_debug
+from src.core.utils import log_info, log_warning, log_error, resolve_path, log_debug
 from src.dxf_exporter.utils import (
     ensure_layer_exists,
     attach_custom_data,
     sanitize_layer_name,
     initialize_document,
+    cleanup_document,
+    set_drawing_properties,
+    verify_dxf_settings,
+    remove_entities_by_layer,
     SCRIPT_IDENTIFIER
 )
 from src.preprocessors.block_exploder import explode_blocks
@@ -19,8 +24,9 @@ import geopandas as gpd
 from shapely.geometry import LineString, Point, Polygon, MultiPolygon
 import math
 import numpy as np
-from src.shapefile_utils import write_shapefile
+from src.geo.shapefile_utils import write_shapefile
 from pathlib import Path
+from shapely.ops import unary_union
 
 # Define a constant for the polygon closure tolerance
 POLYGON_CLOSURE_TOLERANCE = 0.5

@@ -1,23 +1,21 @@
-from src.project_loader import ProjectLoader
+"""Common operations for layer processing."""
+
 import geopandas as gpd
-from matplotlib import pyplot as plt
-from shapely import LinearRing
 from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection, Point, MultiPoint
 from shapely.ops import unary_union
+from src.core.utils import log_info, log_warning, log_error, log_debug
+from src.core.project_loader import ProjectLoader
+from matplotlib import pyplot as plt
+from shapely import LinearRing
 from shapely.validation import make_valid, explain_validity
-from src.utils import log_info, log_warning, log_error
 import pandas as pd
 from geopandas import GeoSeries
 import re
-import geopandas as gpd
-from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection, Point, MultiPoint
-from src.utils import log_info, log_warning, log_error
 import traceback
 import shutil
 import os
 
 from src.operations.common_operations import *
-from src.project_loader import ProjectLoader
 from shapely.ops import unary_union, linemerge
 import geopandas as gpd
 from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection

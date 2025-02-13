@@ -1,4 +1,6 @@
-from src.utils import log_info, log_warning, log_error, log_debug
+"""Module for extracting circles from DXF files."""
+
+from src.core.utils import log_info, log_warning, log_error, log_debug
 
 def extract_circle_centers(entities, layer_name):
     """

@@ -2,10 +2,10 @@
 
 import ezdxf
 from pathlib import Path
-from src.utils import resolve_path, log_info, log_warning, log_error, log_debug
-from src.legend_creator import LegendCreator
+from src.core.utils import resolve_path, log_info, log_warning, log_error, log_debug
+from src.dxf.legend_creator import LegendCreator
 from src.dxf_exporter.utils import add_mtext, attach_custom_data
-from src.path_array import create_path_array
+from src.dxf.path_array import create_path_array
 import traceback
 
 class ReducedDXFCreator:

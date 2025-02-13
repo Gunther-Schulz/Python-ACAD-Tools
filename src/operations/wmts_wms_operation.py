@@ -1,11 +1,13 @@
 import geopandas as gpd
-from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection, Point, MultiPoint
-from src.utils import log_info, log_warning, log_error, log_debug
+from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection, Point, MultiPoint, box
+from src.core.utils import log_info, log_warning, log_error, log_debug
 import os
-from src.wmts_downloader import download_wmts_tiles, download_wms_tiles, process_and_stitch_tiles
+from shapely.ops import unary_union
+from src.geo.wmts_downloader import download_wmts_tiles, download_wms_tiles, process_and_stitch_tiles
 from owslib.wmts import WebMapTileService
-from src.project_loader import ProjectLoader
+from src.core.project_loader import ProjectLoader
 from src.operations.common_operations import *
+import numpy as np
 
 def process_wmts_or_wms_layer(all_layers, project_settings, crs, layer_name, operation, project_loader):
     log_debug(f"Processing WMTS/WMS layer: {layer_name}")

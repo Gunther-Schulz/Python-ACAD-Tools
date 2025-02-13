@@ -1,6 +1,6 @@
 """Module for handling style operations."""
 
-from src.utils import log_warning
+from src.core.utils import log_warning
 
 class StyleHandler:
     def __init__(self, layer_processor):

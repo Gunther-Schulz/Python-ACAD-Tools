@@ -1,5 +1,6 @@
 """Module for creating legends in DXF files."""
 
+import math
 import ezdxf
 from ezdxf.enums import TextEntityAlignment
 from ezdxf import const
@@ -9,7 +10,7 @@ from ezdxf.math import BoundingBox
 from ezdxf.lldxf.const import MTEXT_TOP_LEFT
 from ezdxf import bbox
 import os
-from src.utils import log_warning, log_error, log_info, log_debug
+from src.core.utils import log_warning, log_error, log_info, log_debug
 from src.dxf_exporter.style_manager import StyleManager
 from src.dxf_exporter.utils import (
     convert_transparency,

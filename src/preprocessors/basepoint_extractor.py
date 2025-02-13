@@ -1,4 +1,6 @@
-from src.utils import log_debug
+"""Module for extracting basepoints from DXF files."""
+
+from src.core.utils import log_debug
 
 def extract_entity_basepoints(entities, layer_name):
     """
