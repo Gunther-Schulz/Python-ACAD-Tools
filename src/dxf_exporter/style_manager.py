@@ -34,7 +34,7 @@ class StyleManager:
         self.default_hatch_settings = DEFAULT_HATCH_STYLE.copy()
         self.default_layer_settings = DEFAULT_LAYER_STYLE.copy()
         self.default_text_settings = DEFAULT_TEXT_STYLE.copy()
-        self.default_entity_settings = DEFAULT_ENTITY_STYLE.copy()
+        self.default_entity_style = DEFAULT_ENTITY_STYLE.copy()
 
     def get_style(self, style_name_or_config):
         """Get style configuration with support for presets and inline styles."""
@@ -127,8 +127,20 @@ class StyleManager:
         return True
 
     def _validate_layer_style(self, layer_name, layer_style):
-        known_style_keys = {'color', 'linetype', 'lineweight', 'plot', 'locked', 'frozen', 'is_on', 'transparency', 'linetypeScale'}
-        self._validate_style_keys(layer_name, 'layer', layer_style, known_style_keys)
+        # Layer-specific properties
+        layer_style_keys = {'color', 'linetype', 'lineweight', 'plot', 'locked', 'frozen', 'is_on', 'transparency'}
+        # Entity-specific properties that might be in layer style
+        entity_style_keys = {'close', 'linetypeScale'}
+        
+        unknown_keys = set(layer_style.keys()) - layer_style_keys - entity_style_keys
+        if unknown_keys:
+            log_warning(f"Unknown layer style keys in layer '{layer_name}': {', '.join(unknown_keys)}")
+
+        # Check for entity properties in layer style and warn about them
+        found_entity_props = entity_style_keys.intersection(layer_style.keys())
+        if found_entity_props:
+            log_warning(f"Found entity-specific properties in layer style for '{layer_name}': {', '.join(found_entity_props)}. "
+                       f"These properties will be applied to individual entities, not the layer itself.")
         
         # Add linetype validation
         if 'linetype' in layer_style:
@@ -139,6 +151,28 @@ class StyleManager:
                 if not re.match(acad_pattern, linetype):
                     log_warning(f"Invalid ACAD linetype format '{linetype}' in layer '{layer_name}'. "
                               f"ACAD ISO linetypes should follow the pattern 'ACAD_ISOxxW100' where xx is a two-digit number.")
+
+        # Validate numeric constraints
+        if 'lineweight' in layer_style:
+            lineweight = layer_style['lineweight']
+            if not isinstance(lineweight, (int, float)) or lineweight < -3 or lineweight > 211:
+                log_warning(f"Invalid lineweight value {lineweight} in layer '{layer_name}'. Must be between -3 and 211.")
+
+        if 'transparency' in layer_style:
+            transparency = layer_style['transparency']
+            if not isinstance(transparency, (int, float)) or transparency < 0 or transparency > 255:
+                log_warning(f"Invalid transparency value {transparency} in layer '{layer_name}'. Must be between 0 and 255.")
+
+        if 'linetypeScale' in layer_style:
+            scale = layer_style['linetypeScale']
+            if not isinstance(scale, (int, float)) or scale < 0.01 or scale > 1000.0:
+                log_warning(f"Invalid linetypeScale value {scale} in layer '{layer_name}'. Must be between 0.01 and 1000.0.")
+
+        # Check for possible typos in property names
+        for key in layer_style.keys():
+            closest_match = min(layer_style_keys | entity_style_keys, key=lambda x: self._levenshtein_distance(key, x))
+            if key != closest_match and self._levenshtein_distance(key, closest_match) <= 2:
+                log_warning(f"Possible typo in layer style key for layer {layer_name}: '{key}'. Did you mean '{closest_match}'?")
 
     def _validate_hatch_style(self, layer_name, hatch_style):
         known_style_keys = {'pattern', 'scale', 'color', 'transparency', 'individual_hatches', 'layers', 'lineweight'}
@@ -278,9 +312,16 @@ class StyleManager:
         return hatch_config
 
     def process_layer_style(self, layer_name, layer_config):
-        """Process layer style with support for presets and inline styles."""
+        """Process layer style with support for presets and inline styles.
+        
+        Returns:
+            tuple: (layer_properties, entity_properties) where:
+                - layer_properties: dict of properties to be set on the layer
+                - entity_properties: dict of properties to be set on individual entities
+        """
         # Initialize with default settings
-        properties = self.default_layer_settings.copy()
+        layer_properties = self.default_layer_settings.copy()
+        entity_properties = self.default_entity_style.copy()
         
         # Handle the style configuration
         if 'style' in layer_config:
@@ -293,17 +334,21 @@ class StyleManager:
                 # Extract layer settings from the style
                 layer_style = style.get('layer', {}) if isinstance(style, dict) else {}
                 
-                # Apply the style properties
-                if 'color' in layer_style:
-                    properties['color'] = get_color_code(layer_style['color'], self.name_to_aci)
-                
-                # Handle all other properties
-                for key in ['linetype', 'lineweight', 'plot', 'locked', 'frozen', 
-                           'is_on', 'transparency', 'close', 'linetypeScale']:
+                # Process layer-specific properties
+                for key in ['color', 'linetype', 'lineweight', 'plot', 'locked', 'frozen', 
+                           'is_on', 'transparency']:
                     if key in layer_style:
-                        properties[key] = layer_style[key]
+                        if key == 'color':
+                            layer_properties[key] = get_color_code(layer_style[key], self.name_to_aci)
+                        else:
+                            layer_properties[key] = layer_style[key]
+                
+                # Process entity-specific properties
+                for key in ['close', 'linetypeScale']:
+                    if key in layer_style:
+                        entity_properties[key] = layer_style[key]
         
-        return properties
+        return layer_properties, entity_properties
 
     def process_text_style(self, layer_name, layer_config):
         style, warning_generated = self.get_style(layer_config.get('style', {}))

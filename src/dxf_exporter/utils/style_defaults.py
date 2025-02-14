@@ -64,9 +64,17 @@ DEFAULT_LAYER_STYLE = {
     'locked': False,  # Default lock setting
     'frozen': False,  # Default freeze setting
     'is_on': True,  # Default visibility
+    'transparency': 0  # Default transparency
+}
+
+# Default entity style properties (for non-specific entities)
+DEFAULT_ENTITY_STYLE = {
+    'color': 'BYLAYER',  # Default color
+    'linetype': 'BYLAYER',  # Default linetype
+    'lineweight': 'BYLAYER',  # Default lineweight
     'transparency': 0,  # Default transparency
-    'close': True,  # Default close setting
-    'linetypeScale': 1.0  # Default linetype scale
+    'linetypeScale': 1.0,  # Default linetype scale
+    'close': True  # Default close setting for polylines/boundaries
 }
 
 # Default hatch style properties
@@ -77,15 +85,6 @@ DEFAULT_HATCH_STYLE = {
     'transparency': 0,  # Default transparency
     'individual_hatches': True,  # Default individual hatches setting
     'lineweight': 13  # Default lineweight
-}
-
-# Default entity style properties (for non-specific entities)
-DEFAULT_ENTITY_STYLE = {
-    'color': 'BYLAYER',  # Default color
-    'linetype': 'BYLAYER',  # Default linetype
-    'lineweight': 'BYLAYER',  # Default lineweight
-    'transparency': 0,  # Default transparency
-    'linetypeScale': 1.0  # Default linetype scale
 }
 
 # Default block reference properties
