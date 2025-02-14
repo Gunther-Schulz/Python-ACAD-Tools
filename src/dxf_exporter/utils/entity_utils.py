@@ -237,48 +237,115 @@ def _apply_text_style_properties(entity, text_style, name_to_aci=None):
     """Apply text-specific style properties."""
     if not text_style:
         text_style = DEFAULT_TEXT_STYLE.copy()
-
-    # Basic properties
-    entity.dxf.char_height = text_style.get('height', DEFAULT_TEXT_STYLE['height'])
-    entity.dxf.style = text_style.get('font', DEFAULT_TEXT_STYLE['font'])
     
-    # Color
-    color = get_color_code(text_style.get('color', DEFAULT_TEXT_STYLE['color']), name_to_aci)
-    if isinstance(color, tuple):
-        entity.rgb = color
-    else:
-        entity.dxf.color = color
+    log_debug(f"Applying text style properties to {entity.dxftype()}: {text_style}")
 
-    # Attachment point
-    attachment_key = text_style.get('attachmentPoint', DEFAULT_TEXT_STYLE['attachmentPoint']).upper()
-    if attachment_key in TEXT_ATTACHMENT_POINTS:
-        entity.dxf.attachment_point = TEXT_ATTACHMENT_POINTS[attachment_key]
+    try:
+        # Basic properties
+        try:
+            entity.dxf.char_height = float(text_style.get('height', DEFAULT_TEXT_STYLE['height']))
+            log_debug(f"Set text height to: {entity.dxf.char_height}")
+        except Exception as e:
+            log_warning(f"Error setting text height: {str(e)}")
 
-    # Flow direction (MTEXT specific)
-    if hasattr(entity, 'dxf.flow_direction'):
-        flow_key = text_style.get('flowDirection', DEFAULT_TEXT_STYLE['flowDirection']).upper()
-        if flow_key in TEXT_FLOW_DIRECTIONS:
-            entity.dxf.flow_direction = TEXT_FLOW_DIRECTIONS[flow_key]
+        try:
+            font = text_style.get('font', DEFAULT_TEXT_STYLE['font'])
+            entity.dxf.style = font
+            log_debug(f"Set text font to: {font}")
+        except Exception as e:
+            log_warning(f"Error setting text font: {str(e)}")
+        
+        # Color
+        try:
+            color = get_color_code(text_style.get('color', DEFAULT_TEXT_STYLE['color']), name_to_aci)
+            if isinstance(color, tuple):
+                entity.rgb = color
+                log_debug(f"Set text RGB color to: {color}")
+            else:
+                entity.dxf.color = color
+                log_debug(f"Set text ACI color to: {color}")
+        except Exception as e:
+            log_warning(f"Error setting text color: {str(e)}")
 
-    # Line spacing (MTEXT specific)
-    if hasattr(entity, 'dxf.line_spacing_style'):
-        spacing_key = text_style.get('lineSpacingStyle', DEFAULT_TEXT_STYLE['lineSpacingStyle']).upper()
-        if spacing_key in TEXT_LINE_SPACING_STYLES:
-            entity.dxf.line_spacing_style = TEXT_LINE_SPACING_STYLES[spacing_key]
+        # Attachment point
+        try:
+            attachment_key = text_style.get('attachmentPoint', DEFAULT_TEXT_STYLE['attachmentPoint']).upper()
+            if attachment_key in TEXT_ATTACHMENT_POINTS:
+                entity.dxf.attachment_point = TEXT_ATTACHMENT_POINTS[attachment_key]
+                log_debug(f"Set text attachment point to: {attachment_key}")
+            else:
+                log_warning(f"Invalid attachment point: {attachment_key}")
+        except Exception as e:
+            log_warning(f"Error setting text attachment point: {str(e)}")
 
-        factor = text_style.get('lineSpacingFactor', DEFAULT_TEXT_STYLE['lineSpacingFactor'])
-        entity.dxf.line_spacing_factor = factor
+        # Flow direction (MTEXT specific)
+        if hasattr(entity, 'dxf.flow_direction'):
+            try:
+                flow_key = text_style.get('flowDirection', DEFAULT_TEXT_STYLE['flowDirection']).upper()
+                if flow_key in TEXT_FLOW_DIRECTIONS:
+                    entity.dxf.flow_direction = TEXT_FLOW_DIRECTIONS[flow_key]
+                    log_debug(f"Set text flow direction to: {flow_key}")
+                else:
+                    log_warning(f"Invalid flow direction: {flow_key}")
+            except Exception as e:
+                log_warning(f"Error setting text flow direction: {str(e)}")
 
-    # Background fill
-    if hasattr(entity, 'set_bg_color'):
-        if text_style.get('bgFill', DEFAULT_TEXT_STYLE['bgFill']):
-            bg_color = text_style.get('bgFillColor', DEFAULT_TEXT_STYLE['bgFillColor'])
-            bg_scale = text_style.get('bgFillScale', DEFAULT_TEXT_STYLE['bgFillScale'])
-            if bg_color:
-                entity.set_bg_color(bg_color, scale=bg_scale)
+        # Line spacing (MTEXT specific)
+        if hasattr(entity, 'dxf.line_spacing_style'):
+            try:
+                spacing_key = text_style.get('lineSpacingStyle', DEFAULT_TEXT_STYLE['lineSpacingStyle']).upper()
+                if spacing_key in TEXT_LINE_SPACING_STYLES:
+                    entity.dxf.line_spacing_style = TEXT_LINE_SPACING_STYLES[spacing_key]
+                    log_debug(f"Set line spacing style to: {spacing_key}")
+                else:
+                    log_warning(f"Invalid line spacing style: {spacing_key}")
 
-    # Rotation
-    entity.dxf.rotation = float(text_style.get('rotation', DEFAULT_TEXT_STYLE['rotation']))
+                factor = float(text_style.get('lineSpacingFactor', DEFAULT_TEXT_STYLE['lineSpacingFactor']))
+                entity.dxf.line_spacing_factor = factor
+                log_debug(f"Set line spacing factor to: {factor}")
+            except Exception as e:
+                log_warning(f"Error setting line spacing properties: {str(e)}")
+
+        # Background fill
+        if hasattr(entity, 'set_bg_color'):
+            try:
+                if text_style.get('bgFill', DEFAULT_TEXT_STYLE['bgFill']):
+                    bg_color = text_style.get('bgFillColor', DEFAULT_TEXT_STYLE['bgFillColor'])
+                    bg_scale = float(text_style.get('bgFillScale', DEFAULT_TEXT_STYLE['bgFillScale']))
+                    if bg_color:
+                        entity.set_bg_color(bg_color, scale=bg_scale)
+                        log_debug(f"Set background color to {bg_color} with scale {bg_scale}")
+            except Exception as e:
+                log_warning(f"Error setting background fill: {str(e)}")
+
+        # Rotation
+        try:
+            rotation = float(text_style.get('rotation', DEFAULT_TEXT_STYLE['rotation']))
+            entity.dxf.rotation = rotation
+            log_debug(f"Set text rotation to: {rotation}")
+        except Exception as e:
+            log_warning(f"Error setting text rotation: {str(e)}")
+
+        # Final verification of text properties
+        try:
+            log_debug(f"=== Final text entity state ===")
+            log_debug(f"height: {getattr(entity.dxf, 'char_height', 'Not set')}")
+            log_debug(f"style: {getattr(entity.dxf, 'style', 'Not set')}")
+            log_debug(f"color: {getattr(entity.dxf, 'color', 'Not set')}")
+            log_debug(f"attachment_point: {getattr(entity.dxf, 'attachment_point', 'Not set')}")
+            log_debug(f"rotation: {getattr(entity.dxf, 'rotation', 'Not set')}")
+            if hasattr(entity, 'dxf.flow_direction'):
+                log_debug(f"flow_direction: {getattr(entity.dxf, 'flow_direction', 'Not set')}")
+            if hasattr(entity, 'dxf.line_spacing_style'):
+                log_debug(f"line_spacing_style: {getattr(entity.dxf, 'line_spacing_style', 'Not set')}")
+                log_debug(f"line_spacing_factor: {getattr(entity.dxf, 'line_spacing_factor', 'Not set')}")
+            log_debug(f"=== End final state ===")
+        except Exception as e:
+            log_warning(f"Error during final text property verification: {str(e)}")
+
+    except Exception as e:
+        log_error(f"Error applying text style properties: {str(e)}")
+        # Don't re-raise to allow processing to continue
 
 def linetype_exists(doc, linetype_name):
     """Check if a linetype exists in the document."""
