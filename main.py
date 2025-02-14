@@ -5,51 +5,98 @@ import argparse
 import os
 import traceback
 
-from src.core.utils import log_info, log_warning, log_error
-from src.core.utils import create_sample_project, log_debug, setup_logging, setup_proj, set_log_level
-from src.core.project_loader import ProjectLoader
+from src.core.utils import (
+    log_info, log_warning, log_error,
+    create_sample_project, log_debug, setup_logging, 
+    setup_proj, set_log_level, ensure_path_exists
+)
+from src.core.project_loader import ProjectLoader, ServiceContainer
 from src.layer_processor import LayerProcessor
 from src.dxf_exporter.exporter import DXFExporter
 from src.dxf_exporter.utils import cleanup_document
 from src.geo.dump_to_shape import dxf_to_shapefiles
+from src.dxf_exporter.style_manager import StyleManager
+from src.dxf_exporter.layer_manager import LayerManager
 
 class ProjectProcessor:
+    """Main project processor coordinating the processing pipeline."""
+    
     def __init__(self, project_name: str, plot_ops=False):
+        """Initialize the project processor.
+        
+        Args:
+            project_name: Name of the project to process
+            plot_ops: Whether to plot operations (default: False)
+        """
         try:
+            # Initialize project loader and service container
             self.project_loader = ProjectLoader(project_name)
             if not self.project_loader.project_settings:
                 raise ValueError(f"Could not load settings for project '{project_name}'. Please check if the project files exist and are valid YAML.")
             
-            # Initialize LayerProcessor first
-            self.layer_processor = LayerProcessor(self.project_loader, plot_ops)
+            # Create service container with default services
+            self.service_container = ServiceContainer.create_default(self.project_loader)
             
-            # Pass the initialized LayerProcessor to DXFExporter
-            self.dxf_exporter = DXFExporter(self.project_loader, self.layer_processor)
+            # Initialize processors with service container
+            self.layer_processor = LayerProcessor(
+                self.project_loader, 
+                plot_ops,
+                self.service_container
+            )
             
-            self.doc = None  # Add this to store the document reference
+            self.dxf_exporter = DXFExporter(
+                self.project_loader, 
+                self.layer_processor,
+                self.service_container
+            )
+            
+            self.doc = None
             
         except Exception as e:
-            available_projects = list_available_projects()
-            error_msg = f"Error initializing project '{project_name}': {str(e)}\n"
-            if available_projects:
-                error_msg += "\nAvailable projects:\n" + "\n".join(f"  - {p}" for p in available_projects)
-            else:
-                error_msg += "\nNo projects found. Use --create-project to create a new project."
+            self._handle_initialization_error(project_name, e)
             
-            # Log the full traceback before raising the error
-            log_error(f"Error initializing project '{project_name}':")
-            log_error(f"Error details: {str(e)}")
-            log_error(f"Traceback:\n{traceback.format_exc()}")
-            
-            raise ValueError(error_msg) from e
+    def _handle_initialization_error(self, project_name, error):
+        """Handle initialization errors with detailed reporting."""
+        available_projects = list_available_projects()
+        error_msg = f"Error initializing project '{project_name}': {str(error)}\n"
+        
+        if available_projects:
+            error_msg += "\nAvailable projects:\n" + "\n".join(f"  - {p}" for p in available_projects)
+        else:
+            error_msg += "\nNo projects found. Use --create-project to create a new project."
+        
+        log_error(f"Error initializing project '{project_name}':")
+        log_error(f"Error details: {str(error)}")
+        log_error(f"Traceback:\n{traceback.format_exc()}")
+        
+        raise ValueError(error_msg) from error
 
     def run(self):
+        """Run the complete processing pipeline."""
         # Load the document and process DXF operations early
         doc = self.dxf_exporter._load_or_create_dxf(skip_dxf_processor=False)
         self.layer_processor.set_dxf_document(doc)
         self.layer_processor.process_layers()
         self.dxf_exporter.export_to_dxf()
         
+        self._handle_shapefile_dump()
+
+    def process(self):
+        """Process the project and return the document."""
+        # Load the document and process DXF operations early
+        doc = self.dxf_exporter._load_or_create_dxf(skip_dxf_processor=False)
+        self.layer_processor.set_dxf_document(doc)
+        self.layer_processor.process_layers()
+        
+        # Pass skip_dxf_processor=True to avoid second processing
+        self.dxf_exporter.export_to_dxf(skip_dxf_processor=True)
+        
+        # Store and return the document reference
+        self.doc = doc
+        return doc
+        
+    def _handle_shapefile_dump(self):
+        """Handle dumping DXF to shapefiles if configured."""
         project_settings = self.project_loader.project_settings
         folder_prefix = self.project_loader.folder_prefix
         dxf_filename = self.project_loader.dxf_filename
@@ -62,19 +109,6 @@ class ProjectProcessor:
                 dxf_to_shapefiles(dxf_filename, dump_output_dir)
             else:
                 log_info("Skipping DXF dump: DXF file not found or dump output directory not specified.")
-
-    def process(self):
-        # Load the document and process DXF operations early
-        doc = self.dxf_exporter._load_or_create_dxf(skip_dxf_processor=False)
-        self.layer_processor.set_dxf_document(doc)
-        self.layer_processor.process_layers()
-        
-        # Pass skip_dxf_processor=True to avoid second processing
-        self.dxf_exporter.export_to_dxf(skip_dxf_processor=True)
-        
-        # Store and return the document reference
-        self.doc = doc
-        return doc
 
 def print_layer_operations():
     operations = {

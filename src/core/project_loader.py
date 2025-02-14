@@ -3,6 +3,8 @@ import os
 from src.core.utils import log_info, log_warning, log_error, resolve_path, log_debug
 from src.dxf.dxf_processor import DXFProcessor
 from src.dxf_exporter.utils.style_defaults import DEFAULT_COLOR_MAPPING
+from src.dxf_exporter.style_manager import StyleManager
+from src.dxf_exporter.layer_manager import LayerManager
 
 class ProjectLoader:
     def __init__(self, project_name: str):
@@ -220,3 +222,32 @@ class ProjectLoader:
         else:
             log_debug("No DXF operations found in project settings")
             self.dxf_processor = None  # Set to None if no operations
+
+class ServiceContainer:
+    """Container for managing service dependencies."""
+    def __init__(self, project_loader):
+        self.project_loader = project_loader
+        self._services = {}
+
+    def register(self, service_name, service_instance):
+        """Register a service instance."""
+        self._services[service_name] = service_instance
+
+    def get(self, service_name):
+        """Get a registered service instance."""
+        return self._services.get(service_name)
+
+    @staticmethod
+    def create_default(project_loader):
+        """Create a container with default service configuration."""
+        container = ServiceContainer(project_loader)
+        
+        # Create and register core services
+        style_manager = StyleManager(project_loader)
+        layer_manager = LayerManager(project_loader, style_manager)
+        
+        # Register all services
+        container.register('style_manager', style_manager)
+        container.register('layer_manager', layer_manager)
+        
+        return container
