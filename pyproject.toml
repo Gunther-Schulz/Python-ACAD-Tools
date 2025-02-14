@@ -1,0 +1,40 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "python-acad-tools"
+version = "0.1.0"
+description = "Python tools for AutoCAD DXF processing and GIS operations"
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "MIT" }
+authors = [
+    { name = "Gunther Schulz" }
+]
+dependencies = [
+    "ezdxf",
+    "geopandas",
+    "numpy",
+    "shapely",
+    "pyproj",
+    "pyyaml",
+    "owslib",
+    "pandas",
+    "networkx",
+]
+
+[project.scripts]
+acad-tools = "src.main:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
+
+[tool.hatch.build]
+exclude = [
+    "projects/*",
+    "logs/*",
+    "*.log",
+    "__pycache__",
+    "*.pyc",
+] 
