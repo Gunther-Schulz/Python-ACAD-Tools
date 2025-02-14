@@ -7,7 +7,7 @@ geomLayers:
     simpleLabel: flurname  # Keep this as a string
     style:
       layer:
-        color: "white"
+        color: "green"
         linetype: "CONTINUOUS"
         lineweight: 13
         plot: true

@@ -1,179 +1,101 @@
 """Module for managing layers in DXF files."""
 
-import ezdxf
 from src.core.utils import log_debug, log_warning
 from .utils import ensure_layer_exists, update_layer_properties, sanitize_layer_name
-from .utils.style_defaults import DEFAULT_LAYER_STYLE
+from .utils.style_defaults import DEFAULT_LAYER_STYLE, DEFAULT_ENTITY_STYLE
 
 class LayerManager:
+    """Manages DXF layers and their properties."""
+    
     def __init__(self, project_loader, style_manager):
         self.project_loader = project_loader
         self.style_manager = style_manager
-        self.layer_properties = {}
-        self.colors = {}
         self.name_to_aci = project_loader.name_to_aci
-        self.all_layers = {}
+        self.layer_properties = {}
         self.doc = None
-        self.default_layer_style = DEFAULT_LAYER_STYLE.copy()
         self.setup_layers()
 
     def setup_layers(self):
-        """Initialize and setup all layers from project settings"""
-        # Initialize default properties for ALL layers first
-        self.initialize_layer_properties()
+        """Initialize and setup all layers from project settings."""
+        log_debug("Setting up layers...")
         
         # Setup geom layers
-        for layer in self.project_loader.project_settings['geomLayers']:
+        for layer in self.project_loader.project_settings.get('geomLayers', []):
             self._setup_single_layer(layer)
-            
-            # Also setup properties for any layers created through operations
-            if 'operations' in layer:
-                result_layer_name = layer['name']
-                if result_layer_name not in self.layer_properties:
-                    # Initialize with default properties if not already set
-                    self.add_layer_properties(result_layer_name, {
-                        'color': "White",  # Default color
-                        'locked': False,
-                        'close': True
-                    })
         
         # Setup WMTS/WMS layers
         for layer in self.project_loader.project_settings.get('wmtsLayers', []):
             self._setup_single_layer(layer)
         for layer in self.project_loader.project_settings.get('wmsLayers', []):
             self._setup_single_layer(layer)
+            
+        log_debug(f"Layer setup complete. Configured layers: {list(self.layer_properties.keys())}")
 
     def _setup_single_layer(self, layer):
-        """Setup a single layer's properties"""
+        """Setup a single layer's properties."""
         layer_name = layer['name']
+        log_debug(f"Setting up layer: {layer_name}")
         
-        # Ensure layer has properties, even if just defaults
-        if layer_name not in self.layer_properties:
-            self.layer_properties[layer_name] = {
-                'layer': self.default_layer_style.copy(),
-                'entity': {
-                    'close': False
-                }
-            }
-            self.colors[layer_name] = self.default_layer_style['color']
+        # Process style through StyleManager
+        style = self.style_manager.process_layer_style(layer_name, layer)
         
-        # Process layer style if it exists
-        if 'style' in layer:
-            layer_style = self.style_manager.process_layer_style(layer_name, layer)
-            self.add_layer_properties(layer_name, layer, layer_style)
-
-    def initialize_layer_properties(self):
-        """Initialize properties for all layers"""
-        for layer in self.project_loader.project_settings['geomLayers']:
-            layer_name = layer['name']
-            
-            if layer_name in self.layer_properties:
-                continue
-            
-            if (layer.get('style') or 
-                any(key in layer for key in [
-                    'color', 'linetype', 'lineweight', 'plot', 'locked', 
-                    'frozen', 'is_on', 'transparency', 'close', 'linetypeScale', 
-                    'linetypeGeneration'
-                ])):
-                self.add_layer_properties(layer_name, layer)
-
-    def add_layer_properties(self, layer_name, layer, processed_style=None):
-        """Add properties for a layer"""
-        # Always get properties from StyleManager
-        properties = processed_style or self.style_manager.process_layer_style(layer_name, layer)
-        
-        # Store the properties
-        self.layer_properties[layer_name] = {
-            'layer': properties,
-            'entity': {}  # Entity properties if needed
-        }
-        
-        # Store color for quick access
-        if 'color' in properties:
-            self.colors[layer_name] = properties['color']
-
-    def ensure_layer_exists(self, doc, layer_name, layer_info=None):
-        """Ensure a layer exists in the document"""
-        if layer_name not in doc.layers:
-            self.create_new_layer(doc, None, layer_name, layer_info, add_geometry=False)
-        else:
-            if layer_info:
-                self.apply_layer_properties(doc.layers.get(layer_name), layer_info)
-
-    def create_new_layer(self, doc, msp, layer_name, layer_info, add_geometry=True):
-        """Create a new layer in the document"""
-        log_debug(f"Creating new layer: {layer_name}")
-        sanitized_layer_name = sanitize_layer_name(layer_name)  
-        properties = self.layer_properties.get(layer_name, {})
-        
-        ensure_layer_exists(doc, sanitized_layer_name)
-        
-        # Apply properties after layer creation
-        if properties:
-            layer = doc.layers.get(sanitized_layer_name)
-            update_layer_properties(layer, properties, self.name_to_aci)
-        
-        log_debug(f"Created new layer: {sanitized_layer_name}")
-        log_debug(f"Layer properties: {properties}")
-        
-        return doc.layers.get(sanitized_layer_name)
-
-    def apply_layer_properties(self, layer, layer_properties):
-        """Apply properties to an existing layer"""
-        update_layer_properties(layer, layer_properties, self.name_to_aci)
-        log_debug(f"Updated layer properties: {layer_properties}")
+        # Store processed style
+        self.layer_properties[layer_name] = style
+        log_debug(f"Stored properties for layer {layer_name}: {style}")
 
     def get_layer_properties(self, layer_name):
         """Get layer properties for a given layer name."""
         log_debug(f"Getting properties for layer: {layer_name}")
         
-        # First check if we have stored properties for this layer
-        if layer_name not in self.layer_properties:
-            log_debug(f"No stored properties found for layer {layer_name}, using defaults")
-            return {
-                'layer': self.default_layer_style.copy(),
-                'entity': self.default_entity_style.copy()
-            }
+        # Return stored properties or defaults
+        return self.layer_properties.get(layer_name, {
+            'layer': DEFAULT_LAYER_STYLE.copy(),
+            'entity': DEFAULT_ENTITY_STYLE.copy()
+        })
+
+    def ensure_layer_exists(self, doc, layer_name, layer_info=None):
+        """Ensure a layer exists in the document and has the correct properties."""
+        log_debug(f"Ensuring layer exists: {layer_name}")
         
-        stored_props = self.layer_properties[layer_name]
-        log_debug(f"Raw stored properties: {stored_props}")
+        sanitized_name = sanitize_layer_name(layer_name)
+        if sanitized_name not in doc.layers:
+            log_debug(f"Creating new layer: {sanitized_name}")
+            doc.layers.new(sanitized_name)
         
-        # If stored_props['layer'] is a tuple (from style_manager.process_layer_style),
-        # we need to merge layer and entity properties
-        if isinstance(stored_props.get('layer'), tuple):
-            layer_props, entity_props = stored_props['layer']
-            result = {
-                'layer': layer_props,
-                'entity': entity_props
-            }
-        else:
-            result = stored_props
+        layer = doc.layers.get(sanitized_name)
+        
+        # Get and apply properties
+        properties = self.get_layer_properties(layer_name)
+        layer_props = properties.get('layer', {})
+        self._apply_layer_properties(layer, layer_props)
+        
+        log_debug(f"Layer {sanitized_name} exists with properties: {layer_props}")
+        return layer
+
+    def create_new_layer(self, doc, msp, layer_name, layer_info, add_geometry=True):
+        """Create a new layer in the document."""
+        log_debug(f"Creating new layer: {layer_name}")
+        return self.ensure_layer_exists(doc, layer_name, layer_info)
+
+    def _apply_layer_properties(self, layer, properties):
+        """Apply properties to a layer object."""
+        try:
+            # First, ensure the layer is not locked or frozen before making changes
+            layer.lock = False
+            layer.off = False
             
-        log_debug(f"Processed layer properties: {result}")
-        return result
-
-    def create_layer(self, layer_name: str, layer_style: dict = None) -> None:
-        """Create a new layer in the DXF document."""
-        if layer_name in self.layer_properties:
-            return
-
-        # Use default style if none provided
-        if layer_style is None:
-            layer_style = self.default_layer_style
-
-        # Create the layer
-        self.layer_properties[layer_name] = {
-            'layer': layer_style,
-            'entity': {}
-        }
-        
-        # Apply style properties
-        layer = self.doc.layers.new(name=layer_name)
-        layer.color = layer_style.get('color', self.default_layer_style['color'])
-        layer.linetype = layer_style.get('linetype', self.default_layer_style['linetype'])
-        layer.lineweight = layer_style.get('lineweight', self.default_layer_style['lineweight'])
-        layer.plot = layer_style.get('plot', self.default_layer_style['plot'])
-        layer.locked = layer_style.get('locked', self.default_layer_style['locked'])
-        layer.frozen = layer_style.get('frozen', self.default_layer_style['frozen'])
-        layer.is_on = layer_style.get('is_on', self.default_layer_style['is_on'])
+            for key, value in properties.items():
+                try:
+                    if key == 'locked':
+                        layer.lock = value
+                    elif key == 'is_on':
+                        layer.off = not value
+                    elif key == 'frozen':
+                        layer.freeze = value
+                    else:
+                        setattr(layer, key, value)
+                    log_debug(f"Set layer property {key}={value}")
+                except Exception as e:
+                    log_warning(f"Could not set layer property {key}={value}. Error: {str(e)}")
+        except Exception as e:
+            log_warning(f"Error applying layer properties: {str(e)}")

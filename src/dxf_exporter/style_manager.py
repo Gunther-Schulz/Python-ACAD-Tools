@@ -16,58 +16,177 @@ from .utils.style_defaults import (
 import re
 
 class StyleManager:
+    """Manages styles for DXF entities and layers."""
+    
     def __init__(self, project_loader):
-        """Initialize StyleManager with either a ProjectLoader instance or project settings dict."""
-        if hasattr(project_loader, 'styles'):
-            # If given a ProjectLoader instance
-            self.styles = project_loader.styles
-            self.name_to_aci = project_loader.name_to_aci
-            self.project_loader = project_loader
-        else:
-            # If given project settings dictionary directly
-            self.styles = project_loader.get('styles', {})
-            # For direct dictionary usage, we need a default color mapping
-            self.name_to_aci = DEFAULT_COLOR_MAPPING
-            self.project_loader = None
-
-        # Initialize with defaults from style_defaults
-        self.default_hatch_settings = DEFAULT_HATCH_STYLE.copy()
-        self.default_layer_settings = DEFAULT_LAYER_STYLE.copy()
-        self.default_text_settings = DEFAULT_TEXT_STYLE.copy()
+        self.name_to_aci = project_loader.name_to_aci if hasattr(project_loader, 'name_to_aci') else {}
+        self.styles = project_loader.styles if hasattr(project_loader, 'styles') else {}
+        
+        # Store defaults
+        self.default_layer_style = DEFAULT_LAYER_STYLE.copy()
         self.default_entity_style = DEFAULT_ENTITY_STYLE.copy()
+        self.default_text_style = DEFAULT_TEXT_STYLE.copy()
+        self.default_hatch_style = DEFAULT_HATCH_STYLE.copy()
+
+    def process_layer_style(self, layer_name, layer_config):
+        """Process layer style configuration."""
+        log_debug(f"Processing style for layer: {layer_name}")
+        
+        # Initialize with defaults
+        style = {
+            'layer': self.default_layer_style.copy(),
+            'entity': self.default_entity_style.copy(),
+            'text': self.default_text_style.copy(),
+            'hatch': self.default_hatch_style.copy()
+        }
+        
+        # Get style configuration
+        style_config = layer_config.get('style', {})
+        if not style_config:
+            log_debug(f"No style configuration found for layer {layer_name}, using defaults")
+            return style
+            
+        log_debug(f"Raw style configuration: {style_config}")
+        
+        # Handle string style references (presets)
+        if isinstance(style_config, str):
+            preset_style, warning_generated = self.get_style(style_config)
+            if not warning_generated and preset_style:
+                style = self.deep_merge(style, preset_style)
+            return style
+            
+        # Handle style with overrides
+        if 'styleOverride' in style_config:
+            base_style = style_config.get('style', '')
+            if base_style:
+                preset_style, warning_generated = self.get_style(base_style)
+                if not warning_generated and preset_style:
+                    style = self.deep_merge(style, preset_style)
+            # Apply overrides
+            style = self.deep_merge(style, style_config['styleOverride'])
+            return style
+            
+        # Process direct style configuration
+        if 'layer' in style_config:
+            self._process_layer_properties(style, style_config['layer'])
+        if 'entity' in style_config:
+            self._process_entity_properties(style, style_config['entity'])
+        if 'text' in style_config:
+            self._process_text_properties(style, style_config['text'])
+        if 'hatch' in style_config:
+            self._process_hatch_properties(style, style_config['hatch'])
+        
+        log_debug(f"Processed style: {style}")
+        return style
+
+    def _process_layer_properties(self, style, layer_props):
+        """Process layer-specific properties."""
+        valid_props = {
+            'color', 'linetype', 'lineweight', 'plot', 
+            'locked', 'frozen', 'is_on', 'transparency'
+        }
+        
+        for key, value in layer_props.items():
+            if key not in valid_props:
+                log_warning(f"Unknown layer property: {key}")
+                continue
+                
+            if key == 'color':
+                style['layer'][key] = get_color_code(value, self.name_to_aci)
+            elif key == 'transparency':
+                style['layer'][key] = convert_transparency(value)
+            else:
+                style['layer'][key] = value
+
+    def _process_entity_properties(self, style, entity_props):
+        """Process entity-specific properties."""
+        valid_props = {
+            'color', 'linetype', 'lineweight', 'transparency',
+            'linetypeScale', 'close', 'linetypeGeneration'
+        }
+        
+        for key, value in entity_props.items():
+            if key not in valid_props:
+                log_warning(f"Unknown entity property: {key}")
+                continue
+                
+            if key == 'color':
+                style['entity'][key] = get_color_code(value, self.name_to_aci)
+            elif key == 'linetypeScale':
+                style['entity'][key] = float(value)
+            elif key == 'transparency':
+                style['entity'][key] = convert_transparency(value)
+            else:
+                style['entity'][key] = value
+
+    def _process_text_properties(self, style, text_props):
+        """Process text-specific properties."""
+        if 'color' in text_props:
+            style['text']['color'] = get_color_code(text_props['color'], self.name_to_aci)
+        
+        # Process other text properties
+        for key, value in text_props.items():
+            if key != 'color':  # Already handled
+                style['text'][key] = value
+
+    def _process_hatch_properties(self, style, hatch_props):
+        """Process hatch-specific properties."""
+        if 'color' in hatch_props:
+            style['hatch']['color'] = get_color_code(hatch_props['color'], self.name_to_aci)
+            
+        # Process other hatch properties
+        for key, value in hatch_props.items():
+            if key != 'color':  # Already handled
+                style['hatch'][key] = value
 
     def get_style(self, style_name_or_config):
         """Get style configuration with support for presets and inline styles."""
         if isinstance(style_name_or_config, str):
-            # Handle preset style
             style = self.styles.get(style_name_or_config)
             if style is None:
                 log_warning(f"Style preset '{style_name_or_config}' not found.")
                 return None, True
             return style, False
         elif isinstance(style_name_or_config, dict):
-            if 'styleOverride' in style_name_or_config:
-                # Handle style override system
-                preset_name = style_name_or_config.get('style')
-                if not preset_name or not isinstance(preset_name, str):
-                    log_warning("styleOverride requires a valid preset name in 'style' key")
-                    return style_name_or_config, True
-                
-                preset = self.styles.get(preset_name)
-                if preset is None:
-                    log_warning(f"Style preset '{preset_name}' not found.")
-                    return style_name_or_config, True
-                
-                # Deep merge the preset with overrides
-                merged_style = self.deep_merge(preset, style_name_or_config['styleOverride'])
-                return merged_style, False
+            return style_name_or_config, False
+        return None, True
+
+    def deep_merge(self, dict1, dict2):
+        """Deep merge two dictionaries."""
+        if not isinstance(dict1, dict) or not isinstance(dict2, dict):
+            return dict2
+            
+        result = dict1.copy()
+        for key, value in dict2.items():
+            if key in result and isinstance(result[key], dict) and isinstance(value, dict):
+                result[key] = self.deep_merge(result[key], value)
             else:
-                # Handle pure inline style
-                return style_name_or_config, False
-        
-        return style_name_or_config, False
+                result[key] = value
+        return result
 
     def validate_style(self, layer_name, style_config):
+        """Validate style configuration.
+        
+        This is a simpler validation that just ensures the basic structure is correct.
+        Detailed property validation happens during processing.
+        """
+        if not isinstance(style_config, dict):
+            log_warning(f"Invalid style configuration for layer {layer_name}. Expected dict, got {type(style_config)}")
+            return False
+            
+        valid_sections = {'layer', 'entity', 'text', 'hatch'}
+        for section in style_config:
+            if section not in valid_sections:
+                log_warning(f"Unknown style section '{section}' in layer {layer_name}")
+                return False
+                
+            if not isinstance(style_config[section], dict):
+                log_warning(f"Invalid {section} style for layer {layer_name}. Expected dict, got {type(style_config[section])}")
+                return False
+                
+        return True
+
+    def _validate_layer_style(self, layer_name, style_config):
         """Validates the complete style configuration for a layer"""
         if isinstance(style_config, str):
             # Validate preset style
@@ -124,75 +243,6 @@ class StyleManager:
                     else:
                         log_warning(f"Unknown style type '{style_type}' in layer '{layer_name}'")
         
-        return True
-
-    def _validate_layer_style(self, layer_name, style_config):
-        """Validate layer style configuration."""
-        if not isinstance(style_config, dict):
-            log_warning(f"Invalid style configuration for layer '{layer_name}'. Expected dictionary, got {type(style_config)}")
-            return False
-
-        # Validate layer properties
-        if 'layer' in style_config:
-            layer_style = style_config['layer']
-            if not isinstance(layer_style, dict):
-                log_warning(f"Invalid layer style for layer '{layer_name}'. Expected dictionary, got {type(layer_style)}")
-                return False
-
-            # Known layer properties
-            layer_style_keys = {'color', 'linetype', 'lineweight', 'plot', 'locked', 'frozen', 'is_on', 'transparency'}
-            unknown_keys = set(layer_style.keys()) - layer_style_keys
-            if unknown_keys:
-                log_warning(f"Unknown layer style keys in layer '{layer_name}': {', '.join(unknown_keys)}")
-
-            # Validate linetype
-            if 'linetype' in layer_style:
-                linetype = layer_style['linetype']
-                if linetype.startswith('ACAD_'):
-                    acad_pattern = r'^ACAD_ISO\d{2}W100$'
-                    if not re.match(acad_pattern, linetype):
-                        log_warning(f"Invalid ACAD linetype format '{linetype}' in layer '{layer_name}'. "
-                                  f"ACAD ISO linetypes should follow the pattern 'ACAD_ISOxxW100' where xx is a two-digit number.")
-
-            # Validate numeric constraints
-            if 'lineweight' in layer_style:
-                lineweight = layer_style['lineweight']
-                if not isinstance(lineweight, (int, float)) or lineweight < -3 or lineweight > 211:
-                    log_warning(f"Invalid lineweight value {lineweight} in layer '{layer_name}'. Must be between -3 and 211.")
-
-            if 'transparency' in layer_style:
-                transparency = layer_style['transparency']
-                if not isinstance(transparency, (int, float)) or transparency < 0 or transparency > 255:
-                    log_warning(f"Invalid transparency value {transparency} in layer '{layer_name}'. Must be between 0 and 255.")
-
-        # Validate entity properties
-        if 'entity' in style_config:
-            entity_style = style_config['entity']
-            if not isinstance(entity_style, dict):
-                log_warning(f"Invalid entity style for layer '{layer_name}'. Expected dictionary, got {type(entity_style)}")
-                return False
-
-            # Known entity properties
-            entity_style_keys = {'close', 'linetypeScale', 'linetypeGeneration'}
-            unknown_keys = set(entity_style.keys()) - entity_style_keys
-            if unknown_keys:
-                log_warning(f"Unknown entity style keys in layer '{layer_name}': {', '.join(unknown_keys)}")
-
-            if 'linetypeScale' in entity_style:
-                scale = entity_style['linetypeScale']
-                if not isinstance(scale, (int, float)) or scale < 0.01 or scale > 1000.0:
-                    log_warning(f"Invalid linetypeScale value {scale} in layer '{layer_name}'. Must be between 0.01 and 1000.0.")
-
-        # Check for possible typos in property names
-        for section in ['layer', 'entity']:
-            if section in style_config:
-                style_dict = style_config[section]
-                known_keys = layer_style_keys if section == 'layer' else entity_style_keys
-                for key in style_dict.keys():
-                    closest_match = min(known_keys, key=lambda x: self._levenshtein_distance(key, x))
-                    if key != closest_match and self._levenshtein_distance(key, closest_match) <= 2:
-                        log_warning(f"Possible typo in {section} style key for layer {layer_name}: '{key}'. Did you mean '{closest_match}'?")
-
         return True
 
     def _validate_hatch_style(self, layer_name, hatch_style):
@@ -296,7 +346,7 @@ class StyleManager:
         return previous_row[-1]
 
     def get_hatch_config(self, layer_info):
-        hatch_config = self.default_hatch_settings.copy()
+        hatch_config = self.default_hatch_style.copy()
         
         layer_style = layer_info.get('style', {})
         if isinstance(layer_style, str):
@@ -332,91 +382,11 @@ class StyleManager:
         
         return hatch_config
 
-    def process_layer_style(self, layer_name, layer_config):
-        """Process layer style with support for presets and inline styles.
-        
-        Returns:
-            tuple: (layer_properties, entity_properties) where:
-                - layer_properties: dict of properties to be set on the layer
-                - entity_properties: dict of properties to be set on individual entities
-        """
-        # Initialize with default settings
-        layer_properties = self.default_layer_settings.copy()
-        entity_properties = self.default_entity_style.copy()
-        
-        if 'style' in layer_config:
-            style_config = layer_config['style']
-            
-            # Process layer properties
-            if 'layer' in style_config:
-                layer_style = style_config['layer']
-                for key in ['color', 'linetype', 'lineweight', 'plot', 'locked', 'frozen', 
-                           'is_on', 'transparency']:
-                    if key in layer_style:
-                        if key == 'color':
-                            layer_properties[key] = get_color_code(layer_style[key], self.name_to_aci)
-                        else:
-                            layer_properties[key] = layer_style[key]
-            
-            # Process entity properties
-            if 'entity' in style_config:
-                entity_style = style_config['entity']
-                for key in ['close', 'linetypeScale', 'linetypeGeneration']:
-                    if key in entity_style:
-                        entity_properties[key] = entity_style[key]
-        
-        log_debug(f"Processed style for layer {layer_name}:")
-        log_debug(f"Layer properties: {layer_properties}")
-        log_debug(f"Entity properties: {entity_properties}")
-        
-        return layer_properties, entity_properties
-
     def process_text_style(self, layer_name, layer_config):
         style, warning_generated = self.get_style(layer_config.get('style', {}))
         if warning_generated:
             return {}
         return style.get('text', {}) if style else {}
-
-    def deep_merge(self, dict1, dict2):
-        """
-        Deep merge two dictionaries, merging at all levels instead of replacing.
-        dict1 is the base (preset), dict2 contains the overrides
-        """
-        result = dict1.copy()
-        
-        for key, value in dict2.items():
-            if (key in result and 
-                isinstance(result[key], dict) and 
-                isinstance(value, dict)):
-                # Recursively merge nested dictionaries
-                result[key] = self.deep_merge(result[key], value)
-            else:
-                # For non-dict values or new keys, just update/add the value
-                result[key] = value
-        
-        return result
-
-    def _process_layer_style(self, layer_name, layer_style):
-        known_style_keys = {'color', 'linetype', 'lineweight', 'plot', 'locked', 'frozen', 'is_on', 'vp_freeze', 'transparency'}
-        self._process_style_keys(layer_name, 'layer', layer_style, known_style_keys)
-
-    def _process_hatch_style(self, layer_name, hatch_style):
-        known_style_keys = {'pattern', 'scale', 'color', 'transparency'}
-        self._process_style_keys(layer_name, 'hatch', hatch_style, known_style_keys)
-
-    def _process_text_style(self, layer_name, text_style):
-        known_style_keys = {'color', 'height', 'font', 'style', 'alignment'}
-        self._process_style_keys(layer_name, 'text', text_style, known_style_keys)
-
-    def _process_style_keys(self, layer_name, style_type, style_dict, known_keys):
-        unknown_keys = set(style_dict.keys()) - known_keys
-        if unknown_keys:
-            log_warning(f"Unknown {style_type} style keys in layer {layer_name}: {', '.join(unknown_keys)}")
-
-        for key in style_dict.keys():
-            closest_match = min(known_keys, key=lambda x: self._levenshtein_distance(key, x))
-            if key != closest_match and self._levenshtein_distance(key, closest_match) <= 2:
-                log_warning(f"Possible typo in {style_type} style key for layer {layer_name}: '{key}'. Did you mean '{closest_match}'?")
 
     def _validate_style_overrides(self, layer_name, style_config):
         """Validates style overrides when using a preset"""
