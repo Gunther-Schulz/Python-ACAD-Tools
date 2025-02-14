@@ -1,6 +1,5 @@
 geomLayers:
-  - name: Baum Points
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/input/bäume_input.shp"
+  # Administrative Boundaries
   - name: Flur
     updateDxf: true
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/input/flur2.shp"
@@ -30,6 +29,7 @@ geomLayers:
     viewports:
       - name: WorkView
         style: flurWorkView
+
   - name: Gemarkung
     updateDxf: true
     close: true
@@ -40,6 +40,7 @@ geomLayers:
     viewports:
       - name: WorkView
         style: gemarkungWorkView
+
   - name: Gemeinde
     updateDxf: true
     close: true
@@ -50,6 +51,12 @@ geomLayers:
     viewports:
       - name: WorkView
         style: gemeindeWorkView
+
+  # Natural Features
+  - name: Baum Points
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/input/bäume_input.shp"
+
+  # Wald Group
   - name: Wald
     updateDxf: true
     close: true
@@ -59,9 +66,7 @@ geomLayers:
     viewports:
       - name: WorkView
         style: wald
-  - name: Wald Schraffur
-    updateDxf: true
-    style: wald
-    applyHatch:
-      layers:
-        - Wald
+    hatches:
+      - name: Wald Schraffur
+        updateDxf: true
+        style: wald

@@ -140,16 +140,34 @@ class DXFExporter:
         
         # First, clean up all layers that will be updated
         for layer_info in geom_layers:
+            # Clean main layer
             layer_name = layer_info['name']
-            if layer_info.get('updateDxf', False):  # Only clean layers that are marked for update
+            if layer_info.get('updateDxf', False):
                 log_debug(f"Cleaning existing entities from layer: {layer_name}")
                 remove_entities_by_layer(msp, layer_name, self.script_identifier)
+            
+            # Clean hatch layers if any
+            if 'hatches' in layer_info:
+                for hatch in layer_info['hatches']:
+                    hatch_name = hatch['name']
+                    if hatch.get('updateDxf', False):
+                        log_debug(f"Cleaning existing entities from hatch layer: {hatch_name}")
+                        remove_entities_by_layer(msp, hatch_name, self.script_identifier)
         
         # Then process each layer
         for layer_info in geom_layers:
             layer_name = layer_info['name']
+            # Process main layer
             if layer_name in self.all_layers:
                 self._process_layer(doc, msp, layer_name, layer_info)
+            
+            # Process associated hatch layers
+            if 'hatches' in layer_info:
+                for hatch in layer_info['hatches']:
+                    hatch_name = hatch['name']
+                    # Add implicit reference to parent layer
+                    hatch['applyHatch'] = {'layers': [layer_name]}
+                    self._process_layer(doc, msp, hatch_name, hatch)
 
     def _process_layer(self, doc, msp, layer_name, layer_info):
         """Process a single layer"""
@@ -162,7 +180,7 @@ class DXFExporter:
         # Ensure layer exists and has correct properties
         self.layer_manager.ensure_layer_exists(doc, layer_name, layer_info)
         
-        # Process geometry
+        # Process geometry if layer has its own data
         if layer_name in self.all_layers:
             geo_data = self.all_layers[layer_name]
             
@@ -180,10 +198,11 @@ class DXFExporter:
                     # Simple labels from YAML simpleLabel key
                     geo_data['label'] = geo_data[simple_label_field]
                     self.text_processor.add_label_points_to_dxf(msp, geo_data, layer_name, layer_info)
-            
-            # Process hatch if configured
-            if layer_info.get('applyHatch'):
-                self.hatch_processor.process_hatch(doc, msp, layer_name, layer_info)
+        
+        # Process hatch if configured - do this regardless of whether layer has its own geometry
+        if layer_info.get('applyHatch'):
+            log_debug(f"Processing hatch for layer {layer_name}")
+            self.hatch_processor.process_hatch(doc, msp, layer_name, layer_info)
 
     def _cleanup_and_save(self, doc, msp):
         """Clean up and save the document"""

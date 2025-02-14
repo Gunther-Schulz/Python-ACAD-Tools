@@ -9,6 +9,14 @@ from .style_defaults import DEFAULT_COLOR_MAPPING
 def get_color_code(color, name_to_aci):
     if color is None:
         return DEFAULT_COLOR_MAPPING['white']  # Default to white if no color is specified
+    
+    # Handle special values first
+    if isinstance(color, str):
+        if color.upper() == 'BYLAYER':
+            return const.BYLAYER
+        elif color.upper() == 'BYBLOCK':
+            return const.BYBLOCK
+    
     if isinstance(color, int):
         return color  # Return ACI code as-is
     elif isinstance(color, str):
