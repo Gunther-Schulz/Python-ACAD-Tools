@@ -296,35 +296,28 @@ class StyleManager:
         return previous_row[-1]
 
     def get_hatch_config(self, layer_info):
+        """Get hatch configuration from layer info."""
         hatch_config = self.default_hatch_settings.copy()
         
-        layer_style = layer_info.get('style', {})
-        if isinstance(layer_style, str):
-            style_preset, _ = self.get_style(layer_style)
+        # Get style configuration
+        style_config = layer_info.get('style')
+        
+        # Handle string style reference (e.g. "style: wald")
+        if isinstance(style_config, str):
+            style_preset = self.styles.get(style_config)
             if style_preset and 'hatch' in style_preset:
                 hatch_config.update(style_preset['hatch'])
-        elif isinstance(layer_style, dict):
-            if 'preset' in layer_style:
-                # Get the preset first
-                preset_style, _ = self.get_style(layer_style)
-                if preset_style and 'hatch' in preset_style:
-                    # Merge preset with any hatch overrides
-                    if 'hatch' in layer_style:
-                        hatch_config = self.deep_merge(preset_style['hatch'], layer_style['hatch'])
-                    else:
-                        hatch_config.update(preset_style['hatch'])
-            elif 'hatch' in layer_style:
-                hatch_config.update(layer_style['hatch'])
-            elif 'layer' in layer_style:
-                # Use layer settings for hatch if no specific hatch settings are provided
-                layer_settings = layer_style['layer']
-                if 'transparency' in layer_settings:
-                    hatch_config['transparency'] = layer_settings['transparency']
-                if 'color' in layer_settings:
-                    hatch_config['color'] = layer_settings['color']
-                if 'lineweight' in layer_settings:
-                    hatch_config['lineweight'] = layer_settings['lineweight']
+        # Handle dictionary style config
+        elif isinstance(style_config, dict):
+            if 'preset' in style_config:
+                preset_name = style_config['preset']
+                style_preset = self.styles.get(preset_name)
+                if style_preset and 'hatch' in style_preset:
+                    hatch_config.update(style_preset['hatch'])
+            elif 'hatch' in style_config:
+                hatch_config.update(style_config['hatch'])
         
+        # Handle applyHatch configuration
         apply_hatch = layer_info.get('applyHatch', False)
         if isinstance(apply_hatch, dict):
             if 'layers' in apply_hatch:

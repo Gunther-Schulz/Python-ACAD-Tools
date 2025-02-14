@@ -30,12 +30,38 @@ geomLayers:
     viewports:
       - name: WorkView
         style: flurWorkView
-    # style:
-    #   text:
-    #     height: 20.5  # Text height
-    #     font: "Arial"  # Font family
-    #     style: "Arial"  # Explicitly set style name
-    #     color: "red"  # Text color
-    #     attachmentPoint: "MIDDLE_LEFT"  # Text attachment point
-    #     paragraph:
-    #       align: "LEFT"  # Text alignment
+  - name: Gemarkung
+    updateDxf: true
+    close: true
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/input/gemarkung2.shp"
+    simpleLabel: gmkname
+    linetypeGeneration: true
+    style: gemarkungsgrenze
+    viewports:
+      - name: WorkView
+        style: gemarkungWorkView
+  - name: Gemeinde
+    updateDxf: true
+    close: true
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/input/gemeinde2.shp"
+    simpleLabel: gen
+    linetypeGeneration: true
+    style: gemeindegrenze
+    viewports:
+      - name: WorkView
+        style: gemeindeWorkView
+  - name: Wald
+    updateDxf: true
+    close: true
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/input/wald.shp"
+    # operations:
+    #   - type: dissolve
+    viewports:
+      - name: WorkView
+        style: wald
+  - name: Wald Schraffur
+    updateDxf: true
+    style: wald
+    applyHatch:
+      layers:
+        - Wald
