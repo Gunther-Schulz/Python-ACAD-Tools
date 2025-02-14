@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "python-acad-tools"
 version = "0.1.0"
-description = "Python tools for AutoCAD DXF processing and GIS operations"
+description = "Python tools for processing GIS data and exporting to AutoCAD DXF format"
 readme = "README.md"
 requires-python = ">=3.8"
 license = { text = "MIT" }
@@ -37,4 +37,9 @@ exclude = [
     "*.log",
     "__pycache__",
     "*.pyc",
-] 
+    "OLD_CODE/*",
+]
+
+[tool.hatch.build.targets.wheel.sources]
+"src" = "src"
+"src/extensions" = "src/extensions"  # Include extensions directory 

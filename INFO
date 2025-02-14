@@ -1,0 +1,36 @@
+2025-02-14 17:18:32,955 - INFO - Processing project: Torgelow2
+2025-02-14 17:18:32,992 - ERROR - Error during pipeline processing: 'DXFExporter' object has no attribute 'load_or_create_dxf'
+2025-02-14 17:18:32,993 - ERROR - Error Type: AttributeError
+2025-02-14 17:18:32,993 - ERROR - Error Message: 'DXFExporter' object has no attribute 'load_or_create_dxf'
+2025-02-14 17:18:32,993 - ERROR - Traceback:
+Traceback (most recent call last):
+  File "/home/g/dev/Gunther-Schulz/Python-ACAD-Tools/src/main.py", line 83, in main
+    doc = pipeline.process()
+          ^^^^^^^^^^^^^^^^^^
+  File "/home/g/dev/Gunther-Schulz/Python-ACAD-Tools/src/core/pipeline.py", line 43, in process
+    doc = self.dxf_exporter.load_or_create_dxf(skip_dxf_processor)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'DXFExporter' object has no attribute 'load_or_create_dxf'. Did you mean: '_load_or_create_dxf'?
+
+2025-02-14 17:18:32,993 - INFO - 
+An unexpected error occurred: AttributeError
+2025-02-14 17:18:32,993 - INFO - Error details: 'DXFExporter' object has no attribute 'load_or_create_dxf'
+2025-02-14 17:18:32,993 - INFO - Check the log file for the full traceback.
+2025-02-14 17:18:39,086 - INFO - Processing project: Torgelow2
+2025-02-14 17:18:39,126 - ERROR - Error during pipeline processing: 'DXFExporter' object has no attribute 'load_or_create_dxf'
+2025-02-14 17:18:39,127 - ERROR - Error Type: AttributeError
+2025-02-14 17:18:39,127 - ERROR - Error Message: 'DXFExporter' object has no attribute 'load_or_create_dxf'
+2025-02-14 17:18:39,127 - ERROR - Traceback:
+Traceback (most recent call last):
+  File "/home/g/dev/Gunther-Schulz/Python-ACAD-Tools/src/main.py", line 83, in main
+    doc = pipeline.process()
+          ^^^^^^^^^^^^^^^^^^
+  File "/home/g/dev/Gunther-Schulz/Python-ACAD-Tools/src/core/pipeline.py", line 43, in process
+    doc = self.dxf_exporter.load_or_create_dxf(skip_dxf_processor)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'DXFExporter' object has no attribute 'load_or_create_dxf'. Did you mean: '_load_or_create_dxf'?
+
+2025-02-14 17:18:39,127 - INFO - 
+An unexpected error occurred: AttributeError
+2025-02-14 17:18:39,127 - INFO - Error details: 'DXFExporter' object has no attribute 'load_or_create_dxf'
+2025-02-14 17:18:39,127 - INFO - Check the log file for the full traceback.
