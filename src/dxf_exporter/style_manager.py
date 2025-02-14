@@ -297,32 +297,38 @@ class StyleManager:
 
     def get_hatch_config(self, layer_info):
         """Get hatch configuration from layer info."""
-        hatch_config = self.default_hatch_settings.copy()
+        style_config = layer_info.get('style')
+        if not style_config:
+            return None
+
+        hatch_config = {}
         
         # Get style configuration
-        style_config = layer_info.get('style')
-        
-        # Handle string style reference (e.g. "style: wald")
         if isinstance(style_config, str):
-            style_preset = self.styles.get(style_config)
-            if style_preset and 'hatch' in style_preset:
-                hatch_config.update(style_preset['hatch'])
-        # Handle dictionary style config
+            style, warning = self.get_style(style_config)
+            if warning or not style:
+                return None
+            if 'hatch' in style:
+                hatch_config.update(style['hatch'])
         elif isinstance(style_config, dict):
-            if 'preset' in style_config:
-                preset_name = style_config['preset']
-                style_preset = self.styles.get(preset_name)
-                if style_preset and 'hatch' in style_preset:
-                    hatch_config.update(style_preset['hatch'])
-            elif 'hatch' in style_config:
+            if 'hatch' in style_config:
                 hatch_config.update(style_config['hatch'])
-        
-        # Handle applyHatch configuration
-        apply_hatch = layer_info.get('applyHatch', False)
-        if isinstance(apply_hatch, dict):
-            if 'layers' in apply_hatch:
-                hatch_config['layers'] = apply_hatch['layers']
-        
+            elif 'styleOverride' in style_config and 'hatch' in style_config['styleOverride']:
+                preset_name = style_config.get('style')
+                if preset_name:
+                    preset = self.styles.get(preset_name)
+                    if preset and 'hatch' in preset:
+                        hatch_config.update(preset['hatch'])
+                hatch_config.update(style_config['styleOverride']['hatch'])
+
+        # If no hatch configuration found, return None
+        if not hatch_config:
+            return None
+
+        # Add layer-specific hatch settings if they exist
+        if 'hatch' in layer_info:
+            hatch_config.update(layer_info['hatch'])
+
         return hatch_config
 
     def process_layer_style(self, layer_name, layer_config):

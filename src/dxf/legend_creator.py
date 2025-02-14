@@ -194,7 +194,6 @@ class LegendCreator:
         
         block_symbol = item.get('blockSymbol')
         block_symbol_scale = item.get('blockSymbolScale', 1.0)
-        create_hatch = item.get('applyHatch', False)
 
         x1, y1 = self.position['x'], self.current_y
         x2, y2 = x1 + self.item_width, y1 - self.item_height
@@ -204,7 +203,7 @@ class LegendCreator:
         sanitized_layer_name = self.get_sanitized_layer_name(layer_name)
 
         if item_type == 'area':
-            item_entities = self.create_area_item(x1, y1, x2, y2, sanitized_layer_name, hatch_style, layer_style, rectangle_style, create_hatch, block_symbol, block_symbol_scale)
+            item_entities = self.create_area_item(x1, y1, x2, y2, sanitized_layer_name, hatch_style, layer_style, rectangle_style, block_symbol, block_symbol_scale)
         elif item_type == 'line':
             item_entities = self.create_line_item(x1, y1, x2, y2, sanitized_layer_name, layer_style, rectangle_style, block_symbol, block_symbol_scale)
         elif item_type == 'diagonal_line':
@@ -301,7 +300,7 @@ class LegendCreator:
             if entity:
                 attach_custom_data(entity, self.script_identifier)
 
-    def create_area_item(self, x1, y1, x2, y2, layer_name, hatch_style, layer_style, rectangle_style, create_hatch, block_symbol=None, block_symbol_scale=1.0):
+    def create_area_item(self, x1, y1, x2, y2, layer_name, hatch_style, layer_style, rectangle_style, block_symbol=None, block_symbol_scale=1.0):
         entities = []
         
         rectangle = self.msp.add_lwpolyline([(x1, y1), (x2, y1), (x2, y2), (x1, y2), (x1, y1)], dxfattribs={'layer': layer_name})
@@ -314,7 +313,7 @@ class LegendCreator:
         self.style_manager.attach_custom_data(rectangle)
         entities.append(rectangle)
 
-        if create_hatch:
+        if hatch_style:
             hatch_paths = [[(x1, y1), (x2, y1), (x2, y2), (x1, y2)]]
             
             # Create a layer_info-like structure for the style manager
@@ -325,23 +324,24 @@ class LegendCreator:
             # Use the same style processing as regular geometry
             hatch_config = self.style_manager.get_hatch_config(legend_layer_info)
             
-            hatch = create_hatch(self.msp, hatch_paths, hatch_config, self.project_loader)
-            hatch.dxf.layer = layer_name
-            
-            if 'color' in hatch_style:
-                color = get_color_code(hatch_style['color'], self.name_to_aci)
-                if isinstance(color, tuple):
-                    hatch.rgb = color
-                else:
-                    hatch.dxf.color = color
-            
-            if 'transparency' in hatch_style:
-                transparency = convert_transparency(hatch_style['transparency'])
-                if transparency is not None:
-                    set_hatch_transparency(hatch, transparency)
-            
-            self.style_manager.attach_custom_data(hatch)
-            entities.append(hatch)
+            if hatch_config:
+                hatch = create_hatch(self.msp, hatch_paths, hatch_config, self.project_loader)
+                hatch.dxf.layer = layer_name
+                
+                if 'color' in hatch_style:
+                    color = get_color_code(hatch_style['color'], self.name_to_aci)
+                    if isinstance(color, tuple):
+                        hatch.rgb = color
+                    else:
+                        hatch.dxf.color = color
+                
+                if 'transparency' in hatch_style:
+                    transparency = convert_transparency(hatch_style['transparency'])
+                    if transparency is not None:
+                        set_hatch_transparency(hatch, transparency)
+                
+                self.style_manager.attach_custom_data(hatch)
+                entities.append(hatch)
 
         if block_symbol:
             symbol_entity = add_block_reference(

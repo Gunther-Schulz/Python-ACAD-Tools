@@ -26,9 +26,6 @@ class StyleHandler:
 
     def _process_hatch_config(self, layer_name, layer_config):
         """Process hatch configuration for a layer."""
-        if not layer_config.get('applyHatch'):
-            return None
-
         hatch_config = {}
         
         # Get style configuration
@@ -42,21 +39,29 @@ class StyleHandler:
         elif isinstance(style_config, dict) and 'hatch' in style_config:
             hatch_config.update(style_config['hatch'])
 
-        # Add layer-specific hatch settings
-        hatch_config.update({
-            'pattern': layer_config.get('hatchPattern', 'SOLID'),
-            'scale': layer_config.get('hatchScale', 1),
-            'rotation': layer_config.get('hatchRotation', 0),
-            'layers': layer_config.get('hatchLayers', [layer_name])
-        })
+        # If no hatch configuration found, return None
+        if not hatch_config:
+            return None
 
-        return hatch_config 
+        # Add layer-specific hatch settings if they exist
+        if 'pattern' in layer_config:
+            hatch_config['pattern'] = layer_config['pattern']
+        if 'scale' in layer_config:
+            hatch_config['scale'] = layer_config['scale']
+        if 'rotation' in layer_config:
+            hatch_config['rotation'] = layer_config['rotation']
+        if 'layers' in layer_config:
+            hatch_config['layers'] = layer_config['layers']
+        else:
+            hatch_config['layers'] = [layer_name]
+
+        return hatch_config
 
     def process_hatch_style(self, layer_config):
         """Process hatch style configuration."""
-        return {
-            'pattern': layer_config.get('hatchPattern', self.default_hatch_style['pattern']),
-            'scale': layer_config.get('hatchScale', self.default_hatch_style['scale']),
-            'color': layer_config.get('hatchColor', self.default_hatch_style['color']),
-            'transparency': layer_config.get('hatchTransparency', self.default_hatch_style['transparency'])
-        } 
+        if not layer_config.get('hatch'):
+            return None
+
+        hatch_style = self.default_hatch_style.copy()
+        hatch_style.update(layer_config['hatch'])
+        return hatch_style 

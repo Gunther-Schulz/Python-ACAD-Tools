@@ -166,7 +166,10 @@ class DXFExporter:
                 for hatch in layer_info['hatches']:
                     hatch_name = hatch['name']
                     # Add implicit reference to parent layer
-                    hatch['applyHatch'] = {'layers': [layer_name]}
+                    if 'hatch' not in hatch:
+                        hatch['hatch'] = {}
+                    if 'layers' not in hatch['hatch']:
+                        hatch['hatch']['layers'] = [layer_name]
                     self._process_layer(doc, msp, hatch_name, hatch)
 
     def _process_layer(self, doc, msp, layer_name, layer_info):
@@ -200,7 +203,8 @@ class DXFExporter:
                     self.text_processor.add_label_points_to_dxf(msp, geo_data, layer_name, layer_info)
         
         # Process hatch if configured - do this regardless of whether layer has its own geometry
-        if layer_info.get('applyHatch'):
+        hatch_config = self.style_manager.get_hatch_config(layer_info)
+        if hatch_config:
             log_debug(f"Processing hatch for layer {layer_name}")
             self.hatch_processor.process_hatch(doc, msp, layer_name, layer_info)
 

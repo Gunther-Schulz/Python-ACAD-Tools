@@ -163,13 +163,13 @@ styles:
 
   wald:
     layer:
-      color: "aquamarine-strong"
+      # color: "aquamarine-strong"
       plot: true
       locked: false
     hatch:
       pattern: 'ANSI31'
       scale: 5
-      color: "aquamarine-strong"
+      # color: "aquamarine-strong"
       individual_hatches: true
 
   waldLegend:

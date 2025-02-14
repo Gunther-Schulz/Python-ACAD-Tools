@@ -18,9 +18,8 @@ class HatchProcessor:
         hatch_config = self.style_manager.get_hatch_config(layer_info)
         log_debug(f"Hatch config: {hatch_config}")
 
-        apply_hatch = layer_info.get('applyHatch', False)
-        if not apply_hatch:
-            log_debug(f"Hatch processing skipped for layer: {layer_name}")
+        if not hatch_config:
+            log_debug(f"No hatch configuration for layer: {layer_name}")
             return
 
         boundary_layers = hatch_config.get('layers', [layer_name])
