@@ -19,40 +19,73 @@ class LayerProcessor:
         self.dxf_doc = None
         
         # Initialize handlers
-        self.shapefile_handler = ShapefileHandler(self)
-        self.geometry_handler = GeometryHandler(self)
-        self.style_handler = StyleHandler(self)
+        try:
+            self.shapefile_handler = ShapefileHandler(self)
+            self.geometry_handler = GeometryHandler(self)
+            self.style_handler = StyleHandler(self)
+            log_debug("Layer processor initialized successfully")
+        except Exception as e:
+            log_error(f"Error initializing layer processor: {str(e)}")
+            raise
 
     def set_dxf_document(self, doc):
         """Set the DXF document reference."""
-        self.dxf_doc = doc
+        try:
+            self.dxf_doc = doc
+            log_debug("DXF document reference set successfully")
+        except Exception as e:
+            log_error(f"Error setting DXF document reference: {str(e)}")
+            raise
 
     def process_layers(self):
         """Process all layers in the project."""
-        self.shapefile_handler.setup_shapefiles()
-        processed_layers = set()
-        
-        for layer in self.project_settings.get('geomLayers', []):
-            self.process_layer(layer, processed_layers)
+        try:
+            log_debug("Starting layer processing")
+            self.shapefile_handler.setup_shapefiles()
+            processed_layers = set()
             
-        self.shapefile_handler.delete_residual_shapefiles()
+            geom_layers = self.project_settings.get('geomLayers', [])
+            total_layers = len(geom_layers)
+            processed_count = 0
+            
+            for layer in geom_layers:
+                try:
+                    layer_name = layer.get('name', 'unnamed')
+                    log_debug(f"Processing layer {processed_count + 1}/{total_layers}: {layer_name}")
+                    self.process_layer(layer, processed_layers)
+                    processed_count += 1
+                except Exception as e:
+                    log_error(f"Error processing layer {layer_name}: {str(e)}")
+                    continue
+            
+            self.shapefile_handler.delete_residual_shapefiles()
+            log_debug(f"Layer processing complete. Successfully processed {processed_count}/{total_layers} layers")
+            
+        except Exception as e:
+            log_error(f"Error during layer processing: {str(e)}")
+            raise
 
     def process_layer(self, layer, processed_layers, processing_stack=None):
         """Process a single layer and its dependencies."""
         layer_name = layer.get('name')
         if not layer_name:
+            log_warning("Skipping layer with no name")
             return
             
         if layer_name in processed_layers:
+            log_debug(f"Layer {layer_name} already processed, skipping")
             return
             
         if processing_stack is None:
             processing_stack = []
             
         if layer_name in processing_stack:
-            raise ValueError(f"Circular dependency detected: {' -> '.join(processing_stack + [layer_name])}")
+            error_msg = f"Circular dependency detected: {' -> '.join(processing_stack + [layer_name])}"
+            log_error(error_msg)
+            raise ValueError(error_msg)
             
         processing_stack.append(layer_name)
+        log_debug(f"Processing layer: {layer_name}")
         
         try:
             # Process operations if any
@@ -61,7 +94,6 @@ class LayerProcessor:
                     self.process_operation(layer_name, operation, processed_layers, processing_stack)
                     
             # Write shapefile if needed
-            # Check if we should write shapefile based on various conditions
             should_write_shapefile = (
                 layer_name in self.all_layers and  # Layer exists in memory
                 (
@@ -75,74 +107,83 @@ class LayerProcessor:
                 self.shapefile_handler.write_shapefile(layer_name)
                 
             processed_layers.add(layer_name)
+            log_debug(f"Layer {layer_name} processed successfully")
             
+        except Exception as e:
+            log_error(f"Error processing layer {layer_name}: {str(e)}")
+            raise
         finally:
             processing_stack.remove(layer_name)
 
     def process_operation(self, layer_name, operation, processed_layers, processing_stack):
         """Process a single operation for a layer."""
-        operation_type = operation.get('type', '').lower()
-        
-        # Import operations as needed
-        if operation_type == 'copy':
-            from src.operations import create_copy_layer
-            self.all_layers[layer_name] = create_copy_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
-        elif operation_type == 'buffer':
-            from src.operations import create_buffer_layer
-            self.all_layers[layer_name] = create_buffer_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
-        elif operation_type == 'difference':
-            from src.operations import create_difference_layer
-            self.all_layers[layer_name] = create_difference_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
-        elif operation_type == 'intersection':
-            from src.operations import create_intersection_layer
-            self.all_layers[layer_name] = create_intersection_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
-        elif operation_type == 'filter':
-            from src.operations import create_filtered_by_intersection_layer
-            self.all_layers[layer_name] = create_filtered_by_intersection_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
-        elif operation_type in ('wmts', 'wms'):
-            from src.operations import process_wmts_or_wms_layer
-            self.all_layers[layer_name] = process_wmts_or_wms_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
-        elif operation_type == 'merge':
-            from src.operations import create_merged_layer
-            self.all_layers[layer_name] = create_merged_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
-        elif operation_type == 'smooth':
-            from src.operations import create_smooth_layer
-            self.all_layers[layer_name] = create_smooth_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
-        elif operation_type == 'contour':
-            from src.operations import _handle_contour_operation
-            self.all_layers[layer_name] = _handle_contour_operation(self.all_layers, self.project_settings, self.crs, layer_name, operation)
-        elif operation_type == 'dissolve':
-            from src.operations import create_dissolved_layer
-            self.all_layers[layer_name] = create_dissolved_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
-        elif operation_type == 'calculate':
-            from src.operations import create_calculate_layer
-            self.all_layers[layer_name] = create_calculate_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
-        elif operation_type == 'directional_line':
-            from src.operations import create_directional_line_layer
-            self.all_layers[layer_name] = create_directional_line_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
-        elif operation_type == 'circle':
-            from src.operations import create_circle_layer
-            self.all_layers[layer_name] = create_circle_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
-        elif operation_type == 'connect_points':
-            from src.operations import create_connect_points_layer
-            self.all_layers[layer_name] = create_connect_points_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
-        elif operation_type == 'envelope':
-            from src.operations import create_envelope_layer
-            self.all_layers[layer_name] = create_envelope_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
-        elif operation_type == 'label_association':
-            from src.operations import create_label_association_layer
-            self.all_layers[layer_name] = create_label_association_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation, self.project_loader)
-        elif operation_type == 'filter_by_column':
-            from src.operations import create_filtered_by_column_layer
-            self.all_layers[layer_name] = create_filtered_by_column_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
-        elif operation_type == 'filter_geometry':
-            from src.operations.filter_geometry_operation import create_filtered_geometry_layer
-            self.all_layers[layer_name] = create_filtered_geometry_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
-        elif operation_type == 'report':
-            from src.operations.report_operation import create_report_layer
-            self.all_layers[layer_name] = create_report_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
-        elif operation_type == 'lagefaktor':
-            from src.operations.lagefaktor_operation import create_lagefaktor_layer
-            self.all_layers[layer_name] = create_lagefaktor_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
-        else:
-            raise ValueError(f"Unknown operation type: {operation_type}") 
+        try:
+            operation_type = operation.get('type', '').lower()
+            log_debug(f"Processing operation {operation_type} for layer {layer_name}")
+            
+            # Map operation types to their module paths
+            OPERATION_MAP = {
+                'copy': ('src.operations', 'create_copy_layer'),
+                'buffer': ('src.operations', 'create_buffer_layer'),
+                'difference': ('src.operations', 'create_difference_layer'),
+                'intersection': ('src.operations', 'create_intersection_layer'),
+                'filter': ('src.operations', 'create_filtered_by_intersection_layer'),
+                'wmts': ('src.operations', 'process_wmts_or_wms_layer'),
+                'wms': ('src.operations', 'process_wmts_or_wms_layer'),
+                'merge': ('src.operations', 'create_merged_layer'),
+                'smooth': ('src.operations', 'create_smooth_layer'),
+                'contour': ('src.operations', '_handle_contour_operation'),
+                'dissolve': ('src.operations', 'create_dissolved_layer'),
+                'calculate': ('src.operations', 'create_calculate_layer'),
+                'directional_line': ('src.operations', 'create_directional_line_layer'),
+                'circle': ('src.operations', 'create_circle_layer'),
+                'connect_points': ('src.operations', 'create_connect_points_layer'),
+                'envelope': ('src.operations', 'create_envelope_layer'),
+                'label_association': ('src.operations', 'create_label_association_layer'),
+                'filter_by_column': ('src.operations', 'create_filtered_by_column_layer'),
+                'filter_geometry': ('src.operations.filter_geometry_operation', 'create_filtered_geometry_layer'),
+                'report': ('src.operations.report_operation', 'create_report_layer'),
+                'lagefaktor': ('src.operations.lagefaktor_operation', 'create_lagefaktor_layer')
+            }
+            
+            if operation_type in OPERATION_MAP:
+                module_path, function_name = OPERATION_MAP[operation_type]
+                try:
+                    module = __import__(module_path, fromlist=[function_name])
+                    operation_function = getattr(module, function_name)
+                    
+                    # Special handling for label_association operation
+                    if operation_type == 'label_association':
+                        self.all_layers[layer_name] = operation_function(
+                            self.all_layers,
+                            self.project_settings,
+                            self.crs,
+                            layer_name,
+                            operation,
+                            self.project_loader
+                        )
+                    else:
+                        self.all_layers[layer_name] = operation_function(
+                            self.all_layers,
+                            self.project_settings,
+                            self.crs,
+                            layer_name,
+                            operation
+                        )
+                    
+                    log_debug(f"Operation {operation_type} completed successfully for layer {layer_name}")
+                    
+                except ImportError as e:
+                    log_error(f"Could not import operation module {module_path}: {str(e)}")
+                    raise
+                except Exception as e:
+                    log_error(f"Error executing operation {operation_type}: {str(e)}")
+                    raise
+            else:
+                error_msg = f"Unknown operation type: {operation_type}"
+                log_error(error_msg)
+                raise ValueError(error_msg)
+                
+        except Exception as e:
+            log_error(f"Error processing operation for layer {layer_name}: {str(e)}")
+            raise 
