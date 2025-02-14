@@ -365,6 +365,10 @@ class StyleManager:
                     if key in entity_style:
                         entity_properties[key] = entity_style[key]
         
+        log_debug(f"Processed style for layer {layer_name}:")
+        log_debug(f"Layer properties: {layer_properties}")
+        log_debug(f"Entity properties: {entity_properties}")
+        
         return layer_properties, entity_properties
 
     def process_text_style(self, layer_name, layer_config):

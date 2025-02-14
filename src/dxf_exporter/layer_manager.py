@@ -125,8 +125,33 @@ class LayerManager:
         log_debug(f"Updated layer properties: {layer_properties}")
 
     def get_layer_properties(self, layer_name):
-        """Get properties for a specific layer"""
-        return self.layer_properties.get(layer_name, {})
+        """Get layer properties for a given layer name."""
+        log_debug(f"Getting properties for layer: {layer_name}")
+        
+        # First check if we have stored properties for this layer
+        if layer_name not in self.layer_properties:
+            log_debug(f"No stored properties found for layer {layer_name}, using defaults")
+            return {
+                'layer': self.default_layer_style.copy(),
+                'entity': self.default_entity_style.copy()
+            }
+        
+        stored_props = self.layer_properties[layer_name]
+        log_debug(f"Raw stored properties: {stored_props}")
+        
+        # If stored_props['layer'] is a tuple (from style_manager.process_layer_style),
+        # we need to merge layer and entity properties
+        if isinstance(stored_props.get('layer'), tuple):
+            layer_props, entity_props = stored_props['layer']
+            result = {
+                'layer': layer_props,
+                'entity': entity_props
+            }
+        else:
+            result = stored_props
+            
+        log_debug(f"Processed layer properties: {result}")
+        return result
 
     def create_layer(self, layer_name: str, layer_style: dict = None) -> None:
         """Create a new layer in the DXF document."""

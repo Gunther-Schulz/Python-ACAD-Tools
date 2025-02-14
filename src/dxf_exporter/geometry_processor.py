@@ -49,40 +49,105 @@ class GeometryProcessor:
 
     def add_polygon_to_dxf(self, msp, geometry, layer_name, entity_name=None):
         """Add a polygon geometry to DXF"""
+        log_debug(f"=== Starting polygon creation for layer {layer_name} ===")
         layer_properties = self.layer_manager.get_layer_properties(layer_name)
-        entity_properties = layer_properties.get('entity', {})
+        log_debug(f"Full layer properties: {layer_properties}")
         
+        entity_properties = layer_properties.get('entity', {})
+        log_debug(f"Layer {layer_name} - Entity properties: {entity_properties}")
+        
+        # Prepare initial attributes
         dxfattribs = {
             'layer': layer_name,
             'closed': entity_properties.get('close', True),  # Default to True for polygons
         }
         
-        # Add any other entity-level properties
+        # Add linetype scale to initial attributes
         if 'linetypeScale' in entity_properties:
-            dxfattribs['ltscale'] = entity_properties['linetypeScale']
-        if 'linetypeGeneration' in entity_properties:
-            dxfattribs['flags'] = entity_properties['linetypeGeneration']
-
+            ltscale = float(entity_properties['linetypeScale'])
+            dxfattribs['ltscale'] = ltscale
+            log_debug(f"Setting initial ltscale={ltscale} for layer {layer_name}")
+        
+        log_debug(f"Initial dxfattribs: {dxfattribs}")
+        
         exterior_coords = list(geometry.exterior.coords)
         if len(exterior_coords) > 2:
+            log_debug(f"Creating polyline with attributes: {dxfattribs}")
             polyline = msp.add_lwpolyline(exterior_coords, dxfattribs=dxfattribs)
+            
+            # Verify the linetype scale was set
+            try:
+                actual_ltscale = polyline.dxf.ltscale
+                log_debug(f"Actual ltscale after creation: {actual_ltscale}")
+            except Exception as e:
+                log_warning(f"Could not read ltscale after creation: {str(e)}")
+            
+            # Set linetype generation after creation
+            if 'linetypeGeneration' in entity_properties:
+                try:
+                    original_flags = polyline.dxf.flags
+                    log_debug(f"Original flags: {original_flags}")
+                    
+                    if entity_properties['linetypeGeneration']:
+                        polyline.dxf.flags |= LWPOLYLINE_PLINEGEN
+                    else:
+                        polyline.dxf.flags &= ~LWPOLYLINE_PLINEGEN
+                    
+                    new_flags = polyline.dxf.flags
+                    log_debug(f"New flags after setting linetypeGeneration: {new_flags}")
+                    log_debug(f"PLINEGEN bit is {'set' if new_flags & LWPOLYLINE_PLINEGEN else 'not set'}")
+                except Exception as e:
+                    log_warning(f"Could not set linetype generation for polyline. Error: {str(e)}")
+            
             attach_custom_data(polyline, self.script_identifier, entity_name)
-            # Apply linetype generation setting
-            if entity_properties.get('linetypeGeneration'):
-                polyline.dxf.flags |= LWPOLYLINE_PLINEGEN
-            else:
-                polyline.dxf.flags &= ~LWPOLYLINE_PLINEGEN
+            
+            # Final verification
+            log_debug(f"=== Final polyline state ===")
+            log_debug(f"ltscale: {getattr(polyline.dxf, 'ltscale', 'Not set')}")
+            log_debug(f"flags: {getattr(polyline.dxf, 'flags', 'Not set')}")
+            log_debug(f"layer: {getattr(polyline.dxf, 'layer', 'Not set')}")
+            log_debug(f"=== End final state ===")
 
         for interior in geometry.interiors:
             interior_coords = list(interior.coords)
             if len(interior_coords) > 2:
+                log_debug(f"Creating interior polyline with attributes: {dxfattribs}")
                 polyline = msp.add_lwpolyline(interior_coords, dxfattribs=dxfattribs)
+                
+                # Verify the linetype scale was set
+                try:
+                    actual_ltscale = polyline.dxf.ltscale
+                    log_debug(f"Actual ltscale after creation (interior): {actual_ltscale}")
+                except Exception as e:
+                    log_warning(f"Could not read ltscale after creation (interior): {str(e)}")
+                
+                # Set linetype generation after creation
+                if 'linetypeGeneration' in entity_properties:
+                    try:
+                        original_flags = polyline.dxf.flags
+                        log_debug(f"Original flags (interior): {original_flags}")
+                        
+                        if entity_properties['linetypeGeneration']:
+                            polyline.dxf.flags |= LWPOLYLINE_PLINEGEN
+                        else:
+                            polyline.dxf.flags &= ~LWPOLYLINE_PLINEGEN
+                        
+                        new_flags = polyline.dxf.flags
+                        log_debug(f"New flags after setting linetypeGeneration (interior): {new_flags}")
+                        log_debug(f"PLINEGEN bit is {'set' if new_flags & LWPOLYLINE_PLINEGEN else 'not set'}")
+                    except Exception as e:
+                        log_warning(f"Could not set linetype generation for interior polyline. Error: {str(e)}")
+                
                 attach_custom_data(polyline, self.script_identifier, entity_name)
-                # Apply linetype generation setting
-                if entity_properties.get('linetypeGeneration'):
-                    polyline.dxf.flags |= LWPOLYLINE_PLINEGEN
-                else:
-                    polyline.dxf.flags &= ~LWPOLYLINE_PLINEGEN
+                
+                # Final verification for interior
+                log_debug(f"=== Final interior polyline state ===")
+                log_debug(f"ltscale: {getattr(polyline.dxf, 'ltscale', 'Not set')}")
+                log_debug(f"flags: {getattr(polyline.dxf, 'flags', 'Not set')}")
+                log_debug(f"layer: {getattr(polyline.dxf, 'layer', 'Not set')}")
+                log_debug(f"=== End final state ===")
+        
+        log_debug(f"=== Completed polygon creation for layer {layer_name} ===\n")
 
     def add_linestring_to_dxf(self, msp, geometry, layer_name):
         """Add a LineString geometry to DXF"""
@@ -97,21 +162,23 @@ class GeometryProcessor:
             'layer': layer_name,
             'closed': entity_properties.get('close', False),  # Default to False for LineStrings
         }
-        
-        # Add any other entity-level properties
+
+        # Add linetype scale to initial attributes
         if 'linetypeScale' in entity_properties:
-            dxfattribs['ltscale'] = entity_properties['linetypeScale']
-        if 'linetypeGeneration' in entity_properties:
-            dxfattribs['flags'] = entity_properties['linetypeGeneration']
+            dxfattribs['ltscale'] = float(entity_properties['linetypeScale'])
         
         # Create polyline
         polyline = msp.add_lwpolyline(coords, dxfattribs=dxfattribs)
         
-        # Apply linetype generation setting if present
-        if entity_properties.get('linetypeGeneration'):
-            polyline.dxf.flags |= LWPOLYLINE_PLINEGEN
-        else:
-            polyline.dxf.flags &= ~LWPOLYLINE_PLINEGEN
+        # Set linetype generation after creation
+        if 'linetypeGeneration' in entity_properties:
+            try:
+                if entity_properties['linetypeGeneration']:
+                    polyline.dxf.flags |= LWPOLYLINE_PLINEGEN
+                else:
+                    polyline.dxf.flags &= ~LWPOLYLINE_PLINEGEN
+            except Exception as e:
+                log_warning(f"Could not set linetype generation for polyline. Error: {str(e)}")
         
         attach_custom_data(polyline, self.script_identifier)
 
