@@ -28,20 +28,45 @@ from src.dxf.legend_creator import LegendCreator
 class DXFExporter:
     def __init__(self, project_loader, layer_processor):
         self.project_loader = project_loader
-        self.layer_processor = layer_processor
         self.project_settings = project_loader.project_settings
         self.dxf_filename = project_loader.dxf_filename
         self.script_identifier = SCRIPT_IDENTIFIER
-        self.all_layers = layer_processor.all_layers
         self.loaded_styles = set()  # Initialize as empty set
         
         # Initialize managers and processors
         self.style_manager = StyleManager(project_loader)
         self.layer_manager = LayerManager(project_loader, self.style_manager)
-        self.geometry_processor = GeometryProcessor(self.script_identifier, project_loader, self.style_manager, self.layer_manager)
-        self.text_processor = TextProcessor(self.script_identifier, project_loader, self.style_manager, self.layer_manager)
-        self.hatch_processor = HatchProcessor(self.script_identifier, project_loader, self.style_manager, self.layer_manager)
-        self.path_array_processor = PathArrayProcessor(project_loader, self.style_manager)
+        
+        # Set layer processor with shared style manager
+        self.layer_processor = layer_processor
+        if hasattr(layer_processor, 'style_manager'):
+            layer_processor.style_manager = self.style_manager
+        
+        self.all_layers = layer_processor.all_layers
+        
+        # Initialize processors with shared managers
+        self.geometry_processor = GeometryProcessor(
+            self.script_identifier, 
+            project_loader, 
+            self.style_manager, 
+            self.layer_manager
+        )
+        self.text_processor = TextProcessor(
+            self.script_identifier, 
+            project_loader, 
+            self.style_manager, 
+            self.layer_manager
+        )
+        self.hatch_processor = HatchProcessor(
+            self.script_identifier, 
+            project_loader, 
+            self.style_manager, 
+            self.layer_manager
+        )
+        self.path_array_processor = PathArrayProcessor(
+            project_loader, 
+            self.style_manager
+        )
         
         # Set up additional managers
         self.viewport_manager = ViewportManager(

@@ -8,18 +8,25 @@ from .style_handler import StyleHandler
 from .layer_utils import is_wmts_or_wms_layer
 
 class LayerProcessor:
-    def __init__(self, project_loader, plot_ops=False):
-        self.project_loader = project_loader
-        self.project_settings = project_loader.project_settings
-        self.crs = project_loader.crs
-        self.all_layers = {}
-        self.plot_ops = plot_ops
-        self.style_manager = StyleManager(project_loader)
-        self.processed_layers = set()
-        self.dxf_doc = None
+    def __init__(self, project_loader, style_manager=None, plot_ops=False):
+        """Initialize the LayerProcessor.
         
-        # Initialize handlers
+        Args:
+            project_loader: The project loader instance
+            style_manager: Optional StyleManager instance. If not provided, creates a new one.
+            plot_ops: Whether to enable plot operations
+        """
         try:
+            self.project_loader = project_loader
+            self.project_settings = project_loader.project_settings
+            self.crs = project_loader.crs
+            self.all_layers = {}
+            self.plot_ops = plot_ops
+            self.style_manager = style_manager if style_manager else StyleManager(project_loader)
+            self.processed_layers = set()
+            self.dxf_doc = None
+            
+            # Initialize handlers
             self.shapefile_handler = ShapefileHandler(self)
             self.geometry_handler = GeometryHandler(self)
             self.style_handler = StyleHandler(self)
@@ -66,15 +73,24 @@ class LayerProcessor:
             raise
 
     def process_layer(self, layer, processed_layers, processing_stack=None):
-        """Process a single layer and its dependencies."""
+        """Process a single layer and its dependencies.
+        
+        Args:
+            layer: Layer configuration dictionary
+            processed_layers: Set of already processed layer names
+            processing_stack: List tracking the current processing stack for dependency detection
+        
+        Returns:
+            bool: True if processing was successful, False otherwise
+        """
         layer_name = layer.get('name')
         if not layer_name:
             log_warning("Skipping layer with no name")
-            return
+            return False
             
         if layer_name in processed_layers:
             log_debug(f"Layer {layer_name} already processed, skipping")
-            return
+            return True
             
         if processing_stack is None:
             processing_stack = []
@@ -91,7 +107,32 @@ class LayerProcessor:
             # Process operations if any
             if 'operations' in layer:
                 for operation in layer['operations']:
-                    self.process_operation(layer_name, operation, processed_layers, processing_stack)
+                    try:
+                        self.process_operation(layer_name, operation, processed_layers, processing_stack)
+                    except Exception as e:
+                        log_error(f"Error processing operation for layer {layer_name}: {str(e)}")
+                        return False
+            
+            # Process DXF-specific settings if DXF document is set
+            if self.dxf_doc and layer.get('updateDxf', False):
+                try:
+                    log_debug(f"Processing DXF settings for layer {layer_name}")
+                    # Process style configuration
+                    style_config = layer.get('style')
+                    if style_config:
+                        processed_style = self.style_handler._process_style(layer_name, style_config)
+                        if processed_style:
+                            log_debug(f"Processed style for layer {layer_name}: {processed_style}")
+                    
+                    # Process hatch configuration if specified
+                    if layer.get('applyHatch'):
+                        hatch_config = self.style_handler._process_hatch_config(layer_name, layer)
+                        if hatch_config:
+                            log_debug(f"Processed hatch configuration for layer {layer_name}: {hatch_config}")
+                            
+                except Exception as e:
+                    log_error(f"Error processing DXF settings for layer {layer_name}: {str(e)}")
+                    return False
                     
             # Write shapefile if needed
             should_write_shapefile = (
@@ -103,15 +144,21 @@ class LayerProcessor:
             )
             
             if should_write_shapefile:
-                log_debug(f"Writing shapefile for processed layer: {layer_name}")
-                self.shapefile_handler.write_shapefile(layer_name)
+                try:
+                    log_debug(f"Writing shapefile for processed layer: {layer_name}")
+                    if not self.shapefile_handler.write_shapefile(layer_name):
+                        log_warning(f"Failed to write shapefile for layer {layer_name}")
+                except Exception as e:
+                    log_error(f"Error writing shapefile for layer {layer_name}: {str(e)}")
+                    return False
                 
             processed_layers.add(layer_name)
             log_debug(f"Layer {layer_name} processed successfully")
+            return True
             
         except Exception as e:
             log_error(f"Error processing layer {layer_name}: {str(e)}")
-            raise
+            return False
         finally:
             processing_stack.remove(layer_name)
 

@@ -2,16 +2,26 @@
 
 import math
 import numpy as np
-from shapely.geometry import Point, LineString
+from shapely.geometry import Point, LineString, Polygon, MultiPolygon, MultiLineString, GeometryCollection
 from src.core.utils import log_debug, log_warning, log_error
 
 class GeometryHandler:
     def __init__(self, layer_processor):
         try:
             self.layer_processor = layer_processor
+            self.dxf_doc = None
             log_debug("Geometry handler initialized successfully")
         except Exception as e:
             log_error(f"Error initializing geometry handler: {str(e)}")
+            raise
+
+    def set_dxf_document(self, doc):
+        """Set the DXF document reference."""
+        try:
+            self.dxf_doc = doc
+            log_debug("DXF document reference set successfully")
+        except Exception as e:
+            log_error(f"Error setting DXF document reference: {str(e)}")
             raise
 
     def standardize_layer_crs(self, layer_name, geometry_or_gdf):
@@ -26,6 +36,63 @@ class GeometryHandler:
         except Exception as e:
             log_error(f"Error standardizing CRS for layer {layer_name}: {str(e)}")
             raise
+
+    def prepare_geometry_for_dxf(self, geometry, layer_name):
+        """Prepare geometry for DXF export by applying necessary transformations."""
+        try:
+            log_debug(f"Preparing geometry for DXF export in layer {layer_name}")
+            
+            if isinstance(geometry, (Polygon, MultiPolygon)):
+                # Ensure valid polygon geometry
+                if not geometry.is_valid:
+                    log_warning(f"Invalid polygon geometry in layer {layer_name}, attempting to fix")
+                    geometry = geometry.buffer(0)
+                    
+                # Remove tiny holes if present
+                if isinstance(geometry, Polygon):
+                    geometry = self._clean_polygon(geometry)
+                elif isinstance(geometry, MultiPolygon):
+                    geometry = MultiPolygon([self._clean_polygon(poly) for poly in geometry.geoms])
+                    
+            elif isinstance(geometry, (LineString, MultiLineString)):
+                # Simplify geometry if too complex
+                geometry = geometry.simplify(tolerance=0.01, preserve_topology=True)
+                
+            elif isinstance(geometry, GeometryCollection):
+                # Process each geometry in the collection
+                cleaned_geoms = []
+                for geom in geometry.geoms:
+                    cleaned_geom = self.prepare_geometry_for_dxf(geom, layer_name)
+                    if cleaned_geom is not None:
+                        cleaned_geoms.append(cleaned_geom)
+                geometry = GeometryCollection(cleaned_geoms)
+                
+            return geometry
+            
+        except Exception as e:
+            log_error(f"Error preparing geometry for DXF in layer {layer_name}: {str(e)}")
+            return None
+
+    def _clean_polygon(self, polygon):
+        """Clean a polygon by removing tiny holes and fixing invalid geometries."""
+        try:
+            if not polygon.is_valid:
+                polygon = polygon.buffer(0)
+            
+            # Remove holes smaller than threshold
+            if len(polygon.interiors) > 0:
+                min_hole_area = polygon.area * 0.0001  # Adjust threshold as needed
+                valid_interiors = [
+                    interior for interior in polygon.interiors 
+                    if Polygon(interior).area >= min_hole_area
+                ]
+                polygon = Polygon(polygon.exterior, valid_interiors)
+                
+            return polygon
+            
+        except Exception as e:
+            log_error(f"Error cleaning polygon: {str(e)}")
+            return polygon
 
     def blunt_sharp_angles(self, geometry, angle_threshold, blunt_distance):
         """Blunt sharp angles in a geometry."""
