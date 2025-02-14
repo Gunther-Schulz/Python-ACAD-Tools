@@ -153,37 +153,53 @@ class DXFExporter:
 
     def _process_layer(self, doc, msp, layer_name, layer_info):
         """Process a single layer"""
-        # Check updateDxf flag early
-        update_flag = layer_info.get('updateDxf', False)
-        if not update_flag:
-            log_debug(f"Skipping layer creation and update for {layer_name} as 'updateDxf' flag is not set")
-            return
-        
-        # Ensure layer exists and has correct properties
-        self.layer_manager.ensure_layer_exists(doc, layer_name, layer_info)
-        
-        # Process geometry
-        if layer_name in self.all_layers:
-            geo_data = self.all_layers[layer_name]
+        try:
+            # Check updateDxf flag early
+            update_flag = layer_info.get('updateDxf', False)
+            if not update_flag:
+                log_debug(f"Skipping layer creation and update for {layer_name} as 'updateDxf' flag is not set")
+                return
             
-            # First process the geometry
-            if isinstance(geo_data, gpd.GeoDataFrame):
-                self.geometry_processor.add_geometries_to_dxf(msp, geo_data, layer_name)
+            log_debug(f"Processing layer: {layer_name}")
+            log_debug(f"Layer info: {layer_info}")
             
-            # Then add labels if configured
-            if isinstance(geo_data, gpd.GeoDataFrame):
-                simple_label_field = layer_info.get('simpleLabel')
-                if 'label' in geo_data.columns and 'rotation' in geo_data.columns:
-                    # Label points with rotation from label association
-                    self.text_processor.add_label_points_to_dxf(msp, geo_data, layer_name, layer_info)
-                elif simple_label_field and simple_label_field in geo_data.columns:
-                    # Simple labels from YAML simpleLabel key
-                    geo_data['label'] = geo_data[simple_label_field]
-                    self.text_processor.add_label_points_to_dxf(msp, geo_data, layer_name, layer_info)
+            # Ensure layer exists and has correct properties
+            layer = self.layer_manager.ensure_layer_exists(doc, layer_name, layer_info)
+            if not layer:
+                log_warning(f"Could not create or update layer: {layer_name}")
+                return
             
-            # Process hatch if configured
-            if layer_info.get('applyHatch'):
-                self.hatch_processor.process_hatch(doc, msp, layer_name, layer_info)
+            # Process geometry
+            if layer_name in self.all_layers:
+                geo_data = self.all_layers[layer_name]
+                log_debug(f"Processing geometry for layer {layer_name}")
+                
+                # First process the geometry
+                if isinstance(geo_data, gpd.GeoDataFrame):
+                    self.geometry_processor.add_geometries_to_dxf(msp, geo_data, layer_name)
+                    
+                    # Then add labels if configured
+                    simple_label_field = layer_info.get('simpleLabel')
+                    if 'label' in geo_data.columns and 'rotation' in geo_data.columns:
+                        # Label points with rotation from label association
+                        log_debug(f"Adding label points with rotation for layer {layer_name}")
+                        self.text_processor.add_label_points_to_dxf(msp, geo_data, layer_name, layer_info)
+                    elif simple_label_field and simple_label_field in geo_data.columns:
+                        # Simple labels from YAML simpleLabel key
+                        log_debug(f"Adding simple labels for layer {layer_name} using field: {simple_label_field}")
+                        geo_data['label'] = geo_data[simple_label_field]
+                        self.text_processor.add_label_points_to_dxf(msp, geo_data, layer_name, layer_info)
+                
+                # Process hatch if configured
+                if layer_info.get('applyHatch'):
+                    log_debug(f"Processing hatch for layer {layer_name}")
+                    self.hatch_processor.process_hatch(doc, msp, layer_name, layer_info)
+            else:
+                log_debug(f"Layer {layer_name} not found in all_layers")
+                
+        except Exception as e:
+            log_error(f"Error processing layer {layer_name}: {str(e)}")
+            # Continue processing other layers
 
     def _cleanup_and_save(self, doc, msp):
         """Clean up and save the document"""

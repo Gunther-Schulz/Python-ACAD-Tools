@@ -99,123 +99,139 @@ def apply_style_to_entity(entity, style, project_loader, loaded_styles=None):
     
     log_debug(f"Applying style to entity {entity.dxftype()}: {style}")
 
-    # Get linetype
-    if 'linetype' in style:
-        if style['linetype'] not in entity.doc.linetypes:
-            log_warning(f"Linetype '{style['linetype']}' not defined. Using '{DEFAULT_ENTITY_STYLE['linetype']}'.")
-            entity.dxf.linetype = DEFAULT_ENTITY_STYLE['linetype']
-        else:
-            entity.dxf.linetype = style['linetype']
-            log_debug(f"Set linetype to: {style['linetype']}")
-
-    # Handle text-specific properties
-    if entity.dxftype() in ('MTEXT', 'TEXT'):
-        _apply_text_style_properties(entity, style, loaded_styles)
-    
-    # Apply non-text properties
-    if 'color' in style:
-        color = get_color_code(style['color'], loaded_styles)
-        if isinstance(color, tuple):
-            entity.rgb = color
-            log_debug(f"Set RGB color to: {color}")
-        else:
-            entity.dxf.color = color
-            log_debug(f"Set ACI color to: {color}")
-    else:
-        entity.dxf.color = get_color_code(DEFAULT_ENTITY_STYLE['color'], None)
-    
-    if 'lineweight' in style:
-        entity.dxf.lineweight = style['lineweight']
-        log_debug(f"Set lineweight to: {style['lineweight']}")
-    else:
-        entity.dxf.lineweight = DEFAULT_ENTITY_STYLE['lineweight']
-    
-    # Set transparency
-    if 'transparency' in style:
-        transparency = convert_transparency(style['transparency'])
-        if transparency is not None:
+    try:
+        # Get linetype
+        if 'linetype' in style:
             try:
-                entity.transparency = transparency
-                log_debug(f"Set transparency to: {transparency}")
-            except Exception as e:
-                log_info(f"Could not set transparency for {entity.dxftype()}. Error: {str(e)}")
-    else:
-        try:
-            entity.transparency = DEFAULT_ENTITY_STYLE['transparency']
-        except AttributeError:
-            pass
-
-    # Apply linetype scale
-    if 'linetypeScale' in style:
-        try:
-            ltscale = float(style['linetypeScale'])
-            log_debug(f"Attempting to set ltscale to {ltscale}")
-            
-            # Get current ltscale for comparison
-            try:
-                current_ltscale = entity.dxf.ltscale
-                log_debug(f"Current ltscale before setting: {current_ltscale}")
-            except Exception as e:
-                log_debug(f"Could not read current ltscale: {str(e)}")
-            
-            # Set the new ltscale
-            entity.dxf.ltscale = ltscale
-            
-            # Verify the change
-            try:
-                new_ltscale = entity.dxf.ltscale
-                log_debug(f"New ltscale after setting: {new_ltscale}")
-            except Exception as e:
-                log_warning(f"Could not verify new ltscale: {str(e)}")
-                
-        except Exception as e:
-            log_warning(f"Could not set linetype scale for {entity.dxftype()}. Error: {str(e)}")
-    else:
-        try:
-            entity.dxf.ltscale = DEFAULT_ENTITY_STYLE['linetypeScale']
-            log_debug(f"Set default ltscale: {DEFAULT_ENTITY_STYLE['linetypeScale']}")
-        except AttributeError:
-            pass
-
-    # Handle polyline-specific properties
-    if entity.dxftype() in ('LWPOLYLINE', 'POLYLINE'):
-        log_debug(f"Processing polyline-specific properties for {entity.dxftype()}")
-        
-        # Apply close property
-        if 'close' in style:
-            entity.close(style['close'])
-            log_debug(f"Set close to: {style['close']}")
-        else:
-            entity.close(DEFAULT_ENTITY_STYLE['close'])
-        
-        # Apply linetype generation
-        if 'linetypeGeneration' in style:
-            try:
-                # Get current flags
-                current_flags = entity.dxf.flags
-                log_debug(f"Current flags before linetypeGeneration: {current_flags}")
-                
-                if style['linetypeGeneration']:
-                    entity.dxf.flags |= LWPOLYLINE_PLINEGEN
+                if style['linetype'] not in entity.doc.linetypes:
+                    log_warning(f"Linetype '{style['linetype']}' not defined. Using '{DEFAULT_ENTITY_STYLE['linetype']}'.")
+                    entity.dxf.linetype = DEFAULT_ENTITY_STYLE['linetype']
                 else:
-                    entity.dxf.flags &= ~LWPOLYLINE_PLINEGEN
+                    entity.dxf.linetype = style['linetype']
+                    log_debug(f"Set linetype to: {style['linetype']}")
+            except Exception as e:
+                log_warning(f"Error setting linetype: {str(e)}")
+
+        # Handle text-specific properties
+        if entity.dxftype() in ('MTEXT', 'TEXT'):
+            _apply_text_style_properties(entity, style, loaded_styles)
+        
+        # Apply non-text properties
+        try:
+            if 'color' in style:
+                color = get_color_code(style['color'], loaded_styles)
+                if isinstance(color, tuple):
+                    entity.rgb = color
+                    log_debug(f"Set RGB color to: {color}")
+                else:
+                    entity.dxf.color = color
+                    log_debug(f"Set ACI color to: {color}")
+            else:
+                entity.dxf.color = get_color_code(DEFAULT_ENTITY_STYLE['color'], None)
+        except Exception as e:
+            log_warning(f"Error setting color: {str(e)}")
+        
+        try:
+            if 'lineweight' in style:
+                entity.dxf.lineweight = style['lineweight']
+                log_debug(f"Set lineweight to: {style['lineweight']}")
+            else:
+                entity.dxf.lineweight = DEFAULT_ENTITY_STYLE['lineweight']
+        except Exception as e:
+            log_warning(f"Error setting lineweight: {str(e)}")
+        
+        # Set transparency
+        try:
+            if 'transparency' in style:
+                transparency = convert_transparency(style['transparency'])
+                if transparency is not None:
+                    entity.transparency = transparency
+                    log_debug(f"Set transparency to: {transparency}")
+            else:
+                entity.transparency = DEFAULT_ENTITY_STYLE['transparency']
+        except Exception as e:
+            log_warning(f"Error setting transparency: {str(e)}")
+
+        # Apply linetype scale
+        try:
+            if 'linetypeScale' in style:
+                ltscale = float(style['linetypeScale'])
+                log_debug(f"Attempting to set ltscale to {ltscale}")
+                
+                # Get current ltscale for comparison
+                try:
+                    current_ltscale = entity.dxf.ltscale
+                    log_debug(f"Current ltscale before setting: {current_ltscale}")
+                except Exception as e:
+                    log_debug(f"Could not read current ltscale: {str(e)}")
+                
+                # Set the new ltscale
+                entity.dxf.ltscale = ltscale
                 
                 # Verify the change
-                new_flags = entity.dxf.flags
-                log_debug(f"New flags after linetypeGeneration: {new_flags}")
-                log_debug(f"PLINEGEN bit is {'set' if new_flags & LWPOLYLINE_PLINEGEN else 'not set'}")
-            except Exception as e:
-                log_warning(f"Could not set linetype generation for {entity.dxftype()}. Error: {str(e)}")
+                try:
+                    new_ltscale = entity.dxf.ltscale
+                    log_debug(f"New ltscale after setting: {new_ltscale}")
+                except Exception as e:
+                    log_warning(f"Could not verify new ltscale: {str(e)}")
+            else:
+                entity.dxf.ltscale = DEFAULT_ENTITY_STYLE['linetypeScale']
+                log_debug(f"Set default ltscale: {DEFAULT_ENTITY_STYLE['linetypeScale']}")
+        except Exception as e:
+            log_warning(f"Error setting linetype scale: {str(e)}")
 
-    # Final verification of critical properties
-    try:
-        log_debug(f"Final entity state - Type: {entity.dxftype()}")
-        if hasattr(entity.dxf, 'ltscale'):
-            log_debug(f"Final ltscale: {entity.dxf.ltscale}")
-        if hasattr(entity.dxf, 'flags') and entity.dxftype() in ('LWPOLYLINE', 'POLYLINE'):
-            log_debug(f"Final flags: {entity.dxf.flags}")
+        # Handle polyline-specific properties
+        if entity.dxftype() in ('LWPOLYLINE', 'POLYLINE'):
+            log_debug(f"Processing polyline-specific properties for {entity.dxftype()}")
+            
+            try:
+                # Apply close property
+                if 'close' in style:
+                    entity.close(style['close'])
+                    log_debug(f"Set close to: {style['close']}")
+                else:
+                    entity.close(DEFAULT_ENTITY_STYLE['close'])
+            except Exception as e:
+                log_warning(f"Error setting close property: {str(e)}")
+            
+            try:
+                # Apply linetype generation
+                if 'linetypeGeneration' in style:
+                    # Get current flags
+                    current_flags = entity.dxf.flags
+                    log_debug(f"Current flags before linetypeGeneration: {current_flags}")
+                    
+                    if style['linetypeGeneration']:
+                        entity.dxf.flags |= LWPOLYLINE_PLINEGEN
+                    else:
+                        entity.dxf.flags &= ~LWPOLYLINE_PLINEGEN
+                    
+                    # Verify the change
+                    new_flags = entity.dxf.flags
+                    log_debug(f"New flags after linetypeGeneration: {new_flags}")
+                    log_debug(f"PLINEGEN bit is {'set' if new_flags & LWPOLYLINE_PLINEGEN else 'not set'}")
+            except Exception as e:
+                log_warning(f"Error setting linetype generation: {str(e)}")
+
+        # Final verification of critical properties
+        try:
+            log_debug(f"Final entity state - Type: {entity.dxftype()}")
+            if hasattr(entity.dxf, 'ltscale'):
+                log_debug(f"Final ltscale: {entity.dxf.ltscale}")
+            if hasattr(entity.dxf, 'flags') and entity.dxftype() in ('LWPOLYLINE', 'POLYLINE'):
+                log_debug(f"Final flags: {entity.dxf.flags}")
+            if hasattr(entity.dxf, 'color'):
+                log_debug(f"Final color: {entity.dxf.color}")
+            if hasattr(entity.dxf, 'lineweight'):
+                log_debug(f"Final lineweight: {entity.dxf.lineweight}")
+            if hasattr(entity.dxf, 'linetype'):
+                log_debug(f"Final linetype: {entity.dxf.linetype}")
+        except Exception as e:
+            log_warning(f"Error during final verification: {str(e)}")
+            
     except Exception as e:
-        log_warning(f"Error during final verification: {str(e)}")
+        log_error(f"Error applying style to entity: {str(e)}")
+        # Don't re-raise to allow processing to continue
 
 def _apply_text_style_properties(entity, text_style, name_to_aci=None):
     """Apply text-specific style properties."""
