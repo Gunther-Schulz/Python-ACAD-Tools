@@ -126,53 +126,74 @@ class StyleManager:
         
         return True
 
-    def _validate_layer_style(self, layer_name, layer_style):
-        # Layer-specific properties
-        layer_style_keys = {'color', 'linetype', 'lineweight', 'plot', 'locked', 'frozen', 'is_on', 'transparency'}
-        # Entity-specific properties that might be in layer style
-        entity_style_keys = {'close', 'linetypeScale'}
-        
-        unknown_keys = set(layer_style.keys()) - layer_style_keys - entity_style_keys
-        if unknown_keys:
-            log_warning(f"Unknown layer style keys in layer '{layer_name}': {', '.join(unknown_keys)}")
+    def _validate_layer_style(self, layer_name, style_config):
+        """Validate layer style configuration."""
+        if not isinstance(style_config, dict):
+            log_warning(f"Invalid style configuration for layer '{layer_name}'. Expected dictionary, got {type(style_config)}")
+            return False
 
-        # Check for entity properties in layer style and warn about them
-        found_entity_props = entity_style_keys.intersection(layer_style.keys())
-        if found_entity_props:
-            log_warning(f"Found entity-specific properties in layer style for '{layer_name}': {', '.join(found_entity_props)}. "
-                       f"These properties will be applied to individual entities, not the layer itself.")
-        
-        # Add linetype validation
-        if 'linetype' in layer_style:
-            linetype = layer_style['linetype']
-            if linetype.startswith('ACAD_'):
-                # Regular expression pattern for valid ACAD linetypes
-                acad_pattern = r'^ACAD_ISO\d{2}W100$'
-                if not re.match(acad_pattern, linetype):
-                    log_warning(f"Invalid ACAD linetype format '{linetype}' in layer '{layer_name}'. "
-                              f"ACAD ISO linetypes should follow the pattern 'ACAD_ISOxxW100' where xx is a two-digit number.")
+        # Validate layer properties
+        if 'layer' in style_config:
+            layer_style = style_config['layer']
+            if not isinstance(layer_style, dict):
+                log_warning(f"Invalid layer style for layer '{layer_name}'. Expected dictionary, got {type(layer_style)}")
+                return False
 
-        # Validate numeric constraints
-        if 'lineweight' in layer_style:
-            lineweight = layer_style['lineweight']
-            if not isinstance(lineweight, (int, float)) or lineweight < -3 or lineweight > 211:
-                log_warning(f"Invalid lineweight value {lineweight} in layer '{layer_name}'. Must be between -3 and 211.")
+            # Known layer properties
+            layer_style_keys = {'color', 'linetype', 'lineweight', 'plot', 'locked', 'frozen', 'is_on', 'transparency'}
+            unknown_keys = set(layer_style.keys()) - layer_style_keys
+            if unknown_keys:
+                log_warning(f"Unknown layer style keys in layer '{layer_name}': {', '.join(unknown_keys)}")
 
-        if 'transparency' in layer_style:
-            transparency = layer_style['transparency']
-            if not isinstance(transparency, (int, float)) or transparency < 0 or transparency > 255:
-                log_warning(f"Invalid transparency value {transparency} in layer '{layer_name}'. Must be between 0 and 255.")
+            # Validate linetype
+            if 'linetype' in layer_style:
+                linetype = layer_style['linetype']
+                if linetype.startswith('ACAD_'):
+                    acad_pattern = r'^ACAD_ISO\d{2}W100$'
+                    if not re.match(acad_pattern, linetype):
+                        log_warning(f"Invalid ACAD linetype format '{linetype}' in layer '{layer_name}'. "
+                                  f"ACAD ISO linetypes should follow the pattern 'ACAD_ISOxxW100' where xx is a two-digit number.")
 
-        if 'linetypeScale' in layer_style:
-            scale = layer_style['linetypeScale']
-            if not isinstance(scale, (int, float)) or scale < 0.01 or scale > 1000.0:
-                log_warning(f"Invalid linetypeScale value {scale} in layer '{layer_name}'. Must be between 0.01 and 1000.0.")
+            # Validate numeric constraints
+            if 'lineweight' in layer_style:
+                lineweight = layer_style['lineweight']
+                if not isinstance(lineweight, (int, float)) or lineweight < -3 or lineweight > 211:
+                    log_warning(f"Invalid lineweight value {lineweight} in layer '{layer_name}'. Must be between -3 and 211.")
+
+            if 'transparency' in layer_style:
+                transparency = layer_style['transparency']
+                if not isinstance(transparency, (int, float)) or transparency < 0 or transparency > 255:
+                    log_warning(f"Invalid transparency value {transparency} in layer '{layer_name}'. Must be between 0 and 255.")
+
+        # Validate entity properties
+        if 'entity' in style_config:
+            entity_style = style_config['entity']
+            if not isinstance(entity_style, dict):
+                log_warning(f"Invalid entity style for layer '{layer_name}'. Expected dictionary, got {type(entity_style)}")
+                return False
+
+            # Known entity properties
+            entity_style_keys = {'close', 'linetypeScale', 'linetypeGeneration'}
+            unknown_keys = set(entity_style.keys()) - entity_style_keys
+            if unknown_keys:
+                log_warning(f"Unknown entity style keys in layer '{layer_name}': {', '.join(unknown_keys)}")
+
+            if 'linetypeScale' in entity_style:
+                scale = entity_style['linetypeScale']
+                if not isinstance(scale, (int, float)) or scale < 0.01 or scale > 1000.0:
+                    log_warning(f"Invalid linetypeScale value {scale} in layer '{layer_name}'. Must be between 0.01 and 1000.0.")
 
         # Check for possible typos in property names
-        for key in layer_style.keys():
-            closest_match = min(layer_style_keys | entity_style_keys, key=lambda x: self._levenshtein_distance(key, x))
-            if key != closest_match and self._levenshtein_distance(key, closest_match) <= 2:
-                log_warning(f"Possible typo in layer style key for layer {layer_name}: '{key}'. Did you mean '{closest_match}'?")
+        for section in ['layer', 'entity']:
+            if section in style_config:
+                style_dict = style_config[section]
+                known_keys = layer_style_keys if section == 'layer' else entity_style_keys
+                for key in style_dict.keys():
+                    closest_match = min(known_keys, key=lambda x: self._levenshtein_distance(key, x))
+                    if key != closest_match and self._levenshtein_distance(key, closest_match) <= 2:
+                        log_warning(f"Possible typo in {section} style key for layer {layer_name}: '{key}'. Did you mean '{closest_match}'?")
+
+        return True
 
     def _validate_hatch_style(self, layer_name, hatch_style):
         known_style_keys = {'pattern', 'scale', 'color', 'transparency', 'individual_hatches', 'layers', 'lineweight'}
@@ -323,18 +344,12 @@ class StyleManager:
         layer_properties = self.default_layer_settings.copy()
         entity_properties = self.default_entity_style.copy()
         
-        # Handle the style configuration
         if 'style' in layer_config:
             style_config = layer_config['style']
             
-            # Get the style (handles both preset strings and inline dictionaries)
-            style, warning_generated = self.get_style(style_config)
-            
-            if not warning_generated and style is not None:
-                # Extract layer settings from the style
-                layer_style = style.get('layer', {}) if isinstance(style, dict) else {}
-                
-                # Process layer-specific properties
+            # Process layer properties
+            if 'layer' in style_config:
+                layer_style = style_config['layer']
                 for key in ['color', 'linetype', 'lineweight', 'plot', 'locked', 'frozen', 
                            'is_on', 'transparency']:
                     if key in layer_style:
@@ -342,11 +357,13 @@ class StyleManager:
                             layer_properties[key] = get_color_code(layer_style[key], self.name_to_aci)
                         else:
                             layer_properties[key] = layer_style[key]
-                
-                # Process entity-specific properties
-                for key in ['close', 'linetypeScale']:
-                    if key in layer_style:
-                        entity_properties[key] = layer_style[key]
+            
+            # Process entity properties
+            if 'entity' in style_config:
+                entity_style = style_config['entity']
+                for key in ['close', 'linetypeScale', 'linetypeGeneration']:
+                    if key in entity_style:
+                        entity_properties[key] = entity_style[key]
         
         return layer_properties, entity_properties
 

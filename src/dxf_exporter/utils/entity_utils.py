@@ -14,6 +14,7 @@ from .style_defaults import (
     TEXT_FLOW_DIRECTIONS,
     TEXT_LINE_SPACING_STYLES
 )
+from ezdxf.lldxf.const import LWPOLYLINE_PLINEGEN
 
 def attach_custom_data(entity, script_identifier, entity_name=None):
     """Attaches custom data to an entity with proper cleanup of existing data."""
@@ -142,6 +143,21 @@ def apply_style_to_entity(entity, style, project_loader, loaded_styles=None):
         entity.dxf.ltscale = float(style['linetypeScale'])
     else:
         entity.dxf.ltscale = DEFAULT_ENTITY_STYLE['linetypeScale']
+
+    # Handle polyline-specific properties
+    if entity.dxftype() in ('LWPOLYLINE', 'POLYLINE'):
+        # Apply close property
+        if 'close' in style:
+            entity.close(style['close'])
+        else:
+            entity.close(DEFAULT_ENTITY_STYLE['close'])
+        
+        # Apply linetype generation if present
+        if 'linetypeGeneration' in style:
+            if style['linetypeGeneration']:
+                entity.dxf.flags |= LWPOLYLINE_PLINEGEN
+            else:
+                entity.dxf.flags &= ~LWPOLYLINE_PLINEGEN
 
 def _apply_text_style_properties(entity, text_style, name_to_aci=None):
     """Apply text-specific style properties."""

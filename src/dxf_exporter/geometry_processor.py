@@ -91,21 +91,27 @@ class GeometryProcessor:
             return
 
         layer_properties = self.layer_manager.get_layer_properties(layer_name)
-        # Default to False for LineStrings if 'close' is not specified
-        should_close = layer_properties.get('close', False) if 'close' in layer_properties else False
+        entity_properties = layer_properties.get('entity', {})
+        
+        dxfattribs = {
+            'layer': layer_name,
+            'closed': entity_properties.get('close', False),  # Default to False for LineStrings
+        }
+        
+        # Add any other entity-level properties
+        if 'linetypeScale' in entity_properties:
+            dxfattribs['ltscale'] = entity_properties['linetypeScale']
+        if 'linetypeGeneration' in entity_properties:
+            dxfattribs['flags'] = entity_properties['linetypeGeneration']
         
         # Create polyline
-        polyline = msp.add_lwpolyline(coords)
-        polyline.dxf.layer = layer_name
+        polyline = msp.add_lwpolyline(coords, dxfattribs=dxfattribs)
         
-        if should_close:
-            polyline.close(True)
-        
-        # Apply style if available
-        if layer_properties:
-            style = self.style_manager.get_style(layer_properties)
-            if style:
-                self.style_manager.apply_style_to_entity(polyline, style)
+        # Apply linetype generation setting if present
+        if entity_properties.get('linetypeGeneration'):
+            polyline.dxf.flags |= LWPOLYLINE_PLINEGEN
+        else:
+            polyline.dxf.flags &= ~LWPOLYLINE_PLINEGEN
         
         attach_custom_data(polyline, self.script_identifier)
 
