@@ -35,12 +35,17 @@ def _get_filtered_geometry(all_layers, project_settings, crs, layer_name, values
         log_debug(f"Initial number of geometries in {layer_name}: {len(source_gdf)}")
 
         if values:
-            label_column = next((l['label'] for l in project_settings['geomLayers'] if l['name'] == layer_name), None)
-            if label_column and label_column in source_gdf.columns:
-                filtered_gdf = source_gdf[source_gdf[label_column].astype(str).isin(values)].copy()
-                log_debug(f"Number of geometries after filtering by values: {len(filtered_gdf)}")
+            layer_config = next((l for l in project_settings['geomLayers'] if l['name'] == layer_name), None)
+            if layer_config:
+                label_column = layer_config.get('simpleLabel')
+                if label_column and label_column in source_gdf.columns:
+                    filtered_gdf = source_gdf[source_gdf[label_column].astype(str).isin(values)].copy()
+                    log_debug(f"Number of geometries after filtering by values: {len(filtered_gdf)}")
+                else:
+                    log_warning(f"Label column '{label_column}' not found in layer '{layer_name}'")
+                    return None
             else:
-                log_warning(f"Label column '{label_column}' not found in layer '{layer_name}'")
+                log_warning(f"Layer configuration not found for '{layer_name}'")
                 return None
         else:
             filtered_gdf = source_gdf.copy()

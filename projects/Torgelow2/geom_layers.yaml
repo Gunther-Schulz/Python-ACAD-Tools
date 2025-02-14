@@ -52,6 +52,16 @@ geomLayers:
       - name: WorkView
         style: gemeindeWorkView
 
+  - name: Parcel
+    updateDxf: true
+    close: true
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/input/parcel2.shp"
+    simpleLabel: label
+    style: parcel
+    viewports:
+      - name: WorkView
+        style: parcelWorkView
+
   # Natural Features
   - name: Baum Points
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/input/bäume_input.shp"
@@ -70,3 +80,108 @@ geomLayers:
       - name: Wald Schraffur
         updateDxf: true
         style: wald
+  - name: Straße
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/input/abstand.shp"
+  - name: Straße Abstand
+    operations:
+      - type: buffer
+        layers: 
+          - Straße
+        distance: 7
+  - name: Weg
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/input/weg.shp"
+  - name: Weg Abstand
+    operations:
+      # - type: buffer
+      #   layers:
+      #     - Weg
+      #   distance: 1
+      - type: copy
+        layers:
+          - Weg
+  - name: FG Buffer
+    operations:
+      - type: buffer
+        distance: 5
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/input/graben_input.shp"
+  - name: Geltungsbereich
+    updateDxf: true
+    style: geltungsbereich
+    operations:
+      - type: copy
+        layers:
+          - name: Parcel
+            values:
+              - "81"
+              - "87/1"
+              - "89"
+              - "95"
+              - "96"
+              - "97"
+              - "99"
+              - "100"
+              - "101"
+              - "102"
+              - "103"
+              - "104"
+      - type: filterByIntersection
+        layers:
+          - name: Flur
+            values:
+              - Flur 2
+          - name: Gemarkung
+            values:
+              - Torgelow am See
+          - name: Gemeinde
+            values:
+              - Torgelow am See
+      - type: calculate
+        calculations:        
+          - type: area
+            as: original_area
+            decimalPlaces: 0
+      - type: difference
+        reverseDifference: auto
+        layers:
+          - Wald
+          - Straße Abstand
+          - Weg Abstand
+          - FG Buffer
+      - type: filterGeometry
+        minArea: 10
+      # Calculate new areas and compare
+      - type: calculate
+        calculations:
+          - type: area
+            as: final_area
+            decimalPlaces: 0
+          - type: compare
+            value1: original_area
+            value2: final_area
+            operator: eq
+            margin: 2.0
+            as: area_unchanged
+      - type: report
+        outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/reports/geltungsbereich_report.json"
+        featureColumns:
+          - label
+          - area_unchanged
+          - original_area
+          - final_area
+          - Flur
+          - Gemarkung
+          - Gemeinde
+        calculate:
+          - area
+        decimalPlaces:
+          area: 0
+      - type: dissolve
+  - name: Geltungsbereich 2
+    updateDxf: true
+    linetypeScale: 1
+    style: geltungsbereich_2
+    operations:
+      - type: buffer
+        layers:
+          - name: Geltungsbereich
+        distance: 2

@@ -6,6 +6,32 @@ from src.dxf_exporter.utils.style_defaults import DEFAULT_COLOR_MAPPING
 from src.dxf_exporter.style_manager import StyleManager
 from src.dxf_exporter.layer_manager import LayerManager
 
+# Define schema for geom_layers.yaml
+GEOM_LAYER_SCHEMA = {
+    'required': ['name'],
+    'optional': {
+        'updateDxf': bool,
+        'close': bool,
+        'shapeFile': str,
+        'simpleLabel': str,  # The correct key for simple text labels
+        'linetypeGeneration': bool,
+        'style': (dict, str),  # Can be either a dict or string
+        'viewports': list,
+        'operations': list,
+        'hatches': list,
+        'plot': bool,
+        'locked': bool,
+        'frozen': bool,
+        'is_on': bool,
+        'transparency': (int, float),
+        'linetypeScale': (int, float)
+    },
+    'deprecated': {
+        'labels': 'Use simpleLabel instead',
+        'label': 'Use simpleLabel instead for simple text labels'  # Added this deprecation notice
+    }
+}
+
 class ConfigurationManager:
     """Manages loading and validation of configuration files."""
     
@@ -61,6 +87,70 @@ class ConfigurationManager:
                 layer_names[name] = idx
         return layer_names
 
+    def validate_layer_config(self, layer, idx):
+        """Validate a single layer configuration against the schema."""
+        errors = []
+        warnings = []
+
+        # Check required fields
+        for field in GEOM_LAYER_SCHEMA['required']:
+            if field not in layer:
+                errors.append(f"Missing required field '{field}' in layer at position {idx}")
+
+        # Check field types and unknown fields
+        for field, value in layer.items():
+            if field in GEOM_LAYER_SCHEMA['deprecated']:
+                warnings.append(f"Deprecated field '{field}' in layer '{layer.get('name', f'at position {idx}')}'. {GEOM_LAYER_SCHEMA['deprecated'][field]}")
+                continue
+
+            if field not in GEOM_LAYER_SCHEMA['required'] and field not in GEOM_LAYER_SCHEMA['optional']:
+                warnings.append(f"Unknown field '{field}' in layer '{layer.get('name', f'at position {idx}')}'")
+                continue
+
+            expected_type = GEOM_LAYER_SCHEMA['optional'].get(field)
+            if expected_type:
+                if isinstance(expected_type, tuple):
+                    if not isinstance(value, expected_type):
+                        errors.append(f"Invalid type for field '{field}' in layer '{layer.get('name', f'at position {idx}')}'. "
+                                   f"Expected one of {expected_type}, got {type(value)}")
+                elif not isinstance(value, expected_type):
+                    errors.append(f"Invalid type for field '{field}' in layer '{layer.get('name', f'at position {idx}')}'. "
+                               f"Expected {expected_type}, got {type(value)}")
+
+        # Log warnings and errors
+        for warning in warnings:
+            log_warning(warning)
+        for error in errors:
+            log_error(error)
+
+        return len(errors) == 0
+
+    def validate_geom_layers(self, geom_layers):
+        """Validate all geometric layers against the schema."""
+        if not isinstance(geom_layers, dict):
+            log_error("geom_layers must be a dictionary")
+            return False
+
+        if 'geomLayers' not in geom_layers:
+            log_error("Missing 'geomLayers' key in configuration")
+            return False
+
+        if not isinstance(geom_layers['geomLayers'], list):
+            log_error("'geomLayers' must be a list")
+            return False
+
+        is_valid = True
+        for idx, layer in enumerate(geom_layers['geomLayers']):
+            if not isinstance(layer, dict):
+                log_error(f"Layer at position {idx} must be a dictionary")
+                is_valid = False
+                continue
+
+            if not self.validate_layer_config(layer, idx):
+                is_valid = False
+
+        return is_valid
+
 class ProjectLoader:
     def __init__(self, project_name: str):
         self.project_name = project_name
@@ -89,7 +179,11 @@ class ProjectLoader:
         # Load all configurations using the configuration manager
         configs = self.config_manager.load_project_configs()
         
-        # Validate layer names
+        # Validate configurations
+        if not self.config_manager.validate_geom_layers(configs['geom_layers']):
+            log_warning("Geometric layers validation failed. Some features may not work as expected.")
+        
+        # Validate layer names (check for duplicates)
         self.config_manager.validate_layer_names(configs['geom_layers'])
         
         # Merge all configurations with safe defaults

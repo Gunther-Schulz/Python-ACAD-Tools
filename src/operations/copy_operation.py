@@ -29,7 +29,7 @@ def create_copy_layer(all_layers, project_settings, crs, layer_name, operation):
         source_gdf = all_layers[source_layer_name].copy()
         
         if values:
-            label_column = next((l['label'] for l in project_settings['geomLayers'] if l['name'] == source_layer_name), None)
+            label_column = next((l.get('simpleLabel') for l in project_settings['geomLayers'] if l['name'] == source_layer_name), None)
             if label_column and label_column in source_gdf.columns:
                 source_gdf = source_gdf[source_gdf[label_column].astype(str).isin([str(v) for v in values])]
                 log_debug(f"Filtered {source_layer_name} using column '{label_column}': {len(source_gdf)} features remaining")

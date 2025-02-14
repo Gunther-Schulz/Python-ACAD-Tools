@@ -172,6 +172,7 @@ def create_default_registry() -> OperationRegistry:
     registry.register('difference', DifferenceOperationHandler)
     registry.register('intersection', IntersectionOperationHandler)
     registry.register('filter', FilterOperationHandler)
+    registry.register('filterByIntersection', FilterOperationHandler)
     registry.register('wmts', WMTSOperationHandler)
     registry.register('wms', WMSOperationHandler)
     registry.register('merge', MergeOperationHandler)
@@ -185,7 +186,7 @@ def create_default_registry() -> OperationRegistry:
     registry.register('envelope', EnvelopeOperationHandler)
     registry.register('label_association', LabelAssociationOperationHandler)
     registry.register('filter_by_column', FilterByColumnOperationHandler)
-    registry.register('filter_geometry', FilterGeometryOperationHandler)
+    registry.register('filterGeometry', FilterGeometryOperationHandler)
     registry.register('report', ReportOperationHandler)
     registry.register('lagefaktor', LagefaktorOperationHandler)
     
