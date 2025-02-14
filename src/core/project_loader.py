@@ -6,24 +6,12 @@ from src.dxf_exporter.utils.style_defaults import DEFAULT_COLOR_MAPPING
 from src.dxf_exporter.style_manager import StyleManager
 from src.dxf_exporter.layer_manager import LayerManager
 
-class ProjectLoader:
-    def __init__(self, project_name: str):
-        self.project_name = project_name
-        self.project_dir = os.path.join('projects', self.project_name)
-        self.project_settings = {}
-        self.load_global_settings()
-        self.load_project_settings()
-        self.load_dxf_operations()
-        self.load_color_mapping()
-        self.load_styles()
-
-    def load_global_settings(self):
-        """Load global settings from projects.yaml"""
-        with open('projects.yaml', 'r') as file:
-            data = yaml.safe_load(file)
-            self.folder_prefix = data.get('folderPrefix', '')
-            self.log_file = data.get('logFile', './log.txt')
-
+class ConfigurationManager:
+    """Manages loading and validation of configuration files."""
+    
+    def __init__(self, project_dir):
+        self.project_dir = project_dir
+        
     def load_yaml_file(self, filename, required=True):
         """Helper to load YAML files from project directory"""
         filepath = os.path.join(self.project_dir, filename)
@@ -37,49 +25,93 @@ class ProjectLoader:
         elif required:
             raise ValueError(f"Required config file not found: {filepath}")
         return {}
-
-    def load_project_settings(self):
-        """Load project specific settings from modular config files"""
-        # Load main project settings
-        main_settings = self.load_yaml_file('project.yaml', required=True)
         
-        # Load additional configurations
-        geom_layers = self.load_yaml_file('geom_layers.yaml', required=False) or {}
-        legends = self.load_yaml_file('legends.yaml', required=False) or {}
-        viewports = self.load_yaml_file('viewports.yaml', required=False) or {}
-        block_inserts = self.load_yaml_file('block_inserts.yaml', required=False) or {}
-        text_inserts = self.load_yaml_file('text_inserts.yaml', required=False)
-        if text_inserts:
-            log_debug(f"Loaded {len(text_inserts.get('textInserts', []))} text inserts from text_inserts.yaml")
-        else:
-            log_debug("No text inserts found in text_inserts.yaml")
-        path_arrays = self.load_yaml_file('path_arrays.yaml', required=False) or {}
-        wmts_wms_layers = self.load_yaml_file('wmts_wms_layers.yaml', required=False) or {}
-
-        # Check for duplicate layer names
+    def load_project_configs(self):
+        """Load all project configuration files."""
+        configs = {
+            'main': self.load_yaml_file('project.yaml', required=True),
+            'geom_layers': self.load_yaml_file('geom_layers.yaml', required=False),
+            'legends': self.load_yaml_file('legends.yaml', required=False),
+            'viewports': self.load_yaml_file('viewports.yaml', required=False),
+            'block_inserts': self.load_yaml_file('block_inserts.yaml', required=False),
+            'text_inserts': self.load_yaml_file('text_inserts.yaml', required=False),
+            'path_arrays': self.load_yaml_file('path_arrays.yaml', required=False),
+            'wmts_wms_layers': self.load_yaml_file('wmts_wms_layers.yaml', required=False),
+            'styles': self.load_yaml_file('styles.yaml', required=False)
+        }
+        
+        # Log loaded configurations
+        for config_name, config_data in configs.items():
+            if config_data:
+                log_debug(f"Loaded configuration from {config_name}")
+            else:
+                log_debug(f"No configuration found for {config_name}")
+                
+        return configs
+        
+    def validate_layer_names(self, geom_layers):
+        """Check for duplicate layer names."""
         layer_names = {}
         for idx, layer in enumerate(geom_layers.get('geomLayers', [])):
             name = layer.get('name')
             if name in layer_names:
-                log_warning(f"Duplicate layer name found: '{name}' at positions {layer_names[name]} and {idx}. " 
+                log_warning(f"Duplicate layer name found: '{name}' at positions {layer_names[name]} and {idx}. "
                            f"The first definition will be used, subsequent definitions will be ignored.")
             else:
                 layer_names[name] = idx
+        return layer_names
+
+class ProjectLoader:
+    def __init__(self, project_name: str):
+        self.project_name = project_name
+        self.project_dir = os.path.join('projects', self.project_name)
+        self.project_settings = {}
+        
+        # Initialize configuration manager
+        self.config_manager = ConfigurationManager(self.project_dir)
+        
+        # Load all configurations
+        self.load_global_settings()
+        self.load_project_settings()
+        self.load_dxf_operations()
+        self.load_color_mapping()
+        self.load_styles()
+
+    def load_global_settings(self):
+        """Load global settings from projects.yaml"""
+        with open('projects.yaml', 'r') as file:
+            data = yaml.safe_load(file)
+            self.folder_prefix = data.get('folderPrefix', '')
+            self.log_file = data.get('logFile', './log.txt')
+
+    def load_project_settings(self):
+        """Load project specific settings from modular config files"""
+        # Load all configurations using the configuration manager
+        configs = self.config_manager.load_project_configs()
+        
+        # Validate layer names
+        self.config_manager.validate_layer_names(configs['geom_layers'])
         
         # Merge all configurations with safe defaults
         self.project_settings = {
-            **main_settings,
-            'geomLayers': geom_layers.get('geomLayers', []),
-            'legends': legends.get('legends', []),
-            'viewports': viewports.get('viewports', []),
-            'blockInserts': block_inserts.get('blockInserts', []),
-            'textInserts': text_inserts.get('textInserts', []),
-            'pathArrays': path_arrays.get('pathArrays', []),
-            'wmtsLayers': wmts_wms_layers.get('wmtsLayers', []),
-            'wmsLayers': wmts_wms_layers.get('wmsLayers', [])
+            **configs['main'],
+            'geomLayers': configs['geom_layers'].get('geomLayers', []),
+            'legends': configs['legends'].get('legends', []),
+            'viewports': configs['viewports'].get('viewports', []),
+            'blockInserts': configs['block_inserts'].get('blockInserts', []),
+            'textInserts': configs['text_inserts'].get('textInserts', []),
+            'pathArrays': configs['path_arrays'].get('pathArrays', []),
+            'wmtsLayers': configs['wmts_wms_layers'].get('wmtsLayers', []),
+            'wmsLayers': configs['wmts_wms_layers'].get('wmsLayers', [])
         }
 
         # Process core settings
+        self._process_core_settings()
+        self._process_layer_paths()
+        self._process_web_service_layers()
+
+    def _process_core_settings(self):
+        """Process core project settings."""
         self.crs = self.project_settings['crs']
         self.dxf_filename = resolve_path(self.project_settings['dxfFilename'], self.folder_prefix)
         self.template_dxf = resolve_path(self.project_settings.get('template', ''), self.folder_prefix) if self.project_settings.get('template') else None
@@ -91,19 +123,16 @@ class ProjectLoader:
         if self.shapefile_output_dir:
             os.makedirs(self.shapefile_output_dir, exist_ok=True)
 
-        # Load WMTS/WMS layers
-        wmts_layers, wms_layers = self.load_wmts_wms_layers()
-        self.project_settings['wmtsLayers'] = wmts_layers
-        self.project_settings['wmsLayers'] = wms_layers
-
-        # Process layer operations
+    def _process_layer_paths(self):
+        """Process paths in layer configurations."""
         for layer in self.project_settings.get('geomLayers', []):
             if 'operations' in layer:
                 self.process_operations(layer)
             if 'shapeFile' in layer:
                 layer['shapeFile'] = self.resolve_full_path(layer['shapeFile'])
 
-        # Process WMTS/WMS layers operations
+    def _process_web_service_layers(self):
+        """Process WMTS/WMS layer configurations."""
         for layer in self.project_settings.get('wmtsLayers', []):
             if 'operations' in layer:
                 self.process_operations(layer)
@@ -115,16 +144,6 @@ class ProjectLoader:
                 self.process_operations(layer)
                 for operation in layer['operations']:
                     operation['type'] = 'wms'
-
-        # Load DXF operations settings
-        dxf_operations_path = os.path.join(self.project_dir, 'dxf_operations.yaml')
-        if os.path.exists(dxf_operations_path):
-            with open(dxf_operations_path, 'r', encoding='utf-8') as f:
-                dxf_operations_settings = yaml.safe_load(f)
-                if dxf_operations_settings and 'dxfOperations' in dxf_operations_settings:
-                    self.project_settings['dxfOperations'] = dxf_operations_settings['dxfOperations']
-                    log_debug(f"Loaded DXF operations: {len(dxf_operations_settings['dxfOperations'].get('extracts', []))} extracts, "
-                             f"{len(dxf_operations_settings['dxfOperations'].get('transfers', []))} transfers")
 
     def load_color_mapping(self):
         """Load color mapping from aci_colors.yaml"""
@@ -154,7 +173,7 @@ class ProjectLoader:
             log_debug("No root styles.yaml found")
 
         # Then load project-specific styles
-        project_style_data = self.load_yaml_file('styles.yaml', required=False)
+        project_style_data = self.config_manager.load_yaml_file('styles.yaml', required=False)
         if project_style_data:
             project_styles = project_style_data.get('styles', {})
             log_debug("Loaded project-specific styles from project/styles.yaml")
