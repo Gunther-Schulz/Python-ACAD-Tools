@@ -357,7 +357,7 @@ def warning_to_logger(message, category, filename, lineno, file=None, line=None)
     """Convert warnings to log messages with operation context"""
     import traceback
     import inspect
-    # from src.operations.common_operations import format_operation_warning
+    from src.operations.common_operations import format_operation_warning
     
     # Get the current call stack
     current_stack = inspect.stack()
@@ -391,11 +391,11 @@ def warning_to_logger(message, category, filename, lineno, file=None, line=None)
             if layer_name:
                 break
     
-    # # Format the message
-    # if layer_name:
-    #     formatted_message = format_operation_warning(layer_name, op_type or 'unknown', str(message))
-    # else:
-    #     formatted_message = str(message)
+    # Format the message
+    if layer_name:
+        formatted_message = format_operation_warning(layer_name, op_type or 'unknown', str(message))
+    else:
+        formatted_message = str(message)
     
     log_message = f"""\033[38;5;166mWarning: 
     [Layer: {layer_name}] [{op_type or 'unknown'}]

@@ -11,7 +11,7 @@ from src.core.project_loader import ProjectLoader
 from src.layer_processor import LayerProcessor
 from src.dxf_exporter.exporter import DXFExporter
 from src.dxf_exporter.utils import cleanup_document
-from src.geo.dump_to_shape import dxf_to_shapefiles
+# from src.geo.dump_to_shape import dxf_to_shapefiles
 
 class ProjectProcessor:
     def __init__(self, project_name: str, plot_ops=False):
@@ -54,14 +54,14 @@ class ProjectProcessor:
         folder_prefix = self.project_loader.folder_prefix
         dxf_filename = self.project_loader.dxf_filename
         
-        if 'dxfDumpOutputDir' in project_settings:
-            dump_output_dir = os.path.expanduser(os.path.join(folder_prefix, project_settings['dxfDumpOutputDir']))
+        # if 'dxfDumpOutputDir' in project_settings:
+        #     dump_output_dir = os.path.expanduser(os.path.join(folder_prefix, project_settings['dxfDumpOutputDir']))
             
-            if os.path.exists(dxf_filename) and dump_output_dir:
-                log_info(f"Dumping DXF to shapefiles: {dxf_filename} -> {dump_output_dir}")
-                dxf_to_shapefiles(dxf_filename, dump_output_dir)
-            else:
-                log_info("Skipping DXF dump: DXF file not found or dump output directory not specified.")
+        #     if os.path.exists(dxf_filename) and dump_output_dir:
+        #         log_info(f"Dumping DXF to shapefiles: {dxf_filename} -> {dump_output_dir}")
+        #         dxf_to_shapefiles(dxf_filename, dump_output_dir)
+        #     else:
+        #         log_info("Skipping DXF dump: DXF file not found or dump output directory not specified.")
 
     def process(self):
         # Load the document and process DXF operations early

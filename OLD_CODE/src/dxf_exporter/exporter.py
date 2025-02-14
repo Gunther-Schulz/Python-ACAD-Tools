@@ -18,12 +18,12 @@ from .layer_manager import LayerManager
 from .geometry_processor import GeometryProcessor
 from .text_processor import TextProcessor
 from .hatch_processor import HatchProcessor
-# from .path_array_processor import PathArrayProcessor
+from .path_array_processor import PathArrayProcessor
 from .style_manager import StyleManager
-# from src.dxf.viewport_manager import ViewportManager
-# from src.dxf.block_insert_manager import BlockInsertManager
-# from src.dxf.reduced_dxf_creator import ReducedDXFCreator
-# from src.dxf.legend_creator import LegendCreator
+from src.dxf.viewport_manager import ViewportManager
+from src.dxf.block_insert_manager import BlockInsertManager
+from src.dxf.reduced_dxf_creator import ReducedDXFCreator
+from src.dxf.legend_creator import LegendCreator
 
 class DXFExporter:
     def __init__(self, project_loader, layer_processor):
@@ -41,25 +41,25 @@ class DXFExporter:
         self.geometry_processor = GeometryProcessor(self.script_identifier, project_loader, self.style_manager, self.layer_manager)
         self.text_processor = TextProcessor(self.script_identifier, project_loader, self.style_manager, self.layer_manager)
         self.hatch_processor = HatchProcessor(self.script_identifier, project_loader, self.style_manager, self.layer_manager)
-        # self.path_array_processor = PathArrayProcessor(project_loader, self.style_manager)
+        self.path_array_processor = PathArrayProcessor(project_loader, self.style_manager)
         
-        # # Set up additional managers
-        # self.viewport_manager = ViewportManager(
-        #     self.project_settings,
-        #     self.script_identifier,
-        #     project_loader.name_to_aci,
-        #     self.style_manager
-        # )
-        # self.block_insert_manager = BlockInsertManager(
-        #     project_loader,
-        #     self.all_layers,
-        #     self.script_identifier
-        # )
-        # self.reduced_dxf_creator = ReducedDXFCreator(self)
+        # Set up additional managers
+        self.viewport_manager = ViewportManager(
+            self.project_settings,
+            self.script_identifier,
+            project_loader.name_to_aci,
+            self.style_manager
+        )
+        self.block_insert_manager = BlockInsertManager(
+            project_loader,
+            self.all_layers,
+            self.script_identifier
+        )
+        self.reduced_dxf_creator = ReducedDXFCreator(self)
         
         # Share all_layers with processors that need it
         self.hatch_processor.set_all_layers(self.all_layers)
-        # self.path_array_processor.set_all_layers(self.all_layers)
+        self.path_array_processor.set_all_layers(self.all_layers)
 
     def export_to_dxf(self, skip_dxf_processor=False):
         """Main export method."""
@@ -83,22 +83,22 @@ class DXFExporter:
             
             # Process all content
             self.process_layers(doc, msp)
-            # self.path_array_processor.create_path_arrays(msp)
-            # self.block_insert_manager.process_block_inserts(msp)
+            self.path_array_processor.create_path_arrays(msp)
+            self.block_insert_manager.process_block_inserts(msp)
             self.text_processor.process_text_inserts(msp)
             
-            # # Create legend
-            # legend_creator = LegendCreator(doc, msp, self.project_loader, self.loaded_styles)
-            # legend_creator.create_legend()
+            # Create legend
+            legend_creator = LegendCreator(doc, msp, self.project_loader, self.loaded_styles)
+            legend_creator.create_legend()
             
             # Create and configure viewports after ALL content exists
-            # self.viewport_manager.create_viewports(doc, msp)
+            self.viewport_manager.create_viewports(doc, msp)
             
             # Save once at the end
             self._cleanup_and_save(doc, msp)
             
             # After successful export, create reduced version if configured
-            # self.reduced_dxf_creator.create_reduced_dxf()
+            self.reduced_dxf_creator.create_reduced_dxf()
             
         except Exception as e:
             log_error(f"Error during DXF export: {str(e)}")

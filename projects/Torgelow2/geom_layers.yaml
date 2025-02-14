@@ -30,12 +30,12 @@ geomLayers:
     viewports:
       - name: WorkView
         style: flurWorkView
-    # style:
-    #   text:
-    #     height: 20.5  # Text height
-    #     font: "Arial"  # Font family
-    #     style: "Arial"  # Explicitly set style name
-    #     color: "red"  # Text color
-    #     attachmentPoint: "MIDDLE_LEFT"  # Text attachment point
-    #     paragraph:
-    #       align: "LEFT"  # Text alignment
+  - name: Parcel
+    updateDxf: true
+    close: true
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/input/parcel2.shp"
+    simpleLabel: label
+    style: parcel
+    viewports:
+      - name: WorkView
+        style: parcelWorkView

@@ -1,7 +1,7 @@
 import yaml
 import os
 from src.core.utils import log_info, log_warning, log_error, resolve_path, log_debug
-# from src.dxf.dxf_processor import DXFProcessor
+from src.dxf.dxf_processor import DXFProcessor
 from src.dxf_exporter.utils.style_defaults import DEFAULT_COLOR_MAPPING
 
 class ProjectLoader:
@@ -11,7 +11,7 @@ class ProjectLoader:
         self.project_settings = {}
         self.load_global_settings()
         self.load_project_settings()
-        # self.load_dxf_operations()
+        self.load_dxf_operations()
         self.load_color_mapping()
         self.load_styles()
 
@@ -212,11 +212,11 @@ class ProjectLoader:
                     raise ValueError(error_message)
             layer['operations'] = new_operations
 
-    # def load_dxf_operations(self):
-    #     """Initialize DXFProcessor with loaded operations"""
-    #     if 'dxfOperations' in self.project_settings:
-    #         self.dxf_processor = DXFProcessor(self)
-    #         log_debug("DXFProcessor initialized with loaded operations")
-    #     else:
-    #         log_debug("No DXF operations found in project settings")
-    #         self.dxf_processor = None  # Set to None if no operations
+    def load_dxf_operations(self):
+        """Initialize DXFProcessor with loaded operations"""
+        if 'dxfOperations' in self.project_settings:
+            self.dxf_processor = DXFProcessor(self)
+            log_debug("DXFProcessor initialized with loaded operations")
+        else:
+            log_debug("No DXF operations found in project settings")
+            self.dxf_processor = None  # Set to None if no operations
