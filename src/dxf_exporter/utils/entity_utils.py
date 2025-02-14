@@ -14,7 +14,12 @@ from .style_defaults import (
     TEXT_FLOW_DIRECTIONS,
     TEXT_LINE_SPACING_STYLES
 )
-from ezdxf.lldxf.const import LWPOLYLINE_PLINEGEN
+from ezdxf.lldxf.const import (
+    LWPOLYLINE_PLINEGEN,
+    LINEWEIGHT_BYLAYER,
+    LINEWEIGHT_BYBLOCK,
+    LINEWEIGHT_DEFAULT
+)
 
 def attach_custom_data(entity, script_identifier, entity_name=None):
     """Attaches custom data to an entity with proper cleanup of existing data."""
@@ -119,24 +124,77 @@ def apply_style_to_entity(entity, style, project_loader, loaded_styles=None):
         # Apply non-text properties
         try:
             if 'color' in style:
-                color = get_color_code(style['color'], loaded_styles)
-                if isinstance(color, tuple):
-                    entity.rgb = color
-                    log_debug(f"Set RGB color to: {color}")
+                color_value = style['color']
+                if isinstance(color_value, str):
+                    upper_value = color_value.upper()
+                    if upper_value == 'BYLAYER':
+                        entity.dxf.color = const.BYLAYER
+                        log_debug("Set color to: BYLAYER")
+                    elif upper_value == 'BYBLOCK':
+                        entity.dxf.color = const.BYBLOCK
+                        log_debug("Set color to: BYBLOCK")
+                    else:
+                        color = get_color_code(color_value, loaded_styles)
+                        if isinstance(color, tuple):
+                            entity.rgb = color
+                            log_debug(f"Set RGB color to: {color}")
+                        else:
+                            entity.dxf.color = color
+                            log_debug(f"Set ACI color to: {color}")
                 else:
-                    entity.dxf.color = color
-                    log_debug(f"Set ACI color to: {color}")
+                    # Handle numeric values directly
+                    entity.dxf.color = color_value
+                    log_debug(f"Set color to: {color_value}")
             else:
-                entity.dxf.color = get_color_code(DEFAULT_ENTITY_STYLE['color'], None)
+                entity.dxf.color = const.BYLAYER
+                log_debug("Set default color to: BYLAYER")
         except Exception as e:
             log_warning(f"Error setting color: {str(e)}")
         
         try:
             if 'lineweight' in style:
-                entity.dxf.lineweight = style['lineweight']
-                log_debug(f"Set lineweight to: {style['lineweight']}")
+                lineweight_value = style['lineweight']
+                # Handle special values
+                if isinstance(lineweight_value, str):
+                    upper_value = lineweight_value.upper()
+                    if upper_value == 'BYLAYER':
+                        entity.dxf.lineweight = LINEWEIGHT_BYLAYER
+                        log_debug("Set lineweight to: BYLAYER")
+                    elif upper_value == 'BYBLOCK':
+                        entity.dxf.lineweight = LINEWEIGHT_BYBLOCK
+                        log_debug("Set lineweight to: BYBLOCK")
+                    elif upper_value == 'DEFAULT':
+                        entity.dxf.lineweight = LINEWEIGHT_DEFAULT
+                        log_debug("Set lineweight to: DEFAULT")
+                    else:
+                        try:
+                            # Try to convert string to integer for numeric values
+                            entity.dxf.lineweight = int(lineweight_value)
+                            log_debug(f"Set lineweight to: {lineweight_value}")
+                        except (ValueError, TypeError):
+                            log_warning(f"Invalid lineweight value: {lineweight_value}, using default")
+                            entity.dxf.lineweight = LINEWEIGHT_DEFAULT
+                else:
+                    # Handle numeric values directly
+                    try:
+                        entity.dxf.lineweight = int(lineweight_value)
+                        log_debug(f"Set lineweight to: {lineweight_value}")
+                    except (ValueError, TypeError):
+                        log_warning(f"Invalid lineweight value: {lineweight_value}, using default")
+                        entity.dxf.lineweight = LINEWEIGHT_DEFAULT
             else:
-                entity.dxf.lineweight = DEFAULT_ENTITY_STYLE['lineweight']
+                # Use default lineweight if not specified
+                if DEFAULT_ENTITY_STYLE['lineweight'] == 'BYLAYER':
+                    entity.dxf.lineweight = LINEWEIGHT_BYLAYER
+                elif DEFAULT_ENTITY_STYLE['lineweight'] == 'BYBLOCK':
+                    entity.dxf.lineweight = LINEWEIGHT_BYBLOCK
+                elif DEFAULT_ENTITY_STYLE['lineweight'] == 'DEFAULT':
+                    entity.dxf.lineweight = LINEWEIGHT_DEFAULT
+                else:
+                    try:
+                        entity.dxf.lineweight = int(DEFAULT_ENTITY_STYLE['lineweight'])
+                    except (ValueError, TypeError):
+                        entity.dxf.lineweight = LINEWEIGHT_DEFAULT
         except Exception as e:
             log_warning(f"Error setting lineweight: {str(e)}")
         
@@ -249,21 +307,35 @@ def _apply_text_style_properties(entity, text_style, name_to_aci=None):
             log_warning(f"Error setting text height: {str(e)}")
 
         try:
-            font = text_style.get('font', DEFAULT_TEXT_STYLE['font'])
+            # Handle both 'font' and 'style' properties for backward compatibility
+            font = text_style.get('style', text_style.get('font', DEFAULT_TEXT_STYLE['font']))
             entity.dxf.style = font
-            log_debug(f"Set text font to: {font}")
+            log_debug(f"Set text style/font to: {font}")
         except Exception as e:
-            log_warning(f"Error setting text font: {str(e)}")
+            log_warning(f"Error setting text style/font: {str(e)}")
         
         # Color
         try:
-            color = get_color_code(text_style.get('color', DEFAULT_TEXT_STYLE['color']), name_to_aci)
-            if isinstance(color, tuple):
-                entity.rgb = color
-                log_debug(f"Set text RGB color to: {color}")
+            color_value = text_style.get('color', DEFAULT_TEXT_STYLE['color'])
+            if isinstance(color_value, str):
+                upper_value = color_value.upper()
+                if upper_value == 'BYLAYER':
+                    entity.dxf.color = const.BYLAYER
+                    log_debug("Set text color to: BYLAYER")
+                elif upper_value == 'BYBLOCK':
+                    entity.dxf.color = const.BYBLOCK
+                    log_debug("Set text color to: BYBLOCK")
+                else:
+                    color = get_color_code(color_value, name_to_aci)
+                    if isinstance(color, tuple):
+                        entity.rgb = color
+                        log_debug(f"Set text RGB color to: {color}")
+                    else:
+                        entity.dxf.color = color
+                        log_debug(f"Set text ACI color to: {color}")
             else:
-                entity.dxf.color = color
-                log_debug(f"Set text ACI color to: {color}")
+                entity.dxf.color = color_value
+                log_debug(f"Set text color to: {color_value}")
         except Exception as e:
             log_warning(f"Error setting text color: {str(e)}")
 

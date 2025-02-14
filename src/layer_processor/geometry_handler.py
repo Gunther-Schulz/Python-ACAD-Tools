@@ -2,7 +2,12 @@
 
 import math
 import numpy as np
-from shapely.geometry import Point, LineString, Polygon, MultiPolygon, MultiLineString, GeometryCollection
+from shapely.geometry import (
+    Point, LineString, Polygon, MultiPolygon, 
+    MultiLineString, GeometryCollection, MultiPoint
+)
+from shapely.validation import explain_validity
+from shapely.ops import unary_union, linemerge
 from src.core.utils import log_debug, log_warning, log_error
 
 class GeometryHandler:
@@ -10,6 +15,9 @@ class GeometryHandler:
         try:
             self.layer_processor = layer_processor
             self.dxf_doc = None
+            self.min_segment_length = 0.001  # Minimum length for line segments
+            self.min_area = 0.0001  # Minimum area for polygons
+            self.simplify_tolerance = 0.01  # Tolerance for geometry simplification
             log_debug("Geometry handler initialized successfully")
         except Exception as e:
             log_error(f"Error initializing geometry handler: {str(e)}")
@@ -40,59 +48,165 @@ class GeometryHandler:
     def prepare_geometry_for_dxf(self, geometry, layer_name):
         """Prepare geometry for DXF export by applying necessary transformations."""
         try:
+            if geometry is None:
+                log_warning(f"Null geometry found in layer {layer_name}")
+                return None
+                
             log_debug(f"Preparing geometry for DXF export in layer {layer_name}")
             
+            # Check validity and try to fix if invalid
+            if not geometry.is_valid:
+                reason = explain_validity(geometry)
+                log_warning(f"Invalid geometry in layer {layer_name}: {reason}")
+                geometry = self._fix_invalid_geometry(geometry, layer_name)
+                if not geometry or not geometry.is_valid:
+                    log_error(f"Could not fix invalid geometry in layer {layer_name}")
+                    return None
+            
+            # Process by geometry type
             if isinstance(geometry, (Polygon, MultiPolygon)):
-                # Ensure valid polygon geometry
-                if not geometry.is_valid:
-                    log_warning(f"Invalid polygon geometry in layer {layer_name}, attempting to fix")
-                    geometry = geometry.buffer(0)
-                    
-                # Remove tiny holes if present
-                if isinstance(geometry, Polygon):
-                    geometry = self._clean_polygon(geometry)
-                elif isinstance(geometry, MultiPolygon):
-                    geometry = MultiPolygon([self._clean_polygon(poly) for poly in geometry.geoms])
-                    
+                return self._prepare_polygon_for_dxf(geometry, layer_name)
             elif isinstance(geometry, (LineString, MultiLineString)):
-                # Simplify geometry if too complex
-                geometry = geometry.simplify(tolerance=0.01, preserve_topology=True)
-                
+                return self._prepare_linestring_for_dxf(geometry, layer_name)
+            elif isinstance(geometry, (Point, MultiPoint)):
+                return self._prepare_point_for_dxf(geometry, layer_name)
             elif isinstance(geometry, GeometryCollection):
-                # Process each geometry in the collection
-                cleaned_geoms = []
-                for geom in geometry.geoms:
-                    cleaned_geom = self.prepare_geometry_for_dxf(geom, layer_name)
-                    if cleaned_geom is not None:
-                        cleaned_geoms.append(cleaned_geom)
-                geometry = GeometryCollection(cleaned_geoms)
-                
-            return geometry
+                return self._prepare_collection_for_dxf(geometry, layer_name)
+            
+            log_warning(f"Unsupported geometry type in layer {layer_name}: {type(geometry)}")
+            return None
             
         except Exception as e:
             log_error(f"Error preparing geometry for DXF in layer {layer_name}: {str(e)}")
+            return None
+
+    def _prepare_polygon_for_dxf(self, geometry, layer_name):
+        """Prepare polygon geometry for DXF export."""
+        try:
+            # Clean the polygon(s)
+            if isinstance(geometry, Polygon):
+                cleaned = self._clean_polygon(geometry)
+                if cleaned and cleaned.area >= self.min_area:
+                    return cleaned
+            elif isinstance(geometry, MultiPolygon):
+                valid_parts = []
+                for poly in geometry.geoms:
+                    cleaned = self._clean_polygon(poly)
+                    if cleaned and cleaned.area >= self.min_area:
+                        valid_parts.append(cleaned)
+                if valid_parts:
+                    return MultiPolygon(valid_parts)
+            return None
+        except Exception as e:
+            log_error(f"Error preparing polygon for DXF in layer {layer_name}: {str(e)}")
+            return None
+
+    def _prepare_linestring_for_dxf(self, geometry, layer_name):
+        """Prepare linestring geometry for DXF export."""
+        try:
+            # Simplify and clean the line(s)
+            if isinstance(geometry, LineString):
+                if geometry.length < self.min_segment_length:
+                    return None
+                return geometry.simplify(self.simplify_tolerance, preserve_topology=True)
+            elif isinstance(geometry, MultiLineString):
+                # Try to merge connected lines
+                merged = linemerge(geometry)
+                if isinstance(merged, LineString):
+                    if merged.length < self.min_segment_length:
+                        return None
+                    return merged.simplify(self.simplify_tolerance, preserve_topology=True)
+                valid_parts = []
+                for line in merged.geoms:
+                    if line.length >= self.min_segment_length:
+                        valid_parts.append(line.simplify(self.simplify_tolerance, preserve_topology=True))
+                if valid_parts:
+                    return MultiLineString(valid_parts)
+            return None
+        except Exception as e:
+            log_error(f"Error preparing linestring for DXF in layer {layer_name}: {str(e)}")
+            return None
+
+    def _prepare_point_for_dxf(self, geometry, layer_name):
+        """Prepare point geometry for DXF export."""
+        try:
+            # Points don't need much preparation, just validation
+            if isinstance(geometry, Point):
+                return geometry
+            elif isinstance(geometry, MultiPoint):
+                if len(geometry.geoms) > 0:
+                    return geometry
+            return None
+        except Exception as e:
+            log_error(f"Error preparing point for DXF in layer {layer_name}: {str(e)}")
+            return None
+
+    def _prepare_collection_for_dxf(self, geometry, layer_name):
+        """Prepare geometry collection for DXF export."""
+        try:
+            valid_geoms = []
+            for geom in geometry.geoms:
+                prepared = self.prepare_geometry_for_dxf(geom, layer_name)
+                if prepared is not None:
+                    valid_geoms.append(prepared)
+            if valid_geoms:
+                return GeometryCollection(valid_geoms)
+            return None
+        except Exception as e:
+            log_error(f"Error preparing collection for DXF in layer {layer_name}: {str(e)}")
+            return None
+
+    def _fix_invalid_geometry(self, geometry, layer_name):
+        """Attempt to fix invalid geometry."""
+        try:
+            # Try different repair strategies
+            strategies = [
+                lambda g: g.buffer(0),  # Most common fix
+                lambda g: g.buffer(0.0000001).buffer(-0.0000001),  # More aggressive
+                lambda g: unary_union([g]),  # Try to fix self-intersections
+            ]
+            
+            for strategy in strategies:
+                try:
+                    fixed = strategy(geometry)
+                    if fixed and fixed.is_valid:
+                        log_debug(f"Successfully fixed invalid geometry in layer {layer_name}")
+                        return fixed
+                except Exception:
+                    continue
+                    
+            log_warning(f"Could not fix invalid geometry in layer {layer_name}")
+            return None
+            
+        except Exception as e:
+            log_error(f"Error fixing invalid geometry: {str(e)}")
             return None
 
     def _clean_polygon(self, polygon):
         """Clean a polygon by removing tiny holes and fixing invalid geometries."""
         try:
             if not polygon.is_valid:
-                polygon = polygon.buffer(0)
+                polygon = self._fix_invalid_geometry(polygon, "unknown")
+                if not polygon:
+                    return None
             
             # Remove holes smaller than threshold
             if len(polygon.interiors) > 0:
-                min_hole_area = polygon.area * 0.0001  # Adjust threshold as needed
-                valid_interiors = [
-                    interior for interior in polygon.interiors 
-                    if Polygon(interior).area >= min_hole_area
-                ]
-                polygon = Polygon(polygon.exterior, valid_interiors)
+                valid_interiors = []
+                for interior in polygon.interiors:
+                    hole = Polygon(interior)
+                    if hole.area >= self.min_area:
+                        valid_interiors.append(interior)
+                
+                if len(valid_interiors) != len(polygon.interiors):
+                    log_debug(f"Removed {len(polygon.interiors) - len(valid_interiors)} small holes from polygon")
+                    polygon = Polygon(polygon.exterior, valid_interiors)
                 
             return polygon
             
         except Exception as e:
             log_error(f"Error cleaning polygon: {str(e)}")
-            return polygon
+            return None
 
     def blunt_sharp_angles(self, geometry, angle_threshold, blunt_distance):
         """Blunt sharp angles in a geometry."""

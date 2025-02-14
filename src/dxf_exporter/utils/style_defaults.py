@@ -112,20 +112,55 @@ DEFAULT_PATH_ARRAY_STYLE = {
 VALID_STYLE_PROPERTIES = {
     'text': {
         'height': {'min': 0.1, 'max': 1000.0},
+        'font': {},
+        'style': {},  # Add style property for backward compatibility
+        'color': {},
+        'maxWidth': {'min': 0.1, 'max': 10000.0},
+        'attachmentPoint': {},
+        'flowDirection': {},
+        'lineSpacingStyle': {},
         'lineSpacingFactor': {'min': 0.25, 'max': 4.0},
+        'bgFill': {},
+        'bgFillColor': {},
         'bgFillScale': {'min': 1.1, 'max': 5.0},
+        'underline': {},
+        'overline': {},
+        'strikeThrough': {},
         'obliqueAngle': {'min': -85, 'max': 85},
-        'rotation': {'min': -360, 'max': 360}
+        'rotation': {'min': -360, 'max': 360},
+        'paragraph': {},
+        'alignment': {},
+        'width': {'min': 0.1, 'max': 10000.0},
+        'attachment_point': {}
     },
     'layer': {
+        'color': {},
+        'linetype': {},
         'lineweight': {'min': -3, 'max': 211},
+        'plot': {},
+        'locked': {},
+        'frozen': {},
+        'is_on': {},
         'transparency': {'min': 0, 'max': 255},
         'linetypeScale': {'min': 0.01, 'max': 1000.0}
     },
-    'hatch': {
-        'scale': {'min': 0.01, 'max': 1000.0},
+    'entity': {
+        'color': {},
+        'linetype': {},
+        'lineweight': {'min': -3, 'max': 211},
         'transparency': {'min': 0, 'max': 255},
-        'lineweight': {'min': -3, 'max': 211}
+        'linetypeScale': {'min': 0.01, 'max': 1000.0},
+        'close': {},
+        'linetypeGeneration': {}
+    },
+    'hatch': {
+        'pattern': {},
+        'scale': {'min': 0.01, 'max': 1000.0},
+        'color': {},
+        'transparency': {'min': 0, 'max': 255},
+        'lineweight': {'min': -3, 'max': 211},
+        'individual_hatches': {},
+        'layers': {}
     },
     'block': {
         'scale': {'min': 0.01, 'max': 1000.0},

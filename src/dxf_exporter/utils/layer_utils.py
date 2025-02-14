@@ -3,9 +3,15 @@
 import re
 import ezdxf
 from ezdxf.lldxf import const
+from ezdxf.lldxf.const import (
+    LINEWEIGHT_BYLAYER,
+    LINEWEIGHT_BYBLOCK,
+    LINEWEIGHT_DEFAULT
+)
 from src.core.utils import log_warning, log_info, log_error, log_debug
 from .constants import SCRIPT_IDENTIFIER
 from .style_utils import get_color_code, convert_transparency
+from .style_defaults import DEFAULT_LAYER_STYLE
 
 def ensure_layer_exists(doc, layer_name):
     """Ensure that a layer exists in the DXF document."""
@@ -32,7 +38,35 @@ def update_layer_properties(layer, layer_properties, name_to_aci):
     if 'linetype' in layer_properties:
         layer.dxf.linetype = layer_properties['linetype']
     if 'lineweight' in layer_properties:
-        layer.dxf.lineweight = layer_properties['lineweight']
+        lineweight_value = layer_properties['lineweight']
+        # Handle special values
+        if isinstance(lineweight_value, str):
+            upper_value = lineweight_value.upper()
+            if upper_value == 'BYLAYER':
+                layer.dxf.lineweight = LINEWEIGHT_BYLAYER
+                log_debug("Set layer lineweight to: BYLAYER")
+            elif upper_value == 'BYBLOCK':
+                layer.dxf.lineweight = LINEWEIGHT_BYBLOCK
+                log_debug("Set layer lineweight to: BYBLOCK")
+            elif upper_value == 'DEFAULT':
+                layer.dxf.lineweight = LINEWEIGHT_DEFAULT
+                log_debug("Set layer lineweight to: DEFAULT")
+            else:
+                try:
+                    # Try to convert string to integer for numeric values
+                    layer.dxf.lineweight = int(lineweight_value)
+                    log_debug(f"Set layer lineweight to: {lineweight_value}")
+                except (ValueError, TypeError):
+                    log_warning(f"Invalid lineweight value: {lineweight_value}, using default")
+                    layer.dxf.lineweight = LINEWEIGHT_DEFAULT
+        else:
+            # Handle numeric values directly
+            try:
+                layer.dxf.lineweight = int(lineweight_value)
+                log_debug(f"Set layer lineweight to: {lineweight_value}")
+            except (ValueError, TypeError):
+                log_warning(f"Invalid lineweight value: {lineweight_value}, using default")
+                layer.dxf.lineweight = LINEWEIGHT_DEFAULT
     if 'transparency' in layer_properties:
         transparency = convert_transparency(layer_properties['transparency'])
         if transparency is not None:

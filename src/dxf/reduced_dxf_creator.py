@@ -259,6 +259,10 @@ class ReducedDXFCreator:
                 # Get basic properties that all entities have
                 common_attribs = {
                     'layer': layer_name,
+                }
+                
+                # Get style properties from original entity
+                style = {
                     'color': entity.dxf.color if hasattr(entity.dxf, 'color') else None,
                     'linetype': entity.dxf.linetype if hasattr(entity.dxf, 'linetype') else 'CONTINUOUS',
                     'lineweight': entity.dxf.lineweight if hasattr(entity.dxf, 'lineweight') else -1,
@@ -344,6 +348,9 @@ class ReducedDXFCreator:
                     for key, value in common_attribs.items():
                         if hasattr(new_entity.dxf, key):
                             setattr(new_entity.dxf, key, value)
+                
+                # Apply style properties using our specialized function
+                apply_style_to_entity(new_entity, style, None, None)
                 
                 # Attach custom data with minimal information
                 new_entity.set_xdata(

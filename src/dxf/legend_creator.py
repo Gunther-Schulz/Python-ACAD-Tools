@@ -563,22 +563,8 @@ class LegendCreator:
                 return
         
         if isinstance(style, dict):
-            for key, value in style.items():
-                if key == 'color':
-                    color = get_color_code(value, self.project_loader.name_to_aci)
-                    if isinstance(color, tuple):
-                        entity.rgb = color
-                    else:
-                        entity.dxf.color = color
-                elif key == 'linetype':
-                    entity.dxf.linetype = value
-                elif key == 'lineweight':
-                    entity.dxf.lineweight = value
-                elif key == 'transparency':
-                    entity.transparency = convert_transparency(value)
-                # Add more properties as needed
-
-        apply_style_to_entity(entity, style, self.project_loader, self.loaded_styles)
+            # Use our specialized function to apply the style
+            apply_style_to_entity(entity, style, self.project_loader, self.loaded_styles)
 
 
 
