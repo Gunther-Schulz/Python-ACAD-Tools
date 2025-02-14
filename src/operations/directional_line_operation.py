@@ -1,6 +1,6 @@
 import geopandas as gpd
 from shapely.geometry import LineString, MultiLineString, Point, MultiPoint
-from src.utils import log_info, log_warning, log_error, log_debug
+from src.core.utils import log_info, log_warning, log_error, log_debug
 from src.operations.common_operations import _process_layer_info, _get_filtered_geometry
 import math
 

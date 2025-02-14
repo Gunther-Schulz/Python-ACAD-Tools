@@ -1,7 +1,9 @@
+"""Contour operation module."""
+
 import geopandas as gpd
 from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection, Point, MultiPoint
-from src.utils import log_info, log_warning, log_error, log_debug
-from src.contour_processor import process_contour
+from src.core.utils import log_info, log_warning, log_error, log_debug
+from src.geo.contour_processor import process_contour
 from src.operations.common_operations import _get_filtered_geometry
 from src.operations.common_operations import *
 

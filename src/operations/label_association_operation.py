@@ -3,12 +3,14 @@ from shapely.ops import nearest_points
 from shapely.geometry import Point, LineString, Polygon, MultiPolygon
 import geopandas as gpd
 from src.operations.common_operations import _get_filtered_geometry, _process_layer_info, format_operation_warning
-from src.utils import log_debug, log_warning, log_info
+from src.core.utils import log_debug, log_warning, log_info
 import math
 import numpy as np
 from src.dxf_exporter.style_manager import StyleManager
 import networkx as nx
 from ..dxf_exporter.utils.style_defaults import DEFAULT_TEXT_STYLE
+import pandas as pd
+import ezdxf
 
 
 def get_line_placement_positions(line, text_width, text_height, step=None):

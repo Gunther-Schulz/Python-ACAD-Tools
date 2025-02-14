@@ -1,6 +1,8 @@
+"""Dissolve operation module."""
+
 import geopandas as gpd
 from shapely.ops import unary_union
-from src.utils import log_info, log_warning, log_debug
+from src.core.utils import log_info, log_warning, log_debug
 from src.operations.common_operations import format_operation_warning, explode_to_singlepart, apply_buffer_trick, make_valid_geometry, _merge_close_vertices, snap_vertices_to_grid
 import pandas as pd
 

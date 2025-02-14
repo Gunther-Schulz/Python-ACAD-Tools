@@ -1,8 +1,10 @@
+"""Buffer operation module."""
+
 import geopandas as gpd
 from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection, Point, MultiPoint
-from src.utils import log_info, log_warning, log_error, log_debug
+from src.core.utils import log_info, log_warning, log_error, log_debug
 from shapely.ops import unary_union, split
-from src.operations.common_operations import _process_layer_info, _get_filtered_geometry, make_valid_geometry, format_operation_warning, remove_islands
+from src.operations.common_operations import _process_layer_info, _get_filtered_geometry, make_valid_geometry, format_operation_warning, remove_islands, explode_to_singlepart
 from src.operations.common_operations import *
 
 

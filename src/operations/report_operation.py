@@ -1,8 +1,10 @@
+"""Report operation module."""
+
 import geopandas as gpd
 import json
 import yaml  # Add this import at the top with other imports
 import os
-from src.utils import log_info, log_warning, log_error, resolve_path, ensure_path_exists, log_debug
+from src.core.utils import log_info, log_warning, log_error, resolve_path, ensure_path_exists, log_debug
 from src.operations.common_operations import _process_layer_info, ensure_geodataframe
 from src.operations.calculate_operation import create_calculate_layer
 

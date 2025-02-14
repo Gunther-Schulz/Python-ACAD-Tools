@@ -61,8 +61,8 @@ geomLayers:
     updateDxf: true
     close: true
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/input/wald.shp"
-    # operations:
-    #   - type: dissolve
+    operations:
+      - type: dissolve
     viewports:
       - name: WorkView
         style: wald

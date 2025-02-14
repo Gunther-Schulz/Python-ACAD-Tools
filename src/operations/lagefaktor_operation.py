@@ -1,9 +1,12 @@
+"""Lagefaktor operation module."""
+
 import geopandas as gpd
 import pandas as pd
-from src.utils import log_debug, log_warning, log_error, log_info, resolve_path
+from src.core.utils import log_debug, log_warning, log_error, log_info, resolve_path
 import yaml
 import os
 from openpyxl.styles import Alignment, Font, PatternFill
+from src.operations.common_operations import format_operation_warning, _process_layer_info, _get_filtered_geometry
 
 def create_lagefaktor_layer(all_layers, project_settings, crs, layer_name, operation):
     """Process Lagefaktor calculations for construction and compensatory areas."""

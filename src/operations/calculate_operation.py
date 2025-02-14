@@ -1,5 +1,5 @@
 import geopandas as gpd
-from src.utils import log_info, log_warning, log_error, log_debug
+from src.core.utils import log_info, log_warning, log_error, log_debug
 import decimal
 from decimal import Decimal, ROUND_HALF_UP
 

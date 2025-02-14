@@ -1,6 +1,6 @@
 import geopandas as gpd
 from shapely.geometry import Point, LineString, Polygon, MultiPolygon, MultiLineString, MultiPoint
-from src.utils import log_info, log_warning, log_error, log_debug
+from src.core.utils import log_info, log_warning, log_error, log_debug
 from src.operations.common_operations import _process_layer_info, _get_filtered_geometry, format_operation_warning
 
 def create_circle_layer(all_layers, project_settings, crs, layer_name, operation):

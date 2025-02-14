@@ -1,8 +1,10 @@
+"""Merge operation module."""
+
 import geopandas as gpd
 from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection, Point, MultiPoint
-from src.utils import log_info, log_warning, log_error, log_debug
+from src.core.utils import log_info, log_warning, log_error, log_debug
 from shapely.ops import unary_union
-from src.operations.common_operations import _process_layer_info, _get_filtered_geometry, make_valid_geometry
+from src.operations.common_operations import _process_layer_info, _get_filtered_geometry, make_valid_geometry, format_operation_warning
 from src.operations.common_operations import *
 
 def create_merged_layer(all_layers, project_settings, crs, layer_name, operation):

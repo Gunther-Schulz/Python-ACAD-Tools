@@ -2,7 +2,7 @@ import os
 import geopandas as gpd
 import traceback
 from src.dump_to_shape import merge_dxf_layer_to_shapefile
-from src.utils import log_info, log_warning, log_error
+from src.core.utils import log_info, log_warning, log_error
 
 def load_dxf_layer(layer_name, dxf_layer_name, dxf_doc, project_loader, crs):
     try:

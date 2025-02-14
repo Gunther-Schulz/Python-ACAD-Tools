@@ -4,13 +4,15 @@ import sys
 import argparse
 import os
 import traceback
+from typing import Optional, Any
 
 from src.core.utils import (
     log_info, log_warning, log_error,
     create_sample_project, log_debug, setup_logging, 
     setup_proj, set_log_level, ensure_path_exists
 )
-from src.core.project_loader import ProjectLoader, ServiceContainer
+from src.core.project_loader import ProjectLoader
+from src.core.service_management import create_default_container
 from src.layer_processor import LayerProcessor
 from src.dxf_exporter.exporter import DXFExporter
 from src.dxf_exporter.utils import cleanup_document
@@ -21,7 +23,7 @@ from src.dxf_exporter.layer_manager import LayerManager
 class ProjectProcessor:
     """Main project processor coordinating the processing pipeline."""
     
-    def __init__(self, project_name: str, plot_ops=False):
+    def __init__(self, project_name: str, plot_ops: bool = False):
         """Initialize the project processor.
         
         Args:
@@ -29,13 +31,13 @@ class ProjectProcessor:
             plot_ops: Whether to plot operations (default: False)
         """
         try:
-            # Initialize project loader and service container
+            # Initialize project loader
             self.project_loader = ProjectLoader(project_name)
             if not self.project_loader.project_settings:
                 raise ValueError(f"Could not load settings for project '{project_name}'. Please check if the project files exist and are valid YAML.")
             
             # Create service container with default services
-            self.service_container = ServiceContainer.create_default(self.project_loader)
+            self.service_container = create_default_container(self.project_loader)
             
             # Initialize processors with service container
             self.layer_processor = LayerProcessor(
@@ -55,7 +57,7 @@ class ProjectProcessor:
         except Exception as e:
             self._handle_initialization_error(project_name, e)
             
-    def _handle_initialization_error(self, project_name, error):
+    def _handle_initialization_error(self, project_name: str, error: Exception):
         """Handle initialization errors with detailed reporting."""
         available_projects = list_available_projects()
         error_msg = f"Error initializing project '{project_name}': {str(error)}\n"
@@ -73,27 +75,37 @@ class ProjectProcessor:
 
     def run(self):
         """Run the complete processing pipeline."""
-        # Load the document and process DXF operations early
-        doc = self.dxf_exporter._load_or_create_dxf(skip_dxf_processor=False)
-        self.layer_processor.set_dxf_document(doc)
-        self.layer_processor.process_layers()
-        self.dxf_exporter.export_to_dxf()
-        
-        self._handle_shapefile_dump()
+        try:
+            # Load the document and process DXF operations early
+            doc = self.dxf_exporter._load_or_create_dxf(skip_dxf_processor=False)
+            self.layer_processor.set_dxf_document(doc)
+            self.layer_processor.process_layers()
+            self.dxf_exporter.export_to_dxf()
+            
+            self._handle_shapefile_dump()
+        except Exception as e:
+            log_error(f"Error during processing: {str(e)}")
+            log_error(f"Traceback:\n{traceback.format_exc()}")
+            raise
 
-    def process(self):
+    def process(self) -> Optional[Any]:
         """Process the project and return the document."""
-        # Load the document and process DXF operations early
-        doc = self.dxf_exporter._load_or_create_dxf(skip_dxf_processor=False)
-        self.layer_processor.set_dxf_document(doc)
-        self.layer_processor.process_layers()
-        
-        # Pass skip_dxf_processor=True to avoid second processing
-        self.dxf_exporter.export_to_dxf(skip_dxf_processor=True)
-        
-        # Store and return the document reference
-        self.doc = doc
-        return doc
+        try:
+            # Load the document and process DXF operations early
+            doc = self.dxf_exporter._load_or_create_dxf(skip_dxf_processor=False)
+            self.layer_processor.set_dxf_document(doc)
+            self.layer_processor.process_layers()
+            
+            # Pass skip_dxf_processor=True to avoid second processing
+            self.dxf_exporter.export_to_dxf(skip_dxf_processor=True)
+            
+            # Store and return the document reference
+            self.doc = doc
+            return doc
+        except Exception as e:
+            log_error(f"Error during processing: {str(e)}")
+            log_error(f"Traceback:\n{traceback.format_exc()}")
+            raise
         
     def _handle_shapefile_dump(self):
         """Handle dumping DXF to shapefiles if configured."""

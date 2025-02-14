@@ -22,7 +22,7 @@ from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString,
 import matplotlib.pyplot as plt
 import geopandas as gpd
 from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection
-from src.utils import log_info, log_warning, log_error, log_debug
+from src.core.utils import log_info, log_warning, log_error, log_debug
 
 
 

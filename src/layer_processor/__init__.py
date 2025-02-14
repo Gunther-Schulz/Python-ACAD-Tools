@@ -1,5 +1,6 @@
 """Main layer processor module."""
 
+from typing import Dict, Optional, Set, Any
 from src.core.utils import log_debug, log_warning, log_error
 from src.dxf_exporter.style_manager import StyleManager
 from src.dxf_exporter.layer_manager import LayerManager
@@ -7,133 +8,11 @@ from .shapefile_handler import ShapefileHandler
 from .geometry_handler import GeometryHandler
 from .style_handler import StyleHandler
 from .layer_utils import is_wmts_or_wms_layer
-
-class OperationManager:
-    """Manages layer operations and their execution."""
-    
-    def __init__(self, layer_processor):
-        self.layer_processor = layer_processor
-        self.all_layers = layer_processor.all_layers
-        self.project_settings = layer_processor.project_settings
-        self.crs = layer_processor.crs
-        
-    def process_operation(self, layer_name, operation, processed_layers, processing_stack):
-        """Process a single operation for a layer."""
-        operation_type = operation.get('type', '').lower()
-        
-        operation_handlers = {
-            'copy': self._handle_copy_operation,
-            'buffer': self._handle_buffer_operation,
-            'difference': self._handle_difference_operation,
-            'intersection': self._handle_intersection_operation,
-            'filter': self._handle_filter_operation,
-            'wmts': self._handle_wmts_operation,
-            'wms': self._handle_wms_operation,
-            'merge': self._handle_merge_operation,
-            'smooth': self._handle_smooth_operation,
-            'contour': self._handle_contour_operation,
-            'dissolve': self._handle_dissolve_operation,
-            'calculate': self._handle_calculate_operation,
-            'directional_line': self._handle_directional_line_operation,
-            'circle': self._handle_circle_operation,
-            'connect_points': self._handle_connect_points_operation,
-            'envelope': self._handle_envelope_operation,
-            'label_association': self._handle_label_association_operation,
-            'filter_by_column': self._handle_filter_by_column_operation,
-            'filter_geometry': self._handle_filter_geometry_operation,
-            'report': self._handle_report_operation,
-            'lagefaktor': self._handle_lagefaktor_operation
-        }
-        
-        handler = operation_handlers.get(operation_type)
-        if not handler:
-            raise ValueError(f"Unknown operation type: {operation_type}")
-            
-        return handler(layer_name, operation)
-        
-    def _handle_copy_operation(self, layer_name, operation):
-        from src.operations import create_copy_layer
-        return create_copy_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
-        
-    def _handle_buffer_operation(self, layer_name, operation):
-        from src.operations import create_buffer_layer
-        return create_buffer_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
-        
-    def _handle_difference_operation(self, layer_name, operation):
-        from src.operations import create_difference_layer
-        return create_difference_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
-        
-    def _handle_intersection_operation(self, layer_name, operation):
-        from src.operations import create_intersection_layer
-        return create_intersection_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
-        
-    def _handle_filter_operation(self, layer_name, operation):
-        from src.operations import create_filtered_by_intersection_layer
-        return create_filtered_by_intersection_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
-        
-    def _handle_wmts_operation(self, layer_name, operation):
-        from src.operations import process_wmts_or_wms_layer
-        return process_wmts_or_wms_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
-        
-    def _handle_wms_operation(self, layer_name, operation):
-        from src.operations import process_wmts_or_wms_layer
-        return process_wmts_or_wms_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
-        
-    def _handle_merge_operation(self, layer_name, operation):
-        from src.operations import create_merged_layer
-        return create_merged_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
-        
-    def _handle_smooth_operation(self, layer_name, operation):
-        from src.operations import create_smooth_layer
-        return create_smooth_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
-        
-    def _handle_contour_operation(self, layer_name, operation):
-        from src.operations import _handle_contour_operation
-        return _handle_contour_operation(self.all_layers, self.project_settings, self.crs, layer_name, operation)
-        
-    def _handle_dissolve_operation(self, layer_name, operation):
-        from src.operations import create_dissolved_layer
-        return create_dissolved_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
-        
-    def _handle_calculate_operation(self, layer_name, operation):
-        from src.operations import create_calculate_layer
-        return create_calculate_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
-        
-    def _handle_directional_line_operation(self, layer_name, operation):
-        from src.operations import create_directional_line_layer
-        return create_directional_line_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
-        
-    def _handle_circle_operation(self, layer_name, operation):
-        from src.operations import create_circle_layer
-        return create_circle_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
-        
-    def _handle_connect_points_operation(self, layer_name, operation):
-        from src.operations import create_connect_points_layer
-        return create_connect_points_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
-        
-    def _handle_envelope_operation(self, layer_name, operation):
-        from src.operations import create_envelope_layer
-        return create_envelope_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
-        
-    def _handle_label_association_operation(self, layer_name, operation):
-        from src.operations import create_label_association_layer
-        return create_label_association_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation, self.layer_processor.project_loader)
-        
-    def _handle_filter_by_column_operation(self, layer_name, operation):
-        from src.operations import create_filtered_by_column_layer
-        return create_filtered_by_column_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
-        
-    def _handle_filter_geometry_operation(self, layer_name, operation):
-        from src.operations.filter_geometry_operation import create_filtered_geometry_layer
-        return create_filtered_geometry_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
-        
-    def _handle_report_operation(self, layer_name, operation):
-        from src.operations.report_operation import create_report_layer
-        return create_report_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
-        
-    def _handle_lagefaktor_operation(self, layer_name, operation):
-        from src.operations.lagefaktor_operation import create_lagefaktor_layer
-        return create_lagefaktor_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
+from .operation_management import (
+    OperationContext,
+    OperationRegistry,
+    create_default_registry
+)
 
 class LayerProcessor:
     """Main class for processing layers and their operations."""
@@ -151,7 +30,7 @@ class LayerProcessor:
         self.crs = project_loader.crs
         self.all_layers = {}
         self.plot_ops = plot_ops
-        self.processed_layers = set()
+        self.processed_layers: Set[str] = set()
         self.dxf_doc = None
         
         # Get services from container if provided, otherwise create new instances
@@ -168,7 +47,7 @@ class LayerProcessor:
             self.style_manager = StyleManager(project_loader)
             self.layer_manager = LayerManager(project_loader, self.style_manager)
         
-        # Initialize handlers
+        # Initialize handlers and operation registry
         self._init_handlers()
         
     def _init_handlers(self):
@@ -176,7 +55,15 @@ class LayerProcessor:
         self.shapefile_handler = ShapefileHandler(self)
         self.geometry_handler = GeometryHandler(self)
         self.style_handler = StyleHandler(self)
-        self.operation_manager = OperationManager(self)
+        
+        # Initialize operation management
+        self.operation_registry = create_default_registry()
+        self.operation_context = OperationContext(
+            self,
+            self.all_layers,
+            self.project_settings,
+            self.crs
+        )
         
     def set_dxf_document(self, doc):
         """Set the DXF document reference."""
@@ -206,7 +93,7 @@ class LayerProcessor:
         """Cleanup after processing is complete."""
         self.shapefile_handler.delete_residual_shapefiles()
 
-    def process_layer(self, layer, processed_layers, processing_stack=None):
+    def process_layer(self, layer: Dict, processed_layers: Set[str], processing_stack: Optional[list] = None):
         """Process a single layer and its dependencies.
         
         Args:
@@ -237,13 +124,13 @@ class LayerProcessor:
         finally:
             processing_stack.remove(layer_name)
             
-    def _process_layer_operations(self, layer_name, layer, processed_layers, processing_stack):
+    def _process_layer_operations(self, layer_name: str, layer: Dict, processed_layers: Set[str], processing_stack: list):
         """Process operations for a single layer."""
         if 'operations' in layer:
             for operation in layer['operations']:
                 self.process_operation(layer_name, operation, processed_layers, processing_stack)
                 
-    def _handle_shapefile_output(self, layer_name, layer):
+    def _handle_shapefile_output(self, layer_name: str, layer: Dict):
         """Handle shapefile output for a processed layer."""
         should_write_shapefile = (
             layer_name in self.all_layers and
@@ -257,6 +144,20 @@ class LayerProcessor:
             log_debug(f"Writing shapefile for processed layer: {layer_name}")
             self.shapefile_handler.write_shapefile(layer_name)
 
-    def process_operation(self, layer_name, operation, processed_layers, processing_stack):
+    def process_operation(self, layer_name: str, operation: Dict, processed_layers: Set[str], processing_stack: list) -> Any:
         """Process a single operation for a layer."""
-        return self.operation_manager.process_operation(layer_name, operation, processed_layers, processing_stack) 
+        operation_type = operation.get('type', '').lower()
+        
+        # Get the appropriate handler
+        handler_class = self.operation_registry.get_handler(operation_type)
+        if not handler_class:
+            raise ValueError(f"Unknown operation type: {operation_type}")
+            
+        # Create and use the handler
+        handler = handler_class(self.operation_context)
+        result = handler.handle(layer_name, operation)
+        
+        # Store the result
+        self.all_layers[layer_name] = result
+        
+        return result 

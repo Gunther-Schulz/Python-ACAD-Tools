@@ -1,6 +1,6 @@
 import geopandas as gpd
 from shapely.geometry import Polygon, box
-from src.utils import log_info, log_warning, log_debug
+from src.core.utils import log_info, log_warning, log_debug
 from src.operations.common_operations import _process_layer_info, format_operation_warning
 
 def create_bounding_box_layer(all_layers, project_settings, crs, layer_name, operation):

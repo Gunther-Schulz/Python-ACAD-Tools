@@ -1,8 +1,8 @@
 import geopandas as gpd
 import numpy as np
-from shapely.geometry import box, MultiPolygon, Polygon, LineString, Point
+from shapely.geometry import box, MultiPolygon, Polygon, LineString, Point, MultiLineString, GeometryCollection
 from shapely.ops import unary_union
-from src.utils import log_info, log_warning, log_debug
+from src.core.utils import log_info, log_warning, log_debug
 from src.operations.common_operations import _process_layer_info, format_operation_warning
 from scipy.spatial import distance
 

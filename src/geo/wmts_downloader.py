@@ -15,7 +15,8 @@ import cv2
 import easyocr
 import traceback
 # import logging
-import src.easyocr_patch
+import src.core.easyocr_patch
+import geopandas as gpd
 
 # This will also log INFO
 # logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
