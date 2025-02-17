@@ -17,6 +17,42 @@ class GeometryProcessor:
         """Add geometries to DXF modelspace"""
         log_debug(f"Adding geometries to DXF for layer: {layer_name}")
         
+        # Check if this is a hatch layer that references other geometries
+        layer_info = self.layer_manager.all_layers.get(layer_name, {})
+        if 'hatchGeometry' in layer_info:
+            log_debug(f"Processing hatch layer {layer_name}")
+            # Get the referenced layers' geometries
+            reference_layers = layer_info['hatchGeometry'].get('layers', [])
+            if not reference_layers:
+                log_warning(f"No reference layers specified for hatch layer {layer_name}")
+                return
+
+            # For each referenced layer, create hatches using its geometry
+            for ref_layer_name in reference_layers:
+                log_debug(f"Getting geometry from referenced layer {ref_layer_name}")
+                ref_geo_data = self.project_loader.get_layer_geometry(ref_layer_name)
+                if ref_geo_data is None:
+                    log_warning(f"No geometry data found for referenced layer {ref_layer_name}")
+                    continue
+                
+                # Process each geometry and create a hatch
+                if isinstance(ref_geo_data, gpd.GeoDataFrame):
+                    geometries = ref_geo_data.geometry
+                elif isinstance(ref_geo_data, gpd.GeoSeries):
+                    geometries = ref_geo_data
+                else:
+                    log_warning(f"Unexpected data type for referenced layer {ref_layer_name}: {type(ref_geo_data)}")
+                    continue
+
+                log_debug(f"Creating hatches for {len(geometries)} geometries from {ref_layer_name}")
+                for geometry in geometries:
+                    if isinstance(geometry, Polygon):
+                        self._create_hatch_from_geometry(msp, geometry, layer_name)
+                    elif isinstance(geometry, MultiPolygon):
+                        for polygon in geometry.geoms:
+                            self._create_hatch_from_geometry(msp, polygon, layer_name)
+            return
+
         if geo_data is None:
             log_debug(f"No geometry data available for layer: {layer_name}")
             return
@@ -225,3 +261,55 @@ class GeometryProcessor:
             if len(geometry.geoms) > 0:
                 return self.get_geometry_centroid(geometry.geoms[0])
         return None
+
+    def _create_hatch_from_geometry(self, msp, geometry, layer_name):
+        """Create a hatch entity from a geometry"""
+        log_debug(f"Creating hatch in layer {layer_name}")
+        
+        # Create hatch entity
+        hatch = msp.add_hatch(color=1)  # Default color, will be overridden by layer
+        hatch.dxf.layer = layer_name
+        
+        # Add the boundary paths
+        # Add exterior boundary
+        exterior_coords = list(geometry.exterior.coords)
+        if len(exterior_coords) > 2:
+            hatch.paths.add_polyline_path(exterior_coords, is_closed=True)
+            log_debug(f"Added exterior boundary with {len(exterior_coords)} points")
+        
+        # Add interior boundaries
+        for interior in geometry.interiors:
+            interior_coords = list(interior.coords)
+            if len(interior_coords) > 2:
+                hatch.paths.add_polyline_path(interior_coords, is_closed=True)
+                log_debug(f"Added interior boundary with {len(interior_coords)} points")
+        
+        # Get and apply hatch properties from style
+        hatch_properties = self.layer_manager.get_layer_properties(layer_name)
+        if hatch_properties and 'layer' in hatch_properties:
+            hatch_props = hatch_properties['layer']
+            log_debug(f"Applying hatch properties: {hatch_props}")
+            
+            if 'pattern' in hatch_props:
+                hatch.pattern_name = hatch_props['pattern']
+                log_debug(f"Set hatch pattern to {hatch_props['pattern']}")
+            if 'scale' in hatch_props:
+                hatch.dxf.pattern_scale = hatch_props['scale']
+                log_debug(f"Set hatch scale to {hatch_props['scale']}")
+            if 'color' in hatch_props:
+                color = get_color_code(hatch_props['color'], self.layer_manager.name_to_aci)
+                if isinstance(color, tuple):
+                    hatch.rgb = color
+                else:
+                    hatch.dxf.color = color
+                log_debug(f"Set hatch color to {color}")
+            if 'transparency' in hatch_props:
+                transparency = convert_transparency(hatch_props['transparency'])
+                if transparency is not None:
+                    hatch.transparency = transparency
+                    log_debug(f"Set hatch transparency to {transparency}")
+        else:
+            log_warning(f"No hatch properties found for layer {layer_name}")
+        
+        attach_custom_data(hatch, self.script_identifier)
+        log_debug(f"Completed hatch creation for layer {layer_name}")

@@ -58,31 +58,21 @@ class LayerManager:
             # Get the style from style manager
             style, warning = self.style_manager.get_style(style_name)
             
-            if style and 'layer' in style:
-                # Store the layer properties
-                self.layer_properties[layer_name] = {
-                    'layer': style['layer'],
-                    'entity': style.get('entity', {})
-                }
+            if style:
+                # For hatch layers, use the hatch section if available
+                if 'hatchGeometry' in layer and 'hatch' in style:
+                    self.layer_properties[layer_name] = {
+                        'layer': style['hatch'],
+                        'entity': style.get('entity', {})
+                    }
+                elif 'layer' in style:
+                    self.layer_properties[layer_name] = {
+                        'layer': style['layer'],
+                        'entity': style.get('entity', {})
+                    }
 
-                # Handle hatches if they exist
-                if 'hatches' in layer:
-                    for hatch in layer['hatches']:
-                        hatch_layer_name = hatch['name']
-                        
-                        # Use hatch's style if specified, otherwise use parent layer's style
-                        hatch_style_name = hatch.get('style', style_name)
-                        
-                        hatch_style, _ = self.style_manager.get_style(hatch_style_name)
-                        
-                        if hatch_style:
-                            # For hatches, use either the 'hatch' section or the 'layer' section
-                            hatch_props = hatch_style.get('hatch', hatch_style.get('layer', {}))
-                            
-                            self.layer_properties[hatch_layer_name] = {
-                                'layer': hatch_props,
-                                'entity': hatch_style.get('entity', {})
-                            }
+                # Store the full layer info for later use
+                self.all_layers[layer_name] = layer
         else:
             self.layer_properties[layer_name] = {
                 'layer': self.default_layer_style.copy(),
