@@ -3,7 +3,7 @@
 from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, Point, GeometryCollection
 import geopandas as gpd
 from src.core.utils import log_debug, log_warning
-from .utils import attach_custom_data
+from .utils import attach_custom_data, get_color_code, convert_transparency
 from ezdxf.lldxf.const import LWPOLYLINE_PLINEGEN
 
 class GeometryProcessor:
@@ -49,12 +49,8 @@ class GeometryProcessor:
 
     def add_polygon_to_dxf(self, msp, geometry, layer_name, entity_name=None):
         """Add a polygon geometry to DXF"""
-        log_debug(f"=== Starting polygon creation for layer {layer_name} ===")
         layer_properties = self.layer_manager.get_layer_properties(layer_name)
-        log_debug(f"Full layer properties: {layer_properties}")
-        
         entity_properties = layer_properties.get('entity', {})
-        log_debug(f"Layer {layer_name} - Entity properties: {entity_properties}")
         
         # Prepare initial attributes
         dxfattribs = {
@@ -64,90 +60,85 @@ class GeometryProcessor:
         
         # Add linetype scale to initial attributes
         if 'linetypeScale' in entity_properties:
-            ltscale = float(entity_properties['linetypeScale'])
-            dxfattribs['ltscale'] = ltscale
-            log_debug(f"Setting initial ltscale={ltscale} for layer {layer_name}")
+            dxfattribs['ltscale'] = float(entity_properties['linetypeScale'])
         
-        log_debug(f"Initial dxfattribs: {dxfattribs}")
-        
+        # Create the main polyline
         exterior_coords = list(geometry.exterior.coords)
         if len(exterior_coords) > 2:
-            log_debug(f"Creating polyline with attributes: {dxfattribs}")
             polyline = msp.add_lwpolyline(exterior_coords, dxfattribs=dxfattribs)
-            
-            # Verify the linetype scale was set
-            try:
-                actual_ltscale = polyline.dxf.ltscale
-                log_debug(f"Actual ltscale after creation: {actual_ltscale}")
-            except Exception as e:
-                log_warning(f"Could not read ltscale after creation: {str(e)}")
             
             # Set linetype generation after creation
             if 'linetypeGeneration' in entity_properties:
                 try:
-                    original_flags = polyline.dxf.flags
-                    log_debug(f"Original flags: {original_flags}")
-                    
                     if entity_properties['linetypeGeneration']:
                         polyline.dxf.flags |= LWPOLYLINE_PLINEGEN
                     else:
                         polyline.dxf.flags &= ~LWPOLYLINE_PLINEGEN
-                    
-                    new_flags = polyline.dxf.flags
-                    log_debug(f"New flags after setting linetypeGeneration: {new_flags}")
-                    log_debug(f"PLINEGEN bit is {'set' if new_flags & LWPOLYLINE_PLINEGEN else 'not set'}")
                 except Exception as e:
                     log_warning(f"Could not set linetype generation for polyline. Error: {str(e)}")
             
             attach_custom_data(polyline, self.script_identifier, entity_name)
-            
-            # Final verification
-            log_debug(f"=== Final polyline state ===")
-            log_debug(f"ltscale: {getattr(polyline.dxf, 'ltscale', 'Not set')}")
-            log_debug(f"flags: {getattr(polyline.dxf, 'flags', 'Not set')}")
-            log_debug(f"layer: {getattr(polyline.dxf, 'layer', 'Not set')}")
-            log_debug(f"=== End final state ===")
+            msp.last_geometry = polyline
 
+        # Add interior rings
         for interior in geometry.interiors:
             interior_coords = list(interior.coords)
             if len(interior_coords) > 2:
-                log_debug(f"Creating interior polyline with attributes: {dxfattribs}")
                 polyline = msp.add_lwpolyline(interior_coords, dxfattribs=dxfattribs)
-                
-                # Verify the linetype scale was set
-                try:
-                    actual_ltscale = polyline.dxf.ltscale
-                    log_debug(f"Actual ltscale after creation (interior): {actual_ltscale}")
-                except Exception as e:
-                    log_warning(f"Could not read ltscale after creation (interior): {str(e)}")
                 
                 # Set linetype generation after creation
                 if 'linetypeGeneration' in entity_properties:
                     try:
-                        original_flags = polyline.dxf.flags
-                        log_debug(f"Original flags (interior): {original_flags}")
-                        
                         if entity_properties['linetypeGeneration']:
                             polyline.dxf.flags |= LWPOLYLINE_PLINEGEN
                         else:
                             polyline.dxf.flags &= ~LWPOLYLINE_PLINEGEN
-                        
-                        new_flags = polyline.dxf.flags
-                        log_debug(f"New flags after setting linetypeGeneration (interior): {new_flags}")
-                        log_debug(f"PLINEGEN bit is {'set' if new_flags & LWPOLYLINE_PLINEGEN else 'not set'}")
                     except Exception as e:
                         log_warning(f"Could not set linetype generation for interior polyline. Error: {str(e)}")
                 
                 attach_custom_data(polyline, self.script_identifier, entity_name)
+
+        # Get layer info to check for hatches
+        layer_info = self.layer_manager.all_layers.get(layer_name, {})
+        if 'hatches' in layer_info:
+            for hatch_info in layer_info['hatches']:
+                hatch_layer_name = hatch_info['name']
                 
-                # Final verification for interior
-                log_debug(f"=== Final interior polyline state ===")
-                log_debug(f"ltscale: {getattr(polyline.dxf, 'ltscale', 'Not set')}")
-                log_debug(f"flags: {getattr(polyline.dxf, 'flags', 'Not set')}")
-                log_debug(f"layer: {getattr(polyline.dxf, 'layer', 'Not set')}")
-                log_debug(f"=== End final state ===")
-        
-        log_debug(f"=== Completed polygon creation for layer {layer_name} ===\n")
+                # Create hatch entity
+                hatch = msp.add_hatch(color=1)  # Default color, will be overridden by layer
+                hatch.dxf.layer = hatch_layer_name
+                
+                # Add the boundary paths
+                # Add exterior boundary
+                if len(exterior_coords) > 2:
+                    hatch.paths.add_polyline_path(exterior_coords, is_closed=True)
+                
+                # Add interior boundaries
+                for interior in geometry.interiors:
+                    interior_coords = list(interior.coords)
+                    if len(interior_coords) > 2:
+                        hatch.paths.add_polyline_path(interior_coords, is_closed=True)
+                
+                # Get and apply hatch properties from style
+                hatch_properties = self.layer_manager.get_layer_properties(hatch_layer_name)
+                if hatch_properties and 'layer' in hatch_properties:
+                    hatch_props = hatch_properties['layer']
+                    if 'pattern' in hatch_props:
+                        hatch.pattern_name = hatch_props['pattern']
+                    if 'scale' in hatch_props:
+                        hatch.dxf.pattern_scale = hatch_props['scale']
+                    if 'color' in hatch_props:
+                        color = get_color_code(hatch_props['color'], self.layer_manager.name_to_aci)
+                        if isinstance(color, tuple):
+                            hatch.rgb = color
+                        else:
+                            hatch.dxf.color = color
+                    if 'transparency' in hatch_props:
+                        transparency = convert_transparency(hatch_props['transparency'])
+                        if transparency is not None:
+                            hatch.transparency = transparency
+                
+                attach_custom_data(hatch, self.script_identifier, entity_name)
 
     def add_linestring_to_dxf(self, msp, geometry, layer_name):
         """Add a LineString geometry to DXF"""

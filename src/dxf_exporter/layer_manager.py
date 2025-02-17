@@ -3,7 +3,7 @@
 import ezdxf
 from src.core.utils import log_debug, log_warning
 from .utils import ensure_layer_exists, update_layer_properties, sanitize_layer_name
-from .utils.style_defaults import DEFAULT_LAYER_STYLE
+from .utils.style_defaults import DEFAULT_LAYER_STYLE, DEFAULT_ENTITY_STYLE
 
 class LayerManager:
     def __init__(self, project_loader, style_manager):
@@ -15,6 +15,7 @@ class LayerManager:
         self.all_layers = {}
         self.doc = None
         self.default_layer_style = DEFAULT_LAYER_STYLE.copy()
+        self.default_entity_style = DEFAULT_ENTITY_STYLE.copy()
         self.setup_layers()
 
     def setup_layers(self):
@@ -25,6 +26,9 @@ class LayerManager:
         # Setup geom layers
         for layer in self.project_loader.project_settings['geomLayers']:
             self._setup_single_layer(layer)
+            
+            # Store the full layer info for later use when creating layers
+            self.all_layers[layer['name']] = layer
             
             # Also setup properties for any layers created through operations
             if 'operations' in layer:
@@ -60,6 +64,25 @@ class LayerManager:
                     'layer': style['layer'],
                     'entity': style.get('entity', {})
                 }
+
+                # Handle hatches if they exist
+                if 'hatches' in layer:
+                    for hatch in layer['hatches']:
+                        hatch_layer_name = hatch['name']
+                        
+                        # Use hatch's style if specified, otherwise use parent layer's style
+                        hatch_style_name = hatch.get('style', style_name)
+                        
+                        hatch_style, _ = self.style_manager.get_style(hatch_style_name)
+                        
+                        if hatch_style:
+                            # For hatches, use either the 'hatch' section or the 'layer' section
+                            hatch_props = hatch_style.get('hatch', hatch_style.get('layer', {}))
+                            
+                            self.layer_properties[hatch_layer_name] = {
+                                'layer': hatch_props,
+                                'entity': hatch_style.get('entity', {})
+                            }
         else:
             self.layer_properties[layer_name] = {
                 'layer': self.default_layer_style.copy(),
@@ -102,6 +125,10 @@ class LayerManager:
 
     def ensure_layer_exists(self, doc, layer_name, layer_info=None):
         """Ensure a layer exists in the document"""
+        # Get the full layer info from stored layers if not provided
+        if layer_info is None:
+            layer_info = self.all_layers.get(layer_name, {})
+            
         if layer_name not in doc.layers:
             self.create_new_layer(doc, None, layer_name, layer_info, add_geometry=False)
         else:
@@ -123,6 +150,13 @@ class LayerManager:
         if properties and 'layer' in properties:
             layer_props = properties['layer']
             update_layer_properties(layer, layer_props, self.name_to_aci)
+
+        # Create hatch layers if this is a main layer
+        if layer_info and 'hatches' in layer_info:
+            for hatch in layer_info['hatches']:
+                hatch_layer_name = hatch['name']
+                # Create the hatch layer with its own layer info
+                self.create_new_layer(doc, msp, hatch_layer_name, hatch, add_geometry=False)
         
         return layer
 

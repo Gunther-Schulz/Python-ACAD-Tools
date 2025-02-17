@@ -175,9 +175,6 @@ geomLayers:
         decimalPlaces:
           area: 0
       - type: dissolve
-    hatches:
-      - name: Geltungsbereich Schraffur
-        style: geltungsbereichHatches
   - name: Geltungsbereich 2
     updateDxf: true
     linetypeScale: 1
