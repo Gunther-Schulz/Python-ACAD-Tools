@@ -78,7 +78,6 @@ geomLayers:
         style: wald
     hatches:
       - name: Wald Schraffur
-        updateDxf: true
         style: wald
   - name: Straße
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/input/abstand.shp"
@@ -178,7 +177,6 @@ geomLayers:
       - type: dissolve
     hatches:
       - name: Geltungsbereich Schraffur
-        updateDxf: true
         style: geltungsbereichHatches
   - name: Geltungsbereich 2
     updateDxf: true
@@ -264,7 +262,6 @@ geomLayers:
         distance: -3
     hatches:
       - name: Grünfläche Schraffur
-        # updateDxf: true
         style: grünfläche
   - name: Schutzflächeumgrenzung
     updateDxf: true
@@ -294,7 +291,6 @@ geomLayers:
           - Geltungsbereich
     hatches:
     - name: Schutzflächeumgrenzung Schraffur
-      # updateDxf: true
       style: schutzflächeumgrenzung
   - name: Schutzflächeumgrenzung T-Symbol Temp
     # updateDxf: true
@@ -331,7 +327,6 @@ geomLayers:
         minArea: 200
     hatches:
       - name: Baufeld Schraffur
-        # updateDxf: true
         style: baufeld
   - name: Baugrenze 2
     updateDxf: true

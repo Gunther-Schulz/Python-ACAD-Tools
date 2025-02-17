@@ -20,7 +20,7 @@ def update_layer_properties(layer, layer_properties, name_to_aci):
     # Skip if no properties provided
     if not layer_properties:
         return
-        
+    
     if 'color' in layer_properties:
         color = get_color_code(layer_properties['color'], name_to_aci)
         if isinstance(color, tuple):

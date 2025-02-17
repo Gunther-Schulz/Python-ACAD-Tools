@@ -47,20 +47,24 @@ class LayerManager:
         """Setup a single layer's properties"""
         layer_name = layer['name']
         
-        # Ensure layer has properties, even if just defaults
-        if layer_name not in self.layer_properties:
+        # If layer has a style, get and store it
+        if 'style' in layer:
+            style_name = layer['style']
+            
+            # Get the style from style manager
+            style, warning = self.style_manager.get_style(style_name)
+            
+            if style and 'layer' in style:
+                # Store the layer properties
+                self.layer_properties[layer_name] = {
+                    'layer': style['layer'],
+                    'entity': style.get('entity', {})
+                }
+        else:
             self.layer_properties[layer_name] = {
                 'layer': self.default_layer_style.copy(),
-                'entity': {
-                    'close': False
-                }
+                'entity': {'close': False}
             }
-            self.colors[layer_name] = self.default_layer_style['color']
-        
-        # Process layer style if it exists
-        if 'style' in layer:
-            layer_style = self.style_manager.process_layer_style(layer_name, layer)
-            self.add_layer_properties(layer_name, layer, layer_style)
 
     def initialize_layer_properties(self):
         """Initialize properties for all layers"""
@@ -80,18 +84,21 @@ class LayerManager:
 
     def add_layer_properties(self, layer_name, layer, processed_style=None):
         """Add properties for a layer"""
-        # Always get properties from StyleManager
-        properties = processed_style or self.style_manager.process_layer_style(layer_name, layer)
+        if processed_style:
+            layer_properties, entity_properties = processed_style
+        else:
+            # Get properties from StyleManager
+            layer_properties, entity_properties = self.style_manager.process_layer_style(layer_name, layer)
         
         # Store the properties
         self.layer_properties[layer_name] = {
-            'layer': properties,
-            'entity': {}  # Entity properties if needed
+            'layer': layer_properties,
+            'entity': entity_properties
         }
         
         # Store color for quick access
-        if 'color' in properties:
-            self.colors[layer_name] = properties['color']
+        if 'color' in layer_properties:
+            self.colors[layer_name] = layer_properties['color']
 
     def ensure_layer_exists(self, doc, layer_name, layer_info=None):
         """Ensure a layer exists in the document"""
@@ -103,26 +110,32 @@ class LayerManager:
 
     def create_new_layer(self, doc, msp, layer_name, layer_info, add_geometry=True):
         """Create a new layer in the document"""
-        log_debug(f"Creating new layer: {layer_name}")
-        sanitized_layer_name = sanitize_layer_name(layer_name)  
+        sanitized_layer_name = sanitize_layer_name(layer_name)
+        
+        # Get stored properties for this layer
         properties = self.layer_properties.get(layer_name, {})
         
+        # Create the layer
         ensure_layer_exists(doc, sanitized_layer_name)
+        layer = doc.layers.get(sanitized_layer_name)
         
-        # Apply properties after layer creation
-        if properties:
-            layer = doc.layers.get(sanitized_layer_name)
-            update_layer_properties(layer, properties, self.name_to_aci)
+        # Apply the properties
+        if properties and 'layer' in properties:
+            layer_props = properties['layer']
+            update_layer_properties(layer, layer_props, self.name_to_aci)
         
-        log_debug(f"Created new layer: {sanitized_layer_name}")
-        log_debug(f"Layer properties: {properties}")
-        
-        return doc.layers.get(sanitized_layer_name)
+        return layer
 
-    def apply_layer_properties(self, layer, layer_properties):
+    def apply_layer_properties(self, layer, layer_info):
         """Apply properties to an existing layer"""
-        update_layer_properties(layer, layer_properties, self.name_to_aci)
-        log_debug(f"Updated layer properties: {layer_properties}")
+        
+        # Get stored properties for this layer
+        properties = self.layer_properties.get(layer.dxf.name, {})
+        
+        # Apply the properties
+        if properties and 'layer' in properties:
+            layer_props = properties['layer']
+            update_layer_properties(layer, layer_props, self.name_to_aci)
 
     def get_layer_properties(self, layer_name):
         """Get layer properties for a given layer name."""
