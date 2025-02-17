@@ -1,6 +1,6 @@
 """Main layer processor module."""
 
-from typing import Dict, Optional, Set, Any
+from typing import Dict, Optional, Set, Any, List
 from src.core.utils import log_debug, log_warning, log_error
 from src.dxf_exporter.style_manager import StyleManager
 from src.dxf_exporter.layer_manager import LayerManager
@@ -84,10 +84,92 @@ class LayerProcessor:
         self.shapefile_handler.setup_shapefiles()
         self.processed_layers = set()
         
+    def _get_layer_dependencies(self, layer: Dict) -> Set[str]:
+        """Get all layer names that this layer depends on through its operations."""
+        dependencies = set()
+        
+        if 'operations' not in layer:
+            return dependencies
+            
+        for operation in layer['operations']:
+            # Get layers from the operation
+            op_layers = operation.get('layers', [])
+            for op_layer in op_layers:
+                if isinstance(op_layer, str):
+                    dependencies.add(op_layer)
+                elif isinstance(op_layer, dict):
+                    dependencies.add(op_layer['name'])
+                    
+        return dependencies
+
+    def _build_dependency_graph(self, layers: List[Dict]) -> Dict[str, Set[str]]:
+        """Build a graph of layer dependencies."""
+        dependency_graph = {}
+        
+        for layer in layers:
+            layer_name = layer.get('name')
+            if not layer_name:
+                continue
+                
+            dependencies = self._get_layer_dependencies(layer)
+            dependency_graph[layer_name] = dependencies
+            
+        return dependency_graph
+
+    def _get_processing_order(self, layers: List[Dict]) -> List[str]:
+        """Determine the order in which layers should be processed based on their dependencies."""
+        dependency_graph = self._build_dependency_graph(layers)
+        processing_order = []
+        processed = set()
+        
+        def process_layer(layer_name: str, path: Set[str]):
+            if layer_name in path:
+                cycle = ' -> '.join(list(path) + [layer_name])
+                raise ValueError(f"Circular dependency detected: {cycle}")
+                
+            if layer_name in processed:
+                return
+                
+            path.add(layer_name)
+            
+            # Process dependencies first
+            for dep in dependency_graph.get(layer_name, set()):
+                if dep not in processed:
+                    process_layer(dep, path)
+                    
+            path.remove(layer_name)
+            processed.add(layer_name)
+            processing_order.append(layer_name)
+            
+        # Process each layer
+        for layer in layers:
+            layer_name = layer.get('name')
+            if layer_name and layer_name not in processed:
+                process_layer(layer_name, set())
+                
+        return processing_order
+        
     def _process_all_layers(self):
-        """Process all layers from project settings."""
-        for layer in self.project_settings.get('geomLayers', []):
-            self.process_layer(layer, self.processed_layers)
+        """Process all layers from project settings in dependency order."""
+        layers = self.project_settings.get('geomLayers', [])
+        
+        # Get the processing order based on dependencies
+        try:
+            processing_order = self._get_processing_order(layers)
+            log_debug(f"Layer processing order: {processing_order}")
+            
+            # Create a map of layer configs by name for easy lookup
+            layer_configs = {layer.get('name'): layer for layer in layers if layer.get('name')}
+            
+            # Process layers in the determined order
+            for layer_name in processing_order:
+                layer_config = layer_configs.get(layer_name)
+                if layer_config:
+                    self.process_layer(layer_config, self.processed_layers)
+                    
+        except ValueError as e:
+            log_error(f"Error determining layer processing order: {str(e)}")
+            raise
             
     def _cleanup_processing(self):
         """Cleanup after processing is complete."""

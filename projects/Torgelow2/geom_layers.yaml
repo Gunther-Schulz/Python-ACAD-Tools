@@ -176,6 +176,10 @@ geomLayers:
         decimalPlaces:
           area: 0
       - type: dissolve
+    hatches:
+      - name: Geltungsbereich Schraffur
+        updateDxf: true
+        style: geltungsbereichHatches
   - name: Geltungsbereich 2
     updateDxf: true
     linetypeScale: 1
@@ -185,3 +189,201 @@ geomLayers:
         layers:
           - name: Geltungsbereich
         distance: 2
+  - name: Waldabstand
+    operations:
+      - type: buffer
+        joinStyle: mitre
+        layers:
+          - Wald
+        distance: 30
+      - type: intersection
+        layers:
+          - Geltungsbereich
+      - type: filterGeometry
+        minArea: 200
+  - name: Grünflächeinput 1
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/input/grünfläche.shp"
+  - name: Grünflächeinput 2
+    operations:
+      - type: copy
+        layers:
+          - name: Parcel
+            values:
+              - "97"
+              - "99"
+              - "100"
+              - "101"
+              - "102" 
+      - type: filterByIntersection
+        layers:
+          # - name: Parcel
+          #   values:
+          #     - "97"
+          #     - "99"
+          #     - "100"
+          #     - "101"
+          #     - "102"
+          #     # - "103"
+          - name: Flur
+            values:
+              - Flur 2
+          - name: Gemarkung
+            values:
+              - Torgelow am See
+          - name: Gemeinde
+            values:
+              - Torgelow am See
+  - name: Grünfläche
+    updateDxf: true
+    style: grünfläche
+    operations:
+      - type: dissolve
+        useBufferTrick: true
+        bufferDistance: 0.01
+        # doubleUnion: true
+        useAsymmetricBuffer: true
+        # useSnapToGrid: true
+        # mergeVertices: true
+        # mergeVerticesTolerance: 20
+        layers:
+          - Grünflächeinput 1
+          - Grünflächeinput 2
+          - Waldabstand
+      - type: difference
+        reverseDifference: false
+        layers:
+          - Weg Abstand
+      - type: intersection
+        layers:
+          - Geltungsbereich
+      - type: report
+        outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/reports/grünfläche_report.json"
+        calculate:
+          - area
+      - type: buffer
+        distance: -3
+    hatches:
+      - name: Grünfläche Schraffur
+        # updateDxf: true
+        style: grünfläche
+  - name: Schutzflächeumgrenzung
+    updateDxf: true
+    viewports:
+      - name: WorkView
+        style: schutzflächeWorkView
+    operations:
+      - type: copy
+        layers:
+          - Grünflächeinput 1
+          - Grünflächeinput 2
+          - Waldabstand
+      - type: dissolve
+        useBufferTrick: true
+        bufferDistance: 0.01
+        # doubleUnion: true
+        useAsymmetricBuffer: true
+        # useSnapToGrid: true
+        # mergeVertices: true
+        # mergeVerticesTolerance: 20
+      - type: difference
+        reverseDifference: false
+        layers:
+          - Grünfläche
+      - type: intersection
+        layers:
+          - Geltungsbereich
+    hatches:
+    - name: Schutzflächeumgrenzung Schraffur
+      # updateDxf: true
+      style: schutzflächeumgrenzung
+  - name: Schutzflächeumgrenzung T-Symbol Temp
+    # updateDxf: true
+    close: false
+    plot: false
+    operations:
+      - type: copy
+        layers:
+          - Grünfläche
+          - Schutzflächeumgrenzung
+      - type: dissolve
+      - type: intersection
+        layers:
+          - Geltungsbereich
+      - type: filterGeometry
+        minArea: 200
+  - name: Baufeld
+    updateDxf: true
+    close: true
+    viewports:
+      - name: WorkView
+        style: baufeld
+    operations:
+      - type: copy
+        layers:
+          - Geltungsbereich
+      - type: difference
+        # useBufferTrick: true
+        reverseDifference: false
+        layers:
+          - Schutzflächeumgrenzung
+          - Grünfläche
+      - type: filterGeometry
+        minArea: 200
+    hatches:
+      - name: Baufeld Schraffur
+        # updateDxf: true
+        style: baufeld
+  - name: Baugrenze 2
+    updateDxf: true
+    style: baugrenze_2
+    close: true
+    operations:
+      - type: buffer
+        layers:
+          - Baugrenze
+        distance: -0.4
+  - name: Baugrenze
+    updateDxf: true
+    style: baugrenze
+    linetypeScale: 0.5
+    linetypeGeneration: true
+    close: true
+    operations:
+      - type: buffer
+        layers:
+          - Baufeld
+        distance: -3
+  - name: Baugrenze Report
+    operations:
+      - type: copy
+        layers:
+          - Baugrenze
+      - type: intersection
+        layers:
+          - Geltungsbereich
+      - type: report
+        outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/reports/baugrenze_report.json"
+        calculate:
+          - area
+          - perimeter
+        decimalPlaces:
+          area: 0
+  - name: Baufeldstreifen Report
+    operations:
+      - type: copy
+        layers:
+          - Baufeld
+      - type: difference
+        reverseDifference: auto
+        layers:
+          - Baugrenze
+      - type: intersection
+        layers:
+          - Geltungsbereich
+      - type: report
+        outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/reports/baufeldstreifen_report.json"
+        calculate:
+          - area
+          - perimeter
+        decimalPlaces:
+          area: 0
