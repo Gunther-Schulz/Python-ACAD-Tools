@@ -1,0 +1,81 @@
+@startuml Python-ACAD-Tools Code Flow
+
+skinparam componentStyle uml2
+skinparam backgroundColor white
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+
+package "Core" {
+    [ProjectLoader] as PL
+    [ServiceManagement] as SM
+    [Utils] as UT
+}
+
+package "Layer Processing" {
+    [LayerProcessor] as LP
+    [OperationManagement] as OM
+}
+
+package "Operations" {
+    [CopyOperation] as CO
+    [ContourOperation] as CNO
+    [CommonOperations] as CMO
+}
+
+package "DXF Processing" {
+    [DXFExporter] as DE
+    [GeometryProcessor] as GP
+    [LayerManager] as LM
+    [BlockInsertManager] as BIM
+}
+
+package "Geometry" {
+    [GeoProcessing] as GEO
+}
+
+package "Configuration" {
+    database "YAML Config" as YC {
+        [ProjectConfig]
+        [LayerConfig]
+        [StyleConfig]
+    }
+}
+
+' Flow connections
+PL --> YC : Reads
+SM --> PL : Uses
+LP --> OM : Manages
+OM --> CO : Executes
+OM --> CNO : Executes
+OM --> CMO : Executes
+
+LP --> DE : Exports
+DE --> GP : Processes
+DE --> LM : Manages
+DE --> BIM : Manages
+
+GP --> GEO : Uses
+LM --> YC : Configures
+
+' Data flow
+YC ..> SM : Configuration
+SM ..> LP : Services
+LP ..> DE : Processed Data
+DE ..> "DXF Output" : Generates
+
+note right of PL
+  Loads project configuration
+  and initializes services
+end note
+
+note right of LP
+  Coordinates layer operations
+  and processing workflow
+end note
+
+note right of DE
+  Handles DXF file generation
+  with geometry and layers
+end note
+
+@enduml 
