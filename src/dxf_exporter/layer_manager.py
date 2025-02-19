@@ -20,26 +20,17 @@ class LayerManager:
 
     def setup_layers(self):
         """Initialize and setup all layers from project settings"""
-        # Initialize default properties for ALL layers first
-        self.initialize_layer_properties()
-        
         # Setup geom layers
         for layer in self.project_loader.project_settings['geomLayers']:
+            # Setup main layer
             self._setup_single_layer(layer)
-            
-            # Store the full layer info for later use when creating layers
             self.all_layers[layer['name']] = layer
             
-            # Also setup properties for any layers created through operations
-            if 'operations' in layer:
-                result_layer_name = layer['name']
-                if result_layer_name not in self.layer_properties:
-                    # Initialize with default properties if not already set
-                    self.add_layer_properties(result_layer_name, {
-                        'color': "White",  # Default color
-                        'locked': False,
-                        'close': True
-                    })
+            # Setup hatch layers - treat them exactly like normal layers
+            if 'hatches' in layer:
+                for hatch in layer['hatches']:
+                    self._setup_single_layer(hatch)
+                    self.all_layers[hatch['name']] = hatch
         
         # Setup WMTS/WMS layers
         for layer in self.project_loader.project_settings.get('wmtsLayers', []):
@@ -58,18 +49,11 @@ class LayerManager:
             # Get the style from style manager
             style, warning = self.style_manager.get_style(style_name)
             
-            if style:
-                # For hatch layers, use the hatch section if available
-                if 'hatchGeometry' in layer and 'hatch' in style:
-                    self.layer_properties[layer_name] = {
-                        'layer': style['hatch'],
-                        'entity': style.get('entity', {})
-                    }
-                elif 'layer' in style:
-                    self.layer_properties[layer_name] = {
-                        'layer': style['layer'],
-                        'entity': style.get('entity', {})
-                    }
+            if style and 'layer' in style:
+                self.layer_properties[layer_name] = {
+                    'layer': style['layer'],
+                    'entity': style.get('entity', {})
+                }
 
                 # Store the full layer info for later use
                 self.all_layers[layer_name] = layer
@@ -82,26 +66,42 @@ class LayerManager:
     def initialize_layer_properties(self):
         """Initialize properties for all layers"""
         for layer in self.project_loader.project_settings['geomLayers']:
+            # Process main layer
             layer_name = layer['name']
+            if layer_name not in self.layer_properties:
+                if (layer.get('style') or 
+                    any(key in layer for key in [
+                        'color', 'linetype', 'lineweight', 'plot', 'locked', 
+                        'frozen', 'is_on', 'transparency', 'close', 'linetypeScale', 
+                        'linetypeGeneration'
+                    ])):
+                    self.add_layer_properties(layer_name, layer)
             
-            if layer_name in self.layer_properties:
-                continue
-            
-            if (layer.get('style') or 
-                any(key in layer for key in [
-                    'color', 'linetype', 'lineweight', 'plot', 'locked', 
-                    'frozen', 'is_on', 'transparency', 'close', 'linetypeScale', 
-                    'linetypeGeneration'
-                ])):
-                self.add_layer_properties(layer_name, layer)
+            # Process any hatch layers
+            if 'hatches' in layer:
+                for hatch in layer['hatches']:
+                    hatch_name = hatch['name']
+                    if hatch_name not in self.layer_properties:
+                        if hatch.get('style'):
+                            self.add_layer_properties(hatch_name, hatch)
 
     def add_layer_properties(self, layer_name, layer, processed_style=None):
         """Add properties for a layer"""
         if processed_style:
             layer_properties, entity_properties = processed_style
         else:
-            # Get properties from StyleManager
-            layer_properties, entity_properties = self.style_manager.process_layer_style(layer_name, layer)
+            # If layer has a style, get it from style manager
+            if 'style' in layer:
+                style, warning = self.style_manager.get_style(layer['style'])
+                if style and 'layer' in style:
+                    layer_properties = style['layer']
+                    entity_properties = style.get('entity', {})
+                else:
+                    layer_properties = self.default_layer_style.copy()
+                    entity_properties = self.default_entity_style.copy()
+            else:
+                # Get properties from StyleManager for direct properties
+                layer_properties, entity_properties = self.style_manager.process_layer_style(layer_name, layer)
         
         # Store the properties
         self.layer_properties[layer_name] = {
@@ -112,6 +112,8 @@ class LayerManager:
         # Store color for quick access
         if 'color' in layer_properties:
             self.colors[layer_name] = layer_properties['color']
+            
+        log_debug(f"Added properties for layer {layer_name}: {layer_properties}")
 
     def ensure_layer_exists(self, doc, layer_name, layer_info=None):
         """Ensure a layer exists in the document"""
@@ -123,30 +125,29 @@ class LayerManager:
             self.create_new_layer(doc, None, layer_name, layer_info, add_geometry=False)
         else:
             if layer_info:
-                self.apply_layer_properties(doc.layers.get(layer_name), layer_info)
+                # Get style from layer info
+                style_name = layer_info.get('style')
+                if style_name:
+                    style, warning = self.style_manager.get_style(style_name)
+                    if style and 'layer' in style:
+                        layer = doc.layers.get(layer_name)
+                        update_layer_properties(layer, style['layer'], self.name_to_aci)
 
     def create_new_layer(self, doc, msp, layer_name, layer_info, add_geometry=True):
         """Create a new layer in the document"""
         sanitized_layer_name = sanitize_layer_name(layer_name)
         
-        # Get stored properties for this layer
-        properties = self.layer_properties.get(layer_name, {})
-        
         # Create the layer
         ensure_layer_exists(doc, sanitized_layer_name)
         layer = doc.layers.get(sanitized_layer_name)
         
-        # Apply the properties
-        if properties and 'layer' in properties:
-            layer_props = properties['layer']
-            update_layer_properties(layer, layer_props, self.name_to_aci)
-
-        # Create hatch layers if this is a main layer
-        if layer_info and 'hatches' in layer_info:
-            for hatch in layer_info['hatches']:
-                hatch_layer_name = hatch['name']
-                # Create the hatch layer with its own layer info
-                self.create_new_layer(doc, msp, hatch_layer_name, hatch, add_geometry=False)
+        # Get style from layer info
+        if layer_info and 'style' in layer_info:
+            style_name = layer_info['style']
+            style, warning = self.style_manager.get_style(style_name)
+            if style and 'layer' in style:
+                update_layer_properties(layer, style['layer'], self.name_to_aci)
+                log_debug(f"Applied style {style_name} to layer {layer_name}")
         
         return layer
 

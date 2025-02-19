@@ -143,6 +143,8 @@ styles:
   parcel:
     layer:
       locked: true
+    entity:
+      color: "aquamarine-strong"
   parcelWorkView:
     layer:
       color: "charcoal"
@@ -161,15 +163,11 @@ styles:
       linetype: "ACAD_ISO02W100"
       lineweight: 30
 
-  wald:
-    layer:
-      # color: "aquamarine-strong"
-      plot: true
-      locked: false
+  waldHatch:
     hatch:
       pattern: 'ANSI31'
       scale: 5
-      # color: "aquamarine-strong"
+      color: "aquamarine-strong"
       individual_hatches: true
 
   waldLegend:
@@ -202,7 +200,7 @@ styles:
       color: "chartreuse-medium"
 
 
-  baufeld:
+  baufeldHatch:
     layer:
       color: "vermilion-light"
       transparency: 0.6

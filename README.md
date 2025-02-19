@@ -2,6 +2,27 @@
 
 This document outlines the various operation types available in the LayerProcessor class and their possible options.
 
+## Diagrams
+
+The project includes PlantUML diagrams that visualize the code architecture and flows. These diagrams are located in the `diagrams/` directory.
+
+### Updating Diagrams
+
+To update or generate the diagrams, you need:
+1. PlantUML (`sudo pacman -S plantuml graphviz` on CachyOS/Arch-based systems)
+2. Graphviz (installed as a dependency of PlantUML)
+
+To generate/update a diagram:
+```bash
+plantuml diagrams/<diagram_name>.puml
+```
+
+Available diagrams:
+- `code_flow.puml`: Overall code architecture and component relationships
+- `style_flow.puml`: Style settings and application flow
+
+The generated PNG files will be placed in the same directory as the source `.puml` files.
+
 ## Operation Types
 
 1. Copy

@@ -20,37 +20,30 @@ class GeometryProcessor:
         # Check if this is a hatch layer that references other geometries
         layer_info = self.layer_manager.all_layers.get(layer_name, {})
         if 'hatchGeometry' in layer_info:
-            log_debug(f"Processing hatch layer {layer_name}")
-            # Get the referenced layers' geometries
-            reference_layers = layer_info['hatchGeometry'].get('layers', [])
-            if not reference_layers:
-                log_warning(f"No reference layers specified for hatch layer {layer_name}")
-                return
-
-            # For each referenced layer, create hatches using its geometry
-            for ref_layer_name in reference_layers:
-                log_debug(f"Getting geometry from referenced layer {ref_layer_name}")
-                ref_geo_data = self.project_loader.get_layer_geometry(ref_layer_name)
-                if ref_geo_data is None:
-                    log_warning(f"No geometry data found for referenced layer {ref_layer_name}")
-                    continue
-                
-                # Process each geometry and create a hatch
-                if isinstance(ref_geo_data, gpd.GeoDataFrame):
-                    geometries = ref_geo_data.geometry
-                elif isinstance(ref_geo_data, gpd.GeoSeries):
-                    geometries = ref_geo_data
-                else:
-                    log_warning(f"Unexpected data type for referenced layer {ref_layer_name}: {type(ref_geo_data)}")
-                    continue
-
-                log_debug(f"Creating hatches for {len(geometries)} geometries from {ref_layer_name}")
-                for geometry in geometries:
-                    if isinstance(geometry, Polygon):
-                        self._create_hatch_from_geometry(msp, geometry, layer_name)
-                    elif isinstance(geometry, MultiPolygon):
-                        for polygon in geometry.geoms:
-                            self._create_hatch_from_geometry(msp, polygon, layer_name)
+            log_debug(f"Converting hatchGeometry to hatches format for layer {layer_name}")
+            # Convert hatchGeometry to hatches format
+            referenced_layers = layer_info['hatchGeometry'].get('layers', [])
+            if referenced_layers:
+                # Create a hatches entry in the layer info
+                if 'hatches' not in layer_info:
+                    layer_info['hatches'] = []
+                # Add a hatch configuration that references the source layer
+                for ref_layer in referenced_layers:
+                    hatch_info = {
+                        'name': layer_name,
+                        'style': layer_info.get('style'),
+                        'updateDxf': layer_info.get('updateDxf', True)
+                    }
+                    layer_info['hatches'].append(hatch_info)
+                    
+                    # Get the referenced layer's geometry
+                    ref_geo_data = self.project_loader.get_layer_geometry(ref_layer)
+                    if ref_geo_data is not None:
+                        # Process the geometry using the standard hatches mechanism
+                        if isinstance(ref_geo_data, gpd.GeoDataFrame):
+                            self._process_geometry_hatches(msp, ref_geo_data.geometry, layer_info)
+                        elif isinstance(ref_geo_data, gpd.GeoSeries):
+                            self._process_geometry_hatches(msp, ref_geo_data, layer_info)
             return
 
         if geo_data is None:
@@ -69,6 +62,8 @@ class GeometryProcessor:
             return
 
         log_debug(f"add_geometries_to_dxf Layer Name: {layer_name}")
+        
+        # First process all geometries
         for geometry in geometries:
             if isinstance(geometry, Polygon):
                 self.add_polygon_to_dxf(msp, geometry, layer_name)
@@ -82,6 +77,63 @@ class GeometryProcessor:
                     self.add_linestring_to_dxf(msp, line, layer_name)
             else:
                 self.add_geometry_to_dxf(msp, geometry, layer_name)
+        
+        # Then process hatches after all geometries are added
+        if 'hatches' in layer_info:
+            self._process_geometry_hatches(msp, geometries, layer_info)
+
+    def _process_geometry_hatches(self, msp, geometries, layer_info):
+        """Process hatches for a collection of geometries"""
+        if 'hatches' not in layer_info:
+            return
+            
+        for geometry in geometries:
+            if isinstance(geometry, Polygon):
+                self._create_hatches_for_geometry(msp, geometry, layer_info)
+            elif isinstance(geometry, MultiPolygon):
+                for polygon in geometry.geoms:
+                    self._create_hatches_for_geometry(msp, polygon, layer_info)
+
+    def _create_hatches_for_geometry(self, msp, geometry, layer_info):
+        """Create hatches for a single geometry"""
+        if 'hatches' not in layer_info:
+            return
+            
+        for hatch_info in layer_info['hatches']:
+            hatch_layer_name = hatch_info['name']
+            
+            # Create hatch entity with BYLAYER color (256)
+            hatch = msp.add_hatch()
+            hatch.dxf.color = 256  # BYLAYER
+            hatch.dxf.layer = hatch_layer_name
+            
+            # Add the boundary paths
+            # Add exterior boundary
+            exterior_coords = list(geometry.exterior.coords)
+            if len(exterior_coords) > 2:
+                hatch.paths.add_polyline_path(exterior_coords, is_closed=True)
+            
+            # Add interior boundaries
+            for interior in geometry.interiors:
+                interior_coords = list(interior.coords)
+                if len(interior_coords) > 2:
+                    hatch.paths.add_polyline_path(interior_coords, is_closed=True)
+            
+            # Apply hatch settings from style
+            if 'style' in hatch_info:
+                style, warning = self.style_manager.get_style(hatch_info['style'])
+                if style and 'hatch' in style:
+                    hatch_props = style['hatch']
+                    if 'pattern' in hatch_props:
+                        try:
+                            scale = float(hatch_props.get('scale', 1.0))
+                            hatch.set_pattern_fill(hatch_props['pattern'], scale=scale)
+                            if hatch_props.get('individual_hatches', False):
+                                hatch.dxf.solid_fill = 0
+                        except Exception as e:
+                            log_warning(f"Failed to set pattern '{hatch_props['pattern']}': {str(e)}")
+            
+            attach_custom_data(hatch, self.script_identifier)
 
     def add_polygon_to_dxf(self, msp, geometry, layer_name, entity_name=None):
         """Add a polygon geometry to DXF"""
@@ -133,48 +185,6 @@ class GeometryProcessor:
                         log_warning(f"Could not set linetype generation for interior polyline. Error: {str(e)}")
                 
                 attach_custom_data(polyline, self.script_identifier, entity_name)
-
-        # Get layer info to check for hatches
-        layer_info = self.layer_manager.all_layers.get(layer_name, {})
-        if 'hatches' in layer_info:
-            for hatch_info in layer_info['hatches']:
-                hatch_layer_name = hatch_info['name']
-                
-                # Create hatch entity
-                hatch = msp.add_hatch(color=1)  # Default color, will be overridden by layer
-                hatch.dxf.layer = hatch_layer_name
-                
-                # Add the boundary paths
-                # Add exterior boundary
-                if len(exterior_coords) > 2:
-                    hatch.paths.add_polyline_path(exterior_coords, is_closed=True)
-                
-                # Add interior boundaries
-                for interior in geometry.interiors:
-                    interior_coords = list(interior.coords)
-                    if len(interior_coords) > 2:
-                        hatch.paths.add_polyline_path(interior_coords, is_closed=True)
-                
-                # Get and apply hatch properties from style
-                hatch_properties = self.layer_manager.get_layer_properties(hatch_layer_name)
-                if hatch_properties and 'layer' in hatch_properties:
-                    hatch_props = hatch_properties['layer']
-                    if 'pattern' in hatch_props:
-                        hatch.pattern_name = hatch_props['pattern']
-                    if 'scale' in hatch_props:
-                        hatch.dxf.pattern_scale = hatch_props['scale']
-                    if 'color' in hatch_props:
-                        color = get_color_code(hatch_props['color'], self.layer_manager.name_to_aci)
-                        if isinstance(color, tuple):
-                            hatch.rgb = color
-                        else:
-                            hatch.dxf.color = color
-                    if 'transparency' in hatch_props:
-                        transparency = convert_transparency(hatch_props['transparency'])
-                        if transparency is not None:
-                            hatch.transparency = transparency
-                
-                attach_custom_data(hatch, self.script_identifier, entity_name)
 
     def add_linestring_to_dxf(self, msp, geometry, layer_name):
         """Add a LineString geometry to DXF"""

@@ -76,9 +76,9 @@ geomLayers:
     viewports:
       - name: WorkView
         style: wald
-    # hatches:
-    #   - name: Wald Schraffur
-    #     style: wald
+    hatches:
+      - name: Wald Schraffur
+        style: waldHatch
   - name: Straße
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/input/abstand.shp"
   - name: Straße Abstand
@@ -257,9 +257,9 @@ geomLayers:
           - area
       - type: buffer
         distance: -3
-    # hatches:
-    #   - name: Grünfläche Schraffur
-    #     style: grünfläche
+    hatches:
+      - name: Grünfläche Schraffur
+        style: grünfläche
   - name: Schutzflächeumgrenzung
     updateDxf: true
     viewports:
@@ -286,9 +286,9 @@ geomLayers:
       - type: intersection
         layers:
           - Geltungsbereich
-    # hatches:
-    # - name: Schutzflächeumgrenzung Schraffur
-    #   style: schutzflächeumgrenzung
+    hatches:
+    - name: Schutzflächeumgrenzung Schraffur
+      style: schutzflächeumgrenzung
   - name: Schutzflächeumgrenzung T-Symbol Temp
     # updateDxf: true
     close: false
@@ -322,12 +322,9 @@ geomLayers:
           - Grünfläche
       - type: filterGeometry
         minArea: 200
-  - name: Baufeld Schraffur
-    updateDxf: true
-    style: baufeld
-    hatchGeometry:     # new field to specify which geometry to use for hatching
-      layers:
-        - Baufeld   # reference the layer whose geometry should be used for the hatch
+    hatches:           # Added hatches configuration here
+      - name: Baufeld Schraffur
+        style: baufeldHatch
   - name: Baugrenze 2
     updateDxf: true
     style: baugrenze_2

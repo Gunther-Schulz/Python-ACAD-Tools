@@ -17,7 +17,6 @@ from .utils import (
 from .layer_manager import LayerManager
 from .geometry_processor import GeometryProcessor
 from .text_processor import TextProcessor
-from .hatch_processor import HatchProcessor
 from .path_array_processor import PathArrayProcessor
 from .style_manager import StyleManager
 from src.dxf.viewport_manager import ViewportManager
@@ -72,13 +71,6 @@ class DXFExporter:
             self.layer_manager
         )
         
-        self.hatch_processor = HatchProcessor(
-            self.script_identifier, 
-            self.project_loader, 
-            self.style_manager, 
-            self.layer_manager
-        )
-        
         self.path_array_processor = PathArrayProcessor(
             self.project_loader, 
             self.style_manager
@@ -101,7 +93,6 @@ class DXFExporter:
         self.reduced_dxf_creator = ReducedDXFCreator(self)
         
         # Share all_layers with processors that need it
-        self.hatch_processor.set_all_layers(self.all_layers)
         self.path_array_processor.set_all_layers(self.all_layers)
 
     def export_to_dxf(self, skip_dxf_processor=False):
@@ -185,35 +176,33 @@ class DXFExporter:
         for layer_info in geom_layers:
             # Clean main layer
             layer_name = layer_info['name']
-            if layer_info.get('updateDxf', False):
+            update_flag = layer_info.get('updateDxf', False)
+            if update_flag:
                 log_debug(f"Cleaning existing entities from layer: {layer_name}")
                 remove_entities_by_layer(msp, layer_name, self.script_identifier)
             
-            # Clean hatch layers if any
-            if 'hatches' in layer_info:
+            # Clean hatch layers if any - use parent layer's updateDxf flag
+            if update_flag and 'hatches' in layer_info:
                 for hatch in layer_info['hatches']:
                     hatch_name = hatch['name']
-                    if hatch.get('updateDxf', False):
-                        log_debug(f"Cleaning existing entities from hatch layer: {hatch_name}")
-                        remove_entities_by_layer(msp, hatch_name, self.script_identifier)
+                    log_debug(f"Cleaning existing entities from hatch layer: {hatch_name}")
+                    remove_entities_by_layer(msp, hatch_name, self.script_identifier)
         
         # Then process each layer
         for layer_info in geom_layers:
             layer_name = layer_info['name']
+            update_flag = layer_info.get('updateDxf', False)
+            
             # Process main layer
-            if layer_name in self.all_layers:
+            if update_flag and layer_name in self.all_layers:
                 self._process_layer(doc, msp, layer_name, layer_info)
             
-            # Process associated hatch layers
-            if 'hatches' in layer_info:
+            # Process associated hatch layers - use parent layer's updateDxf flag
+            if update_flag and 'hatches' in layer_info:
                 for hatch in layer_info['hatches']:
                     hatch_name = hatch['name']
-                    # Add implicit reference to parent layer
-                    if 'hatch' not in hatch:
-                        hatch['hatch'] = {}
-                    if 'layers' not in hatch['hatch']:
-                        hatch['hatch']['layers'] = [layer_name]
-                    self._process_layer(doc, msp, hatch_name, hatch)
+                    # Ensure the hatch layer exists and is styled
+                    self.layer_manager.ensure_layer_exists(doc, hatch_name, hatch)
 
     def _process_layer(self, doc, msp, layer_name, layer_info):
         """Process a single layer"""
@@ -244,12 +233,6 @@ class DXFExporter:
                     # Simple labels from YAML simpleLabel key
                     geo_data['label'] = geo_data[simple_label_field]
                     self.text_processor.add_label_points_to_dxf(msp, geo_data, layer_name, layer_info)
-        
-        # Process hatch if configured - do this regardless of whether layer has its own geometry
-        hatch_config = self.style_manager.get_hatch_config(layer_info)
-        if hatch_config:
-            log_debug(f"Processing hatch for layer {layer_name}")
-            self.hatch_processor.process_hatch(doc, msp, layer_name, layer_info)
 
     def _cleanup_and_save(self, doc, msp):
         """Clean up and save the document"""

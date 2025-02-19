@@ -14,6 +14,7 @@ from .style_defaults import (
 
 def create_hatch(msp, paths, hatch_config, project_loader):
     """Create a hatch entity with the given paths and configuration."""
+    print(f"Creating hatch with paths: {paths}")
     try:
         # Get pattern from config or default
         pattern = hatch_config.get('pattern', DEFAULT_HATCH_STYLE['pattern'])
