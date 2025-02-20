@@ -66,6 +66,7 @@ class GeometryManager:
                 ),
                 update_dxf=layer_config.update_dxf,
                 style_id=layer_config.style,
+                inline_style=layer_config.inline_style,
                 operations=[op.to_dict() for op in layer_config.operations] if layer_config.operations else []
             )
             

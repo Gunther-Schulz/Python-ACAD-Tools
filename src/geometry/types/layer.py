@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from typing import Dict, Any, List, Optional, Set
 from .base import GeometryData, GeometryMetadata
 from shapely.geometry import base as shapely_base
+from src.config.geometry_layer_config import StyleConfig
 
 @dataclass
 class Layer:
@@ -12,6 +13,7 @@ class Layer:
     geometry: GeometryData
     update_dxf: bool = False
     style_id: Optional[str] = None
+    inline_style: Optional[StyleConfig] = None
     operations: List[Dict[str, Any]] = field(default_factory=list)
     
     @property

@@ -55,7 +55,31 @@ def process_project(project_name: str) -> None:
             for layer_name in layers:
                 layer = project.geometry_manager.get_layer(layer_name)
                 logger.info(f"\n  Layer: {layer_name}")
-                logger.info(f"    Style: {layer.style_id or 'default'}")
+                
+                # Log style information
+                if layer.style_id:
+                    logger.info(f"    Style: {layer.style_id}")
+                if hasattr(layer, 'inline_style') and layer.inline_style:
+                    logger.info("    Inline Style:")
+                    if layer.inline_style.layer:
+                        logger.info("      Layer properties:")
+                        for key, value in layer.inline_style.layer.items():
+                            logger.info(f"        {key}: {value}")
+                    if layer.inline_style.polygon:
+                        logger.info("      Polygon properties:")
+                        for key, value in layer.inline_style.polygon.items():
+                            logger.info(f"        {key}: {value}")
+                    if layer.inline_style.text:
+                        logger.info("      Text properties:")
+                        for key, value in layer.inline_style.text.items():
+                            logger.info(f"        {key}: {value}")
+                    if layer.inline_style.hatch:
+                        logger.info("      Hatch properties:")
+                        for key, value in layer.inline_style.hatch.items():
+                            logger.info(f"        {key}: {value}")
+                elif not layer.style_id:
+                    logger.info("    Style: default")  # Only show default if no style or inline style
+                
                 if hasattr(layer, 'shape_file') and layer.shape_file:
                     logger.info(f"    Shapefile: {layer.shape_file}")
                 
