@@ -61,36 +61,40 @@ class ConfigManager:
     """Manages loading and validation of configuration files."""
     
     def __init__(self, project_dir: str):
-        """Initialize with project directory."""
-        self.project_dir = project_dir
-        self.logger = setup_logger(f"config_manager.{os.path.basename(project_dir)}")
+        """Initialize with project directory.
+        
+        Args:
+            project_dir: Absolute path to project directory
+        """
+        self.project_dir = Path(project_dir)
+        self.logger = setup_logger(f"config_manager.{self.project_dir.name}")
         
         # Store root directory for global configurations
-        self.root_dir = str(Path(project_dir).parent.parent)
+        self.root_dir = self.project_dir.parent.parent
         
         # Cache for loaded configurations
         self._style_cache: Optional[Dict[str, StyleConfig]] = None
         self._viewport_cache: Optional[Dict[str, Any]] = None
     
-    def _load_yaml_file(self, filepath: str, required: bool = True) -> dict:
+    def _load_yaml_file(self, filepath: Path, required: bool = True) -> dict:
         """Load and parse YAML file."""
-        if not os.path.exists(filepath):
+        if not filepath.exists():
             if required:
-                msg = f"Required config file not found: {filepath}"
+                msg = f"Required config file not found: {filepath.relative_to(self.root_dir)}"
                 self.logger.error(msg)
                 raise ConfigFileNotFoundError(msg)
-            self.logger.debug(f"Optional config file not found: {filepath}")
+            self.logger.debug(f"Optional config file not found: {filepath.relative_to(self.root_dir)}")
             return {}
             
         try:
             with open(filepath, 'r') as f:
                 data = yaml.safe_load(f)
                 if data is None:  # Empty file or only comments
-                    self.logger.debug(f"Empty config file: {filepath}")
+                    self.logger.debug(f"Empty config file: {filepath.relative_to(self.root_dir)}")
                     return {}
                 return data
         except yaml.YAMLError as e:
-            msg = f"Error parsing YAML file {filepath}: {str(e)}"
+            msg = f"Error parsing YAML file {filepath.relative_to(self.root_dir)}: {str(e)}"
             self.logger.error(msg)
             raise ConfigError(msg) from e
     
@@ -126,7 +130,7 @@ class ConfigManager:
         from_project: bool = True
     ) -> dict:
         """Load and validate configuration file."""
-        filepath = os.path.join(self.project_dir if from_project else self.root_dir, filename)
+        filepath = self.project_dir / filename if from_project else self.root_dir / filename
         data = self._load_yaml_file(filepath, required)
         if data:  # Only validate non-empty configurations
             self._validate_config(data, schema, config_name)

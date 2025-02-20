@@ -1,6 +1,6 @@
 """Export system manager."""
 
-from typing import Dict
+from typing import Dict, Any
 from src.core.types import ProcessedGeometry, ExportData
 from src.export.interfaces.exporter import GeometryExporter
 
@@ -12,8 +12,13 @@ class ExportManager:
     def __init__(self) -> None:
         self.exporters: ExporterDict = dict()
     
-    def register_exporter(self, format_type: str, exporter: ExporterDict) -> None:
-        """Register an exporter for a specific format."""
+    def register_exporter(self, format_type: str, exporter: Any) -> None:
+        """Register an exporter for a specific format.
+        
+        Args:
+            format_type: Export format type
+            exporter: Exporter instance
+        """
         self.exporters[format_type] = exporter
     
     def export(self, geom: ProcessedGeometry, export_data: ExportData) -> None:
@@ -25,4 +30,10 @@ class ExportManager:
             )
         
         exporter = self.exporters[export_data.format_type]
-        exporter.export(geom, export_data) 
+        exporter.export(geom, export_data)
+    
+    def cleanup(self) -> None:
+        """Clean up resources after export operations."""
+        for exporter in self.exporters.values():
+            if hasattr(exporter, 'cleanup'):
+                exporter.cleanup() 

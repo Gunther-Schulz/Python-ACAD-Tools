@@ -1,15 +1,38 @@
 """Main project coordinator module."""
 
 import os
+from pathlib import Path
 from typing import Optional
 from src.core.utils import setup_logger, ensure_directory
 from src.core.types import ExportData
+from src.core.style_manager import StyleManager
 from src.config.config_manager import ConfigManager
 from src.geometry.geometry_manager import GeometryManager
 from src.export.manager import ExportManager
 from src.export.dxf.exporter import DXFExporter, DXFConverter
 from src.export.dxf.style import StyleApplicator
 from src.export.dxf.layer import LayerManager
+from src.export.dxf.validators import DXFStyleValidator
+
+def get_project_dir(project_name: str) -> Path:
+    """Get project directory path.
+    
+    Args:
+        project_name: Name of the project
+        
+    Returns:
+        Path to project directory
+    """
+    # Get repository root directory (two levels up from this file)
+    root_dir = Path(__file__).parent.parent.parent
+    
+    # Project directory is in the projects/ subdirectory
+    project_dir = root_dir / 'projects' / project_name
+    
+    if not project_dir.exists():
+        raise ValueError(f"Project directory does not exist: {project_dir}")
+    
+    return project_dir
 
 class Project:
     """Main project coordinator class."""
@@ -17,6 +40,7 @@ class Project:
     def __init__(self, project_name: str, log_file: Optional[str] = None):
         """Initialize project with name and optional log file."""
         self.project_name = project_name
+        self.project_dir = get_project_dir(project_name)
         self.logger = setup_logger(f"project.{project_name}", log_file)
         self._initialize_components()
         
@@ -25,8 +49,16 @@ class Project:
         try:
             # Initialize configuration
             self.logger.info("Initializing configuration manager")
-            self.config_manager = ConfigManager(self.project_name)
+            self.config_manager = ConfigManager(str(self.project_dir))
             self.project_config = self.config_manager.load_project_config()
+            
+            # Initialize style management
+            self.logger.info("Initializing style manager")
+            style_configs = self.config_manager.load_styles()
+            self.style_manager = StyleManager(
+                styles=style_configs,
+                validator=DXFStyleValidator()
+            )
             
             # Initialize geometry processing
             self.logger.info("Initializing geometry manager")
@@ -36,7 +68,6 @@ class Project:
             
             # Initialize export components
             self.logger.info("Initializing export components")
-            style_configs = self.config_manager.load_styles()
             
             # Create export manager and register DXF exporter
             self.export_manager = ExportManager()
