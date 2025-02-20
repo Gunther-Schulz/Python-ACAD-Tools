@@ -8,6 +8,86 @@ This document outlines the architecture for the Python ACAD Tools project, which
 2. Geometry Processing
 3. DXF Export
 
+## Legacy Code Integration
+
+The project will maintain compatibility with existing DXF manipulation code from the original implementation (`src_old/`), particularly for ezdxf-specific patterns and optimizations.
+
+### Key Areas to Reference:
+1. **DXF Manipulation**
+   - Reference `src_old/dxf/` for ezdxf-specific patterns
+   - Maintain existing DXF entity creation methods
+   - Keep optimized DXF writing strategies
+
+2. **Layer Processing**
+   - Study `src_old/layer_processor/` for layer handling patterns
+   - Preserve efficient layer update mechanisms
+   - Keep compatibility with existing layer styles
+
+3. **Export Optimizations**
+   - Reference `src_old/dxf_exporter/` for optimized export patterns
+   - Maintain batch processing strategies
+   - Keep memory optimization techniques
+
+### Integration Strategy:
+1. **Review and Document**
+   - Document existing DXF manipulation patterns
+   - Identify critical optimizations
+   - Map dependencies and requirements
+
+2. **Refactor and Integrate**
+   - Extract core functionality
+   - Modernize code structure
+   - Maintain performance optimizations
+
+3. **Test and Validate**
+   - Ensure compatibility with existing files
+   - Verify performance characteristics
+   - Maintain optimization levels
+
+## Implementation Strategy
+
+The project will be implemented following these principles:
+
+1. **Test-Driven Development**
+   - Write tests first for each component
+   - Implement minimal functionality to make tests pass
+   - Refactor and improve implementation
+   - Maintain high test coverage (target: >90%)
+
+2. **Component Independence**
+   - Each component should be independently testable
+   - Clear boundaries between components
+   - Well-defined APIs for inter-component communication
+   - Minimal dependencies between components
+
+3. **Implementation Order**
+   ```
+   1. Core Components (DONE)
+      ✓ Type definitions
+      ✓ Utility functions
+      ✓ Project coordinator
+      ✓ Basic tests
+
+   2. Configuration Management
+      - Schema definitions
+      - YAML loading and validation
+      - Configuration objects
+      - Tests for each config type
+
+   3. Geometry Processing
+      - Base geometry types
+      - Operation framework
+      - Individual operations
+      - Layer management
+      - Tests for each operation
+
+   4. Export System
+      - Style management
+      - Layer management
+      - DXF export
+      - Tests for each export feature
+   ```
+
 ## Directory Structure
 
 ```
@@ -58,11 +138,28 @@ This document outlines the architecture for the Python ACAD Tools project, which
 ├── setup.py                     # Package installation
 ├── README.md                    # Project documentation
 └── ARCHITECTURE.md              # This file
-```
 
 ## Component APIs
 
 ### 1. Configuration Management
+
+The configuration system handles loading and validation of all YAML configuration files.
+
+#### Implementation Steps:
+1. Schema Definitions
+   - Define JSON schemas for each config file
+   - Create validation functions
+   - Write tests for schema validation
+
+2. Config Loading
+   - Implement YAML loading with error handling
+   - Add path resolution and environment variable support
+   - Write tests for file loading
+
+3. Config Objects
+   - Create strongly typed config classes
+   - Add validation and conversion methods
+   - Write tests for object creation and validation
 
 ```python
 from typing import Optional, Dict, Any
@@ -110,6 +207,24 @@ class ConfigManager:
 
 ### 2. Geometry Processing
 
+The geometry system handles all geometric operations and transformations.
+
+#### Implementation Steps:
+1. Base Framework
+   - Define geometry type system
+   - Create operation base classes
+   - Write tests for framework
+
+2. Operations
+   - Implement each operation individually
+   - Add validation and error handling
+   - Write tests for each operation
+
+3. Layer Management
+   - Implement layer processing
+   - Add attribute handling
+   - Write tests for layer management
+
 ```python
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass
@@ -153,7 +268,25 @@ class GeometryManager:
         pass
 ```
 
-### 3. Export
+### 3. Export System
+
+The export system handles conversion of geometries to DXF format.
+
+#### Implementation Steps:
+1. Style Management
+   - Implement style application system
+   - Add style inheritance
+   - Write tests for style system
+
+2. Layer Management
+   - Create DXF layer handling
+   - Add layer properties
+   - Write tests for layer management
+
+3. DXF Export
+   - Implement geometry to DXF conversion
+   - Add optimization features
+   - Write tests for export system
 
 ```python
 from typing import Dict, Any, Optional
@@ -209,6 +342,58 @@ class LayerManager:
         """Get layer properties by name"""
         pass
 ```
+
+## Testing Strategy
+
+### 1. Unit Tests
+- Test each component in isolation
+- Mock dependencies
+- Test edge cases and error conditions
+- Maintain high coverage
+
+### 2. Integration Tests
+- Test component interactions
+- Test complete workflows
+- Test with real config files
+
+### 3. Performance Tests
+- Test with large datasets
+- Monitor memory usage
+- Check processing times
+
+### 4. Test Data
+- Create sample projects
+- Include various geometry types
+- Cover different configurations
+
+## Development Workflow
+
+1. **For Each Component**:
+   ```
+   a. Write tests first
+   b. Implement minimal functionality
+   c. Make tests pass
+   d. Refactor and optimize
+   e. Document API
+   f. Review and update tests
+   ```
+
+2. **For Each Feature**:
+   ```
+   a. Define API
+   b. Write interface tests
+   c. Implement feature
+   d. Add edge case tests
+   e. Document usage
+   ```
+
+3. **For Each Release**:
+   ```
+   a. Run all tests
+   b. Check coverage
+   c. Update documentation
+   d. Review API changes
+   ```
 
 ### 4. Main Project Coordinator
 
