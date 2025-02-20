@@ -14,7 +14,7 @@ geomLayers:
         frozen: false
         is_on: true
         transparency: 0
-      entity:
+      polygon:
         close: true
         linetypeScale: 0.2
         linetypeGeneration: true

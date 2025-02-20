@@ -57,7 +57,7 @@ class GeometryManager:
         """Load layers from configuration."""
         for layer_config in self.config:
             # Create layer with basic attributes
-            layer = self.layer_manager.create_layer(
+            layer = Layer(
                 name=layer_config.name,
                 geometry=GeometryData(
                     id=layer_config.name,
@@ -68,6 +68,9 @@ class GeometryManager:
                 style_id=layer_config.style,
                 operations=[op.to_dict() for op in layer_config.operations] if layer_config.operations else []
             )
+            
+            # Add layer to collection
+            self.layer_collection.add_layer(layer)
     
     def get_layer_names(self) -> List[str]:
         """Get list of layer names.

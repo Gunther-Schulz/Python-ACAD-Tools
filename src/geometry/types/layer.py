@@ -60,7 +60,14 @@ class LayerCollection:
         return self._layer_dependencies.get(layer_name, set())
     
     def get_processing_order(self) -> List[str]:
-        """Get layers in dependency order."""
+        """Get layers in dependency order.
+        
+        Returns:
+            List of layer names in processing order. Returns empty list if no layers.
+        """
+        if not self.layers:
+            return []
+            
         from collections import deque
         
         # Calculate in-degree for each layer
@@ -85,4 +92,6 @@ class LayerCollection:
                         queue.append(dependent)
         
         if len(order) != len(self.layers):
-            raise ValueError("Circular dependency detected in layers") 
+            raise ValueError("Circular dependency detected in layers")
+            
+        return order 
