@@ -70,12 +70,28 @@ Old Component -> New Component
   - [x] Color configuration and ACI colors
   - [x] Specialized configurations (viewport, legend, etc.)
   - [ ] Complete test coverage
-- Geometry Processing (Early Stages)
+- Geometry Processing (In Progress)
   - [x] Base geometry types
   - [x] Basic geometry manager
-  - [ ] Operations framework implementation
+  - [x] Operations framework implementation
+      - [x] Operation base classes (Unary, Binary, Multi)
+      - [x] Operation context and results
+      - [x] Parameter validation framework
+      - [x] Error handling and propagation
   - [ ] Individual operations
-  - [ ] Layer management
+      - [x] Buffer operation
+          - [x] Operation implementation
+          - [x] Parameter validation
+          - [x] Unit tests
+          - [x] Integration tests
+      - [ ] Intersection/Union/Difference
+      - [ ] Dissolve/Merge
+      - [ ] Filter operations
+      - [ ] Clean/Repair operations
+  - [x] Layer management
+      - [x] Layer validation
+      - [x] Layer processing
+      - [x] Dependency handling
 - Export System (In Progress)
   - [x] Basic export manager
   - [x] Interface definitions
@@ -341,38 +357,6 @@ The export system handles conversion of geometry to various output formats:
    - Shapefile-specific implementation
    - Attribute handling
    - CRS management
-
-## Export Components
-
-Located in `src/export/`, these components handle the conversion of processed geometry to various output formats:
-
-### Export Files and Directories
-
-1. **manager.py** - Export System Coordinator
-   - Manages registration of different export formats
-   - Routes export requests to appropriate exporters
-   - Provides format-agnostic export interface
-   - Handles export errors and validation
-   - Coordinates the export process across formats
-
-2. **interfaces/** - Export Protocol Definitions
-   - Contains `exporter.py` defining the `GeometryExporter` protocol
-   - Establishes contract for all export implementations
-   - Re-exports core types for export system use
-   - Ensures consistent export interface across formats
-
-3. **dx/** - DXF Export Implementation
-   - `exporter.py`: Main DXF export logic
-   - `converter.py`: Geometry to DXF entity conversion
-   - `style.py`: DXF-specific style application
-   - `layer.py`: DXF layer management
-   - Handles all DXF-specific export concerns
-
-4. **shapefile/** - Shapefile Export Implementation
-   - `exporter.py`: Main shapefile export logic
-   - `crs.py`: Coordinate system handling
-   - Manages shapefile-specific export requirements
-   - Handles attribute mapping and CRS transformations
 
 5. **__init__.py** - Package Definition
    - Marks export directory as a Python package
