@@ -12,6 +12,16 @@ This document outlines the architecture for the Python ACAD Tools project, which
 
 The project will maintain compatibility with existing DXF manipulation code from the original implementation (`src_old/`), particularly for ezdxf-specific patterns and optimizations.
 
+### Component Mapping:
+Old Component -> New Component
+- src_old/dxf/ -> src/export/
+- src_old/layer_processor/ -> src/geometry/layer.py
+- src_old/operations/ -> src/geometry/operations/
+- src_old/geo/ -> src/geometry/
+- src_old/preprocessors/ -> src/config/
+- src_old/dxf_utils/ -> src/export/utils/
+- src_old/dxf_exporter/ -> src/export/dxf_exporter.py
+
 ### Key Areas to Reference:
 1. **DXF Manipulation**
    - Reference `src_old/dxf/` for ezdxf-specific patterns
@@ -43,6 +53,17 @@ The project will maintain compatibility with existing DXF manipulation code from
    - Ensure compatibility with existing files
    - Verify performance characteristics
    - Maintain optimization levels
+
+### Implementation Status
+- Core Components ✓
+- Configuration Management (In Progress)
+  - [x] Basic config loading
+  - [ ] Schema validation
+  - [ ] Style configuration
+- Geometry Processing (In Progress)
+  - [x] Base geometry types
+  - [ ] Operations framework
+- Export System (Pending)
 
 ## Implementation Strategy
 
@@ -92,35 +113,22 @@ The project will be implemented following these principles:
 
 ```
 .
-├── src/
-│   ├── config/                     # Configuration management
-│   │   ├── __init__.py
-│   │   ├── config_manager.py      # YAML loading and validation
-│   │   ├── project_config.py      # Project-specific config handling
-│   │   ├── style_config.py        # Style configuration management
-│   │   └── schemas/              # YAML schemas
-│   ├── geometry/                   # Geometry processing
-│   │   ├── __init__.py
-│   │   ├── geometry_manager.py    # Main geometry processing coordinator
-│   │   ├── operations/           # Geometry operations
-│   │   │   ├── __init__.py
-│   │   │   ├── base.py          # Base operation class
-│   │   │   ├── buffer.py
-│   │   │   ├── dissolve.py
-│   │   │   ├── intersection.py
-│   │   │   └── difference.py
-│   │   ├── layer.py             # Layer class definition
-│   │   └── shapefile_loader.py  # Shapefile loading utilities
-│   ├── export/                    # DXF export functionality
-│   │   ├── __init__.py
-│   │   ├── dxf_exporter.py      # DXF export coordination
-│   │   ├── style_manager.py     # Style application
-│   │   └── layer_manager.py     # DXF layer management
-│   └── core/                      # Core functionality
-│       ├── __init__.py
-│       ├── project.py           # Main project class
-│       ├── types.py            # Shared type definitions
-│       └── utils.py            # Common utilities
+├── src/                          # New implementation
+│   ├── config/                   # Configuration management
+│   ├── geometry/                 # Geometry processing
+│   ├── export/                   # DXF export functionality
+│   ├── core/                     # Core functionality
+│   └── __init__.py
+├── src_old/                      # Legacy implementation (for reference)
+│   ├── core/
+│   ├── dxf_exporter/
+│   ├── dxf_utils/
+│   ├── layer_processor/
+│   ├── operations/
+│   ├── geo/
+│   ├── preprocessors/
+│   ├── dxf/
+│   └── main.py
 ├── tests/                         # Test suite
 │   ├── __init__.py
 │   ├── conftest.py              # pytest configuration
@@ -138,6 +146,68 @@ The project will be implemented following these principles:
 ├── setup.py                     # Package installation
 ├── README.md                    # Project documentation
 └── ARCHITECTURE.md              # This file
+```
+
+## Migration Strategy
+
+The migration process is designed to be incremental and continuous, with testing integrated at every step. Each component can be developed, tested, and validated independently due to the modular architecture.
+
+### Phase 1: Core Infrastructure (Continuous)
+- Set up new project structure ✓
+- Implement basic configuration system
+- Create geometry type system
+- **Testing Focus:**
+  - Unit tests for each core component
+  - Integration tests between core components
+  - API stability tests
+
+### Phase 2: Component Migration (Parallel Development)
+Each component can be developed and tested independently:
+
+1. **Configuration System**
+   - Implement new config loading
+   - Add validation
+   - Test against existing configs
+   - Validate backwards compatibility
+
+2. **Geometry Processing**
+   - Implement new geometry types
+   - Port operations one by one
+   - Test each operation independently
+   - Compare results with old implementation
+
+3. **Export System**
+   - Create new DXF export system
+   - Port optimizations
+   - Test export functionality
+   - Validate output consistency
+
+**Continuous Testing Throughout:**
+- Unit tests for new components
+- Integration tests with existing components
+- Performance benchmarks
+- Compatibility validation
+- API consistency checks
+
+### Phase 3: Legacy Code Retirement (Gradual)
+As new components are validated:
+- Mark old components as deprecated
+- Update documentation
+- Remove unused code
+- Maintain backwards compatibility where needed
+
+## Error Handling Strategy
+
+### Error Categories
+- Configuration Errors
+- Geometry Processing Errors
+- Export Errors
+- Validation Errors
+
+### Error Propagation
+- Component-level error handling
+- Error aggregation
+- User-friendly error messages
 
 ## Component APIs
 
