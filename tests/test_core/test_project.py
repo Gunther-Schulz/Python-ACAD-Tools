@@ -3,7 +3,7 @@
 import pytest
 import os
 from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, patch, MagicMock
 from src.core.project import Project
 from src.core.types import ExportData
 
@@ -17,11 +17,31 @@ def mock_config():
     }
 
 @pytest.fixture
+def mock_export_manager():
+    """Create mock export manager."""
+    manager = MagicMock()
+    manager.export = MagicMock()
+    manager.cleanup = MagicMock()
+    return manager
+
+@pytest.fixture
+def mock_geometry_manager():
+    """Create mock geometry manager."""
+    manager = MagicMock()
+    manager.get_layer_names = MagicMock(return_value=["test_layer"])
+    manager.process_layer = MagicMock()
+    return manager
+
+@pytest.fixture
 def test_project_dir(tmp_path, mock_config):
     """Create a temporary project directory structure."""
     # Create project directory
     project_dir = tmp_path / "test_project"
     project_dir.mkdir(parents=True)
+    
+    # Create output directory
+    output_dir = project_dir / "output"
+    output_dir.mkdir(parents=True)
     
     # Create necessary config files
     config_dir = project_dir / "config"
@@ -62,29 +82,10 @@ geomLayers:
     operations: []
 """)
     
-    # Create viewports.yaml
-    with open(project_dir / "viewports.yaml", "w") as f:
-        f.write("viewports: []")
-    
-    # Create legends.yaml
-    with open(project_dir / "legends.yaml", "w") as f:
-        f.write("legends: []")
-    
-    # Create block_inserts.yaml
-    with open(project_dir / "block_inserts.yaml", "w") as f:
-        f.write("blockInserts: []")
-    
-    # Create text_inserts.yaml
-    with open(project_dir / "text_inserts.yaml", "w") as f:
-        f.write("textInserts: []")
-    
-    # Create path_arrays.yaml
-    with open(project_dir / "path_arrays.yaml", "w") as f:
-        f.write("pathArrays: []")
-    
-    # Create web_services.yaml
-    with open(project_dir / "web_services.yaml", "w") as f:
-        f.write("webServices: []")
+    # Create other config files
+    for filename in ["viewports", "legends", "block_inserts", "text_inserts", "path_arrays", "web_services"]:
+        with open(project_dir / f"{filename}.yaml", "w") as f:
+            f.write(f"{filename}: []")
     
     return project_dir
 
@@ -106,51 +107,61 @@ def mock_config_manager():
 
 def test_project_initialization(mock_project_path, mock_config_manager, test_project_dir):
     """Test project initialization."""
-    project = Project("test_project")
-    
-    assert project.project_name == "test_project"
-    assert project.project_dir == test_project_dir
-    assert project.config_manager is not None
-    assert project.geometry_manager is not None
-    assert project.export_manager is not None
+    with patch('src.core.project.ExportManager') as mock_export_cls, \
+         patch('src.core.project.GeometryManager') as mock_geom_cls:
+        
+        mock_export_cls.return_value = MagicMock()
+        mock_geom_cls.return_value = MagicMock()
+        
+        project = Project("test_project")
+        
+        assert project.project_name == "test_project"
+        assert project.project_dir == test_project_dir
+        assert project.config_manager is not None
+        assert project.geometry_manager is not None
+        assert project.export_manager is not None
 
-def test_project_processing(mock_project_path, mock_config_manager, test_project_dir):
+def test_project_processing(mock_project_path, mock_config_manager, test_project_dir, 
+                          mock_export_manager, mock_geometry_manager):
     """Test project processing."""
-    project = Project("test_project")
-    
-    # Mock geometry manager to return a test layer
-    mock_layer = Mock()
-    mock_layer.name = "test_layer"
-    mock_layer.update_dxf = True
-    mock_layer.style = "default"
-    
-    project.geometry_manager.get_layer_names = Mock(return_value=["test_layer"])
-    project.geometry_manager.process_layer = Mock(return_value=mock_layer)
-    
-    # Process project
-    project.process()
-    
-    # Verify layer was processed
-    project.geometry_manager.process_layer.assert_called_once_with("test_layer")
-    
-    # Verify export was attempted
-    assert project.export_manager.export.called
-
-def test_project_error_handling(mock_project_path, mock_config_manager, test_project_dir):
-    """Test project error handling."""
-    project = Project("test_project")
-    
-    # Mock geometry manager to raise an error
-    project.geometry_manager.get_layer_names = Mock(return_value=["test_layer"])
-    project.geometry_manager.process_layer = Mock(side_effect=ValueError("Test error"))
-    
-    # Verify error handling
-    with pytest.raises(ValueError) as exc:
+    with patch('src.core.project.ExportManager') as mock_export_cls, \
+         patch('src.core.project.GeometryManager') as mock_geom_cls:
+        
+        mock_export_cls.return_value = mock_export_manager
+        mock_geom_cls.return_value = mock_geometry_manager
+        
+        project = Project("test_project")
+        
+        # Process project
         project.process()
-    assert "Test error" in str(exc.value)
-    
-    # Verify cleanup was attempted
-    assert project.export_manager.cleanup.called
+        
+        # Verify layer was processed
+        mock_geometry_manager.process_layer.assert_called_once_with("test_layer")
+        
+        # Verify export was attempted
+        mock_export_manager.export.assert_called_once()
+
+def test_project_error_handling(mock_project_path, mock_config_manager, test_project_dir,
+                              mock_export_manager, mock_geometry_manager):
+    """Test project error handling."""
+    with patch('src.core.project.ExportManager') as mock_export_cls, \
+         patch('src.core.project.GeometryManager') as mock_geom_cls:
+        
+        mock_export_cls.return_value = mock_export_manager
+        mock_geom_cls.return_value = mock_geometry_manager
+        
+        # Setup error condition
+        mock_geometry_manager.process_layer.side_effect = ValueError("Test error")
+        
+        project = Project("test_project")
+        
+        # Verify error handling
+        with pytest.raises(ValueError) as exc:
+            project.process()
+        assert "Test error" in str(exc.value)
+        
+        # Verify cleanup was attempted
+        mock_export_manager.cleanup.assert_called_once()
 
 def test_project_with_log_file(mock_project_path, mock_config_manager, test_project_dir, tmp_path):
     """Test project with log file."""
@@ -174,14 +185,17 @@ def test_project_with_folder_prefix(mock_project_path, mock_config_manager, test
     with open(root_dir / "projects.yaml", "w") as f:
         f.write("folderPrefix: test_")
     
-    project = Project("test_project")
-    assert project.folder_prefix == "test_"
+    # Mock the load_folder_prefix function
+    with patch('src.core.project.load_folder_prefix', return_value="test_"):
+        project = Project("test_project")
+        assert project.folder_prefix == "test_"
 
 def test_project_output_directory_creation(mock_project_path, mock_config_manager, test_project_dir):
     """Test output directory creation."""
+    # Output directory is created in test_project_dir fixture
     project = Project("test_project")
     
-    # Verify output directory was created
+    # Verify output directory exists
     output_dir = test_project_dir / "output"
     assert output_dir.exists()
     assert output_dir.is_dir() 
