@@ -2,18 +2,10 @@
 
 import sys
 import os
-import logging
-import yaml
 from pathlib import Path
-from src.config.config_manager import ConfigManager, ConfigError
-
-def setup_logging():
-    """Set up basic logging configuration."""
-    logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-    )
-    return logging.getLogger(__name__)
+from src.core.utils import setup_logger
+from src.core.project import Project
+from src.config.config_manager import ConfigManager, ConfigError, ConfigFileNotFoundError
 
 def get_project_dir(project_name: str) -> Path:
     """Get project directory from name."""
@@ -30,57 +22,41 @@ def get_project_dir(project_name: str) -> Path:
 
 def process_project(project_name: str) -> None:
     """Process a project by name."""
-    logger = setup_logging()
+    logger = setup_logger(f"main.{project_name}")
     
     try:
         # Get project directory
         project_dir = get_project_dir(project_name)
         logger.info(f"Processing project '{project_name}' in: {project_dir}")
         
-        # Initialize configuration manager
-        config_manager = ConfigManager(str(project_dir))
+        # Initialize project (this will handle config loading and validation)
+        project = Project(project_name, log_file=str(project_dir / "project.log"))
         
-        # Load and display project configuration
-        project_config = config_manager.load_project_config()
+        # Log loaded configuration summary
+        config = project.project_config
         logger.info("Project configuration loaded:")
-        logger.info(f"  CRS: {project_config.crs}")
-        logger.info(f"  DXF Output: {project_config.dxf_filename}")
-        logger.info(f"  Export Format: {project_config.export_format}")
-        logger.info(f"  DXF Version: {project_config.dxf_version}")
-        if project_config.template_dxf:
-            logger.info(f"  Template: {project_config.template_dxf}")
-        if project_config.shapefile_output_dir:
-            logger.info(f"  Shapefile Output: {project_config.shapefile_output_dir}")
+        logger.info(f"  CRS: {config.crs}")
+        logger.info(f"  DXF Output: {config.dxf_filename}")
+        logger.info(f"  Export Format: {config.export_format}")
+        logger.info(f"  DXF Version: {config.dxf_version}")
+        if config.template_dxf:
+            logger.info(f"  Template: {config.template_dxf}")
+        if config.shapefile_output_dir:
+            logger.info(f"  Shapefile Output: {config.shapefile_output_dir}")
         
-        # Load and display geometry layers
-        geom_layers = config_manager.load_geometry_layers()
-        if geom_layers:
+        # Log geometry layers summary
+        layers = project.geometry_manager.get_layer_names()
+        if layers:
             logger.info("\nGeometry layers loaded:")
-            for layer in geom_layers:
-                logger.info(f"  Layer: {layer.name}")
-                logger.info(f"    Update DXF: {layer.update_dxf}")
+            for layer_name in layers:
+                layer = project.geometry_manager.get_layer(layer_name)
+                logger.info(f"  Layer: {layer_name}")
                 logger.info(f"    Style: {layer.style or 'default'}")
-                if layer.shape_file:
+                if hasattr(layer, 'shape_file') and layer.shape_file:
                     logger.info(f"    Shapefile: {layer.shape_file}")
-                if layer.simple_label_column:
-                    logger.info(f"    Simple Label Column: {layer.simple_label_column}")
-                if layer.operations:
-                    logger.info(f"    Operations: {len(layer.operations)}")
-                    for op in layer.operations:
-                        logger.info(f"      - {op.type}")
-                        if op.distance:
-                            logger.info(f"        Distance: {op.distance}")
-                        if op.layers:
-                            logger.info(f"        Layers: {op.layers}")
         
-        # Load and display styles (merging global and project styles)
-        # First try to load global styles
-        root_styles_path = Path(__file__).parent.parent / 'styles.yaml'
-        if root_styles_path.exists():
-            logger.info("\nGlobal styles found")
-        
-        # Then load project-specific styles
-        styles = config_manager.load_styles()
+        # Log styles summary
+        styles = project.config_manager.load_styles()
         if styles:
             logger.info("\nStyles loaded:")
             for style_name, style in styles.items():
@@ -89,17 +65,20 @@ def process_project(project_name: str) -> None:
                     logger.info(f"    Layer Color: {style.layer_properties.color}")
                 if style.layer_properties.lineweight:
                     logger.info(f"    Line Weight: {style.layer_properties.lineweight}")
-                if style.text_properties:
-                    logger.info(f"    Text Height: {style.text_properties.height}")
-                    if style.text_properties.color:
-                        logger.info(f"    Text Color: {style.text_properties.color}")
         
+        # Process the project (this is where actual work would happen)
+        # For now, we only have config loading implemented
+        logger.info("\nProject loaded successfully. Processing not yet implemented.")
+        
+    except ConfigFileNotFoundError as e:
+        logger.error(f"Missing configuration file: {str(e)}")
+        sys.exit(1)
     except ConfigError as e:
         logger.error(f"Configuration error: {str(e)}")
         sys.exit(1)
     except Exception as e:
         logger.error(f"Unexpected error: {str(e)}")
-        sys.exit(1)
+        raise  # Re-raise for debugging in development
 
 def print_usage():
     """Print usage information."""
@@ -113,17 +92,20 @@ def print_usage():
     projects_dir = root_dir / 'projects'
     if projects_dir.exists():
         for project in projects_dir.iterdir():
-            if project.is_dir():
+            if project.is_dir() and (project / 'project.yaml').exists():
                 print(f"  - {project.name}")
     else:
         print("  No projects found in projects/ directory")
     
-    print("\nRequired configuration files in project directory:")
-    print("  - project.yaml         (required core settings)")
-    print("  - geom_layers.yaml     (geometry layer definitions)")
-    print("  - styles.yaml          (style definitions)")
-    print("\nOptional global configuration:")
-    print("  - styles.yaml          (in root directory)")
+    print("\nRequired project structure:")
+    print("  project_name/")
+    print("  ├── project.yaml       (required: core settings)")
+    print("  ├── geom_layers.yaml   (optional: geometry definitions)")
+    print("  ├── styles.yaml        (optional: project styles)")
+    print("  ├── viewports.yaml     (optional: viewport definitions)")
+    print("  └── legends.yaml       (optional: legend definitions)")
+    print("\nGlobal configuration:")
+    print("  styles.yaml            (optional: in root directory)")
 
 def main():
     """Main entry point."""
