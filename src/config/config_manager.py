@@ -3,10 +3,12 @@
 import os
 import yaml
 import jsonschema
-from typing import Dict, Any, Optional, Type, TypeVar
+from typing import Dict, Any, Optional, Type, TypeVar, List
+from pathlib import Path
 from src.core.utils import setup_logger
 from src.config.project_config import ProjectConfig
 from src.config.style_config import StyleConfig
+from src.config.geometry_layer_config import GeometryLayerConfig
 from src.config.schemas import (
     project_schema,
     geometry_layers_schema,
@@ -34,11 +36,12 @@ class ConfigManager:
         """Initialize with project directory."""
         self.project_dir = project_dir
         self.logger = setup_logger(f"config_manager.{os.path.basename(project_dir)}")
-    
-    def _load_yaml_file(self, filename: str, required: bool = True) -> dict:
-        """Load and parse YAML file."""
-        filepath = os.path.join(self.project_dir, filename)
         
+        # Store root directory for global configurations
+        self.root_dir = str(Path(project_dir).parent.parent)
+    
+    def _load_yaml_file(self, filepath: str, required: bool = True) -> dict:
+        """Load and parse YAML file."""
         if not os.path.exists(filepath):
             if required:
                 msg = f"Required config file not found: {filepath}"
@@ -73,10 +76,12 @@ class ConfigManager:
         filename: str,
         schema: dict,
         config_name: str,
-        required: bool = True
+        required: bool = True,
+        from_project: bool = True
     ) -> dict:
         """Load and validate configuration file."""
-        data = self._load_yaml_file(filename, required)
+        filepath = os.path.join(self.project_dir if from_project else self.root_dir, filename)
+        data = self._load_yaml_file(filepath, required)
         if data:  # Only validate non-empty configurations
             self._validate_config(data, schema, config_name)
         return data
@@ -95,6 +100,20 @@ class ConfigManager:
             self.logger.error(msg)
             raise ConfigError(msg) from e
     
+    def _merge_style_configs(self, base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, Any]:
+        """Merge two style configurations, with override taking precedence."""
+        merged = base.copy()
+        
+        for key, value in override.items():
+            if key not in merged:
+                merged[key] = value
+            elif isinstance(value, dict) and isinstance(merged[key], dict):
+                merged[key] = self._merge_style_configs(merged[key], value)
+            else:
+                merged[key] = value
+                
+        return merged
+    
     def load_project_config(self) -> ProjectConfig:
         """Load project configuration."""
         data = self._load_and_validate(
@@ -104,30 +123,69 @@ class ConfigManager:
         )
         return self._convert_config(data, ProjectConfig)
     
-    def load_geometry_layers(self) -> Dict[str, Any]:
+    def load_geometry_layers(self) -> List[GeometryLayerConfig]:
         """Load geometry layer configuration."""
-        return self._load_and_validate(
+        data = self._load_and_validate(
             'geom_layers.yaml',
             geometry_layers_schema.SCHEMA,
             'geometry layers',
             required=False
         )
+        
+        layers = []
+        for layer_data in data.get('geomLayers', []):
+            try:
+                layer = GeometryLayerConfig.from_dict(layer_data)
+                layers.append(layer)
+            except Exception as e:
+                self.logger.warning(f"Failed to load layer '{layer_data.get('name', 'unknown')}': {str(e)}")
+                continue
+                
+        return layers
     
     def load_styles(self) -> Dict[str, StyleConfig]:
-        """Load style configuration."""
-        data = self._load_and_validate(
+        """Load and merge global and project-specific style configurations."""
+        # Load global styles first (from root directory)
+        global_data = self._load_and_validate(
             'styles.yaml',
             styles_schema.SCHEMA,
-            'styles',
+            'global styles',
+            required=False,
+            from_project=False
+        )
+        
+        # Load project-specific styles
+        project_data = self._load_and_validate(
+            'styles.yaml',
+            styles_schema.SCHEMA,
+            'project styles',
             required=False
         )
         
+        # Start with global styles
         styles = {}
-        for name, style_data in data.get('styles', {}).items():
+        for name, style_data in global_data.get('styles', {}).items():
             try:
                 styles[name] = StyleConfig.from_dict(style_data)
             except Exception as e:
-                self.logger.warning(f"Failed to load style '{name}': {str(e)}")
+                self.logger.warning(f"Failed to load global style '{name}': {str(e)}")
+                continue
+        
+        # Merge with project-specific styles
+        for name, style_data in project_data.get('styles', {}).items():
+            try:
+                if name in styles:
+                    # Merge with existing global style
+                    merged_data = self._merge_style_configs(
+                        styles[name].to_dict(),
+                        style_data
+                    )
+                    styles[name] = StyleConfig.from_dict(merged_data)
+                else:
+                    # Add new project-specific style
+                    styles[name] = StyleConfig.from_dict(style_data)
+            except Exception as e:
+                self.logger.warning(f"Failed to load project style '{name}': {str(e)}")
                 continue
                 
         return styles 

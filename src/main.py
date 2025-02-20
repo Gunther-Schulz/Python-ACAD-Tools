@@ -56,16 +56,22 @@ def process_project(project_name: str) -> None:
         geom_layers = config_manager.load_geometry_layers()
         if geom_layers:
             logger.info("\nGeometry layers loaded:")
-            for layer in geom_layers.get('geomLayers', []):
-                logger.info(f"  Layer: {layer['name']}")
-                logger.info(f"    Update DXF: {layer.get('updateDxf', True)}")
-                logger.info(f"    Style: {layer.get('style', 'default')}")
-                if 'shapeFile' in layer:
-                    logger.info(f"    Shapefile: {layer['shapeFile']}")
-                if layer.get('simpleLabel'):
-                    logger.info(f"    Simple Label: {layer['simpleLabel']}")
-                if 'operations' in layer:
-                    logger.info(f"    Operations: {len(layer['operations'])}")
+            for layer in geom_layers:
+                logger.info(f"  Layer: {layer.name}")
+                logger.info(f"    Update DXF: {layer.update_dxf}")
+                logger.info(f"    Style: {layer.style or 'default'}")
+                if layer.shape_file:
+                    logger.info(f"    Shapefile: {layer.shape_file}")
+                if layer.simple_label_column:
+                    logger.info(f"    Simple Label Column: {layer.simple_label_column}")
+                if layer.operations:
+                    logger.info(f"    Operations: {len(layer.operations)}")
+                    for op in layer.operations:
+                        logger.info(f"      - {op.type}")
+                        if op.distance:
+                            logger.info(f"        Distance: {op.distance}")
+                        if op.layers:
+                            logger.info(f"        Layers: {op.layers}")
         
         # Load and display styles (merging global and project styles)
         # First try to load global styles

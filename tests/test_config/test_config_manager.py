@@ -14,6 +14,7 @@ def test_config_manager_initialization(test_project_dir):
     manager = ConfigManager(test_project_dir)
     assert manager.project_dir == test_project_dir
     assert manager.logger.name == f"config_manager.{os.path.basename(test_project_dir)}"
+    assert manager.root_dir == str(test_project_dir.parent.parent)
 
 def test_load_project_config(sample_project_files):
     """Test loading project configuration."""
@@ -42,7 +43,7 @@ def test_load_missing_optional_config(test_project_dir):
     assert styles == {}
     
     layers = manager.load_geometry_layers()
-    assert layers == {}
+    assert layers == []
 
 def test_load_invalid_yaml(test_project_dir):
     """Test loading invalid YAML file."""
@@ -67,10 +68,11 @@ dxfVersion: R2010
     with pytest.raises(ConfigValidationError):
         manager.load_project_config()
 
-def test_load_styles(test_project_dir):
-    """Test loading style configuration."""
-    # Create styles.yaml
-    with open(os.path.join(test_project_dir, "styles.yaml"), "w") as f:
+def test_style_merging(test_project_dir):
+    """Test merging of global and project-specific styles."""
+    # Create global styles
+    os.makedirs(test_project_dir.parent.parent, exist_ok=True)
+    with open(os.path.join(test_project_dir.parent.parent, "styles.yaml"), "w") as f:
         f.write("""
 styles:
   default:
@@ -89,13 +91,91 @@ styles:
       close: false
         """.strip())
     
+    # Create project-specific styles
+    with open(os.path.join(test_project_dir, "styles.yaml"), "w") as f:
+        f.write("""
+styles:
+  default:
+    layer:
+      lineweight: 15
+      linetype: CONTINUOUS
+    text:
+      height: 3.0
+  custom:
+    layer:
+      color: green
+        """.strip())
+    
     manager = ConfigManager(test_project_dir)
     styles = manager.load_styles()
     
-    assert len(styles) == 2
-    assert styles["default"].layer_properties.color == "red"
-    assert styles["default"].text_properties.color == "blue"
-    assert styles["simple"].entity_properties.close is False
+    # Check merged default style
+    assert "default" in styles
+    default = styles["default"]
+    assert default.layer_properties.color == "red"  # From global
+    assert default.layer_properties.lineweight == 15  # Overridden by project
+    assert default.layer_properties.linetype == "CONTINUOUS"  # From project
+    assert default.text_properties.height == 3.0  # Overridden by project
+    assert default.text_properties.color == "blue"  # From global
+    
+    # Check unmodified global style
+    assert "simple" in styles
+    simple = styles["simple"]
+    assert simple.layer_properties.color == "blue"
+    assert simple.entity_properties.close is False
+    
+    # Check project-only style
+    assert "custom" in styles
+    custom = styles["custom"]
+    assert custom.layer_properties.color == "green"
+
+def test_style_merging_no_global_styles(test_project_dir):
+    """Test style loading when no global styles exist."""
+    # Create only project-specific styles
+    with open(os.path.join(test_project_dir, "styles.yaml"), "w") as f:
+        f.write("""
+styles:
+  custom:
+    layer:
+      color: green
+        """.strip())
+    
+    manager = ConfigManager(test_project_dir)
+    styles = manager.load_styles()
+    
+    assert len(styles) == 1
+    assert "custom" in styles
+    assert styles["custom"].layer_properties.color == "green"
+
+def test_style_merging_invalid_global_style(test_project_dir):
+    """Test handling of invalid global styles."""
+    # Create invalid global styles
+    os.makedirs(test_project_dir.parent.parent, exist_ok=True)
+    with open(os.path.join(test_project_dir.parent.parent, "styles.yaml"), "w") as f:
+        f.write("""
+styles:
+  default:
+    layer:
+      color: 123  # Invalid color (should be string)
+        """.strip())
+    
+    # Create valid project styles
+    with open(os.path.join(test_project_dir, "styles.yaml"), "w") as f:
+        f.write("""
+styles:
+  custom:
+    layer:
+      color: green
+        """.strip())
+    
+    manager = ConfigManager(test_project_dir)
+    styles = manager.load_styles()
+    
+    # Invalid global style should be skipped
+    assert "default" not in styles
+    # Valid project style should be loaded
+    assert "custom" in styles
+    assert styles["custom"].layer_properties.color == "green"
 
 def test_load_geometry_layers(test_project_dir):
     """Test loading geometry layers configuration."""
