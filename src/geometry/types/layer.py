@@ -64,6 +64,9 @@ class LayerCollection:
         
         Returns:
             List of layer names in processing order. Returns empty list if no layers.
+            
+        Raises:
+            ValueError: If circular dependency detected
         """
         if not self.layers:
             return []
@@ -71,22 +74,25 @@ class LayerCollection:
         from collections import deque
         
         # Calculate in-degree for each layer
-        in_degree = {layer: 0 for layer in self.layers}
-        for deps in self._layer_dependencies.values():
-            for dep in deps:
-                in_degree[dep] += 1
+        in_degree = {name: 0 for name in self.layers.keys()}
+        
+        # For each layer that has dependencies, increment the in-degree of the layers that depend on it
+        for layer_name in self.layers.keys():
+            for dependent, deps in self._layer_dependencies.items():
+                if layer_name in deps:
+                    in_degree[dependent] += 1
         
         # Start with layers having no dependencies
-        queue = deque([layer for layer, degree in in_degree.items() if degree == 0])
+        queue = deque([name for name, degree in in_degree.items() if degree == 0])
         order = []
         
         while queue:
-            layer = queue.popleft()
-            order.append(layer)
+            name = queue.popleft()
+            order.append(name)
             
-            # Update in-degree for dependent layers
+            # For each layer that depends on the current layer
             for dependent, deps in self._layer_dependencies.items():
-                if layer in deps:
+                if name in deps:
                     in_degree[dependent] -= 1
                     if in_degree[dependent] == 0:
                         queue.append(dependent)

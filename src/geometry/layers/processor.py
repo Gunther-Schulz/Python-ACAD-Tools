@@ -1,6 +1,6 @@
 """Layer processing implementation."""
 
-from typing import Dict, Any, Optional, Set, Type
+from typing import Dict, Any, Optional, Set, Type, Union
 from ..types.layer import Layer, LayerCollection
 from ..types.base import GeometryError, GeometryOperationError
 from ..operations.base import Operation, OperationContext, OperationResult
@@ -47,18 +47,23 @@ class LayerProcessor:
         """
         return set(self._operations.keys())
     
-    def process_layer(self, layer_name: str) -> None:
+    def process_layer(self, layer_name_or_layer: Union[str, Layer]) -> None:
         """Process all operations for a layer.
         
         Args:
-            layer_name: Name of layer to process
+            layer_name_or_layer: Name of layer to process or Layer instance
             
         Raises:
             KeyError: If layer doesn't exist
             GeometryError: If processing fails
         """
-        # Get layer
-        layer = self.layer_manager.get_layer(layer_name)
+        # Get layer name and instance
+        if isinstance(layer_name_or_layer, Layer):
+            layer = layer_name_or_layer
+            layer_name = layer.name
+        else:
+            layer_name = layer_name_or_layer
+            layer = self.layer_manager.get_layer(layer_name)
         
         # Validate operation sequence if validator exists
         if self.validator:

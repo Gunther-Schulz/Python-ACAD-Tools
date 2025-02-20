@@ -11,7 +11,9 @@ from src.geometry.types.base import (
     GeometryData,
     GeometryMetadata,
     GeometryError,
-    GeometryOperationError,
+    GeometryOperationError
+)
+from src.geometry.operations.base import (
     Operation,
     OperationContext,
     OperationResult
