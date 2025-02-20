@@ -14,13 +14,13 @@ The project will maintain compatibility with existing DXF manipulation code from
 
 ### Component Mapping:
 Old Component -> New Component
-- src_old/dxf/ -> src/export/
-- src_old/layer_processor/ -> src/geometry/layer.py
+- src_old/dxf/ -> src/export/dxf/
+- src_old/layer_processor/ -> src/geometry/layers/
 - src_old/operations/ -> src/geometry/operations/
-- src_old/geo/ -> src/geometry/
+- src_old/geo/ -> src/geometry/types/
 - src_old/preprocessors/ -> src/config/
 - src_old/dxf_utils/ -> src/export/utils/
-- src_old/dxf_exporter/ -> src/export/dxf_exporter.py
+- src_old/dxf_exporter/ -> src/export/
 
 ### Key Areas to Reference:
 1. **DXF Manipulation**
@@ -56,14 +56,24 @@ Old Component -> New Component
 
 ### Implementation Status
 - Core Components ✓
-- Configuration Management (In Progress)
+- Configuration Management (Mostly Complete)
   - [x] Basic config loading
-  - [ ] Schema validation
-  - [ ] Style configuration
-- Geometry Processing (In Progress)
+  - [x] Schema validation
+  - [x] Style configuration
+  - [x] Project configuration
+  - [x] Geometry layer configuration
+  - [x] Specialized configurations (viewport, legend, etc.)
+  - [ ] Complete test coverage
+- Geometry Processing (Early Stages)
   - [x] Base geometry types
-  - [ ] Operations framework
+  - [x] Basic geometry manager
+  - [ ] Operations framework implementation
+  - [ ] Individual operations
+  - [ ] Layer management
 - Export System (Pending)
+  - [ ] DXF export coordination
+  - [ ] Style application
+  - [ ] Layer management
 
 ## Implementation Strategy
 
@@ -115,8 +125,30 @@ The project will be implemented following these principles:
 .
 ├── src/                          # New implementation
 │   ├── config/                   # Configuration management
+│   │   ├── schemas/             # JSON schemas for validation
+│   │   ├── config_manager.py    # Main configuration manager
+│   │   ├── project_config.py    # Project configuration
+│   │   ├── style_config.py      # Style configuration
+│   │   ├── geometry_layer_config.py  # Geometry layer config
+│   │   ├── block_insert_config.py    # Block insertion config
+│   │   ├── legend_config.py          # Legend configuration
+│   │   ├── path_array_config.py      # Path array config
+│   │   ├── position_config.py        # Position config
+│   │   ├── text_insert_config.py     # Text insertion config
+│   │   ├── viewport_config.py        # Viewport config
+│   │   └── web_service_config.py     # Web service config
 │   ├── geometry/                 # Geometry processing
+│   │   ├── operations/          # Geometric operations
+│   │   ├── layers/              # Layer management
+│   │   ├── types/              # Geometry type definitions
+│   │   ├── geometry_manager.py  # Geometry processing coordinator
+│   │   └── __init__.py
 │   ├── export/                   # DXF export functionality
+│   │   ├── dxf/                # DXF-specific functionality
+│   │   ├── utils/              # Export utilities
+│   │   ├── exporter.py         # Main export coordinator
+│   │   ├── style_manager.py    # Style application
+│   │   └── layer_manager.py    # Export layer management
 │   ├── core/                     # Core functionality
 │   └── __init__.py
 ├── src_old/                      # Legacy implementation (for reference)
@@ -215,29 +247,36 @@ As new components are validated:
 
 The configuration system handles loading and validation of all YAML configuration files.
 
-#### Implementation Steps:
-1. Schema Definitions
-   - Define JSON schemas for each config file
-   - Create validation functions
-   - Write tests for schema validation
+#### Key Components:
+1. **Config Manager**
+   - Central configuration loading and validation
+   - Schema validation
+   - Deprecated field checking
+   - Path resolution
+   - Type conversion
 
-2. Config Loading
-   - Implement YAML loading with error handling
-   - Add path resolution and environment variable support
-   - Write tests for file loading
+2. **Configuration Types**
+   - Project Configuration
+   - Style Configuration
+   - Geometry Layer Configuration
+   - Specialized Configurations:
+     - Legend Configuration
+     - Viewport Configuration
+     - Block Insert Configuration
+     - Text Insert Configuration
+     - Path Array Configuration
+     - Web Service Configuration
 
-3. Config Objects
-   - Create strongly typed config classes
-   - Add validation and conversion methods
-   - Write tests for object creation and validation
+Example implementation:
 
 ```python
-from typing import Optional, Dict, Any
+from typing import Dict, Any, Optional, Type, TypeVar, List
 from dataclasses import dataclass
+from pathlib import Path
 
 @dataclass
 class ProjectConfig:
-    """Strongly typed project configuration"""
+    """Project configuration."""
     crs: str
     dxf_filename: str
     template_dxf: Optional[str]
@@ -245,173 +284,416 @@ class ProjectConfig:
     dxf_version: str
     shapefile_output_dir: Optional[str]
 
-@dataclass
-class StyleConfig:
-    """Style configuration for layers and entities"""
-    layer_properties: Dict[str, Any]
-    entity_properties: Dict[str, Any]
-    text_properties: Optional[Dict[str, Any]]
+    @classmethod
+    def from_dict(cls, data: dict, folder_prefix: Optional[str] = None) -> 'ProjectConfig':
+        """Create ProjectConfig from dictionary."""
+        return cls(
+            crs=data['crs'],
+            dxf_filename=resolve_path(data['dxfFilename'], folder_prefix),
+            template_dxf=resolve_path(data.get('template'), folder_prefix),
+            export_format=data['exportFormat'],
+            dxf_version=data['dxfVersion'],
+            shapefile_output_dir=resolve_path(data.get('shapefileOutputDir'), folder_prefix)
+        )
 
 class ConfigManager:
     """Manages loading and validation of all configuration files."""
     
     def __init__(self, project_dir: str):
         self.project_dir = project_dir
+        self._initialize_schemas()
     
     def load_project_config(self) -> ProjectConfig:
-        """Loads and validates project.yaml"""
-        pass
-        
-    def load_geometry_layers(self) -> Dict[str, Any]:
-        """Loads and validates geom_layers.yaml"""
-        pass
-        
+        """Load and validate project configuration."""
+        data = self._load_and_validate('project.yaml', project_schema, 'project')
+        return self._convert_config(data, ProjectConfig)
+    
+    def load_geometry_layers(self) -> List[GeometryLayerConfig]:
+        """Load and validate geometry layer configurations."""
+        data = self._load_and_validate('geom_layers.yaml', geometry_layers_schema, 'geometry layers')
+        return [self._convert_config(layer, GeometryLayerConfig) for layer in data['layers']]
+    
     def load_styles(self) -> Dict[str, StyleConfig]:
-        """Loads and validates styles.yaml"""
-        pass
-        
-    def validate_config(self, config: Dict[str, Any], schema: Dict[str, Any]) -> bool:
-        """Validates configuration against schema"""
-        pass
-```
+        """Load and validate style configurations."""
+        data = self._load_and_validate('styles.yaml', styles_schema, 'styles')
+        return {name: self._convert_config(style, StyleConfig) 
+                for name, style in data['styles'].items()}
 
 ### 2. Geometry Processing
 
-The geometry system handles all geometric operations and transformations.
+The geometry system handles all geometric operations and transformations, working purely with in-memory geometric representations.
 
-#### Implementation Steps:
-1. Base Framework
-   - Define geometry type system
-   - Create operation base classes
-   - Write tests for framework
+#### Key Components:
 
-2. Operations
-   - Implement each operation individually
-   - Add validation and error handling
-   - Write tests for each operation
-
-3. Layer Management
-   - Implement layer processing
-   - Add attribute handling
-   - Write tests for layer management
+1. **Geometry Types** (`geometry/types/`)
+   - Pure geometric representations
+   - No export-specific attributes
+   - Based on shapely geometries
 
 ```python
-from typing import Dict, List, Optional, Any
 from dataclasses import dataclass
 from shapely.geometry import base
+from typing import Dict, Any, List
 
 @dataclass
 class GeometryLayer:
-    """Represents a processed geometry layer"""
+    """Pure geometry layer representation"""
     name: str
     geometry: base.BaseGeometry
     attributes: Dict[str, Any]
     operations_log: List[str]
-    style: Optional[str]
-    update_dxf: bool = False
 
+class GeometryCollection:
+    """Container for multiple geometry layers"""
+    def __init__(self):
+        self.layers: Dict[str, GeometryLayer] = {}
+```
+
+2. **Operations** (`geometry/operations/`)
+   - Pure geometric operations
+   - Input: geometry
+   - Output: modified geometry
+   - No side effects
+
+```python
 class GeometryOperation:
     """Base class for geometry operations"""
-    
     def execute(self, geometry: base.BaseGeometry, **kwargs) -> base.BaseGeometry:
         """Execute the operation on the geometry"""
         raise NotImplementedError
+```
 
-class GeometryManager:
-    """Manages geometry processing pipeline"""
+3. **Layer Management** (`geometry/layers/`)
+   - Manages geometric layer operations
+   - Handles layer attributes
+   - No export-specific logic
+
+### 3. Export System
+
+The export system handles the conversion of pure geometric objects into various output formats (DXF, Shapefile).
+
+#### Key Components:
+
+1. **Export Interfaces** (`export/interfaces/`)
+   ```python
+   class GeometryExporter(Protocol):
+       """Interface for geometry exporters"""
+       def export(self, geom: ProcessedGeometry, export_data: ExportData) -> None: ...
+   ```
+
+2. **DXF Export** (`export/dxf/`)
+   ```python
+   class DXFExporter(GeometryExporter):
+       """DXF-specific export implementation"""
+       def __init__(self, converter: DXFConverter, style: StyleApplicator):
+           self.converter = converter
+           self.style = style
+       
+       def export(self, geom: ProcessedGeometry, export_data: ExportData) -> None:
+           """Export to DXF format"""
+           pass
+   ```
+
+3. **Shapefile Export** (`export/shapefile/`)
+   ```python
+   class ShapefileExporter(GeometryExporter):
+       """Shapefile export implementation"""
+       def __init__(self, crs_handler: CRSTransformer):
+           self.crs_handler = crs_handler
+       
+       def export(self, geom: ProcessedGeometry, export_data: ExportData) -> None:
+           """Export to Shapefile format"""
+           pass
+   ```
+
+4. **Export Manager** (`export/`)
+   ```python
+   class ExportManager:
+       """Coordinates export process"""
+       def __init__(self):
+           self.exporters: Dict[str, GeometryExporter] = {}
+       
+       def register_exporter(self, format_type: str, exporter: GeometryExporter) -> None:
+           """Register an exporter for a specific format"""
+           self.exporters[format_type] = exporter
+       
+       def export(self, geom: ProcessedGeometry, export_data: ExportData) -> None:
+           """Export using registered exporter"""
+           exporter = self.exporters[export_data.format_type]
+           exporter.export(geom, export_data)
+   ```
+
+#### Directory Structure Update:
+```
+src/
+└── export/
+    ├── interfaces/           # Export interfaces
+    │   └── exporter.py      # GeometryExporter protocol
+    ├── dxf/                 # DXF export implementation
+    │   ├── converter.py     # DXF conversion
+    │   └── style.py        # DXF styling
+    ├── shapefile/          # Shapefile export implementation
+    │   ├── exporter.py     # Shapefile export
+    │   └── crs.py         # CRS handling for export
+    └── manager.py          # Export coordination
+```
+
+#### Data Types Update:
+```python
+@dataclass
+class ExportData:
+    """Export configuration data"""
+    id: str
+    format_type: str  # 'dxf' or 'shapefile'
+    style_id: Optional[str]  # Required for DXF, optional for shapefile
+    layer_name: str
+    target_crs: Optional[str]  # Required for shapefile
+    properties: Dict[str, Any]
+```
+
+This maintains strict boundaries by:
+1. Using a common interface (`GeometryExporter`)
+2. Each exporter implementation is isolated
+3. Format-specific concerns stay in their modules
+4. Export manager knows nothing about specific formats
+
+The export process remains format-agnostic:
+```
+ProcessedGeometry ──► ExportData ──► GeometryExporter ──► Output File
+                          │                  ├─► DXFExporter
+                          │                  └─► ShapefileExporter
+                          v
+                    Format-specific
+                    Configuration
+```
+
+## Component Boundaries
+
+### 1. Core Types (Shared Interfaces)
+
+Located in `src/core/types.py`:
+
+```python
+from dataclasses import dataclass
+from typing import Dict, Any, List, Protocol, Union, BinaryIO
+from shapely.geometry import base
+
+class GeometrySource(Protocol):
+    """Interface for geometry data sources"""
+    def read(self) -> 'GeometryData': ...
+    def get_metadata(self) -> Dict[str, Any]: ...
+
+class ShapefileReader(GeometrySource):
+    """Interface for shapefile reading"""
+    def read(self) -> 'GeometryData': ...
+    def get_crs(self) -> str: ...
+
+@dataclass
+class GeometryData:
+    """Data transfer object for geometry data"""
+    id: str
+    geom: Geometry
+    metadata: Dict[str, Any]
+    source_type: str  # e.g., 'shapefile', 'manual', etc.
+    source_crs: str   # Coordinate reference system of source
+```
+
+### 2. Geometry Processing
+
+Pure geometry processing with no knowledge of export or DXF:
+
+```python
+@dataclass
+class ProcessedGeometry:
+    """Internal geometry processing result"""
+    data: GeometryData
+    processing_log: List[str]
+
+class GeometryProcessor:
+    """Pure geometry processing"""
     
-    def __init__(self, config: Dict[str, Any]):
-        self.config = config
-        self.layers: Dict[str, GeometryLayer] = {}
-        self._operations: Dict[str, GeometryOperation] = {}
-    
-    def register_operation(self, name: str, operation: GeometryOperation) -> None:
-        """Register a new geometry operation"""
+    def process(self, data: GeometryData) -> ProcessedGeometry:
+        """Process geometry without export knowledge"""
         pass
-    
-    def process_layer(self, layer_name: str) -> GeometryLayer:
-        """Process a single layer according to its configuration"""
-        pass
-    
-    def get_layer(self, layer_name: str) -> Optional[GeometryLayer]:
-        """Get processed geometry for a layer"""
+
+class GeometryOperation(Protocol):
+    """Interface for geometry operations"""
+    def execute(self, geom: Geometry) -> Geometry: ...
+
+class BufferOperation:
+    """Example concrete operation"""
+    def execute(self, geom: Geometry) -> Geometry:
+        # Pure geometry transformation
         pass
 ```
 
 ### 3. Export System
 
-The export system handles conversion of geometries to DXF format.
-
-#### Implementation Steps:
-1. Style Management
-   - Implement style application system
-   - Add style inheritance
-   - Write tests for style system
-
-2. Layer Management
-   - Create DXF layer handling
-   - Add layer properties
-   - Write tests for layer management
-
-3. DXF Export
-   - Implement geometry to DXF conversion
-   - Add optimization features
-   - Write tests for export system
+Handles conversion to DXF with no geometry processing:
 
 ```python
-from typing import Dict, Any, Optional
-from dataclasses import dataclass
-
-@dataclass
-class DXFLayerProperties:
-    """DXF layer properties"""
-    name: str
-    color: Optional[int]
-    linetype: Optional[str]
-    lineweight: Optional[int]
-    plot: bool = True
-    frozen: bool = False
-
-class DXFExporter:
-    """Handles export of geometries to DXF"""
+class DXFConverter:
+    """Pure DXF conversion"""
     
-    def __init__(self, style_manager: 'StyleManager', layer_manager: 'LayerManager'):
-        self.style_manager = style_manager
-        self.layer_manager = layer_manager
-    
-    def export_layer(self, layer: GeometryLayer, style: StyleConfig) -> None:
-        """Export a single geometry layer to DXF"""
-        pass
-    
-    def finalize_export(self) -> None:
-        """Finalize the DXF file"""
+    def convert(self, geom: Geometry) -> Any:  # Returns ezdxf entity
+        """Convert geometry to DXF entity"""
         pass
 
-class StyleManager:
-    """Manages style application"""
+class StyleApplicator:
+    """Pure style application"""
     
-    def __init__(self, style_configs: Dict[str, StyleConfig]):
-        self.style_configs = style_configs
-    
-    def apply_style(self, geometry: Any, style: StyleConfig) -> None:
-        """Apply style to geometry"""
-        pass
-    
-    def get_style(self, style_name: str) -> Optional[StyleConfig]:
-        """Get style configuration by name"""
+    def apply(self, entity: Any, style_id: str) -> None:
+        """Apply style to DXF entity"""
         pass
 
-class LayerManager:
-    """Manages DXF layers"""
+class ExportManager:
+    """Coordinates export process"""
     
-    def create_layer(self, properties: DXFLayerProperties) -> None:
-        """Create a new DXF layer"""
-        pass
+    def __init__(self, converter: DXFConverter, style: StyleApplicator):
+        self.converter = converter
+        self.style = style
     
-    def get_layer(self, name: str) -> Optional[DXFLayerProperties]:
-        """Get layer properties by name"""
+    def export(self, geom: ProcessedGeometry, export_data: ExportData) -> None:
+        """Export using clean interfaces"""
         pass
 ```
+
+### 4. Input System
+
+The input system handles reading geometry from various sources (shapefiles, etc.) without knowledge of processing or export.
+
+#### Key Components:
+
+1. **Shapefile Import** (`input/shapefile/`)
+   - Pure shapefile reading
+   - CRS handling
+   - Attribute reading
+
+```python
+class ShapefileImporter:
+    """Pure shapefile import functionality"""
+    
+    def __init__(self, crs_transformer: Optional[CRSTransformer] = None):
+        self.crs_transformer = crs_transformer
+    
+    def read(self, path: Union[str, Path]) -> GeometryData:
+        """Read shapefile to geometry data"""
+        pass
+
+class CRSTransformer:
+    """Handle coordinate reference system transformations"""
+    
+    def transform(self, geom: Geometry, from_crs: str, to_crs: str) -> Geometry:
+        """Transform geometry between CRS"""
+        pass
+```
+
+2. **Input Coordination** (`input/`)
+   - Source type detection
+   - Reader selection
+   - Error handling
+
+```python
+class InputManager:
+    """Coordinates geometry input from various sources"""
+    
+    def __init__(self, config: InputConfig):
+        self.config = config
+        self.readers: Dict[str, GeometrySource] = {}
+    
+    def register_reader(self, source_type: str, reader: GeometrySource) -> None:
+        """Register a geometry source reader"""
+        pass
+    
+    def read_geometry(self, source_id: str) -> GeometryData:
+        """Read geometry from configured source"""
+        pass
+```
+
+## Data Flow and Boundaries
+
+### 1. Component Communication
+
+Components communicate only through interface types:
+```
+GeometrySource ──► GeometryData ──► ProcessedGeometry ──► ExportData
+      │                 │                    │                 │
+      v                 v                    v                 v
+  Shapefile ──► Geometry Interface ──► Operations ──► DXF/Export
+   Reader          (Core Types)        Interface      Interface
+```
+
+### 2. Strict Boundaries
+
+1. **Input System**
+   - Input: File paths, source configurations
+   - Output: `GeometryData`
+   - No knowledge of:
+     - Geometry processing
+     - Export formats
+     - Business logic
+
+2. **Geometry Processing**
+   - Input: `GeometryData`
+   - Output: `ProcessedGeometry`
+   - No knowledge of:
+     - DXF formats
+     - Export styles
+     - Layer naming
+
+3. **Export System**
+   - Input: `ProcessedGeometry` + `ExportData`
+   - Output: DXF file
+   - No knowledge of:
+     - Geometry operations
+     - Processing logic
+     - Source data formats
+
+4. **Configuration System**
+   - Provides: Configuration objects
+   - No knowledge of:
+     - Implementation details
+     - Processing logic
+     - Export formats
+
+### 3. Dependency Rules
+
+1. All dependencies flow inward:
+   ```
+   Config ──► Core Types ◄── Export
+                   ▲
+                   │
+              Processing
+   ```
+
+2. Shared interfaces live in core:
+   - No circular dependencies
+   - No implementation leakage
+   - Clear contract boundaries
+
+### 4. Testing Boundaries
+
+Each component can be tested in isolation:
+
+1. **Geometry Processing Tests**
+   ```python
+   def test_buffer_operation():
+       # Uses only GeometryData and Geometry interface
+       data = GeometryData(...)
+       processor = GeometryProcessor()
+       result = processor.process(data)
+       assert isinstance(result, ProcessedGeometry)
+   ```
+
+2. **Export Tests**
+   ```python
+   def test_dxf_conversion():
+       # Uses only ProcessedGeometry and ExportData
+       geom = ProcessedGeometry(...)
+       export_data = ExportData(...)
+       exporter = ExportManager(...)
+       exporter.export(geom, export_data)
+   ```
 
 ## Testing Strategy
 
