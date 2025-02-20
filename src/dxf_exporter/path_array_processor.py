@@ -1,9 +1,9 @@
 """Module for processing path arrays in DXF files."""
 
 from src.core.utils import log_debug, log_warning
-from .utils import remove_entities_by_layer
+from src.dxf_utils import remove_entities_by_layer
 from src.dxf.path_array import create_path_array
-from .utils.style_defaults import DEFAULT_PATH_ARRAY_STYLE
+from src.dxf_utils.style_defaults import DEFAULT_PATH_ARRAY_STYLE
 
 class PathArrayProcessor:
     def __init__(self, project_loader, style_manager):

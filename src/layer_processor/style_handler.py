@@ -1,7 +1,7 @@
 """Module for handling style operations."""
 
 from src.core.utils import log_warning
-from ..dxf_exporter.utils.style_defaults import DEFAULT_HATCH_STYLE
+from src.dxf_utils.style_defaults import DEFAULT_HATCH_STYLE
 
 class StyleHandler:
     def __init__(self, layer_processor):

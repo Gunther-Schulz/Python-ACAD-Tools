@@ -6,7 +6,7 @@ import shutil
 import geopandas as gpd
 from pathlib import Path
 from src.core.utils import ensure_path_exists, log_info, log_warning, log_error, resolve_path, log_debug
-from .utils import (
+from src.dxf_utils import (
     SCRIPT_IDENTIFIER,
     initialize_document,
     cleanup_document,

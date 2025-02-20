@@ -15,10 +15,8 @@ from src.core.project_loader import ProjectLoader
 from src.core.service_management import create_default_container
 from src.layer_processor import LayerProcessor
 from src.dxf_exporter.exporter import DXFExporter
-from src.dxf_exporter.utils import cleanup_document
+from src.dxf_utils import cleanup_document
 from src.geo.dump_to_shape import dxf_to_shapefiles
-from src.dxf_exporter.style_manager import StyleManager
-from src.dxf_exporter.layer_manager import LayerManager
 
 class ProjectProcessor:
     """Main project processor coordinating the processing pipeline."""

@@ -1,8 +1,8 @@
 """Module for managing styles in DXF files."""
 
 from src.core.utils import log_warning, log_info, log_error, log_debug
-from .utils import get_color_code, convert_transparency, deep_merge
-from .utils.style_defaults import (
+from src.dxf_utils import get_color_code, convert_transparency, deep_merge
+from src.dxf_utils.style_defaults import (
     DEFAULT_TEXT_STYLE,
     DEFAULT_LAYER_STYLE,
     DEFAULT_HATCH_STYLE,

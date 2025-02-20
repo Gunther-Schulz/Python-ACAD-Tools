@@ -1,7 +1,7 @@
 """Module for creating path arrays in DXF files."""
 
 from src.core.utils import log_debug, log_warning
-from src.dxf_exporter.utils import (
+from src.dxf_utils import (
     SCRIPT_IDENTIFIER,
     add_block_reference,
     attach_custom_data

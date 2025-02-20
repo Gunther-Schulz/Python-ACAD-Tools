@@ -12,7 +12,7 @@ from ezdxf import bbox
 import os
 from src.core.utils import log_warning, log_error, log_info, log_debug
 from src.dxf_exporter.style_manager import StyleManager
-from src.dxf_exporter.utils import (
+from src.dxf_utils import (
     convert_transparency,
     get_color_code,
     attach_custom_data,
@@ -30,7 +30,7 @@ from src.dxf_exporter.utils import (
     create_hatch
 )
 from ezdxf.lldxf import const
-from ..dxf_exporter.utils.style_defaults import DEFAULT_TEXT_STYLE
+from src.dxf_utils.style_defaults import DEFAULT_TEXT_STYLE
 
 class LegendCreator:
     def __init__(self, doc, msp, project_loader, loaded_styles):

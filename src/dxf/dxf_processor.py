@@ -6,7 +6,7 @@ import traceback
 from ezdxf.entities.lwpolyline import LWPolyline
 from ezdxf.entities.polyline import Polyline
 from src.core.utils import log_info, log_warning, log_error, resolve_path, log_debug
-from src.dxf_exporter.utils import (
+from src.dxf_utils import (
     ensure_layer_exists,
     attach_custom_data,
     sanitize_layer_name,

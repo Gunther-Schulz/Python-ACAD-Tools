@@ -8,7 +8,7 @@ import math
 import numpy as np
 from src.dxf_exporter.style_manager import StyleManager
 import networkx as nx
-from ..dxf_exporter.utils.style_defaults import DEFAULT_TEXT_STYLE
+from src.dxf_utils.style_defaults import DEFAULT_TEXT_STYLE
 import pandas as pd
 import ezdxf
 

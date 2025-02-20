@@ -2,8 +2,8 @@
 
 import ezdxf
 from src.core.utils import log_debug, log_warning
-from .utils import ensure_layer_exists, update_layer_properties, sanitize_layer_name
-from .utils.style_defaults import DEFAULT_LAYER_STYLE, DEFAULT_ENTITY_STYLE
+from src.dxf_utils import ensure_layer_exists, update_layer_properties, sanitize_layer_name
+from src.dxf_utils.style_defaults import DEFAULT_LAYER_STYLE, DEFAULT_ENTITY_STYLE
 
 class LayerManager:
     def __init__(self, project_loader, style_manager):

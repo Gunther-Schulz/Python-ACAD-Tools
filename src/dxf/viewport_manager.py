@@ -3,7 +3,7 @@
 import traceback
 from ezdxf.lldxf import const
 from src.core.utils import log_info, log_warning, log_error, log_debug
-from src.dxf_exporter.utils import get_color_code, attach_custom_data
+from src.dxf_utils import get_color_code, attach_custom_data
 
 class ViewportManager:
     def __init__(self, project_settings, script_identifier, name_to_aci, style_manager):

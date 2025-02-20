@@ -2,7 +2,6 @@ import yaml
 import os
 from src.core.utils import log_info, log_warning, log_error, resolve_path, log_debug
 from src.dxf.dxf_processor import DXFProcessor
-from src.dxf_exporter.utils.style_defaults import DEFAULT_COLOR_MAPPING
 from src.dxf_exporter.style_manager import StyleManager
 from src.dxf_exporter.layer_manager import LayerManager
 
@@ -14,17 +13,10 @@ GEOM_LAYER_SCHEMA = {
         'close': bool,
         'shapeFile': str,
         'simpleLabel': str,  # The correct key for simple text labels
-        'linetypeGeneration': bool,
         'style': (dict, str),  # Can be either a dict or string
         'viewports': list,
         'operations': list,
         'hatches': list,
-        'plot': bool,
-        'locked': bool,
-        'frozen': bool,
-        'is_on': bool,
-        'transparency': (int, float),
-        'linetypeScale': (int, float)
     },
     'deprecated': {
         'labels': 'Use simpleLabel instead',
@@ -247,9 +239,7 @@ class ProjectLoader:
                 self.name_to_aci = {item['name'].lower(): item['aciCode'] for item in color_data}
                 self.aci_to_name = {item['aciCode']: item['name'] for item in color_data}
         except FileNotFoundError:
-            log_warning("aci_colors.yaml not found. Using default color mapping.")
-            self.name_to_aci = DEFAULT_COLOR_MAPPING
-            self.aci_to_name = {v: k for k, v in self.name_to_aci.items()}
+            log_warning("aci_colors.yaml not found.")
 
     def load_styles(self):
         """Load and merge styles from both root and project-specific styles.yaml files.

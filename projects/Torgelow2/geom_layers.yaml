@@ -35,7 +35,6 @@ geomLayers:
     close: true
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/input/gemarkung2.shp"
     simpleLabel: gmkname
-    linetypeGeneration: true
     style: gemarkungsgrenze
     viewports:
       - name: WorkView
@@ -46,7 +45,6 @@ geomLayers:
     close: true
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/input/gemeinde2.shp"
     simpleLabel: gen
-    linetypeGeneration: true
     style: gemeindegrenze
     viewports:
       - name: WorkView
@@ -177,7 +175,6 @@ geomLayers:
       - type: dissolve
   - name: Geltungsbereich 2
     updateDxf: true
-    linetypeScale: 1
     style: geltungsbereich_2
     operations:
       - type: buffer
@@ -292,7 +289,6 @@ geomLayers:
   - name: Schutzflächeumgrenzung T-Symbol Temp
     # updateDxf: true
     close: false
-    plot: false
     operations:
       - type: copy
         layers:
@@ -337,8 +333,6 @@ geomLayers:
   - name: Baugrenze
     updateDxf: true
     style: baugrenze
-    linetypeScale: 0.5
-    linetypeGeneration: true
     close: true
     operations:
       - type: buffer

@@ -3,7 +3,7 @@
 from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, Point, GeometryCollection
 import geopandas as gpd
 from src.core.utils import log_debug, log_warning
-from .utils import attach_custom_data, get_color_code, convert_transparency
+from src.dxf_utils import attach_custom_data, get_color_code, convert_transparency
 from ezdxf.lldxf.const import LWPOLYLINE_PLINEGEN
 
 class GeometryProcessor:

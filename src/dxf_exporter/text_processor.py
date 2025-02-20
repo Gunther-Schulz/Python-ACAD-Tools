@@ -2,13 +2,13 @@
 
 from shapely.geometry import Point
 from src.core.utils import log_debug, log_warning, log_error
-from .utils import (
+from src.dxf_utils import (
     SCRIPT_IDENTIFIER,
     ensure_layer_exists,
     add_mtext,
     attach_custom_data
 )
-from .utils.style_defaults import DEFAULT_TEXT_STYLE, DEFAULT_LAYER_NAMES
+from src.dxf_utils.style_defaults import DEFAULT_TEXT_STYLE, DEFAULT_LAYER_NAMES
 
 class TextProcessor:
     def __init__(self, script_identifier, project_loader, style_manager, layer_manager):
