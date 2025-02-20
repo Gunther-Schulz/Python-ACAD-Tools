@@ -56,6 +56,37 @@ class GeometryOperation:
         return result
 
 @dataclass
+class StyleConfig:
+    """Configuration for layer styling."""
+    layer: Optional[Dict[str, Any]] = None
+    polygon: Optional[Dict[str, Any]] = None  # Renamed from 'entity' to 'polygon' - for polygon-level styling
+    text: Optional[Dict[str, Any]] = None
+    hatch: Optional[Dict[str, Any]] = None
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'StyleConfig':
+        """Create StyleConfig from dictionary."""
+        return cls(
+            layer=data.get('layer'),
+            polygon=data.get('polygon'),  # Renamed from 'entity' to 'polygon'
+            text=data.get('text'),
+            hatch=data.get('hatch')
+        )
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary."""
+        result = {}
+        if self.layer is not None:
+            result['layer'] = self.layer
+        if self.polygon is not None:  # Renamed from 'entity' to 'polygon'
+            result['polygon'] = self.polygon
+        if self.text is not None:
+            result['text'] = self.text
+        if self.hatch is not None:
+            result['hatch'] = self.hatch
+        return result
+
+@dataclass
 class GeometryLayerConfig:
     """Configuration for a geometry layer."""
     name: LayerName
@@ -63,10 +94,11 @@ class GeometryLayerConfig:
     close: bool = False
     shape_file: Optional[str] = None
     simple_label_column: Optional[str] = None
-    style: Optional[StyleName] = None
+    style: Optional[StyleName] = None  # Reference to a preset style
+    inline_style: Optional[StyleConfig] = None  # Inline style configuration
     operations: List[GeometryOperation] = None
     viewports: Optional[List[Dict[str, str]]] = None
-    hatches: Optional[List[Dict[str, Any]]] = None
+    hatch_layers: Optional[List[Dict[str, Any]]] = None  # Renamed from hatches to hatch_layers
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any], folder_prefix: Optional[str] = None) -> 'GeometryLayerConfig':
@@ -83,16 +115,23 @@ class GeometryLayerConfig:
         if 'operations' in data:
             operations = [GeometryOperation.from_dict(op) for op in data['operations']]
 
+        # Handle both style types
+        style = data.get('style')  # This should now be a string (preset name)
+        inline_style = None
+        if 'inlineStyle' in data:
+            inline_style = StyleConfig.from_dict(data['inlineStyle'])
+
         return cls(
             name=data['name'],
             update_dxf=data.get('updateDxf', True),
             close=data.get('close', False),
             shape_file=shape_file,
             simple_label_column=data.get('simpleLabelColumn'),
-            style=data.get('style'),
+            style=style,
+            inline_style=inline_style,
             operations=operations,
             viewports=data.get('viewports'),
-            hatches=data.get('hatches')
+            hatch_layers=data.get('hatchLayers')  # Updated to match YAML key
         )
 
     def to_dict(self) -> Dict[str, Any]:
@@ -109,10 +148,12 @@ class GeometryLayerConfig:
             result['simpleLabelColumn'] = self.simple_label_column
         if self.style:
             result['style'] = self.style
+        if self.inline_style:
+            result['inlineStyle'] = self.inline_style.to_dict()
         if self.operations:
             result['operations'] = [op.to_dict() for op in self.operations]
         if self.viewports:
             result['viewports'] = self.viewports
-        if self.hatches:
-            result['hatches'] = self.hatches
+        if self.hatch_layers:
+            result['hatchLayers'] = self.hatch_layers  # Updated to match YAML key
         return result 

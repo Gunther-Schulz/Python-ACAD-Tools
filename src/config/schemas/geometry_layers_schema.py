@@ -1,5 +1,7 @@
 """Geometry layers configuration schema."""
 
+from .styles_schema import STYLE_PROPERTIES
+
 SCHEMA = {
     "type": "object",
     "properties": {
@@ -13,51 +15,10 @@ SCHEMA = {
                     "close": {"type": "boolean", "default": False},
                     "shapeFile": {"type": "string"},
                     "simpleLabelColumn": {"type": "string"},
-                    "style": {
-                        "oneOf": [
-                            {"type": "string"},
-                            {"type": "object",
-                             "properties": {
-                                 "layer": {
-                                     "type": "object",
-                                     "properties": {
-                                         "color": {"type": "string"},
-                                         "linetype": {"type": "string"},
-                                         "lineweight": {"type": "integer"},
-                                         "plot": {"type": "boolean"},
-                                         "locked": {"type": "boolean"},
-                                         "frozen": {"type": "boolean"},
-                                         "is_on": {"type": "boolean"},
-                                         "transparency": {"type": "integer"}
-                                     }
-                                 },
-                                 "entity": {
-                                     "type": "object",
-                                     "properties": {
-                                         "close": {"type": "boolean"},
-                                         "linetypeScale": {"type": "number"},
-                                         "linetypeGeneration": {"type": "boolean"}
-                                     }
-                                 },
-                                 "text": {
-                                     "type": "object",
-                                     "properties": {
-                                         "height": {"type": "number"},
-                                         "font": {"type": "string"},
-                                         "style": {"type": "string"},
-                                         "color": {"type": "string"},
-                                         "attachmentPoint": {"type": "string"},
-                                         "paragraph": {
-                                             "type": "object",
-                                             "properties": {
-                                                 "align": {"type": "string"}
-                                             }
-                                         }
-                                     }
-                                 }
-                             }
-                            }
-                        ]
+                    "style": {"type": "string"},
+                    "inlineStyle": {
+                        "type": "object",
+                        "properties": STYLE_PROPERTIES
                     },
                     "viewports": {
                         "type": "array",
@@ -116,7 +77,7 @@ SCHEMA = {
                             "required": ["type"]
                         }
                     },
-                    "hatches": {
+                    "hatchLayers": {
                         "type": "array",
                         "items": {
                             "type": "object",

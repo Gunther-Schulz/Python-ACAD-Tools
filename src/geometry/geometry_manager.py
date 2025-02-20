@@ -9,6 +9,7 @@ from .layers.validator import LayerValidator
 from .types.layer import Layer, LayerCollection
 from .types.base import GeometryData, GeometryMetadata
 from .operations.buffer import BufferOperation
+from src.config.geometry_layer_config import GeometryLayerConfig
 
 @dataclass
 class GeometryLayer:
@@ -20,11 +21,11 @@ class GeometryLayer:
 class GeometryManager:
     """Manages geometry processing pipeline."""
     
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: List[GeometryLayerConfig]):
         """Initialize with configuration.
         
         Args:
-            config: Dictionary containing geometry layer configurations
+            config: List of geometry layer configurations
         """
         self.config = config
         
@@ -54,30 +55,19 @@ class GeometryManager:
     
     def _load_layers(self) -> None:
         """Load layers from configuration."""
-        geom_layers = self.config.get('geomLayers', [])
-        
-        for layer_config in geom_layers:
-            name = layer_config.get('name')
-            if not name:
-                continue
-                
+        for layer_config in self.config:
             # Create layer with basic attributes
             layer = self.layer_manager.create_layer(
-                name=name,
+                name=layer_config.name,
                 geometry=GeometryData(
-                    id=name,
+                    id=layer_config.name,
                     geometry=None,  # Will be loaded when processing
                     metadata=GeometryMetadata(source_type='config')
                 ),
-                update_dxf=layer_config.get('updateDxf', False),
-                style_id=layer_config.get('style'),
-                operations=layer_config.get('operations', [])
+                update_dxf=layer_config.update_dxf,
+                style_id=layer_config.style,
+                operations=[op.to_dict() for op in layer_config.operations] if layer_config.operations else []
             )
-            
-            # Add dependencies if specified
-            if 'dependencies' in layer_config:
-                for dep in layer_config['dependencies']:
-                    self.layer_manager.add_dependency(name, dep)
     
     def get_layer_names(self) -> List[str]:
         """Get list of layer names.

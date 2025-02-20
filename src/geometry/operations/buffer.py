@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import Optional, List
 from shapely.geometry import base as shapely_base
 from ..types.base import GeometryData, GeometryMetadata
-from .base import UnaryOperation, OperationValidator
+from .base import Operation, OperationValidator, OperationContext, OperationResult
 
 @dataclass
 class BufferParameters:
@@ -47,7 +47,7 @@ class BufferValidator(OperationValidator[BufferParameters]):
         """Get validation errors."""
         return self.errors
 
-class BufferOperation(UnaryOperation[BufferParameters, GeometryData]):
+class BufferOperation(Operation[BufferParameters, GeometryData]):
     """Implementation of buffer operation."""
     
     def __init__(self):
@@ -92,4 +92,22 @@ class BufferOperation(UnaryOperation[BufferParameters, GeometryData]):
             id=f"{geometry.id}_buffered",
             geometry=buffered,
             metadata=new_metadata
-        ) 
+        )
+        
+    def execute(self, context: OperationContext) -> OperationResult[GeometryData]:
+        """Execute buffer operation."""
+        try:
+            if not self.validate(context.parameters):
+                return OperationResult.failure(
+                    f"Invalid parameters: {', '.join(self.get_validation_errors())}"
+                )
+            
+            result = self.process_geometry(
+                context.current_layer.geometry,
+                BufferParameters(**context.parameters)
+            )
+            
+            return OperationResult.success(result)
+            
+        except Exception as e:
+            return OperationResult.failure(f"Buffer operation failed: {str(e)}") 

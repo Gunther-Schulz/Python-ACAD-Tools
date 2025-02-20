@@ -143,7 +143,7 @@ styles:
   parcel:
     layer:
       locked: true
-    entity:
+    polygon:
       color: "aquamarine-strong"
   parcelWorkView:
     layer:
@@ -216,7 +216,7 @@ styles:
     layer:
       linetype: ACAD_ISO11W100
       lineweight: 50
-    entity:
+    polygon:
       linetypeGeneration: true
 
 
@@ -224,7 +224,7 @@ styles:
     layer:
       color: "azure"
       lineweight: 50
-    entity:
+    polygon:
       linetypeGeneration: true
   
   blendschutzzaun:
