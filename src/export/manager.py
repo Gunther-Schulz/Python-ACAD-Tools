@@ -4,13 +4,15 @@ from typing import Dict
 from src.core.types import ProcessedGeometry, ExportData
 from src.export.interfaces.exporter import GeometryExporter
 
+ExporterDict = Dict[str, GeometryExporter]
+
 class ExportManager:
     """Manages the export process for all formats."""
     
-    def __init__(self):
-        self.exporters: Dict[str, GeometryExporter] = {}
+    def __init__(self) -> None:
+        self.exporters: ExporterDict = dict()
     
-    def register_exporter(self, format_type: str, exporter: GeometryExporter) -> None:
+    def register_exporter(self, format_type: str, exporter: ExporterDict) -> None:
         """Register an exporter for a specific format."""
         self.exporters[format_type] = exporter
     

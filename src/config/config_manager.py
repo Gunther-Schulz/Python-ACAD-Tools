@@ -3,7 +3,7 @@
 import os
 import yaml
 import jsonschema
-from typing import Dict, Any, Optional, Type, TypeVar, List, Tuple
+from typing import Dict, Any, Optional, Type, TypeVar, List, Set
 from pathlib import Path
 from src.core.utils import setup_logger
 from src.config.project_config import ProjectConfig
@@ -14,6 +14,14 @@ from src.config.schemas import (
     geometry_layers_schema,
     styles_schema,
     additional_schemas
+)
+from src.config.schemas.validators import (
+    ValidationError,
+    validate_file_path,
+    validate_style_references,
+    validate_viewport_references,
+    validate_layer_dependencies,
+    validate_operation_parameters
 )
 from src.config.legend_config import LegendsConfig
 from src.config.viewport_config import ViewportsConfig
@@ -59,6 +67,10 @@ class ConfigManager:
         
         # Store root directory for global configurations
         self.root_dir = str(Path(project_dir).parent.parent)
+        
+        # Cache for loaded configurations
+        self._style_cache: Optional[Dict[str, StyleConfig]] = None
+        self._viewport_cache: Optional[Dict[str, Any]] = None
     
     def _load_yaml_file(self, filepath: str, required: bool = True) -> dict:
         """Load and parse YAML file."""
@@ -148,6 +160,67 @@ class ConfigManager:
                 
         return merged
     
+    def _validate_project_paths(self, data: dict) -> None:
+        """Validate paths in project configuration."""
+        # Validate DXF file path
+        validate_file_path(
+            data['dxfFilename'],
+            self.project_dir,
+            must_exist=False,
+            allowed_extensions={'.dxf'},
+        )
+        
+        # Validate template if specified
+        if 'template' in data:
+            validate_file_path(
+                data['template'],
+                self.project_dir,
+                must_exist=True,
+                allowed_extensions={'.dxf'},
+            )
+        
+        # Validate shapefile output directory if specified
+        if 'shapefileOutputDir' in data:
+            validate_file_path(
+                data['shapefileOutputDir'],
+                self.project_dir,
+                must_exist=False,
+                path_type="directory"
+            )
+    
+    def _validate_geometry_layer_paths(self, data: dict) -> None:
+        """Validate paths in geometry layer configuration."""
+        for layer in data.get('geomLayers', []):
+            if 'shapeFile' in layer:
+                validate_file_path(
+                    layer['shapeFile'],
+                    self.project_dir,
+                    must_exist=True,
+                    allowed_extensions={'.shp'},
+                )
+    
+    def _validate_cross_references(self, geometry_layers: List[Dict[str, Any]]) -> None:
+        """Validate cross-references between configurations."""
+        # Get available styles
+        styles = self.load_styles()
+        available_styles = set(styles.keys())
+        
+        # Get available viewports
+        viewports = self.load_viewports()
+        available_viewports = {vp.name for vp in viewports.viewports}
+        
+        # Validate style references
+        validate_style_references(geometry_layers, available_styles)
+        
+        # Validate viewport references
+        validate_viewport_references(geometry_layers, available_viewports)
+        
+        # Validate layer dependencies
+        validate_layer_dependencies(geometry_layers)
+        
+        # Validate operation parameters
+        validate_operation_parameters(geometry_layers)
+    
     def load_project_config(self) -> ProjectConfig:
         """Load project configuration."""
         data = self._load_and_validate(
@@ -155,6 +228,7 @@ class ConfigManager:
             project_schema.SCHEMA,
             'project'
         )
+        self._validate_project_paths(data)
         return self._convert_config(data, ProjectConfig)
     
     def load_geometry_layers(self) -> List[GeometryLayerConfig]:
@@ -166,8 +240,11 @@ class ConfigManager:
             required=False
         )
         
-        # Check for deprecated fields
-        self._check_deprecated_fields(data.get('geomLayers', []), 'geom_layers')
+        if not data:
+            return []
+        
+        self._validate_geometry_layer_paths(data)
+        self._validate_cross_references(data.get('geomLayers', []))
         
         layers = []
         for layer_data in data.get('geomLayers', []):

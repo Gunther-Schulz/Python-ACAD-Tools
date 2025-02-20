@@ -467,6 +467,127 @@ ProcessedGeometry ──► ExportData ──► GeometryExporter ──► Outp
                     Configuration
 ```
 
+## Export Components
+
+Located in `src/export/`, these components handle the conversion of processed geometry to various output formats:
+
+### Export Files and Directories
+
+1. **manager.py** - Export System Coordinator
+   - Manages registration of different export formats
+   - Routes export requests to appropriate exporters
+   - Provides format-agnostic export interface
+   - Handles export errors and validation
+   - Coordinates the export process across formats
+
+2. **interfaces/** - Export Protocol Definitions
+   - Contains `exporter.py` defining the `GeometryExporter` protocol
+   - Establishes contract for all export implementations
+   - Re-exports core types for export system use
+   - Ensures consistent export interface across formats
+
+3. **dxf/** - DXF Export Implementation
+   - `exporter.py`: Main DXF export logic
+   - `converter.py`: Geometry to DXF entity conversion
+   - `style.py`: DXF-specific style application
+   - `layer.py`: DXF layer management
+   - Handles all DXF-specific export concerns
+
+4. **shapefile/** - Shapefile Export Implementation
+   - `exporter.py`: Main shapefile export logic
+   - `crs.py`: Coordinate system handling
+   - Manages shapefile-specific export requirements
+   - Handles attribute mapping and CRS transformations
+
+5. **__init__.py** - Package Definition
+   - Marks export directory as a Python package
+   - Provides clean import boundaries
+   - Enables proper module organization
+
+### Export System Responsibilities
+
+1. **Format Management**
+   - Registration of export formats
+   - Format-specific implementation isolation
+   - Export format validation
+   - Format-specific error handling
+
+2. **Data Conversion**
+   - Converting processed geometry to output format
+   - Applying format-specific styles
+   - Managing layers and attributes
+   - Handling coordinate systems
+
+3. **Style Application**
+   - Format-specific style handling
+   - Style validation and defaults
+   - Style transformation and mapping
+   - Consistent styling across exports
+
+4. **Layer Management**
+   - Layer organization and naming
+   - Layer property application
+   - Layer hierarchy maintenance
+   - Format-specific layer handling
+
+### Export System Flow
+
+The export process follows this sequence:
+```
+ProcessedGeometry
+       │
+       v
+   ExportData ──────► ExportManager
+       │                   │
+       │                   v
+       │         Format-specific Exporter
+       │            (DXF/Shapefile)
+       │                   │
+       v                   v
+Style/Layer Info    Output Generation
+```
+
+### Export Boundaries
+
+1. **Input Boundaries**
+   - Accepts only `ProcessedGeometry` and `ExportData`
+   - No direct geometry processing
+   - No direct configuration management
+   - Clean interface through `GeometryExporter` protocol
+
+2. **Output Boundaries**
+   - Format-specific output handling
+   - No geometry modifications
+   - No configuration changes
+   - Clear error propagation
+
+3. **Component Isolation**
+   - Each format is self-contained
+   - Shared code through interfaces only
+   - No cross-format dependencies
+   - Clean separation of concerns
+
+### Export System Extension
+
+To add a new export format:
+1. Create new directory `export/new_format/`
+2. Implement `GeometryExporter` protocol
+3. Add format-specific handling
+4. Register with `ExportManager`
+
+Example:
+```python
+# export/new_format/exporter.py
+class NewFormatExporter(GeometryExporter):
+    def export(self, geom: ProcessedGeometry, export_data: ExportData) -> None:
+        # Format-specific implementation
+        pass
+
+# Usage
+export_manager = ExportManager()
+export_manager.register_exporter('new_format', NewFormatExporter())
+```
+
 ## Component Boundaries
 
 ### 1. Core Types (Shared Interfaces)
@@ -837,4 +958,64 @@ class Project:
 - API documentation
 - Usage guides
 - Example projects
-- Architecture documentation 
+- Architecture documentation
+
+## Core Components
+
+Located in `src/core/`, these components form the foundation of the application:
+
+### Core Files
+
+1. **project.py** - Main Project Coordinator
+   - Acts as the application's central coordinator
+   - Initializes and manages all major components (config, geometry, export)
+   - Orchestrates the workflow from configuration to export
+   - Handles high-level error management and logging
+   - Ensures proper cleanup and resource management
+
+2. **types.py** - Core Type Definitions
+   - Defines fundamental data structures and protocols
+   - Provides type hints and runtime type checking
+   - Contains core interfaces (GeometryExporter, GeometrySource, etc.)
+   - Defines data transfer objects (GeometryData, ProcessedGeometry, etc.)
+   - Implements basic geometric types and bounds checking
+
+3. **utils.py** - Core Utilities
+   - Provides logging setup and configuration
+   - Handles directory creation and validation
+   - Contains shared utility functions
+   - Manages common operations like path resolution
+   - Implements error handling utilities
+
+4. **__init__.py** - Package Definition
+   - Marks the core directory as a Python package
+   - Enables proper module imports
+   - Maintains clean import boundaries
+
+### Core Responsibilities
+
+The core module has these key responsibilities:
+
+1. **Type Safety**
+   - Enforcing type checking across the application
+   - Defining protocol interfaces for components
+   - Ensuring data structure consistency
+
+2. **Project Management**
+   - Coordinating component initialization
+   - Managing the processing workflow
+   - Handling errors and logging
+   - Ensuring proper resource cleanup
+
+3. **Infrastructure**
+   - Providing essential utilities
+   - Managing logging and debugging
+   - Handling file system operations
+   - Supporting error handling
+
+4. **Component Integration**
+   - Maintaining clean interfaces between components
+   - Managing component lifecycle
+   - Coordinating data flow
+   - Ensuring proper component initialization
+``` 

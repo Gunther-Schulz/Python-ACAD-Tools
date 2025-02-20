@@ -3,11 +3,13 @@
 import os
 from typing import Optional
 from src.core.utils import setup_logger, ensure_directory
+from src.core.types import ExportData
 from src.config.config_manager import ConfigManager
 from src.geometry.geometry_manager import GeometryManager
-from src.export.dxf_exporter import DXFExporter
-from src.export.style_manager import StyleManager
-from src.export.layer_manager import LayerManager
+from src.export.manager import ExportManager
+from src.export.dxf.exporter import DXFExporter, DXFConverter
+from src.export.dxf.style import StyleApplicator
+from src.export.dxf.layer import LayerManager
 
 class Project:
     """Main project coordinator class."""
@@ -35,12 +37,15 @@ class Project:
             # Initialize export components
             self.logger.info("Initializing export components")
             style_configs = self.config_manager.load_styles()
-            self.style_manager = StyleManager(style_configs)
-            self.layer_manager = LayerManager()
-            self.dxf_exporter = DXFExporter(
-                self.style_manager,
-                self.layer_manager
+            
+            # Create export manager and register DXF exporter
+            self.export_manager = ExportManager()
+            dxf_exporter = DXFExporter(
+                converter=DXFConverter(),
+                style=StyleApplicator(styles=style_configs),
+                layer_manager=LayerManager()
             )
+            self.export_manager.register_exporter('dxf', dxf_exporter)
             
             # Ensure output directory exists
             if self.project_config.shapefile_output_dir:
@@ -63,19 +68,22 @@ class Project:
                     # Get processed geometry
                     layer = self.geometry_manager.process_layer(layer_name)
                     
-                    # Export to DXF if needed
+                    # Export using export manager
                     if layer.update_dxf:
-                        self.logger.info(f"Exporting layer to DXF: {layer_name}")
-                        style = self.style_manager.get_style(layer.style)
-                        self.dxf_exporter.export_layer(layer, style)
+                        self.logger.info(f"Exporting layer: {layer_name}")
+                        export_data = ExportData(
+                            id=layer_name,
+                            format_type='dxf',
+                            style_id=layer.style,
+                            layer_name=layer_name,
+                            target_crs=None,
+                            properties={}
+                        )
+                        self.export_manager.export(layer, export_data)
                         
                 except Exception as e:
                     self.logger.error(f"Failed to process layer {layer_name}: {str(e)}")
                     raise
-            
-            # Finalize export
-            self.logger.info("Finalizing DXF export")
-            self.dxf_exporter.finalize_export()
             
             self.logger.info("Project processing completed successfully")
             
@@ -92,6 +100,6 @@ class Project:
         
         # Cleanup if needed
         try:
-            self.dxf_exporter.cleanup()
+            self.export_manager.cleanup()
         except Exception as cleanup_error:
             self.logger.error(f"Failed to cleanup after error: {str(cleanup_error)}") 
