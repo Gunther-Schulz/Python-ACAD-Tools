@@ -26,9 +26,9 @@ geomLayers:
         attachmentPoint: "MIDDLE_LEFT"
         paragraph:
           align: "LEFT"
-    viewports:
-      - name: WorkView
-        style: flurWorkView
+    # viewports:
+    #   - name: WorkView
+    #     style: flurWorkView
 
   - name: Gemarkung
     updateDxf: true
@@ -36,9 +36,9 @@ geomLayers:
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/input/gemarkung2.shp"
     simpleLabelColumn: gmkname
     style: gemarkungsgrenze
-    viewports:
-      - name: WorkView
-        style: gemarkungWorkView
+    # viewports:
+    #   - name: WorkView
+    #     style: gemarkungWorkView
 
   - name: Gemeinde
     updateDxf: true
@@ -46,9 +46,9 @@ geomLayers:
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/input/gemeinde2.shp"
     simpleLabelColumn: gen
     style: gemeindegrenze
-    viewports:
-      - name: WorkView
-        style: gemeindeWorkView
+    # viewports:
+    #   - name: WorkView
+    #     style: gemeindeWorkView
 
   - name: Parcel
     updateDxf: true
@@ -56,9 +56,9 @@ geomLayers:
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/input/parcel2.shp"
     simpleLabelColumn: label
     style: parcel
-    viewports:
-      - name: WorkView
-        style: parcelWorkView
+    # viewports:
+    #   - name: WorkView
+    #     style: parcelWorkView
 
   # Natural Features
   - name: Baum Points
@@ -71,9 +71,9 @@ geomLayers:
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/input/wald.shp"
     operations:
       - type: dissolve
-    viewports:
-      - name: WorkView
-        style: wald
+    # viewports:
+    #   - name: WorkView
+    #     style: wald
     hatches:
       - name: Wald Schraffur
         style: waldHatch
@@ -259,9 +259,9 @@ geomLayers:
         style: grünfläche
   - name: Schutzflächeumgrenzung
     updateDxf: true
-    viewports:
-      - name: WorkView
-        style: schutzflächeWorkView
+    # viewports:
+    #   - name: WorkView
+    #     style: schutzflächeWorkView
     operations:
       - type: copy
         layers:
@@ -303,9 +303,9 @@ geomLayers:
   - name: Baufeld
     updateDxf: true
     close: true
-    viewports:
-      - name: WorkView
-        style: baufeld
+    # viewports:
+    #   - name: WorkView
+    #     style: baufeld
     operations:
       - type: copy
         layers:
