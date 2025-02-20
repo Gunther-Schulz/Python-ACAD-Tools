@@ -76,6 +76,26 @@ class ConfigManager:
         self._style_cache: Optional[Dict[str, StyleConfig]] = None
         self._viewport_cache: Optional[Dict[str, Any]] = None
     
+    def _resolve_path(self, path: str, folder_prefix: Optional[str] = None) -> Path:
+        """Resolve a path with optional folder prefix.
+        
+        Args:
+            path: Path to resolve
+            folder_prefix: Optional prefix to prepend to path
+            
+        Returns:
+            Resolved Path object
+        """
+        if not folder_prefix:
+            return Path(path)
+            
+        # Expand user directory if needed
+        if folder_prefix.startswith('~'):
+            folder_prefix = os.path.expanduser(folder_prefix)
+            
+        # Join prefix with path
+        return Path(folder_prefix) / path
+    
     def _load_yaml_file(self, filepath: Path, required: bool = True) -> dict:
         """Load and parse YAML file."""
         if not filepath.exists():
@@ -127,13 +147,24 @@ class ConfigManager:
         schema: dict,
         config_name: str,
         required: bool = True,
-        from_project: bool = True
+        from_project: bool = True,
+        folder_prefix: Optional[str] = None
     ) -> dict:
         """Load and validate configuration file."""
         filepath = self.project_dir / filename if from_project else self.root_dir / filename
         data = self._load_yaml_file(filepath, required)
         if data:  # Only validate non-empty configurations
             self._validate_config(data, schema, config_name)
+            
+            # Resolve paths in the configuration if folder prefix is provided
+            if folder_prefix and isinstance(data, dict):
+                for key, value in data.items():
+                    if isinstance(value, str) and (
+                        key.endswith('_path') or 
+                        key.endswith('_file') or 
+                        key.endswith('_dir')
+                    ):
+                        data[key] = str(self._resolve_path(value, folder_prefix))
         return data
     
     def _convert_config(
@@ -164,7 +195,7 @@ class ConfigManager:
                 
         return merged
     
-    def _validate_project_paths(self, data: dict) -> None:
+    def _validate_project_paths(self, data: dict, folder_prefix: Optional[str] = None) -> None:
         """Validate paths in project configuration."""
         # Validate DXF file path
         validate_file_path(
@@ -172,6 +203,7 @@ class ConfigManager:
             self.project_dir,
             must_exist=False,
             allowed_extensions={'.dxf'},
+            folder_prefix=folder_prefix
         )
         
         # Validate template if specified
@@ -181,6 +213,7 @@ class ConfigManager:
                 self.project_dir,
                 must_exist=True,
                 allowed_extensions={'.dxf'},
+                folder_prefix=folder_prefix
             )
         
         # Validate shapefile output directory if specified
@@ -189,10 +222,11 @@ class ConfigManager:
                 data['shapefileOutputDir'],
                 self.project_dir,
                 must_exist=False,
-                path_type="directory"
+                path_type="directory",
+                folder_prefix=folder_prefix
             )
     
-    def _validate_geometry_layer_paths(self, data: dict) -> None:
+    def _validate_geometry_layer_paths(self, data: dict, folder_prefix: Optional[str] = None) -> None:
         """Validate paths in geometry layer configuration."""
         for layer in data.get('geomLayers', []):
             if 'shapeFile' in layer:
@@ -201,6 +235,7 @@ class ConfigManager:
                     self.project_dir,
                     must_exist=True,
                     allowed_extensions={'.shp'},
+                    folder_prefix=folder_prefix
                 )
     
     def _validate_cross_references(self, geometry_layers: List[Dict[str, Any]]) -> None:
@@ -225,35 +260,37 @@ class ConfigManager:
         # Validate operation parameters
         validate_operation_parameters(geometry_layers)
     
-    def load_project_config(self) -> ProjectConfig:
+    def load_project_config(self, folder_prefix: Optional[str] = None) -> ProjectConfig:
         """Load project configuration."""
         data = self._load_and_validate(
             'project.yaml',
             project_schema.SCHEMA,
-            'project'
+            'project',
+            folder_prefix=folder_prefix
         )
-        self._validate_project_paths(data)
-        return self._convert_config(data, ProjectConfig)
+        self._validate_project_paths(data, folder_prefix)
+        return self._convert_config(data, ProjectConfig, folder_prefix)
     
-    def load_geometry_layers(self) -> List[GeometryLayerConfig]:
+    def load_geometry_layers(self, folder_prefix: Optional[str] = None) -> List[GeometryLayerConfig]:
         """Load geometry layer configuration."""
         data = self._load_and_validate(
             'geom_layers.yaml',
             geometry_layers_schema.SCHEMA,
             'geometry layers',
-            required=False
+            required=False,
+            folder_prefix=folder_prefix
         )
         
         if not data:
             return []
         
-        self._validate_geometry_layer_paths(data)
+        self._validate_geometry_layer_paths(data, folder_prefix)
         self._validate_cross_references(data.get('geomLayers', []))
         
         layers = []
         for layer_data in data.get('geomLayers', []):
             try:
-                layer = GeometryLayerConfig.from_dict(layer_data)
+                layer = GeometryLayerConfig.from_dict(layer_data, folder_prefix)
                 layers.append(layer)
             except Exception as e:
                 self.logger.warning(f"Failed to load layer '{layer_data.get('name', 'unknown')}': {str(e)}")

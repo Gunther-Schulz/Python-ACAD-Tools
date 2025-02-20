@@ -1,6 +1,7 @@
 """Main project coordinator module."""
 
 import os
+import yaml
 from pathlib import Path
 from typing import Optional
 from src.core.utils import setup_logger, ensure_directory
@@ -34,6 +35,26 @@ def get_project_dir(project_name: str) -> Path:
     
     return project_dir
 
+def load_folder_prefix() -> Optional[str]:
+    """Load folder prefix from projects.yaml.
+    
+    Returns:
+        Folder prefix if found, None otherwise
+    """
+    # Get repository root directory (two levels up from this file)
+    root_dir = Path(__file__).parent.parent.parent
+    projects_yaml = root_dir / 'projects.yaml'
+    
+    if not projects_yaml.exists():
+        return None
+        
+    try:
+        with open(projects_yaml, 'r') as f:
+            data = yaml.safe_load(f)
+            return data.get('folderPrefix')
+    except Exception:
+        return None
+
 class Project:
     """Main project coordinator class."""
     
@@ -41,6 +62,7 @@ class Project:
         """Initialize project with name and optional log file."""
         self.project_name = project_name
         self.project_dir = get_project_dir(project_name)
+        self.folder_prefix = load_folder_prefix()
         self.logger = setup_logger(f"project.{project_name}", log_file)
         self._initialize_components()
         
@@ -50,7 +72,9 @@ class Project:
             # Initialize configuration
             self.logger.info("Initializing configuration manager")
             self.config_manager = ConfigManager(str(self.project_dir))
-            self.project_config = self.config_manager.load_project_config()
+            self.project_config = self.config_manager.load_project_config(
+                folder_prefix=self.folder_prefix
+            )
             
             # Initialize style management
             self.logger.info("Initializing style manager")
@@ -63,7 +87,9 @@ class Project:
             # Initialize geometry processing
             self.logger.info("Initializing geometry manager")
             self.geometry_manager = GeometryManager(
-                self.config_manager.load_geometry_layers()
+                self.config_manager.load_geometry_layers(
+                    folder_prefix=self.folder_prefix
+                )
             )
             
             # Initialize export components

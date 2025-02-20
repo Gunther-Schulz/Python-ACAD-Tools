@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Dict, Any, Optional, List, Union
 from src.core.utils import resolve_path
 from src.core.types import StyleName, LayerName
+from pathlib import Path
 
 @dataclass
 class GeometryOperation:
@@ -70,6 +71,14 @@ class GeometryLayerConfig:
     @classmethod
     def from_dict(cls, data: Dict[str, Any], folder_prefix: Optional[str] = None) -> 'GeometryLayerConfig':
         """Create GeometryLayerConfig from dictionary."""
+        # Handle paths with folder prefix
+        shape_file = data.get('shapeFile')
+        if shape_file and folder_prefix:
+            # Expand user directory if needed
+            if folder_prefix.startswith('~'):
+                folder_prefix = str(Path(folder_prefix).expanduser())
+            shape_file = str(Path(folder_prefix) / shape_file)
+        
         operations = []
         if 'operations' in data:
             operations = [GeometryOperation.from_dict(op) for op in data['operations']]
@@ -78,7 +87,7 @@ class GeometryLayerConfig:
             name=data['name'],
             update_dxf=data.get('updateDxf', True),
             close=data.get('close', False),
-            shape_file=resolve_path(data.get('shapeFile'), folder_prefix),
+            shape_file=shape_file,
             simple_label_column=data.get('simpleLabelColumn'),
             style=data.get('style'),
             operations=operations,

@@ -11,12 +11,34 @@ class ValidationError(Exception):
         self.path = path
         super().__init__(f"{message} (at {' -> '.join(path)})")
 
+def resolve_path(path: str, base_dir: str, folder_prefix: Optional[str] = None) -> Path:
+    """Resolve a path with optional folder prefix.
+    
+    Args:
+        path: Path to resolve
+        base_dir: Base directory for relative paths
+        folder_prefix: Optional prefix to prepend to path
+        
+    Returns:
+        Resolved Path object
+    """
+    if not folder_prefix:
+        return Path(os.path.join(base_dir, path))
+        
+    # Expand user directory if needed
+    if folder_prefix.startswith('~'):
+        folder_prefix = os.path.expanduser(folder_prefix)
+        
+    # Join prefix with path
+    return Path(folder_prefix) / path
+
 def validate_file_path(
     value: str,
     base_dir: str,
     must_exist: bool = True,
     allowed_extensions: Optional[Set[str]] = None,
-    path_type: str = "file"
+    path_type: str = "file",
+    folder_prefix: Optional[str] = None
 ) -> None:
     """Validate a file path in configuration.
     
@@ -26,8 +48,9 @@ def validate_file_path(
         must_exist: Whether the path must exist
         allowed_extensions: Set of allowed file extensions
         path_type: Type of path ("file" or "directory")
+        folder_prefix: Optional prefix to prepend to path
     """
-    path = Path(os.path.join(base_dir, value))
+    path = resolve_path(value, base_dir, folder_prefix)
     
     # Check if path exists if required
     if must_exist and not path.exists():
