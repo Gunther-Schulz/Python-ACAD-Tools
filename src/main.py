@@ -34,7 +34,7 @@ def process_project(project_name: str) -> None:
         
         # Log loaded configuration summary
         config = project.project_config
-        logger.info("Project configuration loaded:")
+        logger.info("\nProject configuration:")
         logger.info(f"  CRS: {config.crs}")
         logger.info(f"  DXF Output: {config.dxf_filename}")
         logger.info(f"  Export Format: {config.export_format}")
@@ -44,31 +44,138 @@ def process_project(project_name: str) -> None:
         if config.shapefile_output_dir:
             logger.info(f"  Shapefile Output: {config.shapefile_output_dir}")
         
+        # Log geometry layers configuration file
+        geom_layers_file = project_dir / "geom_layers.yaml"
+        logger.info(f"\nProcessing geometry layers from: {geom_layers_file}")
+        
         # Log geometry layers summary
         layers = project.geometry_manager.get_layer_names()
         if layers:
-            logger.info("\nGeometry layers loaded:")
+            logger.info(f"\nFound {len(layers)} geometry layers:")
             for layer_name in layers:
                 layer = project.geometry_manager.get_layer(layer_name)
-                logger.info(f"  Layer: {layer_name}")
-                logger.info(f"    Style: {layer.style or 'default'}")
+                logger.info(f"\n  Layer: {layer_name}")
+                logger.info(f"    Style: {layer.style_id or 'default'}")
                 if hasattr(layer, 'shape_file') and layer.shape_file:
                     logger.info(f"    Shapefile: {layer.shape_file}")
+                
+                # Log operations for the layer
+                if layer.operations:
+                    logger.info(f"    Operations ({len(layer.operations)}):")
+                    for i, op in enumerate(layer.operations, 1):
+                        op_type = op.get('type', 'unknown')
+                        params = op.get('parameters', {})
+                        if op_type == 'buffer':
+                            logger.info(f"      {i}. Buffer operation:")
+                            logger.info(f"         Distance: {params.get('distance', 'not specified')}")
+                            logger.info(f"         Resolution: {params.get('resolution', 16)}")
+                            logger.info(f"         Cap style: {params.get('cap_style', 'round')}")
+                            logger.info(f"         Join style: {params.get('join_style', 'round')}")
+                        elif op_type == 'dissolve':
+                            logger.info(f"      {i}. Dissolve operation:")
+                            if params:
+                                for param, value in params.items():
+                                    logger.info(f"         {param}: {value}")
+                        elif op_type == 'difference':
+                            logger.info(f"      {i}. Difference operation:")
+                            if 'layers' in op:
+                                logger.info(f"         Layers: {op['layers']}")
+                            logger.info(f"         Reverse: {op.get('reverseDifference', False)}")
+                        elif op_type == 'intersection':
+                            logger.info(f"      {i}. Intersection operation:")
+                            if 'layers' in op:
+                                logger.info(f"         Layers: {op['layers']}")
+                        elif op_type == 'copy':
+                            logger.info(f"      {i}. Copy operation:")
+                            if 'layers' in op:
+                                logger.info(f"         From layers: {op['layers']}")
+                        else:
+                            logger.info(f"      {i}. {op_type} operation")
+                            if params:
+                                for param, value in params.items():
+                                    logger.info(f"         {param}: {value}")
         
-        # Log styles summary
-        styles = project.config_manager.load_styles()
-        if styles:
-            logger.info("\nStyles loaded:")
-            for style_name, style in styles.items():
-                logger.info(f"  Style: {style_name}")
-                if style.layer_properties.color:
-                    logger.info(f"    Layer Color: {style.layer_properties.color}")
-                if style.layer_properties.lineweight:
-                    logger.info(f"    Line Weight: {style.layer_properties.lineweight}")
+        # Process the project
+        logger.info("\nStarting geometry processing...")
+        total_layers = len(layers)
+        for layer_idx, layer_name in enumerate(layers, 1):
+            layer = project.geometry_manager.get_layer(layer_name)
+            logger.info(f"\nProcessing layer [{layer_idx}/{total_layers}]: {layer_name}")
+            
+            if hasattr(layer, 'shape_file') and layer.shape_file:
+                logger.info(f"  Reading from shapefile: {layer.shape_file}")
+            
+            # Log operation execution
+            if layer.operations:
+                total_ops = len(layer.operations)
+                logger.info(f"  Found {total_ops} operations to execute")
+                
+                # First log all operations that will be performed
+                for i, op in enumerate(layer.operations, 1):
+                    op_type = op.get('type', 'unknown')
+                    logger.info(f"\n  Operation [{i}/{total_ops}]: {op_type}")
+                    
+                    # Log operation details
+                    if op_type == 'buffer':
+                        params = op.get('parameters', {})
+                        logger.info(f"    Parameters:")
+                        logger.info(f"      Distance: {params.get('distance', 'not specified')}")
+                        logger.info(f"      Resolution: {params.get('resolution', 16)}")
+                        logger.info(f"      Cap style: {params.get('cap_style', 'round')}")
+                        logger.info(f"      Join style: {params.get('join_style', 'round')}")
+                    elif op_type == 'copy':
+                        if 'layers' in op:
+                            logger.info(f"    Copying from layers: {op['layers']}")
+                        if 'values' in op:
+                            logger.info(f"    With values: {op['values']}")
+                    elif op_type == 'difference':
+                        if 'layers' in op:
+                            logger.info(f"    Using layers: {op['layers']}")
+                        logger.info(f"    Reverse difference: {op.get('reverseDifference', False)}")
+                    elif op_type == 'intersection':
+                        if 'layers' in op:
+                            logger.info(f"    With layers: {op['layers']}")
+                    elif op_type == 'dissolve':
+                        params = op.get('parameters', {})
+                        if params:
+                            logger.info(f"    Parameters:")
+                            for param, value in params.items():
+                                logger.info(f"      {param}: {value}")
+                    elif op_type == 'filterGeometry':
+                        if 'minArea' in op:
+                            logger.info(f"    Minimum area: {op['minArea']}")
+                    elif op_type == 'filterByIntersection':
+                        if 'layers' in op:
+                            logger.info(f"    Filter using layers:")
+                            for layer_info in op['layers']:
+                                logger.info(f"      Layer: {layer_info.get('name')}")
+                                if 'values' in layer_info:
+                                    logger.info(f"      Values: {layer_info['values']}")
+                
+                # Now process the layer (which will execute all operations)
+                logger.info("\n  Executing all operations...")
+                try:
+                    project.geometry_manager.process_layer(layer_name)
+                    logger.info("  ✓ All operations completed successfully")
+                    
+                    # Log final operation results
+                    if layer.geometry and layer.geometry.metadata.operations_log:
+                        logger.info("  Operation results:")
+                        for log_entry in layer.geometry.metadata.operations_log:
+                            logger.info(f"    {log_entry}")
+                except Exception as e:
+                    logger.error(f"  ✗ Processing failed: {str(e)}")
+                    raise
+            else:
+                logger.info("  No operations to perform")
+            
+            # Log export status
+            if layer.update_dxf:
+                logger.info(f"  Layer will be exported to DXF")
+            
+            logger.info(f"  ✓ Layer {layer_name} processed successfully")
         
-        # Process the project (this is where actual work would happen)
-        # For now, we only have config loading implemented
-        logger.info("\nProject loaded successfully. Processing not yet implemented.")
+        logger.info("\n✓ All geometry layers processed successfully")
         
     except ConfigFileNotFoundError as e:
         logger.error(f"Missing configuration file: {str(e)}")
