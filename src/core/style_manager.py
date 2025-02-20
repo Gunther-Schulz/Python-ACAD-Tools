@@ -1,22 +1,9 @@
 """Style management module."""
 
-from typing import Dict, Any, Optional, Union, Tuple, Protocol
+from typing import Dict, Any, Optional, Protocol
 from dataclasses import dataclass
 from src.config.style_config import StyleConfig
 from src.core.utils import setup_logger
-
-# Import constants from old implementation
-TEXT_ATTACHMENT_POINTS = {
-    'TOP_LEFT': 1, 'TOP_CENTER': 2, 'TOP_RIGHT': 3,
-    'MIDDLE_LEFT': 4, 'MIDDLE_CENTER': 5, 'MIDDLE_RIGHT': 6,
-    'BOTTOM_LEFT': 7, 'BOTTOM_CENTER': 8, 'BOTTOM_RIGHT': 9
-}
-
-VALID_TEXT_ALIGNMENTS = {
-    'LEFT', 'RIGHT', 'CENTER', 'JUSTIFIED', 'DISTRIBUTED'
-}
-
-ColorType = Union[str, int, Tuple[int, int, int]]
 
 class StyleValidator(Protocol):
     """Protocol for style validation."""
@@ -126,36 +113,6 @@ class StyleManager:
             self.logger.error(f"Style validation error: {str(e)}")
             return False
     
-    def get_color_code(self, color: ColorType) -> Union[int, Tuple[int, int, int]]:
-        """Convert color specification to DXF color code.
-        
-        Args:
-            color: Color specification (name, ACI code, or RGB tuple)
-            
-        Returns:
-            DXF color code or RGB tuple
-        """
-        if color is None:
-            return 7  # Default to white
-        
-        # Handle special values
-        if isinstance(color, str):
-            if color.upper() == 'BYLAYER':
-                return 256
-            elif color.upper() == 'BYBLOCK':
-                return 0
-        
-        # Handle RGB tuples
-        if isinstance(color, (list, tuple)) and len(color) == 3:
-            return tuple(max(0, min(255, c)) for c in color)
-        
-        # Handle ACI codes
-        if isinstance(color, int):
-            return max(0, min(255, color))
-        
-        # Default to white
-        return 7
-    
     def merge_styles(self, base: StyleConfig, override: StyleConfig) -> StyleConfig:
         """Merge two styles, with override taking precedence.
         
@@ -204,24 +161,4 @@ class StyleManager:
         if not self.validate_style(style):
             raise ValueError(f"Invalid style configuration: {style_id}")
         
-        return style
-    
-    def apply_style(self, entity: Any, style_id: str) -> None:
-        """Apply style to an entity.
-        
-        Args:
-            entity: Entity to style
-            style_id: Style identifier to apply
-            
-        Raises:
-            ValueError: If style_id not found
-        """
-        style = self.get_style(style_id)
-        if not style:
-            raise ValueError(f"Style not found: {style_id}")
-        
-        if not self.validate_style(style):
-            raise ValueError(f"Invalid style configuration: {style_id}")
-        
-        # Style application will be implemented in the DXF exporter
-        # This is just a validation layer 
+        return style 
