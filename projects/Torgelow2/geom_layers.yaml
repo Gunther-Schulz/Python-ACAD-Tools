@@ -3,7 +3,7 @@ geomLayers:
   - name: Flur
     updateDxf: true
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/input/flur2.shp"
-    simpleLabel: flurname  # Keep this as a string
+    simpleLabelColumn: flurname  # Keep this as a string
     style:
       layer:
         color: "white"
@@ -34,7 +34,7 @@ geomLayers:
     updateDxf: true
     close: true
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/input/gemarkung2.shp"
-    simpleLabel: gmkname
+    simpleLabelColumn: gmkname
     style: gemarkungsgrenze
     viewports:
       - name: WorkView
@@ -44,7 +44,7 @@ geomLayers:
     updateDxf: true
     close: true
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/input/gemeinde2.shp"
-    simpleLabel: gen
+    simpleLabelColumn: gen
     style: gemeindegrenze
     viewports:
       - name: WorkView
@@ -54,7 +54,7 @@ geomLayers:
     updateDxf: true
     close: true
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/input/parcel2.shp"
-    simpleLabel: label
+    simpleLabelColumn: label
     style: parcel
     viewports:
       - name: WorkView
