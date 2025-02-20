@@ -99,8 +99,7 @@ class Project:
             self.export_manager = ExportManager()
             dxf_exporter = DXFExporter(
                 converter=DXFConverter(),
-                style=StyleApplicator(styles=style_configs),
-                layer_manager=LayerManager()
+                style=StyleApplicator(styles=style_configs)
             )
             self.export_manager.register_exporter('dxf', dxf_exporter)
             
