@@ -3,7 +3,7 @@
 import os
 import yaml
 import jsonschema
-from typing import Dict, Any, Optional, Type, TypeVar, List
+from typing import Dict, Any, Optional, Type, TypeVar, List, Tuple
 from pathlib import Path
 from src.core.utils import setup_logger
 from src.config.project_config import ProjectConfig
@@ -12,10 +12,30 @@ from src.config.geometry_layer_config import GeometryLayerConfig
 from src.config.schemas import (
     project_schema,
     geometry_layers_schema,
-    styles_schema
+    styles_schema,
+    additional_schemas
 )
+from src.config.legend_config import LegendsConfig
+from src.config.viewport_config import ViewportsConfig
+from src.config.block_insert_config import BlockInsertsConfig
+from src.config.text_insert_config import TextInsertsConfig
+from src.config.path_array_config import PathArraysConfig
+from src.config.web_service_config import WebServicesConfig
 
 T = TypeVar('T')
+
+# Define deprecated fields and their messages
+DEPRECATED_FIELDS = {
+    'geom_layers': {
+        'labels': 'Use simpleLabelColumn instead',
+        'label': 'Use simpleLabelColumn instead for simple text labels',
+        'simpleLabel': 'Use simpleLabelColumn instead'
+    },
+    'geom_layers.yaml': {
+        'old_field_name': ('Use new_field_name instead. This field will be removed in version X.Y.Z.', 'new_field_name'),
+        'another_old_field': ('This field is deprecated and will be removed in version X.Y.Z.', None)
+    }
+}
 
 class ConfigError(Exception):
     """Base class for configuration errors."""
@@ -70,6 +90,20 @@ class ConfigManager:
             msg = f"Invalid {config_name} configuration: {str(e)}"
             self.logger.error(msg)
             raise ConfigValidationError(msg) from e
+    
+    def _check_deprecated_fields(self, data: dict, config_type: str) -> None:
+        """Check for deprecated fields and log warnings."""
+        if config_type not in DEPRECATED_FIELDS:
+            return
+            
+        deprecated = DEPRECATED_FIELDS[config_type]
+        for field, message in deprecated.items():
+            if isinstance(data, dict) and field in data:
+                self.logger.warning(f"Deprecated field '{field}': {message}")
+            elif isinstance(data, list):
+                for item in data:
+                    if isinstance(item, dict) and field in item:
+                        self.logger.warning(f"Deprecated field '{field}': {message}")
     
     def _load_and_validate(
         self,
@@ -132,6 +166,9 @@ class ConfigManager:
             required=False
         )
         
+        # Check for deprecated fields
+        self._check_deprecated_fields(data.get('geomLayers', []), 'geom_layers')
+        
         layers = []
         for layer_data in data.get('geomLayers', []):
             try:
@@ -188,4 +225,73 @@ class ConfigManager:
                 self.logger.warning(f"Failed to load project style '{name}': {str(e)}")
                 continue
                 
-        return styles 
+        return styles
+    
+    def load_legends(self) -> LegendsConfig:
+        """Load legends configuration."""
+        data = self._load_and_validate(
+            'legends.yaml',
+            additional_schemas.LEGENDS_SCHEMA,
+            'legends',
+            required=False
+        )
+        return LegendsConfig.from_dict(data)
+    
+    def load_viewports(self) -> ViewportsConfig:
+        """Load viewports configuration."""
+        data = self._load_and_validate(
+            'viewports.yaml',
+            additional_schemas.VIEWPORTS_SCHEMA,
+            'viewports',
+            required=False
+        )
+        return ViewportsConfig.from_dict(data)
+    
+    def load_block_inserts(self) -> BlockInsertsConfig:
+        """Load block inserts configuration."""
+        data = self._load_and_validate(
+            'block_inserts.yaml',
+            additional_schemas.BLOCK_INSERTS_SCHEMA,
+            'block inserts',
+            required=False
+        )
+        return BlockInsertsConfig.from_dict(data)
+    
+    def load_text_inserts(self) -> TextInsertsConfig:
+        """Load text inserts configuration."""
+        data = self._load_and_validate(
+            'text_inserts.yaml',
+            additional_schemas.TEXT_INSERTS_SCHEMA,
+            'text inserts',
+            required=False
+        )
+        return TextInsertsConfig.from_dict(data)
+    
+    def load_path_arrays(self) -> PathArraysConfig:
+        """Load path arrays configuration."""
+        data = self._load_and_validate(
+            'path_arrays.yaml',
+            additional_schemas.PATH_ARRAYS_SCHEMA,
+            'path arrays',
+            required=False
+        )
+        return PathArraysConfig.from_dict(data)
+    
+    def load_web_services(self) -> WebServicesConfig:
+        """Load web services configuration."""
+        data = self._load_and_validate(
+            'web_services.yaml',
+            additional_schemas.WEB_SERVICES_SCHEMA,
+            'web services',
+            required=False
+        )
+        return WebServicesConfig.from_dict(data)
+    
+    def load_wmts_wms_layers(self) -> Dict[str, Any]:
+        """Load WMTS/WMS layers configuration."""
+        return self._load_and_validate(
+            'wmts_wms_layers.yaml',
+            additional_schemas.WMTS_WMS_LAYERS_SCHEMA,
+            'WMTS/WMS layers',
+            required=False
+        ) 
