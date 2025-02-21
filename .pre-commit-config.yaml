@@ -1,0 +1,80 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+      - id: debug-statements
+      - id: check-ast
+      - id: check-json
+      - id: check-merge-conflict
+      - id: detect-private-key
+
+  - repo: https://github.com/pycqa/flake8
+    rev: 7.0.0
+    hooks:
+      - id: flake8
+        args:
+          - "--config=.flake8"
+        additional_dependencies:
+          - flake8-docstrings==1.7.0
+          - flake8-import-order==0.18.2
+          - flake8-quotes==3.4.0
+          - flake8-bugbear==24.2.6
+
+  - repo: https://github.com/pycqa/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
+        args: ["--settings-path=pyproject.toml"]
+
+  - repo: https://github.com/psf/black
+    rev: 24.1.1
+    hooks:
+      - id: black
+        args: ["--config=pyproject.toml"]
+        language_version: python3
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.8.0
+    hooks:
+      - id: mypy
+        args: ["--config-file=pyproject.toml"]
+        additional_dependencies:
+          - types-setuptools==75.8.0.20250210
+          - types-PyYAML==6.0.12
+          - numpy>=1.26.0
+
+  - repo: https://github.com/pycqa/pylint
+    rev: v3.0.3
+    hooks:
+      - id: pylint
+        args:
+          - "--rcfile=pyproject.toml"
+          - "--load-plugins=pylint.extensions.duplicate_code"
+          - "--enable=similarities"
+        additional_dependencies:
+          - shapely==2.0.4
+          - ezdxf==1.3.1
+          - geopandas==0.14.3
+          - matplotlib==3.8.3
+          - OWSLib==0.29.3
+          - PyYAML==6.0.1
+
+  # Add a dedicated duplicate code checker
+  - repo: https://github.com/jendrikseipp/vulture
+    rev: v2.11
+    hooks:
+      - id: vulture
+        args: ["src", "--min-confidence=100"]
+
+  - repo: local
+    hooks:
+      - id: check-duplicate-types
+        name: Check for duplicate type definitions
+        entry: python scripts/check_duplicate_types.py
+        language: python
+        types: [python]
+        pass_filenames: false

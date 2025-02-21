@@ -8,6 +8,29 @@ This document outlines the architecture for the Python ACAD Tools project, which
 2. Geometry Processing
 3. DXF Export
 
+## Development Environment
+
+The project uses a modern Python development setup:
+
+1. **Environment Management**
+   - Conda for environment and package management
+   - Python 3.12 as the base interpreter
+   - Centralized dependency management via `environment.yml`
+
+2. **Code Quality Tools**
+   - Centralized tool configuration in `pyproject.toml`
+   - Black for code formatting
+   - Flake8 for style checking
+   - MyPy for strict type checking
+   - Pylint for static analysis
+   - isort for import organization
+   - Pre-commit hooks for automated checks
+
+3. **IDE Integration**
+   - Cursor IDE with integrated linting and formatting
+   - Real-time type checking and error detection
+   - Automated code formatting on save
+
 ## Legacy Code Integration
 
 The project will maintain compatibility with existing DXF manipulation code from the original implementation (`src_old/`), particularly for ezdxf-specific patterns and optimizations.
@@ -61,6 +84,8 @@ Old Component -> New Component
   - [x] Style manager
   - [x] Utilities
   - [x] Basic error handling
+  - [x] Development environment setup
+  - [x] Tool configuration integration
 - Configuration Management (Complete)
   - [x] Basic config loading
   - [x] Schema validation
@@ -69,6 +94,7 @@ Old Component -> New Component
   - [x] Geometry layer configuration
   - [x] Color configuration and ACI colors
   - [x] Specialized configurations (viewport, legend, etc.)
+  - [x] Type validation and checking
   - [ ] Complete test coverage
 - Geometry Processing (In Progress)
   - [x] Base geometry types
@@ -78,12 +104,14 @@ Old Component -> New Component
       - [x] Operation context and results
       - [x] Parameter validation framework
       - [x] Error handling and propagation
+      - [x] Type safety improvements
   - [ ] Individual operations
       - [x] Buffer operation
           - [x] Operation implementation
           - [x] Parameter validation
           - [x] Unit tests
           - [x] Integration tests
+          - [x] Type safety
       - [ ] Intersection/Union/Difference
       - [ ] Dissolve/Merge
       - [ ] Filter operations
@@ -92,6 +120,7 @@ Old Component -> New Component
       - [x] Layer validation
       - [x] Layer processing
       - [x] Dependency handling
+      - [x] Type safety
 - Export System (In Progress)
   - [x] Basic export manager
   - [x] Interface definitions
@@ -449,7 +478,127 @@ export_manager.register_exporter('new_format', NewFormatExporter())
 
 ## Component Boundaries
 
-### 1. Core Types (Shared Interfaces)
+### 1. Import Rules
+
+1. **No Deep Imports**
+   - NEVER import from component internals
+   - Only import from component root (`__init__.py`)
+   - Example:
+     ```python
+     # WRONG - deep import
+     from src.core.types import LayerName
+     from src.config.config_manager import ConfigManager
+
+     # CORRECT - import from component root
+     from src.core import LayerName
+     from src.config import ConfigManager
+     ```
+
+2. **Component Dependencies**
+   - Each component MUST have a `dependencies.py` file
+   - All imports from other components MUST go through `dependencies.py`
+   - Only `dependencies.py` and `__init__.py` can import from other components
+   - Example:
+     ```python
+     # WRONG - direct import from another component
+     from src.core import setup_logger
+
+     # CORRECT - import through dependencies.py
+     from .dependencies import setup_logger
+     ```
+
+3. **Dependencies File Structure**
+   ```python
+   # src/config/dependencies.py
+   """Config component dependencies.
+
+   This module centralizes all imports from other components.
+   All cross-component dependencies MUST go through this file.
+   """
+   from src.core import setup_logger, resolve_path
+
+   __all__ = [
+       "setup_logger",
+       "resolve_path",
+   ]
+   ```
+
+4. **Local Types**
+   - Define component-specific types in the component
+   - Export them through the component's public API
+   - Example:
+     ```python
+     # src/config/types.py
+     from typing import NewType
+     LayerName = NewType("LayerName", str)
+
+     # src/config/__init__.py
+     from .types import LayerName
+     __all__ = ["LayerName"]
+     ```
+
+5. **Enforcement**
+   - Flake8 and Pylint are configured to enforce these rules
+   - Deep imports will cause linting errors
+   - Direct imports from other components (bypassing dependencies.py) will cause errors
+   - Only dependencies.py and __init__.py are allowed to import from other components
+   - CI/CD pipeline will fail on violations
+
+6. **Component Structure**
+   ```
+   src/
+   ├── component/
+   │   ├── __init__.py        # Public API
+   │   ├── dependencies.py    # External dependencies
+   │   ├── types/            # Component types
+   │   │   ├── __init__.py
+   │   │   └── base.py
+   │   ├── internal/         # Internal modules
+   │   │   ├── __init__.py
+   │   │   └── utils.py
+   │   └── README.md         # Component docs
+   ```
+
+7. **Import Flow**
+   ```
+   External Code
+        │
+        ▼
+   __init__.py ◄── dependencies.py
+        │              │
+        ▼              │
+   Internal Code       │
+        │              │
+        └──────────────┘
+   ```
+
+8. **Dependencies Management**
+   - Keep dependencies.py minimal
+   - Document why each dependency is needed
+   - Review dependencies regularly
+   - Consider impact on testing
+   - Example:
+     ```python
+     """Geometry component dependencies.
+
+     Core:
+     - setup_logger: Used for component-wide logging
+     - GeometryType: Base type for geometry operations
+
+     Config:
+     - LayerConfig: Layer configuration and validation
+     """
+     from src.core import setup_logger, GeometryType
+     from src.config import LayerConfig
+
+     __all__ = [
+         "setup_logger",
+         "GeometryType",
+         "LayerConfig",
+     ]
+     ```
+
+### 2. Core Types (Shared Interfaces)
 
 Located in `src/core/types.py`:
 
@@ -462,150 +611,76 @@ class GeometrySource(Protocol):
     """Interface for geometry data sources"""
     def read(self) -> 'GeometryData': ...
     def get_metadata(self) -> Dict[str, Any]: ...
-
-class ShapefileReader(GeometrySource):
-    """Interface for shapefile reading"""
-    def read(self) -> 'GeometryData': ...
-    def get_crs(self) -> str: ...
-
-@dataclass
-class GeometryData:
-    """Data transfer object for geometry data"""
-    id: str
-    geom: Geometry
-    metadata: Dict[str, Any]
-    source_type: str  # e.g., 'shapefile', 'manual', etc.
-    source_crs: str   # Coordinate reference system of source
 ```
 
-### 2. Geometry Processing
+### 3. Component Entry Points and Import Rules
 
-Pure geometry processing with no knowledge of export or DXF:
+Each component MUST follow these rules for clean boundaries and dependencies:
 
-```python
-from dataclasses import dataclass
-from shapely.geometry import base
-from typing import Dict, Any, List
+1. **Single Entry Point**
+   - Each component MUST have a clear public API in its `__init__.py`
+   - All external code MUST import only from the component root (e.g., `from src.config import X`)
+   - The `__all__` list in `__init__.py` MUST explicitly declare the public API
+   - Example of a proper component `__init__.py`:
+     ```python
+     """Component description and purpose."""
 
-@dataclass
-class GeometryLayer:
-    """Pure geometry layer representation"""
-    name: str
-    geometry: base.BaseGeometry
-    attributes: Dict[str, Any]
-    operations_log: List[str]
+     from .submodule import PublicClass
+     from .other import OtherPublic
 
-class GeometryCollection:
-    """Container for multiple geometry layers"""
-    def __init__(self):
-        self.layers: Dict[str, GeometryLayer] = {}
-```
+     __all__ = ['PublicClass', 'OtherPublic']
+     ```
 
-2. **Operations** (`geometry/operations/`)
-   - Pure geometric operations
-   - Input: geometry
-   - Output: modified geometry
-   - No side effects
+2. **Import Organization**
+   - External imports MUST be from component roots only
+   - Internal imports within a component can be more detailed
+   - Imports should be grouped and clearly commented:
+     ```python
+     # Standard library imports
+     from typing import Dict, List
 
-```python
-class GeometryOperation:
-    """Base class for geometry operations"""
-    def execute(self, geometry: base.BaseGeometry, **kwargs) -> base.BaseGeometry:
-        """Execute the operation on the geometry"""
-        raise NotImplementedError
-```
+     # External component imports
+     from src.config import ConfigClass
 
-3. **Layer Management** (`geometry/layers/`)
-   - Manages geometric layer operations
-   - Handles layer attributes
-   - No export-specific logic
+     # Internal imports
+     from src.current_component.submodule import InternalClass
+     ```
 
-### 3. Export System
+3. **Component Independence**
+   - Components should be independently testable
+   - Clear boundaries between components
+   - Well-defined APIs for inter-component communication
+   - Minimal dependencies between components
 
-Handles conversion to DXF with no geometry processing:
+4. **Documentation Requirements**
+   - Each component's `__init__.py` MUST include docstring explaining its purpose
+   - Public API must be clearly documented
+   - Internal modules should document their relationship to the public API
 
-```python
-class DXFConverter:
-    """Pure DXF conversion"""
-    
-    def convert(self, geom: Geometry) -> Any:  # Returns ezdxf entity
-        """Convert geometry to DXF entity"""
-        pass
+5. **Enforcing Component Boundaries**
+   - Use static analysis tools to enforce import rules
+   - Configure linters to check import patterns
+   - Example flake8 configuration:
+     ```ini
+     [flake8]
+     # Enforce absolute imports for external components
+     import-order-style = google
+     application-import-names = src
+     # Warn about imports from internal modules of other components
+     extend-ignore = I202
+     ```
+   - Example pylint configuration:
+     ```ini
+     [IMPORTS]
+     # Only allow imports from component roots
+     allow-any-import-level = src.config,src.geometry,src.export,src.core
+     # Warn about relative imports crossing component boundaries
+     allow-wildcard-with-all = no
+     ```
+   - Regular code reviews should verify compliance
+   - Automated tests should verify public API stability
 
-class StyleApplicator:
-    """Pure style application"""
-    
-    def apply(self, entity: Any, style_id: str) -> None:
-        """Apply style to DXF entity"""
-        pass
-
-class ExportManager:
-    """Coordinates export process"""
-    
-    def __init__(self, converter: DXFConverter, style: StyleApplicator):
-        self.converter = converter
-        self.style = style
-    
-    def export(self, geom: ProcessedGeometry, export_data: ExportData) -> None:
-        """Export using clean interfaces"""
-        pass
-```
-
-### 4. Input System
-
-The input system handles reading geometry from various sources (shapefiles, etc.) without knowledge of processing or export.
-
-#### Key Components:
-
-1. **Shapefile Import** (`input/shapefile/`)
-   - Pure shapefile reading
-   - CRS handling
-   - Attribute reading
-
-```python
-class ShapefileImporter:
-    """Pure shapefile import functionality"""
-    
-    def __init__(self, crs_transformer: Optional[CRSTransformer] = None):
-        self.crs_transformer = crs_transformer
-    
-    def read(self, path: Union[str, Path]) -> GeometryData:
-        """Read shapefile to geometry data"""
-        pass
-
-class CRSTransformer:
-    """Handle coordinate reference system transformations"""
-    
-    def transform(self, geom: Geometry, from_crs: str, to_crs: str) -> Geometry:
-        """Transform geometry between CRS"""
-        pass
-```
-
-2. **Input Coordination** (`input/`)
-   - Source type detection
-   - Reader selection
-   - Error handling
-
-```python
-class InputManager:
-    """Coordinates geometry input from various sources"""
-    
-    def __init__(self, config: InputConfig):
-        self.config = config
-        self.readers: Dict[str, GeometrySource] = {}
-    
-    def register_reader(self, source_type: str, reader: GeometrySource) -> None:
-        """Register a geometry source reader"""
-        pass
-    
-    def read_geometry(self, source_id: str) -> GeometryData:
-        """Read geometry from configured source"""
-        pass
-```
-
-## Data Flow and Boundaries
-
-### 1. Component Communication
+### 4. Component Communication
 
 Components communicate only through interface types:
 ```
@@ -616,7 +691,7 @@ GeometrySource ──► GeometryData ──► ProcessedGeometry ──► Expo
    Reader          (Core Types)        Interface      Interface
 ```
 
-### 2. Strict Boundaries
+### 5. Strict Boundaries
 
 1. **Input System**
    - Input: File paths, source configurations
@@ -649,7 +724,7 @@ GeometrySource ──► GeometryData ──► ProcessedGeometry ──► Expo
      - Processing logic
      - Export formats
 
-### 3. Dependency Rules
+### 6. Dependency Rules
 
 1. All dependencies flow inward:
    ```
@@ -664,7 +739,7 @@ GeometrySource ──► GeometryData ──► ProcessedGeometry ──► Expo
    - No implementation leakage
    - Clear contract boundaries
 
-### 4. Testing Boundaries
+### 7. Testing Boundaries
 
 Each component can be tested in isolation:
 
@@ -687,6 +762,307 @@ Each component can be tested in isolation:
        exporter = ExportManager(...)
        exporter.export(geom, export_data)
    ```
+
+## Code Style and Linting Configuration
+
+### 1. Configuration Sources
+
+The project uses two configuration files for code style and linting:
+
+1. **pyproject.toml** - Primary configuration source for:
+   - Black (code formatting)
+   - isort (import sorting)
+   - mypy (type checking)
+   - pylint (static analysis)
+
+2. **.flake8** - Dedicated configuration for flake8 because:
+   - Flake8 doesn't support pyproject.toml configuration natively
+   - Settings are aligned with other tools for consistency
+   - Contains flake8-specific settings and plugins
+
+### 2. Tool-Specific Configurations
+
+1. **Black Configuration** (`pyproject.toml`)
+   ```toml
+   [tool.black]
+   line-length = 100
+   target-version = ['py38']
+   skip-string-normalization = true  # Preserve quote styles
+   ```
+
+2. **isort Configuration** (`pyproject.toml`)
+   ```toml
+   [tool.isort]
+   profile = "google"
+   line_length = 100
+   sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
+   import_heading_stdlib = "Standard library imports"
+   import_heading_thirdparty = "Third party imports"
+   import_heading_firstparty = "First party imports"
+   ```
+
+3. **Flake8 Configuration** (`.flake8`)
+   ```ini
+   [flake8]
+   max-line-length = 100
+   inline-quotes = "single"
+   multiline-quotes = "single"
+   docstring-quotes = "double"
+   import-order-style = "google"
+   extend-ignore = ["W503", "E203", "E501"]  # Compatibility with Black
+   ```
+
+4. **Pylint Configuration** (`pyproject.toml`)
+   ```toml
+   [tool.pylint]
+   max-line-length = 100
+   string-quote = "single"
+   triple-quote = "double"
+   docstring-quote = "double"
+   ```
+
+### 3. Quote Style Standards
+
+- Single quotes (`'`) for regular strings
+- Double quotes (`"`) for docstrings
+- Consistent across all tools through configuration:
+  - Black: `skip-string-normalization = true`
+  - Flake8: `inline-quotes = "single", docstring-quotes = "double"`
+  - Pylint: `string-quote = "single", docstring-quote = "double"`
+
+### 4. Import Organization
+
+1. **Import Groups** (enforced by isort and flake8-import-order)
+   ```python
+   # Standard library imports
+   import os
+   from typing import Dict, List
+
+   # Third party imports
+   import numpy as np
+   from shapely.geometry import Point
+
+   # First party imports
+   from src.core import setup_logger
+
+   # Local imports
+   from .utils import validate_path
+   ```
+
+2. **Import Rules**
+   - No star imports
+   - Absolute imports for external components
+   - Relative imports for internal modules
+   - Imports grouped and sorted alphabetically
+   - Component boundaries enforced through flake8's `banned-modules`
+
+### 5. Line Length and Formatting
+
+- Maximum line length: 100 characters
+- Enforced consistently across all tools:
+  - Black: `line-length = 100`
+  - Flake8: `max-line-length = 100`
+  - Pylint: `max-line-length = 100`
+  - isort: `line_length = 100`
+
+### 6. Integration with Editor
+
+VS Code settings in `.vscode/settings.json`:
+```json
+{
+    "python.formatting.provider": "black",
+    "python.formatting.blackArgs": ["--config=pyproject.toml"],
+    "editor.formatOnSave": true,
+    "python.linting.enabled": true,
+    "python.linting.flake8Enabled": true,
+    "python.linting.flake8Args": ["--config=.flake8"],
+    "python.linting.pylintEnabled": true,
+    "python.linting.pylintArgs": ["--rcfile=pyproject.toml"],
+    "python.linting.mypyEnabled": true,
+    "python.linting.mypyArgs": ["--config-file=pyproject.toml"]
+}
+```
+
+### 7. Pre-commit Hooks
+
+Configuration in `.pre-commit-config.yaml`:
+```yaml
+repos:
+  - repo: https://github.com/psf/black
+    rev: 24.1.1
+    hooks:
+      - id: black
+        args: ["--config=pyproject.toml"]
+
+  - repo: https://github.com/pycqa/flake8
+    rev: 7.0.0
+    hooks:
+      - id: flake8
+        args: ["--config=.flake8"]
+
+  - repo: https://github.com/pycqa/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
+        args: ["--settings-path=pyproject.toml"]
+```
+
+### 8. Enforcement Strategy
+
+1. **Editor Level**
+   - Real-time linting feedback
+   - Format on save with Black
+   - Import organization with isort
+   - Type checking with mypy
+
+2. **Pre-commit Level**
+   - Prevents commits with style violations
+   - Automatic formatting
+   - Import organization
+   - Consistent quote styles
+
+3. **CI/CD Level**
+   - Full linting check on every PR
+   - Type checking
+   - Style verification
+   - Import order validation
+
+### 9. Component Boundaries
+
+Flake8 enforces strict component boundaries through `banned-modules`:
+```ini
+banned-modules =
+    # Ban deep imports from components
+    src.core.* = Import from src.core instead
+    src.config.* = Import from src.config instead
+    src.geometry.* = Import from src.geometry instead
+    src.export.* = Import from src.export instead
+    # Ban direct imports between components
+    src.core = Import through dependencies.py
+    src.config = Import through dependencies.py
+    src.geometry = Import through dependencies.py
+    src.export = Import through dependencies.py
+```
+
+This ensures:
+- Components are only imported through their public API
+- Cross-component dependencies go through `dependencies.py`
+- Clean separation between components
+
+## Type Organization Rules
+
+The project follows strict rules for organizing and defining types across components. These rules ensure clean architecture, prevent duplication, and maintain clear boundaries between core and component-specific types.
+
+### Type Categories
+
+1. **Core Types** (`src/core/types.py`)
+   Types that should be defined in core include:
+   - Types used across multiple components
+   - Interface definitions (Protocol classes)
+   - Base classes for component-specific types
+   - Error types
+   - Manager base classes
+   - Data transfer objects
+   - Configuration base types
+   - Type-related definitions
+   - Operation results
+
+2. **Component Types** (`src/<component>/types.py` or `__init__.py`)
+   Types that should be defined within components:
+   - Implementation classes specific to the component
+   - Component-specific configurations
+   - Types used only within the component
+   - Internal data structures
+
+### Type Organization Rules
+
+1. **Location Rules**
+   - Core types MUST be defined in `core/types.py`
+   - Component types MUST be defined in the component's `types.py` or `__init__.py`
+   - No type definitions allowed in other files
+   - Each component should have its own types module
+
+2. **Import Rules**
+   - Components MUST import core types from `src.core.types`
+   - No direct imports of types from other components
+   - Type imports MUST go through `dependencies.py`
+   - Proper imports through `__init__.py` required
+
+3. **Type Placement**
+   - Types used across components MUST be in core
+   - Component-specific types MUST stay in their component
+   - Base classes and protocols belong in core
+   - Implementation classes belong in components
+
+4. **Type Naming**
+   - Core types should follow naming patterns:
+     - `*Protocol` for interfaces
+     - `*Base` for base classes
+     - `*Error` for error types
+     - `*Manager` for manager classes
+     - `*Config` for configuration types
+     - `*Type` for type definitions
+     - `*Result` for operation results
+
+### Type Checker
+
+The project includes a type checker script (`scripts/check_duplicate_types.py`) that enforces these rules by:
+
+1. **Cross-Component Usage Tracking**
+   - Identifies types used in multiple components
+   - Flags types that should be moved to core
+   - Detects improper type locations
+
+2. **Name Pattern Analysis**
+   - Checks type names against core patterns
+   - Ensures proper placement of core types
+   - Validates component-specific types
+
+3. **Component-Specific Checks**
+   - Verifies type definition locations
+   - Checks import patterns
+   - Validates component boundaries
+
+4. **Location Rules**
+   - Enforces core types in `core/types.py`
+   - Requires component types in proper files
+   - Prevents scattered type definitions
+
+### Example Type Organization
+
+```python
+# src/core/types.py
+from typing import Protocol, TypeVar
+
+class GeometryManagerProtocol(Protocol):
+    """Interface for geometry managers."""
+    def process(self) -> None: ...
+
+class OperationBase:
+    """Base class for all operations."""
+    pass
+
+# src/geometry/types.py
+from src.core.types import OperationBase
+
+class BufferOperation(OperationBase):
+    """Component-specific implementation."""
+    pass
+```
+
+### Type Validation
+
+The type checker can be run to validate type organization:
+
+```bash
+python scripts/check_duplicate_types.py
+```
+
+This will:
+1. Find duplicate type definitions
+2. Check core type conflicts
+3. Validate type placement rules
+4. Ensure proper import patterns
 
 ## Testing Strategy
 
@@ -745,21 +1121,21 @@ Each component can be tested in isolation:
 ```python
 class Project:
     """Main project coordinator"""
-    
+
     def __init__(self, project_name: str):
         self.project_name = project_name
         self._initialize_components()
-    
+
     def _initialize_components(self) -> None:
         """Initialize all project components"""
         self.config_manager = ConfigManager(self.project_name)
         self.project_config = self.config_manager.load_project_config()
-        
+
         # Initialize geometry processing
         self.geometry_manager = GeometryManager(
             self.config_manager.load_geometry_layers()
         )
-        
+
         # Initialize export components
         style_configs = self.config_manager.load_styles()
         self.style_manager = StyleManager(style_configs)
@@ -768,7 +1144,7 @@ class Project:
             self.style_manager,
             self.layer_manager
         )
-    
+
     def process(self) -> None:
         """Process the entire project"""
         try:
@@ -776,18 +1152,18 @@ class Project:
             for layer_name in self.geometry_manager.get_layer_names():
                 # Get processed geometry
                 layer = self.geometry_manager.process_layer(layer_name)
-                
+
                 # Export to DXF if needed
                 if layer.update_dxf:
                     style = self.style_manager.get_style(layer.style)
                     self.dxf_exporter.export_layer(layer, style)
-            
+
             # Finalize export
             self.dxf_exporter.finalize_export()
-            
+
         except Exception as e:
             self._handle_error(e)
-    
+
     def _handle_error(self, error: Exception) -> None:
         """Handle project processing errors"""
         # Log error and cleanup if needed
@@ -945,7 +1321,7 @@ Geometry Layer (Pure)     Style Config
            self.name = name
            self.geometry = geometry  # Raw geometry data
            self.operations = []      # List of operations to apply
-   
+
    class GeometryManager:
        """Manages pure geometry layers and operations."""
        def process_layer(self, layer_name: str) -> ProcessedGeometry:
@@ -1028,7 +1404,7 @@ class GeometryOperation:
     layers: Optional[Union[str, List[Union[str, Dict[str, List[str]]]]]] = None
     distance: Optional[float] = None
     params: Optional[Dict[str, Any]] = None
-    
+
     def execute(self, geometry: Geometry) -> Geometry:
         """Execute the operation on the geometry."""
         pass
@@ -1057,7 +1433,7 @@ Input Geometry ──► Operation Config ──► Operation Handler ──► 
        """Handles geometry operations."""
        def __init__(self, layer_processor):
            self.layer_processor = layer_processor
-       
+
        def execute_operation(self, operation: GeometryOperation, geometry: Geometry) -> Geometry:
            """Execute a geometry operation."""
            # Validate operation
@@ -1158,4 +1534,4 @@ class CustomOperation(GeometryOperation):
 
 # Registration
 operation_registry.register("custom", CustomOperation)
-``` 
+```

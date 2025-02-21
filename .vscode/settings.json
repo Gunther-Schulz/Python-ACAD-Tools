@@ -1,0 +1,57 @@
+{
+    "python.analysis.typeCheckingMode": "strict",
+    "python.analysis.extraPaths": [
+        "./src"
+    ],
+    "editor.formatOnSave": true,
+    "python.formatting.provider": "black",
+    "python.formatting.blackArgs": [
+        "--config=pyproject.toml"
+    ],
+    "python.linting.enabled": true,
+    "python.linting.flake8Enabled": true,
+    "python.linting.flake8Args": [
+        "--config=.flake8"
+    ],
+    "python.linting.pylintEnabled": true,
+    "python.linting.pylintArgs": [
+        "--rcfile=pyproject.toml"
+    ],
+    "python.linting.mypyEnabled": true,
+    "python.linting.mypyArgs": [
+        "--config-file=pyproject.toml"
+    ],
+    "[python]": {
+        "editor.defaultFormatter": "ms-python.black-formatter",
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+            "source.organizeImports": "always"
+        }
+    },
+    "isort.args": [
+        "--settings-path=pyproject.toml"
+    ],
+    "isort.check": true,
+    "isort.importStrategy": "fromEnvironment",
+    "isort.path": [
+        "isort"
+    ],
+    "editor.rulers": [
+        100
+    ],
+    "files.trimTrailingWhitespace": true,
+    "files.insertFinalNewline": true,
+    "files.exclude": {
+        "**/__pycache__": true,
+        "**/*.pyc": true,
+        ".pytest_cache": true,
+        ".mypy_cache": true
+    },
+    "search.exclude": {
+        "**/.git": true,
+        "**/.pytest_cache": true,
+        "**/.mypy_cache": true,
+        "**/build": true,
+        "**/dist": true
+    }
+}

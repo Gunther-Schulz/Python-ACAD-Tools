@@ -2,6 +2,115 @@
 
 This document outlines the various operation types available in the LayerProcessor class and their possible options.
 
+## Code Quality and Development Setup
+
+### Prerequisites
+1. Python 3.12 or higher
+2. Git
+3. Conda (for environment management)
+4. Cursor IDE (recommended)
+
+### Setting Up Development Environment
+
+1. Create and activate the Conda environment:
+```bash
+# Create environment from environment.yml
+conda env create -f environment.yml
+
+# Activate the environment
+conda activate pycad
+```
+
+2. Verify the installation:
+```bash
+# Check Python version
+python --version  # Should show Python 3.12.x
+
+# Verify key packages
+black --version
+flake8 --version
+mypy --version
+```
+
+3. Set up pre-commit hooks:
+```bash
+pre-commit install
+```
+
+### Code Quality Tools
+
+The project uses several tools to maintain code quality, configured centrally in `pyproject.toml`:
+
+1. **Linting and Style**
+   - Flake8: Code style and quality checker
+   - Pylint: Static code analysis
+   - Black: Code formatter
+   - isort: Import statement organizer
+
+2. **Type Checking**
+   - MyPy: Static type checker with strict settings
+
+3. **Pre-commit Hooks**
+   - Automatically check code before commits
+   - Ensures consistent code style
+   - Validates type hints
+   - Organizes imports
+
+### Code Style Guidelines
+
+1. **Imports**
+   - Group imports in this order:
+     1. Standard library
+     2. Third party
+     3. First party (`src.*`)
+     4. Local (same component)
+   - Only import from component roots (e.g., `from src.config import X`)
+   - No direct imports from component internals
+
+2. **Component Boundaries**
+   - Each component has a clear public API in `__init__.py`
+   - External code only imports from component roots
+   - Internal imports follow consistent patterns
+   - Components are independently testable
+
+3. **Documentation**
+   - Google-style docstrings
+   - Clear module-level documentation
+   - Type hints for all functions
+   - Comments for complex logic
+
+### Running Code Quality Checks
+
+1. **Cursor IDE Integration**
+   - Real-time linting with flake8
+   - Format on save with Black
+   - Import organization with isort
+   - Type checking with MyPy
+
+2. **Manual Checks**
+```bash
+# Run all linters
+flake8 src/
+pylint src/
+mypy src/
+
+# Format code
+black src/
+isort src/
+```
+
+3. **Pre-commit Hooks**
+```bash
+# Run all pre-commit hooks
+pre-commit run --all-files
+```
+
+### Development Environment
+The project uses Conda for environment management. Key files:
+- `environment.yml`: Defines all project dependencies
+- `pyproject.toml`: Centralizes tool configurations (Black, MyPy, Pylint, etc.)
+- `.flake8`: Flake8-specific configuration
+
 ## Diagrams
 
 The project includes PlantUML diagrams that visualize the code architecture and flows. These diagrams are located in the `diagrams/` directory.

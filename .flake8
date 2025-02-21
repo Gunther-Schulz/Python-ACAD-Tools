@@ -1,0 +1,80 @@
+[flake8]
+# Line length and formatting
+max-line-length = 100
+extend-ignore =
+    # Allow line breaks before binary operators (Black compatibility)
+    W503,
+    # Whitespace before ':' (Black compatibility)
+    E203,
+    # Line length handled by black
+    E501,
+    # Import order within groups - we'll let isort handle this
+    I100,
+    I101,
+    I201,
+    I202
+
+# Import order settings
+import-order-style = google
+application-import-names = src
+application-package-names = src
+
+# Import groups (in order):
+# 1. Standard library
+# 2. Third party
+# 3. First party (src.*)
+# 4. Local (current component)
+import-order-groups =
+    stdlib,
+    third_party,
+    first_party,
+    local
+
+# Docstring settings
+docstring-convention = google
+
+# Exclude patterns
+exclude =
+    .git,
+    __pycache__,
+    build,
+    dist,
+    *.pyc,
+    *.egg-info
+
+# Additional checks
+select =
+    # Default checks
+    E,F,W,C,
+    # Import order checks
+    I,
+    # Docstring checks
+    D,
+    # Naming checks
+    N,
+    # Bugbear checks
+    B
+
+# Import settings
+banned-modules =
+    # Ban deep imports from components (ARCHITECTURE.md requirement)
+    src.core.* = Import from src.core instead
+    src.config.* = Import from src.config instead
+    src.geometry.* = Import from src.geometry instead
+    src.export.* = Import from src.export instead
+    # Ban direct imports between components (must go through dependencies.py)
+    src.core = Import through dependencies.py
+    src.config = Import through dependencies.py
+    src.geometry = Import through dependencies.py
+    src.export = Import through dependencies.py
+
+# Per-file-ignores
+per-file-ignores =
+    # Allow component imports in dependencies.py
+    */dependencies.py:F403,F401,I100,I201,I202,
+    # Allow component imports in __init__.py
+    */__init__.py:F403,F401,I100,I201,I202,
+    # Allow missing docstrings in tests
+    tests/*:D100,D101,D102,D103,
+    # Enforce strict import rules except in dependencies.py and __init__.py
+    src/*:I252
