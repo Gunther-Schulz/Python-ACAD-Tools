@@ -121,6 +121,119 @@ This document outlines the code quality standards and best practices for the Pyt
    - Import component types through respective type modules
    - No direct imports from implementation modules
 
+### Configuration Management
+
+1. **Project Configuration**
+   - Keep `pyproject.toml` up to date with new modules
+   - Maintain consistent configuration across components
+   - Document configuration changes
+   - Test configuration updates
+   - Ensure type checking rules are properly configured
+   - Verify import rules are correctly set
+
+2. **Module Configuration**
+   When adding new modules:
+   - Add type checking configuration
+   - Configure import linting rules
+   - Set appropriate strictness levels
+   - Update dependency contracts
+   - Configure runtime type evaluation for base classes
+   - Set up import boundaries and restrictions
+
+3. **Configuration Validation**
+   After updating configuration:
+   - Run all pre-commit hooks
+   - Verify type checking passes
+   - Test import boundaries
+   - Document any exceptions
+   - Validate runtime type checking
+   - Check import rule compliance
+
+4. **Type Checking Configuration**
+   - Maintain strict type checking mode
+   - Configure runtime-evaluated base classes:
+     ```toml
+     [tool.ruff.lint.flake8-type-checking]
+     strict = true
+     runtime-evaluated-base-classes = [
+         "BaseModel",
+         "Protocol",
+         "TypedDict",
+         "BaseConfigManager",
+         "BaseGeometryManager",
+         "BaseExportManager"
+     ]
+     ```
+
+5. **Import Rules Configuration**
+   - Ban relative imports:
+     ```toml
+     [tool.ruff.lint.flake8-tidy-imports]
+     ban-relative-imports = "all"
+     ```
+   - Maintain clear component boundaries
+   - Enforce dependency direction
+   - Prevent cross-component imports
+   - Keep implementation details private
+
+6. **Pylint Configuration**
+   - Maintain plugin configuration:
+     ```toml
+     [tool.pylint.master]
+     load-plugins = [
+         "pylint.extensions.check_elif",
+         "pylint.extensions.docparams",
+         "pylint.extensions.typing",
+         # ... other plugins
+     ]
+     ```
+   - Configure design rules (complexity, size limits)
+   - Set up import analysis rules
+   - Configure naming conventions
+   - Maintain type checking rules
+
+7. **Dependency Injection Configuration**
+   ```toml
+   [tool.dependency-injector]
+   modules = [
+       "src.core",
+       "src.config",
+       "src.geometry",
+       "src.export"
+   ]
+   required_providers = [
+       "logger",
+       "config"
+   ]
+   auto_wire = true
+   strict_wire = true
+   ```
+
+8. **Runtime Type Checking (Beartype)**
+   ```toml
+   [tool.beartype]
+   is_beartype = true
+   is_runtime_checking_enabled = true
+   violation_trigger = "raise"
+   conf_attrs_inc_property = true
+   conf_attrs_inc_staticmethod = true
+   conf_attrs_inc_classmethod = true
+   ```
+
+9. **Code Quality Metrics**
+   ```toml
+   [tool.radon]
+   cc_min = "A"
+   mi_min = "A"
+   exclude = "tests/*,src_old/*,scripts/*"
+   include_docstrings = true
+
+   [tool.interrogate]
+   ignore-init-method = true
+   fail-under = 95
+   exclude = ["tests/", "src_old/", "setup.py", "scripts/"]
+   ```
+
 ## Code Quality Checks
 
 ### Pre-commit Hooks

@@ -74,6 +74,56 @@ src/
     └── ...
 ```
 
+### Configuration Maintenance
+When adding new modules to the project:
+
+1. **Update Type Checking Configuration**
+   - Add new module paths to mypy configuration in `pyproject.toml`
+   - Configure appropriate type checking strictness level
+   - Ensure proper import rules are enforced
+   - Add any necessary type checking overrides
+   - Configure runtime type evaluation for base classes
+   - Set up strict type checking mode
+
+2. **Import Linting Rules**
+   - Update import-linter contracts for new modules
+   - Configure module boundaries and dependencies
+   - Ensure proper layering is maintained
+   - Add any necessary import exceptions
+   - Ban relative imports project-wide
+   - Enforce component isolation
+
+Example configuration update for a new module:
+```toml
+# Type checking configuration
+[[tool.mypy.overrides]]
+module = "src.new_module.types.*"
+disallow_any_explicit = false
+implicit_reexport = true
+
+# Runtime type evaluation
+[tool.ruff.lint.flake8-type-checking]
+strict = true
+runtime-evaluated-base-classes = [
+    "BaseModel",
+    "Protocol",
+    "TypedDict",
+    "BaseConfigManager",
+    "BaseGeometryManager",
+    "BaseExportManager"
+]
+
+# Import rules
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "all"
+
+[tool.importlinter]
+[[tool.importlinter.contracts]]
+name = "new-module"
+type = "independence"
+modules = ["src.new_module"]
+```
+
 ### Allowed Imports
 ```python
 # Required in all files
