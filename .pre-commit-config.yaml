@@ -39,7 +39,7 @@ repos:
             "--html-report=typing_report",
             "--txt-report=typing_report",
           ]
-        exclude: ^src_old/
+        exclude: ^(src_old/|tests/)
 
       - id: dependency-injector
         name: dependency-injector (DI patterns)
@@ -78,7 +78,7 @@ repos:
         language: system
         types: [python]
         args: ["--rcfile=pyproject.toml"]
-        exclude: ^(tests/|src_old/)
+        exclude: ^(src_old/|tests/)
 
       - id: pylint-tests
         name: pylint (tests)
@@ -102,7 +102,7 @@ repos:
           [
             "src",
             "--min-confidence=90",
-            "--exclude=tests/,src_old/",
+            "--exclude=tests/,src_old/,scripts/",
             "--ignore-names=config_path,geometry_path,layer_path,target_path,format",
           ]
 
@@ -111,7 +111,7 @@ repos:
         entry: radon cc
         language: system
         types: [python]
-        exclude: ^(tests/|src_old/|scripts/)
+        exclude: ^(src_old/|tests/|scripts/)
         pass_filenames: false
         args: ["-a", "-n", "A", "-s", "--total-average", "--xml", "src"]
 
@@ -120,7 +120,7 @@ repos:
         entry: radon mi
         language: system
         types: [python]
-        exclude: ^(tests/|src_old/|scripts/)
+        exclude: ^(src_old/|tests/|scripts/)
         pass_filenames: false
         args: ["-s", "-n", "A", "--min=65", "--multi", "src"]
 

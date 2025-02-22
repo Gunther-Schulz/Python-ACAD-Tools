@@ -1,0 +1,11 @@
+#!/bin/bash
+
+# Get the directory of this script
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+# Activate conda environment
+eval "$(conda shell.bash hook)"
+conda activate pycad
+
+# Run pre-commit with all arguments passed to this script
+pre-commit "$@"

@@ -14,3 +14,11 @@ invalid_geometries_Ausgleich.png
 Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/generated/
 
 ezdxf
+
+pylint_report.json
+
+reports/
+
+typing_report/html/
+
+typing_report/

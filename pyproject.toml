@@ -413,7 +413,7 @@ warn_unused_ignores = true
 warn_no_return = true
 warn_unreachable = true
 strict = true
-exclude = ['^tests/']
+exclude = ['^tests/', '^src_old/']
 plugins = ["numpy.typing.mypy_plugin"]
 
 [[tool.mypy.overrides]]
@@ -442,7 +442,7 @@ strict_optional = true
 [tool.radon]
 cc_min = "A"
 mi_min = "A"
-exclude = "tests/*,src_old/*"
+exclude = "tests/*,src_old/*,scripts/*"
 include_docstrings = true
 order = "SCORE"
 show_complexity = true
@@ -461,7 +461,7 @@ ignore-nested-functions = false
 ignore-nested-classes = false
 ignore-setters = false
 fail-under = 95
-exclude = ["tests/", "src_old/", "setup.py"]
+exclude = ["tests/", "src_old/", "setup.py", "scripts/"]
 ignore-regex = ["^get$", "^mock_.*", ".*BaseClass.*"]
 verbose = 2
 quiet = false

@@ -1116,7 +1116,6 @@ This will:
    d. Add edge case tests
    e. Document usage
    ```
-
 3. **For Each Release**:
    ```
    a. Run all tests
