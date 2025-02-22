@@ -123,6 +123,54 @@ This document outlines the code quality standards and best practices for the Pyt
 
 ## Code Quality Checks
 
+### Pre-commit Hooks
+The project uses pre-commit hooks to enforce code quality standards. Hooks are organized into three categories:
+
+1. **Source Code Hooks**
+   - Ruff linting and formatting for source code
+   - MyPy static type checking
+   - Pylint code analysis
+   - Dependency injection validation
+   - Runtime type checking (beartype)
+   - Dead code detection (vulture)
+   - Code complexity metrics (radon)
+   - Docstring coverage (interrogate)
+
+2. **Test Code Hooks**
+   - Ruff linting and formatting for tests
+   - Pylint with test-specific rules
+   - Relaxed standards for test code
+
+3. **Project-wide Hooks**
+   - Semantic code analysis (semgrep)
+   - Type checking (pyright)
+
+### Running Pre-commit Hooks
+The project provides a convenient script to run specific groups of hooks:
+
+```bash
+# Run only test-related hooks
+./scripts/run-hooks.sh tests
+
+# Run only source code hooks
+./scripts/run-hooks.sh source
+
+# Run project-wide hooks
+./scripts/run-hooks.sh project
+
+# Run all hooks
+./scripts/run-hooks.sh all
+
+# Show help
+./scripts/run-hooks.sh help
+```
+
+This allows developers to:
+- Run relevant hooks for their current task
+- Save time by running only needed checks
+- Maintain different standards for tests and source code
+- Ensure comprehensive quality checks before commits
+
 ### Enabled Rules
 1. **Style Checks**
    - PEP 8 compliance (E, W)

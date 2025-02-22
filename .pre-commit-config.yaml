@@ -14,38 +14,55 @@ repos:
 
   - repo: local
     hooks:
-      - id: ruff
-        name: ruff (linting)
+      # Source-only hooks (tools specifically for implementation code)
+      - id: ruff-src
+        name: ruff (linting) - source
         entry: ruff check
         language: system
         types: [python]
+        files: ^src/
+        exclude: ^src_old/
         args: ["--config=pyproject.toml", "--fix"]
 
-      - id: ruff-format
-        name: ruff (format)
+      - id: ruff-format-src
+        name: ruff (format) - source
         entry: ruff format
         language: system
         types: [python]
+        files: ^src/
+        exclude: ^src_old/
         args: ["--config=pyproject.toml"]
 
-      - id: mypy
-        name: mypy (static type checking)
+      - id: mypy-src
+        name: mypy (static type checking) - source
         entry: mypy
         language: system
         types: [python]
+        files: ^src/
+        exclude: ^src_old/
         args:
           [
             "--config-file=pyproject.toml",
             "--html-report=typing_report",
             "--txt-report=typing_report",
           ]
-        exclude: ^(src_old/|tests/)
+
+      - id: pylint-src
+        name: pylint - source
+        entry: pylint
+        language: system
+        types: [python]
+        files: ^src/
+        exclude: ^src_old/
+        args: ["--rcfile=pyproject.toml"]
 
       - id: dependency-injector
         name: dependency-injector (DI patterns)
         entry: python scripts/check_dependency_injection.py
         language: system
         types: [python]
+        files: ^src/
+        exclude: ^src_old/
         pass_filenames: false
         args:
           [
@@ -59,6 +76,8 @@ repos:
         entry: python -c "from beartype.claw import beartype_this_package; import sys, importlib; sys.path.append('.'); import src; sys.exit(0)"
         language: python
         types: [python]
+        files: ^src/
+        exclude: ^src_old/
         additional_dependencies:
           [
             "beartype>=0.16.4",
@@ -72,31 +91,13 @@ repos:
           ]
         pass_filenames: false
 
-      - id: pylint
-        name: pylint (source)
-        entry: pylint
-        language: system
-        types: [python]
-        args: ["--rcfile=pyproject.toml"]
-        exclude: ^(src_old/|tests/)
-
-      - id: pylint-tests
-        name: pylint (tests)
-        entry: pylint
-        language: system
-        types: [python]
-        files: ^tests/
-        args:
-          [
-            "--rcfile=pyproject.toml",
-            "--disable=missing-docstring,redefined-outer-name,protected-access,unused-argument,unused-variable,duplicate-code,wrong-import-position,unnecessary-lambda,unspecified-encoding,unsupported-membership-test,use-implicit-booleaness-not-comparison,import-outside-toplevel,no-member,unexpected-keyword-arg,no-value-for-parameter,function-redefined,unused-import,invalid-sequence-index,too-many-statements",
-          ]
-
       - id: vulture
         name: vulture (dead code and similarity)
         entry: vulture
         language: system
         types: [python]
+        files: ^src/
+        exclude: ^src_old/
         pass_filenames: false
         args:
           [
@@ -111,7 +112,8 @@ repos:
         entry: radon cc
         language: system
         types: [python]
-        exclude: ^(src_old/|tests/|scripts/)
+        files: ^src/
+        exclude: ^src_old/
         pass_filenames: false
         args: ["-a", "-n", "A", "-s", "--total-average", "--xml", "src"]
 
@@ -120,29 +122,64 @@ repos:
         entry: radon mi
         language: system
         types: [python]
-        exclude: ^(src_old/|tests/|scripts/)
+        files: ^src/
+        exclude: ^src_old/
         pass_filenames: false
         args: ["-s", "-n", "A", "--min=65", "--multi", "src"]
-
-      - id: semgrep
-        name: semgrep (semantic analysis)
-        entry: semgrep
-        language: system
-        types: [python]
-        args: ["--config=auto"]
 
       - id: interrogate
         name: interrogate (docstring coverage)
         entry: interrogate
         language: system
         types: [python]
+        files: ^src/
+        exclude: ^src_old/
         args: ["-c", "pyproject.toml", "-vv"]
+
+      # Test-only hooks (different rules for test code)
+      - id: ruff-tests
+        name: ruff (linting) - tests
+        entry: ruff check
+        language: system
+        types: [python]
+        files: ^tests/
+        args: ["--config=pyproject.toml", "--fix"]
+
+      - id: ruff-format-tests
+        name: ruff (format) - tests
+        entry: ruff format
+        language: system
+        types: [python]
+        files: ^tests/
+        args: ["--config=pyproject.toml"]
+
+      - id: pylint-tests
+        name: pylint - tests
+        entry: pylint
+        language: system
+        types: [python]
+        files: ^tests/
+        args:
+          [
+            "--rcfile=pyproject.toml",
+            "--disable=missing-docstring,redefined-outer-name,protected-access,unused-argument,unused-variable,duplicate-code,wrong-import-position,unnecessary-lambda,unspecified-encoding,unsupported-membership-test,use-implicit-booleaness-not-comparison,import-outside-toplevel,no-member,unexpected-keyword-arg,no-value-for-parameter,function-redefined,unused-import,invalid-sequence-index,too-many-statements",
+          ]
+
+      # Project-wide hooks (benefit from full codebase context)
+      - id: semgrep
+        name: semgrep (semantic analysis)
+        entry: semgrep
+        language: system
+        types: [python]
+        exclude: ^src_old/
+        args: ["--config=auto"]
 
       - id: pyright
         name: pyright (type checking)
         entry: pyright
         language: node
         types: [python]
+        exclude: ^src_old/
         pass_filenames: false
         additional_dependencies: ["pyright@1.1.350"]
 
