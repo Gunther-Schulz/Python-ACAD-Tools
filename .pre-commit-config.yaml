@@ -15,6 +15,16 @@ repos:
   - repo: local
     hooks:
       # Source-only hooks (tools specifically for implementation code)
+      - id: import-linter
+        name: import-linter (architecture rules)
+        entry: lint-imports
+        language: system
+        types: [python]
+        files: ^src/
+        exclude: ^src_old/
+        pass_filenames: false
+        args: ["--config=pyproject.toml"]
+
       - id: ruff-src
         name: ruff (linting) - source
         entry: ruff check
@@ -182,10 +192,3 @@ repos:
         exclude: ^src_old/
         pass_filenames: false
         additional_dependencies: ["pyright@1.1.350"]
-
-  # - repo: https://github.com/seddonym/import-linter
-  #   rev: v2.2
-  #   hooks:
-  #     - id: import-linter
-  #       name: import-linter (architecture)
-  #       args: ["--config=import-linter.ini"]

@@ -27,7 +27,13 @@ case $1 in
         ;;
     "source")
         echo "Running source code hooks..."
-        pre-commit run --hook-stage pre-commit "*-src"
+        pre-commit run --hook-stage pre-commit import-linter \
+            && pre-commit run --hook-stage pre-commit ruff-src \
+            && pre-commit run --hook-stage pre-commit ruff-format-src \
+            && pre-commit run --hook-stage pre-commit mypy-src \
+            && pre-commit run --hook-stage pre-commit pylint-src \
+            && pre-commit run --hook-stage pre-commit dependency-injector \
+            && pre-commit run --hook-stage pre-commit beartype
         ;;
     "project")
         echo "Running project-wide hooks..."

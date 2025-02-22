@@ -101,12 +101,17 @@ extra-standard-library = ["typing", "dataclasses", "abc", "os", "sys", "pathlib"
 required-imports = [
     "from __future__ import annotations"
 ]
+order-by-type = true
+case-sensitive = true
+
+# Define strict import sections
 section-order = [
     "future",
     "standard-library",
     "third-party",
-    "coretypes",
-    "componenttypes",
+    "core-types",      # Core types get their own section
+    "component-types", # Component types get their own section
+    "dependencies",    # Dependencies for everything else
     "first-party",
     "local-folder"
 ]
@@ -115,12 +120,13 @@ section-order = [
 "FUTURE" = ["__future__"]
 "STDLIB" = ["typing", "dataclasses", "abc", "os", "sys", "pathlib"]
 "THIRDPARTY" = ["numpy", "shapely", "ezdxf", "geopandas"]
-"CORETYPES" = ["src.core.types"]
-"COMPONENTTYPES" = [
+"CORETYPES" = ["src.core.types"]  # Core types section
+"COMPONENTTYPES" = [              # Component types section
     "src.geometry.types",
     "src.config.types",
     "src.export.types"
 ]
+"DEPENDENCIES" = ["src.*.dependencies"]  # Dependencies section
 "FIRSTPARTY" = ["src"]
 "LOCALFOLDER" = ["."]
 
@@ -163,20 +169,12 @@ runtime-evaluated-decorators = [
 ban-relative-imports = "all"
 
 [tool.ruff.lint.flake8-tidy-imports.banned-api]
-"typing.*" = { msg = "Use core.types for basic types, or component types for domain-specific types" }
-"src.*.internal.*" = { msg = "No access to internal modules" }
-"src.*.*.impl.*" = { msg = "No access to implementation details" }
-"src.core.*" = { msg = "Import core types through dependencies.py" }
-"src.config.*" = { msg = "Import config types through dependencies.py" }
-"src.geometry.*" = { msg = "Import geometry types through dependencies.py" }
-"src.export.*" = { msg = "Import export types through dependencies.py" }
-"src.*.implementations.*" = { msg = "Access implementations through dependencies.py" }
-"src.*.services.*" = { msg = "Access services through dependencies.py" }
-"src.*.repositories.*" = { msg = "Access repositories through dependencies.py" }
+# Keep only DI and type import rules
 "src.*.services.*.Service" = { msg = "Services must be accessed through dependency injection" }
 "src.*.repositories.*.Repository" = { msg = "Repositories must be accessed through dependency injection" }
-"src.*.managers.*.Manager" = { msg = "Managers must be accessed through dependency injection" }
-"src.*.types.*" = { msg = "Import types through core.types or component types" }
+"typing.*" = { msg = "Use src.core.types for basic types" }
+"src.core.*" = { msg = "Import from src.core.types for types, use dependencies.py for everything else" }
+"src.*.types.*" = { msg = "Import types directly from their component's types module" }
 
 # Complexity settings
 [tool.ruff.lint.mccabe]
@@ -262,18 +260,7 @@ enable = [
 ]
 
 [tool.pylint.private_import]
-# private-module-patterns = [  # Commented out unrecognized option
-#     "src\\..*\\.internal\\..*",  # Internal modules
-#     "src\\..*\\.implementations\\..*",  # Implementation modules
-#     "src\\..*\\.services\\..*",  # Service modules
-#     "src\\..*\\.repositories\\..*",  # Repository modules
-#     "src\\..*\\..*\\.(?!(__init__|types|dependencies)\\.py$).*"  # Anything not in allowed files
-# ]
-# allow-private-in = [  # Commented out unrecognized option
-#     "dependencies.py",  # Allow implementation imports in dependencies.py
-#     "types.py",        # Allow type definitions in types.py
-#     "__init__.py"      # Allow re-exports in __init__.py
-# ]
+# Removed redundant private import patterns - now handled by import-linter
 
 [tool.pylint.design]
 max-args = 6  # Allow reasonable number of injected dependencies
@@ -560,3 +547,50 @@ reportTypedDictNotRequiredAccess = "warning"
 # Analysis settings
 analyzeUnannotatedFunctions = true
 pythonPlatform = "Linux"
+
+[tool.importlinter]
+root_package = "src"
+include_external_packages = true
+
+# Define component layers
+[[tool.importlinter.contracts]]
+id = "layers"
+name = "Component layering - core is base layer"
+type = "layers"
+layers = [
+    "src.config",
+    "src.geometry",
+    "src.export",
+    "src.core"
+]
+
+[[tool.importlinter.contracts]]
+id = "independence"
+name = "Non-core components must be independent"
+type = "independence"
+modules = [
+    "src.config",
+    "src.geometry",
+    "src.export"
+]
+
+[[tool.importlinter.contracts]]
+id = "dependencies"
+name = "All imports must go through dependencies.py"
+type = "forbidden"
+source_modules = ["src.*.[!dependencies|types].*"]  # Any module that's not dependencies.py or types.py
+forbidden_modules = ["src.!(core).*"]  # Any component except core
+
+[[tool.importlinter.contracts]]
+id = "dependencies-core"
+name = "Core imports must go through dependencies.py"
+type = "forbidden"
+source_modules = ["src.*.[!dependencies|types].*"]  # Any module that's not dependencies.py or types.py
+forbidden_modules = ["src.core.[!types].*"]  # Core modules except types
+
+[[tool.importlinter.contracts]]
+id = "types-independence"
+name = "Types must be self-contained"
+type = "forbidden"
+source_modules = ["src.*.types.*"]  # All type modules
+forbidden_modules = ["src.*.[!types].*"]  # Anything that's not a types module
