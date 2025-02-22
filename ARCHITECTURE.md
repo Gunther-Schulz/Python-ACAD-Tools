@@ -6,39 +6,282 @@ This document outlines the architecture for the Python ACAD Tools project, which
 
 1. Configuration Management
 2. Geometry Processing
-3. DXF Export
+3. Export System
+
+## Core Design Principles
+
+1. **Clear Separation of Concerns**
+   - Each component has a single responsibility
+   - Clean boundaries between components
+   - Dependencies flow in one direction
+   - No circular dependencies
+
+2. **Type Safety**
+   - Strong typing throughout the codebase
+   - Clear data structures and interfaces
+   - Runtime type checking where needed
+   - Explicit error types
+
+3. **Component Independence**
+   - Components are independently testable
+   - Well-defined APIs between components
+   - Minimal cross-component dependencies
+   - Clear contract boundaries
+
+## Component Architecture
+
+### 1. Core Component (`src/core/`)
+
+Core provides the foundation and shared interfaces:
+
+1. **Type System** (`core/types.py`)
+   - Core data structures and protocols
+   - Interface definitions
+   - Base classes
+   - Shared type definitions
+
+2. **Project Coordinator** (`core/project.py`)
+   - Application central coordinator
+   - Component initialization
+   - Workflow orchestration
+   - Error handling and logging
+
+3. **Utilities** (`core/utils.py`)
+   - Logging setup
+   - Path resolution
+   - Error utilities
+   - Common functions
+
+### 2. Configuration Management (`src/config/`)
+
+Handles all configuration loading and validation:
+
+1. **Config Manager** (`config/config_manager.py`)
+   - YAML configuration loading
+   - Schema validation
+   - Type conversion
+   - Path resolution
+
+2. **Configuration Types**
+   - Project Configuration
+   - Style Configuration
+   - Layer Configuration
+   - Specialized Configurations (viewports, legends, etc.)
+
+### 3. Geometry Processing (`src/geometry/`)
+
+The geometry processing system consists of several key components:
+
+1. **Layer System**
+   ```
+   [Configuration] ─────► [Geometry Processing] ─────► [Export]
+         │                        │                       │
+         v                        v                       v
+   GeometryLayer config    GeometryProcessor        ExportManager
+         │                        │                       │
+         v                        v                       v
+   Load raw geometry    Apply geometry operations   Create format layers
+   Define operations     Track processing state     Apply format styles
+   Set dependencies    Validate geometry results    Format-specific handling
+   ```
+
+2. **Layer Types**
+
+   a. **Geometry Layer** (`geometry/types/layer.py`)
+      - Pure geometry representation
+      - No format-specific concerns
+      - Core responsibilities:
+        - Hold raw geometry data (Shapely geometries)
+        - Define geometric operations
+        - Track processing state
+        - Maintain dependencies
+      ```python
+      class GeometryLayer:
+          def __init__(self, name: str, geometry: BaseGeometry):
+              self.name = name
+              self.geometry = geometry
+              self.operations: list[dict[str, Any]] = []
+              self.dependencies: list[str] = []
+              self.processing_state: dict[str, Any] = {
+                  "processed_operations": [],
+                  "current_operation": None,
+                  "errors": []
+              }
+      ```
+
+   b. **Export Layer** (`export/types/layer.py`)
+      - Format-specific representation
+      - Created during export phase
+      - Core responsibilities:
+        - Hold processed geometry
+        - Apply format-specific styling
+        - Handle format attributes
+      ```python
+      class ExportLayer:
+          def __init__(self, geometry_layer: ProcessedGeometry, style: StyleConfig):
+              self.name = geometry_layer.name
+              self.geometry = geometry_layer.geometry
+              self.style = style
+              self.format_attributes: dict[str, Any] = {}
+      ```
+
+3. **Layer Management** (`geometry/layers/`)
+   - Handles layer dependencies
+   - Determines processing order
+   - Tracks layer state
+   - Validates configurations
+   ```python
+   class LayerCollection:
+       def __init__(self):
+           self._layers: dict[str, GeometryLayer] = {}
+           self._dependencies: dict[str, list[str]] = {}
+
+       def get_processing_order(self) -> list[str]:
+           """Get layers in dependency-resolved order."""
+           return self._resolve_dependencies()
+   ```
+
+4. **Geometry Operations** (`geometry/operations/`)
+   - Operation registry
+   - Operation execution
+   - Parameter validation
+   - Result validation
+
+### 4. Export System (`src/export/`)
+
+Handles conversion of processed geometry to output formats:
+
+1. **Export Manager** (`export/manager.py`)
+   - Format registration
+   - Export coordination
+   - Style application
+   - Resource cleanup
+
+2. **Format-Specific Exporters**
+   - DXF Export (`export/dxf/`)
+   - Shapefile Export (`export/shapefile/`)
+   - Format-specific validation
+   - Style conversion
+
+## Implementation Strategy
+
+1. **Component Development Order**
+   ```
+   1. Core Types and Interfaces
+   2. Configuration Management
+   3. Geometry Processing
+   4. Export System
+   ```
+
+2. **Testing Strategy**
+   - Unit tests for each component
+   - Integration tests between components
+   - Performance benchmarks
+   - Type safety tests
+
+3. **Error Handling**
+   - Component-specific errors
+   - Clear error boundaries
+   - Error aggregation
+   - User-friendly messages
+
+## Directory Structure
+
+```
+src/
+├── core/                     # Core functionality
+│   ├── types.py            # Type definitions
+│   ├── project.py          # Project coordinator
+│   └── utils.py           # Utilities
+├── config/                  # Configuration management
+│   ├── config_manager.py   # Main config manager
+│   └── schemas/           # JSON schemas
+├── geometry/               # Geometry processing
+│   ├── types/            # Geometry types
+│   ├── operations/       # Geometry operations
+│   └── layers/           # Layer management
+└── export/                 # Export functionality
+    ├── dxf/              # DXF export
+    ├── shapefile/        # Shapefile export
+    └── manager.py        # Export coordination
+```
 
 ## Development Environment
 
-The project uses a modern Python development setup:
-
 1. **Environment Management**
-   - Conda for environment and package management
-   - Mamba as a fast, robust alternative to conda
-   - Python 3.12 as the base interpreter
-   - Centralized dependency management via `environment.yml`
+   - Conda for package management
+   - Python 3.12 base
+   - Centralized dependencies
 
-2. **Code Quality Tools**
-   - Centralized tool configuration in `pyproject.toml`
-   - Black for code formatting
-   - Flake8 for style checking
-   - MyPy for strict type checking
-   - Pylint for static analysis
-   - isort for import organization
-   - Pre-commit hooks for automated checks
+2. **Code Quality**
+   - Black for formatting
+   - Ruff for linting
+   - MyPy for type checking
+   - Pre-commit hooks
 
 3. **Version Management**
-   - Flexible version pinning using >= for faster dependency resolution
-   - Minimum versions specified to ensure compatibility
-   - Example: `python>=3.12` allows 3.12 and newer
-   - Helps mamba/conda solve dependencies more efficiently
-   - Maintains balance between stability and solver performance
-   - Version constraints can be tightened if specific versions are required
+   - Flexible version pinning
+   - Minimum version specification
+   - Dependency resolution
 
-4. **IDE Integration**
-   - Cursor IDE with integrated linting and formatting
-   - Real-time type checking and error detection
-   - Automated code formatting on save
+## Implementation Status
+
+- Core Components ✓
+  - [x] Type definitions
+  - [x] Project coordinator
+  - [x] Utilities
+- Configuration Management (Complete)
+  - [x] Config loading
+  - [x] Schema validation
+  - [x] Style configuration
+- Geometry Processing (In Progress)
+  - [x] Layer types
+  - [x] Basic operations
+  - [ ] Advanced operations
+- Export System (In Progress)
+  - [x] Basic export
+  - [ ] Complete DXF export
+  - [ ] Shapefile export
+
+## Component Boundaries
+
+1. **Import Rules**
+   - No deep imports
+   - Use dependencies.py
+   - Clean interfaces
+   - Clear boundaries
+
+2. **Type Organization**
+   - Core types in core
+   - Component types local
+   - Clear interfaces
+   - Strong typing
+
+3. **Error Boundaries**
+   - Component-specific errors
+   - Clear propagation
+   - User-friendly messages
+   - Proper cleanup
+
+## Testing Strategy
+
+1. **Unit Tests**
+   - Component isolation
+   - Edge cases
+   - Error conditions
+   - Type safety
+
+2. **Integration Tests**
+   - Component interaction
+   - Complete workflows
+   - Real configurations
+   - Performance
+
+3. **Test Organization**
+   - Match component structure
+   - Clear test purposes
+   - Good coverage
+   - Maintainable tests
 
 ## Legacy Code Integration
 
@@ -137,120 +380,6 @@ Old Component -> New Component
   - [ ] Shapefile export implementation
   - [ ] Style application
   - [ ] Layer management
-
-## Implementation Strategy
-
-The project will be implemented following these principles:
-
-1. **Test-Driven Development**
-   - Write tests first for each component
-   - Implement minimal functionality to make tests pass
-   - Refactor and improve implementation
-   - Maintain high test coverage (target: >90%)
-
-2. **Component Independence**
-   - Each component should be independently testable
-   - Clear boundaries between components
-   - Well-defined APIs for inter-component communication
-   - Minimal dependencies between components
-
-3. **Implementation Order**
-   ```
-   1. Core Components (DONE)
-      ✓ Type definitions
-      ✓ Utility functions
-      ✓ Project coordinator
-      ✓ Basic tests
-
-   2. Configuration Management
-      - Schema definitions
-      - YAML loading and validation
-      - Configuration objects
-      - Tests for each config type
-
-   3. Geometry Processing
-      - Base geometry types
-      - Operation framework
-      - Individual operations
-      - Layer management
-      - Tests for each operation
-
-   4. Export System
-      - Style management
-      - Layer management
-      - DXF export
-      - Tests for each export feature
-   ```
-
-## Directory Structure
-
-```
-.
-├── src/                          # New implementation
-│   ├── config/                   # Configuration management
-│   │   ├── schemas/             # JSON schemas for validation
-│   │   ├── config_manager.py    # Main configuration manager
-│   │   ├── project_config.py    # Project configuration
-│   │   ├── style_config.py      # Style configuration
-│   │   ├── color_config.py      # Color configuration
-│   │   ├── aci_colors.yaml      # AutoCAD color definitions
-│   │   ├── geometry_layer_config.py  # Geometry layer config
-│   │   ├── block_insert_config.py    # Block insertion config
-│   │   ├── legend_config.py          # Legend configuration
-│   │   ├── path_array_config.py      # Path array config
-│   │   ├── position_config.py        # Position config
-│   │   ├── text_insert_config.py     # Text insertion config
-│   │   ├── viewport_config.py        # Viewport config
-│   │   └── web_service_config.py     # Web service config
-│   ├── geometry/                 # Geometry processing
-│   │   ├── operations/          # Geometric operations
-│   │   ├── layers/              # Layer management
-│   │   ├── types/              # Geometry type definitions
-│   │   ├── geometry_manager.py  # Geometry processing coordinator
-│   │   └── __init__.py
-│   ├── export/                   # Export functionality
-│   │   ├── interfaces/         # Export interfaces
-│   │   ├── dxf/               # DXF-specific functionality
-│   │   ├── shapefile/         # Shapefile export
-│   │   ├── utils/             # Export utilities
-│   │   ├── manager.py         # Export coordination
-│   │   ├── style_manager.py   # Style application
-│   │   └── layer_manager.py   # Export layer management
-│   ├── core/                     # Core functionality
-│   │   ├── project.py         # Project coordinator
-│   │   ├── types.py          # Type definitions
-│   │   ├── utils.py          # Utilities
-│   │   ├── style_manager.py  # Style management
-│   │   └── __init__.py
-│   └── __init__.py
-├── src_old/                      # Legacy implementation (for reference)
-│   ├── core/
-│   ├── dxf_exporter/
-│   ├── dxf_utils/
-│   ├── layer_processor/
-│   ├── operations/
-│   ├── geo/
-│   ├── preprocessors/
-│   ├── dxf/
-│   └── main.py
-├── tests/                         # Test suite
-│   ├── __init__.py
-│   ├── conftest.py              # pytest configuration
-│   ├── test_config/            # Configuration tests
-│   ├── test_geometry/          # Geometry processing tests
-│   └── test_export/            # Export functionality tests
-├── examples/                      # Example projects and usage
-│   ├── simple_project/
-│   └── complex_project/
-├── docs/                         # Documentation
-│   ├── api/
-│   ├── guides/
-│   └── examples/
-├── requirements.txt              # Project dependencies
-├── setup.py                     # Package installation
-├── README.md                    # Project documentation
-└── ARCHITECTURE.md              # This file
-```
 
 ## Migration Strategy
 
