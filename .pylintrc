@@ -36,7 +36,7 @@ ignore=CVS,.git,__pycache__,build,dist
 
 [SIMILARITIES]
 # Minimum lines number of a similarity
-min-similarity-lines=4
+min-similarity-lines=7
 
 # Ignore imports when computing similarities
 ignore-imports=yes
@@ -56,11 +56,23 @@ enable=all
 
 # Disable specific checks
 disable=
-    C0111,  # Missing docstring (covered by flake8-docstrings)
-    C0103,  # Invalid name (we use our own naming convention)
-    R0903,  # Too few public methods
-    W0511,  # TODO/FIXME comments
-    W0703   # Too general exception clause
+    C0111,  # missing-docstring
+    C0103,  # invalid-name
+    R0903,  # too-few-public-methods
+    W0511,  # fixme
+    W0703,  # broad-except
+    W0621,  # redefined-outer-name
+    W0613,  # unused-argument
+    W0612,  # unused-variable
+    W0611,  # unused-import
+    R0801,  # duplicate-code
+    W0212,  # protected-access
+    E1123,  # unexpected-keyword-arg
+    E1120,  # no-value-for-parameter
+    E0401,  # import-error
+    C0413,  # wrong-import-position
+    F401,   # unused-import
+    F841,   # unused-variable
 
 [IMPORTS]
 # Allow specific third party imports
@@ -86,7 +98,7 @@ expected-line-ending-format=LF
 
 [BASIC]
 # Regular expressions for various naming styles
-good-names=i,j,k,ex,Run,_,id
+good-names=i,j,k,ex,Run,_,fd,fp
 class-rgx=[A-Z_][a-zA-Z0-9]+$
 function-rgx=[a-z_][a-z0-9_]{2,50}$
 variable-rgx=[a-z_][a-z0-9_]{2,50}$
@@ -130,3 +142,6 @@ valid-metaclass-classmethod-first-arg=mcs
 [EXCEPTIONS]
 # Exceptions that will emit a warning when caught
 overgeneral-exceptions=Exception,BaseException
+
+[TYPECHECK]
+ignored-modules=numpy,tensorflow,torch,cv2

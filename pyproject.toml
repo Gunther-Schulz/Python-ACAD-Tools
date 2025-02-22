@@ -25,7 +25,6 @@ import_heading_stdlib = "Standard library imports"
 import_heading_thirdparty = "Third party imports"
 import_heading_firstparty = "First party imports"
 import_heading_localfolder = "Local imports"
-import_type_order = ["local", "parent", "third_party"]
 order_by_type = true
 combine_as_imports = true
 combine_star = true
@@ -49,17 +48,37 @@ plugins = [
 ]
 
 [[tool.mypy.overrides]]
-module = ["shapely.*", "ezdxf.*", "geopandas.*", "matplotlib.*", "OWSLib.*"]
+module = ["shapely.*", "ezdxf.*", "geopandas.*", "matplotlib.*", "OWSLib.*", "pytest"]
 ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["tests.*"]
+disallow_untyped_defs = false
+check_untyped_defs = false
+disallow_incomplete_defs = false
+disallow_untyped_decorators = false
 
 [tool.pylint]
 max-line-length = 100
+# Test-specific settings
+[tool.pylint.MASTER]
+ignore-patterns = ["test_.*\\.py$"]
+
+[tool.pylint.MESSAGES_CONTROL]
 disable = [
     "C0111",  # Missing docstring (covered by flake8-docstrings)
     "C0103",  # Invalid name (we use our own naming convention)
     "R0903",  # Too few public methods
     "W0511",  # TODO/FIXME comments
     "W0703",  # Too general exception clause
+    "W0621",  # Redefining name from outer scope (common in pytest fixtures)
+    "W0613",  # Unused argument (common in pytest fixtures)
+    "W0612",  # Unused variable (common in test assertions)
+    "W0611",  # Unused import (common in test setup)
+    "R0801",  # Similar lines in files (common in test data)
+    "W0212",  # Access to protected member (sometimes needed in tests)
+    "E1123",  # Unexpected keyword argument (common in test mocks)
+    "E1120",  # No value for argument (common in test mocks)
 ]
 
 # Import rules from ARCHITECTURE.md

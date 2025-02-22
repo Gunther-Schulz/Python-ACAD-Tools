@@ -77,4 +77,8 @@ per-file-ignores =
     # Allow missing docstrings in tests
     tests/*:D100,D101,D102,D103,
     # Enforce strict import rules except in dependencies.py and __init__.py
-    src/*:I252
+    src/*:I252,
+    # F401: Module imported but unused
+    # F841: Local variable name is assigned to but never used
+    # E402: Module level import not at top of file
+    tests/*: F401,F841,E402
