@@ -62,25 +62,180 @@ class ExportError(CoreError): pass
 ```
 
 ### 2. Configuration System
-- YAML configuration loading
-- Schema validation
-- Configuration types
-- Path resolution
+- Component-specific configuration types
+- JSON Schema validation
+- Path resolution and validation
+- Configuration caching
 
 #### Implementation Details
 ```python
-# Example configuration manager
-class ConfigManager:
+# Configuration manager with caching and validation
+class ConfigManager(AbstractConfigManager):
+    """Configuration manager implementation."""
     def __init__(self, project_dir: Path) -> None:
+        super().__init__()
         self.project_dir = project_dir
         self.config_dir = project_dir / "config"
-        self._config_cache: dict[str, Any] = {}
+        self.root_dir = project_dir.parent.parent
+        self._style_cache: dict[str, StyleConfig] | None = None
+        self._viewport_cache: dict[str, Any] | None = None
+        self._config_cache: dict[str, ConfigDict] = {}
+        self._schema_cache: dict[str, SchemaDict] = {}
 
-    def load_config(self, config_path: str) -> None:
-        """Load and validate configuration."""
-        data = self._load_yaml(config_path)
-        self._validate_schema(data)
-        self._resolve_paths(data)
+    def _load_yaml_file(self, filepath: Path, required: bool = True) -> ConfigDict:
+        """Load and cache YAML configuration."""
+        try:
+            if not filepath.exists():
+                if required:
+                    raise ConfigFileNotFoundError(f"Configuration file not found: {filepath}")
+                return {}
+
+            cache_key = str(filepath)
+            if cache_key in self._config_cache:
+                return self._config_cache[cache_key]
+
+            with filepath.open("r", encoding="utf-8") as f:
+                data = yaml.safe_load(f)
+                if data is None:
+                    data = {}
+                self._config_cache[cache_key] = data
+                return data
+
+        except yaml.YAMLError as e:
+            raise ConfigError(f"Error loading {filepath}: {e!s}") from e
+
+    def _validate_config(self, data: ConfigDict, schema_name: str, config_name: str) -> None:
+        """Validate configuration against JSON schema."""
+        try:
+            schema = self._load_schema(schema_name)
+            jsonschema.validate(data, schema)
+        except JsonSchemaValidationError as e:
+            raise ConfigValidationError(f"Invalid {config_name} configuration: {e!s}") from e
+
+    def _load_schema(self, schema_name: str) -> SchemaDict:
+        """Load and cache JSON schema."""
+        if schema_name in self._schema_cache:
+            return self._schema_cache[schema_name]
+
+        schema_path = self.root_dir / "src" / "config" / "schemas" / f"{schema_name}.json"
+        try:
+            with schema_path.open("r", encoding="utf-8") as f:
+                schema = json.load(f)
+                self._schema_cache[schema_name] = schema
+                return schema
+        except (json.JSONDecodeError, OSError) as e:
+            raise ConfigError(f"Error loading schema {schema_name}: {e!s}") from e
+
+# Component-specific configuration types
+@dataclass
+class ProjectConfig:
+    """Project configuration."""
+    name: str
+    dxf_filename: str
+    template: str | None = None
+    shapefile_output_dir: str | None = None
+    dxf_dump_output_dir: str | None = None
+
+@dataclass
+class GeometryLayerConfig:
+    """Geometry layer configuration."""
+    name: str
+    source_file: str
+    operations: list[dict[str, Any]]
+    style: str | None = None
+    update_dxf: bool = False
+
+@dataclass
+class BlockInsertConfig:
+    """Block insert configuration."""
+    name: str
+    block_name: str
+    position: PositionConfig
+    scale: float = 1.0
+    rotation: float = 0.0
+
+@dataclass
+class TextInsertConfig:
+    """Text insert configuration."""
+    name: str
+    text: str
+    position: PositionConfig
+    height: float
+    style: str | None = None
+
+@dataclass
+class ViewportConfig:
+    """Viewport configuration."""
+    name: str
+    center: tuple[float, float]
+    height: float
+    width: float
+    scale: float
+```
+
+### 3. Project Structure
+```
+projects/
+└── PROJECT_NAME/
+    ├── config/           # Project configuration
+    │   ├── project.yaml  # Main project config
+    │   ├── layers.yaml   # Layer definitions
+    │   ├── styles.yaml   # Style definitions
+    │   ├── blocks.yaml   # Block insert definitions
+    │   ├── text.yaml     # Text insert definitions
+    │   └── viewports.yaml # Viewport definitions
+    ├── input/           # Input files
+    ├── output/          # Generated files
+    └── logs/           # Project logs
+```
+
+### 4. Configuration Validation
+```python
+# JSON Schema validation
+project_schema = {
+    "type": "object",
+    "required": ["name", "dxfFilename"],
+    "properties": {
+        "name": {"type": "string"},
+        "dxfFilename": {"type": "string"},
+        "template": {"type": "string"},
+        "shapefileOutputDir": {"type": "string"},
+        "dxfDumpOutputDir": {"type": "string"}
+    }
+}
+
+# Path validation
+def validate_file_path(
+    path: str | Path,
+    base_dir: str | Path | None = None,
+    must_exist: bool = True,
+    allowed_extensions: set[str] | None = None,
+    path_type: str = "file",
+    folder_prefix: str | None = None,
+) -> None:
+    """Validate file paths with comprehensive checks."""
+    path_obj = Path(path) if isinstance(path, str) else path
+    if base_dir:
+        base_dir_obj = Path(base_dir) if isinstance(base_dir, str) else base_dir
+        path_obj = base_dir_obj / path_obj
+
+    if folder_prefix:
+        path_obj = Path(folder_prefix) / path_obj
+
+    if must_exist and not path_obj.exists():
+        raise ConfigError(f"Path does not exist: {path_obj}")
+
+    if path_type == "file":
+        if must_exist and not path_obj.is_file():
+            raise ConfigError(f"Path is not a file: {path_obj}")
+        if allowed_extensions and path_obj.suffix.lower() not in allowed_extensions:
+            raise ConfigError(
+                f"Invalid file extension for {path_obj}. "
+                f"Allowed extensions: {', '.join(allowed_extensions)}"
+            )
+    elif path_type == "directory":
+        if must_exist and not path_obj.is_dir():
+            raise ConfigError(f"Path is not a directory: {path_obj}")
 ```
 
 ### 3. Testing Infrastructure
