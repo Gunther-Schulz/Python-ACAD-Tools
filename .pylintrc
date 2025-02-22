@@ -16,7 +16,6 @@ load-plugins=
     pylint.extensions.consider_refactoring_into_while_condition,
     pylint.extensions.consider_ternary_expression,
     pylint.extensions.dict_init_mutate,
-    pylint.extensions.duplicate_code,
     pylint.extensions.dunder,
     pylint.extensions.empty_comment,
     pylint.extensions.eq_without_hash,
