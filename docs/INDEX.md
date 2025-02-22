@@ -63,6 +63,11 @@ This document serves as the primary navigation guide and reference for the Pytho
 ## Documentation TODOs
 
 ### High Priority
+- [ ] repsect this:
+"I removed the test files as they are outdated completely. The way we will approach this is build test for existing code instead of using TDD. Unless we write new code, then we use TDD. It sa mixed approach until we have enough tests for the existing code."
+- [ ] Finalize code flow between components.
+- [ ] Finalyze configuration structure definition as this is front facing and thus very important!!!
+- [ ] Keep main.py up-to-date with latest changes. It should always be able to run as is with --verify.
 - [ ] Complete logging guidelines
 - [ ] Enhance type management documentation
 - [x] Add integration patterns

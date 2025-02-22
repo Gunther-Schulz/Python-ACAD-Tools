@@ -25,6 +25,16 @@ repos:
         pass_filenames: false
         args: ["--config=pyproject.toml"]
 
+      - id: verify-main
+        name: verify main.py execution
+        entry: python -m src.main test_project --verify-only
+        language: system
+        files: ^src/
+        exclude: ^src_old/
+        pass_filenames: false
+        require_serial: true
+        verbose: true
+
       - id: ruff-src
         name: ruff (linting) - source
         entry: ruff check
