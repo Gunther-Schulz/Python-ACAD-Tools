@@ -246,6 +246,61 @@ class DrawingProcessor:
                 component.create(document, format, self.geometry_provider)
 ```
 
+### 6. Preprocessing System
+- Preprocessor base classes
+- Layer-specific preprocessing
+- Preprocessing pipeline
+- State tracking
+- Validation rules
+
+#### Implementation Details
+```python
+# Example preprocessing system
+class Preprocessor(Protocol):
+    """Protocol for geometry preprocessors."""
+    def preprocess(self, geometry: GeometryData) -> GeometryData: ...
+    def can_preprocess(self, geometry_type: str) -> bool: ...
+    def get_dependencies(self) -> set[str]: ...
+
+class PreprocessingPipeline:
+    """Manages geometry preprocessing steps."""
+    def __init__(self) -> None:
+        self._preprocessors: dict[str, Preprocessor] = {}
+        self._state: dict[str, Any] = {}
+
+    def add_preprocessor(self, name: str, preprocessor: Preprocessor) -> None:
+        """Add preprocessor to pipeline."""
+        self._preprocessors[name] = preprocessor
+
+    def preprocess(self, geometry: GeometryData) -> GeometryData:
+        """Run preprocessing pipeline."""
+        for name, preprocessor in self._preprocessors.items():
+            if preprocessor.can_preprocess(geometry.type):
+                geometry = preprocessor.preprocess(geometry)
+                self._state[name] = "completed"
+        return geometry
+
+class BlockExploder(Preprocessor):
+    """Explodes blocks into constituent geometries."""
+    def preprocess(self, geometry: GeometryData) -> GeometryData:
+        """Explode blocks in geometry."""
+        # Implementation
+        ...
+
+    def can_preprocess(self, geometry_type: str) -> bool:
+        return geometry_type == "block"
+
+class CircleExtractor(Preprocessor):
+    """Extracts circles from geometry."""
+    def preprocess(self, geometry: GeometryData) -> GeometryData:
+        """Extract circles from geometry."""
+        # Implementation
+        ...
+
+    def can_preprocess(self, geometry_type: str) -> bool:
+        return geometry_type in ["polyline", "lwpolyline"]
+```
+
 ## Deliverables
 
 ### 1. Layer System
@@ -278,6 +333,13 @@ class DrawingProcessor:
 - Standard components
 - Component processor
 - Dependency resolution
+
+### 6. Preprocessing System
+- Preprocessor protocol implementation
+- Standard preprocessors (Block exploder, Circle extractor)
+- Preprocessing pipeline
+- Layer-specific preprocessing
+- State tracking and validation
 
 ## Success Criteria
 
@@ -312,6 +374,13 @@ class DrawingProcessor:
    - Validation passes
    - Geometry dependencies resolve correctly
    - Processing order respects dependencies
+
+6. **Preprocessing**
+   - Preprocessors work correctly
+   - Layer-specific processing works
+   - Pipeline executes properly
+   - State tracks correctly
+   - Validation passes
 
 ## Dependencies
 - Core infrastructure (Phase 1)
