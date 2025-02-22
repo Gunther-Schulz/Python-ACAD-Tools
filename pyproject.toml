@@ -1,33 +1,403 @@
 # Tool configuration for Python development tools
 
-[tool.black]
-line-length = 100
-target-version = ['py312']
-include = '\.pyi?$'
-extend-exclude = '''
-# A regex preceded with ^/ will apply only to files and directories
-# in the root of the project.
-^/tests/
-'''
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
 
-[tool.isort]
-profile = "google"
-multi_line_output = 3
-line_length = 100
-include_trailing_comma = true
-force_grid_wrap = 0
-use_parentheses = true
-ensure_newline_before_comments = true
-src_paths = ["src", "tests"]
-known_first_party = ["src"]
-sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
-import_heading_stdlib = "Standard library imports"
-import_heading_thirdparty = "Third party imports"
-import_heading_firstparty = "First party imports"
-import_heading_localfolder = "Local imports"
-order_by_type = true
-combine_as_imports = true
-combine_star = true
+[project]
+name = "pycad"
+version = "0.1.0"
+description = "Python CAD Tools"
+requires-python = ">=3.12"
+
+[tool.ruff]
+line-length = 100
+indent-width = 4
+target-version = "py312"
+
+# Exclude patterns
+exclude = [
+    ".git",
+    ".mypy_cache",
+    ".ruff_cache",
+    "src_old",
+    "tests"
+]
+
+[tool.ruff.lint]
+# Enable all rules from removed tools plus additional ruff-specific ones
+select = [
+    # From flake8
+    "E",   # pycodestyle
+    "F",   # pyflakes
+    "W",   # warnings
+    "C",   # complexity
+    "B",   # bugbear
+    "D",   # docstrings
+    "N",   # naming
+    "ERA", # eradicate
+    "SIM", # simplify
+    "C4",  # comprehensions
+    "G",   # logging format
+    # Additional ruff rules
+    "UP",  # pyupgrade
+    "I",   # isort
+    "TCH", # type-checking
+    "TID", # tidy imports
+    "INT", # gettext
+    "PTH", # pathlib
+    "RET", # return
+    "SLF", # self
+    "ARG", # unused arguments
+    "DTZ", # datetime
+    "PGH", # pygrep-hooks
+    "RUF", # ruff-specific
+    "PT",  # pytest style
+    "ICN", # import conventions
+    "T20", # print statements
+    "Q",   # quotes
+    "RSE", # raise statements
+    "RUF200", # invalid pyproject.toml
+    # Additional rules for type checking
+    "ANN",  # Type annotation checks
+    "RUF012",  # Mutable class attributes should be annotated
+    "RUF013"   # PEP 484 type hints
+]
+
+# Ignore patterns (migrated from flake8)
+ignore = [
+    "D100", # Missing docstring in public module
+    "D101", # Missing docstring in public class
+    "D102", # Missing docstring in public method
+    "D103", # Missing docstring in public function
+]
+
+# Per-file ignores with stricter component rules
+[tool.ruff.lint.per-file-ignores]
+# Allow type definitions and imports in types.py
+"src/*/types.py" = ["F401", "F403", "I001", "TID"]
+# Allow dependency declarations in dependencies.py
+"src/*/dependencies.py" = ["F401", "F403", "I001", "TID"]
+# Allow imports in __init__.py but enforce using dependencies.py
+"src/*/__init__.py" = ["F401", "F403", "I001"]
+# Standard test ignores
+"tests/*" = ["D100", "D101", "D102", "D103", "F401", "F811", "F841", "E402"]
+# Ignore legacy code
+"src_old/*" = ["ALL"]
+
+# Docstring settings with enhanced validation
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+ignore-decorators = ["@property", "@.*\\.setter", "@.*\\.deleter", "@.*\\.validator"]
+
+# Import sorting settings (migrated from isort)
+[tool.ruff.lint.isort]
+force-single-line = true
+force-sort-within-sections = true
+lines-after-imports = 2
+known-first-party = ["src"]
+combine-as-imports = true
+extra-standard-library = ["typing", "dataclasses", "abc", "os", "sys", "pathlib"]
+required-imports = [
+    "from __future__ import annotations"
+]
+section-order = [
+    "future",
+    "standard-library",
+    "third-party",
+    "coretypes",
+    "componenttypes",
+    "first-party",
+    "local-folder"
+]
+
+[tool.ruff.lint.isort.sections]
+"FUTURE" = ["__future__"]
+"STDLIB" = ["typing", "dataclasses", "abc", "os", "sys", "pathlib"]
+"THIRDPARTY" = ["numpy", "shapely", "ezdxf", "geopandas"]
+"CORETYPES" = ["src.core.types"]
+"COMPONENTTYPES" = [
+    "src.geometry.types",
+    "src.config.types",
+    "src.export.types"
+]
+"FIRSTPARTY" = ["src"]
+"LOCALFOLDER" = ["."]
+
+# Naming convention rules
+[tool.ruff.lint.pep8-naming]
+classmethod-decorators = [
+    "classmethod",
+    "validator",
+    "root_validator",
+    "property",
+    "cached_property"
+]
+# Enforce Protocol and Base naming conventions
+ignore-names = [
+    "setUp",
+    "tearDown",
+    "setUpClass",
+    "tearDownClass"
+]
+
+# Type checking settings
+[tool.ruff.lint.flake8-type-checking]
+strict = true
+runtime-evaluated-base-classes = [
+    "BaseModel",
+    "Protocol",
+    "TypedDict",
+    "BaseConfigManager",
+    "BaseGeometryManager",
+    "BaseExportManager"
+]
+runtime-evaluated-decorators = [
+    "dataclass",
+    "attrs",
+    "beartype"
+]
+
+# Tidy imports settings with enhanced rules
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "all"
+
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"typing.*" = { msg = "Use core.types for basic types, or component types for domain-specific types" }
+"src.*.internal.*" = { msg = "No access to internal modules" }
+"src.*.*.impl.*" = { msg = "No access to implementation details" }
+"src.core.*" = { msg = "Import core types through dependencies.py" }
+"src.config.*" = { msg = "Import config types through dependencies.py" }
+"src.geometry.*" = { msg = "Import geometry types through dependencies.py" }
+"src.export.*" = { msg = "Import export types through dependencies.py" }
+"src.*.implementations.*" = { msg = "Access implementations through dependencies.py" }
+"src.*.services.*" = { msg = "Access services through dependencies.py" }
+"src.*.repositories.*" = { msg = "Access repositories through dependencies.py" }
+"src.*.services.*.Service" = { msg = "Services must be accessed through dependency injection" }
+"src.*.repositories.*.Repository" = { msg = "Repositories must be accessed through dependency injection" }
+"src.*.managers.*.Manager" = { msg = "Managers must be accessed through dependency injection" }
+"src.*.types.*" = { msg = "Import types through core.types or component types" }
+
+# Complexity settings
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+# Additional ruff-specific rules
+[tool.ruff.lint.flake8-quotes]
+docstring-quotes = "double"
+inline-quotes = "double"
+multiline-quotes = "double"
+
+[tool.ruff.lint.flake8-self]
+ignore-names = ["cls", "self"]
+
+[tool.ruff.lint.pycodestyle]
+ignore-overlong-task-comments = true
+max-doc-length = 100
+
+[tool.ruff.lint.flake8-pytest-style]
+fixture-parentheses = false
+mark-parentheses = false
+
+[tool.ruff.lint.flake8-implicit-str-concat]
+allow-multiline = false
+
+# Formatting settings
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+docstring-code-format = true
+docstring-code-line-length = 80
+
+# Pylint settings for standalone Pylint tool
+[tool.pylint.master]
+init-hook = 'import sys; sys.path.append(".")'
+jobs = 0  # Use multiple processes
+load-plugins = [
+    "pylint.extensions.check_elif",
+    "pylint.extensions.docparams",
+    "pylint.extensions.docstyle",
+    "pylint.extensions.typing",
+    "pylint.extensions.private_import",
+    "pylint.extensions.bad_builtin",
+    "pylint.extensions.code_style",
+    "pylint.extensions.comparison_placement",
+    "pylint.extensions.consider_refactoring_into_while_condition",
+    "pylint.extensions.consider_ternary_expression",
+    "pylint.extensions.dict_init_mutate",
+    "pylint.extensions.dunder",
+    "pylint.extensions.empty_comment",
+    "pylint.extensions.eq_without_hash",
+    "pylint.extensions.for_any_all",
+    "pylint.extensions.magic_value",
+    "pylint.extensions.mccabe",
+    "pylint.extensions.no_self_use",
+    "pylint.extensions.overlapping_exceptions",
+    "pylint.extensions.redefined_loop_name",
+    "pylint.extensions.redefined_variable_type",
+    "pylint.extensions.set_membership",
+    "pylint.extensions.while_used",
+    "pylint.extensions.broad_try_clause",
+    "pylint.extensions.confusing_elif"
+]
+
+[tool.pylint.messages_control]
+max-line-length = 100
+enable = [
+    "useless-suppression",
+    "deprecated-pragma",
+    "use-symbolic-message-instead",
+    # "protocol",  # Commented out unrecognized option
+    # "private-import",  # Commented out unrecognized option
+    "typing",
+    "design",
+    "classes",
+    "imports",
+    "exceptions",
+    "duplicate-code",
+    "similarities",
+    "refactoring"
+]
+
+[tool.pylint.private_import]
+# private-module-patterns = [  # Commented out unrecognized option
+#     "src\\..*\\.internal\\..*",  # Internal modules
+#     "src\\..*\\.implementations\\..*",  # Implementation modules
+#     "src\\..*\\.services\\..*",  # Service modules
+#     "src\\..*\\.repositories\\..*",  # Repository modules
+#     "src\\..*\\..*\\.(?!(__init__|types|dependencies)\\.py$).*"  # Anything not in allowed files
+# ]
+# allow-private-in = [  # Commented out unrecognized option
+#     "dependencies.py",  # Allow implementation imports in dependencies.py
+#     "types.py",        # Allow type definitions in types.py
+#     "__init__.py"      # Allow re-exports in __init__.py
+# ]
+
+[tool.pylint.design]
+max-args = 6  # Allow reasonable number of injected dependencies
+max-locals = 15
+max-returns = 6
+max-branches = 12
+max-parents = 3
+max-attributes = 7
+min-public-methods = 1
+max-public-methods = 20
+
+[tool.pylint.imports]
+allow-wildcard-with-all = false
+analyse-fallback-blocks = true
+allow-any-import-level = false
+allow-reexport-from-package = true
+preferred-modules = [
+    "pathlib:os.path",
+    "typing:builtins",
+    "dataclasses:attr"
+]
+ignored-modules = [
+    "src.core.*",
+    "src.config.*",
+    "src.geometry.*",
+    "src.export.*"
+]
+
+[tool.pylint.format]
+max-line-length = 100
+max-module-lines = 1000
+indent-after-paren = 4
+indent-string = "    "
+good-names = [
+    "i", "j", "k",  # Loop variables
+    "ex", "e",      # Exception variables
+    "fn",           # Function references
+    "x", "y", "z",  # Coordinates
+    "id", "ok",     # Common short names
+    "df",           # DataFrame
+    "fp",           # File pointer
+    "_"             # Unused variables
+]
+
+[tool.pylint.similarities]
+min-similarity-lines = 4
+ignore-comments = true
+ignore-docstrings = true
+ignore-imports = true
+
+[tool.pylint.typecheck]
+ignore-mixin-members = true
+ignore-none = true
+ignore-on-opaque-inference = true
+missing-member-hint = true
+missing-member-hint-distance = 1
+missing-member-max-choices = 1
+
+[tool.pylint.variables]
+init-import = false
+dummy-variables-rgx = "_$|dummy"
+additional-builtins = []
+callbacks = ["cb_", "_cb"]
+redefining-builtins-modules = ["six.moves", "past.builtins", "future.builtins", "builtins", "io"]
+
+[tool.pylint.classes]
+exclude-protected = [
+    "_asdict",  # namedtuple
+    "_fields",  # namedtuple
+    "_replace", # namedtuple
+    "_source",  # namedtuple
+    "_make"     # namedtuple
+]
+valid-classmethod-first-arg = ["cls"]
+valid-metaclass-classmethod-first-arg = ["cls"]
+check-protected-access-in-special-methods = true
+
+[tool.pylint.exceptions]
+overgeneral-exceptions = [
+    "builtins.BaseException",
+    "builtins.Exception"
+]
+
+[tool.pylint.refactoring]
+max-nested-blocks = 5
+never-returning-functions = ["sys.exit", "argparse.parse_error"]
+
+[tool.pylint.string]
+check-quote-consistency = true
+check-str-concat-over-line-jumps = true
+
+[tool.pylint.basic]
+good-names = [
+    "i", "j", "k",  # Loop variables
+    "ex", "e",      # Exception variables
+    "fn",           # Function references
+    "x", "y", "z",  # Coordinates
+    "id", "ok",     # Common short names
+    "df",           # DataFrame
+    "fp",           # File pointer
+    "_"             # Unused variables
+]
+bad-names = [
+    "foo",
+    "bar",
+    "baz",
+    "toto",
+    "tutu",
+    "tata"
+]
+name-group = []
+include-naming-hint = true
+function-rgx = "[a-z_][a-z0-9_]{2,30}$"
+variable-rgx = "[a-z_][a-z0-9_]{2,30}$"
+const-rgx = "(([A-Z_][A-Z0-9_]*)|(__.*__))$"
+attr-rgx = "[a-z_][a-z0-9_]{2,30}$"
+argument-rgx = "[a-z_][a-z0-9_]{2,30}$"
+class-attribute-rgx = "([A-Za-z_][A-Za-z0-9_]{2,30}|(__.*__))$"
+inlinevar-rgx = "[A-Za-z_][A-Za-z0-9_]*$"
+class-rgx = "[A-Z_][a-zA-Z0-9]+$"
+module-rgx = "(([a-z_][a-z0-9_]*)|([A-Z][a-zA-Z0-9]+))$"
+method-rgx = "[a-z_][a-z0-9_]{2,30}$"
+no-docstring-rgx = "^_"
+docstring-min-length = -1
 
 [tool.mypy]
 python_version = "3.12"
@@ -43,79 +413,150 @@ warn_unused_ignores = true
 warn_no_return = true
 warn_unreachable = true
 strict = true
-plugins = [
-    "numpy.typing.mypy_plugin"
-]
+exclude = ['^tests/']
+plugins = ["numpy.typing.mypy_plugin"]
 
 [[tool.mypy.overrides]]
-module = ["shapely.*", "ezdxf.*", "geopandas.*", "matplotlib.*", "OWSLib.*", "pytest"]
-ignore_missing_imports = true
+# Core types - basic/shared types
+module = ["src.core.types"]
+implicit_reexport = true
+strict_optional = true
+disallow_any_explicit = true
 
 [[tool.mypy.overrides]]
-module = ["tests.*"]
-disallow_untyped_defs = false
-check_untyped_defs = false
-disallow_incomplete_defs = false
-disallow_untyped_decorators = false
-
-[tool.pylint]
-max-line-length = 100
-# Test-specific settings
-[tool.pylint.MASTER]
-ignore-patterns = ["test_.*\\.py$"]
-
-[tool.pylint.MESSAGES_CONTROL]
-disable = [
-    "C0111",  # Missing docstring (covered by flake8-docstrings)
-    "C0103",  # Invalid name (we use our own naming convention)
-    "R0903",  # Too few public methods
-    "W0511",  # TODO/FIXME comments
-    "W0703",  # Too general exception clause
-    "W0621",  # Redefining name from outer scope (common in pytest fixtures)
-    "W0613",  # Unused argument (common in pytest fixtures)
-    "W0612",  # Unused variable (common in test assertions)
-    "W0611",  # Unused import (common in test setup)
-    "R0801",  # Similar lines in files (common in test data)
-    "W0212",  # Access to protected member (sometimes needed in tests)
-    "E1123",  # Unexpected keyword argument (common in test mocks)
-    "E1120",  # No value for argument (common in test mocks)
+# Component types - domain-specific types
+module = [
+    "src.geometry.types.*",
+    "src.config.types.*",
+    "src.export.types.*"
 ]
+implicit_reexport = true
+disallow_any_explicit = false  # Allow Any in domain-specific types if needed
 
-# Import rules from ARCHITECTURE.md
-ignore-imports = true
-ignored-modules = [
+[[tool.mypy.overrides]]
+# Base types in components
+module = ["src.*.types.base"]
+implicit_reexport = true
+strict_optional = true
+
+[tool.radon]
+cc_min = "A"
+mi_min = "A"
+exclude = "tests/*,src_old/*"
+include_docstrings = true
+order = "SCORE"
+show_complexity = true
+show_mi = true
+xml_output = "reports/radon.xml"
+
+[tool.interrogate]
+ignore-init-method = true
+ignore-init-module = false
+ignore-magic = false
+ignore-semiprivate = false
+ignore-private = false
+ignore-property-decorators = false
+ignore-module = false
+ignore-nested-functions = false
+ignore-nested-classes = false
+ignore-setters = false
+fail-under = 95
+exclude = ["tests/", "src_old/", "setup.py"]
+ignore-regex = ["^get$", "^mock_.*", ".*BaseClass.*"]
+verbose = 2
+quiet = false
+whitelist-regex = []
+color = true
+generate-badge = "reports/interrogate_badge.svg"
+badge-format = "svg"
+
+[tool.beartype]
+is_beartype = true
+is_runtime_checking_enabled = true
+violation_trigger = "raise"
+# Configure runtime type checking
+conf_attrs_inc_property = true
+conf_attrs_inc_staticmethod = true
+conf_attrs_inc_classmethod = true
+conf_mod_name_whitelist = [
     "src.core.*",
     "src.config.*",
     "src.geometry.*",
     "src.export.*"
 ]
-ignored-classes = [
-    "src.core.*",
-    "src.config.*",
-    "src.geometry.*",
-    "src.export.*"
+
+[tool.dependency-injector]
+# Scan these modules for containers
+modules = [
+    "src.core",
+    "src.config",
+    "src.geometry",
+    "src.export"
 ]
-
-# Allow imports only in specific files
-ignore-paths = [
-    "src/.*/dependencies\\.py$",
-    "src/.*/__init__\\.py$"
+# Required provider types
+required_providers = [
+    "logger",
+    "config"
 ]
+# Enforce wiring
+auto_wire = true
+strict_wire = true
 
-# Naming style
-good-names = ["i", "j", "k", "ex", "Run", "_", "id"]
-class-rgx = "[A-Z_][a-zA-Z0-9]+$"
-function-rgx = "[a-z_][a-z0-9_]{2,50}$"
-variable-rgx = "[a-z_][a-z0-9_]{2,50}$"
-const-rgx = "(([A-Z_][A-Z0-9_]*)|(__.*__))$"
+[tool.ruff.lint.flake8-annotations]
+allow-star-arg-any = false
+suppress-dummy-args = true
+suppress-none-returning = true
+mypy-init-return = true
 
-# Design rules
-max-args = 6
-max-locals = 15
-max-returns = 6
-max-branches = 12
-max-statements = 50
-max-parents = 7
-max-attributes = 7
-min-public-methods = 1
-max-public-methods = 20
+[tool.pylint.typing]
+runtime-typing = true
+
+[tool.pyright]
+# Basic settings
+pythonVersion = "3.12"
+typeCheckingMode = "strict"
+useLibraryCodeForTypes = true
+
+# Project structure
+include = ["src"]
+exclude = [
+    "**/__pycache__",
+    "src_old",
+    "tests",
+    "**/.pytest_cache",
+    "**/.mypy_cache",
+    "**/.ruff_cache"
+]
+ignore = ["src_old"]
+defineConstant = { "DEBUG" = true }
+
+# Type checking settings
+reportMissingImports = true
+reportMissingTypeStubs = "warning"
+reportUnknownMemberType = "warning"
+reportUnknownParameterType = "warning"
+reportUnknownVariableType = "warning"
+reportUnknownArgumentType = "warning"
+reportPrivateUsage = "warning"
+reportUntypedFunctionDecorator = "warning"
+reportUntypedClassDecorator = "warning"
+reportUntypedBaseClass = "warning"
+reportInvalidTypeVarUse = "warning"
+reportUnnecessaryTypeIgnoreComment = "information"
+reportUnusedImport = "warning"
+reportUnusedClass = "warning"
+reportUnusedFunction = "warning"
+reportUnusedVariable = "warning"
+reportDuplicateImport = "warning"
+reportWildcardImportFromLibrary = "warning"
+reportOptionalSubscript = "warning"
+reportOptionalMemberAccess = "warning"
+reportOptionalCall = "warning"
+reportOptionalIterable = "warning"
+reportOptionalContextManager = "warning"
+reportOptionalOperand = "warning"
+reportTypedDictNotRequiredAccess = "warning"
+
+# Analysis settings
+analyzeUnannotatedFunctions = true
+pythonPlatform = "Linux"

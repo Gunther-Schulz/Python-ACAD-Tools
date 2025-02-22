@@ -1,6 +1,6 @@
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
+    rev: v5.0.0
     hooks:
       - id: trailing-whitespace
       - id: end-of-file-fixer
@@ -12,140 +12,143 @@ repos:
       - id: check-merge-conflict
       - id: detect-private-key
 
-  - repo: https://github.com/pycqa/flake8
-    rev: 7.0.0
-    hooks:
-      - id: flake8
-        additional_dependencies:
-          - flake8-docstrings==1.7.0
-          - flake8-import-order==0.18.2
-          - flake8-quotes==3.4.0
-          - flake8-bugbear==24.2.6
-          - flake8-pyproject==1.2.3
-        args:
-          - "--toml-config=pyproject.toml"
-
-  - repo: https://github.com/pycqa/isort
-    rev: 5.13.2
-    hooks:
-      - id: isort
-        args: ["--settings-path=pyproject.toml"]
-
-  - repo: https://github.com/psf/black
-    rev: 24.1.1
-    hooks:
-      - id: black
-        args: ["--config=pyproject.toml"]
-        language_version: python3
-
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.8.0
-    hooks:
-      - id: mypy
-        args: ["--config-file=pyproject.toml"]
-        exclude: ^src_old/
-        additional_dependencies:
-          - types-setuptools==75.8.0.20250210
-          - types-PyYAML==6.0.12
-          - numpy>=1.26.0
-
-  - repo: https://github.com/pycqa/pylint
-    rev: v3.0.3
-    hooks:
-      - id: pylint
-        name: pylint (source)
-        args:
-          - "--rcfile=pyproject.toml"
-        exclude: ^(tests/|src_old/)
-        additional_dependencies:
-          - shapely==2.0.4
-          - ezdxf==1.3.1
-          - geopandas==0.14.3
-          - matplotlib==3.8.3
-          - OWSLib==0.29.3
-          - PyYAML==6.0.1
-          - pytest==8.0.0
-          - types-PyYAML==6.0.12
-      - id: pylint
-        name: pylint (tests)
-        args:
-          - "--rcfile=pyproject.toml"
-          - "--disable=missing-docstring,redefined-outer-name,protected-access,unused-argument,unused-variable,duplicate-code,wrong-import-position,unnecessary-lambda,unspecified-encoding,unsupported-membership-test,use-implicit-booleaness-not-comparison,import-outside-toplevel,no-member,unexpected-keyword-arg,no-value-for-parameter,function-redefined,unused-import,invalid-sequence-index,too-many-statements"
-        files: ^tests/
-        additional_dependencies:
-          - shapely==2.0.4
-          - ezdxf==1.3.1
-          - geopandas==0.14.3
-          - matplotlib==3.8.3
-          - OWSLib==0.29.3
-          - PyYAML==6.0.1
-          - pytest==8.0.0
-          - types-PyYAML==6.0.12
-
-  # Enhanced duplicate code checker
-  - repo: https://github.com/jendrikseipp/vulture
-    rev: v2.11
-    hooks:
-      - id: vulture
-        name: vulture (dead code and duplicates)
-        args:
-          - "src"
-          - "--min-confidence=90"
-          - "--exclude=tests/,src_old/"
-          - "--ignore-names=config_path,geometry_path,layer_path,target_path,format"
-
-  # Semantic duplicate checker
   - repo: local
     hooks:
-      - id: check-semantic-duplicates
-        name: Check for semantically similar implementations
-        entry: python scripts/check_semantic_duplicates.py
-        language: python
+      - id: ruff
+        name: ruff (linting)
+        entry: ruff check
+        language: system
         types: [python]
-        exclude: ^(tests/|src_old/)
+        args: ["--config=pyproject.toml", "--fix"]
 
-  # Enhanced type checker for duplicates
-  - repo: local
-    hooks:
-      - id: check-duplicate-types
-        name: Check for duplicate type definitions and similar implementations
-        entry: python scripts/check_duplicate_types.py
-        language: python
+      - id: ruff-format
+        name: ruff (format)
+        entry: ruff format
+        language: system
+        types: [python]
+        args: ["--config=pyproject.toml"]
+
+      - id: mypy
+        name: mypy (static type checking)
+        entry: mypy
+        language: system
+        types: [python]
+        args:
+          [
+            "--config-file=pyproject.toml",
+            "--html-report=typing_report",
+            "--txt-report=typing_report",
+          ]
+        exclude: ^src_old/
+
+      - id: dependency-injector
+        name: dependency-injector (DI patterns)
+        entry: python scripts/check_dependency_injection.py
+        language: system
         types: [python]
         pass_filenames: false
+        args:
+          [
+            "--strict-constructor",
+            "--check-protocols",
+            "--validate-dependencies",
+          ]
 
-  # Dependency injection and implementation pattern checker
-  - repo: local
-    hooks:
-      - id: check-dependency-injection
-        name: Check Dependency Injection Patterns
-        entry: python scripts/check_dependency_injection.py
+      - id: beartype
+        name: beartype (runtime type checking)
+        entry: python -c "from beartype.claw import beartype_this_package; import sys, importlib; sys.path.append('.'); import src; sys.exit(0)"
         language: python
         types: [python]
-        exclude: ^(tests/|src/.*/dependencies\.py|src/.*/__init__\.py)
+        additional_dependencies:
+          [
+            "beartype>=0.16.4",
+            "pyyaml",
+            "shapely",
+            "geopandas",
+            "ezdxf",
+            "dependency-injector",
+            "loguru",
+            "jsonschema",
+          ]
+        pass_filenames: false
 
-  # Import rules checker
-  - repo: local
-    hooks:
-      - id: check-import-rules
-        name: Check Import Rules
-        entry: python scripts/check_import_rules.py
+      - id: pylint
+        name: pylint (source)
+        entry: pylint
         language: system
         types: [python]
-        pass_filenames: true
+        args: ["--rcfile=pyproject.toml"]
+        exclude: ^(tests/|src_old/)
 
-  # Code complexity and similarity checker
-  - repo: local
-    hooks:
-      - id: check-code-complexity
-        name: Check Code Complexity and Similarity
-        entry: radon cc -n A -s --total-average
+      - id: pylint-tests
+        name: pylint (tests)
+        entry: pylint
+        language: system
+        types: [python]
+        files: ^tests/
+        args:
+          [
+            "--rcfile=pyproject.toml",
+            "--disable=missing-docstring,redefined-outer-name,protected-access,unused-argument,unused-variable,duplicate-code,wrong-import-position,unnecessary-lambda,unspecified-encoding,unsupported-membership-test,use-implicit-booleaness-not-comparison,import-outside-toplevel,no-member,unexpected-keyword-arg,no-value-for-parameter,function-redefined,unused-import,invalid-sequence-index,too-many-statements",
+          ]
+
+      - id: vulture
+        name: vulture (dead code and similarity)
+        entry: vulture
+        language: system
+        types: [python]
+        pass_filenames: false
+        args:
+          [
+            "src",
+            "--min-confidence=90",
+            "--exclude=tests/,src_old/",
+            "--ignore-names=config_path,geometry_path,layer_path,target_path,format",
+          ]
+
+      - id: radon-cc
+        name: radon (code complexity)
+        entry: radon cc
         language: system
         types: [python]
         exclude: ^(tests/|src_old/|scripts/)
-      - id: check-maintainability-index
-        name: Check Code Maintainability
-        entry: radon mi -n A -s
+        pass_filenames: false
+        args: ["-a", "-n", "A", "-s", "--total-average", "--xml", "src"]
+
+      - id: radon-mi
+        name: radon (maintainability)
+        entry: radon mi
         language: system
         types: [python]
         exclude: ^(tests/|src_old/|scripts/)
+        pass_filenames: false
+        args: ["-s", "-n", "A", "--min=65", "--multi", "src"]
+
+      - id: semgrep
+        name: semgrep (semantic analysis)
+        entry: semgrep
+        language: system
+        types: [python]
+        args: ["--config=auto"]
+
+      - id: interrogate
+        name: interrogate (docstring coverage)
+        entry: interrogate
+        language: system
+        types: [python]
+        args: ["-c", "pyproject.toml", "-vv"]
+
+      - id: pyright
+        name: pyright (type checking)
+        entry: pyright
+        language: node
+        types: [python]
+        pass_filenames: false
+        additional_dependencies: ["pyright@1.1.350"]
+
+  # - repo: https://github.com/seddonym/import-linter
+  #   rev: v2.2
+  #   hooks:
+  #     - id: import-linter
+  #       name: import-linter (architecture)
+  #       args: ["--config=import-linter.ini"]

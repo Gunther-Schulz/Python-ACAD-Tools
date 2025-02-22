@@ -1,6 +1,11 @@
 {
-    "python.analysis.typeCheckingMode": "basic",
+    "python.languageServer": "Pylance",
+    "python.analysis.importFormat": "absolute",
+    "python.analysis.typeCheckingMode": "off",
     "python.analysis.diagnosticMode": "workspace",
+    "python.analysis.include": [
+        "src"
+    ],
     "python.analysis.extraPaths": [
         "./src"
     ],
@@ -17,66 +22,45 @@
         100
     ],
     "editor.codeActionsOnSave": {
-        "source.organizeImports": "always",
-        "source.fixAll": "always"
+        "source.fixAll": "always",
+        "source.organizeImports": "always"
     },
     "editor.showUnused": true,
     "[python]": {
-        "editor.defaultFormatter": "ms-python.black-formatter",
+        "editor.defaultFormatter": "charliermarsh.ruff",
         "editor.formatOnSave": true,
         "editor.formatOnType": true,
         "editor.rulers": [
             100
         ],
         "editor.codeActionsOnSave": {
-            "source.organizeImports": "always"
+            "source.fixAll.ruff": "explicit",
+            "source.organizeImports.ruff": "explicit"
         }
     },
-    "black-formatter.args": [
-        "--config=pyproject.toml"
-    ],
-    "black-formatter.enableAutoFormat": true,
-    "isort.args": [
-        "--settings-path=pyproject.toml"
-    ],
-    "isort.check": true,
-    "isort.importStrategy": "fromEnvironment",
-    "isort.enableAutoFormat": true,
-    "mypy-type-checker.args": [
-        "--config-file=pyproject.toml"
-    ],
+    "ruff.enable": true,
+    "ruff.format": true,
     "mypy-type-checker.enabled": true,
+    "mypy-type-checker.importStrategy": "fromEnvironment",
+    "mypy-type-checker.preferDaemon": true,
     "mypy-type-checker.reportingScope": "workspace",
-    "mypy-type-checker.runUsingActiveInterpreter": true,
-    "pylint.args": [
-        "--rcfile=pyproject.toml"
-    ],
     "pylint.enabled": true,
-    "pylint.severity": {
-        "convention": "Information",
-        "error": "Error",
-        "fatal": "Error",
-        "refactor": "Information",
-        "warning": "Warning",
-        "info": "Information"
-    },
-    "flake8.args": [
-        "--toml-config=pyproject.toml"
-    ],
-    "flake8.enabled": true,
-    "flake8.importStrategy": "fromEnvironment",
+    "pylint.importStrategy": "fromEnvironment",
+    "pylint.showNotifications": "onError",
     "files.trimTrailingWhitespace": true,
     "files.insertFinalNewline": true,
     "files.exclude": {
         "**/__pycache__": true,
         "**/*.pyc": true,
         ".pytest_cache": true,
-        ".mypy_cache": true
+        ".mypy_cache": true,
+        ".ruff_cache": true
     },
     "search.exclude": {
         "**/.git": true,
         "**/.pytest_cache": true,
         "**/.mypy_cache": true,
+        "**/.ruff_cache": true,
         "**/build": true,
         "**/dist": true
     },

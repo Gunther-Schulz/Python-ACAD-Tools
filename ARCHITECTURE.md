@@ -14,6 +14,7 @@ The project uses a modern Python development setup:
 
 1. **Environment Management**
    - Conda for environment and package management
+   - Mamba as a fast, robust alternative to conda
    - Python 3.12 as the base interpreter
    - Centralized dependency management via `environment.yml`
 
@@ -26,7 +27,15 @@ The project uses a modern Python development setup:
    - isort for import organization
    - Pre-commit hooks for automated checks
 
-3. **IDE Integration**
+3. **Version Management**
+   - Flexible version pinning using >= for faster dependency resolution
+   - Minimum versions specified to ensure compatibility
+   - Example: `python>=3.12` allows 3.12 and newer
+   - Helps mamba/conda solve dependencies more efficiently
+   - Maintains balance between stability and solver performance
+   - Version constraints can be tightened if specific versions are required
+
+4. **IDE Integration**
    - Cursor IDE with integrated linting and formatting
    - Real-time type checking and error detection
    - Automated code formatting on save
@@ -1955,3 +1964,225 @@ When modifying or extending code, it's critical to avoid breaking or removing ex
     - Explain why changes are needed
     - Describe how existing functionality is preserved
     - Provide examples of new features alongside existing ones
+
+### 13. Preventing Duplicate Implementations
+
+Before implementing new functionality, follow these steps to ensure you're not duplicating existing code:
+
+1. **Code Discovery Phase**
+   - Search the codebase for similar functionality
+   - Check core utilities and base classes first
+   - Review component-specific implementations
+   - Check test files for usage examples
+   - Use tools in this order:
+     1. `grep_search` for exact matches
+     2. `codebase_search` for semantic matches
+     3. `file_search` for related files
+     4. Read implementation files thoroughly
+
+2. **Documentation Review**
+   - Check ARCHITECTURE.md for existing patterns
+   - Review component READMEs
+   - Look for `@canonical_implementation` markers
+   - Check interface definitions in `core/types.py`
+   - Review test cases for similar features
+
+3. **Implementation Location Rules**
+   - Core functionality belongs in `src/core/`
+   - Component-specific code stays in its component
+   - Utilities go in appropriate `utils.py`
+   - Types belong in `types.py` files
+   - Follow the "Component Boundaries" section
+
+4. **Before Writing Code**
+   ```python
+   # WRONG: Jumping straight to implementation
+   def new_feature():
+       # Implementing without checking existing code
+       pass
+
+   # CORRECT: Document existing code check
+   """
+   @implementation_note
+   Checked existing implementations:
+   1. core/utils.py - No similar functionality
+   2. geometry/operations/ - No existing operation
+   3. Related functions:
+      - existing_feature() - Different purpose
+      - other_feature() - Could be extended
+
+   Decision: Implement new feature because [reason]
+   """
+   def new_feature():
+       pass
+   ```
+
+5. **Implementation Checklist**
+   - [ ] Searched codebase for similar functionality
+   - [ ] Reviewed all relevant documentation
+   - [ ] Checked core utilities and base classes
+   - [ ] Reviewed component-specific code
+   - [ ] Documented findings and decisions
+   - [ ] Identified proper location for new code
+   - [ ] Verified no duplicate functionality
+   - [ ] Considered extending existing code
+
+6. **When Finding Similar Code**
+   - Document how it's different from your needs
+   - Consider extending instead of new implementation
+   - Refactor to make it more generic if needed
+   - Add new functionality to existing code
+   - Update tests to cover new use cases
+
+7. **Documentation Requirements**
+   ```python
+   """
+   @feature_analysis
+   Similar Implementations:
+   - src/core/feature.py: Similar but [difference]
+   - src/component/other.py: Related but [difference]
+
+   Extension Points:
+   - Could extend BaseClass
+   - Could add parameter to existing_function()
+
+   Decision:
+   [Implement new/Extend existing] because [reason]
+   """
+   ```
+
+8. **Code Review Focus**
+   - Verify thorough code search was done
+   - Check for similar implementations
+   - Look for extension opportunities
+   - Validate new code location
+   - Ensure no duplication
+
+9. **Tool Usage**
+   ```bash
+   # 1. Search for similar names
+   grep -r "feature_name" src/
+
+   # 2. Search for similar patterns
+   grep -r "pattern" src/
+
+   # 3. Check interfaces
+   grep -r "class.*Interface" src/core/types.py
+
+   # 4. Review tests
+   grep -r "test.*feature" tests/
+   ```
+
+10. **When to Create New vs Extend**
+    - Create New When:
+      - No similar functionality exists
+      - Existing code can't be safely extended
+      - Feature belongs in different component
+      - Clear separation of concerns needed
+
+    - Extend When:
+      - Similar functionality exists
+      - Base classes/interfaces fit need
+      - Changes are backward compatible
+      - Feature belongs with existing code
+
+11. **Example Analysis**
+    ```python
+    """
+    Feature: Add geometry validation
+
+    Analysis:
+    1. Existing Code:
+       - core/utils.py: Basic validation helpers
+       - geometry/validator.py: None exists
+       - tests/: No validation tests
+
+    2. Similar Features:
+       - geometry.check(): Basic checks only
+       - validate_path(): Different purpose
+
+    3. Extension Points:
+       - Could add to GeometryProcessor
+       - Could create Validator interface
+
+    Decision:
+    Create GeometryValidator class because:
+    1. Validation is complex enough for own class
+    2. Will be used across multiple operations
+    3. Needs its own configuration
+    4. Should be independently testable
+    """
+    ```
+
+12. **Handling Partial Matches**
+    - Document partial functionality matches
+    - Explain why they don't fully meet needs
+    - Consider creating shared utilities
+    - Factor out common code
+    - Create proper abstractions
+
+Remember: It's better to spend time finding and understanding existing code than to create duplicate implementations. When in doubt, ask for help in identifying existing functionality.
+
+### 14. AI Safety and Configuration Management
+
+When using AI tools (like Cursor IDE) to modify code, follow these guidelines to prevent unintended changes:
+
+1. **AI Change Tracking**
+   - AI MUST explicitly list out sections to be removed or modified
+   - If not explicitly intending to remove something, AI MUST preserve it
+   - AI MUST explain the reasoning for any removals
+   - AI MUST verify no unintended removals occurred in diffs
+
+2. **Configuration File Safety**
+   - AI MUST preserve all existing configuration sections unless explicitly asked to remove them
+   - AI MUST explain what sections are being removed and why
+   - AI MUST verify configuration integrity after changes
+   - AI MUST check for unintended side effects of configuration changes
+
+3. **Change Validation Process**
+   1. AI states intended changes explicitly
+   2. AI shows what will be preserved
+   3. AI makes the changes
+   4. AI reviews the diff for unintended removals
+   5. AI reverts any unintended changes
+   6. AI verifies configuration still works
+
+4. **Example: Safe Configuration Update**
+   ```python
+   # WRONG: AI silently removes sections
+   # (Original config had more sections that were accidentally removed)
+   config:
+     section1: value1
+
+   # CORRECT: AI preserves existing sections
+   config:
+     section1: value1
+     # Existing sections preserved
+     section2: value2
+     section3: value3
+     # New section added
+     section4: value4
+   ```
+
+5. **Documentation Requirements**
+   - AI MUST document what was changed
+   - AI MUST document what was preserved
+   - AI MUST explain why changes were made
+   - AI MUST provide before/after comparisons when needed
+
+6. **Review Checklist for AI Changes**
+   - [ ] Changes match user's explicit request
+   - [ ] No unintended removals occurred
+   - [ ] Existing functionality preserved
+   - [ ] Configuration integrity maintained
+   - [ ] Changes documented properly
+
+7. **Error Recovery**
+   - If unintended changes occur, AI MUST:
+     1. Acknowledge the mistake
+     2. Explain what happened
+     3. Restore removed sections
+     4. Verify the restoration
+     5. Implement safeguards for future changes
+
+These guidelines ensure that AI tools make safe and intentional changes while preserving existing functionality and configuration.
