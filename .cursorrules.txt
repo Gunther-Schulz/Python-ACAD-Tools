@@ -1,1 +1,1 @@
-DONT REMOVE EXISTING FUNCTIONALITY MAKE SURE IT WORKS AFTER UPDATING
+Take your time, make sure the change integrates well. Do not rush and consider the context of the code.

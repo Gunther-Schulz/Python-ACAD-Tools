@@ -1535,3 +1535,423 @@ class CustomOperation(GeometryOperation):
 # Registration
 operation_registry.register("custom", CustomOperation)
 ```
+
+## Canonical Implementations and Duplicate Prevention
+
+To prevent duplicate or similar implementations across the codebase, we follow these guidelines:
+
+### 1. Canonical Implementation Marking
+
+Files containing the official implementation of functionality MUST be marked with a canonical implementation docstring:
+
+```python
+"""
+@canonical_implementation
+This module contains the official implementation of XYZ functionality.
+Any similar implementations should use this instead of creating new code.
+
+Location: src/component/module.py
+Purpose: [Brief description of what this implements]
+Usage: [How to use this implementation]
+"""
+```
+
+### 2. Implementation Registry
+
+Each component MUST maintain a registry of canonical implementations in its `__init__.py`:
+
+```python
+"""Component initialization.
+
+Canonical Implementations:
+- GeometryManager (geometry_manager.py): Core geometry processing
+- LayerManager (layers/manager.py): Layer management and validation
+- OperationManager (operations/manager.py): Geometry operations
+"""
+```
+
+### 3. Implementation Location Rules
+
+1. **Core Functionality**
+   - Core implementations MUST be in `src/core/`
+   - Base classes and protocols in `src/core/types.py`
+   - Utility functions in `src/core/utils.py`
+
+2. **Component-Specific**
+   - Component implementations in respective directories
+   - No duplicate functionality across components
+   - Clear separation of concerns
+
+3. **Shared Functionality**
+   - Common code MUST be in core
+   - Components MUST use core implementations
+   - No component-level duplicates
+
+### 4. Duplicate Prevention Tools
+
+1. **Semantic Checker**
+   - Detects similar implementations
+   - Compares function/class signatures
+   - Analyzes docstrings and code
+   - Reports potential duplicates
+
+2. **Type Checker**
+   - Finds duplicate type definitions
+   - Ensures proper type locations
+   - Prevents redundant types
+   - Enforces type organization rules
+
+3. **Dependency Checker**
+   - Validates dependency injection
+   - Prevents circular dependencies
+   - Ensures proper component usage
+   - Checks implementation patterns
+
+### 5. Implementation Guidelines
+
+1. **Before Creating New Code**
+   - Check core implementations first
+   - Search for existing functionality
+   - Review component registries
+   - Use dependency injection
+
+2. **When Extending**
+   - Extend existing implementations
+   - Use composition over inheritance
+   - Follow established patterns
+   - Document clearly
+
+3. **Code Organization**
+   - Keep related code together
+   - Use clear file names
+   - Follow component boundaries
+   - Maintain clean interfaces
+
+### 6. Documentation Requirements
+
+1. **Implementation Documentation**
+   ```python
+   """
+   @canonical_implementation
+
+   Purpose:
+   - What this implements
+   - Why it exists
+   - Core functionality
+
+   Usage:
+   - How to use
+   - Example code
+   - Common patterns
+
+   Extension:
+   - How to extend
+   - What not to duplicate
+   - Where to add features
+   """
+   ```
+
+2. **Component Documentation**
+   ```python
+   """
+   Component: [Name]
+
+   Canonical Implementations:
+   1. [Class/Module Name]
+      - Purpose: [Brief description]
+      - Location: [File path]
+      - Usage: [Brief usage notes]
+
+   2. [Class/Module Name]
+      ...
+
+   Do not create duplicate implementations of these features.
+   Extend or use these implementations instead.
+   """
+   ```
+
+### 7. Implementation Checklist
+
+Before implementing new functionality:
+
+1. **Search Phase**
+   - [ ] Check core implementations
+   - [ ] Review component registries
+   - [ ] Search for similar code
+   - [ ] Check type definitions
+
+2. **Design Phase**
+   - [ ] Identify existing interfaces
+   - [ ] Plan dependency injection
+   - [ ] Document design decisions
+   - [ ] Review with team
+
+3. **Implementation Phase**
+   - [ ] Use existing implementations
+   - [ ] Follow patterns
+   - [ ] Add clear documentation
+   - [ ] Mark as canonical if new
+
+4. **Review Phase**
+   - [ ] Run duplicate checks
+   - [ ] Verify dependencies
+   - [ ] Check documentation
+   - [ ] Update registries
+
+### 8. Enforcement
+
+1. **Pre-commit Hooks**
+   - Semantic similarity checks
+   - Type duplication checks
+   - Implementation pattern validation
+   - Documentation verification
+
+2. **Code Review**
+   - Check for duplicates
+   - Verify canonical usage
+   - Review documentation
+   - Validate patterns
+
+3. **Continuous Integration**
+   - Run all checks
+   - Enforce rules
+   - Report violations
+   - Block non-compliant code
+
+### 9. Example: Proper Implementation Use
+
+```python
+"""
+@canonical_implementation
+
+This module provides the official implementation of geometry operations.
+All geometry transformations should use these implementations instead
+of creating new ones.
+
+Location: src/geometry/operations/base.py
+"""
+
+from src.core.types import GeometryOperation, GeometryData
+from src.core.utils import validate_geometry
+
+class BaseOperation(GeometryOperation):
+    """Base class for all geometry operations."""
+
+    def execute(self, geometry: GeometryData) -> GeometryData:
+        """Execute the operation.
+
+        This is the canonical implementation for geometry operations.
+        Extend this class instead of creating new operation patterns.
+        """
+        self.validate(geometry)
+        return self._do_execute(geometry)
+```
+
+### 10. Example: Component Registry
+
+```python
+"""
+Geometry Component
+
+Canonical Implementations:
+1. BaseOperation (operations/base.py)
+   - Base class for all geometry operations
+   - Provides core operation lifecycle
+   - Use for all new operations
+
+2. GeometryManager (manager.py)
+   - Manages geometry processing
+   - Handles operation execution
+   - Central geometry coordinator
+
+3. LayerManager (layers/manager.py)
+   - Manages geometry layers
+   - Handles layer operations
+   - Layer validation and processing
+
+Do not create duplicate implementations of these features.
+Extend or use these implementations instead.
+"""
+
+from .operations.base import BaseOperation
+from .manager import GeometryManager
+from .layers.manager import LayerManager
+
+__all__ = [
+    'BaseOperation',
+    'GeometryManager',
+    'LayerManager',
+]
+```
+
+### 11. Violation Examples
+
+1. **Duplicate Implementation**
+```python
+# WRONG: Creating new geometry operation pattern
+class CustomOperation:  # Should extend BaseOperation
+    def process(self, geometry): # Should use execute()
+        # Custom implementation
+        pass
+```
+
+2. **Missing Documentation**
+```python
+# WRONG: No canonical implementation marking
+class GeometryProcessor:  # Purpose unclear
+    def process(self, data):
+        # Implementation
+        pass
+```
+
+3. **Improper Extension**
+```python
+# WRONG: Bypassing canonical implementation
+from src.core.types import GeometryData
+
+def process_geometry(data: GeometryData) -> GeometryData:
+    # Should use GeometryManager instead
+    pass
+```
+
+4. **Correct Implementation**
+```python
+"""
+@canonical_implementation
+Official implementation of buffer operations.
+"""
+
+from src.geometry.operations.base import BaseOperation
+
+class BufferOperation(BaseOperation):
+    """Buffer operation implementation."""
+
+    def _do_execute(self, geometry):
+        # Proper implementation
+        pass
+```
+
+### 12. Preventing Unintended Functionality Changes
+
+When modifying or extending code, it's critical to avoid breaking or removing existing functionality. Follow these guidelines:
+
+1. **Thoughtful Code Modification**
+   - Before removing or significantly modifying existing code, carefully evaluate:
+     - Is this change actually necessary for the goal?
+     - Can the goal be achieved by extending instead of modifying?
+     - What existing functionality might be affected?
+     - Are there dependencies on the current behavior?
+   - When modification is necessary:
+     - Document the existing behavior first
+     - Understand why the code was written this way
+     - Make minimal, focused changes
+     - Verify all existing use cases still work
+   - Prefer extending through:
+     - Inheritance when adding variant behavior
+     - Composition when adding new capabilities
+     - New methods when adding operations
+     - Optional parameters with sensible defaults
+
+2. **Careful Refactoring**
+   - Document existing behavior before making changes
+   - Verify all use cases are preserved
+   - Keep original functionality intact
+   - Add new features alongside existing ones
+
+3. **Implementation Guidelines**
+   ```python
+   # WRONG: Modifying existing method
+   def process_geometry(data):
+       # Changed original behavior
+       new_behavior(data)
+
+   # CORRECT: Adding new functionality
+   def process_geometry(data):
+       # Original behavior preserved
+       result = original_behavior(data)
+       # New functionality added
+       return enhance_result(result)
+   ```
+
+4. **Testing Requirements**
+   - Write tests for existing functionality first
+   - Verify tests pass before making changes
+   - Add new tests for new functionality
+   - Never remove or modify existing tests unless fixing incorrect expectations
+
+5. **Documentation Requirements**
+   - Document existing behavior
+   - Clearly mark new additions
+   - Maintain backwards compatibility notes
+   - Update examples to show both old and new usage
+
+6. **Code Review Checklist**
+   - [ ] Existing functionality remains unchanged
+   - [ ] Changes are purely additive
+   - [ ] All existing tests pass
+   - [ ] New tests added for new features
+   - [ ] Never remove or modify existing tests unless fixing incorrect expectations
+
+7. **Change Validation Process**
+   1. Document existing functionality
+   2. Write tests covering current behavior
+   3. Verify tests pass
+   4. Make additive changes only
+   5. Add new tests for new features
+   6. Verify all tests pass
+   7. Update documentation
+   8. Review changes for unintended modifications
+
+8. **Example: Adding New Feature**
+   ```python
+   # Original implementation
+   class GeometryProcessor:
+       def process(self, data):
+           # Existing processing logic
+           return processed_data
+
+   # CORRECT: Adding new feature
+   class EnhancedGeometryProcessor(GeometryProcessor):
+       def process(self, data):
+           # Preserve original processing
+           result = super().process(data)
+           # Add new functionality
+           return self.enhance(result)
+
+       def enhance(self, data):
+           # New feature implementation
+           return enhanced_data
+   ```
+
+9. **Example: Extending Configuration**
+   ```yaml
+   # Original config
+   operation:
+     type: buffer
+     distance: 10
+
+   # CORRECT: Adding new option
+   operation:
+     type: buffer
+     distance: 10
+     # New option added, old behavior preserved
+     enhanced: true  # Optional, defaults to false
+   ```
+
+10. **Handling Deprecation**
+    - Never remove functionality immediately
+    - Mark deprecated features with warnings
+    - Provide migration path to new features
+    - Maintain deprecated features until next major version
+
+11. **Version Control Best Practices**
+    - Make small, focused commits
+    - Write clear commit messages explaining changes
+    - Keep functionality changes separate from additions
+    - Use feature branches for new functionality
+
+12. **Communication Requirements**
+    - Document all changes clearly
+    - Explain why changes are needed
+    - Describe how existing functionality is preserved
+    - Provide examples of new features alongside existing ones

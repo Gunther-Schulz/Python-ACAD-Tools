@@ -1,44 +1,70 @@
 {
-    "python.analysis.typeCheckingMode": "strict",
+    "python.analysis.typeCheckingMode": "basic",
+    "python.analysis.diagnosticMode": "workspace",
     "python.analysis.extraPaths": [
         "./src"
     ],
+    "python.analysis.autoImportCompletions": true,
+    "python.analysis.indexing": true,
+    "python.analysis.packageIndexDepths": [
+        {
+            "name": "src",
+            "depth": 5
+        }
+    ],
     "editor.formatOnSave": true,
-    "python.formatting.provider": "black",
-    "python.formatting.blackArgs": [
-        "--config=pyproject.toml"
+    "editor.rulers": [
+        100
     ],
-    "python.linting.enabled": true,
-    "python.linting.flake8Enabled": true,
-    "python.linting.flake8Args": [
-        "--config=.flake8"
-    ],
-    "python.linting.pylintEnabled": true,
-    "python.linting.pylintArgs": [
-        "--rcfile=pyproject.toml"
-    ],
-    "python.linting.mypyEnabled": true,
-    "python.linting.mypyArgs": [
-        "--config-file=pyproject.toml"
-    ],
+    "editor.codeActionsOnSave": {
+        "source.organizeImports": "always",
+        "source.fixAll": "always"
+    },
+    "editor.showUnused": true,
     "[python]": {
         "editor.defaultFormatter": "ms-python.black-formatter",
         "editor.formatOnSave": true,
+        "editor.formatOnType": true,
+        "editor.rulers": [
+            100
+        ],
         "editor.codeActionsOnSave": {
             "source.organizeImports": "always"
         }
     },
+    "black-formatter.args": [
+        "--config=pyproject.toml"
+    ],
+    "black-formatter.enableAutoFormat": true,
     "isort.args": [
         "--settings-path=pyproject.toml"
     ],
     "isort.check": true,
     "isort.importStrategy": "fromEnvironment",
-    "isort.path": [
-        "isort"
+    "isort.enableAutoFormat": true,
+    "mypy-type-checker.args": [
+        "--config-file=pyproject.toml"
     ],
-    "editor.rulers": [
-        100
+    "mypy-type-checker.enabled": true,
+    "mypy-type-checker.reportingScope": "workspace",
+    "mypy-type-checker.runUsingActiveInterpreter": true,
+    "pylint.args": [
+        "--rcfile=pyproject.toml"
     ],
+    "pylint.enabled": true,
+    "pylint.severity": {
+        "convention": "Information",
+        "error": "Error",
+        "fatal": "Error",
+        "refactor": "Information",
+        "warning": "Warning",
+        "info": "Information"
+    },
+    "flake8.args": [
+        "--toml-config=pyproject.toml"
+    ],
+    "flake8.enabled": true,
+    "flake8.importStrategy": "fromEnvironment",
     "files.trimTrailingWhitespace": true,
     "files.insertFinalNewline": true,
     "files.exclude": {
@@ -53,5 +79,16 @@
         "**/.mypy_cache": true,
         "**/build": true,
         "**/dist": true
-    }
+    },
+    "problems.decorations.enabled": true,
+    "problems.showCurrentInStatus": true,
+    "python.testing.pytestEnabled": true,
+    "python.testing.unittestEnabled": false,
+    "python.testing.nosetestsEnabled": false,
+    "python.testing.pytestArgs": [
+        "tests"
+    ],
+    "autoDocstring.docstringFormat": "google",
+    "autoDocstring.startOnNewLine": true,
+    "autoDocstring.generateDocstringOnEnter": true
 }
