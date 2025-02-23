@@ -54,7 +54,9 @@
         "**/*.pyc": true,
         ".pytest_cache": true,
         ".mypy_cache": true,
-        ".ruff_cache": true
+        ".ruff_cache": true,
+        "scripts/deprecated/": true,
+        "src_old/": true
     },
     "search.exclude": {
         "**/.git": true,
@@ -62,7 +64,9 @@
         "**/.mypy_cache": true,
         "**/.ruff_cache": true,
         "**/build": true,
-        "**/dist": true
+        "**/dist": true,
+        "scripts/deprecated/": true,
+        "src_old/": true
     },
     "problems.decorations.enabled": true,
     "problems.showCurrentInStatus": true,
@@ -78,6 +82,13 @@
     "python.radon.executable": "/home/g/.conda/envs/pycad/bin/radon",
     "python.radon.cc.threshold": "A",
     "python.radon.mi.threshold": "A",
+    "python.linting.vulture.executable": "/home/g/.conda/envs/pycad/bin/vulture",
+    "python.linting.vulture.enabled": true,
+    "python.linting.vulture.args": [
+        "--min-confidence=90",
+        "--exclude=tests/,src_old/,scripts/,scripts/deprecated/",
+        "--ignore-names=config_path,geometry_path,layer_path,target_path,format"
+    ],
     "python.analysis.diagnosticSeverityOverrides": {
         "reportUnknownMemberType": "warning",
         "reportUnknownParameterType": "warning",
@@ -100,5 +111,13 @@
         ".ruff_cache",
         "src_old",
         "tests"
+    ],
+    "python.linting.enabled": true,
+    "python.linting.lintOnSave": true,
+    "python.linting.ignorePatterns": [
+        ".vscode/*.py",
+        "**/site-packages/**/*.py",
+        "scripts/deprecated/**/*.py",
+        "src_old/**/*.py"
     ]
 }
