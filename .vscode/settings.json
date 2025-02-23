@@ -1,7 +1,7 @@
 {
     "python.languageServer": "Pylance",
     "python.analysis.importFormat": "absolute",
-    "python.analysis.typeCheckingMode": "off",
+    "python.analysis.typeCheckingMode": "strict",
     "python.analysis.diagnosticMode": "workspace",
     "python.analysis.include": [
         "src"
@@ -74,5 +74,31 @@
     ],
     "autoDocstring.docstringFormat": "google",
     "autoDocstring.startOnNewLine": true,
-    "autoDocstring.generateDocstringOnEnter": true
+    "autoDocstring.generateDocstringOnEnter": true,
+    "python.radon.executable": "/home/g/.conda/envs/pycad/bin/radon",
+    "python.radon.cc.threshold": "A",
+    "python.radon.mi.threshold": "A",
+    "python.analysis.diagnosticSeverityOverrides": {
+        "reportUnknownMemberType": "warning",
+        "reportUnknownParameterType": "warning",
+        "reportUnknownVariableType": "warning",
+        "reportUnknownArgumentType": "warning",
+        "reportPrivateUsage": "warning",
+        "reportUntypedFunctionDecorator": "warning",
+        "reportUntypedClassDecorator": "warning",
+        "reportUntypedBaseClass": "warning",
+        "reportInvalidTypeVarUse": "warning",
+        "reportUnnecessaryTypeIgnoreComment": "information"
+    },
+    "python.analysis.useLibraryCodeForTypes": true,
+    "python.analysis.autoSearchPaths": true,
+    "python.analysis.stubPath": "typings",
+    "python.analysis.exclude": [
+        "**/__pycache__",
+        ".git",
+        ".mypy_cache",
+        ".ruff_cache",
+        "src_old",
+        "tests"
+    ]
 }

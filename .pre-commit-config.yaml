@@ -193,7 +193,6 @@ repos:
         types: [python]
         exclude: ^src_old/
         args: ["--config=auto"]
-
       - id: pyright
         name: pyright (type checking)
         entry: pyright
