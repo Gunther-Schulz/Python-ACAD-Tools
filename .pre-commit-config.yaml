@@ -127,6 +127,8 @@ repos:
             "--ignore-names=config_path,geometry_path,layer_path,target_path,format",
           ]
 
+      # NOTE: Radon args must be manually kept in sync with [tool.radon] settings in pyproject.toml
+      # Last synchronized: 2024-02-24
       - id: radon-cc
         name: radon (code complexity)
         entry: radon cc
@@ -135,7 +137,14 @@ repos:
         files: ^src/
         exclude: ^src_old/
         pass_filenames: false
-        args: ["-a", "-n", "A", "-s", "--total-average", "--xml", "src"]
+        args: [
+            "-n",
+            "A", # cc_min from pyproject.toml
+            "-s", # show_complexity
+            "--total-average", # show overall metrics
+            "--xml", # xml_output enabled
+            "src", # directory to analyze
+          ]
 
       - id: radon-mi
         name: radon (maintainability)
@@ -145,7 +154,13 @@ repos:
         files: ^src/
         exclude: ^src_old/
         pass_filenames: false
-        args: ["-s", "-n", "A", "--min=65", "--multi", "src"]
+        args: [
+            "-n",
+            "A", # mi_min from pyproject.toml
+            "-s", # show_mi
+            "--multi", # include docstrings
+            "src", # directory to analyze
+          ]
 
       - id: interrogate
         name: interrogate (docstring coverage)
@@ -193,6 +208,7 @@ repos:
         types: [python]
         exclude: ^src_old/
         args: ["--config=auto"]
+
       - id: pyright
         name: pyright (type checking)
         entry: pyright

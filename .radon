@@ -1,0 +1,12 @@
+# WARNING: This file must be manually kept in sync with the [tool.radon] section in pyproject.toml
+# Last synchronized: 2024-02-24
+
+[radon]
+cc_min = A
+mi_min = A
+exclude = tests/*,src_old/*,scripts/*
+include_docstrings = true
+order = SCORE
+show_complexity = true
+show_mi = true
+xml_output = reports/radon.xml

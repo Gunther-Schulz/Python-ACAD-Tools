@@ -1,31 +1,4 @@
 {
-    "python.languageServer": "Pylance",
-    "python.analysis.importFormat": "absolute",
-    "python.analysis.typeCheckingMode": "strict",
-    "python.analysis.diagnosticMode": "workspace",
-    "python.analysis.include": [
-        "src"
-    ],
-    "python.analysis.extraPaths": [
-        "./src"
-    ],
-    "python.analysis.autoImportCompletions": true,
-    "python.analysis.indexing": true,
-    "python.analysis.packageIndexDepths": [
-        {
-            "name": "src",
-            "depth": 5
-        }
-    ],
-    "editor.formatOnSave": true,
-    "editor.rulers": [
-        100
-    ],
-    "editor.codeActionsOnSave": {
-        "source.fixAll": "always",
-        "source.organizeImports": "always"
-    },
-    "editor.showUnused": true,
     "[python]": {
         "editor.defaultFormatter": "charliermarsh.ruff",
         "editor.formatOnSave": true,
@@ -38,17 +11,72 @@
             "source.organizeImports.ruff": "explicit"
         }
     },
-    "ruff.enable": true,
-    "ruff.format": true,
-    "mypy-type-checker.enabled": true,
+    "python.defaultInterpreterPath": "/home/g/.conda/envs/pycad/bin/python",
+    "python.testing.pytestEnabled": true,
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestArgs": [
+        "tests"
+    ],
+    "python.languageServer": "Pylance",
+    "python.analysis.typeCheckingMode": "strict",
+    "python.analysis.diagnosticMode": "workspace",
+    "python.analysis.importFormat": "absolute",
+    "python.analysis.autoImportCompletions": true,
+    "python.analysis.indexing": true,
+    "python.analysis.useLibraryCodeForTypes": true,
+    "python.analysis.autoSearchPaths": true,
+    "python.analysis.include": [
+        "src"
+    ],
+    "python.analysis.exclude": [
+        "**/__pycache__",
+        ".git",
+        ".mypy_cache",
+        ".ruff_cache",
+        "src_old",
+        "tests"
+    ],
+    "python.analysis.extraPaths": [
+        "./src"
+    ],
+    "python.analysis.stubPath": "typings",
+    "python.analysis.packageIndexDepths": [
+        {
+            "name": "src",
+            "depth": 5
+        }
+    ],
+    "python.analysis.diagnosticSeverityOverrides": {
+        "reportUnknownMemberType": "warning",
+        "reportUnknownParameterType": "warning",
+        "reportUnknownVariableType": "warning",
+        "reportUnknownArgumentType": "warning",
+        "reportPrivateUsage": "warning",
+        "reportUntypedFunctionDecorator": "warning",
+        "reportUntypedClassDecorator": "warning",
+        "reportUntypedBaseClass": "warning",
+        "reportInvalidTypeVarUse": "warning",
+        "reportUnnecessaryTypeIgnoreComment": "information"
+    },
+    "ruff.importStrategy": "fromEnvironment",
+    "ruff.path": [
+        "pyproject.toml"
+    ],
     "mypy-type-checker.importStrategy": "fromEnvironment",
     "mypy-type-checker.preferDaemon": true,
     "mypy-type-checker.reportingScope": "workspace",
-    "pylint.enabled": true,
+    "mypy-type-checker.args": [
+        "--config-file=pyproject.toml"
+    ],
     "pylint.importStrategy": "fromEnvironment",
-    "pylint.showNotifications": "onError",
-    "files.trimTrailingWhitespace": true,
-    "files.insertFinalNewline": true,
+    "pylint.args": [
+        "--rcfile=pyproject.toml"
+    ],
+    "interrogate.importStrategy": "fromEnvironment",
+    "interrogate.args": [
+        "--config=pyproject.toml"
+    ],
+    "python.radon.executable": "/home/g/.conda/envs/pycad/bin/radon",
     "files.exclude": {
         "**/__pycache__": true,
         "**/*.pyc": true,
@@ -67,57 +95,5 @@
         "**/dist": true,
         "scripts/deprecated/": true,
         "src_old/": true
-    },
-    "problems.decorations.enabled": true,
-    "problems.showCurrentInStatus": true,
-    "python.testing.pytestEnabled": true,
-    "python.testing.unittestEnabled": false,
-    "python.testing.nosetestsEnabled": false,
-    "python.testing.pytestArgs": [
-        "tests"
-    ],
-    "autoDocstring.docstringFormat": "google",
-    "autoDocstring.startOnNewLine": true,
-    "autoDocstring.generateDocstringOnEnter": true,
-    "python.radon.executable": "/home/g/.conda/envs/pycad/bin/radon",
-    "python.radon.cc.threshold": "A",
-    "python.radon.mi.threshold": "A",
-    "python.linting.vulture.executable": "/home/g/.conda/envs/pycad/bin/vulture",
-    "python.linting.vulture.enabled": true,
-    "python.linting.vulture.args": [
-        "--min-confidence=90",
-        "--exclude=tests/,src_old/,scripts/,scripts/deprecated/",
-        "--ignore-names=config_path,geometry_path,layer_path,target_path,format"
-    ],
-    "python.analysis.diagnosticSeverityOverrides": {
-        "reportUnknownMemberType": "warning",
-        "reportUnknownParameterType": "warning",
-        "reportUnknownVariableType": "warning",
-        "reportUnknownArgumentType": "warning",
-        "reportPrivateUsage": "warning",
-        "reportUntypedFunctionDecorator": "warning",
-        "reportUntypedClassDecorator": "warning",
-        "reportUntypedBaseClass": "warning",
-        "reportInvalidTypeVarUse": "warning",
-        "reportUnnecessaryTypeIgnoreComment": "information"
-    },
-    "python.analysis.useLibraryCodeForTypes": true,
-    "python.analysis.autoSearchPaths": true,
-    "python.analysis.stubPath": "typings",
-    "python.analysis.exclude": [
-        "**/__pycache__",
-        ".git",
-        ".mypy_cache",
-        ".ruff_cache",
-        "src_old",
-        "tests"
-    ],
-    "python.linting.enabled": true,
-    "python.linting.lintOnSave": true,
-    "python.linting.ignorePatterns": [
-        ".vscode/*.py",
-        "**/site-packages/**/*.py",
-        "scripts/deprecated/**/*.py",
-        "src_old/**/*.py"
-    ]
+    }
 }
