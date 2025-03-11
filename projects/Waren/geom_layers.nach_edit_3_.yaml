@@ -38,12 +38,12 @@ geomLayers:
   #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/wasserrechtliche Festsetzung 3b.shp"
 
   - name: wasserrechtliche Festsetzung 3b
-    # updateDxf: true
+    updateDxf: true
     style: wasserschutz
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/wasserrechtliche Festsetzung 3b_pl.shp"
 
   - name: wasserrechtliche Festsetzung 3b 2
-    # updateDxf: true
+    updateDxf: true
     style: wasserschutz 2
     operations:
       - type: buffer
@@ -81,7 +81,7 @@ geomLayers:
 
   # Stadtwerke
   - name: Leitung Str-Leitungsabschnitt-NS
-    # updateDxf: true
+    updateDxf: true
     style:
       layer:
         color: "blue"
@@ -97,7 +97,7 @@ geomLayers:
         joinStyle: flat
 
   - name: Leitung Was-Leitungsabschnitt-VN
-    # updateDxf: true
+    updateDxf: true
     style:
       layer:
         color: "blue"
@@ -113,7 +113,7 @@ geomLayers:
         joinStyle: flat
 
   - name: Leitung Was-Leitungsabschnitt-AN
-    # updateDxf: true
+    updateDxf: true
     style:
       layer:
         color: "blue"
@@ -129,7 +129,7 @@ geomLayers:
         joinStyle: flat
 
   - name: Leitung Gas-Leitungsabschnitt-VN
-    # updateDxf: true
+    updateDxf: true
     style:
       layer:
         color: "blue"
@@ -146,14 +146,14 @@ geomLayers:
 
   # ONTRAS
   - name: Leitung Ontras Gas
-    # updateDxf: true
+    updateDxf: true
     style:
       layer:
         color: "orange"
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/input_leitungsverlauf_ontras_gas_ln.shp"
 
   - name: Leitung Ontras TK
-    # updateDxf: true
+    updateDxf: true
     style:
       layer:
         color: "orange"
@@ -171,7 +171,7 @@ geomLayers:
 
   # Vermessung
   - name: Leitung Gas_HD_LEIT # Edis Gas
-    # updateDxf: true
+    updateDxf: true
     style:
       layer:
         color: "green"
@@ -187,7 +187,7 @@ geomLayers:
         joinStyle: round
 
   - name: Leitung Stromkabel-MS_unterirdisch_LEIT
-    # updateDxf: true
+    updateDxf: true
     style:
       layer:
         color: "red"
@@ -207,7 +207,7 @@ geomLayers:
 
   # Maxsolar (Vermessung)
   - name: Leitung Mittelspannung Zuwegung
-    # updateDxf: true
+    updateDxf: true
     style:
       layer:
         color: "red"
@@ -225,7 +225,7 @@ geomLayers:
   # Bestand-Zeichnung
 
   - name: Leitung Telekom
-    # updateDxf: true
+    updateDxf: true
     style:
       layer:
         color: "magenta"
@@ -241,7 +241,7 @@ geomLayers:
         joinStyle: flat
 
   - name: Leitung Edis
-    # updateDxf: true
+    updateDxf: true
     style:
       layer:
         color: "green"
@@ -265,7 +265,7 @@ geomLayers:
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/Einzelbäume.shp"
 
   - name: Baum_Laubbaum Krone
-    # updateDxf: true
+    updateDxf: true
     style: baum
     operations:
       - type: circle
@@ -273,7 +273,7 @@ geomLayers:
           - Einzelbäume
         radiusField: Krone_R
   - name: Baum_Laubbaum Stamm
-    # updateDxf: true
+    updateDxf: true
     style: baum
     operations:
       - type: circle
@@ -282,7 +282,7 @@ geomLayers:
         radiusField: Stamm_R
 
   - name: Baum_Laubbaum Krone Allee
-    # updateDxf: true
+    updateDxf: true
     style: alleeBaum
     operations:
       - type: circle
@@ -290,7 +290,7 @@ geomLayers:
           - Alleebäume
         radiusField: Krone_R
   - name: Baum_Laubbaum Stamm Allee
-    # updateDxf: true
+    updateDxf: true
     style: alleeBaum
     operations:
       - type: circle
@@ -299,7 +299,7 @@ geomLayers:
         radiusField: Stamm_R
 
   - name: Baum_Laubbaum Stamm Schraffur
-    # updateDxf: true
+    updateDxf: true
     style: baumStamm
     applyHatch:
       layers:
@@ -362,7 +362,7 @@ geomLayers:
   ### Zuwegung ###
   - name: Zuwegung
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/maxsolar_zuwegung_mittellinie_ln.shp"
-    # updateDxf: true
+    updateDxf: true
     operations:
       - type: buffer
         distance: 2
@@ -372,7 +372,7 @@ geomLayers:
         layers:
           - Exclude Zuwegung
   - name: Zuwegung Schraffur
-    # updateDxf: true
+    updateDxf: true
     style: verkehrsfläche
     applyHatch:
       layers:
@@ -383,7 +383,7 @@ geomLayers:
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/geltungsbereich_pl.shp"
 
   - name: Geltungsbereich
-    # updateDxf: true
+    updateDxf: true
     style: geltungsbereich
     operations:
       - type: dissolve
@@ -449,21 +449,21 @@ geomLayers:
         capStyle: flat
 
   - name: Geltungsbereich F-Plan
-    # updateDxf: true # linetype generation
+    updateDxf: true # linetype generation
     style: geltungsbereichFPlan
     operations:
       - type: copy
         layers:
           - Geltungsbereich
   - name: Geltungsbereich F-Plan Schraffur
-    # updateDxf: true # linetype generation
+    updateDxf: true # linetype generation
     style: geltungsbereichFPlan
     applyHatch:
       layers:
         - Geltungsbereich F-Plan
 
   - name: Geltungsbereich F-Plan MiniMap Schraffur
-    # updateDxf: true # linetype generation
+    updateDxf: true # linetype generation
     style: geltungsbereichFPlanMiniMap
     applyHatch:
       layers:
@@ -471,7 +471,7 @@ geomLayers:
 
   # Report only
   - name: Parcel Intersections
-    # updateDxf: false
+    updateDxf: false
     operations:
       - type: copy
         layers:
@@ -524,11 +524,11 @@ geomLayers:
     # updateDxf: true
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/Moor.shp"
   - name: "ges gesch Biotope"
-    # updateDxf: true
+    updateDxf: true
     # style: gesGeschuetzesBiotop
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/ges. geschützte Biotope.shp"
   - name: "ges gesch Biotope 2"
-    # updateDxf: true
+    updateDxf: true
     style: gesGeschuetzesBiotop
     operations:
       - type: copy
@@ -546,13 +546,13 @@ geomLayers:
     # shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/vermessung_graben_pl.shp"
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/Graben_edit.shp"
   - name: Graben Schraffur
-    # updateDxf: true
+    updateDxf: true
     style: graben
     applyHatch:
       layers:
         - Graben
   - name: Grünfläche und Graben
-    # updateDxf: true
+    updateDxf: true
     # style:
     #   layer:
     #     color: "blue"
@@ -604,7 +604,7 @@ geomLayers:
         calculate:
           - area
   - name: Ausgleich Grünfläche
-    # updateDxf: true
+    updateDxf: true
     # style:
     #   layer:
     #     color: "chartreuse-medium"
@@ -620,13 +620,13 @@ geomLayers:
         # skipIslands: true
         preserveIslands: true
   - name: Grünfläche Schraffur
-    # updateDxf: true
+    updateDxf: true
     style: grünfläche
     applyHatch:
       layers:
         - Ausgleich Grünfläche
   - name: Ausgleich Schutzflächeumgrenzung
-    # updateDxf: true
+    updateDxf: true
     # style:
     #   layer:
     #     color: "yellow-medium"
@@ -645,7 +645,7 @@ geomLayers:
       #   layers:
       #     - Grünfläche und Graben
   - name: Grünfläche T-Linie Symbol Schraffur
-    # updateDxf: true
+    updateDxf: true
     style: schutzflächeumgrenzung
     applyHatch:
       layers:
@@ -653,7 +653,7 @@ geomLayers:
 
   ### Baufeld/Baugrenze ###
   - name: Baufeld
-    # updateDxf: true
+    updateDxf: true
     close: true
     operations:
       - type: copy
@@ -673,31 +673,11 @@ geomLayers:
         geometryTypes:
           - polygon
   - name: Baufeld Schraffur
-    # updateDxf: true
+    updateDxf: true
     style: baufeld
     applyHatch:
       layers:
         - Baufeld
-  - name: Wohngrunstückecken Envelope
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/wohngrundstücke_ecken_pt.shp"
-    operations:
-      - type: connect-points
-        maxDistance: 53
-      - type: buffer
-        distance: 40
-        capStyle: round
-        joinStyle: round
-      - type: dissolve
-  - name: Wohngrunstückecken 2 Envelope
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/wohngrundstücke_2_ecken_pt.shp"
-    operations:
-      - type: connect-points
-        maxDistance: 60
-      - type: buffer
-        distance: 40
-        capStyle: round
-        joinStyle: round
-      - type: dissolve
   - name: Baugrenze 2
     updateDxf: true # linetypeGeneration
     style: baugrenze_2
@@ -730,8 +710,6 @@ geomLayers:
           - Baugrenze Exclude
           - Exclude Bahn Buffer
           - Exclude Böschung
-          - Wohngrunstückecken Envelope
-          - Wohngrunstückecken 2 Envelope
       - type: calculate
         calculations:
           - type: area
@@ -769,115 +747,115 @@ geomLayers:
         decimalPlaces:
           area: 0
 
-  # ### Place Leitung Labels ###
+  ### Place Leitung Labels ###
 
-  # - name: Baum_Laubbaum Label
-  #   # updateDxf: true # modified placement
-  #   style: baum
+  - name: Baum_Laubbaum Label
+    # updateDxf: true # modified placement
+    style: baum
+    operations:
+      - type: labelAssociation
+        # showLog: true
+        sourceLayers:
+          - name: Baum_Laubbaum Points
+            labelColumn: "label_ml"
+            pointPosition: right
+            labelOffset:
+              x: "-(Krone_R) - 11"
+              y: 0
+
+  # - name: Leitungen Labels
+  #   updateDxf: true
+  #   style: leitung
   #   operations:
   #     - type: labelAssociation
   #       # showLog: true
+  #       labelSettings:
+  #         labelSpacing: 100
+  #         labelOffset:
+  #           y: 1
+  #         # avoidAllGeometries: true
+  #         # avoidLayers:
+  #         #   - Baugrenze
+  #         #   - Baugrenze 2
+  #         #   - Geltungsbereich
+  #         #   - Geltungsbereich 2
+  #         #   - Grünfläche
+  #         #   - Baufeld
+  #         #   # - Blendschutzzaun
+  #         #   - Zuwegung
+  #         #   - Baum_Laubbaum Buffer
+  #         widthFactor: 2.0       # Increased from 1.3 to 2.0 to account for full text width
+  #         heightFactor: 2.0      # Increased from 1.5 to 2.0 to give more vertical clearance
+  #         bufferFactor: 1.0      # Increased from 0.2 to 1.0 (100% of text height as buffer)
+  #         collisionMargin: 0.5   # Increased from 0.25 to 0.5 for more spacing between features
+  #         # widthFactor: 2      # Makes label box 30% wider than the text width
+  #         # heightFactor: 1.5     # Makes label box 50% taller than the text height
+  #         # bufferFactor: 0.2     # Adds 20% of text height as padding around the label box
+  #         # collisionMargin: 0.25 # Adds 25% extra space when checking for collisions with other labels
   #       sourceLayers:
-  #         - name: Baum_Laubbaum Points
-  #           labelColumn: "label_ml"
-  #           pointPosition: right
+  #         # - name: Baum_Laubbaum Points
+  #         #   labelColumn: "label_ml"
+  #         #   pointPosition: right
+  #         #   labelOffset:
+  #         #     x: 2.5
+  #         #     y: 0
+
+  #         - name: Leitung Str-Leitungsabschnitt-NS
+  #           label: Strom Niederspannung
+
+  #         - name: Leitung Was-Leitungsabschnitt-VN
+  #           label: Wasser VN
+
+  #         - name: Leitung Was-Leitungsabschnitt-AN
+  #           label: Wasser AN
+
+  #         - name: Leitung Gas-Leitungsabschnitt-VN
+  #           label: Gas VN
+
+  #         - name: Leitung Ontras Gas
+  #           label: Gas Ontras
+
+  #         - name: Leitung Ontras TK
+  #           label: TK Ontras
   #           labelOffset:
-  #             x: "-(Krone_R) - 11"
-  #             y: 0
+  #             y: -2.3
+  #         - name: Leitung Gas_HD_LEIT
+  #           label: Gas Hochdruck
+  #           labelOffset:
+  #             y: 4
 
-  # # - name: Leitungen Labels
-  # #   updateDxf: true
-  # #   style: leitung
-  # #   operations:
-  # #     - type: labelAssociation
-  # #       # showLog: true
-  # #       labelSettings:
-  # #         labelSpacing: 100
-  # #         labelOffset:
-  # #           y: 1
-  # #         # avoidAllGeometries: true
-  # #         # avoidLayers:
-  # #         #   - Baugrenze
-  # #         #   - Baugrenze 2
-  # #         #   - Geltungsbereich
-  # #         #   - Geltungsbereich 2
-  # #         #   - Grünfläche
-  # #         #   - Baufeld
-  # #         #   # - Blendschutzzaun
-  # #         #   - Zuwegung
-  # #         #   - Baum_Laubbaum Buffer
-  # #         widthFactor: 2.0       # Increased from 1.3 to 2.0 to account for full text width
-  # #         heightFactor: 2.0      # Increased from 1.5 to 2.0 to give more vertical clearance
-  # #         bufferFactor: 1.0      # Increased from 0.2 to 1.0 (100% of text height as buffer)
-  # #         collisionMargin: 0.5   # Increased from 0.25 to 0.5 for more spacing between features
-  # #         # widthFactor: 2      # Makes label box 30% wider than the text width
-  # #         # heightFactor: 1.5     # Makes label box 50% taller than the text height
-  # #         # bufferFactor: 0.2     # Adds 20% of text height as padding around the label box
-  # #         # collisionMargin: 0.25 # Adds 25% extra space when checking for collisions with other labels
-  # #       sourceLayers:
-  # #         # - name: Baum_Laubbaum Points
-  # #         #   labelColumn: "label_ml"
-  # #         #   pointPosition: right
-  # #         #   labelOffset:
-  # #         #     x: 2.5
-  # #         #     y: 0
+  #         - name: Leitung Stromkabel-MS_unterirdisch_LEIT
+  #           label: Stromkabel MS unterirdisch
+  #           labelOffset:
+  #             y: 4
 
-  # #         - name: Leitung Str-Leitungsabschnitt-NS
-  # #           label: Strom Niederspannung
+  #         - name: Leitung Mittelspannung Zuwegung
+  #           label: Strom Mittelspannung
 
-  # #         - name: Leitung Was-Leitungsabschnitt-VN
-  # #           label: Wasser VN
+  #         - name: Leitung Telekom
+  #           label: Telekom
 
-  # #         - name: Leitung Was-Leitungsabschnitt-AN
-  # #           label: Wasser AN
+  #         - name: Leitung Edis
+  #           label: Strom Edis
 
-  # #         - name: Leitung Gas-Leitungsabschnitt-VN
-  # #           label: Gas VN
-
-  # #         - name: Leitung Ontras Gas
-  # #           label: Gas Ontras
-
-  # #         - name: Leitung Ontras TK
-  # #           label: TK Ontras
-  # #           labelOffset:
-  # #             y: -2.3
-  # #         - name: Leitung Gas_HD_LEIT
-  # #           label: Gas Hochdruck
-  # #           labelOffset:
-  # #             y: 4
-
-  # #         - name: Leitung Stromkabel-MS_unterirdisch_LEIT
-  # #           label: Stromkabel MS unterirdisch
-  # #           labelOffset:
-  # #             y: 4
-
-  # #         - name: Leitung Mittelspannung Zuwegung
-  # #           label: Strom Mittelspannung
-
-  # #         - name: Leitung Telekom
-  # #           label: Telekom
-
-  # #         - name: Leitung Edis
-  # #           label: Strom Edis
-
-  # - name: Leitungen Path
-  #   operations:
-  #     - type: dissolve
-  #       layers:
-  #         - Leitung Str-Leitungsabschnitt-NS
-  #         - Leitung Was-Leitungsabschnitt-VN
-  #         - Leitung Was-Leitungsabschnitt-AN
-  #         - Leitung Gas-Leitungsabschnitt-VN
-  #         - Leitung Ontras Gas
-  #         - Leitung Ontras TK
-  #         - Leitung Gas_HD_LEIT
-  #         - Leitung Stromkabel-MS_unterirdisch_LEIT
-  #         - Leitung Mittelspannung Zuwegung
-  #         - Leitung Telekom
-  #         - Leitung Edis
+  - name: Leitungen Path
+    operations:
+      - type: dissolve
+        layers:
+          - Leitung Str-Leitungsabschnitt-NS
+          - Leitung Was-Leitungsabschnitt-VN
+          - Leitung Was-Leitungsabschnitt-AN
+          - Leitung Gas-Leitungsabschnitt-VN
+          - Leitung Ontras Gas
+          - Leitung Ontras TK
+          - Leitung Gas_HD_LEIT
+          - Leitung Stromkabel-MS_unterirdisch_LEIT
+          - Leitung Mittelspannung Zuwegung
+          - Leitung Telekom
+          - Leitung Edis
 
   - name: Leitungen Buffer
-    # updateDxf: true
+    updateDxf: true
     operations:
       - type: dissolve
         layers:
@@ -905,184 +883,166 @@ geomLayers:
         layers:
           - Geltungsbereich
 
-  # - name: Leitungen Buffer Path
-  #   # updateDxf: true # Schon modifiziert in DXF (lintetype generation and scale)
-  #   style: gfl1
-  #   operations:
-  #     - type: copy
-  #       layers:
-  #         - Leitungen Buffer
-  #     - type: buffer
-  #       distance: -0.7
-  #     - type: difference
-  #       reverseDifference: false
-  #       layers:
-  #         - Leitungen Ontras Buffer Path
+  - name: Leitungen Buffer Path
+    # updateDxf: true # Schon modifiziert in DXF (lintetype generation and scale)
+    style: gfl1
+    operations:
+      - type: copy
+        layers:
+          - Leitungen Buffer
+      - type: buffer
+        distance: -0.7
+      - type: difference
+        reverseDifference: false
+        layers:
+          - Leitungen Ontras Buffer Path
 
-  # - name: Hendrik Report - Alle Leitungen Buffer
-  #   operations:
-  #     - type: copy
-  #       layers:
-  #         - Leitungen Buffer
-  #         - Leitung Ontras Buffer
-  #     - type: dissolve
-  #     - type: intersection
-  #       layers:
-  #         - Geltungsbereich
-  #     - type: dissolve
-  #     - type: report
-  #       outputFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/reports/hendrik_alle_leitungen_buffer_report.json"
-  #       calculate:
-  #         - area
-  #       decimalPlaces:
-  #         area: 0
+  - name: Hendrik Report - Alle Leitungen Buffer
+    operations:
+      - type: copy
+        layers:
+          - Leitungen Buffer
+          - Leitung Ontras Buffer
+      - type: dissolve
+      - type: intersection
+        layers:
+          - Geltungsbereich
+      - type: dissolve
+      - type: report
+        outputFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/reports/hendrik_alle_leitungen_buffer_report.json"
+        calculate:
+          - area
+        decimalPlaces:
+          area: 0
 
-  # - name: Hendrik Report - Alle Leitungen Buffer Ausgleich
-  #   operations:
-  #     - type: copy
-  #       layers:
-  #         - Leitungen Buffer
-  #         - Leitung Ontras Buffer
-  #     - type: dissolve
-  #     - type: intersection
-  #       layers:
-  #         - Grünfläche
-  #     - type: intersection
-  #       layers:
-  #         - Geltungsbereich
-  #     - type: dissolve
-  #     - type: filterGeometry
-  #       geometryTypes:
-  #         - polygon
-  #       minArea: 2000
-  #     - type: dissolve
-  #     - type: report
-  #       outputFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/reports/hendrik_alle_leitungen_buffer_ausgleich_report.json"
-  #       calculate:
-  #         - area
-  #       decimalPlaces:
-  #         area: 0
+  - name: Hendrik Report - Alle Leitungen Buffer Ausgleich
+    operations:
+      - type: copy
+        layers:
+          - Leitungen Buffer
+          - Leitung Ontras Buffer
+      - type: dissolve
+      - type: intersection
+        layers:
+          - Grünfläche
+      - type: intersection
+        layers:
+          - Geltungsbereich
+      - type: dissolve
+      - type: filterGeometry
+        geometryTypes:
+          - polygon
+        minArea: 2000
+      - type: dissolve
+      - type: report
+        outputFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/reports/hendrik_alle_leitungen_buffer_ausgleich_report.json"
+        calculate:
+          - area
+        decimalPlaces:
+          area: 0
 
-  # ### Ausgleich ###
-  # # 20 Stunden Arbeit 10.12. und 11.12.2024
+  ### Ausgleich ###
+  # 20 Stunden Arbeit 10.12. und 11.12.2024
 
-  # # Biotoptypen
-  # - name: Biotoptyp Sonstiges Feuchtgrünland
-  #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/GFD - Sonstiges Feuchtgrünland.shp"
-  #   operations:
-  #     - type: intersection
-  #       layers:
-  #         - Geltungsbereich
-  #     - type: dissolve
-  #     - type: filterGeometry
-  #     - type: dissolve
-  #     - type: filterGeometry
-  #       geometryTypes:
-  #         - polygon
-  #       minArea: 1
+  # Biotoptypen
+  - name: Biotoptyp Sonstiges Feuchtgrünland
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/GFD - Sonstiges Feuchtgrünland.shp"
+    operations:
+      - type: intersection
+        layers:
+          - Geltungsbereich
+      - type: dissolve
+      - type: filterGeometry
+      - type: dissolve
+      - type: filterGeometry
+        geometryTypes:
+          - polygon
+        minArea: 1
 
-  # - name: Biotoptyp Sandacker
-  #   operations:
-  #     - type: copy
-  #       layers:
-  #         - Geltungsbereich
-  #     - type: difference
-  #       reverseDifference: false
-  #       layers:
-  #         - Biotoptyp Sonstiges Feuchtgrünland
-  #         - Zuwegung
+  - name: Biotoptyp Sandacker
+    operations:
+      - type: copy
+        layers:
+          - Geltungsbereich
+      - type: difference
+        reverseDifference: false
+        layers:
+          - Biotoptyp Sonstiges Feuchtgrünland
+          - Zuwegung
 
-  # # Externer Ausgleich
-  # - name: Ausgleich Extern
-  #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/Ausgleich Süden.shp"
+  # Externer Ausgleich
+  - name: Ausgleich Extern
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/Ausgleich Süden.shp"
 
-  # # Unchanging
-  # - name: Unchanging
-  #   operations:
-  #     - type: copy
-  #       layers:
-  #         - Geltungsbereich
-  #     - type: difference
-  #       reverseDifference: true
-  #       layers:
-  #         - Moor
-  #         - "ges gesch Biotope"
-  #         - Graben
-  #     - type: dissolve
-  #     - type: filterGeometry
-  #       geometryTypes:
-  #         - polygon
-  #       minArea: 1
+  # Unchanging
+  - name: Unchanging
+    operations:
+      - type: copy
+        layers:
+          - Geltungsbereich
+      - type: difference
+        reverseDifference: true
+        layers:
+          - Moor
+          - "ges gesch Biotope"
+          - Graben
+      - type: dissolve
+      - type: filterGeometry
+        geometryTypes:
+          - polygon
+        minArea: 1
 
-  # # Construction
-  # - name: Construction SF
-  #   operations:
-  #     - type: copy
-  #       layers:
-  #         - Baufeld
-  #     - type: dissolve
-  #     - type: intersection
-  #       layers:
-  #         - Biotoptyp Sonstiges Feuchtgrünland
-  #     - type: dissolve
-  #     - type: filterGeometry
-  #       geometryTypes:
-  #         - polygon
-  #       minArea: 1
+  # Construction
+  - name: Construction SF
+    operations:
+      - type: copy
+        layers:
+          - Baufeld
+      - type: dissolve
+      - type: intersection
+        layers:
+          - Biotoptyp Sonstiges Feuchtgrünland
+      - type: dissolve
+      - type: filterGeometry
+        geometryTypes:
+          - polygon
+        minArea: 1
 
-  # - name: Construction Sandacker
-  #   operations:
-  #     - type: copy
-  #       layers:
-  #         - Baufeld
-  #         # - Zuwegung
-  #     - type: dissolve
-  #     - type: intersection
-  #       layers:
-  #         - Biotoptyp Sandacker
-  #     - type: dissolve
-  #     - type: filterGeometry
-  #       geometryTypes:
-  #         - polygon
-  #       minArea: 1
+  - name: Construction Sandacker
+    operations:
+      - type: copy
+        layers:
+          - Baufeld
+          # - Zuwegung
+      - type: dissolve
+      - type: intersection
+        layers:
+          - Biotoptyp Sandacker
+      - type: dissolve
+      - type: filterGeometry
+        geometryTypes:
+          - polygon
+        minArea: 1
 
-  # - name: Construction ODS
-  #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/Zuwegungsabschnitt Biotoptyp ODS.shp"
-  #   operations:
-  #     - type: filterGeometry
-  #       geometryTypes:
-  #         - polygon
-  #       minArea: 1
+  - name: Construction ODS
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/Zuwegungsabschnitt Biotoptyp ODS.shp"
+    operations:
+      - type: filterGeometry
+        geometryTypes:
+          - polygon
+        minArea: 1
 
-  # - name: Construction RHU
-  #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/Zuwegungsabschnitt Biotoptyp RHU.shp"
-  #   operations:
-  #     - type: filterGeometry
-  #       geometryTypes:
-  #         - polygon
-  #       minArea: 1
+  - name: Construction RHU
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/Zuwegungsabschnitt Biotoptyp RHU.shp"
+    operations:
+      - type: filterGeometry
+        geometryTypes:
+          - polygon
+        minArea: 1
 
-  # # Compensatory
-  # # Can be skipped because Unchanging matches Biotoptyp Sonstiges Feuchtgrünland ?????????????????????????????????????ß
-  # # - name: Compensatory SF
-  # #   operations:
-  # #     - type: copy
-  # #       layers:
-  # #         - Grünfläche
-  # #     - type: difference
-  # #       reverseDifference: false
-  # #       layers:
-  # #         - Unchanging
-  # #     - type: intersection
-  # #       layers:
-  # #         - Biotoptyp Sonstiges Feuchtgrünland
-  # #     - type: dissolve
-  # #     - type: filterGeometry
-  # #       geometryTypes:
-  # #         - polygon
-  # #       minArea: 2000
-
-  # - name: Compensatory Sandacker
+  # Compensatory
+  # Can be skipped because Unchanging matches Biotoptyp Sonstiges Feuchtgrünland ?????????????????????????????????????ß
+  # - name: Compensatory SF
   #   operations:
   #     - type: copy
   #       layers:
@@ -1093,50 +1053,86 @@ geomLayers:
   #         - Unchanging
   #     - type: intersection
   #       layers:
-  #         - Biotoptyp Sandacker
+  #         - Biotoptyp Sonstiges Feuchtgrünland
   #     - type: dissolve
   #     - type: filterGeometry
   #       geometryTypes:
   #         - polygon
   #       minArea: 2000
 
-  # - name: Compensatory Extern
+  - name: Compensatory Sandacker
+    operations:
+      - type: copy
+        layers:
+          - Grünfläche
+      - type: difference
+        reverseDifference: false
+        layers:
+          - Unchanging
+      - type: intersection
+        layers:
+          - Biotoptyp Sandacker
+      - type: dissolve
+      - type: filterGeometry
+        geometryTypes:
+          - polygon
+        minArea: 2000
+
+  - name: Compensatory Extern
+    operations:
+      - type: copy
+        layers:
+          - Ausgleich Extern
+      - type: dissolve
+      - type: filterGeometry
+        geometryTypes:
+          - polygon
+        minArea: 1
+    # saveToLagefaktor: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/Lagefaktor/Waren_2/compensatory"
+
+  # Interference
+  - name: Interference
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/Störquellen.shp"
+    saveToLagefaktor: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/Lagefaktor/Waren_2/interference"
+
+  - name: "Buffer 100"
+    operations:
+      - type: buffer
+        layers:
+          - Interference
+        joinStyle: round
+        capStyle: round
+        distance: 100
+      - type: dissolve
+      - type: filterGeometry
+        geometryTypes:
+          - polygon
+        minArea: 1
+
+  - name: "Buffer >100<625"
+    operations:
+      - type: buffer
+        layers:
+          - Interference
+        distance: 625
+        joinStyle: round
+        capStyle: round
+      - type: dissolve
+      - type: difference
+        reverseDifference: false
+        layers:
+          - "Buffer 100"
+      - type: dissolve
+      - type: filterGeometry
+        geometryTypes:
+          - polygon
+        minArea: 1
+
+  # - name: "Buffer >625"
   #   operations:
   #     - type: copy
   #       layers:
-  #         - Ausgleich Extern
-  #     - type: dissolve
-  #     - type: filterGeometry
-  #       geometryTypes:
-  #         - polygon
-  #       minArea: 1
-  #   # saveToLagefaktor: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/Lagefaktor/Waren_2/compensatory"
-
-  # # Interference
-  # - name: Interference
-  #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/Störquellen.shp"
-  #   saveToLagefaktor: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/Lagefaktor/Waren_2/interference"
-
-  # - name: "Buffer 100"
-  #   operations:
-  #     - type: buffer
-  #       layers:
   #         - Interference
-  #       joinStyle: round
-  #       capStyle: round
-  #       distance: 100
-  #     - type: dissolve
-  #     - type: filterGeometry
-  #       geometryTypes:
-  #         - polygon
-  #       minArea: 1
-
-  # - name: "Buffer >100<625"
-  #   operations:
-  #     - type: buffer
-  #       layers:
-  #         - Interference
-  #       distance: 625
   #       joinStyle: round
   #       capStyle: round
   #     - type: dissolve
@@ -1144,106 +1140,88 @@ geomLayers:
   #       reverseDifference: false
   #       layers:
   #         - "Buffer 100"
+  #         - "Buffer >100<625"
   #     - type: dissolve
   #     - type: filterGeometry
   #       geometryTypes:
   #         - polygon
   #       minArea: 1
 
-  # # - name: "Buffer >625"
-  # #   operations:
-  # #     - type: copy
-  # #       layers:
-  # #         - Interference
-  # #       joinStyle: round
-  # #       capStyle: round
-  # #     - type: dissolve
-  # #     - type: difference
-  # #       reverseDifference: false
-  # #       layers:
-  # #         - "Buffer 100"
-  # #         - "Buffer >100<625"
-  # #     - type: dissolve
-  # #     - type: filterGeometry
-  # #       geometryTypes:
-  # #         - polygon
-  # #       minArea: 1
+  - name: Ausgleich Construction
+    operations:
+      - type: lagefaktor
+        grz: 0.5
+        parcelLayer: "Parcel"
+        parcelLabel: "label"
+        minParcelAreaPercent: 1
+        # showLog: true
+        protokolOutputDir: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/Lagefaktor/Waren_2_new"
+        context:
+          - distance: "<100"
+            value: 0.75
+            sourceLayer: "Buffer 100"
+          - distance: ">100<625"
+            value: 1
+            sourceLayer: "Buffer >100<625"
+          # - distance: ">625"
+          #   value: 1.25
+          #   geometry: "Buffer >625"
+        construction:
+          layers:
+            - layer: Construction SF
+              baseValue: 3
+            - layer: Construction Sandacker
+              baseValue: 1
+            - layer: Construction ODS
+              baseValue: 1
+            - layer: Construction RHU
+              baseValue: 3
 
-  # - name: Ausgleich Construction
-  #   operations:
-  #     - type: lagefaktor
-  #       grz: 0.5
-  #       parcelLayer: "Parcel"
-  #       parcelLabel: "label"
-  #       minParcelAreaPercent: 1
-  #       # showLog: true
-  #       protokolOutputDir: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/Lagefaktor/Waren_2_new"
-  #       context:
-  #         - distance: "<100"
-  #           value: 0.75
-  #           sourceLayer: "Buffer 100"
-  #         - distance: ">100<625"
-  #           value: 1
-  #           sourceLayer: "Buffer >100<625"
-  #         # - distance: ">625"
-  #         #   value: 1.25
-  #         #   geometry: "Buffer >625"
-  #       construction:
-  #         layers:
-  #           - layer: Construction SF
-  #             baseValue: 3
-  #           - layer: Construction Sandacker
-  #             baseValue: 1
-  #           - layer: Construction ODS
-  #             baseValue: 1
-  #           - layer: Construction RHU
-  #             baseValue: 3
+  - name: Ausgleich Compensatory
+    operations:
+      - type: lagefaktor
+        # showLog: true
+        grz: 0.5
+        parcelLayer: "Parcel"
+        parcelLabel: "label"
+        edgeAreaRange: 1
+        #   min: 3.5   # in square units
+        #   max: 4  # in square units
+        protokolOutputDir: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/Lagefaktor/Waren_2_new"
+        context:
+          - distance: "<100"
+            value: 0.75
+            sourceLayer: "Buffer 100"
+          - distance: ">100<625"
+            value: 1
+            sourceLayer: "Buffer >100<625"
+          # - distance: ">625"
+          #   value: 1.25
+          #   geometry: "Buffer >625"
+        compensatory:
+          layers:
+            - layer: Compensatory Sandacker
+              baseValue: 0
+              compensatoryMeasureValue: 3
+            - layer: Compensatory Extern
+              baseValue: 0
+              compensatoryMeasureValue: 3
 
-  # - name: Ausgleich Compensatory
-  #   operations:
-  #     - type: lagefaktor
-  #       # showLog: true
-  #       grz: 0.5
-  #       parcelLayer: "Parcel"
-  #       parcelLabel: "label"
-  #       edgeAreaRange: 1
-  #       #   min: 3.5   # in square units
-  #       #   max: 4  # in square units
-  #       protokolOutputDir: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/Lagefaktor/Waren_2_new"
-  #       context:
-  #         - distance: "<100"
-  #           value: 0.75
-  #           sourceLayer: "Buffer 100"
-  #         - distance: ">100<625"
-  #           value: 1
-  #           sourceLayer: "Buffer >100<625"
-  #         # - distance: ">625"
-  #         #   value: 1.25
-  #         #   geometry: "Buffer >625"
-  #       compensatory:
-  #         layers:
-  #           - layer: Compensatory Sandacker
-  #             baseValue: 0
-  #             compensatoryMeasureValue: 3
-  #           - layer: Compensatory Extern
-  #             baseValue: 0
-  #             compensatoryMeasureValue: 3
-
-  # # This is purely for display in QGIS. If I have had more time, I woudl have done this more programmatically/properly.
-  # - name: Wird nicht überplant
-  #   operations:
-  #     - type: copy
-  #       layers:
-  #         - Geltungsbereich
-  #         - Unchanging
-  #     - type: difference
-  #       reverseDifference: false
-  #       layers:
-  #         - Baufeld
-  #         # - Hendrik Report - Alle Leitungen Buffer
-  #         - Ausgleich Compensatory
-  #     - type: dissolve
-  #     - type: filterGeometry
-  #       geometryTypes:
-  #         - polygon
-  #       minArea: 2000
+  # This is purely for display in QGIS. If I have had more time, I woudl have done this more programmatically/properly.
+  - name: Wird nicht überplant
+    operations:
+      - type: copy
+        layers:
+          - Geltungsbereich
+          - Unchanging
+      - type: difference
+        reverseDifference: false
+        layers:
+          - Baufeld
+          # - Hendrik Report - Alle Leitungen Buffer
+          - Ausgleich Compensatory
+      - type: dissolve
+      - type: filterGeometry
+        geometryTypes:
+          - polygon
+        minArea: 2000
