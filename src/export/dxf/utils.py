@@ -1,20 +1,24 @@
 """
-DXF utilities for OLADPP.
+DXF utilities for PyCAD.
 Helper functions for DXF operations.
 """
 import os
 from pathlib import Path
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Union
 import ezdxf
 from ezdxf.lldxf.const import LWPOLYLINE_PLINEGEN
 from ezdxf import pattern
 from ezdxf import const
 from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, Point
-from ...utils.logging import log_debug, log_error, log_warning, ensure_path_exists, resolve_path
+from ...utils.logging import log_debug, log_error, log_warning
+from ...utils.path import ensure_path_exists, resolve_path
 from ...core.exceptions import ExportError
 
 # Constants
-SCRIPT_IDENTIFIER = "OLADPP"
+SCRIPT_IDENTIFIER = "PyCAD"
+
+# Invalid characters for layer names
+invalid_chars = r'<>/\:"|?*'
 
 def get_color_code(color_name: str) -> int:
     """Get AutoCAD color code from color name.
@@ -182,7 +186,6 @@ def sanitize_layer_name(name: str) -> str:
         Sanitized layer name
     """
     # Replace invalid characters
-    invalid_chars = '<>/\:"|?*'
     for char in invalid_chars:
         name = name.replace(char, '_')
 

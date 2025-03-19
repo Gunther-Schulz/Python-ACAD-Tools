@@ -1,13 +1,12 @@
 """
 Main processing pipeline for OLADPP.
 """
-from typing import Dict, Any, Optional
-from pathlib import Path
-from .project import Project
-from .exceptions import ProcessingError
-from ..processing import LayerProcessor
-from ..export import DXFExporter
-from ..style import StyleManager
+from typing import Optional
+from src.core.exceptions import ProcessingError
+from src.core.project import Project
+from src.processing import LayerProcessor
+from src.style import StyleManager
+from src.export.dxf import DXFExporter
 
 
 class Processor:
@@ -40,7 +39,9 @@ class Processor:
         """Process the project."""
         try:
             # Load or create DXF document
-            doc = self.dxf_exporter._load_or_create_dxf(skip_dxf_processor=False)
+            doc = self.dxf_exporter._load_or_create_dxf(
+                skip_dxf_processor=False
+            )
 
             # Set document in layer processor
             self.layer_processor.set_dxf_document(doc)

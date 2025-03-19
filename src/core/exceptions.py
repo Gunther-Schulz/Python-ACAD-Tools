@@ -25,3 +25,7 @@ class ExportError(OLADPPError):
 class ConfigurationError(OLADPPError):
     """Raised when there are issues with application configuration."""
     pass
+
+class StyleError(OLADPPError):
+    """Raised when there are issues with style configuration or loading."""
+    pass

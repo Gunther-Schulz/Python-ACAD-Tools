@@ -1,15 +1,15 @@
 """
 Layer processor for handling layer operations and geometry processing.
 """
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional
 from pathlib import Path
 import geopandas as gpd
-from ...core.exceptions import ProcessingError
-from ...core.project import Project
-from .geometry_processor import GeometryProcessor
-from .operations.base import BaseOperation
-from .operations.buffer import BufferOperation
-from ...style.manager import StyleManager
+from src.core.exceptions import ProcessingError
+from src.core.project import Project
+from src.style import StyleManager
+from src.processing.geometry_processor import GeometryProcessor
+from src.processing.operations.base import BaseOperation
+from src.processing.operations.buffer import BufferOperation
 
 
 class LayerProcessor:

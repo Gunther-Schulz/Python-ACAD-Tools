@@ -1,18 +1,18 @@
 """
-Command-line interface for OLADPP.
+Command-line interface for PyCAD.
 """
 import os
 import typer
 from rich.console import Console
 from rich.table import Table
-from ..core.project import Project
-from ..core.exceptions import ProjectError, ProcessingError
-from ..core.processor import Processor
+from src.core.project import Project
+from src.core.exceptions import ProjectError, ProcessingError
+from src.core.processor import Processor
 
 # Initialize Typer app
 app = typer.Typer(
-    name="oladpp",
-    help="OpenLayers AutoCAD Data Processing Pipeline",
+    name="pycad",
+    help="Python CAD Data Processing Pipeline",
     add_completion=False
 )
 
