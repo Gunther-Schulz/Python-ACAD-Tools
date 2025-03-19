@@ -1,2 +1,6 @@
+# Global settings for OLADPP projects
+folderPrefix: ""  # Base directory for all project files
+logFile: "./log.txt"  # Path to log file
+
 # folderPrefix: "~/IONOS HiDrive"
 folderPrefix: "~/hidrive"

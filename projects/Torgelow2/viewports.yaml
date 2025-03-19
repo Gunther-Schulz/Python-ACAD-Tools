@@ -1,0 +1,67 @@
+# viewports:
+#   - name: WorkView
+#     updateDxf: true
+#     color: "magenta"
+#     center:
+#       x: 780
+#       y: 2000
+#     height: 653
+#     width: 720
+#     viewCenter:
+#       x: 351016
+#       y: 5936541
+#     frozenLayers:
+#       - WMTS Basemap
+#       - Geltungsbereich Hatches
+#       - Baufeld Schraffur
+#       - Grünflächen Schraffur
+#       - Schutzflächen Schraffur
+#   - name: MainView
+#     updateDxf: true
+#     color: "magenta"
+#     topLeft:
+#       x: 65
+#       y: 776.5
+#     width: 720
+#     height: 653
+#     viewCenter:
+#       x: 351016
+#       y: 5936541
+#     customScale: 0.5
+#     lockZoom: true
+#     frozenLayers:
+#       - Geltungsbereich Hatch
+#       - WMTS Basemap
+#   - name: Legend
+#     updateDxf: true
+#     color: "magenta"
+#     topLeft:
+#       x: 817
+#       y: 842
+#     height: 435
+#     width: 180
+#     viewTopLeft:
+#       x: 367839
+#       y: 5942627
+#     frozenLayers:
+#       - WMTS Basemap
+#     # scale: 2
+#     # customScale: 0.5
+#     lockZoom: true
+#   - name: Übersichtskarte
+#     updateDxf: true
+#     color: "magenta"
+#     topLeft:
+#       x: 817
+#       y: 370
+#     height: 163
+#     width: 172
+#     viewCenter:
+#       x: 351013
+#       y: 5936537
+#     scale: 30
+#     visibleLayers:
+#       - Geltungsbereich 
+#       - Geltungsbereich Hatch
+#       - WMTS Basemap
+#     lockZoom: true
