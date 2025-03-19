@@ -1,14 +1,13 @@
 """
-Project configuration and management for OLADPP.
+Project configuration and management.
 """
 import os
-import yaml
-import logging
-from typing import Dict, Any, Optional, List, Tuple
+from pathlib import Path
+from typing import Dict, Any
 from .exceptions import ProjectError
-
-# Configure logging
-logger = logging.getLogger(__name__)
+from ..utils.path import resolve_path
+from ..utils.yaml_utils import load_yaml_file, load_yaml_with_key
+from ..utils.logging import log_warning, log_info, log_debug
 
 
 class Project:
@@ -23,13 +22,13 @@ class Project:
         """
         self.project_name = project_name
         self.project_dir = os.path.join('projects', self.project_name)
+        self.settings = {}  # Store all settings in a single dictionary
 
         # Validate project directory exists
         if not os.path.exists(self.project_dir):
             raise ProjectError(f"Project directory not found: {self.project_dir}")
 
         # Initialize settings
-        self.project_settings = {}
         self.folder_prefix = ""
         self.log_file = "./log.txt"
         self.dxf_filename = ""
@@ -49,101 +48,124 @@ class Project:
         self.load_color_mapping()
         self.load_styles()
 
-    def load_global_settings(self) -> None:
-        """Load global settings from projects.yaml"""
-        try:
-            with open('projects.yaml', 'r') as file:
-                data = yaml.safe_load(file)
-                self.folder_prefix = data.get('folderPrefix', '')
-                self.log_file = data.get('logFile', './log.txt')
-                logger.info(f"Loaded global settings from projects.yaml")
-        except FileNotFoundError:
-            raise ProjectError("Global settings file (projects.yaml) not found in root directory")
-        except yaml.YAMLError as e:
-            raise ProjectError(f"Error parsing projects.yaml: {str(e)}")
-
-    def load_yaml_file(self, filename: str, required: bool = True) -> Dict[str, Any]:
+    def get(self, key: str, default: Any = None) -> Any:
         """
-        Helper to load YAML files from project directory.
+        Get a value from project settings using dictionary-style access.
 
         Args:
-            filename: Name of the YAML file to load
-            required: Whether the file is required
+            key: Key to look up
+            default: Default value if key not found
 
         Returns:
-            Dictionary containing the YAML data
+            Value from settings or default
         """
-        filepath = os.path.join(self.project_dir, filename)
-        if os.path.exists(filepath):
-            try:
-                with open(filepath, 'r') as file:
-                    data = yaml.safe_load(file)
-                    if data is None:  # File is empty or contains only comments
-                        logger.debug(f"File {filename} is empty or contains only comments")
-                        return {}
-                    logger.info(f"Loaded {filename}")
-                    return data
-            except yaml.YAMLError as e:
-                raise ProjectError(f"Error parsing {filename}: {str(e)}")
-        elif required:
-            raise ProjectError(f"Required config file not found: {filepath}")
-        logger.debug(f"Optional file not found: {filepath}")
-        return {}
+        return self.settings.get(key, default)
+
+    def load_global_settings(self) -> None:
+        """Load global settings from projects.yaml"""
+        data = load_yaml_file('projects.yaml')
+        self.folder_prefix = data.get('folderPrefix', '')
+        self.log_file = data.get('logFile', './log.txt')
+        log_info(f"Loaded global settings from projects.yaml")
 
     def load_project_settings(self) -> None:
         """Load project specific settings from modular config files"""
         # Load main project settings
-        main_settings = self.load_yaml_file('project.yaml', required=True)
+        main_settings = load_yaml_file(
+            os.path.join(self.project_dir, 'project.yaml')
+        )
 
-        # Load additional configurations
-        geom_layers = self.load_yaml_file('geom_layers.yaml', required=False) or {}
-        legends = self.load_yaml_file('legends.yaml', required=False) or {}
-        viewports = self.load_yaml_file('viewports.yaml', required=False) or {}
-        block_inserts = self.load_yaml_file('block_inserts.yaml', required=False) or {}
-        text_inserts = self.load_yaml_file('text_inserts.yaml', required=False)
-        path_arrays = self.load_yaml_file('path_arrays.yaml', required=False) or {}
-        wmts_wms_layers = self.load_yaml_file('wmts_wms_layers.yaml', required=False) or {}
+        # Load additional configurations with defaults
+        geom_layers = load_yaml_with_key(
+            os.path.join(self.project_dir, 'geom_layers.yaml'),
+            'geomLayers',
+            required=False,
+            default=[]
+        )
+        legends = load_yaml_with_key(
+            os.path.join(self.project_dir, 'legends.yaml'),
+            'legends',
+            required=False,
+            default=[]
+        )
+        viewports = load_yaml_with_key(
+            os.path.join(self.project_dir, 'viewports.yaml'),
+            'viewports',
+            required=False,
+            default=[]
+        )
+        block_inserts = load_yaml_with_key(
+            os.path.join(self.project_dir, 'block_inserts.yaml'),
+            'blockInserts',
+            required=False,
+            default=[]
+        )
+        text_inserts = load_yaml_with_key(
+            os.path.join(self.project_dir, 'text_inserts.yaml'),
+            'textInserts',
+            required=False,
+            default=[]
+        )
+        path_arrays = load_yaml_with_key(
+            os.path.join(self.project_dir, 'path_arrays.yaml'),
+            'pathArrays',
+            required=False,
+            default=[]
+        )
+        wmts_wms_layers = load_yaml_file(
+            os.path.join(self.project_dir, 'wmts_wms_layers.yaml'),
+            required=False,
+            default={}
+        )
 
         # Merge all configurations
-        self.project_settings = {
+        self.settings = {
             **main_settings,
-            'geomLayers': geom_layers.get('geomLayers', []),
-            'legends': legends.get('legends', []),
-            'viewports': viewports.get('viewports', []),
-            'blockInserts': block_inserts.get('blockInserts', []),
-            'textInserts': text_inserts.get('textInserts', []),
-            'pathArrays': path_arrays.get('pathArrays', []),
+            'geomLayers': geom_layers,
+            'legends': legends,
+            'viewports': viewports,
+            'blockInserts': block_inserts,
+            'textInserts': text_inserts,
+            'pathArrays': path_arrays,
             'wmtsLayers': wmts_wms_layers.get('wmtsLayers', []),
             'wmsLayers': wmts_wms_layers.get('wmsLayers', [])
         }
 
         # Process core settings
-        self.crs = self.project_settings['crs']
-        self.dxf_filename = self.resolve_full_path(self.project_settings['dxfFilename'])
-        self.template_dxf = self.resolve_full_path(self.project_settings.get('template', '')) if self.project_settings.get('template') else None
-        self.export_format = self.project_settings.get('exportFormat', 'dxf')
-        self.dxf_version = self.project_settings.get('dxfVersion', 'R2010')
+        self.crs = self.settings['crs']
+        self.dxf_filename = self.resolve_full_path(
+            self.settings['dxfFilename']
+        )
+        self.template_dxf = self.resolve_full_path(
+            self.settings.get('template', '')
+        ) if self.settings.get('template') else None
+        self.export_format = self.settings.get('exportFormat', 'dxf')
+        self.dxf_version = self.settings.get('dxfVersion', 'R2010')
 
         # Create output directory if it doesn't exist
-        self.shapefile_output_dir = self.resolve_full_path(self.project_settings.get('shapefileOutputDir', ''))
+        self.shapefile_output_dir = self.resolve_full_path(
+            self.settings.get('shapefileOutputDir', '')
+        )
         if self.shapefile_output_dir:
             os.makedirs(self.shapefile_output_dir, exist_ok=True)
 
         # Process layer operations
-        for layer in self.project_settings.get('geomLayers', []):
+        for layer in self.settings.get('geomLayers', []):
             if 'operations' in layer:
                 self.process_operations(layer)
             if 'shapeFile' in layer:
-                layer['shapeFile'] = self.resolve_full_path(layer['shapeFile'])
+                layer['shapeFile'] = self.resolve_full_path(
+                    layer['shapeFile']
+                )
 
         # Process WMTS/WMS layers operations
-        for layer in self.project_settings.get('wmtsLayers', []):
+        for layer in self.settings.get('wmtsLayers', []):
             if 'operations' in layer:
                 self.process_operations(layer)
                 for operation in layer['operations']:
                     operation['type'] = 'wmts'
 
-        for layer in self.project_settings.get('wmsLayers', []):
+        for layer in self.settings.get('wmsLayers', []):
             if 'operations' in layer:
                 self.process_operations(layer)
                 for operation in layer['operations']:
@@ -152,30 +174,56 @@ class Project:
     def load_color_mapping(self) -> None:
         """Load color mapping from aci_colors.yaml"""
         try:
-            with open('aci_colors.yaml', 'r') as file:
-                color_data = yaml.safe_load(file)
-                self.name_to_aci = {item['name'].lower(): item['aciCode'] for item in color_data}
-                self.aci_to_name = {item['aciCode']: item['name'] for item in color_data}
-                logger.info("Loaded color mapping from aci_colors.yaml")
-        except FileNotFoundError:
-            logger.warning("aci_colors.yaml not found in root directory. Using default color mapping.")
-            self.name_to_aci = {'white': 7, 'red': 1, 'yellow': 2, 'green': 3, 'cyan': 4, 'blue': 5, 'magenta': 6}
-            self.aci_to_name = {v: k for k, v in self.name_to_aci.items()}
-        except yaml.YAMLError as e:
-            raise ProjectError(f"Error parsing aci_colors.yaml: {str(e)}")
+            data = load_yaml_file('aci_colors.yaml', required=False)
+            if data:
+                self.name_to_aci = {
+                    item['name'].lower(): item['aciCode']
+                    for item in data
+                }
+                self.aci_to_name = {
+                    item['aciCode']: item['name']
+                    for item in data
+                }
+            else:
+                # Use default color mapping
+                self.name_to_aci = {
+                    'white': 7, 'red': 1, 'yellow': 2, 'green': 3,
+                    'cyan': 4, 'blue': 5, 'magenta': 6
+                }
+                self.aci_to_name = {
+                    v: k for k, v in self.name_to_aci.items()
+                }
+                log_warning(
+                    "Using default color mapping due to missing aci_colors.yaml"
+                )
+        except ProjectError:
+            # Use default color mapping
+            self.name_to_aci = {
+                'white': 7, 'red': 1, 'yellow': 2, 'green': 3,
+                'cyan': 4, 'blue': 5, 'magenta': 6
+            }
+            self.aci_to_name = {
+                v: k for k, v in self.name_to_aci.items()
+            }
+            log_warning(
+                "Using default color mapping due to missing aci_colors.yaml"
+            )
 
     def load_styles(self) -> None:
         """Load styles from root styles.yaml"""
         try:
-            with open('styles.yaml', 'r') as file:
-                style_data = yaml.safe_load(file)
-                self.styles = style_data.get('styles', {})
-                logger.info("Loaded styles from styles.yaml")
-        except FileNotFoundError:
-            logger.warning("styles.yaml not found in root directory. Using project-specific styles.")
+            self.styles = load_yaml_with_key(
+                'styles.yaml',
+                'styles',
+                required=False,
+                default={}
+            )
+        except ProjectError:
+            log_warning(
+                "styles.yaml not found in root directory. "
+                "Using project-specific styles."
+            )
             self.styles = self.project_settings.get('styles', {})
-        except yaml.YAMLError as e:
-            raise ProjectError(f"Error parsing styles.yaml: {str(e)}")
 
     def get_style(self, style_name: str) -> Dict[str, Any]:
         """
@@ -201,9 +249,7 @@ class Project:
         Returns:
             Resolved path
         """
-        if not path:
-            return ""
-        return os.path.join(self.folder_prefix, path)
+        return resolve_path(path, self.folder_prefix)
 
     def process_operations(self, layer: Dict[str, Any]) -> None:
         """
@@ -219,5 +265,12 @@ class Project:
                     new_operations.append(operation)
                 else:
                     layer_name = layer.get('name', 'Unknown')
-                    raise ProjectError(f"Invalid operation found in layer '{layer_name}': {operation}")
+                    raise ProjectError(
+                        f"Invalid operation found in layer '{layer_name}': "
+                        f"{operation}"
+                    )
             layer['operations'] = new_operations
+
+        # Process shapeFile paths
+        if 'shapeFile' in layer:
+            layer['shapeFile'] = self.resolve_full_path(layer['shapeFile'])

@@ -1,18 +1,19 @@
 """
 DXF exporter for handling DXF file operations.
 """
-from typing import Dict, Any, Optional
+from typing import Dict, Any, List, Tuple
 from pathlib import Path
 import ezdxf
+from ezdxf.document import Drawing
+from ezdxf.layouts import Modelspace
 from ...core.exceptions import ProcessingError
 from ...core.project import Project
 from ...processing import LayerProcessor
 from ...style import StyleManager
+from ...utils.path import resolve_path, ensure_path_exists
 from .utils import (
-    get_color_code, attach_custom_data, is_created_by_script,
-    add_text, add_mtext, remove_entities_by_layer, ensure_layer_exists,
-    update_layer_properties, set_drawing_properties, verify_dxf_settings,
-    sanitize_layer_name
+    attach_custom_data, ensure_layer_exists,
+    update_layer_properties, set_drawing_properties
 )
 
 
@@ -37,7 +38,7 @@ class DXFExporter:
         self.layer_processor = layer_processor
         self.style_manager = style_manager
         self.doc = None
-        self.script_identifier = "OLADPP"
+        self.script_identifier = "PyCAD"
         self.loaded_styles = set()
 
         # Get project settings
@@ -45,28 +46,16 @@ class DXFExporter:
         self.folder_prefix = project.folder_prefix
 
         # Resolve paths with folder prefix
-        self.dxf_filename = self._resolve_path(self.project_settings['dxfFilename'])
-        self.template_filename = self._resolve_path(
-            self.project_settings.get('templateDxfFilename', '')
+        self.dxf_filename = resolve_path(
+            self.project_settings['dxfFilename'],
+            self.folder_prefix
+        )
+        self.template_filename = resolve_path(
+            self.project_settings.get('templateDxfFilename', ''),
+            self.folder_prefix
         )
 
-    def _resolve_path(self, path: str) -> str:
-        """
-        Resolve a path using the folder prefix.
-
-        Args:
-            path: Path to resolve
-
-        Returns:
-            Resolved path
-        """
-        if not path:
-            return path
-        if Path(path).is_absolute():
-            return path
-        return str(Path(self.folder_prefix) / path)
-
-    def _load_or_create_dxf(self, skip_dxf_processor: bool = False) -> ezdxf.Document:
+    def _load_or_create_dxf(self, skip_dxf_processor: bool = False) -> Drawing:
         """
         Load or create a DXF document.
 
@@ -121,6 +110,10 @@ class DXFExporter:
             for layer_name, layer_data in self.layer_processor.layers.items():
                 self._process_layer(layer_name, layer_data, msp)
 
+            # Ensure output directory exists
+            output_dir = str(Path(self.dxf_filename).parent)
+            ensure_path_exists(output_dir)
+
             # Save document
             self.doc.saveas(self.dxf_filename)
 
@@ -131,7 +124,7 @@ class DXFExporter:
         self,
         layer_name: str,
         layer_data: Dict[str, Any],
-        msp: ezdxf.Modelspace
+        msp: Modelspace
     ) -> None:
         """
         Process a layer.
@@ -143,7 +136,7 @@ class DXFExporter:
         """
         try:
             # Ensure layer exists
-            ensure_layer_exists(self.doc, layer_name)
+            layer = ensure_layer_exists(self.doc, layer_name)
 
             # Get layer properties
             layer_properties = layer_data.get('config', {})
@@ -151,12 +144,7 @@ class DXFExporter:
 
             # Update layer properties
             if layer_properties or style:
-                update_layer_properties(
-                    self.doc,
-                    layer_name,
-                    layer_properties,
-                    style
-                )
+                update_layer_properties(layer, layer_properties)
 
             # Process geometry
             geometry = layer_data.get('geometry')
@@ -170,7 +158,7 @@ class DXFExporter:
         self,
         geometry: object,
         layer_name: str,
-        msp: ezdxf.Modelspace
+        msp: Modelspace
     ) -> None:
         """
         Process a geometry.
@@ -192,16 +180,41 @@ class DXFExporter:
             elif isinstance(geometry, Point):
                 self._process_point(geometry, layer_name, msp)
             else:
-                raise ProcessingError(f"Unsupported geometry type: {type(geometry)}")
+                raise ProcessingError(
+                    f"Unsupported geometry type: {type(geometry)}"
+                )
 
         except Exception as e:
             raise ProcessingError(f"Error processing geometry: {str(e)}")
+
+    def _add_polyline(
+        self,
+        coords: List[Tuple[float, float]],
+        layer_name: str,
+        msp: Modelspace,
+        close: bool = False
+    ) -> None:
+        """
+        Add a polyline to the modelspace.
+
+        Args:
+            coords: List of coordinate tuples
+            layer_name: Name of the layer
+            msp: Modelspace to add entities to
+            close: Whether to close the polyline
+        """
+        if coords:
+            polyline = msp.add_lwpolyline(coords)
+            polyline.dxf.layer = layer_name
+            if close:
+                polyline.close(True)
+            attach_custom_data(polyline, {'created_by': self.script_identifier})
 
     def _process_polygon(
         self,
         geometry: object,
         layer_name: str,
-        msp: ezdxf.Modelspace
+        msp: Modelspace
     ) -> None:
         """
         Process a polygon geometry.
@@ -211,24 +224,18 @@ class DXFExporter:
             layer_name: Name of the layer
             msp: Modelspace to add entities to
         """
-        from shapely.geometry import Polygon, MultiPolygon
-
         if isinstance(geometry, MultiPolygon):
             for polygon in geometry.geoms:
                 self._process_polygon(polygon, layer_name, msp)
         else:
             coords = list(geometry.exterior.coords)
-            if coords:
-                polyline = msp.add_lwpolyline(coords)
-                polyline.dxf.layer = layer_name
-                polyline.close(True)
-                attach_custom_data(polyline, {'created_by': self.script_identifier})
+            self._add_polyline(coords, layer_name, msp, close=True)
 
     def _process_line(
         self,
         geometry: object,
         layer_name: str,
-        msp: ezdxf.Modelspace
+        msp: Modelspace
     ) -> None:
         """
         Process a line geometry.
@@ -238,23 +245,18 @@ class DXFExporter:
             layer_name: Name of the layer
             msp: Modelspace to add entities to
         """
-        from shapely.geometry import LineString, MultiLineString
-
         if isinstance(geometry, MultiLineString):
             for line in geometry.geoms:
                 self._process_line(line, layer_name, msp)
         else:
             coords = list(geometry.coords)
-            if coords:
-                polyline = msp.add_lwpolyline(coords)
-                polyline.dxf.layer = layer_name
-                attach_custom_data(polyline, {'created_by': self.script_identifier})
+            self._add_polyline(coords, layer_name, msp)
 
     def _process_point(
         self,
         geometry: object,
         layer_name: str,
-        msp: ezdxf.Modelspace
+        msp: Modelspace
     ) -> None:
         """
         Process a point geometry.

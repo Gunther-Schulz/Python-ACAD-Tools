@@ -26,6 +26,7 @@ class LayerProcessor:
         self.geometry_processor = GeometryProcessor()
         self.style_manager = None
         self.layers = {}
+        self.dxf_document = None
 
     def set_style_manager(self, style_manager: StyleManager) -> None:
         """
@@ -35,6 +36,51 @@ class LayerProcessor:
             style_manager: Style manager instance
         """
         self.style_manager = style_manager
+
+    def set_dxf_document(self, doc: object) -> None:
+        """
+        Set the DXF document.
+
+        Args:
+            doc: DXF document instance
+        """
+        self.dxf_document = doc
+
+    def get_dxf_document(self) -> Optional[object]:
+        """
+        Get the DXF document.
+
+        Returns:
+            DXF document instance or None
+        """
+        return self.dxf_document
+
+    def process_layers(self) -> None:
+        """Process all layers from project settings."""
+        try:
+            # Process geometry layers
+            for layer_config in self.project.settings.get('geomLayers', []):
+                layer_name = layer_config.get('name')
+                if not layer_name:
+                    raise ProcessingError("Layer name not specified")
+                self.process_layer(layer_name, layer_config)
+
+            # Process WMTS layers
+            for layer_config in self.project.settings.get('wmtsLayers', []):
+                layer_name = layer_config.get('name')
+                if not layer_name:
+                    raise ProcessingError("Layer name not specified")
+                self.process_layer(layer_name, layer_config)
+
+            # Process WMS layers
+            for layer_config in self.project.settings.get('wmsLayers', []):
+                layer_name = layer_config.get('name')
+                if not layer_name:
+                    raise ProcessingError("Layer name not specified")
+                self.process_layer(layer_name, layer_config)
+
+        except Exception as e:
+            raise ProcessingError(f"Error processing layers: {str(e)}")
 
     def process_layer(self, layer_name: str, layer_config: Dict[str, Any]) -> None:
         """
@@ -79,16 +125,10 @@ class LayerProcessor:
         Returns:
             Loaded geometry or None if not found
         """
-        if 'source' not in layer_config:
-            raise ProcessingError(f"No source specified for layer {layer_name}")
-
-        source = layer_config['source']
-        if source['type'] == 'shapefile':
-            file_path = Path(source['path'])
-            if not file_path.is_absolute():
-                file_path = self.project.project_dir / file_path
-
-            if not file_path.exists():
+        # Handle legacy shapeFile format
+        if 'shapeFile' in layer_config:
+            file_path = layer_config['shapeFile']
+            if not Path(file_path).exists():
                 raise ProcessingError(f"Shapefile not found: {file_path}")
 
             try:
@@ -97,7 +137,28 @@ class LayerProcessor:
             except Exception as e:
                 raise ProcessingError(f"Error reading shapefile {file_path}: {str(e)}")
 
-        raise ProcessingError(f"Unsupported source type: {source['type']}")
+        # Handle new source format
+        if 'source' in layer_config:
+            source = layer_config['source']
+            if source['type'] == 'shapefile':
+                file_path = source['path']
+                if not Path(file_path).exists():
+                    raise ProcessingError(f"Shapefile not found: {file_path}")
+
+                try:
+                    gdf = gpd.read_file(file_path)
+                    return gdf.geometry.iloc[0] if not gdf.empty else None
+                except Exception as e:
+                    raise ProcessingError(f"Error reading shapefile {file_path}: {str(e)}")
+
+            raise ProcessingError(f"Unsupported source type: {source['type']}")
+
+        # Handle layers with operations but no source
+        if 'operations' in layer_config:
+            # These layers will get their geometry from operations
+            return None
+
+        raise ProcessingError(f"No source specified for layer {layer_name}")
 
     def _apply_layer_style(self, layer_name: str) -> None:
         """
