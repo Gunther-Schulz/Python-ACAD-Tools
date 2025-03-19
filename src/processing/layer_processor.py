@@ -11,6 +11,7 @@ from src.style import StyleManager
 from src.processing.geometry_processor import GeometryProcessor
 from src.processing.operations.base import BaseOperation
 from src.processing.operations.buffer import BufferOperation
+from src.utils.logging import log_info, log_warning, log_error
 
 
 class LayerProcessor:
@@ -99,10 +100,15 @@ class LayerProcessor:
             layer_config: Layer configuration
         """
         try:
+            log_info(f"Processing layer: {layer_name}")
+
             # Load layer data
             geometry = self._load_layer_data(layer_name, layer_config)
             if geometry is None:
-                raise ProcessingError(f"No geometry found for layer {layer_name}")
+                log_warning(f"No geometry found for layer {layer_name}")
+                return
+
+            log_info(f"Loaded geometry for layer {layer_name}: {type(geometry)}")
 
             # Store layer data
             self.layers[layer_name] = {
@@ -116,10 +122,14 @@ class LayerProcessor:
 
             # Process operations
             if 'operations' in layer_config:
+                log_info(f"Processing operations for layer: {layer_name}")
                 for op_config in layer_config['operations']:
                     self._process_operation(layer_name, op_config)
 
+            log_info(f"Successfully processed layer: {layer_name}")
+
         except Exception as e:
+            log_error(f"Error processing layer {layer_name}: {str(e)}")
             raise ProcessingError(f"Error processing layer {layer_name}: {str(e)}")
 
     def _load_layer_data(self, layer_name: str, layer_config: Dict[str, Any]) -> Optional[object]:
@@ -133,40 +143,57 @@ class LayerProcessor:
         Returns:
             Loaded geometry or None if not found
         """
-        # Handle legacy shapeFile format
-        if 'shapeFile' in layer_config:
-            file_path = layer_config['shapeFile']
-            if not Path(file_path).exists():
-                raise ProcessingError(f"Shapefile not found: {file_path}")
-
-            try:
-                gdf = gpd.read_file(file_path)
-                return gdf.geometry.iloc[0] if not gdf.empty else None
-            except Exception as e:
-                raise ProcessingError(f"Error reading shapefile {file_path}: {str(e)}")
-
-        # Handle new source format
-        if 'source' in layer_config:
-            source = layer_config['source']
-            if source['type'] == 'shapefile':
-                file_path = source['path']
+        try:
+            # Handle legacy shapeFile format
+            if 'shapeFile' in layer_config:
+                file_path = layer_config['shapeFile']
                 if not Path(file_path).exists():
+                    log_error(f"Shapefile not found: {file_path}")
                     raise ProcessingError(f"Shapefile not found: {file_path}")
 
-                try:
+                log_info(f"Loading shapefile for layer {layer_name}: {file_path}")
+                gdf = gpd.read_file(file_path)
+                if gdf.empty:
+                    log_warning(f"Empty shapefile for layer {layer_name}")
+                    return None
+
+                geometry = gdf.geometry.iloc[0]
+                log_info(f"Loaded geometry type: {type(geometry)}")
+                return geometry
+
+            # Handle new source format
+            if 'source' in layer_config:
+                source = layer_config['source']
+                if source['type'] == 'shapefile':
+                    file_path = source['path']
+                    if not Path(file_path).exists():
+                        log_error(f"Shapefile not found: {file_path}")
+                        raise ProcessingError(f"Shapefile not found: {file_path}")
+
+                    log_info(f"Loading shapefile for layer {layer_name}: {file_path}")
                     gdf = gpd.read_file(file_path)
-                    return gdf.geometry.iloc[0] if not gdf.empty else None
-                except Exception as e:
-                    raise ProcessingError(f"Error reading shapefile {file_path}: {str(e)}")
+                    if gdf.empty:
+                        log_warning(f"Empty shapefile for layer {layer_name}")
+                        return None
 
-            raise ProcessingError(f"Unsupported source type: {source['type']}")
+                    geometry = gdf.geometry.iloc[0]
+                    log_info(f"Loaded geometry type: {type(geometry)}")
+                    return geometry
 
-        # Handle layers with operations but no source
-        if 'operations' in layer_config:
-            # These layers will get their geometry from operations
-            return None
+                log_error(f"Unsupported source type: {source['type']}")
+                raise ProcessingError(f"Unsupported source type: {source['type']}")
 
-        raise ProcessingError(f"No source specified for layer {layer_name}")
+            # Handle layers with operations but no source
+            if 'operations' in layer_config:
+                log_info(f"Layer {layer_name} has no source but has operations")
+                return None
+
+            log_error(f"No source specified for layer {layer_name}")
+            raise ProcessingError(f"No source specified for layer {layer_name}")
+
+        except Exception as e:
+            log_error(f"Error loading layer data for {layer_name}: {str(e)}")
+            raise ProcessingError(f"Error loading layer data for {layer_name}: {str(e)}")
 
     def _apply_layer_style(self, layer_name: str) -> None:
         """

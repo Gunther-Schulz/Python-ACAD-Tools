@@ -3,29 +3,29 @@ geomLayers:
   - name: Flur
     updateDxf: true
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/input/flur2.shp"
-    simpleLabel: flurname  # Keep this as a string
-    style:
-      layer:
-        color: "white"
-        linetype: "CONTINUOUS"
-        lineweight: 13
-        plot: true
-        locked: false
-        frozen: false
-        is_on: true
-        transparency: 0
-      entity:
-        close: true
-        linetypeScale: 0.2
-        linetypeGeneration: true
-      text:
-        height: 20.5
-        font: "Arial"
-        style: "Arial"
-        color: "red"
-        attachmentPoint: "MIDDLE_LEFT"
-        paragraph:
-          align: "LEFT"
+    # simpleLabel: flurname  # Keep this as a string
+    # style:
+    #   layer:
+    #     color: "white"
+    #     linetype: "CONTINUOUS"
+    #     lineweight: 13
+    #     plot: true
+    #     locked: false
+    #     frozen: false
+    #     is_on: true
+    #     transparency: 0
+    #   entity:
+    #     close: true
+    #     linetypeScale: 0.2
+    #     linetypeGeneration: true
+    #   text:
+    #     height: 20.5
+    #     font: "Arial"
+    #     style: "Arial"
+    #     color: "red"
+    #     attachmentPoint: "MIDDLE_LEFT"
+    #     paragraph:
+    #       align: "LEFT"
     # viewports:
     #   - name: WorkView
     #     style: flurWorkView

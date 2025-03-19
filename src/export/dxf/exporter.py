@@ -20,6 +20,7 @@ from .utils import (
 )
 from ...utils.logging import log_debug, log_warning, log_info, log_error
 from ezdxf.lldxf.const import LWPOLYLINE_PLINEGEN
+import os
 
 
 class DXFExporter:
@@ -104,8 +105,19 @@ class DXFExporter:
         if 'style' in layer:
             style, warning = self.style_manager.get_style(layer['style'])
             if style:
-                self.layer_properties[layer_name]['layer'].update(style.get('layer', {}))
-                self.layer_properties[layer_name]['entity'].update(style.get('entity', {}))
+                # Update layer properties
+                layer_props = style.get('layer', {})
+                self.layer_properties[layer_name]['layer'].update(layer_props)
+
+                # Update entity properties
+                entity_props = style.get('entity', {})
+                self.layer_properties[layer_name]['entity'].update(entity_props)
+
+                # Ensure text style exists if specified
+                if 'text' in style and 'font' in style['text']:
+                    font_name = style['text']['font']
+                    if font_name not in self.doc.styles:
+                        self.doc.styles.add(font_name, font=font_name)
 
     def _load_or_create_dxf(self, skip_dxf_processor: bool = False) -> Drawing:
         """
@@ -126,6 +138,7 @@ class DXFExporter:
                 self.doc = ezdxf.readfile(self.dxf_filename)
                 self._load_existing_layers()
                 set_drawing_properties(self.doc)
+                log_info(f"Successfully loaded DXF file version: {self.doc.dxfversion}")
             except Exception as e:
                 log_error(f"Error loading existing DXF file: {str(e)}")
                 # If loading fails, create new document
@@ -138,6 +151,7 @@ class DXFExporter:
             try:
                 self.doc = ezdxf.readfile(self.template_filename)
                 set_drawing_properties(self.doc)
+                log_info(f"Successfully loaded template DXF file version: {self.doc.dxfversion}")
             except Exception as e:
                 log_error(f"Error loading template DXF file: {str(e)}")
                 # If loading fails, create new document
@@ -152,7 +166,50 @@ class DXFExporter:
             self.doc = ezdxf.new(dxfversion=dxf_version)
             set_drawing_properties(self.doc)
 
+        # Initialize document and register app ID
+        self._initialize_document()
+        self._register_app_id()
+
         return self.doc
+
+    def _initialize_document(self) -> None:
+        """Initialize the DXF document with required settings."""
+        if not self.doc:
+            return
+
+        # Set up required styles with proper font
+        if 'Standard' not in self.doc.styles:
+            self.doc.styles.add('Standard', font='Arial')
+        if 'Annotative' not in self.doc.styles:
+            self.doc.styles.add('Annotative', font='Arial')
+
+        # Set up required linetypes with patterns
+        linetype_patterns = {
+            'CONTINUOUS': '',  # Solid line
+            'DASHED': 'A,.5,-.25',  # Standard dashed line
+            'DOTTED': 'A,.25,-.25',  # Standard dotted line
+            'DASHDOT': 'A,.5,-.25,.25,-.25',  # Dash-dot line
+            'DASHDOT2': 'A,.5,-.25,.25,-.25,.25,-.25',  # Dash-dot-dot line
+            'DIVIDE': 'A,.5,-.25,.25,-.25,.25,-.25,.25,-.25'  # Dash-dot-dot-dot line
+        }
+
+        for linetype, pattern in linetype_patterns.items():
+            if linetype not in self.doc.linetypes:
+                self.doc.linetypes.add(linetype, pattern=pattern)
+                log_debug(f"Added linetype {linetype} with pattern: {pattern}")
+
+        # Set up required layers
+        if '0' not in self.doc.layers:
+            self.doc.layers.add('0')
+
+    def _register_app_id(self) -> None:
+        """Register the application ID in the DXF document."""
+        if not self.doc:
+            return
+
+        app_id = self.script_identifier
+        if app_id not in self.doc.appids:
+            self.doc.appids.add(app_id)
 
     def _load_existing_layers(self) -> None:
         """Load existing layers from DXF file."""
@@ -185,50 +242,75 @@ class DXFExporter:
         """
         try:
             # Use provided document or load/create new one
-            if doc is not None:
-                self.doc = doc
-            else:
-                self.doc = self._load_or_create_dxf(skip_dxf_processor)
+            if doc is None:
+                doc = self._load_or_create_dxf()
 
-            # Process layers
-            msp = self.doc.modelspace()
+            # Process layers if not already processed
+            if processed_layers is None:
+                processed_layers = self.layer_processor.process_layers()
 
-            # Use provided processed layers or process them again
-            layers_to_process = processed_layers if processed_layers is not None else self.layer_processor.layers
+            # Get modelspace
+            msp = doc.modelspace()
 
-            for layer_name, layer_data in layers_to_process.items():
-                self._process_layer(layer_name, layer_data, msp)
+            # Add each processed layer to the DXF
+            for layer_name, layer_data in processed_layers.items():
+                try:
+                    log_info(f"Adding layer to DXF: {layer_name}")
+                    self._process_layer(layer_name, layer_data, msp)
+                except Exception as e:
+                    log_error(f"Error adding layer {layer_name} to DXF: {str(e)}")
+                    raise ProcessingError(f"Error adding layer {layer_name} to DXF: {str(e)}")
 
             # Ensure output directory exists
-            output_dir = str(Path(self.dxf_filename).parent)
-            ensure_path_exists(output_dir)
+            output_dir = os.path.dirname(self.dxf_filename)
+            if output_dir:
+                os.makedirs(output_dir, exist_ok=True)
 
-            # Audit and save document with error handling
+            # Apply audit to check for and fix potential issues
+            log_info("Running DXF audit...")
             try:
-                # Run audit to check and fix potential issues
-                auditor = self.doc.audit()
-                if auditor.has_errors:
-                    log_warning("DXF audit found and fixed issues:")
-                    for error in auditor.errors:
-                        log_warning(f"  - {error.message}")
-                        if error.entity:
-                            log_warning(f"    Entity: {error.entity.dxf.handle}")
-                        if error.details:
-                            log_warning(f"    Details: {error.details}")
-                if auditor.has_fixes:
-                    log_info("DXF audit applied fixes:")
-                    for fix in auditor.fixes:
-                        log_info(f"  - {fix.message}")
-                        if fix.entity:
-                            log_info(f"    Entity: {fix.entity.dxf.handle}")
-                        if fix.details:
-                            log_info(f"    Details: {fix.details}")
+                audit = doc.audit()
+                if audit.has_errors:
+                    log_warning("DXF audit found errors:")
+                    for error in audit.errors:
+                        error_msg = f"  - {error.message}"
+                        if hasattr(error, 'entity') and error.entity:
+                            error_msg += f" (Entity: {error.entity.dxf.handle})"
+                        log_warning(error_msg)
+                else:
+                    log_info("DXF audit found no errors")
 
-                # Save the audited document
-                self.doc.saveas(self.dxf_filename)
-                log_info(f"Successfully saved DXF file to: {self.dxf_filename}")
+                if audit.has_fixes:
+                    log_info("DXF audit applied fixes:")
+                    for fix in audit.fixes:
+                        fix_msg = f"  - {fix.message}"
+                        if hasattr(fix, 'entity') and fix.entity:
+                            fix_msg += f" (Entity: {fix.entity.dxf.handle})"
+                        log_info(fix_msg)
+                else:
+                    log_info("DXF audit applied no fixes")
+
             except Exception as e:
-                log_error(f"Error saving DXF file: {str(e)}")
+                log_warning(f"Error during DXF audit: {str(e)}")
+                # Continue with save even if audit fails
+
+            # Save the audited document
+            try:
+                # Ensure proper DXF version
+                doc.dxfversion = self.project_settings.get('dxfVersion', 'R2010')
+
+                # Save with proper encoding
+                doc.saveas(self.dxf_filename, encoding='utf-8')
+                log_info(f"Successfully saved DXF file to: {self.dxf_filename}")
+
+                # Verify the saved file
+                if Path(self.dxf_filename).exists():
+                    file_size = Path(self.dxf_filename).stat().st_size
+                    log_info(f"DXF file size: {file_size} bytes")
+                else:
+                    log_error("DXF file was not created")
+
+            except Exception as e:
                 raise ProcessingError(f"Error saving DXF file: {str(e)}")
 
         except Exception as e:
@@ -264,7 +346,10 @@ class DXFExporter:
             # Process geometry
             geometry = layer_data.get('geometry')
             if geometry:
+                log_info(f"Processing geometry for layer: {layer_name}")
                 self._process_geometry(geometry, layer_name, msp)
+            else:
+                log_warning(f"No geometry found for layer: {layer_name}")
 
         except Exception as e:
             log_error(f"Error processing layer {layer_name}: {str(e)}")
@@ -286,10 +371,13 @@ class DXFExporter:
         """
         try:
             if isinstance(geometry, (Polygon, MultiPolygon)):
+                log_debug(f"Processing polygon geometry for layer: {layer_name}")
                 self._process_polygon(geometry, layer_name, msp)
             elif isinstance(geometry, (LineString, MultiLineString)):
+                log_debug(f"Processing line geometry for layer: {layer_name}")
                 self._process_line(geometry, layer_name, msp)
             elif isinstance(geometry, Point):
+                log_debug(f"Processing point geometry for layer: {layer_name}")
                 self._process_point(geometry, layer_name, msp)
             else:
                 raise ProcessingError(
@@ -317,6 +405,12 @@ class DXFExporter:
             close: Whether to close the polyline
         """
         if not coords:
+            log_warning(f"Empty coordinates for layer {layer_name}")
+            return
+
+        # Validate coordinates
+        if len(coords) < 2:
+            log_warning(f"Not enough coordinates for layer {layer_name}: {len(coords)}")
             return
 
         # Get layer properties
@@ -335,17 +429,23 @@ class DXFExporter:
         if 'linetypeGeneration' in entity_properties:
             dxfattribs['flags'] = entity_properties['linetypeGeneration']
 
-        # Create polyline
-        polyline = msp.add_lwpolyline(coords, dxfattribs=dxfattribs)
+        try:
+            # Create polyline
+            polyline = msp.add_lwpolyline(coords, dxfattribs=dxfattribs)
 
-        # Apply linetype generation setting
-        if entity_properties.get('linetypeGeneration'):
-            polyline.dxf.flags |= LWPOLYLINE_PLINEGEN
-        else:
-            polyline.dxf.flags &= ~LWPOLYLINE_PLINEGEN
+            # Apply linetype generation setting
+            if entity_properties.get('linetypeGeneration'):
+                polyline.dxf.flags |= LWPOLYLINE_PLINEGEN
+            else:
+                polyline.dxf.flags &= ~LWPOLYLINE_PLINEGEN
 
-        # Attach custom data
-        attach_custom_data(polyline, {'created_by': self.script_identifier})
+            # Attach custom data
+            attach_custom_data(polyline, {'created_by': self.script_identifier})
+
+            log_debug(f"Added polyline to layer {layer_name} with {len(coords)} points")
+        except Exception as e:
+            log_error(f"Error adding polyline to layer {layer_name}: {str(e)}")
+            raise ProcessingError(f"Error adding polyline to layer {layer_name}: {str(e)}")
 
     def _process_polygon(
         self,
@@ -361,20 +461,26 @@ class DXFExporter:
             layer_name: Name of the layer
             msp: Modelspace to add entities to
         """
-        if isinstance(geometry, MultiPolygon):
-            for polygon in geometry.geoms:
-                self._process_polygon(polygon, layer_name, msp)
-        else:
-            # Process exterior
-            exterior_coords = list(geometry.exterior.coords)
-            if len(exterior_coords) > 2:
-                self._add_polyline(exterior_coords, layer_name, msp, close=True)
+        try:
+            if isinstance(geometry, MultiPolygon):
+                for polygon in geometry.geoms:
+                    self._process_polygon(polygon, layer_name, msp)
+            else:
+                # Process exterior
+                exterior_coords = list(geometry.exterior.coords)
+                if len(exterior_coords) > 2:
+                    log_debug(f"Processing exterior with {len(exterior_coords)} points")
+                    self._add_polyline(exterior_coords, layer_name, msp, close=True)
 
-            # Process interiors
-            for interior in geometry.interiors:
-                interior_coords = list(interior.coords)
-                if len(interior_coords) > 2:
-                    self._add_polyline(interior_coords, layer_name, msp, close=True)
+                # Process interiors
+                for interior in geometry.interiors:
+                    interior_coords = list(interior.coords)
+                    if len(interior_coords) > 2:
+                        log_debug(f"Processing interior with {len(interior_coords)} points")
+                        self._add_polyline(interior_coords, layer_name, msp, close=True)
+        except Exception as e:
+            log_error(f"Error processing polygon for layer {layer_name}: {str(e)}")
+            raise ProcessingError(f"Error processing polygon for layer {layer_name}: {str(e)}")
 
     def _process_line(
         self,
@@ -390,12 +496,20 @@ class DXFExporter:
             layer_name: Name of the layer
             msp: Modelspace to add entities to
         """
-        if isinstance(geometry, MultiLineString):
-            for line in geometry.geoms:
-                self._process_line(line, layer_name, msp)
-        else:
-            coords = list(geometry.coords)
-            self._add_polyline(coords, layer_name, msp)
+        try:
+            if isinstance(geometry, MultiLineString):
+                for line in geometry.geoms:
+                    self._process_line(line, layer_name, msp)
+            else:
+                coords = list(geometry.coords)
+                if len(coords) > 1:
+                    log_debug(f"Processing line with {len(coords)} points")
+                    self._add_polyline(coords, layer_name, msp)
+                else:
+                    log_warning(f"Line with insufficient points for layer {layer_name}")
+        except Exception as e:
+            log_error(f"Error processing line for layer {layer_name}: {str(e)}")
+            raise ProcessingError(f"Error processing line for layer {layer_name}: {str(e)}")
 
     def _process_point(
         self,
@@ -411,6 +525,15 @@ class DXFExporter:
             layer_name: Name of the layer
             msp: Modelspace to add entities to
         """
-        point = msp.add_point(geometry.coords[0])
-        point.dxf.layer = layer_name
-        attach_custom_data(point, {'created_by': self.script_identifier})
+        try:
+            if not geometry.coords:
+                log_warning(f"Empty point coordinates for layer {layer_name}")
+                return
+
+            point = msp.add_point(geometry.coords[0])
+            point.dxf.layer = layer_name
+            attach_custom_data(point, {'created_by': self.script_identifier})
+            log_debug(f"Added point to layer {layer_name}")
+        except Exception as e:
+            log_error(f"Error processing point for layer {layer_name}: {str(e)}")
+            raise ProcessingError(f"Error processing point for layer {layer_name}: {str(e)}")
