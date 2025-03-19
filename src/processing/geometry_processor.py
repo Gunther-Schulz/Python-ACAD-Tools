@@ -43,6 +43,68 @@ class GeometryProcessor:
         else:
             self._geometries[layer_name] = {'geometry': geometry}
 
+    def _ensure_shapely_geometry(self, geometry: object) -> object:
+        """
+        Ensure geometry is a Shapely geometry type.
+
+        Args:
+            geometry: Input geometry
+
+        Returns:
+            Shapely geometry
+        """
+        if not isinstance(geometry, (Polygon, MultiPolygon, LineString, MultiLineString, Point)):
+            return shape(geometry)
+        return geometry
+
+    def _convert_if_needed(self, geometry: object, original: object) -> object:
+        """
+        Convert geometry back to original type if needed.
+
+        Args:
+            geometry: Geometry to convert
+            original: Original geometry type to match
+
+        Returns:
+            Converted geometry
+        """
+        if not isinstance(original, (Polygon, MultiPolygon, LineString, MultiLineString, Point)):
+            return mapping(geometry)
+        return geometry
+
+    def _apply_geometry_operation(
+        self,
+        operation_name: str,
+        operation_func: callable,
+        geometry: object,
+        *args,
+        **kwargs
+    ) -> object:
+        """
+        Apply a geometry operation with proper type handling.
+
+        Args:
+            operation_name: Name of the operation for error messages
+            operation_func: Function to apply the operation
+            geometry: Input geometry
+            *args: Additional arguments for the operation
+            **kwargs: Additional keyword arguments for the operation
+
+        Returns:
+            Result of the operation
+        """
+        try:
+            # Convert to Shapely geometry if needed
+            shapely_geom = self._ensure_shapely_geometry(geometry)
+
+            # Apply operation
+            result = operation_func(shapely_geom, *args, **kwargs)
+
+            return self._convert_if_needed(result, geometry)
+
+        except Exception as e:
+            raise ProcessingError(f"Error in {operation_name}: {str(e)}")
+
     def create_buffer(
         self,
         geometry: object,
@@ -62,26 +124,21 @@ class GeometryProcessor:
         Returns:
             Buffered geometry
         """
-        try:
-            # Convert to Shapely geometry if needed
-            if not isinstance(geometry, (Polygon, MultiPolygon, LineString, MultiLineString, Point)):
-                geometry = shape(geometry)
-
-            # Create buffer
-            buffered = geometry.buffer(
-                distance,
-                join_style=getattr(join_style, 'upper', 'ROUND'),
-                cap_style=getattr(mode, 'upper', 'ROUND')
+        def buffer_op(geom, dist, m, js):
+            return geom.buffer(
+                dist,
+                join_style=getattr(js, 'upper', 'ROUND'),
+                cap_style=getattr(m, 'upper', 'ROUND')
             )
 
-            # Convert back to GeoJSON if needed
-            if not isinstance(geometry, (Polygon, MultiPolygon, LineString, MultiLineString, Point)):
-                return mapping(buffered)
-
-            return buffered
-
-        except Exception as e:
-            raise ProcessingError(f"Error creating buffer: {str(e)}")
+        return self._apply_geometry_operation(
+            'buffer',
+            buffer_op,
+            geometry,
+            distance,
+            mode,
+            join_style
+        )
 
     def create_difference(self, geometry1: object, geometry2: object) -> object:
         """
@@ -96,19 +153,13 @@ class GeometryProcessor:
         """
         try:
             # Convert to Shapely geometries if needed
-            if not isinstance(geometry1, (Polygon, MultiPolygon, LineString, MultiLineString, Point)):
-                geometry1 = shape(geometry1)
-            if not isinstance(geometry2, (Polygon, MultiPolygon, LineString, MultiLineString, Point)):
-                geometry2 = shape(geometry2)
+            shapely_geom1 = self._ensure_shapely_geometry(geometry1)
+            shapely_geom2 = self._ensure_shapely_geometry(geometry2)
 
             # Create difference
-            difference = geometry1.difference(geometry2)
+            difference = shapely_geom1.difference(shapely_geom2)
 
-            # Convert back to GeoJSON if needed
-            if not isinstance(geometry1, (Polygon, MultiPolygon, LineString, MultiLineString, Point)):
-                return mapping(difference)
-
-            return difference
+            return self._convert_if_needed(difference, geometry1)
 
         except Exception as e:
             raise ProcessingError(f"Error creating difference: {str(e)}")
@@ -126,19 +177,13 @@ class GeometryProcessor:
         """
         try:
             # Convert to Shapely geometries if needed
-            if not isinstance(geometry1, (Polygon, MultiPolygon, LineString, MultiLineString, Point)):
-                geometry1 = shape(geometry1)
-            if not isinstance(geometry2, (Polygon, MultiPolygon, LineString, MultiLineString, Point)):
-                geometry2 = shape(geometry2)
+            shapely_geom1 = self._ensure_shapely_geometry(geometry1)
+            shapely_geom2 = self._ensure_shapely_geometry(geometry2)
 
             # Create intersection
-            intersection = geometry1.intersection(geometry2)
+            intersection = shapely_geom1.intersection(shapely_geom2)
 
-            # Convert back to GeoJSON if needed
-            if not isinstance(geometry1, (Polygon, MultiPolygon, LineString, MultiLineString, Point)):
-                return mapping(intersection)
-
-            return intersection
+            return self._convert_if_needed(intersection, geometry1)
 
         except Exception as e:
             raise ProcessingError(f"Error creating intersection: {str(e)}")
@@ -156,19 +201,13 @@ class GeometryProcessor:
         """
         try:
             # Convert to Shapely geometries if needed
-            if not isinstance(geometry1, (Polygon, MultiPolygon, LineString, MultiLineString, Point)):
-                geometry1 = shape(geometry1)
-            if not isinstance(geometry2, (Polygon, MultiPolygon, LineString, MultiLineString, Point)):
-                geometry2 = shape(geometry2)
+            shapely_geom1 = self._ensure_shapely_geometry(geometry1)
+            shapely_geom2 = self._ensure_shapely_geometry(geometry2)
 
             # Create union
-            union = geometry1.union(geometry2)
+            union = shapely_geom1.union(shapely_geom2)
 
-            # Convert back to GeoJSON if needed
-            if not isinstance(geometry1, (Polygon, MultiPolygon, LineString, MultiLineString, Point)):
-                return mapping(union)
-
-            return union
+            return self._convert_if_needed(union, geometry1)
 
         except Exception as e:
             raise ProcessingError(f"Error creating union: {str(e)}")
@@ -184,22 +223,15 @@ class GeometryProcessor:
         Returns:
             Smoothed geometry
         """
-        try:
-            # Convert to Shapely geometry if needed
-            if not isinstance(geometry, (Polygon, MultiPolygon, LineString, MultiLineString, Point)):
-                geometry = shape(geometry)
+        def smooth_op(geom, tol):
+            return geom.simplify(tol, preserve_topology=True)
 
-            # Smooth geometry
-            smoothed = geometry.simplify(tolerance, preserve_topology=True)
-
-            # Convert back to GeoJSON if needed
-            if not isinstance(geometry, (Polygon, MultiPolygon, LineString, MultiLineString, Point)):
-                return mapping(smoothed)
-
-            return smoothed
-
-        except Exception as e:
-            raise ProcessingError(f"Error smoothing geometry: {str(e)}")
+        return self._apply_geometry_operation(
+            'smooth',
+            smooth_op,
+            geometry,
+            tolerance
+        )
 
     def merge_geometries(
         self,

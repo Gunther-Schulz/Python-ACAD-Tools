@@ -56,8 +56,13 @@ class LayerProcessor:
         """
         return self.dxf_document
 
-    def process_layers(self) -> None:
-        """Process all layers from project settings."""
+    def process_layers(self) -> Dict[str, Any]:
+        """
+        Process all layers from project settings.
+
+        Returns:
+            Dictionary of processed layers
+        """
         try:
             # Process geometry layers
             for layer_config in self.project.settings.get('geomLayers', []):
@@ -79,6 +84,8 @@ class LayerProcessor:
                 if not layer_name:
                     raise ProcessingError("Layer name not specified")
                 self.process_layer(layer_name, layer_config)
+
+            return self.layers
 
         except Exception as e:
             raise ProcessingError(f"Error processing layers: {str(e)}")
@@ -177,9 +184,13 @@ class LayerProcessor:
 
         layer_config = layer_data['config']
         if 'style' in layer_config:
-            style = self.style_manager.get_style(layer_config['style'])
+            style, warning = self.style_manager.get_style(layer_config['style'])
             if style:
                 layer_data['style'] = style
+                # Also update layer properties if they exist
+                if hasattr(self, 'layer_properties') and layer_name in self.layer_properties:
+                    self.layer_properties[layer_name]['layer'].update(style.get('layer', {}))
+                    self.layer_properties[layer_name]['entity'].update(style.get('entity', {}))
 
     def _process_operation(self, layer_name: str, op_config: Dict[str, Any]) -> None:
         """

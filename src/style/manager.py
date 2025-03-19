@@ -125,16 +125,57 @@ class StyleManager:
             else:
                 # Handle pure inline style
                 for style_type, style_dict in style_config.items():
-                    if style_type == 'layer':
-                        self._validate_layer_style(layer_name, style_dict)
-                    elif style_type == 'hatch':
-                        self._validate_hatch_style(layer_name, style_dict)
-                    elif style_type == 'text':
-                        self._validate_text_style(layer_name, style_dict)
-                    else:
-                        log_warning(f"Unknown style type '{style_type}' in layer '{layer_name}'")
+                    self._validate_style_type(layer_name, style_type, style_dict)
 
         return True
+
+    def _validate_style_type(self, layer_name: str, style_type: str, style_dict: Dict[str, Any]) -> None:
+        """
+        Validate a specific style type.
+
+        Args:
+            layer_name: Name of the layer
+            style_type: Type of style to validate
+            style_dict: Style dictionary to validate
+        """
+        if style_type == 'layer':
+            self._validate_layer_style(layer_name, style_dict)
+        elif style_type == 'hatch':
+            self._validate_hatch_style(layer_name, style_dict)
+        elif style_type == 'text':
+            self._validate_text_style(layer_name, style_dict)
+        else:
+            log_warning(f"Unknown style type '{style_type}' in layer '{layer_name}'")
+
+    def _validate_enum_value(
+        self,
+        layer_name: str,
+        style_type: str,
+        field: str,
+        value: str,
+        valid_values: set,
+        case_sensitive: bool = False
+    ) -> None:
+        """
+        Validate an enum-style value against a set of valid values.
+
+        Args:
+            layer_name: Name of the layer
+            style_type: Type of style being validated
+            field: Field name being validated
+            value: Value to validate
+            valid_values: Set of valid values
+            case_sensitive: Whether to do case-sensitive comparison
+        """
+        if not case_sensitive:
+            value = value.upper()
+            valid_values = {v.upper() for v in valid_values}
+
+        if value not in valid_values:
+            log_warning(
+                f"Invalid {style_type} {field} '{value}' in layer {layer_name}. "
+                f"Valid values are: {', '.join(valid_values)}"
+            )
 
     def _validate_layer_style(self, layer_name: str, layer_style: Dict[str, Any]) -> None:
         """Validate layer style configuration."""
@@ -189,48 +230,48 @@ class StyleManager:
             )
 
             # Validate alignment
-            valid_alignments = {'LEFT', 'RIGHT', 'CENTER', 'JUSTIFIED', 'DISTRIBUTED'}
             if 'align' in text_style['paragraph']:
-                alignment = text_style['paragraph']['align'].upper()
-                if alignment not in valid_alignments:
-                    log_warning(
-                        f"Invalid paragraph alignment '{alignment}' in layer {layer_name}. "
-                        f"Valid values are: {', '.join(valid_alignments)}"
-                    )
+                self._validate_enum_value(
+                    layer_name,
+                    'text.paragraph',
+                    'align',
+                    text_style['paragraph']['align'],
+                    {'LEFT', 'RIGHT', 'CENTER', 'JUSTIFIED', 'DISTRIBUTED'}
+                )
 
         # Validate attachment point
         if 'attachmentPoint' in text_style:
-            valid_attachment_points = {
-                'TOP_LEFT', 'TOP_CENTER', 'TOP_RIGHT',
-                'MIDDLE_LEFT', 'MIDDLE_CENTER', 'MIDDLE_RIGHT',
-                'BOTTOM_LEFT', 'BOTTOM_CENTER', 'BOTTOM_RIGHT'
-            }
-            attachment_point = text_style['attachmentPoint'].upper()
-            if attachment_point not in valid_attachment_points:
-                log_warning(
-                    f"Invalid attachment point '{attachment_point}' in layer {layer_name}. "
-                    f"Valid values are: {', '.join(valid_attachment_points)}"
-                )
+            self._validate_enum_value(
+                layer_name,
+                'text',
+                'attachmentPoint',
+                text_style['attachmentPoint'],
+                {
+                    'TOP_LEFT', 'TOP_CENTER', 'TOP_RIGHT',
+                    'MIDDLE_LEFT', 'MIDDLE_CENTER', 'MIDDLE_RIGHT',
+                    'BOTTOM_LEFT', 'BOTTOM_CENTER', 'BOTTOM_RIGHT'
+                }
+            )
 
         # Validate flow direction
         if 'flowDirection' in text_style:
-            valid_flow_directions = {'LEFT_TO_RIGHT', 'TOP_TO_BOTTOM', 'BY_STYLE'}
-            flow_direction = text_style['flowDirection'].upper()
-            if flow_direction not in valid_flow_directions:
-                log_warning(
-                    f"Invalid flow direction '{flow_direction}' in layer {layer_name}. "
-                    f"Valid values are: {', '.join(valid_flow_directions)}"
-                )
+            self._validate_enum_value(
+                layer_name,
+                'text',
+                'flowDirection',
+                text_style['flowDirection'],
+                {'LEFT_TO_RIGHT', 'TOP_TO_BOTTOM', 'BY_STYLE'}
+            )
 
         # Validate line spacing style
         if 'lineSpacingStyle' in text_style:
-            valid_spacing_styles = {'AT_LEAST', 'EXACT'}
-            spacing_style = text_style['lineSpacingStyle'].upper()
-            if spacing_style not in valid_spacing_styles:
-                log_warning(
-                    f"Invalid line spacing style '{spacing_style}' in layer {layer_name}. "
-                    f"Valid values are: {', '.join(valid_spacing_styles)}"
-                )
+            self._validate_enum_value(
+                layer_name,
+                'text',
+                'lineSpacingStyle',
+                text_style['lineSpacingStyle'],
+                {'AT_LEAST', 'EXACT'}
+            )
 
     def _validate_style_keys(self, layer_name: str, style_type: str,
                            style_dict: Dict[str, Any], known_keys: set) -> None:
@@ -253,14 +294,7 @@ class StyleManager:
     def _validate_style_overrides(self, layer_name: str, style_config: Dict[str, Any]) -> None:
         """Validate style override configuration."""
         for style_type, style_dict in style_config.items():
-            if style_type == 'layer':
-                self._validate_layer_style(layer_name, style_dict)
-            elif style_type == 'hatch':
-                self._validate_hatch_style(layer_name, style_dict)
-            elif style_type == 'text':
-                self._validate_text_style(layer_name, style_dict)
-            else:
-                log_warning(f"Unknown style type '{style_type}' in layer '{layer_name}'")
+            self._validate_style_type(layer_name, style_type, style_dict)
 
     def _levenshtein_distance(self, s1: str, s2: str) -> int:
         """Calculate Levenshtein distance between two strings."""

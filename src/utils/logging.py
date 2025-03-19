@@ -19,7 +19,9 @@ logger.add(
         "<level>{message}</level>"
     ),
     level="INFO",
-    colorize=True
+    colorize=True,
+    backtrace=True,  # Enable backtrace for all levels
+    diagnose=True   # Enable diagnose for all levels
 )
 
 # Add file logger
@@ -46,9 +48,12 @@ def setup_file_logger(log_file: Optional[str] = None) -> None:
             "{time:YYYY-MM-DD HH:mm:ss} | "
             "{level: <8} | "
             "{name}:{function}:{line} - "
-            "{message}"
+            "{message}\n"
+            "{exception}"  # This will include the traceback
         ),
-        level="DEBUG"
+        level="DEBUG",
+        backtrace=True,  # Enable backtrace for all levels
+        diagnose=True   # Enable diagnose for all levels
     )
 
 
@@ -69,7 +74,9 @@ def set_log_level(level: str) -> None:
             "<level>{message}</level>"
         ),
         level=level,
-        colorize=True
+        colorize=True,
+        backtrace=True,  # Enable backtrace for all levels
+        diagnose=True   # Enable diagnose for all levels
     )
 
 

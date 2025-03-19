@@ -1,6 +1,10 @@
 # OLADPP Architecture
 
 This document outlines the modular architecture of the OpenLayers AutoCAD Data Processing Pipeline (OLADPP) application.
+## NOtes
+cehck if teher any more duplicate operatoins we missed in @src
+cehck for any not conforming to DRY
+
 
 ## Overview
 

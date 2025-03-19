@@ -1,7 +1,7 @@
 """
 Main processing pipeline for OLADPP.
 """
-from typing import Optional
+from typing import Optional, Dict, Any
 from src.core.exceptions import ProcessingError
 from src.core.project import Project
 from src.processing import LayerProcessor
@@ -46,11 +46,15 @@ class Processor:
             # Set document in layer processor
             self.layer_processor.set_dxf_document(doc)
 
-            # Process layers
-            self.layer_processor.process_layers()
+            # Process layers and get the processed layers
+            processed_layers = self.layer_processor.process_layers()
 
-            # Export to DXF
-            self.dxf_exporter.export_to_dxf(skip_dxf_processor=True)
+            # Export to DXF using the already loaded document and processed layers
+            self.dxf_exporter.export_to_dxf(
+                skip_dxf_processor=True,
+                doc=doc,
+                processed_layers=processed_layers
+            )
 
         except Exception as e:
             raise ProcessingError(f"Error processing project: {str(e)}")
