@@ -4,6 +4,7 @@ Layer processor for handling layer operations and geometry processing.
 from typing import Dict, Any, Optional
 from pathlib import Path
 import geopandas as gpd
+from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, Point
 from src.core.exceptions import ProcessingError
 from src.core.project import Project
 from src.style import StyleManager

@@ -6,6 +6,7 @@ from pathlib import Path
 import ezdxf
 from ezdxf.document import Drawing
 from ezdxf.layouts import Modelspace
+from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, Point
 from ...core.exceptions import ProcessingError
 from ...core.project import Project
 from ...processing import LayerProcessor
@@ -40,6 +41,7 @@ class DXFExporter:
         self.doc = None
         self.script_identifier = "PyCAD"
         self.loaded_styles = set()
+        self.template_doc = None
 
         # Get project settings
         self.project_settings = project.settings
@@ -169,10 +171,6 @@ class DXFExporter:
             msp: Modelspace to add entities to
         """
         try:
-            from shapely.geometry import (
-                Polygon, MultiPolygon, LineString, MultiLineString, Point
-            )
-
             if isinstance(geometry, (Polygon, MultiPolygon)):
                 self._process_polygon(geometry, layer_name, msp)
             elif isinstance(geometry, (LineString, MultiLineString)):

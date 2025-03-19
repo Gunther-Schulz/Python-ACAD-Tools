@@ -5,9 +5,6 @@ import os
 import typer
 from rich.console import Console
 from rich.table import Table
-from src.core.project import Project
-from src.core.exceptions import ProjectError, ProcessingError
-from src.core.processor import Processor
 
 # Initialize Typer app
 app = typer.Typer(
@@ -18,6 +15,11 @@ app = typer.Typer(
 
 # Initialize Rich console
 console = Console()
+
+# Import project-specific modules after initializing app
+from src.core.project import Project
+from src.core.exceptions import ProjectError, ProcessingError
+from src.core.processor import Processor
 
 
 def list_available_projects() -> list:

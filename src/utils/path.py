@@ -39,10 +39,17 @@ def resolve_path(path: str, prefix: Optional[str] = None) -> str:
     if not path:
         return path
 
+    # Expand user path (handles ~)
+    path = os.path.expanduser(path)
+
+    # If path is absolute, return it
     if Path(path).is_absolute():
         return path
 
+    # If prefix is provided, join it with the path
     if prefix:
+        # Expand user path for prefix as well
+        prefix = os.path.expanduser(prefix)
         return str(Path(prefix) / path)
 
     return path
