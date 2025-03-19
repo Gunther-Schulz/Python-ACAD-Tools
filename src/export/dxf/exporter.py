@@ -207,9 +207,8 @@ class DXFExporter:
         if not self.doc:
             return
 
-        app_id = self.script_identifier
-        if app_id not in self.doc.appids:
-            self.doc.appids.add(app_id)
+        if self.script_identifier not in self.doc.appids:
+            self.doc.appids.add(self.script_identifier)
 
     def _load_existing_layers(self) -> None:
         """Load existing layers from DXF file."""
@@ -439,8 +438,26 @@ class DXFExporter:
             else:
                 polyline.dxf.flags &= ~LWPOLYLINE_PLINEGEN
 
-            # Attach custom data
-            attach_custom_data(polyline, {'created_by': self.script_identifier})
+            # Attach custom data with proper cleanup
+            try:
+                # Clear any existing XDATA first
+                polyline.discard_xdata(self.script_identifier)
+            except:
+                pass
+
+            # Set new XDATA with proper format
+            polyline.set_xdata(
+                self.script_identifier,
+                [(1000, self.script_identifier)]
+            )
+
+            # Ensure entity is properly added to the document database
+            if hasattr(polyline, 'doc') and polyline.doc:
+                polyline.doc.entitydb.add(polyline)
+
+            # Set hyperlink
+            hyperlink_text = f"{self.script_identifier}_{layer_name}"
+            polyline.set_hyperlink(hyperlink_text)
 
             log_debug(f"Added polyline to layer {layer_name} with {len(coords)} points")
         except Exception as e:
@@ -532,7 +549,28 @@ class DXFExporter:
 
             point = msp.add_point(geometry.coords[0])
             point.dxf.layer = layer_name
-            attach_custom_data(point, {'created_by': self.script_identifier})
+
+            # Attach custom data with proper cleanup
+            try:
+                # Clear any existing XDATA first
+                point.discard_xdata(self.script_identifier)
+            except:
+                pass
+
+            # Set new XDATA with proper format
+            point.set_xdata(
+                self.script_identifier,
+                [(1000, self.script_identifier)]
+            )
+
+            # Ensure entity is properly added to the document database
+            if hasattr(point, 'doc') and point.doc:
+                point.doc.entitydb.add(point)
+
+            # Set hyperlink
+            hyperlink_text = f"{self.script_identifier}_{layer_name}"
+            point.set_hyperlink(hyperlink_text)
+
             log_debug(f"Added point to layer {layer_name}")
         except Exception as e:
             log_error(f"Error processing point for layer {layer_name}: {str(e)}")
