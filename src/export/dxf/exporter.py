@@ -16,7 +16,7 @@ from ...utils.path import resolve_path, ensure_path_exists
 from .utils import (
     attach_custom_data, ensure_layer_exists,
     update_layer_properties, set_drawing_properties,
-    sanitize_layer_name
+    sanitize_layer_name, remove_entities_by_layer
 )
 from ...utils.logging import log_debug, log_warning, log_info, log_error
 from ezdxf.lldxf.const import LWPOLYLINE_PLINEGEN
@@ -323,32 +323,28 @@ class DXFExporter:
         msp: Modelspace
     ) -> None:
         """
-        Process a layer.
+        Process a layer and its geometry.
 
         Args:
-            layer_name: Name of the layer
-            layer_data: Layer data
+            layer_name: Name of the layer to process
+            layer_data: Layer data from layer processor
             msp: Modelspace to add entities to
         """
         try:
-            # Get layer properties
-            layer_properties = self.layer_properties.get(layer_name, {})
-            layer_config = layer_properties.get('layer', {})
+            # Check update flag
+            if not layer_data['config'].get('updateDxf', False):
+                log_debug(f"Skipping layer {layer_name} - updateDxf is False")
+                return
 
-            # Ensure layer exists
-            layer = ensure_layer_exists(self.doc, layer_name)
+            # Remove existing entities if updateDxf is true
+            log_debug(f"Removing existing entities from layer {layer_name}")
+            remove_entities_by_layer(msp, [layer_name])
 
-            # Update layer properties
-            if layer_config:
-                update_layer_properties(layer, layer_config)
-
-            # Process geometry
-            geometry = layer_data.get('geometry')
-            if geometry:
-                log_info(f"Processing geometry for layer: {layer_name}")
-                self._process_geometry(geometry, layer_name, msp)
-            else:
-                log_warning(f"No geometry found for layer: {layer_name}")
+            # Process geometry if available
+            if layer_name in self.layer_processor.layers:
+                geometry = self.layer_processor.layers[layer_name]['geometry']
+                if geometry:
+                    self._process_geometry(geometry, layer_name, msp)
 
         except Exception as e:
             log_error(f"Error processing layer {layer_name}: {str(e)}")
