@@ -682,7 +682,7 @@ geomLayers:
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/wohngrundstücke_ecken_pt.shp"
     operations:
       - type: connect-points
-        maxDistance: 53
+        maxDistance: 100
       - type: buffer
         distance: 40
         capStyle: round
