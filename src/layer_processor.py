@@ -1,322 +1,704 @@
+import traceback
+# from src.dump_to_shape import merge_dxf_layer_to_shapefile
+from src.project_loader import ProjectLoader
+from src.utils import log_info, log_warning, log_error, resolve_path, ensure_path_exists, log_debug
 import geopandas as gpd
-from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection
-from src.utils import log_info, log_warning, log_error
+from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection, Point, LinearRing
+import ezdxf
+import math
+from geopandas import GeoSeries
 import os
-from src.wmts_downloader import download_wmts_tiles
+import shutil
+import fiona
+from src.style_manager import StyleManager
+
+# Import operations individually
+from src.operations import (
+    create_copy_layer,
+    create_buffer_layer,
+    create_difference_layer,
+    create_intersection_layer,
+    create_filtered_by_intersection_layer,
+    process_wmts_or_wms_layer,
+    create_merged_layer,
+    create_smooth_layer,
+    _handle_contour_operation,
+    create_dissolved_layer,
+    create_calculate_layer,
+    create_directional_line_layer,
+    create_circle_layer,
+    create_connect_points_layer,
+    create_envelope_layer,
+    create_label_association_layer,
+    create_filtered_by_column_layer
+)
+from src.style_manager import StyleManager
+from src.operations.filter_geometry_operation import create_filtered_geometry_layer
+from src.operations.report_operation import create_report_layer
+from src.shapefile_utils import write_shapefile
+from src.operations.label_association_operation import create_label_association_layer
+from src.operations.lagefaktor_operation import create_lagefaktor_layer
 
 class LayerProcessor:
-    def __init__(self, project_loader):
+    def __init__(self, project_loader, plot_ops=False):
         self.project_loader = project_loader
-        self.all_layers = {}
         self.project_settings = project_loader.project_settings
         self.crs = project_loader.crs
-        self.update_layers_list = None
+        self.all_layers = {}
+        self.plot_ops = plot_ops
+        self.style_manager = StyleManager(project_loader)
+        self.processed_layers = set()
+        self.dxf_doc = None
+        self.pending_dxf_layers = []
+    
+    def set_dxf_document(self, doc):
+        """Set the DXF document from DXFExporter and process any pending layers"""
+        self.dxf_doc = doc
+        log_debug("DXF document reference set in LayerProcessor")
 
-    def process_layers(self, update_layers_list=None):
-        # Store the update_layers_list
-        self.update_layers_list = update_layers_list
-        log_info("Starting to process layers...")
+    def process_layers(self):
+        log_debug("Starting to process layers...")
         
-        # Step 1: Load all shapefiles
         self.setup_shapefiles()
 
-        # Step 2: Process all layers in order
-        for layer in self.project_settings['dxfLayers']:
+        shapefile_output_dir = self.project_loader.shapefile_output_dir
+
+        # Process geometric layers
+        for layer in self.project_settings['geomLayers']:
             layer_name = layer['name']
-            if self.update_layers_list and layer_name not in self.update_layers_list:
-                continue
+            self.process_layer(layer, self.processed_layers)
+            if shapefile_output_dir:
+                self.write_shapefile(layer_name)
 
-            log_info(f"Processing layer: {layer_name}")
-            if 'operation' in layer:
-                operation = layer['operation']
-                op_type = operation['type']
+        # Process WMTS layers
+        for layer in self.project_settings.get('wmtsLayers', []):
+            layer_name = layer['name']
+            layer['type'] = 'wmts'  # Ensure type is set
+            self.process_layer(layer, self.processed_layers)
 
-                if op_type == 'buffer':
-                    self.create_buffer_layer(layer_name, operation)
-                elif op_type == 'clip':
-                    self.create_clip_distance_layer(layer_name, operation)
-                elif op_type == 'geltungsbereich':
-                    self.create_geltungsbereich_layer(layer_name, operation)
-                elif op_type == 'exclusion':
-                    self.create_exclusion_layer(layer_name, operation)
-                elif op_type == 'wmts':
-                    self.process_wmts_layer(layer_name, operation)
-                else:
-                    log_warning(f"Unknown operation type: {op_type} for layer {layer_name}")
+        # Process WMS layers
+        for layer in self.project_settings.get('wmsLayers', []):
+            layer_name = layer['name']
+            layer['type'] = 'wms'  # Ensure type is set
+            self.process_layer(layer, self.processed_layers)
 
-                # Check if shapeFileOutput is specified and write the shapefile
-                if 'shapeFileOutput' in layer:
-                    self.write_shapefile(layer_name, layer['shapeFileOutput'])
+        # Delete residual shapefiles
+        self.delete_residual_shapefiles()
 
-            elif 'shapeFile' in layer:
-                # This is a shapefile layer, already loaded in setup_shapefiles()
-                pass
-            else:
-                # This is a layer without operation or shapefile
-                self.all_layers[layer_name] = None
-                log_info(f"Added layer {layer_name} without data")
+        log_debug("Finished processing layers.")
 
-        log_info("Finished processing layers.")
-
-    def write_shapefile(self, layer_name, output_path):
-        if layer_name in self.all_layers:
-            gdf = self.all_layers[layer_name]
-            if isinstance(gdf, gpd.GeoDataFrame):
-                full_path = self.project_loader.resolve_full_path(output_path)
-                gdf.to_file(full_path)
-                log_info(f"Shapefile written for layer {layer_name}: {full_path}")
-            else:
-                log_warning(f"Cannot write shapefile for layer {layer_name}: not a GeoDataFrame")
-        else:
-            log_warning(f"Cannot write shapefile for layer {layer_name}: layer not found")
-
-    def setup_shapefiles(self):
-            for layer in self.project_settings['dxfLayers']:
-                if 'shapeFile' in layer:
-                    layer_name = layer['name']
-                    shapefile_path = self.project_loader.resolve_full_path(layer['shapeFile'])
-                    try:
-                        gdf = gpd.read_file(shapefile_path)
-                        gdf = self.standardize_layer_crs(layer_name, gdf)
-                        if gdf is not None:
-                            self.all_layers[layer_name] = gdf
-                            log_info(f"Loaded shapefile for layer: {layer_name}")
-                        else:
-                            log_warning(f"Failed to load shapefile for layer: {layer_name}")
-                    except Exception as e:
-                        log_warning(f"Failed to load shapefile for layer '{layer_name}': {str(e)}")
-
-    def create_geltungsbereich_layer(self, layer_name, operation):
-        log_info(f"Creating Geltungsbereich layer: {layer_name}")
-        combined_geometry = None
-
-        for layer in operation['layers']:
-            source_layer_name = layer['name']
-            value_list = [str(v) for v in layer['valueList']]  # Ensure all values are strings
-            log_info(f"Processing source layer: {source_layer_name}")
-
-            if source_layer_name not in self.all_layers:
-                log_warning(f"Source layer '{source_layer_name}' not found for Geltungsbereich")
-                continue
-
-            source_gdf = self.all_layers[source_layer_name]
-            
-            label_column = next((l['label'] for l in self.project_settings['dxfLayers'] if l['name'] == source_layer_name), None)
-            
-            if label_column is None or label_column not in source_gdf.columns:
-                log_warning(f"Label column '{label_column}' not found in layer '{source_layer_name}'")
-                continue
-            
-            # Convert label column to string and filter
-            filtered_gdf = source_gdf[source_gdf[label_column].astype(str).isin(value_list)]
-
-            if filtered_gdf.empty:
-                log_warning(f"No matching geometries found for {source_layer_name} with values {value_list}")
-                continue
-
-            if combined_geometry is None:
-                combined_geometry = filtered_gdf.geometry.unary_union
-            else:
-                combined_geometry = combined_geometry.intersection(filtered_gdf.geometry.unary_union)
-
-        if combined_geometry:
-            if 'clipToLayers' in operation:
-                for clip_layer_name in operation['clipToLayers']:
-                    if clip_layer_name in self.all_layers:
-                        clip_geometry = self.all_layers[clip_layer_name].geometry.unary_union
-                        combined_geometry = combined_geometry.difference(clip_geometry)
-                        log_info(f"Applied clipping with layer: {clip_layer_name}")
-                    else:
-                        log_warning(f"Clip layer '{clip_layer_name}' not found for Geltungsbereich")
-
-            # Ensure the result is a Polygon or MultiPolygon
-            if isinstance(combined_geometry, (Polygon, MultiPolygon)):
-                self.all_layers[layer_name] = gpd.GeoDataFrame(geometry=[combined_geometry], crs=self.crs)
-            else:
-                log_warning(f"Resulting geometry is not a Polygon or MultiPolygon for layer: {layer_name}")
-        else:
-            log_warning(f"No geometry created for Geltungsbereich layer: {layer_name}")
-
-
-
-    def create_clip_distance_layer(self, layer_name, operation):
-        log_info(f"Creating clip distance layer: {layer_name}")
-        buffer_distance = operation['distance']
-        source_layer = operation['sourceLayer']
-        if source_layer in self.all_layers:
-            original_geometry = self.all_layers[source_layer]
-            if buffer_distance > 0:
-                clipped = original_geometry.buffer(buffer_distance, join_style=2)
-            else:
-                clipped = original_geometry
-            self.all_layers[layer_name] = clipped
-            log_info(f"Created clip distance layer: {layer_name}")
-        else:
-            log_warning(f"Warning: Source layer '{source_layer}' not found in all_layers for clip distance layer '{layer_name}'")
-            
-    def create_buffer_layer(self, layer_name, operation):
-        log_info(f"Creating buffer layer: {layer_name}")
-        source_layer = operation['sourceLayer']
-        buffer_distance = operation['distance']
-        buffer_mode = operation.get('mode', 'both')
-        clip_to_layers = operation.get('clipToLayers', [])
-
-        if source_layer in self.all_layers:
-            original_geometry = self.all_layers[source_layer]
-            
-            if buffer_mode == 'outer':
-                buffered = original_geometry.buffer(buffer_distance, join_style=2)
-                result = buffered.difference(original_geometry)
-            elif buffer_mode == 'inner':
-                result = original_geometry.buffer(-buffer_distance, join_style=2)
-            else:  # 'both'
-                result = original_geometry.buffer(buffer_distance, join_style=2)
-
-            # Clip the buffer to the specified layers
-            if clip_to_layers:
-                clip_geometry = None
-                for clip_layer in clip_to_layers:
-                    if clip_layer in self.all_layers:
-                        if clip_geometry is None:
-                            clip_geometry = self.all_layers[clip_layer]
-                        else:
-                            clip_geometry = clip_geometry.union(self.all_layers[clip_layer])
-                    else:
-                        log_warning(f"Warning: Clip layer '{clip_layer}' not found for buffer layer '{layer_name}'")
-                
-                if clip_geometry is not None:
-                    result = result.intersection(clip_geometry)
-
-            self.all_layers[layer_name] = result
-            log_info(f"Created buffer layer: {layer_name}")
-        else:
-            log_warning(f"Warning: Source layer '{source_layer}' not found for buffer layer '{layer_name}'")
-
-    def create_exclusion_layer(self, layer_name, operation):
-        log_info(f"Creating exclusion layer: {layer_name}")
-        scope_layer = operation['scopeLayer']
-        exclude_layers = operation['excludeLayers']
-
-        log_info(f"  Scope layer: {scope_layer}")
-        log_info(f"  Exclude layers: {exclude_layers}")
-
-        if scope_layer in self.all_layers:
-            scope_geometry = self.all_layers[scope_layer]
-            excluded_geometry = scope_geometry
-
-            for exclude_layer in exclude_layers:
-                if exclude_layer in self.all_layers:
-                    log_info(f"  Excluding {exclude_layer}")
-                    excluded_geometry = excluded_geometry.difference(self.all_layers[exclude_layer])
-                else:
-                    log_warning(f"Warning: Exclude layer '{exclude_layer}' not found for exclusion layer '{layer_name}'")
-
-            self.all_layers[layer_name] = excluded_geometry
-            log_info(f"Created exclusion layer: {layer_name}")
-        else:
-            log_warning(f"Warning: Scope layer '{scope_layer}' not found for exclusion layer '{layer_name}'")
-
-    def process_wmts_layer(self, layer_name, operation):
-        log_info(f"Processing WMTS layer: {layer_name}")
+    def process_layer(self, layer, processed_layers, processing_stack=None):
+        """
+        Process a layer and its dependencies.
         
-        target_folder = self.project_loader.resolve_full_path(operation['targetFolder'])
-        zoom_level = operation['zoom']
-        
-        # Create a zoom-specific folder
-        zoom_folder = os.path.join(target_folder, f"zoom_{zoom_level}")
-        
-        # Check if the zoom folder already exists
-        if os.path.exists(zoom_folder):
-            log_info(f"Zoom folder already exists: {zoom_folder}. Using existing tiles.")
-            existing_tiles = self.get_existing_tiles(zoom_folder)
-            self.all_layers[layer_name] = existing_tiles
+        Args:
+            layer: Layer name or configuration dictionary
+            processed_layers: Set of already processed layer names
+            processing_stack: List of layers currently being processed (for cycle detection)
+        """
+        if processing_stack is None:
+            processing_stack = []
+
+        if isinstance(layer, str):
+            layer_name = layer
+            layer_obj = (
+                next((l for l in self.project_settings.get('geomLayers', []) if l['name'] == layer_name), None) or
+                next((l for l in self.project_settings.get('wmtsLayers', []) if l['name'] == layer_name), None) or
+                next((l for l in self.project_settings.get('wmsLayers', []) if l['name'] == layer_name), None)
+            )
+        else:
+            layer_name = layer['name']
+            layer_obj = layer
+
+        # Check for cycles
+        if layer_name in processing_stack:
+            cycle = ' -> '.join(processing_stack + [layer_name])
+            log_error(f"Circular dependency detected: {cycle}")
             return
 
-        os.makedirs(zoom_folder, exist_ok=True)
+        # If already processed, skip
+        if layer_name in processed_layers:
+            return
+
+        processing_stack.append(layer_name)
+        log_debug(f"Processing layer: {layer_name}")
         
-        log_info(f"Target folder path: {zoom_folder}")
+        try:
+            # Early return for temp layers that don't exist in settings
+            if layer_obj is None:
+                if "_temp_" in layer_name:
+                    return
+                log_warning(f"Layer {layer_name} not found in project settings")
+                return
 
-        wmts_layers = operation.get('layers', [])
-        buffer_distance = operation.get('buffer', 100)
-        wmts_info = {
-            'url': operation['url'],
-            'layer': operation['layer'],
-            'zoom': zoom_level,
-            'proj': operation['proj'],
-            'format': operation.get('format', 'image/png'),
-            'sleep': operation.get('sleep', 0),
-            'limit': operation.get('limit', 0)
-        }
+            # Check for unrecognized keys
+            recognized_keys = {'name', 'updateDxf', 'operations', 'shapeFile', 'type', 'sourceLayer', 
+                              'outputShapeFile', 'style', 'close', 'linetypeScale', 'linetypeGeneration', 
+                              'viewports', 'attributes', 'bluntAngles', 'label', 'applyHatch', 'plot', 'saveToLagefaktor'}
+            unrecognized_keys = set(layer_obj.keys()) - recognized_keys
+            if unrecognized_keys:
+                log_warning(f"Unrecognized keys in layer {layer_name}: {', '.join(unrecognized_keys)}")
 
-        log_info(f"WMTS info: {wmts_info}")
-        log_info(f"Layers to process: {wmts_layers}")
+            # Process style
+            if 'style' in layer_obj:
+                style, warning_generated = self.style_manager.get_style(layer_obj['style'])
+                if warning_generated:
+                    log_warning(f"Issue with style for layer '{layer_name}'")
+                if style is not None:
+                    layer_obj['style'] = style
 
-        all_tiles = []
-        for layer in wmts_layers:
-            if layer in self.all_layers:
-                layer_geometry = self.all_layers[layer]
-                if isinstance(layer_geometry, gpd.GeoDataFrame):
-                    layer_geometry = layer_geometry.geometry.unary_union
+            # Process operations
+            if 'operations' in layer_obj:
+                result_geometry = None
+                for operation in layer_obj['operations']:
+                    if layer_obj.get('type') in ['wmts', 'wms']:
+                        operation['type'] = layer_obj['type']
+                    result_geometry = self.process_operation(layer_name, operation, processed_layers, processing_stack)
+                if result_geometry is not None:
+                    self.all_layers[layer_name] = result_geometry
+            elif 'shapeFile' in layer_obj:
+                if layer_name not in self.all_layers:
+                    log_warning(f"Shapefile for layer {layer_name} was not loaded properly")
+            elif 'dxfLayer' not in layer_obj:
+                self.all_layers[layer_name] = None
+                log_debug(f"Added layer {layer_name} without data")
 
-                log_info(f"Downloading tiles for layer: {layer}")
-                log_info(f"Layer geometry type: {type(layer_geometry)}")
-                log_info(f"Layer geometry bounds: {layer_geometry.bounds}")
+            if 'outputShapeFile' in layer_obj:
+                self.write_shapefile(layer_name)
 
-                downloaded_tiles = download_wmts_tiles(wmts_info, layer_geometry, buffer_distance, zoom_folder)
-                all_tiles.extend(downloaded_tiles)
-            else:
-                log_warning(f"Layer {layer} not found for WMTS download of {layer_name}")
+            if 'attributes' in layer_obj:
+                if layer_name not in self.all_layers or self.all_layers[layer_name] is None:
+                    self.all_layers[layer_name] = gpd.GeoDataFrame(geometry=[], crs=self.crs)
+                
+                gdf = self.all_layers[layer_name]
+                if 'attributes' not in gdf.columns:
+                    gdf['attributes'] = None
+                
+                gdf['attributes'] = gdf['attributes'].apply(lambda x: {} if x is None else x)
+                for key, value in layer_obj['attributes'].items():
+                    gdf['attributes'] = gdf['attributes'].apply(lambda x: {**x, key: value})
+                
+                self.all_layers[layer_name] = gdf
 
-        self.all_layers[layer_name] = all_tiles
-        log_info(f"Total tiles for {layer_name}: {len(all_tiles)}")
+            if 'bluntAngles' in layer_obj:
+                blunt_config = layer_obj['bluntAngles']
+                angle_threshold = blunt_config.get('angleThreshold', 45)
+                blunt_distance = blunt_config.get('distance', 0.5)
 
-    def get_existing_tiles(self, zoom_folder):
-        existing_tiles = []
-        image_extensions = ('.png', '.jpg', '.jpeg', '.tif', '.tiff')
-        world_file_extensions = {
-            '.png': '.pgw',
-            '.jpg': '.jgw',
-            '.jpeg': '.jgw',
-            '.tif': '.tfw',
-            '.tiff': '.tfw'
-        }
+                log_debug(f"Applying blunt angles to layer '{layer_name}' with threshold {angle_threshold} and distance {blunt_distance}")
+
+                if layer_name in self.all_layers:
+                    original_geom = self.all_layers[layer_name]
+                    blunted_geom = original_geom.geometry.apply(
+                        lambda geom: self.blunt_sharp_angles(geom, angle_threshold, blunt_distance)
+                    )
+                    self.all_layers[layer_name].geometry = blunted_geom
+
+                    log_debug(f"Blunting complete for layer '{layer_name}'")
+                    log_debug(f"Original geometry count: {len(original_geom)}")
+                    log_debug(f"Blunted geometry count: {len(blunted_geom)}")
+                else:
+                    log_warning(f"Layer '{layer_name}' not found for blunting angles")
+
+            if 'filterGeometry' in layer_obj:
+                filter_config = layer_obj['filterGeometry']
+                filtered_layer = create_filtered_geometry_layer(self.all_layers, self.project_settings, self.crs, layer_name, filter_config)
+                if filtered_layer is not None:
+                    self.all_layers[layer_name] = filtered_layer
+                log_debug(f"Applied geometry filter to layer '{layer_name}'")
+
+        finally:
+            processing_stack.pop()
+            processed_layers.add(layer_name)
+    
+
+    def process_operation(self, layer_name, operation, processed_layers, processing_stack):
+        """Process an operation for a layer."""
+        op_type = operation['type']
         
-        for root, dirs, files in os.walk(zoom_folder):
-            for file in files:
-                file_lower = file.lower()
-                if file_lower.endswith(image_extensions):
-                    image_path = os.path.join(root, file)
-                    file_ext = os.path.splitext(file_lower)[1]
-                    world_file_ext = world_file_extensions[file_ext]
-                    world_file_path = os.path.splitext(image_path)[0] + world_file_ext
+        log_debug(f"Processing operation for layer {layer_name}: {op_type}")
+        log_debug(f"Operation details: {operation}")
+        
+        # Process sub-operations first if they exist
+        if 'operations' in operation:
+            for sub_op in operation['operations']:
+                # Create a temporary layer for sub-operation results
+                temp_layer_name = f"{layer_name}_temp_{op_type}"
+                self.process_operation(temp_layer_name, sub_op, processed_layers, processing_stack)
+                # Add the result to the operation's layers
+                if 'layers' not in operation:
+                    operation['layers'] = []
+                operation['layers'].append(temp_layer_name)
+
+        # Process dependent layers if specified
+        if 'layers' in operation:
+            for dep_layer_info in operation['layers']:
+                dep_layer_name = dep_layer_info['name'] if isinstance(dep_layer_info, dict) else dep_layer_info
+                log_debug(f"Processing dependent layer: {dep_layer_name}")
+                self.process_layer(dep_layer_name, processed_layers, processing_stack)
+        else:
+            # If neither 'layers' nor 'operations' keys exist, use the current layer
+            operation['layers'] = [layer_name]
+
+        # Perform the operation
+        result = None
+        if op_type == 'copy':
+            result = create_copy_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
+        elif op_type == 'buffer':
+            result = create_buffer_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
+        elif op_type == 'difference':
+            result = create_difference_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
+        elif op_type == 'intersection':
+            result = create_intersection_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
+        elif op_type == 'filterByIntersection':
+            result = create_filtered_by_intersection_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
+        elif op_type == 'wmts' or op_type == 'wms':
+            result = process_wmts_or_wms_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation, self.project_loader)
+        elif op_type == 'merge':
+            result = create_merged_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
+        elif op_type == 'smooth':
+            result = create_smooth_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
+        elif op_type == 'contour':
+            result = _handle_contour_operation(self.all_layers, self.project_settings, self.crs, layer_name, operation)
+        elif op_type == 'filterGeometry':
+            result = create_filtered_geometry_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
+        elif op_type == 'dissolve':
+            result = create_dissolved_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
+        elif op_type == 'report':
+            result = create_report_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
+        elif op_type == 'calculate':
+            result = create_calculate_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
+        elif op_type == 'directionalLine':
+            result = create_directional_line_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
+        elif op_type == 'circle':
+            result = create_circle_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
+        elif op_type == 'connect-points':
+            result = create_connect_points_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
+        elif op_type == 'envelope':
+            result = create_envelope_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
+        elif op_type == 'labelAssociation':
+            result = create_label_association_layer(self.all_layers, self.project_settings, 
+                                                 self.crs, layer_name, operation, 
+                                                 self.project_loader)
+        elif op_type == 'lagefaktor':
+            result = create_lagefaktor_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
+        elif op_type == 'filterByColumn':
+            result = create_filtered_by_column_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
+        else:
+            log_warning(f"Unknown operation type: {op_type} for layer {layer_name}")
+            return None
+    
+        if result is not None:
+            self.all_layers[layer_name] = result
+            if self.plot_ops:
+                self.plot_operation_result(layer_name, op_type, result)
+    
+        # Clean up temporary layers
+        if 'operations' in operation:
+            for temp_layer in [l for l in self.all_layers.keys() if l.startswith(f"{layer_name}_temp_")]:
+                del self.all_layers[temp_layer]
+
+        return result
+
+    def setup_shapefiles(self):
+        for layer in self.project_settings['geomLayers']:
+            layer_name = layer['name']
+            
+            # Then load the shapefile (whether it was just updated or not)
+            if 'shapeFile' in layer:
+                shapefile_path = resolve_path(layer['shapeFile'], self.project_loader.folder_prefix)
+                try:
+                    if not os.path.exists(shapefile_path):
+                        log_warning(f"Shapefile not found for layer '{layer_name}' at path: {shapefile_path}")
+                        continue
+
+                    gdf = gpd.read_file(shapefile_path)
                     
-                    if os.path.exists(world_file_path):
-                        existing_tiles.append((image_path, world_file_path))
+                    # Validate geometries
+                    invalid_geometries = []
+                    null_geometries = []
+                    for idx, geom in enumerate(gdf.geometry):
+                        if geom is None:
+                            null_geometries.append(idx)
+                            continue
+                            
+                        if not geom.is_valid:
+                            reason = self._get_geometry_error(geom)
+                            invalid_geometries.append((idx, reason))
+                        elif geom.is_empty:
+                            invalid_geometries.append((idx, "Empty geometry"))
+                        elif isinstance(geom, (Polygon, MultiPolygon)):
+                            # Check for self-intersection in polygons
+                            if isinstance(geom, Polygon):
+                                if not geom.exterior.is_simple:
+                                    invalid_geometries.append((idx, "Self-intersecting polygon"))
+                            else:  # MultiPolygon
+                                for poly in geom.geoms:
+                                    if not poly.exterior.is_simple:
+                                        invalid_geometries.append((idx, "Self-intersecting polygon in MultiPolygon"))
+                                        break
+                
+                    if null_geometries:
+                        log_warning(f"Null geometries found in layer '{layer_name}' at indices: {null_geometries}")
+                    
+                    if invalid_geometries:
+                        error_msg = f"Invalid geometries found in layer '{layer_name}':\n"
+                        for idx, reason in invalid_geometries:
+                            error_msg += f"  - Feature {idx}: {reason}\n"
+                        log_error(error_msg)
+                        raise ValueError(error_msg)
+
+                    gdf = self.standardize_layer_crs(layer_name, gdf)
+                    if gdf is not None:
+                        self.all_layers[layer_name] = gdf
+                        log_debug(f"Loaded shapefile for layer: {layer_name}")
+                    else:
+                        log_warning(f"Failed to load shapefile for layer: {layer_name}")
+                except fiona.errors.DriverError as e:
+                    log_warning(f"Shapefile not found or inaccessible for layer '{layer_name}' at path: {shapefile_path}")
+                    log_warning(f"Error details: {str(e)}")
+                except Exception as e:
+                    log_error(f"Failed to load shapefile for layer '{layer_name}': {str(e)}")
+                    log_error(traceback.format_exc())
+            elif 'dxfLayer' in layer:
+                # gdf = self.load_dxf_layer(layer_name, layer['dxfLayer'])
+                self.all_layers[layer_name] = gdf
+                if 'outputShapeFile' in layer:
+                    output_path = self.project_loader.resolve_full_path(layer['outputShapeFile'])
+                    self.write_shapefile(layer_name, output_path)
+
+        # After loading all layers, log the contents of all_layers
+        for layer_name, gdf in self.all_layers.items():
+            if isinstance(gdf, gpd.GeoDataFrame):
+                log_debug(f"Layer {layer_name} in all_layers: CRS={gdf.crs}, Geometry type={gdf.geometry.type.unique()}, Number of features={len(gdf)}")
+            else:
+                log_warning(f"Layer {layer_name} in all_layers is not a GeoDataFrame: {type(gdf)}")
+
+    def write_shapefile(self, layer_name):
+        """Write a layer to shapefile. Returns True if successful, False otherwise."""
+        log_debug(f"Attempting to write shapefile for layer {layer_name}")
         
-        log_info(f"Found {len(existing_tiles)} existing tiles in {zoom_folder}")
-        return existing_tiles
+        # Skip hatch layers
+        layer_info = next((layer for layer in self.project_settings.get('geomLayers', []) 
+                          if layer.get('name') == layer_name), None)
+        if layer_info and 'applyHatch' in layer_info:
+            log_debug(f"Skipping export of hatch layer: {layer_name}")
+            return True
+        
+        if layer_name not in self.all_layers:
+            log_warning(f"Cannot write shapefile for layer {layer_name}: layer not found")
+            return False
+        
+        gdf = self.all_layers[layer_name]
+        if gdf is None:
+            log_warning(f"Cannot write shapefile for layer {layer_name}: layer data is None")
+            return False
+        
+        if not isinstance(gdf, gpd.GeoDataFrame):
+            log_warning(f"Cannot write shapefile for layer {layer_name}: data is not a GeoDataFrame (type: {type(gdf)})")
+            return False
+        
+        success = True
+        
+        # Write to default output directory
+        if self.project_loader.shapefile_output_dir:
+            output_dir = resolve_path(self.project_loader.shapefile_output_dir)
+            output_path = os.path.join(output_dir, f"{layer_name}.shp")
+            success &= write_shapefile(gdf, output_path)
+        
+        # Write to Lagefaktor directory if specified
+        if layer_info and 'saveToLagefaktor' in layer_info:
+            base_dir = resolve_path(layer_info['saveToLagefaktor'], self.project_loader.folder_prefix)
+            if os.path.exists(base_dir):
+                # Create layer-specific directory path
+                layer_dir = os.path.join(base_dir, layer_name)
+                
+                # Remove existing layer directory and its contents if it exists
+                if os.path.exists(layer_dir):
+                    try:
+                        shutil.rmtree(layer_dir)
+                        log_debug(f"Removed existing directory: {layer_dir}")
+                    except Exception as e:
+                        log_warning(f"Failed to remove directory {layer_dir}. Reason: {e}")
+                        success = False
+                        
+                # Create new layer directory
+                try:
+                    os.makedirs(layer_dir)
+                    log_debug(f"Created directory: {layer_dir}")
+                    
+                    # Write shapefile to the layer directory
+                    output_path = os.path.join(layer_dir, f"{layer_name}.shp")
+                    success &= write_shapefile(gdf, output_path)
+                    log_debug(f"Wrote shapefile to Lagefaktor directory: {output_path}")
+                except Exception as e:
+                    log_warning(f"Failed to create directory or write shapefile at {layer_dir}. Reason: {e}")
+                    success = False
+            else:
+                log_warning(f"Lagefaktor base directory does not exist: {base_dir}")
+                success = False
+        
+        if success:
+            self.processed_layers.add(layer_name)
+        return success
+
+    def delete_layer_files(self, directory, layer_name):
+        log_debug(f"Deleting existing files for layer: {layer_name}")
+        shapefile_extensions = ['.shp', '.shx', '.dbf', '.prj', '.cpg', '.sbn', '.sbx', '.fbn', '.fbx', '.ain', '.aih', '.ixs', '.mxs', '.atx', '.xml']
+        files_to_delete = [f"{layer_name}{ext}" for ext in shapefile_extensions]
+        
+        for filename in files_to_delete:
+            file_path = os.path.join(directory, filename)
+            if os.path.exists(file_path):
+                try:
+                    os.remove(file_path)
+                    log_debug(f"Deleted file: {filename}")
+                except Exception as e:
+                    log_warning(f"Failed to delete {file_path}. Reason: {e}")
+
+    # def load_dxf_layer(self, layer_name, dxf_layer_name):
+    #     return load_dxf_layer(layer_name, dxf_layer_name, self.dxf_doc, self.project_loader, self.crs)
+
+    def _process_hatch_config(self, layer_name, layer_config):
+        log_debug(f"Processing hatch configuration for layer: {layer_name}")
+        
+        hatch_config = self.style_manager.get_hatch_config(layer_config)
+        
+        # Store hatch configuration in the layer properties
+        if layer_name not in self.all_layers or self.all_layers[layer_name] is None:
+            self.all_layers[layer_name] = gpd.GeoDataFrame(geometry=[], crs=self.crs)
+        
+        gdf = self.all_layers[layer_name].copy()
+        
+        if 'attributes' not in gdf.columns:
+            gdf['attributes'] = None
+        
+        gdf.loc[:, 'attributes'] = gdf['attributes'].apply(lambda x: {} if x is None else x)
+        gdf.loc[:, 'attributes'] = gdf['attributes'].apply(lambda x: {**x, 'hatch_config': hatch_config})
+        
+        self.all_layers[layer_name] = gdf
+        
+        log_debug(f"Stored hatch configuration for layer: {layer_name}")
+    
+
+    def levenshtein_distance(self, s1, s2):
+            if len(s1) < len(s2):
+                return self.levenshtein_distance(s2, s1)
+    
+            if len(s2) == 0:
+                return len(s1)
+    
+            previous_row = range(len(s2) + 1)
+            for i, c1 in enumerate(s1):
+                current_row = [i + 1]
+                for j, c2 in enumerate(s2):
+                    insertions = previous_row[j + 1] + 1
+                    deletions = current_row[j] + 1
+                    substitutions = previous_row[j] + (c1 != c2)
+                    current_row.append(min(insertions, deletions, substitutions))
+                previous_row = current_row
+    
+            return previous_row[-1]
+    
+    def blunt_sharp_angles(self, geometry, angle_threshold, blunt_distance):
+        if isinstance(geometry, GeoSeries):
+            return geometry.apply(lambda geom: self.blunt_sharp_angles(geom, angle_threshold, blunt_distance))
+        
+        log_debug(f"Blunting angles for geometry: {geometry.wkt[:100]}...")
+        if isinstance(geometry, Polygon):
+            return self._blunt_polygon_angles(geometry, angle_threshold, blunt_distance)
+        elif isinstance(geometry, MultiPolygon):
+            return MultiPolygon([self._blunt_polygon_angles(poly, angle_threshold, blunt_distance) for poly in geometry.geoms])
+        elif isinstance(geometry, (LineString, MultiLineString)):
+            return self._blunt_linestring_angles(geometry, angle_threshold, blunt_distance)
+        elif isinstance(geometry, GeometryCollection):
+            new_geoms = [self.blunt_sharp_angles(geom, angle_threshold, blunt_distance) for geom in geometry.geoms]
+            return GeometryCollection(new_geoms)
+        else:
+            log_warning(f"Unsupported geometry type for blunting: {type(geometry)}")
+            return geometry
+
+    def _blunt_polygon_angles(self, polygon, angle_threshold, blunt_distance):
+        log_debug(f"Blunting polygon angles: {polygon.wkt[:100]}...")
+        
+        exterior_blunted = self._blunt_ring(LinearRing(polygon.exterior.coords), angle_threshold, blunt_distance)
+        interiors_blunted = [self._blunt_ring(LinearRing(interior.coords), angle_threshold, blunt_distance) for interior in polygon.interiors]
+        
+        return Polygon(exterior_blunted, interiors_blunted)
+
+    def _blunt_ring(self, ring, angle_threshold, blunt_distance):
+        coords = list(ring.coords)
+        new_coords = []
+        
+        for i in range(len(coords) - 1):  # -1 because the last point is the same as the first for rings
+            prev_point = Point(coords[i-1])
+            current_point = Point(coords[i])
+            next_point = Point(coords[(i+1) % (len(coords)-1)])  # Wrap around for the last point
+            
+            # Skip processing if current point is identical to previous or next point
+            if current_point.equals(prev_point) or current_point.equals(next_point):
+                new_coords.append(coords[i])
+                continue
+            
+            angle = self._calculate_angle(prev_point, current_point, next_point)
+            
+            if angle is not None and angle < angle_threshold:
+                log_debug(f"Blunting angle at point {i}")
+                blunted_points = self._create_radical_blunt_segment(prev_point, current_point, next_point, blunt_distance)
+                new_coords.extend(blunted_points)
+            else:
+                new_coords.append(coords[i])
+        
+        new_coords.append(new_coords[0])  # Close the ring
+        return LinearRing(new_coords)
+
+    def _blunt_linestring_angles(self, linestring, angle_threshold, blunt_distance):
+        log_debug(f"Blunting linestring angles: {linestring.wkt[:100]}...")
+        if isinstance(linestring, MultiLineString):
+            new_linestrings = [self._blunt_linestring_angles(ls, angle_threshold, blunt_distance) for ls in linestring.geoms]
+            return MultiLineString(new_linestrings)
+        
+        coords = list(linestring.coords)
+        new_coords = [coords[0]]
+        
+        for i in range(1, len(coords) - 1):
+            prev_point = Point(coords[i-1])
+            current_point = Point(coords[i])
+            next_point = Point(coords[i+1])
+            
+            angle = self._calculate_angle(prev_point, current_point, next_point)
+            
+            if angle is not None and angle < angle_threshold:
+                log_debug(f"Blunting angle at point {i}")
+                blunted_points = self._create_radical_blunt_segment(prev_point, current_point, next_point, blunt_distance)
+                new_coords.extend(blunted_points)
+            else:
+                new_coords.append(coords[i])
+        
+        new_coords.append(coords[-1])
+        return LineString(new_coords)
+
+    def _calculate_angle(self, p1, p2, p3):
+        v1 = [p1.x - p2.x, p1.y - p2.y]
+        v2 = [p3.x - p2.x, p3.y - p2.y]
+        
+        v1_mag = math.sqrt(v1[0]**2 + v1[1]**2)
+        v2_mag = math.sqrt(v2[0]**2 + v2[1]**2)
+        
+        # Check if either vector has zero magnitude
+        if v1_mag == 0 or v2_mag == 0:
+            log_warning(f"Zero magnitude vector encountered: v1_mag={v1_mag}, v2_mag={v2_mag}")
+            return None
+        
+        dot_product = v1[0] * v2[0] + v1[1] * v2[1]
+        
+        cos_angle = dot_product / (v1_mag * v2_mag)
+        cos_angle = max(-1, min(1, cos_angle))  # Ensure the value is between -1 and 1
+        angle_rad = math.acos(cos_angle)
+        return math.degrees(angle_rad)
+
+    def _create_radical_blunt_segment(self, p1, p2, p3, blunt_distance):
+        log_debug(f"Creating radical blunt segment for points: {p1}, {p2}, {p3}")
+        v1 = [(p1.x - p2.x), (p1.y - p2.y)]
+        v2 = [(p3.x - p2.x), (p3.y - p2.y)]
+        
+        # Normalize vectors
+        v1_mag = math.sqrt(v1[0]**2 + v1[1]**2)
+        v2_mag = math.sqrt(v2[0]**2 + v2[1]**2)
+        
+        # Check if either vector has zero magnitude
+        if v1_mag == 0 or v2_mag == 0:
+            log_warning(f"Zero magnitude vector encountered in blunt segment: v1_mag={v1_mag}, v2_mag={v2_mag}")
+            return [p2.coords[0]]  # Return the original point if we can't create a blunt segment
+        
+        v1_norm = [v1[0] / v1_mag, v1[1] / v1_mag]
+        v2_norm = [v2[0] / v2_mag, v2[1] / v2_mag]
+        
+        # Calculate points for the new segment
+        point1 = (p2.x + v1_norm[0] * blunt_distance, p2.y + v1_norm[1] * blunt_distance)
+        point2 = (p2.x + v2_norm[0] * blunt_distance, p2.y + v2_norm[1] * blunt_distance)
+        
+        log_debug(f"Radical blunt segment created: {point1}, {point2}")
+        return [point1, point2]
 
     def standardize_layer_crs(self, layer_name, geometry_or_gdf):
         target_crs = self.crs
-        log_info(f"Standardizing CRS for layer: {layer_name}")
+        log_debug(f"Standardizing CRS for layer: {layer_name}")
 
         if isinstance(geometry_or_gdf, gpd.GeoDataFrame):
-            log_info(f"Original CRS: {geometry_or_gdf.crs}")
+            log_debug(f"Original CRS: {geometry_or_gdf.crs}")
             if geometry_or_gdf.crs is None:
                 log_warning(f"Layer {layer_name} has no CRS. Setting to target CRS: {target_crs}")
                 geometry_or_gdf.set_crs(target_crs, inplace=True)
             elif geometry_or_gdf.crs != target_crs:
-                log_info(f"Transforming layer {layer_name} from {geometry_or_gdf.crs} to {target_crs}")
+                log_debug(f"Transforming layer {layer_name} from {geometry_or_gdf.crs} to {target_crs}")
                 geometry_or_gdf = geometry_or_gdf.to_crs(target_crs)
-            log_info(f"Final CRS for layer {layer_name}: {geometry_or_gdf.crs}")
+            log_debug(f"Final CRS for layer {layer_name}: {geometry_or_gdf.crs}")
             return geometry_or_gdf
         elif isinstance(geometry_or_gdf, gpd.GeoSeries):
             return self.standardize_layer_crs(layer_name, gpd.GeoDataFrame(geometry=geometry_or_gdf))
         elif isinstance(geometry_or_gdf, (Polygon, MultiPolygon, LineString, MultiLineString)):
-            log_info(f"Processing individual geometry for layer: {layer_name}")
+            log_debug(f"Processing individual geometry for layer: {layer_name}")
             gdf = gpd.GeoDataFrame(geometry=[geometry_or_gdf], crs=target_crs)
-            log_info(f"Created GeoDataFrame with CRS: {gdf.crs}")
+            log_debug(f"Created GeoDataFrame with CRS: {gdf.crs}")
             return gdf.geometry.iloc[0]
         else:
             log_warning(f"Unsupported type for layer {layer_name}: {type(geometry_or_gdf)}")
             return geometry_or_gdf
+
+    def _process_style(self, layer_name, style_config):
+        if isinstance(style_config, str):
+            # If style_config is a string, it's a preset name
+            style_config = self.project_loader.get_style(style_config)
+        
+        if 'layer' in style_config:
+            self.style_manager._process_layer_style(layer_name, style_config['layer'])
+        if 'hatch' in style_config or 'applyHatch' in style_config:
+            self.style_manager._process_hatch_style(layer_name, style_config)
+        if 'text' in style_config:
+            self.style_manager._process_text_style(layer_name, style_config['text'])
+
+    def is_wmts_or_wms_layer(self, layer_name):
+        # Check in all layer types
+        layer_info = (
+            next((l for l in self.project_settings.get('wmtsLayers', []) if l['name'] == layer_name), None) or
+            next((l for l in self.project_settings.get('wmsLayers', []) if l['name'] == layer_name), None) or
+            next((l for l in self.project_settings.get('geomLayers', []) if l['name'] == layer_name and 
+                 any(op.get('type', '').lower() in ['wmts', 'wms'] for op in l.get('operations', []))), None)
+        )
+        return layer_info is not None
+
+    def delete_residual_shapefiles(self):
+        output_dir = self.project_loader.shapefile_output_dir
+        
+        # Skip only if this specific setting is not configured
+        if not output_dir:
+            log_debug("Skipping residual shapefile cleanup - no shapefileOutputDir configured in project settings")
+            return
+        
+        log_debug(f"Checking for residual shapefiles in {output_dir}")
+        
+        for filename in os.listdir(output_dir):
+            file_path = os.path.join(output_dir, filename)
+            if os.path.isfile(file_path):
+                layer_name = os.path.splitext(filename)[0]
+                if layer_name not in self.processed_layers:
+                    try:
+                        os.remove(file_path)
+                        log_debug(f"Deleted residual file: {filename}")
+                    except Exception as e:
+                        log_warning(f"Failed to delete residual file {file_path}. Reason: {e}")
+
+    def _get_geometry_error(self, geom):
+        """Helper method to get detailed geometry validation error"""
+        try:
+            from shapely.validation import explain_validity
+            explanation = explain_validity(geom)
+            if explanation == 'Valid Geometry':
+                return None
+            return explanation
+        except Exception:
+            # Fallback if explain_validity is not available
+            if not geom.is_valid:
+                return "Invalid geometry"
+            return None

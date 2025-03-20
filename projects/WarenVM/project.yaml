@@ -1,0 +1,6 @@
+exportFormat: dxf
+dxfVersion: R2018
+crs: EPSG:25833
+dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/Zeichnung/Vermesser/PV Waren_Entwurfsvermessung_2024-11-29_VB_Haff-24-12-03_mit_luftbild.dxf"
+# shapefileOutputDir: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/generated"
+# dxfDumpOutputDir: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/dxf_dump"

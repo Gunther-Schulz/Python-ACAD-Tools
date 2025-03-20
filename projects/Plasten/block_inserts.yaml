@@ -1,0 +1,99 @@
+blockInserts:
+  - name: "SO EBS Label"
+    updateDxf: true
+    blockName: "Sonstiges Sondergebiet EBS"
+    scale: 6.0
+    rotation: 0
+    position:
+      sourceLayer: "Baufeld Label Points"
+      type: "points"  # Options: centroid, center, random
+  - name: "GRZ Label"
+    updateDxf: true
+    blockName: "GRZ"
+    scale: 4.0
+    rotation: 0
+    position:
+      sourceLayer: "Baufeld Label Points"
+      type: "points"
+      offset:
+        x: 0
+        y: -20
+  - name: "Bäume Ausserhalb"
+    updateDxf: true
+    blockName: "Baum"
+    position:
+      sourceLayer: "Baum Points"
+      type: "points"
+  - name: "Gesetzlich geschütztes Biotop Symbol"
+    updateDxf: true
+    blockName: "Gesetzlich geschütztes Biotop"
+    position:
+      sourceLayer: Geschütze Biotope 2
+      type: "polygon"
+  # NW Block Inserts
+  # --------------
+  - name: "NW PBS Logo"
+    updateDxf: true
+    blockName: "Firmenlogo"
+    paperspace: true
+    position:
+      type: "absolute"
+      x: 2489
+      y: 186
+  - name: "NW Nordpfeil"
+    updateDxf: true
+    blockName: "Nordpfeil"
+    paperspace: true
+    position:
+      type: "absolute"
+      x: 2557
+      y: 364
+  # NO Block Inserts
+  # --------------
+  - name: "NO PBS Logo"
+    updateDxf: true
+    blockName: "Firmenlogo"
+    paperspace: true
+    position:
+      type: "absolute"
+      x: 4489
+      y: 186
+  - name: "NO Nordpfeil"
+    updateDxf: true
+    blockName: "Nordpfeil"
+    paperspace: true
+    position:
+      type: "absolute"
+      x: 4557
+      y: 275
+  - name: EinAusfahrt
+    updateDxf: true
+    blockName: "EinAusfahrt"
+    scale: 0.6
+    position:
+      sourceLayer: "EinAusfahrt Line"
+      type: "line"
+      method: "middle"
+      lineOffset: -2
+    # position:
+    #   sourceLayer: "EinAusfahrt Points"
+    #   type: "points"
+
+  # S Block Inserts
+  # --------------
+  - name: "NO PBS Logo"
+    updateDxf: true
+    blockName: "Firmenlogo"
+    paperspace: true
+    position:
+      type: "absolute"
+      x: 6489
+      y: 186
+  - name: "S Nordpfeil"
+    updateDxf: true
+    blockName: "Nordpfeil"
+    paperspace: true
+    position:
+      type: "absolute"
+      x: 6557
+      y: 364

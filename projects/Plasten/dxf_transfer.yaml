@@ -1,0 +1,41 @@
+dxfTransfer:
+  - externalDxf: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Zeichnung/manual_additions.dxf"
+    direction: "save"
+    transfers:
+      - fromLayer: "Parcel Label"
+        entityTypes:
+          - LWPOLYLINE
+          - MTEXT
+          - TEXT
+          - INSERT
+
+  # - externalDxf: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/CAD/manual_additions.dxf"
+  #   direction: "load"  # load = import into working DXF
+  #   transfers:
+  #     - fromLayer: "Text and Lines"
+  #       toLayer: "Manual Additions"
+  #       entityTypes:
+  #         - LWPOLYLINE
+  #         - MTEXT
+  #         - TEXT
+  #         - INSERT
+  #         - CIRCLE
+
+  # - externalDxf: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/CAD/exported_entities.dxf"
+  #   direction: "save"  # save = export from working DXF
+  #   transfers:
+  #     - fromLayer: "Baugrenze"
+  #       toLayer: "Baugrenze Export"
+  #       entityTypes:
+  #         - LWPOLYLINE
+  #         - INSERT
+  #       filter:
+  #         created_by_script: true
+      
+  #     - fromLayer: "*"  # All layers
+  #       toLayer: "same"
+  #       entityTypes:
+  #         - MTEXT
+  #         - TEXT
+  #       filter:
+  #         created_by_script: false  # Only manual additions

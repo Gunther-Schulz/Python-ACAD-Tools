@@ -1,0 +1,6 @@
+exportFormat: dxf
+dxfVersion: R2018
+crs: EPSG:25833
+dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/Zeichnung/25 01.29. Torgelow.dxf"
+# dxfDumpOutputDir: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/dxf_dump"
+shapefileOutputDir: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/generated"
