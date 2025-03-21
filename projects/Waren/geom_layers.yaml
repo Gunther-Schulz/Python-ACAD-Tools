@@ -688,16 +688,16 @@ geomLayers:
         capStyle: round
         joinStyle: round
       - type: dissolve
-  - name: Wohngrunstückecken 2 Envelope
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/wohngrundstücke_2_ecken_pt.shp"
-    operations:
-      - type: connect-points
-        maxDistance: 60
-      - type: buffer
-        distance: 40
-        capStyle: round
-        joinStyle: round
-      - type: dissolve
+  # - name: Wohngrunstückecken 2 Envelope
+  #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/wohngrundstücke_2_ecken_pt.shp"
+  #   operations:
+  #     - type: connect-points
+  #       maxDistance: 60
+  #     - type: buffer
+  #       distance: 40
+  #       capStyle: round
+  #       joinStyle: round
+  #     - type: dissolve
   - name: Baugrenze 2
     updateDxf: true # linetypeGeneration
     style: baugrenze_2
@@ -731,7 +731,7 @@ geomLayers:
           - Exclude Bahn Buffer
           - Exclude Böschung
           - Wohngrunstückecken Envelope
-          - Wohngrunstückecken 2 Envelope
+          # - Wohngrunstückecken 2 Envelope
       - type: calculate
         calculations:
           - type: area
