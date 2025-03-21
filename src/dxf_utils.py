@@ -78,17 +78,17 @@ def attach_custom_data(entity, script_identifier, entity_name=None):
             entity.discard_xdata('DXFEXPORTER')
         except:
             pass
-            
+
         # Set new XDATA
         entity.set_xdata(
             'DXFEXPORTER',
             [(1000, script_identifier)]
         )
-        
+
         # NEW: Ensure entity is properly added to the document database
         if hasattr(entity, 'doc') and entity.doc:
             entity.doc.entitydb.add(entity)
-            
+
         # Add hyperlink with entity name if supported
         if hasattr(entity, 'set_hyperlink'):
             try:
@@ -136,21 +136,21 @@ def remove_entities_by_layer(msp, layer_names, script_identifier):
     key_func = doc.layers.key
     delete_count = 0
     problem_entities = []
-    
+
     # Convert single layer name to list
     if isinstance(layer_names, str):
         layer_names = [layer_names]
-    
+
     # Convert layer names to keys
     layer_keys = [key_func(layer_name) for layer_name in layer_names]
-    
+
     # First pass: collect problematic entities
     for space in [doc.modelspace(), doc.paperspace()]:
         for entity in doc.entitydb.values():
             try:
                 if not hasattr(entity, 'dxf') or not entity.dxf.hasattr("layer"):
                     continue
-                    
+
                 if key_func(entity.dxf.layer) in layer_keys and is_created_by_script(entity, script_identifier):
                     try:
                         # Test if we can safely handle this entity
@@ -159,23 +159,23 @@ def remove_entities_by_layer(msp, layer_names, script_identifier):
                         problem_entities.append((entity, str(e)))
             except AttributeError:
                 continue
-    
+
     # If there are problem entities, show summary and ask for confirmation
     if problem_entities:
         log_warning(f"\nFound {len(problem_entities)} potentially problematic entities:")
         error_types = {}
         for _, error in problem_entities:
             error_types[error] = error_types.get(error, 0) + 1
-        
+
         for error, count in error_types.items():
             log_warning(f"- {count} entities with error: {error}")
-        
+
         # Ask for confirmation
         response = input("\nDo you want to proceed with deletion? (y/N): ").lower()
         if response != 'y':
             log_info("Deletion cancelled by user")
             return 0
-    
+
     # Proceed with deletion
     with doc.entitydb.trashcan() as trash:
         for space in [doc.modelspace(), doc.paperspace()]:
@@ -183,7 +183,7 @@ def remove_entities_by_layer(msp, layer_names, script_identifier):
                 try:
                     if not hasattr(entity, 'dxf') or not entity.dxf.hasattr("layer"):
                         continue
-                        
+
                     if key_func(entity.dxf.layer) in layer_keys and is_created_by_script(entity, script_identifier):
                         try:
                             # Clear any XDATA before deletion
@@ -195,12 +195,12 @@ def remove_entities_by_layer(msp, layer_names, script_identifier):
                             # Add to trashcan for safe deletion
                             trash.add(entity.dxf.handle)
                             delete_count += 1
-                            
+
                         except Exception as e:
                             continue
                 except AttributeError:
                     continue
-    
+
     # Try to perform cleanup operations
     try:
         doc.entitydb.purge()
@@ -211,13 +211,13 @@ def remove_entities_by_layer(msp, layer_names, script_identifier):
         doc.audit()
     except Exception as e:
         log_warning(f"Document audit failed (this is not critical): {str(e)}")
-    
+
     return delete_count
 
 def update_layer_geometry(msp, layer_name, script_identifier, update_function):
     # Remove existing entities
     remove_entities_by_layer(msp, layer_name, script_identifier)
-    
+
     # Add new geometry
     update_function()
 
@@ -234,7 +234,7 @@ def update_layer_properties(layer, layer_properties, name_to_aci):
     # Skip if no properties provided
     if not layer_properties:
         return
-        
+
     if 'color' in layer_properties:
         color = get_color_code(layer_properties['color'], name_to_aci)
         if isinstance(color, tuple):
@@ -262,9 +262,9 @@ def update_layer_properties(layer, layer_properties, name_to_aci):
 
 # def load_standard_linetypes(doc):
 #     linetypes = doc.linetypes
-    
+
 #     acadiso_lin_file = 'acadiso.lin'  # Adjust this path if necessary
-    
+
 #     if not os.path.exists(acadiso_lin_file):
 #         log_warning(f"acadiso.lin file not found at: {acadiso_lin_file}")
 #         return
@@ -296,7 +296,7 @@ def update_layer_properties(layer, layer_properties, name_to_aci):
 #                 # New linetype definition
 #                 if current_linetype:
 #                     add_linetype(linetypes, current_linetype, current_description, current_pattern)
-                
+
 #                 # Start a new linetype
 #                 parts = line[1:].split(',', 1)
 #                 current_linetype = parts[0]
@@ -335,13 +335,13 @@ def set_drawing_properties(doc):
     doc.header['$LUNITS'] = 2  # 2 for decimal units
     doc.header['$LUPREC'] = 4  # Precision for linear units
     doc.header['$AUPREC'] = 4  # Precision for angular units
-    
+
     # Define meaning of values
     measurement_meaning = {
         0: "Imperial (inches, feet)",
         1: "Metric (millimeters, meters)"
     }
-    
+
     insunits_meaning = {
         0: "Unitless",
         1: "Inches",
@@ -365,7 +365,7 @@ def set_drawing_properties(doc):
         19: "Light years",
         20: "Parsecs"
     }
-    
+
     lunits_meaning = {
         1: "Scientific",
         2: "Decimal",
@@ -373,41 +373,41 @@ def set_drawing_properties(doc):
         4: "Architectural",
         5: "Fractional"
     }
-    
+
     # Log and print the settings with their meanings
     log_debug("\n=== Drawing Properties Set ===")
-    
+
     # MEASUREMENT
     measurement_msg = f"$MEASUREMENT: {doc.header['$MEASUREMENT']} - {measurement_meaning.get(doc.header['$MEASUREMENT'], 'Unknown')}"
     log_debug(measurement_msg)
-    
+
     # INSUNITS
     insunits_msg = f"$INSUNITS: {doc.header['$INSUNITS']} - {insunits_meaning.get(doc.header['$INSUNITS'], 'Unknown')}"
     log_debug(insunits_msg)
-    
+
     # LUNITS
     lunits_msg = f"$LUNITS: {doc.header['$LUNITS']} - {lunits_meaning.get(doc.header['$LUNITS'], 'Unknown')}"
     log_debug(lunits_msg)
-    
+
     # LUPREC
     luprec_msg = f"$LUPREC: {doc.header['$LUPREC']} - Linear units precision (number of decimal places)"
     log_debug(luprec_msg)
-    
+
     # AUPREC
     auprec_msg = f"$AUPREC: {doc.header['$AUPREC']} - Angular units precision (number of decimal places)"
     log_debug(auprec_msg)
-    
+
     log_debug("\n=== End of Drawing Properties ===")
 
 def verify_dxf_settings(filename):
     loaded_doc = ezdxf.readfile(filename)
-    
+
     # Define meaning of values
     measurement_meaning = {
         0: "Imperial (inches, feet)",
         1: "Metric (millimeters, meters)"
     }
-    
+
     insunits_meaning = {
         0: "Unitless", 1: "Inches", 2: "Feet", 3: "Miles",
         4: "Millimeters", 5: "Centimeters", 6: "Meters", 7: "Kilometers",
@@ -416,7 +416,7 @@ def verify_dxf_settings(filename):
         16: "Hectometers", 17: "Gigameters", 18: "Astronomical units",
         19: "Light years", 20: "Parsecs"
     }
-    
+
     lunits_meaning = {
         1: "Scientific", 2: "Decimal", 3: "Engineering",
         4: "Architectural", 5: "Fractional"
@@ -464,7 +464,7 @@ def _apply_text_style_properties(entity, text_style, name_to_aci=None):
         entity.dxf.char_height = text_style['height']
     if 'font' in text_style:
         entity.dxf.style = text_style['font']
-    
+
     # Color
     if 'color' in text_style:
         color = get_color_code(text_style['color'], name_to_aci)
@@ -543,7 +543,7 @@ def apply_style_to_entity(entity, style, project_loader, loaded_styles=None, ite
     """Apply style properties to any DXF entity."""
     if entity.dxftype() in ('MTEXT', 'TEXT'):
         _apply_text_style_properties(entity, style, project_loader.name_to_aci)
-    
+
     # Apply non-text properties
     if 'color' in style:
         color = get_color_code(style['color'], project_loader.name_to_aci)
@@ -553,17 +553,17 @@ def apply_style_to_entity(entity, style, project_loader, loaded_styles=None, ite
             entity.dxf.color = color
     else:
         entity.dxf.color = ezdxf.const.BYLAYER
-    
+
     if 'linetype' in style:
         if linetype_exists(entity.doc, style['linetype']):
             entity.dxf.linetype = style['linetype']
         else:
             log_warning(f"Linetype '{style['linetype']}' not defined. Using 'BYLAYER'.")
             entity.dxf.linetype = 'BYLAYER'
-    
+
     if 'lineweight' in style:
         entity.dxf.lineweight = style['lineweight']
-    
+
     # Set transparency
     if 'transparency' in style:
         transparency = convert_transparency(style['transparency'])
@@ -586,10 +586,10 @@ def apply_style_to_entity(entity, style, project_loader, loaded_styles=None, ite
 
 def create_hatch(msp, boundary_paths, hatch_config, project_loader):
     hatch = msp.add_hatch()
-    
+
     pattern = hatch_config.get('pattern', 'SOLID')
     pattern_scale = hatch_config.get('scale', 1)
-    
+
     if pattern != 'SOLID':
         try:
             hatch.set_pattern_fill(pattern, scale=pattern_scale)
@@ -627,7 +627,7 @@ def create_hatch(msp, boundary_paths, hatch_config, project_loader):
         transparency = convert_transparency(hatch_config['transparency'])
         if transparency is not None:
             set_hatch_transparency(hatch, transparency)
-    
+
     return hatch
 
 def set_hatch_transparency(hatch, transparency):
@@ -646,7 +646,7 @@ def add_mtext(msp, text, x, y, layer_name, style_name, text_style=None, name_to_
     log_debug(f"Layer: '{layer_name}'")
     log_debug(f"Style name: '{style_name}'")
     log_debug(f"Text style config: {text_style}")
-    
+
     # Build basic dxfattribs
     dxfattribs = {
         'style': style_name,
@@ -659,13 +659,13 @@ def add_mtext(msp, text, x, y, layer_name, style_name, text_style=None, name_to_
     try:
         # Create the MTEXT entity
         mtext = msp.add_mtext(text, dxfattribs=dxfattribs)
-        
+
         # Apply common text style properties
         _apply_text_style_properties(mtext, text_style, name_to_aci)
 
         # Attach custom data
         attach_custom_data(mtext, SCRIPT_IDENTIFIER)
-        
+
         log_debug(f"=== Completed MTEXT creation ===")
         actual_height = mtext.dxf.char_height * mtext.dxf.line_spacing_factor * len(text.split('\n'))
         return mtext, actual_height
@@ -678,17 +678,17 @@ def add_mtext(msp, text, x, y, layer_name, style_name, text_style=None, name_to_
 def sanitize_layer_name(name):
     # Define a set of allowed characters, including German-specific ones, space, dash, and underscore
     allowed_chars = r'a-zA-Z0-9_\-öüäßÖÜÄ '
-    
+
     # Replace disallowed characters with underscores
     sanitized = re.sub(f'[^{allowed_chars}]', '_', name)
-    
+
     # Ensure the name starts with a letter, underscore, or allowed special character (excluding space)
     if not re.match(f'^[{allowed_chars.replace(" ", "")}]', sanitized):
         sanitized = '_' + sanitized
-    
+
     # Remove any leading spaces
     sanitized = sanitized.lstrip()
-    
+
     # Truncate to 255 characters (AutoCAD limit)
     return sanitized[:255]
 
@@ -754,36 +754,36 @@ def cleanup_document(doc):
         auditor = doc.audit()
         if len(auditor.errors) > 0:
             log_warning(f"Audit found {len(auditor.errors)} issues")
-        
+
         # Clean up empty groups
         for group in doc.groups:
             if len(group) == 0:
                 doc.groups.remove(group.dxf.name)
-        
+
         # Purge unused blocks
         modelspace = doc.modelspace()
         paperspace = doc.paperspace()
         used_blocks = set()
-        
+
         # Check modelspace for block references
         for insert in modelspace.query('INSERT'):
             used_blocks.add(insert.dxf.name)
-            
+
         # Check paperspace for block references
         for insert in paperspace.query('INSERT'):
             used_blocks.add(insert.dxf.name)
-            
+
         # Remove unused blocks
         for block in list(doc.blocks):
             block_name = block.name
-            
+
             # Skip special blocks, used blocks, and AutoCAD special blocks
-            if (block_name.startswith('_') or 
-                block_name.startswith('*') or 
-                block_name.startswith('A$C') or 
+            if (block_name.startswith('_') or
+                block_name.startswith('*') or
+                block_name.startswith('A$C') or
                 block_name in used_blocks):
                 continue
-                
+
             try:
                 doc.blocks.delete_block(block_name)
                 log_debug(f"Removed unused block: {block_name}")
@@ -791,31 +791,31 @@ def cleanup_document(doc):
                 # Only log errors that aren't related to block being in use
                 if "still in use" not in str(e):
                     log_warning(f"Could not remove block {block_name}: {str(e)}")
-        
+
         # Purge unused layers
         for layer in list(doc.layers):
             layer_name = layer.dxf.name
-            
+
             # Skip system layers (0, Defpoints)
             if layer_name in ['0', 'Defpoints']:
                 continue
-                
+
             # Check if the layer has any entities
             has_entities = False
-            
+
             # Check modelspace
             for entity in modelspace:
                 if entity.dxf.layer == layer_name:
                     has_entities = True
                     break
-                    
+
             # If not found in modelspace, check paperspace
             if not has_entities:
                 for entity in paperspace:
                     if entity.dxf.layer == layer_name:
                         has_entities = True
                         break
-            
+
             # Remove empty layer
             if not has_entities:
                 try:
@@ -823,7 +823,7 @@ def cleanup_document(doc):
                     log_debug(f"Removed empty layer: {layer_name}")
                 except Exception as e:
                     log_warning(f"Could not remove layer {layer_name}: {str(e)}")
-        
+
         # Purge unused linetypes
         for linetype in list(doc.linetypes):
             try:
@@ -831,7 +831,7 @@ def cleanup_document(doc):
             except Exception as e:
                 # Skip if linetype is in use or is a default linetype
                 continue
-        
+
         # Purge unused text styles
         for style in list(doc.styles):
             try:
@@ -839,7 +839,7 @@ def cleanup_document(doc):
             except Exception as e:
                 # Skip if style is in use or is a default style
                 continue
-        
+
         # Purge unused dimension styles
         for dimstyle in list(doc.dimstyles):
             try:
@@ -847,12 +847,12 @@ def cleanup_document(doc):
             except Exception as e:
                 # Skip if dimstyle is in use or is a default style
                 continue
-        
+
         # Force database update
         doc.entitydb.purge()
-        
+
         log_debug("Document cleanup completed successfully")
-        
+
     except Exception as e:
         log_error(f"Error during document cleanup: {str(e)}")
         log_error(f"Traceback:\n{traceback.format_exc()}")
@@ -872,95 +872,8 @@ def polygon_patch(polygon):
     for ring in [polygon.exterior] + list(polygon.interiors):
         vertices.append(ring_coord(ring.coords))
         codes.append(ring_coding(ring.coords))
-    
+
     vertices = np.concatenate(vertices)
     codes = np.concatenate(codes)
-    
+
     return PathPatch(Path(vertices, codes))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
