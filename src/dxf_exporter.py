@@ -238,10 +238,7 @@ class DXFExporter:
         verify_dxf_settings(self.dxf_filename)
 
     def process_layers(self, doc, msp):
-        # Remove any duplicate source extraction here
-        # The extraction was already done in _load_or_create_dxf
-
-        # Rest of the method remains unchanged
+        # First, process all normal geometry layers
         geom_layers = self.project_settings.get('geomLayers', [])
         for layer_info in geom_layers:
             layer_name = layer_info['name']
@@ -251,6 +248,28 @@ class DXFExporter:
                 # Process hatches after the regular geometry
                 if 'applyHatch' in layer_info:
                     self._process_hatch(doc, msp, layer_name, layer_info)
+
+        # Then process any label layers created by simpleLabel operations
+        for layer_info in geom_layers:
+            layer_name = layer_info['name']
+            label_layer_name = f"{layer_name}_labels"
+
+            if label_layer_name in self.all_layers:
+                # Create a new layer info object for the label layer
+                label_layer_info = layer_info.copy()
+
+                # Use the style from the simpleLabel operation if available
+                if 'operations' in layer_info:
+                    for op in layer_info['operations']:
+                        if op.get('type') == 'simpleLabel' and 'style' in op:
+                            label_layer_info['style'] = op['style']
+
+                # Set updateDxf to True for the label layer
+                label_layer_info['updateDxf'] = True
+
+                # Process the label layer
+                log_debug(f"Processing label layer: {label_layer_name}")
+                self._process_label_layer(doc, msp, label_layer_name, label_layer_info)
 
         # Then process WMTS/WMS layers
         wmts_layers = self.project_settings.get('wmtsLayers', [])
@@ -1054,10 +1073,10 @@ class DXFExporter:
 
     def has_labels(self, layer_info):
         """Check if a layer has associated labels."""
-        # Check if there are any labelAssociation operations
+        # Check if there are any labelAssociation or simpleLabel operations
         if 'operations' in layer_info:
             for operation in layer_info['operations']:
-                if operation.get('type') == 'labelAssociation':
+                if operation.get('type') in ['labelAssociation', 'simpleLabel']:
                     return True
 
         # Check if there's a label column specified
@@ -1065,3 +1084,24 @@ class DXFExporter:
             return True
 
         return False
+
+    def _process_label_layer(self, doc, msp, label_layer_name, layer_info):
+        """Process a label layer created by the simpleLabel operation."""
+        if label_layer_name not in self.all_layers:
+            return
+
+        # Ensure the label layer exists in the DXF document
+        if label_layer_name not in doc.layers:
+            new_layer = doc.layers.new(name=label_layer_name)
+            log_debug(f"Created new label layer: {label_layer_name}")
+
+            # Apply style properties to the layer
+            style_name = layer_info.get('style')
+            if style_name:
+                style_data, _ = self.style_manager.get_style(style_name)
+                if style_data:
+                    update_layer_properties(new_layer, style_data, self.name_to_aci)
+
+        # Add the label points to the DXF
+        label_gdf = self.all_layers[label_layer_name]
+        self.add_label_points_to_dxf(msp, label_gdf, label_layer_name, layer_info)

@@ -173,7 +173,7 @@ styles:
       scale: 2
 
   waldWorkView:
-    layer:     
+    layer:
       color: "aquamarine-strong"
 
   waterLegend:
@@ -223,7 +223,7 @@ styles:
       lineweight: 50
     entity:
       linetypeGeneration: true
-  
+
   blendschutzzaun:
     layer:
       linetype: DASHED
@@ -237,9 +237,13 @@ styles:
       linetype: "CENTER2"
       lineweight: 80
 
+  # geltungsbereich:
+  #   layer:
+  #     color: "white"
+
   geltungsbereich:
     layer:
-      color: "white"
+      color: "red"
 
   geltungsbereich_2:
     layer:
@@ -312,7 +316,7 @@ styles:
     # lineweight: 30
     # plot: true
     # frozen: false
-    # is_on: true 
+    # is_on: true
     # vp_freeze: false
     # transparency: 0.0
 
