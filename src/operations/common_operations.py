@@ -28,7 +28,7 @@ from src.utils import log_info, log_warning, log_error, log_debug
 
 
 
-def _get_filtered_geometry(all_layers, project_settings, crs, layer_name, values):
+def _get_filtered_geometry(all_layers, project_settings, crs, layer_name, values, column_name=None):
         if layer_name not in all_layers:
             log_warning(f"Layer '{layer_name}' not found")
             return None
@@ -37,9 +37,25 @@ def _get_filtered_geometry(all_layers, project_settings, crs, layer_name, values
         log_debug(f"Initial number of geometries in {layer_name}: {len(source_gdf)}")
 
         if values:
-            label_column = next((l['label'] for l in project_settings['geomLayers'] if l['name'] == layer_name), None)
+            # First try to use the explicit column name from the operation if provided
+            if column_name and column_name in source_gdf.columns:
+                label_column = column_name
+                log_debug(f"Using explicit column '{label_column}' for filtering layer '{layer_name}'")
+            else:
+                # Fall back to the label from project settings
+                label_column = next((l['label'] for l in project_settings['geomLayers'] if l['name'] == layer_name), None)
+                log_debug(f"Using project settings column '{label_column}' for filtering layer '{layer_name}'")
+
             if label_column and label_column in source_gdf.columns:
-                filtered_gdf = source_gdf[source_gdf[label_column].astype(str).isin(values)].copy()
+                # Convert values to strings for comparison
+                str_values = [str(v) for v in values]
+                log_debug(f"Filtering {layer_name} by values {str_values} in column '{label_column}'")
+
+                # Check for any matches
+                matched_count = source_gdf[source_gdf[label_column].astype(str).isin(str_values)].shape[0]
+                log_debug(f"Found {matched_count} matches for values {str_values} in column '{label_column}'")
+
+                filtered_gdf = source_gdf[source_gdf[label_column].astype(str).isin(str_values)].copy()
                 log_debug(f"Number of geometries after filtering by values: {len(filtered_gdf)}")
             else:
                 log_warning(f"Label column '{label_column}' not found in layer '{layer_name}'")
@@ -51,29 +67,29 @@ def _get_filtered_geometry(all_layers, project_settings, crs, layer_name, values
         invalid_geoms = filtered_gdf[~filtered_gdf.geometry.is_valid]
         if not invalid_geoms.empty:
             log_warning(f"Found {len(invalid_geoms)} invalid geometries in layer '{layer_name}'")
-            
+
             # Plot the layer with invalid points marked
             fig, ax = plt.subplots(figsize=(12, 8))
             filtered_gdf.plot(ax=ax, color='blue', alpha=0.5)
-            
+
             for idx, geom in invalid_geoms.geometry.items():
                 reason = explain_validity(geom)
                 log_warning(f"Invalid geometry at index {idx}: {reason}")
-                
+
                 # Extract coordinates of invalid points
                 coords = _extract_coords_from_reason(reason)
                 if coords:
                     ax.plot(coords[0], coords[1], 'rx', markersize=10, markeredgewidth=2)
-                    ax.annotate(f"Invalid point", (coords[0], coords[1]), xytext=(5, 5), 
+                    ax.annotate(f"Invalid point", (coords[0], coords[1]), xytext=(5, 5),
                                 textcoords='offset points', color='red', fontsize=8)
                 else:
                     log_warning(f"Could not extract coordinates from reason: {reason}")
-            
+
             # Add some buffer to the plot extent
             x_min, y_min, x_max, y_max = filtered_gdf.total_bounds
             ax.set_xlim(x_min - 10, x_max + 10)
             ax.set_ylim(y_min - 10, y_max + 10)
-            
+
             plt.title(f"Layer: {layer_name} - Invalid Points Marked")
             plt.axis('equal')
             plt.tight_layout()
@@ -119,12 +135,12 @@ def _get_filtered_geometry(all_layers, project_settings, crs, layer_name, values
 
 def _process_layer_info(all_layers, project_settings, crs, layer_info):
         if isinstance(layer_info, str):
-            return layer_info, []
+            return layer_info, [], None
         elif isinstance(layer_info, dict):
-            return layer_info['name'], layer_info.get('values', [])
+            return layer_info['name'], layer_info.get('values', []), layer_info.get('column')
         else:
             log_warning(f"Invalid layer info type: {type(layer_info)}")
-            return None, []
+            return None, [], None
 
 
 def _extract_coords_from_reason(reason):
@@ -207,7 +223,7 @@ def _remove_thin_growths(all_layers, project_settings, crs, geometry, threshold)
     if isinstance(geometry, (Polygon, MultiPolygon)):
         # Apply a negative buffer followed by a positive buffer
         cleaned = geometry.buffer(-threshold).buffer(threshold)
-        
+
         # Ensure the result is valid and of the same type as the input
         cleaned = make_valid(cleaned)
         if isinstance(geometry, Polygon) and isinstance(cleaned, MultiPolygon):
@@ -287,7 +303,7 @@ def _remove_small_polygons(all_layers, project_settings, crs, geometry, min_area
             return MultiPolygon([poly for poly in geometry.geoms if poly.area >= min_area])
         else:
             return geometry
-            
+
 
 def _merge_close_vertices(all_layers, project_settings, crs, geometry, tolerance=0.1):
     def merge_points(geom):
@@ -297,7 +313,7 @@ def _merge_close_vertices(all_layers, project_settings, crs, geometry, tolerance
             for coord in exterior_coords[1:]:
                 if Point(coord).distance(Point(merged_exterior[-1])) > tolerance:
                     merged_exterior.append(coord)
-            
+
             interiors = []
             for interior in geom.interiors:
                 interior_coords = list(interior.coords)
@@ -307,7 +323,7 @@ def _merge_close_vertices(all_layers, project_settings, crs, geometry, tolerance
                         merged_interior.append(coord)
                 if len(merged_interior) >= 4:  # Keep only valid interior rings (4 points to close the ring)
                     interiors.append(merged_interior)
-            
+
             if len(merged_exterior) >= 4:  # 4 points to close the ring
                 return Polygon(merged_exterior, interiors)
             else:
@@ -328,7 +344,7 @@ def _merge_close_vertices(all_layers, project_settings, crs, geometry, tolerance
         return GeometryCollection(merged_geoms) if merged_geoms else None
     else:
         return merge_points(geometry)
-        
+
 
 def _clean_geometry(all_layers, project_settings, crs, geometry):
         if isinstance(geometry, (gpd.GeoSeries, pd.Series)):
@@ -357,25 +373,25 @@ def _remove_empty_geometries(all_layers, project_settings, crs, layer_name, geom
 def _create_generic_overlay_layer(all_layers, project_settings, crs, layer_name, operation, overlay_type):
         log_debug(f"Creating {overlay_type} layer: {layer_name}")
         log_debug(f"Operation details: {operation}")
-        
+
         overlay_layers = operation.get('layers', [])
-        
+
         if not overlay_layers:
             log_warning(f"No overlay layers specified for {layer_name}")
             return
-        
+
         base_geometry = all_layers.get(layer_name)
         if base_geometry is None:
             log_warning(f"Base layer '{layer_name}' not found for {overlay_type} operation")
             return
-        
+
         combined_overlay_geometry = None
         for layer_info in overlay_layers:
-            overlay_layer_name, values = _process_layer_info(layer_info)
+            overlay_layer_name, values, column_name = _process_layer_info(all_layers, project_settings, crs, layer_info)
             if overlay_layer_name is None:
                 continue
 
-            overlay_geometry = _get_filtered_geometry(overlay_layer_name, values)
+            overlay_geometry = _get_filtered_geometry(all_layers, project_settings, crs, overlay_layer_name, values, column_name)
             if overlay_geometry is None:
                 continue
 
@@ -396,10 +412,10 @@ def _create_generic_overlay_layer(all_layers, project_settings, crs, layer_name,
             else:
                 log_error(f"Unsupported overlay type: {overlay_type}")
                 return
-            
+
             # Apply a series of cleaning operations
             result_geometry = _clean_geometry(result_geometry)
-            
+
             log_debug(f"Applied {overlay_type} operation and cleaned up results")
         except Exception as e:
             log_error(f"Error during {overlay_type} operation: {str(e)}")
@@ -462,15 +478,15 @@ def final_union(geometries):
 def explode_to_singlepart(geometry_or_gdf):
     """
     Converts multipart geometries to singlepart geometries.
-    
+
     Args:
     geometry_or_gdf: A Shapely geometry object or a GeoDataFrame
-    
+
     Returns:
     A GeoDataFrame with singlepart geometries
     """
     log_debug("Exploding multipart geometries to singlepart")
-    
+
     if isinstance(geometry_or_gdf, gpd.GeoDataFrame):
         exploded = geometry_or_gdf.explode(index_parts=True)
         exploded = exploded.reset_index(drop=True)
@@ -482,14 +498,14 @@ def explode_to_singlepart(geometry_or_gdf):
         else:
             log_warning(f"Unsupported geometry type for explosion: {type(geometry_or_gdf)}")
             return gpd.GeoDataFrame(geometry=[geometry_or_gdf])
-        
+
         exploded = gpd.GeoDataFrame(geometry=[])
         for geom in geometries:
             if isinstance(geom, MultiPolygon):
                 exploded = exploded.append(gpd.GeoDataFrame(geometry=list(geom.geoms)))
             else:
                 exploded = exploded.append(gpd.GeoDataFrame(geometry=[geom]))
-    
+
     log_debug(f"Exploded {len(geometry_or_gdf) if isinstance(geometry_or_gdf, gpd.GeoDataFrame) else 1} "
              f"multipart geometries into {len(exploded)} singlepart geometries")
     return exploded
@@ -497,18 +513,18 @@ def explode_to_singlepart(geometry_or_gdf):
 def remove_geometry_types(geometry_or_gdf, remove_lines=False, remove_points=False, remove_polygons=False):
     """
     Removes specified geometry types and empty geometries from a geometry, GeoSeries, or GeoDataFrame.
-    
+
     Args:
     geometry_or_gdf: A Shapely geometry object, GeoSeries, or GeoDataFrame
     remove_lines: Boolean, whether to remove LineString and MultiLineString geometries
     remove_points: Boolean, whether to remove Point and MultiPoint geometries
     remove_polygons: Boolean, whether to remove Polygon and MultiPolygon geometries
-    
+
     Returns:
     A GeoDataFrame or GeoSeries with the specified geometry types and empty geometries removed
     """
     log_debug(f"Removing geometry types - Lines: {remove_lines}, Points: {remove_points}, Polygons: {remove_polygons}")
-    
+
     def filter_geometry(geom):
         if geom is None or geom.is_empty:
             return None
@@ -528,7 +544,7 @@ def remove_geometry_types(geometry_or_gdf, remove_lines=False, remove_points=Fal
              (remove_polygons and isinstance(geom, (Polygon, MultiPolygon))):
             return None
         return geom
-    
+
     if isinstance(geometry_or_gdf, gpd.GeoDataFrame):
         filtered_gdf = geometry_or_gdf.copy()
         filtered_gdf['geometry'] = filtered_gdf['geometry'].apply(filter_geometry)
@@ -577,16 +593,16 @@ def snap_vertices_to_grid(geometry, grid_size):
     """Snaps vertices to a grid to help align geometries before operations."""
     def round_to_grid(coord):
         x, y = coord
-        return (round(x / grid_size) * grid_size, 
+        return (round(x / grid_size) * grid_size,
                 round(y / grid_size) * grid_size)
-    
+
     if isinstance(geometry, Polygon):
         exterior_coords = [round_to_grid(coord) for coord in geometry.exterior.coords]
-        interiors = [[round_to_grid(coord) for coord in interior.coords] 
+        interiors = [[round_to_grid(coord) for coord in interior.coords]
                     for interior in geometry.interiors]
         return Polygon(exterior_coords, interiors)
     elif isinstance(geometry, MultiPolygon):
-        return MultiPolygon([snap_vertices_to_grid(poly, grid_size) 
+        return MultiPolygon([snap_vertices_to_grid(poly, grid_size)
                            for poly in geometry.geoms])
     return geometry
 
@@ -602,16 +618,16 @@ def remove_islands(geometry, preserve=False):
         return None
 
     log_debug(f"remove_islands: Input geometry type: {geometry.geom_type}")
-    
+
     def process_polygon(poly):
         # If the polygon has no holes/interiors, keep it as is
         if not poly.interiors:
             log_debug(f"remove_islands: Polygon has no holes, keeping as is")
             return poly
-            
+
         # If it has holes (from the ditch difference)
         log_debug(f"remove_islands: Found polygon with {len(poly.interiors)} holes")
-        
+
         if preserve:
             # For preserveIslands, return the whole polygon (with holes) to be buffered
             return poly
@@ -627,16 +643,3 @@ def remove_islands(geometry, preserve=False):
         return MultiPolygon([p for p in processed if p is not None])
     else:
         return geometry
-
-
-
-
-
-
-
-
-
-
-
-
-

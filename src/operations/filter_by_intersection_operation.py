@@ -6,7 +6,7 @@ from src.operations.common_operations import *
 
 def create_filtered_by_intersection_layer(all_layers, project_settings, crs, layer_name, operation):
     log_debug(f"Creating filtered layer: {layer_name}")
-    
+
     if layer_name not in all_layers:
         log_warning(f"Layer '{layer_name}' not found for filtering")
         return
@@ -18,13 +18,13 @@ def create_filtered_by_intersection_layer(all_layers, project_settings, crs, lay
     columns_to_add = {}
 
     for layer_info in operation['layers']:
-        source_layer_name, values = _process_layer_info(all_layers, project_settings, crs, layer_info)
+        source_layer_name, values, column_name = _process_layer_info(all_layers, project_settings, crs, layer_info)
         if source_layer_name is None:
             continue
 
         log_debug(f"Processing filter layer: {source_layer_name}")
 
-        filter_geometry = _get_filtered_geometry(all_layers, project_settings, crs, source_layer_name, values)
+        filter_geometry = _get_filtered_geometry(all_layers, project_settings, crs, source_layer_name, values, column_name)
         if filter_geometry is None:
             continue
 

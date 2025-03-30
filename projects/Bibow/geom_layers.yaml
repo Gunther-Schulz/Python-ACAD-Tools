@@ -1,63 +1,50 @@
 geomLayers:
   ### Grundlagen ###
   - name: Parcel
-    updateDxf: true
+    # updateDxf: true
     label: label
     operations:
       - type: simpleLabel
         labelColumn: label  # Explicitly specify the label column
         style: baum  # Using an existing text style from styles.yaml
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/parcel.shp"
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/input/parcel.shp"
   - name: Flur
-    updateDxf: true
+    # updateDxf: true
     label: flurname
     operations:
       - type: simpleLabel
         labelColumn: flurname  # Explicitly specify the label column
         style: baum  # Using an existing text style from styles.yaml
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/flur.shp"
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/input/flur.shp"
   - name: Gemarkung
-    updateDxf: true
+    # updateDxf: true
     label: gmkname
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/gemarkung.shp"
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/input/gemarkung.shp"
   - name: Gemeinde
-    updateDxf: true
+    # updateDxf: true
     label: gen
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/gemeinde.shp"
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/input/gemeinde.shp"
 
-  # ### Geltungsbereich ###
-  # - name: Geltungsbereich A
-  #   updateDxf: true
-  #   style: geltungsbereich
-  #   operations:
-  #     - type: copy
-  #       layers:
-  #         - name: Parcel
-  #           values:
-  #             - "52/3"
-  #             - "61/3"
-  #             - "68/1"
-  #             - "76"
-  #             - "77"
-  #             - "78"
-  #             - "79"
-  #             - "80"
-  #             - "81"
-  #             - "83/1"
-  #             - "84"
-  #             - "85"
-  #             - "87"
-  #             - "88/3"
-  #             - "89"
-  #     - type: filterByIntersection
-  #       layers:
-  #         - name: Flur
-  #           values:
-  #             - Flur 2
-  #         - name: Gemarkung
-  #           values:
-  #             - Bibow
-  #         - name: Gemeinde
-  #           values:
-  #             - Bibow
-  #     - type: dissolve
+  ### Geltungsbereich ###
+  - name: Geltungsbereich A
+    updateDxf: true
+    style: geltungsbereich
+    operations:
+      - type: copy
+        layers:
+          - name: Parcel
+            values:
+              - "32/11"  # Matches exactly what's in the shapefile
+            column: label  # Explicitly specify the column to search in
+      - type: filterByIntersection
+        layers:
+          - name: Flur
+            values:
+              - Flur 5
+          - name: Gemarkung
+            values:
+              - Bibow
+          - name: Gemeinde
+            values:
+              - Bibow
+      - type: dissolve

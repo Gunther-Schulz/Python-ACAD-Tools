@@ -6,64 +6,102 @@ from src.operations.common_operations import format_operation_warning, _process_
 
 def create_copy_layer(all_layers, project_settings, crs, layer_name, operation):
     log_debug(f"Creating copy layer: {layer_name}")
-    source_layers = operation.get('layers', [])
-    
-    # Initialize combined_gdf with existing layer if it exists
-    combined_gdf = all_layers[layer_name].copy() if layer_name in all_layers else None
-    
-    for layer_info in source_layers:
-        source_layer_name, values = _process_layer_info(all_layers, project_settings, crs, layer_info)
-        if source_layer_name is None:
-            continue
-            
-        if source_layer_name not in all_layers:
-            log_warning(format_operation_warning(
-                layer_name,
-                "copy",
-                f"Source layer '{source_layer_name}' not found"
-            ))
-            continue
-            
-        source_gdf = all_layers[source_layer_name].copy()
-        
-        if values:
-            label_column = next((l['label'] for l in project_settings['geomLayers'] if l['name'] == source_layer_name), None)
-            if label_column and label_column in source_gdf.columns:
-                source_gdf = source_gdf[source_gdf[label_column].astype(str).isin([str(v) for v in values])]
-                log_debug(f"Filtered {source_layer_name} using column '{label_column}': {len(source_gdf)} features remaining")
-            else:
-                log_warning(format_operation_warning(
-                    layer_name,
-                    "copy",
-                    f"Label column for layer '{source_layer_name}' not found in project settings or data"
-                ))
-                continue
-        
-        if source_gdf.empty:
-            continue
-            
-        if not isinstance(source_gdf, gpd.GeoDataFrame):
-            source_gdf = gpd.GeoDataFrame(geometry=[source_gdf], crs=crs)
-        
-        source_gdf = explode_to_singlepart(source_gdf)
-        
-        if combined_gdf is None:
-            combined_gdf = source_gdf
-        else:
-            combined_gdf = pd.concat([combined_gdf, source_gdf], ignore_index=True)
+    log_debug(f"Copy operation details for {layer_name}: {operation}")
 
-    if combined_gdf is not None and not combined_gdf.empty:
-        combined_gdf = explode_to_singlepart(combined_gdf)
-        all_layers[layer_name] = combined_gdf
-        log_debug(f"Updated copy layer: {layer_name} with {len(combined_gdf)} separate features")
-    else:
+    copy_layers = operation.get('layers', [])
+
+    if not copy_layers:
+        log_warning(f"No copy layers specified for {layer_name}")
+        return None
+
+    combined_geometry = None
+
+    for layer_info in copy_layers:
+        source_layer_name, values, column_name = _process_layer_info(all_layers, project_settings, crs, layer_info)
+
+        if source_layer_name is None or source_layer_name not in all_layers:
+            log_warning(f"Source layer '{source_layer_name}' not found for copy operation")
+            continue
+
+        source_gdf = all_layers[source_layer_name]
+        log_debug(f"Source layer '{source_layer_name}' columns: {source_gdf.columns.tolist()}")
+        log_debug(f"Source layer '{source_layer_name}' has {len(source_gdf)} features")
+
+        # First try to use the explicit column name from the operation if provided
+        if column_name and column_name in source_gdf.columns:
+            label_column = column_name
+            log_debug(f"Using explicit column '{label_column}' for filtering layer '{source_layer_name}'")
+        else:
+            # Fall back to the label from project settings
+            label_column = next((l['label'] for l in project_settings['geomLayers'] if l['name'] == source_layer_name), None)
+            log_debug(f"Using project settings column '{label_column}' for filtering layer '{source_layer_name}'")
+
+        if label_column and label_column in source_gdf.columns:
+            log_debug(f"Using column '{label_column}' for filtering layer '{source_layer_name}'")
+
+            # DETAILED DEBUGGING: Print all unique values with types
+            unique_vals = source_gdf[label_column].unique()
+            unique_str_vals = [str(val) for val in unique_vals]
+            log_debug(f"Unique values in '{label_column}': {unique_str_vals}")
+            log_debug(f"Types of unique values: {[type(val) for val in unique_vals[:10]]}")
+
+            # Convert target values to strings for comparison
+            str_values = [str(v) for v in values]
+            log_debug(f"Values converted to strings: {str_values}")
+            log_debug(f"Types of search values: {[type(v) for v in values]}")
+
+            # EXTREME DEBUGGING: Check each value individually
+            for target_val in str_values:
+                matches = []
+                for idx, val in enumerate(source_gdf[label_column]):
+                    str_val = str(val).strip()
+                    if str_val == target_val:
+                        matches.append((idx, val, type(val)))
+                        log_debug(f"Found exact match for '{target_val}' at index {idx}: value='{val}', type={type(val)}")
+                    elif str_val.startswith(target_val) or target_val.startswith(str_val):
+                        log_debug(f"Found partial match for '{target_val}' at index {idx}: value='{val}', type={type(val)}")
+                log_debug(f"Value '{target_val}' found in {len(matches)} features: {matches[:5]}")
+
+            # Try different matching approaches
+            filtered_gdf = source_gdf[source_gdf[label_column].astype(str).isin(str_values)]
+            log_debug(f"Standard string matching found {len(filtered_gdf)} features for values {str_values}")
+
+            # Try strip() approach
+            filtered_gdf2 = source_gdf[source_gdf[label_column].astype(str).str.strip().isin(str_values)]
+            log_debug(f"Stripped string matching found {len(filtered_gdf2)} features for values {str_values}")
+
+            # Try contains approach
+            filtered_gdf3 = source_gdf[source_gdf[label_column].astype(str).str.contains('|'.join(str_values), regex=True)]
+            log_debug(f"Contains matching found {len(filtered_gdf3)} features for values {str_values}")
+
+            # Use standard method for the actual filtering
+            filtered_gdf = source_gdf[source_gdf[label_column].astype(str).isin(str_values)]
+            log_debug(f"Filtered {source_layer_name} using column '{label_column}': {len(filtered_gdf)} features remaining")
+
+            if filtered_gdf.empty:
+                log_warning(f"After filtering, source layer '{source_layer_name}' is empty")
+                continue
+        else:
+            log_warning(f"Label column '{label_column}' not found in layer '{source_layer_name}'")
+            continue
+
+        # Add the filtered geometry to the combined geometry
+        if combined_geometry is None:
+            combined_geometry = filtered_gdf
+        else:
+            combined_geometry = pd.concat([combined_geometry, filtered_gdf], ignore_index=True)
+
+    if combined_geometry is None or len(combined_geometry) == 0:
         log_warning(format_operation_warning(
             layer_name,
             "copy",
             "No valid source layers found"
         ))
-        # Only create empty GeoDataFrame if layer doesn't exist
-        if layer_name not in all_layers:
-            all_layers[layer_name] = gpd.GeoDataFrame(geometry=[], crs=crs)
+        return None
 
-    return all_layers[layer_name]
+    # Dissolve polygons if needed
+    # process_dissolve = next((op for op in operation.get('operations', []) if op.get('type') == 'dissolve'), None)
+    # if process_dissolve:
+    #     combined_geometry = dissolve_geometry(combined_geometry)
+
+    return combined_geometry
