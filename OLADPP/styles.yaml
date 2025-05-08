@@ -1,0 +1,326 @@
+styles:
+
+  graben:
+    layer:
+      color: "indigo-light"
+      transparency: 0.6
+
+  wasserschutz:
+    layer:
+      lineweight: 20
+
+  wasserschutz 2:
+    layer:
+      color: "blue"
+      lineweight: 80
+
+  baum:
+    layer:
+      color: "green"
+    text:
+      height: 1
+      font: "Arial"
+      color: "white"
+      attachmentPoint: "MIDDLE_LEFT"
+      paragraph:
+        align: "LEFT"
+
+  alleeBaum:
+    layer:
+      color: "chartreuse-strong"
+
+  baumStamm:
+    hatch:
+      individual_hatches: true
+
+  leitung:
+    # layer:
+    #   color: "red"
+    text:
+      height: 1.5
+      font: "Arial"
+      color: "white"
+      # bgFill: true
+      # bgFillColor: "ivory"
+      # bgFillScale: 1.2
+      attachmentPoint: "BOTTOM_LEFT"
+      paragraph:
+        align: "LEFT"
+
+  mainTitle:
+    text:
+      height: 11.0
+      font: "Arial"
+      color: "white"
+      maxWidth: 700
+      attachmentPoint: "TOP_LEFT"
+      flowDirection: "LEFT_TO_RIGHT"
+      lineSpacingStyle: "AT_LEAST"
+      lineSpacingFactor: 1.2
+      bgFill: true
+      bgFillColor: "blue"
+      bgFillScale: 1.1
+      underline: false
+      overline: false
+      strikeThrough: false
+      obliqueAngle: 0
+      paragraph:
+        align: "LEFT"
+        indent: 1
+        leftMargin: 0
+        rightMargin: 0
+        tabStops: []
+
+  mapHeader:
+    text:
+      height: 9.0
+      font: "Arial"
+      color: "white"
+      maxWidth: 200
+      attachmentPoint: "TOP_LEFT"
+
+  übersichtskarteHeader:
+    text:
+      height: 7.0
+      font: "Arial"
+      color: "white"
+      maxWidth: 200
+      attachmentPoint: "TOP_LEFT"
+      paragraph:
+        align: "LEFT"
+
+
+  satzungstext:
+    text:
+      height: 9.0
+      font: "Arial"
+      color: "white"
+      alignment: "LEFT"
+      width: 175  # Maximum width before text wrapping
+      attachment_point: "TOP_LEFT"  # MTEXT specific alignment
+      paragraph:
+        align: "CENTER"  # Can be LEFT, RIGHT, CENTER, JUSTIFIED, or DISTRIBUTED
+        # indent: 1  # First line indentation (multiplied by char_height)
+        # left: 0    # Left margin indentation
+        # right: 0   # Right margin indentation
+        # tab_stops: []  # List of tab stop positions
+
+# viewport:
+#   layer:
+#     color: "magenta"
+#     plot: false
+
+# Administrative Boundaries
+# ------------------------
+
+  flurgrenze:
+    layer:
+      locked: true
+      linetype: "ACAD_ISO14W100"
+      lineweight: 50
+  flurWorkView:
+    layer:
+      color: "amber-strong"
+
+  gemarkungsgrenze:
+    layer:
+      locked: true
+      linetype: "ACAD_ISO12W100"
+      lineweight: 50
+  gemarkungWorkView:
+    layer:
+      color: "amber-strong"
+
+  gemeindegrenze:
+    layer:
+      locked: true
+      linetype: "ACAD_ISO10W100"
+      lineweight: 50
+  gemeindeWorkView:
+    layer:
+      color: "amber-strong"
+
+  parcel:
+    layer:
+      locked: true
+  parcelWorkView:
+    layer:
+      color: "charcoal"
+
+
+# Natural Features
+# ----------------
+
+  biotopWorkView:
+    layer:
+      color: "green-light"
+
+  gesGeschuetzesBiotop:
+    layer:
+      color: "orange"
+      linetype: "ACAD_ISO02W100"
+      lineweight: 30
+
+  wald:
+    hatch:
+      pattern: 'ANSI31'
+      scale: 5
+      individual_hatches: true
+
+  waldLegend:
+    hatch:
+      pattern: 'ANSI31'
+      scale: 2
+
+  waldWorkView:
+    layer:
+      color: "aquamarine-strong"
+
+  waterLegend:
+    hatch:
+      color: "indigo-light"
+      transparency: 0.6
+
+
+# Urban Planning
+# --------------
+
+  schutzflächeumgrenzung:
+    layer:
+      color: "chartreuse-medium"
+      transparency: 0.6
+    hatch:
+      individual_hatches: true
+
+  schutzflächeWorkView:
+    layer:
+      color: "chartreuse-medium"
+
+
+  baufeld:
+    layer:
+      color: "vermilion-light"
+      transparency: 0.6
+    hatch:
+      individual_hatches: true
+
+  baufeldLegend:
+    hatch:
+      color: "vermilion-light"
+      transparency: 0.6
+
+  baugrenze:
+    layer:
+      linetype: ACAD_ISO11W100
+      lineweight: 50
+    entity:
+      linetypeGeneration: true
+
+
+  baugrenze_2:
+    layer:
+      color: "azure"
+      lineweight: 50
+    entity:
+      linetypeGeneration: true
+
+  blendschutzzaun:
+    layer:
+      linetype: DASHED
+      color: yellow
+      lineweight: 35
+    # linetypeScale: 0.2 #TODO: we need to fix our code so that we differentiate between enitity level styling and layer styling
+
+  abstandSchienenweg:
+    layer:
+      color: "lavender"
+      linetype: "CENTER2"
+      lineweight: 80
+
+  # geltungsbereich:
+  #   layer:
+  #     color: "white"
+
+  geltungsbereich:
+    layer:
+      color: "red"
+
+  geltungsbereich_2:
+    layer:
+      color: "granite"
+      linetype: "ACAD_ISO02W100"
+      lineweight: 120
+
+  geltungsbereichFPlan:
+    layer:
+      color: "vermilion-strong"
+      linetype: "ACAD_ISO02W100"
+      lineweight: 300
+    hatch:
+      pattern: "ANSI31"
+      scale: 10
+      color: "orange"
+
+  geltungsbereichFPlanMiniMap:
+    hatch:
+      color: "red"
+      transparency: 0.3
+  gfl1:
+    layer:
+      linetype: "ACAD_ISO02W100"
+
+  grünfläche:
+    layer:
+      color: "lime"
+      transparency: 0.6
+
+  grünflächeLegend:
+    hatch:
+      color: "lime"
+      transparency: 0.6
+
+  grünflächeWorkView:
+    layer:
+      color: "lime"
+      transparency: 0.6
+
+  verkehrsfläche:
+    hatch:
+      individual_hatches: true
+      pattern: "ANSI31"
+      color: "248,215,49"
+      lineweight: 60
+
+
+  geltungsbereichHatches:
+    layer:
+      color: "red"
+      lineweight: 50
+    hatch:
+      pattern: "ANSI31"
+      scale: 10
+
+
+# Commented Out Styles
+# --------------------
+
+  # baufeldHatch:
+    # pattern: 'SOLID'
+    # scale: 10
+
+  # parcel:
+    # color: "Black"
+    # linetype: ACAD_ISO11W100
+    # linetypeGeneration: true
+    # linetypeScale: 1
+    # lineweight: 30
+    # plot: true
+    # frozen: false
+    # is_on: true
+    # vp_freeze: false
+    # transparency: 0.0
+
+  # verkehrsfläche:
+    # color: "brilliant-orange"
+    # scale: 20
+    # angle: 80

@@ -1,0 +1,1006 @@
+layers:
+- name: '0'
+  color:
+    index: 7
+    name: White
+  true_color: null
+  linetype: Continuous
+  lineweight: -3
+  plot: true
+  locked: false
+  frozen: false
+  is_on: true
+  vp_freeze: false
+  transparency: 0.0
+  handle: '10'
+  owner: '2'
+- name: Defpoints
+  color:
+    index: 7
+    name: White
+  true_color: null
+  linetype: Continuous
+  lineweight: -3
+  plot: false
+  locked: false
+  frozen: false
+  is_on: true
+  vp_freeze: false
+  transparency: 0.0
+  handle: 2C75C
+  owner: '2'
+- name: Nordpfeil
+  color:
+    index: 7
+    name: White
+  true_color: null
+  linetype: AUSGEZOGEN
+  lineweight: 13
+  plot: true
+  locked: false
+  frozen: false
+  is_on: true
+  vp_freeze: false
+  transparency: 0.0
+  handle: 2C774
+  owner: '2'
+- name: VP
+  color:
+    index: 220
+    name: Red Yellow
+  true_color: null
+  linetype: Continuous
+  lineweight: 0
+  plot: false
+  locked: false
+  frozen: false
+  is_on: true
+  vp_freeze: false
+  transparency: 0.0
+  handle: 2C775
+  owner: '2'
+- name: RAHMEN
+  color:
+    index: 7
+    name: White
+  true_color: null
+  linetype: Continuous
+  lineweight: -3
+  plot: true
+  locked: false
+  frozen: false
+  is_on: true
+  vp_freeze: false
+  transparency: 0.0
+  handle: 2C776
+  owner: '2'
+- name: Falze
+  color:
+    index: 7
+    name: White
+  true_color: null
+  linetype: Continuous
+  lineweight: -3
+  plot: true
+  locked: false
+  frozen: false
+  is_on: true
+  vp_freeze: false
+  transparency: 0.0
+  handle: 2C777
+  owner: '2'
+- name: Auftragnehmer
+  color:
+    index: 7
+    name: White
+  true_color: null
+  linetype: Continuous
+  lineweight: -3
+  plot: true
+  locked: false
+  frozen: false
+  is_on: true
+  vp_freeze: false
+  transparency: 0.0
+  handle: 2C778
+  owner: '2'
+- name: Layoutbeschriftung
+  color:
+    index: 7
+    name: White
+  true_color: null
+  linetype: Continuous
+  lineweight: 13
+  plot: true
+  locked: false
+  frozen: false
+  is_on: true
+  vp_freeze: false
+  transparency: 0.0
+  handle: 2C77A
+  owner: '2'
+- name: Hilfslinie 1
+  color:
+    index: 130
+    name: Green Magenta
+  true_color: null
+  linetype: Continuous
+  lineweight: 13
+  plot: false
+  locked: false
+  frozen: false
+  is_on: true
+  vp_freeze: false
+  transparency: 0.0
+  handle: 2DD28
+  owner: '2'
+- name: flurstücksnummer
+  color:
+    index: 7
+    name: White
+  true_color: null
+  linetype: Continuous
+  lineweight: 13
+  plot: true
+  locked: false
+  frozen: false
+  is_on: true
+  vp_freeze: false
+  transparency: 0.0
+  handle: 2DD29
+  owner: '2'
+- name: flurnummer
+  color:
+    index: 7
+    name: White
+  true_color: null
+  linetype: Continuous
+  lineweight: -3
+  plot: true
+  locked: false
+  frozen: false
+  is_on: true
+  vp_freeze: false
+  transparency: 0.0
+  handle: 2DD2C
+  owner: '2'
+- name: gemarkungsname
+  color:
+    index: 7
+    name: White
+  true_color: null
+  linetype: Continuous
+  lineweight: 13
+  plot: true
+  locked: false
+  frozen: false
+  is_on: true
+  vp_freeze: false
+  transparency: 0.0
+  handle: 2DD2D
+  owner: '2'
+- name: Baugrenze
+  color:
+    index: 7
+    name: White
+  true_color: null
+  linetype: ACAD_ISO11W100
+  lineweight: 60
+  plot: true
+  locked: false
+  frozen: false
+  is_on: true
+  vp_freeze: false
+  transparency: 0.0
+  handle: 2DD2E
+  owner: '2'
+- name: Baugrenze 2
+  color:
+    index: 140
+    name: Green Cyan
+  true_color: null
+  linetype: Continuous
+  lineweight: 60
+  plot: true
+  locked: false
+  frozen: false
+  is_on: true
+  vp_freeze: false
+  transparency: 0.0
+  handle: 2DD31
+  owner: '2'
+- name: Baufeld Schraffur
+  color:
+    index: 21
+    name: Light Orange Red
+  true_color: null
+  linetype: Continuous
+  lineweight: 13
+  plot: true
+  locked: false
+  frozen: false
+  is_on: true
+  vp_freeze: false
+  transparency: 0.6
+  handle: 2DD33
+  owner: '2'
+- name: Grünfläche
+  color:
+    index: 7
+    name: White
+  true_color: null
+  linetype: Continuous
+  lineweight: 13
+  plot: true
+  locked: false
+  frozen: false
+  is_on: true
+  vp_freeze: false
+  transparency: 0.0
+  handle: 2DD34
+  owner: '2'
+- name: flurstücke
+  color:
+    index: 7
+    name: White
+  true_color: null
+  linetype: Continuous
+  lineweight: 13
+  plot: true
+  locked: false
+  frozen: false
+  is_on: true
+  vp_freeze: false
+  transparency: 0.0
+  handle: 2DD37
+  owner: '2'
+- name: Grünfläche Schraffur
+  color:
+    index: 60
+    name: Pure Cyan
+  true_color: null
+  linetype: Continuous
+  lineweight: 13
+  plot: true
+  locked: false
+  frozen: false
+  is_on: true
+  vp_freeze: false
+  transparency: 0.6
+  handle: 2DD38
+  owner: '2'
+- name: Grünfläche T-Linie Symbol
+  color:
+    index: 7
+    name: White
+  true_color: null
+  linetype: ACAD_ISO02W100
+  lineweight: -3
+  plot: true
+  locked: false
+  frozen: false
+  is_on: true
+  vp_freeze: false
+  transparency: 0.0
+  handle: 2DD39
+  owner: '2'
+- name: Grünfläche T-Linie Symbol Schraffur
+  color:
+    index: 82
+    name: Dark Magenta
+  true_color: null
+  linetype: Continuous
+  lineweight: 13
+  plot: true
+  locked: false
+  frozen: false
+  is_on: true
+  vp_freeze: false
+  transparency: 0.6
+  handle: 2DD3A
+  owner: '2'
+- name: Schild
+  color:
+    index: 7
+    name: White
+  true_color: null
+  linetype: Continuous
+  lineweight: 13
+  plot: true
+  locked: false
+  frozen: false
+  is_on: true
+  vp_freeze: false
+  transparency: 0.0
+  handle: 2DD3B
+  owner: '2'
+- name: Geltungsbereich 2
+  color:
+    index: 7
+    name: White
+  true_color: null
+  linetype: ACAD_ISO02W100
+  lineweight: 211
+  plot: true
+  locked: false
+  frozen: false
+  is_on: true
+  vp_freeze: false
+  transparency: 0.0
+  handle: 2DD3C
+  owner: '2'
+- name: flur 2
+  color:
+    index: 7
+    name: White
+  true_color: null
+  linetype: ACAD_ISO14W100
+  lineweight: 50
+  plot: true
+  locked: false
+  frozen: false
+  is_on: true
+  vp_freeze: false
+  transparency: 0.0
+  handle: 2DD3F
+  owner: '2'
+- name: gemarkung 2
+  color:
+    index: 7
+    name: White
+  true_color: null
+  linetype: ACAD_ISO12W100
+  lineweight: 50
+  plot: true
+  locked: false
+  frozen: false
+  is_on: true
+  vp_freeze: false
+  transparency: 0.0
+  handle: 2DD42
+  owner: '2'
+- name: Graben
+  color:
+    index: 7
+    name: White
+  true_color: null
+  linetype: Continuous
+  lineweight: 13
+  plot: true
+  locked: false
+  frozen: false
+  is_on: true
+  vp_freeze: false
+  transparency: 0.0
+  handle: 2DD45
+  owner: '2'
+- name: Graben Schraffur
+  color:
+    index: 151
+    name: Light Green Blue
+  true_color: null
+  linetype: Continuous
+  lineweight: 13
+  plot: true
+  locked: false
+  frozen: false
+  is_on: true
+  vp_freeze: false
+  transparency: 0.6
+  handle: 2DD48
+  owner: '2'
+- name: Baum Ausserhalb
+  color:
+    index: 7
+    name: White
+  true_color: null
+  linetype: Continuous
+  lineweight: 13
+  plot: true
+  locked: false
+  frozen: false
+  is_on: true
+  vp_freeze: false
+  transparency: 0.0
+  handle: 2DD4B
+  owner: '2'
+- name: gemeinde 2
+  color:
+    index: 7
+    name: White
+  true_color: null
+  linetype: ACAD_ISO10W100
+  lineweight: 50
+  plot: true
+  locked: false
+  frozen: false
+  is_on: true
+  vp_freeze: false
+  transparency: 0.0
+  handle: 2DD4C
+  owner: '2'
+- name: gemeindename
+  color:
+    index: 7
+    name: White
+  true_color: null
+  linetype: ACAD_ISO10W100
+  lineweight: 13
+  plot: true
+  locked: false
+  frozen: false
+  is_on: true
+  vp_freeze: false
+  transparency: 0.0
+  handle: 2DD4F
+  owner: '2'
+- name: Legende-E2
+  color:
+    index: 7
+    name: White
+  true_color: null
+  linetype: Continuous
+  lineweight: -3
+  plot: true
+  locked: false
+  frozen: false
+  is_on: true
+  vp_freeze: false
+  transparency: 0.0
+  handle: 334F2
+  owner: '2'
+- name: Be_massung
+  color:
+    index: 7
+    name: White
+  true_color: null
+  linetype: Continuous
+  lineweight: 13
+  plot: true
+  locked: false
+  frozen: false
+  is_on: true
+  vp_freeze: false
+  transparency: 0.0
+  handle: 335DD
+  owner: '2'
+- name: Wald Schraffur
+  color:
+    index: 7
+    name: White
+  true_color: null
+  linetype: Continuous
+  lineweight: 13
+  plot: true
+  locked: false
+  frozen: false
+  is_on: true
+  vp_freeze: false
+  transparency: 0.6
+  handle: 335DE
+  owner: '2'
+- name: ges. gesch. Biotop
+  color:
+    index: 30
+    name: Orange
+  true_color: null
+  linetype: ACAD_ISO02W100
+  lineweight: 30
+  plot: true
+  locked: false
+  frozen: false
+  is_on: true
+  vp_freeze: false
+  transparency: 0.0
+  handle: 335DF
+  owner: '2'
+- name: Wald
+  color:
+    index: 7
+    name: White
+  true_color: null
+  linetype: Continuous
+  lineweight: 13
+  plot: true
+  locked: false
+  frozen: false
+  is_on: true
+  vp_freeze: false
+  transparency: 0.0
+  handle: '33642'
+  owner: '2'
+- name: flur
+  color:
+    index: 7
+    name: White
+  true_color: null
+  linetype: Continuous
+  lineweight: 13
+  plot: false
+  locked: false
+  frozen: false
+  is_on: true
+  vp_freeze: false
+  transparency: 0.0
+  handle: '33685'
+  owner: '2'
+- name: gemarkung
+  color:
+    index: 7
+    name: White
+  true_color: null
+  linetype: Continuous
+  lineweight: 13
+  plot: false
+  locked: false
+  frozen: false
+  is_on: true
+  vp_freeze: false
+  transparency: 0.0
+  handle: '33686'
+  owner: '2'
+- name: gemeinde
+  color:
+    index: 7
+    name: White
+  true_color: null
+  linetype: Continuous
+  lineweight: 13
+  plot: false
+  locked: false
+  frozen: false
+  is_on: true
+  vp_freeze: false
+  transparency: 0.0
+  handle: '33687'
+  owner: '2'
+- name: TK
+  color:
+    index: 7
+    name: White
+  true_color: null
+  linetype: Continuous
+  lineweight: -3
+  plot: true
+  locked: false
+  frozen: false
+  is_on: true
+  vp_freeze: false
+  transparency: 0.0
+  handle: 336C9
+  owner: '2'
+- name: DOP
+  color:
+    index: 7
+    name: White
+  true_color: null
+  linetype: Continuous
+  lineweight: -3
+  plot: true
+  locked: false
+  frozen: false
+  is_on: true
+  vp_freeze: false
+  transparency: 0.0
+  handle: 336CA
+  owner: '2'
+- name: Höhenlinien
+  color:
+    index: 7
+    name: White
+  true_color: null
+  linetype: Continuous
+  lineweight: -3
+  plot: true
+  locked: false
+  frozen: false
+  is_on: true
+  vp_freeze: false
+  transparency: 0.0
+  handle: 336CB
+  owner: '2'
+- name: FP Symbole
+  color:
+    index: 7
+    name: White
+  true_color: null
+  linetype: Continuous
+  lineweight: 13
+  plot: true
+  locked: false
+  frozen: false
+  is_on: true
+  vp_freeze: false
+  transparency: 0.0
+  handle: 336CC
+  owner: '2'
+- name: Leitungsverlauf
+  color:
+    index: 2
+    name: Yellow
+  true_color: null
+  linetype: Continuous
+  lineweight: 13
+  plot: false
+  locked: false
+  frozen: false
+  is_on: true
+  vp_freeze: false
+  transparency: 0.0
+  handle: 3371D
+  owner: '2'
+- name: Geltungsbereich
+  color:
+    index: 7
+    name: White
+  true_color: null
+  linetype: Continuous
+  lineweight: 13
+  plot: false
+  locked: false
+  frozen: false
+  is_on: true
+  vp_freeze: false
+  transparency: 0.0
+  handle: '33792'
+  owner: '2'
+- name: Flurstücksnummern
+  color:
+    index: 7
+    name: White
+  true_color: null
+  linetype: Continuous
+  lineweight: 13
+  plot: true
+  locked: false
+  frozen: false
+  is_on: true
+  vp_freeze: false
+  transparency: 0.0
+  handle: '33949'
+  owner: '2'
+- name: PLANZV
+  color:
+    index: 7
+    name: White
+  true_color: null
+  linetype: AUSGEZOGEN
+  lineweight: 13
+  plot: true
+  locked: false
+  frozen: false
+  is_on: true
+  vp_freeze: false
+  transparency: 0.0
+  handle: 3394C
+  owner: '2'
+- name: Baum Bestand
+  color:
+    index: 7
+    name: White
+  true_color: null
+  linetype: Continuous
+  lineweight: 13
+  plot: true
+  locked: false
+  frozen: false
+  is_on: true
+  vp_freeze: false
+  transparency: 0.0
+  handle: 3394D
+  owner: '2'
+- name: Gl-Schraffur
+  color:
+    index: 40
+    name: Pure Yellow
+  true_color: null
+  linetype: Continuous
+  lineweight: 13
+  plot: true
+  locked: false
+  frozen: false
+  is_on: true
+  vp_freeze: false
+  transparency: 0.0
+  handle: 339BA
+  owner: '2'
+- name: Gfl
+  color:
+    index: 7
+    name: White
+  true_color: null
+  linetype: ACAD_ISO02W100
+  lineweight: 13
+  plot: true
+  locked: false
+  frozen: false
+  is_on: true
+  vp_freeze: false
+  transparency: 0.0
+  handle: 339E1
+  owner: '2'
+- name: Gemarkungsnummernzentroids
+  color:
+    index: 210
+    name: Red Blue
+  true_color: null
+  linetype: Continuous
+  lineweight: -3
+  plot: true
+  locked: false
+  frozen: false
+  is_on: true
+  vp_freeze: false
+  transparency: 0.0
+  handle: 33A55
+  owner: '2'
+- name: Legende-Elemente
+  color:
+    index: 7
+    name: White
+  true_color: null
+  linetype: Continuous
+  lineweight: 13
+  plot: true
+  locked: false
+  frozen: false
+  is_on: true
+  vp_freeze: false
+  transparency: 0.0
+  handle: 33A57
+  owner: '2'
+- name: Gfl 2
+  color:
+    index: 7
+    name: White
+  true_color: null
+  linetype: ACAD_ISO02W100
+  lineweight: 13
+  plot: true
+  locked: false
+  frozen: false
+  is_on: true
+  vp_freeze: false
+  transparency: 0.0
+  handle: 33A58
+  owner: '2'
+- name: Baufeld
+  color:
+    index: 7
+    name: White
+  true_color: null
+  linetype: Continuous
+  lineweight: 13
+  plot: true
+  locked: false
+  frozen: false
+  is_on: true
+  vp_freeze: false
+  transparency: 0.0
+  handle: 33A85
+  owner: '2'
+- name: Wasserflächen
+  color:
+    index: 7
+    name: White
+  true_color: null
+  linetype: Continuous
+  lineweight: 13
+  plot: true
+  locked: false
+  frozen: false
+  is_on: true
+  vp_freeze: false
+  transparency: 0.0
+  handle: 33A90
+  owner: '2'
+- name: Leitung Oberirdisch
+  color:
+    index: 7
+    name: White
+  true_color: null
+  linetype: Continuous
+  lineweight: 13
+  plot: true
+  locked: false
+  frozen: false
+  is_on: true
+  vp_freeze: false
+  transparency: 0.0
+  handle: 33AB6
+  owner: '2'
+- name: Leitung Unterirdisch
+  color:
+    index: 7
+    name: White
+  true_color: null
+  linetype: Continuous
+  lineweight: 13
+  plot: true
+  locked: false
+  frozen: false
+  is_on: true
+  vp_freeze: false
+  transparency: 0.0
+  handle: 33AB7
+  owner: '2'
+- name: Weg
+  color:
+    index: 7
+    name: White
+  true_color: null
+  linetype: Continuous
+  lineweight: 13
+  plot: true
+  locked: false
+  frozen: false
+  is_on: true
+  vp_freeze: false
+  transparency: 0.0
+  handle: 33B9F
+  owner: '2'
+- name: Weg Schraffur
+  color:
+    index: 7
+    name: White
+  true_color: null
+  linetype: Continuous
+  lineweight: 13
+  plot: true
+  locked: false
+  frozen: false
+  is_on: true
+  vp_freeze: false
+  transparency: 0.6
+  handle: 33BA0
+  owner: '2'
+- name: Übersichtskartebeschriftung
+  color:
+    index: 7
+    name: White
+  true_color: null
+  linetype: Continuous
+  lineweight: 13
+  plot: true
+  locked: false
+  frozen: false
+  is_on: true
+  vp_freeze: false
+  transparency: 0.0
+  handle: 33C73
+  owner: '2'
+- name: Geltungsberich Schraffur
+  color:
+    index: 40
+    name: Pure Yellow
+  true_color: null
+  linetype: Continuous
+  lineweight: 50
+  plot: true
+  locked: false
+  frozen: false
+  is_on: true
+  vp_freeze: false
+  transparency: 0.6
+  handle: 33C74
+  owner: '2'
+- name: Leitung
+  color:
+    index: 7
+    name: White
+  true_color: null
+  linetype: Continuous
+  lineweight: 13
+  plot: true
+  locked: false
+  frozen: false
+  is_on: true
+  vp_freeze: false
+  transparency: 0.0
+  handle: 33C9F
+  owner: '2'
+- name: WVK Label
+  color:
+    index: 7
+    name: White
+  true_color: null
+  linetype: Continuous
+  lineweight: -3
+  plot: true
+  locked: false
+  frozen: false
+  is_on: true
+  vp_freeze: false
+  transparency: 0.0
+  handle: 33D3B
+  owner: '2'
+- name: Straße Label
+  color:
+    index: 7
+    name: White
+  true_color: null
+  linetype: Continuous
+  lineweight: 13
+  plot: true
+  locked: false
+  frozen: false
+  is_on: true
+  vp_freeze: false
+  transparency: 0.0
+  handle: 33D3C
+  owner: '2'
+- name: Wald ausserhalb
+  color:
+    index: 7
+    name: White
+  true_color: null
+  linetype: Continuous
+  lineweight: 13
+  plot: true
+  locked: false
+  frozen: false
+  is_on: true
+  vp_freeze: false
+  transparency: 0.0
+  handle: 33DA3
+  owner: '2'
+- name: Grünfläche hidden
+  color:
+    index: 7
+    name: White
+  true_color: null
+  linetype: Continuous
+  lineweight: 13
+  plot: false
+  locked: false
+  frozen: false
+  is_on: true
+  vp_freeze: false
+  transparency: 0.0
+  handle: 33DA6
+  owner: '2'
+- name: Gfl Symbol
+  color:
+    index: 7
+    name: White
+  true_color: null
+  linetype: Continuous
+  lineweight: 13
+  plot: true
+  locked: false
+  frozen: false
+  is_on: true
+  vp_freeze: false
+  transparency: 0.0
+  handle: 33DD8
+  owner: '2'
+- name: Nutzungsabgrenzung Knötchen
+  color:
+    index: 7
+    name: White
+  true_color: null
+  linetype: Continuous
+  lineweight: 13
+  plot: true
+  locked: false
+  frozen: false
+  is_on: true
+  vp_freeze: false
+  transparency: 0.0
+  handle: 33E78
+  owner: '2'
+- name: Nutzungsabgrenzung
+  color:
+    index: 7
+    name: White
+  true_color: null
+  linetype: Continuous
+  lineweight: 13
+  plot: true
+  locked: false
+  frozen: false
+  is_on: true
+  vp_freeze: false
+  transparency: 0.0
+  handle: 33E79
+  owner: '2'
