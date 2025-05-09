@@ -120,9 +120,20 @@ class BufferOperationConfig(BaseOperationConfig):
     source_layer: str # Name of the layer to buffer
     distance: float
     output_layer_name: str # Name of the new layer to create with buffered geometry
-    # Optional: dissolve_result: bool = False
-    # Optional: cap_style: Literal['round', 'flat', 'square'] = 'round'
-    # Optional: join_style: Literal['round', 'mitre', 'bevel'] = 'round'
+
+    distance_field: Optional[str] = Field(default=None, description="Optional field name in feature attributes for per-feature buffer distance.")
+    join_style: Literal['ROUND', 'MITRE', 'BEVEL'] = Field(default='ROUND', description="Style for joining buffer corners.")
+    cap_style: Literal['ROUND', 'FLAT', 'SQUARE'] = Field(default='ROUND', description="Style for end caps of linear feature buffers.")
+    resolution: int = Field(default=16, ge=1, description="Resolution of the buffer approximation (number of segments per quadrant).")
+    mitre_limit: float = Field(default=5.0, gt=0, description="Mitre limit for MITRE join style.")
+    # single_sided: bool = Field(default=False, description="If True, creates a single-sided buffer for lines (not yet fully supported by simple buffer).")
+
+    make_valid_pre_buffer: bool = Field(default=True, description="Attempt to make input geometries valid before buffering.")
+    make_valid_post_buffer: bool = Field(default=True, description="Attempt to make output geometries valid after buffering.")
+    skip_islands: bool = Field(default=False, description="If True, removes all islands/holes from the input geometry before buffering (effectively fills holes).")
+    preserve_islands: bool = Field(default=False, description="If True, attempts to preserve islands/holes during buffering (experimental, may not work for all cases).")
+
+    # Optional: dissolve_result: bool = False # This would be a post-processing step, not part of core buffer on individual features
 
 # Placeholder for other operations - to be defined as needed
 class IntersectionOperationConfig(BaseOperationConfig):

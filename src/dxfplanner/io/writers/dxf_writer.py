@@ -9,6 +9,7 @@ from ezdxf import const as ezdxf_const # For MTEXT constants
 from dxfplanner.domain.models.dxf_models import (
     DxfEntity, DxfLayer, # DxfLayer might not be used directly if layers are from AppConfig
     DxfLine, DxfLWPolyline, DxfText, DxfMText, # Added DxfMText
+    DxfHatch, DxfHatchPath, # Added DxfHatch and DxfHatchPath
     AnyDxfEntity, Coordinate
 )
 from dxfplanner.domain.interfaces import IDxfWriter, AnyStrPath
@@ -291,7 +292,97 @@ class DxfWriter(IDxfWriter):
 
                         dxf_mtext_entity = msp.add_mtext(text=entity_model.text_content, dxfattribs=mtext_attribs)
                         self._attach_writer_xdata(dxf_mtext_entity)
-                    # Add other entity types (DxfCircle, DxfArc, DxfInsert) here
+                    elif isinstance(entity_model, DxfHatch):
+                        hatch_base_attribs = entity_dxf_attribs.copy()
+
+                        # Map DxfHatch.hatch_style_enum to ezdxf.const values
+                        h_style_map = {
+                            'NORMAL': ezdxf_const.HATCH_STYLE_NORMAL,
+                            'OUTERMOST': ezdxf_const.HATCH_STYLE_OUTERMOST,
+                            'IGNORE': ezdxf_const.HATCH_STYLE_IGNORE,
+                        }
+                        hatch_base_attribs['hatch_style'] = h_style_map.get(entity_model.hatch_style_enum, ezdxf_const.HATCH_STYLE_NORMAL)
+
+                        # Associativity - directly from model
+                        hatch_base_attribs['associative'] = entity_model.associative
+
+                        # Color is already in entity_dxf_attribs if set on model, otherwise ByLayer
+                        # Layer is already in entity_dxf_attribs
+
+                        dxf_hatch = msp.add_hatch(dxfattribs=hatch_base_attribs)
+
+                        # Set pattern
+                        if entity_model.pattern_name:
+                            try:
+                                dxf_hatch.set_pattern_fill(
+                                    name=entity_model.pattern_name,
+                                    scale=entity_model.pattern_scale,
+                                    angle=entity_model.pattern_angle
+                                )
+                                logger.debug(f"Set HATCH pattern: {entity_model.pattern_name}, scale: {entity_model.pattern_scale}, angle: {entity_model.pattern_angle}")
+                            except Exception as e:
+                                logger.warning(f"Failed to set HATCH pattern '{entity_model.pattern_name}': {e}. Defaulting to SOLID.")
+                                dxf_hatch.set_pattern_fill("SOLID") # Fallback to SOLID
+
+                        # Set transparency
+                        if entity_model.transparency is not None:
+                            dxf_hatch.transparency = entity_model.transparency
+                            logger.debug(f"Set HATCH transparency: {entity_model.transparency}")
+
+                        # Add boundary paths
+                        if not entity_model.paths:
+                            logger.warning(f"DxfHatch entity for layer {entity_model.layer} has no boundary paths. Skipping hatch path addition.")
+                        else:
+                            for path_model in entity_model.paths:
+                                if len(path_model.vertices) < 2:
+                                    logger.warning(f"Skipping HATCH path for layer {entity_model.layer} with < 2 vertices.")
+                                    continue
+
+                                path_vertices_2d = [(v.x, v.y) for v in path_model.vertices]
+                                try:
+                                    # ezdxf add_polyline_path uses flags: 1=External, 2=Polyline, 16=Derived, etc.
+                                    # Default flags (ezdxf auto-detects external/outer based on order for simple cases)
+                                    # For simplicity, using is_closed to guide polyline nature.
+                                    # ezdxf default for flags is HATCH_PATH_EXTERNAL (1) if is_closed is True, plus HATCH_PATH_POLYLINE (2 if detected as polyline)
+                                    # For a simple polyline path, flags are typically (1 | 2) = 3 if it's an external boundary.
+                                    # We are not providing explicit flags from model, ezdxf handles it.
+                                    path = dxf_hatch.paths.add_polyline_path(
+                                        path_vertices_2d,
+                                        is_closed=path_model.is_closed
+                                        # flags can be specified if DxfHatchPath model had them
+                                    )
+                                    logger.debug(f"Added HATCH polyline path with {len(path_vertices_2d)} vertices.")
+                                except Exception as e:
+                                    logger.error(f"Failed to add HATCH boundary path for layer {entity_model.layer}: {e}", exc_info=True)
+
+                        self._attach_writer_xdata(dxf_hatch)
+                    elif isinstance(entity_model, DxfInsert):
+                        insert_attribs = entity_dxf_attribs.copy()
+                        insert_point_tuple = entity_model.insertion_point.to_tuple()
+
+                        # Check if block definition exists
+                        if entity_model.block_name not in doc.blocks:
+                            logger.error(f"Block definition '{entity_model.block_name}' not found in DXF document. Skipping INSERT entity on layer '{entity_model.layer}'.")
+                            continue # Skip this entity
+
+                        insert_attribs['xscale'] = entity_model.x_scale
+                        insert_attribs['yscale'] = entity_model.y_scale
+                        insert_attribs['zscale'] = entity_model.z_scale
+                        insert_attribs['rotation'] = entity_model.rotation
+                        # Layer and Color are already in insert_attribs from entity_dxf_attribs
+
+                        try:
+                            dxf_insert_entity = msp.add_blockref(
+                                name=entity_model.block_name,
+                                insert=insert_point_tuple,
+                                dxfattribs=insert_attribs
+                            )
+                            logger.debug(f"Added INSERT for block '{entity_model.block_name}' at {insert_point_tuple} with scale {entity_model.x_scale},{entity_model.y_scale},{entity_model.z_scale} and rotation {entity_model.rotation}.")
+                            self._attach_writer_xdata(dxf_insert_entity)
+                        except Exception as e:
+                            logger.error(f"Failed to add INSERT for block '{entity_model.block_name}' on layer '{entity_model.layer}': {e}", exc_info=True)
+
+                    # Add other entity types (DxfCircle, DxfArc) here
                     else:
                         logger.warning(f"Unsupported DxfEntity type: {type(entity_model)}. Skipping.")
 

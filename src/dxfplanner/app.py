@@ -39,7 +39,7 @@ def create_dummy_config_if_not_exists(config_path: Path = Path("config.yml")) ->
 
 async def main_runner(
     output_file: str,
-    target_crs: Optional[str] = None
+    # target_crs: Optional[str] = None # Removed, DxfGenerationService no longer takes this directly
 ) -> None:
     """Main application logic execution using the configured DxfGenerationService."""
     logger = container.logger()
@@ -51,7 +51,7 @@ async def main_runner(
 
         await dxf_service.generate_dxf_from_source(
             output_dxf_path=Path(output_file),
-            target_crs=target_crs
+            # target_crs_override_str=target_crs # Parameter removed
         )
         logger.info(f"DXF generation complete. Output: {output_file}")
 
@@ -121,15 +121,35 @@ def initialize_app() -> AppConfig:
     container.wire(
         modules=[
             __name__, # For main_runner if it were to use @inject (it uses direct container access here)
-            "dxfplanner.services.orchestration_service",
-            "dxfplanner.services.geoprocessing.geometry_transform_service",
+            "dxfplanner.config.loaders", # If any classes here use @inject
+            "dxfplanner.config.schemas", # If any classes here use @inject
+            "dxfplanner.core.di", # For the container itself if it had self-injections setup differently or for clarity
+            "dxfplanner.core.exceptions",
+            "dxfplanner.core.logging_config",
+
+            "dxfplanner.domain.interfaces",
+            "dxfplanner.domain.models.common",
+            "dxfplanner.domain.models.dxf_models",
+            "dxfplanner.domain.models.geo_models",
+
+            "dxfplanner.geometry.operations", # Operations are now distinct classes
+            "dxfplanner.geometry.transformations", # Was geometry_transform_service
+            "dxfplanner.geometry.utils",
+
+            "dxfplanner.io.readers.shapefile_reader",
+            "dxfplanner.io.readers.geojson_reader",
+            "dxfplanner.io.writers.dxf_writer",
+
+            "dxfplanner.services.orchestration_service", # DxfGenerationService
+            "dxfplanner.services.pipeline_service",      # New
+            "dxfplanner.services.layer_processor_service", # New
+            "dxfplanner.services.style_service",
+            "dxfplanner.services.validation_service",
             "dxfplanner.services.geoprocessing.attribute_mapping_service",
             "dxfplanner.services.geoprocessing.coordinate_service",
-            "dxfplanner.services.validation_service",
-            "dxfplanner.io.readers.shapefile_reader",
-            "dxfplanner.io.writers.dxf_writer",
-            # Add other modules here if they use @inject decorators or direct container access.
-            # e.g., "dxfplanner.cli" if you have a cli.py using the container.
+            # "dxfplanner.services.operation_service", # Removed, operations resolved individually
+
+            # "dxfplanner.cli" # If you have a cli.py using the container.
         ]
     )
     init_logger.info("DI container configured and wired.")
@@ -169,11 +189,9 @@ if __name__ == "__main__":
         logger.error("The application now relies on 'config.yml' (or other configured file) to define this source.")
         logger.error("Cannot run example without source data defined in the configuration.")
     else:
-        # Note: example_source_file is now just for the existence check.
-        # The actual source path must be in config.yml for the service to use it.
         logger.info(f"Running example: Output will be '{example_output_file}'.")
         logger.info(f"Ensure your configuration (e.g., config.yml) points to '{example_source_file}' or similar.")
         asyncio.run(main_runner(
             output_file=example_output_file,
-            target_crs=None  # Optional: Specify desired output CRS, or None for config default
+            # target_crs=None # Parameter removed
         ))
