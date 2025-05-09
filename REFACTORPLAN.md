@@ -1,6 +1,6 @@
 ## DXFPlanner - Refactoring Plan (from OLADPP)
 
-**Objective:** Refactor the existing OLADPP codebase into the new `DXFPlanner` architecture as defined in `PROJECT_ARCHITECTURE.md` (v1.1). This plan outlines the phased approach to ensure a structured and manageable transition.
+**Objective:** Refactor the existing OLADPP/src codebase into the new `DXFPlanner` architecture as defined in `PROJECT_ARCHITECTURE.md` (v1.1). This plan outlines the phased approach to ensure a structured and manageable transition.
 
 ---
 
