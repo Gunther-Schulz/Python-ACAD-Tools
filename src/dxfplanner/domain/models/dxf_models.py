@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Optional, List, Dict, Any, Union
+from typing import Optional, List, Dict, Any, Union, Literal
 
 from .common import Coordinate, Color, BoundingBox # Assuming common.py is in the same directory
 
@@ -64,10 +64,10 @@ class DxfText(DxfEntity):
     insertion_point: Coordinate
     text_content: str
     height: float = Field(..., gt=0) # Text height must be > 0
-    # rotation: Optional[float] = 0.0 # Angle in degrees
-    # style: Optional[str] = "Standard" # Text style name
-    # width_factor: Optional[float] = 1.0
-    # oblique_angle: Optional[float] = 0.0
+    rotation: Optional[float] = 0.0 # Angle in degrees
+    style: Optional[str] = "Standard" # Text style name
+    # width_factor: Optional[float] = 1.0 # This is part of TEXTSTYLE
+    # oblique_angle: Optional[float] = 0.0 # This is part of TEXTSTYLE
     # halign: Optional[int] = 0 # Horizontal alignment (0=Left, 1=Center, 2=Right, ...)
     # valign: Optional[int] = 0 # Vertical alignment (0=Baseline, 1=Bottom, 2=Middle, ...)
 
@@ -75,11 +75,34 @@ class DxfMText(DxfEntity):
     """Represents a DXF MTEXT entity."""
     insertion_point: Coordinate
     text_content: str # Can contain MText formatting codes
-    char_height: float = Field(..., gt=0)
-    # width: Optional[float] = 0.0 # Width of the MText bounding box (0 for no constraint)
-    # rotation: Optional[float] = 0.0
-    # style: Optional[str] = "Standard"
-    # attachment_point: Optional[int] = 1 # 1=TopLeft, 2=TopCenter, ..., 9=BottomRight
+    char_height: float = Field(..., gt=0, description="Character height for the MTEXT entity.")
+    width: Optional[float] = Field(default=None, description="Width of the MText bounding box. None or 0 for no constraint.")
+    rotation: Optional[float] = Field(default=0.0, description="Rotation angle in degrees.")
+    style: Optional[str] = Field(default="Standard", description="Text style name.")
+
+    # MTEXT specific properties, aligned with TextStylePropertiesConfig where applicable
+    attachment_point: Optional[Literal[
+        'TOP_LEFT', 'TOP_CENTER', 'TOP_RIGHT',
+        'MIDDLE_LEFT', 'MIDDLE_CENTER', 'MIDDLE_RIGHT',
+        'BOTTOM_LEFT', 'BOTTOM_CENTER', 'BOTTOM_RIGHT'
+    ]] = Field(default=None, description="MTEXT attachment point.")
+
+    flow_direction: Optional[Literal[
+        'LEFT_TO_RIGHT', 'TOP_TO_BOTTOM', 'BY_STYLE'
+    ]] = Field(default=None, description="MTEXT flow direction.")
+
+    line_spacing_style: Optional[Literal[
+        'AT_LEAST', 'EXACT'
+    ]] = Field(default=None, description="MTEXT line spacing style.")
+    line_spacing_factor: Optional[float] = Field(default=None, ge=0.25, le=4.0, description="MTEXT line spacing factor.")
+
+    # Background fill properties
+    bg_fill_enabled: Optional[bool] = Field(default=None, description="Enable background fill.")
+    # bg_fill_color: Optional[ColorModel] = None # Color for background fill, requires ColorModel import
+    # bg_fill_scale: Optional[float] = Field(default=None, gt=0.0, description="Scale for background fill if it's a dialog box color.")
+    # bg_fill_transparency: Optional[float] = Field(default=None, ge=0.0, le=1.0, description="Transparency for background fill.")
+    # Note: For bg_fill_color to work, ColorModel needs to be imported in this file.
+    # For now, keeping it simple. DxfWriter can resolve color from style or direct entity if needed.
 
 class DxfArc(DxfEntity):
     """Represents a DXF ARC entity."""

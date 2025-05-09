@@ -17,7 +17,7 @@ from dxfplanner.domain.interfaces import (
 # Service Implementations
 from dxfplanner.services.geoprocessing.coordinate_service import CoordinateTransformService
 from dxfplanner.services.geoprocessing.attribute_mapping_service import AttributeMappingService
-from dxfplanner.services.geoprocessing.geometry_transform_service import GeometryTransformService
+from dxfplanner.geometry.transformations import GeometryTransformerImpl
 from dxfplanner.services.validation_service import ValidationService
 from dxfplanner.services.orchestration_service import DxfGenerationService
 from dxfplanner.services.style_service import StyleService
@@ -73,7 +73,7 @@ class Container(containers.DeclarativeContainer):
     # --- Geometry Transformation Service ---
     # Note: IGeometryTransformer is an interface, GeometryTransformService is the implementation
     geometry_transformer_service = providers.Factory(
-        GeometryTransformService,
+        GeometryTransformerImpl,
         attribute_mapper=attribute_mapper_service,
         # config=config.services.geometry_transform # If it takes its own sub-config
     )

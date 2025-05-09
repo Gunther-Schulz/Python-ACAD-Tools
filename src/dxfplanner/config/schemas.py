@@ -213,6 +213,22 @@ class DxfWriterConfig(BaseModel):
     layer_mapping_by_attribute_value: Dict[str, Dict[str, str]] = Field(default_factory=dict)
     default_text_height_for_unmapped: float = Field(2.5, alias="default_text_height")
 
+    # New fields for enhanced document setup and control
+    xdata_application_name: str = "DXFPlanner"
+    document_properties: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Key-value pairs for DXF header variables, e.g., {'AUTHOR': 'My Name'}")
+    defined_text_styles: Optional[Dict[str, TextStylePropertiesConfig]] = Field(
+        default_factory=dict,
+        description="Definitions for text styles to be created in the DXF document."
+    )
+    default_text_style_name: str = Field(
+        default="Standard",
+        description="Default text style name to use for text entities if not otherwise specified."
+    )
+    audit_on_save: bool = Field(
+        default=True,
+        description="If True, performs an audit of the DXF document before saving."
+    )
+
 # --- Grouped I/O Configurations (Existing - to be reviewed/integrated) ---
 class ReaderConfigs(BaseModel):
     shapefile: ShapefileReaderConfig = Field(default_factory=ShapefileReaderConfig)
