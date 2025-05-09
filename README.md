@@ -1,111 +1,108 @@
-# Layer Processor Operations
+# DXFPlanner: Geospatial to DXF Converter
 
-This document outlines the various operation types available in the LayerProcessor class and their possible options.
+DXFPlanner is a Python application designed to automate the generation of DXF (Drawing Exchange Format) files from various geospatial data sources. It aims to provide a flexible and configurable pipeline for transforming geographic features into DXF entities suitable for CAD applications.
 
-## Operation Types
+This project is currently undergoing a significant refactoring to a new, modern architecture to enhance maintainability, scalability, and testability.
 
-1. Copy
-2. Buffer
-3. Difference
-4. Intersection
-5. Filter
-6. WMTS/WMS
-7. Merge
-8. Smooth
-9. Contour
+## Project Status
 
-## Operation Details
+**Current Phase: Scaffolding Complete & Initial Implementation Ongoing**
 
-### 1. Copy
-Copies geometries from one or more source layers to the target layer.
+*   The core architectural components (modules, services, interfaces, domain models, configuration schemas, DI container, entry points) have been scaffolded.
+*   Placeholder implementations exist for most readers, writers, and services, which will raise `NotImplementedError` if run without further development.
+*   The next steps involve implementing the core logic within these components and writing comprehensive tests.
 
-Options:
-- `layers`: List of source layers to copy from. If omitted, the operation will be performed on the current layer.
+## Architecture Overview
 
-### 2. Buffer
-Creates a buffer around the geometries of the source layers.
+DXFPlanner is built with a modular and decoupled architecture, emphasizing:
 
-Options:
-- `layers`: List of source layers. If omitted, the operation will be performed on the current layer.
-- `distance`: Buffer distance (positive for outer buffer, negative for inner buffer)
-- `joinStyle`: Style of buffer corners (default: 'round')
-  - 'round'
-  - 'mitre'
-  - 'bevel'
+*   **Domain-Driven Design (DDD) principles:** Clear separation of domain models, interfaces, and services.
+*   **Dependency Injection (DI):** Using `python-dependency-injector` for managing component dependencies.
+*   **Protocol-Based Interfaces:** Defining contracts between components using `typing.Protocol`.
+*   **Centralized Configuration:** Pydantic models for typed configuration, loaded from YAML files.
+*   **Structured Logging:** Using `loguru` for application-wide logging.
+*   **Custom Exception Hierarchy:** For clear error reporting.
 
-### 3. Difference
-Subtracts the geometries of overlay layers from the base layer.
+Key modules include:
+*   `src/dxfplanner/core/`: Core framework (DI, exceptions, logging).
+*   `src/dxfplanner/config/`: Configuration schemas and loaders.
+*   `src/dxfplanner/domain/`: Domain models (geospatial, DXF) and interfaces.
+*   `src/dxfplanner/services/`: Application and geoprocessing services (orchestration, validation, coordinate transformation, attribute mapping, geometry transformation).
+*   `src/dxfplanner/io/`: Data readers (e.g., Shapefile) and writers (DXF).
+*   `src/dxfplanner/geometry/`: (Planned) Geometry operations and transformations.
+*   `src/dxfplanner/app.py`: Main application logic, initialization.
+*   `src/dxfplanner/cli.py`: Command-line interface using Typer.
 
-Options:
-- `layers`: List of overlay layers. If omitted, no difference operation will be performed.
-- `reverseDifference`: Boolean flag to manually control the direction of the difference operation (optional)
-  - If true, subtracts the base geometry from the overlay geometry
-  - If false, performs the standard difference operation (base minus overlay)
-  - If omitted, the direction is automatically determined based on the geometries
+Refer to `PROJECT_ARCHITECTURE.md` and `PROJECT_STANDARDS.md` for detailed architectural guidelines.
 
-Notes:
-- The `reverseDifference` flag provides a manual override to the automatic direction detection.
-- When `reverseDifference` is not specified, the operation uses an algorithm to determine the most appropriate direction based on the geometries involved.
-- Use this flag when you need to explicitly control the direction of the difference operation, overriding the automatic detection.
+## Setup Instructions
 
-### 4. Intersection
-Creates geometries that represent the intersection of the base layer with overlay layers.
+1.  **Clone the Repository:**
+    ```bash
+    # git clone <repository-url> # Replace with actual URL
+    # cd DXFPlanner
+    ```
 
-Options:
-- `layers`: List of overlay layers. If omitted, no intersection operation will be performed.
+2.  **Create and Activate a Virtual Environment:**
+    It's highly recommended to use a virtual environment (e.g., `venv`, `conda`).
+    ```bash
+    python -m venv .venv
+    source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+    ```
 
-### 5. Filter
-Filters geometries based on their intersection with filter layers.
+3.  **Install Dependencies:**
+    Install all required Python packages from `requirements.txt`:
+    ```bash
+    pip install -r requirements.txt
+    ```
+    *Note: Some libraries like `fiona` (if chosen for Shapefile reading) may have non-Python system dependencies (e.g., GDAL). Ensure these are installed on your system if you encounter issues.*
+    *`pyshp` is a pure Python alternative for Shapefiles included in requirements.*
 
-Options:
-- `layers`: List of filter layers. If omitted, no filtering will be performed.
+4.  **Configuration (`config.yml`):
+    The application uses a `config.yml` (or `config.yaml`) file for its settings.
+    *   When you first run the application (e.g., via `app.py` or `cli.py`), if a `config.yml` is not found in standard locations (current directory, `./config/`), a minimal dummy `config.yml` will be created in the current working directory.
+    *   It is recommended to review and customize this `config.yml` file with your desired settings. You can also place it in a `config/` subdirectory.
+    *   The structure of the configuration is defined by Pydantic models in `src/dxfplanner/config/schemas.py`.
 
-### 6. WMTS/WMS
-Downloads and processes Web Map Tile Service (WMTS) or Web Map Service (WMS) tiles.
+## Basic Usage (CLI)
 
-Options:
-- `layers`: List of boundary layers. If omitted, the current layer will be used as the boundary.
-- `url`: Service URL
-- `layer`: Service layer name
-- `proj`: Projection
-- `srs`: Spatial Reference System
-- `format`: Image format (default: 'image/png')
-- `zoom`: Zoom level
-- `buffer`: Buffer distance around boundary (default: 100)
-- `sleep`: Sleep time between requests (default: 0)
-- `limit`: Limit on number of tiles to download (default: 0)
-- `overwrite`: Whether to overwrite existing tiles (default: false)
-- `stitchTiles`: Whether to stitch downloaded tiles (default: false)
-- `postProcess`: Post-processing options
-  - `removeText`: Whether to remove text from tiles (default: false)
-  - `textRemovalMethod`: Method for text removal (default: 'tesseract')
+Once set up, you can use the command-line interface to generate DXF files.
 
-### 7. Merge
-Merges geometries from multiple source layers.
+```bash
+python -m dxfplanner.cli generate --source path/to/your/input.shp --output path/to/your/output.dxf
+```
 
-Options:
-- `layers`: List of source layers to merge. If omitted, no merge operation will be performed.
+**Example:**
 
-### 8. Smooth
-Smooths the geometries of source layers.
+```bash
+# Ensure test_data directories exist if running the example directly
+# mkdir -p test_data/input test_data/output
 
-Options:
-- `layers`: List of source layers. If omitted, the operation will be performed on the current layer.
-- `strength`: Smoothing strength (default: 1.0)
+# You'll need to provide an actual Shapefile (e.g., test_data/input/sample.shp)
+# and its associated files (.dbf, .shx, etc.)
 
-### 9. Contour
-Generates contour lines from elevation data.
+python -m dxfplanner.cli generate \
+    --source test_data/input/sample.shp \
+    --output test_data/output/generated_sample.dxf \
+    --source-crs "EPSG:4326" \
+    --target-crs "EPSG:25832"
+```
 
-Options:
-- `layers`: List containing the boundary layer. If omitted, the current layer will be used as the boundary.
-- `buffer`: Buffer distance around boundary
-- Other options specific to contour generation (e.g., elevation data source, contour interval)
+**CLI Help:**
 
-## General Notes
+```bash
+python -m dxfplanner.cli --help
+python -m dxfplanner.cli generate --help
+```
 
-- Most operations support specifying multiple source or overlay layers.
-- The `layers` option in operations can accept layer names as strings or as dictionaries with additional filtering options.
-- If the `layers` option is omitted in applicable operations, the operation will be performed on the current layer.
-- Some operations may have additional options not listed here. Refer to the specific method implementations for more details.
-- For the buffer operation, use positive distance values for outer buffers and negative values for inner buffers.
-- The difference operation now supports a `reverseDifference` flag to control the direction of the difference operation.
+**Important Notes for Current Version:**
+*   The core processing logic in services (readers, transformers, writers) are currently placeholders. Running the `generate` command will likely result in `NotImplementedError` until these are implemented.
+*   You will need to install the necessary geospatial libraries (like `pyshp`, `fiona`, `pyproj`, `shapely`) and `ezdxf` by running `pip install -r requirements.txt`.
+
+## Development
+
+(Placeholder for information on running tests, linters, formatters, and contributing guidelines.)
+
+## License
+
+(Placeholder for license information - e.g., MIT, Apache 2.0.)
