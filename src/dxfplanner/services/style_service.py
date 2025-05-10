@@ -1,8 +1,9 @@
 """
 Service for managing and resolving style configurations.
 """
-from typing import Optional, TypeVar, Type, Generic
+from typing import Optional, TypeVar, Type, Generic, Union, List
 from pydantic import BaseModel
+from logging import Logger
 
 from dxfplanner.config.schemas import (
     AppConfig,
@@ -14,8 +15,8 @@ from dxfplanner.config.schemas import (
     HatchPropertiesConfig,
     LabelingConfig,
 )
+from dxfplanner.domain.interfaces import IStyleService
 from dxfplanner.core.exceptions import DXFPlannerBaseError
-from dxfplanner.core.logging_config import get_logger
 
 logger = get_logger(__name__)
 
@@ -25,14 +26,15 @@ class StyleServiceError(DXFPlannerBaseError):
 
 TBaseModel = TypeVar('TBaseModel', bound=BaseModel)
 
-class StyleService:
+class StyleService(IStyleService):
     """
     Manages and resolves style configurations for layers and labels.
     Handles presets, inline definitions, and overrides from AppConfig.
     """
 
-    def __init__(self, config: AppConfig):
+    def __init__(self, config: AppConfig, logger: Logger):
         self._config = config
+        self.logger = logger
 
     def _merge_style_component(
         self,
@@ -69,63 +71,167 @@ class StyleService:
             elif 'paragraph_props' in merged_data: # if override explicitly set it to None
                  merged_data['paragraph_props'] = None
 
+        # Ensure the model_type is not None before instantiation to prevent errors with Optional[TBaseModel]
+        if merged_data and model_type is not None:
+            return model_type(**merged_data)
+        return None
 
-        return model_type(**merged_data) if merged_data else None
-
-
-    def get_resolved_layer_style(self, layer_config: LayerConfig) -> StyleObjectConfig:
-        """
-        Resolves the final StyleObjectConfig for a layer based on its configuration,
-        considering inline definitions, presets, and overrides.
-
-        Precedence:
-        1. Inline definition (`style_inline_definition`) is used as the base.
-        2. If no inline definition, preset (`style_preset_name`) is used as the base.
-        3. If neither, an empty StyleObjectConfig is the base.
-        4. `style_override` is then merged on top of this determined base.
-        """
+    def get_resolved_style_object(
+        self,
+        preset_name: Optional[str] = None,
+        inline_definition: Optional[StyleObjectConfig] = None,
+        override_definition: Optional[StyleObjectConfig] = None,
+        context_name: Optional[str] = None
+    ) -> StyleObjectConfig:
         base_style_source = StyleObjectConfig() # Default empty base
+        log_prefix = f"Style for '{context_name}': " if context_name else "Style: "
 
-        if layer_config.style_inline_definition:
-            base_style_source = layer_config.style_inline_definition
-            logger.debug(f"Layer '{layer_config.name}': Using inline style as base.")
-        elif layer_config.style_preset_name:
-            preset = self._config.style_presets.get(layer_config.style_preset_name)
+        if inline_definition:
+            base_style_source = inline_definition
+            self.logger.debug(f"{log_prefix}Using inline style as base.")
+        elif preset_name:
+            preset = self._config.style_presets.get(preset_name)
             if preset:
                 base_style_source = preset
-                logger.debug(f"Layer '{layer_config.name}': Using preset '{layer_config.style_preset_name}' as base.")
+                self.logger.debug(f"{log_prefix}Using preset '{preset_name}' as base.")
             else:
-                logger.warning(
-                    f"Layer '{layer_config.name}': Style preset '{layer_config.style_preset_name}' not found. "
+                self.logger.warning(
+                    f"{log_prefix}Style preset '{preset_name}' not found. "
                     f"Using default empty style as base."
                 )
         else:
-            logger.debug(f"Layer '{layer_config.name}': No inline style or preset name. Using default empty style as base.")
+            self.logger.debug(f"{log_prefix}No inline style or preset name. Using default empty style as base.")
 
         # Now, merge the override onto the determined base_style_source
-        final_style = StyleObjectConfig()
-        override_source = layer_config.style_override
+        final_style = StyleObjectConfig(
+            layer_props=LayerDisplayPropertiesConfig(),
+            text_props=TextStylePropertiesConfig(),
+            hatch_props=HatchPropertiesConfig()
+        )
 
         final_style.layer_props = self._merge_style_component(
             base_style_source.layer_props,
-            override_source.layer_props if override_source else None,
+            override_definition.layer_props if override_definition else None,
             LayerDisplayPropertiesConfig,
-        )
+        ) or LayerDisplayPropertiesConfig()
+
         final_style.text_props = self._merge_style_component(
             base_style_source.text_props,
-            override_source.text_props if override_source else None,
+            override_definition.text_props if override_definition else None,
             TextStylePropertiesConfig,
-        )
+        ) or TextStylePropertiesConfig()
+
         final_style.hatch_props = self._merge_style_component(
             base_style_source.hatch_props,
-            override_source.hatch_props if override_source else None,
+            override_definition.hatch_props if override_definition else None,
             HatchPropertiesConfig,
-        )
+        ) or HatchPropertiesConfig()
 
-        if override_source:
-            logger.debug(f"Layer '{layer_config.name}': Applied style overrides.")
+        if override_definition:
+            self.logger.debug(f"{log_prefix}Applied style overrides.")
+
+        # Ensure all components exist, even if default
+        if final_style.layer_props is None: final_style.layer_props = LayerDisplayPropertiesConfig()
+        if final_style.text_props is None: final_style.text_props = TextStylePropertiesConfig()
+        if final_style.hatch_props is None: final_style.hatch_props = HatchPropertiesConfig()
 
         return final_style
+
+    def get_layer_display_properties(
+        self,
+        layer_config: LayerConfig
+    ) -> LayerDisplayPropertiesConfig:
+        resolved_object = self.get_resolved_style_object(
+            preset_name=layer_config.style_preset_name,
+            inline_definition=layer_config.style_inline_definition,
+            override_definition=layer_config.style_override,
+            context_name=layer_config.name
+        )
+        # The resolved_object.layer_props should be non-null due to get_resolved_style_object's logic
+        return resolved_object.layer_props if resolved_object.layer_props is not None else LayerDisplayPropertiesConfig()
+
+    def get_text_style_properties(
+        self,
+        style_reference: Optional[Union[str, StyleObjectConfig, TextStylePropertiesConfig]] = None,
+        layer_config_fallback: Optional[LayerConfig] = None
+    ) -> TextStylePropertiesConfig:
+        context_name = layer_config_fallback.name if layer_config_fallback else "text_style"
+        log_prefix = f"Style for '{context_name}': "
+
+        if isinstance(style_reference, TextStylePropertiesConfig):
+            self.logger.debug(f"{log_prefix}Using provided TextStylePropertiesConfig directly.")
+            return style_reference
+
+        if isinstance(style_reference, str): # Preset name
+            self.logger.debug(f"{log_prefix}Resolving from preset name '{style_reference}'.")
+            resolved_object = self.get_resolved_style_object(preset_name=style_reference, context_name=context_name)
+            if resolved_object.text_props:
+                return resolved_object.text_props
+            self.logger.warning(f"{log_prefix}Preset '{style_reference}' did not yield text properties.")
+
+        elif isinstance(style_reference, StyleObjectConfig): # Inline StyleObjectConfig
+            self.logger.debug(f"{log_prefix}Resolving from provided StyleObjectConfig.")
+            # We treat this StyleObjectConfig as a complete definition, not needing presets or overrides from elsewhere here.
+            resolved_object = self.get_resolved_style_object(inline_definition=style_reference, context_name=context_name)
+            if resolved_object.text_props:
+                return resolved_object.text_props
+            self.logger.debug(f"{log_prefix}Provided StyleObjectConfig did not yield text properties.")
+
+        # Fallback to layer_config_fallback
+        if layer_config_fallback:
+            self.logger.debug(f"{log_prefix}Falling back to layer_config '{layer_config_fallback.name}' for text properties.")
+            layer_style_object = self.get_resolved_style_object(
+                preset_name=layer_config_fallback.style_preset_name,
+                inline_definition=layer_config_fallback.style_inline_definition,
+                override_definition=layer_config_fallback.style_override,
+                context_name=layer_config_fallback.name
+            )
+            if layer_style_object.text_props:
+                return layer_style_object.text_props
+
+        self.logger.debug(f"{log_prefix}No specific text style found, returning default TextStylePropertiesConfig.")
+        return TextStylePropertiesConfig()
+
+    def get_hatch_properties(
+        self,
+        style_reference: Optional[Union[str, StyleObjectConfig, HatchPropertiesConfig]] = None,
+        layer_config_fallback: Optional[LayerConfig] = None
+    ) -> HatchPropertiesConfig:
+        context_name = layer_config_fallback.name if layer_config_fallback else "hatch_style"
+        log_prefix = f"Style for '{context_name}': "
+
+        if isinstance(style_reference, HatchPropertiesConfig):
+            self.logger.debug(f"{log_prefix}Using provided HatchPropertiesConfig directly.")
+            return style_reference
+
+        if isinstance(style_reference, str): # Preset name
+            self.logger.debug(f"{log_prefix}Resolving from preset name '{style_reference}'.")
+            resolved_object = self.get_resolved_style_object(preset_name=style_reference, context_name=context_name)
+            if resolved_object.hatch_props:
+                return resolved_object.hatch_props
+            self.logger.warning(f"{log_prefix}Preset '{style_reference}' did not yield hatch properties.")
+
+        elif isinstance(style_reference, StyleObjectConfig): # Inline StyleObjectConfig
+            self.logger.debug(f"{log_prefix}Resolving from provided StyleObjectConfig.")
+            resolved_object = self.get_resolved_style_object(inline_definition=style_reference, context_name=context_name)
+            if resolved_object.hatch_props:
+                return resolved_object.hatch_props
+            self.logger.debug(f"{log_prefix}Provided StyleObjectConfig did not yield hatch properties.")
+
+        # Fallback to layer_config_fallback
+        if layer_config_fallback:
+            self.logger.debug(f"{log_prefix}Falling back to layer_config '{layer_config_fallback.name}' for hatch properties.")
+            layer_style_object = self.get_resolved_style_object(
+                preset_name=layer_config_fallback.style_preset_name,
+                inline_definition=layer_config_fallback.style_inline_definition,
+                override_definition=layer_config_fallback.style_override,
+                context_name=layer_config_fallback.name
+            )
+            if layer_style_object.hatch_props:
+                return layer_style_object.hatch_props
+
+        self.logger.debug(f"{log_prefix}No specific hatch style found, returning default HatchPropertiesConfig.")
+        return HatchPropertiesConfig()
 
     def get_resolved_label_style(
         self, layer_config: LayerConfig

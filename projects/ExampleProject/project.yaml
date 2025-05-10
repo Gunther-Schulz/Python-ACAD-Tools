@@ -1,0 +1,39 @@
+logging:
+  level: INFO
+
+io:
+  writers:
+    dxf:
+      target_dxf_version: AC1027
+      default_layer_for_unmapped: "0"
+      template_file: "projects/ExampleProject/template.dxf"  # Optional: path to a template DXF
+
+layers:
+  - name: "example_layer"
+    source:
+      type: shapefile
+      path: "projects/ExampleProject/data/example.shp"
+    operations:
+      - type: buffer
+        source_layer: "example_layer"
+        distance: 10.0
+        output_layer_name: "buffered_layer"
+      - type: simplify
+        source_layer: "buffered_layer"
+        tolerance: 2.0
+        output_layer_name: "simplified_layer"
+    style_preset_name: "example_style"
+    enabled: true
+
+style_presets:
+  example_style:
+    layer_props:
+      color: { r: 0, g: 120, b: 200 }
+      linetype: "CONTINUOUS"
+      lineweight: -1
+      plot: true
+      transparency: 0.0
+      linetype_scale: 1.0
+      locked: false
+      frozen: false
+      is_on: true

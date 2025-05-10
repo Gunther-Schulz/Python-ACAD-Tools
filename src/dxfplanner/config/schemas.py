@@ -14,11 +14,14 @@ ColorModel = Union[str, int, Tuple[int, int, int]] # ACI index, color name, or (
 # --- Style Properties Models ---
 class LayerDisplayPropertiesConfig(BaseModel):
     color: ColorModel = "BYLAYER"
-    linetype: str = "BYLAYER"
+    linetype: str = "CONTINUOUS"
     lineweight: int = -1  # -1 for BYLAYER, -2 for BYBLOCK, -3 for DEFAULT
     plot: bool = True
     transparency: float = Field(default=0.0, ge=0.0, le=1.0) # 0.0 Opaque, 1.0 Fully Transparent
     linetype_scale: float = Field(default=1.0, gt=0.0)
+    locked: bool = False
+    frozen: bool = False
+    is_on: bool = True
 
 class TextParagraphPropertiesConfig(BaseModel):
     align: Optional[Literal['LEFT', 'CENTER', 'RIGHT', 'JUSTIFIED', 'DISTRIBUTED']] = None
@@ -34,6 +37,7 @@ class TextStylePropertiesConfig(BaseModel):
     width_factor: Optional[float] = Field(default=None, gt=0.0)
     oblique_angle: Optional[float] = Field(default=None, ge=0.0, lt=360.0) # Degrees
     # MTEXT specific properties
+    mtext_width: Optional[float] = Field(default=None, gt=0.0)
     attachment_point: Optional[Literal[
         'TOP_LEFT', 'TOP_CENTER', 'TOP_RIGHT',
         'MIDDLE_LEFT', 'MIDDLE_CENTER', 'MIDDLE_RIGHT',
@@ -45,6 +49,9 @@ class TextStylePropertiesConfig(BaseModel):
     bg_fill_enabled: Optional[bool] = None
     bg_fill_color: Optional[ColorModel] = None # Can be window background, a specific color, or foreground
     bg_fill_scale: Optional[float] = Field(default=None, gt=0.0)
+    underline: Optional[bool] = None
+    overline: Optional[bool] = None
+    strike_through: Optional[bool] = None
     paragraph_props: Optional[TextParagraphPropertiesConfig] = None
     rotation: Optional[float] = Field(default=None, ge=0.0, lt=360.0) # Degrees
 
@@ -108,6 +115,7 @@ class OperationType(str, Enum):
     REPROJECT = "reproject"
     CLEAN_GEOMETRY = "clean_geometry"
     EXPLODE_MULTIPART = "explode_multipart"
+    LABEL_PLACEMENT = "label_placement"
     # ... other operation types to be added
 
 class BaseOperationConfig(BaseModel):
@@ -174,6 +182,30 @@ class ExplodeMultipartOperationConfig(BaseOperationConfig):
     source_layer: str
     output_layer_name: str
 
+# --- Label Placement Specific Configuration ---
+class LabelSettings(BaseModel): # This is what was referred to as LabelPlacementConfig in interfaces.py
+    """Detailed settings for how labels should be placed."""
+    label_attribute: Optional[str] = Field(default=None, description="Attribute field from feature to use for label text.")
+    fixed_label_text: Optional[str] = Field(default=None, description="A fixed text string to use for all labels.")
+    text_height: float = Field(default=2.5, gt=0, description="Default height for the label text. Can be overridden by style.")
+    point_position_override: Optional[str] = Field(default=None, description="Specific placement for point labels (e.g., 'TOP_LEFT', 'CENTER'). Consult placement logic for valid values.")
+    offset_x: Union[float, str] = Field(default=0.0, description="Offset in X direction. Can be a number or an expression using feature attributes.")
+    offset_y: Union[float, str] = Field(default=0.0, description="Offset in Y direction. Can be a number or an expression using feature attributes.")
+    spacing_buffer_factor: float = Field(default=0.2, ge=0.0, description="Factor of text height used as a buffer around labels for collision detection.")
+    avoid_colliding_labels: bool = Field(default=True, description="Whether to run collision detection between labels.")
+    # avoid_features_from_layers: List[str] = Field(default_factory=list, description="List of layer names whose features should be avoided by labels.")
+    # avoid_all_other_features: bool = Field(default=False, description="If true, labels will try to avoid all other geometries in the source_layer not being labeled.")
+
+
+class LabelPlacementOperationConfig(BaseOperationConfig):
+    type: Literal[OperationType.LABEL_PLACEMENT] = OperationType.LABEL_PLACEMENT
+    source_layer: str = Field(description="Name of the layer whose features will be labeled.")
+    output_label_layer_name: Optional[str] = Field(default=None, description="Optional: Name of the new layer to create for the label MTEXT entities. If None, labels are associated with source_layer styling.")
+    label_settings: LabelSettings = Field(default_factory=LabelSettings)
+    # Optional: Refer to a TextStylePreset for the labels
+    # label_text_style_preset: Optional[str] = None
+
+
 AnyOperationConfig = Union[
     BufferOperationConfig,
     IntersectionOperationConfig, # Add other specific operation configs here
@@ -181,8 +213,70 @@ AnyOperationConfig = Union[
     FieldMappingOperationConfig,
     ReprojectOperationConfig,
     CleanGeometryOperationConfig,
-    ExplodeMultipartOperationConfig
+    ExplodeMultipartOperationConfig,
+    LabelPlacementOperationConfig
 ]
+
+# --- Legend Configuration Models ---
+class LegendItemStyleConfig(BaseModel):
+    """Defines display style for a legend item's representative geometry."""
+    item_type: Literal['area', 'line', 'diagonal_line', 'empty'] = 'area'
+    # References a StyleObjectConfig preset or can be an inline definition
+    style_preset_name: Optional[str] = None
+    style_inline: Optional[StyleObjectConfig] = None # Overrides preset if both given for specific properties
+    apply_hatch_for_area: bool = True # Only for item_type 'area'
+    block_symbol_name: Optional[str] = None # Name of a DXF block to use as a symbol
+    block_symbol_scale: float = 1.0
+
+class LegendItemConfig(BaseModel):
+    name: str
+    subtitle: Optional[str] = None
+    item_style: LegendItemStyleConfig # Defines how the geometric swatch for the item looks
+    # References TextStylePropertiesConfig presets or can be inline
+    text_style_preset_name: Optional[str] = None
+    text_style_inline: Optional[TextStylePropertiesConfig] = None
+    subtitle_text_style_preset_name: Optional[str] = None
+    subtitle_text_style_inline: Optional[TextStylePropertiesConfig] = None
+
+
+class LegendGroupConfig(BaseModel):
+    name: str
+    subtitle: Optional[str] = None
+    items: List[LegendItemConfig] = Field(default_factory=list)
+    # References TextStylePropertiesConfig presets or can be inline
+    title_text_style_preset_name: Optional[str] = None
+    title_text_style_inline: Optional[TextStylePropertiesConfig] = None
+    subtitle_text_style_preset_name: Optional[str] = None
+    subtitle_text_style_inline: Optional[TextStylePropertiesConfig] = None
+
+class LegendLayoutConfig(BaseModel):
+    position_x: float = 0.0
+    position_y: float = 0.0
+    group_spacing: float = 20.0
+    item_spacing: float = 2.0 # Vertical spacing between item swatch and its text, and between items
+    item_swatch_width: float = 30.0
+    item_swatch_height: float = 15.0
+    text_offset_from_swatch: float = 5.0
+    subtitle_spacing_after_title: float = 6.0 # Spacing after a group/legend title to its subtitle
+    title_spacing_to_content: float = 8.0 # Spacing after a title (or its subtitle) to the content below
+    max_text_width: float = 150.0 # Max width for item names/subtitles
+
+class LegendDefinitionConfig(BaseModel):
+    id: str = "default_legend"
+    title: Optional[str] = None
+    subtitle: Optional[str] = None
+    groups: List[LegendGroupConfig] = Field(default_factory=list)
+    layout: LegendLayoutConfig = Field(default_factory=LegendLayoutConfig)
+    # References TextStylePropertiesConfig presets or can be inline
+    overall_title_text_style_preset_name: Optional[str] = None
+    overall_title_text_style_inline: Optional[TextStylePropertiesConfig] = None
+    overall_subtitle_text_style_preset_name: Optional[str] = None
+    overall_subtitle_text_style_inline: Optional[TextStylePropertiesConfig] = None
+    background_box_enabled: bool = False
+    background_box_style_preset_name: Optional[str] = None # For border style of background box
+    background_box_style_inline: Optional[StyleObjectConfig] = None # For border style
+    background_box_margin: float = 5.0
+
 
 # --- Labeling Configuration ---
 class LabelingConfig(BaseModel):
@@ -223,6 +317,11 @@ class DxfWriterConfig(BaseModel):
     default_color_for_unmapped: int = Field(256, alias="default_color")  # 256 = ByLayer
     layer_mapping_by_attribute_value: Dict[str, Dict[str, str]] = Field(default_factory=dict)
     default_text_height_for_unmapped: float = Field(2.5, alias="default_text_height")
+
+    output_file: Optional[str] = Field(
+        default=None,
+        description="Path to the output DXF file. Can be overridden by CLI argument."
+    )
 
     # New fields for enhanced document setup and control
     xdata_application_name: str = "DXFPlanner"
@@ -290,10 +389,11 @@ class AppConfig(BaseModel):
     # New additions for detailed pipeline configuration
     style_presets: Dict[str, StyleObjectConfig] = Field(default_factory=dict)
     layers: List[LayerConfig] = Field(default_factory=list)
+    legends: List[LegendDefinitionConfig] = Field(default_factory=list)
 
-    # Example for project-specific global settings:
-    # project_name: str = "DefaultProject"
-    # output_directory: str = "./output_dxf"
+    # Global DXF settings that might not fit under DxfWriterConfig specific to output action
+    # e.g. global unit settings or drawing limits, if ever needed.
+    # For now, most DXF output specifics are in DxfWriterConfig.
 
     class Config:
         validate_assignment = True

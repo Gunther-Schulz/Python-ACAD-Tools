@@ -11,18 +11,21 @@ from dxfplanner.core.exceptions import DXFPlannerBaseError, ConfigurationError #
 from dxfplanner.domain.interfaces import (
     IGeoDataReader, IDxfWriter, IGeometryTransformer,
     ICoordinateService, IAttributeMapper, IValidationService,
-    IDxfGenerationService, IOperation # Added IOperation
+    IDxfGenerationService, IOperation, ILegendGenerator, IStyleService, # Added IStyleService
+    ILabelPlacementService # Added
 )
 
 # Service Implementations
 from dxfplanner.services.geoprocessing.coordinate_service import CoordinateTransformService
 from dxfplanner.services.geoprocessing.attribute_mapping_service import AttributeMappingService
+from dxfplanner.services.geoprocessing.label_placement_service import LabelPlacementServiceImpl # Added
 from dxfplanner.geometry.transformations import GeometryTransformerImpl
 from dxfplanner.services.validation_service import ValidationService
 from dxfplanner.services.orchestration_service import DxfGenerationService
 from dxfplanner.services.style_service import StyleService
 from dxfplanner.services.layer_processor_service import LayerProcessorService # New
 from dxfplanner.services.pipeline_service import PipelineService # New
+from dxfplanner.services.legend_generation_service import LegendGenerationService # New
 
 # I/O Implementations
 from dxfplanner.io.readers.shapefile_reader import ShapefileReader
@@ -58,7 +61,8 @@ class Container(containers.DeclarativeContainer):
     # --- Style Service ---
     style_service = providers.Factory(
         StyleService,
-        config=config # StyleService expects the full AppConfig
+        config=config, # StyleService expects the full AppConfig
+        logger=logger  # Added logger injection
     )
 
     # --- Geoprocessing Services (direct dependencies where needed) ---
@@ -70,6 +74,15 @@ class Container(containers.DeclarativeContainer):
     attribute_mapper_service = providers.Factory(
         AttributeMappingService,
         config=config.services.attribute_mapping # AttributeMappingService now takes its specific config
+    )
+
+    label_placement_service = providers.Factory(
+        LabelPlacementServiceImpl,
+        # app_config=config, # If it needs the full config
+        # specific_config=config.services.label_placement, # If we add LabelPlacementServiceConfig to ServicesSettings
+        logger=logger,
+        style_service=style_service # Added style_service injection
+        # Add other necessary dependencies for LabelPlacementServiceImpl if any are identified later
     )
 
     # --- Geometry Transformation Service ---
@@ -130,7 +143,8 @@ class Container(containers.DeclarativeContainer):
         LayerProcessorService,
         app_config=config,
         di_container=providers.Self, # Pass the container itself for resolving readers/ops
-        geometry_transformer=geometry_transformer_service
+        geometry_transformer=geometry_transformer_service,
+        logger=logger # Added logger injection
     )
     pipeline_service = providers.Factory(
         PipelineService,
@@ -151,6 +165,14 @@ class Container(containers.DeclarativeContainer):
         app_config=config,
         pipeline_service=pipeline_service, # Main dependency changed
         validation_service=validation_service # Optional
+    )
+
+    # --- Legend Generation Service (New) ---
+    legend_generation_service = providers.Factory(
+        LegendGenerationService,
+        config=config,
+        logger=logger,
+        dxf_writer=dxf_writer
     )
 
     # --- Resolver methods (part of the container's public API if needed elsewhere) ---

@@ -1,11 +1,16 @@
-from typing import Protocol, List, Dict, Any, AsyncIterator, Optional, TypeVar, Tuple
+from typing import Protocol, List, Dict, Any, AsyncIterator, Optional, TypeVar, Tuple, Union
 from pathlib import Path
+from pydantic import BaseModel # Added for PlacedLabel
 
 # Import domain models to be used in interface definitions
-from .models.common import Coordinate, Color, BoundingBox
+from .models.common import Coordinate, Color, BoundingBox as BoundingBoxModel
 from .models.geo_models import GeoFeature #, PointGeo, PolylineGeo, PolygonGeo (GeoFeature contains these)
 from .models.dxf_models import DxfEntity, DxfLayer, AnyDxfEntity # Added AnyDxfEntity explicitly
-from ..config.schemas import LayerConfig, BaseOperationConfig # Added BaseOperationConfig
+from ..config.schemas import (
+    LayerConfig, BaseOperationConfig, LayerDisplayPropertiesConfig,
+    TextStylePropertiesConfig, HatchPropertiesConfig, StyleObjectConfig, # Added StyleObjectConfig
+    LabelSettings # Changed from LabelPlacementConfig
+)
 
 # Generic type for path-like objects, often used for file paths
 AnyStrPath = TypeVar("AnyStrPath", str, Path)
@@ -66,6 +71,108 @@ class IDxfWriter(Protocol):
                                       objects belonging to that layer.
             **kwargs: Additional keyword arguments for specific writer implementations.
         """
+        ...
+
+    # --- Legend Generation Support Methods ---
+
+    async def clear_legend_content(
+        self,
+        doc: Any, # ezdxf.document.Drawing
+        msp: Any, # ezdxf.layouts.Modelspace
+        legend_id: str
+    ) -> None:
+        """Removes entities associated with a specific legend ID."""
+        ...
+
+    async def ensure_layer_exists_with_properties(
+        self,
+        doc: Any,
+        layer_name: str,
+        properties: Optional[LayerDisplayPropertiesConfig] = None
+    ) -> Any: # Returns the ezdxf layer object
+        """Ensures a layer exists, creating or updating it with specified properties."""
+        ...
+
+    async def add_mtext_ez(
+        self,
+        doc: Any, msp: Any,
+        text: str,
+        insertion_point: Tuple[float, float],
+        layer_name: str,
+        style_config: TextStylePropertiesConfig,
+        max_width: Optional[float] = None,
+        legend_item_id: Optional[str] = None # For potential XDATA tagging
+    ) -> Tuple[Optional[Any], float]: # Returns (ezdxf_entity | None, actual_height)
+        """Adds an MTEXT entity with extended styling and returns the entity and its calculated height."""
+        ...
+
+    async def get_entities_bbox(
+        self,
+        entities: List[Any]
+    ) -> Optional[BoundingBoxModel]:
+        """Calculates and returns the bounding box of a list of DXF entities."""
+        ...
+
+    async def translate_entities(
+        self,
+        entities: List[Any],
+        dx: float, dy: float, dz: float
+    ) -> None:
+        """Translates a list of DXF entities by a given vector."""
+        ...
+
+    async def add_lwpolyline(
+        self,
+        doc: Any, msp: Any,
+        points: List[Tuple[float, float]],
+        layer_name: str,
+        style_props: Optional[LayerDisplayPropertiesConfig],
+        is_closed: bool = False,
+        legend_item_id: Optional[str] = None
+    ) -> Optional[Any]: # Returns ezdxf_entity | None
+        """Adds an LWPOLYLINE entity."""
+        ...
+
+    async def add_hatch(
+        self,
+        doc: Any, msp: Any,
+        # Hatch paths often include bulge values, not just simple points for complex boundaries
+        # For simplicity, current model is List[List[Tuple[float,float]] for outer/inner loops of vertices
+        # Actual ezdxf might take PathEdge or similar for more complex hatch paths.
+        paths: List[List[Tuple[float, float]]], # List of paths (loops of vertices)
+        layer_name: str,
+        hatch_props_config: HatchPropertiesConfig,
+        legend_item_id: Optional[str] = None
+    ) -> Optional[Any]: # Returns ezdxf_entity | None
+        """Adds a HATCH entity."""
+        ...
+
+    async def add_block_reference(
+        self,
+        doc: Any, msp: Any,
+        block_name: str,
+        insertion_point: Tuple[float, float],
+        layer_name: str,
+        scale_x: float = 1.0, # Changed to scale_x, scale_y, scale_z for ezdxf
+        scale_y: float = 1.0,
+        scale_z: float = 1.0,
+        rotation: float = 0.0,
+        style_props: Optional[LayerDisplayPropertiesConfig] = None, # For potential color override if block is BYBLOCK
+        legend_item_id: Optional[str] = None
+    ) -> Optional[Any]: # Returns ezdxf_entity | None
+        """Adds a BLOCK_REFERENCE (INSERT) entity."""
+        ...
+
+    async def add_line(
+        self,
+        doc: Any, msp: Any,
+        start_point: Tuple[float, float],
+        end_point: Tuple[float, float],
+        layer_name: str,
+        style_props: Optional[LayerDisplayPropertiesConfig],
+        legend_item_id: Optional[str] = None
+    ) -> Optional[Any]: # Returns ezdxf_entity | None
+        """Adds a LINE entity."""
         ...
 
 # --- Geometry Processing & Transformation Interfaces ---
@@ -142,9 +249,42 @@ class IValidationService(Protocol):
     #     """Validates configuration data against a schema."""
     #     ...
 
+# --- Label Placement Service Model & Interface ---
+class PlacedLabel(BaseModel):
+    """Represents a label that has been placed, with its text, position, and rotation."""
+    text: str
+    position: Coordinate
+    rotation: float # Degrees
+
+class ILabelPlacementService(Protocol):
+    """Interface for advanced label placement considering features and avoiding collisions."""
+
+    async def place_labels_for_features(
+        self,
+        features: AsyncIterator[GeoFeature],
+        layer_name: str,
+        config: LabelSettings, # Changed from LabelPlacementConfig
+        # TODO: Consider adding parameters for existing_placed_labels and avoidance_geometries
+        # if iterative placement or external avoidance areas are needed.
+    ) -> AsyncIterator[PlacedLabel]:
+        """
+        Calculates optimal placements for labels for a stream of geographic features.
+
+        Args:
+            features: An asynchronous iterator of GeoFeature objects to be labeled.
+            layer_name: The name of the layer these features belong to, for context.
+            config: Configuration specific to this label placement task.
+
+        Yields:
+            PlacedLabel: An asynchronous iterator of PlacedLabel objects.
+        """
+        if False: # pragma: no cover
+            yield
+        ...
+
 # Interface for the main orchestration service
-class IDxfGenerationService(Protocol):
-    """Interface for the main service orchestrating DXF generation."""
+class IDxfOrchestrator(Protocol):
+    """Interface for the main service orchestrating the DXF generation pipeline."""
 
     async def generate_dxf_from_source(
         self,
@@ -191,4 +331,87 @@ class IOperation(Protocol[TOperationConfig]):
         """
         if False: # pragma: no cover
             yield
+        ...
+
+# --- Legend Generation Interface ---
+
+class ILegendGenerator(Protocol):
+    """Interface for generating legends in a DXF document."""
+
+    async def generate_legends(
+        self,
+        doc: Any, # ezdxf.document.Drawing
+        msp: Any, # ezdxf.layouts.Modelspace
+        # Configuration for legends will be injected via __init__ using AppConfig
+        **kwargs: Any # For additional future options
+    ) -> None:
+        """
+        Generates legends and adds them to the provided DXF document modelspace.
+
+        Args:
+            doc: The ezdxf Drawing document object.
+            msp: The ezdxf Modelspace object where legend entities will be added.
+            **kwargs: Additional keyword arguments for specific generation options.
+        """
+        ...
+
+# --- Style Service Interface ---
+class IStyleService(Protocol):
+    """Interface for resolving and providing style configurations."""
+
+    def get_resolved_style_object(
+        self,
+        preset_name: Optional[str] = None,
+        inline_definition: Optional[StyleObjectConfig] = None,
+        override_definition: Optional[StyleObjectConfig] = None,
+        context_name: Optional[str] = None # For logging, e.g., layer name
+    ) -> StyleObjectConfig:
+        """
+        Resolves a style object from a preset, inline definition, and optional overrides.
+        The precedence is: inline_definition, then (preset + override_definition), then preset_name.
+        An empty StyleObjectConfig with default component properties is returned if no definitive style information is found.
+        """
+        ...
+
+    def get_layer_display_properties(
+        self,
+        layer_config: LayerConfig
+    ) -> LayerDisplayPropertiesConfig:
+        """
+        Resolves and returns the final LayerDisplayPropertiesConfig for a given LayerConfig,
+        considering presets, inline styles, and overrides defined in LayerConfig.
+        Uses get_resolved_style_object internally.
+        """
+        ...
+
+    def get_text_style_properties(
+        self,
+        # Reference to a style (preset name or inline object) or use layer_config's style
+        style_reference: Optional[Union[str, StyleObjectConfig, TextStylePropertiesConfig]] = None,
+        layer_config_fallback: Optional[LayerConfig] = None
+    ) -> TextStylePropertiesConfig:
+        """
+        Resolves and returns TextStylePropertiesConfig.
+        If style_reference (preset name, StyleObjectConfig, or direct TextStylePropertiesConfig) is given, it's prioritized.
+        If style_reference is a preset name or StyleObjectConfig, text_props are extracted.
+        If style_reference is None or doesn't yield text_props, and layer_config_fallback is provided,
+        it attempts to find text_props within the style resolved from layer_config_fallback.
+        Returns a TextStylePropertiesConfig with default values if no specific properties are found.
+        """
+        ...
+
+    def get_hatch_properties(
+        self,
+        # Reference to a style (preset name or inline object) or use layer_config's style
+        style_reference: Optional[Union[str, StyleObjectConfig, HatchPropertiesConfig]] = None,
+        layer_config_fallback: Optional[LayerConfig] = None
+    ) -> HatchPropertiesConfig:
+        """
+        Resolves and returns HatchPropertiesConfig.
+        If style_reference (preset name, StyleObjectConfig, or direct HatchPropertiesConfig) is given, it's prioritized.
+        If style_reference is a preset name or StyleObjectConfig, hatch_props are extracted.
+        If style_reference is None or doesn't yield hatch_props, and layer_config_fallback is provided,
+        it attempts to find hatch_props within the style resolved from layer_config_fallback.
+        Returns a HatchPropertiesConfig with default values if no specific properties are found.
+        """
         ...
