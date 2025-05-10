@@ -125,9 +125,9 @@ class BaseOperationConfig(BaseModel):
 
 class BufferOperationConfig(BaseOperationConfig):
     type: Literal[OperationType.BUFFER] = OperationType.BUFFER
-    source_layer: str # Name of the layer to buffer
+    source_layer: Optional[str] = None # Name of the layer to buffer
     distance: float
-    output_layer_name: str # Name of the new layer to create with buffered geometry
+    output_layer_name: Optional[str] = None # Name of the new layer to create with buffered geometry
 
     distance_field: Optional[str] = Field(default=None, description="Optional field name in feature attributes for per-feature buffer distance.")
     join_style: Literal['ROUND', 'MITRE', 'BEVEL'] = Field(default='ROUND', description="Style for joining buffer corners.")
@@ -146,41 +146,44 @@ class BufferOperationConfig(BaseOperationConfig):
 # Placeholder for other operations - to be defined as needed
 class IntersectionOperationConfig(BaseOperationConfig):
     type: Literal[OperationType.INTERSECTION] = OperationType.INTERSECTION
-    input_layers: List[str]
-    output_layer_name: str
+    input_layers: List[str] # For intersection, source_layer might be ambiguous, input_layers is better.
+    # Let's assume for now that the implicit chaining won't apply directly to Intersection's multi-input.
+    # If it were to apply, one of the input_layers would be the default.
+    # For now, make output_layer_name optional as per the general requirement.
+    output_layer_name: Optional[str] = None
 
 # --- New Operation Config Models ---
 class SimplifyOperationConfig(BaseOperationConfig):
     type: Literal[OperationType.SIMPLIFY] = OperationType.SIMPLIFY
-    source_layer: str
+    source_layer: Optional[str] = None
     tolerance: float
-    output_layer_name: str
+    output_layer_name: Optional[str] = None
     preserve_topology: bool = True
 
 class FieldMappingOperationConfig(BaseOperationConfig):
     type: Literal[OperationType.FIELD_MAPPER] = OperationType.FIELD_MAPPER
-    source_layer: str
+    source_layer: Optional[str] = None
     field_map: Dict[str, str]  # {new_field_name: old_field_name_or_expression}
-    output_layer_name: str
+    output_layer_name: Optional[str] = None
     # Potentially add options for type casting or expression evaluation
 
 class ReprojectOperationConfig(BaseOperationConfig):
     type: Literal[OperationType.REPROJECT] = OperationType.REPROJECT
-    source_layer: str
+    source_layer: Optional[str] = None
     target_crs: str
-    output_layer_name: str
+    output_layer_name: Optional[str] = None
     # source_crs can be optional if known from data source
 
 class CleanGeometryOperationConfig(BaseOperationConfig):
     type: Literal[OperationType.CLEAN_GEOMETRY] = OperationType.CLEAN_GEOMETRY
-    source_layer: str
-    output_layer_name: str
+    source_layer: Optional[str] = None
+    output_layer_name: Optional[str] = None
     # Options like: fix_invalid_geometries, remove_small_parts_threshold
 
 class ExplodeMultipartOperationConfig(BaseOperationConfig):
     type: Literal[OperationType.EXPLODE_MULTIPART] = OperationType.EXPLODE_MULTIPART
-    source_layer: str
-    output_layer_name: str
+    source_layer: Optional[str] = None
+    output_layer_name: Optional[str] = None
 
 # --- Label Placement Specific Configuration ---
 class LabelSettings(BaseModel): # This is what was referred to as LabelPlacementConfig in interfaces.py
@@ -199,7 +202,7 @@ class LabelSettings(BaseModel): # This is what was referred to as LabelPlacement
 
 class LabelPlacementOperationConfig(BaseOperationConfig):
     type: Literal[OperationType.LABEL_PLACEMENT] = OperationType.LABEL_PLACEMENT
-    source_layer: str = Field(description="Name of the layer whose features will be labeled.")
+    source_layer: Optional[str] = Field(default=None, description="Name of the layer whose features will be labeled.")
     output_label_layer_name: Optional[str] = Field(default=None, description="Optional: Name of the new layer to create for the label MTEXT entities. If None, labels are associated with source_layer styling.")
     label_settings: LabelSettings = Field(default_factory=LabelSettings)
     # Optional: Refer to a TextStylePreset for the labels
@@ -318,11 +321,6 @@ class DxfWriterConfig(BaseModel):
     layer_mapping_by_attribute_value: Dict[str, Dict[str, str]] = Field(default_factory=dict)
     default_text_height_for_unmapped: float = Field(2.5, alias="default_text_height")
 
-    output_file: Optional[str] = Field(
-        default=None,
-        description="Path to the output DXF file. Can be overridden by CLI argument."
-    )
-
     # New fields for enhanced document setup and control
     xdata_application_name: str = "DXFPlanner"
     document_properties: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Key-value pairs for DXF header variables, e.g., {'AUTHOR': 'My Name'}")
@@ -338,6 +336,9 @@ class DxfWriterConfig(BaseModel):
         default=True,
         description="If True, performs an audit of the DXF document before saving."
     )
+    # For iterative output
+    template_file: Optional[str] = Field(default=None, description="Path to a template DXF file to use if output_filepath does not exist.")
+    output_filepath_config: Optional[str] = Field(default=None, description="Path to the target output DXF file, specified in config. Can be overridden by CLI.", alias="output_filepath")
 
 # --- Grouped I/O Configurations (Existing - to be reviewed/integrated) ---
 class ReaderConfigs(BaseModel):
@@ -351,6 +352,8 @@ class WriterConfigs(BaseModel):
 class IOSettings(BaseModel):
     readers: ReaderConfigs = Field(default_factory=ReaderConfigs)
     writers: WriterConfigs = Field(default_factory=WriterConfigs)
+    # Root level output path, an alternative to putting it in DxfWriterConfig if it feels more global
+    output_filepath: Optional[str] = Field(default=None, description="Path to the target output DXF file, specified in config. Can be overridden by CLI.")
 
 # --- Service Specific Configuration Models (Existing - mostly fine, may need minor tweaks later) ---
 class AttributeMappingServiceConfig(BaseModel):
@@ -383,7 +386,7 @@ class ServicesSettings(BaseModel):
 class AppConfig(BaseModel):
     """Root configuration model for the DXFPlanner application."""
     logging: LoggingConfig = Field(default_factory=LoggingConfig)
-    io: IOSettings = Field(default_factory=IOSettings)
+    io: IOSettings = Field(default_factory=IOSettings) # This now contains the output_filepath
     services: ServicesSettings = Field(default_factory=ServicesSettings)
 
     # New additions for detailed pipeline configuration

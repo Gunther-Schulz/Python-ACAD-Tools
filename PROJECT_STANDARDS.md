@@ -1,6 +1,6 @@
 # Beat the Books - Development Standards and Requirements
 
-**ATTENTION AI ASSISTANT: This document outlines development standards and requirements. The Core Principles are paramount and MUST be adhered to strictly. This document may reference common patterns and tools (potentially using Python examples), but project-specific implementation details (like specific file names or chosen library configurations) are defined in `code_architecture_standard.md`. Violations, especially of the 'Work with Facts' principle, are critical failures.**
+**ATTENTION AI ASSISTANT: This document outlines development standards and requirements. The Core Principles are paramount and MUST be adhered to strictly. This document may reference common patterns and tools (potentially using Python examples), but project-specific implementation details (like specific file names or chosen library configurations) are defined in `PROJECT_ARCHITECTURE.md`. Violations, especially of the 'Work with Facts' principle, are critical failures. The AI Assistant's operational process for adhering to these standards and its detailed verification procedures are outlined in `CLIPPY.md`.**
 
 ## Quick Reference Guide
 
@@ -21,22 +21,19 @@
 - **Complete & Integrated Implementation:**
     - Aim for complete and robust solutions that address all directly related aspects of a requested change, ensuring proper integration and adherence to architectural principles, not just the minimal fix.
 - **Work with Facts:**
-    - Implement based *only* on specified requirements or approved proposals. *Suggest* potential improvements, necessary deviations, or alternative approaches (based on broader knowledge or identified shortcomings) *for discussion and confirmation* before implementation.
-    - Ask for clarification if information is missing; do not guess or make assumptions.
-    - Do not introduce default values or fallback behaviors unless specifically required.
+    - All implementations must be based *only* on specified requirements or verified information. Avoid guesswork, assumptions, and unrequested default values or fallback behaviors. The AI Assistant follows detailed procedures in `CLIPPY.md` (e.g., Step 3.3, `Procedure: Verify Hypothesis`) to ensure factual grounding and seek clarification when needed.
 - **Critical Principle: Preserve Existing Functionality:** Modifications **MUST NOT** break or degrade existing core functionality. Proposed changes must be explicitly assessed for their impact on related components and data flows. Preventing regressions is paramount and takes precedence over expediency. Any change introducing a regression requires immediate remediation.
 - **Consistency:**
     - Strongly prefer using patterns and libraries already present in the codebase to maintain consistency.
     - If a clearly superior alternative (new pattern, external library) exists, **propose its adoption with justification** rather than implementing it directly without approval.
 - **Verification:**
-    - Verify interface contracts before implementation.
-    - Always read files before making edits.
+    - Interface contracts must be verified before implementation, and files read before editing. The AI Assistant employs comprehensive verification steps (detailed in `CLIPPY.md`, e.g., `Procedure: Ensure Sufficient File Context`, `Procedure: Verify Diff`) throughout its process.
 - **Robust Solutions, Not Quick Fixes:**
     - Prioritize well-designed, maintainable, and correct code adhering to established best practices and architectural standards over temporary hacks, workarounds, or shortcuts that compromise quality or introduce technical debt.
 - **Review Focus:**
     - When reviewing code: Focus on problematic issues rather than listing what's correct.
 
-# NOTE: This document provides principles and a checklist, potentially with language-relevant examples (e.g., Python). Refer to the project-specific `code_architecture_standard.md` for detailed implementation choices, configurations, and concrete examples for this project.
+# NOTE: This document provides principles and a checklist, potentially with language-relevant examples (e.g., Python). Refer to the project-specific `PROJECT_ARCHITECTURE.md` for detailed implementation choices, configurations, and concrete examples for this project.
 
 ## Debugging & Analysis
 - **Traceback Analysis:** Prioritize obtaining and analyzing the full traceback when diagnosing errors. Leverage the existing logging setup, specifically using standard methods like `logger.error(message, exc_info=True)` or its shorthand `logger.exception(message)`, to capture tracebacks effectively within `except` blocks and minimize guesswork.
@@ -45,12 +42,12 @@
 ## Code Quality & Correctness
 
 - **Strict Implementation:** 100% adherence to specifications and interfaces.
-- **No Assumptions:** No fallbacks or defaults unless explicitly required.
 - **Future Focus:** No backwards compatibility, no deprecation handling required.
-- **DRY Principle:** No "Don't Repeat Yourself" violations. Verify no code reimplementation.
+- **DRY Principle:** Avoid code duplication. Actively seek to reuse existing logic. The AI Assistant includes steps to search for existing implementations (see `CLIPPY.md`, Step 3.1).
 - **Cleanliness:** Clean up old/deprecated code during refactoring.
 - **Integration:** Ensure refactors are well integrated and don't leave remnants.
 - **Interface Matching:** Match async/sync method calls to interface definitions precisely. Validate parameter/return types against interfaces.
+- **Function/Method Conciseness:** Functions and methods should be kept concise, focused on a single responsibility, and avoid excessive nesting (e.g., deep if/else chains or loops). Aim for shorter, understandable units; consider refactoring or decomposing if they become overly long or complex. The AI Assistant includes planning steps to promote this (see `CLIPPY.md`, Steps 3.2, 3.4.0.b).
 - **Typing:**
     - Strict compliance with chosen data validation libraries (e.g., Pydantic v2).
     - Use the language's features for runtime-checkable interfaces/protocols where available (e.g., `typing.Protocol`).
@@ -66,20 +63,20 @@
 
 ## Architecture & Design
 
-- **Clear Boundaries:** Ensure sensible architecture design with clear boundaries (See `code_architecture_standard.md`).
+- **Clear Boundaries:** Ensure sensible architecture design with clear boundaries (See `PROJECT_ARCHITECTURE.md`).
 - **Separation of Concerns:** Ensure clean separation between domain models, interfaces, and implementations.
 - **Protocol-Based Interfaces:** Maintain protocol-based interfaces with clear contracts. Document interface method signatures and async/sync behavior.
 - **Single Source of Truth:** Domain models must define all type definitions used across the application.
 - **Facade Pattern:** Follow facade pattern for orchestration components.
 - **Component Lifecycles:** Utilize the Dependency Injection (DI) container to manage component lifecycles (including Singleton scope where appropriate) instead of manual singletons.
-- **Configuration:** Implement Upfront Configuration loading pattern (loading a central configuration object, e.g., `AppConfig`, once at startup via DI). (See `code_architecture_standard.md` Config Module section)
+- **Configuration:** Implement Upfront Configuration loading pattern (loading a central configuration object, e.g., `AppConfig`, once at startup via DI). (See `PROJECT_ARCHITECTURE.md` Config Module section)
 
 ## Patterns & Practices
 
 - **Dependency Injection (DI):**
-    - Ensure proper DI as the primary mechanism for object creation and wiring. (See `code_architecture_standard.md` DI section).
+    - Ensure proper DI as the primary mechanism for object creation and wiring. (See `PROJECT_ARCHITECTURE.md` DI section).
     - Rely on DI container configuration (e.g., using the container's mapping features) for component mapping where possible, avoiding dedicated registries.
-- **Factory/Registry:** Use dedicated Factory or Registry patterns **only** when the specific, stringent conditions outlined in `code_architecture_standard.md` are met.
+- **Factory/Registry:** Use dedicated Factory or Registry patterns **only** when the specific, stringent conditions outlined in `PROJECT_ARCHITECTURE.md` are met.
 - **Command Pattern:** Apply command pattern for CLI interactions (with commands resolved via DI).
 - **Decorator Pattern:** Use decorator pattern judiciously for cross-cutting concerns (e.g., error handling, logging context).
 - **Template Method:** Apply template method pattern for base implementations with standardized workflows.
@@ -87,7 +84,7 @@
 
 ## Module & File Structure
 
-- **Standard Structure:** Maintain consistent standardized module structure (See project-specific `code_architecture_standard.md`).
+- **Standard Structure:** Maintain consistent standardized module structure (See project-specific `PROJECT_ARCHITECTURE.md`).
 - **Separation:** Ensure proper separation of base classes and implementations.
 - **Domain Modules:** Follow domain module structure for core interfaces.
 - **Component Folders:** Implement component-specific folder structure in each module (e.g., `strategies/`, `implementations/`).
@@ -99,7 +96,7 @@
 
 ## Implementation Workflow (Guide, Not Standard)
 
-*Note: This workflow describes how to implement features, not strictly audit standards.*
+*Note: This workflow describes how to implement features, not strictly audit standards. The AI Assistant follows its own detailed, mandatory operational workflow outlined in `CLIPPY.md`.*
 1. Define necessary domain interfaces or use existing ones.
 2. Implement components, ensuring they declare dependencies clearly (e.g., in constructor/`__init__`) for DI.
 3. Register new components explicitly within the main DI container configuration (defined in the project's central DI module).

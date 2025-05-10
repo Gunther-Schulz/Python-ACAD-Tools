@@ -51,16 +51,17 @@ def common_options(
     help="Generate a DXF file based on sources defined in AppConfig (e.g., config.yml)."
 )
 def generate_dxf(
+    ctx: typer.Context, # Added context to access AppConfig
     # source_file: Path = typer.Option(
     #     ..., # Makes it a required option
     #     "--source", "-s",
     #     help="Path to the source geodata file (e.g., .shp, .geojson).",
     #     exists=True, file_okay=True, dir_okay=False, readable=True, resolve_path=True
     # ), # Removed: Sources are now defined in AppConfig
-    output_file: Path = typer.Option(
-        ..., # Makes it a required option
+    output_file: Optional[Path] = typer.Option( # Made optional
+        None, # Default to None
         "--output", "-o",
-        help="Path for the generated DXF file.",
+        help="Path for the generated DXF file. Overrides config if set.",
         writable=True, resolve_path=True # resolve_path helps ensure it's absolute
     ),
     # source_crs: Optional[str] = typer.Option(
@@ -73,24 +74,51 @@ def generate_dxf(
     )
 ):
     """
-    Processes geodata sources defined in AppConfig and generates a DXF file at OUTPUT_FILE.
+    Processes geodata sources defined in AppConfig and generates a DXF file.
+    Output path is determined by --output CLI option, then config settings.
     """
     logger = container.logger() # Logger is now configured and available
-    logger.info(f"CLI command: generate. Output: {output_file}")
+    app_config = ctx.obj # Get AppConfig from context
+
+    final_output_path_str: Optional[str] = None
+
+    if output_file:
+        final_output_path_str = str(output_file) # typer.Option with resolve_path=True already resolves it
+        logger.info(f"CLI command: generate. Output path specified via --output: {final_output_path_str}")
+    else:
+        logger.debug("CLI --output not specified, checking configuration for output_filepath.")
+        if app_config.io.writers.dxf.output_filepath:
+            final_output_path_str = str(Path(app_config.io.writers.dxf.output_filepath).resolve())
+            logger.info(f"CLI command: generate. Output path from config (io.writers.dxf.output_filepath): {final_output_path_str}")
+        elif app_config.io.output_filepath:
+            final_output_path_str = str(Path(app_config.io.output_filepath).resolve())
+            logger.info(f"CLI command: generate. Output path from config (io.output_filepath): {final_output_path_str}")
+
+    if not final_output_path_str:
+        err_msg = "Error: Output file path must be provided via --output option or in configuration (io.writers.dxf.output_filepath or io.output_filepath)."
+        logger.error(err_msg)
+        typer.secho(err_msg, fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=1)
+
+    logger.info(f"Final output path determined: {final_output_path_str}")
+
+
     if target_crs:
         logger.debug(f"Target CRS specified via CLI: {target_crs}")
 
     # Ensure output directory exists
-    output_file.parent.mkdir(parents=True, exist_ok=True)
+    # output_file.parent.mkdir(parents=True, exist_ok=True) # Old line
+    Path(final_output_path_str).parent.mkdir(parents=True, exist_ok=True)
+
 
     try:
         asyncio.run(main_runner(
             # source_file=str(source_file), # Removed
-            output_file=str(output_file),
+            output_file=final_output_path_str, # Use resolved path
             # source_crs=source_crs, # Removed
             target_crs=target_crs
         ))
-        typer.secho(f"Successfully generated DXF: {output_file}", fg=typer.colors.GREEN)
+        typer.secho(f"Successfully generated DXF: {final_output_path_str}", fg=typer.colors.GREEN)
     except DXFPlannerBaseError as e:
         logger.error(f"DXF generation failed: {e}", exc_info=True) # Log detailed error
         typer.secho(f"Error during DXF generation: {e}", fg=typer.colors.RED, err=True)
