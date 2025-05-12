@@ -15,7 +15,7 @@ from shapely.ops import transform as shapely_transform_op
 
 from dxfplanner.config import AppConfig, GeoJsonSourceConfig
 from dxfplanner.domain.models.geo_models import GeoFeature
-from dxfplanner.domain.interfaces import IGeoDataReader
+from dxfplanner.domain.interfaces import IGeoDataReader, AnyStrPath
 from dxfplanner.core.exceptions import GeoDataReadError, ConfigurationError
 from dxfplanner.core.logging_config import get_logger
 
@@ -28,7 +28,7 @@ class GeoJsonReader(IGeoDataReader):
 
     async def read_features(
         self,
-        source_path: Path | str,
+        source_path: AnyStrPath,
         source_crs: Optional[str] = None,
         target_crs: Optional[str] = None,
         **kwargs: Any

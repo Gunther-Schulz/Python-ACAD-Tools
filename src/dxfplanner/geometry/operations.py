@@ -1,14 +1,18 @@
 """
 Geometric operations like buffer, simplify, etc.
 """
-from typing import AsyncIterator, List, Dict, Any
+from typing import AsyncIterator, List, Dict, Any, Optional
 
 from dxfplanner.domain.models.geo_models import GeoFeature
-from dxfplanner.domain.interfaces import IOperation
+from dxfplanner.domain.interfaces import IOperation, IStyleService
 from dxfplanner.config.schemas import (
     BufferOperationConfig, SimplifyOperationConfig, FieldMappingOperationConfig,
     ReprojectOperationConfig, CleanGeometryOperationConfig, ExplodeMultipartOperationConfig,
-    IntersectionOperationConfig
+    IntersectionOperationConfig,
+    MergeOperationConfig,
+    DissolveOperationConfig,
+    FilterByAttributeOperationConfig,
+    LabelPlacementOperationConfig
 )
 from dxfplanner.core.logging_config import get_logger
 from dxfplanner.geometry.utils import (
@@ -17,14 +21,16 @@ from dxfplanner.geometry.utils import (
     convert_dxfplanner_geometry_to_shapely,
     convert_shapely_to_dxfplanner_geometry,
     reproject_geometry,
-    explode_multipart_geometry
+    explode_multipart_geometry,
+    GeoPoint # Added GeoPoint for label geometry
 )
-from shapely.geometry import MultiPoint, MultiLineString, MultiPolygon, GeometryCollection # For checking buffer result type
+from shapely.geometry import MultiPoint, MultiLineString, MultiPolygon, GeometryCollection, Point # Added Point for type check
 from shapely.prepared import prep # For potential performance optimization
 from shapely.errors import GEOSException # General shapely errors
 from shapely.ops import unary_union # Explicit import for union
 import asyncio
 from dependency_injector import containers # For type hinting container
+from collections import defaultdict # Added for grouping features
 
 # Forward declaration for type hinting the container within its own module scope if needed elsewhere
 # Although likely not needed just for operations.py if container is only passed in init.
@@ -678,3 +684,314 @@ class IntersectionOperation(IOperation[IntersectionOperationConfig]):
             # Optional: yield progress? await asyncio.sleep(0)?
 
         logger.info(f"IntersectionOperation completed. Processed: {processed_count}, Yielded: {yielded_count}.") # noqa
+
+
+# --- ADDED PLACEHOLDERS START ---
+
+class MergeOperation(IOperation[MergeOperationConfig]):
+    """
+    Merges features. Currently, with a single input stream, this acts as a
+    pass-through operation, potentially renaming the conceptual output layer.
+    A true multi-layer merge would require changes to the IOperation interface
+    or a different mechanism for accessing multiple input sources.
+    """
+
+    async def execute(
+        self,
+        features: AsyncIterator[GeoFeature],
+        config: MergeOperationConfig
+    ) -> AsyncIterator[GeoFeature]:
+        """
+        Executes the merge operation (currently pass-through).
+
+        Args:
+            features: An asynchronous iterator of GeoFeature objects to process.
+            config: Configuration for the merge operation.
+
+        Yields:
+            GeoFeature: An asynchronous iterator of the input GeoFeature objects.
+        """
+        log_prefix = f"MergeOperation (source: '{config.source_layer}', output: '{config.output_layer_name}')"
+        logger.info(f"{log_prefix}: Executing...")
+        logger.warning(f"{log_prefix}: Currently implemented as a pass-through operation. Yielding input features unchanged.")
+
+        yielded_count = 0
+        async for feature in features:
+            yield feature
+            yielded_count += 1
+
+        logger.info(f"{log_prefix}: Completed. Yielded {yielded_count} features (pass-through).")
+
+class DissolveOperation(IOperation[DissolveOperationConfig]):
+    """Dissolves features based on a common attribute value, merging their geometries."""
+
+    async def execute(
+        self,
+        features: AsyncIterator[GeoFeature],
+        config: DissolveOperationConfig
+    ) -> AsyncIterator[GeoFeature]:
+        """
+        Executes the dissolve operation. Groups features by the specified attribute,
+        then merges the geometries within each group using unary_union.
+
+        Args:
+            features: An asynchronous iterator of GeoFeature objects to process.
+            config: Configuration including the dissolve_by_attribute.
+
+        Yields:
+            GeoFeature: An asynchronous iterator of dissolved GeoFeature objects.
+        """
+        dissolve_attr = config.dissolve_by_attribute
+        log_prefix = f"DissolveOperation (source: '{config.source_layer}', by: '{dissolve_attr}', output: '{config.output_layer_name}')"
+        logger.info(f"{log_prefix}: Executing...")
+
+        if not dissolve_attr:
+            logger.warning(f"{log_prefix}: No dissolve_by_attribute specified. Dissolving all features into one (if any).")
+            # Treat all features as belonging to a single group if no attribute is specified
+            grouped_features: Dict[Optional[Any], List[GeoFeature]] = {None: []}
+            async for feature in features:
+                 grouped_features[None].append(feature)
+        else:
+            # Group features by the dissolve attribute value
+            grouped_features: Dict[Any, List[GeoFeature]] = defaultdict(list)
+            processed_count = 0
+            async for feature in features:
+                processed_count += 1
+                if dissolve_attr in feature.attributes:
+                    group_key = feature.attributes[dissolve_attr]
+                    # Ensure group_key is hashable (e.g., convert lists/dicts to tuples/frozensets if needed, though unlikely for typical dissolve keys)
+                    try:
+                        hash(group_key)
+                    except TypeError:
+                         logger.warning(f"{log_prefix}: Attribute '{dissolve_attr}' value '{group_key}' (type: {type(group_key)}) is not hashable. Skipping feature.")
+                         continue
+                    grouped_features[group_key].append(feature)
+                else:
+                    logger.debug(f"{log_prefix}: Feature missing dissolve attribute '{dissolve_attr}'. Grouping under 'None'. Attributes: {feature.attributes}")
+                    grouped_features[None].append(feature) # Group features missing the attribute together
+            logger.info(f"{log_prefix}: Grouped {processed_count} features into {len(grouped_features)} groups.")
+
+        # Process each group
+        yielded_count = 0
+        for group_key, features_in_group in grouped_features.items():
+            if not features_in_group:
+                continue
+
+            # Get geometries and convert to Shapely
+            shapely_geoms_in_group = []
+            for feature in features_in_group:
+                if feature.geometry:
+                    s_geom = convert_dxfplanner_geometry_to_shapely(feature.geometry)
+                    if s_geom and not s_geom.is_empty:
+                        # Pre-validate before union? Optional, might help robustness.
+                        s_geom = make_valid_geometry(s_geom)
+                        if s_geom and not s_geom.is_empty:
+                            shapely_geoms_in_group.append(s_geom)
+
+            if not shapely_geoms_in_group:
+                 logger.debug(f"{log_prefix}: Group '{group_key}' had no valid geometries to dissolve.")
+                 continue
+
+            # Perform unary union
+            dissolved_s_geom = None
+            try:
+                dissolved_s_geom = unary_union(shapely_geoms_in_group)
+                dissolved_s_geom = make_valid_geometry(dissolved_s_geom) # Validate result
+            except Exception as e_union:
+                 logger.error(f"{log_prefix}: Error dissolving geometries for group '{group_key}': {e_union}", exc_info=True)
+                 continue # Skip this group on error
+
+            if dissolved_s_geom is None or dissolved_s_geom.is_empty:
+                 logger.debug(f"{log_prefix}: Dissolved geometry for group '{group_key}' is empty or invalid.")
+                 continue
+
+            # Convert back to DXFPlanner geometry, handle MultiGeometries
+            geoms_to_yield = []
+            if isinstance(dissolved_s_geom, (MultiPoint, MultiLineString, MultiPolygon, GeometryCollection)):
+                 for part_geom in dissolved_s_geom.geoms:
+                     if part_geom is None or part_geom.is_empty: continue
+                     converted_part = convert_shapely_to_dxfplanner_geometry(part_geom)
+                     if converted_part:
+                         geoms_to_yield.append(converted_part)
+            else: # Single geometry
+                 converted_single = convert_shapely_to_dxfplanner_geometry(dissolved_s_geom)
+                 if converted_single:
+                     geoms_to_yield.append(converted_single)
+
+            if not geoms_to_yield:
+                logger.debug(f"{log_prefix}: No valid DXFPlanner geometries could be converted from dissolve result for group '{group_key}'.")
+                continue
+
+            # Use attributes from the first feature in the group
+            # TODO: Implement attribute aggregation strategies if needed (e.g., sum, mean, list)
+            first_feature = features_in_group[0]
+            result_attributes = first_feature.attributes.copy()
+            # Ensure the dissolve attribute reflects the group key (important if grouped by None)
+            if dissolve_attr:
+                 result_attributes[dissolve_attr] = group_key
+
+            # Yield new dissolved features
+            for new_dxf_geom in geoms_to_yield:
+                 yield GeoFeature(geometry=new_dxf_geom, attributes=result_attributes, crs=first_feature.crs)
+                 yielded_count += 1
+
+        logger.info(f"{log_prefix}: Completed. Yielded {yielded_count} dissolved features.")
+
+class FilterByAttributeOperation(IOperation[FilterByAttributeOperationConfig]):
+    """Filters features based on an attribute expression."""
+
+    async def execute(
+        self,
+        features: AsyncIterator[GeoFeature],
+        config: FilterByAttributeOperationConfig
+    ) -> AsyncIterator[GeoFeature]:
+        """
+        Executes the filter operation.
+
+        TODO: Implement safe evaluation of config.filter_expression.
+              Direct use of eval() is unsafe. Consider:
+              1. A dedicated safe evaluation library (e.g., asteval, numexpr).
+              2. Parsing a restricted subset of expressions manually.
+              3. Using a structured query format instead of a freeform string.
+              For now, this operation yields all input features unchanged.
+
+        Args:
+            features: An asynchronous iterator of GeoFeature objects to process.
+            config: Configuration including the filter_expression.
+
+        Yields:
+            GeoFeature: An asynchronous iterator of GeoFeature objects that match the filter (currently all features).
+        """
+        logger.info(f"Executing FilterByAttributeOperation for source: '{config.source_layer}', output: '{config.output_layer_name}' with filter: '{config.filter_expression}'")
+        # Placeholder implementation - yields all features
+        warning_logged = False
+        async for feature in features:
+            # --- Actual filter logic would go here ---
+            # Example conceptual steps:
+            # 1. Safely parse config.filter_expression
+            # 2. Evaluate expression against feature.attributes
+            # 3. if expression_evaluates_to_true: yield feature
+            # -----------------------------------------
+            if not warning_logged:
+                 logger.warning(f"FilterByAttributeOperation filter '{config.filter_expression}' is not yet implemented. Yielding all features for layer '{config.source_layer}'.")
+                 warning_logged = True # Log warning only once per execution
+
+            yield feature
+
+        logger.info(f"FilterByAttributeOperation completed for source: '{config.source_layer}'. NOTE: Filtering logic is currently bypassed.")
+
+# --- ADDED PLACEHOLDERS END ---
+
+# --- ADDED LABEL PLACEMENT PLACEHOLDER START ---
+
+class LabelPlacementOperation(IOperation[LabelPlacementOperationConfig]):
+    """Performs label placement based on configuration."""
+    # This operation might need access to the LabelPlacementService via DI later for full implementation,
+    # especially for complex collision detection and placement rules.
+
+    def __init__(self, style_service: IStyleService, logger_param: Any = None):
+        self.style_service = style_service
+        # If a base IOperation class had a logger, we'd pass it. For now, use module logger.
+        self.logger = logger_param if logger_param else logger # Use injected logger if provided, else module logger
+
+    async def execute(
+        self,
+        features: AsyncIterator[GeoFeature],
+        config: LabelPlacementOperationConfig
+    ) -> AsyncIterator[GeoFeature]:
+        self.logger.info(f"Executing LabelPlacementOperation for source: '{config.source_layer}', output: '{config.output_label_layer_name}'.")
+
+        # Resolve text style using the new method in StyleService
+        try:
+            label_text_style = self.style_service.get_resolved_style_for_label_operation(config)
+            self.logger.info(f"Resolved label text style for LabelPlacementOperation: Font='{label_text_style.font}', Height='{label_text_style.height}'")
+            # Further logging of other resolved style properties can be added if needed.
+        except Exception as e:
+            self.logger.error(f"Error resolving label style in LabelPlacementOperation: {e}", exc_info=True)
+            # Decide if we should proceed without style or stop. For now, log and proceed.
+            label_text_style = TextStylePropertiesConfig() # Use default if error
+
+        # Determine label text source
+        use_fixed_text = config.label_settings.fixed_label_text is not None
+        label_attr = config.label_settings.label_attribute
+
+        if not use_fixed_text and not label_attr:
+            self.logger.error(f"LabelPlacementOperation requires either fixed_label_text or label_attribute in label_settings. Skipping.")
+            return # Stop processing if no label source defined
+
+        log_prefix = f"LabelPlacementOperation (source: '{config.source_layer}', output: '{config.output_label_layer_name}')"
+        yielded_count = 0
+        async for feature in features:
+            label_text = ""
+            if use_fixed_text:
+                label_text = config.label_settings.fixed_label_text
+            elif label_attr in feature.attributes:
+                label_text = str(feature.attributes[label_attr]) # Ensure string
+            else:
+                 self.logger.debug(f"{log_prefix}: Feature missing label attribute '{label_attr}'. Skipping label for this feature. Attrs: {feature.attributes}")
+                 continue # Skip if attribute missing
+
+            if not label_text: # Skip if text is empty after resolving
+                 self.logger.debug(f"{log_prefix}: Resolved label text is empty. Skipping label. Attrs: {feature.attributes}")
+                 continue
+
+            if feature.geometry is None:
+                 logger.debug(f"{log_prefix}: Feature has no geometry to place label on. Skipping label. Attrs: {feature.attributes}")
+                 continue
+
+            shapely_geom = convert_dxfplanner_geometry_to_shapely(feature.geometry)
+            if shapely_geom is None or shapely_geom.is_empty:
+                 logger.debug(f"{log_prefix}: Could not convert feature geometry to valid Shapely object. Skipping label. Attrs: {feature.attributes}")
+                 continue
+
+            # Calculate placement point (simple strategy)
+            placement_s_point: Optional[Point] = None
+            try:
+                if isinstance(shapely_geom, Point):
+                    placement_s_point = shapely_geom
+                else:
+                    # representative_point() is guaranteed to be within the geometry
+                    placement_s_point = shapely_geom.representative_point()
+            except Exception as e_place:
+                 logger.error(f"{log_prefix}: Error calculating placement point: {e_place}. Skipping label. Attrs: {feature.attributes}", exc_info=True)
+                 continue
+
+            if placement_s_point is None or placement_s_point.is_empty:
+                 logger.warning(f"{log_prefix}: Calculated placement point is invalid. Skipping label. Attrs: {feature.attributes}")
+                 continue
+
+            # Apply offsets (assuming CRS units for now)
+            # TODO: Handle expression-based offsets if needed
+            offset_x = 0.0
+            offset_y = 0.0
+            try:
+                 offset_x = float(config.label_settings.offset_x)
+                 offset_y = float(config.label_settings.offset_y)
+            except ValueError:
+                 logger.warning(f"{log_prefix}: Could not parse offsets ('{config.label_settings.offset_x}', '{config.label_settings.offset_y}') as float. Using 0.0.")
+            except Exception as e_offset:
+                 logger.error(f"{log_prefix}: Error processing offsets: {e_offset}. Using 0.0.", exc_info=True)
+
+            final_x = placement_s_point.x + offset_x
+            final_y = placement_s_point.y + offset_y
+
+            # Convert final placement point back to GeoPoint
+            label_geo_point = GeoPoint(x=final_x, y=final_y, z=placement_s_point.z if placement_s_point.has_z else 0.0)
+
+            # Create attributes for the label feature
+            label_attributes = {
+                "__geometry_type__": "LABEL", # Special flag for DxfWriter
+                "label_text": label_text,
+                # Pass resolved style properties directly
+                "text_style_properties": label_text_style.model_dump(exclude_unset=True),
+                # Copy original attributes? Or just specific ones? For now, keep it clean.
+                # **feature.attributes # Uncomment to copy original attributes
+            }
+
+            # Yield the label feature
+            yield GeoFeature(geometry=label_geo_point, attributes=label_attributes, crs=feature.crs)
+            yielded_count += 1
+
+        logger.info(f"{log_prefix}: Completed. Yielded {yielded_count} label features.")
+
+# --- ADDED LABEL PLACEMENT PLACEHOLDER END ---

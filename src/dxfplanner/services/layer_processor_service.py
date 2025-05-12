@@ -2,16 +2,13 @@
 Service responsible for processing a single layer configuration.
 This includes reading data, applying operations, and transforming to DXF entities.
 """
-from typing import AsyncIterator, Optional, Dict, Any, List
+from typing import AsyncIterator, Optional, Dict, Any
 from logging import Logger
 
-from dxfplanner.config import AppConfig, LayerConfig, AnySourceConfig, ShapefileSourceConfig, LabelSettings, TextStylePropertiesConfig # Added LabelSettings, TextStylePropertiesConfig
+from dxfplanner.config import AppConfig, LayerConfig, AnySourceConfig, ShapefileSourceConfig # Add other source configs as needed
 from dxfplanner.domain.models.geo_models import GeoFeature
 from dxfplanner.domain.models.dxf_models import AnyDxfEntity
-from dxfplanner.domain.interfaces import (
-    IGeoDataReader, IOperation, IGeometryTransformer,
-    ILabelPlacementService, IStyleService # Added
-)
+from dxfplanner.domain.interfaces import IGeoDataReader, IOperation, IGeometryTransformer
 from dxfplanner.core.di import DIContainer # For resolving dependencies
 from dxfplanner.core.exceptions import GeoDataReadError, ConfigurationError
 
@@ -23,17 +20,13 @@ class LayerProcessorService:
         app_config: AppConfig,
         di_container: DIContainer,
         geometry_transformer: IGeometryTransformer,
-        label_placement_service: ILabelPlacementService, # Added
-        style_service: IStyleService, # Added
         logger: Logger
     ):
         self.app_config = app_config
         self.di_container = di_container
         self.geometry_transformer = geometry_transformer
-        self.label_placement_service = label_placement_service # Added
-        self.style_service = style_service # Added
         self.logger = logger
-        self.logger.info("LayerProcessorService initialized with LabelPlacementService and StyleService.")
+        self.logger.info("LayerProcessorService initialized.")
 
     async def process_layer(
         self,
@@ -185,120 +178,35 @@ class LayerProcessorService:
         if current_stream_key and current_stream_key in intermediate_results:
             final_features_stream_for_dxf = intermediate_results[current_stream_key]
             self.logger.info(f"Final feature stream for DXF transformation for layer '{layer_config.name}' is from '{current_stream_key}'.")
+        # This 'elif' handles the case where there was a source, but no operations.
+        # current_stream_key would be layer_config.name from the source loading phase.
         elif not layer_config.operations and initial_features_loaded and layer_config.name in intermediate_results:
             final_features_stream_for_dxf = intermediate_results[layer_config.name]
+            # current_stream_key should already be layer_config.name in this path if initial_features_loaded is true
             self.logger.info(f"No operations for layer '{layer_config.name}'. Using initial source features for DXF transformation from key '{layer_config.name}'.")
-        else:
+        else: # This case should ideally not be hit if logic above is correct and there's data to process.
             self.logger.warning(f"No feature stream available for DXF transformation for layer '{layer_config.name}'. Current stream key: '{current_stream_key}'. Available results: {list(intermediate_results.keys())}. No DXF entities will be generated.")
             return
 
         if final_features_stream_for_dxf is None:
-            self.logger.error(f"Critical: final_features_stream_for_dxf is None before transformation for layer '{layer_config.name}'. Logic flaw or earlier error. No DXF entities generated.")
+            self.logger.error(f"Critical: final_features_stream_for_dxf is None before transformation for layer '{layer_config.name}'. This indicates a logic flaw or an earlier unhandled error in stream preparation. No DXF entities will be generated.")
             return
 
-        # --- Modified section: Collect features, transform, handle labels ---
-        self.logger.debug(f"Collecting features from stream '{current_stream_key}' for layer '{layer_config.name}' before transformation and labeling.")
-
-        final_features_list: List[GeoFeature] = []
-        original_entity_count = 0
-        try:
-             async for feature in final_features_stream_for_dxf:
-                 final_features_list.append(feature)
-             original_entity_count = len(final_features_list)
-             if original_entity_count > 10000: # Arbitrary threshold
-                 self.logger.warning(f"Collected {original_entity_count} features for layer '{layer_config.name}' into memory for labeling. High feature counts may consume significant memory.")
-             self.logger.debug(f"Collected {original_entity_count} features.")
-        except Exception as e_collect:
-             self.logger.error(f"Error collecting final features for layer '{layer_config.name}': {e_collect}", exc_info=True)
-             # Cannot proceed without the collected features
-             return
-
-        # 1. Transform original features to DXF entities
-        transformed_dxf_entities: List[AnyDxfEntity] = []
-        transform_errors = 0
-        self.logger.debug(f"Transforming {original_entity_count} collected features to DXF entities...")
-        for feature in final_features_list:
+        # Transform to DXF entities
+        self.logger.debug(f"Transforming features from stream '{current_stream_key}' to DXF entities for layer '{layer_config.name}'")
+        entity_count = 0
+        async for feature in final_features_stream_for_dxf:
             try:
+                # CRS consistency check/final transform - deferred for now, assume ops handled it
+                # if global_target_crs and feature.crs and feature.crs.lower() != global_target_crs.lower():
+                # logger.warning(f"Feature CRS {feature.crs} differs from global target {global_target_crs} for layer {layer_config.name}. Consider ReprojectOperation.")
+                # Potentially reproject here if a strict final CRS is enforced by LayerProcessor itself.
+
                 async for dxf_entity in self.geometry_transformer.transform_feature_to_dxf_entities(feature):
-                    transformed_dxf_entities.append(dxf_entity)
+                    entity_count += 1
+                    yield dxf_entity
             except Exception as e_transform:
-                transform_errors += 1
-                self.logger.error(f"Error transforming feature to DXF for layer '{layer_config.name}': {e_transform}. Feature ID: {feature.id if feature.id else 'N/A'}", exc_info=False) # Keep log cleaner
+                self.logger.error(f"Error transforming feature to DXF for layer '{layer_config.name}': {e_transform}. Feature ID: {feature.id if feature.id else 'N/A'}", exc_info=True)
+                # Continue to next feature or stop layer?
 
-        if transform_errors > 0:
-             self.logger.warning(f"Encountered {transform_errors} errors during feature transformation for layer '{layer_config.name}'.")
-        self.logger.debug(f"Generated {len(transformed_dxf_entities)} DXF entities from original features.")
-
-        # 2. Handle Labeling if configured
-        label_dxf_entities: List[AnyDxfEntity] = []
-        if layer_config.labeling:
-            self.logger.info(f"Labeling enabled for layer '{layer_config.name}'. Processing labels.")
-            label_conf: LabelSettings = layer_config.labeling.label_settings # Access nested settings
-
-            # Re-create async iterator from list for label placement service
-            # This avoids modifying the ILabelPlacementService interface for now
-            async def feature_list_iterator(features: List[GeoFeature]) -> AsyncIterator[GeoFeature]:
-                 for f in features:
-                      yield f
-
-            label_text_style: Optional[TextStylePropertiesConfig] = None
-            try:
-                # Resolve the text style for labels using the StyleService
-                # Pass LabelingConfig itself for context if needed, or specific style references from it.
-                label_text_style = self.style_service.get_text_style_properties(
-                    style_reference=layer_config.labeling.text_style_preset_name or layer_config.labeling.text_style_inline,
-                    layer_config_fallback=None # Don't fallback to layer style, use labeling specific style
-                )
-                self.logger.debug(f"Resolved text style for labels on layer '{layer_config.name}'. Font: {label_text_style.font}, Height: {label_text_style.height}")
-            except Exception as e_style:
-                self.logger.error(f"Could not resolve text style for labeling on layer '{layer_config.name}': {e_style}. Skipping labeling.", exc_info=True)
-                # Skip labeling if style resolution fails
-
-            if label_text_style: # Only proceed if style was resolved
-                placed_labels_count = 0
-                label_transform_errors = 0
-                try:
-                    async for placed_label in self.label_placement_service.place_labels_for_features(
-                        feature_list_iterator(final_features_list),
-                        layer_config.name,
-                        label_conf # Pass the LabelSettings part
-                    ):
-                        placed_labels_count += 1
-                        try:
-                            # Transform the PlacedLabel using the resolved style
-                            label_dxf_entity = await self.geometry_transformer.transform_placed_label_to_dxf_entity(
-                                placed_label,
-                                label_text_style # Pass the resolved style
-                            )
-                            if label_dxf_entity:
-                                # Assign the correct layer based on LabelPlacementOperationConfig if specified, else default/style?
-                                # For now, assume transform_placed_label_to_dxf_entity sets a default layer ("0").
-                                # A better approach would be to get the target label layer from config here.
-                                label_output_layer = getattr(layer_config.labeling, 'output_label_layer_name', None) or layer_config.name
-                                if hasattr(label_dxf_entity, 'layer'):
-                                     label_dxf_entity.layer = label_output_layer # Override layer if possible
-
-                                label_dxf_entities.append(label_dxf_entity)
-
-                        except Exception as e_label_transform:
-                            label_transform_errors += 1
-                            self.logger.error(f"Error transforming placed label '{placed_label.text}' to DXF for layer '{layer_config.name}': {e_label_transform}", exc_info=False)
-
-                    self.logger.info(f"Label placement service processed {placed_labels_count} potential labels for layer '{layer_config.name}'.")
-                    if label_transform_errors > 0:
-                         self.logger.warning(f"Encountered {label_transform_errors} errors during label transformation for layer '{layer_config.name}'.")
-
-                except Exception as e_placement:
-                    self.logger.error(f"Error during label placement for layer '{layer_config.name}': {e_placement}", exc_info=True)
-                    # Continue without labels if placement fails
-
-        # 3. Yield all generated entities (original features + labels)
-        total_yielded_count = 0
-        for entity in transformed_dxf_entities:
-            yield entity
-            total_yielded_count += 1
-        for label_entity in label_dxf_entities:
-            yield label_entity
-            total_yielded_count += 1
-
-        self.logger.info(f"Finished processing layer: {layer_config.name}. Yielded {total_yielded_count} DXF entities ({len(transformed_dxf_entities)} from features, {len(label_dxf_entities)} from labels).")
+        self.logger.info(f"Finished processing layer: {layer_config.name}. Generated {entity_count} DXF entities.")

@@ -1,8 +1,6 @@
 from typing import List, Optional, Any, Dict, Tuple
 
-# Import required geometry types if needed for transform_geometry
 from dxfplanner.domain.models.common import Coordinate
-from dxfplanner.domain.models.geo_models import PointGeo, PolylineGeo, PolygonGeo, GeometryCollection, AnyGeoGeometry # Need these for type checking
 from dxfplanner.domain.interfaces import ICoordinateService
 from dxfplanner.core.exceptions import CoordinateTransformError
 from dxfplanner.config.schemas import CoordinateServiceConfig # For config injection
@@ -10,11 +8,6 @@ from dxfplanner.config.schemas import CoordinateServiceConfig # For config injec
 # Actual projection library
 from pyproj import CRS, Transformer
 from pyproj.exceptions import CRSError, ProjError # Added ProjError
-from pyproj.geometry import transform as pyproj_transform_geometry # For geometry transformation
-
-from dxfplanner.core.logging_config import get_logger
-
-logger = get_logger(__name__)
 
 class CoordinateTransformService(ICoordinateService):
     """Service for performing coordinate reference system transformations."""
@@ -41,8 +34,8 @@ class CoordinateTransformService(ICoordinateService):
                 raise CoordinateTransformError(f"Failed to create transformer from CRS '{from_crs_str}' to '{to_crs_str}': {e}")
         return self._transformers[cache_key]
 
-    def transform_coordinate(self, coord: Coordinate, from_crs: str, to_crs: str) -> Coordinate:
-        """Transforms a single coordinate from a source CRS to a target CRS."""
+    def reproject_coordinate(self, coord: Coordinate, from_crs: str, to_crs: str) -> Coordinate:
+        """Reprojects a single coordinate from a source CRS to a target CRS."""
         if from_crs.lower() == to_crs.lower(): # Case-insensitive comparison for CRS strings
             return coord
 
@@ -63,10 +56,10 @@ class CoordinateTransformService(ICoordinateService):
                 f"Unexpected error transforming coordinate {coord} from CRS '{from_crs}' to '{to_crs}': {e}"
             )
 
-    async def transform_coordinates_batch(
+    async def reproject_coordinates_batch(
         self, coords: List[Coordinate], from_crs: str, to_crs: str
     ) -> List[Coordinate]:
-        """Transforms a list of coordinates in batch."""
+        """Reprojects a list of coordinates in batch."""
         if not coords:
             return []
         if from_crs.lower() == to_crs.lower(): # Case-insensitive comparison
@@ -92,11 +85,13 @@ class CoordinateTransformService(ICoordinateService):
                 return [Coordinate(x=nx, y=ny) for nx, ny in zip(new_xs, new_ys)]
             else: # Mixed Z presence
                 # Fallback to individual reprojection for mixed Z cases
-                # Using the sync method sequentially.
-                # logger.debug("Mixed Z presence in batch reprojection; reprojecting individually.")
+                # This part could be optimized further (e.g. asyncio.gather if truly async)
+                # but for pyproj CPU-bound ops, sequential is often fine or needs thread pool.
+                # For now, using the sync method sequentially.
+                # loguru.logger.debug("Mixed Z presence in batch reprojection; reprojecting individually.")
                 reprojected_coords = []
                 for coord in coords:
-                    reprojected_coords.append(self.transform_coordinate(coord, from_crs, to_crs))
+                    reprojected_coords.append(self.reproject_coordinate(coord, from_crs, to_crs))
                 return reprojected_coords
 
         except ProjError as e:
@@ -108,76 +103,5 @@ class CoordinateTransformService(ICoordinateService):
                 f"Unexpected error transforming batch coordinates from CRS '{from_crs}' to '{to_crs}': {e}"
             )
 
-    # New method implementation
-    async def transform_geometry(
-        self,
-        geometry: AnyGeoGeometry, # Use the specific type alias
-        from_crs: str,
-        to_crs: str
-    ) -> AnyGeoGeometry:
-        """Transforms the coordinates of a given geometry object using pyproj."""
-        if from_crs.lower() == to_crs.lower():
-            return geometry
-
-        transformer = self._get_transformer(from_crs, to_crs)
-
-        # Helper function to transform coordinates within the geometry structures
-        def _transform_coords(coords: List[Coordinate]) -> List[Coordinate]:
-            # Use the existing batch transform logic (non-async for now)
-            # NOTE: This currently calls the *async* batch method sequentially inside a sync helper.
-            # This is NOT ideal for performance if this method is called frequently.
-            # A better approach would involve making this entire method sync or using
-            # a proper async approach for batching if pyproj offered async transforms.
-            # For simplicity here, we accept the sequential async call.
-
-            # TODO: Revisit performance/async pattern if this becomes a bottleneck.
-            # Simplest sync adaptation:
-            if not coords: return []
-            has_z = [c.z is not None for c in coords]
-            all_z = all(has_z)
-            no_z = not any(has_z)
-            xs = [c.x for c in coords]
-            ys = [c.y for c in coords]
-            if all_z:
-                zs = [c.z for c in coords]
-                new_xs, new_ys, new_zs = transformer.transform(xs, ys, zs)
-                return [Coordinate(x=nx, y=ny, z=nz) for nx, ny, nz in zip(new_xs, new_ys, new_zs)]
-            elif no_z:
-                new_xs, new_ys = transformer.transform(xs, ys)
-                return [Coordinate(x=nx, y=ny) for nx, ny in zip(new_xs, new_ys)]
-            else: # Mixed Z: transform individually
-                return [self.transform_coordinate(c, from_crs, to_crs) for c in coords]
-
-        try:
-            if isinstance(geometry, PointGeo):
-                new_coord = _transform_coords([geometry.coordinate])[0]
-                return PointGeo(coordinate=new_coord)
-            elif isinstance(geometry, PolylineGeo):
-                new_coords = _transform_coords(geometry.coordinates)
-                return PolylineGeo(coordinates=new_coords)
-            elif isinstance(geometry, PolygonGeo):
-                new_exterior = _transform_coords(geometry.exterior_ring)
-                new_interiors = [_transform_coords(interior) for interior in geometry.interior_rings]
-                return PolygonGeo(exterior_ring=new_exterior, interior_rings=new_interiors)
-            elif isinstance(geometry, GeometryCollection):
-                # Recursively transform geometries in the collection
-                # Note: this recursive call is sync within an async method.
-                transformed_geoms = [
-                    # Awaiting here would require making _transform_coords and this method fully async
-                    # which complicates the pyproj sync usage. Keeping it sync for now.
-                    await self.transform_geometry(geom, from_crs, to_crs)
-                    for geom in geometry.geometries
-                ]
-                return GeometryCollection(geometries=transformed_geoms)
-            else:
-                # Handle other geometry types if they exist (e.g., MultiPoint, MultiPolyline, MultiPolygon)
-                # For now, raise an error for unhandled types.
-                logger.warning(f"Unhandled geometry type for transformation: {type(geometry)}")
-                raise NotImplementedError(f"Transformation for {type(geometry)} not implemented.")
-
-        except (ProjError, CoordinateTransformError) as e:
-            logger.error(f"Error transforming geometry from {from_crs} to {to_crs}: {e}", exc_info=True)
-            raise CoordinateTransformError(f"Failed to transform geometry: {e}")
-        except Exception as e:
-            logger.error(f"Unexpected error transforming geometry: {e}", exc_info=True)
-            raise CoordinateTransformError(f"Unexpected error during geometry transformation: {e}")
+    # Async helper removed as reproject_coordinate is sync and pyproj is CPU-bound.
+    # If this service were to be truly async with external calls, that pattern would be useful.

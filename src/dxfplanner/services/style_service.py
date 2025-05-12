@@ -14,6 +14,9 @@ from dxfplanner.config.schemas import (
     TextParagraphPropertiesConfig,
     HatchPropertiesConfig,
     LabelingConfig,
+    LabelPlacementOperationConfig,
+    StylePreset,
+    StyleDefinition,
 )
 from dxfplanner.domain.interfaces import IStyleService
 from dxfplanner.core.exceptions import DXFPlannerBaseError
@@ -83,24 +86,13 @@ class StyleService(IStyleService):
         override_definition: Optional[StyleObjectConfig] = None,
         context_name: Optional[str] = None
     ) -> StyleObjectConfig:
+        base_style_source = StyleObjectConfig() # Default empty base
         log_prefix = f"Style for '{context_name}': " if context_name else "Style: "
 
-        # TARGET PRECEDENCE: inline > (preset + override) > preset > default
-
-        # 1. Check for highest precedence: Inline definition
         if inline_definition:
-            self.logger.debug(f"{log_prefix}Using inline style. Presets and overrides are ignored.")
-            # Return a copy to prevent modification of the original config object if it came from AppConfig
-            # Ensure all components exist, even if default
-            final_inline = inline_definition.model_copy(deep=True)
-            if final_inline.layer_props is None: final_inline.layer_props = LayerDisplayPropertiesConfig()
-            if final_inline.text_props is None: final_inline.text_props = TextStylePropertiesConfig()
-            if final_inline.hatch_props is None: final_inline.hatch_props = HatchPropertiesConfig()
-            return final_inline
-
-        # 2. No inline style, proceed with preset and override logic
-        base_style_source = StyleObjectConfig() # Default empty base
-        if preset_name:
+            base_style_source = inline_definition
+            self.logger.debug(f"{log_prefix}Using inline style as base.")
+        elif preset_name:
             preset = self._config.style_presets.get(preset_name)
             if preset:
                 base_style_source = preset
@@ -111,9 +103,9 @@ class StyleService(IStyleService):
                     f"Using default empty style as base."
                 )
         else:
-            self.logger.debug(f"{log_prefix}No preset name provided. Using default empty style as base.")
+            self.logger.debug(f"{log_prefix}No inline style or preset name. Using default empty style as base.")
 
-        # 3. Merge override onto the determined base_style_source (preset or default)
+        # Now, merge the override onto the determined base_style_source
         final_style = StyleObjectConfig(
             layer_props=LayerDisplayPropertiesConfig(),
             text_props=TextStylePropertiesConfig(),
@@ -139,10 +131,9 @@ class StyleService(IStyleService):
         ) or HatchPropertiesConfig()
 
         if override_definition:
-            self.logger.debug(f"{log_prefix}Applied style overrides to base (preset/default).")
+            self.logger.debug(f"{log_prefix}Applied style overrides.")
 
-        # Ensure all components exist (should be handled by merge logic ensuring non-None return)
-        # Redundant check, but safe:
+        # Ensure all components exist, even if default
         if final_style.layer_props is None: final_style.layer_props = LayerDisplayPropertiesConfig()
         if final_style.text_props is None: final_style.text_props = TextStylePropertiesConfig()
         if final_style.hatch_props is None: final_style.hatch_props = HatchPropertiesConfig()
@@ -245,52 +236,47 @@ class StyleService(IStyleService):
         self.logger.debug(f"{log_prefix}No specific hatch style found, returning default HatchPropertiesConfig.")
         return HatchPropertiesConfig()
 
-    def get_resolved_label_style(
-        self, layer_config: LayerConfig
-    ) -> Optional[TextStylePropertiesConfig]:
+    def get_resolved_style_for_label_operation(
+        self, config: LabelPlacementOperationConfig
+    ) -> TextStylePropertiesConfig:
         """
-        Resolves the TextStylePropertiesConfig for a layer's labels.
-        Considers a text style preset and inline text style properties from LabelingConfig.
+        Resolves the TextStylePropertiesConfig for labels based on LabelPlacementOperationConfig.
+        Considers text_style_preset_name and text_style_inline within config.label_settings.
         Inline properties override preset properties.
         """
-        if not layer_config.labeling:
-            return None
-
-        label_conf: LabelingConfig = layer_config.labeling
+        context_name = f"LabelOp(layer='{config.source_layer or 'implicit'}')"
+        log_prefix = f"Style for '{context_name}': "
         base_text_style: Optional[TextStylePropertiesConfig] = TextStylePropertiesConfig() # Default empty
 
-        if label_conf.text_style_preset_name:
-            style_preset_obj = self._config.style_presets.get(label_conf.text_style_preset_name)
-            if style_preset_obj and style_preset_obj.text_props:
-                base_text_style = style_preset_obj.text_props
-                logger.debug(
-                    f"Layer '{layer_config.name}' labeling: "
-                    f"Using text_props from preset '{label_conf.text_style_preset_name}'."
-                )
-            else:
-                logger.warning(
-                    f"Layer '{layer_config.name}' labeling: Text style preset "
-                    f"'{label_conf.text_style_preset_name}' or its text_props not found. "
-                    f"Using default empty text style as base for labeling."
-                )
+        preset_name = config.label_settings.text_style_preset_name
+        inline_style = config.label_settings.text_style_inline
 
-        # Merge inline definition over the (potentially preset-derived) base
-        resolved_label_style = self._merge_style_component(
+        if preset_name:
+            preset = self._config.style_presets.get(preset_name)
+            if preset and preset.text_props:
+                base_text_style = preset.text_props
+                self.logger.debug(f"{log_prefix}Using preset '{preset_name}' as base.")
+            else:
+                 self.logger.warning(f"{log_prefix}Preset '{preset_name}' not found or lacks text_props.")
+
+        # Merge inline properties onto the base (preset or default)
+        final_style = self._merge_style_component(
             base_text_style,
-            label_conf.text_style_inline,
+            inline_style,
             TextStylePropertiesConfig
         )
 
-        if label_conf.text_style_inline:
-             logger.debug(f"Layer '{layer_config.name}' labeling: Applied inline text style properties.")
+        # Ensure we always return a valid config, even if it's just the default
+        return final_style if final_style else TextStylePropertiesConfig()
 
-        # Ensure we return an instance if any styling was determined, or None if completely empty
-        # If resolved_label_style contains any non-default values, return it.
-        if resolved_label_style and resolved_label_style.model_dump(exclude_defaults=True):
-            return resolved_label_style
-
-        # If inline was not provided, and base_text_style (from preset) had non-default values.
-        if not label_conf.text_style_inline and base_text_style and base_text_style.model_dump(exclude_defaults=True):
-            return base_text_style
-
-        return None # Effectively no specific label styling found or only defaults.
+    def get_resolved_hatch_style(
+        self, layer_config: LayerConfig
+    ) -> Optional[HatchPropertiesConfig]:
+        resolved_object = self.get_resolved_style_object(
+            preset_name=layer_config.style_preset_name,
+            inline_definition=layer_config.style_inline_definition,
+            override_definition=layer_config.style_override,
+            context_name=layer_config.name
+        )
+        # The resolved_object.hatch_props should be non-null due to get_resolved_style_object's logic
+        return resolved_object.hatch_props if resolved_object.hatch_props is not None else HatchPropertiesConfig()

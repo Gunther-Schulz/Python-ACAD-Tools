@@ -37,8 +37,11 @@ from dxfplanner.io.writers.dxf_writer import DxfWriter
 from dxfplanner.geometry.operations import (
     BufferOperation, SimplifyOperation, FieldMappingOperation,
     ReprojectOperation, CleanGeometryOperation, ExplodeMultipartOperation,
-    IntersectionOperation # Added
-    # MergeOperation, DissolveOperation etc. when implemented
+    IntersectionOperation,
+    MergeOperation,
+    DissolveOperation,
+    FilterByAttributeOperation,
+    LabelPlacementOperation
 )
 
 
@@ -124,6 +127,17 @@ class Container(containers.DeclarativeContainer):
         IntersectionOperation,
         di_container=providers.Self # IntersectionOperation requires the container
     )
+    # ADDED PLACEHOLDER FACTORIES:
+    merge_operation = providers.Factory(MergeOperation)
+    dissolve_operation = providers.Factory(DissolveOperation)
+    filter_by_attribute_operation = providers.Factory(FilterByAttributeOperation)
+    # ADDED LABEL PLACEMENT FACTORY:
+    label_placement_operation = providers.Factory(
+        LabelPlacementOperation,
+        style_service=style_service, # Injected StyleService
+        logger_param=logger          # Injected logger
+    )
+
     # ... other operations
     _operations_map_provider = providers.Dict(
         {
@@ -134,6 +148,12 @@ class Container(containers.DeclarativeContainer):
             OperationType.CLEAN_GEOMETRY: clean_geometry_operation,
             OperationType.EXPLODE_MULTIPART: explode_multipart_operation,
             OperationType.INTERSECTION: intersection_operation, # Added
+            # ADDED PLACEHOLDER REGISTRATIONS:
+            OperationType.MERGE: merge_operation,
+            OperationType.DISSOLVE: dissolve_operation,
+            OperationType.FILTER_BY_ATTRIBUTE: filter_by_attribute_operation,
+            # ADDED LABEL PLACEMENT REGISTRATION:
+            OperationType.LABEL_PLACEMENT: label_placement_operation,
         }
     )
 
@@ -150,8 +170,6 @@ class Container(containers.DeclarativeContainer):
         app_config=config,
         di_container=providers.Self, # Pass the container itself for resolving readers/ops
         geometry_transformer=geometry_transformer_service,
-        label_placement_service=label_placement_service, # Added ILabelPlacementService injection
-        style_service=style_service, # Added IStyleService injection
         logger=logger # Added logger injection
     )
     pipeline_service = providers.Factory(

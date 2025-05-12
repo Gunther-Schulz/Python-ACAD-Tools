@@ -106,26 +106,22 @@ AnySourceConfig = Union[
 # --- Operation Configuration Models ---
 class OperationType(str, Enum):
     BUFFER = "buffer"
+    INTERSECTION = "intersection"
+    MERGE = "merge"
+    DISSOLVE = "dissolve"
+    FILTER_BY_ATTRIBUTE = "filter_by_attribute"
     SIMPLIFY = "simplify"
     FIELD_MAPPER = "field_mapper"
     REPROJECT = "reproject"
     CLEAN_GEOMETRY = "clean_geometry"
     EXPLODE_MULTIPART = "explode_multipart"
-    INTERSECTION = "intersection"
-    # Add new operation types
-    MERGE = "merge"
-    DISSOLVE = "dissolve"
-    FILTER_BY_ATTRIBUTE = "filter_by_attribute"
+    LABEL_PLACEMENT = "label_placement"
+    # ... other operation types to be added
 
 class BaseOperationConfig(BaseModel):
     type: OperationType
     # Common fields for all operations, e.g., output_layer_name if applicable
     # output_layer_name: Optional[str] = None
-    source_layer: str = Field(..., description="Name of the source layer to read features from")
-    output_layer_name: Optional[str] = Field(None, description="Name of the output layer. If None, might modify source layer or use a default naming scheme.")
-    enabled: bool = Field(True, description="Whether this operation step is enabled.")
-    # Add a comment explaining this might be used by the processing pipeline
-    # to route output or decide if an operation modifies in-place vs creates new layer.
 
 class BufferOperationConfig(BaseOperationConfig):
     type: Literal[OperationType.BUFFER] = OperationType.BUFFER
@@ -155,6 +151,26 @@ class IntersectionOperationConfig(BaseOperationConfig):
     # If it were to apply, one of the input_layers would be the default.
     # For now, make output_layer_name optional as per the general requirement.
     output_layer_name: Optional[str] = None
+
+# --- ADDED PLACEHOLDERS START ---
+class MergeOperationConfig(BaseOperationConfig):
+    type: Literal[OperationType.MERGE] = OperationType.MERGE
+    source_layer: Optional[str] = None
+    output_layer_name: Optional[str] = None
+    # Add specific merge parameters later if needed
+
+class DissolveOperationConfig(BaseOperationConfig):
+    type: Literal[OperationType.DISSOLVE] = OperationType.DISSOLVE
+    source_layer: Optional[str] = None
+    dissolve_by_attribute: Optional[str] = None # Attribute to group features before dissolving
+    output_layer_name: Optional[str] = None
+
+class FilterByAttributeOperationConfig(BaseOperationConfig):
+    type: Literal[OperationType.FILTER_BY_ATTRIBUTE] = OperationType.FILTER_BY_ATTRIBUTE
+    source_layer: Optional[str] = None
+    filter_expression: str # e.g., "property_a > 10 AND property_b = 'value'"
+    output_layer_name: Optional[str] = None
+# --- ADDED PLACEHOLDERS END ---
 
 # --- New Operation Config Models ---
 class SimplifyOperationConfig(BaseOperationConfig):
@@ -194,7 +210,6 @@ class LabelSettings(BaseModel): # This is what was referred to as LabelPlacement
     """Detailed settings for how labels should be placed."""
     label_attribute: Optional[str] = Field(default=None, description="Attribute field from feature to use for label text.")
     fixed_label_text: Optional[str] = Field(default=None, description="A fixed text string to use for all labels.")
-    text_height: float = Field(default=2.5, gt=0, description="Default height for the label text. Can be overridden by style.")
     point_position_override: Optional[str] = Field(default=None, description="Specific placement for point labels (e.g., 'TOP_LEFT', 'CENTER'). Consult placement logic for valid values.")
     offset_x: Union[float, str] = Field(default=0.0, description="Offset in X direction. Can be a number or an expression using feature attributes.")
     offset_y: Union[float, str] = Field(default=0.0, description="Offset in Y direction. Can be a number or an expression using feature attributes.")
@@ -203,6 +218,9 @@ class LabelSettings(BaseModel): # This is what was referred to as LabelPlacement
     # avoid_features_from_layers: List[str] = Field(default_factory=list, description="List of layer names whose features should be avoided by labels.")
     # avoid_all_other_features: bool = Field(default=False, description="If true, labels will try to avoid all other geometries in the source_layer not being labeled.")
 
+    # ADDED: Fields for defining label text style, similar to LabelingConfig
+    text_style_preset_name: Optional[str] = Field(default=None, description="Reference to a text style preset defined in AppConfig.style_presets.")
+    text_style_inline: Optional[TextStylePropertiesConfig] = Field(default=None, description="Inline text style properties for the label. Overrides preset values.")
 
 class LabelPlacementOperationConfig(BaseOperationConfig):
     type: Literal[OperationType.LABEL_PLACEMENT] = OperationType.LABEL_PLACEMENT
@@ -221,7 +239,11 @@ AnyOperationConfig = Union[
     ReprojectOperationConfig,
     CleanGeometryOperationConfig,
     ExplodeMultipartOperationConfig,
-    LabelPlacementOperationConfig
+    LabelPlacementOperationConfig,
+    # ADDED PLACEHOLDERS TO UNION:
+    MergeOperationConfig,
+    DissolveOperationConfig,
+    FilterByAttributeOperationConfig
 ]
 
 # --- Legend Configuration Models ---
@@ -285,15 +307,6 @@ class LegendDefinitionConfig(BaseModel):
     background_box_margin: float = 5.0
 
 
-# --- Labeling Configuration ---
-class LabelingConfig(BaseModel):
-    attribute_field: str
-    # Option 1: Reference a full TextStylePropertiesConfig preset
-    text_style_preset_name: Optional[str] = None
-    # Option 2: Define inline text style properties (can override parts of preset or be standalone)
-    text_style_inline: Optional[TextStylePropertiesConfig] = None
-    # DXFPlanner will need logic to merge preset and inline for final label style
-
 # --- Layer Configuration Model ---
 class LayerConfig(BaseModel):
     name: str
@@ -303,7 +316,6 @@ class LayerConfig(BaseModel):
     style_preset_name: Optional[str] = None # References a preset in AppConfig.style_presets
     style_inline_definition: Optional[StyleObjectConfig] = None # A full, self-contained style for this layer
     style_override: Optional[StyleObjectConfig] = None # Partial overrides for the preset
-    labeling: Optional[LabelingConfig] = None
     enabled: bool = True # To easily toggle layers on/off
 
 # --- I/O Specific Configuration Models (Existing - to be reviewed/integrated) ---
@@ -404,30 +416,3 @@ class AppConfig(BaseModel):
 
     class Config:
         validate_assignment = True
-
-# --- New Operation Configs ---
-
-class MergeOperationConfig(BaseOperationConfig):
-    """Configuration for merging all features from the source layer into a single geometry."""
-    # No specific parameters needed beyond base for a simple merge/union
-    pass
-
-class DissolveOperationConfig(BaseOperationConfig):
-    """Configuration for dissolving features based on a common attribute value."""
-    group_by_field: str = Field(..., description="The attribute field name to group features by before dissolving.")
-    # Consider adding options for multi-part output vs single-part, or aggregation functions later
-
-class FilterByAttributeOperationConfig(BaseOperationConfig):
-    """Configuration for filtering features based on an attribute value."""
-    filter_field: str = Field(..., description="The attribute field name to filter on.")
-    filter_value: Any = Field(..., description="The attribute value to match for keeping features.")
-    # Could add options like 'operator' (equals, not_equals, greater_than, etc.) later
-
-# Union type for type hinting
-AnyOperationConfig = Union[
-    BufferOperationConfig, SimplifyOperationConfig, FieldMappingOperationConfig,
-    ReprojectOperationConfig, CleanGeometryOperationConfig, ExplodeMultipartOperationConfig,
-    IntersectionOperationConfig,
-    # Add new configs to the Union
-    MergeOperationConfig, DissolveOperationConfig, FilterByAttributeOperationConfig
-]

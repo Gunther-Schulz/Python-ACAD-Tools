@@ -10,8 +10,8 @@ from dxfplanner.domain.models.dxf_models import (
     DxfEntity, DxfLayer, # DxfLayer might not be used directly if layers are from AppConfig
     DxfLine, DxfLWPolyline, DxfText, DxfMText, # Added DxfMText
     DxfHatch, DxfHatchPath, # Added DxfHatch and DxfHatchPath
-    AnyDxfEntity, Coordinate,
-    DxfArc, DxfCircle, DxfPolyline, DxfInsert # Added Arc, Circle, Polyline, Insert
+    AnyDxfEntity, Coordinate, DxfInsert, # Added DxfInsert
+    DxfArc, DxfCircle, DxfPolyline
 )
 from dxfplanner.domain.interfaces import IDxfWriter, AnyStrPath
 from dxfplanner.core.exceptions import DxfWriteError
@@ -252,114 +252,256 @@ class DxfWriter(IDxfWriter):
                 # More advanced styling (e.g., applying resolved layer style if entity props are None)
                 # will be part of a later enhancement phase.
 
-                try:
-                    added_entity = None # Track added entity for XDATA
-                    if isinstance(entity_model, DxfLine):
-                        added_entity = msp.add_line(
-                            start=entity_model.start.to_tuple(),
-                            end=entity_model.end.to_tuple(),
-                            dxfattribs=entity_dxf_attribs
-                        )
-                    elif isinstance(entity_model, DxfLWPolyline):
-                        # Convert points, handling potential tuple structure if needed by ezdxf
-                        # Assuming ezdxf add_lwpolyline takes list of (x,y) or (x,y,z) tuples
-                        points_tuples = [p.to_tuple() for p in entity_model.points]
-                        added_entity = msp.add_lwpolyline(
-                            points=points_tuples,
-                            close=entity_model.is_closed,
-                            dxfattribs=entity_dxf_attribs
-                        )
-                    elif isinstance(entity_model, DxfText):
-                        # Assign text style from model or default
-                        style = entity_model.style or self._writer_config.default_text_style_name
-                        if style not in doc.styles:
-                            logger.warning(f"Text style '{style}' not found in document. Using default.")
-                            style = self._writer_config.default_text_style_name
-                        entity_dxf_attribs['style'] = style
-                        entity_dxf_attribs['height'] = entity_model.height
-                        entity_dxf_attribs['rotation'] = entity_model.rotation
+                if isinstance(entity_model, DxfLine):
+                    dxf_entity = msp.add_line(
+                        start=entity_model.start.to_tuple(),
+                        end=entity_model.end.to_tuple(),
+                        dxfattribs=entity_dxf_attribs
+                    )
+                    self._attach_writer_xdata(dxf_entity)
+                elif isinstance(entity_model, DxfLWPolyline):
+                    # ezdxf LWPOLYLINE points are (x, y, [start_width, [end_width, [bulge]]])
+                    # Our Coordinate model is (x,y,z). For now, just use x,y.
+                    points = [(c.x, c.y) for c in entity_model.points]
+                    dxf_entity = msp.add_lwpolyline(
+                        points=points,
+                        format='xy', # explicit for clarity
+                        close=entity_model.is_closed,
+                        dxfattribs=entity_dxf_attribs
+                    )
+                    self._attach_writer_xdata(dxf_entity)
+                elif isinstance(entity_model, DxfText):
+                    # Basic text support. Style resolution and MTEXT will be more complex.
+                    if hasattr(entity_model, 'style') and entity_model.style:
+                         entity_dxf_attribs['style'] = entity_model.style
+                    else: # Default to configured default style name
+                         entity_dxf_attribs['style'] = self._writer_config.default_text_style_name
 
-                        added_entity = msp.add_text(
-                            text=entity_model.text_content,
-                            dxfattribs=entity_dxf_attribs,
-                        ).set_placement(entity_model.insertion_point.to_tuple()) # Use set_placement for TEXT
-                    elif isinstance(entity_model, DxfMText):
-                        style = entity_model.style or self._writer_config.default_text_style_name
-                        if style not in doc.styles:
-                            logger.warning(f"MText style '{style}' not found in document. Using default.")
-                            style = self._writer_config.default_text_style_name
-                        entity_dxf_attribs['style'] = style
-                        entity_dxf_attribs['char_height'] = entity_model.char_height
-                        entity_dxf_attribs['width'] = entity_model.width
-                        entity_dxf_attribs['rotation'] = entity_model.rotation
-                        # Add other MTEXT properties like attachment point, line spacing etc.
-                        if entity_model.attachment_point:
-                            entity_dxf_attribs['attachment_point'] = getattr(ezdxf_const.MTextAttachmentPoint, entity_model.attachment_point, None)
-                        # Add flow_direction, line_spacing_style, line_spacing_factor if needed
-                        added_entity = msp.add_mtext(
-                            text=entity_model.text_content,
-                            dxfattribs=entity_dxf_attribs,
-                        ).set_placement(entity_model.insertion_point.to_tuple())
-                    elif isinstance(entity_model, DxfHatch):
-                        added_entity = msp.add_hatch(
-                            color=entity_dxf_attribs.get('color', ezdxf_const.BYLAYER),
-                            # style=getattr(ezdxf_const.HatchStyle, entity_model.hatch_style_enum, ezdxf_const.HatchStyle.NORMAL),
-                            # associative=entity_model.associative
-                            dxfattribs=entity_dxf_attribs # Pass layer etc.
-                        )
-                        if added_entity:
-                            added_entity.set_pattern_fill(
+                    dxf_text_entity = msp.add_text(
+                        text=entity_model.text_content,
+                        height=entity_model.height,
+                        dxfattribs=entity_dxf_attribs
+                    )
+                    # Ensure placement is set for TEXT, especially if alignment is involved
+                    # DxfText model currently has rotation, but ezdxf add_text takes it in dxfattribs.
+                    # For simplicity, current DxfText model has rotation, style. Writer uses them.
+                    # Actual alignment (halign, valign) would need more fields in DxfText and mapping here.
+                    dxf_text_entity.set_placement(
+                        insert=entity_model.insertion_point.to_tuple(),
+                        align=ezdxf_const.TEXT_ALIGN_LEFT # Defaulting, make configurable/part of DxfText model
+                    )
+                    if entity_model.rotation is not None and entity_model.rotation != 0.0 : # TEXT rotation
+                        dxf_text_entity.dxf.rotation = entity_model.rotation
+
+                    self._attach_writer_xdata(dxf_text_entity)
+                elif isinstance(entity_model, DxfMText):
+                    mtext_attribs = entity_dxf_attribs.copy() # Start with generic entity attribs (layer, color)
+
+                    mtext_attribs['insert'] = entity_model.insertion_point.to_tuple()
+                    mtext_attribs['char_height'] = entity_model.char_height
+
+                    if entity_model.style:
+                        mtext_attribs['style'] = entity_model.style
+                    else:
+                        mtext_attribs['style'] = self._writer_config.default_text_style_name
+
+                    if entity_model.width is not None: # MTEXT width of text box
+                        mtext_attribs['width'] = entity_model.width
+                    if entity_model.rotation is not None: # MTEXT rotation
+                        mtext_attribs['rotation'] = entity_model.rotation
+
+                    # Attachment point mapping
+                    if entity_model.attachment_point:
+                        ap_map = {
+                            'TOP_LEFT': ezdxf_const.MTEXT_TOP_LEFT, 'TOP_CENTER': ezdxf_const.MTEXT_TOP_CENTER, 'TOP_RIGHT': ezdxf_const.MTEXT_TOP_RIGHT,
+                            'MIDDLE_LEFT': ezdxf_const.MTEXT_MIDDLE_LEFT, 'MIDDLE_CENTER': ezdxf_const.MTEXT_MIDDLE_CENTER, 'MIDDLE_RIGHT': ezdxf_const.MTEXT_MIDDLE_RIGHT,
+                            'BOTTOM_LEFT': ezdxf_const.MTEXT_BOTTOM_LEFT, 'BOTTOM_CENTER': ezdxf_const.MTEXT_BOTTOM_CENTER, 'BOTTOM_RIGHT': ezdxf_const.MTEXT_BOTTOM_RIGHT,
+                        }
+                        mtext_attribs['attachment_point'] = ap_map.get(entity_model.attachment_point)
+
+                    # Flow direction mapping
+                    if entity_model.flow_direction:
+                        fd_map = {
+                            'LEFT_TO_RIGHT': ezdxf_const.MTEXT_LEFT_TO_RIGHT,
+                            'TOP_TO_BOTTOM': ezdxf_const.MTEXT_TOP_TO_BOTTOM,
+                            'BY_STYLE': ezdxf_const.MTEXT_BY_STYLE
+                        }
+                        mtext_attribs['flow_direction'] = fd_map.get(entity_model.flow_direction)
+
+                    # Line spacing style mapping
+                    if entity_model.line_spacing_style:
+                        lss_map = {
+                            'AT_LEAST': ezdxf_const.MTEXT_AT_LEAST,
+                            'EXACT': ezdxf_const.MTEXT_EXACT
+                        }
+                        mtext_attribs['line_spacing_style'] = lss_map.get(entity_model.line_spacing_style)
+
+                    if entity_model.line_spacing_factor is not None:
+                        mtext_attribs['line_spacing_factor'] = entity_model.line_spacing_factor
+
+                    # Background fill - simple boolean for now
+                    if entity_model.bg_fill_enabled is not None:
+                        mtext_attribs['bg_fill'] = entity_model.bg_fill_enabled
+                        if entity_model.bg_fill_enabled:
+                            # By default, ezdxf uses current drawing background color for MASK
+                            # and specific color for BG_FILL (non-mask).
+                            # More complex bg color/scale/transparency can be added if DxfMText model supports it.
+                            pass
+
+
+                    dxf_mtext_entity = msp.add_mtext(text=entity_model.text_content, dxfattribs=mtext_attribs)
+                    self._attach_writer_xdata(dxf_mtext_entity)
+                elif isinstance(entity_model, DxfHatch):
+                    hatch_base_attribs = entity_dxf_attribs.copy()
+
+                    # Map DxfHatch.hatch_style_enum to ezdxf.const values
+                    h_style_map = {
+                        'NORMAL': ezdxf_const.HATCH_STYLE_NORMAL,
+                        'OUTERMOST': ezdxf_const.HATCH_STYLE_OUTERMOST,
+                        'IGNORE': ezdxf_const.HATCH_STYLE_IGNORE,
+                    }
+                    hatch_base_attribs['hatch_style'] = h_style_map.get(entity_model.hatch_style_enum, ezdxf_const.HATCH_STYLE_NORMAL)
+
+                    # Associativity - directly from model
+                    hatch_base_attribs['associative'] = entity_model.associative
+
+                    # Color is already in entity_dxf_attribs if set on model, otherwise ByLayer
+                    # Layer is already in entity_dxf_attribs
+
+                    dxf_hatch = msp.add_hatch(dxfattribs=hatch_base_attribs)
+
+                    # Set pattern
+                    if entity_model.pattern_name:
+                        try:
+                            dxf_hatch.set_pattern_fill(
                                 name=entity_model.pattern_name,
                                 scale=entity_model.pattern_scale,
-                                angle=entity_model.pattern_angle,
-                                color=entity_dxf_attribs.get('color', ezdxf_const.BYLAYER) # Pattern color often same as hatch boundary color
+                                angle=entity_model.pattern_angle
                             )
-                            for path_model in entity_model.paths:
-                                path_vertices = [v.to_tuple() for v in path_model.vertices]
-                                # path_type default is polyline | external - adjust if needed
-                                added_entity.paths.add_polyline_path(path_vertices, is_closed=path_model.is_closed)
-                    elif isinstance(entity_model, DxfInsert):
-                        added_entity = msp.add_blockref(
-                            name=entity_model.block_name,
-                            insert=entity_model.insertion_point.to_tuple(),
-                            dxfattribs={
-                                **entity_dxf_attribs, # includes layer, color
-                                'xscale': entity_model.x_scale,
-                                'yscale': entity_model.y_scale,
-                                'zscale': entity_model.z_scale,
-                                'rotation': entity_model.rotation,
-                            }
-                        )
-                    # --- NEW ENTITY TYPES ---
-                    elif isinstance(entity_model, DxfCircle):
-                        added_entity = msp.add_circle(
-                            center=entity_model.center.to_tuple(),
-                            radius=entity_model.radius,
-                            dxfattribs=entity_dxf_attribs
-                        )
-                    elif isinstance(entity_model, DxfArc):
-                        added_entity = msp.add_arc(
-                            center=entity_model.center.to_tuple(),
-                            radius=entity_model.radius,
-                            start_angle=entity_model.start_angle,
-                            end_angle=entity_model.end_angle,
-                            dxfattribs=entity_dxf_attribs
-                        )
-                    elif isinstance(entity_model, DxfPolyline): # Heavy Polyline (3D)
-                        points_tuples = [p.to_tuple() for p in entity_model.points]
-                        added_entity = msp.add_polyline3d(
-                            points=points_tuples,
-                            close=entity_model.is_closed,
-                            dxfattribs=entity_dxf_attribs
-                        )
-                    else:
-                        logger.warning(f"Unhandled DXF entity model type: {type(entity_model)} for layer '{layer_name}'. Skipping.")
+                            logger.debug(f"Set HATCH pattern: {entity_model.pattern_name}, scale: {entity_model.pattern_scale}, angle: {entity_model.pattern_angle}")
+                        except Exception as e:
+                            logger.warning(f"Failed to set HATCH pattern '{entity_model.pattern_name}': {e}. Defaulting to SOLID.")
+                            dxf_hatch.set_pattern_fill("SOLID") # Fallback to SOLID
 
-                    if added_entity: # If entity was successfully created
-                        self._attach_writer_xdata(added_entity)
-                except Exception as e_add:
-                    logger.error(f"Failed to add entity ({type(entity_model)}) to modelspace for layer '{layer_name}': {e_add}", exc_info=False)
-                    # Continue to next entity
+                    # Set transparency
+                    if entity_model.transparency is not None:
+                        dxf_hatch.transparency = entity_model.transparency
+                        logger.debug(f"Set HATCH transparency: {entity_model.transparency}")
+
+                    # Add boundary paths
+                    if not entity_model.paths:
+                        logger.warning(f"DxfHatch entity for layer {entity_model.layer} has no boundary paths. Skipping hatch path addition.")
+                    else:
+                        for path_model in entity_model.paths:
+                            if len(path_model.vertices) < 2:
+                                logger.warning(f"Skipping HATCH path for layer {entity_model.layer} with < 2 vertices.")
+                                continue
+
+                            path_vertices_2d = [(v.x, v.y) for v in path_model.vertices]
+                            try:
+                                # ezdxf add_polyline_path uses flags: 1=External, 2=Polyline, 16=Derived, etc.
+                                # Default flags (ezdxf auto-detects external/outer based on order for simple cases)
+                                # For simplicity, using is_closed to guide polyline nature.
+                                # ezdxf default for flags is HATCH_PATH_EXTERNAL (1) if is_closed is True, plus HATCH_PATH_POLYLINE (2 if detected as polyline)
+                                # For a simple polyline path, flags are typically (1 | 2) = 3 if it's an external boundary.
+                                # We are not providing explicit flags from model, ezdxf handles it.
+                                path = dxf_hatch.paths.add_polyline_path(
+                                    path_vertices_2d,
+                                    is_closed=path_model.is_closed
+                                    # flags can be specified if DxfHatchPath model had them
+                                )
+                                logger.debug(f"Added HATCH polyline path with {len(path_vertices_2d)} vertices.")
+                            except Exception as e:
+                                logger.error(f"Failed to add HATCH boundary path for layer {entity_model.layer}: {e}", exc_info=True)
+
+                    self._attach_writer_xdata(dxf_hatch)
+                elif isinstance(entity_model, DxfInsert):
+                    insert_attribs = entity_dxf_attribs.copy()
+                    insert_point_tuple = entity_model.insertion_point.to_tuple()
+
+                    # Check if block definition exists
+                    if entity_model.block_name not in doc.blocks:
+                        logger.error(f"Block definition '{entity_model.block_name}' not found in DXF document. Skipping INSERT entity on layer '{entity_model.layer}'.")
+                        continue # Skip this entity
+
+                    insert_attribs['xscale'] = entity_model.x_scale
+                    insert_attribs['yscale'] = entity_model.y_scale
+                    insert_attribs['zscale'] = entity_model.z_scale
+                    insert_attribs['rotation'] = entity_model.rotation
+                    # Layer and Color are already in insert_attribs from entity_dxf_attribs
+
+                    try:
+                        dxf_insert_entity = msp.add_blockref(
+                            name=entity_model.block_name,
+                            insert=insert_point_tuple,
+                            dxfattribs=insert_attribs
+                        )
+                        logger.debug(f"Added INSERT for block '{entity_model.block_name}' at {insert_point_tuple} with scale {entity_model.x_scale},{entity_model.y_scale},{entity_model.z_scale} and rotation {entity_model.rotation}.")
+                        self._attach_writer_xdata(dxf_insert_entity)
+                    except Exception as e:
+                        logger.error(f"Failed to add INSERT for block '{entity_model.block_name}' on layer '{entity_model.layer}': {e}", exc_info=True)
+
+                # Add other entity types (DxfCircle, DxfArc) here
+                elif isinstance(entity_model, DxfCircle):
+                    # Basic Circle support
+                    # DxfCircle model needs: center (Coordinate), radius (float)
+                    try:
+                        dxf_circle_entity = msp.add_circle(
+                            center=entity_model.center.to_tuple_xy(), # Assuming DxfCircle.center: Coordinate
+                            radius=entity_model.radius,            # Assuming DxfCircle.radius: float
+                            dxfattribs=entity_dxf_attribs
+                        )
+                        self._attach_writer_xdata(dxf_circle_entity)
+                        logger.debug(f"Added Circle on layer {entity_model.layer} at {entity_model.center.to_tuple_xy()} R={entity_model.radius}")
+                    except AttributeError as ae:
+                        logger.error(f"DxfCircle model for layer {entity_model.layer} is missing attributes (e.g., center, radius): {ae}. Skipping Circle.")
+                    except Exception as e:
+                        logger.error(f"Failed to add Circle on layer '{entity_model.layer}': {e}", exc_info=True)
+
+                elif isinstance(entity_model, DxfArc):
+                    # Basic Arc support
+                    # DxfArc model needs: center (Coordinate), radius (float), start_angle (float), end_angle (float)
+                    try:
+                        dxf_arc_entity = msp.add_arc(
+                            center=entity_model.center.to_tuple_xy(), # Assuming DxfArc.center: Coordinate
+                            radius=entity_model.radius,            # Assuming DxfArc.radius: float
+                            start_angle=entity_model.start_angle,  # Assuming DxfArc.start_angle: float (degrees)
+                            end_angle=entity_model.end_angle,      # Assuming DxfArc.end_angle: float (degrees)
+                            dxfattribs=entity_dxf_attribs
+                        )
+                        self._attach_writer_xdata(dxf_arc_entity)
+                        logger.debug(f"Added Arc on layer {entity_model.layer} at {entity_model.center.to_tuple_xy()} R={entity_model.radius} Ang={entity_model.start_angle}-{entity_model.end_angle}")
+                    except AttributeError as ae:
+                        logger.error(f"DxfArc model for layer {entity_model.layer} is missing attributes (e.g., center, radius, angles): {ae}. Skipping Arc.")
+                    except Exception as e:
+                        logger.error(f"Failed to add Arc on layer '{entity_model.layer}': {e}", exc_info=True)
+
+                elif isinstance(entity_model, DxfPolyline):
+                    # Basic 3D Polyline support (POLYLINE entity, not LWPOLYLINE)
+                    # DxfPolyline model needs: points (List[Coordinate])
+                    try:
+                        # ezdxf add_polyline3d takes a list of (x,y,z) tuples
+                        points_3d = [p.to_tuple() for p in entity_model.points]
+                        if len(points_3d) < 2:
+                            logger.warning(f"Skipping DxfPolyline on layer {entity_model.layer} with < 2 points.")
+                            continue
+
+                        dxf_polyline_entity = msp.add_polyline3d(
+                            points=points_3d,
+                            dxfattribs=entity_dxf_attribs
+                        )
+                        # For POLYLINE, is_closed is a flag in dxfattribs or set via polyline_entity.close(True)
+                        if entity_model.is_closed:
+                            dxf_polyline_entity.close(True)
+
+                        self._attach_writer_xdata(dxf_polyline_entity)
+                        logger.debug(f"Added 3D Polyline on layer {entity_model.layer} with {len(points_3d)} points.")
+                    except AttributeError as ae:
+                        logger.error(f"DxfPolyline model for layer {entity_model.layer} is missing attributes (e.g., points): {ae}. Skipping Polyline.")
+                    except Exception as e:
+                        logger.error(f"Failed to add 3D Polyline on layer '{entity_model.layer}': {e}", exc_info=True)
+                else:
+                    logger.warning(f"Unsupported DxfEntity type: {type(entity_model)}. Skipping.")
 
     async def write_drawing(
         self,

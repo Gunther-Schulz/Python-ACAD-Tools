@@ -178,6 +178,8 @@ if __name__ == "__main__":
     Path("test_data/output").mkdir(parents=True, exist_ok=True)
 
     logger.warning(f"This is an example runner. Ensure '{example_source_file}' exists or change the path.")
+    logger.warning("The default readers/services are placeholders and will raise NotImplementedError.")
+    logger.warning("You will need to implement them and install libraries like pyshp/fiona and ezdxf.")
 
     # To make this runnable for a very basic test (it will hit NotImplementedError quickly):
     # You might need a dummy shapefile. Creating one programmatically is non-trivial here.

@@ -3,7 +3,7 @@ from pathlib import Path
 from pydantic import BaseModel # Added for PlacedLabel
 
 # Import domain models to be used in interface definitions
-from .models.common import Coordinate, Color, BoundingBox as BoundingBoxModel, PlacedLabel
+from .models.common import Coordinate, Color, BoundingBox as BoundingBoxModel
 from .models.geo_models import GeoFeature #, PointGeo, PolylineGeo, PolygonGeo (GeoFeature contains these)
 from .models.dxf_models import DxfEntity, DxfLayer, AnyDxfEntity # Added AnyDxfEntity explicitly
 from ..config.schemas import (
@@ -205,47 +205,21 @@ class IGeometryTransformer(Protocol):
             yield
         ...
 
-    async def transform_placed_label_to_dxf_entity(
-        self,
-        label: PlacedLabel,
-        style_config: Optional[TextStylePropertiesConfig] = None
-    ) -> Optional[AnyDxfEntity]:
-        """
-        Transforms a PlacedLabel object into a DXF text entity (e.g., MTEXT).
-
-        Args:
-            label: The PlacedLabel object containing text, position, and rotation.
-            style_config: Optional resolved text style properties to apply.
-
-        Returns:
-            An optional DxfEntity (e.g., DxfText or DxfMText) or None if transformation fails.
-        """
-        ...
-
 # --- Core Service Interfaces (abstractions for application logic) ---
 
 class ICoordinateService(Protocol):
     """Interface for coordinate reference system operations."""
 
-    # Renamed from reproject_coordinate
-    def transform_coordinate(self, coord: Coordinate, from_crs: str, to_crs: str) -> Coordinate:
-        """Transforms a single coordinate from a source CRS to a target CRS."""
+    def reproject_coordinate(self, coord: Coordinate, from_crs: str, to_crs: str) -> Coordinate:
+        """Reprojects a single coordinate from a source CRS to a target CRS."""
         ...
 
-    # Renamed from reproject_coordinates_batch
-    async def transform_coordinates_batch(self, coords: List[Coordinate], from_crs: str, to_crs: str) -> List[Coordinate]:
-        """Transforms a list of coordinates in batch."""
+    async def reproject_coordinates_batch(self, coords: List[Coordinate], from_crs: str, to_crs: str) -> List[Coordinate]:
+        """Reprojects a list of coordinates in batch."""
         ...
 
-    # New method to handle entire geometries
-    async def transform_geometry(
-        self,
-        geometry: Any, # GeoFeature geometry type (PointGeo, PolylineGeo, etc.) or GeoFeature itself
-        from_crs: str,
-        to_crs: str
-    ) -> Any: # Returns the transformed geometry of the same type
-        """Transforms the coordinates of a given geometry object."""
-        ...
+    # Could also add methods for reprojecting entire geometries (GeoFeature) if needed here
+    # or keep that responsibility within IGeometryTransformer or a dedicated geometry service.
 
 class IAttributeMapper(Protocol):
     """Interface for mapping GeoFeature attributes to DXF entity properties."""
@@ -276,7 +250,6 @@ class IValidationService(Protocol):
     #     ...
 
 # --- Label Placement Service Model & Interface ---
-
 class PlacedLabel(BaseModel):
     """Represents a label that has been placed, with its text, position, and rotation."""
     text: str
