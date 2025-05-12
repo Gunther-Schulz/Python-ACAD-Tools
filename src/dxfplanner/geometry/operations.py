@@ -1,11 +1,15 @@
 """
 Geometric operations like buffer, simplify, etc.
 """
-from typing import AsyncIterator
+from typing import AsyncIterator, List, Dict, Any
 
 from dxfplanner.domain.models.geo_models import GeoFeature
 from dxfplanner.domain.interfaces import IOperation
-from dxfplanner.config.schemas import BufferOperationConfig, SimplifyOperationConfig, FieldMappingOperationConfig, ReprojectOperationConfig, CleanGeometryOperationConfig, ExplodeMultipartOperationConfig
+from dxfplanner.config.schemas import (
+    BufferOperationConfig, SimplifyOperationConfig, FieldMappingOperationConfig,
+    ReprojectOperationConfig, CleanGeometryOperationConfig, ExplodeMultipartOperationConfig,
+    IntersectionOperationConfig
+)
 from dxfplanner.core.logging_config import get_logger
 from dxfplanner.geometry.utils import (
     make_valid_geometry,
@@ -16,6 +20,15 @@ from dxfplanner.geometry.utils import (
     explode_multipart_geometry
 )
 from shapely.geometry import MultiPoint, MultiLineString, MultiPolygon, GeometryCollection # For checking buffer result type
+from shapely.prepared import prep # For potential performance optimization
+from shapely.errors import GEOSException # General shapely errors
+from shapely.ops import unary_union # Explicit import for union
+import asyncio
+from dependency_injector import containers # For type hinting container
+
+# Forward declaration for type hinting the container within its own module scope if needed elsewhere
+# Although likely not needed just for operations.py if container is only passed in init.
+# class MainContainer(containers.DeclarativeContainer): pass
 
 logger = get_logger(__name__)
 
@@ -485,3 +498,183 @@ class ExplodeMultipartOperation(IOperation[ExplodeMultipartOperationConfig]):
                  logger.debug(f"No parts yielded after exploding geometry for feature. Original type: {shapely_geom.geom_type}. Attributes: {feature.attributes}")
 
         logger.info(f"ExplodeMultipartOperation completed for source_layer: '{config.source_layer}'")
+
+
+# --- Intersection Operation ---
+
+class IntersectionOperation(IOperation[IntersectionOperationConfig]):
+    """Performs an intersection operation between the input features and features from other specified layers."""
+
+    def __init__(self, di_container: containers.DeclarativeContainer):
+        """
+        Initializes the IntersectionOperation.
+
+        Args:
+            di_container: The application's dependency injection container to resolve readers/layers.
+        """
+        self._container = di_container
+        # Potential optimization: Cache resolved overlay layers if config doesn't change frequently
+        # For simplicity, we resolve and load them inside execute() for now.
+
+    async def _load_overlay_features(self, layer_names: List[str]) -> List[GeoFeature]:
+        """Loads all features from the specified overlay layers.""" # noqa
+        overlay_features: List[GeoFeature] = []
+        app_config = self._container.config() # Get AppConfig from container
+
+        for layer_name in layer_names:
+            layer_config = next((lc for lc in app_config.layers if lc.name == layer_name), None)
+            if not layer_config or not layer_config.source:
+                logger.warning(f"Intersection: Overlay layer '{layer_name}' not found in config or has no source. Skipping.")
+                continue
+
+            try:
+                reader = self._container.resolve_reader(layer_config.source.type)
+                # Prepare kwargs for the reader based on source config
+                # This logic might need refinement depending on how reader kwargs are handled globally # noqa
+                reader_kwargs = layer_config.source.model_dump(exclude={'type'}) # Pass source config fields as kwargs # noqa
+                if layer_config.source.crs:
+                    reader_kwargs['source_crs'] = layer_config.source.crs
+                else:
+                    # Attempt to get default source CRS if defined globally
+                    default_src_crs = app_config.services.coordinate.default_source_crs
+                    if default_src_crs:
+                         reader_kwargs['source_crs'] = default_src_crs
+                         logger.info(f"Using default source CRS '{default_src_crs}' for overlay layer '{layer_name}'") # noqa
+                    else:
+                        # Rely on reader's internal CRS detection or default (e.g., CsvWktReader defaults to EPSG:4326 if none provided/found) # noqa
+                         logger.warning(f"No explicit source CRS for overlay layer '{layer_name}'. Reader will attempt detection or use default.") # noqa
+
+                # For intersection, we assume overlay layers are already in the target CRS of the main pipeline # noqa
+                # or handle reprojection explicitly here if needed. For now, assume they match input features CRS. # noqa
+                target_crs = app_config.services.coordinate.default_target_crs # Get pipeline target CRS # noqa
+
+                logger.info(f"Intersection: Loading overlay layer '{layer_name}'...")
+                async for feature in reader.read_features(
+                    source_path=layer_config.source.path,
+                    source_crs=reader_kwargs.get('source_crs'),
+                    target_crs=target_crs, # Request features in target CRS
+                    **reader_kwargs
+                 ):
+                    if feature.geometry: # Ensure geometry exists
+                        overlay_features.append(feature)
+                logger.info(f"Intersection: Loaded {len(overlay_features)} features from overlay layer '{layer_name}'.") # noqa
+
+            except Exception as e:
+                 logger.error(f"Intersection: Failed to load overlay layer '{layer_name}': {e}", exc_info=True) # noqa
+                 # Decide whether to continue without this layer or raise an error
+                 # For now, log and continue
+                 continue
+        return overlay_features
+
+    async def execute(
+        self,
+        features: AsyncIterator[GeoFeature],
+        config: IntersectionOperationConfig
+    ) -> AsyncIterator[GeoFeature]:
+        """
+        Executes the intersection operation.
+        Intersects each input feature with the union of features from the overlay layers.
+        Keeps attributes from the original input feature.
+
+        Args:
+            features: An asynchronous iterator of GeoFeature objects to process.
+            config: Configuration for the intersection operation.
+
+        Yields:
+            GeoFeature: An asynchronous iterator of resulting intersected GeoFeature objects.
+        """
+        logger.info(f"Executing IntersectionOperation for layers: {config.input_layers}, output: '{config.output_layer_name}'") # noqa
+
+        # 1. Load all features from the overlay layers
+        overlay_features = await self._load_overlay_features(config.input_layers)
+        if not overlay_features:
+            logger.warning("Intersection: No valid overlay features loaded. Operation will yield no results.") # noqa
+            return # Use return for async generator stop
+
+        # 2. Combine overlay geometries (union overlay geometries first) # noqa
+        valid_overlay_s_geoms = []
+        for feat in overlay_features:
+            s_geom = convert_dxfplanner_geometry_to_shapely(feat.geometry)
+            if s_geom and not s_geom.is_empty:
+                 s_geom = make_valid_geometry(s_geom)
+                 if s_geom and not s_geom.is_empty:
+                     valid_overlay_s_geoms.append(s_geom)
+
+        if not valid_overlay_s_geoms:
+             logger.warning("Intersection: No valid overlay geometries to perform intersection.") # noqa
+             # Decide if we should stop or continue processing input features (yielding originals?)
+             # For intersection, if overlay is empty, result is empty. Stop.
+             return
+
+        try:
+             combined_overlay_geom = unary_union(valid_overlay_s_geoms)
+             combined_overlay_geom = make_valid_geometry(combined_overlay_geom)
+        except Exception as e_union:
+             logger.error(f"Intersection: Failed to compute union of overlay geometries: {e_union}", exc_info=True) # noqa
+             # Cannot proceed without combined overlay geometry
+             return
+
+        if not combined_overlay_geom or combined_overlay_geom.is_empty:
+             logger.warning("Intersection: Combined overlay geometry is empty or invalid after union/validation.") # noqa
+             return
+
+        prepared_combined_overlay = prep(combined_overlay_geom) # Prepare the combined geometry
+        logger.info(f"Intersection: Prepared combined overlay geometry for intersection. Type: {combined_overlay_geom.geom_type}") # noqa
+
+        # 3. Process input features stream
+        processed_count = 0
+        yielded_count = 0
+        async for feature in features:
+            processed_count += 1
+            if feature.geometry is None:
+                continue
+
+            input_s_geom = convert_dxfplanner_geometry_to_shapely(feature.geometry)
+            if input_s_geom is None or input_s_geom.is_empty:
+                continue
+
+            # Make input valid before intersection check
+            input_s_geom = make_valid_geometry(input_s_geom)
+            if input_s_geom is None or input_s_geom.is_empty:
+                continue
+
+            intersected_result = None
+            try:
+                # Use prepared geometry for faster check
+                if prepared_combined_overlay.intersects(input_s_geom):
+                    # Actual intersection
+                    intersected_result = input_s_geom.intersection(combined_overlay_geom) # Use non-prepared for calculation # noqa
+                    intersected_result = make_valid_geometry(intersected_result) # Validate result
+
+            except GEOSException as e:
+                 logger.error(f"Error during intersection operation for feature: {e}. Attributes: {feature.attributes}", exc_info=True) # noqa
+                 continue # Skip this feature
+            except Exception as e_general:
+                 logger.error(f"Unexpected error during intersection processing for feature: {e_general}. Attributes: {feature.attributes}", exc_info=True) # noqa
+                 continue # Skip this feature
+
+            if intersected_result is None or intersected_result.is_empty:
+                 continue # Skip if intersection is empty
+
+            # Convert back to DXFPlanner geometry, handle MultiGeometries
+            geoms_to_yield = []
+            if isinstance(intersected_result, (MultiPoint, MultiLineString, MultiPolygon, GeometryCollection)): # noqa
+                 for part_geom in intersected_result.geoms:
+                     if part_geom is None or part_geom.is_empty: continue
+                     converted_part = convert_shapely_to_dxfplanner_geometry(part_geom)
+                     if converted_part:
+                         geoms_to_yield.append(converted_part)
+            else: # Single geometry
+                 converted_single = convert_shapely_to_dxfplanner_geometry(intersected_result)
+                 if converted_single:
+                     geoms_to_yield.append(converted_single)
+
+            # Yield new features with original attributes
+            for new_dxf_geom in geoms_to_yield:
+                 new_feature_attributes = feature.attributes.copy() # Keep original attributes
+                 yield GeoFeature(geometry=new_dxf_geom, attributes=new_feature_attributes, crs=feature.crs)
+                 yielded_count += 1
+
+            # Optional: yield progress? await asyncio.sleep(0)?
+
+        logger.info(f"IntersectionOperation completed. Processed: {processed_count}, Yielded: {yielded_count}.") # noqa

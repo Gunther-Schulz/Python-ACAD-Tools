@@ -83,13 +83,24 @@ class StyleService(IStyleService):
         override_definition: Optional[StyleObjectConfig] = None,
         context_name: Optional[str] = None
     ) -> StyleObjectConfig:
-        base_style_source = StyleObjectConfig() # Default empty base
         log_prefix = f"Style for '{context_name}': " if context_name else "Style: "
 
+        # TARGET PRECEDENCE: inline > (preset + override) > preset > default
+
+        # 1. Check for highest precedence: Inline definition
         if inline_definition:
-            base_style_source = inline_definition
-            self.logger.debug(f"{log_prefix}Using inline style as base.")
-        elif preset_name:
+            self.logger.debug(f"{log_prefix}Using inline style. Presets and overrides are ignored.")
+            # Return a copy to prevent modification of the original config object if it came from AppConfig
+            # Ensure all components exist, even if default
+            final_inline = inline_definition.model_copy(deep=True)
+            if final_inline.layer_props is None: final_inline.layer_props = LayerDisplayPropertiesConfig()
+            if final_inline.text_props is None: final_inline.text_props = TextStylePropertiesConfig()
+            if final_inline.hatch_props is None: final_inline.hatch_props = HatchPropertiesConfig()
+            return final_inline
+
+        # 2. No inline style, proceed with preset and override logic
+        base_style_source = StyleObjectConfig() # Default empty base
+        if preset_name:
             preset = self._config.style_presets.get(preset_name)
             if preset:
                 base_style_source = preset
@@ -100,9 +111,9 @@ class StyleService(IStyleService):
                     f"Using default empty style as base."
                 )
         else:
-            self.logger.debug(f"{log_prefix}No inline style or preset name. Using default empty style as base.")
+            self.logger.debug(f"{log_prefix}No preset name provided. Using default empty style as base.")
 
-        # Now, merge the override onto the determined base_style_source
+        # 3. Merge override onto the determined base_style_source (preset or default)
         final_style = StyleObjectConfig(
             layer_props=LayerDisplayPropertiesConfig(),
             text_props=TextStylePropertiesConfig(),
@@ -128,9 +139,10 @@ class StyleService(IStyleService):
         ) or HatchPropertiesConfig()
 
         if override_definition:
-            self.logger.debug(f"{log_prefix}Applied style overrides.")
+            self.logger.debug(f"{log_prefix}Applied style overrides to base (preset/default).")
 
-        # Ensure all components exist, even if default
+        # Ensure all components exist (should be handled by merge logic ensuring non-None return)
+        # Redundant check, but safe:
         if final_style.layer_props is None: final_style.layer_props = LayerDisplayPropertiesConfig()
         if final_style.text_props is None: final_style.text_props = TextStylePropertiesConfig()
         if final_style.hatch_props is None: final_style.hatch_props = HatchPropertiesConfig()

@@ -106,22 +106,26 @@ AnySourceConfig = Union[
 # --- Operation Configuration Models ---
 class OperationType(str, Enum):
     BUFFER = "buffer"
-    INTERSECTION = "intersection"
-    MERGE = "merge"
-    DISSOLVE = "dissolve"
-    FILTER_BY_ATTRIBUTE = "filter_by_attribute"
     SIMPLIFY = "simplify"
     FIELD_MAPPER = "field_mapper"
     REPROJECT = "reproject"
     CLEAN_GEOMETRY = "clean_geometry"
     EXPLODE_MULTIPART = "explode_multipart"
-    LABEL_PLACEMENT = "label_placement"
-    # ... other operation types to be added
+    INTERSECTION = "intersection"
+    # Add new operation types
+    MERGE = "merge"
+    DISSOLVE = "dissolve"
+    FILTER_BY_ATTRIBUTE = "filter_by_attribute"
 
 class BaseOperationConfig(BaseModel):
     type: OperationType
     # Common fields for all operations, e.g., output_layer_name if applicable
     # output_layer_name: Optional[str] = None
+    source_layer: str = Field(..., description="Name of the source layer to read features from")
+    output_layer_name: Optional[str] = Field(None, description="Name of the output layer. If None, might modify source layer or use a default naming scheme.")
+    enabled: bool = Field(True, description="Whether this operation step is enabled.")
+    # Add a comment explaining this might be used by the processing pipeline
+    # to route output or decide if an operation modifies in-place vs creates new layer.
 
 class BufferOperationConfig(BaseOperationConfig):
     type: Literal[OperationType.BUFFER] = OperationType.BUFFER
@@ -400,3 +404,30 @@ class AppConfig(BaseModel):
 
     class Config:
         validate_assignment = True
+
+# --- New Operation Configs ---
+
+class MergeOperationConfig(BaseOperationConfig):
+    """Configuration for merging all features from the source layer into a single geometry."""
+    # No specific parameters needed beyond base for a simple merge/union
+    pass
+
+class DissolveOperationConfig(BaseOperationConfig):
+    """Configuration for dissolving features based on a common attribute value."""
+    group_by_field: str = Field(..., description="The attribute field name to group features by before dissolving.")
+    # Consider adding options for multi-part output vs single-part, or aggregation functions later
+
+class FilterByAttributeOperationConfig(BaseOperationConfig):
+    """Configuration for filtering features based on an attribute value."""
+    filter_field: str = Field(..., description="The attribute field name to filter on.")
+    filter_value: Any = Field(..., description="The attribute value to match for keeping features.")
+    # Could add options like 'operator' (equals, not_equals, greater_than, etc.) later
+
+# Union type for type hinting
+AnyOperationConfig = Union[
+    BufferOperationConfig, SimplifyOperationConfig, FieldMappingOperationConfig,
+    ReprojectOperationConfig, CleanGeometryOperationConfig, ExplodeMultipartOperationConfig,
+    IntersectionOperationConfig,
+    # Add new configs to the Union
+    MergeOperationConfig, DissolveOperationConfig, FilterByAttributeOperationConfig
+]

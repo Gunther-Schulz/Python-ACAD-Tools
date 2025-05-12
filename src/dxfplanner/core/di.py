@@ -30,14 +30,15 @@ from dxfplanner.services.legend_generation_service import LegendGenerationServic
 # I/O Implementations
 from dxfplanner.io.readers.shapefile_reader import ShapefileReader
 from dxfplanner.io.readers.geojson_reader import GeoJsonReader # Added GeoJsonReader
-# from dxfplanner.io.readers.csv_wkt_reader import CsvWktReader # Placeholder for future
+from dxfplanner.io.readers.csv_wkt_reader import CsvWktReader # Added
 from dxfplanner.io.writers.dxf_writer import DxfWriter
 
 # Operation Implementations
 from dxfplanner.geometry.operations import (
     BufferOperation, SimplifyOperation, FieldMappingOperation,
-    ReprojectOperation, CleanGeometryOperation, ExplodeMultipartOperation
-    # IntersectionOperation, MergeOperation, DissolveOperation etc. when implemented
+    ReprojectOperation, CleanGeometryOperation, ExplodeMultipartOperation,
+    IntersectionOperation # Added
+    # MergeOperation, DissolveOperation etc. when implemented
 )
 
 
@@ -99,16 +100,16 @@ class Container(containers.DeclarativeContainer):
     )
     geojson_reader = providers.Factory(
         GeoJsonReader,
-        app_config=config # GeoJsonReader also takes app_config
+        # app_config=config # Removed app_config dependency from GeoJsonReader in previous step
     )
     # Add other readers here, e.g.:
-    # csv_wkt_reader = providers.Factory(CsvWktReader, app_config=config)
+    csv_wkt_reader = providers.Factory(CsvWktReader) # CsvWktReader has no init args
 
     _geo_data_readers_map_provider = providers.Dict(
         {
             DataSourceType.SHAPEFILE: shapefile_reader,
             DataSourceType.GEOJSON: geojson_reader,
-            # DataSourceType.CSV_WKT: csv_wkt_reader, # When CsvWktReader is ready
+            DataSourceType.CSV_WKT: csv_wkt_reader, # Added CsvWktReader registration
         }
     )
 
@@ -119,6 +120,10 @@ class Container(containers.DeclarativeContainer):
     reproject_operation = providers.Factory(ReprojectOperation)
     clean_geometry_operation = providers.Factory(CleanGeometryOperation)
     explode_multipart_operation = providers.Factory(ExplodeMultipartOperation)
+    intersection_operation = providers.Factory( # Added IntersectionOperation
+        IntersectionOperation,
+        di_container=providers.Self # IntersectionOperation requires the container
+    )
     # ... other operations
     _operations_map_provider = providers.Dict(
         {
@@ -128,6 +133,7 @@ class Container(containers.DeclarativeContainer):
             OperationType.REPROJECT: reproject_operation,
             OperationType.CLEAN_GEOMETRY: clean_geometry_operation,
             OperationType.EXPLODE_MULTIPART: explode_multipart_operation,
+            OperationType.INTERSECTION: intersection_operation, # Added
         }
     )
 
@@ -144,6 +150,8 @@ class Container(containers.DeclarativeContainer):
         app_config=config,
         di_container=providers.Self, # Pass the container itself for resolving readers/ops
         geometry_transformer=geometry_transformer_service,
+        label_placement_service=label_placement_service, # Added ILabelPlacementService injection
+        style_service=style_service, # Added IStyleService injection
         logger=logger # Added logger injection
     )
     pipeline_service = providers.Factory(
