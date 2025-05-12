@@ -32,6 +32,11 @@ import asyncio
 from dependency_injector import containers # For type hinting container
 from collections import defaultdict # Added for grouping features
 
+try:
+    import asteval
+except ImportError:
+    asteval = None # Flag that the library is missing
+
 # Forward declaration for type hinting the container within its own module scope if needed elsewhere
 # Although likely not needed just for operations.py if container is only passed in init.
 # class MainContainer(containers.DeclarativeContainer): pass
@@ -838,7 +843,18 @@ class DissolveOperation(IOperation[DissolveOperationConfig]):
         logger.info(f"{log_prefix}: Completed. Yielded {yielded_count} dissolved features.")
 
 class FilterByAttributeOperation(IOperation[FilterByAttributeOperationConfig]):
-    """Filters features based on an attribute expression."""
+    """Filters features based on an attribute expression using asteval."""
+
+    def __init__(self): # Removed di_container as it's not used here
+        if asteval is None:
+            # Log the error but don't raise an exception during __init__.
+            # The execute method will handle the missing library more gracefully.
+            logger.error("FilterByAttributeOperation: 'asteval' library not found. Filtering will be bypassed. Please install 'asteval'.")
+            self._interpreter = None
+        else:
+            self._interpreter = asteval.Interpreter()
+            # Optional: Configure asteval interpreter further if needed (e.g., max_statements, custom functions)
+            # self._interpreter.symtable['custom_func'] = lambda x: x * 2 # Example
 
     async def execute(
         self,
@@ -846,39 +862,69 @@ class FilterByAttributeOperation(IOperation[FilterByAttributeOperationConfig]):
         config: FilterByAttributeOperationConfig
     ) -> AsyncIterator[GeoFeature]:
         """
-        Executes the filter operation.
-
-        TODO: Implement safe evaluation of config.filter_expression.
-              Direct use of eval() is unsafe. Consider:
-              1. A dedicated safe evaluation library (e.g., asteval, numexpr).
-              2. Parsing a restricted subset of expressions manually.
-              3. Using a structured query format instead of a freeform string.
-              For now, this operation yields all input features unchanged.
-
-        Args:
-            features: An asynchronous iterator of GeoFeature objects to process.
-            config: Configuration including the filter_expression.
-
-        Yields:
-            GeoFeature: An asynchronous iterator of GeoFeature objects that match the filter (currently all features).
+        Executes the filter operation using asteval to evaluate the expression.
         """
-        logger.info(f"Executing FilterByAttributeOperation for source: '{config.source_layer}', output: '{config.output_layer_name}' with filter: '{config.filter_expression}'")
-        # Placeholder implementation - yields all features
-        warning_logged = False
+        log_prefix = f"FilterByAttributeOperation (source: '{config.source_layer}', output: '{config.output_layer_name}', filter: '{config.filter_expression}')"
+        logger.info(f"{log_prefix}: Executing...")
+
+        if self._interpreter is None:
+            logger.error(f"{log_prefix}: 'asteval' library not available. Bypassing filtering and yielding all features.")
+            warning_logged_bypass = False
+            async for feature_bypass in features: # Pass through if lib missing
+                if not warning_logged_bypass:
+                    logger.warning(f"{log_prefix}: Bypassing filter for all features as 'asteval' is not installed.")
+                    warning_logged_bypass = True
+                yield feature_bypass
+            logger.info(f"{log_prefix}: Completed (bypassed).")
+            return
+
+        expression = config.filter_expression
+        if not expression:
+            logger.warning(f"{log_prefix}: Filter expression is empty. Yielding all features.")
+            async for feature_no_expr in features:
+                yield feature_no_expr
+            logger.info(f"{log_prefix}: Completed (empty expression).")
+            return
+
+        yielded_count = 0
+        processed_count = 0
+
         async for feature in features:
-            # --- Actual filter logic would go here ---
-            # Example conceptual steps:
-            # 1. Safely parse config.filter_expression
-            # 2. Evaluate expression against feature.attributes
-            # 3. if expression_evaluates_to_true: yield feature
-            # -----------------------------------------
-            if not warning_logged:
-                 logger.warning(f"FilterByAttributeOperation filter '{config.filter_expression}' is not yet implemented. Yielding all features for layer '{config.source_layer}'.")
-                 warning_logged = True # Log warning only once per execution
+            processed_count += 1
+            try:
+                # Using a new interpreter instance per feature evaluation to ensure a clean symtable,
+                # or clearing the existing one. For simplicity with potential async execution,
+                # creating a new one might be safer if the interpreter is not thread/async-safe
+                # or if complex state could persist. Asteval's Interpreter is generally reusable.
+                # Let's clear the symtable of the shared instance.
+                self._interpreter.symtable.clear()
+                self._interpreter.symtable.update(feature.attributes)
+                # Add common built-ins if not available by default in asteval's minimal set
+                self._interpreter.symtable['True'] = True
+                self._interpreter.symtable['False'] = False
+                self._interpreter.symtable['None'] = None
+                # Add other safe built-ins or math functions if needed e.g. self._interpreter.symtable['sqrt'] = math.sqrt
 
-            yield feature
+                result = self._interpreter.eval(expression)
 
-        logger.info(f"FilterByAttributeOperation completed for source: '{config.source_layer}'. NOTE: Filtering logic is currently bypassed.")
+                if self._interpreter.error:
+                    # Log errors that occurred during evaluation for this feature
+                    errors = self._interpreter.get_error() # Get all errors
+                    self._interpreter.error = [] # Clear errors from the interpreter instance
+                    for err in errors:
+                        logger.warning(f"{log_prefix}: Error evaluating filter for feature (ID: {feature.attributes.get('id', 'N/A')}): {err.get_error()[1]}. Expr: '{expression}'. Attrs: {feature.attributes}")
+                    continue # Skip feature on evaluation error
+
+                if result: # Yield feature if expression evaluates to True
+                    yield feature
+                    yielded_count += 1
+
+            except Exception as e:
+                # This catches errors in the Python code itself, not asteval evaluation errors (handled above)
+                logger.error(f"{log_prefix}: Unexpected Python error during filter processing for feature (ID: {feature.attributes.get('id', 'N/A')}): {e}. Expr: '{expression}'. Attrs: {feature.attributes}", exc_info=True)
+                # Decide whether to skip feature or allow app to stop based on severity
+
+        logger.info(f"{log_prefix}: Completed. Processed: {processed_count}, Yielded: {yielded_count}.")
 
 # --- ADDED PLACEHOLDERS END ---
 
