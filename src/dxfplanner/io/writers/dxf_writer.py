@@ -771,6 +771,8 @@ class DxfWriter(IDxfWriter):
             await self._add_dxf_circle(dxf_entity_model)
         elif isinstance(dxf_entity_model, DxfArc):
             await self._add_dxf_arc(dxf_entity_model)
+        elif isinstance(dxf_entity_model, DxfPolyline): # Added DxfPolyline (heavy)
+            await self._add_dxf_polyline(dxf_entity_model)
         elif isinstance(dxf_entity_model, DxfText): # Simple DxfText (less common than MText now)
             await self._add_dxf_text(dxf_entity_model)
         elif isinstance(dxf_entity_model, DxfInsert): # Block insertions
@@ -854,6 +856,73 @@ class DxfWriter(IDxfWriter):
         )
         self._apply_common_dxf_attributes(lwpolyline, model)
         self.logger.debug(f"Added DxfLWPolyline to layer {model.layer} with {len(points_xy)} points.")
+
+    async def _add_dxf_polyline(self, model: DxfPolyline): # New method for DxfPolyline (heavy)
+        if not self.msp:
+            self.logger.error("Modelspace not available. Cannot add DxfPolyline.")
+            return
+
+        points_3d = [(p.x, p.y, p.z or 0.0) for p in model.points]
+        if len(points_3d) < 2: # A polyline needs at least two points
+            self.logger.warning(
+                f"DxfPolyline for layer {model.layer or 'Default'} has insufficient points ({len(points_3d)}). Skipping."
+            )
+            return
+
+        polyline = self.msp.add_polyline3d(
+            points=points_3d,
+            close=model.is_closed,
+            # dxfattribs can be used for thickness, elevation if DxfPolyline model has them directly
+            # and _apply_common_dxf_attributes doesn't cover them or needs specific handling for POLYLINE
+        )
+        self._apply_common_dxf_attributes(polyline, model)
+        # Note: POLYLINE entity specific attributes like default start/end width, vertex-specific widths,
+        # or curve-fit/spline-fit vertices are not handled by this basic implementation.
+        self.logger.debug(f"Added DxfPolyline to layer {model.layer or 'Default'} with {len(points_3d)} points.")
+
+    async def _add_dxf_circle(self, model: DxfCircle): # New method for DxfCircle
+        if not self.msp:
+            self.logger.error("Modelspace not available. Cannot add DxfCircle.")
+            return
+
+        center_3d = (model.center.x, model.center.y, model.center.z or 0.0)
+
+        if model.radius <= 0:
+            self.logger.warning(
+                f"DxfCircle for layer {model.layer or 'Default'} has invalid radius ({model.radius}). Skipping."
+            )
+            return
+
+        circle = self.msp.add_circle(
+            center=center_3d,
+            radius=model.radius,
+        )
+        self._apply_common_dxf_attributes(circle, model)
+        # Note: CIRCLE thickness can be applied via common attributes if model.thickness is populated
+        self.logger.debug(f"Added DxfCircle to layer {model.layer or 'Default'} with radius {model.radius}.")
+
+    async def _add_dxf_arc(self, model: DxfArc): # New method for DxfArc
+        if not self.msp:
+            self.logger.error("Modelspace not available. Cannot add DxfArc.")
+            return
+
+        center_3d = (model.center.x, model.center.y, model.center.z or 0.0)
+
+        if model.radius <= 0:
+            self.logger.warning(
+                f"DxfArc for layer {model.layer or 'Default'} has invalid radius ({model.radius}). Skipping."
+            )
+            return
+
+        arc = self.msp.add_arc(
+            center=center_3d,
+            radius=model.radius,
+            start_angle=model.start_angle,
+            end_angle=model.end_angle,
+        )
+        self._apply_common_dxf_attributes(arc, model)
+        # Note: ARC thickness can be applied via common attributes if model.thickness is populated
+        self.logger.debug(f"Added DxfArc to layer {model.layer or 'Default'} with radius {model.radius}.")
 
     async def _add_dxf_mtext(self, model: DxfMText):
         if not self.msp: return
