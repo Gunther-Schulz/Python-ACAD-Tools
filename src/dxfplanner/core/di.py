@@ -77,7 +77,9 @@ class Container(containers.DeclarativeContainer):
 
     attribute_mapper_service = providers.Factory(
         AttributeMappingService,
-        config=config.services.attribute_mapping # AttributeMappingService now takes its specific config
+        config=config.services.attribute_mapping, # AttributeMappingService now takes its specific config
+        dxf_writer_config=config.io.writers.dxf, # ADDED
+        logger_in=logger                         # ADDED
     )
 
     label_placement_service = providers.Factory(
@@ -99,14 +101,20 @@ class Container(containers.DeclarativeContainer):
     # --- I/O Readers ---
     shapefile_reader = providers.Factory(
         ShapefileReader,
-        app_config=config # ShapefileReader now takes app_config
+        config=config.io.readers.shapefile, # Pass specific config
+        logger=logger                       # Pass logger
     )
     geojson_reader = providers.Factory(
         GeoJsonReader,
-        # app_config=config # Removed app_config dependency from GeoJsonReader in previous step
+        config=config.io.readers.geojson, # Pass specific config
+        logger=logger                      # Pass logger
     )
     # Add other readers here, e.g.:
-    csv_wkt_reader = providers.Factory(CsvWktReader) # CsvWktReader has no init args
+    csv_wkt_reader = providers.Factory(
+        CsvWktReader,
+        config=config.io.readers.csv_wkt, # Pass specific config
+        logger=logger                     # Pass logger
+    )
 
     _geo_data_readers_map_provider = providers.Dict(
         {
@@ -132,11 +140,6 @@ class Container(containers.DeclarativeContainer):
     dissolve_operation = providers.Factory(DissolveOperation)
     filter_by_attribute_operation = providers.Factory(FilterByAttributeOperation)
     # ADDED LABEL PLACEMENT FACTORY:
-    label_placement_operation = providers.Factory(
-        LabelPlacementOperation,
-        style_service=style_service, # Injected StyleService
-        logger_param=logger          # Injected logger
-    )
 
     # ... other operations
     _operations_map_provider = providers.Dict(
@@ -153,7 +156,11 @@ class Container(containers.DeclarativeContainer):
             OperationType.DISSOLVE: dissolve_operation,
             OperationType.FILTER_BY_ATTRIBUTE: filter_by_attribute_operation,
             # ADDED LABEL PLACEMENT REGISTRATION:
-            OperationType.LABEL_PLACEMENT: label_placement_operation,
+            OperationType.LABEL_PLACEMENT: providers.Factory(
+                LabelPlacementOperation,
+                label_placement_service=label_placement_service,
+                style_service=style_service
+            ),
         }
     )
 
@@ -198,7 +205,8 @@ class Container(containers.DeclarativeContainer):
         LegendGenerationService,
         config=config,
         logger=logger,
-        dxf_writer=dxf_writer
+        dxf_writer=dxf_writer,
+        style_service=style_service, # Added style_service injection
     )
 
     # --- Resolver methods (part of the container's public API if needed elsewhere) ---

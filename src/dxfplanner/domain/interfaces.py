@@ -9,7 +9,7 @@ from .models.dxf_models import DxfEntity, DxfLayer, AnyDxfEntity # Added AnyDxfE
 from ..config.schemas import (
     LayerConfig, BaseOperationConfig, LayerDisplayPropertiesConfig,
     TextStylePropertiesConfig, HatchPropertiesConfig, StyleObjectConfig, # Added StyleObjectConfig
-    LabelSettings # Changed from LabelPlacementConfig
+    LabelSettings, LabelPlacementOperationConfig # Added LabelPlacementOperationConfig
 )
 
 # Generic type for path-like objects, often used for file paths
@@ -264,6 +264,7 @@ class ILabelPlacementService(Protocol):
         features: AsyncIterator[GeoFeature],
         layer_name: str,
         config: LabelSettings, # Changed from LabelPlacementConfig
+        text_style_properties: TextStylePropertiesConfig, # ADDED
         # TODO: Consider adding parameters for existing_placed_labels and avoidance_geometries
         # if iterative placement or external avoidance areas are needed.
     ) -> AsyncIterator[PlacedLabel]:
@@ -273,7 +274,8 @@ class ILabelPlacementService(Protocol):
         Args:
             features: An asynchronous iterator of GeoFeature objects to be labeled.
             layer_name: The name of the layer these features belong to, for context.
-            config: Configuration specific to this label placement task.
+            config: Configuration specific to this label placement task (LabelSettings).
+            text_style_properties: The resolved text style properties for the labels. # ADDED
 
         Yields:
             PlacedLabel: An asynchronous iterator of PlacedLabel objects.
@@ -413,5 +415,21 @@ class IStyleService(Protocol):
         If style_reference is None or doesn't yield hatch_props, and layer_config_fallback is provided,
         it attempts to find hatch_props within the style resolved from layer_config_fallback.
         Returns a HatchPropertiesConfig with default values if no specific properties are found.
+        """
+        ...
+
+    def get_resolved_style_for_label_operation(
+        self, config: LabelPlacementOperationConfig
+    ) -> TextStylePropertiesConfig:
+        """
+        Resolves the TextStylePropertiesConfig for labels based on LabelPlacementOperationConfig.
+        Considers text_style_preset_name and text_style_inline within config.label_settings.
+        """
+        ...
+
+    def get_resolved_feature_style(self, geo_feature: GeoFeature, layer_config: LayerConfig) -> StyleObjectConfig:
+        """
+        Resolves the StyleObjectConfig for a given GeoFeature based on the LayerConfig,
+        applying feature-specific style rules.
         """
         ...

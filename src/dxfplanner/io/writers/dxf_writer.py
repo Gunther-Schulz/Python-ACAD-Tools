@@ -18,6 +18,30 @@ from dxfplanner.core.exceptions import DxfWriteError
 from dxfplanner.config.schemas import AppConfig, ColorModel, LayerDisplayPropertiesConfig, TextStylePropertiesConfig, HatchPropertiesConfig # Added HatchPropertiesConfig
 from dxfplanner.services.style_service import StyleService, StyleObjectConfig # For resolving layer styles
 from dxfplanner.core.logging_config import get_logger
+from dxfplanner.services.attribute_mapping_service import AttributeMappingService
+from dxfplanner.services.coordinate_service import CoordinateService
+from dxfplanner.domain.models.common import (\
+    DXFAttribs,\
+    ColorModel,\
+    AnyGeometry,\
+)
+from dxfplanner.domain.models.geo_models import (\
+    GeoFeature,\
+    PointGeo,\
+    PolylineGeo,\
+    PolygonGeo,\
+    MultiPointGeo,\
+    MultiPolylineGeo,\
+    MultiPolygonGeo,\
+    GeometryCollectionGeo,\
+    AnyGeoGeometry\
+)
+from dxfplanner.config.schemas import (\
+    DxfWriterConfig,\
+    LayerConfig,\
+    OperationsConfig,\
+    StyleObjectConfig, LayerDisplayPropertiesConfig, TextStylePropertiesConfig, HatchPropertiesConfig \
+)
 
 # Need BoundingBoxModel from domain models for return type
 from dxfplanner.domain.models.common import BoundingBox as BoundingBoxModel
@@ -27,16 +51,28 @@ logger = get_logger(__name__)
 class DxfWriter(IDxfWriter):
     """Writes DXF entities to a .dxf file using ezdxf library."""
 
-    def __init__(self, app_config: AppConfig, style_service: StyleService):
-        self._app_config = app_config
-        self._writer_config = app_config.io.writers.dxf
-        self._style_service = style_service
-        # For ezdxf < 0.17
-        # ezdxf.options.set(template_dir=ezdxf.EZDXF_TEST_FILES)
+    def __init__(
+        self,
+        config: DxfWriterConfig,
+        app_config: AppConfig,
+        coord_service: CoordinateService,
+        attr_mapping_service: AttributeMappingService,
+        style_service: StyleService,
+        geometry_transformer: IGeometryTransformer
+    ):
+        self.config = config
+        self.app_config = app_config
+        self.coord_service = coord_service
+        self.attr_mapping_service = attr_mapping_service
+        self.style_service = style_service
+        self.geometry_transformer = geometry_transformer
+        self.logger = get_logger(__name__)
+        self.doc: Optional[ezdxf.document.Drawing] = None
+        self.msp: Optional[ezdxf.layouts.Modelspace] = None
 
     def _attach_writer_xdata(self, entity: ezdxf.entity.DXFEntity) -> None:
         """Attaches standard XDATA to an entity to identify it as writer-processed."""
-        app_id = self._writer_config.xdata_application_name
+        app_id = self.config.xdata_application_name
         if not app_id:
             logger.debug("XDATA application name not configured. Skipping XDATA attachment.")
             return
@@ -53,8 +89,8 @@ class DxfWriter(IDxfWriter):
 
     def _setup_document_properties(self, doc: ezdxf.document.Drawing) -> None:
         """Sets DXF header variables from configuration."""
-        if self._writer_config.document_properties:
-            for key, value in self._writer_config.document_properties.items():
+        if self.config.document_properties:
+            for key, value in self.config.document_properties.items():
                 header_var_name = f"${key.upper()}"
                 try:
                     doc.header[header_var_name] = value
@@ -64,15 +100,15 @@ class DxfWriter(IDxfWriter):
 
         # Ensure drawing units are set (example, can be part of document_properties)
         # Defaulting to millimeters if not specified in document_properties
-        if "$INSUNITS" not in doc.header and ("INSUNITS" not in (self._writer_config.document_properties or {})):
+        if "$INSUNITS" not in doc.header and ("INSUNITS" not in (self.config.document_properties or {})):
              doc.header['$INSUNITS'] = InsertUnits.Millimeters # Default to Millimeters
              logger.debug(f"Set default DXF header variable: $INSUNITS = {InsertUnits.Millimeters}")
 
 
     def _create_text_styles(self, doc: ezdxf.document.Drawing) -> None:
         """Creates text styles in the DXF document from configuration."""
-        if self._writer_config.defined_text_styles:
-            for style_name, style_config in self._writer_config.defined_text_styles.items():
+        if self.config.defined_text_styles:
+            for style_name, style_config in self.config.defined_text_styles.items():
                 if style_name not in doc.styles:
                     try:
                         style_attribs = {'font': style_config.font}
@@ -125,7 +161,7 @@ class DxfWriter(IDxfWriter):
         """Handles loading an existing DXF, a template, or creating a new document."""
         doc: Optional[ezdxf.document.Drawing] = None
         msp: Optional[ezdxf.layouts.Modelspace] = None
-        app_id = self._writer_config.xdata_application_name
+        app_id = self.config.xdata_application_name
 
         if file_path.exists() and file_path.is_file():
             logger.info(f"Output file {file_path} exists. Attempting to load and update.")
@@ -165,8 +201,8 @@ class DxfWriter(IDxfWriter):
                 raise DxfWriteError(f"Failed to load existing DXF file: {file_path}. Error: {e_load_generic}")
         else:
             logger.info(f"Output file {file_path} does not exist.")
-            if self._writer_config.template_file:
-                p_template_path = Path(self._writer_config.template_file)
+            if self.config.template_file:
+                p_template_path = Path(self.config.template_file)
                 if p_template_path.exists() and p_template_path.is_file():
                     logger.info(f"Attempting to load from template file: {p_template_path}")
                     try:
@@ -178,330 +214,16 @@ class DxfWriter(IDxfWriter):
                     except Exception as e_tmpl_load_generic:
                         logger.error(f"An unexpected error occurred while loading template DXF {p_template_path}: {e_tmpl_load_generic}. Proceeding to create a new DXF.", exc_info=True)
                 else:
-                    logger.warning(f"Template file '{self._writer_config.template_file}' not found or is not a file. Proceeding to create a new DXF.")
+                    logger.warning(f"Template file '{self.config.template_file}' not found or is not a file. Proceeding to create a new DXF.")
             else:
                 logger.info("No template file configured. Proceeding to create a new DXF.")
 
         if doc is None or msp is None:
-            logger.info(f"Creating a new DXF document for version {self._writer_config.target_dxf_version}.")
-            doc = ezdxf.new(dxfversion=self._writer_config.target_dxf_version)
+            logger.info(f"Creating a new DXF document for version {self.config.target_dxf_version}.")
+            doc = ezdxf.new(dxfversion=self.config.target_dxf_version)
             msp = doc.modelspace()
 
         return doc, msp
-
-    async def _process_and_add_entities(
-        self,
-        doc: ezdxf.document.Drawing,
-        msp: ezdxf.layouts.Modelspace,
-        entities_by_layer_config: Dict[str, Tuple[LayerConfig, AsyncIterator[AnyDxfEntity]]]
-    ) -> None:
-        """Creates layers and processes all entities, adding them to the modelspace."""
-        # Create layers from AppConfig LayerConfigs that are enabled
-        active_layer_configs = {name: data[0] for name, data in entities_by_layer_config.items()}
-
-        for layer_name, layer_cfg in active_layer_configs.items():
-            if not layer_cfg.enabled:
-                logger.debug(f"Skipping disabled layer: {layer_cfg.name}")
-                continue
-
-            resolved_style: StyleObjectConfig = self._style_service.get_resolved_layer_style(layer_cfg)
-            layer_dxf_attrs: Dict[str, Any] = {"name": layer_cfg.name}
-
-            if resolved_style.layer_props:
-                lp_cfg: LayerDisplayPropertiesConfig = resolved_style.layer_props
-                aci_color = self._convert_color_model_to_aci(lp_cfg.color)
-                if aci_color is not None:
-                    layer_dxf_attrs['color'] = aci_color
-                if lp_cfg.linetype and lp_cfg.linetype.upper() != "BYLAYER":
-                    layer_dxf_attrs['linetype'] = lp_cfg.linetype
-                if lp_cfg.lineweight >= 0: # Valid ACI lineweights are 0-211 for mm * 100
-                    layer_dxf_attrs['lineweight'] = lp_cfg.lineweight
-                layer_dxf_attrs['plot'] = lp_cfg.plot
-                # Transparency for layers: ezdxf Layer object has .transparency (0.0 to 1.0)
-                # layer_object.transparency = lp_cfg.transparency (after layer creation)
-
-            if layer_cfg.name not in doc.layers:
-                logger.debug(f"Adding layer to DXF: {layer_cfg.name} with attribs {layer_dxf_attrs}")
-                dxf_layer = doc.layers.add(**layer_dxf_attrs) # type: ignore
-                if resolved_style.layer_props and hasattr(dxf_layer, 'transparency'): # ezdxf >= 0.17
-                     dxf_layer.transparency = resolved_style.layer_props.transparency
-            else:
-                logger.warning(f"Layer {layer_cfg.name} already exists in DXF doc. Skipping re-creation.")
-
-        # Placeholder for Text Style creation from AppConfig style_presets and LayerConfig label styles
-        # This needs to happen before entities that might reference them are created.
-        # Example: for name, style_obj_cfg in self._app_config.style_presets.items():
-        # if style_obj_cfg.text_props: create_ezdxf_text_style(doc, name, style_obj_cfg.text_props)
-
-        # Process entities for each layer
-        for layer_name, (layer_cfg, entity_iter) in entities_by_layer_config.items():
-            if not layer_cfg.enabled:
-                continue
-
-            logger.debug(f"Writing entities for layer: {layer_cfg.name}")
-            async for entity_model in entity_iter:
-                entity_dxf_attribs: Dict[str, Any] = {"layer": entity_model.layer}
-
-                # Direct entity property overrides
-                if entity_model.color_256 is not None:
-                    entity_dxf_attribs['color'] = entity_model.color_256
-                # Add other direct properties from DxfEntity if they exist (e.g., linetype)
-                if entity_model.linetype and entity_model.linetype.upper() != "BYLAYER":
-                    entity_dxf_attribs['linetype'] = entity_model.linetype
-
-                # More advanced styling (e.g., applying resolved layer style if entity props are None)
-                # will be part of a later enhancement phase.
-
-                if isinstance(entity_model, DxfLine):
-                    dxf_entity = msp.add_line(
-                        start=entity_model.start.to_tuple(),
-                        end=entity_model.end.to_tuple(),
-                        dxfattribs=entity_dxf_attribs
-                    )
-                    self._attach_writer_xdata(dxf_entity)
-                elif isinstance(entity_model, DxfLWPolyline):
-                    # ezdxf LWPOLYLINE points are (x, y, [start_width, [end_width, [bulge]]])
-                    # Our Coordinate model is (x,y,z). For now, just use x,y.
-                    points = [(c.x, c.y) for c in entity_model.points]
-                    dxf_entity = msp.add_lwpolyline(
-                        points=points,
-                        format='xy', # explicit for clarity
-                        close=entity_model.is_closed,
-                        dxfattribs=entity_dxf_attribs
-                    )
-                    self._attach_writer_xdata(dxf_entity)
-                elif isinstance(entity_model, DxfText):
-                    # Basic text support. Style resolution and MTEXT will be more complex.
-                    if hasattr(entity_model, 'style') and entity_model.style:
-                         entity_dxf_attribs['style'] = entity_model.style
-                    else: # Default to configured default style name
-                         entity_dxf_attribs['style'] = self._writer_config.default_text_style_name
-
-                    dxf_text_entity = msp.add_text(
-                        text=entity_model.text_content,
-                        height=entity_model.height,
-                        dxfattribs=entity_dxf_attribs
-                    )
-                    # Ensure placement is set for TEXT, especially if alignment is involved
-                    # DxfText model currently has rotation, but ezdxf add_text takes it in dxfattribs.
-                    # For simplicity, current DxfText model has rotation, style. Writer uses them.
-                    # Actual alignment (halign, valign) would need more fields in DxfText and mapping here.
-                    dxf_text_entity.set_placement(
-                        insert=entity_model.insertion_point.to_tuple(),
-                        align=ezdxf_const.TEXT_ALIGN_LEFT # Defaulting, make configurable/part of DxfText model
-                    )
-                    if entity_model.rotation is not None and entity_model.rotation != 0.0 : # TEXT rotation
-                        dxf_text_entity.dxf.rotation = entity_model.rotation
-
-                    self._attach_writer_xdata(dxf_text_entity)
-                elif isinstance(entity_model, DxfMText):
-                    mtext_attribs = entity_dxf_attribs.copy() # Start with generic entity attribs (layer, color)
-
-                    mtext_attribs['insert'] = entity_model.insertion_point.to_tuple()
-                    mtext_attribs['char_height'] = entity_model.char_height
-
-                    if entity_model.style:
-                        mtext_attribs['style'] = entity_model.style
-                    else:
-                        mtext_attribs['style'] = self._writer_config.default_text_style_name
-
-                    if entity_model.width is not None: # MTEXT width of text box
-                        mtext_attribs['width'] = entity_model.width
-                    if entity_model.rotation is not None: # MTEXT rotation
-                        mtext_attribs['rotation'] = entity_model.rotation
-
-                    # Attachment point mapping
-                    if entity_model.attachment_point:
-                        ap_map = {
-                            'TOP_LEFT': ezdxf_const.MTEXT_TOP_LEFT, 'TOP_CENTER': ezdxf_const.MTEXT_TOP_CENTER, 'TOP_RIGHT': ezdxf_const.MTEXT_TOP_RIGHT,
-                            'MIDDLE_LEFT': ezdxf_const.MTEXT_MIDDLE_LEFT, 'MIDDLE_CENTER': ezdxf_const.MTEXT_MIDDLE_CENTER, 'MIDDLE_RIGHT': ezdxf_const.MTEXT_MIDDLE_RIGHT,
-                            'BOTTOM_LEFT': ezdxf_const.MTEXT_BOTTOM_LEFT, 'BOTTOM_CENTER': ezdxf_const.MTEXT_BOTTOM_CENTER, 'BOTTOM_RIGHT': ezdxf_const.MTEXT_BOTTOM_RIGHT,
-                        }
-                        mtext_attribs['attachment_point'] = ap_map.get(entity_model.attachment_point)
-
-                    # Flow direction mapping
-                    if entity_model.flow_direction:
-                        fd_map = {
-                            'LEFT_TO_RIGHT': ezdxf_const.MTEXT_LEFT_TO_RIGHT,
-                            'TOP_TO_BOTTOM': ezdxf_const.MTEXT_TOP_TO_BOTTOM,
-                            'BY_STYLE': ezdxf_const.MTEXT_BY_STYLE
-                        }
-                        mtext_attribs['flow_direction'] = fd_map.get(entity_model.flow_direction)
-
-                    # Line spacing style mapping
-                    if entity_model.line_spacing_style:
-                        lss_map = {
-                            'AT_LEAST': ezdxf_const.MTEXT_AT_LEAST,
-                            'EXACT': ezdxf_const.MTEXT_EXACT
-                        }
-                        mtext_attribs['line_spacing_style'] = lss_map.get(entity_model.line_spacing_style)
-
-                    if entity_model.line_spacing_factor is not None:
-                        mtext_attribs['line_spacing_factor'] = entity_model.line_spacing_factor
-
-                    # Background fill - simple boolean for now
-                    if entity_model.bg_fill_enabled is not None:
-                        mtext_attribs['bg_fill'] = entity_model.bg_fill_enabled
-                        if entity_model.bg_fill_enabled:
-                            # By default, ezdxf uses current drawing background color for MASK
-                            # and specific color for BG_FILL (non-mask).
-                            # More complex bg color/scale/transparency can be added if DxfMText model supports it.
-                            pass
-
-
-                    dxf_mtext_entity = msp.add_mtext(text=entity_model.text_content, dxfattribs=mtext_attribs)
-                    self._attach_writer_xdata(dxf_mtext_entity)
-                elif isinstance(entity_model, DxfHatch):
-                    hatch_base_attribs = entity_dxf_attribs.copy()
-
-                    # Map DxfHatch.hatch_style_enum to ezdxf.const values
-                    h_style_map = {
-                        'NORMAL': ezdxf_const.HATCH_STYLE_NORMAL,
-                        'OUTERMOST': ezdxf_const.HATCH_STYLE_OUTERMOST,
-                        'IGNORE': ezdxf_const.HATCH_STYLE_IGNORE,
-                    }
-                    hatch_base_attribs['hatch_style'] = h_style_map.get(entity_model.hatch_style_enum, ezdxf_const.HATCH_STYLE_NORMAL)
-
-                    # Associativity - directly from model
-                    hatch_base_attribs['associative'] = entity_model.associative
-
-                    # Color is already in entity_dxf_attribs if set on model, otherwise ByLayer
-                    # Layer is already in entity_dxf_attribs
-
-                    dxf_hatch = msp.add_hatch(dxfattribs=hatch_base_attribs)
-
-                    # Set pattern
-                    if entity_model.pattern_name:
-                        try:
-                            dxf_hatch.set_pattern_fill(
-                                name=entity_model.pattern_name,
-                                scale=entity_model.pattern_scale,
-                                angle=entity_model.pattern_angle
-                            )
-                            logger.debug(f"Set HATCH pattern: {entity_model.pattern_name}, scale: {entity_model.pattern_scale}, angle: {entity_model.pattern_angle}")
-                        except Exception as e:
-                            logger.warning(f"Failed to set HATCH pattern '{entity_model.pattern_name}': {e}. Defaulting to SOLID.")
-                            dxf_hatch.set_pattern_fill("SOLID") # Fallback to SOLID
-
-                    # Set transparency
-                    if entity_model.transparency is not None:
-                        dxf_hatch.transparency = entity_model.transparency
-                        logger.debug(f"Set HATCH transparency: {entity_model.transparency}")
-
-                    # Add boundary paths
-                    if not entity_model.paths:
-                        logger.warning(f"DxfHatch entity for layer {entity_model.layer} has no boundary paths. Skipping hatch path addition.")
-                    else:
-                        for path_model in entity_model.paths:
-                            if len(path_model.vertices) < 2:
-                                logger.warning(f"Skipping HATCH path for layer {entity_model.layer} with < 2 vertices.")
-                                continue
-
-                            path_vertices_2d = [(v.x, v.y) for v in path_model.vertices]
-                            try:
-                                # ezdxf add_polyline_path uses flags: 1=External, 2=Polyline, 16=Derived, etc.
-                                # Default flags (ezdxf auto-detects external/outer based on order for simple cases)
-                                # For simplicity, using is_closed to guide polyline nature.
-                                # ezdxf default for flags is HATCH_PATH_EXTERNAL (1) if is_closed is True, plus HATCH_PATH_POLYLINE (2 if detected as polyline)
-                                # For a simple polyline path, flags are typically (1 | 2) = 3 if it's an external boundary.
-                                # We are not providing explicit flags from model, ezdxf handles it.
-                                path = dxf_hatch.paths.add_polyline_path(
-                                    path_vertices_2d,
-                                    is_closed=path_model.is_closed
-                                    # flags can be specified if DxfHatchPath model had them
-                                )
-                                logger.debug(f"Added HATCH polyline path with {len(path_vertices_2d)} vertices.")
-                            except Exception as e:
-                                logger.error(f"Failed to add HATCH boundary path for layer {entity_model.layer}: {e}", exc_info=True)
-
-                    self._attach_writer_xdata(dxf_hatch)
-                elif isinstance(entity_model, DxfInsert):
-                    insert_attribs = entity_dxf_attribs.copy()
-                    insert_point_tuple = entity_model.insertion_point.to_tuple()
-
-                    # Check if block definition exists
-                    if entity_model.block_name not in doc.blocks:
-                        logger.error(f"Block definition '{entity_model.block_name}' not found in DXF document. Skipping INSERT entity on layer '{entity_model.layer}'.")
-                        continue # Skip this entity
-
-                    insert_attribs['xscale'] = entity_model.x_scale
-                    insert_attribs['yscale'] = entity_model.y_scale
-                    insert_attribs['zscale'] = entity_model.z_scale
-                    insert_attribs['rotation'] = entity_model.rotation
-                    # Layer and Color are already in insert_attribs from entity_dxf_attribs
-
-                    try:
-                        dxf_insert_entity = msp.add_blockref(
-                            name=entity_model.block_name,
-                            insert=insert_point_tuple,
-                            dxfattribs=insert_attribs
-                        )
-                        logger.debug(f"Added INSERT for block '{entity_model.block_name}' at {insert_point_tuple} with scale {entity_model.x_scale},{entity_model.y_scale},{entity_model.z_scale} and rotation {entity_model.rotation}.")
-                        self._attach_writer_xdata(dxf_insert_entity)
-                    except Exception as e:
-                        logger.error(f"Failed to add INSERT for block '{entity_model.block_name}' on layer '{entity_model.layer}': {e}", exc_info=True)
-
-                # Add other entity types (DxfCircle, DxfArc) here
-                elif isinstance(entity_model, DxfCircle):
-                    # Basic Circle support
-                    # DxfCircle model needs: center (Coordinate), radius (float)
-                    try:
-                        dxf_circle_entity = msp.add_circle(
-                            center=entity_model.center.to_tuple_xy(), # Assuming DxfCircle.center: Coordinate
-                            radius=entity_model.radius,            # Assuming DxfCircle.radius: float
-                            dxfattribs=entity_dxf_attribs
-                        )
-                        self._attach_writer_xdata(dxf_circle_entity)
-                        logger.debug(f"Added Circle on layer {entity_model.layer} at {entity_model.center.to_tuple_xy()} R={entity_model.radius}")
-                    except AttributeError as ae:
-                        logger.error(f"DxfCircle model for layer {entity_model.layer} is missing attributes (e.g., center, radius): {ae}. Skipping Circle.")
-                    except Exception as e:
-                        logger.error(f"Failed to add Circle on layer '{entity_model.layer}': {e}", exc_info=True)
-
-                elif isinstance(entity_model, DxfArc):
-                    # Basic Arc support
-                    # DxfArc model needs: center (Coordinate), radius (float), start_angle (float), end_angle (float)
-                    try:
-                        dxf_arc_entity = msp.add_arc(
-                            center=entity_model.center.to_tuple_xy(), # Assuming DxfArc.center: Coordinate
-                            radius=entity_model.radius,            # Assuming DxfArc.radius: float
-                            start_angle=entity_model.start_angle,  # Assuming DxfArc.start_angle: float (degrees)
-                            end_angle=entity_model.end_angle,      # Assuming DxfArc.end_angle: float (degrees)
-                            dxfattribs=entity_dxf_attribs
-                        )
-                        self._attach_writer_xdata(dxf_arc_entity)
-                        logger.debug(f"Added Arc on layer {entity_model.layer} at {entity_model.center.to_tuple_xy()} R={entity_model.radius} Ang={entity_model.start_angle}-{entity_model.end_angle}")
-                    except AttributeError as ae:
-                        logger.error(f"DxfArc model for layer {entity_model.layer} is missing attributes (e.g., center, radius, angles): {ae}. Skipping Arc.")
-                    except Exception as e:
-                        logger.error(f"Failed to add Arc on layer '{entity_model.layer}': {e}", exc_info=True)
-
-                elif isinstance(entity_model, DxfPolyline):
-                    # Basic 3D Polyline support (POLYLINE entity, not LWPOLYLINE)
-                    # DxfPolyline model needs: points (List[Coordinate])
-                    try:
-                        # ezdxf add_polyline3d takes a list of (x,y,z) tuples
-                        points_3d = [p.to_tuple() for p in entity_model.points]
-                        if len(points_3d) < 2:
-                            logger.warning(f"Skipping DxfPolyline on layer {entity_model.layer} with < 2 points.")
-                            continue
-
-                        dxf_polyline_entity = msp.add_polyline3d(
-                            points=points_3d,
-                            dxfattribs=entity_dxf_attribs
-                        )
-                        # For POLYLINE, is_closed is a flag in dxfattribs or set via polyline_entity.close(True)
-                        if entity_model.is_closed:
-                            dxf_polyline_entity.close(True)
-
-                        self._attach_writer_xdata(dxf_polyline_entity)
-                        logger.debug(f"Added 3D Polyline on layer {entity_model.layer} with {len(points_3d)} points.")
-                    except AttributeError as ae:
-                        logger.error(f"DxfPolyline model for layer {entity_model.layer} is missing attributes (e.g., points): {ae}. Skipping Polyline.")
-                    except Exception as e:
-                        logger.error(f"Failed to add 3D Polyline on layer '{entity_model.layer}': {e}", exc_info=True)
-                else:
-                    logger.warning(f"Unsupported DxfEntity type: {type(entity_model)}. Skipping.")
 
     async def write_drawing(
         self,
@@ -521,34 +243,26 @@ class DxfWriter(IDxfWriter):
 
         doc: Optional[ezdxf.document.Drawing] = None
         msp: Optional[ezdxf.layouts.Modelspace] = None
-        # app_id = self._writer_config.xdata_application_name # Moved to _get_or_create_document
 
         try:
-            # Logic for loading existing file, template, or creating new is moved to _get_or_create_document
             doc, msp = await self._get_or_create_document(p_output_path)
 
-            # Ensure document is set up (these methods are idempotent or check existence)
             self._setup_document_properties(doc)
             self._create_text_styles(doc)
+            await self._setup_drawing_resources() # Call to setup self.doc, self.msp, and configured layers
 
-            # Create layers from AppConfig LayerConfigs that are enabled
-            # active_layer_configs = {name: data[0] for name, data in entities_by_layer_config.items()} # MOVED
+            # NEW ENTITY PROCESSING LOOP:
+            # Replaces the call to _process_and_add_entities
+            for layer_name, (layer_cfg, entity_iter) in entities_by_layer_config.items():
+                if not layer_cfg.enabled:
+                    self.logger.debug(f"Skipping disabled layer: {layer_cfg.name}")
+                    continue
 
-            # for layer_name, layer_cfg in active_layer_configs.items(): # MOVED
-            #     if not layer_cfg.enabled: # MOVED
-            #         logger.debug(f"Skipping disabled layer: {layer_cfg.name}") # MOVED
-            #         continue # MOVED
-            # # ... entire layer creation loop MOVED to _process_and_add_entities
+                self.logger.debug(f"Processing entities for layer: {layer_cfg.name}")
+                async for entity_model in entity_iter:
+                    await self._add_dxf_entity_to_msp(entity_model) # This uses self.doc and self.msp
 
-            # Process entities for each layer # MOVED
-            # for layer_name, (layer_cfg, entity_iter) in entities_by_layer_config.items(): # MOVED
-            #     if not layer_cfg.enabled: # MOVED
-            #         continue # MOVED
-            # # ... entire entity processing loop MOVED to _process_and_add_entities
-
-            await self._process_and_add_entities(doc, msp, entities_by_layer_config)
-
-            if self._writer_config.audit_on_save:
+            if self.config.audit_on_save:
                 try:
                     logger.debug("Performing DXF document audit before saving.")
                     doc.audit() # Audit the document
@@ -574,7 +288,7 @@ class DxfWriter(IDxfWriter):
         legend_id: str
     ) -> None:
         logger.debug(f"Attempting to clear legend content for legend_id: {legend_id}")
-        if not self._writer_config.xdata_application_name:
+        if not self.config.xdata_application_name:
             logger.warning("XDATA application name not configured. Cannot clear legend content by XDATA.")
             return
 
@@ -582,7 +296,7 @@ class DxfWriter(IDxfWriter):
         # Construct the expected prefix for XDATA legend item tags for this specific legend_id
         # This matches the prefixing strategy in LegendGenerationService
         expected_xdata_tag_prefix = f"legend_{legend_id}_"
-        app_id = self._writer_config.xdata_application_name
+        app_id = self.config.xdata_application_name
 
         for entity in msp: # Iterate through all entities in modelspace
             try:
@@ -663,8 +377,8 @@ class DxfWriter(IDxfWriter):
         try:
             dxfattribs = {
                 'layer': layer_name,
-                'style': style_config.font or self._writer_config.default_text_style_name,
-                'char_height': style_config.height or self._writer_config.default_text_height or 1.0,
+                'style': style_config.font or self.config.default_text_style_name,
+                'char_height': style_config.height or self.config.default_text_height or 1.0,
             }
             if max_width is not None and max_width > 0:
                 dxfattribs['width'] = max_width
@@ -730,8 +444,8 @@ class DxfWriter(IDxfWriter):
                 logger.debug("RGB background fill color for MTEXT requested, direct ezdxf handling depends on version/type of fill.")
 
             self._attach_writer_xdata(mtext_entity)
-            if legend_item_id and self._writer_config.xdata_application_name:
-                mtext_entity.set_xdata(self._writer_config.xdata_application_name, [(1000, "legend_item"), (1000, legend_item_id)])
+            if legend_item_id and self.config.xdata_application_name:
+                mtext_entity.set_xdata(self.config.xdata_application_name, [(1000, "legend_item"), (1000, legend_item_id)])
 
             # Calculate actual height - this is non-trivial for MTEXT due to wrapping and line spacing.
             # ezdxf's bbox calculation is the most reliable way.
@@ -824,8 +538,8 @@ class DxfWriter(IDxfWriter):
                 lwpolyline.rgb = entity_rgb
 
             self._attach_writer_xdata(lwpolyline)
-            if legend_item_id and self._writer_config.xdata_application_name:
-                lwpolyline.set_xdata(self._writer_config.xdata_application_name, [(1000, "legend_item"), (1000, legend_item_id)])
+            if legend_item_id and self.config.xdata_application_name:
+                lwpolyline.set_xdata(self.config.xdata_application_name, [(1000, "legend_item"), (1000, legend_item_id)])
             return lwpolyline
         except Exception as e:
             logger.error(f"Error adding LWPOLYLINE: {e}", exc_info=True)
@@ -885,9 +599,19 @@ class DxfWriter(IDxfWriter):
                 else:
                     logger.warning("Skipping hatch path with less than 2 vertices.")
 
+            # Set hatch style (Normal, Outer, Ignore)
+            hatch_style_map = {
+                'NORMAL': ezdxf_const.HATCH_STYLE_NORMAL,
+                'OUTERMOST': ezdxf_const.HATCH_STYLE_OUTERMOST,
+                'IGNORE': ezdxf_const.HATCH_STYLE_IGNORE,
+            }
+            hatch.dxf.hatch_style = hatch_style_map.get(hatch_props_config.style.upper(), ezdxf_const.HATCH_STYLE_NORMAL)
+
+            hatch.dxf.associative = hatch_props_config.associative
+
             self._attach_writer_xdata(hatch)
-            if legend_item_id and self._writer_config.xdata_application_name:
-                hatch.set_xdata(self._writer_config.xdata_application_name, [(1000, "legend_item"), (1000, legend_item_id)])
+            if legend_item_id and self.config.xdata_application_name:
+                hatch.set_xdata(self.config.xdata_application_name, [(1000, "legend_item"), (1000, legend_item_id)])
             return hatch
         except Exception as e:
             logger.error(f"Error adding HATCH: {e}", exc_info=True)
@@ -929,8 +653,8 @@ class DxfWriter(IDxfWriter):
                 block_ref.rgb = entity_rgb
 
             self._attach_writer_xdata(block_ref)
-            if legend_item_id and self._writer_config.xdata_application_name:
-                block_ref.set_xdata(self._writer_config.xdata_application_name, [(1000, "legend_item"), (1000, legend_item_id)])
+            if legend_item_id and self.config.xdata_application_name:
+                block_ref.set_xdata(self.config.xdata_application_name, [(1000, "legend_item"), (1000, legend_item_id)])
             return block_ref
         except Exception as e:
             logger.error(f"Error adding BLOCK_REFERENCE: {e}", exc_info=True)
@@ -966,9 +690,333 @@ class DxfWriter(IDxfWriter):
                 line.rgb = entity_rgb
 
             self._attach_writer_xdata(line)
-            if legend_item_id and self._writer_config.xdata_application_name:
-                line.set_xdata(self._writer_config.xdata_application_name, [(1000, "legend_item"), (1000, legend_item_id)])
+            if legend_item_id and self.config.xdata_application_name:
+                line.set_xdata(self.config.xdata_application_name, [(1000, "legend_item"), (1000, legend_item_id)])
             return line
         except Exception as e:
             logger.error(f"Error adding LINE: {e}", exc_info=True)
             return None
+
+    async def _setup_drawing_resources(self):
+        """Setup resources like text styles, linetypes in the DXF document using StyleService."""
+        if not self.doc:
+            self.logger.error("DXF document not initialized for resource setup.")
+            return
+
+        self.logger.info("Setting up DXF document resources (text styles, linetypes)...")
+
+        # Use StyleService to get all unique TextStylePropertiesConfig from all layer styles and presets
+        all_text_styles_props: List[TextStylePropertiesConfig] = self.style_service.get_all_defined_text_style_properties()
+
+        for ts_props in all_text_styles_props:
+            style_name = ts_props.font_name_or_style_preset # This is the DXF text style name
+            if style_name and style_name not in self.doc.styles:
+                try:
+                    # ezdxf uses font (filename like 'arial.ttf') for new styles, not abstract name like 'Arial' directly for definition
+                    # TextStylePropertiesConfig.font field should ideally carry the TTF font name or path.
+                    # For now, we assume font_name_or_style_preset *is* the font file if creating.
+                    # This needs refinement based on how TextStylePropertiesConfig.font is populated.
+                    # If font is just a name like "Arial", ezdxf needs a font mapping or it might not find it.
+                    font_for_ezdxf = ts_props.font_filename or style_name # Prefer specific font_filename if available
+
+                    self.doc.styles.new(
+                        name=style_name,
+                        dxfattribs={
+                            'font': font_for_ezdxf, # This is the TTF name, e.g., 'arial.ttf'
+                            'width': ts_props.width_factor if ts_props.width_factor is not None else 1.0, # ezdxf uses 'width' for width_factor
+                            'oblique': ts_props.oblique_angle if ts_props.oblique_angle is not None else 0.0,
+                            # height is not part of style, it's on TEXT/MTEXT entity
+                        }
+                    )
+                    self.logger.info(f"Created TEXTSTYLE '{style_name}' with font '{font_for_ezdxf}'.")
+                except Exception as e:
+                    self.logger.error(f"Failed to create TEXTSTYLE '{style_name}' with font '{font_for_ezdxf}': {e}", exc_info=True)
+            elif style_name in self.doc.styles:
+                 self.logger.debug(f"TEXTSTYLE '{style_name}' already exists in document.")
+
+        # Setup Linetypes (complex linetypes might need definition from .lin file or dict)
+        all_linetypes_props: List[LayerDisplayPropertiesConfig] = self.style_service.get_all_defined_layer_display_properties()
+        unique_linetypes = set()
+        for ld_props in all_linetypes_props:
+            if ld_props.linetype and ld_props.linetype.upper() not in ["BYLAYER", "BYBLOCK", "CONTINUOUS"]:
+                unique_linetypes.add(ld_props.linetype)
+
+        for lt_name in unique_linetypes:
+            if lt_name not in self.doc.linetypes:
+                # This only loads standard linetypes or those in acad.lin.
+                # Complex linetypes from custom files need self.doc.linetypes.load_linetypes(filename)
+                try:
+                    self.doc.linetypes.add_simple_line_pattern(lt_name, [0.0]) # Placeholder, this doesn't really define it
+                    self.logger.warning(f"Linetype '{lt_name}' not found. Added as a placeholder simple pattern. For complex linetypes, ensure they are defined in a loaded .lin file or standard set.")
+                    # A better approach would be to load from a specified .lin file in config
+                    # Or have detailed patterns in StyleService/schemas.
+                except Exception as e:
+                     self.logger.error(f"Failed to add placeholder for linetype '{lt_name}': {e}")
+
+    async def _add_dxf_entity_to_msp(self, dxf_entity_model: AnyDxfEntity):
+        """Adds a single DXF entity (from Pydantic model) to the modelspace."""
+        if not self.msp:
+            self.logger.error("Modelspace not available. Cannot add DXF entity.")
+            return
+
+        if isinstance(dxf_entity_model, DxfLWPolyline):
+            await self._add_dxf_lwpolyline(dxf_entity_model)
+        elif isinstance(dxf_entity_model, DxfMText):
+            await self._add_dxf_mtext(dxf_entity_model)
+        elif isinstance(dxf_entity_model, DxfHatch):
+            await self._add_dxf_hatch(dxf_entity_model)
+        elif isinstance(dxf_entity_model, DxfLine):
+            await self._add_dxf_line(dxf_entity_model)
+        elif isinstance(dxf_entity_model, DxfCircle):
+            await self._add_dxf_circle(dxf_entity_model)
+        elif isinstance(dxf_entity_model, DxfArc):
+            await self._add_dxf_arc(dxf_entity_model)
+        elif isinstance(dxf_entity_model, DxfText): # Simple DxfText (less common than MText now)
+            await self._add_dxf_text(dxf_entity_model)
+        elif isinstance(dxf_entity_model, DxfInsert): # Block insertions
+             await self._add_dxf_insert(dxf_entity_model)
+        else:
+            self.logger.warning(f"Unsupported DxfEntity model type for direct addition: {type(dxf_entity_model).__name__}. Skipping.")
+
+    def _apply_common_dxf_attributes(self, ezdxf_entity, model: AnyDxfEntity):
+        """Applies common DXF attributes from the Pydantic model to the ezdxf entity."""
+        if model.layer: ezdxf_entity.dxf.layer = model.layer
+        if model.color_256 is not None: ezdxf_entity.dxf.color = model.color_256
+        if model.linetype: ezdxf_entity.dxf.linetype = model.linetype
+        if model.lineweight is not None: ezdxf_entity.dxf.lineweight = model.lineweight # e.g. 25 for 0.25mm
+
+        # True Color (RGB)
+        if model.true_color:
+            ezdxf_entity.rgb = model.true_color # Sets true color
+            if model.color_256 is None: # If ACI not set, ensure ezdxf uses true color by default
+                 ezdxf_entity.dxf.color = ezdxf.const.BYLAYER # Or some default that allows true_color to dominate if ACI is not specifically set.
+                                                          # Often, setting rgb implies ACI might be ignored or set to BYLAYER/BYBLOCK.
+                                                          # Test behavior with CAD.
+
+        # Linetype Scale
+        if model.linetype_scale is not None and model.linetype_scale > 0:
+            ezdxf_entity.dxf.ltscale = model.linetype_scale
+
+        # Transparency
+        # ezdxf uses specific ways to set transparency, often via a "Transparency" object or direct alpha
+        if model.explicit_transparency is not None:
+            # For ezdxf, transparency is often 1.0 - alpha (0.0 = opaque, 1.0 = fully transparent in model)
+            # ezdxf alpha is 0 = fully transparent, 255 = opaque.
+            # So, transparency value needs conversion if model.explicit_transparency is 0-1 (0=opaque, 1=transparent)
+            # If model.explicit_transparency is alpha (0=opaque, 1=transparent as per DXF spec for CEALPHA)
+
+            # Assuming model.explicit_transparency is 0.0 (opaque) to 1.0 (fully transparent)
+            # DXF Alpha (as used by ezdxf for entity.transparency) is integer 0 (fully transparent) to 255 (opaque)
+            # Or it can be a specific DXF constant like ezdxf.const.TRANSPARENCY_BYLAYER
+            # Let's map 0.0-1.0 (model) to 0-255 alpha for ezdxf, where 0.0 model = 255 ezdxf (opaque)
+
+            # Correct mapping: alpha_ezdxf = (1.0 - model_transparency) * 255
+            # Example: model_transparency = 0.0 (opaque) -> alpha_ezdxf = (1.0 - 0.0) * 255 = 255 (opaque)
+            #          model_transparency = 1.0 (transparent) -> alpha_ezdxf = (1.0 - 1.0) * 255 = 0 (transparent)
+            #          model_transparency = 0.5 (semi) -> alpha_ezdxf = (1.0 - 0.5) * 255 = 127.5 -> 127 or 128
+
+            alpha_value_for_ezdxf = int((1.0 - model.explicit_transparency) * 255)
+            alpha_value_for_ezdxf = max(0, min(255, alpha_value_for_ezdxf)) # Clamp
+
+            try:
+                ezdxf_entity.transparency = alpha_value_for_ezdxf # This sets entity transparency if supported by entity type
+                self.logger.debug(f"Set entity transparency for {type(ezdxf_entity).__name__} to model val {model.explicit_transparency} (ezdxf alpha: {alpha_value_for_ezdxf})")
+            except AttributeError:
+                self.logger.warning(f"Entity type {type(ezdxf_entity).__name__} may not directly support .transparency attribute. Style via layer if needed.")
+            except Exception as e:
+                 self.logger.error(f"Error setting transparency for {type(ezdxf_entity).__name__}: {e}")
+
+
+    async def _add_dxf_line(self, model: DxfLine):
+        if not self.msp: return
+        line = self.msp.add_line(
+            start=(model.start.x, model.start.y, model.start.z or 0.0),
+            end=(model.end.x, model.end.y, model.end.z or 0.0),
+        )
+        self._apply_common_dxf_attributes(line, model)
+        self.logger.debug(f"Added DxfLine to layer {model.layer}")
+
+    async def _add_dxf_lwpolyline(self, model: DxfLWPolyline):
+        if not self.msp: return
+        # For LWPOLYLINE, points are (x, y, [start_width, [end_width, [bulge]]])
+        # Current DxfLWPolyline model.points are just Coordinates.
+        # Assuming simple LWPOLYLINE without width/bulge for now. Z is ignored by LWPOLYLINE.
+        points_xy = [(p.x, p.y) for p in model.points]
+        if not points_xy:
+            self.logger.warning(f"LWPolyline for layer {model.layer} has no points. Skipping.")
+            return
+
+        lwpolyline = self.msp.add_lwpolyline(
+            points=points_xy,
+            format='xy', # Explicitly stating format
+            close=model.is_closed,
+            dxfattribs=model.dxfattribs
+        )
+        self._apply_common_dxf_attributes(lwpolyline, model)
+        self.logger.debug(f"Added DxfLWPolyline to layer {model.layer} with {len(points_xy)} points.")
+
+    async def _add_dxf_mtext(self, model: DxfMText):
+        if not self.msp: return
+        mtext_attribs = {
+            'char_height': model.char_height,
+            'width': model.width if model.width is not None and model.width > 0 else None, # MTEXT width attribute
+            'rotation': model.rotation or 0.0,
+            'style': model.style or "Standard",
+            'attachment_point': self._map_mtext_attachment_point(model.attachment_point),
+            # Flow direction, line spacing style/factor are more complex, often embedded in MTEXT codes or require specific handling
+        }
+        # Filter out None values from mtext_attribs as ezdxf prefers missing keys over None for some defaults
+        mtext_attribs = {k: v for k, v in mtext_attribs.items() if v is not None}
+
+        # MTEXT content with potential formatting codes (from paragraph_props, etc.)
+        # This part needs a robust MTEXT code generator based on TextStylePropertiesConfig.paragraph_props
+        # For now, using model.text_content directly.
+        final_text_content = model.text_content
+
+        # Example: if model has paragraph properties leading to formatting codes
+        # if model.paragraph_props and model.paragraph_props.alignment == 'CENTER':
+        #     final_text_content = f"\\{{\\qc}}{final_text_content}" # Simplified example
+
+        mtext = self.msp.add_mtext(
+            text=final_text_content,
+            dxfattribs=mtext_attribs
+        )
+        mtext.dxf.insert = (model.insertion_point.x, model.insertion_point.y, model.insertion_point.z or 0.0)
+
+        # Apply common DXF attributes (layer, color, linetype, etc.)
+        self._apply_common_dxf_attributes(mtext, model)
+
+        # Background fill handling (if DxfMText model carries these from TextStylePropertiesConfig.bg_fill_properties)
+        if model.bg_fill_enabled and hasattr(model, 'bg_fill_properties') and model.bg_fill_properties: # Assuming bg_fill_properties is on DxfMText model if needed
+            bg_props = model.bg_fill_properties
+            bg_fill_flags = ezdxf.const.MTEXT_BG_FILL
+            if bg_props.use_drawing_bg_color:
+                bg_fill_flags |= ezdxf.const.MTEXT_BG_COLOR_Window_BG
+
+            bg_color_for_ezdxf = None
+            if bg_props.color: # If a specific color is set for BG
+                # Convert bg_props.color (ColorModel) to ACI or TrueColor for ezdxf
+                # This assumes bg_props.color can be an ACI int, an RGB tuple, or a name string
+                # This is a simplified example of color conversion here
+                if isinstance(bg_props.color, int): # ACI
+                    bg_color_for_ezdxf = bg_props.color
+                elif isinstance(bg_props.color, tuple): # RGB
+                     # ezdxf might need true color for BG fill differently, or it might pick up entity's true color.
+                     # For now, let's assume if RGB, it might need to be entity's main true_color if not ACI.
+                     # This is complex. CAD behavior for BG fill color (ACI vs RGB) needs checking.
+                     # Setting specific BG color might override main entity color for the BG box.
+                     # Most robust: use ACI if available.
+                     pass # RGB for BG fill needs careful mapping to ezdxf
+                elif isinstance(bg_props.color, str):
+                    # Try to convert named color to ACI or use default
+                    pass
+
+            mtext.set_bg_fill(
+                color=bg_color_for_ezdxf, # ezdxf color index or None for default (often window bg or black/white)
+                scale=bg_props.scale_factor if bg_props.scale_factor else 1.5, # Default border offset factor
+                flags=bg_fill_flags,
+                # ezdxf fill_true_color for specific RGB bg color,
+                # fill_transparency for bg transparency
+            )
+            self.logger.debug(f"Applied background fill to MTEXT on layer {model.layer}")
+
+        self.logger.debug(f"Added DxfMText to layer {model.layer}: '{model.text_content[:30]}...'")
+
+    def _map_mtext_attachment_point(self, model_ap: Optional[str]) -> Optional[int]:
+        if not model_ap: return None
+        mapping = {
+            'TOP_LEFT': ezdxf.const.MTEXT_TOP_LEFT, 'TOP_CENTER': ezdxf.const.MTEXT_TOP_CENTER, 'TOP_RIGHT': ezdxf.const.MTEXT_TOP_RIGHT,
+            'MIDDLE_LEFT': ezdxf.const.MTEXT_MIDDLE_LEFT, 'MIDDLE_CENTER': ezdxf.const.MTEXT_MIDDLE_CENTER, 'MIDDLE_RIGHT': ezdxf.const.MTEXT_MIDDLE_RIGHT,
+            'BOTTOM_LEFT': ezdxf.const.MTEXT_BOTTOM_LEFT, 'BOTTOM_CENTER': ezdxf.const.MTEXT_BOTTOM_CENTER, 'BOTTOM_RIGHT': ezdxf.const.MTEXT_BOTTOM_RIGHT,
+        }
+        return mapping.get(model_ap.upper())
+
+    async def _add_dxf_text(self, model: DxfText): # For simple TEXT entities
+        if not self.msp: return
+        text_attribs = {
+            'height': model.height,
+            'rotation': model.rotation or 0.0,
+            'style': model.style or "Standard",
+            # halign, valign from model if DxfText model includes them
+        }
+        # Filter Nones
+        text_attribs = {k:v for k,v in text_attribs.items() if v is not None}
+
+        text_entity = self.msp.add_text(
+            text=model.text_content,
+            dxfattribs=text_attribs
+        )
+        text_entity.dxf.insert = (model.insertion_point.x, model.insertion_point.y, model.insertion_point.z or 0.0)
+        self._apply_common_dxf_attributes(text_entity, model)
+        self.logger.debug(f"Added DxfText to layer {model.layer}: '{model.text_content[:30]}...'")
+
+
+    async def _add_dxf_insert(self, model: DxfInsert):
+        if not self.msp: return
+        # Ensure block definition exists, or ezdxf will error.
+        # StyleService could potentially be used to check/create block defs if they were also part of style config.
+        # For now, assume block definition exists in the template or is pre-created.
+        if model.block_name not in self.doc.blocks:
+            self.logger.error(f"Block definition '{model.block_name}' not found in DXF document. Cannot add INSERT entity for layer '{model.layer}'.")
+            # Optionally, create a placeholder block:
+            # self.doc.blocks.new(name=model.block_name)
+            # self.logger.warning(f"Created placeholder empty block definition for '{model.block_name}'.")
+            return
+
+        insert_attribs = {
+            'name': model.block_name,
+            'insert': (model.insertion_point.x, model.insertion_point.y, model.insertion_point.z or 0.0),
+            'xscale': model.x_scale,
+            'yscale': model.y_scale,
+            'zscale': model.z_scale,
+            'rotation': model.rotation,
+            # columns, rows, col_spacing, row_spacing for MINSERT if DxfInsert model supports them
+        }
+        # Filter Nones
+        insert_attribs = {k:v for k,v in insert_attribs.items() if v is not None}
+
+        insert = self.msp.add_blockref(**insert_attribs)
+        self._apply_common_dxf_attributes(insert, model) # Applies layer, color, etc. to the INSERT entity
+
+        # If model.attributes (list of DxfAttribute models) exists, create and attach attributes here
+        # for attrib_model in model.attributes:
+        #     insert.add_attrib(tag=attrib_model.tag, text=attrib_model.text_content, ...)
+        #     # Style attributes if DxfAttribute model has style fields
+
+        self.logger.debug(f"Added DxfInsert (block '{model.block_name}') to layer {model.layer}")
+
+    # ... (keep _convert_color_model_to_aci, _create_layers_from_config, _ensure_layer_exists, _process_features_by_layer as is, unless StyleService impacts them)
+    # _convert_color_model_to_aci might become less critical if GeometryTransformerImpl provides resolved ACI/RGB on DxfEntity models.
+    # However, it might still be useful for layer color definitions.
+
+    # Update _create_layers_from_config to potentially use StyleService for default layer properties if LayerConfig is minimal
+    async def _create_layers_from_config(self):
+        # ... (existing layer creation logic) ...
+        # If LayerConfig only has name, style_preset_name, StyleService could provide defaults.
+        # For now, assume LayerConfig is comprehensive enough or ezdxf defaults are fine.
+        pass # No change from previous plan here for now. StyleService is mainly for entities.
+
+    # _ensure_layer_exists might also use StyleService if layer props beyond name/color need setup from style preset.
+    def _ensure_layer_exists(self, layer_name: str, dxf_attribs: Optional[Dict[str, Any]] = None):
+        # ... (existing logic) ...
+        # If dxf_attribs are not provided, and we want to style layer from a preset via StyleService:
+        # if not dxf_attribs and self.style_service:
+        #     # This needs a way to map a layer_name to a potential StyleObjectConfig in StyleService
+        #     # (e.g. if LayerConfig had a style_preset_name, get that preset's layer_props)
+        #     pass
+        if layer_name not in self.doc.layers:
+            # ... create layer ...
+            # Apply detailed props if available (color, linetype, lineweight, transparency)
+            # from a StyleObjectConfig.layer_props associated with this layer_name.
+            # This is where StyleService could help define layers more richly if not just by name.
+            pass # No change from previous plan here for now.
+
+    async def _process_and_add_entities(self, doc, msp, entities_by_layer_config):
+        # This method is effectively replaced by _add_dxf_entity_to_msp and its helpers.
+        # The loop in write_features now calls _add_dxf_entity_to_msp.
+        # If _process_and_add_entities still exists, it should be removed or refactored
+        # to delegate to _add_dxf_entity_to_msp.
+        # Given the new structure, it's cleaner to remove/replace it.
+        # If _map_feature_to_dxf_attributes existed, it's also largely superseded by
+        # GeometryTransformerImpl populating DxfEntity models and _apply_common_dxf_attributes here.
+        pass

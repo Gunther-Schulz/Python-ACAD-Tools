@@ -68,6 +68,14 @@ class StyleObjectConfig(BaseModel):
     text_props: Optional[TextStylePropertiesConfig] = None
     hatch_props: Optional[HatchPropertiesConfig] = None
 
+# --- ADDITION: StyleRuleConfig for feature-specific conditional styling ---
+class StyleRuleConfig(BaseModel):
+    name: Optional[str] = Field(default=None, description="Optional descriptive name for the style rule.")
+    condition: str = Field(description="Condition to evaluate against feature attributes. E.g., \"property_name==expected_value\", \"property_name_exists\".")
+    style_override: StyleObjectConfig = Field(description="Style properties to apply if the condition is met.")
+    priority: int = Field(default=0, description="Rules with lower priority numbers are evaluated first. Higher numbers override lower ones if conditions match.")
+    terminate: bool = Field(default=False, description="If True and this rule's condition matches, no further style rules for this layer are processed for the feature.")
+
 # --- Data Source Configuration Models ---
 class DataSourceType(str, Enum):
     SHAPEFILE = "shapefile"
@@ -162,7 +170,8 @@ class MergeOperationConfig(BaseOperationConfig):
 class DissolveOperationConfig(BaseOperationConfig):
     type: Literal[OperationType.DISSOLVE] = OperationType.DISSOLVE
     source_layer: Optional[str] = None
-    dissolve_by_attribute: Optional[str] = None # Attribute to group features before dissolving
+    dissolve_by_field: Optional[str] = Field(default=None, description="Attribute field name to dissolve by. If None, all features are dissolved into one.")
+    group_for_missing_key: Optional[str] = Field(default="_NONE_OR_MISSING_", description="Value to use for grouping features where dissolve_by_field is missing or None.")
     output_layer_name: Optional[str] = None
 
 class FilterByAttributeOperationConfig(BaseOperationConfig):
@@ -312,23 +321,31 @@ class LayerConfig(BaseModel):
     name: str
     source: Optional[AnySourceConfig] = None # A layer might be purely generated
     operations: List[AnyOperationConfig] = Field(default_factory=list)
+    labeling: Optional[LabelSettings] = Field(default=None, description="Direct configuration for labeling features on this layer. Complements using LabelPlacementOperation directly.")
     # Style application priority: style_inline_definition > style_preset_name + style_override > style_preset_name
     style_preset_name: Optional[str] = None # References a preset in AppConfig.style_presets
     style_inline_definition: Optional[StyleObjectConfig] = None # A full, self-contained style for this layer
     style_override: Optional[StyleObjectConfig] = None # Partial overrides for the preset
+
+    # --- ADDITION: List of feature-specific style rules ---
+    style_rules: List[StyleRuleConfig] = Field(default_factory=list, description="List of rules for conditional, feature-specific styling.")
+
     enabled: bool = True # To easily toggle layers on/off
 
 # --- I/O Specific Configuration Models (Existing - to be reviewed/integrated) ---
 class ShapefileReaderConfig(BaseModel):
-    default_encoding: str = "utf-8"
+    encoding: str = "utf-8"  # Renamed from default_encoding
+    default_source_crs: Optional[str] = Field(None, description="Default source CRS if not available in .prj file or from parameters.")
 
 class GeoJsonReaderConfig(BaseModel):
-    pass
+    default_source_crs: Optional[str] = Field(None, description="Default source CRS if not available in GeoJSON file.")
+    encoding_override: Optional[str] = Field(None, description="Override encoding for reading GeoJSON (usually UTF-8 by spec).")
 
 class CsvWktReaderConfig(BaseModel):
-    wkt_column_existing: str = Field("wkt", alias="wkt_column") # Keep alias for now if old configs use wkt_column
+    wkt_column: str = "wkt"
     delimiter: str = ","
-    crs_existing: Optional[str] = Field(None, alias="crs")
+    default_source_crs: Optional[str] = Field(None, alias="crs")
+    encoding: str = "utf-8"
 
 class DxfWriterConfig(BaseModel):
     target_dxf_version: str = "AC1027"  # AutoCAD 2013-2017 (ezdxf R2013)
@@ -372,11 +389,21 @@ class IOSettings(BaseModel):
     output_filepath: Optional[str] = Field(default=None, description="Path to the target output DXF file, specified in config. Can be overridden by CLI.")
 
 # --- Service Specific Configuration Models (Existing - mostly fine, may need minor tweaks later) ---
+class MappingRuleConfig(BaseModel):
+    """Defines a single rule for mapping a feature attribute or expression to a DXF property."""
+    dxf_property_name: str = Field(description="Target DXF property name (e.g., 'layer', 'color', 'text_height').")
+    source_expression: str = Field(description="Expression to evaluate for the property's value. Feature properties are available in 'properties' dict (e.g., \"properties['IN_FIELD'] * 10\").")
+    condition: Optional[str] = Field(default=None, description="Optional expression. If provided and evaluates to True, this rule is applied.")
+    target_type: Optional[Literal["str", "int", "float", "bool", "aci_color"]] = Field(default=None, description="Target type for the evaluated expression. 'aci_color' implies specific handling for ACI color values.")
+    on_error_value: Optional[Any] = Field(default=None, description="Value to use if expression evaluation or type casting fails. If None, property might be skipped or service default used.")
+    priority: int = Field(default=0, description="Priority of the rule. Lower numbers are processed first. First successful rule for a property wins.")
+
 class AttributeMappingServiceConfig(BaseModel):
-    attribute_for_layer: Optional[str] = None
-    attribute_for_color: Optional[str] = None
-    attribute_for_text_content: Optional[str] = None
-    attribute_for_text_height: Optional[str] = None
+    # attribute_for_layer: Optional[str] = None # REMOVED
+    # attribute_for_color: Optional[str] = None # REMOVED
+    # attribute_for_text_content: Optional[str] = None # REMOVED
+    # attribute_for_text_height: Optional[str] = None # REMOVED
+    mapping_rules: List[MappingRuleConfig] = Field(default_factory=list, description="List of rules to map feature attributes/expressions to DXF properties.")
     default_dxf_layer_on_mapping_failure: str = "UNMAPPED_DATA"
 
 class CoordinateServiceConfig(BaseModel):

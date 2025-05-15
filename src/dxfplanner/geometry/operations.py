@@ -3,8 +3,8 @@ Geometric operations like buffer, simplify, etc.
 """
 from typing import AsyncIterator, List, Dict, Any, Optional
 
-from dxfplanner.domain.models.geo_models import GeoFeature
-from dxfplanner.domain.interfaces import IOperation, IStyleService
+from dxfplanner.domain.models.geo_models import GeoFeature, PointGeo
+from dxfplanner.domain.interfaces import IOperation, IStyleService, ILabelPlacementService, PlacedLabel
 from dxfplanner.config.schemas import (
     BufferOperationConfig, SimplifyOperationConfig, FieldMappingOperationConfig,
     ReprojectOperationConfig, CleanGeometryOperationConfig, ExplodeMultipartOperationConfig,
@@ -12,42 +12,34 @@ from dxfplanner.config.schemas import (
     MergeOperationConfig,
     DissolveOperationConfig,
     FilterByAttributeOperationConfig,
-    LabelPlacementOperationConfig
+    LabelPlacementOperationConfig,
+    TextStylePropertiesConfig,
+    AppConfig
 )
 from dxfplanner.core.logging_config import get_logger
+from shapely.geometry import MultiPoint, MultiLineString, MultiPolygon, GeometryCollection, Point
+from shapely.prepared import prep
+from shapely.errors import GEOSException
+from shapely.ops import unary_union
+import asyncio
+from dependency_injector import containers
+from collections import defaultdict
+from copy import deepcopy
 from dxfplanner.geometry.utils import (
     make_valid_geometry,
-    remove_islands_from_geometry,
     convert_dxfplanner_geometry_to_shapely,
     convert_shapely_to_dxfplanner_geometry,
     reproject_geometry,
-    explode_multipart_geometry,
-    GeoPoint # Added GeoPoint for label geometry
+    explode_multipart_geometry
 )
-from shapely.geometry import MultiPoint, MultiLineString, MultiPolygon, GeometryCollection, Point # Added Point for type check
-from shapely.prepared import prep # For potential performance optimization
-from shapely.errors import GEOSException # General shapely errors
-from shapely.ops import unary_union # Explicit import for union
-import asyncio
-from dependency_injector import containers # For type hinting container
-from collections import defaultdict # Added for grouping features
 
 try:
     import asteval
 except ImportError:
-    asteval = None # Flag that the library is missing
-
-# Forward declaration for type hinting the container within its own module scope if needed elsewhere
-# Although likely not needed just for operations.py if container is only passed in init.
-# class MainContainer(containers.DeclarativeContainer): pass
+    asteval = None
 
 logger = get_logger(__name__)
 
-# Shapely join and cap style integer constants
-# (Normally imported from shapely.geometry.enums if available, or defined if using older shapely)
-# For shapely < 2.0, these might be directly shapely.geometry.JOIN_STYLE values
-# For shapely >= 2.0, they are attributes of an enum.
-# Let's assume direct integer values for broader compatibility or define them.
 SHAPELY_JOIN_STYLE = {
     'ROUND': 1,
     'MITRE': 2,
@@ -55,7 +47,7 @@ SHAPELY_JOIN_STYLE = {
 }
 SHAPELY_CAP_STYLE = {
     'ROUND': 1,
-    'FLAT': 2, # aka BUTT
+    'FLAT': 2,
     'SQUARE': 3
 }
 
@@ -104,37 +96,26 @@ class BufferOperation(IOperation[BufferOperationConfig]):
                     logger.warning(f"Could not parse distance_field '{config.distance_field}' value '{feature.attributes[config.distance_field]}' as float: {e}. Using default: {config.distance}")
                     current_buffer_distance = config.distance
 
-            # Get Shapely join/cap style integer values
             s_join_style = SHAPELY_JOIN_STYLE.get(config.join_style, SHAPELY_JOIN_STYLE['ROUND'])
             s_cap_style = SHAPELY_CAP_STYLE.get(config.cap_style, SHAPELY_CAP_STYLE['ROUND'])
 
             try:
-                # Perform the buffer operation
                 buffered_s_geom = shapely_geom.buffer(
                     current_buffer_distance,
                     resolution=config.resolution,
                     join_style=s_join_style,
                     cap_style=s_cap_style,
                     mitre_limit=config.mitre_limit
-                    # single_sided=config.single_sided # If/when supported and added to config
                 )
             except Exception as e_buffer:
                 logger.error(f"Error during Shapely buffer operation for feature: {e_buffer}. Attributes: {feature.attributes}", exc_info=True)
-                continue # Skip this feature
+                continue
 
             if buffered_s_geom is None or buffered_s_geom.is_empty:
                 logger.debug(f"Buffer result is None or empty for feature. Attributes: {feature.attributes}")
                 continue
 
-            # Island handling (applies to Polygons/MultiPolygons primarily)
-            # skip_islands means preserve_islands = False
-            # preserve_islands means preserve_islands = True
-            # If neither is True, default is effectively preserve_islands = True (or rather, no specific island removal)
-            # The remove_islands_from_geometry function handles the logic based on its preserve_islands flag.
-            # We call it if either skip_islands is true (meaning preserve_islands=false) or preserve_islands is true.
             if config.skip_islands or config.preserve_islands:
-                # If skip_islands is True, then preserve_islands for the function must be False.
-                # If skip_islands is False but preserve_islands is True, then preserve_islands for the function is True.
                 should_preserve_for_func = config.preserve_islands and not config.skip_islands
                 buffered_s_geom = remove_islands_from_geometry(buffered_s_geom, preserve_islands=should_preserve_for_func)
                 if buffered_s_geom is None or buffered_s_geom.is_empty:
@@ -147,7 +128,6 @@ class BufferOperation(IOperation[BufferOperationConfig]):
                     logger.warning(f"Geometry became None/empty after post-buffer validation. Attributes: {feature.attributes}")
                     continue
 
-            # Handle potential MultiGeometries from buffer result
             geoms_to_yield = []
             if isinstance(buffered_s_geom, (MultiPoint, MultiLineString, MultiPolygon, GeometryCollection)):
                 logger.debug(f"Buffer result is a MultiGeometry ({buffered_s_geom.geom_type}) with {len(buffered_s_geom.geoms)} parts. Processing parts.")
@@ -156,7 +136,7 @@ class BufferOperation(IOperation[BufferOperationConfig]):
                     converted_part = convert_shapely_to_dxfplanner_geometry(part_geom)
                     if converted_part:
                         geoms_to_yield.append(converted_part)
-            else: # Single geometry
+            else:
                 converted_single = convert_shapely_to_dxfplanner_geometry(buffered_s_geom)
                 if converted_single:
                     geoms_to_yield.append(converted_single)
@@ -166,8 +146,6 @@ class BufferOperation(IOperation[BufferOperationConfig]):
                 continue
 
             for new_dxf_geom in geoms_to_yield:
-                # Preserve original attributes and CRS
-                # TODO: Consider how attributes should be handled/modified after buffer, if at all by this operation
                 new_feature_attributes = feature.attributes.copy()
                 yield GeoFeature(geometry=new_dxf_geom, attributes=new_feature_attributes, crs=feature.crs)
 
@@ -207,25 +185,15 @@ class SimplifyOperation(IOperation[SimplifyOperationConfig]):
                 logger.warning(f"Could not convert DXFPlanner geometry to Shapely for feature. Attributes: {feature.attributes}")
                 continue
 
-            # Note: Simplification might not need pre-validation like buffer does,
-            # as it inherently tries to reduce complexity. Invalid input might behave unpredictably though.
-            # If issues arise, make_valid_geometry(shapely_geom) could be added here.
-
             try:
                 simplified_s_geom = shapely_geom.simplify(config.tolerance, preserve_topology=config.preserve_topology)
             except Exception as e_simplify:
                 logger.error(f"Error during Shapely simplify operation for feature: {e_simplify}. Attributes: {feature.attributes}", exc_info=True)
-                continue # Skip this feature
+                continue
 
             if simplified_s_geom is None or simplified_s_geom.is_empty:
                 logger.debug(f"Simplify result is None or empty for feature. Attributes: {feature.attributes}")
                 continue
-
-            # Post-validation might be useful if simplify can produce invalid geometries
-            # simplified_s_geom = make_valid_geometry(simplified_s_geom) # Optional, consider based on observed behavior
-            # if simplified_s_geom is None or simplified_s_geom.is_empty:
-            #     logger.warning(f"Geometry became None/empty after post-simplify validation. Attributes: {feature.attributes}")
-            #     continue
 
             geoms_to_yield = []
             if isinstance(simplified_s_geom, (MultiPoint, MultiLineString, MultiPolygon, GeometryCollection)):
@@ -235,7 +203,7 @@ class SimplifyOperation(IOperation[SimplifyOperationConfig]):
                     converted_part = convert_shapely_to_dxfplanner_geometry(part_geom)
                     if converted_part:
                         geoms_to_yield.append(converted_part)
-            else: # Single geometry
+            else:
                 converted_single = convert_shapely_to_dxfplanner_geometry(simplified_s_geom)
                 if converted_single:
                     geoms_to_yield.append(converted_single)
@@ -289,11 +257,9 @@ class FieldMappingOperation(IOperation[FieldMappingOperationConfig]):
                             f"Skipping this mapping. Attributes: {feature.attributes}"
                         )
             else:
-                # If field_map is empty, pass through original attributes
                 logger.debug("Field map is empty. Passing through original attributes.")
                 new_attributes = feature.attributes.copy()
 
-            # Geometry and CRS are preserved
             yield GeoFeature(geometry=feature.geometry, attributes=new_attributes, crs=feature.crs)
 
         logger.info(f"FieldMappingOperation completed for source_layer: '{config.source_layer}'")
@@ -332,12 +298,11 @@ class ReprojectOperation(IOperation[ReprojectOperationConfig]):
             source_crs_str = feature.crs
             if not source_crs_str:
                 logger.warning(f"Feature has no source CRS defined. Cannot reproject. Attributes: {feature.attributes}")
-                # Optionally, could yield original feature if a mode for this is added to config
                 continue
 
             if source_crs_str.lower() == target_crs_str.lower():
                 logger.debug(f"Feature CRS '{source_crs_str}' matches target CRS '{target_crs_str}'. Yielding original feature.")
-                yield feature # No reprojection needed
+                yield feature
                 continue
 
             shapely_geom = convert_dxfplanner_geometry_to_shapely(feature.geometry)
@@ -351,7 +316,6 @@ class ReprojectOperation(IOperation[ReprojectOperationConfig]):
                 logger.warning(f"Reprojection result is None or empty for feature. Source CRS: {source_crs_str}, Target CRS: {target_crs_str}. Attributes: {feature.attributes}")
                 continue
 
-            # Handle potential MultiGeometries from reprojection (though less common than buffer)
             geoms_to_yield = []
             if isinstance(reprojected_s_geom, (MultiPoint, MultiLineString, MultiPolygon, GeometryCollection)):
                 logger.debug(f"Reproject result is a MultiGeometry ({reprojected_s_geom.geom_type}) with {len(reprojected_s_geom.geoms)} parts. Processing parts.")
@@ -360,7 +324,7 @@ class ReprojectOperation(IOperation[ReprojectOperationConfig]):
                     converted_part = convert_shapely_to_dxfplanner_geometry(part_geom)
                     if converted_part:
                         geoms_to_yield.append(converted_part)
-            else: # Single geometry
+            else:
                 converted_single = convert_shapely_to_dxfplanner_geometry(reprojected_s_geom)
                 if converted_single:
                     geoms_to_yield.append(converted_single)
@@ -370,8 +334,7 @@ class ReprojectOperation(IOperation[ReprojectOperationConfig]):
                 continue
 
             for new_dxf_geom in geoms_to_yield:
-                new_attributes = feature.attributes.copy() # Preserve original attributes
-                # Create new feature with reprojected geometry and updated CRS
+                new_attributes = feature.attributes.copy()
                 yield GeoFeature(geometry=new_dxf_geom, attributes=new_attributes, crs=target_crs_str)
 
         logger.info(f"ReprojectOperation completed for source_layer: '{config.source_layer}'")
@@ -411,14 +374,12 @@ class CleanGeometryOperation(IOperation[CleanGeometryOperationConfig]):
                 logger.warning(f"Could not convert DXFPlanner geometry to Shapely for feature. Attributes: {feature.attributes}")
                 continue
 
-            # Apply make_valid_geometry as the primary cleaning step
             cleaned_s_geom = make_valid_geometry(shapely_geom)
 
             if cleaned_s_geom is None or cleaned_s_geom.is_empty:
                 logger.warning(f"Geometry became None or empty after cleaning (make_valid). Original type: {shapely_geom.geom_type}. Attributes: {feature.attributes}")
                 continue
 
-            # Handle potential MultiGeometries from cleaning (e.g., if make_valid splits a polygon)
             geoms_to_yield = []
             if isinstance(cleaned_s_geom, (MultiPoint, MultiLineString, MultiPolygon, GeometryCollection)):
                 logger.debug(f"CleanGeometry result is a MultiGeometry ({cleaned_s_geom.geom_type}) with {len(cleaned_s_geom.geoms)} parts. Processing parts.")
@@ -427,7 +388,7 @@ class CleanGeometryOperation(IOperation[CleanGeometryOperationConfig]):
                     converted_part = convert_shapely_to_dxfplanner_geometry(part_geom)
                     if converted_part:
                         geoms_to_yield.append(converted_part)
-            else: # Single geometry
+            else:
                 converted_single = convert_shapely_to_dxfplanner_geometry(cleaned_s_geom)
                 if converted_single:
                     geoms_to_yield.append(converted_single)
@@ -437,7 +398,6 @@ class CleanGeometryOperation(IOperation[CleanGeometryOperationConfig]):
                 continue
 
             for new_dxf_geom in geoms_to_yield:
-                # Preserve original attributes and CRS
                 new_attributes = feature.attributes.copy()
                 yield GeoFeature(geometry=new_dxf_geom, attributes=new_attributes, crs=feature.crs)
 
@@ -488,30 +448,18 @@ class ExplodeMultipartOperation(IOperation[ExplodeMultipartOperationConfig]):
 
                 if new_dxf_geom_part:
                     part_count += 1
-                    # Preserve original attributes and CRS for each new feature part
-                    # TODO: Consider if attributes need modification (e.g., adding part index)
                     new_attributes = feature.attributes.copy()
                     yield GeoFeature(geometry=new_dxf_geom_part, attributes=new_attributes, crs=feature.crs)
                 else:
                     logger.warning(f"Could not convert exploded Shapely part back to DXFPlanner geometry. Part type: {single_part_s_geom.geom_type}")
 
             if part_count == 0 and not (isinstance(shapely_geom, (MultiPoint, MultiLineString, MultiPolygon, GeometryCollection))):
-                # This case handles if the input was already a single simple geometry that wasn't yielded by the loop
-                # (because explode_multipart_geometry yields single simple parts directly)
-                # However, the loop `for single_part_s_geom in explode_multipart_geometry(shapely_geom):`
-                # should yield the original simple geometry once if it was simple.
-                # This block might be redundant if explode_multipart_geometry always yields at least one item for valid non-empty simple geoms.
-                # Let's trace: if shapely_geom is Point, explode yields it once. Loop runs once. new_dxf_geom_part made. part_count = 1.
-                # This path should ideally not be hit if input was valid and simple.
-                # It acts as a safeguard if somehow a simple geometry was not processed by the loop.
                 logger.debug(f"Input geometry was likely already single-part and processed by explode_multipart_geometry. Original: {shapely_geom.geom_type}")
             elif part_count == 0:
                  logger.debug(f"No parts yielded after exploding geometry for feature. Original type: {shapely_geom.geom_type}. Attributes: {feature.attributes}")
 
         logger.info(f"ExplodeMultipartOperation completed for source_layer: '{config.source_layer}'")
 
-
-# --- Intersection Operation ---
 
 class IntersectionOperation(IOperation[IntersectionOperationConfig]):
     """Performs an intersection operation between the input features and features from other specified layers."""
@@ -524,13 +472,16 @@ class IntersectionOperation(IOperation[IntersectionOperationConfig]):
             di_container: The application's dependency injection container to resolve readers/layers.
         """
         self._container = di_container
-        # Potential optimization: Cache resolved overlay layers if config doesn't change frequently
-        # For simplicity, we resolve and load them inside execute() for now.
 
     async def _load_overlay_features(self, layer_names: List[str]) -> List[GeoFeature]:
-        """Loads all features from the specified overlay layers.""" # noqa
+        """Loads all features from the specified overlay layers."""
         overlay_features: List[GeoFeature] = []
-        app_config = self._container.config() # Get AppConfig from container
+        app_config: AppConfig = self._container.config()
+
+        target_crs_for_overlays = app_config.services.coordinate.default_target_crs
+        # If no default target CRS in app_config, overlays will be loaded in their native CRSs
+        # or reader's default. This might complicate the main 'execute' method's reprojection logic.
+        # For now, assume target_crs_for_overlays will be consistently used by readers if not None.
 
         for layer_name in layer_names:
             layer_config = next((lc for lc in app_config.layers if lc.name == layer_name), None)
@@ -540,41 +491,36 @@ class IntersectionOperation(IOperation[IntersectionOperationConfig]):
 
             try:
                 reader = self._container.resolve_reader(layer_config.source.type)
-                # Prepare kwargs for the reader based on source config
-                # This logic might need refinement depending on how reader kwargs are handled globally # noqa
-                reader_kwargs = layer_config.source.model_dump(exclude={'type'}) # Pass source config fields as kwargs # noqa
-                if layer_config.source.crs:
-                    reader_kwargs['source_crs'] = layer_config.source.crs
-                else:
-                    # Attempt to get default source CRS if defined globally
-                    default_src_crs = app_config.services.coordinate.default_source_crs
-                    if default_src_crs:
-                         reader_kwargs['source_crs'] = default_src_crs
-                         logger.info(f"Using default source CRS '{default_src_crs}' for overlay layer '{layer_name}'") # noqa
-                    else:
-                        # Rely on reader's internal CRS detection or default (e.g., CsvWktReader defaults to EPSG:4326 if none provided/found) # noqa
-                         logger.warning(f"No explicit source CRS for overlay layer '{layer_name}'. Reader will attempt detection or use default.") # noqa
 
-                # For intersection, we assume overlay layers are already in the target CRS of the main pipeline # noqa
-                # or handle reprojection explicitly here if needed. For now, assume they match input features CRS. # noqa
-                target_crs = app_config.services.coordinate.default_target_crs # Get pipeline target CRS # noqa
+                # Prepare reader_kwargs, ensuring source_crs and target_crs are correctly passed
+                reader_kwargs = layer_config.source.model_dump(exclude={'type', 'crs', 'path'}) # model_dump for safety
 
-                logger.info(f"Intersection: Loading overlay layer '{layer_name}'...")
+                current_source_crs = layer_config.source.crs
+                if not current_source_crs: # If not defined on the source itself
+                    current_source_crs = app_config.services.coordinate.default_source_crs
+                    if current_source_crs:
+                        logger.info(f"Using default app source CRS '{current_source_crs}' for overlay layer '{layer_name}'")
+                    # else: Reader will attempt to determine or use its own default
+
+                logger.info(f"Intersection: Loading overlay layer '{layer_name}' (SourceCRS: {current_source_crs}, TargetCRS for load: {target_crs_for_overlays})...")
+
+                # Pass resolved source_crs and the common target_crs_for_overlays to the reader
                 async for feature in reader.read_features(
                     source_path=layer_config.source.path,
-                    source_crs=reader_kwargs.get('source_crs'),
-                    target_crs=target_crs, # Request features in target CRS
+                    source_crs=current_source_crs,
+                    target_crs=target_crs_for_overlays,
                     **reader_kwargs
                  ):
-                    if feature.geometry: # Ensure geometry exists
+                    if feature.geometry:
+                        # Ensure feature.properties exists, even if empty
+                        if feature.properties is None:
+                            feature.properties = {}
                         overlay_features.append(feature)
-                logger.info(f"Intersection: Loaded {len(overlay_features)} features from overlay layer '{layer_name}'.") # noqa
+                logger.info(f"Intersection: Loaded {len(overlay_features)} features from overlay layer '{layer_name}'. Features should now be in CRS: {target_crs_for_overlays if target_crs_for_overlays else 'reader_defined_output_crs'}.")
 
             except Exception as e:
-                 logger.error(f"Intersection: Failed to load overlay layer '{layer_name}': {e}", exc_info=True) # noqa
-                 # Decide whether to continue without this layer or raise an error
-                 # For now, log and continue
-                 continue
+                logger.error(f"Intersection: Failed to load overlay layer '{layer_name}': {e}", exc_info=True)
+                continue
         return overlay_features
 
     async def execute(
@@ -582,123 +528,146 @@ class IntersectionOperation(IOperation[IntersectionOperationConfig]):
         features: AsyncIterator[GeoFeature],
         config: IntersectionOperationConfig
     ) -> AsyncIterator[GeoFeature]:
-        """
-        Executes the intersection operation.
-        Intersects each input feature with the union of features from the overlay layers.
-        Keeps attributes from the original input feature.
+        logger.info(f"Executing IntersectionOperation for input layers to intersect with: {config.input_layers}, output: '{config.output_layer_name}'")
 
-        Args:
-            features: An asynchronous iterator of GeoFeature objects to process.
-            config: Configuration for the intersection operation.
+        # Determine the common CRS for intersection (from overlay loading)
+        app_config: AppConfig = self._container.config()
+        intersection_crs = app_config.services.coordinate.default_target_crs
+        if not intersection_crs:
+            logger.warning("IntersectionOperation: No default_target_crs defined in app_config. CRS consistency for intersection relies on input features and overlay layers already matching or readers handling it. This might lead to incorrect results if CRSs are diverse and not explicitly handled by readers to a common target.")
+            # If intersection_crs is None, we proceed assuming CRSs might match or are handled upstream.
+            # This is a risky path. A robust implementation might require a common CRS to be enforced or defined.
 
-        Yields:
-            GeoFeature: An asynchronous iterator of resulting intersected GeoFeature objects.
-        """
-        logger.info(f"Executing IntersectionOperation for layers: {config.input_layers}, output: '{config.output_layer_name}'") # noqa
-
-        # 1. Load all features from the overlay layers
         overlay_features = await self._load_overlay_features(config.input_layers)
         if not overlay_features:
-            logger.warning("Intersection: No valid overlay features loaded. Operation will yield no results.") # noqa
-            return # Use return for async generator stop
+            logger.warning("Intersection: No valid overlay features loaded. Operation will yield no results.")
+            return
 
-        # 2. Combine overlay geometries (union overlay geometries first) # noqa
         valid_overlay_s_geoms = []
+        # Assuming all features from _load_overlay_features are now in 'intersection_crs' if it was set.
+        # If intersection_crs was None, their CRS could be varied, making unary_union potentially problematic.
+        # For now, proceed with assumption that _load_overlay_features harmonized to intersection_crs if set.
         for feat in overlay_features:
+            # Ensure properties exists
+            current_feat_properties = feat.properties if feat.properties is not None else {}
             s_geom = convert_dxfplanner_geometry_to_shapely(feat.geometry)
             if s_geom and not s_geom.is_empty:
                  s_geom = make_valid_geometry(s_geom)
                  if s_geom and not s_geom.is_empty:
                      valid_overlay_s_geoms.append(s_geom)
+                else:
+                    logger.debug(f"Overlay feature geometry became invalid/empty after make_valid. Properties: {current_feat_properties}")
+            else:
+                logger.debug(f"Overlay feature geometry is None or empty before make_valid. Properties: {current_feat_properties}")
+
 
         if not valid_overlay_s_geoms:
-             logger.warning("Intersection: No valid overlay geometries to perform intersection.") # noqa
-             # Decide if we should stop or continue processing input features (yielding originals?)
-             # For intersection, if overlay is empty, result is empty. Stop.
+            logger.warning("Intersection: No valid overlay geometries to perform intersection.")
              return
 
         try:
              combined_overlay_geom = unary_union(valid_overlay_s_geoms)
              combined_overlay_geom = make_valid_geometry(combined_overlay_geom)
         except Exception as e_union:
-             logger.error(f"Intersection: Failed to compute union of overlay geometries: {e_union}", exc_info=True) # noqa
-             # Cannot proceed without combined overlay geometry
+            logger.error(f"Intersection: Failed to compute union of overlay geometries: {e_union}", exc_info=True)
              return
 
         if not combined_overlay_geom or combined_overlay_geom.is_empty:
-             logger.warning("Intersection: Combined overlay geometry is empty or invalid after union/validation.") # noqa
+            logger.warning("Intersection: Combined overlay geometry is empty or invalid after union/validation.")
              return
 
-        prepared_combined_overlay = prep(combined_overlay_geom) # Prepare the combined geometry
-        logger.info(f"Intersection: Prepared combined overlay geometry for intersection. Type: {combined_overlay_geom.geom_type}") # noqa
+        prepared_combined_overlay = prep(combined_overlay_geom)
+        logger.info(f"Intersection: Prepared combined overlay geometry for intersection. Type: {combined_overlay_geom.geom_type}. CRS assumed: {intersection_crs or 'Varies/Unknown'}")
 
-        # 3. Process input features stream
         processed_count = 0
         yielded_count = 0
         async for feature in features:
             processed_count += 1
+            # Ensure properties exists
+            current_feature_properties = feature.properties if feature.properties is not None else {}
             if feature.geometry is None:
+                logger.debug(f"Skipping input feature with no geometry. Properties: {current_feature_properties}")
                 continue
 
             input_s_geom = convert_dxfplanner_geometry_to_shapely(feature.geometry)
             if input_s_geom is None or input_s_geom.is_empty:
+                logger.debug(f"Input feature geometry is None or empty after conversion. Properties: {current_feature_properties}")
                 continue
 
-            # Make input valid before intersection check
             input_s_geom = make_valid_geometry(input_s_geom)
             if input_s_geom is None or input_s_geom.is_empty:
+                logger.debug(f"Input feature geometry became invalid/empty after make_valid. Properties: {current_feature_properties}")
                 continue
+
+            # Reproject input_s_geom if CRS differs and intersection_crs is known
+            current_input_crs = feature.crs
+            reprojected_input_s_geom = input_s_geom
+            output_crs = feature.crs # Default to original feature's CRS
+
+            if intersection_crs and current_input_crs and current_input_crs.lower() != intersection_crs.lower():
+                logger.debug(f"Reprojecting input feature from CRS '{current_input_crs}' to '{intersection_crs}' for intersection.")
+                try:
+                    reprojected_input_s_geom = reproject_geometry(input_s_geom, current_input_crs, intersection_crs)
+                    if reprojected_input_s_geom is None or reprojected_input_s_geom.is_empty:
+                        logger.warning(f"Input feature geometry became None/empty after reprojection from '{current_input_crs}' to '{intersection_crs}'. Properties: {current_feature_properties}")
+                        continue
+                    # Update CRS for output feature later
+                    output_crs = intersection_crs
+                except Exception as e_reproject:
+                    logger.error(f"Error reprojecting input feature from '{current_input_crs}' to '{intersection_crs}': {e_reproject}. Properties: {current_feature_properties}", exc_info=True)
+                    continue
+            elif not current_input_crs and intersection_crs:
+                logger.warning(f"Input feature has no CRS, but intersection CRS ('{intersection_crs}') is set. Assuming input is already in target CRS. This may be incorrect. Properties: {current_feature_properties}")
+                output_crs = intersection_crs # Assume output should be intersection_crs
+            elif not intersection_crs and current_input_crs:
+                logger.warning(f"Intersection CRS is not set, but input feature has CRS '{current_input_crs}'. Intersection will use this CRS. Overlay layers should match. Properties: {current_feature_properties}")
+                # output_crs is already current_input_crs
+            elif not intersection_crs and not current_input_crs:
+                logger.warning(f"Neither intersection_crs nor input feature CRS is set. Assuming all data is in a consistent, unknown CRS. Properties: {current_feature_properties}")
+                output_crs = None # CRS is unknown
+            # else: CRSs match or intersection_crs is not set and we use input feature's current_input_crs, or both are None
+            # output_crs correctly holds the intended CRS for the output based on these conditions.
 
             intersected_result = None
             try:
-                # Use prepared geometry for faster check
-                if prepared_combined_overlay.intersects(input_s_geom):
-                    # Actual intersection
-                    intersected_result = input_s_geom.intersection(combined_overlay_geom) # Use non-prepared for calculation # noqa
-                    intersected_result = make_valid_geometry(intersected_result) # Validate result
+                if prepared_combined_overlay.intersects(reprojected_input_s_geom):
+                    intersected_result = reprojected_input_s_geom.intersection(combined_overlay_geom)
+                    intersected_result = make_valid_geometry(intersected_result)
 
             except GEOSException as e:
-                 logger.error(f"Error during intersection operation for feature: {e}. Attributes: {feature.attributes}", exc_info=True) # noqa
-                 continue # Skip this feature
+                logger.error(f"GEOSException during intersection for feature: {e}. Properties: {current_feature_properties}", exc_info=True)
+                continue
             except Exception as e_general:
-                 logger.error(f"Unexpected error during intersection processing for feature: {e_general}. Attributes: {feature.attributes}", exc_info=True) # noqa
-                 continue # Skip this feature
+                logger.error(f"Unexpected error during intersection processing for feature: {e_general}. Properties: {current_feature_properties}", exc_info=True)
+                continue
 
             if intersected_result is None or intersected_result.is_empty:
-                 continue # Skip if intersection is empty
+                continue
 
-            # Convert back to DXFPlanner geometry, handle MultiGeometries
             geoms_to_yield = []
-            if isinstance(intersected_result, (MultiPoint, MultiLineString, MultiPolygon, GeometryCollection)): # noqa
+            if isinstance(intersected_result, (MultiPoint, MultiLineString, MultiPolygon, GeometryCollection)):
                  for part_geom in intersected_result.geoms:
                      if part_geom is None or part_geom.is_empty: continue
                      converted_part = convert_shapely_to_dxfplanner_geometry(part_geom)
                      if converted_part:
                          geoms_to_yield.append(converted_part)
-            else: # Single geometry
+            else:
                  converted_single = convert_shapely_to_dxfplanner_geometry(intersected_result)
                  if converted_single:
                      geoms_to_yield.append(converted_single)
 
-            # Yield new features with original attributes
             for new_dxf_geom in geoms_to_yield:
-                 new_feature_attributes = feature.attributes.copy() # Keep original attributes
-                 yield GeoFeature(geometry=new_dxf_geom, attributes=new_feature_attributes, crs=feature.crs)
+                new_feature_properties = deepcopy(current_feature_properties) # Use deepcopy for safety
+                yield GeoFeature(geometry=new_dxf_geom, properties=new_feature_properties, crs=output_crs) # Use determined output_crs
                  yielded_count += 1
 
-            # Optional: yield progress? await asyncio.sleep(0)?
+        logger.info(f"IntersectionOperation completed. Processed: {processed_count}, Yielded: {yielded_count}.")
 
-        logger.info(f"IntersectionOperation completed. Processed: {processed_count}, Yielded: {yielded_count}.") # noqa
-
-
-# --- ADDED PLACEHOLDERS START ---
 
 class MergeOperation(IOperation[MergeOperationConfig]):
     """
-    Merges features. Currently, with a single input stream, this acts as a
-    pass-through operation, potentially renaming the conceptual output layer.
-    A true multi-layer merge would require changes to the IOperation interface
-    or a different mechanism for accessing multiple input sources.
+    Merges features from a single input stream into one or fewer features
+    by performing a unary union of their geometries.
     """
 
     async def execute(
@@ -707,154 +676,199 @@ class MergeOperation(IOperation[MergeOperationConfig]):
         config: MergeOperationConfig
     ) -> AsyncIterator[GeoFeature]:
         """
-        Executes the merge operation (currently pass-through).
+        Executes the merge operation. Collects all geometries from the input stream,
+        performs a unary union, and yields the resulting feature(s).
 
         Args:
             features: An asynchronous iterator of GeoFeature objects to process.
             config: Configuration for the merge operation.
 
         Yields:
-            GeoFeature: An asynchronous iterator of the input GeoFeature objects.
+            GeoFeature: An asynchronous iterator of resulting merged GeoFeature objects.
+                       Typically yields one feature, or multiple if the union results
+                       in a GeometryCollection of differing simple types.
         """
         log_prefix = f"MergeOperation (source: '{config.source_layer}', output: '{config.output_layer_name}')"
         logger.info(f"{log_prefix}: Executing...")
-        logger.warning(f"{log_prefix}: Currently implemented as a pass-through operation. Yielding input features unchanged.")
+
+        shapely_geoms_to_merge = []
+        first_feature_for_attrs: Optional[GeoFeature] = None
+        input_feature_count = 0
+
+        async for feature in features:
+            input_feature_count += 1
+            if first_feature_for_attrs is None:
+                first_feature_for_attrs = feature
+
+            if feature.geometry:
+                s_geom = convert_dxfplanner_geometry_to_shapely(feature.geometry)
+                if s_geom and not s_geom.is_empty:
+                    shapely_geoms_to_merge.append(s_geom)
+            await asyncio.sleep(0)
+
+        if not shapely_geoms_to_merge:
+            logger.info(f"{log_prefix}: No valid geometries found in {input_feature_count} input features to merge. Yielding nothing.")
+            return
+
+        logger.info(f"{log_prefix}: Collected {len(shapely_geoms_to_merge)} valid geometries from {input_feature_count} input features for merging.")
+
+        merged_s_geom = None
+        try:
+            merged_s_geom = unary_union(shapely_geoms_to_merge)
+            if merged_s_geom is None or merged_s_geom.is_empty:
+                logger.warning(f"{log_prefix}: Unary union resulted in an empty or invalid geometry.")
+                return
+
+            merged_s_geom = make_valid_geometry(merged_s_geom)
+            if merged_s_geom is None or merged_s_geom.is_empty:
+                logger.warning(f"{log_prefix}: Merged geometry became empty or invalid after validation.")
+                return
+
+        except GEOSException as e_union:
+            logger.error(f"{log_prefix}: Error during unary_union operation: {e_union}", exc_info=True)
+            return
+
+        result_attributes = first_feature_for_attrs.attributes.copy() if first_feature_for_attrs else {}
+        result_crs = first_feature_for_attrs.crs if first_feature_for_attrs else None
+
+        geoms_to_yield = []
+        if isinstance(merged_s_geom, (MultiPoint, MultiLineString, MultiPolygon, GeometryCollection)):
+            logger.debug(f"{log_prefix}: Merged result is a MultiGeometry ({merged_s_geom.geom_type}) with {len(merged_s_geom.geoms)} parts.")
+            for part_geom in merged_s_geom.geoms:
+                if part_geom is None or part_geom.is_empty:
+                    continue
+                converted_part = convert_shapely_to_dxfplanner_geometry(part_geom)
+                if converted_part:
+                    geoms_to_yield.append(converted_part)
+        elif merged_s_geom:
+            converted_single = convert_shapely_to_dxfplanner_geometry(merged_s_geom)
+            if converted_single:
+                geoms_to_yield.append(converted_single)
+
+        if not geoms_to_yield:
+            logger.warning(f"{log_prefix}: No valid DXFPlanner geometries could be converted from the merged result.")
+            return
 
         yielded_count = 0
-        async for feature in features:
-            yield feature
+        for new_dxf_geom in geoms_to_yield:
+            yield GeoFeature(geometry=new_dxf_geom, attributes=result_attributes, crs=result_crs)
             yielded_count += 1
 
-        logger.info(f"{log_prefix}: Completed. Yielded {yielded_count} features (pass-through).")
+        logger.info(f"{log_prefix}: Completed. Yielded {yielded_count} feature(s) from merged geometry.")
 
 class DissolveOperation(IOperation[DissolveOperationConfig]):
-    """Dissolves features based on a common attribute value, merging their geometries."""
+    """Dissolves features based on a specified attribute field."""
 
-    async def execute(
+    def execute(
         self,
-        features: AsyncIterator[GeoFeature],
-        config: DissolveOperationConfig
-    ) -> AsyncIterator[GeoFeature]:
-        """
-        Executes the dissolve operation. Groups features by the specified attribute,
-        then merges the geometries within each group using unary_union.
+        features: List[GeoFeature],
+        config: DissolveOperationConfig,
+        **kwargs: Any
+    ) -> List[GeoFeature]:
+        if not features:
+            logger.info("DissolveOperation: No features provided to dissolve.")
+            return []
 
-        Args:
-            features: An asynchronous iterator of GeoFeature objects to process.
-            config: Configuration including the dissolve_by_attribute.
+        logger.info(f"DissolveOperation: Starting dissolve. Field: '{config.dissolve_by_field}'. Total features: {len(features)}")
 
-        Yields:
-            GeoFeature: An asynchronous iterator of dissolved GeoFeature objects.
-        """
-        dissolve_attr = config.dissolve_by_attribute
-        log_prefix = f"DissolveOperation (source: '{config.source_layer}', by: '{dissolve_attr}', output: '{config.output_layer_name}')"
-        logger.info(f"{log_prefix}: Executing...")
+        grouped_features: Dict[Any, List[GeoFeature]] = defaultdict(list)
 
-        if not dissolve_attr:
-            logger.warning(f"{log_prefix}: No dissolve_by_attribute specified. Dissolving all features into one (if any).")
-            # Treat all features as belonging to a single group if no attribute is specified
-            grouped_features: Dict[Optional[Any], List[GeoFeature]] = {None: []}
-            async for feature in features:
-                 grouped_features[None].append(feature)
-        else:
-            # Group features by the dissolve attribute value
-            grouped_features: Dict[Any, List[GeoFeature]] = defaultdict(list)
-            processed_count = 0
-            async for feature in features:
-                processed_count += 1
-                if dissolve_attr in feature.attributes:
-                    group_key = feature.attributes[dissolve_attr]
-                    # Ensure group_key is hashable (e.g., convert lists/dicts to tuples/frozensets if needed, though unlikely for typical dissolve keys)
-                    try:
-                        hash(group_key)
-                    except TypeError:
-                         logger.warning(f"{log_prefix}: Attribute '{dissolve_attr}' value '{group_key}' (type: {type(group_key)}) is not hashable. Skipping feature.")
-                         continue
-                    grouped_features[group_key].append(feature)
+        if config.dissolve_by_field:
+            for feature in features:
+                key_value = feature.properties.get(config.dissolve_by_field)
+                if key_value is None: # Handles missing key or explicit None value
+                    group_key = config.group_for_missing_key
                 else:
-                    logger.debug(f"{log_prefix}: Feature missing dissolve attribute '{dissolve_attr}'. Grouping under 'None'. Attributes: {feature.attributes}")
-                    grouped_features[None].append(feature) # Group features missing the attribute together
-            logger.info(f"{log_prefix}: Grouped {processed_count} features into {len(grouped_features)} groups.")
+                    group_key = key_value
+                    grouped_features[group_key].append(feature)
+            logger.debug(f"DissolveOperation: Features grouped into {len(grouped_features)} groups by field '{config.dissolve_by_field}'.")
+        else:
+            # If no dissolve_by_field, all features go into a single group
+            grouped_features["_ALL_FEATURES_"].extend(features)
+            logger.debug("DissolveOperation: No dissolve field specified, grouping all features together.")
 
-        # Process each group
-        yielded_count = 0
-        for group_key, features_in_group in grouped_features.items():
-            if not features_in_group:
+        dissolved_features: List[GeoFeature] = []
+        for group_key, group_features in grouped_features.items():
+            if not group_features:
                 continue
 
-            # Get geometries and convert to Shapely
-            shapely_geoms_in_group = []
-            for feature in features_in_group:
-                if feature.geometry:
-                    s_geom = convert_dxfplanner_geometry_to_shapely(feature.geometry)
-                    if s_geom and not s_geom.is_empty:
-                        # Pre-validate before union? Optional, might help robustness.
-                        s_geom = make_valid_geometry(s_geom)
-                        if s_geom and not s_geom.is_empty:
-                            shapely_geoms_in_group.append(s_geom)
+            shapely_geoms_to_union = []
+            for i, feature_to_convert in enumerate(group_features):
+                try:
+                    shapely_geom = convert_dxfplanner_geometry_to_shapely(feature_to_convert.geometry)
+                    if shapely_geom and not shapely_geom.is_empty:
+                        valid_geom = make_valid_geometry(shapely_geom)
+                        if valid_geom and not valid_geom.is_empty:
+                            shapely_geoms_to_union.append(valid_geom)
+                        elif i == 0 : # If it's the first feature and it becomes invalid/empty, log it.
+                            logger.warning(f"DissolveOperation: Geometry for feature ID '{feature_to_convert.id}' (group '{group_key}') became empty/invalid after make_valid_geometry. Original: {shapely_geom.wkt if shapely_geom else 'None'}")
+                    elif i == 0:
+                         logger.warning(f"DissolveOperation: Initial geometry for feature ID '{feature_to_convert.id}' (group '{group_key}') is empty or failed conversion. Original DxfPlannerGeom: {feature_to_convert.geometry}")
+                except Exception as e:
+                    logger.error(f"DissolveOperation: Error converting/validating geometry for feature ID '{feature_to_convert.id}' (group '{group_key}'): {e}", exc_info=True)
+                    if i == 0: # If the first feature fails, we might not have attributes.
+                        logger.warning(f"DissolveOperation: Skipping feature ID '{feature_to_convert.id}' due to conversion/validation error.")
 
-            if not shapely_geoms_in_group:
-                 logger.debug(f"{log_prefix}: Group '{group_key}' had no valid geometries to dissolve.")
+
+            if not shapely_geoms_to_union:
+                logger.warning(f"DissolveOperation: No valid geometries to union for group '{group_key}'. Skipping group.")
                  continue
 
-            # Perform unary union
-            dissolved_s_geom = None
             try:
-                dissolved_s_geom = unary_union(shapely_geoms_in_group)
-                dissolved_s_geom = make_valid_geometry(dissolved_s_geom) # Validate result
-            except Exception as e_union:
-                 logger.error(f"{log_prefix}: Error dissolving geometries for group '{group_key}': {e_union}", exc_info=True)
-                 continue # Skip this group on error
-
-            if dissolved_s_geom is None or dissolved_s_geom.is_empty:
-                 logger.debug(f"{log_prefix}: Dissolved geometry for group '{group_key}' is empty or invalid.")
+                # Perform the unary union
+                dissolved_geometry_shapely = unary_union(shapely_geoms_to_union)
+                if dissolved_geometry_shapely.is_empty:
+                    logger.warning(f"DissolveOperation: Unary union resulted in an empty geometry for group '{group_key}'.")
                  continue
 
-            # Convert back to DXFPlanner geometry, handle MultiGeometries
-            geoms_to_yield = []
-            if isinstance(dissolved_s_geom, (MultiPoint, MultiLineString, MultiPolygon, GeometryCollection)):
-                 for part_geom in dissolved_s_geom.geoms:
-                     if part_geom is None or part_geom.is_empty: continue
-                     converted_part = convert_shapely_to_dxfplanner_geometry(part_geom)
-                     if converted_part:
-                         geoms_to_yield.append(converted_part)
-            else: # Single geometry
-                 converted_single = convert_shapely_to_dxfplanner_geometry(dissolved_s_geom)
-                 if converted_single:
-                     geoms_to_yield.append(converted_single)
+                # Convert back to GeoFeature
+                # For simplicity, take properties and dxf_properties from the first feature in the group
+                first_feature_in_group = group_features[0]
+                new_properties = deepcopy(first_feature_in_group.properties)
+                new_dxf_properties = deepcopy(first_feature_in_group.dxf_properties) if first_feature_in_group.dxf_properties else {}
 
-            if not geoms_to_yield:
-                logger.debug(f"{log_prefix}: No valid DXFPlanner geometries could be converted from dissolve result for group '{group_key}'.")
+                # Update properties to reflect the dissolve if desired (e.g., add group_key)
+                if config.dissolve_by_field:
+                    new_properties[config.dissolve_by_field] = group_key if group_key != config.group_for_missing_key else None
+
+
+                # Ensure the geometry is valid after union as well
+                dissolved_geometry_shapely = make_valid_geometry(dissolved_geometry_shapely)
+                if dissolved_geometry_shapely.is_empty:
+                    logger.warning(f"DissolveOperation: Dissolved geometry became empty after final make_valid for group '{group_key}'.")
                 continue
 
-            # Use attributes from the first feature in the group
-            # TODO: Implement attribute aggregation strategies if needed (e.g., sum, mean, list)
-            first_feature = features_in_group[0]
-            result_attributes = first_feature.attributes.copy()
-            # Ensure the dissolve attribute reflects the group key (important if grouped by None)
-            if dissolve_attr:
-                 result_attributes[dissolve_attr] = group_key
 
-            # Yield new dissolved features
-            for new_dxf_geom in geoms_to_yield:
-                 yield GeoFeature(geometry=new_dxf_geom, attributes=result_attributes, crs=first_feature.crs)
-                 yielded_count += 1
+                dissolved_dxfplanner_geometry = convert_shapely_to_dxfplanner_geometry(dissolved_geometry_shapely)
 
-        logger.info(f"{log_prefix}: Completed. Yielded {yielded_count} dissolved features.")
+                if dissolved_dxfplanner_geometry:
+                    dissolved_feature = GeoFeature(
+                        id=f"dissolved_{group_key}_{dissolved_features.__len__()}", # Generate a new ID
+                        geometry=dissolved_dxfplanner_geometry,
+                        properties=new_properties,
+                        dxf_properties=new_dxf_properties,
+                        crs=first_feature_in_group.crs # Preserve CRS from first feature
+                    )
+                    dissolved_features.append(dissolved_feature)
+                    logger.debug(f"DissolveOperation: Successfully dissolved group '{group_key}' into new feature ID '{dissolved_feature.id}'. Result type: {dissolved_geometry_shapely.geom_type}")
+                else:
+                    logger.warning(f"DissolveOperation: Failed to convert dissolved Shapely geometry back to DxfPlannerGeometry for group '{group_key}'.")
+
+            except Exception as e:
+                logger.error(f"DissolveOperation: Error during unary_union or post-processing for group '{group_key}': {e}", exc_info=True)
+
+        logger.info(f"DissolveOperation: Completed. Produced {len(dissolved_features)} dissolved features.")
+        return dissolved_features
 
 class FilterByAttributeOperation(IOperation[FilterByAttributeOperationConfig]):
     """Filters features based on an attribute expression using asteval."""
 
-    def __init__(self): # Removed di_container as it's not used here
+    def __init__(self):
         if asteval is None:
-            # Log the error but don't raise an exception during __init__.
-            # The execute method will handle the missing library more gracefully.
             logger.error("FilterByAttributeOperation: 'asteval' library not found. Filtering will be bypassed. Please install 'asteval'.")
             self._interpreter = None
         else:
             self._interpreter = asteval.Interpreter()
-            # Optional: Configure asteval interpreter further if needed (e.g., max_statements, custom functions)
-            # self._interpreter.symtable['custom_func'] = lambda x: x * 2 # Example
 
     async def execute(
         self,
@@ -870,20 +884,20 @@ class FilterByAttributeOperation(IOperation[FilterByAttributeOperationConfig]):
         if self._interpreter is None:
             logger.error(f"{log_prefix}: 'asteval' library not available. Bypassing filtering and yielding all features.")
             warning_logged_bypass = False
-            async for feature_bypass in features: # Pass through if lib missing
-                if not warning_logged_bypass:
+            async for feature_bypass in features:
+                if not warning_logged_bypass: # Log bypass warning only once
                     logger.warning(f"{log_prefix}: Bypassing filter for all features as 'asteval' is not installed.")
                     warning_logged_bypass = True
                 yield feature_bypass
-            logger.info(f"{log_prefix}: Completed (bypassed).")
+            logger.info(f"{log_prefix}: Completed (bypassed due to missing asteval).")
             return
 
         expression = config.filter_expression
         if not expression:
-            logger.warning(f"{log_prefix}: Filter expression is empty. Yielding all features.")
+            logger.warning(f"{log_prefix}: Filter expression is empty. Yielding all features as per current behavior (or consider raising error/yielding none).")
             async for feature_no_expr in features:
                 yield feature_no_expr
-            logger.info(f"{log_prefix}: Completed (empty expression).")
+            logger.info(f"{log_prefix}: Completed (empty expression, all features yielded).")
             return
 
         yielded_count = 0
@@ -891,153 +905,90 @@ class FilterByAttributeOperation(IOperation[FilterByAttributeOperationConfig]):
 
         async for feature in features:
             processed_count += 1
+
+            current_properties = feature.properties if feature.properties else {}
+
             try:
-                # Using a new interpreter instance per feature evaluation to ensure a clean symtable,
-                # or clearing the existing one. For simplicity with potential async execution,
-                # creating a new one might be safer if the interpreter is not thread/async-safe
-                # or if complex state could persist. Asteval's Interpreter is generally reusable.
-                # Let's clear the symtable of the shared instance.
+                # Prepare symbol table for asteval
+                self._interpreter.error = [] # Clear previous errors
                 self._interpreter.symtable.clear()
-                self._interpreter.symtable.update(feature.attributes)
-                # Add common built-ins if not available by default in asteval's minimal set
-                self._interpreter.symtable['True'] = True
-                self._interpreter.symtable['False'] = False
-                self._interpreter.symtable['None'] = None
-                # Add other safe built-ins or math functions if needed e.g. self._interpreter.symtable['sqrt'] = math.sqrt
 
-                result = self._interpreter.eval(expression)
+                eval_scope = {'properties': current_properties}
+                eval_scope['True'] = True
+                eval_scope['False'] = False
+                eval_scope['None'] = None
+                # Add other safe builtins if necessary, e.g., math functions
+                # For now, only properties and basic constants.
 
-                if self._interpreter.error:
-                    # Log errors that occurred during evaluation for this feature
-                    errors = self._interpreter.get_error() # Get all errors
-                    self._interpreter.error = [] # Clear errors from the interpreter instance
-                    for err in errors:
-                        logger.warning(f"{log_prefix}: Error evaluating filter for feature (ID: {feature.attributes.get('id', 'N/A')}): {err.get_error()[1]}. Expr: '{expression}'. Attrs: {feature.attributes}")
-                    continue # Skip feature on evaluation error
+                self._interpreter.symtable.update(eval_scope)
 
-                if result: # Yield feature if expression evaluates to True
+                if self._interpreter.eval(expression): # Successfully parsed and evaluated
+                    expression_value = self._interpreter.symtable.get('_result')
+                    if bool(expression_value):
                     yield feature
                     yielded_count += 1
+                else: # Evaluation failed (syntax error in expr, or runtime error during eval)
+                    errors = self._interpreter.get_error()
+                    error_messages = [err.get_error()[1] for err in errors] if errors else ["Unknown evaluation error"]
+                    logger.warning(f"{log_prefix}: Error evaluating filter for feature (ID: {feature.id or 'N/A'}): {error_messages}. Expr: '{expression}'. Properties: {current_properties}")
+                    # self._interpreter.error = [] # Ensure errors are cleared if not done by eval failure path automatically
 
-            except Exception as e:
-                # This catches errors in the Python code itself, not asteval evaluation errors (handled above)
-                logger.error(f"{log_prefix}: Unexpected Python error during filter processing for feature (ID: {feature.attributes.get('id', 'N/A')}): {e}. Expr: '{expression}'. Attrs: {feature.attributes}", exc_info=True)
-                # Decide whether to skip feature or allow app to stop based on severity
+            except Exception as e: # Catch any other Python exceptions during the process
+                logger.error(f"{log_prefix}: Unexpected Python error during filter processing for feature (ID: {feature.id or 'N/A'}): {e}. Expr: '{expression}'. Properties: {current_properties}", exc_info=True)
 
         logger.info(f"{log_prefix}: Completed. Processed: {processed_count}, Yielded: {yielded_count}.")
 
-# --- ADDED PLACEHOLDERS END ---
-
-# --- ADDED LABEL PLACEMENT PLACEHOLDER START ---
-
 class LabelPlacementOperation(IOperation[LabelPlacementOperationConfig]):
-    """Performs label placement based on configuration."""
-    # This operation might need access to the LabelPlacementService via DI later for full implementation,
-    # especially for complex collision detection and placement rules.
+    """Performs label placement by utilizing an ILabelPlacementService."""
 
-    def __init__(self, style_service: IStyleService, logger_param: Any = None):
+    def __init__(self, label_placement_service: ILabelPlacementService, style_service: IStyleService, logger_param: Any = None):
+        self.label_placement_service = label_placement_service
         self.style_service = style_service
-        # If a base IOperation class had a logger, we'd pass it. For now, use module logger.
-        self.logger = logger_param if logger_param else logger # Use injected logger if provided, else module logger
+        self.logger = logger_param if logger_param else logger
 
     async def execute(
         self,
         features: AsyncIterator[GeoFeature],
         config: LabelPlacementOperationConfig
     ) -> AsyncIterator[GeoFeature]:
-        self.logger.info(f"Executing LabelPlacementOperation for source: '{config.source_layer}', output: '{config.output_label_layer_name}'.")
+        self.logger.info(f"Executing LabelPlacementOperation for source: '{config.source_layer}', output: '{config.output_label_layer_name}'. Delegating to LabelPlacementService.")
 
-        # Resolve text style using the new method in StyleService
+        contextual_layer_name = config.source_layer if config.source_layer else "unknown_layer_for_labeling"
+        label_settings = config.label_settings
+
+        # Resolve text style properties using the style_service
+        text_style_props_for_service_call: Optional[TextStylePropertiesConfig] = None
         try:
-            label_text_style = self.style_service.get_resolved_style_for_label_operation(config)
-            self.logger.info(f"Resolved label text style for LabelPlacementOperation: Font='{label_text_style.font}', Height='{label_text_style.height}'")
-            # Further logging of other resolved style properties can be added if needed.
-        except Exception as e:
-            self.logger.error(f"Error resolving label style in LabelPlacementOperation: {e}", exc_info=True)
-            # Decide if we should proceed without style or stop. For now, log and proceed.
-            label_text_style = TextStylePropertiesConfig() # Use default if error
+            # This call should return a valid TextStylePropertiesConfig, even if default
+            text_style_props_for_service_call = self.style_service.get_resolved_style_for_label_operation(config)
+            self.logger.debug(f"Resolved text style for LabelPlacementOperation (layer: {contextual_layer_name}): {text_style_props_for_service_call.model_dump_json(indent=2, exclude_unset=True)}")
+        except Exception as e_style_resolve:
+            self.logger.error(f"Error resolving text style in LabelPlacementOperation for layer '{contextual_layer_name}': {e_style_resolve}", exc_info=True)
+            # Fallback to a default config if resolution fails catastrophically (should be rare)
+            text_style_props_for_service_call = TextStylePropertiesConfig()
 
-        # Determine label text source
-        use_fixed_text = config.label_settings.fixed_label_text is not None
-        label_attr = config.label_settings.label_attribute
+        placed_label_stream = self.label_placement_service.place_labels_for_features(
+            features=features,
+            layer_name=contextual_layer_name,
+            config=label_settings,
+            text_style_properties=text_style_props_for_service_call # PASSING THE RESOLVED STYLE
+        )
 
-        if not use_fixed_text and not label_attr:
-            self.logger.error(f"LabelPlacementOperation requires either fixed_label_text or label_attribute in label_settings. Skipping.")
-            return # Stop processing if no label source defined
-
-        log_prefix = f"LabelPlacementOperation (source: '{config.source_layer}', output: '{config.output_label_layer_name}')"
         yielded_count = 0
-        async for feature in features:
-            label_text = ""
-            if use_fixed_text:
-                label_text = config.label_settings.fixed_label_text
-            elif label_attr in feature.attributes:
-                label_text = str(feature.attributes[label_attr]) # Ensure string
-            else:
-                 self.logger.debug(f"{log_prefix}: Feature missing label attribute '{label_attr}'. Skipping label for this feature. Attrs: {feature.attributes}")
-                 continue # Skip if attribute missing
+        async for placed_label in placed_label_stream:
+            label_geometry = PointGeo(coordinates=placed_label.position)
 
-            if not label_text: # Skip if text is empty after resolving
-                 self.logger.debug(f"{log_prefix}: Resolved label text is empty. Skipping label. Attrs: {feature.attributes}")
-                 continue
-
-            if feature.geometry is None:
-                 logger.debug(f"{log_prefix}: Feature has no geometry to place label on. Skipping label. Attrs: {feature.attributes}")
-                 continue
-
-            shapely_geom = convert_dxfplanner_geometry_to_shapely(feature.geometry)
-            if shapely_geom is None or shapely_geom.is_empty:
-                 logger.debug(f"{log_prefix}: Could not convert feature geometry to valid Shapely object. Skipping label. Attrs: {feature.attributes}")
-                 continue
-
-            # Calculate placement point (simple strategy)
-            placement_s_point: Optional[Point] = None
-            try:
-                if isinstance(shapely_geom, Point):
-                    placement_s_point = shapely_geom
-                else:
-                    # representative_point() is guaranteed to be within the geometry
-                    placement_s_point = shapely_geom.representative_point()
-            except Exception as e_place:
-                 logger.error(f"{log_prefix}: Error calculating placement point: {e_place}. Skipping label. Attrs: {feature.attributes}", exc_info=True)
-                 continue
-
-            if placement_s_point is None or placement_s_point.is_empty:
-                 logger.warning(f"{log_prefix}: Calculated placement point is invalid. Skipping label. Attrs: {feature.attributes}")
-                 continue
-
-            # Apply offsets (assuming CRS units for now)
-            # TODO: Handle expression-based offsets if needed
-            offset_x = 0.0
-            offset_y = 0.0
-            try:
-                 offset_x = float(config.label_settings.offset_x)
-                 offset_y = float(config.label_settings.offset_y)
-            except ValueError:
-                 logger.warning(f"{log_prefix}: Could not parse offsets ('{config.label_settings.offset_x}', '{config.label_settings.offset_y}') as float. Using 0.0.")
-            except Exception as e_offset:
-                 logger.error(f"{log_prefix}: Error processing offsets: {e_offset}. Using 0.0.", exc_info=True)
-
-            final_x = placement_s_point.x + offset_x
-            final_y = placement_s_point.y + offset_y
-
-            # Convert final placement point back to GeoPoint
-            label_geo_point = GeoPoint(x=final_x, y=final_y, z=placement_s_point.z if placement_s_point.has_z else 0.0)
-
-            # Create attributes for the label feature
+            # The text_style_props_for_feature for the GeoFeature attributes should be the same one passed to the service
+            # No need to resolve it again here.
             label_attributes = {
-                "__geometry_type__": "LABEL", # Special flag for DxfWriter
-                "label_text": label_text,
-                # Pass resolved style properties directly
-                "text_style_properties": label_text_style.model_dump(exclude_unset=True),
-                # Copy original attributes? Or just specific ones? For now, keep it clean.
-                # **feature.attributes # Uncomment to copy original attributes
+                "__geometry_type__": "LABEL",
+                "label_text": placed_label.text,
+                "label_rotation": placed_label.rotation,
+                "text_style_properties": text_style_props_for_service_call.model_dump(exclude_unset=True) if text_style_props_for_service_call else {},
             }
 
-            # Yield the label feature
-            yield GeoFeature(geometry=label_geo_point, attributes=label_attributes, crs=feature.crs)
+            yield GeoFeature(geometry=label_geometry, attributes=label_attributes, crs=None) # CRS for labels is typically not set or inherited
             yielded_count += 1
+            await asyncio.sleep(0)
 
-        logger.info(f"{log_prefix}: Completed. Yielded {yielded_count} label features.")
-
-# --- ADDED LABEL PLACEMENT PLACEHOLDER END ---
+        self.logger.info(f"LabelPlacementOperation (via service) completed. Yielded {yielded_count} label features for layer '{contextual_layer_name}'.")

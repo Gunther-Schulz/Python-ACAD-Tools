@@ -7,7 +7,7 @@ import networkx as nx
 from dxfplanner.domain.models.common import Coordinate
 from dxfplanner.domain.models.geo_models import GeoFeature
 from dxfplanner.domain.interfaces import ILabelPlacementService, PlacedLabel, IStyleService, ITextStyle
-from dxfplanner.config.schemas import LabelSettings
+from dxfplanner.config.schemas import LabelSettings, TextStylePropertiesConfig
 from shapely.geometry import Point, LineString, Polygon, MultiPolygon
 from shapely.ops import polylabel
 from shapely.affinity import rotate, translate
@@ -48,6 +48,7 @@ class LabelPlacementServiceImpl(ILabelPlacementService):
         features: AsyncIterator[GeoFeature],
         layer_name: str,
         config: LabelSettings,
+        text_style_properties: TextStylePropertiesConfig
     ) -> AsyncIterator[PlacedLabel]:
         """
         Calculates optimal placements for labels for a stream of geographic features.
@@ -55,7 +56,7 @@ class LabelPlacementServiceImpl(ILabelPlacementService):
         """
         self.logger.debug(
             f"Starting label placement for layer '{layer_name}' "
-            f"with text_height: {config.text_height}, "
+            f"with text_height: {text_style_properties.height if text_style_properties else 'N/A'}, "
             f"offset_x: {config.offset_x}, offset_y: {config.offset_y}"
         )
 
@@ -81,19 +82,25 @@ class LabelPlacementServiceImpl(ILabelPlacementService):
             # Determine geometry type and generate candidate positions
             geom = feature.geometry
             candidates = []
+            current_text_height = text_style_properties.height if text_style_properties and text_style_properties.height > 0 else 1.0
+
             if isinstance(geom, Point):
                 # Use get_point_label_position
                 pos, angle = self.get_point_label_position(
-                    geom, current_label_text, config.text_height, config.offset, getattr(config, 'point_position_preference', None)
+                    geom, current_label_text,
+                    current_text_height,
+                    config.offset_x,
+                    config.offset_y,
+                    getattr(config, 'point_position_preference', None)
                 )
                 candidates.append((pos, angle))
             elif isinstance(geom, (LineString,)):
                 # Generate anchor/candidate positions for lines
-                # Example: use _get_line_anchor_points and _find_best_line_label_position
                 try:
                     anchor_points = self._get_line_anchor_points(geom, config)
                     best_pos, best_score, best_angle = self._find_best_line_label_position(
-                        geom, anchor_points, current_label_text, config, placed_labels_boxes, avoidance_geometries
+                        geom, anchor_points, current_label_text, config, text_style_properties,
+                        placed_labels_boxes, avoidance_geometries
                     )
                     if best_pos is not None:
                         candidates.append((best_pos, best_angle))
@@ -101,8 +108,13 @@ class LabelPlacementServiceImpl(ILabelPlacementService):
                     self.logger.error(f"Error generating line label candidates for feature in {layer_name}: {e}", exc_info=True)
             elif isinstance(geom, (Polygon, MultiPolygon)):
                 # Use get_polygon_anchor_position
+                est_char_width = current_text_height * (text_style_properties.width_factor if text_style_properties and text_style_properties.width_factor else 0.6)
+                estimated_text_width = len(current_label_text) * est_char_width
+
                 anchor = self.get_polygon_anchor_position(
-                    geom, config.text_height * len(current_label_text), config.text_height
+                    geom,
+                    estimated_text_width,
+                    current_text_height
                 )
                 candidates.append((anchor, 0.0))
             else:
@@ -113,8 +125,12 @@ class LabelPlacementServiceImpl(ILabelPlacementService):
             for pos, angle in candidates:
                 # Use _evaluate_candidate_position for collision and constraint checks
                 result = self._evaluate_candidate_position(
-                    current_label_text, pos, angle, getattr(config, 'text_style', ''), layer_name, geom, config,
-                    placed_labels_boxes, avoidance_geometries
+                    current_label_text, pos, angle,
+                    text_style_properties,
+                    layer_name,
+                    geom, config,
+                    placed_labels_boxes, avoidance_geometries,
+                    prepared_feature_geom, prepared_avoidance
                 )
                 if result:
                     label_box, score = result
@@ -394,7 +410,8 @@ class LabelPlacementServiceImpl(ILabelPlacementService):
                                  point: Point,
                                  label_text: str, # Used for text_width calculation
                                  text_height: float,
-                                 offset_config: Any, # From LabelSettings.offset (can be dict, number, list)
+                                 offset_x: float,
+                                 offset_y: float,
                                  point_position_preference: Optional[str] = None # e.g., "top-right"
                                  ) -> Tuple[Point, float]: # Returns (position_point, angle)
         """Get best label position for a point feature."""
@@ -407,14 +424,19 @@ class LabelPlacementServiceImpl(ILabelPlacementService):
 
         # Resolve offset_x, offset_y from various config formats
         offset_x_val, offset_y_val = (0.0, 0.0)
-        if isinstance(offset_config, (int, float)):
-            offset_x_val, offset_y_val = float(offset_config), float(offset_config)
-        elif isinstance(offset_config, dict):
-            offset_x_val = float(offset_config.get('x', 0.0))
-            offset_y_val = float(offset_config.get('y', 0.0))
-        elif isinstance(offset_config, (list, tuple)) and len(offset_config) >= 2:
-            offset_x_val = float(offset_config[0])
-            offset_y_val = float(offset_config[1])
+        if isinstance(offset_x, (int, float)):
+            offset_x_val = float(offset_x)
+        elif isinstance(offset_x, dict):
+            offset_x_val = float(offset_x.get('x', 0.0))
+        elif isinstance(offset_x, (list, tuple)) and len(offset_x) >= 2:
+            offset_x_val = float(offset_x[0])
+
+        if isinstance(offset_y, (int, float)):
+            offset_y_val = float(offset_y)
+        elif isinstance(offset_y, dict):
+            offset_y_val = float(offset_y.get('y', 0.0))
+        elif isinstance(offset_y, (list, tuple)) and len(offset_y) >= 2:
+            offset_y_val = float(offset_y[1])
 
         effective_offset_x = offset_x_val
         effective_offset_y = offset_y_val
@@ -450,33 +472,32 @@ class LabelPlacementServiceImpl(ILabelPlacementService):
 
     # --- Candidate Generation & Evaluation Helpers (Batch 3) ---
 
-    async def _get_text_dimensions(self, text: str, text_style_name: str, layer_name: str) -> Tuple[float, float]:
+    def _get_text_dimensions(self, text: str, style_props: Optional[TextStylePropertiesConfig]) -> Tuple[float, float]:
         """
-        Retrieves the approximate width and height of a text string for a given style.
-        This should ideally use the IStyleService to get font metrics.
+        Retrieves the approximate width and height of a text string using provided TextStylePropertiesConfig.
         """
-        if not self.style_service:
-            logger.warning("StyleService not available for _get_text_dimensions. Returning estimated dimensions.")
-            # Fallback to a very rough estimate if style service is not available
-            # Average char width 0.5 * text height, text height is 1.0 unit by default
-            # This needs to be significantly improved with actual font metrics.
-            return len(text) * 0.5 * 1.0, 1.0
+        if not style_props:
+            self.logger.warning("TextStylePropertiesConfig not provided to _get_text_dimensions. Returning estimated dimensions: (len*0.5, 1.0)")
+            return len(text) * 0.5, 1.0 # Default fallback
 
-        text_style: Optional[ITextStyle] = await self.style_service.get_text_style_properties(text_style_name, layer_name)
-        if not text_style or not text_style.font_properties:
-            logger.warning(f"Text style '{text_style_name}' or its font properties not found for layer '{layer_name}'. Estimating dimensions.")
-            return len(text) * 0.5 * (text_style.height if text_style and text_style.height and text_style.height > 0 else 1.0), \
-                   (text_style.height if text_style and text_style.height and text_style.height > 0 else 1.0)
+        height = style_props.height if style_props.height and style_props.height > 0 else 1.0
 
-        # This is still a simplification. Actual text bounding box is complex.
-        # TODO: Integrate with a more accurate text measurement (e.g., using ezdxf's font_manager or similar)
-        char_width_approx = text_style.font_properties.cap_height * 0.6 # Very rough approximation
-        if text_style.width_factor and text_style.width_factor > 0:
-            char_width_approx *= text_style.width_factor
+        # Approximate character width based on height and width_factor
+        # This is a very rough estimate. True font metrics would be needed for high accuracy.
+        # Default average char width factor (e.g. 0.6 for Arial-like fonts)
+        char_width_factor = 0.6
+        if style_props.width_factor and style_props.width_factor > 0:
+            char_width_factor *= style_props.width_factor
 
-        text_height = text_style.height if text_style.height and text_style.height > 0 else text_style.font_properties.cap_height
-        text_width = len(text) * char_width_approx
-        return text_width, text_height
+        # For a more font-specific (but still rough) estimate if font name is known:
+        # Could have a small dict of common font_name -> rough_aspect_ratio
+        # e.g., if style_props.font.lower() == 'arial': char_width_factor = 0.55 * (style_props.width_factor or 1.0)
+        # This is out of scope for now, using general factor.
+
+        text_width = len(text) * height * char_width_factor # Width is proportional to height and factor
+
+        self.logger.debug(f"Calculated text dimensions for text '{text}': width={text_width}, height={height} using style font: {style_props.font if style_props else 'N/A'}")
+        return text_width, height
 
     def _calculate_label_box(self, anchor_point: Point, text_width: float, text_height: float, angle_deg: float,
                              alignment_point: int = 7) -> Polygon:
@@ -553,66 +574,34 @@ class LabelPlacementServiceImpl(ILabelPlacementService):
         label_text: str,
         anchor_point: Point,
         angle_deg: float,
-        text_style_name: str, # For _get_text_dimensions
-        layer_name: str,      # For _get_text_dimensions
+        text_style_props: Optional[TextStylePropertiesConfig],
+        layer_name: str,
         feature_geom: Union[Point, LineString, Polygon, MultiPolygon],
         config: LabelSettings,
-        placed_labels_boxes: List[Polygon], # BBoxes of already placed labels
-        avoidance_geometries: List[Union[Polygon, LineString, Point]], # Other fixed obstacles
-        prepared_feature_geom: Optional[Any] = None, # Prepared version of feature_geom if polygon
-        prepared_avoidance: Optional[List[Any]] = None # Prepared versions of avoidance_geometries
-    ) -> Optional[Tuple[Polygon, float]]: # Returns (label_box, score) or None if invalid
+        placed_labels_boxes: List[Polygon],
+        avoidance_geometries: List[Union[Polygon, LineString, Point]],
+        prepared_feature_geom: Optional[Any] = None,
+        prepared_avoidance: Optional[List[Any]] = None
+    ) -> Optional[Tuple[Polygon, float]]:
         """
         Evaluates a single candidate label position.
         Returns the label_box and a score if valid, otherwise None.
         Score is higher for better placements.
         """
-        # This method will be significantly expanded.
-        # For now, a basic implementation.
+        # 1. Get text dimensions
+        text_width, text_height = self._get_text_dimensions(label_text, text_style_props)
 
-        # 1. Get text dimensions (async part needs to be handled carefully if called from sync context)
-        #    For now, assuming this service method might become async or this helper is called from an async context.
-        #    If _get_text_dimensions remains async, this method needs to be async too.
-        #    Let's assume for now it's refactored to be callable or style_service is pre-loaded.
-        #    For initial structure, we'll call it and deal with async nature later.
-        # text_width, text_height = await self._get_text_dimensions(label_text, text_style_name, layer_name)
-        # Placeholder for synchronous adaptation or if style_service calls are made sync
-        text_width, text_height = 0.0, 0.0 # Placeholder - this MUST be replaced
-        if self.style_service:
-             # This is a simplification - in reality, we'd need to ensure style_service.get_text_style_properties
-             # is either sync or this whole evaluation chain is async.
-             # For now, to avoid making this whole method async immediately:
-            try:
-                # Attempt a simplified, potentially synchronous-compatible fetch or estimation
-                # This is a conceptual placeholder. A real solution needs careful async/sync handling.
-                # For now, let's assume a sync estimation is possible.
-                text_style = self.style_service.get_cached_text_style(text_style_name, layer_name) # Fictional sync method
-                if text_style and text_style.height and text_style.height > 0 :
-                    text_height = text_style.height
-                    text_width = len(label_text) * text_height * 0.6 * (text_style.width_factor or 1.0) # Rough
-                else: # Fallback if not found or no height
-                    text_height = 1.0 # Default height
-                    text_width = len(label_text) * 0.6 # Rough
-            except Exception: # Broad except for placeholder
-                 text_height = 1.0 # Default height
-                 text_width = len(label_text) * 0.6 # Rough
-        else: # Fallback if no style service
-            text_height = 1.0 # Default height
-            text_width = len(label_text) * 0.6 # Rough
-
-        if text_width == 0 or text_height == 0: # Should not happen with fallbacks
-            logger.warning(f"Could not determine text dimensions for '{label_text}' with style '{text_style_name}'. Skipping.")
+        if text_width <= 0 or text_height <= 0: # Ensure positive dimensions
+            self.logger.warning(f"Could not determine valid text dimensions (w:{text_width}, h:{text_height}) for '{label_text}'. Skipping.")
             return None
 
-
         # 2. Calculate label bounding box
-        #    Use config.label_alignment_point if available, otherwise default (e.g., 7 for BottomLeft)
         alignment_point = getattr(config, 'label_alignment_point', 7)
         label_box = self._calculate_label_box(anchor_point, text_width, text_height, angle_deg, alignment_point)
 
         # 3. Collision checks
         # 3a. Check collision with already placed labels
-        if self._check_collision(label_box, placed_labels_boxes): # No need for prepared for this dynamic list
+        if self._check_collision(label_box, placed_labels_boxes):
             return None
 
         # 3b. Check collision with fixed avoidance geometries

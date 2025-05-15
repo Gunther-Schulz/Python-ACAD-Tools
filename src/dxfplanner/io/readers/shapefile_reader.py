@@ -7,22 +7,23 @@ from fiona.errors import DriverError, FionaValueError, CRSError as FionaCRSError
 from shapely.geometry import shape as shapely_shape
 
 # DXFPlanner imports
-from dxfplanner.config import AppConfig # ShapefileSourceConfig is implicitly handled by LayerConfig.source
+from dxfplanner.config.schemas import ShapefileReaderConfig # Updated import
 from dxfplanner.domain.models.geo_models import GeoFeature # Base model for output
 from dxfplanner.domain.models.common import Coordinate # Used by geometry utils
 from dxfplanner.domain.interfaces import IGeoDataReader, AnyStrPath # Adhering to interface
 from dxfplanner.core.exceptions import GeoDataReadError
 from dxfplanner.geometry.utils import reproject_geometry, convert_shapely_to_anygeogeometry # Utilities
-from dxfplanner.core.logging_config import get_logger
+# from dxfplanner.core.logging_config import get_logger # Removed
 
-logger = get_logger(__name__)
+# logger = get_logger(__name__) # Removed module logger
 
-class ShapefileReader(IGeoDataReader): # Removed [ShapefileSourceConfig] as IGeoDataReader is not generic over source config type
+class ShapefileReader(IGeoDataReader):
     """Reads geodata from Shapefile format."""
 
-    def __init__(self, app_config: AppConfig):
-        self.app_config = app_config
-        self.default_encoding = app_config.io.readers.shapefile.default_encoding
+    def __init__(self, config: ShapefileReaderConfig, logger: Any): # Updated __init__
+        self.config = config
+        self.logger = logger
+        # self.default_encoding = app_config.io.readers.shapefile.default_encoding # Removed
 
     async def read_features(
         self,
@@ -30,7 +31,7 @@ class ShapefileReader(IGeoDataReader): # Removed [ShapefileSourceConfig] as IGeo
         source_crs: Optional[str] = None,
         target_crs: Optional[str] = None,
         # Specific to ShapefileSourceConfig, passed via kwargs from LayerProcessor
-        encoding: Optional[str] = None,
+        encoding: Optional[str] = None, # This parameter can override config
         **kwargs: Any
     ) -> AsyncIterator[GeoFeature]:
         """
@@ -44,14 +45,14 @@ class ShapefileReader(IGeoDataReader): # Removed [ShapefileSourceConfig] as IGeo
             **kwargs: Catches other potential args from LayerConfig.source if any.
         """
         p_source_path = Path(source_path)
-        logger.info(f"Reading Shapefile: {p_source_path}, Source CRS hint: {source_crs}, Target CRS: {target_crs}")
+        self.logger.info(f"Reading Shapefile: {p_source_path}, Source CRS hint: {source_crs}, Target CRS: {target_crs}") # Use self.logger
 
         if not p_source_path.exists() or not p_source_path.is_file():
             raise GeoDataReadError(f"Shapefile not found or is not a file: {p_source_path}")
         if not p_source_path.suffix.lower() == ".shp":
             raise GeoDataReadError(f"Specified path is not a .shp file: {p_source_path}")
 
-        actual_encoding = encoding or self.default_encoding
+        actual_encoding = encoding if encoding is not None else self.config.encoding # Use self.config.encoding
 
         try:
             with fiona.open(p_source_path, 'r', encoding=actual_encoding) as collection:
@@ -68,31 +69,40 @@ class ShapefileReader(IGeoDataReader): # Removed [ShapefileSourceConfig] as IGeo
                         elif isinstance(collection.crs, str): # WKT string
                             authoritative_source_crs = collection.crs
                         else: # Unrecognized crs format from fiona
-                            logger.warning(f"Fiona returned CRS in unrecognized format: {collection.crs}. Using provided source_crs hint if available.")
+                            self.logger.warning(f"Fiona returned CRS in unrecognized format: {collection.crs}. Using provided source_crs hint if available.") # Use self.logger
 
                     if source_crs: # Parameter takes precedence or fills if file had none
                         if authoritative_source_crs and authoritative_source_crs.lower() != source_crs.lower():
-                            logger.warning(f"Provided source_crs '{source_crs}' differs from file's detected CRS '{authoritative_source_crs}'. Using '{source_crs}'.")
+                            self.logger.warning(f"Provided source_crs '{source_crs}' differs from file\'s detected CRS '{authoritative_source_crs}'. Using '{source_crs}'.") # Use self.logger
                         authoritative_source_crs = source_crs.upper()
+
+                    # New: Use config.default_source_crs as a fallback if still not determined
+                    if not authoritative_source_crs and self.config.default_source_crs:
+                        authoritative_source_crs = self.config.default_source_crs
+                        self.logger.info(f"Using default_source_crs from config: {authoritative_source_crs}") # Use self.logger
 
                     if not authoritative_source_crs:
-                         logger.warning(f"Could not determine source CRS for {p_source_path}. Reprojection to target_crs might fail or be inaccurate.")
+                         self.logger.warning(f"Could not determine source CRS for {p_source_path}. Reprojection to target_crs might fail or be inaccurate.") # Use self.logger
 
                 except FionaCRSError as e_crs_fiona:
-                    logger.warning(f"Fiona CRSError when accessing collection.crs for {p_source_path}: {e_crs_fiona}. Using provided source_crs hint: {source_crs}")
+                    self.logger.warning(f"Fiona CRSError when accessing collection.crs for {p_source_path}: {e_crs_fiona}. Using provided source_crs hint: {source_crs}") # Use self.logger
                     if source_crs:
                         authoritative_source_crs = source_crs.upper()
+                    # New: Use config.default_source_crs as a fallback
+                    elif self.config.default_source_crs:
+                        authoritative_source_crs = self.config.default_source_crs
+                        self.logger.info(f"Using default_source_crs from config after FionaCRSError: {authoritative_source_crs}") # Use self.logger
                     else:
-                        logger.error(f"No source CRS could be determined for {p_source_path}. Cannot proceed reliably.")
+                        self.logger.error(f"No source CRS could be determined for {p_source_path}. Cannot proceed reliably.") # Use self.logger
                         raise GeoDataReadError(f"Missing source CRS for {p_source_path}") from e_crs_fiona
 
-                logger.info(f"Reading features from {p_source_path}. Authoritative Source CRS: {authoritative_source_crs}, Target CRS: {target_crs}, Encoding: {actual_encoding}")
+                self.logger.info(f"Reading features from {p_source_path}. Authoritative Source CRS: {authoritative_source_crs}, Target CRS: {target_crs}, Encoding: {actual_encoding}") # Use self.logger
 
                 for i, record in enumerate(collection):
                     try:
                         shapely_geom_orig = shapely_shape(record['geometry'])
                         if shapely_geom_orig is None or shapely_geom_orig.is_empty:
-                            logger.debug(f"Skipping feature {i} with null or empty geometry.")
+                            self.logger.debug(f"Skipping feature {i} with null or empty geometry.") # Use self.logger
                             continue
 
                         properties = dict(record['properties'])
@@ -107,9 +117,9 @@ class ShapefileReader(IGeoDataReader): # Removed [ShapefileSourceConfig] as IGeo
                             if reprojected_s_geom:
                                 current_s_geom = reprojected_s_geom
                                 current_crs = target_crs
-                                logger.debug(f"Feature {i} reprojected from {authoritative_source_crs} to {target_crs}")
+                                self.logger.debug(f"Feature {i} reprojected from {authoritative_source_crs} to {target_crs}") # Use self.logger
                             else:
-                                logger.warning(f"Failed to reproject feature {i} from {authoritative_source_crs} to {target_crs}. Using original geometry and CRS.")
+                                self.logger.warning(f"Failed to reproject feature {i} from {authoritative_source_crs} to {target_crs}. Using original geometry and CRS.") # Use self.logger
 
                         # Convert Shapely geometry to AnyGeoGeometry model
                         geo_model_geom = convert_shapely_to_anygeogeometry(current_s_geom)
@@ -119,13 +129,13 @@ class ShapefileReader(IGeoDataReader): # Removed [ShapefileSourceConfig] as IGeo
                                 geometry=geo_model_geom,
                                 properties=properties,
                                 id=str(feature_id) if feature_id is not None else f"fid_{i}", # Ensure an ID
-                                crs=current_crs
+                                crs=current_crs # This should be the CRS of geo_model_geom
                             )
                         else:
-                            logger.warning(f"Could not convert geometry for feature {i} to AnyGeoGeometry model. Shapely type: {current_s_geom.geom_type if current_s_geom else 'None'}")
+                            self.logger.warning(f"Could not convert geometry for feature {i} to AnyGeoGeometry model. Shapely type: {current_s_geom.geom_type if current_s_geom else 'None'}") # Use self.logger
 
                     except Exception as e_feat:
-                        logger.error(f"Error processing feature {i} from {p_source_path}: {e_feat}", exc_info=True)
+                        self.logger.error(f"Error processing feature {i} from {p_source_path}: {e_feat}", exc_info=True) # Use self.logger
                         # Optionally, could yield a GeoFeature with error information or skip
 
         except DriverError as e_driver:

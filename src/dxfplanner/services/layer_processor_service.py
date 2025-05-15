@@ -5,7 +5,7 @@ This includes reading data, applying operations, and transforming to DXF entitie
 from typing import AsyncIterator, Optional, Dict, Any
 from logging import Logger
 
-from dxfplanner.config import AppConfig, LayerConfig, AnySourceConfig, ShapefileSourceConfig # Add other source configs as needed
+from dxfplanner.config import AppConfig, LayerConfig, AnySourceConfig, ShapefileSourceConfig, OperationType, LabelPlacementOperationConfig # Added OperationType, LabelPlacementOperationConfig
 from dxfplanner.domain.models.geo_models import GeoFeature
 from dxfplanner.domain.models.dxf_models import AnyDxfEntity
 from dxfplanner.domain.interfaces import IGeoDataReader, IOperation, IGeometryTransformer
@@ -55,6 +55,26 @@ class LayerProcessorService:
         current_stream_key: Optional[str] = None
         initial_features_loaded = False
 
+        # --- Prepare effective operations list including implicit labeling ---
+        effective_operations = list(layer_config.operations) # Make a mutable copy
+        if layer_config.labeling:
+            self.logger.info(f"Layer '{layer_config.name}' has direct labeling configuration. Adding implicit LabelPlacementOperation.")
+            # Check if a LabelPlacementOperation is already the last one by user.
+            # If so, we might honor it or warn. For now, let's assume implicit labeling adds its own if config is present.
+            # A more sophisticated check could see if the user's last LP op matches the direct labeling intent.
+
+            implicit_label_op_output_name = f"{layer_config.name}{layer_config.label_output_layer_suffix}"
+            self.logger.debug(f"Implicit LabelPlacementOperation for layer '{layer_config.name}' will output to stream key '{implicit_label_op_output_name}'.")
+
+            label_op_config = LabelPlacementOperationConfig(
+                type=OperationType.LABEL_PLACEMENT,
+                label_settings=layer_config.labeling,
+                # source_layer is None, so it will use the output of the previous operation or initial source
+                output_label_layer_name=implicit_label_op_output_name
+            )
+            effective_operations.append(label_op_config)
+            self.logger.debug(f"Appended implicit LabelPlacementOperation to effective operations for layer '{layer_config.name}'. New count: {len(effective_operations)}.")
+
         if layer_config.source:
             source_conf: AnySourceConfig = layer_config.source
             self.logger.debug(f"Layer '{layer_config.name}' has source type: {source_conf.type} from path '{getattr(source_conf, "path", "N/A")}'") # getattr for safety
@@ -93,10 +113,10 @@ class LayerProcessorService:
             # current_stream_key remains None; operations must handle this or have an explicit source.
 
         # Apply operations
-        if layer_config.operations:
-            self.logger.debug(f"Applying {len(layer_config.operations)} operations to layer '{layer_config.name}'...")
-            for op_idx, op_config in enumerate(layer_config.operations):
-                self.logger.info(f"Processing layer '{layer_config.name}', operation {op_idx + 1}/{len(layer_config.operations)}: Type '{op_config.type}'.")
+        if effective_operations: # Use the effective_operations list
+            self.logger.debug(f"Applying {len(effective_operations)} effective operations to layer '{layer_config.name}'...")
+            for op_idx, op_config in enumerate(effective_operations): # Use the effective_operations list
+                self.logger.info(f"Processing layer '{layer_config.name}', operation {op_idx + 1}/{len(effective_operations)}: Type '{op_config.type}'.")
 
                 input_stream_for_this_op: Optional[AsyncIterator[GeoFeature]] = None
                 resolved_source_key_for_log: str = "None (generative or error)"
@@ -138,7 +158,7 @@ class LayerProcessorService:
                     return
 
                 # 3. Determine output key and store result
-                is_last_operation = (op_idx == len(layer_config.operations) - 1)
+                is_last_operation = (op_idx == len(effective_operations) - 1) # Use effective_operations
                 output_key_for_this_op: str
 
                 # Prioritize specific output name attributes if they exist (e.g. output_label_layer_name)

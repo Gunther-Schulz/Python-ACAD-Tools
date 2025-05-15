@@ -7,7 +7,7 @@ from ..config.schemas import (
     LegendItemStyleConfig, TextStylePropertiesConfig, StyleObjectConfig,
     LayerDisplayPropertiesConfig, HatchPropertiesConfig # Added more specific style configs
 )
-from ..domain.interfaces import ILegendGenerator, IDxfWriter
+from ..domain.interfaces import ILegendGenerator, IDxfWriter, IStyleService # Added IStyleService
 from ..core.exceptions import ConfigurationError # For missing style presets
 
 # It's better to get SCRIPT_IDENTIFIER from config if it's globally defined
@@ -23,10 +23,12 @@ class LegendGenerationService(ILegendGenerator):
         config: AppConfig,
         logger: Logger,
         dxf_writer: IDxfWriter,
+        style_service: IStyleService, # Added style_service
     ):
         self.config = config
         self.logger = logger
         self.dxf_writer = dxf_writer
+        self.style_service = style_service # Store style_service
         # Cache for sanitized layer names if needed, or dxf_writer handles it
         # self.layer_name_cache: Dict[str, str] = {}
         self.logger.info("LegendGenerationService initialized.")
@@ -99,11 +101,12 @@ class LegendGenerationService(ILegendGenerator):
         await self.dxf_writer.ensure_layer_exists_with_properties(doc, title_layer_name, None) # Ensure layer exists
 
         if legend_config.title:
-            title_style = self._resolve_text_style(
-                legend_config.overall_title_text_style_preset_name,
-                legend_config.overall_title_text_style_inline
+            # MODIFIED: Use StyleService
+            title_style = self.style_service.get_text_style_properties(
+                style_reference=legend_config.overall_title_text_style_inline if legend_config.overall_title_text_style_inline else legend_config.overall_title_text_style_preset_name,
+                # No specific layer_config_fallback here, relies on StyleService defaults if needed
             )
-            if not title_style:
+            if not title_style or (not title_style.font and not legend_config.overall_title_text_style_preset_name and not legend_config.overall_title_text_style_inline) : # Check if truly default/empty
                 self.logger.warning(f"No title text style found for legend '{legend_config.id}'. Using defaults.")
                 title_style = TextStylePropertiesConfig() # Default empty style
 
@@ -115,11 +118,11 @@ class LegendGenerationService(ILegendGenerator):
             current_y -= actual_height + layout.title_spacing_to_content
 
         if legend_config.subtitle:
-            subtitle_style = self._resolve_text_style(
-                legend_config.overall_subtitle_text_style_preset_name,
-                legend_config.overall_subtitle_text_style_inline
+            # MODIFIED: Use StyleService
+            subtitle_style = self.style_service.get_text_style_properties(
+                style_reference=legend_config.overall_subtitle_text_style_inline if legend_config.overall_subtitle_text_style_inline else legend_config.overall_subtitle_text_style_preset_name
             )
-            if not subtitle_style:
+            if not subtitle_style or (not subtitle_style.font and not legend_config.overall_subtitle_text_style_preset_name and not legend_config.overall_subtitle_text_style_inline):
                 self.logger.warning(f"No subtitle text style found for legend '{legend_config.id}'. Using defaults.")
                 subtitle_style = TextStylePropertiesConfig()
 
@@ -145,11 +148,11 @@ class LegendGenerationService(ILegendGenerator):
 
         self.logger.debug(f"Creating group: {group_config.name} on layer {group_layer_name}")
 
-        group_title_style = self._resolve_text_style(
-            group_config.title_text_style_preset_name,
-            group_config.title_text_style_inline
+        # MODIFIED: Use StyleService
+        group_title_style = self.style_service.get_text_style_properties(
+            style_reference=group_config.title_text_style_inline if group_config.title_text_style_inline else group_config.title_text_style_preset_name
         )
-        if not group_title_style:
+        if not group_title_style or (not group_title_style.font and not group_config.title_text_style_preset_name and not group_config.title_text_style_inline):
             self.logger.debug(f"No title style for group '{group_config.name}', using default.")
             group_title_style = TextStylePropertiesConfig()
 
@@ -161,11 +164,11 @@ class LegendGenerationService(ILegendGenerator):
         current_y -= actual_height + layout.title_spacing_to_content
 
         if group_config.subtitle:
-            group_subtitle_style = self._resolve_text_style(
-                group_config.subtitle_text_style_preset_name,
-                group_config.subtitle_text_style_inline
+            # MODIFIED: Use StyleService
+            group_subtitle_style = self.style_service.get_text_style_properties(
+                style_reference=group_config.subtitle_text_style_inline if group_config.subtitle_text_style_inline else group_config.subtitle_text_style_preset_name
             )
-            if not group_subtitle_style:
+            if not group_subtitle_style or (not group_subtitle_style.font and not group_config.subtitle_text_style_preset_name and not group_config.subtitle_text_style_inline):
                 self.logger.debug(f"No subtitle style for group '{group_config.name}', using default.")
                 group_subtitle_style = TextStylePropertiesConfig()
 
@@ -198,11 +201,17 @@ class LegendGenerationService(ILegendGenerator):
         item_tag_suffix = self._get_sanitized_layer_name(item_config.name) # Use sanitized name for tag
 
         # Resolve the style for the swatch geometry itself
-        swatch_object_style = self._resolve_object_style(
-            item_swatch_style_config.style_preset_name,
-            item_swatch_style_config.style_inline
+        # MODIFIED: Use StyleService
+        swatch_object_style = self.style_service.get_resolved_style_object(
+            preset_name=item_swatch_style_config.style_preset_name,
+            inline_definition=item_swatch_style_config.style_inline,
+            # No override definition in LegendItemStyleConfig currently
+            context_name=f"legend item {item_config.name} swatch"
         )
-        if not swatch_object_style: swatch_object_style = StyleObjectConfig()
+        # Ensure swatch_object_style is not None (StyleService returns default if all inputs are None)
+        if swatch_object_style is None: # Should not happen with current StyleService logic
+             self.logger.warning(f"Could not resolve swatch style for item '{item_config.name}'. Using default StyleObjectConfig.")
+             swatch_object_style = StyleObjectConfig()
 
         # Define swatch bounds
         x1, y1_swatch_top = current_x, current_y
@@ -248,15 +257,19 @@ class LegendGenerationService(ILegendGenerator):
         text_x = x2 + layout.text_offset_from_swatch
         text_entities = []
 
-        # Create item name text
-        item_name_style = self._resolve_text_style(
-            item_config.text_style_preset_name, item_config.text_style_inline
+        # Resolve item text style
+        # MODIFIED: Use StyleService
+        item_text_style = self.style_service.get_text_style_properties(
+            style_reference=item_config.text_style_inline if item_config.text_style_inline else item_config.text_style_preset_name
         )
-        if not item_name_style: item_name_style = TextStylePropertiesConfig()
+        if not item_text_style or (not item_text_style.font and not item_config.text_style_preset_name and not item_config.text_style_inline):
+            self.logger.debug(f"No text style for item '{item_config.name}', using default.")
+            item_text_style = TextStylePropertiesConfig()
 
+        # Create item name text
         name_entity, name_actual_height = await self.dxf_writer.add_mtext_ez(
             doc, msp, item_config.name, (text_x, item_center_y), # Initial Y, will be adjusted
-            item_layer_name, item_name_style,
+            item_layer_name, item_text_style,
             layout.max_text_width - layout.item_swatch_width - layout.text_offset_from_swatch,
             legend_item_id=f"{legend_tag_prefix}_item_{item_tag_suffix}_name" # Added legend_item_id
         )
@@ -264,10 +277,14 @@ class LegendGenerationService(ILegendGenerator):
 
         # Create item subtitle text if present
         if item_config.subtitle:
-            item_subtitle_style = self._resolve_text_style(
-                item_config.subtitle_text_style_preset_name, item_config.subtitle_text_style_inline
+            # Resolve item subtitle style
+            # MODIFIED: Use StyleService
+            item_subtitle_style = self.style_service.get_text_style_properties(
+                style_reference=item_config.subtitle_text_style_inline if item_config.subtitle_text_style_inline else item_config.subtitle_text_style_preset_name
             )
-            if not item_subtitle_style: item_subtitle_style = TextStylePropertiesConfig()
+            if not item_subtitle_style or (not item_subtitle_style.font and not item_config.subtitle_text_style_preset_name and not item_config.subtitle_text_style_inline):
+                self.logger.debug(f"No subtitle style for item '{item_config.name}', using default.")
+                item_subtitle_style = TextStylePropertiesConfig()
 
             # Position subtitle below main text; get bbox of main text first
             main_text_bbox = await self.dxf_writer.get_entities_bbox([name_entity]) if name_entity else None
@@ -439,76 +456,6 @@ class LegendGenerationService(ILegendGenerator):
             )
              if border: entities.append(border)
         return entities
-
-    def _resolve_text_style(
-        self, preset_name: Optional[str], inline_style: Optional[TextStylePropertiesConfig]
-    ) -> TextStylePropertiesConfig:
-        """Resolves text style from preset and inline config."""
-        final_style = TextStylePropertiesConfig() # Start with defaults
-
-        if preset_name:
-            # Assuming DxfWriterConfig or a global style section in AppConfig holds defined_text_styles
-            # For now, let's assume AppConfig.style_presets can also hold TextStylePropertiesConfig for text
-            # This part needs to align with where text style presets are stored.
-            # Simplification: if StyleObjectConfig preset exists, use its text_props.
-            if preset_name in self.config.style_presets and self.config.style_presets[preset_name].text_props:
-                final_style = self.config.style_presets[preset_name].text_props.model_copy(deep=True)
-            elif preset_name in self.config.io.writers.dxf.defined_text_styles: # Check DxfWriterConfig too
-                 final_style = self.config.io.writers.dxf.defined_text_styles[preset_name].model_copy(deep=True)
-            else:
-                self.logger.warning(f"Text style preset '{preset_name}' not found in AppConfig.style_presets or DxfWriterConfig.defined_text_styles. Using default text style.")
-
-        if inline_style:
-            update_data = inline_style.model_dump(exclude_unset=True)
-            final_style = final_style.model_copy(update=update_data)
-
-        return final_style
-
-    def _resolve_object_style(
-        self, preset_name: Optional[str], inline_style: Optional[StyleObjectConfig]
-    ) -> StyleObjectConfig:
-        """Resolves object style (for swatches) from preset and inline config."""
-        final_style = StyleObjectConfig() # Start with defaults
-
-        if preset_name:
-            if preset_name in self.config.style_presets:
-                final_style = self.config.style_presets[preset_name].model_copy(deep=True)
-            else:
-                self.logger.warning(f"Object style preset '{preset_name}' not found in AppConfig.style_presets. Using default object style.")
-                # No ConfigurationError here, just defaults, as it might be intentional not to have a preset for a swatch
-
-        if inline_style:
-            update_data = inline_style.model_dump(exclude_unset=True)
-            # Deep merge for nested pydantic models like layer_props, text_props, hatch_props
-            if final_style.layer_props and inline_style.layer_props:
-                layer_update = inline_style.layer_props.model_dump(exclude_unset=True)
-                final_style.layer_props = final_style.layer_props.model_copy(update=layer_update)
-                if 'layer_props' in update_data: del update_data['layer_props']
-            elif not final_style.layer_props and inline_style.layer_props:
-                final_style.layer_props = inline_style.layer_props.model_copy(deep=True)
-                if 'layer_props' in update_data: del update_data['layer_props']
-
-            if final_style.text_props and inline_style.text_props:
-                text_update = inline_style.text_props.model_dump(exclude_unset=True)
-                final_style.text_props = final_style.text_props.model_copy(update=text_update)
-                if 'text_props' in update_data: del update_data['text_props']
-            elif not final_style.text_props and inline_style.text_props:
-                final_style.text_props = inline_style.text_props.model_copy(deep=True)
-                if 'text_props' in update_data: del update_data['text_props']
-
-            if final_style.hatch_props and inline_style.hatch_props:
-                hatch_update = inline_style.hatch_props.model_dump(exclude_unset=True)
-                final_style.hatch_props = final_style.hatch_props.model_copy(update=hatch_update)
-                if 'hatch_props' in update_data: del update_data['hatch_props']
-            elif not final_style.hatch_props and inline_style.hatch_props:
-                final_style.hatch_props = inline_style.hatch_props.model_copy(deep=True)
-                if 'hatch_props' in update_data: del update_data['hatch_props']
-
-            # Apply remaining top-level updates from inline_style not handled by deep merge of sub-models
-            if update_data: # Should not happen if all are sub-models, but as a safeguard
-                 final_style = final_style.model_copy(update=update_data)
-
-        return final_style
 
     def _get_sanitized_layer_name(self, name: str) -> str:
         # Layer name sanitization should ideally be a core utility or part of dxf_writer

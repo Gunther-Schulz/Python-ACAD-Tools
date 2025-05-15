@@ -1,86 +1,169 @@
-from typing import Dict, Any, Optional
+import logging
+from typing import List, Optional, Any, Dict
+from copy import deepcopy
+
+from asteval import Interpreter as AstevalInterpreter # For evaluating expressions safely
 
 from dxfplanner.domain.models.geo_models import GeoFeature
-from dxfplanner.domain.interfaces import IAttributeMapper
-from dxfplanner.config.schemas import AttributeMappingServiceConfig # For config injection
-from dxfplanner.geometry.utils import sanitize_layer_name # For layer name sanitization
-from dxfplanner.core.logging_config import get_logger # If logging is needed
+from dxfplanner.domain.interfaces import IAttributeMappingService
+from dxfplanner.config.schemas import AttributeMappingServiceConfig, MappingRuleConfig, DxfWriterConfig
+# Assuming a utility for ACI color conversion might exist or needs to be simple for now
+# from dxfplanner.geometry.aci import convert_to_aci_color # Example import
 
-logger = get_logger(__name__)
+logger = logging.getLogger(__name__)
 
-class AttributeMappingService(IAttributeMapper):
-    """Service for mapping GeoFeature attributes to DXF entity properties based on simple config."""
-
-    def __init__(self, config: AttributeMappingServiceConfig):
+class AttributeMappingService(IAttributeMappingService):
+    def __init__(self, config: AttributeMappingServiceConfig, dxf_writer_config: DxfWriterConfig, logger_in: Optional[logging.Logger] = None):
         self.config = config
+        self.dxf_writer_config = dxf_writer_config
+        self.logger = logger_in or logger
+        self.aeval = AstevalInterpreter()
+        # Sort rules by priority once at initialization
+        self.sorted_rules = sorted(self.config.mapping_rules, key=lambda r: r.priority)
 
-    def get_dxf_layer_for_feature(self, feature: GeoFeature) -> str:
-        """
-        Determines the DXF layer name for a given GeoFeature based on its attributes
-        and mapping rules defined in the configuration.
-        """
-        layer_name_candidate: Optional[str] = None
-        if self.config.attribute_for_layer and self.config.attribute_for_layer in feature.properties:
-            attr_val = feature.properties[self.config.attribute_for_layer]
-            if attr_val is not None: # Ensure attribute value is not None
-                raw_name = str(attr_val)
-                if raw_name.strip(): # Ensure not empty or just whitespace
-                    layer_name_candidate = sanitize_layer_name(raw_name)
-                else:
-                    logger.debug(f"Attribute '{self.config.attribute_for_layer}' for layer name is empty or whitespace. Feature ID: {feature.id if feature.id is not None else 'N/A'}")
+    def _evaluate_expression(self, expression: str, feature_properties: Dict[str, Any]) -> Any:
+        """Safely evaluates an expression using asteval with feature properties as context."""
+        eval_context_properties = feature_properties or {}
+        self.aeval.symtable.update({'properties': eval_context_properties})
+        # Clear previous errors and stdout before new evaluation
+        self.aeval.error = []
+        self.aeval.stdout = ''
+
+        success = self.aeval.eval(expression)
+        if not success or self.aeval.error:
+            # Log detailed asteval errors
+            error_messages = [err.get_error()[1] for err in self.aeval.error]
+            self.logger.warning(f"Expression evaluation failed for '{expression}'. Errors: {error_messages}")
+            return None # Indicate failure
+        if '_result' not in self.aeval.symtable:
+             self.logger.warning(f"Expression '{expression}' did not yield a '_result' in asteval symtable.")
+             return None
+        return self.aeval.symtable['_result']
+
+
+    def _cast_value(self, value: Any, target_type: Optional[str], rule: MappingRuleConfig) -> Any:
+        """Casts the value to the target type. Handles ACI color conversion."""
+        if target_type is None or value is None:
+            return value
+
+        try:
+            if target_type == "str":
+                return str(value)
+            elif target_type == "int":
+                return int(value)
+            elif target_type == "float":
+                return float(value)
+            elif target_type == "bool":
+                return bool(value)
+            elif target_type == "aci_color":
+                # Placeholder for ACI color conversion logic
+                # This might involve checking if it's already an int, or converting from name/RGB
+                if isinstance(value, str) and value.upper() == "BYLAYER":
+                    return 256
+                if isinstance(value, str) and value.upper() == "BYBLOCK":
+                    return 0
+                # Add more sophisticated ACI conversion here if needed
+                # For now, assume if it's an int, it's an ACI color
+                # Or a simple lookup for common names
+                color_map = {"RED": 1, "YELLOW": 2, "GREEN": 3, "CYAN": 4, "BLUE": 5, "MAGENTA": 6, "WHITE": 7}
+                if isinstance(value, str) and value.upper() in color_map:
+                    return color_map[value.upper()]
+
+                # Attempt to convert to int if it looks like a number string
+                if isinstance(value, str) and value.isdigit():
+                     val_int = int(value)
+                     if 0 <= val_int <= 255: # Basic ACI range check
+                         return val_int
+
+                if isinstance(value, int) and (0 <= value <= 255 or value == 256): # 256 is ByLayer, 0 is ByBlock
+                     return value
+
+                self.logger.warning(f"Cannot convert '{value}' to ACI color for rule '{rule.dxf_property_name}'. Using on_error_value if defined, else skipping.")
+                return rule.on_error_value # Or raise error/return specific marker
             else:
-                logger.debug(f"Attribute '{self.config.attribute_for_layer}' for layer name is None. Feature ID: {feature.id if feature.id is not None else 'N/A'}")
+                self.logger.warning(f"Unsupported target_type: {target_type}")
+                return rule.on_error_value
+        except (ValueError, TypeError) as e:
+            self.logger.warning(f"Type casting to {target_type} failed for value '{value}' (Rule: '{rule.dxf_property_name}'). Error: {e}. Using on_error_value.")
+            return rule.on_error_value
 
-        if layer_name_candidate:
-            return layer_name_candidate
-        else:
-            logger.debug(f"Falling back to default layer name '{self.config.default_dxf_layer_on_mapping_failure}' for feature ID: {feature.id if feature.id is not None else 'N/A'}")
-            return self.config.default_dxf_layer_on_mapping_failure
+        # Fallback if no specific conversion happened but no error.
+        return value
 
-    def get_dxf_properties_for_feature(self, feature: GeoFeature) -> Dict[str, Any]:
-        """
-        Determines DXF visual properties (e.g., color, text content/style)
-        for a GeoFeature based on its attributes and mapping rules.
-        Output keys should match DxfEntity model fields where possible (e.g., 'color', 'text_content', 'height').
-        """
-        dxf_props: Dict[str, Any] = {}
 
-        # Use feature.properties as per GeoFeature model definition
-        # Color mapping (expects ACI int from attribute)
-        if self.config.attribute_for_color and self.config.attribute_for_color in feature.properties:
-            color_val = feature.properties[self.config.attribute_for_color]
-            if isinstance(color_val, int):
-                dxf_props['color'] = color_val  # ACI color index
-            elif color_val is not None: # Handles non-int, non-None values. RGB tuple case removed for simplicity here based on previous logging.
-                logger.warning(
-                    f"Attribute '{self.config.attribute_for_color}' for color has value '{color_val}' (type: {type(color_val)}), "
-                    f"but an ACI integer was expected. Skipping color mapping. Feature ID: {feature.id if feature.id is not None else 'N/A'}"
-                )
+    def apply_mappings(self, features: List[GeoFeature]) -> List[GeoFeature]:
+        processed_features: List[GeoFeature] = []
+        if not self.dxf_writer_config.layer_mapping_by_attribute_value and not self.sorted_rules:
+            self.logger.info("No attribute-value layer mappings and no mapping rules configured. Returning features as is, layer may be set by default later.")
+            for original_feature in features:
+                feature = deepcopy(original_feature)
+                if feature.dxf_properties is None:
+                    feature.dxf_properties = {}
+                if "layer" not in feature.dxf_properties and self.config.default_dxf_layer_on_mapping_failure:
+                    feature.dxf_properties["layer"] = self.config.default_dxf_layer_on_mapping_failure
+                    self.logger.debug(f"Feature {feature.id or 'with no id'} (no rules path) assigned default layer: {self.config.default_dxf_layer_on_mapping_failure}")
+                processed_features.append(feature)
+            return processed_features
 
-        # Text content mapping
-        if self.config.attribute_for_text_content and self.config.attribute_for_text_content in feature.properties:
-            text_val = feature.properties[self.config.attribute_for_text_content]
-            if text_val is not None:
-                dxf_props['text_content'] = str(text_val)
-            else:
-                logger.debug(f"Attribute '{self.config.attribute_for_text_content}' for text_content is None. Feature ID: {feature.id if feature.id is not None else 'N/A'}")
+        for original_feature in features:
+            feature = deepcopy(original_feature)
+            if feature.dxf_properties is None:
+                feature.dxf_properties = {}
 
-        # Text height mapping
-        if self.config.attribute_for_text_height and self.config.attribute_for_text_height in feature.properties:
-            height_attr_val = feature.properties[self.config.attribute_for_text_height]
-            try:
-                height_val = float(height_attr_val)
-                if height_val > 0:
-                    dxf_props['height'] = height_val
-                else:
-                    logger.warning(
-                        f"Attribute '{self.config.attribute_for_text_height}' for text height has non-positive value {height_val}. "
-                        f"Skipping height mapping. Feature ID: {feature.id if feature.id is not None else 'N/A'}"
-                    )
-            except (ValueError, TypeError) as e:
-                logger.warning(
-                    f"Could not parse text height from attribute '{self.config.attribute_for_text_height}' (value: '{height_attr_val}'): {e}. "
-                    f"Skipping height mapping. Feature ID: {feature.id if feature.id is not None else 'N/A'}"
-                )
+            applied_dxf_properties_for_feature = set()
 
-        return dxf_props
+            provisional_layer_from_attr_map: Optional[str] = None
+            if self.dxf_writer_config.layer_mapping_by_attribute_value:
+                for attr_key_to_check, value_to_layer_map in self.dxf_writer_config.layer_mapping_by_attribute_value.items():
+                    if feature.properties and attr_key_to_check in feature.properties:
+                        actual_attr_value = str(feature.properties[attr_key_to_check])
+                        if actual_attr_value in value_to_layer_map:
+                            provisional_layer_from_attr_map = value_to_layer_map[actual_attr_value]
+                            self.logger.debug(f"Feature {feature.id or 'with no id'}: layer '{provisional_layer_from_attr_map}' provisionally set by attribute '{attr_key_to_check}' (value '{actual_attr_value}') from layer_mapping_by_attribute_value.")
+                            break
+
+            if provisional_layer_from_attr_map:
+                 feature.dxf_properties["layer"] = provisional_layer_from_attr_map
+
+            for rule in self.sorted_rules:
+                if rule.dxf_property_name in applied_dxf_properties_for_feature and rule.dxf_property_name != "layer":
+                    continue
+                elif rule.dxf_property_name in applied_dxf_properties_for_feature and rule.dxf_property_name == "layer":
+                     pass
+
+                apply_rule = True
+                if rule.condition:
+                    condition_result = self._evaluate_expression(rule.condition, feature.properties)
+                    if condition_result is None or not bool(condition_result):
+                        apply_rule = False
+
+                if not apply_rule:
+                    continue
+
+                value = self._evaluate_expression(rule.source_expression, feature.properties)
+                if value is None:
+                    if rule.on_error_value is not None:
+                        value = rule.on_error_value
+                        self.logger.debug(f"Source expression for '{rule.dxf_property_name}' (Feature ID: {feature.id or 'N/A'}) evaluated to None or failed. Using on_error_value: '{value}'.")
+                    else:
+                        self.logger.debug(f"Source expression for '{rule.dxf_property_name}' (Feature ID: {feature.id or 'N/A'}) evaluated to None or failed, and no on_error_value. Skipping.")
+                        continue
+
+                casted_value = self._cast_value(value, rule.target_type, rule)
+
+                if casted_value is not None:
+                    if rule.dxf_property_name == "layer" and rule.dxf_property_name in applied_dxf_properties_for_feature:
+                         self.logger.debug(f"Rule for 'layer' (Feature ID: {feature.id or 'N/A'}) is overwriting previously set layer with '{casted_value}'.")
+
+                    feature.dxf_properties[rule.dxf_property_name] = casted_value
+                    applied_dxf_properties_for_feature.add(rule.dxf_property_name)
+                    self.logger.debug(f"Applied rule for '{rule.dxf_property_name}' (Feature ID: {feature.id or 'N/A'}): value '{casted_value}' from expression '{rule.source_expression}'.")
+                elif rule.on_error_value is None and rule.target_type is not None:
+                     self.logger.debug(f"Casting to '{rule.target_type}' failed for rule '{rule.dxf_property_name}' (Feature ID: {feature.id or 'N/A'}) and no on_error_value. Property not set.")
+
+            if "layer" not in feature.dxf_properties and self.config.default_dxf_layer_on_mapping_failure:
+                feature.dxf_properties["layer"] = self.config.default_dxf_layer_on_mapping_failure
+                self.logger.debug(f"Feature {feature.id or 'with no id'} did not get a layer assigned by attribute map or rules. Using default: {self.config.default_dxf_layer_on_mapping_failure}")
+
+            processed_features.append(feature)
+        return processed_features

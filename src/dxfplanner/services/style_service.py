@@ -1,7 +1,7 @@
 """
 Service for managing and resolving style configurations.
 """
-from typing import Optional, TypeVar, Type, Generic, Union, List
+from typing import Optional, TypeVar, Type, Generic, Union, List, Dict, Any
 from pydantic import BaseModel
 from logging import Logger
 
@@ -17,8 +17,10 @@ from dxfplanner.config.schemas import (
     LabelPlacementOperationConfig,
     StylePreset,
     StyleDefinition,
+    StyleRuleConfig
 )
 from dxfplanner.domain.interfaces import IStyleService
+from dxfplanner.domain.models.geo_models import GeoFeature
 from dxfplanner.core.exceptions import DXFPlannerBaseError
 
 logger = get_logger(__name__)
@@ -33,11 +35,108 @@ class StyleService(IStyleService):
     """
     Manages and resolves style configurations for layers and labels.
     Handles presets, inline definitions, and overrides from AppConfig.
+    Also processes feature-specific style rules.
     """
 
     def __init__(self, config: AppConfig, logger: Logger):
         self._config = config
         self.logger = logger
+
+    def _evaluate_condition(self, condition_str: str, attributes: Dict[str, Any]) -> bool:
+        """
+        Evaluates a simple condition string against feature attributes.
+        Supported formats:
+        - "key==value"
+        - "key!=value"
+        - "key_exists"
+        - "key_not_exists"
+        Coerces 'value' to str, int, float, bool (True, False, true, false) for comparison.
+        """
+        condition_str = condition_str.strip()
+        self.logger.debug(f"Evaluating condition: '{condition_str}' against attributes: {list(attributes.keys())}")
+
+        if "==" in condition_str:
+            parts = condition_str.split("==", 1)
+            key = parts[0].strip()
+            expected_value_str = parts[1].strip()
+
+            actual_value = attributes.get(key)
+            if actual_value is None: # Key doesn't exist or its value is None
+                self.logger.debug(f"Condition '{condition_str}': Key '{key}' not in attributes or is None. Result: False.")
+                return False
+
+            # Attempt type coercion for expected_value
+            try:
+                if expected_value_str.lower() == "true": expected_value_typed = True
+                elif expected_value_str.lower() == "false": expected_value_typed = False
+                elif '.' in expected_value_str: expected_value_typed = float(expected_value_str)
+                else: expected_value_typed = int(expected_value_str)
+            except ValueError:
+                expected_value_typed = expected_value_str # Keep as string if not clearly bool/numeric
+
+            # Try to coerce actual_value to the type of expected_value_typed for comparison
+            try:
+                if isinstance(expected_value_typed, bool): actual_value_coerced = bool(actual_value)
+                elif isinstance(expected_value_typed, float): actual_value_coerced = float(actual_value)
+                elif isinstance(expected_value_typed, int): actual_value_coerced = int(actual_value)
+                else: actual_value_coerced = str(actual_value)
+
+                result = actual_value_coerced == expected_value_typed
+                self.logger.debug(f"Condition '{condition_str}': Key '{key}', Actual Coerced '{actual_value_coerced}', Expected Typed '{expected_value_typed}'. Result: {result}.")
+                return result
+            except (ValueError, TypeError):
+                # Fallback to string comparison if coercion fails
+                result = str(actual_value) == expected_value_str
+                self.logger.debug(f"Condition '{condition_str}': Key '{key}', Actual Str '{str(actual_value)}', Expected Str '{expected_value_str}' (coercion failed). Result: {result}.")
+                return result
+
+        elif "!=" in condition_str:
+            parts = condition_str.split("!=", 1)
+            key = parts[0].strip()
+            expected_value_str = parts[1].strip()
+
+            actual_value = attributes.get(key)
+            if actual_value is None: # Key doesn't exist or its value is None
+                self.logger.debug(f"Condition '{condition_str}': Key '{key}' not in attributes or is None. Result for '!=': True (as it's not equal to a defined value).")
+                return True # If key is None, it's not equal to any specific expected_value_str (unless expected_value_str is also "None" which is handled by str comparison)
+
+            # Attempt type coercion (same as above)
+            try:
+                if expected_value_str.lower() == "true": expected_value_typed = True
+                elif expected_value_str.lower() == "false": expected_value_typed = False
+                elif '.' in expected_value_str: expected_value_typed = float(expected_value_str)
+                else: expected_value_typed = int(expected_value_str)
+            except ValueError:
+                expected_value_typed = expected_value_str
+
+            try:
+                if isinstance(expected_value_typed, bool): actual_value_coerced = bool(actual_value)
+                elif isinstance(expected_value_typed, float): actual_value_coerced = float(actual_value)
+                elif isinstance(expected_value_typed, int): actual_value_coerced = int(actual_value)
+                else: actual_value_coerced = str(actual_value)
+
+                result = actual_value_coerced != expected_value_typed
+                self.logger.debug(f"Condition '{condition_str}': Key '{key}', Actual Coerced '{actual_value_coerced}', Expected Typed '{expected_value_typed}'. Result: {result}.")
+                return result
+            except (ValueError, TypeError):
+                result = str(actual_value) != expected_value_str
+                self.logger.debug(f"Condition '{condition_str}': Key '{key}', Actual Str '{str(actual_value)}', Expected Str '{expected_value_str}' (coercion failed). Result: {result}.")
+                return result
+
+        elif condition_str.endswith("_exists"):
+            key = condition_str[:-len("_exists")].strip()
+            result = key in attributes and attributes[key] is not None # Consider None as not existing for this simple check
+            self.logger.debug(f"Condition '{condition_str}': Key '{key}' in attributes and not None. Result: {result}.")
+            return result
+
+        elif condition_str.endswith("_not_exists"):
+            key = condition_str[:-len("_not_exists")].strip()
+            result = not (key in attributes and attributes[key] is not None)
+            self.logger.debug(f"Condition '{condition_str}': Key '{key}' not in attributes or is None. Result: {result}.")
+            return result
+
+        self.logger.warning(f"Unparseable style rule condition: '{condition_str}'. Defaulting to False.")
+        return False
 
     def _merge_style_component(
         self,
@@ -244,30 +343,54 @@ class StyleService(IStyleService):
         Considers text_style_preset_name and text_style_inline within config.label_settings.
         Inline properties override preset properties.
         """
-        context_name = f"LabelOp(layer='{config.source_layer or 'implicit'}')"
+        context_name = f"LabelOp(layer='{config.source_layer or 'implicit'}', text_attr='{config.label_settings.label_attribute or config.label_settings.fixed_label_text or 'N/A'}')"
         log_prefix = f"Style for '{context_name}': "
-        base_text_style: Optional[TextStylePropertiesConfig] = TextStylePropertiesConfig() # Default empty
+
+        # Start with a default TextStylePropertiesConfig
+        base_text_style: TextStylePropertiesConfig = TextStylePropertiesConfig()
+        self.logger.debug(f"{log_prefix}Initial base_text_style: Default values.")
 
         preset_name = config.label_settings.text_style_preset_name
-        inline_style = config.label_settings.text_style_inline
+        inline_style_props = config.label_settings.text_style_inline # This is already TextStylePropertiesConfig
 
         if preset_name:
-            preset = self._config.style_presets.get(preset_name)
-            if preset and preset.text_props:
-                base_text_style = preset.text_props
-                self.logger.debug(f"{log_prefix}Using preset '{preset_name}' as base.")
+            self.logger.debug(f"{log_prefix}Attempting to use preset '{preset_name}'.")
+            preset_style_object = self._config.style_presets.get(preset_name)
+            if preset_style_object:
+                if preset_style_object.text_props:
+                    base_text_style = preset_style_object.text_props
+                    self.logger.debug(f"{log_prefix}Using text_props from preset '{preset_name}' as base.")
+                else:
+                    self.logger.warning(f"{log_prefix}Preset '{preset_name}' found, but it lacks text_props. Using default text style as base.")
             else:
-                 self.logger.warning(f"{log_prefix}Preset '{preset_name}' not found or lacks text_props.")
+                self.logger.warning(f"{log_prefix}Preset '{preset_name}' not found in AppConfig.style_presets. Using default text style as base.")
+        else:
+            self.logger.debug(f"{log_prefix}No text_style_preset_name provided. Base remains default text style.")
 
-        # Merge inline properties onto the base (preset or default)
+        # Merge inline_style_props onto the base_text_style (which is either from preset or default)
+        # The _merge_style_component expects two components of the same type.
+        # Here, base_text_style is TextStylePropertiesConfig, and inline_style_props is also TextStylePropertiesConfig.
         final_style = self._merge_style_component(
-            base_text_style,
-            inline_style,
-            TextStylePropertiesConfig
+            base=base_text_style,
+            override=inline_style_props, # This is directly the TextStylePropertiesConfig
+            model_type=TextStylePropertiesConfig
         )
 
-        # Ensure we always return a valid config, even if it's just the default
-        return final_style if final_style else TextStylePropertiesConfig()
+        if inline_style_props:
+            self.logger.debug(f"{log_prefix}Applied inline text_style_inline definition.")
+        else:
+            self.logger.debug(f"{log_prefix}No inline text_style_inline definition provided.")
+
+        # Ensure we always return a valid config, even if it's just the default from initialization or preset
+        if final_style:
+            self.logger.debug(f"{log_prefix}Final resolved text style: {final_style.model_dump_json(indent=2, exclude_none=True)}")
+            return final_style
+        else:
+            # This case should ideally not be reached if base_text_style is always initialized.
+            # If _merge_style_component returns None (e.g. if base and override were both None, which they are not here)
+            # then return a default.
+            self.logger.debug(f"{log_prefix}Merge resulted in None, returning default TextStylePropertiesConfig. Base was: {base_text_style.model_dump_json(exclude_none=True)}")
+            return TextStylePropertiesConfig()
 
     def get_resolved_hatch_style(
         self, layer_config: LayerConfig
@@ -280,3 +403,73 @@ class StyleService(IStyleService):
         )
         # The resolved_object.hatch_props should be non-null due to get_resolved_style_object's logic
         return resolved_object.hatch_props if resolved_object.hatch_props is not None else HatchPropertiesConfig()
+
+    def get_resolved_feature_style(self, geo_feature: GeoFeature, layer_config: LayerConfig) -> StyleObjectConfig:
+        """
+        Resolves the StyleObjectConfig for a given GeoFeature based on the LayerConfig,
+        applying feature-specific style rules.
+        """
+        context_name = f"Feature ID {geo_feature.id or 'N/A'} on layer {layer_config.name}"
+        self.logger.debug(f"Resolving feature style for: {context_name}")
+
+        # 1. Get base style for the layer
+        current_style = self.get_resolved_style_object(
+            preset_name=layer_config.style_preset_name,
+            inline_definition=layer_config.style_inline_definition,
+            override_definition=layer_config.style_override,
+            context_name=f"Base for layer {layer_config.name}"
+        )
+        self.logger.debug(f"Initial style for {context_name} (from layer defaults): {current_style.model_dump_json(indent=2)}")
+
+
+        # 2. Sort and apply feature-specific style rules
+        # Sort by priority (ascending), then by name for stable sort if priorities are equal (name is optional so handle None)
+        # Higher priority numbers should apply later, so we want to sort by priority such that
+        # rules with the same priority are applied in defined order, and then higher priorities overwrite.
+        # A simple sort by priority (ascending) means lower priority rules merge first.
+        sorted_rules = sorted(layer_config.style_rules, key=lambda r: (r.priority, r.name or ""))
+
+        if sorted_rules:
+            self.logger.debug(f"Applying {len(sorted_rules)} style rules for {context_name}, sorted by priority: {[r.name or 'Unnamed' for r in sorted_rules]}")
+
+        for rule in sorted_rules:
+            rule_name = rule.name or f"Condition({rule.condition})"
+            self.logger.debug(f"Evaluating rule '{rule_name}' (Priority: {rule.priority}) for {context_name}")
+
+            if self._evaluate_condition(rule.condition, geo_feature.attributes):
+                self.logger.info(f"Rule '{rule_name}' condition MET for {context_name}. Applying override: {rule.style_override.model_dump_json(indent=2)}")
+
+                # Merge rule's style_override onto current_style
+                current_style.layer_props = self._merge_style_component(
+                    current_style.layer_props,
+                    rule.style_override.layer_props,
+                    LayerDisplayPropertiesConfig
+                ) or current_style.layer_props # Ensure it's not None
+
+                current_style.text_props = self._merge_style_component(
+                    current_style.text_props,
+                    rule.style_override.text_props,
+                    TextStylePropertiesConfig
+                ) or current_style.text_props
+
+                current_style.hatch_props = self._merge_style_component(
+                    current_style.hatch_props,
+                    rule.style_override.hatch_props,
+                    HatchPropertiesConfig
+                ) or current_style.hatch_props
+
+                self.logger.debug(f"Style after applying rule '{rule_name}' for {context_name}: {current_style.model_dump_json(indent=2)}")
+
+                if rule.terminate:
+                    self.logger.info(f"Rule '{rule_name}' has terminate=True. No further style rules will be processed for {context_name}.")
+                    break
+            else:
+                self.logger.debug(f"Rule '{rule_name}' condition NOT MET for {context_name}.")
+
+        # Ensure all components exist, even if default, after rule processing
+        if current_style.layer_props is None: current_style.layer_props = LayerDisplayPropertiesConfig()
+        if current_style.text_props is None: current_style.text_props = TextStylePropertiesConfig()
+        if current_style.hatch_props is None: current_style.hatch_props = HatchPropertiesConfig()
+
+        self.logger.debug(f"Final resolved style for {context_name}: {current_style.model_dump_json(indent=2)}")
+        return current_style

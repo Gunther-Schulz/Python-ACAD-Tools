@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Optional, List, Dict, Any, Union, Literal
+from typing import Optional, List, Dict, Any, Union, Literal, Tuple
 
 from .common import Coordinate, Color, BoundingBox # Assuming common.py is in the same directory
 
@@ -15,12 +15,18 @@ class DxfLayer(BaseModel):
 
 class DxfEntity(BaseModel):
     """Base model for all DXF graphical entities."""
-    # Common properties for most DXF entities
-    layer: str = Field(default="0")
-    color_256: Optional[int] = None # ACI color index. If None, defaults to ByLayer.
-    linetype: Optional[str] = None  # If None, defaults to ByLayer.
-    # lineweight: Optional[int] = None # e.g., -1=ByLayer, -2=ByBlock, -3=Default
-    # transparency: Optional[int] = None # 0-255
+    # Basic properties common to many DXF entities
+    # Making layer Optional as it might be set by writer based on LayerConfig
+    layer: Optional[str] = Field(default=None, description="Layer name for the entity.")
+    color_256: Optional[int] = Field(default=None, description="ACI color index (0-255). 256 for ByLayer, 0 for ByBlock.") # ACI color
+    true_color: Optional[Tuple[int, int, int]] = Field(default=None, description="RGB true color tuple, e.g., (255, 0, 0) for red.")
+    linetype: Optional[str] = Field(default=None, description="Linetype name (e.g., 'CONTINUOUS', 'DASHED').")
+    lineweight: Optional[int] = Field(default=None, description="Lineweight in 1/100mm (e.g., 25 for 0.25mm). -1=ByLayer, -2=ByBlock, -3=Default.")
+    ltscale: Optional[float] = Field(default=None, description="Linetype scale.")
+    transparency: Optional[float] = Field(default=None, ge=0.0, le=1.0, description="Transparency value (0.0=opaque, 1.0=fully transparent).") # Added ge/le constraints
+    visible: Optional[bool] = Field(default=None, description="Visibility flag.")
+    attributes: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Original feature attributes, for reference or conditional styling.")
+
     # handle: Optional[str] = None # Entity handle (usually assigned by DXF library)
     # owner: Optional[str] = None # Handle of the owner (e.g., block definition, paperspace)
     # true_color: Optional[Tuple[int, int, int]] = None # (R, G, B) for true color support
@@ -50,7 +56,7 @@ class DxfLWPolyline(DxfEntity):
     # elevation: Optional[float] = 0.0
     # thickness: Optional[float] = None
 
-class DxfPolyline(DxfEntity): # For old-style heavy POLYLINE (less common for new drawings)
+class DxfPolyline(DxfEntity): # For 3D Polylines or heavy 2D Polylines
     """Represents a DXF POLYLINE entity (heavy polyline with separate VERTEX entities)."""
     # This is more complex as vertices are separate entities in DXF.
     # For simplicity, we might initially focus on LWPOLYLINE for 2D polylines.
@@ -63,46 +69,33 @@ class DxfText(DxfEntity):
     """Represents a DXF TEXT entity."""
     insertion_point: Coordinate
     text_content: str
-    height: float = Field(..., gt=0) # Text height must be > 0
-    rotation: Optional[float] = 0.0 # Angle in degrees
-    style: Optional[str] = "Standard" # Text style name
-    # width_factor: Optional[float] = 1.0 # This is part of TEXTSTYLE
-    # oblique_angle: Optional[float] = 0.0 # This is part of TEXTSTYLE
-    # halign: Optional[int] = 0 # Horizontal alignment (0=Left, 1=Center, 2=Right, ...)
-    # valign: Optional[int] = 0 # Vertical alignment (0=Baseline, 1=Bottom, 2=Middle, ...)
+    height: float = 2.5
+    rotation: Optional[float] = 0.0  # Degrees
+    style: Optional[str] = Field(default=None, description="Text style name.") # References a DXF TEXTSTYLE
+    width_factor: Optional[float] = Field(default=None, gt=0.0, description="Text width factor.") # Added gt constraint
+    oblique_angle: Optional[float] = Field(default=None, ge=0.0, lt=360.0, description="Text oblique angle in degrees.") # Added ge/lt constraints
+    # TODO: Add halign, valign, etc. from ezdxf.const.TEXT_ALIGN_FLAGS if needed
 
 class DxfMText(DxfEntity):
     """Represents a DXF MTEXT entity."""
     insertion_point: Coordinate
-    text_content: str # Can contain MText formatting codes
-    char_height: float = Field(..., gt=0, description="Character height for the MTEXT entity.")
-    width: Optional[float] = Field(default=None, description="Width of the MText bounding box. None or 0 for no constraint.")
-    rotation: Optional[float] = Field(default=0.0, description="Rotation angle in degrees.")
-    style: Optional[str] = Field(default="Standard", description="Text style name.")
-
-    # MTEXT specific properties, aligned with TextStylePropertiesConfig where applicable
+    text_content: str # MText content string, can include formatting codes
+    char_height: float = 2.5
+    width: Optional[float] = Field(default=None, gt=0.0, description="Width of the MText bounding box. If None, determined by text content.") # Added gt constraint
+    rotation: Optional[float] = 0.0  # Degrees
+    style: Optional[str] = Field(default=None, description="Text style name.") # References a DXF TEXTSTYLE
     attachment_point: Optional[Literal[
         'TOP_LEFT', 'TOP_CENTER', 'TOP_RIGHT',
         'MIDDLE_LEFT', 'MIDDLE_CENTER', 'MIDDLE_RIGHT',
         'BOTTOM_LEFT', 'BOTTOM_CENTER', 'BOTTOM_RIGHT'
-    ]] = Field(default=None, description="MTEXT attachment point.")
-
-    flow_direction: Optional[Literal[
-        'LEFT_TO_RIGHT', 'TOP_TO_BOTTOM', 'BY_STYLE'
-    ]] = Field(default=None, description="MTEXT flow direction.")
-
-    line_spacing_style: Optional[Literal[
-        'AT_LEAST', 'EXACT'
-    ]] = Field(default=None, description="MTEXT line spacing style.")
-    line_spacing_factor: Optional[float] = Field(default=None, ge=0.25, le=4.0, description="MTEXT line spacing factor.")
-
-    # Background fill properties
-    bg_fill_enabled: Optional[bool] = Field(default=None, description="Enable background fill.")
-    # bg_fill_color: Optional[ColorModel] = None # Color for background fill, requires ColorModel import
-    # bg_fill_scale: Optional[float] = Field(default=None, gt=0.0, description="Scale for background fill if it's a dialog box color.")
-    # bg_fill_transparency: Optional[float] = Field(default=None, ge=0.0, le=1.0, description="Transparency for background fill.")
-    # Note: For bg_fill_color to work, ColorModel needs to be imported in this file.
-    # For now, keeping it simple. DxfWriter can resolve color from style or direct entity if needed.
+    ]] = None
+    flow_direction: Optional[Literal['LEFT_TO_RIGHT', 'TOP_TO_BOTTOM', 'BY_STYLE']] = None
+    line_spacing_style: Optional[Literal['AT_LEAST', 'EXACT']] = None
+    line_spacing_factor: Optional[float] = Field(default=None, ge=0.25, le=4.0) # Added ge/le constraints for MTEXT line spacing factor
+    bg_fill_enabled: Optional[bool] = None # Enable background fill/mask
+    bg_fill_color: Optional[ColorModel] = None # Color for background fill (if not mask)
+    width_factor: Optional[float] = Field(default=None, gt=0.0, description="Text width factor (applied by style or MText properties).") # Added gt constraint
+    oblique_angle: Optional[float] = Field(default=None, ge=0.0, lt=360.0, description="Text oblique angle in degrees (applied by style or MText properties).") # Added ge/lt constraints
 
 class DxfHatchPath(BaseModel):
     """Represents a single boundary path for a HATCH entity."""
@@ -117,23 +110,17 @@ class DxfHatchPath(BaseModel):
 
 class DxfHatch(DxfEntity):
     """Represents a DXF HATCH entity."""
-    paths: List[DxfHatchPath] = Field(..., min_items=1, description="List of boundary paths for the hatch.")
+    paths: List[DxfHatchPath] = Field(default_factory=list)
 
-    hatch_style_enum: Literal['NORMAL', 'OUTERMOST', 'IGNORE'] = Field(
-        default='NORMAL',
-        description="Hatch style: NORMAL, OUTERMOST (fills outermost boundary only), IGNORE (fills all areas within boundary, ignoring islands)."
-    )
-
-    pattern_name: str = Field(default="SOLID", description="Name of the hatch pattern (e.g., SOLID, ANSI31).")
-    pattern_scale: float = Field(default=1.0, gt=0, description="Scale of the hatch pattern.")
-    pattern_angle: float = Field(default=0.0, description="Angle of the hatch pattern in degrees.")
-
-    # Associativity for hatches is often complex and might depend on how boundaries are defined/if they are proxy graphics.
-    # For new hatches with explicit boundaries, False is safer if boundaries might change independently.
-    associative: bool = Field(default=False, description="If the hatch is associative with its boundaries.")
-
-    # Transparency can be None (ByLayer/ByBlock), or a float 0.0 (opaque) to 1.0 (fully transparent).
-    transparency: Optional[float] = Field(default=None, ge=0.0, le=1.0, description="Hatch transparency (0.0=opaque, 1.0=fully transparent).")
+    # Hatch pattern properties
+    pattern_name: str = "SOLID"
+    pattern_scale: float = Field(default=1.0, gt=0.0)
+    pattern_angle: float = Field(default=0.0, ge=0.0, lt=360.0)  # Degrees
+    # Hatch style (Normal, Outer, Ignore - from ezdxf.const)
+    hatch_style_enum: Literal['NORMAL', 'OUTERMOST', 'IGNORE'] = 'NORMAL'
+    # Associativity
+    associative: bool = True
+    # Color and transparency are inherited from DxfEntity and will be populated there.
 
 class DxfArc(DxfEntity):
     """Represents a DXF ARC entity."""
