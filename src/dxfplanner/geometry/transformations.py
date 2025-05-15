@@ -108,9 +108,82 @@ class GeometryTransformerImpl(IGeometryTransformer):
         entity.ltscale = base_attrs.get('ltscale', entity.ltscale)
         entity.visible = base_attrs.get('visible', entity.visible)
 
+    async def _point_to_dxf_circle(
+        self, point: PointGeo, properties: Dict[str, Any], style_config: StyleObjectConfig, base_dxf_attrs: dict, layer_name: str
+    ) -> AsyncIterator[AnyDxfEntity]:
+        self.logger.debug(f"Attempting to create DxfCircle for point on layer {layer_name} from attributes: {properties}")
+        try:
+            radius = float(properties.get("radius"))
+            if radius <= 0:
+                self.logger.warning(f"Invalid radius {radius} for DxfCircle on layer {layer_name}. Skipping.")
+                return
+        except (TypeError, ValueError):
+            self.logger.warning(f"Radius attribute for DxfCircle on layer {layer_name} is missing or not a valid number: {properties.get('radius')}. Skipping.")
+            return
+
+        circle = DxfCircle(
+            center=Coordinate(x=point.x, y=point.y, z=point.z if point.z is not None else 0.0),
+            radius=radius,
+        )
+        self._apply_base_style_to_entity(circle, base_dxf_attrs, layer_name)
+        # Apply specific styling from text_props if relevant (e.g. color)
+        tp = style_config.text_props # Assuming general point styling might be in text_props
+        if tp and tp.color:
+            if isinstance(tp.color, int): circle.color_256 = tp.color
+            elif isinstance(tp.color, tuple) and len(tp.color) == 3: circle.true_color = tp.color
+
+        yield circle
+        self.logger.info(f"Successfully created DxfCircle on layer {layer_name} with center ({point.x},{point.y}) and radius {radius}")
+        await asyncio.sleep(0)
+
+    async def _point_to_dxf_arc(
+        self, point: PointGeo, properties: Dict[str, Any], style_config: StyleObjectConfig, base_dxf_attrs: dict, layer_name: str
+    ) -> AsyncIterator[AnyDxfEntity]:
+        self.logger.debug(f"Attempting to create DxfArc for point on layer {layer_name} from attributes: {properties}")
+        try:
+            radius = float(properties.get("radius"))
+            start_angle = float(properties.get("start_angle"))
+            end_angle = float(properties.get("end_angle"))
+            if radius <= 0:
+                self.logger.warning(f"Invalid radius {radius} for DxfArc on layer {layer_name}. Skipping.")
+                return
+        except (TypeError, ValueError):
+            self.logger.warning(
+                f"Arc attributes (radius, start_angle, end_angle) on layer {layer_name} are missing or not valid numbers. "
+                f"Radius: {properties.get('radius')}, Start: {properties.get('start_angle')}, End: {properties.get('end_angle')}. Skipping."
+            )
+            return
+
+        arc = DxfArc(
+            center=Coordinate(x=point.x, y=point.y, z=point.z if point.z is not None else 0.0),
+            radius=radius,
+            start_angle=start_angle,
+            end_angle=end_angle,
+        )
+        self._apply_base_style_to_entity(arc, base_dxf_attrs, layer_name)
+        tp = style_config.text_props # Assuming general point styling might be in text_props
+        if tp and tp.color:
+            if isinstance(tp.color, int): arc.color_256 = tp.color
+            elif isinstance(tp.color, tuple) and len(tp.color) == 3: arc.true_color = tp.color
+
+        yield arc
+        self.logger.info(f"Successfully created DxfArc on layer {layer_name} with center ({point.x},{point.y}), radius {radius}, angles ({start_angle}, {end_angle})")
+        await asyncio.sleep(0)
+
     async def _point_to_dxf_text_or_insert(
         self, point: PointGeo, properties: Dict[str, Any], style_config: StyleObjectConfig, base_dxf_attrs: dict, layer_name: str
     ) -> AsyncIterator[AnyDxfEntity]:
+        # Check for custom entity types like Circle or Arc first
+        entity_type_attr = properties.get("dxf_entity_type")
+        if entity_type_attr == "circle":
+            async for entity in self._point_to_dxf_circle(point, properties, style_config, base_dxf_attrs, layer_name):
+                yield entity
+            return # Important to return after handling
+        elif entity_type_attr == "arc":
+            async for entity in self._point_to_dxf_arc(point, properties, style_config, base_dxf_attrs, layer_name):
+                yield entity
+            return # Important to return after handling
+
         tp = style_config.text_props
         text_content = None
         if tp:
