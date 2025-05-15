@@ -107,132 +107,47 @@ tests/                          # Pytest tests mirroring the src/dxfplanner stru
 *   **Injection Points:**
     *   Primarily use constructor injection for mandatory dependencies.
     *   Services, readers, writers, and geometry operations will receive their dependencies (like configuration objects, loggers, or other services) via DI.
-*   **Example (`src/dxfplanner/core/di.py`):
-    ```python
-    from dependency_injector import containers, providers
-    from dxfplanner import config
-    from dxfplanner.services import dxf_generation_svc, validation_svc
-    from dxfplanner.services.geoprocessing import coordinate_svc, attribute_mapping_svc
-    from dxfplanner.io.readers import shapefile_reader
-    from dxfplanner.io.writers import dxf_writer
-    from dxfplanner.core import logging_config, base_types
-    from dxfplanner.geometry import transformations
-
-    class Container(containers.DeclarativeContainer):
-        config = providers.Configuration()
-        logger = providers.Singleton(logging_config.get_logger, config=config.logging)
-
-        # Geometry Operations
-        geometry_transformer = providers.Factory(
-            transformations.GeometryTransformer,
-            logger=logger,
-            # Potentially config for default CRS, etc.
-        )
-
-        # Readers
-        shapefile_reader_service = providers.Factory(
-            shapefile_reader.ShapefileReader,
-            config=config.io.readers.shapefile, # Example refined config path
-            logger=logger,
-        )
-        # ... other readers (GeoJSON, etc.)
-
-        # Writers
-        dxf_writer_service = providers.Factory(
-            dxf_writer.DxfWriter,
-            config=config.io.writers.dxf, # Example refined config path
-            logger=logger,
-        )
-
-        # Geoprocessing Services
-        coordinate_transform_service = providers.Factory(
-            coordinate_svc.CoordinateTransformService,
-            logger=logger,
-            # config=config.services.coordinate, (if specific config needed)
-        )
-        attribute_mapping_service = providers.Factory(
-            attribute_mapping_svc.AttributeMappingService,
-            logger=logger,
-            config=config.services.attribute_mapping,
-        )
-        # ... other geoprocessing services (simplification, etc.)
-
-        validation_service = providers.Factory(
-            validation_svc.ValidationService,
-            logger=logger,
-            # config=config.services.validation
-        )
-
-        # Main Orchestration Service
-        dxf_generation_service = providers.Factory(
-            dxf_generation_svc.DxfGenerationService,
-            config=config.services.dxf_generation,
-            logger=logger,
-            geo_data_reader=shapefile_reader_service, # Example: inject a specific reader
-            dxf_writer=dxf_writer_service,
-            geometry_transformer=geometry_transformer,
-            coordinate_svc=coordinate_transform_service,
-            attribute_mapper=attribute_mapping_service,
-            validator=validation_service,
-        )
+*   **Example (`src/dxfplanner/core/di.py` - Conceptual):
+    ```plaintext
+    Define a DI container:
+      - Provide configuration objects.
+      - Provide a logger instance.
+      - Define factory providers for geometry operations (e.g., GeometryTransformer)
+        injecting logger and relevant config.
+      - Define factory providers for various data readers (e.g., ShapefileReader)
+        injecting config and logger.
+      - Define factory providers for data writers (e.g., DxfWriter)
+        injecting config and logger.
+      - Define factory providers for geoprocessing services (e.g., CoordinateTransformService,
+        AttributeMappingService) injecting logger and relevant config.
+      - Define factory provider for validation service, injecting logger and config.
+      - Define factory provider for the main DxfGenerationService, injecting its
+        dependencies (config, logger, specific reader, writer, transformer,
+        and other relevant services).
     ```
 
 ### 4.2. Configuration Management
 
 *   **Location:** Schemas in `src/dxfplanner/config/schemas.py`, loading in `src/dxfplanner/config/loaders.py`.
 *   **Structure:** `AppConfig` as the root, with nested Pydantic models for each module/area (e.g., `IOSettings`, `ServicesSettings`, `ReaderSettings`, `DxfWriterConfig`).
-*   **Example (`src/dxfplanner/config/schemas.py`):
-    ```python
-    from pydantic import BaseModel, Field
-    from typing import Optional, Dict
+*   **Example (`src/dxfplanner/config/schemas.py` - Conceptual):
+    ```plaintext
+    Define Pydantic models for configuration:
 
-    class LoggingConfig(BaseModel):
-        level: str = "INFO"
-        format: str = "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>"
-
-    class ShapefileReaderConfig(BaseModel):
-        default_encoding: str = "utf-8"
-        # ... other shapefile specific settings
-
-    class DxfWriterConfig(BaseModel):
-        target_dxf_version: str = "AC1027" # AutoCAD 2013/2014/2015/2016/2017
-        default_layer: str = "0"
-        default_color: int = 256 # ByLayer
-        layer_mapping: Dict[str, str] = Field(default_factory=dict) # e.g., {"source_layer_A": "target_dxf_layer_X"}
-        # ... other DXF specific settings
-
-    class ReaderConfigs(BaseModel):
-        shapefile: ShapefileReaderConfig = Field(default_factory=ShapefileReaderConfig)
-        # geojson: GeoJsonReaderConfig = Field(default_factory=GeoJsonReaderConfig)
-
-    class WriterConfigs(BaseModel):
-        dxf: DxfWriterConfig = Field(default_factory=DxfWriterConfig)
-
-    class IOSettings(BaseModel):
-        readers: ReaderConfigs = Field(default_factory=ReaderConfigs)
-        writers: WriterConfigs = Field(default_factory=WriterConfigs)
-
-    class AttributeMappingServiceConfig(BaseModel):
-        attribute_to_layer_field: Optional[str] = None
-        attribute_to_color_field: Optional[str] = None
-        attribute_to_text_content_field: Optional[str] = None
-        # ... other mapping rules
-
-    class DxfGenerationServiceConfig(BaseModel):
-        default_output_crs: Optional[str] = None # e.g., "EPSG:25832"
-        # ... other generation specific settings
-
-    class ServicesSettings(BaseModel):
-        attribute_mapping: AttributeMappingServiceConfig = Field(default_factory=AttributeMappingServiceConfig)
-        dxf_generation: DxfGenerationServiceConfig = Field(default_factory=DxfGenerationServiceConfig)
-        # coordinate: CoordinateServiceConfig = Field(default_factory=CoordinateServiceConfig)
-        # validation: ValidationServiceConfig = Field(default_factory=ValidationServiceConfig)
-
-    class AppConfig(BaseModel):
-        logging: LoggingConfig = Field(default_factory=LoggingConfig)
-        io: IOSettings = Field(default_factory=IOSettings)
-        services: ServicesSettings = Field(default_factory=ServicesSettings)
-        # ... other global configurations
+    AppConfig:
+      - logging: LoggingConfig (level, format)
+      - io: IOSettings
+        - readers: ReaderConfigs
+          - shapefile: ShapefileReaderConfig (default_encoding, etc.)
+          # - geojson: GeoJsonReaderConfig (...)
+        - writers: WriterConfigs
+          - dxf: DxfWriterConfig (target_dxf_version, default_layer, default_color, layer_mapping, etc.)
+      - services: ServicesSettings
+        - attribute_mapping: AttributeMappingServiceConfig (mapping fields like attribute_to_layer_field)
+        - dxf_generation: DxfGenerationServiceConfig (default_output_crs, etc.)
+        # - coordinate: CoordinateServiceConfig (...)
+        # - validation: ValidationServiceConfig (...)
+      # - other global configurations
     ```
 
 ### 4.3. Error Handling
@@ -240,27 +155,20 @@ tests/                          # Pytest tests mirroring the src/dxfplanner stru
 *   **Hierarchy:** `src/dxfplanner/core/exceptions.py`, base `DXFPlannerBaseError`.
     *   Specific errors: `ConfigurationError`, `ValidationError`, `GeoDataReadError`, `UnsupportedGeometryError`, `CoordinateTransformError`, `DxfWriteError`, `AttributeMappingError`.
 *   **Logging:** Use the standard `logging` module (configured via `loguru` as suggested in `PROJECT_STANDARDS.md`). Log exceptions with stack traces using `logger.exception()` in `except` blocks. Expected errors (e.g., validation) at `INFO` or `WARNING`.
-*   **Example (`src/dxfplanner/core/exceptions.py`):**
-    ```python
-    class DXFPlannerBaseError(Exception):
-        """Base exception for the DXFPlanner application."""
-        pass
+*   **Example (`src/dxfplanner/core/exceptions.py` - Conceptual):**
+    ```plaintext
+    Define a base exception class:
+      DXFPlannerBaseError (inherits from Exception)
 
-    class ConfigurationError(DXFPlannerBaseError):
-        """Error related to application configuration."""
-        pass
-
-    class GeoDataReadError(DXFPlannerBaseError):
-        """Error reading or interpreting input geodata."""
-        pass
-
-    class DxfGenerationError(DXFPlannerBaseError):
-        """Error specifically during DXF file generation."""
-        pass # More specific sub-exceptions like DxfWriteError can be added
-
-    class CoordinateTransformError(DXFPlannerBaseError):
-        """Error during coordinate system transformation."""
-        pass
+    Define specific exception classes inheriting from DXFPlannerBaseError:
+      - ConfigurationError
+      - GeoDataReadError
+      - DxfGenerationError
+        # - DxfWriteError (optional sub-exception)
+      - CoordinateTransformError
+      - ValidationError
+      - AttributeMappingError
+      - UnsupportedGeometryError
     ```
 
 ### 4.4. Logging
