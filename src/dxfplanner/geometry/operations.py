@@ -4,10 +4,18 @@ Geometric operations like buffer, simplify, etc.
 from typing import AsyncIterator, List, Dict, Any, Optional
 
 from dxfplanner.domain.models.geo_models import GeoFeature, PointGeo
-from dxfplanner.domain.interfaces import IOperation, IStyleService, ILabelPlacementService, PlacedLabel
+from dxfplanner.domain.interfaces import (
+    IOperation,
+    IStyleService,
+    ILabelPlacementService
+)
 from dxfplanner.config.schemas import (
-    BufferOperationConfig, SimplifyOperationConfig, FieldMappingOperationConfig,
-    ReprojectOperationConfig, CleanGeometryOperationConfig, ExplodeMultipartOperationConfig,
+    BufferOperationConfig,
+    SimplifyOperationConfig,
+    FieldMappingOperationConfig,
+    ReprojectOperationConfig,
+    CleanGeometryOperationConfig,
+    ExplodeMultipartOperationConfig,
     IntersectionOperationConfig,
     MergeOperationConfig,
     DissolveOperationConfig,
@@ -17,7 +25,12 @@ from dxfplanner.config.schemas import (
     AppConfig
 )
 from dxfplanner.core.logging_config import get_logger
-from shapely.geometry import MultiPoint, MultiLineString, MultiPolygon, GeometryCollection, Point
+from shapely.geometry import (
+    MultiPoint,
+    MultiLineString,
+    MultiPolygon,
+    GeometryCollection
+)
 from shapely.prepared import prep
 from shapely.errors import GEOSException
 from shapely.ops import unary_union
@@ -30,8 +43,10 @@ from dxfplanner.geometry.utils import (
     convert_dxfplanner_geometry_to_shapely,
     convert_shapely_to_dxfplanner_geometry,
     reproject_geometry,
-    explode_multipart_geometry
+    explode_multipart_geometry,
+    remove_islands_from_geometry
 )
+import types
 
 try:
     import asteval
@@ -40,16 +55,17 @@ except ImportError:
 
 logger = get_logger(__name__)
 
-SHAPELY_JOIN_STYLE = {
+SHAPELY_JOIN_STYLE = types.MappingProxyType({
     'ROUND': 1,
     'MITRE': 2,
     'BEVEL': 3
-}
-SHAPELY_CAP_STYLE = {
+})
+SHAPELY_CAP_STYLE = types.MappingProxyType({
     'ROUND': 1,
     'FLAT': 2,
     'SQUARE': 3
-}
+})
+
 
 class BufferOperation(IOperation[BufferOperationConfig]):
     """Performs a buffer operation on geographic features."""
@@ -69,35 +85,56 @@ class BufferOperation(IOperation[BufferOperationConfig]):
         Yields:
             GeoFeature: An asynchronous iterator of resulting buffered GeoFeature objects.
         """
-        logger.info(f"Executing BufferOperation for source_layer: '{config.source_layer}' with distance: {config.distance}, output: '{config.output_layer_name}'")
+        logger.info(
+            f"Executing BufferOperation for source_layer: '{config.source_layer}' "
+            f"with distance: {config.distance}, output: '{config.output_layer_name}'"
+        )
 
         async for feature in features:
             if feature.geometry is None:
-                logger.debug(f"Skipping feature with no geometry. Attributes: {feature.attributes}")
+                logger.debug(
+                    f"Skipping feature with no geometry. Attributes: {feature.attributes}"
+                )
                 continue
 
             shapely_geom = convert_dxfplanner_geometry_to_shapely(feature.geometry)
             if shapely_geom is None:
-                logger.warning(f"Could not convert DXFPlanner geometry to Shapely for feature. Attributes: {feature.attributes}")
+                logger.warning(
+                    f"Could not convert DXFPlanner geometry to Shapely for feature. "
+                    f"Attributes: {feature.attributes}"
+                )
                 continue
 
             if config.make_valid_pre_buffer:
                 shapely_geom = make_valid_geometry(shapely_geom)
                 if shapely_geom is None or shapely_geom.is_empty:
-                    logger.warning(f"Geometry became None/empty after pre-buffer validation. Attributes: {feature.attributes}")
+                    logger.warning(
+                        f"Geometry became None/empty after pre-buffer validation. "
+                        f"Attributes: {feature.attributes}"
+                    )
                     continue
 
             current_buffer_distance = config.distance
             if config.distance_field and config.distance_field in feature.attributes:
                 try:
                     current_buffer_distance = float(feature.attributes[config.distance_field])
-                    logger.debug(f"Using distance_field '{config.distance_field}' with value: {current_buffer_distance}")
+                    logger.debug(
+                        f"Using distance_field '{config.distance_field}' with value: {current_buffer_distance}"
+                    )
                 except (ValueError, TypeError) as e:
-                    logger.warning(f"Could not parse distance_field '{config.distance_field}' value '{feature.attributes[config.distance_field]}' as float: {e}. Using default: {config.distance}")
+                    logger.warning(
+                        f"Could not parse distance_field '{config.distance_field}' value "
+                        f"'{feature.attributes[config.distance_field]}' as float: {e}. "
+                        f"Using default: {config.distance}"
+                    )
                     current_buffer_distance = config.distance
 
-            s_join_style = SHAPELY_JOIN_STYLE.get(config.join_style, SHAPELY_JOIN_STYLE['ROUND'])
-            s_cap_style = SHAPELY_CAP_STYLE.get(config.cap_style, SHAPELY_CAP_STYLE['ROUND'])
+            s_join_style = SHAPELY_JOIN_STYLE.get(
+                config.join_style, SHAPELY_JOIN_STYLE['ROUND']
+            )
+            s_cap_style = SHAPELY_CAP_STYLE.get(
+                config.cap_style, SHAPELY_CAP_STYLE['ROUND']
+            )
 
             try:
                 buffered_s_geom = shapely_geom.buffer(
@@ -108,7 +145,11 @@ class BufferOperation(IOperation[BufferOperationConfig]):
                     mitre_limit=config.mitre_limit
                 )
             except Exception as e_buffer:
-                logger.error(f"Error during Shapely buffer operation for feature: {e_buffer}. Attributes: {feature.attributes}", exc_info=True)
+                logger.error(
+                    f"Error during Shapely buffer operation for feature: {e_buffer}. "
+                    f"Attributes: {feature.attributes}",
+                    exc_info=True
+                )
                 continue
 
             if buffered_s_geom is None or buffered_s_geom.is_empty:
@@ -132,7 +173,8 @@ class BufferOperation(IOperation[BufferOperationConfig]):
             if isinstance(buffered_s_geom, (MultiPoint, MultiLineString, MultiPolygon, GeometryCollection)):
                 logger.debug(f"Buffer result is a MultiGeometry ({buffered_s_geom.geom_type}) with {len(buffered_s_geom.geoms)} parts. Processing parts.")
                 for part_geom in buffered_s_geom.geoms:
-                    if part_geom is None or part_geom.is_empty: continue
+                    if part_geom is None or part_geom.is_empty:
+                        continue
                     converted_part = convert_shapely_to_dxfplanner_geometry(part_geom)
                     if converted_part:
                         geoms_to_yield.append(converted_part)
@@ -199,7 +241,8 @@ class SimplifyOperation(IOperation[SimplifyOperationConfig]):
             if isinstance(simplified_s_geom, (MultiPoint, MultiLineString, MultiPolygon, GeometryCollection)):
                 logger.debug(f"Simplify result is a MultiGeometry ({simplified_s_geom.geom_type}) with {len(simplified_s_geom.geoms)} parts. Processing parts.")
                 for part_geom in simplified_s_geom.geoms:
-                    if part_geom is None or part_geom.is_empty: continue
+                    if part_geom is None or part_geom.is_empty:
+                        continue
                     converted_part = convert_shapely_to_dxfplanner_geometry(part_geom)
                     if converted_part:
                         geoms_to_yield.append(converted_part)
@@ -320,7 +363,8 @@ class ReprojectOperation(IOperation[ReprojectOperationConfig]):
             if isinstance(reprojected_s_geom, (MultiPoint, MultiLineString, MultiPolygon, GeometryCollection)):
                 logger.debug(f"Reproject result is a MultiGeometry ({reprojected_s_geom.geom_type}) with {len(reprojected_s_geom.geoms)} parts. Processing parts.")
                 for part_geom in reprojected_s_geom.geoms:
-                    if part_geom is None or part_geom.is_empty: continue
+                    if part_geom is None or part_geom.is_empty:
+                        continue
                     converted_part = convert_shapely_to_dxfplanner_geometry(part_geom)
                     if converted_part:
                         geoms_to_yield.append(converted_part)
@@ -384,7 +428,8 @@ class CleanGeometryOperation(IOperation[CleanGeometryOperationConfig]):
             if isinstance(cleaned_s_geom, (MultiPoint, MultiLineString, MultiPolygon, GeometryCollection)):
                 logger.debug(f"CleanGeometry result is a MultiGeometry ({cleaned_s_geom.geom_type}) with {len(cleaned_s_geom.geoms)} parts. Processing parts.")
                 for part_geom in cleaned_s_geom.geoms:
-                    if part_geom is None or part_geom.is_empty: continue
+                    if part_geom is None or part_geom.is_empty:
+                        continue
                     converted_part = convert_shapely_to_dxfplanner_geometry(part_geom)
                     if converted_part:
                         geoms_to_yield.append(converted_part)
@@ -555,7 +600,7 @@ class IntersectionOperation(IOperation[IntersectionOperationConfig]):
                  s_geom = make_valid_geometry(s_geom)
                  if s_geom and not s_geom.is_empty:
                      valid_overlay_s_geoms.append(s_geom)
-                else:
+                 else:
                     logger.debug(f"Overlay feature geometry became invalid/empty after make_valid. Properties: {current_feat_properties}")
             else:
                 logger.debug(f"Overlay feature geometry is None or empty before make_valid. Properties: {current_feat_properties}")
@@ -563,18 +608,18 @@ class IntersectionOperation(IOperation[IntersectionOperationConfig]):
 
         if not valid_overlay_s_geoms:
             logger.warning("Intersection: No valid overlay geometries to perform intersection.")
-             return
+            return
 
         try:
              combined_overlay_geom = unary_union(valid_overlay_s_geoms)
              combined_overlay_geom = make_valid_geometry(combined_overlay_geom)
         except Exception as e_union:
             logger.error(f"Intersection: Failed to compute union of overlay geometries: {e_union}", exc_info=True)
-             return
+            return
 
         if not combined_overlay_geom or combined_overlay_geom.is_empty:
             logger.warning("Intersection: Combined overlay geometry is empty or invalid after union/validation.")
-             return
+            return
 
         prepared_combined_overlay = prep(combined_overlay_geom)
         logger.info(f"Intersection: Prepared combined overlay geometry for intersection. Type: {combined_overlay_geom.geom_type}. CRS assumed: {intersection_crs or 'Varies/Unknown'}")
@@ -647,7 +692,8 @@ class IntersectionOperation(IOperation[IntersectionOperationConfig]):
             geoms_to_yield = []
             if isinstance(intersected_result, (MultiPoint, MultiLineString, MultiPolygon, GeometryCollection)):
                  for part_geom in intersected_result.geoms:
-                     if part_geom is None or part_geom.is_empty: continue
+                     if part_geom is None or part_geom.is_empty:
+                         continue
                      converted_part = convert_shapely_to_dxfplanner_geometry(part_geom)
                      if converted_part:
                          geoms_to_yield.append(converted_part)
@@ -659,7 +705,7 @@ class IntersectionOperation(IOperation[IntersectionOperationConfig]):
             for new_dxf_geom in geoms_to_yield:
                 new_feature_properties = deepcopy(current_feature_properties) # Use deepcopy for safety
                 yield GeoFeature(geometry=new_dxf_geom, properties=new_feature_properties, crs=output_crs) # Use determined output_crs
-                 yielded_count += 1
+                yielded_count += 1
 
         logger.info(f"IntersectionOperation completed. Processed: {processed_count}, Yielded: {yielded_count}.")
 
@@ -812,14 +858,14 @@ class DissolveOperation(IOperation[DissolveOperationConfig]):
 
             if not shapely_geoms_to_union:
                 logger.warning(f"DissolveOperation: No valid geometries to union for group '{group_key}'. Skipping group.")
-                 continue
+                continue
 
             try:
                 # Perform the unary union
                 dissolved_geometry_shapely = unary_union(shapely_geoms_to_union)
                 if dissolved_geometry_shapely.is_empty:
                     logger.warning(f"DissolveOperation: Unary union resulted in an empty geometry for group '{group_key}'.")
-                 continue
+                    continue
 
                 # Convert back to GeoFeature
                 # For simplicity, take properties and dxf_properties from the first feature in the group
@@ -836,7 +882,7 @@ class DissolveOperation(IOperation[DissolveOperationConfig]):
                 dissolved_geometry_shapely = make_valid_geometry(dissolved_geometry_shapely)
                 if dissolved_geometry_shapely.is_empty:
                     logger.warning(f"DissolveOperation: Dissolved geometry became empty after final make_valid for group '{group_key}'.")
-                continue
+                    continue
 
 
                 dissolved_dxfplanner_geometry = convert_shapely_to_dxfplanner_geometry(dissolved_geometry_shapely)
@@ -925,8 +971,8 @@ class FilterByAttributeOperation(IOperation[FilterByAttributeOperationConfig]):
                 if self._interpreter.eval(expression): # Successfully parsed and evaluated
                     expression_value = self._interpreter.symtable.get('_result')
                     if bool(expression_value):
-                    yield feature
-                    yielded_count += 1
+                        yield feature
+                        yielded_count += 1
                 else: # Evaluation failed (syntax error in expr, or runtime error during eval)
                     errors = self._interpreter.get_error()
                     error_messages = [err.get_error()[1] for err in errors] if errors else ["Unknown evaluation error"]
