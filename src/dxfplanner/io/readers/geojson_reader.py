@@ -15,19 +15,18 @@ from shapely.geometry import shape
 from shapely.errors import GeometryTypeError
 from shapely.ops import transform as shapely_transform_op
 
-from dxfplanner.config import AppConfig, GeoJsonSourceConfig
 from dxfplanner.domain.models.geo_models import GeoFeature
 from dxfplanner.domain.models.common import Coordinate
 from dxfplanner.domain.models.geo_models import PointGeo, PolylineGeo, PolygonGeo
 from dxfplanner.domain.interfaces import IGeoDataReader, AnyStrPath
 from dxfplanner.core.exceptions import GeoDataReadError, ConfigurationError
-from dxfplanner.config.schemas import GeoJsonReaderConfig
+from dxfplanner.config.schemas import GeoJSONSourceConfig
 
 class GeoJsonReader(IGeoDataReader):
     """
     A reader for GeoJSON files.
     """
-    def __init__(self, config: GeoJsonReaderConfig, logger: Any):
+    def __init__(self, config: GeoJSONSourceConfig, logger: Any):
         self.config = config
         self.logger = logger
 

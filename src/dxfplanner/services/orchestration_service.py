@@ -2,7 +2,7 @@ import re # For parsing EPSG code
 from typing import Optional, Any, Dict, List, Tuple, AsyncIterator
 from pathlib import Path
 
-from dxfplanner.config.schemas import ProjectConfig, LayerConfig, ShapefileSourceConfig, GeoJsonSourceConfig, DataSourceType # Changed AppConfig to ProjectConfig
+from dxfplanner.config.schemas import ProjectConfig, LayerConfig, ShapefileSourceConfig, GeoJSONSourceConfig, DataSourceType # Corrected Casing
 from dxfplanner.domain.interfaces import (
     IDxfGenerationService,
     IGeoDataReader,
@@ -16,7 +16,7 @@ from dxfplanner.domain.interfaces import (
 from dxfplanner.domain.models.geo_models import GeoFeature
 from dxfplanner.domain.models.dxf_models import AnyDxfEntity
 from dxfplanner.core.exceptions import DxfGenerationError, ConfigurationError, GeometryTransformError, DxfWriteError, OrchestrationError, PipelineError
-from dxfplanner.domain.types import AnyStrPath
+from dxfplanner.domain.interfaces import AnyStrPath
 from dxfplanner.services.style_service import StyleService
 from dxfplanner.services.operation_service import OperationService
 from dxfplanner.core.logging_config import get_logger

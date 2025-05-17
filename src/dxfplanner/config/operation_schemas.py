@@ -181,11 +181,13 @@ class FieldMappingOperationConfig(BaseOperationConfig):
         description="If True, unmapped fields are dropped. If False and copy_unmapped_fields is False, unmapped fields are also dropped. This takes precedence if copy_unmapped_fields is True (i.e. if drop=True, copy=True -> fields are dropped)."
     )
 
-class LabelPlacementConfig(BaseOperationConfig): # Note: This is an operation, not just style
+class LabelPlacementOperationConfig(BaseOperationConfig): # Renamed from LabelPlacementConfig
     type: Literal[GeometryOperationType.LABEL_PLACEMENT] = GeometryOperationType.LABEL_PLACEMENT
     label_attribute: str = Field(description="Attribute field to use for labels.")
     label_settings: Optional[LabelingConfig] = Field(default=None, description="Detailed labeling configuration. If None, labeling might be disabled or use very basic defaults controlled by StyleService.")
     # TODO: Add offset, rotation, leader line options, conflict resolution strategy (These should go into LabelingConfig)
+    source_layer: Optional[str] = Field(default=None, description="Optional source layer for labels if different from the current layer being processed. If None, uses the current layer.")
+    output_label_layer_name: Optional[str] = Field(default=None, description="Optional explicit name for the output layer containing only labels. If None, labels might be added to a default label layer or the operation's output_layer_name.")
 
 # --- Union of all Operation Configs ---
 AnyOperationConfig = Union[
@@ -200,6 +202,5 @@ AnyOperationConfig = Union[
     FilterByAttributeOperationConfig,
     FilterByExtentOperationConfig,
     FieldMappingOperationConfig,
-    LabelPlacementConfig,
-    # Add new operation configs here
+    LabelPlacementOperationConfig # Changed here
 ]

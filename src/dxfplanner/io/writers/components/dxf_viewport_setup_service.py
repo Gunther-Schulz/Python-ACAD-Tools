@@ -8,7 +8,7 @@ from ezdxf.math import ConstructionArc
 
 from dxfplanner.config.schemas import ProjectConfig, DxfWriterConfig
 from dxfplanner.config.dxf_writer_schemas import ViewportDetailConfig
-from dxfplanner.domain.models.dxf_models import AnyDxfEntity, DxfPoint, DxfLine, DxfLWPolyline, DxfHatch, DxfCircle, DxfArc, DxfEllipse, DxfSpline, DxfText, DxfMText, DxfInsert
+from dxfplanner.domain.models.dxf_models import AnyDxfEntity, DxfPoint, DxfLine, DxfLWPolyline, DxfHatch, DxfCircle, DxfArc, DxfText, DxfMText, DxfInsert
 from dxfplanner.domain.models.common import Coordinate, BoundingBox as BoundingBoxModel
 from dxfplanner.domain.interfaces import IDxfViewportSetupService
 from dxfplanner.core.logging_config import get_logger

@@ -15,7 +15,7 @@ from ..domain.interfaces import ILegendGenerator, IDxfWriter, IStyleService, IDx
 from ..core.exceptions import ConfigurationError # For missing style presets
 # Import DxfEntity models and LayerStyleConfig
 from ..domain.models.dxf_models import DxfMText, AnyDxfEntity # Assuming DxfMText exists
-from ..domain.models.layer_styles import LayerStyleConfig
+from ..config.schemas import LayerStyleConfig # Corrected import path
 # Import additional DxfEntity models for swatches
 from ..domain.models.dxf_models import DxfLWPolyline, DxfHatch, DxfInsert, DxfHatchPath, DxfLine
 
@@ -31,13 +31,11 @@ class LegendGenerationService(ILegendGenerator):
         self,
         config: ProjectConfig,
         logger: Logger,
-        dxf_writer: IDxfWriter,
         style_service: IStyleService,
         entity_converter_service: IDxfEntityConverterService
     ):
         self.config = config
         self.logger = logger
-        self.dxf_writer = dxf_writer
         self.style_service = style_service
         self.entity_converter_service = entity_converter_service
         # Cache for sanitized layer names if needed, or dxf_writer handles it
@@ -78,7 +76,7 @@ class LegendGenerationService(ILegendGenerator):
         # Clean existing legend entities - IDxfWriter needs a robust way to do this
         # e.g., by a unique legend_id tag in xdata or specific layer prefixing
         # For now, conceptual call:
-        await self.dxf_writer.clear_legend_content(doc, msp, legend_id=legend_config.id) # Pass the base legend_id
+        # await self.dxf_writer.clear_legend_content(doc, msp, legend_id=legend_config.id) # REMOVED - DxfWriter's responsibility now
 
         # Create Legend Title & Subtitle
         current_y = await self._create_legend_main_titles(
@@ -764,7 +762,7 @@ class LegendGenerationService(ILegendGenerator):
             style_object_config.layer_props.color or
             (style_object_config.layer_props.lineweight is not None and style_object_config.layer_props.lineweight >=0) or
             style_object_config.layer_props.linetype
-            ):
+        ):
             border_points = [(x1, y1), (x2, y1), (x2, y2), (x1, y2), (x1,y1)]
             border_model = DxfLWPolyline(
                 points=border_points,

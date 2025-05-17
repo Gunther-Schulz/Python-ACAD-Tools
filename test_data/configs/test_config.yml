@@ -10,85 +10,91 @@ logging:
   level: "DEBUG"
   format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 
-io:
-  readers:
-    geojson: {}
-  writers:
-    dxf:
-      output_filepath: "test_data/output/e2e_test_output.dxf"
-      default_layer_properties:
-        color: "7"
-        linetype: "Continuous"
-        lineweight: 0
-      text_style_presets:
-        - name: "StandardLegend"
-          font_name_or_style_preset: "Arial"
-          height: 2.5
-          color: { name: "white" }
-        - name: "SmallLegend"
-          font_name_or_style_preset: "Arial"
-          height: 1.5
-      style_object_presets:
-        - name: "DefaultPolygonStyle"
-          layer_props:
-            color: { name: "blue" }
-            linetype: "Continuous"
-          hatch_props:
-            pattern_name: "SOLID"
-            scale: 1.0
-            angle: 0.0
-            pattern_color: { name: "cyan" }
-        - name: "RedLineStyle"
-          layer_props:
-            color: { name: "red" }
-            linetype: "DASHED"
-            lineweight: 35
+# dxf_writer moved to top level
+dxf_writer:
+  output_filepath: "test_data/output/e2e_test_output.dxf"
+  default_layer_properties:
+    name: "DEFAULT_LAYER_0"
+    color: { aci: 7 }
+    linetype: "Continuous"
+    lineweight: 0
+  text_style_presets: # Corresponds to DxfWriterConfig.text_style_presets
+    - name: "StandardLegend"
+      font_name: "Arial" # Field in TextStyleConfig (dxf_writer_schemas.py)
+      height: 2.5
+      # color: { name: "white" } # Color is not a direct field of TextStyleConfig
+    - name: "SmallLegend"
+      font_name: "Arial" # Field in TextStyleConfig
+      height: 1.5
+
+# style_presets at top level (formerly io.writers.dxf.style_object_presets)
+style_presets:
+  DefaultPolygonStyle: # Key for the dictionary
+    layer_props:
+      color: { aci: 5 }
+      linetype: "Continuous"
+    hatch_props:
+      pattern_name: "SOLID"
+      scale: 1.0
+      angle: 0.0
+      pattern_color: { aci: 4 }
+  RedLineStyle: # Key for the dictionary
+    layer_props:
+      color: { aci: 1 }
+      linetype: "DASHED"
+      lineweight: 35
 
 layers:
   - name: "SamplePolygons"
     source:
       type: "GEOJSON"
       path: "test_data/sources/sample_polygons.geojson"
-    style_preset_name: "DefaultPolygonStyle"
+    style_preset_name: "DefaultPolygonStyle" # Refers to top-level style_presets
     operations:
       - type: "BUFFER"
         distance: 10.0
         output_layer_name: "BufferedPolygons"
       - type: "LABEL_PLACEMENT"
         source_layer: "SamplePolygons"
-        label_attribute: "name"
+        label_attribute: "name" # This is for LabelPlacementOperationConfig itself
         output_label_layer_name: "PolygonLabels"
-        label_settings:
-          min_feature_size: 0
-          text_style_preset_name: "StandardLegend"
+        label_settings: # Maps to LabelingConfig in style_schemas.py
+          # min_feature_size: 0 # REMOVED: Extra input not permitted by LabelingConfig (extra = "forbid")
+          label_attribute: "name" # As per LabelingConfig schema
+          text_style: # Field in LabelingConfig, maps to TextStylePropertiesConfig
+            font_name_or_style_preset: "StandardLegend" # Field in TextStylePropertiesConfig, refers to a preset in dxf_writer.text_style_presets
+            # height can be inherited from preset or overridden here if needed
+            # color can be set here too if needed to override preset/layer color
 
 legends:
   - id: "main_legend"
     title: "Test Legend"
-    overall_title_text_style_preset_name: "StandardLegend"
+    overall_title_text_style_preset_name: "StandardLegend" # Refers to dxf_writer.text_style_presets
     layout:
       position_x: 10
       position_y: -10
-      item_swatch_width: 10
-      item_swatch_height: 5
-      text_offset_from_swatch: 2
+      swatch_width: 10 # Corrected name
+      swatch_height: 5 # Corrected name
+      swatch_to_text_spacing: 2 # Corrected name
       item_spacing: 3
       group_spacing: 8
       title_spacing_to_content: 5
     groups:
       - name: "Feature Types"
         items:
-          - name: "Buffered Polygons"
-            item_style:
-              item_type: "area"
-              style_preset_name: "DefaultPolygonStyle"
-              apply_hatch_for_area: true
-          - name: "Polygon Labels"
-            item_style:
-              item_type: "empty"
+          - label: "Buffered Polygons" # Corrected 'name' to 'label' (field in LegendItemConfig)
+            style_preset_source: "DefaultPolygonStyle" # Corrected field name (LegendItemConfig)
+            item_specific_style: # Field in LegendItemConfig, maps to LegendItemStyleConfig
+              swatch_type: "area" # Corrected field name (LegendItemStyleConfig)
+            # apply_hatch_for_area: true # REMOVED: Not a field in LegendItemConfig or its sub-models. Hatching comes from StyleObjectConfig via style_preset_source.
+          - label: "Polygon Labels" # Corrected 'name' to 'label'
+            item_specific_style:
+              swatch_type: "empty" # Corrected field name
 
 pipelines:
   - name: "DefaultPipeline"
     layers_to_process:
       - "SamplePolygons"
     layers_to_write: ["BufferedPolygons", "PolygonLabels", "SamplePolygons"]
+
+# Removed obsolete 'io' block

@@ -2,15 +2,17 @@
 Service responsible for processing a single layer configuration.
 This includes reading data, applying operations, and transforming to DXF entities.
 """
-from typing import AsyncIterator, Optional, Dict, Any
+from typing import AsyncIterator, Optional, Dict, Any, TYPE_CHECKING
 from logging import Logger
 
-from dxfplanner.config import ProjectConfig, LayerConfig, AnySourceConfig, ShapefileSourceConfig, OperationType, LabelPlacementOperationConfig # Changed AppConfig
+from dxfplanner.config.schemas import ProjectConfig, LayerConfig, AnySourceConfig, ShapefileSourceConfig, GeometryOperationType, LabelPlacementOperationConfig # Corrected import
 from dxfplanner.domain.models.geo_models import GeoFeature
 from dxfplanner.domain.models.dxf_models import AnyDxfEntity
 from dxfplanner.domain.interfaces import IGeoDataReader, IOperation, IGeometryTransformer, ILayerProcessorService # Added ILayerProcessorService
-from dxfplanner.core.di import DIContainer # For resolving dependencies
 from dxfplanner.core.exceptions import GeoDataReadError, ConfigurationError
+
+if TYPE_CHECKING:
+    from dxfplanner.core.di import DIContainer # Import for type hinting only
 
 class LayerProcessorService(ILayerProcessorService):
     """Processes a single layer from configuration to an async stream of DXF entities."""
@@ -18,7 +20,7 @@ class LayerProcessorService(ILayerProcessorService):
     def __init__(
         self,
         project_config: ProjectConfig, # Changed app_config to project_config
-        di_container: DIContainer,
+        di_container: 'DIContainer', # Used string literal
         geometry_transformer: IGeometryTransformer,
         logger: Logger
     ):
@@ -67,7 +69,7 @@ class LayerProcessorService(ILayerProcessorService):
             self.logger.debug(f"Implicit LabelPlacementOperation for layer '{layer_config.name}' will output to stream key '{implicit_label_op_output_name}'.")
 
             label_op_config = LabelPlacementOperationConfig(
-                type=OperationType.LABEL_PLACEMENT,
+                type=GeometryOperationType.LABEL_PLACEMENT, # Corrected usage
                 label_settings=layer_config.labeling,
                 # source_layer is None, so it will use the output of the previous operation or initial source
                 output_label_layer_name=implicit_label_op_output_name

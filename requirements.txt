@@ -1,11 +1,12 @@
-python-dependency-injector
+dependency-injector
 pydantic>=2.0.0,<3.0.0
 PyYAML
 loguru>=0.7.0,<0.8.0
-typer[all]
-ezdxf>=1.0.0,<2.0.0
+typer[all]>=0.9.0
+ezdxf>=1.1.0
 pyshp
 fiona>=1.8.0,<2.0.0
-pyproj>=3.0.0,<4.0.0
+pyproj>=3.5.0
 shapely>=2.0.0,<3.0.0
-asteval>=0.9.31,<0.10.0
+asteval>=0.9.31
+pydantic-settings>=0.1.0

@@ -12,7 +12,7 @@ from dxfplanner.domain.models import geo_models as dxf_geo_models
 from dxfplanner.domain.models.geo_models import AnyGeoGeometry, GeoFeature, PointGeo, PolylineGeo, PolygonGeo, MultiPointGeo, MultiPolylineGeo, MultiPolygonGeo, GeometryCollectionGeo
 from dxfplanner.domain.models.dxf_models import (
     DxfEntity, DxfPoint, DxfLWPolyline, DxfHatch, DxfMText, DxfText, DxfInsert,
-    HatchBoundaryPath, HatchEdgeType
+    DxfHatchPath, HatchEdgeType
 )
 
 logger = get_logger(__name__)
@@ -672,12 +672,12 @@ def convert_geo_feature_to_dxf_entities(
             logger.warning(f"PolygonGeo for feature ID '{geo_feature.id}' has no exterior ring. Cannot process.")
             return dxf_entities
 
-        boundary_paths_data: List[HatchBoundaryPath] = []
+        boundary_paths_data: List[DxfHatchPath] = []
         exterior_ring_coords = [(c.x, c.y) for c in all_rings_coords[0]]
         if len(exterior_ring_coords) >= 3:
             if exterior_ring_coords[0] != exterior_ring_coords[-1]:
                  exterior_ring_coords.append(exterior_ring_coords[0])
-            boundary_paths_data.append(HatchBoundaryPath(vertices=exterior_ring_coords, type=HatchEdgeType.POLYLINE.value)) # Use .value for enum
+            boundary_paths_data.append(DxfHatchPath(vertices=exterior_ring_coords, type=HatchEdgeType.POLYLINE.value)) # Use .value for enum
 
             if len(all_rings_coords) > 1:
                 for interior_ring_domain_coords in all_rings_coords[1:]:
@@ -685,7 +685,7 @@ def convert_geo_feature_to_dxf_entities(
                     if len(interior_ring_shapely_coords) >= 3:
                         if interior_ring_shapely_coords[0] != interior_ring_shapely_coords[-1]:
                             interior_ring_shapely_coords.append(interior_ring_shapely_coords[0])
-                        boundary_paths_data.append(HatchBoundaryPath(vertices=interior_ring_shapely_coords, type=HatchEdgeType.POLYLINE.value)) # Use .value
+                        boundary_paths_data.append(DxfHatchPath(vertices=interior_ring_shapely_coords, type=HatchEdgeType.POLYLINE.value)) # Use .value
         else:
             logger.warning(f"PolygonGeo exterior for '{geo_feature.id}' has < 3 points. Cannot form hatch path.")
 

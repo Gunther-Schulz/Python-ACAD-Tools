@@ -11,8 +11,8 @@ import asyncio
 import pyproj
 
 # DXFPlanner imports
-from dxfplanner.config.schemas import ShapefileReaderConfig # Updated import
-from dxfplanner.domain.models.geo_models import GeoFeature, PointGeo, LineStringGeo, PolygonGeo, MultiPointGeo, MultiLineStringGeo, MultiPolygonGeo, GeometryCollectionGeo # Ensure all are imported
+from dxfplanner.config.schemas import ShapefileSourceConfig # Updated import
+from dxfplanner.domain.models.geo_models import GeoFeature, PointGeo, PolylineGeo, PolygonGeo, MultiPointGeo, MultiPolylineGeo, MultiPolygonGeo, GeometryCollectionGeo # Ensure all are imported
 from dxfplanner.domain.models.common import Coordinate # Used by geometry utils
 from dxfplanner.domain.interfaces import IGeoDataReader, AnyStrPath # Adhering to interface
 from dxfplanner.core.exceptions import GeoDataReadError
@@ -26,7 +26,7 @@ class ShapefileReader(IGeoDataReader):
 
     DEFAULT_ENCODING = "utf-8" # Add default encoding if not present
 
-    def __init__(self, config: ShapefileReaderConfig, logger: Any): # Updated __init__
+    def __init__(self, config: ShapefileSourceConfig, logger: Any): # Updated __init__
         self.config = config
         self.logger = logger
         self.default_encoding = self.DEFAULT_ENCODING if config.encoding is None else config.encoding

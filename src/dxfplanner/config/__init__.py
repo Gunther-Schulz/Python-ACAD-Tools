@@ -36,7 +36,7 @@ from .operation_schemas import (
     LogicalOperator,
     FilterByExtentOperationConfig,
     FieldMappingOperationConfig,
-    LabelPlacementConfig,
+    LabelPlacementOperationConfig,
     AnyOperationConfig
 )
 
@@ -89,7 +89,7 @@ __all__ = [
     "IntersectionOperationConfig", "MergeOperationConfig",
     "FilterByAttributeOperationConfig", "FilterCondition", "FilterOperator", "LogicalOperator",
     "FilterByExtentOperationConfig", "FieldMappingOperationConfig",
-    "LabelPlacementConfig", "AnyOperationConfig",
+    "LabelPlacementOperationConfig", "AnyOperationConfig",
 
     # From dxf_writer_schemas
     "LinetypeConfig", "TextStyleConfig", "BlockEntityAttribsConfig", "BlockPointConfig",

@@ -93,13 +93,10 @@ class LabelPlacementService(ILabelPlacementService):
                         p2 = None
                         if len(coords) == 2:
                              p1, p2 = coords[0], coords[1]
-                        else:
+                        else: # len(coords) > 2
                             mid_idx = len(coords) // 2
-                            if mid_idx > 0:
-                                p1 = coords[mid_idx -1]
-                                p2 = coords[mid_idx]
-        else:
-                                p1, p2 = coords[0], coords[1]
+                            p1 = coords[mid_idx - 1]
+                            p2 = coords[mid_idx]
 
                         if p1 and p2:
                             dx = p2[0] - p1[0]

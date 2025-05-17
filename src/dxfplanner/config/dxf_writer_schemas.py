@@ -182,6 +182,7 @@ class DxfLayerConfig(BaseModel):
 
 class DxfWriterConfig(BaseModel):
     """Main configuration for the DXF writer."""
+    output_filepath: str = Field(description="Path to the output DXF file.")
     template_file: Optional[str] = Field(default=None, description="Path to a DXF template file to use as a base.")
     output_crs: Optional[str] = Field(default=None, description="Target CRS for the output DXF. If None, assumes geometries are already in desired output space or uses project CRS.")
     aci_colors_map_path: Optional[str] = Field(default=None, description="Path to YAML/JSON file mapping ACI index to RGB for custom color lookups or specific ACI interpretations.")

@@ -8,7 +8,7 @@ from typing import AsyncIterator, Optional, Any, Dict
 from pyproj import CRS, Transformer
 from pyproj.exceptions import CRSError
 from shapely.geometry import shape
-from shapely.errors import WKTReadingError, GeometryTypeError
+from shapely.errors import ShapelyError
 from shapely.ops import transform as shapely_transform_op
 # import asyncio # For async file reading simulation if needed, or async operations # Removed if not used
 
@@ -55,7 +55,7 @@ class CsvWktReader(IGeoDataReader):
             PermissionError: If the file cannot be accessed.
             ConfigurationError: If CRS info is insufficient or config is invalid.
             csv.Error: For CSV parsing issues.
-            shapely.errors.WKTReadingError: If WKT geometry is invalid.
+            shapely.errors.ShapelyError: If WKT geometry is invalid.
             pyproj.exceptions.CRSError: If provided CRS strings are invalid.
             GeoDataReadError: For other general errors during reading or processing.
         """
@@ -170,11 +170,11 @@ class CsvWktReader(IGeoDataReader):
                         # Potential await point for cooperative multitasking if parsing is very long
                         # await asyncio.sleep(0)
 
-                    except WKTReadingError as e:
-                        self.logger.error(f"Row {row_count}: Invalid WKT geometry in column '{wkt_column}': {e}. Skipping row. Content: '{wkt_string[:100]}...'")
-                        skipped_count += 1
-                    except GeometryTypeError as e:
-                        self.logger.error(f"Row {row_count}: Unsupported geometry type from WKT in column '{wkt_column}': {e}. Skipping row.")
+                    except ShapelyError as e:
+                        # Log a generic message, but include the specific error (e)
+                        # Ensure wkt_string is defined for logging, even if it was None/empty.
+                        wkt_content_for_log = wkt_string[:100] if wkt_string else "[empty WKT string]"
+                        self.logger.error(f"Row {row_count}: Error processing WKT geometry in column \'{wkt_column}\': {e}. Skipping row. Content: \'{wkt_content_for_log}...\'")
                         skipped_count += 1
                     except Exception as e:
                         self.logger.error(f"Row {row_count}: Unexpected error processing row: {e}. Skipping row.", exc_info=True)

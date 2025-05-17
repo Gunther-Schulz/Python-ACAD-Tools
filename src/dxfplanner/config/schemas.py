@@ -1,16 +1,23 @@
 from typing import Optional, List, Union, Dict, Any, Tuple, Literal
 from pydantic import BaseModel, Field, validator
+from pydantic_settings import BaseSettings
 from enum import Enum
 
 # Import from new specific schema modules
-from .common_schemas import ColorModel, FontProperties, ExtentsModel, CRSModel
+from .common_schemas import (
+    ColorModel, FontProperties, ExtentsModel, CRSModel, LoggingConfig,
+    CoordinateServiceConfig, ServicesSettings,
+    MappingRuleConfig, AttributeMappingServiceConfig # Added new configs
+)
 from .reader_schemas import DataSourceType, BaseReaderConfig, ShapefileSourceConfig, GeoJSONSourceConfig, CsvWktReaderConfig, AnySourceConfig
 from .operation_schemas import (
     GeometryOperationType, BaseOperationConfig,
     BufferOperationConfig, SimplifyOperationConfig, DissolveOperationConfig,
     ReprojectOperationConfig, CleanGeometryOperationConfig, ExplodeMultipartOperationConfig,
     IntersectionOperationConfig, MergeOperationConfig, FilterByAttributeOperationConfig,
-    FilterByExtentOperationConfig, FieldMappingOperationConfig, LabelPlacementConfig,
+    FilterByExtentOperationConfig, FieldMappingOperationConfig, LabelPlacementOperationConfig,
+    IntersectionAttributeOptionsConfig,
+    IntersectionInputAttributeOptions, IntersectionOverlayAttributeOptions, IntersectionAttributeConflictResolution,
     AnyOperationConfig, FilterOperator, LogicalOperator, FilterCondition # Ensure these are also available if used directly in LayerConfig/ProjectConfig
 )
 from .dxf_writer_schemas import (
@@ -23,13 +30,24 @@ from .dxf_writer_schemas import (
 from .style_schemas import (
     LayerDisplayPropertiesConfig, # For LayerStyleConfig if it uses it directly
     TextStylePropertiesConfig,    # For LayerStyleConfig if it uses it directly
+    TextParagraphPropertiesConfig, # ADDED
     HatchPropertiesConfig,      # For LayerStyleConfig if it uses it directly
     StyleObjectConfig,          # For ProjectConfig.style_presets and StyleRuleConfig
     StyleRuleConfig             # For LayerConfig.style_rules
 )
+from .legend_schemas import ( # ADDED
+    LegendLayoutConfig, LegendItemStyleConfig, LegendItemConfig,
+    LegendGroupConfig, LegendDefinitionConfig
+)
 
 
 # --- Layer and Main Project Configuration ---
+
+class PipelineConfig(BaseModel):
+    name: str
+    layers_to_process: List[str]
+    layers_to_write: List[str]
+
 
 class LayerStyleConfig(BaseModel):
     """Defines visual styling for a layer (primarily for display or intermediate use, not direct DXF layer table)."""
@@ -64,13 +82,18 @@ class LayerConfig(BaseModel):
     enabled: bool = Field(default=True, description="Whether this layer processing is enabled.")
 
 
-class ProjectConfig(BaseModel):
+class ProjectConfig(BaseSettings):
     """Root configuration for a DXF Planner project."""
     project_name: str = Field(default="DXFPlannerProject", description="Name of the project.")
+    version: Optional[str] = Field(default=None, description="Project configuration schema version.")
     default_crs: Optional[CRSModel] = Field(default=None, description="Default Coordinate Reference System for the project if not specified elsewhere.")
     layers: List[LayerConfig] = Field(description="List of layer configurations.")
     dxf_writer: DxfWriterConfig = Field(description="Configuration for the DXF writer and output DXF properties.")
     style_presets: Dict[str, StyleObjectConfig] = Field(default_factory=dict, description="Reusable style presets.")
+    legends: Optional[List[LegendDefinitionConfig]] = Field(default_factory=list, description="List of legend definitions for the project.")
+    pipelines: Optional[List[PipelineConfig]] = Field(default_factory=list, description="List of processing pipelines.")
+    logging: Optional[LoggingConfig] = Field(default_factory=LoggingConfig, description="Logging configuration.")
+    services: Optional[ServicesSettings] = Field(default_factory=ServicesSettings, description="Service-specific configurations.")
 
     # Global settings, logging, etc.
     # log_level: Optional[str] = Field(default="INFO", description="Logging level (e.g., DEBUG, INFO, WARNING, ERROR).")
@@ -86,13 +109,16 @@ class ProjectConfig(BaseModel):
 # Re-export all imported names for easier access from other modules if they were importing from schemas.py
 # This makes the refactoring less breaking for modules that did `from .config.schemas import X`
 __all__ = [
-    "ColorModel", "FontProperties", "ExtentsModel", "CRSModel",
+    "ColorModel", "FontProperties", "ExtentsModel", "CRSModel", "LoggingConfig", "CoordinateServiceConfig", "ServicesSettings",
+    "MappingRuleConfig", "AttributeMappingServiceConfig", # Added new configs
     "DataSourceType", "BaseReaderConfig", "ShapefileSourceConfig", "GeoJSONSourceConfig", "CsvWktReaderConfig", "AnySourceConfig",
     "GeometryOperationType", "BaseOperationConfig",
     "BufferOperationConfig", "SimplifyOperationConfig", "DissolveOperationConfig",
     "ReprojectOperationConfig", "CleanGeometryOperationConfig", "ExplodeMultipartOperationConfig",
     "IntersectionOperationConfig", "MergeOperationConfig", "FilterByAttributeOperationConfig",
-    "FilterByExtentOperationConfig", "FieldMappingOperationConfig", "LabelPlacementConfig",
+    "FilterByExtentOperationConfig", "FieldMappingOperationConfig", "LabelPlacementOperationConfig",
+    "IntersectionAttributeOptionsConfig",
+    "IntersectionInputAttributeOptions", "IntersectionOverlayAttributeOptions", "IntersectionAttributeConflictResolution",
     "AnyOperationConfig", "FilterOperator", "LogicalOperator", "FilterCondition",
     "LinetypeConfig", "TextStyleConfig", "BlockEntityAttribsConfig", "BlockPointConfig",
     "BlockLineConfig", "BlockPolylineConfig", "BlockCircleConfig", "BlockArcConfig",
@@ -100,6 +126,9 @@ __all__ = [
     "DxfWriterConfig",
     "LayerStyleConfig", "LayerConfig", "ProjectConfig",
     # Added from style_schemas for StyleService direct imports from this module
-    "LayerDisplayPropertiesConfig", "TextStylePropertiesConfig", "HatchPropertiesConfig",
-    "StyleObjectConfig", "StyleRuleConfig"
+    "LayerDisplayPropertiesConfig", "TextStylePropertiesConfig", "TextParagraphPropertiesConfig", "HatchPropertiesConfig",
+    "StyleObjectConfig", "StyleRuleConfig",
+    # ADDED Legend Schemas
+    "LegendLayoutConfig", "LegendItemStyleConfig", "LegendItemConfig",
+    "LegendGroupConfig", "LegendDefinitionConfig", "PipelineConfig"
 ]

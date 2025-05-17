@@ -5,10 +5,10 @@ from ezdxf.document import Drawing
 from ezdxf.layouts import Modelspace
 from ezdxf.entities import DXFGraphic, Point, Line, LWPolyline, Hatch, MText, Text, Insert, Circle, Arc, Polyline as EzdxfPolyline
 
-from dxfplanner.config.schemas import ProjectConfig, DxfWriterConfig, LayerStyleConfig, HatchPatternConfig, TextStyleConfig
+from dxfplanner.config.schemas import ProjectConfig, DxfWriterConfig, LayerStyleConfig, HatchPropertiesConfig, TextStyleConfig
 from dxfplanner.domain.models.dxf_models import (
-    DxfEntity, DxfPoint, DxfLine, DxfLWPolyline, DxfHatch, DxfCircle, DxfArc, DxfEllipse,
-    DxfSpline, DxfText, DxfMText, DxfInsert, AnyDxfEntity, HatchBoundaryPath, HatchEdgeType,
+    DxfEntity, DxfPoint, DxfLine, DxfLWPolyline, DxfHatch, DxfCircle, DxfArc,
+    DxfText, DxfMText, DxfInsert, AnyDxfEntity, DxfHatchPath, HatchEdgeType,
     DxfPolyline
 )
 from dxfplanner.domain.interfaces import IDxfEntityConverterService
@@ -230,8 +230,9 @@ class DxfEntityConverterService(IDxfEntityConverterService):
             self.logger.error(f"Error adding DxfLWPolyline: {e}", exc_info=True)
             return None
 
-    def _determine_fill_type(self, hatch_pattern_config: Optional[HatchPatternConfig]) -> int:
-        """Determines the ezdxf fill type from HatchPatternConfig."""
+    def _determine_fill_type(self, hatch_pattern_config: Optional[HatchPropertiesConfig]) -> int:
+        """Determines the HATCH fill type (solid or pattern) based on config."""
+        # SOLID = 1, PATTERN = 0, from ezdxf.const.HATCH_TYPE_SOLID, HATCH_TYPE_PATTERN_DEFINED
         if hatch_pattern_config and hatch_pattern_config.style:
             style_upper = hatch_pattern_config.style.upper()
             if style_upper == "SOLID":
@@ -242,9 +243,9 @@ class DxfEntityConverterService(IDxfEntityConverterService):
                  return ezdxf.const.HATCH_STYLE_OUTERMOST # Styles the outermost area only
         return ezdxf.const.HATCH_STYLE_NORMAL # Default or if only pattern name is given
 
-    def _get_hatch_pattern_details(self, hatch_pattern_config: Optional[HatchPatternConfig]) -> tuple[str, float, float]:
-        """Extracts pattern name, scale, and angle from HatchPatternConfig."""
-        pattern_name = "SOLID" # Default for solid fill
+    def _get_hatch_pattern_details(self, hatch_pattern_config: Optional[HatchPropertiesConfig]) -> tuple[str, float, float]:
+        """Extracts hatch pattern name, scale, and angle from config, with defaults."""
+        pattern_name = "SOLID" # Default if no config
         pattern_scale = 1.0
         pattern_angle = 0.0
 
@@ -281,11 +282,11 @@ class DxfEntityConverterService(IDxfEntityConverterService):
             # else: solid fill color is just entity color
 
             # Add boundary paths
-            # DxfHatch model.paths: List[HatchBoundaryPath]
-            # HatchBoundaryPath.edges: List[Union[Tuple[Coordinate, Coordinate], Tuple[Coordinate, Coordinate, float]]] (Line or Arc segment)
-            # HatchBoundaryPath.is_polyline: bool
-            # HatchBoundaryPath.is_closed: bool (for polyline paths)
-            # HatchBoundaryPath.edge_type: HatchEdgeType (POLYLINE, LINE, ARC, CIRCLE, ELLIPSE, SPLINE) - from ezdxf.const
+            # DxfHatch model.paths: List[DxfHatchPath]
+            # DxfHatchPath.edges: List[Union[Tuple[Coordinate, Coordinate], Tuple[Coordinate, Coordinate, float]]] (Line or Arc segment)
+            # DxfHatchPath.is_polyline: bool (Adjusted based on DxfHatchPath structure)
+            # DxfHatchPath.is_closed: bool (for polyline paths)
+            # DxfHatchPath.edge_type: HatchEdgeType (POLYLINE, LINE, ARC, CIRCLE, ELLIPSE, SPLINE) - from ezdxf.const (Adjusted based on DxfHatchPath structure)
 
             for path_model in model.paths:
                 path_points = [] # For polyline paths

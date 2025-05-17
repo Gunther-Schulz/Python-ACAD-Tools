@@ -7,7 +7,7 @@ from logging import Logger
 import re
 
 from dxfplanner.config.schemas import (
-    AppConfig,
+    ProjectConfig,
     LayerConfig,
     LabelPlacementOperationConfig,
 )
@@ -39,7 +39,7 @@ class StyleService(IStyleService):
     Also processes feature-specific style rules.
     """
 
-    def __init__(self, config: AppConfig, logger: Logger):
+    def __init__(self, config: ProjectConfig, logger: Logger):
         self._config = config
         self.logger = logger
 

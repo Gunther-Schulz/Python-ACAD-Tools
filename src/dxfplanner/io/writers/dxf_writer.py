@@ -20,13 +20,8 @@ from dxfplanner.core.exceptions import DxfWriteError
 from dxfplanner.config.schemas import ProjectConfig, ColorModel, LayerDisplayPropertiesConfig, TextStylePropertiesConfig, HatchPropertiesConfig # Changed AppConfig to ProjectConfig
 from dxfplanner.services.style_service import StyleService, StyleObjectConfig # For resolving layer styles
 from dxfplanner.core.logging_config import get_logger
-from dxfplanner.services.attribute_mapping_service import AttributeMappingService
-from dxfplanner.services.coordinate_service import CoordinateService
-from dxfplanner.domain.models.common import (\
-    DXFAttribs,\
-    ColorModel, # This one is kept
-    AnyGeometry,\
-)
+from dxfplanner.services.geoprocessing.attribute_mapping_service import AttributeMappingService
+from dxfplanner.services.geoprocessing.coordinate_service import CoordinateTransformService
 from dxfplanner.domain.models.geo_models import (\
     GeoFeature,\
     PointGeo,\
@@ -41,13 +36,13 @@ from dxfplanner.domain.models.geo_models import (\
 from dxfplanner.config.schemas import (\
     DxfWriterConfig,\
     LayerConfig,\
-    OperationsConfig,\
+    AnyOperationConfig,\
     StyleObjectConfig, LayerDisplayPropertiesConfig, TextStylePropertiesConfig, HatchPropertiesConfig # ColorModel removed here
 )
 
 # Need BoundingBoxModel from domain models for return type
 from dxfplanner.domain.models.common import BoundingBox as BoundingBoxModel
-from dxfplanner.domain.models.layer_styles import LayerStyleConfig, HatchPatternConfig, TextStyleConfig, BlockReferenceConfig # Keep
+from dxfplanner.config.schemas import LayerStyleConfig, HatchPropertiesConfig, TextStyleConfig, BlockDefinitionConfig # Keep
 from dxfplanner.geometry.utils import get_color_code, convert_transparency, sanitize_layer_name # Keep
 
 logger = get_logger(__name__)

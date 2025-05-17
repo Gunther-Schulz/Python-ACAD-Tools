@@ -2,6 +2,7 @@
 Service responsible for orchestrating the processing of all layers in a project configuration.
 """
 from typing import AsyncIterator, Dict, Tuple
+from logging import Logger
 
 from dxfplanner.config import ProjectConfig, LayerConfig
 from dxfplanner.domain.models.dxf_models import AnyDxfEntity

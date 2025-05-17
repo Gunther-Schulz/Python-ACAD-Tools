@@ -5,14 +5,14 @@ from copy import deepcopy
 from asteval import Interpreter as AstevalInterpreter # For evaluating expressions safely
 
 from dxfplanner.domain.models.geo_models import GeoFeature
-from dxfplanner.domain.interfaces import IAttributeMappingService
+from dxfplanner.domain.interfaces import IAttributeMapper
 from dxfplanner.config.schemas import AttributeMappingServiceConfig, MappingRuleConfig, DxfWriterConfig
 # Assuming a utility for ACI color conversion might exist or needs to be simple for now
 # from dxfplanner.geometry.aci import convert_to_aci_color # Example import
 
 logger = logging.getLogger(__name__)
 
-class AttributeMappingService(IAttributeMappingService):
+class AttributeMappingService(IAttributeMapper):
     def __init__(self, config: AttributeMappingServiceConfig, dxf_writer_config: DxfWriterConfig, logger_in: Optional[logging.Logger] = None):
         self.config = config
         self.dxf_writer_config = dxf_writer_config

@@ -2,9 +2,8 @@ from typing import Any, Dict, Tuple, AsyncIterator, Set
 import math
 import ezdxf
 from ezdxf.document import Drawing
-from ezdxf.entities import BlockLayout
+from ezdxf.layouts import BlockLayout
 from ezdxf.math import Vec3 # For MTEXT rotation if needed, or general vector ops
-from ezdxf.const import MTEXT_TOP_LEFT, MTEXT_MIDDLE_CENTER # For MTEXT attachment if needed
 
 from dxfplanner.config.schemas import ProjectConfig, DxfWriterConfig, LayerConfig as DomainLayerConfig, LinetypeConfig, TextStyleConfig # Renamed LayerConfig to avoid clash
 from dxfplanner.config.dxf_writer_schemas import ( # Import specific block configs

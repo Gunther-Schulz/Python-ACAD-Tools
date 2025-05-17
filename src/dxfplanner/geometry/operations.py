@@ -48,11 +48,11 @@ from collections import defaultdict
 from copy import deepcopy
 from dxfplanner.geometry.utils import (
     make_valid_geometry,
+    remove_islands_from_geometry,
     convert_dxfplanner_geometry_to_shapely,
-    convert_shapely_to_dxfplanner_geometry,
+    convert_shapely_to_anygeogeometry,
     reproject_geometry,
-    explode_multipart_geometry,
-    remove_islands_from_geometry
+    explode_multipart_geometry
 )
 import types
 
@@ -178,11 +178,11 @@ class BufferOperation(IOperation[BufferOperationConfig]):
                 for part_geom in buffered_s_geom.geoms:
                     if part_geom is None or part_geom.is_empty:
                         continue
-                    converted_part = convert_shapely_to_dxfplanner_geometry(part_geom)
+                    converted_part = convert_shapely_to_anygeogeometry(part_geom)
                     if converted_part:
                         geoms_to_yield.append(converted_part)
             else:
-                converted_single = convert_shapely_to_dxfplanner_geometry(buffered_s_geom)
+                converted_single = convert_shapely_to_anygeogeometry(buffered_s_geom)
                 if converted_single:
                     geoms_to_yield.append(converted_single)
 
@@ -248,17 +248,17 @@ class SimplifyOperation(IOperation[SimplifyOperationConfig]):
                 simplified_s_geom = make_valid_geometry(simplified_s_geom)
                 if simplified_s_geom is None or simplified_s_geom.is_empty:
                     logger.warning(f"Simplify: Geometry became None/empty after post-simplify validation. Attrs: {feature.attributes}")
-                    continue
+                continue
 
             geoms_to_yield = []
             if isinstance(simplified_s_geom, (MultiPoint, MultiLineString, MultiPolygon, GeometryCollection)):
                 for part_geom in simplified_s_geom.geoms:
                     if part_geom and not part_geom.is_empty:
-                        converted_part = convert_shapely_to_dxfplanner_geometry(part_geom)
+                        converted_part = convert_shapely_to_anygeogeometry(part_geom)
                         if converted_part:
                             geoms_to_yield.append(converted_part)
             else:
-                converted_single = convert_shapely_to_dxfplanner_geometry(simplified_s_geom)
+                converted_single = convert_shapely_to_anygeogeometry(simplified_s_geom)
                 if converted_single:
                     geoms_to_yield.append(converted_single)
 
@@ -387,7 +387,6 @@ class ReprojectOperation(IOperation[ReprojectOperationConfig]):
                 )
                 continue
 
-
             if reprojected_s_geom is None or reprojected_s_geom.is_empty:
                 logger.warning(f"Reproject: Result is None or empty. Source CRS: {source_crs_str}, Target CRS: {target_crs_str}. Attrs: {feature.attributes}")
                 continue
@@ -396,11 +395,11 @@ class ReprojectOperation(IOperation[ReprojectOperationConfig]):
             if isinstance(reprojected_s_geom, (MultiPoint, MultiLineString, MultiPolygon, GeometryCollection)):
                 for part_geom in reprojected_s_geom.geoms:
                     if part_geom and not part_geom.is_empty:
-                        converted_part = convert_shapely_to_dxfplanner_geometry(part_geom)
+                        converted_part = convert_shapely_to_anygeogeometry(part_geom)
                         if converted_part:
                             geoms_to_yield.append(converted_part)
             else:
-                converted_single = convert_shapely_to_dxfplanner_geometry(reprojected_s_geom)
+                converted_single = convert_shapely_to_anygeogeometry(reprojected_s_geom)
                 if converted_single:
                     geoms_to_yield.append(converted_single)
 
@@ -466,11 +465,11 @@ class CleanGeometryOperation(IOperation[CleanGeometryOperationConfig]):
             if isinstance(cleaned_s_geom, (MultiPoint, MultiLineString, MultiPolygon, GeometryCollection)):
                 for part_geom in cleaned_s_geom.geoms:
                     if part_geom and not part_geom.is_empty:
-                        converted_part = convert_shapely_to_dxfplanner_geometry(part_geom)
+                        converted_part = convert_shapely_to_anygeogeometry(part_geom)
                         if converted_part:
                             geoms_to_yield.append(converted_part)
             else:
-                converted_single = convert_shapely_to_dxfplanner_geometry(cleaned_s_geom)
+                converted_single = convert_shapely_to_anygeogeometry(cleaned_s_geom)
                 if converted_single:
                     geoms_to_yield.append(converted_single)
 
@@ -535,7 +534,7 @@ class ExplodeMultipartOperation(IOperation[ExplodeMultipartOperationConfig]):
                     #    continue
                     # new_dxf_geom_part = convert_shapely_to_dxfplanner_geometry(valid_part_s_geom)
 
-                    new_dxf_geom_part = convert_shapely_to_dxfplanner_geometry(single_part_s_geom)
+                    new_dxf_geom_part = convert_shapely_to_anygeogeometry(single_part_s_geom)
 
                     if new_dxf_geom_part:
                         part_count += 1
@@ -552,7 +551,7 @@ class ExplodeMultipartOperation(IOperation[ExplodeMultipartOperationConfig]):
                 continue # Skip this feature on error
 
             if part_count == 0:
-                 logger.debug(f"Explode: No parts yielded for feature. Original type: {shapely_geom.geom_type if shapely_geom else 'N/A'}. Attrs: {feature.attributes}")
+                logger.debug(f"Explode: No parts yielded for feature. Original type: {shapely_geom.geom_type if shapely_geom else 'N/A'}. Attrs: {feature.attributes}")
 
         logger.info(f"ExplodeMultipartOperation completed for source_layer: '{config.source_layer}'")
 
@@ -589,51 +588,51 @@ class IntersectionOperation(IOperation[IntersectionOperationConfig]):
             target_crs_for_overlays_load = self._project_config.services.coordinate.default_target_crs
             final_overlay_crs = target_crs_for_overlays_load # If we use default_target_crs, that's what they'll be in
             if target_crs_for_overlays_load:
-                 logger.info(f"Intersection: No primary operation CRS provided for overlays, using project default target CRS for loading: {target_crs_for_overlays_load}")
+                logger.info(f"Intersection: No primary operation CRS provided for overlays, using project default target CRS for loading: {target_crs_for_overlays_load}")
 
 
-        for layer_name in layer_names:
-            layer_config = next((lc for lc in self._project_config.layers if lc.name == layer_name), None)
-            if not layer_config or not layer_config.source:
-                logger.warning(f"Intersection: Overlay layer '{layer_name}' not found in config or has no source. Skipping.")
-                continue
+            for layer_name in layer_names:
+                layer_config = next((lc for lc in self._project_config.layers if lc.name == layer_name), None)
+                if not layer_config or not layer_config.source:
+                    logger.warning(f"Intersection: Overlay layer '{layer_name}' not found in config or has no source. Skipping.")
+                    continue
 
-            try:
-                reader = self._container.resolve_reader(layer_config.source.type)
-                reader_kwargs = layer_config.source.model_dump(exclude={'type', 'crs', 'path'})
+                try:
+                    reader = self._container.resolve_reader(layer_config.source.type)
+                    reader_kwargs = layer_config.source.model_dump(exclude={'type', 'crs', 'path'})
 
-                current_source_crs = layer_config.source.crs
-                # No fallback to project_config.services.coordinate.default_source_crs here, reader should handle if None
+                    current_source_crs = layer_config.source.crs
+                    # No fallback to project_config.services.coordinate.default_source_crs here, reader should handle if None
 
-                logger.info(f"Intersection: Loading overlay layer '{layer_name}' (SourceCRS: {current_source_crs}, TargetCRS for load: {target_crs_for_overlays_load or 'Reader-defined/Native'})...")
+                    logger.info(f"Intersection: Loading overlay layer '{layer_name}' (SourceCRS: {current_source_crs}, TargetCRS for load: {target_crs_for_overlays_load or 'Reader-defined/Native'})...")
 
-                async for feature in reader.read_features(
-                    source_path=layer_config.source.path,
-                    source_crs=current_source_crs,
-                    target_crs=target_crs_for_overlays_load, # Pass the determined target_crs_for_overlays_load
-                    **reader_kwargs
-                 ):
-                    if feature.geometry:
-                        # Ensure attributes exists, even if empty
-                        if feature.attributes is None:
-                            feature.attributes = {}
-                        overlay_features.append(feature)
-                        # After read_features, feature.crs should be target_crs_for_overlays_load if it was provided and reprojection occurred.
-                        # If target_crs_for_overlays_load was None, feature.crs is whatever the reader set (native or its own default).
-                        # We need to track the actual CRS of the loaded overlay features if primary_op_crs was initially None.
-                        if final_overlay_crs is None and feature.crs: # First feature with a CRS sets the benchmark if no primary_op_crs
-                            final_overlay_crs = feature.crs
-                            logger.info(f"Intersection: Overlay features from '{layer_name}' determined to be in CRS '{final_overlay_crs}' (used as benchmark).")
-                        elif final_overlay_crs and feature.crs and final_overlay_crs.lower() != feature.crs.lower():
-                            logger.warning(f"Intersection: Overlay layer '{layer_name}' feature loaded in CRS '{feature.crs}', but expected/benchmark CRS is '{final_overlay_crs}'. This could lead to issues.")
+                    async for feature in reader.read_features(
+                        source_path=layer_config.source.path,
+                        source_crs=current_source_crs,
+                        target_crs=target_crs_for_overlays_load, # Pass the determined target_crs_for_overlays_load
+                        **reader_kwargs
+                    ):
+                        if feature.geometry:
+                            # Ensure attributes exists, even if empty
+                            if feature.attributes is None:
+                                feature.attributes = {}
+                            overlay_features.append(feature)
+                            # After read_features, feature.crs should be target_crs_for_overlays_load if it was provided and reprojection occurred.
+                            # If target_crs_for_overlays_load was None, feature.crs is whatever the reader set (native or its own default).
+                            # We need to track the actual CRS of the loaded overlay features if primary_op_crs was initially None.
+                            if final_overlay_crs is None and feature.crs: # First feature with a CRS sets the benchmark if no primary_op_crs
+                                final_overlay_crs = feature.crs
+                                logger.info(f"Intersection: Overlay features from '{layer_name}' determined to be in CRS '{final_overlay_crs}' (used as benchmark).")
+                            elif final_overlay_crs and feature.crs and final_overlay_crs.lower() != feature.crs.lower():
+                                logger.warning(f"Intersection: Overlay layer '{layer_name}' feature loaded in CRS '{feature.crs}', but expected/benchmark CRS is '{final_overlay_crs}'. This could lead to issues.")
 
 
-                logger.info(f"Intersection: Loaded {len(overlay_features)} features from overlay layer '{layer_name}'. Features should now be in CRS: {final_overlay_crs or 'Varies/Unknown'}.")
+                    logger.info(f"Intersection: Loaded {len(overlay_features)} features from overlay layer '{layer_name}'. Features should now be in CRS: {final_overlay_crs or 'Varies/Unknown'}.")
 
-            except Exception as e:
-                logger.error(f"Intersection: Failed to load overlay layer '{layer_name}': {e}", exc_info=True)
-                continue
-        return overlay_features, final_overlay_crs
+                except Exception as e:
+                    logger.error(f"Intersection: Failed to load overlay layer '{layer_name}': {e}", exc_info=True)
+                    continue
+            return overlay_features, final_overlay_crs
 
     async def execute(
         self,
@@ -678,10 +677,10 @@ class IntersectionOperation(IOperation[IntersectionOperationConfig]):
             current_feat_attributes = feat.attributes if feat.attributes is not None else {}
             s_geom = convert_dxfplanner_geometry_to_shapely(feat.geometry)
             if s_geom and not s_geom.is_empty:
-                 s_geom = make_valid_geometry(s_geom)
-                 if s_geom and not s_geom.is_empty:
-                     valid_overlay_s_geoms.append(s_geom)
-                 else:
+                s_geom = make_valid_geometry(s_geom)
+                if s_geom and not s_geom.is_empty:
+                    valid_overlay_s_geoms.append(s_geom)
+                else:
                     logger.debug(f"Overlay feature geometry became invalid/empty after make_valid. Attributes: {current_feat_attributes}")
             else:
                 logger.debug(f"Overlay feature geometry is None or empty before make_valid. Attributes: {current_feat_attributes}")
@@ -691,8 +690,8 @@ class IntersectionOperation(IOperation[IntersectionOperationConfig]):
             return
 
         try:
-             combined_overlay_geom = unary_union(valid_overlay_s_geoms)
-             combined_overlay_geom = make_valid_geometry(combined_overlay_geom)
+            combined_overlay_geom = unary_union(valid_overlay_s_geoms)
+            combined_overlay_geom = make_valid_geometry(combined_overlay_geom)
         except Exception as e_union:
             logger.error(f"Intersection: Failed to compute union of overlay geometries: {e_union}", exc_info=True)
             return
@@ -790,11 +789,11 @@ class IntersectionOperation(IOperation[IntersectionOperationConfig]):
                             final_attributes[new_key_overlay] = v_overlay
                         elif conflict_res == IntersectionAttributeConflictResolution.PREFER_INPUT:
                             pass
-                    else:
-                        final_attributes[new_key_overlay] = v_overlay
+            else:
+                final_attributes[new_key_overlay] = v_overlay
 
             geoms_to_yield = []
-            converted_geometry_parts = convert_shapely_to_dxfplanner_geometry(intersected_s_geom)
+            converted_geometry_parts = convert_shapely_to_anygeogeometry(intersected_s_geom)
             if isinstance(converted_geometry_parts, list):
                 for part_geom in converted_geometry_parts:
                     if part_geom:
@@ -898,7 +897,7 @@ class MergeOperation(IOperation[MergeOperationConfig]):
         # However, for Merge, we typically expect a single (potentially multipart) geometry.
         # If unary_union results in a GeometryCollection of mixed types, convert_shapely... will handle it by yielding parts.
 
-        converted_geoms = convert_shapely_to_dxfplanner_geometry(merged_s_geom)
+        converted_geoms = convert_shapely_to_anygeogeometry(merged_s_geom)
         if isinstance(converted_geoms, list):
             geoms_to_yield.extend(converted_geoms)
         elif converted_geoms: # Single geometry
@@ -913,7 +912,7 @@ class MergeOperation(IOperation[MergeOperationConfig]):
         for new_dxf_geom in geoms_to_yield:
             if new_dxf_geom: # Ensure the geometry itself isn't None
                 yield GeoFeature(geometry=new_dxf_geom, attributes=result_attributes, crs=first_feature_crs)
-                yielded_count += 1
+            yielded_count += 1
 
         logger.info(f"{log_prefix}: Completed. Yielded {yielded_count} feature(s) from merged geometry.")
 
@@ -996,7 +995,7 @@ class DissolveOperation(IOperation[DissolveOperationConfig]):
 
                 # Convert back to DxfPlanner geometry/geometries
                 # convert_shapely_to_dxfplanner_geometry can return a list (e.g. for GeometryCollection)
-                final_dxf_geoms = convert_shapely_to_dxfplanner_geometry(dissolved_s_geom)
+                final_dxf_geoms = convert_shapely_to_anygeogeometry(dissolved_s_geom)
 
                 geoms_to_yield_for_group = []
                 if isinstance(final_dxf_geoms, list):

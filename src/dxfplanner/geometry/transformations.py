@@ -9,27 +9,20 @@ from shapely.ops import transform as shapely_transform_op
 from dxfplanner.domain.models.common import Coordinate
 from dxfplanner.domain.models.geo_models import GeoFeature, PointGeo, PolylineGeo, PolygonGeo, MultiPolygonGeo, GeometryCollectionGeo, AnyGeoGeometry
 from dxfplanner.domain.models.dxf_models import AnyDxfEntity, DxfLine, DxfLWPolyline, DxfHatch, DxfHatchPath, DxfMText, DxfText, DxfInsert, DxfArc, DxfCircle # Added DxfMText, DxfLine, DxfInsert etc.
-from dxfplanner.domain.operations import OperationType, TransformGeometryOperationConfig, CreateBufferOperationConfig, CreateLabelsOperationConfig
 from dxfplanner.domain.interfaces import IGeometryTransformer, ICoordinateService
 from dxfplanner.services.style_service import StyleService, StyleObjectConfig
 from dxfplanner.config.schemas import (
     LayerConfig,
-    OperationsConfig,
     LayerDisplayPropertiesConfig,
     TextStylePropertiesConfig,
     HatchPropertiesConfig,
     TextParagraphPropertiesConfig,
     ColorModel
 )
-from dxfplanner.core.exceptions import GeometryTransformationError, ConfigurationError
+from dxfplanner.core.exceptions import GeometryTransformError, ConfigurationError
 from dxfplanner.core.logging_config import get_logger
 from dxfplanner.geometry.utils import (
     convert_shapely_to_anygeogeometry,
-    create_dxf_hatch_paths,
-    get_dominant_geometry_type,
-    is_multi_part_shapely_geometry,
-    get_feature_bounds_string,
-    calculate_mtext_width_for_content,
     convert_geo_feature_to_dxf_entities
 )
 

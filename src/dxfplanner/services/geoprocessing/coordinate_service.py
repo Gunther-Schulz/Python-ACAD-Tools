@@ -1,9 +1,10 @@
-from typing import List, Optional, Any, Dict, Tuple
+import logging
+from typing import List, Optional, Any, Dict, Tuple, Union
 
 from dxfplanner.domain.models.common import Coordinate
 from dxfplanner.domain.interfaces import ICoordinateService
 from dxfplanner.core.exceptions import CoordinateTransformError
-from dxfplanner.config.schemas import CoordinateServiceConfig # For config injection
+from dxfplanner.config.common_schemas import CoordinateServiceConfig # Changed import path
 
 # Actual projection library
 from pyproj import CRS, Transformer

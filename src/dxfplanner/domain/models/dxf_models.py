@@ -1,7 +1,9 @@
 from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any, Union, Literal, Tuple
+from enum import IntEnum
 
-from .common import Coordinate, Color, BoundingBox # Assuming common.py is in the same directory
+from .common import Coordinate, BoundingBox # Removed Color from here
+from dxfplanner.config.common_schemas import ColorModel # Added ColorModel import
 
 # --- DXF Specific Primitives & Attributes ---
 
@@ -43,6 +45,11 @@ class DxfEntity(BaseModel):
         # model_config = {"extra": "allow"} # For Pydantic v2 if used
 
 # --- Specific DXF Entity Types ---
+
+class DxfPoint(DxfEntity): # Added DxfPoint
+    """Represents a DXF POINT entity."""
+    position: Coordinate
+    # thickness: Optional[float] = None
 
 class DxfLine(DxfEntity):
     """Represents a DXF LINE entity."""
@@ -100,6 +107,18 @@ class DxfMText(DxfEntity):
     bg_fill_color: Optional[ColorModel] = None # Color for background fill (if not mask)
     width_factor: Optional[float] = Field(default=None, gt=0.0, description="Text width factor (applied by style or MText properties).") # Added gt constraint
     oblique_angle: Optional[float] = Field(default=None, ge=0.0, lt=360.0, description="Text oblique angle in degrees (applied by style or MText properties).") # Added ge/lt constraints
+
+# Placed before DxfHatchPath which might use it implicitly or for clarity
+class HatchEdgeType(IntEnum):
+    """Defines the type of an edge in a hatch boundary path, mapping to DXF flags."""
+    # Values correspond to ezdxf.const or common DXF path type flags
+    # e.g., 2 for polyline edges.
+    POLYLINE = 2
+    # Other types like ARC, ELLIPSE, SPLINE can be added if needed.
+    # LINE_EDGE = 2 (often same as polyline for a 2-vertex path)
+    # CIRCULAR_ARC_EDGE = 4
+    # ELLIPTIC_ARC_EDGE = 8
+    # SPLINE_EDGE = 16
 
 class DxfHatchPath(BaseModel):
     """Represents a single boundary path for a HATCH entity."""
