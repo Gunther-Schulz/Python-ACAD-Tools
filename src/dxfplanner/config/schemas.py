@@ -6,7 +6,7 @@ from enum import Enum
 # Import from new specific schema modules
 from .common_schemas import (
     ColorModel, FontProperties, ExtentsModel, CRSModel, LoggingConfig,
-    CoordinateServiceConfig, ServicesSettings,
+    CoordinateServiceConfig, ServicesSettings, ValidationServiceConfig,
     MappingRuleConfig, AttributeMappingServiceConfig # Added new configs
 )
 from .reader_schemas import DataSourceType, BaseReaderConfig, ShapefileSourceConfig, GeoJSONSourceConfig, CsvWktReaderConfig, AnySourceConfig
@@ -109,7 +109,7 @@ class ProjectConfig(BaseSettings):
 # Re-export all imported names for easier access from other modules if they were importing from schemas.py
 # This makes the refactoring less breaking for modules that did `from .config.schemas import X`
 __all__ = [
-    "ColorModel", "FontProperties", "ExtentsModel", "CRSModel", "LoggingConfig", "CoordinateServiceConfig", "ServicesSettings",
+    "ColorModel", "FontProperties", "ExtentsModel", "CRSModel", "LoggingConfig", "CoordinateServiceConfig", "ServicesSettings", "ValidationServiceConfig",
     "MappingRuleConfig", "AttributeMappingServiceConfig", # Added new configs
     "DataSourceType", "BaseReaderConfig", "ShapefileSourceConfig", "GeoJSONSourceConfig", "CsvWktReaderConfig", "AnySourceConfig",
     "GeometryOperationType", "BaseOperationConfig",

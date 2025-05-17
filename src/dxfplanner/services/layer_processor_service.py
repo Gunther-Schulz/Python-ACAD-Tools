@@ -2,13 +2,13 @@
 Service responsible for processing a single layer configuration.
 This includes reading data, applying operations, and transforming to DXF entities.
 """
-from typing import AsyncIterator, Optional, Dict, Any, TYPE_CHECKING
+from typing import AsyncIterator, Optional, Dict, Any, TYPE_CHECKING, Callable
 from logging import Logger
 
-from dxfplanner.config.schemas import ProjectConfig, LayerConfig, AnySourceConfig, ShapefileSourceConfig, GeometryOperationType, LabelPlacementOperationConfig # Corrected import
+from dxfplanner.config.schemas import ProjectConfig, LayerConfig, AnySourceConfig, ShapefileSourceConfig, GeometryOperationType, DataSourceType # ADDED DataSourceType
 from dxfplanner.domain.models.geo_models import GeoFeature
 from dxfplanner.domain.models.dxf_models import AnyDxfEntity
-from dxfplanner.domain.interfaces import IGeoDataReader, IOperation, IGeometryTransformer, ILayerProcessorService # Added ILayerProcessorService
+from dxfplanner.domain.interfaces import IGeoDataReader, IOperation, IGeometryTransformer, ILayerProcessorService
 from dxfplanner.core.exceptions import GeoDataReadError, ConfigurationError
 
 if TYPE_CHECKING:
@@ -19,13 +19,15 @@ class LayerProcessorService(ILayerProcessorService):
 
     def __init__(
         self,
-        project_config: ProjectConfig, # Changed app_config to project_config
-        di_container: 'DIContainer', # Used string literal
+        project_config: ProjectConfig,
+        reader_resolver_provider: Callable[[DataSourceType], IGeoDataReader], # CHANGED
+        operation_resolver_provider: Callable[[GeometryOperationType], IOperation], # CHANGED
         geometry_transformer: IGeometryTransformer,
         logger: Logger
     ):
-        self.project_config = project_config # Changed app_config to project_config
-        self.di_container = di_container
+        self.project_config = project_config
+        self.reader_resolver = reader_resolver_provider # CHANGED
+        self.operation_resolver = operation_resolver_provider # CHANGED
         self.geometry_transformer = geometry_transformer
         self.logger = logger
         self.logger.info("LayerProcessorService initialized.")
@@ -57,31 +59,15 @@ class LayerProcessorService(ILayerProcessorService):
         current_stream_key: Optional[str] = None
         initial_features_loaded = False
 
-        # --- Prepare effective operations list including implicit labeling ---
-        effective_operations = list(layer_config.operations) # Make a mutable copy
-        if layer_config.labeling:
-            self.logger.info(f"Layer '{layer_config.name}' has direct labeling configuration. Adding implicit LabelPlacementOperation.")
-            # Check if a LabelPlacementOperation is already the last one by user.
-            # If so, we might honor it or warn. For now, let's assume implicit labeling adds its own if config is present.
-            # A more sophisticated check could see if the user's last LP op matches the direct labeling intent.
-
-            implicit_label_op_output_name = f"{layer_config.name}{layer_config.label_output_layer_suffix}"
-            self.logger.debug(f"Implicit LabelPlacementOperation for layer '{layer_config.name}' will output to stream key '{implicit_label_op_output_name}'.")
-
-            label_op_config = LabelPlacementOperationConfig(
-                type=GeometryOperationType.LABEL_PLACEMENT, # Corrected usage
-                label_settings=layer_config.labeling,
-                # source_layer is None, so it will use the output of the previous operation or initial source
-                output_label_layer_name=implicit_label_op_output_name
-            )
-            effective_operations.append(label_op_config)
-            self.logger.debug(f"Appended implicit LabelPlacementOperation to effective operations for layer '{layer_config.name}'. New count: {len(effective_operations)}.")
+        # Operations list from config
+        effective_operations = list(layer_config.operations) if layer_config.operations is not None else [] # Ensure it's a list, handles None
 
         if layer_config.source:
             source_conf: AnySourceConfig = layer_config.source
-            self.logger.debug(f"Layer '{layer_config.name}' has source type: {source_conf.type} from path '{getattr(source_conf, "path", "N/A")}'") # getattr for safety
+            self.logger.debug(f"Layer '{layer_config.name}' has source type: {source_conf.type} from path '{getattr(source_conf, "path", "N/A")}'")
+            self.logger.debug(f"DEBUG: About to call reader_resolver with source_conf.type: {source_conf.type} (type: {type(source_conf.type)})")
             try:
-                reader = self.di_container.resolve_reader(source_conf.type)
+                reader = self.reader_resolver(source_conf.type)
             except ConfigurationError as e:
                 self.logger.error(f"Could not resolve reader for source type '{source_conf.type}' in layer '{layer_config.name}': {e}. Aborting layer processing.")
                 return
@@ -149,7 +135,7 @@ class LayerProcessorService(ILayerProcessorService):
 
                 # 2. Execute the operation
                 try:
-                    operation_instance = self.di_container.resolve_operation(op_config.type)
+                    operation_instance = self.operation_resolver(op_config.type)
                     self.logger.debug(f"  Executing operation '{op_config.type}' (source: '{resolved_source_key_for_log}').")
                     output_features_stream = operation_instance.execute(input_stream_for_this_op, op_config)
                 except ConfigurationError as e_op_resolve:

@@ -567,7 +567,7 @@ class IntersectionOperation(IOperation[IntersectionOperationConfig]):
             di_container: The application's dependency injection container to resolve readers/layers.
         """
         self._container = di_container
-        self._project_config: ProjectConfig = self._container.project_config()
+        self._project_config: ProjectConfig = self._container.project_config_instance_provider()
 
     async def _load_overlay_features(self, layer_names: List[str], primary_op_crs: Optional[str]) -> Tuple[List[GeoFeature], Optional[str]]:
         """
@@ -598,7 +598,7 @@ class IntersectionOperation(IOperation[IntersectionOperationConfig]):
                     continue
 
                 try:
-                    reader = self._container.resolve_reader(layer_config.source.type)
+                    reader = self._container.reader_resolver(layer_config.source.type)
                     reader_kwargs = layer_config.source.model_dump(exclude={'type', 'crs', 'path'})
 
                     current_source_crs = layer_config.source.crs

@@ -1,14 +1,36 @@
 import sys
 import loguru
+import logging
+import inspect
 
 from dxfplanner.config.schemas import LoggingConfig # Will be created later
 
 DEFAULT_LOGGING_CONFIG = LoggingConfig()
 
+# ADDED InterceptHandler class (based on Loguru documentation)
+class InterceptHandler(logging.Handler):
+    def emit(self, record: logging.LogRecord) -> None:
+        # Get corresponding Loguru level if it exists.
+        level: str | int
+        try:
+            level = loguru.logger.level(record.levelname).name
+        except ValueError:
+            level = record.levelno
+
+        # Find caller from where originated the logged message.
+        frame, depth = inspect.currentframe(), 0
+        while frame and (depth == 0 or frame.f_code.co_filename == logging.__file__):
+            frame = frame.f_back
+            depth += 1
+
+        loguru.logger.opt(depth=depth, exception=record.exc_info).log(level, record.getMessage())
+
+
 def setup_logging(config: LoggingConfig = DEFAULT_LOGGING_CONFIG) -> None:
     """
     Configures the loguru logger based on the provided configuration.
     Removes default handlers and adds a new one with specified format and level.
+    Also intercepts standard Python logging and routes it through Loguru.
     """
     loguru.logger.remove()
     loguru.logger.add(
@@ -20,7 +42,14 @@ def setup_logging(config: LoggingConfig = DEFAULT_LOGGING_CONFIG) -> None:
         backtrace=True, # Better tracebacks
         diagnose=True   # Extended diagnosis for errors
     )
-    loguru.logger.info(f"Logger configured with level: {config.level}, format: '{config.format}'")
+    loguru.logger.info(f"Loguru logger configured with level: {config.level}, format: '{config.format}'")
+
+    # --- Intercept standard logging ---
+    # Configure the root logger of the standard logging module to use InterceptHandler.
+    # level=logging.NOTSET (or 0) ensures all messages are passed to the handler.
+    # force=True (Python 3.8+) removes any existing handlers from the root logger.
+    logging.basicConfig(handlers=[InterceptHandler()], level=logging.NOTSET, force=True)
+    loguru.logger.info("Standard logging has been intercepted and routed to Loguru.")
 
 def get_logger(name: str = "dxfplanner") -> 'loguru.Logger':
     """

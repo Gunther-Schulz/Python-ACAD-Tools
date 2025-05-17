@@ -6,6 +6,7 @@ from ezdxf.lldxf.const import DXFError
 from dxfplanner.domain.models.geo_models import GeoFeature, AnyGeoGeometry
 from dxfplanner.domain.interfaces import IValidationService, AnyStrPath
 from dxfplanner.config.schemas import ProjectConfig
+from dxfplanner.config.common_schemas import ValidationServiceConfig
 from dxfplanner.core.logging_config import get_logger
 from dxfplanner.geometry.utils import convert_dxfplanner_geometry_to_shapely
 from dxfplanner.core.exceptions import ConfigurationError
@@ -19,6 +20,10 @@ logger = get_logger(__name__)
 
 class ValidationService(IValidationService):
     """Service for validating data (e.g., input geodata, configuration)."""
+
+    def __init__(self, config: ValidationServiceConfig):
+        self.config = config
+        logger.info(f"ValidationService initialized. Validation enabled: {self.config.enabled}")
 
     async def validate_geofeature(self, feature: GeoFeature, rules: Optional[Dict[str, Any]] = None) -> List[str]:
         """

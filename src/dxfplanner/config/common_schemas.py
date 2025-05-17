@@ -59,7 +59,7 @@ class CRSModel(BaseModel):
 
 class LoggingConfig(BaseModel):
     level: str = Field(default="INFO", description="Logging level (e.g., DEBUG, INFO, WARNING, ERROR, CRITICAL).")
-    format: str = Field(default="%(asctime)s - %(name)s - %(levelname)s - %(message)s", description="Logging format string.")
+    format: str = Field(default="<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>", description="Logging format string.")
     # file_path: Optional[str] = Field(default=None, description="Optional file path to log to. If None, logs to console.")
 
 class MappingRuleConfig(BaseModel):
@@ -78,8 +78,14 @@ class CoordinateServiceConfig(BaseModel):
     default_source_crs: Optional[str] = Field(default=None, description="Default source CRS string if not found in data (e.g., 'EPSG:4326').")
     default_target_crs: Optional[str] = Field(default=None, description="Default target CRS string for outputs (e.g., 'EPSG:25832').")
 
+class ValidationServiceConfig(BaseModel):
+    """Configuration for the ValidationService."""
+    # Add specific validation config fields here if needed in the future
+    enabled: bool = Field(default=True, description="Whether validation is enabled.")
+    # Example: strict_mode: bool = Field(default=False)
+
 class ServicesSettings(BaseModel):
     coordinate: Optional[CoordinateServiceConfig] = Field(default_factory=CoordinateServiceConfig)
+    attribute_mapping: Optional[AttributeMappingServiceConfig] = Field(default_factory=AttributeMappingServiceConfig)
+    validation: Optional[ValidationServiceConfig] = Field(default_factory=ValidationServiceConfig)
     # Future: add other service-specific configs here
-    # attribute_mapping: Optional[AttributeMappingServiceConfig] = Field(default_factory=AttributeMappingServiceConfig)
-    # validation: Optional[ValidationServiceConfig] = Field(default_factory=ValidationServiceConfig)

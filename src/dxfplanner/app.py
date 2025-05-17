@@ -1,6 +1,7 @@
 import asyncio
 from pathlib import Path
 from typing import Optional
+from dependency_injector import providers
 
 # Configuration loading
 from dxfplanner.config.loaders import load_config_from_yaml, find_config_file, DEFAULT_CONFIG_FILES
@@ -8,7 +9,7 @@ from dxfplanner.config.schemas import ProjectConfig
 from dxfplanner.core.exceptions import ConfigurationError, DXFPlannerBaseError
 
 # Dependency Injection container
-from dxfplanner.core.di import Container
+from dxfplanner.core.di import DIContainer
 
 # Core services (though typically accessed via container)
 from dxfplanner.core import logging_config # For initial setup
@@ -18,7 +19,7 @@ from dxfplanner.domain.interfaces import IDxfGenerationService # For type hint
 import yaml
 
 # Global container instance
-container = Container()
+container = DIContainer()
 
 def create_dummy_config_if_not_exists(config_path: Path = Path("config.yml")) -> None:
     """Creates a minimal config.yml if it doesn't exist, for basic runs."""
@@ -79,7 +80,7 @@ def initialize_app() -> ProjectConfig:
                 logging_config.setup_logging(default_log_cfg_dict)
 
             container.logger().warning("Logging initialized with default Pydantic model settings due to config load failure.")
-            container.config.from_pydantic(project_config)
+            container.config.from_pydantic(project_config, exclude_unset=False)
             container.wire(
                 modules=[
                     __name__,
@@ -112,7 +113,11 @@ def initialize_app() -> ProjectConfig:
     else:
         init_logger.info(f"Logging initialized with default settings (level INFO).")
 
-    container.config.from_pydantic(project_config)
+    container.config.from_pydantic(project_config, exclude_unset=False)
+
+    # Directly provide the loaded ProjectConfig instance
+    # This ensures services get the exact instance, not one re-validated from a potentially incomplete dict.
+    container.project_config_instance_provider.override(providers.Object(project_config))
 
     container.wire(
         modules=[

@@ -8,6 +8,7 @@ import typer
 from dxfplanner.app import initialize_app, main_runner, container
 from dxfplanner.core.exceptions import DXFPlannerBaseError
 from dxfplanner.config.schemas import ProjectConfig
+from dxfplanner.core import logging_config
 
 # Create a Typer application instance
 cli_app = typer.Typer(
@@ -15,6 +16,13 @@ cli_app = typer.Typer(
     help="DXFPlanner: A tool for autogenerating DXF files from geodata.",
     add_completion=False # Can be enabled if shell completion is desired later
 )
+
+# --- Early Logging Setup --- ADDED BLOCK
+# Call setup_logging with its internal defaults immediately.
+# This ensures Loguru and its stdlib interceptor are active ASAP.
+# The call from initialize_app() later will refine it with loaded config.
+logging_config.setup_logging()
+# --- End Early Logging Setup ---
 
 @cli_app.callback()
 def common_options(
@@ -111,7 +119,7 @@ def generate_dxf(
         typer.secho(f"Error during DXF generation: {e}", fg=typer.colors.RED, err=True)
         raise typer.Exit(code=1)
     except Exception as e:
-        logger.error(f"Unexpected critical error during DXF generation: {e}", exc_info=True)
+        logger.exception(f"An unexpected critical error occurred during DXF generation. Error: {e}")
         typer.secho(f"DEBUG: ENTERING except Exception as e block in CLI for: {e}", fg=typer.colors.YELLOW, err=True) # DEBUG
         typer.secho(f"An unexpected critical error occurred: {e}", fg=typer.colors.RED, err=True)
         typer.secho("DEBUG: ABOUT TO RAISE typer.Exit(code=1) FROM CLI", fg=typer.colors.YELLOW, err=True) # DEBUG
