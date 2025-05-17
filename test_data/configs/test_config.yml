@@ -6,19 +6,6 @@ services:
     default_source_crs: "EPSG:32632"
     default_target_crs: "EPSG:25832"
 
-# REMOVED IO block for reader configurations
-# io:
-#   readers:
-#     shapefile:
-#       type: "SHAPEFILE"
-#       path: "dummy_placeholder.shp"
-#     geojson:
-#       type: "GEOJSON"
-#       path: "dummy_placeholder.geojson"
-#     csv_wkt:
-#       type: "CSV_WKT"
-#       path: "dummy_placeholder.csv"
-
 logging:
   level: "DEBUG"
   format: "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>"
@@ -31,14 +18,6 @@ dxf_writer:
     color: { aci: 7 }
     linetype: "Continuous"
     lineweight: 0
-  text_style_presets: # Corresponds to DxfWriterConfig.text_style_presets
-    - name: "StandardLegend"
-      font_name: "Arial" # Field in TextStyleConfig (dxf_writer_schemas.py)
-      height: 2.5
-      # color: { name: "white" } # Color is not a direct field of TextStyleConfig
-    - name: "SmallLegend"
-      font_name: "Arial" # Field in TextStyleConfig
-      height: 1.5
 
 # style_presets at top level (formerly io.writers.dxf.style_object_presets)
 style_presets:
@@ -56,6 +35,14 @@ style_presets:
       color: { aci: 1 }
       linetype: "DASHED"
       lineweight: 35
+  StandardLegend: # New entry, moved and restructured
+    text_props:
+      font_name_or_style_preset: "Arial"
+      height: 2.5
+  SmallLegend: # New entry, moved and restructured
+    text_props:
+      font_name_or_style_preset: "Arial"
+      height: 1.5
 
 layers:
   - name: "SamplePolygons"
@@ -94,15 +81,18 @@ legends:
       title_spacing_to_content: 5
     groups:
       - name: "Feature Types"
+        group_text_style_preset_name: "StandardLegend"
         items:
           - label: "Buffered Polygons" # Corrected 'name' to 'label' (field in LegendItemConfig)
             style_preset_source: "DefaultPolygonStyle" # Corrected field name (LegendItemConfig)
             item_specific_style: # Field in LegendItemConfig, maps to LegendItemStyleConfig
               swatch_type: "area" # Corrected field name (LegendItemStyleConfig)
+            item_text_style_preset_name: "StandardLegend"
             # apply_hatch_for_area: true # REMOVED: Not a field in LegendItemConfig or its sub-models. Hatching comes from StyleObjectConfig via style_preset_source.
           - label: "Polygon Labels" # Corrected 'name' to 'label'
             item_specific_style:
               swatch_type: "empty" # Corrected field name
+            item_text_style_preset_name: "StandardLegend"
 
 pipelines:
   - name: "DefaultPipeline"

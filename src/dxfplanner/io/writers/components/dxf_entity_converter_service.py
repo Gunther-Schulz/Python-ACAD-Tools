@@ -1,9 +1,11 @@
-from typing import Any, Optional, cast, Tuple, Union
+from typing import Any, Optional, cast, Tuple, Union, Dict
 import math
 import ezdxf
 from ezdxf.document import Drawing
 from ezdxf.layouts import Modelspace
 from ezdxf.entities import DXFGraphic, Point, Line, LWPolyline, Hatch, MText, Text, Insert, Circle, Arc, Polyline as EzdxfPolyline
+import yaml
+from pathlib import Path
 
 from dxfplanner.config.schemas import ProjectConfig, DxfWriterConfig, LayerStyleConfig, HatchPropertiesConfig, TextStyleConfig
 from dxfplanner.domain.models.dxf_models import (
@@ -15,16 +17,37 @@ from dxfplanner.domain.interfaces import IDxfEntityConverterService
 from dxfplanner.core.logging_config import get_logger
 from dxfplanner.geometry.color_utils import get_color_code, convert_transparency
 from dxfplanner.geometry.layer_utils import sanitize_layer_name
+from dxfplanner.config.common_schemas import ColorModel
 
 logger = get_logger(__name__)
 
 class DxfEntityConverterService(IDxfEntityConverterService):
     """Service for converting DxfEntity domain models to ezdxf DXFGraphic entities."""
 
-    def __init__(self, project_config: ProjectConfig): # Changed from app_config: AppConfig
-        self.project_config = project_config # Changed from self.app_config
-        self.writer_config: DxfWriterConfig = project_config.dxf_writer # Updated path
-        self.logger = logger # Using module logger
+    def __init__(self, project_config: ProjectConfig):
+        self.project_config = project_config
+        self.writer_config: DxfWriterConfig = project_config.dxf_writer
+        self.logger = logger
+        self.name_to_aci_map: Dict[str, int] = {}
+
+        # Load ACI color map from YAML
+        # TODO: Make this path configurable, potentially via DxfWriterConfig.aci_colors_map_path
+        aci_colors_yaml_path = Path("/home/g/dev/Gunther-Schulz/Python-ACAD-Tools/aci_colors.yaml")
+        if aci_colors_yaml_path.exists():
+            try:
+                with open(aci_colors_yaml_path, 'r') as f:
+                    aci_data = yaml.safe_load(f)
+                    if isinstance(aci_data, list):
+                        for item in aci_data:
+                            if isinstance(item, dict) and 'name' in item and 'aciCode' in item:
+                                self.name_to_aci_map[str(item['name']).lower()] = int(item['aciCode'])
+                        self.logger.info(f"Successfully loaded {len(self.name_to_aci_map)} ACI color name mappings from {aci_colors_yaml_path}")
+                    else:
+                        self.logger.warning(f"ACI colors YAML file {aci_colors_yaml_path} is not a list of mappings. ACI name resolution will be limited.")
+            except Exception as e:
+                self.logger.error(f"Failed to load or parse ACI colors YAML from {aci_colors_yaml_path}: {e}", exc_info=True)
+        else:
+            self.logger.warning(f"ACI colors YAML file not found at {aci_colors_yaml_path}. ACI color name resolution will be limited.")
 
     async def add_dxf_entity_to_modelspace(
         self,
@@ -86,35 +109,40 @@ class DxfEntityConverterService(IDxfEntityConverterService):
         layer_style_cfg: LayerStyleConfig
     ) -> None:
         """Applies common DXF attributes (layer, color, linetype, transparency) to an ezdxf entity."""
-        s_layer_name = sanitize_layer_name(dxf_model.layer or self.writer_config.default_layer or "0") # Assuming default_layer is in DxfWriterConfig
+        s_layer_name = sanitize_layer_name(dxf_model.layer or self.writer_config.default_layer_properties.name if self.writer_config.default_layer_properties else "0")
         entity.dxf.layer = s_layer_name
 
         # Color
-        effective_color_val: Optional[Union[int, Tuple[int, int, int], str, ColorModel]] = None # Define type for clarity
-        if dxf_model.true_color is not None:
+        effective_color_val: Optional[Union[int, Tuple[int, int, int], str, ColorModel]] = None
+        if dxf_model.true_color is not None: # This would be an RGB tuple
             effective_color_val = dxf_model.true_color
-        elif dxf_model.color_256 is not None:
+        elif dxf_model.color_256 is not None: # This would be an ACI int
             effective_color_val = dxf_model.color_256
         elif layer_style_cfg and layer_style_cfg.layer_props and layer_style_cfg.layer_props.color is not None:
-            # layer_style_cfg.layer_props.color IS A ColorModel instance
-            # The effective_color_val should be the ColorModel itself if found this way.
-            # The get_color_code function will handle extracting aci/rgb from it.
-            effective_color_val = layer_style_cfg.layer_props.color
-            # Removed .is_aci_color() and .rgb access here, get_color_code will handle ColorModel
-        # Removed old line: effective_color_val = dxf_model.color if dxf_model.color is not None else (layer_style_cfg.layer_props.color if layer_style_cfg.layer_props else None)
+            effective_color_val = layer_style_cfg.layer_props.color # This IS a ColorModel instance
 
         if effective_color_val is not None:
-            # Assuming aci_colors_map_path will be added to ProjectConfig or DxfWriterConfig
-            # For now, let's try project_config.dxf_writer (DxfWriterConfig) first as it's more specific to DXF writing
-            aci_map_path = None
-            if hasattr(self.writer_config, 'aci_colors_map_path'):
-                 aci_map_path = self.writer_config.aci_colors_map_path
-            elif hasattr(self.project_config, 'aci_colors_map_path'): # Fallback to root project_config
-                 aci_map_path = self.project_config.aci_colors_map_path
+            actual_color_to_pass: Optional[Union[int, Tuple[int, int, int], str]] = None
+            if isinstance(effective_color_val, ColorModel):
+                if effective_color_val.rgb is not None:
+                    actual_color_to_pass = effective_color_val.rgb
+                elif effective_color_val.aci is not None:
+                    actual_color_to_pass = effective_color_val.aci
             else:
-                self.logger.warning("aci_colors_map_path not found in DxfWriterConfig or ProjectConfig. Color mapping might be affected.")
+                actual_color_to_pass = effective_color_val
 
-            entity.dxf.color = get_color_code(effective_color_val, aci_map_path)
+            if actual_color_to_pass is not None:
+                resolved_color_value = get_color_code(actual_color_to_pass, self.name_to_aci_map)
+
+                if isinstance(resolved_color_value, tuple):
+                    entity.rgb = resolved_color_value
+                    self.logger.debug(f"Applied True Color (RGB): {resolved_color_value} to entity {entity.dxf.handle}")
+                elif isinstance(resolved_color_value, int):
+                    entity.dxf.color = resolved_color_value
+                    self.logger.debug(f"Applied ACI Color: {resolved_color_value} to entity {entity.dxf.handle}")
+                else:
+                    self.logger.warning(f"Unexpected color value type from get_color_code: {resolved_color_value}. Color may not be set correctly.")
+                    entity.dxf.color = 256
 
         # Linetype
         effective_linetype = dxf_model.linetype or (layer_style_cfg.layer_props.linetype if layer_style_cfg.layer_props else None)
@@ -123,7 +151,6 @@ class DxfEntityConverterService(IDxfEntityConverterService):
         else:
             # Explicitly set to BYLAYER if not specified, to inherit from layer
             entity.dxf.linetype = "BYLAYER"
-
 
         # Lineweight
         # Note: DxfEntity model does not currently have lineweight.
@@ -134,7 +161,6 @@ class DxfEntityConverterService(IDxfEntityConverterService):
         else:
             # Explicitly set to BYLAYER if not specified
             entity.dxf.lineweight = ezdxf.const.LINEWEIGHT_BYLAYER
-
 
         # Transparency
         # DxfEntity model also does not have transparency. Use LayerStyleConfig.
@@ -285,12 +311,27 @@ class DxfEntityConverterService(IDxfEntityConverterService):
             pattern_name, scale, angle_deg = self._get_hatch_pattern_details(model_hatch_props)
 
             if pattern_name.upper() == "SOLID":
-                # Solid fill color is set by the entity's color (via _apply_common_dxf_attributes)
-                # The `set_solid_fill` method also accepts a color, but it's fine to let the common attributes handle it.
-                # Default hatch_style (island detection) is already set.
                 hatch.set_solid_fill()
                 self.logger.debug(f"Hatch set to SOLID fill. Island style: {hatch.dxf.hatch_style}")
-            else:
+
+                # Revised color setting for SOLID fills:
+                if model_hatch_props and model_hatch_props.color:
+                    color_model_val = model_hatch_props.color
+
+                    if color_model_val.rgb is not None:
+                        hatch.rgb = color_model_val.rgb # ezdxf handles setting .dxf.color to BYLAYER and .dxf.true_color
+                        self.logger.debug(f"Solid Hatch: Set fill color using RGB: {color_model_val.rgb}")
+                    elif color_model_val.aci is not None:
+                        # Fallback to ACI if RGB is not present in the ColorModel
+                        # get_color_code will return the ACI value directly if it's an int.
+                        resolved_color_aci = get_color_code(color_model_val.aci, {}) # Placeholder
+                        hatch.dxf.color = resolved_color_aci
+                        self.logger.debug(f"Solid Hatch: Set fill color using ACI: {color_model_val.aci} -> resolved to {resolved_color_aci}")
+                    # else: ColorModel is valid but has neither RGB nor ACI - should not happen due to Pydantic validation.
+                    # In this case, color would be inherited from layer via _apply_common_dxf_attributes if not set here.
+                # If model_hatch_props.color is None, color will be handled by _apply_common_dxf_attributes
+
+            else: # Pattern fill
                 # Pattern fill
                 hatch.set_pattern_fill(
                     name=pattern_name,
