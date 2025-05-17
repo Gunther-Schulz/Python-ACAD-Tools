@@ -4,6 +4,7 @@ from enum import IntEnum
 
 from .common import Coordinate, BoundingBox # Removed Color from here
 from dxfplanner.config.common_schemas import ColorModel # Added ColorModel import
+from dxfplanner.config.schemas import HatchPropertiesConfig # ADDED THIS IMPORT
 
 # --- DXF Specific Primitives & Attributes ---
 
@@ -134,13 +135,14 @@ class DxfHatchPath(BaseModel):
 class DxfHatch(DxfEntity):
     """Represents a DXF HATCH entity."""
     paths: List[DxfHatchPath] = Field(default_factory=list)
+    hatch_props: Optional[HatchPropertiesConfig] = None # ADDED THIS FIELD
 
-    # Hatch pattern properties
-    pattern_name: str = "SOLID"
-    pattern_scale: float = Field(default=1.0, gt=0.0)
-    pattern_angle: float = Field(default=0.0, ge=0.0, lt=360.0)  # Degrees
-    # Hatch style (Normal, Outer, Ignore - from ezdxf.const)
-    hatch_style_enum: Literal['NORMAL', 'OUTERMOST', 'IGNORE'] = 'NORMAL'
+    # REMOVED Individual Hatch pattern properties:
+    # pattern_name: str = "SOLID"
+    # pattern_scale: float = Field(default=1.0, gt=0.0)
+    # pattern_angle: float = Field(default=0.0, ge=0.0, lt=360.0)  # Degrees
+    # hatch_style_enum: Literal['NORMAL', 'OUTERMOST', 'IGNORE'] = 'NORMAL'
+
     # Associativity
     associative: bool = True
     # Color and transparency are inherited from DxfEntity and will be populated there.

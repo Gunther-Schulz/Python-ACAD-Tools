@@ -29,6 +29,9 @@ class LegendItemConfig(BaseModel):
     item_specific_style: Optional[LegendItemStyleConfig] = Field(default_factory=LegendItemStyleConfig, description="Specific styling for the legend item's swatch.")
     item_text_style_preset_name: Optional[str] = Field(default=None, description="Preset name for the item's text style.")
     item_text_style_inline: Optional[TextStylePropertiesConfig] = Field(default=None, description="Inline text style for the item.")
+    block_symbol_name: Optional[str] = Field(default=None, description="Name of a block definition to use as the swatch symbol.")
+    block_symbol_scale: Optional[float] = Field(default=None, gt=0.0, description="Scale for the block symbol swatch.")
+    block_symbol_rotation: Optional[float] = Field(default=None, ge=0.0, lt=360.0, description="Rotation in degrees for the block symbol swatch.")
     # value: Optional[str] = Field(default=None, description="Optional value associated with the item (e.g., for classified legends).") # Future use
 
 class LegendGroupConfig(BaseModel):

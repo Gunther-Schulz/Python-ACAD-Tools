@@ -27,26 +27,26 @@ logging_config.setup_logging()
 @cli_app.callback()
 def common_options(
     ctx: typer.Context,
-    # Example of a common option, like a config file path, if needed globally
-    # config_file: Optional[Path] = typer.Option(
-    #     None, "--config", "-c", help="Path to the configuration YAML file.",
-    #     exists=True, file_okay=True, dir_okay=False, readable=True, resolve_path=True
-    # )
+    config_file: Optional[Path] = typer.Option(
+        None, "--config", "-c", help="Path to the Project configuration YAML file.",
+        exists=True, file_okay=True, dir_okay=False, readable=True, resolve_path=True,
+        show_default=False
+    )
 ):
     """
     DXFPlanner CLI - Manages application setup.
     Initialization (config loading, logging, DI) happens before commands run.
     """
     try:
-        # project_config = initialize_app() # OLD: initialize_app returns container now
-        initialized_container = initialize_app() # NEW: store the container
-        # ctx.obj = project_config # OLD: this would set ctx.obj to the container
-        ctx.obj = initialized_container.project_config_instance_provider() # NEW: get Pydantic model from provider
+        config_path_str: Optional[str] = str(config_file) if config_file else None
+        initialized_container = initialize_app(config_path=config_path_str)
+        ctx.obj = initialized_container.project_config_instance_provider()
 
-        # logger = container.logger() # This was commented out, container is global or from initialized_container
-        # Get logger from the initialized container if needed here for debug
-        # cli_logger = initialized_container.logger()
-        # cli_logger.debug(f"CLI common_options: ProjectConfig instance set in ctx.obj")
+        cli_logger = initialized_container.logger()
+        if config_path_str:
+            cli_logger.debug(f"CLI common_options: Attempting to load configuration from: {config_path_str}")
+        else:
+            cli_logger.debug("CLI common_options: No --config specified, initialize_app will use default search.")
 
     except DXFPlannerBaseError as e:
         # Use Typer's way to print errors and exit for CLI consistency

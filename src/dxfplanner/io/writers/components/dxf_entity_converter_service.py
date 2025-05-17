@@ -1,4 +1,4 @@
-from typing import Any, Optional, cast, Tuple
+from typing import Any, Optional, cast, Tuple, Union
 import math
 import ezdxf
 from ezdxf.document import Drawing
@@ -90,7 +90,19 @@ class DxfEntityConverterService(IDxfEntityConverterService):
         entity.dxf.layer = s_layer_name
 
         # Color
-        effective_color_val = dxf_model.color if dxf_model.color is not None else (layer_style_cfg.layer_props.color if layer_style_cfg.layer_props else None)
+        effective_color_val: Optional[Union[int, Tuple[int, int, int], str, ColorModel]] = None # Define type for clarity
+        if dxf_model.true_color is not None:
+            effective_color_val = dxf_model.true_color
+        elif dxf_model.color_256 is not None:
+            effective_color_val = dxf_model.color_256
+        elif layer_style_cfg and layer_style_cfg.layer_props and layer_style_cfg.layer_props.color is not None:
+            # layer_style_cfg.layer_props.color IS A ColorModel instance
+            # The effective_color_val should be the ColorModel itself if found this way.
+            # The get_color_code function will handle extracting aci/rgb from it.
+            effective_color_val = layer_style_cfg.layer_props.color
+            # Removed .is_aci_color() and .rgb access here, get_color_code will handle ColorModel
+        # Removed old line: effective_color_val = dxf_model.color if dxf_model.color is not None else (layer_style_cfg.layer_props.color if layer_style_cfg.layer_props else None)
+
         if effective_color_val is not None:
             # Assuming aci_colors_map_path will be added to ProjectConfig or DxfWriterConfig
             # For now, let's try project_config.dxf_writer (DxfWriterConfig) first as it's more specific to DXF writing
@@ -236,31 +248,19 @@ class DxfEntityConverterService(IDxfEntityConverterService):
             self.logger.error(f"Error adding DxfLWPolyline: {e}", exc_info=True)
             return None
 
-    def _determine_fill_type(self, hatch_pattern_config: Optional[HatchPropertiesConfig]) -> int:
-        """Determines the HATCH fill type (solid or pattern) based on config."""
-        # SOLID = 1, PATTERN = 0, from ezdxf.const.HATCH_TYPE_SOLID, HATCH_TYPE_PATTERN_DEFINED
-        if hatch_pattern_config and hatch_pattern_config.style:
-            style_upper = hatch_pattern_config.style.upper()
-            if style_upper == "SOLID":
-                return ezdxf.const.HATCH_STYLE_SOLID  # Solid fill
-            elif style_upper in ["PATTERN_FILL", "NORMAL"]: # Normal is often pattern
-                return ezdxf.const.HATCH_STYLE_PATTERN_FILL # Pattern fill
-            elif style_upper == "OUTERMOST":
-                 return ezdxf.const.HATCH_STYLE_OUTERMOST # Styles the outermost area only
-        return ezdxf.const.HATCH_STYLE_NORMAL # Default or if only pattern name is given
-
     def _get_hatch_pattern_details(self, hatch_pattern_config: Optional[HatchPropertiesConfig]) -> tuple[str, float, float]:
         """Extracts hatch pattern name, scale, and angle from config, with defaults."""
-        pattern_name = "SOLID" # Default if no config
+        pattern_name = "SOLID" # Default if no config or if style is SOLID and name is missing
         pattern_scale = 1.0
         pattern_angle = 0.0
 
         if hatch_pattern_config:
-            if hatch_pattern_config.name: # Explicit pattern name
+            # Determine pattern_name first based on style and name
+            if hatch_pattern_config.style and hatch_pattern_config.style.upper() == "SOLID":
+                pattern_name = "SOLID"
+            elif hatch_pattern_config.name: # Explicit pattern name takes precedence if style is not SOLID
                 pattern_name = hatch_pattern_config.name
-            elif hatch_pattern_config.style and hatch_pattern_config.style.upper() == "SOLID":
-                 pattern_name = "SOLID" # Redundant but clear
-            # else keep SOLID if no name and no explicit SOLID style
+            # If style is not SOLID and name is not given, it defaults to "SOLID", which means it will be treated as solid fill later.
 
             if hatch_pattern_config.scale is not None:
                 pattern_scale = hatch_pattern_config.scale
@@ -272,20 +272,33 @@ class DxfEntityConverterService(IDxfEntityConverterService):
         """Adds a DXF Hatch entity to the modelspace."""
         try:
             hatch = msp.add_hatch()
+            # Common attributes (color, layer, etc.) are applied later by _apply_common_dxf_attributes
 
-            hatch_pattern_cfg = layer_style_cfg.hatch_pattern
-            fill_type = self._determine_fill_type(hatch_pattern_cfg)
-            hatch.dxf.hatch_style = fill_type # ezdxf.const.HATCH_STYLE_SOLID, PATTERN_FILL, OUTERMOST
+            # Set island detection style (defaulting to normal)
+            # TODO: Consider making hatch_style configurable if needed via DxfHatch or HatchPropertiesConfig
+            hatch.dxf.hatch_style = ezdxf.const.HATCH_STYLE_NORMAL
 
-            if fill_type != ezdxf.const.HATCH_STYLE_SOLID: # For pattern fill
-                pattern_name, scale, angle_deg = self._get_hatch_pattern_details(hatch_pattern_cfg)
+            model_hatch_props = model.hatch_props
+
+            # Determine if solid fill or pattern fill based on resolved pattern_name
+            # _get_hatch_pattern_details will return "SOLID" if it's meant to be a solid fill
+            pattern_name, scale, angle_deg = self._get_hatch_pattern_details(model_hatch_props)
+
+            if pattern_name.upper() == "SOLID":
+                # Solid fill color is set by the entity's color (via _apply_common_dxf_attributes)
+                # The `set_solid_fill` method also accepts a color, but it's fine to let the common attributes handle it.
+                # Default hatch_style (island detection) is already set.
+                hatch.set_solid_fill()
+                self.logger.debug(f"Hatch set to SOLID fill. Island style: {hatch.dxf.hatch_style}")
+            else:
+                # Pattern fill
                 hatch.set_pattern_fill(
                     name=pattern_name,
                     scale=scale,
                     angle=angle_deg, # degrees
-                    # color is usually set by common attributes or layer
+                    # color for pattern lines is typically the entity's color, set by _apply_common_dxf_attributes
                 )
-            # else: solid fill color is just entity color
+                self.logger.debug(f"Hatch set to PATTERN fill: {pattern_name}, scale: {scale}, angle: {angle_deg}. Island style: {hatch.dxf.hatch_style}")
 
             # Add boundary paths
             # DxfHatch model.paths: List[DxfHatchPath]
@@ -366,10 +379,10 @@ class DxfEntityConverterService(IDxfEntityConverterService):
         """Adds a DXF MText entity to the modelspace."""
         try:
             attribs = {
-                "char_height": model.height,
+                "char_height": model.char_height,
                 "attachment_point": self._map_mtext_attachment_point(model.attachment_point),
                 "style": model.style or self.writer_config.default_text_style or "Standard",
-                "rotation": self._calculate_text_rotation_rad(model.rotation_degrees),
+                "rotation": self._calculate_text_rotation_rad(model.rotation),
             }
             if model.width is not None: # MTEXT specific width for word wrapping
                 attribs["width"] = model.width
@@ -381,7 +394,7 @@ class DxfEntityConverterService(IDxfEntityConverterService):
             if model.insertion_point.z is not None:
                 ins_pt += (model.insertion_point.z,)
 
-            mtext_entity = msp.add_mtext(text=model.text_string, dxfattribs=attribs)
+            mtext_entity = msp.add_mtext(text=model.text_content, dxfattribs=attribs)
             mtext_entity.dxf.insert = ins_pt # Set insertion point after creation for MTEXT
 
             return mtext_entity
