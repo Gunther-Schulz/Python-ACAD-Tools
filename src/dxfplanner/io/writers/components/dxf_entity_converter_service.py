@@ -258,9 +258,9 @@ class DxfEntityConverterService(IDxfEntityConverterService):
             # Determine pattern_name first based on style and name
             if hatch_pattern_config.style and hatch_pattern_config.style.upper() == "SOLID":
                 pattern_name = "SOLID"
-            elif hatch_pattern_config.name: # Explicit pattern name takes precedence if style is not SOLID
-                pattern_name = hatch_pattern_config.name
-            # If style is not SOLID and name is not given, it defaults to "SOLID", which means it will be treated as solid fill later.
+            elif hatch_pattern_config.pattern_name: # Corrected: Use pattern_name
+                pattern_name = hatch_pattern_config.pattern_name # Corrected: Use pattern_name
+            # If style is not SOLID and pattern_name is not given, it defaults to "SOLID", which means it will be treated as solid fill later.
 
             if hatch_pattern_config.scale is not None:
                 pattern_scale = hatch_pattern_config.scale
@@ -301,60 +301,27 @@ class DxfEntityConverterService(IDxfEntityConverterService):
                 self.logger.debug(f"Hatch set to PATTERN fill: {pattern_name}, scale: {scale}, angle: {angle_deg}. Island style: {hatch.dxf.hatch_style}")
 
             # Add boundary paths
-            # DxfHatch model.paths: List[DxfHatchPath]
-            # DxfHatchPath.edges: List[Union[Tuple[Coordinate, Coordinate], Tuple[Coordinate, Coordinate, float]]] (Line or Arc segment)
-            # DxfHatchPath.is_polyline: bool (Adjusted based on DxfHatchPath structure)
-            # DxfHatchPath.is_closed: bool (for polyline paths)
-            # DxfHatchPath.edge_type: HatchEdgeType (POLYLINE, LINE, ARC, CIRCLE, ELLIPSE, SPLINE) - from ezdxf.const (Adjusted based on DxfHatchPath structure)
+            # DxfHatchPath model is assumed to always represent a polyline path.
+            for path_model in model.paths: # path_model is an instance of DxfHatchPath
+                path_points = []
 
-            for path_model in model.paths:
-                path_points = [] # For polyline paths
-                is_polyline_path = path_model.is_polyline_path # From DxfHatch model
+                # Consistently use path_model.vertices as per DxfHatchPath definition
+                if not path_model.vertices:
+                    self.logger.warning(f"Hatch path model for hatch on layer {model.layer or 'unknown'} has no vertices. Skipping this path.")
+                    continue
 
-                if is_polyline_path:
-                    # Assuming path_model.polyline_vertices = List[Coordinate]
-                    if not path_model.polyline_vertices: continue
-                    path_points = [(v.x, v.y) for v in path_model.polyline_vertices]
-                    # TODO: Handle bulge values if DxfHatch polyline paths support them
-                    hatch.paths.add_polyline_path(
-                        path_vertices=path_points,
-                        is_closed=path_model.is_closed, # Should be true for hatches
-                        flags=ezdxf.const.HATCH_PATH_FLAG_EXTERNAL if path_model.is_external else ezdxf.const.HATCH_PATH_FLAG_DEFAULT
-                        # flags also: HATCH_PATH_FLAG_OUTERMOST, HATCH_PATH_FLAG_DERIVED
-                    )
-                else: # Edge path
-                    edge_path_data = [] # List of (edge_type, data) tuples
-                    for edge in path_model.edges:
-                        # edge: DxfHatchEdge(edge_type: HatchEdgeType, data: List[Any])
-                        # Example DxfHatchEdge.data:
-                        # LINE: [start_coord, end_coord]
-                        # ARC: [center_coord, radius, start_angle_deg, end_angle_deg, is_ccw_bool]
-                        # CIRCLE: [center_coord, radius]
-                        # ELLIPSE: [center_coord, major_axis_end_coord, ratio_minor_to_major]
+                path_points = [(v.x, v.y) for v in path_model.vertices]
 
-                        if edge.edge_type == HatchEdgeType.LINE: # ezdxf.const.HATCH_EDGE_LINE
-                            start, end = cast(Tuple[Coordinate, Coordinate], edge.data)
-                            edge_path_data.append( ("line", ((start.x, start.y), (end.x, end.y))) )
-                        elif edge.edge_type == HatchEdgeType.ARC: # ezdxf.const.HATCH_EDGE_CIRCULAR_ARC
-                            center, radius, start_angle, end_angle, ccw = cast(Tuple[Coordinate, float, float, float, bool], edge.data)
-                            edge_path_data.append( ("arc", ((center.x, center.y), radius, start_angle, end_angle, ccw)) )
-                        elif edge.edge_type == HatchEdgeType.CIRCLE: # Added CIRCLE
-                            # Assuming DxfHatchEdge.data for CIRCLE is [Coordinate, radius]
-                            center, radius = cast(Tuple[Coordinate, float], edge.data)
-                            # ezdxf hatch edge path for circle is defined by arc from 0 to 360 degrees
-                            edge_path_data.append( ("arc", ((center.x, center.y), radius, 0, 360, True)) ) # Arc from 0 to 360 is a circle
-                        # TODO: Add ELLIPSE, SPLINE edge types
-                        else:
-                            self.logger.warning(f"Unsupported hatch edge type in DxfHatch model: {edge.edge_type}")
-                    if edge_path_data:
-                        hatch.paths.add_edge_path(
-                            flags=ezdxf.const.HATCH_PATH_FLAG_EXTERNAL if path_model.is_external else ezdxf.const.HATCH_PATH_FLAG_DEFAULT
-                        )
-                        path_proxy = hatch.paths[-1] # Get the just added edge path
-                        for edge_type_str, data in edge_path_data:
-                            if edge_type_str == "line": path_proxy.add_line(data[0], data[1])
-                            elif edge_type_str == "arc": path_proxy.add_arc(data[0], data[1], data[2], data[3], data[4])
-                            # ...
+                # TODO: Handle bulge values if DxfHatch polyline paths support them in the DxfHatchPath model in the future.
+                # For now, assuming simple vertices.
+                hatch.paths.add_polyline_path(
+                    path_vertices=path_points,
+                    is_closed=path_model.is_closed,
+                    flags=ezdxf.const.BOUNDARY_PATH_EXTERNAL # Corrected constant
+                    # flags also: HATCH_PATH_FLAG_OUTERMOST, HATCH_PATH_FLAG_DEFAULT (Note: these might also be BOUNDARY_PATH_xxx)
+                )
+            # The 'else' branch for edge paths has been removed as DxfHatchPath model currently only supports polyline vertices.
+
             return hatch
         except Exception as e:
             self.logger.error(f"Error adding DxfHatch: {e}", exc_info=True)

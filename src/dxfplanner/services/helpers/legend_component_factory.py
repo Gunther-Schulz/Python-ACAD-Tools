@@ -13,7 +13,8 @@ from ...domain.interfaces import IStyleService, IDxfEntityConverterService
 from ...domain.models.dxf_models import DxfMText, AnyDxfEntity, DxfLWPolyline, DxfHatch, DxfInsert, DxfHatchPath, DxfLine
 from ...domain.models.common import Coordinate
 from ...core.exceptions import ConfigurationError # If style preset errors are handled here
-import ezdxf # Add this for ezdxf.bbox
+import ezdxf # Keep this if ezdxf.const or other top-level things are used.
+from ezdxf import bbox # ADD THIS IMPORT specifically for bbox
 from ...config.common_schemas import ColorModel # ADD THIS IMPORT
 
 # For ezdxf type hints if necessary, though actual ezdxf ops should be in converter
@@ -103,8 +104,8 @@ class LegendComponentFactory:
             actual_height = 0.0
             if created_entity:
                 try:
-                    bbox = ezdxf.bbox.extents([created_entity], fast=True)
-                    if bbox.has_data: actual_height = bbox.size.y
+                    extents_data = bbox.extents([created_entity], fast=True)
+                    if extents_data.has_data: actual_height = extents_data.size.y
                 except Exception as e_bbox: self.logger.warning(f"Could not calculate bbox for legend title MTEXT: {e_bbox}")
             current_y -= actual_height + layout.title_spacing_to_content
 
@@ -151,8 +152,8 @@ class LegendComponentFactory:
             actual_height_sub = 0.0
             if created_subtitle_entity:
                 try:
-                    bbox_sub = ezdxf.bbox.extents([created_subtitle_entity], fast=True)
-                    if bbox_sub.has_data: actual_height_sub = bbox_sub.size.y
+                    extents_data_sub = bbox.extents([created_subtitle_entity], fast=True)
+                    if extents_data_sub.has_data: actual_height_sub = extents_data_sub.size.y
                 except Exception as e_bbox_sub: self.logger.warning(f"Could not calculate bbox for legend subtitle MTEXT: {e_bbox_sub}")
             current_y -= actual_height_sub + layout.subtitle_spacing_after_title
         return current_y
@@ -222,8 +223,8 @@ class LegendComponentFactory:
         actual_height_grp_title = 0.0
         if created_grp_title_entity:
             try:
-                bbox_grp_title = ezdxf.bbox.extents([created_grp_title_entity], fast=True)
-                if bbox_grp_title.has_data: actual_height_grp_title = bbox_grp_title.size.y
+                extents_data_grp_title = bbox.extents([created_grp_title_entity], fast=True)
+                if extents_data_grp_title.has_data: actual_height_grp_title = extents_data_grp_title.size.y
             except Exception as e_bbox_grp_title: self.logger.warning(f"Could not calculate bbox for group title MTEXT: {e_bbox_grp_title}")
 
         current_y -= actual_height_grp_title + layout.title_spacing_to_content
@@ -366,7 +367,7 @@ class LegendComponentFactory:
         item_swatch_bbox_max_y = y1_swatch_top
 
         item_center_y = (item_swatch_bbox_min_y + item_swatch_bbox_max_y) / 2
-        text_x = x2 + layout.text_offset_from_swatch # x2 is swatch right edge
+        text_x = x2 + layout.swatch_to_text_spacing # Corrected attribute
         text_entities = []
 
         item_text_style_props = self.style_service.get_text_style_properties(
@@ -393,7 +394,7 @@ class LegendComponentFactory:
             char_height=item_text_style_props.height or 1.0,
             rotation=item_text_style_props.rotation_degrees or 0.0,
             attachment_point=item_text_style_props.attachment_point.upper() if item_text_style_props.attachment_point else 'MIDDLE_LEFT',
-            width=layout.max_text_width - layout.swatch_width - layout.text_offset_from_swatch,
+            width=layout.max_text_width - layout.swatch_width - layout.swatch_to_text_spacing, # Corrected attribute
             line_spacing_factor=item_text_style_props.paragraph_props.line_spacing_factor if item_text_style_props.paragraph_props else None,
             xdata_app_id=app_id if app_id else None,
             xdata_tags=[(1000, "legend_item"), (1000, f"{legend_tag_prefix}_text_name_{item_tag_suffix}")] if app_id else None
