@@ -1,69 +1,117 @@
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, TYPE_CHECKING
+from pathlib import Path
+import ezdxf
+from ezdxf.lldxf.const import DXFError
 
-from dxfplanner.domain.models.geo_models import GeoFeature
-from dxfplanner.domain.interfaces import IValidationService
-# from dxfplanner.config.schemas import ValidationServiceConfig # For config injection
-# from loguru import logger
+from dxfplanner.domain.models.geo_models import GeoFeature, AnyGeoGeometry
+from dxfplanner.domain.interfaces import IValidationService, AnyStrPath
+from dxfplanner.config.schemas import ProjectConfig
+from dxfplanner.core.logging_config import get_logger
+from dxfplanner.geometry.utils import convert_dxfplanner_geometry_to_shapely
+from dxfplanner.core.exceptions import ConfigurationError
+
+# Conditional import for shapely to avoid hard dependency if not used elsewhere,
+# but for geometry validation, it's a strong candidate for direct import.
+if TYPE_CHECKING:
+    from shapely.geometry.base import BaseGeometry
+
+logger = get_logger(__name__)
 
 class ValidationService(IValidationService):
     """Service for validating data (e.g., input geodata, configuration)."""
 
-    # def __init__(self, config: ValidationServiceConfig):
-    #     self.config = config
-    #     # logger.info("ValidationService initialized.")
-
     async def validate_geofeature(self, feature: GeoFeature, rules: Optional[Dict[str, Any]] = None) -> List[str]:
         """
         Validates a single GeoFeature. Returns a list of validation error messages (empty if valid).
-        Implementation will depend on configured rules (e.g., from self.config or passed-in rules).
+        Currently performs basic geometry checks (validity, emptiness) using Shapely.
+        The 'rules' parameter is not yet used.
         """
-        errors: List[str] = [] # Placeholder for error messages
+        errors: List[str] = []
+        feature_id = feature.id or '(unknown_id)'
 
-        # Conceptual validation logic:
-        # Check for valid geometry based on self.config or default rules:
-        # if self.config.check_for_valid_geometries:
-        #     if feature.geometry is None:
-        #         errors.append(f"Feature {feature.id or '(no id)'} has no geometry.")
-        #     else:
-        #         # Example: Check if PolylineGeo has enough points
-        #         if isinstance(feature.geometry, PolylineGeo):
-        #             min_points = self.config.min_points_for_polyline
-        #             if len(feature.geometry.coordinates) < min_points:
-        #                 errors.append(
-        #                     f"Polyline in feature {feature.id or '(no id)'} has less than {min_points} points."
-        #                 )
-        #         # Add more geometry-specific validation (e.g., polygon closure, self-intersection if library supports)
+        if rules:
+            logger.info(f"'rules' parameter provided to validate_geofeature for feature {feature_id}, but rule-based validation is not yet implemented beyond basic geometry checks.")
 
-        # Check for required attributes based on self.config or rules argument:
-        # effective_rules = rules or self.config.get("feature_attribute_rules", {})
-        # if "required_attributes" in effective_rules:
-        #     for req_attr in effective_rules["required_attributes"]:
-        #         if req_attr not in feature.properties:
-        #             errors.append(f"Feature {feature.id or '(no id)'} is missing required attribute: {req_attr}.")
+        if feature.geometry is None:
+            errors.append(f"Feature '{feature_id}' has no geometry.")
+            return errors
 
-        # Check attribute value constraints (e.g., type, range, enum)
-        # if "attribute_constraints" in effective_rules:
-        #     for attr, constraint in effective_rules["attribute_constraints"].items():
-        #         if attr in feature.properties:
-        #             # Example: if constraint["type"] == "number" and not isinstance(feature.properties[attr], (int, float)):
-        #             #     errors.append(f"Attribute {attr} in feature {feature.id} is not a number.")
-        #             pass # Add more constraint checks
+        try:
+            shapely_geom: Optional[BaseGeometry] = convert_dxfplanner_geometry_to_shapely(feature.geometry)
+        except Exception as e:
+            errors.append(f"Feature '{feature_id}': Error converting geometry to Shapely: {e}")
+            return errors
 
-        # if errors:
-        #     logger.debug(f"Validation errors for feature {feature.id or '(no id)'}: {errors}")
-        # return errors
+        if shapely_geom is None:
+            errors.append(f"Feature '{feature_id}': Geometry conversion to Shapely resulted in None.")
+            return errors
 
-        raise NotImplementedError(
-            "ValidationService.validate_geofeature is not yet implemented."
+        if not shapely_geom.is_valid:
+            errors.append(f"Feature '{feature_id}': Geometry is not valid according to Shapely.")
+
+        if shapely_geom.is_empty:
+            errors.append(f"Feature '{feature_id}': Geometry is empty according to Shapely.")
+
+        if errors:
+            logger.debug(f"Validation errors for feature '{feature_id}': {errors}")
+        return errors
+
+    async def validate_config(self, config: ProjectConfig) -> None:
+        """
+        Validates the application configuration.
+        Pydantic performs schema validation and type checking during ProjectConfig model instantiation.
+        If ProjectConfig is successfully created and passed to this method,
+        it has already passed Pydantic's validation.
+
+        This method serves as a hook for future, more complex cross-configuration
+        validation rules or business logic checks that go beyond Pydantic's capabilities.
+        """
+        # At this point, 'config' is a valid ProjectConfig instance according to Pydantic.
+        logger.info(
+            f"ProjectConfig validation: Pydantic schema and type validation already passed for "
+            f"Project Name: '{config.project_name}'. No further custom cross-validation rules are currently implemented in this service."
         )
 
-    # Example for config validation (if this service handles it):
-    # async def validate_config(self, config_data: Dict[str, Any], schema: Any) -> List[str]:
-    #     """Validates configuration data against a schema (e.g., a Pydantic model)."""
-    #     # try:
-    #     #     schema.model_validate(config_data) # Pydantic v2
-    #     #     # schema(**config_data) # Pydantic v1
-    #     #     return []
-    #     # except ValidationError as e: # Pydantic ValidationError
-    #     #     return [str(err) for err in e.errors()]
-    #     raise NotImplementedError("ValidationService.validate_config is not yet implemented.")
+        # Example placeholder for future custom cross-validation:
+        # if config.some_setting > 10 and config.another_setting < 5:
+        #     raise ConfigurationError("Custom validation: some_setting and another_setting conflict.")
+        pass
+
+    async def validate_output_dxf(self, dxf_file_path: AnyStrPath) -> List[str]:
+        """
+        Validates an output DXF file by attempting to read it with ezdxf and running an audit.
+        Returns a list of error messages if validation fails.
+        """
+        errors: List[str] = []
+        file_path_str = str(dxf_file_path) # Ensure it's a string for ezdxf
+        logger.info(f"Validating output DXF file: {file_path_str}")
+        try:
+            doc = ezdxf.readfile(file_path_str)
+            logger.info(f"DXF file {file_path_str} loaded successfully by ezdxf (Header version: {doc.dxfversion}). Basic parsing validation passed.")
+
+            # Perform a deeper audit of the DXF document structure
+            logger.info(f"Performing ezdxf audit for {file_path_str}...")
+            auditor = doc.audit()
+            if auditor.has_errors:
+                for error_msg_obj in auditor.errors: # auditor.errors contains error objects/messages
+                    # Error objects might not be simple strings. Convert to string safely.
+                    err_str = str(error_msg_obj) if error_msg_obj is not None else "Unknown audit error object"
+                    errors.append(f"DXF Audit Error: {err_str}")
+                logger.warning(f"DXF file {file_path_str} has {len(auditor.errors)} audit errors.")
+            else:
+                logger.info(f"DXF file {file_path_str} passed ezdxf audit with no errors.")
+
+        except FileNotFoundError:
+            error_msg = f"DXF validation failed: File not found at '{file_path_str}'."
+            logger.error(error_msg)
+            errors.append(error_msg)
+        except DXFError as e: # Catch specific ezdxf errors (DXFStructureError, DXFVersionError, etc.)
+            error_msg = f"DXF validation failed for '{file_path_str}': Invalid DXF structure or version - {e}."
+            logger.error(error_msg, exc_info=True)
+            errors.append(error_msg)
+        except Exception as e: # Catch any other unexpected errors during read
+            error_msg = f"DXF validation failed for '{file_path_str}': Unexpected error during read - {e}."
+            logger.error(error_msg, exc_info=True)
+            errors.append(error_msg)
+
+        return errors

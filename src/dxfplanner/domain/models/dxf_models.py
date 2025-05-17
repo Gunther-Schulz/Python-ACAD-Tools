@@ -27,6 +27,10 @@ class DxfEntity(BaseModel):
     visible: Optional[bool] = Field(default=None, description="Visibility flag.")
     attributes: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Original feature attributes, for reference or conditional styling.")
 
+    # XDATA fields
+    xdata_app_id: Optional[str] = Field(default=None, description="Application ID for XDATA (e.g., 'DXFPLANNER').")
+    xdata_tags: Optional[List[Tuple[int, Any]]] = Field(default=None, description="List of (group_code, value) tuples for XDATA.")
+
     # handle: Optional[str] = None # Entity handle (usually assigned by DXF library)
     # owner: Optional[str] = None # Handle of the owner (e.g., block definition, paperspace)
     # true_color: Optional[Tuple[int, int, int]] = None # (R, G, B) for true color support
@@ -155,6 +159,7 @@ class DxfInsert(DxfEntity):
 
 # Union type for any DXF entity model
 AnyDxfEntity = Union[
+    DxfPoint,
     DxfLine, DxfLWPolyline, DxfPolyline, DxfText, DxfMText,
     DxfHatch,
     DxfArc, DxfCircle, DxfInsert # , DxfAttribute

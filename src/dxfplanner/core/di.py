@@ -12,7 +12,8 @@ from dxfplanner.domain.interfaces import (
     IGeoDataReader, IDxfWriter, IGeometryTransformer,
     ICoordinateService, IAttributeMapper, IValidationService,
     IDxfGenerationService, IOperation, ILegendGenerator, IStyleService, # Added IStyleService
-    ILabelPlacementService # Added
+    ILabelPlacementService, IPipelineService, ILayerProcessorService,
+    IDxfResourceSetupService, IDxfEntityConverterService, IDxfViewportSetupService
 )
 
 # Service Implementations
@@ -41,8 +42,14 @@ from dxfplanner.geometry.operations import (
     MergeOperation,
     DissolveOperation,
     FilterByAttributeOperation,
-    LabelPlacementOperation
+    LabelPlacementOperation,
+    FilterByExtentOperation
 )
+
+# ADD NEW DXF WRITER COMPONENT SERVICE IMPLEMENTATIONS
+from dxfplanner.io.writers.components.dxf_resource_setup_service import DxfResourceSetupService
+from dxfplanner.io.writers.components.dxf_entity_converter_service import DxfEntityConverterService
+from dxfplanner.io.writers.components.dxf_viewport_setup_service import DxfViewportSetupService
 
 
 class Container(containers.DeclarativeContainer):
@@ -96,6 +103,8 @@ class Container(containers.DeclarativeContainer):
     geometry_transformer_service = providers.Factory(
         GeometryTransformerImpl,
         attribute_mapper=attribute_mapper_service,
+        style_service=style_service,  # ADDED style_service injection
+        provides=IGeometryTransformer  # ADDED provides interface
     )
 
     # --- I/O Readers ---
@@ -124,66 +133,145 @@ class Container(containers.DeclarativeContainer):
         }
     )
 
-    # --- Operation Implementations ---
-    buffer_operation = providers.Factory(BufferOperation) # Operations are parameterless for now
-    simplify_operation = providers.Factory(SimplifyOperation)
-    field_mapping_operation = providers.Factory(FieldMappingOperation)
-    reproject_operation = providers.Factory(ReprojectOperation)
-    clean_geometry_operation = providers.Factory(CleanGeometryOperation)
-    explode_multipart_operation = providers.Factory(ExplodeMultipartOperation)
-    intersection_operation = providers.Factory( # Added IntersectionOperation
+    # --- Operation Providers ---
+    # Most simple operations just take a logger now, or nothing.
+    # Complex ones (Intersection, LabelPlacement) have specific dependencies.
+
+    buffer_operation_provider = providers.Factory(
+        BufferOperation,
+        logger_param=logger # Added logger
+    )
+    simplify_operation_provider = providers.Factory(
+        SimplifyOperation
+        # logger_param=logger # Assuming no __init__ or logger if not specified
+    )
+    field_mapping_operation_provider = providers.Factory(
+        FieldMappingOperation
+        # logger_param=logger
+    )
+    reproject_operation_provider = providers.Factory(
+        ReprojectOperation,
+        logger_param=logger # Added logger
+    )
+    clean_geometry_operation_provider = providers.Factory(
+        CleanGeometryOperation,
+        logger_param=logger # Added logger
+    )
+    explode_multipart_operation_provider = providers.Factory(
+        ExplodeMultipartOperation,
+        logger_param=logger # Added logger
+    )
+    # IntersectionOperation already has its specific provider below
+    merge_operation_provider = providers.Factory(
+        MergeOperation,
+        logger_param=logger # Added logger
+    )
+    dissolve_operation_provider = providers.Factory(
+        DissolveOperation,
+        logger_param=logger # Added logger
+    )
+    filter_by_attribute_operation_provider = providers.Factory(
+        FilterByAttributeOperation,
+        logger_param=logger # Added logger
+    )
+    # LabelPlacementOperation already has its specific provider below
+    filter_by_extent_operation_provider = providers.Factory( # Added
+        FilterByExtentOperation,
+        logger_param=logger # Added logger
+    )
+
+    intersection_operation_provider = providers.Factory(
         IntersectionOperation,
-        di_container=providers.Self # IntersectionOperation requires the container
-    )
-    # ADDED PLACEHOLDER FACTORIES:
-    merge_operation = providers.Factory(MergeOperation)
-    dissolve_operation = providers.Factory(DissolveOperation)
-    filter_by_attribute_operation = providers.Factory(FilterByAttributeOperation)
-    # ADDED LABEL PLACEMENT FACTORY:
-
-    # ... other operations
-    _operations_map_provider = providers.Dict(
-        {
-            OperationType.BUFFER: buffer_operation,
-            OperationType.SIMPLIFY: simplify_operation,
-            OperationType.FIELD_MAPPER: field_mapping_operation,
-            OperationType.REPROJECT: reproject_operation,
-            OperationType.CLEAN_GEOMETRY: clean_geometry_operation,
-            OperationType.EXPLODE_MULTIPART: explode_multipart_operation,
-            OperationType.INTERSECTION: intersection_operation, # Added
-            # ADDED PLACEHOLDER REGISTRATIONS:
-            OperationType.MERGE: merge_operation,
-            OperationType.DISSOLVE: dissolve_operation,
-            OperationType.FILTER_BY_ATTRIBUTE: filter_by_attribute_operation,
-            # ADDED LABEL PLACEMENT REGISTRATION:
-            OperationType.LABEL_PLACEMENT: providers.Factory(
-                LabelPlacementOperation,
-                label_placement_service=label_placement_service,
-                style_service=style_service
-            ),
-        }
+        di_container=providers.Self, # Correctly injects the container itself
+        logger_param=logger
     )
 
-    # --- I/O Writers ---
+    label_placement_service_provider = providers.Singleton( # Referenced by LabelPlacementOperation
+        LabelPlacementServiceImpl, # Changed from LabelPlacementService
+        logger_param=logger
+    )
+
+    label_placement_operation_provider = providers.Factory(
+        LabelPlacementOperation,
+        label_placement_service=label_placement_service_provider,
+        style_service=style_service_provider, # Corrected: Added _provider
+        logger_param=logger
+    )
+
+    _operations_map_provider = providers.Singleton(
+        lambda buffer_op, simplify_op, field_map_op, reproj_op, clean_op, explode_op, intersect_op, merge_op, dissolve_op, filter_attr_op, label_place_op, filter_extent_op: { # Added filter_extent_op
+            OperationType.BUFFER: buffer_op,
+            OperationType.SIMPLIFY: simplify_op,
+            OperationType.FIELD_MAPPING: field_map_op,
+            OperationType.REPROJECT: reproj_op,
+            OperationType.CLEAN_GEOMETRY: clean_op,
+            OperationType.EXPLODE_MULTIPART: explode_op,
+            OperationType.INTERSECTION: intersect_op,
+            OperationType.MERGE: merge_op,
+            OperationType.DISSOLVE: dissolve_op,
+            OperationType.FILTER_BY_ATTRIBUTE: filter_attr_op,
+            OperationType.LABEL_PLACEMENT: label_place_op,
+            OperationType.FILTER_BY_EXTENT: filter_extent_op, # Added
+        },
+        buffer_operation_provider,
+        simplify_operation_provider,
+        field_mapping_operation_provider,
+        reproject_operation_provider,
+        clean_geometry_operation_provider,
+        explode_multipart_operation_provider,
+        intersection_operation_provider,
+        merge_operation_provider,
+        dissolve_operation_provider,
+        filter_by_attribute_operation_provider,
+        label_placement_operation_provider,
+        filter_by_extent_operation_provider # Added
+    )
+
+    # --- DXF Writer Component Services (New) ---
+    dxf_resource_setup_service = providers.Factory(
+        DxfResourceSetupService,
+        project_config=config, # Changed from app_config=config
+        provides=IDxfResourceSetupService
+    )
+
+    dxf_entity_converter_service = providers.Factory(
+        DxfEntityConverterService,
+        project_config=config, # Changed from app_config=config
+        provides=IDxfEntityConverterService
+    )
+
+    dxf_viewport_setup_service = providers.Factory(
+        DxfViewportSetupService,
+        project_config=config, # Changed from app_config=config
+        provides=IDxfViewportSetupService
+    )
+
+    # --- I/O Writers (Original DxfWriter provider - to be updated later if it takes these services) ---
     dxf_writer = providers.Factory(
         DxfWriter,
-        app_config=config, # DxfWriter now takes the full AppConfig
-        style_service=style_service
+        project_config=config, # Changed from app_config=config
+        style_service=style_service,
+        resource_setup_service=dxf_resource_setup_service, # ADDED
+        entity_converter_service=dxf_entity_converter_service, # ADDED
+        viewport_setup_service=dxf_viewport_setup_service, # ADDED
+        legend_generator=legend_generation_service # ADDED and uncommented
     )
 
     # --- Higher Level Services ---
-    layer_processor_service = providers.Factory(
+    layer_processor_service_provider = providers.Factory(
         LayerProcessorService,
-        app_config=config,
-        di_container=providers.Self, # Pass the container itself for resolving readers/ops
+        project_config=config, # Changed from app_config
+        di_container=providers.Self,
         geometry_transformer=geometry_transformer_service,
-        logger=logger # Added logger injection
+        logger=logger
     )
-    pipeline_service = providers.Factory(
+
+    pipeline_service_provider = providers.Factory(
         PipelineService,
-        app_config=config,
-        layer_processor=layer_processor_service,
-        dxf_writer=dxf_writer
+        project_config=config, # Changed from app_config
+        layer_processor=layer_processor_service_provider,
+        dxf_writer=dxf_writer,
+        logger=logger
     )
 
     # --- Validation Service (Optional) ---
@@ -195,18 +283,20 @@ class Container(containers.DeclarativeContainer):
     # --- Main Orchestration Service (Top Level) ---
     dxf_generation_service = providers.Factory(
         DxfGenerationService,
-        app_config=config,
-        pipeline_service=pipeline_service, # Main dependency changed
-        validation_service=validation_service # Optional
+        project_config=config, # Changed from app_config=config
+        pipeline_service=pipeline_service_provider,
+        validation_service=validation_service, # Optional
+        provides=IDxfGenerationService
     )
 
     # --- Legend Generation Service (New) ---
-    legend_generation_service = providers.Factory(
+    legend_generation_service_provider = providers.Factory(
         LegendGenerationService,
-        config=config,
+        project_config=config,
         logger=logger,
-        dxf_writer=dxf_writer,
-        style_service=style_service, # Added style_service injection
+        dxf_writer=dxf_writer_provider, # Corrected: Added _provider
+        style_service=style_service_provider, # Corrected: Added _provider
+        entity_converter_service=dxf_entity_converter_service_provider # Corrected: Added _provider
     )
 
     # --- Resolver methods (part of the container's public API if needed elsewhere) ---
@@ -219,7 +309,8 @@ class Container(containers.DeclarativeContainer):
     def resolve_operation(self, op_type: OperationType) -> IOperation:
         operation_provider = self._operations_map_provider().get(op_type)
         if not operation_provider:
-            raise ConfigurationError(f"No operation implementation configured for type: {op_type.value}")
+            self.logger().error(f"Attempted to resolve an unknown or unconfigured operation type: {op_type.value}")
+            raise ConfigurationError(f"Operation type '{op_type.value}' is not recognized or no provider is registered for it in the DI container.")
         return operation_provider()
 
 # Global container instance, to be initialized by the application entry point

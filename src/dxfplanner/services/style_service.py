@@ -4,24 +4,25 @@ Service for managing and resolving style configurations.
 from typing import Optional, TypeVar, Type, Generic, Union, List, Dict, Any
 from pydantic import BaseModel
 from logging import Logger
+import re
 
 from dxfplanner.config.schemas import (
     AppConfig,
     LayerConfig,
+    LabelPlacementOperationConfig,
+)
+from dxfplanner.config.style_schemas import (
     StyleObjectConfig,
     LayerDisplayPropertiesConfig,
     TextStylePropertiesConfig,
     TextParagraphPropertiesConfig,
     HatchPropertiesConfig,
-    LabelingConfig,
-    LabelPlacementOperationConfig,
-    StylePreset,
-    StyleDefinition,
     StyleRuleConfig
 )
 from dxfplanner.domain.interfaces import IStyleService
 from dxfplanner.domain.models.geo_models import GeoFeature
 from dxfplanner.core.exceptions import DXFPlannerBaseError
+from dxfplanner.core.logging_config import get_logger
 
 logger = get_logger(__name__)
 
@@ -44,99 +45,143 @@ class StyleService(IStyleService):
 
     def _evaluate_condition(self, condition_str: str, attributes: Dict[str, Any]) -> bool:
         """
-        Evaluates a simple condition string against feature attributes.
+        Evaluates a condition string against feature attributes.
         Supported formats:
-        - "key==value"
+        - "key==value" (or key=value)
         - "key!=value"
-        - "key_exists"
-        - "key_not_exists"
+        - "key>value"
+        - "key<value"
+        - "key>=value"
+        - "key<=value"
+        - "key CONTAINS value"
+        - "key NOT_CONTAINS value"
+        - "key IN value1,value2,value3"
+        - "key NOT_IN value1,value2,value3"
+        - "key EXISTS"
+        - "key NOT_EXISTS"
         Coerces 'value' to str, int, float, bool (True, False, true, false) for comparison.
+        Case-insensitive for EXISTS, NOT_EXISTS, CONTAINS, NOT_CONTAINS, IN, NOT_IN operators.
         """
         condition_str = condition_str.strip()
         self.logger.debug(f"Evaluating condition: '{condition_str}' against attributes: {list(attributes.keys())}")
 
-        if "==" in condition_str:
-            parts = condition_str.split("==", 1)
-            key = parts[0].strip()
-            expected_value_str = parts[1].strip()
+        # Regex to parse various conditions
+        # 1. key OPERATOR value (e.g. key==value, key > value, key CONTAINS value)
+        # Operator list: !=, ==, =, >=, <=, >, <, CONTAINS, NOT CONTAINS, IN, NOT IN (case insensitive for word operators)
+        # Key can contain word characters, '.', '-'
+        # Value can be anything until the end of the string
+        match_op_val = re.match(r"^\s*([\w.-]+)\s*(!=|==|=|>=|<=|>|<|CONTAINS|NOT CONTAINS|IN|NOT IN)\s*(.+)$", condition_str, re.IGNORECASE)
+        # 2. key EXISTS (e.g. key EXISTS)
+        match_exists = re.match(r"^\s*([\w.-]+)\s*(EXISTS|NOT EXISTS)$", condition_str, re.IGNORECASE) # Combined NOT_EXISTS for simpler regex
 
+        key: Optional[str] = None
+        operator_str: Optional[str] = None
+        value_str: Optional[str] = None
+
+        actual_value: Any = None
+
+        if match_op_val:
+            key = match_op_val.group(1).strip()
+            operator_str = match_op_val.group(2).upper().replace(" ", "_") # e.g. "NOT CONTAINS" -> "NOT_CONTAINS"
+            value_str = match_op_val.group(3).strip()
             actual_value = attributes.get(key)
-            if actual_value is None: # Key doesn't exist or its value is None
-                self.logger.debug(f"Condition '{condition_str}': Key '{key}' not in attributes or is None. Result: False.")
+        elif match_exists:
+            key = match_exists.group(1).strip()
+            operator_str = match_exists.group(2).upper().replace(" ", "_") # e.g. "NOT EXISTS" -> "NOT_EXISTS"
+            actual_value = attributes.get(key)
+        else:
+            self.logger.warning(f"Unparseable style rule condition: '{condition_str}'. Defaulting to False.")
+            return False
+
+        # Handle EXISTS / NOT_EXISTS first
+        if operator_str == "EXISTS":
+            result = key in attributes and actual_value is not None
+            self.logger.debug(f"Condition '{condition_str}': Key '{key}' exists and not None. Result: {result}.")
+            return result
+        elif operator_str == "NOT_EXISTS":
+            result = not (key in attributes and actual_value is not None)
+            self.logger.debug(f"Condition '{condition_str}': Key '{key}' not exists or is None. Result: {result}.")
+            return result
+
+        if actual_value is None: # For all other operators, if actual_value is None
+            # If operator is !=, None != "some_value" is true.
+            # If operator is NOT_CONTAINS or NOT_IN, None NOT_CONTAINS "val" or None NOT_IN "val" is true.
+            if operator_str == "!=" or operator_str == "NOT_CONTAINS" or operator_str == "NOT_IN":
+                 self.logger.debug(f"Condition '{condition_str}': Key '{key}' is None. For '{operator_str}', result is True.")
+                 return True
+            self.logger.debug(f"Condition '{condition_str}': Key '{key}' is None. Result: False for operator '{operator_str}'.")
+            return False
+
+        expected_value_typed: Any
+        if value_str is not None: # Should always be not None if not EXISTS/NOT_EXISTS
+            # Handle boolean coercion first
+            val_lower = value_str.lower()
+            if val_lower == "true": expected_value_typed = True
+            elif val_lower == "false": expected_value_typed = False
+            else:
+                # Attempt numeric coercion (float then int)
+                try:
+                    if '.' in value_str or 'e' in val_lower: # Scientific notation
+                        expected_value_typed = float(value_str)
+                    else:
+                        expected_value_typed = int(value_str)
+                except ValueError:
+                    # If not bool or numeric, it's a string. Remove quotes if present.
+                    if (value_str.startswith("'") and value_str.endswith("'")) or \
+                       (value_str.startswith('"') and value_str.endswith('"')):
+                        expected_value_typed = value_str[1:-1]
+                    else:
+                        expected_value_typed = value_str
+        else: # Should be unreachable due to logic sequence
+             self.logger.error(f"Internal error: value_str is None for operator '{operator_str}'. This should not happen.")
+             return False
+
+        # Perform comparison
+        try:
+            # Numeric comparisons
+            if operator_str in (">", "<", ">=", "<="):
+                return eval(f"float(actual_value) {operator_str} float(expected_value_typed)") # Safe eval with known structure
+
+            # Equality based comparisons (handle type nuances)
+            elif operator_str in ("==", "="):
+                if type(actual_value) == type(expected_value_typed): return actual_value == expected_value_typed
+                if isinstance(actual_value, (int, float)) and isinstance(expected_value_typed, (int, float)): return float(actual_value) == float(expected_value_typed)
+                if isinstance(expected_value_typed, bool): # if expected is bool, try to make actual bool
+                    try: actual_bool = str(actual_value).lower() == 'true' if str(actual_value).lower() in ['true', 'false'] else bool(int(actual_value))
+                    except: actual_bool = str(actual_value).lower() == 'true' # fallback
+                    return actual_bool == expected_value_typed
+                return str(actual_value).lower() == str(expected_value_typed).lower()
+
+            elif operator_str == "!=":
+                if type(actual_value) == type(expected_value_typed): return actual_value != expected_value_typed
+                if isinstance(actual_value, (int, float)) and isinstance(expected_value_typed, (int, float)): return float(actual_value) != float(expected_value_typed)
+                if isinstance(expected_value_typed, bool):
+                    try: actual_bool = str(actual_value).lower() == 'true' if str(actual_value).lower() in ['true', 'false'] else bool(int(actual_value))
+                    except: actual_bool = str(actual_value).lower() == 'true'
+                    return actual_bool != expected_value_typed
+                return str(actual_value).lower() != str(expected_value_typed).lower()
+
+            # String operations
+            elif operator_str == "CONTAINS":
+                return str(expected_value_typed).lower() in str(actual_value).lower()
+            elif operator_str == "NOT_CONTAINS":
+                return str(expected_value_typed).lower() not in str(actual_value).lower()
+
+            # List operations
+            elif operator_str == "IN":
+                value_list = [v.strip().lower() for v in str(expected_value_typed).split(',')]
+                return str(actual_value).lower() in value_list
+            elif operator_str == "NOT_IN":
+                value_list = [v.strip().lower() for v in str(expected_value_typed).split(',')]
+                return str(actual_value).lower() not in value_list
+
+            else: # Should be unreachable if regex is comprehensive
+                self.logger.warning(f"Unhandled parsed operator: '{operator_str}' in condition '{condition_str}'. Defaulting to False.")
                 return False
 
-            # Attempt type coercion for expected_value
-            try:
-                if expected_value_str.lower() == "true": expected_value_typed = True
-                elif expected_value_str.lower() == "false": expected_value_typed = False
-                elif '.' in expected_value_str: expected_value_typed = float(expected_value_str)
-                else: expected_value_typed = int(expected_value_str)
-            except ValueError:
-                expected_value_typed = expected_value_str # Keep as string if not clearly bool/numeric
-
-            # Try to coerce actual_value to the type of expected_value_typed for comparison
-            try:
-                if isinstance(expected_value_typed, bool): actual_value_coerced = bool(actual_value)
-                elif isinstance(expected_value_typed, float): actual_value_coerced = float(actual_value)
-                elif isinstance(expected_value_typed, int): actual_value_coerced = int(actual_value)
-                else: actual_value_coerced = str(actual_value)
-
-                result = actual_value_coerced == expected_value_typed
-                self.logger.debug(f"Condition '{condition_str}': Key '{key}', Actual Coerced '{actual_value_coerced}', Expected Typed '{expected_value_typed}'. Result: {result}.")
-                return result
-            except (ValueError, TypeError):
-                # Fallback to string comparison if coercion fails
-                result = str(actual_value) == expected_value_str
-                self.logger.debug(f"Condition '{condition_str}': Key '{key}', Actual Str '{str(actual_value)}', Expected Str '{expected_value_str}' (coercion failed). Result: {result}.")
-                return result
-
-        elif "!=" in condition_str:
-            parts = condition_str.split("!=", 1)
-            key = parts[0].strip()
-            expected_value_str = parts[1].strip()
-
-            actual_value = attributes.get(key)
-            if actual_value is None: # Key doesn't exist or its value is None
-                self.logger.debug(f"Condition '{condition_str}': Key '{key}' not in attributes or is None. Result for '!=': True (as it's not equal to a defined value).")
-                return True # If key is None, it's not equal to any specific expected_value_str (unless expected_value_str is also "None" which is handled by str comparison)
-
-            # Attempt type coercion (same as above)
-            try:
-                if expected_value_str.lower() == "true": expected_value_typed = True
-                elif expected_value_str.lower() == "false": expected_value_typed = False
-                elif '.' in expected_value_str: expected_value_typed = float(expected_value_str)
-                else: expected_value_typed = int(expected_value_str)
-            except ValueError:
-                expected_value_typed = expected_value_str
-
-            try:
-                if isinstance(expected_value_typed, bool): actual_value_coerced = bool(actual_value)
-                elif isinstance(expected_value_typed, float): actual_value_coerced = float(actual_value)
-                elif isinstance(expected_value_typed, int): actual_value_coerced = int(actual_value)
-                else: actual_value_coerced = str(actual_value)
-
-                result = actual_value_coerced != expected_value_typed
-                self.logger.debug(f"Condition '{condition_str}': Key '{key}', Actual Coerced '{actual_value_coerced}', Expected Typed '{expected_value_typed}'. Result: {result}.")
-                return result
-            except (ValueError, TypeError):
-                result = str(actual_value) != expected_value_str
-                self.logger.debug(f"Condition '{condition_str}': Key '{key}', Actual Str '{str(actual_value)}', Expected Str '{expected_value_str}' (coercion failed). Result: {result}.")
-                return result
-
-        elif condition_str.endswith("_exists"):
-            key = condition_str[:-len("_exists")].strip()
-            result = key in attributes and attributes[key] is not None # Consider None as not existing for this simple check
-            self.logger.debug(f"Condition '{condition_str}': Key '{key}' in attributes and not None. Result: {result}.")
-            return result
-
-        elif condition_str.endswith("_not_exists"):
-            key = condition_str[:-len("_not_exists")].strip()
-            result = not (key in attributes and attributes[key] is not None)
-            self.logger.debug(f"Condition '{condition_str}': Key '{key}' not in attributes or is None. Result: {result}.")
-            return result
-
-        self.logger.warning(f"Unparseable style rule condition: '{condition_str}'. Defaulting to False.")
-        return False
+        except Exception as e: # Catch any error during comparison or coercion
+            self.logger.debug(f"Error during comparison for condition '{condition_str}': {e}. Actual: '{actual_value}' ({type(actual_value)}), Expected: '{expected_value_typed}' ({type(expected_value_typed)}), Operator: {operator_str}. Defaulting to False.")
+            return False
 
     def _merge_style_component(
         self,

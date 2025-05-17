@@ -3,10 +3,10 @@ from pathlib import Path
 from typing import Union, List, Type, TypeVar
 
 from pydantic import ValidationError
-from .schemas import AppConfig # Assuming AppConfig is the root model
+from .schemas import ProjectConfig # Changed from AppConfig
 from dxfplanner.core.exceptions import ConfigurationError
 
-T = TypeVar('T', bound=AppConfig) # Type variable for the root config model
+T = TypeVar('T', bound=ProjectConfig) # Changed from AppConfig
 
 DEFAULT_CONFIG_FILES = ["config.yml", "config.yaml"]
 
@@ -81,7 +81,7 @@ def find_config_file(
 
 def load_config_from_yaml(
     config_file_path: Union[str, Path, None] = None,
-    config_model: Type[T] = AppConfig
+    config_model: Type[T] = ProjectConfig # Changed from AppConfig
 ) -> T:
     """
     Loads configuration from a YAML file into a Pydantic model.

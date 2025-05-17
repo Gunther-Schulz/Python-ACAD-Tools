@@ -120,10 +120,10 @@ def initialize_app() -> AppConfig:
     #    Example: if DxfGenerationService uses @inject, its module needs to be listed.
     container.wire(
         modules=[
-            __name__, # For main_runner if it were to use @inject (it uses direct container access here)
-            "dxfplanner.config.loaders", # If any classes here use @inject
-            "dxfplanner.config.schemas", # If any classes here use @inject
-            "dxfplanner.core.di", # For the container itself if it had self-injections setup differently or for clarity
+            __name__,
+            "dxfplanner.config.loaders",
+            "dxfplanner.config.schemas", # Also operation_schemas, style_schemas etc. if they use DI directly. Assume not for now.
+            "dxfplanner.core.di",
             "dxfplanner.core.exceptions",
             "dxfplanner.core.logging_config",
 
@@ -131,25 +131,32 @@ def initialize_app() -> AppConfig:
             "dxfplanner.domain.models.common",
             "dxfplanner.domain.models.dxf_models",
             "dxfplanner.domain.models.geo_models",
+            "dxfplanner.domain.models.layer_styles", # Contains LayerStyleConfig etc.
 
-            "dxfplanner.geometry.operations", # Operations are now distinct classes
-            "dxfplanner.geometry.transformations", # Was geometry_transform_service
+            "dxfplanner.geometry.operations",
+            "dxfplanner.geometry.transformations",
             "dxfplanner.geometry.utils",
 
             "dxfplanner.io.readers.shapefile_reader",
             "dxfplanner.io.readers.geojson_reader",
-            "dxfplanner.io.writers.dxf_writer",
+            # "dxfplanner.io.readers.csv_wkt_reader", # If/when implemented and uses DI
 
-            "dxfplanner.services.orchestration_service", # DxfGenerationService
-            "dxfplanner.services.pipeline_service",      # New
-            "dxfplanner.services.layer_processor_service", # New
+            "dxfplanner.io.writers.dxf_writer",
+            "dxfplanner.io.writers.components.dxf_entity_converter_service",
+            "dxfplanner.io.writers.components.dxf_resource_setup_service",
+            "dxfplanner.io.writers.components.dxf_viewport_setup_service",
+
+            "dxfplanner.services.dxf_generation_service", # Renamed from orchestration_service
+            "dxfplanner.services.pipeline_service",
+            "dxfplanner.services.layer_processor_service",
             "dxfplanner.services.style_service",
             "dxfplanner.services.validation_service",
+            "dxfplanner.services.legend_generation_service", # Added
             "dxfplanner.services.geoprocessing.attribute_mapping_service",
             "dxfplanner.services.geoprocessing.coordinate_service",
-            # "dxfplanner.services.operation_service", # Removed, operations resolved individually
+            "dxfplanner.services.geoprocessing.label_placement_service",
 
-            # "dxfplanner.cli" # If you have a cli.py using the container.
+            "dxfplanner.cli" # CLI uses the container
         ]
     )
     init_logger.info("DI container configured and wired.")
@@ -161,37 +168,36 @@ if __name__ == "__main__":
     app_config = initialize_app()
     logger = container.logger()
 
-    # --- Example Usage (replace with actual file paths) ---
-    # Ensure you have a sample geodata file (e.g., a .shp file)
-    # and specify output path.
-    # For Shapefile, you need all associated files (.dbf, .shx, etc.) in the same directory.
+    logger.info(f"DXFPlanner app.py direct execution example starting with config: {app_config.project_name or 'Default Project'}.")
+    logger.info("This example attempts to run main_runner. Ensure 'config.yml' (or equivalent) is correctly set up.")
 
-    # Create a dummy shapefile for testing if one doesn't exist
-    # This is complex to do ad-hoc, usually you'd have a test file.
-    # For now, assume a test_data/sample.shp or similar might exist.
+    # Determine output path from config, as CLI is not used here.
+    example_output_file = "test_data/output/app_py_generated_example.dxf" # Default for this example
+    output_path_from_config = None
 
-    example_source_file = "test_data/input/sample.shp" # MODIFY THIS PATH
-    example_output_file = "test_data/output/generated_sample.dxf" # MODIFY THIS PATH
+    if app_config.io and app_config.io.writers and app_config.io.writers.dxf and app_config.io.writers.dxf.output_filepath:
+        output_path_from_config = Path(app_config.io.writers.dxf.output_filepath).resolve()
+    elif app_config.io and app_config.io.output_filepath: # Fallback to older general output_filepath
+        output_path_from_config = Path(app_config.io.output_filepath).resolve()
 
-    # Create directories if they don't exist for the example
-    Path("test_data/input").mkdir(parents=True, exist_ok=True)
-    Path("test_data/output").mkdir(parents=True, exist_ok=True)
-
-    logger.warning(f"This is an example runner. Ensure '{example_source_file}' exists or change the path.")
-    logger.warning("The default readers/services are placeholders and will raise NotImplementedError.")
-    logger.warning("You will need to implement them and install libraries like pyshp/fiona and ezdxf.")
-
-    # To make this runnable for a very basic test (it will hit NotImplementedError quickly):
-    # You might need a dummy shapefile. Creating one programmatically is non-trivial here.
-    # Let's assume the user is responsible for providing a shapefile for this test.
-    if not Path(example_source_file).exists():
-        logger.error(f"Example source file '{example_source_file}' not found. Please create it or update the path.")
-        logger.error("The application now relies on 'config.yml' (or other configured file) to define this source.")
-        logger.error("Cannot run example without source data defined in the configuration.")
+    if output_path_from_config:
+        example_output_file = str(output_path_from_config)
+        logger.info(f"Output path for this example run will be: {example_output_file} (from configuration)")
     else:
-        logger.info(f"Running example: Output will be '{example_output_file}'.")
-        logger.info(f"Ensure your configuration (e.g., config.yml) points to '{example_source_file}' or similar.")
+        logger.warning(f"No output path found in configuration (io.writers.dxf.output_filepath or io.output_filepath). Using default: {example_output_file}")
+        # Ensure default example output directory exists
+        Path(example_output_file).parent.mkdir(parents=True, exist_ok=True)
+
+    logger.info("Attempting to run the main_runner...")
+    logger.info("If this fails, check your 'config.yml' for valid sources and parameters,")
+    logger.info("and ensure all services and operations are correctly implemented and wired in DI.")
+
+    try:
         asyncio.run(main_runner(
-            output_file=example_output_file,
-            # target_crs=None # Parameter removed
+            output_file=example_output_file
         ))
+        logger.info(f"app.py direct execution finished. Check: {example_output_file}")
+    except DXFPlannerBaseError as e_app_run:
+        logger.error(f"Error during app.py direct execution: {e_app_run}", exc_info=True)
+    except Exception as e_app_general:
+        logger.error(f"Unexpected critical error during app.py direct execution: {e_app_general}", exc_info=True)

@@ -2,12 +2,18 @@
 General geometric utilities.
 """
 import re
-from typing import Tuple, Union, Optional, Any, Iterator
+from typing import Tuple, Union, Optional, Any, Iterator, List, Dict
 from dxfplanner.core.logging_config import get_logger
 from shapely.geometry.base import BaseGeometry
 from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, Point, MultiPoint, GeometryCollection
 from shapely.validation import make_valid as shapely_make_valid
 from shapely.ops import unary_union
+from dxfplanner.domain.models import geo_models as dxf_geo_models
+from dxfplanner.domain.models.geo_models import AnyGeoGeometry, GeoFeature, PointGeo, PolylineGeo, PolygonGeo, MultiPointGeo, MultiPolylineGeo, MultiPolygonGeo, GeometryCollectionGeo
+from dxfplanner.domain.models.dxf_models import (
+    DxfEntity, DxfPoint, DxfLWPolyline, DxfHatch, DxfMText, DxfText, DxfInsert,
+    HatchBoundaryPath, HatchEdgeType
+)
 
 logger = get_logger(__name__)
 
@@ -235,94 +241,101 @@ from dxfplanner.domain.models import geo_models as dxf_geo_models
 from dxfplanner.domain.models.common import Coordinate
 
 def convert_dxfplanner_geometry_to_shapely(
-    dxfplanner_geom: Union[dxf_geo_models.Point, dxf_geo_models.Polyline, dxf_geo_models.Polygon]
+    dxfplanner_geom: AnyGeoGeometry
 ) -> Optional[BaseGeometry]:
     """
-    Converts a DXFPlanner geometry model (Point, Polyline, Polygon) to its Shapely equivalent.
+    Converts a DXFPlanner geometry model (AnyGeoGeometry) to its Shapely equivalent.
+    Handles Point, Polyline, Polygon, MultiPoint, MultiLineString, MultiPolygon,
+    and GeometryCollection.
 
     Args:
-        dxfplanner_geom: An instance of DXFPlanner's Point, Polyline, or Polygon.
+        dxfplanner_geom: An instance of DXFPlanner's AnyGeoGeometry.
 
     Returns:
         The corresponding Shapely geometry object, or None if conversion fails.
     """
-    try:
-        if isinstance(dxfplanner_geom, dxf_geo_models.Point):
-            return Point(dxfplanner_geom.coords.x, dxfplanner_geom.coords.y)
-        elif isinstance(dxfplanner_geom, dxf_geo_models.Polyline):
-            if not dxfplanner_geom.points or len(dxfplanner_geom.points) < 2:
-                logger.warning("DXFPlanner Polyline has insufficient points for LineString. Min 2 required.")
-                return None
-            return LineString([(c.x, c.y) for c in dxfplanner_geom.points])
-        elif isinstance(dxfplanner_geom, dxf_geo_models.Polygon):
-            if not dxfplanner_geom.exterior or len(dxfplanner_geom.exterior) < 3:
-                logger.warning("DXFPlanner Polygon has insufficient exterior points. Min 3 required.")
-                return None
-
-            shell = [(c.x, c.y) for c in dxfplanner_geom.exterior]
-            holes = None
-            if dxfplanner_geom.interiors:
-                holes = []
-                for interior_ring in dxfplanner_geom.interiors:
-                    if interior_ring and len(interior_ring) >= 3:
-                        holes.append([(c.x, c.y) for c in interior_ring])
-                    else:
-                        logger.warning("DXFPlanner Polygon interior ring has insufficient points. Min 3 required. Skipping interior.")
-            return Polygon(shell, holes=holes)
-        else:
-            logger.warning(f"Unsupported DXFPlanner geometry type for Shapely conversion: {type(dxfplanner_geom)}")
-            return None
-    except Exception as e:
-        logger.error(f"Error converting DXFPlanner geometry to Shapely: {e}", exc_info=True)
-        return None
-
-def convert_shapely_to_dxfplanner_geometry(
-    shapely_geom: BaseGeometry
-) -> Optional[Union[dxf_geo_models.Point, dxf_geo_models.Polyline, dxf_geo_models.Polygon]]:
-    """
-    Converts a simple Shapely geometry (Point, LineString, Polygon) to its DXFPlanner model equivalent.
-    Multi-geometries (MultiPoint, MultiLineString, MultiPolygon) and GeometryCollections are NOT directly handled
-    by this function and will return None; they should be iterated and converted individually if needed.
-
-    Args:
-        shapely_geom: A Shapely geometry object (Point, LineString, Polygon expected).
-
-    Returns:
-        An instance of DXFPlanner's Point, Polyline, or Polygon, or None if conversion fails
-        or the input type is a multi-geometry or collection.
-    """
-    if shapely_geom is None or shapely_geom.is_empty:
+    if dxfplanner_geom is None:
         return None
 
     try:
-        if isinstance(shapely_geom, Point):
-            return dxf_geo_models.Point(coords=Coordinate(x=shapely_geom.x, y=shapely_geom.y))
-        elif isinstance(shapely_geom, LineString):
-            if len(shapely_geom.coords) < 2:
-                 logger.warning("Shapely LineString has insufficient coordinates for DXFPlanner Polyline.")
-                 return None
-            return dxf_geo_models.Polyline(points=[Coordinate(x=x, y=y) for x, y in shapely_geom.coords])
-        elif isinstance(shapely_geom, Polygon):
-            if len(shapely_geom.exterior.coords) < 3:
-                logger.warning("Shapely Polygon exterior has insufficient coordinates for DXFPlanner Polygon.")
+        # Assuming Point, LineString, Polygon etc. are imported from shapely.geometry at the top
+        if isinstance(dxfplanner_geom, dxf_geo_models.PointGeo):
+            return Point(dxfplanner_geom.coordinates.x, dxfplanner_geom.coordinates.y)
+        elif isinstance(dxfplanner_geom, dxf_geo_models.PolylineGeo):
+            coords = [(c.x, c.y) for c in dxfplanner_geom.coordinates]
+            if len(coords) < 2:
+                logger.warning("DXFPlanner PolylineGeo has insufficient coordinates for Shapely LineString.")
                 return None
-            exterior_coords = [Coordinate(x=x, y=y) for x, y in shapely_geom.exterior.coords]
-            interior_coord_lists = []
-            if shapely_geom.interiors:
-                for interior_ring in shapely_geom.interiors:
-                    if len(interior_ring.coords) >= 3:
-                        interior_coord_lists.append([Coordinate(x=x, y=y) for x, y in interior_ring.coords])
+            return LineString(coords)
+        elif isinstance(dxfplanner_geom, dxf_geo_models.PolygonGeo):
+            if not dxfplanner_geom.coordinates:
+                logger.warning("DXFPlanner PolygonGeo has no coordinate rings.")
+                return None
+            exterior_coords = [(c.x, c.y) for c in dxfplanner_geom.coordinates[0]]
+            if len(exterior_coords) < 3:
+                logger.warning(f"DXFPlanner PolygonGeo exterior ring has insufficient ({len(exterior_coords)}) coordinates for Shapely Polygon. Need at least 3.")
+                return None
+
+            interior_coords_list = []
+            if len(dxfplanner_geom.coordinates) > 1:
+                for interior_ring_coords in dxfplanner_geom.coordinates[1:]:
+                    coords = [(c.x, c.y) for c in interior_ring_coords]
+                    if len(coords) >= 3:
+                        interior_coords_list.append(coords)
                     else:
-                        logger.warning("Shapely Polygon interior ring has insufficient coordinates. Skipping interior.")
-            return dxf_geo_models.Polygon(exterior=exterior_coords, interiors=interior_coord_lists if interior_coord_lists else None)
-        elif isinstance(shapely_geom, (MultiPoint, MultiLineString, MultiPolygon, GeometryCollection)):
-            logger.debug(f"Shapely MultiGeometry/Collection ({shapely_geom.geom_type}) received. Caller should iterate and convert parts.")
-            return None # Or could raise an error, or attempt to convert first part?
+                        logger.warning(f"DXFPlanner PolygonGeo interior ring has insufficient ({len(coords)}) coordinates. Skipping interior.")
+            return Polygon(exterior_coords, holes=interior_coords_list if interior_coords_list else None)
+
+        elif isinstance(dxfplanner_geom, dxf_geo_models.MultiPointGeo):
+            points = [(p.x, p.y) for p in dxfplanner_geom.coordinates]
+            return MultiPoint(points)
+
+        elif isinstance(dxfplanner_geom, dxf_geo_models.MultiPolylineGeo):
+            lines_data = []
+            for line_coord_list in dxfplanner_geom.coordinates:
+                coords = [(c.x, c.y) for c in line_coord_list]
+                if len(coords) >= 2:
+                    lines_data.append(coords)
+                else:
+                    logger.warning("DXFPlanner MultiPolylineGeo part has insufficient coordinates. Skipping part.")
+            return MultiLineString(lines_data)
+
+        elif isinstance(dxfplanner_geom, dxf_geo_models.MultiPolygonGeo):
+            polygons_data = []
+            for poly_rings_coords_list in dxfplanner_geom.coordinates:
+                if not poly_rings_coords_list:
+                    logger.warning("DXFPlanner MultiPolygonGeo contains an empty polygon definition. Skipping part.")
+                    continue
+
+                shell_coords = [(c.x, c.y) for c in poly_rings_coords_list[0]]
+                if len(shell_coords) < 3:
+                    logger.warning(f"DXFPlanner MultiPolygonGeo part exterior has insufficient ({len(shell_coords)}) coordinates. Skipping part.")
+                    continue
+
+                holes_data = []
+                if len(poly_rings_coords_list) > 1:
+                    for interior_ring_coords in poly_rings_coords_list[1:]:
+                        coords = [(c.x, c.y) for c in interior_ring_coords]
+                        if len(coords) >= 3:
+                            holes_data.append(coords)
+                        else:
+                            logger.warning(f"DXFPlanner MultiPolygonGeo part interior ring has insufficient ({len(coords)}) coordinates. Skipping interior.")
+                polygons_data.append((shell_coords, holes_data if holes_data else []))
+            return MultiPolygon(polygons_data)
+
+        elif isinstance(dxfplanner_geom, dxf_geo_models.GeometryCollectionGeo):
+            shapely_geoms = []
+            for part_geom in dxfplanner_geom.geometries:
+                converted_part = convert_dxfplanner_geometry_to_shapely(part_geom)
+                if converted_part:
+                    shapely_geoms.append(converted_part)
+            return GeometryCollection(shapely_geoms)
+
         else:
-            logger.warning(f"Unsupported Shapely geometry type for DXFPlanner conversion: {type(shapely_geom)}")
+            logger.warning(f"Unhandled DXFPlanner geometry type for Shapely conversion: {type(dxfplanner_geom).__name__} ({dxfplanner_geom})")
             return None
     except Exception as e:
-        logger.error(f"Error converting Shapely geometry to DXFPlanner: {e}", exc_info=True)
+        logger.error(f"Error converting DXFPlanner geometry ({type(dxfplanner_geom).__name__}) to Shapely: {e}", exc_info=True)
         return None
 
 # --- CRS Transformation Utility ---
@@ -508,3 +521,226 @@ def convert_shapely_to_anygeogeometry(
     except Exception as e:
         logger.error(f"Error converting Shapely geometry to AnyGeoGeometry model: {e}", exc_info=True)
         return None
+
+# --- NEW FUNCTION START ---
+def convert_geo_feature_to_dxf_entities(
+    geo_feature: GeoFeature,
+    effective_style: Dict[str, Any]
+) -> List[DxfEntity]:
+    """
+    Converts a GeoFeature (containing AnyGeoGeometry and properties) into a list
+    of DxfEntity domain models based on the feature's geometry, properties, and
+    the effective style.
+
+    Args:
+        geo_feature: The input GeoFeature.
+        effective_style: A dictionary of resolved style attributes.
+
+    Returns:
+        A list of DxfEntity instances.
+    """
+    dxf_entities: List[DxfEntity] = []
+    feature_geometry = geo_feature.geometry
+    feature_properties = geo_feature.properties if geo_feature.properties else {}
+
+    if feature_geometry is None:
+        logger.warning(f"GeoFeature ID '{geo_feature.id}' has no geometry. Skipping DxfEntity conversion.")
+        return dxf_entities
+
+    # Common style attributes from effective_style
+    layer_name = effective_style.get("layer_name", "0")
+    aci_color = effective_style.get("color", 256) # 256 = ByLayer
+    rgb_color = effective_style.get("rgb_color") # Optional
+    linetype = effective_style.get("linetype") # Optional
+    lineweight = effective_style.get("lineweight", -1) # -1 = ByLayer default
+    transparency_val = effective_style.get("transparency_value") # Resolved 0.0-1.0 float
+
+    # 1. Special handling for features intended as block inserts or text labels (based on properties)
+    block_name_from_style = effective_style.get("block_name")
+    text_content_from_style = effective_style.get("text_content")
+
+    if isinstance(feature_geometry, PointGeo):
+        if block_name_from_style:
+            block_scale_x = effective_style.get("block_scale_x", 1.0)
+            block_scale_y = effective_style.get("block_scale_y", 1.0)
+            block_scale_z = effective_style.get("block_scale_z", 1.0)
+            block_rotation = effective_style.get("block_rotation", 0.0)
+            dxf_insert = DxfInsert(
+                block_name=block_name_from_style,
+                insert_x=feature_geometry.coordinates.x,
+                insert_y=feature_geometry.coordinates.y,
+                insert_z=feature_geometry.coordinates.z if feature_geometry.coordinates.z is not None else 0.0,
+                x_scale=block_scale_x,
+                y_scale=block_scale_y,
+                z_scale=block_scale_z,
+                rotation=block_rotation,
+                layer=layer_name,
+                color=aci_color,
+                rgb=rgb_color,
+                linetype=linetype,
+                lineweight=lineweight,
+                transparency=transparency_val
+            )
+            dxf_entities.append(dxf_insert)
+            return dxf_entities
+
+        elif feature_properties.get("__geometry_type__") == "LABEL" or text_content_from_style:
+            text_string = text_content_from_style or feature_properties.get("label_text", "Default Text")
+            text_height = effective_style.get("text_height", 1.0)
+            text_rotation = feature_properties.get("label_rotation", effective_style.get("text_rotation", 0.0))
+            text_style_name = effective_style.get("text_style_name", "Standard")
+            attachment_point = effective_style.get("mtext_attachment_point", 1)
+            width = effective_style.get("mtext_width")
+
+            dxf_text_entity: Union[DxfMText, DxfText]
+            if "\\P" in text_string or "\n" in text_string or width is not None:
+                dxf_text_entity = DxfMText(
+                    text=text_string,
+                    insert_x=feature_geometry.coordinates.x,
+                    insert_y=feature_geometry.coordinates.y,
+                    insert_z=feature_geometry.coordinates.z if feature_geometry.coordinates.z is not None else 0.0,
+                    height=text_height,
+                    rotation=text_rotation,
+                    style=text_style_name,
+                    attachment_point=attachment_point,
+                    width=width,
+                    layer=layer_name,
+                    color=aci_color,
+                    rgb=rgb_color,
+                    transparency=transparency_val
+                )
+            else:
+                dxf_text_entity = DxfText(
+                    text=text_string,
+                    insert_x=feature_geometry.coordinates.x,
+                    insert_y=feature_geometry.coordinates.y,
+                    insert_z=feature_geometry.coordinates.z if feature_geometry.coordinates.z is not None else 0.0,
+                    height=text_height,
+                    rotation=text_rotation,
+                    style=text_style_name,
+                    layer=layer_name,
+                    color=aci_color,
+                    rgb=rgb_color,
+                    transparency=transparency_val
+                )
+            dxf_entities.append(dxf_text_entity)
+            return dxf_entities
+
+    # 2. Standard geometry conversion if not handled above
+    if isinstance(feature_geometry, PointGeo): # This will only be reached if not a block/label
+        dxf_point = DxfPoint(
+            x=feature_geometry.coordinates.x,
+            y=feature_geometry.coordinates.y,
+            z=feature_geometry.coordinates.z if feature_geometry.coordinates.z is not None else 0.0,
+            layer=layer_name,
+            color=aci_color,
+            rgb=rgb_color,
+            linetype=linetype
+        )
+        dxf_entities.append(dxf_point)
+
+    elif isinstance(feature_geometry, PolylineGeo):
+        points = [(c.x, c.y, c.z if c.z is not None else 0.0) for c in feature_geometry.coordinates]
+        if len(points) >= 2:
+            is_closed = False
+            if len(points) > 2 and points[0] == points[-1]:
+                is_closed = True
+
+            dxf_lwpolyline = DxfLWPolyline(
+                points=points,
+                closed=is_closed,
+                layer=layer_name,
+                color=aci_color,
+                rgb=rgb_color,
+                linetype=linetype,
+                lineweight=lineweight,
+                transparency=transparency_val
+            )
+            dxf_entities.append(dxf_lwpolyline)
+        else:
+            logger.warning(f"PolylineGeo for feature ID '{geo_feature.id}' has < 2 points. Cannot create DxfLWPolyline.")
+
+    elif isinstance(feature_geometry, PolygonGeo):
+        hatch_pattern_name = effective_style.get("hatch_pattern_name")
+        hatch_scale = effective_style.get("hatch_scale", 1.0)
+        hatch_angle = effective_style.get("hatch_angle", 0.0)
+        draw_hatch_boundary = effective_style.get("draw_hatch_boundary", True)
+
+        all_rings_coords = feature_geometry.coordinates
+
+        if not all_rings_coords or not all_rings_coords[0]:
+            logger.warning(f"PolygonGeo for feature ID '{geo_feature.id}' has no exterior ring. Cannot process.")
+            return dxf_entities
+
+        boundary_paths_data: List[HatchBoundaryPath] = []
+        exterior_ring_coords = [(c.x, c.y) for c in all_rings_coords[0]]
+        if len(exterior_ring_coords) >= 3:
+            if exterior_ring_coords[0] != exterior_ring_coords[-1]:
+                 exterior_ring_coords.append(exterior_ring_coords[0])
+            boundary_paths_data.append(HatchBoundaryPath(vertices=exterior_ring_coords, type=HatchEdgeType.POLYLINE.value)) # Use .value for enum
+
+            if len(all_rings_coords) > 1:
+                for interior_ring_domain_coords in all_rings_coords[1:]:
+                    interior_ring_shapely_coords = [(c.x, c.y) for c in interior_ring_domain_coords]
+                    if len(interior_ring_shapely_coords) >= 3:
+                        if interior_ring_shapely_coords[0] != interior_ring_shapely_coords[-1]:
+                            interior_ring_shapely_coords.append(interior_ring_shapely_coords[0])
+                        boundary_paths_data.append(HatchBoundaryPath(vertices=interior_ring_shapely_coords, type=HatchEdgeType.POLYLINE.value)) # Use .value
+        else:
+            logger.warning(f"PolygonGeo exterior for '{geo_feature.id}' has < 3 points. Cannot form hatch path.")
+
+        if hatch_pattern_name and boundary_paths_data:
+            dxf_hatch = DxfHatch(
+                pattern_name=hatch_pattern_name,
+                scale=hatch_scale,
+                angle=hatch_angle,
+                boundary_paths=boundary_paths_data,
+                layer=layer_name,
+                color=aci_color,
+                rgb=rgb_color,
+                transparency=transparency_val
+            )
+            dxf_entities.append(dxf_hatch)
+
+        if draw_hatch_boundary and all_rings_coords and all_rings_coords[0] and len(all_rings_coords[0]) >=2 :
+            exterior_points_for_lw = [(c.x, c.y, c.z if c.z is not None else 0.0) for c in all_rings_coords[0]]
+            is_closed_lw = False
+            if len(exterior_points_for_lw) > 2 and exterior_points_for_lw[0] == exterior_points_for_lw[-1]:
+                is_closed_lw = True
+
+            boundary_polyline = DxfLWPolyline(
+                points=exterior_points_for_lw,
+                closed=is_closed_lw,
+                layer=layer_name,
+                color=aci_color,
+                rgb=rgb_color,
+                linetype=linetype,
+                lineweight=lineweight,
+                transparency=transparency_val
+            )
+            dxf_entities.append(boundary_polyline)
+            # Note: Does not draw boundaries for holes explicitly here, DxfWriter might.
+
+    elif isinstance(feature_geometry, (MultiPointGeo, MultiPolylineGeo, MultiPolygonGeo, GeometryCollectionGeo)):
+        if isinstance(feature_geometry, MultiPointGeo):
+            for coord in feature_geometry.coordinates:
+                part_feature = GeoFeature(id=f"{geo_feature.id}_mpt_part", geometry=PointGeo(coordinates=coord), properties=feature_properties)
+                dxf_entities.extend(convert_geo_feature_to_dxf_entities(part_feature, effective_style))
+        elif isinstance(feature_geometry, MultiPolylineGeo):
+            for coord_list in feature_geometry.coordinates:
+                part_feature = GeoFeature(id=f"{geo_feature.id}_mpl_part", geometry=PolylineGeo(coordinates=coord_list), properties=feature_properties)
+                dxf_entities.extend(convert_geo_feature_to_dxf_entities(part_feature, effective_style))
+        elif isinstance(feature_geometry, MultiPolygonGeo):
+             for poly_coord_rings in feature_geometry.coordinates:
+                part_feature = GeoFeature(id=f"{geo_feature.id}_mpg_part", geometry=PolygonGeo(coordinates=poly_coord_rings), properties=feature_properties)
+                dxf_entities.extend(convert_geo_feature_to_dxf_entities(part_feature, effective_style))
+        elif isinstance(feature_geometry, GeometryCollectionGeo):
+             for i, part_geom in enumerate(feature_geometry.geometries):
+                 part_feature = GeoFeature(id=f"{geo_feature.id}_gc_part{i}", geometry=part_geom, properties=feature_properties)
+                 dxf_entities.extend(convert_geo_feature_to_dxf_entities(part_feature, effective_style))
+    else:
+        logger.warning(f"Unsupported AnyGeoGeometry type for DxfEntity conversion: {type(feature_geometry).__name__} for feature ID '{geo_feature.id}'")
+
+    return dxf_entities
+
+# --- END NEW FUNCTION ---

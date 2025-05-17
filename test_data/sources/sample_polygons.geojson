@@ -1,0 +1,54 @@
+{
+  "type": "FeatureCollection",
+  "name": "sample_polygons",
+  "crs": {
+    "type": "name",
+    "properties": {
+      "name": "urn:ogc:def:crs:EPSG::32632"
+    }
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 1,
+        "name": "Polygon A",
+        "category": "Type1",
+        "area_sqm": 1250.75
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [500000.0, 5800000.0],
+            [500100.0, 5800000.0],
+            [500100.0, 5800100.0],
+            [500000.0, 5800100.0],
+            [500000.0, 5800000.0]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 2,
+        "name": "Polygon B",
+        "category": "Type2",
+        "area_sqm": 875.50
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [500200.0, 5800000.0],
+            [500300.0, 5800050.0],
+            [500250.0, 5800150.0],
+            [500180.0, 5800100.0],
+            [500200.0, 5800000.0]
+          ]
+        ]
+      }
+    }
+  ]
+}

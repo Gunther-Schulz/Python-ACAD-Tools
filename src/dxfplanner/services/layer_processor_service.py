@@ -5,24 +5,24 @@ This includes reading data, applying operations, and transforming to DXF entitie
 from typing import AsyncIterator, Optional, Dict, Any
 from logging import Logger
 
-from dxfplanner.config import AppConfig, LayerConfig, AnySourceConfig, ShapefileSourceConfig, OperationType, LabelPlacementOperationConfig # Added OperationType, LabelPlacementOperationConfig
+from dxfplanner.config import ProjectConfig, LayerConfig, AnySourceConfig, ShapefileSourceConfig, OperationType, LabelPlacementOperationConfig # Changed AppConfig
 from dxfplanner.domain.models.geo_models import GeoFeature
 from dxfplanner.domain.models.dxf_models import AnyDxfEntity
-from dxfplanner.domain.interfaces import IGeoDataReader, IOperation, IGeometryTransformer
+from dxfplanner.domain.interfaces import IGeoDataReader, IOperation, IGeometryTransformer, ILayerProcessorService # Added ILayerProcessorService
 from dxfplanner.core.di import DIContainer # For resolving dependencies
 from dxfplanner.core.exceptions import GeoDataReadError, ConfigurationError
 
-class LayerProcessorService:
+class LayerProcessorService(ILayerProcessorService):
     """Processes a single layer from configuration to an async stream of DXF entities."""
 
     def __init__(
         self,
-        app_config: AppConfig,
+        project_config: ProjectConfig, # Changed app_config to project_config
         di_container: DIContainer,
         geometry_transformer: IGeometryTransformer,
         logger: Logger
     ):
-        self.app_config = app_config
+        self.project_config = project_config # Changed app_config to project_config
         self.di_container = di_container
         self.geometry_transformer = geometry_transformer
         self.logger = logger
@@ -198,35 +198,23 @@ class LayerProcessorService:
         if current_stream_key and current_stream_key in intermediate_results:
             final_features_stream_for_dxf = intermediate_results[current_stream_key]
             self.logger.info(f"Final feature stream for DXF transformation for layer '{layer_config.name}' is from '{current_stream_key}'.")
-        # This 'elif' handles the case where there was a source, but no operations.
-        # current_stream_key would be layer_config.name from the source loading phase.
-        elif not layer_config.operations and initial_features_loaded and layer_config.name in intermediate_results:
+        elif not effective_operations and initial_features_loaded: # Source loaded, no ops
             final_features_stream_for_dxf = intermediate_results[layer_config.name]
-            # current_stream_key should already be layer_config.name in this path if initial_features_loaded is true
-            self.logger.info(f"No operations for layer '{layer_config.name}'. Using initial source features for DXF transformation from key '{layer_config.name}'.")
-        else: # This case should ideally not be hit if logic above is correct and there's data to process.
-            self.logger.warning(f"No feature stream available for DXF transformation for layer '{layer_config.name}'. Current stream key: '{current_stream_key}'. Available results: {list(intermediate_results.keys())}. No DXF entities will be generated.")
-            return
+            self.logger.info(f"Final feature stream for DXF transformation for layer '{layer_config.name}' is directly from source (no operations).")
 
-        if final_features_stream_for_dxf is None:
-            self.logger.error(f"Critical: final_features_stream_for_dxf is None before transformation for layer '{layer_config.name}'. This indicates a logic flaw or an earlier unhandled error in stream preparation. No DXF entities will be generated.")
-            return
 
-        # Transform to DXF entities
-        self.logger.debug(f"Transforming features from stream '{current_stream_key}' to DXF entities for layer '{layer_config.name}'")
-        entity_count = 0
-        async for feature in final_features_stream_for_dxf:
-            try:
-                # CRS consistency check/final transform - deferred for now, assume ops handled it
-                # if global_target_crs and feature.crs and feature.crs.lower() != global_target_crs.lower():
-                # logger.warning(f"Feature CRS {feature.crs} differs from global target {global_target_crs} for layer {layer_config.name}. Consider ReprojectOperation.")
-                # Potentially reproject here if a strict final CRS is enforced by LayerProcessor itself.
-
-                async for dxf_entity in self.geometry_transformer.transform_feature_to_dxf_entities(feature):
-                    entity_count += 1
+        if final_features_stream_for_dxf:
+            self.logger.info(f"Transforming final GeoFeatures to DxfEntities for layer: {layer_config.name}")
+            # Correctly use the geometry_transformer's existing method
+            async for geo_feature in final_features_stream_for_dxf:
+                # The transform_feature_to_dxf_entities method on GeometryTransformerImpl
+                # already handles StyleService interaction and layer_config.
+                async for dxf_entity in self.geometry_transformer.transform_feature_to_dxf_entities(
+                    geo_feature, layer_config=layer_config # Pass layer_config as required by the method
+                ):
                     yield dxf_entity
-            except Exception as e_transform:
-                self.logger.error(f"Error transforming feature to DXF for layer '{layer_config.name}': {e_transform}. Feature ID: {feature.id if feature.id else 'N/A'}", exc_info=True)
-                # Continue to next feature or stop layer?
-
-        self.logger.info(f"Finished processing layer: {layer_config.name}. Generated {entity_count} DXF entities.")
+            self.logger.info(f"Finished transforming GeoFeatures to DxfEntities for layer: {layer_config.name}")
+        else:
+            self.logger.warning(f"No final feature stream determined for layer '{layer_config.name}'. No DXF entities will be generated for this layer.")
+            # An async def function that doesn't yield anything implicitly returns an empty async generator.
+            return

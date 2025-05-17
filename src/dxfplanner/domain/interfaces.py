@@ -7,10 +7,13 @@ from .models.common import Coordinate, Color, BoundingBox as BoundingBoxModel
 from .models.geo_models import GeoFeature #, PointGeo, PolylineGeo, PolygonGeo (GeoFeature contains these)
 from .models.dxf_models import DxfEntity, DxfLayer, AnyDxfEntity # Added AnyDxfEntity explicitly
 from ..config.schemas import (
+    ProjectConfig, # ADDED ProjectConfig
     LayerConfig, BaseOperationConfig, LayerDisplayPropertiesConfig,
     TextStylePropertiesConfig, HatchPropertiesConfig, StyleObjectConfig, # Added StyleObjectConfig
-    LabelSettings, LabelPlacementOperationConfig # Added LabelPlacementOperationConfig
+    LabelPlacementOperationConfig, # Added LabelPlacementOperationConfig
+    LayerStyleConfig # Added LayerStyleConfig
 )
+from ..config.style_schemas import LabelingConfig # Added LabelingConfig
 
 # Generic type for path-like objects, often used for file paths
 AnyStrPath = TypeVar("AnyStrPath", str, Path)
@@ -84,28 +87,6 @@ class IDxfWriter(Protocol):
         """Removes entities associated with a specific legend ID."""
         ...
 
-    async def ensure_layer_exists_with_properties(
-        self,
-        doc: Any,
-        layer_name: str,
-        properties: Optional[LayerDisplayPropertiesConfig] = None
-    ) -> Any: # Returns the ezdxf layer object
-        """Ensures a layer exists, creating or updating it with specified properties."""
-        ...
-
-    async def add_mtext_ez(
-        self,
-        doc: Any, msp: Any,
-        text: str,
-        insertion_point: Tuple[float, float],
-        layer_name: str,
-        style_config: TextStylePropertiesConfig,
-        max_width: Optional[float] = None,
-        legend_item_id: Optional[str] = None # For potential XDATA tagging
-    ) -> Tuple[Optional[Any], float]: # Returns (ezdxf_entity | None, actual_height)
-        """Adds an MTEXT entity with extended styling and returns the entity and its calculated height."""
-        ...
-
     async def get_entities_bbox(
         self,
         entities: List[Any]
@@ -119,60 +100,6 @@ class IDxfWriter(Protocol):
         dx: float, dy: float, dz: float
     ) -> None:
         """Translates a list of DXF entities by a given vector."""
-        ...
-
-    async def add_lwpolyline(
-        self,
-        doc: Any, msp: Any,
-        points: List[Tuple[float, float]],
-        layer_name: str,
-        style_props: Optional[LayerDisplayPropertiesConfig],
-        is_closed: bool = False,
-        legend_item_id: Optional[str] = None
-    ) -> Optional[Any]: # Returns ezdxf_entity | None
-        """Adds an LWPOLYLINE entity."""
-        ...
-
-    async def add_hatch(
-        self,
-        doc: Any, msp: Any,
-        # Hatch paths often include bulge values, not just simple points for complex boundaries
-        # For simplicity, current model is List[List[Tuple[float,float]] for outer/inner loops of vertices
-        # Actual ezdxf might take PathEdge or similar for more complex hatch paths.
-        paths: List[List[Tuple[float, float]]], # List of paths (loops of vertices)
-        layer_name: str,
-        hatch_props_config: HatchPropertiesConfig,
-        legend_item_id: Optional[str] = None
-    ) -> Optional[Any]: # Returns ezdxf_entity | None
-        """Adds a HATCH entity."""
-        ...
-
-    async def add_block_reference(
-        self,
-        doc: Any, msp: Any,
-        block_name: str,
-        insertion_point: Tuple[float, float],
-        layer_name: str,
-        scale_x: float = 1.0, # Changed to scale_x, scale_y, scale_z for ezdxf
-        scale_y: float = 1.0,
-        scale_z: float = 1.0,
-        rotation: float = 0.0,
-        style_props: Optional[LayerDisplayPropertiesConfig] = None, # For potential color override if block is BYBLOCK
-        legend_item_id: Optional[str] = None
-    ) -> Optional[Any]: # Returns ezdxf_entity | None
-        """Adds a BLOCK_REFERENCE (INSERT) entity."""
-        ...
-
-    async def add_line(
-        self,
-        doc: Any, msp: Any,
-        start_point: Tuple[float, float],
-        end_point: Tuple[float, float],
-        layer_name: str,
-        style_props: Optional[LayerDisplayPropertiesConfig],
-        legend_item_id: Optional[str] = None
-    ) -> Optional[Any]: # Returns ezdxf_entity | None
-        """Adds a LINE entity."""
         ...
 
 # --- Geometry Processing & Transformation Interfaces ---
@@ -245,9 +172,13 @@ class IValidationService(Protocol):
         """Validates a single GeoFeature. Returns a list of validation error messages (empty if valid)."""
         ...
 
-    # async def validate_config(self, config_data: Dict[str, Any], schema: Any) -> List[str]:
-    #     """Validates configuration data against a schema."""
-    #     ...
+    async def validate_config(self, config: ProjectConfig) -> None: # UPDATED from Any to ProjectConfig
+        """Validates the application configuration."""
+        ...
+
+    async def validate_output_dxf(self, dxf_file_path: AnyStrPath) -> List[str]:
+        """Validates the output DXF file."""
+        ...
 
 # --- Label Placement Service Model & Interface ---
 class PlacedLabel(BaseModel):
@@ -263,8 +194,8 @@ class ILabelPlacementService(Protocol):
         self,
         features: AsyncIterator[GeoFeature],
         layer_name: str,
-        config: LabelSettings, # Changed from LabelPlacementConfig
-        text_style_properties: TextStylePropertiesConfig, # ADDED
+        config: LabelingConfig,
+        text_style_properties: TextStylePropertiesConfig,
         # TODO: Consider adding parameters for existing_placed_labels and avoidance_geometries
         # if iterative placement or external avoidance areas are needed.
     ) -> AsyncIterator[PlacedLabel]:
@@ -274,8 +205,8 @@ class ILabelPlacementService(Protocol):
         Args:
             features: An asynchronous iterator of GeoFeature objects to be labeled.
             layer_name: The name of the layer these features belong to, for context.
-            config: Configuration specific to this label placement task (LabelSettings).
-            text_style_properties: The resolved text style properties for the labels. # ADDED
+            config: Configuration specific to this label placement task (LabelingConfig).
+            text_style_properties: The resolved text style properties for the labels.
 
         Yields:
             PlacedLabel: An asynchronous iterator of PlacedLabel objects.
@@ -284,29 +215,67 @@ class ILabelPlacementService(Protocol):
             yield
         ...
 
+# --- Orchestration & Pipeline Service Interfaces ---
+
 # Interface for the main orchestration service
-class IDxfOrchestrator(Protocol):
+# Renamed from IDxfOrchestrator to IDxfGenerationService for consistency
+# class IDxfOrchestrator(Protocol): # OLD NAME - TO BE REMOVED/REPLACED
+class IDxfGenerationService(Protocol): # NEW NAME
     """Interface for the main service orchestrating the DXF generation pipeline."""
 
     async def generate_dxf_from_source(
         self,
-        # source_geodata_path: AnyStrPath, # Removed
         output_dxf_path: AnyStrPath,
-        # source_crs: Optional[str] = None, # Removed
-        target_crs: Optional[str] = None,
-        # specific_reader_options: Optional[Dict[str, Any]] = None,
-        # specific_writer_options: Optional[Dict[str, Any]] = None,
-        # specific_transformer_options: Optional[Dict[str, Any]] = None
-        **kwargs: Any # Catch-all for future or less common options
+        # target_crs: Optional[str] = None,
+        **kwargs: Any
     ) -> None:
         """
         Orchestrates the full workflow: read geodata, transform, write DXF.
 
         Args:
             output_dxf_path: Path for the generated DXF file.
-            target_crs: Optional target CRS for the DXF output.
+            # target_crs: Optional target CRS for the DXF output. # Commented out as DxfGenerationService doesn't use it.
             **kwargs: Further options passed down to readers, transformers, writers.
         """
+        ...
+
+# NEW: Interface for the Pipeline Service
+class IPipelineService(Protocol):
+    """Interface for the service that executes the main processing pipeline."""
+
+    async def run_pipeline(
+        self,
+        output_dxf_path: str,
+        **kwargs: Any
+    ) -> None:
+        """
+        Runs the configured processing pipeline for all layers and generates DXF output.
+
+        Args:
+            output_dxf_path: The path to the output DXF file.
+            **kwargs: Additional keyword arguments if pipeline needs them directly.
+        """
+        ...
+
+# NEW: Interface for the Layer Processor Service
+class ILayerProcessorService(Protocol):
+    """Interface for the service that processes a single layer configuration."""
+
+    async def process_layer(
+        self,
+        layer_config: LayerConfig,
+    ) -> AsyncIterator[AnyDxfEntity]:
+        """
+        Processes a single layer configuration.
+
+        Args:
+            layer_config: The configuration for the layer to process.
+
+        Yields:
+            AnyDxfEntity: An asynchronous iterator of DXF entities generated for this layer.
+        """
+        if False: # pragma: no cover
+            yield
         ...
 
 # --- Data Processing Operation Interface ---
@@ -431,5 +400,52 @@ class IStyleService(Protocol):
         """
         Resolves the StyleObjectConfig for a given GeoFeature based on the LayerConfig,
         applying feature-specific style rules.
+        """
+        ...
+
+# --- DXF Writer Component Service Interfaces ---
+
+class IDxfResourceSetupService(Protocol):
+    """Interface for setting up DXF document resources (layers, styles, blocks)."""
+
+    async def setup_document_resources(
+        self,
+        doc: Any, # ezdxf.document.Drawing
+        app_config: Any, # AppConfig
+        entities_by_layer_config: Dict[str, Tuple[LayerConfig, AsyncIterator[AnyDxfEntity]]] # For block defs
+    ) -> None:
+        """
+        Sets up layers, text styles, linetypes, and block definitions in the DXF document.
+        """
+        ...
+
+class IDxfEntityConverterService(Protocol):
+    """Interface for converting DxfEntity domain models to ezdxf entities."""
+
+    async def add_dxf_entity_to_modelspace(
+        self,
+        msp: Any, # ezdxf.layouts.Modelspace
+        doc: Any, # ezdxf.document.Drawing (for resources like text styles)
+        dxf_entity_model: AnyDxfEntity,
+        layer_style_config: LayerStyleConfig # For applying styles
+    ) -> Optional[Any]: # Returns the created ezdxf entity or None
+        """
+        Converts a DxfEntity domain model to an ezdxf entity and adds it to modelspace.
+        Applies common styling.
+        """
+        ...
+
+class IDxfViewportSetupService(Protocol):
+    """Interface for setting up DXF document viewports and initial views."""
+
+    async def setup_drawing_view(
+        self,
+        doc: Any, # ezdxf.document.Drawing
+        msp: Any, # ezdxf.layouts.Modelspace
+        entities_flat_list: List[AnyDxfEntity], # All DXF domain models to consider for extents
+        app_config: Any # AppConfig for view settings
+    ) -> None:
+        """
+        Sets up the main viewport and initial view of the DXF drawing.
         """
         ...

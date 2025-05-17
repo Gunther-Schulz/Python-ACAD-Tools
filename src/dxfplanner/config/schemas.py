@@ -1,445 +1,105 @@
-from pydantic import BaseModel, Field
-from typing import Optional, Dict, List, Union, Tuple, Literal
+from typing import Optional, List, Union, Dict, Any, Tuple, Literal
+from pydantic import BaseModel, Field, validator
 from enum import Enum
 
-# --- Core Configuration Models (referenced by core modules like logging) ---
-class LoggingConfig(BaseModel):
-    level: str = "INFO"
-    format: str = "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>"
-    # Add other loguru specific settings if needed, e.g., rotation, retention
-
-# --- Color Model (used in various style configs) ---
-ColorModel = Union[str, int, Tuple[int, int, int]] # ACI index, color name, or (R,G,B) tuple
-
-# --- Style Properties Models ---
-class LayerDisplayPropertiesConfig(BaseModel):
-    color: ColorModel = "BYLAYER"
-    linetype: str = "CONTINUOUS"
-    lineweight: int = -1  # -1 for BYLAYER, -2 for BYBLOCK, -3 for DEFAULT
-    plot: bool = True
-    transparency: float = Field(default=0.0, ge=0.0, le=1.0) # 0.0 Opaque, 1.0 Fully Transparent
-    linetype_scale: float = Field(default=1.0, gt=0.0)
-    locked: bool = False
-    frozen: bool = False
-    is_on: bool = True
-
-class TextParagraphPropertiesConfig(BaseModel):
-    align: Optional[Literal['LEFT', 'CENTER', 'RIGHT', 'JUSTIFIED', 'DISTRIBUTED']] = None
-    indent: Optional[float] = None
-    left_margin: Optional[float] = None
-    right_margin: Optional[float] = None
-    tab_stops: List[float] = Field(default_factory=list)
-
-class TextStylePropertiesConfig(BaseModel):
-    font: str = "Standard"  # References a DXF text style name
-    height: float = Field(default=2.5, gt=0.0)
-    color: ColorModel = "BYLAYER"
-    width_factor: Optional[float] = Field(default=None, gt=0.0)
-    oblique_angle: Optional[float] = Field(default=None, ge=0.0, lt=360.0) # Degrees
-    # MTEXT specific properties
-    mtext_width: Optional[float] = Field(default=None, gt=0.0)
-    attachment_point: Optional[Literal[
-        'TOP_LEFT', 'TOP_CENTER', 'TOP_RIGHT',
-        'MIDDLE_LEFT', 'MIDDLE_CENTER', 'MIDDLE_RIGHT',
-        'BOTTOM_LEFT', 'BOTTOM_CENTER', 'BOTTOM_RIGHT'
-    ]] = None
-    flow_direction: Optional[Literal['LEFT_TO_RIGHT', 'TOP_TO_BOTTOM', 'BY_STYLE']] = None
-    line_spacing_style: Optional[Literal['AT_LEAST', 'EXACT']] = None
-    line_spacing_factor: Optional[float] = Field(default=None, ge=0.25, le=4.0)
-    bg_fill_enabled: Optional[bool] = None
-    bg_fill_color: Optional[ColorModel] = None # Can be window background, a specific color, or foreground
-    bg_fill_scale: Optional[float] = Field(default=None, gt=0.0)
-    underline: Optional[bool] = None
-    overline: Optional[bool] = None
-    strike_through: Optional[bool] = None
-    paragraph_props: Optional[TextParagraphPropertiesConfig] = None
-    rotation: Optional[float] = Field(default=None, ge=0.0, lt=360.0) # Degrees
-
-class HatchPropertiesConfig(BaseModel):
-    pattern_name: str = "SOLID"
-    scale: float = Field(default=1.0, gt=0.0)
-    angle: float = Field(default=0.0, ge=0.0, lt=360.0) # Degrees
-    color: ColorModel = "BYLAYER"
-    transparency: float = Field(default=0.0, ge=0.0, le=1.0)
-
-# --- Main Style Object Model (for presets and inline definitions) ---
-class StyleObjectConfig(BaseModel):
-    layer_props: Optional[LayerDisplayPropertiesConfig] = None
-    text_props: Optional[TextStylePropertiesConfig] = None
-    hatch_props: Optional[HatchPropertiesConfig] = None
-
-# --- ADDITION: StyleRuleConfig for feature-specific conditional styling ---
-class StyleRuleConfig(BaseModel):
-    name: Optional[str] = Field(default=None, description="Optional descriptive name for the style rule.")
-    condition: str = Field(description="Condition to evaluate against feature attributes. E.g., \"property_name==expected_value\", \"property_name_exists\".")
-    style_override: StyleObjectConfig = Field(description="Style properties to apply if the condition is met.")
-    priority: int = Field(default=0, description="Rules with lower priority numbers are evaluated first. Higher numbers override lower ones if conditions match.")
-    terminate: bool = Field(default=False, description="If True and this rule's condition matches, no further style rules for this layer are processed for the feature.")
-
-# --- Data Source Configuration Models ---
-class DataSourceType(str, Enum):
-    SHAPEFILE = "shapefile"
-    GEOJSON = "geojson"
-    CSV_WKT = "csv_wkt"
-    # WMS = "wms" # To be added
-    # WMTS = "wmts" # To be added
-    # POSTGIS = "postgis" # To be added
-
-class BaseSourceConfig(BaseModel):
-    type: DataSourceType
-
-class ShapefileSourceConfig(BaseSourceConfig):
-    type: Literal[DataSourceType.SHAPEFILE] = DataSourceType.SHAPEFILE
-    path: str
-    encoding: Optional[str] = None
-    crs: Optional[str] = None
-
-class GeoJsonSourceConfig(BaseSourceConfig):
-    type: Literal[DataSourceType.GEOJSON] = DataSourceType.GEOJSON
-    path: str
-
-class CsvWktSourceConfig(BaseSourceConfig):
-    type: Literal[DataSourceType.CSV_WKT] = DataSourceType.CSV_WKT
-    path: str
-    wkt_column: str = "wkt"
-    delimiter: str = ","
-    crs: Optional[str] = None
-
-AnySourceConfig = Union[
-    ShapefileSourceConfig,
-    GeoJsonSourceConfig,
-    CsvWktSourceConfig
-]
-
-# --- Operation Configuration Models ---
-class OperationType(str, Enum):
-    BUFFER = "buffer"
-    INTERSECTION = "intersection"
-    MERGE = "merge"
-    DISSOLVE = "dissolve"
-    FILTER_BY_ATTRIBUTE = "filter_by_attribute"
-    SIMPLIFY = "simplify"
-    FIELD_MAPPER = "field_mapper"
-    REPROJECT = "reproject"
-    CLEAN_GEOMETRY = "clean_geometry"
-    EXPLODE_MULTIPART = "explode_multipart"
-    LABEL_PLACEMENT = "label_placement"
-    # ... other operation types to be added
-
-class BaseOperationConfig(BaseModel):
-    type: OperationType
-    # Common fields for all operations, e.g., output_layer_name if applicable
-    # output_layer_name: Optional[str] = None
-
-class BufferOperationConfig(BaseOperationConfig):
-    type: Literal[OperationType.BUFFER] = OperationType.BUFFER
-    source_layer: Optional[str] = None # Name of the layer to buffer
-    distance: float
-    output_layer_name: Optional[str] = None # Name of the new layer to create with buffered geometry
-
-    distance_field: Optional[str] = Field(default=None, description="Optional field name in feature attributes for per-feature buffer distance.")
-    join_style: Literal['ROUND', 'MITRE', 'BEVEL'] = Field(default='ROUND', description="Style for joining buffer corners.")
-    cap_style: Literal['ROUND', 'FLAT', 'SQUARE'] = Field(default='ROUND', description="Style for end caps of linear feature buffers.")
-    resolution: int = Field(default=16, ge=1, description="Resolution of the buffer approximation (number of segments per quadrant).")
-    mitre_limit: float = Field(default=5.0, gt=0, description="Mitre limit for MITRE join style.")
-    # single_sided: bool = Field(default=False, description="If True, creates a single-sided buffer for lines (not yet fully supported by simple buffer).")
-
-    make_valid_pre_buffer: bool = Field(default=True, description="Attempt to make input geometries valid before buffering.")
-    make_valid_post_buffer: bool = Field(default=True, description="Attempt to make output geometries valid after buffering.")
-    skip_islands: bool = Field(default=False, description="If True, removes all islands/holes from the input geometry before buffering (effectively fills holes).")
-    preserve_islands: bool = Field(default=False, description="If True, attempts to preserve islands/holes during buffering (experimental, may not work for all cases).")
-
-    # Optional: dissolve_result: bool = False # This would be a post-processing step, not part of core buffer on individual features
-
-# Placeholder for other operations - to be defined as needed
-class IntersectionOperationConfig(BaseOperationConfig):
-    type: Literal[OperationType.INTERSECTION] = OperationType.INTERSECTION
-    input_layers: List[str] # For intersection, source_layer might be ambiguous, input_layers is better.
-    # Let's assume for now that the implicit chaining won't apply directly to Intersection's multi-input.
-    # If it were to apply, one of the input_layers would be the default.
-    # For now, make output_layer_name optional as per the general requirement.
-    output_layer_name: Optional[str] = None
-
-# --- ADDED PLACEHOLDERS START ---
-class MergeOperationConfig(BaseOperationConfig):
-    type: Literal[OperationType.MERGE] = OperationType.MERGE
-    source_layer: Optional[str] = None
-    output_layer_name: Optional[str] = None
-    # Add specific merge parameters later if needed
-
-class DissolveOperationConfig(BaseOperationConfig):
-    type: Literal[OperationType.DISSOLVE] = OperationType.DISSOLVE
-    source_layer: Optional[str] = None
-    dissolve_by_field: Optional[str] = Field(default=None, description="Attribute field name to dissolve by. If None, all features are dissolved into one.")
-    group_for_missing_key: Optional[str] = Field(default="_NONE_OR_MISSING_", description="Value to use for grouping features where dissolve_by_field is missing or None.")
-    output_layer_name: Optional[str] = None
-
-class FilterByAttributeOperationConfig(BaseOperationConfig):
-    type: Literal[OperationType.FILTER_BY_ATTRIBUTE] = OperationType.FILTER_BY_ATTRIBUTE
-    source_layer: Optional[str] = None
-    filter_expression: str # e.g., "property_a > 10 AND property_b = 'value'"
-    output_layer_name: Optional[str] = None
-# --- ADDED PLACEHOLDERS END ---
-
-# --- New Operation Config Models ---
-class SimplifyOperationConfig(BaseOperationConfig):
-    type: Literal[OperationType.SIMPLIFY] = OperationType.SIMPLIFY
-    source_layer: Optional[str] = None
-    tolerance: float
-    output_layer_name: Optional[str] = None
-    preserve_topology: bool = True
-
-class FieldMappingOperationConfig(BaseOperationConfig):
-    type: Literal[OperationType.FIELD_MAPPER] = OperationType.FIELD_MAPPER
-    source_layer: Optional[str] = None
-    field_map: Dict[str, str]  # {new_field_name: old_field_name_or_expression}
-    output_layer_name: Optional[str] = None
-    # Potentially add options for type casting or expression evaluation
-
-class ReprojectOperationConfig(BaseOperationConfig):
-    type: Literal[OperationType.REPROJECT] = OperationType.REPROJECT
-    source_layer: Optional[str] = None
-    target_crs: str
-    output_layer_name: Optional[str] = None
-    # source_crs can be optional if known from data source
-
-class CleanGeometryOperationConfig(BaseOperationConfig):
-    type: Literal[OperationType.CLEAN_GEOMETRY] = OperationType.CLEAN_GEOMETRY
-    source_layer: Optional[str] = None
-    output_layer_name: Optional[str] = None
-    # Options like: fix_invalid_geometries, remove_small_parts_threshold
-
-class ExplodeMultipartOperationConfig(BaseOperationConfig):
-    type: Literal[OperationType.EXPLODE_MULTIPART] = OperationType.EXPLODE_MULTIPART
-    source_layer: Optional[str] = None
-    output_layer_name: Optional[str] = None
-
-# --- Label Placement Specific Configuration ---
-class LabelSettings(BaseModel): # This is what was referred to as LabelPlacementConfig in interfaces.py
-    """Detailed settings for how labels should be placed."""
-    label_attribute: Optional[str] = Field(default=None, description="Attribute field from feature to use for label text.")
-    fixed_label_text: Optional[str] = Field(default=None, description="A fixed text string to use for all labels.")
-    point_position_override: Optional[str] = Field(default=None, description="Specific placement for point labels (e.g., 'TOP_LEFT', 'CENTER'). Consult placement logic for valid values.")
-    offset_x: Union[float, str] = Field(default=0.0, description="Offset in X direction. Can be a number or an expression using feature attributes.")
-    offset_y: Union[float, str] = Field(default=0.0, description="Offset in Y direction. Can be a number or an expression using feature attributes.")
-    spacing_buffer_factor: float = Field(default=0.2, ge=0.0, description="Factor of text height used as a buffer around labels for collision detection.")
-    avoid_colliding_labels: bool = Field(default=True, description="Whether to run collision detection between labels.")
-    # avoid_features_from_layers: List[str] = Field(default_factory=list, description="List of layer names whose features should be avoided by labels.")
-    # avoid_all_other_features: bool = Field(default=False, description="If true, labels will try to avoid all other geometries in the source_layer not being labeled.")
-
-    # ADDED: Fields for defining label text style, similar to LabelingConfig
-    text_style_preset_name: Optional[str] = Field(default=None, description="Reference to a text style preset defined in AppConfig.style_presets.")
-    text_style_inline: Optional[TextStylePropertiesConfig] = Field(default=None, description="Inline text style properties for the label. Overrides preset values.")
-
-class LabelPlacementOperationConfig(BaseOperationConfig):
-    type: Literal[OperationType.LABEL_PLACEMENT] = OperationType.LABEL_PLACEMENT
-    source_layer: Optional[str] = Field(default=None, description="Name of the layer whose features will be labeled.")
-    output_label_layer_name: Optional[str] = Field(default=None, description="Optional: Name of the new layer to create for the label MTEXT entities. If None, labels are associated with source_layer styling.")
-    label_settings: LabelSettings = Field(default_factory=LabelSettings)
-    # Optional: Refer to a TextStylePreset for the labels
-    # label_text_style_preset: Optional[str] = None
+# Import from new specific schema modules
+from .common_schemas import ColorModel, FontProperties, ExtentsModel, CRSModel
+from .reader_schemas import DataSourceType, BaseReaderConfig, ShapefileSourceConfig, GeoJSONSourceConfig, CsvWktReaderConfig, AnySourceConfig
+from .operation_schemas import (
+    GeometryOperationType, BaseOperationConfig,
+    BufferOperationConfig, SimplifyOperationConfig, DissolveOperationConfig,
+    ReprojectOperationConfig, CleanGeometryOperationConfig, ExplodeMultipartOperationConfig,
+    IntersectionOperationConfig, MergeOperationConfig, FilterByAttributeOperationConfig,
+    FilterByExtentOperationConfig, FieldMappingOperationConfig, LabelPlacementConfig,
+    AnyOperationConfig, FilterOperator, LogicalOperator, FilterCondition # Ensure these are also available if used directly in LayerConfig/ProjectConfig
+)
+from .dxf_writer_schemas import (
+    LinetypeConfig, TextStyleConfig, BlockEntityAttribsConfig, BlockPointConfig,
+    BlockLineConfig, BlockPolylineConfig, BlockCircleConfig, BlockArcConfig,
+    BlockTextConfig, AnyBlockEntityConfig, BlockDefinitionConfig, DxfLayerConfig,
+    DxfWriterConfig
+)
+# Import from new style_schemas.py
+from .style_schemas import (
+    LayerDisplayPropertiesConfig, # For LayerStyleConfig if it uses it directly
+    TextStylePropertiesConfig,    # For LayerStyleConfig if it uses it directly
+    HatchPropertiesConfig,      # For LayerStyleConfig if it uses it directly
+    StyleObjectConfig,          # For ProjectConfig.style_presets and StyleRuleConfig
+    StyleRuleConfig             # For LayerConfig.style_rules
+)
 
 
-AnyOperationConfig = Union[
-    BufferOperationConfig,
-    IntersectionOperationConfig, # Add other specific operation configs here
-    SimplifyOperationConfig,
-    FieldMappingOperationConfig,
-    ReprojectOperationConfig,
-    CleanGeometryOperationConfig,
-    ExplodeMultipartOperationConfig,
-    LabelPlacementOperationConfig,
-    # ADDED PLACEHOLDERS TO UNION:
-    MergeOperationConfig,
-    DissolveOperationConfig,
-    FilterByAttributeOperationConfig
-]
+# --- Layer and Main Project Configuration ---
 
-# --- Legend Configuration Models ---
-class LegendItemStyleConfig(BaseModel):
-    """Defines display style for a legend item's representative geometry."""
-    item_type: Literal['area', 'line', 'diagonal_line', 'empty'] = 'area'
-    # References a StyleObjectConfig preset or can be an inline definition
-    style_preset_name: Optional[str] = None
-    style_inline: Optional[StyleObjectConfig] = None # Overrides preset if both given for specific properties
-    apply_hatch_for_area: bool = True # Only for item_type 'area'
-    block_symbol_name: Optional[str] = None # Name of a DXF block to use as a symbol
-    block_symbol_scale: float = 1.0
-
-class LegendItemConfig(BaseModel):
-    name: str
-    subtitle: Optional[str] = None
-    item_style: LegendItemStyleConfig # Defines how the geometric swatch for the item looks
-    # References TextStylePropertiesConfig presets or can be inline
-    text_style_preset_name: Optional[str] = None
-    text_style_inline: Optional[TextStylePropertiesConfig] = None
-    subtitle_text_style_preset_name: Optional[str] = None
-    subtitle_text_style_inline: Optional[TextStylePropertiesConfig] = None
+class LayerStyleConfig(BaseModel):
+    """Defines visual styling for a layer (primarily for display or intermediate use, not direct DXF layer table)."""
+    # This could be used for QGIS styling, or pre-DXF visualization.
+    # For direct DXF layer properties, use DxfLayerConfig within DxfWriterConfig.
+    # This model seems more aligned with component properties rather than a full StyleObjectConfig.
+    # Let's assume it holds direct properties that StyleService might consolidate or use.
+    fill_color: Optional[ColorModel] = None
+    stroke_color: Optional[ColorModel] = None
+    stroke_width: Optional[float] = Field(default=1.0, description="Stroke width in pixels or points for rendering.")
+    opacity: Optional[float] = Field(default=1.0, description="Opacity from 0.0 (transparent) to 1.0 (opaque).")
+    # If this LayerStyleConfig is meant to be a simpler version of StyleObjectConfig:
+    layer_props: Optional[LayerDisplayPropertiesConfig] = Field(default_factory=LayerDisplayPropertiesConfig)
+    text_props: Optional[TextStylePropertiesConfig] = Field(default_factory=TextStylePropertiesConfig)
+    hatch_props: Optional[HatchPropertiesConfig] = Field(default_factory=HatchPropertiesConfig)
 
 
-class LegendGroupConfig(BaseModel):
-    name: str
-    subtitle: Optional[str] = None
-    items: List[LegendItemConfig] = Field(default_factory=list)
-    # References TextStylePropertiesConfig presets or can be inline
-    title_text_style_preset_name: Optional[str] = None
-    title_text_style_inline: Optional[TextStylePropertiesConfig] = None
-    subtitle_text_style_preset_name: Optional[str] = None
-    subtitle_text_style_inline: Optional[TextStylePropertiesConfig] = None
-
-class LegendLayoutConfig(BaseModel):
-    position_x: float = 0.0
-    position_y: float = 0.0
-    group_spacing: float = 20.0
-    item_spacing: float = 2.0 # Vertical spacing between item swatch and its text, and between items
-    item_swatch_width: float = 30.0
-    item_swatch_height: float = 15.0
-    text_offset_from_swatch: float = 5.0
-    subtitle_spacing_after_title: float = 6.0 # Spacing after a group/legend title to its subtitle
-    title_spacing_to_content: float = 8.0 # Spacing after a title (or its subtitle) to the content below
-    max_text_width: float = 150.0 # Max width for item names/subtitles
-
-class LegendDefinitionConfig(BaseModel):
-    id: str = "default_legend"
-    title: Optional[str] = None
-    subtitle: Optional[str] = None
-    groups: List[LegendGroupConfig] = Field(default_factory=list)
-    layout: LegendLayoutConfig = Field(default_factory=LegendLayoutConfig)
-    # References TextStylePropertiesConfig presets or can be inline
-    overall_title_text_style_preset_name: Optional[str] = None
-    overall_title_text_style_inline: Optional[TextStylePropertiesConfig] = None
-    overall_subtitle_text_style_preset_name: Optional[str] = None
-    overall_subtitle_text_style_inline: Optional[TextStylePropertiesConfig] = None
-    background_box_enabled: bool = False
-    background_box_style_preset_name: Optional[str] = None # For border style of background box
-    background_box_style_inline: Optional[StyleObjectConfig] = None # For border style
-    background_box_margin: float = 5.0
-
-
-# --- Layer Configuration Model ---
 class LayerConfig(BaseModel):
-    name: str
-    source: Optional[AnySourceConfig] = None # A layer might be purely generated
-    operations: List[AnyOperationConfig] = Field(default_factory=list)
-    labeling: Optional[LabelSettings] = Field(default=None, description="Direct configuration for labeling features on this layer. Complements using LabelPlacementOperation directly.")
-    # Style application priority: style_inline_definition > style_preset_name + style_override > style_preset_name
-    style_preset_name: Optional[str] = None # References a preset in AppConfig.style_presets
-    style_inline_definition: Optional[StyleObjectConfig] = None # A full, self-contained style for this layer
-    style_override: Optional[StyleObjectConfig] = None # Partial overrides for the preset
+    """Configuration for a single data processing layer."""
+    name: str = Field(description="Unique name for the layer.")
+    source: AnySourceConfig = Field(description="Data source configuration.")
+    operations: Optional[List[AnyOperationConfig]] = Field(default=None, description="List of operations to perform on this layer.")
+    style: Optional[LayerStyleConfig] = Field(default=None, description="Basic styling information for the layer.") # Kept original style field
 
-    # --- ADDITION: List of feature-specific style rules ---
-    style_rules: List[StyleRuleConfig] = Field(default_factory=list, description="List of rules for conditional, feature-specific styling.")
+    # Fields for StyleService.get_resolved_style_object and feature styling
+    style_preset_name: Optional[str] = Field(default=None, description="Name of a style preset to apply to this layer as a base.")
+    style_inline_definition: Optional[StyleObjectConfig] = Field(default=None, description="An inline StyleObjectConfig to apply as a base or override preset.")
+    style_override: Optional[StyleObjectConfig] = Field(default=None, description="A StyleObjectConfig to specifically override parts of the base style (preset or inline).")
+    style_rules: Optional[List[StyleRuleConfig]] = Field(default_factory=list, description="List of rules for feature-specific styling.")
 
-    enabled: bool = True # To easily toggle layers on/off
+    description: Optional[str] = Field(default=None)
+    enabled: bool = Field(default=True, description="Whether this layer processing is enabled.")
 
-# --- I/O Specific Configuration Models (Existing - to be reviewed/integrated) ---
-class ShapefileReaderConfig(BaseModel):
-    encoding: str = "utf-8"  # Renamed from default_encoding
-    default_source_crs: Optional[str] = Field(None, description="Default source CRS if not available in .prj file or from parameters.")
 
-class GeoJsonReaderConfig(BaseModel):
-    default_source_crs: Optional[str] = Field(None, description="Default source CRS if not available in GeoJSON file.")
-    encoding_override: Optional[str] = Field(None, description="Override encoding for reading GeoJSON (usually UTF-8 by spec).")
+class ProjectConfig(BaseModel):
+    """Root configuration for a DXF Planner project."""
+    project_name: str = Field(default="DXFPlannerProject", description="Name of the project.")
+    default_crs: Optional[CRSModel] = Field(default=None, description="Default Coordinate Reference System for the project if not specified elsewhere.")
+    layers: List[LayerConfig] = Field(description="List of layer configurations.")
+    dxf_writer: DxfWriterConfig = Field(description="Configuration for the DXF writer and output DXF properties.")
+    style_presets: Dict[str, StyleObjectConfig] = Field(default_factory=dict, description="Reusable style presets.")
 
-class CsvWktReaderConfig(BaseModel):
-    wkt_column: str = "wkt"
-    delimiter: str = ","
-    default_source_crs: Optional[str] = Field(None, alias="crs")
-    encoding: str = "utf-8"
+    # Global settings, logging, etc.
+    # log_level: Optional[str] = Field(default="INFO", description="Logging level (e.g., DEBUG, INFO, WARNING, ERROR).")
+    # temp_file_path: Optional[str] = Field(default=None, description="Path for temporary files. If None, uses system temp.")
 
-class DxfWriterConfig(BaseModel):
-    target_dxf_version: str = "AC1027"  # AutoCAD 2013-2017 (ezdxf R2013)
-    default_layer_for_unmapped: str = Field("0", alias="default_layer") # Keep alias
-    default_color_for_unmapped: int = Field(256, alias="default_color")  # 256 = ByLayer
-    layer_mapping_by_attribute_value: Dict[str, Dict[str, str]] = Field(default_factory=dict)
-    default_text_height_for_unmapped: float = Field(2.5, alias="default_text_height")
+    @validator('layers')
+    def layer_names_unique(cls, layers):
+        names = [layer.name for layer in layers]
+        if len(names) != len(set(names)):
+            raise ValueError('Layer names must be unique within a project.')
+        return layers
 
-    # New fields for enhanced document setup and control
-    xdata_application_name: str = "DXFPlanner"
-    document_properties: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Key-value pairs for DXF header variables, e.g., {'AUTHOR': 'My Name'}")
-    defined_text_styles: Optional[Dict[str, TextStylePropertiesConfig]] = Field(
-        default_factory=dict,
-        description="Definitions for text styles to be created in the DXF document."
-    )
-    default_text_style_name: str = Field(
-        default="Standard",
-        description="Default text style name to use for text entities if not otherwise specified."
-    )
-    audit_on_save: bool = Field(
-        default=True,
-        description="If True, performs an audit of the DXF document before saving."
-    )
-    # For iterative output
-    template_file: Optional[str] = Field(default=None, description="Path to a template DXF file to use if output_filepath does not exist.")
-    output_filepath_config: Optional[str] = Field(default=None, description="Path to the target output DXF file, specified in config. Can be overridden by CLI.", alias="output_filepath")
-
-# --- Grouped I/O Configurations (Existing - to be reviewed/integrated) ---
-class ReaderConfigs(BaseModel):
-    shapefile: ShapefileReaderConfig = Field(default_factory=ShapefileReaderConfig)
-    geojson: GeoJsonReaderConfig = Field(default_factory=GeoJsonReaderConfig)
-    csv_wkt: CsvWktReaderConfig = Field(default_factory=CsvWktReaderConfig)
-
-class WriterConfigs(BaseModel):
-    dxf: DxfWriterConfig = Field(default_factory=DxfWriterConfig)
-
-class IOSettings(BaseModel):
-    readers: ReaderConfigs = Field(default_factory=ReaderConfigs)
-    writers: WriterConfigs = Field(default_factory=WriterConfigs)
-    # Root level output path, an alternative to putting it in DxfWriterConfig if it feels more global
-    output_filepath: Optional[str] = Field(default=None, description="Path to the target output DXF file, specified in config. Can be overridden by CLI.")
-
-# --- Service Specific Configuration Models (Existing - mostly fine, may need minor tweaks later) ---
-class MappingRuleConfig(BaseModel):
-    """Defines a single rule for mapping a feature attribute or expression to a DXF property."""
-    dxf_property_name: str = Field(description="Target DXF property name (e.g., 'layer', 'color', 'text_height').")
-    source_expression: str = Field(description="Expression to evaluate for the property's value. Feature properties are available in 'properties' dict (e.g., \"properties['IN_FIELD'] * 10\").")
-    condition: Optional[str] = Field(default=None, description="Optional expression. If provided and evaluates to True, this rule is applied.")
-    target_type: Optional[Literal["str", "int", "float", "bool", "aci_color"]] = Field(default=None, description="Target type for the evaluated expression. 'aci_color' implies specific handling for ACI color values.")
-    on_error_value: Optional[Any] = Field(default=None, description="Value to use if expression evaluation or type casting fails. If None, property might be skipped or service default used.")
-    priority: int = Field(default=0, description="Priority of the rule. Lower numbers are processed first. First successful rule for a property wins.")
-
-class AttributeMappingServiceConfig(BaseModel):
-    # attribute_for_layer: Optional[str] = None # REMOVED
-    # attribute_for_color: Optional[str] = None # REMOVED
-    # attribute_for_text_content: Optional[str] = None # REMOVED
-    # attribute_for_text_height: Optional[str] = None # REMOVED
-    mapping_rules: List[MappingRuleConfig] = Field(default_factory=list, description="List of rules to map feature attributes/expressions to DXF properties.")
-    default_dxf_layer_on_mapping_failure: str = "UNMAPPED_DATA"
-
-class CoordinateServiceConfig(BaseModel):
-    default_source_crs: Optional[str] = None
-    default_target_crs: Optional[str] = None
-
-class DxfGenerationServiceConfig(BaseModel):
-    output_file_precision: int = 6
-    create_missing_layers: bool = True
-
-class ValidationServiceConfig(BaseModel):
-    check_for_valid_geometries: bool = True
-    min_points_for_polyline: int = 2
-
-# --- Grouped Service Configurations (Existing) ---
-class ServicesSettings(BaseModel):
-    attribute_mapping: AttributeMappingServiceConfig = Field(default_factory=AttributeMappingServiceConfig)
-    coordinate: CoordinateServiceConfig = Field(default_factory=CoordinateServiceConfig)
-    dxf_generation: DxfGenerationServiceConfig = Field(default_factory=DxfGenerationServiceConfig)
-    validation: ValidationServiceConfig = Field(default_factory=ValidationServiceConfig)
-
-# --- Root Application Configuration Model ---
-class AppConfig(BaseModel):
-    """Root configuration model for the DXFPlanner application."""
-    logging: LoggingConfig = Field(default_factory=LoggingConfig)
-    io: IOSettings = Field(default_factory=IOSettings) # This now contains the output_filepath
-    services: ServicesSettings = Field(default_factory=ServicesSettings)
-
-    # New additions for detailed pipeline configuration
-    style_presets: Dict[str, StyleObjectConfig] = Field(default_factory=dict)
-    layers: List[LayerConfig] = Field(default_factory=list)
-    legends: List[LegendDefinitionConfig] = Field(default_factory=list)
-
-    # Global DXF settings that might not fit under DxfWriterConfig specific to output action
-    # e.g. global unit settings or drawing limits, if ever needed.
-    # For now, most DXF output specifics are in DxfWriterConfig.
-
-    class Config:
-        validate_assignment = True
+# Re-export all imported names for easier access from other modules if they were importing from schemas.py
+# This makes the refactoring less breaking for modules that did `from .config.schemas import X`
+__all__ = [
+    "ColorModel", "FontProperties", "ExtentsModel", "CRSModel",
+    "DataSourceType", "BaseReaderConfig", "ShapefileSourceConfig", "GeoJSONSourceConfig", "CsvWktReaderConfig", "AnySourceConfig",
+    "GeometryOperationType", "BaseOperationConfig",
+    "BufferOperationConfig", "SimplifyOperationConfig", "DissolveOperationConfig",
+    "ReprojectOperationConfig", "CleanGeometryOperationConfig", "ExplodeMultipartOperationConfig",
+    "IntersectionOperationConfig", "MergeOperationConfig", "FilterByAttributeOperationConfig",
+    "FilterByExtentOperationConfig", "FieldMappingOperationConfig", "LabelPlacementConfig",
+    "AnyOperationConfig", "FilterOperator", "LogicalOperator", "FilterCondition",
+    "LinetypeConfig", "TextStyleConfig", "BlockEntityAttribsConfig", "BlockPointConfig",
+    "BlockLineConfig", "BlockPolylineConfig", "BlockCircleConfig", "BlockArcConfig",
+    "BlockTextConfig", "AnyBlockEntityConfig", "BlockDefinitionConfig", "DxfLayerConfig",
+    "DxfWriterConfig",
+    "LayerStyleConfig", "LayerConfig", "ProjectConfig",
+    # Added from style_schemas for StyleService direct imports from this module
+    "LayerDisplayPropertiesConfig", "TextStylePropertiesConfig", "HatchPropertiesConfig",
+    "StyleObjectConfig", "StyleRuleConfig"
+]
