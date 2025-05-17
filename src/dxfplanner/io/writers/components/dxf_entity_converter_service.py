@@ -1,11 +1,11 @@
 from typing import Any, Optional, cast, Tuple, Union, Dict
 import math
+from pathlib import Path
 import ezdxf
 from ezdxf.document import Drawing
 from ezdxf.layouts import Modelspace
 from ezdxf.entities import DXFGraphic, Point, Line, LWPolyline, Hatch, MText, Text, Insert, Circle, Arc, Polyline as EzdxfPolyline
 import yaml
-from pathlib import Path
 
 from dxfplanner.config.schemas import ProjectConfig, DxfWriterConfig, LayerStyleConfig, HatchPropertiesConfig, TextStyleConfig
 from dxfplanner.domain.models.dxf_models import (
@@ -31,10 +31,24 @@ class DxfEntityConverterService(IDxfEntityConverterService):
         self.name_to_aci_map: Dict[str, int] = {}
 
         # Load ACI color map from YAML
-        # TODO: Make this path configurable, potentially via DxfWriterConfig.aci_colors_map_path
-        aci_colors_yaml_path = Path("/home/g/dev/Gunther-Schulz/Python-ACAD-Tools/aci_colors.yaml")
+        yaml_path_str = self.writer_config.aci_colors_map_path
+        if yaml_path_str:
+            aci_colors_yaml_path = Path(yaml_path_str)
+            # If the path from config is relative, assume it's relative to CWD (project root).
+            # A more robust solution might involve resolving relative to the main project config file.
+            if not aci_colors_yaml_path.is_absolute():
+                aci_colors_yaml_path = Path.cwd() / aci_colors_yaml_path
+                self.logger.info(f"ACI colors map path '{yaml_path_str}' from config is relative, resolved to: {aci_colors_yaml_path}")
+            else:
+                self.logger.info(f"Using absolute ACI colors map path from config: {aci_colors_yaml_path}")
+        else:
+            # Default to "aci_colors.yaml" in the current working directory (assumed project root)
+            aci_colors_yaml_path = Path.cwd() / "aci_colors.yaml"
+            self.logger.info(f"No ACI colors map path configured in DxfWriterConfig, defaulting to: {aci_colors_yaml_path}")
+
         if aci_colors_yaml_path.exists():
             try:
+                # TODO: Load ACI colors map from YAML
                 with open(aci_colors_yaml_path, 'r') as f:
                     aci_data = yaml.safe_load(f)
                     if isinstance(aci_data, list):
@@ -128,21 +142,14 @@ class DxfEntityConverterService(IDxfEntityConverterService):
                     actual_color_to_pass = effective_color_val.rgb
                 elif effective_color_val.aci is not None:
                     actual_color_to_pass = effective_color_val.aci
-            else:
+                # else: ColorModel validator ensures at least one is present
+            else: # It's already an int (ACI), str (name/RGB string), or tuple (RGB)
                 actual_color_to_pass = effective_color_val
 
             if actual_color_to_pass is not None:
-                resolved_color_value = get_color_code(actual_color_to_pass, self.name_to_aci_map)
-
-                if isinstance(resolved_color_value, tuple):
-                    entity.rgb = resolved_color_value
-                    self.logger.debug(f"Applied True Color (RGB): {resolved_color_value} to entity {entity.dxf.handle}")
-                elif isinstance(resolved_color_value, int):
-                    entity.dxf.color = resolved_color_value
-                    self.logger.debug(f"Applied ACI Color: {resolved_color_value} to entity {entity.dxf.handle}")
-                else:
-                    self.logger.warning(f"Unexpected color value type from get_color_code: {resolved_color_value}. Color may not be set correctly.")
-                    entity.dxf.color = 256
+                entity.dxf.color = get_color_code(actual_color_to_pass, self.name_to_aci_map)
+            # else: if ColorModel was valid but actual_color_to_pass became None (e.g. future logic),
+            # default color is handled by get_color_code if actual_color_to_pass is None.
 
         # Linetype
         effective_linetype = dxf_model.linetype or (layer_style_cfg.layer_props.linetype if layer_style_cfg.layer_props else None)
@@ -151,6 +158,7 @@ class DxfEntityConverterService(IDxfEntityConverterService):
         else:
             # Explicitly set to BYLAYER if not specified, to inherit from layer
             entity.dxf.linetype = "BYLAYER"
+
 
         # Lineweight
         # Note: DxfEntity model does not currently have lineweight.
@@ -161,6 +169,7 @@ class DxfEntityConverterService(IDxfEntityConverterService):
         else:
             # Explicitly set to BYLAYER if not specified
             entity.dxf.lineweight = ezdxf.const.LINEWEIGHT_BYLAYER
+
 
         # Transparency
         # DxfEntity model also does not have transparency. Use LayerStyleConfig.
@@ -315,8 +324,8 @@ class DxfEntityConverterService(IDxfEntityConverterService):
                 self.logger.debug(f"Hatch set to SOLID fill. Island style: {hatch.dxf.hatch_style}")
 
                 # Revised color setting for SOLID fills:
-                if model_hatch_props and model_hatch_props.color:
-                    color_model_val = model_hatch_props.color
+                if model_hatch_props and model_hatch_props.pattern_color:
+                    color_model_val = model_hatch_props.pattern_color # This is a ColorModel instance
 
                     if color_model_val.rgb is not None:
                         hatch.rgb = color_model_val.rgb # ezdxf handles setting .dxf.color to BYLAYER and .dxf.true_color
@@ -324,12 +333,12 @@ class DxfEntityConverterService(IDxfEntityConverterService):
                     elif color_model_val.aci is not None:
                         # Fallback to ACI if RGB is not present in the ColorModel
                         # get_color_code will return the ACI value directly if it's an int.
-                        resolved_color_aci = get_color_code(color_model_val.aci, {}) # Placeholder
+                        resolved_color_aci = get_color_code(color_model_val.aci, self.name_to_aci_map)
                         hatch.dxf.color = resolved_color_aci
                         self.logger.debug(f"Solid Hatch: Set fill color using ACI: {color_model_val.aci} -> resolved to {resolved_color_aci}")
                     # else: ColorModel is valid but has neither RGB nor ACI - should not happen due to Pydantic validation.
                     # In this case, color would be inherited from layer via _apply_common_dxf_attributes if not set here.
-                # If model_hatch_props.color is None, color will be handled by _apply_common_dxf_attributes
+                # If model_hatch_props.pattern_color is None, color will be handled by _apply_common_dxf_attributes
 
             else: # Pattern fill
                 # Pattern fill

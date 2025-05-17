@@ -210,7 +210,7 @@ class DIContainer(containers.DeclarativeContainer):
         DxfResourceSetupService,
         project_config=project_config_instance_provider
     )
-    dxf_entity_converter_service = providers.Factory(
+    dxf_entity_converter_service = providers.Singleton(
         DxfEntityConverterService,
         project_config=project_config_instance_provider # Assuming it takes ProjectConfig
     )

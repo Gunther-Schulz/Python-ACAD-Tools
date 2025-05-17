@@ -66,33 +66,33 @@ layers:
             # height can be inherited from preset or overridden here if needed
             # color can be set here too if needed to override preset/layer color
 
-legends:
-  - id: "main_legend"
-    title: "Test Legend"
-    overall_title_text_style_preset_name: "StandardLegend" # Refers to dxf_writer.text_style_presets
-    layout:
-      position_x: 10
-      position_y: -10
-      swatch_width: 10 # Corrected name
-      swatch_height: 5 # Corrected name
-      swatch_to_text_spacing: 2 # Corrected name
-      item_spacing: 3
-      group_spacing: 8
-      title_spacing_to_content: 5
-    groups:
-      - name: "Feature Types"
-        group_text_style_preset_name: "StandardLegend"
-        items:
-          - label: "Buffered Polygons" # Corrected 'name' to 'label' (field in LegendItemConfig)
-            style_preset_source: "DefaultPolygonStyle" # Corrected field name (LegendItemConfig)
-            item_specific_style: # Field in LegendItemConfig, maps to LegendItemStyleConfig
-              swatch_type: "area" # Corrected field name (LegendItemStyleConfig)
-            item_text_style_preset_name: "StandardLegend"
-            # apply_hatch_for_area: true # REMOVED: Not a field in LegendItemConfig or its sub-models. Hatching comes from StyleObjectConfig via style_preset_source.
-          - label: "Polygon Labels" # Corrected 'name' to 'label'
-            item_specific_style:
-              swatch_type: "empty" # Corrected field name
-            item_text_style_preset_name: "StandardLegend"
+# legends:
+#   - id: "main_legend"
+#     title: "Test Legend"
+#     overall_title_text_style_preset_name: "StandardLegend" # Refers to dxf_writer.text_style_presets
+#     layout:
+#       position_x: 10
+#       position_y: -10
+#       swatch_width: 10 # Corrected name
+#       swatch_height: 5 # Corrected name
+#       swatch_to_text_spacing: 2 # Corrected name
+#       item_spacing: 3
+#       group_spacing: 8
+#       title_spacing_to_content: 5
+#     groups:
+#       - name: "Feature Types"
+#         group_text_style_preset_name: "StandardLegend"
+#         items:
+#           - label: "Buffered Polygons" # Corrected 'name' to 'label' (field in LegendItemConfig)
+#             style_preset_source: "DefaultPolygonStyle" # Corrected field name (LegendItemConfig)
+#             item_specific_style: # Field in LegendItemConfig, maps to LegendItemStyleConfig
+#               swatch_type: "area" # Corrected field name (LegendItemStyleConfig)
+#             item_text_style_preset_name: "StandardLegend"
+#             # apply_hatch_for_area: true # REMOVED: Not a field in LegendItemConfig or its sub-models. Hatching comes from StyleObjectConfig via style_preset_source.
+#           - label: "Polygon Labels" # Corrected 'name' to 'label'
+#             item_specific_style:
+#               swatch_type: "empty" # Corrected field name
+#             item_text_style_preset_name: "StandardLegend"
 
 pipelines:
   - name: "DefaultPipeline"
