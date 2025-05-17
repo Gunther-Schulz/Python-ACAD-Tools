@@ -14,7 +14,7 @@ from dxfplanner.config.dxf_writer_schemas import ( # Import specific block confi
 from dxfplanner.domain.models.dxf_models import AnyDxfEntity
 from dxfplanner.domain.interfaces import IDxfResourceSetupService
 from dxfplanner.core.logging_config import get_logger
-from dxfplanner.geometry.utils import sanitize_layer_name
+from dxfplanner.geometry.layer_utils import sanitize_layer_name
 
 logger = get_logger(__name__)
 

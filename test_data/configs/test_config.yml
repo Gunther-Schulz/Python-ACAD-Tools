@@ -6,6 +6,19 @@ services:
     default_source_crs: "EPSG:32632"
     default_target_crs: "EPSG:25832"
 
+# REMOVED IO block for reader configurations
+# io:
+#   readers:
+#     shapefile:
+#       type: "SHAPEFILE"
+#       path: "dummy_placeholder.shp"
+#     geojson:
+#       type: "GEOJSON"
+#       path: "dummy_placeholder.geojson"
+#     csv_wkt:
+#       type: "CSV_WKT"
+#       path: "dummy_placeholder.csv"
+
 logging:
   level: "DEBUG"
   format: "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>"

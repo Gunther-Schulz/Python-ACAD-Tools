@@ -38,10 +38,16 @@ def common_options(
     Initialization (config loading, logging, DI) happens before commands run.
     """
     try:
-        project_config = initialize_app()
-        ctx.obj = project_config
-        # logger = container.logger() # Get logger after init
-        # logger.debug(f"CLI initialized with config: {project_config.model_dump_json(indent=2)}")
+        # project_config = initialize_app() # OLD: initialize_app returns container now
+        initialized_container = initialize_app() # NEW: store the container
+        # ctx.obj = project_config # OLD: this would set ctx.obj to the container
+        ctx.obj = initialized_container.project_config_instance_provider() # NEW: get Pydantic model from provider
+
+        # logger = container.logger() # This was commented out, container is global or from initialized_container
+        # Get logger from the initialized container if needed here for debug
+        # cli_logger = initialized_container.logger()
+        # cli_logger.debug(f"CLI common_options: ProjectConfig instance set in ctx.obj")
+
     except DXFPlannerBaseError as e:
         # Use Typer's way to print errors and exit for CLI consistency
         typer.secho(f"Error during application initialization: {e}", fg=typer.colors.RED, err=True)
@@ -109,10 +115,23 @@ def generate_dxf(
 
         Path(final_output_path_str).parent.mkdir(parents=True, exist_ok=True)
 
-        asyncio.run(main_runner(
+        success_status = asyncio.run(main_runner( # CAPTURE RETURN VALUE
             output_file=final_output_path_str,
         ))
-        typer.secho(f"Successfully generated DXF: {final_output_path_str}", fg=typer.colors.GREEN)
+
+        if success_status: # CHECK STATUS
+            typer.secho(f"Successfully generated DXF: {final_output_path_str}", fg=typer.colors.GREEN)
+        else:
+            # Error messages should have already been logged by main_runner or its callees
+            # The typer.secho calls in the except blocks below will handle CLI error output
+            # We just need to ensure we exit with an error code if success_status is False
+            # and no specific exception was caught by generate_dxf's own try/except.
+            # However, main_runner's exceptions are caught internally and logged, not re-raised to here.
+            # So if success_status is False, it means an error was handled in main_runner.
+            # We should ensure cli.py also reports a failure to the user via typer and exits.
+            logger.error(f"DXF generation reported failure from main_runner for: {final_output_path_str}") # Log it here too
+            typer.secho(f"DXF generation failed for {final_output_path_str}. Check logs for details.", fg=typer.colors.RED, err=True)
+            raise typer.Exit(code=1) # Ensure exit with error code
 
     except DXFPlannerBaseError as e:
         logger.error(f"DXF generation failed: {e}", exc_info=True) # Log detailed error

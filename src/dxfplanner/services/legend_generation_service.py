@@ -9,8 +9,9 @@ from ezdxf import const as ezdxf_const # For MTEXT consts
 from ..config.schemas import (
     ProjectConfig, LegendDefinitionConfig, LegendLayoutConfig, LegendGroupConfig, LegendItemConfig,
     LegendItemStyleConfig, TextStylePropertiesConfig, StyleObjectConfig,
-    LayerDisplayPropertiesConfig, HatchPropertiesConfig, ColorModel # Added more specific style configs, ColorModel
+    LayerDisplayPropertiesConfig, HatchPropertiesConfig, ColorModel, LayerConfig # Added more specific style configs, ColorModel, LayerConfig
 )
+from ..config.reader_schemas import GeoJSONSourceConfig, DataSourceType
 from ..domain.interfaces import ILegendGenerator, IDxfWriter, IStyleService, IDxfEntityConverterService
 from ..core.exceptions import ConfigurationError # For missing style presets
 # Import DxfEntity models and LayerStyleConfig
@@ -110,6 +111,9 @@ class LegendGenerationService(ILegendGenerator):
         layout = legend_config.layout
         title_layer_name = self._get_sanitized_layer_name(f"Legend_{legend_config.id}_Title")
 
+        # Create a dummy source for the temporary LayerConfig
+        dummy_source = GeoJSONSourceConfig(path="internal_legend_layer.geojson", type=DataSourceType.GEOJSON)
+
         if legend_config.title:
             title_style_props = self.style_service.get_text_style_properties(
                 style_reference=legend_config.overall_title_text_style_inline if legend_config.overall_title_text_style_inline else legend_config.overall_title_text_style_preset_name,
@@ -121,7 +125,11 @@ class LegendGenerationService(ILegendGenerator):
             # Create LayerStyleConfig for the MTEXT entity
             # Layer properties for the text itself (color, linetype, etc.) will be part of text_style within LayerStyleConfig
             # The main color/linetype of LayerStyleConfig here would be for the layer the text is on, if not overridden by text_style's color.
-            layer_display_properties = self.style_service.get_layer_display_properties(layer_name_or_config=title_layer_name)
+
+            # CORRECTED CALL: Pass a LayerConfig object
+            temp_layer_cfg_title = LayerConfig(name=title_layer_name, source=dummy_source)
+            layer_display_properties = self.style_service.get_layer_display_properties(layer_config=temp_layer_cfg_title)
+
             legend_item_layer_style = LayerStyleConfig(
                 name=title_layer_name,
                 color=layer_display_properties.color, # Color for the layer
@@ -141,7 +149,7 @@ class LegendGenerationService(ILegendGenerator):
                 rotation=title_style_props.rotation_degrees or 0.0, # DxfMText uses 'rotation'
                 attachment_point=title_style_props.attachment_point.upper() if title_style_props.attachment_point else None, # Pass string, converter handles specific ezdxf const
                 width=layout.max_text_width,
-                line_spacing_factor=title_style_props.line_spacing_factor,
+                line_spacing_factor=title_style_props.paragraph_props.line_spacing_factor if title_style_props.paragraph_props else None,
                 xdata_app_id=app_id if app_id else None,
                 xdata_tags=[(1000, "legend_item"), (1000, f"{legend_tag_prefix}_main_title")] if app_id else None
             )
@@ -169,7 +177,9 @@ class LegendGenerationService(ILegendGenerator):
                 self.logger.warning(f"No subtitle text style found for legend '{legend_config.id}'. Using defaults.")
                 subtitle_style_props = TextStylePropertiesConfig()
 
-            layer_display_properties_sub = self.style_service.get_layer_display_properties(layer_name_or_config=title_layer_name)
+            # CORRECTED CALL: Pass a LayerConfig object
+            temp_layer_cfg_subtitle = LayerConfig(name=title_layer_name, source=dummy_source) # Still uses title_layer_name for the subtitle's layer
+            layer_display_properties_sub = self.style_service.get_layer_display_properties(layer_config=temp_layer_cfg_subtitle)
             legend_item_layer_style_sub = LayerStyleConfig(
                 name=title_layer_name,
                 color=layer_display_properties_sub.color,
@@ -189,7 +199,7 @@ class LegendGenerationService(ILegendGenerator):
                 rotation=subtitle_style_props.rotation_degrees or 0.0,
                 attachment_point=subtitle_style_props.attachment_point.upper() if subtitle_style_props.attachment_point else None,
                 width=layout.max_text_width,
-                line_spacing_factor=subtitle_style_props.line_spacing_factor,
+                line_spacing_factor=subtitle_style_props.paragraph_props.line_spacing_factor if subtitle_style_props.paragraph_props else None,
                 xdata_app_id=app_id if app_id else None,
                 xdata_tags=[(1000, "legend_item"), (1000, f"{legend_tag_prefix}_main_subtitle")] if app_id else None
             )
@@ -218,23 +228,30 @@ class LegendGenerationService(ILegendGenerator):
         app_id: Optional[str] # Added app_id
     ) -> float:
         layout = legend_definition.layout
+        original_y_for_group = current_y
+        dummy_source = GeoJSONSourceConfig(path="internal_legend_layer.geojson", type=DataSourceType.GEOJSON) # ADDED dummy_source
+
         self.logger.debug(f"Creating group: {group_config.name} on layer {group_layer_name}")
 
         group_title_style_props = self.style_service.get_text_style_properties(
-            style_reference=group_config.title_text_style_inline if group_config.title_text_style_inline else group_config.title_text_style_preset_name
+            style_reference=group_config.title_text_style_inline if group_config.title_text_style_inline else group_config.title_text_style_preset_name,
+            layer_config_fallback=None # Group title style should be self-contained or from preset
         )
         if not group_title_style_props or (not group_title_style_props.font_name_or_style_preset and not group_config.title_text_style_preset_name and not group_config.title_text_style_inline):
-            self.logger.debug(f"No title style for group '{group_config.name}', using default.")
+            self.logger.warning(f"No text style found for group title '{group_config.name}' in legend '{legend_definition.id}'. Using defaults.")
             group_title_style_props = TextStylePropertiesConfig()
 
-        layer_display_props_grp_title = self.style_service.get_layer_display_properties(layer_name_or_config=group_layer_name)
-        legend_item_layer_style_grp_title = LayerStyleConfig(
+        # CORRECTED CALL: Pass a LayerConfig object
+        temp_layer_cfg_group_title = LayerConfig(name=group_layer_name, source=dummy_source)
+        layer_display_properties_group_title = self.style_service.get_layer_display_properties(layer_config=temp_layer_cfg_group_title)
+
+        group_title_layer_style = LayerStyleConfig(
             name=group_layer_name,
-            color=layer_display_props_grp_title.color,
-            linetype=layer_display_props_grp_title.linetype,
-            lineweight=layer_display_props_grp_title.lineweight,
-            transparency=layer_display_props_grp_title.transparency,
-            plot=layer_display_props_grp_title.plot,
+            color=layer_display_properties_group_title.color,
+            linetype=layer_display_properties_group_title.linetype,
+            lineweight=layer_display_properties_group_title.lineweight,
+            transparency=layer_display_properties_group_title.transparency,
+            plot=layer_display_properties_group_title.plot,
             text_style=group_title_style_props
         )
 
@@ -247,13 +264,13 @@ class LegendGenerationService(ILegendGenerator):
             rotation=group_title_style_props.rotation_degrees or 0.0,
             attachment_point=group_title_style_props.attachment_point.upper() if group_title_style_props.attachment_point else None,
             width=layout.max_text_width,
-            line_spacing_factor=group_title_style_props.line_spacing_factor,
+            line_spacing_factor=group_title_style_props.paragraph_props.line_spacing_factor if group_title_style_props.paragraph_props else None,
             xdata_app_id=app_id if app_id else None,
             xdata_tags=[(1000, "legend_item"), (1000, f"{legend_tag_prefix}_group_{self._sanitize_for_tag(group_config.name)}_title")] if app_id else None
         )
 
         created_grp_title_entity = await self.entity_converter_service.add_dxf_entity_to_modelspace(
-            msp, doc, mtext_grp_title_model, legend_item_layer_style_grp_title
+            msp, doc, mtext_grp_title_model, group_title_layer_style
         )
         actual_height_grp_title = 0.0
         if created_grp_title_entity:
@@ -292,7 +309,7 @@ class LegendGenerationService(ILegendGenerator):
                 rotation=group_subtitle_style_props.rotation_degrees or 0.0,
                 attachment_point=group_subtitle_style_props.attachment_point.upper() if group_subtitle_style_props.attachment_point else None,
                 width=layout.max_text_width,
-                line_spacing_factor=group_subtitle_style_props.line_spacing_factor,
+                line_spacing_factor=group_subtitle_style_props.paragraph_props.line_spacing_factor if group_subtitle_style_props.paragraph_props else None,
                 xdata_app_id=app_id if app_id else None,
                 xdata_tags=[(1000, "legend_item"), (1000, f"{legend_tag_prefix}_group_{self._sanitize_for_tag(group_config.name)}_subtitle")] if app_id else None
             )
@@ -327,6 +344,10 @@ class LegendGenerationService(ILegendGenerator):
         app_id: Optional[str] # Added app_id
     ) -> float:
         layout = legend_definition.layout
+        item_text_x = current_x + layout.swatch_width + layout.swatch_to_text_spacing
+        item_text_y = current_y
+        dummy_source = GeoJSONSourceConfig(path="internal_legend_layer.geojson", type=DataSourceType.GEOJSON) # ADDED dummy_source
+
         self.logger.debug(f"Creating item: {item_config.name} on layer {item_layer_name}")
 
         item_swatch_style_config = item_config.item_style
@@ -460,21 +481,25 @@ class LegendGenerationService(ILegendGenerator):
 
         # Resolve item text style
         item_text_style_props = self.style_service.get_text_style_properties(
-            style_reference=item_config.text_style_inline if item_config.text_style_inline else item_config.text_style_preset_name
+            style_reference=item_config.item_text_style_inline if item_config.item_text_style_inline else item_config.item_text_style_preset_name,
+            # No layer_config_fallback here, item styles are specific
         )
-        if not item_text_style_props or (not item_text_style_props.font_name_or_style_preset and not item_config.text_style_preset_name and not item_config.text_style_inline):
-            self.logger.debug(f"No text style for item '{item_config.name}', using default.")
+        if not item_text_style_props or (not item_text_style_props.font_name_or_style_preset and not item_config.item_text_style_preset_name and not item_config.item_text_style_inline):
+            self.logger.warning(f"No text style found for legend item '{item_config.label}'. Using defaults.")
             item_text_style_props = TextStylePropertiesConfig()
 
-        # Create LayerStyleConfig for the item name text
-        item_name_layer_display_props = self.style_service.get_layer_display_properties(layer_name_or_config=item_layer_name)
-        item_name_layer_style = LayerStyleConfig(
-            name=item_layer_name,
-            color=item_name_layer_display_props.color,
-            linetype=item_name_layer_display_props.linetype,
-            lineweight=item_name_layer_display_props.lineweight,
-            transparency=item_name_layer_display_props.transparency,
-            plot=item_name_layer_display_props.plot,
+        # LayerStyleConfig for the item's text
+        # CORRECTED CALL: Pass a LayerConfig object
+        temp_layer_cfg_item_text = LayerConfig(name=item_layer_name, source=dummy_source) # Text is on the group's layer
+        layer_display_properties_item_text = self.style_service.get_layer_display_properties(layer_config=temp_layer_cfg_item_text)
+
+        item_text_dxf_layer_style = LayerStyleConfig(
+            name=item_layer_name, # Text is on the group's layer
+            color=layer_display_properties_item_text.color,
+            linetype=layer_display_properties_item_text.linetype,
+            lineweight=layer_display_properties_item_text.lineweight,
+            transparency=layer_display_properties_item_text.transparency,
+            plot=layer_display_properties_item_text.plot,
             text_style=item_text_style_props
         )
 
@@ -489,7 +514,7 @@ class LegendGenerationService(ILegendGenerator):
             rotation=item_text_style_props.rotation_degrees or 0.0,
             attachment_point=item_text_style_props.attachment_point.upper() if item_text_style_props.attachment_point else 'MIDDLE_LEFT',
             width=layout.max_text_width - layout.item_swatch_width - layout.text_offset_from_swatch,
-            line_spacing_factor=item_text_style_props.line_spacing_factor,
+            line_spacing_factor=item_text_style_props.paragraph_props.line_spacing_factor if item_text_style_props.paragraph_props else None,
             xdata_app_id=app_id if app_id else None,
             xdata_tags=[(1000, "legend_item"), (1000, item_name_legend_tag)] if app_id else None
         )
@@ -497,7 +522,7 @@ class LegendGenerationService(ILegendGenerator):
         # legend_item_id_name_tag = f"{legend_tag_prefix}_item_{item_tag_suffix}_name"
 
         name_entity = await self.entity_converter_service.add_dxf_entity_to_modelspace(
-            msp, doc, mtext_item_name_model, item_name_layer_style
+            msp, doc, mtext_item_name_model, item_text_dxf_layer_style
         )
         if name_entity: text_entities.append(name_entity)
 
@@ -539,7 +564,7 @@ class LegendGenerationService(ILegendGenerator):
                 rotation=item_subtitle_style_props.rotation_degrees or 0.0,
                 attachment_point=item_subtitle_style_props.attachment_point.upper() if item_subtitle_style_props.attachment_point else 'TOP_LEFT',
                 width=layout.max_text_width - layout.item_swatch_width - layout.text_offset_from_swatch,
-                line_spacing_factor=item_subtitle_style_props.line_spacing_factor,
+                line_spacing_factor=item_subtitle_style_props.paragraph_props.line_spacing_factor if item_subtitle_style_props.paragraph_props else None,
                 xdata_app_id=app_id if app_id else None,
                 xdata_tags=[(1000, "legend_item"), (1000, item_subtitle_legend_tag)] if app_id else None
             )

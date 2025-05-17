@@ -57,7 +57,7 @@ class DxfViewportSetupService(IDxfViewportSetupService):
         # instead of accumulating coords, if their BBox is known without iterating points.
 
         if isinstance(entity_model, DxfPoint):
-            coords.append(entity_model.coordinate)
+            coords.append(entity_model.position)
         elif isinstance(entity_model, DxfLine):
             coords.extend([entity_model.start_point, entity_model.end_point])
         elif isinstance(entity_model, DxfLWPolyline):
@@ -167,9 +167,9 @@ class DxfViewportSetupService(IDxfViewportSetupService):
         view_height = max(width + 2 * padding_x, height + 2 * padding_y)
         if view_height == 0: view_height = 100 # Default if bbox has zero area
 
-        doc.header['$VIEWCTR'] = (center_x, center_y, 0)
-        doc.header['$VIEWSIZE'] = view_height
-        # $VIEWDIR could be set to (0,0,1) for top-down but often defaults correctly
+        # Use documented ezdxf method to set initial modelspace view
+        doc.set_modelspace_vport(height=view_height, center=(center_x, center_y))
+
         self.logger.info(f"Initial view set: Center=({center_x:.2f},{center_y:.2f}), ViewHeight={view_height:.2f}")
 
     async def _setup_main_viewport(self, doc: Drawing) -> None:

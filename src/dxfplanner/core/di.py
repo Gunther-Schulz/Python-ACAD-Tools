@@ -1,5 +1,6 @@
 from dependency_injector import containers, providers
 from typing import TYPE_CHECKING, Optional
+import logging # Ensure logging is imported
 
 # Configuration (Schema defined, loading is separate)
 from dxfplanner.config.schemas import (
@@ -7,7 +8,8 @@ from dxfplanner.config.schemas import (
     ProjectConfig, # ADDED ProjectConfig for instance provider
     AttributeMappingServiceConfig, CoordinateServiceConfig, ValidationServiceConfig,
     DxfWriterConfig, # ADDED for DxfWriterConfig provider
-    ShapefileSourceConfig, GeoJSONSourceConfig, CsvWktReaderConfig
+    ShapefileSourceConfig, GeoJSONSourceConfig, CsvWktReaderConfig,
+    AnyOperationConfig # ADDED for op_config
 )
 
 # Core components
@@ -50,7 +52,7 @@ from dxfplanner.geometry.operations import (
     DissolveOperation,
     FilterByAttributeOperation,
     LabelPlacementOperation,
-    FilterByExtentOperation
+    FilterByExtentOperation,
 )
 
 # ADD NEW DXF WRITER COMPONENT SERVICE IMPLEMENTATIONS
@@ -67,46 +69,34 @@ if TYPE_CHECKING:
 # _di_debug_logger = logging.getLogger(f"{__name__}.di_debug") # REMOVE/COMMENT OUT
 # --- END ADDED DEBUG LOGGING ---
 
-# --- Module-level Resolver Implementations (MOVED HERE) ---
-def _di_resolve_reader(container: 'DIContainerTypeHint', reader_type: DataSourceType) -> IGeoDataReader: # Ensure original signature
-    # _di_debug_logger.critical(f"DI_DEBUG_LITE: _di_resolve_reader CALLED. container={type(container)}, reader_type={reader_type}") # REMOVE/COMMENT OUT
-
-    # Original logic
-    reader_provider = container._geo_data_readers_map_provider().get(reader_type)
-    if not reader_provider:
-        raise ConfigurationError(f"No reader configured for source type: {reader_type}")
-    return reader_provider()
-
-def _di_resolve_operation(container: 'DIContainerTypeHint', op_type: GeometryOperationType) -> IOperation:
-    op_provider = container._operations_map_provider().get(op_type)
-    if not op_provider:
-        raise ConfigurationError(f"No operation configured for type: {op_type}")
-    return op_provider()
+# --- Module-level Resolver Implementations ---
+# REMOVE def _di_resolve_operation(...) function entirely
 
 class DIContainer(containers.DeclarativeContainer):
     """Dependency Injection Container for the DXFPlanner application."""
 
-    # --- Configuration Provider ---
-    # The actual AppConfig instance will be provided by the application's entry point
-    # (e.g., main.py or app.py) after loading it from a file or environment.
-    config = providers.Configuration(strict=True) # strict=True ensures all expected config is provided or has defaults
-    logger = providers.Singleton(
-        logging_config.get_logger
-        # Assuming get_logger is sufficient. If setup_logging needs to be called with config:
-        # providers.Factory(logging_config.setup_logging, config=config.logging) # if setup returns logger
-        # For now, get_logger is simpler. Actual logging setup with config would be done
-        # once at app startup by the main entry point, then get_logger retrieves it.
-    )
-    __self__ = providers.Self() # ADDED explicit self provider
+    __self__ = providers.Self()
 
-    # --- Placeholder for the actual ProjectConfig instance ---
+    # Configuration provider
+    config = providers.Configuration()
+
+    # Placeholder for the actual ProjectConfig Pydantic model instance
     # This will be overridden in app.py after the config is loaded.
-    project_config_instance_provider = providers.Provider() # MODIFIED to be a generic Provider
+    project_config_instance_provider = providers.Provider[ProjectConfig]() # Generic provider, can add type hint
 
-    # --- Config Model Providers (defined first) ---
+    # Logger Provider (depends on config values loaded into 'config')
+    logger = providers.Singleton(
+        logging.getLogger,
+        # name will be resolved from container.config after it's loaded in app.py
+        name=config.logging.default_logger_name
+    )
+
+    # --- Config Model Providers (these take a dict/kwargs, not the full ProjectConfig instance directly) ---
+    # These are for specific sub-sections of the config, still useful.
+    # They will use container.config.services.attribute_mapping() etc.
     attribute_mapping_service_config_provider = providers.Factory(
         AttributeMappingServiceConfig.model_validate,
-        config.services.attribute_mapping
+        config.services.attribute_mapping # This now refers to the config provider
     )
     coordinate_service_config_provider = providers.Factory(
         CoordinateServiceConfig.model_validate,
@@ -116,46 +106,25 @@ class DIContainer(containers.DeclarativeContainer):
         ValidationServiceConfig.model_validate,
         config.services.validation
     )
-    shapefile_reader_config_provider = providers.Factory(
-        ShapefileSourceConfig.model_validate,
-        config.io.readers.shapefile
-    )
-    geojson_reader_config_provider = providers.Factory(
-        GeoJSONSourceConfig.model_validate,
-        config.io.readers.geojson
-    )
-    csv_wkt_reader_config_provider = providers.Factory(
-        CsvWktReaderConfig.model_validate,
-        config.io.readers.csv_wkt
-    )
     dxf_writer_config_model_provider = providers.Factory(
         DxfWriterConfig.model_validate,
         config.dxf_writer
     )
 
     # --- I/O Readers (depend on their config model providers) ---
-    shapefile_reader = providers.Factory(
-        ShapefileReader,
-        config=shapefile_reader_config_provider, # Direct name access
-        logger=logger
-    )
-    geojson_reader = providers.Factory(
-        GeoJsonReader,
-        config=geojson_reader_config_provider, # Direct name access
-        logger=logger
-    )
-    csv_wkt_reader = providers.Factory(
-        CsvWktReader,
-        config=csv_wkt_reader_config_provider, # Direct name access
-        logger=logger
-    )
+    shapefile_reader_provider = providers.Factory(ShapefileReader)
+    geojson_reader_provider = providers.Factory(GeoJsonReader)
+    csv_wkt_reader_provider = providers.Factory(CsvWktReader)
 
-    # --- GeoData Readers Map Provider (depends on individual readers) ---
-    _geo_data_readers_map_provider = providers.Dict({
-        DataSourceType.SHAPEFILE: shapefile_reader,
-        DataSourceType.GEOJSON: geojson_reader,
-        DataSourceType.CSV_WKT: csv_wkt_reader,
-    })
+    # --- GeoData Readers Map ---
+    # This is now a direct Python dictionary holding the factory providers.
+    # It's not a dependency_injector provider itself, but its contents are.
+    # LayerProcessorService will be injected with this dictionary.
+    _geo_data_reader_factories_map = {
+        DataSourceType.SHAPEFILE: shapefile_reader_provider,
+        DataSourceType.GEOJSON: geojson_reader_provider,
+        DataSourceType.CSV_WKT: csv_wkt_reader_provider,
+    }
 
     # --- Style Service (some operations/services depend on this) ---
     style_service = providers.Factory(
@@ -165,25 +134,24 @@ class DIContainer(containers.DeclarativeContainer):
     )
 
     # --- Individual Operation Providers ---
-    buffer_operation_provider = providers.Factory(BufferOperation, logger_param=logger)
+    buffer_operation_provider = providers.Factory(BufferOperation)
     simplify_operation_provider = providers.Factory(SimplifyOperation)
     field_mapping_operation_provider = providers.Factory(FieldMappingOperation)
-    reproject_operation_provider = providers.Factory(ReprojectOperation, logger_param=logger)
-    clean_geometry_operation_provider = providers.Factory(CleanGeometryOperation, logger_param=logger)
-    explode_multipart_operation_provider = providers.Factory(ExplodeMultipartOperation, logger_param=logger)
-    merge_operation_provider = providers.Factory(MergeOperation, logger_param=logger)
-    dissolve_operation_provider = providers.Factory(DissolveOperation, logger_param=logger)
+    reproject_operation_provider = providers.Factory(ReprojectOperation)
+    clean_geometry_operation_provider = providers.Factory(CleanGeometryOperation)
+    explode_multipart_operation_provider = providers.Factory(ExplodeMultipartOperation)
+    merge_operation_provider = providers.Factory(MergeOperation)
+    dissolve_operation_provider = providers.Factory(DissolveOperation)
     filter_by_attribute_operation_provider = providers.Factory(FilterByAttributeOperation, logger_param=logger)
     filter_by_extent_operation_provider = providers.Factory(FilterByExtentOperation, logger_param=logger)
 
     intersection_operation_provider = providers.Factory(
         IntersectionOperation,
-        di_container=providers.Self,
-        logger_param=logger
+        di_container=__self__
     )
     label_placement_service_provider = providers.Singleton(
         LabelPlacementService,
-        logger_param=logger
+        logger=logger
     )
     label_placement_operation_provider = providers.Factory(
         LabelPlacementOperation,
@@ -192,44 +160,24 @@ class DIContainer(containers.DeclarativeContainer):
         logger_param=logger
     )
 
-    # --- Operations Map Provider (depends on individual operations) ---
-    _operations_map_provider = providers.Singleton(
-        lambda buffer_op, simplify_op, field_map_op, reproj_op, clean_op, explode_op, intersect_op, merge_op, dissolve_op, filter_attr_op, label_place_op, filter_extent_op: {
-            GeometryOperationType.BUFFER: buffer_op,
-            GeometryOperationType.SIMPLIFY: simplify_op,
-            GeometryOperationType.FIELD_MAPPING: field_map_op,
-            GeometryOperationType.REPROJECT: reproj_op,
-            GeometryOperationType.CLEAN_GEOMETRY: clean_op,
-            GeometryOperationType.EXPLODE_MULTIPART: explode_op,
-            GeometryOperationType.INTERSECTION: intersect_op,
-            GeometryOperationType.MERGE: merge_op,
-            GeometryOperationType.DISSOLVE: dissolve_op,
-            GeometryOperationType.FILTER_BY_ATTRIBUTE: filter_attr_op,
-            GeometryOperationType.LABEL_PLACEMENT: label_place_op,
-            GeometryOperationType.FILTER_BY_EXTENT: filter_extent_op,
-        },
-        buffer_operation_provider,
-        simplify_operation_provider,
-        field_mapping_operation_provider,
-        reproject_operation_provider,
-        clean_geometry_operation_provider,
-        explode_multipart_operation_provider,
-        intersection_operation_provider,
-        merge_operation_provider,
-        dissolve_operation_provider,
-        filter_by_attribute_operation_provider,
-        label_placement_operation_provider,
-        filter_by_extent_operation_provider
-    )
+    # --- Operations Map (Direct Python Dictionary) ---
+    _OPERATIONS_FACTORIES_STATIC_MAP = { # Renamed from _operations_map
+        GeometryOperationType.BUFFER: buffer_operation_provider,
+        GeometryOperationType.INTERSECTION: intersection_operation_provider,
+        GeometryOperationType.LABEL_PLACEMENT: label_placement_operation_provider,
+        GeometryOperationType.REPROJECT: reproject_operation_provider,
+        GeometryOperationType.SIMPLIFY: simplify_operation_provider,
+        GeometryOperationType.FIELD_MAPPING: field_mapping_operation_provider,
+        GeometryOperationType.CLEAN_GEOMETRY: clean_geometry_operation_provider,
+        GeometryOperationType.EXPLODE_MULTIPART: explode_multipart_operation_provider,
+        GeometryOperationType.MERGE: merge_operation_provider,
+        GeometryOperationType.DISSOLVE: dissolve_operation_provider,
+        GeometryOperationType.FILTER_BY_ATTRIBUTE: filter_by_attribute_operation_provider,
+        GeometryOperationType.FILTER_BY_EXTENT: filter_by_extent_operation_provider,
+    }
 
-    # --- Callable Providers for Resolvers (Using module-level functions) ---
-    reader_resolver = providers.Callable(
-        _di_resolve_reader,
-        container=__self__  # CHANGED from providers.Self
-    )
-    operation_resolver = providers.Callable(
-        _di_resolve_operation,
-        container=__self__  # CHANGED from providers.Self
+    operations_map_provider = providers.Dict(
+        _OPERATIONS_FACTORIES_STATIC_MAP
     )
 
     # --- Core Geoprocessing Services (defined after their dependencies like style_service) ---
@@ -252,8 +200,8 @@ class DIContainer(containers.DeclarativeContainer):
     layer_processor_service_provider = providers.Factory(
         LayerProcessorService,
         project_config=project_config_instance_provider,
-        reader_resolver_provider=reader_resolver, # CHANGED to direct name access from providers.Self.reader_resolver
-        operation_resolver_provider=operation_resolver, # CHANGED to direct name access from providers.Self.operation_resolver
+        geo_data_reader_factories_map=_geo_data_reader_factories_map,
+        operations_map=operations_map_provider,
         geometry_transformer=geometry_transformer_service,
         logger=logger
     )

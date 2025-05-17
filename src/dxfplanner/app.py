@@ -2,6 +2,7 @@ import asyncio
 from pathlib import Path
 from typing import Optional
 from dependency_injector import providers
+import sys
 
 # Configuration loading
 from dxfplanner.config.loaders import load_config_from_yaml, find_config_file, DEFAULT_CONFIG_FILES
@@ -41,10 +42,11 @@ def create_dummy_config_if_not_exists(config_path: Path = Path("config.yml")) ->
 
 async def main_runner(
     output_file: str,
-) -> None:
+) -> bool:
     """Main application logic execution using the configured DxfGenerationService."""
     logger = container.logger()
     logger.info("DXFPlanner application starting...")
+    success = False
 
     try:
         dxf_service: IDxfGenerationService = container.dxf_generation_service() # type: ignore
@@ -52,108 +54,71 @@ async def main_runner(
             output_dxf_path=Path(output_file),
         )
         logger.info(f"DXF generation complete. Output: {output_file}")
+        success = True
 
     except DXFPlannerBaseError as e:
         logger.error(f"Application error: {e}", exc_info=True)
+        success = False
     except Exception as e:
         logger.error(f"An unexpected critical error occurred: {e}", exc_info=True)
+        success = False
 
-def initialize_app() -> ProjectConfig:
-    """
-    Initializes the application: loads config, sets up logging, wires container.
-    Returns the loaded application configuration.
-    """
+    return success
+
+def initialize_app(config_path: Optional[str] = None) -> DIContainer:
+    """Initializes the application: loads config, sets up logging, and wires DI container."""
+
+    # Load configuration using the utility function
+    cfg: ProjectConfig = load_config_from_yaml(config_file_path=config_path)
+
+    # Initialize logging using the loaded configuration
+    # logging_config.setup_logging(level=cfg.logging.level, format_str=cfg.logging.format) # CHANGE THIS
+    logging_config.setup_logging(config=cfg.logging) # TO THIS
+
+    logger = logging_config.get_logger(__name__)
+    # logger.info(f"Logging initialized. Level: {cfg.logging.level}") # This will be logged by setup_logging itself
+
+    # Provide the loaded Pydantic config model instance to the DI container
+    container.project_config_instance_provider.override(providers.Object(cfg))
+
+    # Load the configuration dictionary into the container's config provider
+    # This makes individual config values accessible via container.config.section.key()
+    container.config.from_dict(cfg.model_dump()) # Use .model_dump() for Pydantic v2+
+
+    # Wire the container AFTER config is loaded and provided
+    # Pass relevant modules for wiring (e.g., services, readers, operations)
+    # Example: container.wire(modules=[sys.modules[__name__], dxfplanner.services, dxfplanner.io.readers])
+    # For now, let's assume wiring might be more extensive or handled by specific service needs.
+    # If auto-wiring based on type hints is used, ensure modules are passed.
+    # For now, let's be explicit about modules that might contain Inject markers or need wiring.
+    # We need to ensure that modules using dependency_injector.wiring.inject or providers.Resource are wired.
+    # This usually includes modules with @inject decorators or where services are instantiated.
+    # The CLI module itself often needs wiring if its commands are injected.
     try:
-        config_file_to_load = find_config_file()
-    except ConfigurationError:
-        dummy_path = Path.cwd() / DEFAULT_CONFIG_FILES[0]
-        create_dummy_config_if_not_exists(dummy_path)
-        try:
-            config_file_to_load = find_config_file(dummy_path if dummy_path.exists() else None)
-        except ConfigurationError as ce_after_dummy:
-            print(f"Critical: Could not find or create a config file. Proceeding with built-in defaults. Error: {ce_after_dummy}")
-            project_config = ProjectConfig()
-            if hasattr(project_config, 'logging') and project_config.logging:
-                logging_config.setup_logging(project_config.logging) # type: ignore
-            else:
-                default_log_cfg_dict = {'level': 'INFO', 'format': logging_config.DEFAULT_LOG_FORMAT}
-                logging_config.setup_logging(default_log_cfg_dict)
+        # Determine all modules that might need wiring.
+        # This should ideally include all modules where @inject is used or where
+        # providers are directly accessed from the container outside of DI-managed classes.
+        import dxfplanner.services
+        import dxfplanner.io.readers
+        import dxfplanner.io.writers
+        import dxfplanner.geometry
+        import dxfplanner.cli # CLI module itself often uses injected components
 
-            container.logger().warning("Logging initialized with default Pydantic model settings due to config load failure.")
-            container.config.from_pydantic(project_config, exclude_unset=False)
-            container.wire(
-                modules=[
-                    __name__,
-                    "dxfplanner.services.dxf_generation_service",
-                    "dxfplanner.cli"
-                ]
-            )
-            return project_config
+        container.wire(modules=[
+            sys.modules[__name__], # Current module (app.py)
+            dxfplanner.services,
+            dxfplanner.io.readers,
+            dxfplanner.io.writers,
+            dxfplanner.geometry,
+            dxfplanner.cli
+        ])
+        logger.info("DI container configured and wired.")
+    except Exception as e_wire:
+        logger.error(f"Error wiring DI container: {e_wire}", exc_info=True)
+        # Depending on severity, might re-raise or handle
+        raise
 
-    try:
-        project_config = load_config_from_yaml(config_file_path=config_file_to_load)
-        print(f"Configuration loaded successfully from: {config_file_to_load}")
-    except ConfigurationError as e:
-        print(f"Error loading configuration from {config_file_to_load}: {e}")
-        print("Falling back to default Pydantic model configuration.")
-        project_config = ProjectConfig()
-
-    if hasattr(project_config, 'logging') and project_config.logging:
-        logging_config.setup_logging(project_config.logging) # type: ignore
-    else:
-        default_log_cfg_loaded_dict = {'level': 'INFO', 'format': logging_config.DEFAULT_LOG_FORMAT}
-        if hasattr(project_config, 'project_name'):
-            init_logger_temp = logging_config.get_logger_for_config(default_log_cfg_loaded_dict)
-            init_logger_temp.warning("ProjectConfig loaded but 'logging' section is missing. Using default logging settings.")
-        logging_config.setup_logging(default_log_cfg_loaded_dict)
-
-    init_logger = container.logger()
-    if hasattr(project_config, 'logging') and project_config.logging and hasattr(project_config.logging, 'level'):
-        init_logger.info(f"Logging initialized. Level: {project_config.logging.level}")
-    else:
-        init_logger.info(f"Logging initialized with default settings (level INFO).")
-
-    container.config.from_pydantic(project_config, exclude_unset=False)
-
-    # Directly provide the loaded ProjectConfig instance
-    # This ensures services get the exact instance, not one re-validated from a potentially incomplete dict.
-    container.project_config_instance_provider.override(providers.Object(project_config))
-
-    container.wire(
-        modules=[
-            __name__,
-            "dxfplanner.config.loaders",
-            "dxfplanner.config.schemas",
-            "dxfplanner.core.di",
-            "dxfplanner.core.exceptions",
-            "dxfplanner.core.logging_config",
-            "dxfplanner.domain.interfaces",
-            "dxfplanner.domain.models.common",
-            "dxfplanner.domain.models.dxf_models",
-            "dxfplanner.domain.models.geo_models",
-            "dxfplanner.geometry.operations",
-            "dxfplanner.geometry.transformations",
-            "dxfplanner.geometry.utils",
-            "dxfplanner.io.readers.shapefile_reader",
-            "dxfplanner.io.readers.geojson_reader",
-            "dxfplanner.io.writers.dxf_writer",
-            "dxfplanner.io.writers.components.dxf_entity_converter_service",
-            "dxfplanner.io.writers.components.dxf_resource_setup_service",
-            "dxfplanner.io.writers.components.dxf_viewport_setup_service",
-            "dxfplanner.services.orchestration_service",
-            "dxfplanner.services.pipeline_service",
-            "dxfplanner.services.layer_processor_service",
-            "dxfplanner.services.style_service",
-            "dxfplanner.services.validation_service",
-            "dxfplanner.services.legend_generation_service",
-            "dxfplanner.services.geoprocessing.attribute_mapping_service",
-            "dxfplanner.services.geoprocessing.coordinate_service",
-            "dxfplanner.services.geoprocessing.label_placement_service",
-            "dxfplanner.cli"
-        ]
-    )
-    init_logger.info("DI container configured and wired.")
-    return project_config
+    return container
 
 # Example of how this app.py might be run (e.g., for testing or simple execution)
 if __name__ == "__main__":
@@ -186,10 +151,13 @@ if __name__ == "__main__":
     logger.info("and ensure all services and operations are correctly implemented and wired in DI.")
 
     try:
-        asyncio.run(main_runner(
+        success = asyncio.run(main_runner(
             output_file=example_output_file
         ))
-        logger.info(f"app.py direct execution finished. Check: {example_output_file}")
+        if success:
+            logger.info(f"app.py direct execution finished. Check: {example_output_file}")
+        else:
+            logger.error(f"Error during app.py direct execution: {success}", exc_info=True)
     except DXFPlannerBaseError as e_app_run:
         logger.error(f"Error during app.py direct execution: {e_app_run}", exc_info=True)
     except Exception as e_app_general:

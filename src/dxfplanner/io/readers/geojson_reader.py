@@ -6,6 +6,11 @@ from pathlib import Path
 from typing import AsyncIterator, Optional, Any, Iterator, Dict, Tuple # Added Iterator, Dict, Tuple
 import asyncio # ADDED
 from functools import partial # ADDED
+from typing import cast
+
+import os # DEBUGGING EnvError
+print(f"[geojson_reader.py] TOP LEVEL - Initial GDAL_DATA: {os.environ.get('GDAL_DATA')}") # DEBUGGING EnvError
+print(f"[geojson_reader.py] TOP LEVEL - Initial PROJ_LIB: {os.environ.get('PROJ_LIB')}") # DEBUGGING EnvError
 
 import fiona
 from fiona.errors import FionaError, DriverError
@@ -22,6 +27,8 @@ from dxfplanner.domain.interfaces import IGeoDataReader, AnyStrPath
 from dxfplanner.core.exceptions import GeoDataReadError, ConfigurationError
 from dxfplanner.config.schemas import GeoJSONSourceConfig
 
+_SENTINEL = object() # Sentinel to signal end of iteration from thread
+
 class GeoJsonReader(IGeoDataReader):
     """
     A reader for GeoJSON files.
@@ -29,6 +36,9 @@ class GeoJsonReader(IGeoDataReader):
     def __init__(self, config: GeoJSONSourceConfig, logger: Any):
         self.config = config
         self.logger = logger
+        # DEBUGGING EnvError
+        logger.debug(f"[GeoJsonReader __init__] GDAL_DATA: {os.environ.get('GDAL_DATA')}")
+        logger.debug(f"[GeoJsonReader __init__] PROJ_LIB: {os.environ.get('PROJ_LIB')}")
 
     def _blocking_read_features_sync_generator(
         self,
@@ -41,6 +51,10 @@ class GeoJsonReader(IGeoDataReader):
         Synchronous generator that performs the actual Fiona I/O and feature processing.
         This method will be run in a separate thread.
         """
+        # DEBUGGING EnvError
+        self.logger.info(f"[_blocking_read_features_sync_generator] ENTRY GDAL_DATA: {os.environ.get('GDAL_DATA')}")
+        self.logger.info(f"[_blocking_read_features_sync_generator] ENTRY PROJ_LIB: {os.environ.get('PROJ_LIB')}")
+
         if not source_path:
             raise ValueError("source_path must be provided.")
         file_path = Path(source_path)
@@ -53,62 +67,50 @@ class GeoJsonReader(IGeoDataReader):
             self.logger.warning(f"GeoJsonReader (sync) received unused kwargs: {kwargs}")
 
         try:
-            fiona_encoding = self.config.encoding_override if self.config.encoding_override else None
+            fiona_encoding = self.config.encoding if self.config.encoding else None
+            self.logger.debug(f"GeoJsonReader (sync): Effective Fiona encoding: {fiona_encoding if fiona_encoding else 'Fiona default'}")
 
-            with fiona.open(file_path, "r", encoding=fiona_encoding) as collection:
-                source_crs_str_resolved = source_crs
-                if not source_crs_str_resolved:
-                    source_crs_str_resolved = self.config.default_source_crs
-                    if source_crs_str_resolved: self.logger.info(f"GeoJsonReader (sync): Using Source CRS from configuration: {source_crs_str_resolved}")
+            # DEBUGGING EnvError
+            self.logger.info(f"[_blocking_read_features_sync_generator] PRE-FIONA.OPEN GDAL_DATA: {os.environ.get('GDAL_DATA')}")
+            self.logger.info(f"[_blocking_read_features_sync_generator] PRE-FIONA.OPEN PROJ_LIB: {os.environ.get('PROJ_LIB')}")
 
-                if not source_crs_str_resolved: # If still not resolved, try from file
-                    if hasattr(collection, 'crs_wkt') and collection.crs_wkt:
-                        source_crs_str_resolved = collection.crs_wkt
-                        self.logger.info(
-                            f"GeoJsonReader (sync): Using Source CRS from GeoJSON file (WKT): {source_crs_str_resolved}"
+            with fiona.open(
+                file_path,
+                mode='r',
+                encoding=fiona_encoding # Pass the potentially None encoding to Fiona
+            ) as source_collection:
+                # CRS Handling:
+                # Priority: self.config.crs (from BaseReaderConfig) > file's detected CRS.
+
+                source_crs_str_from_config = self.config.crs.value if self.config.crs else None
+
+                fiona_file_crs_obj = source_collection.crs
+                fiona_file_crs_str = str(fiona_file_crs_obj) if fiona_file_crs_obj else None
+
+                self.logger.debug(f"GeoJsonReader (sync): Configured CRS: {source_crs_str_from_config}, File's detected CRS: {fiona_file_crs_str}")
+
+                source_crs_str_resolved: Optional[str] = None
+                if source_crs_str_from_config:
+                    source_crs_str_resolved = source_crs_str_from_config
+                    if fiona_file_crs_str and fiona_file_crs_str.lower() != source_crs_str_from_config.lower():
+                        self.logger.warning(
+                            f"GeoJsonReader (sync): Configured CRS '{source_crs_str_from_config}' "
+                            f"differs from file's CRS '{fiona_file_crs_str}'. Using configured CRS."
                         )
-                    elif hasattr(collection, 'crs') and collection.crs:
-                        if isinstance(collection.crs, dict) and 'init' in collection.crs:
-                            source_crs_str_resolved = collection.crs['init']
-                        elif hasattr(collection.crs, 'to_string'): # For pyproj.CRS like objects
-                            source_crs_str_resolved = collection.crs.to_string()
-                        else:
-                            self.logger.warning(f"GeoJsonReader (sync): Could not determine string CRS from collection.crs object: {collection.crs}")
-                            source_crs_str_resolved = None # Explicitly set to None
+                elif fiona_file_crs_str:
+                    source_crs_str_resolved = fiona_file_crs_str
+                # If neither is present, source_crs_str_resolved remains None
 
-                        if source_crs_str_resolved:
-                            self.logger.info(
-                                f"GeoJsonReader (sync): Using Source CRS from GeoJSON file (parsed): {source_crs_str_resolved}"
-                            )
-                        # No else needed here, if still None, next block handles it
+                self.logger.debug(f"GeoJsonReader (sync): Effective source CRS for features: {source_crs_str_resolved}")
 
-                if not source_crs_str_resolved:
-                    msg = f"GeoJsonReader (sync): Source CRS not provided and cannot be determined from GeoJSON file: {file_path}"
-                    self.logger.error(msg)
-                    raise ConfigurationError(msg)
+                target_crs_str = target_crs
 
-                source_crs_pyproj = CRS.from_user_input(source_crs_str_resolved)
+                transformer: Optional[Transformer] = None # Initialize transformer to None
+                if source_crs_str_resolved and target_crs_str and source_crs_str_resolved.lower() != target_crs_str.lower():
+                    self.logger.info(f"GeoJsonReader (sync): Reprojecting from {source_crs_str_resolved} to {target_crs_str}")
+                    transformer = Transformer.from_crs(source_crs_str_resolved, target_crs_str, always_xy=True)
 
-                target_crs_pyproj = None
-                if target_crs:
-                    target_crs_pyproj = CRS.from_user_input(target_crs)
-                else:
-                    self.logger.info("GeoJsonReader (sync): No target CRS provided, no reprojection will be performed.")
-
-                transformer = None
-                if target_crs_pyproj and source_crs_pyproj != target_crs_pyproj:
-                    self.logger.info(
-                        f"GeoJsonReader (sync): Preparing transformation from CRS '{source_crs_pyproj.name}' "
-                        f"(EPSG:{source_crs_pyproj.to_epsg() or 'N/A'}) to "
-                        f"'{target_crs_pyproj.name}' (EPSG:{target_crs_pyproj.to_epsg() or 'N/A'})"
-                    )
-                    transformer = Transformer.from_crs(
-                        source_crs_pyproj, target_crs_pyproj, always_xy=True
-                    )
-                elif target_crs_pyproj and source_crs_pyproj == target_crs_pyproj:
-                    self.logger.info(f"GeoJsonReader (sync): Source and target CRS ('{target_crs}') are the same, no reprojection needed.")
-
-                for i, feature in enumerate(collection):
+                for i, feature in enumerate(source_collection):
                     try:
                         if "geometry" not in feature or feature["geometry"] is None:
                             self.logger.warning(f"GeoJsonReader (sync): Feature {i} from {file_path} lacks geometry, skipping.")
@@ -186,18 +188,27 @@ class GeoJsonReader(IGeoDataReader):
         loop = asyncio.get_running_loop()
         active_task_count = 0
 
+        def _get_next_item(it):
+            try:
+                return next(it)
+            except StopIteration:
+                return _SENTINEL # Return sentinel instead of raising StopIteration
+
         while True:
             try:
-                feature = await loop.run_in_executor(None, partial(next, sync_gen_iterator))
+                feature_or_sentinel = await loop.run_in_executor(None, _get_next_item, sync_gen_iterator) # NEW
+
+                if feature_or_sentinel is _SENTINEL:
+                    if active_task_count == 0:
+                        self.logger.info(f"GeoJsonReader: Threaded generator for '{source_path}' yielded no features or completed immediately.")
+                    else:
+                        self.logger.info(f"GeoJsonReader: Threaded generator for '{source_path}' completed after {active_task_count} features.")
+                    break
+
+                feature = cast(GeoFeature, feature_or_sentinel) # We expect a GeoFeature if not sentinel
                 active_task_count += 1
                 yield feature
-            except StopIteration:
-                if active_task_count == 0:
-                     self.logger.info(f"GeoJsonReader: Threaded generator for '{source_path}' yielded no features.")
-                else:
-                     self.logger.info(f"GeoJsonReader: Threaded generator for '{source_path}' completed after {active_task_count} features.")
-                break
-            except GeoDataReadError as e_gd_read:
+            except GeoDataReadError as e_gd_read: # Catch specific errors from _blocking_read...
                 self.logger.error(f"GeoJsonReader: GeoDataReadError from threaded generator for '{source_path}': {e_gd_read.args[0] if e_gd_read.args else str(e_gd_read)}.", exc_info=False)
                 raise
             except (ConfigurationError, ValueError) as e_app_err:

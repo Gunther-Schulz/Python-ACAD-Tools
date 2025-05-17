@@ -46,14 +46,16 @@ import asyncio
 from dependency_injector import containers
 from collections import defaultdict
 from copy import deepcopy
-from dxfplanner.geometry.utils import (
+from dxfplanner.geometry.shapely_utils import (
     make_valid_geometry,
     remove_islands_from_geometry,
-    convert_dxfplanner_geometry_to_shapely,
-    convert_shapely_to_anygeogeometry,
-    reproject_geometry,
     explode_multipart_geometry
 )
+from dxfplanner.geometry.model_conversion import (
+    convert_dxfplanner_geometry_to_shapely,
+    convert_shapely_to_anygeogeometry
+)
+from dxfplanner.geometry.projection import reproject_geometry
 import types
 
 logger = get_logger(__name__)
@@ -1174,7 +1176,7 @@ class LabelPlacementOperation(IOperation[LabelPlacementOperationConfig]):
         text_style_props_for_service_call: Optional[TextStylePropertiesConfig] = None
         try:
             text_style_props_for_service_call = self.style_service.get_resolved_style_for_label_operation(
-                operation_config=config # Pass the full LabelPlacementOperationConfig
+                config=config
             )
             self.logger.debug(f"{log_prefix}: Resolved text style: {text_style_props_for_service_call.model_dump_json(indent=2, exclude_unset=True) if text_style_props_for_service_call else 'None'}")
         except Exception as e_style_resolve:

@@ -21,10 +21,8 @@ from dxfplanner.config.schemas import (
 )
 from dxfplanner.core.exceptions import GeometryTransformError, ConfigurationError
 from dxfplanner.core.logging_config import get_logger
-from dxfplanner.geometry.utils import (
-    convert_shapely_to_anygeogeometry,
-    convert_geo_feature_to_dxf_entities
-)
+from dxfplanner.geometry.model_conversion import convert_shapely_to_anygeogeometry
+from dxfplanner.geometry.feature_converter import convert_geo_feature_to_dxf_entities
 
 logger = get_logger(__name__)
 
@@ -39,9 +37,9 @@ class GeometryTransformerImpl(IGeometryTransformer):
     ) -> AsyncIterator[AnyDxfEntity]:
         self.logger.debug(f"Transforming feature ID {feature.id or 'N/A'} for layer '{layer_config.name}' using utility function.")
 
-        style_config: StyleObjectConfig = self.style_service.get_resolved_style_for_feature(
-            layer_config=layer_config,
-            feature_attributes=feature.properties
+        style_config: StyleObjectConfig = self.style_service.get_resolved_feature_style(
+            geo_feature=feature,
+            layer_config=layer_config
         )
 
         effective_style_dict = style_config.model_dump(exclude_none=True) # Convert StyleObjectConfig to dict
@@ -50,8 +48,7 @@ class GeometryTransformerImpl(IGeometryTransformer):
             # Call the utility function
             dxf_entities: List[AnyDxfEntity] = convert_geo_feature_to_dxf_entities(
                 geo_feature=feature,
-                effective_style=effective_style_dict,
-                layer_name=layer_config.name
+                effective_style=effective_style_dict
             )
 
             if not dxf_entities:

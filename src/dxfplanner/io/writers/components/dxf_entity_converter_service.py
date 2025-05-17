@@ -13,7 +13,8 @@ from dxfplanner.domain.models.dxf_models import (
 )
 from dxfplanner.domain.interfaces import IDxfEntityConverterService
 from dxfplanner.core.logging_config import get_logger
-from dxfplanner.geometry.utils import get_color_code, convert_transparency, sanitize_layer_name
+from dxfplanner.geometry.color_utils import get_color_code, convert_transparency
+from dxfplanner.geometry.layer_utils import sanitize_layer_name
 
 logger = get_logger(__name__)
 
@@ -89,7 +90,7 @@ class DxfEntityConverterService(IDxfEntityConverterService):
         entity.dxf.layer = s_layer_name
 
         # Color
-        effective_color_val = dxf_model.color if dxf_model.color is not None else layer_style_cfg.color
+        effective_color_val = dxf_model.color if dxf_model.color is not None else (layer_style_cfg.layer_props.color if layer_style_cfg.layer_props else None)
         if effective_color_val is not None:
             # Assuming aci_colors_map_path will be added to ProjectConfig or DxfWriterConfig
             # For now, let's try project_config.dxf_writer (DxfWriterConfig) first as it's more specific to DXF writing
@@ -104,7 +105,7 @@ class DxfEntityConverterService(IDxfEntityConverterService):
             entity.dxf.color = get_color_code(effective_color_val, aci_map_path)
 
         # Linetype
-        effective_linetype = dxf_model.linetype or layer_style_cfg.linetype
+        effective_linetype = dxf_model.linetype or (layer_style_cfg.layer_props.linetype if layer_style_cfg.layer_props else None)
         if effective_linetype:
             entity.dxf.linetype = effective_linetype
         else:
@@ -115,9 +116,9 @@ class DxfEntityConverterService(IDxfEntityConverterService):
         # Lineweight
         # Note: DxfEntity model does not currently have lineweight.
         # It should typically come from LayerStyleConfig or layer properties.
-        if layer_style_cfg.lineweight is not None:
+        if layer_style_cfg.layer_props and layer_style_cfg.layer_props.lineweight is not None:
              # ezdxf uses positive integers for lineweight (e.g., 25 for 0.25mm)
-            entity.dxf.lineweight = layer_style_cfg.lineweight
+            entity.dxf.lineweight = layer_style_cfg.layer_props.lineweight
         else:
             # Explicitly set to BYLAYER if not specified
             entity.dxf.lineweight = ezdxf.const.LINEWEIGHT_BYLAYER
@@ -125,21 +126,26 @@ class DxfEntityConverterService(IDxfEntityConverterService):
 
         # Transparency
         # DxfEntity model also does not have transparency. Use LayerStyleConfig.
-        effective_transparency = layer_style_cfg.transparency
+        effective_transparency = layer_style_cfg.layer_props.transparency if layer_style_cfg.layer_props else None
         if effective_transparency is not None:
             try:
                 transparency_value = convert_transparency(effective_transparency)
-                if transparency_value is not None:
+                if transparency_value is not None: # convert_transparency could return a specific ezdxf const e.g. TRANSPARENCY_BYBLOCK
                     entity.dxf.transparency = transparency_value
                     self.logger.debug(f"Applied transparency {transparency_value} from {effective_transparency}")
-                else:
-                     # Set to BYLAYER if convert_transparency returns None (e.g. for "BYLAYER" string)
-                    entity.dxf.transparency = ezdxf.const.TRANSPARENCY_BYLAYER
+                else: # convert_transparency returned None (e.g. for "BYLAYER" string or if it handles discarding)
+                    if hasattr(entity.dxf, "transparency"): # Check if attribute exists before discarding
+                        entity.dxf.discard("transparency") # CORRECTED: Set BYLAYER by discarding
+                    self.logger.debug(f"Set transparency to BYLAYER for entity due to effective_transparency: {effective_transparency}")
             except ValueError as e:
-                self.logger.warning(f"Invalid transparency value '{effective_transparency}': {e}. Using BYLAYER.")
-                entity.dxf.transparency = ezdxf.const.TRANSPARENCY_BYLAYER
+                self.logger.warning(f"Invalid transparency value '{effective_transparency}': {e}. Setting to BYLAYER.")
+                if hasattr(entity.dxf, "transparency"): # Check if attribute exists before discarding
+                    entity.dxf.discard("transparency") # CORRECTED: Set BYLAYER by discarding
         else:
-             entity.dxf.transparency = ezdxf.const.TRANSPARENCY_BYLAYER # Default to BYLAYER
+             # Default to BYLAYER if not specified in layer_style
+            if hasattr(entity.dxf, "transparency"): # Check if attribute exists before discarding
+                entity.dxf.discard("transparency") # CORRECTED: Set BYLAYER by discarding
+            self.logger.debug("Set transparency to BYLAYER for entity (default).")
 
         # True Color (if applicable and if color was a string like "RGB:10,20,30")
         # get_color_code handles if it's an ACI or a true color string.
@@ -172,10 +178,10 @@ class DxfEntityConverterService(IDxfEntityConverterService):
     async def _add_dxf_point(self, msp: Modelspace, model: DxfPoint) -> Optional[Point]:
         """Adds a DXF Point entity to the modelspace."""
         try:
-            # Assuming model.coordinate is (x, y) or (x, y, z)
-            point_coords = (model.coordinate.x, model.coordinate.y)
-            if model.coordinate.z is not None:
-                point_coords += (model.coordinate.z,)
+            # DxfPoint model uses model.position which is a Coordinate object
+            point_coords = (model.position.x, model.position.y)
+            if model.position.z is not None:
+                point_coords += (model.position.z,)
             return msp.add_point(location=point_coords)
         except Exception as e:
             self.logger.error(f"Error adding DxfPoint: {e}", exc_info=True)

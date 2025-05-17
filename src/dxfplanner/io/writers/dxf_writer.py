@@ -43,7 +43,8 @@ from dxfplanner.config.schemas import (\
 # Need BoundingBoxModel from domain models for return type
 from dxfplanner.domain.models.common import BoundingBox as BoundingBoxModel
 from dxfplanner.config.schemas import LayerStyleConfig, HatchPropertiesConfig, TextStyleConfig, BlockDefinitionConfig # Keep
-from dxfplanner.geometry.utils import get_color_code, convert_transparency, sanitize_layer_name # Keep
+from dxfplanner.geometry.color_utils import get_color_code, convert_transparency # ADDED
+from dxfplanner.geometry.layer_utils import sanitize_layer_name # ADDED
 
 logger = get_logger(__name__)
 

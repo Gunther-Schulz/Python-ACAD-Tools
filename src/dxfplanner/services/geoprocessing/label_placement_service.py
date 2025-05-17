@@ -1,13 +1,13 @@
-from typing import AsyncIterator, Optional, Tuple
+from typing import AsyncIterator, Optional, Tuple, Union
 from logging import Logger
 import math
 
 from shapely.geometry import Point as ShapelyPoint, LineString as ShapelyLineString, Polygon as ShapelyPolygon
-from shapely.wkb import loads as shapely_loads
+# from shapely.wkb import loads as shapely_loads # REMOVED - No longer used
 from shapely.errors import GEOSException
 
 from dxfplanner.domain.models.common import Coordinate
-from dxfplanner.domain.models.geo_models import GeoFeature, PointGeo, PolylineGeo, PolygonGeo
+from dxfplanner.domain.models.geo_models import GeoFeature, PointGeo, PolylineGeo, PolygonGeo # ADDED PointGeo, PolylineGeo, PolygonGeo
 from dxfplanner.domain.interfaces import ILabelPlacementService, PlacedLabel
 from dxfplanner.config.style_schemas import LabelingConfig, TextStylePropertiesConfig # For type hints
 from dxfplanner.core.logging_config import get_logger # For default logger
@@ -46,11 +46,11 @@ class LabelPlacementService(ILabelPlacementService):
             if config.fixed_text:
                 label_text = config.fixed_text
             elif config.label_attribute:
-                label_text = feature.attributes.get(config.label_attribute)
+                label_text = feature.properties.get(config.label_attribute)
                 if label_text is not None:
                     label_text = str(label_text) # Ensure string
                 else:
-                    self.logger.warning(f"Label attribute '{config.label_attribute}' not found or is None in feature {feature.id or 'N/A'} attributes: {feature.attributes}. Skipping label.")
+                    self.logger.warning(f"Label attribute '{config.label_attribute}' not found or is None in feature {feature.id or 'N/A'} attributes: {feature.properties}. Skipping label.")
                     continue
             else:
                 self.logger.warning(f"Neither fixed_text nor label_attribute specified in LabelingConfig for layer '{layer_name}'. Skipping label for feature {feature.id or 'N/A'}.")
@@ -60,19 +60,47 @@ class LabelPlacementService(ILabelPlacementService):
                 self.logger.debug(f"Empty label text for feature {feature.id or 'N/A'} on layer '{layer_name}'. Skipping label.")
                 continue
 
-            if feature.geometry is None or feature.geometry.wkb is None:
-                self.logger.warning(f"Feature {feature.id or 'N/A'} has no WKB geometry. Skipping label placement.")
+            # MODIFICATION START: Construct Shapely geometry from Pydantic models
+            if feature.geometry is None:
+                self.logger.warning(f"Feature {feature.id or 'N/A'} has no geometry. Skipping label placement.")
                 continue
 
+            shapely_geom: Optional[Union[ShapelyPoint, ShapelyLineString, ShapelyPolygon]] = None
             try:
-                shapely_geom = shapely_loads(feature.geometry.wkb)
-            except GEOSException as e:
-                self.logger.error(f"Failed to load WKB geometry for feature {feature.id or 'N/A'}: {e}. Skipping label placement.")
-                continue
-            except Exception as e_gen: # Catch other potential errors during WKB loading
-                self.logger.error(f"Unexpected error loading WKB for feature {feature.id or 'N/A'}: {e_gen}. Skipping label placement.")
-                continue
+                if isinstance(feature.geometry, PointGeo):
+                    coords = feature.geometry.coordinates
+                    shapely_geom = ShapelyPoint(coords.x, coords.y) if coords.z is None else ShapelyPoint(coords.x, coords.y, coords.z)
+                elif isinstance(feature.geometry, PolylineGeo):
+                    shapely_coords = [(c.x, c.y) if c.z is None else (c.x, c.y, c.z) for c in feature.geometry.coordinates]
+                    if shapely_coords: # Prevent error on empty list
+                        shapely_geom = ShapelyLineString(shapely_coords)
+                    else:
+                        self.logger.debug(f"PolylineGeo for feature {feature.id or 'N/A'} has empty coordinates list. Cannot create ShapelyLineString.")
+                        continue
+                elif isinstance(feature.geometry, PolygonGeo):
+                    exterior_coords = [(c.x, c.y) if c.z is None else (c.x, c.y, c.z) for c in feature.geometry.coordinates[0]]
+                    interior_coords_list = [
+                        [(c.x, c.y) if c.z is None else (c.x, c.y, c.z) for c in interior_ring]
+                        for interior_ring in feature.geometry.coordinates[1:]
+                    ]
+                    if exterior_coords: # Prevent error on empty list for exterior
+                        shapely_geom = ShapelyPolygon(exterior_coords, holes=interior_coords_list if interior_coords_list else None)
+                    else:
+                        self.logger.debug(f"PolygonGeo for feature {feature.id or 'N/A'} has empty exterior ring coordinates. Cannot create ShapelyPolygon.")
+                        continue
+                # Add other geometry types like MultiPointGeo etc. here if needed in the future for labeling
+                else:
+                    self.logger.warning(f"Unsupported Pydantic geometry type '{type(feature.geometry).__name__}' for feature {feature.id or 'N/A'}. Skipping label placement.")
+                    continue
 
+                if shapely_geom is None: # Should be caught by inner continue statements, but as a safeguard
+                    self.logger.warning(f"Could not construct Shapely geometry for feature {feature.id or 'N/A'} from Pydantic model. Skipping label placement.")
+                    continue
+
+            except Exception as e_construct: # Catch errors during Shapely construction
+                self.logger.error(f"Error constructing Shapely geometry for feature {feature.id or 'N/A'} from Pydantic model {type(feature.geometry).__name__}: {e_construct}. Skipping label placement.")
+                continue
+            # MODIFICATION END
 
             anchor_point: Optional[Tuple[float, float]] = None
             geometry_rotation_degrees: float = 0.0

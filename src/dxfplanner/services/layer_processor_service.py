@@ -2,17 +2,18 @@
 Service responsible for processing a single layer configuration.
 This includes reading data, applying operations, and transforming to DXF entities.
 """
-from typing import AsyncIterator, Optional, Dict, Any, TYPE_CHECKING, Callable
+from typing import AsyncIterator, Optional, Dict, Any, TYPE_CHECKING, Callable, Mapping, Type
 from logging import Logger
+from dependency_injector import providers
 
-from dxfplanner.config.schemas import ProjectConfig, LayerConfig, AnySourceConfig, ShapefileSourceConfig, GeometryOperationType, DataSourceType # ADDED DataSourceType
+from dxfplanner.config.schemas import ProjectConfig, LayerConfig, AnySourceConfig, ShapefileSourceConfig, GeometryOperationType, DataSourceType, AnyOperationConfig
 from dxfplanner.domain.models.geo_models import GeoFeature
 from dxfplanner.domain.models.dxf_models import AnyDxfEntity
 from dxfplanner.domain.interfaces import IGeoDataReader, IOperation, IGeometryTransformer, ILayerProcessorService
 from dxfplanner.core.exceptions import GeoDataReadError, ConfigurationError
 
 if TYPE_CHECKING:
-    from dxfplanner.core.di import DIContainer # Import for type hinting only
+    pass # If block becomes empty, it can be removed.
 
 class LayerProcessorService(ILayerProcessorService):
     """Processes a single layer from configuration to an async stream of DXF entities."""
@@ -20,17 +21,34 @@ class LayerProcessorService(ILayerProcessorService):
     def __init__(
         self,
         project_config: ProjectConfig,
-        reader_resolver_provider: Callable[[DataSourceType], IGeoDataReader], # CHANGED
-        operation_resolver_provider: Callable[[GeometryOperationType], IOperation], # CHANGED
+        geo_data_reader_factories_map: Mapping[DataSourceType, providers.Factory[IGeoDataReader]],
+        operations_map: Mapping[GeometryOperationType, providers.Factory[IOperation]],
         geometry_transformer: IGeometryTransformer,
         logger: Logger
     ):
         self.project_config = project_config
-        self.reader_resolver = reader_resolver_provider # CHANGED
-        self.operation_resolver = operation_resolver_provider # CHANGED
+        self.geo_data_reader_factories_map = geo_data_reader_factories_map
+        self.operations_map = operations_map
         self.geometry_transformer = geometry_transformer
         self.logger = logger
         self.logger.info("LayerProcessorService initialized.")
+
+    def _resolve_operation_instance(self, op_type: GeometryOperationType, op_config: AnyOperationConfig) -> IOperation:
+        """Resolves and instantiates an operation based on its type and config."""
+        self.logger.debug(f"Resolving operation: Type='{op_type}', Config='{op_config.model_dump_json(exclude_none=True)}'")
+
+        op_factory_provider = self.operations_map.get(op_type)
+        if not op_factory_provider:
+            self.logger.error(f"No operation factory configured for type: {op_type}")
+            raise ConfigurationError(f"No operation configured for type: {op_type}")
+
+        try:
+            operation_instance = op_factory_provider
+            self.logger.debug(f"Successfully resolved operation instance for type: {op_type}. Instance type: {type(operation_instance)}")
+            return operation_instance
+        except Exception as e:
+            self.logger.error(f"Error resolving/instantiating operation for type '{op_type}': {e}", exc_info=True)
+            raise ConfigurationError(f"Error resolving/instantiating operation {op_type}: {e}")
 
     async def process_layer(
         self,
@@ -65,12 +83,22 @@ class LayerProcessorService(ILayerProcessorService):
         if layer_config.source:
             source_conf: AnySourceConfig = layer_config.source
             self.logger.debug(f"Layer '{layer_config.name}' has source type: {source_conf.type} from path '{getattr(source_conf, "path", "N/A")}'")
-            self.logger.debug(f"DEBUG: About to call reader_resolver with source_conf.type: {source_conf.type} (type: {type(source_conf.type)})")
+
+            # Get the factory provider from the map
+            reader_factory_provider = self.geo_data_reader_factories_map.get(source_conf.type)
+            if not reader_factory_provider:
+                self.logger.error(f"Could not find reader factory provider for source type '{source_conf.type}' in layer '{layer_config.name}'. Aborting layer processing.")
+                return # Exit if no provider
+
             try:
-                reader = self.reader_resolver(source_conf.type)
-            except ConfigurationError as e:
-                self.logger.error(f"Could not resolve reader for source type '{source_conf.type}' in layer '{layer_config.name}': {e}. Aborting layer processing.")
-                return
+                # Call the factory provider with runtime args
+                reader: IGeoDataReader = reader_factory_provider(
+                    config=source_conf,
+                    logger=self.logger
+                )
+            except Exception as e_resolve:
+                self.logger.error(f"Could not instantiate reader for source type '{source_conf.type}' in layer '{layer_config.name}' using factory provider: {e_resolve}. Aborting layer processing.", exc_info=True)
+                return # Exit on instantiation error
 
             reader_kwargs: Dict[str, Any] = {}
             if isinstance(source_conf, ShapefileSourceConfig):
@@ -80,9 +108,9 @@ class LayerProcessorService(ILayerProcessorService):
 
             try:
                 source_features_stream = reader.read_features(
-                    source_path=getattr(source_conf, 'path', None), # getattr for safety, though path is usually mandatory
-                    source_crs=getattr(source_conf, 'crs', None),
-                    target_crs=None, # Reprojection handled by operations if needed
+                    source_path=getattr(source_conf, 'path', None), # Path is part of source_conf, reader can access via self.config.path
+                    source_crs=getattr(source_conf, 'crs', None),   # CRS is part of source_conf
+                    target_crs=None,
                     **reader_kwargs
                 )
                 # Store the initial stream using the layer_config.name as its key
@@ -135,7 +163,11 @@ class LayerProcessorService(ILayerProcessorService):
 
                 # 2. Execute the operation
                 try:
-                    operation_instance = self.operation_resolver(op_config.type)
+                    # Call the new private method
+                    operation_instance = self._resolve_operation_instance(
+                        op_type=op_config.type,
+                        op_config=op_config
+                    )
                     self.logger.debug(f"  Executing operation '{op_config.type}' (source: '{resolved_source_key_for_log}').")
                     output_features_stream = operation_instance.execute(input_stream_for_this_op, op_config)
                 except ConfigurationError as e_op_resolve:

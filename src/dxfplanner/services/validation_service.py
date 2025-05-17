@@ -8,7 +8,7 @@ from dxfplanner.domain.interfaces import IValidationService, AnyStrPath
 from dxfplanner.config.schemas import ProjectConfig
 from dxfplanner.config.common_schemas import ValidationServiceConfig
 from dxfplanner.core.logging_config import get_logger
-from dxfplanner.geometry.utils import convert_dxfplanner_geometry_to_shapely
+from dxfplanner.geometry.model_conversion import convert_dxfplanner_geometry_to_shapely
 from dxfplanner.core.exceptions import ConfigurationError
 
 # Conditional import for shapely to avoid hard dependency if not used elsewhere,

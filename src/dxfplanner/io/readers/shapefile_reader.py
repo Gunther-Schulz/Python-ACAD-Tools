@@ -16,7 +16,8 @@ from dxfplanner.domain.models.geo_models import GeoFeature, PointGeo, PolylineGe
 from dxfplanner.domain.models.common import Coordinate # Used by geometry utils
 from dxfplanner.domain.interfaces import IGeoDataReader, AnyStrPath # Adhering to interface
 from dxfplanner.core.exceptions import GeoDataReadError
-from dxfplanner.geometry.utils import reproject_geometry, convert_shapely_to_anygeogeometry # Utilities
+from dxfplanner.geometry.projection import reproject_geometry # ADDED
+from dxfplanner.geometry.model_conversion import convert_shapely_to_anygeogeometry # ADDED
 # from dxfplanner.core.logging_config import get_logger # Removed
 
 # logger = get_logger(__name__) # Removed module logger

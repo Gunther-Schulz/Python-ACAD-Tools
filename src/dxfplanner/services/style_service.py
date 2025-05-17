@@ -384,57 +384,31 @@ class StyleService(IStyleService):
         self, config: LabelPlacementOperationConfig
     ) -> TextStylePropertiesConfig:
         """
-        Resolves the TextStylePropertiesConfig for labels based on LabelPlacementOperationConfig.
-        Considers text_style_preset_name and text_style_inline within config.label_settings.
-        Inline properties override preset properties.
+        Resolves the TextStylePropertiesConfig for a label placement operation.
+        Primarily uses the inline text_style defined in the operation's label_settings.
         """
-        context_name = f"LabelOp(layer='{config.source_layer or 'implicit'}', text_attr='{config.label_settings.label_attribute or config.label_settings.fixed_label_text or 'N/A'}')"
-        log_prefix = f"Style for '{context_name}': "
-
-        # Start with a default TextStylePropertiesConfig
-        base_text_style: TextStylePropertiesConfig = TextStylePropertiesConfig()
-        self.logger.debug(f"{log_prefix}Initial base_text_style: Default values.")
-
-        preset_name = config.label_settings.text_style_preset_name
-        inline_style_props = config.label_settings.text_style_inline # This is already TextStylePropertiesConfig
-
-        if preset_name:
-            self.logger.debug(f"{log_prefix}Attempting to use preset '{preset_name}'.")
-            preset_style_object = self._config.style_presets.get(preset_name)
-            if preset_style_object:
-                if preset_style_object.text_props:
-                    base_text_style = preset_style_object.text_props
-                    self.logger.debug(f"{log_prefix}Using text_props from preset '{preset_name}' as base.")
-                else:
-                    self.logger.warning(f"{log_prefix}Preset '{preset_name}' found, but it lacks text_props. Using default text style as base.")
-            else:
-                self.logger.warning(f"{log_prefix}Preset '{preset_name}' not found in AppConfig.style_presets. Using default text style as base.")
-        else:
-            self.logger.debug(f"{log_prefix}No text_style_preset_name provided. Base remains default text style.")
-
-        # Merge inline_style_props onto the base_text_style (which is either from preset or default)
-        # The _merge_style_component expects two components of the same type.
-        # Here, base_text_style is TextStylePropertiesConfig, and inline_style_props is also TextStylePropertiesConfig.
-        final_style = self._merge_style_component(
-            base=base_text_style,
-            override=inline_style_props, # This is directly the TextStylePropertiesConfig
-            model_type=TextStylePropertiesConfig
+        self.logger.debug(
+            f"Resolving text style for LabelPlacementOperation: "
+            f"Output='{config.output_label_layer_name}', Source='{config.source_layer}'"
         )
 
-        if inline_style_props:
-            self.logger.debug(f"{log_prefix}Applied inline text_style_inline definition.")
-        else:
-            self.logger.debug(f"{log_prefix}No inline text_style_inline definition provided.")
+        # LabelingConfig is where the specific text_style for labels is defined.
+        labeling_config = config.label_settings  # This is LabelingConfig
 
-        # Ensure we always return a valid config, even if it's just the default from initialization or preset
-        if final_style:
-            self.logger.debug(f"{log_prefix}Final resolved text style: {final_style.model_dump_json(indent=2, exclude_none=True)}")
-            return final_style
+        if labeling_config and labeling_config.text_style:
+            # If an inline text_style is defined in LabelingConfig, use it directly.
+            self.logger.debug(
+                f"Using inline text_style from LabelingConfig: "
+                f"{labeling_config.text_style.model_dump_json(exclude_none=True, indent=2)}"
+            )
+            # TextStylePropertiesConfig fields have defaults, so an instance is generally usable.
+            return labeling_config.text_style
         else:
-            # This case should ideally not be reached if base_text_style is always initialized.
-            # If _merge_style_component returns None (e.g. if base and override were both None, which they are not here)
-            # then return a default.
-            self.logger.debug(f"{log_prefix}Merge resulted in None, returning default TextStylePropertiesConfig. Base was: {base_text_style.model_dump_json(exclude_none=True)}")
+            # No specific text style defined in the label operation's config.
+            # Return a default TextStylePropertiesConfig.
+            self.logger.debug(
+                "No inline text_style in LabelingConfig. Returning default TextStylePropertiesConfig."
+            )
             return TextStylePropertiesConfig()
 
     def get_resolved_hatch_style(
