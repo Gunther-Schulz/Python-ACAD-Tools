@@ -1,4 +1,0 @@
-- **Verification:**
-    - Interface contracts must be verified before implementation, and files read before editing. The AI Assistant employs comprehensive verification steps (detailed in `CLIPPY.md`, e.g., `Procedure: Ensure Sufficient File Context`, `Procedure: Verify Diff`) throughout its process.
-    - **Specifically for `ezdxf` library usage:** When implementing or debugging code involving the `ezdxf` library, it is highly recommended to consult the local `ezdxf` documentation. Use text search tools (e.g., `grep_search` with `include_pattern='*.rst'`) within the `ezdxf/docs/source/` directory to find relevant information, constants, and usage examples. This proactive step helps ensure correct and efficient use of the library.
-- **Robust Solutions, Not Quick Fixes:**

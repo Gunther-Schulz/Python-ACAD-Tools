@@ -33,6 +33,11 @@
 - **Review Focus:**
     - When reviewing code: Focus on problematic issues rather than listing what's correct.
 
+## Key Dependency: `ezdxf` Usage
+
+- **Local Resources:** The full source code for `ezdxf` is available locally in the `ezdxf/src/` directory, and comprehensive documentation can be found in `ezdxf/docs/source/`.
+- **Importance of Correct Usage:** These local resources are invaluable and **SHOULD BE CONSULTED** frequently when working with `ezdxf` functionalities. Correct usage is critical to prevent DXF file corruption or unexpected behavior. Prioritize searching these local resources over general web searches for `ezdxf`-related questions.
+
 # NOTE: This document provides principles and a checklist, potentially with language-relevant examples (e.g., Python). Refer to the project-specific `PROJECT_ARCHITECTURE.md` for detailed implementation choices, configurations, and concrete examples for this project.
 
 ## Debugging & Analysis
