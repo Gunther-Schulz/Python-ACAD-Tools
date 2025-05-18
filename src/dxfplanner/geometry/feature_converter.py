@@ -138,7 +138,7 @@ async def convert_geo_feature_to_dxf_entities(
             text_entity: Union[DxfMText, DxfText]
             if "\\P" in text_string or "\n" in text_string or mtext_width is not None:
                 text_entity = DxfMText(
-                    text=text_string,
+                    text_content=text_string,
                     insertion_point=feature_geometry.coordinates, # Use Coordinate object
                     height=text_height,
                     rotation=text_rotation,
@@ -155,7 +155,7 @@ async def convert_geo_feature_to_dxf_entities(
                 )
             else: # Simple Text
                 text_entity = DxfText(
-                    text=text_string,
+                    text_content=text_string,
                     insertion_point=feature_geometry.coordinates, # Use Coordinate object
                     height=text_height,
                     rotation=text_rotation,

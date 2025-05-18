@@ -42,6 +42,7 @@ def setup_logging(config: LoggingConfig = DEFAULT_LOGGING_CONFIG) -> None:
         backtrace=True, # Better tracebacks
         diagnose=True   # Extended diagnosis for errors
     )
+
     loguru.logger.info(f"Loguru logger configured with level: {config.level}, format: '{config.format}'")
 
     # --- Intercept standard logging ---

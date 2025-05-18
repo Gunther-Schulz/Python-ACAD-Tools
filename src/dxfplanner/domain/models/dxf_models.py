@@ -86,6 +86,8 @@ class DxfText(DxfEntity):
     style: Optional[str] = Field(default=None, description="Text style name.") # References a DXF TEXTSTYLE
     width_factor: Optional[float] = Field(default=None, gt=0.0, description="Text width factor.") # Added gt constraint
     oblique_angle: Optional[float] = Field(default=None, ge=0.0, lt=360.0, description="Text oblique angle in degrees.") # Added ge/lt constraints
+    halign: Optional[str] = Field(default=None, description="Horizontal alignment (e.g., LEFT, CENTER, RIGHT, ALIGNED, MIDDLE, FIT).") # ADDED
+    valign: Optional[str] = Field(default=None, description="Vertical alignment (e.g., BASELINE, BOTTOM, MIDDLE, TOP).") # ADDED
     # TODO: Add halign, valign, etc. from ezdxf.const.TEXT_ALIGN_FLAGS if needed
 
 class DxfMText(DxfEntity):

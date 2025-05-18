@@ -65,5 +65,5 @@ class LabelPlacementOperation(IOperation[LabelPlacementOperationConfig]):
                 "label_rotation": placed_label.rotation,
                 "text_style_properties": text_style_props_for_service_call.model_dump(exclude_unset=True) if text_style_props_for_service_call else {}
             }
-            yield GeoFeature(geometry=label_geometry, attributes=label_properties, crs=None) # Using attributes for consistency with GeoFeature model
+            yield GeoFeature(geometry=label_geometry, properties=label_properties, crs=None) # Changed 'attributes' to 'properties'
         self.logger.info(f"{log_prefix}: Completed.")

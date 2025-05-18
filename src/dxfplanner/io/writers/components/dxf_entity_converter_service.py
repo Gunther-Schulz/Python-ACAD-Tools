@@ -5,7 +5,9 @@ import ezdxf
 from ezdxf.document import Drawing
 from ezdxf.layouts import Modelspace
 from ezdxf.entities import DXFGraphic, Point, Line, LWPolyline, Hatch, MText, Text, Insert, Circle, Arc, Polyline as EzdxfPolyline
+from ezdxf.enums import TextEntityAlignment
 import yaml
+from ezdxf.lldxf import const as dxfconstants
 
 from dxfplanner.config.schemas import ProjectConfig, DxfWriterConfig, LayerStyleConfig, HatchPropertiesConfig, TextStyleConfig
 from dxfplanner.domain.models.dxf_models import (
@@ -88,9 +90,9 @@ class DxfEntityConverterService(IDxfEntityConverterService):
         elif isinstance(dxf_entity_model, DxfHatch):
             ezdxf_entity = await self._add_dxf_hatch(msp, doc, cast(DxfHatch, dxf_entity_model), layer_style_config)
         elif isinstance(dxf_entity_model, DxfMText):
-            ezdxf_entity = await self._add_dxf_mtext(msp, doc, cast(DxfMText, dxf_entity_model))
+            ezdxf_entity = await self._add_dxf_mtext(msp, doc, cast(DxfMText, dxf_entity_model), layer_style_config)
         elif isinstance(dxf_entity_model, DxfText): # Simple Text
-            ezdxf_entity = await self._add_dxf_text(msp, doc, cast(DxfText, dxf_entity_model))
+            ezdxf_entity = await self._add_dxf_text(msp, doc, cast(DxfText, dxf_entity_model), layer_style_config)
         elif isinstance(dxf_entity_model, DxfInsert): # Block Reference
             ezdxf_entity = await self._add_dxf_insert(msp, doc, cast(DxfInsert, dxf_entity_model))
         elif isinstance(dxf_entity_model, DxfLine):
@@ -168,7 +170,7 @@ class DxfEntityConverterService(IDxfEntityConverterService):
             entity.dxf.lineweight = layer_style_cfg.layer_props.lineweight
         else:
             # Explicitly set to BYLAYER if not specified
-            entity.dxf.lineweight = ezdxf.const.LINEWEIGHT_BYLAYER
+            entity.dxf.lineweight = dxfconstants.LINEWEIGHT_BYLAYER
 
 
         # Transparency
@@ -210,7 +212,7 @@ class DxfEntityConverterService(IDxfEntityConverterService):
 
     async def _apply_xdata(self, entity: DXFGraphic, dxf_model: DxfEntity) -> None:
         """Applies XDATA to the ezdxf entity if specified in the domain model."""
-        if dxf_model.xdata_app_id is not None and dxf_model.xdata_tags is not None:
+        if dxf_model.xdata_app_id is not None and dxf_model.xdata_tags:
             try:
                 entity.set_xdata(dxf_model.xdata_app_id, dxf_model.xdata_tags)
                 self.logger.debug(f"Applied XDATA (AppID: {dxf_model.xdata_app_id}) with {len(dxf_model.xdata_tags)} tags to entity {entity.dxf.handle}")
@@ -378,7 +380,7 @@ class DxfEntityConverterService(IDxfEntityConverterService):
             hatch = msp.add_hatch()
             # Common attributes (color, layer, etc.) are applied later by _apply_common_dxf_attributes
 
-            hatch.dxf.hatch_style = ezdxf.const.HATCH_STYLE_NORMAL # Default, consider making configurable
+            hatch.dxf.hatch_style = dxfconstants.HATCH_STYLE_NORMAL # Default, consider making configurable
             model_hatch_props = model.hatch_props
             pattern_name, scale, angle_deg = self._get_hatch_pattern_details(model_hatch_props)
 
@@ -437,7 +439,7 @@ class DxfEntityConverterService(IDxfEntityConverterService):
                     hatch.paths.add_polyline_path(
                         path_vertices=current_path_valid_vertices,
                         is_closed=path_model.is_closed, # is_closed is part of DxfHatchPath model
-                        flags=ezdxf.const.BOUNDARY_PATH_EXTERNAL
+                        flags=dxfconstants.BOUNDARY_PATH_EXTERNAL
                     )
                     has_at_least_one_valid_path = True
                 elif not current_path_valid_vertices and not path_has_invalid_vertex:
@@ -465,15 +467,15 @@ class DxfEntityConverterService(IDxfEntityConverterService):
     def _map_mtext_attachment_point(self, attachment_point_str: Optional[str]) -> int:
         """Maps a string attachment point to ezdxf MTEXT attachment point constants."""
         if not attachment_point_str:
-            return ezdxf.const.MTEXT_TOP_LEFT
+            return dxfconstants.MTEXT_TOP_LEFT
         ap_map = {
-            "TOP_LEFT": ezdxf.const.MTEXT_TOP_LEFT, "TOP_CENTER": ezdxf.const.MTEXT_TOP_CENTER, "TOP_RIGHT": ezdxf.const.MTEXT_TOP_RIGHT,
-            "MIDDLE_LEFT": ezdxf.const.MTEXT_MIDDLE_LEFT, "MIDDLE_CENTER": ezdxf.const.MTEXT_MIDDLE_CENTER, "MIDDLE_RIGHT": ezdxf.const.MTEXT_MIDDLE_RIGHT,
-            "BOTTOM_LEFT": ezdxf.const.MTEXT_BOTTOM_LEFT, "BOTTOM_CENTER": ezdxf.const.MTEXT_BOTTOM_CENTER, "BOTTOM_RIGHT": ezdxf.const.MTEXT_BOTTOM_RIGHT,
+            "TOP_LEFT": dxfconstants.MTEXT_TOP_LEFT, "TOP_CENTER": dxfconstants.MTEXT_TOP_CENTER, "TOP_RIGHT": dxfconstants.MTEXT_TOP_RIGHT,
+            "MIDDLE_LEFT": dxfconstants.MTEXT_MIDDLE_LEFT, "MIDDLE_CENTER": dxfconstants.MTEXT_MIDDLE_CENTER, "MIDDLE_RIGHT": dxfconstants.MTEXT_MIDDLE_RIGHT,
+            "BOTTOM_LEFT": dxfconstants.MTEXT_BOTTOM_LEFT, "BOTTOM_CENTER": dxfconstants.MTEXT_BOTTOM_CENTER, "BOTTOM_RIGHT": dxfconstants.MTEXT_BOTTOM_RIGHT,
         }
-        return ap_map.get(attachment_point_str.upper(), ezdxf.const.MTEXT_TOP_LEFT)
+        return ap_map.get(attachment_point_str.upper(), dxfconstants.MTEXT_TOP_LEFT)
 
-    async def _add_dxf_mtext(self, msp: Modelspace, doc: Drawing, model: DxfMText) -> Optional[MText]:
+    async def _add_dxf_mtext(self, msp: Modelspace, doc: Drawing, model: DxfMText, layer_style_config: LayerStyleConfig) -> Optional[MText]:
         """Adds a DXF MText entity to the modelspace."""
         try:
             # Validate insertion point
@@ -548,14 +550,20 @@ class DxfEntityConverterService(IDxfEntityConverterService):
             self.logger.error(f"Error adding DxfMText on layer '{model.layer}': {e}", exc_info=True)
             return None
 
-    async def _add_dxf_text(self, msp: Modelspace, doc: Drawing, model: DxfText) -> Optional[Text]:
-        """Adds a DXF Text entity (simple text) to the modelspace."""
+    async def _add_dxf_text(self, msp: Modelspace, doc: Drawing, dxf_model: DxfText, layer_style_config: LayerStyleConfig) -> Optional[Text]:
+        # log_prefix = "DxfEntityConverterService._add_dxf_text" # REMOVING TEMP LOG
         try:
+            # # --- TEMP LOGGING: INCOMING DXFTEXT MODEL --- # REMOVING TEMP LOG
+            # self.logger.info(f"{log_prefix}: INCOMING_MODEL - Text='{dxf_model.text_content}', "
+            #                  f"InsertPt={dxf_model.insertion_point}, HAlign='{dxf_model.halign}', "
+            #                  f"VAlign='{dxf_model.valign}', Style='{dxf_model.style}'")
+            # # --- END TEMP LOGGING ---
+
             # Validate insertion point
-            ins_x, ins_y, ins_z_opt = model.insertion_point.x, model.insertion_point.y, model.insertion_point.z
+            ins_x, ins_y, ins_z_opt = dxf_model.insertion_point.x, dxf_model.insertion_point.y, dxf_model.insertion_point.z
             if not (math.isfinite(ins_x) and math.isfinite(ins_y)):
                 self.logger.error(
-                    f"Invalid non-finite X/Y for DxfText insertion_point on layer '{model.layer}': "
+                    f"Invalid non-finite X/Y for DxfText insertion_point on layer '{dxf_model.layer}': "
                     f"IP=({ins_x},{ins_y}). Skipping Text entity."
                 )
                 return None
@@ -564,51 +572,98 @@ class DxfEntityConverterService(IDxfEntityConverterService):
             if ins_z_opt is not None:
                 if not math.isfinite(ins_z_opt):
                     self.logger.warning(
-                        f"Invalid non-finite Z for DxfText insertion_point on layer '{model.layer}': Z={ins_z_opt}. Defaulting to 0.0."
+                        f"Invalid non-finite Z for DxfText insertion_point on layer '{dxf_model.layer}': Z={ins_z_opt}. Defaulting to 0.0."
                     )
                     # ins_z is already 0.0
                 else:
                     ins_z = ins_z_opt
             final_ins_pt = (ins_x, ins_y, ins_z)
 
-            # Validate height (must be positive)
-            height = model.height
-            if not (math.isfinite(height) and height > 0):
-                self.logger.error(
-                    f"Invalid non-finite or non-positive height for DxfText on layer '{model.layer}': {height}. Skipping Text entity."
-                )
-                return None
-
-            # Validate rotation
-            rotation_deg = model.rotation_degrees
-            if rotation_deg is not None and not math.isfinite(rotation_deg):
-                self.logger.warning(
-                    f"Invalid non-finite rotation for DxfText on layer '{model.layer}': {rotation_deg}. Defaulting to 0.0 degrees."
-                )
-                rotation_deg = 0.0 # Default if non-finite
-            rotation_rad = self._calculate_text_rotation_rad(rotation_deg)
-
-            halign = getattr(ezdxf.const, f"TEXT_ALIGN_{ (model.halign or 'LEFT').upper() }", ezdxf.const.TEXT_ALIGN_LEFT)
-            valign = getattr(ezdxf.const, f"TEXT_ALIGN_{ (model.valign or 'BASELINE').upper() }", ezdxf.const.TEXT_ALIGN_BASELINE)
-
-            attribs = {
-                "height": height,
-                "style": model.style or self.writer_config.default_text_style or "Standard",
-                "rotation": rotation_rad,
-                "halign": halign,
-                "valign": valign,
+            # Prepare dxfattribs for msp.add_text
+            dxfattribs: Dict[str, Any] = {
+                "height": dxf_model.height,
+                "style": dxf_model.style or self.writer_config.default_text_style or "Standard",
+                "rotation": self._calculate_text_rotation_rad(dxf_model.rotation),
             }
 
-            text_entity = msp.add_text(text=model.text_string, dxfattribs=attribs)
-            text_entity.dxf.insert = final_ins_pt
+            # Map halign from model to ezdxf code
+            halign_code = self._map_halign_to_dxf_code(dxf_model.halign)
+            dxfattribs["halign"] = halign_code # halign_code is now the integer
 
-            if halign != ezdxf.const.TEXT_ALIGN_LEFT or valign != ezdxf.const.TEXT_ALIGN_BASELINE:
-                text_entity.dxf.align_point = final_ins_pt
+            # Map valign from model to ezdxf code
+            valign_code = self._map_valign_to_dxf_code(dxf_model.valign)
+            dxfattribs["valign"] = valign_code # valign_code is now the integer
+
+            # Create the TEXT entity
+            text_entity = msp.add_text(
+                text=dxf_model.text_content,
+                dxfattribs=dxfattribs
+            )
+
+            # # --- TEMP LOGGING: CREATED EZDXF TEXT ENTITY --- # REMOVING TEMP LOG
+            # if text_entity:
+            #     self.logger.info(f"{log_prefix}: CREATED_ENTITY - Text='{text_entity.dxf.text}', "
+            #                      f"InsertPt={text_entity.dxf.insert}, HAlign='{text_entity.dxf.halign}', "
+            #                      f"VAlign='{text_entity.dxf.valign}', Style='{text_entity.dxf.style}'")
+            # # --- END TEMP LOGGING ---
+
+            if text_entity:
+                text_entity.dxf.insert = final_ins_pt
+                # For TEXT entities, if alignment is other than LEFT/BASELINE,
+                # the `align_point` should also be set to the `insertion_point`.
+                # `halign_code` and `valign_code` here are the ezdxf integer constants.
+                # DXF default for halign is 0 (LEFT), valign is 0 (BASELINE)
+                if dxfattribs.get("halign", 0) != 0 or \
+                   dxfattribs.get("valign", 0) != 0:
+                    text_entity.dxf.align_point = final_ins_pt
+            else:
+                 self.logger.warning(f"msp.add_text returned None for text: {dxf_model.text_content}")
+                 return None
+
+            # Apply common DxfEntity properties like color, linetype, etc.
+            await self._apply_common_dxf_attributes(text_entity, dxf_model, layer_style_config)
+            # Apply XDATA after common attributes
+            # await self._apply_xdata(text_entity, dxf_model)
+            self.logger.debug(f"Successfully added and styled {dxf_model.__class__.__name__} (handle: {text_entity.dxf.handle}) to layer {dxf_model.layer}")
 
             return text_entity
         except Exception as e:
-            self.logger.error(f"Error adding DxfText on layer '{model.layer}': {e}", exc_info=True)
+            self.logger.error(f"Error adding DxfText on layer '{dxf_model.layer}': {e}", exc_info=True)
             return None
+
+    def _map_halign_to_dxf_code(self, halign_str: Optional[str]) -> int:
+        if not halign_str:
+            return 0 # Default: TEXT_ALIGN_LEFT
+        ha_map = {
+            "LEFT": 0,
+            "CENTER": 1, # CENTER (alone) implies vertical baseline
+            "RIGHT": 2,
+            # For ALIGNED, MIDDLE, FIT, valign is often 0 (BASELINE)
+            # Or they are combined with valign to make MIDDLE_CENTER etc.
+            # TextEntityAlignment enum combines these. Direct DXF codes are simpler here.
+            "ALIGNED": 3, # Text is drawn between two points, height is scaled.
+            "MIDDLE": 4,  # Text is centered horizontally between two points, height is fixed.
+                          # This is NOT "MIDDLE_OF_TEXT" vertically unless valign is also middle.
+                          # Often used for "MIDDLE_CENTER" when combined with valign=2
+            "FIT": 5,     # Text is stretched/compressed between two points, height is fixed.
+        }
+        # More complex alignments (like MIDDLE_CENTER, TOP_LEFT) are usually handled by
+        # setting both halign and valign. e.g. MIDDLE_CENTER = halign=4, valign=2
+        # Our DxfText model has separate halign and valign.
+        # For now, map based on simple horizontal string.
+        # If DxfText intends "MIDDLE_CENTER" by halign="MIDDLE", it should also have valign="MIDDLE".
+        return ha_map.get(halign_str.upper(), 0) # Default to 0 (LEFT)
+
+    def _map_valign_to_dxf_code(self, valign_str: Optional[str]) -> int:
+        if not valign_str:
+            return 0 # Default: TEXT_VALIGN_BASELINE
+        va_map = {
+            "BASELINE": 0,
+            "BOTTOM": 1,
+            "MIDDLE": 2, # Vertically middle
+            "TOP": 3,
+        }
+        return va_map.get(valign_str.upper(), 0) # Default to 0 (BASELINE)
 
     async def _add_dxf_insert(self, msp: Modelspace, doc: Drawing, model: DxfInsert) -> Optional[Insert]:
         """Adds a DXF Insert (Block Reference) entity to the modelspace."""
@@ -804,9 +859,9 @@ class DxfEntityConverterService(IDxfEntityConverterService):
             #     self.logger.warning(f"Polyline on layer '{model.layer}' has no valid vertices after filtering. Skipping.")
             #     return None
 
-            dxf_flags = ezdxf.const.POLYLINE_3D_POLYLINE
+            dxf_flags = dxfconstants.POLYLINE_3D_POLYLINE
             if model.is_closed:
-                dxf_flags |= ezdxf.const.POLYLINE_CLOSED
+                dxf_flags |= dxfconstants.POLYLINE_CLOSED
 
             polyline_entity = msp.add_polyline3d(dxfattribs={'flags': dxf_flags})
             polyline_entity.append_vertices(validated_vertices)
