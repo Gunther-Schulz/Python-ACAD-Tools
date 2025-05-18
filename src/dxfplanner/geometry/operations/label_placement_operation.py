@@ -29,35 +29,36 @@ class LabelPlacementOperation(IOperation[LabelPlacementOperationConfig]):
         text_style_props_for_service_call: Optional[TextStylePropertiesConfig] = None
 
         if not label_settings:
-            self.logger.warning(f"{log_prefix}: label_settings is None. Labels might not be generated or use defaults.")
-            # Depending on ILabelPlacementService behavior, might need to yield original features or empty stream.
-            # For now, assume service handles None label_settings gracefully.
-            # If it MUST have label_settings, then:
-            # self.logger.error(f"{log_prefix}: label_settings is None, cannot proceed.")
-            # return # or raise error
+            self.logger.warning(f"{log_prefix}: label_settings is None in operation config. Labels might not be generated or use defaults.")
+        else: # DEBUG LOGGING START
+            self.logger.debug(f"{log_prefix}: Configured label_settings: {label_settings.model_dump_json(exclude_none=True, indent=2)}") # INFO to DEBUG
+        # DEBUG LOGGING END
 
         try:
             text_style_props_for_service_call = self.style_service.get_resolved_style_for_label_operation(config=config)
-            self.logger.debug(f"{log_prefix}: Resolved text style: {text_style_props_for_service_call.model_dump_json(indent=2, exclude_unset=True) if text_style_props_for_service_call else 'None'}")
+            self.logger.debug(f"{log_prefix}: Resolved text style for service call: {text_style_props_for_service_call.model_dump_json(indent=2, exclude_unset=True) if text_style_props_for_service_call else 'None'}") # INFO to DEBUG
         except Exception as e_style_resolve:
             self.logger.error(f"{log_prefix}: Error resolving text style: {e_style_resolve}", exc_info=True)
-            text_style_props_for_service_call = TextStylePropertiesConfig() # Fallback default
+            text_style_props_for_service_call = TextStylePropertiesConfig()
 
-        # Ensure label_settings is not None before passing to service if service requires it.
-        # If service can handle None, this check is optional but good for clarity.
         if label_settings is None:
-            self.logger.info(f"{log_prefix}: No label_settings provided, label placement might be skipped by service or use defaults.")
-            # If the service MUST have LabelingConfig, then we should not proceed or provide a default.
-            # For now, we'll pass it as None and let the service decide.
+            self.logger.info(f"{log_prefix}: No label_settings provided (or resolved to None), label placement service might skip or use defaults.")
 
+        self.logger.debug(f"{log_prefix}: Calling label_placement_service.place_labels_for_features with layer_name='{contextual_layer_name_for_service}'.") # INFO to DEBUG
         placed_label_data_stream = self.label_placement_service.place_labels_for_features(
             features=features,
             layer_name=contextual_layer_name_for_service,
-            config=label_settings, # Pass Optional[LabelingConfig]
+            config=label_settings,
             text_style_properties=text_style_props_for_service_call
         )
 
-        async for placed_label in placed_label_data_stream: # placed_label is PlacedLabel model
+        placed_labels_received_count = 0 # DEBUG LOGGING
+        geo_features_yielded_count = 0 # DEBUG LOGGING
+        self.logger.debug(f"{log_prefix}: Starting to iterate PlacedLabel stream from service.") # INFO to DEBUG
+
+        async for placed_label in placed_label_data_stream:
+            placed_labels_received_count += 1 # DEBUG LOGGING
+            self.logger.debug(f"{log_prefix}: Received PlacedLabel #{placed_labels_received_count}: Text='{placed_label.text}', Pos={placed_label.position}") # INFO to DEBUG
             label_geometry = PointGeo(coordinates=placed_label.position)
             label_properties: Dict[str, Any] = {
                 "__geometry_type__": "LABEL",
@@ -65,5 +66,8 @@ class LabelPlacementOperation(IOperation[LabelPlacementOperationConfig]):
                 "label_rotation": placed_label.rotation,
                 "text_style_properties": text_style_props_for_service_call.model_dump(exclude_unset=True) if text_style_props_for_service_call else {}
             }
-            yield GeoFeature(geometry=label_geometry, properties=label_properties, crs=None) # Changed 'attributes' to 'properties'
+            yield GeoFeature(geometry=label_geometry, properties=label_properties, crs=None)
+            geo_features_yielded_count +=1 # DEBUG LOGGING
+
+        self.logger.debug(f"{log_prefix}: Finished iterating PlacedLabel stream. Received: {placed_labels_received_count}, Yielded GeoFeatures: {geo_features_yielded_count}.") # INFO to DEBUG
         self.logger.info(f"{log_prefix}: Completed.")

@@ -9,8 +9,8 @@ from functools import partial # ADDED
 from typing import cast
 
 import os # DEBUGGING EnvError
-print(f"[geojson_reader.py] TOP LEVEL - Initial GDAL_DATA: {os.environ.get('GDAL_DATA')}") # DEBUGGING EnvError
-print(f"[geojson_reader.py] TOP LEVEL - Initial PROJ_LIB: {os.environ.get('PROJ_LIB')}") # DEBUGGING EnvError
+# print(f"[geojson_reader.py] TOP LEVEL - Initial GDAL_DATA: {os.environ.get('GDAL_DATA')}") # REMOVED
+# print(f"[geojson_reader.py] TOP LEVEL - Initial PROJ_LIB: {os.environ.get('PROJ_LIB')}") # REMOVED
 
 import fiona
 from fiona.errors import FionaError, DriverError
@@ -37,8 +37,8 @@ class GeoJsonReader(IGeoDataReader):
         self.config = config
         self.logger = logger
         # DEBUGGING EnvError
-        logger.debug(f"[GeoJsonReader __init__] GDAL_DATA: {os.environ.get('GDAL_DATA')}")
-        logger.debug(f"[GeoJsonReader __init__] PROJ_LIB: {os.environ.get('PROJ_LIB')}")
+        # logger.debug(f"[GeoJsonReader __init__] GDAL_DATA: {os.environ.get('GDAL_DATA')}") # REMOVED
+        # logger.debug(f"[GeoJsonReader __init__] PROJ_LIB: {os.environ.get('PROJ_LIB')}") # REMOVED
 
     def _blocking_read_features_sync_generator(
         self,
@@ -51,9 +51,8 @@ class GeoJsonReader(IGeoDataReader):
         Synchronous generator that performs the actual Fiona I/O and feature processing.
         This method will be run in a separate thread.
         """
-        # DEBUGGING EnvError
-        self.logger.info(f"[_blocking_read_features_sync_generator] ENTRY GDAL_DATA: {os.environ.get('GDAL_DATA')}")
-        self.logger.info(f"[_blocking_read_features_sync_generator] ENTRY PROJ_LIB: {os.environ.get('PROJ_LIB')}")
+        # self.logger.info(f"[_blocking_read_features_sync_generator] ENTRY GDAL_DATA: {os.environ.get('GDAL_DATA')}") # REMOVED
+        # self.logger.info(f"[_blocking_read_features_sync_generator] ENTRY PROJ_LIB: {os.environ.get('PROJ_LIB')}") # REMOVED
 
         if not source_path:
             raise ValueError("source_path must be provided.")
@@ -66,107 +65,108 @@ class GeoJsonReader(IGeoDataReader):
         if kwargs: # Original kwargs handling
             self.logger.warning(f"GeoJsonReader (sync) received unused kwargs: {kwargs}")
 
-        try:
-            fiona_encoding = self.config.encoding if self.config.encoding else None
-            self.logger.debug(f"GeoJsonReader (sync): Effective Fiona encoding: {fiona_encoding if fiona_encoding else 'Fiona default'}")
+        # Ensures that Fiona's GDAL environment is active for this thread's operations
+        with fiona.Env() as env_context:
+            try:
+                fiona_encoding = self.config.encoding if self.config.encoding else None
+                self.logger.debug(f"GeoJsonReader (sync): Effective Fiona encoding: {fiona_encoding if fiona_encoding else 'Fiona default'}")
 
-            # DEBUGGING EnvError
-            self.logger.info(f"[_blocking_read_features_sync_generator] PRE-FIONA.OPEN GDAL_DATA: {os.environ.get('GDAL_DATA')}")
-            self.logger.info(f"[_blocking_read_features_sync_generator] PRE-FIONA.OPEN PROJ_LIB: {os.environ.get('PROJ_LIB')}")
+                # self.logger.info(f"[_blocking_read_features_sync_generator] PRE-FIONA.OPEN GDAL_DATA: {os.environ.get('GDAL_DATA')}") # REMOVED
+                # self.logger.info(f"[_blocking_read_features_sync_generator] PRE-FIONA.OPEN PROJ_LIB: {os.environ.get('PROJ_LIB')}") # REMOVED
 
-            with fiona.open(
-                file_path,
-                mode='r',
-                encoding=fiona_encoding # Pass the potentially None encoding to Fiona
-            ) as source_collection:
-                # CRS Handling:
-                # Priority: self.config.crs (from BaseReaderConfig) > file's detected CRS.
+                with fiona.open(
+                    file_path,
+                    mode='r',
+                    encoding=fiona_encoding # Pass the potentially None encoding to Fiona
+                ) as source_collection:
+                    # CRS Handling:
+                    # Priority: self.config.crs (from BaseReaderConfig) > file's detected CRS.
 
-                source_crs_str_from_config = self.config.crs.value if self.config.crs else None
+                    source_crs_str_from_config = self.config.crs.value if self.config.crs else None
 
-                fiona_file_crs_obj = source_collection.crs
-                fiona_file_crs_str = str(fiona_file_crs_obj) if fiona_file_crs_obj else None
+                    fiona_file_crs_obj = source_collection.crs
+                    fiona_file_crs_str = str(fiona_file_crs_obj) if fiona_file_crs_obj else None
 
-                self.logger.debug(f"GeoJsonReader (sync): Configured CRS: {source_crs_str_from_config}, File's detected CRS: {fiona_file_crs_str}")
+                    self.logger.debug(f"GeoJsonReader (sync): Configured CRS: {source_crs_str_from_config}, File's detected CRS: {fiona_file_crs_str}")
 
-                source_crs_str_resolved: Optional[str] = None
-                if source_crs_str_from_config:
-                    source_crs_str_resolved = source_crs_str_from_config
-                    if fiona_file_crs_str and fiona_file_crs_str.lower() != source_crs_str_from_config.lower():
-                        self.logger.warning(
-                            f"GeoJsonReader (sync): Configured CRS '{source_crs_str_from_config}' "
-                            f"differs from file's CRS '{fiona_file_crs_str}'. Using configured CRS."
-                        )
-                elif fiona_file_crs_str:
-                    source_crs_str_resolved = fiona_file_crs_str
-                # If neither is present, source_crs_str_resolved remains None
+                    source_crs_str_resolved: Optional[str] = None
+                    if source_crs_str_from_config:
+                        source_crs_str_resolved = source_crs_str_from_config
+                        if fiona_file_crs_str and fiona_file_crs_str.lower() != source_crs_str_from_config.lower():
+                            self.logger.warning(
+                                f"GeoJsonReader (sync): Configured CRS '{source_crs_str_from_config}' "
+                                f"differs from file's CRS '{fiona_file_crs_str}'. Using configured CRS."
+                            )
+                    elif fiona_file_crs_str:
+                        source_crs_str_resolved = fiona_file_crs_str
+                    # If neither is present, source_crs_str_resolved remains None
 
-                self.logger.debug(f"GeoJsonReader (sync): Effective source CRS for features: {source_crs_str_resolved}")
+                    self.logger.debug(f"GeoJsonReader (sync): Effective source CRS for features: {source_crs_str_resolved}")
 
-                target_crs_str = target_crs
+                    target_crs_str = target_crs
 
-                transformer: Optional[Transformer] = None # Initialize transformer to None
-                if source_crs_str_resolved and target_crs_str and source_crs_str_resolved.lower() != target_crs_str.lower():
-                    self.logger.info(f"GeoJsonReader (sync): Reprojecting from {source_crs_str_resolved} to {target_crs_str}")
-                    transformer = Transformer.from_crs(source_crs_str_resolved, target_crs_str, always_xy=True)
+                    transformer: Optional[Transformer] = None # Initialize transformer to None
+                    if source_crs_str_resolved and target_crs_str and source_crs_str_resolved.lower() != target_crs_str.lower():
+                        self.logger.info(f"GeoJsonReader (sync): Reprojecting from {source_crs_str_resolved} to {target_crs_str}")
+                        transformer = Transformer.from_crs(source_crs_str_resolved, target_crs_str, always_xy=True)
 
-                for i, feature in enumerate(source_collection):
-                    try:
-                        if "geometry" not in feature or feature["geometry"] is None:
-                            self.logger.warning(f"GeoJsonReader (sync): Feature {i} from {file_path} lacks geometry, skipping.")
-                            continue
-                        if "properties" not in feature:
-                            self.logger.warning(f"GeoJsonReader (sync): Feature {i} from {file_path} lacks properties, using empty dict.")
+                    for i, feature in enumerate(source_collection):
+                        try:
+                            if "geometry" not in feature or feature["geometry"] is None:
+                                self.logger.warning(f"GeoJsonReader (sync): Feature {i} from {file_path} lacks geometry, skipping.")
+                                continue
+                            if "properties" not in feature:
+                                self.logger.warning(f"GeoJsonReader (sync): Feature {i} from {file_path} lacks properties, using empty dict.")
 
-                        geom_shapely = shape(feature["geometry"])
-                        properties = feature.get("properties", {})
+                            geom_shapely = shape(feature["geometry"])
+                            properties = feature.get("properties", {})
 
-                        if transformer:
-                            geom_shapely = shapely_transform_op(transformer.transform, geom_shapely)
+                            if transformer:
+                                geom_shapely = shapely_transform_op(transformer.transform, geom_shapely)
 
-                        geo_model_geometry: Any
-                        geom_type = geom_shapely.geom_type
-                        if geom_type == 'Point':
-                            geo_model_geometry = PointGeo(coordinates=Coordinate(x=geom_shapely.x, y=geom_shapely.y, z=geom_shapely.z if geom_shapely.has_z else None))
-                        elif geom_type == 'LineString':
-                            coords_list = [Coordinate(x=c[0], y=c[1], z=c[2] if len(c) > 2 and geom_shapely.has_z else None) for c in geom_shapely.coords]
-                            geo_model_geometry = PolylineGeo(coordinates=coords_list)
-                        elif geom_type == 'Polygon':
-                            exterior_coords = [Coordinate(x=c[0], y=c[1], z=c[2] if len(c) > 2 and geom_shapely.has_z else None) for c in geom_shapely.exterior.coords]
-                            interiors_coords_list = []
-                            for interior in geom_shapely.interiors:
-                                interiors_coords_list.append([Coordinate(x=c[0], y=c[1], z=c[2] if len(c) > 2 and geom_shapely.has_z else None) for c in interior.coords])
-                            geo_model_geometry = PolygonGeo(coordinates=[exterior_coords] + interiors_coords_list)
-                        else:
-                            self.logger.warning(f"GeoJsonReader (sync): Feature {i} from {file_path}: Unsupported Shapely geometry type '{geom_type}'. Skipping feature.")
-                            continue
+                            geo_model_geometry: Any
+                            geom_type = geom_shapely.geom_type
+                            if geom_type == 'Point':
+                                geo_model_geometry = PointGeo(coordinates=Coordinate(x=geom_shapely.x, y=geom_shapely.y, z=geom_shapely.z if geom_shapely.has_z else None))
+                            elif geom_type == 'LineString':
+                                coords_list = [Coordinate(x=c[0], y=c[1], z=c[2] if len(c) > 2 and geom_shapely.has_z else None) for c in geom_shapely.coords]
+                                geo_model_geometry = PolylineGeo(coordinates=coords_list)
+                            elif geom_type == 'Polygon':
+                                exterior_coords = [Coordinate(x=c[0], y=c[1], z=c[2] if len(c) > 2 and geom_shapely.has_z else None) for c in geom_shapely.exterior.coords]
+                                interiors_coords_list = []
+                                for interior in geom_shapely.interiors:
+                                    interiors_coords_list.append([Coordinate(x=c[0], y=c[1], z=c[2] if len(c) > 2 and geom_shapely.has_z else None) for c in interior.coords])
+                                geo_model_geometry = PolygonGeo(coordinates=[exterior_coords] + interiors_coords_list)
+                            else:
+                                self.logger.warning(f"GeoJsonReader (sync): Feature {i} from {file_path}: Unsupported Shapely geometry type '{geom_type}'. Skipping feature.")
+                                continue
 
-                        yield GeoFeature(
-                            geometry=geo_model_geometry,
-                            properties=properties,
-                        )
-                    except Exception as e_feat:
-                        self.logger.error(
-                            f"GeoJsonReader (sync): Error processing feature {i} from {file_path}: {e_feat}",
-                            exc_info=True,
-                        )
-                        continue # Skip feature on error
+                            yield GeoFeature(
+                                geometry=geo_model_geometry,
+                                properties=properties,
+                            )
+                        except Exception as e_feat:
+                            self.logger.error(
+                                f"GeoJsonReader (sync): Error processing feature {i} from {file_path}: {e_feat}",
+                                exc_info=True,
+                            )
+                            continue # Skip feature on error
 
-        except FileNotFoundError:
-            self.logger.error(f"GeoJsonReader (sync): File not found: {file_path}")
-            raise GeoDataReadError(f"GeoJSON file not found: {file_path}") from None # Use from None for cleaner trace
-        except fiona.errors.DriverError as e_fiona_driver:
-            self.logger.error(f"GeoJsonReader (sync): Fiona driver error reading {file_path}: {e_fiona_driver}")
-            raise GeoDataReadError(f"Fiona driver error for {file_path}: {e_fiona_driver}") from e_fiona_driver
-        except CRSError as e_crs:
-            self.logger.error(f"GeoJsonReader (sync): Invalid CRS provided for {file_path}: {e_crs}")
-            raise GeoDataReadError(f"Invalid CRS for {file_path}: {e_crs}") from e_crs
-        except (ConfigurationError, ValueError) as e_config_val:
-            self.logger.error(f"GeoJsonReader (sync): Configuration or value error for {file_path}: {e_config_val}")
-            raise # Re-raise specific app errors
-        except Exception as e_general_sync:
-            self.logger.error(f"GeoJsonReader (sync): Unexpected error reading GeoJSON {file_path}: {e_general_sync}", exc_info=True)
-            raise GeoDataReadError(f"Failed to read GeoJSON {file_path} in sync generator: {e_general_sync}") from e_general_sync
+            except FileNotFoundError:
+                self.logger.error(f"GeoJsonReader (sync): File not found: {file_path}")
+                raise GeoDataReadError(f"GeoJSON file not found: {file_path}") from None # Use from None for cleaner trace
+            except fiona.errors.DriverError as e_fiona_driver:
+                self.logger.error(f"GeoJsonReader (sync): Fiona driver error reading {file_path}: {e_fiona_driver}")
+                raise GeoDataReadError(f"Fiona driver error for {file_path}: {e_fiona_driver}") from e_fiona_driver
+            except CRSError as e_crs:
+                self.logger.error(f"GeoJsonReader (sync): Invalid CRS provided for {file_path}: {e_crs}")
+                raise GeoDataReadError(f"Invalid CRS for {file_path}: {e_crs}") from e_crs
+            except (ConfigurationError, ValueError) as e_config_val:
+                self.logger.error(f"GeoJsonReader (sync): Configuration or value error for {file_path}: {e_config_val}")
+                raise # Re-raise specific app errors
+            except Exception as e_general_sync:
+                self.logger.error(f"GeoJsonReader (sync): Unexpected error reading GeoJSON {file_path} (within fiona.Env): {e_general_sync}", exc_info=True)
+                raise GeoDataReadError(f"Failed to read GeoJSON {file_path} in sync generator (within fiona.Env): {e_general_sync}") from e_general_sync
 
 
     async def read_features(

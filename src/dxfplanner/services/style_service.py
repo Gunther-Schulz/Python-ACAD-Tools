@@ -28,7 +28,7 @@ from dxfplanner.core.logging_config import get_logger
 from dxfplanner.services.styling.preset_resolver_service import PresetResolverService
 from dxfplanner.services.styling.rule_evaluator_service import RuleEvaluatorService
 from dxfplanner.services.styling.dxf_style_definition_service import DxfStyleDefinitionService
-from dxfplanner.services.styling.font_provider_service import FontProviderService # Ensure this is not commented
+# from dxfplanner.services.styling.font_provider_service import FontProviderService # REMOVED
 from dxfplanner.services.styling.styling_utils import merge_style_components # For get_resolved_feature_style merge
 
 logger = get_logger(__name__) # Keep logger instance for StyleService itself if it does any logging
@@ -51,14 +51,14 @@ class StyleService(IStyleService):
         self.logger = logger_instance # Use the passed logger
 
         # Instantiate new services
-        font_dirs = getattr(self._config, 'font_directories', [])
-        if not font_dirs and hasattr(self._config, 'general_settings') and hasattr(self._config.general_settings, 'font_dirs'):
-            font_dirs = self._config.general_settings.font_dirs or []
+        # font_dirs = getattr(self._config, 'font_directories', []) # REMOVED
+        # if not font_dirs and hasattr(self._config, 'general_settings') and hasattr(self._config.general_settings, 'font_dirs'): # REMOVED
+        #     font_dirs = self._config.general_settings.font_dirs or [] # REMOVED
 
         self.preset_resolver_service = PresetResolverService(project_config=self._config, logger=self.logger)
         self.rule_evaluator_service = RuleEvaluatorService(logger=self.logger)
         self.dxf_style_definition_service = DxfStyleDefinitionService(logger=self.logger)
-        self.font_provider_service = FontProviderService(font_directories=font_dirs, logger=self.logger) # Ensure this line is active and correct
+        # self.font_provider_service = FontProviderService(font_directories=font_dirs, logger=self.logger) # REMOVED
 
     # Removed: _evaluate_condition (moved to RuleEvaluatorService)
     # Removed: _merge_style_component (logic now in styling_utils.merge_style_components, used by PresetResolverService)
@@ -161,33 +161,13 @@ class StyleService(IStyleService):
             else: # final_layer_soc is None or has no text_props
                 self.logger.debug(f"{log_prefix}Layer fallback for '{layer_config_fallback.name}' did not yield text_props.")
 
-        # If we have a TextStylePropertiesConfig by now, try to resolve its font file path
+        # If we have a TextStylePropertiesConfig by now
         if text_props_to_return:
-            original_font_spec = text_props_to_return.font_name_or_style_preset
-            text_props_to_return.resolved_font_filename = None # Default to None, ensure it's reset
-
-            if original_font_spec:
-                # Attempt to resolve as a font file path first
-                font_path = self.font_provider_service.get_font_path(original_font_spec)
-
-                if font_path:
-                    text_props_to_return.resolved_font_filename = font_path
-                    self.logger.debug(f"{log_prefix}Resolved direct font specification '{original_font_spec}' to path '{font_path}'.")
-                else:
-                    # font_provider_service.get_font_path returned None.
-                    # FontProviderService itself is responsible for logging a warning if original_font_spec
-                    # looked like a font file it couldn't find (and wasn't a default CAD name).
-                    # StyleService should just accept that None and proceed.
-                    text_props_to_return.resolved_font_filename = None # Ensure it remains None
-                    self.logger.debug(
-                        f"{log_prefix}Font specification '{original_font_spec}' did not resolve to a direct font file path "
-                        f"(FontProviderService returned None). `resolved_font_filename` is None. "
-                        f"Downstream services will use this or default. Any necessary warnings for unresolvable font *files* "
-                        f"are handled by FontProviderService."
-                    )
-            else: # No original_font_spec in text_props
-                text_props_to_return.resolved_font_filename = None
-                self.logger.debug(f"{log_prefix}No font_name_or_style_preset in text_props, resolved_font_filename set to None.")
+            # New simplified logging
+            if text_props_to_return.font_name_or_style_preset:
+                self.logger.debug(f"{log_prefix}Font name/preset '{text_props_to_return.font_name_or_style_preset}' will be used directly by ezdxf.")
+            else:
+                self.logger.debug(f"{log_prefix}No font_name_or_style_preset specified; ezdxf will use default.")
 
             self.logger.debug(f"{log_prefix}Returning resolved: {text_props_to_return.model_dump_json(exclude_none=True, indent=2)}")
             return text_props_to_return

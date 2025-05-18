@@ -7,7 +7,7 @@ services:
     default_target_crs: "EPSG:25832"
 
 logging:
-  level: "INFO"
+  level: "DEBUG"
   format: "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>"
 
 # dxf_writer moved to top level
@@ -59,28 +59,29 @@ style_presets:
 
 layers:
   - name: "SamplePolygons"
+    enabled: true
     source:
       type: "GEOJSON"
       path: "test_data/sources/sample_polygons.geojson"
     style_preset_name: "DefaultPolygonStyle" # Refers to top-level style_presets
     operations:
       - type: "BUFFER"
-        distance: 10.0
-        # output_layer_name: "BufferedPolygons"
-      - type: "BUFFER"
         distance: 20.0
         output_layer_name: "BufferedPolygons"
-      # - type: "LABEL_PLACEMENT"
-      #   source_layer: "SamplePolygons"
-      #   label_attribute: "name" # This is for LabelPlacementOperationConfig itself
-      #   output_label_layer_name: "PolygonLabels"
-      #   label_settings: # Maps to LabelingConfig in style_schemas.py
-      #     # min_feature_size: 0 # REMOVED: Extra input not permitted by LabelingConfig (extra = "forbid")
-      #     label_attribute: "name" # As per LabelingConfig schema
-      #     text_style: # Field in LabelingConfig, maps to TextStylePropertiesConfig
-      #       font_name_or_style_preset: "StandardLegend" # Field in TextStylePropertiesConfig, refers to a preset in dxf_writer.text_style_presets
-      #       # height can be inherited from preset or overridden here if needed
-      #       # color can be set here too if needed to override preset/layer color
+      - type: "BUFFER"
+        distance: 10.0
+        output_layer_name: "BufferedPolygons_Stage2"
+      - type: "LABEL_PLACEMENT"
+        source_layer: "BufferedPolygons_Stage2"
+        label_attribute: "name" # This is for LabelPlacementOperationConfig itself
+        output_label_layer_name: "PolygonLabels"
+        label_settings: # Maps to LabelingConfig in style_schemas.py
+          # min_feature_size: 0 # REMOVED: Extra input not permitted by LabelingConfig (extra = "forbid")
+          label_attribute: "name" # As per LabelingConfig schema
+          # text_style: # Field in LabelingConfig, maps to TextStylePropertiesConfig
+          #   font_name_or_style_preset: "StandardLegend" # Field in TextStylePropertiesConfig, refers to a preset in dxf_writer.text_style_presets
+          #   # height can be inherited from preset or overridden here if needed
+          #   # color can be set here too if needed to override preset/layer color
 
 # legends:
 #   - id: "main_legend"
