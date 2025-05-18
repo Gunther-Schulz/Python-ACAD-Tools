@@ -130,7 +130,7 @@ class DIContainer(containers.DeclarativeContainer):
     style_service = providers.Factory(
         StyleService,
         config=project_config_instance_provider,
-        logger=logger
+        logger_instance=logger
     )
 
     # --- Individual Operation Providers ---

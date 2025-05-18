@@ -28,7 +28,7 @@ from dxfplanner.core.logging_config import get_logger
 from dxfplanner.services.styling.preset_resolver_service import PresetResolverService
 from dxfplanner.services.styling.rule_evaluator_service import RuleEvaluatorService
 from dxfplanner.services.styling.dxf_style_definition_service import DxfStyleDefinitionService
-from dxfplanner.services.styling.font_provider_service import FontProviderService # Ensure this is not commented
+from dxfplanner.services.styling.font_provider_service import FontProviderService # If needed directly, or for config
 from dxfplanner.services.styling.styling_utils import merge_style_components # For get_resolved_feature_style merge
 
 logger = get_logger(__name__) # Keep logger instance for StyleService itself if it does any logging
@@ -51,14 +51,25 @@ class StyleService(IStyleService):
         self.logger = logger_instance # Use the passed logger
 
         # Instantiate new services
+        # Assuming FontProviderService needs font_directories from ProjectConfig if available,
+        # or an empty list. This needs to be confirmed or made configurable.
+        # For now, let's assume project_config might have a top-level font_dirs: List[str]
         font_dirs = getattr(self._config, 'font_directories', [])
         if not font_dirs and hasattr(self._config, 'general_settings') and hasattr(self._config.general_settings, 'font_dirs'):
             font_dirs = self._config.general_settings.font_dirs or []
 
+        # If FontProviderService is only used by other styling services (e.g. PresetResolverService needs it
+        # to populate resolved_font_filename, or DxfStyleDefinitionService to check font existence),
+        # then StyleService might not need to instantiate it directly, but rather pass relevant config
+        # to the services that do.
+        # For now, we'll assume DxfStyleDefinitionService might want it, or PresetResolverService
+        # to fully resolve TextStylePropertiesConfig including the font path.
+        # Let's assume sub-services take project_config and logger if they need parts of it.
+
         self.preset_resolver_service = PresetResolverService(project_config=self._config, logger=self.logger)
         self.rule_evaluator_service = RuleEvaluatorService(logger=self.logger)
         self.dxf_style_definition_service = DxfStyleDefinitionService(logger=self.logger)
-        self.font_provider_service = FontProviderService(font_directories=font_dirs, logger=self.logger) # Ensure this line is active and correct
+        # self.font_provider_service = FontProviderService(font_directories=font_dirs, logger=self.logger) # Example instantiation
 
     # Removed: _evaluate_condition (moved to RuleEvaluatorService)
     # Removed: _merge_style_component (logic now in styling_utils.merge_style_components, used by PresetResolverService)
@@ -116,67 +127,69 @@ class StyleService(IStyleService):
         log_prefix = f"StyleService.get_text_style_properties for '{context_name}': "
         self.logger.debug(f"{log_prefix}Input style_reference type: {type(style_reference)}")
 
-        text_props_to_return: Optional[TextStylePropertiesConfig] = None
-
-        # Path 1: Direct TextStylePropertiesConfig provided
         if isinstance(style_reference, TextStylePropertiesConfig):
             self.logger.debug(f"{log_prefix}Using provided TextStylePropertiesConfig directly.")
-            text_props_to_return = style_reference.model_copy(deep=True) # Work on a copy
+            # If it's already a TextStylePropertiesConfig, it might or might not have resolved_font_filename.
+            # The PresetResolverService's resolve_text_style should handle this.
+            # We pass it as an inline definition to ensure full resolution.
+            return self.preset_resolver_service.resolve_text_style(
+                preset_name_or_style_object=None, # No preset name
+                inline_text_props_or_style_object=style_reference, # Pass the direct object
+                context_name=f"{context_name} (direct TextStylePropertiesConfig)"
+            )
 
-        # Path 2: Resolve from preset name (str) or inline StyleObjectConfig
-        elif isinstance(style_reference, str) or isinstance(style_reference, StyleObjectConfig):
-            preset_name_for_soc = style_reference if isinstance(style_reference, str) else None
-            inline_soc_def = style_reference if isinstance(style_reference, StyleObjectConfig) else None
+        base_style_object_for_text: Optional[StyleObjectConfig] = None
+        preset_name_for_text: Optional[str] = None
 
-            resolved_soc_from_ref = self.preset_resolver_service.resolve_preset_and_inline(
-                preset_name=preset_name_for_soc,
-                inline_definition=inline_soc_def,
+        if isinstance(style_reference, str): # Preset name for a StyleObjectConfig
+            preset_name_for_text = style_reference
+            self.logger.debug(f"{log_prefix}Reference is a preset name: '{preset_name_for_text}'.")
+        elif isinstance(style_reference, StyleObjectConfig): # Inline StyleObjectConfig
+            base_style_object_for_text = style_reference
+            self.logger.debug(f"{log_prefix}Reference is a StyleObjectConfig instance.")
+
+        # If no style_reference or it's not a direct TextStylePropertiesConfig,
+        # resolve it through PresetResolverService to get a StyleObjectConfig first.
+        if preset_name_for_text or base_style_object_for_text:
+            resolved_style_object = self.preset_resolver_service.resolve_preset_and_inline(
+                preset_name=preset_name_for_text,
+                inline_definition=base_style_object_for_text,
                 context_name=f"{context_name} (from style_reference)"
             )
-            if resolved_soc_from_ref and resolved_soc_from_ref.text_props:
-                text_props_to_return = resolved_soc_from_ref.text_props.model_copy(deep=True)
-            elif resolved_soc_from_ref: # resolved_soc_from_ref exists but .text_props is None
-                self.logger.debug(f"{log_prefix}Resolved StyleObjectConfig from reference '{style_reference}' did not yield text_props.")
-            # If resolved_soc_from_ref is None (preset not found and no inline), text_props_to_return remains None
+            if resolved_style_object.text_props:
+                 # Now fully resolve the text_props component, including font file.
+                return self.preset_resolver_service.resolve_text_style(
+                    preset_name_or_style_object=resolved_style_object.text_props.font_name_or_style_preset,
+                    inline_text_props_or_style_object=resolved_style_object.text_props,
+                    context_name=f"{context_name} (from resolved StyleObject)"
+                )
+            self.logger.debug(f"{log_prefix}Resolved StyleObjectConfig from reference did not yield text_props.")
 
-        # Path 3: Fallback to layer_config_fallback if text_props_to_return is still None
-        if text_props_to_return is None and layer_config_fallback:
+
+        # Fallback to layer_config_fallback
+        if layer_config_fallback:
             self.logger.debug(f"{log_prefix}Falling back to layer_config '{layer_config_fallback.name}'.")
-            base_layer_soc = self.preset_resolver_service.resolve_preset_and_inline(
+            layer_style_object = self.get_resolved_style_object(
                 preset_name=layer_config_fallback.style_preset_name,
                 inline_definition=layer_config_fallback.style_inline_definition,
-                context_name=f"{layer_config_fallback.name} (fallback base)"
+                override_definition=layer_config_fallback.style_override,
+                context_name=f"{layer_config_fallback.name} (fallback)"
             )
-            # Apply layer_config's override to the resolved base
-            final_layer_soc = merge_style_components(
-                model_cls=StyleObjectConfig,
-                base=base_layer_soc, # This can be None if preset/inline also not found
-                override=layer_config_fallback.style_override
-            )
-            if final_layer_soc and final_layer_soc.text_props:
-                text_props_to_return = final_layer_soc.text_props.model_copy(deep=True)
-            else: # final_layer_soc is None or has no text_props
-                self.logger.debug(f"{log_prefix}Layer fallback for '{layer_config_fallback.name}' did not yield text_props.")
+            if layer_style_object.text_props:
+                return self.preset_resolver_service.resolve_text_style(
+                    preset_name_or_style_object=layer_style_object.text_props.font_name_or_style_preset,
+                    inline_text_props_or_style_object=layer_style_object.text_props,
+                    context_name=f"{context_name} (from layer fallback)"
+                )
+            self.logger.debug(f"{log_prefix}Layer fallback did not yield text_props.")
 
-        # If we have a TextStylePropertiesConfig by now, try to resolve its font file path
-        if text_props_to_return:
-            if text_props_to_return.font_name_or_style_preset:
-                font_path = self.font_provider_service.get_font_path(text_props_to_return.font_name_or_style_preset)
-                if font_path:
-                    text_props_to_return.resolved_font_filename = font_path
-                    self.logger.debug(f"{log_prefix}Resolved font '{text_props_to_return.font_name_or_style_preset}' to path '{font_path}'.")
-                else:
-                    self.logger.warning(f"{log_prefix}Could not resolve font path for '{text_props_to_return.font_name_or_style_preset}'. `resolved_font_filename` will be None.")
-                    text_props_to_return.resolved_font_filename = None
-            else: # No font_name_or_style_preset to resolve
-                text_props_to_return.resolved_font_filename = None
-                self.logger.debug(f"{log_prefix}No font_name_or_style_preset in text_props, resolved_font_filename set to None.")
-
-            self.logger.debug(f"{log_prefix}Returning resolved: {text_props_to_return.model_dump_json(exclude_none=True, indent=2)}")
-            return text_props_to_return
-
-        self.logger.debug(f"{log_prefix}No specific text style found, returning default TextStylePropertiesConfig.")
-        return TextStylePropertiesConfig()
+        self.logger.debug(f"{log_prefix}No specific text style found, returning default resolved TextStylePropertiesConfig.")
+        # Return a default, fully resolved TextStylePropertiesConfig
+        return self.preset_resolver_service.resolve_text_style(
+            preset_name_or_style_object=None,
+            inline_text_props_or_style_object=None,
+            context_name=f"{context_name} (default)"
+        )
 
     def get_hatch_properties(
         self,
@@ -231,29 +244,28 @@ class StyleService(IStyleService):
             f"Resolving text style for LabelPlacementOperation: Output='{config.output_label_layer_name}', Source='{config.source_layer}'"
         )
 
-        # preset_name_from_label: Optional[str] = None # No longer needed with get_text_style_properties
-        inline_text_style_from_label_settings: Optional[TextStylePropertiesConfig] = None
+        preset_name_from_label: Optional[str] = None
+        inline_style_from_label: Optional[TextStylePropertiesConfig] = None
 
         if config.label_settings and config.label_settings.text_style:
             self.logger.debug(
                 f"Input text_style from LabelPlacementOperationConfig.label_settings: "
                 f"{config.label_settings.text_style.model_dump_json(exclude_none=True, indent=2)}"
             )
-            inline_text_style_from_label_settings = config.label_settings.text_style
-            # preset_name_from_label = config.label_settings.text_style.font_name_or_style_preset # Not directly used like this
+            inline_style_from_label = config.label_settings.text_style
+            preset_name_from_label = config.label_settings.text_style.font_name_or_style_preset
 
-        # Call the corrected get_text_style_properties.
-        # If inline_text_style_from_label_settings is None, get_text_style_properties will provide a default.
-        resolved_text_props = self.get_text_style_properties(
-            style_reference=inline_text_style_from_label_settings
-            # layer_config_fallback is not passed here, as this method focuses on LabelOpConfig's own style.
-            # context_name=f"LabelOp: {config.output_label_layer_name}" # Removed
+        # Delegate to PresetResolverService for full resolution including font file
+        resolved_text_props = self.preset_resolver_service.resolve_text_style(
+            preset_name_or_style_object=preset_name_from_label,
+            inline_text_props_or_style_object=inline_style_from_label,
+            context_name=f"LabelOp: {config.output_label_layer_name}"
         )
         self.logger.debug(f"StyleService.get_resolved_style_for_label_operation - resolved_text_props: {resolved_text_props.model_dump_json(indent=2)}")
         return resolved_text_props
 
     def get_resolved_feature_style(self, geo_feature: GeoFeature, layer_config: LayerConfig) -> StyleObjectConfig:
-        context_name = f"Feature ID {geo_feature.id or 'N/A'} on layer {layer_config.name}" # context_name for this method's logging
+        context_name = f"Feature ID {geo_feature.id or 'N/A'} on layer {layer_config.name}"
         self.logger.debug(f"Resolving feature style for: {context_name}")
 
         # 1. Get base style for the layer using the main resolver
@@ -298,11 +310,10 @@ class StyleService(IStyleService):
         # the resolved_font_filename is correctly populated.
         if current_style.text_props:
             self.logger.debug(f"Post-rules, text_props before final re-resolution: {current_style.text_props.model_dump_json(indent=2)}")
-            # Corrected call: Use the class's own get_text_style_properties method
-            current_style.text_props = self.get_text_style_properties(
-                style_reference=current_style.text_props, # Pass the existing text_props as reference
-                layer_config_fallback=layer_config # Pass layer_config for context within get_text_style_properties
-                # context_name=f"{context_name} (post-rules text finalization)" # Removed
+            current_style.text_props = self.preset_resolver_service.resolve_text_style(
+                preset_name_or_style_object=current_style.text_props.font_name_or_style_preset,
+                inline_text_props_or_style_object=current_style.text_props,
+                context_name=f"{context_name} (post-rules text finalization)"
             )
             self.logger.debug(f"Post-rules, text_props AFTER final re-resolution: {current_style.text_props.model_dump_json(indent=2)}")
 
@@ -335,11 +346,10 @@ class StyleService(IStyleService):
                 # We effectively treat the 'preset_name' as the primary key for the style to be created in DXF.
                 # The text_style component *within* that preset_obj_config is what defines its properties.
 
-                # Corrected call: Use the class's own get_text_style_properties method
-                fully_resolved_text_props = self.get_text_style_properties(
-                    style_reference=preset_obj_config.text_style, # Pass the TextStylePropertiesConfig component
-                    # layer_config_fallback is not relevant here
-                    # context_name=f"DXF Style Creation for Preset '{preset_name}'" # Removed
+                fully_resolved_text_props = self.preset_resolver_service.resolve_text_style(
+                    preset_name_or_style_object=preset_obj_config.text_style.font_name_or_style_preset or preset_name, # Prioritize inner ref, fallback to preset_name
+                    inline_text_props_or_style_object=preset_obj_config.text_style,
+                    context_name=f"DXF Style Creation for Preset '{preset_name}'"
                 )
 
                 self.logger.debug(f"For DXF STYLE table, preset '{preset_name}', its text_style resolved to: {fully_resolved_text_props.model_dump_json(indent=2)}")

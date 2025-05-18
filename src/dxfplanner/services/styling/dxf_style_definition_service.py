@@ -1,6 +1,6 @@
 from logging import Logger
 from ezdxf.document import Drawing
-from ezdxf.entities.table import StyleEntry
+from ezdxf.entities import Textstyle
 
 from dxfplanner.config.style_schemas import TextStylePropertiesConfig
 
@@ -45,7 +45,7 @@ class DxfStyleDefinitionService:
             return
 
         if doc.styles.has_entry(style_name):
-            existing_style: StyleEntry = doc.styles.get(style_name)
+            existing_style: Textstyle = doc.styles.get(style_name)
             if existing_style.dxf.font.lower() == font_to_use.lower():
                 self.logger.debug(
                     f"{log_prefix}Already exists in DXF with the same font '{font_to_use}'. Skipping creation."

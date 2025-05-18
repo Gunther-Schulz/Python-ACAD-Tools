@@ -48,6 +48,7 @@ class TextStylePropertiesConfig(BaseModel):
         'MIDDLE_LEFT', 'MIDDLE_CENTER', 'MIDDLE_RIGHT',
         'BOTTOM_LEFT', 'BOTTOM_CENTER', 'BOTTOM_RIGHT'
     ]] = Field(default=None, description="Generic attachment point, maps to MTEXT attachment or informs TEXT alignment point.")
+    resolved_font_filename: Optional[str] = Field(default=None, description="Absolute path to the resolved font file. Set internally by StyleService.")
 
 
 # --- Hatch Styling Properties ---
