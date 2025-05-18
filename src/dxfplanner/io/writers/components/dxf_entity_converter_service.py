@@ -210,16 +210,21 @@ class DxfEntityConverterService(IDxfEntityConverterService):
 
     async def _apply_xdata(self, entity: DXFGraphic, dxf_model: DxfEntity) -> None:
         """Applies XDATA to the ezdxf entity if specified in the domain model."""
-        if dxf_model.xdata_app_id and dxf_model.xdata_tags:
+        if dxf_model.xdata_app_id is not None and dxf_model.xdata_tags is not None:
             try:
                 entity.set_xdata(dxf_model.xdata_app_id, dxf_model.xdata_tags)
-                self.logger.debug(f"Applied XDATA (AppID: {dxf_model.xdata_app_id}) to entity {entity.dxf.handle}")
+                self.logger.debug(f"Applied XDATA (AppID: {dxf_model.xdata_app_id}) with {len(dxf_model.xdata_tags)} tags to entity {entity.dxf.handle}")
             except AttributeError:
                 self.logger.warning(f"Entity {entity.dxf.handle} (type: {entity.dxftype()}) might not support XDATA directly.", exc_info=False)
             except Exception as e_xdata:
                 self.logger.error(f"Failed to set XDATA for entity {entity.dxf.handle}: {e_xdata}", exc_info=True)
-        elif dxf_model.xdata_app_id or dxf_model.xdata_tags: # Only one is present
-            self.logger.warning(f"XDATA for entity {hasattr(entity, 'dxf') and entity.dxf.handle or 'unknown'} was partially specified (app_id: {dxf_model.xdata_app_id is not None}, tags: {dxf_model.xdata_tags is not None}). Both app_id and tags are required to set XDATA.")
+        elif (dxf_model.xdata_app_id is not None and dxf_model.xdata_tags is None) or \
+             (dxf_model.xdata_app_id is None and dxf_model.xdata_tags is not None):
+            self.logger.warning(
+                f"XDATA for entity {hasattr(entity, 'dxf') and entity.dxf.handle or 'unknown'} "
+                f"was partially specified (app_id: {dxf_model.xdata_app_id is not None}, "
+                f"tags: {dxf_model.xdata_tags is not None}). Both app_id and tags are required to set XDATA if either is specified."
+            )
 
     # Placeholder for specific add methods to be added in Part 2
     async def _add_dxf_point(self, msp: Modelspace, model: DxfPoint) -> Optional[Point]:

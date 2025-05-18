@@ -86,6 +86,8 @@ async def convert_geo_feature_to_dxf_entities(
     # XDATA application ID and tags
     xdata_app_id = default_xdata_app_id # Use passed-in default
     xdata_tags = default_xdata_tags # Use passed-in default
+    if xdata_app_id is not None and xdata_tags is None: # If AppID is set (e.g. to default) but tags are None
+        xdata_tags = [] # Default to an empty list
 
 
     # Simplified: Use current_dxf_entity_layer for all entities created below.
