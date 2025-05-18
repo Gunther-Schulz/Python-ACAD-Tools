@@ -120,6 +120,7 @@ Thumbs.db
 *.log       # From existing, catch-all for logs
 logs/       # For runtime logs if generated into a /logs directory
 .cache/     # From existing
+.cursor/    # For Cursor AI-specific files and cache
 
 # Data files (if data/ is for local, non-versioned data)
 data/
