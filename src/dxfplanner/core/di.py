@@ -240,6 +240,8 @@ class DIContainer(containers.DeclarativeContainer):
         project_config=project_config_instance_provider,
         layer_processor=layer_processor_service_provider,
         dxf_writer=dxf_writer,
+        geometry_transformer=geometry_transformer_service,
+        style_service=style_service,
         logger=logger
     )
     validation_service = providers.Factory(

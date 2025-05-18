@@ -66,18 +66,21 @@ layers:
     operations:
       - type: "BUFFER"
         distance: 10.0
+        # output_layer_name: "BufferedPolygons"
+      - type: "BUFFER"
+        distance: 20.0
         output_layer_name: "BufferedPolygons"
-      - type: "LABEL_PLACEMENT"
-        source_layer: "SamplePolygons"
-        label_attribute: "name" # This is for LabelPlacementOperationConfig itself
-        output_label_layer_name: "PolygonLabels"
-        label_settings: # Maps to LabelingConfig in style_schemas.py
-          # min_feature_size: 0 # REMOVED: Extra input not permitted by LabelingConfig (extra = "forbid")
-          label_attribute: "name" # As per LabelingConfig schema
-          text_style: # Field in LabelingConfig, maps to TextStylePropertiesConfig
-            font_name_or_style_preset: "StandardLegend" # Field in TextStylePropertiesConfig, refers to a preset in dxf_writer.text_style_presets
-            # height can be inherited from preset or overridden here if needed
-            # color can be set here too if needed to override preset/layer color
+      # - type: "LABEL_PLACEMENT"
+      #   source_layer: "SamplePolygons"
+      #   label_attribute: "name" # This is for LabelPlacementOperationConfig itself
+      #   output_label_layer_name: "PolygonLabels"
+      #   label_settings: # Maps to LabelingConfig in style_schemas.py
+      #     # min_feature_size: 0 # REMOVED: Extra input not permitted by LabelingConfig (extra = "forbid")
+      #     label_attribute: "name" # As per LabelingConfig schema
+      #     text_style: # Field in LabelingConfig, maps to TextStylePropertiesConfig
+      #       font_name_or_style_preset: "StandardLegend" # Field in TextStylePropertiesConfig, refers to a preset in dxf_writer.text_style_presets
+      #       # height can be inherited from preset or overridden here if needed
+      #       # color can be set here too if needed to override preset/layer color
 
 # legends:
 #   - id: "main_legend"

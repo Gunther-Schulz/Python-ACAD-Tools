@@ -42,36 +42,73 @@ class DxfGenerationService(IDxfGenerationService):
 
     async def generate_dxf_from_source(
         self,
-        output_dxf_path: AnyStrPath,
-        **kwargs: Any
+        output_dxf_path: AnyStrPath, # This path is used to update project_config for DxfWriter
+        pipeline_name_override: Optional[str] = None, # Optional override for selecting the pipeline
+        **kwargs: Any # kwargs is no longer passed to run_pipeline, kept for signature compatibility if CLI passes it
     ) -> None:
         """
         Orchestrates the full workflow: validate config, run pipeline.
         """
-        logger.info(f"DxfGenerationService: Orchestrating DXF generation to '{output_dxf_path}'.")
+        # General log message, specific output path is handled by DxfWriter via project_config
+        logger.info(f"DxfGenerationService: Orchestrating DXF generation.")
 
+        # Update project_config with the explicit output path if provided. DxfWriter uses this.
+        if output_dxf_path:
+             self._project_config.dxf_writer.output_filepath = str(output_dxf_path)
+             logger.info(f"DXF output path for DxfWriter set to: {str(output_dxf_path)}")
+        else:
+            # Ensure there's a default path if none is provided to this method
+            if not self._project_config.dxf_writer.output_filepath:
+                err_msg_path = "Output DXF path not provided to generate_dxf_from_source and no default in project_config.dxf_writer.output_filepath."
+                self.logger.error(err_msg_path)
+                raise ConfigurationError(err_msg_path)
+            logger.info(f"Using DXF output path from project_config: {self._project_config.dxf_writer.output_filepath}")
+
+        selected_pipeline_name: Optional[str] = None # For logging in except blocks
         try:
-            self.logger.info(f"Starting DXF generation for output path: {output_dxf_path}")
-
             # Validate configuration if a validation service is provided
             if self._validation_service:
                 self.logger.debug("Validating application configuration...")
-                await self._validation_service.validate_config(self._project_config) # Changed from self._app_config
+                await self._validation_service.validate_config(self._project_config)
                 self.logger.debug("Configuration validated successfully.")
 
+            # Determine the pipeline to run
+            if pipeline_name_override:
+                # Check if the overridden pipeline name exists
+                if not self._project_config.pipelines or not any(p.name == pipeline_name_override for p in self._project_config.pipelines):
+                    err_msg = f"Specified pipeline_name_override '{pipeline_name_override}' not found in project configuration pipelines."
+                    self.logger.error(err_msg)
+                    raise ConfigurationError(err_msg)
+                selected_pipeline_name = pipeline_name_override
+                self.logger.info(f"Using overridden pipeline: '{selected_pipeline_name}'")
+            elif self._project_config.pipelines and len(self._project_config.pipelines) > 0:
+                selected_pipeline_name = self._project_config.pipelines[0].name
+                self.logger.info(f"Using the first defined pipeline by default: '{selected_pipeline_name}' (Total pipelines defined: {len(self._project_config.pipelines)}). Consider using pipeline_name_override for explicit selection.")
+            else:
+                err_msg = "No pipelines are defined in the project configuration, and no pipeline_name_override was provided."
+                self.logger.error(err_msg)
+                raise ConfigurationError(err_msg)
+
             # Run the main processing pipeline
+            self.logger.info(f"Executing pipeline: '{selected_pipeline_name}'")
             await self._pipeline_service.run_pipeline(
-                output_dxf_path=str(output_dxf_path),
-                **kwargs
+                pipeline_name=selected_pipeline_name # MODIFIED: Pass pipeline_name
+                # REMOVED: output_dxf_path argument
+                # REMOVED: **kwargs argument
             )
-            self.logger.info(f"DXF generation completed successfully for: {output_dxf_path}")
+            # DxfWriter uses project_config.dxf_writer.output_filepath, which was set/confirmed above.
+            final_output_path = self._project_config.dxf_writer.output_filepath
+            self.logger.info(f"DXF generation pipeline '{selected_pipeline_name}' completed successfully. Output should be at: {final_output_path}")
 
         except PipelineError as e_pipe:
-            logger.error(f"Pipeline reported PipelineError: {e_pipe}", exc_info=True)
+            logger.error(f"Pipeline '{selected_pipeline_name if selected_pipeline_name else 'N/A'}' reported PipelineError: {e_pipe}", exc_info=True)
+            raise
+        except ConfigurationError as e_config:
+            logger.error(f"Configuration error related to pipeline selection or paths: {e_config}", exc_info=True)
             raise
         except Exception as e_pipeline_run:
-            logger.error(f"Unexpected error during pipeline execution: {e_pipeline_run}", exc_info=True)
-            raise DxfGenerationError(f"Pipeline execution failed unexpectedly: {e_pipeline_run}") from e_pipeline_run
+            logger.error(f"Unexpected error during pipeline ('{selected_pipeline_name if selected_pipeline_name else 'N/A'}') execution: {e_pipeline_run}", exc_info=True)
+            raise DxfGenerationError(f"Pipeline ('{selected_pipeline_name if selected_pipeline_name else 'N/A'}') execution failed unexpectedly: {e_pipeline_run}") from e_pipeline_run
 
         # Potential post-pipeline validation using self._validation_service on output_dxf_path
         if self._validation_service and hasattr(self._validation_service, 'validate_output_dxf'):
