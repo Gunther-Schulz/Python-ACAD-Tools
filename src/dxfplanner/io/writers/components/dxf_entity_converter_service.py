@@ -224,54 +224,118 @@ class DxfEntityConverterService(IDxfEntityConverterService):
     # Placeholder for specific add methods to be added in Part 2
     async def _add_dxf_point(self, msp: Modelspace, model: DxfPoint) -> Optional[Point]:
         """Adds a DXF Point entity to the modelspace."""
+        self.logger.info(f"Attempting to add DxfPoint: Layer='{model.layer}', "
+                         f"X={model.position.x}, Y={model.position.y}, Z={model.position.z}, "
+                         f"TrueColor={model.true_color}, Color256={model.color_256}, Linetype='{model.linetype}', "
+                         f"XDATA AppID='{model.xdata_app_id}', Num XDATA Tags={len(model.xdata_tags) if model.xdata_tags else 0}")
         try:
-            # DxfPoint model uses model.position which is a Coordinate object
-            point_coords = (model.position.x, model.position.y)
+            x, y = model.position.x, model.position.y
+
+            if not (math.isfinite(x) and math.isfinite(y)):
+                self.logger.error(f"Invalid non-finite coordinates for DxfPoint on layer '{model.layer}': X={x}, Y={y}. Skipping point.")
+                return None
+
+            point_coords_list = [x, y]
             if model.position.z is not None:
-                point_coords += (model.position.z,)
-            return msp.add_point(location=point_coords)
+                if not math.isfinite(model.position.z):
+                    self.logger.warning(
+                        f"Invalid non-finite Z-coordinate for DxfPoint on layer '{model.layer}': Z={model.position.z}. Defaulting to 0.0."
+                    )
+                    point_coords_list.append(0.0)
+                else:
+                    point_coords_list.append(model.position.z)
+            # If model.position.z is None, point_coords_list remains [x, y], ezdxf handles 2D points.
+
+            final_point_coords = tuple(point_coords_list)
+            return msp.add_point(location=final_point_coords)
         except Exception as e:
-            self.logger.error(f"Error adding DxfPoint: {e}", exc_info=True)
+            self.logger.error(f"Error adding DxfPoint on layer '{model.layer}': {e}", exc_info=True)
             return None
 
     async def _add_dxf_line(self, msp: Modelspace, model: DxfLine) -> Optional[Line]:
         """Adds a DXF Line entity to the modelspace."""
         try:
-            start = (model.start_point.x, model.start_point.y)
-            if model.start_point.z is not None:
-                start += (model.start_point.z,)
+            start_x, start_y, start_z_opt = model.start_point.x, model.start_point.y, model.start_point.z
+            end_x, end_y, end_z_opt = model.end_point.x, model.end_point.y, model.end_point.z
 
-            end = (model.end_point.x, model.end_point.y)
-            if model.end_point.z is not None:
-                end += (model.end_point.z,)
+            if not (math.isfinite(start_x) and math.isfinite(start_y) and
+                    math.isfinite(end_x) and math.isfinite(end_y)):
+                self.logger.error(
+                    f"Invalid non-finite X/Y coordinates for DxfLine on layer '{model.layer}': "
+                    f"Start=({start_x},{start_y}), End=({end_x},{end_y}). Skipping line."
+                )
+                return None
 
-            return msp.add_line(start=start, end=end)
+            start_z = 0.0
+            if start_z_opt is not None:
+                if not math.isfinite(start_z_opt):
+                    self.logger.warning(
+                        f"Invalid non-finite Start Z-coordinate for DxfLine on layer '{model.layer}': Z={start_z_opt}. Defaulting to 0.0."
+                    )
+                    start_z = 0.0
+                else:
+                    start_z = start_z_opt
+
+            end_z = 0.0
+            if end_z_opt is not None:
+                if not math.isfinite(end_z_opt):
+                    self.logger.warning(
+                        f"Invalid non-finite End Z-coordinate for DxfLine on layer '{model.layer}': Z={end_z_opt}. Defaulting to 0.0."
+                    )
+                    end_z = 0.0
+                else:
+                    end_z = end_z_opt
+
+            # ezdxf add_line can take 2D or 3D points.
+            # If original Z was None, we effectively use 0.0 due to initialization.
+            # If original Z was non-finite, we explicitly use 0.0.
+            # If original Z was finite, we use it.
+            # This ensures 3D points are always passed if Z was involved.
+
+            # Constructing tuples for add_line:
+            # If Z was originally None for both, ezdxf can handle 2D points, but to be explicit with our Z=0 default:
+            final_start = (start_x, start_y, start_z)
+            final_end = (end_x, end_y, end_z)
+
+            return msp.add_line(start=final_start, end=final_end)
         except Exception as e:
-            self.logger.error(f"Error adding DxfLine: {e}", exc_info=True)
+            self.logger.error(f"Error adding DxfLine on layer '{model.layer}': {e}", exc_info=True)
             return None
 
     async def _add_dxf_lwpolyline(self, msp: Modelspace, model: DxfLWPolyline) -> Optional[LWPolyline]:
         """Adds a DXF LWPolyline entity to the modelspace."""
         try:
-            # LWPOLYLINE points are 2D (x, y) or (x, y, start_width, end_width, bulge)
-            # DxfLWPolyline model.points are Coordinates (x,y,z)
-            # For now, assume simple (x,y) points and ignore Z for LWPolyline
-            points_data = []
-            has_z_values = False
-            for p in model.points:
-                points_data.append((p.x, p.y))
-                if p.z is not None and p.z != 0: # Check if any non-zero Z is present
-                    has_z_values = True
-
-            if has_z_values:
-                self.logger.debug(f"LWPolyline ({model.layer}): Z coordinates present in DxfLWPolyline model points are discarded for LWPolyline entity.")
-
-            if not points_data:
-                self.logger.warning("Attempted to add LWPolyline with no points.")
+            if not model.points:
+                self.logger.warning(f"Attempted to add LWPolyline on layer '{model.layer}' with no points. Skipping.")
                 return None
 
+            valid_points_data = []
+            has_z_values_in_model = False # For logging purposes if Z was provided
+
+            for i, p_model in enumerate(model.points):
+                x, y, z_opt = p_model.x, p_model.y, p_model.z
+                if not (math.isfinite(x) and math.isfinite(y)):
+                    self.logger.error(
+                        f"Invalid non-finite X/Y coordinates for vertex {i} in DxfLWPolyline on layer '{model.layer}': "
+                        f"Point=({x},{y}). Skipping entire LWPolyline."
+                    )
+                    return None
+                valid_points_data.append((x, y)) # LWPOLYLINE points are 2D (x,y) or (x,y,bulge,s,e)
+                if z_opt is not None and z_opt != 0:
+                    has_z_values_in_model = True
+
+            if has_z_values_in_model:
+                self.logger.debug(f"LWPolyline on layer '{model.layer}': Z coordinates present in input DxfLWPolyline model points were discarded (as expected for LWPolyline vertices).")
+
+            # This check is now effectively done by the loop returning None if model.points was empty initially
+            # or if valid_points_data remains empty after filtering (though filtering currently skips whole polyline).
+            # If we were to filter individual bad points instead of skipping the whole polyline:
+            # if not valid_points_data:
+            #     self.logger.warning(f"LWPolyline on layer '{model.layer}' has no valid points after filtering. Skipping.")
+            #     return None
+
             lwpolyline = msp.add_lwpolyline(
-                points=points_data,
+                points=valid_points_data,
                 dxfattribs={'closed': model.is_closed}
             )
             # Bulge values, if present in DxfLWPolyline model, would need to be set per-vertex
@@ -280,7 +344,7 @@ class DxfEntityConverterService(IDxfEntityConverterService):
             #    lwpolyline[i] = (vertex_model.x, vertex_model.y, vertex_model.bulge_value)
             return lwpolyline
         except Exception as e:
-            self.logger.error(f"Error adding DxfLWPolyline: {e}", exc_info=True)
+            self.logger.error(f"Error adding DxfLWPolyline on layer '{model.layer}': {e}", exc_info=True)
             return None
 
     def _get_hatch_pattern_details(self, hatch_pattern_config: Optional[HatchPropertiesConfig]) -> tuple[str, float, float]:
@@ -309,72 +373,84 @@ class DxfEntityConverterService(IDxfEntityConverterService):
             hatch = msp.add_hatch()
             # Common attributes (color, layer, etc.) are applied later by _apply_common_dxf_attributes
 
-            # Set island detection style (defaulting to normal)
-            # TODO: Consider making hatch_style configurable if needed via DxfHatch or HatchPropertiesConfig
-            hatch.dxf.hatch_style = ezdxf.const.HATCH_STYLE_NORMAL
-
+            hatch.dxf.hatch_style = ezdxf.const.HATCH_STYLE_NORMAL # Default, consider making configurable
             model_hatch_props = model.hatch_props
-
-            # Determine if solid fill or pattern fill based on resolved pattern_name
-            # _get_hatch_pattern_details will return "SOLID" if it's meant to be a solid fill
             pattern_name, scale, angle_deg = self._get_hatch_pattern_details(model_hatch_props)
 
             if pattern_name.upper() == "SOLID":
                 hatch.set_solid_fill()
-                self.logger.debug(f"Hatch set to SOLID fill. Island style: {hatch.dxf.hatch_style}")
-
-                # Revised color setting for SOLID fills:
+                self.logger.debug(f"Hatch on layer '{model.layer}' set to SOLID fill. Island style: {hatch.dxf.hatch_style}")
                 if model_hatch_props and model_hatch_props.pattern_color:
-                    color_model_val = model_hatch_props.pattern_color # This is a ColorModel instance
-
+                    color_model_val = model_hatch_props.pattern_color
                     if color_model_val.rgb is not None:
-                        hatch.rgb = color_model_val.rgb # ezdxf handles setting .dxf.color to BYLAYER and .dxf.true_color
-                        self.logger.debug(f"Solid Hatch: Set fill color using RGB: {color_model_val.rgb}")
+                        hatch.rgb = color_model_val.rgb
+                        self.logger.debug(f"Solid Hatch on layer '{model.layer}': Set fill color using RGB: {color_model_val.rgb}")
                     elif color_model_val.aci is not None:
-                        # Fallback to ACI if RGB is not present in the ColorModel
-                        # get_color_code will return the ACI value directly if it's an int.
                         resolved_color_aci = get_color_code(color_model_val.aci, self.name_to_aci_map)
                         hatch.dxf.color = resolved_color_aci
-                        self.logger.debug(f"Solid Hatch: Set fill color using ACI: {color_model_val.aci} -> resolved to {resolved_color_aci}")
-                    # else: ColorModel is valid but has neither RGB nor ACI - should not happen due to Pydantic validation.
-                    # In this case, color would be inherited from layer via _apply_common_dxf_attributes if not set here.
-                # If model_hatch_props.pattern_color is None, color will be handled by _apply_common_dxf_attributes
-
+                        self.logger.debug(f"Solid Hatch on layer '{model.layer}': Set fill color using ACI: {color_model_val.aci} -> resolved to {resolved_color_aci}")
             else: # Pattern fill
-                # Pattern fill
-                hatch.set_pattern_fill(
-                    name=pattern_name,
-                    scale=scale,
-                    angle=angle_deg, # degrees
-                    # color for pattern lines is typically the entity's color, set by _apply_common_dxf_attributes
-                )
-                self.logger.debug(f"Hatch set to PATTERN fill: {pattern_name}, scale: {scale}, angle: {angle_deg}. Island style: {hatch.dxf.hatch_style}")
+                hatch.set_pattern_fill(name=pattern_name, scale=scale, angle=angle_deg)
+                self.logger.debug(f"Hatch on layer '{model.layer}' set to PATTERN fill: {pattern_name}, scale: {scale}, angle: {angle_deg}. Island style: {hatch.dxf.hatch_style}")
 
             # Add boundary paths
-            # DxfHatchPath model is assumed to always represent a polyline path.
-            for path_model in model.paths: # path_model is an instance of DxfHatchPath
-                path_points = []
+            has_at_least_one_valid_path = False
+            if not model.paths:
+                self.logger.warning(f"Hatch on layer '{model.layer}' has no paths defined in the model. Skipping hatch entity.")
+                # Need to remove the created hatch if it has no paths, or not add it.
+                # However, msp.add_hatch() already adds it. We might need to delete it.
+                # For now, let's proceed and if no paths are added, it might be an empty hatch.
+                # A better approach might be to collect valid paths first, then only call add_hatch if any exist.
+                # This change is too large for current scope. Current logic: if no paths, it will be a hatch with 0 paths.
+                # DXF viewer might handle this or not. Safest is to not create it.
+                # For now, the code will create a hatch, and if no paths are added, it's an empty hatch.
+                # Let's adjust: if no paths in model, return None.
+                msp.delete_entity(hatch) # Delete the initially created hatch if no paths in model
+                self.logger.warning(f"Deleted initially created hatch on layer '{model.layer}' as no paths were defined in the model.")
+                return None
 
-                # Consistently use path_model.vertices as per DxfHatchPath definition
+            for i, path_model in enumerate(model.paths):
                 if not path_model.vertices:
-                    self.logger.warning(f"Hatch path model for hatch on layer {model.layer or 'unknown'} has no vertices. Skipping this path.")
+                    self.logger.warning(f"Path {i} for hatch on layer '{model.layer}' has no vertices. Skipping this path.")
                     continue
 
-                path_points = [(v.x, v.y) for v in path_model.vertices]
+                current_path_valid_vertices = []
+                path_has_invalid_vertex = False
+                for j, vertex_model in enumerate(path_model.vertices):
+                    x, y = vertex_model.x, vertex_model.y
+                    if not (math.isfinite(x) and math.isfinite(y)):
+                        self.logger.error(
+                            f"Invalid non-finite X/Y for vertex {j} in path {i} for DxfHatch on layer '{model.layer}': "
+                            f"Point=({x},{y}). Skipping this entire path."
+                        )
+                        path_has_invalid_vertex = True
+                        break # Stop processing vertices for this path
+                    current_path_valid_vertices.append((x, y))
 
-                # TODO: Handle bulge values if DxfHatch polyline paths support them in the DxfHatchPath model in the future.
-                # For now, assuming simple vertices.
-                hatch.paths.add_polyline_path(
-                    path_vertices=path_points,
-                    is_closed=path_model.is_closed,
-                    flags=ezdxf.const.BOUNDARY_PATH_EXTERNAL # Corrected constant
-                    # flags also: HATCH_PATH_FLAG_OUTERMOST, HATCH_PATH_FLAG_DEFAULT (Note: these might also be BOUNDARY_PATH_xxx)
-                )
-            # The 'else' branch for edge paths has been removed as DxfHatchPath model currently only supports polyline vertices.
+                if not path_has_invalid_vertex and current_path_valid_vertices:
+                    # Assuming path_model.is_closed is always boolean as per DxfHatchPath
+                    hatch.paths.add_polyline_path(
+                        path_vertices=current_path_valid_vertices,
+                        is_closed=path_model.is_closed, # is_closed is part of DxfHatchPath model
+                        flags=ezdxf.const.BOUNDARY_PATH_EXTERNAL
+                    )
+                    has_at_least_one_valid_path = True
+                elif not current_path_valid_vertices and not path_has_invalid_vertex:
+                    # This case means path_model.vertices was not empty initially, but became empty (e.g. if we were filtering points)
+                    # Currently, this shouldn't happen due to break on invalid vertex.
+                    self.logger.warning(f"Path {i} for hatch on layer '{model.layer}' resulted in no valid vertices (though no single vertex was reported invalid). Skipping this path.")
+
+            if not has_at_least_one_valid_path:
+                self.logger.warning(f"Hatch on layer '{model.layer}' has no valid boundary paths after validation. Skipping hatch entity.")
+                msp.delete_entity(hatch) # Delete the initially created hatch
+                return None
 
             return hatch
         except Exception as e:
-            self.logger.error(f"Error adding DxfHatch: {e}", exc_info=True)
+            self.logger.error(f"Error adding DxfHatch on layer '{model.layer}': {e}", exc_info=True)
+            # If hatch was created but an error occurred later (e.g. during path adding), it might exist in msp.
+            # It's safer to ensure it's not left in a partial state if possible, but generic exception handling makes this hard.
+            # For now, if an exception occurs, the hatch might still be in modelspace if created before error.
             return None
 
     def _calculate_text_rotation_rad(self, rotation_degrees: Optional[float]) -> float:
@@ -395,161 +471,342 @@ class DxfEntityConverterService(IDxfEntityConverterService):
     async def _add_dxf_mtext(self, msp: Modelspace, doc: Drawing, model: DxfMText) -> Optional[MText]:
         """Adds a DXF MText entity to the modelspace."""
         try:
+            # Validate insertion point
+            ins_x, ins_y, ins_z_opt = model.insertion_point.x, model.insertion_point.y, model.insertion_point.z
+            if not (math.isfinite(ins_x) and math.isfinite(ins_y)):
+                self.logger.error(
+                    f"Invalid non-finite X/Y for DxfMText insertion_point on layer '{model.layer}': "
+                    f"IP=({ins_x},{ins_y}). Skipping MText."
+                )
+                return None
+
+            ins_z = 0.0
+            if ins_z_opt is not None:
+                if not math.isfinite(ins_z_opt):
+                    self.logger.warning(
+                        f"Invalid non-finite Z for DxfMText insertion_point on layer '{model.layer}': Z={ins_z_opt}. Defaulting to 0.0."
+                    )
+                    # ins_z is already 0.0
+                else:
+                    ins_z = ins_z_opt
+            final_ins_pt = (ins_x, ins_y, ins_z)
+
+            # Validate char_height (must be positive)
+            char_height = model.char_height
+            if not (math.isfinite(char_height) and char_height > 0):
+                self.logger.error(
+                    f"Invalid non-finite or non-positive char_height for DxfMText on layer '{model.layer}': {char_height}. Skipping MText."
+                )
+                return None
+
+            # Validate rotation
+            rotation_deg = model.rotation
+            if rotation_deg is not None and not math.isfinite(rotation_deg):
+                self.logger.warning(
+                    f"Invalid non-finite rotation for DxfMText on layer '{model.layer}': {rotation_deg}. Defaulting to 0.0 degrees."
+                )
+                rotation_deg = 0.0 # Default if non-finite
+            # _calculate_text_rotation_rad handles None by using 0.0
+            rotation_rad = self._calculate_text_rotation_rad(rotation_deg)
+
             attribs = {
-                "char_height": model.char_height,
+                "char_height": char_height,
                 "attachment_point": self._map_mtext_attachment_point(model.attachment_point),
                 "style": model.style or self.writer_config.default_text_style or "Standard",
-                "rotation": self._calculate_text_rotation_rad(model.rotation),
+                "rotation": rotation_rad,
             }
-            if model.width is not None: # MTEXT specific width for word wrapping
-                attribs["width"] = model.width
-            if model.line_spacing_factor is not None:
-                attribs["line_spacing_factor"] = model.line_spacing_factor
 
-            # Insertion point
-            ins_pt = (model.insertion_point.x, model.insertion_point.y)
-            if model.insertion_point.z is not None:
-                ins_pt += (model.insertion_point.z,)
+            # Validate optional width (must be positive if specified)
+            if model.width is not None:
+                if math.isfinite(model.width) and model.width > 0:
+                    attribs["width"] = model.width
+                else:
+                    self.logger.warning(
+                        f"Invalid non-finite or non-positive width for DxfMText on layer '{model.layer}': {model.width}. Omitting width attribute."
+                    )
+
+            # Validate optional line_spacing_factor
+            if model.line_spacing_factor is not None:
+                if math.isfinite(model.line_spacing_factor):
+                    # Assuming ezdxf handles range checks for line_spacing_factor (e.g., 0.25 to 4.0)
+                    attribs["line_spacing_factor"] = model.line_spacing_factor
+                else:
+                    self.logger.warning(
+                        f"Invalid non-finite line_spacing_factor for DxfMText on layer '{model.layer}': {model.line_spacing_factor}. Omitting factor."
+                    )
 
             mtext_entity = msp.add_mtext(text=model.text_content, dxfattribs=attribs)
-            mtext_entity.dxf.insert = ins_pt # Set insertion point after creation for MTEXT
+            mtext_entity.dxf.insert = final_ins_pt # Set insertion point after creation for MTEXT
 
             return mtext_entity
         except Exception as e:
-            self.logger.error(f"Error adding DxfMText: {e}", exc_info=True)
+            self.logger.error(f"Error adding DxfMText on layer '{model.layer}': {e}", exc_info=True)
             return None
 
     async def _add_dxf_text(self, msp: Modelspace, doc: Drawing, model: DxfText) -> Optional[Text]:
         """Adds a DXF Text entity (simple text) to the modelspace."""
         try:
-            # For TEXT, alignment is more complex than MTEXT's attachment_point
-            # It involves halign, valign, and setting align_point if not left-aligned.
-            # DxfText model has halign, valign. Default to LEFT, BASELINE if not provided.
+            # Validate insertion point
+            ins_x, ins_y, ins_z_opt = model.insertion_point.x, model.insertion_point.y, model.insertion_point.z
+            if not (math.isfinite(ins_x) and math.isfinite(ins_y)):
+                self.logger.error(
+                    f"Invalid non-finite X/Y for DxfText insertion_point on layer '{model.layer}': "
+                    f"IP=({ins_x},{ins_y}). Skipping Text entity."
+                )
+                return None
+
+            ins_z = 0.0
+            if ins_z_opt is not None:
+                if not math.isfinite(ins_z_opt):
+                    self.logger.warning(
+                        f"Invalid non-finite Z for DxfText insertion_point on layer '{model.layer}': Z={ins_z_opt}. Defaulting to 0.0."
+                    )
+                    # ins_z is already 0.0
+                else:
+                    ins_z = ins_z_opt
+            final_ins_pt = (ins_x, ins_y, ins_z)
+
+            # Validate height (must be positive)
+            height = model.height
+            if not (math.isfinite(height) and height > 0):
+                self.logger.error(
+                    f"Invalid non-finite or non-positive height for DxfText on layer '{model.layer}': {height}. Skipping Text entity."
+                )
+                return None
+
+            # Validate rotation
+            rotation_deg = model.rotation_degrees
+            if rotation_deg is not None and not math.isfinite(rotation_deg):
+                self.logger.warning(
+                    f"Invalid non-finite rotation for DxfText on layer '{model.layer}': {rotation_deg}. Defaulting to 0.0 degrees."
+                )
+                rotation_deg = 0.0 # Default if non-finite
+            rotation_rad = self._calculate_text_rotation_rad(rotation_deg)
+
             halign = getattr(ezdxf.const, f"TEXT_ALIGN_{ (model.halign or 'LEFT').upper() }", ezdxf.const.TEXT_ALIGN_LEFT)
             valign = getattr(ezdxf.const, f"TEXT_ALIGN_{ (model.valign or 'BASELINE').upper() }", ezdxf.const.TEXT_ALIGN_BASELINE)
 
             attribs = {
-                "height": model.height,
+                "height": height,
                 "style": model.style or self.writer_config.default_text_style or "Standard",
-                "rotation": self._calculate_text_rotation_rad(model.rotation_degrees),
+                "rotation": rotation_rad,
                 "halign": halign,
                 "valign": valign,
             }
-            # Insertion point
-            ins_pt = (model.insertion_point.x, model.insertion_point.y)
-            if model.insertion_point.z is not None:
-                ins_pt += (model.insertion_point.z,)
 
             text_entity = msp.add_text(text=model.text_string, dxfattribs=attribs)
-            text_entity.dxf.insert = ins_pt
+            text_entity.dxf.insert = final_ins_pt
 
-            # If alignment is not default (LEFT), set align_point to the same as insertion_point
             if halign != ezdxf.const.TEXT_ALIGN_LEFT or valign != ezdxf.const.TEXT_ALIGN_BASELINE:
-                text_entity.dxf.align_point = ins_pt
+                text_entity.dxf.align_point = final_ins_pt
 
             return text_entity
         except Exception as e:
-            self.logger.error(f"Error adding DxfText: {e}", exc_info=True)
+            self.logger.error(f"Error adding DxfText on layer '{model.layer}': {e}", exc_info=True)
             return None
 
     async def _add_dxf_insert(self, msp: Modelspace, doc: Drawing, model: DxfInsert) -> Optional[Insert]:
         """Adds a DXF Insert (Block Reference) entity to the modelspace."""
         try:
             if not doc.blocks.has_entry(model.block_name):
-                self.logger.error(f"Block definition '{model.block_name}' not found in document. Cannot add insert.")
-                # Potentially, this service could request block creation from ResourceSetupService
-                # if a block definition is missing and derivable. For now, error out.
+                self.logger.error(f"Block definition '{model.block_name}' not found in document for DxfInsert on layer '{model.layer}'. Cannot add insert.")
                 return None
 
+            # Validate insertion point
+            ins_x, ins_y, ins_z_opt = model.insertion_point.x, model.insertion_point.y, model.insertion_point.z
+            if not (math.isfinite(ins_x) and math.isfinite(ins_y)):
+                self.logger.error(
+                    f"Invalid non-finite X/Y for DxfInsert insertion_point on layer '{model.layer}' for block '{model.block_name}': "
+                    f"IP=({ins_x},{ins_y}). Skipping Insert."
+                )
+                return None
+
+            ins_z = 0.0
+            if ins_z_opt is not None:
+                if not math.isfinite(ins_z_opt):
+                    self.logger.warning(
+                        f"Invalid non-finite Z for DxfInsert insertion_point on layer '{model.layer}' for block '{model.block_name}': Z={ins_z_opt}. Defaulting to 0.0."
+                    )
+                    # ins_z is already 0.0
+                else:
+                    ins_z = ins_z_opt
+            final_ins_pt = (ins_x, ins_y, ins_z)
+
+            # Validate scales (default to 1.0 if non-finite or zero)
+            # DXF scales should not be zero. ezdxf might allow it but AutoCAD might error.
+            # Safest is to default non-finite or zero scales to 1.0.
+            scale_x = model.scale_x if model.scale_x is not None else 1.0
+            if not math.isfinite(scale_x) or scale_x == 0:
+                self.logger.warning(f"Invalid scale_x for DxfInsert on layer '{model.layer}' (block '{model.block_name}'): {scale_x}. Defaulting to 1.0.")
+                scale_x = 1.0
+
+            scale_y = model.scale_y if model.scale_y is not None else 1.0
+            if not math.isfinite(scale_y) or scale_y == 0:
+                self.logger.warning(f"Invalid scale_y for DxfInsert on layer '{model.layer}' (block '{model.block_name}'): {scale_y}. Defaulting to 1.0.")
+                scale_y = 1.0
+
+            scale_z = model.scale_z if model.scale_z is not None else 1.0
+            if not math.isfinite(scale_z) or scale_z == 0:
+                self.logger.warning(f"Invalid scale_z for DxfInsert on layer '{model.layer}' (block '{model.block_name}'): {scale_z}. Defaulting to 1.0.")
+                scale_z = 1.0
+
+            # Validate rotation
+            rotation_deg = model.rotation_degrees if model.rotation_degrees is not None else 0.0
+            if not math.isfinite(rotation_deg):
+                self.logger.warning(
+                    f"Invalid non-finite rotation for DxfInsert on layer '{model.layer}' (block '{model.block_name}'): {rotation_deg}. Defaulting to 0.0 degrees."
+                )
+                rotation_deg = 0.0
+
             attribs = {
-                "xscale": model.scale_x or 1.0,
-                "yscale": model.scale_y or 1.0,
-                "zscale": model.scale_z or 1.0,
-                "rotation": model.rotation_degrees or 0.0, # INSERT rotation is in degrees
+                "xscale": scale_x,
+                "yscale": scale_y,
+                "zscale": scale_z,
+                "rotation": rotation_deg, # INSERT rotation is in degrees
             }
-            # Insertion point
-            ins_pt = (model.insertion_point.x, model.insertion_point.y)
-            if model.insertion_point.z is not None:
-                ins_pt += (model.insertion_point.z,)
 
-            insert_entity = msp.add_blockref(name=model.block_name, insert=ins_pt, dxfattribs=attribs)
+            insert_entity = msp.add_blockref(name=model.block_name, insert=final_ins_pt, dxfattribs=attribs)
 
-            # Handle attributes if DxfInsert model has them and block has AttDefs
             if model.attributes:
-                # This assumes AttDefs are already on the block definition in the doc
-                # and their tags match keys in model.attributes
                 for tag, value in model.attributes.items():
                     try:
                         insert_entity.add_attrib(tag=tag, text=str(value))
-                        # May need to set attrib position if not auto-placed relative to AttDef
-                    except ezdxf.DXFValueError: # Attribute does not exist on block
-                        self.logger.warning(f"Attribute tag '{tag}' not found on block '{model.block_name}'. Skipping attribute for insert.")
+                    except ezdxf.DXFValueError:
+                        self.logger.warning(f"Attribute tag '{tag}' not found on block '{model.block_name}' for insert on layer '{model.layer}'. Skipping attribute.")
                     except Exception as e_attr:
-                        self.logger.error(f"Error adding attribute '{tag}' to insert of '{model.block_name}': {e_attr}", exc_info=True)
+                        self.logger.error(f"Error adding attribute '{tag}' to insert of '{model.block_name}' on layer '{model.layer}': {e_attr}", exc_info=True)
             return insert_entity
         except Exception as e:
-            self.logger.error(f"Error adding DxfInsert for block '{model.block_name}': {e}", exc_info=True)
+            self.logger.error(f"Error adding DxfInsert for block '{model.block_name}' on layer '{model.layer}': {e}", exc_info=True)
             return None
 
     async def _add_dxf_circle(self, msp: Modelspace, model: DxfCircle) -> Optional[Circle]:
         """Adds a DXF Circle entity to the modelspace."""
         try:
-            center_pt = (model.center.x, model.center.y)
-            if model.center.z is not None:
-                center_pt += (model.center.z,)
-            else:
-                center_pt += (0.0,) # Default Z to 0.0 if not provided for Circle
-            return msp.add_circle(center=center_pt, radius=model.radius)
+            # Validate center point
+            center_x, center_y, center_z_opt = model.center.x, model.center.y, model.center.z
+            if not (math.isfinite(center_x) and math.isfinite(center_y)):
+                self.logger.error(
+                    f"Invalid non-finite X/Y for DxfCircle center on layer '{model.layer}': "
+                    f"Center=({center_x},{center_y}). Skipping Circle."
+                )
+                return None
+
+            center_z = 0.0 # Default Z for circle center if not specified or invalid
+            if center_z_opt is not None:
+                if not math.isfinite(center_z_opt):
+                    self.logger.warning(
+                        f"Invalid non-finite Z for DxfCircle center on layer '{model.layer}': Z={center_z_opt}. Defaulting to 0.0."
+                    )
+                    # center_z is already 0.0
+                else:
+                    center_z = center_z_opt
+            final_center_pt = (center_x, center_y, center_z)
+
+            # Validate radius (must be positive)
+            radius = model.radius
+            if not (math.isfinite(radius) and radius > 0):
+                self.logger.error(
+                    f"Invalid non-finite or non-positive radius for DxfCircle on layer '{model.layer}': {radius}. Skipping Circle."
+                )
+                return None
+
+            return msp.add_circle(center=final_center_pt, radius=radius)
         except Exception as e:
-            self.logger.error(f"Error adding DxfCircle: {e}", exc_info=True)
+            self.logger.error(f"Error adding DxfCircle on layer '{model.layer}': {e}", exc_info=True)
             return None
 
     async def _add_dxf_arc(self, msp: Modelspace, model: DxfArc) -> Optional[Arc]:
         """Adds a DXF Arc entity to the modelspace."""
         try:
-            center_coords = (model.center.x, model.center.y)
-            if model.center.z is not None:
-                center_coords += (model.center.z,)
+            # Validate center point
+            center_x, center_y, center_z_opt = model.center.x, model.center.y, model.center.z
+            if not (math.isfinite(center_x) and math.isfinite(center_y)):
+                self.logger.error(
+                    f"Invalid non-finite X/Y for DxfArc center on layer '{model.layer}': "
+                    f"Center=({center_x},{center_y}). Skipping Arc."
+                )
+                return None
+
+            center_z = 0.0 # Default Z for arc center
+            if center_z_opt is not None:
+                if not math.isfinite(center_z_opt):
+                    self.logger.warning(
+                        f"Invalid non-finite Z for DxfArc center on layer '{model.layer}': Z={center_z_opt}. Defaulting to 0.0."
+                    )
+                    # center_z is already 0.0
+                else:
+                    center_z = center_z_opt
+            final_center_pt = (center_x, center_y, center_z)
+
+            # Validate radius (must be positive)
+            radius = model.radius
+            if not (math.isfinite(radius) and radius > 0):
+                self.logger.error(
+                    f"Invalid non-finite or non-positive radius for DxfArc on layer '{model.layer}': {radius}. Skipping Arc."
+                )
+                return None
+
+            # Validate angles
+            start_angle, end_angle = model.start_angle, model.end_angle
+            if not (math.isfinite(start_angle) and math.isfinite(end_angle)):
+                self.logger.error(
+                    f"Invalid non-finite start_angle or end_angle for DxfArc on layer '{model.layer}': "
+                    f"Start={start_angle}, End={end_angle}. Skipping Arc."
+                )
+                return None
 
             return msp.add_arc(
-                center=center_coords,
-                radius=model.radius,
-                start_angle=model.start_angle,
-                end_angle=model.end_angle
+                center=final_center_pt,
+                radius=radius,
+                start_angle=start_angle, # Angles are in degrees for ezdxf
+                end_angle=end_angle
             )
         except Exception as e:
-            self.logger.error(f"Error adding DxfArc: {e}", exc_info=True)
+            self.logger.error(f"Error adding DxfArc on layer '{model.layer}': {e}", exc_info=True)
             return None
 
     async def _add_dxf_polyline(self, msp: Modelspace, model: DxfPolyline) -> Optional[EzdxfPolyline]:
         """Adds a DXF POLYLINE (heavy polyline with VERTEX entities) to the modelspace."""
         if not model.points:
-            self.logger.warning("Attempted to add DxfPolyline with no points.")
+            self.logger.warning(f"Attempted to add DxfPolyline on layer '{model.layer}' with no points. Skipping.")
             return None
         try:
-            dxf_flags = ezdxf.const.POLYLINE_3D_POLYLINE # Indicates a 3D polyline
+            validated_vertices = []
+            for i, p_model in enumerate(model.points):
+                x, y, z_opt = p_model.x, p_model.y, p_model.z
+
+                if not (math.isfinite(x) and math.isfinite(y)):
+                    self.logger.error(
+                        f"Invalid non-finite X/Y for vertex {i} in DxfPolyline on layer '{model.layer}': "
+                        f"Point=({x},{y}). Skipping entire Polyline."
+                    )
+                    return None # Skip entire polyline if any X/Y is non-finite
+
+                z_coord = 0.0 # Default Z for polyline vertex
+                if z_opt is not None:
+                    if not math.isfinite(z_opt):
+                        self.logger.warning(
+                            f"Invalid non-finite Z for vertex {i} in DxfPolyline on layer '{model.layer}': Z={z_opt}. Defaulting to 0.0."
+                        )
+                        # z_coord is already 0.0
+                    else:
+                        z_coord = z_opt
+                validated_vertices.append((x, y, z_coord))
+
+            # This check is implicitly handled by the loop logic if model.points was empty initially, or if it would return None above.
+            # if not validated_vertices:
+            #     self.logger.warning(f"Polyline on layer '{model.layer}' has no valid vertices after filtering. Skipping.")
+            #     return None
+
+            dxf_flags = ezdxf.const.POLYLINE_3D_POLYLINE
             if model.is_closed:
                 dxf_flags |= ezdxf.const.POLYLINE_CLOSED
 
-            # Create the main POLYLINE entity
-            # Common properties like layer, color will be applied by _apply_common_dxf_attributes
             polyline_entity = msp.add_polyline3d(dxfattribs={'flags': dxf_flags})
-
-            # Prepare vertex coordinates (x, y, z)
-            # Ensure Z defaults to 0.0 if not provided, as POLYLINE vertices are 3D.
-            vertex_coordinates = []
-            for p in model.points:
-                z_coord = p.z if p.z is not None else 0.0
-                vertex_coordinates.append((p.x, p.y, z_coord))
-
-            # Append all vertices to the POLYLINE entity
-            polyline_entity.append_vertices(vertex_coordinates)
-
-            # Note: Individual VERTEX entity properties (like bulge, start/end width for 2D PLINE)
-            # are not supported by this simplified DxfPolyline model.
-            # If needed, DxfPolyline model would need to store DxfVertex models.
+            polyline_entity.append_vertices(validated_vertices)
 
             return polyline_entity
         except Exception as e:
-            self.logger.error(f"Error adding DxfPolyline: {e}", exc_info=True)
+            self.logger.error(f"Error adding DxfPolyline on layer '{model.layer}': {e}", exc_info=True)
             return None

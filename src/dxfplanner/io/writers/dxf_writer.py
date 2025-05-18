@@ -89,6 +89,18 @@ class DxfWriter(IDxfWriter):
             else:
                 self.logger.info("No DXF template specified. Creating a new document.")
             doc = ezdxf.new(dxfversion=self.writer_config.target_dxf_version or 'AC1032') # Consistent use of target_dxf_version
+
+        # Ensure the configured XDATA application name is registered in the APPID table.
+        if self.writer_config.xdata_application_name:
+            try:
+                doc.appids.add(self.writer_config.xdata_application_name)
+                self.logger.debug(f"Ensured APPID '{self.writer_config.xdata_application_name}' is registered.")
+            except Exception as e_appid_reg:
+                # ezdxf might raise an error for invalid appid names, though unlikely for default.
+                self.logger.warning(
+                    f"Could not register APPID '{self.writer_config.xdata_application_name}': {e_appid_reg}",
+                    exc_info=True
+                )
         return doc
 
     async def write_drawing(
