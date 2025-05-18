@@ -44,6 +44,13 @@
 - **Traceback Analysis:** Prioritize obtaining and analyzing the full traceback when diagnosing errors. Leverage the existing logging setup, specifically using standard methods like `logger.error(message, exc_info=True)` or its shorthand `logger.exception(message)`, to capture tracebacks effectively within `except` blocks and minimize guesswork.
 - **Large File Handling:** When analyzing large files (especially structured text like JSON), prefer using command-line tools (e.g., `jq`, `cat`, `grep`, `less`) for inspection and querying rather than attempting to load the entire file into memory or an editor.
 
+## Architecture & Design
+
+- **Clear Boundaries:** Ensure sensible architecture design with clear boundaries (See `PROJECT_ARCHITECTURE.MD`).
+- **Separation of Concerns:** Ensure clean separation between domain models, interfaces, and implementations.
+- **Adherence to Defined Modularity:** Strictly follow the component and module boundaries, including the specified use of sub-packages for services (e.g., `services/styling/` for style-related components), as detailed in `PROJECT_ARCHITECTURE.MD`. Prioritize grouping related functionalities into these defined architectural units.
+
+
 ## Code Quality & Correctness
 
 - **Strict Implementation:** 100% adherence to specifications and interfaces.

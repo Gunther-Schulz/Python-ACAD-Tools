@@ -47,14 +47,14 @@ style_presets:
       lineweight: 35
   StandardLegend: # New entry, moved and restructured
     text_props:
-      font_name_or_style_preset: "Arial"
+      # font_name_or_style_preset: "Arial"
       height: 2.5
       width_factor: 0.8
       oblique_angle: 15.0
       rotation_degrees: 10.0
   SmallLegend: # New entry, moved and restructured
     text_props:
-      font_name_or_style_preset: "Arial"
+      # font_name_or_style_preset: "Arial"
       height: 1.5
 
 layers:

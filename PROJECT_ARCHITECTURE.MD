@@ -81,6 +81,10 @@ The application is broadly structured into the following key directories/layers 
 *   **Configuration-Driven:** The extensive use of configuration schemas implies that the application's behavior can be significantly customized through external configuration files.
 *   **Geospatial Focus:** The application is clearly tailored for geospatial data processing, with dedicated modules for geometry, various geospatial file readers, and specialized geoprocessing services.
 *   **Potential for DDD:** The structure, especially the `domain/` layer with its models and interfaces, suggests an adherence to or influence from Domain-Driven Design principles.
+*   **Enhanced Modularity and Component Granularity:**
+    *   Services and components should be designed with a strong emphasis on the Single Responsibility Principle (SRP), leading to smaller, more granular units with clear purposes.
+    *   Related functionalities, especially within larger service domains (like `services/`), should be grouped into dedicated sub-packages to improve organization and maintain clear boundaries. For example, all refactored style-related services, utilities, and components (such as style merging utilities, font resolvers, DXF style table managers, preset resolvers, and rule evaluators) should reside within a dedicated `src/dxfplanner/services/styling/` sub-package.
+    *   Utility functions that are broadly applicable across different domains may reside in a `src/dxfplanner/common/` directory (or a more specific `utils` sub-directory therein if complexity warrants). The choice between `common/` and a domain-specific `utils` (like `services/styling/styling_utils.py`) should be guided by the utility's scope of use.
 
 ## Note on Project Structure:
 

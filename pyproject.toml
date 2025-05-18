@@ -11,3 +11,15 @@ readme = "README.md"
 [tool.setuptools.packages.find]
 where = ["src"]
 include = ["dxfplanner*"]
+
+[tool.pytest.ini_options]
+pythonpath = [
+  "src",
+  # Add other paths here if needed, e.g., "tests"
+]
+# Example of other options if needed later:
+# minversion = "6.0"
+# addopts = "-ra -q"
+# testpaths = [
+#     "tests",
+# ]
