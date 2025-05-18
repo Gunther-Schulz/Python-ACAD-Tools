@@ -110,11 +110,13 @@ class IGeometryTransformer(Protocol):
     async def transform_feature_to_dxf_entities(
         self,
         feature: GeoFeature,
-        # target_crs: Optional[str] = None, # Target CRS for coordinate transformation -- REMOVED
-        # layer_mapping_config: Optional[Dict[str, Any]] = None, # Config for layer assignment
-        # attribute_mapping_config: Optional[Dict[str, Any]] = None # Config for attribute to DXF prop mapping
-        **kwargs: Any
-    ) -> AsyncIterator[DxfEntity]:
+        layer_config: Optional[LayerConfig] = None, # Make explicit
+        style_service: Optional['IStyleService'] = None, # Make explicit
+        output_target_layer_name: Optional[str] = None, # NEW: Intended output layer for the entities
+        default_xdata_app_id: Optional[str] = "DXFPLANNER", # Pass-through
+        default_xdata_tags: Optional[List[Tuple[int, Any]]] = None # Pass-through
+        # **kwargs: Any # REMOVE generic kwargs
+    ) -> AsyncIterator[AnyDxfEntity]: # Corrected return type
         """
         Transforms a single GeoFeature into one or more DxfEntity objects.
         This may involve coordinate transformation, geometry simplification,
@@ -122,11 +124,15 @@ class IGeometryTransformer(Protocol):
 
         Args:
             feature: The GeoFeature object to transform.
-            # target_crs: The target coordinate reference system for the DXF entities. -- REMOVED
-            **kwargs: Additional arguments for transformation logic.
+            layer_config: Optional configuration of the original source layer (for context).
+            style_service: Optional style service for resolving feature-specific styles.
+            output_target_layer_name: Optional explicit target layer name for the generated DXF entities.
+                                      This takes precedence if provided.
+            default_xdata_app_id: Default application ID for XDATA.
+            default_xdata_tags: Default XDATA tags.
 
         Yields:
-            DxfEntity: An asynchronous iterator of resulting DxfEntity objects.
+            AnyDxfEntity: An asynchronous iterator of resulting DxfEntity objects.
         """
         if False: # pragma: no cover
             yield

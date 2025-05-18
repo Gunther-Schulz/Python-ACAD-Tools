@@ -203,6 +203,7 @@ class DIContainer(containers.DeclarativeContainer):
         geo_data_reader_factories_map=_geo_data_reader_factories_map,
         operations_map=operations_map_provider,
         geometry_transformer=geometry_transformer_service,
+        style_service=style_service,
         logger=logger
     )
 

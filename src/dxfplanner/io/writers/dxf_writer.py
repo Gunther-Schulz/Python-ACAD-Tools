@@ -120,11 +120,17 @@ class DxfWriter(IDxfWriter):
 
         all_added_dxf_entities_domain_model: List[AnyDxfEntity] = []
 
+        self.logger.info(f"DxfWriter received entities_by_layer_config with keys: {list(entities_by_layer_config.keys())}")
+        if not entities_by_layer_config:
+            self.logger.warning("entities_by_layer_config is EMPTY. No layers or entities will be processed from pipeline.")
+
         for layer_name_from_pipeline, (layer_cfg, dxf_entity_models_iter) in entities_by_layer_config.items():
             if not layer_cfg.enabled: # Check from original logic
-                self.logger.debug(f"Skipping disabled layer: {layer_cfg.name}")
+                self.logger.debug(f"Skipping disabled layer: {layer_cfg.name}") # Original layer_cfg.name from pipeline
                 continue
-            self.logger.info(f"Processing entities for layer: '{layer_cfg.name}' (Source pipeline layer: '{layer_name_from_pipeline}')")
+
+            self.logger.info(f"Processing entities for pipeline layer: '{layer_name_from_pipeline}' (Configured layer name: '{layer_cfg.name}')")
+            entity_count_for_layer = 0
 
             layer_display_props = self.style_service.get_layer_display_properties(layer_cfg)
             hatch_props = self.style_service.get_hatch_properties(layer_config_fallback=layer_cfg)
@@ -142,6 +148,7 @@ class DxfWriter(IDxfWriter):
             )
 
             async for dxf_entity_model in dxf_entity_models_iter:
+                entity_count_for_layer += 1
                 created_ezdxf_entity = await self.entity_converter_service.add_dxf_entity_to_modelspace(
                     msp, doc, dxf_entity_model, current_layer_style_config
                 )
@@ -156,6 +163,10 @@ class DxfWriter(IDxfWriter):
                         except Exception as e_xdata:
                              self.logger.warning(f"Failed to attach XDATA to entity {created_ezdxf_entity.dxf.handle}: {e_xdata}", exc_info=True)
                     all_added_dxf_entities_domain_model.append(dxf_entity_model)
+
+            self.logger.info(f"Finished processing layer '{layer_name_from_pipeline}'. Added {entity_count_for_layer} entities.")
+            if entity_count_for_layer == 0:
+                self.logger.warning(f"No entities were yielded by the iterator for layer '{layer_name_from_pipeline}'.")
 
         # Unified legend generation: uses ProjectConfig.legends via LegendGenerationService.generate_legends
         if self.legend_generator and self.project_config.legends:

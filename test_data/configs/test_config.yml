@@ -18,6 +18,16 @@ dxf_writer:
     color: { aci: 7 }
     linetype: "Continuous"
     lineweight: 0
+  layer_configs:
+    - name: "SamplePolygons"
+      color: { aci: 3 }
+      linetype: "Continuous"
+    - name: "BufferedPolygons"
+      color: { aci: 2 }
+      linetype: "Continuous"
+    - name: "PolygonLabels"
+      color: { aci: 1 }
+      linetype: "Continuous"
 
 # style_presets at top level (formerly io.writers.dxf.style_object_presets)
 style_presets:

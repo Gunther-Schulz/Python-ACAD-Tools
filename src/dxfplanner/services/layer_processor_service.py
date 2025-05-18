@@ -9,7 +9,7 @@ from dependency_injector import providers
 from dxfplanner.config.schemas import ProjectConfig, LayerConfig, AnySourceConfig, ShapefileSourceConfig, GeometryOperationType, DataSourceType, AnyOperationConfig
 from dxfplanner.domain.models.geo_models import GeoFeature
 from dxfplanner.domain.models.dxf_models import AnyDxfEntity
-from dxfplanner.domain.interfaces import IGeoDataReader, IOperation, IGeometryTransformer, ILayerProcessorService
+from dxfplanner.domain.interfaces import IGeoDataReader, IOperation, IGeometryTransformer, ILayerProcessorService, IStyleService
 from dxfplanner.core.exceptions import GeoDataReadError, ConfigurationError
 
 if TYPE_CHECKING:
@@ -24,12 +24,14 @@ class LayerProcessorService(ILayerProcessorService):
         geo_data_reader_factories_map: Mapping[DataSourceType, providers.Factory[IGeoDataReader]],
         operations_map: Mapping[GeometryOperationType, providers.Factory[IOperation]],
         geometry_transformer: IGeometryTransformer,
+        style_service: IStyleService,
         logger: Logger
     ):
         self.project_config = project_config
         self.geo_data_reader_factories_map = geo_data_reader_factories_map
         self.operations_map = operations_map
         self.geometry_transformer = geometry_transformer
+        self.style_service = style_service
         self.logger = logger
         self.logger.info("LayerProcessorService initialized.")
 
@@ -225,12 +227,34 @@ class LayerProcessorService(ILayerProcessorService):
 
         if final_features_stream_for_dxf:
             self.logger.info(f"Transforming final GeoFeatures to DxfEntities for layer: {layer_config.name}")
-            # Correctly use the geometry_transformer's existing method
+            # The 'output_layer_name_for_style' variable holds the intended target layer name
+            # for these final entities (e.g., "PolygonLabels" or original layer_config.name).
+            # This was determined after all operations completed.
+            output_layer_name_for_style = current_stream_key # Define the variable
+
             async for geo_feature in final_features_stream_for_dxf:
-                # The transform_feature_to_dxf_entities method on GeometryTransformerImpl
-                # already handles StyleService interaction and layer_config.
+                if not geo_feature.geometry: # Basic check
+                    self.logger.debug(f"Skipping GeoFeature with no geometry. Attributes: {geo_feature.attributes}")
+                    continue
+
+                # The logging added here in a previous step for debugging the call to feature_converter
+                # can be removed now, as we are fixing the call to geometry_transformer.
+                # self.logger.info(
+                #     f"LayerProcessor: Calling feature_converter for feature from '{layer_config.name}'. "
+                #     f"GeoFeature ID (if any): {getattr(geo_feature, 'id', 'N/A')}. "
+                #     f"Passing target_layer_name='{output_layer_name_for_style}' (derived from last op or input layer)."
+                # )
+
+                # Updated call to geometry_transformer
                 async for dxf_entity in self.geometry_transformer.transform_feature_to_dxf_entities(
-                    geo_feature, layer_config=layer_config # Pass layer_config as required by the method
+                    feature=geo_feature,
+                    layer_config=layer_config, # Original input layer config for context
+                    style_service=self.style_service, # Pass the style service instance
+                    output_target_layer_name=output_layer_name_for_style, # KEY: Pass the determined output layer name
+                    # default_xdata_app_id and default_xdata_tags will use their defaults in IGeometryTransformer
+                    # if not overridden by project_config or specific logic here.
+                    # For now, let them use defaults from the transformer's signature.
+                    # default_xdata_app_id=self.project_config.dxf_writer.xdata_application_name (Example if needed)
                 ):
                     yield dxf_entity
             self.logger.info(f"Finished transforming GeoFeatures to DxfEntities for layer: {layer_config.name}")

@@ -25,6 +25,17 @@ class DxfResourceSetupService(IDxfResourceSetupService):
         self.project_config = project_config
         self.writer_config: DxfWriterConfig = project_config.dxf_writer # Updated path
         self.logger = logger
+        # <NEW LOGGING START>
+        lc_type = type(self.writer_config.layer_configs)
+        lc_len = len(self.writer_config.layer_configs) if self.writer_config.layer_configs is not None else "None"
+        lc_content_str = str(self.writer_config.layer_configs)
+        if len(lc_content_str) > 150: # Keep log manageable
+            lc_content_str = lc_content_str[:150] + "..."
+        self.logger.info(
+            f"DxfResourceSetupService initialized. writer_config.layer_configs: "
+            f"Type={lc_type}, Length={lc_len}, Content='{lc_content_str}'"
+        )
+        # <NEW LOGGING END>
 
     async def setup_document_resources(
         self,
@@ -105,8 +116,15 @@ class DxfResourceSetupService(IDxfResourceSetupService):
     async def _create_layers_from_config(self, doc: Drawing) -> None:
         """Creates layers in the DXF document based on the configuration."""
         # writer_config.layers is DxfLayerConfig from dxf_writer_schemas, not LayerConfig from main schemas
-        if not self.writer_config.layer_configs: # Corrected attribute name
-            self.logger.info("No layer configurations provided in DxfWriterConfig. Skipping layer creation.")
+        if not self.writer_config.layer_configs: # Corrected attribute name / This means None or empty list
+            # <NEW LOGGING START>
+            if self.writer_config.layer_configs is None:
+                self.logger.info("DxfWriterConfig.layer_configs is None. Skipping layer creation from config.")
+            elif len(self.writer_config.layer_configs) == 0: # Explicitly check for empty list
+                self.logger.warning("DxfWriterConfig.layer_configs is an EMPTY LIST. No layers will be created from config.")
+            # <NEW LOGGING END>
+            else: # Should not happen if `not self.writer_config.layer_configs` is true and it's not None or empty
+                 self.logger.info("No layer configurations provided in DxfWriterConfig (unusual state for 'not layer_configs'). Skipping layer creation.")
             return
 
         self.logger.debug(f"Creating {len(self.writer_config.layer_configs)} layers from DxfWriterConfig.")
