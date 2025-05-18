@@ -3,6 +3,7 @@ Converts GeoFeature domain models to DxfEntity domain models.
 """
 from typing import List, Any, Dict, Union, Optional, Tuple, AsyncIterator
 from dxfplanner.core.logging_config import get_logger
+from dxfplanner.domain.models.common import Coordinate
 from dxfplanner.domain.models.geo_models import (
     GeoFeature, PointGeo, PolylineGeo, PolygonGeo, MultiPointGeo,
     MultiPolylineGeo, MultiPolygonGeo, GeometryCollectionGeo
@@ -189,9 +190,16 @@ async def convert_geo_feature_to_dxf_entities(
     elif isinstance(feature_geometry, PolylineGeo):
         # ... existing PolylineGeo logic ...
         # Update layer=current_dxf_entity_layer, xdata_app_id, xdata_tags
-        points = [p.as_tuple_xyz(default_z=0.0) for p in feature_geometry.coordinates] # Use Coordinate method
+        points = feature_geometry.coordinates # This is already List[Coordinate]
         if len(points) >= 2:
-            is_closed = (len(points) > 2 and points[0] == points[-1]) # Ensure Z is considered if present
+            is_closed = False # Default to not closed unless specific conditions met
+            if len(points) > 2: # A line or a point cannot be 'closed' in the typical polyline sense
+                 # Compare first and last Coordinate objects if they exist and list has enough points
+                if points[0].x == points[-1].x and \
+                   points[0].y == points[-1].y and \
+                   (points[0].z == points[-1].z if points[0].z is not None and points[-1].z is not None else points[0].z is None and points[-1].z is None):
+                    is_closed = True
+
             dxf_lwpolyline = DxfLWPolyline(
                 points=points, # List of (x,y,z) tuples
                 closed=is_closed,
@@ -238,19 +246,21 @@ async def convert_geo_feature_to_dxf_entities(
         if len(exterior_ring_domain_coords) >= 3:
             # For DxfHatchPath, only XY is typically used by ezdxf for polyline paths.
             # Ensure closed for hatch path by checking/appending first point if needed.
-            exterior_hatch_path_vertices = [(c.x, c.y) for c in exterior_ring_domain_coords]
-            if exterior_hatch_path_vertices[0] != exterior_hatch_path_vertices[-1]:
+            exterior_hatch_path_vertices = [Coordinate(x=c.x, y=c.y) for c in exterior_ring_domain_coords]
+            if exterior_hatch_path_vertices[0].x != exterior_hatch_path_vertices[-1].x or \
+               exterior_hatch_path_vertices[0].y != exterior_hatch_path_vertices[-1].y: # Compare Coordinate objects
                 exterior_hatch_path_vertices.append(exterior_hatch_path_vertices[0])
-            boundary_paths_data.append(DxfHatchPath(vertices=exterior_hatch_path_vertices, type=HatchEdgeType.POLYLINE.value))
+            boundary_paths_data.append(DxfHatchPath(vertices=exterior_hatch_path_vertices, is_closed=True)) # Explicitly set is_closed
 
             # Interior rings (holes)
             if len(all_rings_coords) > 1:
                 for interior_ring_domain_coords in all_rings_coords[1:]:
                     if len(interior_ring_domain_coords) >= 3:
-                        interior_hatch_path_vertices = [(c.x, c.y) for c in interior_ring_domain_coords]
-                        if interior_hatch_path_vertices[0] != interior_hatch_path_vertices[-1]:
+                        interior_hatch_path_vertices = [Coordinate(x=c.x, y=c.y) for c in interior_ring_domain_coords]
+                        if interior_hatch_path_vertices[0].x != interior_hatch_path_vertices[-1].x or \
+                           interior_hatch_path_vertices[0].y != interior_hatch_path_vertices[-1].y: # Compare Coordinate objects
                             interior_hatch_path_vertices.append(interior_hatch_path_vertices[0])
-                        boundary_paths_data.append(DxfHatchPath(vertices=interior_hatch_path_vertices, type=HatchEdgeType.POLYLINE.value))
+                        boundary_paths_data.append(DxfHatchPath(vertices=interior_hatch_path_vertices, is_closed=True)) # Explicitly set is_closed
                     else:
                         logger.warning(f"PolygonGeo interior ring for feature ID '{geo_feature.id}' has < 3 points. Skipping this hole.")
         else:
@@ -261,6 +271,8 @@ async def convert_geo_feature_to_dxf_entities(
             return # Return from async generator
             # yield from []
 
+        if not boundary_paths_data:
+            logger.warning(f"PolygonGeo for feature ID '{geo_feature.id}' resulted in no valid boundary paths. Skipping hatch.")
 
         if hatch_pattern_name and boundary_paths_data: # Only add hatch if pattern and valid paths exist
             # Extract hatch specific props from effective_style
@@ -288,7 +300,7 @@ async def convert_geo_feature_to_dxf_entities(
             # Use the first path (exterior) for drawing the boundary LWPolyline
             # DxfHatchPath stores (x,y) tuples, LWPolyline needs (x,y,z)
             # We need the original exterior_ring_domain_coords for Z values.
-            exterior_points_for_lw = [c.as_tuple_xyz(default_z=0.0) for c in exterior_ring_domain_coords]
+            exterior_points_for_lw = exterior_ring_domain_coords # This is already List[Coordinate]
 
             # LWPolyline must be closed if it represents a polygon boundary
             # The DxfHatchPath vertices are already ensured to be closed if they were polyline type.

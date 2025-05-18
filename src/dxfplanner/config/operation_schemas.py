@@ -35,11 +35,14 @@ class BufferOperationConfig(BaseOperationConfig):
     distance: float = Field(description="Buffer distance in the units of the geometry's CRS.")
     resolution: int = Field(default=16, description="Resolution of the buffer approximation.")
     join_style: Literal["round", "mitre", "bevel"] = Field(default="round", description="Style of line joins.")
+    cap_style: Literal["round", "flat", "square"] = Field(default="round", description="Style of line endings (caps).")
     mitre_limit: float = Field(default=5.0, description="Mitre limit for 'mitre' join style.")
+    distance_field: Optional[str] = Field(default=None, description="Optional attribute field name on features to source per-feature buffer distance.")
     # single_sided: bool = Field(default=False, description="If True, creates a single-sided buffer for lines (not yet fully supported by simple buffer).") # Keep commented out for now
     make_valid_pre_buffer: bool = Field(default=True, description="Attempt to make input geometries valid before buffering.")
     make_valid_post_buffer: bool = Field(default=True, description="Attempt to make output geometries valid after buffering.")
     skip_islands: bool = Field(default=False, description="If True, removes all islands/holes from the input geometry before buffering (effectively fills holes).")
+    preserve_islands: bool = Field(default=False, description="If True, attempts to preserve islands within polygons during buffering. If False, islands might be filled. Works in conjunction with skip_islands.")
 
 
 class SimplifyOperationConfig(BaseOperationConfig):
@@ -164,10 +167,23 @@ class FilterByAttributeOperationConfig(BaseOperationConfig):
     #                               FilterCondition(attribute='AREA', operator=FilterOperator.GREATER_THAN, value=1000)]
     # Example for logical_operator: LogicalOperator.AND
 
+# --- FilterByExtent Schemas ---
+class ExtentFilterMode(str, Enum):
+    INTERSECTS = "intersects"
+    CONTAINS = "contains"
+    WITHIN = "within"
+    DISJOINT = "disjoint"
+    TOUCHES = "touches"
+    CROSSES = "crosses"
+    OVERLAPS = "overlaps"
+
 class FilterByExtentOperationConfig(BaseOperationConfig):
     type: Literal[GeometryOperationType.FILTER_BY_EXTENT] = GeometryOperationType.FILTER_BY_EXTENT
     extent: ExtentsModel = Field(description="The bounding box to filter by.")
-    # mode: Literal["intersects", "contains", "within"] = Field(default="intersects", description="Spatial relationship mode.") # Keep commented for now
+    mode: ExtentFilterMode = Field(
+        default=ExtentFilterMode.INTERSECTS,
+        description="Spatial relationship mode to determine how features relate to the extent."
+    )
 
 class FieldMappingOperationConfig(BaseOperationConfig):
     type: Literal[GeometryOperationType.FIELD_MAPPING] = GeometryOperationType.FIELD_MAPPING
