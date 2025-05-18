@@ -28,7 +28,7 @@ class FontProviderService:
         self.font_directories = font_directories
         self.logger = logger
         if not font_directories:
-            self.logger.warning("FontProviderService initialized with no font directories.")
+            self.logger.info("FontProviderService initialized with no font directories.")
 
     def get_font_path(self, font_name: Optional[str]) -> Optional[str]:
         """

@@ -110,7 +110,10 @@ class StyleService(IStyleService):
     def get_text_style_properties(
         self,
         style_reference: Optional[Union[str, StyleObjectConfig, TextStylePropertiesConfig]] = None,
-        layer_config_fallback: Optional[LayerConfig] = None
+        layer_config_fallback: Optional[LayerConfig] = None,
+        preset_already_resolved: bool = False,
+        _current_recursion_depth: int = 0,
+        _original_context_for_recursion_log: Optional[str] = None
     ) -> TextStylePropertiesConfig:
         context_name = layer_config_fallback.name if layer_config_fallback else "text_style"
         log_prefix = f"StyleService.get_text_style_properties for '{context_name}': "
@@ -160,15 +163,29 @@ class StyleService(IStyleService):
 
         # If we have a TextStylePropertiesConfig by now, try to resolve its font file path
         if text_props_to_return:
-            if text_props_to_return.font_name_or_style_preset:
-                font_path = self.font_provider_service.get_font_path(text_props_to_return.font_name_or_style_preset)
+            original_font_spec = text_props_to_return.font_name_or_style_preset
+            text_props_to_return.resolved_font_filename = None # Default to None, ensure it's reset
+
+            if original_font_spec:
+                # Attempt to resolve as a font file path first
+                font_path = self.font_provider_service.get_font_path(original_font_spec)
+
                 if font_path:
                     text_props_to_return.resolved_font_filename = font_path
-                    self.logger.debug(f"{log_prefix}Resolved font '{text_props_to_return.font_name_or_style_preset}' to path '{font_path}'.")
+                    self.logger.debug(f"{log_prefix}Resolved direct font specification '{original_font_spec}' to path '{font_path}'.")
                 else:
-                    self.logger.warning(f"{log_prefix}Could not resolve font path for '{text_props_to_return.font_name_or_style_preset}'. `resolved_font_filename` will be None.")
-                    text_props_to_return.resolved_font_filename = None
-            else: # No font_name_or_style_preset to resolve
+                    # font_provider_service.get_font_path returned None.
+                    # FontProviderService itself is responsible for logging a warning if original_font_spec
+                    # looked like a font file it couldn't find (and wasn't a default CAD name).
+                    # StyleService should just accept that None and proceed.
+                    text_props_to_return.resolved_font_filename = None # Ensure it remains None
+                    self.logger.debug(
+                        f"{log_prefix}Font specification '{original_font_spec}' did not resolve to a direct font file path "
+                        f"(FontProviderService returned None). `resolved_font_filename` is None. "
+                        f"Downstream services will use this or default. Any necessary warnings for unresolvable font *files* "
+                        f"are handled by FontProviderService."
+                    )
+            else: # No original_font_spec in text_props
                 text_props_to_return.resolved_font_filename = None
                 self.logger.debug(f"{log_prefix}No font_name_or_style_preset in text_props, resolved_font_filename set to None.")
 
@@ -344,14 +361,17 @@ class StyleService(IStyleService):
 
                 self.logger.debug(f"For DXF STYLE table, preset '{preset_name}', its text_style resolved to: {fully_resolved_text_props.model_dump_json(indent=2)}")
 
-                if fully_resolved_text_props and fully_resolved_text_props.resolved_font_filename:
+                # Changed condition: Attempt to create if we have any resolved text properties.
+                # DxfStyleDefinitionService will handle if font filename is None.
+                if fully_resolved_text_props:
                     self.dxf_style_definition_service.ensure_text_style_in_dxf(
                         doc=doc,
                         style_name=preset_name, # The DXF STYLE entry will use the original preset_name
                         text_props=fully_resolved_text_props
                     )
                 else:
-                    self.logger.warning(f"Preset '{preset_name}' has text_style, but it could not be fully resolved to a font filename. Skipping DXF STYLE creation for it.")
+                    # This warning now means that even after trying to resolve, we got no text_props at all.
+                    self.logger.warning(f"Preset '{preset_name}' text_style could not be resolved to TextStyleProperties. Skipping DXF STYLE creation for it.")
             else:
                 self.logger.debug(f"Preset '{preset_name}' does not define a text_style. Skipping DXF STYLE creation for it.")
 
