@@ -11,6 +11,7 @@ from dxfplanner.config.dxf_writer_schemas import ( # Import specific block confi
     BlockPolylineConfig, BlockCircleConfig, BlockArcConfig, BlockTextConfig,
     HeaderVariablesConfig, InsUnitsEnum # Added HeaderVariablesConfig and InsUnitsEnum
 )
+from dxfplanner.config.style_schemas import StyleObjectConfig # Add this import
 from dxfplanner.domain.models.dxf_models import AnyDxfEntity
 from dxfplanner.domain.interfaces import IDxfResourceSetupService
 from dxfplanner.core.logging_config import get_logger
@@ -109,6 +110,7 @@ class DxfResourceSetupService(IDxfResourceSetupService):
         await self._create_layers_from_config(doc)
         await self._create_linetypes_from_config(doc)
         await self._create_text_styles_from_config(doc)
+        await self._ensure_styles_for_font_presets(doc)
         # Removed entities_by_layer_config from this call as it's not used for configured blocks
         await self._create_block_definitions_from_config(doc)
         self.logger.info("Document resources setup complete.")
@@ -206,6 +208,59 @@ class DxfResourceSetupService(IDxfResourceSetupService):
             else:
                 self.logger.debug(f"Text style {ts_conf.name} already exists. Skipping creation.")
         self.logger.info("Finished creating text styles.")
+
+    async def _ensure_styles_for_font_presets(self, doc: Drawing) -> None:
+        """
+        Scans style_presets for text_props.font_name_or_style_preset values that are
+        likely direct font names (e.g., "Arial", "verdana.ttf") and ensures a corresponding
+        DXF STYLE table entry exists.
+        This allows using font names directly in presets without explicit TextStyleConfig entries.
+        """
+        if not self.project_config.style_presets: # project_config from constructor
+            self.logger.info("No style_presets found in project_config. Skipping dynamic font style creation.")
+            return
+
+        self.logger.debug("Scanning style_presets to ensure DXF styles for direct font names...")
+        created_styles: Set[str] = set()
+
+        for preset_name, style_object_config in self.project_config.style_presets.items():
+            if style_object_config and style_object_config.text_props:
+                text_props = style_object_config.text_props
+                font_ref = text_props.font_name_or_style_preset
+
+                if font_ref and isinstance(font_ref, str):
+                    # Condition: font_ref is not another preset key AND not already a style in doc
+                    is_another_preset = font_ref in self.project_config.style_presets
+                    is_existing_style = doc.styles.has_entry(font_ref)
+
+                    if not is_another_preset and not is_existing_style:
+                        # Likely a direct font name. Attempt to create a style for it.
+                        # The style name will be the font_ref itself.
+                        style_to_create_name = font_ref
+
+                        # Determine font file: if not ending with .ttf or .shx, append .ttf
+                        # This is a basic heuristic. ezdxf might handle some names directly.
+                        font_file_for_dxf = font_ref
+                        if not (font_ref.lower().endswith(".ttf") or font_ref.lower().endswith(".shx")):
+                            font_file_for_dxf = f"{font_ref}.ttf"
+                            self.logger.debug(f"Preset '{preset_name}' uses font '{font_ref}'. Inferred font file: '{font_file_for_dxf}'.")
+
+                        try:
+                            if not doc.styles.has_entry(style_to_create_name): # Double check before creation
+                                doc.styles.new(
+                                    name=style_to_create_name,
+                                    dxfattribs={"font": font_file_for_dxf}
+                                )
+                                self.logger.info(f"Dynamically created DXF text style '{style_to_create_name}' using font file '{font_file_for_dxf}' based on preset '{preset_name}'.")
+                                created_styles.add(style_to_create_name)
+                            # else: already handled by outer is_existing_style or created by another preset
+                        except Exception as e:
+                            self.logger.error(f"Failed to dynamically create DXF text style '{style_to_create_name}' from font '{font_file_for_dxf}' (preset '{preset_name}'): {e}", exc_info=True)
+
+        if created_styles:
+            self.logger.info(f"Finished ensuring styles for font presets. Dynamically created styles: {created_styles}")
+        else:
+            self.logger.debug("No new dynamic font styles needed or created from presets.")
 
     async def _create_block_definitions_from_config(
         self,

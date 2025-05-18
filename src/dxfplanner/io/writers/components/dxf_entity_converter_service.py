@@ -462,7 +462,7 @@ class DxfEntityConverterService(IDxfEntityConverterService):
 
     def _calculate_text_rotation_rad(self, rotation_degrees: Optional[float]) -> float:
         """Converts text rotation from degrees to radians for ezdxf."""
-        return math.radians(rotation_degrees or 0.0)
+        return math.radians(rotation_degrees if rotation_degrees is not None else 0.0)
 
     def _map_mtext_attachment_point(self, attachment_point_str: Optional[str]) -> int:
         """Maps a string attachment point to ezdxf MTEXT attachment point constants."""
@@ -551,14 +551,7 @@ class DxfEntityConverterService(IDxfEntityConverterService):
             return None
 
     async def _add_dxf_text(self, msp: Modelspace, doc: Drawing, dxf_model: DxfText, layer_style_config: LayerStyleConfig) -> Optional[Text]:
-        # log_prefix = "DxfEntityConverterService._add_dxf_text" # REMOVING TEMP LOG
         try:
-            # # --- TEMP LOGGING: INCOMING DXFTEXT MODEL --- # REMOVING TEMP LOG
-            # self.logger.info(f"{log_prefix}: INCOMING_MODEL - Text='{dxf_model.text_content}', "
-            #                  f"InsertPt={dxf_model.insertion_point}, HAlign='{dxf_model.halign}', "
-            #                  f"VAlign='{dxf_model.valign}', Style='{dxf_model.style}'")
-            # # --- END TEMP LOGGING ---
-
             # Validate insertion point
             ins_x, ins_y, ins_z_opt = dxf_model.insertion_point.x, dxf_model.insertion_point.y, dxf_model.insertion_point.z
             if not (math.isfinite(ins_x) and math.isfinite(ins_y)):
@@ -583,48 +576,46 @@ class DxfEntityConverterService(IDxfEntityConverterService):
             dxfattribs: Dict[str, Any] = {
                 "height": dxf_model.height,
                 "style": dxf_model.style or self.writer_config.default_text_style or "Standard",
-                "rotation": self._calculate_text_rotation_rad(dxf_model.rotation),
+                "rotation": dxf_model.rotation if dxf_model.rotation is not None else 0.0, # CHANGED: Use degrees directly
             }
 
-            # Map halign from model to ezdxf code
+            # Enhanced debug logging to include width_factor and oblique_angle from the model
+            self.logger.info(f"DEBUG_ADD_TEXT: DxfText model before add_text: content='{dxf_model.text_content}', height='{dxf_model.height}', style='{dxf_model.style}', rotation='{dxf_model.rotation}', halign='{dxf_model.halign}', valign='{dxf_model.valign}', width_factor='{dxf_model.width_factor}', oblique_angle='{dxf_model.oblique_angle}'")
+            self.logger.info(f"DEBUG_ADD_TEXT: DXFattribs for add_text before halign/valign: {dxfattribs}")
+
             halign_code = self._map_halign_to_dxf_code(dxf_model.halign)
-            dxfattribs["halign"] = halign_code # halign_code is now the integer
-
-            # Map valign from model to ezdxf code
+            dxfattribs["halign"] = halign_code
             valign_code = self._map_valign_to_dxf_code(dxf_model.valign)
-            dxfattribs["valign"] = valign_code # valign_code is now the integer
+            dxfattribs["valign"] = valign_code # Ensure valign is correctly added to dxfattribs
 
-            # Create the TEXT entity
+            self.logger.info(f"DEBUG_ADD_TEXT: DXFattribs for add_text after halign/valign: {dxfattribs}")
+
             text_entity = msp.add_text(
                 text=dxf_model.text_content,
                 dxfattribs=dxfattribs
             )
 
-            # # --- TEMP LOGGING: CREATED EZDXF TEXT ENTITY --- # REMOVING TEMP LOG
-            # if text_entity:
-            #     self.logger.info(f"{log_prefix}: CREATED_ENTITY - Text='{text_entity.dxf.text}', "
-            #                      f"InsertPt={text_entity.dxf.insert}, HAlign='{text_entity.dxf.halign}', "
-            #                      f"VAlign='{text_entity.dxf.valign}', Style='{text_entity.dxf.style}'")
-            # # --- END TEMP LOGGING ---
-
             if text_entity:
                 text_entity.dxf.insert = final_ins_pt
-                # For TEXT entities, if alignment is other than LEFT/BASELINE,
-                # the `align_point` should also be set to the `insertion_point`.
-                # `halign_code` and `valign_code` here are the ezdxf integer constants.
-                # DXF default for halign is 0 (LEFT), valign is 0 (BASELINE)
                 if dxfattribs.get("halign", 0) != 0 or \
-                   dxfattribs.get("valign", 0) != 0:
+                   dxfattribs.get("valign", 0) != 0: # Check valign from dxfattribs
                     text_entity.dxf.align_point = final_ins_pt
+
+                # --- ADDED BLOCK: Apply width_factor and oblique_angle ---
+                if dxf_model.width_factor is not None:
+                    text_entity.dxf.width = dxf_model.width_factor
+                    self.logger.debug(f"Applied width_factor {dxf_model.width_factor} to TEXT entity {text_entity.dxf.handle}")
+                if dxf_model.oblique_angle is not None:
+                    text_entity.dxf.oblique = dxf_model.oblique_angle # ezdxf expects degrees
+                    self.logger.debug(f"Applied oblique_angle {dxf_model.oblique_angle} to TEXT entity {text_entity.dxf.handle}")
+                # --- END ADDED BLOCK ---
             else:
                  self.logger.warning(f"msp.add_text returned None for text: {dxf_model.text_content}")
                  return None
 
-            # Apply common DxfEntity properties like color, linetype, etc.
-            await self._apply_common_dxf_attributes(text_entity, dxf_model, layer_style_config)
-            # Apply XDATA after common attributes
-            # await self._apply_xdata(text_entity, dxf_model)
-            self.logger.debug(f"Successfully added and styled {dxf_model.__class__.__name__} (handle: {text_entity.dxf.handle}) to layer {dxf_model.layer}")
+            # Apply XDATA after common attributes - this is handled by the caller add_dxf_entity_to_modelspace
+            # await self._apply_xdata(text_entity, dxf_model) # This was already commented out
+            self.logger.debug(f"Successfully added and styled {dxf_model.__class__.__name__} (handle: {text_entity.dxf.handle if text_entity else 'N/A'}) to layer {dxf_model.layer}") # Guard for text_entity being None
 
             return text_entity
         except Exception as e:

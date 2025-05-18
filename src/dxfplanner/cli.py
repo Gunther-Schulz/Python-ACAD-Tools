@@ -21,7 +21,7 @@ cli_app = typer.Typer(
 # Call setup_logging with its internal defaults immediately.
 # This ensures Loguru and its stdlib interceptor are active ASAP.
 # The call from initialize_app() later will refine it with loaded config.
-logging_config.setup_logging()
+# logging_config.setup_logging() # Intentionally removed / commented out
 # --- End Early Logging Setup ---
 
 @cli_app.callback()

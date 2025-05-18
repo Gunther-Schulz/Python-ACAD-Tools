@@ -126,26 +126,56 @@ async def convert_geo_feature_to_dxf_entities(
             yield dxf_insert
         elif is_label_feature or text_content_from_style: # Prioritize if it's marked as a label or style indicates text
             text_string = text_content_from_style or feature_properties.get("label_text", "Default Text")
-            text_height = effective_style.get("text_height", 1.0)
-            # Use label_rotation from feature_properties if available (e.g., from LabelPlacementService)
-            text_rotation = feature_properties.get("label_rotation", effective_style.get("text_rotation", 0.0))
-            text_style_name = effective_style.get("text_style_name", "Standard") # From StyleObjectConfig
-            # MText specific from StyleObjectConfig's text_paragraph_props
+
+            # --- MODIFIED BLOCK: Extract properties from text_style_properties ---
+            text_style_props_dict = feature_properties.get("text_style_properties", {})
+
+            # Height: Prioritize from text_style_props_dict, then effective_style, then global default
+            text_height = text_style_props_dict.get("height", effective_style.get("text_height", 1.0))
+
+            # Rotation: Prioritize from text_style_props_dict, then label_rotation, then effective_style, then global default
+            text_rotation = text_style_props_dict.get(
+                "rotation_degrees",
+                feature_properties.get("label_rotation", effective_style.get("text_rotation", 0.0))
+            )
+
+            # Style Name: Prioritize dxf_style_name_override, then font_name_or_style_preset from text_style_props_dict,
+            # then effective_style, then global default
+            text_style_name = text_style_props_dict.get("dxf_style_name_override") or \
+                              text_style_props_dict.get("font_name_or_style_preset") or \
+                              effective_style.get("text_style_name", "Standard")
+
+            # Width Factor & Oblique Angle: From text_style_props_dict
+            text_width_factor = text_style_props_dict.get("width_factor") # Defaults to None if not present
+            text_oblique_angle = text_style_props_dict.get("oblique_angle") # Corrected key from "oblique_angle_degrees"
+
+            # Logging for detailed debug
+            logger.debug(
+                f"FeatureConverter Label Style Values: text_height={text_height}, text_rotation={text_rotation}, "
+                f"text_style_name='{text_style_name}', text_width_factor={text_width_factor}, "
+                f"text_oblique_angle={text_oblique_angle}. "
+                f"Source text_style_props_dict: {text_style_props_dict}"
+            )
+            # --- END MODIFIED BLOCK ---
+
+            # MText specific from StyleObjectConfig's text_paragraph_props (remains unchanged, uses effective_style)
             mtext_attachment_point = effective_style.get("mtext_attachment_point", 1) # Default to TopLeft
             mtext_width = effective_style.get("mtext_width") # Optional MText width
             mtext_line_spacing_factor = effective_style.get("mtext_line_spacing_factor") # Optional
 
             text_entity: Union[DxfMText, DxfText]
-            if "\\P" in text_string or "\n" in text_string or mtext_width is not None:
+            if "\\\\P" in text_string or "\\n" in text_string or mtext_width is not None:
                 text_entity = DxfMText(
                     text_content=text_string,
                     insertion_point=feature_geometry.coordinates, # Use Coordinate object
-                    height=text_height,
-                    rotation=text_rotation,
-                    style=text_style_name,
+                    char_height=text_height, # Using resolved text_height
+                    rotation=text_rotation,  # Using resolved text_rotation
+                    style=text_style_name,   # Using resolved text_style_name
                     attachment_point=mtext_attachment_point,
                     width=mtext_width,
                     line_spacing_factor=mtext_line_spacing_factor,
+                    width_factor=text_width_factor, # Pass to DxfMText
+                    oblique_angle=text_oblique_angle, # Pass to DxfMText
                     layer=current_dxf_entity_layer, # USE RESOLVED LAYER
                     true_color=rgb_color_tuple,
                     color_256=aci_color,
@@ -157,9 +187,11 @@ async def convert_geo_feature_to_dxf_entities(
                 text_entity = DxfText(
                     text_content=text_string,
                     insertion_point=feature_geometry.coordinates, # Use Coordinate object
-                    height=text_height,
-                    rotation=text_rotation,
-                    style=text_style_name,
+                    height=text_height,         # Using resolved text_height
+                    rotation=text_rotation,     # Using resolved text_rotation
+                    style=text_style_name,      # Using resolved text_style_name
+                    width_factor=text_width_factor, # Pass to DxfText constructor
+                    oblique_angle=text_oblique_angle, # Pass to DxfText constructor
                     layer=current_dxf_entity_layer, # USE RESOLVED LAYER
                     true_color=rgb_color_tuple,
                     color_256=aci_color,
@@ -167,7 +199,6 @@ async def convert_geo_feature_to_dxf_entities(
                     xdata_app_id=xdata_app_id,
                     xdata_tags=xdata_tags
                 )
-            # dxf_entities.append(text_entity) # Changed
             yield text_entity
         else: # Default to DxfPoint if not a block or explicitly styled/marked as text
             dxf_point = DxfPoint(

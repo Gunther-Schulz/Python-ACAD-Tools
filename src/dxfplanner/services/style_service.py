@@ -194,14 +194,33 @@ class StyleService(IStyleService):
         Override fields take precedence. Handles nested TextParagraphPropertiesConfig
         within TextStylePropertiesConfig.
         """
+        self.logger.debug(f"_merge_style_component: model_type={model_type}")
+        if base:
+            self.logger.debug(f"_merge_style_component: base={base.model_dump_json(indent=2)}")
+        else:
+            self.logger.debug("_merge_style_component: base=None")
+        if override:
+            self.logger.debug(f"_merge_style_component: override={override.model_dump_json(indent=2) if override else None}")
+        else:
+            self.logger.debug("_merge_style_component: override=None")
+
+        base_data = base.model_dump(exclude_unset=True) if base else {}
+
+        # Use model_dump(exclude_none=True) for override_data.
+        # This ensures that any field explicitly set in the override to a non-None value
+        # (including 0.0 or False if those are not None) will be part of the override_data.
+        # Fields that are None in the override object will be excluded and thus won't nullify base values.
+        override_data = override.model_dump(exclude_none=True) if override else {}
+
+        self.logger.debug(f"_merge_style_component: base_data (exclude_unset=True): {base_data}")
+        self.logger.debug(f"_merge_style_component: override_data (exclude_none=True): {override_data}") # Updated log message
+
         if not base and not override:
+            self.logger.debug("_merge_style_component: Both base and override are None. Returning None.")
             return None
 
-        base_dict = base.model_dump() if base else {}
-        override_dict = override.model_dump(exclude_unset=True) if override else {}
-
-        # Initial shallow merge for most fields
-        merged_data = {**base_dict, **override_dict}
+        merged_data = base_data.copy()
+        merged_data.update(override_data)
 
         if model_type is TextStylePropertiesConfig:
             # Explicitly merge TextParagraphPropertiesConfig if present
@@ -218,9 +237,14 @@ class StyleService(IStyleService):
             elif 'paragraph_props' in merged_data: # if override explicitly set it to None
                  merged_data['paragraph_props'] = None
 
+        self.logger.debug(f"_merge_style_component: merged_data before model instantiation: {merged_data}")
+
         # Ensure the model_type is not None before instantiation to prevent errors with Optional[TBaseModel]
         if merged_data and model_type is not None:
-            return model_type(**merged_data)
+            result = model_type(**merged_data)
+            self.logger.debug(f"_merge_style_component: Returning merged result: {result.model_dump_json(exclude_none=True, indent=2)}")
+            return result
+        self.logger.debug("_merge_style_component: merged_data is empty or model_type is None. Returning None.")
         return None
 
     def get_resolved_style_object(
@@ -391,25 +415,45 @@ class StyleService(IStyleService):
             f"Resolving text style for LabelPlacementOperation: "
             f"Output='{config.output_label_layer_name}', Source='{config.source_layer}'"
         )
-
-        # LabelingConfig is where the specific text_style for labels is defined.
-        labeling_config = config.label_settings  # This is LabelingConfig
-
-        if labeling_config and labeling_config.text_style:
-            # If an inline text_style is defined in LabelingConfig, use it directly.
+        if config.label_settings and config.label_settings.text_style:
             self.logger.debug(
-                f"Using inline text_style from LabelingConfig: "
-                f"{labeling_config.text_style.model_dump_json(exclude_none=True, indent=2)}"
+                f"Input text_style from LabelPlacementOperationConfig.label_settings: "
+                f"{config.label_settings.text_style.model_dump_json(exclude_none=True, indent=2)}"
             )
-            # TextStylePropertiesConfig fields have defaults, so an instance is generally usable.
-            return labeling_config.text_style
+        elif config.label_settings:
+            self.logger.debug("Input LabelPlacementOperationConfig.label_settings exists, but .text_style is None.")
         else:
-            # No specific text style defined in the label operation's config.
-            # Return a default TextStylePropertiesConfig.
-            self.logger.debug(
-                "No inline text_style in LabelingConfig. Returning default TextStylePropertiesConfig."
-            )
+            self.logger.debug("Input LabelPlacementOperationConfig.label_settings is None.")
+
+        # Correctly extract parameters for _resolve_text_style_from_preset_and_inline
+        # from config.label_settings.text_style
+        preset_name_from_label_settings: Optional[str] = None
+        inline_style_from_label_settings: Optional[TextStylePropertiesConfig] = None
+
+        if config.label_settings and config.label_settings.text_style:
+            self.logger.debug(f"get_resolved_style_for_label_operation: Found label_settings.text_style: {config.label_settings.text_style.model_dump_json(indent=2)}")
+            # The text_style object itself contains inline properties.
+            # Its font_name_or_style_preset field specifies the preset name, if any.
+            inline_style_from_label_settings = config.label_settings.text_style
+            preset_name_from_label_settings = config.label_settings.text_style.font_name_or_style_preset
+            self.logger.debug(f"get_resolved_style_for_label_operation: Extracted preset_name='{preset_name_from_label_settings}' and inline_style_from_label_settings for resolver.")
+        else:
+            self.logger.debug("get_resolved_style_for_label_operation: No label_settings.text_style found. Will use defaults for resolver.")
+            # If no text_style is defined in label_settings,
+            # _resolve_text_style_from_preset_and_inline will use its defaults.
+            # We pass None for both, allowing it to create a default TextStylePropertiesConfig.
+
+        resolved_style = self._resolve_text_style_from_preset_and_inline(
+            preset_name_or_text_props=preset_name_from_label_settings, # This can be a preset name (str)
+            inline_text_props=inline_style_from_label_settings      # This is the TextStylePropertiesConfig object with inline values
+        )
+        logger.debug(f"CLIPPY_DEBUG: get_resolved_style_for_label_operation - resolved_style AFTER _resolve_text_style_from_preset_and_inline: {resolved_style}")
+
+        if not resolved_style:
+            self.logger.warning(f"Resolved style is None for LabelPlacementOperation: {config.model_dump_json(indent=2)}")
             return TextStylePropertiesConfig()
+
+        return resolved_style
 
     def get_resolved_hatch_style(
         self, layer_config: LayerConfig
@@ -492,3 +536,89 @@ class StyleService(IStyleService):
 
         self.logger.debug(f"Final resolved style for {context_name}: {current_style.model_dump_json(indent=2)}")
         return current_style
+
+    def _resolve_text_style_from_preset_and_inline(
+        self,
+        preset_name_or_text_props: Optional[Union[str, TextStylePropertiesConfig]],
+        inline_text_props: Optional[TextStylePropertiesConfig] = None,
+    ) -> TextStylePropertiesConfig:
+        """
+        Resolves a TextStylePropertiesConfig based on a potential preset name (or direct preset object)
+        and an optional inline override object.
+
+        The `preset_name_or_text_props` can be:
+        1. A string (preset name): Fetches the preset.
+        2. A TextStylePropertiesConfig object: Treated as a direct preset.
+        3. None: Starts with a default TextStylePropertiesConfig.
+
+        The `inline_text_props` (if provided) are then merged on top of the resolved base from
+        `preset_name_or_text_props`.
+
+        If `preset_name_or_text_props` is a string (preset name), its `font_name_or_style_preset`
+        field in the returned object will be this preset name for clarity, even if the
+        preset itself pointed to another font (e.g., "StandardLegend" -> "Arial.ttf").
+        """
+        self.logger.debug(
+            f"_resolve_text_style_from_preset_and_inline: Called with preset_name_or_text_props='{preset_name_or_text_props}', "
+            f"inline_text_props given: {bool(inline_text_props)}"
+        )
+        if inline_text_props:
+            self.logger.debug(f"_resolve_text_style_from_preset_and_inline: inline_text_props content: {inline_text_props.model_dump_json(indent=2)}")
+
+        base_style_from_preset = TextStylePropertiesConfig()  # Start with a default
+        preset_name_if_str: Optional[str] = None
+
+        if isinstance(preset_name_or_text_props, str):
+            preset_name_if_str = preset_name_or_text_props
+            self.logger.debug(f"_resolve_text_style_from_preset_and_inline: Attempting to resolve preset_name: '{preset_name_if_str}'")
+            style_preset_model = self._config.style_presets.get(preset_name_if_str) if self._config.style_presets else None
+
+            if style_preset_model:
+                self.logger.debug(f"_resolve_text_style_from_preset_and_inline: Found preset model for '{preset_name_if_str}'. Has text_props: {bool(style_preset_model.text_props)}")
+                if style_preset_model.text_props:
+                    self.logger.debug(f"_resolve_text_style_from_preset_and_inline: Content of preset '{preset_name_if_str}'.text_props: {style_preset_model.text_props.model_dump_json(indent=2)}")
+                    base_style_from_preset = style_preset_model.text_props
+                    self.logger.debug(f"_resolve_text_style_from_preset_and_inline: base_style_from_preset assigned from preset '{preset_name_if_str}': {base_style_from_preset.model_dump_json(indent=2)}")
+                else:
+                    self.logger.debug(f"_resolve_text_style_from_preset_and_inline: Preset '{preset_name_if_str}' found but has no text_props. base_style_from_preset remains default.")
+            else:
+                self.logger.warning(
+                    f"_resolve_text_style_from_preset_and_inline: Style preset named '{preset_name_if_str}' "
+                    f"not found in project_config.style_presets. "
+                    f"base_style_from_preset remains default."
+                )
+        elif isinstance(preset_name_or_text_props, TextStylePropertiesConfig):
+            self.logger.debug("_resolve_text_style_from_preset_and_inline: preset_name_or_text_props is an instance of TextStylePropertiesConfig. Using it as base.")
+            base_style_from_preset = preset_name_or_text_props
+        else:
+            self.logger.debug("_resolve_text_style_from_preset_and_inline: preset_name_or_text_props is None or invalid type. base_style_from_preset remains default.")
+
+        self.logger.debug(f"_resolve_text_style_from_preset_and_inline: Pre-merge base_style_from_preset: {base_style_from_preset.model_dump_json(indent=2)}")
+
+        merged_props: Optional[TextStylePropertiesConfig] = self._merge_style_component(
+            base_style_from_preset,
+            inline_text_props,
+            TextStylePropertiesConfig
+        )
+
+        if not merged_props:
+            self.logger.debug("_resolve_text_style_from_preset_and_inline: Merged props is None, returning default TextStylePropertiesConfig.")
+            final_props_to_return = TextStylePropertiesConfig()
+        else:
+            final_props_to_return = merged_props
+            self.logger.debug(f"_resolve_text_style_from_preset_and_inline: Initial merged_props (becomes final_props_to_return): {final_props_to_return.model_dump_json(indent=2)}")
+
+        if preset_name_if_str and inline_text_props and \
+           inline_text_props.font_name_or_style_preset == preset_name_if_str:
+
+            if final_props_to_return.font_name_or_style_preset != preset_name_if_str:
+                self.logger.debug(
+                    f"_resolve_text_style_from_preset_and_inline: Correcting font_name_or_style_preset in final props. "
+                    f"Was: '{final_props_to_return.font_name_or_style_preset}', Should be: '{preset_name_if_str}'"
+                )
+                final_props_to_return = final_props_to_return.model_copy(
+                    update={'font_name_or_style_preset': preset_name_if_str}
+                )
+
+        self.logger.debug(f"_resolve_text_style_from_preset_and_inline: 최종 반환될 Resolved TextStylePropertiesConfig: {final_props_to_return.model_dump_json(indent=2)}")
+        return final_props_to_return
