@@ -125,8 +125,12 @@ class DxfEntityConverterService(IDxfEntityConverterService):
         layer_style_cfg: LayerStyleConfig
     ) -> None:
         """Applies common DXF attributes (layer, color, linetype, transparency) to an ezdxf entity."""
-        s_layer_name = sanitize_layer_name(dxf_model.layer or self.writer_config.default_layer_properties.name if self.writer_config.default_layer_properties else "0")
-        entity.dxf.layer = s_layer_name
+        # Layer
+        # Ensure layer name is sanitized and defaults to "0" if not provided in the model
+        original_model_layer = dxf_model.layer
+        target_layer_name = sanitize_layer_name(original_model_layer or "0")
+
+        entity.dxf.layer = target_layer_name
 
         # Color
         effective_color_val: Optional[Union[int, Tuple[int, int, int], str, ColorModel]] = None
@@ -483,7 +487,7 @@ class DxfEntityConverterService(IDxfEntityConverterService):
             if not (math.isfinite(ins_x) and math.isfinite(ins_y)):
                 self.logger.error(
                     f"Invalid non-finite X/Y for DxfMText insertion_point on layer '{model.layer}': "
-                    f"IP=({ins_x},{ins_y}). Skipping MText."
+                    f"IP=({ins_x},{ins_y}). Skipping MText entity."
                 )
                 return None
 
@@ -493,57 +497,53 @@ class DxfEntityConverterService(IDxfEntityConverterService):
                     self.logger.warning(
                         f"Invalid non-finite Z for DxfMText insertion_point on layer '{model.layer}': Z={ins_z_opt}. Defaulting to 0.0."
                     )
-                    # ins_z is already 0.0
                 else:
                     ins_z = ins_z_opt
             final_ins_pt = (ins_x, ins_y, ins_z)
 
-            # Validate char_height (must be positive)
-            char_height = model.char_height
-            if not (math.isfinite(char_height) and char_height > 0):
-                self.logger.error(
-                    f"Invalid non-finite or non-positive char_height for DxfMText on layer '{model.layer}': {char_height}. Skipping MText."
-                )
-                return None
+            # Determine text style and height
+            text_style_name = model.style or self.writer_config.default_text_style or "Standard"
 
-            # Validate rotation
-            rotation_deg = model.rotation
-            if rotation_deg is not None and not math.isfinite(rotation_deg):
-                self.logger.warning(
-                    f"Invalid non-finite rotation for DxfMText on layer '{model.layer}': {rotation_deg}. Defaulting to 0.0 degrees."
-                )
-                rotation_deg = 0.0 # Default if non-finite
-            # _calculate_text_rotation_rad handles None by using 0.0
-            rotation_rad = self._calculate_text_rotation_rad(rotation_deg)
+            char_height = model.height # Use model.height for MTEXT consistently
+            if char_height is None: # Fallback if model.height is not set
+                try:
+                    style_def = doc.styles.get(text_style_name)
+                    if style_def.dxf.height != 0: # If style has fixed height
+                        char_height = style_def.dxf.height
+                    else: # Style has variable height, use default from writer_config
+                        char_height = self.writer_config.default_text_size
+                except ezdxf.lldxf.const.DXFTableEntryError:
+                    self.logger.warning(f"Text style '{text_style_name}' not found for MTEXT on layer '{model.layer}'. Using default size from writer_config.")
+                    char_height = self.writer_config.default_text_size
 
-            attribs = {
+            dxfattribs: Dict[str, Any] = {
                 "char_height": char_height,
-                "attachment_point": self._map_mtext_attachment_point(model.attachment_point),
-                "style": model.style or self.writer_config.default_text_style or "Standard",
-                "rotation": rotation_rad,
+                "style": text_style_name,
+                "width": model.mtext_width if model.mtext_width is not None else 0.0, # MTEXT width, 0 for no wrap
             }
 
-            # Validate optional width (must be positive if specified)
-            if model.width is not None:
-                if math.isfinite(model.width) and model.width > 0:
-                    attribs["width"] = model.width
+            if model.rotation_degrees is not None:
+                if model.text_direction_vec:
+                    dxfattribs["text_direction"] = tuple(model.text_direction_vec)
                 else:
-                    self.logger.warning(
-                        f"Invalid non-finite or non-positive width for DxfMText on layer '{model.layer}': {model.width}. Omitting width attribute."
-                    )
+                    dxfattribs["rotation"] = model.rotation_degrees
 
-            # Validate optional line_spacing_factor
+            if model.attachment_point:
+                dxfattribs["attachment_point"] = self._map_mtext_attachment_point(model.attachment_point)
+
             if model.line_spacing_factor is not None:
-                if math.isfinite(model.line_spacing_factor):
-                    # Assuming ezdxf handles range checks for line_spacing_factor (e.g., 0.25 to 4.0)
-                    attribs["line_spacing_factor"] = model.line_spacing_factor
-                else:
-                    self.logger.warning(
-                        f"Invalid non-finite line_spacing_factor for DxfMText on layer '{model.layer}': {model.line_spacing_factor}. Omitting factor."
-                    )
+                dxfattribs["line_spacing_factor"] = model.line_spacing_factor
+                # MTEXT_AT_LEAST is a common default, make configurable if needed
+                dxfattribs["line_spacing_style"] = dxfconstants.MTEXT_AT_LEAST
 
-            mtext_entity = msp.add_mtext(text=model.text_content, dxfattribs=attribs)
-            mtext_entity.dxf.insert = final_ins_pt # Set insertion point after creation for MTEXT
+            self.logger.debug(f"DEBUG_ADD_MTEXT: Final DXFattribs for add_mtext: {dxfattribs}, Content: '{model.text_content[:50]}...'")
+
+            mtext_entity = msp.add_mtext(text=model.text_content, dxfattribs=dxfattribs)
+            if mtext_entity:
+                mtext_entity.dxf.insert = final_ins_pt # Set insertion point for MTEXT
+            else:
+                self.logger.warning(f"msp.add_mtext returned None for MTEXT content: {model.text_content[:50]}...")
+                return None
 
             return mtext_entity
         except Exception as e:
@@ -567,28 +567,44 @@ class DxfEntityConverterService(IDxfEntityConverterService):
                     self.logger.warning(
                         f"Invalid non-finite Z for DxfText insertion_point on layer '{dxf_model.layer}': Z={ins_z_opt}. Defaulting to 0.0."
                     )
-                    # ins_z is already 0.0
                 else:
                     ins_z = ins_z_opt
             final_ins_pt = (ins_x, ins_y, ins_z)
 
             # Prepare dxfattribs for msp.add_text
+            # Default height from text style if not specified in model
+            text_style_to_check = dxf_model.style or self.writer_config.default_text_style or "Standard"
+            resolved_height = dxf_model.height
+            if resolved_height is None: # Height not directly on DxfText model, try to get from style
+                try:
+                    style_def = doc.styles.get(text_style_to_check)
+                    if style_def.dxf.height != 0: # Style has a fixed height
+                        resolved_height = style_def.dxf.height
+                    else: # Style height is 0.0 (variable), use default from writer config
+                        resolved_height = self.writer_config.default_text_size
+                except ezdxf.lldxf.const.DXFTableEntryError:
+                    self.logger.warning(f"Text style '{text_style_to_check}' not found for TEXT on layer '{dxf_model.layer}'. Using default size from writer_config.")
+                    resolved_height = self.writer_config.default_text_size
+
             dxfattribs: Dict[str, Any] = {
-                "height": dxf_model.height,
-                "style": dxf_model.style or self.writer_config.default_text_style or "Standard",
-                "rotation": dxf_model.rotation if dxf_model.rotation is not None else 0.0, # CHANGED: Use degrees directly
+                "height": resolved_height,
+                "style": text_style_to_check,
+                "rotation": dxf_model.rotation if dxf_model.rotation is not None else 0.0,
             }
 
-            # Enhanced debug logging to include width_factor and oblique_angle from the model
-            self.logger.info(f"DEBUG_ADD_TEXT: DxfText model before add_text: content='{dxf_model.text_content}', height='{dxf_model.height}', style='{dxf_model.style}', rotation='{dxf_model.rotation}', halign='{dxf_model.halign}', valign='{dxf_model.valign}', width_factor='{dxf_model.width_factor}', oblique_angle='{dxf_model.oblique_angle}'")
-            self.logger.info(f"DEBUG_ADD_TEXT: DXFattribs for add_text before halign/valign: {dxfattribs}")
+            # Add optional attributes if they exist on the model and are not None
+            if dxf_model.width_factor is not None:
+                dxfattribs["width"] = dxf_model.width_factor
+            if dxf_model.oblique_angle is not None:
+                dxfattribs["oblique"] = dxf_model.oblique_angle
 
-            halign_code = self._map_halign_to_dxf_code(dxf_model.halign)
-            dxfattribs["halign"] = halign_code
-            valign_code = self._map_valign_to_dxf_code(dxf_model.valign)
-            dxfattribs["valign"] = valign_code # Ensure valign is correctly added to dxfattribs
+            # Handle alignment - halign and valign must be mapped to codes
+            # Default to 0 (LEFT, BASELINE) if not specified
+            dxfattribs["halign"] = self._map_halign_to_dxf_code(dxf_model.halign)
+            dxfattribs["valign"] = self._map_valign_to_dxf_code(dxf_model.valign)
 
-            self.logger.info(f"DEBUG_ADD_TEXT: DXFattribs for add_text after halign/valign: {dxfattribs}")
+            self.logger.debug(f"DEBUG_ADD_TEXT: DxfText model for add_text: content='{dxf_model.text_content}', attrs from model: height='{dxf_model.height}', style='{dxf_model.style}', rotation='{dxf_model.rotation}', halign='{dxf_model.halign}', valign='{dxf_model.valign}', width='{dxf_model.width_factor}', oblique='{dxf_model.oblique_angle}'")
+            self.logger.debug(f"DEBUG_ADD_TEXT: Final DXFattribs for add_text call: {dxfattribs}")
 
             text_entity = msp.add_text(
                 text=dxf_model.text_content,
@@ -597,25 +613,19 @@ class DxfEntityConverterService(IDxfEntityConverterService):
 
             if text_entity:
                 text_entity.dxf.insert = final_ins_pt
-                if dxfattribs.get("halign", 0) != 0 or \
-                   dxfattribs.get("valign", 0) != 0: # Check valign from dxfattribs
+                # Set align_point if alignment is not LEFT (0) or if valign is not BASELINE (0)
+                # This matches ezdxf examples where align_point is set for non-default alignments.
+                if dxfattribs.get("halign", 0) != 0 or dxfattribs.get("valign", 0) != 0:
+                    # The dxf_model might have an explicit align_point, or we use insertion_point
+                    # For TEXT, if align_point is not specified, it's often the same as insertion_point for many alignments.
+                    # The DxfText model currently does not have an explicit align_point field. It should be added if needed for ALIGNED/FIT.
+                    # For other alignments, ezdxf uses the insertion_point as the reference for halign/valign.
                     text_entity.dxf.align_point = final_ins_pt
-
-                # --- ADDED BLOCK: Apply width_factor and oblique_angle ---
-                if dxf_model.width_factor is not None:
-                    text_entity.dxf.width = dxf_model.width_factor
-                    self.logger.debug(f"Applied width_factor {dxf_model.width_factor} to TEXT entity {text_entity.dxf.handle}")
-                if dxf_model.oblique_angle is not None:
-                    text_entity.dxf.oblique = dxf_model.oblique_angle # ezdxf expects degrees
-                    self.logger.debug(f"Applied oblique_angle {dxf_model.oblique_angle} to TEXT entity {text_entity.dxf.handle}")
-                # --- END ADDED BLOCK ---
             else:
                  self.logger.warning(f"msp.add_text returned None for text: {dxf_model.text_content}")
                  return None
 
-            # Apply XDATA after common attributes - this is handled by the caller add_dxf_entity_to_modelspace
-            # await self._apply_xdata(text_entity, dxf_model) # This was already commented out
-            self.logger.debug(f"Successfully added and styled {dxf_model.__class__.__name__} (handle: {text_entity.dxf.handle if text_entity else 'N/A'}) to layer {dxf_model.layer}") # Guard for text_entity being None
+            self.logger.debug(f"Successfully created TEXT entity (handle: {text_entity.dxf.handle if text_entity else 'N/A'}) for layer '{dxf_model.layer}'")
 
             return text_entity
         except Exception as e:

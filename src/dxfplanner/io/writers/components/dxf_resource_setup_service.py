@@ -185,29 +185,74 @@ class DxfResourceSetupService(IDxfResourceSetupService):
     async def _create_text_styles_from_config(self, doc: Drawing) -> None:
         """Creates text styles in the DXF document based on the configuration."""
         if not self.writer_config.text_styles:
-            self.logger.info("No text style configurations provided. Skipping text style creation.")
-            return
+            self.logger.info("No text style configurations provided in DxfWriterConfig.text_styles.") # MODIFIED Log
+        else: # ADDED else block for clarity if text_styles list exists and is processed
+            self.logger.debug(f"Processing {len(self.writer_config.text_styles)} text styles from DxfWriterConfig.text_styles.") # MODIFIED Log
+            for ts_conf in self.writer_config.text_styles:
+                actual_font_file = ts_conf.font_file
+                style_name_for_log = ts_conf.name
 
-        self.logger.debug(f"Creating {len(self.writer_config.text_styles)} text styles.")
-        for ts_conf in self.writer_config.text_styles:
-            if not doc.styles.has_entry(ts_conf.name):
-                self.logger.debug(f"Creating text style: {ts_conf.name} with font {ts_conf.font_file}")
+                if ts_conf.name == "Standard" and ts_conf.font_file is None:
+                    actual_font_file = "arial.ttf" # Hardcoded default for "Standard" style if not specified
+                    self.logger.info(f"Text style 'Standard' configured with no font_file. Using default '{actual_font_file}'.")
+                elif ts_conf.font_file is None:
+                    # This case should ideally be caught by schema validation if font_file becomes mandatory for non-"Standard" styles,
+                    # or handled based on specific project decisions for other styles if font_file is truly optional everywhere.
+                    # For now, let's assume non-"Standard" styles *must* have a font_file from config or it's an error/warning.
+                    self.logger.warning(f"Text style '{ts_conf.name}' has no font_file specified and is not 'Standard'. Skipping DXF STYLE creation for it, as font is mandatory for ezdxf.styles.new().")
+                    continue # Skip this style
+
+                style_attributes = {
+                    "font": actual_font_file,
+                    "width_factor": ts_conf.width_factor if ts_conf.width_factor is not None else 1.0,
+                    "oblique_angle": ts_conf.oblique_angle if ts_conf.oblique_angle is not None else 0.0,
+                    "height": ts_conf.height if ts_conf.height is not None else 0.0,
+                }
+                final_style_attributes = {k: v for k, v in style_attributes.items() if v is not None}
+                if 'font' not in final_style_attributes or final_style_attributes['font'] is None: # Should be redundant due to logic above
+                    final_style_attributes['font'] = "arial.ttf"
+                if 'height' not in final_style_attributes :
+                     final_style_attributes['height'] = 0.0
+
+                if not doc.styles.has_entry(ts_conf.name):
+                    self.logger.debug(f"Creating text style: {ts_conf.name} with font {final_style_attributes.get('font')}")
+                    try:
+                        doc.styles.new(
+                            name=ts_conf.name,
+                            dxfattribs=final_style_attributes
+                        )
+                    except Exception as e:
+                        self.logger.error(f"Failed to create text style {ts_conf.name}: {e}", exc_info=True)
+                else:
+                    self.logger.debug(f"Text style {ts_conf.name} already exists. Updating its properties from config.")
+                    try:
+                        existing_style = doc.styles.get(ts_conf.name)
+                        if existing_style:
+                            if actual_font_file is not None: # Use the resolved actual_font_file
+                                existing_style.dxf.font = actual_font_file
+                            if ts_conf.height is not None:
+                                existing_style.dxf.height = ts_conf.height
+                            if ts_conf.width_factor is not None:
+                                existing_style.dxf.width = ts_conf.width_factor
+                            if ts_conf.oblique_angle is not None:
+                                existing_style.dxf.oblique = ts_conf.oblique_angle
+                            self.logger.info(f"Updated existing text style '{ts_conf.name}'.")
+                        else:
+                            self.logger.warning(f"Text style {ts_conf.name} reported existing, but get() returned None.")
+                    except Exception as e:
+                        self.logger.error(f"Failed to update text style {ts_conf.name}: {e}", exc_info=True)
+
+            # Ensure a default 'Standard' text style exists IF NOT PROCESSED ABOVE
+            # This covers the case where writer_config.text_styles is empty or None,
+            # or if it existed but didn't include "Standard".
+            if not doc.styles.has_entry("Standard"):
+                self.logger.info("Default 'Standard' text style not found after processing DxfWriterConfig.text_styles. Creating it with font 'arial.ttf', height 0.0.")
                 try:
-                    doc.styles.new(
-                        name=ts_conf.name,
-                        dxfattribs={
-                            "font": ts_conf.font_file, # Font filename (e.g., "arial.ttf")
-                            "width_factor": ts_conf.width_factor or 1.0,
-                            # Other attributes like 'height' (fixed height), 'oblique' (obliquing angle)
-                        }
-                    )
-                    # Note: 'height' for a text style makes it a fixed-height style.
-                    # Typically, MTEXT/TEXT entities define their own height.
+                    doc.styles.new(name="Standard", dxfattribs={'font': "arial.ttf", 'height': 0.0})
                 except Exception as e:
-                    self.logger.error(f"Failed to create text style {ts_conf.name}: {e}", exc_info=True)
-            else:
-                self.logger.debug(f"Text style {ts_conf.name} already exists. Skipping creation.")
-        self.logger.info("Finished creating text styles.")
+                    self.logger.error(f"Failed to create default 'Standard' text style: {e}", exc_info=True)
+
+            self.logger.info("Finished creating/updating text styles from DxfWriterConfig and ensuring 'Standard' style.")
 
     async def _ensure_styles_for_font_presets(self, doc: Drawing) -> None:
         """

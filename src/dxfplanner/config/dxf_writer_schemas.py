@@ -11,7 +11,7 @@ class LinetypeConfig(BaseModel):
 
 class TextStyleConfig(BaseModel): # For DxfWriterConfig.text_styles for creating STYLE entities
     name: str
-    font_file: str # e.g., "arial.ttf", "isocp.shx"
+    font_file: Optional[str] = Field(default=None, description="e.g., \"arial.ttf\", \"isocp.shx\". If 'name' is 'Standard' and this is None, a default (e.g., 'arial.ttf') will be used by the writer.")
     height: Optional[float] = Field(default=0.0, description="Fixed height for the style. 0.0 for variable height (recommended).")
     width_factor: Optional[float] = Field(default=1.0, description="Width factor.")
     oblique_angle: Optional[float] = Field(default=0.0, description="Oblique angle in degrees.")

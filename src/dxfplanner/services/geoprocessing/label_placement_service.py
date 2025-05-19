@@ -181,10 +181,17 @@ class LabelPlacementService(ILabelPlacementService):
             final_x = anchor_point[0] + (config.offset_xy[0] if config.offset_xy else 0.0)
             final_y = anchor_point[1] + (config.offset_xy[1] if config.offset_xy else 0.0)
 
+            # ADDED DEBUG LOG
+            self.logger.debug(f"LabelPlacementService: BEFORE calc final_rotation: text_style_properties.rotation_degrees = {text_style_properties.rotation_degrees}")
+
             final_rotation_degrees = geometry_rotation_degrees + (text_style_properties.rotation_degrees or 0.0)
             final_rotation_degrees %= 360
 
-            final_z = shapely_geom.z if hasattr(shapely_geom, 'z') and isinstance(shapely_geom, ShapelyPoint) else 0.0
+            # MODIFIED: Use shapely_geom.has_z for robust Z coordinate handling
+            if isinstance(shapely_geom, ShapelyPoint):
+                final_z = shapely_geom.z if shapely_geom.has_z else 0.0
+            else: # For LineString, Polygon, etc., which don't have a single .z attribute like Point
+                final_z = 0.0 # Default to 0 for other geometry types if not explicitly set earlier
 
             placed_label = PlacedLabel(
                 text=label_text,

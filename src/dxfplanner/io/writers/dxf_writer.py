@@ -2,6 +2,7 @@ from typing import AsyncIterator, Optional, List, Any, Dict, Tuple
 from pathlib import Path
 import asyncio
 import math
+import io
 
 import ezdxf
 from ezdxf.enums import InsertUnits # For setting drawing units
@@ -193,13 +194,51 @@ class DxfWriter(IDxfWriter):
         self.logger.info(f"DXF drawing generation complete. File saved to: {p_output_path}")
 
     async def _save_document(self, doc: ezdxf.document.Drawing, file_path: AnyStrPath) -> None:
-        """Saves the DXF document to the specified file path."""
-        self.logger.info(f"Saving DXF document to: {file_path}")
+        """Saves the DXF document to the specified file path using an in-memory buffer."""
+        self.logger.info(f"Saving DXF document to: {file_path} (via in-memory StringIO buffer)")
         try:
             output_path = Path(file_path)
             output_path.parent.mkdir(parents=True, exist_ok=True)
-            doc.saveas(output_path)
-            self.logger.info(f"Successfully saved DXF document: {output_path}")
+
+            dxf_string = None
+            # Use StringIO for text-based writing from ezdxf.doc.write()
+            with io.StringIO() as buffer: # CHANGED from BytesIO
+                await asyncio.to_thread(doc.write, buffer)
+                dxf_string = buffer.getvalue()
+                # EXISTING DIAGNOSTIC LOG (this is good to keep)
+                if dxf_string:
+                    self.logger.debug(f"DXF content length from StringIO: {len(dxf_string)}. Last 100 chars: '{dxf_string[-100:]}'")
+                else:
+                    self.logger.debug("DXF content from StringIO is None or empty.")
+
+            if dxf_string:
+                # Encode the string to bytes (UTF-8 is a common DXF encoding)
+                dxf_bytes = dxf_string.encode('utf-8')
+                # No longer logging dxf_bytes length here, as string length is logged above.
+                # Restoring asynchronous file write
+                with open(output_path, 'wb') as f:
+                    await asyncio.to_thread(f.write, dxf_bytes)
+
+                # REMOVING VERIFICATION READ BLOCK
+                # try:
+                #     self.logger.info(f"Attempting immediate verification read of: {output_path}")
+                #     # Use a synchronous read within to_thread for consistency if other file ops might be async
+                #     content_on_disk_bytes = await asyncio.to_thread(output_path.read_bytes)
+                #     disk_string_for_log = content_on_disk_bytes.decode('utf-8', errors='ignore')
+                #     self.logger.info(f"Verification read: Bytes read: {len(content_on_disk_bytes)}. Last 200 chars: '{disk_string_for_log[-200:]}'")
+                #     if dxf_bytes == content_on_disk_bytes:
+                #         self.logger.info("Verification SUCCESS: Content written matches content read back.")
+                #     else:
+                #         self.logger.error("Verification FAILURE: Content written DOES NOT MATCH content read back.")
+                #         self.logger.error(f"Original bytes len: {len(dxf_bytes)}, Read bytes len: {len(content_on_disk_bytes)}")
+                # except Exception as e_verify:
+                #     self.logger.error(f"Error during verification read of {output_path}: {e_verify}", exc_info=True)
+
+                self.logger.info(f"Successfully saved DXF document: {output_path}") # Restored original log message
+            else:
+                self.logger.error(f"Failed to get DXF string from in-memory StringIO buffer for: {output_path}")
+                raise IOError(f"DXF content generation to StringIO buffer failed for {output_path}")
+
         except Exception as e:
             self.logger.error(f"Failed to save DXF document to '{file_path}': {e}", exc_info=True)
             raise

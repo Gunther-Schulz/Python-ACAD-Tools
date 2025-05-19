@@ -33,6 +33,8 @@ from dxfplanner.services.styling.styling_utils import merge_style_components # F
 
 logger = get_logger(__name__) # Keep logger instance for StyleService itself if it does any logging
 
+MAX_RECURSION_DEPTH = 10 # ADDED CONSTANT
+
 class StyleServiceError(DXFPlannerBaseError):
     """Custom exception for StyleService errors."""
     pass
@@ -121,13 +123,9 @@ class StyleService(IStyleService):
 
         text_props_to_return: Optional[TextStylePropertiesConfig] = None
 
-        # Path 1: Direct TextStylePropertiesConfig provided
-        if isinstance(style_reference, TextStylePropertiesConfig):
-            self.logger.debug(f"{log_prefix}Using provided TextStylePropertiesConfig directly.")
-            text_props_to_return = style_reference.model_copy(deep=True) # Work on a copy
-
-        # Path 2: Resolve from preset name (str) or inline StyleObjectConfig
-        elif isinstance(style_reference, str) or isinstance(style_reference, StyleObjectConfig):
+        # Path 1: style_reference is a preset name (string) for a StyleObjectConfig
+        # or style_reference is a TextStylePropertiesConfig that might contain a preset name
+        if isinstance(style_reference, str) or isinstance(style_reference, StyleObjectConfig):
             preset_name_for_soc = style_reference if isinstance(style_reference, str) else None
             inline_soc_def = style_reference if isinstance(style_reference, StyleObjectConfig) else None
 
@@ -138,9 +136,116 @@ class StyleService(IStyleService):
             )
             if resolved_soc_from_ref and resolved_soc_from_ref.text_props:
                 text_props_to_return = resolved_soc_from_ref.text_props.model_copy(deep=True)
+                # ADDED DEBUG LOG 1
+                if text_props_to_return:
+                    self.logger.debug(f"{log_prefix}After model_copy from SOC_ref.text_props: text_props_to_return.rotation_degrees = {text_props_to_return.rotation_degrees}")
+                else:
+                    self.logger.debug(f"{log_prefix}After model_copy, text_props_to_return is None - THIS IS UNEXPECTED.")
+
             elif resolved_soc_from_ref: # resolved_soc_from_ref exists but .text_props is None
                 self.logger.debug(f"{log_prefix}Resolved StyleObjectConfig from reference '{style_reference}' did not yield text_props.")
             # If resolved_soc_from_ref is None (preset not found and no inline), text_props_to_return remains None
+
+        # Path 2: style_reference is already a TextStylePropertiesConfig instance
+        # This is the most common path from LabelPlacementOperationConfig or rule overrides.
+        elif isinstance(style_reference, TextStylePropertiesConfig):
+            self.logger.debug(f"{log_prefix}Using provided TextStylePropertiesConfig directly as base.")
+            text_props_to_return = style_reference.model_copy(deep=True)
+
+            # If this TextStylePropertiesConfig itself refers to a StyleObjectConfig preset (e.g. "StandardLegend"), resolve it
+            font_preset_ref_in_tsprops = text_props_to_return.font_name_or_style_preset
+
+            # ADDED/MODIFIED BLOCK START: Handle case where font_name_or_style_preset is None in the input TSP
+            if font_preset_ref_in_tsprops is None:
+                self.logger.debug(f"{log_prefix}Input TextStylePropertiesConfig has font_name_or_style_preset=None. Defaulting to DXF style 'Standard'.")
+                text_props_to_return.font_name_or_style_preset = "Standard"
+            # END ADDED/MODIFIED BLOCK
+
+            # Check if the (potentially now "Standard" or originally present) font_preset_ref_in_tsprops
+            # refers to a StyleObjectConfig preset in project_config.style_presets
+            elif font_preset_ref_in_tsprops and font_preset_ref_in_tsprops in self.preset_resolver_service.project_config.style_presets:
+                self.logger.debug(f"{log_prefix}TextStylePropertiesConfig refers to StyleObjectConfig preset '{font_preset_ref_in_tsprops}'. Resolving its text_props component.")
+                soc_preset = self.preset_resolver_service.resolve_preset_and_inline(
+                    preset_name=font_preset_ref_in_tsprops,
+                    inline_definition=None, # We are resolving the preset referred to by name
+                    context_name=f"{log_prefix} (resolving SOC preset '{font_preset_ref_in_tsprops}')"
+                )
+
+                if soc_preset and soc_preset.text_props:
+                    # Get explicitly set fields from the original input style_reference
+                    # style_reference is the input to get_text_style_properties, which is TextStylePropertiesConfig in this path
+                    input_explicit_fields = style_reference.model_dump(exclude_unset=True)
+
+                    # Handle font_name_or_style_preset from the resolved SOC preset first
+                    nested_font_ref = soc_preset.text_props.font_name_or_style_preset
+                    if nested_font_ref is None:
+                        self.logger.debug(f"{log_prefix}SOC preset '{font_preset_ref_in_tsprops}' text_props has no nested font/style. Final DXF style name for this path will be 'Standard'.")
+                        text_props_to_return.font_name_or_style_preset = "Standard"
+                    else:
+                        self.logger.debug(f"{log_prefix}SOC preset '{font_preset_ref_in_tsprops}' text_props specify nested font/style: '{nested_font_ref}'. Using this.")
+                        text_props_to_return.font_name_or_style_preset = nested_font_ref
+
+                    # Merge other properties: if explicitly set in input, keep input; otherwise, take from preset.
+                    # Note: text_props_to_return started as a copy of style_reference.
+                    if "height" not in input_explicit_fields:
+                        text_props_to_return.height = soc_preset.text_props.height
+                    if "width_factor" not in input_explicit_fields:
+                        text_props_to_return.width_factor = soc_preset.text_props.width_factor
+                    if "oblique_angle" not in input_explicit_fields:
+                        text_props_to_return.oblique_angle = soc_preset.text_props.oblique_angle
+                    if "rotation_degrees" not in input_explicit_fields:
+                        text_props_to_return.rotation_degrees = soc_preset.text_props.rotation_degrees
+                        self.logger.debug(f"{log_prefix}Rotation from preset '{font_preset_ref_in_tsprops}' ({soc_preset.text_props.rotation_degrees}) applied as input did not specify it.")
+                    elif "rotation_degrees" in input_explicit_fields: # Log if input explicitly set it
+                        self.logger.debug(f"{log_prefix}Rotation from input TextStylePropertiesConfig ({style_reference.rotation_degrees}) kept as it was explicitly set.")
+
+                    if "color" not in input_explicit_fields:
+                        text_props_to_return.color = soc_preset.text_props.color
+                    if "mtext_width" not in input_explicit_fields:
+                        text_props_to_return.mtext_width = soc_preset.text_props.mtext_width
+                    if "halign" not in input_explicit_fields:
+                        text_props_to_return.halign = soc_preset.text_props.halign
+                    if "valign" not in input_explicit_fields:
+                        text_props_to_return.valign = soc_preset.text_props.valign
+                    if "attachment_point" not in input_explicit_fields:
+                        text_props_to_return.attachment_point = soc_preset.text_props.attachment_point
+
+                    if "paragraph_props" not in input_explicit_fields:
+                        # Make a deep copy if taking from preset to avoid shared mutable objects
+                        text_props_to_return.paragraph_props = soc_preset.text_props.paragraph_props.model_copy(deep=True) if soc_preset.text_props.paragraph_props else {}
+                    # Ensure paragraph_props is not None (even if taken from preset or input)
+                    if text_props_to_return.paragraph_props is None:
+                         text_props_to_return.paragraph_props = {}
+
+                else: # soc_preset not found or no text_props
+                    self.logger.debug(f"{log_prefix}StyleObjectConfig preset '{font_preset_ref_in_tsprops}' not found or has no text_props. Font reference '{font_preset_ref_in_tsprops}' might be a direct DXF style name or error.")
+
+            # Fallback for current_font_ref (potentially updated to "Standard" or from SOC preset)
+            # This part is for daisy-chaining StyleObjectConfig presets, less critical for the "Standard" case if handled above.
+            # It might be simplified or removed if the above logic correctly sets "Standard" when needed.
+            # The recursive call to get_text_style_properties for current_font_ref if it's a SOC preset:
+            current_font_ref = text_props_to_return.font_name_or_style_preset
+            if current_font_ref and \
+               current_font_ref != "Standard" and \
+               not preset_already_resolved and \
+               _current_recursion_depth < MAX_RECURSION_DEPTH and \
+               current_font_ref in self.preset_resolver_service.project_config.style_presets:
+                 self.logger.debug(f"{log_prefix}Current font_name_or_style_preset '{current_font_ref}' refers to another StyleObjectConfig preset. Resolving recursively.")
+                 recursive_text_props = self.get_text_style_properties(
+                     style_reference=current_font_ref, # This is the name of the SOC preset
+                     layer_config_fallback=layer_config_fallback,
+                     preset_already_resolved=False, # Allow further resolution
+                     _current_recursion_depth=_current_recursion_depth + 1,
+                     _original_context_for_recursion_log=_original_context_for_recursion_log # Propagate
+                 )
+                 # Merge the recursively resolved properties, text_props_to_return (which was the original input TSP) takes precedence for its defined fields
+                 text_props_to_return.font_name_or_style_preset = recursive_text_props.font_name_or_style_preset if recursive_text_props.font_name_or_style_preset is not None else text_props_to_return.font_name_or_style_preset
+                 # text_props_to_return will keep its original height, width_factor etc. unless they were None.
+                 # The recursive call was primarily to ensure the font_name_or_style_preset from the *nested* SOC is correctly resolved.
+                 # If the nested SOC ultimately resolves to 'Standard' or a direct font file, that's what we wanted.
+                 # The attributes like height, etc., from the *outermost* TextStylePropertiesConfig (the original style_reference) should win.
+                 # So, only update font_name_or_style_preset from the recursive call.
+                 text_props_to_return.font_name_or_style_preset = recursive_text_props.font_name_or_style_preset
 
         # Path 3: Fallback to layer_config_fallback if text_props_to_return is still None
         if text_props_to_return is None and layer_config_fallback:
@@ -169,7 +274,60 @@ class StyleService(IStyleService):
             else:
                 self.logger.debug(f"{log_prefix}No font_name_or_style_preset specified; ezdxf will use default.")
 
-            self.logger.debug(f"{log_prefix}Returning resolved: {text_props_to_return.model_dump_json(exclude_none=True, indent=2)}")
+            # Ensure paragraph_props exists
+            if text_props_to_return.paragraph_props is None:
+                text_props_to_return.paragraph_props = {} # Initialize if None
+
+            # ADDED DEBUG LOG
+            self.logger.debug(f"{log_prefix}INSPECTING before dump: final_props.rotation_degrees = {text_props_to_return.rotation_degrees}, type = {type(text_props_to_return.rotation_degrees)}")
+
+            # LOG THE FINAL PROPS before returning
+            self.logger.debug(f"{log_prefix}Returning resolved: {text_props_to_return.model_dump(exclude_none=True)}") # exclude_none for cleaner logs
+            return text_props_to_return
+
+        # Fallback: If text_props_to_return is still None after Paths 1 & 2,
+        # it means the reference was invalid or yielded no text_props.
+        # We should then try the layer_config_fallback if available.
+
+        # ADDED DEBUG LOG 2
+        self.logger.debug(f"{log_prefix}Before final fallback check (line ~213): text_props_to_return is None = {text_props_to_return is None}. Rotation if not None: {text_props_to_return.rotation_degrees if text_props_to_return else 'N/A'}")
+
+        if text_props_to_return is None:
+            if layer_config_fallback and not preset_already_resolved: # Prevent infinite recursion if fallback is also a preset name
+                self.logger.debug(f"{log_prefix}Falling back to layer_config '{layer_config_fallback.name}' for text style properties.")
+            base_layer_soc = self.preset_resolver_service.resolve_preset_and_inline(
+                preset_name=layer_config_fallback.style_preset_name,
+                inline_definition=layer_config_fallback.style_inline_definition,
+                context_name=f"{layer_config_fallback.name} (fallback base)"
+            )
+            # Apply layer_config's override to the resolved base
+            final_layer_soc = merge_style_components(
+                model_cls=StyleObjectConfig,
+                base=base_layer_soc, # This can be None if preset/inline also not found
+                override=layer_config_fallback.style_override
+            )
+            if final_layer_soc and final_layer_soc.text_props:
+                text_props_to_return = final_layer_soc.text_props.model_copy(deep=True)
+            else: # final_layer_soc is None or has no text_props
+                self.logger.debug(f"{log_prefix}Layer fallback for '{layer_config_fallback.name}' did not yield text_props.")
+
+        # If we have a TextStylePropertiesConfig by now
+        if text_props_to_return:
+            # New simplified logging
+            if text_props_to_return.font_name_or_style_preset:
+                self.logger.debug(f"{log_prefix}Font name/preset '{text_props_to_return.font_name_or_style_preset}' will be used directly by ezdxf.")
+            else:
+                self.logger.debug(f"{log_prefix}No font_name_or_style_preset specified; ezdxf will use default.")
+
+            # Ensure paragraph_props exists
+            if text_props_to_return.paragraph_props is None:
+                text_props_to_return.paragraph_props = {} # Initialize if None
+
+            # ADDED DEBUG LOG
+            self.logger.debug(f"{log_prefix}INSPECTING before dump: final_props.rotation_degrees = {text_props_to_return.rotation_degrees}, type = {type(text_props_to_return.rotation_degrees)}")
+
+            # LOG THE FINAL PROPS before returning
+            self.logger.debug(f"{log_prefix}Returning resolved: {text_props_to_return.model_dump(exclude_none=True)}") # exclude_none for cleaner logs
             return text_props_to_return
 
         self.logger.debug(f"{log_prefix}No specific text style found, returning default TextStylePropertiesConfig.")
@@ -247,6 +405,8 @@ class StyleService(IStyleService):
             # context_name=f"LabelOp: {config.output_label_layer_name}" # Removed
         )
         self.logger.debug(f"StyleService.get_resolved_style_for_label_operation - resolved_text_props: {resolved_text_props.model_dump_json(indent=2)}")
+        # ADDED DIAGNOSTIC LOG
+        self.logger.debug(f"DIAGNOSTIC - StyleService.get_resolved_style_for_label_operation - FINAL RETURN props: {resolved_text_props.model_dump_json(indent=2, exclude_none=True)}")
         return resolved_text_props
 
     def get_resolved_feature_style(self, geo_feature: GeoFeature, layer_config: LayerConfig) -> StyleObjectConfig:
@@ -311,49 +471,19 @@ class StyleService(IStyleService):
 
     def create_styles_in_dxf_doc(self, doc: Drawing, style_presets_config: Optional[Dict[str, StyleObjectConfig]]) -> None:
         """
-        Populates the DXF STYLE table from the style presets defined in the configuration.
-        Delegates to DxfStyleDefinitionService.
+        This method is now simplified. DXF STYLE table entries are primarily managed by
+        DxfResourceSetupService based on DxfWriterConfig.text_styles and its internal
+        logic to ensure "Standard" style and styles from font presets (if font_file is directly named).
+        This method's original role of creating styles from style_presets is now largely redundant.
+        It could be used for very specific post-processing or validation if needed, or removed.
+        For now, let's make it a no-op or minimal logging to reflect its changed role.
         """
-        if not style_presets_config: # Or use self._config.style_presets
-            self.logger.info("No style presets provided or found in config. Skipping STYLE table population from presets.")
-            return
-
-        presets_to_process = style_presets_config # Or self._config.style_presets
-
-        self.logger.info(f"Populating STYLE table from {len(presets_to_process)} presets...")
-        for preset_name, preset_obj_config in presets_to_process.items():
-            if preset_obj_config.text_style:
-                # We need fully resolved TextStylePropertiesConfig, especially resolved_font_filename
-                # The preset_obj_config.text_style might just be a starting point or refer to another preset.
-                # So, we use PresetResolverService to get the final TextStylePropertiesConfig for this preset.
-
-                # If preset_name itself IS the font_name_or_style_preset for its own text_style component,
-                # OR if the text_style component refers to another preset, resolve_text_style handles it.
-                # We effectively treat the 'preset_name' as the primary key for the style to be created in DXF.
-                # The text_style component *within* that preset_obj_config is what defines its properties.
-
-                # Corrected call: Use the class's own get_text_style_properties method
-                fully_resolved_text_props = self.get_text_style_properties(
-                    style_reference=preset_obj_config.text_style, # Pass the TextStylePropertiesConfig component
-                    # layer_config_fallback is not relevant here
-                    # context_name=f"DXF Style Creation for Preset '{preset_name}'" # Removed
-                )
-
-                self.logger.debug(f"For DXF STYLE table, preset '{preset_name}', its text_style resolved to: {fully_resolved_text_props.model_dump_json(indent=2)}")
-
-                # Changed condition: Attempt to create if we have any resolved text properties.
-                # DxfStyleDefinitionService will handle if font filename is None.
-                if fully_resolved_text_props:
-                    self.dxf_style_definition_service.ensure_text_style_in_dxf(
-                        doc=doc,
-                        style_name=preset_name, # The DXF STYLE entry will use the original preset_name
-                        text_props=fully_resolved_text_props
-                    )
-                else:
-                    # This warning now means that even after trying to resolve, we got no text_props at all.
-                    self.logger.warning(f"Preset '{preset_name}' text_style could not be resolved to TextStyleProperties. Skipping DXF STYLE creation for it.")
-            else:
-                self.logger.debug(f"Preset '{preset_name}' does not define a text_style. Skipping DXF STYLE creation for it.")
+        self.logger.info("StyleService.create_styles_in_dxf_doc called. DXF STYLE table creation is now primarily handled by DxfResourceSetupService. This method currently performs no additional STYLE table modifications.")
+        # Original logic iterating style_presets_config and calling
+        # self.dxf_style_definition_service.ensure_text_style_in_dxf is REMOVED.
+        # DxfResourceSetupService._create_text_styles_from_config and
+        # DxfResourceSetupService._ensure_styles_for_font_presets cover these needs.
+        return
 
     # Removed: _create_and_add_text_style_to_doc_if_not_exists (logic moved to DxfStyleDefinitionService)
 

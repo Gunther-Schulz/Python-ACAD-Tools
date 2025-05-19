@@ -26,7 +26,7 @@ class LabelPlacementOperation(IOperation[LabelPlacementOperationConfig]):
 
         contextual_layer_name_for_service = config.source_layer or config.output_label_layer_name or "unknown_source_for_labeling"
         label_settings: Optional[LabelingConfig] = config.label_settings
-        text_style_props_for_service_call: Optional[TextStylePropertiesConfig] = None
+        text_style_props_for_service: Optional[TextStylePropertiesConfig] = None
 
         if not label_settings:
             self.logger.warning(f"{log_prefix}: label_settings is None in operation config. Labels might not be generated or use defaults.")
@@ -35,21 +35,31 @@ class LabelPlacementOperation(IOperation[LabelPlacementOperationConfig]):
         # DEBUG LOGGING END
 
         try:
-            text_style_props_for_service_call = self.style_service.get_resolved_style_for_label_operation(config=config)
-            self.logger.debug(f"{log_prefix}: Resolved text style for service call: {text_style_props_for_service_call.model_dump_json(indent=2, exclude_unset=True) if text_style_props_for_service_call else 'None'}") # INFO to DEBUG
+            # Fetch the original style properties
+            original_text_style_props = self.style_service.get_resolved_style_for_label_operation(config=config)
+
+            # Immediately make a defensive copy to be used by the service
+            text_style_props_for_service = original_text_style_props.model_copy(deep=True) if original_text_style_props else None
+
         except Exception as e_style_resolve:
             self.logger.error(f"{log_prefix}: Error resolving text style: {e_style_resolve}", exc_info=True)
-            text_style_props_for_service_call = TextStylePropertiesConfig()
+            # Ensure they are assigned even in exception to avoid NameError later
+            if 'original_text_style_props' not in locals():
+                 original_text_style_props = TextStylePropertiesConfig()
+            if 'text_style_props_for_service' not in locals():
+                 text_style_props_for_service = TextStylePropertiesConfig()
 
+        # Accessing label_settings here is known to mutate original_text_style_props
         if label_settings is None:
             self.logger.info(f"{log_prefix}: No label_settings provided (or resolved to None), label placement service might skip or use defaults.")
 
-        self.logger.debug(f"{log_prefix}: Calling label_placement_service.place_labels_for_features with layer_name='{contextual_layer_name_for_service}'.") # INFO to DEBUG
+        self.logger.debug(f"{log_prefix}: Calling label_placement_service.place_labels_for_features with layer_name='{contextual_layer_name_for_service}'.")
+
         placed_label_data_stream = self.label_placement_service.place_labels_for_features(
             features=features,
             layer_name=contextual_layer_name_for_service,
             config=label_settings,
-            text_style_properties=text_style_props_for_service_call
+            text_style_properties=text_style_props_for_service # Use the safe, copied version
         )
 
         placed_labels_received_count = 0 # DEBUG LOGGING
@@ -64,7 +74,7 @@ class LabelPlacementOperation(IOperation[LabelPlacementOperationConfig]):
                 "__geometry_type__": "LABEL",
                 "label_text": placed_label.text,
                 "label_rotation": placed_label.rotation,
-                "text_style_properties": text_style_props_for_service_call.model_dump(exclude_unset=True) if text_style_props_for_service_call else {}
+                "text_style_properties": text_style_props_for_service.model_dump(exclude_unset=True) if text_style_props_for_service else {}
             }
             yield GeoFeature(geometry=label_geometry, properties=label_properties, crs=None)
             geo_features_yielded_count +=1 # DEBUG LOGGING
