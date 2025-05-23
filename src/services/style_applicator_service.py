@@ -608,3 +608,16 @@ class StyleApplicatorService(IStyleApplicator):
         except Exception as e:
             self._logger.error(f"Failed to add GeoDataFrame geometries to DXF layer '{layer_name}': {e}", exc_info=True)
             raise DXFProcessingError(f"Failed to add geometries to DXF layer '{layer_name}': {e}")
+
+    def clear_caches(self) -> None:
+        """Clears all cached data to free memory. Useful for long-running processes."""
+        if self._aci_map is not None:
+            self._logger.debug(f"Clearing ACI color map cache with {len(self._aci_map)} entries")
+            self._aci_map = None
+
+    def get_cache_info(self) -> Dict[str, int]:
+        """Returns information about cached data for monitoring."""
+        return {
+            "aci_map_entries": len(self._aci_map) if self._aci_map else 0,
+            "aci_map_loaded": self._aci_map is not None
+        }

@@ -12,6 +12,14 @@ from shapely import affinity # New import for shapely.affinity.rotate
 import numpy as np # Added numpy
 from scipy.spatial.distance import cdist # Added cdist
 
+# Import proper CRS type
+try:
+    from pyproj import CRS
+    CRS_TYPE = CRS
+except ImportError:
+    # Fallback if pyproj not available
+    CRS_TYPE = type(None)
+
 # Attempt ezdxf import
 try:
     import ezdxf
@@ -87,19 +95,21 @@ class GeometryProcessorService(IGeometryProcessor):
                 self._logger.warning(f"Could not validate/load layer '{layer_ident}' for {op_name}: {e_val}. Skipping.")
                 continue
 
-        if not current_gdf:
+        if current_gdf is None:
             self._logger.warning(f"{op_name.capitalize()} Op: No valid source layers found after validation. Returning empty GDF.")
             return gpd.GeoDataFrame(geometry=[])
 
         try:
-            # Apply translation
-            current_gdf = current_gdf.translate(op_specific_params.dx, op_specific_params.dy)
-            self._logger.info(f"{op_name.capitalize()} operation successful. Translated layer: {current_gdf.geometry[0].wkt[:100]}...")
+            # Apply translation using the correct field names
+            translated_gdf = current_gdf.copy()
+            translated_gdf.geometry = translated_gdf.geometry.translate(xoff=op_specific_params.dx, yoff=op_specific_params.dy)
+            self._logger.info(f"{op_name.capitalize()} operation successful. Translated by dx={op_specific_params.dx}, dy={op_specific_params.dy}")
+            return translated_gdf
         except Exception as e:
-            self._logger.error(f"Error during Shapely translate for layer '{op_specific_params.layer}': {e}", exc_info=True)
-            raise GeometryError(f"Error during translate operation on layer '{op_specific_params.layer}': {e}") from e
-
-        return current_gdf
+            # Fixed: Use op_specific_params.layers instead of non-existent layer field
+            layer_names = [str(l) for l in op_specific_params.layers]
+            self._logger.error(f"Error during translate operation on layers {layer_names}: {e}", exc_info=True)
+            raise GeometryError(f"Error during translate operation on layers {layer_names}: {e}") from e
 
     def _handle_bounding_box_op(
         self,
@@ -119,7 +129,7 @@ class GeometryProcessorService(IGeometryProcessor):
             return gpd.GeoDataFrame(geometry=[], crs=any_crs)
 
         overall_bounds: Optional[Tuple[float, float, float, float]] = None
-        target_crs_for_output: Optional[Any] = None # Using Any for pyproj.CRS compatibility
+        target_crs_for_output: Optional[Union[str, CRS_TYPE]] = None  # Fixed: was Any, now proper CRS type
 
         processed_gdfs_for_crs_check: List[gpd.GeoDataFrame] = []
         for layer_ident in params.layers:
@@ -133,8 +143,9 @@ class GeometryProcessorService(IGeometryProcessor):
                 if not gdf.empty:
                     processed_gdfs_for_crs_check.append(gdf)
             except GdfValidationError as e_val:
-                self._logger.warning(f"Could not validate/load layer '{layer_ident}' for {op_name}: {e_val}. Skipping.")
-                continue
+                self._logger.error(f"Failed to validate/load layer '{layer_ident}' for {op_name}: {e_val}")  # Changed from warning to error
+                # Don't silently continue - this could lead to empty results with unclear cause
+                raise GeometryError(f"Layer validation failed for {op_name} operation on layer '{layer_ident}': {e_val}") from e_val
 
         if not processed_gdfs_for_crs_check:
             self._logger.warning(f"{op_name.capitalize()} Op: No valid source layers found after validation. Returning empty GDF.")
@@ -679,7 +690,7 @@ class GeometryProcessorService(IGeometryProcessor):
     def create_layer_from_definition(
         self,
         layer_def: GeomLayerDefinition,
-        dxf_drawing: Optional[Any],
+        dxf_drawing: Optional[Drawing],
         style_config: StyleConfig,
         base_crs: str,
         project_root: Optional[str] = None

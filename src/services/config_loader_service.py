@@ -47,7 +47,7 @@ class ConfigLoaderService(IConfigLoader):
         """Helper to load a YAML file and parse it into a Pydantic model."""
         self._logger.debug(f"Attempting to load YAML file: {file_path} into model {model_class.__name__}")
         try:
-            with open(file_path, 'r') as f:
+            with open(file_path, 'r', encoding='utf-8') as f:  # Added explicit UTF-8 encoding
                 data = yaml.safe_load(f)
             if data is None: # Handle empty YAML file
                 self._logger.warning(f"YAML file is empty: {file_path}")
@@ -59,6 +59,9 @@ class ConfigLoaderService(IConfigLoader):
         except FileNotFoundError:
             self._logger.error(f"Configuration file not found: {file_path}")
             raise ConfigError(f"Configuration file not found: {file_path}") from None
+        except UnicodeDecodeError as e:
+            self._logger.error(f"Encoding error reading file {file_path}: {e}", exc_info=True)
+            raise ConfigError(f"Encoding error reading file {file_path}. Expected UTF-8: {e}") from e
         except yaml.YAMLError as e:
             self._logger.error(f"Error parsing YAML file {file_path}: {e}", exc_info=True)
             raise ConfigError(f"Error parsing YAML file {file_path}: {e}") from e
@@ -73,7 +76,7 @@ class ConfigLoaderService(IConfigLoader):
         """Helper to load a YAML file containing a list of items into Pydantic models."""
         self._logger.debug(f"Attempting to load YAML list file: {file_path} into List[{item_model_class.__name__}]")
         try:
-            with open(file_path, 'r') as f:
+            with open(file_path, 'r', encoding='utf-8') as f:  # Added explicit UTF-8 encoding
                 data = yaml.safe_load(f)
             if not isinstance(data, list):
                 err_msg = f"YAML file {file_path} does not contain a list as expected."
@@ -83,6 +86,9 @@ class ConfigLoaderService(IConfigLoader):
         except FileNotFoundError:
             self._logger.error(f"Configuration file not found: {file_path}")
             raise ConfigError(f"Configuration file not found: {file_path}") from None
+        except UnicodeDecodeError as e:
+            self._logger.error(f"Encoding error reading file {file_path}: {e}", exc_info=True)
+            raise ConfigError(f"Encoding error reading file {file_path}. Expected UTF-8: {e}") from e
         except yaml.YAMLError as e:
             self._logger.error(f"Error parsing YAML file {file_path}: {e}", exc_info=True)
             raise ConfigError(f"Error parsing YAML file {file_path}: {e}") from e
@@ -114,11 +120,7 @@ class ConfigLoaderService(IConfigLoader):
         return self._load_yaml_file(styles_file_path, StyleConfig)
 
     def load_aci_colors(self, aci_colors_file_path: str) -> ColorConfig:
-        """Loads aci_colors.yaml. Expects a list of ACI color items."""
-        # The ColorConfig model expects a {"colors": [...]} structure.
-        # If aci_colors.yaml is just a list, we need to wrap it or parse List[AciColorMappingItem]
-        # Based on OLDAPP project_loader.py: `self.name_to_aci = {item['name'].lower(): item['aciCode'] for item in color_data}`
-        # this implies color_data was a list of dicts. So, direct parsing to List[AciColorMappingItem] then wrapping.
+        """Loads aci_colors.yaml. File structure is a plain list of ACI color items."""
         self._logger.debug(f"Attempting to load ACI colors from: {aci_colors_file_path}")
         list_of_items = self._load_yaml_list_file(aci_colors_file_path, AciColorMappingItem)
         return ColorConfig(colors=list_of_items)

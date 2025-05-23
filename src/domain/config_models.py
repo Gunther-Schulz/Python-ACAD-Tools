@@ -46,21 +46,21 @@ class TextStyleProperties(BaseModel):
     font: Optional[str] = None
     color: Optional[Union[str, int]] = None # ACI code or color name
     max_width: Optional[float] = Field(default=0.0, alias='maxWidth') # 0.0 means no wrapping
-    attachment_point: Optional[str] = Field(None, alias='attachmentPoint') # e.g., TOP_LEFT, MIDDLE_CENTER. Added default None.
+    attachment_point: Optional[str] = Field(alias='attachmentPoint', default=None) # e.g., TOP_LEFT, MIDDLE_CENTER
 
     # MTEXT specific properties (optional group)
-    flow_direction: Optional[str] = Field(None, alias='flowDirection') # e.g., LEFT_TO_RIGHT. Added default None.
-    line_spacing_style: Optional[str] = Field(None, alias='lineSpacingStyle') # e.g., AT_LEAST, EXACT. Added default None.
-    line_spacing_factor: Optional[float] = Field(None, alias='lineSpacingFactor') # Added default None.
+    flow_direction: Optional[str] = Field(alias='flowDirection', default=None) # e.g., LEFT_TO_RIGHT
+    line_spacing_style: Optional[str] = Field(alias='lineSpacingStyle', default=None) # e.g., AT_LEAST, EXACT
+    line_spacing_factor: Optional[float] = Field(alias='lineSpacingFactor', default=None)
 
     bg_fill: Optional[bool] = Field(default=False, alias='bgFill')
-    bg_fill_color: Optional[Union[str, int]] = Field(None, alias='bgFillColor') # Added default None.
-    bg_fill_scale: Optional[float] = Field(None, alias='bgFillScale') # Added default None.
+    bg_fill_color: Optional[Union[str, int]] = Field(alias='bgFillColor', default=None)
+    bg_fill_scale: Optional[float] = Field(alias='bgFillScale', default=None)
 
     underline: Optional[bool] = None
     overline: Optional[bool] = None
-    strike_through: Optional[bool] = Field(None, alias='strikeThrough') # Added default None.
-    oblique_angle: Optional[float] = Field(None, alias='obliqueAngle') # degrees. Added default None.
+    strike_through: Optional[bool] = Field(alias='strikeThrough', default=None)
+    oblique_angle: Optional[float] = Field(alias='obliqueAngle', default=None) # degrees
     rotation: Optional[float] = None # degrees
 
     paragraph: Optional[TextStyleParagraphProperties] = None
@@ -345,10 +345,10 @@ class ScaleOpParams(BaseOperationParams):
 
 class TranslateOpParams(BaseOperationParams):
     type: Literal["translate"] = "translate"
-    layer: Union[str, Dict[str, Any]]
-    x_offset: float = Field(default=0.0, alias="xOffset")
-    y_offset: float = Field(default=0.0, alias="yOffset")
-    z_offset: float = Field(default=0.0, alias="zOffset") # Will be effectively ignored for 2D geometries
+    layers: List[Union[str, Dict[str, Any]]]  # Fixed: was 'layer' (singular), now 'layers' (plural)
+    dx: float = Field(default=0.0, alias="xOffset")  # Fixed: was 'x_offset', now 'dx'
+    dy: float = Field(default=0.0, alias="yOffset")  # Fixed: was 'y_offset', now 'dy'
+    dz: float = Field(default=0.0, alias="zOffset")  # Fixed: was 'z_offset', now 'dz' for consistency
 
 class BoundingBoxOpParams(BaseOperationParams):
     type: Literal["bounding_box"] = "bounding_box"

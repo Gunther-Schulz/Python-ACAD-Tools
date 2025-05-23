@@ -1,5 +1,6 @@
 """Concrete implementation of the IProjectOrchestrator interface."""
 import os
+import time  # Added for performance monitoring
 from typing import Dict, Optional, List
 
 import geopandas as gpd
@@ -51,6 +52,7 @@ class ProjectOrchestratorService(IProjectOrchestrator):
         self._logger.info("ProjectOrchestratorService initialized.")
 
     def process_project(self, project_name: str) -> None:
+        start_time = time.time()  # Performance monitoring start
         self._logger.info(f"Starting processing for project: {project_name}")
         active_layers: Dict[str, gpd.GeoDataFrame] = {}
         dxf_drawing: Optional[Drawing] = None
@@ -88,21 +90,47 @@ class ProjectOrchestratorService(IProjectOrchestrator):
 
             # ColorConfig is loaded by StyleApplicatorService via its IConfigLoader instance.
 
-            # 2. Load DXF Data Source (if applicable)
+            # 2. Load DXF Data Source (if applicable) with fail-fast validation
             dxf_file_path = os.path.join(app_config.projects_root_dir, project_name, project_config.main.dxf_filename)
-            self._logger.debug(f"Attempting to load DXF document from: {dxf_file_path}")
-            if os.path.exists(dxf_file_path):
+            dxf_file_path = os.path.normpath(dxf_file_path)  # Normalize path for consistency
+
+            # Check if any layers require DXF processing
+            layers_requiring_dxf = [ld for ld in project_config.geom_layers if ld.dxf_layer]
+            if layers_requiring_dxf:
+                self._logger.debug(f"Found {len(layers_requiring_dxf)} layers requiring DXF: {[ld.name for ld in layers_requiring_dxf]}")
+
+                if not os.path.exists(dxf_file_path):
+                    layer_names = [ld.name for ld in layers_requiring_dxf]
+                    error_msg = (f"DXF file '{dxf_file_path}' not found, but layers {layer_names} "
+                               f"require DXF processing. Cannot proceed without DXF source.")
+                    self._logger.error(error_msg)
+                    raise ConfigError(error_msg)
+
+                self._logger.debug(f"Attempting to load DXF document from: {dxf_file_path}")
                 dxf_drawing = self._data_source.load_dxf_file(dxf_file_path)
                 if dxf_drawing:
                     self._logger.info(f"DXF document '{dxf_file_path}' loaded successfully.")
                 else:
-                    self._logger.warning(f"DXF document '{dxf_file_path}' could not be loaded by data source (returned None).")
+                    error_msg = (f"DXF document '{dxf_file_path}' could not be loaded by data source "
+                               f"(returned None), but layers {[ld.name for ld in layers_requiring_dxf]} require it.")
+                    self._logger.error(error_msg)
+                    raise DXFProcessingError(error_msg)
             else:
-                self._logger.warning(f"DXF file '{dxf_file_path}' not found. Proceeding without DXF data.")
-                if any(ld.dxf_layer for ld in project_config.geom_layers):
-                    self._logger.error("Project has layer definitions requiring DXF, but DXF file was not found.")
-                    # Decide: raise error or just skip DXF-dependent layers?
-                    # For now, it will try to process and fail on specific layers.
+                # No layers require DXF, but try to load if file exists anyway (for potential updates)
+                if os.path.exists(dxf_file_path):
+                    self._logger.debug(f"Loading DXF document for potential updates from: {dxf_file_path}")
+                    try:
+                        dxf_drawing = self._data_source.load_dxf_file(dxf_file_path)
+                        if dxf_drawing:
+                            self._logger.info(f"DXF document '{dxf_file_path}' loaded successfully for potential updates.")
+                        else:
+                            self._logger.warning(f"DXF document '{dxf_file_path}' could not be loaded (returned None).")
+                    except Exception as e:
+                        self._logger.warning(f"Failed to load DXF file '{dxf_file_path}': {e}. Proceeding without DXF.")
+                        dxf_drawing = None
+                else:
+                    self._logger.info(f"DXF file '{dxf_file_path}' not found, but no layers require DXF processing. Proceeding without DXF data.")
+                    dxf_drawing = None
 
             # 3. Process Geometric Layer Definitions
             self._logger.info(f"Processing {len(project_config.geom_layers)} geometric layer definitions...")
