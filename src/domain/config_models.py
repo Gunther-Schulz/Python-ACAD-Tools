@@ -1,6 +1,6 @@
 """Pydantic models for application configuration structures."""
-from typing import Optional, List, Dict, Union, Any, Tuple, Literal
-from pydantic import BaseModel, Field, field_validator, ConfigDict, model_validator, root_validator
+from typing import Optional, List, Dict, Union, Any, Tuple, Literal, Annotated
+from pydantic import BaseModel, Field, field_validator, ConfigDict, model_validator, root_validator, Discriminator
 from pydantic_settings import BaseSettings
 from .common_types import CoordsXY # Assuming CoordsXY might be used, e.g. for text positions if not in style
 from .config_validation import ConfigValidators, CrossFieldValidator, ConfigValidationError
@@ -219,7 +219,7 @@ class BaseOperationParams(BaseModel):
     type: str # To discriminate operation type, e.g., "buffer", "difference"
 
 class BufferOpParams(BaseOperationParams):
-    type: str = "buffer" # Literal type for discrimination
+    type: Literal["buffer"] = "buffer" # Literal type for discrimination
     distance: Optional[float] = 0.0
     distance_field: Optional[str] = Field(None, alias='distanceField')
     mode: Optional[str] = Field(default='normal') # normal, ring
@@ -275,7 +275,7 @@ class BufferOpParams(BaseOperationParams):
         return self
 
 class CopyOpParams(BaseOperationParams):
-    type: str = "copy"
+    type: Literal["copy"] = "copy"
     layers: List[Union[str, Dict[str, Any]]] # Source layer(s)
     # 'values' might be part of the dict in layers list if filtering is per source
 
@@ -287,17 +287,31 @@ class IntersectionOpParams(BaseOperationParams):
     type: Literal["intersection"] = "intersection"
     layers: List[Union[str, Dict[str, Any]]]
 
-class WmtsWmsOpParams(BaseOperationParams): # Special, often doesn't take a source_layer from project
-    type: Union[Literal["wmts"], Literal["wms"]] # Ensure Literal where applicable
+class WmtsOpParams(BaseOperationParams): # Special, often doesn't take a source_layer from project
+    type: Literal["wmts"] = "wmts"
     url: str
-    # 'layer' here means layer on remote service, not a GDF source_layer from project context usually
-    layer: str # Name of the layer on the remote service
+    # 'layer_name' here means layer on remote service, not a GDF source_layer from project context usually
+    layer_name: str = Field(alias="layer") # Name of the layer on the remote service
     srs: str
     format: Optional[str] = 'image/png'
     target_folder: Optional[str] = Field(None, alias='targetFolder')
     buffer: Optional[float] = 0.0
     zoom: Optional[int] = None
     overwrite: Optional[bool] = False
+    boundary_layers: Optional[List[Union[str, Dict[str, Any]]]] = Field(default=None, alias='boundaryLayers')
+
+class WmsOpParams(BaseOperationParams): # Special, often doesn't take a source_layer from project
+    type: Literal["wms"] = "wms"
+    url: str
+    # 'layer_name' here means layer on remote service, not a GDF source_layer from project context usually
+    layer_name: str = Field(alias="layer") # Name of the layer on the remote service
+    srs: str
+    format: Optional[str] = 'image/png'
+    target_folder: Optional[str] = Field(None, alias='targetFolder')
+    buffer: Optional[float] = 0.0
+    zoom: Optional[int] = None
+    overwrite: Optional[bool] = False
+    boundary_layers: Optional[List[Union[str, Dict[str, Any]]]] = Field(default=None, alias='boundaryLayers')
 
 class MergeOpParams(BaseOperationParams): # Processes a list of layers
     type: Literal["merge"] = "merge" # Ensure Literal
@@ -314,6 +328,7 @@ class ContourOpParams(BaseOperationParams): # May be unary if applied to a DEM l
     url: Optional[str] = None
     buffer: Optional[float] = 0.0
     interval: float = 10.0
+    boundary_layers: Optional[List[Union[str, Dict[str, Any]]]] = Field(default=None, alias='boundaryLayers')
 
 class DissolveOpParams(BaseOperationParams): # Unary
     type: Literal["dissolve"] = "dissolve" # Ensure Literal
@@ -407,10 +422,10 @@ class DifferenceByPropertyOpParams(BaseOperationParams):
 class FilterByGeometryPropertiesOpParams(BaseOperationParams):
     type: Literal["filter_by_geometry_properties"] = "filter_by_geometry_properties"
     layer: Union[str, Dict[str, Any]]
-    min_area: Optional[float] = Field(default=None, ge=0)
-    max_area: Optional[float] = Field(default=None, ge=0)
-    min_width: Optional[float] = Field(default=None, ge=0) # Estimated width
-    max_width: Optional[float] = Field(default=None, ge=0) # Estimated width
+    min_area: Optional[float] = Field(default=None, ge=0, alias="minArea")
+    max_area: Optional[float] = Field(default=None, ge=0, alias="maxArea")
+    min_width: Optional[float] = Field(default=None, ge=0, alias="minWidth") # Estimated width
+    max_width: Optional[float] = Field(default=None, ge=0, alias="maxWidth") # Estimated width
     geometry_types: Optional[List[Literal['polygon', 'line', 'point']]] = Field(default=None, alias="geometryTypes")
 
     @model_validator(mode='after')
@@ -463,9 +478,9 @@ class ScaleOpParams(BaseOperationParams):
 class TranslateOpParams(BaseOperationParams):
     type: Literal["translate"] = "translate"
     layers: List[Union[str, Dict[str, Any]]]  # Fixed: was 'layer' (singular), now 'layers' (plural)
-    dx: float = Field(default=0.0, alias="xOffset")  # Fixed: was 'x_offset', now 'dx'
-    dy: float = Field(default=0.0, alias="yOffset")  # Fixed: was 'y_offset', now 'dy'
-    dz: float = Field(default=0.0, alias="zOffset")  # Fixed: was 'z_offset', now 'dz' for consistency
+    dx: float = Field(default=0.0, alias="dx")  # dx can be used directly in YAML
+    dy: float = Field(default=0.0, alias="dy")  # dy can be used directly in YAML
+    dz: float = Field(default=0.0, alias="dz")  # dz can be used directly in YAML
 
 class BoundingBoxOpParams(BaseOperationParams):
     type: Literal["bounding_box"] = "bounding_box"
@@ -476,8 +491,8 @@ class EnvelopeOpParams(BaseOperationParams):
     type: Literal["envelope"] = "envelope"
     layers: List[Union[str, Dict[str, Any]]] = Field(..., description="List of source layer identifiers to process.")
     padding: float = Field(0.0, description="Padding to add around the envelope. Can be negative to shrink.")
-    min_ratio: Optional[float] = Field(None, description="Minimum length/width ratio of the MBR. If ratio is less, original geometry is returned. Applies before bend processing and to final MBR.")
-    cap_style: Literal["square", "round"] = Field("square", description="Style of the envelope caps: 'square' or 'round'.")
+    min_ratio: Optional[float] = Field(None, description="Minimum length/width ratio of the MBR. If ratio is less, original geometry is returned. Applies before bend processing and to final MBR.", alias="minRatio")
+    cap_style: Literal["square", "round"] = Field("square", description="Style of the envelope caps: 'square' or 'round'.", alias="capStyle")
 
     @field_validator('min_ratio')
     @classmethod
@@ -510,7 +525,7 @@ class ConnectPointsOpParams(BaseOperationParams):
     max_distance: Optional[float] = Field(None, alias="maxDistance", ge=0, description="Maximum distance to group points. If None, all points are connected into a single line. Must be non-negative if specified.")
 
 # Update AllOperationParams to include the new operation type
-AllOperationParams = Union[
+AllOperationParams = Annotated[Union[
     BufferOpParams,
     CalculateOpParams,
     ConnectPointsOpParams,
@@ -518,7 +533,8 @@ AllOperationParams = Union[
     ContourOpParams,
     DifferenceOpParams,
     IntersectionOpParams,
-    WmtsWmsOpParams,
+    WmtsOpParams,
+    WmsOpParams,
     MergeOpParams,
     SmoothOpParams,
     DissolveOpParams,
@@ -539,7 +555,7 @@ AllOperationParams = Union[
     BoundingBoxOpParams,
     EnvelopeOpParams,
     CreateCirclesOpParams
-]
+], Discriminator('type')]
 
 class GeomLayerDefinition(BaseModel):
     """Definition for a geometric layer, typically from geom_layers.yaml."""
@@ -616,12 +632,14 @@ class GeomLayerDefinition(BaseModel):
 
     @model_validator(mode='after')
     def validate_data_source(self):
-        # Ensure exactly one data source is specified
+        # Ensure exactly one data source is specified OR the layer has operations
         sources = [self.shape_file, self.dxf_layer, self.geojson_file]
         non_none_sources = [s for s in sources if s is not None]
 
         if len(non_none_sources) == 0:
-            raise ValueError(f"Layer '{self.name}' must specify exactly one data source (shape_file, dxf_layer, or geojson_file)")
+            # Allow layers with only operations and no direct data source
+            if not self.operations:
+                raise ValueError(f"Layer '{self.name}' must specify exactly one data source (shape_file, dxf_layer, or geojson_file) OR have operations")
         elif len(non_none_sources) > 1:
             raise ValueError(f"Layer '{self.name}' cannot specify multiple data sources. Choose one: shape_file, dxf_layer, or geojson_file")
 

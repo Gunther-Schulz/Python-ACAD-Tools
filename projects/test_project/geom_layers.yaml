@@ -18,3 +18,119 @@
   updateDxf: true
   selectByProperties:
     type: "park"
+
+# Test buffering operation
+- name: "buffered_buildings"
+  operations:
+    - type: buffer
+      layers:
+        - buildings
+      distance: 10.0
+      joinStyle: "round"
+      capStyle: "round"
+
+# Test merge operation
+- name: "merged_features"
+  operations:
+    - type: merge
+      layers:
+        - buildings
+        - roads
+
+# Test difference operation
+- name: "roads_minus_buildings"
+  operations:
+    - type: difference
+      layers:
+        - roads
+        - buildings
+
+# Test intersection operation
+- name: "intersected_features"
+  operations:
+    - type: intersection
+      layers:
+        - buffered_buildings
+        - roads
+
+# Test union operation
+- name: "union_features"
+  operations:
+    - type: union
+      layers:
+        - buildings
+        - buffered_buildings
+
+# Test simplification
+- name: "simplified_roads"
+  operations:
+    - type: simplify
+      layer: roads
+      tolerance: 2.0
+      preserveTopology: true
+
+# Test dissolve operation
+- name: "dissolved_buildings"
+  operations:
+    - type: dissolve
+      layer: buildings
+
+# Test bounding box operation
+- name: "bounding_box"
+  operations:
+    - type: bounding_box
+      layers:
+        - buildings
+        - roads
+      padding: 5.0
+
+# Test create circles from points
+- name: "circles_from_points"
+  operations:
+    - type: create_circles
+      layers:
+        - points
+      radius: 15.0
+
+# Test copy operation
+- name: "copied_buildings"
+  operations:
+    - type: copy
+      layers:
+        - buildings
+
+# Test filter by geometry properties
+- name: "large_features"
+  operations:
+    - type: filter_by_geometry_properties
+      layer: buildings
+      minArea: 100.0
+      geometryTypes:
+        - polygon
+
+# Test translation transformation
+- name: "translated_buildings"
+  operations:
+    - type: translate
+      layers:
+        - buildings
+      dx: 20.0
+      dy: 10.0
+
+# Test envelope operation
+- name: "envelopes"
+  operations:
+    - type: envelope
+      layers:
+        - buildings
+      padding: 2.0
+      minRatio: 0.1
+      capStyle: "round"
+
+# Test calculate operation
+- name: "buildings_with_area"
+  operations:
+    - type: calculate
+      layer: buildings
+      expression: "gdf.geometry.area"
+      newFieldName: "calculated_area"

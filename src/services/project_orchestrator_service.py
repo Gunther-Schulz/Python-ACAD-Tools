@@ -134,6 +134,8 @@ class ProjectOrchestratorService(IProjectOrchestrator):
 
             # 3. Process Geometric Layer Definitions
             self._logger.info(f"Processing {len(project_config.geom_layers)} geometric layer definitions...")
+            pending_operations_layers = []  # Track layers that need operations processing
+
             for layer_def in project_config.geom_layers:
                 self._logger.debug(f"Processing layer definition: '{layer_def.name}'")
                 try:
@@ -166,13 +168,47 @@ class ProjectOrchestratorService(IProjectOrchestrator):
                                 current_op_input_gdf = result_gdf # For the next inline op
                                 self._logger.info(f"  Finished inline operation #{i+1} ('{op_params.type}') on '{layer_def.name}'. Result features: {len(result_gdf) if result_gdf is not None else 'None'}")
                     else:
-                        self._logger.warning(f"Layer '{layer_def.name}' could not be created/loaded (returned None). Skipping.")
+                        # Check if this is an operations-only layer
+                        if layer_def.operations and not layer_def.geojson_file and not layer_def.dxf_layer and not layer_def.shape_file:
+                            self._logger.info(f"Layer '{layer_def.name}' is operations-only - adding to pending operations list")
+                            pending_operations_layers.append(layer_def)
+                        else:
+                            self._logger.warning(f"Layer '{layer_def.name}' could not be created/loaded (returned None). Skipping.")
                 except Exception as e:
                     self._logger.error(f"Failed to process layer definition '{layer_def.name}': {e}", exc_info=True)
                     # Decide: continue with other layers or halt?
                     # For PIL 3, an error in one layer definition might not need to halt all project processing if others are independent.
                     # However, if other layers depend on this one, they might fail too.
                     self._logger.warning(f"Continuing to next layer definition after error in '{layer_def.name}'.")
+
+            # Process operations-only layers after all base layers are created
+            if pending_operations_layers:
+                self._logger.info(f"Processing {len(pending_operations_layers)} operations-only layers...")
+                for layer_def in pending_operations_layers:
+                    self._logger.info(f"Processing operations-only layer '{layer_def.name}'")
+                    try:
+                        result_gdf = None
+                        for i, op_params in enumerate(layer_def.operations):
+                            self._logger.info(f"  Applying operation #{i+1} ('{op_params.type}') to operations-only layer '{layer_def.name}'")
+
+                            # Use all currently active layers as source for operations
+                            result_gdf = self._geometry_processor.apply_operation(op_params, active_layers)
+
+                            # Update the active layers with the result for subsequent operations
+                            if result_gdf is not None:
+                                active_layers[layer_def.name] = result_gdf
+                                self._logger.info(f"  Finished operation #{i+1} ('{op_params.type}') on '{layer_def.name}'. Result features: {len(result_gdf)}")
+                            else:
+                                self._logger.warning(f"  Operation #{i+1} ('{op_params.type}') on '{layer_def.name}' returned None")
+                                break
+
+                        if result_gdf is not None:
+                            self._logger.info(f"Successfully processed operations-only layer '{layer_def.name}'. Features: {len(result_gdf)}")
+                        else:
+                            self._logger.warning(f"Operations-only layer '{layer_def.name}' processing resulted in None")
+
+                    except Exception as e:
+                        self._logger.error(f"Failed to process operations-only layer '{layer_def.name}': {e}", exc_info=True)
 
             self._logger.info("Finished processing all geometric layer definitions.")
 
