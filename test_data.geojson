@@ -1,0 +1,48 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Building A",
+        "type": "commercial",
+        "height": 25.5
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [13.404, 52.520],
+          [13.406, 52.520],
+          [13.406, 52.522],
+          [13.404, 52.522],
+          [13.404, 52.520]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Road Central",
+        "type": "highway"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [13.400, 52.518],
+          [13.410, 52.525]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Park Point",
+        "type": "park"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [13.405, 52.521]
+      }
+    }
+  ]
+}

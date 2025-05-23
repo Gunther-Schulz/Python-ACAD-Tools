@@ -324,3 +324,28 @@ styles:
     # color: "brilliant-orange"
     # scale: 20
     # angle: 80
+
+  building_style:
+    layer:
+      color: 1  # Red ACI color
+      lineweight: 50
+      linetype: "CONTINUOUS"
+    hatch:
+      pattern: "SOLID"
+      color: 1
+      transparency: 0.3
+
+  road_style:
+    layer:
+      color: 2  # Yellow ACI color
+      lineweight: 100
+      linetype: "CENTER"
+
+  point_style:
+    layer:
+      color: 3  # Green ACI color
+      lineweight: 20
+    text:
+      height: 2.5
+      font: "Arial"
+      color: 3

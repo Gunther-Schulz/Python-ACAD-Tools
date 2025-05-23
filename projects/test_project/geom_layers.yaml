@@ -1,0 +1,20 @@
+- name: "buildings"
+  geojsonFile: "../../test_data.geojson"
+  style: "building_style"
+  updateDxf: true
+  selectByProperties:
+    type: "commercial"
+
+- name: "roads"
+  geojsonFile: "../../test_data.geojson"
+  style: "road_style"
+  updateDxf: true
+  selectByProperties:
+    type: "highway"
+
+- name: "points"
+  geojsonFile: "../../test_data.geojson"
+  style: "point_style"
+  updateDxf: true
+  selectByProperties:
+    type: "park"

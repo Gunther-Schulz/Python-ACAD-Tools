@@ -1,0 +1,9 @@
+- name: "test_legend"
+  position: [10, 10]
+  items:
+    - text: "Buildings"
+      style: "building_style"
+    - text: "Roads"
+      style: "road_style"
+    - text: "Points"
+      style: "point_style"
