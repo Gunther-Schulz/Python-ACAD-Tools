@@ -504,9 +504,10 @@ class StyleApplicatorService(IStyleApplicator):
         dxf_drawing: Drawing,
         gdf: gpd.GeoDataFrame,
         layer_name: str,
-        style: Optional[NamedStyle] = None
+        style: Optional[NamedStyle] = None,
+        layer_definition: Optional[GeomLayerDefinition] = None
     ) -> None:
-        """Adds geometries from a GeoDataFrame to a DXF drawing."""
+        """Adds geometries from a GeoDataFrame to a DXF drawing with optional label placement."""
         if not EZDXF_AVAILABLE:
             raise DXFProcessingError("Cannot add geometries to DXF: ezdxf library not available.")
 
@@ -519,6 +520,16 @@ class StyleApplicatorService(IStyleApplicator):
         try:
             # Get the modelspace
             msp = dxf_drawing.modelspace()
+
+            # Check if labels should be added
+            should_add_labels = (
+                layer_definition and
+                layer_definition.label_column and
+                layer_definition.label_column in gdf.columns
+            )
+
+            if should_add_labels:
+                self._logger.debug(f"Will add labels from column '{layer_definition.label_column}' for layer '{layer_name}'")
 
             # Import utility function for marking entities as created by our script
             # from ..utils.dxf_entity_utils import attach_script_identifier
@@ -567,6 +578,15 @@ class StyleApplicatorService(IStyleApplicator):
                                 if hole_entity:
                                     # attach_script_identifier(hole_entity, "python-acad-tools")
                                     added_count += 1
+
+                        # Add label for polygon if requested
+                        if should_add_labels:
+                            label_text = str(row[layer_definition.label_column])
+                            if label_text and label_text.strip():
+                                label_position = self._calculate_label_position(geom, 'Polygon')
+                                self._add_label_to_dxf(
+                                    msp, label_text, label_position, layer_name, style, dxf_drawing
+                                )
                         continue  # Skip the common processing below for polygons
 
                     elif geom.geom_type in ['MultiPoint', 'MultiLineString']:
@@ -599,6 +619,15 @@ class StyleApplicatorService(IStyleApplicator):
                             except Exception as e:
                                 self._logger.warning(f"Failed to apply style to entity {idx}: {e}")
 
+                    # Add label for non-polygon geometries if requested
+                    if should_add_labels and entity:
+                        label_text = str(row[layer_definition.label_column])
+                        if label_text and label_text.strip():
+                            label_position = self._calculate_label_position(geom, geom.geom_type)
+                            self._add_label_to_dxf(
+                                msp, label_text, label_position, layer_name, style, dxf_drawing
+                            )
+
                 except Exception as e:
                     self._logger.warning(f"Failed to add geometry {idx} to DXF: {e}")
                     continue
@@ -608,6 +637,207 @@ class StyleApplicatorService(IStyleApplicator):
         except Exception as e:
             self._logger.error(f"Failed to add GeoDataFrame geometries to DXF layer '{layer_name}': {e}", exc_info=True)
             raise DXFProcessingError(f"Failed to add geometries to DXF layer '{layer_name}': {e}")
+
+    def _calculate_label_position(self, geom, geom_type: str) -> tuple:
+        """Calculate the appropriate position for a label based on geometry type."""
+        try:
+            if geom_type == 'Point':
+                # For points, place label slightly offset to avoid overlap
+                return (geom.x + 0.1, geom.y + 0.1)
+
+            elif geom_type == 'LineString':
+                # For lines, place at the midpoint
+                midpoint = geom.interpolate(0.5, normalized=True)
+                return (midpoint.x, midpoint.y)
+
+            elif geom_type in ['Polygon', 'MultiPolygon']:
+                # For polygons, place at centroid (representative point for complex shapes)
+                try:
+                    # Use representative_point() for complex polygons to ensure it's inside
+                    repr_point = geom.representative_point()
+                    return (repr_point.x, repr_point.y)
+                except:
+                    # Fallback to centroid
+                    centroid = geom.centroid
+                    return (centroid.x, centroid.y)
+
+            else:
+                # Default to centroid for other geometry types
+                centroid = geom.centroid
+                return (centroid.x, centroid.y)
+
+        except Exception as e:
+            self._logger.warning(f"Failed to calculate label position for {geom_type}: {e}")
+            # Return a default position
+            bounds = geom.bounds
+            return ((bounds[0] + bounds[2]) / 2, (bounds[1] + bounds[3]) / 2)
+
+    def _add_label_to_dxf(
+        self,
+        modelspace,
+        label_text: str,
+        position: tuple,
+        layer_name: str,
+        style: Optional[NamedStyle],
+        dxf_drawing: Drawing
+    ) -> None:
+        """Add a text label to the DXF drawing with proper styling."""
+        try:
+            # Determine text properties from style
+            text_height = 2.5  # Default height
+            text_style_name = None
+            text_color = None
+            rotation = 0.0
+            attachment_point = None
+
+            if style and style.text:
+                text_props = style.text
+                if text_props.height and text_props.height > 0:
+                    text_height = text_props.height
+                if text_props.font:
+                    text_style_name = self._ensure_dxf_text_style(dxf_drawing, text_props)
+                if text_props.color:
+                    text_color = self._resolve_aci_color(text_props.color)
+                if text_props.rotation is not None:
+                    rotation = text_props.rotation
+                if text_props.attachment_point:
+                    attachment_point = self._resolve_attachment_point(text_props.attachment_point)
+
+            # Create DXF attributes for the text
+            text_dxfattribs = {'layer': layer_name}
+            if text_color is not None:
+                text_dxfattribs['color'] = text_color
+
+            # Decide whether to use TEXT or MTEXT based on content and style
+            use_mtext = (
+                '\n' in label_text or  # Multi-line text
+                len(label_text) > 50 or  # Long text
+                (style and style.text and (
+                    style.text.max_width and style.text.max_width > 0 or
+                    style.text.flow_direction or
+                    style.text.line_spacing_style
+                ))
+            )
+
+            if use_mtext:
+                # Use MTEXT for multi-line or styled text
+                mtext_entity = modelspace.add_mtext(
+                    label_text,
+                    dxfattribs=text_dxfattribs
+                )
+                mtext_entity.dxf.insert = Vec3(position[0], position[1], 0)
+                mtext_entity.dxf.char_height = text_height
+                mtext_entity.dxf.rotation = rotation
+
+                if text_style_name:
+                    mtext_entity.dxf.style = text_style_name
+
+                if attachment_point:
+                    try:
+                        mtext_entity.dxf.attachment_point = attachment_point
+                    except:
+                        # Fallback to middle center if attachment point fails
+                        mtext_entity.dxf.attachment_point = MTextEntityAlignment.MIDDLE_CENTER
+                else:
+                    # Default to middle center for better label appearance
+                    mtext_entity.dxf.attachment_point = MTextEntityAlignment.MIDDLE_CENTER
+
+                # Apply additional MTEXT properties if available
+                if style and style.text:
+                    text_props = style.text
+                    if text_props.max_width and text_props.max_width > 0:
+                        mtext_entity.dxf.width = text_props.max_width
+                    if text_props.line_spacing_factor:
+                        mtext_entity.dxf.line_spacing_factor = text_props.line_spacing_factor
+
+                # Apply align_to_view if specified
+                if style and style.text and style.text.align_to_view:
+                    self._align_text_entity_to_view(mtext_entity, dxf_drawing, style.text)
+
+            else:
+                # Use simple TEXT for single-line text
+                text_entity = modelspace.add_text(
+                    label_text,
+                    dxfattribs=text_dxfattribs
+                )
+                text_entity.dxf.insert = Vec3(position[0], position[1], 0)
+                text_entity.dxf.height = text_height
+                text_entity.dxf.rotation = rotation
+
+                if text_style_name:
+                    text_entity.dxf.style = text_style_name
+
+                # For TEXT entities, set horizontal and vertical alignment
+                if attachment_point:
+                    # Convert MTEXT attachment to TEXT alignment
+                    halign, valign = self._mtext_attachment_to_text_align(attachment_point)
+                    text_entity.dxf.halign = halign
+                    text_entity.dxf.valign = valign
+                    # If alignment is not default, set align_point
+                    if halign != 0 or valign != 0:
+                        text_entity.dxf.align_point = Vec3(position[0], position[1], 0)
+                else:
+                    # Default center alignment for labels
+                    text_entity.dxf.halign = 1  # Center
+                    text_entity.dxf.valign = 2  # Middle
+                    text_entity.dxf.align_point = Vec3(position[0], position[1], 0)
+
+                # Apply align_to_view if specified
+                if style and style.text and style.text.align_to_view:
+                    self._align_text_entity_to_view(text_entity, dxf_drawing, style.text)
+
+        except Exception as e:
+            self._logger.warning(f"Failed to add label '{label_text}' at position {position}: {e}")
+
+    def _resolve_attachment_point(self, attachment_point_str: str):
+        """Resolve attachment point string to ezdxf constant."""
+        if not EZDXF_AVAILABLE:
+            return None
+
+        # Mapping of common attachment point names to ezdxf constants
+        attachment_map = {
+            'TOP_LEFT': MTextEntityAlignment.TOP_LEFT,
+            'TOP_CENTER': MTextEntityAlignment.TOP_CENTER,
+            'TOP_RIGHT': MTextEntityAlignment.TOP_RIGHT,
+            'MIDDLE_LEFT': MTextEntityAlignment.MIDDLE_LEFT,
+            'MIDDLE_CENTER': MTextEntityAlignment.MIDDLE_CENTER,
+            'MIDDLE_RIGHT': MTextEntityAlignment.MIDDLE_RIGHT,
+            'BOTTOM_LEFT': MTextEntityAlignment.BOTTOM_LEFT,
+            'BOTTOM_CENTER': MTextEntityAlignment.BOTTOM_CENTER,
+            'BOTTOM_RIGHT': MTextEntityAlignment.BOTTOM_RIGHT,
+        }
+
+        return attachment_map.get(attachment_point_str.upper(), MTextEntityAlignment.MIDDLE_CENTER)
+
+    def _mtext_attachment_to_text_align(self, attachment_point) -> tuple:
+        """Convert MTEXT attachment point to TEXT horizontal and vertical alignment."""
+        if not EZDXF_AVAILABLE:
+            return (1, 2)  # Default center, middle
+
+        # Map MTEXT attachment to TEXT halign, valign
+        # halign: 0=left, 1=center, 2=right, 3=aligned, 4=middle, 5=fit
+        # valign: 0=baseline, 1=bottom, 2=middle, 3=top
+
+        if attachment_point == MTextEntityAlignment.TOP_LEFT:
+            return (0, 3)  # left, top
+        elif attachment_point == MTextEntityAlignment.TOP_CENTER:
+            return (1, 3)  # center, top
+        elif attachment_point == MTextEntityAlignment.TOP_RIGHT:
+            return (2, 3)  # right, top
+        elif attachment_point == MTextEntityAlignment.MIDDLE_LEFT:
+            return (0, 2)  # left, middle
+        elif attachment_point == MTextEntityAlignment.MIDDLE_CENTER:
+            return (1, 2)  # center, middle
+        elif attachment_point == MTextEntityAlignment.MIDDLE_RIGHT:
+            return (2, 2)  # right, middle
+        elif attachment_point == MTextEntityAlignment.BOTTOM_LEFT:
+            return (0, 1)  # left, bottom
+        elif attachment_point == MTextEntityAlignment.BOTTOM_CENTER:
+            return (1, 1)  # center, bottom
+        elif attachment_point == MTextEntityAlignment.BOTTOM_RIGHT:
+            return (2, 1)  # right, bottom
+        else:
+            return (1, 2)  # default center, middle
 
     def clear_caches(self) -> None:
         """Clears all cached data to free memory. Useful for long-running processes."""

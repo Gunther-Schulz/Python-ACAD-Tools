@@ -112,16 +112,18 @@ class IStyleApplicator(Protocol):
         dxf_drawing: Any,  # Drawing from ezdxf
         gdf: "gpd.GeoDataFrame",
         layer_name: str,
-        style: Optional[NamedStyle] = None
+        style: Optional[NamedStyle] = None,
+        layer_definition: Optional[GeomLayerDefinition] = None
     ) -> None:
         """
-        Adds geometries from a GeoDataFrame to a DXF drawing.
+        Adds geometries from a GeoDataFrame to a DXF drawing with optional label placement.
 
         Args:
             dxf_drawing: The ezdxf Drawing object.
             gdf: GeoDataFrame containing geometries to add.
             layer_name: Name of the DXF layer to add geometries to.
             style: Optional style to apply to the geometries.
+            layer_definition: Optional layer definition for label placement and styling.
 
         Raises:
             DXFProcessingError: If geometry addition fails.

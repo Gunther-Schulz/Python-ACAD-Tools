@@ -6,42 +6,364 @@
       "properties": {
         "name": "Building A",
         "type": "commercial",
-        "height": 25.5
+        "height": 25.5,
+        "area_sqm": 150,
+        "floors": 3,
+        "address": "123 Main St"
       },
       "geometry": {
         "type": "Polygon",
         "coordinates": [[
-          [13.404, 52.520],
-          [13.406, 52.520],
-          [13.406, 52.522],
-          [13.404, 52.522],
-          [13.404, 52.520]
+          [0, 0],
+          [15, 0],
+          [15, 12],
+          [0, 12],
+          [0, 0]
         ]]
       }
     },
     {
       "type": "Feature",
       "properties": {
-        "name": "Road Central",
-        "type": "highway"
+        "name": "Building B",
+        "type": "commercial",
+        "height": 18.0,
+        "area_sqm": 200,
+        "floors": 2,
+        "address": "456 Oak Ave"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [50, 0],
+          [70, 0],
+          [70, 15],
+          [50, 15],
+          [50, 0]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Residential Complex",
+        "type": "residential",
+        "height": 12.0,
+        "area_sqm": 300,
+        "floors": 4,
+        "address": "789 Pine Rd"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [0, 50],
+          [18, 50],
+          [18, 68],
+          [0, 68],
+          [0, 50]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Warehouse",
+        "type": "industrial",
+        "height": 8.0,
+        "area_sqm": 500,
+        "floors": 1,
+        "address": "101 Industrial Way"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [50, 50],
+          [75, 50],
+          [75, 70],
+          [50, 70],
+          [50, 50]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Main Street",
+        "type": "highway",
+        "lanes": 4,
+        "speed_limit": 50,
+        "surface": "asphalt"
       },
       "geometry": {
         "type": "LineString",
         "coordinates": [
-          [13.400, 52.518],
-          [13.410, 52.525]
+          [0, 25],
+          [250, 25]
         ]
       }
     },
     {
       "type": "Feature",
       "properties": {
-        "name": "Park Point",
-        "type": "park"
+        "name": "Oak Avenue",
+        "type": "highway",
+        "lanes": 2,
+        "speed_limit": 30,
+        "surface": "asphalt"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [125, 0],
+          [125, 250]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Bike Path",
+        "type": "cycleway",
+        "lanes": 1,
+        "speed_limit": 15,
+        "surface": "concrete"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [75, 75],
+          [100, 100],
+          [150, 125],
+          [200, 175]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Central Park",
+        "type": "park",
+        "area_sqm": 2500,
+        "facilities": "playground, benches"
       },
       "geometry": {
         "type": "Point",
-        "coordinates": [13.405, 52.521]
+        "coordinates": [175, 75]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Bus Stop Alpha",
+        "type": "transit",
+        "routes": "101, 205",
+        "shelter": true
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [25, 175]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Coffee Shop",
+        "type": "amenity",
+        "category": "food",
+        "hours": "07:00-19:00"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [175, 175]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Shopping Mall",
+        "type": "commercial",
+        "height": 15.0,
+        "area_sqm": 800,
+        "floors": 2,
+        "address": "500 Commerce Blvd"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [100, 100],
+          [120, 100],
+          [120, 115],
+          [100, 115],
+          [100, 100]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "City Library",
+        "type": "public",
+        "height": 10.0,
+        "area_sqm": 400,
+        "floors": 2,
+        "address": "250 Knowledge Ave"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [150, 100],
+          [165, 100],
+          [165, 112],
+          [150, 112],
+          [150, 100]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Factory Complex",
+        "type": "industrial",
+        "height": 12.0,
+        "area_sqm": 1200,
+        "floors": 1,
+        "address": "800 Industrial Pkwy"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [200, 100],
+          [225, 100],
+          [225, 120],
+          [200, 120],
+          [200, 100]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Apartment Block A",
+        "type": "residential",
+        "height": 20.0,
+        "area_sqm": 600,
+        "floors": 6,
+        "address": "300 Residential Dr"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [100, 150],
+          [115, 150],
+          [115, 170],
+          [100, 170],
+          [100, 150]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Apartment Block B",
+        "type": "residential",
+        "height": 18.0,
+        "area_sqm": 550,
+        "floors": 5,
+        "address": "310 Residential Dr"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [150, 150],
+          [165, 150],
+          [165, 168],
+          [150, 168],
+          [150, 150]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Town Square",
+        "type": "public",
+        "height": 0.0,
+        "area_sqm": 1000,
+        "floors": 0,
+        "address": "100 Central Plaza"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [200, 150],
+          [220, 150],
+          [220, 170],
+          [200, 170],
+          [200, 150]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Sports Complex",
+        "type": "recreational",
+        "height": 8.0,
+        "area_sqm": 2000,
+        "floors": 1,
+        "address": "600 Athletic Way"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [100, 200],
+          [130, 200],
+          [130, 225],
+          [100, 225],
+          [100, 200]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Medical Center",
+        "type": "healthcare",
+        "height": 22.0,
+        "area_sqm": 900,
+        "floors": 4,
+        "address": "900 Health Blvd"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [150, 200],
+          [170, 200],
+          [170, 222],
+          [150, 222],
+          [150, 200]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "School Campus",
+        "type": "educational",
+        "height": 12.0,
+        "area_sqm": 1500,
+        "floors": 3,
+        "address": "700 Education St"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [200, 200],
+          [225, 200],
+          [225, 225],
+          [200, 225],
+          [200, 200]
+        ]]
       }
     }
   ]

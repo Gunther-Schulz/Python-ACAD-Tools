@@ -55,7 +55,7 @@ class GeometryProcessorService(IGeometryProcessor):
     ) -> gpd.GeoDataFrame:
         """Apply operation using the operation registry following existing pattern."""
         operation_type = operation_params.type
-        self._logger.info(f"Applying operation: {operation_type}")
+        self._logger.debug(f"Applying operation: {operation_type}")
 
         with self._resource_manager.memory_managed_operation(f"operation_{operation_type}"):
             try:
@@ -84,7 +84,7 @@ class GeometryProcessorService(IGeometryProcessor):
         project_root: Optional[str] = None
     ) -> Optional[gpd.GeoDataFrame]:
         """Create layer from definition with proper resource management following existing pattern."""
-        self._logger.info(f"Creating layer '{layer_def.name}' from definition")
+        self._logger.debug(f"Creating layer '{layer_def.name}' from definition")
 
         with self._resource_manager.memory_managed_operation(f"create_layer_{layer_def.name}"):
             try:
@@ -99,7 +99,7 @@ class GeometryProcessorService(IGeometryProcessor):
                         geojson_path = os.path.join(project_root, geojson_path)
                         geojson_path = os.path.normpath(geojson_path)
 
-                    self._logger.info(f"Loading GeoJSON file: {geojson_path}")
+                    self._logger.debug(f"Loading GeoJSON file: {geojson_path}")
                     base_gdf = self._data_source_service.load_geojson_file(geojson_path)
 
                     # Apply selectByProperties filtering if specified
@@ -122,13 +122,13 @@ class GeometryProcessorService(IGeometryProcessor):
                     result_gdf = base_gdf  # This could be None for operations-only layers
 
                     for operation_params in layer_def.operations:
-                        self._logger.info(f"Processing operation '{operation_params.type}' for layer '{layer_def.name}'")
+                        self._logger.debug(f"Processing operation '{operation_params.type}' for layer '{layer_def.name}'")
 
                         # For operations-only layers, the source_layers dict needs to be populated from previous operations
                         # This will be handled by the orchestrator service that maintains all processed layers
                         # For now, we'll return None to indicate this layer needs operation processing
                         if base_gdf is None:
-                            self._logger.info(f"Layer '{layer_def.name}' is operations-only - will be processed by orchestrator")
+                            self._logger.debug(f"Layer '{layer_def.name}' is operations-only - will be processed by orchestrator")
                             return None
 
                         # If we have a base GDF, we would process operations here in a full implementation
@@ -247,7 +247,7 @@ class GeometryProcessorService(IGeometryProcessor):
         layer_name: str
     ) -> gpd.GeoDataFrame:
         """Apply property-based filtering following existing pattern."""
-        self._logger.info(f"Applying selectByProperties filter: {filter_properties}")
+        self._logger.debug(f"Applying selectByProperties filter: {filter_properties}")
         original_count = len(gdf)
 
         # Create filter mask based on all property conditions
@@ -280,9 +280,9 @@ class GeometryProcessorService(IGeometryProcessor):
         """Ensure layer has proper CRS following existing pattern."""
         if gdf.crs is None:
             gdf.crs = base_crs
-            self._logger.info(f"Assigned base CRS {base_crs} to layer '{layer_name}'")
+            self._logger.debug(f"Assigned base CRS {base_crs} to layer '{layer_name}'")
         elif str(gdf.crs) != base_crs:
-            self._logger.info(f"Reprojecting layer '{layer_name}' from {gdf.crs} to {base_crs}")
+            self._logger.debug(f"Reprojecting layer '{layer_name}' from {gdf.crs} to {base_crs}")
             gdf = gdf.to_crs(base_crs)
 
         return gdf

@@ -1,5 +1,6 @@
 """Concrete implementation of the IDataSource interface."""
 from typing import Optional, Dict
+import os
 
 # Attempt to import ezdxf and define Drawing and readfile alias
 try:
@@ -42,49 +43,47 @@ class DataSourceService(IDataSource):
 
         self._geodataframes: Dict[str, gpd.GeoDataFrame] = {} # Added GDF store
 
-    def load_dxf_file(self, file_path: str) -> Drawing:
-        """Loads a DXF file from the given path."""
-        self._logger.info(f"Attempting to load DXF file: {file_path}")
-
+    def load_dxf_file(self, file_path: str) -> Optional[Drawing]:
+        """Load a DXF file and return as ezdxf Drawing."""
         if not EZDXF_AVAILABLE:
-            # This case should ideally be prevented by checks before calling,
-            # or by the application failing to start if ezdxf is a hard requirement.
-            self._logger.error("load_dxf_file called but ezdxf is not available.")
-            raise DXFProcessingError("ezdxf library is not installed or available.")
+            self._logger.error("ezdxf library is not available. Cannot load DXF files.")
+            raise DXFProcessingError("ezdxf library is not available. Install ezdxf to load DXF files.")
+
+        self._logger.debug(f"Attempting to load DXF file: {file_path}")  # Changed to DEBUG
+
+        if not os.path.exists(file_path):
+            raise FileNotFoundError(f"DXF file not found: {file_path}")
 
         try:
-            # Use the potentially aliased/stubbed ezdxf.readfile from the top of this module
-            # Or, if ezdxf was imported directly: doc = ezdxf.readfile(file_path)
-            doc = ezdxf.readfile(file_path) # Assuming direct import if EZDXF_AVAILABLE is true
+            # Use ezdxf to load the DXF file
+            doc = ezdxf.readfile(file_path)
             self._logger.info(f"Successfully loaded DXF file: {file_path}")
             return doc
-        except FileNotFoundError:
-            self._logger.error(f"DXF file not found: {file_path}")
-            # Let FileNotFoundError propagate as per interface docstring, or wrap if preferred
-            raise
+
         except ezdxf.DXFStructureError as e:
-            self._logger.error(f"Invalid DXF file structure {file_path}: {e}", exc_info=True)
-            raise DXFProcessingError(f"Invalid DXF file structure {file_path}: {e}") from e
-        except IOError as e: # Catches other I/O issues like permission errors
-            self._logger.error(f"IOError reading DXF file {file_path}: {e}", exc_info=True)
-            raise DXFProcessingError(f"IOError reading DXF file {file_path}: {e}") from e
-        except Exception as e: # Catch-all for any other unexpected ezdxf loading errors
-            self._logger.error(f"Unexpected error loading DXF file {file_path}: {e}", exc_info=True)
-            raise DXFProcessingError(f"Unexpected error loading DXF file {file_path}: {e}") from e
+            self._logger.error(f"Invalid DXF structure in {file_path}: {e}", exc_info=True)
+            raise DXFProcessingError(f"Invalid DXF structure in {file_path}: {e}") from e
+
+        except ezdxf.DXFVersionError as e:
+            self._logger.error(f"Unsupported DXF version in {file_path}: {e}", exc_info=True)
+            raise DXFProcessingError(f"Unsupported DXF version in {file_path}: {e}") from e
+
+        except Exception as e:
+            self._logger.error(f"Failed to load DXF file {file_path}: {e}", exc_info=True)
+            raise DXFProcessingError(f"Failed to load DXF file {file_path}: {e}") from e
 
     def load_geojson_file(self, file_path: str) -> gpd.GeoDataFrame:
-        """Loads a GeoDataFrame from a GeoJSON file."""
-        self._logger.info(f"Attempting to load GeoJSON file: {file_path}")
+        """Load a GeoJSON file and return as GeoDataFrame."""
+        self._logger.debug(f"Attempting to load GeoJSON file: {file_path}")  # Changed to DEBUG
+
+        if not os.path.exists(file_path):
+            raise FileNotFoundError(f"GeoJSON file not found: {file_path}")
+
         try:
             gdf = gpd.read_file(file_path)
             self._logger.info(f"Successfully loaded GeoJSON file: {file_path}. CRS: {gdf.crs}, Features: {len(gdf)}")
             return gdf
-        except FileNotFoundError:
-            self._logger.error(f"GeoJSON file not found: {file_path}")
-            raise # Re-raise FileNotFoundError as per interface contract/common practice
         except Exception as e:
-            # This could catch various errors from GeoPandas if the file is malformed,
-            # not a valid GeoJSON, or other I/O issues beyond FileNotFoundError.
             self._logger.error(f"Failed to load GeoJSON file {file_path}: {e}", exc_info=True)
             raise DataSourceError(f"Failed to load GeoJSON file {file_path}: {e}") from e
 

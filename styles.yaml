@@ -327,25 +327,121 @@ styles:
 
   building_style:
     layer:
-      color: 1  # Red ACI color
+      color: "red"
+      linetype: "Continuous"
       lineweight: 50
-      linetype: "CONTINUOUS"
-    hatch:
-      pattern: "SOLID"
-      color: 1
-      transparency: 0.3
+    text:
+      height: 3.0
+      color: "blue"
+      font: "Arial"
+      attachment_point: "MIDDLE_CENTER"
 
   road_style:
     layer:
-      color: 2  # Yellow ACI color
-      lineweight: 100
-      linetype: "CENTER"
+      color: "yellow"
+      linetype: "DASHED"
+      lineweight: 30
+    text:
+      height: 2.5
+      color: "green"
+      font: "Arial"
+      attachment_point: "MIDDLE_CENTER"
 
   point_style:
     layer:
-      color: 3  # Green ACI color
+      color: "cyan"
+      linetype: "Continuous"
       lineweight: 20
     text:
-      height: 2.5
+      height: 2.0
+      color: "magenta"
       font: "Arial"
-      color: 3
+      attachment_point: "BOTTOM_CENTER"
+
+  residential_style:
+    layer:
+      color: "blue"
+      linetype: "Continuous"
+      lineweight: 40
+    text:
+      height: 2.8
+      color: "white"
+      font: "Arial"
+      attachment_point: "MIDDLE_CENTER"
+
+  industrial_style:
+    layer:
+      color: "gray"
+      linetype: "DASHED"
+      lineweight: 60
+    text:
+      height: 4.0
+      color: "red"
+      font: "Arial"
+      attachment_point: "TOP_CENTER"
+
+  transit_style:
+    layer:
+      color: "orange"
+      linetype: "Continuous"
+      lineweight: 15
+    text:
+      height: 1.8
+      color: "blue"
+      font: "Arial"
+      attachment_point: "TOP_LEFT"
+
+  amenity_style:
+    layer:
+      color: "purple"
+      linetype: "Continuous"
+      lineweight: 25
+    text:
+      height: 2.2
+      color: "yellow"
+      font: "Arial"
+      attachment_point: "MIDDLE_RIGHT"
+
+  public_style:
+    layer:
+      color: "green"
+      linetype: "Continuous"
+      lineweight: 45
+    text:
+      height: 3.5
+      color: "white"
+      font: "Arial"
+      attachment_point: "MIDDLE_CENTER"
+
+  recreational_style:
+    layer:
+      color: "lime"
+      linetype: "DASHED"
+      lineweight: 35
+    text:
+      height: 2.8
+      color: "blue"
+      font: "Arial"
+      attachment_point: "TOP_CENTER"
+
+  healthcare_style:
+    layer:
+      color: "red"
+      linetype: "Continuous"
+      lineweight: 55
+    text:
+      height: 3.2
+      color: "white"
+      font: "Arial"
+      attachment_point: "MIDDLE_CENTER"
+
+  educational_style:
+    layer:
+      color: "blue"
+      linetype: "CENTER"
+      lineweight: 40
+    text:
+      height: 3.0
+      color: "yellow"
+      font: "Arial"
+      attachment_point: "BOTTOM_CENTER"

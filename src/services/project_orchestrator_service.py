@@ -152,7 +152,7 @@ class ProjectOrchestratorService(IProjectOrchestrator):
                             self._logger.debug(f"Applying {len(layer_def.operations)} inline operations to layer '{layer_def.name}'...")
                             current_op_input_gdf = gdf
                             for i, op_params in enumerate(layer_def.operations):
-                                self._logger.info(f"  Applying inline operation #{i+1} ('{op_params.type}') to '{layer_def.name}'")
+                                self._logger.debug(f"  Applying inline operation #{i+1} ('{op_params.type}') to '{layer_def.name}'")
 
                                 # Prepare source_layers for the operation. For inline ops, this is tricky.
                                 # Assume for now the operation primarily acts on the current layer_def.name.
@@ -166,11 +166,11 @@ class ProjectOrchestratorService(IProjectOrchestrator):
                                 result_gdf = self._geometry_processor.apply_operation(op_params, operation_source_layers)
                                 active_layers[layer_def.name] = result_gdf # Operation output replaces the layer
                                 current_op_input_gdf = result_gdf # For the next inline op
-                                self._logger.info(f"  Finished inline operation #{i+1} ('{op_params.type}') on '{layer_def.name}'. Result features: {len(result_gdf) if result_gdf is not None else 'None'}")
+                                self._logger.debug(f"  Finished inline operation #{i+1} ('{op_params.type}') on '{layer_def.name}'. Result features: {len(result_gdf) if result_gdf is not None else 'None'}")
                     else:
                         # Check if this is an operations-only layer
                         if layer_def.operations and not layer_def.geojson_file and not layer_def.dxf_layer and not layer_def.shape_file:
-                            self._logger.info(f"Layer '{layer_def.name}' is operations-only - adding to pending operations list")
+                            self._logger.debug(f"Layer '{layer_def.name}' is operations-only - adding to pending operations list")
                             pending_operations_layers.append(layer_def)
                         else:
                             self._logger.warning(f"Layer '{layer_def.name}' could not be created/loaded (returned None). Skipping.")
@@ -185,11 +185,11 @@ class ProjectOrchestratorService(IProjectOrchestrator):
             if pending_operations_layers:
                 self._logger.info(f"Processing {len(pending_operations_layers)} operations-only layers...")
                 for layer_def in pending_operations_layers:
-                    self._logger.info(f"Processing operations-only layer '{layer_def.name}'")
+                    self._logger.debug(f"Processing operations-only layer '{layer_def.name}'")
                     try:
                         result_gdf = None
                         for i, op_params in enumerate(layer_def.operations):
-                            self._logger.info(f"  Applying operation #{i+1} ('{op_params.type}') to operations-only layer '{layer_def.name}'")
+                            self._logger.debug(f"  Applying operation #{i+1} ('{op_params.type}') to operations-only layer '{layer_def.name}'")
 
                             # Use all currently active layers as source for operations
                             result_gdf = self._geometry_processor.apply_operation(op_params, active_layers)
@@ -197,13 +197,13 @@ class ProjectOrchestratorService(IProjectOrchestrator):
                             # Update the active layers with the result for subsequent operations
                             if result_gdf is not None:
                                 active_layers[layer_def.name] = result_gdf
-                                self._logger.info(f"  Finished operation #{i+1} ('{op_params.type}') on '{layer_def.name}'. Result features: {len(result_gdf)}")
+                                self._logger.debug(f"  Finished operation #{i+1} ('{op_params.type}') on '{layer_def.name}'. Result features: {len(result_gdf)}")
                             else:
                                 self._logger.warning(f"  Operation #{i+1} ('{op_params.type}') on '{layer_def.name}' returned None")
                                 break
 
                         if result_gdf is not None:
-                            self._logger.info(f"Successfully processed operations-only layer '{layer_def.name}'. Features: {len(result_gdf)}")
+                            self._logger.debug(f"Successfully processed operations-only layer '{layer_def.name}'. Features: {len(result_gdf)}")
                         else:
                             self._logger.warning(f"Operations-only layer '{layer_def.name}' processing resulted in None")
 
@@ -267,7 +267,7 @@ class ProjectOrchestratorService(IProjectOrchestrator):
                             layers_to_update.append(layer_name)
 
                     if layers_to_update:
-                        self._logger.info(f"Clearing existing entities from layers: {', '.join(layers_to_update)}")
+                        self._logger.debug(f"Clearing existing entities from layers: {', '.join(layers_to_update)}")
                         try:
                             # Import the utility function
                             from ..utils.dxf_entity_utils import remove_entities_by_layer
@@ -278,12 +278,12 @@ class ProjectOrchestratorService(IProjectOrchestrator):
                                 layers_to_update,
                                 script_identifier="python-acad-tools"
                             )
-                            self._logger.info(f"Removed {deleted_count} existing entities from {len(layers_to_update)} layers")
+                            self._logger.debug(f"Removed {deleted_count} existing entities from {len(layers_to_update)} layers")
 
                         except Exception as e:
                             self._logger.warning(f"Error clearing existing entities from layers: {e}", exc_info=True)
 
-                    self._logger.info("Applying styles and adding geometries to DXF document...")
+                    self._logger.debug("Applying styles and adding geometries to DXF document...")
                     for layer_name, gdf in active_layers.items():
                         layer_def_for_style = next((ld for ld in project_config.geom_layers if ld.name == layer_name), None)
                         if layer_def_for_style and layer_def_for_style.update_dxf and style_config:
@@ -297,7 +297,7 @@ class ProjectOrchestratorService(IProjectOrchestrator):
                             # Add geometries from GeoDataFrame to DXF
                             self._logger.debug(f"Adding {len(gdf)} geometries to DXF layer '{layer_name}'")
                             try:
-                                self._style_applicator.add_geodataframe_to_dxf(dxf_drawing, gdf, layer_name, named_style)
+                                self._style_applicator.add_geodataframe_to_dxf(dxf_drawing, gdf, layer_name, named_style, layer_def_for_style)
                             except Exception as e:
                                 self._logger.error(f"Failed to add geometries to DXF layer '{layer_name}': {e}", exc_info=True)
 
