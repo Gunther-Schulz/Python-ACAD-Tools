@@ -3,6 +3,7 @@ from typing import Optional, List, Dict, Union, Any, Tuple, Literal
 from pydantic import BaseModel, Field, field_validator, ConfigDict, model_validator, root_validator
 from pydantic_settings import BaseSettings
 from .common_types import CoordsXY # Assuming CoordsXY might be used, e.g. for text positions if not in style
+from .config_validation import ConfigValidators, CrossFieldValidator, ConfigValidationError
 
 # Style System Models (based on styles.yaml and StyleManager analysis)
 
@@ -20,12 +21,32 @@ class LayerStyleProperties(BaseModel):
     transparency: Optional[float] = None # 0.0 (opaque) to 1.0 (fully transparent)
     linetype_scale: Optional[float] = Field(default=1.0, alias='linetypeScale')
 
+    @field_validator('color')
+    @classmethod
+    def validate_color(cls, v):
+        if v is not None:
+            return ConfigValidators.validate_aci_color(v)
+        return v
+
+    @field_validator('linetype')
+    @classmethod
+    def validate_linetype(cls, v):
+        if v is not None:
+            return ConfigValidators.validate_linetype(v)
+        return v
+
     @field_validator('transparency')
     @classmethod
     def validate_transparency(cls, v):
         if v is not None:
-            if not (0.0 <= v <= 1.0):
-                raise ValueError('Transparency must be between 0.0 and 1.0')
+            return ConfigValidators.validate_percentage(v, 'transparency')
+        return v
+
+    @field_validator('linetype_scale')
+    @classmethod
+    def validate_linetype_scale(cls, v):
+        if v is not None:
+            return ConfigValidators.validate_positive_number(v, 'linetype_scale')
         return v
 
 class TextStyleParagraphProperties(BaseModel):
@@ -82,12 +103,25 @@ class HatchStyleProperties(BaseModel):
     # but their context for a style definition itself (vs. a layer config) is unclear.
     # Holding off unless they are clearly part of a named style definition.
 
+    @field_validator('color')
+    @classmethod
+    def validate_color(cls, v):
+        if v is not None:
+            return ConfigValidators.validate_aci_color(v)
+        return v
+
+    @field_validator('scale')
+    @classmethod
+    def validate_scale(cls, v):
+        if v is not None:
+            return ConfigValidators.validate_positive_number(v, 'hatch scale')
+        return v
+
     @field_validator('transparency')
     @classmethod
     def validate_transparency(cls, v):
         if v is not None:
-            if not (0.0 <= v <= 1.0):
-                raise ValueError('Transparency must be between 0.0 and 1.0')
+            return ConfigValidators.validate_percentage(v, 'transparency')
         return v
 
 class NamedStyle(BaseModel):
@@ -138,6 +172,47 @@ class ProjectMainSettings(BaseModel):
     output_geopackage_path: Optional[str] = Field(None, alias='outputGeopackagePath') # Full path for output GPKG
     # Any other top-level settings from project.yaml can be added here
 
+    @field_validator('crs')
+    @classmethod
+    def validate_crs(cls, v):
+        return ConfigValidators.validate_crs(v)
+
+    @field_validator('dxf_filename')
+    @classmethod
+    def validate_dxf_filename(cls, v):
+        return ConfigValidators.validate_file_path(v, 'dxf')
+
+    @field_validator('export_format')
+    @classmethod
+    def validate_export_format(cls, v):
+        return ConfigValidators.validate_export_format(v)
+
+    @field_validator('dxf_version')
+    @classmethod
+    def validate_dxf_version(cls, v):
+        return ConfigValidators.validate_dxf_version(v)
+
+    @field_validator('output_dxf_path')
+    @classmethod
+    def validate_output_dxf_path(cls, v):
+        if v is not None:
+            return ConfigValidators.validate_file_path(v, 'dxf', is_output_file=True)
+        return v
+
+    @field_validator('output_geopackage_path')
+    @classmethod
+    def validate_output_geopackage_path(cls, v):
+        if v is not None:
+            return ConfigValidators.validate_file_path(v, 'gpkg', is_output_file=True)
+        return v
+
+    @model_validator(mode='after')
+    def validate_output_consistency(self):
+        # Convert to dict for CrossFieldValidator
+        values = self.model_dump(by_alias=True)
+        CrossFieldValidator.validate_output_paths_consistency(values)
+        return self
+
 class BaseOperationParams(BaseModel):
     """Base model for operation parameters. Each operation type will have its own model."""
     model_config = ConfigDict(extra='forbid') # Stricter for operation params
@@ -156,6 +231,48 @@ class BufferOpParams(BaseOperationParams):
     skip_islands: Optional[bool] = Field(default=False, alias='skipIslands')
     preserve_islands: Optional[bool] = Field(default=False, alias='preserveIslands')
     layers: List[Union[str, Dict[str, Any]]] # List of source layer names or dicts like {'name': 'src_layer', 'values': [...]}
+
+    @field_validator('distance')
+    @classmethod
+    def validate_distance(cls, v):
+        if v is not None:
+            return ConfigValidators.validate_non_negative_number(v, 'buffer distance')
+        return v
+
+    @field_validator('join_style')
+    @classmethod
+    def validate_join_style(cls, v):
+        if v is not None:
+            valid_styles = ['round', 'mitre', 'bevel']
+            if v not in valid_styles:
+                raise ValueError(f"join_style must be one of {valid_styles}, got '{v}'")
+        return v
+
+    @field_validator('cap_style')
+    @classmethod
+    def validate_cap_style(cls, v):
+        if v is not None:
+            valid_styles = ['round', 'flat', 'square']
+            if v not in valid_styles:
+                raise ValueError(f"cap_style must be one of {valid_styles}, got '{v}'")
+        return v
+
+    @field_validator('mode')
+    @classmethod
+    def validate_mode(cls, v):
+        if v is not None:
+            valid_modes = ['normal', 'ring']
+            if v not in valid_modes:
+                raise ValueError(f"buffer mode must be one of {valid_modes}, got '{v}'")
+        return v
+
+    @model_validator(mode='after')
+    def validate_distance_consistency(self):
+        if self.distance is None and self.distance_field is None:
+            raise ValueError("Either 'distance' or 'distance_field' must be specified for buffer operation")
+        if self.distance is not None and self.distance_field is not None:
+            raise ValueError("Cannot specify both 'distance' and 'distance_field' for buffer operation")
+        return self
 
 class CopyOpParams(BaseOperationParams):
     type: str = "copy"
@@ -451,6 +568,64 @@ class GeomLayerDefinition(BaseModel):
     style: Optional[Union[str, NamedStyle]] = None
     update_dxf: Optional[bool] = Field(default=True, alias="updateDxf")
     label_column: Optional[str] = Field(default=None, alias="label")
+
+    @field_validator('name')
+    @classmethod
+    def validate_name(cls, v):
+        if not v or not isinstance(v, str) or not v.strip():
+            raise ValueError("Layer name must be a non-empty string")
+        # Check for invalid characters in layer names
+        import re
+        if not re.match(r'^[A-Za-z0-9_-]+$', v):
+            raise ValueError("Layer name must contain only alphanumeric characters, underscores, and hyphens")
+        return v.strip()
+
+    @field_validator('shape_file')
+    @classmethod
+    def validate_shape_file(cls, v):
+        if v is not None:
+            return ConfigValidators.validate_file_path(v, 'shapefile')
+        return v
+
+    @field_validator('geojson_file')
+    @classmethod
+    def validate_geojson_file(cls, v):
+        if v is not None:
+            return ConfigValidators.validate_file_path(v, 'geojson')
+        return v
+
+    @field_validator('circles_to_polygons_segments')
+    @classmethod
+    def validate_circles_segments(cls, v):
+        if v is not None:
+            if v < 3:
+                raise ValueError("circles_to_polygons_segments must be at least 3")
+            if v > 360:
+                raise ValueError("circles_to_polygons_segments should not exceed 360 for practical purposes")
+        return v
+
+    @field_validator('basepoint_target_entity_types')
+    @classmethod
+    def validate_basepoint_entity_types(cls, v):
+        if v is not None:
+            valid_types = ["INSERT", "TEXT", "MTEXT", "POINT", "CIRCLE", "ARC", "LINE", "LWPOLYLINE", "POLYLINE"]
+            invalid_types = [t for t in v if t not in valid_types]
+            if invalid_types:
+                raise ValueError(f"Invalid basepoint entity types: {invalid_types}. Valid types: {valid_types}")
+        return v
+
+    @model_validator(mode='after')
+    def validate_data_source(self):
+        # Ensure exactly one data source is specified
+        sources = [self.shape_file, self.dxf_layer, self.geojson_file]
+        non_none_sources = [s for s in sources if s is not None]
+
+        if len(non_none_sources) == 0:
+            raise ValueError(f"Layer '{self.name}' must specify exactly one data source (shape_file, dxf_layer, or geojson_file)")
+        elif len(non_none_sources) > 1:
+            raise ValueError(f"Layer '{self.name}' cannot specify multiple data sources. Choose one: shape_file, dxf_layer, or geojson_file")
+
+        return self
 
 class LegendItem(BaseModel):
     model_config = ConfigDict(extra='forbid')

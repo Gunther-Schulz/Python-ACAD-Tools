@@ -20,6 +20,11 @@ from ..domain.config_models import (
     # WmtsLayerProjectDefinition, WmsLayerProjectDefinition, DxfOperationsConfig etc.
 )
 from ..domain.exceptions import ConfigError
+from ..domain.config_validation import (
+    validate_config_with_schema,
+    ConfigValidationError,
+    ConfigValidationService
+)
 from .logging_service import LoggingService # Assuming direct instantiation for now
 
 
@@ -43,7 +48,8 @@ class ConfigLoaderService(IConfigLoader):
         self._app_config: Optional[AppConfig] = app_config
         self._aci_color_mappings: Optional[List[AciColorMappingItem]] = None
 
-    def _load_yaml_file(self, file_path: str, model_class: Type[_T]) -> _T:
+    def _load_yaml_file(self, file_path: str, model_class: Type[_T],
+                        validate_config: bool = True, config_type: Optional[str] = None) -> _T:
         """Helper to load a YAML file and parse it into a Pydantic model."""
         self._logger.debug(f"Attempting to load YAML file: {file_path} into model {model_class.__name__}")
         try:
@@ -55,6 +61,22 @@ class ConfigLoaderService(IConfigLoader):
                 # or if default_factory is used. For stricter cases, this could be an error.
                 # For now, assume an empty dict might be processable by Pydantic (e.g. for StyleConfig)
                 data = {}
+
+            # Apply configuration validation if requested
+            if validate_config and config_type:
+                try:
+                    base_path = os.path.dirname(file_path) if os.path.isabs(file_path) else None
+                    data = validate_config_with_schema(
+                        data,
+                        config_type,
+                        config_file=file_path,
+                        base_path=base_path
+                    )
+                    self._logger.debug(f"Configuration validation passed for {file_path}")
+                except ConfigValidationError as e:
+                    self._logger.error(f"Configuration validation failed for {file_path}: {e}")
+                    raise ConfigError(f"Configuration validation failed for {file_path}: {e}") from e
+
             return model_class.model_validate(data)
         except FileNotFoundError:
             self._logger.error(f"Configuration file not found: {file_path}")
@@ -151,50 +173,83 @@ class ConfigLoaderService(IConfigLoader):
             self._logger.error(f"Project directory not found: {project_dir}")
             raise ConfigError(f"Project directory not found: {project_dir}")
 
-        # Main project settings
-        main_settings_path = os.path.join(project_dir, project_yaml_name)
-        main_settings = self._load_yaml_file(main_settings_path, ProjectMainSettings)
+        try:
+            # Main project settings - validate with schema
+            main_settings_path = os.path.join(project_dir, project_yaml_name)
+            main_settings = self._load_yaml_file(
+                main_settings_path,
+                ProjectMainSettings,
+                validate_config=True,
+                config_type='project'
+            )
 
-        # Geometry Layers
-        geom_layers_path = os.path.join(project_dir, geom_layers_yaml_name)
-        geom_layers_data = self._load_yaml_list_file(geom_layers_path, GeomLayerDefinition)
+            # Geometry Layers - validate with schema
+            geom_layers_path = os.path.join(project_dir, geom_layers_yaml_name)
+            geom_layers_data = self._load_yaml_list_file(geom_layers_path, GeomLayerDefinition)
 
-        # Legends
-        legends_path = os.path.join(project_dir, legends_yaml_name)
-        # legends.yaml might be a list or a dict if it contains multiple named legends.
-        # Assuming a list for now as per List[LegendDefinition] in SpecificProjectConfig
-        # If it can be a dict of named legends, the model or loading needs adjustment.
-        # For now, if `legends.yaml` itself *is* the list:
-        legends_data: List[LegendDefinition] = []
-        if os.path.exists(legends_path):
-             legends_data = self._load_yaml_list_file(legends_path, LegendDefinition)
-        else:
-            self._logger.warning(f"Legends file not found for project {project_name}: {legends_path}. Proceeding with empty legends list.")
+            # Apply additional cross-layer validation
+            validator = ConfigValidationService(base_path=project_dir)
+            layer_names = [layer.name for layer in geom_layers_data]
 
-        # Project-specific styles (optional)
-        project_styles_data: Optional[Dict[str, Any]] = None # Corresponds to StyleConfig.styles
-        if project_specific_styles_yaml_name:
-            project_styles_path = os.path.join(project_dir, project_specific_styles_yaml_name)
-            if os.path.exists(project_styles_path):
-                # StyleConfig model expects {"styles": {...}}. So load StyleConfig then extract .styles
-                loaded_proj_style_config = self._load_yaml_file(project_styles_path, StyleConfig)
-                project_styles_data = loaded_proj_style_config.styles
+            # Validate layer operations reference existing layers
+            for layer in geom_layers_data:
+                if layer.operations:
+                    try:
+                        from ..domain.config_validation import CrossFieldValidator
+                        CrossFieldValidator.validate_operation_layer_references(
+                            {'operations': [op.model_dump() for op in layer.operations]},
+                            layer_names
+                        )
+                    except ValueError as e:
+                        self._logger.error(f"Layer operation validation failed for '{layer.name}': {e}")
+                        raise ConfigError(f"Layer operation validation failed for '{layer.name}': {e}")
+
+            # Legends
+            legends_path = os.path.join(project_dir, legends_yaml_name)
+            # legends.yaml might be a list or a dict if it contains multiple named legends.
+            # Assuming a list for now as per List[LegendDefinition] in SpecificProjectConfig
+            # If it can be a dict of named legends, the model or loading needs adjustment.
+            # For now, if `legends.yaml` itself *is* the list:
+            legends_data: List[LegendDefinition] = []
+            if os.path.exists(legends_path):
+                 legends_data = self._load_yaml_list_file(legends_path, LegendDefinition)
             else:
-                self._logger.warning(f"Project specific styles file specified but not found: {project_styles_path}")
+                self._logger.warning(f"Legends file not found for project {project_name}: {legends_path}. Proceeding with empty legends list.")
 
-        # TODO: Load other parts of SpecificProjectConfig as models are finalized
-        # (viewports, block_inserts, text_inserts, path_arrays, wmts_layers, wms_layers, dxf_operations)
-        # For now, they will use their default_factory (empty lists) if not explicitly loaded.
+            # Project-specific styles (optional)
+            project_styles_data: Optional[Dict[str, Any]] = None # Corresponds to StyleConfig.styles
+            if project_specific_styles_yaml_name:
+                project_styles_path = os.path.join(project_dir, project_specific_styles_yaml_name)
+                if os.path.exists(project_styles_path):
+                    # StyleConfig model expects {"styles": {...}}. So load StyleConfig then extract .styles
+                    loaded_proj_style_config = self._load_yaml_file(project_styles_path, StyleConfig)
+                    project_styles_data = loaded_proj_style_config.styles
+                else:
+                    self._logger.warning(f"Project specific styles file specified but not found: {project_styles_path}")
 
-        return SpecificProjectConfig(
-            main=main_settings,
-            geomLayers=geom_layers_data, # Alias used in Pydantic model
-            legends=legends_data,
-            project_specific_styles=project_styles_data, # Alias used in Pydantic model
-            # Initialize other fields as they are loaded
-            # viewports=[], blockInserts=[], textInserts=[], pathArrays=[],
-            # wmtsLayers=[], wmsLayers=[], dxfOperations=None
-        )
+            # TODO: Load other parts of SpecificProjectConfig as models are finalized
+            # (viewports, block_inserts, text_inserts, path_arrays, wmts_layers, wms_layers, dxf_operations)
+            # For now, they will use their default_factory (empty lists) if not explicitly loaded.
+
+            project_config = SpecificProjectConfig(
+                main=main_settings,
+                geomLayers=geom_layers_data, # Alias used in Pydantic model
+                legends=legends_data,
+                project_specific_styles=project_styles_data, # Alias used in Pydantic model
+                # Initialize other fields as they are loaded
+                # viewports=[], blockInserts=[], textInserts=[], pathArrays=[],
+                # wmtsLayers=[], wmsLayers=[], dxfOperations=None
+            )
+
+            self._logger.info(f"Successfully loaded configuration for project '{project_name}' with {len(geom_layers_data)} layers")
+            return project_config
+
+        except ConfigValidationError as e:
+            self._logger.error(f"Configuration validation failed for project '{project_name}': {e}")
+            raise ConfigError(f"Configuration validation failed for project '{project_name}': {e}") from e
+        except Exception as e:
+            self._logger.error(f"Failed to load project configuration for '{project_name}': {e}", exc_info=True)
+            raise ConfigError(f"Failed to load project configuration for '{project_name}': {e}") from e
 
     def get_aci_color_mappings(self) -> List[AciColorMappingItem]:
         """Returns the loaded ACI color mappings."""
