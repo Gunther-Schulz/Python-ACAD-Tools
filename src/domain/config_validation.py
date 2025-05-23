@@ -3,6 +3,7 @@ import os
 import re
 from typing import Any, Dict, List, Optional, Union, Tuple, Type
 from pathlib import Path
+from urllib.parse import urlparse
 
 from pydantic import field_validator, model_validator, ValidationInfo, ConfigDict
 from pydantic_core import ValidationError as PydanticValidationError
@@ -24,28 +25,8 @@ try:
 except ImportError:
     GEOPANDAS_AVAILABLE = False
 
-
-class ConfigValidationError(Exception):
-    """Custom exception for configuration validation errors."""
-
-    def __init__(self, message: str, field_name: Optional[str] = None,
-                 config_file: Optional[str] = None, validation_errors: Optional[List[str]] = None):
-        self.message = message
-        self.field_name = field_name
-        self.config_file = config_file
-        self.validation_errors = validation_errors or []
-
-        detailed_message = f"Configuration validation error"
-        if config_file:
-            detailed_message += f" in {config_file}"
-        if field_name:
-            detailed_message += f" for field '{field_name}'"
-        detailed_message += f": {message}"
-
-        if validation_errors:
-            detailed_message += f"\nDetailed errors:\n" + "\n".join(f"  - {err}" for err in validation_errors)
-
-        super().__init__(detailed_message)
+from ..interfaces.config_validation_interface import IConfigValidation
+from .exceptions import ConfigValidationError
 
 
 class ValidationRegistry:
@@ -325,7 +306,7 @@ class CrossFieldValidator:
         return values
 
 
-class ConfigValidationService:
+class ConfigValidationService(IConfigValidation):
     """Service for comprehensive configuration validation."""
 
     def __init__(self, base_path: Optional[str] = None):

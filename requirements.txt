@@ -1,7 +1,10 @@
-ezdxf==1.4.3
+ezdxf
 geopandas==0.14.3
 matplotlib==3.8.3
 OWSLib==0.29.3
 PyYAML==6.0.1
 PyYAML==6.0.1
 Shapely==2.0.4
+dependency-injector==4.41.0
+pydantic==2.5.0
+pydantic-settings==2.1.0

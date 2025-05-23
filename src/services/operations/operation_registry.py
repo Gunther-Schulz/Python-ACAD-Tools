@@ -1,15 +1,25 @@
 """Operation registry for managing geometry operation handlers."""
-from typing import Dict, Type, Optional
-import importlib
+from typing import Dict, Type, Optional, List, Any
 import inspect
 
 from ...interfaces.logging_service_interface import ILoggingService
 from ...interfaces.data_source_interface import IDataSource
+from ...interfaces.operation_registry_interface import IOperationRegistry
 from ...domain.exceptions import GeometryError
 from .base_operation_handler import BaseOperationHandler
 
+# Import all handler modules directly
+from . import (
+    transformation_handlers,
+    spatial_analysis_handlers,
+    geometry_creation_handlers,
+    data_processing_handlers,
+    filtering_handlers,
+    advanced_handlers
+)
 
-class OperationRegistry:
+
+class OperationRegistry(IOperationRegistry):
     """Registry for operation handlers following dependency injection pattern."""
 
     def __init__(self, logger_service: ILoggingService, data_source_service: IDataSource):
@@ -26,18 +36,16 @@ class OperationRegistry:
     def _discover_handlers(self) -> None:
         """Auto-discover operation handlers following existing pattern."""
         handler_modules = [
-            'transformation_handlers',
-            'spatial_analysis_handlers',
-            'geometry_creation_handlers',
-            'data_processing_handlers',
-            'filtering_handlers',
-            'advanced_handlers'
+            transformation_handlers,
+            spatial_analysis_handlers,
+            geometry_creation_handlers,
+            data_processing_handlers,
+            filtering_handlers,
+            advanced_handlers
         ]
 
-        for module_name in handler_modules:
+        for module in handler_modules:
             try:
-                module = importlib.import_module(f"src.services.operations.{module_name}")
-
                 # Find all handler classes in the module
                 for name, obj in inspect.getmembers(module, inspect.isclass):
                     if (issubclass(obj, BaseOperationHandler) and
@@ -57,10 +65,8 @@ class OperationRegistry:
                         except Exception as e:
                             self._logger.warning(f"Failed to instantiate handler {obj.__name__}: {e}")
 
-            except ImportError as e:
-                self._logger.debug(f"Could not import handler module {module_name}: {e}")
             except Exception as e:
-                self._logger.warning(f"Error discovering handlers in module {module_name}: {e}")
+                self._logger.warning(f"Error discovering handlers in module {module.__name__}: {e}")
 
     def get_handler(self, operation_type: str) -> Optional[BaseOperationHandler]:
         """Get handler for the specified operation type."""
@@ -73,7 +79,7 @@ class OperationRegistry:
         """Check if handler exists for the operation type."""
         return operation_type in self._handlers
 
-    def get_supported_operations(self) -> list[str]:
+    def get_supported_operations(self) -> List[str]:
         """Get list of all supported operation types."""
         return list(self._handlers.keys())
 
@@ -87,9 +93,9 @@ class OperationRegistry:
     def execute_operation(
         self,
         operation_type: str,
-        params: any,
-        source_layers: Dict[str, any]
-    ) -> any:
+        params: Any,
+        source_layers: Dict[str, Any]
+    ) -> Any:
         """Execute an operation using the appropriate handler."""
         handler = self.get_handler(operation_type)
         if not handler:

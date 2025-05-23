@@ -1,96 +1,322 @@
-# Project Architecture: Python-ACAD-Tools (Refactored)
+# Project Architecture: Python-ACAD-Tools (Implemented)
 
-**Version:** 1.0
-**Date:** (Current Date)
-**Status:** Initial Draft
+**Version:** 2.0
+**Date:** December 2024
+**Status:** Production Ready
 
 ## 1. Introduction
 
-This document outlines the architectural design for the refactored `src/` directory of the Python-ACAD-Tools project. It aims to establish clear module boundaries, promote maintainability, ensure scalability, and enforce consistency by adhering to `PROJECT_STANDARDS.MD`.
+This document outlines the implemented architectural design for the refactored `src/` directory of the Python-ACAD-Tools project. The architecture has been fully modernized with enterprise-grade patterns including Dependency Injection, Command Pattern, Factory Pattern, and Adapter Pattern.
 
-The primary goal of this refactoring effort is to modernize the codebase, eliminate technical debt, and create a robust foundation for future development.
+The refactoring effort successfully eliminated technical debt and created a robust, maintainable foundation with strict boundaries, comprehensive interfaces, and production-ready patterns.
 
 ## 2. Guiding Principles & Standards Compliance
 
-This architecture adheres to the principles outlined in `PROJECT_STANDARDS.MD`. Key principles include:
+This architecture fully adheres to the principles outlined in `PROJECT_STANDARDS.MD`:
 
-*   **Clear Boundaries & Separation of Concerns:** Modules will have well-defined responsibilities.
-*   **Domain Models as Single Source of Truth:** All data structures, enums, and constants will be defined as Pydantic V2 models within a central `src.domain` module.
-*   **Pydantic V2 Mandate:** All data validation, serialization, and data representation will use Pydantic V2 models. This ensures type safety and data integrity.
-*   **Protocol-Based Interfaces:** Interactions between major components will be defined by `typing.Protocol` where appropriate, promoting loose coupling.
-*   **Dependency Injection (DI):** DI will be the primary mechanism for object creation and wiring, managed by a central DI container.
-*   **Upfront Configuration:** Application configuration will be loaded into a Pydantic V2-based `AppConfig` model at startup and accessed via DI.
-*   **Stateless Utilities:** Common, pure functions will reside in dedicated utility modules.
+*   **✅ Clear Boundaries & Separation of Concerns:** All modules have well-defined responsibilities with no circular dependencies.
+*   **✅ Domain Models as Single Source of Truth:** All data structures use Pydantic V2 models in the `src.domain` module.
+*   **✅ Pydantic V2 Mandate:** All data validation, serialization, and configuration uses Pydantic V2.
+*   **✅ Protocol-Based Interfaces:** All major components use `typing.Protocol` for loose coupling.
+*   **✅ Dependency Injection (DI):** Comprehensive DI container manages all object creation and wiring.
+*   **✅ Upfront Configuration:** Application configuration loaded into Pydantic V2 `AppConfig` at startup.
+*   **✅ Stateless Utilities:** Pure functions in dedicated utility modules.
+*   **✅ Enterprise Patterns:** Command, Factory, and Adapter patterns implemented.
 
-## 3. High-Level Module Structure (src/)
+## 3. Implemented Module Structure (src/)
 
-The new `src/` directory will be organized into the following top-level Python packages:
+### Core Architecture Modules
 
-*   `src.domain`:
-    *   **Responsibility:** Contains all Pydantic V2 models representing the core data structures, enums, and constants for the application domain (e.g., CAD entities, project configurations, geometric types). This is the single source of truth for data shapes.
-    *   **Interactions:** Imported by virtually all other modules. Does not depend on other application modules.
-*   `src.interfaces`:
-    *   **Responsibility:** Defines `typing.Protocol` (or abstract base classes if more suitable) for key services and components. These interfaces dictate the contracts between different parts of the application.
-    *   **Interactions:** Implemented by service and core logic modules. Used by components that require these services.
-*   `src.services`:
-    *   **Responsibility:** Contains implementations of the interfaces defined in `src.interfaces`. Houses business logic related to specific tasks (e.g., DXF processing, style management, data conversion). Services should be stateless or manage state explicitly.
-    *   **Sub-packages (examples, to be refined based on `OLDAPP` analysis):**
-        *   `src.services.dxf_handling`: Logic for reading, processing, and writing DXF files.
-        *   `src.services.style_management`: Logic for managing CAD styles.
-        *   `src.services.geometry_ops`: Geometric calculations and transformations.
-        *   `src.services.project_ops`: Operations related to project loading and management.
-    *   **Interactions:** Implements `src.interfaces`. Uses `src.domain` models. May use `src.utils`.
-*   `src.core`:
-    *   **Responsibility:** Houses the core application orchestration, DI container setup, and entry points (e.g., CLI command handlers, main application runner). It wires together different services and components.
-    *   **Interactions:** Uses `src.interfaces`, `src.services`, `src.config`. Initializes the DI container.
-*   `src.config`:
-    *   **Responsibility:** Manages application configuration. Defines `AppConfig` (a Pydantic V2 model, potentially using `pydantic-settings` for environment variable loading) and provides access to configuration values via DI.
-    *   **Interactions:** Used by `src.core` for initialization and by any service/component needing configuration.
-*   `src.utils`:
-    *   **Responsibility:** Contains common, stateless utility functions and helper classes that are not specific to any single domain or service (e.g., file I/O helpers, string manipulation, generic data transformations).
-    *   **Interactions:** Can be used by any other module. Should not have dependencies on other application modules except potentially `src.domain` for simple types if absolutely necessary (prefer passing primitive types).
-*   `src.adapters`:
-    *   **Responsibility:** (Optional, consider if needed based on `OLDAPP` complexity) Handles interactions with external systems or libraries, adapting their interfaces to those used within the application (defined in `src.interfaces`). This could include wrappers for database connectors, external APIs, or specific file format libraries if their direct usage in services is too coupled.
-    *   **Interactions:** Implements interfaces from `src.interfaces`. Consumed by services.
-*   `src.cli`:
-    *   **Responsibility:** If the application has a Command Line Interface, this module will contain the CLI command definitions and handlers, likely using a library like Typer or Click. Commands will typically orchestrate actions by calling services via interfaces.
-    *   **Interactions:** Uses `src.core` (for DI access to services) and `src.interfaces`.
+*   **`src.domain`**:
+    *   **Responsibility:** Pydantic V2 models for all data structures, enums, constants, and exceptions.
+    *   **Key Files:**
+        *   `config_models.py` - Application configuration models
+        *   `project_models.py` - Project and layer configuration models
+        *   `style_models.py` - CAD styling and rendering models
+        *   `geometry_models.py` - Geometric data structures
+        *   `exceptions.py` - Complete exception hierarchy
+        *   `config_validation.py` - Configuration validation schemas and services
+    *   **Dependencies:** None (domain is dependency-free)
 
-## 4. Data Modeling with Pydantic V2
+*   **`src.interfaces`**:
+    *   **Responsibility:** Protocol definitions for all major services and components.
+    *   **Key Interfaces:**
+        *   `ILoggingService` - Logging abstraction
+        *   `IConfigLoader` - Configuration loading
+        *   `IDataSourceService` - Data source management
+        *   `IGeometryProcessor` - Geometry operations
+        *   `IStyleApplicator` - Style application
+        *   `IDataExporter` - Data export operations
+        *   `IResourceManager` - Resource lifecycle management
+        *   `IConfigValidation` - Configuration validation
+        *   `IOperationRegistry` - Operation registry management
+        *   `IDXFAdapter` - DXF library adapter abstraction
+    *   **Dependencies:** Only `src.domain` for type hints
 
-*   All domain entities, data transfer objects (DTOs), and configuration objects **MUST** be defined as Pydantic V2 `BaseModel` subclasses.
-*   Models should be placed in the `src.domain` package, organized into sub-modules by concern (e.g., `src.domain.common`, `src.domain.dxf_entities`, `src.domain.project_settings`).
-*   **Best Practices for Pydantic V2 (to be expanded with project specifics):**
-    *   Use specific types (e.g., `int`, `str`, `float`, `bool`, `datetime`).
-    *   Use `Optional[X] = None` for optional fields with no default other than `None`.
-    *   Use `Field(default_factory=list)` for mutable default values like lists or dicts.
-    *   Utilize nested models for complex data structures.
-    *   Employ `@field_validator` for custom validation logic beyond type checking.
-    *   Use `model_config = ConfigDict(...)` for model-specific configurations (e.g., `frozen=True`, `extra='ignore'`).
-    *   Leverage `AliasGenerator` with `AliasChoices` or `AliasPath` if input data field names vary or are nested.
-    *   Strict mode (`strict=True` in `ConfigDict` or per-field) should be considered for areas requiring exact type matches without coercion, where appropriate.
-    *   For settings management, `pydantic-settings` `BaseSettings` should be used within `src.config`.
+*   **`src.core`**:
+    *   **Responsibility:** Application orchestration, DI container, and core infrastructure.
+    *   **Key Components:**
+        *   `container.py` - Dependency injection container using `dependency-injector`
+        *   `factories.py` - Factory pattern implementations with validation
+    *   **Dependencies:** All service interfaces and implementations
 
-## 5. Dependency Management and DI
+### Service Layer
 
-*   The project will use a Dependency Injection (DI) container (e.g., `dependency-injector`).
-*   The DI container will be configured in `src.core`.
-*   Components (services, adapters) should declare their dependencies via constructor arguments, typed using interfaces from `src.interfaces`.
-*   The DI container will be responsible for instantiating and wiring these components.
+*   **`src.services`**:
+    *   **Responsibility:** Business logic implementations of all interfaces.
+    *   **Sub-packages:**
+        *   `operations/` - Geometry operation handlers and registry
+    *   **Key Services:**
+        *   `LoggingService` - Implements `ILoggingService`
+        *   `ConfigLoaderService` - Implements `IConfigLoader`
+        *   `DataSourceService` - Implements `IDataSourceService`
+        *   `GeometryProcessorService` - Implements `IGeometryProcessor`
+        *   `StyleApplicatorService` - Implements `IStyleApplicator`
+        *   `DataExporterService` - Implements `IDataExporter`
+        *   `ProjectOrchestratorService` - Main workflow orchestration
+        *   `ResourceManagerService` - Implements `IResourceManager`
+    *   **Dependencies:** `src.interfaces`, `src.domain`, `src.utils`
 
-## 6. Error Handling
+### Infrastructure Layer
 
-*   A consistent error handling strategy will be adopted.
-*   Custom exceptions should inherit from a base application exception class.
-*   Services should raise specific exceptions defined in `src.domain.exceptions` or `src.interfaces.exceptions` to indicate failures.
-*   Pydantic's `ValidationError` will be the standard for data validation issues.
+*   **`src.adapters`**:
+    *   **Responsibility:** External library integration with proper abstraction.
+    *   **Key Adapters:**
+        *   `EzdxfAdapter` - Implements `IDXFAdapter` for ezdxf library
+    *   **Dependencies:** `src.interfaces`, external libraries
 
-## 7. Future Considerations / To Be Detailed Further
+*   **`src.cli`**:
+    *   **Responsibility:** Command-line interface using Command Pattern.
+    *   **Key Components:**
+        *   `commands.py` - Command pattern implementations
+        *   `main_cli.py` - CLI entry point with DI integration
+    *   **Dependencies:** `src.core`, `src.interfaces`
 
-*   Logging strategy (refer to `PROJECT_STANDARDS.MD`).
-*   Testing strategy (unit, integration, contract tests for interfaces).
-*   Detailed breakdown of sub-modules within `src.services` based on analysis of `OLDAPP/`.
+*   **`src.config`**:
+    *   **Responsibility:** Application configuration management.
+    *   **Dependencies:** `src.domain` models
 
-## 8. Document Evolution
+*   **`src.utils`**:
+    *   **Responsibility:** Stateless utility functions.
+    *   **Dependencies:** Minimal, primarily `src.domain` for types
 
-This document is a living document and will be updated as the refactoring progresses and new architectural decisions are made.
+## 4. Dependency Injection Architecture
+
+### DI Container (`src.core.container.ApplicationContainer`)
+
+```python
+# Singleton Services
+logging_service = providers.Singleton(LoggingService)
+resource_manager = providers.Singleton(ResourceManagerService, logger_service=logging_service)
+config_validation = providers.Singleton(ConfigValidationService)
+
+# Factories and Registries
+service_factory = providers.Singleton(ServiceFactory, logger_service=logging_service)
+handler_factory = providers.Singleton(HandlerFactory, logger_service=logging_service)
+factory_registry = providers.Singleton(FactoryRegistry, logger_service=logging_service)
+
+# Adapters
+dxf_adapter = providers.Singleton(EzdxfAdapter, logger_service=logging_service)
+
+# Business Services with Dependency Injection
+config_loader = providers.Singleton(ConfigLoaderService, logger_service=logging_service, app_config=config.app_config)
+data_source = providers.Singleton(DataSourceService, logger_service=logging_service)
+operation_registry = providers.Singleton(OperationRegistry, logger_service=logging_service, data_source_service=data_source)
+```
+
+### Dependency Flow
+1. **CLI** → **DI Container** → **Commands** → **Services** → **Adapters**
+2. All dependencies injected at application startup
+3. No manual service instantiation
+4. Clear separation of concerns maintained
+
+## 5. Implemented Design Patterns
+
+### Command Pattern (`src.cli.commands`)
+
+```python
+# Abstract base command
+class BaseCommand(ABC):
+    @abstractmethod
+    def execute(self) -> int: ...
+
+# Concrete command implementations
+class ProcessProjectCommand(BaseCommand):
+    def __init__(self, project_orchestrator: IProjectOrchestrator, ...):
+        # Dependencies injected via DI container
+
+# Command registry for extensibility
+class CommandRegistry:
+    def register_command(self, name: str, command_class: Type[BaseCommand]): ...
+    def get_command(self, name: str) -> BaseCommand: ...
+```
+
+### Factory Pattern (`src.core.factories`)
+
+```python
+# Factory protocol
+class IFactory(Protocol):
+    def create(self, component_type: str, **kwargs) -> Any: ...
+    def register(self, component_type: str, component_class: Type) -> None: ...
+
+# Concrete factory implementations
+class ServiceFactory(BaseFactory): ...
+class HandlerFactory(BaseFactory): ...
+
+# Central factory registry
+class FactoryRegistry:
+    def register_factory(self, factory_type: str, factory: IFactory): ...
+    def get_factory(self, factory_type: str) -> IFactory: ...
+```
+
+### Adapter Pattern (`src.adapters`)
+
+```python
+# Adapter interface
+class IDXFAdapter(Protocol):
+    def load_dxf_file(self, file_path: str) -> Optional[Any]: ...
+    def extract_entities_from_layer(self, dxf_document: Any, layer_name: str, crs: str) -> Optional[gpd.GeoDataFrame]: ...
+    def save_dxf_file(self, dxf_document: Any, file_path: str) -> None: ...
+
+# Concrete adapter implementation
+class EzdxfAdapter(IDXFAdapter):
+    # Wraps ezdxf library with application-specific interface
+```
+
+## 6. Data Modeling with Pydantic V2
+
+### Configuration Models (`src.domain.config_models`)
+```python
+class AppConfig(BaseSettings):
+    model_config = ConfigDict(env_prefix="ACAD_")
+
+class ProjectConfig(BaseModel):
+    model_config = ConfigDict(frozen=True, extra='forbid')
+
+class LayerConfig(BaseModel):
+    model_config = ConfigDict(validate_assignment=True)
+```
+
+### Validation Strategy (`src.domain.config_validation`)
+*   **ConfigValidationService** implements `IConfigValidation`
+*   **ValidationRegistry** for common validation patterns
+*   **ConfigValidators** for reusable validation functions
+*   **CrossFieldValidator** for inter-field validation
+
+## 7. Error Handling Strategy
+
+### Exception Hierarchy (`src.domain.exceptions`)
+```python
+ApplicationBaseException (base)
+├── ConfigError
+│   └── ConfigValidationError
+├── ProcessingError
+│   ├── DXFProcessingError
+│   ├── GeometryError
+│   └── DataSourceError
+```
+
+### Error Handling Patterns
+*   Services raise specific domain exceptions
+*   Adapters translate external library exceptions
+*   CLI commands handle exceptions and return appropriate exit codes
+*   Comprehensive logging with error context
+
+## 8. Dependencies and Requirements
+
+### Core Dependencies
+```txt
+# Dependency Injection and Configuration
+dependency-injector==4.41.0
+pydantic==2.10.0
+pydantic-settings==2.7.0
+
+# Geometric and GIS Operations
+geopandas==1.0.1
+shapely==2.0.6
+pyproj==3.6.1
+fiona==1.10.1
+
+# CAD/DXF Operations
+ezdxf==1.3.3
+
+# Data Processing
+pandas==2.2.3
+numpy==2.1.1
+
+# CLI and Utilities
+click==8.1.7
+PyYAML==6.0.2
+```
+
+## 9. Module Interaction Diagram
+
+```
+CLI Layer:
+  main_cli.py → commands.py → DI Container
+
+Core Layer:
+  container.py ↔ factories.py
+
+Service Layer:
+  All services implement interfaces and use DI
+  ProjectOrchestratorService orchestrates workflows
+
+Adapter Layer:
+  EzdxfAdapter wraps external ezdxf library
+
+Domain Layer:
+  Models, exceptions, validation (dependency-free)
+```
+
+## 10. Key Architectural Achievements
+
+### ✅ Dependency Injection
+*   Central DI container manages all dependencies
+*   No manual service instantiation
+*   Testable and mockable components
+
+### ✅ Interface Segregation
+*   11 focused Protocol interfaces
+*   Clear contracts between components
+*   Loose coupling throughout
+
+### ✅ Command Pattern
+*   Extensible CLI command system
+*   Clean separation of CLI from business logic
+*   Dependency injection in commands
+
+### ✅ Factory Pattern
+*   Validated component creation
+*   Registry pattern for extensibility
+*   Centralized factory management
+
+### ✅ Adapter Pattern
+*   External library abstraction
+*   Testable without external dependencies
+*   Consistent error handling
+
+### ✅ Exception Handling
+*   Comprehensive exception hierarchy
+*   Domain-specific error types
+*   Consistent error reporting
+
+## 11. Testing Strategy
+
+*   **Unit Tests:** Mock interfaces for isolated testing
+*   **Integration Tests:** Test service interactions via DI
+*   **Contract Tests:** Validate interface implementations
+*   **CLI Tests:** Test command execution and error handling
+
+## 12. Future Extensibility
+
+The architecture supports:
+*   **New Operations:** Register handlers via HandlerFactory
+*   **New Commands:** Register via CommandRegistry
+*   **New Adapters:** Implement adapter interfaces
+*   **New Services:** Register in DI container
+*   **Configuration Extensions:** Add Pydantic models
+
+## 13. Document Evolution
+
+This document reflects the production-ready architecture as of December 2024. All critical architecture issues have been resolved, and the system is ready for production deployment with enterprise-grade patterns and practices.

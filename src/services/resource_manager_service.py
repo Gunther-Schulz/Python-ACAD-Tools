@@ -11,10 +11,11 @@ import geopandas as gpd
 import pandas as pd
 
 from ..interfaces.logging_service_interface import ILoggingService
+from ..interfaces.resource_manager_interface import IResourceManager
 from ..domain.exceptions import ApplicationBaseException
 
 
-class ResourceManagerService:
+class ResourceManagerService(IResourceManager):
     """Service for managing resources and ensuring proper cleanup following existing patterns."""
 
     def __init__(self, logger_service: ILoggingService):
