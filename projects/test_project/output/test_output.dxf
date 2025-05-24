@@ -489,7 +489,7 @@ $SKPOLY
   9
 $TDCREATE
  40
-2460819.780439815
+2460820.078472222
   9
 $TDUCREATE
  40
@@ -497,7 +497,7 @@ $TDUCREATE
   9
 $TDUPDATE
  40
-2460819.780439815
+2460820.078472222
   9
 $TDUUPDATE
  40
@@ -933,7 +933,7 @@ $FINGERPRINTGUID
   9
 $VERSIONGUID
   2
-{1324975F-8833-4A3E-8AA3-647492830C16}
+{41FD8E66-6757-4685-8C37-820396335FDA}
   9
 $EXTNAMES
 290
@@ -31018,6 +31018,12 @@ LWPOLYLINE
 AcDbEntity
   8
 commercial_buildings
+  6
+Continuous
+ 62
+1
+370
+50
 100
 AcDbPolyline
  90
@@ -31054,8 +31060,12 @@ TEXT
 AcDbEntity
   8
 commercial_buildings
+  6
+Continuous
  62
 5
+370
+50
 100
 AcDbText
  10
@@ -31092,6 +31102,12 @@ LWPOLYLINE
 AcDbEntity
   8
 commercial_buildings
+  6
+Continuous
+ 62
+1
+370
+50
 100
 AcDbPolyline
  90
@@ -31128,8 +31144,12 @@ TEXT
 AcDbEntity
   8
 commercial_buildings
+  6
+Continuous
  62
 5
+370
+50
 100
 AcDbText
  10
@@ -31166,6 +31186,12 @@ LWPOLYLINE
 AcDbEntity
   8
 commercial_buildings
+  6
+Continuous
+ 62
+1
+370
+50
 100
 AcDbPolyline
  90
@@ -31202,8 +31228,12 @@ TEXT
 AcDbEntity
   8
 commercial_buildings
+  6
+Continuous
  62
 5
+370
+50
 100
 AcDbText
  10
@@ -31240,6 +31270,12 @@ LWPOLYLINE
 AcDbEntity
   8
 residential_buildings
+  6
+Continuous
+ 62
+5
+370
+40
 100
 AcDbPolyline
  90
@@ -31276,8 +31312,12 @@ TEXT
 AcDbEntity
   8
 residential_buildings
+  6
+Continuous
  62
 7
+370
+40
 100
 AcDbText
  10
@@ -31314,6 +31354,12 @@ LWPOLYLINE
 AcDbEntity
   8
 residential_buildings
+  6
+Continuous
+ 62
+5
+370
+40
 100
 AcDbPolyline
  90
@@ -31350,8 +31396,12 @@ TEXT
 AcDbEntity
   8
 residential_buildings
+  6
+Continuous
  62
 7
+370
+40
 100
 AcDbText
  10
@@ -31388,6 +31438,12 @@ LWPOLYLINE
 AcDbEntity
   8
 residential_buildings
+  6
+Continuous
+ 62
+5
+370
+40
 100
 AcDbPolyline
  90
@@ -31424,8 +31480,12 @@ TEXT
 AcDbEntity
   8
 residential_buildings
+  6
+Continuous
  62
 7
+370
+40
 100
 AcDbText
  10
@@ -31462,6 +31522,12 @@ LWPOLYLINE
 AcDbEntity
   8
 industrial_buildings
+  6
+DASHED
+ 62
+8
+370
+60
 100
 AcDbPolyline
  90
@@ -31498,8 +31564,12 @@ TEXT
 AcDbEntity
   8
 industrial_buildings
+  6
+DASHED
  62
 1
+370
+60
 100
 AcDbText
  10
@@ -31536,6 +31606,12 @@ LWPOLYLINE
 AcDbEntity
   8
 industrial_buildings
+  6
+DASHED
+ 62
+8
+370
+60
 100
 AcDbPolyline
  90
@@ -31572,8 +31648,12 @@ TEXT
 AcDbEntity
   8
 industrial_buildings
+  6
+DASHED
  62
 1
+370
+60
 100
 AcDbText
  10
@@ -31610,6 +31690,12 @@ LWPOLYLINE
 AcDbEntity
   8
 public_buildings
+  6
+Continuous
+ 62
+3
+370
+50
 100
 AcDbPolyline
  90
@@ -31646,8 +31732,12 @@ TEXT
 AcDbEntity
   8
 public_buildings
+  6
+Continuous
  62
 7
+370
+50
 100
 AcDbText
  10
@@ -31684,6 +31774,12 @@ LWPOLYLINE
 AcDbEntity
   8
 public_buildings
+  6
+Continuous
+ 62
+3
+370
+50
 100
 AcDbPolyline
  90
@@ -31720,8 +31816,12 @@ TEXT
 AcDbEntity
   8
 public_buildings
+  6
+Continuous
  62
 7
+370
+50
 100
 AcDbText
  10
@@ -31758,6 +31858,12 @@ LWPOLYLINE
 AcDbEntity
   8
 recreational_facilities
+  6
+DASHED
+ 62
+7
+370
+35
 100
 AcDbPolyline
  90
@@ -31794,8 +31900,12 @@ TEXT
 AcDbEntity
   8
 recreational_facilities
+  6
+DASHED
  62
 5
+370
+35
 100
 AcDbText
  10
@@ -31832,6 +31942,12 @@ LWPOLYLINE
 AcDbEntity
   8
 healthcare_facilities
+  6
+Continuous
+ 62
+1
+370
+60
 100
 AcDbPolyline
  90
@@ -31868,8 +31984,12 @@ TEXT
 AcDbEntity
   8
 healthcare_facilities
+  6
+Continuous
  62
 7
+370
+60
 100
 AcDbText
  10
@@ -31906,6 +32026,12 @@ LWPOLYLINE
 AcDbEntity
   8
 educational_facilities
+  6
+CENTER
+ 62
+5
+370
+40
 100
 AcDbPolyline
  90
@@ -31942,8 +32068,12 @@ TEXT
 AcDbEntity
   8
 educational_facilities
+  6
+CENTER
  62
 2
+370
+40
 100
 AcDbText
  10
@@ -31980,6 +32110,12 @@ LWPOLYLINE
 AcDbEntity
   8
 all_buildings
+  6
+Continuous
+ 62
+1
+370
+50
 100
 AcDbPolyline
  90
@@ -32016,8 +32152,12 @@ TEXT
 AcDbEntity
   8
 all_buildings
+  6
+Continuous
  62
 5
+370
+50
 100
 AcDbText
  10
@@ -32054,6 +32194,12 @@ LWPOLYLINE
 AcDbEntity
   8
 all_buildings
+  6
+Continuous
+ 62
+1
+370
+50
 100
 AcDbPolyline
  90
@@ -32090,8 +32236,12 @@ TEXT
 AcDbEntity
   8
 all_buildings
+  6
+Continuous
  62
 5
+370
+50
 100
 AcDbText
  10
@@ -32128,6 +32278,12 @@ LWPOLYLINE
 AcDbEntity
   8
 all_buildings
+  6
+Continuous
+ 62
+1
+370
+50
 100
 AcDbPolyline
  90
@@ -32164,8 +32320,12 @@ TEXT
 AcDbEntity
   8
 all_buildings
+  6
+Continuous
  62
 5
+370
+50
 100
 AcDbText
  10
@@ -32202,6 +32362,12 @@ LWPOLYLINE
 AcDbEntity
   8
 all_buildings
+  6
+Continuous
+ 62
+1
+370
+50
 100
 AcDbPolyline
  90
@@ -32238,8 +32404,12 @@ TEXT
 AcDbEntity
   8
 all_buildings
+  6
+Continuous
  62
 5
+370
+50
 100
 AcDbText
  10
@@ -32306,8 +32476,12 @@ TEXT
 AcDbEntity
   8
 all_buildings
+  6
+Continuous
  62
 5
+370
+50
 100
 AcDbText
  10
@@ -32374,8 +32548,12 @@ TEXT
 AcDbEntity
   8
 all_buildings
+  6
+Continuous
  62
 5
+370
+50
 100
 AcDbText
  10
@@ -32450,8 +32628,12 @@ TEXT
 AcDbEntity
   8
 all_buildings
+  6
+Continuous
  62
 5
+370
+50
 100
 AcDbText
  10
@@ -32512,8 +32694,12 @@ TEXT
 AcDbEntity
   8
 all_buildings
+  6
+Continuous
  62
 5
+370
+50
 100
 AcDbText
  10
@@ -32574,8 +32760,12 @@ TEXT
 AcDbEntity
   8
 all_buildings
+  6
+Continuous
  62
 5
+370
+50
 100
 AcDbText
  10
@@ -32636,8 +32826,12 @@ TEXT
 AcDbEntity
   8
 all_buildings
+  6
+Continuous
  62
 5
+370
+50
 100
 AcDbText
  10
@@ -32674,6 +32868,12 @@ LWPOLYLINE
 AcDbEntity
   8
 all_buildings
+  6
+Continuous
+ 62
+1
+370
+50
 100
 AcDbPolyline
  90
@@ -32710,8 +32910,12 @@ TEXT
 AcDbEntity
   8
 all_buildings
+  6
+Continuous
  62
 5
+370
+50
 100
 AcDbText
  10
@@ -32748,6 +32952,12 @@ LWPOLYLINE
 AcDbEntity
   8
 all_buildings
+  6
+Continuous
+ 62
+1
+370
+50
 100
 AcDbPolyline
  90
@@ -32784,8 +32994,12 @@ TEXT
 AcDbEntity
   8
 all_buildings
+  6
+Continuous
  62
 5
+370
+50
 100
 AcDbText
  10
@@ -32822,6 +33036,12 @@ LWPOLYLINE
 AcDbEntity
   8
 all_buildings
+  6
+Continuous
+ 62
+1
+370
+50
 100
 AcDbPolyline
  90
@@ -32858,8 +33078,12 @@ TEXT
 AcDbEntity
   8
 all_buildings
+  6
+Continuous
  62
 5
+370
+50
 100
 AcDbText
  10
@@ -32896,6 +33120,12 @@ LWPOLYLINE
 AcDbEntity
   8
 all_buildings
+  6
+Continuous
+ 62
+1
+370
+50
 100
 AcDbPolyline
  90
@@ -32932,8 +33162,12 @@ TEXT
 AcDbEntity
   8
 all_buildings
+  6
+Continuous
  62
 5
+370
+50
 100
 AcDbText
  10
@@ -32970,6 +33204,12 @@ LWPOLYLINE
 AcDbEntity
   8
 all_buildings
+  6
+Continuous
+ 62
+1
+370
+50
 100
 AcDbPolyline
  90
@@ -33006,8 +33246,12 @@ TEXT
 AcDbEntity
   8
 all_buildings
+  6
+Continuous
  62
 5
+370
+50
 100
 AcDbText
  10
@@ -33044,6 +33288,12 @@ LWPOLYLINE
 AcDbEntity
   8
 all_buildings
+  6
+Continuous
+ 62
+1
+370
+50
 100
 AcDbPolyline
  90
@@ -33080,8 +33330,12 @@ TEXT
 AcDbEntity
   8
 all_buildings
+  6
+Continuous
  62
 5
+370
+50
 100
 AcDbText
  10
@@ -33118,6 +33372,12 @@ LWPOLYLINE
 AcDbEntity
   8
 all_buildings
+  6
+Continuous
+ 62
+1
+370
+50
 100
 AcDbPolyline
  90
@@ -33154,8 +33414,12 @@ TEXT
 AcDbEntity
   8
 all_buildings
+  6
+Continuous
  62
 5
+370
+50
 100
 AcDbText
  10
@@ -33192,6 +33456,12 @@ LWPOLYLINE
 AcDbEntity
   8
 all_buildings
+  6
+Continuous
+ 62
+1
+370
+50
 100
 AcDbPolyline
  90
@@ -33228,8 +33498,12 @@ TEXT
 AcDbEntity
   8
 all_buildings
+  6
+Continuous
  62
 5
+370
+50
 100
 AcDbText
  10
@@ -33266,6 +33540,12 @@ LWPOLYLINE
 AcDbEntity
   8
 all_buildings
+  6
+Continuous
+ 62
+1
+370
+50
 100
 AcDbPolyline
  90
@@ -33302,8 +33582,12 @@ TEXT
 AcDbEntity
   8
 all_buildings
+  6
+Continuous
  62
 5
+370
+50
 100
 AcDbText
  10
@@ -33370,8 +33654,12 @@ TEXT
 AcDbEntity
   8
 main_roads
+  6
+DASHED
  62
 3
+370
+30
 100
 AcDbText
  10
@@ -33438,8 +33726,12 @@ TEXT
 AcDbEntity
   8
 main_roads
+  6
+DASHED
  62
 3
+370
+30
 100
 AcDbText
  10
@@ -33514,8 +33806,12 @@ TEXT
 AcDbEntity
   8
 bike_paths
+  6
+DASHED
  62
 3
+370
+30
 100
 AcDbText
  10
@@ -33576,8 +33872,12 @@ TEXT
 AcDbEntity
   8
 parks
+  6
+Continuous
  62
 6
+370
+20
 100
 AcDbText
  10
@@ -33638,8 +33938,12 @@ TEXT
 AcDbEntity
   8
 transit_stops
+  6
+Continuous
  62
 5
+370
+15
 100
 AcDbText
  10
@@ -33700,8 +34004,12 @@ TEXT
 AcDbEntity
   8
 amenities
+  6
+Continuous
  62
 2
+370
+25
 100
 AcDbText
  10
@@ -33738,6 +34046,12 @@ LWPOLYLINE
 AcDbEntity
   8
 buffered_commercial
+  6
+Continuous
+ 62
+1
+370
+50
 100
 AcDbPolyline
  90
@@ -34030,8 +34344,12 @@ TEXT
 AcDbEntity
   8
 buffered_commercial
+  6
+Continuous
  62
 5
+370
+50
 100
 AcDbText
  10
@@ -34068,6 +34386,12 @@ LWPOLYLINE
 AcDbEntity
   8
 buffered_commercial
+  6
+Continuous
+ 62
+1
+370
+50
 100
 AcDbPolyline
  90
@@ -34360,8 +34684,12 @@ TEXT
 AcDbEntity
   8
 buffered_commercial
+  6
+Continuous
  62
 5
+370
+50
 100
 AcDbText
  10
@@ -34398,6 +34726,12 @@ LWPOLYLINE
 AcDbEntity
   8
 buffered_commercial
+  6
+Continuous
+ 62
+1
+370
+50
 100
 AcDbPolyline
  90
@@ -34690,8 +35024,12 @@ TEXT
 AcDbEntity
   8
 buffered_commercial
+  6
+Continuous
  62
 5
+370
+50
 100
 AcDbText
  10
@@ -34728,6 +35066,12 @@ LWPOLYLINE
 AcDbEntity
   8
 merged_buildings_roads
+  6
+Continuous
+ 62
+1
+370
+50
 100
 AcDbPolyline
  90
@@ -34764,8 +35108,12 @@ TEXT
 AcDbEntity
   8
 merged_buildings_roads
+  6
+Continuous
  62
 5
+370
+50
 100
 AcDbText
  10
@@ -34802,6 +35150,12 @@ LWPOLYLINE
 AcDbEntity
   8
 merged_buildings_roads
+  6
+Continuous
+ 62
+1
+370
+50
 100
 AcDbPolyline
  90
@@ -34838,8 +35192,12 @@ TEXT
 AcDbEntity
   8
 merged_buildings_roads
+  6
+Continuous
  62
 5
+370
+50
 100
 AcDbText
  10
@@ -34876,6 +35234,12 @@ LWPOLYLINE
 AcDbEntity
   8
 merged_buildings_roads
+  6
+Continuous
+ 62
+1
+370
+50
 100
 AcDbPolyline
  90
@@ -34912,8 +35276,12 @@ TEXT
 AcDbEntity
   8
 merged_buildings_roads
+  6
+Continuous
  62
 5
+370
+50
 100
 AcDbText
  10
@@ -34980,8 +35348,12 @@ TEXT
 AcDbEntity
   8
 merged_buildings_roads
+  6
+Continuous
  62
 5
+370
+50
 100
 AcDbText
  10
@@ -35048,8 +35420,12 @@ TEXT
 AcDbEntity
   8
 merged_buildings_roads
+  6
+Continuous
  62
 5
+370
+50
 100
 AcDbText
  10
@@ -35086,6 +35462,12 @@ LWPOLYLINE
 AcDbEntity
   8
 buildings_with_calculated_area
+  6
+Continuous
+ 62
+1
+370
+50
 100
 AcDbPolyline
  90
@@ -35122,8 +35504,12 @@ TEXT
 AcDbEntity
   8
 buildings_with_calculated_area
+  6
+Continuous
  62
 5
+370
+50
 100
 AcDbText
  10
@@ -35160,6 +35546,12 @@ LWPOLYLINE
 AcDbEntity
   8
 buildings_with_calculated_area
+  6
+Continuous
+ 62
+1
+370
+50
 100
 AcDbPolyline
  90
@@ -35196,8 +35588,12 @@ TEXT
 AcDbEntity
   8
 buildings_with_calculated_area
+  6
+Continuous
  62
 5
+370
+50
 100
 AcDbText
  10
@@ -35234,6 +35630,12 @@ LWPOLYLINE
 AcDbEntity
   8
 buildings_with_calculated_area
+  6
+Continuous
+ 62
+1
+370
+50
 100
 AcDbPolyline
  90
@@ -35270,8 +35672,12 @@ TEXT
 AcDbEntity
   8
 buildings_with_calculated_area
+  6
+Continuous
  62
 5
+370
+50
 100
 AcDbText
  10
@@ -35308,6 +35714,12 @@ LWPOLYLINE
 AcDbEntity
   8
 buildings_with_calculated_area
+  6
+Continuous
+ 62
+1
+370
+50
 100
 AcDbPolyline
  90
@@ -35344,8 +35756,12 @@ TEXT
 AcDbEntity
   8
 buildings_with_calculated_area
+  6
+Continuous
  62
 5
+370
+50
 100
 AcDbText
  10
@@ -35412,8 +35828,12 @@ TEXT
 AcDbEntity
   8
 buildings_with_calculated_area
+  6
+Continuous
  62
 5
+370
+50
 100
 AcDbText
  10
@@ -35480,8 +35900,12 @@ TEXT
 AcDbEntity
   8
 buildings_with_calculated_area
+  6
+Continuous
  62
 5
+370
+50
 100
 AcDbText
  10
@@ -35556,8 +35980,12 @@ TEXT
 AcDbEntity
   8
 buildings_with_calculated_area
+  6
+Continuous
  62
 5
+370
+50
 100
 AcDbText
  10
@@ -35618,8 +36046,12 @@ TEXT
 AcDbEntity
   8
 buildings_with_calculated_area
+  6
+Continuous
  62
 5
+370
+50
 100
 AcDbText
  10
@@ -35680,8 +36112,12 @@ TEXT
 AcDbEntity
   8
 buildings_with_calculated_area
+  6
+Continuous
  62
 5
+370
+50
 100
 AcDbText
  10
@@ -35742,8 +36178,12 @@ TEXT
 AcDbEntity
   8
 buildings_with_calculated_area
+  6
+Continuous
  62
 5
+370
+50
 100
 AcDbText
  10
@@ -35780,6 +36220,12 @@ LWPOLYLINE
 AcDbEntity
   8
 buildings_with_calculated_area
+  6
+Continuous
+ 62
+1
+370
+50
 100
 AcDbPolyline
  90
@@ -35816,8 +36262,12 @@ TEXT
 AcDbEntity
   8
 buildings_with_calculated_area
+  6
+Continuous
  62
 5
+370
+50
 100
 AcDbText
  10
@@ -35854,6 +36304,12 @@ LWPOLYLINE
 AcDbEntity
   8
 buildings_with_calculated_area
+  6
+Continuous
+ 62
+1
+370
+50
 100
 AcDbPolyline
  90
@@ -35890,8 +36346,12 @@ TEXT
 AcDbEntity
   8
 buildings_with_calculated_area
+  6
+Continuous
  62
 5
+370
+50
 100
 AcDbText
  10
@@ -35928,6 +36388,12 @@ LWPOLYLINE
 AcDbEntity
   8
 buildings_with_calculated_area
+  6
+Continuous
+ 62
+1
+370
+50
 100
 AcDbPolyline
  90
@@ -35964,8 +36430,12 @@ TEXT
 AcDbEntity
   8
 buildings_with_calculated_area
+  6
+Continuous
  62
 5
+370
+50
 100
 AcDbText
  10
@@ -36002,6 +36472,12 @@ LWPOLYLINE
 AcDbEntity
   8
 buildings_with_calculated_area
+  6
+Continuous
+ 62
+1
+370
+50
 100
 AcDbPolyline
  90
@@ -36038,8 +36514,12 @@ TEXT
 AcDbEntity
   8
 buildings_with_calculated_area
+  6
+Continuous
  62
 5
+370
+50
 100
 AcDbText
  10
@@ -36076,6 +36556,12 @@ LWPOLYLINE
 AcDbEntity
   8
 buildings_with_calculated_area
+  6
+Continuous
+ 62
+1
+370
+50
 100
 AcDbPolyline
  90
@@ -36112,8 +36598,12 @@ TEXT
 AcDbEntity
   8
 buildings_with_calculated_area
+  6
+Continuous
  62
 5
+370
+50
 100
 AcDbText
  10
@@ -36150,6 +36640,12 @@ LWPOLYLINE
 AcDbEntity
   8
 buildings_with_calculated_area
+  6
+Continuous
+ 62
+1
+370
+50
 100
 AcDbPolyline
  90
@@ -36186,8 +36682,12 @@ TEXT
 AcDbEntity
   8
 buildings_with_calculated_area
+  6
+Continuous
  62
 5
+370
+50
 100
 AcDbText
  10
@@ -36224,6 +36724,12 @@ LWPOLYLINE
 AcDbEntity
   8
 buildings_with_calculated_area
+  6
+Continuous
+ 62
+1
+370
+50
 100
 AcDbPolyline
  90
@@ -36260,8 +36766,12 @@ TEXT
 AcDbEntity
   8
 buildings_with_calculated_area
+  6
+Continuous
  62
 5
+370
+50
 100
 AcDbText
  10
@@ -36298,6 +36808,12 @@ LWPOLYLINE
 AcDbEntity
   8
 buildings_with_calculated_area
+  6
+Continuous
+ 62
+1
+370
+50
 100
 AcDbPolyline
  90
@@ -36334,8 +36850,12 @@ TEXT
 AcDbEntity
   8
 buildings_with_calculated_area
+  6
+Continuous
  62
 5
+370
+50
 100
 AcDbText
  10
@@ -36372,6 +36892,12 @@ LWPOLYLINE
 AcDbEntity
   8
 buildings_with_calculated_area
+  6
+Continuous
+ 62
+1
+370
+50
 100
 AcDbPolyline
  90
@@ -36408,8 +36934,12 @@ TEXT
 AcDbEntity
   8
 buildings_with_calculated_area
+  6
+Continuous
  62
 5
+370
+50
 100
 AcDbText
  10
@@ -36446,6 +36976,12 @@ LWPOLYLINE
 AcDbEntity
   8
 study_area_boundary
+  6
+Continuous
+ 62
+1
+370
+50
 100
 AcDbPolyline
  90
@@ -37509,7 +38045,7 @@ DictionaryVariables
 280
 0
   1
-1.4.1 @ 2025-05-23T16:43:50.580389+00:00
+1.4.1 @ 2025-05-23T23:53:00.514330+00:00
   0
 ENDSEC
   0

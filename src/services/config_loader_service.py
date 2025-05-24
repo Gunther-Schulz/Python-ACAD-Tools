@@ -176,12 +176,34 @@ class ConfigLoaderService(IConfigLoader):
         try:
             # Main project settings - validate with schema
             main_settings_path = os.path.join(project_dir, project_yaml_name)
-            main_settings = self._load_yaml_file(
-                main_settings_path,
-                ProjectMainSettings,
-                validate_config=True,
-                config_type='project'
-            )
+
+            # Load the full YAML file first
+            with open(main_settings_path, 'r', encoding='utf-8') as f:
+                full_project_data = yaml.safe_load(f)
+
+            # Extract the 'main' section for ProjectMainSettings
+            if 'main' not in full_project_data:
+                raise ConfigError(f"Missing 'main' section in project configuration: {main_settings_path}")
+
+            main_data = full_project_data['main']
+
+            # Validate the main section with schema if requested
+            if True:  # validate_config is True
+                try:
+                    from ..domain.config_validation import validate_config_with_schema
+                    main_data = validate_config_with_schema(
+                        {'main': main_data},  # Wrap for validation
+                        'project',
+                        config_file=main_settings_path,
+                        base_path=project_dir
+                    )['main']  # Extract main section after validation
+                    self._logger.debug(f"Configuration validation passed for {main_settings_path}")
+                except ConfigValidationError as e:
+                    self._logger.error(f"Configuration validation failed for {main_settings_path}: {e}")
+                    raise ConfigError(f"Configuration validation failed for {main_settings_path}: {e}") from e
+
+            # Create the ProjectMainSettings model from the main section
+            main_settings = ProjectMainSettings.model_validate(main_data)
 
             # Geometry Layers - validate with schema
             geom_layers_path = os.path.join(project_dir, geom_layers_yaml_name)

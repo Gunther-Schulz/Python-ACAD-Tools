@@ -311,12 +311,17 @@ class ConfigValidationService(IConfigValidation):
 
     def __init__(self, base_path: Optional[str] = None):
         self.base_path = base_path
-        self.validation_errors: List[str] = []
+        self._validation_errors: List[str] = []
+
+    @property
+    def validation_errors(self) -> List[str]:
+        """Get the list of validation errors from the last validation run."""
+        return self._validation_errors
 
     def validate_project_config(self, config_data: Dict[str, Any],
                               config_file: Optional[str] = None) -> Dict[str, Any]:
         """Validates a complete project configuration."""
-        self.validation_errors = []
+        self._validation_errors = []
 
         try:
             # Validate main project settings
@@ -336,18 +341,18 @@ class ConfigValidationService(IConfigValidation):
                                 {'operations': layer['operations']}, layer_names
                             )
                         except ValueError as e:
-                            self.validation_errors.append(f"Layer '{layer.get('name', '?')}': {e}")
+                            self._validation_errors.append(f"Layer '{layer.get('name', '?')}': {e}")
 
             # Validate legends
             if 'legends' in config_data:
                 self._validate_legends(config_data['legends'])
 
             # Final validation
-            if self.validation_errors:
+            if self._validation_errors:
                 raise ConfigValidationError(
-                    f"Configuration validation failed with {len(self.validation_errors)} errors",
+                    f"Configuration validation failed with {len(self._validation_errors)} errors",
                     config_file=config_file,
-                    validation_errors=self.validation_errors
+                    validation_errors=self._validation_errors
                 )
 
             return config_data
@@ -364,7 +369,7 @@ class ConfigValidationService(IConfigValidation):
             try:
                 ConfigValidators.validate_crs(main_data['crs'])
             except ValueError as e:
-                self.validation_errors.append(f"main.crs: {e}")
+                self._validation_errors.append(f"main.crs: {e}")
 
         # Validate DXF filename
         if 'dxfFilename' in main_data or 'dxf_filename' in main_data:
@@ -372,7 +377,7 @@ class ConfigValidationService(IConfigValidation):
             try:
                 ConfigValidators.validate_file_path(dxf_filename, 'dxf', base_path=self.base_path)
             except ValueError as e:
-                self.validation_errors.append(f"main.dxf_filename: {e}")
+                self._validation_errors.append(f"main.dxf_filename: {e}")
 
         # Validate DXF version
         if 'dxfVersion' in main_data or 'dxf_version' in main_data:
@@ -380,7 +385,7 @@ class ConfigValidationService(IConfigValidation):
             try:
                 ConfigValidators.validate_dxf_version(dxf_version)
             except ValueError as e:
-                self.validation_errors.append(f"main.dxf_version: {e}")
+                self._validation_errors.append(f"main.dxf_version: {e}")
 
         # Validate export format
         if 'exportFormat' in main_data or 'export_format' in main_data:
@@ -388,13 +393,13 @@ class ConfigValidationService(IConfigValidation):
             try:
                 ConfigValidators.validate_export_format(export_format)
             except ValueError as e:
-                self.validation_errors.append(f"main.export_format: {e}")
+                self._validation_errors.append(f"main.export_format: {e}")
 
         # Cross-field validation for output paths
         try:
             CrossFieldValidator.validate_output_paths_consistency(main_data)
         except ValueError as e:
-            self.validation_errors.append(f"main settings: {e}")
+            self._validation_errors.append(f"main settings: {e}")
 
     def _validate_geometry_layers(self, layers_data: List[Dict[str, Any]]) -> List[str]:
         """Validates geometry layer definitions and returns layer names."""
@@ -420,12 +425,12 @@ class ConfigValidationService(IConfigValidation):
                         try:
                             ConfigValidators.validate_file_path(file_path, file_type, base_path=self.base_path)
                         except ValueError as e:
-                            self.validation_errors.append(f"layer '{layer_name}' {source_key}: {e}")
+                            self._validation_errors.append(f"layer '{layer_name}' {source_key}: {e}")
 
             if source_count == 0:
-                self.validation_errors.append(f"layer '{layer_name}': no valid data source specified")
+                self._validation_errors.append(f"layer '{layer_name}': no valid data source specified")
             elif source_count > 1:
-                self.validation_errors.append(f"layer '{layer_name}': multiple data sources specified (only one allowed)")
+                self._validation_errors.append(f"layer '{layer_name}': multiple data sources specified (only one allowed)")
 
             # Validate operations
             if 'operations' in layer:
@@ -434,7 +439,7 @@ class ConfigValidationService(IConfigValidation):
         # Check for duplicate layer names
         duplicates = [name for name in layer_names if layer_names.count(name) > 1]
         if duplicates:
-            self.validation_errors.append(f"Duplicate layer names found: {list(set(duplicates))}")
+            self._validation_errors.append(f"Duplicate layer names found: {list(set(duplicates))}")
 
         return layer_names
 
@@ -445,7 +450,7 @@ class ConfigValidationService(IConfigValidation):
 
             # Validate operation type
             if 'type' not in operation:
-                self.validation_errors.append(f"{op_context}: missing 'type' field")
+                self._validation_errors.append(f"{op_context}: missing 'type' field")
                 continue
 
             op_type = operation['type']
@@ -453,20 +458,20 @@ class ConfigValidationService(IConfigValidation):
             # Type-specific validation
             if op_type == 'buffer':
                 if 'distance' not in operation and 'distanceField' not in operation:
-                    self.validation_errors.append(f"{op_context}: buffer operation requires 'distance' or 'distanceField'")
+                    self._validation_errors.append(f"{op_context}: buffer operation requires 'distance' or 'distanceField'")
 
                 if 'distance' in operation:
                     try:
                         ConfigValidators.validate_non_negative_number(operation['distance'], 'buffer distance')
                     except ValueError as e:
-                        self.validation_errors.append(f"{op_context}: {e}")
+                        self._validation_errors.append(f"{op_context}: {e}")
 
             elif op_type in ['translate', 'scale', 'rotate']:
                 # Validate transformation parameters
                 if op_type == 'translate':
                     for param in ['dx', 'dy']:
                         if param in operation and not isinstance(operation[param], (int, float)):
-                            self.validation_errors.append(f"{op_context}: {param} must be a number")
+                            self._validation_errors.append(f"{op_context}: {param} must be a number")
 
                 elif op_type == 'scale':
                     for param in ['xfact', 'yfact']:
@@ -474,11 +479,11 @@ class ConfigValidationService(IConfigValidation):
                             try:
                                 ConfigValidators.validate_positive_number(operation[param], f'scale {param}')
                             except ValueError as e:
-                                self.validation_errors.append(f"{op_context}: {e}")
+                                self._validation_errors.append(f"{op_context}: {e}")
 
                 elif op_type == 'rotate':
                     if 'angle' not in operation:
-                        self.validation_errors.append(f"{op_context}: rotate operation requires 'angle' field")
+                        self._validation_errors.append(f"{op_context}: rotate operation requires 'angle' field")
 
     def _validate_legends(self, legends_data: List[Dict[str, Any]]) -> None:
         """Validates legend definitions."""
@@ -487,31 +492,31 @@ class ConfigValidationService(IConfigValidation):
 
             # Validate required fields
             if 'name' not in legend:
-                self.validation_errors.append(f"{legend_context}: missing 'name' field")
+                self._validation_errors.append(f"{legend_context}: missing 'name' field")
 
             if 'position' not in legend:
-                self.validation_errors.append(f"{legend_context}: missing 'position' field")
+                self._validation_errors.append(f"{legend_context}: missing 'position' field")
             else:
                 # Validate position coordinates
                 position = legend['position']
                 if not isinstance(position, (list, tuple)) or len(position) != 2:
-                    self.validation_errors.append(f"{legend_context}: position must be [x, y] coordinates")
+                    self._validation_errors.append(f"{legend_context}: position must be [x, y] coordinates")
                 else:
                     try:
                         x, y = position
                         if not isinstance(x, (int, float)) or not isinstance(y, (int, float)):
-                            self.validation_errors.append(f"{legend_context}: position coordinates must be numbers")
+                            self._validation_errors.append(f"{legend_context}: position coordinates must be numbers")
                     except (ValueError, TypeError):
-                        self.validation_errors.append(f"{legend_context}: invalid position format")
+                        self._validation_errors.append(f"{legend_context}: invalid position format")
 
             # Validate legend items
             if 'items' in legend:
                 if not isinstance(legend['items'], list):
-                    self.validation_errors.append(f"{legend_context}: 'items' must be a list")
+                    self._validation_errors.append(f"{legend_context}: 'items' must be a list")
                 else:
                     for j, item in enumerate(legend['items']):
                         if not isinstance(item, dict) or 'text' not in item:
-                            self.validation_errors.append(f"{legend_context} item[{j}]: must have 'text' field")
+                            self._validation_errors.append(f"{legend_context} item[{j}]: must have 'text' field")
 
 
 def validate_config_with_schema(config_data: Dict[str, Any],

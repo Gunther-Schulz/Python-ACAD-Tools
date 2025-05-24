@@ -78,15 +78,30 @@ class ProjectOrchestratorService(IProjectOrchestrator):
             self._logger.info(f"Project configuration for '{project_name}' loaded.")
 
             self._logger.debug("Loading style configuration...")
-            style_config = self._config_loader.load_global_styles(
-                app_config.global_styles_file
-            )
+            # Use project-specific style presets file if specified, otherwise fall back to global
+            style_file_path = project_config.main.style_presets_file or app_config.global_styles_file
+
+            # If the style file path is relative, resolve it relative to the project directory
+            if not os.path.isabs(style_file_path):
+                # Check if it exists relative to project directory first
+                project_style_path = os.path.join(app_config.projects_root_dir, project_name, style_file_path)
+                if os.path.exists(project_style_path):
+                    style_file_path = project_style_path
+                    self._logger.debug(f"Using project-specific style file: {style_file_path}")
+                else:
+                    # Use as relative to root directory
+                    style_file_path = os.path.join(os.getcwd(), style_file_path)
+                    self._logger.debug(f"Using global style file: {style_file_path}")
+            else:
+                self._logger.debug(f"Using absolute style file path: {style_file_path}")
+
+            style_config = self._config_loader.load_global_styles(style_file_path)
             if not style_config:
                 # This might be acceptable if no styling is applied, but log a warning.
                 self._logger.warning("Style configuration could not be loaded or is empty.")
                 style_config = StyleConfig() # Empty default
             else:
-                self._logger.info("Style configuration loaded.")
+                self._logger.info(f"Style configuration loaded from: {style_file_path}")
 
             # ColorConfig is loaded by StyleApplicatorService via its IConfigLoader instance.
 
@@ -167,13 +182,12 @@ class ProjectOrchestratorService(IProjectOrchestrator):
                                 active_layers[layer_def.name] = result_gdf # Operation output replaces the layer
                                 current_op_input_gdf = result_gdf # For the next inline op
                                 self._logger.debug(f"  Finished inline operation #{i+1} ('{op_params.type}') on '{layer_def.name}'. Result features: {len(result_gdf) if result_gdf is not None else 'None'}")
-                    else:
+                    elif layer_def.operations and not layer_def.geojson_file and not layer_def.dxf_layer and not layer_def.shape_file:
                         # Check if this is an operations-only layer
-                        if layer_def.operations and not layer_def.geojson_file and not layer_def.dxf_layer and not layer_def.shape_file:
-                            self._logger.debug(f"Layer '{layer_def.name}' is operations-only - adding to pending operations list")
-                            pending_operations_layers.append(layer_def)
-                        else:
-                            self._logger.warning(f"Layer '{layer_def.name}' could not be created/loaded (returned None). Skipping.")
+                        self._logger.debug(f"Layer '{layer_def.name}' is operations-only - adding to pending operations list")
+                        pending_operations_layers.append(layer_def)
+                    else:
+                        self._logger.warning(f"Layer '{layer_def.name}' could not be created/loaded (returned None). Skipping.")
                 except Exception as e:
                     self._logger.error(f"Failed to process layer definition '{layer_def.name}': {e}", exc_info=True)
                     # Decide: continue with other layers or halt?
@@ -294,12 +308,12 @@ class ProjectOrchestratorService(IProjectOrchestrator):
                             else:
                                 self._logger.debug(f"No specific style found for DXF layer '{layer_name}'. Default DXF layer appearance will be used.")
 
-                            # Add geometries from GeoDataFrame to DXF
-                            self._logger.debug(f"Adding {len(gdf)} geometries to DXF layer '{layer_name}'")
-                            try:
-                                self._style_applicator.add_geodataframe_to_dxf(dxf_drawing, gdf, layer_name, named_style, layer_def_for_style)
-                            except Exception as e:
-                                self._logger.error(f"Failed to add geometries to DXF layer '{layer_name}': {e}", exc_info=True)
+                                # Add geometries from GeoDataFrame to DXF
+                                self._logger.debug(f"Adding {len(gdf)} geometries to DXF layer '{layer_name}'")
+                                try:
+                                    self._style_applicator.add_geodataframe_to_dxf(dxf_drawing, gdf, layer_name, named_style, layer_def_for_style)
+                                except Exception as e:
+                                    self._logger.error(f"Failed to add geometries to DXF layer '{layer_name}': {e}", exc_info=True)
 
                     self._logger.info(f"Exporting DXF document to: {output_dxf_path}")
                     self._data_exporter.export_to_dxf(dxf_drawing, output_dxf_path, project_config)

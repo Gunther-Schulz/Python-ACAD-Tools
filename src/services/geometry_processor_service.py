@@ -219,10 +219,6 @@ class GeometryProcessorService(IGeometryProcessor):
                     result = self._resource_manager.optimize_geodataframe_memory(result)
 
                     return result
-                else:
-                    # No reprojection needed, return safe copy
-                    result = self._resource_manager.copy_geodataframe_safely(layer, "reproject_no_change")
-                    return self._resource_manager.optimize_geodataframe_memory(result)
 
             except Exception as e:
                 self._logger.error(f"Failed to reproject layer: {e}", exc_info=True)

@@ -1,0 +1,46 @@
+styles:
+  # Custom styles for test project
+  building_style:
+    layer:
+      color: "orange"
+      linetype: "Continuous"
+      lineweight: 60
+    text:
+      height: 4.0
+      color: "white"
+      font: "Arial"
+      attachment_point: "MIDDLE_CENTER"
+
+  road_style:
+    layer:
+      color: "purple"
+      linetype: "DASHED"
+      lineweight: 40
+    text:
+      height: 3.0
+      color: "yellow"
+      font: "Arial"
+      attachment_point: "MIDDLE_CENTER"
+
+  point_style:
+    layer:
+      color: "lime"
+      linetype: "Continuous"
+      lineweight: 30
+    text:
+      height: 2.5
+      color: "red"
+      font: "Arial"
+      attachment_point: "BOTTOM_CENTER"
+
+  # Override some existing styles with project-specific colors
+  residential_style:
+    layer:
+      color: "pink"
+      linetype: "Continuous"
+      lineweight: 50
+    text:
+      height: 3.5
+      color: "black"
+      font: "Arial"
+      attachment_point: "MIDDLE_CENTER"

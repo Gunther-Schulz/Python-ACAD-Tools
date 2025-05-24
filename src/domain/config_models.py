@@ -167,6 +167,7 @@ class ProjectMainSettings(BaseModel):
     template: Optional[str] = None
     export_format: str = Field(default='dxf', alias='exportFormat') # Can be 'dxf', 'shp', 'gpkg', 'all'
     dxf_version: str = Field(default='R2010', alias='dxfVersion')
+    style_presets_file: Optional[str] = Field(default="styles.yaml", alias='stylePresetsFile')
     shapefile_output_dir: Optional[str] = Field(None, alias='shapefileOutputDir')
     output_dxf_path: Optional[str] = Field(None, alias='outputDxfPath') # Full path for output DXF
     output_geopackage_path: Optional[str] = Field(None, alias='outputGeopackagePath') # Full path for output GPKG
@@ -191,6 +192,13 @@ class ProjectMainSettings(BaseModel):
     @classmethod
     def validate_dxf_version(cls, v):
         return ConfigValidators.validate_dxf_version(v)
+
+    @field_validator('style_presets_file')
+    @classmethod
+    def validate_style_presets_file(cls, v):
+        if v is not None:
+            return ConfigValidators.validate_file_path(v, 'yaml')
+        return v
 
     @field_validator('output_dxf_path')
     @classmethod
