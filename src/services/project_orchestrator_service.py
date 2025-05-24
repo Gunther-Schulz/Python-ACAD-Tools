@@ -283,8 +283,8 @@ class ProjectOrchestratorService(IProjectOrchestrator):
                     if layers_to_update:
                         self._logger.debug(f"Clearing existing entities from layers: {', '.join(layers_to_update)}")
                         try:
-                            # Import the utility function
-                            from ..utils.dxf_entity_utils import remove_entities_by_layer
+                            # Import the utility function from the new location
+                            from ..adapters.dxf import remove_entities_by_layer
 
                             # Use the proper removal function from OLDAPP
                             deleted_count = remove_entities_by_layer(

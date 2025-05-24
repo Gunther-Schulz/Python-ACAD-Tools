@@ -527,9 +527,6 @@ class StyleApplicatorService(IStyleApplicator):
             if should_add_labels:
                 self._logger.debug(f"Will add labels from column '{layer_definition.label_column}' for layer '{layer_name}'")
 
-            # Import utility function for marking entities as created by our script
-            # from ..utils.dxf_entity_utils import attach_script_identifier
-
             # Process each geometry in the GeoDataFrame
             added_count = 0
             for idx, row in gdf.iterrows():
@@ -562,9 +559,7 @@ class StyleApplicatorService(IStyleApplicator):
                             exterior_coords = list(poly.exterior.coords)
                             entity = msp.add_lwpolyline(exterior_coords, close=True, dxfattribs={'layer': layer_name})
 
-                            # Mark entity as created by our script
                             if entity:
-                                # attach_script_identifier(entity, "python-acad-tools")
                                 added_count += 1
 
                             # Add interior rings (holes) if any
@@ -572,7 +567,6 @@ class StyleApplicatorService(IStyleApplicator):
                                 interior_coords = list(interior.coords)
                                 hole_entity = msp.add_lwpolyline(interior_coords, close=True, dxfattribs={'layer': layer_name})
                                 if hole_entity:
-                                    # attach_script_identifier(hole_entity, "python-acad-tools")
                                     added_count += 1
 
                         # Add label for polygon if requested
@@ -595,7 +589,6 @@ class StyleApplicatorService(IStyleApplicator):
                                 entity = msp.add_lwpolyline(coords, dxfattribs={'layer': layer_name})
 
                             if entity:
-                                # attach_script_identifier(entity, "python-acad-tools")
                                 added_count += 1
                         continue  # Skip the common processing below for multi-geometries
 
@@ -603,9 +596,8 @@ class StyleApplicatorService(IStyleApplicator):
                         self._logger.warning(f"Unsupported geometry type: {geom.geom_type} for feature {idx}")
                         continue
 
-                    # Mark entity as created by our script (for non-polygon geometries)
+                    # Common processing for non-polygon geometries
                     if entity:
-                        # attach_script_identifier(entity, "python-acad-tools")
                         added_count += 1
 
                         # Apply style to individual entity if provided

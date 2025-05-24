@@ -7,8 +7,8 @@ import geopandas as gpd
 from ...interfaces.logging_service_interface import ILoggingService
 from ...interfaces.data_source_interface import IDataSource
 from ...domain.config_models import AllOperationParams
-from ...domain.exceptions import GeometryError
-from ...utils.geodataframe_utils import get_validated_source_gdf, reproject_gdf, get_common_crs, GdfValidationError
+from ...domain.exceptions import GeometryError, GdfValidationError
+from ...services.geometry import GdfOperationService
 
 
 class BaseOperationHandler(ABC):
@@ -18,6 +18,8 @@ class BaseOperationHandler(ABC):
         """Initialize with injected dependencies following existing pattern."""
         self._logger = logger_service.get_logger(self.__class__.__module__)
         self._data_source_service = data_source_service
+        # Initialize GDF operations service
+        self._gdf_service = GdfOperationService(logger_service)
 
     @property
     @abstractmethod
@@ -44,7 +46,7 @@ class BaseOperationHandler(ABC):
     ) -> gpd.GeoDataFrame:
         """Validate and retrieve a source layer following existing pattern."""
         try:
-            return get_validated_source_gdf(
+            return self._gdf_service.get_validated_source_gdf(
                 layer_identifier=layer_identifier,
                 source_layers=source_layers,
                 allow_empty=allow_empty,
@@ -65,7 +67,7 @@ class BaseOperationHandler(ABC):
         if not gdfs:
             return None
 
-        target_crs = get_common_crs(gdfs, self._logger)
+        target_crs = self._gdf_service.get_common_crs(gdfs, self._logger)
         if not target_crs and gdfs:
             # Try to get CRS from the first GDF that has one
             first_gdf_with_crs = next((gdf for gdf in gdfs if gdf.crs is not None), None)
@@ -88,7 +90,7 @@ class BaseOperationHandler(ABC):
         """Reproject GeoDataFrame to target CRS following existing pattern."""
         if gdf.crs and gdf.crs != target_crs:
             try:
-                return reproject_gdf(
+                return self._gdf_service.reproject_gdf(
                     gdf,
                     target_crs,
                     context_message=f"{operation_name} reprojection of '{layer_name}'"

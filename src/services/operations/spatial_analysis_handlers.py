@@ -11,7 +11,7 @@ from ...domain.config_models import (
     SymmetricDifferenceOpParams, BoundingBoxOpParams, EnvelopeOpParams, OffsetCurveOpParams
 )
 from ...domain.exceptions import GeometryError
-from ...utils.advanced_geometry_utils import create_envelope_for_geometry
+from ...services.geometry import EnvelopeService
 from .base_operation_handler import BaseOperationHandler
 
 # Import box for bounding box operation
@@ -19,6 +19,11 @@ try:
     from shapely.geometry import box
 except ImportError:
     box = None
+
+from ...core.operation_models import (
+    BufferOpParams, DifferenceOpParams, IntersectionOpParams, UnionOpParams,
+    SymmetricDifferenceOpParams, BoundingBoxOpParams, EnvelopeOpParams, OffsetCurveOpParams
+)
 
 
 class BufferHandler(BaseOperationHandler):
@@ -412,6 +417,11 @@ class BoundingBoxHandler(BaseOperationHandler):
 class EnvelopeHandler(BaseOperationHandler):
     """Handle envelope operation following existing pattern."""
 
+    def __init__(self, logger_service, data_source_service):
+        """Initialize with envelope service."""
+        super().__init__(logger_service, data_source_service)
+        self._envelope_service = EnvelopeService(logger_service)
+
     @property
     def operation_type(self) -> str:
         return "envelope"
@@ -466,8 +476,8 @@ class EnvelopeHandler(BaseOperationHandler):
                         if not isinstance(poly, Polygon) or not poly.is_valid:
                             continue
 
-                    envelope = create_envelope_for_geometry(
-                        poly, params.padding, params.min_ratio, params.cap_style, self._logger
+                    envelope = self._envelope_service.create_envelope_for_geometry(
+                        poly, params.padding, params.min_ratio, params.cap_style
                     )
                     if envelope and envelope.is_valid:
                         all_results.append(envelope)

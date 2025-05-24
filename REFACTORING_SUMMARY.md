@@ -3,6 +3,8 @@
 ## Overview
 Successfully refactored the generic `src/utils` module to follow proper architectural patterns as defined in `PROJECT_ARCHITECTURE.MD` and `PROJECT_STANDARDS.md`. The refactoring moved domain-specific functionality to appropriate layers while keeping only truly generic utilities in the utils module.
 
+**IMPORTANT: All backward compatibility has been removed. Code must now use the new import paths.**
+
 ## Changes Made
 
 ### 1. Created DXF Adapter Layer (`src/adapters/dxf/`)
@@ -44,8 +46,7 @@ Successfully refactored the generic `src/utils` module to follow proper architec
 
 **Updated `__init__.py`**:
 - Imports only truly generic utilities directly
-- Provides backward compatibility imports from new locations
-- Clear documentation about where functionality moved
+- **NO backward compatibility imports** - clean break from old structure
 
 ## Architectural Benefits
 
@@ -70,38 +71,49 @@ Successfully refactored the generic `src/utils` module to follow proper architec
 - Adapters can be tested independently
 - Pure utils functions are inherently testable
 
-## Backward Compatibility
+## Required Import Changes
 
-The refactoring maintains full backward compatibility:
-- All existing imports from `src.utils` continue to work
-- No breaking changes to public APIs
-- Gradual migration path available
+**All imports must be updated to use new locations:**
 
-## Migration Path
-
-### Immediate (Backward Compatible)
+### DXF Operations
 ```python
-# Still works
-from src.utils import attach_xdata, GEOMETRY_COLUMN
+# OLD (no longer works)
+# from src.utils import attach_xdata, get_xdata
+
+# NEW (required)
+from src.adapters.dxf import attach_xdata, get_xdata, remove_entities_by_layer
+from src.adapters.dxf import cleanup_dxf_document, convert_dxf_circle_to_polygon
 ```
 
-### Recommended (New Architecture)
+### Geometry Services
 ```python
-# Direct imports from new locations
-from src.adapters.dxf import attach_xdata
-from src.services.geometry import GEOMETRY_COLUMN, GdfOperationService
-from src.domain.exceptions import DXFGeometryConversionError
-```
+# OLD (no longer works)
+# from src.utils import create_envelope_for_geometry, reproject_gdf
 
-### Service Usage (Dependency Injection)
-```python
-# Services now require dependency injection
+# NEW (required)
 from src.services.geometry import EnvelopeService, GdfOperationService
-from src.services.logging_service import LoggingService
+from src.services.geometry import GEOMETRY_COLUMN
 
+# Service usage requires dependency injection
 logger = LoggingService()
 envelope_service = EnvelopeService(logger)
 gdf_service = GdfOperationService(logger)
+```
+
+### Domain Exceptions
+```python
+# OLD (no longer works)
+# from src.utils import DXFGeometryConversionError
+
+# NEW (required)
+from src.domain.exceptions import DXFGeometryConversionError, GdfValidationError
+```
+
+### Pure Utilities
+```python
+# These remain unchanged
+from src.utils import ensure_parent_dir_exists, sanitize_dxf_layer_name
+from src.utils import plot_gdf, plot_shapely_geometry
 ```
 
 ## Files Removed
@@ -114,14 +126,20 @@ gdf_service = GdfOperationService(logger)
 - `src/utils/geodataframe_utils.py`
 - `src/utils/advanced_geometry_utils.py`
 
+## Updated Files
+- `src/services/project_orchestrator_service.py` - Updated DXF adapter imports
+- `src/services/operations/spatial_analysis_handlers.py` - Updated to use EnvelopeService
+- `src/services/operations/base_operation_handler.py` - Updated to use GdfOperationService
+- `src/services/style_applicator_service.py` - Removed commented backward compatibility imports
+
 ## Testing Status
 ✅ Basic utils imports working
 ✅ DXF adapter imports working
 ✅ Geometry service imports working
-✅ Backward compatibility imports working
+✅ No backward compatibility imports (clean break)
 
 ## Next Steps
-1. Update existing code to use new service-based architecture
-2. Add proper dependency injection container
-3. Consider removing backward compatibility imports in future major version
-4. Add comprehensive tests for new service classes
+1. Identify and update any remaining files using old import paths
+2. Add comprehensive tests for new service classes
+3. Consider adding proper dependency injection container
+4. Review and clean up any remaining OLDAPP references that use old structure

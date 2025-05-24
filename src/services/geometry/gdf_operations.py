@@ -83,3 +83,66 @@ class GdfOperationService:
             msg = f"Error during GeoDataFrame reprojection from {temp_gdf.crs} to {target_crs}: {e}. {context_message}"
             self._logger.error(msg, exc_info=True)
             raise GeometryError(msg) from e
+
+    def get_validated_source_gdf(
+        self,
+        layer_identifier: Union[str, Dict[str, Any]],
+        source_layers: Dict[str, gpd.GeoDataFrame],
+        allow_empty: bool = True,
+        expected_geom_types: Optional[List[str]] = None,
+        context_message: str = ""
+    ) -> gpd.GeoDataFrame:
+        """Validates and retrieves a source layer from the available layers."""
+        layer_name = layer_identifier if isinstance(layer_identifier, str) else layer_identifier.get('name', str(layer_identifier))
+
+        if layer_name not in source_layers:
+            msg = f"Layer '{layer_name}' not found in source layers. Available layers: {list(source_layers.keys())}. {context_message}"
+            self._logger.error(msg)
+            raise GdfValidationError(msg)
+
+        gdf = source_layers[layer_name]
+
+        if not self.validate_geodataframe_basic(gdf):
+            msg = f"Layer '{layer_name}' failed basic GeoDataFrame validation. {context_message}"
+            self._logger.error(msg)
+            raise GdfValidationError(msg)
+
+        if not allow_empty and gdf.empty:
+            msg = f"Layer '{layer_name}' is empty but empty layers are not allowed. {context_message}"
+            self._logger.error(msg)
+            raise GdfValidationError(msg)
+
+        if expected_geom_types:
+            actual_geom_types = set(gdf.geometry.geom_type.unique())
+            if not actual_geom_types.intersection(expected_geom_types):
+                msg = f"Layer '{layer_name}' has geometry types {actual_geom_types} but expected {expected_geom_types}. {context_message}"
+                self._logger.error(msg)
+                raise GdfValidationError(msg)
+
+        return gdf
+
+    def get_common_crs(
+        self,
+        gdfs: List[gpd.GeoDataFrame],
+        logger_service: ILoggingService
+    ) -> Optional[Union[str, Any]]:
+        """Determines a common CRS for multiple GeoDataFrames."""
+        if not gdfs:
+            return None
+
+        # Collect all unique CRS values
+        crs_list = [gdf.crs for gdf in gdfs if gdf.crs is not None]
+
+        if not crs_list:
+            logger_service.warning("No GeoDataFrames have a defined CRS")
+            return None
+
+        # Check if all CRS are the same
+        unique_crs = set(str(crs) for crs in crs_list)
+        if len(unique_crs) == 1:
+            return crs_list[0]
+
+        # If multiple CRS, use the first one as target and log warning
+        target_crs = crs_list[0]
+        logger_service.warning(f"Multiple CRS found: {unique_crs}. Using first CRS as target: {target_crs}")
+        return target_crs
