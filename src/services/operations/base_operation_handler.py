@@ -6,7 +6,7 @@ import geopandas as gpd
 
 from ...interfaces.logging_service_interface import ILoggingService
 from ...interfaces.data_source_interface import IDataSource
-from ...domain.config_models import BaseOperationParams
+from ...domain.config_models import AllOperationParams
 from ...domain.exceptions import GeometryError
 from ...utils.geodataframe_utils import get_validated_source_gdf, reproject_gdf, get_common_crs, GdfValidationError
 
@@ -28,7 +28,7 @@ class BaseOperationHandler(ABC):
     @abstractmethod
     def handle(
         self,
-        params: BaseOperationParams,
+        params: AllOperationParams,
         source_layers: Dict[str, gpd.GeoDataFrame]
     ) -> gpd.GeoDataFrame:
         """Handle the operation with the given parameters and source layers."""

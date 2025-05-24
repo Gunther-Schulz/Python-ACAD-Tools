@@ -25,7 +25,6 @@ from ..domain.config_validation import (
     ConfigValidationError,
     ConfigValidationService
 )
-from .logging_service import LoggingService # Assuming direct instantiation for now
 
 
 _T = TypeVar("_T", bound=BaseModel)
@@ -33,18 +32,9 @@ _T = TypeVar("_T", bound=BaseModel)
 class ConfigLoaderService(IConfigLoader):
     """Loads application and project configurations from YAML files and environment variables."""
 
-    def __init__(self, logger_service: Optional[ILoggingService] = None, app_config: Optional[AppConfig] = None):
-        # Basic logger setup if none provided, ideally injected.
-        # For now, direct instantiation or a global get_logger might be used.
-        # This will be improved when DI is set up.
-        if logger_service:
-            self._logger = logger_service.get_logger(__name__)
-        else:
-            # Fallback if no logger_service is injected during initial development phases
-            self._logger_service_instance = LoggingService() # Uses Borg singleton
-            # self._logger_service_instance.setup_logging() # Ensure it's configured
-            self._logger = self._logger_service_instance.get_logger(__name__)
-            self._logger.warning("ConfigLoaderService initialized without injected logger. Using fallback.")
+    def __init__(self, logger_service: ILoggingService, app_config: Optional[AppConfig] = None):
+        """Initialize with required injected dependencies following strict DI principles."""
+        self._logger = logger_service.get_logger(__name__)
         self._app_config: Optional[AppConfig] = app_config
         self._aci_color_mappings: Optional[List[AciColorMappingItem]] = None
 
@@ -190,7 +180,6 @@ class ConfigLoaderService(IConfigLoader):
             # Validate the main section with schema if requested
             if True:  # validate_config is True
                 try:
-                    from ..domain.config_validation import validate_config_with_schema
                     main_data = validate_config_with_schema(
                         {'main': main_data},  # Wrap for validation
                         'project',
@@ -217,7 +206,6 @@ class ConfigLoaderService(IConfigLoader):
             for layer in geom_layers_data:
                 if layer.operations:
                     try:
-                        from ..domain.config_validation import CrossFieldValidator
                         CrossFieldValidator.validate_operation_layer_references(
                             {'operations': [op.model_dump() for op in layer.operations]},
                             layer_names

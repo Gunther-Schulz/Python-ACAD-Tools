@@ -18,20 +18,15 @@ except ImportError:
 from ..interfaces.data_source_interface import IDataSource # EZDXF_AVAILABLE might be from here too
 from ..interfaces.logging_service_interface import ILoggingService
 from ..domain.exceptions import DXFProcessingError, DataSourceError # Added DataSourceError
-from .logging_service import LoggingService # Fallback
 import geopandas as gpd # Added import
 
 
 class DataSourceService(IDataSource):
     """Service for loading data sources, primarily DXF files and managing GeoDataFrames."""
 
-    def __init__(self, logger_service: Optional[ILoggingService] = None):
-        if logger_service:
-            self._logger = logger_service.get_logger(__name__)
-        else:
-            self._logger_service_instance = LoggingService()
-            self._logger = self._logger_service_instance.get_logger(__name__)
-            self._logger.warning("DataSourceService initialized without injected logger. Using fallback.")
+    def __init__(self, logger_service: ILoggingService):
+        """Initialize with required injected dependencies following strict DI principles."""
+        self._logger = logger_service.get_logger(__name__)
 
         # Check ezdxf availability on instantiation and log
         if not EZDXF_AVAILABLE:

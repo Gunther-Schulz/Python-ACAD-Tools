@@ -45,15 +45,11 @@ class StyleApplicatorService(IStyleApplicator):
     def __init__(
         self,
         config_loader: IConfigLoader,
-        logger_service: Optional[ILoggingService] = None,
+        logger_service: ILoggingService,
         # lin_file_path: Optional[str] = "acadiso.lin" # Path to linetype definition file
     ):
-        if logger_service:
-            self._logger = logger_service.get_logger(__name__)
-        else:
-            self._logger_service_instance = LoggingService()
-            self._logger = self._logger_service_instance.get_logger(__name__)
-            self._logger.warning("StyleApplicatorService initialized without injected logger. Using fallback.")
+        """Initialize with required injected dependencies following strict DI principles."""
+        self._logger = logger_service.get_logger(__name__)
 
         self._config_loader = config_loader
         self._aci_map: Optional[Dict[str, int]] = None

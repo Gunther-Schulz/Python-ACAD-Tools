@@ -10,23 +10,45 @@ import pandas as pd
 
 from ..domain.exceptions import GeometryError, ConfigError # Assuming these are appropriate
 from ..interfaces.logging_service_interface import ILoggingService # For type hinting logger
-from ..services.logging_service import LoggingService # Fallback logger
 
-
-# Module-level logger (can be injected or use fallback)
-_logger_instance: Optional[ILoggingService] = None
 
 def _get_logger():
-    """Gets a logger instance for this module."""
-    global _logger_instance
-    if _logger_instance is None:
-        try:
-            # This is a simple fallback. In a full app, logger might be configured globally.
-            _logger_instance = LoggingService() # type: ignore
-        except Exception: # Fallback if LoggingService itself fails
-            import logging
-            return logging.getLogger(__name__) # Basic Python logger
-    return _logger_instance.get_logger(__name__)
+    """Fallback logger for backward compatibility - uses basic Python logging."""
+    import logging
+    return logging.getLogger(__name__)
+
+
+def validate_geodataframe_basic(gdf: gpd.GeoDataFrame, logger: Optional[ILoggingService] = None) -> bool:
+    """
+    Validates a GeoDataFrame for basic integrity.
+
+    Args:
+        gdf: The GeoDataFrame to validate.
+        logger: Optional ILoggingService instance for logging.
+
+    Returns:
+        True if the GeoDataFrame is valid, False otherwise.
+    """
+    if logger is None:
+        logger = _get_logger()
+
+    if not isinstance(gdf, gpd.GeoDataFrame):
+        logger.error("Input is not a GeoDataFrame")
+        return False
+
+    if gdf.empty:
+        logger.warning("GeoDataFrame is empty")
+        return False
+
+    if GEOMETRY_COLUMN not in gdf.columns:
+        logger.error(f"GeoDataFrame is missing the geometry column: '{GEOMETRY_COLUMN}'")
+        return False
+
+    if not gdf.geometry.name == GEOMETRY_COLUMN:
+        logger.error(f"The active geometry column is '{gdf.geometry.name}', not '{GEOMETRY_COLUMN}'")
+        return False
+
+    return True
 
 
 GEOMETRY_COLUMN = 'geometry' # Standard GeoPandas geometry column name
@@ -43,7 +65,8 @@ def get_validated_source_gdf(
     check_crs_match_with: Optional[gpd.GeoDataFrame] = None,
     allow_empty: bool = False,
     ensure_geometry_column: bool = True,
-    context_message: str = ""
+    context_message: str = "",
+    logger: Optional[ILoggingService] = None
 ) -> gpd.GeoDataFrame:
     """
     Retrieves and validates a GeoDataFrame from the source_layers dictionary.
@@ -58,6 +81,7 @@ def get_validated_source_gdf(
         allow_empty: If False (default), raises GdfValidationError if the GDF is empty.
         ensure_geometry_column: If True (default), checks for the presence of a geometry column.
         context_message: Additional context for error messages.
+        logger: Optional ILoggingService instance for logging.
 
     Returns:
         The validated GeoDataFrame.
@@ -65,7 +89,8 @@ def get_validated_source_gdf(
     Raises:
         GdfValidationError: If validation fails (layer not found, empty, wrong geom type, CRS mismatch).
     """
-    logger = _get_logger()
+    if logger is None:
+        logger = _get_logger()
     layer_name: Optional[str] = None
 
     if isinstance(layer_identifier, str):
@@ -140,7 +165,8 @@ def reproject_gdf(
     gdf: gpd.GeoDataFrame,
     target_crs: Union[str, Any], # Accepts EPSG code, WKT string, pyproj.CRS object
     source_crs: Optional[Union[str, Any]] = None,
-    context_message: str = ""
+    context_message: str = "",
+    logger: Optional[ILoggingService] = None
 ) -> gpd.GeoDataFrame:
     """
     Reprojects a GeoDataFrame to the target CRS.
@@ -151,6 +177,7 @@ def reproject_gdf(
         source_crs: Optional. The source CRS if gdf.crs is not set. If None and gdf.crs is None,
                     raises GdfValidationError.
         context_message: Additional context for error messages.
+        logger: Optional ILoggingService instance for logging.
 
     Returns:
         The reprojected GeoDataFrame.
@@ -158,7 +185,8 @@ def reproject_gdf(
     Raises:
         GdfValidationError: If CRS information is insufficient or reprojection fails.
     """
-    logger = _get_logger()
+    if logger is None:
+        logger = _get_logger()
     if gdf.empty:
         logger.debug(f"Skipping reprojection for empty GeoDataFrame. {context_message}")
         # Ensure an empty GDF still has a CRS if target_crs is known
@@ -203,7 +231,8 @@ def reproject_gdf(
 def get_common_crs(
     gdfs: List[gpd.GeoDataFrame],
     fallback_crs: Optional[Union[str, Any]] = None,
-    context_message: str = ""
+    context_message: str = "",
+    logger: Optional[ILoggingService] = None
 ) -> Any: # Returns a pyproj.CRS compatible type or None
     """
     Determines a common CRS from a list of GeoDataFrames.
@@ -216,6 +245,7 @@ def get_common_crs(
         gdfs: A list of GeoDataFrames.
         fallback_crs: Optional. A CRS to return if no common CRS can be found.
         context_message: Additional context for error messages.
+        logger: Optional ILoggingService instance for logging.
 
     Returns:
         The common CRS object, or the fallback_crs, or raises error.
@@ -223,7 +253,8 @@ def get_common_crs(
     Raises:
         GdfValidationError: If no common CRS can be determined and no fallback is provided.
     """
-    logger = _get_logger()
+    if logger is None:
+        logger = _get_logger()
     if not gdfs:
         if fallback_crs:
             logger.debug(f"No GeoDataFrames provided, using fallback_crs: {fallback_crs}. {context_message}")
@@ -257,18 +288,20 @@ def get_common_crs(
             raise GdfValidationError(msg)
 
 
-def ensure_multi_geometry(gdf: gpd.GeoDataFrame, context_message: str = "") -> gpd.GeoDataFrame:
+def ensure_multi_geometry(gdf: gpd.GeoDataFrame, context_message: str = "", logger: Optional[ILoggingService] = None) -> gpd.GeoDataFrame:
     """
     Ensures all geometries in the GeoDataFrame are Multi-type (MultiPoint, MultiLineString, MultiPolygon).
 
     Args:
         gdf: The input GeoDataFrame.
         context_message: Additional context for log messages.
+        logger: Optional ILoggingService instance for logging.
 
     Returns:
         A new GeoDataFrame with geometries converted to Multi-types if necessary.
     """
-    logger = _get_logger()
+    if logger is None:
+        logger = _get_logger()
     if gdf.empty:
         logger.debug(f"Skipping ensure_multi_geometry for empty GeoDataFrame. {context_message}")
         return gdf.copy()
@@ -307,7 +340,8 @@ def ensure_multi_geometry(gdf: gpd.GeoDataFrame, context_message: str = "") -> g
 def make_valid_geometries(
     gdf: gpd.GeoDataFrame,
     context_message: str = "",
-    report_invalid: bool = True
+    report_invalid: bool = True,
+    logger: Optional[ILoggingService] = None
 ) -> gpd.GeoDataFrame:
     """
     Attempts to make all geometries in the GeoDataFrame valid using geom.buffer(0).
@@ -316,11 +350,13 @@ def make_valid_geometries(
         gdf: The input GeoDataFrame.
         context_message: Additional context for log messages.
         report_invalid: If True, logs a warning if invalid geometries are found.
+        logger: Optional ILoggingService instance for logging.
 
     Returns:
         A new GeoDataFrame with geometries processed by buffer(0).
     """
-    logger = _get_logger()
+    if logger is None:
+        logger = _get_logger()
     if gdf.empty:
         logger.debug(f"Skipping make_valid_geometries for empty GeoDataFrame. {context_message}")
         return gdf.copy()
@@ -364,7 +400,8 @@ def filter_gdf_by_attribute_values(
     filter_values: List[Any],
     keep_matching: bool = True,
     case_sensitive: bool = False,
-    context_message: str = ""
+    context_message: str = "",
+    logger: Optional[ILoggingService] = None
 ) -> gpd.GeoDataFrame:
     """
     Filters a GeoDataFrame based on attribute values in a specified column.
@@ -377,6 +414,7 @@ def filter_gdf_by_attribute_values(
                        If False, rows matching the values are discarded.
         case_sensitive: If False (default), comparisons are case-insensitive for strings.
         context_message: Additional context for error messages.
+        logger: Optional ILoggingService instance for logging.
 
     Returns:
         A new GeoDataFrame containing the filtered rows.
@@ -384,7 +422,8 @@ def filter_gdf_by_attribute_values(
     Raises:
         GdfValidationError: If the specified column is not found.
     """
-    logger = _get_logger()
+    if logger is None:
+        logger = _get_logger()
     if gdf.empty:
         logger.debug(f"Skipping attribute filter for empty GeoDataFrame. {context_message}")
         return gdf.copy()
@@ -440,7 +479,8 @@ def filter_gdf_by_intersection(
     explode_source_before_filter: bool = True,
     filter_geometry_buffer_distance: float = 0.0,
     keep_matching: bool = True,
-    context_message: str = "filter_gdf_by_intersection"
+    context_message: str = "filter_gdf_by_intersection",
+    logger: Optional[ILoggingService] = None
 ) -> gpd.GeoDataFrame:
     """
     Filters a source GeoDataFrame by spatial intersection with one or more filter GeoDataFrames.
@@ -464,24 +504,27 @@ def filter_gdf_by_intersection(
         keep_matching: If True, keeps source features that intersect the combined filter geometry.
                        If False, keeps source features that do NOT intersect.
         context_message: Context for logging potential errors.
+        logger: Optional ILoggingService instance for logging.
 
     Returns:
         A new GeoDataFrame containing the filtered geometries from source_gdf.
     """
+    if logger is None:
+        logger = _get_logger()
     if source_gdf.empty:
-        _logger_geoutils.info(f"{context_message}: Source GDF '{source_layer_name_for_log}' is empty. Returning empty GDF.")
+        logger.info(f"{context_message}: Source GDF '{source_layer_name_for_log}' is empty. Returning empty GDF.")
         return source_gdf.copy()
 
     if not filter_items:
-        _logger_geoutils.warning(f"{context_message}: No filter items provided for '{source_layer_name_for_log}'. Returning original GDF.")
+        logger.warning(f"{context_message}: No filter items provided for '{source_layer_name_for_log}'. Returning original GDF.")
         return source_gdf.copy()
 
     # Ensure source_gdf is in base_crs
-    current_source_gdf = reproject_gdf(source_gdf, base_crs, f"{context_message} source_gdf reprojection")
+    current_source_gdf = reproject_gdf(source_gdf, base_crs, f"{context_message} source_gdf reprojection", logger)
 
     if explode_source_before_filter:
         if not current_source_gdf.empty and current_source_gdf.geom_type.str.startswith('Multi').any():
-            _logger_geoutils.debug(f"{context_message}: Exploding source GDF '{source_layer_name_for_log}' before filtering.")
+            logger.debug(f"{context_message}: Exploding source GDF '{source_layer_name_for_log}' before filtering.")
             current_source_gdf = current_source_gdf.explode(index_parts=True).reset_index(drop=True) # Changed from ignore_index to preserve original index parts if needed later
                                                                                                 # Reset index to avoid issues with sjoin if index_parts=True creates multi-index
 
@@ -497,31 +540,32 @@ def filter_gdf_by_intersection(
         add_col_name = item_dict.get('add_filter_layer_name_column')
 
         if not isinstance(filter_gdf, gpd.GeoDataFrame) or filter_gdf.empty:
-            _logger_geoutils.warning(f"{context_message}: Filter item '{filter_layer_name}' is empty or not a GDF. Skipping.")
+            logger.warning(f"{context_message}: Filter item '{filter_layer_name}' is empty or not a GDF. Skipping.")
             continue
 
         # Reproject filter_gdf to base_crs
-        current_filter_gdf = reproject_gdf(filter_gdf, base_crs, f"{context_message} filter_gdf '{filter_layer_name}' reprojection")
+        current_filter_gdf = reproject_gdf(filter_gdf, base_crs, f"{context_message} filter_gdf '{filter_layer_name}' reprojection", logger)
 
         # Apply attribute filtering to the filter_gdf itself if specified
         if attr_filter_col and attr_filter_vals:
             if attr_filter_col not in current_filter_gdf.columns:
-                _logger_geoutils.error(f"{context_message}: Attribute filter column '{attr_filter_col}' not found in filter GDF '{filter_layer_name}'. Skipping this filter item.")
+                logger.error(f"{context_message}: Attribute filter column '{attr_filter_col}' not found in filter GDF '{filter_layer_name}'. Skipping this filter item.")
                 continue
             try:
-                _logger_geoutils.debug(f"{context_message}: Applying attribute filter to '{filter_layer_name}' on column '{attr_filter_col}'.")
+                logger.debug(f"{context_message}: Applying attribute filter to '{filter_layer_name}' on column '{attr_filter_col}'.")
                 current_filter_gdf = filter_gdf_by_attribute_values(
                     current_filter_gdf,
                     column_name=attr_filter_col,
                     filter_values=attr_filter_vals,
                     keep_matching=True, # Always keep matching for the filter layer itself
-                    context_message=f"{context_message} attribute pre-filter for '{filter_layer_name}'"
+                    context_message=f"{context_message} attribute pre-filter for '{filter_layer_name}'",
+                    logger=logger
                 )
                 if current_filter_gdf.empty:
-                    _logger_geoutils.info(f"{context_message}: Filter GDF '{filter_layer_name}' became empty after attribute filtering. Skipping.")
+                    logger.info(f"{context_message}: Filter GDF '{filter_layer_name}' became empty after attribute filtering. Skipping.")
                     continue
             except Exception as e_attr_filter:
-                _logger_geoutils.error(f"{context_message}: Error during attribute pre-filter for '{filter_layer_name}': {e_attr_filter}. Skipping.", exc_info=True)
+                logger.error(f"{context_message}: Error during attribute pre-filter for '{filter_layer_name}': {e_attr_filter}. Skipping.", exc_info=True)
                 continue
 
         # Buffer the (potentially attribute-filtered) filter_gdf's unary_union
@@ -529,7 +573,7 @@ def filter_gdf_by_intersection(
         if not current_filter_gdf.empty:
             filter_geom_unified = unary_union(current_filter_gdf.geometry)
             if filter_geometry_buffer_distance != 0.0:
-                _logger_geoutils.debug(f"{context_message}: Buffering unified geometry of '{filter_layer_name}' by {filter_geometry_buffer_distance}.")
+                logger.debug(f"{context_message}: Buffering unified geometry of '{filter_layer_name}' by {filter_geometry_buffer_distance}.")
                 filter_geom_unified = filter_geom_unified.buffer(filter_geometry_buffer_distance)
 
             if filter_geom_unified and not filter_geom_unified.is_empty:
@@ -541,7 +585,7 @@ def filter_gdf_by_intersection(
 
 
     if not all_filter_geometries:
-        _logger_geoutils.warning(f"{context_message}: No valid filter geometries obtained for '{source_layer_name_for_log}'. Behavior depends on 'keep_matching'.")
+        logger.warning(f"{context_message}: No valid filter geometries obtained for '{source_layer_name_for_log}'. Behavior depends on 'keep_matching'.")
         if keep_matching: # Keep intersecting with nothing -> empty
             return gpd.GeoDataFrame(geometry=[], crs=current_source_gdf.crs, columns=current_source_gdf.columns)
         else: # Keep non-intersecting with nothing -> all original
@@ -556,7 +600,7 @@ def filter_gdf_by_intersection(
     # Combine all processed filter geometries into a single geometry for the main sjoin
     combined_filter_geometry = unary_union(all_filter_geometries)
     if combined_filter_geometry.is_empty:
-        _logger_geoutils.warning(f"{context_message}: Combined filter geometry for '{source_layer_name_for_log}' is empty. Behavior depends on 'keep_matching'.")
+        logger.warning(f"{context_message}: Combined filter geometry for '{source_layer_name_for_log}' is empty. Behavior depends on 'keep_matching'.")
         if keep_matching:
             return gpd.GeoDataFrame(geometry=[], crs=current_source_gdf.crs, columns=current_source_gdf.columns)
         else:
@@ -571,7 +615,7 @@ def filter_gdf_by_intersection(
 
     # Perform the main spatial join
     try:
-        _logger_geoutils.debug(f"{context_message}: Performing sjoin for '{source_layer_name_for_log}'.")
+        logger.debug(f"{context_message}: Performing sjoin for '{source_layer_name_for_log}'.")
         # Save original index to select rows from current_source_gdf later
         # We use 'left' join to keep all source_gdf rows initially, and 'intersects' gives 'index_right'
         # The presence of 'index_right' (not NaN) indicates an intersection.
@@ -601,11 +645,11 @@ def filter_gdf_by_intersection(
                 result_gdf.loc[intersect_mask_for_col, col_name_to_add] = True
 
 
-        _logger_geoutils.info(f"{context_message}: Successfully filtered '{source_layer_name_for_log}'. Original rows: {len(source_gdf)}, Result rows: {len(result_gdf)}.")
+        logger.info(f"{context_message}: Successfully filtered '{source_layer_name_for_log}'. Original rows: {len(source_gdf)}, Result rows: {len(result_gdf)}.")
         return result_gdf.reset_index(drop=True) # Ensure clean index
 
     except Exception as e_sjoin:
-        _logger_geoutils.error(f"{context_message}: Error during sjoin for '{source_layer_name_for_log}': {e_sjoin}", exc_info=True)
+        logger.error(f"{context_message}: Error during sjoin for '{source_layer_name_for_log}': {e_sjoin}", exc_info=True)
         raise GdfValidationError(f"Error during spatial join in {context_message} for '{source_layer_name_for_log}': {e_sjoin}") from e_sjoin
 
 

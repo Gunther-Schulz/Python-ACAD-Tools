@@ -17,20 +17,14 @@ from ..interfaces.data_exporter_interface import IDataExporter
 from ..interfaces.logging_service_interface import ILoggingService
 from ..domain.config_models import SpecificProjectConfig
 from ..domain.exceptions import ProcessingError, DXFProcessingError
-from .logging_service import LoggingService # Fallback if no logger is injected
 
 
 class DataExporterService(IDataExporter):
     """Service for exporting geometric data to various formats."""
 
-    def __init__(self, logger_service: Optional[ILoggingService] = None):
-        if logger_service:
-            self._logger = logger_service.get_logger(__name__)
-        else:
-            # Fallback to a direct instance if no logger service is provided
-            self._logger_service_instance = LoggingService()
-            self._logger = self._logger_service_instance.get_logger(__name__)
-            self._logger.warning("DataExporterService initialized without injected logger. Using fallback.")
+    def __init__(self, logger_service: ILoggingService):
+        """Initialize with required injected dependencies following strict DI principles."""
+        self._logger = logger_service.get_logger(__name__)
 
         if not EZDXF_AVAILABLE:
             self._logger.warning("ezdxf library not available. DXF export functionality will fail if called.")

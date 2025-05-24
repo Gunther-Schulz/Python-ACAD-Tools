@@ -1,105 +1,110 @@
-"""Dependency injection container configuration."""
+"""Dependency Injection Container for the application following PROJECT_ARCHITECTURE.MD."""
 from dependency_injector import containers, providers
+from dependency_injector.providers import Factory, Singleton
+
+from ..interfaces.logging_service_interface import ILoggingService
+from ..interfaces.config_loader_interface import IConfigLoader
+from ..interfaces.data_source_interface import IDataSource
+from ..interfaces.data_exporter_interface import IDataExporter
+from ..interfaces.style_applicator_interface import IStyleApplicator
+from ..interfaces.resource_manager_interface import IResourceManager
+from ..interfaces.config_validation_interface import IConfigValidation
+from ..interfaces.operation_registry_interface import IOperationRegistry
+from ..interfaces.dxf_adapter_interface import IDXFAdapter
 
 from ..services.logging_service import LoggingService
 from ..services.config_loader_service import ConfigLoaderService
 from ..services.data_source_service import DataSourceService
-from ..services.geometry_processor_service import GeometryProcessorService
-from ..services.style_applicator_service import StyleApplicatorService
 from ..services.data_exporter_service import DataExporterService
-from ..services.project_orchestrator_service import ProjectOrchestratorService
+from ..services.style_applicator_service import StyleApplicatorService
 from ..services.resource_manager_service import ResourceManagerService
-from ..services.operations.operation_registry import OperationRegistry
-from ..adapters.ezdxf_adapter import EzdxfAdapter
+from ..services.project_orchestrator_service import ProjectOrchestratorService
+from ..services.geometry_processor_service import GeometryProcessorService
 from ..domain.config_validation import ConfigValidationService
-from .factories import ServiceFactory, HandlerFactory, FactoryRegistry
+from ..services.operation_registry import OperationRegistry
+from ..adapters.ezdxf_adapter import EzdxfAdapter
+
 from ..domain.config_models import AppConfig
 
 
 class ApplicationContainer(containers.DeclarativeContainer):
-    """Main dependency injection container for the application."""
+    """Main DI container for the application."""
 
     # Configuration
     config = providers.Configuration()
 
-    # Core Services
-    logging_service = providers.Singleton(
-        LoggingService
+    # Core services (singletons)
+    logging_service = Singleton(
+        LoggingService,
+        log_level_console=config.log_level_console,
+        log_level_file=config.log_level_file,
+        log_file_path=config.log_file_path
     )
 
-    resource_manager = providers.Singleton(
-        ResourceManagerService,
-        logger_service=logging_service
+    app_config = Singleton(
+        AppConfig
     )
 
-    # Factories and Registries
-    service_factory = providers.Singleton(
-        ServiceFactory,
-        logger_service=logging_service
-    )
-
-    handler_factory = providers.Singleton(
-        HandlerFactory,
-        logger_service=logging_service
-    )
-
-    factory_registry = providers.Singleton(
-        FactoryRegistry,
-        logger_service=logging_service
-    )
-
-    # Validation Services
-    config_validation = providers.Singleton(
+    config_validation_service = Singleton(
         ConfigValidationService
     )
 
+    config_loader_service = Singleton(
+        ConfigLoaderService,
+        logger_service=logging_service,
+        app_config=app_config
+    )
+
+    resource_manager_service = Singleton(
+        ResourceManagerService,
+        logger_service=logging_service,
+        max_memory_mb=config.max_memory_mb,
+        temp_dir=config.temp_dir
+    )
+
+    operation_registry = Singleton(
+        OperationRegistry,
+        logger_service=logging_service
+    )
+
     # Adapters
-    dxf_adapter = providers.Singleton(
+    dxf_adapter = Singleton(
         EzdxfAdapter,
         logger_service=logging_service
     )
 
-    config_loader = providers.Singleton(
-        ConfigLoaderService,
-        logger_service=logging_service,
-        app_config=config.app_config
-    )
-
-    data_source = providers.Singleton(
+    # Data services
+    data_source_service = Singleton(
         DataSourceService,
         logger_service=logging_service
     )
 
-    # Operation Registry
-    operation_registry = providers.Singleton(
-        OperationRegistry,
-        logger_service=logging_service,
-        data_source_service=data_source
-    )
-
-    geometry_processor = providers.Singleton(
-        GeometryProcessorService,
-        logger_service=logging_service,
-        data_source_service=data_source
-    )
-
-    style_applicator = providers.Singleton(
-        StyleApplicatorService,
-        config_loader=config_loader,
-        logger_service=logging_service
-    )
-
-    data_exporter = providers.Singleton(
+    data_exporter_service = Singleton(
         DataExporterService,
         logger_service=logging_service
     )
 
-    project_orchestrator = providers.Factory(
+    style_applicator_service = Singleton(
+        StyleApplicatorService,
+        config_loader=config_loader_service,
+        logger_service=logging_service
+    )
+
+    # Processing services
+    geometry_processor_service = Singleton(
+        GeometryProcessorService,
+        resource_manager=resource_manager_service,
+        operation_registry=operation_registry,
+        logger_service=logging_service
+    )
+
+    project_orchestrator_service = Singleton(
         ProjectOrchestratorService,
-        logging_service=logging_service,
-        config_loader=config_loader,
-        data_source=data_source,
-        geometry_processor=geometry_processor,
-        style_applicator=style_applicator,
-        data_exporter=data_exporter
+        config_loader=config_loader_service,
+        data_source=data_source_service,
+        data_exporter=data_exporter_service,
+        style_applicator=style_applicator_service,
+        geometry_processor=geometry_processor_service,
+        resource_manager=resource_manager_service,
+        logger_service=logging_service
     )

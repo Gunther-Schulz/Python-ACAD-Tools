@@ -1,0 +1,126 @@
+"""Style-related domain models following PROJECT_ARCHITECTURE.MD specification."""
+from typing import Dict, Optional, Union, List, Any
+from pydantic import BaseModel, Field, ConfigDict, field_validator
+from enum import Enum
+
+
+class TextAttachmentPoint(str, Enum):
+    """Text attachment point options."""
+    TOP_LEFT = "TOP_LEFT"
+    TOP_CENTER = "TOP_CENTER"
+    TOP_RIGHT = "TOP_RIGHT"
+    MIDDLE_LEFT = "MIDDLE_LEFT"
+    MIDDLE_CENTER = "MIDDLE_CENTER"
+    MIDDLE_RIGHT = "MIDDLE_RIGHT"
+    BOTTOM_LEFT = "BOTTOM_LEFT"
+    BOTTOM_CENTER = "BOTTOM_CENTER"
+    BOTTOM_RIGHT = "BOTTOM_RIGHT"
+
+
+class LineSpacingStyle(str, Enum):
+    """Line spacing style options."""
+    AT_LEAST = "at_least"
+    EXACTLY = "exactly"
+
+
+class FlowDirection(str, Enum):
+    """Text flow direction options."""
+    LEFT_TO_RIGHT = "left_to_right"
+    RIGHT_TO_LEFT = "right_to_left"
+    TOP_TO_BOTTOM = "top_to_bottom"
+    BOTTOM_TO_TOP = "bottom_to_top"
+
+
+class LayerStyleProperties(BaseModel):
+    """Style properties for DXF layers."""
+    model_config = ConfigDict(extra='ignore')
+
+    color: Optional[Union[str, int]] = None
+    linetype: Optional[str] = None
+    lineweight: Optional[int] = None
+    transparency: Optional[float] = None
+    plot: Optional[bool] = None
+    is_on: Optional[bool] = Field(None, alias='isOn')
+    frozen: Optional[bool] = None
+    locked: Optional[bool] = None
+
+
+class TextStyleProperties(BaseModel):
+    """Style properties for text entities."""
+    model_config = ConfigDict(extra='ignore')
+
+    font: Optional[str] = None
+    color: Optional[Union[str, int]] = None
+    height: Optional[float] = None
+    rotation: Optional[float] = None
+    attachment_point: Optional[TextAttachmentPoint] = Field(None, alias='attachmentPoint')
+    align_to_view: Optional[bool] = Field(None, alias='alignToView')
+
+    # MTEXT specific properties
+    max_width: Optional[float] = Field(None, alias='maxWidth')
+    flow_direction: Optional[FlowDirection] = Field(None, alias='flowDirection')
+    line_spacing_style: Optional[LineSpacingStyle] = Field(None, alias='lineSpacingStyle')
+    line_spacing_factor: Optional[float] = Field(None, alias='lineSpacingFactor')
+
+    # Text formatting
+    underline: Optional[bool] = None
+    overline: Optional[bool] = None
+    strike_through: Optional[bool] = Field(None, alias='strikeThrough')
+    oblique_angle: Optional[float] = Field(None, alias='obliqueAngle')
+
+    # Background fill
+    bg_fill: Optional[bool] = Field(None, alias='bgFill')
+    bg_fill_color: Optional[Union[str, int]] = Field(None, alias='bgFillColor')
+    bg_fill_scale: Optional[float] = Field(None, alias='bgFillScale')
+
+
+class HatchStyleProperties(BaseModel):
+    """Style properties for hatch entities."""
+    model_config = ConfigDict(extra='ignore')
+
+    pattern_name: Optional[str] = Field(None, alias='patternName')
+    color: Optional[Union[str, int]] = None
+    scale: Optional[float] = None
+    angle: Optional[float] = None
+    spacing: Optional[float] = None
+
+
+class NamedStyle(BaseModel):
+    """A complete named style definition."""
+    model_config = ConfigDict(extra='ignore')
+
+    layer: Optional[LayerStyleProperties] = None
+    text: Optional[TextStyleProperties] = None
+    hatch: Optional[HatchStyleProperties] = None
+
+
+class StyleConfig(BaseModel):
+    """Configuration for all styles."""
+    model_config = ConfigDict(extra='ignore')
+
+    styles: Dict[str, NamedStyle] = Field(default_factory=dict)
+
+
+class AciColorMappingItem(BaseModel):
+    """Mapping between color names and ACI codes."""
+    model_config = ConfigDict(extra='ignore')
+
+    name: str
+    aci_code: int = Field(alias='aciCode')
+    rgb: Optional[str] = None
+    hex_code: Optional[str] = Field(None, alias='hexCode')
+
+    @field_validator('aci_code')
+    @classmethod
+    def validate_aci_code(cls, v):
+        """Validate ACI code is in valid range."""
+        if not (0 <= v <= 255):
+            raise ValueError(f"ACI code must be between 0 and 255, got {v}")
+        return v
+
+
+class ColorConfig(BaseModel):
+    """Configuration for color mappings."""
+    model_config = ConfigDict(extra='ignore')
+
+    colors: List[AciColorMappingItem] = Field(default_factory=list)
