@@ -1,9 +1,8 @@
-"""Utilities for DXF document maintenance like cleanup."""
-from typing import Optional
+"""DXF document maintenance adapter for ezdxf library integration.
 
-# It's crucial that the logger is passed in or globally available if these utils are to log.
-# For now, assuming no direct logging from these low-level utils to keep them simple.
-# Consider adding logger: Optional[ILoggingService] = None to functions if logging is needed.
+This module provides adapter functions for DXF document cleanup and maintenance operations.
+"""
+from typing import Optional
 
 try:
     from ezdxf.document import Drawing
@@ -42,26 +41,21 @@ def cleanup_dxf_document(doc: Drawing, do_audit: bool = True, do_purge: bool = T
             # For now, just run it to fix errors internally if possible.
             auditor = audit(doc) # ezdxf.recover.audit
             if auditor.has_errors:
-                # print(f"DXF audit found {len(auditor.errors)} errors.") # Log this with a logger
-                pass # Errors are fixed internally by auditor if possible
-            if auditor.has_fixed_errors:
-                # print(f"DXF audit fixed {len(auditor.fixes)} errors.") # Log this
+                # Errors are fixed internally by auditor if possible
                 pass
-        except Exception as e:
-            # print(f"Error during DXF document audit: {e}") # Log this
-            pass # Don't let audit failure stop other cleanup
+            if auditor.has_fixed_errors:
+                pass
+        except Exception:
+            # Don't let audit failure stop other cleanup
+            pass
 
     if do_purge:
         try:
-            # Purge unused blocks
-            # doc.blocks.purge() # This might be too aggressive for some workflows
-
             # Purge all known table entries (layers, linetypes, text styles, etc.)
             # ezdxf's purge() method on the document is quite comprehensive.
             doc.purge()
-            # print("DXF document purged of unused resources.") # Log this
-        except Exception as e:
-            # print(f"Error during DXF document purge: {e}") # Log this
-            pass # Don't let purge failure stop process
+        except Exception:
+            # Don't let purge failure stop process
+            pass
 
     return True

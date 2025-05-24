@@ -1,5 +1,6 @@
-"""Utilities for string manipulation."""
+"""Text processing utility functions for string manipulation."""
 import re
+
 
 def sanitize_dxf_layer_name(name: str) -> str:
     """
@@ -27,10 +28,5 @@ def sanitize_dxf_layer_name(name: str) -> str:
     # Ensure the name is not empty after sanitization
     if not sanitized_name:
         return "default_layer"
-
-    # DXF layer names have a max length (e.g., 255 in AutoCAD 2000+ format, but ezdxf might have its own internal limit or handle longer names)
-    # For now, not enforcing a strict length limit here, assuming ezdxf handles it or it's configured elsewhere.
-    # if len(sanitized_name) > 240: # Example limit
-    #     sanitized_name = sanitized_name[:240]
 
     return sanitized_name

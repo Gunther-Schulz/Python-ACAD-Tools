@@ -1,4 +1,8 @@
-"""Utilities for working with DXF entities, particularly XDATA."""
+"""DXF entity operations adapter for ezdxf library integration.
+
+This module provides adapter functions for working with DXF entities,
+particularly XDATA (Extended Data) operations and entity lifecycle management.
+"""
 from typing import List, Tuple, Any, Optional
 
 APP_ID_PREFIX = "ACAD_APP_PYACADTOOLS"
@@ -33,23 +37,18 @@ def attach_xdata(entity: DXFGraphic, app_id: str, xdata_pairs: List[Tuple[int, A
     if not EZDXF_AVAILABLE or entity is None:
         return False
 
-    # Ensure app_id is registered if not already (ezdxf handles this transparently)
-    # Prefix the app_id to make it more unique to this toolset if it doesn't have the prefix
-    # final_app_id = app_id if app_id.startswith(APP_ID_PREFIX) else f"{APP_ID_PREFIX}_{app_id.upper().replace(' ', '_')}"
-    final_app_id = app_id # Keep app_id as provided by caller for now; caller manages namespacing.
+    # Keep app_id as provided by caller for now; caller manages namespacing.
+    final_app_id = app_id
 
     try:
         entity.set_xdata(final_app_id, xdata_pairs) # set_xdata replaces existing XDATA for app_id
         return True
-    except DXFValueError as e:
+    except DXFValueError:
         # This can happen if group codes are not in allowed range (1000-1071, except 1001)
         # Or if entity does not support XDATA (rare for DXFGraphic derivatives)
-        # Consider logging this error with a logger if available
-        # print(f"Error setting XDATA for app_id '{final_app_id}' on entity {entity.dxf.handle if hasattr(entity, 'dxf') else 'N/A'}: {e}")
         return False
     except Exception:
         # Catch any other unexpected ezdxf errors
-        # print(f"Unexpected error setting XDATA for app_id '{final_app_id}': {e}")
         return False
 
 def get_xdata(entity: DXFGraphic, app_id: str) -> Optional[List[Tuple[int, Any]]]:
@@ -66,7 +65,6 @@ def get_xdata(entity: DXFGraphic, app_id: str) -> Optional[List[Tuple[int, Any]]
     if not EZDXF_AVAILABLE or entity is None:
         return None
 
-    # final_app_id = app_id if app_id.startswith(APP_ID_PREFIX) else f"{APP_ID_PREFIX}_{app_id.upper().replace(' ', '_')}"
     final_app_id = app_id
 
     try:
@@ -123,7 +121,7 @@ def attach_script_identifier(entity: DXFGraphic, script_identifier: str) -> bool
         # Set new XDATA
         entity.set_xdata('DXFEXPORTER', [(1000, script_identifier)])
         return True
-    except Exception as e:
+    except Exception:
         return False
 
 def remove_entities_by_layer(dxf_drawing, layer_names, script_identifier="python-acad-tools"):
@@ -177,7 +175,7 @@ def remove_entities_by_layer(dxf_drawing, layer_names, script_identifier="python
                                 trash.add(entity.dxf.handle)
                                 delete_count += 1
 
-                            except Exception as e:
+                            except Exception:
                                 # Log but continue with other entities
                                 continue
                 except AttributeError:
@@ -186,12 +184,12 @@ def remove_entities_by_layer(dxf_drawing, layer_names, script_identifier="python
         # Cleanup operations
         try:
             doc.entitydb.purge()
-        except Exception as e:
+        except Exception:
             pass  # Not critical if purge fails
 
         try:
             doc.audit()
-        except Exception as e:
+        except Exception:
             pass  # Audit failure is not critical
 
     except Exception as e:

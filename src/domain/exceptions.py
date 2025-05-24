@@ -43,8 +43,18 @@ class DXFProcessingError(ProcessingError):
     pass
 
 
+class DXFGeometryConversionError(DXFProcessingError):
+    """Raised when there's an error converting DXF entities to Shapely geometries."""
+    pass
+
+
 class GeometryError(ProcessingError):
     """Raised when there's an error during geometry operations."""
+    pass
+
+
+class GdfValidationError(ConfigError):
+    """Raised when GeoDataFrame validation fails."""
     pass
 
 

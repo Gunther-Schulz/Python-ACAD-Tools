@@ -1,8 +1,14 @@
-"""Utility functions for DXF geometry conversions and manipulations."""
+"""DXF geometry conversion adapter for ezdxf library integration.
+
+This module provides adapter functions for converting between DXF entities and Shapely geometries.
+"""
 from typing import Optional, Tuple, List, Any, Dict, cast
 
 from shapely.geometry import Point, Polygon, LineString
 from shapely.ops import transform as shapely_transform # Alias to avoid confusion
+
+# Import exception from domain
+from ...domain.exceptions import DXFGeometryConversionError
 
 # Attempt ezdxf import
 try:
@@ -19,11 +25,6 @@ except ImportError:
     Z_AXIS = None # type: ignore
     DXFError, DXFStructureError = Exception, Exception
     EZDXF_AVAILABLE = False
-
-
-class DXFGeometryConversionError(Exception):
-    """Custom exception for errors during DXF to Shapely geometry conversion."""
-    pass
 
 
 def convert_dxf_circle_to_polygon(
@@ -48,7 +49,6 @@ def convert_dxf_circle_to_polygon(
 
 def extract_dxf_entity_basepoint(
     entity: DXFGraphic,
-    # target_crs: str, # Not used directly here, CRS applied later to GDF
 ) -> Optional[Tuple[Point, Dict[str, Any]]]:
     """Extracts a representative basepoint (as Shapely Point) and attributes from a DXF entity."""
     if not EZDXF_AVAILABLE:
@@ -85,20 +85,16 @@ def extract_dxf_entity_basepoint(
             attributes['end_angle'] = arc_entity.dxf.end_angle
         elif entity_type == 'TEXT':
             text_entity = cast(Text, entity)
-            # Insertion point is already Vec3. Alignment point might be more accurate for some justifications.
-            # For simplicity, using insert as the primary basepoint for TEXT.
             basepoint_coords = (text_entity.dxf.insert.x, text_entity.dxf.insert.y)
             attributes['text_string'] = text_entity.dxf.text
             attributes['text_height'] = text_entity.dxf.height
             attributes['text_rotation'] = text_entity.dxf.rotation
-            # TODO: Potentially add text_style, width_factor, oblique_angle, justification
         elif entity_type == 'MTEXT':
             mtext_entity = cast(MText, entity)
             basepoint_coords = (mtext_entity.dxf.insert.x, mtext_entity.dxf.insert.y)
             attributes['mtext_string'] = mtext_entity.text # Mtext content
             attributes['mtext_height'] = mtext_entity.dxf.char_height
             attributes['mtext_rotation'] = mtext_entity.dxf.rotation
-            # TODO: Potentially add attachment_point, style, width, etc.
         elif entity_type == 'LWPOLYLINE':
             lwpolyline_entity = cast(LWPolyline, entity)
             if lwpolyline_entity.vertices:
@@ -127,9 +123,6 @@ def extract_dxf_entity_basepoint(
         elif entity_type == 'HATCH': # This is often complex to get a single 'basepoint'
             hatch_entity = cast(Hatch, entity)
             # Option 1: Use first point of the first path if available
-            # Option 2: Centroid of bounding box (can be far if hatch is disjointed)
-            # For simplicity, let's try the first vertex of the first path boundary
-            # Note: This might not always be the most 'representative' point.
             try:
                 if hatch_entity.paths:
                     first_path = hatch_entity.paths[0]
@@ -162,16 +155,8 @@ def extract_dxf_entity_basepoint(
             shapely_point = Point(basepoint_coords)
             return shapely_point, attributes
 
-    except (DXFError, DXFStructureError, AttributeError, IndexError, TypeError) as e:
-        # Log this error in the calling service if needed
-        # print(f"Warning: Could not extract basepoint for {entity.dxftype()} due to: {e}")
-        pass # Gracefully skip if basepoint extraction fails for an entity
+    except (DXFError, DXFStructureError, AttributeError, IndexError, TypeError):
+        # Gracefully skip if basepoint extraction fails for an entity
+        pass
 
     return None # If no basepoint could be determined or an error occurred
-
-# TODO: Add more specific DXF to Shapely conversion utilities if `_extract_entities_as_gdf_from_dxf_layer`
-# in GeometryProcessorService becomes too monolithic. For example:
-# def convert_lwpolyline_to_shapely(entity: LWPolyline) -> Optional[Union[LineString, Polygon]]:
-# def convert_polyline_to_shapely(entity: Polyline) -> Optional[Union[LineString, Polygon]]:
-# def convert_line_to_shapely(entity: DXFLine) -> Optional[LineString]:
-# etc.

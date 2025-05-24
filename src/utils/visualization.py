@@ -1,4 +1,4 @@
-"""Plotting utilities, primarily for debugging and visualization during development."""
+"""Visualization utilities for debugging and development plotting."""
 from typing import Optional
 
 # These utilities will have optional dependencies on matplotlib and geopandas (for plot method)
@@ -41,11 +41,9 @@ def plot_shapely_geometry(geom: BaseGeometry, title: Optional[str] = None, ax=No
                   (e.g., color, alpha, linewidth for lines; facecolor, edgecolor for polygons).
     """
     if not _MATPLOTLIB_AVAILABLE or not _SHAPELY_AVAILABLE:
-        # print("Matplotlib or Shapely not available. Cannot plot geometry.") # Log this
         return
 
     if geom is None or geom.is_empty:
-        # print("Geometry is None or empty. Nothing to plot.") # Log this
         return
 
     if ax is None:
@@ -91,9 +89,6 @@ def plot_shapely_geometry(geom: BaseGeometry, title: Optional[str] = None, ax=No
             for pt in geom.geoms:
                 x, y = pt.xy
                 ax.plot(x, y, **default_kwargs)
-    else:
-        # print(f"Geometry type {type(geom)} not supported for direct plotting by this util.") # Log this
-        pass # Or try a generic __geo_interface__ if available
 
     ax.set_aspect('equal', adjustable='box')
     if title:
@@ -113,11 +108,9 @@ def plot_gdf(gdf, title: Optional[str] = None, ax=None, **kwargs):
         **kwargs: Additional keyword arguments to pass to gdf.plot().
     """
     if not _GEOPANDAS_AVAILABLE or not _MATPLOTLIB_AVAILABLE:
-        # print("GeoPandas or Matplotlib not available. Cannot plot GeoDataFrame.") # Log this
         return
 
     if gdf is None or gdf.empty:
-        # print("GeoDataFrame is None or empty. Nothing to plot.") # Log this
         return
 
     if ax is None:
@@ -134,19 +127,3 @@ def plot_gdf(gdf, title: Optional[str] = None, ax=None, **kwargs):
 
     if ax is None: # Only call show if we created the figure
         plt.show()
-
-# Example usage (for testing this file directly):
-# if __name__ == '__main__':
-#     if _SHAPELY_AVAILABLE and _MATPLOTLIB_AVAILABLE:
-#         point = Point(0, 0)
-#         line = LineString([(0,0), (1,1), (0,2), (2,2), (3,1), (1,0)])
-#         poly = Polygon([(0,0), (1,1), (1,0)])
-#         plot_shapely_geometry(point, title="Test Point")
-#         plot_shapely_geometry(line, title="Test Line")
-#         plot_shapely_geometry(poly, title="Test Polygon")
-
-#     if _GEOPANDAS_AVAILABLE and _MATPLOTLIB_AVAILABLE:
-#         data = {'id': [1, 2],
-#                 'geometry': [Point(1, 2), Point(2, 1)]}
-#         sample_gdf = gpd.GeoDataFrame(data, crs="EPSG:4326")
-#         plot_gdf(sample_gdf, title="Test GDF")
