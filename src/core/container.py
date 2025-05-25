@@ -11,6 +11,7 @@ from ..interfaces.resource_manager_interface import IResourceManager
 from ..interfaces.config_validation_interface import IConfigValidation
 from ..interfaces.operation_registry_interface import IOperationRegistry
 from ..interfaces.dxf_adapter_interface import IDXFAdapter
+from ..interfaces.path_resolver_interface import IPathResolver
 
 from ..services.logging_service import LoggingService
 from ..services.config_loader_service import ConfigLoaderService
@@ -20,6 +21,7 @@ from ..services.style_applicator_service import StyleApplicatorService
 from ..services.resource_manager_service import ResourceManagerService
 from ..services.project_orchestrator_service import ProjectOrchestratorService
 from ..services.geometry_processor_service import GeometryProcessorService
+from ..services.path_resolver_service import PathResolverService
 from ..domain.config_validation import ConfigValidationService
 from ..services.operations.operation_registry import OperationRegistry
 from ..adapters.ezdxf_adapter import EzdxfAdapter
@@ -57,6 +59,12 @@ class ApplicationContainer(containers.DeclarativeContainer):
 
     resource_manager_service = Singleton(
         ResourceManagerService,
+        logger_service=logging_service
+    )
+
+    # Path resolution service
+    path_resolver_service = Singleton(
+        PathResolverService,
         logger_service=logging_service
     )
 

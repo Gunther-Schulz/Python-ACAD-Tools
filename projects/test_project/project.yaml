@@ -3,5 +3,57 @@ main:
   dxfFilename: "test_output.dxf"
   exportFormat: "dxf"
   dxfVersion: "R2010"
-  stylePresetsFile: "custom_styles.yaml"  # Use project-specific styles
-  outputDxfPath: "output/test_output_custom.dxf"
+  stylePresetsFile: "@styles.custom"  # Use project-specific styles via alias
+  outputDxfPath: "@output.dxf"
+
+# Hierarchical path aliases for elegant path resolution
+pathAliases:
+  # Data sources - mix of directory and file aliases
+  data:
+    # Directory aliases - append file names when using
+    root: "../.."                    # Project root directory
+    external: "../../external_data"  # External data directory
+    reference: "../../reference_files" # Reference files directory
+
+    # Specific file aliases
+    test: "../../test_data.geojson"  # Direct file reference
+    main_dataset: "../../data/main.geojson"
+
+  # Style configurations
+  styles:
+    # Directory for style collections
+    dir: "styles"                    # Local styles directory
+    templates: "../templates/styles" # Shared style templates
+
+    # Specific style files
+    custom: "custom_styles.yaml"
+    global: "../../styles.yaml"
+
+  # Output destinations - mostly directories
+  output:
+    # Directory aliases
+    root: "output"                   # Main output directory
+    reports: "output/reports"        # Reports subdirectory
+    temp: "output/temp"             # Temporary files
+    backup: "output/backup"         # Backup location
+
+    # Specific file aliases
+    dxf: "output/test_output_custom.dxf"
+    log: "output/processing.log"
+
+  # Configuration files
+  config:
+    # Directory for config files
+    dir: "."                        # Current project directory
+
+    # Specific config files
+    layers: "geom_layers.yaml"
+    legends: "legends.yaml"
+    project: "project.yaml"
+
+  # Working directories
+  work:
+    root: "work"                    # Main work directory
+    processing: "work/processing"   # Processing workspace
+    cache: "work/cache"            # Cache directory
+    logs: "work/logs"              # Log files directory

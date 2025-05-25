@@ -70,6 +70,9 @@ class SpecificProjectConfig(BaseModel):
     legends: List[LegendDefinition] = Field(default_factory=list)
     project_specific_styles: Optional[Dict[str, Any]] = Field(None, alias='projectSpecificStyles')
 
+    # Path aliases for hierarchical path resolution
+    path_aliases: Optional['ProjectPathAliases'] = Field(None, alias='pathAliases')
+
     # Additional project components (to be expanded)
     viewports: List[Dict[str, Any]] = Field(default_factory=list)
     block_inserts: List[Dict[str, Any]] = Field(default_factory=list, alias='blockInserts')
@@ -82,3 +85,4 @@ class SpecificProjectConfig(BaseModel):
 
 # Forward reference resolution
 from .geometry_models import GeomLayerDefinition
+from .path_models import ProjectPathAliases

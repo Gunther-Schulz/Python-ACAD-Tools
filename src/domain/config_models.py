@@ -21,6 +21,9 @@ from .geometry_models import (
     BoundingBoxOpParams, EnvelopeOpParams, OffsetCurveOpParams, CreateCirclesOpParams,
     ConnectPointsOpParams, ContourOpParams, WmtsOpParams, WmsOpParams
 )
+from .path_models import (
+    HierarchicalAlias, ProjectPathAliases, PathResolutionContext
+)
 
 
 class AppConfig(BaseSettings):
@@ -110,6 +113,11 @@ __all__ = [
     "WmsOpParams",
     "OperationType",
     "GeometryType",
+
+    # Path models
+    "HierarchicalAlias",
+    "ProjectPathAliases",
+    "PathResolutionContext",
 
     # Common types
     "CoordinateReferenceSystem"

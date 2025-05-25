@@ -61,3 +61,21 @@ class GdfValidationError(ConfigError):
 class DataSourceError(ProcessingError):
     """Raised when there's an error accessing or loading data sources."""
     pass
+
+
+class PathResolutionError(ApplicationBaseException):
+    """Raised when there's an error resolving path aliases or path references."""
+
+    def __init__(self, message: str, alias_reference: Optional[str] = None,
+                 project_name: Optional[str] = None):
+        super().__init__(message)
+        self.alias_reference = alias_reference
+        self.project_name = project_name
+
+    def __str__(self):
+        error_details = [str(self.args[0])]
+        if self.project_name:
+            error_details.append(f"Project: {self.project_name}")
+        if self.alias_reference:
+            error_details.append(f"Alias reference: {self.alias_reference}")
+        return "\n".join(error_details)

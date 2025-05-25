@@ -3,7 +3,7 @@
 # ===========================================
 
 - name: "commercial_buildings"
-  geojsonFile: "../../test_data.geojson"
+  geojsonFile: "@data.test"
   style: "building_style"
   updateDxf: true
   labelColumn: "name"  # Show building names
@@ -11,7 +11,7 @@
     type: "commercial"
 
 - name: "residential_buildings"
-  geojsonFile: "../../test_data.geojson"
+  geojsonFile: "@data.root/test_data.geojson"
   style: "residential_style"
   updateDxf: true
   labelColumn: "floors"  # Show number of floors as labels
@@ -19,7 +19,7 @@
     type: "residential"
 
 - name: "industrial_buildings"
-  geojsonFile: "../../test_data.geojson"
+  geojsonFile: "@data.test"
   style: "industrial_style"
   updateDxf: true
   labelColumn: "area_sqm"  # Show area in square meters
@@ -27,7 +27,7 @@
     type: "industrial"
 
 - name: "public_buildings"
-  geojsonFile: "../../test_data.geojson"
+  geojsonFile: "@data.external/public_facilities.geojson"
   style: "public_style"
   updateDxf: true
   labelColumn: "name"  # Show public building names (City Library, Town Square)
@@ -35,7 +35,7 @@
     type: "public"
 
 - name: "recreational_facilities"
-  geojsonFile: "../../test_data.geojson"
+  geojsonFile: "@data.test"
   style: "recreational_style"
   updateDxf: true
   labelColumn: "name"  # Show recreational facility names (Sports Complex)
@@ -43,7 +43,7 @@
     type: "recreational"
 
 - name: "healthcare_facilities"
-  geojsonFile: "../../test_data.geojson"
+  geojsonFile: "@data.reference/healthcare_locations.geojson"
   style: "healthcare_style"
   updateDxf: true
   labelColumn: "name"  # Show healthcare facility names (Medical Center)
@@ -51,7 +51,7 @@
     type: "healthcare"
 
 - name: "educational_facilities"
-  geojsonFile: "../../test_data.geojson"
+  geojsonFile: "@data.test"
   style: "educational_style"
   updateDxf: true
   labelColumn: "name"  # Show educational facility names (School Campus)
@@ -63,7 +63,7 @@
 # ===========================================
 
 - name: "all_buildings"
-  geojsonFile: "../../test_data.geojson"
+  geojsonFile: "@data.main_dataset"
   style: "building_style"
   updateDxf: true
   labelColumn: "address"  # Show building addresses for all buildings
@@ -74,7 +74,7 @@
 # ===========================================
 
 - name: "main_roads"
-  geojsonFile: "../../test_data.geojson"
+  geojsonFile: "@data.root/road_network.geojson"
   style: "road_style"
   updateDxf: true
   labelColumn: "name"  # Show road names
@@ -82,7 +82,7 @@
     type: "highway"
 
 - name: "bike_paths"
-  geojsonFile: "../../test_data.geojson"
+  geojsonFile: "@data.test"
   style: "road_style"
   updateDxf: true
   labelColumn: "surface"  # Show surface type
@@ -94,7 +94,7 @@
 # ===========================================
 
 - name: "parks"
-  geojsonFile: "../../test_data.geojson"
+  geojsonFile: "@data.external/parks_and_recreation.geojson"
   style: "point_style"
   updateDxf: true
   labelColumn: "name"  # Show park names
@@ -102,7 +102,7 @@
     type: "park"
 
 - name: "transit_stops"
-  geojsonFile: "../../test_data.geojson"
+  geojsonFile: "@data.test"
   style: "transit_style"
   updateDxf: true
   labelColumn: "routes"  # Show bus routes
@@ -110,7 +110,7 @@
     type: "transit"
 
 - name: "amenities"
-  geojsonFile: "../../test_data.geojson"
+  geojsonFile: "@data.reference/amenities_catalog.geojson"
   style: "amenity_style"
   updateDxf: true
   labelColumn: "category"  # Show amenity category
