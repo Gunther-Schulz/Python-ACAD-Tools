@@ -28,7 +28,8 @@ class IPathResolver(Protocol):
     def resolve_path(
         self,
         path_reference: str,
-        context: PathResolutionContext
+        context: PathResolutionContext,
+        context_key: Optional[str] = None
     ) -> str:
         """
         Resolve a path reference to an absolute path.
@@ -37,10 +38,13 @@ class IPathResolver(Protocol):
             path_reference: Either an alias reference (e.g., '@cad.input/file.dxf')
                           or a regular relative path
             context: Path resolution context for the current project
+            context_key: Optional context key for extension resolution (e.g., 'geojsonFile', 'stylePresetsFile')
+                        If provided and path has no extension, will try appropriate extensions
 
         Returns:
             Absolute path. If path_reference is an alias, resolves the alias first.
             If path_reference is a regular path, resolves relative to project root.
+            If context_key is provided and resolved path has no extension, tries context-appropriate extensions.
 
         Raises:
             PathResolutionError: If alias cannot be resolved or path is invalid
@@ -110,5 +114,42 @@ class IPathResolver(Protocol):
             Tuple of (alias_part, file_path_part).
             For '@cad.input/file.dxf' returns ('@cad.input', 'file.dxf')
             For '@cad.input' returns ('@cad.input', None)
+        """
+        ...
+
+    def resolve_path_with_extensions(
+        self,
+        path_reference: str,
+        context: PathResolutionContext,
+        extension_list: List[str]
+    ) -> str:
+        """
+        Resolve a path reference with explicit extension list.
+
+        Args:
+            path_reference: Either an alias reference or regular relative path
+            context: Path resolution context for the current project
+            extension_list: List of extensions to try (e.g., ['.geojson', '.json'])
+
+        Returns:
+            Absolute path with appropriate extension applied if needed
+
+        Raises:
+            PathResolutionError: If alias cannot be resolved or path is invalid
+        """
+        ...
+
+    def get_context_extensions(
+        self,
+        context_key: str
+    ) -> List[str]:
+        """
+        Get the list of extensions for a given context key.
+
+        Args:
+            context_key: Context key like 'geojsonFile', 'stylePresetsFile'
+
+        Returns:
+            List of extensions to try for this context (e.g., ['.geojson', '.json'])
         """
         ...
