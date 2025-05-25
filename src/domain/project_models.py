@@ -25,19 +25,37 @@ class DXFVersion(str, Enum):
     R2018 = "R2018"
 
 
+class DXFMode(str, Enum):
+    """DXF processing modes."""
+    CREATE = "create"      # Always start fresh, optionally from template
+    UPDATE = "update"      # Use existing output if exists, otherwise template
+    TEMPLATE = "template"  # Always use template as base
+
+
+class DXFConfig(BaseModel):
+    """DXF-specific configuration settings."""
+    model_config = ConfigDict(extra='ignore')
+
+    output_path: str = Field(alias='outputPath')
+    template_path: Optional[str] = Field(None, alias='templatePath')
+    input_path: Optional[str] = Field(None, alias='inputPath')
+    mode: DXFMode = Field(default=DXFMode.UPDATE)
+
+
 class ProjectMainSettings(BaseModel):
     """Core project settings, typically from project.yaml."""
     model_config = ConfigDict(extra='ignore')
 
     crs: CoordinateReferenceSystem
-    dxf_filename: str = Field(alias='dxfFilename')
     template: Optional[str] = None
     export_format: ExportFormat = Field(default=ExportFormat.DXF, alias='exportFormat')
     dxf_version: DXFVersion = Field(default=DXFVersion.R2010, alias='dxfVersion')
     style_presets_file: Optional[str] = Field(default="styles.yaml", alias='stylePresetsFile')
     shapefile_output_dir: Optional[str] = Field(None, alias='shapefileOutputDir')
-    output_dxf_path: Optional[str] = Field(None, alias='outputDxfPath')
     output_geopackage_path: Optional[str] = Field(None, alias='outputGeopackagePath')
+
+    # New DXF configuration
+    dxf: Optional[DXFConfig] = None
 
 
 class LegendDefinition(BaseModel):

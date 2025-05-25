@@ -249,7 +249,7 @@ class TestPathResolverService:
         # Test known context keys
         assert path_resolver._get_extensions_for_context("geojsonFile") == [".geojson", ".json"]
         assert path_resolver._get_extensions_for_context("stylePresetsFile") == [".yaml", ".yml"]
-        assert path_resolver._get_extensions_for_context("dxfFilename") == [".dxf"]
+        assert path_resolver._get_extensions_for_context("dxf.outputPath") == [".dxf"]
 
         # Test unknown context key
         assert path_resolver._get_extensions_for_context("unknownType") == []

@@ -1,10 +1,13 @@
 main:
   crs: "EPSG:4326"
-  dxfFilename: "test_output.dxf"
+  dxf:
+    outputPath: "@output.dxf"
+    mode: "update"
+    # templatePath: "@templates/base.dxf"  # Optional: Use template as starting point
+    # inputPath: "@specific/input.dxf"     # Optional: Override mode logic with specific input file
   exportFormat: "dxf"
   dxfVersion: "R2010"
   stylePresetsFile: "@styles.custom"  # Use project-specific styles via alias
-  outputDxfPath: "@output.dxf"
 
 # Hierarchical path aliases for elegant path resolution
 pathAliases:

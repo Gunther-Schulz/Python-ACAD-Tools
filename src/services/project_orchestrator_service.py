@@ -27,6 +27,7 @@ from ..domain.config_models import (
 from ..domain.exceptions import (
     ConfigError, ProcessingError, DXFProcessingError, GeometryError
 )
+from ..domain.project_models import DXFMode
 # Assuming direct instantiation of LoggingService as a fallback if not injected.
 # In a more complex app, a DI container would handle this.
 from .logging_service import LoggingService
@@ -97,45 +98,72 @@ class ProjectOrchestratorService(IProjectOrchestrator):
             # ColorConfig is loaded by StyleApplicatorService via its IConfigLoader instance.
 
             # 2. Load DXF Data Source (if applicable) with fail-fast validation
-            dxf_file_path = os.path.join(app_config.projects_root_dir, project_name, project_config.main.dxf_filename)
-            dxf_file_path = os.path.normpath(dxf_file_path)  # Normalize path for consistency
+            project_dir = os.path.join(app_config.projects_root_dir, project_name)
+            dxf_drawing = None
+
+            # Determine input DXF source using new configuration
+            input_dxf_path = None
+            if project_config.main.dxf:
+                # First resolve output path for mode logic
+                output_dxf_path = project_config.main.dxf.output_path
+                if output_dxf_path.startswith('@'):
+                    try:
+                        from ..domain.path_models import ProjectPathAliases, PathResolutionContext
+                        project_yaml_path = os.path.join(project_dir, "project.yaml")
+                        if os.path.exists(project_yaml_path):
+                            import yaml
+                            with open(project_yaml_path, 'r', encoding='utf-8') as f:
+                                project_data = yaml.safe_load(f)
+                            if 'pathAliases' in project_data:
+                                aliases = ProjectPathAliases(aliases=project_data['pathAliases'])
+                                context = self._path_resolver.create_context(project_name, project_dir, aliases)
+                                output_dxf_path = self._path_resolver.resolve_path(output_dxf_path, context)
+                    except Exception as e:
+                        self._logger.warning(f"Failed to resolve output DXF path alias: {e}")
+
+                if not os.path.isabs(output_dxf_path):
+                    output_dxf_path = os.path.join(project_dir, output_dxf_path)
+                output_dxf_path = os.path.normpath(output_dxf_path)
+
+                # Now determine input source
+                input_dxf_path = self._determine_input_dxf_source(project_config.main.dxf, output_dxf_path, project_dir)
 
             # Check if any layers require DXF processing
             layers_requiring_dxf = [ld for ld in project_config.geom_layers if ld.dxf_layer]
             if layers_requiring_dxf:
                 self._logger.debug(f"Found {len(layers_requiring_dxf)} layers requiring DXF: {[ld.name for ld in layers_requiring_dxf]}")
 
-                if not os.path.exists(dxf_file_path):
+                if not input_dxf_path or not os.path.exists(input_dxf_path):
                     layer_names = [ld.name for ld in layers_requiring_dxf]
-                    error_msg = (f"DXF file '{dxf_file_path}' not found, but layers {layer_names} "
+                    error_msg = (f"DXF file '{input_dxf_path}' not found, but layers {layer_names} "
                                f"require DXF processing. Cannot proceed without DXF source.")
                     self._logger.error(error_msg)
                     raise ConfigError(error_msg)
 
-                self._logger.debug(f"Attempting to load DXF document from: {dxf_file_path}")
-                dxf_drawing = self._data_source.load_dxf_file(dxf_file_path)
+                self._logger.debug(f"Attempting to load DXF document from: {input_dxf_path}")
+                dxf_drawing = self._data_source.load_dxf_file(input_dxf_path)
                 if dxf_drawing:
-                    self._logger.info(f"DXF document '{dxf_file_path}' loaded successfully.")
+                    self._logger.info(f"DXF document '{input_dxf_path}' loaded successfully.")
                 else:
-                    error_msg = (f"DXF document '{dxf_file_path}' could not be loaded by data source "
+                    error_msg = (f"DXF document '{input_dxf_path}' could not be loaded by data source "
                                f"(returned None), but layers {[ld.name for ld in layers_requiring_dxf]} require it.")
                     self._logger.error(error_msg)
                     raise DXFProcessingError(error_msg)
             else:
                 # No layers require DXF, but try to load if file exists anyway (for potential updates)
-                if os.path.exists(dxf_file_path):
-                    self._logger.debug(f"Loading DXF document for potential updates from: {dxf_file_path}")
+                if input_dxf_path and os.path.exists(input_dxf_path):
+                    self._logger.debug(f"Loading DXF document for potential updates from: {input_dxf_path}")
                     try:
-                        dxf_drawing = self._data_source.load_dxf_file(dxf_file_path)
+                        dxf_drawing = self._data_source.load_dxf_file(input_dxf_path)
                         if dxf_drawing:
-                            self._logger.info(f"DXF document '{dxf_file_path}' loaded successfully for potential updates.")
+                            self._logger.info(f"DXF document '{input_dxf_path}' loaded successfully for potential updates.")
                         else:
-                            self._logger.warning(f"DXF document '{dxf_file_path}' could not be loaded (returned None).")
+                            self._logger.warning(f"DXF document '{input_dxf_path}' could not be loaded (returned None).")
                     except Exception as e:
-                        self._logger.warning(f"Failed to load DXF file '{dxf_file_path}': {e}. Proceeding without DXF.")
+                        self._logger.warning(f"Failed to load DXF file '{input_dxf_path}': {e}. Proceeding without DXF.")
                         dxf_drawing = None
                 else:
-                    self._logger.info(f"DXF file '{dxf_file_path}' not found, but no layers require DXF processing. Proceeding without DXF data.")
+                    self._logger.info(f"No DXF input source determined or file not found. Proceeding without DXF data.")
                     dxf_drawing = None
 
             # 3. Process Geometric Layer Definitions
@@ -222,46 +250,11 @@ class ProjectOrchestratorService(IProjectOrchestrator):
             # (e.g., output_dxf_path, shapefile_output_dir, geopackage_output_path needs to be added to ProjectMainSettings)
 
             # DXF Export Example (create new DXF if needed and output is desired)
-            if project_config.main.output_dxf_path and \
+            if project_config.main.dxf and project_config.main.dxf.output_path and \
                (project_config.main.export_format == "dxf" or project_config.main.export_format == "all"):
 
-                output_dxf_path = project_config.main.output_dxf_path
-                self._logger.debug(f"Raw output DXF path from config: {output_dxf_path}")
-
-                # Resolve path aliases if needed
-                if output_dxf_path.startswith('@'):
-                    try:
-                        # Create path resolution context
-                        from ..domain.path_models import ProjectPathAliases, PathResolutionContext
-                        project_dir = os.path.join(app_config.projects_root_dir, project_name)
-
-                        # Load path aliases from project config
-                        project_yaml_path = os.path.join(project_dir, "project.yaml")
-                        if os.path.exists(project_yaml_path):
-                            import yaml
-                            with open(project_yaml_path, 'r', encoding='utf-8') as f:
-                                project_data = yaml.safe_load(f)
-
-                            if 'pathAliases' in project_data:
-                                aliases = ProjectPathAliases(aliases=project_data['pathAliases'])
-                                context = self._path_resolver.create_context(project_name, project_dir, aliases)
-                                output_dxf_path = self._path_resolver.resolve_path(output_dxf_path, context)
-                                self._logger.debug(f"Resolved output DXF path: {output_dxf_path}")
-                            else:
-                                self._logger.warning(f"No pathAliases found in project config, using path as-is: {output_dxf_path}")
-                        else:
-                            self._logger.warning(f"Project config file not found, using path as-is: {output_dxf_path}")
-                    except Exception as e:
-                        self._logger.warning(f"Failed to resolve output DXF path alias '{output_dxf_path}': {e}")
-                        # Fall back to manual resolution
-                        if not os.path.isabs(output_dxf_path):
-                            output_dxf_path = os.path.join(app_config.projects_root_dir, project_name, output_dxf_path)
-                else:
-                    # Handle non-alias paths
-                    if not os.path.isabs(output_dxf_path):
-                        output_dxf_path = os.path.join(app_config.projects_root_dir, project_name, output_dxf_path)
-
-                output_dxf_path = os.path.normpath(output_dxf_path)
+                # Use the already resolved output_dxf_path from the DXF loading section
+                self._logger.debug(f"Using resolved output DXF path: {output_dxf_path}")
 
                 # Check if we need to create a new DXF or update an existing one
                 if not dxf_drawing:
@@ -349,7 +342,7 @@ class ProjectOrchestratorService(IProjectOrchestrator):
                 else:
                     self._logger.error("DXF export requested but no DXF drawing available and failed to create new one.")
             elif (project_config.main.export_format == "dxf" or project_config.main.export_format == "all"):
-                self._logger.info("DXF export selected but 'output_dxf_path' not configured in project settings. Skipping DXF export.")
+                self._logger.info("DXF export selected but DXF configuration not provided in project settings. Skipping DXF export.")
 
             # Shapefile Export Example
             if project_config.main.shapefile_output_dir and (project_config.main.export_format == "shp" or project_config.main.export_format == "all") :
@@ -400,3 +393,82 @@ class ProjectOrchestratorService(IProjectOrchestrator):
         except Exception as e: # Catch-all for unexpected errors
             self._logger.critical(f"Unexpected critical error during project '{project_name}' processing: {e}", exc_info=True)
             raise ProcessingError(f"Unexpected critical error in project '{project_name}': {e}") from e
+
+    def _determine_input_dxf_source(self, dxf_config, output_path: str, project_dir: str) -> Optional[str]:
+        """Determine the input DXF source based on configuration and mode."""
+        if not dxf_config:
+            return None
+
+        # 1. Explicit input override
+        if dxf_config.input_path:
+            input_path = dxf_config.input_path
+            if input_path.startswith('@'):
+                # Resolve path alias
+                try:
+                    from ..domain.path_models import ProjectPathAliases, PathResolutionContext
+                    project_yaml_path = os.path.join(project_dir, "project.yaml")
+                    if os.path.exists(project_yaml_path):
+                        import yaml
+                        with open(project_yaml_path, 'r', encoding='utf-8') as f:
+                            project_data = yaml.safe_load(f)
+                        if 'pathAliases' in project_data:
+                            aliases = ProjectPathAliases(aliases=project_data['pathAliases'])
+                            context = self._path_resolver.create_context(os.path.basename(project_dir), project_dir, aliases)
+                            input_path = self._path_resolver.resolve_path(input_path, context)
+                except Exception as e:
+                    self._logger.warning(f"Failed to resolve input path alias '{dxf_config.input_path}': {e}")
+
+            if not os.path.isabs(input_path):
+                input_path = os.path.join(project_dir, input_path)
+            return os.path.normpath(input_path)
+
+        # 2. Mode-based logic
+        if dxf_config.mode == DXFMode.CREATE:
+            # Always start fresh, optionally from template
+            return self._resolve_template_path(dxf_config.template_path, project_dir) if dxf_config.template_path else None
+
+        elif dxf_config.mode == DXFMode.UPDATE:
+            # Use existing output if it exists, otherwise template
+            if os.path.exists(output_path):
+                return output_path
+            else:
+                return self._resolve_template_path(dxf_config.template_path, project_dir) if dxf_config.template_path else None
+
+        elif dxf_config.mode == DXFMode.TEMPLATE:
+            # Always use template as base
+            return self._resolve_template_path(dxf_config.template_path, project_dir) if dxf_config.template_path else None
+
+        return None
+
+    def _resolve_template_path(self, template_path: str, project_dir: str) -> Optional[str]:
+        """Resolve template path, handling aliases."""
+        if not template_path:
+            return None
+
+        resolved_path = template_path
+        if template_path.startswith('@'):
+            # Resolve path alias
+            try:
+                from ..domain.path_models import ProjectPathAliases, PathResolutionContext
+                project_yaml_path = os.path.join(project_dir, "project.yaml")
+                if os.path.exists(project_yaml_path):
+                    import yaml
+                    with open(project_yaml_path, 'r', encoding='utf-8') as f:
+                        project_data = yaml.safe_load(f)
+                    if 'pathAliases' in project_data:
+                        aliases = ProjectPathAliases(aliases=project_data['pathAliases'])
+                        context = self._path_resolver.create_context(os.path.basename(project_dir), project_dir, aliases)
+                        resolved_path = self._path_resolver.resolve_path(template_path, context)
+            except Exception as e:
+                self._logger.warning(f"Failed to resolve template path alias '{template_path}': {e}")
+
+        if not os.path.isabs(resolved_path):
+            resolved_path = os.path.join(project_dir, resolved_path)
+
+        resolved_path = os.path.normpath(resolved_path)
+
+        if not os.path.exists(resolved_path):
+            self._logger.warning(f"Template DXF file not found: {resolved_path}")
+            return None
+
+        return resolved_path

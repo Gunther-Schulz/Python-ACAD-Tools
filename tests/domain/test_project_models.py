@@ -5,7 +5,7 @@ from pydantic import ValidationError
 
 from src.domain.project_models import (
     ExportFormat, DXFVersion, ProjectMainSettings, LegendDefinition,
-    GlobalProjectSettings, SpecificProjectConfig
+    GlobalProjectSettings, SpecificProjectConfig, DXFMode
 )
 
 
@@ -86,6 +86,155 @@ class TestDXFVersion:
             DXFVersion("invalid")
 
 
+class TestDXFMode:
+    """Test cases for DXFMode enum."""
+
+    @pytest.mark.unit
+    @pytest.mark.domain
+    @pytest.mark.config
+    @pytest.mark.fast
+    def test_dxf_mode_values(self):
+        """Test DXFMode enum values."""
+        assert DXFMode.CREATE == "create"
+        assert DXFMode.UPDATE == "update"
+        assert DXFMode.TEMPLATE == "template"
+
+    @pytest.mark.unit
+    @pytest.mark.domain
+    @pytest.mark.config
+    @pytest.mark.fast
+    def test_dxf_mode_from_string(self):
+        """Test creating DXFMode from string values."""
+        assert DXFMode("create") == DXFMode.CREATE
+        assert DXFMode("update") == DXFMode.UPDATE
+        assert DXFMode("template") == DXFMode.TEMPLATE
+
+    @pytest.mark.unit
+    @pytest.mark.domain
+    @pytest.mark.config
+    @pytest.mark.fast
+    def test_dxf_mode_invalid_value(self):
+        """Test DXFMode with invalid value."""
+        with pytest.raises(ValueError):
+            DXFMode("invalid_mode")
+
+
+class TestDXFConfig:
+    """Test cases for DXFConfig model."""
+
+    @pytest.mark.unit
+    @pytest.mark.domain
+    @pytest.mark.config
+    @pytest.mark.fast
+    def test_minimal_dxf_config(self):
+        """Test creating DXFConfig with minimal required fields."""
+        from src.domain.project_models import DXFConfig
+
+        config = DXFConfig(
+            outputPath="output/test.dxf",
+            mode="create"
+        )
+
+        assert config.output_path == "output/test.dxf"
+        assert config.mode == DXFMode.CREATE
+        assert config.input_path is None
+        assert config.template_path is None
+        assert config.version == DXFVersion.R2010
+
+    @pytest.mark.unit
+    @pytest.mark.domain
+    @pytest.mark.config
+    @pytest.mark.fast
+    def test_complete_dxf_config(self):
+        """Test creating DXFConfig with all fields."""
+        from src.domain.project_models import DXFConfig
+
+        config = DXFConfig(
+            outputPath="output/test.dxf",
+            mode="update",
+            inputPath="input/existing.dxf",
+            templatePath="templates/base.dxf",
+            version="R2018"
+        )
+
+        assert config.output_path == "output/test.dxf"
+        assert config.mode == DXFMode.UPDATE
+        assert config.input_path == "input/existing.dxf"
+        assert config.template_path == "templates/base.dxf"
+        assert config.version == DXFVersion.R2018
+
+    @pytest.mark.unit
+    @pytest.mark.domain
+    @pytest.mark.config
+    @pytest.mark.fast
+    def test_dxf_config_field_aliases(self):
+        """Test DXFConfig field aliases work correctly."""
+        from src.domain.project_models import DXFConfig
+
+        # Using snake_case aliases
+        config = DXFConfig(
+            output_path="output/test.dxf",
+            mode="template",
+            input_path="input/existing.dxf",
+            template_path="templates/base.dxf"
+        )
+
+        assert config.output_path == "output/test.dxf"
+        assert config.mode == DXFMode.TEMPLATE
+        assert config.input_path == "input/existing.dxf"
+        assert config.template_path == "templates/base.dxf"
+
+    @pytest.mark.unit
+    @pytest.mark.domain
+    @pytest.mark.config
+    @pytest.mark.fast
+    def test_dxf_config_required_fields(self):
+        """Test DXFConfig required field validation."""
+        from src.domain.project_models import DXFConfig
+
+        # Missing outputPath
+        with pytest.raises(ValidationError) as exc_info:
+            DXFConfig(mode="create")
+        assert "output_path" in str(exc_info.value) or "outputPath" in str(exc_info.value)
+
+        # Missing mode
+        with pytest.raises(ValidationError) as exc_info:
+            DXFConfig(outputPath="test.dxf")
+        assert "mode" in str(exc_info.value)
+
+    @pytest.mark.unit
+    @pytest.mark.domain
+    @pytest.mark.config
+    @pytest.mark.fast
+    def test_dxf_config_enum_validation(self):
+        """Test DXFConfig enum field validation."""
+        from src.domain.project_models import DXFConfig
+
+        # Valid enum values
+        config = DXFConfig(
+            outputPath="test.dxf",
+            mode="update",
+            version="R2007"
+        )
+        assert config.mode == DXFMode.UPDATE
+        assert config.version == DXFVersion.R2007
+
+        # Invalid mode
+        with pytest.raises(ValidationError):
+            DXFConfig(
+                outputPath="test.dxf",
+                mode="invalid_mode"
+            )
+
+        # Invalid version
+        with pytest.raises(ValidationError):
+            DXFConfig(
+                outputPath="test.dxf",
+                mode="create",
+                version="R2025"
+            )
+
+
 class TestProjectMainSettings:
     """Test cases for ProjectMainSettings model."""
 
@@ -97,17 +246,20 @@ class TestProjectMainSettings:
         """Test creating ProjectMainSettings with minimal required fields."""
         settings = ProjectMainSettings(
             crs="EPSG:4326",
-            dxfFilename="output.dxf"
+            dxf={
+                "outputPath": "output/test.dxf",
+                "mode": "create"
+            }
         )
 
         assert settings.crs == "EPSG:4326"
-        assert settings.dxf_filename == "output.dxf"
+        assert settings.dxf.output_path == "output/test.dxf"
+        assert settings.dxf.mode == DXFMode.CREATE
         assert settings.template is None
         assert settings.export_format == ExportFormat.DXF
         assert settings.dxf_version == DXFVersion.R2010
         assert settings.style_presets_file == "styles.yaml"
         assert settings.shapefile_output_dir is None
-        assert settings.output_dxf_path is None
         assert settings.output_geopackage_path is None
 
     @pytest.mark.unit
@@ -119,21 +271,25 @@ class TestProjectMainSettings:
         # Using camelCase aliases
         settings = ProjectMainSettings(
             crs="EPSG:4326",
-            dxfFilename="test.dxf",
+            dxf={
+                "outputPath": "/output/test.dxf",
+                "mode": "update",
+                "inputPath": "input/existing.dxf"
+            },
             exportFormat="shp",
             dxfVersion="R2007",
             stylePresetsFile="custom_styles.yaml",
             shapefileOutputDir="/output/shp",
-            outputDxfPath="/output/test.dxf",
             outputGeopackagePath="/output/test.gpkg"
         )
 
-        assert settings.dxf_filename == "test.dxf"
+        assert settings.dxf.output_path == "/output/test.dxf"
+        assert settings.dxf.mode == DXFMode.UPDATE
+        assert settings.dxf.input_path == "input/existing.dxf"
         assert settings.export_format == ExportFormat.SHAPEFILE
         assert settings.dxf_version == DXFVersion.R2007
         assert settings.style_presets_file == "custom_styles.yaml"
         assert settings.shapefile_output_dir == "/output/shp"
-        assert settings.output_dxf_path == "/output/test.dxf"
         assert settings.output_geopackage_path == "/output/test.gpkg"
 
     @pytest.mark.unit
@@ -144,16 +300,21 @@ class TestProjectMainSettings:
         """Test snake_case field names work correctly."""
         settings = ProjectMainSettings(
             crs="EPSG:4326",
-            dxf_filename="test.dxf",
+            dxf={
+                "output_path": "/output/test.dxf",
+                "mode": "template",
+                "template_path": "templates/base.dxf"
+            },
             export_format="gpkg",
             dxf_version="R2013",
             style_presets_file="styles.yaml",
             shapefile_output_dir="/output",
-            output_dxf_path="/output/test.dxf",
             output_geopackage_path="/output/test.gpkg"
         )
 
-        assert settings.dxf_filename == "test.dxf"
+        assert settings.dxf.output_path == "/output/test.dxf"
+        assert settings.dxf.mode == DXFMode.TEMPLATE
+        assert settings.dxf.template_path == "templates/base.dxf"
         assert settings.export_format == ExportFormat.GEOPACKAGE
         assert settings.dxf_version == DXFVersion.R2013
 
@@ -164,11 +325,17 @@ class TestProjectMainSettings:
     def test_crs_validation(self):
         """Test CRS field accepts various formats."""
         # String CRS
-        settings1 = ProjectMainSettings(crs="EPSG:4326", dxfFilename="test.dxf")
+        settings1 = ProjectMainSettings(
+            crs="EPSG:4326",
+            dxf={"outputPath": "test.dxf", "mode": "create"}
+        )
         assert settings1.crs == "EPSG:4326"
 
         # Integer CRS (EPSG code)
-        settings2 = ProjectMainSettings(crs=4326, dxfFilename="test.dxf")
+        settings2 = ProjectMainSettings(
+            crs=4326,
+            dxf={"outputPath": "test.dxf", "mode": "create"}
+        )
         assert settings2.crs == 4326
 
     @pytest.mark.unit
@@ -179,13 +346,13 @@ class TestProjectMainSettings:
         """Test that required fields are validated."""
         # Missing crs
         with pytest.raises(ValidationError) as exc_info:
-            ProjectMainSettings(dxfFilename="test.dxf")
+            ProjectMainSettings(dxf={"outputPath": "test.dxf", "mode": "create"})
         assert "crs" in str(exc_info.value)
 
-        # Missing dxf_filename
+        # Missing dxf configuration
         with pytest.raises(ValidationError) as exc_info:
             ProjectMainSettings(crs="EPSG:4326")
-        assert "dxf_filename" in str(exc_info.value) or "dxfFilename" in str(exc_info.value)
+        assert "dxf" in str(exc_info.value)
 
     @pytest.mark.unit
     @pytest.mark.domain
@@ -196,7 +363,7 @@ class TestProjectMainSettings:
         # Valid enum values
         settings = ProjectMainSettings(
             crs="EPSG:4326",
-            dxfFilename="test.dxf",
+            dxf={"outputPath": "test.dxf", "mode": "update"},
             exportFormat="all",
             dxfVersion="R2018"
         )
@@ -207,7 +374,7 @@ class TestProjectMainSettings:
         with pytest.raises(ValidationError):
             ProjectMainSettings(
                 crs="EPSG:4326",
-                dxfFilename="test.dxf",
+                dxf={"outputPath": "test.dxf", "mode": "create"},
                 exportFormat="invalid"
             )
 
@@ -215,7 +382,7 @@ class TestProjectMainSettings:
         with pytest.raises(ValidationError):
             ProjectMainSettings(
                 crs="EPSG:4326",
-                dxfFilename="test.dxf",
+                dxf={"outputPath": "test.dxf", "mode": "create"},
                 dxfVersion="R2025"
             )
 
@@ -227,13 +394,13 @@ class TestProjectMainSettings:
         """Test that extra fields are ignored."""
         settings = ProjectMainSettings(
             crs="EPSG:4326",
-            dxfFilename="test.dxf",
+            dxf={"outputPath": "test.dxf", "mode": "create"},
             unknown_field="should_be_ignored",
             another_extra="also_ignored"
         )
 
         assert settings.crs == "EPSG:4326"
-        assert settings.dxf_filename == "test.dxf"
+        assert settings.dxf.output_path == "test.dxf"
         assert not hasattr(settings, 'unknown_field')
         assert not hasattr(settings, 'another_extra')
 
@@ -398,7 +565,10 @@ class TestSpecificProjectConfig:
         """Fixture providing sample main settings."""
         return ProjectMainSettings(
             crs="EPSG:4326",
-            dxfFilename="test.dxf"
+            dxf={
+                "outputPath": "output/test.dxf",
+                "mode": "create"
+            }
         )
 
     @pytest.mark.unit
@@ -551,11 +721,13 @@ class TestProjectModelsIntegration:
         """Test a complete project configuration with all components."""
         main_settings = ProjectMainSettings(
             crs="EPSG:3857",
-            dxfFilename="complete_project.dxf",
+            dxf={
+                "outputPath": "complete_project.dxf",
+                "mode": "create"
+            },
             exportFormat="all",
             dxfVersion="R2018",
             stylePresetsFile="project_styles.yaml",
-            outputDxfPath="/output/complete_project.dxf",
             outputGeopackagePath="/output/complete_project.gpkg"
         )
 
@@ -599,7 +771,10 @@ class TestProjectModelsIntegration:
         # Test same enum values in different models
         main_settings = ProjectMainSettings(
             crs="EPSG:4326",
-            dxfFilename="test.dxf",
+            dxf={
+                "outputPath": "test.dxf",
+                "mode": "create"
+            },
             exportFormat="gpkg",
             dxfVersion="R2013"
         )

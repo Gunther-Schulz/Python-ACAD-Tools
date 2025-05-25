@@ -470,8 +470,10 @@ class CrossFieldValidator:
         export_format = values.get('exportFormat', values.get('export_format'))
 
         if export_format == 'dxf':
-            if not values.get('outputDxfPath', values.get('output_dxf_path')):
-                raise ValueError("DXF export format requires outputDxfPath to be specified")
+            # Check new DXF configuration structure
+            dxf_config = values.get('dxf')
+            if not dxf_config or not dxf_config.get('outputPath', dxf_config.get('output_path')):
+                raise ValueError("DXF export format requires dxf.outputPath to be specified")
         elif export_format == 'shp':
             if not values.get('shapefileOutputDir', values.get('shapefile_output_dir')):
                 raise ValueError("Shapefile export format requires shapefileOutputDir to be specified")
@@ -480,8 +482,11 @@ class CrossFieldValidator:
                 raise ValueError("GeoPackage export format requires outputGeopackagePath to be specified")
         elif export_format == 'all':
             # For 'all' format, at least one output path should be specified
+            dxf_config = values.get('dxf')
+            dxf_output = dxf_config.get('outputPath', dxf_config.get('output_path')) if dxf_config else None
+
             has_output = any([
-                values.get('outputDxfPath', values.get('output_dxf_path')),
+                dxf_output,
                 values.get('shapefileOutputDir', values.get('shapefile_output_dir')),
                 values.get('outputGeopackagePath', values.get('output_geopackage_path'))
             ])
@@ -639,13 +644,9 @@ class ConfigValidationService(IConfigValidation):
             except ValueError as e:
                 self._validation_errors.append(f"main.crs: {e}")
 
-        # Validate DXF filename
-        if 'dxfFilename' in main_data or 'dxf_filename' in main_data:
-            dxf_filename = main_data.get('dxfFilename', main_data.get('dxf_filename'))
-            try:
-                ConfigValidators.validate_file_path(dxf_filename, 'dxf', base_path=self.base_path)
-            except ValueError as e:
-                self._validation_errors.append(f"main.dxf_filename: {e}")
+        # Validate DXF configuration
+        if 'dxf' in main_data:
+            self._validate_dxf_config(main_data['dxf'])
 
         # Validate DXF version
         if 'dxfVersion' in main_data or 'dxf_version' in main_data:
@@ -674,6 +675,59 @@ class ConfigValidationService(IConfigValidation):
             max_memory = main_data.get('maxMemoryMb', main_data.get('max_memory_mb'))
             if isinstance(max_memory, (int, float)) and max_memory < 512:
                 self._validation_warnings.append("main.max_memory_mb: Memory limit below 512MB may cause performance issues")
+
+    def _validate_dxf_config(self, dxf_config: Dict[str, Any]) -> None:
+        """Validates DXF configuration structure and consistency."""
+        # Validate required output path
+        if 'outputPath' not in dxf_config and 'output_path' not in dxf_config:
+            self._validation_errors.append("dxf configuration: outputPath is required")
+        else:
+            output_path = dxf_config.get('outputPath', dxf_config.get('output_path'))
+            try:
+                ConfigValidators.validate_file_path(
+                    output_path, 'dxf',
+                    is_output_file=True,
+                    base_path=self.base_path
+                )
+            except ValueError as e:
+                self._validation_errors.append(f"dxf.outputPath: {e}")
+
+        # Validate template path if provided
+        if 'templatePath' in dxf_config or 'template_path' in dxf_config:
+            template_path = dxf_config.get('templatePath', dxf_config.get('template_path'))
+            try:
+                ConfigValidators.validate_file_path(
+                    template_path, 'dxf',
+                    must_exist=True,
+                    base_path=self.base_path
+                )
+            except ValueError as e:
+                self._validation_errors.append(f"dxf.templatePath: {e}")
+
+        # Validate input path if provided
+        if 'inputPath' in dxf_config or 'input_path' in dxf_config:
+            input_path = dxf_config.get('inputPath', dxf_config.get('input_path'))
+            try:
+                ConfigValidators.validate_file_path(
+                    input_path, 'dxf',
+                    must_exist=False,  # Don't require existence - orchestrator handles this
+                    base_path=self.base_path
+                )
+            except ValueError as e:
+                self._validation_errors.append(f"dxf.inputPath: {e}")
+
+        # Validate mode if provided
+        if 'mode' in dxf_config:
+            mode = dxf_config['mode']
+            valid_modes = ['create', 'update', 'template']
+            if mode not in valid_modes:
+                self._validation_errors.append(f"dxf.mode: '{mode}' is not valid. Must be one of: {valid_modes}")
+
+        # Validate mode-specific requirements
+        mode = dxf_config.get('mode', 'update')
+        if mode == 'template':
+            if 'templatePath' not in dxf_config and 'template_path' not in dxf_config:
+                self._validation_errors.append("dxf configuration: templatePath is required when mode is 'template'")
 
     def _validate_geometry_layers(self, layers_data: List[Dict[str, Any]],
                                  full_config: Dict[str, Any]) -> List[str]:
