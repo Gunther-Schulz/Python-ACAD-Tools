@@ -38,6 +38,7 @@ This architecture fully adheres to the principles outlined in `PROJECT_STANDARDS
         *   `path_models.py` - **NEW:** Hierarchical path alias system models
         *   `exceptions.py` - Complete exception hierarchy including `PathResolutionError`
         *   `config_validation.py` - Configuration validation schemas and services
+        *   `common_types.py` - Shared type definitions and enums
     *   **Dependencies:** None (domain is dependency-free)
 
 *   **`src.interfaces`**:
@@ -45,7 +46,7 @@ This architecture fully adheres to the principles outlined in `PROJECT_STANDARDS
     *   **Key Interfaces:**
         *   `ILoggingService` - Logging abstraction
         *   `IConfigLoader` - Configuration loading
-        *   `IDataSourceService` - Data source management
+        *   `IDataSource` - Data source management
         *   `IGeometryProcessor` - Geometry operations
         *   `IStyleApplicator` - Style application
         *   `IDataExporter` - Data export operations
@@ -54,6 +55,7 @@ This architecture fully adheres to the principles outlined in `PROJECT_STANDARDS
         *   `IOperationRegistry` - Operation registry management
         *   `IDXFAdapter` - DXF library adapter abstraction
         *   `IPathResolver` - **NEW:** Hierarchical path resolution interface
+        *   `IProjectOrchestrator` - Main project workflow orchestration interface
     *   **Dependencies:** Only `src.domain` for type hints
 
 *   **`src.core`**:
@@ -69,17 +71,18 @@ This architecture fully adheres to the principles outlined in `PROJECT_STANDARDS
     *   **Responsibility:** Business logic implementations of all interfaces.
     *   **Sub-packages:**
         *   `operations/` - Geometry operation handlers and registry
+        *   `geometry/` - Advanced geometry processing services
     *   **Key Services:**
         *   `LoggingService` - Implements `ILoggingService`
         *   `ConfigLoaderService` - Implements `IConfigLoader`
-        *   `DataSourceService` - Implements `IDataSourceService`
+        *   `DataSourceService` - Implements `IDataSource`
         *   `GeometryProcessorService` - Implements `IGeometryProcessor`
         *   `StyleApplicatorService` - Implements `IStyleApplicator`
         *   `DataExporterService` - Implements `IDataExporter`
-        *   `ProjectOrchestratorService` - Main workflow orchestration
+        *   `ProjectOrchestratorService` - Implements `IProjectOrchestrator`
         *   `ResourceManagerService` - Implements `IResourceManager`
         *   `PathResolverService` - **NEW:** Implements `IPathResolver` for hierarchical path aliases
-    *   **Dependencies:** `src.interfaces`, `src.domain`, `src.utils`
+    *   **Dependencies:** `src.interfaces`, `src.domain`, `src.utils`, `src.core` (for factories)
 
 ### Infrastructure Layer
 
@@ -87,6 +90,11 @@ This architecture fully adheres to the principles outlined in `PROJECT_STANDARDS
     *   **Responsibility:** External library integration with proper abstraction.
     *   **Key Adapters:**
         *   `EzdxfAdapter` - Implements `IDXFAdapter` for ezdxf library
+    *   **Sub-packages:**
+        *   `dxf/` - DXF-specific adapter utilities and operations
+            *   `entity_operations.py` - XDATA operations and entity lifecycle
+            *   `geometry_conversions.py` - DXF to Shapely geometry conversion
+            *   `document_maintenance.py` - DXF document cleanup and maintenance
     *   **Dependencies:** `src.interfaces`, external libraries
 
 *   **`src.cli`**:
@@ -98,10 +106,16 @@ This architecture fully adheres to the principles outlined in `PROJECT_STANDARDS
 
 *   **`src.config`**:
     *   **Responsibility:** Application configuration management.
+    *   **Status:** Module structure exists, implementation delegated to `src.services.config_loader_service`
     *   **Dependencies:** `src.domain` models
 
 *   **`src.utils`**:
-    *   **Responsibility:** Stateless utility functions.
+    *   **Responsibility:** Stateless utility functions organized by category.
+    *   **Key Modules:**
+        *   `filesystem.py` - File and directory operations (`ensure_parent_dir_exists`)
+        *   `text_processing.py` - String manipulation and sanitization (`sanitize_dxf_layer_name`)
+        *   `visualization.py` - Optional plotting utilities for debugging (`plot_gdf`, `plot_shapely_geometry`)
+    *   **Note:** Domain-specific functionality moved to appropriate services and adapters
     *   **Dependencies:** Minimal, primarily `src.domain` for types
 
 ## 4. NEW: Hierarchical Path Resolution System
@@ -178,26 +192,28 @@ inputDir: "@cad.input.dwg"  # Resolves to project_root/cad/input/drawings
 ### DI Container (`src.core.container.ApplicationContainer`)
 
 ```python
-# Singleton Services
-logging_service = providers.Singleton(LoggingService)
-resource_manager = providers.Singleton(ResourceManagerService, logger_service=logging_service)
-config_validation = providers.Singleton(ConfigValidationService)
+# Core services (singletons)
+logging_service = Singleton(LoggingService, log_level_console=config.log_level_console,
+                           log_level_file=config.log_level_file, log_file_path=config.log_file_path)
+app_config = Singleton(AppConfig)
+config_validation_service = Singleton(ConfigValidationService)
+resource_manager_service = Singleton(ResourceManagerService, logger_service=logging_service)
 
-# NEW: Path Resolution Service
-path_resolver_service = providers.Singleton(PathResolverService, logger_service=logging_service)
+# Path Resolution Service
+path_resolver_service = Singleton(PathResolverService, logger_service=logging_service)
 
 # Factories and Registries
-service_factory = providers.Singleton(ServiceFactory, logger_service=logging_service)
-handler_factory = providers.Singleton(HandlerFactory, logger_service=logging_service)
-factory_registry = providers.Singleton(FactoryRegistry, logger_service=logging_service)
+service_factory = Singleton(ServiceFactory, logger_service=logging_service)
+handler_factory = Singleton(HandlerFactory, logger_service=logging_service)
+factory_registry = Singleton(FactoryRegistry, logger_service=logging_service)
 
 # Adapters
-dxf_adapter = providers.Singleton(EzdxfAdapter, logger_service=logging_service)
+dxf_adapter = Singleton(EzdxfAdapter, logger_service=logging_service)
 
 # Business Services with Dependency Injection
-config_loader = providers.Singleton(ConfigLoaderService, logger_service=logging_service, app_config=config.app_config)
-data_source = providers.Singleton(DataSourceService, logger_service=logging_service)
-operation_registry = providers.Singleton(OperationRegistry, logger_service=logging_service, data_source_service=data_source)
+config_loader_service = Singleton(ConfigLoaderService, logger_service=logging_service, app_config=app_config)
+data_source_service = Singleton(DataSourceService, logger_service=logging_service)
+operation_registry = Singleton(OperationRegistry, logger_service=logging_service, data_source_service=data_source_service)
 ```
 
 ### Dependency Flow
@@ -214,17 +230,18 @@ operation_registry = providers.Singleton(OperationRegistry, logger_service=loggi
 # Abstract base command
 class BaseCommand(ABC):
     @abstractmethod
-    def execute(self) -> int: ...
+    def execute(self, **kwargs) -> Any: ...
 
 # Concrete command implementations
 class ProcessProjectCommand(BaseCommand):
-    def __init__(self, project_orchestrator: IProjectOrchestrator, ...):
+    def __init__(self, logger_service: ILoggingService, project_orchestrator: IProjectOrchestrator):
         # Dependencies injected via DI container
 
 # Command registry for extensibility
 class CommandRegistry:
-    def register_command(self, name: str, command_class: Type[BaseCommand]): ...
+    def register_command(self, name: str, command: BaseCommand): ...
     def get_command(self, name: str) -> BaseCommand: ...
+    def execute_command(self, name: str, **kwargs) -> Any: ...
 ```
 
 ### Factory Pattern (`src.core.factories`)
@@ -253,10 +270,13 @@ class IDXFAdapter(Protocol):
     def load_dxf_file(self, file_path: str) -> Optional[Any]: ...
     def extract_entities_from_layer(self, dxf_document: Any, layer_name: str, crs: str) -> Optional[gpd.GeoDataFrame]: ...
     def save_dxf_file(self, dxf_document: Any, file_path: str) -> None: ...
+    def create_dxf_layer(self, dxf_document: Any, layer_name: str, **properties) -> None: ...
+    def add_geodataframe_to_dxf(self, dxf_document: Any, gdf: gpd.GeoDataFrame, layer_name: str, **style_properties) -> None: ...
+    def is_available(self) -> bool: ...
 
 # Concrete adapter implementation
 class EzdxfAdapter(IDXFAdapter):
-    # Wraps ezdxf library with application-specific interface
+    # Comprehensive ezdxf library wrapper with geometry conversion and DXF manipulation
 ```
 
 ## 7. Data Modeling with Pydantic V2
@@ -266,9 +286,9 @@ class EzdxfAdapter(IDXFAdapter):
 class AppConfig(BaseSettings):
     model_config = ConfigDict(env_prefix="ACAD_")
 
-class ProjectConfig(BaseModel):
-    model_config = ConfigDict(frozen=True, extra='forbid')
-    path_aliases: Optional[ProjectPathAliases] = None  # NEW
+class SpecificProjectConfig(BaseModel):
+    model_config = ConfigDict(extra='ignore')
+    path_aliases: Optional[ProjectPathAliases] = Field(None, alias='pathAliases')  # NEW
 
 class LayerConfig(BaseModel):
     model_config = ConfigDict(validate_assignment=True)
@@ -278,8 +298,18 @@ class LayerConfig(BaseModel):
 ```python
 class HierarchicalAlias(BaseModel):
     model_config = ConfigDict(frozen=True, extra='forbid')
-    name: str = Field(..., regex=r'^[a-zA-Z0-9._-]+$')  # Dot notation validation
-    path: str = Field(...)  # Security validation prevents traversal
+    name: str = Field(..., description="The alias name (e.g., 'cad.input', 'survey.raw')")
+    path: str = Field(..., description="The relative path this alias resolves to")
+
+    @field_validator('name')
+    @classmethod
+    def validate_alias_name(cls, v: str) -> str:
+        # Validates dot notation, prevents invalid characters, security checks
+
+    @field_validator('path')
+    @classmethod
+    def validate_path(cls, v: str) -> str:
+        # Security validation prevents directory traversal
 
 class ProjectPathAliases(BaseModel):
     model_config = ConfigDict(extra='forbid')
@@ -413,6 +443,7 @@ def complex_nested_aliases() -> ProjectPathAliases:
 *   **Unit, integration, and contract tests**
 *   **Filesystem integration tests**
 *   **Error condition and edge case coverage**
+*   **Total: 1,767 lines** across all test files
 
 ## 10. Dependencies and Requirements
 
@@ -476,7 +507,7 @@ Domain Layer:
 *   Testable and mockable components
 
 ### ✅ Interface Segregation
-*   **12 focused Protocol interfaces** (including new `IPathResolver`)
+*   **12 focused Protocol interfaces** (including new `IPathResolver` and `IProjectOrchestrator`)
 *   Clear contracts between components
 *   Loose coupling throughout
 
@@ -509,7 +540,7 @@ Domain Layer:
 ### ✅ NEW: Comprehensive Testing
 *   **25 organized pytest markers** for test categorization
 *   **80% coverage threshold** with branch coverage
-*   **1,500+ lines** of domain and service tests
+*   **1,767 lines** of comprehensive test coverage
 *   **Shared fixtures** for realistic test scenarios
 *   **Integration tests** with real filesystem operations
 

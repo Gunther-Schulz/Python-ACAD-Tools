@@ -6,6 +6,7 @@ from pydantic import BaseModel, ValidationError
 
 from ..interfaces.config_loader_interface import IConfigLoader
 from ..interfaces.logging_service_interface import ILoggingService
+from ..interfaces.path_resolver_interface import IPathResolver
 from ..domain.config_models import (
     AppConfig,
     StyleConfig,
@@ -33,11 +34,45 @@ _T = TypeVar("_T", bound=BaseModel)
 class ConfigLoaderService(IConfigLoader):
     """Loads application and project configurations from YAML files and environment variables."""
 
-    def __init__(self, logger_service: ILoggingService, app_config: Optional[AppConfig] = None):
+    def __init__(self, logger_service: ILoggingService, app_config: Optional[AppConfig] = None, path_resolver: Optional[IPathResolver] = None):
         """Initialize with required injected dependencies following strict DI principles."""
         self._logger = logger_service.get_logger(__name__)
         self._app_config: Optional[AppConfig] = app_config
+        self._path_resolver: Optional[IPathResolver] = path_resolver
         self._aci_color_mappings: Optional[List[AciColorMappingItem]] = None
+
+    def _resolve_path_if_needed(self, file_path: str, project_name: Optional[str] = None, projects_root_dir: Optional[str] = None) -> str:
+        """Resolve path aliases if path resolver is available and path is an alias reference."""
+        if not self._path_resolver or not file_path.startswith('@'):
+            return file_path
+
+        if not project_name or not projects_root_dir:
+            self._logger.warning(f"Cannot resolve path alias '{file_path}' without project context")
+            return file_path
+
+        try:
+            # We need to load the project's path aliases to create the context
+            project_dir = os.path.join(projects_root_dir, project_name)
+            project_yaml_path = os.path.join(project_dir, "project.yaml")
+
+            if os.path.exists(project_yaml_path):
+                with open(project_yaml_path, 'r', encoding='utf-8') as f:
+                    project_data = yaml.safe_load(f)
+
+                if 'pathAliases' in project_data:
+                    from ..domain.path_models import ProjectPathAliases, PathResolutionContext
+                    aliases = ProjectPathAliases(aliases=project_data['pathAliases'])
+                    context = self._path_resolver.create_context(project_name, project_dir, aliases)
+                    resolved_path = self._path_resolver.resolve_path(file_path, context)
+                    self._logger.debug(f"Resolved path alias '{file_path}' to '{resolved_path}'")
+                    return resolved_path
+
+            self._logger.warning(f"Could not resolve path alias '{file_path}' - no pathAliases found in project config")
+            return file_path
+
+        except Exception as e:
+            self._logger.warning(f"Failed to resolve path alias '{file_path}': {e}")
+            return file_path
 
     def _load_yaml_file(self, file_path: str, model_class: Type[_T],
                         validate_config: bool = True, config_type: Optional[str] = None) -> _T:
@@ -128,9 +163,10 @@ class ConfigLoaderService(IConfigLoader):
                 raise ConfigError(f"Failed to load AppConfig: {e}") from e
         return self._app_config
 
-    def load_global_styles(self, styles_file_path: str) -> StyleConfig:
-        """Loads global styles.yaml."""
-        return self._load_yaml_file(styles_file_path, StyleConfig)
+    def load_global_styles(self, styles_file_path: str, project_name: Optional[str] = None, projects_root_dir: Optional[str] = None) -> StyleConfig:
+        """Loads global styles.yaml with optional path alias resolution."""
+        resolved_path = self._resolve_path_if_needed(styles_file_path, project_name, projects_root_dir)
+        return self._load_yaml_file(resolved_path, StyleConfig)
 
     def load_aci_colors(self, aci_colors_file_path: str) -> ColorConfig:
         """Loads aci_colors.yaml. File structure is a plain list of ACI color items."""

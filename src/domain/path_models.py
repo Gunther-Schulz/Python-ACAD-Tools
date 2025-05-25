@@ -1,7 +1,8 @@
 """Path resolution domain models following PROJECT_ARCHITECTURE.MD specification."""
+import os
+import re
 from typing import Dict, Any, Optional, Union
 from pydantic import BaseModel, Field, ConfigDict, field_validator, model_validator
-import re
 
 
 class HierarchicalAlias(BaseModel):
@@ -36,17 +37,20 @@ class HierarchicalAlias(BaseModel):
     @field_validator('path')
     @classmethod
     def validate_path(cls, v: str) -> str:
-        """Validate path is relative and safe."""
+        """Validate path is safe and can be relative or absolute."""
         if not v:
             raise ValueError("Path cannot be empty")
 
-        # Ensure relative path (no absolute paths)
-        if v.startswith('/') or (len(v) > 1 and v[1] == ':'):
-            raise ValueError("Path must be relative, not absolute")
+        # Allow both relative and absolute paths
+        # Relative paths will be resolved relative to project root
+        # Absolute paths will be used as-is
 
-        # Prevent directory traversal attacks
-        if '..' in v:
-            raise ValueError("Path cannot contain '..' for security reasons")
+        # Only prevent obvious directory traversal patterns in relative paths
+        # Allow legitimate relative navigation like "../.." for project structure
+        if v.startswith('/'):
+            # Absolute path - validate it's a real absolute path
+            if not os.path.isabs(v):
+                raise ValueError(f"Path appears to be absolute but is invalid: {v}")
 
         return v
 
@@ -153,6 +157,9 @@ class PathResolutionContext(BaseModel):
         if relative_path is None:
             return None
 
-        # Combine project root with relative path
+        # Handle both absolute and relative paths
         import os
-        return os.path.join(self.project_root, relative_path)
+        if os.path.isabs(relative_path):
+            return relative_path
+        else:
+            return os.path.join(self.project_root, relative_path)

@@ -63,6 +63,11 @@ def setup_commands(container: ApplicationContainer) -> CommandRegistry:
     )
     command_registry.register_command("process_project", process_project_command)
 
+    # Factory pattern is available for dynamic component creation:
+    # service_factory = container.service_factory()
+    # handler_factory = container.handler_factory()
+    # factory_registry = container.factory_registry()
+
     return command_registry
 
 

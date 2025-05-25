@@ -134,8 +134,11 @@ class PathResolverService(IPathResolver):
 
         # Convert to absolute paths
         result = {}
-        for alias_name, relative_path in aliases.items():
-            absolute_path = os.path.join(context.project_root, relative_path)
+        for alias_name, path in aliases.items():
+            if os.path.isabs(path):
+                absolute_path = path
+            else:
+                absolute_path = os.path.join(context.project_root, path)
             result[alias_name] = absolute_path
 
         return result

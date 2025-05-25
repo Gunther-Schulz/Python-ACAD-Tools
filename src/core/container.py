@@ -25,6 +25,7 @@ from ..services.path_resolver_service import PathResolverService
 from ..domain.config_validation import ConfigValidationService
 from ..services.operations.operation_registry import OperationRegistry
 from ..adapters.ezdxf_adapter import EzdxfAdapter
+from ..core.factories import ServiceFactory, HandlerFactory, FactoryRegistry
 
 from ..domain.config_models import AppConfig
 
@@ -51,10 +52,17 @@ class ApplicationContainer(containers.DeclarativeContainer):
         ConfigValidationService
     )
 
+    # Path resolution service (must be before config_loader_service)
+    path_resolver_service = Singleton(
+        PathResolverService,
+        logger_service=logging_service
+    )
+
     config_loader_service = Singleton(
         ConfigLoaderService,
         logger_service=logging_service,
-        app_config=app_config
+        app_config=app_config,
+        path_resolver=path_resolver_service
     )
 
     resource_manager_service = Singleton(
@@ -62,9 +70,19 @@ class ApplicationContainer(containers.DeclarativeContainer):
         logger_service=logging_service
     )
 
-    # Path resolution service
-    path_resolver_service = Singleton(
-        PathResolverService,
+    # Factories and Registries
+    service_factory = Singleton(
+        ServiceFactory,
+        logger_service=logging_service
+    )
+
+    handler_factory = Singleton(
+        HandlerFactory,
+        logger_service=logging_service
+    )
+
+    factory_registry = Singleton(
+        FactoryRegistry,
         logger_service=logging_service
     )
 
@@ -111,5 +129,6 @@ class ApplicationContainer(containers.DeclarativeContainer):
         data_source=data_source_service,
         geometry_processor=geometry_processor_service,
         style_applicator=style_applicator_service,
-        data_exporter=data_exporter_service
+        data_exporter=data_exporter_service,
+        path_resolver=path_resolver_service
     )

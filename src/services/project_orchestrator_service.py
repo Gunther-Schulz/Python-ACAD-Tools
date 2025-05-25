@@ -19,6 +19,7 @@ from ..interfaces.data_source_interface import IDataSource
 from ..interfaces.geometry_processor_interface import IGeometryProcessor
 from ..interfaces.style_applicator_interface import IStyleApplicator
 from ..interfaces.data_exporter_interface import IDataExporter
+from ..interfaces.path_resolver_interface import IPathResolver
 
 from ..domain.config_models import (
     SpecificProjectConfig, StyleConfig, AppConfig, GeomLayerDefinition, AllOperationParams
@@ -41,7 +42,8 @@ class ProjectOrchestratorService(IProjectOrchestrator):
         data_source: IDataSource,
         geometry_processor: IGeometryProcessor,
         style_applicator: IStyleApplicator,
-        data_exporter: IDataExporter
+        data_exporter: IDataExporter,
+        path_resolver: IPathResolver
     ):
         self._logger = logging_service.get_logger(__name__)
         self._config_loader = config_loader
@@ -49,6 +51,7 @@ class ProjectOrchestratorService(IProjectOrchestrator):
         self._geometry_processor = geometry_processor
         self._style_applicator = style_applicator
         self._data_exporter = data_exporter
+        self._path_resolver = path_resolver
         self._logger.info("ProjectOrchestratorService initialized.")
 
     def process_project(self, project_name: str) -> None:
@@ -80,22 +83,10 @@ class ProjectOrchestratorService(IProjectOrchestrator):
             self._logger.debug("Loading style configuration...")
             # Use project-specific style presets file if specified, otherwise fall back to global
             style_file_path = project_config.main.style_presets_file or app_config.global_styles_file
+            self._logger.debug(f"Style file path from config: {style_file_path}")
 
-            # If the style file path is relative, resolve it relative to the project directory
-            if not os.path.isabs(style_file_path):
-                # Check if it exists relative to project directory first
-                project_style_path = os.path.join(app_config.projects_root_dir, project_name, style_file_path)
-                if os.path.exists(project_style_path):
-                    style_file_path = project_style_path
-                    self._logger.debug(f"Using project-specific style file: {style_file_path}")
-                else:
-                    # Use as relative to root directory
-                    style_file_path = os.path.join(os.getcwd(), style_file_path)
-                    self._logger.debug(f"Using global style file: {style_file_path}")
-            else:
-                self._logger.debug(f"Using absolute style file path: {style_file_path}")
-
-            style_config = self._config_loader.load_global_styles(style_file_path)
+            # Let the config loader service handle path resolution (including aliases)
+            style_config = self._config_loader.load_global_styles(style_file_path, project_name, app_config.projects_root_dir)
             if not style_config:
                 # This might be acceptable if no styling is applied, but log a warning.
                 self._logger.warning("Style configuration could not be loaded or is empty.")
@@ -235,9 +226,41 @@ class ProjectOrchestratorService(IProjectOrchestrator):
                (project_config.main.export_format == "dxf" or project_config.main.export_format == "all"):
 
                 output_dxf_path = project_config.main.output_dxf_path
-                # Ensure path is absolute or resolve relative to project root
-                if not os.path.isabs(output_dxf_path):
-                    output_dxf_path = os.path.join(app_config.projects_root_dir, project_name, output_dxf_path)
+                self._logger.debug(f"Raw output DXF path from config: {output_dxf_path}")
+
+                # Resolve path aliases if needed
+                if output_dxf_path.startswith('@'):
+                    try:
+                        # Create path resolution context
+                        from ..domain.path_models import ProjectPathAliases, PathResolutionContext
+                        project_dir = os.path.join(app_config.projects_root_dir, project_name)
+
+                        # Load path aliases from project config
+                        project_yaml_path = os.path.join(project_dir, "project.yaml")
+                        if os.path.exists(project_yaml_path):
+                            import yaml
+                            with open(project_yaml_path, 'r', encoding='utf-8') as f:
+                                project_data = yaml.safe_load(f)
+
+                            if 'pathAliases' in project_data:
+                                aliases = ProjectPathAliases(aliases=project_data['pathAliases'])
+                                context = self._path_resolver.create_context(project_name, project_dir, aliases)
+                                output_dxf_path = self._path_resolver.resolve_path(output_dxf_path, context)
+                                self._logger.debug(f"Resolved output DXF path: {output_dxf_path}")
+                            else:
+                                self._logger.warning(f"No pathAliases found in project config, using path as-is: {output_dxf_path}")
+                        else:
+                            self._logger.warning(f"Project config file not found, using path as-is: {output_dxf_path}")
+                    except Exception as e:
+                        self._logger.warning(f"Failed to resolve output DXF path alias '{output_dxf_path}': {e}")
+                        # Fall back to manual resolution
+                        if not os.path.isabs(output_dxf_path):
+                            output_dxf_path = os.path.join(app_config.projects_root_dir, project_name, output_dxf_path)
+                else:
+                    # Handle non-alias paths
+                    if not os.path.isabs(output_dxf_path):
+                        output_dxf_path = os.path.join(app_config.projects_root_dir, project_name, output_dxf_path)
+
                 output_dxf_path = os.path.normpath(output_dxf_path)
 
                 # Check if we need to create a new DXF or update an existing one
