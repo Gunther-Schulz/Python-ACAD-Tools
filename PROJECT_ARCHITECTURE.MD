@@ -1,14 +1,14 @@
 # Project Architecture: Python-ACAD-Tools (Implemented)
 
-**Version:** 2.0
+**Version:** 2.1
 **Date:** December 2024
-**Status:** Production Ready
+**Status:** Production Ready with Advanced Path Resolution & Testing
 
 ## 1. Introduction
 
 This document outlines the implemented architectural design for the refactored `src/` directory of the Python-ACAD-Tools project. The architecture has been fully modernized with enterprise-grade patterns including Dependency Injection, Command Pattern, Factory Pattern, and Adapter Pattern.
 
-The refactoring effort successfully eliminated technical debt and created a robust, maintainable foundation with strict boundaries, comprehensive interfaces, and production-ready patterns.
+The refactoring effort successfully eliminated technical debt and created a robust, maintainable foundation with strict boundaries, comprehensive interfaces, and production-ready patterns. **Recent enhancements include a sophisticated hierarchical path alias system and comprehensive testing infrastructure.**
 
 ## 2. Guiding Principles & Standards Compliance
 
@@ -22,6 +22,7 @@ This architecture fully adheres to the principles outlined in `PROJECT_STANDARDS
 *   **✅ Upfront Configuration:** Application configuration loaded into Pydantic V2 `AppConfig` at startup.
 *   **✅ Stateless Utilities:** Pure functions in dedicated utility modules.
 *   **✅ Enterprise Patterns:** Command, Factory, and Adapter patterns implemented.
+*   **✅ Comprehensive Testing:** Full test suite with organized markers and fixtures.
 
 ## 3. Implemented Module Structure (src/)
 
@@ -31,10 +32,11 @@ This architecture fully adheres to the principles outlined in `PROJECT_STANDARDS
     *   **Responsibility:** Pydantic V2 models for all data structures, enums, constants, and exceptions.
     *   **Key Files:**
         *   `config_models.py` - Application configuration models
-        *   `project_models.py` - Project and layer configuration models
+        *   `project_models.py` - Project and layer configuration models with path aliases
         *   `style_models.py` - CAD styling and rendering models
         *   `geometry_models.py` - Geometric data structures
-        *   `exceptions.py` - Complete exception hierarchy
+        *   `path_models.py` - **NEW:** Hierarchical path alias system models
+        *   `exceptions.py` - Complete exception hierarchy including `PathResolutionError`
         *   `config_validation.py` - Configuration validation schemas and services
     *   **Dependencies:** None (domain is dependency-free)
 
@@ -51,6 +53,7 @@ This architecture fully adheres to the principles outlined in `PROJECT_STANDARDS
         *   `IConfigValidation` - Configuration validation
         *   `IOperationRegistry` - Operation registry management
         *   `IDXFAdapter` - DXF library adapter abstraction
+        *   `IPathResolver` - **NEW:** Hierarchical path resolution interface
     *   **Dependencies:** Only `src.domain` for type hints
 
 *   **`src.core`**:
@@ -75,6 +78,7 @@ This architecture fully adheres to the principles outlined in `PROJECT_STANDARDS
         *   `DataExporterService` - Implements `IDataExporter`
         *   `ProjectOrchestratorService` - Main workflow orchestration
         *   `ResourceManagerService` - Implements `IResourceManager`
+        *   `PathResolverService` - **NEW:** Implements `IPathResolver` for hierarchical path aliases
     *   **Dependencies:** `src.interfaces`, `src.domain`, `src.utils`
 
 ### Infrastructure Layer
@@ -100,7 +104,76 @@ This architecture fully adheres to the principles outlined in `PROJECT_STANDARDS
     *   **Responsibility:** Stateless utility functions.
     *   **Dependencies:** Minimal, primarily `src.domain` for types
 
-## 4. Dependency Injection Architecture
+## 4. NEW: Hierarchical Path Resolution System
+
+### Overview
+A sophisticated path alias system that allows elegant project-scoped path references using dot notation (e.g., `@cad.input.dwg`, `@data.test`) instead of long relative paths.
+
+### Key Components
+
+#### Domain Models (`src.domain.path_models`)
+```python
+class HierarchicalAlias(BaseModel):
+    """Single alias with dot notation validation and security checks."""
+    name: str  # e.g., "cad.input.dwg"
+    path: str  # e.g., "cad/input/drawings"
+    description: Optional[str]
+
+class ProjectPathAliases(BaseModel):
+    """Collection with automatic flattening of nested structures."""
+    aliases: Dict[str, Union[str, Dict[str, Any]]]
+
+    # Automatically flattens:
+    # {"cad": {"input": "path"}} → {"cad.input": "path"}
+
+class PathResolutionContext(BaseModel):
+    """Context for path resolution operations."""
+    project_name: str
+    project_root: str
+    aliases: ProjectPathAliases
+```
+
+#### Service Implementation (`src.services.path_resolver_service`)
+```python
+class PathResolverService(IPathResolver):
+    """Advanced path resolution with context-aware extension resolution."""
+
+    # Context-aware extension mappings
+    CONTEXT_EXTENSIONS = {
+        'geojsonFile': ['.geojson', '.json'],
+        'stylePresetsFile': ['.yaml', '.yml'],
+        'dxfFilename': ['.dxf'],
+        # ... 13 total context types
+    }
+```
+
+### Features
+*   **Hierarchical Aliases:** `@cad.input.dwg` → `project_root/cad/input/drawings`
+*   **File Path Appending:** `@data.input/file.geojson` → `project_root/data/input/file.geojson`
+*   **Context-Aware Extensions:** Automatically tries appropriate extensions based on context
+*   **Security:** Prevents directory traversal attacks
+*   **Validation:** Comprehensive validation of alias names and paths
+*   **Project Scoped:** Each project has its own alias namespace
+
+### Usage Examples
+```yaml
+# project.yaml
+path_aliases:
+  data:
+    input: "data/input"
+    output: "data/output"
+    test: "data/test.geojson"  # Direct file reference
+  cad:
+    input:
+      dwg: "cad/input/drawings"
+      dxf: "cad/input/dxf_files"
+
+# Usage in configuration
+geojsonFile: "@data.test"  # Resolves to project_root/data/test.geojson
+inputDir: "@cad.input.dwg"  # Resolves to project_root/cad/input/drawings
+```
+
+## 5. Dependency Injection Architecture
 
 ### DI Container (`src.core.container.ApplicationContainer`)
 
@@ -109,6 +182,9 @@ This architecture fully adheres to the principles outlined in `PROJECT_STANDARDS
 logging_service = providers.Singleton(LoggingService)
 resource_manager = providers.Singleton(ResourceManagerService, logger_service=logging_service)
 config_validation = providers.Singleton(ConfigValidationService)
+
+# NEW: Path Resolution Service
+path_resolver_service = providers.Singleton(PathResolverService, logger_service=logging_service)
 
 # Factories and Registries
 service_factory = providers.Singleton(ServiceFactory, logger_service=logging_service)
@@ -130,7 +206,7 @@ operation_registry = providers.Singleton(OperationRegistry, logger_service=loggi
 3. No manual service instantiation
 4. Clear separation of concerns maintained
 
-## 5. Implemented Design Patterns
+## 6. Implemented Design Patterns
 
 ### Command Pattern (`src.cli.commands`)
 
@@ -183,7 +259,7 @@ class EzdxfAdapter(IDXFAdapter):
     # Wraps ezdxf library with application-specific interface
 ```
 
-## 6. Data Modeling with Pydantic V2
+## 7. Data Modeling with Pydantic V2
 
 ### Configuration Models (`src.domain.config_models`)
 ```python
@@ -192,9 +268,26 @@ class AppConfig(BaseSettings):
 
 class ProjectConfig(BaseModel):
     model_config = ConfigDict(frozen=True, extra='forbid')
+    path_aliases: Optional[ProjectPathAliases] = None  # NEW
 
 class LayerConfig(BaseModel):
     model_config = ConfigDict(validate_assignment=True)
+```
+
+### Path Resolution Models (`src.domain.path_models`)
+```python
+class HierarchicalAlias(BaseModel):
+    model_config = ConfigDict(frozen=True, extra='forbid')
+    name: str = Field(..., regex=r'^[a-zA-Z0-9._-]+$')  # Dot notation validation
+    path: str = Field(...)  # Security validation prevents traversal
+
+class ProjectPathAliases(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    aliases: Dict[str, Union[str, Dict[str, Any]]] = Field(default_factory=dict)
+
+    @model_validator(mode='after')
+    def validate_aliases_structure(self) -> 'ProjectPathAliases':
+        # Automatically flattens nested structures to dot notation
 ```
 
 ### Validation Strategy (`src.domain.config_validation`)
@@ -203,7 +296,7 @@ class LayerConfig(BaseModel):
 *   **ConfigValidators** for reusable validation functions
 *   **CrossFieldValidator** for inter-field validation
 
-## 7. Error Handling Strategy
+## 8. Error Handling Strategy
 
 ### Exception Hierarchy (`src.domain.exceptions`)
 ```python
@@ -214,6 +307,7 @@ ApplicationBaseException (base)
 │   ├── DXFProcessingError
 │   ├── GeometryError
 │   └── DataSourceError
+└── PathResolutionError  # NEW: For path alias resolution errors
 ```
 
 ### Error Handling Patterns
@@ -221,8 +315,106 @@ ApplicationBaseException (base)
 *   Adapters translate external library exceptions
 *   CLI commands handle exceptions and return appropriate exit codes
 *   Comprehensive logging with error context
+*   **NEW:** Path resolution errors include context (project, alias reference)
 
-## 8. Dependencies and Requirements
+## 9. NEW: Comprehensive Testing Infrastructure
+
+### Test Organization (`tests/`)
+```
+tests/
+├── conftest.py              # Shared fixtures and configuration
+├── test_example_markers.py  # Marker usage examples
+├── domain/
+│   ├── test_path_models.py      # Path resolution domain tests
+│   ├── test_exceptions.py       # Exception hierarchy tests
+│   └── __init__.py
+└── services/
+    ├── test_path_resolver_service.py  # Path resolver service tests
+    └── __init__.py
+```
+
+### Pytest Configuration (`pyproject.toml`)
+**25 Organized Test Markers:**
+```python
+# Test Types
+"unit: Unit tests - fast, isolated, no external dependencies"
+"integration: Integration tests - test component interactions"
+"e2e: End-to-end tests - full workflow testing"
+"contract: Contract tests - verify interface implementations"
+
+# Performance & Speed
+"slow: Tests that take more than 1 second to run"
+"fast: Tests that complete in under 100ms"
+"benchmark: Performance benchmark tests"
+
+# External Dependencies
+"external: Tests requiring external services or network access"
+"filesystem: Tests that read/write to filesystem"
+"database: Tests requiring database access"
+
+# Component Categories (based on PROJECT_ARCHITECTURE.MD)
+"domain: Tests for domain models and business logic"
+"services: Tests for service layer implementations"
+"interfaces: Tests for interface contracts and protocols"
+"adapters: Tests for external library adapters"
+"cli: Tests for command-line interface"
+"core: Tests for core infrastructure (DI, factories)"
+"utils: Tests for utility functions"
+
+# Specific Functionality
+"path_resolution: Tests for hierarchical path alias system"
+"config: Tests for configuration loading and validation"
+"geometry: Tests for geometric operations and processing"
+"style: Tests for CAD styling and rendering"
+"dxf: Tests for DXF file operations"
+"export: Tests for data export functionality"
+
+# Test Environment
+"requires_test_data: Tests that need test data files"
+"requires_projects: Tests that need project configurations"
+"cleanup: Tests that require cleanup after execution"
+
+# Development & Debugging
+"debug: Tests for debugging specific issues"
+"regression: Tests for preventing regression bugs"
+"experimental: Tests for experimental features"
+"skip_ci: Tests to skip in CI environment"
+```
+
+### Test Coverage Configuration
+*   **80% minimum coverage threshold**
+*   **Branch coverage enabled**
+*   **Comprehensive exclusions for protocols and abstract methods**
+*   **HTML and XML coverage reports**
+
+### Shared Test Fixtures (`tests/conftest.py`)
+```python
+@pytest.fixture
+def temp_project_dir() -> Generator[Path, None, None]:
+    """Create temporary project directory with realistic structure."""
+
+@pytest.fixture
+def sample_project_aliases() -> ProjectPathAliases:
+    """Sample hierarchical aliases for testing."""
+
+@pytest.fixture
+def sample_path_context() -> PathResolutionContext:
+    """Complete path resolution context for testing."""
+
+@pytest.fixture
+def complex_nested_aliases() -> ProjectPathAliases:
+    """Complex nested aliases for advanced testing scenarios."""
+```
+
+### Test Examples
+*   **596 lines** of comprehensive path model tests
+*   **446 lines** of exception hierarchy tests
+*   **462 lines** of path resolver service tests
+*   **Unit, integration, and contract tests**
+*   **Filesystem integration tests**
+*   **Error condition and edge case coverage**
+
+## 10. Dependencies and Requirements
 
 ### Core Dependencies
 ```txt
@@ -247,9 +439,14 @@ numpy==2.1.1
 # CLI and Utilities
 click==8.1.7
 PyYAML==6.0.2
+
+# Testing Infrastructure
+pytest>=7.4
+pytest-cov
+pytest-mock
 ```
 
-## 9. Module Interaction Diagram
+## 11. Module Interaction Diagram
 
 ```
 CLI Layer:
@@ -261,15 +458,17 @@ Core Layer:
 Service Layer:
   All services implement interfaces and use DI
   ProjectOrchestratorService orchestrates workflows
+  PathResolverService provides hierarchical path resolution
 
 Adapter Layer:
   EzdxfAdapter wraps external ezdxf library
 
 Domain Layer:
   Models, exceptions, validation (dependency-free)
+  NEW: Path resolution models with hierarchical aliases
 ```
 
-## 10. Key Architectural Achievements
+## 12. Key Architectural Achievements
 
 ### ✅ Dependency Injection
 *   Central DI container manages all dependencies
@@ -277,7 +476,7 @@ Domain Layer:
 *   Testable and mockable components
 
 ### ✅ Interface Segregation
-*   11 focused Protocol interfaces
+*   **12 focused Protocol interfaces** (including new `IPathResolver`)
 *   Clear contracts between components
 *   Loose coupling throughout
 
@@ -301,14 +500,47 @@ Domain Layer:
 *   Domain-specific error types
 *   Consistent error reporting
 
-## 11. Testing Strategy
+### ✅ NEW: Hierarchical Path Resolution
+*   **Project-scoped path aliases** with dot notation
+*   **Context-aware extension resolution** (13 context types)
+*   **Security validation** prevents directory traversal
+*   **Elegant syntax:** `@cad.input.dwg/file.dxf`
 
-*   **Unit Tests:** Mock interfaces for isolated testing
-*   **Integration Tests:** Test service interactions via DI
-*   **Contract Tests:** Validate interface implementations
-*   **CLI Tests:** Test command execution and error handling
+### ✅ NEW: Comprehensive Testing
+*   **25 organized pytest markers** for test categorization
+*   **80% coverage threshold** with branch coverage
+*   **1,500+ lines** of domain and service tests
+*   **Shared fixtures** for realistic test scenarios
+*   **Integration tests** with real filesystem operations
 
-## 12. Future Extensibility
+## 13. Testing Strategy
+
+*   **Unit Tests:** Mock interfaces for isolated testing (fast, no dependencies)
+*   **Integration Tests:** Test service interactions via DI (realistic scenarios)
+*   **Contract Tests:** Validate interface implementations (protocol compliance)
+*   **CLI Tests:** Test command execution and error handling (end-to-end)
+*   **Filesystem Tests:** Real file operations with temporary directories
+*   **Performance Tests:** Benchmark critical path resolution operations
+
+### Test Execution Examples
+```bash
+# Run all tests
+pytest
+
+# Run only fast unit tests
+pytest -m "unit and fast"
+
+# Run path resolution tests
+pytest -m "path_resolution"
+
+# Run integration tests excluding slow ones
+pytest -m "integration and not slow"
+
+# Run with coverage
+pytest --cov=src --cov-report=html
+```
+
+## 14. Future Extensibility
 
 The architecture supports:
 *   **New Operations:** Register handlers via HandlerFactory
@@ -316,7 +548,17 @@ The architecture supports:
 *   **New Adapters:** Implement adapter interfaces
 *   **New Services:** Register in DI container
 *   **Configuration Extensions:** Add Pydantic models
+*   **NEW: Path Alias Extensions:** Add context types for extension resolution
+*   **NEW: Test Categories:** Add markers for new functionality areas
 
-## 13. Document Evolution
+## 15. Document Evolution
 
-This document reflects the production-ready architecture as of December 2024. All critical architecture issues have been resolved, and the system is ready for production deployment with enterprise-grade patterns and practices.
+**Version 2.1 Updates (December 2024):**
+*   ✅ **Hierarchical Path Resolution System** - Complete implementation with dot notation
+*   ✅ **Context-Aware Extension Resolution** - Intelligent file extension handling
+*   ✅ **Comprehensive Testing Infrastructure** - 25 organized markers, 1,500+ test lines
+*   ✅ **Enhanced Domain Models** - Path resolution models with security validation
+*   ✅ **Updated DI Container** - PathResolverService registration
+*   ✅ **Production-Ready Testing** - Coverage thresholds, shared fixtures, integration tests
+
+This document reflects the production-ready architecture as of December 2024. All critical architecture issues have been resolved, the hierarchical path resolution system is fully implemented and tested, and the system is ready for production deployment with enterprise-grade patterns and comprehensive testing practices.

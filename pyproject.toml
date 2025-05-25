@@ -1,0 +1,259 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "python-acad-tools"
+version = "2.0.0"
+description = "Modern Python tools for CAD/GIS data processing with DXF export capabilities"
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "MIT"}
+authors = [
+    {name = "Python-ACAD-Tools Team"}
+]
+keywords = ["cad", "gis", "dxf", "autocad", "geospatial"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: GIS",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+dependencies = [
+    "ezdxf>=1.3.0",
+    "geopandas>=0.14.0",
+    "matplotlib>=3.8.0",
+    "OWSLib>=0.29.0",
+    "PyYAML>=6.0.0",
+    "Shapely>=2.0.0",
+    "dependency-injector>=4.41.0",
+    "pydantic>=2.5.0",
+    "pydantic-settings>=2.1.0",
+    "click>=8.1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "pytest-mock>=3.11.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-xdist>=3.3.0",
+    "pytest-benchmark>=4.0.0",
+    "black>=23.0.0",
+    "isort>=5.12.0",
+    "flake8>=6.0.0",
+    "mypy>=1.5.0",
+    "pre-commit>=3.4.0",
+]
+test = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "pytest-mock>=3.11.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-xdist>=3.3.0",
+    "pytest-benchmark>=4.0.0",
+]
+docs = [
+    "sphinx>=7.1.0",
+    "sphinx-rtd-theme>=1.3.0",
+    "myst-parser>=2.0.0",
+]
+
+[project.scripts]
+acad-tools = "src.cli.main_cli:main"
+
+[project.urls]
+Homepage = "https://github.com/your-org/python-acad-tools"
+Documentation = "https://python-acad-tools.readthedocs.io/"
+Repository = "https://github.com/your-org/python-acad-tools.git"
+"Bug Tracker" = "https://github.com/your-org/python-acad-tools/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"*" = ["*.yaml", "*.yml", "*.json", "*.csv", "*.lin"]
+
+# ==========================================
+# PYTEST CONFIGURATION
+# ==========================================
+[tool.pytest.ini_options]
+minversion = "7.4"
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "--verbose",
+    "--tb=short",
+    "--cov=src",
+    "--cov-report=term-missing",
+    "--cov-report=html:htmlcov",
+    "--cov-report=xml",
+    "--cov-fail-under=80",
+]
+testpaths = [
+    "tests",
+    "src",  # For doctests
+]
+python_files = [
+    "test_*.py",
+    "*_test.py",
+]
+python_classes = [
+    "Test*",
+]
+python_functions = [
+    "test_*",
+]
+filterwarnings = [
+    "error",
+    "ignore::UserWarning",
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+]
+
+# Test markers for organizing and categorizing tests
+markers = [
+    # Test Types
+    "unit: Unit tests - fast, isolated, no external dependencies",
+    "integration: Integration tests - test component interactions",
+    "e2e: End-to-end tests - full workflow testing",
+    "contract: Contract tests - verify interface implementations",
+
+    # Performance & Speed
+    "slow: Tests that take more than 1 second to run",
+    "fast: Tests that complete in under 100ms",
+    "benchmark: Performance benchmark tests",
+
+    # External Dependencies
+    "external: Tests requiring external services or network access",
+    "filesystem: Tests that read/write to filesystem",
+    "database: Tests requiring database access",
+
+    # Component Categories (based on PROJECT_ARCHITECTURE.MD)
+    "domain: Tests for domain models and business logic",
+    "services: Tests for service layer implementations",
+    "interfaces: Tests for interface contracts and protocols",
+    "adapters: Tests for external library adapters",
+    "cli: Tests for command-line interface",
+    "core: Tests for core infrastructure (DI, factories)",
+    "utils: Tests for utility functions",
+
+    # Specific Functionality
+    "path_resolution: Tests for hierarchical path alias system",
+    "config: Tests for configuration loading and validation",
+    "geometry: Tests for geometric operations and processing",
+    "style: Tests for CAD styling and rendering",
+    "dxf: Tests for DXF file operations",
+    "export: Tests for data export functionality",
+
+    # Test Environment
+    "requires_test_data: Tests that need test data files",
+    "requires_projects: Tests that need project configurations",
+    "cleanup: Tests that require cleanup after execution",
+
+    # Development & Debugging
+    "debug: Tests for debugging specific issues",
+    "regression: Tests for preventing regression bugs",
+    "experimental: Tests for experimental features",
+    "skip_ci: Tests to skip in CI environment",
+]
+
+# ==========================================
+# COVERAGE CONFIGURATION
+# ==========================================
+[tool.coverage.run]
+source = ["src"]
+branch = true
+omit = [
+    "*/tests/*",
+    "*/test_*.py",
+    "*/__pycache__/*",
+    "*/migrations/*",
+    "*/venv/*",
+    "*/env/*",
+    "setup.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]
+ignore_errors = true
+show_missing = true
+
+[tool.coverage.html]
+directory = "htmlcov"
+
+# ==========================================
+# CODE QUALITY TOOLS
+# ==========================================
+[tool.black]
+line-length = 100
+target-version = ['py39', 'py310', 'py311', 'py312']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+  | migrations
+)/
+'''
+
+[tool.isort]
+profile = "black"
+line_length = 100
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+ensure_newline_before_comments = true
+src_paths = ["src", "tests"]
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+show_error_codes = true
+
+[[tool.mypy.overrides]]
+module = [
+    "ezdxf.*",
+    "geopandas.*",
+    "matplotlib.*",
+    "OWSLib.*",
+]
+ignore_missing_imports = true
