@@ -1,0 +1,227 @@
+# Comprehensive validation test file demonstrating all enhanced validation capabilities
+# This file intentionally contains various validation issues to test the system
+
+geomLayers:
+  # ❌ Performance warning - large buffer distance
+  - name: "performance_warning_buffer"
+    geojsonFile: "@data.test"
+    style: "building_style"
+    updateDxf: true
+    operations:
+      - type: "buffer"
+        distance: 15000.0  # ❌ Exceeds performance threshold (10000m)
+        layers: ["performance_warning_buffer"]
+
+  # ❌ Invalid buffer operation parameters
+  - name: "invalid_buffer_params"
+    geojsonFile: "@data.test"
+    style: "building_style"
+    updateDxf: true
+    operations:
+      - type: "buffer"
+        distance: -5.0  # ❌ Negative distance
+        cap_style: "invalid_cap"  # ❌ Invalid cap style
+        join_style: "invalid_join"  # ❌ Invalid join style
+        resolution: -1  # ❌ Negative resolution
+
+  # ❌ Invalid text style properties
+  - name: "invalid_text_style"
+    geojsonFile: "@data.test"
+    updateDxf: true
+    style:
+      text:
+        height: -2.0  # ❌ Negative height
+        attachmentPoint: "INVALID_POINT"  # ❌ Invalid attachment point
+        flowDirection: "INVALID_FLOW"  # ❌ Invalid flow direction
+        lineSpacingStyle: "INVALID_SPACING"  # ❌ Invalid spacing style
+        font: "Arial"
+        color: "red"
+
+  # ❌ Invalid layer style properties
+  - name: "invalid_layer_style"
+    geojsonFile: "@data.test"
+    updateDxf: true
+    style:
+      layer:
+        linetype: "INVALID_LINETYPE"  # ❌ Invalid linetype
+        transparency: 1.5  # ❌ Transparency > 1.0
+        frozen: true
+        plot: true  # ❌ Conflict: frozen layers shouldn't plot
+        color: "blue"
+
+  # ❌ Invalid operation chain (too long)
+  - name: "long_operation_chain"
+    geojsonFile: "@data.test"
+    style: "building_style"
+    updateDxf: true
+    operations:
+      - type: "buffer"
+        distance: 10.0
+        layers: ["long_operation_chain"]
+      - type: "buffer"
+        distance: 5.0
+        layers: ["long_operation_chain"]
+      - type: "buffer"
+        distance: 3.0
+        layers: ["long_operation_chain"]
+      - type: "buffer"
+        distance: 2.0
+        layers: ["long_operation_chain"]
+      - type: "buffer"
+        distance: 1.0
+        layers: ["long_operation_chain"]
+      - type: "buffer"
+        distance: 0.5
+        layers: ["long_operation_chain"]
+      - type: "buffer"
+        distance: 0.3
+        layers: ["long_operation_chain"]
+      - type: "buffer"
+        distance: 0.2
+        layers: ["long_operation_chain"]
+      - type: "buffer"
+        distance: 0.1
+        layers: ["long_operation_chain"]
+      - type: "buffer"
+        distance: 0.05
+        layers: ["long_operation_chain"]
+      - type: "buffer"  # ❌ 11th operation exceeds threshold (10)
+        distance: 0.01
+        layers: ["long_operation_chain"]
+
+  # ❌ Circular dependency in operations
+  - name: "circular_dependency"
+    geojsonFile: "@data.test"
+    style: "building_style"
+    updateDxf: true
+    operations:
+      - type: "union"
+        layers: ["circular_dependency"]  # ❌ References itself
+
+  # ❌ Invalid overlay layer reference
+  - name: "invalid_overlay"
+    geojsonFile: "@data.test"
+    style: "building_style"
+    updateDxf: true
+    operations:
+      - type: "difference"
+        overlay_layer: "invalid_overlay"  # ❌ Same as target layer
+
+  # ❌ Invalid transform operation
+  - name: "invalid_transform"
+    geojsonFile: "@data.test"
+    style: "building_style"
+    updateDxf: true
+    operations:
+      - type: "transform"
+        target_crs: "INVALID_CRS"  # ❌ Invalid CRS
+        source_crs: "EPSG:99999"  # ❌ Invalid EPSG code
+
+  # ❌ Invalid filter operation
+  - name: "invalid_filter"
+    geojsonFile: "@data.test"
+    style: "building_style"
+    updateDxf: true
+    operations:
+      - type: "filter"
+        spatial_predicate: "invalid_predicate"  # ❌ Invalid spatial predicate
+
+  # ❌ Missing required operation parameters
+  - name: "missing_operation_params"
+    geojsonFile: "@data.test"
+    style: "building_style"
+    updateDxf: true
+    operations:
+      - type: "buffer"
+        # ❌ Missing distance or distanceField
+        cap_style: "round"
+      - type: "rotate"
+        # ❌ Missing angle
+        origin_x: 0.0
+        origin_y: 0.0
+      - type: "difference"
+        # ❌ Missing layers or overlay_layer
+
+  # ❌ Invalid scale operation
+  - name: "invalid_scale"
+    geojsonFile: "@data.test"
+    style: "building_style"
+    updateDxf: true
+    operations:
+      - type: "scale"
+        scale_x: -1.0  # ❌ Negative scale factor
+        scale_y: 0.0   # ❌ Zero scale factor
+
+  # ❌ Invalid column references
+  - name: "invalid_columns"
+    geojsonFile: "@data.test"
+    style: "building_style"
+    updateDxf: true
+    labelColumn: ""  # ❌ Empty column name
+    selectByProperties:
+      "": "value"  # ❌ Empty property name
+      "valid_prop": "value"
+
+  # ❌ Invalid boolean and numeric settings
+  - name: "invalid_settings"
+    geojsonFile: "@data.test"
+    style: "building_style"
+    updateDxf: "yes"  # ❌ Should be boolean
+    close: "true"     # ❌ Should be boolean
+    plot: 1           # ❌ Should be boolean
+    linetypeScale: -1.0  # ❌ Should be positive
+
+  # ❌ Invalid file extensions and paths
+  - name: "invalid_file_refs"
+    geojsonFile: "data.txt"  # ❌ Wrong extension
+    style: "building_style"
+    updateDxf: true
+
+  # ❌ Path alias security warning
+  - name: "security_warning"
+    geojsonFile: "@data.../../../etc/passwd"  # ❌ Path traversal attempt
+    style: "building_style"
+    updateDxf: true
+
+  # ✅ Valid layer for comparison
+  - name: "valid_layer"
+    geojsonFile: "@data.test"
+    style: "building_style"
+    updateDxf: true
+    labelColumn: "name"
+    linetypeScale: 1.0
+    operations:
+      - type: "buffer"
+        distance: 10.0
+        cap_style: "round"
+        join_style: "round"
+        resolution: 16
+        layers: ["valid_layer"]
+
+# Test path aliases with security warnings
+pathAliases:
+  data:
+    test: "test_data.geojson"
+    dangerous: "../../../etc/passwd"  # ❌ Security warning
+  output:
+    dxf: "output/test.dxf"
+
+# Test main settings validation
+main:
+  crs: "EPSG:99999"  # ❌ Invalid EPSG code
+  dxfVersion: "R2025"  # ❌ Invalid DXF version
+  exportFormat: "invalid"  # ❌ Invalid export format
+  maxMemoryMb: 256  # ❌ Performance warning (below 512MB)
+  outputDxfPath: "@output.dxf"
+
+# Test legend validation
+legends:
+  - name: "test_legend"
+    position: [100, 200]
+    items:
+      - text: "Legend Item 1"
+        color: "red"
+      - {}  # ❌ Missing text field
+  - {}  # ❌ Missing name and position
+  - name: "invalid_position_legend"
+    position: "invalid"  # ❌ Should be [x, y] coordinates

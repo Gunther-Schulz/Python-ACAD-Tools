@@ -17,7 +17,7 @@ class GdfOperationService:
 
     def __init__(self, logger_service: ILoggingService):
         """Initialize the GDF operation service with dependency injection."""
-        self._logger = logger_service
+        self._logger = logger_service.get_logger(__name__)
 
     def validate_geodataframe_basic(self, gdf: gpd.GeoDataFrame) -> bool:
         """Validates a GeoDataFrame for basic integrity."""
@@ -124,7 +124,7 @@ class GdfOperationService:
     def get_common_crs(
         self,
         gdfs: List[gpd.GeoDataFrame],
-        logger_service: ILoggingService
+        logger: Any  # Accept logger directly instead of logging service
     ) -> Optional[Union[str, Any]]:
         """Determines a common CRS for multiple GeoDataFrames."""
         if not gdfs:
@@ -134,7 +134,7 @@ class GdfOperationService:
         crs_list = [gdf.crs for gdf in gdfs if gdf.crs is not None]
 
         if not crs_list:
-            logger_service.warning("No GeoDataFrames have a defined CRS")
+            logger.warning("No GeoDataFrames have a defined CRS")
             return None
 
         # Check if all CRS are the same
@@ -144,7 +144,7 @@ class GdfOperationService:
 
         # If multiple CRS, use the first one as target and log warning
         target_crs = crs_list[0]
-        logger_service.warning(f"Multiple CRS found: {unique_crs}. Using first CRS as target: {target_crs}")
+        logger.warning(f"Multiple CRS found: {unique_crs}. Using first CRS as target: {target_crs}")
         return target_crs
 
     def ensure_multi_geometry(

@@ -7,10 +7,12 @@ import geopandas as gpd
 from ..interfaces.geometry_processor_interface import IGeometryProcessor
 from ..interfaces.logging_service_interface import ILoggingService
 from ..interfaces.data_source_interface import IDataSource
+from ..interfaces.path_resolver_interface import IPathResolver
 from ..domain.config_models import (
     AllOperationParams,
     GeomLayerDefinition,
-    StyleConfig
+    StyleConfig,
+    SpecificProjectConfig
 )
 from ..domain.exceptions import GeometryError, DXFProcessingError
 from .operations.operation_registry import OperationRegistry
@@ -37,10 +39,11 @@ class GeometryProcessorService(IGeometryProcessor):
     - Provide interface implementation
     """
 
-    def __init__(self, logger_service: ILoggingService, data_source_service: IDataSource):
+    def __init__(self, logger_service: ILoggingService, data_source_service: IDataSource, path_resolver_service: IPathResolver):
         """Initialize with injected dependencies following existing pattern."""
         self._logger = logger_service.get_logger(__name__)
         self._data_source_service = data_source_service
+        self._path_resolver_service = path_resolver_service
 
         # Initialize operation registry and resource manager
         self._operation_registry = OperationRegistry(logger_service, data_source_service)
@@ -81,7 +84,8 @@ class GeometryProcessorService(IGeometryProcessor):
         dxf_drawing: Optional[Drawing],
         style_config: StyleConfig,
         base_crs: str,
-        project_root: Optional[str] = None
+        project_root: Optional[str] = None,
+        project_config: Optional[SpecificProjectConfig] = None
     ) -> Optional[gpd.GeoDataFrame]:
         """Create layer from definition with proper resource management following existing pattern."""
         self._logger.debug(f"Creating layer '{layer_def.name}' from definition")
@@ -94,7 +98,48 @@ class GeometryProcessorService(IGeometryProcessor):
                 if layer_def.geojson_file:
                     geojson_path = layer_def.geojson_file
 
-                    # Resolve path relative to project directory if project_root is provided
+                    # Resolve path aliases if present and project_config is provided
+                    if project_root and geojson_path.startswith('@') and project_config and project_config.path_aliases:
+                        print(f"[DEBUG] Path resolution conditions met:")
+                        print(f"  - project_root: {project_root}")
+                        print(f"  - geojson_path starts with @: {geojson_path.startswith('@')}")
+                        print(f"  - project_config exists: {project_config is not None}")
+                        print(f"  - path_aliases exists: {project_config.path_aliases is not None if project_config else 'N/A'}")
+
+                        try:
+                            # Extract project name from project_root
+                            project_name = os.path.basename(project_root) if project_root else "unknown"
+                            print(f"[DEBUG] Extracted project_name: {project_name}")
+
+                            # Create context with actual project path aliases
+                            context = self._path_resolver_service.create_context(
+                                project_name=project_name,
+                                project_root=project_root,
+                                aliases=project_config.path_aliases
+                            )
+                            print(f"[DEBUG] Created path resolution context")
+
+                            # Resolve the path
+                            resolved_path = self._path_resolver_service.resolve_path(
+                                geojson_path,
+                                context,
+                                context_key='geojsonFile'
+                            )
+                            geojson_path = resolved_path
+                            print(f"[DEBUG] Resolved path alias '{layer_def.geojson_file}' to '{geojson_path}'")
+
+                        except Exception as e:
+                            print(f"[DEBUG] Path resolution failed: {e}")
+                            self._logger.warning(f"Failed to resolve path alias '{geojson_path}': {e}. Using path as-is.")
+                    else:
+                        print(f"[DEBUG] Path resolution conditions NOT met:")
+                        print(f"  - project_root: {project_root}")
+                        print(f"  - geojson_path: {geojson_path}")
+                        print(f"  - starts with @: {geojson_path.startswith('@') if geojson_path else 'N/A'}")
+                        print(f"  - project_config: {project_config is not None}")
+                        print(f"  - path_aliases: {project_config.path_aliases is not None if project_config else 'N/A'}")
+
+                    # Resolve path relative to project directory if project_root is provided and not already absolute
                     if project_root and not os.path.isabs(geojson_path):
                         geojson_path = os.path.join(project_root, geojson_path)
                         geojson_path = os.path.normpath(geojson_path)

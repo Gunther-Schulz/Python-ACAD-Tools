@@ -147,7 +147,7 @@ class ProjectOrchestratorService(IProjectOrchestrator):
                 try:
                     project_root = os.path.join(app_config.projects_root_dir, project_name)
                     gdf = self._geometry_processor.create_layer_from_definition(
-                        layer_def, dxf_drawing, style_config, project_config.main.crs, project_root
+                        layer_def, dxf_drawing, style_config, project_config.main.crs, project_root, project_config
                     )
                     if gdf is not None:
                         self._logger.info(f"Successfully created/loaded base for layer '{layer_def.name}'. Features: {len(gdf)}")

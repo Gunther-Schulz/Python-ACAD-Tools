@@ -25,7 +25,16 @@ try:
 except ImportError:
     GEOPANDAS_AVAILABLE = False
 
+# Import for geometry validation
+try:
+    from shapely.geometry import Point, LineString, Polygon, MultiPoint, MultiLineString, MultiPolygon
+    from shapely.validation import explain_validity
+    SHAPELY_AVAILABLE = True
+except ImportError:
+    SHAPELY_AVAILABLE = False
+
 from ..interfaces.config_validation_interface import IConfigValidation
+from ..interfaces.path_resolver_interface import IPathResolver
 from .exceptions import ConfigValidationError
 
 
@@ -40,7 +49,11 @@ class ValidationRegistry:
         'yaml': ['.yaml', '.yml'],
         'linetype': ['.lin'],
         'font': ['.shx', '.ttf', '.otf'],
-        'gpkg': ['.gpkg']  # Added GeoPackage support
+        'gpkg': ['.gpkg'],  # Added GeoPackage support
+        'csv': ['.csv'],
+        'xlsx': ['.xlsx', '.xls'],
+        'kml': ['.kml'],
+        'gml': ['.gml']
     }
 
     # Valid CRS patterns
@@ -74,6 +87,84 @@ class ValidationRegistry:
         'ACAD_ISO03W100', 'ACAD_ISO04W100', 'ACAD_ISO05W100'
     ]
 
+    # Valid geom layer settings (comprehensive list from OLDAPP analysis)
+    VALID_GEOM_LAYER_KEYS = {
+        'name', 'geojsonFile', 'shapeFile', 'dxfLayer', 'style', 'labelColumn',
+        'selectByProperties', 'updateDxf', 'operations', 'description', 'source',
+        'lastUpdated', 'type', 'sourceLayer', 'outputShapeFile', 'close',
+        'linetypeScale', 'linetypeGeneration', 'viewports', 'attributes',
+        'bluntAngles', 'label', 'applyHatch', 'plot', 'saveToLagefaktor'
+    }
+
+    # Valid style types and their properties
+    VALID_STYLE_TYPES = {
+        'layer': {
+            'color', 'linetype', 'lineweight', 'plot', 'locked', 'frozen',
+            'is_on', 'transparency', 'linetypeScale', 'close'
+        },
+        'hatch': {
+            'pattern', 'scale', 'color', 'transparency', 'individual_hatches',
+            'layers', 'lineweight'
+        },
+        'text': {
+            'color', 'height', 'font', 'maxWidth', 'attachmentPoint',
+            'flowDirection', 'lineSpacingStyle', 'lineSpacingFactor',
+            'bgFill', 'bgFillColor', 'bgFillScale', 'underline', 'overline',
+            'strikeThrough', 'obliqueAngle', 'rotation', 'paragraph'
+        }
+    }
+
+    # Valid operation types
+    VALID_OPERATION_TYPES = {
+        'buffer', 'intersection', 'union', 'difference', 'simplify', 'transform',
+        'filter', 'merge', 'clip', 'dissolve', 'envelope', 'bounding_box',
+        'rotate', 'scale', 'translate', 'offset_curve', 'symmetric_difference',
+        'connect_points', 'create_circles', 'copy', 'filterByIntersection',
+        'simpleLabel', 'wmts', 'wms', 'contour'
+    }
+
+    # Valid text attachment points
+    VALID_TEXT_ATTACHMENT_POINTS = {
+        'TOP_LEFT', 'TOP_CENTER', 'TOP_RIGHT',
+        'MIDDLE_LEFT', 'MIDDLE_CENTER', 'MIDDLE_RIGHT',
+        'BOTTOM_LEFT', 'BOTTOM_CENTER', 'BOTTOM_RIGHT'
+    }
+
+    # Valid flow directions
+    VALID_FLOW_DIRECTIONS = {'LEFT_TO_RIGHT', 'TOP_TO_BOTTOM', 'BY_STYLE'}
+
+    # Valid line spacing styles
+    VALID_LINE_SPACING_STYLES = {'AT_LEAST', 'EXACT'}
+
+    # Valid cap styles for buffer operations
+    VALID_CAP_STYLES = {'round', 'flat', 'square'}
+
+    # Valid join styles for buffer operations
+    VALID_JOIN_STYLES = {'round', 'mitre', 'bevel'}
+
+    # Valid spatial predicates for filter operations
+    VALID_SPATIAL_PREDICATES = {
+        'intersects', 'contains', 'within', 'touches', 'crosses', 'overlaps',
+        'disjoint', 'equals', 'covers', 'covered_by'
+    }
+
+    # Performance warning thresholds
+    PERFORMANCE_THRESHOLDS = {
+        'max_buffer_distance': 10000.0,  # meters
+        'max_file_size_mb': 100.0,
+        'max_features_warning': 50000,
+        'max_operation_chain_length': 10
+    }
+
+    # Common column name patterns for validation
+    COMMON_COLUMN_PATTERNS = {
+        'id': ['id', 'fid', 'objectid', 'gid', 'uid'],
+        'name': ['name', 'label', 'title', 'description'],
+        'area': ['area', 'area_m2', 'area_sqm', 'surface'],
+        'length': ['length', 'length_m', 'perimeter'],
+        'elevation': ['elevation', 'height', 'z', 'elev', 'alt']
+    }
+
 
 class ConfigValidators:
     """Collection of reusable validation functions."""
@@ -81,20 +172,36 @@ class ConfigValidators:
     @staticmethod
     def validate_file_path(value: str, file_type: Optional[str] = None,
                           must_exist: bool = False, base_path: Optional[str] = None,
-                          is_output_file: bool = False) -> str:
+                          is_output_file: bool = False,
+                          path_resolver: Optional[IPathResolver] = None,
+                          project_context = None) -> str:
         """Validates file paths with optional existence and extension checking."""
         if not value or not isinstance(value, str):
             raise ValueError("File path must be a non-empty string")
 
-        # Convert to Path object for better handling
-        if base_path and not os.path.isabs(value):
-            full_path = Path(base_path) / value
-        else:
-            full_path = Path(value)
+        # Handle path alias resolution if available
+        resolved_path = value
+        was_alias_resolved = False
+        if path_resolver and project_context and value.startswith('@'):
+            try:
+                resolved_path = path_resolver.resolve_path(value, project_context)
+                was_alias_resolved = True
+            except Exception as e:
+                raise ValueError(f"Failed to resolve path alias '{value}': {e}")
 
-        # Validate extension if file_type specified
+        # Convert to Path object for better handling
+        # If path was resolved from alias, use it directly as it's already properly resolved
+        if was_alias_resolved or os.path.isabs(resolved_path):
+            full_path = Path(resolved_path)
+        elif base_path:
+            full_path = Path(base_path) / resolved_path
+        else:
+            full_path = Path(resolved_path)
+
+        # Validate extension if file_type specified - use resolved path for extension check
         if file_type and file_type in ValidationRegistry.VALID_EXTENSIONS:
             valid_exts = ValidationRegistry.VALID_EXTENSIONS[file_type]
+            # Check extension on the resolved path, not the original alias
             if not any(str(full_path).lower().endswith(ext) for ext in valid_exts):
                 raise ValueError(f"File must have one of these extensions: {valid_exts}")
 
@@ -102,14 +209,18 @@ class ConfigValidators:
         if must_exist and not full_path.exists():
             raise ValueError(f"File does not exist: {full_path}")
 
+        # Check file size for performance warnings
+        if must_exist and full_path.exists() and full_path.is_file():
+            file_size_mb = full_path.stat().st_size / (1024 * 1024)
+            if file_size_mb > ValidationRegistry.PERFORMANCE_THRESHOLDS['max_file_size_mb']:
+                raise ValueError(f"File size ({file_size_mb:.1f}MB) exceeds recommended maximum ({ValidationRegistry.PERFORMANCE_THRESHOLDS['max_file_size_mb']}MB)")
+
         # Handle output file directory creation
         if is_output_file and full_path.parent != full_path:
             if not full_path.parent.exists():
                 try:
                     # Create the output directory if it doesn't exist
                     full_path.parent.mkdir(parents=True, exist_ok=True)
-                    # Log this directory creation if we had access to logger
-                    # For now, this will be silent, but it's a valid action for output files
                 except (PermissionError, OSError) as e:
                     raise ValueError(f"Cannot create output directory {full_path.parent}: {e}")
 
@@ -198,23 +309,24 @@ class ConfigValidators:
 
     @staticmethod
     def validate_linetype(value: str) -> str:
-        """Validates linetype names."""
+        """Validates linetype strings."""
         if value not in ValidationRegistry.VALID_LINETYPES:
-            # Allow custom linetypes but issue warning via logger if available
-            if not re.match(r'^[A-Za-z0-9_-]+$', value):
-                raise ValueError(f"Invalid linetype name '{value}'. Must contain only alphanumeric characters, underscores, and hyphens")
+            # Check for ACAD ISO pattern
+            acad_pattern = r'^ACAD_ISO\d{2}W100$'
+            if not re.match(acad_pattern, value):
+                raise ValueError(f"Invalid linetype '{value}'. Valid linetypes: {ValidationRegistry.VALID_LINETYPES} or ACAD_ISOxxW100 pattern")
         return value
 
     @staticmethod
     def validate_positive_number(value: float, field_name: str = "value") -> float:
-        """Validates that a number is positive."""
+        """Validates positive numbers."""
         if value <= 0:
             raise ValueError(f"{field_name} must be positive, got {value}")
         return value
 
     @staticmethod
     def validate_non_negative_number(value: float, field_name: str = "value") -> float:
-        """Validates that a number is non-negative."""
+        """Validates non-negative numbers."""
         if value < 0:
             raise ValueError(f"{field_name} must be non-negative, got {value}")
         return value
@@ -228,100 +340,249 @@ class ConfigValidators:
 
     @staticmethod
     def validate_url(value: str) -> str:
-        """Basic URL validation."""
-        if not value.startswith(('http://', 'https://')):
-            raise ValueError("URL must start with http:// or https://")
+        """Validates URL strings."""
+        parsed = urlparse(value)
+        if not parsed.scheme or not parsed.netloc:
+            raise ValueError(f"Invalid URL format: {value}")
         return value
+
+    @staticmethod
+    def validate_column_name(value: str, available_columns: Optional[List[str]] = None) -> str:
+        """Validates column names and suggests alternatives if not found."""
+        if not value or not isinstance(value, str):
+            raise ValueError("Column name must be a non-empty string")
+
+        if available_columns and value not in available_columns:
+            # Try case-insensitive match
+            case_insensitive_matches = [col for col in available_columns if col.lower() == value.lower()]
+            if case_insensitive_matches:
+                raise ValueError(f"Column '{value}' not found. Did you mean '{case_insensitive_matches[0]}'? (case mismatch)")
+
+            # Try fuzzy matching
+            suggestion = ConfigValidators.suggest_closest_match(value, set(available_columns))
+            if suggestion:
+                raise ValueError(f"Column '{value}' not found. Did you mean '{suggestion}'?")
+            else:
+                raise ValueError(f"Column '{value}' not found. Available columns: {available_columns}")
+
+        return value
+
+    @staticmethod
+    def validate_text_attachment_point(value: str) -> str:
+        """Validates text attachment point values."""
+        if value.upper() not in ValidationRegistry.VALID_TEXT_ATTACHMENT_POINTS:
+            raise ValueError(f"Invalid attachment point '{value}'. Valid values: {ValidationRegistry.VALID_TEXT_ATTACHMENT_POINTS}")
+        return value.upper()
+
+    @staticmethod
+    def validate_flow_direction(value: str) -> str:
+        """Validates text flow direction values."""
+        if value.upper() not in ValidationRegistry.VALID_FLOW_DIRECTIONS:
+            raise ValueError(f"Invalid flow direction '{value}'. Valid values: {ValidationRegistry.VALID_FLOW_DIRECTIONS}")
+        return value.upper()
+
+    @staticmethod
+    def validate_line_spacing_style(value: str) -> str:
+        """Validates line spacing style values."""
+        if value.upper() not in ValidationRegistry.VALID_LINE_SPACING_STYLES:
+            raise ValueError(f"Invalid line spacing style '{value}'. Valid values: {ValidationRegistry.VALID_LINE_SPACING_STYLES}")
+        return value.upper()
+
+    @staticmethod
+    def validate_cap_style(value: str) -> str:
+        """Validates cap style for buffer operations."""
+        if value.lower() not in ValidationRegistry.VALID_CAP_STYLES:
+            raise ValueError(f"Invalid cap style '{value}'. Valid values: {ValidationRegistry.VALID_CAP_STYLES}")
+        return value.lower()
+
+    @staticmethod
+    def validate_join_style(value: str) -> str:
+        """Validates join style for buffer operations."""
+        if value.lower() not in ValidationRegistry.VALID_JOIN_STYLES:
+            raise ValueError(f"Invalid join style '{value}'. Valid values: {ValidationRegistry.VALID_JOIN_STYLES}")
+        return value.lower()
+
+    @staticmethod
+    def validate_spatial_predicate(value: str) -> str:
+        """Validates spatial predicate for filter operations."""
+        if value.lower() not in ValidationRegistry.VALID_SPATIAL_PREDICATES:
+            raise ValueError(f"Invalid spatial predicate '{value}'. Valid values: {ValidationRegistry.VALID_SPATIAL_PREDICATES}")
+        return value.lower()
+
+    @staticmethod
+    def validate_buffer_distance(value: float, field_name: str = "buffer distance") -> float:
+        """Validates buffer distance with performance warnings."""
+        if value < 0:
+            raise ValueError(f"{field_name} cannot be negative, got {value}")
+
+        max_distance = ValidationRegistry.PERFORMANCE_THRESHOLDS['max_buffer_distance']
+        if value > max_distance:
+            raise ValueError(f"{field_name} ({value}) exceeds recommended maximum ({max_distance}) - may cause performance issues")
+
+        return value
+
+    @staticmethod
+    def validate_operation_chain_length(operations: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Validates operation chain length for performance."""
+        max_length = ValidationRegistry.PERFORMANCE_THRESHOLDS['max_operation_chain_length']
+        if len(operations) > max_length:
+            raise ValueError(f"Operation chain length ({len(operations)}) exceeds recommended maximum ({max_length}) - may cause performance issues")
+        return operations
+
+    @staticmethod
+    def levenshtein_distance(s1: str, s2: str) -> int:
+        """Calculate Levenshtein distance between two strings."""
+        if len(s1) < len(s2):
+            return ConfigValidators.levenshtein_distance(s2, s1)
+        if len(s2) == 0:
+            return len(s1)
+        previous_row = range(len(s2) + 1)
+        for i, c1 in enumerate(s1):
+            current_row = [i + 1]
+            for j, c2 in enumerate(s2):
+                insertions = previous_row[j + 1] + 1
+                deletions = current_row[j] + 1
+                substitutions = previous_row[j] + (c1 != c2)
+                current_row.append(min(insertions, deletions, substitutions))
+            previous_row = current_row
+        return previous_row[-1]
+
+    @staticmethod
+    def suggest_closest_match(unknown_key: str, valid_keys: set, max_distance: int = 2) -> Optional[str]:
+        """Suggest the closest valid key for an unknown key."""
+        if not valid_keys:
+            return None
+
+        closest_match = min(valid_keys, key=lambda x: ConfigValidators.levenshtein_distance(unknown_key, x))
+        distance = ConfigValidators.levenshtein_distance(unknown_key, closest_match)
+
+        if distance <= max_distance:
+            return closest_match
+        return None
 
 
 class CrossFieldValidator:
-    """Handles validation that spans multiple fields within a model."""
+    """Validators that check relationships between multiple fields."""
 
     @staticmethod
     def validate_output_paths_consistency(values: Dict[str, Any]) -> Dict[str, Any]:
-        """Validates that output paths are consistent with export format."""
-        # Handle both camelCase (YAML) and snake_case (Python) field names
-        export_format = values.get('export_format', values.get('exportFormat', 'dxf'))
+        """Validates consistency between export format and output paths."""
+        export_format = values.get('exportFormat', values.get('export_format'))
 
-        # Check for DXF output path (handle both field name formats)
-        output_dxf = values.get('output_dxf_path') or values.get('outputDxfPath')
-
-        # Check for shapefile output directory (handle both field name formats)
-        output_shp_dir = values.get('shapefile_output_dir') or values.get('shapefileOutputDir')
-
-        # Check for geopackage output path (handle both field name formats)
-        output_gpkg = values.get('output_geopackage_path') or values.get('outputGeopackagePath')
-
-        errors = []
-
-        if export_format in ['dxf', 'all'] and not output_dxf:
-            errors.append("output_dxf_path (outputDxfPath) is required when export_format includes 'dxf'")
-
-        if export_format in ['shp', 'all'] and not output_shp_dir:
-            errors.append("shapefile_output_dir (shapefileOutputDir) is required when export_format includes 'shp'")
-
-        if export_format in ['gpkg', 'all'] and not output_gpkg:
-            errors.append("output_geopackage_path (outputGeopackagePath) is required when export_format includes 'gpkg'")
-
-        if errors:
-            raise ValueError(f"Output path consistency errors: {'; '.join(errors)}")
+        if export_format == 'dxf':
+            if not values.get('outputDxfPath', values.get('output_dxf_path')):
+                raise ValueError("DXF export format requires outputDxfPath to be specified")
+        elif export_format == 'shp':
+            if not values.get('shapefileOutputDir', values.get('shapefile_output_dir')):
+                raise ValueError("Shapefile export format requires shapefileOutputDir to be specified")
+        elif export_format == 'gpkg':
+            if not values.get('outputGeopackagePath', values.get('output_geopackage_path')):
+                raise ValueError("GeoPackage export format requires outputGeopackagePath to be specified")
+        elif export_format == 'all':
+            # For 'all' format, at least one output path should be specified
+            has_output = any([
+                values.get('outputDxfPath', values.get('output_dxf_path')),
+                values.get('shapefileOutputDir', values.get('shapefile_output_dir')),
+                values.get('outputGeopackagePath', values.get('output_geopackage_path'))
+            ])
+            if not has_output:
+                raise ValueError("Export format 'all' requires at least one output path to be specified")
 
         return values
 
     @staticmethod
     def validate_operation_layer_references(values: Dict[str, Any], available_layers: List[str]) -> Dict[str, Any]:
-        """Validates that operation layer references point to existing layers."""
+        """Validates that operation layer references exist."""
         operations = values.get('operations', [])
-        if not operations:
-            return values
-
-        errors = []
 
         for i, operation in enumerate(operations):
-            op_type = operation.get('type', 'unknown')
+            if isinstance(operation, dict):
+                # Check 'layers' field
+                if 'layers' in operation:
+                    layers = operation['layers']
+                    if isinstance(layers, list):
+                        for layer_ref in layers:
+                            if isinstance(layer_ref, str) and layer_ref not in available_layers:
+                                raise ValueError(f"Operation {i+1} references unknown layer: '{layer_ref}'")
+                            elif isinstance(layer_ref, dict) and 'name' in layer_ref:
+                                layer_name = layer_ref['name']
+                                if layer_name not in available_layers:
+                                    raise ValueError(f"Operation {i+1} references unknown layer: '{layer_name}'")
 
-            # Check 'layer' field (single layer operations)
-            if 'layer' in operation:
-                layer_ref = operation['layer']
-                if isinstance(layer_ref, str) and layer_ref not in available_layers:
-                    errors.append(f"Operation {i} ({op_type}): layer '{layer_ref}' not found in available layers")
-                elif isinstance(layer_ref, dict) and 'name' in layer_ref:
-                    layer_name = layer_ref['name']
-                    if layer_name not in available_layers:
-                        errors.append(f"Operation {i} ({op_type}): layer '{layer_name}' not found in available layers")
-
-            # Check 'layers' field (multi-layer operations)
-            if 'layers' in operation:
-                for j, layer_ref in enumerate(operation['layers']):
-                    if isinstance(layer_ref, str) and layer_ref not in available_layers:
-                        errors.append(f"Operation {i} ({op_type}): layers[{j}] '{layer_ref}' not found in available layers")
-                    elif isinstance(layer_ref, dict) and 'name' in layer_ref:
-                        layer_name = layer_ref['name']
-                        if layer_name not in available_layers:
-                            errors.append(f"Operation {i} ({op_type}): layers[{j}] '{layer_name}' not found in available layers")
-
-        if errors:
-            raise ValueError(f"Layer reference errors: {'; '.join(errors)}")
+                # Check other layer reference fields
+                layer_ref_fields = ['sourceLayer', 'overlay_layer', 'overlayLayer', 'layer']
+                for field in layer_ref_fields:
+                    if field in operation:
+                        layer_ref = operation[field]
+                        if isinstance(layer_ref, str) and layer_ref not in available_layers:
+                            raise ValueError(f"Operation {i+1} field '{field}' references unknown layer: '{layer_ref}'")
 
         return values
+
+    @staticmethod
+    def validate_operation_dependencies(operations: List[Dict[str, Any]], layer_name: str) -> List[Dict[str, Any]]:
+        """Validates operation dependencies and logical consistency."""
+        for i, operation in enumerate(operations):
+            op_type = operation.get('type')
+
+            # Check for circular dependencies
+            if 'layers' in operation:
+                layers = operation['layers']
+                if isinstance(layers, list) and layer_name in layers:
+                    raise ValueError(f"Operation {i+1} creates circular dependency: layer '{layer_name}' references itself")
+
+            # Check operation-specific dependencies
+            if op_type in ['difference', 'intersection', 'union', 'symmetric_difference']:
+                if 'overlay_layer' in operation or 'overlayLayer' in operation:
+                    overlay = operation.get('overlay_layer', operation.get('overlayLayer'))
+                    if overlay == layer_name:
+                        raise ValueError(f"Operation {i+1}: overlay layer cannot be the same as the target layer")
+
+        return operations
+
+    @staticmethod
+    def validate_style_consistency(style_config: Dict[str, Any], layer_name: str) -> Dict[str, Any]:
+        """Validates style configuration consistency."""
+        if isinstance(style_config, dict):
+            # Check for conflicting style properties
+            if 'layer' in style_config:
+                layer_style = style_config['layer']
+                if isinstance(layer_style, dict):
+                    # Check for logical conflicts
+                    if layer_style.get('frozen') and layer_style.get('plot'):
+                        raise ValueError(f"Layer '{layer_name}': frozen layers should not be set to plot")
+
+                    if layer_style.get('locked') and 'color' in layer_style:
+                        # This is a warning, not an error
+                        pass  # Could add to warnings list
+
+        return style_config
 
 
 class ConfigValidationService(IConfigValidation):
     """Service for comprehensive configuration validation."""
 
-    def __init__(self, base_path: Optional[str] = None):
+    def __init__(self, base_path: Optional[str] = None, path_resolver: Optional[IPathResolver] = None):
         self.base_path = base_path
+        self.path_resolver = path_resolver
         self._validation_errors: List[str] = []
+        self._validation_warnings: List[str] = []
 
     @property
     def validation_errors(self) -> List[str]:
         """Get the list of validation errors from the last validation run."""
         return self._validation_errors
 
+    @property
+    def validation_warnings(self) -> List[str]:
+        """Get the list of validation warnings from the last validation run."""
+        return self._validation_warnings
+
     def validate_project_config(self, config_data: Dict[str, Any],
                               config_file: Optional[str] = None) -> Dict[str, Any]:
         """Validates a complete project configuration."""
         self._validation_errors = []
+        self._validation_warnings = []
 
         try:
             # Validate main project settings
@@ -331,7 +592,7 @@ class ConfigValidationService(IConfigValidation):
             # Validate geometry layers
             if 'geomLayers' in config_data or 'geom_layers' in config_data:
                 geom_layers = config_data.get('geomLayers', config_data.get('geom_layers', []))
-                layer_names = self._validate_geometry_layers(geom_layers)
+                layer_names = self._validate_geometry_layers(geom_layers, config_data)
 
                 # Cross-validate operations against available layers
                 for layer in geom_layers:
@@ -340,12 +601,19 @@ class ConfigValidationService(IConfigValidation):
                             CrossFieldValidator.validate_operation_layer_references(
                                 {'operations': layer['operations']}, layer_names
                             )
+                            CrossFieldValidator.validate_operation_dependencies(
+                                layer['operations'], layer.get('name', 'unknown')
+                            )
                         except ValueError as e:
                             self._validation_errors.append(f"Layer '{layer.get('name', '?')}': {e}")
 
             # Validate legends
             if 'legends' in config_data:
                 self._validate_legends(config_data['legends'])
+
+            # Validate path aliases
+            if 'pathAliases' in config_data:
+                self._validate_path_aliases(config_data['pathAliases'])
 
             # Final validation
             if self._validation_errors:
@@ -401,40 +669,42 @@ class ConfigValidationService(IConfigValidation):
         except ValueError as e:
             self._validation_errors.append(f"main settings: {e}")
 
-    def _validate_geometry_layers(self, layers_data: List[Dict[str, Any]]) -> List[str]:
+        # Validate memory and performance settings
+        if 'maxMemoryMb' in main_data or 'max_memory_mb' in main_data:
+            max_memory = main_data.get('maxMemoryMb', main_data.get('max_memory_mb'))
+            if isinstance(max_memory, (int, float)) and max_memory < 512:
+                self._validation_warnings.append("main.max_memory_mb: Memory limit below 512MB may cause performance issues")
+
+    def _validate_geometry_layers(self, layers_data: List[Dict[str, Any]],
+                                 full_config: Dict[str, Any]) -> List[str]:
         """Validates geometry layer definitions and returns layer names."""
         layer_names = []
+
+        # Load available styles for validation
+        available_styles = self._load_available_styles(full_config)
 
         for i, layer in enumerate(layers_data):
             layer_name = layer.get('name', f'layer_{i}')
             layer_names.append(layer_name)
 
-            # Validate data sources
-            sources = [
-                ('geojsonFile', 'geojson'),
-                ('shapeFile', 'shapefile'),
-                ('dxfLayer', None)  # DXF layer is just a string reference
-            ]
+            # Validate unknown keys with suggestions
+            self._validate_layer_keys(layer, layer_name)
 
-            source_count = 0
-            for source_key, file_type in sources:
-                if source_key in layer or source_key.lower().replace('file', '_file') in layer:
-                    source_count += 1
-                    if file_type:  # File-based source
-                        file_path = layer.get(source_key, layer.get(source_key.lower().replace('file', '_file')))
-                        try:
-                            ConfigValidators.validate_file_path(file_path, file_type, base_path=self.base_path)
-                        except ValueError as e:
-                            self._validation_errors.append(f"layer '{layer_name}' {source_key}: {e}")
+            # Validate data sources with file existence checking
+            self._validate_layer_data_sources(layer, layer_name, full_config)
 
-            if source_count == 0:
-                self._validation_errors.append(f"layer '{layer_name}': no valid data source specified")
-            elif source_count > 1:
-                self._validation_errors.append(f"layer '{layer_name}': multiple data sources specified (only one allowed)")
+            # Validate style references
+            self._validate_layer_style(layer, layer_name, available_styles)
 
             # Validate operations
             if 'operations' in layer:
                 self._validate_operations(layer['operations'], f"layer '{layer_name}'")
+
+            # Validate column references
+            self._validate_layer_column_references(layer, layer_name)
+
+            # Validate layer-specific settings
+            self._validate_layer_specific_settings(layer, layer_name)
 
         # Check for duplicate layer names
         duplicates = [name for name in layer_names if layer_names.count(name) > 1]
@@ -443,8 +713,227 @@ class ConfigValidationService(IConfigValidation):
 
         return layer_names
 
+    def _validate_layer_keys(self, layer: Dict[str, Any], layer_name: str) -> None:
+        """Validate layer keys and suggest corrections for typos."""
+        unknown_keys = set(layer.keys()) - ValidationRegistry.VALID_GEOM_LAYER_KEYS
+
+        if unknown_keys:
+            for unknown_key in unknown_keys:
+                suggestion = ConfigValidators.suggest_closest_match(
+                    unknown_key, ValidationRegistry.VALID_GEOM_LAYER_KEYS
+                )
+                if suggestion:
+                    self._validation_warnings.append(
+                        f"Layer '{layer_name}': Unknown key '{unknown_key}'. Did you mean '{suggestion}'?"
+                    )
+                else:
+                    self._validation_warnings.append(
+                        f"Layer '{layer_name}': Unknown key '{unknown_key}'"
+                    )
+
+    def _validate_layer_data_sources(self, layer: Dict[str, Any], layer_name: str,
+                                   full_config: Dict[str, Any]) -> None:
+        """Validate layer data sources with file existence checking."""
+        sources = [
+            ('geojsonFile', 'geojson'),
+            ('shapeFile', 'shapefile'),
+            ('dxfLayer', None)  # DXF layer is just a string reference
+        ]
+
+        source_count = 0
+        project_context = self._create_project_context(full_config)
+
+        for source_key, file_type in sources:
+            if source_key in layer or source_key.lower().replace('file', '_file') in layer:
+                source_count += 1
+                if file_type:  # File-based source
+                    file_path = layer.get(source_key, layer.get(source_key.lower().replace('file', '_file')))
+                    try:
+                        ConfigValidators.validate_file_path(
+                            file_path, file_type,
+                            must_exist=True,  # Check file existence
+                            base_path=self.base_path,
+                            path_resolver=self.path_resolver,
+                            project_context=project_context
+                        )
+                    except ValueError as e:
+                        self._validation_errors.append(f"Layer '{layer_name}' {source_key}: {e}")
+
+        if source_count == 0:
+            # Check if this is an operations-only layer
+            if 'operations' not in layer:
+                self._validation_errors.append(f"Layer '{layer_name}': no valid data source specified")
+        elif source_count > 1:
+            self._validation_errors.append(f"Layer '{layer_name}': multiple data sources specified (only one allowed)")
+
+    def _validate_layer_style(self, layer: Dict[str, Any], layer_name: str,
+                            available_styles: Dict[str, Any]) -> None:
+        """Validate layer style references and inline styles."""
+        if 'style' not in layer:
+            return
+
+        style = layer['style']
+
+        if isinstance(style, str):
+            # Style preset reference
+            if style not in available_styles:
+                suggestion = ConfigValidators.suggest_closest_match(style, set(available_styles.keys()))
+                if suggestion:
+                    self._validation_errors.append(
+                        f"Layer '{layer_name}': Style preset '{style}' not found. Did you mean '{suggestion}'?"
+                    )
+                else:
+                    self._validation_errors.append(
+                        f"Layer '{layer_name}': Style preset '{style}' not found"
+                    )
+
+        elif isinstance(style, dict):
+            # Inline style or style with preset
+            if 'preset' in style:
+                preset_name = style['preset']
+                if preset_name not in available_styles:
+                    suggestion = ConfigValidators.suggest_closest_match(preset_name, set(available_styles.keys()))
+                    if suggestion:
+                        self._validation_errors.append(
+                            f"Layer '{layer_name}': Style preset '{preset_name}' not found. Did you mean '{suggestion}'?"
+                        )
+                    else:
+                        self._validation_errors.append(
+                            f"Layer '{layer_name}': Style preset '{preset_name}' not found"
+                        )
+
+            # Validate inline style structure
+            self._validate_inline_style(style, layer_name)
+
+            # Validate style consistency
+            try:
+                CrossFieldValidator.validate_style_consistency(style, layer_name)
+            except ValueError as e:
+                self._validation_errors.append(f"Layer '{layer_name}': {e}")
+
+    def _validate_inline_style(self, style: Dict[str, Any], layer_name: str) -> None:
+        """Validate inline style structure and properties."""
+        for style_type, style_props in style.items():
+            if style_type in ['preset']:  # Skip non-style keys
+                continue
+
+            if style_type not in ValidationRegistry.VALID_STYLE_TYPES:
+                suggestion = ConfigValidators.suggest_closest_match(
+                    style_type, set(ValidationRegistry.VALID_STYLE_TYPES.keys())
+                )
+                if suggestion:
+                    self._validation_warnings.append(
+                        f"Layer '{layer_name}': Unknown style type '{style_type}'. Did you mean '{suggestion}'?"
+                    )
+                else:
+                    self._validation_warnings.append(
+                        f"Layer '{layer_name}': Unknown style type '{style_type}'"
+                    )
+                continue
+
+            if isinstance(style_props, dict):
+                valid_props = ValidationRegistry.VALID_STYLE_TYPES[style_type]
+                unknown_props = set(style_props.keys()) - valid_props
+
+                for unknown_prop in unknown_props:
+                    suggestion = ConfigValidators.suggest_closest_match(unknown_prop, valid_props)
+                    if suggestion:
+                        self._validation_warnings.append(
+                            f"Layer '{layer_name}' {style_type} style: Unknown property '{unknown_prop}'. Did you mean '{suggestion}'?"
+                        )
+                    else:
+                        self._validation_warnings.append(
+                            f"Layer '{layer_name}' {style_type} style: Unknown property '{unknown_prop}'"
+                        )
+
+                # Validate specific style properties
+                self._validate_style_properties(style_props, style_type, layer_name)
+
+    def _validate_style_properties(self, style_props: Dict[str, Any], style_type: str, layer_name: str) -> None:
+        """Validate specific style property values."""
+        if style_type == 'text':
+            # Validate text-specific properties
+            if 'attachmentPoint' in style_props:
+                try:
+                    ConfigValidators.validate_text_attachment_point(style_props['attachmentPoint'])
+                except ValueError as e:
+                    self._validation_errors.append(f"Layer '{layer_name}' text style: {e}")
+
+            if 'flowDirection' in style_props:
+                try:
+                    ConfigValidators.validate_flow_direction(style_props['flowDirection'])
+                except ValueError as e:
+                    self._validation_errors.append(f"Layer '{layer_name}' text style: {e}")
+
+            if 'lineSpacingStyle' in style_props:
+                try:
+                    ConfigValidators.validate_line_spacing_style(style_props['lineSpacingStyle'])
+                except ValueError as e:
+                    self._validation_errors.append(f"Layer '{layer_name}' text style: {e}")
+
+            if 'height' in style_props:
+                try:
+                    ConfigValidators.validate_positive_number(style_props['height'], 'text height')
+                except ValueError as e:
+                    self._validation_errors.append(f"Layer '{layer_name}' text style: {e}")
+
+        elif style_type == 'layer':
+            # Validate layer-specific properties
+            if 'linetype' in style_props:
+                try:
+                    ConfigValidators.validate_linetype(style_props['linetype'])
+                except ValueError as e:
+                    self._validation_errors.append(f"Layer '{layer_name}' layer style: {e}")
+
+            if 'transparency' in style_props:
+                try:
+                    ConfigValidators.validate_percentage(style_props['transparency'], 'transparency')
+                except ValueError as e:
+                    self._validation_errors.append(f"Layer '{layer_name}' layer style: {e}")
+
+    def _validate_layer_column_references(self, layer: Dict[str, Any], layer_name: str) -> None:
+        """Validate column references in layer configuration."""
+        # Note: We can't validate against actual file columns here since we don't load the files
+        # But we can validate the column name format and common patterns
+
+        column_fields = ['labelColumn', 'label_column', 'label']
+        for field in column_fields:
+            if field in layer:
+                column_name = layer[field]
+                if not isinstance(column_name, str) or not column_name.strip():
+                    self._validation_errors.append(f"Layer '{layer_name}': {field} must be a non-empty string")
+
+        # Validate selectByProperties column references
+        if 'selectByProperties' in layer:
+            select_props = layer['selectByProperties']
+            if isinstance(select_props, dict):
+                for prop_name, prop_value in select_props.items():
+                    if not isinstance(prop_name, str) or not prop_name.strip():
+                        self._validation_errors.append(f"Layer '{layer_name}': selectByProperties property name must be a non-empty string")
+
+    def _validate_layer_specific_settings(self, layer: Dict[str, Any], layer_name: str) -> None:
+        """Validate layer-specific settings and configurations."""
+        # Validate boolean settings
+        boolean_fields = ['updateDxf', 'close', 'plot', 'applyHatch']
+        for field in boolean_fields:
+            if field in layer and not isinstance(layer[field], bool):
+                self._validation_warnings.append(f"Layer '{layer_name}': {field} should be a boolean value")
+
+        # Validate numeric settings
+        if 'linetypeScale' in layer:
+            try:
+                ConfigValidators.validate_positive_number(layer['linetypeScale'], 'linetypeScale')
+            except ValueError as e:
+                self._validation_errors.append(f"Layer '{layer_name}': {e}")
+
     def _validate_operations(self, operations: List[Dict[str, Any]], context: str) -> None:
         """Validates operation definitions."""
+        # Validate operation chain length
+        try:
+            ConfigValidators.validate_operation_chain_length(operations)
+        except ValueError as e:
+            self._validation_warnings.append(f"{context}: {e}")
+
         for i, operation in enumerate(operations):
             op_context = f"{context} operation[{i}]"
 
@@ -455,35 +944,99 @@ class ConfigValidationService(IConfigValidation):
 
             op_type = operation['type']
 
+            # Check if operation type is valid
+            if op_type not in ValidationRegistry.VALID_OPERATION_TYPES:
+                suggestion = ConfigValidators.suggest_closest_match(
+                    op_type, ValidationRegistry.VALID_OPERATION_TYPES
+                )
+                if suggestion:
+                    self._validation_errors.append(
+                        f"{op_context}: Unknown operation type '{op_type}'. Did you mean '{suggestion}'?"
+                    )
+                else:
+                    self._validation_errors.append(
+                        f"{op_context}: Unknown operation type '{op_type}'"
+                    )
+                continue
+
             # Type-specific validation
-            if op_type == 'buffer':
-                if 'distance' not in operation and 'distanceField' not in operation:
-                    self._validation_errors.append(f"{op_context}: buffer operation requires 'distance' or 'distanceField'")
+            self._validate_operation_parameters(operation, op_context)
 
-                if 'distance' in operation:
-                    try:
-                        ConfigValidators.validate_non_negative_number(operation['distance'], 'buffer distance')
-                    except ValueError as e:
-                        self._validation_errors.append(f"{op_context}: {e}")
+    def _validate_operation_parameters(self, operation: Dict[str, Any], op_context: str) -> None:
+        """Validate operation-specific parameters."""
+        op_type = operation['type']
 
-            elif op_type in ['translate', 'scale', 'rotate']:
-                # Validate transformation parameters
-                if op_type == 'translate':
-                    for param in ['dx', 'dy']:
-                        if param in operation and not isinstance(operation[param], (int, float)):
-                            self._validation_errors.append(f"{op_context}: {param} must be a number")
+        if op_type == 'buffer':
+            if 'distance' not in operation and 'distanceField' not in operation:
+                self._validation_errors.append(f"{op_context}: buffer operation requires 'distance' or 'distanceField'")
 
-                elif op_type == 'scale':
-                    for param in ['xfact', 'yfact']:
-                        if param in operation:
-                            try:
-                                ConfigValidators.validate_positive_number(operation[param], f'scale {param}')
-                            except ValueError as e:
-                                self._validation_errors.append(f"{op_context}: {e}")
+            if 'distance' in operation:
+                try:
+                    ConfigValidators.validate_buffer_distance(operation['distance'], 'buffer distance')
+                except ValueError as e:
+                    self._validation_errors.append(f"{op_context}: {e}")
 
-                elif op_type == 'rotate':
-                    if 'angle' not in operation:
-                        self._validation_errors.append(f"{op_context}: rotate operation requires 'angle' field")
+            # Validate buffer-specific parameters
+            if 'cap_style' in operation:
+                try:
+                    ConfigValidators.validate_cap_style(operation['cap_style'])
+                except ValueError as e:
+                    self._validation_errors.append(f"{op_context}: {e}")
+
+            if 'join_style' in operation:
+                try:
+                    ConfigValidators.validate_join_style(operation['join_style'])
+                except ValueError as e:
+                    self._validation_errors.append(f"{op_context}: {e}")
+
+            if 'resolution' in operation:
+                try:
+                    ConfigValidators.validate_positive_number(operation['resolution'], 'buffer resolution')
+                except ValueError as e:
+                    self._validation_errors.append(f"{op_context}: {e}")
+
+        elif op_type in ['translate', 'scale', 'rotate']:
+            # Validate transformation parameters
+            if op_type == 'translate':
+                for param in ['dx', 'dy']:
+                    if param in operation and not isinstance(operation[param], (int, float)):
+                        self._validation_errors.append(f"{op_context}: {param} must be a number")
+
+            elif op_type == 'scale':
+                for param in ['xfact', 'yfact', 'scale_x', 'scale_y']:
+                    if param in operation:
+                        try:
+                            ConfigValidators.validate_positive_number(operation[param], f'scale {param}')
+                        except ValueError as e:
+                            self._validation_errors.append(f"{op_context}: {e}")
+
+            elif op_type == 'rotate':
+                if 'angle' not in operation:
+                    self._validation_errors.append(f"{op_context}: rotate operation requires 'angle' field")
+
+        elif op_type == 'filter':
+            if 'spatial_predicate' in operation:
+                try:
+                    ConfigValidators.validate_spatial_predicate(operation['spatial_predicate'])
+                except ValueError as e:
+                    self._validation_errors.append(f"{op_context}: {e}")
+
+        elif op_type == 'transform':
+            if 'target_crs' in operation:
+                try:
+                    ConfigValidators.validate_crs(operation['target_crs'])
+                except ValueError as e:
+                    self._validation_errors.append(f"{op_context}: target_crs {e}")
+
+            if 'source_crs' in operation:
+                try:
+                    ConfigValidators.validate_crs(operation['source_crs'])
+                except ValueError as e:
+                    self._validation_errors.append(f"{op_context}: source_crs {e}")
+
+        elif op_type in ['difference', 'intersection', 'union', 'symmetric_difference']:
+            if 'layers' not in operation and 'overlay_layer' not in operation and 'overlayLayer' not in operation:
+                self._validation_errors.append(f"{op_context}: {op_type} operation requires 'layers' or 'overlay_layer' field")
 
     def _validate_legends(self, legends_data: List[Dict[str, Any]]) -> None:
         """Validates legend definitions."""
@@ -518,13 +1071,111 @@ class ConfigValidationService(IConfigValidation):
                         if not isinstance(item, dict) or 'text' not in item:
                             self._validation_errors.append(f"{legend_context} item[{j}]: must have 'text' field")
 
+    def _validate_path_aliases(self, path_aliases: Dict[str, Any]) -> None:
+        """Validate path alias definitions."""
+        if not isinstance(path_aliases, dict):
+            self._validation_errors.append("pathAliases must be a dictionary")
+            return
+
+        # Check for circular references and invalid paths
+        for alias_name, alias_path in path_aliases.items():
+            if not isinstance(alias_name, str) or not alias_name.strip():
+                self._validation_errors.append("Path alias names must be non-empty strings")
+                continue
+
+            if isinstance(alias_path, str):
+                # Simple alias
+                if '..' in alias_path:
+                    self._validation_warnings.append(f"Path alias '{alias_name}' contains '..' which may be a security risk")
+            elif isinstance(alias_path, dict):
+                # Nested alias structure - will be flattened
+                self._validate_nested_path_aliases(alias_path, alias_name)
+            else:
+                self._validation_errors.append(f"Path alias '{alias_name}' must be a string or dictionary")
+
+    def _validate_nested_path_aliases(self, nested_aliases: Dict[str, Any], parent_name: str) -> None:
+        """Validate nested path alias structures."""
+        for key, value in nested_aliases.items():
+            full_name = f"{parent_name}.{key}"
+
+            if isinstance(value, str):
+                if '..' in value:
+                    self._validation_warnings.append(f"Path alias '{full_name}' contains '..' which may be a security risk")
+            elif isinstance(value, dict):
+                self._validate_nested_path_aliases(value, full_name)
+            else:
+                self._validation_errors.append(f"Path alias '{full_name}' must be a string or dictionary")
+
+    def _load_available_styles(self, full_config: Dict[str, Any]) -> Dict[str, Any]:
+        """Load available styles from the configuration context."""
+        available_styles = {}
+
+        # Check if styles are embedded in the config
+        if 'styles' in full_config:
+            available_styles.update(full_config['styles'])
+
+        # Load from external style files using path resolver
+        if 'main' in full_config and 'stylePresetsFile' in full_config['main']:
+            style_file_path = full_config['main']['stylePresetsFile']
+
+            # Resolve path alias if needed
+            if self.path_resolver and style_file_path.startswith('@'):
+                try:
+                    project_context = self._create_project_context(full_config)
+                    resolved_path = self.path_resolver.resolve_path(style_file_path, project_context)
+
+                    # Use resolved path directly since path resolver returns absolute paths
+                    full_path = Path(resolved_path)
+
+                    if full_path.exists():
+                        import yaml
+                        with open(full_path, 'r', encoding='utf-8') as f:
+                            style_data = yaml.safe_load(f)
+                            if isinstance(style_data, dict) and 'styles' in style_data:
+                                available_styles.update(style_data['styles'])
+                except Exception as e:
+                    # Log error but don't fail validation
+                    self._validation_warnings.append(f"Failed to load style file '{style_file_path}': {e}")
+
+        return available_styles
+
+    def _create_project_context(self, full_config: Dict[str, Any]):
+        """Create project context for path resolution."""
+        from ..domain.path_models import ProjectPathAliases, PathResolutionContext
+
+        # Extract path aliases from config
+        path_aliases_data = full_config.get('pathAliases', {})
+
+        # Create ProjectPathAliases object
+        project_aliases = ProjectPathAliases(aliases=path_aliases_data)
+
+        # Extract project name from base_path if available, otherwise use fallback
+        project_name = "unknown_project"
+        if self.base_path:
+            # Extract project name from base_path (e.g., "projects/test_project" -> "test_project")
+            base_path_parts = Path(self.base_path).parts
+            if len(base_path_parts) >= 2 and base_path_parts[-2] == "projects":
+                project_name = base_path_parts[-1]
+
+        # Create PathResolutionContext
+        # Convert base_path to absolute path to prevent double directory issues
+        absolute_project_root = os.path.abspath(self.base_path) if self.base_path else os.path.abspath(".")
+
+        context = PathResolutionContext(
+            project_name=project_name,
+            project_root=absolute_project_root,
+            aliases=project_aliases
+        )
+        return context
+
 
 def validate_config_with_schema(config_data: Dict[str, Any],
                                config_type: str,
                                config_file: Optional[str] = None,
-                               base_path: Optional[str] = None) -> Dict[str, Any]:
+                               base_path: Optional[str] = None,
+                               path_resolver: Optional[IPathResolver] = None) -> Dict[str, Any]:
     """Main entry point for configuration validation."""
-    validator = ConfigValidationService(base_path=base_path)
+    validator = ConfigValidationService(base_path=base_path, path_resolver=path_resolver)
 
     if config_type == 'project':
         return validator.validate_project_config(config_data, config_file)

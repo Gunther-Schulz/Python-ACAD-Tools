@@ -208,6 +208,20 @@ class ConfigLoaderService(IConfigLoader):
             with open(main_settings_path, 'r', encoding='utf-8') as f:
                 full_project_data = yaml.safe_load(f)
 
+            # Load path aliases for later use in SpecificProjectConfig
+            # Path resolution during validation is handled by the validation service
+            # creating a PathResolutionContext from the full project data
+            if 'pathAliases' in full_project_data:
+                from ..domain.path_models import ProjectPathAliases
+                try:
+                    path_aliases_data = ProjectPathAliases(aliases=full_project_data['pathAliases'])
+                    self._logger.debug(f"Loaded {len(path_aliases_data.aliases)} path aliases for project '{project_name}'")
+                except Exception as e:
+                    self._logger.error(f"Failed to load path aliases for project '{project_name}': {e}")
+                    path_aliases_data = None
+            else:
+                path_aliases_data = None
+
             # Extract the 'main' section for ProjectMainSettings
             if 'main' not in full_project_data:
                 raise ConfigError(f"Missing 'main' section in project configuration: {main_settings_path}")
@@ -221,7 +235,8 @@ class ConfigLoaderService(IConfigLoader):
                         {'main': main_data},  # Wrap for validation
                         'project',
                         config_file=main_settings_path,
-                        base_path=project_dir
+                        base_path=project_dir,
+                        path_resolver=self._path_resolver
                     )['main']  # Extract main section after validation
                     self._logger.debug(f"Configuration validation passed for {main_settings_path}")
                 except ConfigValidationError as e:
@@ -231,25 +246,55 @@ class ConfigLoaderService(IConfigLoader):
             # Create the ProjectMainSettings model from the main section
             main_settings = ProjectMainSettings.model_validate(main_data)
 
-            # Geometry Layers - validate with schema
+            # Geometry Layers - load and validate comprehensively
             geom_layers_path = os.path.join(project_dir, geom_layers_yaml_name)
+
+            # Load raw YAML data for comprehensive validation
+            with open(geom_layers_path, 'r', encoding='utf-8') as f:
+                geom_layers_raw = yaml.safe_load(f)
+
+            # Apply comprehensive validation including style preset checking, file existence, etc.
+            validator = ConfigValidationService(base_path=project_dir, path_resolver=self._path_resolver)
+
+            try:
+                # Handle both list format (direct array) and dict format (with geomLayers key)
+                if isinstance(geom_layers_raw, list):
+                    geom_layers_list = geom_layers_raw
+                elif isinstance(geom_layers_raw, dict) and 'geomLayers' in geom_layers_raw:
+                    geom_layers_list = geom_layers_raw['geomLayers']
+                else:
+                    raise ConfigError(f"Invalid geom_layers.yaml format. Expected list or dict with 'geomLayers' key.")
+
+                # Validate the complete geom layers configuration
+                # Pass the full project configuration including pathAliases for proper path resolution
+                validation_config = {
+                    'geomLayers': geom_layers_list,
+                    'pathAliases': full_project_data.get('pathAliases', {}),
+                    'main': full_project_data.get('main', {})
+                }
+                validated_geom_config = validator.validate_project_config(
+                    validation_config,
+                    config_file=geom_layers_path
+                )
+
+                # Log validation warnings if any
+                warnings = validator.validation_warnings
+                if warnings:
+                    self._logger.warning(f"Geometry layers validation warnings for project '{project_name}':")
+                    for warning in warnings:
+                        self._logger.warning(f"  - {warning}")
+
+                self._logger.debug(f"Comprehensive geometry layers validation passed for {geom_layers_path}")
+
+            except ConfigValidationError as e:
+                self._logger.error(f"Comprehensive geometry layers validation failed for {geom_layers_path}: {e}")
+                if hasattr(e, 'validation_errors') and e.validation_errors:
+                    for error in e.validation_errors:
+                        self._logger.error(f"  - {error}")
+                raise ConfigError(f"Geometry layers validation failed for project '{project_name}': {e}") from e
+
+            # Now load into Pydantic models (this will also validate structure)
             geom_layers_data = self._load_yaml_list_file(geom_layers_path, GeomLayerDefinition)
-
-            # Apply additional cross-layer validation
-            validator = ConfigValidationService(base_path=project_dir)
-            layer_names = [layer.name for layer in geom_layers_data]
-
-            # Validate layer operations reference existing layers
-            for layer in geom_layers_data:
-                if layer.operations:
-                    try:
-                        CrossFieldValidator.validate_operation_layer_references(
-                            {'operations': [op.model_dump() for op in layer.operations]},
-                            layer_names
-                        )
-                    except ValueError as e:
-                        self._logger.error(f"Layer operation validation failed for '{layer.name}': {e}")
-                        raise ConfigError(f"Layer operation validation failed for '{layer.name}': {e}")
 
             # Legends
             legends_path = os.path.join(project_dir, legends_yaml_name)
@@ -283,6 +328,7 @@ class ConfigLoaderService(IConfigLoader):
                 geomLayers=geom_layers_data, # Alias used in Pydantic model
                 legends=legends_data,
                 project_specific_styles=project_styles_data, # Alias used in Pydantic model
+                pathAliases=path_aliases_data,  # Use the correct alias name
                 # Initialize other fields as they are loaded
                 # viewports=[], blockInserts=[], textInserts=[], pathArrays=[],
                 # wmtsLayers=[], wmsLayers=[], dxfOperations=None

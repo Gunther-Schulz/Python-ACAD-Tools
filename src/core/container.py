@@ -119,7 +119,8 @@ class ApplicationContainer(containers.DeclarativeContainer):
     geometry_processor_service = Singleton(
         GeometryProcessorService,
         logger_service=logging_service,
-        data_source_service=data_source_service
+        data_source_service=data_source_service,
+        path_resolver_service=path_resolver_service
     )
 
     project_orchestrator_service = Singleton(
