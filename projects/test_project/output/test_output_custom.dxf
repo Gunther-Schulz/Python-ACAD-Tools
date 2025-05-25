@@ -489,7 +489,7 @@ $SKPOLY
   9
 $TDCREATE
  40
-2460820.614386574
+2460821.264490741
   9
 $TDUCREATE
  40
@@ -497,7 +497,7 @@ $TDUCREATE
   9
 $TDUPDATE
  40
-2460820.614386574
+2460821.264490741
   9
 $TDUUPDATE
  40
@@ -549,7 +549,7 @@ $SPLINESEGS
   9
 $HANDSEED
   5
-61
+118
   9
 $SURFTAB1
  70
@@ -929,11 +929,11 @@ $PSTYLEMODE
   9
 $FINGERPRINTGUID
   2
-{760E14BD-54F7-4536-AE0A-C9A0E7DF5437}
+{42ED18A2-B4E2-4BFA-B56E-9663488E021E}
   9
 $VERSIONGUID
   2
-{09350D17-5DF5-4B0B-B952-47BC2594F587}
+{175BC9BF-7294-40F8-AC82-A7D74B34879B}
   9
 $EXTNAMES
 290
@@ -1323,9 +1323,9 @@ ISM
   0
 CLASS
   1
-LAYOUT
+ACDBPLACEHOLDER
   2
-AcDbLayout
+AcDbPlaceHolder
   3
 ObjectDBX Classes
  90
@@ -1339,9 +1339,9 @@ ObjectDBX Classes
   0
 CLASS
   1
-ACDBPLACEHOLDER
+LAYOUT
   2
-AcDbPlaceHolder
+AcDbLayout
   3
 ObjectDBX Classes
  90
@@ -1539,7 +1539,7 @@ Continuous
   0
 LTYPE
   5
-41
+3D
 330
 2
 100
@@ -1579,7 +1579,7 @@ LAYER
 100
 AcDbSymbolTable
  70
-12
+18
   0
 LAYER
   5
@@ -1633,7 +1633,7 @@ Continuous
   0
 LAYER
   5
-2F
+32
 330
 1
 100
@@ -1645,7 +1645,7 @@ commercial_buildings
  70
 0
  62
-7
+30
   6
 Continuous
 370
@@ -1657,7 +1657,7 @@ Continuous
   0
 LAYER
   5
-30
+33
 330
 1
 100
@@ -1669,7 +1669,79 @@ residential_buildings
  70
 0
  62
-7
+211
+  6
+Continuous
+370
+-3
+390
+13
+347
+21
+  0
+LAYER
+  5
+3B
+330
+1
+100
+AcDbSymbolTableRecord
+100
+AcDbLayerTableRecord
+  2
+all_buildings
+ 70
+0
+ 62
+30
+  6
+Continuous
+370
+-3
+390
+13
+347
+21
+  0
+LAYER
+  5
+3C
+330
+1
+100
+AcDbSymbolTableRecord
+100
+AcDbLayerTableRecord
+  2
+main_roads
+ 70
+0
+ 62
+200
+  6
+Continuous
+370
+-3
+390
+13
+347
+21
+  0
+LAYER
+  5
+3E
+330
+1
+100
+AcDbSymbolTableRecord
+100
+AcDbLayerTableRecord
+  2
+bike_paths
+ 70
+0
+ 62
+200
   6
 Continuous
 370
@@ -1689,35 +1761,11 @@ AcDbSymbolTableRecord
 100
 AcDbLayerTableRecord
   2
-all_buildings
+parks
  70
 0
  62
-7
-  6
-Continuous
-370
--3
-390
-13
-347
-21
-  0
-LAYER
-  5
-40
-330
-1
-100
-AcDbSymbolTableRecord
-100
-AcDbLayerTableRecord
-  2
-main_roads
- 70
-0
- 62
-7
+84
   6
 Continuous
 370
@@ -1737,11 +1785,11 @@ AcDbSymbolTableRecord
 100
 AcDbLayerTableRecord
   2
-bike_paths
+buffered_commercial
  70
 0
  62
-7
+30
   6
 Continuous
 370
@@ -1761,59 +1809,11 @@ AcDbSymbolTableRecord
 100
 AcDbLayerTableRecord
   2
-parks
- 70
-0
- 62
-7
-  6
-Continuous
-370
--3
-390
-13
-347
-21
-  0
-LAYER
-  5
-48
-330
-1
-100
-AcDbSymbolTableRecord
-100
-AcDbLayerTableRecord
-  2
-buffered_commercial
- 70
-0
- 62
-7
-  6
-Continuous
-370
--3
-390
-13
-347
-21
-  0
-LAYER
-  5
-49
-330
-1
-100
-AcDbSymbolTableRecord
-100
-AcDbLayerTableRecord
-  2
 merged_buildings_roads
  70
 0
  62
-7
+30
   6
 Continuous
 370
@@ -1825,31 +1825,7 @@ Continuous
   0
 LAYER
   5
-4A
-330
-1
-100
-AcDbSymbolTableRecord
-100
-AcDbLayerTableRecord
-  2
-buildings_with_calculated_area
- 70
-0
- 62
-7
-  6
-Continuous
-370
--3
-390
-13
-347
-21
-  0
-LAYER
-  5
-4B
+44
 330
 1
 100
@@ -1861,7 +1837,175 @@ study_area_boundary
  70
 0
  62
-7
+30
+  6
+Continuous
+370
+-3
+390
+13
+347
+21
+  0
+LAYER
+  5
+60
+330
+1
+100
+AcDbSymbolTableRecord
+100
+AcDbLayerTableRecord
+  2
+industrial_buildings
+ 70
+0
+ 62
+8
+  6
+Continuous
+370
+-3
+390
+13
+347
+21
+  0
+LAYER
+  5
+61
+330
+1
+100
+AcDbSymbolTableRecord
+100
+AcDbLayerTableRecord
+  2
+public_buildings
+ 70
+0
+ 62
+5
+  6
+Continuous
+370
+-3
+390
+13
+347
+21
+  0
+LAYER
+  5
+62
+330
+1
+100
+AcDbSymbolTableRecord
+100
+AcDbLayerTableRecord
+  2
+recreational_facilities
+ 70
+0
+ 62
+3
+  6
+Continuous
+370
+-3
+390
+13
+347
+21
+  0
+LAYER
+  5
+63
+330
+1
+100
+AcDbSymbolTableRecord
+100
+AcDbLayerTableRecord
+  2
+healthcare_facilities
+ 70
+0
+ 62
+1
+  6
+Continuous
+370
+-3
+390
+13
+347
+21
+  0
+LAYER
+  5
+64
+330
+1
+100
+AcDbSymbolTableRecord
+100
+AcDbLayerTableRecord
+  2
+educational_facilities
+ 70
+0
+ 62
+4
+  6
+Continuous
+370
+-3
+390
+13
+347
+21
+  0
+LAYER
+  5
+65
+330
+1
+100
+AcDbSymbolTableRecord
+100
+AcDbLayerTableRecord
+  2
+transit_stops
+ 70
+0
+ 62
+6
+  6
+Continuous
+370
+-3
+390
+13
+347
+21
+  0
+LAYER
+  5
+66
+330
+1
+100
+AcDbSymbolTableRecord
+100
+AcDbLayerTableRecord
+  2
+amenities
+ 70
+0
+ 62
+2
   6
 Continuous
 370
@@ -1883,7 +2027,7 @@ STYLE
 100
 AcDbSymbolTable
  70
-1
+2
   0
 STYLE
   5
@@ -1896,6 +2040,34 @@ AcDbSymbolTableRecord
 AcDbTextStyleTableRecord
   2
 Standard
+ 70
+0
+ 40
+0.0
+ 41
+1.0
+ 50
+0.0
+ 71
+0
+ 42
+2.5
+  3
+txt
+  4
+
+  0
+STYLE
+  5
+68
+330
+5
+100
+AcDbSymbolTableRecord
+100
+AcDbTextStyleTableRecord
+  2
+Arial
  70
 0
  40
@@ -1971,7 +2143,7 @@ ACAD
   0
 APPID
   5
-4C
+2F
 330
 3
 100
@@ -1985,7 +2157,7 @@ HATCHBACKGROUNDCOLOR
   0
 APPID
   5
-4D
+30
 330
 3
 100
@@ -2295,112 +2467,6 @@ ENTITIES
   0
 LWPOLYLINE
   5
-31
-330
-17
-100
-AcDbEntity
-  8
-industrial_buildings
-100
-AcDbPolyline
- 90
-5
- 70
-1
- 10
-50.0
- 20
-50.0
- 10
-75.0
- 20
-50.0
- 10
-75.0
- 20
-70.0
- 10
-50.0
- 20
-70.0
- 10
-50.0
- 20
-50.0
-  0
-TEXT
-  5
-32
-330
-17
-100
-AcDbEntity
-  8
-industrial_buildings
-100
-AcDbText
- 10
-62.5
- 20
-60.0
- 30
-0.0
- 40
-2.5
-  1
-500.0
- 72
-1
- 11
-62.5
- 21
-60.0
- 31
-0.0
-100
-AcDbText
- 73
-2
-  0
-LWPOLYLINE
-  5
-33
-330
-17
-100
-AcDbEntity
-  8
-industrial_buildings
-100
-AcDbPolyline
- 90
-5
- 70
-1
- 10
-200.0
- 20
-100.0
- 10
-225.0
- 20
-100.0
- 10
-225.0
- 20
-120.0
- 10
-200.0
- 20
-120.0
- 10
-200.0
- 20
-100.0
-  0
-TEXT
-  5
 34
 330
 17
@@ -2408,30 +2474,38 @@ TEXT
 AcDbEntity
   8
 industrial_buildings
+  6
+Continuous
+ 62
+8
+370
+70
 100
-AcDbText
- 10
-212.5
- 20
-110.0
- 30
-0.0
- 40
-2.5
-  1
-1200.0
- 72
+AcDbPolyline
+ 90
+5
+ 70
 1
- 11
-212.5
- 21
-110.0
- 31
-0.0
-100
-AcDbText
- 73
-2
+ 10
+50.0
+ 20
+50.0
+ 10
+75.0
+ 20
+50.0
+ 10
+75.0
+ 20
+70.0
+ 10
+50.0
+ 20
+70.0
+ 10
+50.0
+ 20
+50.0
   0
 LWPOLYLINE
   5
@@ -2441,7 +2515,55 @@ LWPOLYLINE
 100
 AcDbEntity
   8
+industrial_buildings
+  6
+Continuous
+ 62
+8
+370
+70
+100
+AcDbPolyline
+ 90
+5
+ 70
+1
+ 10
+200.0
+ 20
+100.0
+ 10
+225.0
+ 20
+100.0
+ 10
+225.0
+ 20
+120.0
+ 10
+200.0
+ 20
+120.0
+ 10
+200.0
+ 20
+100.0
+  0
+LWPOLYLINE
+  5
+36
+330
+17
+100
+AcDbEntity
+  8
 public_buildings
+  6
+Continuous
+ 62
+5
+370
+60
 100
 AcDbPolyline
  90
@@ -2468,40 +2590,6 @@ AcDbPolyline
 150.0
  20
 100.0
-  0
-TEXT
-  5
-36
-330
-17
-100
-AcDbEntity
-  8
-public_buildings
-100
-AcDbText
- 10
-157.5
- 20
-106.0
- 30
-0.0
- 40
-2.5
-  1
-City Library
- 72
-1
- 11
-157.5
- 21
-106.0
- 31
-0.0
-100
-AcDbText
- 73
-2
   0
 LWPOLYLINE
   5
@@ -2512,6 +2600,12 @@ LWPOLYLINE
 AcDbEntity
   8
 public_buildings
+  6
+Continuous
+ 62
+5
+370
+60
 100
 AcDbPolyline
  90
@@ -2539,7 +2633,7 @@ AcDbPolyline
  20
 150.0
   0
-TEXT
+LWPOLYLINE
   5
 38
 330
@@ -2547,31 +2641,39 @@ TEXT
 100
 AcDbEntity
   8
-public_buildings
+recreational_facilities
+  6
+Continuous
+ 62
+3
+370
+50
 100
-AcDbText
- 10
-210.0
- 20
-160.0
- 30
-0.0
- 40
-2.5
-  1
-Town Square
- 72
+AcDbPolyline
+ 90
+5
+ 70
 1
- 11
-210.0
- 21
-160.0
- 31
-0.0
-100
-AcDbText
- 73
-2
+ 10
+100.0
+ 20
+200.0
+ 10
+130.0
+ 20
+200.0
+ 10
+130.0
+ 20
+225.0
+ 10
+100.0
+ 20
+225.0
+ 10
+100.0
+ 20
+200.0
   0
 LWPOLYLINE
   5
@@ -2581,7 +2683,13 @@ LWPOLYLINE
 100
 AcDbEntity
   8
-recreational_facilities
+healthcare_facilities
+  6
+Continuous
+ 62
+1
+370
+70
 100
 AcDbPolyline
  90
@@ -2589,27 +2697,27 @@ AcDbPolyline
  70
 1
  10
-100.0
+150.0
  20
 200.0
  10
-130.0
+170.0
  20
 200.0
  10
-130.0
+170.0
  20
-225.0
+222.0
  10
-100.0
+150.0
  20
-225.0
+222.0
  10
-100.0
+150.0
  20
 200.0
   0
-TEXT
+LWPOLYLINE
   5
 3A
 330
@@ -2617,111 +2725,13 @@ TEXT
 100
 AcDbEntity
   8
-recreational_facilities
-100
-AcDbText
- 10
-115.0
- 20
-212.5
- 30
-0.0
- 40
-2.5
-  1
-Sports Complex
- 72
-1
- 11
-115.0
- 21
-212.5
- 31
-0.0
-100
-AcDbText
- 73
-2
-  0
-LWPOLYLINE
-  5
-3B
-330
-17
-100
-AcDbEntity
-  8
-healthcare_facilities
-100
-AcDbPolyline
- 90
-5
- 70
-1
- 10
-150.0
- 20
-200.0
- 10
-170.0
- 20
-200.0
- 10
-170.0
- 20
-222.0
- 10
-150.0
- 20
-222.0
- 10
-150.0
- 20
-200.0
-  0
-TEXT
-  5
-3C
-330
-17
-100
-AcDbEntity
-  8
-healthcare_facilities
-100
-AcDbText
- 10
-160.0
- 20
-211.0
- 30
-0.0
- 40
-2.5
-  1
-Medical Center
- 72
-1
- 11
-160.0
- 21
-211.0
- 31
-0.0
-100
-AcDbText
- 73
-2
-  0
-LWPOLYLINE
-  5
-3D
-330
-17
-100
-AcDbEntity
-  8
 educational_facilities
+  6
+Continuous
+ 62
+4
+370
+60
 100
 AcDbPolyline
  90
@@ -2748,50 +2758,22 @@ AcDbPolyline
 200.0
  20
 200.0
-  0
-TEXT
-  5
-3E
-330
-17
-100
-AcDbEntity
-  8
-educational_facilities
-100
-AcDbText
- 10
-212.5
- 20
-212.5
- 30
-0.0
- 40
-2.5
-  1
-School Campus
- 72
-1
- 11
-212.5
- 21
-212.5
- 31
-0.0
-100
-AcDbText
- 73
-2
   0
 POINT
   5
-44
+40
 330
 17
 100
 AcDbEntity
   8
 transit_stops
+  6
+Continuous
+ 62
+6
+370
+35
 100
 AcDbPoint
  10
@@ -2801,49 +2783,21 @@ AcDbPoint
  30
 0.0
   0
-TEXT
-  5
-45
-330
-17
-100
-AcDbEntity
-  8
-transit_stops
-100
-AcDbText
- 10
-25.1
- 20
-175.1
- 30
-0.0
- 40
-2.5
-  1
-101, 205
- 72
-1
- 11
-25.1
- 21
-175.1
- 31
-0.0
-100
-AcDbText
- 73
-2
-  0
 POINT
   5
-46
+41
 330
 17
 100
 AcDbEntity
   8
 amenities
+  6
+Continuous
+ 62
+2
+370
+25
 100
 AcDbPoint
  10
@@ -2853,7 +2807,91 @@ AcDbPoint
  30
 0.0
   0
-TEXT
+LWPOLYLINE
+  5
+45
+330
+17
+100
+AcDbEntity
+  8
+industrial_buildings
+  6
+Continuous
+ 62
+8
+370
+70
+100
+AcDbPolyline
+ 90
+5
+ 70
+1
+ 10
+50.0
+ 20
+50.0
+ 10
+75.0
+ 20
+50.0
+ 10
+75.0
+ 20
+70.0
+ 10
+50.0
+ 20
+70.0
+ 10
+50.0
+ 20
+50.0
+  0
+LWPOLYLINE
+  5
+46
+330
+17
+100
+AcDbEntity
+  8
+industrial_buildings
+  6
+Continuous
+ 62
+8
+370
+70
+100
+AcDbPolyline
+ 90
+5
+ 70
+1
+ 10
+200.0
+ 20
+100.0
+ 10
+225.0
+ 20
+100.0
+ 10
+225.0
+ 20
+120.0
+ 10
+200.0
+ 20
+120.0
+ 10
+200.0
+ 20
+100.0
+  0
+LWPOLYLINE
   5
 47
 330
@@ -2861,31 +2899,297 @@ TEXT
 100
 AcDbEntity
   8
-amenities
+public_buildings
+  6
+Continuous
+ 62
+5
+370
+60
 100
-AcDbText
+AcDbPolyline
+ 90
+5
+ 70
+1
  10
-175.1
+150.0
  20
-175.1
+100.0
+ 10
+165.0
+ 20
+100.0
+ 10
+165.0
+ 20
+112.0
+ 10
+150.0
+ 20
+112.0
+ 10
+150.0
+ 20
+100.0
+  0
+LWPOLYLINE
+  5
+48
+330
+17
+100
+AcDbEntity
+  8
+public_buildings
+  6
+Continuous
+ 62
+5
+370
+60
+100
+AcDbPolyline
+ 90
+5
+ 70
+1
+ 10
+200.0
+ 20
+150.0
+ 10
+220.0
+ 20
+150.0
+ 10
+220.0
+ 20
+170.0
+ 10
+200.0
+ 20
+170.0
+ 10
+200.0
+ 20
+150.0
+  0
+LWPOLYLINE
+  5
+49
+330
+17
+100
+AcDbEntity
+  8
+recreational_facilities
+  6
+Continuous
+ 62
+3
+370
+50
+100
+AcDbPolyline
+ 90
+5
+ 70
+1
+ 10
+100.0
+ 20
+200.0
+ 10
+130.0
+ 20
+200.0
+ 10
+130.0
+ 20
+225.0
+ 10
+100.0
+ 20
+225.0
+ 10
+100.0
+ 20
+200.0
+  0
+LWPOLYLINE
+  5
+4A
+330
+17
+100
+AcDbEntity
+  8
+healthcare_facilities
+  6
+Continuous
+ 62
+1
+370
+70
+100
+AcDbPolyline
+ 90
+5
+ 70
+1
+ 10
+150.0
+ 20
+200.0
+ 10
+170.0
+ 20
+200.0
+ 10
+170.0
+ 20
+222.0
+ 10
+150.0
+ 20
+222.0
+ 10
+150.0
+ 20
+200.0
+  0
+LWPOLYLINE
+  5
+4B
+330
+17
+100
+AcDbEntity
+  8
+educational_facilities
+  6
+Continuous
+ 62
+4
+370
+60
+100
+AcDbPolyline
+ 90
+5
+ 70
+1
+ 10
+200.0
+ 20
+200.0
+ 10
+225.0
+ 20
+200.0
+ 10
+225.0
+ 20
+225.0
+ 10
+200.0
+ 20
+225.0
+ 10
+200.0
+ 20
+200.0
+  0
+POINT
+  5
+4C
+330
+17
+100
+AcDbEntity
+  8
+transit_stops
+  6
+Continuous
+ 62
+6
+370
+35
+100
+AcDbPoint
+ 10
+25.0
+ 20
+175.0
  30
 0.0
- 40
-2.5
-  1
-food
- 72
-1
- 11
-175.1
- 21
-175.1
- 31
-0.0
+  0
+POINT
+  5
+4D
+330
+17
 100
-AcDbText
- 73
+AcDbEntity
+  8
+amenities
+  6
+Continuous
+ 62
 2
+370
+25
+100
+AcDbPoint
+ 10
+175.0
+ 20
+175.0
+ 30
+0.0
+  0
+LWPOLYLINE
+  5
+4E
+330
+17
+100
+AcDbEntity
+  8
+industrial_buildings
+  6
+Continuous
+ 62
+8
+370
+70
+100
+AcDbPolyline
+ 90
+5
+ 70
+1
+ 10
+50.0
+ 20
+50.0
+ 10
+75.0
+ 20
+50.0
+ 10
+75.0
+ 20
+70.0
+ 10
+50.0
+ 20
+70.0
+ 10
+50.0
+ 20
+50.0
   0
 LWPOLYLINE
   5
@@ -2896,6 +3200,12 @@ LWPOLYLINE
 AcDbEntity
   8
 industrial_buildings
+  6
+Continuous
+ 62
+8
+370
+70
 100
 AcDbPolyline
  90
@@ -2903,27 +3213,27 @@ AcDbPolyline
  70
 1
  10
-50.0
+200.0
  20
-50.0
+100.0
  10
-75.0
+225.0
  20
-50.0
+100.0
  10
-75.0
+225.0
  20
-70.0
+120.0
  10
-50.0
+200.0
  20
-70.0
+120.0
  10
-50.0
+200.0
  20
-50.0
+100.0
   0
-TEXT
+LWPOLYLINE
   5
 50
 330
@@ -2931,31 +3241,39 @@ TEXT
 100
 AcDbEntity
   8
-industrial_buildings
+public_buildings
+  6
+Continuous
+ 62
+5
+370
+60
 100
-AcDbText
- 10
-62.5
- 20
-60.0
- 30
-0.0
- 40
-2.5
-  1
-500.0
- 72
+AcDbPolyline
+ 90
+5
+ 70
 1
- 11
-62.5
- 21
-60.0
- 31
-0.0
-100
-AcDbText
- 73
-2
+ 10
+150.0
+ 20
+100.0
+ 10
+165.0
+ 20
+100.0
+ 10
+165.0
+ 20
+112.0
+ 10
+150.0
+ 20
+112.0
+ 10
+150.0
+ 20
+100.0
   0
 LWPOLYLINE
   5
@@ -2965,7 +3283,13 @@ LWPOLYLINE
 100
 AcDbEntity
   8
-industrial_buildings
+public_buildings
+  6
+Continuous
+ 62
+5
+370
+60
 100
 AcDbPolyline
  90
@@ -2975,25 +3299,25 @@ AcDbPolyline
  10
 200.0
  20
-100.0
+150.0
  10
-225.0
+220.0
  20
-100.0
+150.0
  10
-225.0
+220.0
  20
-120.0
- 10
-200.0
- 20
-120.0
+170.0
  10
 200.0
  20
-100.0
+170.0
+ 10
+200.0
+ 20
+150.0
   0
-TEXT
+LWPOLYLINE
   5
 52
 330
@@ -3001,31 +3325,39 @@ TEXT
 100
 AcDbEntity
   8
-industrial_buildings
+recreational_facilities
+  6
+Continuous
+ 62
+3
+370
+50
 100
-AcDbText
- 10
-212.5
- 20
-110.0
- 30
-0.0
- 40
-2.5
-  1
-1200.0
- 72
+AcDbPolyline
+ 90
+5
+ 70
 1
- 11
-212.5
- 21
-110.0
- 31
-0.0
-100
-AcDbText
- 73
-2
+ 10
+100.0
+ 20
+200.0
+ 10
+130.0
+ 20
+200.0
+ 10
+130.0
+ 20
+225.0
+ 10
+100.0
+ 20
+225.0
+ 10
+100.0
+ 20
+200.0
   0
 LWPOLYLINE
   5
@@ -3035,7 +3367,13 @@ LWPOLYLINE
 100
 AcDbEntity
   8
-public_buildings
+healthcare_facilities
+  6
+Continuous
+ 62
+1
+370
+70
 100
 AcDbPolyline
  90
@@ -3045,25 +3383,25 @@ AcDbPolyline
  10
 150.0
  20
-100.0
+200.0
  10
-165.0
+170.0
  20
-100.0
+200.0
  10
-165.0
+170.0
  20
-112.0
- 10
-150.0
- 20
-112.0
+222.0
  10
 150.0
  20
-100.0
+222.0
+ 10
+150.0
+ 20
+200.0
   0
-TEXT
+LWPOLYLINE
   5
 54
 330
@@ -3071,41 +3409,13 @@ TEXT
 100
 AcDbEntity
   8
-public_buildings
-100
-AcDbText
- 10
-157.5
- 20
-106.0
- 30
-0.0
- 40
-2.5
-  1
-City Library
- 72
-1
- 11
-157.5
- 21
-106.0
- 31
-0.0
-100
-AcDbText
- 73
-2
-  0
-LWPOLYLINE
-  5
-55
-330
-17
-100
-AcDbEntity
-  8
-public_buildings
+educational_facilities
+  6
+Continuous
+ 62
+4
+370
+60
 100
 AcDbPolyline
  90
@@ -3115,25 +3425,49 @@ AcDbPolyline
  10
 200.0
  20
-150.0
+200.0
  10
-220.0
+225.0
  20
-150.0
+200.0
  10
-220.0
+225.0
  20
-170.0
+225.0
  10
 200.0
  20
-170.0
+225.0
  10
 200.0
  20
-150.0
+200.0
   0
-TEXT
+POINT
+  5
+55
+330
+17
+100
+AcDbEntity
+  8
+transit_stops
+  6
+Continuous
+ 62
+6
+370
+35
+100
+AcDbPoint
+ 10
+25.0
+ 20
+175.0
+ 30
+0.0
+  0
+POINT
   5
 56
 330
@@ -3141,31 +3475,21 @@ TEXT
 100
 AcDbEntity
   8
-public_buildings
+amenities
+  6
+Continuous
+ 62
+2
+370
+25
 100
-AcDbText
+AcDbPoint
  10
-210.0
+175.0
  20
-160.0
+175.0
  30
 0.0
- 40
-2.5
-  1
-Town Square
- 72
-1
- 11
-210.0
- 21
-160.0
- 31
-0.0
-100
-AcDbText
- 73
-2
   0
 LWPOLYLINE
   5
@@ -3175,7 +3499,13 @@ LWPOLYLINE
 100
 AcDbEntity
   8
-recreational_facilities
+industrial_buildings
+  6
+Continuous
+ 62
+8
+370
+70
 100
 AcDbPolyline
  90
@@ -3183,27 +3513,27 @@ AcDbPolyline
  70
 1
  10
-100.0
+50.0
  20
-200.0
+50.0
  10
-130.0
+75.0
  20
-200.0
+50.0
  10
-130.0
+75.0
  20
-225.0
+70.0
  10
-100.0
+50.0
  20
-225.0
+70.0
  10
-100.0
+50.0
  20
-200.0
+50.0
   0
-TEXT
+LWPOLYLINE
   5
 58
 330
@@ -3211,31 +3541,39 @@ TEXT
 100
 AcDbEntity
   8
-recreational_facilities
+industrial_buildings
+  6
+Continuous
+ 62
+8
+370
+70
 100
-AcDbText
- 10
-115.0
- 20
-212.5
- 30
-0.0
- 40
-2.5
-  1
-Sports Complex
- 72
+AcDbPolyline
+ 90
+5
+ 70
 1
- 11
-115.0
- 21
-212.5
- 31
-0.0
-100
-AcDbText
- 73
-2
+ 10
+200.0
+ 20
+100.0
+ 10
+225.0
+ 20
+100.0
+ 10
+225.0
+ 20
+120.0
+ 10
+200.0
+ 20
+120.0
+ 10
+200.0
+ 20
+100.0
   0
 LWPOLYLINE
   5
@@ -3245,7 +3583,1195 @@ LWPOLYLINE
 100
 AcDbEntity
   8
+public_buildings
+  6
+Continuous
+ 62
+5
+370
+60
+100
+AcDbPolyline
+ 90
+5
+ 70
+1
+ 10
+150.0
+ 20
+100.0
+ 10
+165.0
+ 20
+100.0
+ 10
+165.0
+ 20
+112.0
+ 10
+150.0
+ 20
+112.0
+ 10
+150.0
+ 20
+100.0
+  0
+LWPOLYLINE
+  5
+5A
+330
+17
+100
+AcDbEntity
+  8
+public_buildings
+  6
+Continuous
+ 62
+5
+370
+60
+100
+AcDbPolyline
+ 90
+5
+ 70
+1
+ 10
+200.0
+ 20
+150.0
+ 10
+220.0
+ 20
+150.0
+ 10
+220.0
+ 20
+170.0
+ 10
+200.0
+ 20
+170.0
+ 10
+200.0
+ 20
+150.0
+  0
+LWPOLYLINE
+  5
+5B
+330
+17
+100
+AcDbEntity
+  8
+recreational_facilities
+  6
+Continuous
+ 62
+3
+370
+50
+100
+AcDbPolyline
+ 90
+5
+ 70
+1
+ 10
+100.0
+ 20
+200.0
+ 10
+130.0
+ 20
+200.0
+ 10
+130.0
+ 20
+225.0
+ 10
+100.0
+ 20
+225.0
+ 10
+100.0
+ 20
+200.0
+  0
+LWPOLYLINE
+  5
+5C
+330
+17
+100
+AcDbEntity
+  8
 healthcare_facilities
+  6
+Continuous
+ 62
+1
+370
+70
+100
+AcDbPolyline
+ 90
+5
+ 70
+1
+ 10
+150.0
+ 20
+200.0
+ 10
+170.0
+ 20
+200.0
+ 10
+170.0
+ 20
+222.0
+ 10
+150.0
+ 20
+222.0
+ 10
+150.0
+ 20
+200.0
+  0
+LWPOLYLINE
+  5
+5D
+330
+17
+100
+AcDbEntity
+  8
+educational_facilities
+  6
+Continuous
+ 62
+4
+370
+60
+100
+AcDbPolyline
+ 90
+5
+ 70
+1
+ 10
+200.0
+ 20
+200.0
+ 10
+225.0
+ 20
+200.0
+ 10
+225.0
+ 20
+225.0
+ 10
+200.0
+ 20
+225.0
+ 10
+200.0
+ 20
+200.0
+  0
+POINT
+  5
+5E
+330
+17
+100
+AcDbEntity
+  8
+transit_stops
+  6
+Continuous
+ 62
+6
+370
+35
+100
+AcDbPoint
+ 10
+25.0
+ 20
+175.0
+ 30
+0.0
+  0
+POINT
+  5
+5F
+330
+17
+100
+AcDbEntity
+  8
+amenities
+  6
+Continuous
+ 62
+2
+370
+25
+100
+AcDbPoint
+ 10
+175.0
+ 20
+175.0
+ 30
+0.0
+  0
+LWPOLYLINE
+  5
+67
+330
+17
+100
+AcDbEntity
+  8
+commercial_buildings
+  6
+Continuous
+ 62
+30
+370
+60
+100
+AcDbPolyline
+ 90
+5
+ 70
+1
+ 10
+0.0
+ 20
+0.0
+ 10
+15.0
+ 20
+0.0
+ 10
+15.0
+ 20
+12.0
+ 10
+0.0
+ 20
+12.0
+ 10
+0.0
+ 20
+0.0
+  0
+TEXT
+  5
+69
+330
+17
+100
+AcDbEntity
+  8
+commercial_buildings
+  6
+Continuous
+ 62
+7
+370
+60
+100
+AcDbText
+ 10
+7.5
+ 20
+6.0
+ 30
+0.0
+ 40
+4.0
+  1
+Building A
+  7
+Arial
+ 72
+1
+ 11
+7.5
+ 21
+6.0
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+LWPOLYLINE
+  5
+6A
+330
+17
+100
+AcDbEntity
+  8
+commercial_buildings
+  6
+Continuous
+ 62
+30
+370
+60
+100
+AcDbPolyline
+ 90
+5
+ 70
+1
+ 10
+50.0
+ 20
+0.0
+ 10
+70.0
+ 20
+0.0
+ 10
+70.0
+ 20
+15.0
+ 10
+50.0
+ 20
+15.0
+ 10
+50.0
+ 20
+0.0
+  0
+TEXT
+  5
+6B
+330
+17
+100
+AcDbEntity
+  8
+commercial_buildings
+  6
+Continuous
+ 62
+7
+370
+60
+100
+AcDbText
+ 10
+60.0
+ 20
+7.5
+ 30
+0.0
+ 40
+4.0
+  1
+Building B
+  7
+Arial
+ 72
+1
+ 11
+60.0
+ 21
+7.5
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+LWPOLYLINE
+  5
+6C
+330
+17
+100
+AcDbEntity
+  8
+commercial_buildings
+  6
+Continuous
+ 62
+30
+370
+60
+100
+AcDbPolyline
+ 90
+5
+ 70
+1
+ 10
+100.0
+ 20
+100.0
+ 10
+120.0
+ 20
+100.0
+ 10
+120.0
+ 20
+115.0
+ 10
+100.0
+ 20
+115.0
+ 10
+100.0
+ 20
+100.0
+  0
+TEXT
+  5
+6D
+330
+17
+100
+AcDbEntity
+  8
+commercial_buildings
+  6
+Continuous
+ 62
+7
+370
+60
+100
+AcDbText
+ 10
+110.0
+ 20
+107.5
+ 30
+0.0
+ 40
+4.0
+  1
+Shopping Mall
+  7
+Arial
+ 72
+1
+ 11
+110.0
+ 21
+107.5
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+LWPOLYLINE
+  5
+6E
+330
+17
+100
+AcDbEntity
+  8
+residential_buildings
+  6
+Continuous
+ 62
+211
+370
+50
+100
+AcDbPolyline
+ 90
+5
+ 70
+1
+ 10
+0.0
+ 20
+50.0
+ 10
+18.0
+ 20
+50.0
+ 10
+18.0
+ 20
+68.0
+ 10
+0.0
+ 20
+68.0
+ 10
+0.0
+ 20
+50.0
+  0
+TEXT
+  5
+6F
+330
+17
+100
+AcDbEntity
+  8
+residential_buildings
+  6
+Continuous
+ 62
+0
+370
+50
+100
+AcDbText
+ 10
+9.0
+ 20
+59.0
+ 30
+0.0
+ 40
+3.5
+  1
+4.0
+  7
+Arial
+ 72
+1
+ 11
+9.0
+ 21
+59.0
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+LWPOLYLINE
+  5
+70
+330
+17
+100
+AcDbEntity
+  8
+residential_buildings
+  6
+Continuous
+ 62
+211
+370
+50
+100
+AcDbPolyline
+ 90
+5
+ 70
+1
+ 10
+100.0
+ 20
+150.0
+ 10
+115.0
+ 20
+150.0
+ 10
+115.0
+ 20
+170.0
+ 10
+100.0
+ 20
+170.0
+ 10
+100.0
+ 20
+150.0
+  0
+TEXT
+  5
+71
+330
+17
+100
+AcDbEntity
+  8
+residential_buildings
+  6
+Continuous
+ 62
+0
+370
+50
+100
+AcDbText
+ 10
+107.5
+ 20
+160.0
+ 30
+0.0
+ 40
+3.5
+  1
+6.0
+  7
+Arial
+ 72
+1
+ 11
+107.5
+ 21
+160.0
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+LWPOLYLINE
+  5
+72
+330
+17
+100
+AcDbEntity
+  8
+residential_buildings
+  6
+Continuous
+ 62
+211
+370
+50
+100
+AcDbPolyline
+ 90
+5
+ 70
+1
+ 10
+150.0
+ 20
+150.0
+ 10
+165.0
+ 20
+150.0
+ 10
+165.0
+ 20
+168.0
+ 10
+150.0
+ 20
+168.0
+ 10
+150.0
+ 20
+150.0
+  0
+TEXT
+  5
+73
+330
+17
+100
+AcDbEntity
+  8
+residential_buildings
+  6
+Continuous
+ 62
+0
+370
+50
+100
+AcDbText
+ 10
+157.5
+ 20
+159.0
+ 30
+0.0
+ 40
+3.5
+  1
+5.0
+  7
+Arial
+ 72
+1
+ 11
+157.5
+ 21
+159.0
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+LWPOLYLINE
+  5
+74
+330
+17
+100
+AcDbEntity
+  8
+industrial_buildings
+  6
+Continuous
+ 62
+8
+370
+70
+100
+AcDbPolyline
+ 90
+5
+ 70
+1
+ 10
+50.0
+ 20
+50.0
+ 10
+75.0
+ 20
+50.0
+ 10
+75.0
+ 20
+70.0
+ 10
+50.0
+ 20
+70.0
+ 10
+50.0
+ 20
+50.0
+  0
+TEXT
+  5
+75
+330
+17
+100
+AcDbEntity
+  8
+industrial_buildings
+  6
+Continuous
+ 62
+2
+370
+70
+100
+AcDbText
+ 10
+62.5
+ 20
+60.0
+ 30
+0.0
+ 40
+3.0
+  1
+500.0
+  7
+Arial
+ 72
+1
+ 11
+62.5
+ 21
+60.0
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+LWPOLYLINE
+  5
+76
+330
+17
+100
+AcDbEntity
+  8
+industrial_buildings
+  6
+Continuous
+ 62
+8
+370
+70
+100
+AcDbPolyline
+ 90
+5
+ 70
+1
+ 10
+200.0
+ 20
+100.0
+ 10
+225.0
+ 20
+100.0
+ 10
+225.0
+ 20
+120.0
+ 10
+200.0
+ 20
+120.0
+ 10
+200.0
+ 20
+100.0
+  0
+TEXT
+  5
+77
+330
+17
+100
+AcDbEntity
+  8
+industrial_buildings
+  6
+Continuous
+ 62
+2
+370
+70
+100
+AcDbText
+ 10
+212.5
+ 20
+110.0
+ 30
+0.0
+ 40
+3.0
+  1
+1200.0
+  7
+Arial
+ 72
+1
+ 11
+212.5
+ 21
+110.0
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+LWPOLYLINE
+  5
+78
+330
+17
+100
+AcDbEntity
+  8
+public_buildings
+  6
+Continuous
+ 62
+5
+370
+60
+100
+AcDbPolyline
+ 90
+5
+ 70
+1
+ 10
+150.0
+ 20
+100.0
+ 10
+165.0
+ 20
+100.0
+ 10
+165.0
+ 20
+112.0
+ 10
+150.0
+ 20
+112.0
+ 10
+150.0
+ 20
+100.0
+  0
+TEXT
+  5
+79
+330
+17
+100
+AcDbEntity
+  8
+public_buildings
+  6
+Continuous
+ 62
+7
+370
+60
+100
+AcDbText
+ 10
+157.5
+ 20
+106.0
+ 30
+0.0
+ 40
+4.0
+  1
+City Library
+  7
+Arial
+ 72
+1
+ 11
+157.5
+ 21
+106.0
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+LWPOLYLINE
+  5
+7A
+330
+17
+100
+AcDbEntity
+  8
+public_buildings
+  6
+Continuous
+ 62
+5
+370
+60
+100
+AcDbPolyline
+ 90
+5
+ 70
+1
+ 10
+200.0
+ 20
+150.0
+ 10
+220.0
+ 20
+150.0
+ 10
+220.0
+ 20
+170.0
+ 10
+200.0
+ 20
+170.0
+ 10
+200.0
+ 20
+150.0
+  0
+TEXT
+  5
+7B
+330
+17
+100
+AcDbEntity
+  8
+public_buildings
+  6
+Continuous
+ 62
+7
+370
+60
+100
+AcDbText
+ 10
+210.0
+ 20
+160.0
+ 30
+0.0
+ 40
+4.0
+  1
+Town Square
+  7
+Arial
+ 72
+1
+ 11
+210.0
+ 21
+160.0
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+LWPOLYLINE
+  5
+7C
+330
+17
+100
+AcDbEntity
+  8
+recreational_facilities
+  6
+Continuous
+ 62
+3
+370
+50
+100
+AcDbPolyline
+ 90
+5
+ 70
+1
+ 10
+100.0
+ 20
+200.0
+ 10
+130.0
+ 20
+200.0
+ 10
+130.0
+ 20
+225.0
+ 10
+100.0
+ 20
+225.0
+ 10
+100.0
+ 20
+200.0
+  0
+TEXT
+  5
+7D
+330
+17
+100
+AcDbEntity
+  8
+recreational_facilities
+  6
+Continuous
+ 62
+7
+370
+50
+100
+AcDbText
+ 10
+115.0
+ 20
+212.5
+ 30
+0.0
+ 40
+3.5
+  1
+Sports Complex
+  7
+Arial
+ 72
+1
+ 11
+115.0
+ 21
+212.5
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+LWPOLYLINE
+  5
+7E
+330
+17
+100
+AcDbEntity
+  8
+healthcare_facilities
+  6
+Continuous
+ 62
+1
+370
+70
 100
 AcDbPolyline
  90
@@ -3275,13 +4801,19 @@ AcDbPolyline
   0
 TEXT
   5
-5A
+7F
 330
 17
 100
 AcDbEntity
   8
 healthcare_facilities
+  6
+Continuous
+ 62
+7
+370
+70
 100
 AcDbText
  10
@@ -3291,9 +4823,11 @@ AcDbText
  30
 0.0
  40
-2.5
+3.5
   1
 Medical Center
+  7
+Arial
  72
 1
  11
@@ -3309,13 +4843,19 @@ AcDbText
   0
 LWPOLYLINE
   5
-5B
+80
 330
 17
 100
 AcDbEntity
   8
 educational_facilities
+  6
+Continuous
+ 62
+4
+370
+60
 100
 AcDbPolyline
  90
@@ -3345,13 +4885,19 @@ AcDbPolyline
   0
 TEXT
   5
-5C
+81
 330
 17
 100
 AcDbEntity
   8
 educational_facilities
+  6
+Continuous
+ 62
+0
+370
+60
 100
 AcDbText
  10
@@ -3361,9 +4907,11 @@ AcDbText
  30
 0.0
  40
-2.5
+3.5
   1
 School Campus
+  7
+Arial
  72
 1
  11
@@ -3377,15 +4925,647 @@ AcDbText
  73
 2
   0
-POINT
+LWPOLYLINE
   5
-5D
+82
 330
 17
 100
 AcDbEntity
   8
-transit_stops
+all_buildings
+  6
+Continuous
+ 62
+30
+370
+60
+100
+AcDbPolyline
+ 90
+5
+ 70
+1
+ 10
+0.0
+ 20
+0.0
+ 10
+15.0
+ 20
+0.0
+ 10
+15.0
+ 20
+12.0
+ 10
+0.0
+ 20
+12.0
+ 10
+0.0
+ 20
+0.0
+  0
+TEXT
+  5
+83
+330
+17
+100
+AcDbEntity
+  8
+all_buildings
+  6
+Continuous
+ 62
+7
+370
+60
+100
+AcDbText
+ 10
+7.5
+ 20
+6.0
+ 30
+0.0
+ 40
+4.0
+  1
+123 Main St
+  7
+Arial
+ 72
+1
+ 11
+7.5
+ 21
+6.0
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+LWPOLYLINE
+  5
+84
+330
+17
+100
+AcDbEntity
+  8
+all_buildings
+  6
+Continuous
+ 62
+30
+370
+60
+100
+AcDbPolyline
+ 90
+5
+ 70
+1
+ 10
+50.0
+ 20
+0.0
+ 10
+70.0
+ 20
+0.0
+ 10
+70.0
+ 20
+15.0
+ 10
+50.0
+ 20
+15.0
+ 10
+50.0
+ 20
+0.0
+  0
+TEXT
+  5
+85
+330
+17
+100
+AcDbEntity
+  8
+all_buildings
+  6
+Continuous
+ 62
+7
+370
+60
+100
+AcDbText
+ 10
+60.0
+ 20
+7.5
+ 30
+0.0
+ 40
+4.0
+  1
+456 Oak Ave
+  7
+Arial
+ 72
+1
+ 11
+60.0
+ 21
+7.5
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+LWPOLYLINE
+  5
+86
+330
+17
+100
+AcDbEntity
+  8
+all_buildings
+  6
+Continuous
+ 62
+30
+370
+60
+100
+AcDbPolyline
+ 90
+5
+ 70
+1
+ 10
+0.0
+ 20
+50.0
+ 10
+18.0
+ 20
+50.0
+ 10
+18.0
+ 20
+68.0
+ 10
+0.0
+ 20
+68.0
+ 10
+0.0
+ 20
+50.0
+  0
+TEXT
+  5
+87
+330
+17
+100
+AcDbEntity
+  8
+all_buildings
+  6
+Continuous
+ 62
+7
+370
+60
+100
+AcDbText
+ 10
+9.0
+ 20
+59.0
+ 30
+0.0
+ 40
+4.0
+  1
+789 Pine Rd
+  7
+Arial
+ 72
+1
+ 11
+9.0
+ 21
+59.0
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+LWPOLYLINE
+  5
+88
+330
+17
+100
+AcDbEntity
+  8
+all_buildings
+  6
+Continuous
+ 62
+30
+370
+60
+100
+AcDbPolyline
+ 90
+5
+ 70
+1
+ 10
+50.0
+ 20
+50.0
+ 10
+75.0
+ 20
+50.0
+ 10
+75.0
+ 20
+70.0
+ 10
+50.0
+ 20
+70.0
+ 10
+50.0
+ 20
+50.0
+  0
+TEXT
+  5
+89
+330
+17
+100
+AcDbEntity
+  8
+all_buildings
+  6
+Continuous
+ 62
+7
+370
+60
+100
+AcDbText
+ 10
+62.5
+ 20
+60.0
+ 30
+0.0
+ 40
+4.0
+  1
+101 Industrial Way
+  7
+Arial
+ 72
+1
+ 11
+62.5
+ 21
+60.0
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+LWPOLYLINE
+  5
+8A
+330
+17
+100
+AcDbEntity
+  8
+all_buildings
+  6
+Continuous
+ 62
+30
+370
+60
+100
+AcDbPolyline
+ 90
+2
+ 70
+0
+ 10
+0.0
+ 20
+25.0
+ 10
+250.0
+ 20
+25.0
+  0
+TEXT
+  5
+8B
+330
+17
+100
+AcDbEntity
+  8
+all_buildings
+  6
+Continuous
+ 62
+7
+370
+60
+100
+AcDbText
+ 10
+125.0
+ 20
+25.0
+ 30
+0.0
+ 40
+4.0
+  1
+None
+  7
+Arial
+ 72
+1
+ 11
+125.0
+ 21
+25.0
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+LWPOLYLINE
+  5
+8C
+330
+17
+100
+AcDbEntity
+  8
+all_buildings
+  6
+Continuous
+ 62
+30
+370
+60
+100
+AcDbPolyline
+ 90
+2
+ 70
+0
+ 10
+125.0
+ 20
+0.0
+ 10
+125.0
+ 20
+250.0
+  0
+TEXT
+  5
+8D
+330
+17
+100
+AcDbEntity
+  8
+all_buildings
+  6
+Continuous
+ 62
+7
+370
+60
+100
+AcDbText
+ 10
+125.0
+ 20
+125.0
+ 30
+0.0
+ 40
+4.0
+  1
+None
+  7
+Arial
+ 72
+1
+ 11
+125.0
+ 21
+125.0
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+LWPOLYLINE
+  5
+8E
+330
+17
+100
+AcDbEntity
+  8
+all_buildings
+  6
+Continuous
+ 62
+30
+370
+60
+100
+AcDbPolyline
+ 90
+4
+ 70
+0
+ 10
+75.0
+ 20
+75.0
+ 10
+100.0
+ 20
+100.0
+ 10
+150.0
+ 20
+125.0
+ 10
+200.0
+ 20
+175.0
+  0
+TEXT
+  5
+8F
+330
+17
+100
+AcDbEntity
+  8
+all_buildings
+  6
+Continuous
+ 62
+7
+370
+60
+100
+AcDbText
+ 10
+140.8113883008419
+ 20
+120.40569415042096
+ 30
+0.0
+ 40
+4.0
+  1
+None
+  7
+Arial
+ 72
+1
+ 11
+140.8113883008419
+ 21
+120.40569415042096
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+POINT
+  5
+90
+330
+17
+100
+AcDbEntity
+  8
+all_buildings
+  6
+Continuous
+ 62
+30
+370
+60
+100
+AcDbPoint
+ 10
+175.0
+ 20
+75.0
+ 30
+0.0
+  0
+TEXT
+  5
+91
+330
+17
+100
+AcDbEntity
+  8
+all_buildings
+  6
+Continuous
+ 62
+7
+370
+60
+100
+AcDbText
+ 10
+175.1
+ 20
+75.1
+ 30
+0.0
+ 40
+4.0
+  1
+None
+  7
+Arial
+ 72
+1
+ 11
+175.1
+ 21
+75.1
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+POINT
+  5
+92
+330
+17
+100
+AcDbEntity
+  8
+all_buildings
+  6
+Continuous
+ 62
+30
+370
+60
 100
 AcDbPoint
  10
@@ -3397,13 +5577,19 @@ AcDbPoint
   0
 TEXT
   5
-5E
+93
 330
 17
 100
 AcDbEntity
   8
-transit_stops
+all_buildings
+  6
+Continuous
+ 62
+7
+370
+60
 100
 AcDbText
  10
@@ -3413,9 +5599,11 @@ AcDbText
  30
 0.0
  40
-2.5
+4.0
   1
-101, 205
+None
+  7
+Arial
  72
 1
  11
@@ -3431,13 +5619,19 @@ AcDbText
   0
 POINT
   5
-5F
+94
 330
 17
 100
 AcDbEntity
   8
-amenities
+all_buildings
+  6
+Continuous
+ 62
+30
+370
+60
 100
 AcDbPoint
  10
@@ -3449,13 +5643,19 @@ AcDbPoint
   0
 TEXT
   5
-60
+95
 330
 17
 100
 AcDbEntity
   8
-amenities
+all_buildings
+  6
+Continuous
+ 62
+7
+370
+60
 100
 AcDbText
  10
@@ -3465,9 +5665,11 @@ AcDbText
  30
 0.0
  40
-2.5
+4.0
   1
-food
+None
+  7
+Arial
  72
 1
  11
@@ -3480,6 +5682,6346 @@ food
 AcDbText
  73
 2
+  0
+LWPOLYLINE
+  5
+96
+330
+17
+100
+AcDbEntity
+  8
+all_buildings
+  6
+Continuous
+ 62
+30
+370
+60
+100
+AcDbPolyline
+ 90
+5
+ 70
+1
+ 10
+100.0
+ 20
+100.0
+ 10
+120.0
+ 20
+100.0
+ 10
+120.0
+ 20
+115.0
+ 10
+100.0
+ 20
+115.0
+ 10
+100.0
+ 20
+100.0
+  0
+TEXT
+  5
+97
+330
+17
+100
+AcDbEntity
+  8
+all_buildings
+  6
+Continuous
+ 62
+7
+370
+60
+100
+AcDbText
+ 10
+110.0
+ 20
+107.5
+ 30
+0.0
+ 40
+4.0
+  1
+500 Commerce Blvd
+  7
+Arial
+ 72
+1
+ 11
+110.0
+ 21
+107.5
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+LWPOLYLINE
+  5
+98
+330
+17
+100
+AcDbEntity
+  8
+all_buildings
+  6
+Continuous
+ 62
+30
+370
+60
+100
+AcDbPolyline
+ 90
+5
+ 70
+1
+ 10
+150.0
+ 20
+100.0
+ 10
+165.0
+ 20
+100.0
+ 10
+165.0
+ 20
+112.0
+ 10
+150.0
+ 20
+112.0
+ 10
+150.0
+ 20
+100.0
+  0
+TEXT
+  5
+99
+330
+17
+100
+AcDbEntity
+  8
+all_buildings
+  6
+Continuous
+ 62
+7
+370
+60
+100
+AcDbText
+ 10
+157.5
+ 20
+106.0
+ 30
+0.0
+ 40
+4.0
+  1
+250 Knowledge Ave
+  7
+Arial
+ 72
+1
+ 11
+157.5
+ 21
+106.0
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+LWPOLYLINE
+  5
+9A
+330
+17
+100
+AcDbEntity
+  8
+all_buildings
+  6
+Continuous
+ 62
+30
+370
+60
+100
+AcDbPolyline
+ 90
+5
+ 70
+1
+ 10
+200.0
+ 20
+100.0
+ 10
+225.0
+ 20
+100.0
+ 10
+225.0
+ 20
+120.0
+ 10
+200.0
+ 20
+120.0
+ 10
+200.0
+ 20
+100.0
+  0
+TEXT
+  5
+9B
+330
+17
+100
+AcDbEntity
+  8
+all_buildings
+  6
+Continuous
+ 62
+7
+370
+60
+100
+AcDbText
+ 10
+212.5
+ 20
+110.0
+ 30
+0.0
+ 40
+4.0
+  1
+800 Industrial Pkwy
+  7
+Arial
+ 72
+1
+ 11
+212.5
+ 21
+110.0
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+LWPOLYLINE
+  5
+9C
+330
+17
+100
+AcDbEntity
+  8
+all_buildings
+  6
+Continuous
+ 62
+30
+370
+60
+100
+AcDbPolyline
+ 90
+5
+ 70
+1
+ 10
+100.0
+ 20
+150.0
+ 10
+115.0
+ 20
+150.0
+ 10
+115.0
+ 20
+170.0
+ 10
+100.0
+ 20
+170.0
+ 10
+100.0
+ 20
+150.0
+  0
+TEXT
+  5
+9D
+330
+17
+100
+AcDbEntity
+  8
+all_buildings
+  6
+Continuous
+ 62
+7
+370
+60
+100
+AcDbText
+ 10
+107.5
+ 20
+160.0
+ 30
+0.0
+ 40
+4.0
+  1
+300 Residential Dr
+  7
+Arial
+ 72
+1
+ 11
+107.5
+ 21
+160.0
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+LWPOLYLINE
+  5
+9E
+330
+17
+100
+AcDbEntity
+  8
+all_buildings
+  6
+Continuous
+ 62
+30
+370
+60
+100
+AcDbPolyline
+ 90
+5
+ 70
+1
+ 10
+150.0
+ 20
+150.0
+ 10
+165.0
+ 20
+150.0
+ 10
+165.0
+ 20
+168.0
+ 10
+150.0
+ 20
+168.0
+ 10
+150.0
+ 20
+150.0
+  0
+TEXT
+  5
+9F
+330
+17
+100
+AcDbEntity
+  8
+all_buildings
+  6
+Continuous
+ 62
+7
+370
+60
+100
+AcDbText
+ 10
+157.5
+ 20
+159.0
+ 30
+0.0
+ 40
+4.0
+  1
+310 Residential Dr
+  7
+Arial
+ 72
+1
+ 11
+157.5
+ 21
+159.0
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+LWPOLYLINE
+  5
+A0
+330
+17
+100
+AcDbEntity
+  8
+all_buildings
+  6
+Continuous
+ 62
+30
+370
+60
+100
+AcDbPolyline
+ 90
+5
+ 70
+1
+ 10
+200.0
+ 20
+150.0
+ 10
+220.0
+ 20
+150.0
+ 10
+220.0
+ 20
+170.0
+ 10
+200.0
+ 20
+170.0
+ 10
+200.0
+ 20
+150.0
+  0
+TEXT
+  5
+A1
+330
+17
+100
+AcDbEntity
+  8
+all_buildings
+  6
+Continuous
+ 62
+7
+370
+60
+100
+AcDbText
+ 10
+210.0
+ 20
+160.0
+ 30
+0.0
+ 40
+4.0
+  1
+100 Central Plaza
+  7
+Arial
+ 72
+1
+ 11
+210.0
+ 21
+160.0
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+LWPOLYLINE
+  5
+A2
+330
+17
+100
+AcDbEntity
+  8
+all_buildings
+  6
+Continuous
+ 62
+30
+370
+60
+100
+AcDbPolyline
+ 90
+5
+ 70
+1
+ 10
+100.0
+ 20
+200.0
+ 10
+130.0
+ 20
+200.0
+ 10
+130.0
+ 20
+225.0
+ 10
+100.0
+ 20
+225.0
+ 10
+100.0
+ 20
+200.0
+  0
+TEXT
+  5
+A3
+330
+17
+100
+AcDbEntity
+  8
+all_buildings
+  6
+Continuous
+ 62
+7
+370
+60
+100
+AcDbText
+ 10
+115.0
+ 20
+212.5
+ 30
+0.0
+ 40
+4.0
+  1
+600 Athletic Way
+  7
+Arial
+ 72
+1
+ 11
+115.0
+ 21
+212.5
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+LWPOLYLINE
+  5
+A4
+330
+17
+100
+AcDbEntity
+  8
+all_buildings
+  6
+Continuous
+ 62
+30
+370
+60
+100
+AcDbPolyline
+ 90
+5
+ 70
+1
+ 10
+150.0
+ 20
+200.0
+ 10
+170.0
+ 20
+200.0
+ 10
+170.0
+ 20
+222.0
+ 10
+150.0
+ 20
+222.0
+ 10
+150.0
+ 20
+200.0
+  0
+TEXT
+  5
+A5
+330
+17
+100
+AcDbEntity
+  8
+all_buildings
+  6
+Continuous
+ 62
+7
+370
+60
+100
+AcDbText
+ 10
+160.0
+ 20
+211.0
+ 30
+0.0
+ 40
+4.0
+  1
+900 Health Blvd
+  7
+Arial
+ 72
+1
+ 11
+160.0
+ 21
+211.0
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+LWPOLYLINE
+  5
+A6
+330
+17
+100
+AcDbEntity
+  8
+all_buildings
+  6
+Continuous
+ 62
+30
+370
+60
+100
+AcDbPolyline
+ 90
+5
+ 70
+1
+ 10
+200.0
+ 20
+200.0
+ 10
+225.0
+ 20
+200.0
+ 10
+225.0
+ 20
+225.0
+ 10
+200.0
+ 20
+225.0
+ 10
+200.0
+ 20
+200.0
+  0
+TEXT
+  5
+A7
+330
+17
+100
+AcDbEntity
+  8
+all_buildings
+  6
+Continuous
+ 62
+7
+370
+60
+100
+AcDbText
+ 10
+212.5
+ 20
+212.5
+ 30
+0.0
+ 40
+4.0
+  1
+700 Education St
+  7
+Arial
+ 72
+1
+ 11
+212.5
+ 21
+212.5
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+LWPOLYLINE
+  5
+A8
+330
+17
+100
+AcDbEntity
+  8
+main_roads
+  6
+DASHED
+ 62
+200
+370
+40
+100
+AcDbPolyline
+ 90
+2
+ 70
+0
+ 10
+0.0
+ 20
+25.0
+ 10
+250.0
+ 20
+25.0
+  0
+TEXT
+  5
+A9
+330
+17
+100
+AcDbEntity
+  8
+main_roads
+  6
+DASHED
+ 62
+2
+370
+40
+100
+AcDbText
+ 10
+125.0
+ 20
+25.0
+ 30
+0.0
+ 40
+3.0
+  1
+Main Street
+  7
+Arial
+ 72
+1
+ 11
+125.0
+ 21
+25.0
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+LWPOLYLINE
+  5
+AA
+330
+17
+100
+AcDbEntity
+  8
+main_roads
+  6
+DASHED
+ 62
+200
+370
+40
+100
+AcDbPolyline
+ 90
+2
+ 70
+0
+ 10
+125.0
+ 20
+0.0
+ 10
+125.0
+ 20
+250.0
+  0
+TEXT
+  5
+AB
+330
+17
+100
+AcDbEntity
+  8
+main_roads
+  6
+DASHED
+ 62
+2
+370
+40
+100
+AcDbText
+ 10
+125.0
+ 20
+125.0
+ 30
+0.0
+ 40
+3.0
+  1
+Oak Avenue
+  7
+Arial
+ 72
+1
+ 11
+125.0
+ 21
+125.0
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+LWPOLYLINE
+  5
+AC
+330
+17
+100
+AcDbEntity
+  8
+bike_paths
+  6
+DASHED
+ 62
+200
+370
+40
+100
+AcDbPolyline
+ 90
+4
+ 70
+0
+ 10
+75.0
+ 20
+75.0
+ 10
+100.0
+ 20
+100.0
+ 10
+150.0
+ 20
+125.0
+ 10
+200.0
+ 20
+175.0
+  0
+TEXT
+  5
+AD
+330
+17
+100
+AcDbEntity
+  8
+bike_paths
+  6
+DASHED
+ 62
+2
+370
+40
+100
+AcDbText
+ 10
+140.8113883008419
+ 20
+120.40569415042096
+ 30
+0.0
+ 40
+3.0
+  1
+concrete
+  7
+Arial
+ 72
+1
+ 11
+140.8113883008419
+ 21
+120.40569415042096
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+POINT
+  5
+AE
+330
+17
+100
+AcDbEntity
+  8
+parks
+  6
+Continuous
+ 62
+84
+370
+30
+100
+AcDbPoint
+ 10
+175.0
+ 20
+75.0
+ 30
+0.0
+  0
+TEXT
+  5
+AF
+330
+17
+100
+AcDbEntity
+  8
+parks
+  6
+Continuous
+ 62
+1
+370
+30
+100
+AcDbText
+ 10
+175.1
+ 20
+75.1
+ 30
+0.0
+ 40
+2.5
+  1
+Central Park
+  7
+Arial
+ 72
+1
+ 11
+175.1
+ 21
+75.1
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+POINT
+  5
+B0
+330
+17
+100
+AcDbEntity
+  8
+transit_stops
+  6
+Continuous
+ 62
+6
+370
+35
+100
+AcDbPoint
+ 10
+25.0
+ 20
+175.0
+ 30
+0.0
+  0
+TEXT
+  5
+B1
+330
+17
+100
+AcDbEntity
+  8
+transit_stops
+  6
+Continuous
+ 62
+7
+370
+35
+100
+AcDbText
+ 10
+25.1
+ 20
+175.1
+ 30
+0.0
+ 40
+2.0
+  1
+101, 205
+  7
+Arial
+ 72
+1
+ 11
+25.1
+ 21
+175.1
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+POINT
+  5
+B2
+330
+17
+100
+AcDbEntity
+  8
+amenities
+  6
+Continuous
+ 62
+2
+370
+25
+100
+AcDbPoint
+ 10
+175.0
+ 20
+175.0
+ 30
+0.0
+  0
+TEXT
+  5
+B3
+330
+17
+100
+AcDbEntity
+  8
+amenities
+  6
+Continuous
+ 62
+0
+370
+25
+100
+AcDbText
+ 10
+175.1
+ 20
+175.1
+ 30
+0.0
+ 40
+2.0
+  1
+food
+  7
+Arial
+ 72
+1
+ 11
+175.1
+ 21
+175.1
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+LWPOLYLINE
+  5
+B4
+330
+17
+100
+AcDbEntity
+  8
+buffered_commercial
+  6
+Continuous
+ 62
+30
+370
+60
+100
+AcDbPolyline
+ 90
+69
+ 70
+1
+ 10
+-10.0
+ 20
+0.0
+ 10
+-10.0
+ 20
+12.0
+ 10
+-9.951847266721968
+ 20
+12.980171403295609
+ 10
+-9.807852804032304
+ 20
+13.950903220161287
+ 10
+-9.569403357322088
+ 20
+14.902846772544624
+ 10
+-9.238795325112868
+ 20
+15.8268343236509
+ 10
+-8.81921264348355
+ 20
+16.71396736825998
+ 10
+-8.314696123025453
+ 20
+17.55570233019602
+ 10
+-7.73010453362737
+ 20
+18.343932841636455
+ 10
+-7.071067811865475
+ 20
+19.071067811865476
+ 10
+-6.3439328416364535
+ 20
+19.73010453362737
+ 10
+-5.55570233019602
+ 20
+20.314696123025456
+ 10
+-4.713967368259977
+ 20
+20.819212643483553
+ 10
+-3.826834323650897
+ 20
+21.238795325112868
+ 10
+-2.9028467725446214
+ 20
+21.569403357322088
+ 10
+-1.950903220161282
+ 20
+21.807852804032304
+ 10
+-0.9801714032956065
+ 20
+21.95184726672197
+ 10
+0.0
+ 20
+22.0
+ 10
+15.0
+ 20
+22.0
+ 10
+15.980171403295607
+ 20
+21.95184726672197
+ 10
+16.950903220161283
+ 20
+21.807852804032304
+ 10
+17.902846772544624
+ 20
+21.569403357322088
+ 10
+18.8268343236509
+ 20
+21.238795325112868
+ 10
+19.71396736825998
+ 20
+20.81921264348355
+ 10
+20.555702330196024
+ 20
+20.314696123025453
+ 10
+21.343932841636455
+ 20
+19.73010453362737
+ 10
+22.071067811865476
+ 20
+19.071067811865476
+ 10
+22.73010453362737
+ 20
+18.343932841636455
+ 10
+23.314696123025453
+ 20
+17.55570233019602
+ 10
+23.819212643483553
+ 20
+16.713967368259976
+ 10
+24.238795325112868
+ 20
+15.826834323650898
+ 10
+24.569403357322088
+ 20
+14.902846772544624
+ 10
+24.807852804032304
+ 20
+13.950903220161283
+ 10
+24.95184726672197
+ 20
+12.980171403295605
+ 10
+25.0
+ 20
+12.0
+ 10
+25.0
+ 20
+0.0
+ 10
+24.95184726672197
+ 20
+-0.9801714032956071
+ 10
+24.807852804032304
+ 20
+-1.9509032201612824
+ 10
+24.569403357322088
+ 20
+-2.9028467725446228
+ 10
+24.238795325112868
+ 20
+-3.826834323650898
+ 10
+23.81921264348355
+ 20
+-4.713967368259977
+ 10
+23.314696123025453
+ 20
+-5.555702330196022
+ 10
+22.73010453362737
+ 20
+-6.343932841636455
+ 10
+22.071067811865476
+ 20
+-7.071067811865475
+ 10
+21.343932841636455
+ 20
+-7.73010453362737
+ 10
+20.555702330196024
+ 20
+-8.314696123025453
+ 10
+19.71396736825998
+ 20
+-8.81921264348355
+ 10
+18.8268343236509
+ 20
+-9.238795325112868
+ 10
+17.902846772544624
+ 20
+-9.56940335732209
+ 10
+16.950903220161283
+ 20
+-9.807852804032304
+ 10
+15.980171403295607
+ 20
+-9.951847266721968
+ 10
+15.0
+ 20
+-10.0
+ 10
+0.0
+ 20
+-10.0
+ 10
+-0.9801714032956065
+ 20
+-9.95184726672197
+ 10
+-1.950903220161282
+ 20
+-9.807852804032304
+ 10
+-2.9028467725446214
+ 20
+-9.56940335732209
+ 10
+-3.826834323650897
+ 20
+-9.238795325112868
+ 10
+-4.713967368259977
+ 20
+-8.819212643483551
+ 10
+-5.55570233019602
+ 20
+-8.314696123025454
+ 10
+-6.3439328416364535
+ 20
+-7.730104533627371
+ 10
+-7.071067811865475
+ 20
+-7.0710678118654755
+ 10
+-7.73010453362737
+ 20
+-6.343932841636455
+ 10
+-8.314696123025453
+ 20
+-5.555702330196022
+ 10
+-8.81921264348355
+ 20
+-4.713967368259978
+ 10
+-9.238795325112868
+ 20
+-3.826834323650899
+ 10
+-9.569403357322088
+ 20
+-2.902846772544624
+ 10
+-9.807852804032304
+ 20
+-1.9509032201612861
+ 10
+-9.951847266721968
+ 20
+-0.9801714032956083
+ 10
+-10.0
+ 20
+0.0
+  0
+TEXT
+  5
+B5
+330
+17
+100
+AcDbEntity
+  8
+buffered_commercial
+  6
+Continuous
+ 62
+7
+370
+60
+100
+AcDbText
+ 10
+7.5
+ 20
+6.0
+ 30
+0.0
+ 40
+4.0
+  1
+Building A
+  7
+Arial
+ 72
+1
+ 11
+7.5
+ 21
+6.0
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+LWPOLYLINE
+  5
+B6
+330
+17
+100
+AcDbEntity
+  8
+buffered_commercial
+  6
+Continuous
+ 62
+30
+370
+60
+100
+AcDbPolyline
+ 90
+69
+ 70
+1
+ 10
+40.0
+ 20
+0.0
+ 10
+40.0
+ 20
+15.0
+ 10
+40.04815273327803
+ 20
+15.980171403295609
+ 10
+40.19214719596769
+ 20
+16.950903220161287
+ 10
+40.43059664267791
+ 20
+17.902846772544624
+ 10
+40.76120467488713
+ 20
+18.8268343236509
+ 10
+41.18078735651645
+ 20
+19.71396736825998
+ 10
+41.685303876974544
+ 20
+20.55570233019602
+ 10
+42.26989546637263
+ 20
+21.343932841636455
+ 10
+42.928932188134524
+ 20
+22.071067811865476
+ 10
+43.65606715836355
+ 20
+22.73010453362737
+ 10
+44.44429766980398
+ 20
+23.314696123025456
+ 10
+45.28603263174002
+ 20
+23.819212643483553
+ 10
+46.1731656763491
+ 20
+24.238795325112868
+ 10
+47.09715322745538
+ 20
+24.569403357322088
+ 10
+48.04909677983872
+ 20
+24.807852804032304
+ 10
+49.01982859670439
+ 20
+24.95184726672197
+ 10
+50.0
+ 20
+25.0
+ 10
+70.0
+ 20
+25.0
+ 10
+70.98017140329561
+ 20
+24.95184726672197
+ 10
+71.95090322016128
+ 20
+24.807852804032304
+ 10
+72.90284677254462
+ 20
+24.569403357322088
+ 10
+73.8268343236509
+ 20
+24.238795325112868
+ 10
+74.71396736825997
+ 20
+23.81921264348355
+ 10
+75.55570233019603
+ 20
+23.314696123025453
+ 10
+76.34393284163646
+ 20
+22.73010453362737
+ 10
+77.07106781186548
+ 20
+22.071067811865476
+ 10
+77.73010453362737
+ 20
+21.343932841636455
+ 10
+78.31469612302546
+ 20
+20.55570233019602
+ 10
+78.81921264348355
+ 20
+19.713967368259976
+ 10
+79.23879532511287
+ 20
+18.8268343236509
+ 10
+79.56940335732209
+ 20
+17.902846772544624
+ 10
+79.80785280403231
+ 20
+16.950903220161283
+ 10
+79.95184726672197
+ 20
+15.980171403295605
+ 10
+80.0
+ 20
+15.0
+ 10
+80.0
+ 20
+0.0
+ 10
+79.95184726672197
+ 20
+-0.9801714032956071
+ 10
+79.80785280403231
+ 20
+-1.9509032201612824
+ 10
+79.56940335732209
+ 20
+-2.9028467725446228
+ 10
+79.23879532511287
+ 20
+-3.826834323650898
+ 10
+78.81921264348355
+ 20
+-4.713967368259977
+ 10
+78.31469612302546
+ 20
+-5.555702330196022
+ 10
+77.73010453362737
+ 20
+-6.343932841636455
+ 10
+77.07106781186548
+ 20
+-7.071067811865475
+ 10
+76.34393284163646
+ 20
+-7.73010453362737
+ 10
+75.55570233019603
+ 20
+-8.314696123025453
+ 10
+74.71396736825997
+ 20
+-8.81921264348355
+ 10
+73.8268343236509
+ 20
+-9.238795325112868
+ 10
+72.90284677254462
+ 20
+-9.56940335732209
+ 10
+71.95090322016128
+ 20
+-9.807852804032304
+ 10
+70.98017140329561
+ 20
+-9.951847266721968
+ 10
+70.0
+ 20
+-10.0
+ 10
+50.0
+ 20
+-10.0
+ 10
+49.01982859670439
+ 20
+-9.95184726672197
+ 10
+48.04909677983872
+ 20
+-9.807852804032304
+ 10
+47.09715322745538
+ 20
+-9.56940335732209
+ 10
+46.1731656763491
+ 20
+-9.238795325112868
+ 10
+45.28603263174002
+ 20
+-8.819212643483551
+ 10
+44.44429766980398
+ 20
+-8.314696123025454
+ 10
+43.65606715836355
+ 20
+-7.730104533627371
+ 10
+42.928932188134524
+ 20
+-7.0710678118654755
+ 10
+42.26989546637263
+ 20
+-6.343932841636455
+ 10
+41.685303876974544
+ 20
+-5.555702330196022
+ 10
+41.18078735651645
+ 20
+-4.713967368259978
+ 10
+40.76120467488713
+ 20
+-3.826834323650899
+ 10
+40.43059664267791
+ 20
+-2.902846772544624
+ 10
+40.19214719596769
+ 20
+-1.9509032201612861
+ 10
+40.04815273327803
+ 20
+-0.9801714032956083
+ 10
+40.0
+ 20
+0.0
+  0
+TEXT
+  5
+B7
+330
+17
+100
+AcDbEntity
+  8
+buffered_commercial
+  6
+Continuous
+ 62
+7
+370
+60
+100
+AcDbText
+ 10
+60.0
+ 20
+7.5
+ 30
+0.0
+ 40
+4.0
+  1
+Building B
+  7
+Arial
+ 72
+1
+ 11
+60.0
+ 21
+7.5
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+LWPOLYLINE
+  5
+B8
+330
+17
+100
+AcDbEntity
+  8
+buffered_commercial
+  6
+Continuous
+ 62
+30
+370
+60
+100
+AcDbPolyline
+ 90
+69
+ 70
+1
+ 10
+90.0
+ 20
+100.0
+ 10
+90.0
+ 20
+115.0
+ 10
+90.04815273327803
+ 20
+115.98017140329561
+ 10
+90.19214719596769
+ 20
+116.95090322016128
+ 10
+90.43059664267791
+ 20
+117.90284677254462
+ 10
+90.76120467488713
+ 20
+118.8268343236509
+ 10
+91.18078735651645
+ 20
+119.71396736825997
+ 10
+91.68530387697454
+ 20
+120.55570233019603
+ 10
+92.26989546637263
+ 20
+121.34393284163646
+ 10
+92.92893218813452
+ 20
+122.07106781186548
+ 10
+93.65606715836354
+ 20
+122.73010453362737
+ 10
+94.44429766980397
+ 20
+123.31469612302546
+ 10
+95.28603263174003
+ 20
+123.81921264348355
+ 10
+96.1731656763491
+ 20
+124.23879532511287
+ 10
+97.09715322745538
+ 20
+124.56940335732209
+ 10
+98.04909677983872
+ 20
+124.80785280403231
+ 10
+99.0198285967044
+ 20
+124.95184726672197
+ 10
+100.0
+ 20
+125.0
+ 10
+120.0
+ 20
+125.0
+ 10
+120.98017140329561
+ 20
+124.95184726672197
+ 10
+121.95090322016128
+ 20
+124.80785280403231
+ 10
+122.90284677254462
+ 20
+124.56940335732209
+ 10
+123.8268343236509
+ 20
+124.23879532511287
+ 10
+124.71396736825997
+ 20
+123.81921264348355
+ 10
+125.55570233019603
+ 20
+123.31469612302546
+ 10
+126.34393284163646
+ 20
+122.73010453362737
+ 10
+127.07106781186548
+ 20
+122.07106781186548
+ 10
+127.73010453362737
+ 20
+121.34393284163646
+ 10
+128.31469612302544
+ 20
+120.55570233019603
+ 10
+128.81921264348355
+ 20
+119.71396736825997
+ 10
+129.23879532511287
+ 20
+118.8268343236509
+ 10
+129.56940335732207
+ 20
+117.90284677254462
+ 10
+129.8078528040323
+ 20
+116.95090322016128
+ 10
+129.95184726672198
+ 20
+115.9801714032956
+ 10
+130.0
+ 20
+115.0
+ 10
+130.0
+ 20
+100.0
+ 10
+129.95184726672198
+ 20
+99.01982859670439
+ 10
+129.8078528040323
+ 20
+98.04909677983872
+ 10
+129.5694033573221
+ 20
+97.09715322745538
+ 10
+129.23879532511287
+ 20
+96.1731656763491
+ 10
+128.81921264348355
+ 20
+95.28603263174003
+ 10
+128.31469612302544
+ 20
+94.44429766980397
+ 10
+127.73010453362737
+ 20
+93.65606715836354
+ 10
+127.07106781186548
+ 20
+92.92893218813452
+ 10
+126.34393284163646
+ 20
+92.26989546637263
+ 10
+125.55570233019603
+ 20
+91.68530387697454
+ 10
+124.71396736825997
+ 20
+91.18078735651645
+ 10
+123.8268343236509
+ 20
+90.76120467488713
+ 10
+122.90284677254462
+ 20
+90.43059664267791
+ 10
+121.95090322016128
+ 20
+90.19214719596769
+ 10
+120.98017140329561
+ 20
+90.04815273327803
+ 10
+120.0
+ 20
+90.0
+ 10
+100.0
+ 20
+90.0
+ 10
+99.0198285967044
+ 20
+90.04815273327803
+ 10
+98.04909677983872
+ 20
+90.19214719596769
+ 10
+97.09715322745538
+ 20
+90.43059664267791
+ 10
+96.1731656763491
+ 20
+90.76120467488713
+ 10
+95.28603263174003
+ 20
+91.18078735651645
+ 10
+94.44429766980397
+ 20
+91.68530387697454
+ 10
+93.65606715836354
+ 20
+92.26989546637263
+ 10
+92.92893218813452
+ 20
+92.92893218813452
+ 10
+92.26989546637263
+ 20
+93.65606715836354
+ 10
+91.68530387697454
+ 20
+94.44429766980397
+ 10
+91.18078735651645
+ 20
+95.28603263174003
+ 10
+90.76120467488713
+ 20
+96.1731656763491
+ 10
+90.43059664267791
+ 20
+97.09715322745538
+ 10
+90.19214719596769
+ 20
+98.04909677983872
+ 10
+90.04815273327803
+ 20
+99.01982859670439
+ 10
+90.0
+ 20
+100.0
+  0
+TEXT
+  5
+B9
+330
+17
+100
+AcDbEntity
+  8
+buffered_commercial
+  6
+Continuous
+ 62
+7
+370
+60
+100
+AcDbText
+ 10
+110.0
+ 20
+107.5
+ 30
+0.0
+ 40
+4.0
+  1
+Shopping Mall
+  7
+Arial
+ 72
+1
+ 11
+110.0
+ 21
+107.5
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+LWPOLYLINE
+  5
+BA
+330
+17
+100
+AcDbEntity
+  8
+merged_buildings_roads
+  6
+Continuous
+ 62
+30
+370
+60
+100
+AcDbPolyline
+ 90
+5
+ 70
+1
+ 10
+0.0
+ 20
+0.0
+ 10
+15.0
+ 20
+0.0
+ 10
+15.0
+ 20
+12.0
+ 10
+0.0
+ 20
+12.0
+ 10
+0.0
+ 20
+0.0
+  0
+LWPOLYLINE
+  5
+BB
+330
+17
+100
+AcDbEntity
+  8
+merged_buildings_roads
+  6
+Continuous
+ 62
+30
+370
+60
+100
+AcDbPolyline
+ 90
+5
+ 70
+1
+ 10
+50.0
+ 20
+0.0
+ 10
+70.0
+ 20
+0.0
+ 10
+70.0
+ 20
+15.0
+ 10
+50.0
+ 20
+15.0
+ 10
+50.0
+ 20
+0.0
+  0
+LWPOLYLINE
+  5
+BC
+330
+17
+100
+AcDbEntity
+  8
+merged_buildings_roads
+  6
+Continuous
+ 62
+30
+370
+60
+100
+AcDbPolyline
+ 90
+5
+ 70
+1
+ 10
+100.0
+ 20
+100.0
+ 10
+120.0
+ 20
+100.0
+ 10
+120.0
+ 20
+115.0
+ 10
+100.0
+ 20
+115.0
+ 10
+100.0
+ 20
+100.0
+  0
+LWPOLYLINE
+  5
+BD
+330
+17
+100
+AcDbEntity
+  8
+merged_buildings_roads
+  6
+Continuous
+ 62
+30
+370
+60
+100
+AcDbPolyline
+ 90
+2
+ 70
+0
+ 10
+0.0
+ 20
+25.0
+ 10
+250.0
+ 20
+25.0
+  0
+LWPOLYLINE
+  5
+BE
+330
+17
+100
+AcDbEntity
+  8
+merged_buildings_roads
+  6
+Continuous
+ 62
+30
+370
+60
+100
+AcDbPolyline
+ 90
+2
+ 70
+0
+ 10
+125.0
+ 20
+0.0
+ 10
+125.0
+ 20
+250.0
+  0
+LWPOLYLINE
+  5
+BF
+330
+17
+100
+AcDbEntity
+  8
+study_area_boundary
+  6
+Continuous
+ 62
+30
+370
+60
+100
+AcDbPolyline
+ 90
+5
+ 70
+1
+ 10
+265.0
+ 20
+-15.0
+ 10
+265.0
+ 20
+265.0
+ 10
+-15.0
+ 20
+265.0
+ 10
+-15.0
+ 20
+-15.0
+ 10
+265.0
+ 20
+-15.0
+  0
+LWPOLYLINE
+  5
+C0
+330
+17
+100
+AcDbEntity
+  8
+commercial_buildings
+100
+AcDbPolyline
+ 90
+5
+ 70
+1
+ 10
+0.0
+ 20
+0.0
+ 10
+15.0
+ 20
+0.0
+ 10
+15.0
+ 20
+12.0
+ 10
+0.0
+ 20
+12.0
+ 10
+0.0
+ 20
+0.0
+  0
+TEXT
+  5
+C1
+330
+17
+100
+AcDbEntity
+  8
+commercial_buildings
+ 62
+7
+100
+AcDbText
+ 10
+7.5
+ 20
+6.0
+ 30
+0.0
+ 40
+4.0
+  1
+Building A
+  7
+Arial
+ 72
+1
+ 11
+7.5
+ 21
+6.0
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+LWPOLYLINE
+  5
+C2
+330
+17
+100
+AcDbEntity
+  8
+commercial_buildings
+100
+AcDbPolyline
+ 90
+5
+ 70
+1
+ 10
+50.0
+ 20
+0.0
+ 10
+70.0
+ 20
+0.0
+ 10
+70.0
+ 20
+15.0
+ 10
+50.0
+ 20
+15.0
+ 10
+50.0
+ 20
+0.0
+  0
+TEXT
+  5
+C3
+330
+17
+100
+AcDbEntity
+  8
+commercial_buildings
+ 62
+7
+100
+AcDbText
+ 10
+60.0
+ 20
+7.5
+ 30
+0.0
+ 40
+4.0
+  1
+Building B
+  7
+Arial
+ 72
+1
+ 11
+60.0
+ 21
+7.5
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+LWPOLYLINE
+  5
+C4
+330
+17
+100
+AcDbEntity
+  8
+commercial_buildings
+100
+AcDbPolyline
+ 90
+5
+ 70
+1
+ 10
+100.0
+ 20
+100.0
+ 10
+120.0
+ 20
+100.0
+ 10
+120.0
+ 20
+115.0
+ 10
+100.0
+ 20
+115.0
+ 10
+100.0
+ 20
+100.0
+  0
+TEXT
+  5
+C5
+330
+17
+100
+AcDbEntity
+  8
+commercial_buildings
+ 62
+7
+100
+AcDbText
+ 10
+110.0
+ 20
+107.5
+ 30
+0.0
+ 40
+4.0
+  1
+Shopping Mall
+  7
+Arial
+ 72
+1
+ 11
+110.0
+ 21
+107.5
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+LWPOLYLINE
+  5
+C6
+330
+17
+100
+AcDbEntity
+  8
+residential_buildings
+100
+AcDbPolyline
+ 90
+5
+ 70
+1
+ 10
+0.0
+ 20
+50.0
+ 10
+18.0
+ 20
+50.0
+ 10
+18.0
+ 20
+68.0
+ 10
+0.0
+ 20
+68.0
+ 10
+0.0
+ 20
+50.0
+  0
+TEXT
+  5
+C7
+330
+17
+100
+AcDbEntity
+  8
+residential_buildings
+ 62
+0
+100
+AcDbText
+ 10
+9.0
+ 20
+59.0
+ 30
+0.0
+ 40
+3.5
+  1
+4.0
+  7
+Arial
+ 72
+1
+ 11
+9.0
+ 21
+59.0
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+LWPOLYLINE
+  5
+C8
+330
+17
+100
+AcDbEntity
+  8
+residential_buildings
+100
+AcDbPolyline
+ 90
+5
+ 70
+1
+ 10
+100.0
+ 20
+150.0
+ 10
+115.0
+ 20
+150.0
+ 10
+115.0
+ 20
+170.0
+ 10
+100.0
+ 20
+170.0
+ 10
+100.0
+ 20
+150.0
+  0
+TEXT
+  5
+C9
+330
+17
+100
+AcDbEntity
+  8
+residential_buildings
+ 62
+0
+100
+AcDbText
+ 10
+107.5
+ 20
+160.0
+ 30
+0.0
+ 40
+3.5
+  1
+6.0
+  7
+Arial
+ 72
+1
+ 11
+107.5
+ 21
+160.0
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+LWPOLYLINE
+  5
+CA
+330
+17
+100
+AcDbEntity
+  8
+residential_buildings
+100
+AcDbPolyline
+ 90
+5
+ 70
+1
+ 10
+150.0
+ 20
+150.0
+ 10
+165.0
+ 20
+150.0
+ 10
+165.0
+ 20
+168.0
+ 10
+150.0
+ 20
+168.0
+ 10
+150.0
+ 20
+150.0
+  0
+TEXT
+  5
+CB
+330
+17
+100
+AcDbEntity
+  8
+residential_buildings
+ 62
+0
+100
+AcDbText
+ 10
+157.5
+ 20
+159.0
+ 30
+0.0
+ 40
+3.5
+  1
+5.0
+  7
+Arial
+ 72
+1
+ 11
+157.5
+ 21
+159.0
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+LWPOLYLINE
+  5
+CC
+330
+17
+100
+AcDbEntity
+  8
+industrial_buildings
+100
+AcDbPolyline
+ 90
+5
+ 70
+1
+ 10
+50.0
+ 20
+50.0
+ 10
+75.0
+ 20
+50.0
+ 10
+75.0
+ 20
+70.0
+ 10
+50.0
+ 20
+70.0
+ 10
+50.0
+ 20
+50.0
+  0
+TEXT
+  5
+CD
+330
+17
+100
+AcDbEntity
+  8
+industrial_buildings
+ 62
+2
+100
+AcDbText
+ 10
+62.5
+ 20
+60.0
+ 30
+0.0
+ 40
+3.0
+  1
+500.0
+  7
+Arial
+ 72
+1
+ 11
+62.5
+ 21
+60.0
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+LWPOLYLINE
+  5
+CE
+330
+17
+100
+AcDbEntity
+  8
+industrial_buildings
+100
+AcDbPolyline
+ 90
+5
+ 70
+1
+ 10
+200.0
+ 20
+100.0
+ 10
+225.0
+ 20
+100.0
+ 10
+225.0
+ 20
+120.0
+ 10
+200.0
+ 20
+120.0
+ 10
+200.0
+ 20
+100.0
+  0
+TEXT
+  5
+CF
+330
+17
+100
+AcDbEntity
+  8
+industrial_buildings
+ 62
+2
+100
+AcDbText
+ 10
+212.5
+ 20
+110.0
+ 30
+0.0
+ 40
+3.0
+  1
+1200.0
+  7
+Arial
+ 72
+1
+ 11
+212.5
+ 21
+110.0
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+LWPOLYLINE
+  5
+D0
+330
+17
+100
+AcDbEntity
+  8
+public_buildings
+100
+AcDbPolyline
+ 90
+5
+ 70
+1
+ 10
+150.0
+ 20
+100.0
+ 10
+165.0
+ 20
+100.0
+ 10
+165.0
+ 20
+112.0
+ 10
+150.0
+ 20
+112.0
+ 10
+150.0
+ 20
+100.0
+  0
+TEXT
+  5
+D1
+330
+17
+100
+AcDbEntity
+  8
+public_buildings
+ 62
+7
+100
+AcDbText
+ 10
+157.5
+ 20
+106.0
+ 30
+0.0
+ 40
+4.0
+  1
+City Library
+  7
+Arial
+ 72
+1
+ 11
+157.5
+ 21
+106.0
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+LWPOLYLINE
+  5
+D2
+330
+17
+100
+AcDbEntity
+  8
+public_buildings
+100
+AcDbPolyline
+ 90
+5
+ 70
+1
+ 10
+200.0
+ 20
+150.0
+ 10
+220.0
+ 20
+150.0
+ 10
+220.0
+ 20
+170.0
+ 10
+200.0
+ 20
+170.0
+ 10
+200.0
+ 20
+150.0
+  0
+TEXT
+  5
+D3
+330
+17
+100
+AcDbEntity
+  8
+public_buildings
+ 62
+7
+100
+AcDbText
+ 10
+210.0
+ 20
+160.0
+ 30
+0.0
+ 40
+4.0
+  1
+Town Square
+  7
+Arial
+ 72
+1
+ 11
+210.0
+ 21
+160.0
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+LWPOLYLINE
+  5
+D4
+330
+17
+100
+AcDbEntity
+  8
+recreational_facilities
+100
+AcDbPolyline
+ 90
+5
+ 70
+1
+ 10
+100.0
+ 20
+200.0
+ 10
+130.0
+ 20
+200.0
+ 10
+130.0
+ 20
+225.0
+ 10
+100.0
+ 20
+225.0
+ 10
+100.0
+ 20
+200.0
+  0
+TEXT
+  5
+D5
+330
+17
+100
+AcDbEntity
+  8
+recreational_facilities
+ 62
+7
+100
+AcDbText
+ 10
+115.0
+ 20
+212.5
+ 30
+0.0
+ 40
+3.5
+  1
+Sports Complex
+  7
+Arial
+ 72
+1
+ 11
+115.0
+ 21
+212.5
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+LWPOLYLINE
+  5
+D6
+330
+17
+100
+AcDbEntity
+  8
+healthcare_facilities
+100
+AcDbPolyline
+ 90
+5
+ 70
+1
+ 10
+150.0
+ 20
+200.0
+ 10
+170.0
+ 20
+200.0
+ 10
+170.0
+ 20
+222.0
+ 10
+150.0
+ 20
+222.0
+ 10
+150.0
+ 20
+200.0
+  0
+TEXT
+  5
+D7
+330
+17
+100
+AcDbEntity
+  8
+healthcare_facilities
+ 62
+7
+100
+AcDbText
+ 10
+160.0
+ 20
+211.0
+ 30
+0.0
+ 40
+3.5
+  1
+Medical Center
+  7
+Arial
+ 72
+1
+ 11
+160.0
+ 21
+211.0
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+LWPOLYLINE
+  5
+D8
+330
+17
+100
+AcDbEntity
+  8
+educational_facilities
+100
+AcDbPolyline
+ 90
+5
+ 70
+1
+ 10
+200.0
+ 20
+200.0
+ 10
+225.0
+ 20
+200.0
+ 10
+225.0
+ 20
+225.0
+ 10
+200.0
+ 20
+225.0
+ 10
+200.0
+ 20
+200.0
+  0
+TEXT
+  5
+D9
+330
+17
+100
+AcDbEntity
+  8
+educational_facilities
+ 62
+0
+100
+AcDbText
+ 10
+212.5
+ 20
+212.5
+ 30
+0.0
+ 40
+3.5
+  1
+School Campus
+  7
+Arial
+ 72
+1
+ 11
+212.5
+ 21
+212.5
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+LWPOLYLINE
+  5
+DA
+330
+17
+100
+AcDbEntity
+  8
+all_buildings
+100
+AcDbPolyline
+ 90
+5
+ 70
+1
+ 10
+0.0
+ 20
+0.0
+ 10
+15.0
+ 20
+0.0
+ 10
+15.0
+ 20
+12.0
+ 10
+0.0
+ 20
+12.0
+ 10
+0.0
+ 20
+0.0
+  0
+TEXT
+  5
+DB
+330
+17
+100
+AcDbEntity
+  8
+all_buildings
+ 62
+7
+100
+AcDbText
+ 10
+7.5
+ 20
+6.0
+ 30
+0.0
+ 40
+4.0
+  1
+123 Main St
+  7
+Arial
+ 72
+1
+ 11
+7.5
+ 21
+6.0
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+LWPOLYLINE
+  5
+DC
+330
+17
+100
+AcDbEntity
+  8
+all_buildings
+100
+AcDbPolyline
+ 90
+5
+ 70
+1
+ 10
+50.0
+ 20
+0.0
+ 10
+70.0
+ 20
+0.0
+ 10
+70.0
+ 20
+15.0
+ 10
+50.0
+ 20
+15.0
+ 10
+50.0
+ 20
+0.0
+  0
+TEXT
+  5
+DD
+330
+17
+100
+AcDbEntity
+  8
+all_buildings
+ 62
+7
+100
+AcDbText
+ 10
+60.0
+ 20
+7.5
+ 30
+0.0
+ 40
+4.0
+  1
+456 Oak Ave
+  7
+Arial
+ 72
+1
+ 11
+60.0
+ 21
+7.5
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+LWPOLYLINE
+  5
+DE
+330
+17
+100
+AcDbEntity
+  8
+all_buildings
+100
+AcDbPolyline
+ 90
+5
+ 70
+1
+ 10
+0.0
+ 20
+50.0
+ 10
+18.0
+ 20
+50.0
+ 10
+18.0
+ 20
+68.0
+ 10
+0.0
+ 20
+68.0
+ 10
+0.0
+ 20
+50.0
+  0
+TEXT
+  5
+DF
+330
+17
+100
+AcDbEntity
+  8
+all_buildings
+ 62
+7
+100
+AcDbText
+ 10
+9.0
+ 20
+59.0
+ 30
+0.0
+ 40
+4.0
+  1
+789 Pine Rd
+  7
+Arial
+ 72
+1
+ 11
+9.0
+ 21
+59.0
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+LWPOLYLINE
+  5
+E0
+330
+17
+100
+AcDbEntity
+  8
+all_buildings
+100
+AcDbPolyline
+ 90
+5
+ 70
+1
+ 10
+50.0
+ 20
+50.0
+ 10
+75.0
+ 20
+50.0
+ 10
+75.0
+ 20
+70.0
+ 10
+50.0
+ 20
+70.0
+ 10
+50.0
+ 20
+50.0
+  0
+TEXT
+  5
+E1
+330
+17
+100
+AcDbEntity
+  8
+all_buildings
+ 62
+7
+100
+AcDbText
+ 10
+62.5
+ 20
+60.0
+ 30
+0.0
+ 40
+4.0
+  1
+101 Industrial Way
+  7
+Arial
+ 72
+1
+ 11
+62.5
+ 21
+60.0
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+LWPOLYLINE
+  5
+E2
+330
+17
+100
+AcDbEntity
+  8
+all_buildings
+  6
+Continuous
+ 62
+30
+370
+60
+100
+AcDbPolyline
+ 90
+2
+ 70
+0
+ 10
+0.0
+ 20
+25.0
+ 10
+250.0
+ 20
+25.0
+  0
+TEXT
+  5
+E3
+330
+17
+100
+AcDbEntity
+  8
+all_buildings
+ 62
+7
+100
+AcDbText
+ 10
+125.0
+ 20
+25.0
+ 30
+0.0
+ 40
+4.0
+  1
+None
+  7
+Arial
+ 72
+1
+ 11
+125.0
+ 21
+25.0
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+LWPOLYLINE
+  5
+E4
+330
+17
+100
+AcDbEntity
+  8
+all_buildings
+  6
+Continuous
+ 62
+30
+370
+60
+100
+AcDbPolyline
+ 90
+2
+ 70
+0
+ 10
+125.0
+ 20
+0.0
+ 10
+125.0
+ 20
+250.0
+  0
+TEXT
+  5
+E5
+330
+17
+100
+AcDbEntity
+  8
+all_buildings
+ 62
+7
+100
+AcDbText
+ 10
+125.0
+ 20
+125.0
+ 30
+0.0
+ 40
+4.0
+  1
+None
+  7
+Arial
+ 72
+1
+ 11
+125.0
+ 21
+125.0
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+LWPOLYLINE
+  5
+E6
+330
+17
+100
+AcDbEntity
+  8
+all_buildings
+  6
+Continuous
+ 62
+30
+370
+60
+100
+AcDbPolyline
+ 90
+4
+ 70
+0
+ 10
+75.0
+ 20
+75.0
+ 10
+100.0
+ 20
+100.0
+ 10
+150.0
+ 20
+125.0
+ 10
+200.0
+ 20
+175.0
+  0
+TEXT
+  5
+E7
+330
+17
+100
+AcDbEntity
+  8
+all_buildings
+ 62
+7
+100
+AcDbText
+ 10
+140.8113883008419
+ 20
+120.40569415042096
+ 30
+0.0
+ 40
+4.0
+  1
+None
+  7
+Arial
+ 72
+1
+ 11
+140.8113883008419
+ 21
+120.40569415042096
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+POINT
+  5
+E8
+330
+17
+100
+AcDbEntity
+  8
+all_buildings
+  6
+Continuous
+ 62
+30
+370
+60
+100
+AcDbPoint
+ 10
+175.0
+ 20
+75.0
+ 30
+0.0
+  0
+TEXT
+  5
+E9
+330
+17
+100
+AcDbEntity
+  8
+all_buildings
+ 62
+7
+100
+AcDbText
+ 10
+175.1
+ 20
+75.1
+ 30
+0.0
+ 40
+4.0
+  1
+None
+  7
+Arial
+ 72
+1
+ 11
+175.1
+ 21
+75.1
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+POINT
+  5
+EA
+330
+17
+100
+AcDbEntity
+  8
+all_buildings
+  6
+Continuous
+ 62
+30
+370
+60
+100
+AcDbPoint
+ 10
+25.0
+ 20
+175.0
+ 30
+0.0
+  0
+TEXT
+  5
+EB
+330
+17
+100
+AcDbEntity
+  8
+all_buildings
+ 62
+7
+100
+AcDbText
+ 10
+25.1
+ 20
+175.1
+ 30
+0.0
+ 40
+4.0
+  1
+None
+  7
+Arial
+ 72
+1
+ 11
+25.1
+ 21
+175.1
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+POINT
+  5
+EC
+330
+17
+100
+AcDbEntity
+  8
+all_buildings
+  6
+Continuous
+ 62
+30
+370
+60
+100
+AcDbPoint
+ 10
+175.0
+ 20
+175.0
+ 30
+0.0
+  0
+TEXT
+  5
+ED
+330
+17
+100
+AcDbEntity
+  8
+all_buildings
+ 62
+7
+100
+AcDbText
+ 10
+175.1
+ 20
+175.1
+ 30
+0.0
+ 40
+4.0
+  1
+None
+  7
+Arial
+ 72
+1
+ 11
+175.1
+ 21
+175.1
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+LWPOLYLINE
+  5
+EE
+330
+17
+100
+AcDbEntity
+  8
+all_buildings
+100
+AcDbPolyline
+ 90
+5
+ 70
+1
+ 10
+100.0
+ 20
+100.0
+ 10
+120.0
+ 20
+100.0
+ 10
+120.0
+ 20
+115.0
+ 10
+100.0
+ 20
+115.0
+ 10
+100.0
+ 20
+100.0
+  0
+TEXT
+  5
+EF
+330
+17
+100
+AcDbEntity
+  8
+all_buildings
+ 62
+7
+100
+AcDbText
+ 10
+110.0
+ 20
+107.5
+ 30
+0.0
+ 40
+4.0
+  1
+500 Commerce Blvd
+  7
+Arial
+ 72
+1
+ 11
+110.0
+ 21
+107.5
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+LWPOLYLINE
+  5
+F0
+330
+17
+100
+AcDbEntity
+  8
+all_buildings
+100
+AcDbPolyline
+ 90
+5
+ 70
+1
+ 10
+150.0
+ 20
+100.0
+ 10
+165.0
+ 20
+100.0
+ 10
+165.0
+ 20
+112.0
+ 10
+150.0
+ 20
+112.0
+ 10
+150.0
+ 20
+100.0
+  0
+TEXT
+  5
+F1
+330
+17
+100
+AcDbEntity
+  8
+all_buildings
+ 62
+7
+100
+AcDbText
+ 10
+157.5
+ 20
+106.0
+ 30
+0.0
+ 40
+4.0
+  1
+250 Knowledge Ave
+  7
+Arial
+ 72
+1
+ 11
+157.5
+ 21
+106.0
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+LWPOLYLINE
+  5
+F2
+330
+17
+100
+AcDbEntity
+  8
+all_buildings
+100
+AcDbPolyline
+ 90
+5
+ 70
+1
+ 10
+200.0
+ 20
+100.0
+ 10
+225.0
+ 20
+100.0
+ 10
+225.0
+ 20
+120.0
+ 10
+200.0
+ 20
+120.0
+ 10
+200.0
+ 20
+100.0
+  0
+TEXT
+  5
+F3
+330
+17
+100
+AcDbEntity
+  8
+all_buildings
+ 62
+7
+100
+AcDbText
+ 10
+212.5
+ 20
+110.0
+ 30
+0.0
+ 40
+4.0
+  1
+800 Industrial Pkwy
+  7
+Arial
+ 72
+1
+ 11
+212.5
+ 21
+110.0
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+LWPOLYLINE
+  5
+F4
+330
+17
+100
+AcDbEntity
+  8
+all_buildings
+100
+AcDbPolyline
+ 90
+5
+ 70
+1
+ 10
+100.0
+ 20
+150.0
+ 10
+115.0
+ 20
+150.0
+ 10
+115.0
+ 20
+170.0
+ 10
+100.0
+ 20
+170.0
+ 10
+100.0
+ 20
+150.0
+  0
+TEXT
+  5
+F5
+330
+17
+100
+AcDbEntity
+  8
+all_buildings
+ 62
+7
+100
+AcDbText
+ 10
+107.5
+ 20
+160.0
+ 30
+0.0
+ 40
+4.0
+  1
+300 Residential Dr
+  7
+Arial
+ 72
+1
+ 11
+107.5
+ 21
+160.0
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+LWPOLYLINE
+  5
+F6
+330
+17
+100
+AcDbEntity
+  8
+all_buildings
+100
+AcDbPolyline
+ 90
+5
+ 70
+1
+ 10
+150.0
+ 20
+150.0
+ 10
+165.0
+ 20
+150.0
+ 10
+165.0
+ 20
+168.0
+ 10
+150.0
+ 20
+168.0
+ 10
+150.0
+ 20
+150.0
+  0
+TEXT
+  5
+F7
+330
+17
+100
+AcDbEntity
+  8
+all_buildings
+ 62
+7
+100
+AcDbText
+ 10
+157.5
+ 20
+159.0
+ 30
+0.0
+ 40
+4.0
+  1
+310 Residential Dr
+  7
+Arial
+ 72
+1
+ 11
+157.5
+ 21
+159.0
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+LWPOLYLINE
+  5
+F8
+330
+17
+100
+AcDbEntity
+  8
+all_buildings
+100
+AcDbPolyline
+ 90
+5
+ 70
+1
+ 10
+200.0
+ 20
+150.0
+ 10
+220.0
+ 20
+150.0
+ 10
+220.0
+ 20
+170.0
+ 10
+200.0
+ 20
+170.0
+ 10
+200.0
+ 20
+150.0
+  0
+TEXT
+  5
+F9
+330
+17
+100
+AcDbEntity
+  8
+all_buildings
+ 62
+7
+100
+AcDbText
+ 10
+210.0
+ 20
+160.0
+ 30
+0.0
+ 40
+4.0
+  1
+100 Central Plaza
+  7
+Arial
+ 72
+1
+ 11
+210.0
+ 21
+160.0
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+LWPOLYLINE
+  5
+FA
+330
+17
+100
+AcDbEntity
+  8
+all_buildings
+100
+AcDbPolyline
+ 90
+5
+ 70
+1
+ 10
+100.0
+ 20
+200.0
+ 10
+130.0
+ 20
+200.0
+ 10
+130.0
+ 20
+225.0
+ 10
+100.0
+ 20
+225.0
+ 10
+100.0
+ 20
+200.0
+  0
+TEXT
+  5
+FB
+330
+17
+100
+AcDbEntity
+  8
+all_buildings
+ 62
+7
+100
+AcDbText
+ 10
+115.0
+ 20
+212.5
+ 30
+0.0
+ 40
+4.0
+  1
+600 Athletic Way
+  7
+Arial
+ 72
+1
+ 11
+115.0
+ 21
+212.5
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+LWPOLYLINE
+  5
+FC
+330
+17
+100
+AcDbEntity
+  8
+all_buildings
+100
+AcDbPolyline
+ 90
+5
+ 70
+1
+ 10
+150.0
+ 20
+200.0
+ 10
+170.0
+ 20
+200.0
+ 10
+170.0
+ 20
+222.0
+ 10
+150.0
+ 20
+222.0
+ 10
+150.0
+ 20
+200.0
+  0
+TEXT
+  5
+FD
+330
+17
+100
+AcDbEntity
+  8
+all_buildings
+ 62
+7
+100
+AcDbText
+ 10
+160.0
+ 20
+211.0
+ 30
+0.0
+ 40
+4.0
+  1
+900 Health Blvd
+  7
+Arial
+ 72
+1
+ 11
+160.0
+ 21
+211.0
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+LWPOLYLINE
+  5
+FE
+330
+17
+100
+AcDbEntity
+  8
+all_buildings
+100
+AcDbPolyline
+ 90
+5
+ 70
+1
+ 10
+200.0
+ 20
+200.0
+ 10
+225.0
+ 20
+200.0
+ 10
+225.0
+ 20
+225.0
+ 10
+200.0
+ 20
+225.0
+ 10
+200.0
+ 20
+200.0
+  0
+TEXT
+  5
+FF
+330
+17
+100
+AcDbEntity
+  8
+all_buildings
+ 62
+7
+100
+AcDbText
+ 10
+212.5
+ 20
+212.5
+ 30
+0.0
+ 40
+4.0
+  1
+700 Education St
+  7
+Arial
+ 72
+1
+ 11
+212.5
+ 21
+212.5
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+LWPOLYLINE
+  5
+100
+330
+17
+100
+AcDbEntity
+  8
+main_roads
+  6
+DASHED
+ 62
+200
+370
+40
+100
+AcDbPolyline
+ 90
+2
+ 70
+0
+ 10
+0.0
+ 20
+25.0
+ 10
+250.0
+ 20
+25.0
+  0
+TEXT
+  5
+101
+330
+17
+100
+AcDbEntity
+  8
+main_roads
+ 62
+2
+100
+AcDbText
+ 10
+125.0
+ 20
+25.0
+ 30
+0.0
+ 40
+3.0
+  1
+Main Street
+  7
+Arial
+ 72
+1
+ 11
+125.0
+ 21
+25.0
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+LWPOLYLINE
+  5
+102
+330
+17
+100
+AcDbEntity
+  8
+main_roads
+  6
+DASHED
+ 62
+200
+370
+40
+100
+AcDbPolyline
+ 90
+2
+ 70
+0
+ 10
+125.0
+ 20
+0.0
+ 10
+125.0
+ 20
+250.0
+  0
+TEXT
+  5
+103
+330
+17
+100
+AcDbEntity
+  8
+main_roads
+ 62
+2
+100
+AcDbText
+ 10
+125.0
+ 20
+125.0
+ 30
+0.0
+ 40
+3.0
+  1
+Oak Avenue
+  7
+Arial
+ 72
+1
+ 11
+125.0
+ 21
+125.0
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+LWPOLYLINE
+  5
+104
+330
+17
+100
+AcDbEntity
+  8
+bike_paths
+  6
+DASHED
+ 62
+200
+370
+40
+100
+AcDbPolyline
+ 90
+4
+ 70
+0
+ 10
+75.0
+ 20
+75.0
+ 10
+100.0
+ 20
+100.0
+ 10
+150.0
+ 20
+125.0
+ 10
+200.0
+ 20
+175.0
+  0
+TEXT
+  5
+105
+330
+17
+100
+AcDbEntity
+  8
+bike_paths
+ 62
+2
+100
+AcDbText
+ 10
+140.8113883008419
+ 20
+120.40569415042096
+ 30
+0.0
+ 40
+3.0
+  1
+concrete
+  7
+Arial
+ 72
+1
+ 11
+140.8113883008419
+ 21
+120.40569415042096
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+POINT
+  5
+106
+330
+17
+100
+AcDbEntity
+  8
+parks
+  6
+Continuous
+ 62
+84
+370
+30
+100
+AcDbPoint
+ 10
+175.0
+ 20
+75.0
+ 30
+0.0
+  0
+TEXT
+  5
+107
+330
+17
+100
+AcDbEntity
+  8
+parks
+ 62
+1
+100
+AcDbText
+ 10
+175.1
+ 20
+75.1
+ 30
+0.0
+ 40
+2.5
+  1
+Central Park
+  7
+Arial
+ 72
+1
+ 11
+175.1
+ 21
+75.1
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+POINT
+  5
+108
+330
+17
+100
+AcDbEntity
+  8
+transit_stops
+  6
+Continuous
+ 62
+6
+370
+35
+100
+AcDbPoint
+ 10
+25.0
+ 20
+175.0
+ 30
+0.0
+  0
+TEXT
+  5
+109
+330
+17
+100
+AcDbEntity
+  8
+transit_stops
+ 62
+7
+100
+AcDbText
+ 10
+25.1
+ 20
+175.1
+ 30
+0.0
+ 40
+2.0
+  1
+101, 205
+  7
+Arial
+ 72
+1
+ 11
+25.1
+ 21
+175.1
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+POINT
+  5
+10A
+330
+17
+100
+AcDbEntity
+  8
+amenities
+  6
+Continuous
+ 62
+2
+370
+25
+100
+AcDbPoint
+ 10
+175.0
+ 20
+175.0
+ 30
+0.0
+  0
+TEXT
+  5
+10B
+330
+17
+100
+AcDbEntity
+  8
+amenities
+ 62
+0
+100
+AcDbText
+ 10
+175.1
+ 20
+175.1
+ 30
+0.0
+ 40
+2.0
+  1
+food
+  7
+Arial
+ 72
+1
+ 11
+175.1
+ 21
+175.1
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+LWPOLYLINE
+  5
+10C
+330
+17
+100
+AcDbEntity
+  8
+buffered_commercial
+100
+AcDbPolyline
+ 90
+69
+ 70
+1
+ 10
+-10.0
+ 20
+0.0
+ 10
+-10.0
+ 20
+12.0
+ 10
+-9.951847266721968
+ 20
+12.980171403295609
+ 10
+-9.807852804032304
+ 20
+13.950903220161287
+ 10
+-9.569403357322088
+ 20
+14.902846772544624
+ 10
+-9.238795325112868
+ 20
+15.8268343236509
+ 10
+-8.81921264348355
+ 20
+16.71396736825998
+ 10
+-8.314696123025453
+ 20
+17.55570233019602
+ 10
+-7.73010453362737
+ 20
+18.343932841636455
+ 10
+-7.071067811865475
+ 20
+19.071067811865476
+ 10
+-6.3439328416364535
+ 20
+19.73010453362737
+ 10
+-5.55570233019602
+ 20
+20.314696123025456
+ 10
+-4.713967368259977
+ 20
+20.819212643483553
+ 10
+-3.826834323650897
+ 20
+21.238795325112868
+ 10
+-2.9028467725446214
+ 20
+21.569403357322088
+ 10
+-1.950903220161282
+ 20
+21.807852804032304
+ 10
+-0.9801714032956065
+ 20
+21.95184726672197
+ 10
+0.0
+ 20
+22.0
+ 10
+15.0
+ 20
+22.0
+ 10
+15.980171403295607
+ 20
+21.95184726672197
+ 10
+16.950903220161283
+ 20
+21.807852804032304
+ 10
+17.902846772544624
+ 20
+21.569403357322088
+ 10
+18.8268343236509
+ 20
+21.238795325112868
+ 10
+19.71396736825998
+ 20
+20.81921264348355
+ 10
+20.555702330196024
+ 20
+20.314696123025453
+ 10
+21.343932841636455
+ 20
+19.73010453362737
+ 10
+22.071067811865476
+ 20
+19.071067811865476
+ 10
+22.73010453362737
+ 20
+18.343932841636455
+ 10
+23.314696123025453
+ 20
+17.55570233019602
+ 10
+23.819212643483553
+ 20
+16.713967368259976
+ 10
+24.238795325112868
+ 20
+15.826834323650898
+ 10
+24.569403357322088
+ 20
+14.902846772544624
+ 10
+24.807852804032304
+ 20
+13.950903220161283
+ 10
+24.95184726672197
+ 20
+12.980171403295605
+ 10
+25.0
+ 20
+12.0
+ 10
+25.0
+ 20
+0.0
+ 10
+24.95184726672197
+ 20
+-0.9801714032956071
+ 10
+24.807852804032304
+ 20
+-1.9509032201612824
+ 10
+24.569403357322088
+ 20
+-2.9028467725446228
+ 10
+24.238795325112868
+ 20
+-3.826834323650898
+ 10
+23.81921264348355
+ 20
+-4.713967368259977
+ 10
+23.314696123025453
+ 20
+-5.555702330196022
+ 10
+22.73010453362737
+ 20
+-6.343932841636455
+ 10
+22.071067811865476
+ 20
+-7.071067811865475
+ 10
+21.343932841636455
+ 20
+-7.73010453362737
+ 10
+20.555702330196024
+ 20
+-8.314696123025453
+ 10
+19.71396736825998
+ 20
+-8.81921264348355
+ 10
+18.8268343236509
+ 20
+-9.238795325112868
+ 10
+17.902846772544624
+ 20
+-9.56940335732209
+ 10
+16.950903220161283
+ 20
+-9.807852804032304
+ 10
+15.980171403295607
+ 20
+-9.951847266721968
+ 10
+15.0
+ 20
+-10.0
+ 10
+0.0
+ 20
+-10.0
+ 10
+-0.9801714032956065
+ 20
+-9.95184726672197
+ 10
+-1.950903220161282
+ 20
+-9.807852804032304
+ 10
+-2.9028467725446214
+ 20
+-9.56940335732209
+ 10
+-3.826834323650897
+ 20
+-9.238795325112868
+ 10
+-4.713967368259977
+ 20
+-8.819212643483551
+ 10
+-5.55570233019602
+ 20
+-8.314696123025454
+ 10
+-6.3439328416364535
+ 20
+-7.730104533627371
+ 10
+-7.071067811865475
+ 20
+-7.0710678118654755
+ 10
+-7.73010453362737
+ 20
+-6.343932841636455
+ 10
+-8.314696123025453
+ 20
+-5.555702330196022
+ 10
+-8.81921264348355
+ 20
+-4.713967368259978
+ 10
+-9.238795325112868
+ 20
+-3.826834323650899
+ 10
+-9.569403357322088
+ 20
+-2.902846772544624
+ 10
+-9.807852804032304
+ 20
+-1.9509032201612861
+ 10
+-9.951847266721968
+ 20
+-0.9801714032956083
+ 10
+-10.0
+ 20
+0.0
+  0
+TEXT
+  5
+10D
+330
+17
+100
+AcDbEntity
+  8
+buffered_commercial
+ 62
+7
+100
+AcDbText
+ 10
+7.5
+ 20
+6.0
+ 30
+0.0
+ 40
+4.0
+  1
+Building A
+  7
+Arial
+ 72
+1
+ 11
+7.5
+ 21
+6.0
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+LWPOLYLINE
+  5
+10E
+330
+17
+100
+AcDbEntity
+  8
+buffered_commercial
+100
+AcDbPolyline
+ 90
+69
+ 70
+1
+ 10
+40.0
+ 20
+0.0
+ 10
+40.0
+ 20
+15.0
+ 10
+40.04815273327803
+ 20
+15.980171403295609
+ 10
+40.19214719596769
+ 20
+16.950903220161287
+ 10
+40.43059664267791
+ 20
+17.902846772544624
+ 10
+40.76120467488713
+ 20
+18.8268343236509
+ 10
+41.18078735651645
+ 20
+19.71396736825998
+ 10
+41.685303876974544
+ 20
+20.55570233019602
+ 10
+42.26989546637263
+ 20
+21.343932841636455
+ 10
+42.928932188134524
+ 20
+22.071067811865476
+ 10
+43.65606715836355
+ 20
+22.73010453362737
+ 10
+44.44429766980398
+ 20
+23.314696123025456
+ 10
+45.28603263174002
+ 20
+23.819212643483553
+ 10
+46.1731656763491
+ 20
+24.238795325112868
+ 10
+47.09715322745538
+ 20
+24.569403357322088
+ 10
+48.04909677983872
+ 20
+24.807852804032304
+ 10
+49.01982859670439
+ 20
+24.95184726672197
+ 10
+50.0
+ 20
+25.0
+ 10
+70.0
+ 20
+25.0
+ 10
+70.98017140329561
+ 20
+24.95184726672197
+ 10
+71.95090322016128
+ 20
+24.807852804032304
+ 10
+72.90284677254462
+ 20
+24.569403357322088
+ 10
+73.8268343236509
+ 20
+24.238795325112868
+ 10
+74.71396736825997
+ 20
+23.81921264348355
+ 10
+75.55570233019603
+ 20
+23.314696123025453
+ 10
+76.34393284163646
+ 20
+22.73010453362737
+ 10
+77.07106781186548
+ 20
+22.071067811865476
+ 10
+77.73010453362737
+ 20
+21.343932841636455
+ 10
+78.31469612302546
+ 20
+20.55570233019602
+ 10
+78.81921264348355
+ 20
+19.713967368259976
+ 10
+79.23879532511287
+ 20
+18.8268343236509
+ 10
+79.56940335732209
+ 20
+17.902846772544624
+ 10
+79.80785280403231
+ 20
+16.950903220161283
+ 10
+79.95184726672197
+ 20
+15.980171403295605
+ 10
+80.0
+ 20
+15.0
+ 10
+80.0
+ 20
+0.0
+ 10
+79.95184726672197
+ 20
+-0.9801714032956071
+ 10
+79.80785280403231
+ 20
+-1.9509032201612824
+ 10
+79.56940335732209
+ 20
+-2.9028467725446228
+ 10
+79.23879532511287
+ 20
+-3.826834323650898
+ 10
+78.81921264348355
+ 20
+-4.713967368259977
+ 10
+78.31469612302546
+ 20
+-5.555702330196022
+ 10
+77.73010453362737
+ 20
+-6.343932841636455
+ 10
+77.07106781186548
+ 20
+-7.071067811865475
+ 10
+76.34393284163646
+ 20
+-7.73010453362737
+ 10
+75.55570233019603
+ 20
+-8.314696123025453
+ 10
+74.71396736825997
+ 20
+-8.81921264348355
+ 10
+73.8268343236509
+ 20
+-9.238795325112868
+ 10
+72.90284677254462
+ 20
+-9.56940335732209
+ 10
+71.95090322016128
+ 20
+-9.807852804032304
+ 10
+70.98017140329561
+ 20
+-9.951847266721968
+ 10
+70.0
+ 20
+-10.0
+ 10
+50.0
+ 20
+-10.0
+ 10
+49.01982859670439
+ 20
+-9.95184726672197
+ 10
+48.04909677983872
+ 20
+-9.807852804032304
+ 10
+47.09715322745538
+ 20
+-9.56940335732209
+ 10
+46.1731656763491
+ 20
+-9.238795325112868
+ 10
+45.28603263174002
+ 20
+-8.819212643483551
+ 10
+44.44429766980398
+ 20
+-8.314696123025454
+ 10
+43.65606715836355
+ 20
+-7.730104533627371
+ 10
+42.928932188134524
+ 20
+-7.0710678118654755
+ 10
+42.26989546637263
+ 20
+-6.343932841636455
+ 10
+41.685303876974544
+ 20
+-5.555702330196022
+ 10
+41.18078735651645
+ 20
+-4.713967368259978
+ 10
+40.76120467488713
+ 20
+-3.826834323650899
+ 10
+40.43059664267791
+ 20
+-2.902846772544624
+ 10
+40.19214719596769
+ 20
+-1.9509032201612861
+ 10
+40.04815273327803
+ 20
+-0.9801714032956083
+ 10
+40.0
+ 20
+0.0
+  0
+TEXT
+  5
+10F
+330
+17
+100
+AcDbEntity
+  8
+buffered_commercial
+ 62
+7
+100
+AcDbText
+ 10
+60.0
+ 20
+7.5
+ 30
+0.0
+ 40
+4.0
+  1
+Building B
+  7
+Arial
+ 72
+1
+ 11
+60.0
+ 21
+7.5
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+LWPOLYLINE
+  5
+110
+330
+17
+100
+AcDbEntity
+  8
+buffered_commercial
+100
+AcDbPolyline
+ 90
+69
+ 70
+1
+ 10
+90.0
+ 20
+100.0
+ 10
+90.0
+ 20
+115.0
+ 10
+90.04815273327803
+ 20
+115.98017140329561
+ 10
+90.19214719596769
+ 20
+116.95090322016128
+ 10
+90.43059664267791
+ 20
+117.90284677254462
+ 10
+90.76120467488713
+ 20
+118.8268343236509
+ 10
+91.18078735651645
+ 20
+119.71396736825997
+ 10
+91.68530387697454
+ 20
+120.55570233019603
+ 10
+92.26989546637263
+ 20
+121.34393284163646
+ 10
+92.92893218813452
+ 20
+122.07106781186548
+ 10
+93.65606715836354
+ 20
+122.73010453362737
+ 10
+94.44429766980397
+ 20
+123.31469612302546
+ 10
+95.28603263174003
+ 20
+123.81921264348355
+ 10
+96.1731656763491
+ 20
+124.23879532511287
+ 10
+97.09715322745538
+ 20
+124.56940335732209
+ 10
+98.04909677983872
+ 20
+124.80785280403231
+ 10
+99.0198285967044
+ 20
+124.95184726672197
+ 10
+100.0
+ 20
+125.0
+ 10
+120.0
+ 20
+125.0
+ 10
+120.98017140329561
+ 20
+124.95184726672197
+ 10
+121.95090322016128
+ 20
+124.80785280403231
+ 10
+122.90284677254462
+ 20
+124.56940335732209
+ 10
+123.8268343236509
+ 20
+124.23879532511287
+ 10
+124.71396736825997
+ 20
+123.81921264348355
+ 10
+125.55570233019603
+ 20
+123.31469612302546
+ 10
+126.34393284163646
+ 20
+122.73010453362737
+ 10
+127.07106781186548
+ 20
+122.07106781186548
+ 10
+127.73010453362737
+ 20
+121.34393284163646
+ 10
+128.31469612302544
+ 20
+120.55570233019603
+ 10
+128.81921264348355
+ 20
+119.71396736825997
+ 10
+129.23879532511287
+ 20
+118.8268343236509
+ 10
+129.56940335732207
+ 20
+117.90284677254462
+ 10
+129.8078528040323
+ 20
+116.95090322016128
+ 10
+129.95184726672198
+ 20
+115.9801714032956
+ 10
+130.0
+ 20
+115.0
+ 10
+130.0
+ 20
+100.0
+ 10
+129.95184726672198
+ 20
+99.01982859670439
+ 10
+129.8078528040323
+ 20
+98.04909677983872
+ 10
+129.5694033573221
+ 20
+97.09715322745538
+ 10
+129.23879532511287
+ 20
+96.1731656763491
+ 10
+128.81921264348355
+ 20
+95.28603263174003
+ 10
+128.31469612302544
+ 20
+94.44429766980397
+ 10
+127.73010453362737
+ 20
+93.65606715836354
+ 10
+127.07106781186548
+ 20
+92.92893218813452
+ 10
+126.34393284163646
+ 20
+92.26989546637263
+ 10
+125.55570233019603
+ 20
+91.68530387697454
+ 10
+124.71396736825997
+ 20
+91.18078735651645
+ 10
+123.8268343236509
+ 20
+90.76120467488713
+ 10
+122.90284677254462
+ 20
+90.43059664267791
+ 10
+121.95090322016128
+ 20
+90.19214719596769
+ 10
+120.98017140329561
+ 20
+90.04815273327803
+ 10
+120.0
+ 20
+90.0
+ 10
+100.0
+ 20
+90.0
+ 10
+99.0198285967044
+ 20
+90.04815273327803
+ 10
+98.04909677983872
+ 20
+90.19214719596769
+ 10
+97.09715322745538
+ 20
+90.43059664267791
+ 10
+96.1731656763491
+ 20
+90.76120467488713
+ 10
+95.28603263174003
+ 20
+91.18078735651645
+ 10
+94.44429766980397
+ 20
+91.68530387697454
+ 10
+93.65606715836354
+ 20
+92.26989546637263
+ 10
+92.92893218813452
+ 20
+92.92893218813452
+ 10
+92.26989546637263
+ 20
+93.65606715836354
+ 10
+91.68530387697454
+ 20
+94.44429766980397
+ 10
+91.18078735651645
+ 20
+95.28603263174003
+ 10
+90.76120467488713
+ 20
+96.1731656763491
+ 10
+90.43059664267791
+ 20
+97.09715322745538
+ 10
+90.19214719596769
+ 20
+98.04909677983872
+ 10
+90.04815273327803
+ 20
+99.01982859670439
+ 10
+90.0
+ 20
+100.0
+  0
+TEXT
+  5
+111
+330
+17
+100
+AcDbEntity
+  8
+buffered_commercial
+ 62
+7
+100
+AcDbText
+ 10
+110.0
+ 20
+107.5
+ 30
+0.0
+ 40
+4.0
+  1
+Shopping Mall
+  7
+Arial
+ 72
+1
+ 11
+110.0
+ 21
+107.5
+ 31
+0.0
+100
+AcDbText
+ 73
+2
+  0
+LWPOLYLINE
+  5
+112
+330
+17
+100
+AcDbEntity
+  8
+merged_buildings_roads
+100
+AcDbPolyline
+ 90
+5
+ 70
+1
+ 10
+0.0
+ 20
+0.0
+ 10
+15.0
+ 20
+0.0
+ 10
+15.0
+ 20
+12.0
+ 10
+0.0
+ 20
+12.0
+ 10
+0.0
+ 20
+0.0
+  0
+LWPOLYLINE
+  5
+113
+330
+17
+100
+AcDbEntity
+  8
+merged_buildings_roads
+100
+AcDbPolyline
+ 90
+5
+ 70
+1
+ 10
+50.0
+ 20
+0.0
+ 10
+70.0
+ 20
+0.0
+ 10
+70.0
+ 20
+15.0
+ 10
+50.0
+ 20
+15.0
+ 10
+50.0
+ 20
+0.0
+  0
+LWPOLYLINE
+  5
+114
+330
+17
+100
+AcDbEntity
+  8
+merged_buildings_roads
+100
+AcDbPolyline
+ 90
+5
+ 70
+1
+ 10
+100.0
+ 20
+100.0
+ 10
+120.0
+ 20
+100.0
+ 10
+120.0
+ 20
+115.0
+ 10
+100.0
+ 20
+115.0
+ 10
+100.0
+ 20
+100.0
+  0
+LWPOLYLINE
+  5
+115
+330
+17
+100
+AcDbEntity
+  8
+merged_buildings_roads
+  6
+Continuous
+ 62
+30
+370
+60
+100
+AcDbPolyline
+ 90
+2
+ 70
+0
+ 10
+0.0
+ 20
+25.0
+ 10
+250.0
+ 20
+25.0
+  0
+LWPOLYLINE
+  5
+116
+330
+17
+100
+AcDbEntity
+  8
+merged_buildings_roads
+  6
+Continuous
+ 62
+30
+370
+60
+100
+AcDbPolyline
+ 90
+2
+ 70
+0
+ 10
+125.0
+ 20
+0.0
+ 10
+125.0
+ 20
+250.0
+  0
+LWPOLYLINE
+  5
+117
+330
+17
+100
+AcDbEntity
+  8
+study_area_boundary
+100
+AcDbPolyline
+ 90
+5
+ 70
+1
+ 10
+265.0
+ 20
+-15.0
+ 10
+265.0
+ 20
+265.0
+ 10
+-15.0
+ 20
+265.0
+ 10
+-15.0
+ 20
+-15.0
+ 10
+265.0
+ 20
+-15.0
   0
 ENDSEC
   0
@@ -4493,7 +13035,7 @@ CREATED_BY_EZDXF
   3
 WRITTEN_BY_EZDXF
 350
-4E
+31
   0
 DICTIONARYVAR
   5
@@ -4505,11 +13047,11 @@ DictionaryVariables
 280
 0
   1
-1.4.1 @ 2025-05-24T09:11:38.223081+00:00
+1.4.1 @ 2025-05-24T16:56:44.264325+00:00
   0
 DICTIONARYVAR
   5
-4E
+31
 330
 2D
 100
@@ -4517,7 +13059,7 @@ DictionaryVariables
 280
 0
   1
-1.4.1 @ 2025-05-24T12:44:43.063282+00:00
+1.4.1 @ 2025-05-25T04:20:52.535737+00:00
   0
 ENDSEC
   0

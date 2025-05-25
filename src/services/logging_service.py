@@ -22,14 +22,16 @@ class LoggingService(ILoggingService):
     # but a service allows for dependency injection and easier testing/mocking.
     _shared_state = {}
 
-    def __new__(cls, *args, **kwargs):
-        obj = super(LoggingService, cls).__new__(cls, *args, **kwargs)
-        obj.__dict__ = cls._shared_state
-        if not hasattr(cls, '_initialized_borg') or not cls._initialized_borg:
+    def __init__(self, log_level_console: str = "INFO", log_level_file: Optional[str] = "DEBUG", log_file_path: Optional[str] = None):
+        """Initialize LoggingService with configuration."""
+        self.__dict__ = self._shared_state
+        if not hasattr(self.__class__, '_initialized_borg') or not self.__class__._initialized_borg:
             # Initialize instance attributes only once per class
-            cls._initialized_borg = True
+            self.__class__._initialized_borg = True
             # Perform actual one-time initialization if needed here for the Borg state
-        return obj
+            # Auto-setup logging if parameters are provided
+            if log_level_console or log_level_file or log_file_path:
+                self.setup_logging(log_level_console, log_level_file, log_file_path)
 
     def setup_logging(
         self,

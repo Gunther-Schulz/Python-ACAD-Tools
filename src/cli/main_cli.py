@@ -59,7 +59,7 @@ def setup_commands(container: ApplicationContainer) -> CommandRegistry:
     # Register commands with their dependencies injected from container
     process_project_command = ProcessProjectCommand(
         logger_service=container.logging_service(),
-        project_orchestrator=container.project_orchestrator()
+        project_orchestrator=container.project_orchestrator_service()
     )
     command_registry.register_command("process_project", process_project_command)
 

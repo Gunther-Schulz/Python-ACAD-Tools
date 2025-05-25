@@ -73,7 +73,7 @@ class StyleApplicatorService(IStyleApplicator):
                 # Option 2: Specific method on IConfigLoader for color data
                 color_items = self._config_loader.get_aci_color_mappings() # Assumed method
 
-                self._aci_map = {item.name.lower(): item.aciCode for item in color_items}
+                self._aci_map = {item.name.lower(): item.aci_code for item in color_items}
                 self._logger.info(f"Loaded ACI color map with {len(self._aci_map)} entries.")
             except (ConfigError, AttributeError, TypeError) as e: # AttributeError if assumed method missing
                 self._logger.error(f"Failed to load ACI color map: {e}. Color name resolution will fail.", exc_info=True)
@@ -518,6 +518,10 @@ class StyleApplicatorService(IStyleApplicator):
             msp = dxf_drawing.modelspace()
 
             # Check if labels should be added
+            self._logger.debug(f"Checking label conditions for layer '{layer_name}': layer_definition={layer_definition is not None}, label_column={getattr(layer_definition, 'label_column', None) if layer_definition else None}")
+            if layer_definition and hasattr(gdf, 'columns'):
+                self._logger.debug(f"Available columns in GDF: {list(gdf.columns)}")
+
             should_add_labels = (
                 layer_definition and
                 layer_definition.label_column and
@@ -525,7 +529,9 @@ class StyleApplicatorService(IStyleApplicator):
             )
 
             if should_add_labels:
-                self._logger.debug(f"Will add labels from column '{layer_definition.label_column}' for layer '{layer_name}'")
+                self._logger.info(f"Will add labels from column '{layer_definition.label_column}' for layer '{layer_name}'")
+            else:
+                self._logger.debug(f"Will NOT add labels for layer '{layer_name}' - conditions not met")
 
             # Process each geometry in the GeoDataFrame
             added_count = 0

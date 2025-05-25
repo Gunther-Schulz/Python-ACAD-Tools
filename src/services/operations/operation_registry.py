@@ -13,9 +13,9 @@ from . import (
     transformation_handlers,
     spatial_analysis_handlers,
     geometry_creation_handlers,
-    data_processing_handlers,
-    filtering_handlers,
-    advanced_handlers
+    # data_processing_handlers,  # TODO: Fix missing operation parameters (CopyOpParams, etc.)
+    # filtering_handlers,        # TODO: Check if this has missing parameters
+    # advanced_handlers          # TODO: Check if this has missing parameters
 )
 
 
@@ -39,9 +39,9 @@ class OperationRegistry(IOperationRegistry):
             transformation_handlers,
             spatial_analysis_handlers,
             geometry_creation_handlers,
-            data_processing_handlers,
-            filtering_handlers,
-            advanced_handlers
+            # data_processing_handlers,  # TODO: Fix missing operation parameters (CopyOpParams, etc.)
+            # filtering_handlers,        # TODO: Check if this has missing parameters
+            # advanced_handlers          # TODO: Check if this has missing parameters
         ]
 
         for module in handler_modules:

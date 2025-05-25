@@ -300,20 +300,26 @@ class ProjectOrchestratorService(IProjectOrchestrator):
                     self._logger.debug("Applying styles and adding geometries to DXF document...")
                     for layer_name, gdf in active_layers.items():
                         layer_def_for_style = next((ld for ld in project_config.geom_layers if ld.name == layer_name), None)
+                        self._logger.debug(f"Processing layer '{layer_name}': layer_def_found={layer_def_for_style is not None}, update_dxf={getattr(layer_def_for_style, 'update_dxf', False) if layer_def_for_style else False}, style_config_available={style_config is not None}")
+
                         if layer_def_for_style and layer_def_for_style.update_dxf and style_config:
                             named_style = self._style_applicator.get_style_for_layer(layer_name, layer_def_for_style, style_config)
+
+                            # Apply layer-level style if found
                             if named_style:
                                 self._logger.debug(f"Applying style '{named_style.name if hasattr(named_style, 'name') else 'inline'}' to DXF layer '{layer_name}'")
                                 self._style_applicator.apply_styles_to_dxf_layer(dxf_drawing, layer_name, named_style)
                             else:
                                 self._logger.debug(f"No specific style found for DXF layer '{layer_name}'. Default DXF layer appearance will be used.")
 
-                                # Add geometries from GeoDataFrame to DXF
-                                self._logger.debug(f"Adding {len(gdf)} geometries to DXF layer '{layer_name}'")
-                                try:
-                                    self._style_applicator.add_geodataframe_to_dxf(dxf_drawing, gdf, layer_name, named_style, layer_def_for_style)
-                                except Exception as e:
-                                    self._logger.error(f"Failed to add geometries to DXF layer '{layer_name}': {e}", exc_info=True)
+                            # Add geometries from GeoDataFrame to DXF (ALWAYS, regardless of style)
+                            self._logger.debug(f"Adding {len(gdf)} geometries to DXF layer '{layer_name}'")
+                            try:
+                                self._style_applicator.add_geodataframe_to_dxf(dxf_drawing, gdf, layer_name, named_style, layer_def_for_style)
+                            except Exception as e:
+                                self._logger.error(f"Failed to add geometries to DXF layer '{layer_name}': {e}", exc_info=True)
+                        else:
+                            self._logger.debug(f"Skipping DXF processing for layer '{layer_name}' - conditions not met")
 
                     self._logger.info(f"Exporting DXF document to: {output_dxf_path}")
                     self._data_exporter.export_to_dxf(dxf_drawing, output_dxf_path, project_config)

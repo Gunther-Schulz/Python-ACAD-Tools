@@ -146,3 +146,143 @@ class GdfOperationService:
         target_crs = crs_list[0]
         logger_service.warning(f"Multiple CRS found: {unique_crs}. Using first CRS as target: {target_crs}")
         return target_crs
+
+    def ensure_multi_geometry(
+        self,
+        gdf: gpd.GeoDataFrame,
+        geometry_type: str = 'auto'
+    ) -> gpd.GeoDataFrame:
+        """Ensures all geometries in the GeoDataFrame are Multi-type geometries."""
+        from shapely.geometry import MultiPoint, MultiLineString, MultiPolygon
+
+        if gdf.empty:
+            return gdf.copy()
+
+        result_gdf = gdf.copy()
+
+        for idx, geom in result_gdf.geometry.items():
+            if geom is None or geom.is_empty:
+                continue
+
+            geom_type = geom.geom_type
+
+            if geom_type == 'Point':
+                result_gdf.at[idx, 'geometry'] = MultiPoint([geom])
+            elif geom_type == 'LineString':
+                result_gdf.at[idx, 'geometry'] = MultiLineString([geom])
+            elif geom_type == 'Polygon':
+                result_gdf.at[idx, 'geometry'] = MultiPolygon([geom])
+            # Multi geometries are already Multi, so no change needed
+
+        return result_gdf
+
+    def make_valid_geometries(
+        self,
+        gdf: gpd.GeoDataFrame,
+        context_message: str = ""
+    ) -> gpd.GeoDataFrame:
+        """Makes all geometries in the GeoDataFrame valid using shapely make_valid."""
+        from shapely.validation import make_valid
+
+        if gdf.empty:
+            self._logger.debug(f"Skipping make_valid for empty GeoDataFrame. {context_message}")
+            return gdf.copy()
+
+        result_gdf = gdf.copy()
+        invalid_count = 0
+        fixed_count = 0
+
+        for idx, geom in result_gdf.geometry.items():
+            if geom is None or geom.is_empty:
+                continue
+
+            if not geom.is_valid:
+                invalid_count += 1
+                try:
+                    valid_geom = make_valid(geom)
+                    result_gdf.at[idx, 'geometry'] = valid_geom
+                    fixed_count += 1
+                except Exception as e:
+                    self._logger.warning(f"Failed to make geometry valid at index {idx}: {e}. {context_message}")
+
+        if invalid_count > 0:
+            self._logger.info(f"Made {fixed_count}/{invalid_count} invalid geometries valid. {context_message}")
+
+        return result_gdf
+
+    def filter_gdf_by_attribute_values(
+        self,
+        gdf: gpd.GeoDataFrame,
+        attribute_name: str,
+        values: List[Any],
+        include: bool = True,
+        context_message: str = ""
+    ) -> gpd.GeoDataFrame:
+        """Filters GeoDataFrame by attribute values."""
+        if gdf.empty:
+            self._logger.debug(f"Skipping attribute filter for empty GeoDataFrame. {context_message}")
+            return gdf.copy()
+
+        if attribute_name not in gdf.columns:
+            msg = f"Attribute '{attribute_name}' not found in GeoDataFrame columns. {context_message}"
+            self._logger.error(msg)
+            raise GdfValidationError(msg)
+
+        if include:
+            result_gdf = gdf[gdf[attribute_name].isin(values)].copy()
+        else:
+            result_gdf = gdf[~gdf[attribute_name].isin(values)].copy()
+
+        self._logger.debug(f"Filtered GeoDataFrame from {len(gdf)} to {len(result_gdf)} features by attribute '{attribute_name}'. {context_message}")
+        return result_gdf
+
+    def filter_gdf_by_intersection(
+        self,
+        gdf: gpd.GeoDataFrame,
+        filter_geometry: BaseGeometry,
+        predicate: str = 'intersects',
+        context_message: str = ""
+    ) -> gpd.GeoDataFrame:
+        """Filters GeoDataFrame by spatial intersection with a geometry."""
+        if gdf.empty:
+            self._logger.debug(f"Skipping intersection filter for empty GeoDataFrame. {context_message}")
+            return gdf.copy()
+
+        valid_predicates = ['intersects', 'within', 'contains', 'touches', 'crosses', 'overlaps']
+        if predicate not in valid_predicates:
+            msg = f"Invalid predicate '{predicate}'. Must be one of {valid_predicates}. {context_message}"
+            self._logger.error(msg)
+            raise GdfValidationError(msg)
+
+        try:
+            # Use GeoPandas spatial index for efficiency
+            spatial_index = gdf.sindex
+            if spatial_index is not None:
+                possible_matches_index = list(spatial_index.intersection(filter_geometry.bounds))
+                possible_matches = gdf.iloc[possible_matches_index]
+            else:
+                possible_matches = gdf
+
+            # Apply the spatial predicate
+            if predicate == 'intersects':
+                mask = possible_matches.geometry.intersects(filter_geometry)
+            elif predicate == 'within':
+                mask = possible_matches.geometry.within(filter_geometry)
+            elif predicate == 'contains':
+                mask = possible_matches.geometry.contains(filter_geometry)
+            elif predicate == 'touches':
+                mask = possible_matches.geometry.touches(filter_geometry)
+            elif predicate == 'crosses':
+                mask = possible_matches.geometry.crosses(filter_geometry)
+            elif predicate == 'overlaps':
+                mask = possible_matches.geometry.overlaps(filter_geometry)
+
+            result_gdf = possible_matches[mask].copy()
+
+            self._logger.debug(f"Filtered GeoDataFrame from {len(gdf)} to {len(result_gdf)} features by {predicate} with geometry. {context_message}")
+            return result_gdf
+
+        except Exception as e:
+            msg = f"Error during spatial filtering with predicate '{predicate}': {e}. {context_message}"
+            self._logger.error(msg, exc_info=True)
+            raise GeometryError(msg) from e

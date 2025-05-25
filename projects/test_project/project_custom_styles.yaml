@@ -1,7 +1,0 @@
-main:
-  crs: "EPSG:4326"
-  dxfFilename: "test_output.dxf"
-  exportFormat: "dxf"
-  dxfVersion: "R2010"
-  stylePresetsFile: "custom_styles.yaml"  # Use project-specific styles
-  outputDxfPath: "output/test_output_custom.dxf"

@@ -23,7 +23,8 @@ from ..domain.exceptions import ConfigError
 from ..domain.config_validation import (
     validate_config_with_schema,
     ConfigValidationError,
-    ConfigValidationService
+    ConfigValidationService,
+    CrossFieldValidator
 )
 
 

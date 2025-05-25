@@ -11,6 +11,72 @@ styles:
       font: "Arial"
       attachment_point: "MIDDLE_CENTER"
 
+  residential_style:
+    layer:
+      color: "pink"
+      linetype: "Continuous"
+      lineweight: 50
+    text:
+      height: 3.5
+      color: "black"
+      font: "Arial"
+      attachment_point: "MIDDLE_CENTER"
+
+  industrial_style:
+    layer:
+      color: "gray"
+      linetype: "Continuous"
+      lineweight: 70
+    text:
+      height: 3.0
+      color: "yellow"
+      font: "Arial"
+      attachment_point: "MIDDLE_CENTER"
+
+  public_style:
+    layer:
+      color: "blue"
+      linetype: "Continuous"
+      lineweight: 55
+    text:
+      height: 4.0
+      color: "white"
+      font: "Arial"
+      attachment_point: "MIDDLE_CENTER"
+
+  recreational_style:
+    layer:
+      color: "green"
+      linetype: "Continuous"
+      lineweight: 45
+    text:
+      height: 3.5
+      color: "white"
+      font: "Arial"
+      attachment_point: "MIDDLE_CENTER"
+
+  healthcare_style:
+    layer:
+      color: "red"
+      linetype: "Continuous"
+      lineweight: 65
+    text:
+      height: 3.5
+      color: "white"
+      font: "Arial"
+      attachment_point: "MIDDLE_CENTER"
+
+  educational_style:
+    layer:
+      color: "cyan"
+      linetype: "Continuous"
+      lineweight: 60
+    text:
+      height: 3.5
+      color: "black"
+      font: "Arial"
+      attachment_point: "MIDDLE_CENTER"
+
   road_style:
     layer:
       color: "purple"
@@ -33,14 +99,24 @@ styles:
       font: "Arial"
       attachment_point: "BOTTOM_CENTER"
 
-  # Override some existing styles with project-specific colors
-  residential_style:
+  transit_style:
     layer:
-      color: "pink"
+      color: "magenta"
       linetype: "Continuous"
-      lineweight: 50
+      lineweight: 35
     text:
-      height: 3.5
+      height: 2.0
+      color: "white"
+      font: "Arial"
+      attachment_point: "BOTTOM_CENTER"
+
+  amenity_style:
+    layer:
+      color: "yellow"
+      linetype: "Continuous"
+      lineweight: 25
+    text:
+      height: 2.0
       color: "black"
       font: "Arial"
-      attachment_point: "MIDDLE_CENTER"
+      attachment_point: "BOTTOM_CENTER"

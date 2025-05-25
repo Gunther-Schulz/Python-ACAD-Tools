@@ -1,5 +1,5 @@
 - name: "test_legend"
-  position: [10, 10]
+  position: {"x": 10, "y": 10}
   items:
     - text: "Buildings"
       style: "building_style"

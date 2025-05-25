@@ -20,11 +20,6 @@ try:
 except ImportError:
     box = None
 
-from ...core.operation_models import (
-    BufferOpParams, DifferenceOpParams, IntersectionOpParams, UnionOpParams,
-    SymmetricDifferenceOpParams, BoundingBoxOpParams, EnvelopeOpParams, OffsetCurveOpParams
-)
-
 
 class BufferHandler(BaseOperationHandler):
     """Handle buffer operation following existing pattern."""

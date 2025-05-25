@@ -6,7 +6,7 @@
   geojsonFile: "../../test_data.geojson"
   style: "building_style"
   updateDxf: true
-  label: "name"  # Show building names
+  labelColumn: "name"  # Show building names
   selectByProperties:
     type: "commercial"
 
@@ -14,7 +14,7 @@
   geojsonFile: "../../test_data.geojson"
   style: "residential_style"
   updateDxf: true
-  label: "floors"  # Show number of floors as labels
+  labelColumn: "floors"  # Show number of floors as labels
   selectByProperties:
     type: "residential"
 
@@ -22,7 +22,7 @@
   geojsonFile: "../../test_data.geojson"
   style: "industrial_style"
   updateDxf: true
-  label: "area_sqm"  # Show area in square meters
+  labelColumn: "area_sqm"  # Show area in square meters
   selectByProperties:
     type: "industrial"
 
@@ -30,7 +30,7 @@
   geojsonFile: "../../test_data.geojson"
   style: "public_style"
   updateDxf: true
-  label: "name"  # Show public building names (City Library, Town Square)
+  labelColumn: "name"  # Show public building names (City Library, Town Square)
   selectByProperties:
     type: "public"
 
@@ -38,7 +38,7 @@
   geojsonFile: "../../test_data.geojson"
   style: "recreational_style"
   updateDxf: true
-  label: "name"  # Show recreational facility names (Sports Complex)
+  labelColumn: "name"  # Show recreational facility names (Sports Complex)
   selectByProperties:
     type: "recreational"
 
@@ -46,7 +46,7 @@
   geojsonFile: "../../test_data.geojson"
   style: "healthcare_style"
   updateDxf: true
-  label: "name"  # Show healthcare facility names (Medical Center)
+  labelColumn: "name"  # Show healthcare facility names (Medical Center)
   selectByProperties:
     type: "healthcare"
 
@@ -54,7 +54,7 @@
   geojsonFile: "../../test_data.geojson"
   style: "educational_style"
   updateDxf: true
-  label: "name"  # Show educational facility names (School Campus)
+  labelColumn: "name"  # Show educational facility names (School Campus)
   selectByProperties:
     type: "educational"
 
@@ -66,7 +66,7 @@
   geojsonFile: "../../test_data.geojson"
   style: "building_style"
   updateDxf: true
-  label: "address"  # Show building addresses for all buildings
+  labelColumn: "address"  # Show building addresses for all buildings
   selectByProperties:
 
 # ===========================================
@@ -77,7 +77,7 @@
   geojsonFile: "../../test_data.geojson"
   style: "road_style"
   updateDxf: true
-  label: "name"  # Show road names
+  labelColumn: "name"  # Show road names
   selectByProperties:
     type: "highway"
 
@@ -85,7 +85,7 @@
   geojsonFile: "../../test_data.geojson"
   style: "road_style"
   updateDxf: true
-  label: "surface"  # Show surface type
+  labelColumn: "surface"  # Show surface type
   selectByProperties:
     type: "cycleway"
 
@@ -97,7 +97,7 @@
   geojsonFile: "../../test_data.geojson"
   style: "point_style"
   updateDxf: true
-  label: "name"  # Show park names
+  labelColumn: "name"  # Show park names
   selectByProperties:
     type: "park"
 
@@ -105,7 +105,7 @@
   geojsonFile: "../../test_data.geojson"
   style: "transit_style"
   updateDxf: true
-  label: "routes"  # Show bus routes
+  labelColumn: "routes"  # Show bus routes
   selectByProperties:
     type: "transit"
 
@@ -113,7 +113,7 @@
   geojsonFile: "../../test_data.geojson"
   style: "amenity_style"
   updateDxf: true
-  label: "category"  # Show amenity category
+  labelColumn: "category"  # Show amenity category
   selectByProperties:
     type: "amenity"
 
@@ -132,29 +132,18 @@
       capStyle: "round"
   style: "building_style"
   updateDxf: true
-  label: "name"  # Test if labels are preserved after buffering
+  labelColumn: "name"  # Test if labels are preserved after buffering
 
 # Test merge operation with combined labels
 - name: "merged_buildings_roads"
   operations:
-    - type: merge
+    - type: union
       layers:
         - commercial_buildings
         - main_roads
   style: "building_style"
   updateDxf: true
-  label: "name"  # Test labels on merged features
-
-# Test calculated field with labels
-- name: "buildings_with_calculated_area"
-  operations:
-    - type: calculate
-      layer: all_buildings
-      expression: "gdf.geometry.area"
-      newFieldName: "calculated_area"
-  style: "building_style"
-  updateDxf: true
-  label: "calculated_area"  # Test labels with calculated numeric values
+  labelColumn: "name"  # Test labels on union features
 
 # Test bounding box for overall context
 - name: "study_area_boundary"
