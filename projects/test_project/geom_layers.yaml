@@ -155,3 +155,21 @@
       padding: 15.0
   style: "building_style"
   updateDxf: true
+
+# ===========================================
+# ALIAS CHAINING TEST LAYERS
+# ===========================================
+
+# Test chaining with parks data via external directory alias
+- name: "chaining_test_parks"
+  geojsonFile: "@test.chained_parks"  # This chains: @test.chained_parks -> @data.external/parks_and_recreation.geojson
+  style: "point_style"
+  updateDxf: false  # Don't update DXF for testing
+  selectByProperties:
+
+# Test chaining with amenities data via reference directory alias
+- name: "chaining_test_amenities"
+  geojsonFile: "@test.chained_amenities"  # This chains: @test.chained_amenities -> @data.reference/amenities_catalog.geojson
+  style: "building_style"
+  updateDxf: false  # Don't update DXF for testing
+  selectByProperties:

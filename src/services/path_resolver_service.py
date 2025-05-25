@@ -190,8 +190,47 @@ class PathResolverService(IPathResolver):
             file_path_part = alias_reference[slash_index + 1:]
             return alias_part, file_path_part if file_path_part else None
 
-    def _resolve_alias_path(self, alias_reference: str, context: PathResolutionContext) -> str:
-        """Resolve an alias reference to an absolute path."""
+    def _resolve_alias_path(self, alias_reference: str, context: PathResolutionContext,
+                           _recursion_depth: int = 0, _resolution_chain: Optional[List[str]] = None) -> str:
+        """
+        Resolve an alias reference to an absolute path with support for alias chaining.
+
+        Args:
+            alias_reference: Reference like '@data.root' or '@data.root/@work.logs'
+            context: Path resolution context
+            _recursion_depth: Internal recursion tracking (do not use externally)
+            _resolution_chain: Internal chain tracking (do not use externally)
+
+        Returns:
+            Absolute path
+
+        Raises:
+            PathResolutionError: If alias not found, circular reference, or chain too deep
+        """
+        # Initialize tracking for top-level calls
+        if _resolution_chain is None:
+            _resolution_chain = []
+
+        # Prevent infinite recursion
+        MAX_CHAIN_DEPTH = 5
+        if _recursion_depth > MAX_CHAIN_DEPTH:
+            chain_str = ' -> '.join(_resolution_chain + [alias_reference])
+            raise PathResolutionError(
+                f"Alias chain too deep (>{MAX_CHAIN_DEPTH} levels): {chain_str}",
+                alias_reference=alias_reference,
+                project_name=context.project_name
+            )
+
+        # Detect circular references
+        if alias_reference in _resolution_chain:
+            chain_str = ' -> '.join(_resolution_chain + [alias_reference])
+            raise PathResolutionError(
+                f"Circular alias reference detected: {chain_str}",
+                alias_reference=alias_reference,
+                project_name=context.project_name
+            )
+
+        # Validate alias reference format
         if not self.validate_alias_reference(alias_reference):
             raise PathResolutionError(
                 f"Invalid alias reference format: {alias_reference}",
@@ -199,26 +238,114 @@ class PathResolverService(IPathResolver):
                 project_name=context.project_name
             )
 
+        # Add current alias to resolution chain
+        current_chain = _resolution_chain + [alias_reference]
+
         # Extract alias and file path components
         alias_part, file_path_part = self.extract_file_path_from_alias_reference(alias_reference)
 
         # Resolve the alias part using the context
-        resolved_alias_path = context.resolve_alias(alias_part)
+        raw_alias_path = context.aliases.get_alias_path(alias_part[1:])  # Remove @ prefix
 
-        if resolved_alias_path is None:
+        if raw_alias_path is None:
+            chain_str = ' -> '.join(current_chain)
             raise PathResolutionError(
-                f"Alias not found: {alias_part}",
+                f"Alias not found: {alias_part} (in chain: {chain_str})",
                 alias_reference=alias_reference,
                 project_name=context.project_name
             )
 
-        # If there's a file path component, append it
+        # Check if the raw alias path itself contains alias references
+        if raw_alias_path.startswith('@'):
+            # The alias value is itself an alias reference - resolve it recursively
+            self._logger.debug(f"Found alias reference in value: {raw_alias_path}, resolving recursively (depth: {_recursion_depth + 1})")
+            resolved_alias_path = self._resolve_alias_path(
+                raw_alias_path,
+                context,
+                _recursion_depth + 1,
+                current_chain
+            )
+        else:
+            # Convert to absolute path using context logic
+            if os.path.isabs(raw_alias_path):
+                resolved_alias_path = raw_alias_path
+            else:
+                resolved_alias_path = os.path.join(context.project_root, raw_alias_path)
+
+        # If there's a file path component, process it for potential chaining
         if file_path_part:
-            final_path = os.path.join(resolved_alias_path, file_path_part)
+            # Check if the file path component contains alias references
+            final_path = self._resolve_file_path_with_chaining(
+                resolved_alias_path,
+                file_path_part,
+                context,
+                _recursion_depth + 1,
+                current_chain
+            )
         else:
             final_path = resolved_alias_path
 
-        self._logger.debug(f"Resolved alias {alias_reference} to: {final_path}")
+        self._logger.debug(f"Resolved alias {alias_reference} to: {final_path} (depth: {_recursion_depth})")
+        return final_path
+
+    def _resolve_file_path_with_chaining(self, base_path: str, file_path: str,
+                                       context: PathResolutionContext,
+                                       recursion_depth: int,
+                                       resolution_chain: List[str]) -> str:
+        """
+        Resolve a file path component that may contain alias references.
+
+        Args:
+            base_path: The resolved base path
+            file_path: The file path component that may contain @ references
+            context: Path resolution context
+            recursion_depth: Current recursion depth
+            resolution_chain: Current resolution chain
+
+        Returns:
+            Final resolved absolute path
+        """
+        # Split the file path by '/' to process each component
+        path_components = file_path.split('/')
+        resolved_components = []
+
+        for component in path_components:
+            if component.startswith('@'):
+                # This component is an alias reference - resolve it recursively
+                try:
+                    resolved_component = self._resolve_alias_path(
+                        component,
+                        context,
+                        recursion_depth,
+                        resolution_chain
+                    )
+                    # Convert back to relative path for joining
+                    if os.path.isabs(resolved_component):
+                        # If it's absolute, we need to make it relative to project root for proper joining
+                        try:
+                            resolved_component = os.path.relpath(resolved_component, context.project_root)
+                        except ValueError:
+                            # If relpath fails (e.g., different drives on Windows), use as-is
+                            pass
+                    resolved_components.append(resolved_component)
+                except PathResolutionError as e:
+                    # Re-raise with additional context about the file path component
+                    raise PathResolutionError(
+                        f"Failed to resolve alias '{component}' in file path '{file_path}': {e}",
+                        alias_reference=component,
+                        project_name=context.project_name
+                    ) from e
+            else:
+                # Regular path component - use as-is
+                resolved_components.append(component)
+
+        # Join all resolved components
+        resolved_file_path = '/'.join(resolved_components)
+
+        # Combine with base path
+        final_path = os.path.join(base_path, resolved_file_path)
+        final_path = os.path.normpath(final_path)
+
         return final_path
 
     def _resolve_regular_path(self, path_reference: str, context: PathResolutionContext) -> str:

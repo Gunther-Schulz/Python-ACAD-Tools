@@ -60,3 +60,10 @@ pathAliases:
     processing: "work/processing"   # Processing workspace
     cache: "work/cache"            # Cache directory
     logs: "work/logs"              # Log files directory
+
+  # TEST: Chaining examples for validation
+  test:
+    # Chain to create a path using data.external + filename
+    chained_parks: "@data.external/parks_and_recreation.geojson"  # Should resolve to ../../external_data/parks_and_recreation.geojson
+    # Chain to create a path using data.reference + filename
+    chained_amenities: "@data.reference/amenities_catalog.geojson"  # Should resolve to ../../reference_files/amenities_catalog.geojson

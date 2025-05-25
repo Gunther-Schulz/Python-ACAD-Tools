@@ -208,20 +208,6 @@ class ConfigLoaderService(IConfigLoader):
             with open(main_settings_path, 'r', encoding='utf-8') as f:
                 full_project_data = yaml.safe_load(f)
 
-            # Load path aliases for later use in SpecificProjectConfig
-            # Path resolution during validation is handled by the validation service
-            # creating a PathResolutionContext from the full project data
-            if 'pathAliases' in full_project_data:
-                from ..domain.path_models import ProjectPathAliases
-                try:
-                    path_aliases_data = ProjectPathAliases(aliases=full_project_data['pathAliases'])
-                    self._logger.debug(f"Loaded {len(path_aliases_data.aliases)} path aliases for project '{project_name}'")
-                except Exception as e:
-                    self._logger.error(f"Failed to load path aliases for project '{project_name}': {e}")
-                    path_aliases_data = None
-            else:
-                path_aliases_data = None
-
             # Extract the 'main' section for ProjectMainSettings
             if 'main' not in full_project_data:
                 raise ConfigError(f"Missing 'main' section in project configuration: {main_settings_path}")
@@ -235,8 +221,7 @@ class ConfigLoaderService(IConfigLoader):
                         {'main': main_data},  # Wrap for validation
                         'project',
                         config_file=main_settings_path,
-                        base_path=project_dir,
-                        path_resolver=self._path_resolver
+                        base_path=project_dir
                     )['main']  # Extract main section after validation
                     self._logger.debug(f"Configuration validation passed for {main_settings_path}")
                 except ConfigValidationError as e:
@@ -323,12 +308,19 @@ class ConfigLoaderService(IConfigLoader):
             # (viewports, block_inserts, text_inserts, path_arrays, wmts_layers, wms_layers, dxf_operations)
             # For now, they will use their default_factory (empty lists) if not explicitly loaded.
 
+            # Extract pathAliases from the full project data
+            path_aliases_data = full_project_data.get('pathAliases')
+            path_aliases = None
+            if path_aliases_data:
+                from ..domain.path_models import ProjectPathAliases
+                path_aliases = ProjectPathAliases(aliases=path_aliases_data)
+
             project_config = SpecificProjectConfig(
                 main=main_settings,
                 geomLayers=geom_layers_data, # Alias used in Pydantic model
                 legends=legends_data,
                 project_specific_styles=project_styles_data, # Alias used in Pydantic model
-                pathAliases=path_aliases_data,  # Use the correct alias name
+                pathAliases=path_aliases, # Add the missing pathAliases parameter
                 # Initialize other fields as they are loaded
                 # viewports=[], blockInserts=[], textInserts=[], pathArrays=[],
                 # wmtsLayers=[], wmsLayers=[], dxfOperations=None
