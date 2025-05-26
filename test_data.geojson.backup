@@ -1,0 +1,187 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Downtown Mall",
+        "type": "commercial",
+        "floors": 3,
+        "area_sqm": 5000,
+        "address": "123 Main St"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [13.4050, 52.5200],
+          [13.4055, 52.5200],
+          [13.4055, 52.5205],
+          [13.4050, 52.5205],
+          [13.4050, 52.5200]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Office Complex",
+        "type": "commercial",
+        "floors": 8,
+        "area_sqm": 12000,
+        "address": "456 Business Ave"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [13.4060, 52.5210],
+          [13.4065, 52.5210],
+          [13.4065, 52.5215],
+          [13.4060, 52.5215],
+          [13.4060, 52.5210]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Residential Block A",
+        "type": "residential",
+        "floors": 4,
+        "area_sqm": 3000,
+        "address": "789 Home St"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [13.4040, 52.5190],
+          [13.4045, 52.5190],
+          [13.4045, 52.5195],
+          [13.4040, 52.5195],
+          [13.4040, 52.5190]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Apartment Complex",
+        "type": "residential",
+        "floors": 6,
+        "area_sqm": 8000,
+        "address": "321 Residential Dr"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [13.4070, 52.5180],
+          [13.4075, 52.5180],
+          [13.4075, 52.5185],
+          [13.4070, 52.5185],
+          [13.4070, 52.5180]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Manufacturing Plant",
+        "type": "industrial",
+        "floors": 2,
+        "area_sqm": 15000,
+        "address": "555 Industrial Way"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [13.4080, 52.5220],
+          [13.4090, 52.5220],
+          [13.4090, 52.5230],
+          [13.4080, 52.5230],
+          [13.4080, 52.5220]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Sports Complex",
+        "type": "recreational",
+        "floors": 1,
+        "area_sqm": 6000,
+        "address": "777 Sports Blvd"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [13.4030, 52.5170],
+          [13.4040, 52.5170],
+          [13.4040, 52.5180],
+          [13.4030, 52.5180],
+          [13.4030, 52.5170]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "School Campus",
+        "type": "educational",
+        "floors": 3,
+        "area_sqm": 4500,
+        "address": "999 Education Ave"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [13.4020, 52.5160],
+          [13.4030, 52.5160],
+          [13.4030, 52.5170],
+          [13.4020, 52.5170],
+          [13.4020, 52.5160]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Main Highway",
+        "type": "highway",
+        "surface": "asphalt"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [13.4000, 52.5150],
+          [13.4100, 52.5250]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Bike Path",
+        "type": "cycleway",
+        "surface": "concrete"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [13.4010, 52.5160],
+          [13.4090, 52.5240]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Bus Stop Central",
+        "type": "transit",
+        "routes": "Bus 1, Bus 3"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [13.4050, 52.5200]
+      }
+    }
+  ]
+}

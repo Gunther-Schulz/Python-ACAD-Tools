@@ -287,9 +287,7 @@ class StyleApplicatorService(IStyleApplicator):
             # Safest to apply only if entity has 'transparency' attribute.
             if hasattr(entity.dxf, 'transparency') and s_layer.transparency is not None:
                 # ezdxf expects transparency as float 0.0 (opaque) to 1.0 (fully transparent)
-                # Assuming s_layer.transparency is 0-100 or 0-255, needs normalization if so.
-                # For now, assume it's 0.0 to 1.0 directly. Or, if it's an ACI-like value, needs mapping.
-                # Let's assume direct 0.0-1.0 for now.
+                # Per ezdxf documentation, 0.0 is valid and means fully opaque
                 entity.dxf.transparency = s_layer.transparency
 
             # Plot style name - usually BYLAYER for entities, controlled by layer plot style table ref
@@ -430,6 +428,7 @@ class StyleApplicatorService(IStyleApplicator):
 
         if style.layer: # Apply properties from the 'layer' part of NamedStyle
             s_layer = style.layer
+            self._logger.debug(f"Layer style properties: color={s_layer.color}, linetype={s_layer.linetype}, lineweight={s_layer.lineweight} (type: {type(s_layer.lineweight)})")
             if s_layer.color is not None:
                 dxf_layer.color = self._resolve_aci_color(s_layer.color)
             if s_layer.linetype is not None:
@@ -439,30 +438,41 @@ class StyleApplicatorService(IStyleApplicator):
                 dxf_layer.linetype = DEFAULT_LINETYPE
 
             if s_layer.lineweight is not None:
-                # ezdxf uses specific codes for lineweights, e.g. 13 for 0.13mm, -1 for ByLayer, -2 ByBlock, -3 Default
-                # Assuming s_layer.lineweight is one of these codes directly.
-                dxf_layer.lineweight = s_layer.lineweight
+                # Use domain model constants for proper lineweight handling
+                from src.domain.style_models import DXFLineweight
+                self._logger.debug(f"Setting lineweight for layer '{layer_name}': {s_layer.lineweight}")
+                if DXFLineweight.is_valid_lineweight(s_layer.lineweight):
+                    self._logger.debug(f"Lineweight {s_layer.lineweight} is valid, setting on layer")
+                    dxf_layer.dxf.lineweight = s_layer.lineweight  # Use dxf.lineweight for persistence
+                    self._logger.debug(f"Layer lineweight after setting: {dxf_layer.dxf.lineweight}")
+                else:
+                    self._logger.warning(f"Invalid lineweight value {s_layer.lineweight} for layer '{layer_name}', using default")
+                    dxf_layer.dxf.lineweight = DXFLineweight.DEFAULT
 
             if s_layer.plot is not None:
                 dxf_layer.dxf.plot = int(s_layer.plot) # DXF plot flag is 0 or 1
+                self._logger.debug(f"After setting plot, layer lineweight: {dxf_layer.dxf.lineweight}")
 
             if s_layer.is_on is not None:
                 if s_layer.is_on:
                     dxf_layer.on()
                 else:
                     dxf_layer.off()
+                self._logger.debug(f"After setting is_on, layer lineweight: {dxf_layer.dxf.lineweight}")
 
             if s_layer.frozen is not None:
                 if s_layer.frozen:
                     dxf_layer.freeze()
                 else:
                     dxf_layer.thaw()
+                self._logger.debug(f"After setting frozen, layer lineweight: {dxf_layer.dxf.lineweight}")
 
             if s_layer.locked is not None:
                 if s_layer.locked:
                     dxf_layer.lock()
                 else:
                     dxf_layer.unlock()
+                self._logger.debug(f"After setting locked, layer lineweight: {dxf_layer.dxf.lineweight}")
 
             # Transparency on DXF layers is complex, often not a direct layer property in older DXF
             # It might be an extended data or only per-entity. For now, not setting at layer level.
@@ -514,6 +524,10 @@ class StyleApplicatorService(IStyleApplicator):
         self._logger.debug(f"Adding {len(gdf)} geometries to DXF layer '{layer_name}'")
 
         try:
+            # Apply layer-level styling first if style is provided
+            if style:
+                self.apply_styles_to_dxf_layer(dxf_drawing, layer_name, style)
+
             # Get the modelspace
             msp = dxf_drawing.modelspace()
 

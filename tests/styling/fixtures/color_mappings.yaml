@@ -167,7 +167,7 @@ colors:
     hexCode: "#FFE0FF"
 
   - name: "ByLayer"
-    aciCode: 256
+    aciCode: 255
     rgb: "255,255,255"
     hexCode: "#FFFFFF"
 

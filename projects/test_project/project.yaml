@@ -1,5 +1,5 @@
 main:
-  crs: "EPSG:4326"
+  crs: "EPSG:25833"
   dxf:
     outputPath: "@output.dxf"
     mode: "update"

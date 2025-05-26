@@ -1,24 +1,50 @@
 {
   "type": "FeatureCollection",
+  "name": "test_data",
+  "crs": {
+    "type": "name",
+    "properties": {
+      "name": "EPSG:25833"
+    }
+  },
   "features": [
     {
       "type": "Feature",
       "properties": {
         "name": "Downtown Mall",
         "type": "commercial",
-        "floors": 3,
-        "area_sqm": 5000,
-        "address": "123 Main St"
+        "floors": 3.0,
+        "area_sqm": 5000.0,
+        "address": "123 Main St",
+        "routes": null,
+        "surface": null
       },
       "geometry": {
         "type": "Polygon",
-        "coordinates": [[
-          [13.4050, 52.5200],
-          [13.4055, 52.5200],
-          [13.4055, 52.5205],
-          [13.4050, 52.5205],
-          [13.4050, 52.5200]
-        ]]
+        "coordinates": [
+          [
+            [
+              391779.2592516289,
+              5820072.159087078
+            ],
+            [
+              391813.18198162667,
+              5820071.409613729
+            ],
+            [
+              391814.4104322641,
+              5820127.020393037
+            ],
+            [
+              391780.4880876036,
+              5820127.7698628865
+            ],
+            [
+              391779.2592516289,
+              5820072.159087078
+            ]
+          ]
+        ]
       }
     },
     {
@@ -26,19 +52,38 @@
       "properties": {
         "name": "Office Complex",
         "type": "commercial",
-        "floors": 8,
-        "area_sqm": 12000,
-        "address": "456 Business Ave"
+        "floors": 8.0,
+        "area_sqm": 12000.0,
+        "address": "456 Business Ave",
+        "routes": null,
+        "surface": null
       },
       "geometry": {
         "type": "Polygon",
-        "coordinates": [[
-          [13.4060, 52.5210],
-          [13.4065, 52.5210],
-          [13.4065, 52.5215],
-          [13.4060, 52.5215],
-          [13.4060, 52.5210]
-        ]]
+        "coordinates": [
+          [
+            [
+              391849.5608526722,
+              5820181.881945408
+            ],
+            [
+              391883.4828162601,
+              5820181.132949162
+            ],
+            [
+              391884.7105128451,
+              5820236.743744189
+            ],
+            [
+              391850.78893459955,
+              5820237.492736936
+            ],
+            [
+              391849.5608526722,
+              5820181.881945408
+            ]
+          ]
+        ]
       }
     },
     {
@@ -46,19 +91,38 @@
       "properties": {
         "name": "Residential Block A",
         "type": "residential",
-        "floors": 4,
-        "area_sqm": 3000,
-        "address": "789 Home St"
+        "floors": 4.0,
+        "area_sqm": 3000.0,
+        "address": "789 Home St",
+        "routes": null,
+        "surface": null
       },
       "geometry": {
         "type": "Polygon",
-        "coordinates": [[
-          [13.4040, 52.5190],
-          [13.4045, 52.5190],
-          [13.4045, 52.5195],
-          [13.4040, 52.5195],
-          [13.4040, 52.5190]
-        ]]
+        "coordinates": [
+          [
+            [
+              391708.9546097105,
+              5819962.437214415
+            ],
+            [
+              391742.878106106,
+              5819961.687263952
+            ],
+            [
+              391744.1073107751,
+              5820017.298027538
+            ],
+            [
+              391710.18419971183,
+              5820018.0479745
+            ],
+            [
+              391708.9546097105,
+              5819962.437214415
+            ]
+          ]
+        ]
       }
     },
     {
@@ -66,19 +130,38 @@
       "properties": {
         "name": "Apartment Complex",
         "type": "residential",
-        "floors": 6,
-        "area_sqm": 8000,
-        "address": "321 Residential Dr"
+        "floors": 6.0,
+        "area_sqm": 8000.0,
+        "address": "321 Residential Dr",
+        "routes": null,
+        "surface": null
       },
       "geometry": {
         "type": "Polygon",
-        "coordinates": [[
-          [13.4070, 52.5180],
-          [13.4075, 52.5180],
-          [13.4075, 52.5185],
-          [13.4070, 52.5185],
-          [13.4070, 52.5180]
-        ]]
+        "coordinates": [
+          [
+            [
+              391910.0410890009,
+              5819846.719488465
+            ],
+            [
+              391943.965368851,
+              5819845.970941367
+            ],
+            [
+              391945.1922449163,
+              5819901.581717204
+            ],
+            [
+              391911.2683503926,
+              5819902.33026081
+            ],
+            [
+              391910.0410890009,
+              5819846.719488465
+            ]
+          ]
+        ]
       }
     },
     {
@@ -86,19 +169,38 @@
       "properties": {
         "name": "Manufacturing Plant",
         "type": "industrial",
-        "floors": 2,
-        "area_sqm": 15000,
-        "address": "555 Industrial Way"
+        "floors": 2.0,
+        "area_sqm": 15000.0,
+        "address": "555 Industrial Way",
+        "routes": null,
+        "surface": null
       },
       "geometry": {
         "type": "Polygon",
-        "coordinates": [[
-          [13.4080, 52.5220],
-          [13.4090, 52.5220],
-          [13.4090, 52.5230],
-          [13.4080, 52.5230],
-          [13.4080, 52.5220]
-        ]]
+        "coordinates": [
+          [
+            [
+              391987.70180923736,
+              5820290.108986136
+            ],
+            [
+              392055.54421422374,
+              5820288.613123097
+            ],
+            [
+              392057.99579546304,
+              5820399.834769903
+            ],
+            [
+              391990.1549318697,
+              5820401.330618972
+            ],
+            [
+              391987.70180923736,
+              5820290.108986136
+            ]
+          ]
+        ]
       }
     },
     {
@@ -106,19 +208,38 @@
       "properties": {
         "name": "Sports Complex",
         "type": "recreational",
-        "floors": 1,
-        "area_sqm": 6000,
-        "address": "777 Sports Blvd"
+        "floors": 1.0,
+        "area_sqm": 6000.0,
+        "address": "777 Sports Blvd",
+        "routes": null,
+        "surface": null
       },
       "geometry": {
         "type": "Polygon",
-        "coordinates": [[
-          [13.4030, 52.5170],
-          [13.4040, 52.5170],
-          [13.4040, 52.5180],
-          [13.4030, 52.5180],
-          [13.4030, 52.5170]
-        ]]
+        "coordinates": [
+          [
+            [
+              391636.1862639572,
+              5819741.494851804
+            ],
+            [
+              391704.03633294895,
+              5819739.994217694
+            ],
+            [
+              391706.49545468076,
+              5819851.215707331
+            ],
+            [
+              391638.64692698256,
+              5819852.716327436
+            ],
+            [
+              391636.1862639572,
+              5819741.494851804
+            ]
+          ]
+        ]
       }
     },
     {
@@ -126,19 +247,38 @@
       "properties": {
         "name": "School Campus",
         "type": "educational",
-        "floors": 3,
-        "area_sqm": 4500,
-        "address": "999 Education Ave"
+        "floors": 3.0,
+        "area_sqm": 4500.0,
+        "address": "999 Education Ave",
+        "routes": null,
+        "surface": null
       },
       "geometry": {
         "type": "Polygon",
-        "coordinates": [[
-          [13.4020, 52.5160],
-          [13.4030, 52.5160],
-          [13.4030, 52.5170],
-          [13.4020, 52.5170],
-          [13.4020, 52.5160]
-        ]]
+        "coordinates": [
+          [
+            [
+              391565.8740325316,
+              5819631.77498199
+            ],
+            [
+              391633.7256342513,
+              5819630.273393616
+            ],
+            [
+              391636.1862639572,
+              5819741.494851804
+            ],
+            [
+              391568.3362035111,
+              5819742.996426167
+            ],
+            [
+              391565.8740325316,
+              5819631.77498199
+            ]
+          ]
+        ]
       }
     },
     {
@@ -146,13 +286,23 @@
       "properties": {
         "name": "Main Highway",
         "type": "highway",
+        "floors": null,
+        "area_sqm": null,
+        "address": null,
+        "routes": null,
         "surface": "asphalt"
       },
       "geometry": {
         "type": "LineString",
         "coordinates": [
-          [13.4000, 52.5150],
-          [13.4100, 52.5250]
+          [
+            391427.70563460095,
+            5819523.559580836
+          ],
+          [
+            392130.7368467763,
+            5820620.783234933
+          ]
         ]
       }
     },
@@ -161,13 +311,23 @@
       "properties": {
         "name": "Bike Path",
         "type": "cycleway",
+        "floors": null,
+        "area_sqm": null,
+        "address": null,
+        "routes": null,
         "surface": "concrete"
       },
       "geometry": {
         "type": "LineString",
         "coordinates": [
-          [13.4010, 52.5160],
-          [13.4090, 52.5240]
+          [
+            391498.022439362,
+            5819633.277510625
+          ],
+          [
+            392060.4474098923,
+            5820511.056434163
+          ]
         ]
       }
     },
@@ -176,11 +336,18 @@
       "properties": {
         "name": "Bus Stop Central",
         "type": "transit",
-        "routes": "Bus 1, Bus 3"
+        "floors": null,
+        "area_sqm": null,
+        "address": null,
+        "routes": "Bus 1, Bus 3",
+        "surface": null
       },
       "geometry": {
         "type": "Point",
-        "coordinates": [13.4050, 52.5200]
+        "coordinates": [
+          391779.2592516289,
+          5820072.159087078
+        ]
       }
     }
   ]

@@ -102,13 +102,19 @@ class GdfOperationService:
 
         gdf = source_layers[layer_name]
 
+        # Check if GeoDataFrame is valid but empty - this is often legitimate
+        if gdf.empty:
+            if allow_empty:
+                self._logger.debug(f"Layer '{layer_name}' is empty but empty layers are allowed. {context_message}")
+                return gdf
+            else:
+                msg = f"Layer '{layer_name}' is empty but empty layers are not allowed. {context_message}"
+                self._logger.error(msg)
+                raise GdfValidationError(msg)
+
+        # Only validate non-empty GeoDataFrames for basic structure
         if not self.validate_geodataframe_basic(gdf):
             msg = f"Layer '{layer_name}' failed basic GeoDataFrame validation. {context_message}"
-            self._logger.error(msg)
-            raise GdfValidationError(msg)
-
-        if not allow_empty and gdf.empty:
-            msg = f"Layer '{layer_name}' is empty but empty layers are not allowed. {context_message}"
             self._logger.error(msg)
             raise GdfValidationError(msg)
 

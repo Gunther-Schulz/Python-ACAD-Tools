@@ -1,156 +1,130 @@
-# Comprehensive styling test fixtures covering ALL styling options
-# This file provides test data for validating complete styling functionality
-
 styles:
-  # Layer-only styles
   basic_layer_red:
     layer:
-      color: "red"
-      linetype: "CONTINUOUS"
+      color: red
+      linetype: Continuous
       lineweight: 25
       transparency: 0.0
       plot: true
       isOn: true
       frozen: false
       locked: false
-
   layer_with_aci_color:
     layer:
-      color: 1  # ACI red
-      linetype: "DASHED"
+      color: 1
+      linetype: DASHED
       lineweight: 50
       transparency: 0.5
-
   layer_complex:
     layer:
-      color: "blue"
-      linetype: "DASHDOT"
+      color: blue
+      linetype: DASHDOT
       lineweight: 100
       transparency: 0.75
       plot: false
       isOn: false
       frozen: true
       locked: true
-
-  # Text-only styles
   basic_text:
     text:
-      font: "Arial"
-      color: "black"
+      font: Arial
+      color: black
       height: 2.5
       rotation: 0.0
-      attachmentPoint: "MIDDLE_CENTER"
+      attachmentPoint: MIDDLE_CENTER
       alignToView: false
-
   text_comprehensive:
     text:
-      font: "Times New Roman"
-      color: 3  # ACI green
+      font: Times New Roman
+      color: 3
       height: 5.0
       rotation: 45.0
-      attachmentPoint: "TOP_LEFT"
+      attachmentPoint: TOP_LEFT
       alignToView: true
-      # MTEXT properties
       maxWidth: 100.0
-      flowDirection: "left_to_right"
-      lineSpacingStyle: "at_least"
+      flowDirection: left_to_right
+      lineSpacingStyle: at_least
       lineSpacingFactor: 1.5
-      # Text formatting
       underline: true
       overline: false
       strikeThrough: true
       obliqueAngle: 15.0
-      # Background fill
       bgFill: true
-      bgFillColor: "yellow"
+      bgFillColor: yellow
       bgFillScale: 1.2
-
   text_all_attachments:
     text:
-      font: "Courier New"
-      color: "purple"
+      font: Courier New
+      color: purple
       height: 3.0
-      attachmentPoint: "BOTTOM_RIGHT"
-
+      attachmentPoint: BOTTOM_RIGHT
   text_mtext_specific:
     text:
-      font: "Helvetica"
+      font: Helvetica
       color: 5
       height: 4.0
       maxWidth: 200.0
-      flowDirection: "right_to_left"
-      lineSpacingStyle: "exactly"
+      flowDirection: right_to_left
+      lineSpacingStyle: exactly
       lineSpacingFactor: 2.0
-
-  # Hatch-only styles
   basic_hatch:
     hatch:
-      patternName: "SOLID"
-      color: "cyan"
+      patternName: SOLID
+      color: cyan
       scale: 1.0
       angle: 0.0
       spacing: 1.0
-
   hatch_comprehensive:
     hatch:
-      patternName: "ANSI31"
-      color: 4  # ACI cyan
+      patternName: ANSI31
+      color: 4
       scale: 2.5
       angle: 45.0
       spacing: 0.5
-
   hatch_custom_pattern:
     hatch:
-      patternName: "BRICK"
-      color: "brown"
+      patternName: BRICK
+      color: brown
       scale: 0.8
       angle: 90.0
       spacing: 2.0
-
-  # Combined styles (layer + text)
   combined_layer_text:
     layer:
-      color: "magenta"
-      linetype: "CENTER"
+      color: magenta
+      linetype: CENTER
       lineweight: 35
       transparency: 0.25
     text:
-      font: "Verdana"
-      color: "white"
+      font: Verdana
+      color: white
       height: 1.8
       rotation: 30.0
-      attachmentPoint: "MIDDLE_LEFT"
-
-  # Combined styles (layer + hatch)
+      attachmentPoint: MIDDLE_LEFT
   combined_layer_hatch:
     layer:
-      color: "orange"
-      linetype: "PHANTOM"
-      lineweight: 75
+      color: orange
+      linetype: PHANTOM
+      lineweight: 70
     hatch:
-      patternName: "DOTS"
-      color: "gray"
+      patternName: DOTS
+      color: gray
       scale: 1.5
       angle: 30.0
-
-  # Combined styles (text + hatch)
   combined_text_hatch:
     text:
-      font: "Impact"
-      color: "navy"
+      font: Impact
+      color: navy
       height: 6.0
       bgFill: true
-      bgFillColor: "lightblue"
+      bgFillColor: lightblue
     hatch:
-      patternName: "STARS"
-      color: "gold"
+      patternName: STARS
+      color: gold
       scale: 0.6
-
-  # Full combined style (layer + text + hatch)
   full_combined:
     layer:
-      color: "darkgreen"
-      linetype: "BORDER"
+      color: darkgreen
+      linetype: BORDER
       lineweight: 60
       transparency: 0.1
       plot: true
@@ -158,351 +132,290 @@ styles:
       frozen: false
       locked: false
     text:
-      font: "Georgia"
-      color: "darkred"
+      font: Georgia
+      color: darkred
       height: 3.5
       rotation: 15.0
-      attachmentPoint: "TOP_CENTER"
+      attachmentPoint: TOP_CENTER
       alignToView: false
       maxWidth: 150.0
-      flowDirection: "top_to_bottom"
-      lineSpacingStyle: "at_least"
+      flowDirection: top_to_bottom
+      lineSpacingStyle: at_least
       lineSpacingFactor: 1.8
       underline: false
       overline: true
       strikeThrough: false
       obliqueAngle: 10.0
       bgFill: true
-      bgFillColor: "lightyellow"
+      bgFillColor: lightyellow
       bgFillScale: 1.1
     hatch:
-      patternName: "CROSS"
-      color: "darkblue"
+      patternName: CROSS
+      color: darkblue
       scale: 1.2
       angle: 60.0
       spacing: 1.5
-
-  # Edge case styles
   minimal_layer:
     layer:
-      color: "black"
-
+      color: black
   minimal_text:
     text:
-      font: "Arial"
+      font: Arial
       height: 1.0
-
   minimal_hatch:
     hatch:
-      patternName: "SOLID"
-
-  # Extreme values for testing boundaries
+      patternName: SOLID
   extreme_values:
     layer:
-      color: 255  # Max ACI
-      lineweight: 211  # Max lineweight
-      transparency: 1.0  # Max transparency
+      color: 255
+      lineweight: 211
+      transparency: 1.0
     text:
-      height: 100.0  # Large text
-      rotation: 359.9  # Near full rotation
-      obliqueAngle: 85.0  # Extreme oblique
-      lineSpacingFactor: 5.0  # Large spacing
+      height: 100.0
+      rotation: 359.9
+      obliqueAngle: 85.0
+      lineSpacingFactor: 5.0
     hatch:
-      scale: 10.0  # Large scale
-      angle: 180.0  # Half rotation
-      spacing: 0.1  # Tight spacing
-
-  # All text attachment points for comprehensive testing
+      scale: 10.0
+      angle: 180.0
+      spacing: 0.1
   attachment_top_left:
     text:
-      attachmentPoint: "TOP_LEFT"
-      font: "Arial"
+      attachmentPoint: TOP_LEFT
+      font: Arial
       height: 2.0
-
   attachment_top_center:
     text:
-      attachmentPoint: "TOP_CENTER"
-      font: "Arial"
+      attachmentPoint: TOP_CENTER
+      font: Arial
       height: 2.0
-
   attachment_top_right:
     text:
-      attachmentPoint: "TOP_RIGHT"
-      font: "Arial"
+      attachmentPoint: TOP_RIGHT
+      font: Arial
       height: 2.0
-
   attachment_middle_left:
     text:
-      attachmentPoint: "MIDDLE_LEFT"
-      font: "Arial"
+      attachmentPoint: MIDDLE_LEFT
+      font: Arial
       height: 2.0
-
   attachment_middle_center:
     text:
-      attachmentPoint: "MIDDLE_CENTER"
-      font: "Arial"
+      attachmentPoint: MIDDLE_CENTER
+      font: Arial
       height: 2.0
-
   attachment_middle_right:
     text:
-      attachmentPoint: "MIDDLE_RIGHT"
-      font: "Arial"
+      attachmentPoint: MIDDLE_RIGHT
+      font: Arial
       height: 2.0
-
   attachment_bottom_left:
     text:
-      attachmentPoint: "BOTTOM_LEFT"
-      font: "Arial"
+      attachmentPoint: BOTTOM_LEFT
+      font: Arial
       height: 2.0
-
   attachment_bottom_center:
     text:
-      attachmentPoint: "BOTTOM_CENTER"
-      font: "Arial"
+      attachmentPoint: BOTTOM_CENTER
+      font: Arial
       height: 2.0
-
   attachment_bottom_right:
     text:
-      attachmentPoint: "BOTTOM_RIGHT"
-      font: "Arial"
+      attachmentPoint: BOTTOM_RIGHT
+      font: Arial
       height: 2.0
-
-  # All flow directions
   flow_left_to_right:
     text:
-      flowDirection: "left_to_right"
-      font: "Arial"
+      flowDirection: left_to_right
+      font: Arial
       height: 2.0
-
   flow_right_to_left:
     text:
-      flowDirection: "right_to_left"
-      font: "Arial"
+      flowDirection: right_to_left
+      font: Arial
       height: 2.0
-
   flow_top_to_bottom:
     text:
-      flowDirection: "top_to_bottom"
-      font: "Arial"
+      flowDirection: top_to_bottom
+      font: Arial
       height: 2.0
-
   flow_bottom_to_top:
     text:
-      flowDirection: "bottom_to_top"
-      font: "Arial"
+      flowDirection: bottom_to_top
+      font: Arial
       height: 2.0
-
-  # Line spacing styles
   spacing_at_least:
     text:
-      lineSpacingStyle: "at_least"
+      lineSpacingStyle: at_least
       lineSpacingFactor: 1.0
-      font: "Arial"
+      font: Arial
       height: 2.0
-
   spacing_exactly:
     text:
-      lineSpacingStyle: "exactly"
+      lineSpacingStyle: exactly
       lineSpacingFactor: 1.0
-      font: "Arial"
+      font: Arial
       height: 2.0
-
-  # Additional styles referenced in tests
   basic_layer_blue:
     layer:
-      color: "blue"
-      linetype: "CONTINUOUS"
+      color: blue
+      linetype: Continuous
       lineweight: 25
-
-  # Linetype styles
   linetype_continuous:
     layer:
-      color: "black"
-      linetype: "CONTINUOUS"
+      color: black
+      linetype: Continuous
       lineweight: 25
-
   linetype_dashed:
     layer:
-      color: "black"
-      linetype: "DASHED"
+      color: black
+      linetype: DASHED
       lineweight: 25
-
   linetype_dotted:
     layer:
-      color: "black"
-      linetype: "DOTTED"
+      color: black
+      linetype: DOTTED
       lineweight: 25
-
   linetype_dashdot:
     layer:
-      color: "black"
-      linetype: "DASHDOT"
+      color: black
+      linetype: DASHDOT
       lineweight: 25
-
   linetype_center:
     layer:
-      color: "black"
-      linetype: "CENTER"
+      color: black
+      linetype: CENTER
       lineweight: 25
-
   linetype_phantom:
     layer:
-      color: "black"
-      linetype: "PHANTOM"
+      color: black
+      linetype: PHANTOM
       lineweight: 25
-
-  # Lineweight styles
   lineweight_thin:
     layer:
-      color: "black"
-      linetype: "CONTINUOUS"
+      color: black
+      linetype: Continuous
       lineweight: 13
-
   lineweight_medium:
     layer:
-      color: "black"
-      linetype: "CONTINUOUS"
+      color: black
+      linetype: Continuous
       lineweight: 25
-
   lineweight_thick:
     layer:
-      color: "black"
-      linetype: "CONTINUOUS"
+      color: black
+      linetype: Continuous
       lineweight: 50
-
   lineweight_extra_thick:
     layer:
-      color: "black"
-      linetype: "CONTINUOUS"
+      color: black
+      linetype: Continuous
       lineweight: 100
-
   lineweight_bylayer:
     layer:
-      color: "black"
-      linetype: "CONTINUOUS"
-      lineweight: -1  # BYLAYER
-
+      color: black
+      linetype: Continuous
+      lineweight: -1
   lineweight_byblock:
     layer:
-      color: "black"
-      linetype: "CONTINUOUS"
-      lineweight: -2  # BYBLOCK
-
-  # Transparency styles
+      color: black
+      linetype: Continuous
+      lineweight: -2
   transparency_none:
     layer:
-      color: "black"
-      linetype: "CONTINUOUS"
+      color: black
+      linetype: Continuous
       lineweight: 25
       transparency: 0.0
-
   transparency_25:
     layer:
-      color: "black"
-      linetype: "CONTINUOUS"
+      color: black
+      linetype: Continuous
       lineweight: 25
       transparency: 0.25
-
   transparency_50:
     layer:
-      color: "black"
-      linetype: "CONTINUOUS"
+      color: black
+      linetype: Continuous
       lineweight: 25
       transparency: 0.5
-
   transparency_75:
     layer:
-      color: "black"
-      linetype: "CONTINUOUS"
+      color: black
+      linetype: Continuous
       lineweight: 25
       transparency: 0.75
-
   transparency_full:
     layer:
-      color: "black"
-      linetype: "CONTINUOUS"
+      color: black
+      linetype: Continuous
       lineweight: 25
       transparency: 1.0
-
-  # Plot settings
   plot_true:
     layer:
-      color: "black"
-      linetype: "CONTINUOUS"
+      color: black
+      linetype: Continuous
       lineweight: 25
       plot: true
-
   plot_false:
     layer:
-      color: "black"
-      linetype: "CONTINUOUS"
+      color: black
+      linetype: Continuous
       lineweight: 25
       plot: false
-
-  # Visibility states
   layer_on:
     layer:
-      color: "black"
-      linetype: "CONTINUOUS"
+      color: black
+      linetype: Continuous
       lineweight: 25
       isOn: true
-
   layer_off:
     layer:
-      color: "black"
-      linetype: "CONTINUOUS"
+      color: black
+      linetype: Continuous
       lineweight: 25
       isOn: false
-
   layer_frozen:
     layer:
-      color: "black"
-      linetype: "CONTINUOUS"
+      color: black
+      linetype: Continuous
       lineweight: 25
       frozen: true
-
   layer_thawed:
     layer:
-      color: "black"
-      linetype: "CONTINUOUS"
+      color: black
+      linetype: Continuous
       lineweight: 25
       frozen: false
-
   layer_locked:
     layer:
-      color: "black"
-      linetype: "CONTINUOUS"
+      color: black
+      linetype: Continuous
       lineweight: 25
       locked: true
-
   layer_unlocked:
     layer:
-      color: "black"
-      linetype: "CONTINUOUS"
+      color: black
+      linetype: Continuous
       lineweight: 25
       locked: false
-
-  # Combination styles
   combo_red_dashed_thick:
     layer:
-      color: "red"
-      linetype: "DASHED"
+      color: red
+      linetype: DASHED
       lineweight: 50
-
   combo_blue_dotted_thin:
     layer:
-      color: "blue"
-      linetype: "DOTTED"
+      color: blue
+      linetype: DOTTED
       lineweight: 13
-
   combo_green_continuous_medium:
     layer:
-      color: "green"
-      linetype: "CONTINUOUS"
+      color: green
+      linetype: Continuous
       lineweight: 25
-
   combo_yellow_dashdot_bylayer:
     layer:
-      color: "yellow"
-      linetype: "DASHDOT"
+      color: yellow
+      linetype: DASHDOT
       lineweight: -1

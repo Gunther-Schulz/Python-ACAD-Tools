@@ -144,12 +144,12 @@ class DifferenceHandler(BaseOperationHandler):
             return self._create_empty_result()
 
         try:
-            # Get the two input layers
+            # Get the two input layers - allow empty layers since we handle them gracefully
             gdf_a = self._validate_and_get_source_layer(
-                params.layers[0], source_layers, self.operation_type, allow_empty=False
+                params.layers[0], source_layers, self.operation_type, allow_empty=True
             )
             gdf_b = self._validate_and_get_source_layer(
-                params.layers[1], source_layers, self.operation_type, allow_empty=False
+                params.layers[1], source_layers, self.operation_type, allow_empty=True
             )
         except GeometryError:
             return self._create_empty_result()
@@ -195,12 +195,12 @@ class IntersectionHandler(BaseOperationHandler):
             return self._create_empty_result()
 
         try:
-            # Get the two input layers
+            # Get the two input layers - allow empty layers since we handle them gracefully
             gdf_a = self._validate_and_get_source_layer(
-                params.layers[0], source_layers, self.operation_type, allow_empty=False
+                params.layers[0], source_layers, self.operation_type, allow_empty=True
             )
             gdf_b = self._validate_and_get_source_layer(
-                params.layers[1], source_layers, self.operation_type, allow_empty=False
+                params.layers[1], source_layers, self.operation_type, allow_empty=True
             )
         except GeometryError:
             return self._create_empty_result()
@@ -246,12 +246,12 @@ class UnionHandler(BaseOperationHandler):
             return self._create_empty_result()
 
         try:
-            # Get the two input layers
+            # Get the two input layers - allow empty layers since we handle them gracefully
             gdf_a = self._validate_and_get_source_layer(
-                params.layers[0], source_layers, self.operation_type, allow_empty=False
+                params.layers[0], source_layers, self.operation_type, allow_empty=True
             )
             gdf_b = self._validate_and_get_source_layer(
-                params.layers[1], source_layers, self.operation_type, allow_empty=False
+                params.layers[1], source_layers, self.operation_type, allow_empty=True
             )
         except GeometryError:
             return self._create_empty_result()
@@ -297,12 +297,12 @@ class SymmetricDifferenceHandler(BaseOperationHandler):
             return self._create_empty_result()
 
         try:
-            # Get the two input layers
+            # Get the two input layers - allow empty layers since we handle them gracefully
             gdf_a = self._validate_and_get_source_layer(
-                params.layers[0], source_layers, self.operation_type, allow_empty=False
+                params.layers[0], source_layers, self.operation_type, allow_empty=True
             )
             gdf_b = self._validate_and_get_source_layer(
-                params.layers[1], source_layers, self.operation_type, allow_empty=False
+                params.layers[1], source_layers, self.operation_type, allow_empty=True
             )
         except GeometryError:
             return self._create_empty_result()

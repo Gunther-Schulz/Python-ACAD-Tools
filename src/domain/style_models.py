@@ -4,6 +4,30 @@ from pydantic import BaseModel, Field, ConfigDict, field_validator
 from enum import Enum
 
 
+# DXF Lineweight Constants (following ezdxf documentation)
+class DXFLineweight:
+    """DXF lineweight constants following ezdxf specification.
+
+    Lineweight values are in mm × 100 (e.g., 0.25mm = 25).
+    Special values: -3 (Default), -2 (ByBlock), -1 (ByLayer).
+    """
+    # Special lineweight values
+    DEFAULT = -3
+    BYBLOCK = -2
+    BYLAYER = -1
+
+    # Standard lineweight values (mm × 100)
+    VALID_LINEWEIGHTS = (
+        0, 5, 9, 13, 15, 18, 20, 25, 30, 35, 40, 50, 53, 60, 70, 80, 90, 100,
+        106, 120, 140, 158, 200, 211
+    )
+
+    @classmethod
+    def is_valid_lineweight(cls, value: int) -> bool:
+        """Check if a lineweight value is valid according to DXF specification."""
+        return value in (cls.DEFAULT, cls.BYBLOCK, cls.BYLAYER) or value in cls.VALID_LINEWEIGHTS
+
+
 class TextAttachmentPoint(str, Enum):
     """Text attachment point options."""
     TOP_LEFT = "TOP_LEFT"
@@ -43,6 +67,14 @@ class LayerStyleProperties(BaseModel):
     is_on: Optional[bool] = Field(None, alias='isOn')
     frozen: Optional[bool] = None
     locked: Optional[bool] = None
+
+    @field_validator('lineweight')
+    @classmethod
+    def validate_lineweight(cls, v):
+        """Validate lineweight follows DXF specification."""
+        if v is not None and not DXFLineweight.is_valid_lineweight(v):
+            raise ValueError(f"Invalid lineweight value: {v}. Must be one of {DXFLineweight.VALID_LINEWEIGHTS} or special values ({DXFLineweight.DEFAULT}, {DXFLineweight.BYBLOCK}, {DXFLineweight.BYLAYER})")
+        return v
 
 
 class TextStyleProperties(BaseModel):

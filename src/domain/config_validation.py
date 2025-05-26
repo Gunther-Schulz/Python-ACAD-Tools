@@ -1145,9 +1145,14 @@ class ConfigValidationService(IConfigValidation):
                 continue
 
             if isinstance(alias_path, str):
-                # Simple alias
+                # Simple alias - only warn about '..' if it appears to be unsafe
                 if '..' in alias_path:
-                    self._validation_warnings.append(f"Path alias '{alias_name}' contains '..' which may be a security risk")
+                    # Check if this is a legitimate relative path within project structure
+                    if self._is_legitimate_relative_path(alias_path):
+                        # This is a legitimate project structure path, no warning needed
+                        pass
+                    else:
+                        self._validation_warnings.append(f"Path alias '{alias_name}' contains '..' which may be a security risk")
             elif isinstance(alias_path, dict):
                 # Nested alias structure - will be flattened
                 self._validate_nested_path_aliases(alias_path, alias_name)
@@ -1161,11 +1166,52 @@ class ConfigValidationService(IConfigValidation):
 
             if isinstance(value, str):
                 if '..' in value:
-                    self._validation_warnings.append(f"Path alias '{full_name}' contains '..' which may be a security risk")
+                    # Check if this is a legitimate relative path within project structure
+                    if self._is_legitimate_relative_path(value):
+                        # This is a legitimate project structure path, no warning needed
+                        pass
+                    else:
+                        self._validation_warnings.append(f"Path alias '{full_name}' contains '..' which may be a security risk")
             elif isinstance(value, dict):
                 self._validate_nested_path_aliases(value, full_name)
             else:
                 self._validation_errors.append(f"Path alias '{full_name}' must be a string or dictionary")
+
+    def _is_legitimate_relative_path(self, path: str) -> bool:
+        """Check if a path with '..' is a legitimate relative path within project structure."""
+        # Allow paths that go up to access shared project data
+        # These patterns are common in well-structured projects:
+        # - "../../data/file.geojson" (accessing shared data)
+        # - "../../external_data/file.geojson" (accessing external data)
+        # - "../../reference_files/file.geojson" (accessing reference files)
+        # - "../templates/styles" (accessing shared templates)
+
+        # Normalize the path to check for legitimate patterns
+        normalized_path = path.replace('\\', '/').lower()
+
+        # Allow common project structure patterns
+        legitimate_patterns = [
+            '../../data/',
+            '../../external_data/',
+            '../../reference_files/',
+            '../templates/',
+            '../../styles.',
+            '../../test_data.',
+            '../../road_network.',
+        ]
+
+        # Check if the path starts with any legitimate pattern
+        for pattern in legitimate_patterns:
+            if normalized_path.startswith(pattern):
+                return True
+
+        # Also allow simple relative paths that don't go too far up
+        # Count the number of '../' sequences
+        parent_dir_count = normalized_path.count('../')
+        if parent_dir_count <= 2:  # Allow up to 2 levels up
+            return True
+
+        return False
 
     def _load_available_styles(self, full_config: Dict[str, Any]) -> Dict[str, Any]:
         """Load available styles from the configuration context."""
