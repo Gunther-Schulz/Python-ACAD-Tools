@@ -1,0 +1,199 @@
+# Comprehensive color mapping test fixtures
+# Covers ACI color codes, named colors, and RGB/hex mappings
+
+colors:
+  # Standard ACI colors (0-255)
+  - name: "ByBlock"
+    aciCode: 0
+    rgb: "255,255,255"
+    hexCode: "#FFFFFF"
+
+  - name: "Red"
+    aciCode: 1
+    rgb: "255,0,0"
+    hexCode: "#FF0000"
+
+  - name: "Yellow"
+    aciCode: 2
+    rgb: "255,255,0"
+    hexCode: "#FFFF00"
+
+  - name: "Green"
+    aciCode: 3
+    rgb: "0,255,0"
+    hexCode: "#00FF00"
+
+  - name: "Cyan"
+    aciCode: 4
+    rgb: "0,255,255"
+    hexCode: "#00FFFF"
+
+  - name: "Blue"
+    aciCode: 5
+    rgb: "0,0,255"
+    hexCode: "#0000FF"
+
+  - name: "Magenta"
+    aciCode: 6
+    rgb: "255,0,255"
+    hexCode: "#FF00FF"
+
+  - name: "White"
+    aciCode: 7
+    rgb: "255,255,255"
+    hexCode: "#FFFFFF"
+
+  - name: "DarkGray"
+    aciCode: 8
+    rgb: "128,128,128"
+    hexCode: "#808080"
+
+  - name: "LightGray"
+    aciCode: 9
+    rgb: "192,192,192"
+    hexCode: "#C0C0C0"
+
+  # Extended ACI colors (10-249)
+  - name: "DarkRed"
+    aciCode: 10
+    rgb: "128,0,0"
+    hexCode: "#800000"
+
+  - name: "DarkYellow"
+    aciCode: 11
+    rgb: "128,128,0"
+    hexCode: "#808000"
+
+  - name: "DarkGreen"
+    aciCode: 12
+    rgb: "0,128,0"
+    hexCode: "#008000"
+
+  - name: "DarkCyan"
+    aciCode: 13
+    rgb: "0,128,128"
+    hexCode: "#008080"
+
+  - name: "DarkBlue"
+    aciCode: 14
+    rgb: "0,0,128"
+    hexCode: "#000080"
+
+  - name: "DarkMagenta"
+    aciCode: 15
+    rgb: "128,0,128"
+    hexCode: "#800080"
+
+  # Sample of mid-range ACI colors
+  - name: "Orange"
+    aciCode: 30
+    rgb: "255,165,0"
+    hexCode: "#FFA500"
+
+  - name: "Purple"
+    aciCode: 50
+    rgb: "128,0,128"
+    hexCode: "#800080"
+
+  - name: "Brown"
+    aciCode: 70
+    rgb: "165,42,42"
+    hexCode: "#A52A2A"
+
+  - name: "Pink"
+    aciCode: 90
+    rgb: "255,192,203"
+    hexCode: "#FFC0CB"
+
+  - name: "Lime"
+    aciCode: 110
+    rgb: "0,255,0"
+    hexCode: "#00FF00"
+
+  - name: "Navy"
+    aciCode: 130
+    rgb: "0,0,128"
+    hexCode: "#000080"
+
+  - name: "Teal"
+    aciCode: 150
+    rgb: "0,128,128"
+    hexCode: "#008080"
+
+  - name: "Silver"
+    aciCode: 170
+    rgb: "192,192,192"
+    hexCode: "#C0C0C0"
+
+  - name: "Gold"
+    aciCode: 190
+    rgb: "255,215,0"
+    hexCode: "#FFD700"
+
+  - name: "Maroon"
+    aciCode: 210
+    rgb: "128,0,0"
+    hexCode: "#800000"
+
+  - name: "Olive"
+    aciCode: 230
+    rgb: "128,128,0"
+    hexCode: "#808000"
+
+  # High-range ACI colors
+  - name: "LightBlue"
+    aciCode: 250
+    rgb: "173,216,230"
+    hexCode: "#ADD8E6"
+
+  - name: "LightGreen"
+    aciCode: 251
+    rgb: "144,238,144"
+    hexCode: "#90EE90"
+
+  - name: "LightYellow"
+    aciCode: 252
+    rgb: "255,255,224"
+    hexCode: "#FFFFE0"
+
+  - name: "LightCyan"
+    aciCode: 253
+    rgb: "224,255,255"
+    hexCode: "#E0FFFF"
+
+  - name: "LightMagenta"
+    aciCode: 254
+    rgb: "255,224,255"
+    hexCode: "#FFE0FF"
+
+  - name: "ByLayer"
+    aciCode: 256
+    rgb: "255,255,255"
+    hexCode: "#FFFFFF"
+
+  # Custom named colors for testing
+  - name: "CustomRed"
+    aciCode: 1
+    rgb: "220,20,60"
+    hexCode: "#DC143C"
+
+  - name: "CustomBlue"
+    aciCode: 5
+    rgb: "70,130,180"
+    hexCode: "#4682B4"
+
+  - name: "CustomGreen"
+    aciCode: 3
+    rgb: "34,139,34"
+    hexCode: "#228B22"
+
+  # Edge cases for testing
+  - name: "Black"
+    aciCode: 0
+    rgb: "0,0,0"
+    hexCode: "#000000"
+
+  - name: "MaxACI"
+    aciCode: 255
+    rgb: "255,255,255"
+    hexCode: "#FFFFFF"
