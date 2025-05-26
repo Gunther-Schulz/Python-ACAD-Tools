@@ -1,37 +1,27 @@
 """Concrete implementation of the IStyleApplicator interface."""
-from typing import Optional, Any, Dict, Union, cast
+from typing import Optional, Any, Dict, Union, cast, List
 
 import geopandas as gpd
 import pandas as pd
 
-# Attempt ezdxf import
-try:
-    import ezdxf
-    from ezdxf.document import Drawing
-    from ezdxf.entities import DXFGraphic, Text, MText
-    from ezdxf.lldxf.const import BYLAYER, BYBLOCK
-    from ezdxf.math import Vec3, Z_AXIS
-    from ezdxf.enums import MTextEntityAlignment
-    EZDXF_AVAILABLE = True
-except ImportError:
-    Drawing = type(None)
-    DXFGraphic = type(None)
-    Text, MText = type(None), type(None)
-    BYLAYER = 256
-    BYBLOCK = 0
-    Vec3, Z_AXIS = type(None), type(None)
-    MTextEntityAlignment = type(None)
-    EZDXF_AVAILABLE = False
+# ezdxf imports for type hinting, constants, and specific classes used directly
+from ezdxf.document import Drawing
+from ezdxf.entities import DXFGraphic, Text, MText, Hatch # Hatch added for cast
+from ezdxf.lldxf.const import BYLAYER, BYBLOCK, LW_BYLAYER, LW_DEFAULT # LW_DEFAULT might be needed
+from ezdxf.math import Vec3, Z_AXIS # Used in _align_text_entity_to_view
+from ezdxf.enums import MTextEntityAlignment # Used in text helpers
+import ezdxf.const as ezdxf_constants # For BOUNDARY_PATH_ flags
 
 from ..interfaces.style_applicator_interface import IStyleApplicator
 from ..interfaces.logging_service_interface import ILoggingService
 from ..interfaces.config_loader_interface import IConfigLoader # For ACI color map
+from ..interfaces.dxf_adapter_interface import IDXFAdapter # ADDED
 from ..domain.config_models import (
     StyleConfig, NamedStyle, GeomLayerDefinition,
     LayerStyleProperties, TextStyleProperties, HatchStyleProperties, AciColorMappingItem
 )
 from ..domain.exceptions import ProcessingError, DXFProcessingError, ConfigError
-from .logging_service import LoggingService # Fallback
+# from .logging_service import LoggingService # Fallback - Keep if still used, otherwise remove
 
 DEFAULT_ACI_COLOR = 7 # White/Black, a common default
 DEFAULT_LINETYPE = "Continuous"
@@ -47,17 +37,20 @@ class StyleApplicatorService(IStyleApplicator):
         self,
         config_loader: IConfigLoader,
         logger_service: ILoggingService,
-        # lin_file_path: Optional[str] = "acadiso.lin" # Path to linetype definition file
+        dxf_adapter: IDXFAdapter, # ADDED
+        # lin_file_path: Optional[str] = "acadiso.lin" # Remove this if not used by adapter directly for linetypes
     ):
         """Initialize with required injected dependencies following strict DI principles."""
         self._logger = logger_service.get_logger(__name__)
 
         self._config_loader = config_loader
+        self._dxf_adapter = dxf_adapter # STORED
         self._aci_map: Optional[Dict[str, int]] = None
-        # self._lin_file_path = lin_file_path # For _ensure_dxf_linetype
+        # self._lin_file_path = lin_file_path # Remove if not needed
 
-        if not EZDXF_AVAILABLE:
-            self._logger.error("ezdxf library not available. DXF styling functionality will be severely limited.")
+        # Replace direct EZDXF_AVAILABLE check with adapter check
+        if not self._dxf_adapter.is_available():
+            self._logger.error("ezdxf library not available via adapter. DXF styling functionality will be severely limited.")
 
     def _get_aci_color_map(self) -> Dict[str, int]:
         """Lazily loads and caches the ACI color map."""
@@ -176,88 +169,71 @@ class StyleApplicatorService(IStyleApplicator):
         return gdf_styled
 
     def _ensure_dxf_linetype(self, drawing: Drawing, linetype_name: Optional[str]) -> None:
-        """Ensures a DXF linetype exists by name, creates it if needed."""
-        if not EZDXF_AVAILABLE or linetype_name is None or linetype_name == "BYLAYER":
+        """Ensures a DXF linetype exists by name, creates it if needed using the DXF adapter."""
+        # Adapter now handles its own availability check internally
+        if linetype_name is None or linetype_name.upper() in ["BYLAYER", "BYBLOCK", "CONTINUOUS"]: # CONTINUOUS is default
             return
 
-        # Check if linetype already exists
-        if linetype_name in drawing.linetypes:
-            self._logger.debug(f"Linetype '{linetype_name}' already exists in DXF.")
-            return
-
-        # Define common linetypes with their patterns
         common_linetypes = {
-            "DASHED": {
-                "pattern": [1.2, 0.5, -0.7],
-                "description": "Dashed ----  ----  ----  ----  ----"
-            },
-            "DOTTED": {
-                "pattern": [0.2, 0.0, -0.2],
-                "description": "Dotted .  .  .  .  .  .  .  .  ."
-            },
-            "DASHDOT": {
-                "pattern": [1.0, 0.5, -0.25, 0.0, -0.25],
-                "description": "Dash dot -----.-----.-----.-----."
-            },
-            "CENTER": {
-                "pattern": [1.25, 0.625, -0.25, 0.125, -0.25],
-                "description": "Center -----  -  -----  -  -----"
-            },
-            "PHANTOM": {
-                "pattern": [1.25, 0.625, -0.25, 0.125, -0.25, 0.125, -0.25],
-                "description": "Phantom -----  --  --  -----  --"
-            }
+            "DASHED": {"pattern": [1.2, -0.7], "description": "Dashed ----"},
+            "DOTTED": {"pattern": [0.0, -0.2], "description": "Dotted . . ."},
+            "DASHDOT": {"pattern": [1.0, -0.25, 0.0, -0.25], "description": "Dash dot --- . ---"},
+            "CENTER": {"pattern": [1.25, -0.25, 0.25, -0.25], "description": "Center ____ _ ____"},
+            "PHANTOM": {"pattern": [1.25, -0.25, 0.25, -0.25, 0.25, -0.25], "description": "Phantom ____ __ ____"}
         }
 
-        # Try to create the linetype if it's a known common type
-        if linetype_name in common_linetypes:
-            try:
-                linetype_def = common_linetypes[linetype_name]
-                drawing.linetypes.add(
-                    name=linetype_name,
-                    pattern=linetype_def["pattern"],
-                    description=linetype_def["description"]
-                )
-                self._logger.info(f"Successfully created linetype '{linetype_name}' in DXF.")
-            except Exception as e:
-                self._logger.error(f"Failed to create linetype '{linetype_name}': {e}", exc_info=True)
+        pattern_to_use: Optional[List[float]] = None
+        description_to_use: Optional[str] = None
+
+        if linetype_name.upper() in common_linetypes:
+            linetype_def = common_linetypes[linetype_name.upper()]
+            pattern_to_use = linetype_def["pattern"]
+            description_to_use = linetype_def["description"]
         else:
-            # For unknown linetypes, create a simple dashed pattern as fallback
+            self._logger.warning(f"Linetype '{linetype_name}' is not a predefined common type. Creating with a default dashed pattern via adapter.")
+            pattern_to_use = [1.0, -0.5] # Default pattern for unknown custom types
+            description_to_use = f"Custom linetype {linetype_name}"
+
+        if pattern_to_use: # Should always be true here based on logic
             try:
-                drawing.linetypes.add(
-                    name=linetype_name,
-                    pattern=[1.0, 0.5, -0.5],  # Simple dash pattern
-                    description=f"Custom linetype {linetype_name}"
+                self._dxf_adapter.create_linetype(
+                    doc=drawing, # Pass doc correctly
+                    ltype_name=linetype_name,
+                    pattern=pattern_to_use,
+                    description=description_to_use
                 )
-                self._logger.warning(f"Created fallback dashed pattern for unknown linetype '{linetype_name}'.")
-            except Exception as e:
-                self._logger.error(f"Failed to create fallback linetype '{linetype_name}': {e}", exc_info=True)
+                self._logger.info(f"Ensured/Created linetype '{linetype_name}' in DXF via adapter.")
+            except DXFProcessingError as e: # Catch specific error from adapter
+                self._logger.error(f"Adapter failed to create/ensure linetype '{linetype_name}': {e}", exc_info=True)
+            # No need for general Exception catch if adapter handles it and raises DXFProcessingError
 
     def _ensure_dxf_text_style(self, drawing: Drawing, text_props: Optional[TextStyleProperties]) -> Optional[str]:
-        """Ensures a DXF text style exists for the given font name, returns the style name."""
-        if not EZDXF_AVAILABLE or text_props is None or text_props.font is None:
-            return None # No font specified, or ezdxf not available.
+        """Ensures a DXF text style exists, returns the style name. Uses DXF adapter."""
+        if text_props is None or text_props.font is None: # Adapter handles its availability
+            return None
 
-        text_style_name = text_props.font # Assuming text_props.font is the desired DXF text style name
+        font_face_name = text_props.font
+        # Style name generation logic can remain, adapter doesn't do this.
+        style_name_candidate = "".join(c if c.isalnum() or c in ['_', '-'] else '_' for c in font_face_name)
+        if not style_name_candidate.strip() or style_name_candidate.lower() == "none":
+            self._logger.warning(f"Cannot derive a valid style name from font: {font_face_name}. Using default style provided by DXF library.")
+            return None # Let DXF use its default style
 
-        if text_style_name not in drawing.styles:
-            self._logger.info(f"Text style '{text_style_name}' not found. Creating new DXF text style.")
-            try:
-                # ezdxf uses the style name as the font name if ttf is not specified.
-                # For TrueType fonts, the actual TTF file name (e.g., "arial.ttf") is critical.
-                # The TextStyleProperties.font is currently just a name. We might need a font_file field.
-                # For now, we assume `font` is the name that ezdxf should use for the style.
-                # CAD software will then try to find a corresponding font (e.g. Arial.shx, Arial.ttf)
-                dxf_text_style = drawing.styles.new(text_style_name)
-                # if text_props.font_file: # If we had a font_file property
-                #     dxf_text_style.dxf.font = text_props.font_file
-                # if text_props.height and text_props.height > 0: # Text styles in DXF can have fixed height 0.0
-                #     dxf_text_style.dxf.height = text_props.height # Usually text height is per-entity
-                self._logger.info(f"Created DXF text style '{text_style_name}'. Font mapping relies on CAD application.")
-            except Exception as e:
-                self._logger.error(f"Failed to create DXF text style '{text_style_name}': {e}", exc_info=True)
-                return None # Failed to create
-        return text_style_name
+        style_name = f"Style_{style_name_candidate}" # Consistent prefix
+
+        self._logger.debug(f"Ensuring text style '{style_name}' for font '{font_face_name}' via adapter.")
+        try:
+            self._dxf_adapter.create_text_style(
+                doc=drawing, # Pass doc correctly
+                style_name=style_name,
+                font_name=font_face_name
+            )
+            self._logger.info(f"Ensured/Created text style '{style_name}' for font '{font_face_name}' via adapter.")
+            return style_name
+        except DXFProcessingError as e: # Catch specific error from adapter
+            self._logger.error(f"Adapter failed to create text style '{style_name}' for font '{font_face_name}': {e}", exc_info=True)
+            return None # Indicate failure to create/ensure style
+        # No need for general Exception catch
 
     def apply_style_to_dxf_entity(
         self,
@@ -265,157 +241,168 @@ class StyleApplicatorService(IStyleApplicator):
         style: NamedStyle,
         dxf_drawing: Drawing
     ) -> None:
-        if not EZDXF_AVAILABLE:
-            # This check might be redundant if apply_styles_to_dxf_layer also checks, but good for direct calls.
-            raise DXFProcessingError("Cannot apply style to DXF entity: ezdxf library not available.")
+        """Applies style properties to a DXF entity using the DXF adapter."""
+        if not self._dxf_adapter.is_available():
+            self._logger.error("DXF library not available via adapter, cannot apply style to DXF entity.")
+            raise DXFProcessingError("Cannot apply style to DXF entity: ezdxf library not available or adapter failed.")
 
-        self._logger.debug(f"Applying style to DXF entity {entity.dxftype()} (handle: {entity.dxf.handle})")
+        self._logger.debug(f"Applying style to DXF entity {entity.dxftype()} (handle: {entity.dxf.handle if hasattr(entity, 'dxf') else 'N/A'})" )
 
-        # General graphic properties from style.layer
+        common_props_for_adapter: Dict[str, Any] = {}
+
         if style.layer:
             s_layer = style.layer
-            entity.dxf.color = self._resolve_aci_color(s_layer.color) if s_layer.color is not None else BYLAYER
+            resolved_color = self._resolve_aci_color(s_layer.color) if s_layer.color is not None else BYLAYER
+            common_props_for_adapter['color'] = resolved_color
 
-            if s_layer.linetype is not None:
+            if s_layer.linetype is not None and s_layer.linetype.upper() not in ["BYLAYER", "BYBLOCK", "CONTINUOUS"]:
                 self._ensure_dxf_linetype(dxf_drawing, s_layer.linetype)
-                entity.dxf.linetype = s_layer.linetype
+                common_props_for_adapter['linetype'] = s_layer.linetype
             else:
-                entity.dxf.linetype = "BYLAYER" # DXF default for entities
+                common_props_for_adapter['linetype'] = "BYLAYER"
 
-            entity.dxf.lineweight = s_layer.lineweight if s_layer.lineweight is not None else LW_BYLAYER
+            lw = s_layer.lineweight if s_layer.lineweight is not None else LW_BYLAYER
+            common_props_for_adapter['lineweight'] = lw
 
-            # Transparency handling - temporarily disabled due to ezdxf conversion issues
-            # ezdxf appears to convert float transparency values to integers internally
-            # which causes "Invalid value 0" errors for values like 0.1, 0.2, etc.
-            # TODO: Research proper ezdxf transparency handling
-            if False and hasattr(entity.dxf, 'transparency') and s_layer.transparency is not None:
-                # ezdxf expects transparency as float 0.0 (opaque) to 1.0 (fully transparent)
-                # Per ezdxf documentation, 0.0 is valid and means fully opaque
-                try:
-                    # Validate transparency range
-                    transparency_value = float(s_layer.transparency)
-                    if 0.0 <= transparency_value <= 1.0:
-                        entity.dxf.transparency = transparency_value
-                    else:
-                        self._logger.warning(f"Invalid transparency value {transparency_value}, must be 0.0-1.0. Skipping transparency.")
-                except (ValueError, TypeError) as e:
-                    self._logger.warning(f"Failed to set transparency value {s_layer.transparency}: {e}. Using 0.0 (opaque)")
-                    entity.dxf.transparency = 0.0
-                except Exception as e:
-                    self._logger.warning(f"Failed to set transparency value {s_layer.transparency}: {e}. Using 0.0 (opaque)")
-                    entity.dxf.transparency = 0.0
+            if s_layer.transparency is not None:
+                common_props_for_adapter['transparency'] = s_layer.transparency
 
-            # Plot style name - usually BYLAYER for entities, controlled by layer plot style table ref
-            # entity.dxf.plotstyle_name = "BYLAYER"
-
-        # Entity-type specific styling
         entity_type = entity.dxftype()
+        specific_props_to_set_directly: Dict[str, Any] = {}
+        common_props_to_set_directly: Dict[str, Any] = {} # For hatch color override case
+
         if entity_type in ('TEXT', 'MTEXT') and style.text:
             s_text = style.text
-            text_entity = cast(Union[ezdxf.entities.Text, ezdxf.entities.MText], entity)
-
-            # Text Style (Font)
             if s_text.font:
                 text_style_name = self._ensure_dxf_text_style(dxf_drawing, s_text)
                 if text_style_name:
-                    text_entity.dxf.style = text_style_name
+                    specific_props_to_set_directly['style'] = text_style_name
 
-            # Text Height
             if s_text.height is not None and s_text.height > 0:
                 if entity_type == 'TEXT':
-                    cast(ezdxf.entities.Text, text_entity).dxf.height = s_text.height
+                    specific_props_to_set_directly['height'] = s_text.height
                 elif entity_type == 'MTEXT':
-                    cast(ezdxf.entities.MText, text_entity).dxf.char_height = s_text.height
+                    specific_props_to_set_directly['char_height'] = s_text.height
 
-            # Text Rotation
             if s_text.rotation is not None:
-                text_entity.dxf.rotation = s_text.rotation # degrees
+                specific_props_to_set_directly['rotation'] = s_text.rotation
 
-            # Text Color (override layer color if specified in text style)
+            # Text color overrides general layer color if specified
             if s_text.color is not None:
-                text_entity.dxf.color = self._resolve_aci_color(s_text.color)
-            # Other text properties like alignment for TEXT, MTEXT attachment_point can be set here if needed.
+                resolved_text_color = self._resolve_aci_color(s_text.color)
+                common_props_for_adapter['color'] = resolved_text_color
+
 
         elif entity_type == 'HATCH' and style.hatch:
             s_hatch = style.hatch
-            hatch_entity = cast(ezdxf.entities.Hatch, entity)
-
             if s_hatch.pattern_name is not None:
-                hatch_entity.dxf.pattern_name = s_hatch.pattern_name
+                specific_props_to_set_directly['pattern_name'] = s_hatch.pattern_name
             if s_hatch.scale is not None and s_hatch.scale > 0:
-                hatch_entity.dxf.pattern_scale = s_hatch.scale
+                specific_props_to_set_directly['pattern_scale'] = s_hatch.scale
             if s_hatch.angle is not None:
-                hatch_entity.dxf.pattern_angle = s_hatch.angle # degrees
-            # Hatch color usually follows general entity color (from style.layer), but can be overridden
-            if s_hatch.color is not None:
-                hatch_entity.dxf.color = self._resolve_aci_color(s_hatch.color)
-            # Hatch background color, pattern_type, etc. could also be styled.
+                specific_props_to_set_directly['pattern_angle'] = s_hatch.angle
 
-        # Add styling for other specific DXF types like INSERT (block scaling/rotation), DIMENSION, etc. if needed.
-        # self._logger.debug(f"Finished applying style to DXF entity {entity.dxftype()} (handle: {entity.dxf.handle})")
-        pass # End of method, explicit pass to signify completion of planned logic here
+            # Hatch color overrides general layer color if specified
+            if s_hatch.color is not None:
+                resolved_hatch_color = self._resolve_aci_color(s_hatch.color)
+                # This color needs to be set directly on hatch, not through common_props typically
+                common_props_to_set_directly['color'] = resolved_hatch_color
+
+
+        # Apply common properties via adapter
+        if common_props_for_adapter:
+            try:
+                self._dxf_adapter.set_entity_properties(
+                    entity=entity,
+                    color=common_props_for_adapter.get('color'),
+                    linetype=common_props_for_adapter.get('linetype'),
+                    lineweight=common_props_for_adapter.get('lineweight'),
+                    transparency=common_props_for_adapter.get('transparency')
+                )
+            except DXFProcessingError as e: # Catch specific error from adapter
+                self._logger.error(f"Adapter failed to set common properties on entity {entity.dxftype()}: {e}", exc_info=True)
+            # Removed general Exception catch, assuming adapter handles internal ezdxf errors and raises DXFProcessingError
+
+        # TODO: (P1.A Follow-up) Refactor IDXFAdapter.set_entity_properties to handle arbitrary key-value pairs (e.g., **kwargs),
+        # or add specific adapter methods for text (style, height, rotation) and hatch (pattern_name, scale, angle) properties.
+        # For now, directly setting these DXF attributes for properties not covered by the current adapter method.
+        if specific_props_to_set_directly or (entity_type == 'HATCH' and 'color' in common_props_to_set_directly):
+            try:
+                # Type casting for clarity, though direct access would often work
+                if entity_type == 'TEXT':
+                    text_entity_cast = cast(ezdxf.entities.Text, entity)
+                    if 'style' in specific_props_to_set_directly: text_entity_cast.dxf.style = specific_props_to_set_directly['style']
+                    if 'height' in specific_props_to_set_directly: text_entity_cast.dxf.height = specific_props_to_set_directly['height']
+                    if 'rotation' in specific_props_to_set_directly: text_entity_cast.dxf.rotation = specific_props_to_set_directly['rotation']
+                elif entity_type == 'MTEXT':
+                    mtext_entity_cast = cast(ezdxf.entities.MText, entity)
+                    if 'style' in specific_props_to_set_directly: mtext_entity_cast.dxf.style = specific_props_to_set_directly['style']
+                    if 'char_height' in specific_props_to_set_directly: mtext_entity_cast.dxf.char_height = specific_props_to_set_directly['char_height']
+                    if 'rotation' in specific_props_to_set_directly: mtext_entity_cast.dxf.rotation = specific_props_to_set_directly['rotation']
+                elif entity_type == 'HATCH':
+                    hatch_entity_cast = cast(ezdxf.entities.Hatch, entity)
+                    if 'pattern_name' in specific_props_to_set_directly: hatch_entity_cast.dxf.pattern_name = specific_props_to_set_directly['pattern_name']
+                    if 'pattern_scale' in specific_props_to_set_directly: hatch_entity_cast.dxf.pattern_scale = specific_props_to_set_directly['pattern_scale']
+                    if 'pattern_angle' in specific_props_to_set_directly: hatch_entity_cast.dxf.pattern_angle = specific_props_to_set_directly['pattern_angle']
+                    # Ensure HATCH color set here if it was overridden
+                    if 'color' in common_props_to_set_directly and common_props_to_set_directly['color'] is not None : # Check if hatch color was in specific_props
+                        hatch_entity_cast.dxf.color = common_props_to_set_directly['color'] # Apply hatch specific color
+
+                log_keys = list(specific_props_to_set_directly.keys())
+                if entity_type == 'HATCH' and 'color' in common_props_to_set_directly:
+                    log_keys.append('color (hatch specific)')
+                self._logger.debug(f"Direct DXF attributes {log_keys} set for {entity.dxftype()}.")
+            except Exception as e: # Keep general exception here as direct .dxf access can fail in many ways
+                self._logger.error(f"Error setting specific DXF attributes on entity {entity.dxftype()}: {e}", exc_info=True)
 
     def _align_text_entity_to_view(self, entity: DXFGraphic, doc: Drawing, text_props: TextStyleProperties) -> None:
         """Aligns TEXT or MTEXT entity to be readable from the current view (WCS Z-axis)."""
-        if not EZDXF_AVAILABLE or not isinstance(entity, (Text, MText)):
+        if not self._dxf_adapter.is_available() or not isinstance(entity, (Text, MText)):
             return
 
-        self._logger.debug(f"Aligning entity {entity.dxf.handle} ({entity.dxftype()}) to view.")
+        # TODO: (P1.A Follow-up) This method's internal logic relies heavily on direct ezdxf entity.dxf attribute access
+        # and ezdxf.math types (Vec3, Z_AXIS). To fully refactor this away from direct ezdxf use,
+        # IDXFAdapter would need new methods for:
+        #   - Getting/setting entity extrusion (OCS Z-axis).
+        #   - Getting/setting entity rotation.
+        #   - Getting/setting MTEXT attachment points.
+        #   - Potentially abstracting vector math if complex operations are needed.
+        # For now, leaving internal ezdxf calls, as the primary DXF availability check is adapter-based.
+        # Ensure `Text` and `MText` types are resolvable for `isinstance`. This might require
+        # `from ezdxf.entities import Text, MText` at the top if not already present,
+        # or adjust type checking if these direct ezdxf types are to be fully hidden from this service.
+        # For now, assuming they are available for the retained logic.
 
-        # Simplified: align to be flat with WCS XY plane (readable from top-down Z-axis view)
-        # This means the text's own Z-axis should align with WCS Z-axis.
-        # For TEXT entities, this means rotation should be relative to WCS X-axis.
-        # For MTEXT, its OCS Z-axis should align with WCS Z-axis.
+        self._logger.debug(f"Aligning entity {entity.dxf.handle} ({entity.dxftype()}) to view.")
 
         target_z_axis_wcs = Z_AXIS # World Z-axis (0,0,1)
 
         try:
-            if entity.dxf.hasattr('extrusion'): # Should be OCS Z-axis
+            if entity.dxf.hasattr('extrusion'):
                 current_z_axis_wcs = Vec3(entity.dxf.extrusion).normalize()
-            else: # For TEXT entities that might not have extrusion explicitly if default (0,0,1)
+            else:
                 current_z_axis_wcs = Z_AXIS
 
-            # If current_z_axis is already aligned with target_z_axis (or its inverse), no rotation needed for flattening
             if not current_z_axis_wcs.is_parallel_to(target_z_axis_wcs, tol=1e-9):
-                 # This case indicates the text is already on a plane not parallel to XY_WCS
-                 # The old code's rotation logic was to make it parallel.
-                 # For MTEXT, setting extrusion to (0,0,1) makes it parallel to XY_WCS
-                 # For TEXT, rotation is planar, so if its OCS is not (0,0,1), it's complex.
-                 # Most TEXT entities are created with OCS aligned to WCS unless explicitly set.
-                 # Let's assume for TEXT its OCS Z is (0,0,1) and we only adjust planar rotation.
                  if isinstance(entity, MText):
-                     entity.dxf.extrusion = target_z_axis_wcs # Make MTEXT plane parallel to WCS XY
-                     # MTEXT rotation is relative to its OCS X-axis.
-                     # After setting extrusion to (0,0,1), its OCS X is (1,0,0) WCS.
-                     # A rotation of 0 means text reads along WCS X.
+                     entity.dxf.extrusion = target_z_axis_wcs
                      entity.dxf.rotation = text_props.rotation if text_props.rotation is not None else 0.0
-                 # For TEXT, if we ensure its OCS is (0,0,1), then its dxf.rotation is directly in XY WCS.
-                 # However, TEXT rotation is applied *after* OCS transformation.
-                 # If TEXT OCS Z is not (0,0,1), then just setting dxf.rotation isn't enough.
-                 # The original align_to_view was more complex for arbitrary OCS.
-                 # For simplicity, we assume TEXT entities are typically on XY plane or this needs more.
 
-            # After potentially re-orienting MTEXT OCS, apply planar rotation if specified
-            # For TEXT, this is its primary rotation.
             if text_props.rotation is not None:
                  entity.dxf.rotation = text_props.rotation
-            else: # Default to 0 rotation if not specified, after potential OCS alignment for MTEXT
+            else:
                  if isinstance(entity, MText) and entity.dxf.extrusion == target_z_axis_wcs:
                       entity.dxf.rotation = 0.0
-                 elif isinstance(entity, Text): # Assume TEXT is on XY plane
+                 elif isinstance(entity, Text):
                       entity.dxf.rotation = 0.0
 
-
-            # Attachment point adjustment (simplified from original)
             if isinstance(entity, MText) and text_props.align_attachment_point:
-                # This is a placeholder. The original logic was complex.
-                # A common strategy after aligning to view is to use a center attachment.
                 try:
                     entity.dxf.attachment_point = MTextEntityAlignment.MIDDLE_CENTER
                 except Exception as e_attach:
                     self._logger.warning(f"Failed to set MTEXT attachment point during align: {e_attach}")
 
-            self._logger.debug(f"Entity {entity.dxf.handle} aligned. New rotation: {entity.dxf.get('rotation', 'N/A')}")
+            self._logger.debug(f"Entity {entity.dxf.handle} aligned. New rotation: {entity.dxf.get('rotation', 'N/A')}, Extrusion: {entity.dxf.get('extrusion', 'N/A')}")
 
         except Exception as e:
             self._logger.error(f"Error aligning text entity {entity.dxf.handle}: {e}", exc_info=True)
@@ -426,99 +413,105 @@ class StyleApplicatorService(IStyleApplicator):
         layer_name: str,
         style: NamedStyle
     ) -> None:
-        if not EZDXF_AVAILABLE:
-            raise DXFProcessingError("Cannot apply styles to DXF layer: ezdxf library not available.")
+        # Adapter availability check already at the top and correct.
+        if not self._dxf_adapter.is_available():
+            # Message already updated to mention adapter failure possibility.
+            raise DXFProcessingError("Cannot apply styles to DXF layer: ezdxf library not available or adapter failed.")
 
         self._logger.debug(f"Applying style to DXF layer: {layer_name}")
-        try:
-            dxf_layer = dxf_drawing.layers.get(layer_name)
-        except ezdxf.DXFTableEntryError:
-            self._logger.info(f"DXF Layer '{layer_name}' not found in drawing. Creating it...")
-            try:
-                dxf_layer = dxf_drawing.layers.new(layer_name)
-                self._logger.info(f"Successfully created DXF layer '{layer_name}'")
-            except Exception as e:
-                self._logger.error(f"Failed to create DXF layer '{layer_name}': {e}", exc_info=True)
-                return
 
-        if style.layer: # Apply properties from the 'layer' part of NamedStyle
+        dxf_layer: Optional[Any] = None
+        try:
+            # Get layer using adapter - This seems correct.
+            dxf_layer = self._dxf_adapter.get_layer(dxf_drawing, layer_name)
+            if dxf_layer is None:
+                self._logger.info(f"DXF Layer '{layer_name}' not found via adapter. Attempting to create it.")
+                # Create layer using adapter - This seems correct.
+                self._dxf_adapter.create_dxf_layer(dxf_drawing, layer_name) # Default properties set by adapter
+                dxf_layer = self._dxf_adapter.get_layer(dxf_drawing, layer_name)
+                if dxf_layer is None:
+                    raise DXFProcessingError(f"Failed to create or retrieve layer '{layer_name}' via adapter.")
+                self._logger.info(f"Successfully created and retrieved DXF layer '{layer_name}' via adapter.")
+            else:
+                self._logger.debug(f"Retrieved DXF layer '{layer_name}' via adapter.")
+        # Consolidate exception handling for layer get/create
+        except DXFProcessingError as e:
+            self._logger.error(f"Adapter error managing layer '{layer_name}': {e}", exc_info=True)
+            raise # Re-raise as this is critical for styling
+        except Exception as e: # Catch-all for truly unexpected issues during layer management
+            self._logger.error(f"Unexpected error managing layer '{layer_name}': {e}", exc_info=True)
+            raise DXFProcessingError(f"Unexpected error managing layer '{layer_name}'. Error: {str(e)}") from e
+
+        if style.layer:
             s_layer = style.layer
-            self._logger.debug(f"Layer style properties: color={s_layer.color}, linetype={s_layer.linetype}, lineweight={s_layer.lineweight} (type: {type(s_layer.lineweight)})")
+            self._logger.debug(f"Layer style properties from NamedStyle: color={s_layer.color}, linetype={s_layer.linetype}, lineweight={s_layer.lineweight}, plot={s_layer.plot}, is_on={s_layer.is_on}, frozen={s_layer.frozen}, locked={s_layer.locked}")
+
+            layer_props_to_set: Dict[str, Any] = {}
+
             if s_layer.color is not None:
-                dxf_layer.color = self._resolve_aci_color(s_layer.color)
+                layer_props_to_set['color'] = self._resolve_aci_color(s_layer.color)
+
+            # Ensure DEFAULT_LINETYPE is available/defined if used as fallback
+            # Assuming DEFAULT_LINETYPE = "Continuous" or similar standard value
             if s_layer.linetype is not None:
-                self._ensure_dxf_linetype(dxf_drawing, s_layer.linetype)
-                dxf_layer.dxf.linetype = s_layer.linetype
-            else: # Default linetype for layer if not specified in style
-                dxf_layer.dxf.linetype = DEFAULT_LINETYPE
+                self._ensure_dxf_linetype(dxf_drawing, s_layer.linetype) # Ensures linetype exists
+                layer_props_to_set['linetype'] = s_layer.linetype
+            else: # Explicitly set to BYLAYER if None, adapter should handle it
+                layer_props_to_set['linetype'] = "BYLAYER"
 
             if s_layer.lineweight is not None:
-                # Use domain model constants for proper lineweight handling
+                # Local import of DXFLineweight is acceptable for this validation block
                 from src.domain.style_models import DXFLineweight
-                self._logger.debug(f"Setting lineweight for layer '{layer_name}': {s_layer.lineweight}")
                 if DXFLineweight.is_valid_lineweight(s_layer.lineweight):
-                    self._logger.debug(f"Lineweight {s_layer.lineweight} is valid, setting on layer")
-                    dxf_layer.dxf.lineweight = s_layer.lineweight  # Use dxf.lineweight for persistence
-                    self._logger.debug(f"Layer lineweight after setting: {dxf_layer.dxf.lineweight}")
+                    layer_props_to_set['lineweight'] = s_layer.lineweight
                 else:
-                    self._logger.warning(f"Invalid lineweight value {s_layer.lineweight} for layer '{layer_name}', using default")
-                    dxf_layer.dxf.lineweight = DXFLineweight.DEFAULT
+                    self._logger.warning(f"Invalid lineweight value {s_layer.lineweight} for layer '{layer_name}', using default.")
+                    layer_props_to_set['lineweight'] = DXFLineweight.DEFAULT.value
+            else: # Explicitly set to LW_BYLAYER if None
+                 layer_props_to_set['lineweight'] = LW_BYLAYER
 
             if s_layer.plot is not None:
-                dxf_layer.dxf.plot = int(s_layer.plot) # DXF plot flag is 0 or 1
-                self._logger.debug(f"After setting plot, layer lineweight: {dxf_layer.dxf.lineweight}")
-
+                layer_props_to_set['plot'] = s_layer.plot
             if s_layer.is_on is not None:
-                if s_layer.is_on:
-                    dxf_layer.on()
-                else:
-                    dxf_layer.off()
-                self._logger.debug(f"After setting is_on, layer lineweight: {dxf_layer.dxf.lineweight}")
-
+                layer_props_to_set['on'] = s_layer.is_on
             if s_layer.frozen is not None:
-                if s_layer.frozen:
-                    dxf_layer.freeze()
-                else:
-                    dxf_layer.thaw()
-                self._logger.debug(f"After setting frozen, layer lineweight: {dxf_layer.dxf.lineweight}")
-
+                layer_props_to_set['frozen'] = s_layer.frozen
             if s_layer.locked is not None:
-                if s_layer.locked:
-                    dxf_layer.lock()
-                else:
-                    dxf_layer.unlock()
-                self._logger.debug(f"After setting locked, layer lineweight: {dxf_layer.dxf.lineweight}")
+                layer_props_to_set['locked'] = s_layer.locked
 
-            # Transparency on DXF layers is complex, often not a direct layer property in older DXF
-            # It might be an extended data or only per-entity. For now, not setting at layer level.
-            # if s_layer.transparency is not None: self._logger.warning("Layer-level transparency not directly set in DXF via this service yet.")
-
-            self._logger.info(f"Applied layer-level properties from style to DXF layer '{layer_name}'.")
+            if dxf_layer and layer_props_to_set:
+                try:
+                    # This call to set_layer_properties seems correct.
+                    self._dxf_adapter.set_layer_properties(layer_entity=dxf_layer, **layer_props_to_set)
+                    self._logger.info(f"Applied layer-level properties to DXF layer '{layer_name}' via adapter.")
+                except DXFProcessingError as e:
+                    self._logger.error(f"Adapter failed to set properties for layer '{layer_name}': {e}", exc_info=True)
+                # Keeping general Exception catch here for robustness, as **kwargs might lead to unexpected adapter issues
+                except Exception as e:
+                     self._logger.error(f"Unexpected error setting layer properties for '{layer_name}' via adapter: {e}", exc_info=True)
         else:
-            self._logger.debug(f"No specific 'layer' properties in NamedStyle for DXF layer '{layer_name}'. Layer defaults maintained.")
+            self._logger.debug(f"No specific 'layer' properties in NamedStyle for DXF layer '{layer_name}'. Layer defaults/current state maintained by adapter.")
 
-        # Apply style to entities on this layer if the style has entity-specific parts or needs to override layer settings
-        if EZDXF_AVAILABLE: # Guard the whole block
-            # Query entities on the specified layer from the modelspace.
-            # TODO: Consider if entities can be in other blocks or layouts if layer_name is global and used there.
-            # For now, assuming styling is primarily for modelspace entities.
-            msp = dxf_drawing.modelspace()
-            entities_on_layer = msp.query(f'*[layer=="{layer_name}"]')
+        # Entity processing part - This also seems largely correct.
+        # Adapter availability check already done.
+        try:
+            msp = self._dxf_adapter.get_modelspace(dxf_drawing) # Uses adapter
+            entities_on_layer = self._dxf_adapter.query_entities(msp, query_string=f'*[layer=="{layer_name}"]') # Uses adapter
 
             if entities_on_layer:
-                self._logger.info(f"Found {len(entities_on_layer)} entities on DXF layer '{layer_name}'. Applying entity-specific styles.")
+                self._logger.info(f"Found {len(entities_on_layer)} entities on DXF layer '{layer_name}' (via adapter query). Applying entity-specific styles.")
                 for entity in entities_on_layer:
-                    # Ensure entity is a DXFGraphic (it should be from query)
-                    if isinstance(entity, DXFGraphic):
-                        self.apply_style_to_dxf_entity(entity, style, dxf_drawing)
+                    if hasattr(entity, 'dxftype'): # Basic check
+                        self.apply_style_to_dxf_entity(entity, style, dxf_drawing) # Already refactored
                     else:
-                        self._logger.warning(f"Skipping non-DXFGraphic entity found on layer '{layer_name}': {type(entity)}")
+                        self._logger.warning(f"Skipping non-DXFGraphic-like entity found on layer '{layer_name}': {type(entity)}")
                 self._logger.info(f"Finished applying entity-specific styles for DXF layer '{layer_name}'.")
             else:
-                self._logger.debug(f"No entities found on DXF layer '{layer_name}' to apply entity-specific styles.")
-        else:
-            self._logger.warning(f"Skipping entity-specific styling for layer '{layer_name}': ezdxf not available.")
-        # self._logger.warning(f"Entity-specific styling for layer '{layer_name}' based on overall style is not yet implemented.") # Remove this old warning
+                self._logger.debug(f"No entities found on DXF layer '{layer_name}' to apply entity-specific styles (via adapter query).")
+        except DXFProcessingError as e:
+            self._logger.error(f"Could not process entities on layer {layer_name} for styling: {e}", exc_info=True)
+        except Exception as e: # Catch any other unexpected errors
+            self._logger.error(f"Unexpected error processing entities on layer {layer_name} for styling: {e}", exc_info=True)
 
     def add_geodataframe_to_dxf(
         self,
@@ -529,7 +522,7 @@ class StyleApplicatorService(IStyleApplicator):
         layer_definition: Optional[GeomLayerDefinition] = None
     ) -> None:
         """Adds geometries from a GeoDataFrame to a DXF drawing with optional label placement."""
-        if not EZDXF_AVAILABLE:
+        if not self._dxf_adapter.is_available():
             raise DXFProcessingError("Cannot add geometries to DXF: ezdxf library not available.")
 
         if gdf.empty:
@@ -544,7 +537,7 @@ class StyleApplicatorService(IStyleApplicator):
                 self.apply_styles_to_dxf_layer(dxf_drawing, layer_name, style)
 
             # Get the modelspace
-            msp = dxf_drawing.modelspace()
+            msp = self._dxf_adapter.get_modelspace(dxf_drawing) # USE ADAPTER
 
             # Check if labels should be added
             self._logger.debug(f"Checking label conditions for layer '{layer_name}': layer_definition={layer_definition is not None}, label_column={getattr(layer_definition, 'label_column', None) if layer_definition else None}")
@@ -575,12 +568,12 @@ class StyleApplicatorService(IStyleApplicator):
                     # Handle different geometry types
                     if geom.geom_type == 'Point':
                         # Add as a point entity
-                        entity = msp.add_point((geom.x, geom.y), dxfattribs={'layer': layer_name})
+                        entity = self._dxf_adapter.add_point(msp, location=(geom.x, geom.y, 0.0), dxfattribs={'layer': layer_name})
 
                     elif geom.geom_type == 'LineString':
                         # Add as a polyline
                         coords = list(geom.coords)
-                        entity = msp.add_lwpolyline(coords, dxfattribs={'layer': layer_name})
+                        entity = self._dxf_adapter.add_lwpolyline(msp, points=coords, dxfattribs={'layer': layer_name})
 
                     elif geom.geom_type in ['Polygon', 'MultiPolygon']:
                         # Handle polygons - create both HATCH and LWPOLYLINE entities based on styling
@@ -594,50 +587,55 @@ class StyleApplicatorService(IStyleApplicator):
                             if style and style.hatch:
                                 try:
                                     # Create HATCH entity with boundary path from polygon
-                                    hatch_entity = msp.add_hatch(dxfattribs={'layer': layer_name})
+                                    hatch_dxfattribs = {'layer': layer_name}
+                                    hatch_color_for_adapter: Optional[int] = None
+                                    if not style.hatch.pattern_name: # Solid fill implies color is main hatch color
+                                        hatch_color_for_adapter = self._resolve_aci_color(style.hatch.color) if style.hatch.color else DEFAULT_ACI_COLOR
+
+                                    hatch_entity = self._dxf_adapter.add_hatch(
+                                        msp,
+                                        color=hatch_color_for_adapter, # Pass color if solid, pattern color handled by set_pattern_fill
+                                        dxfattribs=hatch_dxfattribs
+                                    )
 
                                     # Add exterior boundary path
                                     exterior_coords = list(poly.exterior.coords)
-                                    hatch_entity.paths.add_polyline_path(
-                                        exterior_coords,
-                                        is_closed=True,
-                                        flags=1  # BOUNDARY_PATH_EXTERNAL
-                                    )
+                                    self._dxf_adapter.add_hatch_boundary_path(hatch_entity, points=exterior_coords, flags=ezdxf_constants.BOUNDARY_PATH_EXTERNAL)
 
                                     # Add interior boundaries (holes) if any
                                     for interior in poly.interiors:
                                         interior_coords = list(interior.coords)
-                                        hatch_entity.paths.add_polyline_path(
-                                            interior_coords,
-                                            is_closed=True,
-                                            flags=16  # BOUNDARY_PATH_OUTERMOST (hole)
-                                        )
+                                        self._dxf_adapter.add_hatch_boundary_path(hatch_entity, points=interior_coords, flags=ezdxf_constants.BOUNDARY_PATH_DEFAULT)
 
-                                    # Apply hatch styling
+                                    # Apply hatch styling USING ADAPTER
                                     if style.hatch.pattern_name:
-                                        # Pattern fill
-                                        hatch_entity.set_pattern_fill(
-                                            style.hatch.pattern_name,
-                                            color=self._resolve_aci_color(style.hatch.color) if style.hatch.color else 7,
+                                        self._dxf_adapter.set_hatch_pattern_fill(
+                                            hatch_entity=hatch_entity,
+                                            pattern_name=style.hatch.pattern_name,
+                                            color=self._resolve_aci_color(style.hatch.color) if style.hatch.color else DEFAULT_ACI_COLOR,
                                             scale=style.hatch.scale if style.hatch.scale else 1.0,
                                             angle=style.hatch.angle if style.hatch.angle else 0.0
                                         )
-                                    else:
-                                        # Solid fill (default)
-                                        hatch_entity.set_solid_fill(
-                                            color=self._resolve_aci_color(style.hatch.color) if style.hatch.color else 7
+                                    else: # Solid fill
+                                        self._dxf_adapter.set_hatch_solid_fill(
+                                            hatch_entity=hatch_entity,
+                                            color=self._resolve_aci_color(style.hatch.color) if style.hatch.color else DEFAULT_ACI_COLOR
                                         )
 
-                                    # Apply general entity styling
+                                    # self.apply_style_to_dxf_entity for hatch_entity is still relevant for common props like layer, transparency (if adapter doesn't set them)
+                                    # The hatch specific styling (pattern/solid) is now done by adapter.
+                                    # Common properties like color (if not pattern-defined) are part of set_hatch_X_fill.
+                                    # Layer is set during add_hatch. Other common props for hatch might need review.
+                                    # For now, keeping apply_style_to_dxf_entity for hatch to cover any other general styling.
                                     self.apply_style_to_dxf_entity(hatch_entity, style, dxf_drawing)
                                     added_count += 1
 
-                                except Exception as e:
-                                    self._logger.warning(f"Failed to create HATCH entity for polygon: {e}")
+                                except Exception as e: # Keep general exception for this complex block
+                                    self._logger.warning(f"Failed to create or style HATCH entity for polygon: {e}", exc_info=True)
 
                             # Always create LWPOLYLINE for polygon boundary (for visibility/editing)
                             exterior_coords = list(poly.exterior.coords)
-                            entity = msp.add_lwpolyline(exterior_coords, close=True, dxfattribs={'layer': layer_name})
+                            entity = self._dxf_adapter.add_lwpolyline(msp, points=exterior_coords, close=True, dxfattribs={'layer': layer_name})
 
                             if entity:
                                 added_count += 1
@@ -651,7 +649,7 @@ class StyleApplicatorService(IStyleApplicator):
                             # Add interior rings (holes) as separate polylines
                             for interior in poly.interiors:
                                 interior_coords = list(interior.coords)
-                                hole_entity = msp.add_lwpolyline(interior_coords, close=True, dxfattribs={'layer': layer_name})
+                                hole_entity = self._dxf_adapter.add_lwpolyline(msp, points=interior_coords, close=True, dxfattribs={'layer': layer_name})
                                 if hole_entity:
                                     added_count += 1
                                     # Apply style to hole polyline
@@ -675,10 +673,10 @@ class StyleApplicatorService(IStyleApplicator):
                         # Handle multi-geometries
                         for sub_geom in geom.geoms:
                             if sub_geom.geom_type == 'Point':
-                                entity = msp.add_point((sub_geom.x, sub_geom.y), dxfattribs={'layer': layer_name})
+                                entity = self._dxf_adapter.add_point(msp, location=(sub_geom.x, sub_geom.y, 0.0), dxfattribs={'layer': layer_name})
                             elif sub_geom.geom_type == 'LineString':
                                 coords = list(sub_geom.coords)
-                                entity = msp.add_lwpolyline(coords, dxfattribs={'layer': layer_name})
+                                entity = self._dxf_adapter.add_lwpolyline(msp, points=coords, dxfattribs={'layer': layer_name})
 
                             if entity:
                                 added_count += 1
@@ -733,56 +731,54 @@ class StyleApplicatorService(IStyleApplicator):
                                 if text_props.color:
                                     text_dxfattribs['color'] = self._resolve_aci_color(text_props.color)
 
+                                text_insert_point = (text_position[0], text_position[1], 0.0)
+                                text_height_val = text_props.height if text_props.height else 2.5
+                                text_rotation_val = text_props.rotation if text_props.rotation else 0.0
+                                text_style_name_val = self._ensure_dxf_text_style(dxf_drawing, text_props) if text_props.font else None
+
                                 if use_mtext:
                                     # Create MTEXT entity
-                                    text_entity = msp.add_mtext(
-                                        text_content,
-                                        dxfattribs=text_dxfattribs
-                                    )
-                                    text_entity.dxf.insert = Vec3(text_position[0], text_position[1], 0)
-                                    text_entity.dxf.char_height = text_props.height if text_props.height else 2.5
-                                    text_entity.dxf.rotation = text_props.rotation if text_props.rotation else 0.0
-
-                                    if text_props.font:
-                                        text_style_name = self._ensure_dxf_text_style(dxf_drawing, text_props)
-                                        if text_style_name:
-                                            text_entity.dxf.style = text_style_name
-
-                                    # Set attachment point
+                                    mtext_specific_attrs = text_dxfattribs.copy()
                                     if text_props.attachment_point:
-                                        attachment_point = self._resolve_attachment_point(text_props.attachment_point)
-                                        text_entity.dxf.attachment_point = attachment_point
+                                        mtext_specific_attrs['attachment_point'] = self._resolve_attachment_point(text_props.attachment_point)
                                     else:
-                                        text_entity.dxf.attachment_point = MTextEntityAlignment.MIDDLE_CENTER
+                                        mtext_specific_attrs['attachment_point'] = MTextEntityAlignment.MIDDLE_CENTER
+                                    if text_props.line_spacing_factor:
+                                         mtext_specific_attrs['line_spacing_factor'] = text_props.line_spacing_factor
+                                    text_entity = self._dxf_adapter.add_mtext(
+                                        msp,
+                                        text=text_content,
+                                        insert=text_insert_point,
+                                        char_height=text_height_val,
+                                        rotation=text_rotation_val,
+                                        style=text_style_name_val,
+                                        width=text_props.max_width if text_props.max_width and text_props.max_width > 0 else None,
+                                        dxfattribs=mtext_specific_attrs
+                                    )
 
                                 else:
                                     # Create TEXT entity
-                                    text_entity = msp.add_text(
-                                        text_content,
-                                        dxfattribs=text_dxfattribs
-                                    )
-                                    text_entity.dxf.insert = Vec3(text_position[0], text_position[1], 0)
-                                    text_entity.dxf.height = text_props.height if text_props.height else 2.5
-                                    text_entity.dxf.rotation = text_props.rotation if text_props.rotation else 0.0
-
-                                    if text_props.font:
-                                        text_style_name = self._ensure_dxf_text_style(dxf_drawing, text_props)
-                                        if text_style_name:
-                                            text_entity.dxf.style = text_style_name
-
-                                    # Set alignment for TEXT entities
+                                    text_specific_attrs = text_dxfattribs.copy()
                                     if text_props.attachment_point:
-                                        attachment_point = self._resolve_attachment_point(text_props.attachment_point)
-                                        halign, valign = self._mtext_attachment_to_text_align(attachment_point)
-                                        text_entity.dxf.halign = halign
-                                        text_entity.dxf.valign = valign
+                                        attachment_p = self._resolve_attachment_point(text_props.attachment_point)
+                                        halign, valign = self._mtext_attachment_to_text_align(attachment_p)
+                                        text_specific_attrs['halign'] = halign
+                                        text_specific_attrs['valign'] = valign
                                         if halign != 0 or valign != 0:
-                                            text_entity.dxf.align_point = Vec3(text_position[0], text_position[1], 0)
+                                            text_specific_attrs['align_point'] = text_insert_point
                                     else:
-                                        # Default center alignment
-                                        text_entity.dxf.halign = 1  # Center
-                                        text_entity.dxf.valign = 2  # Middle
-                                        text_entity.dxf.align_point = Vec3(text_position[0], text_position[1], 0)
+                                        text_specific_attrs['halign'] = 1  # Center
+                                        text_specific_attrs['valign'] = 2  # Middle
+                                        text_specific_attrs['align_point'] = text_insert_point
+                                    text_entity = self._dxf_adapter.add_text(
+                                        msp,
+                                        text=text_content,
+                                        point=text_insert_point,
+                                        height=text_height_val,
+                                        rotation=text_rotation_val,
+                                        style=text_style_name_val,
+                                        dxfattribs=text_specific_attrs
+                                    )
 
                                 # Apply general styling to text entity
                                 self.apply_style_to_dxf_entity(text_entity, style, dxf_drawing)
@@ -846,124 +842,108 @@ class StyleApplicatorService(IStyleApplicator):
 
     def _add_label_to_dxf(
         self,
-        modelspace,
+        modelspace: Any, # Should be ezdxf.layouts.Modelspace or equivalent from adapter
         label_text: str,
         position: tuple,
         layer_name: str,
         style: Optional[NamedStyle],
-        dxf_drawing: Drawing
+        dxf_drawing: Drawing # Added for _ensure_dxf_text_style consistency
     ) -> None:
         """Add a text label to the DXF drawing with proper styling."""
         try:
-            # Determine text properties from style
-            text_height = 2.5  # Default height
+            text_height = 2.5
             text_style_name = None
-            text_color = None
+            text_color = None # ACI code
             rotation = 0.0
-            attachment_point = None
+            attachment_point_enum = None # For MTEXT ezdxf enum
+            use_mtext = False # Initialize
 
             if style and style.text:
                 text_props = style.text
                 if text_props.height and text_props.height > 0:
                     text_height = text_props.height
                 if text_props.font:
-                    text_style_name = self._ensure_dxf_text_style(dxf_drawing, text_props)
+                    text_style_name = self._ensure_dxf_text_style(dxf_drawing, text_props) # Already uses adapter
                 if text_props.color:
-                    text_color = self._resolve_aci_color(text_props.color)
+                    text_color = self._resolve_aci_color(text_props.color) # Corrected method name
                 if text_props.rotation is not None:
                     rotation = text_props.rotation
                 if text_props.attachment_point:
-                    attachment_point = self._resolve_attachment_point(text_props.attachment_point)
+                    attachment_point_enum = self._resolve_attachment_point(text_props.attachment_point)
 
-            # Create DXF attributes for the text
+                # Determine if MTEXT should be used (copied from add_geodataframe_to_dxf)
+                use_mtext = (
+                    (text_props.max_width and text_props.max_width > 0) or
+                    text_props.flow_direction or # Assuming flow_direction implies MTEXT
+                    text_props.line_spacing_style # Assuming line_spacing_style implies MTEXT
+                )
+                # Also consider if label_text itself contains newlines
+                if "\n" in label_text or "\P" in label_text or "\X" in label_text: # Check for MTEXT specific newlines
+                    use_mtext = True
+
+
             text_dxfattribs = {'layer': layer_name}
             if text_color is not None:
                 text_dxfattribs['color'] = text_color
 
-            # Decide whether to use TEXT or MTEXT based on content and style
-            use_mtext = (
-                '\n' in label_text or  # Multi-line text
-                len(label_text) > 50 or  # Long text
-                (style and style.text and (
-                    style.text.max_width and style.text.max_width > 0 or
-                    style.text.flow_direction or
-                    style.text.line_spacing_style
-                ))
-            )
+            label_insert_point = (position[0], position[1], 0.0)
+            created_text_entity = None
 
             if use_mtext:
-                # Use MTEXT for multi-line or styled text
-                mtext_entity = modelspace.add_mtext(
-                    label_text,
-                    dxfattribs=text_dxfattribs
-                )
-                mtext_entity.dxf.insert = Vec3(position[0], position[1], 0)
-                mtext_entity.dxf.char_height = text_height
-                mtext_entity.dxf.rotation = rotation
+                mtext_specific_attrs = text_dxfattribs.copy()
+                if attachment_point_enum:
+                     mtext_specific_attrs['attachment_point'] = attachment_point_enum
+                else: # Default for MTEXT
+                     mtext_specific_attrs['attachment_point'] = MTextEntityAlignment.MIDDLE_CENTER
 
-                if text_style_name:
-                    mtext_entity.dxf.style = text_style_name
-
-                if attachment_point:
-                    try:
-                        mtext_entity.dxf.attachment_point = attachment_point
-                    except:
-                        # Fallback to middle center if attachment point fails
-                        mtext_entity.dxf.attachment_point = MTextEntityAlignment.MIDDLE_CENTER
-                else:
-                    # Default to middle center for better label appearance
-                    mtext_entity.dxf.attachment_point = MTextEntityAlignment.MIDDLE_CENTER
-
-                # Apply additional MTEXT properties if available
                 if style and style.text:
-                    text_props = style.text
-                    if text_props.max_width and text_props.max_width > 0:
-                        mtext_entity.dxf.width = text_props.max_width
-                    if text_props.line_spacing_factor:
-                        mtext_entity.dxf.line_spacing_factor = text_props.line_spacing_factor
+                    text_props_val = style.text
+                    if text_props_val.line_spacing_factor:
+                         mtext_specific_attrs['line_spacing_factor'] = text_props_val.line_spacing_factor
+                        # Add other MTEXT specific properties from text_props_val to mtext_specific_attrs if adapter doesn't take them directly
 
-                # Apply align_to_view if specified
-                if style and style.text and style.text.align_to_view:
-                    self._align_text_entity_to_view(mtext_entity, dxf_drawing, style.text)
-
-            else:
-                # Use simple TEXT for single-line text
-                text_entity = modelspace.add_text(
-                    label_text,
-                    dxfattribs=text_dxfattribs
+                created_text_entity = self._dxf_adapter.add_mtext(
+                    modelspace,
+                    text=label_text,
+                    insert=label_insert_point,
+                    char_height=text_height,
+                    rotation=rotation,
+                    style=text_style_name,
+                    # Pass width only if it's valid for MTEXT
+                    width=style.text.max_width if style and style.text and style.text.max_width and style.text.max_width > 0 and use_mtext else None,
+                    dxfattribs=mtext_specific_attrs
                 )
-                text_entity.dxf.insert = Vec3(position[0], position[1], 0)
-                text_entity.dxf.height = text_height
-                text_entity.dxf.rotation = rotation
+            else: # Use TEXT
+                text_specific_attrs = text_dxfattribs.copy()
+                if attachment_point_enum: # MTEXT enum needs conversion for TEXT
+                    halign, valign = self._mtext_attachment_to_text_align(attachment_point_enum)
+                    text_specific_attrs['halign'] = halign
+                    text_specific_attrs['valign'] = valign
+                    if halign != 0 or valign != 0: # If not default (left, baseline)
+                        text_specific_attrs['align_point'] = label_insert_point
+                else: # Default for TEXT if no attachment point specified
+                    text_specific_attrs['halign'] = 0 # TEXT_ALIGN_LEFT (ezdxf default for halign if align_point is set)
+                    text_specific_attrs['valign'] = 0 # TEXT_ALIGN_BASELINE (ezdxf default for valign if align_point is set)
 
-                if text_style_name:
-                    text_entity.dxf.style = text_style_name
+                created_text_entity = self._dxf_adapter.add_text(
+                    modelspace,
+                    text=label_text,
+                    point=label_insert_point, # add_text uses 'point' not 'insert'
+                    height=text_height,
+                    rotation=rotation,
+                    style=text_style_name,
+                    dxfattribs=text_specific_attrs
+                )
 
-                # For TEXT entities, set horizontal and vertical alignment
-                if attachment_point:
-                    # Convert MTEXT attachment to TEXT alignment
-                    halign, valign = self._mtext_attachment_to_text_align(attachment_point)
-                    text_entity.dxf.halign = halign
-                    text_entity.dxf.valign = valign
-                    # If alignment is not default, set align_point
-                    if halign != 0 or valign != 0:
-                        text_entity.dxf.align_point = Vec3(position[0], position[1], 0)
-                else:
-                    # Default center alignment for labels
-                    text_entity.dxf.halign = 1  # Center
-                    text_entity.dxf.valign = 2  # Middle
-                    text_entity.dxf.align_point = Vec3(position[0], position[1], 0)
-
-                # Apply align_to_view if specified
-                if style and style.text and style.text.align_to_view:
-                    self._align_text_entity_to_view(text_entity, dxf_drawing, style.text)
+            if created_text_entity and style and style.text and style.text.align_to_view:
+                self._align_text_entity_to_view(created_text_entity, dxf_drawing, style.text) # Already reviewed
 
         except Exception as e:
-            self._logger.warning(f"Failed to add label '{label_text}' at position {position}: {e}")
+            self._logger.warning(f"Failed to add label '{label_text}' at position {position}: {e}", exc_info=True)
 
     def _resolve_attachment_point(self, attachment_point_str: str):
         """Resolve attachment point string to ezdxf constant."""
-        if not EZDXF_AVAILABLE:
+        if not self._dxf_adapter.is_available():
             return None
 
         # Mapping of common attachment point names to ezdxf constants
@@ -983,7 +963,7 @@ class StyleApplicatorService(IStyleApplicator):
 
     def _mtext_attachment_to_text_align(self, attachment_point) -> tuple:
         """Convert MTEXT attachment point to TEXT horizontal and vertical alignment."""
-        if not EZDXF_AVAILABLE:
+        if not self._dxf_adapter.is_available():
             return (1, 2)  # Default center, middle
 
         # Map MTEXT attachment to TEXT halign, valign

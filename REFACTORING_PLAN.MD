@@ -16,7 +16,7 @@
     *   Tests should be written before or alongside the code changes where practical.
 *   **Local `ezdxf` Resources (NEW):** The `ezdxf` library's documentation (in `ezdxf/docs`) and source code (in `ezdxf/src`) are available locally within this project. Specifically, `ezdxf/docs/source/reference.rst` acts as a very helpful master table of contents for navigating the local documentation. These resources can be valuable references for understanding `ezdxf` APIs and behavior, supplementing web searches as appropriate.
 *   **No Backward Compatibility Layers (NEW):** Consistent with `PROJECT_ARCHITECTURE.MD`, all refactoring efforts will focus on implementing the target state directly. No temporary layers for backward compatibility with previous internal structures will be created, simplifying the changes and the final codebase.
-*   **Handling Emergent Issues (NEW - AI Action):** If new significant issues or architectural deviations are discovered during the execution of this plan, the AI **MUST** follow the protocol outlined in `CODEBASE_REVIEW_AND_AUDIT_GUIDE.MD` (Section 6.5). This involves pausing the current task if blocked, documenting the new issue in the relevant report (e.g., `ARCHITECTURE_DEVIATIONS_REPORT.MD`), notifying the user, proposing an update to this `REFACTORING_PLAN.MD`, and awaiting user guidance before proceeding.
+*   **Handling Emergent Issues (NEW - AI Action - Revised for Strictness):** If new significant issues or architectural deviations are discovered during the execution of this plan, the AI **MUST** strictly adhere to the detailed protocol outlined in `CODEBASE_REVIEW_AND_AUDIT_GUIDE.MD` (Section 6.5). **A 'significant issue' encompasses not only bugs or architectural deviations but also necessary scope adjustments, new feature requirements, or abstraction gaps (e.g., missing methods in an interface/adapter) identified during a sub-task that were not part of its original defined scope and require distinct planning, effort, or re-prioritization.** Such findings must also follow the full PAUSE -> DOCUMENT -> ... sequence. This protocol mandates a sequence: **PAUSE** the current refactoring sub-task, fully **DOCUMENT** the new issue in the relevant report (e.g., `ARCHITECTURE_DEVIATIONS_REPORT.MD`), **NOTIFY** the user, **PROPOSE** an integration strategy for the new issue into this `REFACTORING_PLAN.MD` (focusing on its placement, not immediate solution), **AWAIT** user guidance, **UPDATE** this plan as directed, and only then determine whether to **RESUME** the paused task or address the new item. This disciplined approach is critical to prevent premature fixes and maintain plan integrity. The AI **MUST NOT** deviate from this sequence or attempt to fix newly discovered issues before completing this process.
 *   **Status Tracking (NEW - AI/User Action):** As items in this plan are addressed, they **SHOULD** be marked with a status and date (e.g., `[SOLVED - YYYY-MM-DD]`, `[IN PROGRESS - YYYY-MM-DD]`, `[PARTIALLY SOLVED - YYYY-MM-DD - see notes: ...]`). This applies to AI-driven changes and any manual interventions by the user. This helps maintain clarity on progress against the plan items.
 *   **Continuous Documentation Alignment (NEW - AI Action):** After completing each refactoring task that alters system design, interfaces, or core component responsibilities, the AI **MUST** review `PROJECT_ARCHITECTURE.MD` and other relevant project documentation (e.g., service READMEs, interface contracts). If discrepancies are found between the refactored code and the documentation, the AI **MUST** either:
     *   Update the documentation to accurately reflect the (approved) refactored state.
@@ -30,9 +30,25 @@
 **Focus:** Stabilize core patterns and data flows, primarily addressing `ARCHITECTURE_DEVIATIONS_REPORT.MD` and directly related major duplications.
 
 1.  **Centralize DXF Operations via `IDXFAdapter` (Critical Priority):**
-    *   **Relevant Reports:** `ARCHITECTURE_DEVIATIONS_REPORT.MD` (Item #1), `DUPLICATION_FINDINGS.MD` (various service-level duplications of direct `ezdxf` calls).
-    *   **Task:** Refactor services (`StyleApplicatorService`, `DataSourceService`, `DataExporterService`, `ProjectOrchestratorService`) to consistently use the `IDXFAdapter` interface for all `ezdxf` library interactions (loading, saving, creating documents, adding entities). Eliminate direct `ezdxf` calls from these services.
-    *   **Rationale:** Corrects the most significant architectural deviation, enforces the Adapter pattern, simplifies services, and provides a single control point for DXF logic.
+    *   **Relevant Reports:** `ARCHITECTURE_DEVIATIONS_REPORT.MD` (Item #1, Item #6), `DUPLICATION_FINDINGS.MD` (various service-level duplications of direct `ezdxf` calls).
+    *   **Sub-Task 1.A: Extend `IDXFAdapter` Interface & Implementation:** [SOLVED - 2024-07-28 - Layer, Query & Hatch Methods Added]
+        *   Define and add new methods to `IDXFAdapter` for comprehensive layer property management (get/set color, linetype, lineweight, plot status, on/off, frozen/locked), layer creation/retrieval, and a generic entity querying mechanism.
+        *   Define and add new methods to `IDXFAdapter` for managing HATCH entity fills: `set_hatch_pattern_fill(hatch_entity, pattern_name, color, scale, angle)` and `set_hatch_solid_fill(hatch_entity, color)`.
+        *   Implement these new methods in `EzdxfAdapter.py`.
+        *   *(This addresses ARCHITECTURE_DEVIATIONS_REPORT.MD Item #6 and newly identified gaps)*
+    *   **Sub-Task 1.B: Refactor Services to Use Extended `IDXFAdapter`:** [IN PROGRESS - 2024-07-28]
+        *   Refactor `StyleApplicatorService.py` to exclusively use `IDXFAdapter` for all `ezdxf` interactions. [SOLVED - 2024-07-29]
+        *   Refactor `DataSourceService.py` to exclusively use `IDXFAdapter`. [SOLVED - 2024-07-29]
+    *   **Rationale:** Corrects the most significant architectural deviation, ensures the adapter is complete enough to be the true sole gateway, enforces the Adapter pattern, simplifies services, and provides a single control point for DXF logic.
+
+*   **Sub-Task 1.C: Implement Unit and Integration Tests for Adapter & Refactored Services (Post 1.A & 1.B):**
+    *   **Relevant Code:** `EzdxfAdapter.py`, `StyleApplicatorService.py`, `DataSourceService.py`, `IDXFAdapter.py`.
+    *   **Task:**
+        1.  Develop comprehensive unit tests for all new and modified methods in `EzdxfAdapter.py`, mocking `ezdxf` library interactions.
+        2.  Update existing or develop new unit tests for `StyleApplicatorService.py`, focusing on its interaction with a mocked `IDXFAdapter` and its internal styling logic.
+        3.  Update existing or develop new unit tests for `DataSourceService.py`, focusing on its `load_dxf_file` method's interaction with a mocked `IDXFAdapter`.
+        4.  Develop focused integration tests to verify basic interactions between `DataSourceService`, `StyleApplicatorService`, and `EzdxfAdapter` for common use cases (e.g., loading a DXF, applying a style to a layer/entity using the adapter).
+    *   **Rationale:** Ensures the correctness and robustness of the core architectural changes made in Sub-Tasks 1.A and 1.B, prevents regressions, and adheres to the project's testing mandate. Provides a safety net for future refactoring.
 
 2.  **Refine Service Interface Responsibilities (Post-Adapter Fix):**
     *   **Relevant Reports:** `ARCHITECTURE_DEVIATIONS_REPORT.MD` (Item #3).
@@ -100,6 +116,14 @@
     *   **Relevant Reports:** `OTHER_CODE_QUALITY_OBSERVATIONS.MD` (Item #2: PathResolverService - Extension Resolution Return Behavior Clarification, Item #3: DataExporterService - DXF Version Handling in `export_to_dxf`).
     *   **Task:** Evaluate the identified nuanced issues. For `PathResolverService`, consider if API documentation is sufficient or if a change in return type is warranted for clarity. For `DataExporterService`, clarify the intent of `dxf_version` parameter; if version conversion is needed, plan for its proper implementation (likely using `IDXFAdapter`), or adjust logging/parameter handling if not.
     *   **Rationale:** Addresses potential points of confusion or incorrect behavior in service APIs and logic, especially relevant after major structural refactoring.
+
+*   **Sub-Task 11.A: Enhance `IDXFAdapter` for Advanced `StyleApplicatorService` Styling Abstractions:**
+    *   **Relevant Reports:** TODOs identified in `src/services/style_applicator_service.py` (methods: `apply_style_to_dxf_entity`, `_align_text_entity_to_view`) during Sub-Task 1.B. Emergent issue identified needing adapter enhancement for complete abstraction.
+    *   **Task:**
+        *   Review `IDXFAdapter.set_entity_properties`. Consider extending it to accept a broader range of common DXF attributes (e.g., via `**kwargs` with validation against known/safe attributes) or add new specific setter methods for detailed TEXT/MTEXT attributes (e.g., `style`, `height`, `rotation`, `char_height`) and HATCH attributes (e.g., `pattern_name`, `pattern_scale`, `pattern_angle`) not covered by the existing basic fill/property methods.
+        *   Design and implement new `IDXFAdapter` methods to support entity information retrieval and transformations required by `StyleApplicatorService._align_text_entity_to_view` (e.g., methods for getting/setting entity extrusion, rotation, MTEXT attachment points, and potentially abstracting simple vector operations if deemed necessary and safe for the adapter).
+        *   Refactor the remaining direct `ezdxf` calls within `StyleApplicatorService.py` (in `apply_style_to_dxf_entity` and `_align_text_entity_to_view`) to use these newly added or enhanced adapter methods.
+    *   **Rationale:** Fully completes the abstraction of `ezdxf` details from `StyleApplicatorService`, making `IDXFAdapter` a more comprehensive and the sole gateway for all its DXF interaction needs. Resolves outstanding TODOs and adheres to the architectural principle of adapter-based interaction. This addresses an emergent requirement identified during the refactoring of `StyleApplicatorService`.
 
 ---
 

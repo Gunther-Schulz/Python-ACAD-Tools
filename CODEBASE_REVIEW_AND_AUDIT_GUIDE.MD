@@ -213,7 +213,7 @@
 
 ### 6.2: Develop a Phased Approach
 *   Based on the user-confirmed prioritization, the AI **MUST** group related fixes into logical, sequential phases (e.g., Phase 1: Core Architectural Alignment, Phase 2: Domain Model Integrity, Phase 3: Service Layer Refinement, etc.).
-*   The AI **MUST** define clear, achievable objectives and specific tasks for each phase, referencing the unique IDs of the findings being addressed.
+*   The AI **MUST** define clear, achievable objectives and specific tasks for each phase, referencing the unique IDs of the findings being addressed. **For each task that involves code modification, the AI MUST explicitly include sub-items or notes within the task definition regarding the creation or update of unit and integration tests, as per the 'Comprehensive Testing' guiding principle (Section 6.3 of this guide and the refactoring plan itself).**
 *   **Establish Guiding Principles for the Plan (NEW):** The generated refactoring plan (e.g., `REFACTORING_PLAN.MD`) **MUST** include a dedicated section outlining "Guiding Principles & General Practices". This section **MUST** incorporate, at a minimum, AI-executable instructions for:
     *   The phased approach itself.
     *   Systematic issue tracking referencing the audit reports.
@@ -241,21 +241,25 @@
 *   Any complexity assessment provided by the AI **MUST** be clearly marked as an estimate based on its current understanding and may require user validation.
 
 ### 6.5: Handling Emergent Issues During Refactoring (NEW)
-*   **Principle:** Refactoring is a discovery process. New issues, or a deeper understanding of previously logged issues, may emerge as the AI works through the codebase according to an existing `REFACTORING_PLAN.MD`.
+*   **Principle:** Refactoring is a discovery process. New issues, or a deeper understanding of previously logged issues, may emerge as the AI works through the codebase according to an existing `REFACTORING_PLAN.MD`. Adherence to a strict protocol for managing these discoveries is crucial to maintain clarity, user oversight, and plan integrity.
+*   **Definition of a 'Significant Issue/Deviation' for this Protocol:** For the purposes of this protocol, a 'significant issue' or 'deviation' is not limited to newly discovered bugs or major architectural flaws. It **also explicitly includes necessary scope adjustments, new feature requirements, or abstraction gaps (e.g., missing methods in an interface/adapter that are prerequisites for the current task but were not in its original plan) identified during a sub-task that were not part of its original defined scope and which require distinct planning, effort, or re-prioritization.** If such an item is identified, the AI MUST trigger the full protocol below.
 *   **AI Action upon Discovering a New Significant Issue/Deviation:**
-    1.  **PAUSE Current Task:** The AI **MUST** temporarily pause the specific refactoring sub-task during which the new issue was identified if the new issue blocks or significantly complicates the current task.
-    2.  **Document the New Issue:** The AI **MUST** clearly document the new issue with the same rigor as initial findings (see Phase 3: Comprehensive Documentation of Findings). This includes:
+    1.  **PAUSE Current Refactoring Sub-Task:** The AI **MUST** immediately and strictly pause the specific refactoring sub-task during which the new issue was identified. The AI **MUST NOT** proceed with further steps for the *current paused sub-task* or attempt to fix/plan for the *newly discovered issue* until the following protocol for the emergent issue is completed.
+    2.  **Document the New Issue Thoroughly:** The AI **MUST** fully document the new issue with the same rigor as initial findings (see Phase 3: Comprehensive Documentation of Findings). This includes:
         *   Location(s), detailed analysis, impact assessment, and severity.
         *   If the issue is an architectural deviation, it **MUST** be logged in `ARCHITECTURE_DEVIATIONS_REPORT.MD`.
         *   If it's another type of code quality issue, it **MUST** be logged in the appropriate findings document (e.g., `DUPLICATION_FINDINGS.MD`, `OTHER_CODE_QUALITY_OBSERVATIONS.MD`).
-    3.  **Notify User & Propose Integration:** The AI **MUST** notify the user about the newly discovered issue.
-    4.  **Propose Plan Adjustment:** The AI **MUST** propose to the user how this new finding should be integrated into the existing `REFACTORING_PLAN.MD`. This might involve:
+    3.  **Notify User & Propose Integration Strategy for the New Issue:** The AI **MUST** notify the user about the newly discovered and documented issue.
+    4.  **Propose Plan Adjustment for the New Issue:** Concurrently with the notification, the AI **MUST** propose to the user how this new finding should be integrated into the existing `REFACTORING_PLAN.MD`. This proposal **MUST** focus *only on the placement and prioritization of the new issue* within the overall plan, not on its immediate solution. Options might include:
         *   Adding it as a new item to an existing phase.
         *   Creating a new phase if the issue is substantial or foundational.
         *   Adjusting the priority of existing tasks if the new issue impacts them.
-    5.  **Await User Guidance:** The AI **MUST** await user confirmation on how to proceed with the new issue and the adjustment to the refactoring plan before resuming the paused task or starting work on the new issue.
-    6.  **Update Plan:** Once the user provides guidance, the AI **MUST** update the `REFACTORING_PLAN.MD` accordingly.
-*   **Rationale:** Ensures that the refactoring process remains flexible, responsive to new information, and that all significant issues are systematically tracked and planned for, maintaining user oversight. Minor, trivial discoveries that can be fixed within the immediate scope of an ongoing task without altering the plan's intent may not require this full pause-and-report cycle, but the AI should use its judgment and err on the side of reporting if unsure.
+    5.  **Await User Guidance on Plan Adjustment:** The AI **MUST** await explicit user confirmation on how to proceed with integrating the new issue into the refactoring plan. The AI **MUST NOT** unilaterally update the plan or start working on the new issue.
+    6.  **Update Plan (Only After User Guidance):** Once the user provides guidance on integrating the new issue, the AI **MUST** update the `REFACTORING_PLAN.MD` accordingly.
+    7.  **Determine Next Action (Resuming Paused Task or Addressing New Task):** Only after the `REFACTORING_PLAN.MD` is updated, the AI, in consultation with the user if the path forward isn't obvious (e.g., if the new issue is now the highest priority), will determine whether to:
+        *   Resume the originally paused sub-task (if it's still relevant and appropriately prioritized).
+        *   Begin a new sub-task to address the newly integrated emergent issue (if it has become the priority).
+*   **Rationale:** Ensures that the refactoring process remains flexible, responsive to new information, and that all significant issues are systematically tracked and planned for, maintaining user oversight. This strict pause-document-report-plan_integration-await_guidance sequence prevents premature or out-of-process work on emergent issues. Minor, trivial discoveries that can be fixed within the immediate scope of an ongoing task without altering the plan's intent *and without significant deviation from the current task's focus* may not require this full pause-and-report cycle, but the AI **MUST** use its judgment with extreme caution and **ALWAYS** err on the side of reporting if unsure or if the discovery feels like a separate concern. Eagerness to fix is a failure mode to be actively avoided.
 
 ---
 
