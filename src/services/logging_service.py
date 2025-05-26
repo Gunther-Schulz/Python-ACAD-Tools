@@ -5,10 +5,31 @@ from typing import Optional, Any
 
 from ..interfaces.logging_service_interface import ILoggingService
 from ..domain.exceptions import ConfigError # For potential future use if config validation is stricter
+from ..utils.color_formatter import ColorFormatter
 
 # Default formatter for logs
 LOG_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
+
+
+class ColoredFormatter(logging.Formatter):
+    """Custom formatter that adds colors to log levels in console output."""
+
+    def __init__(self, fmt=None, datefmt=None, use_colors=True):
+        super().__init__(fmt, datefmt)
+        self.color_formatter = ColorFormatter(use_colors=use_colors)
+
+    def format(self, record):
+        # Format the record normally first
+        formatted = super().format(record)
+
+        # Only colorize the level name part
+        if self.color_formatter.use_colors:
+            # Replace the level name in the formatted string with colored version
+            colored_level = self.color_formatter.colorize_log_level(record.levelname)
+            formatted = formatted.replace(record.levelname, colored_level, 1)
+
+        return formatted
 
 class LoggingService(ILoggingService):
     """Provides logging functionalities using Python's standard logging module."""
@@ -22,22 +43,25 @@ class LoggingService(ILoggingService):
     # but a service allows for dependency injection and easier testing/mocking.
     _shared_state = {}
 
-    def __init__(self, log_level_console: str = "INFO", log_level_file: Optional[str] = "DEBUG", log_file_path: Optional[str] = None):
+    def __init__(self, log_level_console: str = "INFO", log_level_file: Optional[str] = "DEBUG", log_file_path: Optional[str] = None, use_colors: Optional[bool] = None):
         """Initialize LoggingService with configuration."""
         self.__dict__ = self._shared_state
         if not hasattr(self.__class__, '_initialized_borg') or not self.__class__._initialized_borg:
             # Initialize instance attributes only once per class
             self.__class__._initialized_borg = True
+            # Store color preference
+            self._use_colors = use_colors
             # Perform actual one-time initialization if needed here for the Borg state
             # Auto-setup logging if parameters are provided
             if log_level_console or log_level_file or log_file_path:
-                self.setup_logging(log_level_console, log_level_file, log_file_path)
+                self.setup_logging(log_level_console, log_level_file, log_file_path, use_colors)
 
     def setup_logging(
         self,
         log_level_console: str = "INFO",
         log_level_file: Optional[str] = "DEBUG",
         log_file_path: Optional[str] = None,
+        use_colors: Optional[bool] = None,
     ) -> None:
         """Configures the logging system for the application."""
         # Ensure setup runs only once effectively for the Borg state
@@ -52,9 +76,10 @@ class LoggingService(ILoggingService):
         # Individual handlers will then filter based on their own levels.
         root_logger.setLevel(logging.DEBUG) # Or determine lowest programmatically
 
-        formatter = logging.Formatter(LOG_FORMAT, DATE_FORMAT)
+        # Use color preference from initialization or parameter
+        colors_enabled = use_colors if use_colors is not None else getattr(self, '_use_colors', None)
 
-        # Console Handler
+        # Console Handler with colored formatter
         console_level_val = logging.getLevelName(log_level_console.upper())
         if not isinstance(console_level_val, int):
             logging.warning(
@@ -63,11 +88,13 @@ class LoggingService(ILoggingService):
             console_level_val = logging.INFO
 
         console_handler = logging.StreamHandler(sys.stdout)
-        console_handler.setFormatter(formatter)
+        # Use colored formatter for console output
+        console_formatter = ColoredFormatter(LOG_FORMAT, DATE_FORMAT, use_colors=colors_enabled)
+        console_handler.setFormatter(console_formatter)
         console_handler.setLevel(console_level_val)
         root_logger.addHandler(console_handler)
 
-        # File Handler (Optional)
+        # File Handler (Optional) - always use plain formatter for files
         if log_level_file and log_file_path:
             file_level_val = logging.getLevelName(log_level_file.upper())
             if not isinstance(file_level_val, int):
@@ -78,7 +105,9 @@ class LoggingService(ILoggingService):
 
             try:
                 file_handler = logging.FileHandler(log_file_path, mode='a')
-                file_handler.setFormatter(formatter)
+                # Use plain formatter for file output (no colors in files)
+                file_formatter = logging.Formatter(LOG_FORMAT, DATE_FORMAT)
+                file_handler.setFormatter(file_formatter)
                 file_handler.setLevel(file_level_val)
                 root_logger.addHandler(file_handler)
             except (IOError, OSError) as e:

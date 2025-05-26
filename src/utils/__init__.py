@@ -13,6 +13,15 @@ services and adapters:
 from .filesystem import ensure_parent_dir_exists
 from .text_processing import sanitize_dxf_layer_name
 from .visualization import plot_gdf, plot_shapely_geometry
+from .color_formatter import (
+    ColorFormatter,
+    colorize_log_level,
+    colorize_message,
+    format_cli_error,
+    format_cli_warning,
+    format_cli_success,
+    set_color_enabled
+)
 
 __all__ = [
     # True utilities (stateless, generic)
@@ -20,4 +29,12 @@ __all__ = [
     "sanitize_dxf_layer_name",
     "plot_gdf",
     "plot_shapely_geometry",
+    # Color formatting utilities
+    "ColorFormatter",
+    "colorize_log_level",
+    "colorize_message",
+    "format_cli_error",
+    "format_cli_warning",
+    "format_cli_success",
+    "set_color_enabled"
 ]

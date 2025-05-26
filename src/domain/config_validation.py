@@ -811,7 +811,14 @@ class ConfigValidationService(IConfigValidation):
                             project_context=project_context
                         )
                     except ValueError as e:
-                        self._validation_errors.append(f"Layer '{layer_name}' {source_key}: {e}")
+                        # Create more user-friendly error message for missing files
+                        error_msg = str(e)
+                        if "File does not exist" in error_msg:
+                            self._validation_errors.append(
+                                f"Layer '{layer_name}' {source_key}: File does not exist: {file_path}"
+                            )
+                        else:
+                            self._validation_errors.append(f"Layer '{layer_name}' {source_key}: {e}")
 
         if source_count == 0:
             # Check if this is an operations-only layer

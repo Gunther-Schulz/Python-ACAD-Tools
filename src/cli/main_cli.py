@@ -6,7 +6,8 @@ import logging
 
 from ..core.container import ApplicationContainer
 from ..domain.config_models import AppConfig
-from ..domain.exceptions import ApplicationBaseException
+from ..domain.exceptions import ApplicationBaseException, ConfigError, ConfigValidationError
+from ..utils.color_formatter import format_cli_error, format_cli_success, set_color_enabled
 from .commands import ProcessProjectCommand, CommandRegistry
 
 # Get root logger for initial messages before service setup
@@ -47,7 +48,8 @@ def setup_logging(container: ApplicationContainer, args) -> None:
     logging_service.setup_logging(
         log_level_console=args.log_level_console.upper(),
         log_level_file=file_log_level,
-        log_file_path=log_file_path
+        log_file_path=log_file_path,
+        use_colors=not args.no_color
     )
     logger.info("Logging configured via DI container.")
 
@@ -85,8 +87,13 @@ def run_cli():
     parser.add_argument("--log-level-console", default="INFO", choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], help="Console logging level.")
     parser.add_argument("--log-level-file", default="DEBUG", choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL", "NONE"], help="File logging level (NONE to disable).")
     parser.add_argument("--log-file", default="logs/app.log", help="Path to the log file.")
+    parser.add_argument("--no-color", action="store_true", help="Disable colored output.")
 
     args = parser.parse_args()
+
+    # Configure color support based on CLI argument
+    if args.no_color:
+        set_color_enabled(False)
 
     try:
         # 1. Setup DI Container
@@ -103,13 +110,133 @@ def run_cli():
         # 4. Execute Command
         logger.info(f"Attempting to process project: {args.project_name}")
         command_registry.execute_command("process_project", project_name=args.project_name)
+
+        # Success message with color
+        success_msg = format_cli_success(f"Successfully completed processing for project: {args.project_name}")
+        print(success_msg)
         logger.info(f"Successfully completed processing for project: {args.project_name}")
         sys.exit(0)
 
     except ApplicationBaseException as app_exc:
+        # Check if this is actually a configuration error wrapped in ApplicationBaseException
+        if "Configuration validation failed" in str(app_exc):
+            # Extract the validation errors from the message
+            error_msg = str(app_exc)
+            if "Validation errors:" in error_msg:
+                validation_part = error_msg.split("Validation errors:")[1].strip()
+                message = f"Multiple validation errors found:\n"
+                # Split by '; ' and format each error nicely
+                errors = validation_part.split('; ')
+                for error in errors:
+                    if error.strip():
+                        message += f"   • {error.strip()}\n"
+                message = message.rstrip()
+            else:
+                message = str(app_exc)
+
+            suggestions = [
+                "Check that all file paths in your configuration exist",
+                "Verify that geojsonFile paths are correct relative to your project",
+                "Use path aliases (@data.*, @output.*, etc.) for cleaner configuration",
+                "Run with --log-level-console DEBUG for detailed validation information"
+            ]
+
+            error_output = format_cli_error(
+                f"Configuration Validation Error in project '{args.project_name}'",
+                message,
+                suggestions
+            )
+            print(error_output)
+            sys.exit(1)
+        elif "Failed to load project configuration" in str(app_exc) or "Project directory not found" in str(app_exc):
+            suggestions = [
+                "Check that your project directory exists in the projects folder",
+                "Verify that required configuration files (project.yaml, geom_layers.yaml) are present",
+                "Ensure configuration files have valid YAML syntax",
+                "Run with --log-level-console DEBUG for detailed error information"
+            ]
+
+            error_output = format_cli_error(
+                f"Configuration Error in project '{args.project_name}'",
+                str(app_exc),
+                suggestions
+            )
+            print(error_output)
+            sys.exit(1)
+    except ConfigValidationError as config_val_exc:
+        # Handle configuration validation errors with user-friendly messages
+        suggestions = [
+            "Check that all file paths in your configuration exist",
+            "Verify that geojsonFile paths are correct relative to your project",
+            "Use path aliases (@data.*, @output.*, etc.) for cleaner configuration",
+            "Run with --log-level-console DEBUG for detailed validation information"
+        ]
+
+        error_output = format_cli_error(
+            f"Configuration Validation Error in project '{args.project_name}'",
+            str(config_val_exc),
+            suggestions
+        )
+        print(error_output)
+        sys.exit(1)
+    except ConfigError as config_exc:
+        # Handle general configuration errors
+        suggestions = [
+            "Check that your project directory exists in the projects folder",
+            "Verify that required configuration files (project.yaml, geom_layers.yaml) are present",
+            "Ensure configuration files have valid YAML syntax",
+            "Run with --log-level-console DEBUG for detailed error information"
+        ]
+
+        error_output = format_cli_error(
+            f"Configuration Error in project '{args.project_name}'",
+            str(config_exc),
+            suggestions
+        )
+        print(error_output)
+        sys.exit(1)
+    except ApplicationBaseException as app_exc:
+        # Handle other application-specific errors
+        suggestions = ["For detailed error information, check the log file or run with --log-level-console DEBUG"]
+
+        error_output = format_cli_error(
+            f"Application Error processing project '{args.project_name}'",
+            str(app_exc),
+            suggestions
+        )
+        print(error_output)
         logger.critical(f"Application error processing project '{args.project_name}': {app_exc}", exc_info=True)
         sys.exit(1)
+    except FileNotFoundError as file_exc:
+        # Handle missing files with helpful suggestions
+        suggestions = [
+            "Check that the project directory exists",
+            "Verify that all referenced data files exist",
+            "Ensure file paths are correct (case-sensitive on Linux/Mac)",
+            "Use absolute paths or path aliases for reliability"
+        ]
+
+        error_output = format_cli_error(
+            "File Not Found Error",
+            str(file_exc),
+            suggestions
+        )
+        print(error_output)
+        sys.exit(1)
     except Exception as e:
+        # Handle unexpected errors
+        suggestions = [
+            "Check the log file for detailed error information",
+            "Run with --log-level-console DEBUG for verbose output",
+            "Report this issue if it persists"
+        ]
+
+        error_output = format_cli_error(
+            f"Unexpected Error processing project '{args.project_name}'",
+            f"{e}\n\nThis appears to be an unexpected error. Please:",
+            suggestions
+        )
+        print(error_output)
         logger.critical(f"An unexpected critical error occurred while processing project '{args.project_name}': {e}", exc_info=True)
         sys.exit(1)
 
