@@ -133,6 +133,7 @@
 *   **Security Vulnerabilities (if in scope):** Use of `eval()`, unsanitized inputs, hardcoded secrets, etc. The AI **MUST** use `grep_search` for known vulnerable patterns and report findings cautiously for user review.
 *   **Performance Issues (if in scope):** Obvious inefficient algorithms, redundant operations in loops, excessive I/O. The AI **SHOULD** highlight potential bottlenecks for deeper investigation.
 *   **Test Coverage Gaps (if assessing tests or testability is a concern):** Missing tests for critical logic, untestable code structures. The AI **SHOULD** note areas where testability could be improved.
+*   **Test Quality & Precision (NEW - Critical for Bug Detection):** Evaluate existing tests for quality and precision using the criteria in Section 3.6. The AI **MUST** identify potential test-masked bugs, overly broad mocking, missing negative assertions, and tests based on assumptions rather than actual implementation analysis.
 
 ### 3.4: Differentiating Duplication, Delegation, and Abstraction
 *   The AI **MUST** critically assess similarities in code:
@@ -145,6 +146,23 @@
 *   **Immutable Condition:** Before any finding is finalized for reporting in Phase 3, or any recommendation is made based on it, any underlying assumptions the AI made during its analysis **MUST** be explicitly stated and then verified against facts from the codebase or authoritative documentation (using tools like `read_file`, `grep_search`).
 *   If an assumption cannot be verified by the AI through available tools and documentation, the finding **MUST** be caveated, or the AI **MUST HALT** and flag the point for user consultation to obtain verification or clarification.
 *   The final set of reported issues, especially those leading to a refactoring plan, **MUST** be demonstrably fact-based, with assumptions minimized and verified.
+
+### 3.6: Test Quality Assessment & Test-Masked Bug Detection (NEW)
+*   **Purpose:** During codebase review, the AI **MUST** evaluate existing tests not just for coverage but for quality and precision to identify potential test-masked bugs.
+*   **Test Quality Evaluation Criteria:**
+    *   **Mocking Precision:** Are tests mocking only external dependencies and immediate collaborators, or are they mocking the methods being tested? Overly broad mocking can mask bugs by preventing problematic code paths from executing.
+    *   **Behavioral Completeness:** Do tests verify both positive behaviors (what should happen) and negative behaviors (what should NOT happen)? Missing negative assertions can allow inappropriate method calls to go undetected.
+    *   **Context Alignment:** Are tests based on actual implementation analysis or assumptions about how code should work? Tests based on assumptions may not catch real implementation bugs.
+    *   **Integration Boundary Coverage:** For adapter patterns, do tests verify both interface compliance AND proper usage patterns? Tests that only mock adapters may miss inappropriate direct calls that bypass abstractions.
+*   **Test-Masked Bug Indicators:**
+    *   Tests that pass but allow known problematic code paths to execute without detection.
+    *   Tests with overly broad mocks that prevent the actual service logic from being exercised.
+    *   Tests that verify method calls were made but not whether they were appropriate or correctly sequenced.
+    *   Missing negative assertions that would catch architectural violations (e.g., direct ezdxf calls when adapter should be used).
+*   **AI Action for Test Quality Issues:** When poor test quality is identified, the AI **MUST**:
+    *   Document the test quality issue in `OTHER_CODE_QUALITY_OBSERVATIONS.MD` with specific examples.
+    *   Include test refinement tasks in the refactoring plan with emphasis on precision and bug detection capability.
+    *   Flag areas where test-masked bugs are likely to exist for deeper investigation during refactoring.
 
 ---
 
@@ -233,7 +251,13 @@
     *   The refactoring plan **MUST** advocate for the AI executing the plan to **run tests regularly throughout the process (e.g., after each significant change or sub-task completion) and confirm they pass before proceeding. If tests fail, the AI MUST address the failures (either in the tests or the code) before considering the current step complete.**
     *   The goal stated in the plan **MUST** be to verify correctness, prevent regressions, and maintain/improve overall test coverage (e.g., aiming for at least 80% or as defined by project standards).
     *   The plan **SHOULD** recommend that tests are ideally written before or alongside code changes (Test-Driven Development or Behavior-Driven Development principles, if aligned with project standards).
-*   The AI **MUST** explicitly incorporate this testing mandate (including execution and pass confirmation) into the "Guiding Principles & General Practices" section of the generated `REFACTORING_PLAN.MD`.
+*   **Test Quality & Precision Requirements (NEW - Critical for Bug Detection):** The plan **MUST** include specific guidance for test quality to prevent test-masked bugs:
+    *   **Minimal Dependency Mocking:** Tests should mock only external dependencies (databases, file systems, network calls) and immediate collaborators. Avoid mocking the methods being tested or their direct internal logic.
+    *   **Behavioral Verification:** Tests should verify both positive behaviors (what should happen) and negative behaviors (what should NOT happen). Use assertions like `assert_not_called()` or `call_count == 0` to verify inappropriate methods aren't invoked.
+    *   **Context-Driven Test Development:** Tests **MUST** be based on actual codebase analysis rather than assumptions about how code should work. The AI **MUST** examine the actual implementation before writing tests.
+    *   **Test-Masked Bug Detection:** If a test passes but later analysis reveals a bug in the actual code, this indicates insufficient test precision. The bug **MUST** be fixed and the test **MUST** be refined to catch such issues in the future.
+    *   **Integration Boundary Testing:** For adapter patterns, test both the adapter interface compliance AND the service's proper usage of that interface, ensuring inappropriate direct calls don't bypass the abstraction.
+*   The AI **MUST** explicitly incorporate this testing mandate (including execution, pass confirmation, and quality requirements) into the "Guiding Principles & General Practices" section of the generated `REFACTORING_PLAN.MD`.
 
 ### 6.4: Estimate Effort & Resources (Optional, AI-Adapted)
 *   If requested by the user, the AI **MAY** attempt to provide a qualitative assessment of complexity for each phase or major task in the refactoring plan (e.g., "Low", "Medium", "High" complexity based on factors like number of files affected, depth of changes, interdependencies).
@@ -243,6 +267,11 @@
 ### 6.5: Handling Emergent Issues During Refactoring (NEW)
 *   **Principle:** Refactoring is a discovery process. New issues, or a deeper understanding of previously logged issues, may emerge as the AI works through the codebase according to an existing `REFACTORING_PLAN.MD`. Adherence to a strict protocol for managing these discoveries is crucial to maintain clarity, user oversight, and plan integrity.
 *   **Definition of a 'Significant Issue/Deviation' for this Protocol:** For the purposes of this protocol, a 'significant issue' or 'deviation' is not limited to newly discovered bugs or major architectural flaws. It **also explicitly includes necessary scope adjustments, new feature requirements, or abstraction gaps (e.g., missing methods in an interface/adapter that are prerequisites for the current task but were not in its original plan) identified during a sub-task that were not part of its original defined scope and which require distinct planning, effort, or re-prioritization.** If such an item is identified, the AI MUST trigger the full protocol below.
+*   **Bug Discovery Categories & Immediate Actions (NEW):** When bugs are discovered during refactoring, the AI **MUST** categorize them and take appropriate immediate action:
+    *   **Critical Bugs (Syntax/Import/Execution Blocking):** **MUST** be fixed immediately as part of the current refactoring work to maintain a functional codebase. Document the fix and continue.
+    *   **Logic Bugs Revealed by Testing:** When tests reveal bugs in the actual codebase (not just test code), these bugs **MUST** be fixed before the tests can be considered complete. This is a sign that the code has latent issues that proper testing has uncovered.
+    *   **Test-Masked Bugs:** If a test passes but later analysis reveals a bug in the actual service code, this indicates the test was too broadly mocked or insufficiently precise. Both the bug **MUST** be fixed AND the test **MUST** be refined to catch such issues in the future.
+    *   **Non-Critical Logic Bugs:** Should be documented in the appropriate report (`OTHER_CODE_QUALITY_OBSERVATIONS.MD` for general issues, `ARCHITECTURE_DEVIATIONS_REPORT.MD` for architectural concerns) and added to the refactoring plan for systematic resolution.
 *   **AI Action upon Discovering a New Significant Issue/Deviation:**
     1.  **PAUSE Current Refactoring Sub-Task:** The AI **MUST** immediately and strictly pause the specific refactoring sub-task during which the new issue was identified. The AI **MUST NOT** proceed with further steps for the *current paused sub-task* or attempt to fix/plan for the *newly discovered issue* until the following protocol for the emergent issue is completed.
     2.  **Document the New Issue Thoroughly:** The AI **MUST** fully document the new issue with the same rigor as initial findings (see Phase 3: Comprehensive Documentation of Findings). This includes:
@@ -302,6 +331,7 @@
 *   [ ] **Comprehensive Documentation:** Has the AI systematically documented all categories of findings (duplication, TODOs, architectural deviations, other quality issues) in their respective structured reports (Phase 3.2)?
 *   [ ] **Actionable Recommendations:** Does each significant finding in the reports have a clear, actionable recommendation from the AI (Phase 4.4)?
 *   [ ] **Integrated Testing in Plan:** Does the generated `REFACTORING_PLAN.MD` explicitly incorporate the AI-executable requirement for comprehensive testing (including writing, updating, **and regularly executing tests, confirming they pass**) alongside refactoring tasks, as per Section 6.3 (Phase 6.2, 6.3)?
+*   [ ] **Test Quality Assessment:** Has the AI evaluated existing tests for quality and precision using Section 3.6 criteria, identifying potential test-masked bugs and documenting test quality issues?
 *   [ ] **Refactoring Plan Guiding Principles:** Does the generated `REFACTORING_PLAN.MD` include the mandatory "Guiding Principles & General Practices" section with all required AI-executable points (Phase 6.2)?
 *   [ ] **Final Plan Grounding:** Is the final `REFACTORING_PLAN.MD` built upon findings that have met the "sufficient context" and "fact-based analysis" criteria (Implicit throughout, checked here)?
 *   [ ] **User Review of Prioritization:** Has the AI presented its proposed prioritization of findings to the user for review and confirmation before finalizing the refactoring plan (Phase 6.1)?
@@ -313,8 +343,8 @@
 *   Refer to `DUPLICATION_FINDINGS.MD` for an example of a duplication report.
 *   Refer to `ACTIONABLE_COMMENTS_AND_TODOS.MD` for an example of logging actionable items.
 *   Refer to `ARCHITECTURE_DEVIATIONS_REPORT.MD` for an example of an architectural deviation report.
-*   Refer to `OTHER_CODE_QUALITY_OBSERVATIONS.MD` for miscellaneous quality observations.
-*   Refer to `REFACTORING_PLAN.MD` for an example of a phased remediation plan.
+*   Refer to `OTHER_CODE_QUALITY_OBSERVATIONS.MD` for miscellaneous quality observations, including test quality issues and test-masked bug indicators.
+*   Refer to `REFACTORING_PLAN.MD` for an example of a phased remediation plan with comprehensive testing requirements.
 
 ---
 
