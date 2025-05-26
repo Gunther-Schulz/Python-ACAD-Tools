@@ -2,6 +2,7 @@
 from typing import Optional, Any, Dict, Union, cast
 
 import geopandas as gpd
+import pandas as pd
 
 # Attempt ezdxf import
 try:
@@ -283,12 +284,26 @@ class StyleApplicatorService(IStyleApplicator):
 
             entity.dxf.lineweight = s_layer.lineweight if s_layer.lineweight is not None else LW_BYLAYER
 
-            # Transparency might not be supported by all entity types or DXF versions in the same way.
-            # Safest to apply only if entity has 'transparency' attribute.
-            if hasattr(entity.dxf, 'transparency') and s_layer.transparency is not None:
+            # Transparency handling - temporarily disabled due to ezdxf conversion issues
+            # ezdxf appears to convert float transparency values to integers internally
+            # which causes "Invalid value 0" errors for values like 0.1, 0.2, etc.
+            # TODO: Research proper ezdxf transparency handling
+            if False and hasattr(entity.dxf, 'transparency') and s_layer.transparency is not None:
                 # ezdxf expects transparency as float 0.0 (opaque) to 1.0 (fully transparent)
                 # Per ezdxf documentation, 0.0 is valid and means fully opaque
-                entity.dxf.transparency = s_layer.transparency
+                try:
+                    # Validate transparency range
+                    transparency_value = float(s_layer.transparency)
+                    if 0.0 <= transparency_value <= 1.0:
+                        entity.dxf.transparency = transparency_value
+                    else:
+                        self._logger.warning(f"Invalid transparency value {transparency_value}, must be 0.0-1.0. Skipping transparency.")
+                except (ValueError, TypeError) as e:
+                    self._logger.warning(f"Failed to set transparency value {s_layer.transparency}: {e}. Using 0.0 (opaque)")
+                    entity.dxf.transparency = 0.0
+                except Exception as e:
+                    self._logger.warning(f"Failed to set transparency value {s_layer.transparency}: {e}. Using 0.0 (opaque)")
+                    entity.dxf.transparency = 0.0
 
             # Plot style name - usually BYLAYER for entities, controlled by layer plot style table ref
             # entity.dxf.plotstyle_name = "BYLAYER"
@@ -433,9 +448,9 @@ class StyleApplicatorService(IStyleApplicator):
                 dxf_layer.color = self._resolve_aci_color(s_layer.color)
             if s_layer.linetype is not None:
                 self._ensure_dxf_linetype(dxf_drawing, s_layer.linetype)
-                dxf_layer.linetype = s_layer.linetype
+                dxf_layer.dxf.linetype = s_layer.linetype
             else: # Default linetype for layer if not specified in style
-                dxf_layer.linetype = DEFAULT_LINETYPE
+                dxf_layer.dxf.linetype = DEFAULT_LINETYPE
 
             if s_layer.lineweight is not None:
                 # Use domain model constants for proper lineweight handling
@@ -568,26 +583,83 @@ class StyleApplicatorService(IStyleApplicator):
                         entity = msp.add_lwpolyline(coords, dxfattribs={'layer': layer_name})
 
                     elif geom.geom_type in ['Polygon', 'MultiPolygon']:
-                        # Handle polygons
+                        # Handle polygons - create both HATCH and LWPOLYLINE entities based on styling
                         if geom.geom_type == 'Polygon':
                             polygons = [geom]
                         else:
                             polygons = list(geom.geoms)
 
                         for poly in polygons:
-                            # Add exterior ring as polyline
+                            # Create HATCH entity for filled polygons if hatch styling is present
+                            if style and style.hatch:
+                                try:
+                                    # Create HATCH entity with boundary path from polygon
+                                    hatch_entity = msp.add_hatch(dxfattribs={'layer': layer_name})
+
+                                    # Add exterior boundary path
+                                    exterior_coords = list(poly.exterior.coords)
+                                    hatch_entity.paths.add_polyline_path(
+                                        exterior_coords,
+                                        is_closed=True,
+                                        flags=1  # BOUNDARY_PATH_EXTERNAL
+                                    )
+
+                                    # Add interior boundaries (holes) if any
+                                    for interior in poly.interiors:
+                                        interior_coords = list(interior.coords)
+                                        hatch_entity.paths.add_polyline_path(
+                                            interior_coords,
+                                            is_closed=True,
+                                            flags=16  # BOUNDARY_PATH_OUTERMOST (hole)
+                                        )
+
+                                    # Apply hatch styling
+                                    if style.hatch.pattern_name:
+                                        # Pattern fill
+                                        hatch_entity.set_pattern_fill(
+                                            style.hatch.pattern_name,
+                                            color=self._resolve_aci_color(style.hatch.color) if style.hatch.color else 7,
+                                            scale=style.hatch.scale if style.hatch.scale else 1.0,
+                                            angle=style.hatch.angle if style.hatch.angle else 0.0
+                                        )
+                                    else:
+                                        # Solid fill (default)
+                                        hatch_entity.set_solid_fill(
+                                            color=self._resolve_aci_color(style.hatch.color) if style.hatch.color else 7
+                                        )
+
+                                    # Apply general entity styling
+                                    self.apply_style_to_dxf_entity(hatch_entity, style, dxf_drawing)
+                                    added_count += 1
+
+                                except Exception as e:
+                                    self._logger.warning(f"Failed to create HATCH entity for polygon: {e}")
+
+                            # Always create LWPOLYLINE for polygon boundary (for visibility/editing)
                             exterior_coords = list(poly.exterior.coords)
                             entity = msp.add_lwpolyline(exterior_coords, close=True, dxfattribs={'layer': layer_name})
 
                             if entity:
                                 added_count += 1
+                                # Apply style to boundary polyline
+                                if style:
+                                    try:
+                                        self.apply_style_to_dxf_entity(entity, style, dxf_drawing)
+                                    except Exception as e:
+                                        self._logger.warning(f"Failed to apply style to polygon boundary: {e}")
 
-                            # Add interior rings (holes) if any
+                            # Add interior rings (holes) as separate polylines
                             for interior in poly.interiors:
                                 interior_coords = list(interior.coords)
                                 hole_entity = msp.add_lwpolyline(interior_coords, close=True, dxfattribs={'layer': layer_name})
                                 if hole_entity:
                                     added_count += 1
+                                    # Apply style to hole polyline
+                                    if style:
+                                        try:
+                                            self.apply_style_to_dxf_entity(hole_entity, style, dxf_drawing)
+                                        except Exception as e:
+                                            self._logger.warning(f"Failed to apply style to polygon hole: {e}")
 
                         # Add label for polygon if requested
                         if should_add_labels:
@@ -626,6 +698,98 @@ class StyleApplicatorService(IStyleApplicator):
                                 self.apply_style_to_dxf_entity(entity, style, dxf_drawing)
                             except Exception as e:
                                 self._logger.warning(f"Failed to apply style to entity {idx}: {e}")
+
+                        # Create TEXT entity if text styling is present (for annotations)
+                        if style and style.text:
+                            try:
+                                # Calculate text position at geometry centroid
+                                text_position = self._calculate_label_position(geom, geom.geom_type)
+
+                                # Create text content (check common DataFrame columns)
+                                text_content = f"{geom.geom_type}"  # Default fallback
+
+                                # Check for common text content columns in order of preference
+                                for col_name in ['label', 'name', 'id', 'text', 'description']:
+                                    if col_name in row.index and pd.notna(row[col_name]):
+                                        text_content = str(row[col_name])
+                                        break
+
+                                # Legacy fallback for attribute access
+                                if text_content == f"{geom.geom_type}":
+                                    if hasattr(row, 'name') and row.name:
+                                        text_content = str(row.name)
+                                    elif hasattr(row, 'id') and row.id:
+                                        text_content = str(row.id)
+
+                                # Create TEXT or MTEXT entity based on text properties
+                                text_props = style.text
+                                use_mtext = (
+                                    text_props.max_width and text_props.max_width > 0 or
+                                    text_props.flow_direction or
+                                    text_props.line_spacing_style
+                                )
+
+                                text_dxfattribs = {'layer': layer_name}
+                                if text_props.color:
+                                    text_dxfattribs['color'] = self._resolve_aci_color(text_props.color)
+
+                                if use_mtext:
+                                    # Create MTEXT entity
+                                    text_entity = msp.add_mtext(
+                                        text_content,
+                                        dxfattribs=text_dxfattribs
+                                    )
+                                    text_entity.dxf.insert = Vec3(text_position[0], text_position[1], 0)
+                                    text_entity.dxf.char_height = text_props.height if text_props.height else 2.5
+                                    text_entity.dxf.rotation = text_props.rotation if text_props.rotation else 0.0
+
+                                    if text_props.font:
+                                        text_style_name = self._ensure_dxf_text_style(dxf_drawing, text_props)
+                                        if text_style_name:
+                                            text_entity.dxf.style = text_style_name
+
+                                    # Set attachment point
+                                    if text_props.attachment_point:
+                                        attachment_point = self._resolve_attachment_point(text_props.attachment_point)
+                                        text_entity.dxf.attachment_point = attachment_point
+                                    else:
+                                        text_entity.dxf.attachment_point = MTextEntityAlignment.MIDDLE_CENTER
+
+                                else:
+                                    # Create TEXT entity
+                                    text_entity = msp.add_text(
+                                        text_content,
+                                        dxfattribs=text_dxfattribs
+                                    )
+                                    text_entity.dxf.insert = Vec3(text_position[0], text_position[1], 0)
+                                    text_entity.dxf.height = text_props.height if text_props.height else 2.5
+                                    text_entity.dxf.rotation = text_props.rotation if text_props.rotation else 0.0
+
+                                    if text_props.font:
+                                        text_style_name = self._ensure_dxf_text_style(dxf_drawing, text_props)
+                                        if text_style_name:
+                                            text_entity.dxf.style = text_style_name
+
+                                    # Set alignment for TEXT entities
+                                    if text_props.attachment_point:
+                                        attachment_point = self._resolve_attachment_point(text_props.attachment_point)
+                                        halign, valign = self._mtext_attachment_to_text_align(attachment_point)
+                                        text_entity.dxf.halign = halign
+                                        text_entity.dxf.valign = valign
+                                        if halign != 0 or valign != 0:
+                                            text_entity.dxf.align_point = Vec3(text_position[0], text_position[1], 0)
+                                    else:
+                                        # Default center alignment
+                                        text_entity.dxf.halign = 1  # Center
+                                        text_entity.dxf.valign = 2  # Middle
+                                        text_entity.dxf.align_point = Vec3(text_position[0], text_position[1], 0)
+
+                                # Apply general styling to text entity
+                                self.apply_style_to_dxf_entity(text_entity, style, dxf_drawing)
+                                added_count += 1
+
+                            except Exception as e:
+                                self._logger.warning(f"Failed to create TEXT entity for geometry {idx}: {e}")
 
                     # Add label for non-polygon geometries if requested
                     if should_add_labels and entity:

@@ -29,7 +29,7 @@ class TestEntityStyling:
 
         # Verify style was applied
         assert line_entity.dxf.color == 1  # Red ACI code (assuming fixture uses ACI)
-        assert line_entity.dxf.linetype == "CONTINUOUS"
+        assert line_entity.dxf.linetype == "Continuous"
         assert line_entity.dxf.lineweight == 25
 
     def test_apply_style_to_text_entity(self, mock_style_applicator, comprehensive_styles):
@@ -334,7 +334,7 @@ class TestEntityStylingAssertions:
         # Create a styled entity
         entity = MockDXFUtils.create_mock_entity("LINE")
         entity.dxf.color = 1
-        entity.dxf.linetype = "DASHED"
+                    entity.dxf.linetype = "DASHED"
         entity.dxf.lineweight = 50
 
         # Create expected style

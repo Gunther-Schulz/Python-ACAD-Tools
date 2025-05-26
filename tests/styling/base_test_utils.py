@@ -32,11 +32,22 @@ class StyleTestFixtures:
 
     @staticmethod
     def load_color_mappings() -> ColorConfig:
-        """Load color mapping fixtures from YAML."""
-        fixtures_path = Path(__file__).parent / "fixtures" / "color_mappings.yaml"
-        with open(fixtures_path, 'r') as f:
-            data = yaml.safe_load(f)
-        return ColorConfig(**data)
+        """Load color mapping from official ACI colors file."""
+        # Create a mock config loader to get official colors
+        mock_loader = MockConfigLoader()
+        aci_items = mock_loader.get_aci_color_mappings()
+
+        # Convert to ColorConfig format
+        colors = []
+        for item in aci_items:
+            colors.append({
+                'name': item.name,
+                'aciCode': item.aci_code,
+                'rgb': f"0,0,0",  # RGB not needed for tests
+                'hexCode': "#000000"  # Hex not needed for tests
+            })
+
+        return ColorConfig(colors=colors)
 
     @staticmethod
     def get_style_by_name(style_name: str) -> NamedStyle:
@@ -120,7 +131,7 @@ class MockDXFUtils:
         mock_entity.dxf = Mock()
         mock_entity.dxf.layer = "0"
         mock_entity.dxf.color = 7  # Default white
-        mock_entity.dxf.linetype = "CONTINUOUS"
+        mock_entity.dxf.linetype = "Continuous"
         mock_entity.dxf.lineweight = 25
         mock_entity.dxf.handle = "TEST_HANDLE"  # Add handle property
         return mock_entity
@@ -132,7 +143,7 @@ class MockDXFUtils:
         mock_layer.dxf = Mock()
         mock_layer.dxf.name = layer_name
         mock_layer.dxf.color = 7
-        mock_layer.dxf.linetype = "CONTINUOUS"
+        mock_layer.dxf.linetype = "Continuous"
         mock_layer.dxf.lineweight = 25
         mock_layer.dxf.transparency = 0.0
         mock_layer.dxf.plot = True
@@ -382,19 +393,45 @@ class MockConfigLoader(IConfigLoader):
     """Mock implementation of IConfigLoader for testing."""
 
     def __init__(self):
-        self.color_mappings = [
-            AciColorMappingItem(name="red", aciCode=1),
-            AciColorMappingItem(name="yellow", aciCode=2),
-            AciColorMappingItem(name="green", aciCode=3),
-            AciColorMappingItem(name="cyan", aciCode=4),
-            AciColorMappingItem(name="blue", aciCode=5),
-            AciColorMappingItem(name="magenta", aciCode=6),
-            AciColorMappingItem(name="white", aciCode=7),
-            AciColorMappingItem(name="black", aciCode=0),
-        ]
+        self.color_mappings = self._load_official_aci_colors()
+
+    def _load_official_aci_colors(self) -> List[AciColorMappingItem]:
+        """Load ACI color mappings from the official aci_colors.yaml file."""
+        import yaml
+        from pathlib import Path
+
+        # Path to official ACI colors file
+        aci_colors_path = Path(__file__).parent.parent.parent / "aci_colors.yaml"
+
+        try:
+            with open(aci_colors_path, 'r', encoding='utf-8') as f:
+                aci_data = yaml.safe_load(f)
+
+            color_mappings = []
+            for color_item in aci_data:
+                color_mappings.append(AciColorMappingItem(
+                    name=color_item['name'],
+                    aciCode=color_item['aciCode']
+                ))
+
+            return color_mappings
+
+        except (FileNotFoundError, yaml.YAMLError, KeyError) as e:
+            # Fallback to basic colors if official file can't be loaded
+            print(f"Warning: Could not load official ACI colors ({e}), using fallback colors")
+            return [
+                AciColorMappingItem(name="red", aciCode=1),
+                AciColorMappingItem(name="yellow", aciCode=2),
+                AciColorMappingItem(name="green", aciCode=3),
+                AciColorMappingItem(name="cyan", aciCode=4),
+                AciColorMappingItem(name="blue", aciCode=5),
+                AciColorMappingItem(name="magenta", aciCode=6),
+                AciColorMappingItem(name="white", aciCode=7),
+                AciColorMappingItem(name="black", aciCode=0),
+            ]
 
     def get_aci_color_mappings(self) -> List[AciColorMappingItem]:
-        """Return mock color mappings."""
+        """Return official ACI color mappings."""
         return self.color_mappings
 
     def get_app_config(self):

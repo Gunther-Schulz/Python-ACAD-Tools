@@ -211,7 +211,7 @@ class TestLayerStylingWithRealService:
     @patch('src.services.style_applicator_service.EZDXF_AVAILABLE', True)
     def test_real_service_create_new_layer(self, style_applicator_service):
         """Test real service creating new layer when it doesn't exist."""
-        layer_style = LayerStyleProperties(color=2, linetype="CONTINUOUS")
+        layer_style = LayerStyleProperties(color=2, linetype="Continuous")
         style = NamedStyle(layer=layer_style)
 
         mock_drawing = MockDXFUtils.create_mock_drawing()
@@ -338,7 +338,7 @@ class TestLayerStylingAssertions:
         # Create a styled layer
         layer = MockDXFUtils.create_mock_layer("TestLayer")
         layer.dxf.color = 1
-        layer.dxf.linetype = "DASHED"
+                    layer.dxf.linetype = "DASHED"
         layer.dxf.lineweight = 50
         layer.dxf.plot = True
         layer.is_on = True

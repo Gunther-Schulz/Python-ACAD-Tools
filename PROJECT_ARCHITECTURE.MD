@@ -23,6 +23,7 @@ This architecture fully adheres to the principles outlined in `PROJECT_STANDARDS
 *   **✅ Stateless Utilities:** Pure functions in dedicated utility modules.
 *   **✅ Enterprise Patterns:** Command, Factory, and Adapter patterns implemented.
 *   **✅ Comprehensive Testing:** Full test suite with organized markers and fixtures.
+*   **✅ No Backward Compatibility Layers (NEW):** Given the early development stage without public releases, refactoring and interface changes should aim for clean, direct implementations. The overhead of maintaining backward compatibility for previous internal versions or experimental APIs is explicitly avoided in favor of architectural clarity and a streamlined evolution path.
 
 ## 3. Implemented Module Structure (src/)
 

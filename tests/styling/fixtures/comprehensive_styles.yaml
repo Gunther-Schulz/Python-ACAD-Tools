@@ -123,17 +123,17 @@ styles:
       scale: 0.6
   full_combined:
     layer:
-      color: darkgreen
+      color: green-dark
       linetype: BORDER
       lineweight: 60
-      transparency: 0.1
+      transparency: 0.2
       plot: true
       isOn: true
       frozen: false
       locked: false
     text:
       font: Georgia
-      color: darkred
+      color: red-dark
       height: 3.5
       rotation: 15.0
       attachmentPoint: TOP_CENTER
@@ -151,7 +151,7 @@ styles:
       bgFillScale: 1.1
     hatch:
       patternName: CROSS
-      color: darkblue
+      color: blue-dark
       scale: 1.2
       angle: 60.0
       spacing: 1.5

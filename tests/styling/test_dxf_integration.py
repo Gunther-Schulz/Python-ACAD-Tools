@@ -12,7 +12,7 @@ import pytest
 import tempfile
 import os
 from pathlib import Path
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Dict, Any, List, Optional, Tuple, Union
 import geopandas as gpd
 from shapely.geometry import Point, LineString, Polygon
 
@@ -155,7 +155,7 @@ class DXFAnalyzer:
 
         return results
 
-    def verify_text_properties(self, text_entity: Text, expected_props: Dict[str, Any]) -> Dict[str, bool]:
+    def verify_text_properties(self, text_entity: Union[Text, MText], expected_props: Dict[str, Any]) -> Dict[str, bool]:
         """Verify text entity properties match expected values."""
         results = {}
 
@@ -165,10 +165,15 @@ class DXFAnalyzer:
             actual_text = text_entity.dxf.text
             results["text_match"] = actual_text == expected_text
 
-        # Check height
+        # Check height (different attributes for TEXT vs MTEXT)
         if "height" in expected_props:
             expected_height = expected_props["height"]
-            actual_height = text_entity.dxf.height
+            if text_entity.dxftype() == "MTEXT":
+                # MTEXT uses char_height
+                actual_height = text_entity.dxf.char_height
+            else:
+                # TEXT uses height
+                actual_height = text_entity.dxf.height
             results["height_match"] = abs(actual_height - expected_height) < 0.001
 
         # Check rotation
@@ -381,7 +386,7 @@ class TestDXFIntegration:
 
         # Verify layer properties (from layer style)
         layer_results = analyzer.verify_layer_properties(layer_name, {
-            "color": 3,  # darkgreen should map to ACI 3
+            "color": 98,  # green-dark maps to ACI 98 in official color file
             "linetype": "BORDER",
             "lineweight": 60,
             "plot": True
@@ -590,7 +595,7 @@ class TestDXFStyleVerification:
             style = NamedStyle(
                 layer=LayerStyleProperties(
                     color=color_name,
-                    linetype="CONTINUOUS",
+                    linetype="Continuous",
                     lineweight=25
                 )
             )
@@ -624,8 +629,8 @@ class TestDXFStyleVerification:
         line_geom = LineString([(0, 0), (10, 10)])
         gdf = gpd.GeoDataFrame({'geometry': [line_geom]})
 
-        # Test various linetypes
-        linetype_tests = ["CONTINUOUS", "DASHED", "DOTTED", "DASHDOT", "CENTER", "PHANTOM"]
+        # Test various linetypes using correct ezdxf vocabulary
+        linetype_tests = ["Continuous", "DASHED", "DOTTED", "DASHDOT", "CENTER", "PHANTOM"]
 
         for linetype in linetype_tests:
             style = NamedStyle(
@@ -651,20 +656,19 @@ class TestDXFStyleVerification:
 
         # Verify linetypes exist in DXF
         for linetype in linetype_tests:
-            if linetype != "CONTINUOUS":  # CONTINUOUS is built-in
+            if linetype != "Continuous":  # Continuous is built-in
                 assert linetype in analyzer.doc.linetypes, f"Linetype {linetype} should exist in DXF"
 
         # Verify layer linetype assignments
         for linetype in linetype_tests:
             layer_name = f"linetype_test_{linetype.lower()}"
-            # Map our linetype names to ezdxf names
-            expected_linetype = "Continuous" if linetype == "CONTINUOUS" else linetype
+            # No translation needed - use ezdxf vocabulary directly
             layer_results = analyzer.verify_layer_properties(layer_name, {
-                "linetype": expected_linetype
+                "linetype": linetype
             })
 
             assert layer_results["layer_exists"], f"Layer for {linetype} should exist"
-            assert layer_results["linetype_match"], f"Layer should have linetype {expected_linetype}"
+            assert layer_results["linetype_match"], f"Layer should have linetype {linetype}"
 
     def test_text_style_creation(self, style_applicator_service, temp_dxf_file, dxf_document):
         """Test that text styles are created in DXF."""
