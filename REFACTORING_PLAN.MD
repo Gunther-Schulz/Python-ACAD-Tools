@@ -11,7 +11,7 @@
 *   **CLIPPY Adherence:** All code modifications will be performed following the `CLIPPY.MD` guidelines to ensure quality and consistency.
 *   **Comprehensive Testing (NEW):**
     *   For every refactoring task that involves code changes, existing tests must be updated, and new unit/integration tests must be written as necessary to cover the new or modified logic and interactions.
-    *   **Tests should be run regularly throughout the refactoring process** (e.g., after each significant change or completion of a sub-task) to ensure ongoing integration and catch regressions early.
+    *   **Tests MUST be run regularly by the AI throughout the refactoring process** (e.g., after each significant change or completion of a sub-task). **The AI MUST confirm that all relevant tests pass before considering the specific change or sub-task complete. If tests fail, the AI MUST address the failures (either in the tests or the code) before proceeding.**
     *   The goal is to verify correctness, prevent regressions, and maintain or improve overall test coverage (aiming for at least 80% as per `PROJECT_ARCHITECTURE.MD`).
     *   Tests should be written before or alongside the code changes where practical.
 *   **Local `ezdxf` Resources (NEW):** The `ezdxf` library's documentation (in `ezdxf/docs`) and source code (in `ezdxf/src`) are available locally within this project. Specifically, `ezdxf/docs/source/reference.rst` acts as a very helpful master table of contents for navigating the local documentation. These resources can be valuable references for understanding `ezdxf` APIs and behavior, supplementing web searches as appropriate.
@@ -21,7 +21,7 @@
 *   **Continuous Documentation Alignment (NEW - AI Action):** After completing each refactoring task that alters system design, interfaces, or core component responsibilities, the AI **MUST** review `PROJECT_ARCHITECTURE.MD` and other relevant project documentation (e.g., service READMEs, interface contracts). If discrepancies are found between the refactored code and the documentation, the AI **MUST** either:
     *   Update the documentation to accurately reflect the (approved) refactored state.
     *   If the refactoring led to an unplanned deviation from established architecture that wasn't pre-approved, flag this as a new architectural deviation to be logged and addressed.
-*   **Atomic Commits & Plan Referencing (NEW - AI Action):** For each logically distinct set of changes applied (typically after each successfully verified file edit or completion of a small sub-task within a larger plan item), the AI **MUST** formulate a clear, concise commit message. This message **SHOULD** reference the specific item from this `REFACTORING_PLAN.MD` being addressed (e.g., "Refactor DataSourceService to use IDXFAdapter (Plan Item 1.A)"). The AI should prepare the commit, but user approval/action will be needed for the actual commit.
+*   **Atomic Commits & Plan Referencing (NEW - AI Action):** For each logically distinct set of changes applied (typically after each successfully verified file edit or completion of a small sub-task within a larger plan item), the AI **MUST** formulate a clear, concise commit message. This message **SHOULD** reference the specific item from this `REFACTORING_PLAN.MD` being addressed (e.g., "Refactor DataSourceService to use IDXFAdapter (Plan Item 1.A)"). The AI **MUST** prepare the commit details (message, affected files), but actual commit execution requires user approval and action via their Git client.
 
 ---
 

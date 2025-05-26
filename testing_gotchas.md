@@ -1,0 +1,2 @@
+Potential for "Incorrectly Correct" Tests: The AI might generate tests that pass but don't actually validate the intended behavior correctly (e.g., testing the wrong thing, having assertions that are too loose or always true). P8, with its focus on "Semantic Intent," offers a chance to catch this conceptually before the code is written. P9 primarily checks if the applied code matches the plan and is structurally sound, not necessarily if the plan itself was good test design.
+---> potential result of wakineing of 3.A in CLIPPY.MD

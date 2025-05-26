@@ -213,12 +213,12 @@
 
 ### 6.2: Develop a Phased Approach
 *   Based on the user-confirmed prioritization, the AI **MUST** group related fixes into logical, sequential phases (e.g., Phase 1: Core Architectural Alignment, Phase 2: Domain Model Integrity, Phase 3: Service Layer Refinement, etc.).
-*   The AI **MUST** define clear, achievable objectives and specific tasks for each phase, referencing the unique IDs of the findings being addressed. **For each task that involves code modification, the AI MUST explicitly include sub-items or notes within the task definition regarding the creation or update of unit and integration tests, as per the 'Comprehensive Testing' guiding principle (Section 6.3 of this guide and the refactoring plan itself).**
+*   The AI **MUST** define clear, achievable objectives and specific tasks for each phase, referencing the unique IDs of the findings being addressed. **For each task that involves code modification, the AI MUST explicitly include sub-items or notes within the task definition regarding the creation or update of unit and integration tests, and critically, for the AI to *execute these tests and confirm they pass* before considering the task or sub-task complete, as per the 'Comprehensive Testing' guiding principle (Section 6.3 of this guide and the refactoring plan itself).**
 *   **Establish Guiding Principles for the Plan (NEW):** The generated refactoring plan (e.g., `REFACTORING_PLAN.MD`) **MUST** include a dedicated section outlining "Guiding Principles & General Practices". This section **MUST** incorporate, at a minimum, AI-executable instructions for:
     *   The phased approach itself.
     *   Systematic issue tracking referencing the audit reports.
     *   Adherence to AI operational guidelines (like `CLIPPY.MD`).
-    *   Comprehensive Testing (as detailed in Section 6.3 of this guide).
+    *   Comprehensive Testing (as detailed in Section 6.3 of this guide, including test execution).
     *   The "No Backward Compatibility Layers" principle.
     *   Continuous Documentation Alignment (AI Action).
     *   Atomic Commits & Plan Referencing (AI Action).
@@ -230,10 +230,10 @@
 *   **Immutable Condition for the AI when generating the Refactoring Plan:** The plan **MUST** stipulate that for every refactoring task involving code changes:
     *   Existing tests covering the functionality **MUST** be identified, updated, and verified to pass by the AI executing the plan.
     *   New unit and/or integration tests **MUST** be written by the AI executing the plan to cover new or significantly modified logic and interactions.
-    *   The refactoring plan **MUST** advocate for the AI executing the plan to run tests regularly throughout the process (e.g., after each significant change or sub-task completion) to ensure continuous integration and early detection of issues.
+    *   The refactoring plan **MUST** advocate for the AI executing the plan to **run tests regularly throughout the process (e.g., after each significant change or sub-task completion) and confirm they pass before proceeding. If tests fail, the AI MUST address the failures (either in the tests or the code) before considering the current step complete.**
     *   The goal stated in the plan **MUST** be to verify correctness, prevent regressions, and maintain/improve overall test coverage (e.g., aiming for at least 80% or as defined by project standards).
     *   The plan **SHOULD** recommend that tests are ideally written before or alongside code changes (Test-Driven Development or Behavior-Driven Development principles, if aligned with project standards).
-*   The AI **MUST** explicitly incorporate this testing mandate into the "Guiding Principles & General Practices" section of the generated `REFACTORING_PLAN.MD`.
+*   The AI **MUST** explicitly incorporate this testing mandate (including execution and pass confirmation) into the "Guiding Principles & General Practices" section of the generated `REFACTORING_PLAN.MD`.
 
 ### 6.4: Estimate Effort & Resources (Optional, AI-Adapted)
 *   If requested by the user, the AI **MAY** attempt to provide a qualitative assessment of complexity for each phase or major task in the refactoring plan (e.g., "Low", "Medium", "High" complexity based on factors like number of files affected, depth of changes, interdependencies).
@@ -301,7 +301,7 @@
 *   [ ] **Standards Cross-Reference:** Has the AI compared findings against `PROJECT_STANDARDS.MD` (Phase 5.2)?
 *   [ ] **Comprehensive Documentation:** Has the AI systematically documented all categories of findings (duplication, TODOs, architectural deviations, other quality issues) in their respective structured reports (Phase 3.2)?
 *   [ ] **Actionable Recommendations:** Does each significant finding in the reports have a clear, actionable recommendation from the AI (Phase 4.4)?
-*   [ ] **Integrated Testing in Plan:** Does the generated `REFACTORING_PLAN.MD` explicitly incorporate the AI-executable requirement for comprehensive testing alongside refactoring tasks, as per Section 6.3 (Phase 6.2, 6.3)?
+*   [ ] **Integrated Testing in Plan:** Does the generated `REFACTORING_PLAN.MD` explicitly incorporate the AI-executable requirement for comprehensive testing (including writing, updating, **and regularly executing tests, confirming they pass**) alongside refactoring tasks, as per Section 6.3 (Phase 6.2, 6.3)?
 *   [ ] **Refactoring Plan Guiding Principles:** Does the generated `REFACTORING_PLAN.MD` include the mandatory "Guiding Principles & General Practices" section with all required AI-executable points (Phase 6.2)?
 *   [ ] **Final Plan Grounding:** Is the final `REFACTORING_PLAN.MD` built upon findings that have met the "sufficient context" and "fact-based analysis" criteria (Implicit throughout, checked here)?
 *   [ ] **User Review of Prioritization:** Has the AI presented its proposed prioritization of findings to the user for review and confirmation before finalizing the refactoring plan (Phase 6.1)?
