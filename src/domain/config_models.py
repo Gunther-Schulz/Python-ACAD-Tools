@@ -1,6 +1,6 @@
 """Application configuration models following PROJECT_ARCHITECTURE.MD specification."""
 from typing import List, Optional, Dict, Any, Union
-from pydantic import BaseModel, Field, ConfigDict, field_validator
+from pydantic import BaseModel, Field, ConfigDict, field_validator, FieldValidationInfo
 from pydantic_settings import BaseSettings
 from enum import Enum
 
@@ -56,13 +56,23 @@ class AppConfig(BaseSettings):
 
     @field_validator('log_level_console', 'log_level_file')
     @classmethod
-    def validate_log_levels(cls, v):
+    def validate_log_levels(cls, v: Optional[str], info: FieldValidationInfo):
         """Validate log levels are valid."""
-        if v is None:
+
+        if info.field_name == 'log_level_file' and v == "":
+            # For log_level_file, an empty string from env var means use the Pydantic Field default.
+            # Returning None allows Pydantic to use the default specified in Field().
+            return None
+
+        if v is None: # Handles case where log_level_file is Optional and not set or explicitly None
             return v
+
+        # For log_level_console (which is not Optional and has a string default like "INFO"),
+        # an empty string is an invalid log level.
+        # Also, if log_level_file gets a non-empty, non-None string, it's validated here.
         valid_levels = ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']
-        if v.upper() not in valid_levels:
-            raise ValueError(f"Log level must be one of {valid_levels}, got {v}")
+        if not isinstance(v, str) or v.upper() not in valid_levels:
+            raise ValueError(f"Log level must be one of {valid_levels}, got '{v}'")
         return v.upper()
 
 

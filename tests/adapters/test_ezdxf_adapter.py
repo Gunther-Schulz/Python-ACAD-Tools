@@ -293,12 +293,8 @@ class TestEzdxfAdapter(unittest.TestCase):
         self.patch_geopandas_available_patcher.start()
         if available:
             self._start_patch('src.adapters.ezdxf_adapter.gpd', new_callable=MagicMock)
-            self._start_patch('src.adapters.ezdxf_adapter.GeoDataFrame', new_callable=MagicMock)
-            self._start_patch('src.adapters.ezdxf_adapter.GeoSeries', new_callable=MagicMock)
         else:
             self._start_patch('src.adapters.ezdxf_adapter.gpd', new=None)
-            self._start_patch('src.adapters.ezdxf_adapter.GeoDataFrame', new=type(None))
-            self._start_patch('src.adapters.ezdxf_adapter.GeoSeries', new=type(None))
 
         # Patch os.makedirs for save_document tests
         self._start_patch('src.adapters.ezdxf_adapter.os.makedirs', return_value=None)

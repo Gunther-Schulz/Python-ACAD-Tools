@@ -2,9 +2,11 @@
 from typing import Protocol, List, Optional, Any, Dict
 import geopandas as gpd
 from shapely.geometry.base import BaseGeometry
+from ezdxf.document import Drawing
 
 from ..domain.config_models import AllOperationParams, GeomLayerDefinition, StyleConfig
 from ..domain.exceptions import GeometryError
+from ..domain.style_models import NamedStyle
 # from ..domain.geometry_models import LayerCollection # If we define a wrapper for dict of GeoDataFrames
 
 
@@ -94,6 +96,27 @@ class IGeometryProcessor(Protocol):
 
         Raises:
             GeometryError: If reprojection fails.
+        """
+        ...
+
+    def add_geodataframe_to_dxf(
+        self,
+        dxf_drawing: Drawing,
+        gdf: gpd.GeoDataFrame,
+        layer_name: str,
+        style: Optional[NamedStyle] = None,
+        layer_definition: Optional[GeomLayerDefinition] = None
+    ) -> None:
+        """
+        Adds geometries from a GeoDataFrame to a DXF drawing, applying specified styles
+        and handling label placement.
+
+        Args:
+            dxf_drawing: The ezdxf Drawing object to add geometries to.
+            gdf: The GeoDataFrame containing the geometries and their attributes.
+            layer_name: The name of the DXF layer to add the geometries to.
+            style: Optional NamedStyle object containing styling information.
+            layer_definition: Optional GeomLayerDefinition providing context like label columns.
         """
         ...
 

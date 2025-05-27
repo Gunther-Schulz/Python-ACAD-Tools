@@ -3,8 +3,17 @@ import pytest
 from unittest.mock import Mock, patch
 
 from src.domain.style_models import NamedStyle, LayerStyleProperties, TextStyleProperties, HatchStyleProperties
+from src.domain.dxf_models import DXFEntity, TextAlignment
 from src.services.style_applicator_service import StyleApplicatorService
-from src.domain.exceptions import DXFProcessingError
+from src.adapters.ezdxf_adapter import EzdxfAdapter, EZDXF_AVAILABLE
+from src.services.config_loader_service import ConfigLoaderService
+from src.services.dxf_resource_manager_service import DXFResourceManagerService
+from src.services.geometry_processor_service import GeometryProcessorService
+from src.services.style_application_orchestrator_service import StyleApplicationOrchestratorService
+
+from src.interfaces.dxf_resource_manager_interface import IDXFResourceManager
+from src.interfaces.geometry_processor_interface import IGeometryProcessor
+from src.interfaces.style_application_orchestrator_interface import IStyleApplicationOrchestrator
 
 from .base_test_utils import (
     StyleTestFixtures, MockDXFUtils, StyleTestAssertions,
@@ -166,12 +175,6 @@ class TestEntityStylingWithRealService:
     """Test entity styling with real StyleApplicatorService (mocked dependencies)."""
 
     @pytest.fixture
-    def mock_config_loader(self):
-        """Mock config loader for testing."""
-        from tests.styling.base_test_utils import MockConfigLoader
-        return MockConfigLoader()
-
-    @pytest.fixture
     def mock_logger_service(self):
         """Mock logger service for testing."""
         mock_logger_service = Mock()
@@ -194,9 +197,34 @@ class TestEntityStylingWithRealService:
         return mock_adapter
 
     @pytest.fixture
-    def style_applicator_service(self, mock_config_loader, mock_logger_service, mock_dxf_adapter):
+    def mock_dxf_resource_manager(self) -> Mock:
+        return Mock(spec=IDXFResourceManager)
+
+    @pytest.fixture
+    def mock_geometry_processor(self) -> Mock:
+        return Mock(spec=IGeometryProcessor)
+
+    @pytest.fixture
+    def mock_style_orchestrator(self) -> Mock:
+        return Mock(spec=IStyleApplicationOrchestrator)
+
+    @pytest.fixture
+    def style_applicator_service(
+        self,
+        mock_logger_service: Mock,
+        mock_dxf_adapter: Mock,
+        mock_dxf_resource_manager: Mock,
+        mock_geometry_processor: Mock,
+        mock_style_orchestrator: Mock
+    ) -> StyleApplicatorService:
         """Create StyleApplicatorService with mocked dependencies."""
-        return StyleApplicatorService(mock_config_loader, mock_logger_service, mock_dxf_adapter)
+        return StyleApplicatorService(
+            logger_service=mock_logger_service,
+            dxf_adapter=mock_dxf_adapter,
+            dxf_resource_manager=mock_dxf_resource_manager,
+            geometry_processor=mock_geometry_processor,
+            style_orchestrator=mock_style_orchestrator
+        )
 
     def test_real_service_apply_layer_style_to_entity(self, style_applicator_service):
         """Test real service applying layer style to entity."""

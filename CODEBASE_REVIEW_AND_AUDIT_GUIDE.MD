@@ -149,19 +149,25 @@
 
 ### 3.6: Test Quality Assessment & Test-Masked Bug Detection (NEW)
 *   **Purpose:** During codebase review, the AI **MUST** evaluate existing tests not just for coverage but for quality and precision to identify potential test-masked bugs.
+*   **Anti-Pattern Awareness: The "Testing Theater" Problem.** The AI **MUST** specifically assess tests for the "Testing Theater" anti-pattern. This anti-pattern is characterized by tests that appear comprehensive but fail to verify actual functionality, often due to issues like excessive mocking, testing framework plumbing instead of business logic, or missing negative assertions. This creates a dangerous illusion of test coverage.
+    *   **Key Red Flags for "Testing Theater":**
+        *   Extensive mocking of critical dependencies without proper mock configuration (e.g., mock ratio > 50% of a component's direct collaborators).
+        *   Tests focusing on framework plumbing (e.g., verifying `pytest` itself works) rather than application-specific business logic.
+        *   Assertions that primarily verify the test setup or mock interactions worked as configured, rather than verifying the behavior or output of the code under test.
+        *   Missing or undefined fixtures that prevent tests from running or lead to trivial pass states.
+        *   Complex verification infrastructure that analyzes outputs from heavily mocked or over-simplified systems.
+        *   Tests that essentially re-verify the documented behavior of well-established external libraries.
+        *   Absence of negative test cases (only testing "happy paths" without validating how errors or unexpected inputs are handled).
+        *   Overly complex or interdependent fixtures that make tests fragile and difficult to understand or maintain.
+    *   **Core Issue of "Testing Theater":** Tests look like they test everything but actually test nothing meaningful regarding the specific application logic and its correctness.
 *   **Test Quality Evaluation Criteria:**
-    *   **Mocking Precision:** Are tests mocking only external dependencies and immediate collaborators, or are they mocking the methods being tested? Overly broad mocking can mask bugs by preventing problematic code paths from executing.
-    *   **Behavioral Completeness:** Do tests verify both positive behaviors (what should happen) and negative behaviors (what should NOT happen)? Missing negative assertions can allow inappropriate method calls to go undetected.
-    *   **Context Alignment:** Are tests based on actual implementation analysis or assumptions about how code should work? Tests based on assumptions may not catch real implementation bugs.
-    *   **Integration Boundary Coverage:** For adapter patterns, do tests verify both interface compliance AND proper usage patterns? Tests that only mock adapters may miss inappropriate direct calls that bypass abstractions.
-*   **Test-Masked Bug Indicators:**
-    *   Tests that pass but allow known problematic code paths to execute without detection.
-    *   Tests with overly broad mocks that prevent the actual service logic from being exercised.
-    *   Tests that verify method calls were made but not whether they were appropriate or correctly sequenced.
-    *   Missing negative assertions that would catch architectural violations (e.g., direct ezdxf calls when adapter should be used).
-*   **AI Action for Test Quality Issues:** When poor test quality is identified, the AI **MUST**:
-    *   Document the test quality issue in `OTHER_CODE_QUALITY_OBSERVATIONS.MD` with specific examples.
-    *   Include test refinement tasks in the refactoring plan with emphasis on precision and bug detection capability.
+    *   **Mocking Precision:** Are tests mocking only truly external dependencies (e.g., network, file system, database) and immediate, distinct collaborators, or are they mocking methods of the class under test or too many internal components? Overly broad or deep mocking can prevent the actual code paths from being exercised.
+    *   **Behavioral Completeness:** Do tests verify both expected positive behaviors (what should happen and what correct output is produced) and negative behaviors (what should NOT happen, how errors are handled)? Missing negative assertions or error condition checks can allow inappropriate method calls or incorrect error handling to go undetected.
+    *   **Context Alignment & Implementation Focus:** Are tests based on a thorough analysis of the actual implementation being tested, or are they based on assumptions about how the code *should* work? Tests based on assumptions may not catch subtle bugs or deviations in the real implementation.
+    *   **Integration Boundary Coverage:** For adapter patterns or service integrations, do tests verify both the interface contract compliance AND the proper, intended usage patterns of that interface by consumers? Tests that only mock adapters at the boundary without checking consumer behavior may miss incorrect or direct calls that bypass abstractions.
+*   **AI Action for Test Quality Issues:** When poor test quality is identified (including "Testing Theater" patterns), the AI **MUST**:
+    *   Document the test quality issue in the `OTHER_CODE_QUALITY_OBSERVATIONS.MD` section of this review document (or a similar findings report if structured differently by user directive) with specific examples.
+    *   Include test refinement tasks in the refactoring plan (Phase 5) with emphasis on increasing precision, improving behavioral coverage, and enhancing bug detection capability.
     *   Flag areas where test-masked bugs are likely to exist for deeper investigation during refactoring.
 
 ---
@@ -176,7 +182,7 @@
     *   `DUPLICATION_FINDINGS.MD`
     *   `ACTIONABLE_ITEMS.MD` (for TODOs, placeholders, etc.)
     *   `ARCHITECTURAL_DEVIATIONS_REPORT.MD`
-    *   `OTHER_CODE_QUALITY_OBSERVATIONS.MD` (for issues not fitting elsewhere)
+    *   `OTHER_CODE_QUALITY_OBSERVATIONS.MD` (for issues not fitting elsewhere, including detailed test quality assessments and identification of "Testing Theater" patterns as described in Section 3.6)
 *   Each report **MUST** include:
     *   Document Purpose, Review Date, and Scope (as defined in Phase 0.1).
     *   An Executive Summary (optional, but recommended for larger reviews, to be generated by the AI).
@@ -251,7 +257,7 @@
     *   The refactoring plan **MUST** advocate for the AI executing the plan to **run tests regularly throughout the process (e.g., after each significant change or sub-task completion) and confirm they pass before proceeding. If tests fail, the AI MUST address the failures (either in the tests or the code) before considering the current step complete.**
     *   The goal stated in the plan **MUST** be to verify correctness, prevent regressions, and maintain/improve overall test coverage (e.g., aiming for at least 80% or as defined by project standards).
     *   The plan **SHOULD** recommend that tests are ideally written before or alongside code changes (Test-Driven Development or Behavior-Driven Development principles, if aligned with project standards).
-*   **Test Quality & Precision Requirements (NEW - Critical for Bug Detection):** The plan **MUST** include specific guidance for test quality to prevent test-masked bugs:
+*   **Test Quality & Precision Requirements (NEW - Critical for Bug Detection):** The plan **MUST** include specific guidance for test quality to prevent test-masked bugs and avoid the "Testing Theater" anti-pattern (as defined in Section 3.6):
     *   **Minimal Dependency Mocking:** Tests should mock only external dependencies (databases, file systems, network calls) and immediate collaborators. Avoid mocking the methods being tested or their direct internal logic.
     *   **Behavioral Verification:** Tests should verify both positive behaviors (what should happen) and negative behaviors (what should NOT happen). Use assertions like `assert_not_called()` or `call_count == 0` to verify inappropriate methods aren't invoked.
     *   **Context-Driven Test Development:** Tests **MUST** be based on actual codebase analysis rather than assumptions about how code should work. The AI **MUST** examine the actual implementation before writing tests.
@@ -331,7 +337,7 @@
 *   [ ] **Comprehensive Documentation:** Has the AI systematically documented all categories of findings (duplication, TODOs, architectural deviations, other quality issues) in their respective structured reports (Phase 3.2)?
 *   [ ] **Actionable Recommendations:** Does each significant finding in the reports have a clear, actionable recommendation from the AI (Phase 4.4)?
 *   [ ] **Integrated Testing in Plan:** Does the generated `REFACTORING_PLAN.MD` explicitly incorporate the AI-executable requirement for comprehensive testing (including writing, updating, **and regularly executing tests, confirming they pass**) alongside refactoring tasks, as per Section 6.3 (Phase 6.2, 6.3)?
-*   [ ] **Test Quality Assessment:** Has the AI evaluated existing tests for quality and precision using Section 3.6 criteria, identifying potential test-masked bugs and documenting test quality issues?
+*   [ ] **Test Quality Assessment:** Has the AI evaluated existing tests for quality and precision using Section 3.6 criteria, including awareness of the "Testing Theater" anti-pattern, identifying potential test-masked bugs and documenting test quality issues as part of its findings (Phase 3.6)?
 *   [ ] **Refactoring Plan Guiding Principles:** Does the generated `REFACTORING_PLAN.MD` include the mandatory "Guiding Principles & General Practices" section with all required AI-executable points (Phase 6.2)?
 *   [ ] **Final Plan Grounding:** Is the final `REFACTORING_PLAN.MD` built upon findings that have met the "sufficient context" and "fact-based analysis" criteria (Implicit throughout, checked here)?
 *   [ ] **User Review of Prioritization:** Has the AI presented its proposed prioritization of findings to the user for review and confirmation before finalizing the refactoring plan (Phase 6.1)?
@@ -342,8 +348,8 @@
 
 *   Refer to `DUPLICATION_FINDINGS.MD` for an example of a duplication report.
 *   Refer to `ACTIONABLE_COMMENTS_AND_TODOS.MD` for an example of logging actionable items.
-*   Refer to `ARCHITECTURE_DEVIATIONS_REPORT.MD` for an example of an architectural deviation report.
-*   Refer to `OTHER_CODE_QUALITY_OBSERVATIONS.MD` for miscellaneous quality observations, including test quality issues and test-masked bug indicators.
+*   Refer to `ARCHITECTURAL_DEVIATIONS_REPORT.MD` for an example of an architectural deviation report.
+*   Within this guide, Section 3.3 (Key Areas of Investigation) and Section 3.6 (Test Quality Assessment) describe the content expected for miscellaneous quality observations, including test quality issues and "Testing Theater" bug indicators. These observations are typically consolidated into a dedicated findings document or section.
 *   Refer to `REFACTORING_PLAN.MD` for an example of a phased remediation plan with comprehensive testing requirements.
 
 ---

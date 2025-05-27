@@ -34,6 +34,16 @@ except ImportError:
     ezdxf_const = None # type: ignore
     EZDXF_AVAILABLE = False
 
+# Add GEOPANDAS_AVAILABLE flag
+try:
+    import geopandas as gpd
+    from shapely.geometry import Point, LineString, Polygon # Optional, but often used with GeoDataFrame
+    GEOPANDAS_AVAILABLE = True
+except ImportError:
+    gpd = None # type: ignore
+    Point, LineString, Polygon = type(None), type(None), type(None) # type: ignore
+    GEOPANDAS_AVAILABLE = False
+
 
 class EzdxfAdapter(IDXFAdapter):
     """Adapter for ezdxf library operations."""

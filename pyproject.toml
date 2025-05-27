@@ -153,6 +153,7 @@ markers = [
     "regression: Tests for preventing regression bugs",
     "experimental: Tests for experimental features",
     "skip_ci: Tests to skip in CI environment",
+    "project_model: Tests for project configuration domain models"
 ]
 
 # ==========================================

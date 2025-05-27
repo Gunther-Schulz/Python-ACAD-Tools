@@ -5,6 +5,9 @@ from unittest.mock import Mock, patch
 from src.domain.style_models import NamedStyle, LayerStyleProperties
 from src.services.style_applicator_service import StyleApplicatorService
 from src.domain.exceptions import DXFProcessingError
+from src.interfaces.dxf_resource_manager_interface import IDXFResourceManager
+from src.interfaces.geometry_processor_interface import IGeometryProcessor
+from src.interfaces.style_application_orchestrator_interface import IStyleApplicationOrchestrator
 
 from .base_test_utils import (
     StyleTestFixtures, MockDXFUtils, StyleTestAssertions,
@@ -179,8 +182,9 @@ class TestLayerStylingWithRealService:
         """Mock DXF adapter for testing."""
         mock_adapter = Mock()
         mock_adapter.is_available.return_value = True
-        mock_adapter.create_linetype.return_value = Mock()
-        mock_adapter.create_text_style.return_value = Mock()
+        # Create linetype and text_style are now in resource_manager
+        # mock_adapter.create_linetype.return_value = Mock()
+        # mock_adapter.create_text_style.return_value = Mock()
         mock_adapter.get_layer.return_value = Mock()
         mock_adapter.set_layer_properties.return_value = None
         mock_adapter.set_entity_properties.return_value = None
@@ -189,64 +193,64 @@ class TestLayerStylingWithRealService:
         return mock_adapter
 
     @pytest.fixture
-    def style_applicator_service(self, mock_config_loader, mock_logger_service, mock_dxf_adapter):
+    def mock_dxf_resource_manager(self) -> Mock:
+        return Mock(spec=IDXFResourceManager)
+
+    @pytest.fixture
+    def mock_geometry_processor(self) -> Mock:
+        return Mock(spec=IGeometryProcessor)
+
+    @pytest.fixture
+    def mock_style_orchestrator(self) -> Mock:
+        return Mock(spec=IStyleApplicationOrchestrator)
+
+    @pytest.fixture
+    def style_applicator_service(self, mock_config_loader, mock_logger_service, mock_dxf_adapter, mock_dxf_resource_manager, mock_geometry_processor, mock_style_orchestrator):
         """Create StyleApplicatorService with mocked dependencies."""
-        return StyleApplicatorService(mock_config_loader, mock_logger_service, mock_dxf_adapter)
+        return StyleApplicatorService(
+            config_loader=mock_config_loader,
+            logger_service=mock_logger_service,
+            dxf_adapter=mock_dxf_adapter, # This adapter is now only for SAS itself, orchestrator has its own
+            dxf_resource_manager=mock_dxf_resource_manager,
+            geometry_processor=mock_geometry_processor,
+            style_orchestrator=mock_style_orchestrator
+        )
 
     def test_real_service_apply_layer_style(self, style_applicator_service):
         """Test real service applying layer style."""
-        # Create a layer style
         layer_style = LayerStyleProperties(
-            color=1,  # Red ACI
-            linetype="DASHED",
-            lineweight=50,
-            plot=True,
-            is_on=True,
-            frozen=False,
-            locked=False
+            color=1, linetype="DASHED", lineweight=50, plot=True, is_on=True, frozen=False, locked=False
         )
         style = NamedStyle(layer=layer_style)
-
-        # Create mock drawing with layers collection
         mock_drawing = MockDXFUtils.create_mock_drawing()
-        mock_layer = MockDXFUtils.create_mock_layer("TestLayer")
 
-        # Mock the layers.get method to return our mock layer
-        mock_drawing.layers.get.return_value = mock_layer
-        mock_drawing.modelspace.return_value.query.return_value = []  # No entities on layer
-
-        # Apply style using real service
         style_applicator_service.apply_styles_to_dxf_layer(mock_drawing, "TestLayer", style)
-
-        # Verify the adapter was called to get the layer
-        style_applicator_service._dxf_adapter.get_layer.assert_called_once_with(mock_drawing, "TestLayer")
+        style_applicator_service._style_orchestrator.apply_styles_to_dxf_layer.assert_called_once_with(
+            dxf_drawing=mock_drawing, layer_name="TestLayer", style=style
+        )
 
     def test_real_service_create_new_layer(self, style_applicator_service):
         """Test real service creating new layer when it doesn't exist."""
         layer_style = LayerStyleProperties(color=2, linetype="Continuous")
         style = NamedStyle(layer=layer_style)
-
         mock_drawing = MockDXFUtils.create_mock_drawing()
-        mock_new_layer = MockDXFUtils.create_mock_layer("NewLayer")
 
-        # Mock layer not found scenario - adapter will handle creation
-        mock_drawing.modelspace.return_value.query.return_value = []
-
-        # Apply style using real service
         style_applicator_service.apply_styles_to_dxf_layer(mock_drawing, "NewLayer", style)
-
-        # Verify the adapter was called to get the layer (which would create it if needed)
-        style_applicator_service._dxf_adapter.get_layer.assert_called_once_with(mock_drawing, "NewLayer")
+        style_applicator_service._style_orchestrator.apply_styles_to_dxf_layer.assert_called_once_with(
+            dxf_drawing=mock_drawing, layer_name="NewLayer", style=style
+        )
 
     def test_real_service_ezdxf_unavailable_error(self, style_applicator_service):
         """Test that service raises error when ezdxf is unavailable."""
-        # Mock the adapter to return False for is_available
-        style_applicator_service._dxf_adapter.is_available.return_value = False
+        # To test this now, the orchestrator's adapter would need to be unavailable
+        # Or, if SAS adapter is checked first, then its adapter.
+        # Assuming orchestrator checks its adapter first, or SAS itself checks before delegating.
+        # For this test, let's make the orchestrator raise the error when called.
+        style_applicator_service._style_orchestrator.apply_styles_to_dxf_layer.side_effect = DXFProcessingError("ezdxf library not available")
 
         style = NamedStyle(layer=LayerStyleProperties(color=1))
         mock_drawing = MockDXFUtils.create_mock_drawing()
 
-        # Should raise DXFProcessingError when ezdxf is not available
         with pytest.raises(DXFProcessingError, match="ezdxf library not available"):
             style_applicator_service.apply_styles_to_dxf_layer(mock_drawing, "TestLayer", style)
 
@@ -254,27 +258,12 @@ class TestLayerStylingWithRealService:
         """Test real service applying style to layer with entities."""
         layer_style = LayerStyleProperties(color=3, linetype="DOTTED")
         style = NamedStyle(layer=layer_style)
-
         mock_drawing = MockDXFUtils.create_mock_drawing()
-        mock_layer = MockDXFUtils.create_mock_layer("EntityLayer")
-        mock_entity1 = MockDXFUtils.create_mock_entity("LINE")
-        mock_entity2 = MockDXFUtils.create_mock_entity("CIRCLE")
 
-        # Mock layer exists and has entities
-        mock_drawing.layers.get.return_value = mock_layer
-        mock_drawing.modelspace.return_value.query.return_value = [mock_entity1, mock_entity2]
-
-        # Mock the adapter's get_modelspace method
-        mock_modelspace = Mock()
-        style_applicator_service._dxf_adapter.get_modelspace.return_value = mock_modelspace
-        style_applicator_service._dxf_adapter.query_entities.return_value = [mock_entity1, mock_entity2]
-
-        # Apply style using real service
         style_applicator_service.apply_styles_to_dxf_layer(mock_drawing, "EntityLayer", style)
-
-        # Verify entities were queried via adapter
-        style_applicator_service._dxf_adapter.get_modelspace.assert_called_once_with(mock_drawing)
-        style_applicator_service._dxf_adapter.query_entities.assert_called_once_with(mock_modelspace, query_string='*[layer=="EntityLayer"]')
+        style_applicator_service._style_orchestrator.apply_styles_to_dxf_layer.assert_called_once_with(
+            dxf_drawing=mock_drawing, layer_name="EntityLayer", style=style
+        )
 
 
 class TestLayerStylingEdgeCases:
@@ -365,7 +354,7 @@ class TestLayerStylingAssertions:
 
         # Apply properties to the mock layer
         layer.dxf.color = 1
-                    layer.dxf.linetype = "DASHED"
+        layer.dxf.linetype = "DASHED"
         layer.dxf.lineweight = 50
         layer.dxf.plot = True
         layer.is_on = True

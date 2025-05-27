@@ -62,7 +62,7 @@ class LayerStyleProperties(BaseModel):
     color: Optional[Union[str, int]] = None
     linetype: Optional[str] = None
     linetype_pattern: Optional[List[float]] = Field(None, alias='linetypePattern')
-    lineweight: Optional[int] = None
+    lineweight: Optional[Union[int, str]] = None
     transparency: Optional[float] = None
     plot: Optional[bool] = None
     is_on: Optional[bool] = Field(None, alias='isOn')
@@ -72,10 +72,32 @@ class LayerStyleProperties(BaseModel):
     @field_validator('lineweight')
     @classmethod
     def validate_lineweight(cls, v):
-        """Validate lineweight follows DXF specification."""
-        if v is not None and not DXFLineweight.is_valid_lineweight(v):
-            raise ValueError(f"Invalid lineweight value: {v}. Must be one of {DXFLineweight.VALID_LINEWEIGHTS} or special values ({DXFLineweight.DEFAULT}, {DXFLineweight.BYBLOCK}, {DXFLineweight.BYLAYER})")
-        return v
+        """Validate lineweight follows DXF specification. Accepts int or valid string representations."""
+        if v is None:
+            return None
+
+        if isinstance(v, str):
+            lw_str = v.upper()
+            if lw_str == "BYLAYER":
+                v_int = DXFLineweight.BYLAYER
+            elif lw_str == "BYBLOCK":
+                v_int = DXFLineweight.BYBLOCK
+            elif lw_str == "DEFAULT":
+                v_int = DXFLineweight.DEFAULT
+            else:
+                try:
+                    lw_float = float(v)
+                    v_int = int(lw_float * 100)
+                except ValueError:
+                    raise ValueError(f"Invalid string lineweight value: {v}. Must be a number, 'BYLAYER', 'BYBLOCK', or 'DEFAULT'.")
+        elif isinstance(v, int):
+            v_int = v
+        else:
+            raise TypeError(f"Lineweight must be an int or string, got {type(v)}")
+
+        if not DXFLineweight.is_valid_lineweight(v_int):
+            raise ValueError(f"Invalid lineweight value: {v_int} (from input '{v}'). Must be one of {DXFLineweight.VALID_LINEWEIGHTS} or special values.")
+        return v_int
 
 
 class TextStyleProperties(BaseModel):
@@ -86,7 +108,7 @@ class TextStyleProperties(BaseModel):
     color: Optional[Union[str, int]] = None
     height: Optional[float] = None
     rotation: Optional[float] = None
-    attachment_point: Optional[TextAttachmentPoint] = Field(None, alias='attachmentPoint')
+    attachment_point: Optional[TextAttachmentPoint] = None
     align_to_view: Optional[bool] = Field(None, alias='alignToView')
 
     # MTEXT specific properties
@@ -108,13 +130,13 @@ class TextStyleProperties(BaseModel):
 
 
 class HatchStyleProperties(BaseModel):
-    """Style properties for hatch entities."""
-    model_config = ConfigDict(extra='ignore')
+    """Properties specific to hatch styling."""
+    model_config = ConfigDict(extra='ignore', validate_assignment=True)
 
-    pattern_name: Optional[str] = Field(None, alias='patternName')
-    color: Optional[Union[str, int]] = None
+    pattern_name: Optional[str] = None
     scale: Optional[float] = None
     angle: Optional[float] = None
+    color: Optional[Union[str, int]] = None
     spacing: Optional[float] = None
 
 

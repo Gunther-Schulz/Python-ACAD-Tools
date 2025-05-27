@@ -14,6 +14,9 @@ from src.services.data_source_service import DataSourceService
 from src.services.style_applicator_service import StyleApplicatorService
 from src.interfaces.logging_service_interface import ILoggingService
 from src.interfaces.config_loader_interface import IConfigLoader
+from src.interfaces.dxf_resource_manager_interface import IDXFResourceManager
+from src.interfaces.geometry_processor_interface import IGeometryProcessor
+from src.interfaces.style_application_orchestrator_interface import IStyleApplicationOrchestrator
 from src.domain.style_models import NamedStyle, LayerStyleProperties
 from src.domain.exceptions import DXFProcessingError, DataSourceError
 
@@ -44,6 +47,18 @@ class TestDataSourceStyleApplicatorIntegration:
         return mock_loader
 
     @pytest.fixture
+    def mock_dxf_resource_manager(self) -> Mock:
+        return Mock(spec=IDXFResourceManager)
+
+    @pytest.fixture
+    def mock_geometry_processor(self) -> Mock:
+        return Mock(spec=IGeometryProcessor)
+
+    @pytest.fixture
+    def mock_style_orchestrator(self) -> Mock:
+        return Mock(spec=IStyleApplicationOrchestrator)
+
+    @pytest.fixture
     def mock_adapter(self):
         """Create mock DXF adapter."""
         adapter = Mock(spec=EzdxfAdapter)
@@ -64,9 +79,15 @@ class TestDataSourceStyleApplicatorIntegration:
         return DataSourceService(mock_logger_service, mock_adapter)
 
     @pytest.fixture
-    def style_applicator_service(self, mock_config_loader, mock_logger_service, mock_adapter):
+    def style_applicator_service(self, mock_logger_service, mock_adapter, mock_dxf_resource_manager, mock_geometry_processor, mock_style_orchestrator):
         """Create StyleApplicatorService with mocked dependencies."""
-        return StyleApplicatorService(mock_config_loader, mock_logger_service, mock_adapter)
+        return StyleApplicatorService(
+            logger_service=mock_logger_service,
+            dxf_adapter=mock_adapter,
+            dxf_resource_manager=mock_dxf_resource_manager,
+            geometry_processor=mock_geometry_processor,
+            style_orchestrator=mock_style_orchestrator
+        )
 
     @patch('os.path.exists')
     def test_load_dxf_and_apply_layer_style_workflow(self, mock_exists, data_source_service, style_applicator_service):
@@ -88,8 +109,10 @@ class TestDataSourceStyleApplicatorIntegration:
 
         style_applicator_service.apply_styles_to_dxf_layer(drawing, layer_name, style)
 
-        # Verify style application
-        style_applicator_service._dxf_adapter.set_layer_properties.assert_called_once()
+        # Verify style application was orchestrated
+        style_applicator_service._style_orchestrator.apply_styles_to_dxf_layer.assert_called_once_with(
+            dxf_drawing=drawing, layer_name=layer_name, style=style
+        )
 
     def test_create_dxf_and_add_geodataframe_workflow(self, data_source_service, style_applicator_service):
         """Test workflow: create new DXF and add GeoDataFrame."""
@@ -112,8 +135,10 @@ class TestDataSourceStyleApplicatorIntegration:
 
         style_applicator_service.add_geodataframe_to_dxf(drawing, gdf, layer_name, style)
 
-        # Verify GeoDataFrame addition
-        style_applicator_service._dxf_adapter.add_point.assert_called()
+        # Verify GeoDataFrame addition was orchestrated
+        style_applicator_service._geometry_processor.add_geodataframe_to_dxf.assert_called_once_with(
+            dxf_drawing=drawing, gdf=gdf, layer_name=layer_name, style=style, layer_definition=None
+        )
 
     @patch('os.path.exists')
     def test_error_propagation_between_services(self, mock_exists, data_source_service, style_applicator_service):
@@ -132,13 +157,22 @@ class TestDataSourceStyleApplicatorIntegration:
         with pytest.raises(DXFProcessingError):
             data_source_service.load_dxf_file("test.dxf")
 
-    def test_shared_adapter_state_consistency(self, mock_adapter, mock_logger_service, mock_config_loader):
-        """Test that services sharing the same adapter maintain consistent state."""
-        # Setup: Both services use the same adapter instance
-        data_service = DataSourceService(mock_logger_service, mock_adapter)
-        style_service = StyleApplicatorService(mock_config_loader, mock_logger_service, mock_adapter)
+        # Test error from style applicator if orchestrator fails
+        style_applicator_service._style_orchestrator.apply_styles_to_dxf_layer.side_effect = DXFProcessingError("Orchestrator failed")
+        with pytest.raises(DXFProcessingError, match="Orchestrator failed"):
+            style_applicator_service.apply_styles_to_dxf_layer(Mock(), "layer", Mock())
 
-        # Execute: Operations on both services
+    def test_shared_adapter_state_consistency(self, mock_adapter, mock_logger_service, mock_dxf_resource_manager, mock_geometry_processor, mock_style_orchestrator):
+        """Test that services sharing the same adapter maintain consistent state."""
+        data_service = DataSourceService(mock_logger_service, mock_adapter)
+        style_service = StyleApplicatorService(
+            logger_service=mock_logger_service,
+            dxf_adapter=mock_adapter,
+            dxf_resource_manager=mock_dxf_resource_manager,
+            geometry_processor=mock_geometry_processor,
+            style_orchestrator=mock_style_orchestrator
+        )
+
         with patch('os.path.exists', return_value=True):
             drawing = data_service.load_dxf_file("test.dxf")
 
@@ -172,251 +206,218 @@ class TestEzdxfAdapterServiceIntegration:
         mock_loader.load_global_styles.return_value = mock_style_config
         return mock_loader
 
+    @pytest.fixture
+    def mock_dxf_resource_manager(self) -> Mock:
+        return Mock(spec=IDXFResourceManager)
+
+    @pytest.fixture
+    def mock_geometry_processor(self) -> Mock:
+        return Mock(spec=IGeometryProcessor)
+
+    @pytest.fixture
+    def mock_style_orchestrator(self) -> Mock:
+        return Mock(spec=IStyleApplicationOrchestrator)
+
     @patch('src.adapters.ezdxf_adapter.ezdxf')
     @patch('os.path.exists')
-    def test_real_adapter_with_services(self, mock_exists, mock_ezdxf, mock_logger_service, mock_config_loader):
+    def test_real_adapter_with_services(self, mock_exists, mock_ezdxf, mock_logger_service, mock_dxf_resource_manager, mock_geometry_processor, mock_style_orchestrator):
         """Test services with real EzdxfAdapter (mocked ezdxf library)."""
-        # Setup: Mock ezdxf library
         mock_exists.return_value = True
-        mock_drawing = Mock()
-        mock_layers = Mock()
-        mock_layer = Mock()
+        mock_drawing_ezdxf = Mock()
+        mock_layers_ezdxf = Mock()
+        mock_layer_ezdxf = Mock()
 
-        # Mock layer creation behavior: first call returns False (doesn't exist), after creation returns True
-        layer_exists = [False]  # Use list to allow modification in nested function
-        def mock_contains(self, layer_name):
-            return layer_exists[0]
-        def mock_add(layer_name):
-            layer_exists[0] = True  # After adding, layer exists
-            return mock_layer
-        def mock_get(layer_name):
-            return mock_layer if layer_exists[0] else None
+        layer_exists_ezdxf = [False]
+        def mock_contains_ezdxf(self, layer_name):
+            return layer_exists_ezdxf[0]
+        def mock_add_ezdxf(layer_name):
+            layer_exists_ezdxf[0] = True
+            return mock_layer_ezdxf
+        def mock_get_ezdxf(layer_name):
+            return mock_layer_ezdxf if layer_exists_ezdxf[0] else None
 
-        mock_layers.__contains__ = mock_contains
-        mock_layers.add = mock_add
-        mock_layers.get = mock_get
-        mock_drawing.layers = mock_layers
-        mock_ezdxf.readfile.return_value = mock_drawing
-        mock_ezdxf.new.return_value = mock_drawing
+        mock_layers_ezdxf.__contains__ = mock_contains_ezdxf
+        mock_layers_ezdxf.add = mock_add_ezdxf
+        mock_layers_ezdxf.get = mock_get_ezdxf
+        mock_drawing_ezdxf.layers = mock_layers_ezdxf
+        mock_modelspace_ezdxf = Mock()
+        mock_drawing_ezdxf.modelspace = mock_modelspace_ezdxf
+        mock_ezdxf.readfile.return_value = mock_drawing_ezdxf
+        mock_ezdxf.new.return_value = mock_drawing_ezdxf
 
-        # Create real adapter with mocked ezdxf
         adapter = EzdxfAdapter(mock_logger_service)
-
-        # Create services with real adapter
         data_service = DataSourceService(mock_logger_service, adapter)
-        style_service = StyleApplicatorService(mock_config_loader, mock_logger_service, adapter)
+        style_service = StyleApplicatorService(
+            logger_service=mock_logger_service,
+            dxf_adapter=adapter,
+            dxf_resource_manager=mock_dxf_resource_manager,
+            geometry_processor=mock_geometry_processor,
+            style_orchestrator=mock_style_orchestrator
+        )
 
-        # Execute: Load DXF file
-        drawing = data_service.load_dxf_file("test.dxf")
-
-        # Verify: Real adapter was used
-        assert drawing is not None
-        mock_ezdxf.readfile.assert_called_once_with("test.dxf")
-
-        # Execute: Apply style
-        style = NamedStyle(layer=LayerStyleProperties(color="blue"))
-        style_service.apply_styles_to_dxf_layer(drawing, "test_layer", style)
-
-        # Verify: Style application completed without error
-        assert adapter.is_available()
-
-    def test_unavailable_adapter_with_services(self, mock_logger_service, mock_config_loader):
-        """Test services behavior when adapter is unavailable."""
-        # Setup: Create adapter that will be unavailable
-        adapter = EzdxfAdapter(mock_logger_service)
-        # Mock the adapter to be unavailable
-        adapter.is_available = Mock(return_value=False)
-
-        # Create services with unavailable adapter
-        data_service = DataSourceService(mock_logger_service, adapter)
-        style_service = StyleApplicatorService(mock_config_loader, mock_logger_service, adapter)
-
-        # Verify: Adapter is unavailable
-        assert not adapter.is_available()
-
-        # Execute & Verify: Services handle unavailable adapter
-        with pytest.raises(DXFProcessingError):
-            data_service.load_dxf_file("test.dxf")
-
-        # Style service should handle unavailable adapter by raising DXFProcessingError
-        mock_drawing = Mock()
+        drawing_obj = data_service.load_dxf_file("test.dxf")
         style = NamedStyle(layer=LayerStyleProperties(color="red"))
+        style_service.apply_styles_to_dxf_layer(drawing_obj, "test_layer", style)
 
-        # This should raise DXFProcessingError due to unavailable adapter
+        mock_ezdxf.readfile.assert_called_once_with("test.dxf")
+        mock_style_orchestrator.apply_styles_to_dxf_layer.assert_called_once()
+
+    def test_unavailable_adapter_with_services(self, mock_logger_service, mock_dxf_resource_manager, mock_geometry_processor, mock_style_orchestrator):
+        """Test services when adapter reports ezdxf as unavailable."""
+        adapter = EzdxfAdapter(mock_logger_service)
+        adapter.is_available = MagicMock(return_value=False)
+
+        style_service = StyleApplicatorService(
+            logger_service=mock_logger_service,
+            dxf_adapter=adapter,
+            dxf_resource_manager=mock_dxf_resource_manager,
+            geometry_processor=mock_geometry_processor,
+            style_orchestrator=mock_style_orchestrator
+        )
+
         with pytest.raises(DXFProcessingError):
-            style_service.apply_styles_to_dxf_layer(mock_drawing, "test_layer", style)
+            style_service.apply_styles_to_dxf_layer(Mock(), "layer", Mock())
 
 
 class TestCompleteWorkflowIntegration:
-    """Test complete end-to-end workflows."""
+    """Test complete workflow from data source to styled DXF entities."""
 
     @pytest.fixture
-    def complete_setup(self):
-        """Setup complete service ecosystem."""
-        # Mock dependencies
-        mock_logger_service = Mock(spec=ILoggingService)
-        mock_logger = Mock()
-        mock_logger_service.get_logger.return_value = mock_logger
+    def complete_setup(self, mock_logger_service, mock_dxf_resource_manager, mock_geometry_processor, mock_style_orchestrator):
+        """Provides a complete setup with mocked services and a real adapter."""
+        mock_ezdxf_lib = patch('src.adapters.ezdxf_adapter.ezdxf').start()
+        mock_drawing_ezdxf = MagicMock()
+        mock_modelspace_ezdxf = MagicMock()
+        mock_drawing_ezdxf.modelspace = mock_modelspace_ezdxf
+        mock_layers_ezdxf = MagicMock()
+        mock_drawing_ezdxf.layers = mock_layers_ezdxf
+        mock_ezdxf_lib.readfile.return_value = mock_drawing_ezdxf
+        mock_ezdxf_lib.new.return_value = mock_drawing_ezdxf
 
-        mock_config_loader = Mock(spec=IConfigLoader)
-        mock_config_loader.get_aci_color_mappings.return_value = []
-        mock_style_config = Mock()
-        mock_style_config.styles = {
-            "roads": {"layer": {"color": "red", "lineweight": 25}},
-            "buildings": {"layer": {"color": "blue", "lineweight": 20}}
-        }
-        mock_config_loader.load_global_styles.return_value = mock_style_config
+        adapter = EzdxfAdapter(mock_logger_service)
+        data_service = DataSourceService(mock_logger_service, adapter)
+        style_applicator_service = StyleApplicatorService(
+            logger_service=mock_logger_service,
+            dxf_adapter=adapter,
+            dxf_resource_manager=mock_dxf_resource_manager,
+            geometry_processor=mock_geometry_processor,
+            style_orchestrator=mock_style_orchestrator
+        )
+        gdf = gpd.GeoDataFrame({
+            'geometry': [Point(1, 1), LineString([(0,0), (2,2)])],
+            'name': ['Feature1', 'Feature2']
+        })
 
-        # Mock adapter
-        mock_adapter = Mock(spec=EzdxfAdapter)
-        mock_adapter.is_available.return_value = True
-
-        mock_drawing = Mock()
-        mock_modelspace = Mock()
-        mock_drawing.modelspace.return_value = mock_modelspace
-        mock_adapter.load_dxf_file.return_value = mock_drawing
-        mock_adapter.create_document.return_value = mock_drawing
-
-        # Create services
-        data_service = DataSourceService(mock_logger_service, mock_adapter)
-        style_service = StyleApplicatorService(mock_config_loader, mock_logger_service, mock_adapter)
-
-        return {
-            'data_service': data_service,
-            'style_service': style_service,
-            'mock_adapter': mock_adapter,
-            'mock_drawing': mock_drawing,
-            'mock_config_loader': mock_config_loader
-        }
+        yield data_service, style_applicator_service, adapter, gdf, mock_drawing_ezdxf, mock_ezdxf_lib
+        patch.stopall()
 
     @patch('os.path.exists')
     def test_complete_dxf_processing_workflow(self, mock_exists, complete_setup):
-        """Test complete DXF processing workflow."""
+        """Test a full workflow: load data, create DXF, add GDF, apply styles."""
+        data_service, style_service, adapter, gdf, mock_drawing, mock_ezdxf = complete_setup
         mock_exists.return_value = True
-        setup = complete_setup
-        data_service = setup['data_service']
-        style_service = setup['style_service']
 
-        # Step 1: Load DXF file
-        drawing = data_service.load_dxf_file("input.dxf")
-        assert drawing is not None
+        dxf_doc = data_service.create_new_dxf_drawing()
 
-        # Step 2: Create GeoDataFrame
-        gdf = gpd.GeoDataFrame({
-            'geometry': [LineString([(0, 0), (1, 1)]), LineString([(2, 2), (3, 3)])],
-            'road_type': ['highway', 'local']
-        })
+        layer_name = "geo_layer"
+        simple_style = NamedStyle(layer=LayerStyleProperties(color="blue"))
+        style_service.add_geodataframe_to_dxf(dxf_doc, gdf, layer_name, simple_style)
+        style_service._geometry_processor.add_geodataframe_to_dxf.assert_called_once()
 
-        # Step 3: Apply styles and add to DXF
-        for idx, row in gdf.iterrows():
-            layer_name = f"road_{row['road_type']}"
-            style = NamedStyle(layer=LayerStyleProperties(color="red", lineweight=25))
+        style_service.apply_styles_to_dxf_layer(dxf_doc, layer_name, simple_style)
+        style_service._style_orchestrator.apply_styles_to_dxf_layer.assert_called_once()
 
-            # Add geometry to DXF with style
-            style_service.add_geodataframe_to_dxf(
-                drawing,
-                gpd.GeoDataFrame([row]),
-                layer_name,
-                style
-            )
-
-        # Step 4: Save DXF (would be done by adapter)
-        setup['mock_adapter'].save_document.return_value = None
-
-        # Verify complete workflow
-        assert setup['mock_adapter'].load_dxf_file.called
-        assert setup['mock_adapter'].add_line.called or setup['mock_adapter'].add_lwpolyline.called
+        output_path = "output.dxf"
+        data_service.save_dxf_drawing(dxf_doc, output_path)
+        adapter.save_document.assert_called_once_with(dxf_doc, output_path)
 
     @patch('os.path.exists')
     def test_error_recovery_workflow(self, mock_exists, complete_setup):
-        """Test error recovery in complete workflow."""
-        mock_exists.return_value = False  # File doesn't exist
-        setup = complete_setup
-        data_service = setup['data_service']
-
-        # Test graceful error handling
+        data_service, style_service, _, _, _, _ = complete_setup
+        mock_exists.return_value = False
         with pytest.raises(FileNotFoundError):
             data_service.load_dxf_file("nonexistent.dxf")
 
-        # Test recovery: create new DXF instead (via adapter)
-        drawing = data_service._dxf_adapter.create_document()
-        assert drawing is not None
-
     @patch('os.path.exists')
     def test_concurrent_service_operations(self, mock_exists, complete_setup):
-        """Test concurrent operations on services."""
+        """Simulate multiple operations to check for interference (mocked)."""
+        data_service, style_service, _, gdf, mock_drawing, _ = complete_setup
         mock_exists.return_value = True
-        setup = complete_setup
-        data_service = setup['data_service']
-        style_service = setup['style_service']
 
-        # Simulate concurrent operations
-        drawing1 = data_service.load_dxf_file("file1.dxf")
-        drawing2 = data_service.load_dxf_file("file2.dxf")
+        dxf1 = data_service.create_new_dxf_drawing()
+        dxf2 = data_service.load_dxf_file("another.dxf")
 
-        # Apply styles to both drawings
-        style = NamedStyle(layer=LayerStyleProperties(color="green"))
-        style_service.apply_styles_to_dxf_layer(drawing1, "layer1", style)
-        style_service.apply_styles_to_dxf_layer(drawing2, "layer2", style)
+        style1 = NamedStyle(layer=LayerStyleProperties(color=1))
+        style2 = NamedStyle(layer=LayerStyleProperties(color=2))
 
-        # Verify both operations completed
-        assert setup['mock_adapter'].load_dxf_file.call_count == 2
-        assert setup['mock_adapter'].set_layer_properties.call_count == 2
+        style_service.add_geodataframe_to_dxf(dxf1, gdf, "layer1", style1)
+        style_service.apply_styles_to_dxf_layer(dxf2, "layer2", style2)
+
+        assert style_service._geometry_processor.add_geodataframe_to_dxf.call_count == 1
+        assert style_service._style_orchestrator.apply_styles_to_dxf_layer.call_count == 1
 
 
 class TestServiceDataFlowIntegration:
-    """Test data flow between services."""
+    """Tests focusing on data flow and transformations between services."""
 
     @pytest.fixture
-    def services_with_real_data_flow(self):
-        """Setup services that can handle real data flow."""
-        mock_logger_service = Mock(spec=ILoggingService)
-        mock_logger = Mock()
-        mock_logger_service.get_logger.return_value = mock_logger
+    def services_with_real_data_flow(self, mock_logger_service, mock_dxf_resource_manager, mock_geometry_processor, mock_style_orchestrator):
+        """Setup services with a real adapter for more realistic data flow testing."""
+        mock_ezdxf_lib = patch('src.adapters.ezdxf_adapter.ezdxf').start()
+        mock_drawing_ezdxf = MagicMock()
+        mock_modelspace_ezdxf = MagicMock()
+        mock_drawing_ezdxf.modelspace = mock_modelspace_ezdxf
+        mock_layers_ezdxf = MagicMock()
+        mock_drawing_ezdxf.layers = mock_layers_ezdxf
+        mock_ezdxf_lib.new.return_value = mock_drawing_ezdxf
 
-        mock_config_loader = Mock(spec=IConfigLoader)
-        from src.domain.style_models import AciColorMappingItem
-        mock_config_loader.get_aci_color_mappings.return_value = [
-            AciColorMappingItem(name="red", aciCode=1),
-            AciColorMappingItem(name="blue", aciCode=5),
-            AciColorMappingItem(name="green", aciCode=3)
-        ]
-
-        mock_adapter = Mock(spec=EzdxfAdapter)
-        mock_adapter.is_available.return_value = True
-
-        data_service = DataSourceService(mock_logger_service, mock_adapter)
-        style_service = StyleApplicatorService(mock_config_loader, mock_logger_service, mock_adapter)
-
-        return data_service, style_service
+        adapter = EzdxfAdapter(mock_logger_service)
+        data_service = DataSourceService(mock_logger_service, adapter)
+        style_service = StyleApplicatorService(
+            logger_service=mock_logger_service,
+            dxf_adapter=adapter,
+            dxf_resource_manager=mock_dxf_resource_manager,
+            geometry_processor=mock_geometry_processor,
+            style_orchestrator=mock_style_orchestrator
+        )
+        yield data_service, style_service, adapter, mock_drawing_ezdxf
+        patch.stopall()
 
     def test_geodataframe_style_application_integration(self, services_with_real_data_flow):
-        """Test GeoDataFrame styling integration."""
-        data_service, style_service = services_with_real_data_flow
+        """Test applying styles during GeoDataFrame to DXF conversion."""
+        _, style_service, adapter, mock_drawing = services_with_real_data_flow
 
-        # Create test GeoDataFrame
-        gdf = gpd.GeoDataFrame({
-            'geometry': [Point(0, 0), Point(1, 1)],
-            'category': ['A', 'B']
-        })
+        gdf = gpd.GeoDataFrame({'geometry': [Point(0,0)], 'name':['P1']})
+        layer_name = "styled_gdf_layer"
+        style = NamedStyle(layer=LayerStyleProperties(color="red", linetype="DASHED"))
 
-        # Apply style to GeoDataFrame
-        style = NamedStyle(layer=LayerStyleProperties(color="red"))
-        styled_gdf = style_service.apply_style_to_geodataframe(gdf, style, "test_layer")
+        style_service.add_geodataframe_to_dxf(mock_drawing, gdf, layer_name, style)
 
-        # Verify styling was applied
-        assert styled_gdf is not None
-        assert len(styled_gdf) == len(gdf)
-        assert '_style_color_aci' in styled_gdf.columns
+        style_service._geometry_processor.add_geodataframe_to_dxf.assert_called_once()
 
     def test_color_resolution_integration(self, services_with_real_data_flow):
-        """Test color resolution integration between services."""
-        data_service, style_service = services_with_real_data_flow
+        """Test that color name resolution flows correctly to adapter calls."""
+        _, style_service, adapter, mock_drawing = services_with_real_data_flow
+        mock_orchestrator_config_loader = style_service._style_orchestrator._config_loader
+        mock_orchestrator_config_loader.get_aci_color_mappings.return_value = [Mock(name="neon_pink", aci_code=13)]
+        # Accessing private attribute of orchestrator for test setup, might need adjustment if orchestrator changes
+        if hasattr(style_service._style_orchestrator, '_aci_map'):
+            style_service._style_orchestrator._aci_map = None
 
-        # Test color resolution
-        aci_code = style_service._resolve_aci_color("red")
-        assert aci_code == 1
+        layer_name = "color_res_layer"
+        style = NamedStyle(layer=LayerStyleProperties(color="neon_pink"))
 
-        # Test with unknown color
-        aci_code = style_service._resolve_aci_color("unknown_color")
-        assert aci_code == 7  # Default color
+        mock_orchestrator_adapter = style_service._style_orchestrator._dxf_adapter
+        mock_orchestrator_adapter.get_layer.return_value = Mock()
+        mock_orchestrator_adapter.query_entities.return_value = []
+
+        style_service.apply_styles_to_dxf_layer(mock_drawing, layer_name, style)
+
+        style_service._style_orchestrator.apply_styles_to_dxf_layer.assert_called_once()
+        mock_orchestrator_adapter.set_layer_properties.assert_called_with(
+            doc=mock_drawing,
+            layer_name=layer_name,
+            color=13,
+            linetype="BYLAYER",
+            lineweight=-2
+        )

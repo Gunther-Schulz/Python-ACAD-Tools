@@ -32,6 +32,9 @@ from src.services.logging_service import LoggingService
 from src.domain.style_models import NamedStyle, LayerStyleProperties, TextStyleProperties, HatchStyleProperties
 from src.adapters.ezdxf_adapter import EzdxfAdapter
 from src.services.config_loader_service import ConfigLoaderService
+from src.interfaces.dxf_resource_manager_interface import IDXFResourceManager
+from src.interfaces.geometry_processor_interface import IGeometryProcessor
+from src.interfaces.style_application_orchestrator_interface import IStyleApplicationOrchestrator
 
 
 class DXFAnalyzer:
@@ -732,21 +735,28 @@ class TestDXFStyleVerification:
 
 @pytest.fixture
 def real_style_applicator_service() -> StyleApplicatorService:
-    """Fixture providing a real StyleApplicatorService with actual EzdxfAdapter for integration tests."""
-    from src.domain.config_models import AppConfig
-    from pathlib import Path
+    """Fixture to create a StyleApplicatorService with real dependencies where possible."""
+    logger_service = LoggingService() # Assuming LoggingService is a concrete implementation
+    dxf_adapter = EzdxfAdapter(logger_service) # SAS needs its own adapter instance for is_available()
+    # config_loader = ConfigLoaderService(logger_service) # Not needed directly by SAS anymore
 
-    logger_service = LoggingService()
+    # Mock the new dependencies for StyleApplicatorService
+    mock_dxf_resource_manager = Mock(spec=IDXFResourceManager)
+    mock_geometry_processor = Mock(spec=IGeometryProcessor)
 
-    # Create AppConfig with correct aci_colors_file path
-    aci_colors_path = str(Path(__file__).parent.parent.parent / "aci_colors.yaml")
-    app_config = AppConfig(aci_colors_file=aci_colors_path)
+    # The StyleApplicationOrchestrator would take the config_loader if it were real
+    # For this test, if we mock the orchestrator, we don't need to instantiate a real config_loader for it.
+    mock_style_orchestrator = Mock(spec=IStyleApplicationOrchestrator)
 
-    config_loader = ConfigLoaderService(logger_service=logger_service, app_config=app_config)
-    dxf_adapter = EzdxfAdapter(logger_service=logger_service)
+    # If the orchestrator mock needs to behave as if it used a config loader (e.g. for ACI colors):
+    # mock_config_loader_for_orchestrator = ConfigLoaderService(logger_service)
+    # mock_style_orchestrator.configure_mock(_config_loader=mock_config_loader_for_orchestrator)
+    # Or, more simply, mock the methods of the orchestrator that would use the config, e.g., _resolve_aci_color
 
     return StyleApplicatorService(
-        config_loader=config_loader,
         logger_service=logger_service,
-        dxf_adapter=dxf_adapter
+        dxf_adapter=dxf_adapter,
+        dxf_resource_manager=mock_dxf_resource_manager,
+        geometry_processor=mock_geometry_processor,
+        style_orchestrator=mock_style_orchestrator
     )
