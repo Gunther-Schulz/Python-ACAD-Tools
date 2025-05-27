@@ -43,6 +43,11 @@ class DXFProcessingError(ProcessingError):
     pass
 
 
+class DXFLibraryNotInstalledError(DXFProcessingError):
+    """Raised when the ezdxf library is not installed but an operation requires it."""
+    pass
+
+
 class DXFGeometryConversionError(DXFProcessingError):
     """Raised when there's an error converting DXF entities to Shapely geometries."""
     pass

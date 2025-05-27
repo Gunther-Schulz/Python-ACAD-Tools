@@ -61,6 +61,7 @@ class LayerStyleProperties(BaseModel):
 
     color: Optional[Union[str, int]] = None
     linetype: Optional[str] = None
+    linetype_pattern: Optional[List[float]] = Field(None, alias='linetypePattern')
     lineweight: Optional[int] = None
     transparency: Optional[float] = None
     plot: Optional[bool] = None
@@ -139,7 +140,7 @@ class AciColorMappingItem(BaseModel):
 
     name: str
     aci_code: int = Field(alias='aciCode')
-    rgb: Optional[str] = None
+    rgb: Optional[Union[str, List[int]]] = None
     hex_code: Optional[str] = Field(None, alias='hexCode')
 
     @field_validator('aci_code')
@@ -148,6 +149,23 @@ class AciColorMappingItem(BaseModel):
         """Validate ACI code is in valid range."""
         if not (0 <= v <= 255):
             raise ValueError(f"ACI code must be between 0 and 255, got {v}")
+        return v
+
+    @field_validator('rgb')
+    @classmethod
+    def validate_rgb(cls, v):
+        """Convert RGB list to string format if needed."""
+        if v is None:
+            return v
+        if isinstance(v, list):
+            if len(v) == 3 and all(isinstance(x, int) and 0 <= x <= 255 for x in v):
+                return f"rgb({v[0]}, {v[1]}, {v[2]})"
+            else:
+                raise ValueError(f"RGB list must contain exactly 3 integers between 0-255, got {v}")
+        elif isinstance(v, str):
+            return v
+        else:
+            raise ValueError(f"RGB must be a string or list of 3 integers, got {type(v)}")
         return v
 
 

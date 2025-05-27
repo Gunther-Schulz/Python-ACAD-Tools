@@ -5,6 +5,7 @@ import json
 import yaml
 from pathlib import Path
 from typing import Dict, Any
+import os
 
 from src.core.container import ApplicationContainer
 from src.domain.config_validation import ConfigValidationService, ConfigValidationError

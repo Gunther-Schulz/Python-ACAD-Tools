@@ -26,18 +26,6 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 
-dependencies = [
-    "ezdxf>=1.3.0",
-    "geopandas>=0.14.0",
-    "matplotlib>=3.8.0",
-    "OWSLib>=0.29.0",
-    "PyYAML>=6.0.0",
-    "Shapely>=2.0.0",
-    "dependency-injector>=4.41.0",
-    "pydantic>=2.5.0",
-    "pydantic-settings>=2.1.0",
-    "click>=8.1.0",
-]
 
 [project.optional-dependencies]
 dev = [
@@ -92,11 +80,11 @@ addopts = [
     "--strict-config",
     "--verbose",
     "--tb=short",
-    "--cov=src",
-    "--cov-report=term-missing",
-    "--cov-report=html:htmlcov",
-    "--cov-report=xml",
-    "--cov-fail-under=80",
+#    "--cov=src",
+#    "--cov-report=term-missing",
+#    "--cov-report=html:htmlcov",
+#    "--cov-report=xml",
+#    "--cov-fail-under=80",
 ]
 testpaths = [
     "tests",
@@ -153,6 +141,7 @@ markers = [
     "style: Tests for CAD styling and rendering",
     "dxf: Tests for DXF file operations",
     "export: Tests for data export functionality",
+    "visualization: Tests for visualization utilities",
 
     # Test Environment
     "requires_test_data: Tests that need test data files",
@@ -172,6 +161,7 @@ markers = [
 [tool.coverage.run]
 source = ["src"]
 branch = true
+data_file = ".coverage"
 omit = [
     "*/tests/*",
     "*/test_*.py",

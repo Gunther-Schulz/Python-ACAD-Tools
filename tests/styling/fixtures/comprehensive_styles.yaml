@@ -125,6 +125,7 @@ styles:
     layer:
       color: green-dark
       linetype: BORDER
+      linetypePattern: [12.7, -6.35, 12.7, -6.35, 0, -6.35]
       lineweight: 60
       transparency: 0.2
       plot: true

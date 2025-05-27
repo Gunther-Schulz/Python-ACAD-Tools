@@ -194,55 +194,103 @@ class StyleTestAssertions:
     """Custom assertions for style testing."""
 
     @staticmethod
-    def assert_style_properties_applied(entity: Mock, expected_style: NamedStyle) -> None:
-        """Assert that style properties were correctly applied to a DXF entity."""
-        if expected_style.layer:
-            layer_props = expected_style.layer
-            if layer_props.color is not None:
-                # Handle both string and int colors
-                if isinstance(layer_props.color, str):
-                    # For string colors, we'd need color mapping logic
-                    # For now, just assert it was set
+    def assert_style_properties_applied(entity: Mock, expected_style) -> None:
+        """Assert that style properties were correctly applied to a DXF entity.
+
+        Args:
+            entity: Mock DXF entity
+            expected_style: Either a NamedStyle object or a dict of style properties
+        """
+        # Handle both NamedStyle objects and dictionaries
+        if isinstance(expected_style, dict):
+            # Direct dictionary of properties
+            style_props = expected_style
+            if 'color' in style_props and style_props['color'] is not None:
+                if isinstance(style_props['color'], str):
                     assert hasattr(entity.dxf, 'color')
                 else:
-                    assert entity.dxf.color == layer_props.color
+                    assert entity.dxf.color == style_props['color']
+            if 'linetype' in style_props and style_props['linetype'] is not None:
+                assert entity.dxf.linetype == style_props['linetype']
+            if 'lineweight' in style_props and style_props['lineweight'] is not None:
+                assert entity.dxf.lineweight == style_props['lineweight']
+        else:
+            # NamedStyle object
+            if expected_style.layer:
+                layer_props = expected_style.layer
+                if layer_props.color is not None:
+                    # Handle both string and int colors
+                    if isinstance(layer_props.color, str):
+                        # For string colors, we'd need color mapping logic
+                        # For now, just assert it was set
+                        assert hasattr(entity.dxf, 'color')
+                    else:
+                        assert entity.dxf.color == layer_props.color
 
-            if layer_props.linetype is not None:
-                assert entity.dxf.linetype == layer_props.linetype
+                if layer_props.linetype is not None:
+                    assert entity.dxf.linetype == layer_props.linetype
 
-            if layer_props.lineweight is not None:
-                assert entity.dxf.lineweight == layer_props.lineweight
+                if layer_props.lineweight is not None:
+                    assert entity.dxf.lineweight == layer_props.lineweight
 
     @staticmethod
-    def assert_layer_properties_applied(layer: Mock, expected_style: NamedStyle) -> None:
-        """Assert that style properties were correctly applied to a DXF layer."""
-        if expected_style.layer:
-            layer_props = expected_style.layer
+    def assert_layer_properties_applied(layer: Mock, expected_style) -> None:
+        """Assert that style properties were correctly applied to a DXF layer.
 
-            if layer_props.color is not None:
-                if isinstance(layer_props.color, int):
-                    assert layer.dxf.color == layer_props.color
+        Args:
+            layer: Mock DXF layer
+            expected_style: Either a NamedStyle object or a dict of style properties
+        """
+        # Handle both NamedStyle objects and dictionaries
+        if isinstance(expected_style, dict):
+            # Direct dictionary of properties
+            style_props = expected_style
+            if 'color' in style_props and style_props['color'] is not None:
+                if isinstance(style_props['color'], int):
+                    assert layer.dxf.color == style_props['color']
+            if 'linetype' in style_props and style_props['linetype'] is not None:
+                assert layer.dxf.linetype == style_props['linetype']
+            if 'lineweight' in style_props and style_props['lineweight'] is not None:
+                assert layer.dxf.lineweight == style_props['lineweight']
+            if 'transparency' in style_props and style_props['transparency'] is not None:
+                assert layer.dxf.transparency == style_props['transparency']
+            if 'plot' in style_props and style_props['plot'] is not None:
+                assert layer.dxf.plot == style_props['plot']
+            if 'is_on' in style_props and style_props['is_on'] is not None:
+                assert layer.is_on == style_props['is_on']
+            if 'frozen' in style_props and style_props['frozen'] is not None:
+                assert layer.is_frozen == style_props['frozen']
+            if 'locked' in style_props and style_props['locked'] is not None:
+                assert layer.is_locked == style_props['locked']
+        else:
+            # NamedStyle object
+            if expected_style.layer:
+                layer_props = expected_style.layer
 
-            if layer_props.linetype is not None:
-                assert layer.dxf.linetype == layer_props.linetype
+                if layer_props.color is not None:
+                    if isinstance(layer_props.color, int):
+                        assert layer.dxf.color == layer_props.color
 
-            if layer_props.lineweight is not None:
-                assert layer.dxf.lineweight == layer_props.lineweight
+                if layer_props.linetype is not None:
+                    assert layer.dxf.linetype == layer_props.linetype
 
-            if layer_props.transparency is not None:
-                assert layer.dxf.transparency == layer_props.transparency
+                if layer_props.lineweight is not None:
+                    assert layer.dxf.lineweight == layer_props.lineweight
 
-            if layer_props.plot is not None:
-                assert layer.dxf.plot == layer_props.plot
+                if layer_props.transparency is not None:
+                    assert layer.dxf.transparency == layer_props.transparency
 
-            if layer_props.is_on is not None:
-                assert layer.is_on == layer_props.is_on
+                if layer_props.plot is not None:
+                    assert layer.dxf.plot == layer_props.plot
 
-            if layer_props.frozen is not None:
-                assert layer.is_frozen == layer_props.frozen
+                if layer_props.is_on is not None:
+                    assert layer.is_on == layer_props.is_on
 
-            if layer_props.locked is not None:
-                assert layer.is_locked == layer_props.locked
+                if layer_props.frozen is not None:
+                    assert layer.is_frozen == layer_props.frozen
+
+                if layer_props.locked is not None:
+                    assert layer.is_locked == layer_props.locked
 
     @staticmethod
     def assert_geodataframe_styled(gdf: gpd.GeoDataFrame, expected_columns: List[str]) -> None:
@@ -497,10 +545,36 @@ def mock_config_loader() -> MockConfigLoader:
     return MockConfigLoader()
 
 @pytest.fixture
-def style_applicator_service(mock_config_loader) -> 'StyleApplicatorService':
+def mock_dxf_adapter() -> Mock:
+    """Fixture providing a mock DXF adapter."""
+    mock_adapter = Mock()
+    mock_adapter.is_available.return_value = True
+    mock_adapter.create_linetype.return_value = Mock()
+    mock_adapter.create_text_style.return_value = Mock()
+    mock_adapter.get_layer.return_value = Mock()
+    mock_adapter.set_layer_properties.return_value = None
+    mock_adapter.set_entity_properties.return_value = None
+
+        # Mock query_entities to return an empty list instead of a Mock
+    mock_adapter.query_entities.return_value = []
+    mock_adapter.get_modelspace.return_value = Mock()
+
+    # Mock geometry addition methods
+    mock_adapter.add_point.return_value = Mock()
+    mock_adapter.add_line.return_value = Mock()
+    mock_adapter.add_lwpolyline.return_value = Mock()
+    mock_adapter.add_polygon.return_value = Mock()
+    mock_adapter.add_text.return_value = Mock()
+    mock_adapter.add_mtext.return_value = Mock()
+    mock_adapter.add_hatch.return_value = Mock()
+
+    return mock_adapter
+
+@pytest.fixture
+def style_applicator_service(mock_config_loader, mock_dxf_adapter) -> 'StyleApplicatorService':
     """Fixture providing a real StyleApplicatorService with mock dependencies."""
     from src.services.style_applicator_service import StyleApplicatorService
     from src.services.logging_service import LoggingService
 
     logger_service = LoggingService()
-    return StyleApplicatorService(mock_config_loader, logger_service)
+    return StyleApplicatorService(mock_config_loader, logger_service, mock_dxf_adapter)

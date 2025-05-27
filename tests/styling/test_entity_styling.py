@@ -180,11 +180,24 @@ class TestEntityStylingWithRealService:
         return mock_logger_service
 
     @pytest.fixture
-    def style_applicator_service(self, mock_config_loader, mock_logger_service):
-        """Create StyleApplicatorService with mocked dependencies."""
-        return StyleApplicatorService(mock_config_loader, mock_logger_service)
+    def mock_dxf_adapter(self):
+        """Mock DXF adapter for testing."""
+        mock_adapter = Mock()
+        mock_adapter.is_available.return_value = True
+        mock_adapter.create_linetype.return_value = Mock()
+        mock_adapter.create_text_style.return_value = Mock()
+        mock_adapter.get_layer.return_value = Mock()
+        mock_adapter.set_layer_properties.return_value = None
+        mock_adapter.set_entity_properties.return_value = None
+        mock_adapter.query_entities.return_value = []
+        mock_adapter.get_modelspace.return_value = Mock()
+        return mock_adapter
 
-    @patch('src.services.style_applicator_service.EZDXF_AVAILABLE', True)
+    @pytest.fixture
+    def style_applicator_service(self, mock_config_loader, mock_logger_service, mock_dxf_adapter):
+        """Create StyleApplicatorService with mocked dependencies."""
+        return StyleApplicatorService(mock_config_loader, mock_logger_service, mock_dxf_adapter)
+
     def test_real_service_apply_layer_style_to_entity(self, style_applicator_service):
         """Test real service applying layer style to entity."""
         # Create a simple layer style
@@ -205,7 +218,6 @@ class TestEntityStylingWithRealService:
         # Verify properties were set (mock entity should have been modified)
         # Note: This tests the service logic, not actual DXF modification
 
-    @patch('src.services.style_applicator_service.EZDXF_AVAILABLE', True)
     def test_real_service_apply_text_style_to_entity(self, style_applicator_service):
         """Test real service applying text style to entity."""
         # Create a text style
@@ -224,7 +236,6 @@ class TestEntityStylingWithRealService:
         # Apply style using real service
         style_applicator_service.apply_style_to_dxf_entity(entity, style, mock_drawing)
 
-    @patch('src.services.style_applicator_service.EZDXF_AVAILABLE', True)
     def test_real_service_apply_hatch_style_to_entity(self, style_applicator_service):
         """Test real service applying hatch style to entity."""
         # Create a hatch style
@@ -243,9 +254,11 @@ class TestEntityStylingWithRealService:
         # Apply style using real service
         style_applicator_service.apply_style_to_dxf_entity(entity, style, mock_drawing)
 
-    @patch('src.services.style_applicator_service.EZDXF_AVAILABLE', False)
     def test_real_service_ezdxf_unavailable_error(self, style_applicator_service):
         """Test that service raises error when ezdxf is unavailable."""
+        # Mock the adapter to return False for is_available
+        style_applicator_service._dxf_adapter.is_available.return_value = False
+
         style = NamedStyle(layer=LayerStyleProperties(color=1))
         entity = MockDXFUtils.create_mock_entity("LINE")
         mock_drawing = MockDXFUtils.create_mock_drawing()
@@ -330,24 +343,27 @@ class TestEntityStylingAssertions:
     """Test custom assertions for entity styling."""
 
     def test_assert_style_properties_applied(self, style_assertions):
-        """Test custom assertion for style properties."""
-        # Create a styled entity
+        """Test the assertion for verifying applied style properties."""
+        # Mock entity and style for testing the assertion
         entity = MockDXFUtils.create_mock_entity("LINE")
+        style_props = {
+            'color': 1,
+            'linetype': "DASHED",
+            'lineweight': 25
+        }
+
+        # Apply properties to the mock entity
         entity.dxf.color = 1
-                    entity.dxf.linetype = "DASHED"
-        entity.dxf.lineweight = 50
+        entity.dxf.linetype = "DASHED"
+        entity.dxf.lineweight = 25
 
-        # Create expected style
-        expected_style = NamedStyle(
-            layer=LayerStyleProperties(
-                color=1,
-                linetype="DASHED",
-                lineweight=50
-            )
-        )
+        # Use the assertion
+        style_assertions.assert_style_properties_applied(entity, style_props)
 
-        # Should pass assertion
-        style_assertions.assert_style_properties_applied(entity, expected_style)
+        # Test case where assertion should fail (e.g., wrong color)
+        entity.dxf.color = 2 # Change a property
+        with pytest.raises(AssertionError):
+            style_assertions.assert_style_properties_applied(entity, style_props)
 
     def test_assert_valid_aci_color(self, style_assertions):
         """Test ACI color validation assertion."""
