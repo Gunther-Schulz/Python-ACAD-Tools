@@ -12,11 +12,11 @@ def create_smooth_layer(all_layers, project_settings, crs, layer_name, operation
 
         combined_geometry = None
         for layer_info in source_layers:
-            source_layer_name, values = _process_layer_info(layer_info)
+            source_layer_name, values, column = _process_layer_info(all_layers, project_settings, crs, layer_info)
             if source_layer_name is None:
                 continue
 
-            layer_geometry = _get_filtered_geometry(source_layer_name, values)
+            layer_geometry = _get_filtered_geometry(all_layers, project_settings, crs, source_layer_name, values)
             if layer_geometry is None:
                 continue
 
@@ -45,21 +45,17 @@ def create_smooth_layer(all_layers, project_settings, crs, layer_name, operation
 def smooth_geometry(all_layers, project_settings, crs, geometry, strength):
         # Simplify the geometry
         smoothed = geometry.simplify(strength, preserve_topology=True)
-        
+
         # Ensure the smoothed geometry does not expand beyond the original geometry
         if not geometry.contains(smoothed):
             smoothed = geometry.intersection(smoothed)
-        
+
         # Increase vertex count for smoother curves
         if isinstance(smoothed, (Polygon, MultiPolygon)):
             smoothed = smoothed.buffer(0.01).buffer(-0.01)
-        
+
         # Ensure the smoothed geometry does not expand beyond the original geometry after vertex increase
         if not geometry.contains(smoothed):
             smoothed = geometry.intersection(smoothed)
-        
+
         return smoothed
-
-
-
-

@@ -400,9 +400,9 @@ geomLayers:
           # - Exclude Böschung
           - Exclude Leitung
           - Baum_Laubbaum Envelope
-      - type: copy
-        layers:
-          - Zuwegung
+      # - type: copy
+      #   layers:
+      #     - Zuwegung
       - type: dissolve
       - type: buffer
         distance: -0.1

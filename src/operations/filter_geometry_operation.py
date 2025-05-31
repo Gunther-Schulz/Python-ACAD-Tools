@@ -5,24 +5,30 @@ from src.operations.common_operations import _process_layer_info, _get_filtered_
 
 def create_filtered_geometry_layer(all_layers, project_settings, crs, layer_name, operation):
     log_debug(f"Creating filtered geometry layer: {layer_name}")
-    
+
+    # Check if the input layer exists
+    if layer_name not in all_layers:
+        log_warning(f"Input layer '{layer_name}' not found for filter geometry operation")
+        all_layers[layer_name] = gpd.GeoDataFrame(geometry=[], crs=crs)
+        return all_layers[layer_name]
+
     # Get the input layer
     input_gdf = all_layers[layer_name].copy()
-    
+
     # Define geometry type mappings
     GEOMETRY_TYPE_GROUPS = {
         'polygon': ['Polygon', 'MultiPolygon'],
         'line': ['LineString', 'MultiLineString'],
         'point': ['Point', 'MultiPoint']
     }
-    
+
     # Get filter parameters
     max_area = operation.get('maxArea', float('inf'))
     min_area = operation.get('minArea', 0)
     max_width = operation.get('maxWidth', float('inf'))
     min_width = operation.get('minWidth', 0)
     geometry_types = operation.get('geometryTypes', None)
-    
+
     if geometry_types:
         # Convert simplified types to actual geometry types
         allowed_types = []
@@ -33,17 +39,17 @@ def create_filtered_geometry_layer(all_layers, project_settings, crs, layer_name
                           f"Valid types are: {', '.join(GEOMETRY_TYPE_GROUPS.keys())}")
             else:
                 allowed_types.extend(GEOMETRY_TYPE_GROUPS[geom_type_lower])
-    
+
     # Create combined mask for all filters
-    mask = input_gdf.geometry.apply(lambda geom: 
-        min_area <= geom.area <= max_area and 
+    mask = input_gdf.geometry.apply(lambda geom:
+        min_area <= geom.area <= max_area and
         min_width <= estimate_width(geom) <= max_width and
         (geometry_types is None or geom.geom_type in allowed_types)
     )
-    
+
     # Filter the GeoDataFrame
     result_gdf = input_gdf[mask].copy()
-    
+
     if not result_gdf.empty:
         all_layers[layer_name] = result_gdf
         log_debug(f"Created filtered geometry layer '{layer_name}' with {len(result_gdf)} geometries")

@@ -145,20 +145,23 @@ def remove_entities_by_layer(msp, layer_names, script_identifier):
     layer_keys = [key_func(layer_name) for layer_name in layer_names]
 
     # First pass: collect problematic entities
-    for space in [doc.modelspace(), doc.paperspace()]:
-        for entity in doc.entitydb.values():
-            try:
-                if not hasattr(entity, 'dxf') or not entity.dxf.hasattr("layer"):
-                    continue
-
-                if key_func(entity.dxf.layer) in layer_keys and is_created_by_script(entity, script_identifier):
-                    try:
-                        # Test if we can safely handle this entity
-                        _ = entity.dxf.handle
-                    except Exception as e:
-                        problem_entities.append((entity, str(e)))
-            except AttributeError:
+    # Iterate ONCE through all entities in the database
+    for entity in doc.entitydb.values():
+        try:
+            if not hasattr(entity, 'dxf') or not entity.dxf.hasattr("layer"):
                 continue
+
+            if key_func(entity.dxf.layer) in layer_keys and is_created_by_script(entity, script_identifier):
+                try:
+                    # Test if we can safely handle this entity
+                    _ = entity.dxf.handle
+                except Exception as e:
+                    problem_entities.append((entity, str(e)))
+        except AttributeError: # Handles entities that might not have 'dxf' or 'layer' as expected
+            continue
+        except Exception as e: # Catch any other unexpected errors during entity processing
+            log_warning(f"Unexpected error processing entity {getattr(entity, 'dxf', {}).get('handle', 'unknown')} during problem collection: {str(e)}")
+            continue
 
     # If there are problem entities, show summary and ask for confirmation
     if problem_entities:
@@ -178,28 +181,33 @@ def remove_entities_by_layer(msp, layer_names, script_identifier):
 
     # Proceed with deletion
     with doc.entitydb.trashcan() as trash:
-        for space in [doc.modelspace(), doc.paperspace()]:
-            for entity in doc.entitydb.values():
-                try:
-                    if not hasattr(entity, 'dxf') or not entity.dxf.hasattr("layer"):
-                        continue
-
-                    if key_func(entity.dxf.layer) in layer_keys and is_created_by_script(entity, script_identifier):
-                        try:
-                            # Clear any XDATA before deletion
-                            try:
-                                entity.discard_xdata('DXFEXPORTER')
-                            except:
-                                pass
-
-                            # Add to trashcan for safe deletion
-                            trash.add(entity.dxf.handle)
-                            delete_count += 1
-
-                        except Exception as e:
-                            continue
-                except AttributeError:
+        # Iterate ONCE through all entities in the database
+        for entity in doc.entitydb.values():
+            try:
+                if not hasattr(entity, 'dxf') or not entity.dxf.hasattr("layer"):
                     continue
+
+                if key_func(entity.dxf.layer) in layer_keys and is_created_by_script(entity, script_identifier):
+                    try:
+                        # Clear any XDATA before deletion
+                        try:
+                            entity.discard_xdata('DXFEXPORTER')
+                        except: # Handles cases where xdata might not exist or other issues
+                            pass
+
+                        # Add to trashcan for safe deletion
+                        trash.add(entity.dxf.handle)
+                        delete_count += 1
+
+                    except Exception as e:
+                        # Log error but continue to attempt processing other entities
+                        log_warning(f"Error preparing entity {getattr(entity, 'dxf', {}).get('handle', 'unknown')} for deletion: {str(e)}")
+                        continue
+            except AttributeError: # Handles entities that might not have 'dxf' or 'layer' as expected
+                continue
+            except Exception as e: # Catch any other unexpected errors during entity processing
+                log_warning(f"Unexpected error processing entity {getattr(entity, 'dxf', {}).get('handle', 'unknown')} during deletion pass: {str(e)}")
+                continue
 
     # Try to perform cleanup operations
     try:

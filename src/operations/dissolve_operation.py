@@ -7,9 +7,15 @@ import pandas as pd
 def create_dissolved_layer(all_layers, project_settings, crs, layer_name, operation):
     log_debug(f"Creating dissolved layer: {layer_name}")
     source_layers = operation.get('layers', [])
+
+    # DEBUG: Log initial state
+    log_debug(f"DISSOLVE DEBUG - Initial source_layers: {source_layers}")
+    log_debug(f"DISSOLVE DEBUG - layer_name in all_layers: {layer_name in all_layers}")
+
     if layer_name in all_layers:
         source_layers = [layer_name] + source_layers  # Include existing layer plus specified layers
-    
+        log_debug(f"DISSOLVE DEBUG - After adding existing layer, source_layers: {source_layers}")
+
     dissolve_field = operation.get('dissolveField')
     buffer_distance = operation.get('bufferDistance', 0.01)
     use_buffer_trick = operation.get('useBufferTrick', False)
@@ -22,9 +28,10 @@ def create_dissolved_layer(all_layers, project_settings, crs, layer_name, operat
     make_valid = operation.get('makeValid', True)
 
     combined_gdf = None
-    for layer_info in source_layers:
+    for i, layer_info in enumerate(source_layers):
         source_layer_name = layer_info if isinstance(layer_info, str) else layer_info.get('name')
-        
+        log_debug(f"DISSOLVE DEBUG - Processing layer {i+1}/{len(source_layers)}: '{source_layer_name}'")
+
         if source_layer_name is None or source_layer_name not in all_layers:
             log_warning(format_operation_warning(
                 layer_name,
@@ -34,6 +41,10 @@ def create_dissolved_layer(all_layers, project_settings, crs, layer_name, operat
             continue
 
         layer_geometry = all_layers[source_layer_name]
+        log_debug(f"DISSOLVE DEBUG - Layer '{source_layer_name}' shape: {layer_geometry.shape}, empty: {layer_geometry.empty}")
+        if not layer_geometry.empty:
+            log_debug(f"DISSOLVE DEBUG - Layer '{source_layer_name}' area: {layer_geometry.geometry.area.sum():.2f}, bounds: {layer_geometry.total_bounds}")
+
         if layer_geometry.empty:
             log_warning(format_operation_warning(
                 layer_name,
@@ -44,8 +55,12 @@ def create_dissolved_layer(all_layers, project_settings, crs, layer_name, operat
 
         if combined_gdf is None:
             combined_gdf = layer_geometry
+            log_debug(f"DISSOLVE DEBUG - First layer '{source_layer_name}' set as combined_gdf, shape: {combined_gdf.shape}")
+            log_debug(f"DISSOLVE DEBUG - First layer area: {combined_gdf.geometry.area.sum():.2f}")
         else:
+            log_debug(f"DISSOLVE DEBUG - Before concat: combined_gdf shape: {combined_gdf.shape}, area: {combined_gdf.geometry.area.sum():.2f}")
             combined_gdf = pd.concat([combined_gdf, layer_geometry], ignore_index=True)
+            log_debug(f"DISSOLVE DEBUG - After concat with '{source_layer_name}': combined_gdf shape: {combined_gdf.shape}, area: {combined_gdf.geometry.area.sum():.2f}")
 
     if combined_gdf is None or combined_gdf.empty:
         log_warning(format_operation_warning(
@@ -56,17 +71,22 @@ def create_dissolved_layer(all_layers, project_settings, crs, layer_name, operat
         all_layers[layer_name] = gpd.GeoDataFrame(geometry=[], crs=crs)
         return all_layers[layer_name]
 
+    log_debug(f"DISSOLVE DEBUG - Final combined_gdf before processing: shape {combined_gdf.shape}, area: {combined_gdf.geometry.area.sum():.2f}")
+
     if make_valid and combined_gdf is not None:
+        log_debug(f"DISSOLVE DEBUG - Making geometries valid...")
         combined_gdf.geometry = combined_gdf.geometry.apply(make_valid_geometry)
         combined_gdf = combined_gdf[combined_gdf.geometry.notna()]
+        log_debug(f"DISSOLVE DEBUG - After make_valid: shape {combined_gdf.shape}, area: {combined_gdf.geometry.area.sum():.2f}")
 
     if use_buffer_trick:
+        log_debug(f"DISSOLVE DEBUG - Applying buffer trick...")
         if merge_vertices:
             combined_gdf.geometry = combined_gdf.geometry.apply(
                 lambda geom: _merge_close_vertices(all_layers, project_settings, crs, geom, tolerance=merge_vertices_tolerance)
             )
             combined_gdf = combined_gdf[combined_gdf.geometry.notna()]
-        
+
         if use_asymmetric_buffer:
             # Apply asymmetric buffer trick
             initial_buffer = buffer_distance * 1.1
@@ -81,20 +101,26 @@ def create_dissolved_layer(all_layers, project_settings, crs, layer_name, operat
             combined_gdf.geometry = combined_gdf.geometry.apply(
                 lambda geom: snap_vertices_to_grid(geom, grid_size)
             )
+        log_debug(f"DISSOLVE DEBUG - After buffer trick: area: {combined_gdf.geometry.area.sum():.2f}")
 
     if dissolve_field and dissolve_field in combined_gdf.columns:
+        log_debug(f"DISSOLVE DEBUG - Dissolving by field: {dissolve_field}")
         dissolved = gpd.GeoDataFrame(geometry=combined_gdf.geometry, data=combined_gdf[dissolve_field]).dissolve(by=dissolve_field, as_index=False)
     else:
+        log_debug(f"DISSOLVE DEBUG - Performing unary_union dissolve...")
         # First unary_union
         dissolved = gpd.GeoDataFrame(geometry=[unary_union(combined_gdf.geometry)])
+        log_debug(f"DISSOLVE DEBUG - After first unary_union: area: {dissolved.geometry.area.sum():.2f}")
         # Second unary_union if enabled
         if use_double_union:
             dissolved = gpd.GeoDataFrame(geometry=[unary_union(dissolved.geometry)])
-        
+            log_debug(f"DISSOLVE DEBUG - After second unary_union: area: {dissolved.geometry.area.sum():.2f}")
+
         if make_valid:
             dissolved.geometry = dissolved.geometry.make_valid()
         dissolved = dissolved[~dissolved.is_empty]
         dissolved = explode_to_singlepart(dissolved)
+        log_debug(f"DISSOLVE DEBUG - After explode_to_singlepart: shape {dissolved.shape}, area: {dissolved.geometry.area.sum():.2f}")
 
     # Remove empty geometries after processing
     dissolved = dissolved[~dissolved.geometry.is_empty]
@@ -104,6 +130,7 @@ def create_dissolved_layer(all_layers, project_settings, crs, layer_name, operat
         all_layers[layer_name] = gpd.GeoDataFrame(geometry=[], crs=crs)
     else:
         all_layers[layer_name] = dissolved.set_crs(crs)
+        log_debug(f"DISSOLVE DEBUG - Final result for '{layer_name}': shape {len(dissolved)}, area: {dissolved.geometry.area.sum():.2f}")
         log_debug(f"Created dissolved layer: {layer_name} with {len(dissolved)} features")
 
     return all_layers[layer_name]

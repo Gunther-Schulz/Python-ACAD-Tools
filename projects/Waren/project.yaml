@@ -1,34 +1,34 @@
 exportFormat: dxf
 dxfVersion: R2018
 crs: EPSG:25833
-dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/Zeichnung/25 03.21 Warenshof Zeichnung_edit4.dxf"
+dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/Zeichnung/25 05.31 Warenshof Zeichnung_edit4.dxf"
 shapefileOutputDir: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/generated"
 # dxfDumpOutputDir: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/dxf_dump"
 templateDxfFilename: "Öffentlich Planungsbüro Schulz/Allgemein/CAD/Vorlage.dxf"
-reducedDxf:
-  layers:
-    - 0-BLOCKS
-    - Grünfläche
-    - Baufeld
-    - Baugrenze
-    - Blendschutzzaun
-    - EinAusfahrt
-    - Grünfläche
-    - Geltungsbereich
-    - Moor
-    - ges gesch Biotope
-    - Leitung Str-Leitungsabschnitt-NS
-    - Leitung Was-Leitungsabschnitt-VN
-    - Leitung Was-Leitungsabschnitt-AN
-    - Leitung Gas-Leitungsabschnitt-VN
-    - Leitung Ontras Gas
-    - Leitung Ontras TK
-    - Leitung Gas_HD_LEIT
-    - Leitung Stromkabel-MS_unterirdisch_LEIT
-    - Leitung Mittelspannung Zuwegung
-    - Leitung Telekom
-    - Leitung Edis
-    - Leitungen Buffer
+# reducedDxf:
+#   layers:
+#     - 0-BLOCKS
+#     - Grünfläche
+#     - Baufeld
+#     - Baugrenze
+#     - Blendschutzzaun
+#     - EinAusfahrt
+#     - Grünfläche
+#     - Geltungsbereich
+#     - Moor
+#     - ges gesch Biotope
+#     - Leitung Str-Leitungsabschnitt-NS
+#     - Leitung Was-Leitungsabschnitt-VN
+#     - Leitung Was-Leitungsabschnitt-AN
+#     - Leitung Gas-Leitungsabschnitt-VN
+#     - Leitung Ontras Gas
+#     - Leitung Ontras TK
+#     - Leitung Gas_HD_LEIT
+#     - Leitung Stromkabel-MS_unterirdisch_LEIT
+#     - Leitung Mittelspannung Zuwegung
+#     - Leitung Telekom
+#     - Leitung Edis
+#     - Leitungen Buffer
   # processFromScratch: true
 # Each type is processed only if specified in the processTypes list
 # For layers-based types (geom, wmts, wms), only processes layers listed in reducedDxf.layers

@@ -9,7 +9,7 @@ import pandas as pd
 def create_difference_layer(all_layers, project_settings, crs, layer_name, operation):
     log_debug(f"Creating difference layer: {layer_name}")
     overlay_layers = operation.get('layers', [])
-    
+
     # Make reverseDifference mandatory
     if 'reverseDifference' not in operation:
         log_warning(format_operation_warning(
@@ -19,13 +19,13 @@ def create_difference_layer(all_layers, project_settings, crs, layer_name, opera
         ))
         return None
     manual_reverse = operation['reverseDifference']
-    
+
     buffer_distance = operation.get('bufferDistance', 0.001)  # Increased default value
     thin_growth_threshold = operation.get('thinGrowthThreshold', 0.001)
     merge_vertices_tolerance = operation.get('mergeVerticesTolerance', 0.0001)
     use_buffer_trick = operation.get('useBufferTrick', False)
     make_valid = operation.get('makeValid', True)
-    
+
     base_geometry = all_layers.get(layer_name)
     if base_geometry is None:
         log_warning(format_operation_warning(
@@ -50,7 +50,7 @@ def create_difference_layer(all_layers, project_settings, crs, layer_name, opera
 
     overlay_geometry = None
     for layer_info in overlay_layers:
-        overlay_layer_name, values = _process_layer_info(all_layers, project_settings, crs, layer_info)
+        overlay_layer_name, values, column = _process_layer_info(all_layers, project_settings, crs, layer_info)
         if overlay_layer_name is None:
             continue
 
@@ -63,7 +63,7 @@ def create_difference_layer(all_layers, project_settings, crs, layer_name, opera
             continue
 
         layer_geometry = all_layers[overlay_layer_name].copy()
-        
+
         # Apply value filtering if values are specified using project settings
         if values:
             label_column = next((l['label'] for l in project_settings['geomLayers'] if l['name'] == overlay_layer_name), None)
@@ -82,7 +82,7 @@ def create_difference_layer(all_layers, project_settings, crs, layer_name, opera
             continue
 
         layer_geometry = explode_to_singlepart(layer_geometry)
-        
+
         if overlay_geometry is None:
             overlay_geometry = layer_geometry
         else:
@@ -136,7 +136,7 @@ def create_difference_layer(all_layers, project_settings, crs, layer_name, opera
             result = overlay_geometry.geometry.unary_union.difference(base_geometry)
         else:
             result = base_geometry.difference(overlay_geometry.geometry.unary_union)
-    
+
     if use_buffer_trick:
         # Apply inverse buffer to shrink the result back
         result = apply_buffer_trick(result, -buffer_distance)
@@ -166,7 +166,7 @@ def create_difference_layer(all_layers, project_settings, crs, layer_name, opera
             return None
 
     result = result[~result.is_empty & result.notna()]
-    
+
     if result.empty:
         log_warning(format_operation_warning(
             layer_name,
@@ -174,7 +174,7 @@ def create_difference_layer(all_layers, project_settings, crs, layer_name, opera
             "Difference operation resulted in empty geometry"
         ))
         return None
-    
+
     result_gdf = explode_to_singlepart(gpd.GeoDataFrame(geometry=result, crs=crs))
     if isinstance(base_geometry, gpd.GeoDataFrame):
         # Initialize columns with None values
@@ -220,45 +220,40 @@ def _should_reverse_difference(all_layers, project_settings, crs, base_geometry,
         base_geometry = base_geometry.geometry.unary_union
     if isinstance(overlay_geometry, gpd.GeoDataFrame):
         overlay_geometry = overlay_geometry.geometry.unary_union
-    
+
     # Ensure we're working with single geometries
     if isinstance(base_geometry, (MultiPolygon, MultiLineString)):
         base_geometry = unary_union(base_geometry)
     if isinstance(overlay_geometry, (MultiPolygon, MultiLineString)):
         overlay_geometry = unary_union(overlay_geometry)
-    
+
     # Check if overlay_geometry is completely within base_geometry
     if overlay_geometry.within(base_geometry):
         return False
-    
+
     # Check if base_geometry is completely within overlay_geometry
     if base_geometry.within(overlay_geometry):
         return True
-    
+
     # Compare areas
     base_area = base_geometry.area
     overlay_area = overlay_geometry.area
-    
+
     # If the overlay area is larger, it's likely a positive buffer, so don't reverse
     if overlay_area > base_area:
         return False
-    
+
     # If the base area is larger, it's likely a negative buffer, so do reverse
     if base_area > overlay_area:
         return True
-    
+
     # If areas are similar, check the intersection
     intersection = base_geometry.intersection(overlay_geometry)
     intersection_area = intersection.area
-    
+
     # If the intersection is closer to the base area, reverse
     if abs(intersection_area - base_area) < abs(intersection_area - overlay_area):
         return True
-    
+
     # Default to not reversing
     return False
-
-
-
-
-

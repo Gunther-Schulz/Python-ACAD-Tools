@@ -5,11 +5,11 @@ from src.operations.common_operations import _process_layer_info, _get_filtered_
 
 def create_circle_layer(all_layers, project_settings, crs, layer_name, operation):
     log_debug(f"Creating circle layer: {layer_name}")
-    
+
     source_layers = operation.get('layers', [])
     radius = operation.get('radius')  # Fixed radius if specified
     radius_field = operation.get('radiusField')  # Field name containing radius values
-    
+
     if radius is None and radius_field is None:
         log_warning(format_operation_warning(
             layer_name,
@@ -19,18 +19,18 @@ def create_circle_layer(all_layers, project_settings, crs, layer_name, operation
         return None
 
     result_circles = []
-    
+
     for layer_info in source_layers:
-        source_layer_name, values = _process_layer_info(all_layers, project_settings, crs, layer_info)
+        source_layer_name, values, column = _process_layer_info(all_layers, project_settings, crs, layer_info)
         if source_layer_name is None or source_layer_name not in all_layers:
             continue
 
         source_gdf = all_layers[source_layer_name]
-        
+
         for idx, row in source_gdf.iterrows():
             geom = row.geometry
             current_radius = float(row[radius_field]) if radius_field else radius
-            
+
             points = []
             if isinstance(geom, (Point, MultiPoint)):
                 if isinstance(geom, Point):
@@ -47,7 +47,7 @@ def create_circle_layer(all_layers, project_settings, crs, layer_name, operation
                     points = [Point(coord) for coord in geom.exterior.coords]
                 else:
                     points = [Point(coord) for poly in geom.geoms for coord in poly.exterior.coords]
-            
+
             # Create circles at each point
             for point in points:
                 circle = point.buffer(current_radius)
@@ -65,4 +65,4 @@ def create_circle_layer(all_layers, project_settings, crs, layer_name, operation
             "No circles created"
         ))
         all_layers[layer_name] = gpd.GeoDataFrame(geometry=[], crs=crs)
-        return None 
+        return None
