@@ -436,6 +436,10 @@ class StyleApplicationOrchestratorService(IStyleApplicationOrchestrator):
         layer_name: str,
         style: NamedStyle
     ) -> None:
+        if style is None:
+            self._logger.info(f"Style is None for layer '{layer_name}'. No styles will be applied to the layer or its entities.")
+            return
+
         if not self._dxf_adapter.is_available():
             raise DXFProcessingError("Cannot apply styles to DXF layer: adapter not available.")
         self._logger.debug(f"Applying style to DXF layer: {layer_name}")

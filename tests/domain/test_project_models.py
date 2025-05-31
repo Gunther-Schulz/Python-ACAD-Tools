@@ -186,7 +186,11 @@ class TestDXFConfig:
         # Missing outputPath
         with pytest.raises(ValidationError) as exc_info:
             DXFConfig(templatePath="some/path") # Missing outputPath
-        assert "outputPath" in str(exc_info.value).lower() # Check that the alias is reported as missing
+        error_string = str(exc_info.value).lower()
+        # Pydantic v2 might report the actual field name 'output_path' or alias 'outputPath'
+        # and will typically include 'field required' or 'missing'
+        assert ("outputpath" in error_string or "output_path" in error_string) and \
+               ("field required" in error_string or "missing" in error_string)
 
     @pytest.mark.unit
     @pytest.mark.domain

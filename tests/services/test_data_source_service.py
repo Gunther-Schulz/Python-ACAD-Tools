@@ -4,381 +4,306 @@ Tests the refactored DataSourceService that uses IDXFAdapter for DXF operations
 instead of direct ezdxf calls (Sub-Task 1.B of REFACTORING_PLAN.MD).
 """
 import pytest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch, MagicMock, ANY
 from pathlib import Path
 import geopandas as gpd
 from shapely.geometry import Point
+from ezdxf.document import Drawing as EzdxfDrawing
 
 from src.services.data_source_service import DataSourceService
+from src.services.logging_service import LoggingService
 from src.interfaces.dxf_adapter_interface import IDXFAdapter
-from src.interfaces.logging_service_interface import ILoggingService
 from src.domain.exceptions import DXFProcessingError, DataSourceError
+
+# --- REAL SERVICE FIXTURES ---
+@pytest.fixture
+def real_logger_service() -> LoggingService:
+    return LoggingService()
+
+# --- FOCUSED MOCK FIXTURES ---
+@pytest.fixture
+def mock_dxf_adapter_available(monkeypatch) -> MagicMock:
+    adapter = MagicMock(spec=IDXFAdapter)
+    adapter.is_available.return_value = True
+    # Mock the load_dxf_file method to return a mock drawing by default
+    adapter.load_dxf_file.return_value = MagicMock(spec=EzdxfDrawing, name="MockEzdxfDrawing")
+    return adapter
+
+@pytest.fixture
+def sample_gdf() -> gpd.GeoDataFrame:
+    """Provides a sample GeoDataFrame for testing."""
+    return gpd.GeoDataFrame({
+        'geometry': [Point(0, 0), Point(1, 1)],
+        'property1': ['A', 'B'],
+        'property2': [10, 20]
+    })
+
+@pytest.fixture
+def mock_dxf_adapter_unavailable(monkeypatch) -> MagicMock:
+    adapter = MagicMock(spec=IDXFAdapter)
+    adapter.is_available.return_value = False
+    return adapter
+
+# --- SERVICE UNDER TEST FIXTURE (Parameterized for adapter state) ---
+@pytest.fixture
+def service_real_logger(real_logger_service: LoggingService, mock_dxf_adapter_available: MagicMock) -> DataSourceService:
+    """Service instance with an AVAILABLE DXF adapter and REAL logger."""
+    return DataSourceService(logger_service=real_logger_service, dxf_adapter=mock_dxf_adapter_available)
+
+@pytest.fixture
+def service_adapter_unavailable(real_logger_service: LoggingService, mock_dxf_adapter_unavailable: MagicMock) -> DataSourceService:
+    """Service instance with an UNAVAILABLE DXF adapter and REAL logger."""
+    return DataSourceService(logger_service=real_logger_service, dxf_adapter=mock_dxf_adapter_unavailable)
 
 
 class TestDataSourceServiceInit:
-    """Test DataSourceService initialization."""
+    def test_init_with_available_dxf_adapter(self, real_logger_service, mock_dxf_adapter_available, caplog):
+        """Business Outcome: Initialization succeeds, adapter availability checked, no error logged."""
+        with caplog.at_level("INFO"): # Capture info logs too
+            service = DataSourceService(logger_service=real_logger_service, dxf_adapter=mock_dxf_adapter_available)
 
-    def test_init_with_available_dxf_adapter(self):
-        """Test initialization when DXF adapter is available."""
-        mock_dxf_adapter = Mock(spec=IDXFAdapter)
-        mock_dxf_adapter.is_available.return_value = True
-        mock_logger_service = Mock(spec=ILoggingService)
-        mock_logger = Mock()
-        mock_logger_service.get_logger.return_value = mock_logger
-
-        service = DataSourceService(
-            logger_service=mock_logger_service,
-            dxf_adapter=mock_dxf_adapter
-        )
-
-        assert service._dxf_adapter == mock_dxf_adapter
-        assert service._logger == mock_logger
+        assert service._dxf_adapter == mock_dxf_adapter_available
         assert hasattr(service, '_geodataframes')
-        mock_dxf_adapter.is_available.assert_called_once()
+        mock_dxf_adapter_available.is_available.assert_called_once()
+        assert "DXF library not available via adapter. DXF loading will fail." not in caplog.text
 
-    def test_init_with_unavailable_dxf_adapter(self):
-        """Test initialization when DXF adapter is not available."""
-        mock_dxf_adapter = Mock(spec=IDXFAdapter)
-        mock_dxf_adapter.is_available.return_value = False
-        mock_logger_service = Mock(spec=ILoggingService)
-        mock_logger = Mock()
-        mock_logger_service.get_logger.return_value = mock_logger
+    def test_init_with_unavailable_dxf_adapter(self, real_logger_service, mock_dxf_adapter_unavailable, caplog):
+        """Business Outcome: Initialization succeeds, adapter unavailability logged as error."""
+        with caplog.at_level("ERROR"):
+            service = DataSourceService(logger_service=real_logger_service, dxf_adapter=mock_dxf_adapter_unavailable)
 
-        service = DataSourceService(
-            logger_service=mock_logger_service,
-            dxf_adapter=mock_dxf_adapter
-        )
-
-        # Service should still initialize but log error
-        assert service._dxf_adapter == mock_dxf_adapter
-        mock_logger.error.assert_called_once_with(
-            "DXF library not available via adapter. DXF loading will fail."
-        )
+        assert service._dxf_adapter == mock_dxf_adapter_unavailable
+        mock_dxf_adapter_unavailable.is_available.assert_called_once()
+        assert "DXF library not available via adapter. DXF loading will fail." in caplog.text
 
 
 class TestDataSourceServiceLoadDXF:
-    """Test DXF file loading functionality."""
+    @patch('src.services.data_source_service.os.path.exists', return_value=True)
+    def test_load_dxf_file_success(self, mock_os_exists, service_real_logger: DataSourceService, mock_dxf_adapter_available: MagicMock, caplog):
+        """Business Outcome: Successfully loads DXF if adapter available, file exists, and adapter succeeds."""
+        test_file_path = "path/to/successful.dxf"
+        mock_drawing_object = MagicMock(spec=EzdxfDrawing) # Simulate a drawing object
+        mock_dxf_adapter_available.load_dxf_file.return_value = mock_drawing_object
 
-    @pytest.fixture
-    def mock_dxf_adapter(self):
-        """Create mock DXF adapter."""
-        mock_adapter = Mock(spec=IDXFAdapter)
-        mock_adapter.is_available.return_value = True
-        return mock_adapter
+        with caplog.at_level("INFO"):
+            result = service_real_logger.load_dxf_file(test_file_path)
 
-    @pytest.fixture
-    def mock_logger_service(self):
-        """Create mock logger service."""
-        mock_service = Mock(spec=ILoggingService)
-        mock_logger = Mock()
-        mock_service.get_logger.return_value = mock_logger
-        return mock_service
+        assert result == mock_drawing_object
+        mock_os_exists.assert_called_once_with(test_file_path)
+        mock_dxf_adapter_available.load_dxf_file.assert_called_once_with(test_file_path)
+        assert f"Successfully loaded DXF file via adapter: {test_file_path}" in caplog.text
 
-    @pytest.fixture
-    def data_source_service(self, mock_dxf_adapter, mock_logger_service):
-        """Create DataSourceService with mocked dependencies."""
-        return DataSourceService(
-            logger_service=mock_logger_service,
-            dxf_adapter=mock_dxf_adapter
-        )
-
-    @patch('src.services.data_source_service.os.path.exists')
-    def test_load_dxf_file_success(self, mock_exists, data_source_service, mock_dxf_adapter):
-        """Test successful DXF file loading."""
-        # Setup
-        test_file_path = "test.dxf"
-        mock_drawing = Mock()
-        mock_exists.return_value = True
-        mock_dxf_adapter.load_dxf_file.return_value = mock_drawing
-
-        # Execute
-        result = data_source_service.load_dxf_file(test_file_path)
-
-        # Verify
-        assert result == mock_drawing
-        mock_exists.assert_called_once_with(test_file_path)
-        mock_dxf_adapter.load_dxf_file.assert_called_once_with(test_file_path)
-        data_source_service._logger.info.assert_called_once_with(
-            f"Successfully loaded DXF file via adapter: {test_file_path}"
-        )
-
-    @patch('src.services.data_source_service.os.path.exists')
-    def test_load_dxf_file_file_not_found(self, mock_exists, data_source_service, mock_dxf_adapter):
-        """Test DXF file loading when file doesn't exist."""
-        # Setup
-        test_file_path = "missing.dxf"
-        mock_exists.return_value = False
-
-        # Execute & Verify
+    @patch('src.services.data_source_service.os.path.exists', return_value=False)
+    def test_load_dxf_file_not_found_raises_file_not_found_error(self, mock_os_exists, service_real_logger: DataSourceService, mock_dxf_adapter_available: MagicMock):
+        """Negative Test: Raises FileNotFoundError if os.path.exists is False."""
+        test_file_path = "path/to/nonexistent.dxf"
         with pytest.raises(FileNotFoundError, match=f"DXF file not found: {test_file_path}"):
-            data_source_service.load_dxf_file(test_file_path)
+            service_real_logger.load_dxf_file(test_file_path)
+        mock_os_exists.assert_called_once_with(test_file_path)
+        mock_dxf_adapter_available.load_dxf_file.assert_not_called()
 
-        mock_exists.assert_called_once_with(test_file_path)
-        mock_dxf_adapter.load_dxf_file.assert_not_called()
+    def test_load_dxf_file_adapter_unavailable_raises_dxf_processing_error(self, service_adapter_unavailable: DataSourceService, mock_dxf_adapter_unavailable: MagicMock, caplog):
+        """Negative Test: Raises DXFProcessingError if adapter is_available is False."""
+        test_file_path = "path/to/any.dxf"
+        with caplog.at_level("ERROR"):
+            with pytest.raises(DXFProcessingError, match="DXF library not available via adapter"):
+                service_adapter_unavailable.load_dxf_file(test_file_path)
 
-    @patch('src.services.data_source_service.os.path.exists')
-    def test_load_dxf_file_dxf_processing_error(self, mock_exists, data_source_service, mock_dxf_adapter):
-        """Test DXF file loading with DXFProcessingError."""
-        # Setup
-        test_file_path = "invalid.dxf"
-        error_message = "Invalid DXF structure"
-        mock_exists.return_value = True
-        mock_dxf_adapter.load_dxf_file.side_effect = DXFProcessingError(error_message)
+        assert "DXF library not available via adapter. Cannot load DXF files." in caplog.text
+        mock_dxf_adapter_unavailable.load_dxf_file.assert_not_called() # Should not attempt to load
 
-        # Execute & Verify
-        with pytest.raises(DXFProcessingError, match=error_message):
-            data_source_service.load_dxf_file(test_file_path)
+    @patch('src.services.data_source_service.os.path.exists', return_value=True)
+    def test_load_dxf_file_adapter_raises_dxf_processing_error_propagates(
+        self, mock_os_exists, service_real_logger: DataSourceService, mock_dxf_adapter_available: MagicMock, caplog
+    ):
+        """Negative Test: DXFProcessingError from adapter is propagated and logged."""
+        test_file_path = "path/to/adapter_error.dxf"
+        error_message = "Adapter-specific DXF read failure"
+        mock_dxf_adapter_available.load_dxf_file.side_effect = DXFProcessingError(error_message)
 
-        mock_exists.assert_called_once_with(test_file_path)
-        mock_dxf_adapter.load_dxf_file.assert_called_once_with(test_file_path)
-        data_source_service._logger.error.assert_called_once()
+        with caplog.at_level("ERROR"):
+            with pytest.raises(DXFProcessingError, match=error_message):
+                service_real_logger.load_dxf_file(test_file_path)
 
-    @patch('src.services.data_source_service.os.path.exists')
-    def test_load_dxf_file_adapter_returns_none(self, mock_exists, data_source_service, mock_dxf_adapter):
-        """Test DXF file loading when adapter returns None."""
-        # Setup
-        test_file_path = "empty.dxf"
-        mock_exists.return_value = True
-        mock_dxf_adapter.load_dxf_file.return_value = None
+        assert f"Adapter failed to load DXF file {test_file_path}: {error_message}" in caplog.text
+        mock_dxf_adapter_available.load_dxf_file.assert_called_once_with(test_file_path)
 
-        # Execute & Verify
-        with pytest.raises(DXFProcessingError, match="Adapter failed to load DXF file"):
-            data_source_service.load_dxf_file(test_file_path)
+    @patch('src.services.data_source_service.os.path.exists', return_value=True)
+    def test_load_dxf_file_adapter_returns_none_raises_dxf_processing_error(
+        self, mock_os_exists, service_real_logger: DataSourceService, mock_dxf_adapter_available: MagicMock, caplog
+    ):
+        """Negative Test: If adapter returns None, raises DXFProcessingError and logs error."""
+        test_file_path = "path/to/adapter_returns_none.dxf"
+        mock_dxf_adapter_available.load_dxf_file.return_value = None
 
-        mock_exists.assert_called_once_with(test_file_path)
-        mock_dxf_adapter.load_dxf_file.assert_called_once_with(test_file_path)
+        with caplog.at_level("ERROR"):
+            with pytest.raises(DXFProcessingError, match=f"Adapter failed to load DXF file {test_file_path} \\(returned None\\)."):
+                service_real_logger.load_dxf_file(test_file_path)
 
-    @patch('src.services.data_source_service.os.path.exists')
-    def test_load_dxf_file_generic_exception(self, mock_exists, data_source_service, mock_dxf_adapter):
-        """Test DXF file loading with generic exception."""
-        # Setup
-        test_file_path = "error.dxf"
-        error_message = "Unexpected error"
-        mock_exists.return_value = True
-        mock_dxf_adapter.load_dxf_file.side_effect = Exception(error_message)
+        assert f"Adapter returned None for DXF file {test_file_path} without explicit exception." in caplog.text
+        mock_dxf_adapter_available.load_dxf_file.assert_called_once_with(test_file_path)
 
-        # Execute & Verify
-        with pytest.raises(DXFProcessingError, match="Unexpected error loading DXF file"):
-            data_source_service.load_dxf_file(test_file_path)
+    @patch('src.services.data_source_service.os.path.exists', return_value=True)
+    def test_load_dxf_file_adapter_unexpected_exception_wrapped_and_logged(
+        self, mock_os_exists, service_real_logger: DataSourceService, mock_dxf_adapter_available: MagicMock, caplog
+    ):
+        """Negative Test: Unexpected exceptions from adapter are wrapped in DXFProcessingError and logged."""
+        test_file_path = "path/to/adapter_unexpected_error.dxf"
+        original_error_message = "Something completely unexpected from adapter"
+        mock_dxf_adapter_available.load_dxf_file.side_effect = ValueError(original_error_message) # Example non-DXF error
 
-        mock_exists.assert_called_once_with(test_file_path)
-        mock_dxf_adapter.load_dxf_file.assert_called_once_with(test_file_path)
+        with caplog.at_level("ERROR"):
+            with pytest.raises(DXFProcessingError, match=f"Unexpected error loading DXF file {test_file_path} via adapter: {original_error_message}"):
+                service_real_logger.load_dxf_file(test_file_path)
 
-    def test_load_dxf_file_adapter_unavailable(self, mock_logger_service):
-        """Test DXF file loading when adapter is unavailable."""
-        # Setup
-        mock_dxf_adapter = Mock(spec=IDXFAdapter)
-        mock_dxf_adapter.is_available.return_value = False
-        service = DataSourceService(
-            logger_service=mock_logger_service,
-            dxf_adapter=mock_dxf_adapter
-        )
+        assert f"Unexpected error loading DXF file {test_file_path} via adapter: {original_error_message}" in caplog.text
+        mock_dxf_adapter_available.load_dxf_file.assert_called_once_with(test_file_path)
 
-        # Execute & Verify
-        with pytest.raises(DXFProcessingError, match="DXF library not available via adapter"):
-            service.load_dxf_file("test.dxf")
+    @pytest.mark.parametrize("invalid_path_input", [None, ""])
+    def test_load_dxf_file_none_or_empty_path_raises_error(self, service_real_logger: DataSourceService, invalid_path_input):
+        """Negative Test: None or empty file_path for DXF loading raises appropriate error."""
+        # Expect TypeError for None, ValueError or FileNotFoundError for empty string if os.path.exists handles it that way
+        with pytest.raises((TypeError, ValueError, FileNotFoundError, DXFProcessingError)):
+            service_real_logger.load_dxf_file(invalid_path_input)
 
-        mock_dxf_adapter.load_dxf_file.assert_not_called()
+    @patch('src.services.data_source_service.os.path.exists', side_effect=IsADirectoryError("[Errno 21] Is a directory: '/fake/dir'"))
+    def test_load_dxf_file_path_is_directory_raises_error(self, mock_os_exists, service_real_logger: DataSourceService):
+        """Negative Test: Path is a directory for DXF loading raises IsADirectoryError or similar."""
+        test_file_path = "/fake/dir"
+        # Service might catch IsADirectoryError from os.path.exists or adapter might raise it wrapped
+        with pytest.raises((IsADirectoryError, DXFProcessingError, FileNotFoundError)):
+            service_real_logger.load_dxf_file(test_file_path)
+        mock_os_exists.assert_called_once_with(test_file_path)
 
 
-class TestDataSourceServiceGeoJSON:
-    """Test GeoJSON file loading functionality."""
-
-    @pytest.fixture
-    def data_source_service(self):
-        """Create DataSourceService for GeoJSON testing."""
-        mock_dxf_adapter = Mock(spec=IDXFAdapter)
-        mock_dxf_adapter.is_available.return_value = True
-        mock_logger_service = Mock(spec=ILoggingService)
-        mock_logger = Mock()
-        mock_logger_service.get_logger.return_value = mock_logger
-        return DataSourceService(
-            logger_service=mock_logger_service,
-            dxf_adapter=mock_dxf_adapter
-        )
-
-    @patch('src.services.data_source_service.os.path.exists')
+class TestDataSourceServiceLoadGeoJSON:
+    # Service for these tests doesn't strictly need a functional DXF adapter, but fixture provides one.
     @patch('src.services.data_source_service.gpd.read_file')
-    def test_load_geojson_file_success(self, mock_read_file, mock_exists, data_source_service):
-        """Test successful GeoJSON file loading."""
-        # Setup
-        test_file_path = "test.geojson"
-        mock_gdf = gpd.GeoDataFrame({
-            'geometry': [Point(0, 0), Point(1, 1)],
-            'name': ['Point1', 'Point2']
-        })
-        mock_exists.return_value = True
-        mock_read_file.return_value = mock_gdf
+    @patch('src.services.data_source_service.os.path.exists', return_value=True)
+    def test_load_geojson_success(self, mock_os_exists, mock_gpd_read_file, service_real_logger: DataSourceService, caplog):
+        """Business Outcome: Successfully loads GeoJSON if file exists and gpd.read_file succeeds."""
+        test_file_path = "path/to/data.geojson"
+        sample_gdf = gpd.GeoDataFrame({'geometry': [Point(1,2)], 'prop': ['value']})
+        mock_gpd_read_file.return_value = sample_gdf
 
-        # Execute
-        result = data_source_service.load_geojson_file(test_file_path)
+        with caplog.at_level("INFO"):
+            result_gdf = service_real_logger.load_geojson_file(test_file_path)
 
-        # Verify
-        assert result.equals(mock_gdf)
-        mock_exists.assert_called_once_with(test_file_path)
-        mock_read_file.assert_called_once_with(test_file_path)
-        data_source_service._logger.info.assert_called_once()
+        assert result_gdf.equals(sample_gdf)
+        mock_os_exists.assert_called_once_with(test_file_path)
+        mock_gpd_read_file.assert_called_once_with(test_file_path)
+        assert f"Successfully loaded GeoJSON file: {test_file_path}" in caplog.text
 
-    @patch('src.services.data_source_service.os.path.exists')
-    def test_load_geojson_file_file_not_found(self, mock_exists, data_source_service):
-        """Test GeoJSON file loading with FileNotFoundError."""
-        # Setup
-        test_file_path = "missing.geojson"
-        mock_exists.return_value = False
-
-        # Execute & Verify
+    @patch('src.services.data_source_service.os.path.exists', return_value=False)
+    def test_load_geojson_file_not_found_raises_error(self, mock_os_exists, service_real_logger: DataSourceService, mock_dxf_adapter_available: MagicMock): # mock_dxf_adapter needed for service fixture
+        """Negative Test: Raises FileNotFoundError if os.path.exists is False for GeoJSON."""
+        test_file_path = "path/to/nonexistent.geojson"
         with pytest.raises(FileNotFoundError, match=f"GeoJSON file not found: {test_file_path}"):
-            data_source_service.load_geojson_file(test_file_path)
+            service_real_logger.load_geojson_file(test_file_path)
+        mock_os_exists.assert_called_once_with(test_file_path)
 
-        mock_exists.assert_called_once_with(test_file_path)
-
-    @patch('src.services.data_source_service.os.path.exists')
     @patch('src.services.data_source_service.gpd.read_file')
-    def test_load_geojson_file_generic_exception(self, mock_read_file, mock_exists, data_source_service):
-        """Test GeoJSON file loading with generic exception."""
-        # Setup
-        test_file_path = "invalid.geojson"
-        error_message = "Invalid GeoJSON format"
-        mock_exists.return_value = True
-        mock_read_file.side_effect = Exception(error_message)
+    @patch('src.services.data_source_service.os.path.exists', return_value=True)
+    def test_load_geojson_gpd_read_error_raises_data_source_error(
+        self, mock_os_exists, mock_gpd_read_file, service_real_logger: DataSourceService, caplog
+    ):
+        """Negative Test: Exceptions from gpd.read_file are wrapped in DataSourceError and logged."""
+        test_file_path = "path/to/invalid.geojson"
+        original_error_message = "GeoPandas failed to parse"
+        mock_gpd_read_file.side_effect = ValueError(original_error_message) # Example error from gpd
 
-        # Execute & Verify
-        with pytest.raises(DataSourceError, match=f"Failed to load GeoJSON file {test_file_path}"):
-            data_source_service.load_geojson_file(test_file_path)
+        with caplog.at_level("ERROR"):
+            with pytest.raises(DataSourceError, match=f"Failed to load GeoJSON file {test_file_path}: {original_error_message}"):
+                service_real_logger.load_geojson_file(test_file_path)
 
-        mock_exists.assert_called_once_with(test_file_path)
-        mock_read_file.assert_called_once_with(test_file_path)
+        assert f"Failed to load GeoJSON file {test_file_path}: {original_error_message}" in caplog.text
+        mock_gpd_read_file.assert_called_once_with(test_file_path)
 
+    @pytest.mark.parametrize("invalid_path_input", [None, ""])
+    def test_load_geojson_none_or_empty_path_raises_error(self, service_real_logger: DataSourceService, invalid_path_input):
+        """Negative Test: None or empty file_path for GeoJSON loading raises appropriate error."""
+        with pytest.raises((TypeError, ValueError, FileNotFoundError, DataSourceError)):
+            service_real_logger.load_geojson_file(invalid_path_input)
 
-class TestDataSourceServiceGeoDataFrame:
-    """Test GeoDataFrame management functionality."""
-
-    @pytest.fixture
-    def data_source_service(self):
-        """Create DataSourceService for GeoDataFrame testing."""
-        mock_dxf_adapter = Mock(spec=IDXFAdapter)
-        mock_dxf_adapter.is_available.return_value = True
-        mock_logger_service = Mock(spec=ILoggingService)
-        mock_logger = Mock()
-        mock_logger_service.get_logger.return_value = mock_logger
-        return DataSourceService(
-            logger_service=mock_logger_service,
-            dxf_adapter=mock_dxf_adapter
-        )
-
-    def test_add_gdf_success(self, data_source_service):
-        """Test successful GeoDataFrame addition."""
-        # Setup
-        gdf = gpd.GeoDataFrame({
-            'geometry': [Point(0, 0), Point(1, 1)],
-            'name': ['Point1', 'Point2']
-        })
-        layer_name = "test_layer"
-
-        # Execute
-        data_source_service.add_gdf(gdf, layer_name)
-
-        # Verify
-        assert layer_name in data_source_service._geodataframes
-        assert data_source_service._geodataframes[layer_name] is gdf
-        data_source_service._logger.info.assert_called()
-
-    def test_add_gdf_invalid_type(self, data_source_service):
-        """Test GeoDataFrame addition with invalid type."""
-        # Setup
-        invalid_gdf = "not a geodataframe"
-        layer_name = "test_layer"
-
-        # Execute & Verify
-        with pytest.raises(DataSourceError, match="Invalid type for add_gdf"):
-            data_source_service.add_gdf(invalid_gdf, layer_name)
-
-    def test_add_gdf_overwrite_existing(self, data_source_service):
-        """Test GeoDataFrame addition overwrites existing."""
-        # Setup
-        gdf1 = gpd.GeoDataFrame({'geometry': [Point(0, 0)]})
-        gdf2 = gpd.GeoDataFrame({'geometry': [Point(1, 1)]})
-        layer_name = "test_layer"
-
-        # Execute
-        data_source_service.add_gdf(gdf1, layer_name)
-        data_source_service.add_gdf(gdf2, layer_name)
-
-        # Verify
-        assert data_source_service._geodataframes[layer_name] is gdf2
-        data_source_service._logger.warning.assert_called_once()
-
-    def test_get_gdf_success(self, data_source_service):
-        """Test successful GeoDataFrame retrieval."""
-        # Setup
-        gdf = gpd.GeoDataFrame({'geometry': [Point(0, 0)]})
-        layer_name = "test_layer"
-        data_source_service.add_gdf(gdf, layer_name)
-
-        # Execute
-        result = data_source_service.get_gdf(layer_name)
-
-        # Verify
-        assert result is gdf
-
-    def test_get_gdf_not_found(self, data_source_service):
-        """Test GeoDataFrame retrieval when layer not found."""
-        # Setup
-        layer_name = "missing_layer"
-
-        # Execute & Verify
-        with pytest.raises(DataSourceError, match=f"Layer '{layer_name}' not found"):
-            data_source_service.get_gdf(layer_name)
+    @patch('src.services.data_source_service.os.path.exists', side_effect=IsADirectoryError("[Errno 21] Is a directory: '/fake/dir'"))
+    def test_load_geojson_path_is_directory_raises_error(self, mock_os_exists, service_real_logger: DataSourceService):
+        """Negative Test: Path is a directory for GeoJSON loading raises IsADirectoryError or DataSourceError."""
+        test_file_path = "/fake/dir"
+        # gpd.read_file itself raises errors for directories, or os.path.exists would
+        with pytest.raises((IsADirectoryError, DataSourceError, FileNotFoundError)): # FileNotFoundError if os.path.exists is checked first, which it is
+            service_real_logger.load_geojson_file(test_file_path)
+        mock_os_exists.assert_called_once_with(test_file_path)
 
 
-class TestDataSourceServiceIntegration:
-    """Integration tests for DataSourceService methods."""
+class TestDataSourceServiceGeoDataFrameManagement:
+    def test_add_gdf_success_and_get_gdf_retrieves_it(self, service_real_logger: DataSourceService, caplog):
+        """Business Outcome: Added GDF can be retrieved. Logs info."""
+        gdf = gpd.GeoDataFrame({'geometry': [Point(0,0)], 'data': ['A']})
+        layer_name = "my_data_layer"
 
-    @pytest.fixture
-    def data_source_service(self):
-        """Create DataSourceService for integration testing."""
-        mock_dxf_adapter = Mock(spec=IDXFAdapter)
-        mock_dxf_adapter.is_available.return_value = True
-        mock_logger_service = Mock(spec=ILoggingService)
-        mock_logger = Mock()
-        mock_logger_service.get_logger.return_value = mock_logger
-        return DataSourceService(
-            logger_service=mock_logger_service,
-            dxf_adapter=mock_dxf_adapter
-        )
+        with caplog.at_level("INFO"):
+            service_real_logger.add_gdf(gdf, layer_name)
 
-    @patch('src.services.data_source_service.os.path.exists')
-    def test_multiple_file_operations(self, mock_exists, data_source_service):
-        """Test multiple file operations in sequence."""
-        # Setup
-        mock_exists.return_value = True
-        data_source_service._dxf_adapter.load_dxf_file.return_value = Mock()
+        assert f"Successfully added/updated GeoDataFrame for layer: '{layer_name}'" in caplog.text
 
-        # Test 1: DXF loading
-        dxf_result = data_source_service.load_dxf_file("test.dxf")
-        assert dxf_result is not None
+        retrieved_gdf = service_real_logger.get_gdf(layer_name)
+        assert retrieved_gdf is gdf # Check for object identity
 
-        # Test 2: GeoDataFrame management
-        gdf = gpd.GeoDataFrame({'geometry': [Point(0, 0)]})
-        data_source_service.add_gdf(gdf, "test_layer")
-        retrieved_gdf = data_source_service.get_gdf("test_layer")
-        assert retrieved_gdf is gdf
+    def test_add_gdf_invalid_type_raises_data_source_error(self, service_real_logger: DataSourceService, caplog):
+        """Negative Test: Adding non-GDF type raises DataSourceError and logs error."""
+        not_a_gdf = "this is a string"
+        layer_name = "invalid_layer"
 
-        # Verify logger was called for both operations
-        assert data_source_service._logger.info.call_count >= 2
+        with caplog.at_level("ERROR"):
+            with pytest.raises(DataSourceError, match=f"Invalid type for add_gdf. Expected GeoDataFrame, got <class 'str'> for layer '{layer_name}'."):
+                service_real_logger.add_gdf(not_a_gdf, layer_name)
 
-    def test_error_handling_consistency(self, data_source_service):
-        """Test that error handling is consistent across methods."""
-        # Test DXF error handling
-        data_source_service._dxf_adapter.load_dxf_file.side_effect = DXFProcessingError("Test error")
+        assert f"Attempted to add a non-GeoDataFrame object for layer '{layer_name}'" in caplog.text
 
-        with patch('src.services.data_source_service.os.path.exists', return_value=True):
-            with pytest.raises(DXFProcessingError):
-                data_source_service.load_dxf_file("test.dxf")
+    def test_add_gdf_overwrite_logs_warning(self, service_real_logger: DataSourceService, caplog):
+        """Business Outcome: Overwriting an existing GDF logs a warning."""
+        gdf1 = gpd.GeoDataFrame({'geometry': [Point(1,1)]})
+        gdf2 = gpd.GeoDataFrame({'geometry': [Point(2,2)]})
+        layer_name = "overwritten_layer"
 
-        # Test GeoDataFrame error handling
-        with pytest.raises(DataSourceError):
-            data_source_service.get_gdf("missing_layer")
+        service_real_logger.add_gdf(gdf1, layer_name) # Initial add
+        caplog.clear() # Clear logs before the overwrite action
 
-        # Both should have logged errors
-        assert data_source_service._logger.error.call_count >= 1
+        with caplog.at_level("WARNING"):
+            service_real_logger.add_gdf(gdf2, layer_name) # Overwrite
+
+        assert f"Overwriting existing GeoDataFrame for layer: '{layer_name}'" in caplog.text
+        assert service_real_logger.get_gdf(layer_name) is gdf2
+
+    def test_get_gdf_nonexistent_layer_raises_data_source_error(self, service_real_logger: DataSourceService, caplog):
+        """Negative Test: Getting a non-existent layer raises DataSourceError and logs error."""
+        layer_name = "non_existent_layer"
+        with caplog.at_level("ERROR"):
+            with pytest.raises(DataSourceError, match=f"Layer '{layer_name}' not found in DataSourceService."):
+                service_real_logger.get_gdf(layer_name)
+
+        assert f"Layer '{layer_name}' not found in DataSourceService." in caplog.text
+
+    @pytest.mark.parametrize("invalid_layer_name", [None, ""])
+    def test_add_gdf_none_or_empty_layer_name_raises_error(self, service_real_logger: DataSourceService, sample_gdf: gpd.GeoDataFrame, invalid_layer_name, caplog):
+        """Negative Test: None or empty layer_name for add_gdf raises DataSourceError."""
+        # Service should validate layer_name before adding to dict
+        with caplog.at_level("ERROR"):
+            with pytest.raises(DataSourceError, match="Layer name cannot be None or empty."):
+                service_real_logger.add_gdf(sample_gdf, invalid_layer_name) # type: ignore
+        # Check for specific log if validation is added and logs
+        assert "Layer name cannot be None or empty." in caplog.text
+
+    @pytest.mark.parametrize("invalid_layer_name", [None, ""])
+    def test_get_gdf_none_or_empty_layer_name_raises_error(self, service_real_logger: DataSourceService, invalid_layer_name, caplog):
+        """Negative Test: None or empty layer_name for get_gdf raises DataSourceError or KeyError."""
+        # Service should validate layer_name or dict access will raise KeyError
+        with caplog.at_level("ERROR"):
+            with pytest.raises((DataSourceError, KeyError)):
+                service_real_logger.get_gdf(invalid_layer_name) # type: ignore
+        # Existing error for non-existent layer is DataSourceError wrapping KeyError
+        # If validation is added, it might raise a more specific DataSourceError before KeyError
+        if invalid_layer_name is None:
+            assert "Layer name cannot be None" in caplog.text or "Layer 'None' not found" in caplog.text
+        else: # Empty string
+            assert "Layer name cannot be empty" in caplog.text or "Layer '' not found" in caplog.text

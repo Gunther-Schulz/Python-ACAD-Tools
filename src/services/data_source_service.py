@@ -109,6 +109,12 @@ class DataSourceService(IDataSource):
     def add_gdf(self, gdf: gpd.GeoDataFrame, layer_name: str) -> None:
         """Adds or replaces a GeoDataFrame in the in-memory store."""
         self._logger.info(f"Attempting to add GeoDataFrame for layer: '{layer_name}'")
+
+        if layer_name is None or layer_name == "":
+            error_msg = "Layer name cannot be None or empty."
+            self._logger.error(error_msg)
+            raise DataSourceError(error_msg)
+
         if not isinstance(gdf, gpd.GeoDataFrame):
             self._logger.error(f"Attempted to add a non-GeoDataFrame object for layer '{layer_name}'. Type was {type(gdf)}.")
             raise DataSourceError(f"Invalid type for add_gdf. Expected GeoDataFrame, got {type(gdf)} for layer '{layer_name}'.")

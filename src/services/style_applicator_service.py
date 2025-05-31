@@ -87,6 +87,7 @@ class StyleApplicatorService(IStyleApplicator):
         dxf_drawing: Drawing
     ) -> None:
         if not self._dxf_adapter.is_available(): # Keep basic check before delegation
+            self._logger.error("DXF adapter not available. Cannot apply style to DXF entity.") # Log before raising
             raise DXFProcessingError("DXF adapter not available.")
         self._logger.debug(f"Delegating apply_style_to_dxf_entity for {entity.dxf.handle if hasattr(entity, 'dxf') else 'N/A'} to orchestrator.")
         self._style_orchestrator.apply_style_to_dxf_entity(
@@ -100,6 +101,7 @@ class StyleApplicatorService(IStyleApplicator):
         style: NamedStyle
     ) -> None:
         if not self._dxf_adapter.is_available(): # Keep basic check
+            self._logger.error(f"DXF adapter not available. Cannot apply styles to DXF layer '{layer_name}'.") # Log before raising
             raise DXFProcessingError("DXF adapter not available.")
         self._logger.debug(f"Delegating apply_styles_to_dxf_layer for '{layer_name}' to orchestrator.")
         self._style_orchestrator.apply_styles_to_dxf_layer(
@@ -117,6 +119,7 @@ class StyleApplicatorService(IStyleApplicator):
     ) -> None:
         self._logger.debug(f"Delegating add_geodataframe_to_dxf for layer '{layer_name}' to GeometryProcessorService.")
         if not self._dxf_adapter.is_available():
+            self._logger.error(f"DXF adapter not available. Cannot add GeoDataFrame to DXF layer '{layer_name}'.") # Log before raising
             raise DXFProcessingError("Cannot add geometries to DXF: ezdxf library not available via adapter.")
         self._geometry_processor.add_geodataframe_to_dxf(
             dxf_drawing=dxf_drawing,

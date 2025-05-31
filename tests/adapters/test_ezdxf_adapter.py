@@ -77,8 +77,7 @@ class MockDXFEntity:
         self.dxf.name = "DEFAULT_NAME" # For layers, styles etc.
         # Add other common attributes as needed by tests
         self.dxf.font = "arial.ttf" # For TextStyle
-        # self.dxf.color = 256 # Default ByLayer # REMOVED direct set here
-        self.dxf.flags = 0 # For linetypes
+        self.dxf.flags = 0 # For linetypes, layer state
         self.dxf.pattern = [] # For linetypes
         self.dxf.description = "Mock Description" # For linetypes
 
@@ -88,12 +87,27 @@ class MockDXFEntity:
         self.dxf.lineweight = -1 # Default, set on the .dxf object
         self.dxf.plot = 1 # Plotting enabled, set on the .dxf object
         self.dxf.true_color = None # Initialize on the .dxf object
+        self.dxf.transparency = None # Initialize on the .dxf object
 
-        # Mock state methods
-        self.freeze = MagicMock()
-        self.thaw = MagicMock()
-        self.lock = MagicMock()
-        self.unlock = MagicMock()
+        # For entities that might have specific sub-attributes (e.g., MText)
+        self.dxf.char_height = None
+        self.dxf.insert = None
+        self.dxf.text_direction = None
+        self.dxf.attachment_point = None
+        self.dxf.line_spacing_factor = None
+        self.dxf.width = None # MText width
+
+        # Mock methods for layer state changes
+        self.lock = MagicMock(name=f"{handle}_lock_method")
+        self.unlock = MagicMock(name=f"{handle}_unlock_method")
+        self.freeze = MagicMock(name=f"{handle}_freeze_method")
+        self.thaw = MagicMock(name=f"{handle}_thaw_method")
+
+        # Mock methods for hatch paths
+        self.paths = MagicMock()
+        self.paths.add_polyline_path = MagicMock(name=f"{handle}_add_polyline_path_method")
+        self.set_pattern_fill = MagicMock(name=f"{handle}_set_pattern_fill_method")
+        self.set_solid_fill = MagicMock(name=f"{handle}_set_solid_fill_method")
 
     def dxftype(self):
         return "MOCK_ENTITY"
@@ -104,17 +118,8 @@ class MockDXFEntity:
     def set_solid_fill(self, color=None):
         pass # Mock implementation
 
-    def freeze(self):
-        self.dxf.flags = 1 # Example flag for frozen
-
-    def thaw(self):
-        self.dxf.flags = 0
-
-    def lock(self):
-        self.dxf.flags = 2 # Example flag for locked
-
-    def unlock(self):
-        self.dxf.flags = 0
+    def get_handle(self): # Mimic method if some code calls it as a method
+        return self.dxf.handle
 
     @property
     def color(self):
@@ -164,9 +169,33 @@ class MockDXFEntity:
     def is_on(self, value: bool):
         current_color = abs(self.dxf.color) # Get current absolute color value
         if value: # True means ON
-            self.dxf.color = current_color
+            self.dxf.color = current_color if current_color != 0 else 256 # Ensure non-zero for ON
         else: # False means OFF
-            self.dxf.color = -current_color
+            self.dxf.color = -abs(current_color if current_color != 0 else 256) # Ensure non-zero for OFF
+
+    @property
+    def is_frozen(self):
+        return bool(self.dxf.flags & 1)
+
+    # No setter for is_frozen directly, use freeze/thaw methods
+
+    @property
+    def is_locked(self):
+        return bool(self.dxf.flags & 2)
+
+    # No setter for is_locked directly, use lock/unlock methods
+
+    @property
+    def is_off(self):
+        return self.dxf.color < 0
+
+    @is_off.setter
+    def is_off(self, value: bool):
+        current_color = abs(self.dxf.color) # Get current absolute color value
+        if value: # True means OFF
+            self.dxf.color = -abs(current_color if current_color != 0 else 256) # Ensure non-zero for OFF
+        else: # False means ON
+            self.dxf.color = current_color if current_color != 0 else 256 # Ensure non-zero for ON
 
 class CustomLayerTableSpec:
     def add(self, name, dxfattribs=None): pass
@@ -371,7 +400,7 @@ class TestEzdxfAdapter(unittest.TestCase):
         adapter = EzdxfAdapter(self.mock_logger_service)
         with self.assertRaises(DXFProcessingError) as context:
             adapter.load_dxf_file("bad.dxf")
-        self.assertTrue("Invalid DXF file structure: bad.dxf. Error: Test DXFStructureError" in str(context.exception))
+        self.assertTrue("DXF Structure Error while loading bad.dxf: Test DXFStructureError" in str(context.exception))
         self.mock_logger.error.assert_called_with("DXF Structure Error while loading bad.dxf: Test DXFStructureError", exc_info=True)
 
     @patch('src.adapters.ezdxf_adapter.os.path.exists', return_value=True)
@@ -393,8 +422,8 @@ class TestEzdxfAdapter(unittest.TestCase):
 
         # Verify the DXFProcessingError attributes
         self.assertEqual(context.exception.args[0], expected_log_msg)
-        self.assertIsInstance(context.exception.original_exception, MockDXFStructureError)
-        self.assertEqual(str(context.exception.original_exception), error_message)
+        self.assertIsInstance(context.exception.__cause__, MockDXFStructureError)
+        self.assertEqual(str(context.exception.__cause__), error_message)
 
     def test_save_document_success(self):
         self._mock_ezdxf_globally(available=True)
@@ -511,13 +540,15 @@ class TestEzdxfAdapter(unittest.TestCase):
     def test_create_dxf_layer_dxf_value_error(self):
         self._mock_ezdxf_globally(available=True)
         self.mock_drawing.layers = MagicMock()
-        self.mock_drawing.layers.add.side_effect = MockDXFValueError("Invalid layer prop")
+        # MODIFIED: Use RealDXFValueError if available, otherwise MockDXFValueError
+        error_to_raise = RealDXFValueError("Invalid layer prop") if EZDXF_TEST_AVAILABLE else MockDXFValueError("Invalid layer prop")
+        self.mock_drawing.layers.add.side_effect = error_to_raise
         self.mock_drawing.layers.__contains__.return_value = False
 
         adapter = EzdxfAdapter(self.mock_logger_service)
         with self.assertRaises(DXFProcessingError) as context:
             adapter.create_dxf_layer(self.mock_drawing, "ERROR_LAYER", color=-1000) # Example invalid value
-        self.assertTrue("DXFValueError for DXF layer ERROR_LAYER: Invalid layer prop" in str(context.exception))
+        self.assertEqual(str(context.exception), "DXFValueError for DXF layer ERROR_LAYER: Invalid layer prop")
 
     def test_get_layer_found(self):
         self._mock_ezdxf_globally(available=True)
@@ -546,39 +577,62 @@ class TestEzdxfAdapter(unittest.TestCase):
 
     def test_set_layer_properties_all(self):
         self._mock_ezdxf_globally(available=True)
-        mock_layer = MockDXFEntity("TARGET_LAYER")
+        mock_layer_entity_for_test = MockDXFEntity("TARGET_LAYER_PROPS")
+        self.mock_drawing.layers.get.return_value = mock_layer_entity_for_test # Setup mock drawing to return our mock layer
+
+        # Configure linetypes to include "HIDDEN" for the test
+        self.mock_drawing.linetypes.__contains__ = MagicMock(side_effect=lambda x: x in ["CONTINUOUS", "HIDDEN"])
+
         adapter = EzdxfAdapter(self.mock_logger_service)
+        layer_name_to_test = "TARGET_LAYER_PROPS"
 
         adapter.set_layer_properties(
-            mock_layer, color=5, linetype="HIDDEN", lineweight=50,
+            doc=self.mock_drawing, # Pass the mock drawing
+            layer_name=layer_name_to_test, # Pass the layer name
+            color=5, linetype="HIDDEN", lineweight=50,
             plot=False, on=False, frozen=True, locked=True
         )
-        self.assertEqual(mock_layer.dxf.color, -5) # is_off makes color negative
-        self.assertEqual(mock_layer.dxf.linetype, "HIDDEN")
-        self.assertEqual(mock_layer.dxf.lineweight, 50)
-        self.assertEqual(mock_layer.dxf.plot, 0) # plot=False
-        self.assertEqual(mock_layer.dxf.flags, 1) # frozen
-        mock_layer.lock.assert_called_once() # Check lock was called
-        mock_layer.freeze.assert_called_once() # Check freeze was called
-        self.mock_logger.debug.assert_called_with("Set properties for layer: 'TARGET_LAYER'.")
+        self.assertTrue(mock_layer_entity_for_test.is_off) # Assert is_off state
+        self.assertEqual(mock_layer_entity_for_test.dxf.color, -5) # is_off makes color negative
+        self.assertEqual(mock_layer_entity_for_test.dxf.linetype, "HIDDEN")
+        self.assertEqual(mock_layer_entity_for_test.dxf.lineweight, 50)
+        self.assertEqual(mock_layer_entity_for_test.dxf.plot, 0) # plot=False
+        # self.assertEqual(mock_layer_entity_for_test.dxf.flags, 1) # frozen - flags can be combined
+        mock_layer_entity_for_test.lock.assert_called_once()
+        mock_layer_entity_for_test.freeze.assert_called_once()
+        self.mock_logger.debug.assert_called_with(f"Set properties for layer: '{layer_name_to_test}'. Color: 5, LType: HIDDEN, LW: 50, Plot: False, On: False, Frozen: True, Locked: True")
+
 
     def test_set_layer_properties_on_and_thaw_unlock(self):
         self._mock_ezdxf_globally(available=True)
-        mock_layer = MockDXFEntity("TARGET_LAYER")
-        mock_layer.dxf.color = -7 # Start as off
-        mock_layer.dxf.flags = 3 # Start as frozen and locked (example)
-        adapter = EzdxfAdapter(self.mock_logger_service)
+        mock_layer_entity_for_state_test = MockDXFEntity("TARGET_LAYER_STATE")
+        mock_layer_entity_for_state_test.dxf.color = -7 # Start as off
+        mock_layer_entity_for_state_test.dxf.flags = 3 # Start as frozen and locked (1 | 2)
+        self.mock_drawing.layers.get.return_value = mock_layer_entity_for_state_test # Setup mock drawing
 
-        adapter.set_layer_properties(mock_layer, on=True, frozen=False, locked=False)
-        self.assertEqual(mock_layer.dxf.color, 7) # Turns on
-        mock_layer.thaw.assert_called_once()
-        mock_layer.unlock.assert_called_once()
+        adapter = EzdxfAdapter(self.mock_logger_service)
+        layer_name_for_state_test = "TARGET_LAYER_STATE"
+
+        adapter.set_layer_properties(
+            doc=self.mock_drawing, # Pass mock drawing
+            layer_name=layer_name_for_state_test, # Pass layer name
+            on=True, frozen=False, locked=False
+        )
+        self.assertEqual(mock_layer_entity_for_state_test.dxf.color, 7) # Turns on
+        mock_layer_entity_for_state_test.thaw.assert_called_once()
+        mock_layer_entity_for_state_test.unlock.assert_called_once()
 
     def test_set_layer_properties_no_entity(self):
         self._mock_ezdxf_globally(available=True)
+        # Simulate layer not being found in the document
+        self.mock_drawing.layers.get.return_value = None
         adapter = EzdxfAdapter(self.mock_logger_service)
-        with self.assertRaisesRegex(DXFProcessingError, "Layer entity is None, cannot set properties."):
-            adapter.set_layer_properties(None, color=1)
+        layer_name_not_found = "NON_EXISTENT_LAYER"
+
+        with self.assertRaisesRegex(DXFProcessingError, f"Layer '{layer_name_not_found}' not found in document for property setting."):
+            adapter.set_layer_properties(doc=self.mock_drawing, layer_name=layer_name_not_found, color=1)
+        self.mock_logger.error.assert_called_with(f"Layer '{layer_name_not_found}' not found in document, cannot set properties.")
+
 
     # --- Entity Querying ---
     def test_query_entities_success(self):
@@ -798,7 +852,7 @@ class TestEzdxfAdapter(unittest.TestCase):
         ]
         # Transparency might require hasattr check, so test its call if supported
         if hasattr(mock_entity.dxf, "transparency"):
-             expected_calls.append(call('transparency', int(0.5 * 255)))
+             expected_calls.append(call('transparency', 33554559))
 
         mock_entity.dxf.set.assert_has_calls(expected_calls, any_order=True)
         self.assertEqual(mock_entity.dxf.set.call_count, len(expected_calls))

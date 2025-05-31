@@ -36,18 +36,29 @@ class DXFResourceManagerService(IDXFResourceManager):
             return
 
         linetype_name = layer_props.linetype
+        if not linetype_name.strip():
+            self._logger.warning(f"Linetype name '{linetype_name}' is invalid or effectively empty. Skipping.")
+            return
+
         if linetype_name.upper() in ["BYLAYER", "BYBLOCK", "CONTINUOUS"]:
             return # These are standard and assumed to exist
 
         pattern_to_use: Optional[List[float]] = None
         description_to_use: str = f"Linetype {linetype_name}"
 
-        if layer_props.linetype_pattern is not None and isinstance(layer_props.linetype_pattern, list):
-            pattern_to_use = layer_props.linetype_pattern
-            description_to_use = f"Custom linetype {linetype_name} from style pattern"
-            self._logger.debug(f"Using linetype pattern for '{linetype_name}' from style definition.")
-        else:
-            # This logic is moved from StyleApplicatorService._ensure_dxf_linetype
+        if layer_props.linetype_pattern is not None:
+            if isinstance(layer_props.linetype_pattern, list) and layer_props.linetype_pattern:  # Pattern is a non-empty list
+                pattern_to_use = layer_props.linetype_pattern
+                description_to_use = f"Custom linetype {linetype_name} from style pattern"
+                self._logger.debug(f"Using linetype pattern for '{linetype_name}' from style definition.")
+            else:  # Pattern is not a list or is an empty list
+                self._logger.warning(
+                    f"Linetype pattern for '{linetype_name}' is invalid (not a list or empty). "
+                    "Proceeding with default/common linetype logic."
+                )
+                # pattern_to_use remains None, will trigger block below
+
+        if pattern_to_use is None:  # Only if no valid custom pattern was found
             common_linetypes = {
                 "DASHED": {"pattern": [1.2, -0.7], "description": "Dashed ----"},
                 "DOTTED": {"pattern": [0.0, -0.2], "description": "Dotted . . ."},
@@ -94,8 +105,10 @@ class DXFResourceManagerService(IDXFResourceManager):
         font_face_name = text_props.font
         # Style name generation logic moved from StyleApplicatorService._ensure_dxf_text_style
         style_name_candidate = "".join(c if c.isalnum() or c in ['_', '-'] else '_' for c in font_face_name)
-        if not style_name_candidate.strip() or style_name_candidate.lower() == "none":
-            self._logger.warning(f"Cannot derive a valid style name from font: {font_face_name}. Using default style.")
+
+        # MODIFIED: Check if original font_face_name was empty/whitespace, or if derived candidate is problematic
+        if not font_face_name.strip() or not style_name_candidate.strip() or style_name_candidate.lower() == "none":
+            self._logger.warning(f"Cannot derive a valid style name from font: '{font_face_name}'. Using default style.")
             return None
 
         style_name = f"Style_{style_name_candidate}"

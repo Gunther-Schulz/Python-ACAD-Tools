@@ -49,26 +49,17 @@ class TestConfigValidationServiceIntegration:
 
             (project_dir / "test_data.geojson").write_text(json.dumps(test_data))
 
-            # Create valid geom_layers.yaml
-            valid_geom_layers = {
-                "geomLayers": [
-                    {
-                        "name": "valid_layer",
-                        "geojsonFile": "@data.test",
-                        "style": "building_style",
-                        "updateDxf": True,
-                        "labelColumn": "name",
-                        "operations": [
-                            {
-                                "type": "buffer",
-                                "distance": 10.0,
-                                "cap_style": "round",
-                                "join_style": "round",
-                                "layers": ["valid_layer"]
-                            }
-                        ]
+            # MODIFIED: Create project.yaml with main settings, pathAliases, and stylePresets
+            project_config_data = {
+                "main": {
+                    "crs": "EPSG:4326",
+                    "dxfVersion": "R2018",
+                    "exportFormat": "dxf",
+                    "dxf": {
+                        "outputPath": "output/default_test.dxf",
+                        "templatePath": "some/template.dxf"
                     }
-                ],
+                },
                 "pathAliases": {
                     "data": {
                         "test": "test_data.geojson"
@@ -77,16 +68,34 @@ class TestConfigValidationServiceIntegration:
                         "dxf": "output/test.dxf"
                     }
                 },
-                "main": {
-                    "crs": "EPSG:4326",
-                    "dxfVersion": "R2018",
-                    "exportFormat": "dxf"
+                "stylePresets": {
+                    "building_style": {
+                        "layer": {"color": 7, "linetype": "CONTINUOUS"}
+                    }
                 }
             }
+            (project_dir / "project.yaml").write_text(yaml.dump(project_config_data))
 
-            (project_dir / "geom_layers.yaml").write_text(yaml.dump(valid_geom_layers))
+            # MODIFIED: Create the dummy template.dxf file and its parent directory
+            template_dxf_dir = project_dir / "some"
+            template_dxf_dir.mkdir(parents=True, exist_ok=True)
+            (template_dxf_dir / "template.dxf").write_text("0\nEOF\n") # Minimal valid DXF
 
-            # Create invalid geom_layers.yaml for testing validation errors
+            # Create valid geom_layers.yaml (only geomLayers list)
+            valid_geom_layers_data = {
+                "geomLayers": [
+                    {
+                        "name": "valid_layer",
+                        "type": "polygon",
+                        "style": "building_style",
+                        "source": "@data/test",
+                        "operations": []
+                    }
+                ]
+            }
+            (project_dir / "geom_layers.yaml").write_text(yaml.dump(valid_geom_layers_data))
+
+            # Create invalid geom_layers.yaml for testing validation errors (main and pathAliases remain here for this specific test file)
             invalid_geom_layers = {
                 "geomLayers": [
                     {
@@ -106,19 +115,18 @@ class TestConfigValidationServiceIntegration:
                         ]
                     }
                 ],
-                "pathAliases": {
+                "pathAliases": { # Keep pathAliases here for the invalid file test
                     "data": {
                         "test": "test_data.geojson",
                         "dangerous": "../../../etc/passwd"  # Security warning
                     }
                 },
-                "main": {
+                "main": { # Keep main here for the invalid file test
                     "crs": "EPSG:99999",  # Invalid EPSG code
                     "dxfVersion": "R2025",  # Invalid DXF version
                     "maxMemoryMb": 256  # Performance warning
                 }
             }
-
             (project_dir / "geom_layers_invalid.yaml").write_text(yaml.dump(invalid_geom_layers))
 
             yield {

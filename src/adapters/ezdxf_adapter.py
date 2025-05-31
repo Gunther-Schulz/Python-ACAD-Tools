@@ -10,7 +10,7 @@ from ..domain.exceptions import DXFProcessingError, DXFLibraryNotInstalledError
 
 try:
     import ezdxf
-    from ezdxf import DXFValueError, DXFStructureError
+    from ezdxf.errors import DXFError, DXFValueError, DXFStructureError
     from ezdxf.document import Drawing
     from ezdxf.layouts import Modelspace
     from ezdxf.entities.ltype import Linetype
@@ -75,8 +75,9 @@ class EzdxfAdapter(IDXFAdapter):
             doc = ezdxf.readfile(file_path)
             return doc
         except DXFStructureError as e:
-            self._logger.error(f"DXF Structure Error while loading {file_path}: {e}", exc_info=True)
-            raise DXFProcessingError(f"Invalid DXF file structure: {file_path}. Error: {e}")
+            error_msg = f"DXF Structure Error while loading {file_path}: {e}"
+            self._logger.error(error_msg, exc_info=True)
+            raise DXFProcessingError(error_msg) from e
         except IOError as e:
             self._logger.error(f"IOError while loading DXF file {file_path}: {e}", exc_info=True)
             raise DXFProcessingError(f"Could not read DXF file: {file_path}. Error: {e}")
@@ -145,10 +146,13 @@ class EzdxfAdapter(IDXFAdapter):
                 layer.true_color = properties['true_color']
 
         except DXFValueError as e:
+            # This is an ezdxf-specific error when adding a layer fails due to invalid properties
+            # (e.g., invalid color index, non-existent linetype if not checked before).
+            # We wrap it in our domain-specific DXFProcessingError.
             error_msg = f"DXFValueError for DXF layer {layer_name}: {e}"
-            self._logger.error(error_msg, exc_info=True)
+            self._logger.error(f"ezdxf.DXFValueError creating layer '{layer_name}': {e}", exc_info=True)
             raise DXFProcessingError(error_msg) from e
-        except Exception as e:
+        except Exception as e:  # Catch any other unexpected errors
             error_msg = f"Failed to create/update DXF layer {layer_name}: {e}"
             self._logger.error(error_msg, exc_info=True)
             raise DXFProcessingError(error_msg) from e

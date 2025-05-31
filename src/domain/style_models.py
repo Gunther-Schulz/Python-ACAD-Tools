@@ -57,7 +57,7 @@ class FlowDirection(str, Enum):
 
 class LayerStyleProperties(BaseModel):
     """Style properties for DXF layers."""
-    model_config = ConfigDict(extra='ignore')
+    model_config = ConfigDict(extra='ignore', populate_by_name=True)
 
     color: Optional[Union[str, int]] = None
     linetype: Optional[str] = None
@@ -102,7 +102,7 @@ class LayerStyleProperties(BaseModel):
 
 class TextStyleProperties(BaseModel):
     """Style properties for text entities."""
-    model_config = ConfigDict(extra='ignore')
+    model_config = ConfigDict(extra='ignore', populate_by_name=True)
 
     font: Optional[str] = None
     color: Optional[Union[str, int]] = None
@@ -158,7 +158,7 @@ class StyleConfig(BaseModel):
 
 class AciColorMappingItem(BaseModel):
     """Mapping between color names and ACI codes."""
-    model_config = ConfigDict(extra='ignore')
+    model_config = ConfigDict(extra='ignore', populate_by_name=True)
 
     name: str
     aci_code: int = Field(alias='aciCode')

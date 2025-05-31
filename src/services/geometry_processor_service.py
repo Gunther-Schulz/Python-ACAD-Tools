@@ -61,6 +61,7 @@ class GeometryProcessorService(IGeometryProcessor):
             for idx, row in gdf.iterrows():
                 geom = row.geometry
                 if geom is None or geom.is_empty:
+                    self._logger.info(f"Skipping null or empty geometry for feature at index {idx} in layer '{layer_name}'.")
                     continue
 
                 try:

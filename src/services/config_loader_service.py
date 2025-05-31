@@ -255,7 +255,8 @@ class ConfigLoaderService(IConfigLoader):
                 validation_config = {
                     'geomLayers': geom_layers_list,
                     'pathAliases': full_project_data.get('pathAliases', {}),
-                    'main': full_project_data.get('main', {})
+                    'main': full_project_data.get('main', {}),
+                    'styles': full_project_data.get('stylePresets', {})
                 }
                 validated_geom_config = validator.validate_project_config(
                     validation_config,

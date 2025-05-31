@@ -159,17 +159,6 @@ class TestLayerStylingWithRealService:
     """Test layer styling with real StyleApplicatorService (mocked dependencies)."""
 
     @pytest.fixture
-    def mock_config_loader(self):
-        """Mock config loader for testing."""
-        mock_loader = Mock()
-        mock_loader.get_aci_color_mappings.return_value = [
-            Mock(name="red", aci_code=1),
-            Mock(name="green", aci_code=3),
-            Mock(name="blue", aci_code=5),
-        ]
-        return mock_loader
-
-    @pytest.fixture
     def mock_logger_service(self):
         """Mock logger service for testing."""
         mock_logger_service = Mock()
@@ -205,12 +194,11 @@ class TestLayerStylingWithRealService:
         return Mock(spec=IStyleApplicationOrchestrator)
 
     @pytest.fixture
-    def style_applicator_service(self, mock_config_loader, mock_logger_service, mock_dxf_adapter, mock_dxf_resource_manager, mock_geometry_processor, mock_style_orchestrator):
-        """Create StyleApplicatorService with mocked dependencies."""
+    def style_applicator_service(self, mock_logger_service, mock_dxf_adapter, mock_dxf_resource_manager, mock_geometry_processor, mock_style_orchestrator):
+        """Fixture for StyleApplicatorService with mocked dependencies."""
         return StyleApplicatorService(
-            config_loader=mock_config_loader,
             logger_service=mock_logger_service,
-            dxf_adapter=mock_dxf_adapter, # This adapter is now only for SAS itself, orchestrator has its own
+            dxf_adapter=mock_dxf_adapter,
             dxf_resource_manager=mock_dxf_resource_manager,
             geometry_processor=mock_geometry_processor,
             style_orchestrator=mock_style_orchestrator
@@ -225,9 +213,13 @@ class TestLayerStylingWithRealService:
         mock_drawing = MockDXFUtils.create_mock_drawing()
 
         style_applicator_service.apply_styles_to_dxf_layer(mock_drawing, "TestLayer", style)
-        style_applicator_service._style_orchestrator.apply_styles_to_dxf_layer.assert_called_once_with(
-            dxf_drawing=mock_drawing, layer_name="TestLayer", style=style
-        )
+
+        # Check positional arguments
+        args, kwargs = style_applicator_service._style_orchestrator.apply_styles_to_dxf_layer.call_args
+        assert args[0] == mock_drawing
+        assert args[1] == "TestLayer"
+        assert args[2] == style
+        assert not kwargs  # Ensure no keyword arguments were used if not expected
 
     def test_real_service_create_new_layer(self, style_applicator_service):
         """Test real service creating new layer when it doesn't exist."""
@@ -236,9 +228,13 @@ class TestLayerStylingWithRealService:
         mock_drawing = MockDXFUtils.create_mock_drawing()
 
         style_applicator_service.apply_styles_to_dxf_layer(mock_drawing, "NewLayer", style)
-        style_applicator_service._style_orchestrator.apply_styles_to_dxf_layer.assert_called_once_with(
-            dxf_drawing=mock_drawing, layer_name="NewLayer", style=style
-        )
+
+        # Check positional arguments
+        args, kwargs = style_applicator_service._style_orchestrator.apply_styles_to_dxf_layer.call_args
+        assert args[0] == mock_drawing
+        assert args[1] == "NewLayer"
+        assert args[2] == style
+        assert not kwargs
 
     def test_real_service_ezdxf_unavailable_error(self, style_applicator_service):
         """Test that service raises error when ezdxf is unavailable."""
@@ -261,9 +257,13 @@ class TestLayerStylingWithRealService:
         mock_drawing = MockDXFUtils.create_mock_drawing()
 
         style_applicator_service.apply_styles_to_dxf_layer(mock_drawing, "EntityLayer", style)
-        style_applicator_service._style_orchestrator.apply_styles_to_dxf_layer.assert_called_once_with(
-            dxf_drawing=mock_drawing, layer_name="EntityLayer", style=style
-        )
+
+        # Check positional arguments
+        args, kwargs = style_applicator_service._style_orchestrator.apply_styles_to_dxf_layer.call_args
+        assert args[0] == mock_drawing
+        assert args[1] == "EntityLayer"
+        assert args[2] == style
+        assert not kwargs
 
 
 class TestLayerStylingEdgeCases:
