@@ -81,7 +81,7 @@ geomLayers:
 
   # Stadtwerke
   - name: Leitung Str-Leitungsabschnitt-NS
-    # updateDxf: true
+    updateDxf: true
     style:
       layer:
         color: "blue"
@@ -128,8 +128,24 @@ geomLayers:
         capStyle: flat
         joinStyle: flat
 
-  - name: Leitung Gas-Leitungsabschnitt-VN
+  - name: Leitung Was-Leitungsabschnitt-TW
     # updateDxf: true
+    style:
+      layer:
+        color: "blue"
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/stadtwerke_was_leitungsabschnitt_tw_ln.shp"
+  #
+  - name: Leitung Was-Leitungsabschnitt-TW Buffer
+    operations:
+      - type: buffer
+        layers:
+          - Leitung Was-Leitungsabschnitt-TW
+        distance: 2
+        capStyle: flat
+        joinStyle: flat
+
+  - name: Leitung Gas-Leitungsabschnitt-VN
+    updateDxf: true
     style:
       layer:
         color: "blue"
@@ -143,6 +159,23 @@ geomLayers:
         distance: 2
         capStyle: flat
         joinStyle: flat
+
+  - name: Leitung Gas-Leitungsabschnitt-HA-MD
+    updateDxf: true
+    style:
+      layer:
+        color: "blue"
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/stadtwerke_gas_leitungsabschnitt_ha_md_ln.shp"
+
+  - name: Leitung Gas-Leitungsabschnitt-HA-MD Buffer
+    operations:
+      - type: buffer
+        layers:
+          - Leitung Gas-Leitungsabschnitt-HA-MD
+        distance: 2
+        capStyle: flat
+        joinStyle: flat
+
 
   # ONTRAS
   - name: Leitung Ontras Gas
@@ -884,7 +917,9 @@ geomLayers:
           - Leitung Str-Leitungsabschnitt-NS Buffer
           - Leitung Was-Leitungsabschnitt-VN Buffer
           - Leitung Was-Leitungsabschnitt-AN Buffer
+          - Leitung Was-Leitungsabschnitt-TW Buffer
           - Leitung Gas-Leitungsabschnitt-VN Buffer
+          - Leitung Gas-Leitungsabschnitt-HA-MD Buffer
           # - Leitung Ontras Buffer
           - Leitung Gas_HD_LEIT Buffer
           - Leitung Stromkabel-MS_unterirdisch_LEIT Buffer
@@ -894,6 +929,7 @@ geomLayers:
       - type: intersection
         layers:
           - Geltungsbereich
+      - type: dissolve
 
   - name: Leitungen Ontras Buffer Path
     # updateDxf: true
@@ -905,19 +941,20 @@ geomLayers:
         layers:
           - Geltungsbereich
 
-  # - name: Leitungen Buffer Path
-  #   # updateDxf: true # Schon modifiziert in DXF (lintetype generation and scale)
-  #   style: gfl1
-  #   operations:
-  #     - type: copy
-  #       layers:
-  #         - Leitungen Buffer
-  #     - type: buffer
-  #       distance: -0.7
-  #     - type: difference
-  #       reverseDifference: false
-  #       layers:
-  #         - Leitungen Ontras Buffer Path
+  - name: Leitungen Buffer Path
+    updateDxf: true # Schon modifiziert in DXF (lintetype generation and scale 0.07)
+    style: gfl1
+    operations:
+      - type: copy
+        layers:
+          - Leitungen Buffer
+      - type: buffer
+        distance: -0.7
+      - type: difference
+        reverseDifference: false
+        layers:
+          - Leitungen Ontras Buffer Path
+      - type: dissolve
 
   # - name: Hendrik Report - Alle Leitungen Buffer
   #   operations:

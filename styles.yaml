@@ -213,7 +213,6 @@ styles:
     layer:
       linetype: ACAD_ISO11W100
       lineweight: 50
-    entity:
       linetypeGeneration: true
 
 
@@ -221,7 +220,6 @@ styles:
     layer:
       color: "azure"
       lineweight: 50
-    entity:
       linetypeGeneration: true
 
   blendschutzzaun:
@@ -268,6 +266,9 @@ styles:
   gfl1:
     layer:
       linetype: "ACAD_ISO02W100"
+      color: "magenta"
+      linetypeScale: 0.07
+      linetypeGeneration: true
 
   grünfläche:
     layer:

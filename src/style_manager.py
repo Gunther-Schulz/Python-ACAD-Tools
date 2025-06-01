@@ -15,7 +15,7 @@ class StyleManager:
             self.styles = project_loader.get('styles', {})
             # For direct dictionary usage, we need a default color mapping
             self.name_to_aci = {
-                'white': 7, 'red': 1, 'yellow': 2, 'green': 3, 
+                'white': 7, 'red': 1, 'yellow': 2, 'green': 3,
                 'cyan': 4, 'blue': 5, 'magenta': 6
             }
             self.project_loader = None
@@ -57,11 +57,11 @@ class StyleManager:
                 if preset is None:
                     log_warning(f"Style preset '{preset_name}' not found.")
                     return style_name_or_config, True
-                
+
                 # Remove the preset key from overrides
                 overrides = dict(style_name_or_config)
                 del overrides['preset']
-                
+
                 # Deep merge the preset with overrides
                 merged_style = self.deep_merge(preset, overrides)
                 return merged_style, False
@@ -71,19 +71,19 @@ class StyleManager:
                 if not preset_name or not isinstance(preset_name, str):
                     log_warning("styleOverride requires a valid preset name in 'style' key")
                     return style_name_or_config, True
-                
+
                 preset = self.styles.get(preset_name)
                 if preset is None:
                     log_warning(f"Style preset '{preset_name}' not found.")
                     return style_name_or_config, True
-                
+
                 # Deep merge the preset with overrides
                 merged_style = self.deep_merge(preset, style_name_or_config['styleOverride'])
                 return merged_style, False
             else:
                 # Handle pure inline style
                 return style_name_or_config, False
-        
+
         return style_name_or_config, False
 
     def validate_style(self, layer_name, style_config):
@@ -142,13 +142,13 @@ class StyleManager:
                         self._validate_text_style(layer_name, style_dict)
                     else:
                         log_warning(f"Unknown style type '{style_type}' in layer '{layer_name}'")
-        
+
         return True
 
     def _validate_layer_style(self, layer_name, layer_style):
-        known_style_keys = {'color', 'linetype', 'lineweight', 'plot', 'locked', 'frozen', 'is_on', 'transparency', 'linetypeScale'}
+        known_style_keys = {'color', 'linetype', 'lineweight', 'plot', 'locked', 'frozen', 'is_on', 'transparency', 'linetypeScale', 'linetypeGeneration'}
         self._validate_style_keys(layer_name, 'layer', layer_style, known_style_keys)
-        
+
         # Add linetype validation
         if 'linetype' in layer_style:
             linetype = layer_style['linetype']
@@ -174,7 +174,7 @@ class StyleManager:
             'lineSpacingStyle',
             'lineSpacingFactor',
             'bgFill',
-            'bgFillColor', 
+            'bgFillColor',
             'bgFillScale',
             'underline',
             'overline',
@@ -267,7 +267,7 @@ class StyleManager:
 
     def get_hatch_config(self, layer_info):
         hatch_config = self.default_hatch_settings.copy()
-        
+
         layer_style = layer_info.get('style', {})
         if isinstance(layer_style, str):
             style_preset, _ = self.get_style(layer_style)
@@ -294,40 +294,40 @@ class StyleManager:
                     hatch_config['color'] = layer_settings['color']
                 if 'lineweight' in layer_settings:
                     hatch_config['lineweight'] = layer_settings['lineweight']
-        
+
         apply_hatch = layer_info.get('applyHatch', False)
         if isinstance(apply_hatch, dict):
             if 'layers' in apply_hatch:
                 hatch_config['layers'] = apply_hatch['layers']
-        
+
         return hatch_config
 
     def process_layer_style(self, layer_name, layer_config):
         """Process layer style with support for presets, inline styles, and overrides"""
         # Initialize with default settings
         properties = self.default_layer_settings.copy()
-        
+
         # Handle the style configuration
         if 'style' in layer_config:
             style_config = layer_config['style']
-            
+
             # Get the style (handles both preset strings and inline dictionaries)
             style, warning_generated = self.get_style(style_config)
-            
+
             if not warning_generated and style is not None:
                 # Extract layer settings from the style
                 layer_style = style.get('layer', {}) if isinstance(style, dict) else {}
-                
+
                 # Apply the style properties
                 if 'color' in layer_style:
                     properties['color'] = get_color_code(layer_style['color'], self.name_to_aci)
-                
-                # Handle all other properties
-                for key in ['linetype', 'lineweight', 'plot', 'locked', 'frozen', 
-                           'is_on', 'transparency', 'close', 'linetypeScale']:
+
+                # Handle all other properties (now including entity-level properties in layer section)
+                for key in ['linetype', 'lineweight', 'plot', 'locked', 'frozen',
+                           'is_on', 'transparency', 'close', 'linetypeScale', 'linetypeGeneration']:
                     if key in layer_style:
                         properties[key] = layer_style[key]
-        
+
         return properties
 
     def process_text_style(self, layer_name, layer_config):
@@ -342,17 +342,17 @@ class StyleManager:
         dict1 is the base (preset), dict2 contains the overrides
         """
         result = dict1.copy()
-        
+
         for key, value in dict2.items():
-            if (key in result and 
-                isinstance(result[key], dict) and 
+            if (key in result and
+                isinstance(result[key], dict) and
                 isinstance(value, dict)):
                 # Recursively merge nested dictionaries
                 result[key] = self.deep_merge(result[key], value)
             else:
                 # For non-dict values or new keys, just update/add the value
                 result[key] = value
-        
+
         return result
 
     def _process_layer_style(self, layer_name, layer_style):
@@ -390,7 +390,3 @@ class StyleManager:
                         self._validate_text_style(layer_name, value)
                 else:
                     log_warning(f"Unknown style override key '{key}' in layer '{layer_name}'")
-
-
-
-

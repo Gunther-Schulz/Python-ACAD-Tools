@@ -1,4 +1,4 @@
-# pathArrays:
+pathArrays:
 #   - name: "Grünfläche T-Linie Symbol"
 #     updateDxf: true
 #     sourceLayer: "Ausgleich Schutzflächeumgrenzung"
@@ -37,3 +37,17 @@
 #   #   scale: 0.3
 #   #   bufferDistance: 0.2
 #   #   all_edges: true
+  - name: "Leitungen Path Symbol 2"
+    updateDxf: true
+    sourceLayer: "Leitung Was-Leitungsabschnitt-TW"
+    block: "Leitung unterirdisch"
+    spacing: 5
+    # scale: 0.6
+    bufferDistance: 0.2
+  - name: "Leitungen Path Symbol 3"
+    updateDxf: true
+    sourceLayer: "Leitung Gas-Leitungsabschnitt-HA-MD"
+    block: "Leitung unterirdisch"
+    spacing: 5
+    # scale: 0.6
+    bufferDistance: 0.2

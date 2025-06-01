@@ -604,18 +604,35 @@ class DXFExporter:
         if not coords:
             return
 
-        layer_properties = self.layer_properties.get(layer_name, {})
+        layer_props = self.layer_properties.get(layer_name, {})
+        entity_properties = layer_props.get('entity', {})
+        layer_properties = layer_props.get('layer', {})
+
         # Default to False for LineStrings if 'close' is not specified
-        should_close = layer_properties.get('close', False) if 'close' in layer_properties else False
+        should_close = entity_properties.get('close', False)
+
+        # Build dxfattribs with entity-level properties
+        dxfattribs = {
+            'layer': layer_name,
+        }
+
+        # Add any other entity-level properties
+        if 'linetypeScale' in entity_properties:
+            dxfattribs['ltscale'] = entity_properties['linetypeScale']
 
         # Create polyline
-        polyline = msp.add_lwpolyline(coords)
-        polyline.dxf.layer = layer_name
+        polyline = msp.add_lwpolyline(coords, dxfattribs=dxfattribs)
 
         if should_close:
             polyline.close(True)
 
-        # Apply style if available
+        # Apply linetype generation setting
+        if entity_properties.get('linetypeGeneration'):
+            polyline.dxf.flags |= LWPOLYLINE_PLINEGEN
+        else:
+            polyline.dxf.flags &= ~LWPOLYLINE_PLINEGEN
+
+        # Apply layer-level style if available
         if layer_properties:
             style = get_style(layer_properties, self.project_loader)
             if style:
@@ -645,15 +662,25 @@ class DXFExporter:
         # Always get properties from StyleManager
         properties = processed_style or self.style_manager.process_layer_style(layer_name, layer)
 
+        # Separate entity-level properties from layer-level properties
+        entity_properties = {}
+        layer_properties = {}
+
+        for key, value in properties.items():
+            if key in ['linetypeScale', 'linetypeGeneration', 'close']:
+                entity_properties[key] = value
+            else:
+                layer_properties[key] = value
+
         # Store the properties
         self.layer_properties[layer_name] = {
-            'layer': properties,
-            'entity': {}  # Entity properties if needed
+            'layer': layer_properties,
+            'entity': entity_properties
         }
 
         # Store color for quick access
-        if 'color' in properties:
-            self.colors[layer_name] = properties['color']
+        if 'color' in layer_properties:
+            self.colors[layer_name] = layer_properties['color']
 
     def is_wmts_or_wms_layer(self, layer_name):
         layer_info = next((l for l in self.project_settings['geomLayers'] if l['name'] == layer_name), None)
@@ -807,6 +834,10 @@ class DXFExporter:
         if not apply_hatch:
             log_debug(f"Hatch processing skipped for layer: {layer_name}")
             return
+
+        # Remove existing hatches from the layer before adding new ones
+        log_debug(f"Removing existing hatches from layer: {layer_name}")
+        remove_entities_by_layer(msp, layer_name, self.script_identifier)
 
         boundary_layers = hatch_config.get('layers', [layer_name])
         boundary_geometry = self._get_boundary_geometry(boundary_layers)
