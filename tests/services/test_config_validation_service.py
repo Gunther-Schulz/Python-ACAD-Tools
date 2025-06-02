@@ -81,53 +81,41 @@ class TestConfigValidationServiceIntegration:
             template_dxf_dir.mkdir(parents=True, exist_ok=True)
             (template_dxf_dir / "template.dxf").write_text("0\nEOF\n") # Minimal valid DXF
 
-            # Create valid geom_layers.yaml (only geomLayers list)
-            valid_geom_layers_data = {
-                "geomLayers": [
-                    {
-                        "name": "valid_layer",
-                        "type": "polygon",
-                        "style": "building_style",
-                        "source": "@data/test",
-                        "operations": []
-                    }
-                ]
-            }
-            (project_dir / "geom_layers.yaml").write_text(yaml.dump(valid_geom_layers_data))
-
-            # Create invalid geom_layers.yaml for testing validation errors (main and pathAliases remain here for this specific test file)
-            invalid_geom_layers = {
-                "geomLayers": [
-                    {
-                        "name": "invalid_layer",
-                        "geojsonFile": "@data.nonexistent",  # Non-existent file
-                        "style": "building_styl",  # Typo in style name
-                        "updateDxf": "yes",  # Should be boolean
-                        "labelColum": "name",  # Typo in field name
-                        "unknownSetting": "value",  # Unknown setting
-                        "operations": [
-                            {
-                                "type": "bufer",  # Typo in operation type
-                                "distance": -5.0,  # Invalid negative distance
-                                "cap_style": "invalid_cap",  # Invalid cap style
-                                "layers": ["nonexistent_layer"]  # Non-existent layer reference
-                            }
-                        ]
-                    }
-                ],
-                "pathAliases": { # Keep pathAliases here for the invalid file test
-                    "data": {
-                        "test": "test_data.geojson",
-                        "dangerous": "../../../etc/passwd"  # Security warning
-                    }
-                },
-                "main": { # Keep main here for the invalid file test
-                    "crs": "EPSG:99999",  # Invalid EPSG code
-                    "dxfVersion": "R2025",  # Invalid DXF version
-                    "maxMemoryMb": 256  # Performance warning
+            # Create valid geom_layers.yaml (root is a list of layers)
+            valid_geom_layers_list = [
+                {
+                    "name": "valid_layer",
+                    "type": "polygon",
+                    "style": "building_style",
+                    "source": "@data/test", # This should resolve via pathAliases in project.yaml
+                    "operations": []
                 }
-            }
-            (project_dir / "geom_layers_invalid.yaml").write_text(yaml.dump(invalid_geom_layers))
+            ]
+            (project_dir / "geom_layers.yaml").write_text(yaml.dump(valid_geom_layers_list))
+
+            # Create invalid geom_layers.yaml for testing validation errors
+            # The root should also be a list for consistency with _load_yaml_list_file,
+            # even if individual items in the list cause validation errors.
+            # PathAliases and Main sections should NOT be in a geom_layers file.
+            invalid_geom_layers_list = [
+                {
+                    "name": "invalid_layer",
+                    "geojsonFile": "@data.nonexistent",  # Non-existent file
+                    "style": "building_styl",  # Typo in style name
+                    "updateDxf": "yes",  # Should be boolean
+                    "labelColum": "name",  # Typo in field name
+                    "unknownSetting": "value",  # Unknown setting
+                    "operations": [
+                        {
+                            "type": "bufer",  # Typo in operation type
+                            "distance": -5.0,  # Invalid negative distance
+                            "cap_style": "invalid_cap",  # Invalid cap style
+                            "layers": ["nonexistent_layer"]  # Non-existent layer reference
+                        }
+                    ]
+                }
+            ]
+            (project_dir / "geom_layers_invalid.yaml").write_text(yaml.dump(invalid_geom_layers_list))
 
             yield {
                 "temp_dir": temp_path,
@@ -219,6 +207,11 @@ class TestConfigValidationServiceIntegration:
                 "data": {
                     "test": "test_data.geojson"
                 }
+            },
+            "styles": {
+                "building_style": {
+                    "layer": {"color": 7, "linetype": "CONTINUOUS"}
+                }
             }
         }
 
@@ -287,6 +280,11 @@ class TestConfigValidationServiceIntegration:
             },
             "main": {
                 "maxMemoryMb": 256  # Performance warning
+            },
+            "styles": {
+                "building_style": {
+                    "layer": {"color": 7, "linetype": "CONTINUOUS"}
+                }
             }
         }
 
@@ -356,10 +354,21 @@ class TestConfigValidationServiceIntegration:
                     "style": "building_style",
                     "updateDxf": True
                 }
-            ]
+            ],
+            "pathAliases": {
+                "data": {
+                    "existing": "test_data.geojson"
+                }
+            },
+            "styles": {
+                "building_style": {
+                    "layer": {"color": 7, "linetype": "CONTINUOUS"}
+                }
+            }
         }
+        (temp_project_structure["project_dir"] / "test_data.geojson").write_text("{}") # Ensure the file exists
 
-        # Should succeed
+        # Should validate successfully as file exists and path alias is valid
         result = validation_service.validate_project_config(valid_config)
         assert result == valid_config
 

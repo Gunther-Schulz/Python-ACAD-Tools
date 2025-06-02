@@ -1,4 +1,4 @@
-from typing import Optional, Any, Dict, List
+from typing import Optional, Any, Dict, List, Union
 
 import geopandas as gpd
 import pandas as pd
@@ -9,6 +9,7 @@ from ezdxf.layouts import Modelspace # For type hints
 from ezdxf.lldxf.const import BYLAYER, BOUNDARY_PATH_EXTERNAL, BOUNDARY_PATH_DEFAULT
 from ezdxf.enums import MTextEntityAlignment
 from ezdxf.math import Vec3, Z_AXIS
+from shapely.geometry import Polygon # Added import
 
 from ..interfaces.geometry_processor_interface import IGeometryProcessor
 from ..interfaces.dxf_adapter_interface import IDXFAdapter
@@ -50,125 +51,133 @@ class GeometryProcessorService(IGeometryProcessor):
         style: Optional[NamedStyle] = None,
         layer_definition: Optional[GeomLayerDefinition] = None
     ) -> None:
+        if dxf_drawing is None:
+            error_msg = f"DXF drawing object cannot be None when adding GDF to layer '{layer_name}'"
+            self._logger.error(f"DXF drawing object is None for layer '{layer_name}'. Cannot add geometries.")
+            raise DXFProcessingError(error_msg)
+
         if gdf.empty:
             self._logger.debug(f"GeoDataFrame for layer '{layer_name}' is empty. No geometries to add.")
             return
 
+        if 'geometry' not in gdf.columns:
+            self._logger.error(f"GeoDataFrame for layer '{layer_name}' is missing the 'geometry' column.")
+            return
+
         self._logger.debug(f"Adding {len(gdf)} geometries to DXF layer '{layer_name}'")
-        msp = self._dxf_adapter.get_modelspace(dxf_drawing)
-        added_count = 0
+        modelspace = dxf_drawing.modelspace()
+        added_primary_entities_count = 0
 
-        try:
-            for idx, row in gdf.iterrows():
-                geom = row.geometry
-                if geom is None or geom.is_empty:
-                    self._logger.info(f"Skipping null or empty geometry for feature at index {idx} in layer '{layer_name}'.")
-                    continue
+        for index, row in gdf.iterrows():
+            geom = row['geometry']
+            if geom is None or geom.is_empty:
+                self._logger.debug(f"Skipping empty or None geometry at index {index} for layer '{layer_name}'")
+                continue
 
-                try:
-                    entity: Optional[DXFGraphic] = None
-                    is_polygon_type = False
+            geom_type = geom.geom_type
+            self._logger.debug(f"Processing geometry index {index}, type: {geom_type}")
 
-                    if geom.geom_type == 'Point':
-                        entity = self._dxf_adapter.add_point(msp, location=(geom.x, geom.y, 0.0), dxfattribs={'layer': layer_name})
-                    elif geom.geom_type == 'LineString':
-                        coords = list(geom.coords)
-                        entity = self._dxf_adapter.add_lwpolyline(msp, points=coords, dxfattribs={'layer': layer_name})
-                    elif geom.geom_type in ['Polygon', 'MultiPolygon']:
-                        is_polygon_type = True
-                        polygons_to_process = [geom] if geom.geom_type == 'Polygon' else list(geom.geoms)
-                        for poly in polygons_to_process:
-                            # Pass added_count by a wrapper or handle return value if it needs to be incremented inside
-                            self._process_single_polygon_for_dxf(msp, poly, layer_name, style, dxf_drawing)
+            # Prepare dxfattribs for the entity
+            current_dxfattribs: Dict[str, Any] = {'layer': layer_name}
+            if style and style.layer: # Assuming style.layer contains LayerStyleProperties
+                if style.layer.color is not None:
+                    current_dxfattribs['color'] = style.layer.color
+                if style.layer.linetype is not None:
+                    current_dxfattribs['linetype'] = style.layer.linetype
+                # Lineweight and transparency might require specific conversion logic
+                # and are often better handled by layer properties if not directly overridden.
+                # Omitting them from direct entity override for now to simplify.
 
-                        label_text_poly = self._get_label_text_for_feature(row, layer_definition, style, geom.geom_type)
-                        if label_text_poly:
-                            label_position_poly = self._calculate_label_position(geom, geom.geom_type)
-                            self._add_label_to_dxf(msp, label_text_poly, label_position_poly, layer_name, style, dxf_drawing)
-                        continue
+            label_text_simple: Optional[str] = None
+            if style and style.text:
+                label_text_simple = self._get_label_text_for_feature(row, layer_definition, style, geom_type)
 
-                    elif geom.geom_type in ['MultiPoint', 'MultiLineString']:
-                        for sub_geom in geom.geoms:
-                            sub_entity: Optional[DXFGraphic] = None
-                            if sub_geom.geom_type == 'Point':
-                                sub_entity = self._dxf_adapter.add_point(msp, location=(sub_geom.x, sub_geom.y, 0.0), dxfattribs={'layer': layer_name})
-                            elif sub_geom.geom_type == 'LineString':
-                                coords_sub = list(sub_geom.coords)
-                                sub_entity = self._dxf_adapter.add_lwpolyline(msp, points=coords_sub, dxfattribs={'layer': layer_name})
-                            if sub_entity:
-                                added_count += 1
-
-                        label_text_multi = self._get_label_text_for_feature(row, layer_definition, style, geom.geom_type)
-                        if label_text_multi:
-                            label_pos_multi = self._calculate_label_position(geom, geom.geom_type)
-                            self._add_label_to_dxf(msp, label_text_multi, label_pos_multi, layer_name, style, dxf_drawing)
-                        continue
-                    else:
-                        self._logger.warning(f"Unsupported geometry type: {geom.geom_type} for feature {idx}")
-                        continue
-
-                    if entity:
-                        added_count += 1
-
-                    if not is_polygon_type and style and style.text:
-                        label_text_simple = self._get_label_text_for_feature(row, layer_definition, style, geom.geom_type)
-                        if label_text_simple:
-                            label_pos_simple = self._calculate_label_position(geom, geom.geom_type)
-                            self._add_label_to_dxf(msp, label_text_simple, label_pos_simple, layer_name, style, dxf_drawing)
-
-                except Exception as e_geom:
-                    self._logger.warning(f"Failed to add geometry part for index {idx} (type: {geom.geom_type if geom else 'None'}) to DXF: {e_geom}", exc_info=True)
-                    continue
-            self._logger.info(f"Processed {added_count} primary geometry entities for layer '{layer_name}'.")
-
-        except Exception as e_main:
-            self._logger.error(f"Major error in add_geodataframe_to_dxf for layer '{layer_name}': {e_main}", exc_info=True)
-            raise DXFProcessingError(f"Failed to add geometries to DXF layer '{layer_name}': {e_main}")
-
-    def _process_single_polygon_for_dxf(self, msp: Modelspace, poly, layer_name: str, style: Optional[NamedStyle], dxf_drawing: Drawing) -> None:
-        """Helper to process a single polygon (exterior and interiors) for DXF output."""
-        # Hatch processing
-        if style and style.hatch:
             try:
-                hatch_dxfattribs = {'layer': layer_name}
-                hatch_color_aci: Optional[int] = None
-                pattern_name = style.hatch.pattern_name
-                is_solid_fill = not pattern_name or pattern_name.upper() == "SOLID"
+                if geom_type == 'Point':
+                    # Adapter expects location as Tuple[float,float,float]
+                    self._dxf_adapter.add_point(modelspace, (geom.x, geom.y, 0.0), dxfattribs=current_dxfattribs)
+                    added_primary_entities_count += 1
+                elif geom_type == 'LineString':
+                    points_tuples = [(pt[0], pt[1]) for pt in geom.coords] # Adapter expects List[Tuple[float,float]]
+                    self._dxf_adapter.add_lwpolyline(modelspace, points_tuples, dxfattribs=current_dxfattribs)
+                    added_primary_entities_count += 1
+                elif geom_type == 'Polygon':
+                    # _process_single_polygon_for_dxf will need to handle style/dxfattribs similarly
+                    self._process_single_polygon_for_dxf(modelspace, geom, layer_name, style, dxf_drawing, base_dxfattribs=current_dxfattribs)
+                    added_primary_entities_count += 1
+                elif geom_type == 'MultiPoint':
+                    for part_geom in geom.geoms:
+                        if not part_geom.is_empty:
+                            self._dxf_adapter.add_point(modelspace, (part_geom.x, part_geom.y, 0.0), dxfattribs=current_dxfattribs)
+                    added_primary_entities_count += 1
+                elif geom_type == 'MultiLineString':
+                    multi_parts = []
+                    for part_geom in geom.geoms:
+                        if not part_geom.is_empty:
+                             multi_parts.append([(pt[0], pt[1]) for pt in part_geom.coords])
+                    # The adapter's add_lwpolyline might not directly support multiple disconnected polylines in one call.
+                    # It typically adds one LWPOLYLINE entity per call. This needs care.
+                    # For now, let's assume we iterate and call for each part if adapter doesn't handle lists of lists of points.
+                    # The EzdxfAdapter.add_lwpolyline expects a single list of points for ONE polyline.
+                    for part_points_tuples in multi_parts:
+                        self._dxf_adapter.add_lwpolyline(modelspace, part_points_tuples, dxfattribs=current_dxfattribs)
+                    if multi_parts: # only count if there were parts
+                        added_primary_entities_count += 1
+                elif geom_type == 'MultiPolygon':
+                    for part_geom in geom.geoms:
+                        if not part_geom.is_empty:
+                            self._process_single_polygon_for_dxf(modelspace, part_geom, layer_name, style, dxf_drawing, base_dxfattribs=current_dxfattribs)
+                    added_primary_entities_count += 1
+                else:
+                    self._logger.warning(f"Unsupported geometry type: {geom_type} at index {index} for layer '{layer_name}'")
 
-                if is_solid_fill:
-                    hatch_color_aci = style.hatch.color if isinstance(style.hatch.color, int) else DEFAULT_ACI_COLOR
+                if label_text_simple and style and style.text:
+                    label_position = self._calculate_label_position(geom, geom_type)
+                    self._add_label_to_dxf(modelspace, label_text_simple, label_position, layer_name, style, dxf_drawing)
 
-                hatch_entity = self._dxf_adapter.add_hatch(
-                    msp,
-                    color=hatch_color_aci if is_solid_fill else None,
-                    dxfattribs=hatch_dxfattribs
-                )
-                exterior_coords = list(poly.exterior.coords)
-                self._dxf_adapter.add_hatch_boundary_path(hatch_entity, points=exterior_coords, flags=BOUNDARY_PATH_EXTERNAL)
-                for interior in poly.interiors:
-                    interior_coords = list(interior.coords)
-                    self._dxf_adapter.add_hatch_boundary_path(hatch_entity, points=interior_coords, flags=BOUNDARY_PATH_DEFAULT)
+            except Exception as e:
+                self._logger.warning(f"Failed to add geometry part for index {index} (type: {geom_type}) to DXF: {e}", exc_info=True)
 
-                if not is_solid_fill and pattern_name:
-                    self._dxf_adapter.set_hatch_pattern_fill(
-                        hatch_entity=hatch_entity,
-                        pattern_name=pattern_name,
-                        color=style.hatch.color if isinstance(style.hatch.color, int) else DEFAULT_ACI_COLOR,
-                        scale=style.hatch.scale if style.hatch.scale is not None else 1.0,
-                        angle=style.hatch.angle if style.hatch.angle is not None else 0.0
-                    )
-                elif is_solid_fill and hatch_color_aci is not None:
-                        self._dxf_adapter.set_hatch_solid_fill(hatch_entity, hatch_color_aci)
-            except Exception as e_hatch:
-                self._logger.warning(f"Failed to create or style HATCH for polygon: {e_hatch}", exc_info=True)
+        self._logger.info(f"Processed {added_primary_entities_count} primary geometry entities for layer '{layer_name}'.")
 
-        # Always create LWPOLYLINE for polygon boundary
-        exterior_coords_poly = list(poly.exterior.coords)
-        self._dxf_adapter.add_lwpolyline(msp, points=exterior_coords_poly, close=True, dxfattribs={'layer': layer_name})
+    def _process_single_polygon_for_dxf(self, msp: Modelspace, poly: Polygon, layer_name: str, style: Optional[NamedStyle], dxf_drawing: Drawing, base_dxfattribs: Optional[Dict[str, Any]] = None) -> None:
+        effective_dxfattribs = (base_dxfattribs or {}).copy()
+        # Polygon outline (LWPOLYLINE)
+        exterior_coords = [(pt[0], pt[1]) for pt in poly.exterior.coords]
+        self._dxf_adapter.add_lwpolyline(msp, exterior_coords, close=True, dxfattribs=effective_dxfattribs)
 
+        # Interior rings (holes)
+        interior_paths_coords = []
         for interior in poly.interiors:
-            interior_coords_poly = list(interior.coords)
-            self._dxf_adapter.add_lwpolyline(msp, points=interior_coords_poly, close=True, dxfattribs={'layer': layer_name})
+            interior_coords = [(pt[0], pt[1]) for pt in interior.coords]
+            interior_paths_coords.append(interior_coords)
+            # DXF HATCH entity handles holes by adding multiple boundary paths.
+            # The exterior is one path, each interior is another.
+            # So, we don't draw separate LWPOLYLINEs for interiors if hatching.
+
+        # Apply Hatch if style defines it
+        if style and style.hatch:
+            hatch_props = style.hatch
+            hatch_entity = self._dxf_adapter.add_hatch(msp, dxfattribs=effective_dxfattribs.copy()) # Hatch may have its own color independent of boundary
+
+            # Add exterior boundary path to hatch
+            self._dxf_adapter.add_hatch_boundary_path(hatch_entity, exterior_coords, is_closed=True)
+            # Add interior boundary paths to hatch
+            for interior_hole_coords in interior_paths_coords:
+                self._dxf_adapter.add_hatch_boundary_path(hatch_entity, interior_hole_coords, is_closed=True)
+
+            if hatch_props.pattern_name:
+                pattern_color = hatch_props.pattern_color if hatch_props.pattern_color is not None else effective_dxfattribs.get('color') # Fallback to entity color
+                self._dxf_adapter.set_hatch_pattern_fill(
+                    hatch_entity,
+                    pattern_name=hatch_props.pattern_name,
+                    scale=hatch_props.pattern_scale,
+                    angle=hatch_props.pattern_angle,
+                    color=pattern_color
+                )
+            elif hatch_props.solid_fill and hatch_props.fill_color is not None: # Ensure solid_fill is true AND a color is given
+                 self._dxf_adapter.set_hatch_solid_fill(hatch_entity, color=hatch_props.fill_color)
+            # If no pattern and no solid fill color, hatch remains but might be invisible or use default (e.g. layer color)
 
     def _get_label_text_for_feature(
         self,
@@ -178,27 +187,44 @@ class GeometryProcessorService(IGeometryProcessor):
         geom_type: str
     ) -> Optional[str]:
         label_text: Optional[str] = None
+
+        # 1. Try layer_definition.label_column first
         if layer_definition and layer_definition.label_column:
-            if layer_definition.label_column in row.index and pd.notna(row[layer_definition.label_column]):
-                candidate_text = str(row[layer_definition.label_column])
+            col_to_check = layer_definition.label_column
+            # Ensure row.get(col_to_check) is used to prevent potential Series ambiguity
+            value = row.get(col_to_check)
+            if pd.notna(value):
+                candidate_text = str(value)
                 if candidate_text.strip():
                     label_text = candidate_text.strip()
+                    self._logger.debug(f"Label found using layer_definition.label_column ('{col_to_check}'): '{label_text[:30]}...'")
+                    return label_text # Return immediately if found via specific column
 
-        if label_text is None and geom_type not in ['Polygon', 'MultiPolygon']:
-            if style and style.text:
-                no_col_found_placeholder = f"__NO_COMMON_COL_FOR_{geom_type}__"
-                text_content_candidate = no_col_found_placeholder
-                for col_name in ['label', 'name', 'id', 'text', 'description']:
-                    if col_name in row.index and pd.notna(row[col_name]):
-                        current_col_text = str(row[col_name])
-                        if current_col_text.strip():
-                            text_content_candidate = current_col_text.strip()
-                            break
-                if text_content_candidate == no_col_found_placeholder:
-                     if hasattr(row, 'name') and isinstance(row.name, str) and pd.notna(row.name) and row.name.strip():
-                        text_content_candidate = row.name.strip()
-                if text_content_candidate and text_content_candidate != no_col_found_placeholder:
-                    label_text = text_content_candidate
+        # 2. If no label yet, and style.text suggests labels are desired, try common fallback columns
+        if label_text is None and style and style.text:
+            self._logger.debug(f"No label from label_column, trying common fallbacks for feature {row.get('id', 'N/A')}")
+            common_fallback_columns = ['label', 'name', 'text', 'description', 'id']
+            for col_name in common_fallback_columns:
+                value = row.get(col_name) # Use .get() for safety
+                if pd.notna(value):
+                    candidate_text = str(value)
+                    if candidate_text.strip():
+                        label_text = candidate_text.strip()
+                        self._logger.debug(f"Label found using fallback column ('{col_name}'): '{label_text[:30]}...'")
+                        return label_text # Return immediately once a fallback is found
+
+            # As a last resort, if the Series has a name (often the index value if GDF came from certain sources)
+            # This is less reliable and more of a last-ditch effort.
+            if label_text is None and hasattr(row, 'name') and pd.notna(row.name):
+                candidate_text = str(row.name)
+                if candidate_text.strip():
+                    label_text = candidate_text.strip()
+                    self._logger.debug(f"Label found using row.name (index value): '{label_text[:30]}...'")
+                    return label_text
+
+        if label_text is None:
+            self._logger.debug(f"No label text found for feature {row.get('id', 'N/A')} after all checks.")
+
         return label_text
 
     def _calculate_label_position(self, geom, geom_type: str) -> tuple:

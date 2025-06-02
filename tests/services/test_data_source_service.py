@@ -147,8 +147,7 @@ class TestDataSourceServiceLoadDXF:
 class TestDataSourceServiceLoadGeoJSON:
     # Service for these tests doesn't strictly need a functional DXF adapter, but fixture provides one.
     @patch('src.services.data_source_service.gpd.read_file')
-    @patch('src.services.data_source_service.os.path.exists', return_value=True)
-    def test_load_geojson_success(self, mock_os_exists, mock_gpd_read_file, service_real_logger: DataSourceService, caplog):
+    def test_load_geojson_success(self, mock_gpd_read_file, service_real_logger: DataSourceService, caplog):
         """Business Outcome: Successfully loads GeoJSON if file exists and gpd.read_file succeeds."""
         test_file_path = "path/to/data.geojson"
         sample_gdf = gpd.GeoDataFrame({'geometry': [Point(1,2)], 'prop': ['value']})
@@ -158,22 +157,19 @@ class TestDataSourceServiceLoadGeoJSON:
             result_gdf = service_real_logger.load_geojson_file(test_file_path)
 
         assert result_gdf.equals(sample_gdf)
-        mock_os_exists.assert_called_once_with(test_file_path)
-        mock_gpd_read_file.assert_called_once_with(test_file_path)
-        assert f"Successfully loaded GeoJSON file: {test_file_path}" in caplog.text
+        mock_gpd_read_file.assert_called_once_with(test_file_path, crs=None)
+        assert f"Successfully loaded GeoJSON: {test_file_path} with CRS: {sample_gdf.crs}" in caplog.text
 
     @patch('src.services.data_source_service.os.path.exists', return_value=False)
     def test_load_geojson_file_not_found_raises_error(self, mock_os_exists, service_real_logger: DataSourceService, mock_dxf_adapter: MagicMock): # mock_dxf_adapter needed for service fixture
         """Negative Test: Raises FileNotFoundError if os.path.exists is False for GeoJSON."""
         test_file_path = "path/to/nonexistent.geojson"
-        with pytest.raises(FileNotFoundError, match=f"GeoJSON file not found: {test_file_path}"):
+        with pytest.raises(DataSourceError, match=f"Failed to load GeoJSON file {test_file_path}"):
             service_real_logger.load_geojson_file(test_file_path)
-        mock_os_exists.assert_called_once_with(test_file_path)
 
     @patch('src.services.data_source_service.gpd.read_file')
-    @patch('src.services.data_source_service.os.path.exists', return_value=True)
     def test_load_geojson_gpd_read_error_raises_data_source_error(
-        self, mock_os_exists, mock_gpd_read_file, service_real_logger: DataSourceService, caplog
+        self, mock_gpd_read_file, service_real_logger: DataSourceService, caplog
     ):
         """Negative Test: Exceptions from gpd.read_file are wrapped in DataSourceError and logged."""
         test_file_path = "path/to/invalid.geojson"
@@ -185,7 +181,7 @@ class TestDataSourceServiceLoadGeoJSON:
                 service_real_logger.load_geojson_file(test_file_path)
 
         assert f"Failed to load GeoJSON file {test_file_path}: {original_error_message}" in caplog.text
-        mock_gpd_read_file.assert_called_once_with(test_file_path)
+        mock_gpd_read_file.assert_called_once_with(test_file_path, crs=None)
 
     @pytest.mark.parametrize("invalid_path_input", [None, ""])
     def test_load_geojson_none_or_empty_path_raises_error(self, service_real_logger: DataSourceService, invalid_path_input):
@@ -193,14 +189,15 @@ class TestDataSourceServiceLoadGeoJSON:
         with pytest.raises((TypeError, ValueError, FileNotFoundError, DataSourceError)):
             service_real_logger.load_geojson_file(invalid_path_input)
 
-    @patch('src.services.data_source_service.os.path.exists', side_effect=IsADirectoryError("[Errno 21] Is a directory: '/fake/dir'"))
-    def test_load_geojson_path_is_directory_raises_error(self, mock_os_exists, service_real_logger: DataSourceService):
+    def test_load_geojson_path_is_directory_raises_error(self, service_real_logger: DataSourceService, caplog):
         """Negative Test: Path is a directory for GeoJSON loading raises IsADirectoryError or DataSourceError."""
         test_file_path = "/fake/dir"
-        # gpd.read_file itself raises errors for directories, or os.path.exists would
-        with pytest.raises((IsADirectoryError, DataSourceError, FileNotFoundError)): # FileNotFoundError if os.path.exists is checked first, which it is
-            service_real_logger.load_geojson_file(test_file_path)
-        mock_os_exists.assert_called_once_with(test_file_path)
+        # gpd.read_file itself raises errors for directories (e.g., pyogrio.errors.DataSourceError: No such file or directory)
+        # The service wraps this into a DataSourceError.
+        with caplog.at_level("ERROR"):
+            with pytest.raises(DataSourceError, match=f"Failed to load GeoJSON file {test_file_path}"):
+                service_real_logger.load_geojson_file(test_file_path)
+        assert f"Failed to load GeoJSON file {test_file_path}" in caplog.text
 
 
 class TestDataSourceServiceGeoDataFrameManagement:

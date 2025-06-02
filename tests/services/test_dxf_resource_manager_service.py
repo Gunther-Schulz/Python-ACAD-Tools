@@ -141,19 +141,19 @@ class TestEnsureLinetype:
     def test_invalid_linetype_pattern_type_falls_back_logs_warning(
         self,
         mock_dxf_adapter: MagicMock,
+        mock_drawing: MagicMock,
         real_logger_service: LoggingService,
         caplog: pytest.LogCaptureFixture
     ):
         """Business Outcome: Invalid (e.g. empty) linetype_pattern list falls back to default/common logic and logs warning."""
-        # Pass an empty list for linetypePattern, which is valid for the model, but should be handled by service logic
         layer_props_empty_pattern_list = LayerStyleProperties(linetype="CUSTOM_EMPTY_PATTERN", linetypePattern=[])
         service = DXFResourceManagerService(mock_dxf_adapter, real_logger_service)
 
         with caplog.at_level("WARNING"):
-            service.ensure_linetype(mock_dxf_adapter.doc, layer_props_empty_pattern_list)
+            service.ensure_linetype(mock_drawing, layer_props_empty_pattern_list)
 
         mock_dxf_adapter.create_linetype.assert_called_once_with(
-            doc=mock_dxf_adapter.doc,
+            doc=mock_drawing,
             ltype_name="CUSTOM_EMPTY_PATTERN",
             pattern=[1.0, -0.5],  # Default pattern from fallback logic
             description="Custom linetype CUSTOM_EMPTY_PATTERN (defaulted pattern)"

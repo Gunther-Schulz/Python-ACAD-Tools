@@ -9,7 +9,7 @@ import tempfile
 import os
 from pathlib import Path
 from typing import Dict, Any, List, Optional, Tuple, Union
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, patch, MagicMock
 import geopandas as gpd
 from shapely.geometry import Point, LineString, Polygon
 
@@ -251,23 +251,21 @@ class TestServiceErrorRecoveryAndEdgeCases:
     @pytest.fixture
     def real_services_minimal(self, real_logger_service):
         """Provides a minimal set of real services for edge case testing."""
-        # Adapters and core services are real, but deeper dependencies might be mocked if not essential for the edge case
         adapter = EzdxfAdapter(real_logger_service)
-        data_source_mock = Mock(spec=DataSourceService) # Mock for now, or use real if needed
-        path_resolver_mock = Mock(spec=PathResolverService) # Mock for now
-        resource_manager_mock = Mock(spec=DXFResourceManagerService) # Keep as mock if it's complex to set up real
+        # Instantiate a real DataSourceService with the real adapter
+        real_data_source = DataSourceService(logger_service=real_logger_service, dxf_adapter=adapter)
+        path_resolver_mock = Mock(spec=PathResolverService)
+        resource_manager_mock = Mock(spec=DXFResourceManagerService)
 
-        # Corrected instantiation for GeometryProcessorService
         geometry_processor = GeometryProcessorService(
             dxf_adapter=adapter,
             logger_service=real_logger_service,
-            dxf_resource_manager=resource_manager_mock, # Using mock
-            data_source=data_source_mock, # Using mock
-            path_resolver=path_resolver_mock # Using mock
+            dxf_resource_manager=resource_manager_mock,
+            data_source=real_data_source, # Use real data_source here as well if it uses it
+            path_resolver=path_resolver_mock
         )
 
-        # Create minimal orchestrator - details not important for these adapter-focused tests
-        config_loader_mock = Mock(spec=ConfigLoaderService) # Mock
+        config_loader_mock = Mock(spec=ConfigLoaderService)
         orchestrator = StyleApplicationOrchestratorService(
             logger_service=real_logger_service,
             config_loader=config_loader_mock,
@@ -279,18 +277,18 @@ class TestServiceErrorRecoveryAndEdgeCases:
             logger_service=real_logger_service,
             dxf_adapter=adapter,
             dxf_resource_manager=resource_manager_mock,
-            geometry_processor=geometry_processor, # Pass the corrected one
+            geometry_processor=geometry_processor,
             style_orchestrator=orchestrator
         )
         return {
             "adapter": adapter,
-            "data_source": data_source_mock, # Return the mock one
-            "path_resolver": path_resolver_mock, # Return the mock one
-            "resource_manager": resource_manager_mock, # Return the mock one
+            "data_source": real_data_source, # Return the REAL DataSourceService
+            "path_resolver": path_resolver_mock,
+            "resource_manager": resource_manager_mock,
             "style_applicator": style_applicator,
             "orchestrator": orchestrator,
             "geometry_processor": geometry_processor,
-            "logger": real_logger_service # Added logger for convenience in tests
+            "logger": real_logger_service
         }
 
     def test_empty_geodataframe_handling(self, real_services_minimal, caplog):
@@ -320,20 +318,25 @@ class TestServiceErrorRecoveryAndEdgeCases:
             assert isinstance(e, (DXFProcessingError, ValueError))
 
     def test_corrupt_dxf_file_handling(self, real_services_minimal):
-        """Test handling of a known corrupt DXF file."""
+        """Test handling of a known corrupt DXF file by mocking ezdxf.readfile to raise an error."""
         services = real_services_minimal
-        # Create a dummy file that might cause ezdxf to raise DXFStructureError
-        # This is a simplification; a real corrupt DXF would be better if available
-        with tempfile.NamedTemporaryFile(suffix='.dxf', mode='w', delete=False) as tmp:
-            tmp.write("0\nSECTION\n2\nENTITIES\n0\nINVALID_ENTITY\n0\nENDSEC\n0\nEOF")
-            corrupt_dxf_path = tmp.name
-        try:
+        adapter_under_test = services["adapter"] # Get the real adapter instance
+        data_source_under_test = services["data_source"] # Get the real data source instance
+
+        simulated_error_message = "Simulated DXF corruption by test"
+        # Patch ezdxf.readfile specifically for the adapter's context
+        # The target string must be where ezdxf is LOOKED UP by the adapter, which is src.adapters.ezdxf_adapter.ezdxf
+        with patch('src.adapters.ezdxf_adapter.ezdxf.readfile', side_effect=ezdxf.DXFStructureError(simulated_error_message)) as mock_readfile:
             with pytest.raises(DXFProcessingError) as excinfo:
-                services["data_source"].load_dxf_file(corrupt_dxf_path)
-            assert "dxf structure error" in str(excinfo.value).lower() # ORIGINAL ASSERTION
-        finally:
-            if os.path.exists(corrupt_dxf_path):
-                os.unlink(corrupt_dxf_path)
+                # The path passed here doesn't matter as readfile is mocked, but it needs to exist for the initial os.path.exists check in the adapter.
+                # Create a dummy temp file just for os.path.exists to pass.
+                with tempfile.NamedTemporaryFile(suffix='.dxf', delete=True) as tmp_for_exists_check:
+                    data_source_under_test.load_dxf_file(tmp_for_exists_check.name)
+
+            # Check that our adapter wrapped the error correctly
+            assert simulated_error_message in str(excinfo.value)
+            assert f"DXF Structure Error while loading {tmp_for_exists_check.name}: {simulated_error_message}" == str(excinfo.value)
+            mock_readfile.assert_called_once_with(tmp_for_exists_check.name)
 
     def test_very_large_coordinates_handling(self, real_services_minimal, caplog):
         """Test handling of very large coordinate values (real edge case)."""

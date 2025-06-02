@@ -2,6 +2,7 @@ import pytest
 from unittest.mock import MagicMock, call, patch, ANY
 import geopandas as gpd
 from shapely.geometry import Point, LineString, Polygon, MultiPoint, MultiLineString, MultiPolygon
+from shapely.geometry.base import BaseGeometry
 import pandas as pd
 from ezdxf.document import Drawing
 from ezdxf.enums import MTextEntityAlignment
@@ -76,15 +77,25 @@ def processor(processor_real_logger: GeometryProcessorService) -> GeometryProces
 # Test Data
 def create_sample_gdf(geom_type: str, num_features: int = 1, custom_props: dict = None) -> gpd.GeoDataFrame:
     data = []
-    base_props = {"id": 0, "name": "DefaultName", "label": "DefaultLabel", "description": "DefaultDesc"}
-    if custom_props:
-        base_props.update(custom_props)
+    default_base_props = {"name": "DefaultName", "label": "DefaultLabel", "description": "DefaultDesc"}
 
     for i in range(num_features):
-        current_props = base_props.copy()
+        # Start with defaults
+        current_props = default_base_props.copy()
+
+        # Apply custom_props, overriding defaults if keys match
+        if custom_props:
+            current_props.update(custom_props)
+
+        # Set/override 'id' with loop index
         current_props["id"] = i
-        if "name" not in (custom_props or {}): current_props["name"] = f"{geom_type}Name{i}"
-        if "label" not in (custom_props or {}): current_props["label"] = f"{geom_type}Label{i}"
+
+        # Apply generated defaults only if the key wasn't in custom_props
+        if "name" not in (custom_props or {}):
+            current_props["name"] = f"{geom_type}Name{i}"
+        if "label" not in (custom_props or {}):
+            current_props["label"] = f"{geom_type}Label{i}"
+        # 'description' will use default_base_props['description'] if not in custom_props
 
         if geom_type == "Point":
             geom = Point(i, i)
@@ -107,7 +118,7 @@ def create_sample_gdf(geom_type: str, num_features: int = 1, custom_props: dict 
         data.append(current_props)
 
     if not data:
-        return gpd.GeoDataFrame([], columns=list(base_props.keys()) + ["geometry"], crs="EPSG:4326")
+        return gpd.GeoDataFrame([], columns=list(default_base_props.keys()) + ["geometry"], crs="EPSG:4326")
     return gpd.GeoDataFrame(data, crs="EPSG:4326")
 
 @pytest.fixture
@@ -149,13 +160,14 @@ class TestAddGeodataframeToDXF_BasicOperation:
     def test_unsupported_geometry_type_logs_warning_and_skips_feature(
         self, processor: GeometryProcessorService, mock_dxf_drawing: MagicMock, mock_dxf_adapter: MagicMock, caplog
     ):
-        class UnsupportedGeom: geom_type = "HyperNURBS"; is_empty = False
+        # Create a mock for the unsupported geometry that behaves like a Shapely object
+        unsupported_geom_mock = MagicMock(spec=BaseGeometry) # Use a real Shapely base
+        unsupported_geom_mock.geom_type = "HyperNURBS" # Simulate its type
+        unsupported_geom_mock.is_empty = False
 
-        mixed_gdf_data = [
-            {"id": 0, "geometry": Point(1,1)},
-            {"id": 1, "geometry": UnsupportedGeom()}
-        ]
-        geometries = gpd.GeoSeries([Point(1,1), UnsupportedGeom()])
+        # Create a GeoSeries with a valid Point and the mocked unsupported geometry
+        # Ensure the valid geometry is a proper Shapely Point
+        geometries = gpd.GeoSeries([Point(1,1), unsupported_geom_mock])
         mock_gdf = gpd.GeoDataFrame({'id': [0,1], 'geometry': geometries})
 
         layer_name = "MixedGeomLayer"
@@ -181,19 +193,25 @@ class TestAddGeodataframeToDXF_BasicOperation:
         mock_dxf_adapter.add_point.side_effect = side_effect_add_point
 
         layer_name = "ErrorHandlingLayer"
-        with caplog.at_level("WARNING", logger="src.services.geometry_processor_service"):
+        with caplog.at_level("INFO", logger="src.services.geometry_processor_service"):
             processor.add_geodataframe_to_dxf(mock_dxf_drawing, gdf, layer_name)
 
         assert "Failed to add geometry part for index 0 (type: Point) to DXF: Simulated adapter error for first point" in caplog.text
         assert mock_dxf_adapter.add_point.call_count == 2
-        assert "Processed 1 primary geometry entities" in caplog.text
+        successful_call_args = mock_dxf_adapter.add_point.call_args_list[1]
+        assert successful_call_args[1]['dxfattribs']['layer'] == layer_name
+        assert "Processed 1 primary geometry entities for layer 'ErrorHandlingLayer'" in caplog.text
 
-    def test_add_gdf_with_none_drawing_raises_error(self, processor: GeometryProcessorService):
+    def test_add_gdf_with_none_drawing_raises_error(self, processor: GeometryProcessorService, caplog):
         """Test add_geodataframe_to_dxf with dxf_drawing=None."""
         gdf = create_sample_gdf("Point")
-        # Expect AttributeError if get_modelspace is called on None, or specific check in service
-        with pytest.raises((AttributeError, DXFProcessingError, TypeError)):
-            processor.add_geodataframe_to_dxf(None, gdf, "TestLayerNoneDrawing")
+        layer_name = "TestLayerNoneDrawing"
+
+        with caplog.at_level("ERROR"):
+            with pytest.raises(DXFProcessingError, match=f"DXF drawing object cannot be None when adding GDF to layer '{layer_name}'"):
+                processor.add_geodataframe_to_dxf(None, gdf, layer_name)
+
+        assert f"DXF drawing object is None for layer '{layer_name}'. Cannot add geometries." in caplog.text
 
     def test_add_gdf_with_none_gdf_raises_error(self, processor: GeometryProcessorService, mock_dxf_drawing: MagicMock):
         """Test add_geodataframe_to_dxf with gdf=None."""
@@ -399,7 +417,19 @@ class TestAddGeodataframeToDXF_Labels:
         sample_layer_def_with_label_col: GeomLayerDefinition
     ):
         custom_label_value = "My Custom Label Text"
-        gdf = create_sample_gdf("Point", custom_props={sample_layer_def_with_label_col.label_column: custom_label_value})
+        fallback_label_value = "Fallback Label Text"
+
+        # Construct GDF with both the specific label column and a common fallback column
+        gdf_data = [
+            {
+                "id": 0,
+                sample_layer_def_with_label_col.label_column: custom_label_value,
+                "label": fallback_label_value,
+                "geometry": Point(0,0)
+            }
+        ]
+        gdf = gpd.GeoDataFrame(gdf_data, crs="EPSG:4326")
+
         layer_name = "LayerDefLabelLayer"
         text_style_props = sample_style_all_defined.text
 
@@ -465,17 +495,36 @@ class TestAddGeodataframeToDXF_Labels:
         self, processor: GeometryProcessorService, mock_dxf_drawing: MagicMock, mock_dxf_adapter: MagicMock,
         sample_style_all_defined: NamedStyle, common_col_name: str, common_col_value: str
     ):
-        gdf = create_sample_gdf("Point", custom_props={common_col_name: common_col_value})
-        for col in ['label', 'name', 'id', 'text', 'description']:
-            if col != common_col_name and col in gdf.columns:
-                del gdf[col]
-        if common_col_name != 'id':
-             gdf[common_col_name] = common_col_value
+        # Create a GDF with only the common_col_name and geometry
+        # Ensure id is always present as it's a common property, but make its value distinct
+        # from common_col_value if id is the column being tested.
+        gdf_data = [
+            {
+                "id": 999 if common_col_name != "id" else common_col_value, # Ensure 'id' column has a value
+                common_col_name: common_col_value,
+                "geometry": Point(0,0)
+            }
+        ]
+        # If the common_col_name IS 'id', the above sets it. If not, we add it.
+        # The important part is that ONLY common_col_name (and id/geometry) exists for the label source.
+
+        # Ensure correct types, especially for 'id'
+        df_for_gdf = pd.DataFrame(gdf_data)
+        if common_col_name == 'id' and not isinstance(common_col_value, str):
+            df_for_gdf[common_col_name] = df_for_gdf[common_col_name].astype(str)
+        elif 'id' in df_for_gdf.columns and df_for_gdf['id'].dtype != object: # if id is not the common_col being tested as string
+            pass # id can remain numeric if it's not the target label source
+
+        gdf = gpd.GeoDataFrame(df_for_gdf, geometry="geometry", crs="EPSG:4326")
+
+        # Ensure only the target common column (and 'id', 'geometry') are present to test specific fallback
+        cols_to_keep = ["geometry", "id", common_col_name]
+        gdf = gdf[cols_to_keep]
 
         layer_name = "FallbackLabelLayer"
         processor.add_geodataframe_to_dxf(mock_dxf_drawing, gdf, layer_name,
                                           style=sample_style_all_defined,
-                                          layer_definition=None)
+                                          layer_definition=None) # No layer_definition to force fallback
 
         mock_dxf_adapter.add_text.assert_called_once()
         assert mock_dxf_adapter.add_text.call_args[1]['text'] == str(common_col_value)
