@@ -4,13 +4,8 @@ import time  # Added for performance monitoring
 from typing import Dict, Optional, List
 
 import geopandas as gpd
-
-try:
-    from ezdxf.document import Drawing
-    EZDXF_AVAILABLE = True
-except ImportError:
-    Drawing = type(None) # type: ignore
-    EZDXF_AVAILABLE = False
+from ezdxf.document import Drawing # Directly import Drawing
+import yaml # Add yaml import at the top
 
 from ..interfaces.project_orchestrator_interface import IProjectOrchestrator
 from ..interfaces.logging_service_interface import ILoggingService
@@ -281,12 +276,10 @@ class ProjectOrchestratorService(IProjectOrchestrator):
                     if not dxf_drawing:
                         self._logger.info("Creating new DXF drawing for export...")
                         try:
-                            import ezdxf
+                            # ezdxf is already imported and checked at the top
                             dxf_drawing = ezdxf.new('R2010')  # Create a new DXF drawing
                             self._logger.info("New DXF drawing created successfully.")
-                        except ImportError:
-                            self._logger.error("ezdxf library not available. Cannot create new DXF drawing.")
-                            dxf_drawing = None
+                        # Removed ImportError block as ezdxf is a hard dependency
                         except Exception as e:
                             self._logger.error(f"Failed to create new DXF drawing: {e}", exc_info=True)
                             dxf_drawing = None

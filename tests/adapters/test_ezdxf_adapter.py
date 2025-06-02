@@ -288,22 +288,29 @@ class TestEzdxfAdapter(unittest.TestCase):
         self._mock_ezdxf_globally()
         mock_os_path_exists.return_value = False
         adapter = EzdxfAdapter(self.mock_logger_service)
+        self.mock_logger.reset_mock() # Reset after init
         with self.assertRaises(DXFProcessingError) as context:
             adapter.load_dxf_file("nonexistent.dxf")
         self.assertTrue("DXF file not found: nonexistent.dxf" in str(context.exception))
         self.mock_logger.error.assert_called_with("DXF file not found for loading: nonexistent.dxf")
-        self.mock_logger.info.assert_not_called() # Ensure no attempt to load
+        self.mock_logger.info.assert_not_called() # Ensure no attempt to load during the action itself
 
     @patch('src.adapters.ezdxf_adapter.os.path.exists')
     def test_load_dxf_file_structure_error(self, mock_os_path_exists):
         self._mock_ezdxf_globally()
         mock_os_path_exists.return_value = True
-        self.patches_started_mocks['src.adapters.ezdxf_adapter.ezdxf'].readfile.side_effect = DXFStructureError("Test Structure Error")
+        error_msg_from_ezdxf = "Test Structure Error"
+        file_path_for_test = "path/to/corrupt.dxf"
+        self.patches_started_mocks['src.adapters.ezdxf_adapter.ezdxf'].readfile.side_effect = DXFStructureError(error_msg_from_ezdxf)
         adapter = EzdxfAdapter(self.mock_logger_service)
+        self.mock_logger.reset_mock() # Reset after init
+
         with self.assertRaises(DXFProcessingError) as context:
-            adapter.load_dxf_file("path/to/corrupt.dxf")
-        self.assertTrue("DXF Structure Error during file load: Test Structure Error" in str(context.exception))
-        self.mock_logger.error.assert_called_with("DXF Structure Error during file load: Test Structure Error")
+            adapter.load_dxf_file(file_path_for_test)
+
+        expected_exception_msg = f"DXF Structure Error while loading {file_path_for_test}: {error_msg_from_ezdxf}"
+        self.assertTrue(expected_exception_msg in str(context.exception))
+        self.mock_logger.error.assert_called_with(expected_exception_msg, exc_info=True)
 
     @patch('src.adapters.ezdxf_adapter.os.path.exists', return_value=True)
     def test_load_dxf_file_io_error(self, mock_exists):

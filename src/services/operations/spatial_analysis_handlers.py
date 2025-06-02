@@ -15,10 +15,7 @@ from ...services.geometry import EnvelopeService
 from .base_operation_handler import BaseOperationHandler
 
 # Import box for bounding box operation
-try:
-    from shapely.geometry import box
-except ImportError:
-    box = None
+from shapely.geometry import box
 
 
 class BufferHandler(BaseOperationHandler):
@@ -346,9 +343,6 @@ class BoundingBoxHandler(BaseOperationHandler):
         if not params.layers:
             self._logger.warning(f"Bounding Box Op: No source layers specified. Returning empty GDF.")
             return self._create_empty_result()
-
-        if not box:
-            raise GeometryError("shapely.geometry.box is required for bounding box operation")
 
         valid_gdfs = []
         for layer_ident in params.layers:
