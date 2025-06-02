@@ -2,18 +2,9 @@
 from typing import Protocol, Optional
 import geopandas as gpd # Added for GeoDataFrame type hint
 
-# It's important to handle ezdxf import errors gracefully if ezdxf is an optional dependency
-# for some parts of the application, though for a DXF processing app, it's likely core.
-
-try:
-    from ezdxf.document import Drawing
-    from ezdxf import readfile as ezdxf_readfile # Use an alias to avoid confusion if we have local readfile
-    EZDXF_AVAILABLE = True
-except ImportError:
-    Drawing = type(None) # Placeholder if ezdxf is not available
-    def ezdxf_readfile(filepath: str, **kwargs) -> Drawing:
-        raise DXFProcessingError("ezdxf library is not installed or available.")
-    EZDXF_AVAILABLE = False
+# Direct imports for ezdxf as a hard dependency
+from ezdxf.document import Drawing
+from ezdxf import readfile as ezdxf_readfile # Use an alias to avoid confusion if we have local readfile
 
 from ..domain.exceptions import DXFProcessingError
 
@@ -38,18 +29,44 @@ class IDataSource(Protocol):
         """
         ...
 
-    def load_geojson_file(self, file_path: str) -> gpd.GeoDataFrame:
+    def load_geojson_file(
+        self,
+        file_path: str,
+        crs: Optional[str] = None  # Add crs parameter
+    ) -> gpd.GeoDataFrame:
         """
-        Loads a GeoDataFrame from a GeoJSON file.
+        Loads a GeoJSON file into a GeoDataFrame.
 
         Args:
             file_path: The path to the GeoJSON file.
+            crs: Optional CRS to assign to the GeoDataFrame if not already set or to override.
 
         Returns:
-            A geopandas.GeoDataFrame object.
+            A GeoDataFrame with the data from the GeoJSON file.
 
         Raises:
             DataSourceError: If the GeoJSON file cannot be loaded or is invalid.
+            FileNotFoundError: If the file_path does not exist.
+        """
+        ...
+
+    def load_shapefile(
+        self,
+        file_path: str,
+        crs: Optional[str] = None  # Add crs parameter
+    ) -> gpd.GeoDataFrame:
+        """
+        Loads a Shapefile into a GeoDataFrame.
+
+        Args:
+            file_path: The path to the Shapefile (.shp).
+            crs: Optional CRS to assign to the GeoDataFrame if not already set or to override.
+
+        Returns:
+            A GeoDataFrame with the data from the Shapefile.
+
+        Raises:
+            DataSourceError: If the Shapefile cannot be loaded or is invalid.
             FileNotFoundError: If the file_path does not exist.
         """
         ...

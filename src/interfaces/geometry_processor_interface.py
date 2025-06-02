@@ -4,7 +4,7 @@ import geopandas as gpd
 from shapely.geometry.base import BaseGeometry
 from ezdxf.document import Drawing
 
-from ..domain.config_models import AllOperationParams, GeomLayerDefinition, StyleConfig
+from ..domain.config_models import AllOperationParams, GeomLayerDefinition, StyleConfig, SpecificProjectConfig
 from ..domain.exceptions import GeometryError
 from ..domain.style_models import NamedStyle
 # from ..domain.geometry_models import LayerCollection # If we define a wrapper for dict of GeoDataFrames
@@ -42,7 +42,10 @@ class IGeometryProcessor(Protocol):
         layer_def: GeomLayerDefinition,
         dxf_drawing: Optional[Any], # ezdxf.document.Drawing, but kept Any for interface flexibility
         style_config: StyleConfig,
-        base_crs: str
+        base_crs: str,
+        project_root: str,
+        project_config: SpecificProjectConfig, # Use specific type
+        project_name: str # Add project_name
     ) -> Optional[gpd.GeoDataFrame]:
         """
         Creates a GeoDataFrame for a layer based on its definition.
@@ -53,6 +56,9 @@ class IGeometryProcessor(Protocol):
             dxf_drawing: The ezdxf Drawing object, if DXF extraction is needed.
             style_config: The global style configuration.
             base_crs: The base CRS for the project.
+            project_root: The root directory of the project.
+            project_config: The specific project configuration object.
+            project_name: The name of the project.
 
         Returns:
             A GeoDataFrame for the layer, or None if the layer cannot be created (e.g., source not found).

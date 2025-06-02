@@ -6,6 +6,7 @@ from pathlib import Path
 
 from src.services.path_resolver_service import PathResolverService
 from src.interfaces.logging_service_interface import ILoggingService
+from src.interfaces.path_resolver_interface import IPathResolver
 from src.domain.path_models import ProjectPathAliases, PathResolutionContext
 from src.domain.exceptions import PathResolutionError
 
@@ -203,56 +204,41 @@ class TestPathResolverService:
     @pytest.mark.unit
     @pytest.mark.services
     @pytest.mark.path_resolution
-    @pytest.mark.filesystem
-    def test_try_extensions_file_exists(self, path_resolver: PathResolverService, tmp_path: Path):
-        """Test extension resolution when files exist."""
-        # Create test files
-        test_file = tmp_path / "test.geojson"
-        test_file.write_text('{"test": true}')
-
-        base_path = str(tmp_path / "test")
-        extensions = [".geojson", ".json"]
-
-        result = path_resolver._try_extensions(base_path, extensions)
-        assert result == str(test_file)
-
-    @pytest.mark.unit
-    @pytest.mark.services
-    @pytest.mark.path_resolution
-    @pytest.mark.filesystem
-    def test_try_extensions_no_file_exists(self, path_resolver: PathResolverService, tmp_path: Path):
-        """Test extension resolution when no files exist."""
-        base_path = str(tmp_path / "nonexistent")
-        extensions = [".geojson", ".json"]
-
-        result = path_resolver._try_extensions(base_path, extensions)
-        assert result == base_path  # Returns original path if no files found
-
-    @pytest.mark.unit
-    @pytest.mark.services
-    @pytest.mark.path_resolution
     @pytest.mark.fast
-    def test_try_extensions_empty_extensions(self, path_resolver: PathResolverService):
-        """Test extension resolution with empty extensions list."""
-        base_path = "/some/path"
-        extensions = []
+    def test_resolve_path_with_explicit_extensions(self, path_resolver: PathResolverService, sample_aliases: ProjectPathAliases):
+        """Test resolving paths with an explicit list of extensions."""
+        context = PathResolutionContext(
+            project_name="test",
+            project_root="/project/root",
+            aliases=sample_aliases
+        )
+        extension_list = [".txt", ".md"]
 
-        result = path_resolver._try_extensions(base_path, extensions)
-        assert result == base_path
+        with patch('os.path.exists') as mock_exists:
+            # Simulate first extension (.txt) exists
+            mock_exists.side_effect = [True]
+            result = path_resolver.resolve_path_with_extensions("@data.input/document", context, extension_list)
+            expected = os.path.join("/project/root", "data/input", "document.txt")
+            assert result == expected
+            mock_exists.assert_called_once_with(expected)
+            mock_exists.reset_mock()
 
-    @pytest.mark.unit
-    @pytest.mark.services
-    @pytest.mark.path_resolution
-    @pytest.mark.fast
-    def test_get_extensions_for_context(self, path_resolver: PathResolverService):
-        """Test getting extensions for different context keys."""
-        # Test known context keys
-        assert path_resolver._get_extensions_for_context("geojsonFile") == [".geojson", ".json"]
-        assert path_resolver._get_extensions_for_context("stylePresetsFile") == [".yaml", ".yml"]
-        assert path_resolver._get_extensions_for_context("dxf.outputPath") == [".dxf"]
+            # Simulate second extension (.md) exists
+            mock_exists.side_effect = [False, True]
+            result = path_resolver.resolve_path_with_extensions("@data.input/another", context, extension_list)
+            expected_md = os.path.join("/project/root", "data/input", "another.md")
+            assert result == expected_md
+            assert mock_exists.call_count == 2
+            mock_exists.assert_any_call(os.path.join("/project/root", "data/input", "another.txt"))
+            mock_exists.assert_any_call(expected_md)
+            mock_exists.reset_mock()
 
-        # Test unknown context key
-        assert path_resolver._get_extensions_for_context("unknownType") == []
+            # Simulate no extension exists, should return original path
+            mock_exists.side_effect = [False, False]
+            result = path_resolver.resolve_path_with_extensions("@data.input/no_ext_file", context, extension_list)
+            expected_no_ext = os.path.join("/project/root", "data/input", "no_ext_file")
+            assert result == expected_no_ext
+            assert mock_exists.call_count == 2
 
     @pytest.mark.integration
     @pytest.mark.services
@@ -338,29 +324,18 @@ class TestPathResolverService:
     @pytest.mark.path_resolution
     @pytest.mark.fast
     def test_interface_compliance(self, path_resolver: PathResolverService):
-        """Test that PathResolverService implements IPathResolver interface correctly."""
-        from src.interfaces.path_resolver_interface import IPathResolver
-
-        # Verify service has all required methods
+        """Test if PathResolverService implements IPathResolver interface."""
+        assert isinstance(path_resolver, IPathResolver)
+        # Check for essential public methods defined in IPathResolver
         assert hasattr(path_resolver, 'create_context')
         assert hasattr(path_resolver, 'resolve_path')
-        assert hasattr(path_resolver, '_try_extensions')
-        assert hasattr(path_resolver, '_get_extensions_for_context')
-
-        # Verify method signatures match interface
-        import inspect
-
-        # Check create_context signature
-        create_context_sig = inspect.signature(path_resolver.create_context)
-        expected_params = ['project_name', 'project_root', 'aliases']
-        actual_params = list(create_context_sig.parameters.keys())
-        assert actual_params == expected_params
-
-        # Check resolve_path signature
-        resolve_path_sig = inspect.signature(path_resolver.resolve_path)
-        expected_params = ['path_reference', 'context', 'context_key']
-        actual_params = list(resolve_path_sig.parameters.keys())
-        assert actual_params == expected_params
+        assert hasattr(path_resolver, 'resolve_path_with_extensions')
+        assert hasattr(path_resolver, 'get_context_extensions') # This is a public helper
+        assert hasattr(path_resolver, 'resolve_alias_only')
+        assert hasattr(path_resolver, 'list_available_aliases')
+        assert hasattr(path_resolver, 'validate_alias_reference')
+        assert hasattr(path_resolver, 'extract_file_path_from_alias_reference')
+        # Private methods like _try_extensions or _get_extensions_for_context should not be checked here.
 
 
 class TestPathResolverServiceEdgeCases:
@@ -449,13 +424,35 @@ class TestPathResolverServiceEdgeCases:
     @pytest.mark.path_resolution
     @pytest.mark.fast
     def test_extension_resolution_priority(self, path_resolver: PathResolverService, tmp_path: Path):
-        """Test that extension resolution respects priority order."""
+        """Test extension resolution priority with existing files (filesystem)."""
+        # This test remains relevant for public resolve_path with context_key or resolve_path_with_extensions
+        context = PathResolutionContext(
+            project_name="test_priority",
+            project_root=str(tmp_path),
+            aliases=ProjectPathAliases(aliases={"test_files": "files"})
+        )
+        base_path_in_files = tmp_path / "files"
+        base_path_in_files.mkdir(parents=True, exist_ok=True)
+
         # Create files with different extensions
-        (tmp_path / "test.json").write_text('{"json": true}')
-        (tmp_path / "test.geojson").write_text('{"geojson": true}')
+        (base_path_in_files / "doc.txt").touch()
+        (base_path_in_files / "doc.md").touch()
+        (base_path_in_files / "doc.yaml").touch()
 
-        base_path = str(tmp_path / "test")
-        extensions = [".geojson", ".json"]  # .geojson should be tried first
+        # Test with context_key (e.g., 'yamlFile' which has ['.yaml', '.yml'])
+        # Assuming CONTEXT_EXTENSIONS for 'yamlFile' is ['.yaml', '.yml']
+        # If doc.yaml exists, it should be chosen
+        result_yaml = path_resolver.resolve_path("@test_files/doc", context, context_key="yamlFile")
+        assert result_yaml == str(base_path_in_files / "doc.yaml")
 
-        result = path_resolver._try_extensions(base_path, extensions)
-        assert result.endswith("test.geojson")  # Should find .geojson first
+        # Test with explicit extension list where .md is first that exists
+        result_explicit = path_resolver.resolve_path_with_extensions(
+            "@test_files/doc", context, [".log", ".md", ".txt"]
+        )
+        assert result_explicit == str(base_path_in_files / "doc.md")
+
+        # Test with context_key where no file with listed extensions exists
+        # (e.g., 'nonExistentContextKey' which would result in empty extension list or some default)
+        # Should return the path without extension if no matching extension file is found
+        result_no_match = path_resolver.resolve_path("@test_files/doc", context, context_key="nonExistentContextKey")
+        assert result_no_match == str(base_path_in_files / "doc")

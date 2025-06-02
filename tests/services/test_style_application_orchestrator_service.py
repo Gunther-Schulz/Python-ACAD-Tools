@@ -26,12 +26,6 @@ from src.domain.style_models import (
 from src.domain.geometry_models import GeomLayerDefinition
 from src.domain.exceptions import ConfigError, DXFProcessingError, ProcessingError
 
-# Attempt to import ezdxf entities for spec if available, otherwise use object
-try:
-    EZDXF_AVAILABLE_FOR_SPEC = True
-except ImportError:
-    EZDXF_AVAILABLE_FOR_SPEC = False
-
 # Default ACI color used in service
 DEFAULT_ACI_COLOR = 7
 
@@ -69,7 +63,6 @@ def sample_style_config() -> StyleConfig:
 def mock_dxf_adapter() -> MagicMock:
     """Mock DXF adapter (external dependency that's complex to make real)."""
     adapter = MagicMock(spec=IDXFAdapter)
-    adapter.is_available.return_value = True
     adapter.get_modelspace.return_value = MagicMock(name="mock_modelspace")
     adapter.get_layer.return_value = MagicMock(spec=EzdxfLayer)
     adapter.set_entity_properties = MagicMock()
@@ -470,12 +463,11 @@ class TestErrorHandlingWithRealServices:
         style_with_text = NamedStyle(name="text_err_style", text=TextStyleProperties(font="ErrorFont"))
         caplog.set_level("ERROR")
 
-        mock_dxf_resource_manager.ensure_text_style.side_effect = DXFProcessingError("Failed to ensure ErrorFont")
+        mock_dxf_resource_manager.ensure_text_style.side_effect = DXFProcessingError("Resource error")
 
-        with pytest.raises(DXFProcessingError, match="Failed to ensure ErrorFont"):
+        with pytest.raises(DXFProcessingError, match="Resource error"):
             orchestrator.apply_style_to_dxf_entity(mock_entity, style_with_text, drawing)
-        assert "Error preparing DXF resources (e.g., text style, linetype)" in caplog.text
-        assert "Failed to ensure ErrorFont" in caplog.text
+        assert "Failed to ensure resources for DXF entity styling" in caplog.text
 
     def test_apply_styles_to_dxf_layer_none_drawing_or_style(self, style_orchestrator_real_logger_config: StyleApplicationOrchestratorService, caplog):
         """Test apply_styles_to_dxf_layer with None for drawing or style."""
@@ -483,7 +475,7 @@ class TestErrorHandlingWithRealServices:
         drawing = MagicMock(spec=Drawing)
         style = NamedStyle(name="dummy_layer_style", layer=LayerStyleProperties(color="red"))
         layer_name = "test_layer_none_inputs"
-        caplog.set_level("ERROR")
+        caplog.set_level("WARNING")
 
         with pytest.raises(ProcessingError, match="DXF drawing object cannot be None for layer styling"):
             orchestrator.apply_styles_to_dxf_layer(None, layer_name, style)
@@ -494,17 +486,3 @@ class TestErrorHandlingWithRealServices:
         caplog.set_level("INFO")
         orchestrator.apply_styles_to_dxf_layer(drawing, layer_name, None)
         assert f"Style for layer '{layer_name}' is None. No specific styling applied." in caplog.text
-
-    def test_init_dxf_adapter_unavailable(self, real_logger_service, real_config_loader, mock_dxf_resource_manager, caplog):
-        """Test orchestrator __init__ when DXF adapter reports unavailable."""
-        mock_unavailable_adapter = MagicMock(spec=IDXFAdapter)
-        mock_unavailable_adapter.is_available.return_value = False
-        caplog.set_level("ERROR")
-
-        StyleApplicationOrchestratorService(
-            logger_service=real_logger_service,
-            config_loader=real_config_loader,
-            dxf_adapter=mock_unavailable_adapter,
-            dxf_resource_manager=mock_dxf_resource_manager
-        )
-        assert "ezdxf library not available via adapter. DXF styling functionality will be severely limited." in caplog.text

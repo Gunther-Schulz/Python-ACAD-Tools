@@ -37,7 +37,7 @@ styles:
     layer:
       color: "blue"
       linetype: "Continuous"
-      lineweight: 55
+      lineweight: 53
     text:
       height: 4.0
       color: "white"
@@ -48,7 +48,7 @@ styles:
     layer:
       color: "green"
       linetype: "Continuous"
-      lineweight: 45
+      lineweight: 40
     text:
       height: 3.5
       color: "white"
@@ -59,7 +59,7 @@ styles:
     layer:
       color: "red"
       linetype: "Continuous"
-      lineweight: 65
+      lineweight: 60
     text:
       height: 3.5
       color: "white"

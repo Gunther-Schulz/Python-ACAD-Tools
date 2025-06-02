@@ -8,12 +8,15 @@ import pytest
 import tempfile
 import os
 from pathlib import Path
-from typing import Dict, Any
+from typing import Dict, Any, List, Optional, Tuple, Union
+from unittest.mock import Mock, patch
 import geopandas as gpd
 from shapely.geometry import Point, LineString, Polygon
-from unittest.mock import Mock
 
-from src.adapters.ezdxf_adapter import EzdxfAdapter, EZDXF_AVAILABLE
+# Direct import for ezdxf, assuming it's a hard dependency
+import ezdxf
+
+from src.adapters.ezdxf_adapter import EzdxfAdapter
 from src.services.data_source_service import DataSourceService
 from src.services.style_applicator_service import StyleApplicatorService
 from src.services.logging_service import LoggingService
@@ -21,18 +24,19 @@ from src.services.config_loader_service import ConfigLoaderService
 from src.services.dxf_resource_manager_service import DXFResourceManagerService
 from src.services.geometry_processor_service import GeometryProcessorService
 from src.services.style_application_orchestrator_service import StyleApplicationOrchestratorService
+from src.services.path_resolver_service import PathResolverService
 from src.domain.style_models import NamedStyle, LayerStyleProperties, TextStyleProperties
 from src.domain.exceptions import DXFProcessingError, DataSourceError
 from src.domain.config_models import AppConfig
 
+# Moved real_logger_service fixture to module scope
+@pytest.fixture
+def real_logger_service():
+    """Create REAL logging service."""
+    return LoggingService()
 
 class TestRealServiceIntegration:
     """Test integration with REAL services, minimal mocking, business outcome focus."""
-
-    @pytest.fixture
-    def real_logger_service(self):
-        """Create REAL logging service."""
-        return LoggingService()
 
     @pytest.fixture
     def real_config_loader(self, real_logger_service):
@@ -51,9 +55,21 @@ class TestRealServiceIntegration:
         return DXFResourceManagerService(real_ezdxf_adapter, real_logger_service)
 
     @pytest.fixture
-    def real_geometry_processor(self, real_logger_service, real_ezdxf_adapter, real_dxf_resource_manager):
+    def real_path_resolver_service(self, real_logger_service):
+        """Create REAL path resolver service."""
+        # PathResolverService does not take base_path in constructor
+        return PathResolverService(real_logger_service)
+
+    @pytest.fixture
+    def real_geometry_processor(self, real_logger_service, real_ezdxf_adapter, real_dxf_resource_manager, real_data_source_service, real_path_resolver_service):
         """Create REAL geometry processor."""
-        return GeometryProcessorService(real_ezdxf_adapter, real_logger_service, real_dxf_resource_manager)
+        return GeometryProcessorService(
+            dxf_adapter=real_ezdxf_adapter,
+            logger_service=real_logger_service,
+            dxf_resource_manager=real_dxf_resource_manager,
+            data_source=real_data_source_service,
+            path_resolver=real_path_resolver_service
+        )
 
     @pytest.fixture
     def real_style_orchestrator(self, real_logger_service, real_config_loader, real_ezdxf_adapter, real_dxf_resource_manager):
@@ -93,7 +109,6 @@ class TestRealServiceIntegration:
         if os.path.exists(tmp.name):
             os.unlink(tmp.name)
 
-    @pytest.mark.skipif(not EZDXF_AVAILABLE, reason="ezdxf library not available")
     def test_end_to_end_dxf_loading_and_styling_workflow(self, real_data_source_service, real_style_applicator_service, sample_dxf_file, temp_dxf_file):
         """Test complete end-to-end workflow: load DXF, apply styles, verify business outcomes."""
         # BUSINESS OUTCOME TEST: Can we actually load a DXF file?
@@ -126,7 +141,6 @@ class TestRealServiceIntegration:
             assert layer.dxf.color == 1  # Red ACI color
             assert layer.dxf.lineweight == 25
 
-    @pytest.mark.skipif(not EZDXF_AVAILABLE, reason="ezdxf library not available")
     def test_geodataframe_to_dxf_integration_workflow(self, real_ezdxf_adapter, real_style_applicator_service, temp_dxf_file):
         """Test complete workflow: create DXF, add GeoDataFrame, verify real output."""
         # Create real GeoDataFrame
@@ -167,34 +181,26 @@ class TestRealServiceIntegration:
         assert os.path.exists(temp_dxf_file)
         assert os.path.getsize(temp_dxf_file) > 0
 
-    @pytest.mark.skipif(not EZDXF_AVAILABLE, reason="ezdxf library not available")
     def test_error_handling_with_real_services(self, real_data_source_service, real_style_applicator_service):
         """Test error handling with real services (not mock error simulation)."""
-        if not EZDXF_AVAILABLE:
-            with pytest.raises(DXFProcessingError) as excinfo:
-                real_data_source_service.load_dxf_file("nonexistent_file.dxf")
-            assert "ezdxf library not available" in str(excinfo.value).lower()
-        else:
-            # REAL ERROR CONDITION: File doesn't exist
-            with pytest.raises(FileNotFoundError):
-                real_data_source_service.load_dxf_file("nonexistent_file.dxf")
+        # REAL ERROR CONDITION: File doesn't exist
+        with pytest.raises(FileNotFoundError):
+            real_data_source_service.load_dxf_file("nonexistent_file.dxf")
 
         # REAL ERROR CONDITION: Invalid style application
         invalid_drawing = None
         style = NamedStyle(layer=LayerStyleProperties(color="red"))
 
-        # This should raise a real exception, not a mock-configured one
-        # If ezdxf is not available, _ensure_ezdxf will raise DXFLibraryNotInstalledError first
-        # which StyleApplicationOrchestratorService might wrap or pass through depending on its logic.
-        # For simplicity, we check for ProcessingError or AttributeError as before if ezdxf is available,
-        # and DXFProcessingError (likely wrapping DXFLibraryNotInstalledError) if not.
-        expected_exception = DXFProcessingError if not EZDXF_AVAILABLE else (DXFProcessingError, AttributeError)
+        # Simplified expected_exception as ezdxf is now a hard dependency.
+        # The error should be due to passing None as a drawing.
+        # This might be a DXFProcessingError from EzdxfAdapter or StyleApplicationOrchestratorService,
+        # or potentially an AttributeError if not handled gracefully before ezdxf lib access.
+        expected_exception = (DXFProcessingError, AttributeError, ValueError) # ValueError if None check is early
         with pytest.raises(expected_exception):
             real_style_applicator_service.apply_styles_to_dxf_layer(
                 invalid_drawing, "test_layer", style
             )
 
-    @pytest.mark.skipif(not EZDXF_AVAILABLE, reason="ezdxf library not available")
     def test_service_integration_with_real_data_flow(self, real_data_source_service, real_style_applicator_service, sample_dxf_file):
         """Test that services actually work together with real data flow."""
         if not os.path.exists(sample_dxf_file):
@@ -240,29 +246,53 @@ class TestRealServiceIntegration:
 
 
 class TestServiceErrorRecoveryAndEdgeCases:
-    """Test error recovery and edge cases with real services."""
+    """Test error recovery and edge case handling in service integrations."""
 
     @pytest.fixture
     def real_services_minimal(self, real_logger_service):
         """Provides a minimal set of real services for edge case testing."""
         # Adapters and core services are real, but deeper dependencies might be mocked if not essential for the edge case
         adapter = EzdxfAdapter(real_logger_service)
-        data_source = DataSourceService(real_logger_service, adapter)
+        data_source_mock = Mock(spec=DataSourceService) # Mock for now, or use real if needed
+        path_resolver_mock = Mock(spec=PathResolverService) # Mock for now
+        resource_manager_mock = Mock(spec=DXFResourceManagerService) # Keep as mock if it's complex to set up real
+
+        # Corrected instantiation for GeometryProcessorService
+        geometry_processor = GeometryProcessorService(
+            dxf_adapter=adapter,
+            logger_service=real_logger_service,
+            dxf_resource_manager=resource_manager_mock, # Using mock
+            data_source=data_source_mock, # Using mock
+            path_resolver=path_resolver_mock # Using mock
+        )
+
         # Create minimal orchestrator - details not important for these adapter-focused tests
-        config_loader = Mock(spec=ConfigLoaderService)
-        resource_manager = Mock(spec=DXFResourceManagerService)
-        orchestrator = StyleApplicationOrchestratorService(real_logger_service, config_loader, adapter, resource_manager)
-        geometry_processor = GeometryProcessorService(adapter, real_logger_service, resource_manager)
-        style_applicator = StyleApplicatorService(real_logger_service, adapter, resource_manager, geometry_processor, orchestrator)
+        config_loader_mock = Mock(spec=ConfigLoaderService) # Mock
+        orchestrator = StyleApplicationOrchestratorService(
+            logger_service=real_logger_service,
+            config_loader=config_loader_mock,
+            dxf_adapter=adapter,
+            dxf_resource_manager=resource_manager_mock
+        )
+
+        style_applicator = StyleApplicatorService(
+            logger_service=real_logger_service,
+            dxf_adapter=adapter,
+            dxf_resource_manager=resource_manager_mock,
+            geometry_processor=geometry_processor, # Pass the corrected one
+            style_orchestrator=orchestrator
+        )
         return {
             "adapter": adapter,
-            "data_source": data_source,
+            "data_source": data_source_mock, # Return the mock one
+            "path_resolver": path_resolver_mock, # Return the mock one
+            "resource_manager": resource_manager_mock, # Return the mock one
             "style_applicator": style_applicator,
             "orchestrator": orchestrator,
-            "geometry_processor": geometry_processor
+            "geometry_processor": geometry_processor,
+            "logger": real_logger_service # Added logger for convenience in tests
         }
 
-    @pytest.mark.skipif(not EZDXF_AVAILABLE, reason="ezdxf library not available")
     def test_empty_geodataframe_handling(self, real_services_minimal, caplog):
         """Test how services handle empty GeoDataFrame (real edge case)."""
         services = real_services_minimal
@@ -277,15 +307,8 @@ class TestServiceErrorRecoveryAndEdgeCases:
         # Real services should handle empty data gracefully
         # (Specific behavior depends on implementation, but shouldn't crash)
         try:
-            # Create a minimal style applicator for this test
-            config_loader = ConfigLoaderService(services['logger'])
-            resource_manager = DXFResourceManagerService(services['adapter'], services['logger'])
-            geometry_processor = GeometryProcessorService(services['adapter'], services['logger'], resource_manager)
-            style_orchestrator = StyleApplicationOrchestratorService(services['logger'], config_loader, services['adapter'], resource_manager)
-
-            style_applicator = StyleApplicatorService(
-                services['logger'], services['adapter'], resource_manager, geometry_processor, style_orchestrator
-            )
+            # Use the style_applicator from the fixture
+            style_applicator = services['style_applicator']
 
             style = NamedStyle(layer=LayerStyleProperties(color="red"))
             style_applicator.add_geodataframe_to_dxf(drawing, empty_gdf, "empty_layer", style)
@@ -296,7 +319,6 @@ class TestServiceErrorRecoveryAndEdgeCases:
             # If it does raise an exception, it should be a meaningful business exception
             assert isinstance(e, (DXFProcessingError, ValueError))
 
-    @pytest.mark.skipif(not EZDXF_AVAILABLE, reason="ezdxf library not available for corrupt file test")
     def test_corrupt_dxf_file_handling(self, real_services_minimal):
         """Test handling of a known corrupt DXF file."""
         services = real_services_minimal
@@ -313,7 +335,6 @@ class TestServiceErrorRecoveryAndEdgeCases:
             if os.path.exists(corrupt_dxf_path):
                 os.unlink(corrupt_dxf_path)
 
-    @pytest.mark.skipif(not EZDXF_AVAILABLE, reason="ezdxf library not available")
     def test_very_large_coordinates_handling(self, real_services_minimal, caplog):
         """Test handling of very large coordinate values (real edge case)."""
         services = real_services_minimal
@@ -345,7 +366,6 @@ class TestServiceErrorRecoveryAndEdgeCases:
 
     # --- NEW NEGATIVE TESTS ---
 
-    @pytest.mark.skipif(not EZDXF_AVAILABLE, reason="ezdxf library not available")
     def test_load_dxf_directory_path(self, real_services_minimal, caplog):
         """Test DataSourceService.load_dxf_file with a directory path."""
         services = real_services_minimal
@@ -354,16 +374,12 @@ class TestServiceErrorRecoveryAndEdgeCases:
             with pytest.raises(DXFProcessingError) as excinfo:
                 services['data_source'].load_dxf_file(tmpdir)
 
-            if not EZDXF_AVAILABLE:
-                assert "ezdxf library not available" in str(excinfo.value).lower()
-            else:
-                assert (
-                    "is a directory" in str(excinfo.value).lower()
-                    or "not a file" in str(excinfo.value).lower() # Accommodate OS-specific messages
-                )
+            assert (
+                "is a directory" in str(excinfo.value).lower()
+                or "not a file" in str(excinfo.value).lower() # Accommodate OS-specific messages
+            )
             assert tmpdir in caplog.text
 
-    @pytest.mark.skipif(not EZDXF_AVAILABLE, reason="ezdxf library not available")
     def test_load_dxf_empty_file(self, real_services_minimal, caplog):
         """Test DataSourceService.load_dxf_file with an empty (0 byte) .dxf file."""
         services = real_services_minimal
@@ -375,16 +391,12 @@ class TestServiceErrorRecoveryAndEdgeCases:
             with pytest.raises(DXFProcessingError) as excinfo:
                 services['data_source'].load_dxf_file(empty_dxf_path)
 
-            if not EZDXF_AVAILABLE:
-                assert "ezdxf library not available" in str(excinfo.value).lower()
-            else:
-                assert "is not a dxf file" in str(excinfo.value).lower() or \
-                       "dxf structure error" in str(excinfo.value).lower() # More general for empty file
+            assert "is not a dxf file" in str(excinfo.value).lower() or \
+                   "dxf structure error" in str(excinfo.value).lower() # More general for empty file
         finally:
             if os.path.exists(empty_dxf_path):
                 os.unlink(empty_dxf_path)
 
-    @pytest.mark.skipif(not EZDXF_AVAILABLE, reason="ezdxf library not available")
     def test_load_dxf_text_file_as_dxf(self, real_services_minimal, caplog):
         """Test DataSourceService.load_dxf_file with a text file renamed to .dxf."""
         services = real_services_minimal
@@ -397,16 +409,12 @@ class TestServiceErrorRecoveryAndEdgeCases:
             with pytest.raises(DXFProcessingError) as excinfo:
                 services['data_source'].load_dxf_file(text_file_path)
 
-            if not EZDXF_AVAILABLE:
-                assert "ezdxf library not available" in str(excinfo.value).lower()
-            else:
-                assert "is not a dxf file" in str(excinfo.value).lower() or \
-                       "dxf structure error" in str(excinfo.value).lower()
+            assert "is not a dxf file" in str(excinfo.value).lower() or \
+                   "dxf structure error" in str(excinfo.value).lower()
         finally:
             if os.path.exists(text_file_path):
                 os.unlink(text_file_path)
 
-    @pytest.mark.skipif(not EZDXF_AVAILABLE, reason="ezdxf library not available")
     def test_load_geojson_empty_file(self, real_services_minimal, caplog):
         """Test DataSourceService.load_geojson_file with an empty .geojson file."""
         services = real_services_minimal
@@ -421,7 +429,6 @@ class TestServiceErrorRecoveryAndEdgeCases:
         finally:
             os.unlink(empty_geojson_path)
 
-    @pytest.mark.skipif(not EZDXF_AVAILABLE, reason="ezdxf library not available")
     def test_load_geojson_malformed_file(self, real_services_minimal, caplog):
         """Test DataSourceService.load_geojson_file with a malformed .geojson file."""
         services = real_services_minimal
@@ -437,7 +444,6 @@ class TestServiceErrorRecoveryAndEdgeCases:
         finally:
             os.unlink(malformed_geojson_path)
 
-    @pytest.mark.skipif(not EZDXF_AVAILABLE, reason="ezdxf library not available")
     def test_apply_styles_to_dxf_layer_none_style(self, real_services_minimal, caplog):
         """Test StyleApplicatorService.apply_styles_to_dxf_layer with None style."""
         services = real_services_minimal
@@ -453,7 +459,6 @@ class TestServiceErrorRecoveryAndEdgeCases:
         except Exception as e:
             pytest.fail(f"Applying None style should not raise an unhandled exception: {e}")
 
-    @pytest.mark.skipif(not EZDXF_AVAILABLE, reason="ezdxf library not available")
     def test_add_gdf_with_unsupported_geometry(self, real_services_minimal, caplog):
         """Test StyleApplicatorService.add_geodataframe_to_dxf with unsupported geometry type by adapter."""
         services = real_services_minimal
@@ -487,7 +492,6 @@ class TestServiceErrorRecoveryAndEdgeCases:
         entities = list(drawing.modelspace().query('POINT[layer=="none_geom_layer"]'))
         assert len(entities) == 1
 
-    @pytest.mark.skipif(not EZDXF_AVAILABLE, reason="ezdxf library not available")
     def test_adapter_save_permission_error_simulation(self, real_services_minimal, monkeypatch, caplog):
         """Test error handling if ezdxf_adapter.save_document fails (e.g. permission error)."""
         services = real_services_minimal

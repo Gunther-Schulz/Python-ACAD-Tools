@@ -2,6 +2,7 @@ from typing import Optional, Any, Dict, List
 
 import geopandas as gpd
 import pandas as pd
+import os
 from ezdxf.document import Drawing
 from ezdxf.entities import DXFGraphic, Text, MText # For type hints
 from ezdxf.layouts import Modelspace # For type hints
@@ -13,9 +14,11 @@ from ..interfaces.geometry_processor_interface import IGeometryProcessor
 from ..interfaces.dxf_adapter_interface import IDXFAdapter
 from ..interfaces.logging_service_interface import ILoggingService
 from ..interfaces.dxf_resource_manager_interface import IDXFResourceManager
-from ..interfaces.style_application_orchestrator_interface import IStyleApplicationOrchestrator # May not be needed here, check usage
-from ..domain.geometry_models import GeomLayerDefinition, GeometryType # Assuming GeometryType might also be from geometry_models
-from ..domain.style_models import NamedStyle, TextStyleProperties # Keep these if they are used
+from ..interfaces.data_source_interface import IDataSource
+from ..interfaces.path_resolver_interface import IPathResolver
+from ..domain.geometry_models import GeomLayerDefinition, GeometryType
+from ..domain.style_models import NamedStyle, TextStyleProperties
+from ..domain.config_models import SpecificProjectConfig, StyleConfig
 from ..domain.exceptions import DXFProcessingError, GeometryError, ConfigError
 
 DEFAULT_ACI_COLOR = 7
@@ -29,14 +32,15 @@ class GeometryProcessorService(IGeometryProcessor):
         self,
         dxf_adapter: IDXFAdapter,
         logger_service: ILoggingService,
-        dxf_resource_manager: IDXFResourceManager
+        dxf_resource_manager: IDXFResourceManager,
+        data_source: IDataSource,
+        path_resolver: IPathResolver
     ):
         self._dxf_adapter = dxf_adapter
         self._logger = logger_service.get_logger(__name__)
         self._dxf_resource_manager = dxf_resource_manager
-
-        if not self._dxf_adapter.is_available():
-            self._logger.error("DXF adapter reports ezdxf not available. GeometryProcessorService may not function correctly.")
+        self._data_source = data_source
+        self._path_resolver = path_resolver
 
     def add_geodataframe_to_dxf(
         self,
@@ -46,9 +50,6 @@ class GeometryProcessorService(IGeometryProcessor):
         style: Optional[NamedStyle] = None,
         layer_definition: Optional[GeomLayerDefinition] = None
     ) -> None:
-        if not self._dxf_adapter.is_available():
-            raise DXFProcessingError("Cannot add geometries to DXF: ezdxf library not available via adapter.")
-
         if gdf.empty:
             self._logger.debug(f"GeoDataFrame for layer '{layer_name}' is empty. No geometries to add.")
             return
@@ -300,10 +301,237 @@ class GeometryProcessorService(IGeometryProcessor):
             return MTextEntityAlignment.MIDDLE_CENTER
 
     def _mtext_attachment_to_text_align_values(self, mtext_align: MTextEntityAlignment) -> tuple[int, int]:
-        """Convert MTEXT MTextEntityAlignment to TEXT halign, valign integer codes."""
-        mapping = {
-            MTextEntityAlignment.TOP_LEFT: (0, 3), MTextEntityAlignment.TOP_CENTER: (1, 3), MTextEntityAlignment.TOP_RIGHT: (2, 3),
-            MTextEntityAlignment.MIDDLE_LEFT: (0, 2), MTextEntityAlignment.MIDDLE_CENTER: (1, 2), MTextEntityAlignment.MIDDLE_RIGHT: (2, 2),
-            MTextEntityAlignment.BOTTOM_LEFT: (0, 1), MTextEntityAlignment.BOTTOM_CENTER: (1, 1), MTextEntityAlignment.BOTTOM_RIGHT: (2, 1),
+        # This is a simplified mapping. For full accuracy, review ezdxf MTEXT details.
+        # Horizontal alignment (dxf.halign)
+        # Vertical alignment (dxf.valign seems less directly mapped, usually part of attachment point)
+        attachment_map_horizontal = {
+            MTextEntityAlignment.TOP_LEFT: 0, # Left
+            MTextEntityAlignment.TOP_CENTER: 1, # Center
+            MTextEntityAlignment.TOP_RIGHT: 2, # Right
+            MTextEntityAlignment.MIDDLE_LEFT: 0,
+            MTextEntityAlignment.MIDDLE_CENTER: 1,
+            MTextEntityAlignment.MIDDLE_RIGHT: 2,
+            MTextEntityAlignment.BOTTOM_LEFT: 0,
+            MTextEntityAlignment.BOTTOM_CENTER: 1,
+            MTextEntityAlignment.BOTTOM_RIGHT: 2,
         }
-        return mapping.get(mtext_align, (0, 0)) # Default to Left, Baseline for TEXT
+        # For vertical alignment, ezdxf MTEXT primarily uses insertion point and attachment point.
+        # dxf.valign is more for Text entity. We'll use 0 (Baseline) as a default for Text if needed.
+        # Let's assume MTEXT handles vertical alignment primarily via its `dxf.attachment_point`.
+        # The `halign` can be derived from `attachment_point` string if we have a mapping.
+        # This function might be better placed in a utility or the adapter if it gets complex.
+
+        halign = attachment_map_horizontal.get(mtext_align, 0) # Default to Left if not found
+        valign = 0 # Default, as MTEXT handles this differently
+
+        return (halign, valign) # Example, review ezdxf docs for best MTEXT alignment handling
+
+    def create_layer_from_definition(
+        self,
+        layer_def: GeomLayerDefinition,
+        dxf_drawing: Optional[Any],
+        style_config: StyleConfig,
+        base_crs: str,
+        project_root: str,
+        project_config: SpecificProjectConfig,
+        project_name: str
+    ) -> Optional[gpd.GeoDataFrame]:
+        """
+        Creates a GeoDataFrame for a layer based on its definition.
+        This might involve loading from a shapefile, GeoJSON, or extracting from DXF.
+        """
+        self._logger.info(f"Creating layer '{layer_def.name}' from definition.")
+        gdf: Optional[gpd.GeoDataFrame] = None
+
+        try:
+            if layer_def.geojson_file:
+                if not project_config.path_aliases:
+                    self._logger.warning(f"Path aliases not defined for project '{project_name}'. Cannot resolve alias for {layer_def.geojson_file}")
+                    # Fallback or raise error depending on desired strictness
+                    # For now, attempt to use project_root if path seems relative, or assume absolute
+                    if not os.path.isabs(layer_def.geojson_file):
+                        actual_path = os.path.join(project_root, layer_def.geojson_file)
+                    else:
+                        actual_path = layer_def.geojson_file
+                else:
+                    context = self._path_resolver.create_context(
+                        project_name=project_name,
+                        project_root=project_root,
+                        aliases=project_config.path_aliases
+                    )
+                    actual_path = self._path_resolver.resolve_path(layer_def.geojson_file, context=context, context_key='geojsonFile')
+
+                self._logger.debug(f"GeoJSON source: {layer_def.geojson_file}, resolved to: {actual_path}")
+                if actual_path and os.path.exists(actual_path):
+                    gdf = self._data_source.load_geojson_file(actual_path, crs=base_crs)
+                    self._logger.info(f"Loaded {len(gdf) if gdf is not None else 0} features from GeoJSON: {actual_path}")
+                else:
+                    self._logger.warning(f"GeoJSON file not found after path resolution: Original='{layer_def.geojson_file}', Resolved='{actual_path}'")
+
+            elif layer_def.shape_file:
+                if not project_config.path_aliases:
+                    self._logger.warning(f"Path aliases not defined for project '{project_name}'. Cannot resolve alias for {layer_def.shape_file}")
+                    if not os.path.isabs(layer_def.shape_file):
+                        actual_path = os.path.join(project_root, layer_def.shape_file)
+                    else:
+                        actual_path = layer_def.shape_file
+                else:
+                    context = self._path_resolver.create_context(
+                        project_name=project_name,
+                        project_root=project_root,
+                        aliases=project_config.path_aliases
+                    )
+                    actual_path = self._path_resolver.resolve_path(layer_def.shape_file, context=context, context_key='shapeFile')
+                self._logger.debug(f"Shapefile source: {layer_def.shape_file}, resolved to: {actual_path}")
+                if actual_path and os.path.exists(actual_path):
+                    gdf = self._data_source.load_shapefile(actual_path, crs=base_crs)
+                    self._logger.info(f"Loaded {len(gdf) if gdf is not None else 0} features from Shapefile: {actual_path}")
+                else:
+                    self._logger.warning(f"Shapefile not found after path resolution: Original='{layer_def.shape_file}', Resolved='{actual_path}'")
+
+            elif layer_def.dxf_layer:
+                self._logger.debug(f"DXF layer source: {layer_def.dxf_layer}")
+                if dxf_drawing:
+                    # This was returning List[ezdxf.entity] - needs conversion to GeoDataFrame
+                    # entities = self._dxf_adapter.extract_entities_from_layer(dxf_drawing, layer_def.dxf_layer, base_crs)
+                    # gdf = self._dxf_adapter.entities_to_geodataframe(entities, base_crs) # Placeholder
+                    self._logger.warning("DXF layer extraction to GeoDataFrame is not fully implemented in GeometryProcessorService.create_layer_from_definition.")
+                    # For now, return empty to avoid downstream errors if this path is taken.
+                    gdf = gpd.GeoDataFrame(columns=['geometry'], crs=base_crs)
+                    # self._logger.info(f"Extracted {len(gdf) if gdf is not None else 0} features from DXF layer: {layer_def.dxf_layer}")
+                else:
+                    self._logger.warning(f"DXF layer '{layer_def.dxf_layer}' requested, but no DXF drawing provided.")
+            else:
+                # Not an error if it's an operations-only layer, ProjectOrchestrator handles that logic before calling this
+                self._logger.debug(f"Layer '{layer_def.name}' has no direct file source (GeoJSON/Shapefile/DXF layer). Assumed to be operations-based or empty.")
+                # Return an empty GeoDataFrame to signify no data from a direct source
+                gdf = gpd.GeoDataFrame(columns=['geometry'], crs=base_crs)
+
+            # Apply selectByProperties if defined and gdf is not None
+            if gdf is not None and layer_def.select_by_properties:
+                self._logger.debug(f"Applying selectByProperties to layer '{layer_def.name}'")
+                for col, value in layer_def.select_by_properties.items():
+                    if col in gdf.columns:
+                        # Handle potential type mismatches, e.g. if config has int but GDF has str
+                        try:
+                            if gdf[col].dtype == object and isinstance(value, (int, float)):
+                                # Attempt conversion if GDF column is object and query value is numeric
+                                gdf = gdf[gdf[col].astype(type(value)) == value]
+                            elif gdf[col].dtype != type(value) and isinstance(value, str):
+                                gdf = gdf[gdf[col].astype(str) == str(value)]
+                            else:
+                                gdf = gdf[gdf[col] == value]
+                        except Exception as filter_ex:
+                            self._logger.warning(f"Could not apply filter '{col}'='{value}' on layer '{layer_def.name}' due to type mismatch or other error: {filter_ex}. Column type: {gdf[col].dtype}, Value type: {type(value)}")
+                    else:
+                        self._logger.warning(f"Column '{col}' for selectByProperties not found in layer '{layer_def.name}'. Available columns: {list(gdf.columns)}")
+                self._logger.info(f"Layer '{layer_def.name}' after selectByProperties: {len(gdf)} features")
+
+        except DXFProcessingError as e:
+            self._logger.error(f"DXF Processing error creating layer '{layer_def.name}': {e}")
+            raise GeometryError(f"DXF error for layer '{layer_def.name}': {e}") from e
+        except FileNotFoundError as e:
+            self._logger.error(f"File not found error creating layer '{layer_def.name}': {e}")
+            raise GeometryError(f"File not found for layer '{layer_def.name}': {e}") from e
+        except Exception as e:
+            self._logger.error(f"Unexpected error creating layer '{layer_def.name}': {e}", exc_info=True)
+            raise GeometryError(f"Unexpected error creating layer '{layer_def.name}': {e}") from e
+
+        return gdf
+
+    # Ensure other methods of IGeometryProcessor are also implemented or marked as pass/NotImplementedError
+    def apply_operation(
+        self,
+        operation_params: Any, # AllOperationParams
+        source_layers: Dict[str, gpd.GeoDataFrame],
+    ) -> gpd.GeoDataFrame:
+        self._logger.info(f"Applying operation: {operation_params.type if hasattr(operation_params, 'type') else 'Unknown type'}")
+        # Placeholder - actual operation logic would be dispatched here
+        # based on operation_params.type to specific handlers or methods.
+        # Example: if operation_params.type == "buffer": ...
+        # For now, return an empty GeoDataFrame or raise NotImplementedError
+        # to indicate it's not fully implemented.
+
+        # A very basic example for 'buffer' (highly simplified)
+        if hasattr(operation_params, 'type') and operation_params.type == "buffer":
+            if operation_params.layers and len(operation_params.layers) > 0:
+                first_layer_name = operation_params.layers[0]
+                if first_layer_name in source_layers:
+                    source_gdf = source_layers[first_layer_name]
+                    if not source_gdf.empty:
+                        distance = getattr(operation_params, 'distance', 10.0) # default 10 if not specified
+                        buffered_gdf = source_gdf.copy()
+                        buffered_gdf['geometry'] = source_gdf.geometry.buffer(distance)
+                        self._logger.info(f"Applied buffer of {distance} to layer '{first_layer_name}'.")
+                        return buffered_gdf
+                    else:
+                        self._logger.warning(f"Source layer '{first_layer_name}' for buffer operation is empty.")
+                else:
+                    self._logger.warning(f"Source layer '{first_layer_name}' not found for buffer operation.")
+            else:
+                self._logger.warning("Buffer operation specified but no source layers provided in params.")
+        elif hasattr(operation_params, 'type') and operation_params.type == "union":
+            # Basic union example
+            if operation_params.layers and len(operation_params.layers) > 0:
+                gdfs_to_union = []
+                for layer_name in operation_params.layers:
+                    if layer_name in source_layers and not source_layers[layer_name].empty:
+                        gdfs_to_union.append(source_layers[layer_name])
+                    else:
+                        self._logger.warning(f"Layer '{layer_name}' for union not found or is empty.")
+                if len(gdfs_to_union) > 1:
+                    # Ensure all GDFs have the same CRS or reproject
+                    # This is a simplified union, real union might need schema alignment etc.
+                    # combined_gdf = gpd.overlay(gdfs_to_union[0], gdfs_to_union[1], how='union') # if only 2
+                    # For multiple: gpd.pd.concat then unary_union or cascaded_union
+                    self._logger.info(f"Performing union on {len(gdfs_to_union)} GeoDataFrames.")
+                    # Placeholder: gpd.GeoDataFrame(pd.concat(gdfs_to_union, ignore_index=True)).unary_union # or similar
+                    # This is non-trivial. For now, let's just return the first one as a mock.
+                    if gdfs_to_union:
+                       self._logger.warning("Union operation is a placeholder, returning first GDF.")
+                       return gdfs_to_union[0]
+                elif gdfs_to_union: # Only one valid gdf
+                    return gdfs_to_union[0]
+            else:
+                self._logger.warning("Union operation specified but no/insufficient source layers.")
+
+        self._logger.warning(f"Operation type '{operation_params.type if hasattr(operation_params, 'type') else 'Unknown'}' is not fully implemented in GeometryProcessorService.apply_operation.")
+        # Return an empty GeoDataFrame to avoid breaking the flow if an operation isn't critical path / handled
+        # Determine a common CRS or use the first available one
+        common_crs = None
+        for gdf_val in source_layers.values():
+            if gdf_val.crs:
+                common_crs = gdf_val.crs
+                break
+        return gpd.GeoDataFrame(columns=['geometry'], crs=common_crs)
+
+    def merge_layers(
+        self,
+        layers_to_merge: List[gpd.GeoDataFrame],
+        target_crs: Optional[str] = None
+    ) -> gpd.GeoDataFrame:
+        self._logger.info(f"Merging {len(layers_to_merge)} layers.")
+        # Placeholder implementation
+        if not layers_to_merge:
+            return gpd.GeoDataFrame(columns=['geometry'], crs=target_crs)
+        # Basic concat, assumes schemas are compatible enough for this example
+        merged_gdf = pd.concat(layers_to_merge, ignore_index=True)
+        # Ensure it's a GeoDataFrame
+        if not isinstance(merged_gdf, gpd.GeoDataFrame):
+             merged_gdf = gpd.GeoDataFrame(merged_gdf, geometry='geometry', crs=layers_to_merge[0].crs if layers_to_merge[0].crs else target_crs)
+
+        if target_crs and merged_gdf.crs and merged_gdf.crs != target_crs:
+            merged_gdf = merged_gdf.to_crs(target_crs)
+        elif not merged_gdf.crs and target_crs:
+            merged_gdf.crs = target_crs
+
+        return merged_gdf
+
+    def reproject_layer(self, layer: gpd.GeoDataFrame, target_crs: str) -> gpd.GeoDataFrame:
+        self._logger.info(f"Reprojecting layer to CRS: {target_crs}")
+        if layer.crs is None:
+            self._logger.warning("Source layer has no CRS defined. Cannot reproject. Returning as is.")
+            return layer
+        if layer.crs == target_crs:
+            return layer
+        return layer.to_crs(target_crs)

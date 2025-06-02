@@ -1,49 +1,26 @@
 """Adapter for ezdxf library integration."""
 from typing import Optional, Any, Dict, List, Tuple
 import os
-# import geopandas as gpd # Only if extract_entities_from_layer returns GeoDataFrame
-# from shapely.geometry import Point, LineString, Polygon # Only if _extract_entity_data is used and returns Shapely
 
+# Third-party imports for direct, hard dependencies
+import ezdxf
+from ezdxf.document import Drawing
+from ezdxf.layouts import Modelspace
+from ezdxf.entities.ltype import Linetype
+from ezdxf.entities.textstyle import Textstyle as TextStyle
+from ezdxf.entities.layer import Layer as DXFLayer # Alias to avoid clash with domain.Layer
+from ezdxf.entities import Text, MText, Point, Line, LWPolyline, Hatch
+from ezdxf import DXFError, DXFValueError, DXFStructureError
+from ezdxf.enums import MTextEntityAlignment
+from ezdxf import const as ezdxf_const
+
+import geopandas as gpd
+from shapely.geometry import Point, LineString, Polygon
+
+# Application-specific imports
 from ..interfaces.dxf_adapter_interface import IDXFAdapter
 from ..interfaces.logging_service_interface import ILoggingService
-from ..domain.exceptions import DXFProcessingError, DXFLibraryNotInstalledError
-
-try:
-    import ezdxf
-    from ezdxf.errors import DXFError, DXFValueError, DXFStructureError
-    from ezdxf.document import Drawing
-    from ezdxf.layouts import Modelspace
-    from ezdxf.entities.ltype import Linetype
-    from ezdxf.entities.textstyle import Textstyle as TextStyle
-    from ezdxf.entities.layer import Layer
-    from ezdxf.entities import Text, MText, Point as DXFPoint, Line as DXFLine, LWPolyline, Hatch
-    from ezdxf.enums import MTextEntityAlignment # For MTEXT
-    from ezdxf import const as ezdxf_const # For hatch flags and other constants
-    EZDXF_AVAILABLE = True
-except ImportError:
-    ezdxf = None
-    DXFValueError = Exception # type: ignore
-    DXFStructureError = Exception # type: ignore
-    Drawing = Any # type: ignore
-    Modelspace = Any # type: ignore
-    Linetype = Any # type: ignore
-    TextStyle = Any # type: ignore
-    Layer = Any # type: ignore
-    Text, MText, DXFPoint, DXFLine, LWPolyline, Hatch = type(None), type(None), type(None), type(None), type(None), type(None) # type: ignore
-    MTextEntityAlignment = type(None) # type: ignore
-    ezdxf_const = None # type: ignore
-    EZDXF_AVAILABLE = False
-
-# Add GEOPANDAS_AVAILABLE flag
-try:
-    import geopandas as gpd
-    from shapely.geometry import Point, LineString, Polygon # Optional, but often used with GeoDataFrame
-    GEOPANDAS_AVAILABLE = True
-except ImportError:
-    gpd = None # type: ignore
-    Point, LineString, Polygon = type(None), type(None), type(None) # type: ignore
-    GEOPANDAS_AVAILABLE = False
-
+from ..domain.exceptions import DXFProcessingError
 
 class EzdxfAdapter(IDXFAdapter):
     """Adapter for ezdxf library operations."""
@@ -51,24 +28,13 @@ class EzdxfAdapter(IDXFAdapter):
     def __init__(self, logger_service: ILoggingService):
         """Initialize adapter with injected logger service."""
         self._logger = logger_service.get_logger(__name__)
-        if not EZDXF_AVAILABLE:
-            self._logger.error("ezdxf library is not installed. DXF operations will fail.")
-
-    def _ensure_ezdxf(self):
-        if not EZDXF_AVAILABLE:
-            self._logger.error("Attempted DXF operation, but ezdxf library is not installed.")
-            raise DXFLibraryNotInstalledError("ezdxf library is not installed. Please install it to use DXF features.")
-
-    def is_available(self) -> bool:
-        """Check if ezdxf library is available."""
-        return EZDXF_AVAILABLE
+        # No availability check needed here anymore, direct imports will fail if missing.
+        self._logger.info("EzdxfAdapter initialized. ezdxf, geopandas, shapely are hard dependencies.")
 
     def load_dxf_file(self, file_path: str) -> Optional[Drawing]:
         """Load a DXF file using ezdxf."""
-        self._ensure_ezdxf()
         if not os.path.exists(file_path):
             self._logger.error(f"DXF file not found for loading: {file_path}")
-            # Using the domain exception for consistency if defined
             raise DXFProcessingError(f"DXF file not found: {file_path}")
         try:
             self._logger.info(f"Loading DXF file: {file_path}")
@@ -91,7 +57,6 @@ class EzdxfAdapter(IDXFAdapter):
         layer_name: str,
         crs: str # This was in the interface, but not used here.
     ) -> Optional[List[Any]]: # Returning list of ezdxf entities
-        self._ensure_ezdxf()
         if not dxf_document:
             raise DXFProcessingError("DXF Document is None")
         try:
@@ -104,9 +69,8 @@ class EzdxfAdapter(IDXFAdapter):
             self._logger.error(error_msg, exc_info=True)
             raise DXFProcessingError(error_msg) from e
 
-    def save_document(self, doc: Drawing, file_path: str) -> None: # Renamed from save_dxf_file
+    def save_document(self, doc: Drawing, file_path: str) -> None: # ezdxf.document.Drawing
         """Save a DXF document to file."""
-        self._ensure_ezdxf()
         if not doc:
             raise DXFProcessingError("DXF document is None, cannot save.")
         try:
@@ -122,7 +86,6 @@ class EzdxfAdapter(IDXFAdapter):
 
     def create_dxf_layer(self, dxf_document: Drawing, layer_name: str, **properties) -> None:
         """Create or update a DXF layer with specified properties."""
-        self._ensure_ezdxf()
         if not dxf_document:
             raise DXFProcessingError("DXF Document is None, cannot create layer.")
         try:
@@ -137,7 +100,13 @@ class EzdxfAdapter(IDXFAdapter):
             if 'color' in properties and properties['color'] is not None:
                 layer.color = properties['color']
             if 'linetype' in properties and properties['linetype'] is not None:
-                layer.dxf.linetype = properties['linetype'].upper()
+                if isinstance(properties['linetype'], str):
+                    layer.dxf.linetype = properties['linetype'].upper()
+                else:
+                    self._logger.warning(
+                        f"Layer '{layer_name}' received non-string linetype: {properties['linetype']} "
+                        f"(type: {type(properties['linetype'])}). Linetype not set."
+                    )
             if 'lineweight' in properties and properties['lineweight'] is not None:
                 layer.lineweight = properties['lineweight']
             if 'plot' in properties and properties['plot'] is not None:
@@ -164,7 +133,6 @@ class EzdxfAdapter(IDXFAdapter):
         layer_name: str,
         **style_properties
     ) -> None:
-        self._ensure_ezdxf()
         if not dxf_document:
             raise DXFProcessingError("DXF Document is None.")
         if gdf is None or gdf.empty:
@@ -192,7 +160,6 @@ class EzdxfAdapter(IDXFAdapter):
             raise DXFProcessingError(error_msg) from e
 
     def create_document(self, dxf_version: Optional[str] = None) -> Drawing:
-        self._ensure_ezdxf()
         effective_dxf_version = dxf_version if dxf_version else "AC1027"
         try:
             self._logger.debug(f"Creating new DXF document, version: {effective_dxf_version}")
@@ -207,7 +174,6 @@ class EzdxfAdapter(IDXFAdapter):
             raise DXFProcessingError(error_msg) from e
 
     def get_modelspace(self, doc: Drawing) -> Modelspace:
-        self._ensure_ezdxf()
         if not doc:
             raise DXFProcessingError("DXF document is None, cannot get modelspace.")
         try:
@@ -218,7 +184,6 @@ class EzdxfAdapter(IDXFAdapter):
             raise DXFProcessingError(error_msg) from e
 
     def create_text_style(self, doc: Drawing, style_name: str, font_name: str) -> TextStyle:
-        self._ensure_ezdxf()
         if not doc:
             raise DXFProcessingError("DXF document is None, cannot create text style.")
         try:
@@ -244,7 +209,6 @@ class EzdxfAdapter(IDXFAdapter):
             raise DXFProcessingError(error_msg) from e
 
     def create_linetype(self, doc: Drawing, ltype_name: str, pattern: List[float], description: Optional[str] = None) -> Linetype:
-        self._ensure_ezdxf()
         if not doc:
             raise DXFProcessingError("DXF document is None, cannot create linetype.")
         try:
@@ -295,7 +259,6 @@ class EzdxfAdapter(IDXFAdapter):
         lineweight: Optional[int] = None,
         transparency: Optional[float] = None,
     ) -> None:
-        self._ensure_ezdxf()
         if not entity:
             self._logger.warning("Attempted to set properties on a None entity.")
             return
@@ -341,7 +304,6 @@ class EzdxfAdapter(IDXFAdapter):
         rotation: float = 0,
         style: Optional[str] = None,
     ) -> Text:
-        self._ensure_ezdxf()
         if msp is None: raise DXFProcessingError("Modelspace is None, cannot add TEXT entity.")
         try:
             current_dxfattribs = dxfattribs.copy() if dxfattribs else {}
@@ -374,7 +336,6 @@ class EzdxfAdapter(IDXFAdapter):
         width: Optional[float] = None,
         style: Optional[str] = None,
     ) -> MText:
-        self._ensure_ezdxf()
         if msp is None: raise DXFProcessingError("Modelspace is None, cannot add MTEXT entity.")
         try:
             current_dxfattribs = dxfattribs.copy() if dxfattribs else {}
@@ -403,8 +364,7 @@ class EzdxfAdapter(IDXFAdapter):
         msp: Modelspace,
         location: Tuple[float, float, float],
         dxfattribs: Optional[Dict[str, Any]] = None
-    ) -> DXFPoint:
-        self._ensure_ezdxf()
+    ) -> Point:
         if msp is None: raise DXFProcessingError("Modelspace is None, cannot add POINT entity.")
         try:
             current_dxfattribs = dxfattribs.copy() if dxfattribs else {}
@@ -426,8 +386,7 @@ class EzdxfAdapter(IDXFAdapter):
         start: Tuple[float, float, float],
         end: Tuple[float, float, float],
         dxfattribs: Optional[Dict[str, Any]] = None,
-    ) -> DXFLine:
-        self._ensure_ezdxf()
+    ) -> Line:
         if msp is None: raise DXFProcessingError("Modelspace is None, cannot add LINE entity.")
         try:
             current_dxfattribs = dxfattribs.copy() if dxfattribs else {}
@@ -451,7 +410,6 @@ class EzdxfAdapter(IDXFAdapter):
         close: bool = False,
         dxfattribs: Optional[Dict[str, Any]] = None,
     ) -> LWPolyline:
-        self._ensure_ezdxf()
         if msp is None: raise DXFProcessingError("Modelspace is None, cannot add LWPOLYLINE entity.")
         if not points: raise DXFProcessingError("Points list is empty for LWPOLYLINE.")
         try:
@@ -475,7 +433,6 @@ class EzdxfAdapter(IDXFAdapter):
         color: Optional[int] = None,
         dxfattribs: Optional[Dict[str, Any]] = None
     ) -> Hatch:
-        self._ensure_ezdxf()
         if msp is None: raise DXFProcessingError("Modelspace is None, cannot add HATCH entity.")
         try:
             current_dxfattribs = dxfattribs.copy() if dxfattribs else {}
@@ -498,9 +455,8 @@ class EzdxfAdapter(IDXFAdapter):
         self,
         hatch_entity: Hatch,
         points: List[Tuple[float, float]],
-        flags: int = ezdxf_const.BOUNDARY_PATH_POLYLINE if EZDXF_AVAILABLE else 1
+        flags: int = ezdxf_const.BOUNDARY_PATH_POLYLINE
     ) -> None:
-        self._ensure_ezdxf()
         if not hatch_entity:
             raise DXFProcessingError("Hatch entity is None, cannot add boundary path.")
         try:
@@ -513,8 +469,7 @@ class EzdxfAdapter(IDXFAdapter):
             self._logger.error(f"Failed to add boundary path to HATCH entity: {e}", exc_info=True)
             raise DXFProcessingError(f"Failed to add boundary path to HATCH entity: {e}")
 
-    def get_layer(self, doc: Drawing, layer_name: str) -> Optional[Layer]:
-        self._ensure_ezdxf()
+    def get_layer(self, doc: Drawing, layer_name: str) -> Optional[DXFLayer]:
         if not doc:
             raise DXFProcessingError("DXF document is None, cannot get layer.")
         try:
@@ -544,7 +499,6 @@ class EzdxfAdapter(IDXFAdapter):
         frozen: Optional[bool] = None,
         locked: Optional[bool] = None
     ) -> None:
-        self._ensure_ezdxf()
         layer_to_modify = doc.layers.get(layer_name)
         if not layer_to_modify:
             self._logger.error(f"Layer '{layer_name}' not found in document, cannot set properties.")
@@ -598,7 +552,6 @@ class EzdxfAdapter(IDXFAdapter):
             raise DXFProcessingError(f"Failed to set properties for layer '{layer_name}': {e}")
 
     def query_entities(self, modelspace_or_block: Any, query_string: str = "*") -> List[Any]:
-        self._ensure_ezdxf()
         self._logger.debug(f"Querying entities in {'modelspace/block'} with query: {query_string}")
         try:
             # Assuming modelspace_or_block is a valid ezdxf layout object
@@ -618,7 +571,6 @@ class EzdxfAdapter(IDXFAdapter):
         scale: Optional[float] = None,
         angle: Optional[float] = None
     ) -> None:
-        self._ensure_ezdxf()
         if not isinstance(hatch_entity, ezdxf.entities.Hatch): # Basic type check
             err_msg = f"Invalid entity type for set_hatch_pattern_fill. Expected ezdxf.entities.Hatch, got {type(hatch_entity)}."
             self._logger.error(err_msg)
@@ -654,7 +606,6 @@ class EzdxfAdapter(IDXFAdapter):
         hatch_entity: Any, # Should be ezdxf.entities.Hatch
         color: Optional[int] = None
     ) -> None:
-        self._ensure_ezdxf()
         if not isinstance(hatch_entity, ezdxf.entities.Hatch): # Basic type check
             err_msg = f"Invalid entity type for set_hatch_solid_fill. Expected ezdxf.entities.Hatch, got {type(hatch_entity)}."
             self._logger.error(err_msg)

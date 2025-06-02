@@ -44,9 +44,6 @@ class StyleApplicationOrchestratorService(IStyleApplicationOrchestrator):
         self._dxf_resource_manager = dxf_resource_manager
         self._aci_map: Optional[Dict[str, int]] = None
 
-        if not self._dxf_adapter.is_available():
-            self._logger.error("ezdxf library not available via adapter. DXF styling functionality will be severely limited.")
-
     # --- Moved from StyleApplicatorService ---
     def _get_aci_color_map(self) -> Dict[str, int]:
         if self._aci_map is None:
@@ -252,8 +249,6 @@ class StyleApplicationOrchestratorService(IStyleApplicationOrchestrator):
         style: NamedStyle,
         dxf_drawing: Drawing
     ) -> None:
-        if not self._dxf_adapter.is_available():
-            raise DXFProcessingError("ezdxf library not available or adapter failed.")
         entity_type = entity.dxftype()
         self._logger.debug(f"Applying style to DXF entity: {entity.dxf.handle} (Type: {entity_type})")
         resolved_props = self._determine_entity_properties_from_style(style, entity_type)
@@ -340,10 +335,6 @@ class StyleApplicationOrchestratorService(IStyleApplicationOrchestrator):
         as part of a more complex styling operation (e.g. from GeoDataFrame feature that implies hatch).
         For now, assuming it might be called by a higher-level process.
         """
-        if not self._dxf_adapter.is_available():
-            self._logger.warning("DXF adapter not available, skipping hatch creation.")
-            return None # Return None or raise error
-
         hatch_specific_props = resolved_props.get("hatch_specific_props", {})
         # common_dxf_attribs are the general entity properties like color, linetype from style.layer
         common_dxf_attribs = resolved_props.get("common_props_for_adapter", {})
@@ -404,7 +395,7 @@ class StyleApplicationOrchestratorService(IStyleApplicationOrchestrator):
 
 
     def _align_text_entity_to_view(self, entity: DXFGraphic, doc: Drawing, text_props: TextStyleProperties) -> None:
-        if not self._dxf_adapter.is_available() or not isinstance(entity, (Text, MText)):
+        if not isinstance(entity, (Text, MText)):
             return
         self._logger.debug(f"Aligning entity {entity.dxf.handle} ({entity.dxftype()}) to view.")
         target_z_axis_wcs = Z_AXIS
@@ -434,64 +425,75 @@ class StyleApplicationOrchestratorService(IStyleApplicationOrchestrator):
         self,
         dxf_drawing: Drawing,
         layer_name: str,
-        style: NamedStyle
+        style: NamedStyle,
+        style_name: Optional[str] = None # Add style_name for logging
     ) -> None:
+        """Apply a NamedStyle to all entities on a specific DXF layer."""
+        # Use style_name if provided, otherwise log that style object is being applied
+        log_style_name = style_name if style_name else (f"style object (type: {type(style).__name__})")
+        self._logger.debug(f"Applying style '{log_style_name if style else 'None'}' to DXF layer '{layer_name}'.")
+
         if style is None:
-            self._logger.info(f"Style is None for layer '{layer_name}'. No styles will be applied to the layer or its entities.")
+            self._logger.info(f"Style is None for layer '{layer_name}'. No styles will be applied.")
             return
 
-        if not self._dxf_adapter.is_available():
-            raise DXFProcessingError("Cannot apply styles to DXF layer: adapter not available.")
-        self._logger.debug(f"Applying style to DXF layer: {layer_name}")
-        dxf_layer: Optional[Any] = None
         try:
-            dxf_layer = self._dxf_adapter.get_layer(dxf_drawing, layer_name)
-            if dxf_layer is None:
-                self._dxf_adapter.create_dxf_layer(dxf_drawing, layer_name)
-                dxf_layer = self._dxf_adapter.get_layer(dxf_drawing, layer_name)
-                if dxf_layer is None: raise DXFProcessingError(f"Failed to create/retrieve layer '{layer_name}'.")
-        except Exception as e:
-            self._logger.error(f"Error managing layer '{layer_name}': {e}", exc_info=True)
-            raise DXFProcessingError(f"Error managing layer '{layer_name}': {str(e)}") from e
+            dxf_layer_obj = self._dxf_adapter.get_layer(dxf_drawing, layer_name)
+            if dxf_layer_obj is None:
+                self._dxf_adapter.create_dxf_layer(dxf_drawing, layer_name) # Create if not exists
+                dxf_layer_obj = self._dxf_adapter.get_layer(dxf_drawing, layer_name) # Re-fetch
+                if dxf_layer_obj is None:
+                    raise DXFProcessingError(f"Failed to create or retrieve layer '{layer_name}' for styling.")
 
-        if style.layer:
-            s_layer = style.layer
-            layer_props_to_set: Dict[str, Any] = {}
-            if s_layer.color is not None: layer_props_to_set['color'] = self._resolve_aci_color(s_layer.color)
-            if s_layer.linetype is not None:
-                # Pass LayerStyleProperties to ensure_linetype for full context
-                self._dxf_resource_manager.ensure_linetype(dxf_drawing, s_layer)
-                layer_props_to_set['linetype'] = s_layer.linetype
-            else: layer_props_to_set['linetype'] = "BYLAYER"
-            if s_layer.lineweight is not None:
-                # Assuming s_layer.lineweight is already validated int by model
-                if DXFLineweight.is_valid_lineweight(s_layer.lineweight): # Or use adapter.validate_lineweight
-                    layer_props_to_set['lineweight'] = s_layer.lineweight
+            # Apply style.layer properties to the DXF layer itself
+            if style.layer:
+                s_layer = style.layer
+                layer_props_to_set: Dict[str, Any] = {}
+                if s_layer.color is not None:
+                    layer_props_to_set['color'] = self._resolve_aci_color(s_layer.color)
+                if s_layer.linetype is not None:
+                    # Ensure linetype resource exists in the DXF document
+                    self._dxf_resource_manager.ensure_linetype(dxf_drawing, s_layer)
+                    layer_props_to_set['linetype'] = s_layer.linetype
                 else:
-                    self._logger.warning(f"Invalid lineweight {s_layer.lineweight} for '{layer_name}', using default.")
-                    layer_props_to_set['lineweight'] = DXFLineweight.DEFAULT.value # -3
-            else: layer_props_to_set['lineweight'] = LINEWEIGHT_BYLAYER
+                    layer_props_to_set['linetype'] = "BYLAYER" # Default if not specified in style
 
-            if s_layer.plot is not None: layer_props_to_set['plot'] = s_layer.plot
-            if s_layer.is_on is not None: layer_props_to_set['on'] = s_layer.is_on
-            if s_layer.frozen is not None: layer_props_to_set['frozen'] = s_layer.frozen
-            if s_layer.locked is not None: layer_props_to_set['locked'] = s_layer.locked
+                if s_layer.lineweight is not None:
+                    if DXFLineweight.is_valid_lineweight(s_layer.lineweight):
+                        layer_props_to_set['lineweight'] = s_layer.lineweight
+                    else:
+                        self._logger.warning(f"Invalid lineweight {s_layer.lineweight} for '{layer_name}', using default.")
+                        layer_props_to_set['lineweight'] = DXFLineweight.DEFAULT.value
+                else:
+                    layer_props_to_set['lineweight'] = LINEWEIGHT_BYLAYER # Default
 
-            if dxf_layer and layer_props_to_set:
-                try:
-                    # Pass doc and layer_name to adapter, not the layer_entity directly
+                if s_layer.plot is not None: layer_props_to_set['plot'] = s_layer.plot
+                if s_layer.is_on is not None: layer_props_to_set['on'] = s_layer.is_on
+                if s_layer.frozen is not None: layer_props_to_set['frozen'] = s_layer.frozen
+                if s_layer.locked is not None: layer_props_to_set['locked'] = s_layer.locked
+
+                if layer_props_to_set: # Only call if there are properties to set
                     self._dxf_adapter.set_layer_properties(doc=dxf_drawing, layer_name=layer_name, **layer_props_to_set)
-                except Exception as e:
-                     self._logger.error(f"Error setting layer props for '{layer_name}': {e}", exc_info=True)
-        try:
+
+            # Apply style to entities on the layer
             msp = self._dxf_adapter.get_modelspace(dxf_drawing)
             entities_on_layer = self._dxf_adapter.query_entities(msp, query_string=f'*[layer=="{layer_name}"]')
+
             if entities_on_layer:
+                self._logger.info(f"Applying style '{log_style_name}' to {len(entities_on_layer)} entities on layer '{layer_name}'.")
                 for entity in entities_on_layer:
-                    if hasattr(entity, 'dxftype'):
+                    if hasattr(entity, 'dxftype'): # Ensure it's a DXF entity
                         self.apply_style_to_dxf_entity(entity, style, dxf_drawing)
+            else:
+                self._logger.info(f"No entities found on layer '{layer_name}' to apply style '{log_style_name}'.")
+
+        except DXFProcessingError as e_dxf:
+            self._logger.error(f"DXFProcessingError during style application to layer '{layer_name}': {e_dxf}", exc_info=True)
+            raise # Re-raise DXFProcessingError to be handled by caller
         except Exception as e:
-            self._logger.error(f"Could not process entities on layer {layer_name}: {e}", exc_info=True)
+            self._logger.error(f"Unexpected error applying styles to layer '{layer_name}': {e}", exc_info=True)
+            # Wrap unexpected errors in DXFProcessingError for consistent error handling
+            raise DXFProcessingError(f"Unexpected error applying styles to layer '{layer_name}': {str(e)}") from e
 
     def clear_caches(self) -> None:
         if self._aci_map is not None:

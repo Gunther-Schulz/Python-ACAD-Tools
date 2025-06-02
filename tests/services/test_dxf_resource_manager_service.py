@@ -19,7 +19,7 @@ def real_logger_service() -> LoggingService:
 @pytest.fixture
 def mock_dxf_adapter() -> Mock:
     adapter = Mock(spec=IDXFAdapter)
-    adapter.is_available.return_value = True # Default to available
+    # adapter.is_available.return_value = True # Removed
     # Configure specific mock behaviors for create_linetype and create_text_style per test if needed
     # e.g., adapter.create_linetype.return_value = None (or a mock linetype object if service used it)
     # e.g., adapter.create_text_style.return_value = None (or a mock text style object)
@@ -44,22 +44,6 @@ def manager(resource_manager_real_logger: DXFResourceManagerService) -> DXFResou
 
 class TestEnsureLinetype:
     """Tests for the ensure_linetype method."""
-
-    def test_adapter_unavailable_logs_warning_and_skips(self, real_logger_service: LoggingService, caplog):
-        """Business Outcome: If adapter is unavailable, logs warning and does not attempt creation."""
-        mock_dxf_adapter_unavailable = Mock(spec=IDXFAdapter)
-        mock_dxf_adapter_unavailable.is_available.return_value = False
-        # Use caplog from pytest to capture log messages from the REAL logger
-        service = DXFResourceManagerService(mock_dxf_adapter_unavailable, real_logger_service)
-
-        props = LayerStyleProperties(linetype="ANYLINE_WILL_DO")
-        drawing_mock = Mock(spec=Drawing)
-
-        with caplog.at_level("WARNING", logger="src.services.dxf_resource_manager_service"):
-            service.ensure_linetype(drawing_mock, props)
-
-        assert "DXF adapter not available. Skipping linetype creation." in caplog.text
-        mock_dxf_adapter_unavailable.create_linetype.assert_not_called()
 
     def test_none_props_or_linetype_name_skips_creation(self, manager: DXFResourceManagerService, mock_drawing: Mock, mock_dxf_adapter: Mock):
         """Business Outcome: No adapter call if LayerStyleProperties or linetype name is None."""
@@ -194,23 +178,6 @@ class TestEnsureLinetype:
 
 class TestEnsureTextStyle:
     """Tests for the ensure_text_style method."""
-
-    def test_adapter_unavailable_logs_warning_returns_none(self, real_logger_service: LoggingService, caplog):
-        """Business Outcome: If adapter is unavailable, logs warning, returns None, skips creation."""
-        mock_dxf_adapter_unavailable = Mock(spec=IDXFAdapter)
-        mock_dxf_adapter_unavailable.is_available.return_value = False
-        service = DXFResourceManagerService(mock_dxf_adapter_unavailable, real_logger_service)
-
-        props = TextStyleProperties(font="AnyFontWillDo")
-        drawing_mock = Mock(spec=Drawing)
-
-        result = None
-        with caplog.at_level("WARNING", logger="src.services.dxf_resource_manager_service"):
-            result = service.ensure_text_style(drawing_mock, props)
-
-        assert "DXF adapter not available. Skipping text style creation." in caplog.text
-        assert result is None
-        mock_dxf_adapter_unavailable.create_text_style.assert_not_called()
 
     def test_none_props_or_font_returns_none_skips_creation(self, manager: DXFResourceManagerService, mock_drawing: Mock, mock_dxf_adapter: Mock):
         """Business Outcome: No adapter call and returns None if TextStyleProperties or font is None."""

@@ -93,15 +93,6 @@ class IDXFAdapter(Protocol):
         """
         ...
 
-    def is_available(self) -> bool:
-        """
-        Check if the DXF library is available.
-
-        Returns:
-            True if DXF library is available, False otherwise.
-        """
-        ...
-
     def create_document(self, dxf_version: Optional[str] = None) -> Any:
         """
         Create a new DXF document.

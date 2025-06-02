@@ -175,7 +175,13 @@ class ProjectOrchestratorService(IProjectOrchestrator):
                 try:
                     project_root = os.path.join(app_config.projects_root_dir, project_name)
                     gdf = self._geometry_processor.create_layer_from_definition(
-                        layer_def, dxf_drawing, style_config, project_config.main.crs, project_root, project_config
+                        layer_def,
+                        dxf_drawing,
+                        style_config,
+                        project_config.main.crs,
+                        project_root,
+                        project_config,
+                        project_name
                     )
                     if gdf is not None:
                         self._logger.info(f"Successfully created/loaded base for layer '{layer_def.name}'. Features: {len(gdf)}")
@@ -321,10 +327,17 @@ class ProjectOrchestratorService(IProjectOrchestrator):
                         if layer_def_for_style and layer_def_for_style.update_dxf and style_config:
                             named_style = self._style_applicator.get_style_for_layer(layer_name, layer_def_for_style, style_config)
 
+                            # Determine the style name for logging and passing to applicator
+                            actual_style_name_for_log_and_pass: Optional[str] = None
+                            if layer_def_for_style.style and isinstance(layer_def_for_style.style, str):
+                                actual_style_name_for_log_and_pass = layer_def_for_style.style
+                            elif named_style: # If style was found (e.g., by layer_name fallback)
+                                actual_style_name_for_log_and_pass = layer_name # Assume style name is layer name if not explicitly defined
+
                             # Apply layer-level style if found
                             if named_style:
-                                self._logger.debug(f"Applying style '{named_style.name if hasattr(named_style, 'name') else 'inline'}' to DXF layer '{layer_name}'")
-                                self._style_applicator.apply_styles_to_dxf_layer(dxf_drawing, layer_name, named_style)
+                                self._logger.debug(f"Applying style '{actual_style_name_for_log_and_pass if actual_style_name_for_log_and_pass else 'inline/unknown'}' to DXF layer '{layer_name}'")
+                                self._style_applicator.apply_styles_to_dxf_layer(dxf_drawing, layer_name, named_style, actual_style_name_for_log_and_pass)
                             else:
                                 self._logger.debug(f"No specific style found for DXF layer '{layer_name}'. Default DXF layer appearance will be used.")
 

@@ -1,33 +1,11 @@
 """Visualization utilities for debugging and development plotting."""
 from typing import Optional
 
-# These utilities will have optional dependencies on matplotlib and geopandas (for plot method)
-
-# Attempt to import matplotlib and shapely. If not available, plotting functions will be no-ops or raise errors.
-_MATPLOTLIB_AVAILABLE = False
-_SHAPELY_AVAILABLE = False
-_GEOPANDAS_AVAILABLE = False
-
-try:
-    import matplotlib.pyplot as plt
-    _MATPLOTLIB_AVAILABLE = True
-except ImportError:
-    pass
-
-try:
-    from shapely.geometry.base import BaseGeometry
-    from shapely.geometry import MultiPolygon, Polygon, LineString, MultiLineString, Point, MultiPoint
-    _SHAPELY_AVAILABLE = True
-except ImportError:
-    BaseGeometry = type(None) # type: ignore
-    pass
-
-try:
-    import geopandas as gpd
-    _GEOPANDAS_AVAILABLE = True
-except ImportError:
-    gpd = None # type: ignore
-    pass
+# Direct imports for hard dependencies
+import matplotlib.pyplot as plt
+from shapely.geometry.base import BaseGeometry
+from shapely.geometry import MultiPolygon, Polygon, LineString, MultiLineString, Point, MultiPoint
+import geopandas as gpd
 
 def plot_shapely_geometry(geom: BaseGeometry, title: Optional[str] = None, ax=None, **kwargs):
     """
@@ -40,9 +18,6 @@ def plot_shapely_geometry(geom: BaseGeometry, title: Optional[str] = None, ax=No
         **kwargs: Additional keyword arguments to pass to the plot function
                   (e.g., color, alpha, linewidth for lines; facecolor, edgecolor for polygons).
     """
-    if not _MATPLOTLIB_AVAILABLE or not _SHAPELY_AVAILABLE:
-        return
-
     if geom is None or geom.is_empty:
         return
 
@@ -107,9 +82,6 @@ def plot_gdf(gdf, title: Optional[str] = None, ax=None, **kwargs):
         ax: Optional matplotlib Axes object to plot on. If None, a new figure and axes are created.
         **kwargs: Additional keyword arguments to pass to gdf.plot().
     """
-    if not _GEOPANDAS_AVAILABLE or not _MATPLOTLIB_AVAILABLE:
-        return
-
     if gdf is None or gdf.empty:
         return
 

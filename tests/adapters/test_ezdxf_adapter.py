@@ -2,72 +2,28 @@ import unittest
 from unittest.mock import patch, MagicMock, mock_open, call, ANY
 import os
 
-# Conditional imports for ezdxf types, mirroring ezdxf_adapter.py
-EZDXF_TEST_AVAILABLE = False
-try:
-    from ezdxf.document import Drawing
-    from ezdxf.layouts import Modelspace #, Paperspace, BlockLayout - Add if spec needed
-    from ezdxf.entities import Text, MText, Point as DXFPoint, Line as DXFLine, LWPolyline, Hatch #, Polyline, Spline, Insert - Add if spec needed
-    from ezdxf.tableentries import Layer, Linetype, Style as TextStyle
-    from ezdxf.enums import MTextEntityAlignment
-    from ezdxf import const as ezdxf_const
-    # It's okay if these are not all used as specs immediately, but good to have for future
-    EZDXF_TEST_AVAILABLE = True # This flag is for the test module itself
-except ImportError:
-    Drawing, Modelspace, Text, MText, DXFPoint, DXFLine, LWPolyline, Hatch = (MagicMock,) * 8
-    Layer, Linetype, TextStyle, MTextEntityAlignment, ezdxf_const = (MagicMock,) * 5
-    # If EZDXF_TEST_AVAILABLE is False, the specs above will be MagicMock, which is fine.
-    # Add dummy types for table-like objects if not available from ezdxf
-    # LayerTable, StyleTable, LinetypeTable = (MagicMock,) *3 # OLD
-    # if EZDXF_TEST_AVAILABLE: # OLD
-    #     try: # OLD
-    #         from ezdxf.sections.tables import LayerTable, StyleTable, LinetypeTable # OLD
-    #     except ImportError: # Older ezdxf might not have these directly importable or named this way # OLD
-    #         LayerTable, StyleTable, LinetypeTable = (MagicMock,) *3 # Fallback # OLD
+# Unconditional imports for ezdxf types
+from ezdxf.document import Drawing
+from ezdxf.layouts import Modelspace
+from ezdxf.entities import Text, MText, Point as DXFPoint, Line as DXFLine, LWPolyline, Hatch
+from ezdxf.entities.layer import Layer
+from ezdxf.entities.ltype import Linetype
+from ezdxf.entities.textstyle import Textstyle as TextStyle
+from ezdxf.lldxf.const import DXFValueError, DXFStructureError
+from ezdxf.enums import MTextEntityAlignment
+from ezdxf import const as ezdxf_const
 
-# Define Specs for Table Mocks robustly
-if EZDXF_TEST_AVAILABLE:
-    try:
-        from ezdxf.sections.tables import LayerTable as RealLayerTable, \
-                                          StyleTable as RealStyleTable, \
-                                          LinetypeTable as RealLinetypeTable
-        LayerTableSpec = RealLayerTable
-        StyleTableSpec = RealStyleTable
-        LinetypeTableSpec = RealLinetypeTable
-    except ImportError:
-        # This path might indicate an incomplete ezdxf installation or older version
-        # if EZDXF_TEST_AVAILABLE was true due to other core imports succeeding.
-        print("WARNING (test_ezdxf_adapter.py setup): ezdxf core components seemed available, "
-              "but specific table types (LayerTable, StyleTable, LinetypeTable) could not be imported. "
-              "Using generic 'object' spec for table mocks. This may affect spec accuracy for these mocks.")
-        LayerTableSpec = object
-        StyleTableSpec = object
-        LinetypeTableSpec = object
-else:
-    # EZDXF is not available, so use generic specs
-    LayerTableSpec = object
-    StyleTableSpec = object
-    LinetypeTableSpec = object
+# Re-inserting table spec imports
+from ezdxf.sections.tables import LayerTable as LayerTableSpec, \
+                                  TextstyleTable as StyleTableSpec, \
+                                  LinetypeTable as LinetypeTableSpec
 
 # Assuming the module is in src/adapters/ezdxf_adapter.py
 # and tests are in tests/adapters/test_ezdxf_adapter.py
 # Adjust path as necessary for your test runner
 from src.adapters.ezdxf_adapter import EzdxfAdapter
 from src.interfaces.logging_service_interface import ILoggingService
-from src.domain.exceptions import DXFProcessingError, DXFLibraryNotInstalledError
-
-# Dummy exception classes for testing when ezdxf is mocked as available
-if EZDXF_TEST_AVAILABLE:
-    from ezdxf.errors import DXFValueError as RealDXFValueError, DXFStructureError as RealDXFStructureError
-    class MockDXFValueError(RealDXFValueError):
-        pass
-    class MockDXFStructureError(RealDXFStructureError):
-        pass
-else:
-    class MockDXFValueError(Exception):
-        pass
-    class MockDXFStructureError(Exception):
-        pass
+from src.domain.exceptions import DXFProcessingError
 
 # Mock a generic ezdxf entity for reuse
 class MockDXFEntity:
@@ -222,7 +178,7 @@ class TestEzdxfAdapter(unittest.TestCase):
         # Store patches to stop them in tearDown
         self.patches_started_mocks = {} # Stores the mock object returned by patcher.start()
         self.active_patchers = [] # Stores the patcher objects themselves for stopping
-        self.patch_ezdxf_available_patcher = None # For the EZDXF_AVAILABLE flag specifically
+        self.patch_ezdxf_available_patcher = None # For the EZDXF_IMPORTED_SUCCESSFULLY flag specifically
 
     def _start_patch(self, name, **kwargs):
         patcher = patch(name, **kwargs)
@@ -231,99 +187,76 @@ class TestEzdxfAdapter(unittest.TestCase):
         self.patches_started_mocks[name] = started_mock # Store the started mock if needed by name
         return started_mock
 
-    def _mock_ezdxf_globally(self, available=True):
-        # Patch EZDXF_AVAILABLE at the module level where EzdxfAdapter is defined
-        self.patch_ezdxf_available_patcher = patch('src.adapters.ezdxf_adapter.EZDXF_AVAILABLE', available)
-        self.patch_ezdxf_available_patcher.start() # Start it directly
-
+    def _mock_ezdxf_globally(self):
         # Patch the ezdxf module itself
         self.mock_ezdxf_module = self._start_patch('src.adapters.ezdxf_adapter.ezdxf')
 
         # Configure the mock_ezdxf_module based on how ezdxf_adapter.py imports and uses ezdxf
-        if available:
-            # Exceptions
-            self.mock_ezdxf_module.DXFValueError = MockDXFValueError
-            self.mock_ezdxf_module.DXFStructureError = MockDXFStructureError
+        # Exceptions
+        self.mock_ezdxf_module.DXFValueError = DXFValueError # Use real exception
+        self.mock_ezdxf_module.DXFStructureError = DXFStructureError # Use real exception
 
-            # Document and Layouts
-            self.mock_drawing = MagicMock(spec=Drawing) # This will be the return_value of new/readfile
-            self.mock_ezdxf_module.new.return_value = self.mock_drawing
-            self.mock_ezdxf_module.readfile.return_value = self.mock_drawing
-            self.mock_modelspace = MagicMock(spec=Modelspace)
-            self.mock_drawing.modelspace = MagicMock(return_value=self.mock_modelspace) # modelspace() is a method
-            self.mock_drawing.saveas = MagicMock() # Added for save tests
+        # Document and Layouts
+        self.mock_drawing = MagicMock(spec=Drawing) # This will be the return_value of new/readfile
+        self.mock_ezdxf_module.new.return_value = self.mock_drawing
+        self.mock_ezdxf_module.readfile.return_value = self.mock_drawing
+        self.mock_modelspace = MagicMock(spec=Modelspace)
+        self.mock_drawing.modelspace = MagicMock(return_value=self.mock_modelspace) # modelspace() is a method
+        self.mock_drawing.saveas = MagicMock() # Added for save tests
 
-            # Configure mock_modelspace with common methods
-            self.mock_modelspace.add_point = MagicMock()
-            self.mock_modelspace.add_line = MagicMock()
-            self.mock_modelspace.add_lwpolyline = MagicMock()
-            self.mock_modelspace.add_text = MagicMock()
-            self.mock_modelspace.add_mtext = MagicMock()
-            self.mock_modelspace.add_hatch = MagicMock()
-            self.mock_modelspace.query = MagicMock()
+        # Configure mock_modelspace with common methods
+        self.mock_modelspace.add_point = MagicMock()
+        self.mock_modelspace.add_line = MagicMock()
+        self.mock_modelspace.add_lwpolyline = MagicMock()
+        self.mock_modelspace.add_text = MagicMock()
+        self.mock_modelspace.add_mtext = MagicMock()
+        self.mock_modelspace.add_hatch = MagicMock()
+        self.mock_modelspace.query = MagicMock()
 
-            self.mock_layers_table = MagicMock(spec=CustomLayerTableSpec)
-            self.mock_drawing.layers = self.mock_layers_table
-            self.mock_layers_table.add = MagicMock()
-            self.mock_layers_table.get = MagicMock()
-            self.mock_layers_table.__contains__.return_value = False
+        self.mock_layers_table = MagicMock(spec=CustomLayerTableSpec)
+        self.mock_drawing.layers = self.mock_layers_table
+        self.mock_layers_table.add = MagicMock()
+        self.mock_layers_table.get = MagicMock()
+        self.mock_layers_table.__contains__.return_value = False
 
-            self.mock_styles_table = MagicMock(spec=CustomStyleTableSpec)
-            self.mock_drawing.styles = self.mock_styles_table
-            self.mock_styles_table.new = MagicMock()
-            self.mock_styles_table.get = MagicMock()
-            self.mock_styles_table.__contains__.return_value = False
+        self.mock_styles_table = MagicMock(spec=CustomStyleTableSpec)
+        self.mock_drawing.styles = self.mock_styles_table
+        self.mock_styles_table.new = MagicMock()
+        self.mock_styles_table.get = MagicMock()
+        self.mock_styles_table.__contains__.return_value = False
 
-            self.mock_linetypes_table = MagicMock(spec=CustomLinetypeTableSpec)
-            self.mock_drawing.linetypes = self.mock_linetypes_table
-            self.mock_linetypes_table.add = MagicMock()
-            self.mock_linetypes_table.get = MagicMock()
-            self.mock_linetypes_table.__contains__.return_value = False
+        self.mock_linetypes_table = MagicMock(spec=CustomLinetypeTableSpec)
+        self.mock_drawing.linetypes = self.mock_linetypes_table
+        self.mock_linetypes_table.add = MagicMock()
+        self.mock_linetypes_table.get = MagicMock()
+        self.mock_linetypes_table.__contains__.return_value = False
 
-            # Entities (assuming accessed like ezdxf.entities.Text)
-            # Create a mock for the .entities submodule if it doesn't exist
-            if not hasattr(self.mock_ezdxf_module, 'entities') or not isinstance(self.mock_ezdxf_module.entities, MagicMock):
-                self.mock_ezdxf_module.entities = MagicMock()
-            self.mock_ezdxf_module.entities.Text = MagicMock(spec=Text)
-            self.mock_ezdxf_module.entities.MText = MagicMock(spec=MText)
-            self.mock_ezdxf_module.entities.Point = MagicMock(spec=DXFPoint) # Renamed to DXFPoint in adapter
-            self.mock_ezdxf_module.entities.Line = MagicMock(spec=DXFLine)   # Renamed to DXFLine in adapter
-            self.mock_ezdxf_module.entities.LWPolyline = MagicMock(spec=LWPolyline)
-            if EZDXF_TEST_AVAILABLE:
-                self.mock_ezdxf_module.entities.Hatch = Hatch # Use the real Hatch type imported at the top of the test file
-            else:
-                # If EZDXF_TEST_AVAILABLE is False, Hatch at the top is already a MagicMock (class)
-                # So, make the entities.Hatch also this MagicMock class for consistency in isinstance checks if Hatch were used as a type directly.
-                self.mock_ezdxf_module.entities.Hatch = Hatch # Hatch is effectively MagicMock here
+        # Entities (assuming accessed like ezdxf.entities.Text)
+        # Create a mock for the .entities submodule if it doesn't exist
+        if not hasattr(self.mock_ezdxf_module, 'entities') or not isinstance(self.mock_ezdxf_module.entities, MagicMock):
+            self.mock_ezdxf_module.entities = MagicMock()
+        self.mock_ezdxf_module.entities.Text = MagicMock(spec=Text)
+        self.mock_ezdxf_module.entities.MText = MagicMock(spec=MText)
+        self.mock_ezdxf_module.entities.Point = MagicMock(spec=DXFPoint) # Renamed to DXFPoint in adapter
+        self.mock_ezdxf_module.entities.Line = MagicMock(spec=DXFLine)   # Renamed to DXFLine in adapter
+        self.mock_ezdxf_module.entities.LWPolyline = MagicMock(spec=LWPolyline)
+        self.mock_ezdxf_module.entities.Hatch = Hatch # Use the real Hatch type imported at the top of the test file
 
-            # Table Entries (Linetype, Style, Layer)
-            if not hasattr(self.mock_ezdxf_module, 'tableentries') or not isinstance(self.mock_ezdxf_module.tableentries, MagicMock):
-                self.mock_ezdxf_module.tableentries = MagicMock()
-            self.mock_ezdxf_module.tableentries.Layer = MagicMock(spec=Layer)
-            self.mock_ezdxf_module.tableentries.Linetype = MagicMock(spec=Linetype)
-            self.mock_ezdxf_module.tableentries.Style = MagicMock(spec=TextStyle) # TextStyle is Style in adapter
+        # Table Entries (Linetype, Style, Layer)
+        if not hasattr(self.mock_ezdxf_module, 'tableentries') or not isinstance(self.mock_ezdxf_module.tableentries, MagicMock):
+            self.mock_ezdxf_module.tableentries = MagicMock()
+        self.mock_ezdxf_module.tableentries.Layer = MagicMock(spec=Layer)
+        self.mock_ezdxf_module.tableentries.Linetype = MagicMock(spec=Linetype)
+        self.mock_ezdxf_module.tableentries.Style = MagicMock(spec=TextStyle) # TextStyle is Style in adapter
 
-            # Enums and Constants
-            if not hasattr(self.mock_ezdxf_module, 'enums') or not isinstance(self.mock_ezdxf_module.enums, MagicMock):
-                self.mock_ezdxf_module.enums = MagicMock()
-            self.mock_ezdxf_module.enums.MTextEntityAlignment = MagicMock(spec=MTextEntityAlignment)
-            self.mock_ezdxf_module.const = MagicMock(spec=ezdxf_const) # ezdxf_const is ezdxf.const in adapter
+        # Enums and Constants
+        if not hasattr(self.mock_ezdxf_module, 'enums') or not isinstance(self.mock_ezdxf_module.enums, MagicMock):
+            self.mock_ezdxf_module.enums = MagicMock()
+        self.mock_ezdxf_module.enums.MTextEntityAlignment = MagicMock(spec=MTextEntityAlignment)
+        self.mock_ezdxf_module.const = MagicMock(spec=ezdxf_const) # ezdxf_const is ezdxf.const in adapter
 
-        else: # ezdxf not available
-            self.mock_ezdxf_module.DXFValueError = Exception
-            self.mock_ezdxf_module.DXFStructureError = Exception
-            self.mock_ezdxf_module.new.side_effect = DXFLibraryNotInstalledError("ezdxf not available")
-            self.mock_ezdxf_module.readfile.side_effect = DXFLibraryNotInstalledError("ezdxf not available")
-            # Ensure entities and other attributes might not exist or raise errors if accessed
-            # This path should lead to DXFLibraryNotInstalledError being raised by _ensure_ezdxf
-
-        # Patch geopandas related imports (remains the same)
-        self.patch_geopandas_available_patcher = patch('src.adapters.ezdxf_adapter.GEOPANDAS_AVAILABLE', available)
-        self.patch_geopandas_available_patcher.start()
-        if available:
-            self._start_patch('src.adapters.ezdxf_adapter.gpd', new_callable=MagicMock)
-        else:
-            self._start_patch('src.adapters.ezdxf_adapter.gpd', new=None)
+        # Patch geopandas related imports (gpd is a hard dependency)
+        self._start_patch('src.adapters.ezdxf_adapter.gpd', new_callable=MagicMock)
 
         # Patch os.makedirs for save_document tests
         self._start_patch('src.adapters.ezdxf_adapter.os.makedirs', return_value=None)
@@ -336,44 +269,13 @@ class TestEzdxfAdapter(unittest.TestCase):
             except RuntimeError: # pragma: no cover
                  # can happen if patch was already stopped or not started
                  pass
-        if self.patch_ezdxf_available_patcher:
-            try:
-                self.patch_ezdxf_available_patcher.stop()
-            except RuntimeError: # pragma: no cover
-                pass
-        if hasattr(self, 'patch_geopandas_available_patcher') and self.patch_geopandas_available_patcher:
-            try:
-                self.patch_geopandas_available_patcher.stop()
-            except RuntimeError: # pragma: no cover
-                pass
         self.patches_started_mocks = {}
         self.active_patchers = []
-        self.patch_ezdxf_available_patcher = None
-        self.patch_geopandas_available_patcher = None
 
-
-    def test_init_ezdxf_available(self):
-        self._mock_ezdxf_globally(available=True)
-        adapter = EzdxfAdapter(self.mock_logger_service)
-        self.assertTrue(adapter.is_available())
-        self.mock_logger.error.assert_not_called()
-
-    def test_init_ezdxf_not_available(self):
-        self._mock_ezdxf_globally(available=False)
-        adapter = EzdxfAdapter(self.mock_logger_service)
-        self.assertFalse(adapter.is_available())
-        self.mock_logger.error.assert_called_with("ezdxf library is not installed. DXF operations will fail.")
-
-    def test_ensure_ezdxf_raises_error_if_not_available(self):
-        self._mock_ezdxf_globally(available=False)
-        adapter = EzdxfAdapter(self.mock_logger_service)
-        with self.assertRaises(DXFLibraryNotInstalledError):
-            adapter.load_dxf_file("dummy.dxf") # Any method that calls _ensure_ezdxf
-        self.mock_logger.error.assert_any_call("Attempted DXF operation, but ezdxf library is not installed.")
 
     @patch('src.adapters.ezdxf_adapter.os.path.exists')
     def test_load_dxf_file_success(self, mock_os_path_exists):
-        self._mock_ezdxf_globally(available=True)
+        self._mock_ezdxf_globally()
         mock_os_path_exists.return_value = True
         adapter = EzdxfAdapter(self.mock_logger_service)
         doc = adapter.load_dxf_file("test.dxf")
@@ -383,7 +285,7 @@ class TestEzdxfAdapter(unittest.TestCase):
 
     @patch('src.adapters.ezdxf_adapter.os.path.exists')
     def test_load_dxf_file_not_found(self, mock_os_path_exists):
-        self._mock_ezdxf_globally(available=True)
+        self._mock_ezdxf_globally()
         mock_os_path_exists.return_value = False
         adapter = EzdxfAdapter(self.mock_logger_service)
         with self.assertRaises(DXFProcessingError) as context:
@@ -394,39 +296,35 @@ class TestEzdxfAdapter(unittest.TestCase):
 
     @patch('src.adapters.ezdxf_adapter.os.path.exists')
     def test_load_dxf_file_structure_error(self, mock_os_path_exists):
-        self._mock_ezdxf_globally(available=True)
+        self._mock_ezdxf_globally()
         mock_os_path_exists.return_value = True
-        self.patches_started_mocks['src.adapters.ezdxf_adapter.ezdxf'].readfile.side_effect = MockDXFStructureError("Test DXFStructureError")
+        self.patches_started_mocks['src.adapters.ezdxf_adapter.ezdxf'].readfile.side_effect = DXFStructureError("Test Structure Error")
         adapter = EzdxfAdapter(self.mock_logger_service)
         with self.assertRaises(DXFProcessingError) as context:
-            adapter.load_dxf_file("bad.dxf")
-        self.assertTrue("DXF Structure Error while loading bad.dxf: Test DXFStructureError" in str(context.exception))
-        self.mock_logger.error.assert_called_with("DXF Structure Error while loading bad.dxf: Test DXFStructureError", exc_info=True)
+            adapter.load_dxf_file("path/to/corrupt.dxf")
+        self.assertTrue("DXF Structure Error during file load: Test Structure Error" in str(context.exception))
+        self.mock_logger.error.assert_called_with("DXF Structure Error during file load: Test Structure Error")
 
     @patch('src.adapters.ezdxf_adapter.os.path.exists', return_value=True)
     def test_load_dxf_file_io_error(self, mock_exists):
-        self._mock_ezdxf_globally(available=True)
-        # Simulate ezdxf.readfile raising our MockDXFStructureError.
-        # If EZDXF_TEST_AVAILABLE, this will be a subclass of the real DXFStructureError.
-        error_message = "Test IO-like Error via MockDXFStructureError"
-        self.mock_ezdxf_module.readfile.side_effect = MockDXFStructureError(error_message)
+        self._mock_ezdxf_globally()
+        # Simulate ezdxf.readfile raising our DXFStructureError.
+        error_message = "Test IO-like Error via DXFStructureError"
+        self.mock_ezdxf_module.readfile.side_effect = DXFStructureError(error_message)
 
         adapter = EzdxfAdapter(self.mock_logger_service)
         with self.assertRaises(DXFProcessingError) as context:
             adapter.load_dxf_file("io_error.dxf")
 
-        # Verify the logged error message (adapter logs what it catches)
-        # This should now be the "DXF Structure Error..." message because our mock exception should be caught by that block.
         expected_log_msg = f"DXF Structure Error while loading io_error.dxf: {error_message}"
-        self.mock_logger.error.assert_called_once_with(expected_log_msg, exc_info=True)
-
+        self.mock_logger.error.assert_called_with(expected_log_msg, exc_info=True)
         # Verify the DXFProcessingError attributes
         self.assertEqual(context.exception.args[0], expected_log_msg)
-        self.assertIsInstance(context.exception.__cause__, MockDXFStructureError)
+        self.assertIsInstance(context.exception.__cause__, DXFStructureError)
         self.assertEqual(str(context.exception.__cause__), error_message)
 
     def test_save_document_success(self):
-        self._mock_ezdxf_globally(available=True)
+        self._mock_ezdxf_globally()
         adapter = EzdxfAdapter(self.mock_logger_service)
         adapter.save_document(self.mock_drawing, "output/test_save.dxf")
         self.patches_started_mocks['src.adapters.ezdxf_adapter.os.makedirs'].assert_called_with("output", exist_ok=True)
@@ -434,14 +332,14 @@ class TestEzdxfAdapter(unittest.TestCase):
         self.mock_logger.info.assert_called_with("Successfully saved DXF file: output/test_save.dxf")
 
     def test_save_document_no_doc(self):
-        self._mock_ezdxf_globally(available=True)
+        self._mock_ezdxf_globally()
         adapter = EzdxfAdapter(self.mock_logger_service)
         with self.assertRaises(DXFProcessingError) as context:
             adapter.save_document(None, "output/test_save.dxf")
         self.assertEqual(str(context.exception), "DXF document is None, cannot save.")
 
     def test_save_document_exception(self):
-        self._mock_ezdxf_globally(available=True)
+        self._mock_ezdxf_globally()
         self.mock_drawing.saveas.side_effect = Exception("Save failed")
         adapter = EzdxfAdapter(self.mock_logger_service)
         with self.assertRaises(DXFProcessingError) as context:
@@ -449,7 +347,7 @@ class TestEzdxfAdapter(unittest.TestCase):
         self.assertTrue("Failed to save DXF file output/fail_save.dxf: Save failed" in str(context.exception))
 
     def test_create_document_default_version(self):
-        self._mock_ezdxf_globally(available=True)
+        self._mock_ezdxf_globally()
         self.mock_drawing.layers = MagicMock()
         self.mock_drawing.layers.add = MagicMock()
         self.mock_drawing.layers.__contains__.return_value = False
@@ -463,7 +361,7 @@ class TestEzdxfAdapter(unittest.TestCase):
         self.mock_logger.info.assert_called_with("Successfully created new DXF document (version AC1027).")
 
     def test_create_document_specific_version(self):
-        self._mock_ezdxf_globally(available=True)
+        self._mock_ezdxf_globally()
         self.mock_drawing.layers = MagicMock()
         self.mock_drawing.layers.add = MagicMock()
         self.mock_drawing.layers.__contains__.return_value = True
@@ -477,7 +375,7 @@ class TestEzdxfAdapter(unittest.TestCase):
         self.mock_logger.info.assert_called_with("Successfully created new DXF document (version AC1032).")
 
     def test_create_document_exception(self):
-        self._mock_ezdxf_globally(available=True)
+        self._mock_ezdxf_globally()
         self.patches_started_mocks['src.adapters.ezdxf_adapter.ezdxf'].new.side_effect = Exception("Creation failed")
         adapter = EzdxfAdapter(self.mock_logger_service)
         with self.assertRaises(DXFProcessingError) as context:
@@ -485,14 +383,14 @@ class TestEzdxfAdapter(unittest.TestCase):
         self.assertTrue("Failed to create new DXF document (version AC1027): Creation failed" in str(context.exception))
 
     def test_get_modelspace_success(self):
-        self._mock_ezdxf_globally(available=True)
+        self._mock_ezdxf_globally()
         adapter = EzdxfAdapter(self.mock_logger_service)
         msp = adapter.get_modelspace(self.mock_drawing)
         self.mock_drawing.modelspace.assert_called_once()
         self.assertEqual(msp, self.mock_modelspace)
 
     def test_get_modelspace_no_doc(self):
-        self._mock_ezdxf_globally(available=True)
+        self._mock_ezdxf_globally()
         adapter = EzdxfAdapter(self.mock_logger_service)
         with self.assertRaises(DXFProcessingError) as context:
             adapter.get_modelspace(None)
@@ -500,7 +398,7 @@ class TestEzdxfAdapter(unittest.TestCase):
 
     # --- Layer Tests ---
     def test_create_dxf_layer_new(self):
-        self._mock_ezdxf_globally(available=True)
+        self._mock_ezdxf_globally()
         mock_new_layer_entity = MockDXFEntity("NEW_LAYER")
         self.mock_layers_table.add.return_value = mock_new_layer_entity
         self.mock_layers_table.__contains__.return_value = False
@@ -517,7 +415,7 @@ class TestEzdxfAdapter(unittest.TestCase):
         self.mock_logger.debug.assert_any_call("Created new DXF layer: NEW_LAYER_NAME")
 
     def test_create_dxf_layer_existing(self):
-        self._mock_ezdxf_globally(available=True)
+        self._mock_ezdxf_globally()
         mock_existing_layer_entity = MockDXFEntity("EXISTING_LAYER")
         self.mock_layers_table.get.return_value = mock_existing_layer_entity
         self.mock_layers_table.__contains__.return_value = True
@@ -531,17 +429,16 @@ class TestEzdxfAdapter(unittest.TestCase):
         self.mock_logger.debug.assert_any_call("Ensured DXF layer exists: EXISTING_LAYER_NAME")
 
     def test_create_dxf_layer_no_doc(self):
-        self._mock_ezdxf_globally(available=True)
+        self._mock_ezdxf_globally()
         adapter = EzdxfAdapter(self.mock_logger_service)
         with self.assertRaises(DXFProcessingError) as context:
             adapter.create_dxf_layer(None, "ANY_LAYER")
         self.assertEqual(str(context.exception), "DXF Document is None, cannot create layer.")
 
     def test_create_dxf_layer_dxf_value_error(self):
-        self._mock_ezdxf_globally(available=True)
+        self._mock_ezdxf_globally()
         self.mock_drawing.layers = MagicMock()
-        # MODIFIED: Use RealDXFValueError if available, otherwise MockDXFValueError
-        error_to_raise = RealDXFValueError("Invalid layer prop") if EZDXF_TEST_AVAILABLE else MockDXFValueError("Invalid layer prop")
+        error_to_raise = DXFValueError("Invalid layer prop")
         self.mock_drawing.layers.add.side_effect = error_to_raise
         self.mock_drawing.layers.__contains__.return_value = False
 
@@ -551,7 +448,7 @@ class TestEzdxfAdapter(unittest.TestCase):
         self.assertEqual(str(context.exception), "DXFValueError for DXF layer ERROR_LAYER: Invalid layer prop")
 
     def test_get_layer_found(self):
-        self._mock_ezdxf_globally(available=True)
+        self._mock_ezdxf_globally()
         mock_layer_obj = MockDXFEntity("FOUND_LAYER")
         self.mock_drawing.layers = MagicMock()
         self.mock_drawing.layers.__contains__.return_value = True
@@ -565,7 +462,7 @@ class TestEzdxfAdapter(unittest.TestCase):
         self.mock_logger.debug.assert_called_with("Retrieved layer: 'EXISTING_LAYER'.")
 
     def test_get_layer_not_found(self):
-        self._mock_ezdxf_globally(available=True)
+        self._mock_ezdxf_globally()
         self.mock_drawing.layers = MagicMock()
         self.mock_drawing.layers.__contains__.return_value = False
 
@@ -576,7 +473,7 @@ class TestEzdxfAdapter(unittest.TestCase):
         self.mock_logger.debug.assert_called_with("Layer 'MISSING_LAYER' not found.")
 
     def test_set_layer_properties_all(self):
-        self._mock_ezdxf_globally(available=True)
+        self._mock_ezdxf_globally()
         mock_layer_entity_for_test = MockDXFEntity("TARGET_LAYER_PROPS")
         self.mock_drawing.layers.get.return_value = mock_layer_entity_for_test # Setup mock drawing to return our mock layer
 
@@ -604,7 +501,7 @@ class TestEzdxfAdapter(unittest.TestCase):
 
 
     def test_set_layer_properties_on_and_thaw_unlock(self):
-        self._mock_ezdxf_globally(available=True)
+        self._mock_ezdxf_globally()
         mock_layer_entity_for_state_test = MockDXFEntity("TARGET_LAYER_STATE")
         mock_layer_entity_for_state_test.dxf.color = -7 # Start as off
         mock_layer_entity_for_state_test.dxf.flags = 3 # Start as frozen and locked (1 | 2)
@@ -623,7 +520,7 @@ class TestEzdxfAdapter(unittest.TestCase):
         mock_layer_entity_for_state_test.unlock.assert_called_once()
 
     def test_set_layer_properties_no_entity(self):
-        self._mock_ezdxf_globally(available=True)
+        self._mock_ezdxf_globally()
         # Simulate layer not being found in the document
         self.mock_drawing.layers.get.return_value = None
         adapter = EzdxfAdapter(self.mock_logger_service)
@@ -636,7 +533,7 @@ class TestEzdxfAdapter(unittest.TestCase):
 
     # --- Entity Querying ---
     def test_query_entities_success(self):
-        self._mock_ezdxf_globally(available=True)
+        self._mock_ezdxf_globally()
         mock_entities = [MockDXFEntity("E1"), MockDXFEntity("E2")]
         self.mock_modelspace.query.return_value = mock_entities
         adapter = EzdxfAdapter(self.mock_logger_service)
@@ -647,8 +544,8 @@ class TestEzdxfAdapter(unittest.TestCase):
         self.mock_logger.debug.assert_called_with("Querying entities in modelspace/block with query: LINE[layer==\"0\"]")
 
     def test_query_entities_dxf_value_error(self):
-        self._mock_ezdxf_globally(available=True)
-        self.mock_modelspace.query.side_effect = MockDXFValueError("Bad query")
+        self._mock_ezdxf_globally()
+        self.mock_modelspace.query.side_effect = DXFValueError("Bad query")
         adapter = EzdxfAdapter(self.mock_logger_service)
 
         with self.assertRaisesRegex(DXFProcessingError, "Invalid query string or entity type for query: BAD_QUERY. Error: Bad query"):
@@ -656,8 +553,8 @@ class TestEzdxfAdapter(unittest.TestCase):
 
     # --- Hatch Fill Tests ---
     def test_set_hatch_pattern_fill_success(self):
-        self._mock_ezdxf_globally(available=True)
-        mock_hatch_entity = MagicMock(spec=Hatch if EZDXF_TEST_AVAILABLE else MagicMock)
+        self._mock_ezdxf_globally()
+        mock_hatch_entity = MagicMock(spec=Hatch)
         mock_hatch_entity.dxf = MagicMock()
         mock_hatch_entity.dxf.handle = "H123"
         mock_hatch_entity.dxf.solid_fill = 0 # Required for the adapter logic to proceed with pattern
@@ -672,7 +569,7 @@ class TestEzdxfAdapter(unittest.TestCase):
         self.mock_logger.debug.assert_called_with("Setting pattern fill for HATCH (handle: H123): name='ANSI31', color=3, scale=0.5, angle=45")
 
     def test_set_hatch_pattern_fill_invalid_entity_type(self):
-        self._mock_ezdxf_globally(available=True)
+        self._mock_ezdxf_globally()
         adapter = EzdxfAdapter(self.mock_logger_service)
         # We need to patch the ezdxf.entities.Hatch that the adapter imports for this test to work correctly
         # with the isinstance check, if EZDXF_TEST_AVAILABLE is true.
@@ -682,8 +579,8 @@ class TestEzdxfAdapter(unittest.TestCase):
             adapter.set_hatch_pattern_fill(MockDXFEntity(), "SOLID") # Passing a generic mock entity
 
     def test_set_hatch_solid_fill_success(self):
-        self._mock_ezdxf_globally(available=True)
-        mock_hatch_entity = MagicMock(spec=Hatch if EZDXF_TEST_AVAILABLE else MagicMock)
+        self._mock_ezdxf_globally()
+        mock_hatch_entity = MagicMock(spec=Hatch)
         mock_hatch_entity.dxf = MagicMock()
         mock_hatch_entity.dxf.handle = "H456"
         mock_hatch_entity.set_pattern_fill = MagicMock() # Good for consistency
@@ -697,7 +594,7 @@ class TestEzdxfAdapter(unittest.TestCase):
 
 
     def test_set_hatch_solid_fill_invalid_entity_type(self):
-        self._mock_ezdxf_globally(available=True)
+        self._mock_ezdxf_globally()
         adapter = EzdxfAdapter(self.mock_logger_service)
         # Similar to above, handle isinstance for EZDXF_TEST_AVAILABLE
         with self.assertRaisesRegex(DXFProcessingError, "Invalid entity type for set_hatch_solid_fill"):
@@ -706,7 +603,7 @@ class TestEzdxfAdapter(unittest.TestCase):
 
     # --- Test for add_geodataframe_to_dxf ---
     def test_add_geodataframe_to_dxf_empty_gdf(self):
-        self._mock_ezdxf_globally(available=True)
+        self._mock_ezdxf_globally()
         adapter = EzdxfAdapter(self.mock_logger_service)
         # Ensure self.mock_drawing is set up by _mock_ezdxf_globally
         # It should be self.mock_ezdxf_module.new.return_value or self.mock_ezdxf_module.readfile.return_value
@@ -721,7 +618,7 @@ class TestEzdxfAdapter(unittest.TestCase):
             mock_drawing_instance.modelspace.return_value.add_point.assert_not_called()
 
     def test_add_geodataframe_to_dxf_success(self):
-        self._mock_ezdxf_globally(available=True)
+        self._mock_ezdxf_globally()
         adapter = EzdxfAdapter(self.mock_logger_service)
 
         # Mock GeoDataFrame
@@ -774,7 +671,7 @@ class TestEzdxfAdapter(unittest.TestCase):
 
     # --- Other Entity Creation Methods ---
     def test_create_text_style_new(self):
-        self._mock_ezdxf_globally(available=True)
+        self._mock_ezdxf_globally()
         mock_style_entity = MockDXFEntity("NewStyle")
         self.mock_drawing.styles = MagicMock()
         self.mock_drawing.styles.__contains__.return_value = False
@@ -788,7 +685,7 @@ class TestEzdxfAdapter(unittest.TestCase):
         self.mock_logger.info.assert_called_with("Successfully created text style 'MyStyle'.")
 
     def test_create_text_style_existing_same_font(self):
-        self._mock_ezdxf_globally(available=True)
+        self._mock_ezdxf_globally()
         mock_existing_style = MockDXFEntity("ExistingStyle")
         mock_existing_style.dxf.font = "arial.ttf" # Case difference
         self.mock_drawing.styles = MagicMock()
@@ -804,7 +701,7 @@ class TestEzdxfAdapter(unittest.TestCase):
 
 
     def test_add_text_entity(self):
-        self._mock_ezdxf_globally(available=True)
+        self._mock_ezdxf_globally()
         mock_text_entity = MagicMock()
         self.mock_modelspace.add_text.return_value = mock_text_entity
 
@@ -818,7 +715,7 @@ class TestEzdxfAdapter(unittest.TestCase):
         self.assertEqual(text_ent, mock_text_entity)
 
     def test_add_mtext_entity(self):
-        self._mock_ezdxf_globally(available=True)
+        self._mock_ezdxf_globally()
         mock_mtext_entity = MagicMock()
         self.mock_modelspace.add_mtext.return_value = mock_mtext_entity
 
@@ -834,7 +731,7 @@ class TestEzdxfAdapter(unittest.TestCase):
 
     # --- Test set_entity_properties ---
     def test_set_entity_properties_all_set(self):
-        self._mock_ezdxf_globally(available=True)
+        self._mock_ezdxf_globally()
         mock_entity = MockDXFEntity()
         mock_entity.dxf.set = MagicMock() # To check calls if needed
 
@@ -858,13 +755,13 @@ class TestEzdxfAdapter(unittest.TestCase):
         self.assertEqual(mock_entity.dxf.set.call_count, len(expected_calls))
 
     def test_set_entity_properties_no_entity(self):
-        self._mock_ezdxf_globally(available=True)
+        self._mock_ezdxf_globally()
         adapter = EzdxfAdapter(self.mock_logger_service)
         adapter.set_entity_properties(None, color=1) # Should log warning and return
         self.mock_logger.warning.assert_called_with("Attempted to set properties on a None entity.")
 
     def test_set_entity_properties_unsupported_transparency(self):
-        self._mock_ezdxf_globally(available=True)
+        self._mock_ezdxf_globally()
         mock_entity_no_transparency = MockDXFEntity()
         # Remove transparency attribute for this test
         if hasattr(mock_entity_no_transparency.dxf, "transparency"): # Check before deleting

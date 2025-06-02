@@ -2,13 +2,8 @@
 from typing import Protocol, List, Dict, Optional, Any
 import geopandas as gpd
 
-# For DXF export
-try:
-    from ezdxf.document import Drawing
-    EZDXF_AVAILABLE = True
-except ImportError:
-    Drawing = type(None) # Placeholder
-    EZDXF_AVAILABLE = False
+# Direct import for ezdxf.document.Drawing as a hard dependency
+from ezdxf.document import Drawing
 
 from ..domain.config_models import SpecificProjectConfig # For context like DXF version
 from ..domain.exceptions import ProcessingError, DXFProcessingError

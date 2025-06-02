@@ -21,17 +21,12 @@ class DXFResourceManagerService(IDXFResourceManager):
     ):
         self._dxf_adapter = dxf_adapter
         self._logger = logger_service.get_logger(__name__)
-        if not self._dxf_adapter.is_available():
-            self._logger.error("DXF adapter reports ezdxf not available. DXFResourceManagerService may not function.")
 
     def ensure_linetype(
         self,
         drawing: Drawing,
         layer_props: Optional[LayerStyleProperties]
     ) -> None:
-        if not self._dxf_adapter.is_available():
-            self._logger.warning("DXF adapter not available. Skipping linetype creation.")
-            return
         if layer_props is None or layer_props.linetype is None:
             return
 
@@ -96,9 +91,6 @@ class DXFResourceManagerService(IDXFResourceManager):
         drawing: Drawing,
         text_props: Optional[TextStyleProperties]
     ) -> Optional[str]:
-        if not self._dxf_adapter.is_available():
-            self._logger.warning("DXF adapter not available. Skipping text style creation.")
-            return None
         if text_props is None or text_props.font is None:
             return None
 

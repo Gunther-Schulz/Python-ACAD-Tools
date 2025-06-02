@@ -26,7 +26,6 @@ def main():
     print(f"DXF document created: {dxf_document}")
 
     # Test adapter directly
-    print(f"Adapter available: {dxf_adapter.is_available()}")
     msp_direct = dxf_adapter.get_modelspace(dxf_document)
     print(f"Direct modelspace call: {msp_direct}")
     print(f"Modelspace type: {type(msp_direct)}")

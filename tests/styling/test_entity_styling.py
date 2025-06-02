@@ -6,7 +6,7 @@ from src.domain.style_models import NamedStyle, LayerStyleProperties, TextStyleP
 from src.domain.exceptions import DXFProcessingError
 # from src.domain.dxf_models import DXFEntity, TextAlignment # Removed problematic import
 from src.services.style_applicator_service import StyleApplicatorService
-from src.adapters.ezdxf_adapter import EzdxfAdapter, EZDXF_AVAILABLE
+from src.adapters.ezdxf_adapter import EzdxfAdapter # EZDXF_AVAILABLE reference removed
 from src.services.config_loader_service import ConfigLoaderService
 from src.services.dxf_resource_manager_service import DXFResourceManagerService
 from src.services.geometry_processor_service import GeometryProcessorService
@@ -187,7 +187,6 @@ class TestEntityStylingWithRealService:
     def mock_dxf_adapter(self):
         """Mock DXF adapter for testing."""
         mock_adapter = Mock()
-        mock_adapter.is_available.return_value = True
         mock_adapter.create_linetype.return_value = Mock()
         mock_adapter.create_text_style.return_value = Mock()
         mock_adapter.get_layer.return_value = Mock()
@@ -267,34 +266,17 @@ class TestEntityStylingWithRealService:
 
     def test_real_service_apply_hatch_style_to_entity(self, style_applicator_service):
         """Test real service applying hatch style to entity."""
-        # Create a hatch style
-        hatch_style = HatchStyleProperties(
-            pattern_name="ANSI31",
-            color=4,  # Cyan ACI
-            scale=2.0,
-            angle=45.0
-        )
-        style = NamedStyle(hatch=hatch_style)
-
-        # Create mock HATCH entity
+        style = StyleTestFixtures.get_style_by_name("basic_hatch")
         entity = MockDXFUtils.create_mock_entity("HATCH")
         mock_drawing = MockDXFUtils.create_mock_drawing()
 
-        # Apply style using real service
+        # Apply style
         style_applicator_service.apply_style_to_dxf_entity(entity, style, mock_drawing)
 
-    def test_real_service_ezdxf_unavailable_error(self, style_applicator_service):
-        """Test that service raises error when ezdxf is unavailable."""
-        # Mock the adapter to return False for is_available
-        style_applicator_service._dxf_adapter.is_available.return_value = False
-
-        style = NamedStyle(layer=LayerStyleProperties(color=1))
-        entity = MockDXFUtils.create_mock_entity("LINE")
-        mock_drawing = MockDXFUtils.create_mock_drawing()
-
-        # Should raise DXFProcessingError when ezdxf is not available
-        with pytest.raises(DXFProcessingError, match="DXF adapter not available"):
-            style_applicator_service.apply_style_to_dxf_entity(entity, style, mock_drawing)
+        # Verify hatch style properties were delegated for application
+        # This assumes the StyleApplicatorService delegates to the DXFAdapter for actual DXF changes
+        # Accessing the mocked adapter through the service to check interactions
+        style_applicator_service._dxf_adapter.set_hatch_pattern_fill.assert_called_once()
 
 
 class TestEntityStylingEdgeCases:

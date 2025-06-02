@@ -4,15 +4,9 @@ This module provides adapter functions for DXF document cleanup and maintenance 
 """
 from typing import Optional
 
-try:
-    from ezdxf.document import Drawing
-    from ezdxf.recover import audit
-    EZDXF_AVAILABLE = True
-except ImportError:
-    Drawing = type(None) # type: ignore
-    def audit(doc: Drawing, stream = None):
-        pass # Stub if ezdxf not available
-    EZDXF_AVAILABLE = False
+# Direct imports for ezdxf as a hard dependency
+from ezdxf.document import Drawing
+from ezdxf.recover import audit
 
 def cleanup_dxf_document(doc: Drawing, do_audit: bool = True, do_purge: bool = True) -> bool:
     """
@@ -31,7 +25,7 @@ def cleanup_dxf_document(doc: Drawing, do_audit: bool = True, do_purge: bool = T
         True if cleanup operations were attempted (even if some failed internally in ezdxf),
         False if ezdxf is not available or doc is None.
     """
-    if not EZDXF_AVAILABLE or doc is None:
+    if doc is None:
         return False
 
     if do_audit:

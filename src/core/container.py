@@ -26,6 +26,8 @@ from ..domain.config_validation import ConfigValidationService
 from ..services.operations.operation_registry import OperationRegistry
 from ..adapters.ezdxf_adapter import EzdxfAdapter
 from ..core.factories import ServiceFactory, HandlerFactory, FactoryRegistry
+from ..services.dxf_resource_manager_service import DXFResourceManagerService
+from ..services.style_application_orchestrator_service import StyleApplicationOrchestratorService
 
 from ..domain.config_models import AppConfig
 
@@ -95,7 +97,8 @@ class ApplicationContainer(containers.DeclarativeContainer):
     # Data services
     data_source_service = Singleton(
         DataSourceService,
-        logger_service=logging_service
+        logger_service=logging_service,
+        dxf_adapter=dxf_adapter
     )
 
     data_exporter_service = Singleton(
@@ -103,24 +106,45 @@ class ApplicationContainer(containers.DeclarativeContainer):
         logger_service=logging_service
     )
 
+    # DXF Resource Management Service
+    dxf_resource_manager_service = Singleton(
+        DXFResourceManagerService,
+        dxf_adapter=dxf_adapter,
+        logger_service=logging_service
+    )
+
+    # Style Application Orchestrator Service
+    style_application_orchestrator_service = Singleton(
+        StyleApplicationOrchestratorService,
+        logger_service=logging_service,
+        config_loader=config_loader_service,
+        dxf_adapter=dxf_adapter,
+        dxf_resource_manager=dxf_resource_manager_service
+    )
+
+    # Processing services
+    geometry_processor_service = Singleton(
+        GeometryProcessorService,
+        dxf_adapter=dxf_adapter,
+        logger_service=logging_service,
+        dxf_resource_manager=dxf_resource_manager_service,
+        data_source=data_source_service,
+        path_resolver=path_resolver_service
+    )
+
     style_applicator_service = Singleton(
         StyleApplicatorService,
-        config_loader=config_loader_service,
-        logger_service=logging_service
+        logger_service=logging_service,
+        dxf_adapter=dxf_adapter,
+        dxf_resource_manager=dxf_resource_manager_service,
+        geometry_processor=geometry_processor_service,
+        style_orchestrator=style_application_orchestrator_service
     )
 
     operation_registry = Singleton(
         OperationRegistry,
         logger_service=logging_service,
         data_source_service=data_source_service
-    )
-
-    # Processing services
-    geometry_processor_service = Singleton(
-        GeometryProcessorService,
-        logger_service=logging_service,
-        data_source_service=data_source_service,
-        path_resolver_service=path_resolver_service
     )
 
     project_orchestrator_service = Singleton(

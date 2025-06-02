@@ -4,14 +4,9 @@ from typing import List, Dict, Optional, Any
 
 import geopandas as gpd
 
-# Attempt ezdxf import
-try:
-    import ezdxf
-    from ezdxf.document import Drawing
-    EZDXF_AVAILABLE = True
-except ImportError:
-    Drawing = type(None) # Placeholder for type hinting if ezdxf is not available
-    EZDXF_AVAILABLE = False
+# Direct import for ezdxf as a hard dependency
+import ezdxf
+from ezdxf.document import Drawing
 
 from ..interfaces.data_exporter_interface import IDataExporter
 from ..interfaces.logging_service_interface import ILoggingService
@@ -25,9 +20,6 @@ class DataExporterService(IDataExporter):
     def __init__(self, logger_service: ILoggingService):
         """Initialize with required injected dependencies following strict DI principles."""
         self._logger = logger_service.get_logger(__name__)
-
-        if not EZDXF_AVAILABLE:
-            self._logger.warning("ezdxf library not available. DXF export functionality will fail if called.")
 
     def _ensure_output_dir(self, file_path: str) -> None:
         """Ensures the output directory for the given file_path exists."""
@@ -47,9 +39,6 @@ class DataExporterService(IDataExporter):
         project_config: SpecificProjectConfig
     ) -> None:
         self._logger.info(f"Exporting DXF to: {output_file_path}")
-        if not EZDXF_AVAILABLE:
-            self._logger.error("Cannot export to DXF: ezdxf library is not available.")
-            raise DXFProcessingError("ezdxf library is not installed or available for DXF export.")
 
         self._ensure_output_dir(output_file_path)
 

@@ -8,30 +8,12 @@ from urllib.parse import urlparse
 from pydantic import field_validator, model_validator, ValidationInfo, ConfigDict
 from pydantic_core import ValidationError as PydanticValidationError
 
-# Import for CRS validation
-try:
-    from pyproj import CRS
-    from pyproj.exceptions import CRSError
-    PYPROJ_AVAILABLE = True
-except ImportError:
-    CRS = None
-    CRSError = Exception
-    PYPROJ_AVAILABLE = False
-
-# Import for color validation
-try:
-    import geopandas as gpd
-    GEOPANDAS_AVAILABLE = True
-except ImportError:
-    GEOPANDAS_AVAILABLE = False
-
-# Import for geometry validation
-try:
-    from shapely.geometry import Point, LineString, Polygon, MultiPoint, MultiLineString, MultiPolygon
-    from shapely.validation import explain_validity
-    SHAPELY_AVAILABLE = True
-except ImportError:
-    SHAPELY_AVAILABLE = False
+# Direct imports for hard dependencies
+from pyproj import CRS
+from pyproj.exceptions import CRSError
+import geopandas as gpd
+from shapely.geometry import Point, LineString, Polygon, MultiPoint, MultiLineString, MultiPolygon
+from shapely.validation import explain_validity
 
 from ..interfaces.config_validation_interface import IConfigValidation
 from ..interfaces.path_resolver_interface import IPathResolver
@@ -251,15 +233,16 @@ class ConfigValidators:
         if ValidationRegistry.CRS_PATTERNS['wkt'].match(value):
             return value
 
-        # If pyproj is available, try to parse it
-        if PYPROJ_AVAILABLE:
-            try:
-                crs_obj = CRS.from_string(value)
-                if not crs_obj.is_valid:
-                    raise ValueError(f"Invalid CRS: {value}")
-                return value
-            except CRSError as e:
-                raise ValueError(f"Invalid CRS '{value}': {e}")
+        # PYPROJ_AVAILABLE check removed, try to parse with pyproj unconditionally
+        try:
+            crs_obj = CRS.from_string(value)
+            if not crs_obj.is_valid:
+                raise ValueError(f"Invalid CRS: {value}")
+            return value
+        except CRSError as e:
+            # If pyproj parsing fails, this indicates an invalid CRS string according to pyproj.
+            # This was the original behavior when PYPROJ_AVAILABLE was true.
+            raise ValueError(f"Invalid CRS '{value}': {e}")
 
         # Fallback: accept common CRS names
         common_crs = ['WGS84', 'NAD83', 'NAD27', 'ETRS89']

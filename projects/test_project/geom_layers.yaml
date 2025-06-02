@@ -63,7 +63,7 @@
 # ===========================================
 
 - name: "all_buildings"
-  geojsonFile: "@data.main_dataset"
+  geojsonFile: "@data.root/test_data.geojson"
   style: "building_style"
   updateDxf: true
   labelColumn: "address"  # Show building addresses for all buildings

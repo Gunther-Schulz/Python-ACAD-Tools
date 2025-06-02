@@ -20,6 +20,7 @@ from ..interfaces.data_source_interface import IDataSource
 from ..interfaces.logging_service_interface import ILoggingService
 from ..domain.exceptions import DXFProcessingError, DataSourceError
 import geopandas as gpd
+from ezdxf.document import Drawing
 
 # Define Drawing for type hinting if it's still used in the interface for load_dxf_file return type
 # If IDXFAdapter.load_dxf_file returns 'Any', this might not be strictly needed here
@@ -35,22 +36,10 @@ class DataSourceService(IDataSource):
         self._logger = logger_service.get_logger(__name__)
         self._dxf_adapter = dxf_adapter # STORED
 
-        # Check DXF availability via adapter on instantiation and log
-        if not self._dxf_adapter.is_available():
-            self._logger.error(
-                "DXF library not available via adapter. DXF loading will fail."
-            )
-            # Depending on application strictness, could raise an error here
-            # or allow attempts to load DXF to fail at runtime per method.
-
         self._geodataframes: Dict[str, gpd.GeoDataFrame] = {}
 
     def load_dxf_file(self, file_path: str) -> Optional[Any]: # Return type changed to Optional[Any] to match adapter
         """Load a DXF file and return as DXF document object using the adapter."""
-        if not self._dxf_adapter.is_available():
-            self._logger.error("DXF library not available via adapter. Cannot load DXF files.")
-            raise DXFProcessingError("DXF library not available via adapter. Install ezdxf or check adapter configuration.")
-
         self._logger.debug(f"Attempting to load DXF file via adapter: {file_path}")
 
         if not os.path.exists(file_path):
@@ -91,20 +80,40 @@ class DataSourceService(IDataSource):
             else:
                 raise # Re-raise if it's already the correct type
 
-    def load_geojson_file(self, file_path: str) -> gpd.GeoDataFrame:
-        """Load a GeoJSON file and return as GeoDataFrame."""
-        self._logger.debug(f"Attempting to load GeoJSON file: {file_path}")  # Changed to DEBUG
-
-        if not os.path.exists(file_path):
-            raise FileNotFoundError(f"GeoJSON file not found: {file_path}")
-
+    def load_geojson_file(self, file_path: str, crs: Optional[str] = None) -> gpd.GeoDataFrame:
+        """Load a GeoJSON file into a GeoDataFrame."""
+        self._logger.debug(f"Loading GeoJSON file: {file_path}")
         try:
-            gdf = gpd.read_file(file_path)
-            self._logger.info(f"Successfully loaded GeoJSON file: {file_path}. CRS: {gdf.crs}, Features: {len(gdf)}")
+            # Pass the crs parameter to geopandas.read_file if provided
+            gdf = gpd.read_file(file_path, crs=crs if crs else None)
+            if gdf.crs is None and crs:
+                self._logger.debug(f"Assigning provided CRS '{crs}' to loaded GeoDataFrame from {file_path} as it was missing.")
+                gdf.crs = crs
+            elif gdf.crs and crs and gdf.crs != crs:
+                self._logger.warning(f"GeoDataFrame from {file_path} has CRS '{gdf.crs}' but '{crs}' was specified. CRS will be overridden to '{crs}'.")
+                gdf = gdf.to_crs(crs) # Reproject if CRS is different
+            self._logger.info(f"Successfully loaded GeoJSON: {file_path} with CRS: {gdf.crs}")
             return gdf
         except Exception as e:
             self._logger.error(f"Failed to load GeoJSON file {file_path}: {e}", exc_info=True)
             raise DataSourceError(f"Failed to load GeoJSON file {file_path}: {e}") from e
+
+    def load_shapefile(self, file_path: str, crs: Optional[str] = None) -> gpd.GeoDataFrame:
+        """Loads a Shapefile into a GeoDataFrame."""
+        self._logger.debug(f"Loading Shapefile: {file_path}")
+        try:
+            gdf = gpd.read_file(file_path, crs=crs if crs else None) # Pass crs to read_file
+            if gdf.crs is None and crs:
+                self._logger.debug(f"Assigning provided CRS '{crs}' to loaded GeoDataFrame from {file_path} as it was missing.")
+                gdf.crs = crs
+            elif gdf.crs and crs and gdf.crs != crs:
+                self._logger.warning(f"GeoDataFrame from {file_path} has CRS '{gdf.crs}' but '{crs}' was specified. CRS will be overridden to '{crs}'.")
+                gdf = gdf.to_crs(crs) # Reproject if CRS is different
+            self._logger.info(f"Successfully loaded Shapefile: {file_path} with CRS: {gdf.crs}")
+            return gdf
+        except FileNotFoundError:
+            self._logger.error(f"Shapefile not found: {file_path}", exc_info=True)
+            raise DataSourceError(f"Shapefile not found: {file_path}")
 
     def add_gdf(self, gdf: gpd.GeoDataFrame, layer_name: str) -> None:
         """Adds or replaces a GeoDataFrame in the in-memory store."""

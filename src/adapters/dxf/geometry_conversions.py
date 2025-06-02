@@ -10,29 +10,18 @@ from shapely.ops import transform as shapely_transform # Alias to avoid confusio
 # Import exception from domain
 from ...domain.exceptions import DXFGeometryConversionError
 
-# Attempt ezdxf import
-try:
-    import ezdxf
-    from ezdxf.entities import DXFGraphic, Circle, LWPolyline, Polyline, Insert, Text, MText, Line as DXFLine, Arc, Ellipse, Spline, Hatch, Point as DXFPoint, Solid, Trace, Face3d
-    from ezdxf.math import Vec3, bulge_to_arc, Z_AXIS
-    from ezdxf.lldxf.const import DXFError, DXFStructureError
-    EZDXF_AVAILABLE = True
-except ImportError:
-    DXFGraphic = type(None) # type: ignore
-    Circle, LWPolyline, Polyline, Insert, Text, MText, DXFLine, Arc, Ellipse, Spline, Hatch, DXFPoint, Solid, Trace, Face3d = (type(None),) * 15 # type: ignore
-    Vec3 = type(None) # type: ignore
-    bulge_to_arc = lambda start_point, end_point, bulge: None # type: ignore
-    Z_AXIS = None # type: ignore
-    DXFError, DXFStructureError = Exception, Exception
-    EZDXF_AVAILABLE = False
-
+# Direct imports for ezdxf as a hard dependency
+import ezdxf
+from ezdxf.entities import DXFGraphic, Circle, LWPolyline, Polyline, Insert, Text, MText, Line as DXFLine, Arc, Ellipse, Spline, Hatch, Point as DXFPoint, Solid, Trace, Face3d
+from ezdxf.math import Vec3, bulge_to_arc, Z_AXIS
+from ezdxf.lldxf.const import DXFError, DXFStructureError
 
 def convert_dxf_circle_to_polygon(
     entity: Circle,
     segments: int = 64
 ) -> Optional[Polygon]:
     """Converts an ezdxf Circle entity to a Shapely Polygon."""
-    if not EZDXF_AVAILABLE or not isinstance(entity, Circle):
+    if not isinstance(entity, Circle):
         return None
     if segments < 3:
         raise DXFGeometryConversionError("Number of segments for circle approximation must be at least 3.")
@@ -51,9 +40,6 @@ def extract_dxf_entity_basepoint(
     entity: DXFGraphic,
 ) -> Optional[Tuple[Point, Dict[str, Any]]]:
     """Extracts a representative basepoint (as Shapely Point) and attributes from a DXF entity."""
-    if not EZDXF_AVAILABLE:
-        return None
-
     basepoint_coords: Optional[Tuple[float, float]] = None
     attributes: Dict[str, Any] = {'dxf_type': entity.dxftype()}
     shapely_point: Optional[Point] = None

@@ -38,7 +38,6 @@ def real_logger_service() -> LoggingService:
 def mock_dxf_adapter() -> Mock:
     """Create a focused mock for IDXFAdapter."""
     mock = Mock(spec=IDXFAdapter)
-    mock.is_available.return_value = True # Default to available
     # If StyleApplicatorService constructor or methods immediately call other adapter methods, mock them here.
     # For instance, if create_document is called:
     # mock_drawing_instance = Mock(spec=Drawing)
@@ -130,40 +129,10 @@ class TestStyleApplicatorServiceInitialization:
         assert service_instance._geometry_processor == mock_geometry_processor
         assert service_instance._style_orchestrator == mock_style_orchestrator
 
-        # BUSINESS VERIFICATION: Adapter availability is checked on init.
-        mock_dxf_adapter.is_available.assert_called_once()
+        # BUSINESS VERIFICATION: Adapter availability is checked on init. # This comment is now obsolete
+        # mock_dxf_adapter.is_available.assert_called_once() # Removed assertion
 
-    def test_initialization_logs_error_if_dxf_adapter_not_available(
-        self,
-        real_logger_service, # REAL logger
-        mock_dxf_adapter,
-        mock_dxf_resource_manager,
-        mock_geometry_processor,
-        mock_style_orchestrator,
-        caplog # ADD caplog fixture
-    ):
-        """Test REAL logger records an error if DXF adapter is reported as unavailable during initialization."""
-        # Setup: Simulate adapter being unavailable
-        mock_dxf_adapter.is_available.return_value = False
-        caplog.set_level("ERROR") # Set caplog level
-
-        # Remove old patching mechanism
-        # mock_actual_logger = MagicMock()
-        # with patch.object(real_logger_service, 'get_logger', return_value=mock_actual_logger):
-
-        # Execute
-        service_instance = StyleApplicatorService( # LoggingService instance is real_logger_service
-            real_logger_service,
-            mock_dxf_adapter,
-            mock_dxf_resource_manager,
-            mock_geometry_processor,
-            mock_style_orchestrator
-        )
-        # BUSINESS VERIFICATION: Correct error message logged.
-        # mock_actual_logger.error.assert_called_with(
-        #     "ezdxf library not available via adapter. DXF functionality will be severely limited."
-        # )
-        assert "ezdxf library not available via adapter. DXF functionality will be severely limited." in caplog.text
+    # Test 'test_initialization_logs_error_if_dxf_adapter_not_available' removed.
 
 class TestStyleApplicatorServiceDelegationAndErrorHandling:
     """Focus on verifying correct delegation to collaborators and handling of adapter availability."""
@@ -211,98 +180,51 @@ class TestStyleApplicatorServiceDelegationAndErrorHandling:
     def test_apply_style_to_dxf_entity_delegates_when_adapter_available(
         self, service: StyleApplicatorService, mock_style_orchestrator: Mock, mock_dxf_adapter: Mock
     ):
-        """Business Outcome: Entity styling is delegated if DXF adapter is functional."""
-        # Setup: Ensure adapter is available for this test path
-        mock_dxf_adapter.is_available.return_value = True
-        entity_mock = Mock(spec=DXFGraphic)
-        style_mock = NamedStyle(name="EntitySpecificStyle")
-        drawing_mock = Mock(spec=Drawing)
+        """Business Outcome: Service applies style to entity via orchestrator."""
+        # Setup
+        mock_entity = Mock(spec=DXFGraphic)
+        style = NamedStyle(name="EntityStyle")
+        dxf_drawing = Mock(spec=Drawing)
 
         # Execute
-        service.apply_style_to_dxf_entity(entity_mock, style_mock, drawing_mock)
+        service.apply_style_to_dxf_entity(mock_entity, style, dxf_drawing)
 
-        # BUSINESS VERIFICATION: Correct delegation to style_orchestrator.
-        mock_style_orchestrator.apply_style_to_dxf_entity.assert_called_once_with(entity_mock, style_mock, drawing_mock)
-
-    def test_apply_style_to_dxf_entity_raises_error_when_adapter_unavailable(
-        self, service: StyleApplicatorService, mock_dxf_adapter: Mock, mock_style_orchestrator: Mock
-    ):
-        """Negative Test: Service raises DXFProcessingError if adapter is unavailable for entity styling."""
-        # Setup: Simulate adapter being unavailable
-        mock_dxf_adapter.is_available.return_value = False
-        entity_mock = Mock(spec=DXFGraphic)
-        style_mock = NamedStyle(name="SomeStyle")
-        drawing_mock = Mock(spec=Drawing)
-
-        # BUSINESS VERIFICATION: Correct error is raised, and no delegation attempt is made.
-        with pytest.raises(DXFProcessingError, match="DXF adapter not available."):
-            service.apply_style_to_dxf_entity(entity_mock, style_mock, drawing_mock)
-        mock_style_orchestrator.apply_style_to_dxf_entity.assert_not_called()
+        # BUSINESS VERIFICATION
+        mock_style_orchestrator.apply_style_to_dxf_entity.assert_called_once_with(mock_entity, style, dxf_drawing, mock_dxf_adapter)
 
     def test_apply_styles_to_dxf_layer_delegates_when_adapter_available(
         self, service: StyleApplicatorService, mock_style_orchestrator: Mock, mock_dxf_adapter: Mock
     ):
-        """Business Outcome: Layer styling is delegated if DXF adapter is functional."""
-        mock_dxf_adapter.is_available.return_value = True
-        drawing_mock = Mock(spec=Drawing)
-        layer_name = "target_layer"
-        style_mock = NamedStyle(name="LayerSpecificStyle")
+        """Business Outcome: Service applies styles to layer via orchestrator."""
+        # Setup
+        dxf_drawing = Mock(spec=Drawing)
+        layer_name = "test_layer"
+        style = NamedStyle(name="LayerStyle")
 
-        service.apply_styles_to_dxf_layer(drawing_mock, layer_name, style_mock)
-        mock_style_orchestrator.apply_styles_to_dxf_layer.assert_called_once_with(drawing_mock, layer_name, style_mock)
+        # Execute
+        service.apply_styles_to_dxf_layer(dxf_drawing, layer_name, style)
 
-    def test_apply_styles_to_dxf_layer_raises_error_when_adapter_unavailable(
-        self, service: StyleApplicatorService, mock_dxf_adapter: Mock, mock_style_orchestrator: Mock
-    ):
-        """Negative Test: Service raises DXFProcessingError if adapter is unavailable for layer styling."""
-        mock_dxf_adapter.is_available.return_value = False
-        drawing_mock = Mock(spec=Drawing)
-        layer_name = "target_layer"
-        style_mock = NamedStyle(name="SomeStyle")
-
-        with pytest.raises(DXFProcessingError, match="DXF adapter not available."):
-            service.apply_styles_to_dxf_layer(drawing_mock, layer_name, style_mock)
-        mock_style_orchestrator.apply_styles_to_dxf_layer.assert_not_called()
+        # BUSINESS VERIFICATION
+        mock_style_orchestrator.apply_styles_to_dxf_layer.assert_called_once_with(dxf_drawing, layer_name, style, mock_dxf_adapter)
 
     def test_add_geodataframe_to_dxf_delegates_to_geometry_processor_when_adapter_available(
         self, service: StyleApplicatorService, mock_geometry_processor: Mock, mock_dxf_adapter: Mock
     ):
-        """Business Outcome: Adding GDF to DXF is delegated to geometry_processor if adapter is functional."""
-        mock_dxf_adapter.is_available.return_value = True
-        drawing_mock = Mock(spec=Drawing)
-        # Use a real GDF for this test
-        gdf_data = gpd.GeoDataFrame({'geometry': [Point(0,0)], 'name': ['TestPoint']})
-        layer_name = "points_from_gdf"
-        style_mock = NamedStyle(name="GDFStyle")
-        layer_def_mock = Mock(spec=GeomLayerDefinition)
+        """Business Outcome: Adding GDF to DXF is delegated to geometry_processor."""
+        # Setup
+        dxf_drawing = Mock(spec=Drawing)
+        gdf = gpd.GeoDataFrame({'geometry': [Point(1,1)]})
+        layer_name = "test_gdf_layer"
+        style = NamedStyle(name="GDFStyle")
+        layer_definition = Mock(spec=GeomLayerDefinition)
 
         # Execute
-        service.add_geodataframe_to_dxf(drawing_mock, gdf_data, layer_name, style_mock, layer_def_mock)
+        service.add_geodataframe_to_dxf(dxf_drawing, gdf, layer_name, style, layer_definition)
 
-        # BUSINESS VERIFICATION: Correct delegation with all parameters.
+        # BUSINESS VERIFICATION
         mock_geometry_processor.add_geodataframe_to_dxf.assert_called_once_with(
-            dxf_drawing=drawing_mock,
-            gdf=gdf_data,
-            layer_name=layer_name,
-            style=style_mock,
-            layer_definition=layer_def_mock
+            dxf_drawing, gdf, layer_name, style, layer_definition
         )
-
-    def test_add_geodataframe_to_dxf_raises_error_when_adapter_unavailable(
-        self, service: StyleApplicatorService, mock_dxf_adapter: Mock, mock_geometry_processor: Mock
-    ):
-        """Negative Test: Service raises DXFProcessingError if adapter unavailable for adding GDF."""
-        mock_dxf_adapter.is_available.return_value = False
-        drawing_mock = Mock(spec=Drawing)
-        gdf_data = gpd.GeoDataFrame({'geometry': [Point(0,0)]}) # Real GDF
-        layer_name = "points_from_gdf_fail"
-        # Other params can be None or Mocks as they won't be reached if adapter check fails first
-        style_mock = None
-        layer_def_mock = None
-
-        with pytest.raises(DXFProcessingError, match="Cannot add geometries to DXF: ezdxf library not available via adapter."):
-            service.add_geodataframe_to_dxf(drawing_mock, gdf_data, layer_name, style_mock, layer_def_mock)
-        mock_geometry_processor.add_geodataframe_to_dxf.assert_not_called()
 
     def test_clear_caches_delegates_to_style_orchestrator(
         self, service: StyleApplicatorService, mock_style_orchestrator: Mock
@@ -328,10 +250,9 @@ class TestStyleApplicatorServiceDelegationAndErrorHandling:
         self, service: StyleApplicatorService, mock_geometry_processor: Mock, mock_dxf_adapter: Mock
     ):
         """Business Outcome: Complex GDF additions (e.g. with labels) are correctly delegated."""
-        mock_dxf_adapter.is_available.return_value = True # Ensure adapter is available
         dxf_drawing = Mock(spec=Drawing)
         gdf = gpd.GeoDataFrame({'geometry': [Point(10, 20)], 'label_text': ['InfoPoint']}) # Real GDF
-        layer_name = "complex_geo_layer_with_labels"
+        layer_name = "complex_layer"
         # Style that might influence labeling if geometry_processor uses it
         style = NamedStyle(name="LabelStyle", text=TextStyleProperties(font="Arial", height=2.5))
         # Layer definition that specifies a label column
@@ -350,112 +271,77 @@ class TestStyleApplicatorServiceDelegationAndErrorHandling:
             layer_definition=layer_def # Ensure layer_def with label_column is passed
         )
 
-    # --- NEW NEGATIVE TESTS FOR StyleApplicatorService ---
-
-    @pytest.mark.parametrize(
-        "method_name, required_args_map, expected_log_message_part",
-        [
-            ("apply_style_to_dxf_entity", {"entity": Mock(spec=DXFGraphic), "style": Mock(spec=NamedStyle), "dxf_drawing": Mock(spec=Drawing)}, "Cannot apply style to DXF entity"),
-            ("apply_styles_to_dxf_layer", {"dxf_drawing": Mock(spec=Drawing), "layer_name": "test_layer", "style": Mock(spec=NamedStyle)}, "Cannot apply styles to DXF layer \'test_layer\'"),
-            ("add_geodataframe_to_dxf", {"dxf_drawing": Mock(spec=Drawing), "gdf": Mock(spec=gpd.GeoDataFrame), "layer_name": "test_gdf_layer"}, "Cannot add GeoDataFrame to DXF layer \'test_gdf_layer\'")
-        ]
-    )
-    def test_methods_raise_error_on_adapter_unavailable_before_delegation(
-        self, service: StyleApplicatorService, mock_dxf_adapter: Mock, method_name: str, required_args_map: dict, expected_log_message_part: str, caplog
-    ):
-        """Test that core methods raise DXFProcessingError and log an error if adapter is unavailable BEFORE delegation."""
-        mock_dxf_adapter.is_available.return_value = False
-        method_to_test = getattr(service, method_name)
-        caplog.set_level("ERROR")
-
-        # Determine the expected exception message based on the method
-        if method_name == "add_geodataframe_to_dxf":
-            expected_exception_message = "Cannot add geometries to DXF: ezdxf library not available via adapter."
-        else:
-            expected_exception_message = "DXF adapter not available."
-
-        with pytest.raises(DXFProcessingError, match=expected_exception_message):
-            method_to_test(**required_args_map)
-
-        # Verify logger was called as service should log this before raising
-        assert expected_log_message_part in caplog.text
-
     def test_apply_style_to_dxf_entity_handles_none_parameters(self, service: StyleApplicatorService, mock_style_orchestrator: Mock, mock_dxf_adapter: Mock):
-        """Test apply_style_to_dxf_entity with None for critical parameters delegates correctly."""
-        mock_dxf_adapter.is_available.return_value = True # Ensure adapter is available
-        valid_entity = Mock(spec=DXFGraphic)
-        valid_style = Mock(spec=NamedStyle)
-        valid_drawing = Mock(spec=Drawing)
-
+        """Test apply_style_to_dxf_entity handles None inputs without crashing and delegates appropriately."""
         # Test with None entity
-        service.apply_style_to_dxf_entity(None, valid_style, valid_drawing)
-        mock_style_orchestrator.apply_style_to_dxf_entity.assert_called_with(None, valid_style, valid_drawing)
+        dxf_drawing = Mock(spec=Drawing)
+        style = NamedStyle(name="TestStyle")
+        service.apply_style_to_dxf_entity(None, style, dxf_drawing)
+        mock_style_orchestrator.apply_style_to_dxf_entity.assert_called_with(None, style, dxf_drawing, mock_dxf_adapter)
         mock_style_orchestrator.reset_mock()
 
         # Test with None style
-        service.apply_style_to_dxf_entity(valid_entity, None, valid_drawing)
-        mock_style_orchestrator.apply_style_to_dxf_entity.assert_called_with(valid_entity, None, valid_drawing)
+        mock_entity = Mock(spec=DXFGraphic)
+        service.apply_style_to_dxf_entity(mock_entity, None, dxf_drawing)
+        mock_style_orchestrator.apply_style_to_dxf_entity.assert_called_with(mock_entity, None, dxf_drawing, mock_dxf_adapter)
         mock_style_orchestrator.reset_mock()
 
         # Test with None drawing
-        service.apply_style_to_dxf_entity(valid_entity, valid_style, None)
-        mock_style_orchestrator.apply_style_to_dxf_entity.assert_called_with(valid_entity, valid_style, None)
-        mock_style_orchestrator.reset_mock()
+        service.apply_style_to_dxf_entity(mock_entity, style, None)
+        mock_style_orchestrator.apply_style_to_dxf_entity.assert_called_with(mock_entity, style, None, mock_dxf_adapter)
 
     def test_apply_styles_to_dxf_layer_handles_none_parameters(self, service: StyleApplicatorService, mock_style_orchestrator: Mock, mock_dxf_adapter: Mock):
-        """Test apply_styles_to_dxf_layer with None for critical parameters delegates correctly."""
-        mock_dxf_adapter.is_available.return_value = True
-        valid_drawing = Mock(spec=Drawing)
-        valid_layer_name = "test_layer"
-        valid_style = Mock(spec=NamedStyle)
+        """Test apply_styles_to_dxf_layer handles None inputs without crashing and delegates appropriately."""
+        dxf_drawing = Mock(spec=Drawing)
+        style = NamedStyle(name="TestStyle")
+        layer_name = "test_layer"
 
         # Test with None drawing
-        service.apply_styles_to_dxf_layer(None, valid_layer_name, valid_style)
-        mock_style_orchestrator.apply_styles_to_dxf_layer.assert_called_with(None, valid_layer_name, valid_style)
-        mock_style_orchestrator.reset_mock()
-
-        # Test with None layer_name
-        service.apply_styles_to_dxf_layer(valid_drawing, None, valid_style)
-        mock_style_orchestrator.apply_styles_to_dxf_layer.assert_called_with(valid_drawing, None, valid_style)
+        service.apply_styles_to_dxf_layer(None, layer_name, style)
+        mock_style_orchestrator.apply_styles_to_dxf_layer.assert_called_with(None, layer_name, style, mock_dxf_adapter)
         mock_style_orchestrator.reset_mock()
 
         # Test with None style
-        service.apply_styles_to_dxf_layer(valid_drawing, valid_layer_name, None)
-        mock_style_orchestrator.apply_styles_to_dxf_layer.assert_called_with(valid_drawing, valid_layer_name, None)
+        service.apply_styles_to_dxf_layer(dxf_drawing, layer_name, None)
+        mock_style_orchestrator.apply_styles_to_dxf_layer.assert_called_with(dxf_drawing, layer_name, None, mock_dxf_adapter)
         mock_style_orchestrator.reset_mock()
 
+        # Test with None layer_name (should probably be handled by orchestrator or raise specific error)
+        service.apply_styles_to_dxf_layer(dxf_drawing, None, style)
+        mock_style_orchestrator.apply_styles_to_dxf_layer.assert_called_with(dxf_drawing, None, style, mock_dxf_adapter)
+
+
     def test_add_geodataframe_to_dxf_handles_none_parameters(self, service: StyleApplicatorService, mock_geometry_processor: Mock, mock_dxf_adapter: Mock):
-        """Test add_geodataframe_to_dxf with None for critical parameters delegates correctly."""
-        mock_dxf_adapter.is_available.return_value = True
-        valid_drawing = Mock(spec=Drawing)
-        valid_gdf = Mock(spec=gpd.GeoDataFrame)
-        valid_layer_name = "test_gdf_layer"
+        """Test add_geodataframe_to_dxf handles None inputs without crashing and delegates appropriately."""
+        dxf_drawing = Mock(spec=Drawing)
+        gdf = gpd.GeoDataFrame({'geometry': [Point(1, 1)]})
+        layer_name = "test_layer"
 
         # Test with None drawing
-        service.add_geodataframe_to_dxf(None, valid_gdf, valid_layer_name)
+        service.add_geodataframe_to_dxf(None, gdf, layer_name)
         # Note: add_geodataframe_to_dxf has optional style and layer_definition,
         # so the call to geometry_processor will include Nones for those if not provided.
         mock_geometry_processor.add_geodataframe_to_dxf.assert_called_with(
-            dxf_drawing=None, gdf=valid_gdf, layer_name=valid_layer_name, style=None, layer_definition=None
+            dxf_drawing=None, gdf=gdf, layer_name=layer_name, style=None, layer_definition=None
         )
         mock_geometry_processor.reset_mock()
 
         # Test with None GDF
-        service.add_geodataframe_to_dxf(valid_drawing, None, valid_layer_name)
+        service.add_geodataframe_to_dxf(dxf_drawing, None, layer_name)
         mock_geometry_processor.add_geodataframe_to_dxf.assert_called_with(
-            dxf_drawing=valid_drawing, gdf=None, layer_name=valid_layer_name, style=None, layer_definition=None
+            dxf_drawing=dxf_drawing, gdf=None, layer_name=layer_name, style=None, layer_definition=None
         )
         mock_geometry_processor.reset_mock()
 
         # Test with None layer_name
-        service.add_geodataframe_to_dxf(valid_drawing, valid_gdf, None)
+        service.add_geodataframe_to_dxf(dxf_drawing, gdf, None)
         mock_geometry_processor.add_geodataframe_to_dxf.assert_called_with(
-            dxf_drawing=valid_drawing, gdf=valid_gdf, layer_name=None, style=None, layer_definition=None
+            dxf_drawing=dxf_drawing, gdf=gdf, layer_name=None, style=None, layer_definition=None
         )
         mock_geometry_processor.reset_mock()
 
     def test_get_style_for_layer_handles_none_parameters(self, service: StyleApplicatorService, mock_style_orchestrator: Mock):
-        """Test get_style_for_layer with None for critical parameters delegates correctly."""
+        """Test get_style_for_layer handles None inputs without crashing and delegates appropriately."""
         # Assuming layer_name and style_config are critical for StyleApplicatorService to pass to orchestrator.
         # Layer_definition is Optional in StyleApplicatorService.get_style_for_layer method signature.
         valid_layer_name = "some_layer"

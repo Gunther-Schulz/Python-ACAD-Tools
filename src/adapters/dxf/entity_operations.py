@@ -7,18 +7,11 @@ from typing import List, Tuple, Any, Optional
 
 APP_ID_PREFIX = "ACAD_APP_PYACADTOOLS"
 
-try:
-    from ezdxf.entities import DXFGraphic
-    from ezdxf.lldxf.extendedtags import ExtendedTags
-    from ezdxf.lldxf.types import DXFTag
-    from ezdxf.lldxf.const import DXFValueError
-    EZDXF_AVAILABLE = True
-except ImportError:
-    DXFGraphic = type(None) # type: ignore
-    ExtendedTags = type(None) # type: ignore
-    DXFTag = type(None) # type: ignore
-    DXFValueError = Exception # type: ignore
-    EZDXF_AVAILABLE = False
+# Direct imports for ezdxf as a hard dependency
+from ezdxf.entities import DXFGraphic
+from ezdxf.lldxf.extendedtags import ExtendedTags
+from ezdxf.lldxf.types import DXFTag
+from ezdxf.lldxf.const import DXFValueError
 
 def attach_xdata(entity: DXFGraphic, app_id: str, xdata_pairs: List[Tuple[int, Any]]) -> bool:
     """
@@ -34,7 +27,7 @@ def attach_xdata(entity: DXFGraphic, app_id: str, xdata_pairs: List[Tuple[int, A
     Returns:
         True if XDATA was attached, False otherwise (e.g., ezdxf not available).
     """
-    if not EZDXF_AVAILABLE or entity is None:
+    if entity is None:
         return False
 
     # Keep app_id as provided by caller for now; caller manages namespacing.
@@ -62,7 +55,7 @@ def get_xdata(entity: DXFGraphic, app_id: str) -> Optional[List[Tuple[int, Any]]
     Returns:
         A list of (group_code, value) tuples if XDATA is found, otherwise None.
     """
-    if not EZDXF_AVAILABLE or entity is None:
+    if entity is None:
         return None
 
     final_app_id = app_id
@@ -108,7 +101,7 @@ def attach_script_identifier(entity: DXFGraphic, script_identifier: str) -> bool
     Returns:
         True if XDATA was attached, False otherwise
     """
-    if not EZDXF_AVAILABLE or entity is None:
+    if entity is None:
         return False
 
     try:
@@ -136,9 +129,6 @@ def remove_entities_by_layer(dxf_drawing, layer_names, script_identifier="python
     Returns:
         int: Number of entities deleted
     """
-    if not EZDXF_AVAILABLE:
-        raise RuntimeError("ezdxf library not available for DXF operations")
-
     doc = dxf_drawing
     key_func = doc.layers.key
     delete_count = 0
@@ -200,7 +190,7 @@ def remove_entities_by_layer(dxf_drawing, layer_names, script_identifier="python
 
 def is_created_by_script(entity, script_identifier):
     """Check if an entity was created by this script by examining XDATA."""
-    if not EZDXF_AVAILABLE:
+    if entity is None:
         return False
 
     try:

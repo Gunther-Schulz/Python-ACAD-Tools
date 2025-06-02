@@ -5,11 +5,14 @@ from shapely.geometry import Point, LineString, Polygon, MultiPoint, MultiLineSt
 import pandas as pd
 from ezdxf.document import Drawing
 from ezdxf.enums import MTextEntityAlignment
+import ezdxf
 
 from src.services.geometry_processor_service import GeometryProcessorService
 from src.services.logging_service import LoggingService
 from src.interfaces.dxf_adapter_interface import IDXFAdapter
 from src.interfaces.dxf_resource_manager_interface import IDXFResourceManager
+from src.interfaces.data_source_interface import IDataSource
+from src.interfaces.path_resolver_interface import IPathResolver
 from src.domain.geometry_models import GeomLayerDefinition
 from src.domain.style_models import NamedStyle, HatchStyleProperties, TextStyleProperties, LayerStyleProperties
 from src.domain.exceptions import DXFProcessingError
@@ -22,7 +25,6 @@ def real_logger_service() -> LoggingService:
 @pytest.fixture
 def mock_dxf_adapter() -> MagicMock:
     adapter = MagicMock(spec=IDXFAdapter)
-    adapter.is_available.return_value = True
     adapter.get_modelspace.return_value = MagicMock(name="mock_modelspace_instance")
     adapter.add_hatch.return_value = MagicMock(name="mock_hatch_entity")
     adapter.add_point.return_value = MagicMock(name="mock_point_entity")
@@ -38,6 +40,16 @@ def mock_dxf_resource_manager() -> MagicMock:
     return manager
 
 @pytest.fixture
+def mock_data_source() -> MagicMock:
+    source = MagicMock(spec=IDataSource)
+    return source
+
+@pytest.fixture
+def mock_path_resolver() -> MagicMock:
+    resolver = MagicMock(spec=IPathResolver)
+    return resolver
+
+@pytest.fixture
 def mock_dxf_drawing() -> MagicMock:
     return MagicMock(spec=Drawing)
 
@@ -45,12 +57,16 @@ def mock_dxf_drawing() -> MagicMock:
 def processor_real_logger(
     mock_dxf_adapter: MagicMock,
     real_logger_service: LoggingService,
-    mock_dxf_resource_manager: MagicMock
+    mock_dxf_resource_manager: MagicMock,
+    mock_data_source: MagicMock,
+    mock_path_resolver: MagicMock
 ) -> GeometryProcessorService:
     return GeometryProcessorService(
         dxf_adapter=mock_dxf_adapter,
         logger_service=real_logger_service,
-        dxf_resource_manager=mock_dxf_resource_manager
+        dxf_resource_manager=mock_dxf_resource_manager,
+        data_source=mock_data_source,
+        path_resolver=mock_path_resolver
     )
 
 @pytest.fixture
@@ -129,16 +145,6 @@ class TestAddGeodataframeToDXF_BasicOperation:
         assert f"GeoDataFrame for layer '{layer_name}' is empty. No geometries to add." in caplog.text
         mock_dxf_adapter.get_modelspace.assert_not_called()
         mock_dxf_adapter.add_point.assert_not_called()
-
-    def test_adapter_not_available_raises_dxf_processing_error(
-        self, processor: GeometryProcessorService, mock_dxf_drawing: MagicMock, mock_dxf_adapter: MagicMock
-    ):
-        mock_dxf_adapter.is_available.return_value = False
-        gdf = create_sample_gdf("Point")
-
-        with pytest.raises(DXFProcessingError, match="Cannot add geometries to DXF: ezdxf library not available via adapter."):
-            processor.add_geodataframe_to_dxf(mock_dxf_drawing, gdf, "TestLayer")
-        mock_dxf_adapter.get_modelspace.assert_not_called()
 
     def test_unsupported_geometry_type_logs_warning_and_skips_feature(
         self, processor: GeometryProcessorService, mock_dxf_drawing: MagicMock, mock_dxf_adapter: MagicMock, caplog
@@ -285,7 +291,7 @@ class TestAddGeodataframeToDXF_PolygonsAndHatches:
         mock_dxf_adapter.add_hatch_boundary_path.assert_any_call(
             hatch_entity_mock,
             points=ANY,
-            flags=BOUNDARY_PATH_EXTERNAL
+            flags=ezdxf.const.BOUNDARY_PATH_EXTERNAL
         )
         mock_dxf_adapter.set_hatch_solid_fill.assert_called_once_with(
             hatch_entity_mock, sample_style_solid_hatch.hatch.color
@@ -338,7 +344,7 @@ class TestAddGeodataframeToDXF_PolygonsAndHatches:
         assert mock_dxf_adapter.add_hatch.call_count == 2
         assert mock_dxf_adapter.set_hatch_solid_fill.call_count == 2
         for hm in hatch_mocks:
-            mock_dxf_adapter.add_hatch_boundary_path.assert_any_call(hm, points=ANY, flags=BOUNDARY_PATH_EXTERNAL)
+            mock_dxf_adapter.add_hatch_boundary_path.assert_any_call(hm, points=ANY, flags=ezdxf.const.BOUNDARY_PATH_EXTERNAL)
 
         assert mock_dxf_adapter.add_lwpolyline.call_count == 2 * gdf.iloc[0].geometry.geoms[0].interiors.__len__() + 2
         lwpolyline_boundary_calls = [

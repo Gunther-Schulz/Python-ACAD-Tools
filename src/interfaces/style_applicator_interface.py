@@ -2,15 +2,9 @@
 from typing import Protocol, Optional, Any, Dict
 import geopandas as gpd
 
-# Assuming ezdxf types might be relevant if styles are applied back to DXF entities
-try:
-    from ezdxf.document import Drawing
-    from ezdxf.entities import DXFGraphic
-    EZDXF_AVAILABLE = True
-except ImportError:
-    Drawing = type(None)
-    DXFGraphic = type(None)
-    EZDXF_AVAILABLE = False
+# Direct imports for ezdxf types as hard dependencies
+from ezdxf.document import Drawing
+from ezdxf.entities import DXFGraphic
 
 from ..domain.config_models import StyleConfig, NamedStyle, GeomLayerDefinition
 from ..domain.exceptions import ProcessingError, DXFProcessingError
