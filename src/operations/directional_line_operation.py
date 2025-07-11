@@ -6,23 +6,23 @@ import math
 
 def create_directional_line_layer(all_layers, project_settings, crs, layer_name, operation):
     log_debug(f"Creating directional line layer: {layer_name}")
-    
+
     # Get operation parameters
     source_layers = operation.get('layers', [])
     line_length = operation.get('length', 1.0)  # Default length of 1 unit
     angle = operation.get('angle', 0)  # Default 0 degrees (pointing east)
     relative_angle = operation.get('relativeAngle', True)  # Whether angle is relative to input line
     anchor_point = operation.get('anchorPoint', 'mid')  # 'start', 'mid', 'end', or 'point'
-    
+
     result_lines = []
-    
+
     for layer_info in source_layers:
-        source_layer_name, values = _process_layer_info(all_layers, project_settings, crs, layer_info)
+        source_layer_name, values, column_name = _process_layer_info(all_layers, project_settings, crs, layer_info)
         if source_layer_name is None or source_layer_name not in all_layers:
             log_warning(f"Source layer '{source_layer_name}' not found")
             continue
 
-        source_geometry = _get_filtered_geometry(all_layers, project_settings, crs, source_layer_name, values)
+        source_geometry = _get_filtered_geometry(all_layers, project_settings, crs, source_layer_name, values, column_name)
         if source_geometry is None:
             continue
 
@@ -66,12 +66,12 @@ def create_directional_line_layer(all_layers, project_settings, crs, layer_name,
                 # Create the new line
                 x_offset = math.cos(new_angle) * line_length
                 y_offset = math.sin(new_angle) * line_length
-                
+
                 new_line = LineString([
                     (anchor.x, anchor.y),
                     (anchor.x + x_offset, anchor.y + y_offset)
                 ])
-                
+
                 result_lines.append(new_line)
 
         elif isinstance(source_geometry, (Point, MultiPoint)):
@@ -85,12 +85,12 @@ def create_directional_line_layer(all_layers, project_settings, crs, layer_name,
                 new_angle = math.radians(angle)
                 x_offset = math.cos(new_angle) * line_length
                 y_offset = math.sin(new_angle) * line_length
-                
+
                 new_line = LineString([
                     (point.x, point.y),
                     (point.x + x_offset, point.y + y_offset)
                 ])
-                
+
                 result_lines.append(new_line)
         else:
             log_warning(f"Unsupported geometry type: {type(source_geometry)}")
