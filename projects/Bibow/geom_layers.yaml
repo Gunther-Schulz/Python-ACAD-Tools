@@ -50,11 +50,14 @@ geomLayers:
   - name: "Waldabstand"
     operations:
       - type: buffer
+        distance: 30
+        joinStyle: bevel
         layers:
           - name: "Wald"
-            distance: 30
 
-
+  ### Exclude
+  - name: "Exclude Geltungsbereich"
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/input/Exclude Geltungsbereich.shp"
 
   ### Geltungsbereich ###
   - name: Geltungsbereich A
@@ -86,6 +89,7 @@ geomLayers:
         layers:
           - name: Bahnstrasse 200m Puffer
       - type: difference
+        reverseDifference: false
         layers:
           - name: "Waldabstand"
       - type: dissolve
@@ -114,6 +118,7 @@ geomLayers:
         layers:
           - name: Bahnstrasse 200m Puffer
       - type: difference
+        reverseDifference: false
         layers:
           - name: "Waldabstand"
       - type: dissolve
@@ -155,6 +160,7 @@ geomLayers:
         layers:
           - name: Bahnstrasse 200m Puffer
       - type: difference
+        reverseDifference: false
         layers:
           - name: "Waldabstand"
       - type: dissolve
@@ -187,6 +193,8 @@ geomLayers:
         layers:
           - name: Bahnstrasse 200m Puffer
       - type: difference
+        reverseDifference: false
         layers:
-          - name: "Waldabstand"
+          # - name: "Waldabstand"
+          - name: "Exclude Geltungsbereich"
       - type: dissolve
