@@ -1,7 +1,7 @@
 geomLayers:
   ### Grundlagen ###
   - name: Parcel
-    # updateDxf: true
+    updateDxf: true
     label: label
     operations:
       - type: simpleLabel
@@ -25,6 +25,37 @@ geomLayers:
     label: gen
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/input/gemeinde.shp"
 
+### Bahn
+  - name: Bahnstrasse 200m Puffer
+    # updateDxf: true
+    # style: geltungsbereich
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/input/Bahnstrasse 200m Puffer.shp"
+
+### Wald
+  - name: "Waldartige Flächen"
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/input/Waldartig.shp"
+
+  - name: "Wald Input"
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/input/Wald.shp"
+
+  - name: "Wald"
+    updateDxf: true
+    style: wald
+    operations:
+      - type: dissolve
+        layers:
+          - name: "Waldartige Flächen"
+          - name: "Wald Input"
+
+  - name: "Waldabstand"
+    operations:
+      - type: buffer
+        layers:
+          - name: "Wald"
+            distance: 30
+
+
+
   ### Geltungsbereich ###
   - name: Geltungsbereich A
     updateDxf: true
@@ -35,6 +66,10 @@ geomLayers:
           - name: Parcel
             values:
               - "32/11"  # Matches exactly what's in the shapefile
+              - "38/2"
+              - "37/7"
+              - "46/2"
+              - "53/23"
             column: label  # Explicitly specify the column to search in
       - type: filterByIntersection
         layers:
@@ -47,4 +82,111 @@ geomLayers:
           - name: Gemeinde
             values:
               - Bibow
+      - type: intersection
+        layers:
+          - name: Bahnstrasse 200m Puffer
+      - type: difference
+        layers:
+          - name: "Waldabstand"
+      - type: dissolve
+  - name: Geltungsbereich B
+    updateDxf: true
+    style: geltungsbereich
+    operations:
+      - type: copy
+        layers:
+          - name: Parcel
+            values:
+              - "52/3"
+            column: label  # Explicitly specify the column to search in
+      - type: filterByIntersection
+        layers:
+          - name: Flur
+            values:
+              - Flur 2
+          - name: Gemarkung
+            values:
+              - Bibow
+          - name: Gemeinde
+            values:
+              - Bibow
+      - type: intersection
+        layers:
+          - name: Bahnstrasse 200m Puffer
+      - type: difference
+        layers:
+          - name: "Waldabstand"
+      - type: dissolve
+  - name: Geltungsbereich C
+    updateDxf: true
+    style: geltungsbereich
+    operations:
+      - type: copy
+        layers:
+          - name: Parcel
+            values:
+              - "61/3"  # Matches exactly what's in the shapefile
+              - "68/1"
+              - "76"
+              - "77"
+              - "78"
+              - "79"
+              - "80"
+              - "81"
+              - "83/1"
+              - "84"
+              - "85"
+              - "87"
+              - "88/3"
+              - "89"
+            column: label  # Explicitly specify the column to search in
+      - type: filterByIntersection
+        layers:
+          - name: Flur
+            values:
+              - Flur 2
+          - name: Gemarkung
+            values:
+              - Bibow
+          - name: Gemeinde
+            values:
+              - Bibow
+      - type: intersection
+        layers:
+          - name: Bahnstrasse 200m Puffer
+      - type: difference
+        layers:
+          - name: "Waldabstand"
+      - type: dissolve
+  - name: Geltungsbereich D
+    updateDxf: true
+    style: geltungsbereich
+    operations:
+      - type: copy
+        layers:
+          - name: Parcel
+            values:
+              - "17"
+              - "20"
+              - "21"
+              - "23"
+              - "24"
+            column: label  # Explicitly specify the column to search in
+      - type: filterByIntersection
+        layers:
+          - name: Flur
+            values:
+              - Flur 4
+          - name: Gemarkung
+            values:
+              - Bibow
+          - name: Gemeinde
+            values:
+              - Bibow
+      - type: intersection
+        layers:
+          - name: Bahnstrasse 200m Puffer
+      - type: difference
+        layers:
+          - name: "Waldabstand"
       - type: dissolve

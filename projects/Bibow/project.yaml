@@ -1,7 +1,7 @@
 exportFormat: dxf
 dxfVersion: R2018
 crs: EPSG:25833
-dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/Zeichnung/25 03.30 Bibow Zeichnung.dxf"
+dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/Zeichnung/25 07.11 Bibow Zeichnung.dxf"
 shapefileOutputDir: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/generated"
 # dxfDumpOutputDir: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/dxf_dump"
 templateDxfFilename: "Öffentlich Planungsbüro Schulz/Allgemein/CAD/Vorlage.dxf"

@@ -23,25 +23,25 @@ def create_buffer_layer(all_layers, project_settings, crs, layer_name, operation
         'mitre': 2,
         'bevel': 3
     }
-    
+
     cap_style_map = {
         'round': 1,
         'flat': 2,
         'square': 3
     }
-    
+
     join_style_value = join_style_map.get(join_style, 2)
     start_cap_value = cap_style_map.get(start_cap_style, 2)
     end_cap_value = cap_style_map.get(end_cap_style, 2)
     log_debug(f"Layer: {layer_name}, Join style: {join_style}, Start cap: {start_cap_style}, End cap: {end_cap_style}")
 
     source_layers = operation.get('layers', [layer_name])
-    
+
     combined_geometry = None
     combined_distances = []  # New list to store per-feature distances
-    
+
     for layer_info in source_layers:
-        source_layer_name, values = _process_layer_info(all_layers, project_settings, crs, layer_info)
+        source_layer_name, values, column_name = _process_layer_info(all_layers, project_settings, crs, layer_info)
         if source_layer_name is None or source_layer_name not in all_layers:
             log_warning(format_operation_warning(
                 layer_name,
@@ -51,8 +51,8 @@ def create_buffer_layer(all_layers, project_settings, crs, layer_name, operation
             continue
 
         source_layer = all_layers[source_layer_name]
-        source_geometry = _get_filtered_geometry(all_layers, project_settings, crs, source_layer_name, values)
-        
+        source_geometry = _get_filtered_geometry(all_layers, project_settings, crs, source_layer_name, values, column_name)
+
         if source_geometry is None:
             log_warning(format_operation_warning(
                 layer_name,
@@ -107,7 +107,7 @@ def create_buffer_layer(all_layers, project_settings, crs, layer_name, operation
 
     skip_islands = operation.get('skipIslands', False)
     preserve_islands = operation.get('preserveIslands', False)
-    
+
     if (skip_islands or preserve_islands) and combined_geometry is not None:
         combined_geometry = remove_islands(combined_geometry, preserve=preserve_islands)
         if combined_geometry is None:
@@ -134,7 +134,7 @@ def create_buffer_layer(all_layers, project_settings, crs, layer_name, operation
                         result = result.difference(hole)
                     return result
                 else:  # MultiPolygon
-                    buffered_parts = [buffer_with_different_caps(part, distance, start_cap, end_cap, join_style, preserve_holes=True) 
+                    buffered_parts = [buffer_with_different_caps(part, distance, start_cap, end_cap, join_style, preserve_holes=True)
                                     for part in geom.geoms]
                     return unary_union(buffered_parts)
             else:
@@ -157,7 +157,7 @@ def create_buffer_layer(all_layers, project_settings, crs, layer_name, operation
 
         if isinstance(geom, MultiLineString):
             # Handle each line separately
-            buffered_parts = [buffer_with_different_caps(line, distance, start_cap, end_cap, join_style) 
+            buffered_parts = [buffer_with_different_caps(line, distance, start_cap, end_cap, join_style)
                             for line in geom.geoms]
             return unary_union(buffered_parts)
 
@@ -237,9 +237,3 @@ def create_buffer_layer(all_layers, project_settings, crs, layer_name, operation
             f"Error during buffer operation: {str(e)}"
         ))
         return None
-
-
-
-
-
-
