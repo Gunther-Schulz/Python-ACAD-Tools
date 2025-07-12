@@ -1046,6 +1046,14 @@ class DXFExporter:
             if not isinstance(row.geometry, Point):
                 continue
 
+            # Check if required columns exist
+            if 'label' not in row.index:
+                log_warning(f"Missing 'label' column in row {idx} for layer {layer_name}")
+                continue
+            if 'rotation' not in row.index:
+                log_warning(f"Missing 'rotation' column in row {idx} for layer {layer_name}")
+                continue
+
             point = row.geometry
             label_text = str(row['label'])
             rotation = float(row['rotation'])

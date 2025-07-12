@@ -36,31 +36,45 @@ def _get_filtered_geometry(all_layers, project_settings, crs, layer_name, values
         source_gdf = all_layers[layer_name]
         log_debug(f"Initial number of geometries in {layer_name}: {len(source_gdf)}")
 
+        # ARCHITECTURAL FIX: Correct filtering logic
         if values:
-            # First try to use the explicit column name from the operation if provided
-            if column_name and column_name in source_gdf.columns:
-                label_column = column_name
-                log_debug(f"Using explicit column '{label_column}' for filtering layer '{layer_name}'")
-            else:
-                # Fall back to the label from project settings
-                label_column = next((l['label'] for l in project_settings['geomLayers'] if l['name'] == layer_name), None)
-                log_debug(f"Using project settings column '{label_column}' for filtering layer '{layer_name}'")
+            # Determine which column to use for filtering
+            filter_column = None
 
-            if label_column and label_column in source_gdf.columns:
+            if column_name:
+                # Explicit column specified - must exist
+                if column_name in source_gdf.columns:
+                    filter_column = column_name
+                    log_debug(f"Using explicit column '{filter_column}' for filtering layer '{layer_name}'")
+                else:
+                    log_error(f"Explicit column '{column_name}' not found in layer '{layer_name}'. Available columns: {list(source_gdf.columns)}")
+                    return None
+            else:
+                # No explicit column - try to use layer's label column as fallback
+                label_column = next((l.get('label') for l in project_settings['geomLayers'] if l['name'] == layer_name), None)
+                if label_column and label_column in source_gdf.columns:
+                    filter_column = label_column
+                    log_debug(f"Using layer's label column '{filter_column}' for filtering layer '{layer_name}'")
+                else:
+                    # No label column available - take everything and warn
+                    log_debug(f"Values provided for {layer_name} but no usable column found - taking all data")
+                    filtered_gdf = source_gdf.copy()
+                    filter_column = None
+
+            # Apply filtering if we have a column to filter on
+            if filter_column:
                 # Convert values to strings for comparison
                 str_values = [str(v) for v in values]
-                log_debug(f"Filtering {layer_name} by values {str_values} in column '{label_column}'")
+                log_debug(f"Filtering {layer_name} by values {str_values} in column '{filter_column}'")
 
                 # Check for any matches
-                matched_count = source_gdf[source_gdf[label_column].astype(str).isin(str_values)].shape[0]
-                log_debug(f"Found {matched_count} matches for values {str_values} in column '{label_column}'")
+                matched_count = source_gdf[source_gdf[filter_column].astype(str).isin(str_values)].shape[0]
+                log_debug(f"Found {matched_count} matches for values {str_values} in column '{filter_column}'")
 
-                filtered_gdf = source_gdf[source_gdf[label_column].astype(str).isin(str_values)].copy()
+                filtered_gdf = source_gdf[source_gdf[filter_column].astype(str).isin(str_values)].copy()
                 log_debug(f"Number of geometries after filtering by values: {len(filtered_gdf)}")
-            else:
-                log_warning(f"Label column '{label_column}' not found in layer '{layer_name}'")
-                return None
         else:
+            # No values provided - take everything
             filtered_gdf = source_gdf.copy()
 
         # Check validity of original geometries

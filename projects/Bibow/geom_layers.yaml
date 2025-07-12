@@ -217,3 +217,125 @@ geomLayers:
           - name: "Biotop"
           - name: "Exclude Geltungsbereich"
       - type: dissolve
+
+  ### Baufeld and Baugrenze ###
+  - name: Baufeld
+    updateDxf: true
+    close: true
+    viewports:
+      - name: WorkView
+        style: baufeld
+    operations:
+      - type: copy
+        layers:
+          - Geltungsbereich A
+          - Geltungsbereich B
+          - Geltungsbereich C
+          - Geltungsbereich D
+      - type: difference
+        useBufferTrick: true
+        reverseDifference: false
+        operations:
+          - type: dissolve
+            layers:
+              - "Waldabstand"
+              - "Hecke"
+              - "Biotop"
+              - "Exclude Geltungsbereich"
+      - type: filterGeometry
+        minArea: 200
+        geometryTypes:
+          - Polygon
+
+  - name: Baufeld Schraffur
+    updateDxf: true
+    style: baufeld
+    applyHatch:
+      layers:
+        - Baufeld
+
+  - name: Baugrenze
+    updateDxf: true
+    style: baugrenze
+    linetypeScale: 0.5
+    linetypeGeneration: true
+    close: true
+    operations:
+      - type: buffer
+        layers:
+          - Baufeld
+        distance: -3
+
+  - name: Baugrenze 2
+    updateDxf: true
+    style: baugrenze_2
+    close: true
+    operations:
+      - type: buffer
+        layers:
+          - Baugrenze
+        distance: -0.4
+
+  - name: Baugrenze Report A
+    operations:
+      - type: copy
+        layers:
+          - Baugrenze
+      - type: intersection
+        layers:
+          - Geltungsbereich A
+      - type: report
+        outputFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/reports/baugrenze_a_report.json"
+        calculate:
+          - area
+          - perimeter
+        decimalPlaces:
+          area: 0
+
+  - name: Baugrenze Report B
+    operations:
+      - type: copy
+        layers:
+          - Baugrenze
+      - type: intersection
+        layers:
+          - Geltungsbereich B
+      - type: report
+        outputFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/reports/baugrenze_b_report.json"
+        calculate:
+          - area
+          - perimeter
+        decimalPlaces:
+          area: 0
+
+  - name: Baugrenze Report C
+    operations:
+      - type: copy
+        layers:
+          - Baugrenze
+      - type: intersection
+        layers:
+          - Geltungsbereich C
+      - type: report
+        outputFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/reports/baugrenze_c_report.json"
+        calculate:
+          - area
+          - perimeter
+        decimalPlaces:
+          area: 0
+
+  - name: Baugrenze Report D
+    operations:
+      - type: copy
+        layers:
+          - Baugrenze
+      - type: intersection
+        layers:
+          - Geltungsbereich D
+      - type: report
+        outputFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/reports/baugrenze_d_report.json"
+        calculate:
+          - area
+          - perimeter
+        decimalPlaces:
+          area: 0

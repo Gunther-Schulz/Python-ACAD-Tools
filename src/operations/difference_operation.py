@@ -64,27 +64,38 @@ def create_difference_layer(all_layers, project_settings, crs, layer_name, opera
 
         layer_geometry = all_layers[overlay_layer_name].copy()
 
-        # Apply value filtering if values are specified
+        # ARCHITECTURAL FIX: Apply correct filtering logic
         if values:
-            # Use explicit column name from operation if provided
-            if column_name and column_name in layer_geometry.columns:
-                label_column = column_name
-                log_debug(f"Using explicit column '{label_column}' for filtering layer '{overlay_layer_name}'")
-            else:
-                # Fall back to project settings
-                label_column = next((l['label'] for l in project_settings['geomLayers'] if l['name'] == overlay_layer_name), None)
-                log_debug(f"Using project settings column '{label_column}' for filtering layer '{overlay_layer_name}'")
+            # Determine which column to use for filtering
+            filter_column = None
 
-            if label_column and label_column in layer_geometry.columns:
-                layer_geometry = layer_geometry[layer_geometry[label_column].astype(str).isin([str(v) for v in values])]
-                log_debug(f"Filtered {overlay_layer_name} using column '{label_column}': {len(layer_geometry)} features remaining")
+            if column_name:
+                # Explicit column specified - must exist
+                if column_name in layer_geometry.columns:
+                    filter_column = column_name
+                    log_debug(f"Using explicit column '{filter_column}' for filtering layer '{overlay_layer_name}'")
+                else:
+                    log_error(format_operation_warning(
+                        layer_name,
+                        "difference",
+                        f"Explicit column '{column_name}' not found in layer '{overlay_layer_name}'. Available columns: {list(layer_geometry.columns)}"
+                    ))
+                    continue
             else:
-                log_warning(format_operation_warning(
-                    layer_name,
-                    "difference",
-                    f"Label column '{label_column}' not found in layer '{overlay_layer_name}'"
-                ))
-                continue
+                # No explicit column - try to use layer's label column as fallback
+                label_column = next((l.get('label') for l in project_settings['geomLayers'] if l['name'] == overlay_layer_name), None)
+                if label_column and label_column in layer_geometry.columns:
+                    filter_column = label_column
+                    log_debug(f"Using layer's label column '{filter_column}' for filtering layer '{overlay_layer_name}'")
+                else:
+                    # No label column available - take everything and warn
+                    log_debug(f"Values provided for {overlay_layer_name} but no usable column found - taking all data")
+                    filter_column = None
+
+            # Apply filtering if we have a column to filter on
+            if filter_column:
+                layer_geometry = layer_geometry[layer_geometry[filter_column].astype(str).isin([str(v) for v in values])]
+                log_debug(f"Filtered {overlay_layer_name} using column '{filter_column}': {len(layer_geometry)} features remaining")
 
         if layer_geometry.empty:
             continue
