@@ -55,6 +55,14 @@ geomLayers:
         layers:
           - name: "Wald"
 
+  ### Hecke
+  - name: "Hecke"
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/input/Hecke1.shp"
+
+  ### Biotop
+  - name: "Biotop"
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/input/Biotop.shp"
+
   ### Exclude
   - name: "Exclude Geltungsbereich"
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/input/Exclude Geltungsbereich.shp"
@@ -92,6 +100,9 @@ geomLayers:
         reverseDifference: false
         layers:
           - name: "Waldabstand"
+          - name: "Hecke"
+          - name: "Biotop"
+          - name: "Exclude Geltungsbereich"
       - type: dissolve
   - name: Geltungsbereich B
     updateDxf: true
@@ -121,6 +132,9 @@ geomLayers:
         reverseDifference: false
         layers:
           - name: "Waldabstand"
+          - name: "Hecke"
+          - name: "Biotop"
+          - name: "Exclude Geltungsbereich"
       - type: dissolve
   - name: Geltungsbereich C
     updateDxf: true
@@ -163,6 +177,9 @@ geomLayers:
         reverseDifference: false
         layers:
           - name: "Waldabstand"
+          - name: "Hecke"
+          - name: "Biotop"
+          - name: "Exclude Geltungsbereich"
       - type: dissolve
   - name: Geltungsbereich D
     updateDxf: true
@@ -195,6 +212,8 @@ geomLayers:
       - type: difference
         reverseDifference: false
         layers:
-          # - name: "Waldabstand"
+          - name: "Waldabstand"
+          - name: "Hecke"
+          - name: "Biotop"
           - name: "Exclude Geltungsbereich"
       - type: dissolve
