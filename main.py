@@ -16,15 +16,15 @@ class ProjectProcessor:
             self.project_loader = ProjectLoader(project_name)
             if not self.project_loader.project_settings:
                 raise ValueError(f"Could not load settings for project '{project_name}'. Please check if the project files exist and are valid YAML.")
-            
+
             # Initialize LayerProcessor first
             self.layer_processor = LayerProcessor(self.project_loader, plot_ops)
-            
+
             # Pass the initialized LayerProcessor to DXFExporter
             self.dxf_exporter = DXFExporter(self.project_loader, self.layer_processor)
-            
+
             self.doc = None  # Add this to store the document reference
-            
+
         except Exception as e:
             available_projects = list_available_projects()
             error_msg = f"Error initializing project '{project_name}': {str(e)}\n"
@@ -32,12 +32,12 @@ class ProjectProcessor:
                 error_msg += "\nAvailable projects:\n" + "\n".join(f"  - {p}" for p in available_projects)
             else:
                 error_msg += "\nNo projects found. Use --create-project to create a new project."
-            
+
             # Log the full traceback before raising the error
             log_error(f"Error initializing project '{project_name}':")
             log_error(f"Error details: {str(e)}")
             log_error(f"Traceback:\n{traceback.format_exc()}")
-            
+
             raise ValueError(error_msg) from e
 
     def run(self):
@@ -46,14 +46,14 @@ class ProjectProcessor:
         self.layer_processor.set_dxf_document(doc)
         self.layer_processor.process_layers()
         self.dxf_exporter.export_to_dxf()
-        
+
         project_settings = self.project_loader.project_settings
         folder_prefix = self.project_loader.folder_prefix
         dxf_filename = self.project_loader.dxf_filename
-        
+
         if 'dxfDumpOutputDir' in project_settings:
             dump_output_dir = os.path.expanduser(os.path.join(folder_prefix, project_settings['dxfDumpOutputDir']))
-            
+
             if os.path.exists(dxf_filename) and dump_output_dir:
                 log_info(f"Dumping DXF to shapefiles: {dxf_filename} -> {dump_output_dir}")
                 dxf_to_shapefiles(dxf_filename, dump_output_dir)
@@ -65,10 +65,10 @@ class ProjectProcessor:
         doc = self.dxf_exporter._load_or_create_dxf(skip_dxf_processor=False)
         self.layer_processor.set_dxf_document(doc)
         self.layer_processor.process_layers()
-        
+
         # Pass skip_dxf_processor=True to avoid second processing
         self.dxf_exporter.export_to_dxf(skip_dxf_processor=True)
-        
+
         # Store and return the document reference
         self.doc = doc
         return doc
@@ -264,7 +264,7 @@ def list_available_projects():
         os.makedirs(projects_dir)
         log_info(f"Created projects directory: {projects_dir}")
         return []
-    
+
     projects = []
     for file in os.listdir(projects_dir):
         if file.endswith('.yaml'):
@@ -280,7 +280,7 @@ def main():
     parser.add_argument('-s', '--list-settings', action='store_true', help="List all possible layer settings and their options")
     parser.add_argument('--list-projects', action='store_true', help="List all available projects")
     parser.add_argument('--create-project', action='store_true', help="Create a new project with basic settings")
-    parser.add_argument('--log-level', 
+    parser.add_argument('--log-level',
                        choices=['DEBUG', 'INFO', 'WARNING', 'ERROR'],
                        default='INFO',
                        help='Set the logging level')
@@ -318,7 +318,7 @@ def main():
             log_info(f"\nError: Project '{args.project_name}' already exists at: {project_dir}")
             log_info("Please choose a different project name or remove the existing project directory.")
             sys.exit(1)
-            
+
         project_dir = create_sample_project(args.project_name)
         log_info(f"\nCreated new project directory: {project_dir}")
         log_info("\nThe following files were created with sample configurations:")
@@ -338,36 +338,36 @@ def main():
     try:
         if args.project_name:
             processor = ProjectProcessor(args.project_name, args.plot_ops)
-            doc = processor.process()
-            
+            processor.run()
+
             # Add cleanup step if requested
             if args.cleanup:
                 log_debug("Performing document cleanup...")
-                cleanup_document(doc)
+                cleanup_document(processor.doc)
                 log_debug("Document cleanup completed")
-                
+
     except ValueError as e:
         error_message = str(e)
         traceback_str = traceback.format_exc()
-        
+
         log_error(f"Error Message: {error_message}")
         log_error(f"Traceback:\n{traceback_str}")
-        
+
         log_info(f"\nError: {error_message}")
         sys.exit(1)
     except Exception as e:
         error_type = type(e).__name__
         error_message = str(e)
         traceback_str = traceback.format_exc()
-        
+
         log_error(f"Error Type: {error_type}")
         log_error(f"Error Message: {error_message}")
         log_error(f"Traceback:\n{traceback_str}")
-        
+
         log_info(f"\nAn unexpected error occurred: {error_type}")
         log_info(f"Error details: {error_message}")
         log_info("Check the log file for the full traceback.")
-        
+
         sys.exit(1)
 
 if __name__ == "__main__":

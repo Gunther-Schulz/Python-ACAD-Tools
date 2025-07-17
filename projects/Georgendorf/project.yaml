@@ -1,0 +1,7 @@
+exportFormat: dxf
+dxfVersion: R2018
+crs: EPSG:25833
+templateDxfFilename: "Öffentlich Planungsbüro Schulz/Allgemein/CAD/Vorlage.dxf"
+dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/25-06 PV Georgendorf/Zeichnung/25 07.17. Georgendorf.dxf"
+dxfDumpOutputDir: "Öffentlich Planungsbüro Schulz/Projekte/25-06 PV Georgendorf/GIS/dumped"
+shapefileOutputDir: "Öffentlich Planungsbüro Schulz/Projekte/25-06 PV Georgendorf/GIS/generated"

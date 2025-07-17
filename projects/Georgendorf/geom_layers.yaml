@@ -1,0 +1,10 @@
+geomLayers: []
+
+# Add your geometric layers here when ready
+# Example layer structure:
+# - name: "Example Layer"
+#   updateDxf: true
+#   shapeFile: "path/to/your/shapefile.shp"
+#   style: your_style_name
+#   operations:
+#     - type: copy
