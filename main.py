@@ -11,7 +11,7 @@ from src.dump_to_shape import dxf_to_shapefiles
 from src.dxf_utils import cleanup_document
 
 class ProjectProcessor:
-    def __init__(self, project_name: str, plot_ops=False):
+    def __init__(self, project_name: str, plot_ops=False, skip_dxf=False):
         try:
             self.project_loader = ProjectLoader(project_name)
             if not self.project_loader.project_settings:
@@ -20,8 +20,12 @@ class ProjectProcessor:
             # Initialize LayerProcessor first
             self.layer_processor = LayerProcessor(self.project_loader, plot_ops)
 
-            # Pass the initialized LayerProcessor to DXFExporter
-            self.dxf_exporter = DXFExporter(self.project_loader, self.layer_processor)
+            # Pass the initialized LayerProcessor to DXFExporter only if not skipping DXF
+            self.skip_dxf = skip_dxf
+            if not skip_dxf:
+                self.dxf_exporter = DXFExporter(self.project_loader, self.layer_processor)
+            else:
+                self.dxf_exporter = None
 
             self.doc = None  # Add this to store the document reference
 
@@ -41,11 +45,16 @@ class ProjectProcessor:
             raise ValueError(error_msg) from e
 
     def run(self):
-        # Load the document and process DXF operations early
-        doc = self.dxf_exporter._load_or_create_dxf(skip_dxf_processor=False)
-        self.layer_processor.set_dxf_document(doc)
-        self.layer_processor.process_layers()
-        self.dxf_exporter.export_to_dxf()
+        if self.skip_dxf:
+            # Only process layers without DXF operations
+            log_info("Skipping DXF generation - processing geometries and shapefiles only")
+            self.layer_processor.process_layers()
+        else:
+            # Load the document and process DXF operations early
+            doc = self.dxf_exporter._load_or_create_dxf(skip_dxf_processor=False)
+            self.layer_processor.set_dxf_document(doc)
+            self.layer_processor.process_layers()
+            self.dxf_exporter.export_to_dxf()
 
         project_settings = self.project_loader.project_settings
         folder_prefix = self.project_loader.folder_prefix
@@ -276,6 +285,7 @@ def main():
     parser.add_argument("project_name", nargs="?", help="Name of the project to process")
     parser.add_argument('--plot-ops', action='store_true', help="Plot the result of each operation")
     parser.add_argument('--cleanup', action='store_true', help="Perform thorough document cleanup after processing")
+    parser.add_argument('--skip-dxf', action='store_true', help="Skip DXF generation and only process geometries/shapefiles")
     parser.add_argument('-l', '--list-operations', action='store_true', help="List all possible layer operations and their options")
     parser.add_argument('-s', '--list-settings', action='store_true', help="List all possible layer settings and their options")
     parser.add_argument('--list-projects', action='store_true', help="List all available projects")
@@ -337,11 +347,11 @@ def main():
 
     try:
         if args.project_name:
-            processor = ProjectProcessor(args.project_name, args.plot_ops)
+            processor = ProjectProcessor(args.project_name, args.plot_ops, args.skip_dxf)
             processor.run()
 
-            # Add cleanup step if requested
-            if args.cleanup:
+            # Add cleanup step if requested (only if DXF was generated)
+            if args.cleanup and not args.skip_dxf:
                 log_debug("Performing document cleanup...")
                 cleanup_document(processor.doc)
                 log_debug("Document cleanup completed")

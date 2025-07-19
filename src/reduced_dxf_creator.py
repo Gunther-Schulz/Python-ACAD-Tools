@@ -2,7 +2,7 @@ import ezdxf
 from pathlib import Path
 from src.utils import resolve_path, log_info, log_warning, log_error, log_debug
 from src.legend_creator import LegendCreator
-from src.dxf_utils import add_mtext, attach_custom_data, initialize_document, set_drawing_properties
+from src.dxf_utils import add_mtext, attach_custom_data, initialize_document, set_drawing_properties, atomic_save_dxf
 from src.path_array import create_path_array
 import traceback
 import pkg_resources
@@ -655,81 +655,17 @@ class ReducedDXFCreator:
             if '$INSUNITS' not in reduced_doc.header:
                 reduced_doc.header['$INSUNITS'] = 6  # Meters
 
-            # Use the standard direct save method (like normal export does)
-            reduced_doc.saveas(str(reduced_path))
-            log_info(f"Created reduced DXF file: {reduced_path}")
+            # Use atomic save for safety and reliability
+            if atomic_save_dxf(reduced_doc, reduced_path, create_backup=True):
+                log_info(f"Successfully created reduced DXF file: {reduced_path}")
+            else:
+                raise RuntimeError(f"Failed to save reduced DXF file: {reduced_path}")
 
         except Exception as e:
-            log_error(f"Error saving reduced DXF: {str(e)}\n{traceback.format_exc()}")
+            log_error(f"Error creating reduced DXF: {str(e)}\n{traceback.format_exc()}")
+            raise e
 
-            # Fallback method if standard save fails
-            try:
-                log_warning("Regular save failed, trying alternative save method...")
-                self._safe_save_dxf(reduced_doc, reduced_path)
-            except Exception as e2:
-                log_error(f"Alternative save method also failed: {str(e2)}")
-                raise e  # Raise the original error
 
-    def _safe_save_dxf(self, doc, filepath):
-        """Custom save method that works around the material handling issue."""
-        try:
-            # First attempt - try to save directly
-            try:
-                doc.saveas(str(filepath))
-                return
-            except AttributeError as e:
-                # If we get a material-related error, proceed with the workaround
-                if "Material" in str(e) and "dxf" in str(e):
-                    log_warning("Applying Material handling workaround for ezdxf compatibility")
-                else:
-                    # If it's a different AttributeError, re-raise it
-                    raise
-
-            # Workaround - temporarily patch the materials section or disable material updates
-            original_update_all = doc.update_all
-
-            # Define a custom update_all method that skips updating materials
-            def safe_update_all():
-                # Skip material handling in _update_header_vars
-                original_materials = None
-                if hasattr(doc, 'materials'):
-                    original_materials = doc.materials
-                    doc.materials = None
-
-                try:
-                    # Call most header update processes
-                    if hasattr(doc, '_update_header_section'):
-                        doc._update_header_section()
-                    if hasattr(doc, '_update_metadata'):
-                        doc._update_metadata()
-                    # Skip the problematic _update_header_vars call
-                    if hasattr(doc, '_update_entities'):
-                        doc._update_entities()
-                finally:
-                    # Restore materials
-                    if original_materials is not None:
-                        doc.materials = original_materials
-
-            # Replace update_all temporarily
-            doc.update_all = safe_update_all
-
-            # Try to save with our patched method
-            try:
-                doc.saveas(str(filepath))
-            finally:
-                # Restore original method
-                doc.update_all = original_update_all
-
-        except Exception as e:
-            log_error(f"Error in safe_save_dxf: {str(e)}")
-            # If all our attempts fail, try one more basic approach
-            try:
-                # Direct file writing as a last resort
-                doc.write(open(str(filepath), 'wb'))
-                log_warning("Used fallback file writing method")
-            except Exception as e2:
-                log_error(f"Fallback save also failed: {str(e2)}")
-                raise e  # Raise the original error
 
     def _clean_dictionaries(self, doc):
         """Clean up dictionaries that might cause copy issues"""

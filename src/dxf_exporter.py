@@ -17,7 +17,7 @@ from src.dxf_utils import (get_color_code, attach_custom_data,
                            is_created_by_script, add_text, remove_entities_by_layer,
                            ensure_layer_exists, update_layer_properties,
                            set_drawing_properties, verify_dxf_settings, update_layer_geometry,
-                           get_style, apply_style_to_entity, create_hatch, SCRIPT_IDENTIFIER, initialize_document, sanitize_layer_name, add_mtext)
+                           get_style, apply_style_to_entity, create_hatch, SCRIPT_IDENTIFIER, initialize_document, sanitize_layer_name, add_mtext, atomic_save_dxf)
 from src.path_array import create_path_array
 from src.style_manager import StyleManager
 from src.viewport_manager import ViewportManager
@@ -151,15 +151,9 @@ class DXFExporter:
             raise
 
     def _prepare_dxf_document(self, skip_dxf_processor=False):
-        self._backup_existing_file()
+        # Backup is now handled by atomic_save_dxf() during the save operation
         doc = self._load_or_create_dxf(skip_dxf_processor)
         return doc
-
-    def _backup_existing_file(self):
-        if os.path.exists(self.dxf_filename):
-            backup_filename = resolve_path(f"{self.dxf_filename}.ezdxf_bak")
-            shutil.copy2(self.dxf_filename, backup_filename)
-            log_debug(f"Created backup of existing DXF file: {backup_filename}")
 
     def _load_or_create_dxf(self, skip_dxf_processor=False):
         dxf_version = self.project_settings.get('dxfVersion', 'R2010')
@@ -233,9 +227,14 @@ class DXFExporter:
         )
         layers_to_clean = [layer for layer in processed_layers if layer not in self.all_layers]
         remove_entities_by_layer(msp, layers_to_clean, self.script_identifier)
-        doc.saveas(self.dxf_filename)
-        log_debug(f"DXF file saved: {self.dxf_filename}")
-        verify_dxf_settings(self.dxf_filename)
+
+        # Use atomic save for safety - writes to temp file first, then moves atomically
+        if atomic_save_dxf(doc, self.dxf_filename, create_backup=True):
+            log_info(f"DXF file safely saved: {self.dxf_filename}")
+            verify_dxf_settings(self.dxf_filename)
+        else:
+            log_error(f"Failed to save DXF file: {self.dxf_filename}")
+            raise RuntimeError(f"DXF save operation failed for {self.dxf_filename}")
 
     def process_layers(self, doc, msp):
         # First, process all normal geometry layers

@@ -676,21 +676,33 @@ def add_mtext(msp, text, x, y, layer_name, style_name, text_style=None, name_to_
         return None, 0
 
 def sanitize_layer_name(name):
-    # Define a set of allowed characters, including German-specific ones, space, dash, and underscore
-    allowed_chars = r'a-zA-Z0-9_\-öüäßÖÜÄ '
+    # Define a set of allowed characters, including German-specific ones, space, dash, underscore, and periods
+    allowed_chars = r'a-zA-Z0-9_\-öüäßÖÜÄ .'
 
-    # Replace disallowed characters with underscores
-    sanitized = re.sub(f'[^{allowed_chars}]', '_', name)
+    # Check for forbidden characters and issue detailed warnings
+    forbidden_chars = re.findall(f'[^{allowed_chars}]', name)
+    if forbidden_chars:
+        unique_forbidden = list(set(forbidden_chars))
+        log_warning(f"DXF Layer name '{name}' contains forbidden characters: {unique_forbidden}")
+        log_warning(f"Forbidden characters in DXF layer names include: commas (,), slashes (/\\), brackets ([]), and other special characters")
+        log_warning(f"Allowed characters are: letters (a-z, A-Z), numbers (0-9), underscore (_), hyphen (-), period (.), space ( ), and German umlauts (öüäßÖÜÄ)")
+        log_warning(f"Please rename the layer in your configuration file to use only allowed characters.")
 
-    # Ensure the name starts with a letter, underscore, or allowed special character (excluding space)
-    if not re.match(f'^[{allowed_chars.replace(" ", "")}]', sanitized):
-        sanitized = '_' + sanitized
+    # Check if name starts with an invalid character (space)
+    if name.startswith(' '):
+        log_warning(f"DXF Layer name '{name}' starts with a space, which is not recommended.")
 
-    # Remove any leading spaces
-    sanitized = sanitized.lstrip()
+    # Check if name starts with a number (which may cause issues in some CAD software)
+    if name and name[0].isdigit():
+        log_warning(f"DXF Layer name '{name}' starts with a number, which may cause compatibility issues.")
 
-    # Truncate to 255 characters (AutoCAD limit)
-    return sanitized[:255]
+    # Check length limit
+    if len(name) > 255:
+        log_warning(f"DXF Layer name '{name}' is {len(name)} characters long, exceeding the 255 character limit.")
+        log_warning(f"Please shorten the layer name in your configuration file.")
+
+    # Return the original name unchanged - let the user fix their configuration
+    return name
 
 def load_standard_text_styles(doc):
     standard_styles = [
@@ -856,6 +868,90 @@ def cleanup_document(doc):
     except Exception as e:
         log_error(f"Error during document cleanup: {str(e)}")
         log_error(f"Traceback:\n{traceback.format_exc()}")
+
+def atomic_save_dxf(doc, target_path, create_backup=True):
+    """
+    Safely save a DXF document using atomic write operations.
+
+    This method:
+    1. Creates a backup of the existing file (if it exists and create_backup=True)
+    2. Writes to a temporary file first
+    3. Only moves the temp file to the target location if successful
+    4. This ensures we never have a partially written file at the target location
+
+    Args:
+        doc: The ezdxf document to save
+        target_path: The final path where the file should be saved
+        create_backup: Whether to create a backup of existing file (default: True)
+
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    import tempfile
+    import shutil
+
+    target_path = str(target_path)  # Ensure string path
+
+    try:
+        # Step 1: Create backup of existing file if it exists and backup is requested
+        backup_path = None
+        if create_backup and os.path.exists(target_path):
+            backup_path = f"{target_path}.ezdxf_bak"
+            shutil.copy2(target_path, backup_path)
+            log_info(f"Created backup: {backup_path}")
+
+        # Step 2: Create temporary file in the same directory as target
+        # This ensures the temp file is on the same filesystem for atomic move
+        target_dir = os.path.dirname(target_path) or '.'
+        target_basename = os.path.basename(target_path)
+        temp_fd = None
+        temp_path = None
+
+        try:
+            # Create temporary file with similar name for easier identification
+            temp_fd, temp_path = tempfile.mkstemp(
+                prefix=f".{target_basename}.tmp.",
+                suffix=".dxf",
+                dir=target_dir
+            )
+            os.close(temp_fd)  # Close the file descriptor, we'll use ezdxf's save method
+
+            log_debug(f"Writing to temporary file: {temp_path}")
+
+            # Step 3: Save to temporary file
+            doc.saveas(temp_path)
+            log_debug(f"Successfully wrote temporary file: {temp_path}")
+
+            # Step 4: Atomic move - this is the critical atomic operation
+            # On most filesystems, rename/move is atomic if source and destination are on same filesystem
+            if os.name == 'nt':  # Windows
+                # On Windows, we need to remove the target first if it exists
+                if os.path.exists(target_path):
+                    os.remove(target_path)
+                shutil.move(temp_path, target_path)
+            else:  # Unix-like systems
+                os.rename(temp_path, target_path)
+
+            log_info(f"Successfully saved DXF file: {target_path}")
+            return True
+
+        except Exception as e:
+            # Clean up temporary file if something went wrong
+            if temp_path and os.path.exists(temp_path):
+                try:
+                    os.remove(temp_path)
+                    log_debug(f"Cleaned up temporary file: {temp_path}")
+                except:
+                    log_warning(f"Could not clean up temporary file: {temp_path}")
+
+            # If we created a backup and the save failed, we could optionally restore it
+            # but since the original file wasn't touched yet, this may not be necessary
+
+            raise e  # Re-raise the original exception
+
+    except Exception as e:
+        log_error(f"Failed to save DXF file to {target_path}: {str(e)}")
+        return False
 
 def polygon_patch(polygon):
     """Convert Shapely polygon to matplotlib patch"""
