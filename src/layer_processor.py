@@ -30,7 +30,8 @@ from src.operations import (
     create_connect_points_layer,
     create_envelope_layer,
     create_label_association_layer,
-    create_filtered_by_column_layer
+    create_filtered_by_column_layer,
+    create_repair_layer
 )
 from src.style_manager import StyleManager
 from src.operations.filter_geometry_operation import create_filtered_geometry_layer
@@ -277,6 +278,8 @@ class LayerProcessor:
             result = create_connect_points_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
         elif op_type == 'envelope':
             result = create_envelope_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
+        elif op_type == 'repair':
+            result = create_repair_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
         elif op_type == 'labelAssociation':
             result = create_label_association_layer(self.all_layers, self.project_settings,
                                                  self.crs, layer_name, operation,
@@ -383,12 +386,26 @@ class LayerProcessor:
                     if null_geometries:
                         log_warning(f"Null geometries found in layer '{layer_name}' at indices: {null_geometries}")
 
+                    # Check if this layer has repair operations that might fix the invalid geometries
+                    has_repair_operations = any(
+                        op.get('type') == 'repair'
+                        for op in layer.get('operations', [])
+                    )
+
+                    # Allow loading with warnings if repair operations are present, otherwise fail
                     if invalid_geometries:
                         error_msg = f"Invalid geometries found in layer '{layer_name}':\n"
                         for idx, reason in invalid_geometries:
                             error_msg += f"  - Feature {idx}: {reason}\n"
-                        log_error(error_msg)
-                        raise ValueError(error_msg)
+
+                        if has_repair_operations:
+                            log_warning("Found invalid geometries, but repair operations are configured:")
+                            log_warning(error_msg)
+                            log_info(f"Layer '{layer_name}' will be processed with repair operations to fix {len(invalid_geometries)} invalid geometries")
+                        else:
+                            log_error(error_msg)
+                            log_error(f"Consider adding a 'repair' operation to layer '{layer_name}' to fix these geometry issues")
+                            raise ValueError(error_msg)
 
                     gdf = self.standardize_layer_crs(layer_name, gdf)
                     if gdf is not None:

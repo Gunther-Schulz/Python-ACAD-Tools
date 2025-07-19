@@ -258,8 +258,8 @@ def _clean_polygon(all_layers, project_settings, crs, polygon, sliver_removal_di
             log_warning("Encountered an empty polygon during cleaning. Skipping.")
             return polygon
 
-        cleaned_exterior = _clean_linear_ring(polygon.exterior, sliver_removal_distance)
-        cleaned_interiors = [_clean_linear_ring(interior, sliver_removal_distance) for interior in polygon.interiors]
+        cleaned_exterior = _clean_linear_ring(all_layers, project_settings, crs, polygon.exterior, sliver_removal_distance)
+        cleaned_interiors = [_clean_linear_ring(all_layers, project_settings, crs, interior, sliver_removal_distance) for interior in polygon.interiors]
 
         # Filter out any empty interiors
         cleaned_interiors = [interior for interior in cleaned_interiors if not interior.is_empty]

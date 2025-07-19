@@ -1,10 +1,139 @@
-geomLayers: []
+geomLayers:
+  ### Grundlagen ###
+  - name: Parcel
+    updateDxf: true
+    label: label
+    operations:
+      # - type: repair
+      #   bufferRepair: true
+      #   makeValid: true
+      #   removeEmptyGeometries: true
+      - type: simpleLabel
+        labelColumn: label  # Explicitly specify the label column
+        style: baum  # Using an existing text style from styles.yaml
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/25-06 PV Georgendorf/GIS/input/parcel.shp"
+  - name: Flur
+    # updateDxf: true
+    label: flurname
+    operations:
+      - type: simpleLabel
+        labelColumn: flurname  # Explicitly specify the label column
+        style: baum  # Using an existing text style from styles.yaml
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/25-06 PV Georgendorf/GIS/input/flur.shp"
+  - name: Gemarkung
+    # updateDxf: true
+    label: gmkname
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/25-06 PV Georgendorf/GIS/input/gemarkung.shp"
+  - name: Gemeinde
+    # updateDxf: true
+    label: gen
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/25-06 PV Georgendorf/GIS/input/gemeinde.shp"
 
-# Add your geometric layers here when ready
-# Example layer structure:
-# - name: "Example Layer"
-#   updateDxf: true
-#   shapeFile: "path/to/your/shapefile.shp"
-#   style: your_style_name
-#   operations:
-#     - type: copy
+  ### Geltungsbereich ###
+  - name: Geltungsbereich
+    updateDxf: true
+    style: geltungsbereich
+    operations:
+      - type: copy
+        layers:
+          - name: Parcel
+            values:
+              - "35/2"
+              - "16/7"
+            column: label  # Explicitly specify the column to search in
+      - type: filterByIntersection
+        layers:
+          - name: Flur
+            values:
+              - Flur 2
+          - name: Gemarkung
+            values:
+              - Georgendorf
+          - name: Gemeinde
+            values:
+              - Pragsdorf
+      # - type: intersection
+      #   layers:
+      #     - name: Bahnstrasse 200m Puffer
+      # - type: difference
+      #   reverseDifference: false
+      #   layers:
+      #     - name: "Exclude Geltungsbereich"
+      #     - name: "Wald"
+      #     - name: "Hecke"
+      - type: dissolve
+
+  ### Baufeld and Baugrenze ###
+  - name: Baufeld
+    updateDxf: true
+    close: true
+    viewports:
+      - name: WorkView
+        style: baufeld
+    operations:
+      - type: copy
+        layers:
+          - Geltungsbereich
+      # - type: difference
+      #   useBufferTrick: true
+      #   reverseDifference: false
+      #   operations:
+      #     - type: dissolve
+      #       layers:
+      #         - "Waldabstand"
+      #         - "Hecke"
+      #         - "Biotop"
+      #         - "Exclude Baufeld"
+      #         - "Baumreihe"
+      #         - "Einzelbaum Buffer"
+      - type: filterGeometry
+        minArea: 200
+        geometryTypes:
+          - Polygon
+
+  - name: Baufeld Schraffur
+    updateDxf: true
+    style: baufeld
+    applyHatch:
+      layers:
+        - Baufeld
+
+  - name: Baugrenze
+    updateDxf: true
+    style: baugrenze
+    linetypeScale: 0.5
+    linetypeGeneration: true
+    close: true
+    operations:
+      - type: buffer
+        joinStyle: mitre
+        layers:
+          - Baufeld
+        distance: -3
+
+  - name: Baugrenze 2
+    updateDxf: true
+    style: baugrenze_2
+    close: true
+    operations:
+      - type: buffer
+        joinStyle: mitre
+        layers:
+          - Baugrenze
+        distance: -0.4
+
+  - name: Baugrenze Report
+    operations:
+      - type: copy
+        layers:
+          - Baugrenze
+      - type: intersection
+        layers:
+          - Geltungsbereich
+      - type: report
+        outputFile: "Öffentlich Planungsbüro Schulz/Projekte/25-06 PV Georgendorf/GIS/reports/baugrenze_report.json"
+        calculate:
+          - area
+          - perimeter
+        decimalPlaces:
+          area: 0

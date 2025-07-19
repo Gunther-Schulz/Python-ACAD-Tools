@@ -16,6 +16,7 @@ from .connect_points_operation import create_connect_points_layer
 from .envelope_operation import create_envelope_layer
 from .label_association_operation import create_label_association_layer
 from .filter_by_column_operation import create_filtered_by_column_layer
+from .repair_operation import create_repair_layer
 __all__ = [
     'create_copy_layer',
     'create_buffer_layer',
@@ -35,5 +36,6 @@ __all__ = [
     'create_connect_points_layer',
     'create_envelope_layer',
     'create_label_association_layer',
-    'create_filtered_by_column_layer'
+    'create_filtered_by_column_layer',
+    'create_repair_layer'
 ]
