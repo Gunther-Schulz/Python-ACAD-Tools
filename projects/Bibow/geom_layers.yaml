@@ -61,17 +61,34 @@ geomLayers:
   - name: "Hecke"
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/input/Hecke1.shp"
 
-  ### Biotop
-  - name: "Biotop"
+  ### Biotope
+  - name: "Biotope Input"
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/input/Biotop.shp"
 
-  - name: "Biotop Puffer"
+  - name: "ges. gesch. Biotope"
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/input/ges_gesch_Biotope.shp"
+    operations:
+      - type: repair
+        bufferRepair: true
+        removeEmptyGeometries: true
+        removeFailures: true
+
+  - name: "Biotope"
+    operations:
+      - type: dissolve
+        layers:
+          - name: "Biotope Input"
+          - name: "ges. gesch. Biotope"
+
+  - name: "Biotope Puffer"
+    updateDxf: true
+    style: grünfläche
     operations:
       - type: buffer
-        distance: 10
+        distance: 5
         joinStyle: round
         layers:
-          - name: "Biotop"
+          - name: "Biotope"
 
 ### Bäume
   - name: "Baumreihe"
@@ -92,6 +109,23 @@ geomLayers:
         layers:
           - name: "Einzelbaum"
 
+  ### Grünflache Input
+  - name: "Ausgleichsfläche für Naturschutz"
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/input/Ausgleichsfläche für Naturschutz.shp"
+
+  - name: "Moor"
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/input/Moor_f.shp"
+
+  - name: "Grünfläche"
+    updateDxf: true
+    style: grünfläche
+    operations:
+      - type: dissolve
+        layers:
+          - name: "Ausgleichsfläche für Naturschutz"
+          - name: "Moor"
+          - name: "Biotope"
+          - name: "Waldabstand"
 
   ### Exclude
   - name: "Exclude Geltungsbereich"
@@ -250,6 +284,24 @@ geomLayers:
           - name: "Hecke"
       - type: dissolve
 
+  ### Grünfläche
+  - name: "Grünfläche"
+    updateDxf: true
+    style: grünfläche
+    operations:
+      - type: dissolve
+        layers:
+          - name: "Ausgleichsfläche für Naturschutz"
+          - name: "Moor"
+          - name: "Biotope"
+          - name: "Waldabstand"
+      - type: intersection
+        layers:
+          - name: "Geltungsbereich A"
+          - name: "Geltungsbereich B"
+          - name: "Geltungsbereich C"
+          - name: "Geltungsbereich D"
+
   ### Baufeld and Baugrenze ###
   - name: Baufeld
     updateDxf: true
@@ -272,7 +324,7 @@ geomLayers:
             layers:
               - "Waldabstand"
               - "Hecke"
-              - "Biotop"
+              - "Biotope"
               - "Exclude Baufeld"
               - "Baumreihe"
               - "Einzelbaum Buffer"

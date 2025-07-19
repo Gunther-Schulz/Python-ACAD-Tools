@@ -72,6 +72,10 @@ class LayerProcessor:
             if shapefile_output_dir:
                 self.write_shapefile(layer_name)
 
+        # Log completion of shapefile generation
+        if shapefile_output_dir:
+            log_info("Finished writing generated shape files")
+
         # Process WMTS layers
         for layer in self.project_settings.get('wmtsLayers', []):
             layer_name = layer['name']
