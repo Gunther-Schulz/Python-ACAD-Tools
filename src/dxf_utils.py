@@ -11,7 +11,7 @@ from ezdxf.lldxf.const import (
 )
 from ezdxf.enums import TextEntityAlignment
 from ezdxf.math import Vec3
-from src.utils import log_info, log_warning, log_error, log_debug
+from src.utils import log_info, log_warning, log_error, log_debug, profile_operation, log_performance
 import re
 import math
 from ezdxf.math import Vec2, area
@@ -132,33 +132,37 @@ def add_text(msp, text, x, y, layer_name, style_name, height=5, color=None):
     return text_entity
 
 def remove_entities_by_layer(msp, layer_names, script_identifier):
-    doc = msp.doc
-    key_func = doc.layers.key
-    delete_count = 0
-    problem_entities = []
+    with profile_operation("Remove Entities By Layer", f"layers: {layer_names}"):
+        doc = msp.doc
+        key_func = doc.layers.key
+        delete_count = 0
+        problem_entities = []
 
-    # Convert single layer name to list
-    if isinstance(layer_names, str):
-        layer_names = [layer_names]
+        # Convert single layer name to list
+        if isinstance(layer_names, str):
+            layer_names = [layer_names]
 
-    # Convert layer names to keys
-    layer_keys = [key_func(layer_name) for layer_name in layer_names]
+        # Convert layer names to keys
+        layer_keys = [key_func(layer_name) for layer_name in layer_names]
 
-    # First pass: collect problematic entities
-    for space in [doc.modelspace(), doc.paperspace()]:
-        for entity in doc.entitydb.values():
-            try:
-                if not hasattr(entity, 'dxf') or not entity.dxf.hasattr("layer"):
-                    continue
+        log_performance(f"Scanning for entities in {len(layer_names)} layers from document with {len(doc.entitydb)} total entities")
 
-                if key_func(entity.dxf.layer) in layer_keys and is_created_by_script(entity, script_identifier):
+        # First pass: collect problematic entities
+        with profile_operation("First Pass - Collect Problematic Entities"):
+            for space in [doc.modelspace(), doc.paperspace()]:
+                for entity in doc.entitydb.values():
                     try:
-                        # Test if we can safely handle this entity
-                        _ = entity.dxf.handle
-                    except Exception as e:
-                        problem_entities.append((entity, str(e)))
-            except AttributeError:
-                continue
+                        if not hasattr(entity, 'dxf') or not entity.dxf.hasattr("layer"):
+                            continue
+
+                        if key_func(entity.dxf.layer) in layer_keys and is_created_by_script(entity, script_identifier):
+                            try:
+                                # Test if we can safely handle this entity
+                                _ = entity.dxf.handle
+                            except Exception as e:
+                                problem_entities.append((entity, str(e)))
+                    except AttributeError:
+                        continue
 
     # If there are problem entities, show summary and ask for confirmation
     if problem_entities:
@@ -214,9 +218,58 @@ def remove_entities_by_layer(msp, layer_names, script_identifier):
 
     return delete_count
 
+def remove_entities_by_layer_optimized(msp, layer_names, script_identifier):
+    """
+    Optimized version of remove_entities_by_layer using msp.query() for better performance.
+    """
+    with profile_operation("Remove Entities By Layer (Optimized)", f"layers: {layer_names}"):
+        delete_count = 0
+
+        # Convert single layer name to list
+        if isinstance(layer_names, str):
+            layer_names = [layer_names]
+
+        log_performance(f"Optimized removal for {len(layer_names)} layers")
+
+        for layer_name in layer_names:
+            with profile_operation("Remove Layer Entities", layer_name):
+                # Use query to efficiently find entities on this specific layer
+                entities_to_remove = []
+
+                # Query only entities on this layer - much faster than scanning all entities!
+                layer_entities = msp.query(f'*[layer=="{layer_name}"]')
+
+                log_performance(f"Found {len(layer_entities)} entities on layer {layer_name}")
+
+                # Filter to only script-created entities
+                for entity in layer_entities:
+                    if is_created_by_script(entity, script_identifier):
+                        entities_to_remove.append(entity)
+
+                log_performance(f"Removing {len(entities_to_remove)} script-created entities from layer {layer_name}")
+
+                # Remove the entities
+                for entity in entities_to_remove:
+                    try:
+                        # Clear any XDATA before deletion
+                        try:
+                            entity.discard_xdata('DXFEXPORTER')
+                        except:
+                            pass
+
+                        # Delete the entity
+                        msp.delete_entity(entity)
+                        delete_count += 1
+                    except Exception as e:
+                        log_debug(f"Could not delete entity {entity.dxf.handle}: {e}")
+                        continue
+
+        log_performance(f"Total entities removed: {delete_count}")
+        return delete_count
+
 def update_layer_geometry(msp, layer_name, script_identifier, update_function):
-    # Remove existing entities
-    remove_entities_by_layer(msp, layer_name, script_identifier)
+    # Remove existing entities using optimized function
+    remove_entities_by_layer_optimized(msp, layer_name, script_identifier)
 
     # Add new geometry
     update_function()
@@ -400,51 +453,57 @@ def set_drawing_properties(doc):
     log_debug("\n=== End of Drawing Properties ===")
 
 def verify_dxf_settings(filename):
-    loaded_doc = ezdxf.readfile(filename)
+    # Skip verification unless explicitly requested (it's expensive - reloads entire DXF!)
+    if os.getenv('VERIFY_DXF_SETTINGS') != '1':
+        log_debug("DXF settings verification skipped (set VERIFY_DXF_SETTINGS=1 to enable)")
+        return
 
-    # Define meaning of values
-    measurement_meaning = {
-        0: "Imperial (inches, feet)",
-        1: "Metric (millimeters, meters)"
-    }
+    with profile_operation("DXF Settings Verification (Debug)"):
+        loaded_doc = ezdxf.readfile(filename)
 
-    insunits_meaning = {
-        0: "Unitless", 1: "Inches", 2: "Feet", 3: "Miles",
-        4: "Millimeters", 5: "Centimeters", 6: "Meters", 7: "Kilometers",
-        8: "Microinches", 9: "Mils", 10: "Yards", 11: "Angstroms",
-        12: "Nanometers", 13: "Microns", 14: "Decimeters", 15: "Decameters",
-        16: "Hectometers", 17: "Gigameters", 18: "Astronomical units",
-        19: "Light years", 20: "Parsecs"
-    }
+        # Define meaning of values
+        measurement_meaning = {
+            0: "Imperial (inches, feet)",
+            1: "Metric (millimeters, meters)"
+        }
 
-    lunits_meaning = {
-        1: "Scientific", 2: "Decimal", 3: "Engineering",
-        4: "Architectural", 5: "Fractional"
-    }
+        insunits_meaning = {
+            0: "Unitless", 1: "Inches", 2: "Feet", 3: "Miles",
+            4: "Millimeters", 5: "Centimeters", 6: "Meters", 7: "Kilometers",
+            8: "Microinches", 9: "Mils", 10: "Yards", 11: "Angstroms",
+            12: "Nanometers", 13: "Microns", 14: "Decimeters", 15: "Decameters",
+            16: "Hectometers", 17: "Gigameters", 18: "Astronomical units",
+            19: "Light years", 20: "Parsecs"
+        }
 
-    log_debug("\n=== Verifying DXF Settings ===")
+        lunits_meaning = {
+            1: "Scientific", 2: "Decimal", 3: "Engineering",
+            4: "Architectural", 5: "Fractional"
+        }
 
-    measurement = loaded_doc.header.get('$MEASUREMENT', None)
-    measurement_msg = f"$MEASUREMENT: {measurement} - {measurement_meaning.get(measurement, 'Unknown')}"
-    log_debug(measurement_msg)
+        log_debug("\n=== Verifying DXF Settings ===")
 
-    insunits = loaded_doc.header.get('$INSUNITS', None)
-    insunits_msg = f"$INSUNITS: {insunits} - {insunits_meaning.get(insunits, 'Unknown')}"
-    log_debug(insunits_msg)
+        measurement = loaded_doc.header.get('$MEASUREMENT', None)
+        measurement_msg = f"$MEASUREMENT: {measurement} - {measurement_meaning.get(measurement, 'Unknown')}"
+        log_debug(measurement_msg)
 
-    lunits = loaded_doc.header.get('$LUNITS', None)
-    lunits_msg = f"$LUNITS: {lunits} - {lunits_meaning.get(lunits, 'Unknown')}"
-    log_debug(lunits_msg)
+        insunits = loaded_doc.header.get('$INSUNITS', None)
+        insunits_msg = f"$INSUNITS: {insunits} - {insunits_meaning.get(insunits, 'Unknown')}"
+        log_debug(insunits_msg)
 
-    luprec = loaded_doc.header.get('$LUPREC', None)
-    luprec_msg = f"$LUPREC: {luprec} - Linear units precision (decimal places)"
-    log_debug(luprec_msg)
+        lunits = loaded_doc.header.get('$LUNITS', None)
+        lunits_msg = f"$LUNITS: {lunits} - {lunits_meaning.get(lunits, 'Unknown')}"
+        log_debug(lunits_msg)
 
-    auprec = loaded_doc.header.get('$AUPREC', None)
-    auprec_msg = f"$AUPREC: {auprec} - Angular units precision (decimal places)"
-    log_debug(auprec_msg)
+        luprec = loaded_doc.header.get('$LUPREC', None)
+        luprec_msg = f"$LUPREC: {luprec} - Linear units precision (decimal places)"
+        log_debug(luprec_msg)
 
-    log_debug("=== End of DXF Settings Verification ===\n")
+        auprec = loaded_doc.header.get('$AUPREC', None)
+        auprec_msg = f"$AUPREC: {auprec} - Angular units precision (decimal places)"
+        log_debug(auprec_msg)
+
+        log_debug("=== End of DXF Settings Verification ===\n")
 
 def get_style(style, project_loader):
     if isinstance(style, str):
@@ -895,19 +954,20 @@ def atomic_save_dxf(doc, target_path, create_backup=True):
     try:
         # Step 1: Create backup of existing file if it exists and backup is requested
         backup_path = None
-        if create_backup and os.path.exists(target_path):
-            backup_path = f"{target_path}.ezdxf_bak"
-            shutil.copy2(target_path, backup_path)
-            log_info(f"Created backup: {backup_path}")
+        with profile_operation("Backup Creation"):
+            if create_backup and os.path.exists(target_path):
+                backup_path = f"{target_path}.ezdxf_bak"
+                shutil.copy2(target_path, backup_path)
+                log_info(f"Created backup: {backup_path}")
 
         # Step 2: Create temporary file in the same directory as target
         # This ensures the temp file is on the same filesystem for atomic move
-        target_dir = os.path.dirname(target_path) or '.'
-        target_basename = os.path.basename(target_path)
-        temp_fd = None
-        temp_path = None
+        with profile_operation("Temp File Creation"):
+            target_dir = os.path.dirname(target_path) or '.'
+            target_basename = os.path.basename(target_path)
+            temp_fd = None
+            temp_path = None
 
-        try:
             # Create temporary file with similar name for easier identification
             temp_fd, temp_path = tempfile.mkstemp(
                 prefix=f".{target_basename}.tmp.",
@@ -918,19 +978,22 @@ def atomic_save_dxf(doc, target_path, create_backup=True):
 
             log_debug(f"Writing to temporary file: {temp_path}")
 
-            # Step 3: Save to temporary file
-            doc.saveas(temp_path)
-            log_debug(f"Successfully wrote temporary file: {temp_path}")
+        try:
+            # Step 3: Save to temporary file - THIS IS LIKELY THE SLOW PART
+            with profile_operation("ezdxf doc.saveas()"):
+                doc.saveas(temp_path)
+                log_debug(f"Successfully wrote temporary file: {temp_path}")
 
             # Step 4: Atomic move - this is the critical atomic operation
             # On most filesystems, rename/move is atomic if source and destination are on same filesystem
-            if os.name == 'nt':  # Windows
-                # On Windows, we need to remove the target first if it exists
-                if os.path.exists(target_path):
-                    os.remove(target_path)
-                shutil.move(temp_path, target_path)
-            else:  # Unix-like systems
-                os.rename(temp_path, target_path)
+            with profile_operation("File Move/Rename"):
+                if os.name == 'nt':  # Windows
+                    # On Windows, we need to remove the target first if it exists
+                    if os.path.exists(target_path):
+                        os.remove(target_path)
+                    shutil.move(temp_path, target_path)
+                else:  # Unix-like systems
+                    os.rename(temp_path, target_path)
 
             log_info(f"Successfully saved DXF file: {target_path}")
             return True

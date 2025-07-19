@@ -6,13 +6,16 @@ import traceback
 from src.project_loader import ProjectLoader
 from src.layer_processor import LayerProcessor
 from src.dxf_exporter import DXFExporter
-from src.utils import create_sample_project, log_error, log_info, setup_logging, setup_proj, set_log_level, log_debug
+from src.utils import create_sample_project, log_error, log_info, setup_logging, setup_proj, set_log_level, log_debug, set_profiling_enabled
 from src.dump_to_shape import dxf_to_shapefiles
 from src.dxf_utils import cleanup_document
 
 class ProjectProcessor:
-    def __init__(self, project_name: str, plot_ops=False, skip_dxf=False):
+    def __init__(self, project_name: str, plot_ops=False, skip_dxf=False, enable_profiling=False):
         try:
+            # Set profiling state early
+            set_profiling_enabled(enable_profiling)
+
             self.project_loader = ProjectLoader(project_name)
             if not self.project_loader.project_settings:
                 raise ValueError(f"Could not load settings for project '{project_name}'. Please check if the project files exist and are valid YAML.")
@@ -286,6 +289,7 @@ def main():
     parser.add_argument('--plot-ops', action='store_true', help="Plot the result of each operation")
     parser.add_argument('--cleanup', action='store_true', help="Perform thorough document cleanup after processing")
     parser.add_argument('--skip-dxf', action='store_true', help="Skip DXF generation and only process geometries/shapefiles")
+    parser.add_argument('--profile', action='store_true', help="Enable performance profiling (logs to logs/performance.log)")
     parser.add_argument('-l', '--list-operations', action='store_true', help="List all possible layer operations and their options")
     parser.add_argument('-s', '--list-settings', action='store_true', help="List all possible layer settings and their options")
     parser.add_argument('--list-projects', action='store_true', help="List all available projects")
@@ -347,7 +351,7 @@ def main():
 
     try:
         if args.project_name:
-            processor = ProjectProcessor(args.project_name, args.plot_ops, args.skip_dxf)
+            processor = ProjectProcessor(args.project_name, args.plot_ops, args.skip_dxf, args.profile)
             processor.run()
 
             # Add cleanup step if requested (only if DXF was generated)

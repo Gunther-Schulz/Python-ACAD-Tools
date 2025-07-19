@@ -165,7 +165,7 @@ styles:
     hatch:
       pattern: 'ANSI31'
       scale: 5
-      individual_hatches: true
+      individual_hatches: false
 
   waldLegend:
     hatch:
@@ -202,7 +202,7 @@ styles:
       color: "vermilion-light"
       transparency: 0.6
     hatch:
-      individual_hatches: true
+      individual_hatches: false
 
   baufeldLegend:
     hatch:
@@ -278,6 +278,7 @@ styles:
     hatch:
       color: "lime"
       transparency: 0.6
+      individual_hatches: false
 
   grünflächeWorkView:
     layer:

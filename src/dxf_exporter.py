@@ -4,7 +4,7 @@ import traceback
 import ezdxf
 from pathlib import Path
 from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, GeometryCollection, Point
-from src.utils import ensure_path_exists, log_info, log_warning, log_error, resolve_path, log_debug
+from src.utils import ensure_path_exists, log_info, log_warning, log_error, resolve_path, log_debug, profile_operation, log_performance, log_memory_usage
 import geopandas as gpd
 import os
 from ezdxf.lldxf.const import LWPOLYLINE_PLINEGEN
@@ -13,11 +13,9 @@ from ezdxf import const
 
 from PIL import Image
 from src.legend_creator import LegendCreator
-from src.dxf_utils import (get_color_code, attach_custom_data,
-                           is_created_by_script, add_text, remove_entities_by_layer,
-                           ensure_layer_exists, update_layer_properties,
-                           set_drawing_properties, verify_dxf_settings, update_layer_geometry,
-                           get_style, apply_style_to_entity, create_hatch, SCRIPT_IDENTIFIER, initialize_document, sanitize_layer_name, add_mtext, atomic_save_dxf)
+from src.dxf_utils import (remove_entities_by_layer, update_layer_properties, attach_custom_data, is_created_by_script,
+                         set_drawing_properties, verify_dxf_settings, update_layer_geometry,
+                         get_style, apply_style_to_entity, create_hatch, SCRIPT_IDENTIFIER, initialize_document, sanitize_layer_name, add_mtext, atomic_save_dxf, remove_entities_by_layer_optimized)
 from src.path_array import create_path_array
 from src.style_manager import StyleManager
 from src.viewport_manager import ViewportManager
@@ -109,46 +107,68 @@ class DXFExporter:
 
     def export_to_dxf(self, skip_dxf_processor=False):
         """Main export method."""
-        try:
-            log_debug("Starting DXF export...")
+        with profile_operation("Complete DXF Export"):
+            try:
+                log_debug("Starting DXF export...")
+                log_memory_usage("Export Start")
 
-            # Load DXF once
-            doc = self._load_or_create_dxf(skip_dxf_processor=True)  # Load without processing
+                # Load DXF once
+                with profile_operation("Load/Create DXF Document"):
+                    doc = self._load_or_create_dxf(skip_dxf_processor=True)  # Load without processing
 
-            # First, process DXF operations (if any)
-            if not skip_dxf_processor and self.project_loader.dxf_processor:
-                log_info("Processing DXF operations first...")
-                self.project_loader.dxf_processor.process_all(doc)
-                log_info("DXF operations completed")
+                # First, process DXF operations (if any)
+                if not skip_dxf_processor and self.project_loader.dxf_processor:
+                    with profile_operation("DXF Operations Processing"):
+                        log_info("Processing DXF operations first...")
+                        self.project_loader.dxf_processor.process_all(doc)
+                        log_info("DXF operations completed")
 
-            # Then proceed with geometry layers and other processing
-            self.layer_processor.set_dxf_document(doc)
-            self.loaded_styles = initialize_document(doc)
-            msp = doc.modelspace()
-            self.register_app_id(doc)
+                # Then proceed with geometry layers and other processing
+                with profile_operation("Document Initialization"):
+                    self.layer_processor.set_dxf_document(doc)
+                    self.loaded_styles = initialize_document(doc)
+                    msp = doc.modelspace()
+                    self.register_app_id(doc)
 
-            # Process all content
-            self.process_layers(doc, msp)
-            self.create_path_arrays(msp)
-            self.block_insert_manager.process_block_inserts(msp)
-            self.process_text_inserts(msp)
+                # Process all content
+                with profile_operation("Layer Processing"):
+                    self.process_layers(doc, msp)
 
-            # Create legend
-            legend_creator = LegendCreator(doc, msp, self.project_loader, self.loaded_styles)
-            legend_creator.create_legend()
+                log_memory_usage("After Layer Processing")
 
-            # Create and configure viewports after ALL content exists
-            self.viewport_manager.create_viewports(doc, msp)
+                with profile_operation("Path Arrays Creation"):
+                    self.create_path_arrays(msp)
 
-            # Save once at the end
-            self._cleanup_and_save(doc, msp)
+                with profile_operation("Block Insert Processing"):
+                    self.block_insert_manager.process_block_inserts(msp)
 
-            # After successful export, create reduced version if configured
-            self.reduced_dxf_creator.create_reduced_dxf()
+                with profile_operation("Text Insert Processing"):
+                    self.process_text_inserts(msp)
 
-        except Exception as e:
-            log_error(f"Error during DXF export: {str(e)}")
-            raise
+                # Create legend
+                with profile_operation("Legend Creation"):
+                    legend_creator = LegendCreator(doc, msp, self.project_loader, self.loaded_styles)
+                    legend_creator.create_legend()
+
+                # Create and configure viewports after ALL content exists
+                with profile_operation("Viewport Creation"):
+                    self.viewport_manager.create_viewports(doc, msp)
+
+                log_memory_usage("Before File Save")
+
+                # Save once at the end
+                with profile_operation("File Save and Cleanup"):
+                    self._cleanup_and_save(doc, msp)
+
+                # After successful export, create reduced version if configured
+                with profile_operation("Reduced DXF Creation"):
+                    self.reduced_dxf_creator.create_reduced_dxf()
+
+                log_memory_usage("Export Complete")
+
+            except Exception as e:
+                log_error(f"Error during DXF export: {str(e)}")
+                raise
 
     def _prepare_dxf_document(self, skip_dxf_processor=False):
         # Backup is now handled by atomic_save_dxf() during the save operation
@@ -220,18 +240,24 @@ class DXFExporter:
             log_warning(f"Directory for DXF file {self.dxf_filename} does not exist. Cannot save file.")
             return
 
-        processed_layers = (
-            [layer['name'] for layer in self.project_settings['geomLayers']] +
-            [layer['name'] for layer in self.project_settings.get('wmtsLayers', [])] +
-            [layer['name'] for layer in self.project_settings.get('wmsLayers', [])]
-        )
-        layers_to_clean = [layer for layer in processed_layers if layer not in self.all_layers]
-        remove_entities_by_layer(msp, layers_to_clean, self.script_identifier)
+        with profile_operation("Entity Cleanup"):
+            processed_layers = (
+                [layer['name'] for layer in self.project_settings['geomLayers']] +
+                [layer['name'] for layer in self.project_settings.get('wmtsLayers', [])] +
+                [layer['name'] for layer in self.project_settings.get('wmsLayers', [])]
+            )
+            layers_to_clean = [layer for layer in processed_layers if layer not in self.all_layers]
+            log_performance(f"Cleaning {len(layers_to_clean)} layers")
+            remove_entities_by_layer_optimized(msp, layers_to_clean, self.script_identifier)
 
         # Use atomic save for safety - writes to temp file first, then moves atomically
-        if atomic_save_dxf(doc, self.dxf_filename, create_backup=True):
+        with profile_operation("Atomic DXF Save"):
+            save_success = atomic_save_dxf(doc, self.dxf_filename, create_backup=True)
+
+        if save_success:
             log_info(f"DXF file safely saved: {self.dxf_filename}")
-            verify_dxf_settings(self.dxf_filename)
+            with profile_operation("DXF Settings Verification"):
+                verify_dxf_settings(self.dxf_filename)
         else:
             log_error(f"Failed to save DXF file: {self.dxf_filename}")
             raise RuntimeError(f"DXF save operation failed for {self.dxf_filename}")
@@ -339,10 +365,12 @@ class DXFExporter:
             log_debug(f"Skipping layer creation and update for {layer_name} as 'updateDxf' flag is not set")
             return
 
-        self._ensure_layer_exists(doc, layer_name, layer_info)
+        with profile_operation("Layer Creation", layer_name):
+            self._ensure_layer_exists(doc, layer_name, layer_info)
 
         if layer_name in self.all_layers:
-            self.update_layer_geometry(msp, layer_name, self.all_layers[layer_name], layer_info)
+            with profile_operation("Geometry Addition", layer_name):
+                self.update_layer_geometry(msp, layer_name, self.all_layers[layer_name], layer_info)
 
     def _ensure_layer_exists(self, doc, layer_name, layer_info):
         if layer_name not in doc.layers:
@@ -365,32 +393,36 @@ class DXFExporter:
             return
 
         def update_function():
-            layer = msp.doc.layers.get(layer_name)
-            if layer:
-                # Get properties from StyleManager - either from config or defaults
-                style_properties = {}
-                if layer_config.get('style'):
-                    # If a style is specified in config, use it
-                    style_properties = self.style_manager.process_layer_style(layer_name, layer_config)
-                else:
-                    # If no style specified, use StyleManager defaults
-                    style_properties = self.style_manager.default_layer_settings.copy()
+            with profile_operation("Layer Style Processing", layer_name):
+                layer = msp.doc.layers.get(layer_name)
+                if layer:
+                    # Get properties from StyleManager - either from config or defaults
+                    style_properties = {}
+                    if layer_config.get('style'):
+                        # If a style is specified in config, use it
+                        style_properties = self.style_manager.process_layer_style(layer_name, layer_config)
+                    else:
+                        # If no style specified, use StyleManager defaults
+                        style_properties = self.style_manager.default_layer_settings.copy()
 
-                # Update the layer with properties from StyleManager
-                update_layer_properties(layer, style_properties, self.name_to_aci)
+                    # Update the layer with properties from StyleManager
+                    update_layer_properties(layer, style_properties, self.name_to_aci)
 
             # Remove and update geometry
-            log_debug(f"Removing existing geometry from layer {layer_name}")
-            remove_entities_by_layer(msp, layer_name, self.script_identifier)
+            with profile_operation("Remove Existing Entities", layer_name):
+                log_debug(f"Removing existing geometry from layer {layer_name}")
+                remove_entities_by_layer_optimized(msp, layer_name, self.script_identifier)
 
             # Add new geometry
-            log_debug(f"Adding new geometry to layer {layer_name}")
-            if isinstance(geo_data, list) and all(isinstance(item, tuple) for item in geo_data):
-                self.add_wmts_xrefs_to_dxf(msp, geo_data, layer_name)
-            else:
-                self.add_geometries_to_dxf(msp, geo_data, layer_name)
+            with profile_operation("Add New Geometries", layer_name):
+                log_debug(f"Adding new geometry to layer {layer_name}")
+                if isinstance(geo_data, list) and all(isinstance(item, tuple) for item in geo_data):
+                    self.add_wmts_xrefs_to_dxf(msp, geo_data, layer_name)
+                else:
+                    self.add_geometries_to_dxf(msp, geo_data, layer_name)
 
-        update_layer_geometry(msp, layer_name, self.script_identifier, update_function)
+        with profile_operation("Update Layer Geometry Wrapper", layer_name):
+            update_layer_geometry(msp, layer_name, self.script_identifier, update_function)
 
     def create_new_layer(self, doc, msp, layer_name, layer_info, add_geometry=True):
         log_debug(f"Creating new layer: {layer_name}")
@@ -521,45 +553,48 @@ class DXFExporter:
         msp.doc.header['$PROJECTNAME'] = ''
 
     def add_geometries_to_dxf(self, msp, geo_data, layer_name):
-        log_debug(f"Adding geometries to DXF for layer: {layer_name}")
+        with profile_operation("Add Geometries to DXF", layer_name):
+            log_debug(f"Adding geometries to DXF for layer: {layer_name}")
 
-        layer_info = next((l for l in self.project_settings['geomLayers'] if l['name'] == layer_name), {})
+            layer_info = next((l for l in self.project_settings['geomLayers'] if l['name'] == layer_name), {})
 
-        if self.is_wmts_or_wms_layer(layer_name):
-            self.add_wmts_xrefs_to_dxf(msp, geo_data, layer_name)
-            return
-
-        if geo_data is None:
-            log_debug(f"No geometry data available for layer: {layer_name}")
-            return
-
-        if isinstance(geo_data, gpd.GeoDataFrame):
-            # Check if this is a label layer from labelAssociation operation
-            if 'label' in geo_data.columns and 'rotation' in geo_data.columns:
-                self.add_label_points_to_dxf(msp, geo_data, layer_name, layer_info)
+            if self.is_wmts_or_wms_layer(layer_name):
+                self.add_wmts_xrefs_to_dxf(msp, geo_data, layer_name)
                 return
 
-            geometries = geo_data.geometry
-        elif isinstance(geo_data, gpd.GeoSeries):
-            geometries = geo_data
-        else:
-            log_warning(f"Unexpected data type for layer {layer_name}: {type(geo_data)}")
-            return
+            if geo_data is None:
+                log_debug(f"No geometry data available for layer: {layer_name}")
+                return
 
-        log_debug(f"add_geometries_to_dxf Layer Name: {layer_name}")
-        for geometry in geometries:
-            if isinstance(geometry, Polygon):
-                self.add_polygon_to_dxf(msp, geometry, layer_name)
-            elif isinstance(geometry, MultiPolygon):
-                for polygon in geometry.geoms:
-                    self.add_polygon_to_dxf(msp, polygon, layer_name)
-            elif isinstance(geometry, LineString):
-                self.add_linestring_to_dxf(msp, geometry, layer_name)
-            elif isinstance(geometry, MultiLineString):
-                for line in geometry.geoms:
-                    self.add_linestring_to_dxf(msp, line, layer_name)
+            if isinstance(geo_data, gpd.GeoDataFrame):
+                # Check if this is a label layer from labelAssociation operation
+                if 'label' in geo_data.columns and 'rotation' in geo_data.columns:
+                    self.add_label_points_to_dxf(msp, geo_data, layer_name, layer_info)
+                    return
+
+                geometries = geo_data.geometry
+            elif isinstance(geo_data, gpd.GeoSeries):
+                geometries = geo_data
             else:
-                self.add_geometry_to_dxf(msp, geometry, layer_name)
+                log_warning(f"Unexpected data type for layer {layer_name}: {type(geo_data)}")
+                return
+
+            log_debug(f"add_geometries_to_dxf Layer Name: {layer_name}")
+            log_performance(f"Adding {len(geometries)} geometries to layer {layer_name}")
+
+            for geometry in geometries:
+                if isinstance(geometry, Polygon):
+                    self.add_polygon_to_dxf(msp, geometry, layer_name)
+                elif isinstance(geometry, MultiPolygon):
+                    for polygon in geometry.geoms:
+                        self.add_polygon_to_dxf(msp, polygon, layer_name)
+                elif isinstance(geometry, LineString):
+                    self.add_linestring_to_dxf(msp, geometry, layer_name)
+                elif isinstance(geometry, MultiLineString):
+                    for line in geometry.geoms:
+                        self.add_linestring_to_dxf(msp, line, layer_name)
+                else:
+                    self.add_geometry_to_dxf(msp, geometry, layer_name)
 
     def add_polygon_to_dxf(self, msp, geometry, layer_name, entity_name=None):
         layer_properties = self.layer_properties.get(layer_name, {})
@@ -796,39 +831,45 @@ class DXFExporter:
             doc.appids.new('DXFEXPORTER')
 
     def _process_hatch(self, doc, msp, layer_name, layer_info):
-        log_debug(f"Processing hatch for layer: {layer_name}")
+        with profile_operation("Hatch Processing", layer_name):
+            log_debug(f"Processing hatch for layer: {layer_name}")
 
-        hatch_config = self.style_manager.get_hatch_config(layer_info)
+            hatch_config = self.style_manager.get_hatch_config(layer_info)
 
-        log_debug(f"Hatch config: {hatch_config}")
+            log_debug(f"Hatch config: {hatch_config}")
 
-        apply_hatch = layer_info.get('applyHatch', False)
-        if not apply_hatch:
-            log_debug(f"Hatch processing skipped for layer: {layer_name}")
-            return
+            apply_hatch = layer_info.get('applyHatch', False)
+            if not apply_hatch:
+                log_debug(f"Hatch processing skipped for layer: {layer_name}")
+                return
 
-        boundary_layers = hatch_config.get('layers', [layer_name])
-        boundary_geometry = self._get_boundary_geometry(boundary_layers)
+            with profile_operation("Boundary Geometry Collection", layer_name):
+                boundary_layers = hatch_config.get('layers', [layer_name])
+                boundary_geometry = self._get_boundary_geometry(boundary_layers)
 
-        if boundary_geometry is None or boundary_geometry.is_empty:
-            log_warning(f"No valid boundary geometry found for hatch in layer: {layer_name}")
-            return
+            if boundary_geometry is None or boundary_geometry.is_empty:
+                log_warning(f"No valid boundary geometry found for hatch in layer: {layer_name}")
+                return
 
-        individual_hatches = hatch_config.get('individual_hatches', True)
+            individual_hatches = hatch_config.get('individual_hatches', True)
+            log_performance(f"Hatching {layer_name}: individual_hatches={individual_hatches}")
 
-        if individual_hatches:
-            geometries = [boundary_geometry] if isinstance(boundary_geometry, (Polygon, LineString)) else list(boundary_geometry.geoms)
-        else:
-            geometries = [boundary_geometry]
+            if individual_hatches:
+                geometries = [boundary_geometry] if isinstance(boundary_geometry, (Polygon, LineString)) else list(boundary_geometry.geoms)
+            else:
+                geometries = [boundary_geometry]
 
-        for geometry in geometries:
-            hatch_paths = self._get_hatch_paths(geometry)
-            if hatch_paths:
-                hatch = create_hatch(msp, hatch_paths, hatch_config, self.project_loader)
-                hatch.dxf.layer = layer_name
-                self.attach_custom_data(hatch)
+            log_performance(f"Hatching {layer_name}: Processing {len(geometries)} geometries")
 
-        log_debug(f"Added hatch{'es' if individual_hatches else ''} to layer: {layer_name}")
+            with profile_operation("Hatch Entity Creation", f"{layer_name} ({len(geometries)} hatches)"):
+                for i, geometry in enumerate(geometries):
+                    hatch_paths = self._get_hatch_paths(geometry)
+                    if hatch_paths:
+                        hatch = create_hatch(msp, hatch_paths, hatch_config, self.project_loader)
+                        hatch.dxf.layer = layer_name
+                        self.attach_custom_data(hatch)
+
+            log_debug(f"Added hatch{'es' if individual_hatches else ''} to layer: {layer_name}")
 
     def _get_boundary_geometry(self, boundary_layers):
         combined_geometry = None
