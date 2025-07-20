@@ -57,6 +57,7 @@ class ProjectLoader:
         # Extract global viewport settings with defaults
         viewport_discovery = viewports.get('viewport_discovery', False)
         viewport_deletion_policy = viewports.get('viewport_deletion_policy', 'auto')
+        viewport_layer = viewports.get('viewport_layer', 'VIEWPORTS')
 
         # Validate viewport deletion policy
         valid_deletion_policies = {'auto', 'confirm', 'ignore'}
@@ -64,6 +65,11 @@ class ProjectLoader:
             log_warning(f"Invalid viewport_deletion_policy '{viewport_deletion_policy}'. "
                        f"Valid values are: {', '.join(valid_deletion_policies)}. Using 'auto'.")
             viewport_deletion_policy = 'auto'
+
+        # Validate viewport layer
+        if not isinstance(viewport_layer, str) or not viewport_layer.strip():
+            log_warning(f"Invalid viewport_layer '{viewport_layer}'. Must be a non-empty string. Using 'VIEWPORTS'.")
+            viewport_layer = 'VIEWPORTS'
 
         # Check for duplicate layer names
         layer_names = {}
@@ -83,6 +89,7 @@ class ProjectLoader:
             'viewports': viewports.get('viewports', []),
             'viewport_discovery': viewport_discovery,
             'viewport_deletion_policy': viewport_deletion_policy,
+            'viewport_layer': viewport_layer,
             'blockInserts': block_inserts.get('blockInserts', []),
             'textInserts': text_inserts.get('textInserts', []),
             'pathArrays': path_arrays.get('pathArrays', []),

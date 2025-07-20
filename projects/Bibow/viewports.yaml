@@ -40,3 +40,14 @@ viewports:
   sync: pull
 viewport_discovery: true
 viewport_deletion_policy: auto
+viewport_layer: VIEWPORTS  # Global default layer for all viewports
+
+# Example: Override layer for a specific viewport
+# - name: SpecialViewport
+#   layer: CUSTOM_VIEWPORTS  # This viewport will use a different layer
+#   center:
+#     x: 100
+#     y: 100
+#   width: 500
+#   height: 300
+#   sync: push

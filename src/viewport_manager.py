@@ -15,9 +15,10 @@ class ViewportManager:
         # Extract global viewport settings
         self.discovery_enabled = project_settings.get('viewport_discovery', False)
         self.deletion_policy = project_settings.get('viewport_deletion_policy', 'auto')
+        self.default_layer = project_settings.get('viewport_layer', 'VIEWPORTS')
 
         log_debug(f"ViewportManager initialized with discovery={self.discovery_enabled}, "
-                 f"deletion_policy={self.deletion_policy}")
+                 f"deletion_policy={self.deletion_policy}, default_layer={self.default_layer}")
 
     def _get_sync_direction(self, vp_config):
         """Determine sync direction for viewport. Only uses sync field - no updateDxf compatibility."""
@@ -44,11 +45,12 @@ class ViewportManager:
         """Enhanced viewport synchronization with bidirectional support."""
         paper_space = doc.paperspace()
 
-        # Ensure VIEWPORTS layer exists and set it to not plot
-        if 'VIEWPORTS' not in doc.layers:
-            doc.layers.new('VIEWPORTS')
-        viewports_layer = doc.layers.get('VIEWPORTS')
+        # Ensure configured viewport layer exists and set it to not plot
+        if self.default_layer not in doc.layers:
+            doc.layers.new(self.default_layer)
+        viewports_layer = doc.layers.get(self.default_layer)
         viewports_layer.dxf.plot = 0
+        log_debug(f"Using viewport layer: {self.default_layer}")
 
         try:
             # Step 1: Discover existing viewports in AutoCAD if enabled
@@ -169,6 +171,8 @@ class ViewportManager:
                         updated_config['lockZoom'] = config['lockZoom']
                     if 'color' in config:
                         updated_config['color'] = config['color']
+                    if 'layer' in config:
+                        updated_config['layer'] = config['layer']
 
                     viewport_configs[i] = updated_config
                     break
@@ -196,6 +200,17 @@ class ViewportManager:
             log_debug(f"Viewport {vp_config['name']} already exists. Updating properties.")
             return existing_viewport
 
+        # Determine viewport layer
+        viewport_layer = self._get_viewport_layer(vp_config)
+
+        # Ensure the viewport layer exists
+        doc = paper_space.doc
+        if viewport_layer not in doc.layers:
+            doc.layers.new(viewport_layer)
+            # Set to not plot by default for viewport layers
+            doc.layers.get(viewport_layer).dxf.plot = 0
+            log_debug(f"Created new viewport layer: {viewport_layer}")
+
         # Create new viewport with physical properties
         width = vp_config['width']
         height = vp_config['height']
@@ -210,9 +225,9 @@ class ViewportManager:
             view_height=view_height
         )
         viewport.dxf.status = 1
-        viewport.dxf.layer = 'VIEWPORTS'
+        viewport.dxf.layer = viewport_layer
 
-        log_debug(f"Created new viewport: {vp_config['name']}")
+        log_debug(f"Created new viewport: {vp_config['name']} on layer: {viewport_layer}")
         return viewport
 
     def set_viewport_2d_properties(self, viewport):
@@ -335,6 +350,12 @@ class ViewportManager:
     def attach_custom_data(self, entity, entity_name=None):
         attach_custom_data(entity, self.script_identifier, entity_name)
 
+    def _get_viewport_layer(self, vp_config):
+        """Determine the layer for a viewport, supporting per-viewport override."""
+        viewport_layer = vp_config.get('layer', self.default_layer)
+        log_debug(f"Viewport {vp_config.get('name', 'unnamed')} will use layer: {viewport_layer}")
+        return viewport_layer
+
     def get_viewport_by_name(self, doc, name):
         """Retrieve a viewport by its name using xdata."""
         for layout in doc.layouts:
@@ -402,7 +423,7 @@ class ViewportManager:
         # Create clipping boundary
         path_points = vp_config['clipPath']
         boundary = pspace.add_lwpolyline(path_points)
-        boundary.dxf.layer = 'VIEWPORTS'
+        boundary.dxf.layer = new_viewport.dxf.layer  # Use same layer as viewport
 
         # Apply clipping
         new_viewport.dxf.flags |= const.VSF_NON_RECTANGULAR_CLIPPING
@@ -555,6 +576,10 @@ class ViewportManager:
             if hasattr(viewport.dxf, 'flags') and (viewport.dxf.flags & 16384):  # VSF_LOCK_ZOOM
                 config['lockZoom'] = True
 
+            # Extract layer if it's not the default
+            if hasattr(viewport.dxf, 'layer') and viewport.dxf.layer != self.default_layer:
+                config['layer'] = viewport.dxf.layer
+
             log_debug(f"Extracted properties for viewport: {config['name']}")
             return config
 
@@ -581,6 +606,8 @@ class ViewportManager:
                 viewport_data['viewport_discovery'] = self.project_settings['viewport_discovery']
             if 'viewport_deletion_policy' in self.project_settings:
                 viewport_data['viewport_deletion_policy'] = self.project_settings['viewport_deletion_policy']
+            if 'viewport_layer' in self.project_settings:
+                viewport_data['viewport_layer'] = self.project_settings['viewport_layer']
 
             # Write back to viewports.yaml
             success = self.project_loader.write_yaml_file('viewports.yaml', viewport_data)
