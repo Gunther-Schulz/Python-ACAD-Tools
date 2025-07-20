@@ -1,53 +1,14 @@
 viewports:
 - name: Viewport_001
   center:
-    x: -457.5646644915923
-    y: 540.3982458803343
-  width: 2101.241619203764
-  height: 1438.343218715806
+    x: 349.433921525417
+    y: 198.1896017433464
+  width: 3096.371592017514
+  height: 2250.705381964366
   viewCenter:
-    x: -457.5646644915923
-    y: 540.3982458803343
+    x: 349.433921525417
+    y: 198.1896017433464
   scale: 1.0
-  sync: pull
-- name: Viewport_002
-  center:
-    x: 527.4233510924021
-    y: 594.6245148295567
-  width: 531.2653546726068
-  height: 293.3043359218282
-  viewCenter:
-    x: 277195.4658393003
-    y: 5964960.344234409
-  scale: 1.000021
-  frozenLayers:
-  - Gebäude
-  sync: pull
-- name: Viewport_003
-  center:
-    x: 427.5104144396463
-    y: 280.3698562521167
-  width: 731.0912279781184
-  height: 293.3043359218282
-  viewCenter:
-    x: 277759.5316289303
-    y: 5964660.799845055
-  scale: 1.0
-  frozenLayers:
-  - Gebäude
-  sync: pull
-- name: Viewport_004
-  center:
-    x: 57.53208546088718
-    y: 594.6245148295567
-  width: 369.752548254648
-  height: 293.3043359218282
-  viewCenter:
-    x: 278387.2111326448
-    y: 5964793.256242355
-  scale: 1.0
-  frozenLayers:
-  - Gebäude
   sync: pull
 - name: Viewport_005
   center:
@@ -57,7 +18,7 @@ viewports:
   height: 293.3043359218282
   viewCenter:
     x: 279587.1647607772
-    y: 5964545.302177049
+    y: 5964545.302177048
   scale: 2.0
   frozenLayers:
   - Gebäude

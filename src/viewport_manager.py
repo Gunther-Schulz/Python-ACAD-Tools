@@ -84,7 +84,13 @@ class ViewportManager:
                     yaml_updated = True
                     log_info(f"Added {len(new_configs)} discovered viewports to configuration")
 
-            # Step 4: Write back YAML if any changes were made
+            # Step 4: Handle viewport deletions according to deletion policy
+            deleted_configs = self._handle_viewport_deletions(paper_space, doc)
+            if deleted_configs:
+                yaml_updated = True
+                log_info(f"Removed {len(deleted_configs)} deleted viewports from configuration")
+
+            # Step 5: Write back YAML if any changes were made
             if yaml_updated and self.project_loader:
                 self._write_viewport_yaml()
 
@@ -588,3 +594,79 @@ class ViewportManager:
             log_error(f"Error writing viewport YAML: {str(e)}")
             log_error(f"Traceback: {traceback.format_exc()}")
             return False
+
+    def _handle_viewport_deletions(self, paper_space, doc):
+        """Handle deletion of viewports that exist in YAML but not in AutoCAD."""
+        if self.deletion_policy == 'ignore':
+            log_debug("Deletion policy is 'ignore' - skipping viewport deletion detection")
+            return []
+
+        viewport_configs = self.project_settings.get('viewports', []) or []
+        missing_viewports = []
+
+        # Check each configured viewport to see if it still exists in AutoCAD
+        for vp_config in viewport_configs:
+            viewport_name = vp_config.get('name')
+            if not viewport_name:
+                continue
+
+            # Only check viewports that aren't set to 'skip' sync
+            sync_direction = self._get_sync_direction(vp_config)
+            if sync_direction == 'skip':
+                log_debug(f"Skipping deletion check for viewport {viewport_name} - sync direction is 'skip'")
+                continue
+
+            # Check if viewport exists in AutoCAD
+            existing_viewport = self.get_viewport_by_name(doc, viewport_name)
+            if existing_viewport is None:
+                missing_viewports.append(vp_config)
+                log_info(f"Viewport '{viewport_name}' configured in YAML but not found in AutoCAD")
+
+        if not missing_viewports:
+            log_debug("No missing viewports detected")
+            return []
+
+        # Handle missing viewports according to deletion policy
+        if self.deletion_policy == 'auto':
+            return self._auto_delete_missing_viewports(missing_viewports)
+        elif self.deletion_policy == 'confirm':
+            return self._confirm_delete_missing_viewports(missing_viewports)
+        else:
+            log_warning(f"Unknown deletion policy '{self.deletion_policy}' - skipping deletions")
+            return []
+
+    def _auto_delete_missing_viewports(self, missing_viewports):
+        """Automatically delete missing viewports from configuration."""
+        log_info(f"Auto-deleting {len(missing_viewports)} missing viewports from configuration")
+
+        viewport_configs = self.project_settings.get('viewports', []) or []
+        original_count = len(viewport_configs)
+
+        # Remove missing viewports from configuration
+        for missing_vp in missing_viewports:
+            viewport_name = missing_vp.get('name')
+            viewport_configs = [vp for vp in viewport_configs if vp.get('name') != viewport_name]
+            log_debug(f"Removed viewport '{viewport_name}' from configuration")
+
+        # Update the project settings
+        self.project_settings['viewports'] = viewport_configs
+
+        deleted_count = original_count - len(viewport_configs)
+        log_info(f"Successfully removed {deleted_count} missing viewports from configuration")
+        return missing_viewports
+
+    def _confirm_delete_missing_viewports(self, missing_viewports):
+        """Ask user confirmation before deleting missing viewports."""
+        viewport_names = [vp.get('name', 'unnamed') for vp in missing_viewports]
+
+        log_warning(f"\nFound {len(missing_viewports)} viewports in YAML that no longer exist in AutoCAD:")
+        for name in viewport_names:
+            log_warning(f"- {name}")
+
+        # Ask for confirmation
+        response = input(f"\nDo you want to remove these {len(missing_viewports)} viewports from the YAML configuration? (y/N): ").lower()
+        if response == 'y':
+            return self._auto_delete_missing_viewports(missing_viewports)
+        else:
+            log_info("Viewport deletion cancelled by user")
+            return []
