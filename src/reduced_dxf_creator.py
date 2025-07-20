@@ -287,7 +287,7 @@ class ReducedDXFCreator:
             legend_creator.create_legend()
 
         if 'viewports' in process_types:
-            self.dxf_exporter.viewport_manager.create_viewports(reduced_doc, reduced_msp)
+            self.dxf_exporter.viewport_manager.sync_viewports(reduced_doc, reduced_msp)
 
     def _log_empty_types(self, process_types, entity_counts):
         for process_type, count in entity_counts.items():

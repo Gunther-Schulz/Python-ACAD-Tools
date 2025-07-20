@@ -2,6 +2,7 @@ import yaml
 import os
 from src.utils import log_info, log_warning, log_error, resolve_path, log_debug
 from src.dxf_processor import DXFProcessor
+import traceback
 
 class ProjectLoader:
     def __init__(self, project_name: str):
@@ -39,7 +40,7 @@ class ProjectLoader:
         """Load project specific settings from modular config files"""
         # Load main project settings
         main_settings = self.load_yaml_file('project.yaml', required=True)
-        
+
         # Load additional configurations
         geom_layers = self.load_yaml_file('geom_layers.yaml', required=False) or {}
         legends = self.load_yaml_file('legends.yaml', required=False) or {}
@@ -53,22 +54,35 @@ class ProjectLoader:
         path_arrays = self.load_yaml_file('path_arrays.yaml', required=False) or {}
         wmts_wms_layers = self.load_yaml_file('wmts_wms_layers.yaml', required=False) or {}
 
+        # Extract global viewport settings with defaults
+        viewport_discovery = viewports.get('viewport_discovery', False)
+        viewport_deletion_policy = viewports.get('viewport_deletion_policy', 'auto')
+
+        # Validate viewport deletion policy
+        valid_deletion_policies = {'auto', 'confirm', 'ignore'}
+        if viewport_deletion_policy not in valid_deletion_policies:
+            log_warning(f"Invalid viewport_deletion_policy '{viewport_deletion_policy}'. "
+                       f"Valid values are: {', '.join(valid_deletion_policies)}. Using 'auto'.")
+            viewport_deletion_policy = 'auto'
+
         # Check for duplicate layer names
         layer_names = {}
         for idx, layer in enumerate(geom_layers.get('geomLayers', [])):
             name = layer.get('name')
             if name in layer_names:
-                log_warning(f"Duplicate layer name found: '{name}' at positions {layer_names[name]} and {idx}. " 
+                log_warning(f"Duplicate layer name found: '{name}' at positions {layer_names[name]} and {idx}. "
                            f"The first definition will be used, subsequent definitions will be ignored.")
             else:
                 layer_names[name] = idx
-        
+
         # Merge all configurations with safe defaults
         self.project_settings = {
             **main_settings,
             'geomLayers': geom_layers.get('geomLayers', []),
             'legends': legends.get('legends', []),
             'viewports': viewports.get('viewports', []),
+            'viewport_discovery': viewport_discovery,
+            'viewport_deletion_policy': viewport_deletion_policy,
             'blockInserts': block_inserts.get('blockInserts', []),
             'textInserts': text_inserts.get('textInserts', []),
             'pathArrays': path_arrays.get('pathArrays', []),
@@ -161,13 +175,13 @@ class ProjectLoader:
         wmts_wms_file = os.path.join(self.project_dir, 'wmts_wms_layers.yaml')
         if not os.path.exists(wmts_wms_file):
             return [], []
-        
+
         with open(wmts_wms_file, 'r', encoding='utf-8') as f:
             wmts_wms_config = yaml.safe_load(f) or {}  # Use empty dict if None
-        
+
         wmts_layers = wmts_wms_config.get('wmtsLayers', [])
         wms_layers = wmts_wms_config.get('wmsLayers', [])
-        
+
         return wmts_layers, wms_layers
 
     def process_operations(self, layer):
@@ -192,3 +206,50 @@ class ProjectLoader:
         else:
             log_info("No DXF operations found in project settings")
             self.dxf_processor = None  # Set to None if no operations
+
+    def write_yaml_file(self, filename, data):
+        """Write data to a YAML file in the project directory with atomic operations"""
+        import tempfile
+        import shutil
+
+        filepath = os.path.join(self.project_dir, filename)
+
+        try:
+            # Create temporary file in the same directory for atomic write
+            temp_fd = None
+            temp_path = None
+
+            temp_fd, temp_path = tempfile.mkstemp(
+                prefix=f".{filename}.tmp.",
+                suffix=".yaml",
+                dir=self.project_dir
+            )
+            os.close(temp_fd)  # Close file descriptor, we'll write using our method
+
+            # Write to temporary file
+            with open(temp_path, 'w', encoding='utf-8') as f:
+                yaml.dump(data, f, default_flow_style=False, sort_keys=False, allow_unicode=True)
+
+            # Atomic move to final location
+            if os.name == 'nt':  # Windows
+                if os.path.exists(filepath):
+                    os.remove(filepath)
+                shutil.move(temp_path, filepath)
+            else:  # Unix-like systems
+                os.rename(temp_path, filepath)
+
+            log_debug(f"Successfully wrote YAML file: {filepath}")
+            return True
+
+        except Exception as e:
+            # Clean up temporary file if something went wrong
+            if temp_path and os.path.exists(temp_path):
+                try:
+                    os.remove(temp_path)
+                    log_debug(f"Cleaned up temporary file: {temp_path}")
+                except:
+                    log_warning(f"Could not clean up temporary file: {temp_path}")
+
+            log_error(f"Failed to write YAML file {filepath}: {str(e)}")
+            log_error(f"Traceback:\n{traceback.format_exc()}")
+            return False

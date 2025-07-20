@@ -15,7 +15,9 @@ from PIL import Image
 from src.legend_creator import LegendCreator
 from src.dxf_utils import (remove_entities_by_layer, update_layer_properties, attach_custom_data, is_created_by_script,
                          set_drawing_properties, verify_dxf_settings, update_layer_geometry,
-                         get_style, apply_style_to_entity, create_hatch, SCRIPT_IDENTIFIER, initialize_document, sanitize_layer_name, add_mtext, atomic_save_dxf, remove_entities_by_layer_optimized)
+                         get_style, apply_style_to_entity, create_hatch, SCRIPT_IDENTIFIER, initialize_document,
+                         sanitize_layer_name, add_mtext, atomic_save_dxf, remove_entities_by_layer_optimized,
+                         ensure_layer_exists)
 from src.path_array import create_path_array
 from src.style_manager import StyleManager
 from src.viewport_manager import ViewportManager
@@ -43,7 +45,8 @@ class DXFExporter:
             self.project_settings,
             self.script_identifier,
             self.name_to_aci,
-            self.style_manager
+            self.style_manager,
+            self.project_loader  # Pass project_loader for YAML write-back
         )
         self.loaded_styles = set()
         self.block_insert_manager = BlockInsertManager(
@@ -152,7 +155,7 @@ class DXFExporter:
 
                 # Create and configure viewports after ALL content exists
                 with profile_operation("Viewport Creation"):
-                    self.viewport_manager.create_viewports(doc, msp)
+                    self.viewport_manager.sync_viewports(doc, msp)
 
                 log_memory_usage("Before File Save")
 
