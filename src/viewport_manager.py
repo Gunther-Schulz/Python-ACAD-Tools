@@ -20,22 +20,25 @@ class ViewportManager:
                  f"deletion_policy={self.deletion_policy}")
 
     def _get_sync_direction(self, vp_config):
-        """Determine sync direction with backward compatibility."""
-        # New sync field takes precedence
-        if 'sync' in vp_config:
-            sync = vp_config['sync']
-            if sync in ['push', 'pull', 'skip']:
-                return sync
-            else:
-                log_warning(f"Invalid sync direction '{sync}' for viewport {vp_config.get('name')}. "
-                           f"Valid values are: push, pull, skip. Using 'skip'.")
-                return 'skip'
+        """Determine sync direction for viewport. Only uses sync field - no updateDxf compatibility."""
+        # Check for deprecated updateDxf usage
+        if 'updateDxf' in vp_config:
+            log_warning(f"Viewport '{vp_config.get('name')}' uses deprecated 'updateDxf' flag. "
+                       f"Use 'sync: push' instead of 'updateDxf: true' or 'sync: skip' instead of 'updateDxf: false'.")
 
-        # Backward compatibility: map updateDxf to sync direction
-        if vp_config.get('updateDxf', False):
-            return 'push'  # updateDxf: true → YAML controls AutoCAD
+        # Require sync field for all viewports
+        if 'sync' not in vp_config:
+            log_warning(f"Viewport '{vp_config.get('name')}' missing required 'sync' field. "
+                       f"Valid values are: push, pull, skip. Using 'skip'.")
+            return 'skip'
+
+        sync = vp_config['sync']
+        if sync in ['push', 'pull', 'skip']:
+            return sync
         else:
-            return 'skip'  # updateDxf: false → ignore viewport
+            log_warning(f"Invalid sync direction '{sync}' for viewport {vp_config.get('name')}. "
+                       f"Valid values are: push, pull, skip. Using 'skip'.")
+            return 'skip'
 
     def sync_viewports(self, doc, msp):
         """Enhanced viewport synchronization with bidirectional support."""
@@ -175,8 +178,8 @@ class ViewportManager:
 
     # DEPRECATED: Use sync_viewports instead
     def create_viewports(self, doc, msp):
-        """DEPRECATED: Use sync_viewports() instead for enhanced functionality."""
-        log_warning("create_viewports() is deprecated. Use sync_viewports() for enhanced sync functionality.")
+        """DEPRECATED: Use sync_viewports() instead. Viewports now use sync modes (push/pull/skip) only."""
+        log_warning("create_viewports() is deprecated. Use sync_viewports() with 'sync' field instead of 'updateDxf'.")
         return self.sync_viewports(doc, msp)
 
     def _create_or_get_viewport(self, paper_space, vp_config):
