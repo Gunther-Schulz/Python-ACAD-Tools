@@ -62,7 +62,6 @@ class ViewportManager:
 
             # Step 2: Process configured viewports according to sync direction
             viewport_configs = self.project_settings.get('viewports', []) or []
-            log_debug(f"Processing {len(viewport_configs)} configured viewports")
 
             yaml_updated = False
             for vp_config in viewport_configs:
@@ -72,7 +71,6 @@ class ViewportManager:
                         yaml_updated = True
                 except Exception as e:
                     log_error(f"Error syncing viewport {vp_config.get('name', 'unnamed')}: {str(e)}")
-                    log_error(f"Traceback: {traceback.format_exc()}")
                     continue
 
             # Step 3: Handle discovered viewports
@@ -96,12 +94,10 @@ class ViewportManager:
             if yaml_updated and self.project_loader:
                 self._write_viewport_yaml()
 
-            log_debug(f"Completed viewport synchronization. Processed {len(self.viewports)} viewports")
             return self.viewports
 
         except Exception as e:
             log_error(f"Error during viewport synchronization: {str(e)}")
-            log_error(f"Traceback: {traceback.format_exc()}")
             return {}
 
     def _process_viewport_sync(self, paper_space, doc, vp_config):
@@ -112,7 +108,6 @@ class ViewportManager:
         sync_direction = self._get_sync_direction(vp_config)
 
         if sync_direction == 'skip':
-            log_debug(f"Skipping viewport {name} - sync direction is 'skip'")
             return None
 
         # Get existing viewport if it exists
@@ -142,7 +137,6 @@ class ViewportManager:
         self._update_viewport_layers(doc, viewport, vp_config)
         self._attach_viewport_metadata(viewport, vp_config)
         self.viewports[name] = viewport
-        log_debug(f"Pushed viewport config to AutoCAD: {name}")
         return {'success': True}
 
     def _sync_pull(self, paper_space, doc, vp_config, existing_viewport):
@@ -178,12 +172,10 @@ class ViewportManager:
                     break
 
             self.viewports[name] = existing_viewport
-            log_debug(f"Pulled viewport properties from AutoCAD: {name}")
             return {'success': True, 'yaml_updated': True}
 
         except Exception as e:
             log_error(f"Error pulling viewport properties for '{name}': {str(e)}")
-            log_error(f"Traceback: {traceback.format_exc()}")
             return None
 
     # DEPRECATED: Use sync_viewports instead
@@ -197,7 +189,6 @@ class ViewportManager:
         existing_viewport = self.get_viewport_by_name(paper_space.doc, vp_config['name'])
 
         if existing_viewport:
-            log_debug(f"Viewport {vp_config['name']} already exists. Updating properties.")
             return existing_viewport
 
         # Determine viewport layer
@@ -209,7 +200,6 @@ class ViewportManager:
             doc.layers.new(viewport_layer)
             # Set to not plot by default for viewport layers
             doc.layers.get(viewport_layer).dxf.plot = 0
-            log_debug(f"Created new viewport layer: {viewport_layer}")
 
         # Create new viewport with physical properties
         width = vp_config['width']
@@ -227,7 +217,6 @@ class ViewportManager:
         viewport.dxf.status = 1
         viewport.dxf.layer = viewport_layer
 
-        log_debug(f"Created new viewport: {vp_config['name']} on layer: {viewport_layer}")
         return viewport
 
     def set_viewport_2d_properties(self, viewport):
@@ -236,7 +225,6 @@ class ViewportManager:
         viewport.dxf.flags = 128 | 512  # Set only VSF_FAST_ZOOM (128) and VSF_GRID_MODE (512)
         viewport.dxf.render_mode = 0  # 2D Optimized
         viewport.dxf.view_direction_vector = (0, 0, 1)  # Straight top-down view
-        log_debug("Set viewport to strict 2D mode")
 
     def _update_viewport_properties(self, viewport, vp_config):
         """Updates properties for both new and existing viewports."""
@@ -353,7 +341,6 @@ class ViewportManager:
     def _get_viewport_layer(self, vp_config):
         """Determine the layer for a viewport, supporting per-viewport override."""
         viewport_layer = vp_config.get('layer', self.default_layer)
-        log_debug(f"Viewport {vp_config.get('name', 'unnamed')} will use layer: {viewport_layer}")
         return viewport_layer
 
     def get_viewport_by_name(self, doc, name):
@@ -365,12 +352,21 @@ class ViewportManager:
                         xdata = entity.get_xdata('DXFEXPORTER')
                         if xdata:
                             in_viewport_section = False
+                            viewport_name = None
+
                             for code, value in xdata:
                                 if code == 1000 and value == 'VIEWPORT_NAME':
                                     in_viewport_section = True
-                                elif in_viewport_section and code == 1000 and value == name:
-                                    return entity
-                    except:
+                                elif in_viewport_section and code == 1000:
+                                    viewport_name = value
+                                    break
+
+                            if viewport_name == name:
+                                return entity
+                    except Exception as e:
+                        # Only log if there's an actual error (not just missing XDATA)
+                        if "DXFEXPORTER" not in str(e):
+                            log_debug(f"Error checking viewport {entity.dxf.handle}: {str(e)}")
                         continue
         return None
 
@@ -423,7 +419,7 @@ class ViewportManager:
         # Create clipping boundary
         path_points = vp_config['clipPath']
         boundary = pspace.add_lwpolyline(path_points)
-        boundary.dxf.layer = new_viewport.dxf.layer  # Use same layer as viewport
+        boundary.dxf.layer = new_viewport.dxf.layer
 
         # Apply clipping
         new_viewport.dxf.flags |= const.VSF_NON_RECTANGULAR_CLIPPING
@@ -442,64 +438,62 @@ class ViewportManager:
         discovered = []
         viewport_counter = 1
 
-        log_debug(f"Starting viewport discovery in document with {len(paper_space.doc.layouts)} layouts")
-
         for layout in paper_space.doc.layouts:
-            log_debug(f"Checking layout: {layout.name}")
-            entity_count = 0
-            viewport_count = 0
-
             for entity in layout:
-                entity_count += 1
                 if entity.dxftype() == 'VIEWPORT':
-                    viewport_count += 1
-                    log_debug(f"Found VIEWPORT entity in layout {layout.name}")
-
-                    # Check if this viewport has our script metadata
                     try:
+                        # Check if this viewport has our script metadata
                         try:
                             xdata = entity.get_xdata('DXFEXPORTER')
                             has_our_metadata = False
                             if xdata:
-                                log_debug(f"Viewport has xdata: {xdata}")
                                 for code, value in xdata:
                                     if code == 1000 and value == self.script_identifier:
                                         has_our_metadata = True
-                                        log_debug(f"Viewport has our script identifier: {self.script_identifier}")
                                         break
-                            else:
-                                log_debug("Viewport has no xdata - this is a manual viewport")
                         except:
-                            # get_xdata throws exception if appid doesn't exist - this is a manual viewport
-                            log_debug("Viewport has no DXFEXPORTER xdata - this is a manual viewport")
                             has_our_metadata = False
 
-                        if not has_our_metadata:
-                            # This is an unknown viewport - add it to discovery list
-                            viewport_name = f"Viewport_{viewport_counter:03d}"
-                            while self._viewport_name_exists(viewport_name):
-                                viewport_counter += 1
-                                viewport_name = f"Viewport_{viewport_counter:03d}"
+                        if has_our_metadata:
+                            continue
 
-                            # Set hyperlink for easy identification in AutoCAD
-                            entity.set_hyperlink(viewport_name)
+                        # Skip main viewport (ID=1) - it's a system viewport, not user-managed
+                        viewport_id = getattr(entity.dxf, 'id', None)
+                        if viewport_id == 1:
+                            continue
 
-                            discovered.append({
-                                'entity': entity,
-                                'name': viewport_name,
-                                'layout': layout.name
-                            })
-                            log_info(f"Discovered manual viewport in layout {layout.name}, assigned name: {viewport_name}")
-                            viewport_counter += 1
+                        # This is an unknown viewport - generate a name and add it
+                        viewport_name = f"Viewport_{str(entity.dxf.handle).zfill(3)}"
+                        log_info(f"Discovered manual viewport in layout '{layout.name}', assigned name: {viewport_name}")
+
+                        # Attach metadata to mark it as ours
+                        entity.set_xdata(
+                            'DXFEXPORTER',
+                            [
+                                (1000, self.script_identifier),
+                                (1002, '{'),
+                                (1000, 'VIEWPORT_NAME'),
+                                (1000, viewport_name),
+                                (1002, '}')
+                            ]
+                        )
+
+                        discovered.append({
+                            'entity': entity,
+                            'name': viewport_name,
+                            'layout': layout.name
+                        })
+                        viewport_counter += 1
 
                     except Exception as e:
                         log_error(f"Error checking viewport metadata: {str(e)}")
-                        log_error(f"Traceback: {traceback.format_exc()}")
                         continue
 
-            log_debug(f"Layout {layout.name}: {entity_count} total entities, {viewport_count} viewports")
+        # Simple summary
+        total_viewports = sum(1 for layout in paper_space.doc.layouts for entity in layout if entity.dxftype() == 'VIEWPORT')
+        log_info(f"Discovery completed: Found {len(discovered)} unknown viewports across {len(paper_space.doc.layouts)} layouts")
+        log_info(f"  Layout 'Layout1': {total_viewports} total viewports, {len(discovered)} newly discovered")
 
-        log_info(f"Discovery completed: Found {len(discovered)} unknown viewports")
         return discovered
 
     def _viewport_name_exists(self, name):
@@ -527,7 +521,6 @@ class ViewportManager:
                 self._attach_viewport_metadata(entity, config)
 
                 new_configs.append(config)
-                log_debug(f"Created configuration for discovered viewport: {name}")
 
             except Exception as e:
                 log_warning(f"Failed to process discovered viewport {discovered['name']}: {str(e)}")
@@ -559,7 +552,6 @@ class ViewportManager:
 
             # Extract color if it's not default
             if hasattr(viewport.dxf, 'color') and viewport.dxf.color != 256:  # 256 = BYLAYER
-                # Try to map ACI code back to color name
                 color_code = viewport.dxf.color
                 for name, aci in self.name_to_aci.items():
                     if aci == color_code:
@@ -580,12 +572,10 @@ class ViewportManager:
             if hasattr(viewport.dxf, 'layer') and viewport.dxf.layer != self.default_layer:
                 config['layer'] = viewport.dxf.layer
 
-            log_debug(f"Extracted properties for viewport: {config['name']}")
             return config
 
         except Exception as e:
             log_error(f"Error extracting viewport properties: {str(e)}")
-            log_error(f"Traceback: {traceback.format_exc()}")
             # Return minimal config on error
             return {'name': base_config['name'], 'sync': 'pull'}
 
@@ -625,11 +615,11 @@ class ViewportManager:
     def _handle_viewport_deletions(self, paper_space, doc):
         """Handle deletion of viewports that exist in YAML but not in AutoCAD."""
         if self.deletion_policy == 'ignore':
-            log_debug("Deletion policy is 'ignore' - skipping viewport deletion detection")
             return []
 
         viewport_configs = self.project_settings.get('viewports', []) or []
         missing_viewports = []
+        corrupted_viewports = []
 
         # Check each configured viewport to see if it still exists in AutoCAD
         for vp_config in viewport_configs:
@@ -640,7 +630,6 @@ class ViewportManager:
             # Only check viewports that aren't set to 'skip' sync
             sync_direction = self._get_sync_direction(vp_config)
             if sync_direction == 'skip':
-                log_debug(f"Skipping deletion check for viewport {viewport_name} - sync direction is 'skip'")
                 continue
 
             # Check if viewport exists in AutoCAD
@@ -648,16 +637,35 @@ class ViewportManager:
             if existing_viewport is None:
                 missing_viewports.append(vp_config)
                 log_info(f"Viewport '{viewport_name}' configured in YAML but not found in AutoCAD")
+            else:
+                # Check if the found viewport is corrupted (center == view_center)
+                try:
+                    center = existing_viewport.dxf.center
+                    view_center = existing_viewport.dxf.view_center_point
+                    viewport_id = getattr(existing_viewport.dxf, 'id', None)
 
-        if not missing_viewports:
-            log_debug("No missing viewports detected")
+                    # Skip corruption check for main viewport (ID=1) - it's supposed to have identical coordinates
+                    if viewport_id != 1 and (abs(center[0] - view_center[0]) < 0.001 and
+                                              abs(center[1] - view_center[1]) < 0.001):
+                        log_error(f"Viewport '{viewport_name}' is CORRUPTED (identical center/view_center)")
+                        log_error(f"  Center: {center}")
+                        log_error(f"  View Center: {view_center}")
+                        log_error(f"  Handle: {existing_viewport.dxf.handle}")
+                        corrupted_viewports.append(vp_config)
+                except Exception as e:
+                    log_debug(f"Error checking viewport corruption for {viewport_name}: {e}")
+
+        # Combine missing and corrupted viewports for removal
+        all_deletions = missing_viewports + corrupted_viewports
+
+        if not all_deletions:
             return []
 
-        # Handle missing viewports according to deletion policy
+        # Handle deletions according to deletion policy
         if self.deletion_policy == 'auto':
-            return self._auto_delete_missing_viewports(missing_viewports)
+            return self._auto_delete_missing_viewports(all_deletions)
         elif self.deletion_policy == 'confirm':
-            return self._confirm_delete_missing_viewports(missing_viewports)
+            return self._confirm_delete_missing_viewports(all_deletions)
         else:
             log_warning(f"Unknown deletion policy '{self.deletion_policy}' - skipping deletions")
             return []
@@ -673,7 +681,6 @@ class ViewportManager:
         for missing_vp in missing_viewports:
             viewport_name = missing_vp.get('name')
             viewport_configs = [vp for vp in viewport_configs if vp.get('name') != viewport_name]
-            log_debug(f"Removed viewport '{viewport_name}' from configuration")
 
         # Update the project settings
         self.project_settings['viewports'] = viewport_configs

@@ -1,15 +1,4 @@
 viewports:
-- name: Viewport_001
-  center:
-    x: 349.433921525417
-    y: 198.1896017433464
-  width: 3096.371592017514
-  height: 2250.705381964366
-  viewCenter:
-    x: 349.433921525417
-    y: 198.1896017433464
-  scale: 1.0
-  sync: pull
 - name: Viewport_005
   center:
     x: -648.0380091219339
@@ -40,14 +29,4 @@ viewports:
   sync: pull
 viewport_discovery: true
 viewport_deletion_policy: auto
-viewport_layer: VIEWPORTS  # Global default layer for all viewports
-
-# Example: Override layer for a specific viewport
-# - name: SpecialViewport
-#   layer: CUSTOM_VIEWPORTS  # This viewport will use a different layer
-#   center:
-#     x: 100
-#     y: 100
-#   width: 500
-#   height: 300
-#   sync: push
+viewport_layer: VIEWPORTS
