@@ -611,8 +611,7 @@ class DXFExporter:
         # Add any other entity-level properties
         if 'linetypeScale' in entity_properties:
             dxfattribs['ltscale'] = entity_properties['linetypeScale']
-        if 'linetypeGeneration' in entity_properties:
-            dxfattribs['flags'] = entity_properties['linetypeGeneration']
+        # Note: linetypeGeneration is handled after polyline creation via bitwise flag operations
 
         exterior_coords = list(geometry.exterior.coords)
         if len(exterior_coords) > 2:
@@ -642,15 +641,27 @@ class DXFExporter:
             return
 
         layer_properties = self.layer_properties.get(layer_name, {})
+        entity_properties = layer_properties.get('entity', {})
+
         # Default to False for LineStrings if 'close' is not specified
-        should_close = layer_properties.get('close', False) if 'close' in layer_properties else False
+        should_close = entity_properties.get('close', False)
+
+        # Prepare DXF attributes
+        dxfattribs = {'layer': layer_name}
+        if 'linetypeScale' in entity_properties:
+            dxfattribs['ltscale'] = entity_properties['linetypeScale']
 
         # Create polyline
-        polyline = msp.add_lwpolyline(coords)
-        polyline.dxf.layer = layer_name
+        polyline = msp.add_lwpolyline(coords, dxfattribs=dxfattribs)
 
         if should_close:
             polyline.close(True)
+
+        # Apply linetype generation setting
+        if entity_properties.get('linetypeGeneration'):
+            polyline.dxf.flags |= LWPOLYLINE_PLINEGEN
+        else:
+            polyline.dxf.flags &= ~LWPOLYLINE_PLINEGEN
 
         # Apply style if available
         if layer_properties:
@@ -681,11 +692,12 @@ class DXFExporter:
     def add_layer_properties(self, layer_name, layer, processed_style=None):
         # Always get properties from StyleManager
         properties = processed_style or self.style_manager.process_layer_style(layer_name, layer)
+        entity_properties = self.style_manager.process_entity_style(layer_name, layer)
 
         # Store the properties
         self.layer_properties[layer_name] = {
             'layer': properties,
-            'entity': {}  # Entity properties if needed
+            'entity': entity_properties
         }
 
         # Store color for quick access
