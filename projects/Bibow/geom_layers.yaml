@@ -55,6 +55,10 @@ geomLayers:
         joinStyle: round
         layers:
           - name: "Wald"
+      - type: difference
+        reverseDifference: false
+        layers:
+          - name: "Wald"
 
   - name: "Wald Schraffur"
     updateDxf: true
@@ -313,6 +317,12 @@ geomLayers:
       - type: intersection
         layers:
           - name: "Geltungsbereiche"
+      - type: dissolve
+
+      - type: filterGeometry
+        minArea: 200
+        geometryTypes:
+          - Polygon
 
   - name: "Grünfläche Schraffur"
     updateDxf: true

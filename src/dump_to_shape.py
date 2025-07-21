@@ -177,7 +177,13 @@ def dxf_to_shapefiles(dxf_path, output_dir, target_crs='EPSG:25833'):
         # Get all entities and group by layer
         layer_entities = {}
         for entity in msp:
-            layer_name = entity.dxf.layer
+            try:
+                layer_name = entity.dxf.layer
+            except AttributeError:
+                # Some entities (like GEOMAPIMAGE) don't have a layer attribute
+                log_debug(f"Skipping entity {entity.dxftype()} without layer attribute")
+                continue
+
             entity_type = entity.dxftype()
 
             # Only process geometric entities
