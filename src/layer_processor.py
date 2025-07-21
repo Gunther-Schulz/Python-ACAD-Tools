@@ -40,6 +40,9 @@ from src.shapefile_utils import write_shapefile
 from src.operations.label_association_operation import create_label_association_layer
 from src.operations.lagefaktor_operation import create_lagefaktor_layer
 from src.operations.simple_label_operation import create_simple_label_layer
+from src.operations.simplify_slivers_operation import create_simplify_slivers_layer
+from src.operations.remove_protrusions_operation import create_remove_protrusions_layer
+from src.operations.remove_slivers_erosion_operation import create_remove_slivers_erosion_layer
 
 class LayerProcessor:
     def __init__(self, project_loader, plot_ops=False):
@@ -305,6 +308,12 @@ class LayerProcessor:
             return None
         elif op_type == 'filterByColumn':
             result = create_filtered_by_column_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
+        elif op_type == 'simplifySlivers':
+            result = create_simplify_slivers_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
+        elif op_type == 'removeProtrusions':
+            result = create_remove_protrusions_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
+        elif op_type == 'removeSliversErosion':
+            result = create_remove_slivers_erosion_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
         else:
             log_warning(f"Unknown operation type: {op_type} for layer {layer_name}")
             return None

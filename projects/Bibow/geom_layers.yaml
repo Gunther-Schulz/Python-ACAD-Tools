@@ -318,7 +318,8 @@ geomLayers:
         layers:
           - name: "Geltungsbereiche"
       - type: dissolve
-
+      - type: removeSliversErosion
+        erosionDistance: 0.1
       - type: filterGeometry
         minArea: 200
         geometryTypes:
