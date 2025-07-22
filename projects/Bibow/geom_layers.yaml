@@ -107,6 +107,10 @@ geomLayers:
         joinStyle: round
         layers:
           - name: "Biotope"
+      - type: difference
+        reverseDifference: false
+        layers:
+          - name: "Biotope"
 
 ### Bäume
   - name: "Baumreihe"
@@ -154,8 +158,8 @@ geomLayers:
           - name: Parcel
             values:
               - "32/11"  # Matches exactly what's in the shapefile
-              - "38/2"
-              - "37/7"
+              # - "38/2"
+              # - "37/7"
               - "46/2"
               - "53/23"
             column: label  # Explicitly specify the column to search in
@@ -180,37 +184,37 @@ geomLayers:
           - name: "Wald"
           - name: "Hecke"
       - type: dissolve
-  - name: Geltungsbereich B
-    updateDxf: true
-    style: geltungsbereich
-    operations:
-      - type: copy
-        layers:
-          - name: Parcel
-            values:
-              - "52/3"
-            column: label  # Explicitly specify the column to search in
-      - type: filterByIntersection
-        layers:
-          - name: Flur
-            values:
-              - Flur 2
-          - name: Gemarkung
-            values:
-              - Bibow
-          - name: Gemeinde
-            values:
-              - Bibow
-      - type: intersection
-        layers:
-          - name: Bahnstrasse 200m Puffer
-      - type: difference
-        reverseDifference: false
-        layers:
-          - name: "Exclude Geltungsbereich"
-          - name: "Wald"
-          - name: "Hecke"
-      - type: dissolve
+  # - name: Geltungsbereich B
+  #   updateDxf: true
+  #   style: geltungsbereich
+  #   operations:
+  #     - type: copy
+  #       layers:
+  #         - name: Parcel
+  #           values:
+  #             - "52/3"
+  #           column: label  # Explicitly specify the column to search in
+  #     - type: filterByIntersection
+  #       layers:
+  #         - name: Flur
+  #           values:
+  #             - Flur 2
+  #         - name: Gemarkung
+  #           values:
+  #             - Bibow
+  #         - name: Gemeinde
+  #           values:
+  #             - Bibow
+  #     - type: intersection
+  #       layers:
+  #         - name: Bahnstrasse 200m Puffer
+  #     - type: difference
+  #       reverseDifference: false
+  #       layers:
+  #         - name: "Exclude Geltungsbereich"
+  #         - name: "Wald"
+  #         - name: "Hecke"
+  #     - type: dissolve
   - name: Geltungsbereich C
     updateDxf: true
     style: geltungsbereich
@@ -219,6 +223,8 @@ geomLayers:
         layers:
           - name: Parcel
             values:
+            values:
+              - "52/3"
               - "61/3"  # Matches exactly what's in the shapefile
               - "68/1"
               - "76"
@@ -263,7 +269,10 @@ geomLayers:
         layers:
           - name: Parcel
             values:
+              - "7"
               - "17"
+              - "18"
+              - "19"
               - "20"
               - "21"
               - "23"
@@ -296,7 +305,7 @@ geomLayers:
       - type: dissolve
         layers:
           - name: "Geltungsbereich A"
-          - name: "Geltungsbereich B"
+          # - name: "Geltungsbereich B"
           - name: "Geltungsbereich C"
           - name: "Geltungsbereich D"
 
