@@ -1,0 +1,102 @@
+legends:
+  - id: "Main Legend"
+    title: "Planzeichen"
+    subtitle: "(gem. PlanzV 1990-PlanzV 90 v.18.12.1990)"
+    max_width: 160
+    title_spacing: 0      # Space after the main legend title
+    subtitle_spacing: 4   # Space after the main subtitle
+    group_spacing: 3      # Space between different groups in the legend
+    group_title_spacing: 2 # Space after each group's title
+    group_subtitle_spacing: 3 # Space after each group's subtitle
+    item_spacing: 4       # Space between individual items within a group
+    position:
+      x: 282339
+      y: 5967148
+    titleTextStyle:
+      height: 6
+      color: "white"
+      text_style: "Arial"
+    titleSubtitleStyle:
+      height: 3.5
+      color: "white"
+      text_style: "Arial"
+    groupTextStyle:
+      color: "white"
+      height: 3.5
+      text_style: "Arial"
+    subtitleTextStyle:
+      color: "white"
+      height: 2.5
+      text_style: "Arial"
+    itemTextStyle:
+      color: "white"
+      height: 3
+      text_style: "Arial"
+      attachment_point: MTEXT_MIDDLE_LEFT
+    groups:
+      - name: "Art der baulichen Nutzung"
+        updateDxf: true
+        subtitle: "§ 9 Abs. 1 Nr. 1 BauGB"
+        items:
+          - name: "Sonstiges Sondergebiet (§ 11 Abs. 2 BauNVO) Zweckbestimmung: Energiegewinnung auf der Basis solarer Strahlungsenergie"
+            type: area
+            applyHatch: true
+            style: baufeld
+            blockSymbol: "Sonstiges Sondergebiet EBS"
+            blockSymbolScale: 2
+      - name: "Bauweise, Baulinien, Baugrenzen"
+        updateDxf: true
+        subtitle: "§ 9 Abs. 1 Nr. 2 BauGB"
+        items:
+          - name: "Baugrenze"
+            type: line
+            style: baugrenze
+            blockSymbol: "Baugrenze"
+            blockSymbolScale: 1
+      - name: "Grünflächen"
+        updateDxf: true
+        subtitle: "§ 9 Abs.1 Nr. 15 BauGB"
+        items:
+          - name: "Private Grünflächen"
+            type: area
+            style: grünfläche
+            applyHatch: true
+      - name: "Sonstige Planzeichen"
+        updateDxf: true
+        items:
+          - name: "Grenze des räumlichen Geltungsbereiches des Bebauungsplans"
+            subtitle: "(§ 9 Abs. 7 BauGB)"
+            type: area
+            style: geltungsbereich
+      - name: "Darstellung ohne Normcharakter"
+        updateDxf: true
+        items:
+          - name: "Gemeindegrenze"
+            type: line
+            style: gemeindegrenze
+          - name: "Gemarkungsgrenze"
+            type: line
+            style: gemarkungsgrenze
+          - name: "Flurgrenze"
+            type: line
+            style: flurgrenze
+          - name: "Flurstücksnummer\nFlurstücksgrenze"
+            type: empty
+            blockSymbol: "Parcel"
+            blockSymbolScale: 1.4
+      - name: "Nachrichtliche Übernahme"
+        updateDxf: true
+        items:
+          - name: "gesetzlich geschützes Biotop § 9 Abs. 6 BauGB i. V. m. § 20 NatSchAG - MV"
+            type: area
+            style: gesGeschuetzesBiotop
+            blockSymbol: "Gesetzlich geschütztes Biotop"
+            blockSymbolScale: 3
+          - name: "Wald"
+            type: area
+            style: wald
+            applyHatch: true
+          - name: "Einzelbaum"
+            type: empty
+            blockSymbol: "Baum"
+            blockSymbolScale: 1.8

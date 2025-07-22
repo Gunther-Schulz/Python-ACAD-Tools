@@ -9,7 +9,7 @@ geomLayers:
         style: baum  # Using an existing text style from styles.yaml
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/input/parcel.shp"
   - name: Flur
-    # updateDxf: true
+    updateDxf: true
     label: flurname
     operations:
       - type: simpleLabel
@@ -17,11 +17,11 @@ geomLayers:
         style: baum  # Using an existing text style from styles.yaml
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/input/flur.shp"
   - name: Gemarkung
-    # updateDxf: true
+    updateDxf: true
     label: gmkname
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/input/gemarkung.shp"
   - name: Gemeinde
-    # updateDxf: true
+    updateDxf: true
     label: gen
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/input/gemeinde.shp"
 
@@ -150,7 +150,7 @@ geomLayers:
 
   ### Geltungsbereich ###
   - name: Geltungsbereich A
-    updateDxf: true
+    # updateDxf: true
     style: geltungsbereich
     operations:
       - type: copy
@@ -216,7 +216,7 @@ geomLayers:
   #         - name: "Hecke"
   #     - type: dissolve
   - name: Geltungsbereich C
-    updateDxf: true
+    # updateDxf: true
     style: geltungsbereich
     operations:
       - type: copy
@@ -262,7 +262,7 @@ geomLayers:
           - name: "Hecke"
       - type: dissolve
   - name: Geltungsbereich D
-    updateDxf: true
+    # updateDxf: true
     style: geltungsbereich
     operations:
       - type: copy
@@ -301,6 +301,8 @@ geomLayers:
       - type: dissolve
 
   - name: Geltungsbereiche
+    updateDxf: true
+    style: geltungsbereich
     operations:
       - type: dissolve
         layers:
@@ -308,6 +310,28 @@ geomLayers:
           # - name: "Geltungsbereich B"
           - name: "Geltungsbereich C"
           - name: "Geltungsbereich D"
+
+  - name: Geltungsbereich 2
+    updateDxf: true
+    linetypeScale: 1
+    style: geltungsbereich_2
+    operations:
+      - type: copy
+        layers:
+          - Geltungsbereiche
+      - type: dissolve
+      - type: buffer
+        distance: 2
+        joinStyle: round
+        capStyle: round
+      - type: buffer
+        distance: -2
+        joinStyle: mitre
+        capStyle: flat
+      - type: buffer
+        distance: 2
+        joinStyle: mitre
+        capStyle: flat
 
 
 
