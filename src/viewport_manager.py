@@ -14,9 +14,7 @@ class ViewportManager(SyncManagerBase):
         self.style_manager = style_manager
         self.viewports = {}
 
-        # Extract viewport-specific global settings
-        self.discovery_enabled = project_settings.get('viewport_discovery', False)
-        self.deletion_policy = project_settings.get('viewport_deletion_policy', 'auto')
+        # Extract viewport-specific global settings (non-generalized)
         self.default_layer = project_settings.get('viewport_layer', 'VIEWPORTS')
 
         log_debug(f"ViewportManager initialized with discovery={self.discovery_enabled}, "
@@ -39,38 +37,9 @@ class ViewportManager(SyncManagerBase):
         log_debug(f"Using viewport layer: {self.default_layer}")
 
         try:
-            # Step 1: Discover existing viewports in AutoCAD if enabled
-            discovered_viewports = []
-            if self.discovery_enabled:
-                discovered_viewports = self._discover_unknown_viewports(paper_space)
-                if discovered_viewports:
-                    log_info(f"Discovered {len(discovered_viewports)} unknown viewports")
-
-            # Step 2: Process configured viewports using base class functionality
+            # Use base class functionality for discovery, sync, and deletion
             processed_viewports = self.process_entities(doc, paper_space)
             self.viewports.update(processed_viewports)
-            yaml_updated = bool(processed_viewports)  # Base class handles YAML updates automatically
-
-            # Step 3: Handle discovered viewports
-            if discovered_viewports:
-                new_configs = self._process_discovered_viewports(paper_space, discovered_viewports)
-                if new_configs:
-                    # Add discovered viewports to configuration
-                    if self.project_settings.get('viewports') is None:
-                        self.project_settings['viewports'] = []
-                    self.project_settings['viewports'].extend(new_configs)
-                    yaml_updated = True
-                    log_info(f"Added {len(new_configs)} discovered viewports to configuration")
-
-            # Step 4: Handle viewport deletions according to deletion policy
-            deleted_configs = self._handle_viewport_deletions(paper_space, doc)
-            if deleted_configs:
-                yaml_updated = True
-                log_info(f"Removed {len(deleted_configs)} deleted viewports from configuration")
-
-            # Step 5: Write back YAML if any changes were made
-            if yaml_updated and self.project_loader:
-                self._write_entity_yaml()
 
             return self.viewports
 
@@ -90,13 +59,13 @@ class ViewportManager(SyncManagerBase):
                 'viewports': self.project_settings.get('viewports', [])
             }
 
-            # Add global viewport settings if they exist
+            # Add global viewport settings using new generalized structure
             if 'viewport_discovery' in self.project_settings:
-                viewport_data['viewport_discovery'] = self.project_settings['viewport_discovery']
+                viewport_data['discovery'] = self.project_settings['viewport_discovery']
             if 'viewport_deletion_policy' in self.project_settings:
-                viewport_data['viewport_deletion_policy'] = self.project_settings['viewport_deletion_policy']
+                viewport_data['deletion_policy'] = self.project_settings['viewport_deletion_policy']
             if 'viewport_layer' in self.project_settings:
-                viewport_data['viewport_layer'] = self.project_settings['viewport_layer']
+                viewport_data['layer'] = self.project_settings['viewport_layer']
             if 'viewport_sync' in self.project_settings:
                 viewport_data['sync'] = self.project_settings['viewport_sync']
 
@@ -142,7 +111,7 @@ class ViewportManager(SyncManagerBase):
 
         # Extract properties from AutoCAD viewport
         try:
-            updated_config = self._extract_viewport_properties(existing_viewport, config)
+            updated_config = self._extract_entity_properties(existing_viewport, config)
 
             # Update the configuration in project_settings
             viewport_configs = self.project_settings.get('viewports', []) or []
@@ -174,12 +143,6 @@ class ViewportManager(SyncManagerBase):
         except Exception as e:
             log_error(f"Error pulling viewport properties for '{name}': {str(e)}")
             return None
-
-    # DEPRECATED: Use sync_viewports instead
-    def create_viewports(self, doc, msp):
-        """DEPRECATED: Use sync_viewports() instead. Viewports now use sync modes (push/pull/skip) only."""
-        log_warning("create_viewports() is deprecated. Use sync_viewports() with 'sync' field instead of 'updateDxf'.")
-        return self.sync_viewports(doc, msp)
 
     def _create_or_get_viewport(self, paper_space, vp_config):
         """Creates new viewport or retrieves existing one."""
@@ -430,8 +393,9 @@ class ViewportManager(SyncManagerBase):
 
         return new_viewport
 
-    def _discover_unknown_viewports(self, paper_space):
+    def _discover_unknown_entities(self, doc, space):
         """Discover viewports in AutoCAD that aren't managed by this script."""
+        paper_space = doc.paperspace()  # Viewports are always in paperspace
         discovered = []
         viewport_counter = 1
 
@@ -493,98 +457,7 @@ class ViewportManager(SyncManagerBase):
 
         return discovered
 
-    def _viewport_name_exists(self, name):
-        """Check if a viewport name already exists in the configuration."""
-        viewport_configs = self.project_settings.get('viewports', []) or []
-        for config in viewport_configs:
-            if config.get('name') == name:
-                return True
-        return False
-
-    def _process_discovered_viewports(self, paper_space, discovered_viewports):
-        """Process discovered viewports and create YAML configurations for them."""
-        new_configs = []
-
-        for discovered in discovered_viewports:
-            try:
-                entity = discovered['entity']
-                name = discovered['name']
-
-                # Extract properties and create configuration
-                config = self._extract_viewport_properties(entity, {'name': name})
-                # Default discovered viewports to pull mode (only set explicitly if global default isn't pull)
-                if self.default_sync != 'pull':
-                    config['sync'] = 'pull'
-
-                # Add our metadata to the discovered viewport
-                self._attach_viewport_metadata(entity, config)
-
-                new_configs.append(config)
-
-            except Exception as e:
-                log_warning(f"Failed to process discovered viewport {discovered['name']}: {str(e)}")
-                continue
-
-        return new_configs
-
-    def _extract_viewport_properties(self, viewport, base_config):
-        """Extract viewport properties from AutoCAD viewport entity."""
-        config = {'name': base_config['name']}
-
-        try:
-            # Extract physical viewport properties
-            center = viewport.dxf.center
-            config['center'] = {'x': float(center[0]), 'y': float(center[1])}
-            config['width'] = float(viewport.dxf.width)
-            config['height'] = float(viewport.dxf.height)
-
-            # Extract view properties
-            view_center = viewport.dxf.view_center_point
-            config['viewCenter'] = {'x': float(view_center[0]), 'y': float(view_center[1])}
-
-            # Calculate scale from view_height and physical height
-            view_height = float(viewport.dxf.view_height)
-            physical_height = float(viewport.dxf.height)
-            if physical_height > 0:
-                scale = view_height / physical_height
-                config['scale'] = round(scale, 6)
-
-            # Extract color if it's not default
-            if hasattr(viewport.dxf, 'color') and viewport.dxf.color != 256:  # 256 = BYLAYER
-                color_code = viewport.dxf.color
-                for name, aci in self.name_to_aci.items():
-                    if aci == color_code:
-                        config['color'] = name
-                        break
-                else:
-                    config['color'] = str(color_code)
-
-            # Extract frozen layers if any
-            if hasattr(viewport, 'frozen_layers') and viewport.frozen_layers:
-                config['frozenLayers'] = list(viewport.frozen_layers)
-
-            # Extract zoom lock flag
-            if hasattr(viewport.dxf, 'flags') and (viewport.dxf.flags & 16384):  # VSF_LOCK_ZOOM
-                config['lockZoom'] = True
-
-            # Extract layer if it's not the default
-            if hasattr(viewport.dxf, 'layer') and viewport.dxf.layer != self.default_layer:
-                config['layer'] = viewport.dxf.layer
-
-            return config
-
-        except Exception as e:
-            log_error(f"Error extracting viewport properties: {str(e)}")
-            # Return minimal config on error
-            minimal_config = {'name': base_config['name']}
-            # Only set explicit sync if it differs from global default
-            if self.default_sync != 'pull':
-                minimal_config['sync'] = 'pull'
-            return minimal_config
-
-
-
-    def _handle_viewport_deletions(self, paper_space, doc):
+    def _handle_entity_deletions(self, doc, space):
         """Handle deletion of viewports that exist in YAML but not in AutoCAD."""
         if self.deletion_policy == 'ignore':
             return []
@@ -599,9 +472,11 @@ class ViewportManager(SyncManagerBase):
             if not viewport_name:
                 continue
 
-            # Only check viewports that aren't set to 'skip' sync
+            # Only check viewports that are in 'pull' mode
+            # In pull mode, AutoCAD is the source of truth, so missing viewports should be removed from YAML
+            # In push mode, YAML is the source of truth, so missing viewports should be created in AutoCAD
             sync_direction = self._get_sync_direction(vp_config)
-            if sync_direction == 'skip':
+            if sync_direction != 'pull':
                 continue
 
             # Check if viewport exists in AutoCAD
@@ -635,44 +510,68 @@ class ViewportManager(SyncManagerBase):
 
         # Handle deletions according to deletion policy
         if self.deletion_policy == 'auto':
-            return self._auto_delete_missing_viewports(all_deletions)
+            return self._auto_delete_missing_entities(all_deletions)
         elif self.deletion_policy == 'confirm':
-            return self._confirm_delete_missing_viewports(all_deletions)
+            return self._confirm_delete_missing_entities(all_deletions)
         else:
             log_warning(f"Unknown deletion policy '{self.deletion_policy}' - skipping deletions")
             return []
 
-    def _auto_delete_missing_viewports(self, missing_viewports):
-        """Automatically delete missing viewports from configuration."""
-        log_info(f"Auto-deleting {len(missing_viewports)} missing viewports from configuration")
+    def _extract_entity_properties(self, entity, base_config):
+        """Extract viewport properties from AutoCAD viewport entity."""
+        config = {'name': base_config['name']}
 
-        viewport_configs = self.project_settings.get('viewports', []) or []
-        original_count = len(viewport_configs)
+        try:
+            # Extract physical viewport properties
+            center = entity.dxf.center
+            config['center'] = {'x': float(center[0]), 'y': float(center[1])}
+            config['width'] = float(entity.dxf.width)
+            config['height'] = float(entity.dxf.height)
 
-        # Remove missing viewports from configuration
-        for missing_vp in missing_viewports:
-            viewport_name = missing_vp.get('name')
-            viewport_configs = [vp for vp in viewport_configs if vp.get('name') != viewport_name]
+            # Extract view properties
+            view_center = entity.dxf.view_center_point
+            config['viewCenter'] = {'x': float(view_center[0]), 'y': float(view_center[1])}
 
-        # Update the project settings
-        self.project_settings['viewports'] = viewport_configs
+            # Calculate scale from view_height and physical height
+            view_height = float(entity.dxf.view_height)
+            physical_height = float(entity.dxf.height)
+            if physical_height > 0:
+                scale = view_height / physical_height
+                config['scale'] = round(scale, 6)
 
-        deleted_count = original_count - len(viewport_configs)
-        log_info(f"Successfully removed {deleted_count} missing viewports from configuration")
-        return missing_viewports
+            # Extract color if it's not default
+            if hasattr(entity.dxf, 'color') and entity.dxf.color != 256:  # 256 = BYLAYER
+                color_code = entity.dxf.color
+                for name, aci in self.name_to_aci.items():
+                    if aci == color_code:
+                        config['color'] = name
+                        break
+                else:
+                    config['color'] = str(color_code)
 
-    def _confirm_delete_missing_viewports(self, missing_viewports):
-        """Ask user confirmation before deleting missing viewports."""
-        viewport_names = [vp.get('name', 'unnamed') for vp in missing_viewports]
+            # Extract frozen layers if any
+            if hasattr(entity, 'frozen_layers') and entity.frozen_layers:
+                config['frozenLayers'] = list(entity.frozen_layers)
 
-        log_warning(f"\nFound {len(missing_viewports)} viewports in YAML that no longer exist in AutoCAD:")
-        for name in viewport_names:
-            log_warning(f"- {name}")
+            # Extract zoom lock flag
+            if hasattr(entity.dxf, 'flags') and (entity.dxf.flags & 16384):  # VSF_LOCK_ZOOM
+                config['lockZoom'] = True
 
-        # Ask for confirmation
-        response = input(f"\nDo you want to remove these {len(missing_viewports)} viewports from the YAML configuration? (y/N): ").lower()
-        if response == 'y':
-            return self._auto_delete_missing_viewports(missing_viewports)
-        else:
-            log_info("Viewport deletion cancelled by user")
-            return []
+            # Extract layer if it's not the default
+            if hasattr(entity.dxf, 'layer') and entity.dxf.layer != self.default_layer:
+                config['layer'] = entity.dxf.layer
+
+            return config
+
+        except Exception as e:
+            log_error(f"Error extracting viewport properties: {str(e)}")
+            # Return minimal config on error
+            minimal_config = {'name': base_config['name']}
+            # Only set explicit sync if it differs from global default
+            if self.default_sync != 'pull':
+                minimal_config['sync'] = 'pull'
+            return minimal_config
+
+    def _attach_entity_metadata(self, entity, config):
+        """Attach custom metadata to a viewport to mark it as managed by this script."""
+        self._attach_viewport_metadata(entity, config)

@@ -54,25 +54,32 @@ class ProjectLoader:
         path_arrays = self.load_yaml_file('path_arrays.yaml', required=False) or {}
         wmts_wms_layers = self.load_yaml_file('wmts_wms_layers.yaml', required=False) or {}
 
-        # Extract global viewport settings with defaults
-        viewport_discovery = viewports.get('viewport_discovery', False)
-        viewport_deletion_policy = viewports.get('viewport_deletion_policy', 'auto')
-        viewport_layer = viewports.get('viewport_layer', 'VIEWPORTS')
+        # Extract global viewport settings with defaults (new generalized format only)
+        viewport_discovery = viewports.get('discovery', False)
+        viewport_deletion_policy = viewports.get('deletion_policy', 'auto')
+        viewport_layer = viewports.get('layer', 'VIEWPORTS')
         viewport_sync = viewports.get('sync', 'skip')
 
         # Extract global text insert settings with defaults
         text_sync = text_inserts.get('sync', 'push') if text_inserts else 'push'
+        text_discovery = text_inserts.get('discovery', False) if text_inserts else False
+        text_deletion_policy = text_inserts.get('deletion_policy', 'auto') if text_inserts else 'auto'
 
-        # Validate viewport deletion policy
+        # Validate deletion policies for both entity types
         valid_deletion_policies = {'auto', 'confirm', 'ignore'}
         if viewport_deletion_policy not in valid_deletion_policies:
-            log_warning(f"Invalid viewport_deletion_policy '{viewport_deletion_policy}'. "
+            log_warning(f"Invalid viewport deletion_policy '{viewport_deletion_policy}'. "
                        f"Valid values are: {', '.join(valid_deletion_policies)}. Using 'auto'.")
             viewport_deletion_policy = 'auto'
 
+        if text_deletion_policy not in valid_deletion_policies:
+            log_warning(f"Invalid text deletion_policy '{text_deletion_policy}'. "
+                       f"Valid values are: {', '.join(valid_deletion_policies)}. Using 'auto'.")
+            text_deletion_policy = 'auto'
+
         # Validate viewport layer
         if not isinstance(viewport_layer, str) or not viewport_layer.strip():
-            log_warning(f"Invalid viewport_layer '{viewport_layer}'. Must be a non-empty string. Using 'VIEWPORTS'.")
+            log_warning(f"Invalid viewport layer '{viewport_layer}'. Must be a non-empty string. Using 'VIEWPORTS'.")
             viewport_layer = 'VIEWPORTS'
 
         # Validate global sync settings
@@ -108,6 +115,8 @@ class ProjectLoader:
             'viewport_layer': viewport_layer,
             'viewport_sync': viewport_sync,
             'text_sync': text_sync,
+            'text_discovery': text_discovery,
+            'text_deletion_policy': text_deletion_policy,
             'blockInserts': block_inserts.get('blockInserts', []),
             'textInserts': text_inserts.get('textInserts', []),
             'pathArrays': path_arrays.get('pathArrays', []),

@@ -12,7 +12,7 @@ class SyncManagerBase(ABC):
         Args:
             project_settings: Dictionary containing all project settings
             script_identifier: Unique identifier for this script's entities
-            entity_type: Type of entity being managed (e.g., 'viewport', 'text_insert')
+            entity_type: Type of entity being managed (e.g., 'viewport', 'text')
             project_loader: Optional project loader for YAML write-back functionality
         """
         self.project_settings = project_settings
@@ -24,8 +24,23 @@ class SyncManagerBase(ABC):
         sync_key = f'{entity_type}_sync'
         self.default_sync = project_settings.get(sync_key, 'skip')
 
+        # Extract generalized discovery and deletion settings
+        discovery_key = f'{entity_type}_discovery'
+        deletion_key = f'{entity_type}_deletion_policy'
+
+        self.discovery_enabled = project_settings.get(discovery_key, False)
+        self.deletion_policy = project_settings.get(deletion_key, 'auto')
+
+        # Validate deletion policy
+        valid_deletion_policies = {'auto', 'confirm', 'ignore'}
+        if self.deletion_policy not in valid_deletion_policies:
+            log_warning(f"Invalid {entity_type}_deletion_policy '{self.deletion_policy}'. "
+                       f"Valid values are: {', '.join(valid_deletion_policies)}. Using 'auto'.")
+            self.deletion_policy = 'auto'
+
         log_debug(f"{self.__class__.__name__} initialized with entity_type={entity_type}, "
-                 f"default_sync={self.default_sync}")
+                 f"default_sync={self.default_sync}, discovery={self.discovery_enabled}, "
+                 f"deletion_policy={self.deletion_policy}")
 
     def _get_sync_direction(self, config):
         """
@@ -39,11 +54,6 @@ class SyncManagerBase(ABC):
             str: Sync direction ('push', 'pull', or 'skip')
         """
         entity_name = config.get('name', 'unnamed')
-
-        # Check for deprecated updateDxf usage and provide migration guidance
-        if 'updateDxf' in config:
-            log_warning(f"{self.entity_type.title()} '{entity_name}' uses deprecated 'updateDxf' flag. "
-                       f"Use 'sync: push' instead of 'updateDxf: true' or 'sync: skip' instead of 'updateDxf: false'.")
 
         # Use per-entity sync if specified, otherwise use global default
         if 'sync' in config:
@@ -80,7 +90,7 @@ class SyncManagerBase(ABC):
 
     def process_entities(self, doc, space):
         """
-        Main processing method for entity synchronization.
+        Main processing method for entity synchronization with discovery and deletion support.
 
         Args:
             doc: DXF document
@@ -95,6 +105,14 @@ class SyncManagerBase(ABC):
 
         log_debug(f"Processing {len(entity_configs)} {self.entity_type} configurations")
 
+        # Step 1: Discover unknown entities in AutoCAD if enabled
+        discovered_entities = []
+        if self.discovery_enabled:
+            discovered_entities = self._discover_unknown_entities(doc, space)
+            if discovered_entities:
+                log_info(f"Discovered {len(discovered_entities)} unknown {self.entity_type}s")
+
+        # Step 2: Process configured entities according to sync direction
         for config in entity_configs:
             try:
                 entity_name = config.get('name', 'unnamed')
@@ -115,7 +133,25 @@ class SyncManagerBase(ABC):
                 log_error(f"Error processing {self.entity_type} '{config.get('name', 'unnamed')}': {str(e)}")
                 continue
 
-        # Write back YAML if any changes were made
+        # Step 3: Handle discovered entities
+        if discovered_entities:
+            new_configs = self._process_discovered_entities(discovered_entities)
+            if new_configs:
+                # Add discovered entities to configuration
+                config_key = f'{self.entity_type}s'  # e.g., 'viewports', 'texts'
+                if self.project_settings.get(config_key) is None:
+                    self.project_settings[config_key] = []
+                self.project_settings[config_key].extend(new_configs)
+                yaml_updated = True
+                log_info(f"Added {len(new_configs)} discovered {self.entity_type}s to configuration")
+
+        # Step 4: Handle entity deletions according to deletion policy
+        deleted_configs = self._handle_entity_deletions(doc, space)
+        if deleted_configs:
+            yaml_updated = True
+            log_info(f"Removed {len(deleted_configs)} deleted {self.entity_type}s from configuration")
+
+        # Step 5: Write back YAML if any changes were made
         if yaml_updated and self.project_loader:
             self._write_entity_yaml()
 
@@ -149,6 +185,151 @@ class SyncManagerBase(ABC):
         else:
             log_warning(f"Unknown sync direction '{sync_direction}' for {self.entity_type} {entity_name}")
             return None
+
+    def _process_discovered_entities(self, discovered_entities):
+        """
+        Process discovered entities and create YAML configurations for them.
+
+        Args:
+            discovered_entities: List of discovered entity dictionaries
+
+        Returns:
+            list: List of new configuration dictionaries
+        """
+        new_configs = []
+
+        for discovered in discovered_entities:
+            try:
+                entity = discovered['entity']
+                name = discovered['name']
+
+                # Extract properties and create configuration
+                config = self._extract_entity_properties(entity, {'name': name})
+
+                # Default discovered entities to pull mode (only set explicitly if global default isn't pull)
+                if self.default_sync != 'pull':
+                    config['sync'] = 'pull'
+
+                # Add metadata to the discovered entity
+                self._attach_entity_metadata(entity, config)
+
+                new_configs.append(config)
+
+            except Exception as e:
+                log_warning(f"Failed to process discovered {self.entity_type} {discovered['name']}: {str(e)}")
+                continue
+
+        return new_configs
+
+    def _auto_delete_missing_entities(self, missing_entities):
+        """
+        Automatically delete missing entities from configuration.
+
+        Args:
+            missing_entities: List of entity configurations to remove
+
+        Returns:
+            list: List of removed configurations
+        """
+        log_info(f"Auto-deleting {len(missing_entities)} missing {self.entity_type}s from configuration")
+
+        config_key = f'{self.entity_type}s'  # e.g., 'viewports', 'texts'
+        entity_configs = self.project_settings.get(config_key, []) or []
+        original_count = len(entity_configs)
+
+        # Remove missing entities from configuration
+        for missing_entity in missing_entities:
+            entity_name = missing_entity.get('name')
+            entity_configs = [e for e in entity_configs if e.get('name') != entity_name]
+
+        # Update the project settings
+        self.project_settings[config_key] = entity_configs
+
+        deleted_count = original_count - len(entity_configs)
+        log_info(f"Successfully removed {deleted_count} missing {self.entity_type}s from configuration")
+        return missing_entities
+
+    def _confirm_delete_missing_entities(self, missing_entities):
+        """
+        Ask user confirmation before deleting missing entities.
+
+        Args:
+            missing_entities: List of entity configurations to remove
+
+        Returns:
+            list: List of removed configurations (empty if cancelled)
+        """
+        entity_names = [e.get('name', 'unnamed') for e in missing_entities]
+
+        log_warning(f"\nFound {len(missing_entities)} {self.entity_type}s in YAML that no longer exist in AutoCAD:")
+        for name in entity_names:
+            log_warning(f"- {name}")
+
+        # Ask for confirmation
+        response = input(f"\nDo you want to remove these {len(missing_entities)} {self.entity_type}s from the YAML configuration? (y/N): ").lower()
+        if response == 'y':
+            return self._auto_delete_missing_entities(missing_entities)
+        else:
+            log_info(f"{self.entity_type.title()} deletion cancelled by user")
+            return []
+
+    @abstractmethod
+    def _discover_unknown_entities(self, doc, space):
+        """
+        Discover entities in AutoCAD that aren't managed by this script.
+
+        Args:
+            doc: DXF document
+            space: Model space or paper space
+
+        Returns:
+            list: List of discovered entity dictionaries with 'entity', 'name', and optional metadata
+        """
+        pass
+
+    @abstractmethod
+    def _handle_entity_deletions(self, doc, space):
+        """
+        Handle deletion of entities that exist in YAML but not in AutoCAD.
+
+        IMPORTANT: Only entities in 'pull' mode should be checked for deletion.
+        - Pull mode: AutoCAD is source of truth → remove missing entities from YAML
+        - Push mode: YAML is source of truth → create missing entities in AutoCAD
+        - Skip mode: No synchronization → ignore
+
+        Args:
+            doc: DXF document
+            space: Model space or paper space
+
+        Returns:
+            list: List of deleted entity configurations
+        """
+        pass
+
+    @abstractmethod
+    def _extract_entity_properties(self, entity, base_config):
+        """
+        Extract entity properties from AutoCAD entity.
+
+        Args:
+            entity: AutoCAD entity object
+            base_config: Base configuration with at least 'name'
+
+        Returns:
+            dict: Complete entity configuration dictionary
+        """
+        pass
+
+    @abstractmethod
+    def _attach_entity_metadata(self, entity, config):
+        """
+        Attach custom metadata to an entity to mark it as managed by this script.
+
+        Args:
+            entity: AutoCAD entity object
+            config: Entity configuration dictionary
+        """
+        pass
 
     @abstractmethod
     def _get_entity_configs(self):

@@ -38,5 +38,9 @@ textInserts:
       y: 248
     style: "satzungstext"  # Style can include width for text wrapping
 
-# Global sync setting - all text inserts will use 'push' by default
+# Global sync setting - all text inserts will use 'pull' by default
 sync: pull
+
+# NEW: Generalized discovery and deletion settings now available for text inserts!
+discovery: true
+deletion_policy: confirm

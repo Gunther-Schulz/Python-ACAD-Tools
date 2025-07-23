@@ -983,35 +983,19 @@ class DXFExporter:
         log_debug("Finished processing all path array configurations")
 
     def process_text_inserts(self, msp):
-        """Process text inserts using the new sync-based TextInsertManager."""
+        """Process text inserts using the sync-based TextInsertManager."""
         text_configs = self.project_settings.get('textInserts', [])
         if not text_configs:
             log_debug("No text inserts found in project settings")
             return
 
-        # Check if any configs use the new sync system (either individual or global)
-        has_global_sync = 'text_sync' in self.project_settings
-        has_individual_sync = any('sync' in config for config in text_configs)
-        has_sync_configs = has_global_sync or has_individual_sync
-        has_legacy_configs = any('updateDxf' in config for config in text_configs)
+        # Clean target layers before processing
+        configs_to_process = [c for c in text_configs if self.text_insert_manager._get_sync_direction(c) == 'push']
+        self.text_insert_manager.clean_target_layers(msp.doc, configs_to_process)
 
-        if has_sync_configs:
-            # Use new sync-based processing
-            log_debug("Processing text inserts using new sync system")
-
-            # Clean target layers before processing
-            configs_to_process = [c for c in text_configs if self.text_insert_manager._get_sync_direction(c) == 'push']
-            self.text_insert_manager.clean_target_layers(msp.doc, configs_to_process)
-
-            # Process using sync manager
-            processed_texts = self.text_insert_manager.process_entities(msp.doc, msp)
-            log_debug(f"Processed {len(processed_texts)} text inserts using sync system")
-
-        if has_legacy_configs:
-            # Handle legacy updateDxf-based configs for backward compatibility
-            log_warning("Found text inserts using deprecated 'updateDxf' flag. "
-                       "Consider migrating to 'sync: push/pull/skip' for better control.")
-            self.text_insert_manager.process_text_inserts_legacy(msp)
+        # Process using sync manager
+        processed_texts = self.text_insert_manager.process_entities(msp.doc, msp)
+        log_debug(f"Processed {len(processed_texts)} text inserts using sync system")
 
     def get_viewport_by_name(self, doc, name):
         """Retrieve a viewport by its name using xdata."""

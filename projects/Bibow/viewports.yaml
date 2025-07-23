@@ -25,7 +25,7 @@ viewports:
   frozenLayers:
   - Gebäude
   lockZoom: true
-viewport_discovery: true
-viewport_deletion_policy: auto
-viewport_layer: VIEWPORTS
+discovery: true
+deletion_policy: auto
+layer: VIEWPORTS
 sync: pull
