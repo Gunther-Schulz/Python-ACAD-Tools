@@ -1,13 +1,13 @@
 geomLayers:
   ### Grundlagen ###
-  - name: Parcel
-    updateDxf: true
-    label: label
-    operations:
-      - type: simpleLabel
-        labelColumn: label  # Explicitly specify the label column
-        style: baum  # Using an existing text style from styles.yaml
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/input/parcel.shp"
+  # - name: Parcel
+  #   updateDxf: true
+  #   label: label
+  #   operations:
+  #     - type: simpleLabel
+  #       labelColumn: label  # Explicitly specify the label column
+  #       style: baum  # Using an existing text style from styles.yaml
+  #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/input/parcel.shp"
   - name: Flur
     updateDxf: true
     label: flurname
@@ -16,428 +16,428 @@ geomLayers:
         labelColumn: flurname  # Explicitly specify the label column
         style: baum  # Using an existing text style from styles.yaml
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/input/flur.shp"
-  - name: Gemarkung
-    updateDxf: true
-    label: gmkname
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/input/gemarkung.shp"
-  - name: Gemeinde
-    updateDxf: true
-    label: gen
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/input/gemeinde.shp"
+#   - name: Gemarkung
+#     updateDxf: true
+#     label: gmkname
+#     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/input/gemarkung.shp"
+#   - name: Gemeinde
+#     updateDxf: true
+#     label: gen
+#     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/input/gemeinde.shp"
 
-### Bahn
-  - name: Bahnstrasse 200m Puffer
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/input/Bahnstrasse.shp"
-    operations:
-      - type: buffer
-        distance: 200
-        joinStyle: round
+# ### Bahn
+#   - name: Bahnstrasse 200m Puffer
+#     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/input/Bahnstrasse.shp"
+#     operations:
+#       - type: buffer
+#         distance: 200
+#         joinStyle: round
 
-### Wald
-  - name: "Waldartige Flächen"
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/input/Waldartig.shp"
+# ### Wald
+#   - name: "Waldartige Flächen"
+#     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/input/Waldartig.shp"
 
-  - name: "Wald Input"
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/input/Wald.shp"
+#   - name: "Wald Input"
+#     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/input/Wald.shp"
 
-  - name: "Wald"
-    updateDxf: true
-    operations:
-      - type: dissolve
-        layers:
-          - name: "Waldartige Flächen"
-          - name: "Wald Input"
+#   - name: "Wald"
+#     updateDxf: true
+#     operations:
+#       - type: dissolve
+#         layers:
+#           - name: "Waldartige Flächen"
+#           - name: "Wald Input"
 
-  - name: "Waldabstand"
-    operations:
-      - type: buffer
-        distance: 30
-        joinStyle: round
-        layers:
-          - name: "Wald"
-      - type: difference
-        reverseDifference: false
-        layers:
-          - name: "Wald"
+#   - name: "Waldabstand"
+#     operations:
+#       - type: buffer
+#         distance: 30
+#         joinStyle: round
+#         layers:
+#           - name: "Wald"
+#       - type: difference
+#         reverseDifference: false
+#         layers:
+#           - name: "Wald"
 
-  - name: "Wald Schraffur"
-    updateDxf: true
-    style: wald
-    applyHatch:
-      layers:
-        - "Wald"
+#   - name: "Wald Schraffur"
+#     updateDxf: true
+#     style: wald
+#     applyHatch:
+#       layers:
+#         - "Wald"
 
-  ### Hecke
-  - name: "Hecke"
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/input/Hecke1.shp"
+#   ### Hecke
+#   - name: "Hecke"
+#     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/input/Hecke1.shp"
 
-  ### Biotope
-  - name: "Biotope Input"
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/input/Biotop.shp"
+#   ### Biotope
+#   - name: "Biotope Input"
+#     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/input/Biotop.shp"
 
-  - name: "ges. gesch. Biotope"
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/input/ges_gesch_Biotope.shp"
-    operations:
-      - type: repair
-        bufferRepair: true
-        removeEmptyGeometries: true
-        removeFailures: true
+#   - name: "ges. gesch. Biotope"
+#     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/input/ges_gesch_Biotope.shp"
+#     operations:
+#       - type: repair
+#         bufferRepair: true
+#         removeEmptyGeometries: true
+#         removeFailures: true
 
-  - name: "ges. gesch. Biotope Border"
-    updateDxf: true
-    style: gesGeschuetzesBiotop
-    operations:
-      - type: buffer
-        distance: -2
-        joinStyle: round
-        layers:
-          - name: "ges. gesch. Biotope"
+#   - name: "ges. gesch. Biotope Border"
+#     updateDxf: true
+#     style: gesGeschuetzesBiotop
+#     operations:
+#       - type: buffer
+#         distance: -2
+#         joinStyle: round
+#         layers:
+#           - name: "ges. gesch. Biotope"
 
-  - name: "Biotope"
-    operations:
-      - type: dissolve
-        layers:
-          - name: "Biotope Input"
+#   - name: "Biotope"
+#     operations:
+#       - type: dissolve
+#         layers:
+#           - name: "Biotope Input"
 
-  - name: "Biotope Puffer"
-    updateDxf: true
-    operations:
-      - type: buffer
-        distance: 5
-        joinStyle: round
-        layers:
-          - name: "Biotope"
-      - type: difference
-        reverseDifference: false
-        layers:
-          - name: "Biotope"
+#   - name: "Biotope Puffer"
+#     updateDxf: true
+#     operations:
+#       - type: buffer
+#         distance: 5
+#         joinStyle: round
+#         layers:
+#           - name: "Biotope"
+#       - type: difference
+#         reverseDifference: false
+#         layers:
+#           - name: "Biotope"
 
-### Bäume
-  - name: "Baumreihe"
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/input/Baumreihe.shp"
-    operations:
-      - type: buffer
-        distance: 10
-        joinStyle: round
-  - name: "Einzelbaum"
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/input/Einzelbaum.shp"
+# ### Bäume
+#   - name: "Baumreihe"
+#     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/input/Baumreihe.shp"
+#     operations:
+#       - type: buffer
+#         distance: 10
+#         joinStyle: round
+#   - name: "Einzelbaum"
+#     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/input/Einzelbaum.shp"
 
-  - name: "Einzelbaum Buffer"
-    operations:
-      - type: buffer
-        distance: 10
-        joinStyle: round
-        capStyle: round
-        layers:
-          - name: "Einzelbaum"
+#   - name: "Einzelbaum Buffer"
+#     operations:
+#       - type: buffer
+#         distance: 10
+#         joinStyle: round
+#         capStyle: round
+#         layers:
+#           - name: "Einzelbaum"
 
-  ### Grünflache Input
-  - name: "Ausgleichsfläche für Naturschutz"
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/input/Ausgleichsfläche für Naturschutz.shp"
+#   ### Grünflache Input
+#   - name: "Ausgleichsfläche für Naturschutz"
+#     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/input/Ausgleichsfläche für Naturschutz.shp"
 
-  - name: "Moor"
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/input/Moor_f.shp"
+#   - name: "Moor"
+#     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/input/Moor_f.shp"
 
-  ### Exclude
-  - name: "Exclude Geltungsbereich"
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/input/Exclude Geltungsbereich.shp"
+#   ### Exclude
+#   - name: "Exclude Geltungsbereich"
+#     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/input/Exclude Geltungsbereich.shp"
 
-  - name: "Exclude Baufeld"
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/input/Exclude Baufeld.shp"
+#   - name: "Exclude Baufeld"
+#     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/input/Exclude Baufeld.shp"
 
-  - name: "Exclude Baugrenze"
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/input/Exclude Baugrenze.shp"
+#   - name: "Exclude Baugrenze"
+#     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/input/Exclude Baugrenze.shp"
 
-  ### Geltungsbereich ###
-  - name: Geltungsbereich A
-    # updateDxf: true
-    style: geltungsbereich
-    operations:
-      - type: copy
-        layers:
-          - name: Parcel
-            values:
-              - "32/11"  # Matches exactly what's in the shapefile
-              # - "38/2"
-              # - "37/7"
-              - "46/2"
-              - "53/23"
-            column: label  # Explicitly specify the column to search in
-      - type: filterByIntersection
-        layers:
-          - name: Flur
-            values:
-              - Flur 5
-          - name: Gemarkung
-            values:
-              - Bibow
-          - name: Gemeinde
-            values:
-              - Bibow
-      - type: intersection
-        layers:
-          - name: Bahnstrasse 200m Puffer
-      - type: difference
-        reverseDifference: false
-        layers:
-          - name: "Exclude Geltungsbereich"
-          - name: "Wald"
-          - name: "Hecke"
-      - type: dissolve
-  # - name: Geltungsbereich B
-  #   updateDxf: true
-  #   style: geltungsbereich
-  #   operations:
-  #     - type: copy
-  #       layers:
-  #         - name: Parcel
-  #           values:
-  #             - "52/3"
-  #           column: label  # Explicitly specify the column to search in
-  #     - type: filterByIntersection
-  #       layers:
-  #         - name: Flur
-  #           values:
-  #             - Flur 2
-  #         - name: Gemarkung
-  #           values:
-  #             - Bibow
-  #         - name: Gemeinde
-  #           values:
-  #             - Bibow
-  #     - type: intersection
-  #       layers:
-  #         - name: Bahnstrasse 200m Puffer
-  #     - type: difference
-  #       reverseDifference: false
-  #       layers:
-  #         - name: "Exclude Geltungsbereich"
-  #         - name: "Wald"
-  #         - name: "Hecke"
-  #     - type: dissolve
-  - name: Geltungsbereich C
-    # updateDxf: true
-    style: geltungsbereich
-    operations:
-      - type: copy
-        layers:
-          - name: Parcel
-            values:
-            values:
-              - "52/3"
-              - "61/3"  # Matches exactly what's in the shapefile
-              - "68/1"
-              - "76"
-              - "77"
-              - "78"
-              - "79"
-              - "80"
-              - "81"
-              - "83/1"
-              - "84"
-              - "85"
-              - "87"
-              - "88/3"
-              - "89"
-            column: label  # Explicitly specify the column to search in
-      - type: filterByIntersection
-        layers:
-          - name: Flur
-            values:
-              - Flur 2
-          - name: Gemarkung
-            values:
-              - Bibow
-          - name: Gemeinde
-            values:
-              - Bibow
-      - type: intersection
-        layers:
-          - name: Bahnstrasse 200m Puffer
-      - type: difference
-        reverseDifference: false
-        layers:
-          - name: "Exclude Geltungsbereich"
-          - name: "Wald"
-          - name: "Hecke"
-      - type: dissolve
-  - name: Geltungsbereich D
-    # updateDxf: true
-    style: geltungsbereich
-    operations:
-      - type: copy
-        layers:
-          - name: Parcel
-            values:
-              - "7"
-              - "17"
-              - "18"
-              - "19"
-              - "20"
-              - "21"
-              - "23"
-              - "24"
-            column: label  # Explicitly specify the column to search in
-      - type: filterByIntersection
-        layers:
-          - name: Flur
-            values:
-              - Flur 4
-          - name: Gemarkung
-            values:
-              - Bibow
-          - name: Gemeinde
-            values:
-              - Bibow
-      - type: intersection
-        layers:
-          - name: Bahnstrasse 200m Puffer
-      - type: difference
-        reverseDifference: false
-        layers:
-          - name: "Exclude Geltungsbereich"
-          - name: "Wald"
-          - name: "Hecke"
-      - type: dissolve
+#   ### Geltungsbereich ###
+#   - name: Geltungsbereich A
+#     # updateDxf: true
+#     style: geltungsbereich
+#     operations:
+#       - type: copy
+#         layers:
+#           - name: Parcel
+#             values:
+#               - "32/11"  # Matches exactly what's in the shapefile
+#               # - "38/2"
+#               # - "37/7"
+#               - "46/2"
+#               - "53/23"
+#             column: label  # Explicitly specify the column to search in
+#       - type: filterByIntersection
+#         layers:
+#           - name: Flur
+#             values:
+#               - Flur 5
+#           - name: Gemarkung
+#             values:
+#               - Bibow
+#           - name: Gemeinde
+#             values:
+#               - Bibow
+#       - type: intersection
+#         layers:
+#           - name: Bahnstrasse 200m Puffer
+#       - type: difference
+#         reverseDifference: false
+#         layers:
+#           - name: "Exclude Geltungsbereich"
+#           - name: "Wald"
+#           - name: "Hecke"
+#       - type: dissolve
+#   # - name: Geltungsbereich B
+#   #   updateDxf: true
+#   #   style: geltungsbereich
+#   #   operations:
+#   #     - type: copy
+#   #       layers:
+#   #         - name: Parcel
+#   #           values:
+#   #             - "52/3"
+#   #           column: label  # Explicitly specify the column to search in
+#   #     - type: filterByIntersection
+#   #       layers:
+#   #         - name: Flur
+#   #           values:
+#   #             - Flur 2
+#   #         - name: Gemarkung
+#   #           values:
+#   #             - Bibow
+#   #         - name: Gemeinde
+#   #           values:
+#   #             - Bibow
+#   #     - type: intersection
+#   #       layers:
+#   #         - name: Bahnstrasse 200m Puffer
+#   #     - type: difference
+#   #       reverseDifference: false
+#   #       layers:
+#   #         - name: "Exclude Geltungsbereich"
+#   #         - name: "Wald"
+#   #         - name: "Hecke"
+#   #     - type: dissolve
+#   - name: Geltungsbereich C
+#     # updateDxf: true
+#     style: geltungsbereich
+#     operations:
+#       - type: copy
+#         layers:
+#           - name: Parcel
+#             values:
+#             values:
+#               - "52/3"
+#               - "61/3"  # Matches exactly what's in the shapefile
+#               - "68/1"
+#               - "76"
+#               - "77"
+#               - "78"
+#               - "79"
+#               - "80"
+#               - "81"
+#               - "83/1"
+#               - "84"
+#               - "85"
+#               - "87"
+#               - "88/3"
+#               - "89"
+#             column: label  # Explicitly specify the column to search in
+#       - type: filterByIntersection
+#         layers:
+#           - name: Flur
+#             values:
+#               - Flur 2
+#           - name: Gemarkung
+#             values:
+#               - Bibow
+#           - name: Gemeinde
+#             values:
+#               - Bibow
+#       - type: intersection
+#         layers:
+#           - name: Bahnstrasse 200m Puffer
+#       - type: difference
+#         reverseDifference: false
+#         layers:
+#           - name: "Exclude Geltungsbereich"
+#           - name: "Wald"
+#           - name: "Hecke"
+#       - type: dissolve
+#   - name: Geltungsbereich D
+#     # updateDxf: true
+#     style: geltungsbereich
+#     operations:
+#       - type: copy
+#         layers:
+#           - name: Parcel
+#             values:
+#               - "7"
+#               - "17"
+#               - "18"
+#               - "19"
+#               - "20"
+#               - "21"
+#               - "23"
+#               - "24"
+#             column: label  # Explicitly specify the column to search in
+#       - type: filterByIntersection
+#         layers:
+#           - name: Flur
+#             values:
+#               - Flur 4
+#           - name: Gemarkung
+#             values:
+#               - Bibow
+#           - name: Gemeinde
+#             values:
+#               - Bibow
+#       - type: intersection
+#         layers:
+#           - name: Bahnstrasse 200m Puffer
+#       - type: difference
+#         reverseDifference: false
+#         layers:
+#           - name: "Exclude Geltungsbereich"
+#           - name: "Wald"
+#           - name: "Hecke"
+#       - type: dissolve
 
-  - name: Geltungsbereiche
-    updateDxf: true
-    style: geltungsbereich
-    operations:
-      - type: dissolve
-        layers:
-          - name: "Geltungsbereich A"
-          # - name: "Geltungsbereich B"
-          - name: "Geltungsbereich C"
-          - name: "Geltungsbereich D"
+#   - name: Geltungsbereiche
+#     updateDxf: true
+#     style: geltungsbereich
+#     operations:
+#       - type: dissolve
+#         layers:
+#           - name: "Geltungsbereich A"
+#           # - name: "Geltungsbereich B"
+#           - name: "Geltungsbereich C"
+#           - name: "Geltungsbereich D"
 
-  - name: Geltungsbereich 2
-    updateDxf: true
-    linetypeScale: 1
-    style: geltungsbereich_2
-    operations:
-      - type: copy
-        layers:
-          - Geltungsbereiche
-      - type: dissolve
-      - type: buffer
-        distance: 2
-        joinStyle: round
-        capStyle: round
-      - type: buffer
-        distance: -2
-        joinStyle: mitre
-        capStyle: flat
-      - type: buffer
-        distance: 2
-        joinStyle: mitre
-        capStyle: flat
-
-
-
-  ### Grünfläche
-  - name: "Grünfläche"
-    updateDxf: true
-    operations:
-      - type: dissolve
-        layers:
-          - name: "Ausgleichsfläche für Naturschutz"
-          - name: "Moor"
-          - name: "Biotope"
-          - name: "Waldabstand"
-          - name: "Einzelbaum Buffer"
-          - name: "Biotope Puffer"
-      - type: intersection
-        layers:
-          - name: "Geltungsbereiche"
-      - type: dissolve
-      - type: removeSliversErosion
-        erosionDistance: 0.1
-      - type: filterGeometry
-        minArea: 200
-        geometryTypes:
-          - Polygon
-
-  - name: "Grünfläche Schraffur"
-    updateDxf: true
-    style: grünfläche
-    applyHatch:
-      layers:
-        - "Grünfläche"
-
-  ### Baufeld and Baugrenze ###
-  - name: Baufeld
-    updateDxf: true
-    close: true
-    viewports:
-      - name: WorkView
-        style: baufeld
-    operations:
-      - type: copy
-        layers:
-          - Geltungsbereiche
-      - type: difference
-        useBufferTrick: true
-        reverseDifference: false
-        operations:
-          - type: dissolve
-            layers:
-              - "Grünfläche"
-              - "Waldabstand"
-              - "Hecke"
-              - "Biotope"
-              - "Exclude Baufeld"
-              - "Baumreihe"
-              # - "Einzelbaum Buffer"
-      - type: filterGeometry
-        minArea: 200
-        geometryTypes:
-          - Polygon
-
-  - name: Baufeld Schraffur
-    updateDxf: true
-    style: baufeld
-    applyHatch:
-      layers:
-        - Baufeld
-
-  - name: Baugrenze
-    updateDxf: true
-    style: baugrenze
-    linetypeScale: 0.5
-    linetypeGeneration: true
-    close: true
-    operations:
-      - type: buffer
-        joinStyle: mitre
-        layers:
-          - Baufeld
-        distance: -3
+#   - name: Geltungsbereich 2
+#     updateDxf: true
+#     linetypeScale: 1
+#     style: geltungsbereich_2
+#     operations:
+#       - type: copy
+#         layers:
+#           - Geltungsbereiche
+#       - type: dissolve
+#       - type: buffer
+#         distance: 2
+#         joinStyle: round
+#         capStyle: round
+#       - type: buffer
+#         distance: -2
+#         joinStyle: mitre
+#         capStyle: flat
+#       - type: buffer
+#         distance: 2
+#         joinStyle: mitre
+#         capStyle: flat
 
 
-  - name: Baugrenze 2
-    updateDxf: true
-    style: baugrenze_2
-    close: true
-    operations:
-      - type: buffer
-        joinStyle: mitre
-        layers:
-          - Baugrenze
-        distance: -0.4
 
-  - name: Baugrenze Report
-    operations:
-      - type: copy
-        layers:
-          - Baugrenze
-      - type: intersection
-        layers:
-          - Geltungsbereiche
-      - type: report
-        outputFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/reports/baugrenze_report.json"
-        calculate:
-          - area
-          - perimeter
-        decimalPlaces:
-          area: 0
+#   ### Grünfläche
+#   - name: "Grünfläche"
+#     updateDxf: true
+#     operations:
+#       - type: dissolve
+#         layers:
+#           - name: "Ausgleichsfläche für Naturschutz"
+#           - name: "Moor"
+#           - name: "Biotope"
+#           - name: "Waldabstand"
+#           - name: "Einzelbaum Buffer"
+#           - name: "Biotope Puffer"
+#       - type: intersection
+#         layers:
+#           - name: "Geltungsbereiche"
+#       - type: dissolve
+#       - type: removeSliversErosion
+#         erosionDistance: 0.1
+#       - type: filterGeometry
+#         minArea: 200
+#         geometryTypes:
+#           - Polygon
+
+#   - name: "Grünfläche Schraffur"
+#     updateDxf: true
+#     style: grünfläche
+#     applyHatch:
+#       layers:
+#         - "Grünfläche"
+
+#   ### Baufeld and Baugrenze ###
+#   - name: Baufeld
+#     updateDxf: true
+#     close: true
+#     viewports:
+#       - name: WorkView
+#         style: baufeld
+#     operations:
+#       - type: copy
+#         layers:
+#           - Geltungsbereiche
+#       - type: difference
+#         useBufferTrick: true
+#         reverseDifference: false
+#         operations:
+#           - type: dissolve
+#             layers:
+#               - "Grünfläche"
+#               - "Waldabstand"
+#               - "Hecke"
+#               - "Biotope"
+#               - "Exclude Baufeld"
+#               - "Baumreihe"
+#               # - "Einzelbaum Buffer"
+#       - type: filterGeometry
+#         minArea: 200
+#         geometryTypes:
+#           - Polygon
+
+#   - name: Baufeld Schraffur
+#     updateDxf: true
+#     style: baufeld
+#     applyHatch:
+#       layers:
+#         - Baufeld
+
+#   - name: Baugrenze
+#     updateDxf: true
+#     style: baugrenze
+#     linetypeScale: 0.5
+#     linetypeGeneration: true
+#     close: true
+#     operations:
+#       - type: buffer
+#         joinStyle: mitre
+#         layers:
+#           - Baufeld
+#         distance: -3
+
+
+#   - name: Baugrenze 2
+#     updateDxf: true
+#     style: baugrenze_2
+#     close: true
+#     operations:
+#       - type: buffer
+#         joinStyle: mitre
+#         layers:
+#           - Baugrenze
+#         distance: -0.4
+
+#   - name: Baugrenze Report
+#     operations:
+#       - type: copy
+#         layers:
+#           - Baugrenze
+#       - type: intersection
+#         layers:
+#           - Geltungsbereiche
+#       - type: report
+#         outputFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/reports/baugrenze_report.json"
+#         calculate:
+#           - area
+#           - perimeter
+#         decimalPlaces:
+#           area: 0

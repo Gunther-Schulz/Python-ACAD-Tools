@@ -4,16 +4,17 @@ textInserts:
     type: absolute
     x: 66.0
     y: 840.0
-  text: 'Entwurf: vorhabensbezogener Bebauungsplan Nr. 06 „Solarpark an der Lindenallee“\nder Gemeinde Torgelow am See'
+  text: 'Entwurf: vorhabensbezogener Bebauungsplan Nr. 06 „Solarpark an der Lindenallee“\nder
+    Gemeinde Torgelow am See'
   targetLayer: Plantext
   paperspace: true
   style: mainTitle
 - name: Map Header
   position:
     type: absolute
-    x: 66.0
+    x: 912.5978864649896
     y: 788.0
-  text: 'Teil A: Planzeichnung i. M. 1:2.000'
+  text: 'Teil A: Planzeichnung i. M. 1:2.000\nTEST'
   targetLayer: Plantext
   paperspace: true
   style: mapHeader

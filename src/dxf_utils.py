@@ -39,6 +39,30 @@ XDATA_APP_ID = "DXFEXPORTER"
 XDATA_ENTITY_NAME_KEY = "ENTITY_NAME"
 XDATA_ENTITY_TYPE_KEY = "ENTITY_TYPE"
 
+def convert_newlines_to_mtext(text):
+    """Convert newlines to MTEXT paragraph breaks for reliable MTEXT formatting.
+
+    Handles both:
+    - Actual newline characters (\n as chr(10))
+    - Literal \n sequences from YAML strings
+
+    Args:
+        text (str): Text content with newlines
+
+    Returns:
+        str: Text with newlines converted to MTEXT paragraph breaks (\\P)
+    """
+    if not text:
+        return text
+
+    # Handle actual newline characters first
+    result = text.replace('\n', '\\P')
+
+    # Handle literal \n sequences from YAML (e.g., from single-quoted strings)
+    result = result.replace('\\n', '\\P')
+
+    return result
+
 def create_entity_xdata(script_identifier, entity_name=None, entity_type=None):
     """
     Create XDATA for entity identification and ownership tracking.
@@ -778,6 +802,10 @@ def add_mtext(msp, text, x, y, layer_name, style_name, text_style=None, name_to_
     log_debug(f"Style name: '{style_name}'")
     log_debug(f"Text style config: {text_style}")
 
+    # Convert newlines to MTEXT paragraph breaks for reliable formatting
+    mtext_formatted_text = convert_newlines_to_mtext(text)
+    log_debug(f"MTEXT formatted text: '{mtext_formatted_text}'")
+
     # Build basic dxfattribs
     dxfattribs = {
         'style': style_name,
@@ -788,17 +816,16 @@ def add_mtext(msp, text, x, y, layer_name, style_name, text_style=None, name_to_
     }
 
     try:
-        # Create the MTEXT entity
-        mtext = msp.add_mtext(text, dxfattribs=dxfattribs)
+        # Create the MTEXT entity with properly formatted text
+        mtext = msp.add_mtext(mtext_formatted_text, dxfattribs=dxfattribs)
 
         # Apply common text style properties
         _apply_text_style_properties(mtext, text_style, name_to_aci)
 
-        # Attach custom data
-        attach_custom_data(mtext, SCRIPT_IDENTIFIER)
+        # Note: XDATA attachment is handled by the caller to ensure proper entity naming
 
         log_debug(f"=== Completed MTEXT creation ===")
-        actual_height = mtext.dxf.char_height * mtext.dxf.line_spacing_factor * len(text.split('\n'))
+        actual_height = mtext.dxf.char_height * mtext.dxf.line_spacing_factor * len(mtext_formatted_text.split('\\P'))
         return mtext, actual_height
 
     except Exception as e:
@@ -918,7 +945,7 @@ def add_block_reference(msp, block_name, insert_point, layer_name, scale=1.0, ro
             block_ref.dxf.xscale = scale
             block_ref.dxf.yscale = scale
             block_ref.dxf.rotation = rotation
-            attach_custom_data(block_ref, SCRIPT_IDENTIFIER)
+            # Note: XDATA attachment is handled by the caller to ensure proper entity naming
             log_debug(f"Successfully created block reference for '{block_name}' on layer '{layer_name}'")
             return block_ref
         else:

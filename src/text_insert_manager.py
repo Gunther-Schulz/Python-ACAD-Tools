@@ -1,52 +1,7 @@
 import traceback
-import re
 from src.utils import log_info, log_warning, log_error, log_debug
 from src.dxf_utils import add_mtext, remove_entities_by_layer, ensure_layer_exists, XDATA_APP_ID, attach_custom_data, find_entity_by_xdata_name
 from src.sync_manager_base import SyncManagerBase
-
-
-def strip_mtext_formatting(text):
-    """Strip MTEXT formatting codes while converting paragraph breaks to newlines.
-
-    Args:
-        text (str): Raw MTEXT content with formatting codes
-
-    Returns:
-        str: Clean text with \P converted to \n and other formatting codes removed
-    """
-    if not text:
-        return text
-
-    # Convert paragraph breaks to newlines first
-    clean_text = text.replace('\\P', '\n')
-
-    # Remove common MTEXT formatting codes:
-    # \Q - slant text
-    # \C - color codes (followed by color number)
-    # \A - alignment codes
-    # \H - height codes
-    # \W - width factor
-    # \L - underline on/off
-    # \O - overline on/off
-    # \K - strikethrough on/off
-    # \S - stacked text
-    # \T - tracking
-    # \F - font changes
-    # {} - grouping braces
-
-    # Remove formatting codes with parameters (like \C1; \H2.5x;)
-    clean_text = re.sub(r'\\[QCAHWLOKSTF][^;]*;', '', clean_text)
-
-    # Remove simple formatting codes (like \Q \L \O)
-    clean_text = re.sub(r'\\[QLOKSTF]', '', clean_text)
-
-    # Remove grouping braces
-    clean_text = clean_text.replace('{', '').replace('}', '')
-
-    # Remove any remaining backslash sequences (catch-all for other codes)
-    clean_text = re.sub(r'\\[a-zA-Z][^;]*;?', '', clean_text)
-
-    return clean_text
 
 
 class TextInsertManager(SyncManagerBase):
@@ -182,10 +137,12 @@ class TextInsertManager(SyncManagerBase):
                 'y': float(insert_point[1])
             }
 
-            # Extract text content and strip MTEXT formatting
+            # Extract text content using ezdxf's built-in method
             if text_entity.dxftype() == 'MTEXT':
-                raw_text = text_entity.text
-                config['text'] = strip_mtext_formatting(raw_text)
+                # Use ezdxf's plain_text() method to properly handle MTEXT formatting codes
+                plain_text = text_entity.plain_text()
+                # Convert actual newlines back to literal \n for YAML consistency
+                config['text'] = plain_text.replace('\n', '\\n')
             else:  # TEXT entity
                 config['text'] = text_entity.dxf.text
 
@@ -360,9 +317,14 @@ class TextInsertManager(SyncManagerBase):
         config = {'name': base_config['name']}
 
         try:
-            # Extract text content
-            text_content = getattr(entity.dxf, 'text', '') or getattr(entity, 'text', '')
-            config['text'] = text_content
+            # Extract text content using ezdxf's built-in method
+            if entity.dxftype() == 'MTEXT':
+                # Use ezdxf's plain_text() method to properly handle MTEXT formatting codes
+                plain_text = entity.plain_text()
+                # Convert actual newlines back to literal \n for YAML consistency
+                config['text'] = plain_text.replace('\n', '\\n')
+            else:  # TEXT entity
+                config['text'] = entity.dxf.text
 
             # Extract position
             if hasattr(entity.dxf, 'insert'):
