@@ -87,8 +87,9 @@ class ViewportSyncSchema(SyncPropertySchema):
             'frozenLayers',   # list of strings (sorted)
             'visibleLayers',  # list of strings (sorted) - alternative to frozenLayers
             'lockZoom',    # boolean
-            'color',       # string (color name or ACI code)
-            'layer',       # string (layer name)
+            # Note: Intentionally excluding color, layer
+            # These are formatting/display details, not core content properties
+            # Hash should only care about viewport geometry, scale, and layer visibility
         ]
 
     @classmethod

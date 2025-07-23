@@ -11,20 +11,20 @@ textInserts:
   style: mainTitle
   _sync:
     content_hash: 5f7143493d981f4524127d820aa3a16176406e25035721c50ad11da12259cb68
-    last_sync_time: 1753295625
+    last_sync_time: 1753295543
     sync_source: yaml
 - name: Map Header
   position:
     type: absolute
     x: 66.0
     y: 788.0
-  text: 'Teil A: Planzeichnung i. M. 1:2.000 JIOJIOJOIO '
+  text: 'Teil A: Planzeichnung i. M. 1:2.000'
   targetLayer: Plantext
   paperspace: true
   style: mapHeader
   _sync:
     content_hash: da28b5d6dbdd427a51ebc3d1e31c38283e2ee7f43d8e08267b2b5a2469778f0f
-    last_sync_time: 1753295625
+    last_sync_time: 1753295543
     sync_source: yaml
 - name: Übersichtslarte Header
   position:
@@ -37,7 +37,7 @@ textInserts:
   style: übersichtskarteHeader
   _sync:
     content_hash: a4761f71cdf2721499f20188b4e37f422392c056899a3e5638469d30f42930b6
-    last_sync_time: 1753295625
+    last_sync_time: 1753295543
     sync_source: yaml
 - name: Satzung
   position:
@@ -45,14 +45,14 @@ textInserts:
     x: 1009.0
     y: 248.0
   text: 'VORENTWURF\nSATZUNG DER GEMEINDE\nTORGELOW AM SEE\nÜBER DEN VORHABENSBEZOGENER
-    BEBAUUNGSPLAN\nNR: 06 „SOLARPARK AN DER LINDENALLEE BBBB"'
+    BEBAUUNGSPLAN\nNR: 06 „SOLARPARK AN DER LINDENALLEE"'
   targetLayer: Plantext
   paperspace: true
-  style: satzungstext
+  style: satzungste
   justification: CENTER
   _sync:
-    content_hash: ff0650b0d0731b7e3214162d48e3a5756733951192022c1b943c498296e7c0c5
-    last_sync_time: 1753295625
+    content_hash: f8a9df0afbed622f5196f713bc7114fff3895202b8e4f5156392ddb87f6c3a0d
+    last_sync_time: 1753295543
     sync_source: yaml
 discovery: true
 deletion_policy: confirm
