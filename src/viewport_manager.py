@@ -1,7 +1,7 @@
 import traceback
 from ezdxf.lldxf import const
 from src.utils import log_info, log_warning, log_error, log_debug
-from src.dxf_utils import get_color_code, attach_custom_data
+from src.dxf_utils import get_color_code, attach_custom_data, XDATA_APP_ID
 from src.sync_manager_base import SyncManagerBase
 
 class ViewportManager(SyncManagerBase):
@@ -250,7 +250,7 @@ class ViewportManager(SyncManagerBase):
 
         self.attach_custom_data(viewport, vp_config['name'])
         viewport.set_xdata(
-            'DXFEXPORTER',
+            XDATA_APP_ID,
             [
                 (1000, self.script_identifier),
                 (1002, '{'),
@@ -309,7 +309,7 @@ class ViewportManager(SyncManagerBase):
             for entity in layout:
                 if entity.dxftype() == 'VIEWPORT':
                     try:
-                        xdata = entity.get_xdata('DXFEXPORTER')
+                        xdata = entity.get_xdata(XDATA_APP_ID)
                         if xdata:
                             in_viewport_section = False
                             viewport_name = None
@@ -325,7 +325,7 @@ class ViewportManager(SyncManagerBase):
                                 return entity
                     except Exception as e:
                         # Only log if there's an actual error (not just missing XDATA)
-                        if "DXFEXPORTER" not in str(e):
+                        if XDATA_APP_ID not in str(e):
                             log_debug(f"Error checking viewport {entity.dxf.handle}: {str(e)}")
                         continue
         return None
@@ -405,7 +405,7 @@ class ViewportManager(SyncManagerBase):
                     try:
                         # Check if this viewport has our script metadata
                         try:
-                            xdata = entity.get_xdata('DXFEXPORTER')
+                            xdata = entity.get_xdata(XDATA_APP_ID)
                             has_our_metadata = False
                             if xdata:
                                 for code, value in xdata:
@@ -429,7 +429,7 @@ class ViewportManager(SyncManagerBase):
 
                         # Attach metadata to mark it as ours
                         entity.set_xdata(
-                            'DXFEXPORTER',
+                            XDATA_APP_ID,
                             [
                                 (1000, self.script_identifier),
                                 (1002, '{'),

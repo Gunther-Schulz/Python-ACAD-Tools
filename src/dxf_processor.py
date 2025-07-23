@@ -3,7 +3,7 @@ import traceback
 from ezdxf.entities.lwpolyline import LWPolyline
 from ezdxf.entities.polyline import Polyline
 from src.utils import log_info, log_warning, log_error, resolve_path, log_debug
-from src.dxf_utils import ensure_layer_exists, attach_custom_data, sanitize_layer_name, initialize_document, atomic_save_dxf
+from src.dxf_utils import ensure_layer_exists, attach_custom_data, sanitize_layer_name, initialize_document, atomic_save_dxf, XDATA_APP_ID, SCRIPT_IDENTIFIER
 from src.preprocessors.block_exploder import explode_blocks
 from src.preprocessors.circle_extractor import extract_circle_centers
 from src.preprocessors.basepoint_extractor import extract_entity_basepoints
@@ -264,7 +264,7 @@ class DXFProcessor:
                         continue
 
                     if new_entity:
-                        attach_custom_data(new_entity, 'DXFEXPORTER')
+                        attach_custom_data(new_entity, SCRIPT_IDENTIFIER)
                         entity_counts[dxftype] = entity_counts.get(dxftype, 0) + 1
 
                 except Exception as e:

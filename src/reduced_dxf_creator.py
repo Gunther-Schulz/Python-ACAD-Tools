@@ -2,7 +2,7 @@ import ezdxf
 from pathlib import Path
 from src.utils import resolve_path, log_info, log_warning, log_error, log_debug
 from src.legend_creator import LegendCreator
-from src.dxf_utils import add_mtext, attach_custom_data, initialize_document, set_drawing_properties, atomic_save_dxf
+from src.dxf_utils import add_mtext, attach_custom_data, initialize_document, set_drawing_properties, atomic_save_dxf, XDATA_APP_ID, SCRIPT_IDENTIFIER
 from src.path_array import create_path_array
 import traceback
 import pkg_resources
@@ -94,8 +94,8 @@ class ReducedDXFCreator:
             set_drawing_properties(reduced_doc)
 
             # Register app ID
-            if 'DXFEXPORTER' not in reduced_doc.appids:
-                reduced_doc.appids.new('DXFEXPORTER')
+            if XDATA_APP_ID not in reduced_doc.appids:
+                reduced_doc.appids.new(XDATA_APP_ID)
 
             # Copy essential header variables from original document
             header_vars = [
@@ -260,7 +260,7 @@ class ReducedDXFCreator:
 
             if mtext:
                 # Attach custom data
-                mtext.set_xdata(self.script_identifier, [('TEXT_INSERT', None)])
+                mtext.set_xdata(XDATA_APP_ID, [(1000, SCRIPT_IDENTIFIER)])
                 entity_counts['textInserts'] += 1
                 log_debug(f"Added text insert to layer: {layer_name}")
 
@@ -484,7 +484,7 @@ class ReducedDXFCreator:
                 if new_entity:
                     # Add standard DXFEXPORTER appID to track entities
                     try:
-                        new_entity.set_xdata('DXFEXPORTER', [(1000, 'Created by DXFExporter')])
+                        new_entity.set_xdata(XDATA_APP_ID, [(1000, SCRIPT_IDENTIFIER)])
                         entity_count += 1
                     except Exception as e:
                         log_warning(f"Failed to add XDATA to entity: {str(e)}")

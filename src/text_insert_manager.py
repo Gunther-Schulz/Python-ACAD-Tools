@@ -1,6 +1,6 @@
 import traceback
 from src.utils import log_info, log_warning, log_error, log_debug
-from src.dxf_utils import add_mtext, remove_entities_by_layer, ensure_layer_exists
+from src.dxf_utils import add_mtext, remove_entities_by_layer, ensure_layer_exists, XDATA_APP_ID
 from src.sync_manager_base import SyncManagerBase
 
 
@@ -125,7 +125,7 @@ class TextInsertManager(SyncManagerBase):
         for entity in paper_space:
             if entity.dxftype() in ['TEXT', 'MTEXT']:
                 try:
-                    xdata = entity.get_xdata('DXFEXPORTER')
+                    xdata = entity.get_xdata(XDATA_APP_ID)
                     if xdata:
                         in_text_section = False
                         text_name = None
@@ -141,7 +141,7 @@ class TextInsertManager(SyncManagerBase):
                             return entity
                 except Exception as e:
                     # Only log if there's an actual error (not just missing XDATA)
-                    if "DXFEXPORTER" not in str(e):
+                    if XDATA_APP_ID not in str(e):
                         log_debug(f"Error checking text {entity.dxf.handle}: {str(e)}")
                     continue
         return None
@@ -242,7 +242,7 @@ class TextInsertManager(SyncManagerBase):
                 try:
                     # Check if this text has our script metadata
                     try:
-                        xdata = entity.get_xdata('DXFEXPORTER')
+                        xdata = entity.get_xdata(XDATA_APP_ID)
                         has_our_metadata = False
                         if xdata:
                             for code, value in xdata:
@@ -274,7 +274,7 @@ class TextInsertManager(SyncManagerBase):
 
                     # Attach metadata to mark it as ours
                     entity.set_xdata(
-                        'DXFEXPORTER',
+                        XDATA_APP_ID,
                         [
                             (1000, self.script_identifier),
                             (1002, '{'),
@@ -399,7 +399,7 @@ class TextInsertManager(SyncManagerBase):
     def _attach_entity_metadata(self, entity, config):
         """Attach custom metadata to a text entity to mark it as managed by this script."""
         entity.set_xdata(
-            'DXFEXPORTER',
+            XDATA_APP_ID,
             [
                 (1000, self.script_identifier),
                 (1002, '{'),
@@ -416,7 +416,7 @@ class TextInsertManager(SyncManagerBase):
         for entity in paper_space:
             if entity.dxftype() in ['TEXT', 'MTEXT']:
                 try:
-                    xdata = entity.get_xdata('DXFEXPORTER')
+                    xdata = entity.get_xdata(XDATA_APP_ID)
                     if xdata:
                         in_text_section = False
                         text_name = None
@@ -432,7 +432,7 @@ class TextInsertManager(SyncManagerBase):
                             return entity
                 except Exception as e:
                     # Only log if there's an actual error (not just missing XDATA)
-                    if "DXFEXPORTER" not in str(e):
+                    if XDATA_APP_ID not in str(e):
                         log_debug(f"Error checking text {entity.dxf.handle}: {str(e)}")
                     continue
         return None

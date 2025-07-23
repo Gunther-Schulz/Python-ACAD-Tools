@@ -33,6 +33,7 @@ import traceback
 
 
 SCRIPT_IDENTIFIER = "Created by DXFExporter"
+XDATA_APP_ID = "DXFEXPORTER"
 
 def get_color_code(color, name_to_aci):
     if color is None:
@@ -75,13 +76,13 @@ def attach_custom_data(entity, script_identifier, entity_name=None):
     try:
         # NEW: Clear any existing XDATA first
         try:
-            entity.discard_xdata('DXFEXPORTER')
+            entity.discard_xdata(XDATA_APP_ID)
         except:
             pass
 
         # Set new XDATA
         entity.set_xdata(
-            'DXFEXPORTER',
+            XDATA_APP_ID,
             [(1000, script_identifier)]
         )
 
@@ -104,13 +105,13 @@ def attach_custom_data(entity, script_identifier, entity_name=None):
 def is_created_by_script(entity, script_identifier):
     """Check if an entity was created by this script."""
     try:
-        xdata = entity.get_xdata('DXFEXPORTER')
+        xdata = entity.get_xdata(XDATA_APP_ID)
         if xdata:
             for code, value in xdata:
                 if code == 1000 and value == script_identifier:
                     return True
     except ezdxf.lldxf.const.DXFValueError:
-        # This exception is raised when the entity has no XDATA for 'DXFEXPORTER'
+        # This exception is raised when the entity has no XDATA for XDATA_APP_ID
         # It's not an error, just means the entity wasn't created by this script
         return False
     except Exception as e:
@@ -192,7 +193,7 @@ def remove_entities_by_layer(msp, layer_names, script_identifier):
                         try:
                             # Clear any XDATA before deletion
                             try:
-                                entity.discard_xdata('DXFEXPORTER')
+                                entity.discard_xdata(XDATA_APP_ID)
                             except:
                                 pass
 
@@ -253,7 +254,7 @@ def remove_entities_by_layer_optimized(msp, layer_names, script_identifier):
                     try:
                         # Clear any XDATA before deletion
                         try:
-                            entity.discard_xdata('DXFEXPORTER')
+                            entity.discard_xdata(XDATA_APP_ID)
                         except:
                             pass
 

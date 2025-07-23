@@ -17,7 +17,7 @@ from src.dxf_utils import (remove_entities_by_layer, update_layer_properties, at
                          set_drawing_properties, verify_dxf_settings, update_layer_geometry,
                          get_style, apply_style_to_entity, create_hatch, SCRIPT_IDENTIFIER, initialize_document,
                          sanitize_layer_name, add_mtext, atomic_save_dxf, remove_entities_by_layer_optimized,
-                         ensure_layer_exists)
+                         ensure_layer_exists, XDATA_APP_ID)
 from src.path_array import create_path_array
 from src.style_manager import StyleManager
 from src.viewport_manager import ViewportManager
@@ -850,8 +850,8 @@ class DXFExporter:
         layer_overrides.commit()
 
     def register_app_id(self, doc):
-        if 'DXFEXPORTER' not in doc.appids:
-            doc.appids.new('DXFEXPORTER')
+        if XDATA_APP_ID not in doc.appids:
+            doc.appids.new(XDATA_APP_ID)
 
     def _process_hatch(self, doc, msp, layer_name, layer_info):
         with profile_operation("Hatch Processing", layer_name):
@@ -1003,7 +1003,7 @@ class DXFExporter:
             for entity in layout:
                 if entity.dxftype() == 'VIEWPORT':
                     try:
-                        xdata = entity.get_xdata('DXFEXPORTER')
+                        xdata = entity.get_xdata(XDATA_APP_ID)
                         if xdata:
                             in_viewport_section = False
                             for code, value in xdata:
