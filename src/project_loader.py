@@ -58,6 +58,7 @@ class ProjectLoader:
         viewport_discovery = viewports.get('viewport_discovery', False)
         viewport_deletion_policy = viewports.get('viewport_deletion_policy', 'auto')
         viewport_layer = viewports.get('viewport_layer', 'VIEWPORTS')
+        viewport_sync = viewports.get('sync', 'skip')
 
         # Validate viewport deletion policy
         valid_deletion_policies = {'auto', 'confirm', 'ignore'}
@@ -70,6 +71,13 @@ class ProjectLoader:
         if not isinstance(viewport_layer, str) or not viewport_layer.strip():
             log_warning(f"Invalid viewport_layer '{viewport_layer}'. Must be a non-empty string. Using 'VIEWPORTS'.")
             viewport_layer = 'VIEWPORTS'
+
+        # Validate global sync setting
+        valid_sync_values = {'push', 'pull', 'skip'}
+        if viewport_sync not in valid_sync_values:
+            log_warning(f"Invalid global sync value '{viewport_sync}'. "
+                       f"Valid values are: {', '.join(valid_sync_values)}. Using 'skip'.")
+            viewport_sync = 'skip'
 
         # Check for duplicate layer names
         layer_names = {}
@@ -90,6 +98,7 @@ class ProjectLoader:
             'viewport_discovery': viewport_discovery,
             'viewport_deletion_policy': viewport_deletion_policy,
             'viewport_layer': viewport_layer,
+            'viewport_sync': viewport_sync,
             'blockInserts': block_inserts.get('blockInserts', []),
             'textInserts': text_inserts.get('textInserts', []),
             'pathArrays': path_arrays.get('pathArrays', []),

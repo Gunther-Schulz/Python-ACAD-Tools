@@ -16,24 +16,26 @@ class ViewportManager:
         self.discovery_enabled = project_settings.get('viewport_discovery', False)
         self.deletion_policy = project_settings.get('viewport_deletion_policy', 'auto')
         self.default_layer = project_settings.get('viewport_layer', 'VIEWPORTS')
+        self.default_sync = project_settings.get('viewport_sync', 'skip')
 
         log_debug(f"ViewportManager initialized with discovery={self.discovery_enabled}, "
-                 f"deletion_policy={self.deletion_policy}, default_layer={self.default_layer}")
+                 f"deletion_policy={self.deletion_policy}, default_layer={self.default_layer}, "
+                 f"default_sync={self.default_sync}")
 
     def _get_sync_direction(self, vp_config):
-        """Determine sync direction for viewport. Only uses sync field - no updateDxf compatibility."""
+        """Determine sync direction for viewport. Uses per-viewport sync or falls back to global sync setting."""
         # Check for deprecated updateDxf usage
         if 'updateDxf' in vp_config:
             log_warning(f"Viewport '{vp_config.get('name')}' uses deprecated 'updateDxf' flag. "
                        f"Use 'sync: push' instead of 'updateDxf: true' or 'sync: skip' instead of 'updateDxf: false'.")
 
-        # Require sync field for all viewports
-        if 'sync' not in vp_config:
-            log_warning(f"Viewport '{vp_config.get('name')}' missing required 'sync' field. "
-                       f"Valid values are: push, pull, skip. Using 'skip'.")
-            return 'skip'
+        # Use per-viewport sync if specified, otherwise use global default
+        if 'sync' in vp_config:
+            sync = vp_config['sync']
+        else:
+            sync = self.default_sync
+            log_debug(f"Viewport '{vp_config.get('name')}' using global sync setting: {sync}")
 
-        sync = vp_config['sync']
         if sync in ['push', 'pull', 'skip']:
             return sync
         else:
@@ -156,7 +158,11 @@ class ViewportManager:
             for i, config in enumerate(viewport_configs):
                 if config.get('name') == name:
                     # Preserve sync direction and other non-geometric properties
-                    updated_config['sync'] = 'pull'
+                    # Only set viewport-level sync if it was explicitly set or differs from global default
+                    if 'sync' in config:
+                        updated_config['sync'] = config['sync']
+                    elif self.default_sync != 'pull':
+                        updated_config['sync'] = 'pull'
                     if 'frozenLayers' in config:
                         updated_config['frozenLayers'] = config['frozenLayers']
                     if 'visibleLayers' in config:
@@ -515,7 +521,9 @@ class ViewportManager:
 
                 # Extract properties and create configuration
                 config = self._extract_viewport_properties(entity, {'name': name})
-                config['sync'] = 'pull'  # Default discovered viewports to pull mode
+                # Default discovered viewports to pull mode (only set explicitly if global default isn't pull)
+                if self.default_sync != 'pull':
+                    config['sync'] = 'pull'
 
                 # Add our metadata to the discovered viewport
                 self._attach_viewport_metadata(entity, config)
@@ -577,7 +585,11 @@ class ViewportManager:
         except Exception as e:
             log_error(f"Error extracting viewport properties: {str(e)}")
             # Return minimal config on error
-            return {'name': base_config['name'], 'sync': 'pull'}
+            minimal_config = {'name': base_config['name']}
+            # Only set explicit sync if it differs from global default
+            if self.default_sync != 'pull':
+                minimal_config['sync'] = 'pull'
+            return minimal_config
 
     def _write_viewport_yaml(self):
         """Write updated viewport configuration back to YAML file."""
@@ -598,6 +610,8 @@ class ViewportManager:
                 viewport_data['viewport_deletion_policy'] = self.project_settings['viewport_deletion_policy']
             if 'viewport_layer' in self.project_settings:
                 viewport_data['viewport_layer'] = self.project_settings['viewport_layer']
+            if 'viewport_sync' in self.project_settings:
+                viewport_data['sync'] = self.project_settings['viewport_sync']
 
             # Write back to viewports.yaml
             success = self.project_loader.write_yaml_file('viewports.yaml', viewport_data)
