@@ -49,54 +49,64 @@ legends:
         subtitle: "§ 9 Abs. 1 Nr. 2 BauGB"
         items:
           - name: "Baugrenze"
-            type: line
-            style: baugrenze
+            type: empty
             blockSymbol: "Baugrenze"
-            blockSymbolScale: 1
-      - name: "Grünflächen"
-        updateDxf: true
-        subtitle: "§ 9 Abs.1 Nr. 15 BauGB"
-        items:
-          - name: "Private Grünflächen"
-            type: area
-            style: grünfläche
-            applyHatch: true
-      - name: "Sonstige Planzeichen"
-        updateDxf: true
-        items:
-          - name: "Grenze des räumlichen Geltungsbereiches des Bebauungsplans"
-            subtitle: "(§ 9 Abs. 7 BauGB)"
-            type: area
-            style: geltungsbereich
-      - name: "Darstellung ohne Normcharakter"
-        updateDxf: true
-        items:
-          - name: "Gemeindegrenze"
-            type: line
-            style: gemeindegrenze
-          - name: "Gemarkungsgrenze"
-            type: line
-            style: gemarkungsgrenze
-          - name: "Flurgrenze"
-            type: line
-            style: flurgrenze
-          - name: "Flurstücksnummer\nFlurstücksgrenze"
-            type: empty
-            blockSymbol: "Parcel"
-            blockSymbolScale: 1.4
-      - name: "Nachrichtliche Übernahme"
-        updateDxf: true
-        items:
-          - name: "gesetzlich geschützes Biotop § 9 Abs. 6 BauGB i. V. m. § 20 NatSchAG - MV"
-            type: area
-            style: gesGeschuetzesBiotop
-            blockSymbol: "Gesetzlich geschütztes Biotop"
-            blockSymbolScale: 3
-          - name: "Wald"
-            type: area
-            style: wald
-            applyHatch: true
-          - name: "Einzelbaum"
-            type: empty
-            blockSymbol: "Baum"
-            blockSymbolScale: 1.8
+      # - name: "Grünflächen"
+      #   updateDxf: true
+      #   subtitle: "§ 9 Abs.1 Nr. 15 BauGB"
+      #   items:
+      #     - name: "Private Grünflächen"
+      #       type: area
+      #       style: grünflächeLegend
+      #       applyHatch: true
+      # - name: "Sonstige Planzeichen"
+      #   updateDxf: true
+      #   items:
+      #     - name: "Grenze des räumlichen Geltungsbereiches des Bebauungsplans"
+      #       subtitle: "(§ 9 Abs. 7 BauGB)"
+      #       type: area
+      #       rectangleStyle: geltungsbereich_2
+      # - name: "Darstellung ohne Normcharakter"
+      #   updateDxf: true
+      #   items:
+      #     - name: "Gemeindegrenze"
+      #       type: line
+      #       style: gemeindegrenze
+      #     - name: "Gemarkungsgrenze"
+      #       type: line
+      #       style: gemarkungsgrenze
+      #     - name: "Flurgrenze"
+      #       type: line
+      #       style: flurgrenze
+      #     - name: "Flurstücksnummer\nFlurstücksgrenze"
+      #       type: empty
+      #       blockSymbol: "Parcel"
+      #       blockSymbolScale: 1.4
+      #       enabled: false
+      #     - name: "anstehendes Gelände in Meter über NHN im amtlichen Höhenbezugssystem DHHN2016 als unterer Höhenbezugspunkt"
+      #       type: empty
+      #       blockSymbol: "Contours"
+      #       blockSymbolScale: 1.4
+      #       enabled: false
+      #     - name: "Bemaßung in Meter"
+      #       type: empty
+      #       blockSymbol: "Bemassung2"
+      #       enabled: false
+      # - name: "Nachrichtliche Übernahme"
+      #   updateDxf: true
+      #   items:
+      #     - name: "gesetzlich geschützes Biotop § 9 Abs. 6 BauGB i. V. m. § 20 NatSchAG - MV"
+      #       type: area
+      #       rectangleStyle: gesGeschuetzesBiotop
+      #       blockSymbol: "Gesetzlich geschütztes Biotop"
+      #       blockSymbolScale: 3
+      #       enabled: false
+      #     - name: "Wald"
+      #       type: area
+      #       style: waldLegend
+      #       applyHatch: true
+      #     - name: "Einzelbaum"
+      #       type: empty
+      #       blockSymbol: "Baum"
+      #       blockSymbolScale: 1.8
+      #       enabled: false

@@ -1,8 +1,8 @@
 import ezdxf
 from ezdxf.enums import TextEntityAlignment
 from ezdxf import const
-from src.dxf_utils import (convert_transparency, get_color_code, attach_custom_data, 
-                           is_created_by_script, add_mtext, remove_entities_by_layer, 
+from src.dxf_utils import (convert_transparency, get_color_code, attach_custom_data,
+                           is_created_by_script, add_mtext, remove_entities_by_layer,
                            ensure_layer_exists, get_style, SCRIPT_IDENTIFIER,
                            apply_style_to_entity,
                            sanitize_layer_name, get_available_blocks, add_block_reference, set_hatch_transparency, update_layer_properties)
@@ -26,11 +26,11 @@ class LegendCreator:
         self.legends_config = project_loader.project_settings.get('legends', [])
         if not self.legends_config and 'legend' in project_loader.project_settings:
             self.legends_config = [project_loader.project_settings['legend']]
-        
+
         self.layer_name_cache = {}
         self.name_to_aci = project_loader.name_to_aci
         self.style_manager = StyleManager(project_loader)
-        
+
         self.initialize_default_settings()
 
     def initialize_default_settings(self):
@@ -66,7 +66,7 @@ class LegendCreator:
         self.max_width = legend_config.get('max_width', 200)
         self.title_spacing = legend_config.get('title_spacing', 10)
         self.total_item_width = self.item_width + self.text_offset + self.max_width
-        
+
         self.subtitle_text_style = get_style(legend_config.get('subtitleTextStyle', {}), self.project_loader)
         self.group_text_style = get_style(legend_config.get('groupTextStyle', {}), self.project_loader)
         self.item_text_style = get_style(legend_config.get('itemTextStyle', {}), self.project_loader)
@@ -74,6 +74,11 @@ class LegendCreator:
         self.title_subtitle_style = get_style(legend_config.get('titleSubtitleStyle', {}), self.project_loader)
 
     def create_single_legend(self, legend_config):
+        # Check if legend is enabled (default to True if not specified)
+        if not legend_config.get('enabled', True):
+            log_debug(f"Skipping disabled legend: {legend_config.get('id', 'unnamed')}")
+            return
+
         legend_id = legend_config.get('id', 'default')
         self.clean_legend_layers(legend_id)
         self.current_y = self.position['y']
@@ -84,7 +89,7 @@ class LegendCreator:
     def clean_legend_layers(self, legend_id):
         # Remove title layer for this legend
         remove_entities_by_layer(self.msp, f"Legend_{legend_id}_Title", self.script_identifier)
-        
+
         # Find the current legend config
         current_legend = next((legend for legend in self.legends_config if legend.get('id') == legend_id), None)
         if current_legend:
@@ -99,10 +104,10 @@ class LegendCreator:
         subtitle = legend_config.get('subtitle', '')
         legend_id = legend_config.get('id', 'default')
         layer_name = self.get_sanitized_layer_name(f"Legend_{legend_id}_Title")
-        
+
         # First ensure layer exists
         ensure_layer_exists(self.doc, layer_name)
-        
+
         # Then update layer properties if needed
         layer = self.doc.layers.get(layer_name)
         if layer:
@@ -129,9 +134,14 @@ class LegendCreator:
         self.current_y -= self.group_spacing
 
     def create_group(self, group, legend_id):
+        # Check if group is enabled (default to True if not specified)
+        if not group.get('enabled', True):
+            log_debug(f"Skipping disabled legend group: {group.get('name', 'unnamed')}")
+            return
+
         group_name = group.get('name', '')
         layer_name = self.get_sanitized_layer_name(f"Legend_{legend_id}_{group_name}")
-        
+
         title_result = self.add_mtext(self.position['x'], self.current_y, group_name, layer_name, self.group_text_style, self.max_width)
         if title_result is not None and title_result[0] is not None:
             title_entity, actual_title_height = title_result
@@ -153,14 +163,19 @@ class LegendCreator:
         items = group.get('items', [])
         for item in items:
             self.create_item(item, layer_name)
-        
+
         self.current_y -= self.group_spacing
 
     def create_item(self, item, layer_name):
+        # Check if item is enabled (default to True if not specified)
+        if not item.get('enabled', True):
+            log_debug(f"Skipping disabled legend item: {item.get('name', 'unnamed')}")
+            return
+
         item_name = item.get('name', '')
         item_subtitle = item.get('subtitle', '')
         item_type = item.get('type', 'empty')
-        
+
         # Modified style handling
         style = item.get('style', {})
         if isinstance(style, dict) and 'preset' in style:
@@ -169,12 +184,12 @@ class LegendCreator:
             style = self.style_manager.deep_merge(preset_style or {}, {k: v for k, v in style.items() if k != 'preset'})
         else:
             style = self.get_style(style)
-        
+
         # Get the processed styles
         hatch_style = self.get_style(style.get('hatch', {}))
         layer_style = self.get_style(style.get('layer', {}))
         rectangle_style = self.get_style(item.get('rectangleStyle', {}))
-        
+
         block_symbol = item.get('blockSymbol')
         block_symbol_scale = item.get('blockSymbolScale', 1.0)
         create_hatch = item.get('applyHatch', False)
@@ -183,7 +198,7 @@ class LegendCreator:
         x2, y2 = x1 + self.item_width, y1 - self.item_height
 
         log_debug(f"Creating item: {item_name}, type: {item_type}, symbol: {block_symbol}")
-        
+
         sanitized_layer_name = self.get_sanitized_layer_name(layer_name)
 
         if item_type == 'area':
@@ -208,7 +223,7 @@ class LegendCreator:
         item_center_y = (item_bbox.extmin.y + item_bbox.extmax.y) / 2
 
         text_x = x2 + self.text_offset
-        
+
         # Create name text first
         text_result = add_mtext(
             self.msp,
@@ -235,7 +250,7 @@ class LegendCreator:
             # Get the actual bounding box of the main text to account for multiple lines
             main_text_bbox = bbox.extents([text_entity])
             subtitle_y = main_text_bbox.extmin.y - self.group_subtitle_spacing  # Position below the last line
-            
+
             subtitle_result = add_mtext(
                 self.msp,
                 item_subtitle,
@@ -247,7 +262,7 @@ class LegendCreator:
                 self.project_loader.name_to_aci,
                 self.max_width - self.item_width - self.text_offset
             )
-            
+
             if subtitle_result is not None and subtitle_result[0] is not None:
                 subtitle_entity, subtitle_height = subtitle_result
                 entities.append(subtitle_entity)
@@ -259,7 +274,7 @@ class LegendCreator:
 
         text_center_y = (text_bbox.extmin.y + text_bbox.extmax.y) / 2
         vertical_adjustment = item_center_y - text_center_y
-        
+
         # Adjust position of all text entities
         for entity in entities:
             entity.translate(0, vertical_adjustment, 0)
@@ -267,7 +282,7 @@ class LegendCreator:
         text_bbox = bbox.BoundingBox()
         for entity in entities:
             text_bbox.extend(bbox.extents([entity]))
-        
+
         combined_bbox = item_bbox.union(text_bbox)
 
         vertical_offset = self.current_y - combined_bbox.extmax.y
@@ -286,43 +301,43 @@ class LegendCreator:
 
     def create_area_item(self, x1, y1, x2, y2, layer_name, hatch_style, layer_style, rectangle_style, create_hatch, block_symbol=None, block_symbol_scale=1.0):
         entities = []
-        
+
         rectangle = self.msp.add_lwpolyline([(x1, y1), (x2, y1), (x2, y2), (x1, y2), (x1, y1)], dxfattribs={'layer': layer_name})
-        
+
         if isinstance(rectangle_style, dict) and 'layer' in rectangle_style:
             self.apply_style(rectangle, rectangle_style['layer'])
         else:
             self.apply_style(rectangle, rectangle_style)
-        
+
         self.attach_custom_data(rectangle)
         entities.append(rectangle)
 
         if create_hatch:
             hatch_paths = [[(x1, y1), (x2, y1), (x2, y2), (x1, y2)]]
-            
+
             # Create a layer_info-like structure for the style manager
             legend_layer_info = {
                 'style': {'hatch': hatch_style}  # Match the structure expected by style_manager
             }
-            
+
             # Use the same style processing as regular geometry
             hatch_config = self.style_manager.get_hatch_config(legend_layer_info)
-            
+
             hatch = dxf_utils.create_hatch(self.msp, hatch_paths, hatch_config, self.project_loader)
             hatch.dxf.layer = layer_name
-            
+
             if 'color' in hatch_style:
                 color = get_color_code(hatch_style['color'], self.project_loader.name_to_aci)
                 if isinstance(color, tuple):
                     hatch.rgb = color
                 else:
                     hatch.dxf.color = color
-            
+
             if 'transparency' in hatch_style:
                 transparency = convert_transparency(hatch_style['transparency'])
                 if transparency is not None:
                     set_hatch_transparency(hatch, transparency)
-            
+
             self.attach_custom_data(hatch)
             entities.append(hatch)
 
@@ -341,7 +356,7 @@ class LegendCreator:
 
     def create_line_item(self, x1, y1, x2, y2, layer_name, layer_style, rectangle_style, block_symbol=None, block_symbol_scale=1.0):
         entities = []
-        
+
         middle_y = (y1 + y2) / 2
         points = [(x1, middle_y), (x2, middle_y)]
         line = self.msp.add_lwpolyline(points, dxfattribs={'layer': layer_name})
@@ -364,7 +379,7 @@ class LegendCreator:
 
     def create_diagonal_line_item(self, x1, y1, x2, y2, layer_name, layer_style, rectangle_style, block_symbol=None, block_symbol_scale=1.0):
         entities = []
-        
+
         rectangle = self.msp.add_lwpolyline([(x1, y1), (x2, y1), (x2, y2), (x1, y2), (x1, y1)], dxfattribs={'layer': layer_name})
         self.apply_style(rectangle, rectangle_style)
         self.attach_custom_data(rectangle)
@@ -390,7 +405,7 @@ class LegendCreator:
 
     def create_empty_item(self, x1, y1, x2, y2, layer_name, rectangle_style, block_symbol=None, block_symbol_scale=1.0):
         entities = []
-        
+
         if block_symbol:
             symbol_entity = add_block_reference(
                 self.msp,
@@ -413,7 +428,7 @@ class LegendCreator:
 
             # Create MText editor for paragraph formatting
             editor = dxf_utils.MTextEditor()
-            
+
             # Handle paragraph properties
             if 'paragraph' in text_style:
                 para_props = text_style['paragraph']
@@ -424,12 +439,12 @@ class LegendCreator:
                     'JUSTIFIED': dxf_utils.MTextParagraphAlignment.JUSTIFIED,
                     'DISTRIBUTED': dxf_utils.MTextParagraphAlignment.DISTRIBUTED
                 }
-                
+
                 props = dxf_utils.ParagraphProperties(
                     indent=para_props.get('indent', 0),
                     left=para_props.get('leftMargin', 0),
                     right=para_props.get('rightMargin', 0),
-                    align=alignment_map.get(para_props.get('align', 'LEFT').upper(), 
+                    align=alignment_map.get(para_props.get('align', 'LEFT').upper(),
                                          dxf_utils.MTextParagraphAlignment.LEFT),
                     tab_stops=para_props.get('tabStops', tuple())
                 )
@@ -451,40 +466,40 @@ class LegendCreator:
             # Apply text style properties
             if 'color' in text_style:
                 dxfattribs['color'] = get_color_code(text_style['color'], self.name_to_aci)
-                
+
             if 'attachmentPoint' in text_style:
                 attachment = text_style['attachmentPoint'].upper()
                 dxfattribs['attachment_point'] = dxf_utils.attachment_map.get(attachment, MTEXT_TOP_LEFT)
-                
+
             if 'flowDirection' in text_style:
                 flow_dir = text_style['flowDirection'].upper()
-                dxfattribs['flow_direction'] = dxf_utils.flow_direction_map.get(flow_dir, 
+                dxfattribs['flow_direction'] = dxf_utils.flow_direction_map.get(flow_dir,
                                              dxf_utils.MTEXT_LEFT_TO_RIGHT)
-                
+
             if 'lineSpacingStyle' in text_style:
                 spacing_style = text_style['lineSpacingStyle'].upper()
-                dxfattribs['line_spacing_style'] = dxf_utils.spacing_style_map.get(spacing_style, 
+                dxfattribs['line_spacing_style'] = dxf_utils.spacing_style_map.get(spacing_style,
                                                   dxf_utils.MTEXT_AT_LEAST)
-                
+
             if 'lineSpacingFactor' in text_style:
                 dxfattribs['line_spacing_factor'] = text_style['lineSpacingFactor']
-                
+
             if 'bgFill' in text_style:
                 dxfattribs['bg_fill'] = text_style['bgFill']
-                
+
             if 'bgFillColor' in text_style:
                 dxfattribs['bg_fill_color'] = get_color_code(text_style['bgFillColor'], self.name_to_aci)
-                
+
             if 'bgFillScale' in text_style:
                 dxfattribs['box_fill_scale'] = text_style['bgFillScale']
-                
+
             if 'obliqueAngle' in text_style:
                 dxfattribs['oblique_angle'] = text_style['obliqueAngle']
 
             # Create MTEXT entity
             mtext = self.msp.add_mtext(str(editor), dxfattribs=dxfattribs)
             mtext.set_location((x, y))
-            
+
             # Apply additional text formatting
             if text_style:
                 formatting = []
@@ -494,19 +509,19 @@ class LegendCreator:
                     formatting.append(('\\O', '\\o'))
                 if text_style.get('strikeThrough'):
                     formatting.append(('\\K', '\\k'))
-                    
+
                 # Apply all formatting
                 text_content = mtext.text
                 for start, end in formatting:
                     text_content = f"{start}{text_content}{end}"
                 mtext.text = text_content
-            
+
             bounding_box = bbox.extents([mtext])
             actual_height = bounding_box.size.y
-            
+
             attach_custom_data(mtext, self.script_identifier)
             return mtext, actual_height
-            
+
         except Exception as e:
             log_error(f"Error creating MTEXT: {str(e)}")
             return None, 0
@@ -550,7 +565,7 @@ class LegendCreator:
     def apply_style(self, entity, style):
         if isinstance(style, str):
             style = self.project_loader.get_style(style)
-        
+
         if isinstance(style, dict):
             for key, value in style.items():
                 if key == 'color':
@@ -568,31 +583,3 @@ class LegendCreator:
                 # Add more properties as needed
 
         apply_style_to_entity(entity, style, self.project_loader, self.loaded_styles)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -745,23 +745,43 @@ def sanitize_layer_name(name):
         log_warning(f"DXF Layer name '{name}' contains forbidden characters: {unique_forbidden}")
         log_warning(f"Forbidden characters in DXF layer names include: commas (,), slashes (/\\), brackets ([]), and other special characters")
         log_warning(f"Allowed characters are: letters (a-z, A-Z), numbers (0-9), underscore (_), hyphen (-), period (.), space ( ), and German umlauts (öüäßÖÜÄ)")
-        log_warning(f"Please rename the layer in your configuration file to use only allowed characters.")
+        log_warning(f"Sanitizing layer name by replacing forbidden characters with underscores.")
 
-    # Check if name starts with an invalid character (space)
-    if name.startswith(' '):
-        log_warning(f"DXF Layer name '{name}' starts with a space, which is not recommended.")
+    # Actually sanitize the name by replacing forbidden characters with underscores
+    sanitized_name = re.sub(f'[^{allowed_chars}]', '_', name)
+
+    # Clean up multiple consecutive underscores
+    sanitized_name = re.sub(r'_+', '_', sanitized_name)
+
+    # Remove leading/trailing underscores
+    sanitized_name = sanitized_name.strip('_')
+
+    # Check if name starts with an invalid character (space) and fix it
+    if sanitized_name.startswith(' '):
+        log_warning(f"DXF Layer name '{name}' starts with a space, removing it.")
+        sanitized_name = sanitized_name.lstrip(' ')
 
     # Check if name starts with a number (which may cause issues in some CAD software)
-    if name and name[0].isdigit():
+    if sanitized_name and sanitized_name[0].isdigit():
         log_warning(f"DXF Layer name '{name}' starts with a number, which may cause compatibility issues.")
+        sanitized_name = f"Layer_{sanitized_name}"
 
-    # Check length limit
-    if len(name) > 255:
-        log_warning(f"DXF Layer name '{name}' is {len(name)} characters long, exceeding the 255 character limit.")
-        log_warning(f"Please shorten the layer name in your configuration file.")
+    # Check length limit and truncate if necessary
+    if len(sanitized_name) > 255:
+        log_warning(f"DXF Layer name '{name}' is {len(sanitized_name)} characters long, exceeding the 255 character limit.")
+        log_warning(f"Truncating layer name to 255 characters.")
+        sanitized_name = sanitized_name[:255]
 
-    # Return the original name unchanged - let the user fix their configuration
-    return name
+    # Ensure we don't return an empty string
+    if not sanitized_name:
+        sanitized_name = "Unknown_Layer"
+        log_warning(f"Layer name '{name}' resulted in empty string after sanitization, using 'Unknown_Layer'")
+
+    # Log the change if the name was modified
+    if sanitized_name != name:
+        log_info(f"Sanitized layer name: '{name}' → '{sanitized_name}'")
+
+    return sanitized_name
 
 def load_standard_text_styles(doc):
     standard_styles = [
@@ -806,16 +826,34 @@ def get_available_blocks(doc):
     return set(block.name for block in doc.blocks if not block.name.startswith('*'))
 
 def add_block_reference(msp, block_name, insert_point, layer_name, scale=1.0, rotation=0.0):
-    if block_name in msp.doc.blocks:
-        block_ref = msp.add_blockref(block_name, insert_point)
-        block_ref.dxf.layer = layer_name
-        block_ref.dxf.xscale = scale
-        block_ref.dxf.yscale = scale
-        block_ref.dxf.rotation = rotation
-        attach_custom_data(block_ref, SCRIPT_IDENTIFIER)
-        return block_ref
-    else:
-        log_warning(f"Block '{block_name}' not found in the document")
+    # Validate input parameters
+    if not block_name:
+        log_warning("Cannot create block reference: block_name is empty or None")
+        return None
+
+    if not isinstance(block_name, str):
+        log_warning(f"Cannot create block reference: block_name must be string, got {type(block_name)}")
+        return None
+
+    if not msp or not hasattr(msp, 'doc') or not msp.doc:
+        log_warning("Cannot create block reference: invalid modelspace or document")
+        return None
+
+    try:
+        if block_name in msp.doc.blocks:
+            block_ref = msp.add_blockref(block_name, insert_point)
+            block_ref.dxf.layer = layer_name
+            block_ref.dxf.xscale = scale
+            block_ref.dxf.yscale = scale
+            block_ref.dxf.rotation = rotation
+            attach_custom_data(block_ref, SCRIPT_IDENTIFIER)
+            log_debug(f"Successfully created block reference for '{block_name}' on layer '{layer_name}'")
+            return block_ref
+        else:
+            log_warning(f"Block '{block_name}' not found in the document. Available blocks: {list(msp.doc.blocks.keys())[:10]}...")
+            return None
+    except Exception as e:
+        log_error(f"Error creating block reference for '{block_name}': {str(e)}")
         return None
 
 def cleanup_document(doc):
