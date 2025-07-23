@@ -51,6 +51,13 @@ legends:
           - name: "Baugrenze"
             type: empty
             blockSymbol: "Baugrenze"
+      - name: "Planungen, Nutzungsregelungen, Maßnahmen und Flächen für Maßnahmen zum Schutz, zur Pflege und zur Entwicklung von Natur und Landschaft"
+        updateDxf: true
+        subtitle: "§ 9 Abs.1 Nr. 20 BauGB"
+        items:
+          - name: "Umgrenzung von Flächen für Maßnahmen zum Schutz, zur Pflege und zur Entwicklung von Natur und Landschaft"
+            type: empty
+            blockSymbol: "Schutzflächeumgrenzung"
       # - name: "Grünflächen"
       #   updateDxf: true
       #   subtitle: "§ 9 Abs.1 Nr. 15 BauGB"

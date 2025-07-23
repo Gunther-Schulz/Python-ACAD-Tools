@@ -88,7 +88,7 @@ geomLayers:
     style: gesGeschuetzesBiotop
     operations:
       - type: buffer
-        distance: -2
+        distance: -3
         joinStyle: round
         layers:
           - name: "ges. gesch. Biotope"
@@ -337,7 +337,7 @@ geomLayers:
 
   ### Grünfläche
   - name: "Grünfläche"
-    updateDxf: true
+    # updateDxf: true
     operations:
       - type: dissolve
         layers:
@@ -358,12 +358,44 @@ geomLayers:
         geometryTypes:
           - Polygon
 
+  # Create inner green area (buffered inward) for hatching
+  - name: "Ausgleich Grünfläche"
+    updateDxf: true
+    operations:
+      - type: copy
+        layers:
+          - "Grünfläche"
+      - type: dissolve
+      - type: buffer
+        distance: -2
+        joinStyle: round
+        preserveIslands: true
+
   - name: "Grünfläche Schraffur"
     updateDxf: true
     style: grünfläche
     applyHatch:
       layers:
-        - "Grünfläche"
+        - "Ausgleich Grünfläche"
+
+  # T-Line system for protection area boundaries (ring from original area)
+  - name: "Ausgleich Schutzflächeumgrenzung"
+    updateDxf: true
+    operations:
+      - type: copy
+        layers:
+          - "Grünfläche"
+      - type: buffer
+        distance: -2
+        joinStyle: round
+        mode: ring
+
+  - name: "Grünfläche T-Linie Symbol Schraffur"
+    updateDxf: true
+    style: schutzflächeumgrenzung
+    applyHatch:
+      layers:
+        - "Ausgleich Schutzflächeumgrenzung"
 
   - name: Biotope Puffer
     updateDxf: true
@@ -405,6 +437,7 @@ geomLayers:
               - "Exclude Baufeld"
               - "Baumreihe"
               # - "Einzelbaum Buffer"
+              - "Biotope Puffer"
       - type: filterGeometry
         minArea: 200
         geometryTypes:
