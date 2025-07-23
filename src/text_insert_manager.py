@@ -68,6 +68,14 @@ class TextInsertManager(SyncManagerBase):
 
             if result and result[0]:
                 mtext = result[0]
+
+                # Set hyperlink to text name (explicit call like viewport manager)
+                try:
+                    mtext.set_hyperlink(name)
+                    log_debug(f"Set hyperlink '{name}' for text insert")
+                except Exception as e:
+                    log_warning(f"Failed to set hyperlink for text insert '{name}': {str(e)}")
+
                 # Attach custom data to identify this as our entity using consistent format
                 self._attach_entity_metadata(mtext, config)
                 log_debug(f"Added text insert '{name}': '{text}' at ({x}, {y})")
@@ -252,6 +260,13 @@ class TextInsertManager(SyncManagerBase):
                         text_name = f"Text_{str(entity.dxf.handle).zfill(3)}"
 
                     log_info(f"Discovered manual text in PaperSpace, assigned name: {text_name}")
+
+                    # Set hyperlink to text name (explicit call like viewport manager)
+                    try:
+                        entity.set_hyperlink(text_name)
+                        log_debug(f"Set hyperlink '{text_name}' for discovered text entity")
+                    except Exception as e:
+                        log_warning(f"Failed to set hyperlink for discovered text '{text_name}': {str(e)}")
 
                     # Use unified XDATA function - automatically creates structured XDATA for named entities
                     attach_custom_data(entity, self.script_identifier, text_name, 'TEXT')
