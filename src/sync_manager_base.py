@@ -1,5 +1,9 @@
 from abc import ABC, abstractmethod
 from src.utils import log_info, log_warning, log_error, log_debug
+from src.sync_hash_utils import (
+    detect_entity_changes, resolve_sync_conflict, update_sync_metadata,
+    ensure_sync_metadata_complete
+)
 
 
 class SyncManagerBase(ABC):
@@ -51,7 +55,7 @@ class SyncManagerBase(ABC):
             config: Entity configuration dictionary
 
         Returns:
-            str: Sync direction ('push', 'pull', or 'skip')
+            str: Sync direction ('push', 'pull', 'skip', or 'auto')
         """
         entity_name = config.get('name', 'unnamed')
 
@@ -63,7 +67,7 @@ class SyncManagerBase(ABC):
             log_debug(f"{self.entity_type.title()} '{entity_name}' using global sync setting: {sync}")
 
         # Validate sync direction
-        valid_sync_values = {'push', 'pull', 'skip'}
+        valid_sync_values = {'push', 'pull', 'skip', 'auto'}
         if sync in valid_sync_values:
             return sync
         else:
@@ -104,6 +108,11 @@ class SyncManagerBase(ABC):
         yaml_updated = False
 
         log_debug(f"Processing {len(entity_configs)} {self.entity_type} configurations")
+
+        # Step 0: Initialize sync metadata for auto sync entities
+        metadata_summary = ensure_sync_metadata_complete(entity_configs, self.entity_type, self)
+        if metadata_summary['initialized_count'] > 0 or metadata_summary['repaired_count'] > 0:
+            yaml_updated = True  # Metadata changes require YAML update
 
         # Step 1: Discover unknown entities in AutoCAD if enabled
         discovered_entities = []
@@ -165,26 +174,107 @@ class SyncManagerBase(ABC):
             doc: DXF document
             space: Model space or paper space
             config: Entity configuration
-            sync_direction: Sync direction ('push' or 'pull')
+            sync_direction: Sync direction ('push', 'pull', 'skip', or 'auto')
 
         Returns:
             dict: Result dictionary with 'entity' and 'yaml_updated' keys
         """
         entity_name = config.get('name', 'unnamed')
 
-        if sync_direction == 'push':
+        if sync_direction == 'auto':
+            # Use hash-based auto sync
+            return self._process_auto_sync(doc, space, config)
+        elif sync_direction == 'push':
             # YAML → AutoCAD: Create/update entity from YAML config
             result = self._sync_push(doc, space, config)
-            return {'entity': result, 'yaml_updated': False} if result else None
-
+            if result:
+                # Update sync metadata after successful push
+                content_hash = self._calculate_entity_hash(config)
+                update_sync_metadata(config, content_hash, 'yaml')
+            return {'entity': result, 'yaml_updated': True} if result else None
         elif sync_direction == 'pull':
             # AutoCAD → YAML: Update YAML config from AutoCAD entity
             result = self._sync_pull(doc, space, config)
+            if result and result.get('yaml_updated'):
+                # Update sync metadata after successful pull
+                content_hash = self._calculate_entity_hash(config)
+                update_sync_metadata(config, content_hash, 'dxf')
             return result if result else None
-
         else:
             log_warning(f"Unknown sync direction '{sync_direction}' for {self.entity_type} {entity_name}")
             return None
+
+    def _process_auto_sync(self, doc, space, config):
+        """
+        Process entity using automatic hash-based sync direction detection.
+
+        Args:
+            doc: DXF document
+            space: Model space or paper space
+            config: Entity configuration
+
+        Returns:
+            dict: Result dictionary with 'entity' and 'yaml_updated' keys
+        """
+        entity_name = config.get('name', 'unnamed')
+
+        # Find existing DXF entity
+        existing_entity = self._find_entity_by_name(doc, entity_name)
+
+        # Detect changes using hash comparison, passing self as entity manager
+        changes = detect_entity_changes(config, existing_entity, self.entity_type, self)
+
+        log_debug(f"Auto sync analysis for '{entity_name}': "
+                 f"YAML changed: {changes['yaml_changed']}, "
+                 f"DXF changed: {changes['dxf_changed']}")
+
+        # Handle different change scenarios
+        if not changes['yaml_changed'] and not changes['dxf_changed']:
+            # No changes detected
+            log_debug(f"No changes detected for {self.entity_type} '{entity_name}', skipping sync")
+            return None
+
+        elif changes['yaml_changed'] and not changes['dxf_changed']:
+            # Only YAML changed - push to DXF
+            log_debug(f"YAML changed for '{entity_name}', pushing to DXF")
+            result = self._sync_push(doc, space, config)
+            if result:
+                update_sync_metadata(config, changes['current_yaml_hash'], 'yaml')
+            return {'entity': result, 'yaml_updated': True} if result else None
+
+        elif not changes['yaml_changed'] and changes['dxf_changed']:
+            # Only DXF changed - pull to YAML
+            log_debug(f"DXF changed for '{entity_name}', pulling to YAML")
+            result = self._sync_pull(doc, space, config)
+            if result and result.get('yaml_updated'):
+                update_sync_metadata(config, changes['current_dxf_hash'], 'dxf')
+            return result if result else None
+
+        elif changes['has_conflict']:
+            # Both sides changed - resolve conflict
+            log_info(f"Conflict detected for {self.entity_type} '{entity_name}' - both YAML and DXF changed")
+
+            resolution = resolve_sync_conflict(entity_name, config, existing_entity, self.project_settings)
+
+            if resolution == 'yaml_wins':
+                log_info(f"Resolving conflict for '{entity_name}': YAML wins")
+                result = self._sync_push(doc, space, config)
+                if result:
+                    update_sync_metadata(config, changes['current_yaml_hash'], 'yaml')
+                return {'entity': result, 'yaml_updated': True} if result else None
+
+            elif resolution == 'dxf_wins':
+                log_info(f"Resolving conflict for '{entity_name}': DXF wins")
+                result = self._sync_pull(doc, space, config)
+                if result and result.get('yaml_updated'):
+                    update_sync_metadata(config, changes['current_dxf_hash'], 'dxf')
+                return result if result else None
+
+            else:  # resolution == 'skip'
+                log_info(f"Skipping conflicted entity '{entity_name}' per user/policy choice")
+                return None
+
+        return None
 
     def _process_discovered_entities(self, discovered_entities):
         """
@@ -395,3 +485,31 @@ class SyncManagerBase(ABC):
             bool: True if should write explicit sync, False otherwise
         """
         return entity_sync != global_sync
+
+    def _find_entity_by_name(self, doc, entity_name):
+        """
+        Find an entity by name. Default implementation - should be overridden by subclasses.
+
+        Args:
+            doc: DXF document
+            entity_name: Name of entity to find
+
+        Returns:
+            Entity object if found, None otherwise
+        """
+        # This is a placeholder - each entity manager should implement their own
+        log_debug(f"Default _find_entity_by_name called for '{entity_name}' - should be overridden")
+        return None
+
+    @abstractmethod
+    def _calculate_entity_hash(self, config):
+        """
+        Calculate content hash for an entity configuration.
+
+        Args:
+            config: Entity configuration dictionary
+
+        Returns:
+            str: Content hash for the entity
+        """
+        pass

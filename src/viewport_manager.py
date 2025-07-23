@@ -3,6 +3,7 @@ from ezdxf.lldxf import const
 from src.utils import log_info, log_warning, log_error, log_debug
 from src.dxf_utils import get_color_code, attach_custom_data, XDATA_APP_ID, find_entity_by_xdata_name
 from src.sync_manager_base import SyncManagerBase
+from src.sync_hash_utils import calculate_entity_content_hash, clean_entity_config_for_yaml_output
 
 class ViewportManager(SyncManagerBase):
     def __init__(self, project_settings, script_identifier, name_to_aci, style_manager, project_loader=None):
@@ -54,9 +55,16 @@ class ViewportManager(SyncManagerBase):
             return False
 
         try:
+            # Clean and prepare viewport configurations for YAML output
+            cleaned_viewports = []
+            for viewport_config in self.project_settings.get('viewports', []):
+                # Clean the configuration for YAML output (handles sync metadata properly)
+                cleaned_config = clean_entity_config_for_yaml_output(viewport_config)
+                cleaned_viewports.append(cleaned_config)
+
             # Prepare viewport data structure
             viewport_data = {
-                'viewports': self.project_settings.get('viewports', [])
+                'viewports': cleaned_viewports
             }
 
             # Add global viewport settings using new generalized structure
@@ -244,12 +252,11 @@ class ViewportManager(SyncManagerBase):
 
     def _attach_viewport_metadata(self, viewport, vp_config):
         """Attaches custom data and identifiers to the viewport."""
-        # Initialize xdata if needed
-        if not hasattr(viewport, 'xdata'):
-            viewport.xdata = {}
+        # Calculate content hash for the configuration
+        content_hash = self._calculate_entity_hash(vp_config)
 
-        # Use unified XDATA function - automatically creates structured XDATA for named entities
-        self.attach_custom_data(viewport, vp_config['name'], 'VIEWPORT')
+        # Use unified XDATA function with content hash
+        attach_custom_data(viewport, self.script_identifier, vp_config['name'], 'VIEWPORT', content_hash)
 
     def _calculate_viewport_center(self, vp_config, width, height):
         """Calculates the center point for a new viewport."""
@@ -533,3 +540,88 @@ class ViewportManager(SyncManagerBase):
     def _attach_entity_metadata(self, entity, config):
         """Attach custom metadata to a viewport to mark it as managed by this script."""
         self._attach_viewport_metadata(entity, config)
+
+    def _calculate_entity_hash(self, config):
+        """Calculate content hash for a viewport configuration."""
+        return calculate_entity_content_hash(config, 'viewport')
+
+    def _find_entity_by_name(self, doc, entity_name):
+        """Find a viewport entity by name."""
+        return self.get_viewport_by_name(doc, entity_name)
+
+    def _extract_dxf_entity_properties_for_hash(self, entity):
+        """Extract viewport properties from DXF entity for hash calculation."""
+        if entity is None:
+            return {}
+
+        config = {}
+
+        try:
+            # Extract physical viewport properties
+            if hasattr(entity.dxf, 'center'):
+                center = entity.dxf.center
+                config['center'] = {'x': float(center[0]), 'y': float(center[1])}
+
+            if hasattr(entity.dxf, 'width'):
+                config['width'] = float(entity.dxf.width)
+            if hasattr(entity.dxf, 'height'):
+                config['height'] = float(entity.dxf.height)
+
+            # Extract view properties
+            if hasattr(entity.dxf, 'view_center_point'):
+                view_center = entity.dxf.view_center_point
+                config['viewCenter'] = {'x': float(view_center[0]), 'y': float(view_center[1])}
+
+            # Calculate scale from view_height and physical height
+            if hasattr(entity.dxf, 'view_height') and hasattr(entity.dxf, 'height'):
+                view_height = float(entity.dxf.view_height)
+                physical_height = float(entity.dxf.height)
+                if physical_height > 0:
+                    scale = view_height / physical_height
+                    config['scale'] = round(scale, 6)
+
+            # Extract color if it's not default
+            if hasattr(entity.dxf, 'color') and entity.dxf.color != 256:  # 256 = BYLAYER
+                color_code = entity.dxf.color
+                for name, aci in self.name_to_aci.items():
+                    if aci == color_code:
+                        config['color'] = name
+                        break
+                else:
+                    config['color'] = str(color_code)
+
+            # Extract frozen layers if any
+            if hasattr(entity, 'frozen_layers') and entity.frozen_layers:
+                config['frozenLayers'] = sorted(list(entity.frozen_layers))
+
+            # Extract zoom lock flag
+            if hasattr(entity.dxf, 'flags') and (entity.dxf.flags & 16384):  # VSF_LOCK_ZOOM
+                config['lockZoom'] = True
+
+            # Extract layer if it's not the default
+            if hasattr(entity.dxf, 'layer') and entity.dxf.layer != self.default_layer:
+                config['layer'] = entity.dxf.layer
+
+            # Always include the name for hash consistency
+            config['name'] = self._get_entity_name_from_xdata(entity)
+
+            return config
+
+        except Exception as e:
+            log_error(f"Error extracting viewport properties for hash: {str(e)}")
+            return {}
+
+    def _get_entity_name_from_xdata(self, entity):
+        """Extract entity name from XDATA."""
+        try:
+            xdata = entity.get_xdata(XDATA_APP_ID)
+            if xdata:
+                found_name_key = False
+                for code, value in xdata:
+                    if code == 1000 and value == "ENTITY_NAME":
+                        found_name_key = True
+                    elif found_name_key and code == 1000:
+                        return value
+        except Exception:
+            pass
+        return "unknown"

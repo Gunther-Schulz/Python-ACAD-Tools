@@ -38,6 +38,7 @@ XDATA_APP_ID = "DXFEXPORTER"
 # XDATA structure constants
 XDATA_ENTITY_NAME_KEY = "ENTITY_NAME"
 XDATA_ENTITY_TYPE_KEY = "ENTITY_TYPE"
+XDATA_CONTENT_HASH_KEY = "CONTENT_HASH"
 
 def convert_newlines_to_mtext(text):
     """Convert newlines to MTEXT paragraph breaks for reliable MTEXT formatting.
@@ -63,7 +64,7 @@ def convert_newlines_to_mtext(text):
 
     return result
 
-def create_entity_xdata(script_identifier, entity_name=None, entity_type=None):
+def create_entity_xdata(script_identifier, entity_name=None, entity_type=None, content_hash=None):
     """
     Create XDATA for entity identification and ownership tracking.
     Unified function that handles both simple ownership and named entity tracking.
@@ -72,6 +73,7 @@ def create_entity_xdata(script_identifier, entity_name=None, entity_type=None):
         script_identifier: The script identifier string
         entity_name: Optional name for entities that need to be found later
         entity_type: Optional entity type (e.g., 'VIEWPORT', 'TEXT')
+        content_hash: Optional content hash for sync tracking
 
     Returns:
         list: XDATA tuple list - simple for unnamed entities, structured for named entities
@@ -89,6 +91,12 @@ def create_entity_xdata(script_identifier, entity_name=None, entity_type=None):
             xdata.extend([
                 (1000, XDATA_ENTITY_TYPE_KEY),
                 (1000, entity_type),
+            ])
+
+        if content_hash:
+            xdata.extend([
+                (1000, XDATA_CONTENT_HASH_KEY),
+                (1000, content_hash),
             ])
 
         xdata.append((1002, '}'))
@@ -132,6 +140,29 @@ def find_entity_by_xdata_name(space, entity_name, entity_types=None):
             continue
     return None
 
+def extract_content_hash_from_xdata(entity):
+    """
+    Extract content hash from entity XDATA.
+
+    Args:
+        entity: DXF entity with potential XDATA
+
+    Returns:
+        str: Content hash if found, None otherwise
+    """
+    try:
+        xdata = entity.get_xdata(XDATA_APP_ID)
+        if xdata:
+            found_hash_key = False
+            for code, value in xdata:
+                if code == 1000 and value == XDATA_CONTENT_HASH_KEY:
+                    found_hash_key = True
+                elif found_hash_key and code == 1000:
+                    return value
+    except Exception:
+        pass
+    return None
+
 def get_color_code(color, name_to_aci):
     if color is None:
         return 7  # Default to 7 (white) if no color is specified
@@ -168,7 +199,7 @@ def convert_transparency(transparency):
             log_warning(f"Invalid transparency value: {transparency}")
     return None
 
-def attach_custom_data(entity, script_identifier, entity_name=None, entity_type=None):
+def attach_custom_data(entity, script_identifier, entity_name=None, entity_type=None, content_hash=None):
     """Attaches custom data to an entity with proper cleanup of existing data."""
     try:
         # Clear any existing XDATA first
@@ -178,7 +209,7 @@ def attach_custom_data(entity, script_identifier, entity_name=None, entity_type=
             pass
 
         # Set XDATA using unified function
-        xdata = create_entity_xdata(script_identifier, entity_name, entity_type)
+        xdata = create_entity_xdata(script_identifier, entity_name, entity_type, content_hash)
         entity.set_xdata(XDATA_APP_ID, xdata)
 
         # Ensure entity is properly added to the document database
@@ -938,19 +969,24 @@ def add_block_reference(msp, block_name, insert_point, layer_name, scale=1.0, ro
         log_warning("Cannot create block reference: invalid modelspace or document")
         return None
 
+    if block_name not in msp.doc.blocks:
+        try:
+            # Try to list available blocks for debugging
+            available_blocks = [block.name for block in msp.doc.blocks]
+            log_warning(f"Block '{block_name}' not found in the document. Available blocks: {available_blocks[:10]}...")
+        except Exception as e:
+            log_warning(f"Block '{block_name}' not found in the document. Could not list available blocks: {str(e)}")
+        return None
+
     try:
-        if block_name in msp.doc.blocks:
-            block_ref = msp.add_blockref(block_name, insert_point)
-            block_ref.dxf.layer = layer_name
-            block_ref.dxf.xscale = scale
-            block_ref.dxf.yscale = scale
-            block_ref.dxf.rotation = rotation
-            # Note: XDATA attachment is handled by the caller to ensure proper entity naming
-            log_debug(f"Successfully created block reference for '{block_name}' on layer '{layer_name}'")
-            return block_ref
-        else:
-            log_warning(f"Block '{block_name}' not found in the document. Available blocks: {list(msp.doc.blocks.keys())[:10]}...")
-            return None
+        block_ref = msp.add_blockref(block_name, insert_point)
+        block_ref.dxf.layer = layer_name
+        block_ref.dxf.xscale = scale
+        block_ref.dxf.yscale = scale
+        block_ref.dxf.rotation = rotation
+        # Note: XDATA attachment is handled by the caller to ensure proper entity naming
+        log_debug(f"Successfully created block reference for '{block_name}' on layer '{layer_name}'")
+        return block_ref
     except Exception as e:
         log_error(f"Error creating block reference for '{block_name}': {str(e)}")
         return None

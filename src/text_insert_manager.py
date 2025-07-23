@@ -2,6 +2,7 @@ import traceback
 from src.utils import log_info, log_warning, log_error, log_debug
 from src.dxf_utils import add_mtext, remove_entities_by_layer, ensure_layer_exists, XDATA_APP_ID, attach_custom_data, find_entity_by_xdata_name
 from src.sync_manager_base import SyncManagerBase
+from src.sync_hash_utils import calculate_entity_content_hash, clean_entity_config_for_yaml_output
 
 
 class TextInsertManager(SyncManagerBase):
@@ -179,9 +180,16 @@ class TextInsertManager(SyncManagerBase):
             return False
 
         try:
+            # Clean and prepare text insert configurations for YAML output
+            cleaned_text_inserts = []
+            for text_config in self.project_settings.get('textInserts', []):
+                # Clean the configuration for YAML output (handles sync metadata properly)
+                cleaned_config = clean_entity_config_for_yaml_output(text_config)
+                cleaned_text_inserts.append(cleaned_config)
+
             # Prepare text insert data structure
             text_data = {
-                'textInserts': self.project_settings.get('textInserts', [])
+                'textInserts': cleaned_text_inserts
             }
 
             # Add global text insert settings using new generalized structure
@@ -390,8 +398,122 @@ class TextInsertManager(SyncManagerBase):
 
     def _attach_entity_metadata(self, entity, config):
         """Attach custom metadata to a text entity to mark it as managed by this script."""
-        # Use unified XDATA function - automatically creates structured XDATA for named entities
-        attach_custom_data(entity, self.script_identifier, config['name'], 'TEXT')
+        # Calculate content hash for the configuration
+        content_hash = self._calculate_entity_hash(config)
+
+        # Use unified XDATA function with content hash
+        attach_custom_data(entity, self.script_identifier, config['name'], 'TEXT', content_hash)
+
+    def _calculate_entity_hash(self, config):
+        """Calculate content hash for a text insert configuration."""
+        return calculate_entity_content_hash(config, 'text')
+
+    def _find_entity_by_name(self, doc, entity_name):
+        """Find a text entity by name."""
+        return self._find_text_by_name(doc, entity_name)
+
+    def _extract_dxf_entity_properties_for_hash(self, entity):
+        """Extract text properties from DXF entity for hash calculation."""
+        if entity is None:
+            return {}
+
+        config = {}
+
+        try:
+            # Extract text content using ezdxf's built-in method
+            if entity.dxftype() == 'MTEXT':
+                # Use ezdxf's plain_text() method to properly handle MTEXT formatting codes
+                plain_text = entity.plain_text()
+                # Convert actual newlines back to literal \n for YAML consistency
+                config['text'] = plain_text.replace('\n', '\\n')
+            else:  # TEXT entity
+                config['text'] = entity.dxf.text
+
+            # Extract position
+            position = {}
+            if hasattr(entity.dxf, 'insert'):
+                insert_point = entity.dxf.insert
+                position['x'] = float(insert_point[0])
+                position['y'] = float(insert_point[1])
+                position['type'] = 'absolute'
+            elif hasattr(entity.dxf, 'location'):
+                location = entity.dxf.location
+                position['x'] = float(location[0])
+                position['y'] = float(location[1])
+                position['type'] = 'absolute'
+
+            if position:
+                config['position'] = position
+
+            # Extract layer
+            if hasattr(entity.dxf, 'layer'):
+                config['targetLayer'] = entity.dxf.layer
+
+            # Extract text height
+            if hasattr(entity.dxf, 'height'):
+                config['height'] = float(entity.dxf.height)
+
+            # Extract color if it's not default
+            if hasattr(entity.dxf, 'color') and entity.dxf.color != 256:  # 256 = BYLAYER
+                color_code = entity.dxf.color
+                for name, aci in self.name_to_aci.items():
+                    if aci == color_code:
+                        config['color'] = name
+                        break
+                else:
+                    config['color'] = str(color_code)
+
+            # Extract text style if available
+            if hasattr(entity.dxf, 'style') and entity.dxf.style != 'Standard':
+                config['style'] = entity.dxf.style
+
+            # Extract rotation if not zero
+            if hasattr(entity.dxf, 'rotation') and entity.dxf.rotation != 0:
+                config['rotation'] = float(entity.dxf.rotation)
+
+            # Extract justification if available
+            if hasattr(entity.dxf, 'attach_point'):
+                # Map MTEXT attachment points to justification names
+                attach_point_map = {
+                    1: 'TOP_LEFT', 2: 'TOP_CENTER', 3: 'TOP_RIGHT',
+                    4: 'MIDDLE_LEFT', 5: 'MIDDLE_CENTER', 6: 'MIDDLE_RIGHT',
+                    7: 'BOTTOM_LEFT', 8: 'BOTTOM_CENTER', 9: 'BOTTOM_RIGHT'
+                }
+                if entity.dxf.attach_point in attach_point_map:
+                    config['justification'] = attach_point_map[entity.dxf.attach_point]
+
+            # Extract paperspace flag
+            # Check if entity is in paperspace vs modelspace
+            try:
+                if hasattr(entity, 'doc') and entity.doc:
+                    paperspace_entities = list(entity.doc.paperspace())
+                    config['paperspace'] = any(e.dxf.handle == entity.dxf.handle for e in paperspace_entities)
+            except:
+                config['paperspace'] = False
+
+            # Always include the name for hash consistency
+            config['name'] = self._get_entity_name_from_xdata(entity)
+
+            return config
+
+        except Exception as e:
+            log_error(f"Error extracting text properties for hash: {str(e)}")
+            return {}
+
+    def _get_entity_name_from_xdata(self, entity):
+        """Extract entity name from XDATA."""
+        try:
+            xdata = entity.get_xdata(XDATA_APP_ID)
+            if xdata:
+                found_name_key = False
+                for code, value in xdata:
+                    if code == 1000 and value == "ENTITY_NAME":
+                        found_name_key = True
+                    elif found_name_key and code == 1000:
+                        return value
+        except Exception:
+            pass
+        return "unknown"
 
     def _get_text_by_name(self, doc, name):
         """Retrieve a text entity by its name using xdata."""

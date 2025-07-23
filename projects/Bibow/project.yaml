@@ -30,3 +30,6 @@ templateDxfFilename: "Öffentlich Planungsbüro Schulz/Allgemein/CAD/Vorlage.dxf
 #     - Leitung Telekom
 #     - Leitung Edis
 #     - Leitungen Buffer
+
+# Hash-based auto sync configuration
+auto_conflict_resolution: prompt

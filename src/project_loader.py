@@ -65,25 +65,35 @@ class ProjectLoader:
         text_discovery = text_inserts.get('discovery', False) if text_inserts else False
         text_deletion_policy = text_inserts.get('deletion_policy', 'auto') if text_inserts else 'auto'
 
+        # Extract global auto sync conflict resolution setting
+        auto_conflict_resolution = main_settings.get('auto_conflict_resolution', 'prompt')
+
         # Validate deletion policies for both entity types
         valid_deletion_policies = {'auto', 'confirm', 'ignore'}
         if viewport_deletion_policy not in valid_deletion_policies:
-            log_warning(f"Invalid viewport deletion_policy '{viewport_deletion_policy}'. "
+            log_warning(f"Invalid viewport_deletion_policy '{viewport_deletion_policy}'. "
                        f"Valid values are: {', '.join(valid_deletion_policies)}. Using 'auto'.")
             viewport_deletion_policy = 'auto'
 
         if text_deletion_policy not in valid_deletion_policies:
-            log_warning(f"Invalid text deletion_policy '{text_deletion_policy}'. "
+            log_warning(f"Invalid text_deletion_policy '{text_deletion_policy}'. "
                        f"Valid values are: {', '.join(valid_deletion_policies)}. Using 'auto'.")
             text_deletion_policy = 'auto'
+
+        # Validate auto conflict resolution policy
+        valid_conflict_policies = {'prompt', 'yaml_wins', 'dxf_wins', 'skip'}
+        if auto_conflict_resolution not in valid_conflict_policies:
+            log_warning(f"Invalid auto_conflict_resolution '{auto_conflict_resolution}'. "
+                       f"Valid values are: {', '.join(valid_conflict_policies)}. Using 'prompt'.")
+            auto_conflict_resolution = 'prompt'
 
         # Validate viewport layer
         if not isinstance(viewport_layer, str) or not viewport_layer.strip():
             log_warning(f"Invalid viewport layer '{viewport_layer}'. Must be a non-empty string. Using 'VIEWPORTS'.")
             viewport_layer = 'VIEWPORTS'
 
-        # Validate global sync settings
-        valid_sync_values = {'push', 'pull', 'skip'}
+        # Validate sync directions for both entity types
+        valid_sync_values = {'push', 'pull', 'skip', 'auto'}
         if viewport_sync not in valid_sync_values:
             log_warning(f"Invalid global viewport sync value '{viewport_sync}'. "
                        f"Valid values are: {', '.join(valid_sync_values)}. Using 'skip'.")
@@ -91,8 +101,17 @@ class ProjectLoader:
 
         if text_sync not in valid_sync_values:
             log_warning(f"Invalid global text sync value '{text_sync}'. "
-                       f"Valid values are: {', '.join(valid_sync_values)}. Using 'push'.")
-            text_sync = 'push'
+                       f"Valid values are: {', '.join(valid_sync_values)}. Using 'skip'.")
+            text_sync = 'skip'
+
+        # Extract CRS - handle both 'crs' and 'projectCrs' keys for compatibility
+        if 'crs' in main_settings:
+            self.crs = main_settings['crs']
+        elif 'projectCrs' in main_settings:
+            self.crs = main_settings['projectCrs']
+        else:
+            log_error("No CRS specified in project settings. Please add 'crs' or 'projectCrs' to project.yaml")
+            raise ValueError("Missing CRS in project settings")
 
         # Check for duplicate layer names
         layer_names = {}
@@ -104,12 +123,19 @@ class ProjectLoader:
             else:
                 layer_names[name] = idx
 
-        # Merge all configurations with safe defaults
+        # Merge all settings
         self.project_settings = {
             **main_settings,
             'geomLayers': geom_layers.get('geomLayers', []),
             'legends': legends.get('legends', []),
             'viewports': viewports.get('viewports', []),
+            'blockInserts': block_inserts.get('blockInserts', []),
+            'textInserts': text_inserts.get('textInserts', []) if text_inserts else [],
+            'pathArrays': path_arrays.get('pathArrays', []),
+            'wmtsLayers': wmts_wms_layers.get('wmtsLayers', []),
+            'wmsLayers': wmts_wms_layers.get('wmsLayers', []),
+
+            # Global entity settings (generalized format)
             'viewport_discovery': viewport_discovery,
             'viewport_deletion_policy': viewport_deletion_policy,
             'viewport_layer': viewport_layer,
@@ -117,16 +143,22 @@ class ProjectLoader:
             'text_sync': text_sync,
             'text_discovery': text_discovery,
             'text_deletion_policy': text_deletion_policy,
-            'blockInserts': block_inserts.get('blockInserts', []),
-            'textInserts': text_inserts.get('textInserts', []),
-            'pathArrays': path_arrays.get('pathArrays', []),
-            'wmtsLayers': wmts_wms_layers.get('wmtsLayers', []),
-            'wmsLayers': wmts_wms_layers.get('wmsLayers', [])
+
+            # Auto sync settings
+            'auto_conflict_resolution': auto_conflict_resolution,
         }
 
         # Process core settings
-        self.crs = self.project_settings['crs']
-        self.dxf_filename = resolve_path(self.project_settings['dxfFilename'], self.folder_prefix)
+        # Extract DXF filename - handle both 'dxfFilename' and 'dxfFile' keys for compatibility
+        if 'dxfFilename' in self.project_settings:
+            dxf_file_key = 'dxfFilename'
+        elif 'dxfFile' in self.project_settings:
+            dxf_file_key = 'dxfFile'
+        else:
+            log_error("No DXF file specified in project settings. Please add 'dxfFilename' or 'dxfFile' to project.yaml")
+            raise ValueError("Missing DXF file in project settings")
+
+        self.dxf_filename = resolve_path(self.project_settings[dxf_file_key], self.folder_prefix)
         self.template_dxf = resolve_path(self.project_settings.get('template', ''), self.folder_prefix) if self.project_settings.get('template') else None
         self.export_format = self.project_settings.get('exportFormat', 'dxf')
         self.dxf_version = self.project_settings.get('dxfVersion', 'R2010')
