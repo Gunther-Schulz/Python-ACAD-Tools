@@ -12,9 +12,9 @@ textInserts:
 - name: Map Header
   position:
     type: absolute
-    x: 912.5978864649896
+    x: 66.0
     y: 788.0
-  text: 'Teil A: Planzeichnung i. M. 1:2.000\nTEST'
+  text: 'Teil A: Planzeichnung i. M. 1:2.000'
   targetLayer: Plantext
   paperspace: true
   style: mapHeader
@@ -40,4 +40,4 @@ textInserts:
   justification: CENTER
 discovery: true
 deletion_policy: confirm
-sync: pull
+sync: push
