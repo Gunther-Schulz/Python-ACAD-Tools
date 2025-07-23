@@ -126,11 +126,10 @@ class ViewportManager(SyncManagerBase):
             for i, original_config in enumerate(viewport_configs):
                 if original_config.get('name') == name:
                     # Preserve sync direction and other non-geometric properties
-                    # Only set viewport-level sync if it was explicitly set or differs from global default
+                    # Only preserve explicitly set sync directions - let entities inherit global default
                     if 'sync' in original_config:
                         updated_config['sync'] = original_config['sync']
-                    elif self.default_sync != 'pull':
-                        updated_config['sync'] = 'pull'
+                    # DO NOT automatically add explicit sync settings
                     if 'frozenLayers' in original_config:
                         updated_config['frozenLayers'] = original_config['frozenLayers']
                     if 'visibleLayers' in original_config:
@@ -532,9 +531,7 @@ class ViewportManager(SyncManagerBase):
             log_error(f"Error extracting viewport properties: {str(e)}")
             # Return minimal config on error
             minimal_config = {'name': base_config['name']}
-            # Only set explicit sync if it differs from global default
-            if self.default_sync != 'pull':
-                minimal_config['sync'] = 'pull'
+            # Don't add explicit sync settings - let entity inherit global default
             return minimal_config
 
     def _attach_entity_metadata(self, entity, config):
@@ -550,7 +547,12 @@ class ViewportManager(SyncManagerBase):
         return self.get_viewport_by_name(doc, entity_name)
 
     def _extract_dxf_entity_properties_for_hash(self, entity):
-        """Extract viewport properties from DXF entity for hash calculation."""
+        """
+        Extract viewport properties from DXF entity for hash calculation.
+
+        This method extracts all canonical properties, which will then be filtered
+        and normalized by the sync schema system for consistent hash calculation.
+        """
         if entity is None:
             return {}
 

@@ -397,15 +397,6 @@ geomLayers:
       layers:
         - "Ausgleich Schutzflächeumgrenzung"
 
-  - name: Biotope Puffer
-    updateDxf: true
-    operations:
-      - type: buffer
-        distance: 5
-        joinStyle: round
-        layers:
-          - name: "Biotope"
-
   - name: Biotope Puffer Schraffur
     updateDxf: true
     style: grünfläche

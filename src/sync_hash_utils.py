@@ -1,11 +1,13 @@
 import hashlib
 import json
 from src.utils import log_info, log_warning, log_error, log_debug
+from src.sync_property_schemas import extract_canonical_sync_properties
+from typing import Dict, Any
 
 
 def calculate_entity_content_hash(entity_data, entity_type):
     """
-    Calculate a consistent content hash for an entity.
+    Calculate a consistent content hash for an entity using canonical property schemas.
 
     Args:
         entity_data: Dictionary containing entity properties
@@ -14,37 +16,18 @@ def calculate_entity_content_hash(entity_data, entity_type):
     Returns:
         str: SHA-256 hash of entity content
     """
-    # Create a clean copy excluding sync metadata
-    clean_data = {}
-
-    if entity_type == 'viewport':
-        # Include only content properties for viewports
-        content_keys = [
-            'name', 'center', 'width', 'height', 'viewCenter', 'scale',
-            'frozenLayers', 'visibleLayers', 'lockZoom', 'color', 'layer'
-        ]
-        for key in content_keys:
-            if key in entity_data:
-                clean_data[key] = entity_data[key]
-
-    elif entity_type == 'text':
-        # Include only content properties for text inserts
-        content_keys = [
-            'name', 'text', 'position', 'targetLayer', 'paperspace',
-            'style', 'justification', 'height', 'color', 'rotation'
-        ]
-        for key in content_keys:
-            if key in entity_data:
-                clean_data[key] = entity_data[key]
-    else:
-        # For unknown types, include everything except sync metadata
-        clean_data = {k: v for k, v in entity_data.items() if not k.startswith('_sync')}
+    # Extract and normalize canonical properties using schema system
+    canonical_data = extract_canonical_sync_properties(entity_data, entity_type)
 
     # Create deterministic JSON representation
-    json_str = json.dumps(clean_data, sort_keys=True, separators=(',', ':'))
+    json_str = json.dumps(canonical_data, sort_keys=True, separators=(',', ':'))
 
     # Calculate SHA-256 hash
     hash_obj = hashlib.sha256(json_str.encode('utf-8'))
+
+    log_debug(f"Hash calculation for {entity_type} '{entity_data.get('name', 'unnamed')}': "
+             f"canonical_props={list(canonical_data.keys())}, hash={hash_obj.hexdigest()[:12]}...")
+
     return hash_obj.hexdigest()
 
 
@@ -268,8 +251,39 @@ def show_conflict_details(entity_name, yaml_config, dxf_entity):
             print(f"  {key}: {value}")
 
     print("\n--- DXF Version ---")
-    print("  (DXF properties would be extracted here)")
-    # This would show extracted DXF properties in real implementation
+    if dxf_entity:
+        # Try to extract DXF properties for display
+        try:
+            # This is a simplified extraction for display purposes
+            dxf_props = {}
+            if hasattr(dxf_entity.dxf, 'center'):
+                center = dxf_entity.dxf.center
+                dxf_props['center'] = {'x': float(center[0]), 'y': float(center[1])}
+            if hasattr(dxf_entity.dxf, 'width'):
+                dxf_props['width'] = float(dxf_entity.dxf.width)
+            if hasattr(dxf_entity.dxf, 'height'):
+                dxf_props['height'] = float(dxf_entity.dxf.height)
+            if hasattr(dxf_entity.dxf, 'insert'):
+                insert = dxf_entity.dxf.insert
+                dxf_props['position'] = {'x': float(insert[0]), 'y': float(insert[1]), 'type': 'absolute'}
+            if hasattr(dxf_entity.dxf, 'layer'):
+                dxf_props['layer'] = dxf_entity.dxf.layer
+            if dxf_entity.dxftype() == 'MTEXT':
+                dxf_props['text'] = dxf_entity.plain_text().replace('\n', '\\n')
+            elif hasattr(dxf_entity.dxf, 'text'):
+                dxf_props['text'] = dxf_entity.dxf.text
+
+            for key, value in dxf_props.items():
+                if isinstance(value, dict):
+                    print(f"  {key}:")
+                    for sub_key, sub_value in value.items():
+                        print(f"    {sub_key}: {sub_value}")
+                else:
+                    print(f"  {key}: {value}")
+        except Exception as e:
+            print(f"  (Error extracting DXF properties: {str(e)})")
+    else:
+        print("  (No DXF entity found)")
 
     print("\n--- End Details ---")
 
@@ -450,3 +464,106 @@ def clean_entity_config_for_yaml_output(entity_config):
             del clean_config['_sync']
 
     return clean_config
+
+
+def validate_sync_property_consistency(yaml_data: Dict[str, Any], dxf_data: Dict[str, Any], entity_type: str) -> Dict[str, Any]:
+    """
+    Validate that YAML and DXF data will produce consistent hashes.
+
+    Args:
+        yaml_data: YAML entity configuration
+        dxf_data: DXF extracted properties
+        entity_type: Type of entity
+
+    Returns:
+        dict: Validation results with any inconsistencies found
+    """
+    yaml_canonical = extract_canonical_sync_properties(yaml_data, entity_type)
+    dxf_canonical = extract_canonical_sync_properties(dxf_data, entity_type)
+
+    result = {
+        'consistent': True,
+        'differences': [],
+        'yaml_canonical': yaml_canonical,
+        'dxf_canonical': dxf_canonical,
+        'yaml_hash': calculate_entity_content_hash(yaml_data, entity_type),
+        'dxf_hash': calculate_entity_content_hash(dxf_data, entity_type)
+    }
+
+    # Compare canonical properties
+    all_keys = set(yaml_canonical.keys()) | set(dxf_canonical.keys())
+
+    for key in all_keys:
+        yaml_val = yaml_canonical.get(key)
+        dxf_val = dxf_canonical.get(key)
+
+        if yaml_val != dxf_val:
+            result['consistent'] = False
+            result['differences'].append({
+                'property': key,
+                'yaml_value': yaml_val,
+                'dxf_value': dxf_val
+            })
+
+    return result
+
+
+def debug_hash_calculation(entity_config, dxf_entity, entity_type, entity_manager=None):
+    """
+    Debug helper for sync hash calculation issues.
+
+    Args:
+        entity_config: YAML entity configuration
+        dxf_entity: DXF entity object
+        entity_type: Type of entity
+        entity_manager: Entity manager instance
+
+    Returns:
+        dict: Detailed debug information
+    """
+    entity_name = entity_config.get('name', 'unnamed')
+    log_info(f"🔍 Debug hash calculation for {entity_type} '{entity_name}'")
+
+    # Calculate YAML hash
+    yaml_hash = calculate_entity_content_hash(entity_config, entity_type)
+    yaml_canonical = extract_canonical_sync_properties(entity_config, entity_type)
+
+    debug_info = {
+        'entity_name': entity_name,
+        'entity_type': entity_type,
+        'yaml_hash': yaml_hash,
+        'yaml_canonical_properties': yaml_canonical,
+        'dxf_available': dxf_entity is not None,
+    }
+
+    # Calculate DXF hash if entity exists
+    if dxf_entity and entity_manager and hasattr(entity_manager, '_extract_dxf_entity_properties_for_hash'):
+        dxf_properties = entity_manager._extract_dxf_entity_properties_for_hash(dxf_entity)
+        dxf_hash = calculate_entity_content_hash(dxf_properties, entity_type)
+        dxf_canonical = extract_canonical_sync_properties(dxf_properties, entity_type)
+
+        debug_info.update({
+            'dxf_hash': dxf_hash,
+            'dxf_raw_properties': dxf_properties,
+            'dxf_canonical_properties': dxf_canonical,
+            'hashes_match': yaml_hash == dxf_hash,
+        })
+
+        # Detailed property comparison
+        validation = validate_sync_property_consistency(entity_config, dxf_properties, entity_type)
+        debug_info['property_validation'] = validation
+
+        # Log summary
+        if validation['consistent']:
+            log_info(f"✅ Properties consistent for '{entity_name}' (hashes: {'match' if yaml_hash == dxf_hash else 'DIFFER'})")
+        else:
+            log_warning(f"❌ Property inconsistencies found for '{entity_name}':")
+            for diff in validation['differences']:
+                log_warning(f"  - {diff['property']}: YAML={diff['yaml_value']} vs DXF={diff['dxf_value']}")
+    else:
+        debug_info['dxf_hash'] = None
+        debug_info['dxf_properties'] = None
+        debug_info['hashes_match'] = None
+        log_info(f"ℹ️  No DXF entity found for comparison")
+
+    return debug_info

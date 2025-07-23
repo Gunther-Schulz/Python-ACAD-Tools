@@ -110,8 +110,7 @@ class TextInsertManager(SyncManagerBase):
                     # Preserve sync direction and other non-geometric properties
                     if 'sync' in original_config:
                         updated_config['sync'] = original_config['sync']
-                    elif self.default_sync != 'pull':
-                        updated_config['sync'] = 'pull'
+                    # DO NOT automatically add explicit sync settings - let entities inherit global default
 
                     # Preserve other configuration properties
                     for key in ['style', 'targetLayer', 'paperspace', 'justification']:
@@ -391,9 +390,7 @@ class TextInsertManager(SyncManagerBase):
             log_error(f"Error extracting text properties: {str(e)}")
             # Return minimal config on error
             minimal_config = {'name': base_config['name'], 'text': 'ERROR_EXTRACTING_TEXT'}
-            # Only set explicit sync if it differs from global default
-            if self.default_sync != 'pull':
-                minimal_config['sync'] = 'pull'
+            # Don't add explicit sync settings - let entity inherit global default
             return minimal_config
 
     def _attach_entity_metadata(self, entity, config):
@@ -413,21 +410,45 @@ class TextInsertManager(SyncManagerBase):
         return self._find_text_by_name(doc, entity_name)
 
     def _extract_dxf_entity_properties_for_hash(self, entity):
-        """Extract text properties from DXF entity for hash calculation."""
+        """
+        Extract text properties from DXF entity for hash calculation.
+
+        This method extracts ALL available properties, which will then be filtered
+        to canonical properties by the sync schema system.
+        """
         if entity is None:
+            log_debug("DXF entity is None for hash extraction")
             return {}
 
         config = {}
 
         try:
+            # Always include the name for hash consistency
+            config['name'] = self._get_entity_name_from_xdata(entity)
+            log_debug(f"Extracted name from XDATA: {config['name']}")
+
             # Extract text content using ezdxf's built-in method
+            log_debug(f"DXF entity type: {entity.dxftype()}")
             if entity.dxftype() == 'MTEXT':
                 # Use ezdxf's plain_text() method to properly handle MTEXT formatting codes
-                plain_text = entity.plain_text()
-                # Convert actual newlines back to literal \n for YAML consistency
-                config['text'] = plain_text.replace('\n', '\\n')
+                try:
+                    plain_text = entity.plain_text()
+                    log_debug(f"MTEXT plain_text() result: '{plain_text[:50]}...' (length: {len(plain_text)})")
+                    # Convert actual newlines back to literal \n for YAML consistency
+                    config['text'] = plain_text.replace('\n', '\\n')
+                    log_debug(f"Processed text for hash: '{config['text'][:50]}...'")
+                except Exception as e:
+                    log_error(f"Error extracting MTEXT plain_text: {str(e)}")
+                    # Fallback to raw text attribute
+                    if hasattr(entity.dxf, 'text'):
+                        config['text'] = entity.dxf.text
+                        log_debug(f"Fallback to dxf.text: '{config['text'][:50]}...'")
             else:  # TEXT entity
-                config['text'] = entity.dxf.text
+                if hasattr(entity.dxf, 'text'):
+                    config['text'] = entity.dxf.text
+                    log_debug(f"TEXT entity text: '{config['text'][:50]}...'")
+                else:
+                    log_warning(f"TEXT entity has no text attribute!")
 
             # Extract position
             position = {}
@@ -436,11 +457,13 @@ class TextInsertManager(SyncManagerBase):
                 position['x'] = float(insert_point[0])
                 position['y'] = float(insert_point[1])
                 position['type'] = 'absolute'
+                log_debug(f"Extracted insert position: {position}")
             elif hasattr(entity.dxf, 'location'):
                 location = entity.dxf.location
                 position['x'] = float(location[0])
                 position['y'] = float(location[1])
                 position['type'] = 'absolute'
+                log_debug(f"Extracted location position: {position}")
 
             if position:
                 config['position'] = position
@@ -448,28 +471,12 @@ class TextInsertManager(SyncManagerBase):
             # Extract layer
             if hasattr(entity.dxf, 'layer'):
                 config['targetLayer'] = entity.dxf.layer
-
-            # Extract text height
-            if hasattr(entity.dxf, 'height'):
-                config['height'] = float(entity.dxf.height)
-
-            # Extract color if it's not default
-            if hasattr(entity.dxf, 'color') and entity.dxf.color != 256:  # 256 = BYLAYER
-                color_code = entity.dxf.color
-                for name, aci in self.name_to_aci.items():
-                    if aci == color_code:
-                        config['color'] = name
-                        break
-                else:
-                    config['color'] = str(color_code)
+                log_debug(f"Extracted targetLayer: {config['targetLayer']}")
 
             # Extract text style if available
             if hasattr(entity.dxf, 'style') and entity.dxf.style != 'Standard':
                 config['style'] = entity.dxf.style
-
-            # Extract rotation if not zero
-            if hasattr(entity.dxf, 'rotation') and entity.dxf.rotation != 0:
-                config['rotation'] = float(entity.dxf.rotation)
+                log_debug(f"Extracted style: {config['style']}")
 
             # Extract justification if available
             if hasattr(entity.dxf, 'attach_point'):
@@ -481,6 +488,7 @@ class TextInsertManager(SyncManagerBase):
                 }
                 if entity.dxf.attach_point in attach_point_map:
                     config['justification'] = attach_point_map[entity.dxf.attach_point]
+                    log_debug(f"Extracted justification: {config['justification']}")
 
             # Extract paperspace flag
             # Check if entity is in paperspace vs modelspace
@@ -488,12 +496,19 @@ class TextInsertManager(SyncManagerBase):
                 if hasattr(entity, 'doc') and entity.doc:
                     paperspace_entities = list(entity.doc.paperspace())
                     config['paperspace'] = any(e.dxf.handle == entity.dxf.handle for e in paperspace_entities)
-            except:
+                    log_debug(f"Extracted paperspace: {config['paperspace']}")
+            except Exception as e:
+                log_debug(f"Error checking paperspace: {str(e)}")
                 config['paperspace'] = False
 
-            # Always include the name for hash consistency
-            config['name'] = self._get_entity_name_from_xdata(entity)
+            # The following properties are intentionally NOT included in canonical properties:
+            # - height: DXF implementation detail, varies by style
+            # - color: DXF implementation detail, should use style
+            # - rotation: Not part of core content (positioning detail)
 
+            # Note: The sync schema system will filter this down to only canonical properties
+
+            log_debug(f"Final extracted properties for hash: {list(config.keys())}")
             return config
 
         except Exception as e:

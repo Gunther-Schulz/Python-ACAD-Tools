@@ -296,8 +296,9 @@ class SyncManagerBase(ABC):
                 # Extract properties and create configuration
                 config = self._extract_entity_properties(entity, {'name': name})
 
-                # Default discovered entities to pull mode (only set explicitly if global default isn't pull)
-                if self.default_sync != 'pull':
+                # For discovered entities, only set explicit sync if global default is different from desired behavior
+                # Discovered entities logically should pull from AutoCAD since they originated there
+                if self.default_sync not in ['pull', 'auto']:
                     config['sync'] = 'pull'
 
                 # Add metadata to the discovered entity
