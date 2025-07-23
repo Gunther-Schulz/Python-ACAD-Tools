@@ -2,46 +2,30 @@ import traceback
 from ezdxf.lldxf import const
 from src.utils import log_info, log_warning, log_error, log_debug
 from src.dxf_utils import get_color_code, attach_custom_data
+from src.sync_manager_base import SyncManagerBase
 
-class ViewportManager:
+class ViewportManager(SyncManagerBase):
     def __init__(self, project_settings, script_identifier, name_to_aci, style_manager, project_loader=None):
-        self.project_settings = project_settings
-        self.script_identifier = script_identifier
+        # Initialize base class
+        super().__init__(project_settings, script_identifier, 'viewport', project_loader)
+
+        # Viewport-specific dependencies
         self.name_to_aci = name_to_aci
         self.style_manager = style_manager
-        self.project_loader = project_loader
         self.viewports = {}
 
-        # Extract global viewport settings
+        # Extract viewport-specific global settings
         self.discovery_enabled = project_settings.get('viewport_discovery', False)
         self.deletion_policy = project_settings.get('viewport_deletion_policy', 'auto')
         self.default_layer = project_settings.get('viewport_layer', 'VIEWPORTS')
-        self.default_sync = project_settings.get('viewport_sync', 'skip')
 
         log_debug(f"ViewportManager initialized with discovery={self.discovery_enabled}, "
                  f"deletion_policy={self.deletion_policy}, default_layer={self.default_layer}, "
                  f"default_sync={self.default_sync}")
 
-    def _get_sync_direction(self, vp_config):
-        """Determine sync direction for viewport. Uses per-viewport sync or falls back to global sync setting."""
-        # Check for deprecated updateDxf usage
-        if 'updateDxf' in vp_config:
-            log_warning(f"Viewport '{vp_config.get('name')}' uses deprecated 'updateDxf' flag. "
-                       f"Use 'sync: push' instead of 'updateDxf: true' or 'sync: skip' instead of 'updateDxf: false'.")
-
-        # Use per-viewport sync if specified, otherwise use global default
-        if 'sync' in vp_config:
-            sync = vp_config['sync']
-        else:
-            sync = self.default_sync
-            log_debug(f"Viewport '{vp_config.get('name')}' using global sync setting: {sync}")
-
-        if sync in ['push', 'pull', 'skip']:
-            return sync
-        else:
-            log_warning(f"Invalid sync direction '{sync}' for viewport {vp_config.get('name')}. "
-                       f"Valid values are: push, pull, skip. Using 'skip'.")
-            return 'skip'
+    def _get_entity_configs(self):
+        """Get viewport configurations from project settings."""
+        return self.project_settings.get('viewports', []) or []
 
     def sync_viewports(self, doc, msp):
         """Enhanced viewport synchronization with bidirectional support."""
@@ -62,18 +46,10 @@ class ViewportManager:
                 if discovered_viewports:
                     log_info(f"Discovered {len(discovered_viewports)} unknown viewports")
 
-            # Step 2: Process configured viewports according to sync direction
-            viewport_configs = self.project_settings.get('viewports', []) or []
-
-            yaml_updated = False
-            for vp_config in viewport_configs:
-                try:
-                    result = self._process_viewport_sync(paper_space, doc, vp_config)
-                    if result and result.get('yaml_updated'):
-                        yaml_updated = True
-                except Exception as e:
-                    log_error(f"Error syncing viewport {vp_config.get('name', 'unnamed')}: {str(e)}")
-                    continue
+            # Step 2: Process configured viewports using base class functionality
+            processed_viewports = self.process_entities(doc, paper_space)
+            self.viewports.update(processed_viewports)
+            yaml_updated = bool(processed_viewports)  # Base class handles YAML updates automatically
 
             # Step 3: Handle discovered viewports
             if discovered_viewports:
@@ -94,7 +70,7 @@ class ViewportManager:
 
             # Step 5: Write back YAML if any changes were made
             if yaml_updated and self.project_loader:
-                self._write_viewport_yaml()
+                self._write_entity_yaml()
 
             return self.viewports
 
@@ -102,83 +78,98 @@ class ViewportManager:
             log_error(f"Error during viewport synchronization: {str(e)}")
             return {}
 
-    def _process_viewport_sync(self, paper_space, doc, vp_config):
-        """Process a single viewport according to its sync direction."""
-        name = vp_config.get('name', 'unnamed')
+    def _write_entity_yaml(self):
+        """Write updated viewport configuration back to YAML file."""
+        if not self.project_loader:
+            log_warning("Cannot write viewport YAML - no project_loader available")
+            return False
 
-        # Determine sync direction
-        sync_direction = self._get_sync_direction(vp_config)
+        try:
+            # Prepare viewport data structure
+            viewport_data = {
+                'viewports': self.project_settings.get('viewports', [])
+            }
 
-        if sync_direction == 'skip':
-            return None
+            # Add global viewport settings if they exist
+            if 'viewport_discovery' in self.project_settings:
+                viewport_data['viewport_discovery'] = self.project_settings['viewport_discovery']
+            if 'viewport_deletion_policy' in self.project_settings:
+                viewport_data['viewport_deletion_policy'] = self.project_settings['viewport_deletion_policy']
+            if 'viewport_layer' in self.project_settings:
+                viewport_data['viewport_layer'] = self.project_settings['viewport_layer']
+            if 'viewport_sync' in self.project_settings:
+                viewport_data['sync'] = self.project_settings['viewport_sync']
 
-        # Get existing viewport if it exists
-        existing_viewport = self.get_viewport_by_name(paper_space.doc, name)
+            # Write back to viewports.yaml
+            success = self.project_loader.write_yaml_file('viewports.yaml', viewport_data)
+            if success:
+                log_info("Successfully updated viewports.yaml with sync changes")
+            else:
+                log_error("Failed to write viewport configuration back to YAML")
+            return success
 
-        if sync_direction == 'push':
-            # YAML → AutoCAD: Create/update viewport from YAML config
-            return self._sync_push(paper_space, doc, vp_config, existing_viewport)
-        elif sync_direction == 'pull':
-            # AutoCAD → YAML: Update YAML config from AutoCAD viewport
-            return self._sync_pull(paper_space, doc, vp_config, existing_viewport)
-        else:
-            log_warning(f"Unknown sync direction '{sync_direction}' for viewport {name}")
-            return None
+        except Exception as e:
+            log_error(f"Error writing viewport YAML: {str(e)}")
+            log_error(f"Traceback: {traceback.format_exc()}")
+            return False
 
-    def _sync_push(self, paper_space, doc, vp_config, existing_viewport):
+    def _sync_push(self, doc, space, config):
         """Sync YAML → AutoCAD (create/update viewport from config)."""
-        name = vp_config.get('name', 'unnamed')
+        name = config.get('name', 'unnamed')
+        paper_space = doc.paperspace()  # Viewports are always in paperspace
 
         # Use existing create/update logic
-        viewport = self._create_or_get_viewport(paper_space, vp_config)
+        viewport = self._create_or_get_viewport(paper_space, config)
         if viewport is None:
             log_warning(f"Failed to create or get viewport: {name}")
             return None
 
-        self._update_viewport_properties(viewport, vp_config)
-        self._update_viewport_layers(doc, viewport, vp_config)
-        self._attach_viewport_metadata(viewport, vp_config)
+        self._update_viewport_properties(viewport, config)
+        self._update_viewport_layers(doc, viewport, config)
+        self._attach_viewport_metadata(viewport, config)
         self.viewports[name] = viewport
-        return {'success': True}
+        return viewport
 
-    def _sync_pull(self, paper_space, doc, vp_config, existing_viewport):
+    def _sync_pull(self, doc, space, config):
         """Sync AutoCAD → YAML (update config from AutoCAD viewport)."""
-        name = vp_config.get('name', 'unnamed')
+        name = config.get('name', 'unnamed')
 
+        # Find existing viewport in AutoCAD
+        existing_viewport = self.get_viewport_by_name(doc, name)
         if existing_viewport is None:
             log_warning(f"Cannot pull viewport '{name}' - not found in AutoCAD")
             return None
 
         # Extract properties from AutoCAD viewport
         try:
-            updated_config = self._extract_viewport_properties(existing_viewport, vp_config)
+            updated_config = self._extract_viewport_properties(existing_viewport, config)
 
             # Update the configuration in project_settings
             viewport_configs = self.project_settings.get('viewports', []) or []
-            for i, config in enumerate(viewport_configs):
-                if config.get('name') == name:
+            for i, original_config in enumerate(viewport_configs):
+                if original_config.get('name') == name:
                     # Preserve sync direction and other non-geometric properties
                     # Only set viewport-level sync if it was explicitly set or differs from global default
-                    if 'sync' in config:
-                        updated_config['sync'] = config['sync']
+                    if 'sync' in original_config:
+                        updated_config['sync'] = original_config['sync']
                     elif self.default_sync != 'pull':
                         updated_config['sync'] = 'pull'
-                    if 'frozenLayers' in config:
-                        updated_config['frozenLayers'] = config['frozenLayers']
-                    if 'visibleLayers' in config:
-                        updated_config['visibleLayers'] = config['visibleLayers']
-                    if 'lockZoom' in config:
-                        updated_config['lockZoom'] = config['lockZoom']
-                    if 'color' in config:
-                        updated_config['color'] = config['color']
-                    if 'layer' in config:
-                        updated_config['layer'] = config['layer']
+                    if 'frozenLayers' in original_config:
+                        updated_config['frozenLayers'] = original_config['frozenLayers']
+                    if 'visibleLayers' in original_config:
+                        updated_config['visibleLayers'] = original_config['visibleLayers']
+                    if 'lockZoom' in original_config:
+                        updated_config['lockZoom'] = original_config['lockZoom']
+                    if 'color' in original_config:
+                        updated_config['color'] = original_config['color']
+                    if 'layer' in original_config:
+                        updated_config['layer'] = original_config['layer']
 
                     viewport_configs[i] = updated_config
                     break
 
             self.viewports[name] = existing_viewport
-            return {'success': True, 'yaml_updated': True}
+            return {'entity': existing_viewport, 'yaml_updated': True}
 
         except Exception as e:
             log_error(f"Error pulling viewport properties for '{name}': {str(e)}")
@@ -591,40 +582,7 @@ class ViewportManager:
                 minimal_config['sync'] = 'pull'
             return minimal_config
 
-    def _write_viewport_yaml(self):
-        """Write updated viewport configuration back to YAML file."""
-        if not self.project_loader:
-            log_warning("Cannot write viewport YAML - no project_loader available")
-            return False
 
-        try:
-            # Prepare viewport data structure
-            viewport_data = {
-                'viewports': self.project_settings.get('viewports', [])
-            }
-
-            # Add global viewport settings if they exist
-            if 'viewport_discovery' in self.project_settings:
-                viewport_data['viewport_discovery'] = self.project_settings['viewport_discovery']
-            if 'viewport_deletion_policy' in self.project_settings:
-                viewport_data['viewport_deletion_policy'] = self.project_settings['viewport_deletion_policy']
-            if 'viewport_layer' in self.project_settings:
-                viewport_data['viewport_layer'] = self.project_settings['viewport_layer']
-            if 'viewport_sync' in self.project_settings:
-                viewport_data['sync'] = self.project_settings['viewport_sync']
-
-            # Write back to viewports.yaml
-            success = self.project_loader.write_yaml_file('viewports.yaml', viewport_data)
-            if success:
-                log_info("Successfully updated viewports.yaml with sync changes")
-            else:
-                log_error("Failed to write viewport configuration back to YAML")
-            return success
-
-        except Exception as e:
-            log_error(f"Error writing viewport YAML: {str(e)}")
-            log_error(f"Traceback: {traceback.format_exc()}")
-            return False
 
     def _handle_viewport_deletions(self, paper_space, doc):
         """Handle deletion of viewports that exist in YAML but not in AutoCAD."""

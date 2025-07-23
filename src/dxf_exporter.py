@@ -22,6 +22,7 @@ from src.path_array import create_path_array
 from src.style_manager import StyleManager
 from src.viewport_manager import ViewportManager
 from src.block_insert_manager import BlockInsertManager
+from src.text_insert_manager import TextInsertManager
 from src.reduced_dxf_creator import ReducedDXFCreator
 from src.dxf_processor import DXFProcessor
 
@@ -53,6 +54,13 @@ class DXFExporter:
             project_loader,
             self.all_layers,
             self.script_identifier
+        )
+        self.text_insert_manager = TextInsertManager(
+            self.project_settings,
+            self.script_identifier,
+            self.style_manager,
+            self.name_to_aci,
+            self.project_loader  # Pass project_loader for YAML write-back
         )
         self.reduced_dxf_creator = ReducedDXFCreator(self)
 
@@ -975,74 +983,35 @@ class DXFExporter:
         log_debug("Finished processing all path array configurations")
 
     def process_text_inserts(self, msp):
-        """Process text inserts from project settings."""
-        text_inserts = self.project_settings.get('textInserts', [])
-        if not text_inserts:
+        """Process text inserts using the new sync-based TextInsertManager."""
+        text_configs = self.project_settings.get('textInserts', [])
+        if not text_configs:
             log_debug("No text inserts found in project settings")
             return
 
-        # First, collect all unique target layers
-        target_layers = {text_config.get('targetLayer', 'Plantext') for text_config in text_inserts}
+        # Check if any configs use the new sync system (either individual or global)
+        has_global_sync = 'text_sync' in self.project_settings
+        has_individual_sync = any('sync' in config for config in text_configs)
+        has_sync_configs = has_global_sync or has_individual_sync
+        has_legacy_configs = any('updateDxf' in config for config in text_configs)
 
-        # Remove all existing text entities from these layers
-        for layer_name in target_layers:
-            log_debug(f"Removing existing text entities from layer: {layer_name}")
-            remove_entities_by_layer(msp, layer_name, self.script_identifier)
+        if has_sync_configs:
+            # Use new sync-based processing
+            log_debug("Processing text inserts using new sync system")
 
-        # Now process new text inserts
-        for text_config in text_inserts:
-            try:
-                # Get target layer
-                layer_name = text_config.get('targetLayer', 'Plantext')  # Default to 'Plantext' layer
+            # Clean target layers before processing
+            configs_to_process = [c for c in text_configs if self.text_insert_manager._get_sync_direction(c) == 'push']
+            self.text_insert_manager.clean_target_layers(msp.doc, configs_to_process)
 
-                # Skip if updateDxf is False
-                if not text_config.get('updateDxf', False):
-                    log_debug(f"Skipping text insert for layer '{layer_name}' as updateDxf flag is not set")
-                    continue
+            # Process using sync manager
+            processed_texts = self.text_insert_manager.process_entities(msp.doc, msp)
+            log_debug(f"Processed {len(processed_texts)} text inserts using sync system")
 
-                # Ensure layer exists
-                ensure_layer_exists(msp.doc, layer_name)
-
-                # Get text properties
-                text = text_config.get('text', '')
-                position = text_config.get('position', {})
-                x = position.get('x', 0)
-                y = position.get('y', 0)
-
-                # Get style configuration
-                style_name = text_config.get('style')
-                text_style = {}
-                if style_name:
-                    style = self.style_manager.get_style(style_name)
-                    if style and 'text' in style:
-                        text_style = style['text']
-
-                # Get the correct space (model or paper)
-                space = msp.doc.paperspace() if text_config.get('paperspace', False) else msp.doc.modelspace()
-
-                # Create MTEXT entity
-                result = add_mtext(
-                    space,
-                    text,
-                    x,
-                    y,
-                    layer_name,
-                    text_style.get('font', 'Standard'),
-                    text_style=text_style,
-                    name_to_aci=self.name_to_aci,
-                    max_width=text_style.get('width')
-                )
-
-                if result and result[0]:
-                    mtext = result[0]
-                    self.attach_custom_data(mtext)
-                    log_debug(f"Added text insert: '{text}' at ({x}, {y})")
-                else:
-                    log_warning(f"Failed to create text insert for '{text}'")
-
-            except Exception as e:
-                log_error(f"Error processing text insert: {str(e)}")
-                log_error(f"Traceback:\n{traceback.format_exc()}")
+        if has_legacy_configs:
+            # Handle legacy updateDxf-based configs for backward compatibility
+            log_warning("Found text inserts using deprecated 'updateDxf' flag. "
+                       "Consider migrating to 'sync: push/pull/skip' for better control.")
+            self.text_insert_manager.process_text_inserts_legacy(msp)
 
     def get_viewport_by_name(self, doc, name):
         """Retrieve a viewport by its name using xdata."""

@@ -60,6 +60,9 @@ class ProjectLoader:
         viewport_layer = viewports.get('viewport_layer', 'VIEWPORTS')
         viewport_sync = viewports.get('sync', 'skip')
 
+        # Extract global text insert settings with defaults
+        text_sync = text_inserts.get('sync', 'push') if text_inserts else 'push'
+
         # Validate viewport deletion policy
         valid_deletion_policies = {'auto', 'confirm', 'ignore'}
         if viewport_deletion_policy not in valid_deletion_policies:
@@ -72,12 +75,17 @@ class ProjectLoader:
             log_warning(f"Invalid viewport_layer '{viewport_layer}'. Must be a non-empty string. Using 'VIEWPORTS'.")
             viewport_layer = 'VIEWPORTS'
 
-        # Validate global sync setting
+        # Validate global sync settings
         valid_sync_values = {'push', 'pull', 'skip'}
         if viewport_sync not in valid_sync_values:
-            log_warning(f"Invalid global sync value '{viewport_sync}'. "
+            log_warning(f"Invalid global viewport sync value '{viewport_sync}'. "
                        f"Valid values are: {', '.join(valid_sync_values)}. Using 'skip'.")
             viewport_sync = 'skip'
+
+        if text_sync not in valid_sync_values:
+            log_warning(f"Invalid global text sync value '{text_sync}'. "
+                       f"Valid values are: {', '.join(valid_sync_values)}. Using 'push'.")
+            text_sync = 'push'
 
         # Check for duplicate layer names
         layer_names = {}
@@ -99,6 +107,7 @@ class ProjectLoader:
             'viewport_deletion_policy': viewport_deletion_policy,
             'viewport_layer': viewport_layer,
             'viewport_sync': viewport_sync,
+            'text_sync': text_sync,
             'blockInserts': block_inserts.get('blockInserts', []),
             'textInserts': text_inserts.get('textInserts', []),
             'pathArrays': path_arrays.get('pathArrays', []),
