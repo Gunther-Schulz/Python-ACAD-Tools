@@ -39,38 +39,39 @@ XDATA_APP_ID = "DXFEXPORTER"
 XDATA_ENTITY_NAME_KEY = "ENTITY_NAME"
 XDATA_ENTITY_TYPE_KEY = "ENTITY_TYPE"
 
-def create_simple_xdata(script_identifier):
-    """Create simple XDATA for basic ownership tracking."""
-    return [(1000, script_identifier)]
-
-def create_structured_xdata(script_identifier, entity_name, entity_type=None):
+def create_entity_xdata(script_identifier, entity_name=None, entity_type=None):
     """
-    Create structured XDATA for entity identification and searching.
+    Create XDATA for entity identification and ownership tracking.
+    Unified function that handles both simple ownership and named entity tracking.
 
     Args:
         script_identifier: The script identifier string
-        entity_name: Name of the entity for identification
+        entity_name: Optional name for entities that need to be found later
         entity_type: Optional entity type (e.g., 'VIEWPORT', 'TEXT')
 
     Returns:
-        list: XDATA tuple list with consistent structure
+        list: XDATA tuple list - simple for unnamed entities, structured for named entities
     """
-    xdata = [
-        (1000, script_identifier),
-        (1002, '{'),
-        (1000, XDATA_ENTITY_NAME_KEY),
-        (1000, entity_name),
-    ]
+    if entity_name:
+        # Named entity - use structured format for searchability
+        xdata = [
+            (1000, script_identifier),
+            (1002, '{'),
+            (1000, XDATA_ENTITY_NAME_KEY),
+            (1000, entity_name),
+        ]
 
-    # Add entity type if provided
-    if entity_type:
-        xdata.extend([
-            (1000, XDATA_ENTITY_TYPE_KEY),
-            (1000, entity_type),
-        ])
+        if entity_type:
+            xdata.extend([
+                (1000, XDATA_ENTITY_TYPE_KEY),
+                (1000, entity_type),
+            ])
 
-    xdata.append((1002, '}'))
-    return xdata
+        xdata.append((1002, '}'))
+        return xdata
+    else:
+        # Unnamed entity - simple ownership tracking
+        return [(1000, script_identifier)]
 
 def find_entity_by_xdata_name(space, entity_name, entity_types=None):
     """
@@ -143,22 +144,20 @@ def convert_transparency(transparency):
             log_warning(f"Invalid transparency value: {transparency}")
     return None
 
-def attach_custom_data(entity, script_identifier, entity_name=None):
+def attach_custom_data(entity, script_identifier, entity_name=None, entity_type=None):
     """Attaches custom data to an entity with proper cleanup of existing data."""
     try:
-        # NEW: Clear any existing XDATA first
+        # Clear any existing XDATA first
         try:
             entity.discard_xdata(XDATA_APP_ID)
         except:
             pass
 
-        # Set new XDATA
-        entity.set_xdata(
-            XDATA_APP_ID,
-            [(1000, script_identifier)]
-        )
+        # Set XDATA using unified function
+        xdata = create_entity_xdata(script_identifier, entity_name, entity_type)
+        entity.set_xdata(XDATA_APP_ID, xdata)
 
-        # NEW: Ensure entity is properly added to the document database
+        # Ensure entity is properly added to the document database
         if hasattr(entity, 'doc') and entity.doc:
             entity.doc.entitydb.add(entity)
 

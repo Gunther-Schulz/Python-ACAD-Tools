@@ -1,7 +1,52 @@
 import traceback
+import re
 from src.utils import log_info, log_warning, log_error, log_debug
-from src.dxf_utils import add_mtext, remove_entities_by_layer, ensure_layer_exists, XDATA_APP_ID, attach_custom_data, create_structured_xdata, find_entity_by_xdata_name
+from src.dxf_utils import add_mtext, remove_entities_by_layer, ensure_layer_exists, XDATA_APP_ID, attach_custom_data, find_entity_by_xdata_name
 from src.sync_manager_base import SyncManagerBase
+
+
+def strip_mtext_formatting(text):
+    """Strip MTEXT formatting codes while converting paragraph breaks to newlines.
+
+    Args:
+        text (str): Raw MTEXT content with formatting codes
+
+    Returns:
+        str: Clean text with \P converted to \n and other formatting codes removed
+    """
+    if not text:
+        return text
+
+    # Convert paragraph breaks to newlines first
+    clean_text = text.replace('\\P', '\n')
+
+    # Remove common MTEXT formatting codes:
+    # \Q - slant text
+    # \C - color codes (followed by color number)
+    # \A - alignment codes
+    # \H - height codes
+    # \W - width factor
+    # \L - underline on/off
+    # \O - overline on/off
+    # \K - strikethrough on/off
+    # \S - stacked text
+    # \T - tracking
+    # \F - font changes
+    # {} - grouping braces
+
+    # Remove formatting codes with parameters (like \C1; \H2.5x;)
+    clean_text = re.sub(r'\\[QCAHWLOKSTF][^;]*;', '', clean_text)
+
+    # Remove simple formatting codes (like \Q \L \O)
+    clean_text = re.sub(r'\\[QLOKSTF]', '', clean_text)
+
+    # Remove grouping braces
+    clean_text = clean_text.replace('{', '').replace('}', '')
+
+    # Remove any remaining backslash sequences (catch-all for other codes)
+    clean_text = re.sub(r'\\[a-zA-Z][^;]*;?', '', clean_text)
+
+    return clean_text
 
 
 class TextInsertManager(SyncManagerBase):
@@ -137,9 +182,10 @@ class TextInsertManager(SyncManagerBase):
                 'y': float(insert_point[1])
             }
 
-            # Extract text content
+            # Extract text content and strip MTEXT formatting
             if text_entity.dxftype() == 'MTEXT':
-                config['text'] = text_entity.text
+                raw_text = text_entity.text
+                config['text'] = strip_mtext_formatting(raw_text)
             else:  # TEXT entity
                 config['text'] = text_entity.dxf.text
 
@@ -250,15 +296,8 @@ class TextInsertManager(SyncManagerBase):
 
                     log_info(f"Discovered manual text in PaperSpace, assigned name: {text_name}")
 
-                    # Attach metadata to mark it as ours (same pattern as _attach_entity_metadata)
-                    # First set hyperlink
-                    attach_custom_data(entity, self.script_identifier, text_name)
-
-                    # Then set structured XDATA for searching using centralized function
-                    entity.set_xdata(
-                        XDATA_APP_ID,
-                        create_structured_xdata(self.script_identifier, text_name, 'TEXT')
-                    )
+                    # Use unified XDATA function - automatically creates structured XDATA for named entities
+                    attach_custom_data(entity, self.script_identifier, text_name, 'TEXT')
 
                     discovered.append({
                         'entity': entity,
@@ -374,14 +413,8 @@ class TextInsertManager(SyncManagerBase):
 
     def _attach_entity_metadata(self, entity, config):
         """Attach custom metadata to a text entity to mark it as managed by this script."""
-        # First set hyperlink (like ViewportManager does)
-        attach_custom_data(entity, self.script_identifier, config['name'])
-
-        # Then set structured XDATA for searching using centralized function
-        entity.set_xdata(
-            XDATA_APP_ID,
-            create_structured_xdata(self.script_identifier, config['name'], 'TEXT')
-        )
+        # Use unified XDATA function - automatically creates structured XDATA for named entities
+        attach_custom_data(entity, self.script_identifier, config['name'], 'TEXT')
 
     def _get_text_by_name(self, doc, name):
         """Retrieve a text entity by its name using xdata."""

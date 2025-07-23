@@ -1,7 +1,7 @@
 import traceback
 from ezdxf.lldxf import const
 from src.utils import log_info, log_warning, log_error, log_debug
-from src.dxf_utils import get_color_code, attach_custom_data, XDATA_APP_ID, create_structured_xdata, find_entity_by_xdata_name
+from src.dxf_utils import get_color_code, attach_custom_data, XDATA_APP_ID, find_entity_by_xdata_name
 from src.sync_manager_base import SyncManagerBase
 
 class ViewportManager(SyncManagerBase):
@@ -248,11 +248,8 @@ class ViewportManager(SyncManagerBase):
         if not hasattr(viewport, 'xdata'):
             viewport.xdata = {}
 
-        self.attach_custom_data(viewport, vp_config['name'])
-        viewport.set_xdata(
-            XDATA_APP_ID,
-            create_structured_xdata(self.script_identifier, vp_config['name'], 'VIEWPORT')
-        )
+        # Use unified XDATA function - automatically creates structured XDATA for named entities
+        self.attach_custom_data(viewport, vp_config['name'], 'VIEWPORT')
 
     def _calculate_viewport_center(self, vp_config, width, height):
         """Calculates the center point for a new viewport."""
@@ -289,8 +286,8 @@ class ViewportManager(SyncManagerBase):
             return height * vp_config['scale']
         return height
 
-    def attach_custom_data(self, entity, entity_name=None):
-        attach_custom_data(entity, self.script_identifier, entity_name)
+    def attach_custom_data(self, entity, entity_name=None, entity_type=None):
+        attach_custom_data(entity, self.script_identifier, entity_name, entity_type)
 
     def _get_viewport_layer(self, vp_config):
         """Determine the layer for a viewport, supporting per-viewport override."""
@@ -397,11 +394,8 @@ class ViewportManager(SyncManagerBase):
                         viewport_name = f"Viewport_{str(entity.dxf.handle).zfill(3)}"
                         log_info(f"Discovered manual viewport in layout '{layout.name}', assigned name: {viewport_name}")
 
-                        # Attach metadata to mark it as ours using centralized function
-                        entity.set_xdata(
-                            XDATA_APP_ID,
-                            create_structured_xdata(self.script_identifier, viewport_name, 'VIEWPORT')
-                        )
+                        # Use unified XDATA function - automatically creates structured XDATA for named entities
+                        attach_custom_data(entity, self.script_identifier, viewport_name, 'VIEWPORT')
 
                         discovered.append({
                             'entity': entity,
