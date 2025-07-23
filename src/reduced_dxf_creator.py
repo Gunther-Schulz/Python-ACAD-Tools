@@ -2,7 +2,7 @@ import ezdxf
 from pathlib import Path
 from src.utils import resolve_path, log_info, log_warning, log_error, log_debug
 from src.legend_creator import LegendCreator
-from src.dxf_utils import add_mtext, attach_custom_data, initialize_document, set_drawing_properties, atomic_save_dxf, XDATA_APP_ID, SCRIPT_IDENTIFIER
+from src.dxf_utils import add_mtext, attach_custom_data, initialize_document, set_drawing_properties, atomic_save_dxf, XDATA_APP_ID, SCRIPT_IDENTIFIER, create_simple_xdata
 from src.path_array import create_path_array
 import traceback
 import pkg_resources
@@ -259,8 +259,8 @@ class ReducedDXFCreator:
             )
 
             if mtext:
-                # Attach custom data
-                mtext.set_xdata(XDATA_APP_ID, [(1000, SCRIPT_IDENTIFIER)])
+                # Attach custom data using centralized function
+                mtext.set_xdata(XDATA_APP_ID, create_simple_xdata(SCRIPT_IDENTIFIER))
                 entity_counts['textInserts'] += 1
                 log_debug(f"Added text insert to layer: {layer_name}")
 
@@ -480,14 +480,12 @@ class ReducedDXFCreator:
 
                 # Skip all other entity types
 
-                # Attach DXFEXPORTER identifier to all created entities
-                if new_entity:
-                    # Add standard DXFEXPORTER appID to track entities
-                    try:
-                        new_entity.set_xdata(XDATA_APP_ID, [(1000, SCRIPT_IDENTIFIER)])
-                        entity_count += 1
-                    except Exception as e:
-                        log_warning(f"Failed to add XDATA to entity: {str(e)}")
+                # Add standard DXFEXPORTER appID to track entities using centralized function
+                try:
+                    new_entity.set_xdata(XDATA_APP_ID, create_simple_xdata(SCRIPT_IDENTIFIER))
+                    entity_count += 1
+                except Exception as e:
+                    log_warning(f"Failed to add XDATA to entity: {str(e)}")
 
             except Exception as e:
                 log_warning(f"Failed to copy entity in layer {layer_name}: {str(e)}")

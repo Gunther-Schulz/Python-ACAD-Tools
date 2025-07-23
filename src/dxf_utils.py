@@ -35,6 +35,78 @@ import traceback
 SCRIPT_IDENTIFIER = "Created by DXFExporter"
 XDATA_APP_ID = "DXFEXPORTER"
 
+# XDATA structure constants
+XDATA_ENTITY_NAME_KEY = "ENTITY_NAME"
+XDATA_ENTITY_TYPE_KEY = "ENTITY_TYPE"
+
+def create_simple_xdata(script_identifier):
+    """Create simple XDATA for basic ownership tracking."""
+    return [(1000, script_identifier)]
+
+def create_structured_xdata(script_identifier, entity_name, entity_type=None):
+    """
+    Create structured XDATA for entity identification and searching.
+
+    Args:
+        script_identifier: The script identifier string
+        entity_name: Name of the entity for identification
+        entity_type: Optional entity type (e.g., 'VIEWPORT', 'TEXT')
+
+    Returns:
+        list: XDATA tuple list with consistent structure
+    """
+    xdata = [
+        (1000, script_identifier),
+        (1002, '{'),
+        (1000, XDATA_ENTITY_NAME_KEY),
+        (1000, entity_name),
+    ]
+
+    # Add entity type if provided
+    if entity_type:
+        xdata.extend([
+            (1000, XDATA_ENTITY_TYPE_KEY),
+            (1000, entity_type),
+        ])
+
+    xdata.append((1002, '}'))
+    return xdata
+
+def find_entity_by_xdata_name(space, entity_name, entity_types=None):
+    """
+    Find an entity by its XDATA name using the standardized structure.
+
+    Args:
+        space: DXF space (modelspace or paperspace)
+        entity_name: Name to search for
+        entity_types: Optional list of DXF entity types to filter (e.g., ['TEXT', 'MTEXT'])
+
+    Returns:
+        Entity object if found, None otherwise
+    """
+    for entity in space:
+        if entity_types and entity.dxftype() not in entity_types:
+            continue
+
+        try:
+            xdata = entity.get_xdata(XDATA_APP_ID)
+            if xdata:
+                in_entity_section = False
+                found_name = None
+
+                for code, value in xdata:
+                    if code == 1000 and value == XDATA_ENTITY_NAME_KEY:
+                        in_entity_section = True
+                    elif in_entity_section and code == 1000:
+                        found_name = value
+                        break
+
+                if found_name == entity_name:
+                    return entity
+        except Exception:
+            continue
+    return None
+
 def get_color_code(color, name_to_aci):
     if color is None:
         return 7  # Default to 7 (white) if no color is specified

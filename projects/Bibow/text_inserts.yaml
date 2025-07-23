@@ -40,4 +40,4 @@ textInserts:
   justification: CENTER
 discovery: true
 deletion_policy: confirm
-sync: pull
+sync: push

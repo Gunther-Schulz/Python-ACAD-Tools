@@ -1,7 +1,7 @@
 import traceback
 from ezdxf.lldxf import const
 from src.utils import log_info, log_warning, log_error, log_debug
-from src.dxf_utils import get_color_code, attach_custom_data, XDATA_APP_ID
+from src.dxf_utils import get_color_code, attach_custom_data, XDATA_APP_ID, create_structured_xdata, find_entity_by_xdata_name
 from src.sync_manager_base import SyncManagerBase
 
 class ViewportManager(SyncManagerBase):
@@ -251,13 +251,7 @@ class ViewportManager(SyncManagerBase):
         self.attach_custom_data(viewport, vp_config['name'])
         viewport.set_xdata(
             XDATA_APP_ID,
-            [
-                (1000, self.script_identifier),
-                (1002, '{'),
-                (1000, 'VIEWPORT_NAME'),
-                (1000, vp_config['name']),
-                (1002, '}')
-            ]
+            create_structured_xdata(self.script_identifier, vp_config['name'], 'VIEWPORT')
         )
 
     def _calculate_viewport_center(self, vp_config, width, height):
@@ -306,28 +300,9 @@ class ViewportManager(SyncManagerBase):
     def get_viewport_by_name(self, doc, name):
         """Retrieve a viewport by its name using xdata."""
         for layout in doc.layouts:
-            for entity in layout:
-                if entity.dxftype() == 'VIEWPORT':
-                    try:
-                        xdata = entity.get_xdata(XDATA_APP_ID)
-                        if xdata:
-                            in_viewport_section = False
-                            viewport_name = None
-
-                            for code, value in xdata:
-                                if code == 1000 and value == 'VIEWPORT_NAME':
-                                    in_viewport_section = True
-                                elif in_viewport_section and code == 1000:
-                                    viewport_name = value
-                                    break
-
-                            if viewport_name == name:
-                                return entity
-                    except Exception as e:
-                        # Only log if there's an actual error (not just missing XDATA)
-                        if XDATA_APP_ID not in str(e):
-                            log_debug(f"Error checking viewport {entity.dxf.handle}: {str(e)}")
-                        continue
+            viewport = find_entity_by_xdata_name(layout, name, ['VIEWPORT'])
+            if viewport:
+                return viewport
         return None
 
     def set_clipped_corners(self, viewport, vp_config):
@@ -367,14 +342,9 @@ class ViewportManager(SyncManagerBase):
         except:
             pass
 
-        # Copy hyperlink from original viewport
-        if hasattr(viewport, 'get_hyperlink'):
-            hyperlink = viewport.get_hyperlink()
-            if hyperlink:
-                new_viewport.set_hyperlink(hyperlink)
-        else:
-            # Set hyperlink to viewport name if not already set
-            new_viewport.set_hyperlink(vp_config['name'])
+        # Always set app-controlled hyperlink (NOT copy from original)
+        # The hyperlink should always be controlled by our app, never pulled from AutoCAD
+        new_viewport.set_hyperlink(vp_config['name'])
 
         # Create clipping boundary
         path_points = vp_config['clipPath']
@@ -427,16 +397,10 @@ class ViewportManager(SyncManagerBase):
                         viewport_name = f"Viewport_{str(entity.dxf.handle).zfill(3)}"
                         log_info(f"Discovered manual viewport in layout '{layout.name}', assigned name: {viewport_name}")
 
-                        # Attach metadata to mark it as ours
+                        # Attach metadata to mark it as ours using centralized function
                         entity.set_xdata(
                             XDATA_APP_ID,
-                            [
-                                (1000, self.script_identifier),
-                                (1002, '{'),
-                                (1000, 'VIEWPORT_NAME'),
-                                (1000, viewport_name),
-                                (1002, '}')
-                            ]
+                            create_structured_xdata(self.script_identifier, viewport_name, 'VIEWPORT')
                         )
 
                         discovered.append({
@@ -546,8 +510,8 @@ class ViewportManager(SyncManagerBase):
                     if aci == color_code:
                         config['color'] = name
                         break
-                else:
-                    config['color'] = str(color_code)
+            else:
+                config['color'] = str(color_code)
 
             # Extract frozen layers if any
             if hasattr(entity, 'frozen_layers') and entity.frozen_layers:

@@ -1,6 +1,6 @@
 import traceback
 from src.utils import log_info, log_warning, log_error, log_debug
-from src.dxf_utils import add_mtext, remove_entities_by_layer, ensure_layer_exists, XDATA_APP_ID
+from src.dxf_utils import add_mtext, remove_entities_by_layer, ensure_layer_exists, XDATA_APP_ID, attach_custom_data, create_structured_xdata, find_entity_by_xdata_name
 from src.sync_manager_base import SyncManagerBase
 
 
@@ -122,29 +122,7 @@ class TextInsertManager(SyncManagerBase):
         """Find a text entity by name using custom data."""
         # Text inserts work only in paperspace, not modelspace
         paper_space = doc.paperspace()
-        for entity in paper_space:
-            if entity.dxftype() in ['TEXT', 'MTEXT']:
-                try:
-                    xdata = entity.get_xdata(XDATA_APP_ID)
-                    if xdata:
-                        in_text_section = False
-                        text_name = None
-
-                        for code, value in xdata:
-                            if code == 1000 and value == 'TEXT_NAME':
-                                in_text_section = True
-                            elif in_text_section and code == 1000:
-                                text_name = value
-                                break
-
-                        if text_name == name:
-                            return entity
-                except Exception as e:
-                    # Only log if there's an actual error (not just missing XDATA)
-                    if XDATA_APP_ID not in str(e):
-                        log_debug(f"Error checking text {entity.dxf.handle}: {str(e)}")
-                    continue
-        return None
+        return find_entity_by_xdata_name(paper_space, name, ['TEXT', 'MTEXT'])
 
     def _extract_text_properties(self, text_entity, base_config):
         """Extract text properties from AutoCAD text entity."""
@@ -272,16 +250,14 @@ class TextInsertManager(SyncManagerBase):
 
                     log_info(f"Discovered manual text in PaperSpace, assigned name: {text_name}")
 
-                    # Attach metadata to mark it as ours
+                    # Attach metadata to mark it as ours (same pattern as _attach_entity_metadata)
+                    # First set hyperlink
+                    attach_custom_data(entity, self.script_identifier, text_name)
+
+                    # Then set structured XDATA for searching using centralized function
                     entity.set_xdata(
                         XDATA_APP_ID,
-                        [
-                            (1000, self.script_identifier),
-                            (1002, '{'),
-                            (1000, 'TEXT_NAME'),
-                            (1000, text_name),
-                            (1002, '}')
-                        ]
+                        create_structured_xdata(self.script_identifier, text_name, 'TEXT')
                     )
 
                     discovered.append({
@@ -398,41 +374,17 @@ class TextInsertManager(SyncManagerBase):
 
     def _attach_entity_metadata(self, entity, config):
         """Attach custom metadata to a text entity to mark it as managed by this script."""
+        # First set hyperlink (like ViewportManager does)
+        attach_custom_data(entity, self.script_identifier, config['name'])
+
+        # Then set structured XDATA for searching using centralized function
         entity.set_xdata(
             XDATA_APP_ID,
-            [
-                (1000, self.script_identifier),
-                (1002, '{'),
-                (1000, 'TEXT_NAME'),
-                (1000, config['name']),
-                (1002, '}')
-            ]
+            create_structured_xdata(self.script_identifier, config['name'], 'TEXT')
         )
 
     def _get_text_by_name(self, doc, name):
         """Retrieve a text entity by its name using xdata."""
         # Text inserts work only in paperspace, not modelspace
         paper_space = doc.paperspace()
-        for entity in paper_space:
-            if entity.dxftype() in ['TEXT', 'MTEXT']:
-                try:
-                    xdata = entity.get_xdata(XDATA_APP_ID)
-                    if xdata:
-                        in_text_section = False
-                        text_name = None
-
-                        for code, value in xdata:
-                            if code == 1000 and value == 'TEXT_NAME':
-                                in_text_section = True
-                            elif in_text_section and code == 1000:
-                                text_name = value
-                                break
-
-                        if text_name == name:
-                            return entity
-                except Exception as e:
-                    # Only log if there's an actual error (not just missing XDATA)
-                    if XDATA_APP_ID not in str(e):
-                        log_debug(f"Error checking text {entity.dxf.handle}: {str(e)}")
-                    continue
-        return None
+        return find_entity_by_xdata_name(paper_space, name, ['TEXT', 'MTEXT'])

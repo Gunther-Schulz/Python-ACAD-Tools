@@ -13,11 +13,16 @@ from ezdxf import const
 
 from PIL import Image
 from src.legend_creator import LegendCreator
-from src.dxf_utils import (remove_entities_by_layer, update_layer_properties, attach_custom_data, is_created_by_script,
-                         set_drawing_properties, verify_dxf_settings, update_layer_geometry,
-                         get_style, apply_style_to_entity, create_hatch, SCRIPT_IDENTIFIER, initialize_document,
-                         sanitize_layer_name, add_mtext, atomic_save_dxf, remove_entities_by_layer_optimized,
-                         ensure_layer_exists, XDATA_APP_ID)
+from src.dxf_utils import (
+    get_color_code, attach_custom_data, is_created_by_script,
+    remove_entities_by_layer, ensure_layer_exists, add_text,
+    update_layer_properties, update_layer_geometry, get_style,
+    apply_style_to_entity, set_drawing_properties,
+    initialize_document, sanitize_layer_name, add_mtext,
+    atomic_save_dxf, cleanup_document, SCRIPT_IDENTIFIER,
+    XDATA_APP_ID, XDATA_ENTITY_NAME_KEY, remove_entities_by_layer_optimized,
+    create_hatch, verify_dxf_settings
+)
 from src.path_array import create_path_array
 from src.style_manager import StyleManager
 from src.viewport_manager import ViewportManager
@@ -1007,7 +1012,7 @@ class DXFExporter:
                         if xdata:
                             in_viewport_section = False
                             for code, value in xdata:
-                                if code == 1000 and value == 'VIEWPORT_NAME':
+                                if code == 1000 and value == XDATA_ENTITY_NAME_KEY:
                                     in_viewport_section = True
                                 elif in_viewport_section and code == 1000 and value == name:
                                     return entity
