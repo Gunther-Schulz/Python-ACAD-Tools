@@ -13,8 +13,8 @@ viewports:
   - Gebäude
   lockZoom: true
   _sync:
-    content_hash: 10c45b6fa79efb2b9f363a3f885f6eedfcb4bbb35fd4c1b9926d016757887416
-    last_sync_time: 1753294062
+    content_hash: a8c97594b2e045651239bd6aa76b006db9ac612bdaf1b5b57b82d37145fe0483
+    last_sync_time: 1753295627
     sync_source: yaml
     conflict_policy: prompt
 - name: Viewport_006
@@ -31,8 +31,8 @@ viewports:
   - Gebäude
   lockZoom: true
   _sync:
-    content_hash: dfebc8d70d244069235fb49a3b2fc3bf53c1a7683ed9a81226051bcbdc7c94a3
-    last_sync_time: 1753294062
+    content_hash: 01f50ecd3df33132ae55fd390f6873a2b2cb452248b58dfde976774605f95dbe
+    last_sync_time: 1753295627
     sync_source: yaml
 discovery: true
 deletion_policy: auto

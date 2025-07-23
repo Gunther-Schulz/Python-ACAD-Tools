@@ -108,10 +108,9 @@ class TextSyncSchema(SyncPropertySchema):
             'position',    # {type: 'absolute', x: float, y: float}
             'targetLayer', # string (layer name)
             'paperspace',  # boolean
-            'style',       # string (style name)
-            'justification', # string (justification type)
-            # Note: Intentionally excluding height, color, rotation
-            # These are DXF implementation details, not core content properties
+            # Note: Intentionally excluding style, justification, height, color, rotation
+            # These are formatting/display details, not core content properties
+            # Hash should only care about WHAT text says and WHERE it is, not HOW it looks
         ]
 
     @classmethod

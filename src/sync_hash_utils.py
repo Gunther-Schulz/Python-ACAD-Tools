@@ -16,17 +16,20 @@ def calculate_entity_content_hash(entity_data, entity_type):
     Returns:
         str: SHA-256 hash of entity content
     """
-    # Extract and normalize canonical properties using schema system
+    from src.sync_property_schemas import extract_canonical_sync_properties
+
+    # Extract only the properties that should be used for sync comparison
     canonical_data = extract_canonical_sync_properties(entity_data, entity_type)
 
-    # Create deterministic JSON representation
-    json_str = json.dumps(canonical_data, sort_keys=True, separators=(',', ':'))
+    # Convert to JSON string for consistent hashing
+    json_str = json.dumps(canonical_data, sort_keys=True, ensure_ascii=True)
 
     # Calculate SHA-256 hash
     hash_obj = hashlib.sha256(json_str.encode('utf-8'))
 
-    log_debug(f"Hash calculation for {entity_type} '{entity_data.get('name', 'unnamed')}': "
-             f"canonical_props={list(canonical_data.keys())}, hash={hash_obj.hexdigest()[:12]}...")
+    print(f"Hash calculation for {entity_type} '{entity_data.get('name', 'unnamed')}': "
+          f"canonical_props={list(canonical_data.keys())}, hash={hash_obj.hexdigest()[:12]}...")
+    print(f"  JSON: {json_str}")
 
     return hash_obj.hexdigest()
 
@@ -73,37 +76,49 @@ def update_sync_metadata(entity_config, content_hash, sync_source, conflict_poli
         entity_config['_sync']['conflict_policy'] = conflict_policy
 
 
-def detect_entity_changes(yaml_config, dxf_entity, entity_type, entity_manager=None):
+def detect_entity_changes(yaml_config, dxf_entity, entity_type, entity_manager):
     """
     Detect changes in entity by comparing content hashes.
 
     Args:
         yaml_config: Entity configuration from YAML
-        dxf_entity: DXF entity object (or None if not found)
+        dxf_entity: Corresponding DXF entity (or None if not found)
         entity_type: Type of entity for hash calculation
-        entity_manager: Entity manager instance (ViewportManager, TextInsertManager, etc.)
+        entity_manager: Manager instance with hash extraction method
 
     Returns:
         dict: Change detection results
     """
+    entity_name = yaml_config.get('name', 'unnamed')
+    sync_meta = yaml_config.get('_sync', {})
+
+    print(f"🔍 HASH DEBUG for '{entity_name}' ({entity_type})")
+
     # Get current and stored hashes
     current_yaml_hash = calculate_entity_content_hash(yaml_config, entity_type)
-    sync_meta = get_sync_metadata(yaml_config)
+
     stored_hash = sync_meta['content_hash']
+
+    print(f"  📝 YAML hash: {current_yaml_hash}")
+    print(f"  💾 Stored hash: {stored_hash}")
 
     # Calculate DXF hash if entity exists
     current_dxf_hash = None
-    if dxf_entity and entity_manager:
-        # Use entity manager's method to extract DXF properties
+    if dxf_entity:
         if hasattr(entity_manager, '_extract_dxf_entity_properties_for_hash'):
             dxf_properties = entity_manager._extract_dxf_entity_properties_for_hash(dxf_entity)
-            current_dxf_hash = calculate_entity_content_hash(dxf_properties, entity_type)
-        else:
-            log_warning(f"Entity manager {type(entity_manager)} missing _extract_dxf_entity_properties_for_hash method")
 
-    # Determine changes
+            current_dxf_hash = calculate_entity_content_hash(dxf_properties, entity_type)
+            print(f"  📄 DXF hash: {current_dxf_hash}")
+        else:
+            print(f"Entity manager {type(entity_manager)} missing _extract_dxf_entity_properties_for_hash method")
+
+    # Determine what changed
     yaml_changed = current_yaml_hash != stored_hash if stored_hash else True
     dxf_changed = current_dxf_hash != stored_hash if stored_hash and current_dxf_hash else False
+
+    print(f"  ✅ YAML changed: {yaml_changed} (current != stored: {current_yaml_hash != stored_hash if stored_hash else 'no stored hash'})")
+    print(f"  ✅ DXF changed: {dxf_changed} (current != stored: {current_dxf_hash != stored_hash if stored_hash and current_dxf_hash else 'no DXF hash'})")
 
     # Handle case where no stored hash exists (first time sync)
     if not stored_hash:
@@ -111,18 +126,21 @@ def detect_entity_changes(yaml_config, dxf_entity, entity_type, entity_manager=N
             # Compare current hashes to see if they differ
             yaml_changed = current_yaml_hash != current_dxf_hash
             dxf_changed = False  # Assume YAML is the source if no stored hash
+            print(f"  🆕 No stored hash - comparing YAML vs DXF: {yaml_changed}")
         else:
-            # No DXF entity exists, YAML should be pushed
+            # No DXF entity, YAML should be pushed
             yaml_changed = True
             dxf_changed = False
+            print(f"  🆕 No stored hash, no DXF entity - YAML should be pushed")
 
     return {
         'yaml_changed': yaml_changed,
         'dxf_changed': dxf_changed,
+        'conflict': yaml_changed and dxf_changed,
         'current_yaml_hash': current_yaml_hash,
         'current_dxf_hash': current_dxf_hash,
         'stored_hash': stored_hash,
-        'has_conflict': yaml_changed and dxf_changed
+        'sync_meta': sync_meta
     }
 
 

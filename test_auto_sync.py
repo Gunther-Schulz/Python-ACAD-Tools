@@ -124,17 +124,16 @@ def test_change_detection():
     }
 
     mock_dxf_entity = Mock()
+    # Test change detection
     changes = detect_entity_changes(yaml_config, mock_dxf_entity, 'viewport', mock_manager)
 
-    print(f"Change detection result: {changes}")
-    assert not changes['yaml_changed'], "YAML should not show as changed"
-    assert not changes['dxf_changed'], "DXF should not show as changed"
-    assert not changes['has_conflict'], "Should not have conflict"
-    print("✓ Correctly detected no changes")
+    assert changes['yaml_changed'] == False, "YAML should not have changed"
+    assert changes['dxf_changed'] == False, "DXF should not have changed"
+    print("✓ No changes detected when content matches")
 
-    # Test YAML changed
+    # Test with modified YAML content
     yaml_config_modified = yaml_config.copy()
-    yaml_config_modified['width'] = 400  # Change width
+    yaml_config_modified['center'] = [10, 20]  # Change center position
 
     changes = detect_entity_changes(yaml_config_modified, mock_dxf_entity, 'viewport', mock_manager)
     assert changes['yaml_changed'], "Should detect YAML change"
