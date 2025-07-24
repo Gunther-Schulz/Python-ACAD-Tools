@@ -1,12 +1,22 @@
 viewports:
-  - name: "TestViewport1"
-    center:
-      x: 150
-      y: 150
-    width: 100
-    height: 80
-    viewCenter:
-      x: 0
-      y: 0
-    scale: 1.0
-    layer: "VIEWPORT_LAYER" 
+- name: TestViewport1
+  center:
+    x: 150
+    y: 150
+  width: 100
+  height: 80
+  viewCenter:
+    x: 0
+    y: 0
+  scale: 1.0
+  layer: VIEWPORT_LAYER
+  _sync:
+    dxf_handle: '54'
+    content_hash: 064865616d4d672897ba74711144cbbb7e71cb00c9ee42e3720a2dd832099a79
+    last_sync_time: 1753392533
+    sync_source: yaml
+    entity_handle: '54'
+discover_untracked: false
+deletion_policy: auto
+default_layer: VIEWPORTS
+sync: auto

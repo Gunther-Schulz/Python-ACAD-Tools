@@ -13,7 +13,7 @@ discovery: false
 layers:
   - name: "TEXT_LAYER"
     color: "white"
-  - name: "BLOCK_LAYER" 
+  - name: "BLOCK_LAYER"
     color: "yellow"
   - name: "VIEWPORT_LAYER"
-    color: "cyan" 
+    color: "cyan"

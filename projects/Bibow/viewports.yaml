@@ -14,7 +14,7 @@ viewports:
   lockZoom: true
   _sync:
     content_hash: a8c97594b2e045651239bd6aa76b006db9ac612bdaf1b5b57b82d37145fe0483
-    last_sync_time: 1753389840
+    last_sync_time: 1753393355
     sync_source: yaml
     entity_handle: 3DEC
     dxf_handle: 3DEC
@@ -33,7 +33,7 @@ viewports:
   lockZoom: true
   _sync:
     content_hash: 01f50ecd3df33132ae55fd390f6873a2b2cb452248b58dfde976774605f95dbe
-    last_sync_time: 1753389840
+    last_sync_time: 1753393355
     sync_source: yaml
     entity_handle: 3DED
     dxf_handle: 3DED

@@ -1356,6 +1356,8 @@ class SyncManagerBase(ABC):
             str: Entity name or 'unnamed' if not found
         """
         try:
+            from src.dxf_utils import XDATA_APP_ID, XDATA_ENTITY_NAME_KEY
+
             xdata = entity.get_xdata(XDATA_APP_ID)
             if not xdata:
                 return 'unnamed'
@@ -1363,7 +1365,7 @@ class SyncManagerBase(ABC):
             # Extract entity name
             in_entity_section = False
             for code, value in xdata:
-                if code == 1000 and value == "entity_name":
+                if code == 1000 and value == XDATA_ENTITY_NAME_KEY:  # Use correct constant
                     in_entity_section = True
                 elif in_entity_section and code == 1000:
                     return value
