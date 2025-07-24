@@ -340,7 +340,13 @@ class BlockInsertManager(SyncManagerBase):
                 entity = find_entity_by_xdata_name(space, entity_name, ['INSERT'])
                 if entity and entity.dxftype() == 'INSERT':
                     log_info(f"🔍 DEBUG: ✅ Found block insert '{entity_name}' in {space}")
-                    return entity
+
+                    # Validate entity handle (auto sync integrity check)
+                    if self._validate_entity_handle(entity, entity_name):
+                        return entity
+                    else:
+                        log_info(f"🔍 DEBUG: ❌ Block insert '{entity_name}' failed handle validation (copied entity)")
+                        return None  # Treat as missing to trigger push
 
             log_info(f"🔍 DEBUG: ❌ Block insert '{entity_name}' not found in any space")
             return None

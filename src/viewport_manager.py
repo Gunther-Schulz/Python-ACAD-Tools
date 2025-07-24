@@ -305,7 +305,12 @@ class ViewportManager(SyncManagerBase):
         for layout in doc.layouts:
             viewport = find_entity_by_xdata_name(layout, name, ['VIEWPORT'])
             if viewport:
-                return viewport
+                # Validate entity handle (auto sync integrity check)
+                if self._validate_entity_handle(viewport, name):
+                    return viewport
+                else:
+                    # Entity found but failed validation (copied entity)
+                    return None  # Treat as missing to trigger push
         return None
 
     def set_clipped_corners(self, viewport, vp_config):

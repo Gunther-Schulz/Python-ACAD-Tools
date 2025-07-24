@@ -9,9 +9,9 @@ blockInserts:
     y: 5967201.5467
   paperspace: false
   _sync:
-    content_hash: 63290a7d6e053f4bc820e8e5a69d405866ce791a06e669dc2ba2efb9f43e5dd2
-    last_sync_time: 1753375934
-    sync_source: dxf
+    content_hash: 86fdf5da5d05440354e50ab3b81aeaea8df2c24854f8d48904278fd1d3c70d6d
+    last_sync_time: 1753377116
+    sync_source: yaml
 - name: SO EBS Label2
   blockName: Sonstiges Sondergebiet EBS
   scale: 6.0
@@ -22,9 +22,9 @@ blockInserts:
     y: 5967271.5467
   paperspace: false
   _sync:
-    content_hash: 44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a
-    last_sync_time: 1753373554
-    sync_source: dxf
+    content_hash: 68b7a74f6ae319e85c1aa608c606540fc16e5d7aa77195596033336827500cff
+    last_sync_time: 1753377116
+    sync_source: yaml
 discovery: false
 deletion_policy: confirm
 sync: auto

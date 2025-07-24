@@ -36,6 +36,10 @@ class SyncManagerBase(ABC):
         self.discovery_enabled = project_settings.get(discovery_key, False)
         self.deletion_policy = project_settings.get(deletion_key, 'auto')
 
+        # Extract discovery layers setting
+        discovery_layers_key = f'{entity_type}_discovery_layers'
+        self.discovery_layers = project_settings.get(discovery_layers_key, 'all')
+
         # Validate deletion policy
         valid_deletion_policies = {'auto', 'confirm', 'ignore'}
         if self.deletion_policy not in valid_deletion_policies:
@@ -635,6 +639,78 @@ class SyncManagerBase(ABC):
         """
         return f'{self.entity_type}s'
 
+    def _should_discover_from_layer(self, entity):
+        """
+        Check if an entity should be discovered based on its layer.
+
+        Args:
+            entity: DXF entity object
+
+        Returns:
+            bool: True if entity should be discovered, False otherwise
+        """
+        # If discovery_layers is 'all', discover from all layers
+        if self.discovery_layers == 'all':
+            return True
+
+        # Get entity layer
+        try:
+            entity_layer = getattr(entity.dxf, 'layer', '0')  # Default to layer '0'
+        except:
+            entity_layer = '0'
+
+        # Check if entity layer is in the discovery layers list
+        return entity_layer in self.discovery_layers
+
+    def _validate_entity_handle(self, entity, entity_name):
+        """
+        Validate that an entity's actual handle matches its stored XDATA handle.
+        If handles don't match (copied entity), clean the stale XDATA.
+
+        Args:
+            entity: DXF entity to validate
+            entity_name: Name of the entity for logging
+
+        Returns:
+            bool: True if entity is valid/cleaned, False if entity should be treated as missing
+        """
+        if not entity:
+            return False
+
+        try:
+            # Check if entity has our XDATA
+            xdata = entity.get_xdata(XDATA_APP_ID)
+            if not xdata:
+                # No XDATA - entity is unmanaged, treat as missing for auto sync
+                return False
+
+            # Extract stored handle from XDATA
+            from src.dxf_utils import extract_handle_from_xdata
+            stored_handle = extract_handle_from_xdata(entity)
+            actual_handle = str(entity.dxf.handle)
+
+            if stored_handle == actual_handle:
+                # Valid handle - entity is properly managed
+                return True
+            else:
+                # Handle mismatch - this is a copied entity with stale XDATA
+                log_info(f"Auto sync detected copied {self.entity_type} '{entity_name}' with stale XDATA: "
+                        f"stored_handle={stored_handle}, actual_handle={actual_handle}")
+
+                # Clean stale XDATA to prevent confusion
+                try:
+                    entity.discard_xdata(XDATA_APP_ID)
+                    log_debug(f"Cleaned stale XDATA from copied {self.entity_type} entity '{entity_name}'")
+                except Exception as e:
+                    log_warning(f"Failed to clean stale XDATA from '{entity_name}': {str(e)}")
+
+                # Treat as missing entity (will trigger push to recreate proper tracking)
+                return False
+
+        except Exception as e:
+            log_warning(f"Error validating handle for {self.entity_type} '{entity_name}': {str(e)}")
+            return True  # Assume valid to avoid breaking existing functionality
+
     def _discover_unknown_entities(self, doc, space):
         """
         Centralized discovery logic for unmanaged entities.
@@ -658,6 +734,12 @@ class SyncManagerBase(ABC):
         except:
             configured_names = set()
 
+        # Log discovery configuration
+        if self.discovery_layers == 'all':
+            log_debug(f"Discovery configured for ALL layers")
+        else:
+            log_debug(f"Discovery configured for specific layers: {self.discovery_layers}")
+
         # Search in all relevant spaces for this entity type
         for search_space in self._get_discovery_spaces(doc):
             log_debug(f"Searching for unknown {self.entity_type} entities in {search_space}")
@@ -667,6 +749,12 @@ class SyncManagerBase(ABC):
                     try:
                         # Check if entity should be skipped (e.g., system viewports)
                         if self._should_skip_entity(entity):
+                            continue
+
+                        # Check if entity layer matches discovery filter
+                        if not self._should_discover_from_layer(entity):
+                            entity_layer = getattr(entity.dxf, 'layer', '0')
+                            log_debug(f"Skipping {entity.dxftype()} on layer '{entity_layer}' (not in discovery layers)")
                             continue
 
                         # Check if this entity has our script metadata and validate handle
@@ -682,41 +770,17 @@ class SyncManagerBase(ABC):
                         except:
                             has_our_metadata = False
 
-                        # If entity has our metadata, validate the handle for copy detection
+                        # Skip entities that are already managed by our script
                         if has_our_metadata:
-                            from src.dxf_utils import extract_handle_from_xdata
-                            stored_handle = extract_handle_from_xdata(entity)
-                            actual_handle = str(entity.dxf.handle)
-
-                            if stored_handle == actual_handle:
-                                # Valid metadata - entity is properly managed
-                                has_valid_metadata = True
-                            else:
-                                # Handle mismatch - this is a copy with stale XDATA
-                                log_info(f"Detected copied {self.entity_type} entity with stale XDATA: "
-                                        f"stored_handle={stored_handle}, actual_handle={actual_handle}")
-
-                                # Clean stale XDATA so entity can be rediscovered
-                                try:
-                                    entity.discard_xdata(XDATA_APP_ID)
-                                    log_debug(f"Cleaned stale XDATA from copied {self.entity_type} entity")
-                                except Exception as e:
-                                    log_warning(f"Failed to clean stale XDATA: {str(e)}")
-
-                                # Continue to discovery process (don't skip)
-                                has_valid_metadata = False
-
-                        # Skip entities that are properly managed by our script
-                        if has_valid_metadata:
                             continue
 
                         # Generate a name for this unmanaged entity
                         entity_name = self._generate_entity_name(entity, entity_counter)
 
-                        # Skip if name already exists in configuration
-                        if entity_name in configured_names:
+                        # Ensure unique name by incrementing counter if needed
+                        while entity_name in configured_names:
                             entity_counter += 1
-                            continue
+                            entity_name = self._generate_entity_name(entity, entity_counter)
 
                         log_info(f"Discovered unmanaged {self.entity_type} entity, assigned name: {entity_name}")
 

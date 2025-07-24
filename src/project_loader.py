@@ -69,6 +69,13 @@ class ProjectLoader:
         block_sync = block_inserts.get('sync', 'push') if block_inserts else 'push'
         block_discovery = block_inserts.get('discovery', False) if block_inserts else False
         block_deletion_policy = block_inserts.get('deletion_policy', 'auto') if block_inserts else 'auto'
+        block_discovery_layers = block_inserts.get('discovery_layers', 'all') if block_inserts else 'all'
+
+        # Extract global text insert discovery layers
+        text_discovery_layers = text_inserts.get('discovery_layers', 'all') if text_inserts else 'all'
+
+        # Extract global viewport discovery layers
+        viewport_discovery_layers = viewports.get('discovery_layers', 'all') if viewports else 'all'
 
         # Extract global auto sync conflict resolution setting
         auto_conflict_resolution = main_settings.get('auto_conflict_resolution', 'prompt')
@@ -114,6 +121,21 @@ class ProjectLoader:
                        f"Valid values are: {', '.join(valid_sync_values)}. Using 'skip'.")
             block_sync = 'skip'
 
+        # Validate discovery layers settings
+        def validate_discovery_layers(layers, entity_type):
+            if layers == 'all':
+                return 'all'
+            elif isinstance(layers, list) and all(isinstance(layer, str) for layer in layers):
+                return layers
+            else:
+                log_warning(f"Invalid {entity_type}_discovery_layers '{layers}'. "
+                           f"Must be 'all' or a list of layer names. Using 'all'.")
+                return 'all'
+
+        viewport_discovery_layers = validate_discovery_layers(viewport_discovery_layers, 'viewport')
+        text_discovery_layers = validate_discovery_layers(text_discovery_layers, 'text')
+        block_discovery_layers = validate_discovery_layers(block_discovery_layers, 'block')
+
         # Extract CRS - handle both 'crs' and 'projectCrs' keys for compatibility
         if 'crs' in main_settings:
             self.crs = main_settings['crs']
@@ -156,6 +178,9 @@ class ProjectLoader:
             'block_sync': block_sync,
             'block_discovery': block_discovery,
             'block_deletion_policy': block_deletion_policy,
+            'block_discovery_layers': block_discovery_layers,
+            'text_discovery_layers': text_discovery_layers,
+            'viewport_discovery_layers': viewport_discovery_layers,
 
             # Auto sync settings
             'auto_conflict_resolution': auto_conflict_resolution,

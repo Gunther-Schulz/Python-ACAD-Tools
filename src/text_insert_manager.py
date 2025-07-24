@@ -130,7 +130,16 @@ class TextInsertManager(SyncManagerBase):
         """Find a text entity by name using custom data."""
         # Text inserts work only in paperspace, not modelspace
         paper_space = doc.paperspace()
-        return find_entity_by_xdata_name(paper_space, name, ['TEXT', 'MTEXT'])
+        entity = find_entity_by_xdata_name(paper_space, name, ['TEXT', 'MTEXT'])
+
+        # Validate entity handle (auto sync integrity check)
+        if entity and self._validate_entity_handle(entity, name):
+            return entity
+        elif entity:
+            # Entity found but failed validation (copied entity)
+            return None  # Treat as missing to trigger push
+        else:
+            return None  # Entity not found
 
     def _extract_text_properties(self, text_entity, base_config):
         """Extract text properties from AutoCAD text entity."""
