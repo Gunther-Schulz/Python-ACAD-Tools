@@ -1,12 +1,12 @@
 blockInserts:
-  - name: "Test Block"
-    blockName: "Gesetzlich geschütztes Biotop"
-    scale: 1.0
-    rotation: 0.0
+  - name: "SO EBS Label"
+    blockName: "Sonstiges Sondergebiet EBS"
+    scale: 6.0
+    rotation: 0
     position:
       type: "absolute"
-      x: 100.0
-      y: 100.0
+      x: 282212.5758
+      y: 5967251.5467
     paperspace: false
 
 # Global block insert settings for sync testing
