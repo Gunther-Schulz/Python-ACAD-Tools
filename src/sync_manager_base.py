@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from src.utils import log_info, log_warning, log_error, log_debug
 from src.sync_hash_utils import (
     detect_entity_changes, resolve_sync_conflict, update_sync_metadata,
-    ensure_sync_metadata_complete
+    ensure_sync_metadata_complete, clean_entity_config_for_yaml_output
 )
 from src.dxf_utils import XDATA_APP_ID, attach_custom_data
 
@@ -533,16 +533,187 @@ class SyncManagerBase(ABC):
         """
         pass
 
-    @abstractmethod
     def _write_entity_yaml(self):
         """
         Write updated entity configuration back to YAML file.
-        Should include both entity configs and global settings.
+        Centralized implementation that works for all entity types.
 
         Returns:
             bool: True if successful, False otherwise
         """
-        pass
+        if not self.project_loader:
+            log_warning(f"Cannot write {self.entity_type} YAML - no project_loader available")
+            return False
+
+        try:
+            # Get entity configurations and clean them for YAML output
+            config_key = self._get_config_key()
+            entity_configs = self.project_settings.get(config_key, [])
+
+            cleaned_configs = []
+            for config in entity_configs:
+                cleaned_config = clean_entity_config_for_yaml_output(config)
+                cleaned_configs.append(cleaned_config)
+
+            # Prepare entity data structure
+            yaml_data = {config_key: cleaned_configs}
+
+            # Add global settings using entity type prefix
+            global_settings = self._get_global_settings_for_yaml()
+            yaml_data.update(global_settings)
+
+            # Get YAML filename
+            yaml_filename = self._get_yaml_filename()
+
+            # Write back to YAML file
+            success = self.project_loader.write_yaml_file(yaml_filename, yaml_data)
+            if success:
+                log_info(f"Successfully updated {yaml_filename} with sync changes")
+            else:
+                log_error(f"Failed to write {self.entity_type} configuration back to YAML")
+            return success
+
+        except Exception as e:
+            log_error(f"Error writing {self.entity_type} YAML: {str(e)}")
+            return False
+
+    def _get_global_settings_for_yaml(self):
+        """Get global settings for this entity type to include in YAML."""
+        settings = {}
+        prefix = f'{self.entity_type}_'
+
+        # Standard global settings all entity types support
+        setting_mappings = {
+            'discovery': f'{prefix}discovery',
+            'deletion_policy': f'{prefix}deletion_policy',
+            'default_layer': f'{prefix}default_layer',
+            'sync': f'{prefix}sync'
+        }
+
+        for yaml_key, project_key in setting_mappings.items():
+            if project_key in self.project_settings:
+                settings[yaml_key] = self.project_settings[project_key]
+
+        return settings
+
+    def _get_yaml_filename(self):
+        """Get the YAML filename for this entity type."""
+        # Handle special cases
+        if self.entity_type == 'viewport':
+            return 'viewports.yaml'
+        elif self.entity_type == 'text':
+            return 'text_inserts.yaml'
+        elif self.entity_type == 'block':
+            return 'block_inserts.yaml'
+        else:
+            return f'{self.entity_type}_inserts.yaml'
+
+    def _ensure_entity_layer_exists(self, doc, config):
+        """
+        Ensure the target layer for an entity exists in the document.
+
+        Args:
+            doc: DXF document
+            config: Entity configuration dictionary
+
+        Returns:
+            str: The layer name that was ensured to exist
+        """
+        from src.dxf_utils import ensure_layer_exists
+
+        layer_name = self._resolve_entity_layer(config)
+        ensure_layer_exists(doc, layer_name)
+        return layer_name
+
+    def _get_target_space(self, doc, config):
+        """
+        Get the target space (model or paper) for an entity.
+
+        Args:
+            doc: DXF document
+            config: Entity configuration dictionary
+
+        Returns:
+            Space object (doc.modelspace() or doc.paperspace())
+        """
+        return doc.paperspace() if config.get('paperspace', False) else doc.modelspace()
+
+    def _calculate_entity_hash(self, config):
+        """
+        Calculate content hash for entity configuration.
+        Centralized implementation that works for all entity types.
+
+        Args:
+            config: Entity configuration dictionary
+
+        Returns:
+            str: Content hash for the configuration
+        """
+        try:
+            from src.sync_hash_utils import calculate_entity_content_hash
+            return calculate_entity_content_hash(config, self.entity_type)
+        except Exception as e:
+            log_warning(f"Error calculating hash for {self.entity_type} '{config.get('name', 'unnamed')}': {str(e)}")
+            return "error_hash"
+
+    def _attach_entity_metadata(self, entity, config):
+        """
+        Attach custom metadata to an entity to mark it as managed by this script.
+        Centralized implementation that works for all entity types.
+
+        Args:
+            entity: DXF entity object
+            config: Entity configuration dictionary
+        """
+        try:
+            entity_name = config.get('name', 'unnamed')
+
+            # Calculate content hash for the configuration
+            content_hash = self._calculate_entity_hash(config)
+
+            # Use unified XDATA function with content hash
+            attach_custom_data(
+                entity,
+                self.script_identifier,
+                entity_name=entity_name,
+                entity_type=self.entity_type.upper(),
+                content_hash=content_hash
+            )
+
+            log_debug(f"Attached metadata to {self.entity_type} '{entity_name}'")
+
+        except Exception as e:
+            log_warning(f"Failed to attach metadata to {self.entity_type}: {str(e)}")
+
+    def _centralize_target_layer_cleaning(self, doc, configs_to_process):
+        """
+        Centralized target layer cleaning for entities.
+        Can be overridden by subclasses for entity-specific space handling.
+
+        Args:
+            doc: DXF document
+            configs_to_process: List of configurations to process
+
+        Returns:
+            set: Set of layer names that were cleaned
+        """
+        target_layers = set()
+        for config in configs_to_process:
+            sync_direction = self._get_sync_direction(config)
+            if sync_direction == 'push':
+                layer_name = self._resolve_entity_layer(config)
+                target_layers.add(layer_name)
+
+        # Remove existing entities from layers that will be updated
+        # Default: clean from both model and paper space
+        for layer_name in target_layers:
+            spaces = [doc.modelspace(), doc.paperspace()]
+            for space in spaces:
+                log_debug(f"Cleaning {self.entity_type} entities from layer: {layer_name} in {space}")
+                from src.dxf_utils import remove_entities_by_layer
+                remove_entities_by_layer(space, layer_name, self.script_identifier)
+
+        return target_layers
 
     def _should_write_explicit_sync(self, entity_sync, global_sync):
         """
@@ -572,47 +743,6 @@ class SyncManagerBase(ABC):
         # This is a placeholder - each entity manager should implement their own
         log_debug(f"Default _find_entity_by_name called for '{entity_name}' - should be overridden")
         return None
-
-    @abstractmethod
-    def _calculate_entity_hash(self, config):
-        """
-        Calculate content hash for an entity configuration.
-
-        Args:
-            config: Entity configuration dictionary
-
-        Returns:
-            str: Content hash for the entity
-        """
-        pass
-
-    # Centralized XDATA and Discovery Methods
-    # =======================================
-
-    def _get_entity_name_from_xdata(self, entity):
-        """
-        Extract entity name from XDATA attached to DXF entity.
-
-        This method is centralized to ensure consistent XDATA parsing across all entity types.
-
-        Args:
-            entity: DXF entity object
-
-        Returns:
-            str: Entity name if found, "unknown" if not found
-        """
-        try:
-            xdata = entity.get_xdata(XDATA_APP_ID)
-            if xdata:
-                found_name_key = False
-                for code, value in xdata:
-                    if code == 1000 and value == "ENTITY_NAME":
-                        found_name_key = True
-                    elif found_name_key and code == 1000:
-                        return value
-        except Exception:
-            pass
-        return "unknown"
 
     @abstractmethod
     def _get_entity_types(self):

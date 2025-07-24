@@ -45,47 +45,7 @@ class ViewportManager(SyncManagerBase):
             log_error(f"Error during viewport synchronization: {str(e)}")
             return {}
 
-    def _write_entity_yaml(self):
-        """Write updated viewport configuration back to YAML file."""
-        if not self.project_loader:
-            log_warning("Cannot write viewport YAML - no project_loader available")
-            return False
-
-        try:
-            # Clean and prepare viewport configurations for YAML output
-            cleaned_viewports = []
-            for viewport_config in self.project_settings.get('viewports', []):
-                # Clean the configuration for YAML output (handles sync metadata properly)
-                cleaned_config = clean_entity_config_for_yaml_output(viewport_config)
-                cleaned_viewports.append(cleaned_config)
-
-            # Prepare viewport data structure
-            viewport_data = {
-                'viewports': cleaned_viewports
-            }
-
-            # Add global viewport settings using new generalized structure
-            if 'viewport_discovery' in self.project_settings:
-                viewport_data['discovery'] = self.project_settings['viewport_discovery']
-            if 'viewport_deletion_policy' in self.project_settings:
-                viewport_data['deletion_policy'] = self.project_settings['viewport_deletion_policy']
-            if 'viewport_default_layer' in self.project_settings:
-                viewport_data['default_layer'] = self.project_settings['viewport_default_layer']
-            if 'viewport_sync' in self.project_settings:
-                viewport_data['sync'] = self.project_settings['viewport_sync']
-
-            # Write back to viewports.yaml
-            success = self.project_loader.write_yaml_file('viewports.yaml', viewport_data)
-            if success:
-                log_info("Successfully updated viewports.yaml with sync changes")
-            else:
-                log_error("Failed to write viewport configuration back to YAML")
-            return success
-
-        except Exception as e:
-            log_error(f"Error writing viewport YAML: {str(e)}")
-            log_error(f"Traceback: {traceback.format_exc()}")
-            return False
+    # _write_entity_yaml is now centralized in SyncManagerBase
 
     def _sync_push(self, doc, space, config):
         """Sync YAML → AutoCAD (create/update viewport from config)."""

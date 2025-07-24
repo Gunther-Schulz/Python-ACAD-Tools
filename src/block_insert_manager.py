@@ -4,7 +4,7 @@ from shapely.geometry import Point
 from src.utils import log_info, log_warning, log_error, log_debug
 from src.dxf_utils import add_block_reference, remove_entities_by_layer, attach_custom_data, find_entity_by_xdata_name, XDATA_APP_ID
 from src.sync_manager_base import SyncManagerBase
-from src.sync_hash_utils import calculate_entity_content_hash, clean_entity_config_for_yaml_output
+from src.sync_hash_utils import clean_entity_config_for_yaml_output
 
 
 class BlockInsertManager(SyncManagerBase):
@@ -33,22 +33,8 @@ class BlockInsertManager(SyncManagerBase):
         log_debug(f"Processed {len(processed_blocks)} block inserts using sync system")
 
     def clean_target_layers(self, doc, configs_to_process):
-        """Clean target layers for block configs that will be processed."""
-        layers_to_clean = set()
-        for config in configs_to_process:
-            sync_direction = self._get_sync_direction(config)
-            if sync_direction == 'push':
-                # Use unified layer resolution
-                layer_name = self._resolve_entity_layer(config)
-                layers_to_clean.add(layer_name)
-
-        # Remove existing block references from layers that will be updated
-        for layer_name in layers_to_clean:
-            # Blocks can be in both model space and paper space
-            spaces = [doc.modelspace(), doc.paperspace()]
-            for space in spaces:
-                log_debug(f"Cleaning block entities from layer: {layer_name} in {space}")
-                remove_entities_by_layer(space, layer_name, self.script_identifier)
+        """Clean target layers for block configs (both spaces). Uses centralized logic."""
+        return self._centralize_target_layer_cleaning(doc, configs_to_process)
 
     def process_inserts(self, msp, insert_type='block'):
         configs = self.project_settings.get(f'{insert_type}Inserts', [])
@@ -94,8 +80,8 @@ class BlockInsertManager(SyncManagerBase):
         points_and_rotations = self.get_insertion_points(config.get('position', {}))
         name = config.get('name')
 
-        # Determine layer for block insert
-        layer_name = self._resolve_entity_layer(config)
+                # Determine layer for block insert and ensure it exists (centralized)
+        layer_name = self._ensure_entity_layer_exists(space.doc, config)
 
         for point_data in points_and_rotations:
             # Handle both 2-tuple (point, rotation) and 3-tuple (x, y, rotation) formats
@@ -245,9 +231,8 @@ class BlockInsertManager(SyncManagerBase):
         name = config.get('name', 'unnamed')
 
         try:
-            # Use existing insert_blocks method but for single config
-            # Get the correct space for this insert
-            target_space = doc.paperspace() if config.get('paperspace', False) else doc.modelspace()
+            # Get the correct space for this insert (centralized)
+            target_space = self._get_target_space(doc, config)
 
             # Use existing logic to get insertion points
             points_and_rotations = self.get_insertion_points(config.get('position', {}))
@@ -271,8 +256,8 @@ class BlockInsertManager(SyncManagerBase):
             # Use the calculated rotation if available, otherwise use config rotation
             final_rotation = rotation if rotation is not None else config.get('rotation', 0)
 
-            # Determine layer for block insert
-            layer_name = self._resolve_entity_layer(config)
+            # Determine layer for block insert and ensure it exists (centralized)
+            layer_name = self._ensure_entity_layer_exists(doc, config)
 
             block_ref = add_block_reference(
                 target_space,
@@ -364,13 +349,7 @@ class BlockInsertManager(SyncManagerBase):
             log_warning(f"Full traceback: {traceback.format_exc()}")
             return None
 
-    def _calculate_entity_hash(self, config):
-        """Calculate content hash for block insert configuration."""
-        try:
-            return calculate_entity_content_hash(config, 'block')
-        except Exception as e:
-            log_warning(f"Error calculating hash for block insert '{config.get('name', 'unnamed')}': {str(e)}")
-            return "error_hash"
+    # _calculate_entity_hash is now centralized in SyncManagerBase
 
     def _extract_dxf_entity_properties_for_hash(self, dxf_entity):
         """Extract properties from DXF block insert entity for hash calculation."""
@@ -418,85 +397,11 @@ class BlockInsertManager(SyncManagerBase):
             log_warning(f"Error extracting DXF properties for block insert: {str(e)}")
             return {}
 
-    def _write_entity_yaml(self):
-        """Write updated block insert configuration back to YAML file."""
-        if not self.project_loader:
-            log_warning("Cannot write block insert YAML - no project_loader available")
-            return False
-
-        try:
-            # Clean and prepare block insert configurations for YAML output
-            cleaned_block_inserts = []
-            for block_config in self.project_settings.get('blockInserts', []):
-                # Clean the configuration for YAML output (handles sync metadata properly)
-                cleaned_config = clean_entity_config_for_yaml_output(block_config)
-                cleaned_block_inserts.append(cleaned_config)
-
-            # Prepare block insert data structure
-            block_data = {
-                'blockInserts': cleaned_block_inserts
-            }
-
-            # Add global block insert settings
-            if 'block_discovery' in self.project_settings:
-                block_data['discovery'] = self.project_settings['block_discovery']
-            if 'block_deletion_policy' in self.project_settings:
-                block_data['deletion_policy'] = self.project_settings['block_deletion_policy']
-            if 'block_default_layer' in self.project_settings:
-                block_data['default_layer'] = self.project_settings['block_default_layer']
-            if 'block_sync' in self.project_settings:
-                block_data['sync'] = self.project_settings['block_sync']
-
-            # Write back to block_inserts.yaml
-            success = self.project_loader.write_yaml_file('block_inserts.yaml', block_data)
-            if success:
-                log_info("Successfully updated block_inserts.yaml with sync changes")
-            else:
-                log_error("Failed to write block insert configuration back to YAML")
-            return success
-
-        except Exception as e:
-            log_error(f"Error writing block insert YAML: {str(e)}")
-            return False
+    # _write_entity_yaml is now centralized in SyncManagerBase
 
 
 
-    def _attach_entity_metadata(self, entity, config):
-        """Attach metadata to block insert entity for sync tracking."""
-        try:
-            entity_name = config.get('name', 'unnamed')
-            log_info(f"🔧 DEBUG: Attaching XDATA to block '{entity_name}'")
-            log_info(f"🔧 DEBUG: Block entity type: {entity.dxftype()}")
-            log_info(f"🔧 DEBUG: Block layer: {getattr(entity.dxf, 'layer', 'unknown')}")
-
-            # Calculate content hash for the entity
-            content_hash = self._calculate_entity_hash(config)
-
-            # Attach custom data with content hash
-            attach_custom_data(
-                entity,
-                self.script_identifier,
-                entity_name=entity_name,
-                entity_type='block',
-                content_hash=content_hash
-            )
-
-            # Verify XDATA was attached
-            if hasattr(entity, 'get_xdata'):
-                xdata = entity.get_xdata(XDATA_APP_ID)
-                if xdata:
-                    log_info(f"🔧 DEBUG: XDATA successfully attached: {xdata}")
-                else:
-                    log_warning(f"🔧 DEBUG: XDATA attachment failed - no XDATA found!")
-            else:
-                log_warning(f"🔧 DEBUG: Entity doesn't support XDATA!")
-
-            log_debug(f"Attached metadata to block insert '{entity_name}'")
-
-        except Exception as e:
-            import traceback
-            log_warning(f"Failed to attach metadata to block insert: {repr(e)}")
-            log_warning(f"Full traceback: {traceback.format_exc()}")
+    # _attach_entity_metadata is now centralized in SyncManagerBase
 
 
 

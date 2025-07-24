@@ -1,8 +1,8 @@
 import traceback
 from src.utils import log_info, log_warning, log_error, log_debug
-from src.dxf_utils import add_mtext, remove_entities_by_layer, ensure_layer_exists, XDATA_APP_ID, attach_custom_data, find_entity_by_xdata_name
+from src.dxf_utils import add_mtext, remove_entities_by_layer, XDATA_APP_ID, attach_custom_data, find_entity_by_xdata_name
 from src.sync_manager_base import SyncManagerBase
-from src.sync_hash_utils import calculate_entity_content_hash, clean_entity_config_for_yaml_output
+from src.sync_hash_utils import clean_entity_config_for_yaml_output
 
 
 class TextInsertManager(SyncManagerBase):
@@ -25,11 +25,8 @@ class TextInsertManager(SyncManagerBase):
         name = config.get('name', 'unnamed')
 
         try:
-            # Get target layer using unified layer resolution
-            layer_name = self._resolve_entity_layer(config)
-
-            # Ensure layer exists
-            ensure_layer_exists(doc, layer_name)
+            # Get target layer and ensure it exists (centralized)
+            layer_name = self._ensure_entity_layer_exists(doc, config)
 
             # Get text properties
             text = config.get('text', '')
@@ -51,8 +48,8 @@ class TextInsertManager(SyncManagerBase):
                 if not warning_generated and style and 'text' in style:
                     text_style = style['text']
 
-            # Get the correct space (model or paper)
-            target_space = doc.paperspace() if config.get('paperspace', False) else doc.modelspace()
+            # Get the correct space (model or paper) - centralized
+            target_space = self._get_target_space(doc, config)
 
             # Create MTEXT entity
             result = add_mtext(
@@ -181,49 +178,10 @@ class TextInsertManager(SyncManagerBase):
             log_error(f"Error extracting text properties: {str(e)}")
             return {'name': base_config['name']}
 
-    def _write_entity_yaml(self):
-        """Write updated text insert configuration back to YAML file."""
-        if not self.project_loader:
-            log_warning("Cannot write text insert YAML - no project_loader available")
-            return False
-
-        try:
-            # Clean and prepare text insert configurations for YAML output
-            cleaned_text_inserts = []
-            for text_config in self.project_settings.get('textInserts', []):
-                # Clean the configuration for YAML output (handles sync metadata properly)
-                cleaned_config = clean_entity_config_for_yaml_output(text_config)
-                cleaned_text_inserts.append(cleaned_config)
-
-            # Prepare text insert data structure
-            text_data = {
-                'textInserts': cleaned_text_inserts
-            }
-
-            # Add global text insert settings using new generalized structure
-            if 'text_discovery' in self.project_settings:
-                text_data['discovery'] = self.project_settings['text_discovery']
-            if 'text_deletion_policy' in self.project_settings:
-                text_data['deletion_policy'] = self.project_settings['text_deletion_policy']
-            if 'text_default_layer' in self.project_settings:
-                text_data['default_layer'] = self.project_settings['text_default_layer']
-            if 'text_sync' in self.project_settings:
-                text_data['sync'] = self.project_settings['text_sync']
-
-            # Write back to text_inserts.yaml
-            success = self.project_loader.write_yaml_file('text_inserts.yaml', text_data)
-            if success:
-                log_info("Successfully updated text_inserts.yaml with sync changes")
-            else:
-                log_error("Failed to write text insert configuration back to YAML")
-            return success
-
-        except Exception as e:
-            log_error(f"Error writing text insert YAML: {str(e)}")
-            return False
+    # _write_entity_yaml is now centralized in SyncManagerBase
 
     def clean_target_layers(self, doc, configs_to_process):
-        """Clean target layers for configs that will be processed."""
+        """Clean target layers for text configs (paperspace only)."""
         target_layers = set()
         for config in configs_to_process:
             sync_direction = self._get_sync_direction(config)
@@ -231,7 +189,6 @@ class TextInsertManager(SyncManagerBase):
                 layer_name = self._resolve_entity_layer(config)
                 target_layers.add(layer_name)
 
-        # Remove existing entities from layers that will be updated
         # Text inserts work only in paperspace, not modelspace
         for layer_name in target_layers:
             log_debug(f"Cleaning text entities from layer: {layer_name}")
@@ -352,17 +309,7 @@ class TextInsertManager(SyncManagerBase):
             # Don't add explicit sync settings - let entity inherit global default
             return minimal_config
 
-    def _attach_entity_metadata(self, entity, config):
-        """Attach custom metadata to a text entity to mark it as managed by this script."""
-        # Calculate content hash for the configuration
-        content_hash = self._calculate_entity_hash(config)
-
-        # Use unified XDATA function with content hash
-        attach_custom_data(entity, self.script_identifier, config['name'], 'TEXT', content_hash)
-
-    def _calculate_entity_hash(self, config):
-        """Calculate content hash for a text insert configuration."""
-        return calculate_entity_content_hash(config, 'text')
+    # _attach_entity_metadata and _calculate_entity_hash are now centralized in SyncManagerBase
 
     def _find_entity_by_name(self, doc, entity_name):
         """Find a text entity by name."""
