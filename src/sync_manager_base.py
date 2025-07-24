@@ -37,7 +37,7 @@ class SyncManagerBase(ABC):
         self.deletion_policy = project_settings.get(deletion_key, 'auto')
 
         # Extract discovery layers setting
-        discovery_layers_key = f'{entity_type}_discovery_layers'
+        discovery_layers_key = f'{entity_type}_discover_untracked_layers'
         self.discovery_layers = project_settings.get(discovery_layers_key, 'all')
 
         # Extract default layer setting for unified layer handling
@@ -541,6 +541,17 @@ class SyncManagerBase(ABC):
                 if not xdata:
                     continue
 
+                # Check if entity was created by THIS sync manager's script_identifier
+                # (not by other app facilities like DXFExporter, LegendCreator, etc.)
+                entity_script_id = None
+                for code, value in xdata:
+                    if code == 1000:  # First string in XDATA is always script_identifier
+                        entity_script_id = value
+                        break
+
+                if entity_script_id != self.script_identifier:
+                    continue  # Skip entities created by other parts of the app
+
                 # Extract entity name from XDATA
                 entity_name = self._get_entity_name_from_xdata(entity)
 
@@ -567,7 +578,7 @@ class SyncManagerBase(ABC):
 
     def _auto_delete_orphaned_entities(self, orphaned_entities):
         """
-        Automatically delete orphaned entities from DXF.
+        Automatically delete orphaned entities from DXF using centralized deletion utilities.
 
         Args:
             orphaned_entities: List of (entity, entity_name) tuples
@@ -575,14 +586,13 @@ class SyncManagerBase(ABC):
         Returns:
             int: Number of entities deleted
         """
-        deleted_count = 0
-        for entity, entity_name in orphaned_entities:
-            try:
-                entity.destroy()
-                log_info(f"🗑️  AUTO-DELETED: Orphaned {self.entity_type} '{entity_name}' from DXF")
-                deleted_count += 1
-            except Exception as e:
-                log_warning(f"Failed to delete orphaned {self.entity_type} '{entity_name}': {str(e)}")
+        from src.dxf_utils import delete_entities_clean
+
+        # Use centralized deletion function from dxf_utils
+        deleted_count = delete_entities_clean(orphaned_entities)
+
+        if deleted_count > 0:
+            log_info(f"🗑️  AUTO-DELETED: {deleted_count} orphaned {self.entity_type}s from DXF")
 
         return deleted_count
 

@@ -60,7 +60,7 @@ class ViewportManager(SyncManagerBase):
 
         self._update_viewport_properties(viewport, config)
         self._update_viewport_layers(doc, viewport, config)
-        self._attach_viewport_metadata(viewport, config)
+        self._attach_entity_metadata(viewport, config)  # Use centralized method
         self.viewports[name] = viewport
         return viewport
 
@@ -132,16 +132,21 @@ class ViewportManager(SyncManagerBase):
         view_center_point = self._get_view_center_point(vp_config)
         view_height = self._calculate_view_height(height, vp_config)
 
-        viewport = paper_space.add_viewport(
-            center=(center_x, center_y),
-            size=(width, height),
-            view_center_point=view_center_point,
-            view_height=view_height
-        )
-        viewport.dxf.status = 1
-        viewport.dxf.layer = viewport_layer
+        try:
+            viewport = paper_space.add_viewport(
+                center=(center_x, center_y),
+                size=(width, height),
+                view_center_point=view_center_point,
+                view_height=view_height
+            )
 
-        return viewport
+            viewport.dxf.status = 1
+            viewport.dxf.layer = viewport_layer
+
+            return viewport
+        except Exception as e:
+            log_error(f"Error creating viewport: {str(e)}")
+            return None
 
     def set_viewport_2d_properties(self, viewport):
         """Set viewport properties to ensure strict 2D behavior."""
@@ -206,13 +211,7 @@ class ViewportManager(SyncManagerBase):
             # Filter out non-existent layers
             viewport.frozen_layers = [layer for layer in vp_config['frozenLayers'] if layer in all_layers]
 
-    def _attach_viewport_metadata(self, viewport, vp_config):
-        """Attaches custom data and identifiers to the viewport."""
-        # Calculate content hash for the configuration
-        content_hash = self._calculate_entity_hash(vp_config)
 
-        # Use unified XDATA function with content hash
-        attach_custom_data(viewport, self.script_identifier, vp_config['name'], 'VIEWPORT', content_hash)
 
     def _calculate_viewport_center(self, vp_config, width, height):
         """Calculates the center point for a new viewport."""
@@ -323,7 +322,7 @@ class ViewportManager(SyncManagerBase):
         pspace.delete_entity(viewport)
 
         # Attach metadata to new viewport
-        self._attach_viewport_metadata(new_viewport, vp_config)
+        self._attach_entity_metadata(new_viewport, vp_config)
 
         return new_viewport
 
@@ -448,11 +447,26 @@ class ViewportManager(SyncManagerBase):
 
     def _attach_entity_metadata(self, entity, config):
         """Attach custom metadata to a viewport to mark it as managed by this script."""
-        self._attach_viewport_metadata(entity, config)
+        entity_name = config.get('name', 'unnamed')
+        content_hash = self._calculate_entity_hash(config)
+        entity_handle = str(entity.dxf.handle)
 
-    def _calculate_entity_hash(self, config):
-        """Calculate content hash for a viewport configuration."""
-        return calculate_entity_content_hash(config, 'viewport')
+        from src.dxf_utils import attach_custom_data
+        attach_custom_data(
+            entity,
+            self.script_identifier,
+            entity_name=entity_name,
+            entity_type=self.entity_type.upper(),
+            content_hash=content_hash,
+            entity_handle=entity_handle
+        )
+
+        # Store handle in config for tracking
+        if '_sync' not in config:
+            config['_sync'] = {}
+        config['_sync']['dxf_handle'] = entity_handle
+
+
 
     def _find_entity_by_name(self, doc, entity_name):
         """Find a viewport entity by name."""
@@ -527,6 +541,22 @@ class ViewportManager(SyncManagerBase):
 
     # Abstract method implementations for centralized discovery
     # ========================================================
+
+    def _get_target_space(self, doc, config):
+        """
+        Get the target space for viewport entities.
+
+        Override base class behavior because viewports are ALWAYS in paperspace,
+        regardless of the 'paperspace' setting in the YAML config.
+
+        Args:
+            doc: DXF document
+            config: Entity configuration dictionary (ignored for viewports)
+
+        Returns:
+            Space object - always returns paperspace for viewports
+        """
+        return doc.paperspace()  # Viewports are always in paperspace
 
     def _get_entity_types(self):
         """Viewport entities: VIEWPORT only."""

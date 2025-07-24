@@ -1,0 +1,21 @@
+blocks:
+- name: TestBlock1
+  blockName: STANDARD_BLOCK
+  position:
+    type: absolute
+    x: 200
+    y: 200
+  scale: 1.0
+  rotation: 0
+  layer: BLOCK_LAYER
+  paperspace: false
+  _sync:
+    dxf_handle: '44'
+    content_hash: b78f41fd509a1184dffab2c089187e5b01b0c0e9adae0c5fa8957fa24c35991b
+    last_sync_time: 1753390542
+    sync_source: yaml
+    entity_handle: '44'
+discover_untracked: false
+deletion_policy: auto
+default_layer: BLOCKS
+sync: push

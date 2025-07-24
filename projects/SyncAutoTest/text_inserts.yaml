@@ -1,0 +1,19 @@
+texts:
+- name: TestText1
+  text: Hello Sync Auto
+  position:
+    type: absolute
+    x: 100
+    y: 100
+  layer: TEXT_LAYER
+  paperspace: true
+  _sync:
+    dxf_handle: '46'
+    content_hash: f23a5be04226766a4cd6df65a190cee770e5311c4101eb39dc5da67f59c7cc78
+    last_sync_time: 1753390542
+    sync_source: yaml
+    entity_handle: '46'
+discover_untracked: false
+deletion_policy: auto
+default_layer: Plantext
+sync: push

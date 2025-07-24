@@ -71,15 +71,15 @@ class ProjectLoader:
         block_sync = block_inserts.get('sync', 'push') if block_inserts else 'push'
         block_discovery = block_inserts.get('discover_untracked', False) if block_inserts else False
         block_deletion_policy = block_inserts.get('deletion_policy', 'auto') if block_inserts else 'auto'
-        block_discovery_layers = block_inserts.get('discovery_layers', 'all') if block_inserts else 'all'
+        block_discovery_layers = block_inserts.get('discover_untracked_layers', 'all') if block_inserts else 'all'
         # Add support for global default layer for block inserts
         block_default_layer = block_inserts.get('default_layer', 'BLOCKS') if block_inserts else 'BLOCKS'
 
         # Extract global text insert discovery layers
-        text_discovery_layers = text_inserts.get('discovery_layers', 'all') if text_inserts else 'all'
+        text_discovery_layers = text_inserts.get('discover_untracked_layers', 'all') if text_inserts else 'all'
 
         # Extract global viewport discovery layers
-        viewport_discovery_layers = viewports.get('discovery_layers', 'all') if viewports else 'all'
+        viewport_discovery_layers = viewports.get('discover_untracked_layers', 'all') if viewports else 'all'
 
         # Extract global auto sync conflict resolution setting
         auto_conflict_resolution = main_settings.get('auto_conflict_resolution', 'prompt')
@@ -140,13 +140,11 @@ class ProjectLoader:
         text_discovery_layers = validate_discovery_layers(text_discovery_layers, 'text')
         block_discovery_layers = validate_discovery_layers(block_discovery_layers, 'block')
 
-        # Extract CRS - handle both 'crs' and 'projectCrs' keys for compatibility
+        # Extract CRS
         if 'crs' in main_settings:
             self.crs = main_settings['crs']
-        elif 'projectCrs' in main_settings:
-            self.crs = main_settings['projectCrs']
         else:
-            log_error("No CRS specified in project settings. Please add 'crs' or 'projectCrs' to project.yaml")
+            log_error("No CRS specified in project settings. Please add 'crs' to project.yaml")
             raise ValueError("Missing CRS in project settings")
 
         # Check for duplicate layer names
@@ -183,23 +181,21 @@ class ProjectLoader:
             'block_sync': block_sync,
             'block_discovery': block_discovery,
             'block_deletion_policy': block_deletion_policy,
-            'block_discovery_layers': block_discovery_layers,
+            'block_discover_untracked_layers': block_discovery_layers,
             'block_default_layer': block_default_layer,
-            'text_discovery_layers': text_discovery_layers,
-            'viewport_discovery_layers': viewport_discovery_layers,
+            'text_discover_untracked_layers': text_discovery_layers,
+            'viewport_discover_untracked_layers': viewport_discovery_layers,
 
             # Auto sync settings
             'auto_conflict_resolution': auto_conflict_resolution,
         }
 
         # Process core settings
-        # Extract DXF filename - handle both 'dxfFilename' and 'dxfFile' keys for compatibility
+        # Extract DXF filename
         if 'dxfFilename' in self.project_settings:
             dxf_file_key = 'dxfFilename'
-        elif 'dxfFile' in self.project_settings:
-            dxf_file_key = 'dxfFile'
         else:
-            log_error("No DXF file specified in project settings. Please add 'dxfFilename' or 'dxfFile' to project.yaml")
+            log_error("No DXF file specified in project settings. Please add 'dxfFilename' to project.yaml")
             raise ValueError("Missing DXF file in project settings")
 
         self.dxf_filename = resolve_path(self.project_settings[dxf_file_key], self.folder_prefix)

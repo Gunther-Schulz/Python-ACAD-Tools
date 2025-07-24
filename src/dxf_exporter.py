@@ -49,7 +49,7 @@ class DXFExporter:
         self.setup_layers()
         self.viewport_manager = ViewportManager(
             self.project_settings,
-            self.script_identifier,
+            "Created by ViewportSync",  # Unique identifier for sync-managed viewports
             self.name_to_aci,
             self.style_manager,
             self.project_loader  # Pass project_loader for YAML write-back
@@ -58,11 +58,11 @@ class DXFExporter:
         self.block_insert_manager = BlockInsertManager(
             project_loader,
             self.all_layers,
-            self.script_identifier
+            "Created by BlockSync"  # Unique identifier for sync-managed blocks
         )
         self.text_insert_manager = TextInsertManager(
             self.project_settings,
-            self.script_identifier,
+            "Created by TextSync",  # Unique identifier for sync-managed texts
             self.style_manager,
             self.name_to_aci,
             self.project_loader  # Pass project_loader for YAML write-back

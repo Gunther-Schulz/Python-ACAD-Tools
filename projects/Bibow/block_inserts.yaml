@@ -11,7 +11,7 @@ blocks:
   _sync:
     dxf_handle: 3DCA
     content_hash: 86fdf5da5d05440354e50ab3b81aeaea8df2c24854f8d48904278fd1d3c70d6d
-    last_sync_time: 1753385315
+    last_sync_time: 1753389840
     sync_source: yaml
     entity_handle: 3DCA
 - name: SO EBS Label2
@@ -26,7 +26,7 @@ blocks:
   _sync:
     dxf_handle: 3DCC
     content_hash: 68b7a74f6ae319e85c1aa608c606540fc16e5d7aa77195596033336827500cff
-    last_sync_time: 1753385315
+    last_sync_time: 1753389840
     sync_source: yaml
     entity_handle: 3DCC
 discover_untracked: false

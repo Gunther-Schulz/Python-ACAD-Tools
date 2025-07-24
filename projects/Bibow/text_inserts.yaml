@@ -12,7 +12,7 @@ texts:
   _sync:
     dxf_handle: 3DCF
     content_hash: 29e647205a591aed05ad706f4bd33b41204230d52dfa9da15af66c5b2832947f
-    last_sync_time: 1753385315
+    last_sync_time: 1753389840
     sync_source: yaml
     entity_handle: 3DCF
 - name: Map Header
@@ -27,7 +27,7 @@ texts:
   _sync:
     dxf_handle: 3DD0
     content_hash: a14229b80a7739504037bac7afbf275160d4caecc7ebbd15e497bcfac6a55298
-    last_sync_time: 1753385315
+    last_sync_time: 1753389840
     sync_source: yaml
     entity_handle: 3DD0
 - name: Übersichtslarte Header
@@ -42,7 +42,7 @@ texts:
   _sync:
     dxf_handle: 3DD1
     content_hash: 81bcc8f68c649a1e777204ba018cc29f805fb622003bd625a09799bdd57c86d0
-    last_sync_time: 1753385315
+    last_sync_time: 1753389840
     sync_source: yaml
     entity_handle: 3DD1
 - name: Satzung
@@ -59,9 +59,70 @@ texts:
   _sync:
     dxf_handle: 3DD2
     content_hash: eee98bc31194fc79e2fafdfe44d9b2da9c4c2a20a91cc690e5c032e99ae73bd5
-    last_sync_time: 1753385315
+    last_sync_time: 1753389840
     sync_source: yaml
     entity_handle: 3DD2
+- name: Text_pqlEntwurf_vorhabensbezogener_Bebauungsplan
+  position:
+    type: absolute
+    x: 66.0
+    y: 840.0
+  text: 'Entwurf: vorhabensbezogener Bebauungsplan Nr. 06 „Solarpark an der Lindenallee"\nder
+    Gemeinde Torgelow am See'
+  layer: Plantext
+  paperspace: false
+  style: Arial
+  _sync:
+    dxf_handle: 3DD3
+    content_hash: 7e949960ec73986e30b24b8cda77a9330af0635481be3c4cd9b0a7d9b8e5e14a
+    last_sync_time: 1753389840
+    sync_source: yaml
+    entity_handle: 3DD3
+- name: Text_Teil_A_Planzeichnung
+  position:
+    type: absolute
+    x: 66.0
+    y: 788.0
+  text: 'Teil A: Planzeichnung i. M. 1:2.000'
+  layer: Plantext
+  paperspace: false
+  style: Arial
+  _sync:
+    dxf_handle: 3DD4
+    content_hash: 498fbc3dd7a81d0e51ad94c8c69bbf360a94f4e543ca6c7050a6d16576fb30ef
+    last_sync_time: 1753389840
+    sync_source: yaml
+    entity_handle: 3DD4
+- name: Text_pqlÜbersichtskarte_i_M
+  position:
+    type: absolute
+    x: 817.0
+    y: 385.0
+  text: Übersichtskarte i. M. 1:30.000
+  layer: Plantext
+  paperspace: false
+  style: Arial
+  _sync:
+    dxf_handle: 3DD5
+    content_hash: ff8f8089125666b58ea6d5f5565e471bf6078563f7de1d0587b9ca2d9eb33b17
+    last_sync_time: 1753389840
+    sync_source: yaml
+    entity_handle: 3DD5
+- name: Text_VORENTWURFPSATZUNG_DER_GEMEINDEPTORGELOW
+  position:
+    type: absolute
+    x: 1105.134087111859
+    y: 248.0
+  text: 'VORENTWURF\nSATZUNG DER GEMEINDE\nTORGELOW AM SEE\nÜBER DEN VORHABENSBEZOGENER
+    BEBAUUNGSPLAN\nNR: 06 „SOLARPARK AN DER LINDENALLEE"'
+  layer: Plantext
+  paperspace: false
+  _sync:
+    dxf_handle: 3DD6
+    content_hash: d1a41a6d9b84c01bb5d874eb5665213b4c7cfa1fffbd51e065c78b4a6c65d5ae
+    last_sync_time: 1753389840
+    sync_source: yaml
+    entity_handle: 3DD6
 discover_untracked: true
 deletion_policy: auto
 default_layer: Plantext

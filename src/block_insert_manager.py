@@ -274,7 +274,7 @@ class BlockInsertManager(SyncManagerBase):
                 log_debug(f"Created block insert '{name}' from YAML config")
                 return block_ref
             else:
-                log_warning(f"Failed to create block insert '{name}'")
+                log_warning(f"Failed to create block insert '{name}' - add_block_reference returned None")
                 return None
 
         except Exception as e:
@@ -348,6 +348,49 @@ class BlockInsertManager(SyncManagerBase):
             log_warning(f"Error finding block insert '{entity_name}': {repr(e)}")
             log_warning(f"Full traceback: {traceback.format_exc()}")
             return None
+
+    def _find_entity_by_handle_first(self, doc, config):
+        """
+        Override base class to search both spaces for blocks.
+
+        Block inserts can be in either modelspace or paperspace,
+        so we need to search both spaces even for handle-first search.
+
+        Args:
+            doc: DXF document
+            config: Entity configuration
+
+        Returns:
+            DXF entity or None if not found
+        """
+        if not config:
+            log_warning("Config is None in _find_entity_by_handle_first")
+            return None
+
+        entity_name = config.get('name', 'unnamed')
+        sync_metadata = config.get('_sync', {})
+        stored_handle = sync_metadata.get('dxf_handle') if sync_metadata else None
+
+        # STEP 1: Try handle-first search in both spaces (block-specific behavior)
+        if stored_handle:
+            spaces = [doc.modelspace(), doc.paperspace()]
+            for space in spaces:
+                try:
+                    entity = space.get_entity_by_handle(stored_handle)
+                    if entity:
+                        log_debug(f"Found block '{entity_name}' by handle {stored_handle} in {space}")
+
+                        # Update entity name in XDATA if it changed
+                        self._update_entity_name_in_xdata(entity, entity_name)
+
+                        return entity
+                except Exception as e:
+                    log_debug(f"Handle search failed in {space} for '{entity_name}' (handle: {stored_handle}): {str(e)}")
+                    continue
+
+        # STEP 2: Fallback to name-based search using existing method
+        log_debug(f"Falling back to name search for block '{entity_name}'")
+        return self._find_entity_by_name(doc, entity_name)
 
     # _calculate_entity_hash is now centralized in SyncManagerBase
 

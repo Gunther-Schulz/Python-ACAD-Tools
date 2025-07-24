@@ -1245,3 +1245,106 @@ def polygon_patch(polygon):
     codes = np.concatenate(codes)
 
     return PathPatch(Path(vertices, codes))
+
+
+def delete_entities_clean(entities, purge_threshold=10):
+    """
+    Centralized clean deletion of DXF entities.
+
+    This function provides a safe and clean way to delete entities from a DXF document,
+    following the same pattern used throughout the dxf_utils module.
+
+    Args:
+        entities: List of (entity, entity_name) tuples or list of entities
+        purge_threshold: If more than this many entities are deleted, purge the database
+
+    Returns:
+        int: Number of entities successfully deleted
+    """
+    if not entities:
+        return 0
+
+    # Normalize input - handle both entity lists and (entity, name) tuples
+    entity_list = []
+    for item in entities:
+        if isinstance(item, tuple):
+            entity, name = item
+            entity_list.append((entity, name))
+        else:
+            entity_list.append((item, getattr(item, 'name', 'unnamed')))
+
+    deleted_count = 0
+    doc = None
+
+    for entity, entity_name in entity_list:
+        try:
+            # Store doc reference for potential purge later
+            if not doc and hasattr(entity, 'doc'):
+                doc = entity.doc
+
+            # 1. Clear any XDATA before deletion (clean up metadata)
+            try:
+                entity.discard_xdata(XDATA_APP_ID)
+            except:
+                pass  # Ignore XDATA cleanup failures
+
+            # 2. Get the proper space for deletion
+            entity_space = _get_entity_space(entity)
+
+            # 3. Use space.delete_entity() for clean deletion
+            if entity_space:
+                entity_space.delete_entity(entity)
+                log_info(f"🗑️  DELETED: Entity '{entity_name}' from DXF")
+                deleted_count += 1
+            else:
+                log_warning(f"Could not determine space for entity '{entity_name}' - skipping deletion")
+
+        except Exception as e:
+            log_warning(f"Failed to delete entity '{entity_name}': {str(e)}")
+
+    # 4. Clean up database if we deleted many entities (bulk deletion optimization)
+    if deleted_count > purge_threshold and doc:
+        try:
+            log_debug(f"Purging database after deleting {deleted_count} entities")
+            doc.entitydb.purge()
+        except Exception as e:
+            log_debug(f"Database purge after entity deletion failed: {str(e)}")
+
+    return deleted_count
+
+
+def _get_entity_space(entity):
+    """
+    Get the appropriate space (modelspace/paperspace) for an entity.
+
+    Args:
+        entity: DXF entity
+
+    Returns:
+        space: The space containing the entity, or None if not found
+    """
+    try:
+        doc = entity.doc
+        if not doc:
+            return None
+
+        # Check paperspace first (entities are often in paperspace)
+        paperspace = doc.paperspace()
+        if entity in paperspace:
+            return paperspace
+
+        # Check modelspace
+        modelspace = doc.modelspace()
+        if entity in modelspace:
+            return modelspace
+
+        # If entity is not found in either space, try to determine by layout
+        # This handles edge cases where the entity might be in a specific layout
+        if hasattr(entity.dxf, 'paperspace') and entity.dxf.paperspace:
+            return paperspace
+        else:
+            return modelspace
+
+    except Exception as e:
+        log_debug(f"Error determining entity space: {str(e)}")
+        return None
