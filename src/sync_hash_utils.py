@@ -97,7 +97,7 @@ def detect_entity_changes(yaml_config, dxf_entity, entity_type, entity_manager):
     # Get current and stored hashes
     current_yaml_hash = calculate_entity_content_hash(yaml_config, entity_type)
 
-    stored_hash = sync_meta['content_hash']
+    stored_hash = sync_meta.get('content_hash')
 
     print(f"  📝 YAML hash: {current_yaml_hash}")
     print(f"  💾 Stored hash: {stored_hash}")
@@ -136,7 +136,7 @@ def detect_entity_changes(yaml_config, dxf_entity, entity_type, entity_manager):
     return {
         'yaml_changed': yaml_changed,
         'dxf_changed': dxf_changed,
-        'conflict': yaml_changed and dxf_changed,
+        'has_conflict': yaml_changed and dxf_changed,
         'current_yaml_hash': current_yaml_hash,
         'current_dxf_hash': current_dxf_hash,
         'stored_hash': stored_hash,
