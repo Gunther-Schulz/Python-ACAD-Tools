@@ -460,8 +460,9 @@ class ViewportManager(SyncManagerBase):
                     if aci == color_code:
                         config['color'] = name
                         break
-            else:
-                config['color'] = str(color_code)
+                else:
+                    # If no name found for color code, use the numeric value
+                    config['color'] = str(color_code)
 
             # Extract frozen layers if any
             if hasattr(entity, 'frozen_layers') and entity.frozen_layers:

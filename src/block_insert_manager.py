@@ -584,3 +584,7 @@ class BlockInsertManager(SyncManagerBase):
     def _should_skip_entity(self, entity):
         """No special skip logic for block entities."""
         return False
+
+    def _get_config_key(self):
+        """Override to use 'blockInserts' instead of 'blocks'."""
+        return 'blockInserts'

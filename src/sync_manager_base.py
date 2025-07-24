@@ -145,15 +145,29 @@ class SyncManagerBase(ABC):
 
         # Step 3: Handle discovered entities
         if discovered_entities:
+            log_debug(f"🔍 DISCOVERY DEBUG: Processing {len(discovered_entities)} discovered {self.entity_type} entities")
             new_configs = self._process_discovered_entities(discovered_entities)
+            log_debug(f"🔍 DISCOVERY DEBUG: Created {len(new_configs)} configs from discovered entities")
+
             if new_configs:
                 # Add discovered entities to configuration
-                config_key = f'{self.entity_type}s'  # e.g., 'viewports', 'texts'
+                config_key = self._get_config_key()
+
+                # Log current state
+                current_count = len(self.project_settings.get(config_key, []))
+                log_debug(f"🔍 DISCOVERY DEBUG: Current {config_key} count: {current_count}")
+
                 if self.project_settings.get(config_key) is None:
                     self.project_settings[config_key] = []
+
                 self.project_settings[config_key].extend(new_configs)
+                new_count = len(self.project_settings.get(config_key, []))
+
                 yaml_updated = True
                 log_info(f"Added {len(new_configs)} discovered {self.entity_type}s to configuration")
+                log_debug(f"🔍 DISCOVERY DEBUG: New {config_key} count: {new_count} (added {new_count - current_count})")
+            else:
+                log_warning(f"🔍 DISCOVERY DEBUG: No configs created from {len(discovered_entities)} discovered entities!")
 
         # Step 4: Handle entity deletions according to deletion policy
         deleted_configs = self._handle_entity_deletions(doc, space)
@@ -163,7 +177,13 @@ class SyncManagerBase(ABC):
 
         # Step 5: Write back YAML if any changes were made
         if yaml_updated and self.project_loader:
-            self._write_entity_yaml()
+            log_debug(f"🔍 DISCOVERY DEBUG: Writing YAML for {self.entity_type}s (yaml_updated={yaml_updated})")
+            result = self._write_entity_yaml()
+            log_debug(f"🔍 DISCOVERY DEBUG: YAML write result: {result}")
+        elif yaml_updated and not self.project_loader:
+            log_warning(f"🔍 DISCOVERY DEBUG: YAML update needed but no project_loader available!")
+        else:
+            log_debug(f"🔍 DISCOVERY DEBUG: No YAML write needed (yaml_updated={yaml_updated})")
 
         return processed_entities
 
@@ -334,7 +354,7 @@ class SyncManagerBase(ABC):
         """
         log_info(f"Auto-deleting {len(missing_entities)} missing {self.entity_type}s from configuration")
 
-        config_key = f'{self.entity_type}s'  # e.g., 'viewports', 'texts'
+        config_key = self._get_config_key()
         entity_configs = self.project_settings.get(config_key, []) or []
         original_count = len(entity_configs)
 
@@ -603,6 +623,18 @@ class SyncManagerBase(ABC):
         """
         pass
 
+    def _get_config_key(self):
+        """
+        Get the configuration key for this entity type in project_settings.
+
+        Default implementation: f'{entity_type}s'
+        Override in subclasses for custom keys (e.g., 'blockInserts' instead of 'blocks')
+
+        Returns:
+            str: Configuration key for project_settings
+        """
+        return f'{self.entity_type}s'
+
     def _discover_unknown_entities(self, doc, space):
         """
         Centralized discovery logic for unmanaged entities.
@@ -655,7 +687,7 @@ class SyncManagerBase(ABC):
                             from src.dxf_utils import extract_handle_from_xdata
                             stored_handle = extract_handle_from_xdata(entity)
                             actual_handle = str(entity.dxf.handle)
-                            
+
                             if stored_handle == actual_handle:
                                 # Valid metadata - entity is properly managed
                                 has_valid_metadata = True
@@ -663,14 +695,14 @@ class SyncManagerBase(ABC):
                                 # Handle mismatch - this is a copy with stale XDATA
                                 log_info(f"Detected copied {self.entity_type} entity with stale XDATA: "
                                         f"stored_handle={stored_handle}, actual_handle={actual_handle}")
-                                
+
                                 # Clean stale XDATA so entity can be rediscovered
                                 try:
                                     entity.discard_xdata(XDATA_APP_ID)
                                     log_debug(f"Cleaned stale XDATA from copied {self.entity_type} entity")
                                 except Exception as e:
                                     log_warning(f"Failed to clean stale XDATA: {str(e)}")
-                                
+
                                 # Continue to discovery process (don't skip)
                                 has_valid_metadata = False
 

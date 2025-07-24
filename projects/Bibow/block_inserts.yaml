@@ -10,7 +10,7 @@ blockInserts:
   paperspace: false
   _sync:
     content_hash: 63290a7d6e053f4bc820e8e5a69d405866ce791a06e669dc2ba2efb9f43e5dd2
-    last_sync_time: 1753373647
+    last_sync_time: 1753375934
     sync_source: dxf
 - name: SO EBS Label2
   blockName: Sonstiges Sondergebiet EBS
@@ -25,6 +25,6 @@ blockInserts:
     content_hash: 44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a
     last_sync_time: 1753373554
     sync_source: dxf
-discovery: true
+discovery: false
 deletion_policy: confirm
 sync: auto
