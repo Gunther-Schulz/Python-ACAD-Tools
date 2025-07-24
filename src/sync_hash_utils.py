@@ -115,7 +115,7 @@ def detect_entity_changes(yaml_config, dxf_entity, entity_type, entity_manager):
 
     # Determine what changed
     yaml_changed = current_yaml_hash != stored_hash if stored_hash else True
-    dxf_changed = current_dxf_hash != stored_hash if stored_hash and current_dxf_hash else False
+    dxf_changed = current_dxf_hash != stored_hash if stored_hash else False
 
     print(f"  ✅ YAML changed: {yaml_changed} (current != stored: {current_yaml_hash != stored_hash if stored_hash else 'no stored hash'})")
     print(f"  ✅ DXF changed: {dxf_changed} (current != stored: {current_dxf_hash != stored_hash if stored_hash and current_dxf_hash else 'no DXF hash'})")

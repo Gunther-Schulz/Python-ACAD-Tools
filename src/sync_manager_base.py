@@ -243,12 +243,21 @@ class SyncManagerBase(ABC):
             return {'entity': result, 'yaml_updated': True} if result else None
 
         elif not changes['yaml_changed'] and changes['dxf_changed']:
-            # Only DXF changed - pull to YAML
-            log_debug(f"DXF changed for '{entity_name}', pulling to YAML")
-            result = self._sync_pull(doc, space, config)
-            if result and result.get('yaml_updated'):
-                update_sync_metadata(config, changes['current_dxf_hash'], 'dxf')
-            return result if result else None
+            # DXF changed - check if missing or modified
+            if changes['current_dxf_hash'] is None:
+                # DXF entity missing - push YAML to recreate it
+                log_debug(f"DXF entity '{entity_name}' missing, pushing from YAML to recreate")
+                result = self._sync_push(doc, space, config)
+                if result:
+                    update_sync_metadata(config, changes['current_yaml_hash'], 'yaml')
+                return {'entity': result, 'yaml_updated': True} if result else None
+            else:
+                # DXF entity modified - pull from DXF
+                log_debug(f"DXF changed for '{entity_name}', pulling to YAML")
+                result = self._sync_pull(doc, space, config)
+                if result and result.get('yaml_updated'):
+                    update_sync_metadata(config, changes['current_dxf_hash'], 'dxf')
+                return result if result else None
 
         elif changes['has_conflict']:
             # Both sides changed - resolve conflict

@@ -11,7 +11,7 @@ textInserts:
   style: mainTitle
   _sync:
     content_hash: 5f7143493d981f4524127d820aa3a16176406e25035721c50ad11da12259cb68
-    last_sync_time: 1753363779
+    last_sync_time: 1753364827
     sync_source: yaml
 - name: Map Header
   position:
@@ -24,7 +24,7 @@ textInserts:
   style: mapHeader
   _sync:
     content_hash: f1b3d59b8affa24b4f6f291b048426148682d4dccd816efcd83a9bb81a346157
-    last_sync_time: 1753363779
+    last_sync_time: 1753364827
     sync_source: yaml
 - name: Übersichtslarte Header
   position:
@@ -37,7 +37,7 @@ textInserts:
   style: übersichtskarteHeader
   _sync:
     content_hash: a4761f71cdf2721499f20188b4e37f422392c056899a3e5638469d30f42930b6
-    last_sync_time: 1753363779
+    last_sync_time: 1753364827
     sync_source: yaml
 - name: Satzung
   position:
@@ -52,7 +52,7 @@ textInserts:
   justification: CENTER
   _sync:
     content_hash: 3d9dbbbc40ea9a2948b6518d5e72628ac6d2afbd17d48b2bf40f49305bb06f18
-    last_sync_time: 1753363779
+    last_sync_time: 1753364827
     sync_source: yaml
 discovery: true
 deletion_policy: confirm
