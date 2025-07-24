@@ -2,18 +2,52 @@ import random
 import math
 from shapely.geometry import Point
 from src.utils import log_info, log_warning, log_error, log_debug
-from src.dxf_utils import add_block_reference, remove_entities_by_layer, attach_custom_data
+from src.dxf_utils import add_block_reference, remove_entities_by_layer, attach_custom_data, find_entity_by_xdata_name
+from src.sync_manager_base import SyncManagerBase
+from src.sync_hash_utils import calculate_entity_content_hash, clean_entity_config_for_yaml_output
 
 
-class BlockInsertManager:
+class BlockInsertManager(SyncManagerBase):
+    """Manager for block insert synchronization between YAML configs and AutoCAD."""
+
     def __init__(self, project_loader, all_layers, script_identifier):
-        self.project_loader = project_loader
+        # Initialize base class (use 'block' as entity_type)
+        super().__init__(project_loader.project_settings, script_identifier, 'block', project_loader)
+
+        # Block insert specific dependencies
         self.all_layers = all_layers
-        self.script_identifier = script_identifier
-        self.project_settings = project_loader.project_settings
 
     def process_block_inserts(self, msp):
-        self.process_inserts(msp, 'block')
+        """Process block inserts using the sync-based BlockInsertManager."""
+        block_configs = self.project_settings.get('blockInserts', [])
+        if not block_configs:
+            log_debug("No block inserts found in project settings")
+            return
+
+        # Clean target layers before processing (only for entities that will be pushed)
+        configs_to_process = [c for c in block_configs if self._get_sync_direction(c) == 'push']
+        self.clean_target_layers(msp.doc, configs_to_process)
+
+        # Process using sync manager
+        processed_blocks = self.process_entities(msp.doc, msp)
+        log_debug(f"Processed {len(processed_blocks)} block inserts using sync system")
+
+    def clean_target_layers(self, doc, configs_to_process):
+        """Clean target layers for block configs that will be processed."""
+        layers_to_clean = set()
+        for config in configs_to_process:
+            sync_direction = self._get_sync_direction(config)
+            if sync_direction == 'push':
+                # For blocks, the layer is typically the entity name itself
+                layers_to_clean.add(config.get('name'))
+
+        # Remove existing block references from layers that will be updated
+        for layer_name in layers_to_clean:
+            # Blocks can be in both model space and paper space
+            spaces = [doc.modelspace(), doc.paperspace()]
+            for space in spaces:
+                log_debug(f"Cleaning block entities from layer: {layer_name} in {space}")
+                remove_entities_by_layer(space, layer_name, self.script_identifier)
 
     def process_inserts(self, msp, insert_type='block'):
         configs = self.project_settings.get(f'{insert_type}Inserts', [])
@@ -193,3 +227,365 @@ class BlockInsertManager:
         except Exception as e:
             log_warning(f"Error in get_insert_point: {str(e)}")
             return ((0, 0), rotation)  # Safe fallback
+
+    # ============================================================================
+    # SyncManagerBase Abstract Method Implementations
+    # ============================================================================
+
+    def _get_entity_configs(self):
+        """Get block insert configurations from project settings."""
+        return self.project_settings.get('blockInserts', []) or []
+
+    def _sync_push(self, doc, space, config):
+        """Create block insert in AutoCAD from YAML configuration."""
+        name = config.get('name', 'unnamed')
+
+        try:
+            # Use existing insert_blocks method but for single config
+            # Get the correct space for this insert
+            target_space = doc.paperspace() if config.get('paperspace', False) else doc.modelspace()
+
+            # Use existing logic to get insertion points
+            points_and_rotations = self.get_insertion_points(config.get('position', {}))
+
+            if not points_and_rotations:
+                log_warning(f"No insertion points found for block insert '{name}'")
+                return None
+
+            # For sync, we only create one block reference (first point)
+            point_data = points_and_rotations[0]
+
+            # Handle both 2-tuple (point, rotation) and 3-tuple (x, y, rotation) formats
+            if len(point_data) == 3:
+                x, y, rotation = point_data
+                point = (x, y)
+            else:
+                point, rotation = point_data
+                if not isinstance(point, tuple):
+                    point = (point[0], point[1]) if hasattr(point, '__getitem__') else (0, 0)
+
+            # Use the calculated rotation if available, otherwise use config rotation
+            final_rotation = rotation if rotation is not None else config.get('rotation', 0)
+
+            block_ref = add_block_reference(
+                target_space,
+                config['blockName'],
+                point,
+                name,  # Use entity name as layer name for sync tracking
+                scale=config.get('scale', 1.0),
+                rotation=final_rotation
+            )
+
+            if block_ref:
+                # Attach custom metadata for sync tracking
+                self._attach_entity_metadata(block_ref, config)
+                log_debug(f"Created block insert '{name}' from YAML config")
+                return block_ref
+            else:
+                log_warning(f"Failed to create block insert '{name}'")
+                return None
+
+        except Exception as e:
+            log_error(f"Error creating block insert '{name}': {str(e)}")
+            return None
+
+    def _sync_pull(self, doc, space, config):
+        """Extract block insert properties from DXF to update YAML configuration."""
+        name = config.get('name', 'unnamed')
+
+        try:
+            # Find the DXF entity
+            dxf_entity = self._find_entity_by_name(doc, name)
+            if not dxf_entity:
+                log_warning(f"Cannot pull block insert '{name}' - not found in AutoCAD")
+                return None
+
+            # Extract properties from DXF entity
+            dxf_properties = self._extract_dxf_entity_properties_for_hash(dxf_entity)
+
+            # Update YAML config with DXF properties
+            updated_config = config.copy()
+
+            # Update core properties from DXF
+            if 'blockName' in dxf_properties:
+                updated_config['blockName'] = dxf_properties['blockName']
+            if 'scale' in dxf_properties:
+                updated_config['scale'] = dxf_properties['scale']
+            if 'rotation' in dxf_properties:
+                updated_config['rotation'] = dxf_properties['rotation']
+            if 'position' in dxf_properties:
+                updated_config['position'] = dxf_properties['position']
+            if 'paperspace' in dxf_properties:
+                updated_config['paperspace'] = dxf_properties['paperspace']
+
+            log_debug(f"Updated block insert '{name}' from DXF properties")
+            return {'entity': dxf_entity, 'yaml_updated': True, 'updated_config': updated_config}
+
+        except Exception as e:
+            log_error(f"Error pulling block insert '{name}': {str(e)}")
+            return None
+
+    def _find_entity_by_name(self, doc, entity_name):
+        """Find block insert entity in DXF by name using XDATA."""
+        try:
+            # Search in both model space and paper space
+            spaces = [doc.modelspace(), doc.paperspace()]
+
+            for space in spaces:
+                entity = find_entity_by_xdata_name(space, entity_name, self.script_identifier)
+                if entity and entity.dxftype() == 'INSERT':
+                    log_debug(f"Found block insert '{entity_name}' in {space}")
+                    return entity
+
+            log_debug(f"Block insert '{entity_name}' not found in any space")
+            return None
+
+        except Exception as e:
+            log_warning(f"Error finding block insert '{entity_name}': {str(e)}")
+            return None
+
+    def _calculate_entity_hash(self, config):
+        """Calculate content hash for block insert configuration."""
+        try:
+            return calculate_entity_content_hash(config, 'block')
+        except Exception as e:
+            log_warning(f"Error calculating hash for block insert '{config.get('name', 'unnamed')}': {str(e)}")
+            return "error_hash"
+
+    def _extract_dxf_entity_properties_for_hash(self, dxf_entity):
+        """Extract properties from DXF block insert entity for hash calculation."""
+        try:
+            properties = {}
+
+            # Extract block name
+            if hasattr(dxf_entity.dxf, 'name'):
+                properties['blockName'] = dxf_entity.dxf.name
+
+            # Extract scale (use xscale as primary, assuming uniform scaling)
+            if hasattr(dxf_entity.dxf, 'xscale'):
+                properties['scale'] = float(dxf_entity.dxf.xscale)
+            else:
+                properties['scale'] = 1.0
+
+            # Extract rotation
+            if hasattr(dxf_entity.dxf, 'rotation'):
+                properties['rotation'] = float(dxf_entity.dxf.rotation)
+            else:
+                properties['rotation'] = 0.0
+
+            # Extract position (insertion point)
+            if hasattr(dxf_entity.dxf, 'insert'):
+                insert_point = dxf_entity.dxf.insert
+                properties['position'] = {
+                    'type': 'absolute',
+                    'x': float(insert_point[0]),
+                    'y': float(insert_point[1])
+                }
+            else:
+                properties['position'] = {'type': 'absolute', 'x': 0.0, 'y': 0.0}
+
+            # Determine if in paperspace
+            properties['paperspace'] = hasattr(dxf_entity, 'doc') and dxf_entity.doc and \
+                                     any(dxf_entity in layout for layout in dxf_entity.doc.layouts if layout.name != 'Model')
+
+            # Add entity name from XDATA if available
+            properties['name'] = self._extract_entity_name_from_xdata(dxf_entity)
+
+            log_debug(f"Extracted DXF properties for block insert: {properties}")
+            return properties
+
+        except Exception as e:
+            log_warning(f"Error extracting DXF properties for block insert: {str(e)}")
+            return {}
+
+    def _write_entity_yaml(self):
+        """Write updated block insert configuration back to YAML file."""
+        if not self.project_loader:
+            log_warning("Cannot write block insert YAML - no project_loader available")
+            return False
+
+        try:
+            # Clean and prepare block insert configurations for YAML output
+            cleaned_block_inserts = []
+            for block_config in self.project_settings.get('blockInserts', []):
+                # Clean the configuration for YAML output (handles sync metadata properly)
+                cleaned_config = clean_entity_config_for_yaml_output(block_config)
+                cleaned_block_inserts.append(cleaned_config)
+
+            # Prepare block insert data structure
+            block_data = {
+                'blockInserts': cleaned_block_inserts
+            }
+
+            # Add global block insert settings
+            if 'block_discovery' in self.project_settings:
+                block_data['discovery'] = self.project_settings['block_discovery']
+            if 'block_deletion_policy' in self.project_settings:
+                block_data['deletion_policy'] = self.project_settings['block_deletion_policy']
+            if 'block_sync' in self.project_settings:
+                block_data['sync'] = self.project_settings['block_sync']
+
+            # Write back to block_inserts.yaml
+            success = self.project_loader.write_yaml_file('block_inserts.yaml', block_data)
+            if success:
+                log_info("Successfully updated block_inserts.yaml with sync changes")
+            else:
+                log_error("Failed to write block insert configuration back to YAML")
+            return success
+
+        except Exception as e:
+            log_error(f"Error writing block insert YAML: {str(e)}")
+            return False
+
+    def _discover_entities(self, doc, space):
+        """Discover unknown block inserts in the DXF file."""
+        discovered = []
+
+        try:
+            # Get configured entity names
+            configured_names = {config.get('name') for config in self._get_entity_configs()}
+
+            # Search for INSERT entities with our XDATA in both model and paper space
+            spaces = [doc.modelspace(), doc.paperspace()]
+
+            for search_space in spaces:
+                for entity in search_space:
+                    if entity.dxftype() == 'INSERT':
+                        entity_name = self._extract_entity_name_from_xdata(entity)
+                        if entity_name and entity_name not in configured_names:
+                            # Extract basic properties for discovered entity
+                            properties = self._extract_dxf_entity_properties_for_hash(entity)
+
+                            # Create minimal config for discovered entity
+                            discovered_config = {
+                                'name': entity_name,
+                                'blockName': properties.get('blockName', 'Unknown'),
+                                'scale': properties.get('scale', 1.0),
+                                'rotation': properties.get('rotation', 0.0),
+                                'position': properties.get('position', {'type': 'absolute', 'x': 0.0, 'y': 0.0}),
+                                'paperspace': properties.get('paperspace', False),
+                                'updateDxf': False  # Don't automatically update discovered blocks
+                            }
+
+                            discovered.append(discovered_config)
+                            log_debug(f"Discovered block insert: {entity_name}")
+
+            log_info(f"Discovery completed: Found {len(discovered)} unknown block inserts")
+            return discovered
+
+        except Exception as e:
+            log_error(f"Error during block insert discovery: {str(e)}")
+            return []
+
+    def _attach_entity_metadata(self, entity, config):
+        """Attach metadata to block insert entity for sync tracking."""
+        try:
+            # Calculate content hash for the entity
+            content_hash = self._calculate_entity_hash(config)
+
+            # Attach custom data with content hash
+            attach_custom_data(
+                entity,
+                self.script_identifier,
+                entity_name=config.get('name'),
+                entity_type='block',
+                content_hash=content_hash
+            )
+
+            log_debug(f"Attached metadata to block insert '{config.get('name', 'unnamed')}'")
+
+        except Exception as e:
+            log_warning(f"Failed to attach metadata to block insert: {str(e)}")
+
+    def _extract_entity_name_from_xdata(self, entity):
+        """Extract entity name from XDATA attached to DXF entity."""
+        try:
+            if hasattr(entity, 'get_xdata'):
+                xdata = entity.get_xdata(self.script_identifier)
+                if xdata:
+                    # XDATA format: [(1001, app_name), (1000, entity_name), (1000, entity_type), ...]
+                    for i, (code, value) in enumerate(xdata):
+                        if code == 1000 and i == 1:  # Second 1000 entry is entity name
+                            return value
+            return None
+        except Exception as e:
+            log_debug(f"Error extracting entity name from XDATA: {str(e)}")
+            return None
+
+    def _discover_unknown_entities(self, doc, space):
+        """Discover unknown block inserts in the DXF file."""
+        return self._discover_entities(doc, space)
+
+    def _handle_entity_deletions(self, doc, space):
+        """Handle deletion of block entities that exist in YAML but not in AutoCAD."""
+        deleted_configs = []
+
+        try:
+            # Only check entities that are in 'pull' mode (AutoCAD is source of truth)
+            entity_configs = [
+                config for config in self._get_entity_configs()
+                if self._get_sync_direction(config) == 'pull'
+            ]
+
+            for config in entity_configs:
+                entity_name = config.get('name', 'unnamed')
+                existing_entity = self._find_entity_by_name(doc, entity_name)
+
+                if not existing_entity:
+                    # Entity exists in YAML but not in AutoCAD
+                    deletion_policy = self.project_settings.get('block_deletion_policy', 'confirm')
+
+                    if deletion_policy == 'auto':
+                        deleted_configs.append(config)
+                        log_info(f"Auto-deleted missing block insert '{entity_name}' from YAML")
+                    elif deletion_policy == 'confirm':
+                        log_warning(f"Block insert '{entity_name}' exists in YAML but not in AutoCAD")
+                        response = input(f"Delete '{entity_name}' from configuration? (y/n): ").lower().strip()
+                        if response == 'y':
+                            deleted_configs.append(config)
+                            log_info(f"Deleted missing block insert '{entity_name}' from YAML")
+                    # For 'ignore' policy, do nothing
+
+            # Remove deleted configs from project settings
+            if deleted_configs:
+                current_configs = self.project_settings.get('blockInserts', [])
+                remaining_configs = [
+                    config for config in current_configs
+                    if config not in deleted_configs
+                ]
+                self.project_settings['blockInserts'] = remaining_configs
+
+            return deleted_configs
+
+        except Exception as e:
+            log_error(f"Error handling block insert deletions: {str(e)}")
+            return []
+
+    def _extract_entity_properties(self, entity, base_config):
+        """Extract entity properties from AutoCAD block insert entity."""
+        try:
+            # Start with base config (contains at least 'name')
+            properties = base_config.copy()
+
+            # Extract properties from DXF entity using existing method
+            dxf_properties = self._extract_dxf_entity_properties_for_hash(entity)
+
+            # Update properties with DXF data
+            properties.update(dxf_properties)
+
+            # Set some defaults for discovered entities
+            if 'updateDxf' not in properties:
+                properties['updateDxf'] = False  # Don't auto-update discovered blocks
+
+            log_debug(f"Extracted properties for block insert '{properties.get('name', 'unnamed')}'")
+            return properties
+
+        except Exception as e:
+            log_warning(f"Error extracting block insert properties: {str(e)}")
+            # Return minimal config on error
+            return {
+                'name': base_config.get('name', 'unnamed'),
+                'blockName': 'Unknown',
+                'position': {'type': 'absolute', 'x': 0.0, 'y': 0.0},
+                'updateDxf': False
+            }

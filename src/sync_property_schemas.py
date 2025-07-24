@@ -127,10 +127,39 @@ class TextSyncSchema(SyncPropertySchema):
             return super().normalize_property_value(key, value)
 
 
+class BlockSyncSchema(SyncPropertySchema):
+    @classmethod
+    def get_canonical_properties(cls) -> List[str]:
+        return [
+            'name',         # string (identifier for the block insert)
+            'blockName',    # string (which block definition to use)
+            'scale',        # float (scaling factor, defaults to 1.0)
+            'rotation',     # float (rotation angle in degrees, defaults to 0.0)
+            'position',     # dict (placement information - absolute or geometry-based)
+            'paperspace',   # boolean (model space vs paper space placement)
+            # Note: Intentionally excluding updateDxf - this is a processing flag, not content
+            # Hash should only care about WHAT block is placed, WHERE, and HOW (scale/rotation)
+        ]
+
+    @classmethod
+    def normalize_property_value(cls, key: str, value: Any) -> Any:
+        if key == 'scale':
+            # Ensure scale is a float, default to 1.0 if None
+            return float(value) if value is not None else 1.0
+        elif key == 'rotation':
+            # Ensure rotation is a float, default to 0.0 if None
+            return float(value) if value is not None else 0.0
+        elif key == 'paperspace':
+            # Ensure boolean consistency
+            return bool(value) if value is not None else False
+        return super().normalize_property_value(key, value)
+
+
 # Schema registry for entity types
 SYNC_SCHEMAS = {
     'viewport': ViewportSyncSchema,
     'text': TextSyncSchema,
+    'block': BlockSyncSchema,
 }
 
 

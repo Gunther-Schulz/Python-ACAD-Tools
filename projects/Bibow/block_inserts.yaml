@@ -1,0 +1,15 @@
+blockInserts:
+  - name: "Test Block"
+    blockName: "Gesetzlich geschütztes Biotop"
+    scale: 1.0
+    rotation: 0.0
+    position:
+      type: "absolute"
+      x: 100.0
+      y: 100.0
+    paperspace: false
+
+# Global block insert settings for sync testing
+discovery: true
+deletion_policy: confirm
+sync: auto
