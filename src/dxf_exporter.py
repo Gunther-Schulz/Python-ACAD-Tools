@@ -144,7 +144,7 @@ class DXFExporter:
                     self.layer_processor.set_dxf_document(doc)
                     self.loaded_styles = initialize_document(doc)
                     msp = doc.modelspace()
-                    self.register_app_id(doc)
+                    # App ID already registered in _load_or_create_dxf()
 
                 # Process all content
                 with profile_operation("Layer Processing"):
@@ -230,6 +230,11 @@ class DXFExporter:
         if doc and not os.path.exists(self.dxf_filename) and not skip_dxf_processor and self.project_loader.dxf_processor:
             log_debug("Running DXF processor on new document")
             self.project_loader.dxf_processor.process_all(doc)
+
+        # Register XDATA app immediately after document load/create - MUST happen before any sync operations
+        if doc:
+            self.register_app_id(doc)
+            log_debug(f"Registered XDATA app ID: {XDATA_APP_ID}")
 
         return doc
 

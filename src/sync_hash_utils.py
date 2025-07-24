@@ -123,10 +123,26 @@ def detect_entity_changes(yaml_config, dxf_entity, entity_type, entity_manager):
     # Handle case where no stored hash exists (first time sync)
     if not stored_hash:
         if current_dxf_hash:
-            # Compare current hashes to see if they differ
-            yaml_changed = current_yaml_hash != current_dxf_hash
-            dxf_changed = False  # Assume YAML is the source if no stored hash
-            print(f"  🆕 No stored hash - comparing YAML vs DXF: {yaml_changed}")
+            # Check if DXF entity is managed by our app (has our XDATA)
+            is_managed_entity = False
+            if dxf_entity:
+                try:
+                    from src.dxf_utils import XDATA_APP_ID
+                    xdata = dxf_entity.get_xdata(XDATA_APP_ID)
+                    is_managed_entity = bool(xdata)
+                except:
+                    is_managed_entity = False
+
+            if is_managed_entity:
+                # Entity is managed by our app - compare hashes for sync
+                yaml_changed = current_yaml_hash != current_dxf_hash
+                dxf_changed = False  # Assume YAML is the source if no stored hash
+                print(f"  🆕 No stored hash (managed entity) - comparing YAML vs DXF: {yaml_changed}")
+            else:
+                # Entity exists but not managed by our app - treat as push scenario
+                yaml_changed = True
+                dxf_changed = False
+                print(f"  🆕 DXF entity exists but unmanaged (no XDATA) - YAML should be pushed")
         else:
             # No DXF entity, YAML should be pushed
             yaml_changed = True

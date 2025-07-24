@@ -1,15 +1,17 @@
 blockInserts:
-  - name: "SO EBS Label"
-    blockName: "Sonstiges Sondergebiet EBS"
-    scale: 6.0
-    rotation: 0
-    position:
-      type: "absolute"
-      x: 282212.5758
-      y: 5967251.5467
-    paperspace: false
-
-# Global block insert settings for sync testing
+- name: SO EBS Label
+  blockName: Sonstiges Sondergebiet EBS
+  scale: 6.0
+  rotation: 0
+  position:
+    type: absolute
+    x: 282212.5758
+    y: 5967251.5467
+  paperspace: false
+  _sync:
+    content_hash: afbc62f2346ef3378c7b5012ea21bb8a2e0bc68f393a2a7f143f7e42d2e75de4
+    last_sync_time: 1753369582
+    sync_source: dxf
 discovery: true
 deletion_policy: confirm
 sync: auto

@@ -65,6 +65,11 @@ class ProjectLoader:
         text_discovery = text_inserts.get('discovery', False) if text_inserts else False
         text_deletion_policy = text_inserts.get('deletion_policy', 'auto') if text_inserts else 'auto'
 
+        # Extract global block insert settings with defaults
+        block_sync = block_inserts.get('sync', 'push') if block_inserts else 'push'
+        block_discovery = block_inserts.get('discovery', False) if block_inserts else False
+        block_deletion_policy = block_inserts.get('deletion_policy', 'auto') if block_inserts else 'auto'
+
         # Extract global auto sync conflict resolution setting
         auto_conflict_resolution = main_settings.get('auto_conflict_resolution', 'prompt')
 
@@ -103,6 +108,11 @@ class ProjectLoader:
             log_warning(f"Invalid global text sync value '{text_sync}'. "
                        f"Valid values are: {', '.join(valid_sync_values)}. Using 'skip'.")
             text_sync = 'skip'
+
+        if block_sync not in valid_sync_values:
+            log_warning(f"Invalid global block sync value '{block_sync}'. "
+                       f"Valid values are: {', '.join(valid_sync_values)}. Using 'skip'.")
+            block_sync = 'skip'
 
         # Extract CRS - handle both 'crs' and 'projectCrs' keys for compatibility
         if 'crs' in main_settings:
@@ -143,6 +153,9 @@ class ProjectLoader:
             'text_sync': text_sync,
             'text_discovery': text_discovery,
             'text_deletion_policy': text_deletion_policy,
+            'block_sync': block_sync,
+            'block_discovery': block_discovery,
+            'block_deletion_policy': block_deletion_policy,
 
             # Auto sync settings
             'auto_conflict_resolution': auto_conflict_resolution,

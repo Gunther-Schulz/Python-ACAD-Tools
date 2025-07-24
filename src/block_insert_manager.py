@@ -2,7 +2,7 @@ import random
 import math
 from shapely.geometry import Point
 from src.utils import log_info, log_warning, log_error, log_debug
-from src.dxf_utils import add_block_reference, remove_entities_by_layer, attach_custom_data, find_entity_by_xdata_name
+from src.dxf_utils import add_block_reference, remove_entities_by_layer, attach_custom_data, find_entity_by_xdata_name, XDATA_APP_ID
 from src.sync_manager_base import SyncManagerBase
 from src.sync_hash_utils import calculate_entity_content_hash, clean_entity_config_for_yaml_output
 
@@ -328,20 +328,27 @@ class BlockInsertManager(SyncManagerBase):
     def _find_entity_by_name(self, doc, entity_name):
         """Find block insert entity in DXF by name using XDATA."""
         try:
+            log_info(f"🔍 DEBUG: Searching for block '{entity_name}' with script ID '{self.script_identifier}'")
+
             # Search in both model space and paper space
             spaces = [doc.modelspace(), doc.paperspace()]
 
             for space in spaces:
-                entity = find_entity_by_xdata_name(space, entity_name, self.script_identifier)
+                log_info(f"🔍 DEBUG: Searching in {space}")
+
+                # Try to find the specific entity
+                entity = find_entity_by_xdata_name(space, entity_name, ['INSERT'])
                 if entity and entity.dxftype() == 'INSERT':
-                    log_debug(f"Found block insert '{entity_name}' in {space}")
+                    log_info(f"🔍 DEBUG: ✅ Found block insert '{entity_name}' in {space}")
                     return entity
 
-            log_debug(f"Block insert '{entity_name}' not found in any space")
+            log_info(f"🔍 DEBUG: ❌ Block insert '{entity_name}' not found in any space")
             return None
 
         except Exception as e:
-            log_warning(f"Error finding block insert '{entity_name}': {str(e)}")
+            import traceback
+            log_warning(f"Error finding block insert '{entity_name}': {repr(e)}")
+            log_warning(f"Full traceback: {traceback.format_exc()}")
             return None
 
     def _calculate_entity_hash(self, config):
@@ -480,6 +487,11 @@ class BlockInsertManager(SyncManagerBase):
     def _attach_entity_metadata(self, entity, config):
         """Attach metadata to block insert entity for sync tracking."""
         try:
+            entity_name = config.get('name', 'unnamed')
+            log_info(f"🔧 DEBUG: Attaching XDATA to block '{entity_name}'")
+            log_info(f"🔧 DEBUG: Block entity type: {entity.dxftype()}")
+            log_info(f"🔧 DEBUG: Block layer: {getattr(entity.dxf, 'layer', 'unknown')}")
+
             # Calculate content hash for the entity
             content_hash = self._calculate_entity_hash(config)
 
@@ -487,21 +499,33 @@ class BlockInsertManager(SyncManagerBase):
             attach_custom_data(
                 entity,
                 self.script_identifier,
-                entity_name=config.get('name'),
+                entity_name=entity_name,
                 entity_type='block',
                 content_hash=content_hash
             )
 
-            log_debug(f"Attached metadata to block insert '{config.get('name', 'unnamed')}'")
+            # Verify XDATA was attached
+            if hasattr(entity, 'get_xdata'):
+                xdata = entity.get_xdata(XDATA_APP_ID)
+                if xdata:
+                    log_info(f"🔧 DEBUG: XDATA successfully attached: {xdata}")
+                else:
+                    log_warning(f"🔧 DEBUG: XDATA attachment failed - no XDATA found!")
+            else:
+                log_warning(f"🔧 DEBUG: Entity doesn't support XDATA!")
+
+            log_debug(f"Attached metadata to block insert '{entity_name}'")
 
         except Exception as e:
-            log_warning(f"Failed to attach metadata to block insert: {str(e)}")
+            import traceback
+            log_warning(f"Failed to attach metadata to block insert: {repr(e)}")
+            log_warning(f"Full traceback: {traceback.format_exc()}")
 
     def _extract_entity_name_from_xdata(self, entity):
         """Extract entity name from XDATA attached to DXF entity."""
         try:
             if hasattr(entity, 'get_xdata'):
-                xdata = entity.get_xdata(self.script_identifier)
+                xdata = entity.get_xdata(XDATA_APP_ID)
                 if xdata:
                     # XDATA format: [(1001, app_name), (1000, entity_name), (1000, entity_type), ...]
                     for i, (code, value) in enumerate(xdata):

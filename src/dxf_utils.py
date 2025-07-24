@@ -40,6 +40,7 @@ XDATA_ENTITY_NAME_KEY = "ENTITY_NAME"
 XDATA_ENTITY_TYPE_KEY = "ENTITY_TYPE"
 XDATA_CONTENT_HASH_KEY = "CONTENT_HASH"
 
+
 def convert_newlines_to_mtext(text):
     """Convert newlines to MTEXT paragraph breaks for reliable MTEXT formatting.
 
