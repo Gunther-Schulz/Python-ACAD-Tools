@@ -368,58 +368,8 @@ class ViewportManager(SyncManagerBase):
 
     def _discover_unknown_entities(self, doc, space):
         """Discover viewports in AutoCAD that aren't managed by this script."""
-        paper_space = doc.paperspace()  # Viewports are always in paperspace
-        discovered = []
-        viewport_counter = 1
-
-        for layout in paper_space.doc.layouts:
-            for entity in layout:
-                if entity.dxftype() == 'VIEWPORT':
-                    try:
-                        # Check if this viewport has our script metadata
-                        try:
-                            xdata = entity.get_xdata(XDATA_APP_ID)
-                            has_our_metadata = False
-                            if xdata:
-                                for code, value in xdata:
-                                    if code == 1000 and value == self.script_identifier:
-                                        has_our_metadata = True
-                                        break
-                        except:
-                            has_our_metadata = False
-
-                        if has_our_metadata:
-                            continue
-
-                        # Skip main viewport (ID=1) - it's a system viewport, not user-managed
-                        viewport_id = getattr(entity.dxf, 'id', None)
-                        if viewport_id == 1:
-                            continue
-
-                        # This is an unknown viewport - generate a name and add it
-                        viewport_name = f"Viewport_{str(entity.dxf.handle).zfill(3)}"
-                        log_info(f"Discovered manual viewport in layout '{layout.name}', assigned name: {viewport_name}")
-
-                        # Use unified XDATA function - automatically creates structured XDATA for named entities
-                        attach_custom_data(entity, self.script_identifier, viewport_name, 'VIEWPORT')
-
-                        discovered.append({
-                            'entity': entity,
-                            'name': viewport_name,
-                            'layout': layout.name
-                        })
-                        viewport_counter += 1
-
-                    except Exception as e:
-                        log_error(f"Error checking viewport metadata: {str(e)}")
-                        continue
-
-        # Simple summary
-        total_viewports = sum(1 for layout in paper_space.doc.layouts for entity in layout if entity.dxftype() == 'VIEWPORT')
-        log_info(f"Discovery completed: Found {len(discovered)} unknown viewports across {len(paper_space.doc.layouts)} layouts")
-        log_info(f"  Layout 'Layout1': {total_viewports} total viewports, {len(discovered)} newly discovered")
-
-        return discovered
+        # Use centralized discovery logic from SyncManagerBase
+        return super()._discover_unknown_entities(doc, space)
 
     def _handle_entity_deletions(self, doc, space):
         """Handle deletion of viewports that exist in YAML but not in AutoCAD."""
@@ -613,17 +563,22 @@ class ViewportManager(SyncManagerBase):
             log_error(f"Error extracting viewport properties for hash: {str(e)}")
             return {}
 
-    def _get_entity_name_from_xdata(self, entity):
-        """Extract entity name from XDATA."""
-        try:
-            xdata = entity.get_xdata(XDATA_APP_ID)
-            if xdata:
-                found_name_key = False
-                for code, value in xdata:
-                    if code == 1000 and value == "ENTITY_NAME":
-                        found_name_key = True
-                    elif found_name_key and code == 1000:
-                        return value
-        except Exception:
-            pass
-        return "unknown"
+    # Abstract method implementations for centralized discovery
+    # ========================================================
+
+    def _get_entity_types(self):
+        """Viewport entities: VIEWPORT only."""
+        return ['VIEWPORT']
+
+    def _get_discovery_spaces(self, doc):
+        """Viewport entities are in all layouts."""
+        return list(doc.layouts)
+
+    def _generate_entity_name(self, entity, counter):
+        """Generate name based on handle."""
+        return f"Viewport_{str(entity.dxf.handle).zfill(3)}"
+
+    def _should_skip_entity(self, entity):
+        """Skip main viewport (ID=1) - it's a system viewport, not user-managed."""
+        viewport_id = getattr(entity.dxf, 'id', None)
+        return viewport_id == 1

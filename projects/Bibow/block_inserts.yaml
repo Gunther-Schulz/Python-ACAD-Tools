@@ -6,11 +6,11 @@ blockInserts:
   position:
     type: absolute
     x: 282212.5758
-    y: 5967251.5467
+    y: 5967201.5467
   paperspace: false
   _sync:
-    content_hash: b15d390a25c6eb7f94be0777b61bf9de1f1311c381740e5080c45fb428bbec66
-    last_sync_time: 1753372477
+    content_hash: 63290a7d6e053f4bc820e8e5a69d405866ce791a06e669dc2ba2efb9f43e5dd2
+    last_sync_time: 1753373647
     sync_source: dxf
 - name: SO EBS Label2
   blockName: Sonstiges Sondergebiet EBS
@@ -22,8 +22,8 @@ blockInserts:
     y: 5967271.5467
   paperspace: false
   _sync:
-    content_hash: b4a9a0bd5dcaba3bf1db7d303bb31c74a964b6108ac65a0cf1c84fe38e24cac2
-    last_sync_time: 1753372477
+    content_hash: 44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a
+    last_sync_time: 1753373554
     sync_source: dxf
 discovery: true
 deletion_policy: confirm

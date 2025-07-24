@@ -395,8 +395,8 @@ class BlockInsertManager(SyncManagerBase):
             properties['paperspace'] = hasattr(dxf_entity, 'doc') and dxf_entity.doc and \
                                      any(dxf_entity in layout for layout in dxf_entity.doc.layouts if layout.name != 'Model')
 
-            # Add entity name from XDATA if available
-            properties['name'] = self._extract_entity_name_from_xdata(dxf_entity)
+            # Add entity name from XDATA if available (use centralized method)
+            properties['name'] = self._get_entity_name_from_xdata(dxf_entity)
 
             log_debug(f"Extracted DXF properties for block insert: {properties}")
             return properties
@@ -444,45 +444,7 @@ class BlockInsertManager(SyncManagerBase):
             log_error(f"Error writing block insert YAML: {str(e)}")
             return False
 
-    def _discover_entities(self, doc, space):
-        """Discover unknown block inserts in the DXF file."""
-        discovered = []
 
-        try:
-            # Get configured entity names
-            configured_names = {config.get('name') for config in self._get_entity_configs()}
-
-            # Search for INSERT entities with our XDATA in both model and paper space
-            spaces = [doc.modelspace(), doc.paperspace()]
-
-            for search_space in spaces:
-                for entity in search_space:
-                    if entity.dxftype() == 'INSERT':
-                        entity_name = self._extract_entity_name_from_xdata(entity)
-                        if entity_name and entity_name not in configured_names:
-                            # Extract basic properties for discovered entity
-                            properties = self._extract_dxf_entity_properties_for_hash(entity)
-
-                            # Create minimal config for discovered entity
-                            discovered_config = {
-                                'name': entity_name,
-                                'blockName': properties.get('blockName', 'Unknown'),
-                                'scale': properties.get('scale', 1.0),
-                                'rotation': properties.get('rotation', 0.0),
-                                'position': properties.get('position', {'type': 'absolute', 'x': 0.0, 'y': 0.0}),
-                                'paperspace': properties.get('paperspace', False),
-                                'updateDxf': False  # Don't automatically update discovered blocks
-                            }
-
-                            discovered.append(discovered_config)
-                            log_debug(f"Discovered block insert: {entity_name}")
-
-            log_info(f"Discovery completed: Found {len(discovered)} unknown block inserts")
-            return discovered
-
-        except Exception as e:
-            log_error(f"Error during block insert discovery: {str(e)}")
-            return []
 
     def _attach_entity_metadata(self, entity, config):
         """Attach metadata to block insert entity for sync tracking."""
@@ -521,24 +483,12 @@ class BlockInsertManager(SyncManagerBase):
             log_warning(f"Failed to attach metadata to block insert: {repr(e)}")
             log_warning(f"Full traceback: {traceback.format_exc()}")
 
-    def _extract_entity_name_from_xdata(self, entity):
-        """Extract entity name from XDATA attached to DXF entity."""
-        try:
-            if hasattr(entity, 'get_xdata'):
-                xdata = entity.get_xdata(XDATA_APP_ID)
-                if xdata:
-                    # XDATA format: [(1001, app_name), (1000, entity_name), (1000, entity_type), ...]
-                    for i, (code, value) in enumerate(xdata):
-                        if code == 1000 and i == 1:  # Second 1000 entry is entity name
-                            return value
-            return None
-        except Exception as e:
-            log_debug(f"Error extracting entity name from XDATA: {str(e)}")
-            return None
+
 
     def _discover_unknown_entities(self, doc, space):
         """Discover unknown block inserts in the DXF file."""
-        return self._discover_entities(doc, space)
+        # Use centralized discovery logic from SyncManagerBase
+        return super()._discover_unknown_entities(doc, space)
 
     def _handle_entity_deletions(self, doc, space):
         """Handle deletion of block entities that exist in YAML but not in AutoCAD."""
@@ -613,3 +563,24 @@ class BlockInsertManager(SyncManagerBase):
                 'position': {'type': 'absolute', 'x': 0.0, 'y': 0.0},
                 'updateDxf': False
             }
+
+    # Abstract method implementations for centralized discovery
+    # ========================================================
+
+    def _get_entity_types(self):
+        """Block entities: INSERT only."""
+        return ['INSERT']
+
+    def _get_discovery_spaces(self, doc):
+        """Block entities can be in both model space and paper space."""
+        return [doc.modelspace(), doc.paperspace()]
+
+    def _generate_entity_name(self, entity, counter):
+        """Generate name based on block name and counter."""
+        # Use the block definition name if available
+        block_name = getattr(entity.dxf, 'name', 'Unknown')
+        return f"Block_{block_name}_{counter:03d}"
+
+    def _should_skip_entity(self, entity):
+        """No special skip logic for block entities."""
+        return False

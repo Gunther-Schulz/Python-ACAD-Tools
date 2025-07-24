@@ -4,6 +4,7 @@ from src.sync_hash_utils import (
     detect_entity_changes, resolve_sync_conflict, update_sync_metadata,
     ensure_sync_metadata_complete
 )
+from src.dxf_utils import XDATA_APP_ID, attach_custom_data
 
 
 class SyncManagerBase(ABC):
@@ -523,3 +524,161 @@ class SyncManagerBase(ABC):
             str: Content hash for the entity
         """
         pass
+
+    # Centralized XDATA and Discovery Methods
+    # =======================================
+
+    def _get_entity_name_from_xdata(self, entity):
+        """
+        Extract entity name from XDATA attached to DXF entity.
+
+        This method is centralized to ensure consistent XDATA parsing across all entity types.
+
+        Args:
+            entity: DXF entity object
+
+        Returns:
+            str: Entity name if found, "unknown" if not found
+        """
+        try:
+            xdata = entity.get_xdata(XDATA_APP_ID)
+            if xdata:
+                found_name_key = False
+                for code, value in xdata:
+                    if code == 1000 and value == "ENTITY_NAME":
+                        found_name_key = True
+                    elif found_name_key and code == 1000:
+                        return value
+        except Exception:
+            pass
+        return "unknown"
+
+    @abstractmethod
+    def _get_entity_types(self):
+        """
+        Get the DXF entity types that this manager handles.
+
+        Returns:
+            List[str]: List of DXF entity types (e.g., ['TEXT', 'MTEXT'], ['VIEWPORT'], ['INSERT'])
+        """
+        pass
+
+    @abstractmethod
+    def _get_discovery_spaces(self, doc):
+        """
+        Get the DXF spaces where this entity type should be discovered.
+
+        Args:
+            doc: DXF document
+
+        Returns:
+            List: List of DXF spaces to search for entities
+        """
+        pass
+
+    @abstractmethod
+    def _generate_entity_name(self, entity, counter):
+        """
+        Generate a name for a discovered entity.
+
+        Args:
+            entity: DXF entity object
+            counter: Sequential counter for naming
+
+        Returns:
+            str: Generated name for the entity
+        """
+        pass
+
+    @abstractmethod
+    def _should_skip_entity(self, entity):
+        """
+        Check if a specific entity should be skipped during discovery.
+
+        Args:
+            entity: DXF entity object
+
+        Returns:
+            bool: True if entity should be skipped, False otherwise
+        """
+        pass
+
+    def _discover_unknown_entities(self, doc, space):
+        """
+        Centralized discovery logic for unmanaged entities.
+
+        This method provides consistent discovery behavior across all entity types,
+        with entity-specific behavior delegated to abstract methods.
+
+        Args:
+            doc: DXF document
+            space: DXF space (ignored, uses _get_discovery_spaces instead)
+
+        Returns:
+            List[dict]: List of discovered entity configurations
+        """
+        discovered = []
+        entity_counter = 1
+
+        # Get configured entity names to avoid duplicates
+        try:
+            configured_names = {config.get('name') for config in self._get_entity_configs()}
+        except:
+            configured_names = set()
+
+        # Search in all relevant spaces for this entity type
+        for search_space in self._get_discovery_spaces(doc):
+            log_debug(f"Searching for unknown {self.entity_type} entities in {search_space}")
+
+            for entity in search_space:
+                if entity.dxftype() in self._get_entity_types():
+                    try:
+                        # Check if entity should be skipped (e.g., system viewports)
+                        if self._should_skip_entity(entity):
+                            continue
+
+                        # Check if this entity has our script metadata
+                        has_our_metadata = False
+                        try:
+                            xdata = entity.get_xdata(XDATA_APP_ID)
+                            if xdata:
+                                for code, value in xdata:
+                                    if code == 1000 and value == self.script_identifier:
+                                        has_our_metadata = True
+                                        break
+                        except:
+                            has_our_metadata = False
+
+                        # Skip entities that are already managed by our script
+                        if has_our_metadata:
+                            continue
+
+                        # Generate a name for this unmanaged entity
+                        entity_name = self._generate_entity_name(entity, entity_counter)
+
+                        # Skip if name already exists in configuration
+                        if entity_name in configured_names:
+                            entity_counter += 1
+                            continue
+
+                        log_info(f"Discovered unmanaged {self.entity_type} entity, assigned name: {entity_name}")
+
+                        # Attach XDATA to mark this entity as managed
+                        attach_custom_data(entity, self.script_identifier, entity_name, self.entity_type.upper())
+
+                        # Add to discovered list
+                        discovered.append({
+                            'entity': entity,
+                            'name': entity_name,
+                            'space': search_space
+                        })
+
+                        configured_names.add(entity_name)  # Prevent duplicate names
+                        entity_counter += 1
+
+                    except Exception as e:
+                        log_error(f"Error checking {self.entity_type} entity metadata: {str(e)}")
+                        continue
+
+        log_info(f"Discovery completed: Found {len(discovered)} unknown {self.entity_type} entities")
+        return discovered

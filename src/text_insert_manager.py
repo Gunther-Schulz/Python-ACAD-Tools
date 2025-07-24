@@ -227,71 +227,18 @@ class TextInsertManager(SyncManagerBase):
 
     def _discover_unknown_entities(self, doc, space):
         """Discover text entities in AutoCAD that aren't managed by this script."""
-        discovered = []
-        text_counter = 1
+        # Use centralized discovery logic from SyncManagerBase
+        discovered = super()._discover_unknown_entities(doc, space)
 
-        # Text inserts work only in paperspace, not modelspace
-        paper_space = doc.paperspace()
-
-        for entity in paper_space:
-            if entity.dxftype() in ['TEXT', 'MTEXT']:
-                try:
-                    # Check if this text has our script metadata
-                    try:
-                        xdata = entity.get_xdata(XDATA_APP_ID)
-                        has_our_metadata = False
-                        if xdata:
-                            for code, value in xdata:
-                                if code == 1000 and value == self.script_identifier:
-                                    has_our_metadata = True
-                                    break
-                    except:
-                        has_our_metadata = False
-
-                    if has_our_metadata:
-                        continue
-
-                    # Generate a name based on text content or position
-                    text_content = getattr(entity.dxf, 'text', '') or getattr(entity, 'text', '')
-                    if text_content:
-                        # Use first few words of text content for name
-                        clean_text = text_content.replace('\n', ' ').replace('\r', ' ').strip()
-                        words = clean_text.split()[:3]  # First 3 words
-                        if words:
-                            text_name = f"Text_{'_'.join(words)}"
-                            # Clean invalid characters
-                            text_name = ''.join(c for c in text_name if c.isalnum() or c in '_-')
-                        else:
-                            text_name = f"Text_{str(entity.dxf.handle).zfill(3)}"
-                    else:
-                        text_name = f"Text_{str(entity.dxf.handle).zfill(3)}"
-
-                    log_info(f"Discovered manual text in PaperSpace, assigned name: {text_name}")
-
-                    # Set hyperlink to text name (explicit call like viewport manager)
-                    try:
-                        entity.set_hyperlink(text_name)
-                        log_debug(f"Set hyperlink '{text_name}' for discovered text entity")
-                    except Exception as e:
-                        log_warning(f"Failed to set hyperlink for discovered text '{text_name}': {str(e)}")
-
-                    # Use unified XDATA function - automatically creates structured XDATA for named entities
-                    attach_custom_data(entity, self.script_identifier, text_name, 'TEXT')
-
-                    discovered.append({
-                        'entity': entity,
-                        'name': text_name,
-                        'space': 'PaperSpace'
-                    })
-                    text_counter += 1
-
-                except Exception as e:
-                    log_error(f"Error checking text metadata: {str(e)}")
-                    continue
-
-        # Simple summary
-        total_texts = sum(1 for entity in paper_space if entity.dxftype() in ['TEXT', 'MTEXT'])
-        log_info(f"Discovery completed: Found {len(discovered)} unknown texts out of {total_texts} total text entities in PaperSpace")
+        # Add hyperlinks for discovered text entities (text-specific behavior)
+        for discovery in discovered:
+            entity = discovery['entity']
+            entity_name = discovery['name']
+            try:
+                entity.set_hyperlink(entity_name)
+                log_debug(f"Set hyperlink '{entity_name}' for discovered text entity")
+            except Exception as e:
+                log_warning(f"Failed to set hyperlink for discovered text '{entity_name}': {str(e)}")
 
         return discovered
 
@@ -515,23 +462,42 @@ class TextInsertManager(SyncManagerBase):
             log_error(f"Error extracting text properties for hash: {str(e)}")
             return {}
 
-    def _get_entity_name_from_xdata(self, entity):
-        """Extract entity name from XDATA."""
-        try:
-            xdata = entity.get_xdata(XDATA_APP_ID)
-            if xdata:
-                found_name_key = False
-                for code, value in xdata:
-                    if code == 1000 and value == "ENTITY_NAME":
-                        found_name_key = True
-                    elif found_name_key and code == 1000:
-                        return value
-        except Exception:
-            pass
-        return "unknown"
+
 
     def _get_text_by_name(self, doc, name):
         """Retrieve a text entity by its name using xdata."""
         # Text inserts work only in paperspace, not modelspace
         paper_space = doc.paperspace()
         return find_entity_by_xdata_name(paper_space, name, ['TEXT', 'MTEXT'])
+
+    # Abstract method implementations for centralized discovery
+    # ========================================================
+
+    def _get_entity_types(self):
+        """Text entities: TEXT and MTEXT."""
+        return ['TEXT', 'MTEXT']
+
+    def _get_discovery_spaces(self, doc):
+        """Text entities are only in paperspace."""
+        return [doc.paperspace()]
+
+    def _generate_entity_name(self, entity, counter):
+        """Generate name based on text content or handle."""
+        # Generate a name based on text content or position
+        text_content = getattr(entity.dxf, 'text', '') or getattr(entity, 'text', '')
+        if text_content:
+            # Use first few words of text content for name
+            clean_text = text_content.replace('\n', ' ').replace('\r', ' ').strip()
+            words = clean_text.split()[:3]  # First 3 words
+            if words:
+                text_name = f"Text_{'_'.join(words)}"
+                # Clean invalid characters
+                text_name = ''.join(c for c in text_name if c.isalnum() or c in '_-')
+                return text_name
+
+        # Fallback to handle-based name
+        return f"Text_{str(entity.dxf.handle).zfill(3)}"
+
+    def _should_skip_entity(self, entity):
+        """No special skip logic for text entities."""
+        return False

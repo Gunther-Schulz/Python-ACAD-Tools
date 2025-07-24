@@ -115,13 +115,13 @@ def detect_entity_changes(yaml_config, dxf_entity, entity_type, entity_manager):
 
         # Determine what changed
     yaml_changed = current_yaml_hash != stored_hash if stored_hash else True
-    
+
     # Handle DXF changes properly - if DXF entity is missing, it's not a "change"
     if current_dxf_hash is None:
         dxf_changed = False  # Missing entity is not a change, it's an absence
     else:
         dxf_changed = current_dxf_hash != stored_hash if stored_hash else False
-    
+
     # IMPORTANT: If we have both current hashes and they match each other,
     # but differ from stored hash, this is NOT a conflict - both sides are in sync
     # This happens when baseline hash is outdated/inconsistent
@@ -141,7 +141,7 @@ def detect_entity_changes(yaml_config, dxf_entity, entity_type, entity_manager):
                 is_managed_entity = bool(xdata)
             except:
                 is_managed_entity = False
-            
+
             if is_managed_entity:
                 # For managed entities, prefer DXF changes (user likely moved it in AutoCAD)
                 # This avoids false conflicts when user moves managed blocks
