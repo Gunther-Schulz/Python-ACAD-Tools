@@ -113,9 +113,40 @@ def detect_entity_changes(yaml_config, dxf_entity, entity_type, entity_manager):
         else:
             print(f"Entity manager {type(entity_manager)} missing _extract_dxf_entity_properties_for_hash method")
 
-    # Determine what changed
+        # Determine what changed
     yaml_changed = current_yaml_hash != stored_hash if stored_hash else True
-    dxf_changed = current_dxf_hash != stored_hash if stored_hash else False
+    
+    # Handle DXF changes properly - if DXF entity is missing, it's not a "change"
+    if current_dxf_hash is None:
+        dxf_changed = False  # Missing entity is not a change, it's an absence
+    else:
+        dxf_changed = current_dxf_hash != stored_hash if stored_hash else False
+    
+    # IMPORTANT: If we have both current hashes and they match each other,
+    # but differ from stored hash, this is NOT a conflict - both sides are in sync
+    # This happens when baseline hash is outdated/inconsistent
+    if stored_hash and current_yaml_hash and current_dxf_hash:
+        if current_yaml_hash == current_dxf_hash and (yaml_changed or dxf_changed):
+            # Both sides have same content but differ from stored baseline
+            # This is a baseline update scenario, not a conflict
+            yaml_changed = False
+            dxf_changed = False
+            print(f"  🔄 Baseline hash outdated - YAML and DXF are in sync, updating baseline")
+        elif yaml_changed and dxf_changed and dxf_entity:
+            # Check if DXF entity is managed by our app (has our XDATA)
+            is_managed_entity = False
+            try:
+                from src.dxf_utils import XDATA_APP_ID
+                xdata = dxf_entity.get_xdata(XDATA_APP_ID)
+                is_managed_entity = bool(xdata)
+            except:
+                is_managed_entity = False
+            
+            if is_managed_entity:
+                # For managed entities, prefer DXF changes (user likely moved it in AutoCAD)
+                # This avoids false conflicts when user moves managed blocks
+                yaml_changed = False  # Treat as DXF-only change
+                print(f"  🎯 Managed entity detected - treating as DXF change (likely moved in AutoCAD)")
 
     print(f"  ✅ YAML changed: {yaml_changed} (current != stored: {current_yaml_hash != stored_hash if stored_hash else 'no stored hash'})")
     print(f"  ✅ DXF changed: {dxf_changed} (current != stored: {current_dxf_hash != stored_hash if stored_hash and current_dxf_hash else 'no DXF hash'})")
