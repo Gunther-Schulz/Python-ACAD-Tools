@@ -505,4 +505,31 @@ class BlockInsertManager(SyncManagerBase):
         """No special skip logic for block entities."""
         return False
 
+    def _get_entity_types_for_search(self):
+        """Get DXF entity types for block insert search."""
+        return ['INSERT']
+
+    def _extract_entity_properties_for_discovery(self, entity):
+        """Extract block insert properties for auto-discovery."""
+        try:
+            position = {'type': 'absolute', 'x': float(entity.dxf.insert[0]), 'y': float(entity.dxf.insert[1])}
+            return {
+                'blockName': entity.dxf.name,
+                'position': position,
+                'scale': float(getattr(entity.dxf, 'xscale', 1.0)),
+                'rotation': float(getattr(entity.dxf, 'rotation', 0.0)),
+                'layer': entity.dxf.layer,
+                'paperspace': False  # Will be inherited from original
+            }
+        except Exception as e:
+            log_warning(f"Error extracting block insert properties: {str(e)}")
+            return {
+                'blockName': 'Unknown',
+                'position': {'type': 'absolute', 'x': 0, 'y': 0},
+                'scale': 1.0,
+                'rotation': 0.0,
+                'layer': 'DEFAULT',
+                'paperspace': False
+            }
+
     # _get_config_key is now centralized in SyncManagerBase

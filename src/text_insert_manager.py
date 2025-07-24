@@ -460,3 +460,42 @@ class TextInsertManager(SyncManagerBase):
     def _should_skip_entity(self, entity):
         """No special skip logic for text entities."""
         return False
+
+    def _get_entity_types_for_search(self):
+        """Get DXF entity types for text search."""
+        return ['TEXT', 'MTEXT']
+
+    def _extract_entity_properties_for_discovery(self, entity):
+        """Extract text properties for auto-discovery."""
+        try:
+            # Get position
+            if entity.dxftype() == 'MTEXT':
+                insert_point = entity.dxf.insert
+            else:  # TEXT
+                insert_point = entity.dxf.insert
+
+            position = {'type': 'absolute', 'x': float(insert_point[0]), 'y': float(insert_point[1])}
+
+            # Get text content
+            if entity.dxftype() == 'MTEXT':
+                text_content = entity.plain_text()
+            else:  # TEXT
+                text_content = entity.dxf.text
+
+            return {
+                'text': text_content,
+                'position': position,
+                'layer': entity.dxf.layer,
+                'paperspace': False,  # Will be inherited from original
+                'style': getattr(entity.dxf, 'style', 'Standard'),
+                'justification': getattr(entity.dxf, 'halign', 0)
+            }
+        except Exception as e:
+            log_warning(f"Error extracting text properties: {str(e)}")
+            return {
+                'text': 'Discovered Text',
+                'position': {'type': 'absolute', 'x': 0, 'y': 0},
+                'layer': 'DEFAULT',
+                'paperspace': False,
+                'style': 'Standard'
+            }

@@ -250,17 +250,22 @@ class SyncManagerBase(ABC):
             # YAML → AutoCAD: Create/update entity from YAML config
             result = self._sync_push(doc, space, config)
             if result:
-                # Update sync metadata after successful push
+                # Update sync metadata after successful push with handle tracking
                 content_hash = self._calculate_entity_hash(config)
-                update_sync_metadata(config, content_hash, 'yaml')
+                entity_handle = str(result.dxf.handle)
+                from src.sync_hash_utils import update_sync_metadata
+                update_sync_metadata(config, content_hash, 'yaml', entity_handle=entity_handle)
             return {'entity': result, 'yaml_updated': True} if result else None
         elif sync_direction == 'pull':
             # AutoCAD → YAML: Update YAML config from AutoCAD entity
             result = self._sync_pull(doc, space, config)
             if result and result.get('yaml_updated'):
-                # Update sync metadata after successful pull
+                # Update sync metadata after successful pull with handle tracking
                 content_hash = self._calculate_entity_hash(config)
-                update_sync_metadata(config, content_hash, 'dxf')
+                # Get entity handle from existing entity for pull operations
+                existing_entity = self._find_entity_by_name(doc, entity_name)
+                entity_handle = str(existing_entity.dxf.handle) if existing_entity else None
+                update_sync_metadata(config, content_hash, 'dxf', entity_handle=entity_handle)
             return result if result else None
         else:
             log_warning(f"Unknown sync direction '{sync_direction}' for {self.entity_type} {entity_name}")
@@ -268,7 +273,7 @@ class SyncManagerBase(ABC):
 
     def _process_auto_sync(self, doc, space, config):
         """
-        Process entity using automatic hash-based sync direction detection.
+        Process entity using state-based automatic sync with proper change detection.
 
         Args:
             doc: DXF document
@@ -280,72 +285,94 @@ class SyncManagerBase(ABC):
         """
         entity_name = config.get('name', 'unnamed')
 
-        # Find existing DXF entity
-        existing_entity = self._find_entity_by_name(doc, entity_name)
+        # Find existing DXF entity and handle duplicates
+        existing_entity, duplicate_entities = self._find_entity_with_duplicate_handling(doc, config)
+
+        # Handle discovered duplicates if any
+        if duplicate_entities:
+            discovered_configs = self._discover_duplicates_as_new_entities(duplicate_entities, config)
+            if discovered_configs:
+                self._add_discovered_entities_to_yaml(discovered_configs)
 
         # Detect changes using hash comparison, passing self as entity manager
         changes = detect_entity_changes(config, existing_entity, self.entity_type, self)
 
+        # State-based sync logic
+        yaml_exists = True  # We have config (always true in this context)
+        dxf_exists = existing_entity is not None
+
         log_debug(f"Auto sync analysis for '{entity_name}': "
-                 f"YAML changed: {changes['yaml_changed']}, "
-                 f"DXF changed: {changes['dxf_changed']}")
+                 f"YAML exists: {yaml_exists}, DXF exists: {dxf_exists}, "
+                 f"YAML changed: {changes['yaml_changed']}, DXF changed: {changes['dxf_changed']}")
 
-        # Handle different change scenarios
-        if not changes['yaml_changed'] and not changes['dxf_changed']:
-            # No changes detected
-            log_debug(f"No changes detected for {self.entity_type} '{entity_name}', skipping sync")
-            return None
-
-        elif changes['yaml_changed'] and not changes['dxf_changed']:
-            # Only YAML changed - push to DXF
-            log_debug(f"YAML changed for '{entity_name}', pushing to DXF")
+        # PRIORITY 1: State-based logic - ensure desired state exists
+        if yaml_exists and not dxf_exists:
+            # YAML exists but DXF missing - create entity regardless of change detection
+            log_info(f"🔄 AUTO: Creating missing entity '{entity_name}' in DXF (state-based sync)")
             result = self._sync_push(doc, space, config)
             if result:
-                update_sync_metadata(config, changes['current_yaml_hash'], 'yaml')
+                entity_handle = str(result.dxf.handle)
+                from src.sync_hash_utils import update_sync_metadata
+                update_sync_metadata(config, changes['current_yaml_hash'], 'yaml', entity_handle=entity_handle)
             return {'entity': result, 'yaml_updated': True} if result else None
 
-        elif not changes['yaml_changed'] and changes['dxf_changed']:
-            # DXF changed - check if missing or modified
-            if changes['current_dxf_hash'] is None:
-                # DXF entity missing - push YAML to recreate it
-                log_debug(f"DXF entity '{entity_name}' missing, pushing from YAML to recreate")
+        # PRIORITY 2: Change-based logic for existing entities
+        elif yaml_exists and dxf_exists:
+            if changes['yaml_changed'] and not changes['dxf_changed']:
+                # Only YAML changed - push to DXF
+                log_info(f"🔄 AUTO: Updating '{entity_name}' in DXF (YAML changed)")
                 result = self._sync_push(doc, space, config)
                 if result:
-                    update_sync_metadata(config, changes['current_yaml_hash'], 'yaml')
+                    entity_handle = str(result.dxf.handle)
+                    update_sync_metadata(config, changes['current_yaml_hash'], 'yaml', entity_handle=entity_handle)
                 return {'entity': result, 'yaml_updated': True} if result else None
+
+            elif not changes['yaml_changed'] and changes['dxf_changed']:
+                # Only DXF changed - pull from DXF
+                log_info(f"🔄 AUTO: Pulling changes from DXF to YAML for '{entity_name}' (DXF changed)")
+                result = self._sync_pull(doc, space, config)
+                if result and result.get('yaml_updated'):
+                    # Get handle from existing entity for tracking
+                    entity_handle = str(existing_entity.dxf.handle) if existing_entity else None
+                    update_sync_metadata(config, changes['current_dxf_hash'], 'dxf', entity_handle=entity_handle)
+                return result if result else None
+
+            elif changes['yaml_changed'] and changes['dxf_changed']:
+                # Both changed - resolve conflict using settings
+                log_info(f"⚠️  AUTO: Conflict detected for '{entity_name}' - both YAML and DXF changed")
+
+                from src.sync_hash_utils import resolve_sync_conflict
+                resolution = resolve_sync_conflict(entity_name, config, existing_entity, self.project_settings)
+
+                if resolution == 'yaml_wins':
+                    log_info(f"🔄 AUTO: Resolving conflict for '{entity_name}': YAML wins")
+                    result = self._sync_push(doc, space, config)
+                    if result:
+                        entity_handle = str(result.dxf.handle)
+                        update_sync_metadata(config, changes['current_yaml_hash'], 'yaml', entity_handle=entity_handle)
+                    return {'entity': result, 'yaml_updated': True} if result else None
+
+                elif resolution == 'dxf_wins':
+                    log_info(f"🔄 AUTO: Resolving conflict for '{entity_name}': DXF wins")
+                    result = self._sync_pull(doc, space, config)
+                    if result and result.get('yaml_updated'):
+                        entity_handle = str(existing_entity.dxf.handle) if existing_entity else None
+                        update_sync_metadata(config, changes['current_dxf_hash'], 'dxf', entity_handle=entity_handle)
+                    return result if result else None
+
+                else:  # resolution == 'skip'
+                    log_info(f"🔄 AUTO: Skipping conflicted entity '{entity_name}' per conflict resolution policy")
+                    return None
+
             else:
-                # DXF entity modified - pull from DXF
-                log_debug(f"DXF changed for '{entity_name}', pulling to YAML")
-                result = self._sync_pull(doc, space, config)
-                if result and result.get('yaml_updated'):
-                    update_sync_metadata(config, changes['current_dxf_hash'], 'dxf')
-                return result if result else None
-
-        elif changes['has_conflict']:
-            # Both sides changed - resolve conflict
-            log_info(f"Conflict detected for {self.entity_type} '{entity_name}' - both YAML and DXF changed")
-
-            resolution = resolve_sync_conflict(entity_name, config, existing_entity, self.project_settings)
-
-            if resolution == 'yaml_wins':
-                log_info(f"Resolving conflict for '{entity_name}': YAML wins")
-                result = self._sync_push(doc, space, config)
-                if result:
-                    update_sync_metadata(config, changes['current_yaml_hash'], 'yaml')
-                return {'entity': result, 'yaml_updated': True} if result else None
-
-            elif resolution == 'dxf_wins':
-                log_info(f"Resolving conflict for '{entity_name}': DXF wins")
-                result = self._sync_pull(doc, space, config)
-                if result and result.get('yaml_updated'):
-                    update_sync_metadata(config, changes['current_dxf_hash'], 'dxf')
-                return result if result else None
-
-            else:  # resolution == 'skip'
-                log_info(f"Skipping conflicted entity '{entity_name}' per user/policy choice")
+                # No changes detected - both exist and are synchronized
+                log_debug(f"🔄 AUTO: '{entity_name}' unchanged - maintaining current state")
                 return None
 
-        return None
+        else:
+            # This shouldn't happen (yaml_exists is always True in this context)
+            log_error(f"🔄 AUTO: Unexpected state for '{entity_name}' - YAML missing")
+            return None
 
     def _process_discovered_entities(self, discovered_entities):
         """
@@ -584,7 +611,7 @@ class SyncManagerBase(ABC):
 
         # Standard global settings all entity types support
         setting_mappings = {
-            'discovery': f'{prefix}discovery',
+            'discover_untracked': f'{prefix}discovery',
             'deletion_policy': f'{prefix}deletion_policy',
             'default_layer': f'{prefix}default_layer',
             'sync': f'{prefix}sync'
@@ -671,16 +698,26 @@ class SyncManagerBase(ABC):
             # Calculate content hash for the configuration
             content_hash = self._calculate_entity_hash(config)
 
-            # Use unified XDATA function with content hash
+            # Get entity handle for tracking
+            entity_handle = str(entity.dxf.handle)
+
+            # Use unified XDATA function with content hash and handle
+            from src.dxf_utils import attach_custom_data
             attach_custom_data(
                 entity,
                 self.script_identifier,
                 entity_name=entity_name,
                 entity_type=self.entity_type.upper(),
-                content_hash=content_hash
+                content_hash=content_hash,
+                entity_handle=entity_handle
             )
 
-            log_debug(f"Attached metadata to {self.entity_type} '{entity_name}'")
+            # Store handle in sync metadata for handle-based tracking
+            if '_sync' not in config:
+                config['_sync'] = {}
+            config['_sync']['dxf_handle'] = entity_handle
+
+            log_debug(f"Attached metadata to {self.entity_type} '{entity_name}' with handle {entity_handle}")
 
         except Exception as e:
             log_warning(f"Failed to attach metadata to {self.entity_type}: {str(e)}")
@@ -826,6 +863,362 @@ class SyncManagerBase(ABC):
 
         # Check if entity layer is in the discovery layers list
         return entity_layer in self.discovery_layers
+
+    def _has_stale_xdata(self, entity):
+        """
+        Check if entity has stale XDATA (handle mismatch indicates duplicate).
+
+        Args:
+            entity: DXF entity to check
+
+        Returns:
+            bool: True if entity has stale XDATA (is a duplicate), False otherwise
+        """
+        if not entity:
+            return False
+
+        try:
+            # Check if entity has our XDATA
+            xdata = entity.get_xdata(XDATA_APP_ID)
+            if not xdata:
+                return False
+
+            # Extract stored handle from XDATA
+            from src.dxf_utils import extract_handle_from_xdata
+            stored_handle = extract_handle_from_xdata(entity)
+            actual_handle = str(entity.dxf.handle)
+
+            # Stale XDATA = handle mismatch
+            return stored_handle != actual_handle
+
+        except Exception:
+            return True  # Corrupted XDATA = treat as stale
+
+    def _find_all_entities_by_xdata_name(self, space, entity_name, entity_types):
+        """
+        Find ALL entities with matching XDATA name (not just first match).
+
+        Args:
+            space: DXF space to search
+            entity_name: Name to search for
+            entity_types: List of entity types to search
+
+        Returns:
+            list: All entities with matching name
+        """
+        matching_entities = []
+
+        for entity in space:
+            if entity_types and entity.dxftype() not in entity_types:
+                continue
+
+            try:
+                xdata = entity.get_xdata(XDATA_APP_ID)
+                if xdata:
+                    # Extract entity name from XDATA
+                    in_entity_section = False
+                    found_name = None
+
+                    for code, value in xdata:
+                        if code == 1000 and value == "entity_name":
+                            in_entity_section = True
+                        elif in_entity_section and code == 1000:
+                            found_name = value
+                            break
+
+                    if found_name == entity_name:
+                        matching_entities.append(entity)
+            except Exception:
+                continue
+
+        return matching_entities
+
+    def _find_original_and_duplicates(self, space, entity_name, entity_types):
+        """
+        Find the original tracked entity and any duplicates by analyzing XDATA handles.
+
+        Args:
+            space: DXF space to search
+            entity_name: Name to search for
+            entity_types: List of entity types to search
+
+        Returns:
+            tuple: (original_entity, duplicate_entities_list)
+        """
+        # Find all entities with this name
+        all_entities = self._find_all_entities_by_xdata_name(space, entity_name, entity_types)
+
+        original_entity = None
+        duplicate_entities = []
+
+        for entity in all_entities:
+            if self._has_stale_xdata(entity):
+                duplicate_entities.append(entity)  # Stale XDATA = duplicate
+            else:
+                original_entity = entity  # Valid XDATA = original
+
+        return original_entity, duplicate_entities
+
+    def _generate_unique_entity_name(self, base_name, copy_number):
+        """
+        Generate unique name for discovered duplicate.
+
+        Args:
+            base_name: Original entity name
+            copy_number: Copy number (1, 2, 3, etc.)
+
+        Returns:
+            str: Unique entity name
+        """
+        import time
+
+        # Try simple pattern first
+        candidate_name = f"{base_name}_copy{copy_number}"
+
+        # Check if name already exists in current configs
+        existing_names = {config.get('name') for config in self._get_entity_configs()}
+
+        # If conflict, add timestamp
+        if candidate_name in existing_names:
+            timestamp = int(time.time()) % 10000  # Last 4 digits
+            candidate_name = f"{base_name}_copy{copy_number}_{timestamp}"
+
+        return candidate_name
+
+    def _discover_duplicates_as_new_entities(self, duplicate_entities, original_config):
+        """
+        Convert duplicate entities into new managed entities with unique names.
+
+        Args:
+            duplicate_entities: List of duplicate entities to discover
+            original_config: Configuration of the original entity
+
+        Returns:
+            list: List of new entity configurations for discovered duplicates
+        """
+        discovered_configs = []
+
+        for i, duplicate_entity in enumerate(duplicate_entities, 1):
+            try:
+                # Generate unique name
+                original_name = original_config.get('name', 'unnamed')
+                new_name = self._generate_unique_entity_name(original_name, i)
+
+                # Clean stale XDATA
+                duplicate_entity.discard_xdata(XDATA_APP_ID)
+
+                # Extract properties from duplicate entity
+                new_config = self._extract_entity_properties_for_discovery(duplicate_entity)
+                new_config['name'] = new_name
+
+                # Inherit key settings from original
+                for key in ['layer', 'paperspace']:
+                    if key in original_config:
+                        new_config[key] = original_config[key]
+
+                # Add tracking metadata with new handle
+                content_hash = self._calculate_entity_hash(new_config)
+                self._attach_entity_metadata(duplicate_entity, new_config)
+
+                # Add sync metadata
+                import time
+                new_config['_sync'] = {
+                    'content_hash': content_hash,
+                    'dxf_handle': str(duplicate_entity.dxf.handle),
+                    'last_sync_time': int(time.time()),
+                    'sync_source': 'auto_discovery',
+                    'discovered_from': original_name
+                }
+
+                discovered_configs.append(new_config)
+                log_info(f"🔍 AUTO-DISCOVERED: Duplicate of '{original_name}' as new entity '{new_name}'")
+
+            except Exception as e:
+                log_warning(f"Failed to discover duplicate entity: {str(e)}")
+                continue
+
+        return discovered_configs
+
+    def _extract_entity_properties_for_discovery(self, entity):
+        """
+        Extract entity properties for auto-discovery.
+        This method should be overridden by subclasses for entity-specific extraction.
+
+        Args:
+            entity: DXF entity to extract properties from
+
+        Returns:
+            dict: Entity configuration extracted from DXF
+        """
+        # This is a fallback implementation
+        # Subclasses should override this for proper entity-specific extraction
+        log_warning(f"Using fallback property extraction for {entity.dxftype()} entity discovery")
+        return {
+            'name': 'discovered_entity',
+            'layer': getattr(entity.dxf, 'layer', 'DEFAULT'),
+            'paperspace': False
+        }
+
+    def _add_discovered_entities_to_yaml(self, discovered_configs):
+        """
+        Add newly discovered entities to YAML configuration.
+
+        Args:
+            discovered_configs: List of discovered entity configurations
+        """
+        if not discovered_configs:
+            return
+
+        # Add to current project settings
+        config_key = self._get_config_key()
+        current_configs = self._get_entity_configs()
+        current_configs.extend(discovered_configs)
+
+        # Update project settings
+        self.project_settings[config_key] = current_configs
+
+        log_info(f"📝 Added {len(discovered_configs)} discovered entities to {config_key} configuration")
+
+    def _find_entity_with_duplicate_handling(self, doc, config):
+        """
+        Find entity using handle-first search with duplicate detection and handling.
+
+        Args:
+            doc: DXF document
+            config: Entity configuration
+
+        Returns:
+            tuple: (original_entity, duplicate_entities_list)
+        """
+        entity_name = config.get('name', 'unnamed')
+
+        # STEP 1: Try handle-first search for the original entity
+        original_entity = self._find_entity_by_handle_first(doc, config)
+
+        # STEP 2: Look for duplicates using name-based search
+        duplicate_entities = []
+
+        # Only search for duplicates if we found an original entity
+        if original_entity:
+            paperspace = config.get('paperspace', False)
+            target_space = doc.paperspace() if paperspace else doc.modelspace()
+            entity_types = self._get_entity_types_for_search()
+
+            # Find all entities with this name
+            all_entities = self._find_all_entities_by_xdata_name(target_space, entity_name, entity_types)
+
+            # Separate duplicates from original
+            for entity in all_entities:
+                if entity != original_entity and self._has_stale_xdata(entity):
+                    duplicate_entities.append(entity)
+
+        return original_entity, duplicate_entities
+
+    def _get_entity_types_for_search(self):
+        """
+        Get the DXF entity types that this manager searches for.
+        Should be overridden by subclasses.
+
+        Returns:
+            list: List of DXF entity type strings
+        """
+        # Default implementation - subclasses should override
+        return []
+
+    def _find_entity_by_handle_first(self, doc, config):
+        """
+        Find entity using handle-first logic with name fallback.
+
+        Args:
+            doc: DXF document
+            config: Entity configuration
+
+        Returns:
+            DXF entity or None if not found
+        """
+        if not config:
+            log_warning("Config is None in _find_entity_by_handle_first")
+            return None
+
+        entity_name = config.get('name', 'unnamed')
+        sync_metadata = config.get('_sync', {})
+        stored_handle = sync_metadata.get('dxf_handle') if sync_metadata else None
+
+        # Determine target space
+        paperspace = config.get('paperspace', False)
+        target_space = doc.paperspace() if paperspace else doc.modelspace()
+
+        # STEP 1: Try handle-first search (most reliable)
+        if stored_handle:
+            try:
+                entity = target_space.get_entity_by_handle(stored_handle)
+                if entity:
+                    log_debug(f"Found entity '{entity_name}' by handle: {stored_handle}")
+
+                    # Update entity name in XDATA if it changed
+                    self._update_entity_name_in_xdata(entity, entity_name)
+
+                    return entity
+            except Exception as e:
+                log_debug(f"Handle search failed for '{entity_name}' (handle: {stored_handle}): {str(e)}")
+
+        # STEP 2: Fallback to name-based search using existing method
+        log_debug(f"Falling back to name search for entity '{entity_name}'")
+        return self._find_entity_by_name(doc, entity_name)
+
+    def _update_entity_name_in_xdata(self, entity, new_name):
+        """
+        Update the entity name in XDATA if it has changed.
+
+        Args:
+            entity: DXF entity
+            new_name: New entity name
+        """
+        try:
+            # Get current name from XDATA
+            xdata = entity.get_xdata(XDATA_APP_ID)
+            if not xdata:
+                return
+
+            # Extract current name
+            current_name = None
+            in_entity_section = False
+            for code, value in xdata:
+                if code == 1000 and value == "entity_name":
+                    in_entity_section = True
+                elif in_entity_section and code == 1000:
+                    current_name = value
+                    break
+
+            # Update name if it changed
+            if current_name and current_name != new_name:
+                log_debug(f"Updating entity name in XDATA: '{current_name}' → '{new_name}'")
+
+                # Re-attach metadata with new name
+                from src.dxf_utils import attach_custom_data
+
+                # Get existing metadata
+                content_hash = None
+                entity_handle = str(entity.dxf.handle)
+
+                # Extract content hash from XDATA
+                for code, value in xdata:
+                    if code == 1000 and value.startswith('hash:'):
+                        content_hash = value[5:]  # Remove 'hash:' prefix
+                        break
+
+                # Re-attach with updated name
+                attach_custom_data(
+                    entity,
+                    self.script_identifier,
+                    entity_name=new_name,
+                    entity_type=self.entity_type.upper(),
+                    content_hash=content_hash,
+                    entity_handle=entity_handle
+                )
+
+        except Exception as e:
+            log_warning(f"Failed to update entity name in XDATA: {str(e)}")
 
     def _validate_entity_handle(self, entity, entity_name):
         """

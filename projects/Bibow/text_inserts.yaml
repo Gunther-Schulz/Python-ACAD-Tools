@@ -8,6 +8,12 @@ texts:
     Gemeinde Torgelow am See'
   paperspace: true
   style: mainTitle
+  _sync:
+    dxf_handle: 4C87
+    content_hash: 3782808cf62579e7bbb585594a63ffa2ec9b61300038966fbb9b4e14039171c3
+    last_sync_time: 1753383899
+    sync_source: yaml
+    entity_handle: 4C87
 - name: Map Header
   position:
     type: absolute
@@ -16,6 +22,12 @@ texts:
   text: 'Teil A: Planzeichnung i. M. 1:2.000'
   paperspace: true
   style: mapHeader
+  _sync:
+    dxf_handle: 4C88
+    content_hash: b0ce05a6ca1a90d22ccc5f8caacf2448c7938e285e1590153b2fdc50af0ccf13
+    last_sync_time: 1753383899
+    sync_source: yaml
+    entity_handle: 4C88
 - name: Übersichtslarte Header
   position:
     type: absolute
@@ -24,6 +36,12 @@ texts:
   text: Übersichtskarte i. M. 1:30.000
   paperspace: true
   style: übersichtskarteHeader
+  _sync:
+    dxf_handle: 4C89
+    content_hash: 2fe8e7be883c479667872d8607b83ed62004d00b84dfa887e9e2c4f930ff9fbf
+    last_sync_time: 1753383899
+    sync_source: yaml
+    entity_handle: 4C89
 - name: Satzung
   position:
     type: absolute
@@ -35,7 +53,11 @@ texts:
   style: satzungste
   justification: CENTER
   _sync:
-discovery: true
+    content_hash: 11b04b5c1a84c175d119ce9001f5af5de567647d4c01f9751316a4bbf13c1672
+    last_sync_time: 1753383899
+    sync_source: yaml
+    entity_handle: 4C8A
+discover_untracked: true
 deletion_policy: confirm
 default_layer: Plantext
 sync: auto

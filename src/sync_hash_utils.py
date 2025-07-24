@@ -66,7 +66,12 @@ def update_sync_metadata(entity_config, content_hash, sync_source, conflict_poli
     """
     import time
 
-    if '_sync' not in entity_config:
+    if not entity_config:
+        from src.utils import log_warning
+        log_warning("entity_config is None in update_sync_metadata")
+        return
+
+    if '_sync' not in entity_config or entity_config['_sync'] is None:
         entity_config['_sync'] = {}
 
     entity_config['_sync']['content_hash'] = content_hash
@@ -93,8 +98,21 @@ def detect_entity_changes(yaml_config, dxf_entity, entity_type, entity_manager):
     Returns:
         dict: Change detection results
     """
+    if not yaml_config:
+        from src.utils import log_warning
+        log_warning("yaml_config is None in detect_entity_changes")
+        return {
+            'yaml_changed': False,
+            'dxf_changed': False,
+            'has_conflict': False,
+            'current_yaml_hash': None,
+            'current_dxf_hash': None,
+            'stored_hash': None,
+            'sync_meta': {}
+        }
+
     entity_name = yaml_config.get('name', 'unnamed')
-    sync_meta = yaml_config.get('_sync', {})
+    sync_meta = yaml_config.get('_sync', {}) or {}
 
     print(f"🔍 HASH DEBUG for '{entity_name}' ({entity_type})")
 

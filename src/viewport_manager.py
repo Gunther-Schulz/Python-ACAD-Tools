@@ -544,3 +544,29 @@ class ViewportManager(SyncManagerBase):
         """Skip main viewport (ID=1) - it's a system viewport, not user-managed."""
         viewport_id = getattr(entity.dxf, 'id', None)
         return viewport_id == 1
+
+    def _get_entity_types_for_search(self):
+        """Get DXF entity types for viewport search."""
+        return ['VIEWPORT']
+
+    def _extract_entity_properties_for_discovery(self, entity):
+        """Extract viewport properties for auto-discovery."""
+        try:
+            return {
+                'center': {'x': float(entity.dxf.center[0]), 'y': float(entity.dxf.center[1])},
+                'width': float(entity.dxf.width),
+                'height': float(entity.dxf.height),
+                'layer': entity.dxf.layer,
+                'paperspace': True,  # Viewports are always in paperspace
+                'scale': 1.0  # Default scale
+            }
+        except Exception as e:
+            log_warning(f"Error extracting viewport properties: {str(e)}")
+            return {
+                'center': {'x': 0, 'y': 0},
+                'width': 100,
+                'height': 100,
+                'layer': 'DEFAULT',
+                'paperspace': True,
+                'scale': 1.0
+            }

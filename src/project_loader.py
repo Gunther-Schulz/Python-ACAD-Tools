@@ -55,21 +55,21 @@ class ProjectLoader:
         wmts_wms_layers = self.load_yaml_file('wmts_wms_layers.yaml', required=False) or {}
 
         # Extract global viewport settings with defaults (new generalized format only)
-        viewport_discovery = viewports.get('discovery', False)
+        viewport_discovery = viewports.get('discover_untracked', False)
         viewport_deletion_policy = viewports.get('deletion_policy', 'auto')
         viewport_default_layer = viewports.get('default_layer', 'VIEWPORTS')
         viewport_sync = viewports.get('sync', 'skip')
 
         # Extract global text insert settings with defaults
         text_sync = text_inserts.get('sync', 'push') if text_inserts else 'push'
-        text_discovery = text_inserts.get('discovery', False) if text_inserts else False
+        text_discovery = text_inserts.get('discover_untracked', False) if text_inserts else False
         text_deletion_policy = text_inserts.get('deletion_policy', 'auto') if text_inserts else 'auto'
         # Add support for global default layer for text inserts
         text_default_layer = text_inserts.get('default_layer', 'Plantext') if text_inserts else 'Plantext'
 
         # Extract global block insert settings with defaults
         block_sync = block_inserts.get('sync', 'push') if block_inserts else 'push'
-        block_discovery = block_inserts.get('discovery', False) if block_inserts else False
+        block_discovery = block_inserts.get('discover_untracked', False) if block_inserts else False
         block_deletion_policy = block_inserts.get('deletion_policy', 'auto') if block_inserts else 'auto'
         block_discovery_layers = block_inserts.get('discovery_layers', 'all') if block_inserts else 'all'
         # Add support for global default layer for block inserts

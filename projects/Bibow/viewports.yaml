@@ -12,6 +12,11 @@ viewports:
   frozenLayers:
   - Gebäude
   lockZoom: true
+  _sync:
+    content_hash: a8c97594b2e045651239bd6aa76b006db9ac612bdaf1b5b57b82d37145fe0483
+    last_sync_time: 1753383899
+    sync_source: yaml
+    entity_handle: 4C9E
 - name: Viewport_006
   center:
     x: 341.7233073712261
@@ -25,7 +30,12 @@ viewports:
   frozenLayers:
   - Gebäude
   lockZoom: true
-discovery: true
+  _sync:
+    content_hash: 01f50ecd3df33132ae55fd390f6873a2b2cb452248b58dfde976774605f95dbe
+    last_sync_time: 1753383899
+    sync_source: yaml
+    entity_handle: 4C9F
+discover_untracked: true
 deletion_policy: auto
 default_layer: VIEWPORTS
 sync: auto
