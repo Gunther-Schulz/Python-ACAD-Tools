@@ -9,11 +9,11 @@ blocks:
     y: 5967201.5467
   paperspace: false
   _sync:
-    dxf_handle: 4C82
+    dxf_handle: 3DCA
     content_hash: 86fdf5da5d05440354e50ab3b81aeaea8df2c24854f8d48904278fd1d3c70d6d
-    last_sync_time: 1753383899
+    last_sync_time: 1753385315
     sync_source: yaml
-    entity_handle: 4C82
+    entity_handle: 3DCA
 - name: SO EBS Label2
   blockName: Sonstiges Sondergebiet EBS
   scale: 6.0
@@ -24,12 +24,12 @@ blocks:
     y: 5967271.5467
   paperspace: false
   _sync:
-    dxf_handle: 4C84
+    dxf_handle: 3DCC
     content_hash: 68b7a74f6ae319e85c1aa608c606540fc16e5d7aa77195596033336827500cff
-    last_sync_time: 1753383899
+    last_sync_time: 1753385315
     sync_source: yaml
-    entity_handle: 4C84
+    entity_handle: 3DCC
 discover_untracked: false
-deletion_policy: confirm
+deletion_policy: auto
 default_layer: MyBlocks
 sync: auto

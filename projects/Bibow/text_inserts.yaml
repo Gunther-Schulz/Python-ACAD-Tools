@@ -6,58 +6,63 @@ texts:
     y: 840.0
   text: 'Entwurf: vorhabensbezogener Bebauungsplan Nr. 06 „Solarpark an der Lindenallee"\nder
     Gemeinde Torgelow am See'
+  layer: Plantext
   paperspace: true
   style: mainTitle
   _sync:
-    dxf_handle: 4C87
-    content_hash: 3782808cf62579e7bbb585594a63ffa2ec9b61300038966fbb9b4e14039171c3
-    last_sync_time: 1753383899
+    dxf_handle: 3DCF
+    content_hash: 29e647205a591aed05ad706f4bd33b41204230d52dfa9da15af66c5b2832947f
+    last_sync_time: 1753385315
     sync_source: yaml
-    entity_handle: 4C87
+    entity_handle: 3DCF
 - name: Map Header
   position:
     type: absolute
     x: 66.0
     y: 788.0
   text: 'Teil A: Planzeichnung i. M. 1:2.000'
+  layer: Plantext
   paperspace: true
   style: mapHeader
   _sync:
-    dxf_handle: 4C88
-    content_hash: b0ce05a6ca1a90d22ccc5f8caacf2448c7938e285e1590153b2fdc50af0ccf13
-    last_sync_time: 1753383899
+    dxf_handle: 3DD0
+    content_hash: a14229b80a7739504037bac7afbf275160d4caecc7ebbd15e497bcfac6a55298
+    last_sync_time: 1753385315
     sync_source: yaml
-    entity_handle: 4C88
+    entity_handle: 3DD0
 - name: Übersichtslarte Header
   position:
     type: absolute
     x: 817.0
     y: 385.0
   text: Übersichtskarte i. M. 1:30.000
+  layer: Plantext
   paperspace: true
   style: übersichtskarteHeader
   _sync:
-    dxf_handle: 4C89
-    content_hash: 2fe8e7be883c479667872d8607b83ed62004d00b84dfa887e9e2c4f930ff9fbf
-    last_sync_time: 1753383899
+    dxf_handle: 3DD1
+    content_hash: 81bcc8f68c649a1e777204ba018cc29f805fb622003bd625a09799bdd57c86d0
+    last_sync_time: 1753385315
     sync_source: yaml
-    entity_handle: 4C89
+    entity_handle: 3DD1
 - name: Satzung
   position:
     type: absolute
-    x: 1009.0
+    x: 1105.134087111859
     y: 248.0
   text: 'VORENTWURF\nSATZUNG DER GEMEINDE\nTORGELOW AM SEE\nÜBER DEN VORHABENSBEZOGENER
     BEBAUUNGSPLAN\nNR: 06 „SOLARPARK AN DER LINDENALLEE"'
+  layer: Plantext
   paperspace: true
   style: satzungste
   justification: CENTER
   _sync:
-    content_hash: 11b04b5c1a84c175d119ce9001f5af5de567647d4c01f9751316a4bbf13c1672
-    last_sync_time: 1753383899
+    dxf_handle: 3DD2
+    content_hash: eee98bc31194fc79e2fafdfe44d9b2da9c4c2a20a91cc690e5c032e99ae73bd5
+    last_sync_time: 1753385315
     sync_source: yaml
-    entity_handle: 4C8A
+    entity_handle: 3DD2
 discover_untracked: true
-deletion_policy: confirm
+deletion_policy: auto
 default_layer: Plantext
 sync: auto

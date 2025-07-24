@@ -216,6 +216,11 @@ class SyncManagerBase(ABC):
             yaml_updated = True
             log_info(f"Removed {len(deleted_configs)} deleted {self.entity_type}s from configuration")
 
+        # Step 4b: Handle orphaned DXF entities (exist in DXF but not in YAML) for auto sync
+        orphaned_count = self._handle_orphaned_dxf_entities(doc, space)
+        if orphaned_count > 0:
+            log_info(f"Removed {orphaned_count} orphaned {self.entity_type}s from DXF")
+
         # Step 5: Write back YAML if any changes were made
         if yaml_updated and self.project_loader:
             log_debug(f"🔍 DISCOVERY DEBUG: Writing YAML for {self.entity_type}s (yaml_updated={yaml_updated})")
@@ -265,6 +270,7 @@ class SyncManagerBase(ABC):
                 # Get entity handle from existing entity for pull operations
                 existing_entity = self._find_entity_by_name(doc, entity_name)
                 entity_handle = str(existing_entity.dxf.handle) if existing_entity else None
+                from src.sync_hash_utils import update_sync_metadata
                 update_sync_metadata(config, content_hash, 'dxf', entity_handle=entity_handle)
             return result if result else None
         else:
@@ -324,6 +330,7 @@ class SyncManagerBase(ABC):
                 result = self._sync_push(doc, space, config)
                 if result:
                     entity_handle = str(result.dxf.handle)
+                    from src.sync_hash_utils import update_sync_metadata
                     update_sync_metadata(config, changes['current_yaml_hash'], 'yaml', entity_handle=entity_handle)
                 return {'entity': result, 'yaml_updated': True} if result else None
 
@@ -334,6 +341,7 @@ class SyncManagerBase(ABC):
                 if result and result.get('yaml_updated'):
                     # Get handle from existing entity for tracking
                     entity_handle = str(existing_entity.dxf.handle) if existing_entity else None
+                    from src.sync_hash_utils import update_sync_metadata
                     update_sync_metadata(config, changes['current_dxf_hash'], 'dxf', entity_handle=entity_handle)
                 return result if result else None
 
@@ -357,6 +365,7 @@ class SyncManagerBase(ABC):
                     result = self._sync_pull(doc, space, config)
                     if result and result.get('yaml_updated'):
                         entity_handle = str(existing_entity.dxf.handle) if existing_entity else None
+                        from src.sync_hash_utils import update_sync_metadata
                         update_sync_metadata(config, changes['current_dxf_hash'], 'dxf', entity_handle=entity_handle)
                     return result if result else None
 
@@ -494,6 +503,112 @@ class SyncManagerBase(ABC):
             list: List of deleted entity configurations
         """
         pass
+
+    def _handle_orphaned_dxf_entities(self, doc, space):
+        """
+        Handle orphaned DXF entities that exist in DXF but are no longer in YAML.
+        This handles the reverse deletion case for auto sync mode.
+
+        Args:
+            doc: DXF document
+            space: Model space or paper space
+
+        Returns:
+            int: Number of orphaned entities removed
+        """
+        if self.deletion_policy == 'ignore':
+            return 0
+
+        # Get all currently configured entity names in YAML
+        yaml_entity_names = set()
+        current_configs = self._get_entity_configs()
+        for config in current_configs:
+            entity_name = config.get('name')
+            if entity_name:
+                yaml_entity_names.add(entity_name)
+
+        # Find all managed entities in DXF (entities with our XDATA)
+        orphaned_entities = []
+        entity_types = self._get_entity_types_for_search()
+
+        for entity in space:
+            if entity_types and entity.dxftype() not in entity_types:
+                continue
+
+            try:
+                # Check if entity has our XDATA (is managed by us)
+                xdata = entity.get_xdata(XDATA_APP_ID)
+                if not xdata:
+                    continue
+
+                # Extract entity name from XDATA
+                entity_name = self._get_entity_name_from_xdata(entity)
+
+                # Check if entity exists in current YAML configuration
+                if entity_name not in yaml_entity_names:
+                    orphaned_entities.append((entity, entity_name))
+                    log_info(f"Found orphaned {self.entity_type} '{entity_name}' in DXF (not in YAML)")
+
+            except Exception as e:
+                log_debug(f"Error checking entity for orphaned status: {str(e)}")
+                continue
+
+        if not orphaned_entities:
+            return 0
+
+        # Handle orphaned entities according to deletion policy
+        if self.deletion_policy == 'auto':
+            return self._auto_delete_orphaned_entities(orphaned_entities)
+        elif self.deletion_policy == 'confirm':
+            return self._confirm_delete_orphaned_entities(orphaned_entities)
+        else:
+            log_warning(f"Unknown deletion policy '{self.deletion_policy}' - skipping orphaned entity deletions")
+            return 0
+
+    def _auto_delete_orphaned_entities(self, orphaned_entities):
+        """
+        Automatically delete orphaned entities from DXF.
+
+        Args:
+            orphaned_entities: List of (entity, entity_name) tuples
+
+        Returns:
+            int: Number of entities deleted
+        """
+        deleted_count = 0
+        for entity, entity_name in orphaned_entities:
+            try:
+                entity.destroy()
+                log_info(f"🗑️  AUTO-DELETED: Orphaned {self.entity_type} '{entity_name}' from DXF")
+                deleted_count += 1
+            except Exception as e:
+                log_warning(f"Failed to delete orphaned {self.entity_type} '{entity_name}': {str(e)}")
+
+        return deleted_count
+
+    def _confirm_delete_orphaned_entities(self, orphaned_entities):
+        """
+        Confirm deletion of orphaned entities with user prompt.
+
+        Args:
+            orphaned_entities: List of (entity, entity_name) tuples
+
+        Returns:
+            int: Number of entities deleted
+        """
+        if not orphaned_entities:
+            return 0
+
+        entity_names = [name for _, name in orphaned_entities]
+        log_info(f"⚠️  ORPHANED {self.entity_type.upper()}S FOUND IN DXF:")
+        for name in entity_names:
+            log_info(f"  - {name}")
+
+        log_info(f"These {self.entity_type}s exist in DXF but are no longer in YAML configuration.")
+        log_info(f"Deletion policy is 'confirm' - skipping automatic deletion.")
+        log_info(f"To delete: set deletion_policy to 'auto' or remove manually.")
+
+        return 0  # No entities deleted in confirm mode
 
     @abstractmethod
     def _extract_entity_properties(self, entity, base_config):
@@ -1219,6 +1334,33 @@ class SyncManagerBase(ABC):
 
         except Exception as e:
             log_warning(f"Failed to update entity name in XDATA: {str(e)}")
+
+    def _get_entity_name_from_xdata(self, entity):
+        """
+        Extract entity name from XDATA.
+
+        Args:
+            entity: DXF entity with XDATA
+
+        Returns:
+            str: Entity name or 'unnamed' if not found
+        """
+        try:
+            xdata = entity.get_xdata(XDATA_APP_ID)
+            if not xdata:
+                return 'unnamed'
+
+            # Extract entity name
+            in_entity_section = False
+            for code, value in xdata:
+                if code == 1000 and value == "entity_name":
+                    in_entity_section = True
+                elif in_entity_section and code == 1000:
+                    return value
+
+            return 'unnamed'
+        except Exception:
+            return 'unnamed'
 
     def _validate_entity_handle(self, entity, entity_name):
         """
