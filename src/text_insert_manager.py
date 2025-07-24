@@ -25,8 +25,8 @@ class TextInsertManager(SyncManagerBase):
         name = config.get('name', 'unnamed')
 
         try:
-            # Get target layer
-            layer_name = config.get('targetLayer', 'Plantext')
+            # Get target layer using unified layer resolution
+            layer_name = self._resolve_entity_layer(config)
 
             # Ensure layer exists
             ensure_layer_exists(doc, layer_name)
@@ -113,7 +113,7 @@ class TextInsertManager(SyncManagerBase):
                     # DO NOT automatically add explicit sync settings - let entities inherit global default
 
                     # Preserve other configuration properties
-                    for key in ['style', 'targetLayer', 'paperspace', 'justification']:
+                    for key in ['style', 'layer', 'paperspace', 'justification']:
                         if key in original_config:
                             updated_config[key] = original_config[key]
 
@@ -164,7 +164,7 @@ class TextInsertManager(SyncManagerBase):
                 config['text'] = text_entity.dxf.text
 
             # Extract layer
-            config['targetLayer'] = text_entity.dxf.layer
+            config['layer'] = text_entity.dxf.layer
 
             # Determine if it's in paperspace
             # This is a simple heuristic - could be improved
@@ -205,6 +205,8 @@ class TextInsertManager(SyncManagerBase):
                 text_data['discovery'] = self.project_settings['text_discovery']
             if 'text_deletion_policy' in self.project_settings:
                 text_data['deletion_policy'] = self.project_settings['text_deletion_policy']
+            if 'text_default_layer' in self.project_settings:
+                text_data['default_layer'] = self.project_settings['text_default_layer']
             if 'text_sync' in self.project_settings:
                 text_data['sync'] = self.project_settings['text_sync']
 
@@ -226,7 +228,8 @@ class TextInsertManager(SyncManagerBase):
         for config in configs_to_process:
             sync_direction = self._get_sync_direction(config)
             if sync_direction == 'push':
-                target_layers.add(config.get('targetLayer', 'Plantext'))
+                layer_name = self._resolve_entity_layer(config)
+                target_layers.add(layer_name)
 
         # Remove existing entities from layers that will be updated
         # Text inserts work only in paperspace, not modelspace
@@ -316,7 +319,7 @@ class TextInsertManager(SyncManagerBase):
 
             # Extract layer
             if hasattr(entity.dxf, 'layer'):
-                config['targetLayer'] = entity.dxf.layer
+                config['layer'] = entity.dxf.layer
 
             # Extract text height
             if hasattr(entity.dxf, 'height'):
@@ -426,8 +429,8 @@ class TextInsertManager(SyncManagerBase):
 
             # Extract layer
             if hasattr(entity.dxf, 'layer'):
-                config['targetLayer'] = entity.dxf.layer
-                log_debug(f"Extracted targetLayer: {config['targetLayer']}")
+                config['layer'] = entity.dxf.layer
+                log_debug(f"Extracted layer: {config['layer']}")
 
             # Extract text style if available
             if hasattr(entity.dxf, 'style') and entity.dxf.style != 'Standard':

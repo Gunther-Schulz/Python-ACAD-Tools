@@ -15,9 +15,6 @@ class ViewportManager(SyncManagerBase):
         self.style_manager = style_manager
         self.viewports = {}
 
-        # Extract viewport-specific global settings (non-generalized)
-        self.default_layer = project_settings.get('viewport_layer', 'VIEWPORTS')
-
         log_debug(f"ViewportManager initialized with discovery={self.discovery_enabled}, "
                  f"deletion_policy={self.deletion_policy}, default_layer={self.default_layer}, "
                  f"default_sync={self.default_sync}")
@@ -72,8 +69,8 @@ class ViewportManager(SyncManagerBase):
                 viewport_data['discovery'] = self.project_settings['viewport_discovery']
             if 'viewport_deletion_policy' in self.project_settings:
                 viewport_data['deletion_policy'] = self.project_settings['viewport_deletion_policy']
-            if 'viewport_layer' in self.project_settings:
-                viewport_data['layer'] = self.project_settings['viewport_layer']
+            if 'viewport_default_layer' in self.project_settings:
+                viewport_data['default_layer'] = self.project_settings['viewport_default_layer']
             if 'viewport_sync' in self.project_settings:
                 viewport_data['sync'] = self.project_settings['viewport_sync']
 
@@ -297,8 +294,7 @@ class ViewportManager(SyncManagerBase):
 
     def _get_viewport_layer(self, vp_config):
         """Determine the layer for a viewport, supporting per-viewport override."""
-        viewport_layer = vp_config.get('layer', self.default_layer)
-        return viewport_layer
+        return self._resolve_entity_layer(vp_config)
 
     def get_viewport_by_name(self, doc, name):
         """Retrieve a viewport by its name using xdata."""

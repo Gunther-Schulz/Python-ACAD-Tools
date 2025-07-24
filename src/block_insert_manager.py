@@ -38,8 +38,9 @@ class BlockInsertManager(SyncManagerBase):
         for config in configs_to_process:
             sync_direction = self._get_sync_direction(config)
             if sync_direction == 'push':
-                # For blocks, the layer is typically the entity name itself
-                layers_to_clean.add(config.get('name'))
+                # Use unified layer resolution
+                layer_name = self._resolve_entity_layer(config)
+                layers_to_clean.add(layer_name)
 
         # Remove existing block references from layers that will be updated
         for layer_name in layers_to_clean:
@@ -93,6 +94,9 @@ class BlockInsertManager(SyncManagerBase):
         points_and_rotations = self.get_insertion_points(config.get('position', {}))
         name = config.get('name')
 
+        # Determine layer for block insert
+        layer_name = self._resolve_entity_layer(config)
+
         for point_data in points_and_rotations:
             # Handle both 2-tuple (point, rotation) and 3-tuple (x, y, rotation) formats
             if len(point_data) == 3:
@@ -110,7 +114,7 @@ class BlockInsertManager(SyncManagerBase):
                 space,
                 config['blockName'],
                 point,
-                name,
+                layer_name,
                 scale=config.get('scale', 1.0),
                 rotation=final_rotation
             )
@@ -267,11 +271,14 @@ class BlockInsertManager(SyncManagerBase):
             # Use the calculated rotation if available, otherwise use config rotation
             final_rotation = rotation if rotation is not None else config.get('rotation', 0)
 
+            # Determine layer for block insert
+            layer_name = self._resolve_entity_layer(config)
+
             block_ref = add_block_reference(
                 target_space,
                 config['blockName'],
                 point,
-                name,  # Use entity name as layer name for sync tracking
+                layer_name,
                 scale=config.get('scale', 1.0),
                 rotation=final_rotation
             )
@@ -435,6 +442,8 @@ class BlockInsertManager(SyncManagerBase):
                 block_data['discovery'] = self.project_settings['block_discovery']
             if 'block_deletion_policy' in self.project_settings:
                 block_data['deletion_policy'] = self.project_settings['block_deletion_policy']
+            if 'block_default_layer' in self.project_settings:
+                block_data['default_layer'] = self.project_settings['block_default_layer']
             if 'block_sync' in self.project_settings:
                 block_data['sync'] = self.project_settings['block_sync']
 

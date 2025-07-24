@@ -14,7 +14,7 @@ viewports:
   lockZoom: true
   _sync:
     content_hash: a8c97594b2e045651239bd6aa76b006db9ac612bdaf1b5b57b82d37145fe0483
-    last_sync_time: 1753377199
+    last_sync_time: 1753379471
     sync_source: yaml
     conflict_policy: prompt
 - name: Viewport_006
@@ -32,37 +32,9 @@ viewports:
   lockZoom: true
   _sync:
     content_hash: 01f50ecd3df33132ae55fd390f6873a2b2cb452248b58dfde976774605f95dbe
-    last_sync_time: 1753377199
+    last_sync_time: 1753379471
     sync_source: yaml
-- name: Viewport_3DE3
-  center:
-    x: 341.7233073712261
-    y: 280.3698562521167
-  width: 901.3679898927362
-  height: 293.3043359218282
-  viewCenter:
-    x: 279587.1647607772
-    y: 5964545.302177048
-  scale: 2.0
-  frozenLayers:
-  - Gebäude
-  lockZoom: true
-  sync: pull
-- name: Viewport_3DE4
-  center:
-    x: 341.7233073712261
-    y: 593.8230577897045
-  width: 901.3679898927362
-  height: 293.3043359218282
-  viewCenter:
-    x: 277725.1941040608
-    y: 5964786.928994282
-  scale: 2.000001
-  frozenLayers:
-  - Gebäude
-  lockZoom: true
-  sync: pull
 discovery: true
 deletion_policy: auto
-layer: VIEWPORTS
-sync: push
+default_layer: VIEWPORTS
+sync: auto

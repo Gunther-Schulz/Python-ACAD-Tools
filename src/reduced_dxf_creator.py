@@ -218,7 +218,7 @@ class ReducedDXFCreator:
             return
 
         for config in self.project_settings.get('textInserts', []):
-            layer_name = config.get('targetLayer')
+            layer_name = config.get('layer')
             if not layer_name or layer_name not in reduced_layers:
                 continue
 
@@ -277,7 +277,7 @@ class ReducedDXFCreator:
             return
 
         for array in self.project_settings.get('pathArrays', []):
-            if array.get('targetLayer') in reduced_layers:
+            if array.get('layer') in reduced_layers:
                 create_path_array(reduced_msp, array, self.project_loader)
                 entity_counts['pathArrays'] += 1
 

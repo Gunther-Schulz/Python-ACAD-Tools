@@ -6,12 +6,11 @@ textInserts:
     y: 840.0
   text: 'Entwurf: vorhabensbezogener Bebauungsplan Nr. 06 „Solarpark an der Lindenallee"\nder
     Gemeinde Torgelow am See'
-  targetLayer: Plantext
   paperspace: true
   style: mainTitle
   _sync:
-    content_hash: 5f7143493d981f4524127d820aa3a16176406e25035721c50ad11da12259cb68
-    last_sync_time: 1753364827
+    content_hash: 3782808cf62579e7bbb585594a63ffa2ec9b61300038966fbb9b4e14039171c3
+    last_sync_time: 1753379471
     sync_source: yaml
 - name: Map Header
   position:
@@ -19,12 +18,11 @@ textInserts:
     x: 66.0
     y: 788.0
   text: 'Teil A: Planzeichnung i. M. 1:2.000'
-  targetLayer: Plantext
   paperspace: true
   style: mapHeader
   _sync:
-    content_hash: f1b3d59b8affa24b4f6f291b048426148682d4dccd816efcd83a9bb81a346157
-    last_sync_time: 1753364827
+    content_hash: b0ce05a6ca1a90d22ccc5f8caacf2448c7938e285e1590153b2fdc50af0ccf13
+    last_sync_time: 1753379471
     sync_source: yaml
 - name: Übersichtslarte Header
   position:
@@ -32,12 +30,11 @@ textInserts:
     x: 817.0
     y: 385.0
   text: Übersichtskarte i. M. 1:30.000
-  targetLayer: Plantext
   paperspace: true
   style: übersichtskarteHeader
   _sync:
-    content_hash: a4761f71cdf2721499f20188b4e37f422392c056899a3e5638469d30f42930b6
-    last_sync_time: 1753364827
+    content_hash: 2fe8e7be883c479667872d8607b83ed62004d00b84dfa887e9e2c4f930ff9fbf
+    last_sync_time: 1753379471
     sync_source: yaml
 - name: Satzung
   position:
@@ -46,14 +43,14 @@ textInserts:
     y: 248.0
   text: 'VORENTWURF\nSATZUNG DER GEMEINDE\nTORGELOW AM SEE\nÜBER DEN VORHABENSBEZOGENER
     BEBAUUNGSPLAN\nNR: 06 „SOLARPARK AN DER LINDENALLEE"'
-  targetLayer: Plantext
   paperspace: true
   style: satzungste
   justification: CENTER
   _sync:
-    content_hash: 3d9dbbbc40ea9a2948b6518d5e72628ac6d2afbd17d48b2bf40f49305bb06f18
-    last_sync_time: 1753364827
+    content_hash: 11b04b5c1a84c175d119ce9001f5af5de567647d4c01f9751316a4bbf13c1672
+    last_sync_time: 1753379471
     sync_source: yaml
 discovery: true
 deletion_policy: confirm
+default_layer: Plantext
 sync: auto

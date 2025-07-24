@@ -107,7 +107,7 @@ class TextSyncSchema(SyncPropertySchema):
             'name',
             'text',        # string content
             'position',    # {type: 'absolute', x: float, y: float}
-            'targetLayer', # string (layer name)
+            'layer',       # string (layer name)
             'paperspace',  # boolean
             # Note: Intentionally excluding style, justification, height, color, rotation
             # These are formatting/display details, not core content properties

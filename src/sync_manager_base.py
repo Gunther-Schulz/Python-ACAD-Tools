@@ -40,16 +40,53 @@ class SyncManagerBase(ABC):
         discovery_layers_key = f'{entity_type}_discovery_layers'
         self.discovery_layers = project_settings.get(discovery_layers_key, 'all')
 
+        # Extract default layer setting for unified layer handling
+        default_layer_key = f'{entity_type}_default_layer'
+        self.default_layer = project_settings.get(default_layer_key, self._get_fallback_default_layer())
+
         # Validate deletion policy
         valid_deletion_policies = {'auto', 'confirm', 'ignore'}
         if self.deletion_policy not in valid_deletion_policies:
-            log_warning(f"Invalid {entity_type}_deletion_policy '{self.deletion_policy}'. "
+            log_warning(f"Invalid {entity_type} deletion policy '{self.deletion_policy}'. "
                        f"Valid values are: {', '.join(valid_deletion_policies)}. Using 'auto'.")
             self.deletion_policy = 'auto'
+
+        # Validate default layer
+        if not isinstance(self.default_layer, str) or not self.default_layer.strip():
+            fallback = self._get_fallback_default_layer()
+            log_warning(f"Invalid {entity_type} default layer '{self.default_layer}'. Using '{fallback}'.")
+            self.default_layer = fallback
 
         log_debug(f"{self.__class__.__name__} initialized with entity_type={entity_type}, "
                  f"default_sync={self.default_sync}, discovery={self.discovery_enabled}, "
                  f"deletion_policy={self.deletion_policy}")
+
+    def _get_fallback_default_layer(self):
+        """Get fallback default layer name for this entity type."""
+        fallbacks = {
+            'viewport': 'VIEWPORTS',
+            'text': 'Plantext',
+            'block': 'BLOCKS'
+        }
+        return fallbacks.get(self.entity_type, 'DEFAULT_LAYER')
+
+    def _resolve_entity_layer(self, config):
+        """
+        Resolve the layer for an entity using unified layer logic.
+
+        Args:
+            config: Entity configuration dictionary
+
+        Returns:
+            str: Layer name to use for this entity
+        """
+        # Check for individual layer override first
+        entity_layer = config.get('layer')
+        if entity_layer:
+            return entity_layer
+
+        # Fall back to global default layer
+        return self.default_layer
 
     def _get_sync_direction(self, config):
         """

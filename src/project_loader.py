@@ -57,19 +57,23 @@ class ProjectLoader:
         # Extract global viewport settings with defaults (new generalized format only)
         viewport_discovery = viewports.get('discovery', False)
         viewport_deletion_policy = viewports.get('deletion_policy', 'auto')
-        viewport_layer = viewports.get('layer', 'VIEWPORTS')
+        viewport_default_layer = viewports.get('default_layer', 'VIEWPORTS')
         viewport_sync = viewports.get('sync', 'skip')
 
         # Extract global text insert settings with defaults
         text_sync = text_inserts.get('sync', 'push') if text_inserts else 'push'
         text_discovery = text_inserts.get('discovery', False) if text_inserts else False
         text_deletion_policy = text_inserts.get('deletion_policy', 'auto') if text_inserts else 'auto'
+        # Add support for global default layer for text inserts
+        text_default_layer = text_inserts.get('default_layer', 'Plantext') if text_inserts else 'Plantext'
 
         # Extract global block insert settings with defaults
         block_sync = block_inserts.get('sync', 'push') if block_inserts else 'push'
         block_discovery = block_inserts.get('discovery', False) if block_inserts else False
         block_deletion_policy = block_inserts.get('deletion_policy', 'auto') if block_inserts else 'auto'
         block_discovery_layers = block_inserts.get('discovery_layers', 'all') if block_inserts else 'all'
+        # Add support for global default layer for block inserts
+        block_default_layer = block_inserts.get('default_layer', 'BLOCKS') if block_inserts else 'BLOCKS'
 
         # Extract global text insert discovery layers
         text_discovery_layers = text_inserts.get('discovery_layers', 'all') if text_inserts else 'all'
@@ -100,9 +104,9 @@ class ProjectLoader:
             auto_conflict_resolution = 'prompt'
 
         # Validate viewport layer
-        if not isinstance(viewport_layer, str) or not viewport_layer.strip():
-            log_warning(f"Invalid viewport layer '{viewport_layer}'. Must be a non-empty string. Using 'VIEWPORTS'.")
-            viewport_layer = 'VIEWPORTS'
+        if not isinstance(viewport_default_layer, str) or not viewport_default_layer.strip():
+            log_warning(f"Invalid viewport default layer '{viewport_default_layer}'. Must be a non-empty string. Using 'VIEWPORTS'.")
+            viewport_default_layer = 'VIEWPORTS'
 
         # Validate sync directions for both entity types
         valid_sync_values = {'push', 'pull', 'skip', 'auto'}
@@ -170,15 +174,17 @@ class ProjectLoader:
             # Global entity settings (generalized format)
             'viewport_discovery': viewport_discovery,
             'viewport_deletion_policy': viewport_deletion_policy,
-            'viewport_layer': viewport_layer,
+            'viewport_default_layer': viewport_default_layer,
             'viewport_sync': viewport_sync,
             'text_sync': text_sync,
             'text_discovery': text_discovery,
             'text_deletion_policy': text_deletion_policy,
+            'text_default_layer': text_default_layer,
             'block_sync': block_sync,
             'block_discovery': block_discovery,
             'block_deletion_policy': block_deletion_policy,
             'block_discovery_layers': block_discovery_layers,
+            'block_default_layer': block_default_layer,
             'text_discovery_layers': text_discovery_layers,
             'viewport_discovery_layers': viewport_discovery_layers,
 

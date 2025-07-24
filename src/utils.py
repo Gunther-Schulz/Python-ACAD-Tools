@@ -368,7 +368,7 @@ def create_sample_project(project_name: str) -> str:
     text_inserts_yaml = {
         'textInserts': [{
             'name': 'Sample Text',
-            'targetLayer': 'Text',
+            'layer': 'Text',
             'updateDxf': True,
             'text': 'Sample Text',
             'position': {
