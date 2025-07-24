@@ -62,7 +62,7 @@ def update_sync_metadata(entity_config, content_hash, sync_source, conflict_poli
         content_hash: New content hash
         sync_source: Source of the sync ('yaml' or 'dxf')
         conflict_policy: Optional conflict resolution policy
-        entity_handle: Optional entity handle for identity tracking
+        entity_handle: Optional entity handle for identity tracking (stored as dxf_handle)
     """
     import time
 
@@ -79,7 +79,8 @@ def update_sync_metadata(entity_config, content_hash, sync_source, conflict_poli
     entity_config['_sync']['sync_source'] = sync_source
 
     if entity_handle:
-        entity_config['_sync']['entity_handle'] = entity_handle
+        entity_config['_sync']['dxf_handle'] = entity_handle
+        # Remove redundant entity_handle field - we only need dxf_handle
 
     if conflict_policy:
         entity_config['_sync']['conflict_policy'] = conflict_policy
