@@ -184,6 +184,24 @@ class SyncManagerBase(ABC):
                 log_error(f"Error processing {self.entity_type} '{config.get('name', 'unnamed')}': {str(e)}")
                 continue
 
+        # Step 2b: Remove entities marked for deletion by auto sync
+        entities_to_delete = [config for config in entity_configs if config.get('_delete_from_yaml')]
+        if entities_to_delete:
+            config_key = self._get_config_key()
+            current_configs = self.project_settings.get(config_key, [])
+
+            # Remove marked entities
+            remaining_configs = [
+                config for config in current_configs
+                if not config.get('_delete_from_yaml')
+            ]
+
+            self.project_settings[config_key] = remaining_configs
+            yaml_updated = True
+
+            deleted_names = [config.get('name', 'unnamed') for config in entities_to_delete]
+            log_info(f"🔄 AUTO: Removed {len(entities_to_delete)} {self.entity_type}(s) from YAML: {', '.join(deleted_names)}")
+
         # Step 3: Handle discovered entities
         if discovered_entities:
             log_debug(f"🔍 DISCOVERY DEBUG: Processing {len(discovered_entities)} discovered {self.entity_type} entities")
@@ -313,14 +331,24 @@ class SyncManagerBase(ABC):
 
         # PRIORITY 1: State-based logic - ensure desired state exists
         if yaml_exists and not dxf_exists:
-            # YAML exists but DXF missing - create entity regardless of change detection
-            log_info(f"🔄 AUTO: Creating missing entity '{entity_name}' in DXF (state-based sync)")
-            result = self._sync_push(doc, space, config)
-            if result:
-                entity_handle = str(result.dxf.handle)
-                from src.sync_hash_utils import update_sync_metadata
-                update_sync_metadata(config, changes['current_yaml_hash'], 'yaml', entity_handle=entity_handle)
-            return {'entity': result, 'yaml_updated': True} if result else None
+            # Check if entity was previously tracked
+            sync_metadata = config.get('_sync', {})
+            stored_handle = sync_metadata.get('dxf_handle') if sync_metadata else None
+
+            if stored_handle:
+                # Entity was tracked before but now missing from DXF
+                # User likely deleted it - remove from YAML to maintain sync integrity
+                log_info(f"🔄 AUTO: Entity '{entity_name}' was tracked but missing from DXF - removing from YAML (user deleted)")
+                return self._handle_yaml_deletion(config)
+            else:
+                # No sync history - entity never existed, should be created
+                log_info(f"🔄 AUTO: Creating missing entity '{entity_name}' in DXF (never existed)")
+                result = self._sync_push(doc, space, config)
+                if result:
+                    entity_handle = str(result.dxf.handle)
+                    from src.sync_hash_utils import update_sync_metadata
+                    update_sync_metadata(config, changes['current_yaml_hash'], 'yaml', entity_handle=entity_handle)
+                return {'entity': result, 'yaml_updated': True} if result else None
 
         # PRIORITY 2: Change-based logic for existing entities
         elif yaml_exists and dxf_exists:
@@ -382,6 +410,30 @@ class SyncManagerBase(ABC):
             # This shouldn't happen (yaml_exists is always True in this context)
             log_error(f"🔄 AUTO: Unexpected state for '{entity_name}' - YAML missing")
             return None
+
+    def _handle_yaml_deletion(self, config):
+        """
+        Handle deletion of entity from YAML when it was tracked but missing from DXF.
+
+        This indicates the user deleted the entity from DXF, so we should remove
+        it from YAML to maintain sync integrity.
+
+        Args:
+            config: Entity configuration to be removed
+
+        Returns:
+            dict: Result indicating YAML should be updated with entity removal
+        """
+        entity_name = config.get('name', 'unnamed')
+
+        # Mark this config for deletion by adding a deletion marker
+        # The calling process_entities method will handle the actual removal
+        config['_delete_from_yaml'] = True
+
+        log_debug(f"Marked {self.entity_type} '{entity_name}' for deletion from YAML")
+
+        # Return result indicating YAML needs updating (entity will be removed)
+        return {'entity': None, 'yaml_updated': True, 'deleted': True}
 
     def _process_discovered_entities(self, discovered_entities):
         """
