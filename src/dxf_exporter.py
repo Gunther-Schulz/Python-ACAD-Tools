@@ -42,7 +42,7 @@ class DXFExporter:
         self.layer_properties = {}
         self.colors = {}
         self.name_to_aci = project_loader.name_to_aci
-        self.block_inserts = self.project_settings.get('blockInserts', [])
+        self.block_inserts = self.project_settings.get('blocks', [])
         self.style_manager = StyleManager(project_loader)
         self.dxf_processor = project_loader.dxf_processor
         log_debug(f"DXFExporter initialized with script identifier: {self.script_identifier}")
@@ -994,7 +994,7 @@ class DXFExporter:
 
     def process_text_inserts(self, msp):
         """Process text inserts using the sync-based TextInsertManager."""
-        text_configs = self.project_settings.get('textInserts', [])
+        text_configs = self.project_settings.get('texts', [])
         if not text_configs:
             log_debug("No text inserts found in project settings")
             return

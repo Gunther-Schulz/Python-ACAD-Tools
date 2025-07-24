@@ -1,4 +1,4 @@
-# textInserts:
+# texts:
 #   - name: "Main Title"
 #     updateDxf: true
 #     targetLayer: "Plantext"
@@ -34,7 +34,7 @@
 #     targetLayer: "Plantext"
 #     updateDxf: true
 #     paperspace: true  # Add this to place text in paper space
-#     justification: "CENTER" 
+#     justification: "CENTER"
 #     text: "VORENTWURF\nSATZUNG DER GEMEINDE\nTORGELOW AM SEE\nÜBER DEN VORHABENSBEZOGENER BEBAUUNGSPLAN\nNR: 06 „SOLARPARK AN DER LINDENALLEE“"
 #     position:
 #       type: "absolute"

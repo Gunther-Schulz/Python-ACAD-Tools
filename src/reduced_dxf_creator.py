@@ -176,8 +176,8 @@ class ReducedDXFCreator:
             'geomLayers': 0,
             'wmtsLayers': 0,
             'wmsLayers': 0,
-            'textInserts': 0,
-            'blockInserts': 0,
+            'texts': 0,
+            'blocks': 0,
             'pathArrays': 0
         }
 
@@ -214,10 +214,10 @@ class ReducedDXFCreator:
                 entity_counts[layer_type] += 1
 
     def _process_text_inserts(self, reduced_msp, reduced_layers, process_types, entity_counts):
-        if 'textInserts' not in process_types:
+        if 'texts' not in process_types:
             return
 
-        for config in self.project_settings.get('textInserts', []):
+        for config in self.project_settings.get('texts', []):
             layer_name = config.get('layer')
             if not layer_name or layer_name not in reduced_layers:
                 continue
@@ -261,16 +261,16 @@ class ReducedDXFCreator:
             if mtext:
                 # Attach custom data using unified function
                 mtext.set_xdata(XDATA_APP_ID, create_entity_xdata(SCRIPT_IDENTIFIER))
-                entity_counts['textInserts'] += 1
+                entity_counts['texts'] += 1
                 log_debug(f"Added text insert to layer: {layer_name}")
 
     def _process_block_inserts(self, reduced_msp, reduced_layers, process_types, entity_counts):
-        if 'blockInserts' in process_types:
+        if 'blocks' in process_types:
             self.dxf_exporter.block_insert_manager.process_block_inserts(
                 reduced_msp,
                 filter_layers=reduced_layers
             )
-            entity_counts['blockInserts'] += 1
+            entity_counts['blocks'] += 1
 
     def _process_path_arrays(self, reduced_msp, reduced_layers, process_types, entity_counts):
         if 'pathArrays' not in process_types:

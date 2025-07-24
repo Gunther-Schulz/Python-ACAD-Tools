@@ -1,4 +1,4 @@
-# textInserts:
+# texts:
 #   # NW Text Inserts
 #   # --------------
 #   - name: "Main Title NW"
@@ -35,7 +35,7 @@
   #   targetLayer: "Plantext"
   #   updateDxf: true
   #   paperspace: true  # Add this to place text in paper space
-  #   justification: "CENTER" 
+  #   justification: "CENTER"
   #   text: "VORENTWURF\nSATZUNG DER GEMEINDE\nGROß PLASTEN\nÜBER DEN VORHABENSBEZOGENER BEBAUUNGSPLAN\nNR: 6 „Solarpark am Devener Weg“"
   #   position:
   #     type: "absolute"
@@ -79,7 +79,7 @@
   #   targetLayer: "Plantext"
   #   updateDxf: true
   #   paperspace: true  # Add this to place text in paper space
-  #   justification: "CENTER" 
+  #   justification: "CENTER"
   #   text: "VORENTWURF\nSATZUNG DER GEMEINDE\nGROß PLASTEN\nÜBER DEN VORHABENSBEZOGENEN BEBAUUNGSPLAN\nNR: 5 „Solarpark am Spargelberg“"
   #   position:
   #     type: "absolute"
@@ -122,10 +122,10 @@
   #   targetLayer: "Plantext"
   #   updateDxf: true
   #   paperspace: true  # Add this to place text in paper space
-  #   justification: "CENTER" 
+  #   justification: "CENTER"
   #   text: "VORENTWURF\nSATZUNG DER GEMEINDE\nGROß PLASTEN\nÜBER DEN VORHABENSBEZOGENEN BEBAUUNGSPLAN\nNR: 7 „Solarpark an der Straße nach Rockow“"
   #   position:
   #     type: "absolute"
   #     x: 6590
   #     y: 265
-  #   style: "satzungstext"  # Style can include width for text wrapping  
+  #   style: "satzungstext"  # Style can include width for text wrapping

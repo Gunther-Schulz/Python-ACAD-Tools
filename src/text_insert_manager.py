@@ -18,7 +18,7 @@ class TextInsertManager(SyncManagerBase):
 
     def _get_entity_configs(self):
         """Get text insert configurations from project settings."""
-        return self.project_settings.get('textInserts', []) or []
+        return self.project_settings.get(self._get_config_key(), []) or []
 
     def _sync_push(self, doc, space, config):
         """Create or update text insert in AutoCAD from YAML configuration."""
@@ -101,7 +101,7 @@ class TextInsertManager(SyncManagerBase):
             updated_config = self._extract_text_properties(existing_text, config)
 
             # Update the configuration in project_settings
-            text_configs = self.project_settings.get('textInserts', []) or []
+            text_configs = self._get_entity_configs()
             for i, original_config in enumerate(text_configs):
                 if original_config.get('name') == name:
                     # Preserve sync direction and other non-geometric properties
@@ -216,7 +216,7 @@ class TextInsertManager(SyncManagerBase):
         if self.deletion_policy == 'ignore':
             return []
 
-        text_configs = self.project_settings.get('textInserts', []) or []
+        text_configs = self._get_entity_configs()
         missing_texts = []
 
         # Check each configured text to see if it still exists in AutoCAD

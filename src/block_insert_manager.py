@@ -19,7 +19,7 @@ class BlockInsertManager(SyncManagerBase):
 
     def process_block_inserts(self, msp):
         """Process block inserts using the sync-based BlockInsertManager."""
-        block_configs = self.project_settings.get('blockInserts', [])
+        block_configs = self._get_entity_configs()
         if not block_configs:
             log_debug("No block inserts found in project settings")
             return
@@ -224,7 +224,7 @@ class BlockInsertManager(SyncManagerBase):
 
     def _get_entity_configs(self):
         """Get block insert configurations from project settings."""
-        return self.project_settings.get('blockInserts', []) or []
+        return self.project_settings.get(self._get_config_key(), []) or []
 
     def _sync_push(self, doc, space, config):
         """Create block insert in AutoCAD from YAML configuration."""
@@ -442,12 +442,12 @@ class BlockInsertManager(SyncManagerBase):
 
             # Remove deleted configs from project settings
             if deleted_configs:
-                current_configs = self.project_settings.get('blockInserts', [])
+                current_configs = self._get_entity_configs()
                 remaining_configs = [
                     config for config in current_configs
                     if config not in deleted_configs
                 ]
-                self.project_settings['blockInserts'] = remaining_configs
+                self.project_settings[self._get_config_key()] = remaining_configs
 
             return deleted_configs
 
@@ -505,6 +505,4 @@ class BlockInsertManager(SyncManagerBase):
         """No special skip logic for block entities."""
         return False
 
-    def _get_config_key(self):
-        """Override to use 'blockInserts' instead of 'blocks'."""
-        return 'blockInserts'
+    # _get_config_key is now centralized in SyncManagerBase

@@ -48,7 +48,7 @@ class ProjectLoader:
         block_inserts = self.load_yaml_file('block_inserts.yaml', required=False) or {}
         text_inserts = self.load_yaml_file('text_inserts.yaml', required=False)
         if text_inserts:
-            log_debug(f"Loaded {len(text_inserts.get('textInserts', []))} text inserts from text_inserts.yaml")
+            log_debug(f"Loaded {len(text_inserts.get('texts', []))} text inserts from text_inserts.yaml")
         else:
             log_debug("No text inserts found in text_inserts.yaml")
         path_arrays = self.load_yaml_file('path_arrays.yaml', required=False) or {}
@@ -165,8 +165,8 @@ class ProjectLoader:
             'geomLayers': geom_layers.get('geomLayers', []),
             'legends': legends.get('legends', []),
             'viewports': viewports.get('viewports', []),
-            'blockInserts': block_inserts.get('blockInserts', []),
-            'textInserts': text_inserts.get('textInserts', []) if text_inserts else [],
+            'blocks': block_inserts.get('blocks', []),
+            'texts': text_inserts.get('texts', []) if text_inserts else [],
             'pathArrays': path_arrays.get('pathArrays', []),
             'wmtsLayers': wmts_wms_layers.get('wmtsLayers', []),
             'wmsLayers': wmts_wms_layers.get('wmsLayers', []),

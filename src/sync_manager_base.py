@@ -797,9 +797,7 @@ class SyncManagerBase(ABC):
     def _get_config_key(self):
         """
         Get the configuration key for this entity type in project_settings.
-
-        Default implementation: f'{entity_type}s'
-        Override in subclasses for custom keys (e.g., 'blockInserts' instead of 'blocks')
+        Uses consistent simple pluralization pattern.
 
         Returns:
             str: Configuration key for project_settings

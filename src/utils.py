@@ -353,7 +353,7 @@ def create_sample_project(project_name: str) -> str:
     }
 
     block_inserts_yaml = {
-        'blockInserts': [{
+        'blocks': [{
             'name': 'Sample Block',
             'blockName': 'SampleBlock',
             'updateDxf': True,
@@ -366,7 +366,7 @@ def create_sample_project(project_name: str) -> str:
     }
 
     text_inserts_yaml = {
-        'textInserts': [{
+        'texts': [{
             'name': 'Sample Text',
             'layer': 'Text',
             'updateDxf': True,

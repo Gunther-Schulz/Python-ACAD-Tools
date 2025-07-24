@@ -1,4 +1,4 @@
-blockInserts:
+blocks:
 - name: SO EBS Label
   blockName: Sonstiges Sondergebiet EBS
   scale: 6.0
@@ -9,10 +9,6 @@ blockInserts:
     y: 5967201.5467
   # layer: SpecialBlocks
   paperspace: false
-  _sync:
-    content_hash: 86fdf5da5d05440354e50ab3b81aeaea8df2c24854f8d48904278fd1d3c70d6d
-    last_sync_time: 1753377116
-    sync_source: yaml
 - name: SO EBS Label2
   blockName: Sonstiges Sondergebiet EBS
   scale: 6.0
@@ -22,10 +18,6 @@ blockInserts:
     x: 282232.5758
     y: 5967271.5467
   paperspace: false
-  _sync:
-    content_hash: 68b7a74f6ae319e85c1aa608c606540fc16e5d7aa77195596033336827500cff
-    last_sync_time: 1753377116
-    sync_source: yaml
 discovery: false
 deletion_policy: confirm
 default_layer: MyBlocks

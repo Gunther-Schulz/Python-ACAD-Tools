@@ -1,4 +1,4 @@
-blockInserts:
+blocks:
   - name: "SO EBS Label"
     updateDxf: true
     blockName: "Sonstiges Sondergebiet EBS"

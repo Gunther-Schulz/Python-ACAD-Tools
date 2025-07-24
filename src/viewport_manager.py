@@ -21,7 +21,7 @@ class ViewportManager(SyncManagerBase):
 
     def _get_entity_configs(self):
         """Get viewport configurations from project settings."""
-        return self.project_settings.get('viewports', []) or []
+        return self.project_settings.get(self._get_config_key(), []) or []
 
     def sync_viewports(self, doc, msp):
         """Enhanced viewport synchronization with bidirectional support."""
