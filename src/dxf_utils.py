@@ -39,6 +39,7 @@ XDATA_APP_ID = "DXFEXPORTER"
 XDATA_ENTITY_NAME_KEY = "ENTITY_NAME"
 XDATA_ENTITY_TYPE_KEY = "ENTITY_TYPE"
 XDATA_CONTENT_HASH_KEY = "CONTENT_HASH"
+XDATA_ENTITY_HANDLE_KEY = "ENTITY_HANDLE"
 
 
 def convert_newlines_to_mtext(text):
@@ -65,7 +66,7 @@ def convert_newlines_to_mtext(text):
 
     return result
 
-def create_entity_xdata(script_identifier, entity_name=None, entity_type=None, content_hash=None):
+def create_entity_xdata(script_identifier, entity_name=None, entity_type=None, content_hash=None, entity_handle=None):
     """
     Create XDATA for entity identification and ownership tracking.
     Unified function that handles both simple ownership and named entity tracking.
@@ -75,6 +76,7 @@ def create_entity_xdata(script_identifier, entity_name=None, entity_type=None, c
         entity_name: Optional name for entities that need to be found later
         entity_type: Optional entity type (e.g., 'VIEWPORT', 'TEXT')
         content_hash: Optional content hash for sync tracking
+        entity_handle: Optional entity handle for identity validation
 
     Returns:
         list: XDATA tuple list - simple for unnamed entities, structured for named entities
@@ -98,6 +100,12 @@ def create_entity_xdata(script_identifier, entity_name=None, entity_type=None, c
             xdata.extend([
                 (1000, XDATA_CONTENT_HASH_KEY),
                 (1000, content_hash),
+            ])
+
+        if entity_handle:
+            xdata.extend([
+                (1000, XDATA_ENTITY_HANDLE_KEY),
+                (1000, entity_handle),
             ])
 
         xdata.append((1002, '}'))
@@ -164,6 +172,29 @@ def extract_content_hash_from_xdata(entity):
         pass
     return None
 
+def extract_handle_from_xdata(entity):
+    """
+    Extract entity handle from entity XDATA.
+
+    Args:
+        entity: DXF entity with potential XDATA
+
+    Returns:
+        str: Entity handle if found, None otherwise
+    """
+    try:
+        xdata = entity.get_xdata(XDATA_APP_ID)
+        if xdata:
+            found_handle_key = False
+            for code, value in xdata:
+                if code == 1000 and value == XDATA_ENTITY_HANDLE_KEY:
+                    found_handle_key = True
+                elif found_handle_key and code == 1000:
+                    return value
+    except Exception:
+        pass
+    return None
+
 def get_color_code(color, name_to_aci):
     if color is None:
         return 7  # Default to 7 (white) if no color is specified
@@ -200,7 +231,7 @@ def convert_transparency(transparency):
             log_warning(f"Invalid transparency value: {transparency}")
     return None
 
-def attach_custom_data(entity, script_identifier, entity_name=None, entity_type=None, content_hash=None):
+def attach_custom_data(entity, script_identifier, entity_name=None, entity_type=None, content_hash=None, entity_handle=None):
     """Attaches custom data to an entity with proper cleanup of existing data."""
     try:
         # Clear any existing XDATA first
@@ -209,8 +240,12 @@ def attach_custom_data(entity, script_identifier, entity_name=None, entity_type=
         except:
             pass
 
+        # Auto-extract entity handle if not provided
+        if entity_handle is None and hasattr(entity, 'dxf') and hasattr(entity.dxf, 'handle'):
+            entity_handle = str(entity.dxf.handle)
+
         # Set XDATA using unified function
-        xdata = create_entity_xdata(script_identifier, entity_name, entity_type, content_hash)
+        xdata = create_entity_xdata(script_identifier, entity_name, entity_type, content_hash, entity_handle)
         entity.set_xdata(XDATA_APP_ID, xdata)
 
         # Ensure entity is properly added to the document database

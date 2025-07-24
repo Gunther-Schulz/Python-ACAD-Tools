@@ -53,7 +53,7 @@ def get_sync_metadata(entity_config):
     }
 
 
-def update_sync_metadata(entity_config, content_hash, sync_source, conflict_policy=None):
+def update_sync_metadata(entity_config, content_hash, sync_source, conflict_policy=None, entity_handle=None):
     """
     Update sync metadata in entity configuration.
 
@@ -62,6 +62,7 @@ def update_sync_metadata(entity_config, content_hash, sync_source, conflict_poli
         content_hash: New content hash
         sync_source: Source of the sync ('yaml' or 'dxf')
         conflict_policy: Optional conflict resolution policy
+        entity_handle: Optional entity handle for identity tracking
     """
     import time
 
@@ -71,6 +72,9 @@ def update_sync_metadata(entity_config, content_hash, sync_source, conflict_poli
     entity_config['_sync']['content_hash'] = content_hash
     entity_config['_sync']['last_sync_time'] = int(time.time())
     entity_config['_sync']['sync_source'] = sync_source
+
+    if entity_handle:
+        entity_config['_sync']['entity_handle'] = entity_handle
 
     if conflict_policy:
         entity_config['_sync']['conflict_policy'] = conflict_policy

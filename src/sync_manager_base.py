@@ -637,8 +637,9 @@ class SyncManagerBase(ABC):
                         if self._should_skip_entity(entity):
                             continue
 
-                        # Check if this entity has our script metadata
+                        # Check if this entity has our script metadata and validate handle
                         has_our_metadata = False
+                        has_valid_metadata = False
                         try:
                             xdata = entity.get_xdata(XDATA_APP_ID)
                             if xdata:
@@ -649,8 +650,32 @@ class SyncManagerBase(ABC):
                         except:
                             has_our_metadata = False
 
-                        # Skip entities that are already managed by our script
+                        # If entity has our metadata, validate the handle for copy detection
                         if has_our_metadata:
+                            from src.dxf_utils import extract_handle_from_xdata
+                            stored_handle = extract_handle_from_xdata(entity)
+                            actual_handle = str(entity.dxf.handle)
+                            
+                            if stored_handle == actual_handle:
+                                # Valid metadata - entity is properly managed
+                                has_valid_metadata = True
+                            else:
+                                # Handle mismatch - this is a copy with stale XDATA
+                                log_info(f"Detected copied {self.entity_type} entity with stale XDATA: "
+                                        f"stored_handle={stored_handle}, actual_handle={actual_handle}")
+                                
+                                # Clean stale XDATA so entity can be rediscovered
+                                try:
+                                    entity.discard_xdata(XDATA_APP_ID)
+                                    log_debug(f"Cleaned stale XDATA from copied {self.entity_type} entity")
+                                except Exception as e:
+                                    log_warning(f"Failed to clean stale XDATA: {str(e)}")
+                                
+                                # Continue to discovery process (don't skip)
+                                has_valid_metadata = False
+
+                        # Skip entities that are properly managed by our script
+                        if has_valid_metadata:
                             continue
 
                         # Generate a name for this unmanaged entity
