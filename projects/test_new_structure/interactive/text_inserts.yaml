@@ -1,9 +1,0 @@
-texts:
-- name: Sample Text
-  layer: Text
-  sync: auto
-  text: Sample Text
-  position:
-    type: absolute
-    x: 0
-    y: 0

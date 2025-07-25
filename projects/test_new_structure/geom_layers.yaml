@@ -1,5 +1,0 @@
-geomLayers:
-- name: Sample Layer
-  shapeFile: input/sample.shp
-  style: sampleStyle
-  sync: push
