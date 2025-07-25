@@ -801,16 +801,16 @@ class SyncManagerBase(ABC):
         return settings
 
     def _get_yaml_filename(self):
-        """Get the YAML filename for this entity type."""
-        # Handle special cases
+        """Get the YAML filename for this entity type with appropriate folder prefix."""
+        # All sync manager entities are interactive content in auto/ folder
         if self.entity_type == 'viewport':
-            return 'viewports.yaml'
+            return 'auto/viewports.yaml'
         elif self.entity_type == 'text':
-            return 'text_inserts.yaml'
+            return 'auto/text_inserts.yaml'
         elif self.entity_type == 'block':
-            return 'block_inserts.yaml'
+            return 'auto/block_inserts.yaml'
         else:
-            return f'{self.entity_type}_inserts.yaml'
+            return f'auto/{self.entity_type}_inserts.yaml'
 
     def _ensure_entity_layer_exists(self, doc, config):
         """

@@ -37,22 +37,24 @@ class ProjectLoader:
         return {}
 
     def load_project_settings(self):
-        """Load project specific settings from modular config files"""
-        # Load main project settings
+        """Load project specific settings from modular config files in push/ and auto/ folders"""
+        # Load main project settings (stays at root)
         main_settings = self.load_yaml_file('project.yaml', required=True)
 
-        # Load additional configurations
-        geom_layers = self.load_yaml_file('geom_layers.yaml', required=False) or {}
-        legends = self.load_yaml_file('legends.yaml', required=False) or {}
-        viewports = self.load_yaml_file('viewports.yaml', required=False) or {}
-        block_inserts = self.load_yaml_file('block_inserts.yaml', required=False) or {}
-        text_inserts = self.load_yaml_file('text_inserts.yaml', required=False)
+        # Load push/ folder configurations (generated content)
+        geom_layers = self.load_yaml_file('push/geom_layers.yaml', required=False) or {}
+        legends = self.load_yaml_file('push/legends.yaml', required=False) or {}
+        path_arrays = self.load_yaml_file('push/path_arrays.yaml', required=False) or {}
+        wmts_wms_layers = self.load_yaml_file('push/wmts_wms_layers.yaml', required=False) or {}
+
+        # Load auto/ folder configurations (interactive content)
+        viewports = self.load_yaml_file('auto/viewports.yaml', required=False) or {}
+        block_inserts = self.load_yaml_file('auto/block_inserts.yaml', required=False) or {}
+        text_inserts = self.load_yaml_file('auto/text_inserts.yaml', required=False)
         if text_inserts:
-            log_debug(f"Loaded {len(text_inserts.get('texts', []))} text inserts from text_inserts.yaml")
+            log_debug(f"Loaded {len(text_inserts.get('texts', []))} text inserts from auto/text_inserts.yaml")
         else:
-            log_debug("No text inserts found in text_inserts.yaml")
-        path_arrays = self.load_yaml_file('path_arrays.yaml', required=False) or {}
-        wmts_wms_layers = self.load_yaml_file('wmts_wms_layers.yaml', required=False) or {}
+            log_debug("No text inserts found in auto/text_inserts.yaml")
 
         # Extract global sync setting to use as default for entity-specific settings
         global_sync = main_settings.get('sync', 'skip')  # Global sync setting from project.yaml
@@ -281,7 +283,7 @@ class ProjectLoader:
         return resolve_path(path, self.folder_prefix)
 
     def load_wmts_wms_layers(self):
-        wmts_wms_file = os.path.join(self.project_dir, 'wmts_wms_layers.yaml')
+        wmts_wms_file = os.path.join(self.project_dir, 'push/wmts_wms_layers.yaml')
         if not os.path.exists(wmts_wms_file):
             return [], []
 

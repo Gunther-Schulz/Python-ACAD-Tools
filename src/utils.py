@@ -312,9 +312,15 @@ def ensure_path_exists(path):
     return exists
 
 def create_sample_project(project_name: str) -> str:
-    """Create a new project with the modular directory structure and sample files"""
+    """Create a new project with the push/ and auto/ folder structure and sample files"""
     project_dir = os.path.join('projects', project_name)
     os.makedirs(project_dir, exist_ok=True)
+
+    # Create push/ and auto/ subdirectories
+    push_dir = os.path.join(project_dir, 'push')
+    auto_dir = os.path.join(project_dir, 'auto')
+    os.makedirs(push_dir, exist_ok=True)
+    os.makedirs(auto_dir, exist_ok=True)
 
     # Sample configurations for each module
     project_yaml = {
@@ -326,6 +332,7 @@ def create_sample_project(project_name: str) -> str:
         'shapefileOutputDir': 'output/shapefiles'
     }
 
+    # Push folder configurations (generated content)
     geom_layers_yaml = {
         'geomLayers': [{
             'name': 'Sample Layer',
@@ -343,6 +350,21 @@ def create_sample_project(project_name: str) -> str:
         }]
     }
 
+    path_arrays_yaml = {
+        'pathArrays': [{
+            'name': 'Sample Array',
+            'blockName': 'ArrayBlock',
+            'spacing': 10,
+            'path': 'Sample Path Layer'
+        }]
+    }
+
+    wmts_wms_layers_yaml = {
+        'wmtsLayers': [],
+        'wmsLayers': []
+    }
+
+    # Auto folder configurations (interactive content)
     viewports_yaml = {
         'viewports': [{
             'name': 'MainView',
@@ -356,7 +378,7 @@ def create_sample_project(project_name: str) -> str:
         'blocks': [{
             'name': 'Sample Block',
             'blockName': 'SampleBlock',
-            'sync': 'push',
+            'sync': 'auto',
             'position': {
                 'type': 'absolute',
                 'x': 0,
@@ -369,22 +391,13 @@ def create_sample_project(project_name: str) -> str:
         'texts': [{
             'name': 'Sample Text',
             'layer': 'Text',
-            'sync': 'push',
+            'sync': 'auto',
             'text': 'Sample Text',
             'position': {
                 'type': 'absolute',
                 'x': 0,
                 'y': 0
             }
-        }]
-    }
-
-    path_arrays_yaml = {
-        'pathArrays': [{
-            'name': 'Sample Array',
-            'blockName': 'ArrayBlock',
-            'spacing': 10,
-            'path': 'Sample Path Layer'
         }]
     }
 
@@ -431,23 +444,45 @@ def create_sample_project(project_name: str) -> str:
     with open(os.path.join(project_dir, 'web_services.yaml'), 'w') as f:
         yaml.dump(web_services_yaml, f, default_flow_style=False, sort_keys=False)
 
-    # Write all configuration files
-    files_to_create = {
-        'project.yaml': project_yaml,
-        'geom_layers.yaml': geom_layers_yaml,
-        'legends.yaml': legends_yaml,
-        'viewports.yaml': viewports_yaml,
-        'block_inserts.yaml': block_inserts_yaml,
-        'text_inserts.yaml': text_inserts_yaml,
-        'path_arrays.yaml': path_arrays_yaml
+    # Write configuration files to appropriate folders
+    root_files = {
+        'project.yaml': project_yaml
     }
 
-    for filename, content in files_to_create.items():
+    push_files = {
+        'geom_layers.yaml': geom_layers_yaml,
+        'legends.yaml': legends_yaml,
+        'path_arrays.yaml': path_arrays_yaml,
+        'wmts_wms_layers.yaml': wmts_wms_layers_yaml
+    }
+
+    auto_files = {
+        'viewports.yaml': viewports_yaml,
+        'block_inserts.yaml': block_inserts_yaml,
+        'text_inserts.yaml': text_inserts_yaml
+    }
+
+    # Write root files
+    for filename, content in root_files.items():
         filepath = os.path.join(project_dir, filename)
         with open(filepath, 'w') as f:
             yaml.dump(content, f, default_flow_style=False, sort_keys=False, allow_unicode=True)
 
+    # Write push/ files
+    for filename, content in push_files.items():
+        filepath = os.path.join(push_dir, filename)
+        with open(filepath, 'w') as f:
+            yaml.dump(content, f, default_flow_style=False, sort_keys=False, allow_unicode=True)
+
+    # Write auto/ files
+    for filename, content in auto_files.items():
+        filepath = os.path.join(auto_dir, filename)
+        with open(filepath, 'w') as f:
+            yaml.dump(content, f, default_flow_style=False, sort_keys=False, allow_unicode=True)
+
     log_info(f"Created new project directory structure at: {project_dir}")
+    log_info(f"  - push/ folder: {len(push_files)} files (generated content)")
+    log_info(f"  - auto/ folder: {len(auto_files)} files (interactive content)")
     return project_dir
 
 def warning_to_logger(message, category, filename, lineno, file=None, line=None):

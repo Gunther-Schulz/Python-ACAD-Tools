@@ -60,4 +60,4 @@ texts:
 discover_untracked: false
 deletion_policy: auto
 default_layer: Plantext
-sync: push
+sync: auto
