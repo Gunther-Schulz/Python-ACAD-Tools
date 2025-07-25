@@ -15,7 +15,7 @@ class ViewportManager(UnifiedSyncProcessor):
         self.style_manager = style_manager
         self.viewports = {}
 
-        log_debug(f"ViewportManager initialized with discovery={self.discovery_enabled}, "
+        log_debug(f"ViewportManager initialized with discovery={self._is_discovery_enabled()}, "
                  f"deletion_policy={self.deletion_policy}, default_layer={self.default_layer}, "
                  f"default_sync={self.default_sync}")
 
@@ -325,7 +325,11 @@ class ViewportManager(UnifiedSyncProcessor):
     def _discover_unknown_entities(self, doc, space):
         """Discover viewports in AutoCAD that aren't managed by this script."""
         # Use centralized discovery logic from UnifiedSyncProcessor
-        return super()._discover_unknown_entities(doc, space)
+        discovered = super()._discover_unknown_entities(doc, space)
+        
+        # ViewportManager doesn't need additional entity-specific behavior
+        # Base implementation handles all the discovery logic
+        return discovered
 
     def _find_all_entities_with_xdata_name(self, doc, entity_name):
         """Find all viewports with matching XDATA name. Viewport-specific implementation."""

@@ -61,32 +61,27 @@ class ProjectLoader:
         # Extract global sync setting to use as default for entity-specific settings
         global_sync = main_settings.get('sync', 'skip')  # Global sync setting from project.yaml
 
+                # Extract layer-based discovery settings - this is the only discovery control
+        viewport_discovery_layers = viewports.get('discover_untracked_layers', []) if viewports else []
+        text_discovery_layers = text_inserts.get('discover_untracked_layers', []) if text_inserts else []
+        block_discovery_layers = block_inserts.get('discover_untracked_layers', []) if block_inserts else []
+
         # Extract global viewport settings with defaults (inheriting global sync)
-        viewport_discovery = viewports.get('discover_untracked', False)
         viewport_deletion_policy = viewports.get('deletion_policy', 'auto')
         viewport_default_layer = viewports.get('default_layer', 'VIEWPORTS')
         viewport_sync = viewports.get('sync', global_sync)  # Inherit global sync setting
 
         # Extract global text insert settings with defaults (inheriting global sync)
         text_sync = text_inserts.get('sync', global_sync) if text_inserts else global_sync
-        text_discovery = text_inserts.get('discover_untracked', False) if text_inserts else False
         text_deletion_policy = text_inserts.get('deletion_policy', 'auto') if text_inserts else 'auto'
         # Add support for global default layer for text inserts
         text_default_layer = text_inserts.get('default_layer', 'Plantext') if text_inserts else 'Plantext'
 
         # Extract global block insert settings with defaults (inheriting global sync)
         block_sync = block_inserts.get('sync', global_sync) if block_inserts else global_sync
-        block_discovery = block_inserts.get('discover_untracked', False) if block_inserts else False
         block_deletion_policy = block_inserts.get('deletion_policy', 'auto') if block_inserts else 'auto'
-        block_discovery_layers = block_inserts.get('discover_untracked_layers', 'all') if block_inserts else 'all'
         # Add support for global default layer for block inserts
         block_default_layer = block_inserts.get('default_layer', 'BLOCKS') if block_inserts else 'BLOCKS'
-
-        # Extract global text insert discovery layers
-        text_discovery_layers = text_inserts.get('discover_untracked_layers', 'all') if text_inserts else 'all'
-
-        # Extract global viewport discovery layers
-        viewport_discovery_layers = viewports.get('discover_untracked_layers', 'all') if viewports else 'all'
 
         # Extract global auto sync conflict resolution setting
         auto_conflict_resolution = main_settings.get('auto_conflict_resolution', 'prompt')
@@ -177,16 +172,13 @@ class ProjectLoader:
             'wmsLayers': wmts_wms_layers.get('wmsLayers', []),
 
             # Global entity settings (generalized format)
-            'viewport_discovery': viewport_discovery,
             'viewport_deletion_policy': viewport_deletion_policy,
             'viewport_default_layer': viewport_default_layer,
             'viewport_sync': viewport_sync,
             'text_sync': text_sync,
-            'text_discovery': text_discovery,
             'text_deletion_policy': text_deletion_policy,
             'text_default_layer': text_default_layer,
             'block_sync': block_sync,
-            'block_discovery': block_discovery,
             'block_deletion_policy': block_deletion_policy,
             'block_discover_untracked_layers': block_discovery_layers,
             'block_default_layer': block_default_layer,

@@ -37,16 +37,13 @@ class UnifiedSyncProcessor(ABC):
         sync_key = f'{entity_type}_sync'
         self.default_sync = project_settings.get(sync_key, 'skip')
 
-        # Extract generalized discovery and deletion settings
-        discovery_key = f'{entity_type}_discovery'
+        # Extract deletion settings
         deletion_key = f'{entity_type}_deletion_policy'
-
-        self.discovery_enabled = project_settings.get(discovery_key, False)
         self.deletion_policy = project_settings.get(deletion_key, 'auto')
 
-        # Extract discovery layers setting
+        # Extract discovery layers setting - this is the only discovery control
         discovery_layers_key = f'{entity_type}_discover_untracked_layers'
-        self.discovery_layers = project_settings.get(discovery_layers_key, 'all')
+        self.discovery_layers = project_settings.get(discovery_layers_key, [])  # Default to empty list (disabled)
 
         # Extract default layer setting for unified layer handling
         default_layer_key = f'{entity_type}_default_layer'
@@ -54,6 +51,27 @@ class UnifiedSyncProcessor(ABC):
 
         # Validate settings
         self._validate_settings()
+
+    def _is_discovery_enabled(self):
+        """
+        Check if discovery is enabled based on layer settings.
+
+        Returns:
+            bool: True if discovery should run, False otherwise
+        """
+        # Discovery is enabled if:
+        # 1. discovery_layers is "all" (string)
+        # 2. discovery_layers is a non-empty list
+        # Discovery is disabled if:
+        # 1. discovery_layers is an empty list []
+        # 2. discovery_layers is None
+
+        if self.discovery_layers == "all":
+            return True
+        elif isinstance(self.discovery_layers, list) and len(self.discovery_layers) > 0:
+            return True
+        else:
+            return False
 
     def _validate_settings(self):
         """Validate sync processor settings."""
@@ -117,8 +135,8 @@ class UnifiedSyncProcessor(ABC):
             if pull_results.get('yaml_updated'):
                 yaml_updated = True
 
-        # Step 5: Handle discovery and deletion if enabled
-        if self.discovery_enabled:
+        # Step 5: Handle discovery if layer-based discovery is enabled
+        if self._is_discovery_enabled():
             discovery_results = self._handle_discovery(doc, space)
             if discovery_results.get('yaml_updated'):
                 yaml_updated = True
@@ -575,8 +593,157 @@ class UnifiedSyncProcessor(ABC):
             return None
 
     def _handle_discovery(self, doc, space):
-        """Handle entity discovery. Default implementation."""
-        return {'yaml_updated': False}
+        """Handle entity discovery with proper implementation."""
+
+        if not self._is_discovery_enabled():
+            log_info(f"🔍 DEBUG: Discovery not enabled for {self.entity_type}")
+            return {'yaml_updated': False}
+
+        log_info(f"🔍 DEBUG: Running discovery for {self.entity_type} entities on layers: {self.discovery_layers}")
+
+        # Discover untracked entities
+        discovered_entities = self._discover_unknown_entities(doc, space)
+        log_info(f"🔍 DEBUG: Found {len(discovered_entities)} untracked entities")
+
+        if not discovered_entities:
+            log_info(f"🔍 DEBUG: No untracked {self.entity_type} entities found")
+            return {'yaml_updated': False}
+
+        # Add discovered entities to configuration
+        config_key = self._get_config_key()
+        entity_configs = self.project_settings.get(config_key, [])
+        log_info(f"🔍 DEBUG: Current config has {len(entity_configs)} existing entities")
+
+        yaml_updated = False
+        for discovery in discovered_entities:
+            entity = discovery['entity']
+            entity_name = discovery['name']
+
+            log_info(f"🔍 DEBUG: Processing discovered entity '{entity_name}' (handle: {entity.dxf.handle})")
+
+            # Extract entity properties for configuration
+            entity_config = self._extract_entity_properties(entity, {'name': entity_name})
+
+            # Set default sync mode for discovered entities
+            entity_config['sync'] = 'auto'  # Default for discovered entities
+
+            # Add to configurations
+            entity_configs.append(entity_config)
+
+            # Attach metadata to mark as managed
+            self._attach_entity_metadata(entity, entity_config)
+
+            log_info(f"🔍 Discovered new {self.entity_type} entity: '{entity_name}' on layer '{entity.dxf.layer}'")
+            yaml_updated = True
+
+        # Update project settings
+        if yaml_updated:
+            self.project_settings[config_key] = entity_configs
+            log_info(f"🔍 DEBUG: Updated project settings with {len(entity_configs)} total entities")
+
+        return {'yaml_updated': yaml_updated}
+
+    def _discover_unknown_entities(self, doc, space):
+        """
+        Find entities that exist in DXF but aren't properly tracked.
+
+        This method searches for entities that either:
+        1. Have no XDATA (completely untracked)
+        2. Have invalid XDATA (wrong handle due to copying)
+
+        Args:
+            doc: DXF document
+            space: Model space or paper space
+
+        Returns:
+            list: List of discovered entities with format [{'entity': entity, 'name': name}, ...]
+        """
+        log_info(f"🔍 DEBUG: _discover_unknown_entities called for {self.entity_type} in {space}")
+        discovered = []
+
+        # Get entity types from child class implementation
+        try:
+            entity_types = self._get_entity_types()
+            log_info(f"🔍 DEBUG: Entity types: {entity_types}")
+        except (NotImplementedError, AttributeError):
+            log_warning(f"Child class doesn't implement _get_entity_types() - skipping discovery")
+            return discovered
+
+        # Build query string for all entity types
+        query_string = ' '.join(entity_types)
+        log_info(f"🔍 DEBUG: Query string: '{query_string}'")
+
+        # Search for entities in the current space
+        all_entities = list(space.query(query_string))
+        log_info(f"🔍 DEBUG: Found {len(all_entities)} entities of matching types")
+
+        for entity in all_entities:
+            # Skip entities based on manager-specific logic
+            if self._should_skip_entity(entity):
+                continue
+
+            # Check if entity is on a discovery layer
+            entity_layer = getattr(entity.dxf, 'layer', None)
+            if not entity_layer:
+                continue
+
+            # Filter by discovery layers
+            if self.discovery_layers != "all" and entity_layer not in self.discovery_layers:
+                continue
+
+            # Check if entity has valid tracking (handle validation)
+            if self._validate_entity_handle(entity, "discovery_check"):
+                log_info(f"🔍 DEBUG: Entity {entity.dxf.handle} is properly tracked, skipping")
+                continue  # Properly tracked, skip
+
+            log_info(f"🔍 DEBUG: Entity {entity.dxf.handle} on layer {entity_layer} is untracked!")
+
+            # Entity is untracked - discover it
+            try:
+                entity_name = self._generate_entity_name(entity, len(discovered))
+
+                # Ensure name is unique within current configurations
+                entity_name = self._ensure_unique_entity_name(entity_name)
+
+                discovered.append({
+                    'entity': entity,
+                    'name': entity_name,
+                    'layer': entity_layer,
+                    'handle': str(entity.dxf.handle)
+                })
+
+                log_debug(f"Discovered untracked {self.entity_type}: '{entity_name}' (handle: {entity.dxf.handle})")
+
+            except Exception as e:
+                log_warning(f"Error processing discovered {self.entity_type} entity {entity.dxf.handle}: {str(e)}")
+                continue
+
+        return discovered
+
+    def _ensure_unique_entity_name(self, base_name):
+        """
+        Ensure the generated entity name is unique within current configurations.
+
+        Args:
+            base_name: The base name to make unique
+
+        Returns:
+            str: A unique name
+        """
+        config_key = self._get_config_key()
+        entity_configs = self.project_settings.get(config_key, [])
+        existing_names = {config.get('name') for config in entity_configs}
+
+        # If base name is unique, use it
+        if base_name not in existing_names:
+            return base_name
+
+        # Generate numbered variations
+        counter = 1
+        while f"{base_name}_{counter}" in existing_names:
+            counter += 1
+
+        return f"{base_name}_{counter}"
 
     def _write_entity_yaml(self):
         """
@@ -629,7 +796,7 @@ class UnifiedSyncProcessor(ABC):
 
         # Standard global settings all entity types support
         setting_mappings = {
-            'discover_untracked': f'{prefix}discovery',
+            'discover_untracked_layers': f'{prefix}discover_untracked_layers',
             'deletion_policy': f'{prefix}deletion_policy',
             'default_layer': f'{prefix}default_layer',
             'sync': f'{prefix}sync'

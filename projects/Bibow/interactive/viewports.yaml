@@ -13,9 +13,9 @@ viewports:
   - Gebäude
   lockZoom: true
   _sync:
-    dxf_handle: 56DD
+    dxf_handle: F6ED
     content_hash: a8c97594b2e045651239bd6aa76b006db9ac612bdaf1b5b57b82d37145fe0483
-    last_sync_time: 1753468906
+    last_sync_time: 1753471782
     sync_source: yaml
 - name: Viewport_006
   center:
@@ -31,11 +31,12 @@ viewports:
   - Gebäude
   lockZoom: true
   _sync:
-    dxf_handle: 56DE
+    dxf_handle: F6EE
     content_hash: 01f50ecd3df33132ae55fd390f6873a2b2cb452248b58dfde976774605f95dbe
-    last_sync_time: 1753468906
+    last_sync_time: 1753471782
     sync_source: yaml
-discover_untracked: true
+discover_untracked_layers:
+  - VIEWPORTS
 deletion_policy: auto
 default_layer: VIEWPORTS
-sync: push
+sync: auto

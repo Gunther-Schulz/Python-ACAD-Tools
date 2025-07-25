@@ -28,9 +28,13 @@ class BlockInsertManager(UnifiedSyncProcessor):
         configs_to_process = [c for c in block_configs if self._get_sync_direction(c) == 'push']
         self.clean_target_layers(msp.doc, configs_to_process)
 
-        # Process using sync manager
-        processed_blocks = self.process_entities(msp.doc, msp)
-        log_debug(f"Processed {len(processed_blocks)} block inserts using sync system")
+        # Process using sync manager in BOTH spaces (modelspace and paperspace)
+        # Block entities can be in either space, so we need to process both
+        processed_blocks_msp = self.process_entities(msp.doc, msp)
+        processed_blocks_psp = self.process_entities(msp.doc, msp.doc.paperspace())
+
+        total_processed = len(processed_blocks_msp) + len(processed_blocks_psp)
+        log_debug(f"Processed {total_processed} block inserts using sync system (MSP: {len(processed_blocks_msp)}, PSP: {len(processed_blocks_psp)})")
 
     def clean_target_layers(self, doc, configs_to_process):
         """Clean target layers for block configs (both spaces). Uses centralized logic."""
@@ -433,7 +437,11 @@ class BlockInsertManager(UnifiedSyncProcessor):
     def _discover_unknown_entities(self, doc, space):
         """Discover unknown block inserts in the DXF file."""
         # Use centralized discovery logic from UnifiedSyncProcessor
-        return super()._discover_unknown_entities(doc, space)
+        discovered = super()._discover_unknown_entities(doc, space)
+
+        # BlockInsertManager doesn't need additional entity-specific behavior
+        # Base implementation handles all the discovery logic
+        return discovered
 
     def _handle_entity_deletions(self, doc, space):
         """Handle deletion of block entities that exist in YAML but not in AutoCAD."""

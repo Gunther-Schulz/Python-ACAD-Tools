@@ -1073,9 +1073,13 @@ class DXFExporter:
         # configs_to_process = [c for c in text_configs if self.text_insert_manager._get_sync_direction(c) == 'push']
         # self.text_insert_manager.clean_target_layers(msp.doc, configs_to_process)
 
-        # Process using sync manager - let it handle its own cleaning logic
-        processed_texts = self.text_insert_manager.process_entities(msp.doc, msp)
-        log_debug(f"Processed {len(processed_texts)} text inserts using sync system")
+        # Process using sync manager in BOTH spaces (modelspace and paperspace)
+        # Text entities can be in either space, so we need to process both
+        processed_texts_msp = self.text_insert_manager.process_entities(msp.doc, msp)
+        processed_texts_psp = self.text_insert_manager.process_entities(msp.doc, msp.doc.paperspace())
+
+        total_processed = len(processed_texts_msp) + len(processed_texts_psp)
+        log_debug(f"Processed {total_processed} text inserts using sync system (MSP: {len(processed_texts_msp)}, PSP: {len(processed_texts_psp)})")
 
     def get_viewport_by_name(self, doc, name):
         """Retrieve a viewport by its name using xdata."""
