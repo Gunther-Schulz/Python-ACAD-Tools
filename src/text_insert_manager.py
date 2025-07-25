@@ -493,40 +493,7 @@ class TextInsertManager(UnifiedSyncProcessor):
         """Get DXF entity types for text search."""
         return ['TEXT', 'MTEXT']
 
-    def _extract_entity_properties_for_discovery(self, entity):
-        """Extract text properties for auto-discovery."""
-        try:
-            # Get position
-            if entity.dxftype() == 'MTEXT':
-                insert_point = entity.dxf.insert
-            else:  # TEXT
-                insert_point = entity.dxf.insert
 
-            position = {'type': 'absolute', 'x': float(insert_point[0]), 'y': float(insert_point[1])}
-
-            # Get text content
-            if entity.dxftype() == 'MTEXT':
-                text_content = entity.plain_text()
-            else:  # TEXT
-                text_content = entity.dxf.text
-
-            # Determine paperspace
-            paperspace = detect_entity_paperspace(entity)
-
-            return {
-                'text': text_content,
-                'position': position,
-                'layer': entity.dxf.layer,
-                'paperspace': paperspace
-            }
-        except Exception as e:
-            log_warning(f"Error extracting text properties: {str(e)}")
-            return {
-                'text': 'Unknown',
-                'position': {'type': 'absolute', 'x': 0, 'y': 0},
-                'layer': 'DEFAULT',
-                'paperspace': False
-            }
 
     def _process_text_config_line(self, config, line_number):
         """Process a single text configuration line for SkipSync functionality."""

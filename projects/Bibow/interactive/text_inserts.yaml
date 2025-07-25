@@ -8,6 +8,11 @@ texts:
   layer: Plantext
   paperspace: true
   style: mainTitle
+  _sync:
+    dxf_handle: 56C6
+    content_hash: ee0863190f4d4a8df29b6dae741d1b3e2e60d95cd94188ca857a680fc56e9798
+    last_sync_time: 1753468906
+    sync_source: yaml
 - name: Map Header
   position:
     type: absolute
@@ -17,6 +22,11 @@ texts:
   layer: Plantext
   paperspace: true
   style: mapHeader
+  _sync:
+    dxf_handle: 56C7
+    content_hash: a14229b80a7739504037bac7afbf275160d4caecc7ebbd15e497bcfac6a55298
+    last_sync_time: 1753468906
+    sync_source: yaml
 - name: Übersichtskarte Header
   position:
     type: absolute
@@ -26,6 +36,11 @@ texts:
   layer: Plantext
   paperspace: true
   style: übersichtskarteHeader
+  _sync:
+    dxf_handle: 56C8
+    content_hash: 7e450e4f7e9d49020489a8344fbd0db86738a1ae21d23b31c4e87a8887cee393
+    last_sync_time: 1753468906
+    sync_source: yaml
 - name: Satzung
   position:
     type: absolute
@@ -37,7 +52,12 @@ texts:
   paperspace: true
   style: satzungstext
   justification: CENTER
+  _sync:
+    dxf_handle: 56C9
+    content_hash: 1a3e4335ee93a02af091be261fd4eddd3599f701f7b455db476b00352354669d
+    last_sync_time: 1753468906
+    sync_source: yaml
 discover_untracked: false
 deletion_policy: auto
 default_layer: Plantext
-sync: auto
+sync: push

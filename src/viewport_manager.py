@@ -348,58 +348,7 @@ class ViewportManager(UnifiedSyncProcessor):
 
         return matching_entities
 
-    def _extract_entity_properties_for_discovery(self, entity):
-        """Extract properties from a viewport entity for discovery."""
-        try:
-            extracted_props = {}
 
-            # Extract physical viewport properties
-            center = entity.dxf.center
-            extracted_props['center'] = {'x': float(center[0]), 'y': float(center[1])}
-            extracted_props['width'] = float(entity.dxf.width)
-            extracted_props['height'] = float(entity.dxf.height)
-
-            # Extract view properties
-            view_center = entity.dxf.view_center_point
-            extracted_props['viewCenter'] = {'x': float(view_center[0]), 'y': float(view_center[1])}
-
-            # Calculate scale from view_height and physical height
-            view_height = float(entity.dxf.view_height)
-            physical_height = float(entity.dxf.height)
-            if physical_height > 0:
-                scale = view_height / physical_height
-                extracted_props['scale'] = round(scale, 6)
-            else:
-                extracted_props['scale'] = 1.0
-
-            # Extract color if it's not default
-            if hasattr(entity.dxf, 'color') and entity.dxf.color != 256:  # 256 = BYLAYER
-                color_code = entity.dxf.color
-                for name, aci in self.name_to_aci.items():
-                    if aci == color_code:
-                        extracted_props['color'] = name
-                        break
-                else:
-                    # If no name found for color code, use the numeric value
-                    extracted_props['color'] = str(color_code)
-
-            # Extract frozen layers if any (creates independent copy)
-            if hasattr(entity, 'frozen_layers') and entity.frozen_layers:
-                extracted_props['frozenLayers'] = list(entity.frozen_layers)
-
-            # Extract zoom lock flag
-            if hasattr(entity.dxf, 'flags') and (entity.dxf.flags & 16384):  # VSF_LOCK_ZOOM
-                extracted_props['lockZoom'] = True
-
-            # Extract layer if it's not the default
-            if hasattr(entity.dxf, 'layer') and entity.dxf.layer != self.default_layer:
-                extracted_props['layer'] = entity.dxf.layer
-
-            return extracted_props
-
-        except Exception as e:
-            log_warning(f"Error extracting viewport properties: {str(e)}")
-            return None
 
     def _handle_entity_deletions(self, doc, space):
         """Handle deletion of viewports that exist in YAML but not in AutoCAD."""

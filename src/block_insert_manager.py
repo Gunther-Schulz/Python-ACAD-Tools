@@ -533,33 +533,7 @@ class BlockInsertManager(UnifiedSyncProcessor):
         """Get DXF entity types for block insert search."""
         return ['INSERT']
 
-    def _extract_entity_properties_for_discovery(self, entity):
-        """Extract block insert properties for auto-discovery."""
-        try:
-            # Determine paperspace using shared reliable detection
-            paperspace = detect_entity_paperspace(entity)
-            if paperspace is None:
-                paperspace = False  # Fallback for discovery
 
-            position = {'type': 'absolute', 'x': float(entity.dxf.insert[0]), 'y': float(entity.dxf.insert[1])}
-            return {
-                'blockName': entity.dxf.name,
-                'position': position,
-                'scale': float(getattr(entity.dxf, 'xscale', 1.0)),
-                'rotation': float(getattr(entity.dxf, 'rotation', 0.0)),
-                'layer': entity.dxf.layer,
-                'paperspace': paperspace
-            }
-        except Exception as e:
-            log_warning(f"Error extracting block insert properties: {str(e)}")
-            return {
-                'blockName': 'UNKNOWN',
-                'position': {'type': 'absolute', 'x': 0, 'y': 0},
-                'scale': 1.0,
-                'rotation': 0.0,
-                'layer': 'DEFAULT',
-                'paperspace': False
-            }
 
     def _find_all_entities_with_xdata_name(self, doc, entity_name):
         """Find all block inserts with matching XDATA name. Block-specific implementation."""
