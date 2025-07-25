@@ -500,9 +500,79 @@ class UnifiedSyncProcessor(ABC):
         return {'yaml_updated': False}
 
     def _write_entity_yaml(self):
-        """Write entity configurations back to YAML. Default implementation."""
-        if self.project_loader:
-            log_debug(f"Writing {self.entity_type} configurations back to YAML")
+        """
+        Write updated entity configuration back to YAML file.
+        Centralized implementation that works for all entity types.
+
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        if not self.project_loader:
+            log_warning(f"Cannot write {self.entity_type} YAML - no project_loader available")
+            return False
+
+        try:
+            # Get entity configurations and clean them for YAML output
+            config_key = self._get_config_key()
+            entity_configs = self.project_settings.get(config_key, [])
+
+            cleaned_configs = []
+            for config in entity_configs:
+                cleaned_config = clean_entity_config_for_yaml_output(config)
+                cleaned_configs.append(cleaned_config)
+
+            # Prepare entity data structure
+            yaml_data = {config_key: cleaned_configs}
+
+            # Add global settings using entity type prefix
+            global_settings = self._get_global_settings_for_yaml()
+            yaml_data.update(global_settings)
+
+            # Get YAML filename
+            yaml_filename = self._get_yaml_filename()
+
+            # Write back to YAML file
+            success = self.project_loader.write_yaml_file(yaml_filename, yaml_data)
+            if success:
+                log_info(f"Successfully updated {yaml_filename} with sync changes")
+            else:
+                log_error(f"Failed to write {self.entity_type} configuration back to YAML")
+            return success
+
+        except Exception as e:
+            log_error(f"Error writing {self.entity_type} YAML: {str(e)}")
+            return False
+
+    def _get_global_settings_for_yaml(self):
+        """Get global settings for this entity type to include in YAML."""
+        settings = {}
+        prefix = f'{self.entity_type}_'
+
+        # Standard global settings all entity types support
+        setting_mappings = {
+            'discover_untracked': f'{prefix}discovery',
+            'deletion_policy': f'{prefix}deletion_policy',
+            'default_layer': f'{prefix}default_layer',
+            'sync': f'{prefix}sync'
+        }
+
+        for yaml_key, project_key in setting_mappings.items():
+            if project_key in self.project_settings:
+                settings[yaml_key] = self.project_settings[project_key]
+
+        return settings
+
+    def _get_yaml_filename(self):
+        """Get the YAML filename for this entity type with appropriate folder prefix."""
+        # All sync manager entities are interactive content in interactive/ folder
+        if self.entity_type == 'viewport':
+            return 'interactive/viewports.yaml'
+        elif self.entity_type == 'text':
+            return 'interactive/text_inserts.yaml'
+        elif self.entity_type == 'block':
+            return 'interactive/block_inserts.yaml'
+        else:
+            return f'interactive/{self.entity_type}_inserts.yaml'
 
     def _get_config_key(self):
         """

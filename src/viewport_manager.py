@@ -603,8 +603,8 @@ class ViewportManager(UnifiedSyncProcessor):
 
     def _write_entity_yaml(self):
         """Write viewport configurations back to YAML file."""
-        if self.project_loader:
-            log_debug(f"Writing {self.entity_type} configurations back to YAML")
+        # Use the implementation from parent class
+        return super()._write_entity_yaml()
 
     # Abstract methods required by UnifiedSyncProcessor
     def _get_fallback_default_layer(self):

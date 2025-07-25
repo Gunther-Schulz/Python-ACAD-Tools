@@ -326,16 +326,22 @@ class ProjectLoader:
         import shutil
 
         filepath = os.path.join(self.project_dir, filename)
+        target_dir = os.path.dirname(filepath)
+        target_basename = os.path.basename(filepath)
 
         try:
+            # Ensure target directory exists
+            if target_dir and not os.path.exists(target_dir):
+                os.makedirs(target_dir, exist_ok=True)
+
             # Create temporary file in the same directory for atomic write
             temp_fd = None
             temp_path = None
 
             temp_fd, temp_path = tempfile.mkstemp(
-                prefix=f".{filename}.tmp.",
+                prefix=f".{target_basename}.tmp.",
                 suffix=".yaml",
-                dir=self.project_dir
+                dir=target_dir or self.project_dir  # Use target dir or fallback to project_dir
             )
             os.close(temp_fd)  # Close file descriptor, we'll write using our method
 
