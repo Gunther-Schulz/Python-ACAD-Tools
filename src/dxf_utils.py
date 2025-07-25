@@ -1512,3 +1512,60 @@ def remove_specific_entity_by_handle(space, entity_handle, script_identifier):
         log_debug(f"Could not remove entity with handle {entity_handle}: {str(e)}")
 
     return False
+
+def read_cad_layer_to_geodataframe(doc, layer_name, crs):
+    """
+    Read all geometry from a CAD layer and return as GeoDataFrame.
+    Uses existing convert_entity_to_geometry() infrastructure for robust conversion.
+
+    Args:
+        doc: DXF document
+        layer_name: Name of the layer to read
+        crs: Coordinate reference system for the GeoDataFrame
+
+    Returns:
+        GeoDataFrame with geometries from the specified layer
+    """
+    from src.dump_to_shape import convert_entity_to_geometry
+    import geopandas as gpd
+    from src.utils import log_debug, log_warning
+
+    geometries = []
+    attributes = []
+
+    # Get model space
+    msp = doc.modelspace()
+
+    log_debug(f"Reading geometries from CAD layer: {layer_name}")
+
+    # Collect entities from the specified layer
+    entity_count = 0
+    for entity in msp:
+        try:
+            # Check if entity has layer attribute and matches target layer
+            if hasattr(entity, 'dxf') and hasattr(entity.dxf, 'layer'):
+                if entity.dxf.layer == layer_name:
+                    # Convert entity to Shapely geometry using existing converter
+                    geom = convert_entity_to_geometry(entity)
+                    if geom:
+                        geometries.append(geom)
+                        # Basic attributes - could be extended to include entity properties
+                        attributes.append({
+                            'entity_type': entity.dxftype(),
+                            'handle': getattr(entity.dxf, 'handle', None)
+                        })
+                        entity_count += 1
+        except Exception as e:
+            log_warning(f"Error processing entity in layer {layer_name}: {str(e)}")
+            continue
+
+    log_debug(f"Successfully read {entity_count} geometries from layer {layer_name}")
+
+    # Create GeoDataFrame
+    if geometries:
+        gdf = gpd.GeoDataFrame(geometry=geometries, data=attributes, crs=crs)
+        log_debug(f"Created GeoDataFrame with {len(gdf)} geometries for layer {layer_name}")
+        return gdf
+    else:
+        log_debug(f"No geometries found in layer {layer_name}")
+        return gpd.GeoDataFrame(geometry=[], crs=crs)

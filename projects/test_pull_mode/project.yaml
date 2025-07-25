@@ -1,0 +1,6 @@
+crs: EPSG:25833
+dxfFilename: output/project.dxf
+template: templates/template.dxf
+exportFormat: dxf
+dxfVersion: R2010
+shapefileOutputDir: output/shapefiles

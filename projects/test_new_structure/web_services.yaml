@@ -1,0 +1,32 @@
+wmsServices:
+  sample_wms:
+    url: https://example.com/wms
+    layer: sample_layer
+    srs: EPSG:3857
+    format: image/png
+    targetFolder: wms_cache
+    buffer: 100
+    zoom: 15
+    overwrite: false
+    postProcess:
+      colorMap:
+        255,255,255: 0,0,0
+      alphaColor: 255,255,255
+      grayscale: false
+      removeText: false
+wmtsServices:
+  sample_wmts:
+    url: https://example.com/wmts
+    layer: sample_layer
+    srs: EPSG:3857
+    format: image/png
+    targetFolder: wmts_cache
+    buffer: 100
+    zoom: 15
+    overwrite: false
+    postProcess:
+      colorMap:
+        255,255,255: 0,0,0
+      alphaColor: 255,255,255
+      grayscale: false
+      removeText: false

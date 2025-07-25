@@ -1,0 +1,7 @@
+viewports:
+- name: MainView
+  center:
+    x: 0
+    y: 0
+  scale: 1000
+  rotation: 0

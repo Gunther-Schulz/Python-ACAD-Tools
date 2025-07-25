@@ -312,15 +312,15 @@ def ensure_path_exists(path):
     return exists
 
 def create_sample_project(project_name: str) -> str:
-    """Create a new project with the push/ and auto/ folder structure and sample files"""
+    """Create a new project with geom_layers at root, generated/ and interactive/ folders"""
     project_dir = os.path.join('projects', project_name)
     os.makedirs(project_dir, exist_ok=True)
 
-    # Create push/ and auto/ subdirectories
-    push_dir = os.path.join(project_dir, 'push')
-    auto_dir = os.path.join(project_dir, 'auto')
-    os.makedirs(push_dir, exist_ok=True)
-    os.makedirs(auto_dir, exist_ok=True)
+    # Create generated/ and interactive/ subdirectories
+    generated_dir = os.path.join(project_dir, 'generated')
+    interactive_dir = os.path.join(project_dir, 'interactive')
+    os.makedirs(generated_dir, exist_ok=True)
+    os.makedirs(interactive_dir, exist_ok=True)
 
     # Sample configurations for each module
     project_yaml = {
@@ -332,7 +332,7 @@ def create_sample_project(project_name: str) -> str:
         'shapefileOutputDir': 'output/shapefiles'
     }
 
-    # Push folder configurations (generated content)
+    # Generative folder configurations (mixed sync mode content)
     geom_layers_yaml = {
         'geomLayers': [{
             'name': 'Sample Layer',
@@ -342,6 +342,7 @@ def create_sample_project(project_name: str) -> str:
         }]
     }
 
+    # Generated folder configurations (traditional push/skip only)
     legends_yaml = {
         'legends': [{
             'name': 'Sample Legend',
@@ -364,7 +365,7 @@ def create_sample_project(project_name: str) -> str:
         'wmsLayers': []
     }
 
-    # Auto folder configurations (interactive content)
+    # Interactive folder configurations (auto sync mode content)
     viewports_yaml = {
         'viewports': [{
             'name': 'MainView',
@@ -449,40 +450,53 @@ def create_sample_project(project_name: str) -> str:
         'project.yaml': project_yaml
     }
 
-    push_files = {
-        'geom_layers.yaml': geom_layers_yaml,
+    # Root level files
+    root_level_files = {
+        'geom_layers.yaml': geom_layers_yaml
+    }
+
+    # Generated folder files (traditional push/skip)
+    generated_files = {
         'legends.yaml': legends_yaml,
         'path_arrays.yaml': path_arrays_yaml,
         'wmts_wms_layers.yaml': wmts_wms_layers_yaml
     }
 
-    auto_files = {
+    # Interactive folder files (auto sync mode content)
+    interactive_files = {
         'viewports.yaml': viewports_yaml,
         'block_inserts.yaml': block_inserts_yaml,
         'text_inserts.yaml': text_inserts_yaml
     }
 
-    # Write root files
+    # Write root files (project.yaml)
     for filename, content in root_files.items():
         filepath = os.path.join(project_dir, filename)
         with open(filepath, 'w') as f:
             yaml.dump(content, f, default_flow_style=False, sort_keys=False, allow_unicode=True)
 
-    # Write push/ files
-    for filename, content in push_files.items():
-        filepath = os.path.join(push_dir, filename)
+    # Write root level geom_layers.yaml
+    for filename, content in root_level_files.items():
+        filepath = os.path.join(project_dir, filename)
         with open(filepath, 'w') as f:
             yaml.dump(content, f, default_flow_style=False, sort_keys=False, allow_unicode=True)
 
-    # Write auto/ files
-    for filename, content in auto_files.items():
-        filepath = os.path.join(auto_dir, filename)
+    # Write generated/ files
+    for filename, content in generated_files.items():
+        filepath = os.path.join(generated_dir, filename)
+        with open(filepath, 'w') as f:
+            yaml.dump(content, f, default_flow_style=False, sort_keys=False, allow_unicode=True)
+
+    # Write interactive/ files
+    for filename, content in interactive_files.items():
+        filepath = os.path.join(interactive_dir, filename)
         with open(filepath, 'w') as f:
             yaml.dump(content, f, default_flow_style=False, sort_keys=False, allow_unicode=True)
 
     log_info(f"Created new project directory structure at: {project_dir}")
-    log_info(f"  - push/ folder: {len(push_files)} files (generated content)")
-    log_info(f"  - auto/ folder: {len(auto_files)} files (interactive content)")
+    log_info(f"  - Root: geom_layers.yaml (full sync support)")
+    log_info(f"  - generated/ folder: {len(generated_files)} files (push/skip only)")
+    log_info(f"  - interactive/ folder: {len(interactive_files)} files (auto sync mode)")
     return project_dir
 
 def warning_to_logger(message, category, filename, lineno, file=None, line=None):

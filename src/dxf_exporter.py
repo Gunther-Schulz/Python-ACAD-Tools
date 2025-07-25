@@ -28,6 +28,7 @@ from src.style_manager import StyleManager
 from src.viewport_manager import ViewportManager
 from src.block_insert_manager import BlockInsertManager
 from src.text_insert_manager import TextInsertManager
+# from src.geom_layer_sync_manager import GeomLayerSyncManager  # Removed - using enhanced LayerProcessor instead
 from src.reduced_dxf_creator import ReducedDXFCreator
 from src.dxf_processor import DXFProcessor
 
@@ -67,6 +68,11 @@ class DXFExporter:
             self.name_to_aci,
             self.project_loader  # Pass project_loader for YAML write-back
         )
+        # self.geom_layer_sync_manager = GeomLayerSyncManager(
+        #     self.project_settings,
+        #     "Created by GeomSync",  # Unique identifier for sync-managed geometry layers
+        #     self.project_loader  # Pass project_loader for operations and YAML write-back
+        # )
         self.reduced_dxf_creator = ReducedDXFCreator(self)
 
     def _should_process_layer(self, layer_info):
@@ -171,9 +177,15 @@ class DXFExporter:
 
                 # Process all content
                 with profile_operation("Layer Processing"):
+                    # First, let the layer processor handle all operations and data processing
+                    # but skip DXF output for layers that have explicit sync modes
                     self.process_layers(doc, msp)
 
                 log_memory_usage("After Layer Processing")
+
+                with profile_operation("Sync-Aware Geometry Layer Processing"):
+                    # Process geometry layers with sync modes (push writes to DXF, pull/skip don't)
+                    self._process_sync_aware_geom_layers(doc, msp)
 
                 with profile_operation("Path Arrays Creation"):
                     self.create_path_arrays(msp)
@@ -261,6 +273,44 @@ class DXFExporter:
 
         return doc
 
+    def _process_sync_aware_geom_layers(self, doc, msp):
+        """
+        Process geometry layers with sync mode awareness.
+        Only layers with sync: push write to DXF.
+        Pull and skip modes don't write to DXF.
+        """
+        log_debug("Processing sync-aware geometry layers for DXF output")
+
+        geom_layers = self.project_settings.get('geomLayers', [])
+        layers_processed = 0
+
+        for layer_config in geom_layers:
+            layer_name = layer_config.get('name')
+            sync_mode = layer_config.get('sync', 'skip')
+
+            # Only process layers with push mode for DXF output
+            if sync_mode == 'push':
+                if layer_name in self.all_layers:
+                    geo_data = self.all_layers[layer_name]
+                    if geo_data is not None and not geo_data.empty:
+                        try:
+                            # Ensure layer exists with proper styling before adding geometry
+                            ensure_layer_exists(doc, layer_name)
+                            # Write the layer geometry to DXF
+                            self.update_layer_geometry(msp, layer_name, geo_data, layer_config)
+                            layers_processed += 1
+                            log_debug(f"Wrote sync-aware layer '{layer_name}' to DXF (push mode)")
+                        except Exception as e:
+                            log_error(f"Error writing sync-aware layer '{layer_name}' to DXF: {str(e)}")
+                    else:
+                        log_debug(f"No geometry data for sync-aware layer '{layer_name}' (push mode)")
+                else:
+                    log_warning(f"Layer '{layer_name}' not found in processed layers (push mode)")
+            else:
+                log_debug(f"Skipping layer '{layer_name}' for DXF output (sync mode: {sync_mode})")
+
+        log_debug(f"Completed sync-aware geometry layer processing: {layers_processed} layers written to DXF")
+
     def load_existing_layers(self, doc):
         log_debug("Loading existing layers from DXF file")
         for layer in doc.layers:
@@ -292,15 +342,18 @@ class DXFExporter:
             )
             layers_to_clean = [layer for layer in processed_layers if layer not in self.all_layers]
             log_performance(f"Cleaning {len(layers_to_clean)} layers")
-            remove_entities_by_layer_optimized(msp, layers_to_clean, self.script_identifier)
+            # Entity cleanup is always available via dxf_utils, regardless of DXFProcessor
+            remove_entities_by_layer(msp, layers_to_clean, self.script_identifier)
 
         # Use atomic save for safety - writes to temp file first, then moves atomically
         with profile_operation("Atomic DXF Save"):
+            # Functions already imported at top of file
             save_success = atomic_save_dxf(doc, self.dxf_filename, create_backup=True)
 
         if save_success:
             log_info(f"DXF file safely saved: {self.dxf_filename}")
             with profile_operation("DXF Settings Verification"):
+                # Function already imported at top of file
                 verify_dxf_settings(self.dxf_filename)
         else:
             log_error(f"Failed to save DXF file: {self.dxf_filename}")
@@ -430,6 +483,7 @@ class DXFExporter:
 
         def update_function():
             with profile_operation("Layer Style Processing", layer_name):
+                                # Layer should exist (created by ensure_layer_exists)
                 layer = msp.doc.layers.get(layer_name)
                 if layer:
                     # Get properties from StyleManager - either from config or defaults

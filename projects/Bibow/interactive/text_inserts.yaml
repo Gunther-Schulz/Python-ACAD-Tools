@@ -57,7 +57,7 @@ texts:
     content_hash: 1a3e4335ee93a02af091be261fd4eddd3599f701f7b455db476b00352354669d
     last_sync_time: 1753431362
     sync_source: yaml
-discover_untracked: false
+discover_untracked: true
 deletion_policy: auto
 default_layer: Plantext
-sync: auto
+sync: push

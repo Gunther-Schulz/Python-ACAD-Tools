@@ -98,23 +98,24 @@ class LayerProcessor:
 
     def process_layer(self, layer, processed_layers, processing_stack=None):
         """
-        Process a layer and its dependencies.
-
-        Args:
-            layer: Layer name or configuration dictionary
-            processed_layers: Set of already processed layer names
-            processing_stack: List of layers currently being processed (for cycle detection)
+        Process a single layer with sync mode awareness.
+        Supports sync modes: skip (default), push, pull
         """
         if processing_stack is None:
             processing_stack = []
 
+        # Handle both layer objects and layer references
         if isinstance(layer, str):
             layer_name = layer
-            layer_obj = (
-                next((l for l in self.project_settings.get('geomLayers', []) if l['name'] == layer_name), None) or
-                next((l for l in self.project_settings.get('wmtsLayers', []) if l['name'] == layer_name), None) or
-                next((l for l in self.project_settings.get('wmsLayers', []) if l['name'] == layer_name), None)
-            )
+            # Find the actual layer configuration
+            layer_obj = None
+            for l in self.project_settings['geomLayers']:
+                if l['name'] == layer_name:
+                    layer_obj = l
+                    break
+            if layer_obj is None:
+                log_warning(f"Layer '{layer_name}' not found in geomLayers configuration")
+                return
         else:
             layer_name = layer['name']
             layer_obj = layer
@@ -130,96 +131,142 @@ class LayerProcessor:
             return
 
         processing_stack.append(layer_name)
-        log_debug(f"Processing layer: {layer_name}")
 
         try:
-            # Early return for temp layers that don't exist in settings
-            if layer_obj is None:
-                if "_temp_" in layer_name:
-                    return
-                log_warning(f"Layer {layer_name} not found in project settings")
-                return
+            # Get sync mode (default is 'skip' for backward compatibility)
+            sync_mode = layer_obj.get('sync', 'skip')
+            log_debug(f"Processing layer '{layer_name}' with sync mode: {sync_mode}")
 
-            # Check for unrecognized keys
-            recognized_keys = {'name', 'sync', 'operations', 'shapeFile', 'type', 'sourceLayer',
-                              'outputShapeFile', 'style', 'close', 'linetypeScale', 'linetypeGeneration',
-                              'viewports', 'attributes', 'bluntAngles', 'label', 'applyHatch', 'plot', 'saveToLagefaktor'}
-            unrecognized_keys = set(layer_obj.keys()) - recognized_keys
-            if unrecognized_keys:
-                log_warning(f"Unrecognized keys in layer {layer_name}: {', '.join(unrecognized_keys)}")
+            # Handle pull mode: read from CAD layer first
+            if sync_mode == 'pull':
+                self._handle_pull_mode(layer_obj, layer_name)
 
-            # Process style
-            if 'style' in layer_obj:
-                style, warning_generated = self.style_manager.get_style(layer_obj['style'])
-                if warning_generated:
-                    log_warning(f"Issue with style for layer '{layer_name}'")
-                if style is not None:
-                    layer_obj['style'] = style
+            # Process layer operations (works for all sync modes)
+            self._process_layer_operations(layer_obj, layer_name, processed_layers, processing_stack)
 
-            # Process operations
-            if 'operations' in layer_obj:
-                result_geometry = None
-                for operation in layer_obj['operations']:
-                    if layer_obj.get('type') in ['wmts', 'wms']:
-                        operation['type'] = layer_obj['type']
-                    result_geometry = self.process_operation(layer_name, operation, processed_layers, processing_stack)
-                if result_geometry is not None:
-                    self.all_layers[layer_name] = result_geometry
-            elif 'shapeFile' in layer_obj:
-                if layer_name not in self.all_layers:
-                    log_warning(f"Shapefile for layer {layer_name} was not loaded properly")
-            elif 'dxfLayer' not in layer_obj:
+            # Mark as processed
+            processed_layers.add(layer_name)
+            log_debug(f"Layer {layer_name} processed successfully")
+
+        except Exception as e:
+            log_error(f"Error processing layer {layer_name}: {str(e)}")
+            raise
+
+        finally:
+            processing_stack.remove(layer_name)
+
+    def _handle_pull_mode(self, layer_obj, layer_name):
+        """
+        Handle pull mode: read geometry from CAD layer.
+        """
+        log_debug(f"Pull mode: Reading CAD layer '{layer_name}'")
+
+        if self.dxf_doc is None:
+            log_warning(f"No DXF document available for pull mode on layer '{layer_name}'")
+            return
+
+        try:
+            # Read geometry from the CAD layer
+            from src.dxf_utils import read_cad_layer_to_geodataframe
+            cad_geometry = read_cad_layer_to_geodataframe(self.dxf_doc, layer_name, self.crs)
+
+            if cad_geometry.empty:
+                log_warning(f"No geometry found in CAD layer '{layer_name}' for pull mode")
+                self.all_layers[layer_name] = cad_geometry
+            else:
+                self.all_layers[layer_name] = cad_geometry
+                log_debug(f"Successfully read {len(cad_geometry)} geometries from CAD layer '{layer_name}'")
+
+        except Exception as e:
+            log_error(f"Error reading CAD layer '{layer_name}' in pull mode: {str(e)}")
+            # Create empty GeoDataFrame as fallback
+            import geopandas as gpd
+            self.all_layers[layer_name] = gpd.GeoDataFrame(geometry=[], crs=self.crs)
+
+    def _process_layer_operations(self, layer_obj, layer_name, processed_layers, processing_stack):
+        """
+        Process layer operations (extracted from original process_layer logic).
+        Works for all sync modes.
+        """
+        # Check for unrecognized keys
+        recognized_keys = {'name', 'sync', 'operations', 'shapeFile', 'type', 'sourceLayer',
+                          'outputShapeFile', 'style', 'close', 'linetypeScale', 'linetypeGeneration',
+                          'viewports', 'attributes', 'bluntAngles', 'label', 'applyHatch', 'plot', 'saveToLagefaktor'}
+        unrecognized_keys = set(layer_obj.keys()) - recognized_keys
+        if unrecognized_keys:
+            log_warning(f"Unrecognized keys in layer {layer_name}: {', '.join(unrecognized_keys)}")
+
+        # Process style
+        if 'style' in layer_obj:
+            style, warning_generated = self.style_manager.get_style(layer_obj['style'])
+            if warning_generated:
+                log_warning(f"Issue with style for layer '{layer_name}'")
+            if style is not None:
+                layer_obj['style'] = style
+
+        # Process operations
+        if 'operations' in layer_obj:
+            result_geometry = None
+            for operation in layer_obj['operations']:
+                if layer_obj.get('type') in ['wmts', 'wms']:
+                    operation['type'] = layer_obj['type']
+                result_geometry = self.process_operation(layer_name, operation, processed_layers, processing_stack)
+            if result_geometry is not None:
+                self.all_layers[layer_name] = result_geometry
+        elif 'shapeFile' in layer_obj:
+            if layer_name not in self.all_layers:
+                log_warning(f"Shapefile for layer {layer_name} was not loaded properly")
+        elif 'dxfLayer' not in layer_obj:
+            # Only set to None if not already set (e.g., by pull mode)
+            if layer_name not in self.all_layers:
                 self.all_layers[layer_name] = None
                 log_debug(f"Added layer {layer_name} without data")
 
-            if 'outputShapeFile' in layer_obj:
-                self.write_shapefile(layer_name)
+        if 'outputShapeFile' in layer_obj:
+            self.write_shapefile(layer_name)
 
-            if 'attributes' in layer_obj:
-                if layer_name not in self.all_layers or self.all_layers[layer_name] is None:
-                    self.all_layers[layer_name] = gpd.GeoDataFrame(geometry=[], crs=self.crs)
+        if 'attributes' in layer_obj:
+            if layer_name not in self.all_layers or self.all_layers[layer_name] is None:
+                import geopandas as gpd
+                self.all_layers[layer_name] = gpd.GeoDataFrame(geometry=[], crs=self.crs)
 
-                gdf = self.all_layers[layer_name]
-                if 'attributes' not in gdf.columns:
-                    gdf['attributes'] = None
+            gdf = self.all_layers[layer_name]
+            if 'attributes' not in gdf.columns:
+                gdf['attributes'] = None
 
-                gdf['attributes'] = gdf['attributes'].apply(lambda x: {} if x is None else x)
-                for key, value in layer_obj['attributes'].items():
-                    gdf['attributes'] = gdf['attributes'].apply(lambda x: {**x, key: value})
+            gdf['attributes'] = gdf['attributes'].apply(lambda x: {} if x is None else x)
+            for key, value in layer_obj['attributes'].items():
+                gdf['attributes'] = gdf['attributes'].apply(lambda x: {**x, key: value})
 
-                self.all_layers[layer_name] = gdf
+            self.all_layers[layer_name] = gdf
 
-            if 'bluntAngles' in layer_obj:
-                blunt_config = layer_obj['bluntAngles']
-                angle_threshold = blunt_config.get('angleThreshold', 45)
-                blunt_distance = blunt_config.get('distance', 0.5)
+        if 'bluntAngles' in layer_obj:
+            blunt_config = layer_obj['bluntAngles']
+            angle_threshold = blunt_config.get('angleThreshold', 45)
+            blunt_distance = blunt_config.get('distance', 0.5)
 
-                log_debug(f"Applying blunt angles to layer '{layer_name}' with threshold {angle_threshold} and distance {blunt_distance}")
+            log_debug(f"Applying blunt angles to layer '{layer_name}' with threshold {angle_threshold} and distance {blunt_distance}")
 
-                if layer_name in self.all_layers:
-                    original_geom = self.all_layers[layer_name]
-                    blunted_geom = original_geom.geometry.apply(
-                        lambda geom: self.blunt_sharp_angles(geom, angle_threshold, blunt_distance)
-                    )
-                    self.all_layers[layer_name].geometry = blunted_geom
+            if layer_name in self.all_layers:
+                original_geom = self.all_layers[layer_name]
+                blunted_geom = original_geom.geometry.apply(
+                    lambda geom: self.blunt_sharp_angles(geom, angle_threshold, blunt_distance)
+                )
+                self.all_layers[layer_name].geometry = blunted_geom
 
-                    log_debug(f"Blunting complete for layer '{layer_name}'")
-                    log_debug(f"Original geometry count: {len(original_geom)}")
-                    log_debug(f"Blunted geometry count: {len(blunted_geom)}")
-                else:
-                    log_warning(f"Layer '{layer_name}' not found for blunting angles")
+                log_debug(f"Blunting complete for layer '{layer_name}'")
+                log_debug(f"Original geometry count: {len(original_geom)}")
+                log_debug(f"Blunted geometry count: {len(blunted_geom)}")
+            else:
+                log_warning(f"Layer '{layer_name}' not found for blunting angles")
 
-            if 'filterGeometry' in layer_obj:
-                filter_config = layer_obj['filterGeometry']
-                filtered_layer = create_filtered_geometry_layer(self.all_layers, self.project_settings, self.crs, layer_name, filter_config)
-                if filtered_layer is not None:
-                    self.all_layers[layer_name] = filtered_layer
-                log_debug(f"Applied geometry filter to layer '{layer_name}'")
-
-        finally:
-            processing_stack.pop()
-            processed_layers.add(layer_name)
-
+        if 'filterGeometry' in layer_obj:
+            filter_config = layer_obj['filterGeometry']
+            from src.operations.filter_geometry_operation import create_filtered_geometry_layer
+            filtered_layer = create_filtered_geometry_layer(self.all_layers, self.project_settings, self.crs, layer_name, filter_config)
+            if filtered_layer is not None:
+                self.all_layers[layer_name] = filtered_layer
+            log_debug(f"Applied geometry filter to layer '{layer_name}'")
 
     def process_operation(self, layer_name, operation, processed_layers, processing_stack):
         """Process an operation for a layer."""
