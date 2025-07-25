@@ -35,7 +35,7 @@ legends:
       attachment_point: MTEXT_MIDDLE_LEFT
     groups:
       - name: "Art der baulichen Nutzung"
-        updateDxf: true
+        sync: push
         subtitle: "§ 9 Abs. 1 Nr. 1 BauGB"
         items:
           - name: "Sonstiges Sondergebiet (§ 11 Abs. 2 BauNVO) Zweckbestimmung: Energiegewinnung auf der Basis solarer Strahlungsenergie"
@@ -45,21 +45,21 @@ legends:
             blockSymbol: "Sonstiges Sondergebiet EBS"
             blockSymbolScale: 2
       - name: "Bauweise, Baulinien, Baugrenzen"
-        updateDxf: true
+        sync: push
         subtitle: "§ 9 Abs. 1 Nr. 2 BauGB"
         items:
           - name: "Baugrenze"
             type: empty
             blockSymbol: "Baugrenze"
       - name: "Planungen, Nutzungsregelungen, Maßnahmen und Flächen für Maßnahmen zum Schutz, zur Pflege und zur Entwicklung von Natur und Landschaft"
-        updateDxf: true
+        sync: push
         subtitle: "§ 9 Abs.1 Nr. 20 BauGB"
         items:
           - name: "Umgrenzung von Flächen für Maßnahmen zum Schutz, zur Pflege und zur Entwicklung von Natur und Landschaft"
             type: empty
             blockSymbol: "Schutzflächeumgrenzung"
       # - name: "Grünflächen"
-      #   updateDxf: true
+      #   sync: push
       #   subtitle: "§ 9 Abs.1 Nr. 15 BauGB"
       #   items:
       #     - name: "Private Grünflächen"
@@ -67,14 +67,14 @@ legends:
       #       style: grünflächeLegend
       #       applyHatch: true
       # - name: "Sonstige Planzeichen"
-      #   updateDxf: true
+      #   sync: push
       #   items:
       #     - name: "Grenze des räumlichen Geltungsbereiches des Bebauungsplans"
       #       subtitle: "(§ 9 Abs. 7 BauGB)"
       #       type: area
       #       rectangleStyle: geltungsbereich_2
       # - name: "Darstellung ohne Normcharakter"
-      #   updateDxf: true
+      #   sync: push
       #   items:
       #     - name: "Gemeindegrenze"
       #       type: line
@@ -100,7 +100,7 @@ legends:
       #       blockSymbol: "Bemassung2"
       #       enabled: false
       # - name: "Nachrichtliche Übernahme"
-      #   updateDxf: true
+      #   sync: push
       #   items:
       #     - name: "gesetzlich geschützes Biotop § 9 Abs. 6 BauGB i. V. m. § 20 NatSchAG - MV"
       #       type: area

@@ -1,6 +1,6 @@
 viewports:
   - name: WorkView
-    updateDxf: true
+    sync: push
     color: "magenta"
     center:
       x: 780
@@ -17,7 +17,7 @@ viewports:
       - Geltungsbereich Hatch NO
       - Geltungsbereich Hatch S
   - name: WorkView2
-    updateDxf: true
+    sync: push
     color: "magenta"
     center:
       x: 1780
@@ -36,7 +36,7 @@ viewports:
   # NW Map Viewports
   # --------------
   - name: MapViewportNW
-    updateDxf: true
+    sync: push
     color: "magenta"
     topLeft:
       x: 1651
@@ -56,7 +56,7 @@ viewports:
       - WMTS DOP
     lockZoom: true
   - name: LegendViewportNW
-    updateDxf: true
+    sync: push
     color: "magenta"
     topLeft:
       x: 2396
@@ -73,7 +73,7 @@ viewports:
     # customScale: 0.5
     lockZoom: true
   - name: ÜbersichtskarteNW
-    updateDxf: true
+    sync: push
     color: "magenta"
     topLeft:
       x: 2400
@@ -94,7 +94,7 @@ viewports:
   # NO Map Viewports
   # --------------
   - name: MapViewportNO
-    updateDxf: true
+    sync: push
     color: "magenta"
     topLeft:
       x: 3651
@@ -114,7 +114,7 @@ viewports:
       - WMTS DOP
     lockZoom: true
   - name: LegendViewportNO
-    updateDxf: true
+    sync: push
     color: "magenta"
     topLeft:
       x: 4396
@@ -131,7 +131,7 @@ viewports:
     # customScale: 0.5
     lockZoom: true
   - name: ÜbersichtskarteNO
-    updateDxf: true
+    sync: push
     color: "magenta"
     topLeft:
       x: 4400
@@ -152,7 +152,7 @@ viewports:
   # S Map Viewports
   # --------------
   - name: MapViewportS
-    updateDxf: true
+    sync: push
     color: "magenta"
     topLeft:
       x: 5651
@@ -172,7 +172,7 @@ viewports:
       - WMTS DOP
     lockZoom: true
   - name: LegendViewportS
-    updateDxf: true
+    sync: push
     color: "magenta"
     topLeft:
       x: 6396
@@ -189,7 +189,7 @@ viewports:
     # customScale: 0.5
     lockZoom: true
   - name: ÜbersichtskarteS
-    updateDxf: true
+    sync: push
     color: "magenta"
     topLeft:
       x: 6400

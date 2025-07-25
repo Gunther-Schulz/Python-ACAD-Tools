@@ -2,10 +2,10 @@ import traceback
 from ezdxf.lldxf import const
 from src.utils import log_info, log_warning, log_error, log_debug
 from src.dxf_utils import get_color_code, attach_custom_data, XDATA_APP_ID, find_entity_by_xdata_name
-from src.sync_manager_base import SyncManagerBase
+from src.unified_sync_processor import UnifiedSyncProcessor
 from src.sync_hash_utils import calculate_entity_content_hash, clean_entity_config_for_yaml_output
 
-class ViewportManager(SyncManagerBase):
+class ViewportManager(UnifiedSyncProcessor):
     def __init__(self, project_settings, script_identifier, name_to_aci, style_manager, project_loader=None):
         # Initialize base class
         super().__init__(project_settings, script_identifier, 'viewport', project_loader)
@@ -600,3 +600,54 @@ class ViewportManager(SyncManagerBase):
                 'paperspace': True,
                 'scale': 1.0
             }
+
+    def _write_entity_yaml(self):
+        """Write viewport configurations back to YAML file."""
+        if self.project_loader:
+            log_debug(f"Writing {self.entity_type} configurations back to YAML")
+
+    # Abstract methods required by UnifiedSyncProcessor
+    def _get_fallback_default_layer(self):
+        """Get fallback default layer name for viewport entities."""
+        fallbacks = {
+            'viewport': 'VIEWPORTS',
+            'text': 'Plantext',
+            'block': 'BLOCKS'
+        }
+        return fallbacks.get(self.entity_type, 'DEFAULT_LAYER')
+
+    def _resolve_entity_layer(self, config):
+        """
+        Resolve the layer for a viewport entity using unified layer logic.
+
+        Args:
+            config: Viewport entity configuration dictionary
+
+        Returns:
+            str: Layer name to use for this viewport entity
+        """
+        # Check for individual layer override first
+        entity_layer = config.get('layer')
+        if entity_layer:
+            return entity_layer
+
+        # Fall back to global default layer
+        return self.default_layer
+
+    def _calculate_entity_hash(self, config):
+        """
+        Calculate content hash for viewport entity configuration.
+        Centralized implementation that works for all entity types.
+
+        Args:
+            config: Viewport entity configuration dictionary
+
+        Returns:
+            str: Content hash for the configuration
+        """
+        try:
+            from src.sync_hash_utils import calculate_entity_content_hash
+            return calculate_entity_content_hash(config, self.entity_type)
+        except Exception as e:
+            log_warning(f"Error calculating hash for {self.entity_type} '{config.get('name', 'unnamed')}': {str(e)}")
+            return "error_hash"

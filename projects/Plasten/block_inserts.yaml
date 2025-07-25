@@ -1,6 +1,6 @@
 blocks:
   - name: "SO EBS Label"
-    updateDxf: true
+    sync: push
     blockName: "Sonstiges Sondergebiet EBS"
     scale: 6.0
     rotation: 0
@@ -8,7 +8,7 @@ blocks:
       sourceLayer: "Baufeld Label Points"
       type: "points"  # Options: centroid, center, random
   - name: "GRZ Label"
-    updateDxf: true
+    sync: push
     blockName: "GRZ"
     scale: 4.0
     rotation: 0
@@ -19,13 +19,13 @@ blocks:
         x: 0
         y: -20
   - name: "Bäume Ausserhalb"
-    updateDxf: true
+    sync: push
     blockName: "Baum"
     position:
       sourceLayer: "Baum Points"
       type: "points"
   - name: "Gesetzlich geschütztes Biotop Symbol"
-    updateDxf: true
+    sync: push
     blockName: "Gesetzlich geschütztes Biotop"
     position:
       sourceLayer: Geschütze Biotope 2
@@ -33,7 +33,7 @@ blocks:
   # NW Block Inserts
   # --------------
   - name: "NW PBS Logo"
-    updateDxf: true
+    sync: push
     blockName: "Firmenlogo"
     paperspace: true
     position:
@@ -41,7 +41,7 @@ blocks:
       x: 2489
       y: 186
   - name: "NW Nordpfeil"
-    updateDxf: true
+    sync: push
     blockName: "Nordpfeil"
     paperspace: true
     position:
@@ -51,7 +51,7 @@ blocks:
   # NO Block Inserts
   # --------------
   - name: "NO PBS Logo"
-    updateDxf: true
+    sync: push
     blockName: "Firmenlogo"
     paperspace: true
     position:
@@ -59,7 +59,7 @@ blocks:
       x: 4489
       y: 186
   - name: "NO Nordpfeil"
-    updateDxf: true
+    sync: push
     blockName: "Nordpfeil"
     paperspace: true
     position:
@@ -67,7 +67,7 @@ blocks:
       x: 4557
       y: 275
   - name: EinAusfahrt
-    updateDxf: true
+    sync: push
     blockName: "EinAusfahrt"
     scale: 0.6
     position:
@@ -82,7 +82,7 @@ blocks:
   # S Block Inserts
   # --------------
   - name: "NO PBS Logo"
-    updateDxf: true
+    sync: push
     blockName: "Firmenlogo"
     paperspace: true
     position:
@@ -90,7 +90,7 @@ blocks:
       x: 6489
       y: 186
   - name: "S Nordpfeil"
-    updateDxf: true
+    sync: push
     blockName: "Nordpfeil"
     paperspace: true
     position:

@@ -69,6 +69,29 @@ class DXFExporter:
         )
         self.reduced_dxf_creator = ReducedDXFCreator(self)
 
+    def _should_process_layer(self, layer_info):
+        """
+        Determine if a layer should be processed based on sync mode.
+        Clean implementation - no legacy updateDxf support.
+
+        Args:
+            layer_info: Layer configuration dictionary
+
+        Returns:
+            bool: True if layer should be processed (sync: push), False otherwise
+        """
+        sync_mode = layer_info.get('sync', 'skip')
+
+        # Only process layers with sync: push (for generated content)
+        if sync_mode == 'push':
+            return True
+        elif sync_mode in ['auto', 'pull']:
+            log_debug(f"Skipping layer '{layer_info.get('name', 'unnamed')}' - sync mode '{sync_mode}' not supported for generated content")
+            return False
+        else:  # skip or invalid
+            log_debug(f"Skipping layer '{layer_info.get('name', 'unnamed')}' - sync mode '{sync_mode}'")
+            return False
+
     def setup_layers(self):
         # Initialize default properties for ALL layers first
         self.initialize_layer_properties()
@@ -310,8 +333,8 @@ class DXFExporter:
                         if op.get('type') == 'simpleLabel' and 'style' in op:
                             label_layer_info['style'] = op['style']
 
-                # Set updateDxf to True for the label layer
-                label_layer_info['updateDxf'] = True
+                # Set sync: push for the label layer (generated content)
+                label_layer_info['sync'] = 'push'
 
                 # Process the label layer
                 log_debug(f"Processing label layer: {label_layer_name}")
@@ -329,16 +352,14 @@ class DXFExporter:
     def process_single_layer(self, doc, msp, layer_name, layer_info):
         log_debug(f"Processing layer: {layer_name}")
 
-        # Check updateDxf flag early
-        update_flag = layer_info.get('updateDxf', False)
-        if not update_flag:
-            log_debug(f"Skipping layer creation and update for {layer_name} as 'updateDxf' flag is not set")
+        # Check sync mode for processing
+        if not self._should_process_layer(layer_info):
             return
 
         # Process layer style
         layer_properties = self.style_manager.process_layer_style(layer_name, layer_info)
 
-        # Create and process layer only if updateDxf is True
+        # Create and process layer for sync: push mode
         if layer_name not in doc.layers:
             new_layer = doc.layers.new(name=layer_name)
             log_debug(f"Created new layer: {layer_name}")
@@ -361,13 +382,11 @@ class DXFExporter:
     def _process_wmts_layer(self, doc, msp, layer_name, layer_info):
         log_debug(f"Processing WMTS layer: {layer_name}")
 
-        # Check updateDxf flag early and skip all processing if false
-        update_flag = layer_info.get('updateDxf', False)
-        if not update_flag:
-            log_debug(f"Skipping layer creation and update for {layer_name} - updateDxf is False")
+        # Check sync mode for processing
+        if not self._should_process_layer(layer_info):
             return
 
-        # Only create and update if updateDxf is True
+        # Process for sync: push mode
         self._ensure_layer_exists(doc, layer_name, layer_info)
 
         # Get the tile data from all_layers
@@ -380,10 +399,8 @@ class DXFExporter:
                 self.add_wmts_xrefs_to_dxf(msp, geo_data, layer_name)
 
     def _process_regular_layer(self, doc, msp, layer_name, layer_info):
-        # Check updateDxf flag early
-        update_flag = layer_info.get('updateDxf', False)
-        if not update_flag:
-            log_debug(f"Skipping layer creation and update for {layer_name} as 'updateDxf' flag is not set")
+        # Check sync mode for processing
+        if not self._should_process_layer(layer_info):
             return
 
         with profile_operation("Layer Creation", layer_name):
@@ -407,10 +424,8 @@ class DXFExporter:
             self.apply_layer_properties(doc.layers.get(label_layer_name), layer_info)
 
     def update_layer_geometry(self, msp, layer_name, geo_data, layer_config):
-        update_flag = layer_config.get('updateDxf', False)
-
-        if not update_flag:
-            log_debug(f"Skipping geometry update for layer {layer_name} as 'updateDxf' flag is not set")
+        # Check sync mode for processing
+        if not self._should_process_layer(layer_config):
             return
 
         def update_function():
@@ -953,14 +968,14 @@ class DXFExporter:
         for config in path_arrays:
             name = config.get('name')
             source_layer_name = config.get('sourceLayer')
-            updateDxf = config.get('updateDxf', False)  # Default is False
+            sync_mode = config.get('sync', 'skip')
 
             if not name or not source_layer_name:
                 log_warning(f"Invalid path array configuration: {config}")
                 continue
 
-            if not updateDxf:
-                log_debug(f"Skipping path array '{name}' as updateDxf flag is not set")
+            if sync_mode != 'push':
+                log_debug(f"Skipping path array '{name}' - sync mode '{sync_mode}' (only 'push' supported)")
                 continue
 
             if source_layer_name not in self.all_layers:
@@ -999,11 +1014,12 @@ class DXFExporter:
             log_debug("No text inserts found in project settings")
             return
 
-        # Clean target layers before processing
-        configs_to_process = [c for c in text_configs if self.text_insert_manager._get_sync_direction(c) == 'push']
-        self.text_insert_manager.clean_target_layers(msp.doc, configs_to_process)
+        # REMOVED PROBLEMATIC BULK CLEANING:
+        # The sync manager will handle its own cleaning based on sync mode
+        # configs_to_process = [c for c in text_configs if self.text_insert_manager._get_sync_direction(c) == 'push']
+        # self.text_insert_manager.clean_target_layers(msp.doc, configs_to_process)
 
-        # Process using sync manager
+        # Process using sync manager - let it handle its own cleaning logic
         processed_texts = self.text_insert_manager.process_entities(msp.doc, msp)
         log_debug(f"Processed {len(processed_texts)} text inserts using sync system")
 

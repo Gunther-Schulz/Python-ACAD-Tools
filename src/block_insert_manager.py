@@ -3,11 +3,11 @@ import math
 from shapely.geometry import Point
 from src.utils import log_info, log_warning, log_error, log_debug
 from src.dxf_utils import add_block_reference, remove_entities_by_layer, attach_custom_data, find_entity_by_xdata_name, XDATA_APP_ID
-from src.sync_manager_base import SyncManagerBase
+from src.unified_sync_processor import UnifiedSyncProcessor
 from src.sync_hash_utils import clean_entity_config_for_yaml_output
 
 
-class BlockInsertManager(SyncManagerBase):
+class BlockInsertManager(UnifiedSyncProcessor):
     """Manager for block insert synchronization between YAML configs and AutoCAD."""
 
     def __init__(self, project_loader, all_layers, script_identifier):
@@ -35,46 +35,6 @@ class BlockInsertManager(SyncManagerBase):
     def clean_target_layers(self, doc, configs_to_process):
         """Clean target layers for block configs (both spaces). Uses centralized logic."""
         return self._centralize_target_layer_cleaning(doc, configs_to_process)
-
-    def process_inserts(self, msp, insert_type='block'):
-        configs = self.project_settings.get(f'{insert_type}Inserts', [])
-        log_debug(f"Processing {len(configs)} {insert_type} insert configurations")
-
-        # Group configs by target layer
-        layers_to_clean = {
-            c.get('name')
-            for c in configs
-            if c.get('updateDxf', False) and c.get('name')
-        }
-
-        # Clean layers (remove_entities_by_layer handles both spaces)
-        for layer_name in layers_to_clean:
-            remove_entities_by_layer(msp, layer_name, self.script_identifier)
-            log_debug(f"Cleaned existing entities from layer: {layer_name}")
-
-        # Process all inserts
-        for config in configs:
-            try:
-                if not config.get('updateDxf', False):
-                    continue
-
-                name = config.get('name')
-                if not name:
-                    continue
-
-                # Get the correct space for this insert
-                space = msp.doc.paperspace() if config.get('paperspace', False) else msp.doc.modelspace()
-
-                if insert_type == 'block':
-                    self.insert_blocks(space, config)
-                else:
-                    log_warning(f"Unsupported insert type '{insert_type}' for config '{name}'. Only 'block' is supported.")
-
-            except Exception as e:
-                log_error(f"Error processing {insert_type} insert '{config.get('name')}': {str(e)}")
-                continue
-
-        log_debug(f"Finished processing all {insert_type} insert configurations")
 
     def insert_blocks(self, space, config):
         points_and_rotations = self.get_insertion_points(config.get('position', {}))
@@ -394,51 +354,67 @@ class BlockInsertManager(SyncManagerBase):
 
     # _calculate_entity_hash is now centralized in SyncManagerBase
 
-    def _extract_dxf_entity_properties_for_hash(self, dxf_entity):
-        """Extract properties from DXF block insert entity for hash calculation."""
+    def _extract_dxf_entity_properties_for_hash(self, entity):
+        """Extract properties from DXF entity for hash calculation."""
+        properties = {
+            'position': {
+                'x': round(entity.dxf.insert.x, 6),
+                'y': round(entity.dxf.insert.y, 6)
+            },
+            'block_name': entity.dxf.name,
+            'layer': entity.dxf.layer,
+            'scale': getattr(entity.dxf, 'xscale', 1.0),
+            'rotation': round(math.degrees(getattr(entity.dxf, 'rotation', 0.0)), 6),
+            'paperspace': entity.dxf.paperspace
+        }
+
+        return properties
+
+    # Abstract methods required by UnifiedSyncProcessor
+    def _get_fallback_default_layer(self):
+        """Get fallback default layer name for block entities."""
+        fallbacks = {
+            'viewport': 'VIEWPORTS',
+            'text': 'Plantext',
+            'block': 'BLOCKS'
+        }
+        return fallbacks.get(self.entity_type, 'DEFAULT_LAYER')
+
+    def _resolve_entity_layer(self, config):
+        """
+        Resolve the layer for a block entity using unified layer logic.
+
+        Args:
+            config: Block entity configuration dictionary
+
+        Returns:
+            str: Layer name to use for this block entity
+        """
+        # Check for individual layer override first
+        entity_layer = config.get('layer')
+        if entity_layer:
+            return entity_layer
+
+        # Fall back to global default layer
+        return self.default_layer
+
+    def _calculate_entity_hash(self, config):
+        """
+        Calculate content hash for block entity configuration.
+        Centralized implementation that works for all entity types.
+
+        Args:
+            config: Block entity configuration dictionary
+
+        Returns:
+            str: Content hash for the configuration
+        """
         try:
-            properties = {}
-
-            # Extract block name
-            if hasattr(dxf_entity.dxf, 'name'):
-                properties['blockName'] = dxf_entity.dxf.name
-
-            # Extract scale (use xscale as primary, assuming uniform scaling)
-            if hasattr(dxf_entity.dxf, 'xscale'):
-                properties['scale'] = float(dxf_entity.dxf.xscale)
-            else:
-                properties['scale'] = 1.0
-
-            # Extract rotation
-            if hasattr(dxf_entity.dxf, 'rotation'):
-                properties['rotation'] = float(dxf_entity.dxf.rotation)
-            else:
-                properties['rotation'] = 0.0
-
-            # Extract position (insertion point)
-            if hasattr(dxf_entity.dxf, 'insert'):
-                insert_point = dxf_entity.dxf.insert
-                properties['position'] = {
-                    'type': 'absolute',
-                    'x': float(insert_point[0]),
-                    'y': float(insert_point[1])
-                }
-            else:
-                properties['position'] = {'type': 'absolute', 'x': 0.0, 'y': 0.0}
-
-            # Determine if in paperspace
-            properties['paperspace'] = hasattr(dxf_entity, 'doc') and dxf_entity.doc and \
-                                     any(dxf_entity in layout for layout in dxf_entity.doc.layouts if layout.name != 'Model')
-
-            # Add entity name from XDATA if available (use centralized method)
-            properties['name'] = self._get_entity_name_from_xdata(dxf_entity)
-
-            log_debug(f"Extracted DXF properties for block insert: {properties}")
-            return properties
-
+            from src.sync_hash_utils import calculate_entity_content_hash
+            return calculate_entity_content_hash(config, self.entity_type)
         except Exception as e:
-            log_warning(f"Error extracting DXF properties for block insert: {str(e)}")
-            return {}
+            log_warning(f"Error calculating hash for {self.entity_type} '{config.get('name', 'unnamed')}': {str(e)}")
+            return "error_hash"
 
     # _write_entity_yaml is now centralized in SyncManagerBase
 
@@ -511,8 +487,8 @@ class BlockInsertManager(SyncManagerBase):
             properties.update(dxf_properties)
 
             # Set some defaults for discovered entities
-            if 'updateDxf' not in properties:
-                properties['updateDxf'] = False  # Don't auto-update discovered blocks
+            if 'sync' not in properties:
+                properties['sync'] = 'skip'  # Don't auto-update discovered blocks
 
             log_debug(f"Extracted properties for block insert '{properties.get('name', 'unnamed')}'")
             return properties
@@ -524,7 +500,7 @@ class BlockInsertManager(SyncManagerBase):
                 'name': base_config.get('name', 'unnamed'),
                 'blockName': 'Unknown',
                 'position': {'type': 'absolute', 'x': 0.0, 'y': 0.0},
-                'updateDxf': False
+                'sync': 'skip'
             }
 
     # Abstract method implementations for centralized discovery

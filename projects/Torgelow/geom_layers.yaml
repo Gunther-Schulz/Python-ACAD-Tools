@@ -2,7 +2,7 @@ geomLayers:
   - name: Baum Points
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/input/bäume_input.shp"
   - name: Flur
-    updateDxf: true
+    sync: push
     close: true
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/input/flur2.shp"
     label: flurname
@@ -12,7 +12,7 @@ geomLayers:
       - name: WorkView
         style: flurWorkView
   - name: Parcel
-    # updateDxf: true # Already moved lables to new positions
+    # sync: push # Already moved lables to new positions
     close: true
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/input/parcel2.shp"
     label: label
@@ -21,7 +21,7 @@ geomLayers:
       - name: WorkView
         style: parcelWorkView
   - name: Gemarkung
-    updateDxf: true
+    sync: push
     close: true
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/input/gemarkung2.shp"
     label: gmkname
@@ -31,7 +31,7 @@ geomLayers:
       - name: WorkView
         style: gemarkungWorkView
   - name: Gemeinde
-    updateDxf: true
+    sync: push
     close: true
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/input/gemeinde2.shp"
     label: gen
@@ -41,7 +41,7 @@ geomLayers:
       - name: WorkView
         style: gemeindeWorkView
   - name: Wald
-    updateDxf: true
+    sync: push
     close: true
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/input/wald.shp"
     operations:
@@ -50,7 +50,7 @@ geomLayers:
       - name: WorkView
         style: wald
   - name: Wald Schraffur
-    updateDxf: true
+    sync: push
     style: 
       preset: wald
       hatch:
@@ -83,7 +83,7 @@ geomLayers:
         distance: 5
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/input/graben_input.shp"
   - name: Geltungsbereich
-    updateDxf: true
+    sync: push
     style: geltungsbereich
     operations:
       - type: copy
@@ -155,7 +155,7 @@ geomLayers:
           area: 0
       - type: dissolve
   - name: Geltungsbereich 2
-    updateDxf: true
+    sync: push
     linetypeScale: 1
     style: geltungsbereich_2
     operations:
@@ -164,7 +164,7 @@ geomLayers:
           - name: Geltungsbereich
         distance: 2
   - name: Geltungsbereich Hatch
-    updateDxf: true
+    sync: push
     style: geltungsbereichHatches
     applyHatch:
       layers:
@@ -214,7 +214,7 @@ geomLayers:
             values:
               - Torgelow am See
   - name: Grünfläche
-    updateDxf: true
+    sync: push
     style: grünfläche
     operations:
       - type: dissolve
@@ -243,13 +243,13 @@ geomLayers:
       - type: buffer
         distance: -3
   - name: Grünfläche Schraffur
-    updateDxf: true
+    sync: push
     style: grünfläche
     applyHatch:
       layers:
         - Grünfläche
   - name: Schutzflächeumgrenzung
-    updateDxf: true
+    sync: push
     viewports:
       - name: WorkView
         style: schutzflächeWorkView
@@ -275,13 +275,13 @@ geomLayers:
         layers:
           - Geltungsbereich
   - name: Schutzflächeumgrenzung Schraffur
-    updateDxf: true
+    sync: push
     style: schutzflächeumgrenzung
     applyHatch:
       layers:
         - Schutzflächeumgrenzung
   - name: Schutzflächeumgrenzung T-Symbol Temp
-    # updateDxf: true
+    # sync: push
     close: false
     plot: false
     operations:
@@ -296,7 +296,7 @@ geomLayers:
       - type: filterGeometry
         minArea: 200
   - name: Baufeld
-    updateDxf: true
+    sync: push
     close: true
     viewports:
       - name: WorkView
@@ -314,13 +314,13 @@ geomLayers:
       - type: filterGeometry
         minArea: 200
   - name: Baufeld Schraffur
-    updateDxf: true
+    sync: push
     style: baufeld
     applyHatch:
       layers:
         - Baufeld
   - name: Baugrenze 2
-    updateDxf: true
+    sync: push
     style: baugrenze_2
     close: true
     operations:
@@ -329,7 +329,7 @@ geomLayers:
           - Baugrenze
         distance: -0.4
   - name: Baugrenze
-    updateDxf: true
+    sync: push
     style: baugrenze
     linetypeScale: 0.5
     linetypeGeneration: true
@@ -374,7 +374,7 @@ geomLayers:
         decimalPlaces:
           area: 0
   # - name: Contour
-  #   updateDxf: true
+  #   sync: push
   #   style:
   #     color: white
   #     locked: false

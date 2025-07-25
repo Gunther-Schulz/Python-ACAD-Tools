@@ -331,7 +331,7 @@ def create_sample_project(project_name: str) -> str:
             'name': 'Sample Layer',
             'shapeFile': 'input/sample.shp',
             'style': 'sampleStyle',
-            'updateDxf': True
+            'sync': 'push'
         }]
     }
 
@@ -356,7 +356,7 @@ def create_sample_project(project_name: str) -> str:
         'blocks': [{
             'name': 'Sample Block',
             'blockName': 'SampleBlock',
-            'updateDxf': True,
+            'sync': 'push',
             'position': {
                 'type': 'absolute',
                 'x': 0,
@@ -369,7 +369,7 @@ def create_sample_project(project_name: str) -> str:
         'texts': [{
             'name': 'Sample Text',
             'layer': 'Text',
-            'updateDxf': True,
+            'sync': 'push',
             'text': 'Sample Text',
             'position': {
                 'type': 'absolute',

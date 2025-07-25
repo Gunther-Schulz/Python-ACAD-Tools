@@ -40,6 +40,7 @@ XDATA_ENTITY_NAME_KEY = "ENTITY_NAME"
 XDATA_ENTITY_TYPE_KEY = "ENTITY_TYPE"
 XDATA_CONTENT_HASH_KEY = "CONTENT_HASH"
 XDATA_ENTITY_HANDLE_KEY = "ENTITY_HANDLE"
+XDATA_SYNC_MODE_KEY = "SYNC_MODE"  # NEW: Track sync mode for entity lifecycle
 
 
 def convert_newlines_to_mtext(text):
@@ -66,7 +67,7 @@ def convert_newlines_to_mtext(text):
 
     return result
 
-def create_entity_xdata(script_identifier, entity_name=None, entity_type=None, content_hash=None, entity_handle=None):
+def create_entity_xdata(script_identifier, entity_name=None, entity_type=None, content_hash=None, entity_handle=None, sync_mode=None):
     """
     Create XDATA for entity identification and ownership tracking.
     Unified function that handles both simple ownership and named entity tracking.
@@ -77,6 +78,7 @@ def create_entity_xdata(script_identifier, entity_name=None, entity_type=None, c
         entity_type: Optional entity type (e.g., 'VIEWPORT', 'TEXT')
         content_hash: Optional content hash for sync tracking
         entity_handle: Optional entity handle for identity validation
+        sync_mode: Optional sync mode for entity lifecycle tracking ('push', 'auto', 'pull')
 
     Returns:
         list: XDATA tuple list - simple for unnamed entities, structured for named entities
@@ -106,6 +108,12 @@ def create_entity_xdata(script_identifier, entity_name=None, entity_type=None, c
             xdata.extend([
                 (1000, XDATA_ENTITY_HANDLE_KEY),
                 (1000, entity_handle),
+            ])
+
+        if sync_mode:
+            xdata.extend([
+                (1000, XDATA_SYNC_MODE_KEY),
+                (1000, sync_mode),
             ])
 
         xdata.append((1002, '}'))
@@ -231,7 +239,7 @@ def convert_transparency(transparency):
             log_warning(f"Invalid transparency value: {transparency}")
     return None
 
-def attach_custom_data(entity, script_identifier, entity_name=None, entity_type=None, content_hash=None, entity_handle=None):
+def attach_custom_data(entity, script_identifier, entity_name=None, entity_type=None, content_hash=None, entity_handle=None, sync_mode=None):
     """Attaches custom data to an entity with proper cleanup of existing data."""
     try:
         # Clear any existing XDATA first
@@ -245,7 +253,7 @@ def attach_custom_data(entity, script_identifier, entity_name=None, entity_type=
             entity_handle = str(entity.dxf.handle)
 
         # Set XDATA using unified function
-        xdata = create_entity_xdata(script_identifier, entity_name, entity_type, content_hash, entity_handle)
+        xdata = create_entity_xdata(script_identifier, entity_name, entity_type, content_hash, entity_handle, sync_mode)
         entity.set_xdata(XDATA_APP_ID, xdata)
 
         # Ensure entity is properly added to the document database
@@ -1348,3 +1356,159 @@ def _get_entity_space(entity):
     except Exception as e:
         log_debug(f"Error determining entity space: {str(e)}")
         return None
+
+def remove_entities_by_layer_and_sync_mode(space, layer_name, script_identifier, sync_mode=None):
+    """
+    Remove entities from a layer with sync mode awareness.
+
+    Args:
+        space: DXF space (modelspace or paperspace)
+        layer_name: Name of the layer to clean
+        script_identifier: Script identifier to match
+        sync_mode: Optional sync mode filter ('push', 'auto', 'pull', None for all)
+
+    Returns:
+        int: Number of entities removed
+    """
+    with profile_operation("Remove Entities By Layer and Sync Mode", f"layer: {layer_name}, mode: {sync_mode}"):
+        delete_count = 0
+
+        # Query entities on the specific layer
+        layer_entities = space.query(f'*[layer=="{layer_name}"]')
+        entities_to_remove = []
+
+        for entity in layer_entities:
+            try:
+                # Check if entity was created by our script
+                if not is_created_by_script(entity, script_identifier):
+                    continue
+
+                # If sync mode filter is specified, check it
+                if sync_mode is not None:
+                    entity_sync_mode = _extract_sync_mode_from_xdata(entity)
+                    if entity_sync_mode != sync_mode:
+                        continue
+
+                entities_to_remove.append(entity)
+
+            except Exception as e:
+                log_debug(f"Error checking entity for removal: {str(e)}")
+                continue
+
+        # Remove the entities
+        for entity in entities_to_remove:
+            try:
+                # Clear XDATA before deletion
+                try:
+                    entity.discard_xdata(XDATA_APP_ID)
+                except:
+                    pass
+
+                # Delete the entity
+                space.delete_entity(entity)
+                delete_count += 1
+
+            except Exception as e:
+                log_debug(f"Could not delete entity {getattr(entity.dxf, 'handle', 'unknown')}: {e}")
+                continue
+
+        log_debug(f"Removed {delete_count} entities from layer '{layer_name}' with sync mode '{sync_mode}'")
+        return delete_count
+
+
+def _extract_sync_mode_from_xdata(entity):
+    """
+    Extract sync mode from entity XDATA.
+
+    Args:
+        entity: DXF entity
+
+    Returns:
+        str: Sync mode ('push', 'auto', 'pull') or None if not found
+    """
+    try:
+        xdata = entity.get_xdata(XDATA_APP_ID)
+        if not xdata:
+            return None
+
+        # Look for sync mode in XDATA
+        in_structured_data = False
+        next_is_sync_mode = False
+
+        for code, value in xdata:
+            if code == 1002 and value == '{':
+                in_structured_data = True
+            elif code == 1002 and value == '}':
+                in_structured_data = False
+            elif in_structured_data and code == 1000:
+                if value == XDATA_SYNC_MODE_KEY:
+                    next_is_sync_mode = True
+                elif next_is_sync_mode:
+                    return value
+                else:
+                    next_is_sync_mode = False
+
+        return None
+
+    except Exception:
+        return None
+
+
+def clean_layer_by_sync_mode(doc, layer_name, script_identifier, sync_mode, spaces=None):
+    """
+    Clean a layer with sync mode awareness.
+
+    Args:
+        doc: DXF document
+        layer_name: Layer to clean
+        script_identifier: Script identifier
+        sync_mode: Sync mode to target ('push' for bulk, 'auto' for selective, etc.)
+        spaces: List of spaces to clean (default: both model and paper space)
+
+    Returns:
+        int: Total number of entities removed
+    """
+    if spaces is None:
+        spaces = [doc.modelspace(), doc.paperspace()]
+
+    total_removed = 0
+
+    for space in spaces:
+        removed = remove_entities_by_layer_and_sync_mode(space, layer_name, script_identifier, sync_mode)
+        total_removed += removed
+
+    log_debug(f"Cleaned layer '{layer_name}' for sync mode '{sync_mode}': {total_removed} entities removed")
+    return total_removed
+
+
+def remove_specific_entity_by_handle(space, entity_handle, script_identifier):
+    """
+    Remove a specific entity by its handle (for selective auto sync updates).
+
+    Args:
+        space: DXF space
+        entity_handle: Handle of entity to remove
+        script_identifier: Script identifier to verify ownership
+
+    Returns:
+        bool: True if entity was removed, False otherwise
+    """
+    try:
+        entity = space.get_entity_by_handle(entity_handle)
+
+        if entity and is_created_by_script(entity, script_identifier):
+            # Clear XDATA before deletion
+            try:
+                entity.discard_xdata(XDATA_APP_ID)
+            except:
+                pass
+
+            # Delete the entity
+            space.delete_entity(entity)
+            log_debug(f"Removed specific entity with handle: {entity_handle}")
+            return True
+
+    except Exception as e:
+        log_debug(f"Could not remove entity with handle {entity_handle}: {str(e)}")
+
+    return False

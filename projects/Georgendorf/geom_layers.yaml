@@ -1,7 +1,7 @@
 geomLayers:
   ### Grundlagen ###
   - name: Parcel
-    updateDxf: true
+    sync: push
     label: label
     operations:
       # - type: repair
@@ -13,7 +13,7 @@ geomLayers:
         style: baum  # Using an existing text style from styles.yaml
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/25-06 PV Georgendorf/GIS/input/parcel.shp"
   - name: Flur
-    # updateDxf: true
+    # sync: push
     label: flurname
     operations:
       - type: simpleLabel
@@ -21,17 +21,17 @@ geomLayers:
         style: baum  # Using an existing text style from styles.yaml
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/25-06 PV Georgendorf/GIS/input/flur.shp"
   - name: Gemarkung
-    # updateDxf: true
+    # sync: push
     label: gmkname
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/25-06 PV Georgendorf/GIS/input/gemarkung.shp"
   - name: Gemeinde
-    # updateDxf: true
+    # sync: push
     label: gen
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/25-06 PV Georgendorf/GIS/input/gemeinde.shp"
 
   ### Geltungsbereich ###
   - name: Geltungsbereich
-    updateDxf: true
+    sync: push
     style: geltungsbereich
     operations:
       - type: copy
@@ -65,7 +65,7 @@ geomLayers:
 
   ### Baufeld and Baugrenze ###
   - name: Baufeld
-    updateDxf: true
+    sync: push
     close: true
     viewports:
       - name: WorkView
@@ -92,14 +92,14 @@ geomLayers:
           - Polygon
 
   - name: Baufeld Schraffur
-    updateDxf: true
+    sync: push
     style: baufeld
     applyHatch:
       layers:
         - Baufeld
 
   - name: Baugrenze
-    updateDxf: true
+    sync: push
     style: baugrenze
     linetypeScale: 0.5
     linetypeGeneration: true
@@ -112,7 +112,7 @@ geomLayers:
         distance: -3
 
   - name: Baugrenze 2
-    updateDxf: true
+    sync: push
     style: baugrenze_2
     close: true
     operations:

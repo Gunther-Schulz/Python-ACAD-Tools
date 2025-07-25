@@ -8,9 +8,9 @@ texts:
   layer: TEXT_LAYER
   paperspace: true
   _sync:
-    dxf_handle: '53'
+    dxf_handle: '68'
     content_hash: f23a5be04226766a4cd6df65a190cee770e5311c4101eb39dc5da67f59c7cc78
-    last_sync_time: 1753392533
+    last_sync_time: 1753432953
     sync_source: yaml
     entity_handle: '53'
 discover_untracked: false

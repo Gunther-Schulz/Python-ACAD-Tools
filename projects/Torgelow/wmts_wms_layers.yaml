@@ -1,6 +1,6 @@
 wmtsLayers:  
   # - name: WMTS DOP
-  #   # updateDxf: true
+  #   # sync: push
   #   style: 
   #     locked: true
   #     # color: "White"
@@ -17,7 +17,7 @@ wmtsLayers:
   #       stitchTiles: true
   #       # overwrite: true
   - name: WMTS Basemap
-    updateDxf: true
+    sync: push
     operations:
       - type: wmts
         url: "https://sgx.geodatenzentrum.de/wmts_basemapde/1.0.0/WMTSCapabilities.xml"
@@ -31,7 +31,7 @@ wmtsLayers:
         stitchTiles: true
 wmsLayers:
   - name: WMS Gebäude
-    updateDxf: true
+    sync: push
     operations:
       - type: wms
         # overwrite: true
@@ -64,7 +64,7 @@ wmsLayers:
         #   # removeText: true
         stitchTiles: true
   - name: WMS Höhenlinien
-    updateDxf: true
+    sync: push
     operations:
       - type: wms
         # overwrite: true

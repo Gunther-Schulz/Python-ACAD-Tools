@@ -192,7 +192,7 @@ class ReducedDXFCreator:
 
             log_debug(f"Processing reduced geom layer: {layer_name}")
             modified_layer_info = layer_info.copy()
-            modified_layer_info['updateDxf'] = True
+            modified_layer_info['sync'] = 'push'  # Force push mode for reduced content generation
 
             self.dxf_exporter._ensure_layer_exists(reduced_doc, layer_name, modified_layer_info)
             if layer_name in self.all_layers:
@@ -225,8 +225,9 @@ class ReducedDXFCreator:
             log_debug(f"Processing reduced text insert for layer: {layer_name}")
 
             # Skip if not marked for update
-            if not config.get('updateDxf', False):
-                log_debug(f"Skipping text insert for layer '{layer_name}' as updateDxf flag is not set")
+            sync_mode = config.get('sync', 'skip')
+            if sync_mode == 'skip':
+                log_debug(f"Skipping text insert for layer '{layer_name}' - sync mode is 'skip'")
                 continue
 
             # Get position

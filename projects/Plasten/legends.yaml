@@ -47,7 +47,7 @@ legends:
       attachment_point: MTEXT_MIDDLE_LEFT
     groups:
       - name: "Art der baulichen Nutzung"
-        updateDxf: true
+        sync: push
         subtitle: "§ 9 Abs. 1 Nr. 1 BauGB"
         items:
           - name: "Sonstiges Sondergebiet (§ 11 Abs. 2 BauNVO) Zweckbestimmung: Energiegewinnung auf der Basis solarer Strahlungsenergie"
@@ -57,7 +57,7 @@ legends:
             blockSymbol: "Sonstiges Sondergebiet EBS"
             blockSymbolScale: 2
       - name: "Maß der baulichen Nutzung"
-        updateDxf: true
+        sync: push
         subtitle: "§ 9 Abs. 1 Nr. 1 BauGB"
         items:
           - name: "Grundflächenzahl"
@@ -65,14 +65,14 @@ legends:
             blockSymbol: "GRZ"
             blockSymbolScale: 2
       - name: "Bauweise, Baulinien, Baugrenzen"
-        updateDxf: true
+        sync: push
         subtitle: "§ 9 Abs. 1 Nr. 2 BauGB"
         items:
           - name: "Baugrenze"
             type: empty
             blockSymbol: "Baugrenze"   
       - name: "Verkehrsflächen"
-        updateDxf: true
+        sync: push
         subtitle: "(§ 9 Abs. 1 Nr. 11 und Abs. 6 BauGB)"
         items:
           - name: "Verkehrsfläche besonderer Zweckbestimmung"
@@ -88,7 +88,7 @@ legends:
             blockSymbol: "Privat"
             blockSymbolScale: 2
       - name: "Grünflächen"
-        updateDxf: true
+        sync: push
         subtitle: "§ 9 Abs.1 Nr. 15 BauGB"
         items:
           - name: "Private Grünflächen"
@@ -96,7 +96,7 @@ legends:
             style: grünflächeLegend
             applyHatch: true
       - name: "Wasserflächen und Flächen für die Wasserwirtschaft, den Hochwasserschutz und die Regelung des Wasserabflusses"
-        updateDxf: true
+        sync: push
         subtitle: "§ 9 Abs. 1 Nr. 16 BauBG"
         items:
           - name: "Wasserflächen"
@@ -104,14 +104,14 @@ legends:
             style: waterLegend
             applyHatch: true
       - name: "Planungen, Nutzungsregelungen, Maßnahmen und Flächen für Maßnahmen zum Schutz, zur Pflege und zur Entwicklung von Natur und Landschaft"
-        updateDxf: true
+        sync: push
         subtitle: "§ 9 Abs.1 Nr. 20 BauGB"
         items:
           - name: "Umgrenzung von Flächen für Maßnahmen zum Schutz, zur Pflege und zur Entwicklung von Natur und Landschaft"
             type: empty
             blockSymbol: "Schutzflächeumgrenzung"
       - name: "Sonstige Planzeichen"
-        updateDxf: true
+        sync: push
         items:
           - name: "Grenze des räumlichen Geltungsbereiches des Bebauungsplans"
             subtitle: "(§ 9 Abs. 7 BauGB)"
@@ -139,7 +139,7 @@ legends:
             blockSymbol: "GFL2"
             blockSymbolScale: 1.6
       - name: "Darstellung ohne Normcharakter"
-        updateDxf: true
+        sync: push
         items:
           - name: "Gemeindegrenze"
             type: diagonal_line
@@ -162,7 +162,7 @@ legends:
             type: empty
             blockSymbol: "Bemassung2"
       - name: "Nachrichtliche Übernahme"
-        updateDxf: true
+        sync: push
         items:
           - name: "gesetzlich geschützes Biotop § 9 Abs. 6 BauGB i. V. m. § 20 NatSchAG - MV"
             type: area
@@ -221,7 +221,7 @@ legends:
       attachment_point: MTEXT_MIDDLE_LEFT
     groups:
       - name: "Art der baulichen Nutzung"
-        updateDxf: true
+        sync: push
         subtitle: "§ 9 Abs. 1 Nr. 1 BauGB"
         items:
           - name: "Sonstiges Sondergebiet (§ 11 Abs. 2 BauNVO) Zweckbestimmung: Energiegewinnung auf der Basis solarer Strahlungsenergie"
@@ -231,7 +231,7 @@ legends:
             blockSymbol: "Sonstiges Sondergebiet EBS"
             blockSymbolScale: 2
       - name: "Maß der baulichen Nutzung"
-        updateDxf: true
+        sync: push
         subtitle: "§ 9 Abs. 1 Nr. 1 BauGB"
         items:
           - name: "Grundflächenzahl"
@@ -239,14 +239,14 @@ legends:
             blockSymbol: "GRZ"
             blockSymbolScale: 2
       - name: "Bauweise, Baulinien, Baugrenzen"
-        updateDxf: true
+        sync: push
         subtitle: "§ 9 Abs. 1 Nr. 2 BauGB"
         items:
           - name: "Baugrenze"
             type: empty
             blockSymbol: "Baugrenze"   
       - name: "Grünflächen"
-        updateDxf: true
+        sync: push
         subtitle: "§ 9 Abs.1 Nr. 15 BauGB"
         items:
           - name: "Private Grünflächen"
@@ -254,14 +254,14 @@ legends:
             style: grünflächeLegend
             applyHatch: true
       - name: "Planungen, Nutzungsregelungen, Maßnahmen und Flächen für Maßnahmen zum Schutz, zur Pflege und zur Entwicklung von Natur und Landschaft"
-        updateDxf: true
+        sync: push
         subtitle: "§ 9 Abs.1 Nr. 20 BauGB"
         items:
           - name: "Umgrenzung von Flächen für Maßnahmen zum Schutz, zur Pflege und zur Entwicklung von Natur und Landschaft"
             type: empty
             blockSymbol: "Schutzflächeumgrenzung"
       - name: "Sonstige Planzeichen"
-        updateDxf: true
+        sync: push
         items:
           - name: "Grenze des räumlichen Geltungsbereiches des Bebauungsplans"
             subtitle: "(§ 9 Abs. 7 BauGB)"
@@ -278,7 +278,7 @@ legends:
           #   blockSymbol: "Leitung unterirdisch"
           #   blockSymbolScale: 2
       - name: "Darstellung ohne Normcharakter"
-        updateDxf: true
+        sync: push
         items:
           - name: "Gemeindegrenze"
             type: line
@@ -301,7 +301,7 @@ legends:
             type: empty
             blockSymbol: "Bemassung2"
       - name: "Nachrichtliche Übernahme"
-        updateDxf: true
+        sync: push
         items:
           - name: "Wald"
             type: area
@@ -348,7 +348,7 @@ legends:
       attachment_point: MTEXT_MIDDLE_LEFT
     groups:
       - name: "Art der baulichen Nutzung"
-        updateDxf: true
+        sync: push
         subtitle: "§ 9 Abs. 1 Nr. 1 BauGB"
         items:
           - name: "Sonstiges Sondergebiet (§ 11 Abs. 2 BauNVO) Zweckbestimmung: Energiegewinnung auf der Basis solarer Strahlungsenergie"
@@ -358,7 +358,7 @@ legends:
             blockSymbol: "Sonstiges Sondergebiet EBS"
             blockSymbolScale: 2
       - name: "Maß der baulichen Nutzung"
-        updateDxf: true
+        sync: push
         subtitle: "§ 9 Abs. 1 Nr. 1 BauGB"
         items:
           - name: "Grundflächenzahl"
@@ -366,14 +366,14 @@ legends:
             blockSymbol: "GRZ"
             blockSymbolScale: 2
       - name: "Bauweise, Baulinien, Baugrenzen"
-        updateDxf: true
+        sync: push
         subtitle: "§ 9 Abs. 1 Nr. 2 BauGB"
         items:
           - name: "Baugrenze"
             type: empty
             blockSymbol: "Baugrenze"
       - name: "Verkehrsflächen"
-        updateDxf: true
+        sync: push
         subtitle: "(§ 9 Abs. 1 Nr. 11 und Abs. 6 BauGB)"
         items:
           - name: "Ein- und Ausfahrt"
@@ -381,7 +381,7 @@ legends:
             type: empty
             blockSymbol: "EinAusfahrt"
       - name: "Grünflächen"
-        updateDxf: true
+        sync: push
         subtitle: "§ 9 Abs.1 Nr. 15 BauGB"
         items:
           - name: "Private Grünflächen"
@@ -389,7 +389,7 @@ legends:
             style: grünflächeLegend
             applyHatch: true
       - name: "Planungen, Nutzungsregelungen, Maßnahmen und Flächen für Maßnahmen zum Schutz, zur Pflege und zur Entwicklung von Natur und Landschaft"
-        updateDxf: true
+        sync: push
         subtitle: "§ 9 Abs.1 Nr. 20 BauGB"
         items:
           - name: "Umgrenzung von Flächen für Maßnahmen zum Schutz, zur Pflege und zur Entwicklung von Natur und Landschaft"
@@ -400,7 +400,7 @@ legends:
             type: empty
             blockSymbol: "Bepflanzungen Legende"
       - name: "Sonstige Planzeichen"
-        updateDxf: true
+        sync: push
         items:
           - name: "Grenze des räumlichen Geltungsbereiches des Bebauungsplans"
             subtitle: "(§ 9 Abs. 7 BauGB)"
@@ -412,7 +412,7 @@ legends:
             blockSymbol: "Leitung oberirdisch"
             blockSymbolScale: 2
       - name: "Darstellung ohne Normcharakter"
-        updateDxf: true
+        sync: push
         items:
           - name: "Gemeindegrenze"
             type: line
@@ -435,7 +435,7 @@ legends:
             type: empty
             blockSymbol: "Bemassung2"
       - name: "Nachrichtliche Übernahme"
-        updateDxf: true
+        sync: push
         items:
           - name: "Wald"
             type: area
@@ -489,7 +489,7 @@ legends:
       attachment_point: MTEXT_MIDDLE_LEFT
     groups:
       - name: "Art der baulichen Nutzung"
-        updateDxf: true
+        sync: push
         subtitle: "§ 9 Abs. 1 Nr. 1 BauGB"
         items:
           - name: "Sonstiges Sondergebiet (§ 11 Abs. 2 BauNVO) Zweckbestimmung: Energiegewinnung auf der Basis solarer Strahlungsenergie"
@@ -499,7 +499,7 @@ legends:
             blockSymbol: "Sonstiges Sondergebiet EBS"
             blockSymbolScale: 2
       - name: "Maß der baulichen Nutzung"
-        updateDxf: true
+        sync: push
         subtitle: "§ 9 Abs. 1 Nr. 1 BauGB"
         items:
           - name: "Grundflächenzahl"
@@ -507,14 +507,14 @@ legends:
             blockSymbol: "GRZ"
             blockSymbolScale: 2
       - name: "Bauweise, Baulinien, Baugrenzen"
-        updateDxf: true
+        sync: push
         subtitle: "§ 9 Abs. 1 Nr. 2 BauGB"
         items:
           - name: "Baugrenze"
             type: empty
             blockSymbol: "Baugrenze"   
       - name: "Grünflächen"
-        updateDxf: true
+        sync: push
         subtitle: "§ 9 Abs.1 Nr. 15 BauGB"
         items:
           - name: "Private Grünflächen"
@@ -522,14 +522,14 @@ legends:
             style: grünflächeLegend
             applyHatch: true
       - name: "Planungen, Nutzungsregelungen, Maßnahmen und Flächen für Maßnahmen zum Schutz, zur Pflege und zur Entwicklung von Natur und Landschaft"
-        updateDxf: true
+        sync: push
         subtitle: "§ 9 Abs.1 Nr. 20 BauGB"
         items:
           - name: "Umgrenzung von Flächen für Maßnahmen zum Schutz, zur Pflege und zur Entwicklung von Natur und Landschaft"
             type: empty
             blockSymbol: "Schutzflächeumgrenzung"
       - name: "Sonstige Planzeichen"
-        updateDxf: true
+        sync: push
         items:
           - name: "Grenze des räumlichen Geltungsbereiches des Bebauungsplans"
             subtitle: "(§ 9 Abs. 7 BauGB)"
@@ -541,7 +541,7 @@ legends:
             blockSymbol: "Leitung oberirdisch"
             blockSymbolScale: 2
       - name: "Darstellung ohne Normcharakter"
-        updateDxf: true
+        sync: push
         items:
           - name: "Gemeindegrenze"
             type: line
@@ -564,7 +564,7 @@ legends:
             type: empty
             blockSymbol: "Bemassung2"
       - name: "Nachrichtliche Übernahme"
-        updateDxf: true
+        sync: push
         items:
           - name: "gesetzlich geschützes Biotop § 9 Abs. 6 BauGB i. V. m. § 20 NatSchAG - MV"
             type: area

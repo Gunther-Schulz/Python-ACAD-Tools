@@ -137,7 +137,7 @@ class BlockSyncSchema(SyncPropertySchema):
             'rotation',     # float (rotation angle in degrees, defaults to 0.0)
             'position',     # dict (placement information - absolute or geometry-based)
             'paperspace',   # boolean (model space vs paper space placement)
-            # Note: Intentionally excluding updateDxf - this is a processing flag, not content
+            # Note: Intentionally excluding 'sync' - this is a processing mode flag, not content
             # Hash should only care about WHAT block is placed, WHERE, and HOW (scale/rotation)
         ]
 

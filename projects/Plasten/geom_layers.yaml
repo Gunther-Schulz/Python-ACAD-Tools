@@ -2,12 +2,12 @@ geomLayers:
   - name: "Blendschutzzaun"
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/blendschutzzaun.shp"  # Required: this is the source for further processing
     style: blendschutzzaun
-    updateDxf: true
+    sync: push
   # - name: EinAusfahrt Points
   #   type: "points"
   #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/einausfahrt_points.shp"
   - name: EinAusfahrt Line
-    updateDxf: true
+    sync: push
     style:
       layer:
         color: "magenta"
@@ -19,14 +19,14 @@ geomLayers:
     type: "points"
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/baufeld_label_points.shp"
   - name: Baum Points
-    updateDxf: true
+    sync: push
     style:
       layer:
         color: "green"
         plot: false
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/baum_points.shp"
   - name: Flur
-    updateDxf: true
+    sync: push
     close: true
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/flur.shp"
     label: flurname
@@ -37,7 +37,7 @@ geomLayers:
       - name: WorkView
         style: flurWorkView
   - name: Parcel
-    # updateDxf: true Don't enable. Moved Numbers already in DXF
+    # sync: push Don't enable. Moved Numbers already in DXF
     close: true
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/parcel.shp"
     label: label
@@ -46,7 +46,7 @@ geomLayers:
       - name: WorkView
         style: parcelWorkView
   - name: Gemarkung
-    updateDxf: true
+    sync: push
     close: true
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/gemarkung.shp"
     label: gmkname
@@ -56,7 +56,7 @@ geomLayers:
       - name: WorkView
         style: gemarkungWorkView
   - name: Gemeinde
-    updateDxf: true
+    sync: push
     close: true
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/gemeinde.shp"
     label: gen
@@ -69,7 +69,7 @@ geomLayers:
   - name: Grünfläche Input 
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/grünfläche_input_2.shp"
   - name: Wald
-    updateDxf: true
+    sync: push
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/wald.shp"
     close: true
     viewports:
@@ -78,7 +78,7 @@ geomLayers:
     operations:
       - type: dissolve
   - name: Wald Schraffur
-    updateDxf: true
+    sync: push
     style: wald
     viewports:
       - name: WorkView
@@ -91,7 +91,7 @@ geomLayers:
   - name: Exclude
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/exclude_v2.shp"
   # - name: Exclude Acad
-  #   updateDxf: false
+  #   sync: skip
   #   dxfLayer: "Exclude Acad"
   - name: Baumabstand Puffer
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/baum_abstand.shp"
@@ -100,13 +100,13 @@ geomLayers:
         capStyle: flat
         distance: 5
   - name: Geschütze Biotope
-    updateDxf: true
+    sync: push
     style:
       layer:
         plot: false
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/gesch_biotope.shp"
   - name: Geschütze Biotope 2
-    updateDxf: true
+    sync: push
     # linetypeScale: 0.2
     linetypeGeneration: true
     style: gesGeschuetzesBiotop
@@ -116,7 +116,7 @@ geomLayers:
           - Geschütze Biotope
         distance: 0.5
   - name: Gastrasse
-    updateDxf: true
+    sync: push
     style:
       layer:
         color: "orange"
@@ -135,7 +135,7 @@ geomLayers:
   - name: Einfahrt Line Reference
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/einfahrt_line.shp"
   - name: FG Line
-    updateDxf: true
+    sync: push
     style:
       layer:
         color: "blue"
@@ -148,13 +148,13 @@ geomLayers:
           - FG Line
         distance: 5
   - name: Gebäude 150m Abstand Buffer
-    updateDxf: true
+    sync: push
     operations:
       - type: buffer
         distance: 150
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/gebäude_150m_abstand.shp"
   - name: Geltungsbereich NW
-    updateDxf: true
+    sync: push
     style: geltungsbereich
     operations:
       - type: copy
@@ -219,7 +219,7 @@ geomLayers:
           area: 0
       - type: dissolve
   - name: Geltungsbereich NW 2
-    updateDxf: true
+    sync: push
     linetypeScale: 1
     style: geltungsbereich_2
     operations:
@@ -228,25 +228,25 @@ geomLayers:
           - name: Geltungsbereich NW
         distance: 2
   # - name: Geltungsbereich Hatch NW
-  #   updateDxf: true
+  #   sync: push
   #   style: geltungsbereichHatches
   #   applyHatch:
   #     layers:
   #       - Geltungsbereich NW
   # - name: Geltungsbereich Hatch NO
-  #   updateDxf: true
+  #   sync: push
   #   style: geltungsbereichHatches
   #   applyHatch:
   #     layers:
   #       - Geltungsbereich NO
   # - name: Geltungsbereich Hatch S
-  #   updateDxf: true
+  #   sync: push
   #   style: geltungsbereichHatches
   #   applyHatch:
   #     layers:
   #       - Geltungsbereich S
   - name: Geltungsbereich NO
-    updateDxf: true
+    sync: push
     style: geltungsbereich
     close: true
     operations:
@@ -309,7 +309,7 @@ geomLayers:
           area: 0
       - type: dissolve
   - name: Geltungsbereich NO 2
-    updateDxf: true
+    sync: push
     linetypeScale: 1
     style: geltungsbereich_2
     operations:
@@ -318,7 +318,7 @@ geomLayers:
           - name: Geltungsbereich NO
         distance: 2
   - name: Geltungsbereich S
-    updateDxf: true
+    sync: push
     style: geltungsbereich
     close: true
     operations:
@@ -379,7 +379,7 @@ geomLayers:
           area: 0
       - type: dissolve
   - name: Geltungsbereich S 2
-    updateDxf: true
+    sync: push
     linetypeScale: 1
     style: geltungsbereich_2
     operations:
@@ -388,19 +388,19 @@ geomLayers:
           - name: Geltungsbereich S
         distance: 2
   - name: Geltungsbereich Hatch NW
-    updateDxf: true
+    sync: push
     style: geltungsbereichHatches
     applyHatch:
       layers:
         - Geltungsbereich NW
   - name: Geltungsbereich Hatch NO
-    updateDxf: true
+    sync: push
     style: geltungsbereichHatches
     applyHatch:
       layers:
         - Geltungsbereich NO
   - name: Geltungsbereich Hatch S
-    updateDxf: true
+    sync: push
     style: geltungsbereichHatches
     applyHatch:
       layers:
@@ -414,7 +414,7 @@ geomLayers:
         layers:
           - Einfahrt Line Reference
   - name: Einfahrt
-    # updateDxf: true
+    # sync: push
     close: true
     operations:
       - type: buffer
@@ -432,7 +432,7 @@ geomLayers:
         useBufferTrick: true
   
   # - name: Einfahrt Schraffur
-  #   updateDxf: true
+  #   sync: push
   #   style: verkehrsfläche
   #   applyHatch:
   #     layers:
@@ -487,7 +487,7 @@ geomLayers:
       - type: filterGeometry
         minArea: 200
   - name: Biotope
-    updateDxf: true
+    sync: push
     style:
       layer:
         plot: false
@@ -500,7 +500,7 @@ geomLayers:
           - Biotope Input
           - Geschütze Biotope
   - name: Biotope Ausserhalb Geltungsbereich
-    updateDxf: true
+    sync: push
     operations:
       - type: copy
         layers:
@@ -522,7 +522,7 @@ geomLayers:
           - Geltungsbereich NO
           - Geltungsbereich S
   # - name: Biotope Innerhalb Geltungsbereich Grünfläche
-  #   updateDxf: true
+  #   sync: push
   #   operations:
   #     - type: copy
   #       layers:
@@ -530,7 +530,7 @@ geomLayers:
   #     - type: buffer
   #       distance: -3
   # - name: Biotope Innerhalb Geltungsbereich Schutzfläche
-  #   updateDxf: true
+  #   sync: push
   #   operations:
   #     - type: copy
   #       layers:
@@ -539,13 +539,13 @@ geomLayers:
   #       layers:
   #         - Biotope Innerhalb Geltungsbereich Grünfläche
   # - name: Biotope Innerhalb Geltungsbereich Grünfläche Schraffur
-  #   updateDxf: true
+  #   sync: push
   #   style: grünfläche
   #   applyHatch:
   #     layers:
   #       - Biotope Innerhalb Geltungsbereich Grünfläche
   # - name: Biotope Innerhalb Geltungsbereich Schutzfläche Schraffur
-  #   updateDxf: true
+  #   sync: push
   #   style: schutzflächeumgrenzung
   #   applyHatch:
   #     layers:
@@ -581,7 +581,7 @@ geomLayers:
         decimalPlaces:
           area: 0
   - name: Ausgleichsfläche Gesamt
-    updateDxf: true
+    sync: push
     style:
       layer:
         color: "lime"
@@ -658,7 +658,7 @@ geomLayers:
         decimalPlaces:
           area: 0
   - name: Ausgleich Grünfläche
-    updateDxf: true
+    sync: push
     viewports:
       - name: WorkView
         style: grünflächeWorkView
@@ -672,13 +672,13 @@ geomLayers:
     #   angleThreshold: 25  # Angles smaller than this will be blunted
     #   distance: 10.0  # Distance to move the vertex along the angle bisector
   - name: Ausgleich Grünfläche Schraffur
-    updateDxf: true
+    sync: push
     style: grünfläche
     applyHatch:
       layers:
         - Ausgleich Grünfläche
   - name: Ausgleich Schutzflächeumgrenzung
-    updateDxf: true
+    sync: push
     viewports:
       - name: WorkView
         style: schutzflächeWorkView
@@ -698,7 +698,7 @@ geomLayers:
       # - type: filterGeometry
       #   minArea: 200
   - name: Hecke
-    updateDxf: true
+    sync: push
     operations:
       - type: copy
         layers:
@@ -711,13 +711,13 @@ geomLayers:
       - type: filterGeometry
         minArea: 10
   - name: Hecke Schraffur
-    updateDxf: true
+    sync: push
     style: grünfläche
     applyHatch:
       layers:
         - Hecke
   - name: Biotoppuffer
-    updateDxf: true
+    sync: push
     viewports:
       - name: WorkView
         style:
@@ -741,7 +741,7 @@ geomLayers:
           - Geltungsbereich NO
           - Geltungsbereich S
   - name: Biotoppuffer Schraffur
-    updateDxf: true
+    sync: push
     style: grünfläche
     applyHatch:
       layers:
@@ -777,7 +777,7 @@ geomLayers:
         decimalPlaces:
           area: 0
   - name: Schutzflächeumgrenzung T-Symbol Temp
-    # updateDxf: true
+    # sync: push
     close: false
     plot: false
     operations:
@@ -794,7 +794,7 @@ geomLayers:
       - type: filterGeometry
         minArea: 200
   # - name: Schutzflächeumgrenzung T-Small Temp
-  #   # updateDxf: true
+  #   # sync: push
   #   close: false
   #   plot: false
   #   operations:
@@ -812,7 +812,7 @@ geomLayers:
   #       maxArea: 200
   #       minArea: 10
   - name: Schutzflächeumgrenzung Schraffur
-    updateDxf: true
+    sync: push
     style: schutzflächeumgrenzung
     applyHatch:
       layers:
@@ -828,7 +828,7 @@ geomLayers:
       - type: dissolve
         useBufferTrick: true
   - name: Baufeld
-    updateDxf: true
+    sync: push
     close: true
     viewports:
       - name: WorkView
@@ -854,13 +854,13 @@ geomLayers:
         geometryTypes:
           - Polygon
   - name: Baufeld Schraffur
-    updateDxf: true
+    sync: push
     style: baufeld
     applyHatch:
       layers:
         - Baufeld
   - name: Baugrenze 2
-    updateDxf: true
+    sync: push
     style: baugrenze_2
     close: true
     operations:
@@ -869,7 +869,7 @@ geomLayers:
           - Baugrenze
         distance: -0.4
   - name: Baugrenze
-    updateDxf: true
+    sync: push
     style: baugrenze
     linetypeScale: 0.5
     linetypeGeneration: true
@@ -986,7 +986,7 @@ geomLayers:
         decimalPlaces:
           area: 0
   # - name: Contour
-  #   updateDxf: true
+  #   sync: push
   #   style:
   #     color: white
   #     locked: false

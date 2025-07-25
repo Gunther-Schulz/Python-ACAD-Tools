@@ -8,7 +8,7 @@ Add this to your `geomLayers` section in your YAML configuration file:
 
 ```yaml
 - name: MyLayer
-  updateDxf: true
+  sync: push
   label: myLabelColumn
   shapeFile: "path/to/my/shapefile.shp"
   operations:
@@ -23,7 +23,7 @@ You can customize the simple label operation with these options:
 
 ```yaml
 - name: LabelLayer
-  updateDxf: true
+  sync: push
   operations:
     - type: simpleLabel
       sourceLayer: SourceGeometryLayer
@@ -38,7 +38,7 @@ Here's an example of using a style preset:
 
 ```yaml
 - name: LabelLayer
-  updateDxf: true
+  sync: push
   operations:
     - type: simpleLabel
       sourceLayer: Parcel
@@ -50,7 +50,7 @@ Or you can define an inline style:
 
 ```yaml
 - name: LabelLayer
-  updateDxf: true
+  sync: push
   operations:
     - type: simpleLabel
       sourceLayer: Parcel
@@ -76,7 +76,7 @@ Or you can define an inline style:
 
 ```yaml
 - name: Flur
-  updateDxf: true
+  sync: push
   label: flurname
   shapeFile: "path/to/flur.shp"
   operations:
@@ -87,7 +87,7 @@ Or you can define an inline style:
 
 ```yaml
 - name: ParcelLabels
-  updateDxf: true
+  sync: push
   style: parcelText
   operations:
     - type: simpleLabel
@@ -99,7 +99,7 @@ Or you can define an inline style:
 
 ```yaml
 - name: ParcelLabels
-  updateDxf: true
+  sync: push
   operations:
     - type: simpleLabel
       sourceLayer: Parcel
@@ -107,7 +107,7 @@ Or you can define an inline style:
       style: parcelText
 
 - name: FlurLabels
-  updateDxf: true
+  sync: push
   operations:
     - type: simpleLabel
       sourceLayer: Flur

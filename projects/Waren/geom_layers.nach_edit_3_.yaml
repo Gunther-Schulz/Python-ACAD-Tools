@@ -2,7 +2,7 @@ geomLayers:
   # Abstand gessen vom Schienenweg
   # Schon verändert in Zeichnung
   # - name: Bahntrasse
-  #   updateDxf: true
+  #   sync: push
   #   style: bahntrasse
   #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/bahntrasse_ln.shp"
 
@@ -14,13 +14,13 @@ geomLayers:
 
   # Already modified in drawing (linetype generation, linetypeScale)
   # - name: Blendschutzzaun
-  #   updateDxf: true
+  #   sync: push
   #   style: blendschutzzaun
   #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/blendschutzzaun_ln.shp"
 
   # ### Wasserschutz ###
   # - name: wasserrechtliche Festsetzung 3b
-  #   updateDxf: true
+  #   sync: push
   #   style: wasserschutz
   #   operations:
   #     # - type: filterByColumn
@@ -38,12 +38,12 @@ geomLayers:
   #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/wasserrechtliche Festsetzung 3b.shp"
 
   - name: wasserrechtliche Festsetzung 3b
-    updateDxf: true
+    sync: push
     style: wasserschutz
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/wasserrechtliche Festsetzung 3b_pl.shp"
 
   - name: wasserrechtliche Festsetzung 3b 2
-    updateDxf: true
+    sync: push
     style: wasserschutz 2
     operations:
       - type: buffer
@@ -54,7 +54,7 @@ geomLayers:
         joinStyle: flat
 
   # - name: wasserrechtliche Festsetzung 2b
-  #   updateDxf: true
+  #   sync: push
   #   style: wasserschutz
   #   operations:
   #     - type: filterByColumn
@@ -67,7 +67,7 @@ geomLayers:
   #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/Grundlagen/Trinkwasserschutzzone/Wasserschutzgebiete_MSE.shp"
 
   # - name: wasserrechtliche Festsetzung 2b 2
-  #   updateDxf: true
+  #   sync: push
   #   style: wasserschutz 2
   #   operations:
   #     - type: buffer
@@ -81,7 +81,7 @@ geomLayers:
 
   # Stadtwerke
   - name: Leitung Str-Leitungsabschnitt-NS
-    updateDxf: true
+    sync: push
     style:
       layer:
         color: "blue"
@@ -97,7 +97,7 @@ geomLayers:
         joinStyle: flat
 
   - name: Leitung Was-Leitungsabschnitt-VN
-    updateDxf: true
+    sync: push
     style:
       layer:
         color: "blue"
@@ -113,7 +113,7 @@ geomLayers:
         joinStyle: flat
 
   - name: Leitung Was-Leitungsabschnitt-AN
-    updateDxf: true
+    sync: push
     style:
       layer:
         color: "blue"
@@ -129,7 +129,7 @@ geomLayers:
         joinStyle: flat
 
   - name: Leitung Gas-Leitungsabschnitt-VN
-    updateDxf: true
+    sync: push
     style:
       layer:
         color: "blue"
@@ -146,14 +146,14 @@ geomLayers:
 
   # ONTRAS
   - name: Leitung Ontras Gas
-    updateDxf: true
+    sync: push
     style:
       layer:
         color: "orange"
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/input_leitungsverlauf_ontras_gas_ln.shp"
 
   - name: Leitung Ontras TK
-    updateDxf: true
+    sync: push
     style:
       layer:
         color: "orange"
@@ -171,7 +171,7 @@ geomLayers:
 
   # Vermessung
   - name: Leitung Gas_HD_LEIT # Edis Gas
-    updateDxf: true
+    sync: push
     style:
       layer:
         color: "green"
@@ -187,13 +187,13 @@ geomLayers:
         joinStyle: round
 
   - name: Leitung Stromkabel-MS_unterirdisch_LEIT
-    updateDxf: true
+    sync: push
     style:
       layer:
         color: "red"
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/vermessung_stromkabel_ms_unterirdisch_ln.shp"
   - name: Leitung Stromkabel-MS_unterirdisch_LEIT Label Points
-    # updateDxf: true
+    # sync: push
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/vermessung_stromkabel_ms_unterirdisch_besc_pt.shp"
 
   - name: Leitung Stromkabel-MS_unterirdisch_LEIT Buffer
@@ -207,7 +207,7 @@ geomLayers:
 
   # Maxsolar (Vermessung)
   - name: Leitung Mittelspannung Zuwegung
-    updateDxf: true
+    sync: push
     style:
       layer:
         color: "red"
@@ -225,7 +225,7 @@ geomLayers:
   # Bestand-Zeichnung
 
   - name: Leitung Telekom
-    updateDxf: true
+    sync: push
     style:
       layer:
         color: "magenta"
@@ -241,7 +241,7 @@ geomLayers:
         joinStyle: flat
 
   - name: Leitung Edis
-    updateDxf: true
+    sync: push
     style:
       layer:
         color: "green"
@@ -265,7 +265,7 @@ geomLayers:
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/Einzelbäume.shp"
 
   - name: Baum_Laubbaum Krone
-    updateDxf: true
+    sync: push
     style: baum
     operations:
       - type: circle
@@ -273,7 +273,7 @@ geomLayers:
           - Einzelbäume
         radiusField: Krone_R
   - name: Baum_Laubbaum Stamm
-    updateDxf: true
+    sync: push
     style: baum
     operations:
       - type: circle
@@ -282,7 +282,7 @@ geomLayers:
         radiusField: Stamm_R
 
   - name: Baum_Laubbaum Krone Allee
-    updateDxf: true
+    sync: push
     style: alleeBaum
     operations:
       - type: circle
@@ -290,7 +290,7 @@ geomLayers:
           - Alleebäume
         radiusField: Krone_R
   - name: Baum_Laubbaum Stamm Allee
-    updateDxf: true
+    sync: push
     style: alleeBaum
     operations:
       - type: circle
@@ -299,7 +299,7 @@ geomLayers:
         radiusField: Stamm_R
 
   - name: Baum_Laubbaum Stamm Schraffur
-    updateDxf: true
+    sync: push
     style: baumStamm
     applyHatch:
       layers:
@@ -362,7 +362,7 @@ geomLayers:
   ### Zuwegung ###
   - name: Zuwegung
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/maxsolar_zuwegung_mittellinie_ln.shp"
-    updateDxf: true
+    sync: push
     operations:
       - type: buffer
         distance: 2
@@ -372,7 +372,7 @@ geomLayers:
         layers:
           - Exclude Zuwegung
   - name: Zuwegung Schraffur
-    updateDxf: true
+    sync: push
     style: verkehrsfläche
     applyHatch:
       layers:
@@ -383,7 +383,7 @@ geomLayers:
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/geltungsbereich_pl.shp"
 
   - name: Geltungsbereich
-    updateDxf: true
+    sync: push
     style: geltungsbereich
     operations:
       - type: dissolve
@@ -427,7 +427,7 @@ geomLayers:
 
   # Modified in DXF (linetype generation)
   - name: Geltungsbereich 2
-    # updateDxf: true  # updated manually linetypeGeneration
+    # sync: push  # updated manually linetypeGeneration
     linetypeScale: 1
     style: geltungsbereich_2
     operations:
@@ -449,21 +449,21 @@ geomLayers:
         capStyle: flat
 
   - name: Geltungsbereich F-Plan
-    updateDxf: true # linetype generation
+    sync: push # linetype generation
     style: geltungsbereichFPlan
     operations:
       - type: copy
         layers:
           - Geltungsbereich
   - name: Geltungsbereich F-Plan Schraffur
-    updateDxf: true # linetype generation
+    sync: push # linetype generation
     style: geltungsbereichFPlan
     applyHatch:
       layers:
         - Geltungsbereich F-Plan
 
   - name: Geltungsbereich F-Plan MiniMap Schraffur
-    updateDxf: true # linetype generation
+    sync: push # linetype generation
     style: geltungsbereichFPlanMiniMap
     applyHatch:
       layers:
@@ -471,7 +471,7 @@ geomLayers:
 
   # Report only
   - name: Parcel Intersections
-    updateDxf: false
+    sync: skip
     operations:
       - type: copy
         layers:
@@ -521,14 +521,14 @@ geomLayers:
           - polygon
         # minArea: 1
   - name: Moor
-    # updateDxf: true
+    # sync: push
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/Moor.shp"
   - name: "ges gesch Biotope"
-    updateDxf: true
+    sync: push
     # style: gesGeschuetzesBiotop
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/ges. geschützte Biotope.shp"
   - name: "ges gesch Biotope 2"
-    updateDxf: true
+    sync: push
     style: gesGeschuetzesBiotop
     operations:
       - type: copy
@@ -546,13 +546,13 @@ geomLayers:
     # shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/vermessung_graben_pl.shp"
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/Graben_edit.shp"
   - name: Graben Schraffur
-    updateDxf: true
+    sync: push
     style: graben
     applyHatch:
       layers:
         - Graben
   - name: Grünfläche und Graben
-    updateDxf: true
+    sync: push
     # style:
     #   layer:
     #     color: "blue"
@@ -604,7 +604,7 @@ geomLayers:
         calculate:
           - area
   - name: Ausgleich Grünfläche
-    updateDxf: true
+    sync: push
     # style:
     #   layer:
     #     color: "chartreuse-medium"
@@ -620,13 +620,13 @@ geomLayers:
         # skipIslands: true
         preserveIslands: true
   - name: Grünfläche Schraffur
-    updateDxf: true
+    sync: push
     style: grünfläche
     applyHatch:
       layers:
         - Ausgleich Grünfläche
   - name: Ausgleich Schutzflächeumgrenzung
-    updateDxf: true
+    sync: push
     # style:
     #   layer:
     #     color: "yellow-medium"
@@ -645,7 +645,7 @@ geomLayers:
       #   layers:
       #     - Grünfläche und Graben
   - name: Grünfläche T-Linie Symbol Schraffur
-    updateDxf: true
+    sync: push
     style: schutzflächeumgrenzung
     applyHatch:
       layers:
@@ -653,7 +653,7 @@ geomLayers:
 
   ### Baufeld/Baugrenze ###
   - name: Baufeld
-    updateDxf: true
+    sync: push
     close: true
     operations:
       - type: copy
@@ -673,13 +673,13 @@ geomLayers:
         geometryTypes:
           - polygon
   - name: Baufeld Schraffur
-    updateDxf: true
+    sync: push
     style: baufeld
     applyHatch:
       layers:
         - Baufeld
   - name: Baugrenze 2
-    updateDxf: true # linetypeGeneration
+    sync: push # linetypeGeneration
     style: baugrenze_2
     close: true
     operations:
@@ -688,7 +688,7 @@ geomLayers:
           - Baugrenze
         distance: -0.4
   - name: Baugrenze
-    updateDxf: true # linetypeGeneration
+    sync: push # linetypeGeneration
     style: baugrenze
     linetypeScale: 0.5
     # linetypeGeneration: true
@@ -750,7 +750,7 @@ geomLayers:
   ### Place Leitung Labels ###
 
   - name: Baum_Laubbaum Label
-    # updateDxf: true # modified placement
+    # sync: push # modified placement
     style: baum
     operations:
       - type: labelAssociation
@@ -764,7 +764,7 @@ geomLayers:
               y: 0
 
   # - name: Leitungen Labels
-  #   updateDxf: true
+  #   sync: push
   #   style: leitung
   #   operations:
   #     - type: labelAssociation
@@ -855,7 +855,7 @@ geomLayers:
           - Leitung Edis
 
   - name: Leitungen Buffer
-    updateDxf: true
+    sync: push
     operations:
       - type: dissolve
         layers:
@@ -874,7 +874,7 @@ geomLayers:
           - Geltungsbereich
 
   - name: Leitungen Ontras Buffer Path
-    # updateDxf: true
+    # sync: push
     operations:
       - type: copy
         layers:
@@ -884,7 +884,7 @@ geomLayers:
           - Geltungsbereich
 
   - name: Leitungen Buffer Path
-    # updateDxf: true # Schon modifiziert in DXF (lintetype generation and scale)
+    # sync: push # Schon modifiziert in DXF (lintetype generation and scale)
     style: gfl1
     operations:
       - type: copy

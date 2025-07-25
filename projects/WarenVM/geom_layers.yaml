@@ -1,4 +1,4 @@
 geomLayers:
 - name: Geltungsbereich Input
-  # updateDxf: true
+  # sync: push
   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/geltungsbereich_pl.shp"

@@ -1,6 +1,6 @@
 # pathArrays:
 #   - name: "Grünfläche T-Linie Symbol"
-#     updateDxf: true
+#     sync: push
 #     sourceLayer: "Ausgleich Schutzflächeumgrenzung"
 #     block: "T-Symbol"
 #     spacing: 7
@@ -9,28 +9,28 @@
 #     scale: 0.4
 #     bufferDistance: 0.2
 #   - name: "Leitungen Path Symbol"
-#     updateDxf: true
+#     sync: push
 #     sourceLayer: "Leitungen Path"
 #     block: "Leitung unterirdisch"
 #     spacing: 5
 #     # scale: 0.6
 #     bufferDistance: 0.2
 #   # - name: "Str-Leitungsabschnitt-NS Symbol"
-#   #   updateDxf: true
+#   #   sync: push
 #   #   sourceLayer: "Str-Leitungsabschnitt-NS"
 #   #   block: "Leitung unterirdisch"
 #   #   spacing: 5
 #   #   scale: 0.6
 #   #   bufferDistance: 0.2
 #   # - name: "Leitung Ontras Buffer Symbol"
-#   #   updateDxf: true
+#   #   sync: push
 #   #   sourceLayer: "Leitung Ontras Buffer Path"
 #   #   block: "GFL Symbol"
 #   #   spacing: 5
 #   #   scale: 0.4
 #   #   bufferDistance: 0.2
 #   # - name: "Leitung Buffer Symbol" # alreyd modified in dxf
-#   #   updateDxf: true
+#   #   sync: push
 #   #   sourceLayer: Leitungen Ontras Buffer Path
 #   #   block: "GFL Symbol"
 #   #   spacing: 5

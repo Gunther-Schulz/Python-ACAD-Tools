@@ -1,11 +1,11 @@
 import traceback
 from src.utils import log_info, log_warning, log_error, log_debug
 from src.dxf_utils import add_mtext, remove_entities_by_layer, XDATA_APP_ID, attach_custom_data, find_entity_by_xdata_name
-from src.sync_manager_base import SyncManagerBase
+from src.unified_sync_processor import UnifiedSyncProcessor
 from src.sync_hash_utils import clean_entity_config_for_yaml_output
 
 
-class TextInsertManager(SyncManagerBase):
+class TextInsertManager(UnifiedSyncProcessor):
     """Manager for text insert synchronization between YAML configs and AutoCAD."""
 
     def __init__(self, project_settings, script_identifier, style_manager, name_to_aci, project_loader=None):
@@ -499,3 +499,55 @@ class TextInsertManager(SyncManagerBase):
                 'paperspace': False,
                 'style': 'Standard'
             }
+
+    def _process_text_config_line(self, config, line_number):
+        """Process a single text configuration line for SkipSync functionality."""
+        entity_name = config.get('name', f'text_line_{line_number}')
+        log_debug(f"Processing text config line {line_number}: {entity_name}")
+        return True
+
+    # Abstract methods required by UnifiedSyncProcessor
+    def _get_fallback_default_layer(self):
+        """Get fallback default layer name for text entities."""
+        fallbacks = {
+            'viewport': 'VIEWPORTS',
+            'text': 'Plantext',
+            'block': 'BLOCKS'
+        }
+        return fallbacks.get(self.entity_type, 'DEFAULT_LAYER')
+
+    def _resolve_entity_layer(self, config):
+        """
+        Resolve the layer for a text entity using unified layer logic.
+
+        Args:
+            config: Text entity configuration dictionary
+
+        Returns:
+            str: Layer name to use for this text entity
+        """
+        # Check for individual layer override first
+        entity_layer = config.get('layer')
+        if entity_layer:
+            return entity_layer
+
+        # Fall back to global default layer
+        return self.default_layer
+
+    def _calculate_entity_hash(self, config):
+        """
+        Calculate content hash for text entity configuration.
+        Centralized implementation that works for all entity types.
+
+        Args:
+            config: Text entity configuration dictionary
+
+        Returns:
+            str: Content hash for the configuration
+        """
+        try:
+            from src.sync_hash_utils import calculate_entity_content_hash
+            return calculate_entity_content_hash(config, self.entity_type)
+        except Exception as e:
+            log_warning(f"Error calculating hash for {self.entity_type} '{config.get('name', 'unnamed')}': {str(e)}")
+            return "error_hash"

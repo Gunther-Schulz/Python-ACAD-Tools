@@ -1,7 +1,7 @@
 # blocks:
 #   # Adjusted position already in DXF (nördlich)
 #   # - name: EinAusfahrt
-#   #   updateDxf: true
+#   #   sync: push
 #   #   blockName: "EinAusfahrt"
 #   #   scale: 0.6
 #   #   position:
@@ -10,7 +10,7 @@
 #   #     method: "middle"
 #   #     lineOffset: 2
 #   - name: "Gesetzlich geschütztes Biotop Symbol"
-#     updateDxf: true
+#     sync: push
 #     blockName: "Gesetzlich geschütztes Biotop"
 #     position:
 #       sourceLayer: ges gesch Biotope

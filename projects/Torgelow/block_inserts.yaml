@@ -1,12 +1,12 @@
 blocks:
   - name: "Bäume Ausserhalb"
-    updateDxf: true
+    sync: push
     blockName: "Baum"
     position:
       sourceLayer: "Baum Points"
       type: "points"
   - name: "SO EBS Label"
-    updateDxf: true
+    sync: push
 
     blockName: "Sonstiges Sondergebiet EBS"
     scale: 6.0
@@ -19,7 +19,7 @@ blocks:
         x: 0
         y: 0
   - name: "GRZ Label"
-    updateDxf: true
+    sync: push
 
     blockName: "GRZ"
     scale: 4.0
@@ -34,7 +34,7 @@ blocks:
   # Paperspace
   # --------
   - name: "PBS Logo"
-    updateDxf: true
+    sync: push
     blockName: "Firmenlogo"
     paperspace: true
     position:
@@ -42,7 +42,7 @@ blocks:
       x: 900
       y: 165
   - name: "Nordpfeil"
-    updateDxf: true
+    sync: push
     blockName: "Nordpfeil"
     paperspace: true
     position:

@@ -3,7 +3,7 @@ texts:
   # --------------
   - name: "Main Title NW"
     targetLayer: "Plantext"
-    updateDxf: true
+    sync: push
     paperspace: true  # Add this to place text in paper space
     text: "Vorentwurf: Vorhabensbezogener Bebauungsplan Nr. 6 „Solarpark am Devener Weg“\nder Gemeinde Groß Plasten"
     position:
@@ -13,7 +13,7 @@ texts:
     style: "mainTitle"  # Style can include width for text wrapping
   - name: "Map Header NW"
     targetLayer: "Plantext"
-    updateDxf: true
+    sync: push
     paperspace: true  # Add this to place text in paper space
     text: "Teil A: Planzeichnung i. M. 1:1500"
     position:
@@ -23,7 +23,7 @@ texts:
     style: "mapHeader"  # Style can include width for text wrapping
   - name: "Übersichtslarte Header NW"
     targetLayer: "Plantext"
-    updateDxf: true
+    sync: push
     paperspace: true  # Add this to place text in paper space
     text: "Übersichtskarte i. M. 1:30.000"
     position:
@@ -33,7 +33,7 @@ texts:
     style: "übersichtskarteHeader"  # Style can include width for text wrapping
   - name: "Satzungs NW"
     targetLayer: "Plantext"
-    updateDxf: true
+    sync: push
     paperspace: true  # Add this to place text in paper space
     justification: "CENTER"
     text: "VORENTWURF\nSATZUNG DER GEMEINDE\nGROß PLASTEN\nÜBER DEN VORHABENSBEZOGENEN BEBAUUNGSPLAN\nNR: 6 „Solarpark am Devener Weg“"
@@ -47,7 +47,7 @@ texts:
   # --------------
   - name: "Main Title NO"
     targetLayer: "Plantext"
-    updateDxf: true
+    sync: push
     paperspace: true  # Add this to place text in paper space
     text: "Vorentwurf: Vorhabensbezogener Bebauungsplan Nr. 5 „Solarpark am Spargelberg“\nder Gemeinde Groß Plasten"
     position:
@@ -57,7 +57,7 @@ texts:
     style: "mainTitle"  # Style can include width for text wrapping
   - name: "Map Header NO"
     targetLayer: "Plantext"
-    updateDxf: true
+    sync: push
     paperspace: true  # Add this to place text in paper space
     text: "Teil A: Planzeichnung i. M. 1:1500"
     position:
@@ -67,7 +67,7 @@ texts:
     style: "mapHeader"  # Style can include width for text wrapping
   - name: "Übersichtslarte Header NO"
     targetLayer: "Plantext"
-    updateDxf: true
+    sync: push
     paperspace: true  # Add this to place text in paper space
     text: "Übersichtskarte i. M. 1:30.000"
     position:
@@ -77,7 +77,7 @@ texts:
     style: "übersichtskarteHeader"  # Style can include width for text wrapping
   - name: "Satzungs NO"
     targetLayer: "Plantext"
-    updateDxf: true
+    sync: push
     paperspace: true  # Add this to place text in paper space
     justification: "CENTER"
     text: "VORENTWURF\nSATZUNG DER GEMEINDE\nGROß PLASTEN\nÜBER DEN VORHABENSBEZOGENEN BEBAUUNGSPLAN\nNR: 5 „Solarpark am Spargelberg“"
@@ -90,7 +90,7 @@ texts:
   # --------------
   - name: "Main Title S"
     targetLayer: "Plantext"
-    updateDxf: true
+    sync: push
     paperspace: true  # Add this to place text in paper space
     text: "Vorentwurf: Vorhabensbezogener Bebauungsplan Nr. 7 „Solarpark an der Straße nach Rockow“ der Gemeinde Groß Plasten"
     position:
@@ -100,7 +100,7 @@ texts:
     style: "mainTitle"  # Style can include width for text wrapping
   - name: "Map Header S"
     targetLayer: "Plantext"
-    updateDxf: true
+    sync: push
     paperspace: true  # Add this to place text in paper space
     text: "Teil A: Planzeichnung i. M. 1:1500"
     position:
@@ -110,7 +110,7 @@ texts:
     style: "mapHeader"  # Style can include width for text wrapping
   - name: "Übersichtslarte Header S"
     targetLayer: "Plantext"
-    updateDxf: true
+    sync: push
     paperspace: true  # Add this to place text in paper space
     text: "Übersichtskarte i. M. 1:30.000"
     position:
@@ -120,7 +120,7 @@ texts:
     style: "übersichtskarteHeader"  # Style can include width for text wrapping
   - name: "Satzungs S"
     targetLayer: "Plantext"
-    updateDxf: true
+    sync: push
     paperspace: true  # Add this to place text in paper space
     justification: "CENTER"
     text: "VORENTWURF\nSATZUNG DER GEMEINDE\nGROß PLASTEN\nÜBER DEN VORHABENSBEZOGENEN BEBAUUNGSPLAN\nNR: 7 „Solarpark an der Straße nach Rockow“"

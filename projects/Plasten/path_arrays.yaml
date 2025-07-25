@@ -1,20 +1,20 @@
 pathArrays:
   - name: "Schutzflächeumgrenzung T-Symbol Array"
-    updateDxf: true
+    sync: push
     sourceLayer: "Schutzflächeumgrenzung T-Symbol Temp"
     block: "T-Symbol"
     spacing: 7
     scale: 0.6
     bufferDistance: 0.6
   - name: "FG Line Array"
-    updateDxf: true
+    sync: push
     sourceLayer: "FG Line"
     block: "Leitung oberirdisch Symbol"
     spacing: 8
     # scale: 0.6
     # bufferDistance: 0.6
   - name: "Gastrasse Array"
-    updateDxf: true
+    sync: push
     sourceLayer: "Gastrasse"
     block: "Leitung oberirdisch Symbol"
     # block: "T-Symbol"
@@ -22,7 +22,7 @@ pathArrays:
     # scale: 0.6
     # bufferDistance: 0.6
   - name: "Hecke Array"
-    updateDxf: true
+    sync: push
     sourceLayer: "Hecke"
     block: "Bepflanzungen"
     spacing: 3

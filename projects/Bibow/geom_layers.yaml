@@ -1,7 +1,7 @@
 geomLayers:
   ### Grundlagen ###
   - name: Parcel
-    updateDxf: true
+    sync: push
     label: label
     operations:
       - type: simpleLabel
@@ -9,7 +9,7 @@ geomLayers:
         style: baum  # Using an existing text style from styles.yaml
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/input/parcel.shp"
   - name: Flur
-    updateDxf: true
+    sync: push
     label: flurname
     operations:
       - type: simpleLabel
@@ -17,11 +17,11 @@ geomLayers:
         style: baum  # Using an existing text style from styles.yaml
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/input/flur.shp"
   - name: Gemarkung
-    updateDxf: true
+    sync: push
     label: gmkname
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/input/gemarkung.shp"
   - name: Gemeinde
-    updateDxf: true
+    sync: push
     label: gen
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/input/gemeinde.shp"
 
@@ -41,7 +41,7 @@ geomLayers:
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/input/Wald.shp"
 
   - name: "Wald"
-    updateDxf: true
+    sync: push
     operations:
       - type: dissolve
         layers:
@@ -61,7 +61,7 @@ geomLayers:
           - name: "Wald"
 
   - name: "Wald Schraffur"
-    updateDxf: true
+    sync: push
     style: wald
     applyHatch:
       layers:
@@ -84,7 +84,7 @@ geomLayers:
         removeFailures: true
 
   - name: "ges. gesch. Biotope Border"
-    updateDxf: true
+    sync: push
     style: gesGeschuetzesBiotop
     operations:
       - type: buffer
@@ -100,7 +100,7 @@ geomLayers:
           - name: "Biotope Input"
 
   - name: "Biotope Puffer"
-    updateDxf: true
+    sync: push
     operations:
       - type: buffer
         distance: 5
@@ -150,7 +150,7 @@ geomLayers:
 
   ### Geltungsbereich ###
   - name: Geltungsbereich A
-    # updateDxf: true
+    # sync: push
     style: geltungsbereich
     operations:
       - type: copy
@@ -185,7 +185,7 @@ geomLayers:
           - name: "Hecke"
       - type: dissolve
   # - name: Geltungsbereich B
-  #   updateDxf: true
+  #   sync: push
   #   style: geltungsbereich
   #   operations:
   #     - type: copy
@@ -216,7 +216,7 @@ geomLayers:
   #         - name: "Hecke"
   #     - type: dissolve
   - name: Geltungsbereich C
-    # updateDxf: true
+    # sync: push
     style: geltungsbereich
     operations:
       - type: copy
@@ -262,7 +262,7 @@ geomLayers:
           - name: "Hecke"
       - type: dissolve
   - name: Geltungsbereich D
-    # updateDxf: true
+    # sync: push
     style: geltungsbereich
     operations:
       - type: copy
@@ -301,7 +301,7 @@ geomLayers:
       - type: dissolve
 
   - name: Geltungsbereiche
-    updateDxf: true
+    sync: push
     style: geltungsbereich
     operations:
       - type: dissolve
@@ -312,7 +312,7 @@ geomLayers:
           - name: "Geltungsbereich D"
 
   - name: Geltungsbereich 2
-    updateDxf: true
+    sync: push
     linetypeScale: 1
     style: geltungsbereich_2
     operations:
@@ -337,7 +337,7 @@ geomLayers:
 
   ### Grünfläche
   - name: "Grünfläche"
-    # updateDxf: true
+    # sync: push
     operations:
       - type: dissolve
         layers:
@@ -360,7 +360,7 @@ geomLayers:
 
   # Create inner green area (buffered inward) for hatching
   - name: "Ausgleich Grünfläche"
-    updateDxf: true
+    sync: push
     operations:
       - type: copy
         layers:
@@ -372,7 +372,7 @@ geomLayers:
         preserveIslands: true
 
   - name: "Grünfläche Schraffur"
-    updateDxf: true
+    sync: push
     style: grünfläche
     applyHatch:
       layers:
@@ -380,7 +380,7 @@ geomLayers:
 
   # T-Line system for protection area boundaries (ring from original area)
   - name: "Ausgleich Schutzflächeumgrenzung"
-    updateDxf: true
+    sync: push
     operations:
       - type: copy
         layers:
@@ -391,14 +391,14 @@ geomLayers:
         mode: ring
 
   - name: "Grünfläche T-Linie Symbol Schraffur"
-    updateDxf: true
+    sync: push
     style: schutzflächeumgrenzung
     applyHatch:
       layers:
         - "Ausgleich Schutzflächeumgrenzung"
 
   - name: Biotope Puffer Schraffur
-    updateDxf: true
+    sync: push
     style: grünfläche
     applyHatch:
       layers:
@@ -406,7 +406,7 @@ geomLayers:
 
   ### Baufeld and Baugrenze ###
   - name: Baufeld
-    updateDxf: true
+    sync: push
     close: true
     viewports:
       - name: WorkView
@@ -435,14 +435,14 @@ geomLayers:
           - Polygon
 
   - name: Baufeld Schraffur
-    updateDxf: true
+    sync: push
     style: baufeld
     applyHatch:
       layers:
         - Baufeld
 
   - name: Baugrenze
-    updateDxf: true
+    sync: push
     style: baugrenze
     linetypeScale: 0.5
     linetypeGeneration: true
@@ -456,7 +456,7 @@ geomLayers:
 
 
   - name: Baugrenze 2
-    updateDxf: true
+    sync: push
     style: baugrenze_2
     close: true
     operations:

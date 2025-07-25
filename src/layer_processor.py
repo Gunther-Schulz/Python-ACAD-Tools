@@ -141,7 +141,7 @@ class LayerProcessor:
                 return
 
             # Check for unrecognized keys
-            recognized_keys = {'name', 'updateDxf', 'operations', 'shapeFile', 'type', 'sourceLayer',
+            recognized_keys = {'name', 'sync', 'operations', 'shapeFile', 'type', 'sourceLayer',
                               'outputShapeFile', 'style', 'close', 'linetypeScale', 'linetypeGeneration',
                               'viewports', 'attributes', 'bluntAngles', 'label', 'applyHatch', 'plot', 'saveToLagefaktor'}
             unrecognized_keys = set(layer_obj.keys()) - recognized_keys

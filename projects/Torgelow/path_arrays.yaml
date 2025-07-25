@@ -1,6 +1,6 @@
 pathArrays:
   - name: "Schutzflächeumgrenzung T-Symbol Array"
-    updateDxf: true
+    sync: push
     sourceLayer: "Schutzflächeumgrenzung T-Symbol Temp"
     block: "T-Symbol"
     spacing: 7

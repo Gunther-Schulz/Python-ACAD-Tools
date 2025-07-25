@@ -1,6 +1,6 @@
 pathArrays:
   - name: "Grünfläche T-Linie Symbol"
-    updateDxf: true
+    sync: push
     sourceLayer: "Ausgleich Schutzflächeumgrenzung"
     block: "T-Symbol"
     spacing: 7
