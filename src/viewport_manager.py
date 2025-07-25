@@ -76,28 +76,24 @@ class ViewportManager(UnifiedSyncProcessor):
 
         # Extract properties from AutoCAD viewport
         try:
-            updated_config = self._extract_entity_properties(existing_viewport, config)
+            # Extract ONLY the changeable properties from AutoCAD viewport
+            extracted_props = self._extract_entity_properties(existing_viewport, config)
 
-            # Update the configuration in project_settings
+            if not extracted_props:
+                log_warning(f"No properties extracted from viewport '{name}' - keeping original config")
+                return None
+
+            # Update the configuration in project_settings with intelligent merging
             viewport_configs = self.project_settings.get('viewports', []) or []
             for i, original_config in enumerate(viewport_configs):
                 if original_config.get('name') == name:
-                    # Preserve sync direction and other non-geometric properties
-                    # Only preserve explicitly set sync directions - let entities inherit global default
-                    if 'sync' in original_config:
-                        updated_config['sync'] = original_config['sync']
-                    # DO NOT automatically add explicit sync settings
-                    if 'frozenLayers' in original_config:
-                        updated_config['frozenLayers'] = original_config['frozenLayers']
-                    if 'visibleLayers' in original_config:
-                        updated_config['visibleLayers'] = original_config['visibleLayers']
-                    if 'lockZoom' in original_config:
-                        updated_config['lockZoom'] = original_config['lockZoom']
-                    if 'color' in original_config:
-                        updated_config['color'] = original_config['color']
-                    if 'layer' in original_config:
-                        updated_config['layer'] = original_config['layer']
+                    # Start with complete original config to preserve ALL metadata
+                    updated_config = original_config.copy()
 
+                    # Update only the extracted properties (changeable from DXF)
+                    updated_config.update(extracted_props)
+
+                    # Replace the config in the list
                     viewport_configs[i] = updated_config
                     break
 
@@ -392,58 +388,60 @@ class ViewportManager(UnifiedSyncProcessor):
             return []
 
     def _extract_entity_properties(self, entity, base_config):
-        """Extract viewport properties from AutoCAD viewport entity."""
-        config = {'name': base_config['name']}
+        """
+        Extract only the changeable properties from AutoCAD viewport entity.
+
+        This is a PURE extraction function that only extracts DXF properties
+        without touching metadata or other preserved fields.
+        """
+        extracted_props = {}
 
         try:
             # Extract physical viewport properties
             center = entity.dxf.center
-            config['center'] = {'x': float(center[0]), 'y': float(center[1])}
-            config['width'] = float(entity.dxf.width)
-            config['height'] = float(entity.dxf.height)
+            extracted_props['center'] = {'x': float(center[0]), 'y': float(center[1])}
+            extracted_props['width'] = float(entity.dxf.width)
+            extracted_props['height'] = float(entity.dxf.height)
 
             # Extract view properties
             view_center = entity.dxf.view_center_point
-            config['viewCenter'] = {'x': float(view_center[0]), 'y': float(view_center[1])}
+            extracted_props['viewCenter'] = {'x': float(view_center[0]), 'y': float(view_center[1])}
 
             # Calculate scale from view_height and physical height
             view_height = float(entity.dxf.view_height)
             physical_height = float(entity.dxf.height)
             if physical_height > 0:
                 scale = view_height / physical_height
-                config['scale'] = round(scale, 6)
+                extracted_props['scale'] = round(scale, 6)
 
             # Extract color if it's not default
             if hasattr(entity.dxf, 'color') and entity.dxf.color != 256:  # 256 = BYLAYER
                 color_code = entity.dxf.color
                 for name, aci in self.name_to_aci.items():
                     if aci == color_code:
-                        config['color'] = name
+                        extracted_props['color'] = name
                         break
                 else:
                     # If no name found for color code, use the numeric value
-                    config['color'] = str(color_code)
+                    extracted_props['color'] = str(color_code)
 
             # Extract frozen layers if any
             if hasattr(entity, 'frozen_layers') and entity.frozen_layers:
-                config['frozenLayers'] = list(entity.frozen_layers)
+                extracted_props['frozenLayers'] = list(entity.frozen_layers)
 
             # Extract zoom lock flag
             if hasattr(entity.dxf, 'flags') and (entity.dxf.flags & 16384):  # VSF_LOCK_ZOOM
-                config['lockZoom'] = True
+                extracted_props['lockZoom'] = True
 
             # Extract layer if it's not the default
             if hasattr(entity.dxf, 'layer') and entity.dxf.layer != self.default_layer:
-                config['layer'] = entity.dxf.layer
+                extracted_props['layer'] = entity.dxf.layer
 
-            return config
+            return extracted_props
 
         except Exception as e:
             log_error(f"Error extracting viewport properties: {str(e)}")
-            # Return minimal config on error
-            minimal_config = {'name': base_config['name']}
-            # Don't add explicit sync settings - let entity inherit global default
-            return minimal_config
+            return {}  # Return empty dict on error - let merge handle it
 
     def _attach_entity_metadata(self, entity, config):
         """Attach custom metadata to a viewport to mark it as managed by this script."""

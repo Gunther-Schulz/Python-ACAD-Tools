@@ -97,23 +97,24 @@ class TextInsertManager(UnifiedSyncProcessor):
             return None
 
         try:
-            # Extract properties from AutoCAD text entity
-            updated_config = self._extract_text_properties(existing_text, config)
+            # Extract ONLY the changeable properties from AutoCAD text entity
+            extracted_props = self._extract_text_properties(existing_text, config)
 
-            # Update the configuration in project_settings
+            if not extracted_props:
+                log_warning(f"No properties extracted from text '{name}' - keeping original config")
+                return None
+
+            # Update the configuration in project_settings with intelligent merging
             text_configs = self._get_entity_configs()
             for i, original_config in enumerate(text_configs):
                 if original_config.get('name') == name:
-                    # Preserve sync direction and other non-geometric properties
-                    if 'sync' in original_config:
-                        updated_config['sync'] = original_config['sync']
-                    # DO NOT automatically add explicit sync settings - let entities inherit global default
+                    # Start with complete original config to preserve ALL metadata
+                    updated_config = original_config.copy()
 
-                    # Preserve other configuration properties
-                    for key in ['style', 'layer', 'paperspace', 'justification']:
-                        if key in original_config:
-                            updated_config[key] = original_config[key]
+                    # Update only the extracted properties (changeable from DXF)
+                    updated_config.update(extracted_props)
 
+                    # Replace the config in the list
                     text_configs[i] = updated_config
                     break
 
@@ -139,13 +140,18 @@ class TextInsertManager(UnifiedSyncProcessor):
             return None  # Entity not found
 
     def _extract_text_properties(self, text_entity, base_config):
-        """Extract text properties from AutoCAD text entity."""
-        config = {'name': base_config['name']}
+        """
+        Extract only the changeable properties from AutoCAD text entity.
+
+        This is a PURE extraction function that only extracts DXF properties
+        without touching metadata or other preserved fields.
+        """
+        extracted_props = {}
 
         try:
             # Extract position
             insert_point = text_entity.dxf.insert
-            config['position'] = {
+            extracted_props['position'] = {
                 'type': 'absolute',
                 'x': float(insert_point[0]),
                 'y': float(insert_point[1])
@@ -156,27 +162,27 @@ class TextInsertManager(UnifiedSyncProcessor):
                 # Use ezdxf's plain_text() method to properly handle MTEXT formatting codes
                 plain_text = text_entity.plain_text()
                 # Convert actual newlines back to literal \n for YAML consistency
-                config['text'] = plain_text.replace('\n', '\\n')
+                extracted_props['text'] = plain_text.replace('\n', '\\n')
             else:  # TEXT entity
-                config['text'] = text_entity.dxf.text
+                extracted_props['text'] = text_entity.dxf.text
 
             # Extract layer
-            config['layer'] = text_entity.dxf.layer
+            extracted_props['layer'] = text_entity.dxf.layer
 
             # Determine if it's in paperspace
             # This is a simple heuristic - could be improved
             for layout in text_entity.doc.layouts:
                 if layout.name.startswith('*Paper') and text_entity in layout:
-                    config['paperspace'] = True
+                    extracted_props['paperspace'] = True
                     break
             else:
-                config['paperspace'] = False
+                extracted_props['paperspace'] = False
 
-            return config
+            return extracted_props
 
         except Exception as e:
             log_error(f"Error extracting text properties: {str(e)}")
-            return {'name': base_config['name']}
+            return {}  # Return empty dict on error - let merge handle it
 
     # _write_entity_yaml is now centralized in SyncManagerBase
 
