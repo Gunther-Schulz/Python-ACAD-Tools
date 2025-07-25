@@ -1,23 +1,23 @@
-blocks:
-- name: SO EBS Label
-  blockName: Sonstiges Sondergebiet EBS
-  scale: 6.0
-  rotation: 0
-  position:
-    type: absolute
-    x: 282212.5758
-    y: 5967201.5467
-  paperspace: false
-- name: SO EBS Label2
-  blockName: Sonstiges Sondergebiet EBS
-  scale: 6.0
-  rotation: 0
-  position:
-    type: absolute
-    x: 282232.5758
-    y: 5967271.5467
-  paperspace: false
-discover_untracked: false
-deletion_policy: auto
-default_layer: MyBlocks
-sync: auto
+# blocks:
+# - name: SO EBS Label
+#   blockName: Sonstiges Sondergebiet EBS
+#   scale: 6.0
+#   rotation: 0
+#   position:
+#     type: absolute
+#     x: 282212.5758
+#     y: 5967201.5467
+#   paperspace: false
+# - name: SO EBS Label2
+#   blockName: Sonstiges Sondergebiet EBS
+#   scale: 6.0
+#   rotation: 0
+#   position:
+#     type: absolute
+#     x: 282232.5758
+#     y: 5967271.5467
+#   paperspace: false
+# discover_untracked: false
+# deletion_policy: auto
+# default_layer: MyBlocks
+# sync: auto

@@ -28,4 +28,4 @@ viewports:
 discover_untracked: false
 deletion_policy: auto
 default_layer: VIEWPORTS
-sync: auto
+sync: push
