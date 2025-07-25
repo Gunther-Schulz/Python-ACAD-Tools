@@ -169,14 +169,21 @@ class TextInsertManager(UnifiedSyncProcessor):
             # Extract layer
             extracted_props['layer'] = text_entity.dxf.layer
 
-            # Determine if it's in paperspace
-            # This is a simple heuristic - could be improved
-            for layout in text_entity.doc.layouts:
-                if layout.name.startswith('*Paper') and text_entity in layout:
-                    extracted_props['paperspace'] = True
-                    break
-            else:
-                extracted_props['paperspace'] = False
+            # Determine paperspace using reliable DXF owner-based detection
+            try:
+                # Get the entity's owner (layout handle) - this is the DXF-standard way
+                owner_handle = text_entity.dxf.owner
+                doc = text_entity.doc
+                layout_record = doc.entitydb[owner_handle]
+                layout_name = layout_record.dxf.name
+
+                # According to DXF spec - this is deterministic and reliable
+                extracted_props['paperspace'] = layout_name.startswith('*Paper_Space')
+
+            except Exception as e:
+                log_warning(f"Could not determine paperspace for text '{base_config.get('name', 'unnamed')}': {str(e)}")
+                # Fallback: don't include paperspace to preserve original value
+                pass
 
             return extracted_props
 
