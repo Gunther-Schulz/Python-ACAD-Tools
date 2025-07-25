@@ -4,8 +4,8 @@ texts:
     type: absolute
     x: 66.0
     y: 840.0
-  text: 'Entwurf: vorhabensbezogener Bebauungsplan Nr. 06 „Solarpark an der Lindenallee"\nder
-    Gemeinde Torgelow am See'
+  text: 'Entwurf: Bebauungsplan Nr. 3 „Solarpark Bibow"\nder
+    Gemeinde Bibow'
   layer: Plantext
   paperspace: true
   style: mainTitle
@@ -18,7 +18,7 @@ texts:
   layer: Plantext
   paperspace: true
   style: mapHeader
-- name: Übersichtslarte Header
+- name: Übersichtskarte Header
   position:
     type: absolute
     x: 817.0
@@ -32,49 +32,12 @@ texts:
     type: absolute
     x: 1105.134087111859
     y: 248.0
-  text: 'VORENTWURF\nSATZUNG DER GEMEINDE\nTORGELOW AM SEE\nÜBER DEN VORHABENSBEZOGENER
-    BEBAUUNGSPLAN\nNR: 06 „SOLARPARK AN DER LINDENALLEE"'
+  text: 'VORENTWURF\nSATZUNG DER GEMEINDE\nBIBOW\nÜBER DEN VORHABENSBEZOGENER
+    BEBAUUNGSPLAN\nNR: 3 „SOLARPARK BIBOW"'
   layer: Plantext
   paperspace: true
-  style: satzungste
+  style: satzungstext
   justification: CENTER
-- name: Text_pqlEntwurf_vorhabensbezogener_Bebauungsplan
-  position:
-    type: absolute
-    x: 66.0
-    y: 840.0
-  text: 'Entwurf: vorhabensbezogener Bebauungsplan Nr. 06 „Solarpark an der Lindenallee"\nder
-    Gemeinde Torgelow am See'
-  layer: Plantext
-  paperspace: false
-  style: Arial
-- name: Text_Teil_A_Planzeichnung
-  position:
-    type: absolute
-    x: 66.0
-    y: 788.0
-  text: 'Teil A: Planzeichnung i. M. 1:2.000'
-  layer: Plantext
-  paperspace: false
-  style: Arial
-- name: Text_pqlÜbersichtskarte_i_M
-  position:
-    type: absolute
-    x: 817.0
-    y: 385.0
-  text: Übersichtskarte i. M. 1:30.000
-  layer: Plantext
-  paperspace: false
-  style: Arial
-- name: Text_VORENTWURFPSATZUNG_DER_GEMEINDEPTORGELOW
-  position:
-    type: absolute
-    x: 1105.134087111859
-    y: 248.0
-  text: 'VORENTWURF\nSATZUNG DER GEMEINDE\nTORGELOW AM SEE\nÜBER DEN VORHABENSBEZOGENER
-    BEBAUUNGSPLAN\nNR: 06 „SOLARPARK AN DER LINDENALLEE"'
-  layer: Plantext
-  paperspace: false
 discover_untracked: true
 deletion_policy: auto
 default_layer: Plantext
