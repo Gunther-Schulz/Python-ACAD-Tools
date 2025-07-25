@@ -25,7 +25,7 @@ viewports:
   frozenLayers:
   - Gebäude
   lockZoom: true
-discover_untracked: false
+discover_untracked: true
 deletion_policy: auto
 default_layer: VIEWPORTS
-sync: push
+sync: auto
