@@ -831,7 +831,7 @@ class SyncManagerBase(ABC):
 
     def _get_target_space(self, doc, config):
         """
-        Get the target space (model or paper) for an entity.
+        Get the target space (model or paper) for an entity with owner-based verification.
 
         Args:
             doc: DXF document
@@ -840,7 +840,28 @@ class SyncManagerBase(ABC):
         Returns:
             Space object (doc.modelspace() or doc.paperspace())
         """
-        return doc.paperspace() if config.get('paperspace', False) else doc.modelspace()
+        config_paperspace = config.get('paperspace', False)
+        target_space = doc.paperspace() if config_paperspace else doc.modelspace()
+
+        # For existing entities, verify config matches actual location
+        if '_sync' in config and 'dxf_handle' in config['_sync']:
+            try:
+                from src.dxf_utils import detect_entity_paperspace
+                entity_handle = config['_sync']['dxf_handle']
+                entity = target_space.get_entity_by_handle(entity_handle)
+
+                if entity:
+                    actual_paperspace = detect_entity_paperspace(entity)
+                    if actual_paperspace is not None and actual_paperspace != config_paperspace:
+                        entity_name = config.get('name', 'unnamed')
+                        log_debug(f"Space mismatch for '{entity_name}': config says {'paperspace' if config_paperspace else 'modelspace'}, "
+                                f"but entity is in {'paperspace' if actual_paperspace else 'modelspace'}")
+                        # Return actual space to handle entity where it really is
+                        return doc.paperspace() if actual_paperspace else doc.modelspace()
+            except Exception as e:
+                log_debug(f"Error verifying target space: {str(e)}")
+
+        return target_space
 
     def _calculate_entity_hash(self, config):
         """

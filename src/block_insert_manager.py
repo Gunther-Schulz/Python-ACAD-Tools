@@ -2,7 +2,7 @@ import random
 import math
 from shapely.geometry import Point
 from src.utils import log_info, log_warning, log_error, log_debug
-from src.dxf_utils import add_block_reference, remove_entities_by_layer, attach_custom_data, find_entity_by_xdata_name, XDATA_APP_ID
+from src.dxf_utils import add_block_reference, remove_entities_by_layer, attach_custom_data, find_entity_by_xdata_name, XDATA_APP_ID, detect_entity_paperspace
 from src.unified_sync_processor import UnifiedSyncProcessor
 from src.sync_hash_utils import clean_entity_config_for_yaml_output
 
@@ -282,7 +282,7 @@ class BlockInsertManager(UnifiedSyncProcessor):
         try:
             log_info(f"🔍 DEBUG: Searching for block '{entity_name}' with script ID '{self.script_identifier}'")
 
-            # Search in both model space and paper space
+            # Search modelspace first (where most block inserts like equipment symbols are), then paperspace
             spaces = [doc.modelspace(), doc.paperspace()]
 
             for space in spaces:
@@ -333,6 +333,7 @@ class BlockInsertManager(UnifiedSyncProcessor):
 
         # STEP 1: Try handle-first search in both spaces (block-specific behavior)
         if stored_handle:
+            # Prioritize modelspace first since most block inserts are design elements in modelspace
             spaces = [doc.modelspace(), doc.paperspace()]
             for space in spaces:
                 try:
@@ -356,6 +357,11 @@ class BlockInsertManager(UnifiedSyncProcessor):
 
     def _extract_dxf_entity_properties_for_hash(self, entity):
         """Extract properties from DXF entity for hash calculation."""
+        # Determine paperspace using shared reliable detection
+        paperspace = detect_entity_paperspace(entity)
+        if paperspace is None:
+            paperspace = False  # Fallback for hash consistency
+
         properties = {
             'position': {
                 'x': round(entity.dxf.insert.x, 6),
@@ -365,7 +371,7 @@ class BlockInsertManager(UnifiedSyncProcessor):
             'layer': entity.dxf.layer,
             'scale': getattr(entity.dxf, 'xscale', 1.0),
             'rotation': round(math.degrees(getattr(entity.dxf, 'rotation', 0.0)), 6),
-            'paperspace': entity.dxf.paperspace
+            'paperspace': paperspace
         }
 
         return properties
@@ -511,7 +517,8 @@ class BlockInsertManager(UnifiedSyncProcessor):
         return ['INSERT']
 
     def _get_discovery_spaces(self, doc):
-        """Block entities can be in both model space and paper space."""
+        """Block entities can be in both spaces - prioritize modelspace for efficiency since most blocks are in modelspace."""
+        # Prioritize modelspace first since most block inserts (equipment symbols, etc.) are in modelspace
         return [doc.modelspace(), doc.paperspace()]
 
     def _generate_entity_name(self, entity, counter):
@@ -531,6 +538,11 @@ class BlockInsertManager(UnifiedSyncProcessor):
     def _extract_entity_properties_for_discovery(self, entity):
         """Extract block insert properties for auto-discovery."""
         try:
+            # Determine paperspace using shared reliable detection
+            paperspace = detect_entity_paperspace(entity)
+            if paperspace is None:
+                paperspace = False  # Fallback for discovery
+
             position = {'type': 'absolute', 'x': float(entity.dxf.insert[0]), 'y': float(entity.dxf.insert[1])}
             return {
                 'blockName': entity.dxf.name,
@@ -538,7 +550,7 @@ class BlockInsertManager(UnifiedSyncProcessor):
                 'scale': float(getattr(entity.dxf, 'xscale', 1.0)),
                 'rotation': float(getattr(entity.dxf, 'rotation', 0.0)),
                 'layer': entity.dxf.layer,
-                'paperspace': False  # Will be inherited from original
+                'paperspace': paperspace
             }
         except Exception as e:
             log_warning(f"Error extracting block insert properties: {str(e)}")

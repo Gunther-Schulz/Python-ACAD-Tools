@@ -1323,7 +1323,7 @@ def delete_entities_clean(entities, purge_threshold=10):
 
 def _get_entity_space(entity):
     """
-    Get the appropriate space (modelspace/paperspace) for an entity.
+    Get the appropriate space (modelspace/paperspace) for an entity using reliable owner-based detection.
 
     Args:
         entity: DXF entity
@@ -1336,22 +1336,17 @@ def _get_entity_space(entity):
         if not doc:
             return None
 
-        # Check paperspace first (entities are often in paperspace)
-        paperspace = doc.paperspace()
-        if entity in paperspace:
-            return paperspace
+        # Use reliable owner-based detection instead of unreliable iteration
+        paperspace = detect_entity_paperspace(entity)
 
-        # Check modelspace
-        modelspace = doc.modelspace()
-        if entity in modelspace:
-            return modelspace
-
-        # If entity is not found in either space, try to determine by layout
-        # This handles edge cases where the entity might be in a specific layout
-        if hasattr(entity.dxf, 'paperspace') and entity.dxf.paperspace:
-            return paperspace
+        if paperspace is True:
+            return doc.paperspace()
+        elif paperspace is False:
+            return doc.modelspace()
         else:
-            return modelspace
+            # Detection failed - fallback to modelspace as safe default
+            log_debug(f"Owner-based space detection failed for entity {getattr(entity.dxf, 'handle', 'unknown')}, using modelspace")
+            return doc.modelspace()
 
     except Exception as e:
         log_debug(f"Error determining entity space: {str(e)}")
@@ -1569,3 +1564,33 @@ def read_cad_layer_to_geodataframe(doc, layer_name, crs):
     else:
         log_debug(f"No geometries found in layer {layer_name}")
         return gpd.GeoDataFrame(geometry=[], crs=crs)
+
+def detect_entity_paperspace(entity):
+    """
+    Reliably detect if an entity is in paperspace using DXF owner-based detection.
+
+    This function uses the entity's actual layout ownership to determine paperspace,
+    which is more reliable than iteration-based or attribute-based heuristics.
+
+    Args:
+        entity: DXF entity (TEXT, MTEXT, INSERT, etc.)
+
+    Returns:
+        bool: True if entity is in paperspace, False if in modelspace
+        None: If detection failed (caller should handle gracefully)
+    """
+    try:
+        # Get the entity's owner (layout handle) - this is the DXF-standard way
+        owner_handle = entity.dxf.owner
+        doc = entity.doc
+        layout_record = doc.entitydb[owner_handle]
+        layout_name = layout_record.dxf.name
+
+        # According to DXF spec - this is deterministic and reliable:
+        # - "*Model_Space" = modelspace (paperspace = false)
+        # - "*Paper_Space*" = any paperspace (paperspace = true)
+        return layout_name.startswith('*Paper_Space')
+
+    except Exception as e:
+        log_debug(f"Could not determine paperspace for entity {getattr(entity.dxf, 'handle', 'unknown')}: {str(e)}")
+        return None

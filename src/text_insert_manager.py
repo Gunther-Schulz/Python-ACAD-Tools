@@ -1,6 +1,6 @@
 import traceback
 from src.utils import log_info, log_warning, log_error, log_debug
-from src.dxf_utils import add_mtext, remove_entities_by_layer, XDATA_APP_ID, attach_custom_data, find_entity_by_xdata_name
+from src.dxf_utils import add_mtext, remove_entities_by_layer, XDATA_APP_ID, attach_custom_data, find_entity_by_xdata_name, detect_entity_paperspace
 from src.unified_sync_processor import UnifiedSyncProcessor
 from src.sync_hash_utils import clean_entity_config_for_yaml_output
 
@@ -126,18 +126,15 @@ class TextInsertManager(UnifiedSyncProcessor):
 
     def _find_text_by_name(self, doc, name):
         """Find a text entity by name using custom data."""
-        # Text inserts work only in paperspace, not modelspace
-        paper_space = doc.paperspace()
-        entity = find_entity_by_xdata_name(paper_space, name, ['TEXT', 'MTEXT'])
+        # Search modelspace first (where most text entities are), then paperspace
+        spaces = [doc.modelspace(), doc.paperspace()]
 
-        # Validate entity handle (auto sync integrity check)
-        if entity and self._validate_entity_handle(entity, name):
-            return entity
-        elif entity:
-            # Entity found but failed validation (copied entity)
-            return None  # Treat as missing to trigger push
-        else:
-            return None  # Entity not found
+        for space in spaces:
+            entity = find_entity_by_xdata_name(space, name, ['TEXT', 'MTEXT'])
+            if entity and self._validate_entity_handle(entity, name):
+                return entity
+
+        return None
 
     def _extract_text_properties(self, text_entity, base_config):
         """
@@ -169,21 +166,11 @@ class TextInsertManager(UnifiedSyncProcessor):
             # Extract layer
             extracted_props['layer'] = text_entity.dxf.layer
 
-            # Determine paperspace using reliable DXF owner-based detection
-            try:
-                # Get the entity's owner (layout handle) - this is the DXF-standard way
-                owner_handle = text_entity.dxf.owner
-                doc = text_entity.doc
-                layout_record = doc.entitydb[owner_handle]
-                layout_name = layout_record.dxf.name
-
-                # According to DXF spec - this is deterministic and reliable
-                extracted_props['paperspace'] = layout_name.startswith('*Paper_Space')
-
-            except Exception as e:
-                log_warning(f"Could not determine paperspace for text '{base_config.get('name', 'unnamed')}': {str(e)}")
-                # Fallback: don't include paperspace to preserve original value
-                pass
+            # Determine paperspace using shared reliable detection function
+            paperspace = detect_entity_paperspace(text_entity)
+            if paperspace is not None:
+                extracted_props['paperspace'] = paperspace
+            # If detection failed, don't include paperspace to preserve original value
 
             return extracted_props
 
@@ -194,7 +181,7 @@ class TextInsertManager(UnifiedSyncProcessor):
     # _write_entity_yaml is now centralized in SyncManagerBase
 
     def clean_target_layers(self, doc, configs_to_process):
-        """Clean target layers for text configs (paperspace only)."""
+        """Clean target layers for text configs (both spaces, prioritizing modelspace)."""
         target_layers = set()
         for config in configs_to_process:
             sync_direction = self._get_sync_direction(config)
@@ -202,10 +189,12 @@ class TextInsertManager(UnifiedSyncProcessor):
                 layer_name = self._resolve_entity_layer(config)
                 target_layers.add(layer_name)
 
-        # Text inserts work only in paperspace, not modelspace
+        # Text entities can be in both spaces - clean both with modelspace priority
         for layer_name in target_layers:
-            log_debug(f"Cleaning text entities from layer: {layer_name}")
-            remove_entities_by_layer(doc.paperspace(), layer_name, self.script_identifier)
+            spaces = [doc.modelspace(), doc.paperspace()]
+            for space in spaces:
+                log_debug(f"Cleaning text entities from layer: {layer_name} in {space}")
+                remove_entities_by_layer(space, layer_name, self.script_identifier)
 
     def _discover_unknown_entities(self, doc, space):
         """Discover text entities in AutoCAD that aren't managed by this script."""
@@ -409,16 +398,13 @@ class TextInsertManager(UnifiedSyncProcessor):
                     config['justification'] = attach_point_map[entity.dxf.attach_point]
                     log_debug(f"Extracted justification: {config['justification']}")
 
-            # Extract paperspace flag
-            # Check if entity is in paperspace vs modelspace
-            try:
-                if hasattr(entity, 'doc') and entity.doc:
-                    paperspace_entities = list(entity.doc.paperspace())
-                    config['paperspace'] = any(e.dxf.handle == entity.dxf.handle for e in paperspace_entities)
-                    log_debug(f"Extracted paperspace: {config['paperspace']}")
-            except Exception as e:
-                log_debug(f"Error checking paperspace: {str(e)}")
-                config['paperspace'] = False
+            # Extract paperspace flag using shared reliable detection
+            paperspace = detect_entity_paperspace(entity)
+            if paperspace is not None:
+                config['paperspace'] = paperspace
+                log_debug(f"Extracted paperspace: {config['paperspace']}")
+            else:
+                config['paperspace'] = False  # Fallback for hash consistency
 
             # The following properties are intentionally NOT included in canonical properties:
             # - height: DXF implementation detail, varies by style
@@ -438,9 +424,15 @@ class TextInsertManager(UnifiedSyncProcessor):
 
     def _get_text_by_name(self, doc, name):
         """Retrieve a text entity by its name using xdata."""
-        # Text inserts work only in paperspace, not modelspace
-        paper_space = doc.paperspace()
-        return find_entity_by_xdata_name(paper_space, name, ['TEXT', 'MTEXT'])
+        # Search modelspace first (where most text entities are), then paperspace
+        spaces = [doc.modelspace(), doc.paperspace()]
+
+        for space in spaces:
+            entity = find_entity_by_xdata_name(space, name, ['TEXT', 'MTEXT'])
+            if entity:
+                return entity
+
+        return None
 
     # Abstract method implementations for centralized discovery
     # ========================================================
@@ -450,8 +442,8 @@ class TextInsertManager(UnifiedSyncProcessor):
         return ['TEXT', 'MTEXT']
 
     def _get_discovery_spaces(self, doc):
-        """Text entities are only in paperspace."""
-        return [doc.paperspace()]
+        """Text entities can be in both spaces - prioritize modelspace for efficiency since most text is in modelspace."""
+        return [doc.modelspace(), doc.paperspace()]
 
     def _generate_entity_name(self, entity, counter):
         """Generate name based on text content or handle."""

@@ -561,8 +561,8 @@ class ViewportManager(UnifiedSyncProcessor):
         return ['VIEWPORT']
 
     def _get_discovery_spaces(self, doc):
-        """Viewport entities are in all layouts."""
-        return list(doc.layouts)
+        """Viewport entities are always in paperspace - no need to search all layouts."""
+        return [doc.paperspace()]
 
     def _generate_entity_name(self, entity, counter):
         """Generate name based on handle."""
