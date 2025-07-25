@@ -108,8 +108,12 @@ def add_imports(content, file_name):
 def main():
     remove_existing_files()
 
-    with open('src/layer_processor.old.py', 'r') as f:
-        content = f.read()
+    # BROKEN: Referenced file does not exist
+    # with open('src/layer_processor.old.py', 'r') as f:
+    #     content = f.read()
+    print("ERROR: gen_operations.py references non-existent 'src/layer_processor.old.py'")
+    print("This script appears to be broken and should be fixed or removed.")
+    return
 
     create_directory_structure()
     create_file('src/operations/__init__.py', '')

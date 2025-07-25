@@ -82,7 +82,6 @@ def debug_xdata_attachment():
         # Test name extraction
         print(f"\n📝 Testing name extraction...")
 
-        from src.sync_manager_base import SyncManagerBase
         from src.project_loader import ProjectLoader
         from src.block_insert_manager import BlockInsertManager
 

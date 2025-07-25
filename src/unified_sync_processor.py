@@ -610,7 +610,7 @@ class UnifiedSyncProcessor(ABC):
 
         return target_layers
 
-    # Note: _get_target_space is implemented here since UnifiedSyncProcessor is separate from SyncManagerBase
+    # Note: _get_target_space is implemented here in UnifiedSyncProcessor
     def _get_target_space(self, doc, config):
         """
         Get the target space (model or paper) for an entity with owner-based verification.

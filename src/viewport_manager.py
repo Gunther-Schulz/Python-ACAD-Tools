@@ -45,7 +45,7 @@ class ViewportManager(UnifiedSyncProcessor):
             log_error(f"Error during viewport synchronization: {str(e)}")
             return {}
 
-    # _write_entity_yaml is now centralized in SyncManagerBase
+    # _write_entity_yaml is now implemented in UnifiedSyncProcessor
 
     def _sync_push(self, doc, space, config):
         """Sync YAML → AutoCAD (create/update viewport from config)."""
@@ -324,7 +324,7 @@ class ViewportManager(UnifiedSyncProcessor):
 
     def _discover_unknown_entities(self, doc, space):
         """Discover viewports in AutoCAD that aren't managed by this script."""
-        # Use centralized discovery logic from SyncManagerBase
+        # Use centralized discovery logic from UnifiedSyncProcessor
         return super()._discover_unknown_entities(doc, space)
 
     def _handle_entity_deletions(self, doc, space):

@@ -178,7 +178,7 @@ class TextInsertManager(UnifiedSyncProcessor):
             log_error(f"Error extracting text properties: {str(e)}")
             return {}  # Return empty dict on error - let merge handle it
 
-    # _write_entity_yaml is now centralized in SyncManagerBase
+    # _write_entity_yaml is now implemented in UnifiedSyncProcessor
 
     def clean_target_layers(self, doc, configs_to_process):
         """Clean target layers for text configs (both spaces, prioritizing modelspace)."""
@@ -198,7 +198,7 @@ class TextInsertManager(UnifiedSyncProcessor):
 
     def _discover_unknown_entities(self, doc, space):
         """Discover text entities in AutoCAD that aren't managed by this script."""
-        # Use centralized discovery logic from SyncManagerBase
+        # Use centralized discovery logic from UnifiedSyncProcessor
         discovered = super()._discover_unknown_entities(doc, space)
 
         # Add hyperlinks for discovered text entities (text-specific behavior)
@@ -311,7 +311,7 @@ class TextInsertManager(UnifiedSyncProcessor):
             # Don't add explicit sync settings - let entity inherit global default
             return minimal_config
 
-    # _attach_entity_metadata and _calculate_entity_hash are now centralized in SyncManagerBase
+    # _attach_entity_metadata and _calculate_entity_hash are now implemented in UnifiedSyncProcessor
 
     def _find_entity_by_name(self, doc, entity_name):
         """Find a text entity by name."""

@@ -179,7 +179,7 @@ class BlockInsertManager(UnifiedSyncProcessor):
             return ((0, 0), rotation)  # Safe fallback
 
     # ============================================================================
-    # SyncManagerBase Abstract Method Implementations
+    # UnifiedSyncProcessor Abstract Method Implementations
     # ============================================================================
 
     def _get_entity_configs(self):
@@ -353,7 +353,7 @@ class BlockInsertManager(UnifiedSyncProcessor):
         log_debug(f"Falling back to name search for block '{entity_name}'")
         return self._find_entity_by_name(doc, entity_name)
 
-    # _calculate_entity_hash is now centralized in SyncManagerBase
+    # _calculate_entity_hash is now implemented in UnifiedSyncProcessor
 
     def _extract_dxf_entity_properties_for_hash(self, entity):
         """Extract properties from DXF entity for hash calculation."""
@@ -422,17 +422,17 @@ class BlockInsertManager(UnifiedSyncProcessor):
             log_warning(f"Error calculating hash for {self.entity_type} '{config.get('name', 'unnamed')}': {str(e)}")
             return "error_hash"
 
-    # _write_entity_yaml is now centralized in SyncManagerBase
+    # _write_entity_yaml is now implemented in UnifiedSyncProcessor
 
 
 
-    # _attach_entity_metadata is now centralized in SyncManagerBase
+    # _attach_entity_metadata is now implemented in UnifiedSyncProcessor
 
 
 
     def _discover_unknown_entities(self, doc, space):
         """Discover unknown block inserts in the DXF file."""
-        # Use centralized discovery logic from SyncManagerBase
+        # Use centralized discovery logic from UnifiedSyncProcessor
         return super()._discover_unknown_entities(doc, space)
 
     def _handle_entity_deletions(self, doc, space):
@@ -563,4 +563,4 @@ class BlockInsertManager(UnifiedSyncProcessor):
                 'paperspace': False
             }
 
-    # _get_config_key is now centralized in SyncManagerBase
+    # _get_config_key is now implemented in UnifiedSyncProcessor

@@ -28,7 +28,7 @@ from src.style_manager import StyleManager
 from src.viewport_manager import ViewportManager
 from src.block_insert_manager import BlockInsertManager
 from src.text_insert_manager import TextInsertManager
-# from src.geom_layer_sync_manager import GeomLayerSyncManager  # Removed - using enhanced LayerProcessor instead
+# Enhanced layer processor replaces legacy GeomLayerSyncManager functionality
 from src.reduced_dxf_creator import ReducedDXFCreator
 from src.dxf_processor import DXFProcessor
 

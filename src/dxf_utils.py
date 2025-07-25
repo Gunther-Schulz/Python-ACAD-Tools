@@ -446,15 +446,15 @@ def update_layer_geometry(msp, layer_name, script_identifier, update_function):
     update_function()
 
 def ensure_layer_exists(doc, layer_name):
-    """Ensure that a layer exists in the DXF document."""
-    if not doc.layers.has_entry(layer_name):
-        doc.layers.new(name=layer_name)
+    """Ensure a layer exists in the DXF document."""
+    if layer_name not in doc.layers:
+        doc.layers.add(layer_name)
         log_debug(f"Created new layer: {layer_name}")
     else:
         log_debug(f"Layer already exists: {layer_name}")
-    return doc.layers.get(layer_name)
 
 def update_layer_properties(layer, layer_properties, name_to_aci):
+    """Update layer properties with color, linetype, etc."""
     # Skip if no properties provided
     if not layer_properties:
         return
@@ -484,73 +484,21 @@ def update_layer_properties(layer, layer_properties, name_to_aci):
     if 'is_on' in layer_properties:
         layer.on = layer_properties['is_on']
 
-# def load_standard_linetypes(doc):
-#     linetypes = doc.linetypes
-
-#     acadiso_lin_file = 'acadiso.lin'  # Adjust this path if necessary
-
-#     if not os.path.exists(acadiso_lin_file):
-#         log_warning(f"acadiso.lin file not found at: {acadiso_lin_file}")
-#         return
-
-#     def parse_pattern(pattern_string):
-#         elements = []
-#         parts = pattern_string.split(',')
-#         for part in parts:
-#             part = part.strip()
-#             if part.startswith('['):
-#                 # Complex element, add as is
-#                 elements.append(part)
-#             else:
-#                 try:
-#                     elements.append(float(part))
-#                 except ValueError:
-#                     # Ignore non-numeric, non-complex elements
-#                     pass
-#         return elements
-
-#     with open(acadiso_lin_file, 'r') as file:
-#         current_linetype = None
-#         current_description = ''
-#         current_pattern = []
-
-#         for line in file:
-#             line = line.strip()
-#             if line.startswith('*'):
-#                 # New linetype definition
-#                 if current_linetype:
-#                     add_linetype(linetypes, current_linetype, current_description, current_pattern)
-
-#                 # Start a new linetype
-#                 parts = line[1:].split(',', 1)
-#                 current_linetype = parts[0]
-#                 current_description = parts[1] if len(parts) > 1 else ''
-#                 current_pattern = []
-#             elif line.startswith('A,'):
-#                 # Pattern definition
-#                 pattern_string = line[2:]
-#                 current_pattern = parse_pattern(pattern_string)
-
-#     # Add the last linetype
-#     if current_linetype:
-#         add_linetype(linetypes, current_linetype, current_description, current_pattern)
-
-#     # Verify that all linetypes are present
-#     for name in linetypes:
-#         log_debug(f"Linetype '{name}' is present in the document.")
-
-#     # Set a default linetype scale
-#     doc.header['$LTSCALE'] = 1.0  # Adjust this value as needed
-
-# def add_linetype(linetypes, name, description, pattern):
-#     if name not in linetypes:
-#         try:
-#             linetypes.add(name, pattern, description=description)
-#             log_debug(f"Added linetype: {name}")
-#         except Exception as e:
-#             log_warning(f"Failed to add linetype {name}: {str(e)}")
-#     else:
-#         log_debug(f"Linetype {name} already exists")
+def ensure_text_style_exists(doc, style_name, style_config):
+    """Ensure a text style exists in the DXF document."""
+    if style_name not in doc.styles:
+        try:
+            style = doc.styles.new(style_name)
+            style.dxf.font = style_config['font']
+            style.dxf.height = style_config['height']
+            style.dxf.width = 1.0  # Default width factor
+            style.dxf.oblique = 0.0  # Default oblique angle
+            style.dxf.last_height = 2.5  # Default last height
+            log_debug(f"Added text style: {style_name}")
+        except ezdxf.lldxf.const.DXFTableEntryError:
+            log_warning(f"Failed to add text style: {style_name}")
+    else:
+        log_debug(f"Text style '{style_name}' already exists.")
 
 def set_drawing_properties(doc):
     # Set the properties
@@ -992,7 +940,6 @@ def load_standard_text_styles(doc):
 
 # This function should be called once when the document is loaded
 def initialize_document(doc):
-    # load_standard_linetypes(doc)
     loaded_styles = load_standard_text_styles(doc)
     return loaded_styles
 
