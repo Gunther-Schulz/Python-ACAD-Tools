@@ -527,9 +527,7 @@ class BlockInsertManager(UnifiedSyncProcessor):
         block_name = getattr(entity.dxf, 'name', 'Unknown')
         return f"Block_{block_name}_{counter:03d}"
 
-    def _should_skip_entity(self, entity):
-        """No special skip logic for block entities."""
-        return False
+
 
     def _get_entity_types_for_search(self):
         """Get DXF entity types for block insert search."""
@@ -555,12 +553,37 @@ class BlockInsertManager(UnifiedSyncProcessor):
         except Exception as e:
             log_warning(f"Error extracting block insert properties: {str(e)}")
             return {
-                'blockName': 'Unknown',
+                'blockName': 'UNKNOWN',
                 'position': {'type': 'absolute', 'x': 0, 'y': 0},
                 'scale': 1.0,
                 'rotation': 0.0,
                 'layer': 'DEFAULT',
                 'paperspace': False
             }
+
+    def _find_all_entities_with_xdata_name(self, doc, entity_name):
+        """Find all block inserts with matching XDATA name. Block-specific implementation."""
+        matching_entities = []
+        from src.dxf_utils import XDATA_APP_ID
+
+        # Search in both model space and all paper spaces
+        spaces_to_search = [doc.modelspace()]
+        spaces_to_search.extend(layout for layout in doc.layouts if layout.name != 'Model')
+
+        for space in spaces_to_search:
+            for insert in space.query('INSERT'):
+                # Skip entities based on manager-specific skip logic
+                if self._should_skip_entity(insert):
+                    continue
+
+                # Check if this insert has our XDATA with matching name
+                try:
+                    xdata_name = self._get_entity_name_from_xdata(insert)
+                    if xdata_name == entity_name:
+                        matching_entities.append(insert)
+                except:
+                    continue
+
+        return matching_entities
 
     # _get_config_key is now implemented in UnifiedSyncProcessor

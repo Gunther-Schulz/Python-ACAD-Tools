@@ -123,11 +123,23 @@ class UnifiedSyncProcessor(ABC):
             if discovery_results.get('yaml_updated'):
                 yaml_updated = True
 
+        # Step 5.5: Check for auto-discovered copies
+        if hasattr(self, '_discovered_copies') and self._discovered_copies:
+            log_info(f"Found {len(self._discovered_copies)} auto-discovered copied {self.entity_type}(s)")
+            yaml_updated = True
+
         # Step 6: Write back YAML changes if needed
         if yaml_updated and self.project_loader:
             self._write_entity_yaml()
 
-        log_debug(f"Processed {len(processed_entities)} {self.entity_type} entities")
+        # Include discovered copies in final processed entities count
+        total_processed = len(processed_entities)
+        if hasattr(self, '_discovered_copies') and self._discovered_copies:
+            total_processed += len(self._discovered_copies)
+
+        log_debug(f"Processed {total_processed} {self.entity_type} entities "
+                 f"({len(processed_entities)} configured + "
+                 f"{len(getattr(self, '_discovered_copies', []))} auto-discovered copies)")
         return processed_entities
 
     def _group_entities_by_sync_mode(self, entity_configs):
@@ -229,6 +241,17 @@ class UnifiedSyncProcessor(ABC):
             except Exception as e:
                 log_error(f"Error processing auto mode {self.entity_type} '{config.get('name', 'unnamed')}': {str(e)}")
                 continue
+
+        # Include auto-discovered copies in processed entities
+        if hasattr(self, '_discovered_copies') and self._discovered_copies:
+            for copy_config in self._discovered_copies:
+                copy_name = copy_config.get('name')
+                if copy_name:
+                    # Find the actual entity by name (it should exist since we just processed it)
+                    copy_entity = self._find_entity_by_name(doc, copy_name)
+                    if copy_entity:
+                        processed_entities[copy_name] = copy_entity
+                        log_debug(f"Added discovered copy '{copy_name}' to processed entities")
 
         # Remove configs marked for deletion from the entity configs list
         if configs_to_delete:
@@ -364,17 +387,98 @@ class UnifiedSyncProcessor(ABC):
 
     # Default implementations for optional methods
     def _find_entity_with_duplicate_handling(self, doc, config):
-        """Find entity with duplicate detection. Default implementation."""
-        entity = self._find_entity_by_name(doc, config.get('name', 'unnamed'))
-        return entity, []
+        """Find entity with duplicate detection. Generic implementation for all entity types."""
+        entity_name = config.get('name', 'unnamed')
 
-    def _discover_duplicates_as_new_entities(self, duplicate_entities, config):
-        """Discover duplicates as new entities. Default implementation."""
-        return []
+        # Find all entities with matching XDATA name using entity-specific search
+        matching_entities = self._find_all_entities_with_xdata_name(doc, entity_name)
+
+        if not matching_entities:
+            return None, []
+
+        # Validate handles to separate original from copies
+        original_entity = None
+        duplicate_entities = []
+
+        for entity in matching_entities:
+            if self._validate_entity_handle(entity, entity_name):
+                # Valid handle - this is the original
+                original_entity = entity
+            else:
+                # Invalid handle - this is a copy with stale XDATA
+                duplicate_entities.append(entity)
+
+        log_debug(f"Found {len(matching_entities)} {self.entity_type} entities with name '{entity_name}': "
+                 f"1 original, {len(duplicate_entities)} duplicates")
+
+        return original_entity, duplicate_entities
+
+    def _discover_duplicates_as_new_entities(self, duplicate_entities, original_config):
+        """Discover duplicate entities as new tracked entities. Generic implementation."""
+        discovered_configs = []
+
+        for duplicate_entity in duplicate_entities:
+            try:
+                # Generate unique name for the copy
+                copy_name = self._generate_unique_copy_name(original_config.get('name', 'unnamed'))
+
+                # Extract properties from the duplicate entity (entity-specific)
+                extracted_props = self._extract_entity_properties_for_discovery(duplicate_entity)
+                if not extracted_props:
+                    log_warning(f"Failed to extract properties from duplicate {self.entity_type}")
+                    continue
+
+                # Create new config based on original but with extracted properties
+                copy_config = self._create_copy_config(original_config, copy_name, extracted_props)
+
+                # Clean stale XDATA and attach new tracking data
+                duplicate_entity.discard_xdata(XDATA_APP_ID)
+                self._attach_entity_metadata(duplicate_entity, copy_config)
+
+                discovered_configs.append(copy_config)
+
+                log_info(f"🔄 AUTO: Discovered copied {self.entity_type} '{original_config.get('name')}' as new entity '{copy_name}'")
+
+            except Exception as e:
+                log_error(f"Error discovering duplicate {self.entity_type}: {str(e)}")
+                continue
+
+        return discovered_configs
 
     def _add_discovered_entities_to_yaml(self, discovered_configs):
-        """Add discovered entities to YAML. Default implementation."""
-        pass
+        """Add discovered entity copies to YAML. Generic implementation."""
+        if not discovered_configs:
+            return
+
+        config_key = self._get_config_key()
+        entity_configs = self.project_settings.get(config_key, [])
+
+        for config in discovered_configs:
+            entity_configs.append(config)
+            log_debug(f"Added discovered {self.entity_type} '{config.get('name')}' to YAML")
+
+    def _find_all_entities_with_xdata_name(self, doc, entity_name):
+        """Find all entities with matching XDATA name. Entity-specific implementation required."""
+        # This method should be overridden by entity managers to provide entity-specific search logic
+        # Default implementation: just find by name (no XDATA search)
+        entity = self._find_entity_by_name(doc, entity_name)
+        return [entity] if entity else []
+
+    def _should_skip_entity(self, entity):
+        """
+        Determine if an entity should be skipped during processing.
+        Default implementation: don't skip any entities.
+
+        Entity managers can override this to implement entity-specific skip logic.
+        For example, ViewportManager skips the main viewport (ID=1).
+
+        Args:
+            entity: DXF entity to check
+
+        Returns:
+            bool: True if entity should be skipped, False otherwise
+        """
+        return False
 
     def _process_auto_sync(self, doc, space, config):
         """
@@ -705,10 +809,30 @@ class UnifiedSyncProcessor(ABC):
         except Exception as e:
             log_warning(f"Failed to attach metadata to {self.entity_type}: {str(e)}")
 
+    def _find_entity_config_by_name(self, entity_name):
+        """
+        Find entity configuration by name.
+
+        Args:
+            entity_name: Name of the entity to find
+
+        Returns:
+            dict: Entity configuration or None if not found
+        """
+        config_key = self._get_config_key()
+        entity_configs = self.project_settings.get(config_key, [])
+
+        for config in entity_configs:
+            if config.get('name') == entity_name:
+                return config
+        return None
+
     def _validate_entity_handle(self, entity, entity_name):
         """
         Validate that an entity's actual handle matches its stored XDATA handle.
-        If handles don't match (copied entity), clean the stale XDATA.
+        If handles don't match (copied entity), handle based on sync mode:
+        - Auto mode: Auto-discover copy as new tracked entity
+        - Other modes: Clean stale XDATA and treat as missing
 
         Args:
             entity: DXF entity to validate
@@ -740,7 +864,15 @@ class UnifiedSyncProcessor(ABC):
                 log_info(f"Auto sync detected copied {self.entity_type} '{entity_name}' with stale XDATA: "
                         f"stored_handle={stored_handle}, actual_handle={actual_handle}")
 
-                # Clean stale XDATA to prevent confusion
+                # Check sync mode to determine how to handle the copy
+                original_config = self._find_entity_config_by_name(entity_name)
+                if original_config:
+                    sync_mode = self._get_sync_direction(original_config)
+                    if sync_mode == 'auto':
+                        # Auto mode: Auto-discover copy as new tracked entity
+                        return self._auto_discover_copied_entity(entity, entity_name, original_config)
+
+                # Non-auto mode or no config: Clean stale XDATA to prevent confusion
                 try:
                     entity.discard_xdata(XDATA_APP_ID)
                     log_debug(f"Cleaned stale XDATA from copied {self.entity_type} entity '{entity_name}'")
@@ -753,6 +885,121 @@ class UnifiedSyncProcessor(ABC):
         except Exception as e:
             log_warning(f"Error validating handle for {self.entity_type} '{entity_name}': {str(e)}")
             return False
+
+    def _auto_discover_copied_entity(self, entity, original_name, original_config):
+        """
+        Auto-discover a copied entity as a new tracked entity in auto mode.
+
+        Args:
+            entity: The copied DXF entity
+            original_name: Name of the original entity
+            original_config: Configuration of the original entity
+
+        Returns:
+            bool: True if copy was successfully discovered and tracked
+        """
+        try:
+            # Generate unique name for the copy
+            copy_name = self._generate_unique_copy_name(original_name)
+
+            # Extract current properties from the copied entity
+            extracted_props = self._extract_entity_properties_for_discovery(entity)
+            if not extracted_props:
+                log_warning(f"Failed to extract properties from copied {self.entity_type}")
+                return False
+
+            # Create new config based on original but with extracted properties and new name
+            copy_config = self._create_copy_config(original_config, copy_name, extracted_props)
+
+            # Clean old XDATA and attach new tracking data
+            entity.discard_xdata(XDATA_APP_ID)
+            self._attach_entity_metadata(entity, copy_config)
+
+            # Mark for addition to YAML
+            self._mark_copy_for_yaml_addition(copy_config)
+
+            log_info(f"🔄 AUTO: Discovered copied {self.entity_type} '{original_name}' as new entity '{copy_name}'")
+            return True
+
+        except Exception as e:
+            log_error(f"Error auto-discovering copied {self.entity_type}: {str(e)}")
+            return False
+
+    def _generate_unique_copy_name(self, original_name):
+        """
+        Generate a unique name for a copied entity.
+
+        Args:
+            original_name: Name of the original entity
+
+        Returns:
+            str: Unique name for the copy
+        """
+        config_key = self._get_config_key()
+        existing_configs = self.project_settings.get(config_key, [])
+        existing_names = {config.get('name') for config in existing_configs if config.get('name')}
+
+        # Try different suffixes until we find a unique name
+        for i in range(1, 1000):  # Reasonable upper limit
+            if i == 1:
+                candidate = f"{original_name}_copy"
+            else:
+                candidate = f"{original_name}_copy{i}"
+
+            if candidate not in existing_names:
+                return candidate
+
+        # Fallback - should rarely happen
+        import time
+        return f"{original_name}_copy_{int(time.time())}"
+
+    def _create_copy_config(self, original_config, copy_name, extracted_props):
+        """
+        Create configuration for a copied entity.
+
+        Args:
+            original_config: Configuration of the original entity
+            copy_name: Name for the copy
+            extracted_props: Properties extracted from the copied entity
+
+        Returns:
+            dict: Configuration for the copy
+        """
+        # Start with original config as base (deep copy to avoid shared objects)
+        import copy as copy_module
+        copy_config = copy_module.deepcopy(original_config)
+
+        # Update with new name and extracted properties
+        copy_config['name'] = copy_name
+        copy_config.update(extracted_props)
+
+        # Remove sync metadata (will be recreated)
+        if '_sync' in copy_config:
+            del copy_config['_sync']
+
+        # Set sync mode to auto (inherit from original or use auto)
+        copy_config['sync'] = 'auto'
+
+        return copy_config
+
+    def _mark_copy_for_yaml_addition(self, copy_config):
+        """
+        Mark a discovered copy for addition to YAML.
+
+        Args:
+            copy_config: Configuration of the discovered copy
+        """
+        # Add to project settings immediately
+        config_key = self._get_config_key()
+        if config_key not in self.project_settings:
+            self.project_settings[config_key] = []
+
+        self.project_settings[config_key].append(copy_config)
+
+        # Mark for YAML write-back
+        if not hasattr(self, '_discovered_copies'):
+            self._discovered_copies = []
+        self._discovered_copies.append(copy_config)
 
     def _get_entity_name_from_xdata(self, entity):
         """

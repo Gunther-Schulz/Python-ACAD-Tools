@@ -327,6 +327,80 @@ class ViewportManager(UnifiedSyncProcessor):
         # Use centralized discovery logic from UnifiedSyncProcessor
         return super()._discover_unknown_entities(doc, space)
 
+    def _find_all_entities_with_xdata_name(self, doc, entity_name):
+        """Find all viewports with matching XDATA name. Viewport-specific implementation."""
+        paper_space = doc.paperspace()
+        matching_entities = []
+        from src.dxf_utils import XDATA_APP_ID
+
+        for viewport in paper_space.query('VIEWPORT'):
+            # Skip entities based on manager-specific skip logic
+            if self._should_skip_entity(viewport):
+                continue
+
+            # Check if this viewport has our XDATA with matching name
+            try:
+                xdata_name = self._get_entity_name_from_xdata(viewport)
+                if xdata_name == entity_name:
+                    matching_entities.append(viewport)
+            except:
+                continue
+
+        return matching_entities
+
+    def _extract_entity_properties_for_discovery(self, entity):
+        """Extract properties from a viewport entity for discovery."""
+        try:
+            extracted_props = {}
+
+            # Extract physical viewport properties
+            center = entity.dxf.center
+            extracted_props['center'] = {'x': float(center[0]), 'y': float(center[1])}
+            extracted_props['width'] = float(entity.dxf.width)
+            extracted_props['height'] = float(entity.dxf.height)
+
+            # Extract view properties
+            view_center = entity.dxf.view_center_point
+            extracted_props['viewCenter'] = {'x': float(view_center[0]), 'y': float(view_center[1])}
+
+            # Calculate scale from view_height and physical height
+            view_height = float(entity.dxf.view_height)
+            physical_height = float(entity.dxf.height)
+            if physical_height > 0:
+                scale = view_height / physical_height
+                extracted_props['scale'] = round(scale, 6)
+            else:
+                extracted_props['scale'] = 1.0
+
+            # Extract color if it's not default
+            if hasattr(entity.dxf, 'color') and entity.dxf.color != 256:  # 256 = BYLAYER
+                color_code = entity.dxf.color
+                for name, aci in self.name_to_aci.items():
+                    if aci == color_code:
+                        extracted_props['color'] = name
+                        break
+                else:
+                    # If no name found for color code, use the numeric value
+                    extracted_props['color'] = str(color_code)
+
+            # Extract frozen layers if any (creates independent copy)
+            if hasattr(entity, 'frozen_layers') and entity.frozen_layers:
+                extracted_props['frozenLayers'] = list(entity.frozen_layers)
+
+            # Extract zoom lock flag
+            if hasattr(entity.dxf, 'flags') and (entity.dxf.flags & 16384):  # VSF_LOCK_ZOOM
+                extracted_props['lockZoom'] = True
+
+            # Extract layer if it's not the default
+            if hasattr(entity.dxf, 'layer') and entity.dxf.layer != self.default_layer:
+                extracted_props['layer'] = entity.dxf.layer
+
+            return extracted_props
+
+        except Exception as e:
+            log_warning(f"Error extracting viewport properties: {str(e)}")
+            return None
+
     def _handle_entity_deletions(self, doc, space):
         """Handle deletion of viewports that exist in YAML but not in AutoCAD."""
         if self.deletion_policy == 'ignore':
@@ -577,27 +651,7 @@ class ViewportManager(UnifiedSyncProcessor):
         """Get DXF entity types for viewport search."""
         return ['VIEWPORT']
 
-    def _extract_entity_properties_for_discovery(self, entity):
-        """Extract viewport properties for auto-discovery."""
-        try:
-            return {
-                'center': {'x': float(entity.dxf.center[0]), 'y': float(entity.dxf.center[1])},
-                'width': float(entity.dxf.width),
-                'height': float(entity.dxf.height),
-                'layer': entity.dxf.layer,
-                'paperspace': True,  # Viewports are always in paperspace
-                'scale': 1.0  # Default scale
-            }
-        except Exception as e:
-            log_warning(f"Error extracting viewport properties: {str(e)}")
-            return {
-                'center': {'x': 0, 'y': 0},
-                'width': 100,
-                'height': 100,
-                'layer': 'DEFAULT',
-                'paperspace': True,
-                'scale': 1.0
-            }
+
 
     def _write_entity_yaml(self):
         """Write viewport configurations back to YAML file."""

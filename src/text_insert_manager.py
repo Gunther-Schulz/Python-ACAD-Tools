@@ -434,6 +434,31 @@ class TextInsertManager(UnifiedSyncProcessor):
 
         return None
 
+    def _find_all_entities_with_xdata_name(self, doc, entity_name):
+        """Find all text entities with matching XDATA name. Text-specific implementation."""
+        matching_entities = []
+        from src.dxf_utils import XDATA_APP_ID
+
+        # Search in both model space and all paper spaces
+        spaces_to_search = [doc.modelspace()]
+        spaces_to_search.extend(layout for layout in doc.layouts if layout.name != 'Model')
+
+        for space in spaces_to_search:
+            for text_entity in space.query('TEXT MTEXT'):
+                # Skip entities based on manager-specific skip logic
+                if self._should_skip_entity(text_entity):
+                    continue
+
+                # Check if this text entity has our XDATA with matching name
+                try:
+                    xdata_name = self._get_entity_name_from_xdata(text_entity)
+                    if xdata_name == entity_name:
+                        matching_entities.append(text_entity)
+                except:
+                    continue
+
+        return matching_entities
+
     # Abstract method implementations for centralized discovery
     # ========================================================
 
@@ -462,9 +487,7 @@ class TextInsertManager(UnifiedSyncProcessor):
         # Fallback to handle-based name
         return f"Text_{str(entity.dxf.handle).zfill(3)}"
 
-    def _should_skip_entity(self, entity):
-        """No special skip logic for text entities."""
-        return False
+
 
     def _get_entity_types_for_search(self):
         """Get DXF entity types for text search."""
@@ -487,22 +510,22 @@ class TextInsertManager(UnifiedSyncProcessor):
             else:  # TEXT
                 text_content = entity.dxf.text
 
+            # Determine paperspace
+            paperspace = detect_entity_paperspace(entity)
+
             return {
                 'text': text_content,
                 'position': position,
                 'layer': entity.dxf.layer,
-                'paperspace': False,  # Will be inherited from original
-                'style': getattr(entity.dxf, 'style', 'Standard'),
-                'justification': getattr(entity.dxf, 'halign', 0)
+                'paperspace': paperspace
             }
         except Exception as e:
             log_warning(f"Error extracting text properties: {str(e)}")
             return {
-                'text': 'Discovered Text',
+                'text': 'Unknown',
                 'position': {'type': 'absolute', 'x': 0, 'y': 0},
                 'layer': 'DEFAULT',
-                'paperspace': False,
-                'style': 'Standard'
+                'paperspace': False
             }
 
     def _process_text_config_line(self, config, line_number):
