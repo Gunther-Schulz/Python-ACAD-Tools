@@ -393,7 +393,11 @@ class UnifiedSyncProcessor(ABC):
         # Find all entities with matching XDATA name using entity-specific search
         matching_entities = self._find_all_entities_with_xdata_name(doc, entity_name)
 
+        # If no entities found by name, try recovery by handle (Option 2)
         if not matching_entities:
+            original_entity = self._attempt_entity_recovery_by_handle(doc, config)
+            if original_entity:
+                return original_entity, []
             return None, []
 
         # Validate handles to separate original from copies
@@ -401,6 +405,9 @@ class UnifiedSyncProcessor(ABC):
         duplicate_entities = []
 
         for entity in matching_entities:
+            # Option 1: Auto-update XDATA name if it doesn't match YAML name
+            self._ensure_xdata_name_sync(entity, entity_name)
+
             if self._validate_entity_handle(entity, entity_name):
                 # Valid handle - this is the original
                 original_entity = entity
@@ -412,6 +419,138 @@ class UnifiedSyncProcessor(ABC):
                  f"1 original, {len(duplicate_entities)} duplicates")
 
         return original_entity, duplicate_entities
+
+    def _ensure_xdata_name_sync(self, entity, expected_name):
+        """
+        Option 1: Auto-update XDATA name to match YAML name during normal processing.
+
+        This ensures that when users rename entities in YAML, the DXF XDATA is automatically
+        updated to match, preventing sync issues.
+
+        Args:
+            entity: DXF entity to check and potentially update
+            expected_name: Expected name from YAML configuration
+        """
+        try:
+            current_xdata_name = self._get_entity_name_from_xdata(entity)
+
+            if current_xdata_name and current_xdata_name != expected_name:
+                log_info(f"🔄 AUTO-SYNC: Updating XDATA name '{current_xdata_name}' → '{expected_name}' "
+                        f"for {self.entity_type} entity {entity.dxf.handle}")
+                self._update_entity_xdata_name(entity, expected_name)
+
+        except Exception as e:
+            log_warning(f"Error syncing XDATA name for entity {entity.dxf.handle}: {str(e)}")
+
+    def _attempt_entity_recovery_by_handle(self, doc, config):
+        """
+        Option 2: Recovery logic for entities that appear "missing" due to name mismatches.
+
+        This is a safety net that activates when normal name-based lookup fails.
+        It attempts to recover entities by looking them up directly by their stored handle,
+        then fixes any name mismatches in the XDATA.
+
+        Recovery Scenarios:
+        1. User manually renamed entity in YAML but XDATA wasn't updated
+        2. XDATA corruption caused name mismatch
+        3. Manual YAML editing broke the name link
+
+        Args:
+            doc: DXF document
+            config: YAML entity configuration
+
+        Returns:
+            DXF entity if recovered, None if no recovery possible
+        """
+        entity_name = config.get('name', 'unnamed')
+        sync_metadata = config.get('_sync', {})
+        stored_handle = sync_metadata.get('dxf_handle')
+
+        if not stored_handle:
+            # No handle stored - this is a new entity, not a recovery case
+            return None
+
+        try:
+            # Attempt direct lookup by handle
+            entity = doc.entitydb.get(stored_handle)
+
+            if not entity:
+                # Entity truly doesn't exist - possibly deleted in AutoCAD
+                log_debug(f"Recovery attempt failed: entity with handle {stored_handle} not found in DXF")
+                return None
+
+            # Entity exists! Check what name it has in XDATA
+            current_xdata_name = self._get_entity_name_from_xdata(entity)
+
+            if current_xdata_name != entity_name:
+                log_info(f"🔄 RECOVERY: Found 'missing' {self.entity_type} entity {stored_handle}")
+                log_info(f"   YAML name: '{entity_name}'")
+                log_info(f"   XDATA name: '{current_xdata_name}' (outdated)")
+
+                # Fix the XDATA to match YAML
+                self._update_entity_xdata_name(entity, entity_name)
+                log_info(f"   ✅ Recovered: Updated XDATA name '{current_xdata_name}' → '{entity_name}'")
+
+                return entity
+            else:
+                # Names match but entity wasn't found by normal lookup - investigate
+                log_warning(f"Entity {stored_handle} has correct name '{entity_name}' but wasn't found by name lookup")
+                return entity
+
+        except Exception as e:
+            log_error(f"Error during entity recovery for {entity_name} (handle {stored_handle}): {str(e)}")
+            return None
+
+    def _get_entity_name_from_xdata(self, entity):
+        """Extract entity name from XDATA."""
+        try:
+            from src.dxf_utils import XDATA_APP_ID, XDATA_ENTITY_NAME_KEY
+            xdata = entity.get_xdata(XDATA_APP_ID)
+            if xdata:
+                in_entity_section = False
+                for code, value in xdata:
+                    if code == 1000 and value == XDATA_ENTITY_NAME_KEY:
+                        in_entity_section = True
+                    elif in_entity_section and code == 1000:
+                        return value  # This is the entity name
+            return None
+        except Exception:
+            return None
+
+    def _update_entity_xdata_name(self, entity, new_name):
+        """Update entity name in XDATA."""
+        try:
+            from src.dxf_utils import XDATA_APP_ID, XDATA_ENTITY_NAME_KEY
+
+            # Get current XDATA
+            xdata = entity.get_xdata(XDATA_APP_ID)
+            if not xdata:
+                return False
+
+            # Build new XDATA with updated name
+            new_xdata = []
+            in_entity_section = False
+            name_updated = False
+
+            for code, value in xdata:
+                if code == 1000 and value == XDATA_ENTITY_NAME_KEY:
+                    in_entity_section = True
+                    new_xdata.append((code, value))
+                elif in_entity_section and code == 1000 and not name_updated:
+                    # Replace the old name with new name
+                    new_xdata.append((code, new_name))
+                    name_updated = True
+                    in_entity_section = False
+                else:
+                    new_xdata.append((code, value))
+
+            # Update the entity's XDATA
+            entity.set_xdata(XDATA_APP_ID, new_xdata)
+            return True
+
+        except Exception as e:
+            log_error(f"Error updating entity XDATA name: {str(e)}")
+            return False
 
     def _discover_duplicates_as_new_entities(self, duplicate_entities, original_config):
         """Discover duplicate entities as new tracked entities. Generic implementation."""
