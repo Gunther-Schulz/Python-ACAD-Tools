@@ -4,6 +4,14 @@ from src.utils import log_info, log_warning, log_error, resolve_path, log_debug
 from src.dxf_processor import DXFProcessor
 import traceback
 
+# Default values for project settings
+DEFAULT_DELETION_POLICY = 'confirm'
+DEFAULT_SYNC_DIRECTION = 'skip'
+DEFAULT_CONFLICT_RESOLUTION = 'prompt'
+DEFAULT_VIEWPORT_LAYER = 'VIEWPORTS'
+DEFAULT_TEXT_LAYER = 'Plantext'
+DEFAULT_BLOCK_LAYER = 'BLOCKS'
+
 class ProjectLoader:
     def __init__(self, project_name: str):
         self.project_name = project_name
@@ -67,65 +75,65 @@ class ProjectLoader:
         block_discovery_layers = block_inserts.get('discover_untracked_layers', []) if block_inserts else []
 
         # Extract global viewport settings with defaults (inheriting global sync)
-        viewport_deletion_policy = viewports.get('deletion_policy', 'confirm')
-        viewport_default_layer = viewports.get('default_layer', 'VIEWPORTS')
+        viewport_deletion_policy = viewports.get('deletion_policy', DEFAULT_DELETION_POLICY)
+        viewport_default_layer = viewports.get('default_layer', DEFAULT_VIEWPORT_LAYER)
         viewport_sync = viewports.get('sync', global_sync)  # Inherit global sync setting
 
         # Extract global text insert settings with defaults (inheriting global sync)
         text_sync = text_inserts.get('sync', global_sync) if text_inserts else global_sync
-        text_deletion_policy = text_inserts.get('deletion_policy', 'confirm') if text_inserts else 'confirm'
+        text_deletion_policy = text_inserts.get('deletion_policy', DEFAULT_DELETION_POLICY) if text_inserts else DEFAULT_DELETION_POLICY
         # Add support for global default layer for text inserts
-        text_default_layer = text_inserts.get('default_layer', 'Plantext') if text_inserts else 'Plantext'
+        text_default_layer = text_inserts.get('default_layer', DEFAULT_TEXT_LAYER) if text_inserts else DEFAULT_TEXT_LAYER
 
         # Extract global block insert settings with defaults (inheriting global sync)
         block_sync = block_inserts.get('sync', global_sync) if block_inserts else global_sync
-        block_deletion_policy = block_inserts.get('deletion_policy', 'confirm') if block_inserts else 'confirm'
+        block_deletion_policy = block_inserts.get('deletion_policy', DEFAULT_DELETION_POLICY) if block_inserts else DEFAULT_DELETION_POLICY
         # Add support for global default layer for block inserts
-        block_default_layer = block_inserts.get('default_layer', 'BLOCKS') if block_inserts else 'BLOCKS'
+        block_default_layer = block_inserts.get('default_layer', DEFAULT_BLOCK_LAYER) if block_inserts else DEFAULT_BLOCK_LAYER
 
         # Extract global auto sync conflict resolution setting
-        auto_conflict_resolution = main_settings.get('auto_conflict_resolution', 'prompt')
+        auto_conflict_resolution = main_settings.get('auto_conflict_resolution', DEFAULT_CONFLICT_RESOLUTION)
 
         # Validate deletion policies for both entity types
         valid_deletion_policies = {'auto', 'confirm', 'ignore'}
         if viewport_deletion_policy not in valid_deletion_policies:
             log_warning(f"Invalid viewport_deletion_policy '{viewport_deletion_policy}'. "
-                       f"Valid values are: {', '.join(valid_deletion_policies)}. Using 'auto'.")
-            viewport_deletion_policy = 'auto'
+                       f"Valid values are: {', '.join(valid_deletion_policies)}. Using '{DEFAULT_DELETION_POLICY}'.")
+            viewport_deletion_policy = DEFAULT_DELETION_POLICY
 
         if text_deletion_policy not in valid_deletion_policies:
             log_warning(f"Invalid text_deletion_policy '{text_deletion_policy}'. "
-                       f"Valid values are: {', '.join(valid_deletion_policies)}. Using 'auto'.")
-            text_deletion_policy = 'auto'
+                       f"Valid values are: {', '.join(valid_deletion_policies)}. Using '{DEFAULT_DELETION_POLICY}'.")
+            text_deletion_policy = DEFAULT_DELETION_POLICY
 
         # Validate auto conflict resolution policy
         valid_conflict_policies = {'prompt', 'yaml_wins', 'dxf_wins', 'skip'}
         if auto_conflict_resolution not in valid_conflict_policies:
             log_warning(f"Invalid auto_conflict_resolution '{auto_conflict_resolution}'. "
-                       f"Valid values are: {', '.join(valid_conflict_policies)}. Using 'prompt'.")
-            auto_conflict_resolution = 'prompt'
+                       f"Valid values are: {', '.join(valid_conflict_policies)}. Using '{DEFAULT_CONFLICT_RESOLUTION}'.")
+            auto_conflict_resolution = DEFAULT_CONFLICT_RESOLUTION
 
         # Validate viewport layer
         if not isinstance(viewport_default_layer, str) or not viewport_default_layer.strip():
-            log_warning(f"Invalid viewport default layer '{viewport_default_layer}'. Must be a non-empty string. Using 'VIEWPORTS'.")
-            viewport_default_layer = 'VIEWPORTS'
+            log_warning(f"Invalid viewport default layer '{viewport_default_layer}'. Must be a non-empty string. Using '{DEFAULT_VIEWPORT_LAYER}'.")
+            viewport_default_layer = DEFAULT_VIEWPORT_LAYER
 
         # Validate sync directions for both entity types
         valid_sync_values = {'push', 'pull', 'skip', 'auto'}
         if viewport_sync not in valid_sync_values:
             log_warning(f"Invalid global viewport sync value '{viewport_sync}'. "
-                       f"Valid values are: {', '.join(valid_sync_values)}. Using 'skip'.")
-            viewport_sync = 'skip'
+                       f"Valid values are: {', '.join(valid_sync_values)}. Using '{DEFAULT_SYNC_DIRECTION}'.")
+            viewport_sync = DEFAULT_SYNC_DIRECTION
 
         if text_sync not in valid_sync_values:
             log_warning(f"Invalid global text sync value '{text_sync}'. "
-                       f"Valid values are: {', '.join(valid_sync_values)}. Using 'skip'.")
-            text_sync = 'skip'
+                       f"Valid values are: {', '.join(valid_sync_values)}. Using '{DEFAULT_SYNC_DIRECTION}'.")
+            text_sync = DEFAULT_SYNC_DIRECTION
 
         if block_sync not in valid_sync_values:
             log_warning(f"Invalid global block sync value '{block_sync}'. "
-                       f"Valid values are: {', '.join(valid_sync_values)}. Using 'skip'.")
-            block_sync = 'skip'
+                       f"Valid values are: {', '.join(valid_sync_values)}. Using '{DEFAULT_SYNC_DIRECTION}'.")
+            block_sync = DEFAULT_SYNC_DIRECTION
 
         # Validate discovery layers settings
         def validate_discovery_layers(layers, entity_type):

@@ -483,7 +483,7 @@ class BlockInsertManager(UnifiedSyncProcessor):
 
                 if not existing_entity:
                     # Entity exists in YAML but not in AutoCAD
-                    deletion_policy = self.project_settings.get('block_deletion_policy', 'confirm')
+                    deletion_policy = self.project_settings['block_deletion_policy']  # Always present from ProjectLoader
 
                     if deletion_policy == 'auto':
                         deleted_configs.append(config)

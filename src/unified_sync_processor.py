@@ -35,11 +35,11 @@ class UnifiedSyncProcessor(ABC):
 
         # Extract global sync setting (e.g., 'viewport_sync', 'text_sync')
         sync_key = f'{entity_type}_sync'
-        self.default_sync = project_settings.get(sync_key, 'skip')
+        self.default_sync = project_settings[sync_key]  # Should always be present from ProjectLoader
 
         # Extract deletion settings
         deletion_key = f'{entity_type}_deletion_policy'
-        self.deletion_policy = project_settings.get(deletion_key, 'auto')
+        self.deletion_policy = project_settings[deletion_key]  # Should always be present from ProjectLoader
 
         # Extract discovery layers setting - this is the only discovery control
         discovery_layers_key = f'{entity_type}_discover_untracked_layers'
@@ -75,19 +75,9 @@ class UnifiedSyncProcessor(ABC):
 
     def _validate_settings(self):
         """Validate sync processor settings."""
-        # Validate deletion policy
-        valid_deletion_policies = {'auto', 'confirm', 'ignore'}
-        if self.deletion_policy not in valid_deletion_policies:
-            log_warning(f"Invalid {self.entity_type} deletion policy '{self.deletion_policy}'. "
-                       f"Valid values are: {', '.join(valid_deletion_policies)}. Using 'auto'.")
-            self.deletion_policy = 'auto'
-
-        # Validate default sync direction
-        valid_sync_values = {'push', 'pull', 'skip', 'auto'}
-        if self.default_sync not in valid_sync_values:
-            log_warning(f"Invalid global {self.entity_type}_sync value '{self.default_sync}'. "
-                       f"Valid values are: {', '.join(valid_sync_values)}. Using 'skip'.")
-            self.default_sync = 'skip'
+        # Note: Validation is now handled in ProjectLoader
+        # This method is kept for potential future use but settings should already be validated
+        pass
 
     def process_entities(self, doc, space):
         """
