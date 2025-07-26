@@ -1,6 +1,7 @@
 /data/
+/chats/
 
-temp.dxf
+*.dxf
 
 *.pyc
 
