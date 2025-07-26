@@ -804,7 +804,13 @@ class UnifiedSyncProcessor(ABC):
             # Attach metadata to mark as managed
             self._attach_entity_metadata(entity, entity_config)
 
-            log_info(f"🔍 Discovered new {self.entity_type} entity: '{entity_name}' on layer '{entity.dxf.layer}'")
+            # CRITICAL: Populate complete sync metadata for discovered entities
+            content_hash = self._calculate_entity_hash(entity_config)
+            entity_handle = str(entity.dxf.handle)
+            from src.sync_hash_utils import update_sync_metadata
+            update_sync_metadata(entity_config, content_hash, 'dxf', entity_handle=entity_handle)
+
+            log_info(f"🔍 Discovered new {self.entity_type} entity: '{entity_name}' on layer '{entity.dxf.layer}' with complete sync metadata")
             yaml_updated = True
 
         # Update project settings
@@ -1081,12 +1087,10 @@ class UnifiedSyncProcessor(ABC):
 
     def _attach_entity_metadata(self, entity, config):
         """
-        Attach custom metadata to an entity to mark it as managed by this script.
-        Centralized implementation that works for all entity types.
+        Attach metadata to DXF entity for tracking.
 
-        Args:
-            entity: DXF entity object
-            config: Entity configuration dictionary
+        This method attaches XDATA to the entity for identification and management.
+        It's careful not to overwrite sync metadata that's already been properly populated.
         """
         try:
             entity_name = config.get('name', 'unnamed')
@@ -1113,9 +1117,15 @@ class UnifiedSyncProcessor(ABC):
             )
 
             # Store handle in sync metadata for handle-based tracking
+            # Only set basic handle if sync metadata doesn't already exist
             if '_sync' not in config:
                 config['_sync'] = {}
+
+            # Always update the handle (it should be the same anyway)
             config['_sync']['dxf_handle'] = entity_handle
+
+            # Don't overwrite other sync metadata if it already exists
+            # (this preserves complete metadata set during discovery)
 
             log_debug(f"Attached metadata to {self.entity_type} '{entity_name}' with handle {entity_handle}")
 
