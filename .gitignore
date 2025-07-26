@@ -58,3 +58,6 @@ docs/
 *.rst
 
 .env
+
+# Virtual environment
+venv/

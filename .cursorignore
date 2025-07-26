@@ -1,0 +1,36 @@
+# Cursor AI Performance Optimization
+# Exclude large backup directory from AI and indexing
+
+# Exclude large log files from AI processing
+logs/
+*.log
+
+# Exclude test and example directories from AI context
+test_data/
+examples/
+examples_*/
+integration_tests/
+tests/
+profiling/
+exploration/
+
+# Exclude font and binary files that waste tokens
+fonts/
+*.ttf
+*.otf
+*.shx
+*.dwg
+*.jpg
+*.jpeg
+*.png
+*.bmp
+*.tiff
+*.pdf
+
+# Exclude large CSV files that waste tokens
+*.csv
+
+# Exclude git objects
+.git/objects/
+*.pack
+*.idx

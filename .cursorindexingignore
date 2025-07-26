@@ -1,0 +1,25 @@
+# Files excluded from indexing but may be accessed manuall
+logs/
+test_data/
+examples/
+examples_*/
+integration_tests/
+tests/
+profiling/
+exploration/
+fonts/
+*.log
+*.dxf
+*.dwg
+*.jpg
+*.jpeg
+*.png
+*.bmp
+*.pdf
+*.ttf
+*.otf
+*.shx
+*.pack
+*.idx
+*.csv
+venv/
