@@ -136,6 +136,19 @@ class TextInsertManager(UnifiedSyncProcessor):
 
         return None
 
+    def _find_entity_by_name_ignoring_handle_validation(self, doc, entity_name):
+        """Find a text entity by name without handle validation for recovery purposes."""
+        # Search modelspace first (where most text entities are), then paperspace
+        spaces = [doc.modelspace(), doc.paperspace()]
+
+        for space in spaces:
+            entity = find_entity_by_xdata_name(space, entity_name, ['TEXT', 'MTEXT'])
+            if entity:
+                # Return entity without handle validation for recovery
+                return entity
+
+        return None
+
     def _extract_text_properties(self, text_entity, base_config):
         """
         Extract only the changeable properties from AutoCAD text entity.
@@ -316,6 +329,19 @@ class TextInsertManager(UnifiedSyncProcessor):
     def _find_entity_by_name(self, doc, entity_name):
         """Find a text entity by name."""
         return self._find_text_by_name(doc, entity_name)
+
+    def _find_entity_by_name_ignoring_handle_validation(self, doc, entity_name):
+        """Find a text entity by name without handle validation for recovery purposes."""
+        # Search modelspace first (where most text entities are), then paperspace
+        spaces = [doc.modelspace(), doc.paperspace()]
+
+        for space in spaces:
+            entity = find_entity_by_xdata_name(space, entity_name, ['TEXT', 'MTEXT'])
+            if entity:
+                # Return entity without handle validation for recovery
+                return entity
+
+        return None
 
     def _extract_dxf_entity_properties_for_hash(self, entity):
         """

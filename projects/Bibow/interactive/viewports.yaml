@@ -35,8 +35,20 @@ viewports:
     content_hash: 01f50ecd3df33132ae55fd390f6873a2b2cb452248b58dfde976774605f95dbe
     last_sync_time: 1753471782
     sync_source: yaml
+- center:
+    x: 906.4332528307149
+    y: 355.8964827525824
+  width: 177.1475149288962
+  height: 94.68235633125732
+  viewCenter:
+    x: 278937.3899984032
+    y: 5964758.852966763
+  scale: 33.361749
+  sync: auto
+  _sync:
+    dxf_handle: 10AF6
 discover_untracked_layers:
-  - VIEWPORTS
+- VIEWPORTS
 deletion_policy: auto
 default_layer: VIEWPORTS
 sync: auto

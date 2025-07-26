@@ -497,6 +497,15 @@ class ViewportManager(UnifiedSyncProcessor):
         """Find a viewport entity by name."""
         return self.get_viewport_by_name(doc, entity_name)
 
+    def _find_entity_by_name_ignoring_handle_validation(self, doc, entity_name):
+        """Find a viewport entity by name without handle validation for recovery purposes."""
+        for layout in doc.layouts:
+            viewport = find_entity_by_xdata_name(layout, entity_name, ['VIEWPORT'])
+            if viewport:
+                # Return entity without handle validation for recovery
+                return viewport
+        return None
+
     def _extract_dxf_entity_properties_for_hash(self, entity):
         """
         Extract viewport properties from DXF entity for hash calculation.

@@ -313,6 +313,29 @@ class BlockInsertManager(UnifiedSyncProcessor):
             log_warning(f"Full traceback: {traceback.format_exc()}")
             return None
 
+    def _find_entity_by_name_ignoring_handle_validation(self, doc, entity_name):
+        """Find block insert entity in DXF by name without handle validation for recovery purposes."""
+        try:
+            log_debug(f"🔍 RECOVERY: Searching for block '{entity_name}' without handle validation")
+
+            # Search modelspace first (where most block inserts like equipment symbols are), then paperspace
+            spaces = [doc.modelspace(), doc.paperspace()]
+
+            for space in spaces:
+                # Try to find the specific entity
+                entity = find_entity_by_xdata_name(space, entity_name, ['INSERT'])
+                if entity and entity.dxftype() == 'INSERT':
+                    log_debug(f"🔍 RECOVERY: ✅ Found block insert '{entity_name}' in {space} (no validation)")
+                    # Return entity without handle validation for recovery
+                    return entity
+
+            log_debug(f"🔍 RECOVERY: ❌ Block insert '{entity_name}' not found in any space")
+            return None
+
+        except Exception as e:
+            log_warning(f"Error in recovery search for block insert '{entity_name}': {repr(e)}")
+            return None
+
     def _find_entity_by_handle_first(self, doc, config):
         """
         Override base class to search both spaces for blocks.
