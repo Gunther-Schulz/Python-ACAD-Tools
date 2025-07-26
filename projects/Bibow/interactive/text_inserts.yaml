@@ -59,6 +59,6 @@ texts:
     sync_source: yaml
 discover_untracked_layers:
 - Plantext
-deletion_policy: auto
+deletion_policy: confirm
 default_layer: Plantext
 sync: auto

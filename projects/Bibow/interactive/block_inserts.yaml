@@ -18,6 +18,6 @@
 #     y: 5967271.5467
 #   paperspace: false
 # discover_untracked_layers: []  # Disable discovery by using empty list
-# deletion_policy: auto
+# deletion_policy: confirm
 # default_layer: MyBlocks
 # sync: auto

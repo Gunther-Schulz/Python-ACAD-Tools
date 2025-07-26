@@ -67,19 +67,19 @@ class ProjectLoader:
         block_discovery_layers = block_inserts.get('discover_untracked_layers', []) if block_inserts else []
 
         # Extract global viewport settings with defaults (inheriting global sync)
-        viewport_deletion_policy = viewports.get('deletion_policy', 'auto')
+        viewport_deletion_policy = viewports.get('deletion_policy', 'confirm')
         viewport_default_layer = viewports.get('default_layer', 'VIEWPORTS')
         viewport_sync = viewports.get('sync', global_sync)  # Inherit global sync setting
 
         # Extract global text insert settings with defaults (inheriting global sync)
         text_sync = text_inserts.get('sync', global_sync) if text_inserts else global_sync
-        text_deletion_policy = text_inserts.get('deletion_policy', 'auto') if text_inserts else 'auto'
+        text_deletion_policy = text_inserts.get('deletion_policy', 'confirm') if text_inserts else 'confirm'
         # Add support for global default layer for text inserts
         text_default_layer = text_inserts.get('default_layer', 'Plantext') if text_inserts else 'Plantext'
 
         # Extract global block insert settings with defaults (inheriting global sync)
         block_sync = block_inserts.get('sync', global_sync) if block_inserts else global_sync
-        block_deletion_policy = block_inserts.get('deletion_policy', 'auto') if block_inserts else 'auto'
+        block_deletion_policy = block_inserts.get('deletion_policy', 'confirm') if block_inserts else 'confirm'
         # Add support for global default layer for block inserts
         block_default_layer = block_inserts.get('default_layer', 'BLOCKS') if block_inserts else 'BLOCKS'
 
