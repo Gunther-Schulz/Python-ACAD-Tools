@@ -1,6 +1,5 @@
 /data/
 
-
 temp.dxf
 
 *.pyc
@@ -16,3 +15,46 @@ invalid_geometries_Ausgleich.png
 ezdxf
 
 test_data/
+
+# Cursor Performance Optimization
+# Exclude large backup directory from indexing
+ezdxf_local_bkp/
+
+# Exclude large log files
+logs/
+*.log
+
+# Exclude git objects and large binary files
+.git/objects/pack/
+*.pack
+*.idx
+
+# Exclude large DXF and image files
+*.dxf
+*.jpg
+*.jpeg
+*.png
+*.bmp
+*.tiff
+*.pdf
+
+# Exclude font directories
+fonts/
+*.ttf
+*.otf
+*.shx
+
+# Exclude test and example directories
+examples/
+examples_*/
+integration_tests/
+tests/
+profiling/
+exploration/
+
+# Exclude documentation
+docs/
+*.md
+*.rst
+
+.env
