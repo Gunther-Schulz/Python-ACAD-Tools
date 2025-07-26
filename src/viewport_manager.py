@@ -326,7 +326,7 @@ class ViewportManager(UnifiedSyncProcessor):
         """Discover viewports in AutoCAD that aren't managed by this script."""
         # Use centralized discovery logic from UnifiedSyncProcessor
         discovered = super()._discover_unknown_entities(doc, space)
-        
+
         # ViewportManager doesn't need additional entity-specific behavior
         # Base implementation handles all the discovery logic
         return discovered
@@ -421,7 +421,8 @@ class ViewportManager(UnifiedSyncProcessor):
         This is a PURE extraction function that only extracts DXF properties
         without touching metadata or other preserved fields.
         """
-        extracted_props = {}
+        # CRITICAL: Always include the name from base_config
+        extracted_props = {'name': base_config['name']}
 
         try:
             # Extract physical viewport properties

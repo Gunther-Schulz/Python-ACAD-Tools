@@ -9,7 +9,7 @@ The auto sync system now includes a **Handle Recovery Mechanism** that prevents 
 Previously, if AutoCAD changed an entity's handle (during `AUDIT`, `RECOVER`, block operations, etc.), the auto sync system would:
 
 1. Look for the entity using the stored handle
-2. Not find it (because handle changed)  
+2. Not find it (because handle changed)
 3. **Assume the user deleted it**
 4. **Remove the entity from YAML** ❌
 
@@ -23,20 +23,20 @@ The new system adds a **name-based recovery layer**:
 # Auto sync logic (simplified):
 if yaml_exists and not dxf_exists:  # Entity "missing"
     stored_handle = config['_sync']['dxf_handle']
-    
+
     if stored_handle:
         # 🔄 NEW: Try recovery before assuming deletion
         recovered_entity = find_by_name_ignoring_handle_validation(entity_name)
-        
+
         if recovered_entity:
             # ✅ Found by name! Handle probably changed
             new_handle = str(recovered_entity.dxf.handle)
             log_info(f"RECOVERED: {entity_name} handle {stored_handle} → {new_handle}")
-            
+
             # Update handle tracking and continue sync
             repair_handle_tracking(recovered_entity, config)
             continue_with_normal_sync()
-            
+
         else:
             # 🗑️ Really not found anywhere - assume deletion
             remove_from_yaml()
@@ -46,16 +46,16 @@ if yaml_exists and not dxf_exists:  # Entity "missing"
 
 ### ✅ **Handle Changes**
 - **AUDIT** command fixes corruption
-- **RECOVER** operations  
+- **RECOVER** operations
 - **Block redefinition**
 - **PURGE** operations
 - **Database regeneration**
 - **File corruption recovery**
 
-**Before**: Entity deleted from YAML ❌  
+**Before**: Entity deleted from YAML ❌
 **After**: Handle updated, sync continues ✅
 
-### ✅ **Real Deletions**  
+### ✅ **Real Deletions**
 - User deletes entity in AutoCAD
 - Entity not found by handle OR name
 - Correctly removed from YAML ✅
@@ -98,7 +98,7 @@ The recovery mechanism:
 
 ### Entity Managers Updated
 - **ViewportManager**: Recovery in all layouts
-- **TextInsertManager**: Recovery in modelspace/paperspace  
+- **TextInsertManager**: Recovery in modelspace/paperspace
 - **BlockInsertManager**: Recovery across all spaces
 
 ### Handle Validation Bypass
@@ -144,7 +144,7 @@ Watch logs for recovery events:
 
 ### Performance Impact
 - **Minimal**: Handle lookup remains O(1) for stable handles
-- **Reasonable**: Name search is O(n) only on handle failures  
+- **Reasonable**: Name search is O(n) only on handle failures
 - **Efficient**: XDATA-based name search is optimized
 
 ### Entity Identity
@@ -181,4 +181,4 @@ With this protection, your viewport with `sync: auto` is now safe from:
     dxf_handle: 10AF6  # ← This gets updated automatically if it changes
 ```
 
-**Your concern about brittleness is now addressed!** 🛡️ 
+**Your concern about brittleness is now addressed!** 🛡️

@@ -387,23 +387,23 @@ class UnifiedSyncProcessor(ABC):
     def _repair_entity_handle_tracking(self, entity, config):
         """
         Repair handle tracking for recovered entity.
-        
+
         Args:
             entity: DXF entity that was recovered
             config: Entity configuration to update
-            
+
         Returns:
             bool: True if repair was successful, False otherwise
         """
         try:
             new_handle = str(entity.dxf.handle)
             entity_name = config.get('name', 'unnamed')
-            
+
             # Update YAML metadata
             if '_sync' not in config:
                 config['_sync'] = {}
             config['_sync']['dxf_handle'] = new_handle
-            
+
             # Update XDATA with new handle
             from src.dxf_utils import attach_custom_data
             # Re-attach metadata with correct handle
@@ -416,7 +416,7 @@ class UnifiedSyncProcessor(ABC):
                 entity_handle=new_handle,
                 sync_mode=self._get_sync_direction(config)
             )
-            
+
             log_info(f"✅ REPAIRED: {self.entity_type} '{entity_name}' handle tracking updated to {new_handle}")
             return True
         except Exception as e:
@@ -426,23 +426,23 @@ class UnifiedSyncProcessor(ABC):
     def _continue_with_recovered_entity(self, doc, space, config, recovered_entity):
         """
         Continue auto sync processing with recovered entity after handle repair.
-        
+
         Args:
             doc: DXF document
-            space: Model space or paper space  
+            space: Model space or paper space
             config: Entity configuration
             recovered_entity: The recovered DXF entity
-            
+
         Returns:
             dict: Result dictionary with 'entity' and 'yaml_updated' keys
         """
         try:
             entity_name = config.get('name', 'unnamed')
-            
+
             # Re-run change detection with recovered entity
             from src.sync_hash_utils import detect_entity_changes
             changes = detect_entity_changes(config, recovered_entity, self.entity_type, self)
-            
+
             # Now process normally based on changes
             if changes['yaml_changed'] and not changes['dxf_changed']:
                 # YAML has changes to push
@@ -453,7 +453,7 @@ class UnifiedSyncProcessor(ABC):
                     from src.sync_hash_utils import update_sync_metadata
                     update_sync_metadata(config, changes['current_yaml_hash'], 'yaml', entity_handle=entity_handle)
                 return {'entity': result, 'yaml_updated': True} if result else None
-                
+
             elif not changes['yaml_changed'] and changes['dxf_changed']:
                 # DXF has changes to pull
                 log_info(f"🔄 RECOVERED+PULL: Pulling changes from DXF to YAML for '{entity_name}' (DXF changed)")
@@ -463,13 +463,13 @@ class UnifiedSyncProcessor(ABC):
                     from src.sync_hash_utils import update_sync_metadata
                     update_sync_metadata(config, changes['current_dxf_hash'], 'dxf', entity_handle=entity_handle)
                 return result if result else None
-                
+
             elif changes['yaml_changed'] and changes['dxf_changed']:
                 # Conflict - use existing conflict resolution
                 log_warning(f"🔄 RECOVERED+CONFLICT: Both YAML and DXF changed for '{entity_name}'")
                 # Let the normal conflict resolution handle this
                 return self._handle_sync_conflict(doc, space, config, recovered_entity, changes)
-                
+
             else:
                 # No changes detected - just update metadata and continue
                 log_info(f"🔄 RECOVERED+SYNC: Entity '{entity_name}' recovered, no changes detected")
@@ -477,7 +477,7 @@ class UnifiedSyncProcessor(ABC):
                 from src.sync_hash_utils import update_sync_metadata
                 update_sync_metadata(config, changes['current_yaml_hash'], 'yaml', entity_handle=entity_handle)
                 return {'entity': recovered_entity, 'yaml_updated': True}
-                
+
         except Exception as e:
             log_warning(f"Failed to continue with recovered entity '{entity_name}': {str(e)}")
             # Fallback to push if recovery continuation fails
@@ -487,14 +487,14 @@ class UnifiedSyncProcessor(ABC):
     def _handle_sync_conflict(self, doc, space, config, dxf_entity, changes):
         """
         Handle sync conflict when both YAML and DXF have changed.
-        
+
         Args:
             doc: DXF document
             space: Model space or paper space
             config: Entity configuration
             dxf_entity: DXF entity object
             changes: Change detection results
-            
+
         Returns:
             dict: Result dictionary with 'entity' and 'yaml_updated' keys
         """
@@ -666,14 +666,14 @@ class UnifiedSyncProcessor(ABC):
             if stored_handle:
                 # BEFORE assuming deletion, try name-based recovery
                 log_warning(f"⚠️  Entity '{entity_name}' not found by handle {stored_handle} - attempting name-based recovery")
-                
+
                 # Try to find by name without handle validation for recovery
                 recovered_entity = self._find_entity_by_name_ignoring_handle_validation(doc, entity_name)
                 if recovered_entity:
                     # Found by name! Handle probably changed - update tracking
                     new_handle = str(recovered_entity.dxf.handle)
                     log_info(f"✅ RECOVERED: Entity '{entity_name}' found with new handle {new_handle} (was {stored_handle})")
-                    
+
                     # Repair handle tracking
                     if self._repair_entity_handle_tracking(recovered_entity, config):
                         # Re-run auto sync with recovered entity - continue with normal change detection
