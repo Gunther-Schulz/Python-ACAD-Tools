@@ -40,6 +40,7 @@ from src.shapefile_utils import write_shapefile
 from src.operations.label_association_operation import create_label_association_layer
 from src.operations.lagefaktor_operation import create_lagefaktor_layer
 from src.operations.simple_label_operation import create_simple_label_layer
+from src.operations.point_label_operation import create_point_label_layer
 from src.operations.simplify_slivers_operation import create_simplify_slivers_layer
 from src.operations.remove_protrusions_operation import create_remove_protrusions_layer
 from src.operations.remove_slivers_erosion_operation import create_remove_slivers_erosion_layer
@@ -360,6 +361,19 @@ class LayerProcessor:
             if labels_result is not None:
                 self.all_layers[label_layer_name] = labels_result
                 log_debug(f"Created label layer '{label_layer_name}' for '{layer_name}'")
+            # Return None so the original layer is preserved
+            return None
+        elif op_type == 'pointLabel':
+            # Create a separate label layer name
+            label_layer_name = f"{layer_name}_labels"
+            # Generate the labels using existing point geometries
+            labels_result = create_point_label_layer(self.all_layers, self.project_settings,
+                                             self.crs, layer_name, operation,
+                                             self.project_loader)
+            # Store in a separate layer
+            if labels_result is not None:
+                self.all_layers[label_layer_name] = labels_result
+                log_debug(f"Created point label layer '{label_layer_name}' for '{layer_name}'")
             # Return None so the original layer is preserved
             return None
         elif op_type == 'filterByColumn':

@@ -6,8 +6,16 @@ geomLayers:
     operations:
       - type: simpleLabel
         labelColumn: label  # Explicitly specify the label column
-        style: baum  # Using an existing text style from styles.yaml
+        style: parcel  # Using an existing text style from styles.yaml
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/input/parcel.shp"
+  - name: Parcel Label Custom
+    sync: push
+    label: label
+    operations:
+      - type: pointLabel
+        labelColumn: label  # Explicitly specify the label column
+        style: parcel  # Using an existing text style from styles.yaml
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/input/Parcel_labels.shp"
   - name: Flur
     sync: push
     label: flurname

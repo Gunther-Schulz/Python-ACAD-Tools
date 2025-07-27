@@ -143,6 +143,13 @@ styles:
   parcel:
     layer:
       locked: true
+    text:
+      height: 2.5
+      font: "Arial"
+      # color: "black"
+      attachmentPoint: "MIDDLE_CENTER"
+      paragraph:
+        align: "CENTER"
   parcelWorkView:
     layer:
       color: "charcoal"

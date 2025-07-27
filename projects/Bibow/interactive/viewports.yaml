@@ -11,12 +11,14 @@ viewports:
   scale: 2.0
   frozenLayers:
   - Gebäude
+  - Parcel Label
+  - Parcel_labels
   lockZoom: true
   _sync:
     dxf_handle: F6ED
-    content_hash: a8c97594b2e045651239bd6aa76b006db9ac612bdaf1b5b57b82d37145fe0483
-    last_sync_time: 1753471782
-    sync_source: yaml
+    content_hash: d0ea73ce73504f9d3008c0bfb378a0970c55440546e01fc905c9c7138dc86f70
+    last_sync_time: 1753599946
+    sync_source: dxf
 - name: Viewport_006
   center:
     x: 341.7233073712261
