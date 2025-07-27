@@ -37,35 +37,35 @@ viewports:
     sync_source: yaml
 - name: Viewport_10AF6
   center:
-    x: 906.4332528307149
-    y: 355.8964827525824
+    x: 906.4332528307147
+    y: 178.8516693582282
   width: 177.1475149288962
-  height: 94.68235633125732
+  height: 94.68235633125731
   viewCenter:
     x: 278937.3899984032
-    y: 5964758.852966763
+    y: 5964758.852966761
   scale: 33.361749
   sync: auto
   _sync:
     dxf_handle: 10AF6
-    content_hash: 3d36649685a6901fd2500ed90183a5c86174d0cf45dd4132ef056429077cc378
-    last_sync_time: 1753533428
+    content_hash: 1d70e2b8c2e41fa6d93f3d89109f98de22e177ee91b880d10a943808a90cb191
+    last_sync_time: 1753595910
     sync_source: dxf
 - name: Viewport_132D6
   center:
-    x: 911.7007439545592
-    y: 670.2633223084067
-  width: 156.8599054573824
-  height: 318.5421196800203
+    x: 905.6033181802741
+    y: 645.9008185839936
+  width: 186.6088181915386
+  height: 404.8470799852504
   viewCenter:
-    x: 282414.4163117371
-    y: 5966994.942576302
+    x: 282429.2907744678
+    y: 5966951.790077687
   scale: 1.0
   sync: auto
   _sync:
     dxf_handle: 132D6
-    content_hash: b82e5f29ed7cd7d6e4c6f20d0759492cb93ff7706b12b22eaf86e7f50d509874
-    last_sync_time: 1753558420
+    content_hash: 61062eac1114486c85cc5d01ed32314c6f7b46e29ec1290333ca2b12bd4c34a4
+    last_sync_time: 1753595910
     sync_source: dxf
 discover_untracked_layers:
 - VIEWPORTS

@@ -75,6 +75,15 @@ class LayerProcessor:
             if shapefile_output_dir:
                 self.write_shapefile(layer_name)
 
+        # Save generated label layers (mirror DXF behavior)
+        if shapefile_output_dir:
+            for layer in self.project_settings['geomLayers']:
+                layer_name = layer['name']
+                label_layer_name = f"{layer_name}_labels"
+                if label_layer_name in self.all_layers:
+                    log_debug(f"Saving generated label layer: {label_layer_name}")
+                    self.write_shapefile(label_layer_name)
+
         # Log completion of shapefile generation
         if shapefile_output_dir:
             log_info("Finished writing generated shape files")

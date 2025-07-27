@@ -31,16 +31,16 @@ texts:
   position:
     type: absolute
     x: 817.0
-    y: 432.6992790288509
+    y: 242.4889564856816
   text: Übersichtskarte i. M. 1:30.000
   layer: Plantext
   paperspace: true
   style: übersichtskarteHeader
   _sync:
     dxf_handle: 42EB
-    content_hash: 7e450e4f7e9d49020489a8344fbd0db86738a1ae21d23b31c4e87a8887cee393
-    last_sync_time: 1753469580
-    sync_source: yaml
+    content_hash: ece93141e223bbcc3dbb40ed4d377a609bf5dd98343b54aed6dd52d0a625a9b4
+    last_sync_time: 1753595909
+    sync_source: dxf
 - name: Satzung
   position:
     type: absolute
