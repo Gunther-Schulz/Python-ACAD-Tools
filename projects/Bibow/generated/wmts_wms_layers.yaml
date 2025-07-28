@@ -17,7 +17,7 @@ wmtsLayers:
   #       stitchTiles: true
   #       # overwrite: true
   - name: WMTS Basemap
-    sync: push
+    sync: skip
     operations:
       - type: wmts
         url: "https://sgx.geodatenzentrum.de/wmts_basemapde/1.0.0/WMTSCapabilities.xml"
@@ -31,7 +31,7 @@ wmtsLayers:
         stitchTiles: true
 wmsLayers:
   - name: WMS Gebäude
-    sync: push
+    sync: skip
     operations:
       - type: wms
         # overwrite: true
@@ -64,7 +64,7 @@ wmsLayers:
         #   # removeText: true
         stitchTiles: true
   - name: WMS Höhenlinien
-    sync: push
+    sync: skip
     operations:
       - type: wms
         # overwrite: true

@@ -11,11 +11,12 @@ viewports:
   scale: 2.0
   frozenLayers:
   - Gebäude
+  - WMTS Basemap
   lockZoom: true
   _sync:
     dxf_handle: F6ED
-    content_hash: a8c97594b2e045651239bd6aa76b006db9ac612bdaf1b5b57b82d37145fe0483
-    last_sync_time: 1753693744
+    content_hash: 1c6b71461e67d44a02241e277dc2ffe19ab89100b55bd27813c6576f7b347cae
+    last_sync_time: 1753703926
     sync_source: dxf
 - name: Viewport_006
   center:
@@ -29,12 +30,13 @@ viewports:
   scale: 2.000001
   frozenLayers:
   - Gebäude
+  - WMTS Basemap
   lockZoom: true
   _sync:
     dxf_handle: F6EE
-    content_hash: 01f50ecd3df33132ae55fd390f6873a2b2cb452248b58dfde976774605f95dbe
-    last_sync_time: 1753471782
-    sync_source: yaml
+    content_hash: 0e661b855d4dd1c59cad2e0a9bb901f7164f971ddf3b85fac3b68bd519d630e6
+    last_sync_time: 1753703926
+    sync_source: dxf
 - name: Viewport_10AF6
   center:
     x: 906.4332528307147
@@ -48,15 +50,18 @@ viewports:
   sync: auto
   _sync:
     dxf_handle: 10AF6
-    content_hash: 1d70e2b8c2e41fa6d93f3d89109f98de22e177ee91b880d10a943808a90cb191
-    last_sync_time: 1753595910
+    content_hash: 7844024c8d5bbd7bd0f80a14871b03aa6beb117513db4e40dca5d1995b117be1
+    last_sync_time: 1753703926
     sync_source: dxf
+  frozenLayers:
+  - WMS Gebäude
+  - WMS Höhenlinien
 - name: Viewport_132D6
   center:
     x: 905.6033181802741
     y: 618.0938587842545
   width: 186.6088181915386
-  height: 460.4609995847285
+  height: 460.4609995847281
   viewCenter:
     x: 282429.2907744678
     y: 5966923.983105991
@@ -64,9 +69,13 @@ viewports:
   sync: auto
   _sync:
     dxf_handle: 132D6
-    content_hash: d13b7bcb8618275219e54c48072941790676ab60e8029054e7f8ae203d11156b
-    last_sync_time: 1753695781
+    content_hash: 7f28ac522aaee7a5a3c088f25de374588090d943058b4ba54d6fcf16ad18681c
+    last_sync_time: 1753703926
     sync_source: dxf
+  frozenLayers:
+  - WMTS Basemap
+  - WMS Gebäude
+  - WMS Höhenlinien
 - name: Viewport_47805
   center:
     x: 1285.226226934713
