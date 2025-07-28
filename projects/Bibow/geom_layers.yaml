@@ -3,10 +3,10 @@ geomLayers:
   - name: Parcel
     sync: push
     label: label
-    operations:
-      - type: simpleLabel
-        labelColumn: label  # Explicitly specify the label column
-        style: parcel  # Using an existing text style from styles.yaml
+    # operations:
+    #   - type: simpleLabel
+    #     labelColumn: label  # Explicitly specify the label column
+    #     style: parcel  # Using an existing text style from styles.yaml
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/input/parcel.shp"
   - name: Parcel Label Custom
     sync: push

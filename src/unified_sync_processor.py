@@ -757,30 +757,30 @@ class UnifiedSyncProcessor(ABC):
         """Handle entity discovery with proper implementation."""
 
         if not self._is_discovery_enabled():
-            log_info(f"🔍 DEBUG: Discovery not enabled for {self.entity_type}")
+            log_debug(f"🔍 DEBUG: Discovery not enabled for {self.entity_type}")
             return {'yaml_updated': False}
 
-        log_info(f"🔍 DEBUG: Running discovery for {self.entity_type} entities on layers: {self.discovery_layers}")
+        log_debug(f"🔍 DEBUG: Running discovery for {self.entity_type} entities on layers: {self.discovery_layers}")
 
         # Discover untracked entities
         discovered_entities = self._discover_unknown_entities(doc, space)
-        log_info(f"🔍 DEBUG: Found {len(discovered_entities)} untracked entities")
+        log_debug(f"🔍 DEBUG: Found {len(discovered_entities)} untracked entities")
 
         if not discovered_entities:
-            log_info(f"🔍 DEBUG: No untracked {self.entity_type} entities found")
+            log_debug(f"🔍 DEBUG: No untracked {self.entity_type} entities found")
             return {'yaml_updated': False}
 
         # Add discovered entities to configuration
         config_key = self._get_config_key()
         entity_configs = self.project_settings.get(config_key, [])
-        log_info(f"🔍 DEBUG: Current config has {len(entity_configs)} existing entities")
+        log_debug(f"🔍 DEBUG: Current config has {len(entity_configs)} existing entities")
 
         yaml_updated = False
         for discovery in discovered_entities:
             entity = discovery['entity']
             entity_name = discovery['name']
 
-            log_info(f"🔍 DEBUG: Processing discovered entity '{entity_name}' (handle: {entity.dxf.handle})")
+            log_debug(f"🔍 DEBUG: Processing discovered entity '{entity_name}' (handle: {entity.dxf.handle})")
 
             # Extract entity properties for configuration
             entity_config = self._extract_entity_properties(entity, {'name': entity_name})
@@ -806,7 +806,7 @@ class UnifiedSyncProcessor(ABC):
         # Update project settings
         if yaml_updated:
             self.project_settings[config_key] = entity_configs
-            log_info(f"🔍 DEBUG: Updated project settings with {len(entity_configs)} total entities")
+            log_debug(f"🔍 DEBUG: Updated project settings with {len(entity_configs)} total entities")
 
         return {'yaml_updated': yaml_updated}
 
@@ -825,24 +825,24 @@ class UnifiedSyncProcessor(ABC):
         Returns:
             list: List of discovered entities with format [{'entity': entity, 'name': name}, ...]
         """
-        log_info(f"🔍 DEBUG: _discover_unknown_entities called for {self.entity_type} in {space}")
+        log_debug(f"🔍 DEBUG: _discover_unknown_entities called for {self.entity_type} in {space}")
         discovered = []
 
         # Get entity types from child class implementation
         try:
             entity_types = self._get_entity_types()
-            log_info(f"🔍 DEBUG: Entity types: {entity_types}")
+            log_debug(f"🔍 DEBUG: Entity types: {entity_types}")
         except (NotImplementedError, AttributeError):
             log_warning(f"Child class doesn't implement _get_entity_types() - skipping discovery")
             return discovered
 
         # Build query string for all entity types
         query_string = ' '.join(entity_types)
-        log_info(f"🔍 DEBUG: Query string: '{query_string}'")
+        log_debug(f"🔍 DEBUG: Query string: '{query_string}'")
 
         # Search for entities in the current space
         all_entities = list(space.query(query_string))
-        log_info(f"🔍 DEBUG: Found {len(all_entities)} entities of matching types")
+        log_debug(f"🔍 DEBUG: Found {len(all_entities)} entities of matching types")
 
         for entity in all_entities:
             # Skip entities based on manager-specific logic
@@ -860,10 +860,10 @@ class UnifiedSyncProcessor(ABC):
 
             # Check if entity has valid tracking (handle validation)
             if self._validate_entity_handle(entity, "discovery_check"):
-                log_info(f"🔍 DEBUG: Entity {entity.dxf.handle} is properly tracked, skipping")
+                log_debug(f"🔍 DEBUG: Entity {entity.dxf.handle} is properly tracked, skipping")
                 continue  # Properly tracked, skip
 
-            log_info(f"🔍 DEBUG: Entity {entity.dxf.handle} on layer {entity_layer} is untracked!")
+            log_debug(f"🔍 DEBUG: Entity {entity.dxf.handle} on layer {entity_layer} is untracked!")
 
             # Entity is untracked - discover it
             try:

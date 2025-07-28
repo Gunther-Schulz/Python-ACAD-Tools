@@ -79,7 +79,7 @@ def create_repair_layer(all_layers, project_settings, crs, layer_name, operation
         log_warning(f"Source layer '{source_layer_name}' is empty for repair operation")
         return gpd.GeoDataFrame(geometry=[], crs=crs)
 
-    log_info(f"Starting repair of {len(source_gdf)} geometries in layer '{source_layer_name}'")
+    log_debug(f"Starting repair of {len(source_gdf)} geometries in layer '{source_layer_name}'")
 
     # Track repair statistics
     original_count = len(source_gdf)
@@ -256,12 +256,18 @@ def create_repair_layer(all_layers, project_settings, crs, layer_name, operation
 
     # Log repair statistics
     final_count = len(result_gdf)
-    log_info(f"Repair operation completed for layer '{layer_name}':")
-    log_info(f"  Original geometries: {original_count}")
-    log_info(f"  Repaired geometries: {repaired_count}")
-    log_info(f"  Failed repairs: {failed_count}")
-    log_info(f"  Removed geometries: {removed_count}")
-    log_info(f"  Final geometries: {final_count}")
+
+    # Only show concise message if there were repairs or failures
+    if repaired_count > 0 or failed_count > 0 or removed_count > 0:
+        log_info(f"Repair operation for layer '{layer_name}': {repaired_count} repaired, {removed_count} removed, {failed_count} failed")
+
+    # Detailed statistics in debug
+    log_debug(f"Repair operation completed for layer '{layer_name}':")
+    log_debug(f"  Original geometries: {original_count}")
+    log_debug(f"  Repaired geometries: {repaired_count}")
+    log_debug(f"  Failed repairs: {failed_count}")
+    log_debug(f"  Removed geometries: {removed_count}")
+    log_debug(f"  Final geometries: {final_count}")
 
     # Log detailed repair steps if debug is enabled
     if repair_logs:

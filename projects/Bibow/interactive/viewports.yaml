@@ -11,13 +11,11 @@ viewports:
   scale: 2.0
   frozenLayers:
   - Gebäude
-  - Parcel Label
-  - Parcel_labels
   lockZoom: true
   _sync:
     dxf_handle: F6ED
-    content_hash: d0ea73ce73504f9d3008c0bfb378a0970c55440546e01fc905c9c7138dc86f70
-    last_sync_time: 1753599946
+    content_hash: a8c97594b2e045651239bd6aa76b006db9ac612bdaf1b5b57b82d37145fe0483
+    last_sync_time: 1753693744
     sync_source: dxf
 - name: Viewport_006
   center:
@@ -56,18 +54,94 @@ viewports:
 - name: Viewport_132D6
   center:
     x: 905.6033181802741
-    y: 645.9008185839936
+    y: 618.0938587842545
   width: 186.6088181915386
-  height: 404.8470799852504
+  height: 460.4609995847285
   viewCenter:
     x: 282429.2907744678
-    y: 5966951.790077687
+    y: 5966923.983105991
   scale: 1.0
   sync: auto
   _sync:
     dxf_handle: 132D6
-    content_hash: 61062eac1114486c85cc5d01ed32314c6f7b46e29ec1290333ca2b12bd4c34a4
-    last_sync_time: 1753595910
+    content_hash: d13b7bcb8618275219e54c48072941790676ab60e8029054e7f8ae203d11156b
+    last_sync_time: 1753695781
+    sync_source: dxf
+- name: Viewport_47805
+  center:
+    x: 1285.226226934713
+    y: 591.2506358534947
+  width: 189.5746478379598
+  height: 518.3497340110506
+  viewCenter:
+    x: -314008.016751273
+    y: -16709.03365664966
+  scale: 1.176461
+  frozenLayers:
+  - VP
+  - '0'
+  sync: auto
+  _sync:
+    dxf_handle: '47805'
+    content_hash: 43d37bbea3b21e2c05dde3ca35dbf0a8f4024e989ffe674cdb464af3fec2223c
+    last_sync_time: 1753700049
+    sync_source: dxf
+- name: Viewport_47808
+  center:
+    x: 718.9128458490657
+    y: 767.7170815445849
+  width: 145.3474767854928
+  height: 29.10055579607379
+  viewCenter:
+    x: -311921.8154601492
+    y: -16115.60080583424
+  scale: 1.470683
+  frozenLayers:
+  - VP
+  - '0'
+  sync: auto
+  _sync:
+    dxf_handle: '47808'
+    content_hash: 801118adaff09a091f55e0cc4624f9eb55d0b14b9408a4787de280854182a41a
+    last_sync_time: 1753702207
+    sync_source: dxf
+- name: Viewport_4780C
+  center:
+    x: 1284.123102894605
+    y: 193.1697015590321
+  width: 187.3683997577444
+  height: 95.47089056029651
+  viewCenter:
+    x: -311923.8235361764
+    y: -16983.17903484031
+  scale: 0.586095
+  frozenLayers:
+  - VP
+  - '0'
+  sync: auto
+  _sync:
+    dxf_handle: 4780C
+    content_hash: 6a39159c46440dc57eb168059915669e5a574ba65d95532676869591752ea427
+    last_sync_time: 1753700049
+    sync_source: dxf
+- name: Viewport_4780F
+  center:
+    x: 1097.938903015733
+    y: 553.6738518341886
+  width: 185.0000000000002
+  height: 593.5033020496631
+  viewCenter:
+    x: -314011.2340417957
+    y: -16754.13296046966
+  scale: 1.176456
+  frozenLayers:
+  - VP
+  - '0'
+  sync: auto
+  _sync:
+    dxf_handle: 4780F
+    content_hash: c04a1c263e8fdb07e97d46eb2193fe771f2605829a5985033af2716ef3bf0917
+    last_sync_time: 1753700049
     sync_source: dxf
 discover_untracked_layers:
 - VIEWPORTS

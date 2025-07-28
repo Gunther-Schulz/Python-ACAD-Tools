@@ -284,27 +284,27 @@ class BlockInsertManager(UnifiedSyncProcessor):
     def _find_entity_by_name(self, doc, entity_name):
         """Find block insert entity in DXF by name using XDATA."""
         try:
-            log_info(f"🔍 DEBUG: Searching for block '{entity_name}' with script ID '{self.script_identifier}'")
+            log_debug(f"🔍 DEBUG: Searching for block '{entity_name}' with script ID '{self.script_identifier}'")
 
             # Search modelspace first (where most block inserts like equipment symbols are), then paperspace
             spaces = [doc.modelspace(), doc.paperspace()]
 
             for space in spaces:
-                log_info(f"🔍 DEBUG: Searching in {space}")
+                log_debug(f"🔍 DEBUG: Searching in {space}")
 
                 # Try to find the specific entity
                 entity = find_entity_by_xdata_name(space, entity_name, ['INSERT'])
                 if entity and entity.dxftype() == 'INSERT':
-                    log_info(f"🔍 DEBUG: ✅ Found block insert '{entity_name}' in {space}")
+                    log_debug(f"🔍 DEBUG: ✅ Found block insert '{entity_name}' in {space}")
 
                     # Validate entity handle (auto sync integrity check)
                     if self._validate_entity_handle(entity, entity_name):
                         return entity
                     else:
-                        log_info(f"🔍 DEBUG: ❌ Block insert '{entity_name}' failed handle validation (copied entity)")
+                        log_debug(f"🔍 DEBUG: ❌ Block insert '{entity_name}' failed handle validation (copied entity)")
                         return None  # Treat as missing to trigger push
 
-            log_info(f"🔍 DEBUG: ❌ Block insert '{entity_name}' not found in any space")
+            log_debug(f"🔍 DEBUG: ❌ Block insert '{entity_name}' not found in any space")
             return None
 
         except Exception as e:

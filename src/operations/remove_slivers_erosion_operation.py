@@ -11,8 +11,8 @@ def create_remove_slivers_erosion_layer(all_layers, project_settings, crs, layer
     # Get parameters
     erosion_distance = operation.get('erosionDistance', 0.1)  # How much to erode
 
-    log_info(f"=== STARTING removeSliversByErosion operation for layer: {layer_name} ===")
-    log_info(f"Using erosion distance: {erosion_distance} (removes features thinner than {erosion_distance * 2})")
+    log_debug(f"=== STARTING removeSliversByErosion operation for layer: {layer_name} ===")
+    log_debug(f"Using erosion distance: {erosion_distance} (removes features thinner than {erosion_distance * 2})")
 
     # Get the current layer
     if layer_name not in all_layers:
@@ -63,7 +63,11 @@ def create_remove_slivers_erosion_layer(all_layers, project_settings, crs, layer
     final_count = len(final_result) if not final_result.empty else 0
     features_removed = original_count - final_count
 
-    log_info(f"=== COMPLETED removeSliversByErosion: {features_removed} features removed, {final_count} features remaining ===")
+    # Only show message if features were actually removed
+    if features_removed > 0:
+        log_info(f"removeSliversByErosion for '{layer_name}': {features_removed} features removed, {final_count} remaining")
+
+    log_debug(f"=== COMPLETED removeSliversByErosion: {features_removed} features removed, {final_count} features remaining ===")
 
     if final_result.empty:
         log_warning(f"No valid geometries after sliver removal for layer '{layer_name}'")

@@ -27,9 +27,9 @@ def calculate_entity_content_hash(entity_data, entity_type):
     # Calculate SHA-256 hash
     hash_obj = hashlib.sha256(json_str.encode('utf-8'))
 
-    print(f"Hash calculation for {entity_type} '{entity_data.get('name', 'unnamed')}': "
+    log_debug(f"Hash calculation for {entity_type} '{entity_data.get('name', 'unnamed')}': "
           f"canonical_props={list(canonical_data.keys())}, hash={hash_obj.hexdigest()[:12]}...")
-    print(f"  JSON: {json_str}")
+    log_debug(f"  JSON: {json_str}")
 
     return hash_obj.hexdigest()
 
@@ -115,15 +115,15 @@ def detect_entity_changes(yaml_config, dxf_entity, entity_type, entity_manager):
     entity_name = yaml_config.get('name', 'unnamed')
     sync_meta = yaml_config.get('_sync', {}) or {}
 
-    print(f"🔍 HASH DEBUG for '{entity_name}' ({entity_type})")
+    log_debug(f"🔍 HASH DEBUG for '{entity_name}' ({entity_type})")
 
     # Get current and stored hashes
     current_yaml_hash = calculate_entity_content_hash(yaml_config, entity_type)
 
     stored_hash = sync_meta.get('content_hash')
 
-    print(f"  📝 YAML hash: {current_yaml_hash}")
-    print(f"  💾 Stored hash: {stored_hash}")
+    log_debug(f"  📝 YAML hash: {current_yaml_hash}")
+    log_debug(f"  💾 Stored hash: {stored_hash}")
 
     # Calculate DXF hash if entity exists
     current_dxf_hash = None
@@ -132,9 +132,9 @@ def detect_entity_changes(yaml_config, dxf_entity, entity_type, entity_manager):
             dxf_properties = entity_manager._extract_dxf_entity_properties_for_hash(dxf_entity)
 
             current_dxf_hash = calculate_entity_content_hash(dxf_properties, entity_type)
-            print(f"  📄 DXF hash: {current_dxf_hash}")
+            log_debug(f"  📄 DXF hash: {current_dxf_hash}")
         else:
-            print(f"Entity manager {type(entity_manager)} missing _extract_dxf_entity_properties_for_hash method")
+            log_debug(f"Entity manager {type(entity_manager)} missing _extract_dxf_entity_properties_for_hash method")
 
         # Determine what changed
     yaml_changed = current_yaml_hash != stored_hash if stored_hash else True
@@ -154,7 +154,7 @@ def detect_entity_changes(yaml_config, dxf_entity, entity_type, entity_manager):
             # This is a baseline update scenario, not a conflict
             yaml_changed = False
             dxf_changed = False
-            print(f"  🔄 Baseline hash outdated - YAML and DXF are in sync, updating baseline")
+            log_debug(f"  🔄 Baseline hash outdated - YAML and DXF are in sync, updating baseline")
         elif yaml_changed and dxf_changed and dxf_entity:
             # Check if DXF entity is managed by our app (has our XDATA)
             is_managed_entity = False
@@ -169,10 +169,10 @@ def detect_entity_changes(yaml_config, dxf_entity, entity_type, entity_manager):
                 # For managed entities, prefer DXF changes (user likely moved it in AutoCAD)
                 # This avoids false conflicts when user moves managed blocks
                 yaml_changed = False  # Treat as DXF-only change
-                print(f"  🎯 Managed entity detected - treating as DXF change (likely moved in AutoCAD)")
+                log_debug(f"  🎯 Managed entity detected - treating as DXF change (likely moved in AutoCAD)")
 
-    print(f"  ✅ YAML changed: {yaml_changed} (current != stored: {current_yaml_hash != stored_hash if stored_hash else 'no stored hash'})")
-    print(f"  ✅ DXF changed: {dxf_changed} (current != stored: {current_dxf_hash != stored_hash if stored_hash and current_dxf_hash else 'no DXF hash'})")
+    log_debug(f"  ✅ YAML changed: {yaml_changed} (current != stored: {current_yaml_hash != stored_hash if stored_hash else 'no stored hash'})")
+    log_debug(f"  ✅ DXF changed: {dxf_changed} (current != stored: {current_dxf_hash != stored_hash if stored_hash and current_dxf_hash else 'no DXF hash'})")
 
     # Handle case where no stored hash exists (first time sync)
     if not stored_hash:
@@ -191,17 +191,17 @@ def detect_entity_changes(yaml_config, dxf_entity, entity_type, entity_manager):
                 # Entity is managed by our app - compare hashes for sync
                 yaml_changed = current_yaml_hash != current_dxf_hash
                 dxf_changed = False  # Assume YAML is the source if no stored hash
-                print(f"  🆕 No stored hash (managed entity) - comparing YAML vs DXF: {yaml_changed}")
+                log_debug(f"  🆕 No stored hash (managed entity) - comparing YAML vs DXF: {yaml_changed}")
             else:
                 # Entity exists but not managed by our app - treat as push scenario
                 yaml_changed = True
                 dxf_changed = False
-                print(f"  🆕 DXF entity exists but unmanaged (no XDATA) - YAML should be pushed")
+                log_debug(f"  🆕 DXF entity exists but unmanaged (no XDATA) - YAML should be pushed")
         else:
             # No DXF entity, YAML should be pushed
             yaml_changed = True
             dxf_changed = False
-            print(f"  🆕 No stored hash, no DXF entity - YAML should be pushed")
+            log_debug(f"  🆕 No stored hash, no DXF entity - YAML should be pushed")
 
     return {
         'yaml_changed': yaml_changed,
@@ -610,7 +610,7 @@ def debug_hash_calculation(entity_config, dxf_entity, entity_type, entity_manage
         dict: Detailed debug information
     """
     entity_name = entity_config.get('name', 'unnamed')
-    log_info(f"🔍 Debug hash calculation for {entity_type} '{entity_name}'")
+    log_debug(f"🔍 Debug hash calculation for {entity_type} '{entity_name}'")
 
     # Calculate YAML hash
     yaml_hash = calculate_entity_content_hash(entity_config, entity_type)

@@ -860,14 +860,11 @@ def sanitize_layer_name(name):
     # Define a set of allowed characters, including German-specific ones, space, dash, underscore, and periods
     allowed_chars = r'a-zA-Z0-9_\-öüäßÖÜÄ .'
 
-    # Check for forbidden characters and issue detailed warnings
+    # Check for forbidden characters and issue warning
     forbidden_chars = re.findall(f'[^{allowed_chars}]', name)
     if forbidden_chars:
         unique_forbidden = list(set(forbidden_chars))
-        log_warning(f"DXF Layer name '{name}' contains forbidden characters: {unique_forbidden}")
-        log_warning(f"Forbidden characters in DXF layer names include: commas (,), slashes (/\\), brackets ([]), and other special characters")
-        log_warning(f"Allowed characters are: letters (a-z, A-Z), numbers (0-9), underscore (_), hyphen (-), period (.), space ( ), and German umlauts (öüäßÖÜÄ)")
-        log_warning(f"Sanitizing layer name by replacing forbidden characters with underscores.")
+        log_warning(f"DXF Layer name '{name}' contains forbidden characters: {unique_forbidden} - sanitizing to replace with underscores")
 
     # Actually sanitize the name by replacing forbidden characters with underscores
     sanitized_name = re.sub(f'[^{allowed_chars}]', '_', name)
@@ -901,7 +898,7 @@ def sanitize_layer_name(name):
 
     # Log the change if the name was modified
     if sanitized_name != name:
-        log_info(f"Sanitized layer name: '{name}' → '{sanitized_name}'")
+        log_debug(f"Sanitized layer name: '{name}' → '{sanitized_name}'")
 
     return sanitized_name
 
