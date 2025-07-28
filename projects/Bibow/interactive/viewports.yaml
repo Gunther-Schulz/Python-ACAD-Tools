@@ -131,17 +131,17 @@ viewports:
   width: 185.0000000000002
   height: 593.5033020496631
   viewCenter:
-    x: -314011.2340417957
-    y: -16754.13296046966
-  scale: 1.176456
+    x: -314009.4379671056
+    y: -16755.59132941804
+  scale: 1.17647
   frozenLayers:
   - VP
   - '0'
   sync: auto
   _sync:
     dxf_handle: 4780F
-    content_hash: c04a1c263e8fdb07e97d46eb2193fe771f2605829a5985033af2716ef3bf0917
-    last_sync_time: 1753700049
+    content_hash: 8ddbf3bd4a462610c6d676bb96e5d054c736bca8eecb4bbd17c4e86a51f4a188
+    last_sync_time: 1753702822
     sync_source: dxf
 discover_untracked_layers:
 - VIEWPORTS

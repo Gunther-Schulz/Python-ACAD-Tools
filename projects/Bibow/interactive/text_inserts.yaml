@@ -2,7 +2,7 @@ texts:
 - name: Main Title
   position:
     type: absolute
-    x: 66.0
+    x: -100.3640184355163
     y: 840.0
   text: 'Entwurf: Bebauungsplan Nr. 3 „Solarpark Bibow"\nder Gemeinde Bibow'
   layer: Plantext
@@ -10,13 +10,13 @@ texts:
   style: mainTitle
   _sync:
     dxf_handle: 42E9
-    content_hash: ee0863190f4d4a8df29b6dae741d1b3e2e60d95cd94188ca857a680fc56e9798
-    last_sync_time: 1753469580
-    sync_source: yaml
+    content_hash: aa900fe83e8a7d08918fbc54c18bd10ab023d917f5c152b107524a754b93b3fb
+    last_sync_time: 1753702421
+    sync_source: dxf
 - name: Map Header
   position:
     type: absolute
-    x: 66.0
+    x: -100.3640184355163
     y: 766.4358442591642
   text: 'Teil A: Planzeichnung i. M. 1:2.000'
   layer: Plantext
@@ -24,8 +24,8 @@ texts:
   style: mapHeader
   _sync:
     dxf_handle: 42EA
-    content_hash: 1e63c1cdae6d2c241adbfe37c5e3e515fe9e4362853ced63b2a37af1081e4fcf
-    last_sync_time: 1753697462
+    content_hash: a6ffc897b3690677da67a920c52d94e44e54c040b9f052f0156ae540f1f3fc41
+    last_sync_time: 1753702421
     sync_source: dxf
 - name: Übersichtskarte Header
   position:

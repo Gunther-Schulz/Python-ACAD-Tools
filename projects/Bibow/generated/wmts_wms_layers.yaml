@@ -24,7 +24,7 @@ wmtsLayers:
         layer: "de_basemapde_web_raster_farbe"
         zoom: "10"
         proj: "DE_EPSG_25833_ADV"
-        targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/Basemap"
+        targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/Basemap"
         layers:
           - Geltungsbereiche
         buffer: 5000
@@ -47,7 +47,7 @@ wmsLayers:
           # bgcolor: "0x0000FF" # Doesn't work somehow. It's black always.
           width: 4096
           height: 4096
-        targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/Gebäude"
+        targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/Gebäude"
         layers:
           - Geltungsbereiche
         buffer: 500
@@ -80,7 +80,7 @@ wmsLayers:
           # bgcolor: "0x0000FF" # Doesn't work somehow. It's black always.
           width: 4096
           height: 4096
-        targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/23-25 Maxsolar - Torgelow/GIS/Höhenlinien"
+        targetFolder: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/Höhenlinien"
         layers:
           - Geltungsbereiche
         buffer: 1000

@@ -200,9 +200,9 @@ def print_layer_settings():
             "description": "Name of the layer",
             "type": "string"
         },
-        "updateDxf": {
-            "description": "Whether to update the layer in the DXF file",
-            "type": "boolean"
+        "sync": {
+            "description": "Sync mode: 'push' (write to DXF), 'pull' (read from DXF), 'auto' (bidirectional), 'skip' (no sync)",
+            "type": "string"
         },
         "shapeFile": {
             "description": "Path to the shapefile for this layer",

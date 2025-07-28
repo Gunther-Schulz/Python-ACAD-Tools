@@ -42,7 +42,7 @@ texts:
       x: 2590
       y: 265
     style: "satzungstext"  # Style can include width for text wrapping
-  # Note: Biewports don't get replaced even if updateDxf is true, only their properties get udpated (no the dimensions)
+  # Note: Viewports use 'auto' sync mode for bidirectional updates - properties are synchronized but dimensions are preserved
   # NO Text Inserts
   # --------------
   - name: "Main Title NO"

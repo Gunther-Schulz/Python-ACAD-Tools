@@ -56,7 +56,7 @@ def setup_logging(console_level='INFO'):
     os.makedirs('logs', exist_ok=True)
 
     # Create formatters
-    file_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+    file_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(name)s - %(message)s')
     console_formatter = logging.Formatter('%(levelname)s:%(name)s:%(message)s')  # This format shows logger name
 
     # Setup root logger to capture everything
@@ -66,30 +66,22 @@ def setup_logging(console_level='INFO'):
     # Clear existing handlers
     root_logger.handlers.clear()
 
-    # Create and configure handlers
+    # Create and configure handlers - single log file for everything
     handlers = {
-        'debug': logging.FileHandler('logs/debug.log', mode='w'),
-        'info': logging.FileHandler('logs/info.log', mode='w'),
-        'warning': logging.FileHandler('logs/warning.log', mode='w'),
-        'error': logging.FileHandler('logs/error.log', mode='w'),
+        'file': logging.FileHandler('logs/app.log', mode='w'),  # Single log file, overwrite on each run
         'console': logging.StreamHandler()
     }
 
-    # Set levels for file handlers (these won't change based on console_level)
-    handlers['debug'].setLevel(logging.DEBUG)
-    handlers['info'].setLevel(logging.INFO)
-    handlers['warning'].setLevel(logging.WARNING)
-    handlers['error'].setLevel(logging.ERROR)
-
-    # Set console level based on parameter
-    handlers['console'].setLevel(getattr(logging, console_level.upper()))
+    # Set levels for handlers
+    handlers['file'].setLevel(logging.DEBUG)  # Log everything to file
+    handlers['console'].setLevel(getattr(logging, console_level.upper()))  # Console level based on parameter
 
     # Add formatters to handlers
+    handlers['file'].setFormatter(file_formatter)
+    handlers['console'].setFormatter(console_formatter)
+
+    # Add handlers to root logger
     for handler in handlers.values():
-        if isinstance(handler, logging.FileHandler):
-            handler.setFormatter(file_formatter)
-        else:
-            handler.setFormatter(console_formatter)
         root_logger.addHandler(handler)
 
     # Route warnings through our logging system
@@ -151,20 +143,8 @@ def setup_performance_logger():
     perf_logger = logging.getLogger('performance')
     perf_logger.setLevel(logging.INFO)
 
-    # Only add handler if not already present
-    if not perf_logger.handlers:
-        # Create logs directory if it doesn't exist
-        os.makedirs('logs', exist_ok=True)
-
-        # Create performance log file handler
-        perf_handler = logging.FileHandler('logs/performance.log', mode='w')
-        perf_formatter = logging.Formatter('%(asctime)s - %(message)s')
-        perf_handler.setFormatter(perf_formatter)
-        perf_logger.addHandler(perf_handler)
-
-        # Prevent propagation to root logger (keeps it out of console)
-        perf_logger.propagate = False
-
+    # Performance logs will go to the same app.log file through the root logger
+    # Just return the logger - no need for separate file handler
     return perf_logger
 
 # Initialize performance logger
