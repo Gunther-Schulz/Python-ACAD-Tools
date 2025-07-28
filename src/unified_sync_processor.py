@@ -131,9 +131,13 @@ class UnifiedSyncProcessor(ABC):
             if discovery_results.get('yaml_updated'):
                 yaml_updated = True
 
+        # Step 6: Clean up orphaned entities (entities in DXF but removed from YAML)
+        if entities_by_mode['auto'] or entities_by_mode['push']:
+            orphan_results = self._handle_orphaned_entities(doc, space, entity_configs)
+            if orphan_results.get('deleted_count', 0) > 0:
+                log_info(f"🗑️ Cleaned up {orphan_results['deleted_count']} orphaned {self.entity_type} entities")
 
-
-        # Step 6: Write back YAML changes if needed
+        # Step 7: Write back YAML changes if needed
         if yaml_updated and self.project_loader:
             self._write_entity_yaml()
 
@@ -1239,3 +1243,105 @@ class UnifiedSyncProcessor(ABC):
 
         # Return result indicating YAML needs updating (entity will be removed)
         return {'entity': None, 'yaml_updated': True, 'deleted': True}
+
+    def _handle_orphaned_entities(self, doc, space, current_configs):
+        """
+        Clean up entities that exist in DXF but are no longer in YAML configuration.
+
+        This handles the case where entities were previously managed but their YAML
+        configs have been removed/commented out. Only affects auto/push mode entities
+        where YAML is the source of truth.
+
+        Args:
+            doc: DXF document
+            space: Model space or paper space
+            current_configs: List of currently active entity configurations
+
+        Returns:
+            dict: Result with deleted_count
+        """
+        if self.deletion_policy == 'ignore':
+            log_debug(f"Orphaned entity cleanup skipped - deletion policy is 'ignore'")
+            return {'deleted_count': 0}
+
+        # Get current config names for comparison
+        current_names = {config.get('name') for config in current_configs if config.get('name')}
+
+        # Find orphaned entities managed by our script
+        orphaned_entities = []
+
+        try:
+            from src.dxf_utils import is_created_by_script, _extract_sync_mode_from_xdata
+
+            for entity in space:
+                if is_created_by_script(entity, self.script_identifier):
+                    entity_name = self._get_entity_name_from_xdata(entity)
+                    entity_sync_mode = _extract_sync_mode_from_xdata(entity)
+
+                    # Only check auto/push mode entities (where YAML is source of truth)
+                    # Skip if entity name not found or if entity is still in current configs
+                    if (entity_sync_mode in ['auto', 'push'] and
+                        entity_name and
+                        entity_name not in current_names):
+                        orphaned_entities.append((entity, entity_name))
+                        log_debug(f"Found orphaned {self.entity_type} entity: '{entity_name}' (sync_mode: {entity_sync_mode})")
+
+        except Exception as e:
+            log_warning(f"Error scanning for orphaned {self.entity_type} entities: {str(e)}")
+            return {'deleted_count': 0}
+
+        if not orphaned_entities:
+            log_debug(f"No orphaned {self.entity_type} entities found")
+            return {'deleted_count': 0}
+
+        # Apply deletion policy
+        if self.deletion_policy == 'auto':
+            return self._auto_delete_orphaned_entities(orphaned_entities)
+        elif self.deletion_policy == 'confirm':
+            return self._confirm_delete_orphaned_entities(orphaned_entities)
+        else:
+            log_warning(f"Unknown deletion policy '{self.deletion_policy}' - skipping orphaned entity cleanup")
+            return {'deleted_count': 0}
+
+    def _auto_delete_orphaned_entities(self, orphaned_entities):
+        """Automatically delete orphaned entities."""
+        try:
+            from src.dxf_utils import delete_entities_clean
+
+            deleted_count = delete_entities_clean(orphaned_entities)
+            log_info(f"Auto-deleted {deleted_count} orphaned {self.entity_type} entities")
+
+            return {'deleted_count': deleted_count}
+
+        except Exception as e:
+            log_error(f"Error auto-deleting orphaned {self.entity_type} entities: {str(e)}")
+            return {'deleted_count': 0}
+
+    def _confirm_delete_orphaned_entities(self, orphaned_entities):
+        """Confirm before deleting orphaned entities."""
+        if not orphaned_entities:
+            return {'deleted_count': 0}
+
+        # Show summary of orphaned entities
+        log_warning(f"\nFound {len(orphaned_entities)} orphaned {self.entity_type} entities:")
+        for entity, entity_name in orphaned_entities:
+            log_warning(f"  - '{entity_name}' (exists in DXF but not in YAML)")
+
+        # Ask for confirmation
+        response = input(f"\nDelete these {len(orphaned_entities)} orphaned {self.entity_type} entities? (y/N): ").lower().strip()
+
+        if response == 'y':
+            try:
+                from src.dxf_utils import delete_entities_clean
+
+                deleted_count = delete_entities_clean(orphaned_entities)
+                log_info(f"Confirmed deletion of {deleted_count} orphaned {self.entity_type} entities")
+
+                return {'deleted_count': deleted_count}
+
+            except Exception as e:
+                log_error(f"Error deleting confirmed orphaned {self.entity_type} entities: {str(e)}")
+                return {'deleted_count': 0}
+        else:
+            log_info(f"Orphaned {self.entity_type} entity deletion cancelled by user")
+            return {'deleted_count': 0}

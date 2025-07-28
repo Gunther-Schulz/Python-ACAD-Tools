@@ -1,18 +1,18 @@
 blocks:
-- name: SO EBS Label
-  blockName: Sonstiges Sondergebiet EBS
-  scale: 6.0
-  rotation: 0
-  position:
-    type: polygon
-    method: centroid
-    sourceLayer: Baufeld
-  paperspace: false
-  _sync:
-    dxf_handle: 5EC47
-    content_hash: b91677c5d9e81fa7fc2a13a419e7efe4d4d0b572d7933ad2d2c68cf56b71d91f
-    last_sync_time: 1753704904
-    sync_source: dxf
+# - name: SO EBS Label
+#   blockName: Sonstiges Sondergebiet EBS
+#   scale: 6.0
+#   rotation: 0
+#   position:
+#     type: polygon
+#     method: centroid
+#     sourceLayer: Baufeld
+#   paperspace: false
+#   _sync:
+#     dxf_handle: 64F3D
+#     content_hash: 57731649ede801b59395a84b45f5d985efc100cb8bf74d9dd853ebf175104773
+#     last_sync_time: 1753706761
+#     sync_source: yaml
 discover_untracked_layers: []
 deletion_policy: confirm
 default_layer: MyBlocks
