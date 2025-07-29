@@ -118,6 +118,13 @@ styles:
       locked: true
       linetype: "ACAD_ISO14W100"
       lineweight: 50
+    text:
+      height: 5
+      font: "Arial"
+      color: "white"
+      attachmentPoint: "MIDDLE_CENTER"
+      paragraph:
+        align: "CENTER"
   flurWorkView:
     layer:
       color: "amber-strong"
@@ -127,6 +134,13 @@ styles:
       locked: true
       linetype: "ACAD_ISO12W100"
       lineweight: 50
+    text:
+      height: 5
+      font: "Arial"
+      color: "white"
+      attachmentPoint: "MIDDLE_CENTER"
+      paragraph:
+        align: "CENTER"
   gemarkungWorkView:
     layer:
       color: "amber-strong"
@@ -136,6 +150,13 @@ styles:
       locked: true
       linetype: "ACAD_ISO10W100"
       lineweight: 50
+    text:
+      height: 5
+      font: "Arial"
+      color: "white"
+      attachmentPoint: "MIDDLE_CENTER"
+      paragraph:
+        align: "CENTER"
   gemeindeWorkView:
     layer:
       color: "amber-strong"
@@ -146,7 +167,7 @@ styles:
     text:
       height: 2.5
       font: "Arial"
-      # color: "black"
+      # color: "white"
       attachmentPoint: "MIDDLE_CENTER"
       paragraph:
         align: "CENTER"
@@ -317,7 +338,7 @@ styles:
     # scale: 10
 
   # parcel:
-    # color: "Black"
+    # color: "white"
     # linetype: ACAD_ISO11W100
     # linetypeGeneration: true
     # linetypeScale: 1

@@ -190,6 +190,9 @@ class DXFExporter:
                 with profile_operation("Path Arrays Creation"):
                     self.create_path_arrays(msp)
 
+                with profile_operation("Block Placements Creation"):
+                    self.create_block_placements(msp)
+
                 with profile_operation("Block Insert Processing"):
                     self.block_insert_manager.process_block_inserts(msp)
 
@@ -1061,6 +1064,58 @@ class DXFExporter:
 
         log_debug("Finished processing all path array configurations")
 
+    def create_block_placements(self, msp):
+        """Create block placements from generated/block_placements.yaml configuration."""
+        from src.block_placement_utils import BlockPlacementUtils
+
+        block_placements = self.project_settings.get('blockPlacements', [])
+        log_debug(f"Processing {len(block_placements)} block placement configurations")
+
+        for config in block_placements:
+            name = config.get('name')
+            source_layer_name = config.get('position', {}).get('sourceLayer')
+            sync_mode = config.get('sync', 'skip')
+
+            if not name:
+                log_warning(f"Invalid block placement configuration - missing name: {config}")
+                continue
+
+            if sync_mode != 'push':
+                log_debug(f"Skipping block placement '{name}' - sync mode '{sync_mode}' (only 'push' supported)")
+                continue
+
+            # For geometry-based positioning, check if source layer exists
+            position_type = config.get('position', {}).get('type', 'polygon')
+            if position_type != 'absolute' and source_layer_name:
+                if source_layer_name not in self.all_layers:
+                    log_warning(f"Source layer '{source_layer_name}' does not exist in all_layers. Skipping block placement '{name}'.")
+                    continue
+
+            # Clear existing blocks for this placement
+            remove_entities_by_layer(msp, name, self.script_identifier)
+
+            block_name = config.get('blockName')
+            if not block_name:
+                log_warning(f"Block placement '{name}' missing blockName")
+                continue
+
+            if block_name not in msp.doc.blocks:
+                log_warning(f"Block '{block_name}' not found in document for placement '{name}'")
+                continue
+
+            log_debug(f"Creating block placement: {name}")
+            log_debug(f"Block: {block_name}, Source layer: {source_layer_name}")
+            log_debug(f"Position type: {position_type}, Method: {config.get('position', {}).get('method', 'centroid')}")
+
+            # Use shared placement utilities to place blocks
+            created_blocks = BlockPlacementUtils.place_blocks_bulk(
+                msp, config, self.all_layers, self.script_identifier
+            )
+
+            log_debug(f"Placed {len(created_blocks)} blocks for placement '{name}'")
+
+        log_debug("Finished processing all block placement configurations")
+
     def process_text_inserts(self, msp):
         """Process text inserts using the sync-based TextInsertManager."""
         text_configs = self.project_settings.get('texts', [])
@@ -1201,6 +1256,10 @@ class DXFExporter:
                 style_data, _ = self.style_manager.get_style(style_name)
                 if style_data:
                     update_layer_properties(new_layer, style_data, self.name_to_aci)
+
+        # Clean existing entities from the label layer before adding new ones
+        log_debug(f"Removing existing labels from layer {label_layer_name}")
+        remove_entities_by_layer_optimized(msp, label_layer_name, self.script_identifier)
 
         # Add the label points to the DXF
         label_gdf = self.all_layers[label_layer_name]

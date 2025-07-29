@@ -10,13 +10,16 @@ viewports:
     y: 5964545.302177048
   scale: 2.0
   frozenLayers:
+  - Geltungsbereich 2 Hatch
+  - Geltungsbereich 2
   - Gebäude
+  - Parcel Label Custom
   - WMTS Basemap
   lockZoom: true
   _sync:
     dxf_handle: F6ED
-    content_hash: 1c6b71461e67d44a02241e277dc2ffe19ab89100b55bd27813c6576f7b347cae
-    last_sync_time: 1753703926
+    content_hash: 5335482da7cd7dd6ed5036034aec2b2ddf7502bb392fe2e808439d505dd1cd5b
+    last_sync_time: 1753714286
     sync_source: dxf
 - name: Viewport_006
   center:
@@ -29,13 +32,15 @@ viewports:
     y: 5964786.928994282
   scale: 2.000001
   frozenLayers:
+  - Geltungsbereich 2 Hatch
   - Gebäude
+  - Parcel Label Custom
   - WMTS Basemap
   lockZoom: true
   _sync:
     dxf_handle: F6EE
-    content_hash: 0e661b855d4dd1c59cad2e0a9bb901f7164f971ddf3b85fac3b68bd519d630e6
-    last_sync_time: 1753703926
+    content_hash: d63df32b94a3b29a9f3b0d015b07263975fb94f404ef681b4526376c6814efb8
+    last_sync_time: 1753714286
     sync_source: dxf
 - name: Viewport_10AF6
   center:
@@ -44,18 +49,50 @@ viewports:
   width: 177.1475149288962
   height: 94.68235633125731
   viewCenter:
-    x: 278937.3899984032
-    y: 5964758.852966761
-  scale: 33.361749
+    x: 278612.6145629129
+    y: 5964809.078407389
+  scale: 50.000026
   sync: auto
   _sync:
     dxf_handle: 10AF6
-    content_hash: 7844024c8d5bbd7bd0f80a14871b03aa6beb117513db4e40dca5d1995b117be1
-    last_sync_time: 1753703926
+    content_hash: d1fb75ebbba677d9634c36a5f2aebd932474e4d10951257aef5d9d6f759d06b1
+    last_sync_time: 1753714286
     sync_source: dxf
   frozenLayers:
+  - Flur
+  - Gemarkung
+  - Gemeinde
+  - Wald
+  - Wald Schraffur
+  - Biotope Puffer
+  - Geltungsbereiche
+  - Ausgleich Grünfläche
+  - Grünfläche Schraffur
+  - Ausgleich Schutzflächeumgrenzung
+  - Grünfläche T-Linie Symbol Schraffur
+  - Baufeld
+  - Baufeld Schraffur
+  - Baugrenze
+  - Parcel
+  - Baugrenze 2
+  - Legend_Main Legend_Title
+  - Grünfläche T-Linie Symbol
+  - Legend_Main Legend_Art der baulichen Nutzung
+  - Legend_Main Legend_Bauweise_ Baulinien_ Baugrenzen
+  - Legend_Main Legend_Planungen_ Nutzungsregelungen_ Maßnahmen und Flächen für Maßnahmen
+    zum Schutz_ zur Pflege und zur Entwicklung von Natur und Landschaft
+  - Parcel Label Custom
+  - Parcel Label Custom_labels
+  - Legend_Main Legend_Maß der baulichen Nutzung
+  - Legend_Main Legend_Verkehrsflächen
+  - Legend_Main Legend_Grünflächen
+  - Legend_Main Legend_Sonstige Planzeichen
+  - Legend_Main Legend_Darstellung ohne Normcharakter
+  - Legend_Main Legend_Nachrichtliche Übernahme
   - WMS Gebäude
   - WMS Höhenlinien
+  - SO EBS Labels
+  - GRZ Label
 - name: Viewport_132D6
   center:
     x: 905.6033181802741
@@ -69,13 +106,14 @@ viewports:
   sync: auto
   _sync:
     dxf_handle: 132D6
-    content_hash: 7f28ac522aaee7a5a3c088f25de374588090d943058b4ba54d6fcf16ad18681c
-    last_sync_time: 1753703926
+    content_hash: 9daf1b5578f1066ec82f961ed6a087d74c6ceec9c71977e3233b51be62e85920
+    last_sync_time: 1753714286
     sync_source: dxf
   frozenLayers:
   - WMTS Basemap
   - WMS Gebäude
   - WMS Höhenlinien
+  lockZoom: true
 - name: Viewport_47805
   center:
     x: 1285.226226934713

@@ -55,6 +55,7 @@ class ProjectLoader:
         # Load generated/ folder configurations (traditional push/skip only)
         legends = self.load_yaml_file('generated/legends.yaml', required=False) or {}
         path_arrays = self.load_yaml_file('generated/path_arrays.yaml', required=False) or {}
+        block_placements = self.load_yaml_file('generated/block_placements.yaml', required=False) or {}
         wmts_wms_layers = self.load_yaml_file('generated/wmts_wms_layers.yaml', required=False) or {}
 
         # Load interactive/ folder configurations (auto sync mode content)
@@ -176,6 +177,7 @@ class ProjectLoader:
             'blocks': block_inserts.get('blocks', []),
             'texts': text_inserts.get('texts', []) if text_inserts else [],
             'pathArrays': path_arrays.get('pathArrays', []),
+            'blockPlacements': block_placements.get('blockPlacements', []),
             'wmtsLayers': wmts_wms_layers.get('wmtsLayers', []),
             'wmsLayers': wmts_wms_layers.get('wmsLayers', []),
 

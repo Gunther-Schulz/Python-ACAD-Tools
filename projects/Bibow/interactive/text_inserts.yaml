@@ -32,20 +32,20 @@ texts:
     type: absolute
     x: 817.0
     y: 242.4889564856816
-  text: Übersichtskarte i. M. 1:30.000
+  text: Übersichtskarte i. M. 1:50.000
   layer: Plantext
   paperspace: true
   style: übersichtskarteHeader
   _sync:
     dxf_handle: 42EB
-    content_hash: ece93141e223bbcc3dbb40ed4d377a609bf5dd98343b54aed6dd52d0a625a9b4
-    last_sync_time: 1753595909
+    content_hash: 62a0749e5ef3a6a512fb99b6ff59d28269417523a0c39a547cd6a9f881cd8207
+    last_sync_time: 1753714286
     sync_source: dxf
 - name: Satzung
   position:
     type: absolute
-    x: 1013.187743859162
-    y: 248.0
+    x: 1012.012110518477
+    y: 236.8342651248276
   text: 'VORENTWURF\nSATZUNG DER GEMEINDE\nBIBOW\nÜBER DEN VORHABENSBEZOGENER BEBAUUNGSPLAN\nNR:
     3 „SOLARPARK BIBOW"'
   layer: Plantext
@@ -54,9 +54,9 @@ texts:
   justification: CENTER
   _sync:
     dxf_handle: 42EC
-    content_hash: 1a3e4335ee93a02af091be261fd4eddd3599f701f7b455db476b00352354669d
-    last_sync_time: 1753469580
-    sync_source: yaml
+    content_hash: 4ba12efe736bc7959632b64d3bb685e5520c5b95a67fa167e7614fde9e7adc49
+    last_sync_time: 1753714286
+    sync_source: dxf
 discover_untracked_layers:
 - Plantext
 deletion_policy: confirm

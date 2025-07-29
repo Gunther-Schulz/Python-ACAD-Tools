@@ -8,40 +8,46 @@ geomLayers:
     #     labelColumn: label  # Explicitly specify the label column
     #     style: parcel  # Using an existing text style from styles.yaml
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/input/parcel.shp"
-  - name: Parcel Label Custom
-    sync: push
-    label: label
-    operations:
-      - type: pointLabel
-        labelColumn: label  # Explicitly specify the label column
-        style: parcel  # Using an existing text style from styles.yaml
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/input/Parcel_labels.shp"
+  # - name: Parcel Label Custom
+  #   sync: push
+  #   label: label
+  #   operations:
+  #     - type: pointLabel
+  #       labelColumn: label  # Explicitly specify the label column
+  #       style: parcel  # Using an existing text style from styles.yaml
+  #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/input/Parcel_labels.shp"
   - name: Flur
     sync: push
     label: flurname
     style: flurgrenze
+    linetypeScale: 0.4
+    linetypeGeneration: true
     operations:
       - type: simpleLabel
         labelColumn: flurname  # Explicitly specify the label column
-        style: baum  # Using an existing text style from styles.yaml
+        style: flurgrenze  # Using an existing text style from styles.yaml
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/input/flur.shp"
   - name: Gemarkung
     sync: push
     label: gmkname
     style: gemarkungsgrenze
+    linetypeScale: 0.4
+    linetypeGeneration: true
     operations:
       - type: simpleLabel
         labelColumn: gmkname  # Explicitly specify the label column
-        style: baum  # Using an existing text style from styles.yaml
+        style: gemarkungsgrenze  # Using an existing text style from styles.yaml
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/input/gemarkung.shp"
   - name: Gemeinde
     sync: push
     label: gen
     style: gemeindegrenze
+    linetypeScale: 0.4
+    linetypeGeneration: true
     operations:
       - type: simpleLabel
         labelColumn: gen  # Explicitly specify the label column
-        style: baum  # Using an existing text style from styles.yaml
+        style: gemeindegrenze  # Using an existing text style from styles.yaml
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/input/gemeinde.shp"
 
 ### Bahn

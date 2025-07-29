@@ -1,0 +1,77 @@
+blockPlacements:
+  - name: "SO EBS Labels"
+    sync: skip
+    blockName: "Sonstiges Sondergebiet EBS"
+    scale: 6.0
+    rotation: 0
+    position:
+      type: polygon
+      method: centroid
+      sourceLayer: "Geltungsbereiche"
+      offset:
+        x: 0
+        y: 0
+  - name: "GRZ Label"
+    sync: skip
+    blockName: "GRZ"
+    scale: 4.0
+    rotation: 0
+    position:
+      type: "polygon"
+      method: "centroid"  # Options: centroid, center, random
+      sourceLayer: "Baufeld"
+      offset:
+        x: 0
+        y: -20
+
+# Example configurations showing all sophisticated placement options:
+
+# # Multiple blocks on polygon centers
+# - name: "GRZ Labels"
+#   sync: push
+#   blockName: "GRZ"
+#   scale: 4.0
+#   rotation: 0
+#   position:
+#     type: polygon
+#     method: center  # Options: centroid, center, random
+#     sourceLayer: "Baufeld"
+#     offset:
+#       x: 5
+#       y: 2
+
+# # Blocks on line midpoints with perpendicular offset
+# - name: "Boundary Markers"
+#   sync: push
+#   blockName: "Baum"
+#   scale: 2.0
+#   rotation: 0
+#   position:
+#     type: line
+#     method: middle  # Options: middle, start, end
+#     sourceLayer: "Geltungsbereich 2"
+#     lineOffset: 5  # Perpendicular offset from line
+#     offset:
+#       x: 0
+#       y: 0
+
+# # Blocks at point locations
+# - name: "Tree Symbols"
+#   sync: push
+#   blockName: "Baum"
+#   scale: 1.5
+#   rotation: 0
+#   position:
+#     type: points
+#     sourceLayer: "Einzelbaum"
+
+# # Random placement within polygons
+# - name: "Random Biotope Markers"
+#   sync: push
+#   blockName: "Gesetzlich geschütztes Biotop"
+#   scale: 3.0
+#   rotation: 90
+#   position:
+#     type: polygon
+#     method: random
+#     sourceLayer: "ges. gesch. Biotope"

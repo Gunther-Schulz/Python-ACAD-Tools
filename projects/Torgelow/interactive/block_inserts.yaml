@@ -1,51 +1,33 @@
 blocks:
-  - name: "Bäume Ausserhalb"
-    sync: push
-    blockName: "Baum"
-    position:
-      sourceLayer: "Baum Points"
-      type: "points"
-  - name: "SO EBS Label"
-    sync: push
+  # - name: "Bäume Ausserhalb"
+  #   sync: push
+  #   blockName: "Baum"
+  #   position:
+  #     sourceLayer: "Baum Points"
+  #     type: "points"
+  # - name: "SO EBS Label"
+  #   sync: push
 
-    blockName: "Sonstiges Sondergebiet EBS"
-    scale: 6.0
-    rotation: 0
-    position:
-      type: "polygon"
-      method: "centroid"  # Options: centroid, center, random
-      sourceLayer: "Baufeld"
-      offset:
-        x: 0
-        y: 0
-  - name: "GRZ Label"
-    sync: push
-
-    blockName: "GRZ"
-    scale: 4.0
-    rotation: 0
-    position:
-      type: "polygon"
-      method: "centroid"  # Options: centroid, center, random
-      sourceLayer: "Baufeld"
-      offset:
-        x: 0
-        y: -20
-  # Paperspace
-  # --------
-  - name: "PBS Logo"
-    sync: push
-    blockName: "Firmenlogo"
-    paperspace: true
-    position:
-      type: "absolute"
-      x: 900
-      y: 165
-  - name: "Nordpfeil"
-    sync: push
-    blockName: "Nordpfeil"
-    paperspace: true
-    position:
-      type: "absolute"
-      x: 977
-      y: 350
+  # - name: "SO EBS Label"
+  #   blockName: "Sonstiges Sondergebiet EBS"
+  #   scale: 6.0
+  #   rotation: 0
+  #   position:
+  #     type: "polygon"
+  #     method: "centroid"  # Options: centroid, center, random
+  #     sourceLayer: "Baufeld"
+  #     offset:
+  #       x: 0
+  #       y: 0
+  # - name: "GRZ Label"
+  #   sync: push
+  #   blockName: "GRZ"
+  #   scale: 4.0
+  #   rotation: 0
+  #   position:
+  #     type: "polygon"
+  #     method: "centroid"  # Options: centroid, center, random
+  #     sourceLayer: "Baufeld"
+  #     offset:
+  #       x: 0
+  #       y: -20
