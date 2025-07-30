@@ -178,12 +178,14 @@ geomLayers:
   - name: "Exclude Baugrenze"
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/input/Exclude Baugrenze.shp"
 
-
-### Zuwegung ###
   - name: "Exclude Zuwegung"
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/input/Exclude Zuwegung.shp"
 
+### Zuwegung ###
+
   - name: "Zuwegung"
+    sync: push
+    style: verkehrsfläche
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/input/Zuwegung sketch ln.shp"
     operations:
       - type: buffer
@@ -194,6 +196,13 @@ geomLayers:
         reverseDifference: false
         layers:
           - name: "Exclude Zuwegung"
+
+  - name: "Zuwegung Schraffur"
+    sync: push
+    style: verkehrsfläche
+    applyHatch:
+      layers:
+        - "Zuwegung"
 
   ### Geltungsbereich ###
   - name: Geltungsbereich A
@@ -414,11 +423,15 @@ geomLayers:
       - type: intersection
         layers:
           - name: "Geltungsbereiche"
+      - type: difference
+        reverseDifference: false
+        layers:
+          - name: "Zuwegung"
       - type: dissolve
       - type: removeSliversErosion
         erosionDistance: 0.1
       - type: filterGeometry
-        minArea: 200
+        minArea: 20
         geometryTypes:
           - Polygon
 
@@ -487,6 +500,7 @@ geomLayers:
               - "Baumreihe"
               # - "Einzelbaum Buffer"
               - "Biotope Puffer"
+              - "Zuwegung"
       - type: filterGeometry
         minArea: 200
         geometryTypes:

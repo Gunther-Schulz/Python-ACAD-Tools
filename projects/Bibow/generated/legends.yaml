@@ -67,18 +67,18 @@ legends:
             # subtitle: "(§ 9 Abs. 1 Nr. 4, 11 und Abs. 6 BauGB)"
             type: empty
             blockSymbol: "Einfahrtbereich"
-      #     - name: "Verkehrsfläche besonderer Zweckbestimmung"
-      #       type: area
-      #       applyHatch: true
-      #       style: verkehrsfläche
+          - name: "Verkehrsfläche besonderer Zweckbestimmung"
+            type: area
+            applyHatch: true
+            style: verkehrsfläche
       #     - name: "Verkehrsberuhigter Bereich"
       #       type: empty
       #       blockSymbol: "Verkehrsberuhigter Bereich"
       #       blockSymbolScale: 2
-      #     - name: "Privat"
-      #       type: empty
-      #       blockSymbol: "Privat"
-      #       blockSymbolScale: 2
+          - name: "Privat"
+            type: empty
+            blockSymbol: "Privat"
+            blockSymbolScale: 2
       - name: "Grünflächen"
         sync: push
         subtitle: "§ 9 Abs.1 Nr. 15 BauGB"

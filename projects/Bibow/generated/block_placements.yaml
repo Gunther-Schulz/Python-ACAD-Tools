@@ -23,6 +23,18 @@ blockPlacements:
       offset:
         x: 0
         y: -20
+  - name: "Privat Labels"
+    sync: skip
+    blockName: "Privat"
+    scale: 1
+    rotation: 0
+    position:
+      type: polygon
+      method: centroid
+      sourceLayer: "Zuwegung"
+      offset:
+        x: 0
+        y: 0
 
 # Example configurations showing all sophisticated placement options:
 

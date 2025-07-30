@@ -17,15 +17,15 @@ texts:
   position:
     type: absolute
     x: -100.3640184355163
-    y: 766.4358442591642
+    y: 802.5374087826449
   text: 'Teil A: Planzeichnung i. M. 1:2.000'
   layer: Plantext
   paperspace: true
   style: mapHeader
   _sync:
     dxf_handle: 42EA
-    content_hash: a6ffc897b3690677da67a920c52d94e44e54c040b9f052f0156ae540f1f3fc41
-    last_sync_time: 1753702421
+    content_hash: 65287fbe6df8a2a28b369f3b1b200a313546ab54ed297e341dffacc162f1e151
+    last_sync_time: 1753885488
     sync_source: dxf
 - name: Übersichtskarte Header
   position:
