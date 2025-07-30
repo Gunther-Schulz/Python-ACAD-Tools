@@ -60,34 +60,40 @@ def create_dissolved_layer(all_layers, project_settings, crs, layer_name, operat
         combined_gdf.geometry = combined_gdf.geometry.apply(make_valid_geometry)
         combined_gdf = combined_gdf[combined_gdf.geometry.notna()]
 
-    if use_buffer_trick:
-        if merge_vertices:
-            combined_gdf.geometry = combined_gdf.geometry.apply(
-                lambda geom: _merge_close_vertices(all_layers, project_settings, crs, geom, tolerance=merge_vertices_tolerance)
-            )
-            combined_gdf = combined_gdf[combined_gdf.geometry.notna()]
-        
-        if use_asymmetric_buffer:
-            # Apply asymmetric buffer trick
-            initial_buffer = buffer_distance * 1.1
-            reverse_buffer = -(buffer_distance * 0.9)
-            combined_gdf.geometry = combined_gdf.geometry.buffer(initial_buffer, join_style=2)
-            combined_gdf.geometry = combined_gdf.geometry.buffer(reverse_buffer, join_style=2)
-        else:
-            # Apply regular buffer trick
-            combined_gdf.geometry = apply_buffer_trick(combined_gdf.geometry, buffer_distance)
-
-        if use_snap_to_grid:
-            combined_gdf.geometry = combined_gdf.geometry.apply(
-                lambda geom: snap_vertices_to_grid(geom, grid_size)
-            )
+    # Apply vertex cleaning before union if requested
+    if use_buffer_trick and merge_vertices:
+        combined_gdf.geometry = combined_gdf.geometry.apply(
+            lambda geom: _merge_close_vertices(all_layers, project_settings, crs, geom, tolerance=merge_vertices_tolerance)
+        )
+        combined_gdf = combined_gdf[combined_gdf.geometry.notna()]
 
     if dissolve_field and dissolve_field in combined_gdf.columns:
         dissolved = gpd.GeoDataFrame(geometry=combined_gdf.geometry, data=combined_gdf[dissolve_field]).dissolve(by=dissolve_field, as_index=False)
     else:
         # First unary_union
         dissolved = gpd.GeoDataFrame(geometry=[unary_union(combined_gdf.geometry)])
-        # Second unary_union if enabled
+        
+        # Apply buffer trick AFTER initial union for touching geometries
+        if use_buffer_trick:
+            log_debug(f"Applying buffer trick to combined geometry with distance: {buffer_distance}")
+            if use_asymmetric_buffer:
+                # Apply asymmetric buffer trick
+                initial_buffer = buffer_distance * 1.1
+                reverse_buffer = -(buffer_distance * 0.9)
+                dissolved.geometry = dissolved.geometry.buffer(initial_buffer, join_style=2)
+                dissolved.geometry = dissolved.geometry.buffer(reverse_buffer, join_style=2)
+            else:
+                # Apply regular buffer trick to the combined geometry
+                dissolved.geometry = dissolved.geometry.apply(
+                    lambda geom: apply_buffer_trick(geom, buffer_distance)
+                )
+
+            if use_snap_to_grid:
+                dissolved.geometry = dissolved.geometry.apply(
+                    lambda geom: snap_vertices_to_grid(geom, grid_size)
+                )
+        
+        # Second unary_union if enabled (after buffer trick)
         if use_double_union:
             dissolved = gpd.GeoDataFrame(geometry=[unary_union(dissolved.geometry)])
         

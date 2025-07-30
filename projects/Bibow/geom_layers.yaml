@@ -178,6 +178,23 @@ geomLayers:
   - name: "Exclude Baugrenze"
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/input/Exclude Baugrenze.shp"
 
+
+### Zuwegung ###
+  - name: "Exclude Zuwegung"
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/input/Exclude Zuwegung.shp"
+
+  - name: "Zuwegung"
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/input/Zuwegung sketch ln.shp"
+    operations:
+      - type: buffer
+        distance: 4
+        joinStyle: mitre
+        capStyle: flat
+      - type: difference
+        reverseDifference: false
+        layers:
+          - name: "Exclude Zuwegung"
+
   ### Geltungsbereich ###
   - name: Geltungsbereich A
     # sync: push
@@ -193,6 +210,7 @@ geomLayers:
               - "46/2"
               - "53/23"
             column: label  # Explicitly specify the column to search in
+          # - name: "Zuwegung"
       - type: filterByIntersection
         layers:
           - name: Flur
@@ -214,6 +232,7 @@ geomLayers:
           - name: "Wald"
           - name: "Hecke"
       - type: dissolve
+
   - name: Geltungsbereich C
     # sync: push
     style: geltungsbereich
@@ -239,6 +258,7 @@ geomLayers:
               - "88/3"
               - "89"
             column: label  # Explicitly specify the column to search in
+          # - name: "Zuwegung"
       - type: filterByIntersection
         layers:
           - name: Flur
@@ -277,6 +297,7 @@ geomLayers:
               - "23"
               - "24"
             column: label  # Explicitly specify the column to search in
+          # - name: "Zuwegung"
       - type: filterByIntersection
         layers:
           - name: Flur
@@ -308,6 +329,12 @@ geomLayers:
           - name: "Geltungsbereich A"
           - name: "Geltungsbereich C"
           - name: "Geltungsbereich D"
+          - name: "Zuwegung"
+        useBufferTrick: true       # 🎯 This solves your problem!
+        bufferDistance: 0.5        # Adjust based on your gap size
+        useDoubleUnion: true       # Extra robustness
+        makeValid: true
+
 
   - name: Geltungsbereich 2
     sync: push

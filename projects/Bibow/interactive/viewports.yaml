@@ -6,20 +6,20 @@ viewports:
   width: 901.3679898927362
   height: 293.3043359218282
   viewCenter:
-    x: 279587.1647607772
-    y: 5964545.302177048
-  scale: 2.0
+    x: 279587.1654778188
+    y: 5964529.606789263
+  scale: 2.000002
   frozenLayers:
-  - Geltungsbereich 2 Hatch
   - Geltungsbereich 2
-  - Gebäude
   - Parcel Label Custom
   - WMTS Basemap
+  - Gebäude
+  - Geltungsbereich 2 Hatch
   lockZoom: true
   _sync:
     dxf_handle: F6ED
-    content_hash: 5335482da7cd7dd6ed5036034aec2b2ddf7502bb392fe2e808439d505dd1cd5b
-    last_sync_time: 1753714286
+    content_hash: d01885f43387754de6353c5aa2e78f9e1cda339ae97eea31f1b23546f5c568d8
+    last_sync_time: 1753781424
     sync_source: dxf
 - name: Viewport_006
   center:
@@ -28,19 +28,19 @@ viewports:
   width: 901.3679898927362
   height: 293.3043359218282
   viewCenter:
-    x: 277725.1941040608
-    y: 5964786.928994282
-  scale: 2.000001
+    x: 277725.1943605864
+    y: 5964749.652093189
+  scale: 2.000002
   frozenLayers:
-  - Geltungsbereich 2 Hatch
-  - Gebäude
   - Parcel Label Custom
   - WMTS Basemap
+  - Gebäude
+  - Geltungsbereich 2 Hatch
   lockZoom: true
   _sync:
     dxf_handle: F6EE
-    content_hash: d63df32b94a3b29a9f3b0d015b07263975fb94f404ef681b4526376c6814efb8
-    last_sync_time: 1753714286
+    content_hash: 6b5ec73b74d3c3f5db9e604d15306b0dac8e1765570512e39090c8df560c053d
+    last_sync_time: 1753781424
     sync_source: dxf
 - name: Viewport_10AF6
   center:
@@ -117,21 +117,21 @@ viewports:
 - name: Viewport_47805
   center:
     x: 1285.226226934713
-    y: 591.2506358534947
+    y: 628.9735168734474
   width: 189.5746478379598
-  height: 518.3497340110506
+  height: 442.9039719711453
   viewCenter:
-    x: -314008.016751273
-    y: -16709.03365664966
-  scale: 1.176461
+    x: -314005.6092790778
+    y: -17029.67711963731
+  scale: 1.176462
   frozenLayers:
   - VP
   - '0'
   sync: auto
   _sync:
     dxf_handle: '47805'
-    content_hash: 43d37bbea3b21e2c05dde3ca35dbf0a8f4024e989ffe674cdb464af3fec2223c
-    last_sync_time: 1753700049
+    content_hash: febff14caef2be4011522890db82111cad1e9f384d699bd938ed96e4c1515643
+    last_sync_time: 1753781424
     sync_source: dxf
 - name: Viewport_47808
   center:
@@ -155,12 +155,12 @@ viewports:
 - name: Viewport_4780C
   center:
     x: 1284.123102894605
-    y: 193.1697015590321
+    y: 187.9282033344668
   width: 187.3683997577444
   height: 95.47089056029651
   viewCenter:
-    x: -311923.8235361764
-    y: -16983.17903484031
+    x: -311925.3649600901
+    y: -16983.17903425997
   scale: 0.586095
   frozenLayers:
   - VP
@@ -168,18 +168,18 @@ viewports:
   sync: auto
   _sync:
     dxf_handle: 4780C
-    content_hash: 6a39159c46440dc57eb168059915669e5a574ba65d95532676869591752ea427
-    last_sync_time: 1753700049
+    content_hash: 280efe4dcdc773891c94e96474db7f6042c229b77565c1248878ea19f306ce55
+    last_sync_time: 1753781424
     sync_source: dxf
 - name: Viewport_4780F
   center:
     x: 1097.938903015733
-    y: 553.6738518341886
+    y: 741.2092100718907
   width: 185.0000000000002
-  height: 593.5033020496631
+  height: 218.4325855742592
   viewCenter:
     x: -314009.4379671056
-    y: -16755.59132941804
+    y: -16534.96166543634
   scale: 1.17647
   frozenLayers:
   - VP
@@ -187,8 +187,8 @@ viewports:
   sync: auto
   _sync:
     dxf_handle: 4780F
-    content_hash: 8ddbf3bd4a462610c6d676bb96e5d054c736bca8eecb4bbd17c4e86a51f4a188
-    last_sync_time: 1753702822
+    content_hash: feef30fa971feb7c6f6998d4075139d128ccaf07c27e90f4bff141ed94393a69
+    last_sync_time: 1753781424
     sync_source: dxf
 discover_untracked_layers:
 - VIEWPORTS
