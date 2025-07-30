@@ -343,6 +343,19 @@ geomLayers:
         bufferDistance: 0.5        # Adjust based on your gap size
         useDoubleUnion: true       # Extra robustness
         makeValid: true
+      - type: calculate
+        calculations:
+          - type: area
+            as: area
+            decimalPlaces: 0
+      - type: report
+        outputFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/reports/geltungsbereich_report.json"
+        featureColumns:
+          - area
+        calculate:
+          - area
+        decimalPlaces:
+          area: 0
 
 
   - name: Geltungsbereich 2
@@ -367,6 +380,42 @@ geomLayers:
         distance: 2
         joinStyle: mitre
         capStyle: flat
+
+  # Report only
+  - name: Parcel Intersections
+    # sync: skip
+    operations:
+      - type: copy
+        layers:
+          - name: Parcel
+      - type: calculate
+        calculations:
+          - type: area
+            as: parcel_area
+            decimalPlaces: 0
+      - type: intersection
+        layers:
+          - name: Geltungsbereiche
+      - type: filterGeometry
+        minArea: 10
+        geometryTypes:
+          - polygon
+      - type: calculate
+        calculations:
+          - type: area
+            as: intersection_area
+            decimalPlaces: 0
+      - type: report
+        outputFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/reports/parcel_intersections_report.json"
+        featureColumns:
+          - label
+          - parcel_area
+          - intersection_area
+        calculate:
+          - area
+        decimalPlaces:
+          intersection_area: 0
+          area: 0
 
   - name: "Biotope Puffer"
     sync: push
@@ -447,6 +496,12 @@ geomLayers:
         distance: -2
         joinStyle: round
         preserveIslands: true
+      - type: report
+        outputFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/reports/grünfläche_report.json"
+        calculate:
+          - area
+        decimalPlaces:
+          area: 0
 
   - name: "Grünfläche Schraffur"
     sync: push
@@ -548,6 +603,26 @@ geomLayers:
           - Geltungsbereiche
       - type: report
         outputFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/reports/baugrenze_report.json"
+        calculate:
+          - area
+          - perimeter
+        decimalPlaces:
+          area: 0
+
+  - name: Baufeldstreifen Report
+    operations:
+      - type: copy
+        layers:
+          - Baufeld
+      - type: difference
+        reverseDifference: false
+        layers:
+          - Baugrenze
+      - type: intersection
+        layers:
+          - Geltungsbereiche
+      - type: report
+        outputFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/reports/baufeldstreifen_report.json"
         calculate:
           - area
           - perimeter
