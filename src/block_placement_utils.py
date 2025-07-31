@@ -9,6 +9,72 @@ class BlockPlacementUtils:
     """Shared utilities for block placement logic used by both sync and generated systems."""
 
     @staticmethod
+    def _calculate_proximity_based_offset(point, dx, dy, length, offset_config, all_layers):
+        """
+        Calculate lineOffset based on proximity to a reference layer.
+
+        Args:
+            point: Shapely Point where the block will be placed
+            dx, dy: Line direction vector components
+            length: Length of the direction vector
+            offset_config: Dictionary containing proximity configuration
+            all_layers: Dictionary of all processed layers
+
+        Returns:
+            float: Positive (left side) or negative (right side) offset distance, or None if failed
+        """
+        reference_layer = offset_config.get('referenceLayer')
+        distance = abs(offset_config.get('distance', 1.0))
+
+        if not reference_layer:
+            log_warning("Proximity mode enabled but no referenceLayer specified - skipping block placement")
+            return None
+
+        if reference_layer not in all_layers:
+            log_warning(f"Reference layer '{reference_layer}' not found in all_layers - skipping block placement")
+            return None
+
+        ref_layer_data = all_layers[reference_layer]
+        if not hasattr(ref_layer_data, 'geometry'):
+            log_warning(f"Reference layer '{reference_layer}' has no geometry attribute - skipping block placement")
+            return None
+
+        try:
+            # Calculate perpendicular unit vector (normalized)
+            nx, ny = -dy/length, dx/length
+            point_coords = point.coords[0]
+
+            # Calculate candidate points on both sides
+            left_point = Point(point_coords[0] + nx*distance, point_coords[1] + ny*distance)
+            right_point = Point(point_coords[0] - nx*distance, point_coords[1] - ny*distance)
+
+            # Create union of all reference geometries for distance calculation
+            ref_geometries = [geom for geom in ref_layer_data.geometry if geom and not geom.is_empty]
+            if not ref_geometries:
+                log_warning(f"Reference layer '{reference_layer}' contains no valid geometries - skipping block placement")
+                return None
+
+            # Use unary_union for efficient distance calculations
+            from shapely.ops import unary_union
+            ref_geom_union = unary_union(ref_geometries)
+
+            # Calculate distances to reference geometries
+            left_dist = left_point.distance(ref_geom_union)
+            right_dist = right_point.distance(ref_geom_union)
+
+            # Return positive offset for left side (closer), negative for right side
+            if left_dist < right_dist:
+                log_debug(f"Proximity placement: choosing left side (dist: {left_dist:.2f} < {right_dist:.2f})")
+                return distance
+            else:
+                log_debug(f"Proximity placement: choosing right side (dist: {right_dist:.2f} < {left_dist:.2f})")
+                return -distance
+
+        except Exception as e:
+            log_warning(f"Error in proximity-based offset calculation: {str(e)} - skipping block placement")
+            return None
+
+    @staticmethod
     def get_insertion_points(position_config, all_layers):
         """
         Get insertion points based on position configuration.
@@ -51,13 +117,16 @@ class BlockPlacementUtils:
 
         # Process each geometry based on type and method
         for geometry in layer_data.geometry:
-            insert_point, rotation = BlockPlacementUtils.get_insert_point(geometry, position_config)
+            insert_point, rotation = BlockPlacementUtils.get_insert_point(geometry, position_config, all_layers)
+            # Skip placements that failed proximity calculation (indicated by (0,0) position and None rotation)
+            if insert_point == (0, 0) and rotation is None:
+                continue
             points.append((insert_point[0] + offset_x, insert_point[1] + offset_y, rotation))
 
         return points
 
     @staticmethod
-    def get_insert_point(geometry, position_config):
+    def get_insert_point(geometry, position_config, all_layers=None):
         """
         Get insertion point for a specific geometry.
         Extracted from BlockInsertManager for shared use.
@@ -65,6 +134,7 @@ class BlockPlacementUtils:
         Args:
             geometry: Shapely geometry object
             position_config: Position configuration from YAML
+            all_layers: Dictionary of all processed layers (required for proximity-based lineOffset)
 
         Returns:
             Tuple: ((x, y), rotation)
@@ -94,28 +164,59 @@ class BlockPlacementUtils:
                         rotation = math.degrees(math.atan2(dy, dx))
 
                         # Apply perpendicular offset if specified
-                        if line_offset != 0:
+                        if line_offset != 0 or (isinstance(line_offset, dict) and line_offset.get('proximityMode')):
                             # Calculate perpendicular vector
                             length = math.sqrt(dx*dx + dy*dy)
                             if length > 0:
+                                # Check if lineOffset is proximity-based
+                                if isinstance(line_offset, dict) and line_offset.get('proximityMode'):
+                                    if all_layers is None:
+                                        log_warning("Proximity mode enabled but all_layers not provided - skipping block placement")
+                                        return ((0, 0), None)  # Skip this placement
+                                    else:
+                                        effective_offset = BlockPlacementUtils._calculate_proximity_based_offset(
+                                            point, dx, dy, length, line_offset, all_layers
+                                        )
+                                        if effective_offset is None:
+                                            return ((0, 0), None)  # Skip this placement
+                                else:
+                                    # Traditional numeric lineOffset
+                                    effective_offset = line_offset
+
                                 # Normalize and rotate 90 degrees
                                 nx, ny = -dy/length, dx/length
                                 point_coords = point.coords[0]
-                                return ((point_coords[0] + nx*line_offset, point_coords[1] + ny*line_offset), rotation)
+                                return ((point_coords[0] + nx*effective_offset, point_coords[1] + ny*effective_offset), rotation)
 
                         return (tuple(point.coords[0][:2]), rotation)
 
                     elif position_method in ['start', 'end']:
                         base_point = coords[0] if position_method == 'start' else coords[-1]
-                        if line_offset != 0:
+                        if line_offset != 0 or (isinstance(line_offset, dict) and line_offset.get('proximityMode')):
                             # Calculate direction vector
                             dx = coords[1][0] - coords[0][0] if position_method == 'start' else coords[-1][0] - coords[-2][0]
                             dy = coords[1][1] - coords[0][1] if position_method == 'start' else coords[-1][1] - coords[-2][1]
                             length = math.sqrt(dx*dx + dy*dy)
                             if length > 0:
+                                # Check if lineOffset is proximity-based
+                                if isinstance(line_offset, dict) and line_offset.get('proximityMode'):
+                                    if all_layers is None:
+                                        log_warning("Proximity mode enabled but all_layers not provided - skipping block placement")
+                                        return ((0, 0), None)  # Skip this placement
+                                    else:
+                                        base_point_geom = Point(base_point[0], base_point[1])
+                                        effective_offset = BlockPlacementUtils._calculate_proximity_based_offset(
+                                            base_point_geom, dx, dy, length, line_offset, all_layers
+                                        )
+                                        if effective_offset is None:
+                                            return ((0, 0), None)  # Skip this placement
+                                else:
+                                    # Traditional numeric lineOffset
+                                    effective_offset = line_offset
+
                                 # Normalize and rotate 90 degrees
                                 nx, ny = -dy/length, dx/length
-                                return ((base_point[0] + nx*line_offset, base_point[1] + ny*line_offset), rotation)
+                                return ((base_point[0] + nx*effective_offset, base_point[1] + ny*effective_offset), rotation)
                         return (tuple(base_point[:2]), rotation)
 
             elif position_type == 'points':

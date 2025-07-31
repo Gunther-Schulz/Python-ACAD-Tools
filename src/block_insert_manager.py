@@ -64,7 +64,7 @@ class BlockInsertManager(UnifiedSyncProcessor):
 
     def get_insert_point(self, geometry, position_config):
         """Get insertion point for a specific geometry."""
-        return BlockPlacementUtils.get_insert_point(geometry, position_config)
+        return BlockPlacementUtils.get_insert_point(geometry, position_config, self.all_layers)
 
     # ============================================================================
     # UnifiedSyncProcessor Abstract Method Implementations

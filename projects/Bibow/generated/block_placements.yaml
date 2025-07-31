@@ -43,7 +43,10 @@ blockPlacements:
       sourceLayer: "EinAusfahrt Line"
       type: "line"
       method: "middle"
-      lineOffset: -1
+      lineOffset:
+        proximityMode: true
+        referenceLayer: "Geltungsbereiche"
+        distance: 1.0
 # Example configurations showing all sophisticated placement options:
 
 # # Multiple blocks on polygon centers
@@ -70,7 +73,12 @@ blockPlacements:
 #     type: line
 #     method: middle  # Options: middle, start, end
 #     sourceLayer: "Geltungsbereich 2"
-#     lineOffset: 5  # Perpendicular offset from line
+#     lineOffset: 5  # Traditional numeric offset (positive=left, negative=right)
+    #     # OR proximity-based offset:
+    #     # lineOffset:
+    #     #   proximityMode: true
+    #     #   referenceLayer: "Buildings"
+    #     #   distance: 5.0
 #     offset:
 #       x: 0
 #       y: 0
