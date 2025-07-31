@@ -168,6 +168,7 @@ class LayerProcessor:
     def _handle_pull_mode(self, layer_obj, layer_name):
         """
         Handle pull mode: read geometry from CAD layer.
+        Supports filtering by entity types if specified in layer configuration.
         """
         log_debug(f"Pull mode: Reading CAD layer '{layer_name}'")
 
@@ -176,9 +177,17 @@ class LayerProcessor:
             return
 
         try:
+            # Get entity type filter from layer configuration
+            entity_types = layer_obj.get('entityTypes', None)
+
             # Read geometry from the CAD layer
             from src.dxf_utils import read_cad_layer_to_geodataframe
-            cad_geometry = read_cad_layer_to_geodataframe(self.dxf_doc, layer_name, self.crs)
+            cad_geometry = read_cad_layer_to_geodataframe(
+                self.dxf_doc,
+                layer_name,
+                self.crs,
+                entity_types=entity_types
+            )
 
             if cad_geometry.empty:
                 log_warning(f"No geometry found in CAD layer '{layer_name}' for pull mode")

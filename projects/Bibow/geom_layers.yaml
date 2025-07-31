@@ -210,6 +210,36 @@ geomLayers:
       layers:
         - "Zuwegung"
 
+  - name: "EinAusfahrt Line"
+    sync: pull
+    # entityTypes:  # Temporarily disabled for debugging
+    #   - "LINE"
+      # Supported entity types:
+      # - "LINE"         # Lines
+      # - "LWPOLYLINE"   # Lightweight polylines
+      # - "POLYLINE"     # Heavy polylines
+      # - "ARC"          # Arcs (converted to line strings)
+      # - "CIRCLE"       # Circles (converted to polygons)
+      # - "POINT"        # Points
+      # - "HATCH"        # Hatches (converted to polygons)
+      # Omit entityTypes to pull all supported geometry types
+
+  # Example: Pull only polygonal geometry (circles and hatches)
+  # - name: "Building Polygons"
+  #   sync: pull
+  #   entityTypes:
+  #     - "CIRCLE"
+  #     - "HATCH"
+  #     - "LWPOLYLINE"  # Only closed polylines will become polygons
+
+  # Example: Pull all linear geometry (lines, arcs, open polylines)
+  # - name: "Infrastructure Lines"
+  #   sync: pull
+  #   entityTypes:
+  #     - "LINE"
+  #     - "ARC"
+  #     - "LWPOLYLINE"  # Open polylines become linestrings
+
   ### Geltungsbereich ###
   - name: Geltungsbereich A
     # sync: push

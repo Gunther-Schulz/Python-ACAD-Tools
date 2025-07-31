@@ -1452,15 +1452,16 @@ def remove_specific_entity_by_handle(space, entity_handle, script_identifier):
 
     return False
 
-def read_cad_layer_to_geodataframe(doc, layer_name, crs):
+def read_cad_layer_to_geodataframe(doc, layer_name, crs, entity_types=None):
     """
-    Read all geometry from a CAD layer and return as GeoDataFrame.
+    Read geometry from a CAD layer and return as GeoDataFrame.
     Uses existing convert_entity_to_geometry() infrastructure for robust conversion.
 
     Args:
         doc: DXF document
         layer_name: Name of the layer to read
         crs: Coordinate reference system for the GeoDataFrame
+        entity_types: Optional list of entity types to filter by (e.g., ['LINE', 'LWPOLYLINE'])
 
     Returns:
         GeoDataFrame with geometries from the specified layer
@@ -1479,18 +1480,29 @@ def read_cad_layer_to_geodataframe(doc, layer_name, crs):
 
     # Collect entities from the specified layer
     entity_count = 0
+    entities_by_type = {}
+
     for entity in msp:
         try:
             # Check if entity has layer attribute and matches target layer
             if hasattr(entity, 'dxf') and hasattr(entity.dxf, 'layer'):
                 if entity.dxf.layer == layer_name:
+                    entity_type = entity.dxftype()
+
+                    # Track entity types for debugging
+                    entities_by_type[entity_type] = entities_by_type.get(entity_type, 0) + 1
+
+                    # Filter by entity type if specified
+                    if entity_types and entity_type not in entity_types:
+                        continue
+
                     # Convert entity to Shapely geometry using existing converter
                     geom = convert_entity_to_geometry(entity)
                     if geom:
                         geometries.append(geom)
                         # Basic attributes - could be extended to include entity properties
                         attributes.append({
-                            'entity_type': entity.dxftype(),
+                            'entity_type': entity_type,
                             'handle': getattr(entity.dxf, 'handle', None)
                         })
                         entity_count += 1
@@ -1498,15 +1510,22 @@ def read_cad_layer_to_geodataframe(doc, layer_name, crs):
             log_warning(f"Error processing entity in layer {layer_name}: {str(e)}")
             continue
 
+    # Log entity type summary for debugging
+    if entities_by_type:
+        log_debug(f"Found entity types in layer {layer_name}: {entities_by_type}")
+
+        # If we found entities but no geometries, that's a conversion issue
+        total_entities_found = sum(entities_by_type.values())
+        if total_entities_found > 0 and entity_count == 0:
+            log_warning(f"Found {total_entities_found} entities in layer {layer_name} but none converted to valid geometry")
+
     log_debug(f"Successfully read {entity_count} geometries from layer {layer_name}")
 
     # Create GeoDataFrame
     if geometries:
         gdf = gpd.GeoDataFrame(geometry=geometries, data=attributes, crs=crs)
-        log_debug(f"Created GeoDataFrame with {len(gdf)} geometries for layer {layer_name}")
         return gdf
     else:
-        log_debug(f"No geometries found in layer {layer_name}")
         return gpd.GeoDataFrame(geometry=[], crs=crs)
 
 def detect_entity_paperspace(entity):

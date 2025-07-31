@@ -35,15 +35,15 @@ blockPlacements:
       offset:
         x: 0
         y: 0
-  # - name: EinAusfahrt
-  #   sync: push
-  #   blockName: "EinAusfahrt"
-  #   scale: 0.6
-  #   position:
-  #     sourceLayer: "EinAusfahrt Line"
-  #     type: "line"
-  #     method: "middle"
-  #     lineOffset: 2
+  - name: EinAusfahrt
+    sync: push
+    blockName: "EinAusfahrt"
+    scale: 0.6
+    position:
+      sourceLayer: "EinAusfahrt Line"
+      type: "line"
+      method: "middle"
+      lineOffset: -1
 # Example configurations showing all sophisticated placement options:
 
 # # Multiple blocks on polygon centers
