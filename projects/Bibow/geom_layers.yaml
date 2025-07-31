@@ -189,13 +189,19 @@ geomLayers:
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/input/Zuwegung sketch ln.shp"
     operations:
       - type: buffer
-        distance: 4
-        joinStyle: mitre
+        distance: 3.25
+        joinStyle: round
         capStyle: flat
       - type: difference
         reverseDifference: false
         layers:
           - name: "Exclude Zuwegung"
+      - type: report
+        outputFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/reports/zuwegung_report.json"
+        calculate:
+          - area
+        decimalPlaces:
+          area: 0
 
   - name: "Zuwegung Schraffur"
     sync: push
@@ -381,7 +387,6 @@ geomLayers:
         joinStyle: mitre
         capStyle: flat
 
-  # Report only
   - name: Parcel Intersections
     # sync: skip
     operations:
@@ -417,6 +422,20 @@ geomLayers:
           intersection_area: 0
           area: 0
 
+  - name: "Biotope Report"
+    operations:
+      - type: copy
+        layers:
+          - name: "Biotope"
+      - type: intersection
+        layers:
+          - name: Geltungsbereiche
+      - type: report
+        calculate: ["area"]
+        decimalPlaces:
+          area: 0
+        outputFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/reports/biotope_report.json"
+
   - name: "Biotope Puffer"
     sync: push
     operations:
@@ -432,6 +451,12 @@ geomLayers:
       - type: intersection
         layers:
           - name: Geltungsbereiche
+      - type: report
+        outputFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/reports/biotope_puffer_report.json"
+        calculate:
+          - area
+        decimalPlaces:
+          area: 0
 
   - name: Biotope Puffer Schraffur
     sync: push
@@ -483,6 +508,12 @@ geomLayers:
         minArea: 20
         geometryTypes:
           - Polygon
+      - type: report
+        outputFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/reports/grünfläche_report.json"
+        calculate:
+          - area
+        decimalPlaces:
+          area: 0
 
   # Create inner green area (buffered inward) for hatching
   - name: "Ausgleich Grünfläche"
@@ -496,12 +527,7 @@ geomLayers:
         distance: -2
         joinStyle: round
         preserveIslands: true
-      - type: report
-        outputFile: "Öffentlich Planungsbüro Schulz/Projekte/24-07 Solarfaktor - Bibow/GIS/reports/grünfläche_report.json"
-        calculate:
-          - area
-        decimalPlaces:
-          area: 0
+
 
   - name: "Grünfläche Schraffur"
     sync: push

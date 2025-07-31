@@ -63,7 +63,7 @@ legends:
         sync: push
         subtitle: "(§ 9 Abs. 1 Nr. 11 und Abs. 6 BauGB)"
         items:
-          - name: "Einfahrtbereich vorläufig"
+          - name: "Ein- und Ausfahrt"
             # subtitle: "(§ 9 Abs. 1 Nr. 4, 11 und Abs. 6 BauGB)"
             type: empty
             blockSymbol: "Einfahrtbereich"

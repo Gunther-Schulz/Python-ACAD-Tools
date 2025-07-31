@@ -4,7 +4,7 @@ texts:
     type: absolute
     x: -100.3640184355163
     y: 840.0
-  text: 'Entwurf: Bebauungsplan Nr. 3 „Solarpark Bibow"\nder Gemeinde Bibow'
+  text: 'Vorentwurf: Bebauungsplan Nr. 3 „Solarpark Bibow"\nder Gemeinde Bibow'
   layer: Plantext
   paperspace: true
   style: mainTitle
