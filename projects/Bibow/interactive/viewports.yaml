@@ -10,16 +10,16 @@ viewports:
     y: 5964579.765236424
   scale: 2.000002
   frozenLayers:
-  - Parcel Label Custom
-  - WMTS Basemap
   - Geltungsbereich 2 Hatch
-  - Geltungsbereich 2
+  - WMTS Basemap
+  - Parcel Label Custom
   - Gebäude
+  - Geltungsbereich 2
   lockZoom: true
   _sync:
     dxf_handle: F6ED
     content_hash: abb8db9e343345533b1b5ed3fc4daa3b05d8e2bfd855aa7379e434524e6a07b1
-    last_sync_time: 1753885489
+    last_sync_time: 1753969984
     sync_source: dxf
 - name: Viewport_006
   center:
@@ -32,15 +32,15 @@ viewports:
     y: 5964749.652093189
   scale: 2.000002
   frozenLayers:
-  - Parcel Label Custom
-  - WMTS Basemap
   - Geltungsbereich 2 Hatch
+  - WMTS Basemap
+  - Parcel Label Custom
   - Gebäude
   lockZoom: true
   _sync:
     dxf_handle: F6EE
     content_hash: 1500f255033c2bbb6fb66a7beb4887c90dd2589bde461749449d4a7da00feffe
-    last_sync_time: 1753885489
+    last_sync_time: 1753969984
     sync_source: dxf
 - name: Viewport_10AF6
   center:
@@ -55,10 +55,17 @@ viewports:
   sync: auto
   _sync:
     dxf_handle: 10AF6
-    content_hash: 94e495f7ae02af40a0d61f15c46dfcc60d333ad769315148459242ffed94fd23
-    last_sync_time: 1753885489
+    content_hash: e30457480f1dc36baaa27e90179757d44b8fab10a33193f37a01c8434850eef2
+    last_sync_time: 1753969984
     sync_source: dxf
   frozenLayers:
+  - SO EBS Labels
+  - GRZ Label
+  - Zuwegung
+  - Zuwegung Schraffur
+  - Privat Labels
+  - EinAusfahrt Line
+  - EinAusfahrt
   - Baufeld Schraffur
   - Baugrenze
   - Baugrenze 2
@@ -81,9 +88,6 @@ viewports:
   - Legend_Main Legend_Nachrichtliche Übernahme
   - WMS Gebäude
   - WMS Höhenlinien
-  - SO EBS Labels
-  - GRZ Label
-  - Privat Labels
   - Parcel
   - Flur
   - Gemarkung
@@ -112,7 +116,7 @@ viewports:
   _sync:
     dxf_handle: 132D6
     content_hash: 9daf1b5578f1066ec82f961ed6a087d74c6ceec9c71977e3233b51be62e85920
-    last_sync_time: 1753714286
+    last_sync_time: 1753969984
     sync_source: dxf
   frozenLayers:
   - WMTS Basemap
