@@ -9,8 +9,8 @@ geomLayers:
   # - name: EinAusfahrt Points
   #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/EinAusfahrt.shp"
 
-  - name: EinAusfahrt Line
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/EinAusfahrt Line.shp"
+  # - name: EinAusfahrt Line
+  #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/EinAusfahrt Line.shp"
 
   # Already modified in drawing (linetype generation, linetypeScale)
   # - name: Blendschutzzaun
@@ -37,21 +37,21 @@ geomLayers:
   #       joinStyle: flat
   #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/wasserrechtliche Festsetzung 3b.shp"
 
-  - name: wasserrechtliche Festsetzung 3b
-    # sync: push
-    style: wasserschutz
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/wasserrechtliche Festsetzung 3b_pl.shp"
+  # - name: wasserrechtliche Festsetzung 3b
+  #   # sync: push
+  #   style: wasserschutz
+  #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/wasserrechtliche Festsetzung 3b_pl.shp"
 
-  - name: wasserrechtliche Festsetzung 3b 2
-    # sync: push
-    style: wasserschutz 2
-    operations:
-      - type: buffer
-        layers:
-          - wasserrechtliche Festsetzung 3b
-        distance: -0.85
-        capStyle: flat
-        joinStyle: flat
+  # - name: wasserrechtliche Festsetzung 3b 2
+  #   # sync: push
+  #   style: wasserschutz 2
+  #   operations:
+  #     - type: buffer
+  #       layers:
+  #         - wasserrechtliche Festsetzung 3b
+  #       distance: -0.85
+  #       capStyle: flat
+  #       joinStyle: flat
 
   # - name: wasserrechtliche Festsetzung 2b
   #   sync: push
@@ -79,659 +79,644 @@ geomLayers:
 
   ### Leitung ###
 
-  # Stadtwerke
-  - name: Leitung Str-Leitungsabschnitt-NS
-    # sync: push
-    style:
-      layer:
-        color: "blue"
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/stadtwerke_str_leitungsabschnitt_ns_ln.shp"
+  # # Stadtwerke
+  # - name: Leitung Str-Leitungsabschnitt-NS
+  #   # sync: push
+  #   style:
+  #     layer:
+  #       color: "blue"
+  #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/stadtwerke_str_leitungsabschnitt_ns_ln.shp"
 
-  - name: Leitung Str-Leitungsabschnitt-NS Buffer
-    operations:
-      - type: buffer
-        layers:
-          - Leitung Str-Leitungsabschnitt-NS
-        distance: 2
-        capStyle: flat
-        joinStyle: flat
+  # - name: Leitung Str-Leitungsabschnitt-NS Buffer
+  #   operations:
+  #     - type: buffer
+  #       layers:
+  #         - Leitung Str-Leitungsabschnitt-NS
+  #       distance: 2
+  #       capStyle: flat
+  #       joinStyle: flat
 
-  - name: Leitung Was-Leitungsabschnitt-VN
-    # sync: push
-    style:
-      layer:
-        color: "blue"
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/stadtwerke_was_leitungsabschnitt_vn_ln.shp"
+  # - name: Leitung Was-Leitungsabschnitt-VN
+  #   # sync: push
+  #   style:
+  #     layer:
+  #       color: "blue"
+  #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/stadtwerke_was_leitungsabschnitt_vn_ln.shp"
 
-  - name: Leitung Was-Leitungsabschnitt-VN Buffer
-    operations:
-      - type: buffer
-        layers:
-          - Leitung Was-Leitungsabschnitt-VN
-        distance: 2
-        capStyle: flat
-        joinStyle: flat
+  # - name: Leitung Was-Leitungsabschnitt-VN Buffer
+  #   operations:
+  #     - type: buffer
+  #       layers:
+  #         - Leitung Was-Leitungsabschnitt-VN
+  #       distance: 2
+  #       capStyle: flat
+  #       joinStyle: flat
 
-  - name: Leitung Was-Leitungsabschnitt-AN
-    # sync: push
-    style:
-      layer:
-        color: "blue"
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/stadtwerke_was_leitungsabschnitt_an_ln.shp"
-  #
-  - name: Leitung Was-Leitungsabschnitt-AN Buffer
-    operations:
-      - type: buffer
-        layers:
-          - Leitung Was-Leitungsabschnitt-AN
-        distance: 2
-        capStyle: flat
-        joinStyle: flat
+  # - name: Leitung Was-Leitungsabschnitt-AN
+  #   # sync: push
+  #   style:
+  #     layer:
+  #       color: "blue"
+  #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/stadtwerke_was_leitungsabschnitt_an_ln.shp"
+  # #
+  # - name: Leitung Was-Leitungsabschnitt-AN Buffer
+  #   operations:
+  #     - type: buffer
+  #       layers:
+  #         - Leitung Was-Leitungsabschnitt-AN
+  #       distance: 2
+  #       capStyle: flat
+  #       joinStyle: flat
 
-  - name: Leitung Gas-Leitungsabschnitt-VN
-    # sync: push
-    style:
-      layer:
-        color: "blue"
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/stadtwerke_gas_leitungsabschnitt_vn_ln.shp"
+  # - name: Leitung Gas-Leitungsabschnitt-VN
+  #   # sync: push
+  #   style:
+  #     layer:
+  #       color: "blue"
+  #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/stadtwerke_gas_leitungsabschnitt_vn_ln.shp"
 
-  - name: Leitung Gas-Leitungsabschnitt-VN Buffer
-    operations:
-      - type: buffer
-        layers:
-          - Leitung Gas-Leitungsabschnitt-VN
-        distance: 2
-        capStyle: flat
-        joinStyle: flat
+  # - name: Leitung Gas-Leitungsabschnitt-VN Buffer
+  #   operations:
+  #     - type: buffer
+  #       layers:
+  #         - Leitung Gas-Leitungsabschnitt-VN
+  #       distance: 2
+  #       capStyle: flat
+  #       joinStyle: flat
 
-  # ONTRAS
-  - name: Leitung Ontras Gas
-    # sync: push
-    style:
-      layer:
-        color: "orange"
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/input_leitungsverlauf_ontras_gas_ln.shp"
+  # # ONTRAS
+  # - name: Leitung Ontras Gas
+  #   # sync: push
+  #   style:
+  #     layer:
+  #       color: "orange"
+  #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/input_leitungsverlauf_ontras_gas_ln.shp"
 
-  - name: Leitung Ontras TK
-    # sync: push
-    style:
-      layer:
-        color: "orange"
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/input_leitungsverlauf_ontras_tk_ln.shp"
+  # - name: Leitung Ontras TK
+  #   # sync: push
+  #   style:
+  #     layer:
+  #       color: "orange"
+  #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/input_leitungsverlauf_ontras_tk_ln.shp"
 
-  - name: Leitung Ontras Buffer
-    operations:
-      - type: buffer
-        layers:
-          - Leitung Ontras Gas
-          - Leitung Ontras TK
-        distance: 10
-        # capStyle: round
-        joinStyle: round
+  # - name: Leitung Ontras Buffer
+  #   operations:
+  #     - type: buffer
+  #       layers:
+  #         - Leitung Ontras Gas
+  #         - Leitung Ontras TK
+  #       distance: 10
+  #       # capStyle: round
+  #       joinStyle: round
 
-  # Vermessung
-  - name: Leitung Gas_HD_LEIT # Edis Gas
-    # sync: push
-    style:
-      layer:
-        color: "green"
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/vermessung_gas_hd_ln.shp"
+  # # Vermessung
+  # - name: Leitung Gas_HD_LEIT # Edis Gas
+  #   # sync: push
+  #   style:
+  #     layer:
+  #       color: "green"
+  #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/vermessung_gas_hd_ln.shp"
 
-  - name: Leitung Gas_HD_LEIT Buffer
-    operations:
-      - type: buffer
-        layers:
-          - Leitung Gas_HD_LEIT
-        distance: 3
-        # capStyle: round
-        joinStyle: round
+  # - name: Leitung Gas_HD_LEIT Buffer
+  #   operations:
+  #     - type: buffer
+  #       layers:
+  #         - Leitung Gas_HD_LEIT
+  #       distance: 3
+  #       # capStyle: round
+  #       joinStyle: round
 
-  - name: Leitung Stromkabel-MS_unterirdisch_LEIT
-    # sync: push
-    style:
-      layer:
-        color: "red"
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/vermessung_stromkabel_ms_unterirdisch_ln.shp"
-  - name: Leitung Stromkabel-MS_unterirdisch_LEIT Label Points
-    # sync: push
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/vermessung_stromkabel_ms_unterirdisch_besc_pt.shp"
+  # - name: Leitung Stromkabel-MS_unterirdisch_LEIT
+  #   # sync: push
+  #   style:
+  #     layer:
+  #       color: "red"
+  #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/vermessung_stromkabel_ms_unterirdisch_ln.shp"
+  # - name: Leitung Stromkabel-MS_unterirdisch_LEIT Label Points
+  #   # sync: push
+  #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/vermessung_stromkabel_ms_unterirdisch_besc_pt.shp"
 
-  - name: Leitung Stromkabel-MS_unterirdisch_LEIT Buffer
-    operations:
-      - type: buffer
-        layers:
-          - Leitung Stromkabel-MS_unterirdisch_LEIT
-        distance: 2
-        capStyle: flat
-        joinStyle: flat
+  # - name: Leitung Stromkabel-MS_unterirdisch_LEIT Buffer
+  #   operations:
+  #     - type: buffer
+  #       layers:
+  #         - Leitung Stromkabel-MS_unterirdisch_LEIT
+  #       distance: 2
+  #       capStyle: flat
+  #       joinStyle: flat
 
-  # Maxsolar (Vermessung)
-  - name: Leitung Mittelspannung Zuwegung
-    # sync: push
-    style:
-      layer:
-        color: "red"
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/maxsolar_leitung_ms_zuwegung_ln.shp"
+  # # Maxsolar (Vermessung)
+  # - name: Leitung Mittelspannung Zuwegung
+  #   # sync: push
+  #   style:
+  #     layer:
+  #       color: "red"
+  #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/maxsolar_leitung_ms_zuwegung_ln.shp"
 
-  - name: Leitung Mittelspannung Zuwegung Buffer
-    operations:
-      - type: buffer
-        layers:
-          - Leitung Mittelspannung Zuwegung
-        distance: 2
-        capStyle: flat
-        joinStyle: flat
+  # - name: Leitung Mittelspannung Zuwegung Buffer
+  #   operations:
+  #     - type: buffer
+  #       layers:
+  #         - Leitung Mittelspannung Zuwegung
+  #       distance: 2
+  #       capStyle: flat
+  #       joinStyle: flat
 
-  # Bestand-Zeichnung
+  # # Bestand-Zeichnung
 
-  - name: Leitung Telekom
-    # sync: push
-    style:
-      layer:
-        color: "magenta"
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/input_leitungsverlauf_telekom_ln.shp"
+  # - name: Leitung Telekom
+  #   # sync: push
+  #   style:
+  #     layer:
+  #       color: "magenta"
+  #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/input_leitungsverlauf_telekom_ln.shp"
 
-  - name: Leitung Telekom Buffer
-    operations:
-      - type: buffer
-        layers:
-          - Leitung Telekom
-        distance: 15
-        capStyle: flat
-        joinStyle: flat
+  # - name: Leitung Telekom Buffer
+  #   operations:
+  #     - type: buffer
+  #       layers:
+  #         - Leitung Telekom
+  #       distance: 15
+  #       capStyle: flat
+  #       joinStyle: flat
 
-  - name: Leitung Edis
-    # sync: push
-    style:
-      layer:
-        color: "green"
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/input_leitungsverlauf_edis_ln.shp"
+  # - name: Leitung Edis
+  #   # sync: push
+  #   style:
+  #     layer:
+  #       color: "green"
+  #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/input_leitungsverlauf_edis_ln.shp"
 
-  - name: Leitung Edis Buffer
-    operations:
-      - type: buffer
-        layers:
-          - Leitung Edis
-        distance: 2 # Gechätzt, müsste nachschauen
-        capStyle: flat
-        joinStyle: flat
+  # - name: Leitung Edis Buffer
+  #   operations:
+  #     - type: buffer
+  #       layers:
+  #         - Leitung Edis
+  #       distance: 2 # Gechätzt, müsste nachschauen
+  #       capStyle: flat
+  #       joinStyle: flat
 
-  ### Baum ###
-  - name: Baum_Laubbaum Points
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/vermessung_baum_laubbaum_pt.shp"
-  - name: Alleebäume
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/Alleebäume.shp"
-  - name: Einzelbäume
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/Einzelbäume.shp"
+  # ### Baum ###
+  # - name: Baum_Laubbaum Points
+  #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/vermessung_baum_laubbaum_pt.shp"
+  # - name: Alleebäume
+  #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/Alleebäume.shp"
+  # - name: Einzelbäume
+  #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/Einzelbäume.shp"
 
-  - name: Baum_Laubbaum Krone
-    # sync: push
-    style: baum
-    operations:
-      - type: circle
-        layers:
-          - Einzelbäume
-        radiusField: Krone_R
-  - name: Baum_Laubbaum Stamm
-    # sync: push
-    style: baum
-    operations:
-      - type: circle
-        layers:
-          - Einzelbäume
-        radiusField: Stamm_R
+  # - name: Baum_Laubbaum Krone
+  #   # sync: push
+  #   style: baum
+  #   operations:
+  #     - type: circle
+  #       layers:
+  #         - Einzelbäume
+  #       radiusField: Krone_R
+  # - name: Baum_Laubbaum Stamm
+  #   # sync: push
+  #   style: baum
+  #   operations:
+  #     - type: circle
+  #       layers:
+  #         - Einzelbäume
+  #       radiusField: Stamm_R
 
-  - name: Baum_Laubbaum Krone Allee
-    # sync: push
-    style: alleeBaum
-    operations:
-      - type: circle
-        layers:
-          - Alleebäume
-        radiusField: Krone_R
-  - name: Baum_Laubbaum Stamm Allee
-    # sync: push
-    style: alleeBaum
-    operations:
-      - type: circle
-        layers:
-          - Alleebäume
-        radiusField: Stamm_R
+  # - name: Baum_Laubbaum Krone Allee
+  #   # sync: push
+  #   style: alleeBaum
+  #   operations:
+  #     - type: circle
+  #       layers:
+  #         - Alleebäume
+  #       radiusField: Krone_R
+  # - name: Baum_Laubbaum Stamm Allee
+  #   # sync: push
+  #   style: alleeBaum
+  #   operations:
+  #     - type: circle
+  #       layers:
+  #         - Alleebäume
+  #       radiusField: Stamm_R
 
-  - name: Baum_Laubbaum Stamm Schraffur
-    # sync: push
-    style: baumStamm
-    applyHatch:
-      layers:
-        - Baum_Laubbaum Stamm
-  - name: Baum_Laubbaum Buffer
-    operations:
-      - type: buffer
-        layers:
-          - Baum_Laubbaum Krone
-        distance: 1.5
-        capStyle: round
-        joinStyle: round
-  - name: Baum_Laubbaum Envelope
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/vermessung_baum_laubbaum_pt.shp"
-    operations:
-      - type: connect-points
-        maxDistance: 27
-      - type: buffer
-        # distance: 10
-        distance: 7
-        capStyle: round
-        joinStyle: round
-      - type: dissolve
-
-  ### Grundlagen ###
-  - name: Parcel
-    label: label
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/parcel.shp"
-  - name: Flur
-    label: flurname
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/flur.shp"
-  - name: Gemarkung
-    label: gmkname
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/gemarkung.shp"
-  - name: Gemeinde
-    label: gen
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/gemeinde.shp"
-
-  ### Exclude ###
-  - name: Exclude
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/exclude.shp"
-  - name: Exclude 2
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/exclude2.shp"
-  - name: Exclude 3
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/exclude_3.shp"
-  - name: Exclude Leitung
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/exclude_leitung.shp"
-  - name: Exclude Bahn Buffer
-    # It is already a buffered shape
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/exclude_bahn.shp"
-  - name: Exclude Böschung
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/exclude_böschung.shp"
-  - name: Exclude Zuwegung
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/exclude_zuwegung.shp"
-  - name: Baugrenze Exclude
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/baugrenze_exclude.shp"
-  - name: Exclude Grünfläche
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/exclude_grünfläche.shp"
-
-  ### Zuwegung ###
-  - name: Zuwegung
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/maxsolar_zuwegung_mittellinie_ln.shp"
-    # sync: push
-    operations:
-      - type: buffer
-        distance: 2
-        capStyle: square
-      - type: difference
-        reverseDifference: false
-        layers:
-          - Exclude Zuwegung
-  - name: Zuwegung Schraffur
-    # sync: push
-    style: verkehrsfläche
-    applyHatch:
-      layers:
-        - Zuwegung
-
-  ### Geltungsbereich ###
-  - name: Geltungsbereich Input
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/geltungsbereich_pl.shp"
-
-  - name: Geltungsbereich
-    # sync: push
-    style: geltungsbereich
-    operations:
-      - type: dissolve
-        layers:
-          - Geltungsbereich Input
-          - Zuwegung
-      - type: difference
-        reverseDifference: false
-        layers:
-          - Exclude
-          - Exclude 2
-          - Exclude 3
-          # - Exclude Bahn Buffer
-          # - Exclude Böschung
-          - Exclude Leitung
-          - Baum_Laubbaum Envelope
-      - type: copy
-        layers:
-          - Zuwegung
-      - type: dissolve
-      - type: buffer
-        distance: -0.1
-        joinStyle: mitre
-        capStyle: flat
-      - type: buffer
-        distance: 0.1
-        joinStyle: mitre
-        capStyle: flat
-        calculations:
-          - type: area
-            as: area
-            decimalPlaces: 0
-      - type: report
-        outputFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/reports/geltungsbereich_report.json"
-        featureColumns:
-          - area
-        calculate:
-          - area
-        decimalPlaces:
-          area: 0
-
-  # Modified in DXF (linetype generation)
-  - name: Geltungsbereich 2
-    # sync: push  # updated manually linetypeGeneration
-    linetypeScale: 1
-    style: geltungsbereich_2
-    operations:
-      - type: copy
-        layers:
-          - Geltungsbereich
-      - type: dissolve
-      - type: buffer
-        distance: 2
-        joinStyle: round
-        capStyle: round
-      - type: buffer
-        distance: -2
-        joinStyle: mitre
-        capStyle: flat
-      - type: buffer
-        distance: 2
-        joinStyle: mitre
-        capStyle: flat
-
-  - name: Geltungsbereich F-Plan
-    # sync: push # linetype generation
-    style: geltungsbereichFPlan
-    operations:
-      - type: copy
-        layers:
-          - Geltungsbereich
-  - name: Geltungsbereich F-Plan Schraffur
-    # sync: push # linetype generation
-    style: geltungsbereichFPlan
-    applyHatch:
-      layers:
-        - Geltungsbereich F-Plan
-
-  - name: Geltungsbereich F-Plan MiniMap Schraffur
-    # sync: push # linetype generation
-    style: geltungsbereichFPlanMiniMap
-    applyHatch:
-      layers:
-        - Geltungsbereich F-Plan
-
-  # Report only
-  - name: Parcel Intersections
-    # sync: skip
-    operations:
-      - type: copy
-        layers:
-          - name: Parcel
-      - type: calculate
-        calculations:
-          - type: area
-            as: parcel_area
-            decimalPlaces: 0
-      - type: intersection
-        layers:
-          - name: Geltungsbereich
-      - type: filterGeometry
-        minArea: 10
-        geometryTypes:
-          - polygon
-      - type: calculate
-        calculations:
-          - type: area
-            as: intersection_area
-            decimalPlaces: 0
-      - type: report
-        outputFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/reports/parcel_intersections_report.json"
-        featureColumns:
-          - label
-          - parcel_area
-          - intersection_area
-        calculate:
-          - area
-        decimalPlaces:
-          intersection_area: 0
-          area: 0
-
-  ### Grünfläche ###
-  # - name: Grünfläche Input from source
-  #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/grünfläche_input_from_source_pl.shp"
-  - name: Grünfläche Input
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/grünfläche_input.shp"
-  - name: Grünflache Input near Graben
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/grünfläche_input_near_graben.shp"
-    operations:
-      - type: dissolve
-      - type: buffer # to prevent error: Could not add feature to layer at index 0: Coordinates with non-finite values are not allowed (from /home/g/dev/Gunther-Schulz/Python-ACAD-Tools/src/shapefile_utils.py:190
-        distance: 0.01
-      - type: filterGeometry
-        geometryTypes:
-          - polygon
-        # minArea: 1
-  - name: Moor
-    # sync: push
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/Moor.shp"
-  - name: "ges gesch Biotope"
-    # sync: push
-    # style: gesGeschuetzesBiotop
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/ges. geschützte Biotope.shp"
-  - name: "ges gesch Biotope 2"
-    # sync: push
-    style: gesGeschuetzesBiotop
-    operations:
-      - type: copy
-        layers:
-          - "ges gesch Biotope"
-      - type: buffer
-        distance: 1
-        capStyle: round
-        joinStyle: round
-  - name: Graben
-    operations:
-      - type: intersection
-        layers:
-          - Geltungsbereich
-    # shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/vermessung_graben_pl.shp"
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/Graben_edit.shp"
-  - name: Graben Schraffur
-    # sync: push
-    style: graben
-    applyHatch:
-      layers:
-        - Graben
-  - name: Grünfläche und Graben
-    # sync: push
-    # style:
-    #   layer:
-    #     color: "blue"
-    operations:
-      - type: copy
-        layers:
-          # - "Grünfläche Input from source"
-          - "Grünfläche Input"
-          - "Grünflache Input near Graben"
-          # - Baum_Laubbaum Envelope
-          # - Baum_Laubbaum Buffer
-          - Moor
-          - "ges gesch Biotope"
-          - Leitung Ontras Buffer
-          # - Leitung Gas_HD_LEIT Buffer
-      - type: dissolve
-      - type: difference
-        reverseDifference: false
-        layers:
-          - Exclude Grünfläche
-      - type: dissolve
-      - type: intersection
-        layers:
-          - Geltungsbereich
-      - type: dissolve
-      - type: filterGeometry
-        minArea: 100
-        geometryTypes:
-          - polygon
-      # - type: difference
-      #   reverseDifference: false
-      #   layers:
-      #     - Graben
-      # - type: report
-      #   outputFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/reports/grünfläche_report.json"
-      #   calculate:
-      #     - area
-  - name: Grünfläche
-    operations:
-      - type: copy
-        layers:
-          - Grünfläche und Graben
-      - type: difference
-        reverseDifference: false
-        layers:
-          - Graben
-      - type: report
-        outputFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/reports/grünfläche_report.json"
-        calculate:
-          - area
-  - name: Ausgleich Grünfläche
-    # sync: push
-    # style:
-    #   layer:
-    #     color: "chartreuse-medium"
-    operations:
-      - type: copy
-        layers:
-          - Grünfläche
-      - type: dissolve
-      - type: buffer
-        # distance: -3
-        distance: -2
-        joinStyle: round
-        # skipIslands: true
-        preserveIslands: true
-  - name: Grünfläche Schraffur
-    # sync: push
-    style: grünfläche
-    applyHatch:
-      layers:
-        - Ausgleich Grünfläche
-  - name: Ausgleich Schutzflächeumgrenzung
-    # sync: push
-    # style:
-    #   layer:
-    #     color: "yellow-medium"
-    operations:
-      - type: copy
-        layers:
-          - Grünfläche und Graben
-          # - Graben
-      - type: buffer
-        # distance: -3
-        distance: -2
-        joinStyle: round
-        mode: ring
-      # - type: difference
-      #   reverseDifference: false
-      #   layers:
-      #     - Grünfläche und Graben
-  - name: Grünfläche T-Linie Symbol Schraffur
-    # sync: push
-    style: schutzflächeumgrenzung
-    applyHatch:
-      layers:
-        - Ausgleich Schutzflächeumgrenzung
-
-  ### Baufeld/Baugrenze ###
-  - name: Baufeld
-    # sync: push
-    close: true
-    operations:
-      - type: copy
-        layers:
-          - Geltungsbereich
-      - type: difference
-        reverseDifference: false
-        useBufferTrick: true
-        operations:
-          - type: dissolve
-            layers:
-              - Grünfläche
-              - Graben
-              - Zuwegung
-      - type: filterGeometry
-        minArea: 200
-        geometryTypes:
-          - polygon
-  - name: Baufeld Schraffur
-    # sync: push
-    style: baufeld
-    applyHatch:
-      layers:
-        - Baufeld
-  - name: Wohngrunstückecken Envelope
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/wohngrundstücke_ecken_pt.shp"
-    operations:
-      - type: connect-points
-        maxDistance: 100
-      - type: buffer
-        distance: 40
-        capStyle: round
-        joinStyle: round
-      - type: dissolve
-  # - name: Wohngrunstückecken 2 Envelope
-  #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/wohngrundstücke_2_ecken_pt.shp"
+  # - name: Baum_Laubbaum Stamm Schraffur
+  #   # sync: push
+  #   style: baumStamm
+  #   applyHatch:
+  #     layers:
+  #       - Baum_Laubbaum Stamm
+  # - name: Baum_Laubbaum Buffer
+  #   operations:
+  #     - type: buffer
+  #       layers:
+  #         - Baum_Laubbaum Krone
+  #       distance: 1.5
+  #       capStyle: round
+  #       joinStyle: round
+  # - name: Baum_Laubbaum Envelope
+  #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/vermessung_baum_laubbaum_pt.shp"
   #   operations:
   #     - type: connect-points
-  #       maxDistance: 60
+  #       maxDistance: 27
+  #     - type: buffer
+  #       # distance: 10
+  #       distance: 7
+  #       capStyle: round
+  #       joinStyle: round
+  #     - type: dissolve
+
+  # ### Grundlagen ###
+  # - name: Parcel
+  #   label: label
+  #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/parcel.shp"
+  # - name: Flur
+  #   label: flurname
+  #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/flur.shp"
+  # - name: Gemarkung
+  #   label: gmkname
+  #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/gemarkung.shp"
+  # - name: Gemeinde
+  #   label: gen
+  #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/gemeinde.shp"
+
+  # ### Exclude ###
+  # - name: Exclude
+  #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/exclude.shp"
+  # - name: Exclude 2
+  #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/exclude2.shp"
+  # - name: Exclude 3
+  #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/exclude_3.shp"
+  # - name: Exclude Leitung
+  #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/exclude_leitung.shp"
+  # - name: Exclude Bahn Buffer
+  #   # It is already a buffered shape
+  #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/exclude_bahn.shp"
+  # - name: Exclude Böschung
+  #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/exclude_böschung.shp"
+  # - name: Exclude Zuwegung
+  #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/exclude_zuwegung.shp"
+  - name: Baugrenze Exclude
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/baugrenze_exclude.shp"
+  # - name: Exclude Grünfläche
+  #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/exclude_grünfläche.shp"
+
+  # ### Zuwegung ###
+  # - name: Zuwegung
+  #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/maxsolar_zuwegung_mittellinie_ln.shp"
+  #   # sync: push
+  #   operations:
+  #     - type: buffer
+  #       distance: 2
+  #       capStyle: square
+  #     - type: difference
+  #       reverseDifference: false
+  #       layers:
+  #         - Exclude Zuwegung
+  # - name: Zuwegung Schraffur
+  #   # sync: push
+  #   style: verkehrsfläche
+  #   applyHatch:
+  #     layers:
+  #       - Zuwegung
+
+  # ### Geltungsbereich ###
+  # - name: Geltungsbereich Input
+  #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/geltungsbereich_pl.shp"
+
+  # - name: Geltungsbereich
+  #   # sync: push
+  #   style: geltungsbereich
+  #   operations:
+  #     - type: dissolve
+  #       layers:
+  #         - Geltungsbereich Input
+  #         - Zuwegung
+  #     - type: difference
+  #       reverseDifference: false
+  #       layers:
+  #         - Exclude
+  #         - Exclude 2
+  #         - Exclude 3
+  #         # - Exclude Bahn Buffer
+  #         # - Exclude Böschung
+  #         - Exclude Leitung
+  #         - Baum_Laubbaum Envelope
+  #     - type: copy
+  #       layers:
+  #         - Zuwegung
+  #     - type: dissolve
+  #     - type: buffer
+  #       distance: -0.1
+  #       joinStyle: mitre
+  #       capStyle: flat
+  #     - type: buffer
+  #       distance: 0.1
+  #       joinStyle: mitre
+  #       capStyle: flat
+  #       calculations:
+  #         - type: area
+  #           as: area
+  #           decimalPlaces: 0
+  #     - type: report
+  #       outputFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/reports/geltungsbereich_report.json"
+  #       featureColumns:
+  #         - area
+  #       calculate:
+  #         - area
+  #       decimalPlaces:
+  #         area: 0
+
+  # # Modified in DXF (linetype generation)
+  # - name: Geltungsbereich 2
+  #   # sync: push  # updated manually linetypeGeneration
+  #   linetypeScale: 1
+  #   style: geltungsbereich_2
+  #   operations:
+  #     - type: copy
+  #       layers:
+  #         - Geltungsbereich
+  #     - type: dissolve
+  #     - type: buffer
+  #       distance: 2
+  #       joinStyle: round
+  #       capStyle: round
+  #     - type: buffer
+  #       distance: -2
+  #       joinStyle: mitre
+  #       capStyle: flat
+  #     - type: buffer
+  #       distance: 2
+  #       joinStyle: mitre
+  #       capStyle: flat
+
+  # - name: Geltungsbereich F-Plan
+  #   # sync: push # linetype generation
+  #   style: geltungsbereichFPlan
+  #   operations:
+  #     - type: copy
+  #       layers:
+  #         - Geltungsbereich
+  # - name: Geltungsbereich F-Plan Schraffur
+  #   # sync: push # linetype generation
+  #   style: geltungsbereichFPlan
+  #   applyHatch:
+  #     layers:
+  #       - Geltungsbereich F-Plan
+
+  # - name: Geltungsbereich F-Plan MiniMap Schraffur
+  #   # sync: push # linetype generation
+  #   style: geltungsbereichFPlanMiniMap
+  #   applyHatch:
+  #     layers:
+  #       - Geltungsbereich F-Plan
+
+  # # Report only
+  # - name: Parcel Intersections
+  #   # sync: skip
+  #   operations:
+  #     - type: copy
+  #       layers:
+  #         - name: Parcel
+  #     - type: calculate
+  #       calculations:
+  #         - type: area
+  #           as: parcel_area
+  #           decimalPlaces: 0
+  #     - type: intersection
+  #       layers:
+  #         - name: Geltungsbereich
+  #     - type: filterGeometry
+  #       minArea: 10
+  #       geometryTypes:
+  #         - polygon
+  #     - type: calculate
+  #       calculations:
+  #         - type: area
+  #           as: intersection_area
+  #           decimalPlaces: 0
+  #     - type: report
+  #       outputFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/reports/parcel_intersections_report.json"
+  #       featureColumns:
+  #         - label
+  #         - parcel_area
+  #         - intersection_area
+  #       calculate:
+  #         - area
+  #       decimalPlaces:
+  #         intersection_area: 0
+  #         area: 0
+
+  # ### Grünfläche ###
+  # # - name: Grünfläche Input from source
+  # #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/grünfläche_input_from_source_pl.shp"
+  # - name: Grünfläche Input
+  #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/grünfläche_input.shp"
+  # - name: Grünflache Input near Graben
+  #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/grünfläche_input_near_graben.shp"
+  #   operations:
+  #     - type: dissolve
+  #     - type: buffer # to prevent error: Could not add feature to layer at index 0: Coordinates with non-finite values are not allowed (from /home/g/dev/Gunther-Schulz/Python-ACAD-Tools/src/shapefile_utils.py:190
+  #       distance: 0.01
+  #     - type: filterGeometry
+  #       geometryTypes:
+  #         - polygon
+  #       # minArea: 1
+  # - name: Moor
+  #   # sync: push
+  #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/Moor.shp"
+  # - name: "ges gesch Biotope"
+  #   # sync: push
+  #   # style: gesGeschuetzesBiotop
+  #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/ges. geschützte Biotope.shp"
+  # - name: "ges gesch Biotope 2"
+  #   # sync: push
+  #   style: gesGeschuetzesBiotop
+  #   operations:
+  #     - type: copy
+  #       layers:
+  #         - "ges gesch Biotope"
+  #     - type: buffer
+  #       distance: 1
+  #       capStyle: round
+  #       joinStyle: round
+  # - name: Graben
+  #   operations:
+  #     - type: intersection
+  #       layers:
+  #         - Geltungsbereich
+  #   # shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/vermessung_graben_pl.shp"
+  #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/Graben_edit.shp"
+  # - name: Graben Schraffur
+  #   # sync: push
+  #   style: graben
+  #   applyHatch:
+  #     layers:
+  #       - Graben
+  # - name: Grünfläche und Graben
+  #   # sync: push
+  #   # style:
+  #   #   layer:
+  #   #     color: "blue"
+  #   operations:
+  #     - type: copy
+  #       layers:
+  #         # - "Grünfläche Input from source"
+  #         - "Grünfläche Input"
+  #         - "Grünflache Input near Graben"
+  #         # - Baum_Laubbaum Envelope
+  #         # - Baum_Laubbaum Buffer
+  #         - Moor
+  #         - "ges gesch Biotope"
+  #         - Leitung Ontras Buffer
+  #         # - Leitung Gas_HD_LEIT Buffer
+  #     - type: dissolve
+  #     - type: difference
+  #       reverseDifference: false
+  #       layers:
+  #         - Exclude Grünfläche
+  #     - type: dissolve
+  #     - type: intersection
+  #       layers:
+  #         - Geltungsbereich
+  #     - type: dissolve
+  #     - type: filterGeometry
+  #       minArea: 100
+  #       geometryTypes:
+  #         - polygon
+  #     # - type: difference
+  #     #   reverseDifference: false
+  #     #   layers:
+  #     #     - Graben
+  #     # - type: report
+  #     #   outputFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/reports/grünfläche_report.json"
+  #     #   calculate:
+  #     #     - area
+  # - name: Grünfläche
+  #   operations:
+  #     - type: copy
+  #       layers:
+  #         - Grünfläche und Graben
+  #     - type: difference
+  #       reverseDifference: false
+  #       layers:
+  #         - Graben
+  #     - type: report
+  #       outputFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/reports/grünfläche_report.json"
+  #       calculate:
+  #         - area
+  # - name: Ausgleich Grünfläche
+  #   # sync: push
+  #   # style:
+  #   #   layer:
+  #   #     color: "chartreuse-medium"
+  #   operations:
+  #     - type: copy
+  #       layers:
+  #         - Grünfläche
+  #     - type: dissolve
+  #     - type: buffer
+  #       # distance: -3
+  #       distance: -2
+  #       joinStyle: round
+  #       # skipIslands: true
+  #       preserveIslands: true
+  # - name: Grünfläche Schraffur
+  #   # sync: push
+  #   style: grünfläche
+  #   applyHatch:
+  #     layers:
+  #       - Ausgleich Grünfläche
+  # - name: Ausgleich Schutzflächeumgrenzung
+  #   # sync: push
+  #   # style:
+  #   #   layer:
+  #   #     color: "yellow-medium"
+  #   operations:
+  #     - type: copy
+  #       layers:
+  #         - Grünfläche und Graben
+  #         # - Graben
+  #     - type: buffer
+  #       # distance: -3
+  #       distance: -2
+  #       joinStyle: round
+  #       mode: ring
+  #     # - type: difference
+  #     #   reverseDifference: false
+  #     #   layers:
+  #     #     - Grünfläche und Graben
+  # - name: Grünfläche T-Linie Symbol Schraffur
+  #   # sync: push
+  #   style: schutzflächeumgrenzung
+  #   applyHatch:
+  #     layers:
+  #       - Ausgleich Schutzflächeumgrenzung
+
+  # ### Baufeld/Baugrenze ###
+  # - name: Baufeld
+  #   # sync: push
+  #   close: true
+  #   operations:
+  #     - type: copy
+  #       layers:
+  #         - Geltungsbereich
+  #     - type: difference
+  #       reverseDifference: false
+  #       useBufferTrick: true
+  #       operations:
+  #         - type: dissolve
+  #           layers:
+  #             - Grünfläche
+  #             - Graben
+  #             - Zuwegung
+  #     - type: filterGeometry
+  #       minArea: 200
+  #       geometryTypes:
+  #         - polygon
+  # - name: Baufeld Schraffur
+  #   # sync: push
+  #   style: baufeld
+  #   applyHatch:
+  #     layers:
+  #       - Baufeld
+  # - name: Wohngrunstückecken Envelope
+  #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/wohngrundstücke_ecken_pt.shp"
+  #   operations:
+  #     - type: connect-points
+  #       maxDistance: 100
   #     - type: buffer
   #       distance: 40
   #       capStyle: round
   #       joinStyle: round
   #     - type: dissolve
-  - name: Baugrenze 2
-    sync: push # linetypeGeneration
-    style: baugrenze_2
-    close: true
-    operations:
-      - type: buffer
-        layers:
-          - Baugrenze
-        distance: -0.4
+  # # - name: Wohngrunstückecken 2 Envelope
+  # #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/wohngrundstücke_2_ecken_pt.shp"
+  # #   operations:
+  # #     - type: connect-points
+  # #       maxDistance: 60
+  # #     - type: buffer
+  # #       distance: 40
+  # #       capStyle: round
+  # #       joinStyle: round
+  # #     - type: dissolve
+  # - name: Baugrenze 2
+  #   sync: push # linetypeGeneration
+  #   style: baugrenze_2
+  #   close: true
+  #   operations:
+  #     - type: buffer
+  #       layers:
+  #         - Baugrenze
+  #       distance: -0.4
+
   - name: Baugrenze
-    sync: push # linetypeGeneration
+    sync: push
     style: baugrenze
-    linetypeScale: 0.5
-    # linetypeGeneration: true
-    close: true
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/input/Baugrenze_static.shp"
     operations:
-      - type: buffer
-        layers:
-          - Baufeld
-        distance: -3
-        joinStyle: round
-        capStyle: round
       - type: difference
         reverseDifference: false
         layers:
-          - Leitungen Buffer
-          - Leitungen Ontras Buffer Path
-          - Baum_Laubbaum Envelope
-          - Baum_Laubbaum Buffer
           - Baugrenze Exclude
-          - Exclude Bahn Buffer
-          - Exclude Böschung
-          - Wohngrunstückecken Envelope
-          # - Wohngrunstückecken 2 Envelope
       - type: calculate
         calculations:
           - type: area
@@ -745,22 +730,22 @@ geomLayers:
           - area
         decimalPlaces:
           area: 0
-      # - type: buffer
-      #   distance: -6
-      # - type: buffer
-      #   distance: 6
-  - name: Baufeldstreifen Report
+  - name: Baugrenze 2
+    sync: push # linetypeGeneration
+    style: baugrenze_2
+    close: true
     operations:
-      - type: copy
+      - type: buffer
         layers:
-          - Baufeld
+          - Baugrenze
+        distance: -0.4
+  - name: Baufeld
+    sync: pull
+    operations:
       - type: difference
         reverseDifference: false
         layers:
           - Baugrenze
-      - type: intersection
-        layers:
-          - Geltungsbereich
       - type: report
         outputFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/reports/baufeldstreifen_report.json"
         calculate:
@@ -768,6 +753,68 @@ geomLayers:
           - perimeter
         decimalPlaces:
           area: 0
+
+  # - name: Baugrenze
+  #   sync: push # linetypeGeneration
+  #   style: baugrenze
+  #   linetypeScale: 0.5
+  #   # linetypeGeneration: true
+  #   close: true
+  #   operations:
+  #     - type: buffer
+  #       layers:
+  #         - Baufeld
+  #       distance: -3
+  #       joinStyle: round
+  #       capStyle: round
+  #     - type: difference
+  #       reverseDifference: false
+  #       layers:
+  #         - Leitungen Buffer
+  #         - Leitungen Ontras Buffer Path
+  #         - Baum_Laubbaum Envelope
+  #         - Baum_Laubbaum Buffer
+  #         - Baugrenze Exclude
+  #         - Exclude Bahn Buffer
+  #         - Exclude Böschung
+  #         - Wohngrunstückecken Envelope
+  #         # - Wohngrunstückecken 2 Envelope
+  #     - type: calculate
+  #       calculations:
+  #         - type: area
+  #           as: area
+  #           decimalPlaces: 0
+  #     - type: report
+  #       outputFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/reports/baugrenze_report.json"
+  #       featureColumns:
+  #         - area
+  #       calculate:
+  #         - area
+  #       decimalPlaces:
+  #         area: 0
+  #     # - type: buffer
+  #     #   distance: -6
+  #     # - type: buffer
+  #     #   distance: 6
+  # - name: Baufeldstreifen Report
+  #   operations:
+  #     - type: copy
+  #       layers:
+  #         - Baufeld
+  #     - type: difference
+  #       reverseDifference: false
+  #       layers:
+  #         - Baugrenze
+  #     - type: intersection
+  #       layers:
+  #         - Geltungsbereich
+  #     - type: report
+  #       outputFile: "Öffentlich Planungsbüro Schulz/Projekte/22-20 Maxsolar - Waren, Grabowhöfe/GIS/reports/baufeldstreifen_report.json"
+  #       calculate:
+  #         - area
+  #         - perimeter
+  #       decimalPlaces:
+  #         area: 0
 
   # ### Place Leitung Labels ###
 
@@ -876,34 +923,34 @@ geomLayers:
   #         - Leitung Telekom
   #         - Leitung Edis
 
-  - name: Leitungen Buffer
-    # sync: push
-    operations:
-      - type: dissolve
-        layers:
-          - Leitung Str-Leitungsabschnitt-NS Buffer
-          - Leitung Was-Leitungsabschnitt-VN Buffer
-          - Leitung Was-Leitungsabschnitt-AN Buffer
-          - Leitung Gas-Leitungsabschnitt-VN Buffer
-          # - Leitung Ontras Buffer
-          - Leitung Gas_HD_LEIT Buffer
-          - Leitung Stromkabel-MS_unterirdisch_LEIT Buffer
-          - Leitung Mittelspannung Zuwegung Buffer
-          - Leitung Telekom Buffer
-          - Leitung Edis Buffer
-      - type: intersection
-        layers:
-          - Geltungsbereich
+  # - name: Leitungen Buffer
+  #   # sync: push
+  #   operations:
+  #     - type: dissolve
+  #       layers:
+  #         - Leitung Str-Leitungsabschnitt-NS Buffer
+  #         - Leitung Was-Leitungsabschnitt-VN Buffer
+  #         - Leitung Was-Leitungsabschnitt-AN Buffer
+  #         - Leitung Gas-Leitungsabschnitt-VN Buffer
+  #         # - Leitung Ontras Buffer
+  #         - Leitung Gas_HD_LEIT Buffer
+  #         - Leitung Stromkabel-MS_unterirdisch_LEIT Buffer
+  #         - Leitung Mittelspannung Zuwegung Buffer
+  #         - Leitung Telekom Buffer
+  #         - Leitung Edis Buffer
+  #     - type: intersection
+  #       layers:
+  #         - Geltungsbereich
 
-  - name: Leitungen Ontras Buffer Path
-    # sync: push
-    operations:
-      - type: copy
-        layers:
-          - Leitung Ontras Buffer
-      - type: intersection
-        layers:
-          - Geltungsbereich
+  # - name: Leitungen Ontras Buffer Path
+  #   # sync: push
+  #   operations:
+  #     - type: copy
+  #       layers:
+  #         - Leitung Ontras Buffer
+  #     - type: intersection
+  #       layers:
+  #         - Geltungsbereich
 
   # - name: Leitungen Buffer Path
   #   # sync: push # Schon modifiziert in DXF (lintetype generation and scale)
