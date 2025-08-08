@@ -1,0 +1,19 @@
+geomLayers:
+  ### Grundlagen ###
+  - name: Geltungsbereich input
+    # sync: push
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/input/Geltungsbereich input.shp"
+
+  - name: CEF input
+    # sync: push
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/input/CEF.shp"
+
+  - name: Biotop unten links
+    # sync: push
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/input/Biotop unten links.shp"
+
+  - name: Baufeld
+    sync: push
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/input/Baufeld input.shp"
+    operations:
+      - type: dissolve
