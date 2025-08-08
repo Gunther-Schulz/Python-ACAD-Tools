@@ -17,3 +17,34 @@ geomLayers:
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/input/Baufeld input.shp"
     operations:
       - type: dissolve
+
+  - name: Baufeld Schraffur
+    sync: push
+    style: baufeld
+    applyHatch:
+      layers:
+        - Baufeld
+
+  - name: Baugrenze
+    sync: push
+    style: baugrenze
+    linetypeScale: 0.5
+    linetypeGeneration: true
+    close: true
+    operations:
+      - type: buffer
+        joinStyle: mitre
+        layers:
+          - Baufeld
+        distance: -3
+
+  - name: Baugrenze 2
+    sync: push
+    style: baugrenze_2
+    close: true
+    operations:
+      - type: buffer
+        joinStyle: mitre
+        layers:
+          - Baugrenze
+        distance: -0.4
