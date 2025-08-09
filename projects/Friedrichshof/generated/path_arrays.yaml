@@ -1,0 +1,10 @@
+pathArrays:
+  - name: "Grünfläche T-Linie Symbol"
+    sync: push
+    sourceLayer: "Ausgleich Schutzflächeumgrenzung"
+    block: "T-Symbol"
+    spacing: 7
+    scale: 0.4
+    bufferDistance: 0.2
+
+

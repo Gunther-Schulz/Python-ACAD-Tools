@@ -12,6 +12,16 @@ geomLayers:
     # sync: push
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/input/Biotop unten links.shp"
 
+  - name: Baumreihe Linie
+    sync: pull
+
+  - name: Baum Puffer
+    operations:
+      - type: buffer
+        layers:
+          - Baumreihe Linie
+        distance: 6
+
   - name: Baufeld
     sync: push
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/input/Baufeld input.shp"
@@ -37,6 +47,10 @@ geomLayers:
         layers:
           - Baufeld
         distance: -3
+      - type: difference
+        reverseDifference: false
+        layers:
+          - Baum Puffer
 
   - name: Baugrenze 2
     sync: push
@@ -48,3 +62,154 @@ geomLayers:
         layers:
           - Baugrenze
         distance: -0.4
+
+  ### Reports ###
+  - name: "Baufeld Report"
+    operations:
+      - type: copy
+        layers:
+          - Baufeld
+      - type: calculate
+        calculations:
+          - type: area
+            as: area
+            decimalPlaces: 0
+          - type: perimeter
+            as: perimeter
+            decimalPlaces: 1
+      - type: report
+        outputFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/reports/baufeld_report.json"
+        featureColumns:
+          - area
+          - perimeter
+        calculate:
+          - area
+          - perimeter
+        decimalPlaces:
+          area: 0
+          perimeter: 1
+
+  - name: "Baugrenze Report"
+    operations:
+      - type: copy
+        layers:
+          - Baugrenze
+      - type: calculate
+        calculations:
+          - type: area
+            as: area
+            decimalPlaces: 0
+          - type: perimeter
+            as: perimeter
+            decimalPlaces: 1
+      - type: report
+        outputFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/reports/baugrenze_report.json"
+        featureColumns:
+          - area
+          - perimeter
+        calculate:
+          - area
+          - perimeter
+        decimalPlaces:
+          area: 0
+          perimeter: 1
+
+  - name: "Baufeldstreifen Report"
+    operations:
+      - type: copy
+        layers:
+          - Baufeld
+      - type: difference
+        reverseDifference: false
+        layers:
+          - Baugrenze
+      - type: calculate
+        calculations:
+          - type: area
+            as: area
+            decimalPlaces: 0
+          - type: perimeter
+            as: perimeter
+            decimalPlaces: 1
+      - type: report
+        outputFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/reports/baufeldstreifen_report.json"
+        featureColumns:
+          - area
+          - perimeter
+        calculate:
+          - area
+          - perimeter
+        decimalPlaces:
+          area: 0
+          perimeter: 1
+
+  ### Grünfläche ###
+  - name: "Grünfläche"
+    # sync: push
+    operations:
+      - type: dissolve
+        layers:
+          - name: "CEF input"
+          - name: "Biotop unten links"
+      - type: repair
+      - type: dissolve
+      - type: repair
+      - type: removeSliversErosion
+        erosionDistance: 0.1
+      - type: repair
+      - type: filterGeometry
+        minArea: 20
+        geometryTypes:
+          - Polygon
+      - type: calculate
+        calculations:
+          - type: area
+            as: area
+            decimalPlaces: 0
+      - type: report
+        outputFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/reports/grünfläche_report.json"
+        featureColumns:
+          - area
+        calculate:
+          - area
+        decimalPlaces:
+          area: 0
+
+  # Create inner green area (buffered inward) for hatching
+  - name: "Ausgleich Grünfläche"
+    sync: push
+    operations:
+      - type: copy
+        layers:
+          - "Grünfläche"
+      - type: dissolve
+      - type: buffer
+        distance: -2
+        joinStyle: round
+        preserveIslands: true
+
+  - name: "Grünfläche Schraffur"
+    sync: push
+    style: grünfläche
+    applyHatch:
+      layers:
+        - "Ausgleich Grünfläche"
+
+  # T-Line system for protection area boundaries (ring from original area)
+  - name: "Ausgleich Schutzflächeumgrenzung"
+    sync: push
+    operations:
+      - type: copy
+        layers:
+          - "Grünfläche"
+      - type: buffer
+        distance: -2
+        joinStyle: round
+        mode: ring
+
+  - name: "Grünfläche T-Linie Symbol Schraffur"
+    sync: push
+    style: schutzflächeumgrenzung
+    applyHatch:
+      layers:
+        - "Ausgleich Schutzflächeumgrenzung"
