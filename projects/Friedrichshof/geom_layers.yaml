@@ -23,6 +23,7 @@ geomLayers:
         layers:
           - Exclude Geltungsbereich
       - type: repair
+      - type: removeSliversErosion
 
   - name: Geltungsbereich 2
     sync: push
@@ -391,6 +392,9 @@ geomLayers:
           - name: "CEF input"
           - name: "ges. gesch. Biotope"
           - name: "Include Ausgleich Schutzflächeumgrenzung"
+      - type: intersection
+        layers:
+          - name: Geltungsbereich
       - type: repair
       - type: dissolve
       - type: repair
@@ -419,6 +423,7 @@ geomLayers:
         layers:
           - name: "Grünfläche Naturschutz"
       - type: repair
+      - type: removeSliversErosion
       - type: dissolve
 
   - name: "ges. gesch. Biotope Puffer Ring Schraffur"
