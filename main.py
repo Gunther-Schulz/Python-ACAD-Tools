@@ -65,10 +65,14 @@ class ProjectProcessor:
 
         if 'dxfDumpOutputDir' in project_settings:
             dump_output_dir = os.path.expanduser(os.path.join(folder_prefix, project_settings['dxfDumpOutputDir']))
+            geometry_types = project_settings.get('dxfDumpGeometryTypes', None)
 
             if os.path.exists(dxf_filename) and dump_output_dir:
-                log_info(f"Dumping DXF to shapefiles: {dxf_filename} -> {dump_output_dir}")
-                dxf_to_shapefiles(dxf_filename, dump_output_dir)
+                if geometry_types:
+                    log_info(f"Dumping DXF to shapefiles (geometry types: {', '.join(geometry_types)}): {dxf_filename} -> {dump_output_dir}")
+                else:
+                    log_info(f"Dumping DXF to shapefiles: {dxf_filename} -> {dump_output_dir}")
+                dxf_to_shapefiles(dxf_filename, dump_output_dir, geometry_types=geometry_types)
             else:
                 log_info("Skipping DXF dump: DXF file not found or dump output directory not specified.")
 

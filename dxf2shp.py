@@ -103,8 +103,12 @@ Examples:
                 log_error(f"Could not create output directory: {dump_output_dir}")
                 return 1
 
-            log_info(f"Converting project '{args.project_name}': {dxf_filename} -> {dump_output_dir}")
-            dxf_to_shapefiles(dxf_filename, dump_output_dir, target_crs=args.crs)
+            geometry_types = project_config.get('dxfDumpGeometryTypes', None)
+            if geometry_types:
+                log_info(f"Converting project '{args.project_name}' (geometry types: {', '.join(geometry_types)}): {dxf_filename} -> {dump_output_dir}")
+            else:
+                log_info(f"Converting project '{args.project_name}': {dxf_filename} -> {dump_output_dir}")
+            dxf_to_shapefiles(dxf_filename, dump_output_dir, target_crs=args.crs, geometry_types=geometry_types)
 
         except Exception as e:
             log_error(f"Error processing project '{args.project_name}': {e}")

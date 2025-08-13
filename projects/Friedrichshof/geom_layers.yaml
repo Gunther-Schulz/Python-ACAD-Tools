@@ -14,12 +14,9 @@ geomLayers:
     # sync: push
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/input/Geltungsbereich input.shp"
 
-  - name: Grünfläche
-    sync: pull
-    operations:
-      - type: filterGeometry
-        geometryTypes:
-          - Polygon
+  - name: Ablagerungsfläche
+  
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/input/Ablagerungsfläche.shp"
 
   - name: CEF input
     # sync: push

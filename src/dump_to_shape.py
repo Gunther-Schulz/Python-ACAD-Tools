@@ -161,10 +161,17 @@ def convert_entity_to_geometry(entity):
 
     return None
 
-def dxf_to_shapefiles(dxf_path, output_dir, target_crs='EPSG:25833'):
+def dxf_to_shapefiles(dxf_path, output_dir, target_crs='EPSG:25833', geometry_types=None):
     """
     Convert all layers from a DXF file to separate shapefiles.
     Now handles LINE, ARC, CIRCLE, POINT, HATCH in addition to POLYLINE/LWPOLYLINE.
+    
+    Args:
+        dxf_path: Path to the DXF file
+        output_dir: Output directory for shapefiles
+        target_crs: Target coordinate reference system (default: EPSG:25833)
+        geometry_types: List of geometry types to export (e.g., ['polygons', 'lines', 'points'])
+                       If None, all types are exported
     """
     try:
         # Read the DXF file
@@ -215,35 +222,24 @@ def dxf_to_shapefiles(dxf_path, output_dir, target_crs='EPSG:25833'):
                 lines = [g for g in geometries if g.geom_type == 'LineString']
                 polygons = [g for g in geometries if g.geom_type == 'Polygon']
 
-                # Create shapefiles for each geometry type present
-                if points:
+                # Create shapefiles for each geometry type present, respecting geometry_types filter
+                export_points = geometry_types is None or 'points' in geometry_types
+                export_lines = geometry_types is None or 'lines' in geometry_types
+                export_polygons = geometry_types is None or 'polygons' in geometry_types
+
+                if points and export_points:
                     create_shapefile(points, os.path.join(output_dir, f"{layer_name}_points"), 'POINT', target_crs)
                     log_info(f"Created {layer_name}_points.shp with {len(points)} points")
 
-                if lines:
+                if lines and export_lines:
                     create_shapefile(lines, os.path.join(output_dir, f"{layer_name}_lines"), 'POLYLINE', target_crs)
                     log_info(f"Created {layer_name}_lines.shp with {len(lines)} lines")
 
-                if polygons:
+                if polygons and export_polygons:
                     create_shapefile(polygons, os.path.join(output_dir, f"{layer_name}_polygons"), 'POLYGON', target_crs)
                     log_info(f"Created {layer_name}_polygons.shp with {len(polygons)} polygons")
 
-                # If layer has mixed types, also create a combined file with the predominant type
-                if len(geometries) > 0:
-                    # Use the most common geometry type for the main layer file
-                    if len(polygons) >= len(lines) and len(polygons) >= len(points):
-                        main_geoms = polygons
-                        shape_type = 'POLYGON'
-                    elif len(lines) >= len(points):
-                        main_geoms = lines
-                        shape_type = 'POLYLINE'
-                    else:
-                        main_geoms = points
-                        shape_type = 'POINT'
-
-                    if main_geoms:
-                        create_shapefile(main_geoms, os.path.join(output_dir, layer_name), shape_type, target_crs)
-                        log_info(f"Created {layer_name}.shp with {len(main_geoms)} {shape_type.lower()}s")
+                # Only create typed shapefiles (no predominant type files)
 
             except Exception as e:
                 log_error(f"Error processing layer '{layer_name}': {e}")
