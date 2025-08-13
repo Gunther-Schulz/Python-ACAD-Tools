@@ -10,9 +10,19 @@ geomLayers:
   - name: gemarkung
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/input/gemarkung.shp"
 
+  - name: Exclude Geltungsbereich
+    # sync: push
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/input/Exclude Geltungsbereich.shp"
+
   - name: Geltungsbereich
     sync: push
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/input/Geltungsbereich input.shp"
+    operations:
+      - type: difference
+        reverseDifference: false
+        layers:
+          - Exclude Geltungsbereich
+      - type: repair
 
   - name: Geltungsbereich 2
     sync: push
@@ -41,6 +51,8 @@ geomLayers:
   - name: Ablagerungsfläche
     sync: push
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/input/Ablagerungsfläche.shp"
+    operations:
+      - type: dissolve
 
   - name: Ablagerungsfläche Schraffur
     sync: push
