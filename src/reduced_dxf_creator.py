@@ -5,11 +5,11 @@ from src.legend_creator import LegendCreator
 from src.dxf_utils import add_mtext, attach_custom_data, initialize_document, set_drawing_properties, atomic_save_dxf, XDATA_APP_ID, SCRIPT_IDENTIFIER, create_entity_xdata
 from src.path_array import create_path_array
 import traceback
-import pkg_resources
+from importlib.metadata import version
 
 # Determine ezdxf version for compatibility fixes
 try:
-    EZDXF_VERSION = pkg_resources.get_distribution("ezdxf").version
+    EZDXF_VERSION = version("ezdxf")
     EZDXF_VERSION_TUPLE = tuple(map(int, EZDXF_VERSION.split('.')))
     log_debug(f"Using ezdxf version: {EZDXF_VERSION}")
 except Exception as e:

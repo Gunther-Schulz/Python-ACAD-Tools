@@ -1,12 +1,41 @@
 geomLayers:
   ### Grundlagen ###
+  - name: parcel
+    # sync: push
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/input/parcel.shp"
+
+  - name: flur
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/input/flur.shp"
+
+  - name: gemarkung
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/input/gemarkung.shp"
+
   - name: Geltungsbereich input
     # sync: push
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/input/Geltungsbereich input.shp"
 
+  - name: Grünfläche
+    sync: pull
+    operations:
+      - type: filterGeometry
+        geometryTypes:
+          - Polygon
+
   - name: CEF input
     # sync: push
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/input/CEF.shp"
+
+  - name: CIO input
+    # sync: push
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/input/GIO - Intensivgrünland auf Moorstandorten.shp"
+
+  - name: ACL - Lehm- bzw. Tonacker
+    # sync: push
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/input/ACL - Lehm- bzw. Tonacker.shp"
+    operations:
+      - type: intersection
+        layers:
+          - Geltungsbereich input
 
   - name: Biotop unten links
     # sync: push
@@ -27,6 +56,16 @@ geomLayers:
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/input/Baufeld input.shp"
     operations:
       - type: dissolve
+
+  - name: CEF Biotop
+    operations:
+      - type: copy
+        layers:
+          - name: "CEF input"
+      - type: difference
+        reverseDifference: false
+        layers:
+          - name: "CIO input"
 
   - name: Baufeld Schraffur
     sync: push
@@ -144,7 +183,7 @@ geomLayers:
           perimeter: 1
 
   ### Grünfläche ###
-  - name: "Grünfläche"
+  - name: "Grünfläche Naturschutz"
     # sync: push
     operations:
       - type: dissolve
@@ -181,7 +220,7 @@ geomLayers:
     operations:
       - type: copy
         layers:
-          - "Grünfläche"
+          - "Grünfläche Naturschutz"
       - type: dissolve
       - type: buffer
         distance: -2
@@ -201,7 +240,7 @@ geomLayers:
     operations:
       - type: copy
         layers:
-          - "Grünfläche"
+          - "Grünfläche Naturschutz"
       - type: buffer
         distance: -2
         joinStyle: round
@@ -213,3 +252,37 @@ geomLayers:
     applyHatch:
       layers:
         - "Ausgleich Schutzflächeumgrenzung"
+
+  - name: Parcel Intersections
+    operations:
+      - type: copy
+        layers:
+          - name: parcel
+      - type: calculate
+        calculations:
+          - type: area
+            as: parcel_area
+            decimalPlaces: 0
+      - type: intersection
+        layers:
+          - name: Geltungsbereich input
+      - type: filterGeometry
+        minArea: 10
+        geometryTypes:
+          - polygon
+      - type: calculate
+        calculations:
+          - type: area
+            as: intersection_area
+            decimalPlaces: 0
+      - type: report
+        outputFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/reports/parcel_intersections_report.json"
+        featureColumns:
+          - label
+          - parcel_area
+          - intersection_area
+        calculate:
+          - area
+        decimalPlaces:
+          intersection_area: 0
+          area: 0
