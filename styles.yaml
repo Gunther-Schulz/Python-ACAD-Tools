@@ -187,6 +187,14 @@ styles:
     layer:
       color: "orange"
       linetype: "ACAD_ISO02W100"
+      linetypeGeneration: true
+      lineweight: 30
+
+  cef:
+    layer:
+      color: "blue"
+      linetype: "ACAD_ISO02W100"
+      linetypeGeneration: true
       lineweight: 30
 
   wald:
@@ -277,7 +285,9 @@ styles:
     layer:
       color: "granite"
       linetype: "ACAD_ISO02W100"
-      lineweight: 120
+      lineweight: 211
+      # linetypeGeneration: true
+      # linetypeScale: 30
 
   geltungsbereichFPlan:
     layer:
