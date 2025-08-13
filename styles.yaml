@@ -329,6 +329,11 @@ styles:
       pattern: "ANSI31"
       scale: 10
 
+  ablagerungen:
+    hatch:
+      color: "yellow"
+      transparency: 0.6
+      individual_hatches: false
 
 # Commented Out Styles
 # --------------------

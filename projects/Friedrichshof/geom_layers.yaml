@@ -10,13 +10,59 @@ geomLayers:
   - name: gemarkung
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/input/gemarkung.shp"
 
-  - name: Geltungsbereich input
-    # sync: push
+  - name: Geltungsbereich
+    sync: push
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/input/Geltungsbereich input.shp"
 
+  - name: Geltungsbereich 2
+    sync: push
+    linetypeScale: 1
+    linetypeGeneration: true
+    style: geltungsbereich_2
+    operations:
+      - type: copy
+        layers:
+          - Geltungsbereich
+      - type: dissolve
+      - type: buffer
+        distance: 2
+        joinStyle: round
+        capStyle: round
+      # - type: buffer
+      #   distance: -2
+      #   joinStyle: mitre
+      #   capStyle: flat
+      # - type: buffer
+      #   distance: 2
+      #   joinStyle: mitre
+      #   capStyle: flat
+
   - name: Ablagerungsfläche
-  
+    sync: push
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/input/Ablagerungsfläche.shp"
+
+  - name: Ablagerungsfläche Schraffur
+    sync: push
+    style: ablagerungen
+    applyHatch:
+      layers:
+        - Ablagerungsfläche
+
+  - name: Grünstreifen
+    sync: push
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/input/Grünstreifen.shp"
+
+  - name: "Grünstreifen Schraffur"
+    sync: push
+    style: grünfläche
+    applyHatch:
+      layers:
+        - "Grünstreifen"
+
+
+  - name: "Include Ausgleich Schutzflächeumgrenzung"
+    # sync: push
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/input/Include Ausgleich Schutzflächeumgrenzung.shp"
 
   - name: CEF input
     # sync: push
@@ -32,11 +78,13 @@ geomLayers:
     operations:
       - type: intersection
         layers:
-          - Geltungsbereich input
+          - Geltungsbereich
 
-  - name: Biotop unten links
+  - name: ges. gesch. Biotope
     # sync: push
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/input/Biotop unten links.shp"
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/input/ges. gesch. Biotope.shp"
+
+
 
   - name: Baumreihe Linie
     sync: pull
@@ -50,9 +98,23 @@ geomLayers:
 
   - name: Baufeld
     sync: push
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/input/Baufeld input.shp"
+    # shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/input/Baufeld input.shp"
     operations:
+      - type: copy
+        layers:
+          - Geltungsbereich
+      - type: difference
+        reverseDifference: false
+        layers:
+          - Ablagerungsfläche
+          - Grünstreifen
+          - "ges. gesch. Biotope Puffer Ring"
+          - "Ausgleich Grünfläche"
+          - "Ausgleich Schutzflächeumgrenzung"
       - type: dissolve
+      - type: filterGeometry
+        geometryTypes:
+          - Polygon
 
   - name: CEF Biotop
     operations:
@@ -186,7 +248,8 @@ geomLayers:
       - type: dissolve
         layers:
           - name: "CEF input"
-          - name: "Biotop unten links"
+          - name: "ges. gesch. Biotope"
+          - name: "Include Ausgleich Schutzflächeumgrenzung"
       - type: repair
       - type: dissolve
       - type: repair
@@ -210,6 +273,43 @@ geomLayers:
           - area
         decimalPlaces:
           area: 0
+
+  - name: "ges. gesch. Biotope Puffer Ring"
+    sync: push
+    operations:
+      - type: buffer
+        layers:
+          - ges. gesch. Biotope
+        distance: 5
+        mode: ring
+      - type: intersection
+        layers:
+          - name: Geltungsbereich
+      - type: difference
+        reverseDifference: false
+        layers:
+          - name: "Grünfläche Naturschutz"
+      - type: repair
+      - type: dissolve
+
+  - name: "Ablagerungsfläche Puffer Ring"
+    sync: push
+    operations:
+      - type: buffer
+        layers:
+          - Ablagerungsfläche
+        distance: 5
+        mode: ring
+      - type: intersection
+        layers:
+          - name: Geltungsbereich
+      - type: difference
+        reverseDifference: false
+        layers:
+          - name: "Grünfläche Naturschutz"
+      - type: repair
+      - type: dissolve
+
 
   # Create inner green area (buffered inward) for hatching
   - name: "Ausgleich Grünfläche"
@@ -262,7 +362,7 @@ geomLayers:
             decimalPlaces: 0
       - type: intersection
         layers:
-          - name: Geltungsbereich input
+          - name: Geltungsbereich
       - type: filterGeometry
         minArea: 10
         geometryTypes:
