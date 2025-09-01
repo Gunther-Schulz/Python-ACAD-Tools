@@ -115,37 +115,65 @@ geomLayers:
         layers:
           - Geschütze Biotope
         distance: 0.5
-  - name: Gastrasse
-    sync: push
+  - name: Ontras_FG_buffer_4
+    # sync: push
     style:
       layer:
         color: "orange"
         plot: false
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/gastrasse.shp"
-  - name: Gastrasse Buffer
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/Ontras_FG_buffer_4.shp"
+  - name: Ontras_FG_buffer_4 Buffer
     operations:
       - type: buffer
         layers:
-          - Gastrasse
-        distance: 10
+          - Ontras_FG_buffer_4
+        distance: 4
+  - name: Ontras_FG_buffer_2
+    # sync: push
+    style:
+      layer:
+        color: "orange"
+        plot: false
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/Ontras_FG_buffer_2.shp"
+  - name: Ontras_FG_buffer_2 Buffer
+    operations:
+      - type: buffer
+        layers:
+          - Ontras_FG_buffer_2
+        distance: 2
+  - name: Gastrasse Buffer
+    operations:
+      - type: copy
+        layers:
+          - Ontras_FG_buffer_4 Buffer
+          - Ontras_FG_buffer_2 Buffer
+      - type: dissolve
   - name: Straßenflurstückskante
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/straßenflürstückskante.shp"
   - name: Heckenkante
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/heckenkante.shp"
   - name: Einfahrt Line Reference
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/einfahrt_line.shp"
-  - name: FG Line
+  - name: FG_Unterirdisch
     sync: push
     style:
       layer:
         color: "blue"
         plot: false
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/FG_Ausschnitt.shp"
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/FG_Unterirdisch.shp"
+  - name: FG_Oberirdisch
+    sync: push
+    style:
+      layer:
+        color: "blue"
+        plot: false
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/FG_Oberirdisch.shp"
   - name: FG Buffer
     operations:
       - type: buffer
         layers:
-          - FG Line
+          - FG_Unterirdisch
+          - FG_Oberirdisch
         distance: 5
   - name: Gebäude 150m Abstand Buffer
     sync: push

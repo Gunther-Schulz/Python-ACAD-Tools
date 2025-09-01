@@ -8,9 +8,9 @@ blocks:
     sourceLayer: Baufeld Label Points
     type: points
   _sync:
-    dxf_handle: 7BB3
+    dxf_handle: A41C
     content_hash: f705525502121224b956bd52256d1ce00c73ab4f00c601be00ce43f8b3cc335b
-    last_sync_time: 1756717950
+    last_sync_time: 1756726701
     sync_source: yaml
 - name: GRZ Label
   sync: push
@@ -24,9 +24,9 @@ blocks:
       x: 0
       y: -20
   _sync:
-    dxf_handle: 7BB5
+    dxf_handle: A41E
     content_hash: 24d8603a4c7a0cfd66fdfc74bb76114535482efcbda700272057c590d7c6e811
-    last_sync_time: 1756717950
+    last_sync_time: 1756726701
     sync_source: yaml
 - name: Bäume Ausserhalb
   sync: push
@@ -35,9 +35,9 @@ blocks:
     sourceLayer: Baum Points
     type: points
   _sync:
-    dxf_handle: 7BB7
+    dxf_handle: A420
     content_hash: a75752dc5cc3ef7e756f35a04d8b593c39af08fcffb23957f0089086829c5ace
-    last_sync_time: 1756717950
+    last_sync_time: 1756726701
     sync_source: yaml
 - name: Gesetzlich geschütztes Biotop Symbol
   sync: push
@@ -46,9 +46,9 @@ blocks:
     sourceLayer: Geschütze Biotope 2
     type: polygon
   _sync:
-    dxf_handle: 7BB9
+    dxf_handle: A422
     content_hash: 5b45ad2eab04cd9f5ac4114fe3f535b27405619f7ee9bc26601c50efe3d2e85c
-    last_sync_time: 1756717950
+    last_sync_time: 1756726701
     sync_source: yaml
 - name: NW PBS Logo
   sync: push
@@ -59,9 +59,9 @@ blocks:
     x: 2489
     y: 186
   _sync:
-    dxf_handle: 7BBB
+    dxf_handle: A424
     content_hash: 2b61f3331f5dbd1a984b963ea0eeb9764d110325f3b7f29d8534ffe7f7c2f7d6
-    last_sync_time: 1756717950
+    last_sync_time: 1756726701
     sync_source: yaml
 - name: NW Nordpfeil
   sync: push
@@ -72,9 +72,9 @@ blocks:
     x: 2557
     y: 364
   _sync:
-    dxf_handle: 7BBD
+    dxf_handle: A426
     content_hash: 537c324cae5b719cd680bc72debf50bda53a11e669bf4965f61092373c551c51
-    last_sync_time: 1756717950
+    last_sync_time: 1756726701
     sync_source: yaml
 - name: NO PBS Logo
   sync: push
@@ -85,9 +85,9 @@ blocks:
     x: 4489
     y: 186
   _sync:
-    dxf_handle: 7BBF
+    dxf_handle: A428
     content_hash: 416172ae23f37e7f9c7556c8f718b91415cec318d37cc00a6d6596e075546926
-    last_sync_time: 1756717950
+    last_sync_time: 1756726701
     sync_source: yaml
 - name: NO Nordpfeil
   sync: push
@@ -98,9 +98,9 @@ blocks:
     x: 4557
     y: 275
   _sync:
-    dxf_handle: 7BC1
+    dxf_handle: A42A
     content_hash: 8e8bc5d3c497f31a19c7e432578d7962f37027c68b3f5102893f63b7834d0a80
-    last_sync_time: 1756717950
+    last_sync_time: 1756726701
     sync_source: yaml
 - name: EinAusfahrt
   sync: push
@@ -112,9 +112,9 @@ blocks:
     method: middle
     lineOffset: -2
   _sync:
-    dxf_handle: 7BC3
+    dxf_handle: A42C
     content_hash: 41809f290e97822dbb4a6bfb85f73ff481a2d9aef5feeb6ca106ee9c7435a5fc
-    last_sync_time: 1756717950
+    last_sync_time: 1756726701
     sync_source: yaml
 - name: NO PBS Logo
   sync: push
@@ -125,9 +125,9 @@ blocks:
     x: 6489
     y: 186
   _sync:
-    dxf_handle: 7BC5
+    dxf_handle: A42E
     content_hash: cc48f740c2dbe8992823394fb4bb159325d51c0106e92e2cfd89903d2402445e
-    last_sync_time: 1756717950
+    last_sync_time: 1756726701
     sync_source: yaml
 - name: S Nordpfeil
   sync: push
@@ -138,9 +138,9 @@ blocks:
     x: 6557
     y: 364
   _sync:
-    dxf_handle: 7BC7
+    dxf_handle: A430
     content_hash: abfc6cd16123cad06701a8642cc81a12eb1fd187a64020dfbdcdd434ea4ec75e
-    last_sync_time: 1756717950
+    last_sync_time: 1756726701
     sync_source: yaml
 discover_untracked_layers: []
 deletion_policy: confirm

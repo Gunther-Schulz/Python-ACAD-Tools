@@ -79,6 +79,12 @@ Examples:
                        help='Coordinate reference system (default: EPSG:25833)')
     parser.add_argument('-v', '--verbose', action='store_true',
                        help='Enable verbose output')
+    
+    # Coordinate correction options
+    parser.add_argument('-fx', '--fix-x', type=int, metavar='N',
+                       help='Remove N leading digits from X coordinates (e.g., -fx 33 removes "33" prefix)')
+    parser.add_argument('-f', '--fix-coords', action='store_true',
+                       help='Auto-detect and fix coordinate zone prefix issues')
 
     args = parser.parse_args()
 
@@ -108,7 +114,8 @@ Examples:
                 log_info(f"Converting project '{args.project_name}' (geometry types: {', '.join(geometry_types)}): {dxf_filename} -> {dump_output_dir}")
             else:
                 log_info(f"Converting project '{args.project_name}': {dxf_filename} -> {dump_output_dir}")
-            dxf_to_shapefiles(dxf_filename, dump_output_dir, target_crs=args.crs, geometry_types=geometry_types)
+            dxf_to_shapefiles(dxf_filename, dump_output_dir, target_crs=args.crs, geometry_types=geometry_types,
+                            fix_x_digits=args.fix_x, auto_fix_coords=args.fix_coords)
 
         except Exception as e:
             log_error(f"Error processing project '{args.project_name}': {e}")
@@ -138,7 +145,11 @@ Examples:
         try:
             log_info(f"Converting: {dxf_file} -> {output_path}")
             log_info(f"Using CRS: {args.crs}")
-            dxf_to_shapefiles(str(dxf_file), str(output_path), target_crs=args.crs)
+            if args.fix_x or args.fix_coords:
+                coord_msg = f"fix X prefix: {args.fix_x}" if args.fix_x else "auto-fix coordinates"
+                log_info(f"Coordinate correction: {coord_msg}")
+            dxf_to_shapefiles(str(dxf_file), str(output_path), target_crs=args.crs,
+                            fix_x_digits=args.fix_x, auto_fix_coords=args.fix_coords)
             log_info(f"✅ Conversion completed successfully!")
             log_info(f"📁 Shapefiles saved to: {output_path.absolute()}")
 

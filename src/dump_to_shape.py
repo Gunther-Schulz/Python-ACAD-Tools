@@ -161,7 +161,70 @@ def convert_entity_to_geometry(entity):
 
     return None
 
-def dxf_to_shapefiles(dxf_path, output_dir, target_crs='EPSG:25833', geometry_types=None):
+def fix_coordinates(geometry, fix_x_digits=None, auto_fix_coords=False, x_threshold=10000000):
+    """
+    Fix coordinate zone prefix issues in geometry with precision preservation.
+    
+    Args:
+        geometry: Shapely geometry object
+        fix_x_digits: Number of leading digits to remove from X coordinates
+        auto_fix_coords: Auto-detect and fix if X coordinates are too large
+        x_threshold: Threshold for auto-detection (default: 10M)
+    """
+    if not geometry or geometry.is_empty:
+        return geometry
+    
+    def fix_coord_tuple(x, y, z=None):
+        # Auto-detect large X coordinates
+        if auto_fix_coords and x > x_threshold:
+            # Remove first 2 digits if X > threshold while preserving decimals
+            x_str = str(x)
+            if '.' in x_str:
+                int_part, dec_part = x_str.split('.')
+            else:
+                int_part, dec_part = x_str, ''
+                
+            if len(int_part) > 7:  # Only fix if reasonably large
+                original_x = x
+                new_int_part = int_part[2:]  # Remove first 2 digits
+                if dec_part:
+                    x = float(f"{new_int_part}.{dec_part}")
+                else:
+                    x = float(new_int_part)
+                log_debug(f"Auto-fixed coordinate: {original_x} -> {x}")
+        
+        # Explicit digit removal
+        elif fix_x_digits and x > 0:
+            x_str = str(x)
+            # Split into integer and decimal parts
+            if '.' in x_str:
+                int_part, dec_part = x_str.split('.')
+            else:
+                int_part, dec_part = x_str, ''
+            
+            if len(int_part) > len(str(fix_x_digits)):
+                # Remove the prefix digits while preserving decimals
+                original_x = x
+                new_int_part = int_part[len(str(fix_x_digits)):]
+                if dec_part:
+                    x = float(f"{new_int_part}.{dec_part}")
+                else:
+                    x = float(new_int_part)
+                log_debug(f"Fixed coordinate: {original_x} -> {x}")
+        
+        return (x, y, z) if z is not None else (x, y)
+    
+    try:
+        from shapely.ops import transform
+        return transform(fix_coord_tuple, geometry)
+    except Exception as e:
+        log_warning(f"Could not fix coordinates: {e}")
+        return geometry
+
+
+
+def dxf_to_shapefiles(dxf_path, output_dir, target_crs='EPSG:25833', geometry_types=None, 
+                     fix_x_digits=None, auto_fix_coords=False):
     """
     Convert all layers from a DXF file to separate shapefiles.
     Now handles LINE, ARC, CIRCLE, POINT, HATCH in addition to POLYLINE/LWPOLYLINE.
@@ -172,6 +235,8 @@ def dxf_to_shapefiles(dxf_path, output_dir, target_crs='EPSG:25833', geometry_ty
         target_crs: Target coordinate reference system (default: EPSG:25833)
         geometry_types: List of geometry types to export (e.g., ['polygons', 'lines', 'points'])
                        If None, all types are exported
+        fix_x_digits: Number of leading digits to remove from X coordinates (e.g., 33)
+        auto_fix_coords: Auto-detect and fix coordinate zone prefix issues
     """
     try:
         # Read the DXF file
@@ -200,6 +265,12 @@ def dxf_to_shapefiles(dxf_path, output_dir, target_crs='EPSG:25833', geometry_ty
                 layer_entities[layer_name].append(entity)
 
         log_info(f"Found {len(layer_entities)} layers with geometric entities")
+        
+        # Log coordinate correction settings
+        if fix_x_digits:
+            log_info(f"Coordinate correction: removing '{fix_x_digits}' prefix from X coordinates")
+        elif auto_fix_coords:
+            log_info(f"Coordinate correction: auto-detecting large X coordinates (threshold: 10M)")
 
         # Process each layer
         for layer_name, entities in layer_entities.items():
@@ -211,6 +282,9 @@ def dxf_to_shapefiles(dxf_path, output_dir, target_crs='EPSG:25833', geometry_ty
                 for entity in entities:
                     geom = convert_entity_to_geometry(entity)
                     if geom:
+                        # Apply coordinate fixes if requested
+                        if fix_x_digits or auto_fix_coords:
+                            geom = fix_coordinates(geom, fix_x_digits, auto_fix_coords)
                         geometries.append(geom)
 
                 if not geometries:
