@@ -1,207 +1,247 @@
 viewports:
-  - name: WorkView
-    sync: push
-    color: "magenta"
-    center:
-      x: 780
-      y: 2000
-    height: 653
-    width: 720
-    viewCenter:
-      x: 356027
-      y: 5935564
-    frozenLayers:
-      - WMTS Basemap
-      - WMTS DOP
-      - Geltungsbereich Hatch NW
-      - Geltungsbereich Hatch NO
-      - Geltungsbereich Hatch S
-  - name: WorkView2
-    sync: push
-    color: "magenta"
-    center:
-      x: 1780
-      y: 2000
-    height: 653
-    width: 720
-    viewCenter:
-      x: 356027
-      y: 5935564
-    frozenLayers:
-      - WMTS Basemap
-      - WMTS DOP
-      - Geltungsbereich Hatch NW
-      - Geltungsbereich Hatch NO
-      - Geltungsbereich Hatch S
-  # NW Map Viewports
-  # --------------
-  - name: MapViewportNW
-    sync: push
-    color: "magenta"
-    topLeft:
-      x: 1651
-      y: 790
-    height: 630
-    width: 720
-    viewCenter:
-      x: 356092
-      y: 5935489
-    # customScale: 0.5
-    scale: 1.5
-    frozenLayers:
-      - Geltungsbereich Hatch NW
-      - Geltungsbereich Hatch S
-      - Geltungsbereich Hatch NO
-      - WMTS Basemap
-      - WMTS DOP
-    lockZoom: true
-  - name: LegendViewportNW
-    sync: push
-    color: "magenta"
-    topLeft:
-      x: 2396
-      y: 857
-    height: 447
-    width: 180
-    viewTopLeft:
-      x: 368330
-      y: 5942622
-    frozenLayers:
-      - WMTS Basemap
-      - WMTS DOP
-    # scale: 2
-    # customScale: 0.5
-    lockZoom: true
-  - name: ÜbersichtskarteNW
-    sync: push
-    color: "magenta"
-    topLeft:
-      x: 2400
-      y: 385
-    height: 163
-    width: 172
-    viewCenter:
-      x: 356028
-      y: 5935564
-    scale: 30
-    visibleLayers:
-      - Geltungsbereich NW
-      # - Geltungsbereich NO
-      # - Geltungsbereich S
-      - Geltungsbereich Hatch NW
-      - WMTS Basemap
-    lockZoom: true
-  # NO Map Viewports
-  # --------------
-  - name: MapViewportNO
-    sync: push
-    color: "magenta"
-    topLeft:
-      x: 3651
-      y: 790
-    height: 630
-    width: 720
-    viewCenter:
-      x: 358168
-      y: 5935944
-    # customScale: 0.5
-    scale: 1.5
-    frozenLayers:
-      - Geltungsbereich Hatch NO
-      - Geltungsbereich Hatch S
-      - Geltungsbereich Hatch NW
-      - WMTS Basemap
-      - WMTS DOP
-    lockZoom: true
-  - name: LegendViewportNO
-    sync: push
-    color: "magenta"
-    topLeft:
-      x: 4396
-      y: 857
-    height: 540
-    width: 180
-    viewTopLeft:
-      x: 368830
-      y: 5942622
-    frozenLayers:
-      - WMTS Basemap
-      - WMTS DOP
-    # scale: 2
-    # customScale: 0.5
-    lockZoom: true
-  - name: ÜbersichtskarteNO
-    sync: push
-    color: "magenta"
-    topLeft:
-      x: 4400
-      y: 296
-    height: 74
-    width: 172
-    viewCenter:
-      x: 358132
-      y: 5935986
-    scale: 30
-    visibleLayers:
-      - Geltungsbereich NO
-      # - Geltungsbereich NW
-      # - Geltungsbereich S
-      - Geltungsbereich Hatch NO
-      - WMTS Basemap
-    lockZoom: true
-  # S Map Viewports
-  # --------------
-  - name: MapViewportS
-    sync: push
-    color: "magenta"
-    topLeft:
-      x: 5651
-      y: 790
-    height: 630
-    width: 720
-    viewCenter:
-      x: 357643
-      y: 5932185
-    # customScale: 0.5
-    scale: 1.5
-    frozenLayers:
-      - Geltungsbereich Hatch NO
-      - Geltungsbereich Hatch S
-      - Geltungsbereich Hatch NW
-      - WMTS Basemap
-      - WMTS DOP
-    lockZoom: true
-  - name: LegendViewportS
-    sync: push
-    color: "magenta"
-    topLeft:
-      x: 6396
-      y: 857
-    height: 450
-    width: 180
-    viewTopLeft:
-      x: 369330
-      y: 5942622
-    frozenLayers:
-      - WMTS Basemap
-      - WMTS DOP
-    # scale: 2
-    # customScale: 0.5
-    lockZoom: true
-  - name: ÜbersichtskarteS
-    sync: push
-    color: "magenta"
-    topLeft:
-      x: 6400
-      y: 385
-    height: 163
-    width: 172
-    viewCenter:
-      x: 357673
-      y: 5932189
-    scale: 30
-    visibleLayers:
-      - Geltungsbereich S
-      - Geltungsbereich Hatch S
-      - WMTS Basemap
-    lockZoom: true
+- name: WorkView
+  sync: push
+  color: magenta
+  center:
+    x: 780
+    y: 2000
+  height: 653
+  width: 720
+  viewCenter:
+    x: 356027
+    y: 5935564
+  frozenLayers:
+  - WMTS Basemap
+  - WMTS DOP
+  - Geltungsbereich Hatch NW
+  - Geltungsbereich Hatch NO
+  - Geltungsbereich Hatch S
+  _sync:
+    dxf_handle: '6959'
+    content_hash: 8553ca210ccaf54afa1bd5cd09643cccbcc7d73bd5c73a9375a356fbc42231c5
+    last_sync_time: 1756717882
+    sync_source: yaml
+- name: WorkView2
+  sync: push
+  color: magenta
+  center:
+    x: 1780
+    y: 2000
+  height: 653
+  width: 720
+  viewCenter:
+    x: 356027
+    y: 5935564
+  frozenLayers:
+  - WMTS Basemap
+  - WMTS DOP
+  - Geltungsbereich Hatch NW
+  - Geltungsbereich Hatch NO
+  - Geltungsbereich Hatch S
+  _sync:
+    dxf_handle: 695A
+    content_hash: 63869138514d748258d2958f7452acec01b4515a05cb3ff2589b7c9807cf7542
+    last_sync_time: 1756717882
+    sync_source: yaml
+- name: MapViewportNW
+  sync: push
+  color: magenta
+  topLeft:
+    x: 1651
+    y: 790
+  height: 630
+  width: 720
+  viewCenter:
+    x: 356092
+    y: 5935489
+  scale: 1.5
+  frozenLayers:
+  - Geltungsbereich Hatch NW
+  - Geltungsbereich Hatch S
+  - Geltungsbereich Hatch NO
+  - WMTS Basemap
+  - WMTS DOP
+  lockZoom: true
+  _sync:
+    dxf_handle: 695B
+    content_hash: 169e0698b8206582a7e4a0cb116fe92fc5c6cf9e5f63bc681f375d136b86b15e
+    last_sync_time: 1756717882
+    sync_source: yaml
+- name: LegendViewportNW
+  sync: push
+  color: magenta
+  topLeft:
+    x: 2396
+    y: 857
+  height: 447
+  width: 180
+  viewTopLeft:
+    x: 368330
+    y: 5942622
+  frozenLayers:
+  - WMTS Basemap
+  - WMTS DOP
+  lockZoom: true
+  _sync:
+    dxf_handle: 695C
+    content_hash: 0e0d0dc8b92f1330f384b119fd86ae137a3fb0e02bb291b93386408c82537e8f
+    last_sync_time: 1756717882
+    sync_source: yaml
+- name: ÜbersichtskarteNW
+  sync: push
+  color: magenta
+  topLeft:
+    x: 2400
+    y: 385
+  height: 163
+  width: 172
+  viewCenter:
+    x: 356028
+    y: 5935564
+  scale: 30
+  visibleLayers:
+  - Geltungsbereich NW
+  - Geltungsbereich Hatch NW
+  - WMTS Basemap
+  lockZoom: true
+  _sync:
+    dxf_handle: 695D
+    content_hash: 3494dd8b918b5a957562bfa5b33d52034de6ff3cfa2c3b260f8148ccdbd23818
+    last_sync_time: 1756717882
+    sync_source: yaml
+- name: MapViewportNO
+  sync: push
+  color: magenta
+  topLeft:
+    x: 3651
+    y: 790
+  height: 630
+  width: 720
+  viewCenter:
+    x: 358168
+    y: 5935944
+  scale: 1.5
+  frozenLayers:
+  - Geltungsbereich Hatch NO
+  - Geltungsbereich Hatch S
+  - Geltungsbereich Hatch NW
+  - WMTS Basemap
+  - WMTS DOP
+  lockZoom: true
+  _sync:
+    dxf_handle: 695E
+    content_hash: 1c3e03400fbf5cbf994289542ef51eaf62601daac1cef07909f824f065356e7b
+    last_sync_time: 1756717882
+    sync_source: yaml
+- name: LegendViewportNO
+  sync: push
+  color: magenta
+  topLeft:
+    x: 4396
+    y: 857
+  height: 540
+  width: 180
+  viewTopLeft:
+    x: 368830
+    y: 5942622
+  frozenLayers:
+  - WMTS Basemap
+  - WMTS DOP
+  lockZoom: true
+  _sync:
+    dxf_handle: 695F
+    content_hash: dac9f14ab820ebe119132259c1875a53162c0c493f5b6c870a21a8b75fab58e9
+    last_sync_time: 1756717882
+    sync_source: yaml
+- name: ÜbersichtskarteNO
+  sync: push
+  color: magenta
+  topLeft:
+    x: 4400
+    y: 296
+  height: 74
+  width: 172
+  viewCenter:
+    x: 358132
+    y: 5935986
+  scale: 30
+  visibleLayers:
+  - Geltungsbereich NO
+  - Geltungsbereich Hatch NO
+  - WMTS Basemap
+  lockZoom: true
+  _sync:
+    dxf_handle: '6960'
+    content_hash: 63d18ddf71e064fa9994b183512bf79a58d147ccfabf4267c9d8f10ff8b5243a
+    last_sync_time: 1756717882
+    sync_source: yaml
+- name: MapViewportS
+  sync: push
+  color: magenta
+  topLeft:
+    x: 5651
+    y: 790
+  height: 630
+  width: 720
+  viewCenter:
+    x: 357643
+    y: 5932185
+  scale: 1.5
+  frozenLayers:
+  - Geltungsbereich Hatch NO
+  - Geltungsbereich Hatch S
+  - Geltungsbereich Hatch NW
+  - WMTS Basemap
+  - WMTS DOP
+  lockZoom: true
+  _sync:
+    dxf_handle: '6961'
+    content_hash: 817fb470eea5fa30625a7d0fdc75f7996190f4797819ca820bbef35ccbf62e32
+    last_sync_time: 1756717882
+    sync_source: yaml
+- name: LegendViewportS
+  sync: push
+  color: magenta
+  topLeft:
+    x: 6396
+    y: 857
+  height: 450
+  width: 180
+  viewTopLeft:
+    x: 369330
+    y: 5942622
+  frozenLayers:
+  - WMTS Basemap
+  - WMTS DOP
+  lockZoom: true
+  _sync:
+    dxf_handle: '6962'
+    content_hash: bdd8faeba90de18d5740afcfac37be2cbdd2ac116e10d5ec2e808086ef6ecfc6
+    last_sync_time: 1756717882
+    sync_source: yaml
+- name: ÜbersichtskarteS
+  sync: push
+  color: magenta
+  topLeft:
+    x: 6400
+    y: 385
+  height: 163
+  width: 172
+  viewCenter:
+    x: 357673
+    y: 5932189
+  scale: 30
+  visibleLayers:
+  - Geltungsbereich S
+  - Geltungsbereich Hatch S
+  - WMTS Basemap
+  lockZoom: true
+  _sync:
+    dxf_handle: '6963'
+    content_hash: d9a71dbc42d92859cbe2ae7390804b885248b33240e811cf5dece435b873c28c
+    last_sync_time: 1756717882
+    sync_source: yaml
+discover_untracked_layers: []
+deletion_policy: confirm
+default_layer: VIEWPORTS
+sync: skip

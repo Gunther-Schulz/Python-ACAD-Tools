@@ -57,9 +57,6 @@ styles:
       flowDirection: "LEFT_TO_RIGHT"
       lineSpacingStyle: "AT_LEAST"
       lineSpacingFactor: 1.2
-      bgFill: true
-      bgFillColor: "blue"
-      bgFillScale: 1.1
       underline: false
       overline: false
       strikeThrough: false

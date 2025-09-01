@@ -79,9 +79,21 @@ def create_copy_layer(all_layers, project_settings, crs, layer_name, operation):
                 log_error(f"Explicit column '{column_name}' not found in layer '{source_layer_name}'. Available columns: {list(source_gdf.columns)}")
                 continue
         elif values and not column_name:
-            # Values provided but no column specified - ignore values, take everything
-            log_debug(f"Values provided for {source_layer_name} but no column specified - ignoring values and taking all data")
-            filtered_gdf = source_gdf.copy()
+            # Values provided but no column specified - try to use layer's label column as fallback
+            label_column = next((l.get('label') for l in project_settings['geomLayers'] if l['name'] == source_layer_name), None)
+            if label_column and label_column in source_gdf.columns:
+                log_debug(f"Using layer's label column '{label_column}' for filtering layer '{source_layer_name}'")
+                str_values = [str(v) for v in values]
+                filtered_gdf = source_gdf[source_gdf[label_column].astype(str).isin(str_values)]
+                log_debug(f"Filtered {source_layer_name} using label column '{label_column}': {len(filtered_gdf)} features remaining")
+                
+                if filtered_gdf.empty:
+                    log_warning(f"After filtering, source layer '{source_layer_name}' is empty")
+                    continue
+            else:
+                # No label column available - take everything and warn
+                log_debug(f"Values provided for {source_layer_name} but no usable column found - taking all data")
+                filtered_gdf = source_gdf.copy()
         else:
             # No values or no column - take everything
             log_debug(f"No filtering specified for {source_layer_name} - taking all data")

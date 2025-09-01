@@ -695,7 +695,9 @@ def _apply_text_style_properties(entity, text_style, name_to_aci=None):
             bg_color = text_style.get('bgFillColor')
             bg_scale = text_style.get('bgFillScale', 1.5)
             if bg_color:
-                entity.set_bg_color(bg_color, scale=bg_scale)
+                # Convert color name to proper color code
+                color_code = get_color_code(bg_color, name_to_aci)
+                entity.set_bg_color(color_code, scale=bg_scale)
 
     # Rotation
     if 'rotation' in text_style:

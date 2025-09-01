@@ -1,131 +1,218 @@
 texts:
-  # NW Text Inserts
-  # --------------
-  - name: "Main Title NW"
-    targetLayer: "Plantext"
-    sync: push
-    paperspace: true  # Add this to place text in paper space
-    text: "Vorentwurf: Vorhabensbezogener Bebauungsplan Nr. 6 „Solarpark am Devener Weg“\nder Gemeinde Groß Plasten"
-    position:
-      type: "absolute"
-      x: 1650
-      y: 856
-    style: "mainTitle"  # Style can include width for text wrapping
-  - name: "Map Header NW"
-    targetLayer: "Plantext"
-    sync: push
-    paperspace: true  # Add this to place text in paper space
-    text: "Teil A: Planzeichnung i. M. 1:1500"
-    position:
-      type: "absolute"
-      x: 1650
-      y: 808
-    style: "mapHeader"  # Style can include width for text wrapping
-  - name: "Übersichtslarte Header NW"
-    targetLayer: "Plantext"
-    sync: push
-    paperspace: true  # Add this to place text in paper space
-    text: "Übersichtskarte i. M. 1:30.000"
-    position:
-      type: "absolute"
-      x: 2400
-      y: 399
-    style: "übersichtskarteHeader"  # Style can include width for text wrapping
-  - name: "Satzungs NW"
-    targetLayer: "Plantext"
-    sync: push
-    paperspace: true  # Add this to place text in paper space
-    justification: "CENTER"
-    text: "VORENTWURF\nSATZUNG DER GEMEINDE\nGROß PLASTEN\nÜBER DEN VORHABENSBEZOGENEN BEBAUUNGSPLAN\nNR: 6 „Solarpark am Devener Weg“"
-    position:
-      type: "absolute"
-      x: 2590
-      y: 265
-    style: "satzungstext"  # Style can include width for text wrapping
-  # Note: Viewports use 'auto' sync mode for bidirectional updates - properties are synchronized but dimensions are preserved
-  # NO Text Inserts
-  # --------------
-  - name: "Main Title NO"
-    targetLayer: "Plantext"
-    sync: push
-    paperspace: true  # Add this to place text in paper space
-    text: "Vorentwurf: Vorhabensbezogener Bebauungsplan Nr. 5 „Solarpark am Spargelberg“\nder Gemeinde Groß Plasten"
-    position:
-      type: "absolute"
-      x: 3650
-      y: 856
-    style: "mainTitle"  # Style can include width for text wrapping
-  - name: "Map Header NO"
-    targetLayer: "Plantext"
-    sync: push
-    paperspace: true  # Add this to place text in paper space
-    text: "Teil A: Planzeichnung i. M. 1:1500"
-    position:
-      type: "absolute"
-      x: 3650
-      y: 808
-    style: "mapHeader"  # Style can include width for text wrapping
-  - name: "Übersichtslarte Header NO"
-    targetLayer: "Plantext"
-    sync: push
-    paperspace: true  # Add this to place text in paper space
-    text: "Übersichtskarte i. M. 1:30.000"
-    position:
-      type: "absolute"
-      x: 4400
-      y: 310
-    style: "übersichtskarteHeader"  # Style can include width for text wrapping
-  - name: "Satzungs NO"
-    targetLayer: "Plantext"
-    sync: push
-    paperspace: true  # Add this to place text in paper space
-    justification: "CENTER"
-    text: "VORENTWURF\nSATZUNG DER GEMEINDE\nGROß PLASTEN\nÜBER DEN VORHABENSBEZOGENEN BEBAUUNGSPLAN\nNR: 5 „Solarpark am Spargelberg“"
-    position:
-      type: "absolute"
-      x: 4590
-      y: 265
-    style: "satzungstext"  # Style can include width for text wrapping
-  # S Text Inserts
-  # --------------
-  - name: "Main Title S"
-    targetLayer: "Plantext"
-    sync: push
-    paperspace: true  # Add this to place text in paper space
-    text: "Vorentwurf: Vorhabensbezogener Bebauungsplan Nr. 7 „Solarpark an der Straße nach Rockow“ der Gemeinde Groß Plasten"
-    position:
-      type: "absolute"
-      x: 5650
-      y: 856
-    style: "mainTitle"  # Style can include width for text wrapping
-  - name: "Map Header S"
-    targetLayer: "Plantext"
-    sync: push
-    paperspace: true  # Add this to place text in paper space
-    text: "Teil A: Planzeichnung i. M. 1:1500"
-    position:
-      type: "absolute"
-      x: 5650
-      y: 808
-    style: "mapHeader"  # Style can include width for text wrapping
-  - name: "Übersichtslarte Header S"
-    targetLayer: "Plantext"
-    sync: push
-    paperspace: true  # Add this to place text in paper space
-    text: "Übersichtskarte i. M. 1:30.000"
-    position:
-      type: "absolute"
-      x: 6400
-      y: 399
-    style: "übersichtskarteHeader"  # Style can include width for text wrapping
-  - name: "Satzungs S"
-    targetLayer: "Plantext"
-    sync: push
-    paperspace: true  # Add this to place text in paper space
-    justification: "CENTER"
-    text: "VORENTWURF\nSATZUNG DER GEMEINDE\nGROß PLASTEN\nÜBER DEN VORHABENSBEZOGENEN BEBAUUNGSPLAN\nNR: 7 „Solarpark an der Straße nach Rockow“"
-    position:
-      type: "absolute"
-      x: 6590
-      y: 265
-    style: "satzungstext"  # Style can include width for text wrapping
+- name: Main Title NW
+  targetLayer: Plantext
+  sync: push
+  paperspace: true
+  text: 'Vorentwurf: Vorhabensbezogener Bebauungsplan Nr. 6 „Solarpark am Devener
+    Weg“
+
+    der Gemeinde Groß Plasten'
+  position:
+    type: absolute
+    x: 1650
+    y: 856
+  style: mainTitle
+  _sync:
+    dxf_handle: '6821'
+    content_hash: 430296307b98e170361bca30847a4c8994db14c7334fb5360ef97cc300d87196
+    last_sync_time: 1756717880
+    sync_source: yaml
+- name: Map Header NW
+  targetLayer: Plantext
+  sync: push
+  paperspace: true
+  text: 'Teil A: Planzeichnung i. M. 1:1500'
+  position:
+    type: absolute
+    x: 1650
+    y: 808
+  style: mapHeader
+  _sync:
+    dxf_handle: '6822'
+    content_hash: d876ec7b0c2bc975a52137bde780a9ba2ed5cd3372bdae39aff4b1c04332b8b8
+    last_sync_time: 1756717880
+    sync_source: yaml
+- name: Übersichtslarte Header NW
+  targetLayer: Plantext
+  sync: push
+  paperspace: true
+  text: Übersichtskarte i. M. 1:30.000
+  position:
+    type: absolute
+    x: 2400
+    y: 399
+  style: übersichtskarteHeader
+  _sync:
+    dxf_handle: '6823'
+    content_hash: ad7e1dd056f8b4a69dcfc4ac57f7ecd9917a32a4e3b3a00d15cb174b8a9c8d8a
+    last_sync_time: 1756717880
+    sync_source: yaml
+- name: Satzungs NW
+  targetLayer: Plantext
+  sync: push
+  paperspace: true
+  justification: CENTER
+  text: 'VORENTWURF
+
+    SATZUNG DER GEMEINDE
+
+    GROß PLASTEN
+
+    ÜBER DEN VORHABENSBEZOGENEN BEBAUUNGSPLAN
+
+    NR: 6 „Solarpark am Devener Weg“'
+  position:
+    type: absolute
+    x: 2590
+    y: 265
+  style: satzungstext
+  _sync:
+    dxf_handle: '6824'
+    content_hash: 62a6b2dda188868367708c82d9913d58f9b9861ddf11ff8a9874b3c0e24bc552
+    last_sync_time: 1756717880
+    sync_source: yaml
+- name: Main Title NO
+  targetLayer: Plantext
+  sync: push
+  paperspace: true
+  text: 'Vorentwurf: Vorhabensbezogener Bebauungsplan Nr. 5 „Solarpark am Spargelberg“
+
+    der Gemeinde Groß Plasten'
+  position:
+    type: absolute
+    x: 3650
+    y: 856
+  style: mainTitle
+  _sync:
+    dxf_handle: '6825'
+    content_hash: 0ba035e1c47a5e2e15e2a482aa9a897b51734490e32bf1fddcaca1014a3dc59f
+    last_sync_time: 1756717880
+    sync_source: yaml
+- name: Map Header NO
+  targetLayer: Plantext
+  sync: push
+  paperspace: true
+  text: 'Teil A: Planzeichnung i. M. 1:1500'
+  position:
+    type: absolute
+    x: 3650
+    y: 808
+  style: mapHeader
+  _sync:
+    dxf_handle: '6826'
+    content_hash: d5aa9d5e20db1a615aa50e9494057358d0a05c7d75040d40ca6f84a29478a040
+    last_sync_time: 1756717880
+    sync_source: yaml
+- name: Übersichtslarte Header NO
+  targetLayer: Plantext
+  sync: push
+  paperspace: true
+  text: Übersichtskarte i. M. 1:30.000
+  position:
+    type: absolute
+    x: 4400
+    y: 310
+  style: übersichtskarteHeader
+  _sync:
+    dxf_handle: '6827'
+    content_hash: ba6c9d2d02a1bfd62836489c9801e843a4a94fe4fadf018a38a4870cf1593c48
+    last_sync_time: 1756717880
+    sync_source: yaml
+- name: Satzungs NO
+  targetLayer: Plantext
+  sync: push
+  paperspace: true
+  justification: CENTER
+  text: 'VORENTWURF
+
+    SATZUNG DER GEMEINDE
+
+    GROß PLASTEN
+
+    ÜBER DEN VORHABENSBEZOGENEN BEBAUUNGSPLAN
+
+    NR: 5 „Solarpark am Spargelberg“'
+  position:
+    type: absolute
+    x: 4590
+    y: 265
+  style: satzungstext
+  _sync:
+    dxf_handle: '6828'
+    content_hash: 07e2eb3deafba59b4f3f5574b52f8c58be8afdd4bb23be74d589574fe7828ec3
+    last_sync_time: 1756717880
+    sync_source: yaml
+- name: Main Title S
+  targetLayer: Plantext
+  sync: push
+  paperspace: true
+  text: 'Vorentwurf: Vorhabensbezogener Bebauungsplan Nr. 7 „Solarpark an der Straße
+    nach Rockow“ der Gemeinde Groß Plasten'
+  position:
+    type: absolute
+    x: 5650
+    y: 856
+  style: mainTitle
+  _sync:
+    dxf_handle: '6829'
+    content_hash: 50988013d74410a5a3aacf584a4c82538228948496c0f1ba79b49c93e29521ea
+    last_sync_time: 1756717880
+    sync_source: yaml
+- name: Map Header S
+  targetLayer: Plantext
+  sync: push
+  paperspace: true
+  text: 'Teil A: Planzeichnung i. M. 1:1500'
+  position:
+    type: absolute
+    x: 5650
+    y: 808
+  style: mapHeader
+  _sync:
+    dxf_handle: 682A
+    content_hash: 6843010824e1b3c72ad72c3ac9d3878e775ec695c10c0788f4e0d932daad88d5
+    last_sync_time: 1756717880
+    sync_source: yaml
+- name: Übersichtslarte Header S
+  targetLayer: Plantext
+  sync: push
+  paperspace: true
+  text: Übersichtskarte i. M. 1:30.000
+  position:
+    type: absolute
+    x: 6400
+    y: 399
+  style: übersichtskarteHeader
+  _sync:
+    dxf_handle: 682B
+    content_hash: c7681719cfe584997d97b287569acddc864258a66773c5ba834b7e85839fc13a
+    last_sync_time: 1756717880
+    sync_source: yaml
+- name: Satzungs S
+  targetLayer: Plantext
+  sync: push
+  paperspace: true
+  justification: CENTER
+  text: 'VORENTWURF
+
+    SATZUNG DER GEMEINDE
+
+    GROß PLASTEN
+
+    ÜBER DEN VORHABENSBEZOGENEN BEBAUUNGSPLAN
+
+    NR: 7 „Solarpark an der Straße nach Rockow“'
+  position:
+    type: absolute
+    x: 6590
+    y: 265
+  style: satzungstext
+  _sync:
+    dxf_handle: 682C
+    content_hash: 83c3e3ae3419a98335da99b8470890e089b926f0f29a7304a2764fa319c7ea8b
+    last_sync_time: 1756717880
+    sync_source: yaml
+discover_untracked_layers: []
+deletion_policy: confirm
+default_layer: Plantext
+sync: skip
