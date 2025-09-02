@@ -9,30 +9,30 @@ pathArrays:
   - name: "FG Line Array Oberirdisch"
     sync: push
     sourceLayer: "FG_Oberirdisch"
-    block: "Leitung oberirdisch Symbol"
+    block: "Leitung oberirdisch"
     spacing: 8
     # scale: 0.6
     # bufferDistance: 0.6
   - name: "FG Line Array Unterirdisch"
     sync: push
     sourceLayer: "FG_Unterirdisch"
-    block: "Leitung unterirdisch Symbol"
+    block: "Leitung unterirdisch"
     spacing: 8
     # scale: 0.6
     # bufferDistance: 0.6
   - name: "Gastrasse Array"
     sync: push
     sourceLayer: "Gastrasse"
-    block: "Leitung unterirdisch Symbol"
+    block: "Leitung unterirdisch"
     # block: "T-Symbol"
     spacing: 8 #  For line paths: includes the block length (block length + spacing)
     # scale: 0.6
     # bufferDistance: 0.6
-  - name: "Hecke Array"
-    sync: push
-    sourceLayer: "Hecke"
-    block: "Bepflanzungen"
-    spacing: 3
-    pathOffset: -1
-    scale: 0.4
-    # bufferDistance: 10
+  # - name: "Hecke Array"
+  #   sync: push
+  #   sourceLayer: "Hecke"
+  #   block: "Bepflanzungen"
+  #   spacing: 3
+  #   pathOffset: -1
+  #   scale: 0.4
+  #   # bufferDistance: 10

@@ -37,7 +37,7 @@ geomLayers:
       - name: WorkView
         style: flurWorkView
   - name: Parcel
-    # sync: push Don't enable. Moved Numbers already in DXF
+    # sync: push # Don't enable. Moved Numbers already in DXF
     close: true
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/parcel.shp"
     label: label
@@ -94,7 +94,7 @@ geomLayers:
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/Exclude Baufeld.shp"
   - name: Exclude Baugrenze
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/Exclude Baugrenze.shp"
-  - name: Exclude
+  - name: Exclude Geltungsbereich
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/exclude_v2.shp"
   - name: Baumabstand Puffer
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/baum_abstand.shp"
@@ -159,23 +159,23 @@ geomLayers:
       - type: dissolve
   - name: Straßenflurstückskante
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/straßenflürstückskante.shp"
-  - name: Heckenkante
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/heckenkante.shp"
+  # - name: Heckenkante
+  #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/heckenkante.shp"
   - name: Einfahrt Line Reference
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/einfahrt_line.shp"
   - name: FG_Unterirdisch
     sync: push
-    style:
-      layer:
-        color: "blue"
-        plot: false
+    # style:
+    #   layer:
+    #     color: "blue"
+    #     plot: false
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/FG_Unterirdisch.shp"
   - name: FG_Oberirdisch
     sync: push
-    style:
-      layer:
-        color: "blue"
-        plot: false
+    # style:
+    #   layer:
+    #     color: "blue"
+    #     plot: false
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/FG_Oberirdisch.shp"
   - name: FG Line
     operations:
@@ -195,7 +195,7 @@ geomLayers:
         capStyle: round
         quadSegs: 32  # Higher value for smoother curves (QGIS uses 8-32)
   - name: Gebäude 150m Abstand Buffer
-    sync: push
+    # sync: push
     operations:
       - type: buffer
         distance: 150
@@ -234,7 +234,7 @@ geomLayers:
         layers:
           - Wald
           - Baumabstand Puffer
-          - Exclude
+          - Exclude Geltungsbereich
         reverseDifference: false
       - type: filterGeometry
         minArea: 10
@@ -324,7 +324,7 @@ geomLayers:
         layers:
           - Wald
           - Baumabstand Puffer
-          - Exclude
+          - Exclude Geltungsbereich
         reverseDifference: false
       - type: filterGeometry
         minArea: 10
@@ -394,7 +394,7 @@ geomLayers:
         layers:
           - Wald
           - Baumabstand Puffer
-          - Exclude
+          - Exclude Geltungsbereich
         reverseDifference: false
       - type: filterGeometry
         minArea: 10
@@ -484,48 +484,43 @@ geomLayers:
   #   applyHatch:
   #     layers:
   #       - Einfahrt
-  - name: Heckenkante Buffer
-    operations:
-      - type: buffer
-        layers:
-          - Heckenkante
-        distance: 5
-      - type: difference
-        reverseDifference: false
-        # useBufferTrick: true
-        layers:
-          - Gastrasse Buffer
-          - Einfahrt
-      - type: intersection
-        layers:
-          - Geltungsbereich NW
-          - Geltungsbereich NO
-          - Geltungsbereich S
+  # - name: Heckenkante Buffer
+  #   operations:
+  #     - type: buffer
+  #       layers:
+  #         - Heckenkante
+  #       distance: 5
+  #     - type: difference
+  #       reverseDifference: false
+  #       # useBufferTrick: true
+  #       layers:
+  #         - Gastrasse Buffer
+  #         - Einfahrt
+  #     - type: intersection
+  #       layers:
+  #         - Geltungsbereich NW
+  #         - Geltungsbereich NO
+  #         - Geltungsbereich S
   - name: Straßenflurstückskante Buffer 20m
     operations:
       - type: buffer
         layers:
           - Straßenflurstückskante
         distance: 20
-      - type: difference
-        reverseDifference: false # default is "auto"
-        layers:
-          - Heckenkante Buffer
-      # - type: intersection
+      # - type: difference
+      #   reverseDifference: false # default is "auto"
       #   layers:
-      #     - Geltungsbereich NW
-      #     - Geltungsbereich NO
-      #     - Geltungsbereich S
+      #     - Heckenkante Buffer
   - name: Waldabstand
     operations:
       - type: buffer
         layers:
           - Wald
         distance: 30
-      - type: difference
-        reverseDifference: false
-        layers:
-          - Heckenkante Buffer
+      # - type: difference
+      #   reverseDifference: false
+      #   layers:
+      #     - Heckenkante Buffer
       - type: intersection
         layers:
           - Geltungsbereich NW
@@ -634,11 +629,11 @@ geomLayers:
           - FG Buffer
           - Straßenflurstückskante Buffer 20m
           - Biotoppuffer
-      - type: difference
-        reverseDifference: false
-        layers:
-          - Heckenkante Buffer
-          - Einfahrt
+      # - type: difference
+      #   reverseDifference: false
+      #   layers:
+      #     - Heckenkante Buffer
+      #     - Einfahrt
       - type: dissolve
       - type: intersection
         layers:
@@ -665,7 +660,7 @@ geomLayers:
       - type: copy
         layers:
           - Ausgleichsfläche Gesamt
-          - Hecke
+          # - Hecke
       - type: intersection
         layers:
           - Geltungsbereich NO
@@ -731,25 +726,25 @@ geomLayers:
           - Geltungsbereich S
       # - type: filterGeometry
       #   minArea: 200
-  - name: Hecke
-    sync: push
-    operations:
-      - type: copy
-        layers:
-          - Heckenkante Buffer
-      - type: difference
-        reverseDifference: false
-        useBufferTrick: true
-        layers:
-          - Ausgleichsfläche Gesamt
-      - type: filterGeometry
-        minArea: 10
-  - name: Hecke Schraffur
-    sync: push
-    style: grünfläche
-    applyHatch:
-      layers:
-        - Hecke
+  # - name: Hecke
+  #   sync: push
+  #   operations:
+  #     - type: copy
+  #       layers:
+  #         - Heckenkante Buffer
+  #     - type: difference
+  #       reverseDifference: false
+  #       useBufferTrick: true
+  #       layers:
+  #         - Ausgleichsfläche Gesamt
+  #     - type: filterGeometry
+  #       minArea: 10
+  # - name: Hecke Schraffur
+  #   sync: push
+  #   style: grünfläche
+  #   applyHatch:
+  #     layers:
+  #       - Hecke
   # - name: Biotoppuffer
   #   sync: push
   #   viewports:
@@ -880,7 +875,7 @@ geomLayers:
           - type: dissolve
             layers:
               - Ausgleichsfläche Gesamt
-              - Hecke
+              # - Hecke
               - Biotope
               - Biotoppuffer
               - Exclude Baufeld
