@@ -1,13 +1,13 @@
-dxfTransfer:
-  - externalDxf: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Zeichnung/manual_additions.dxf"
-    direction: "save"
-    transfers:
-      - fromLayer: "Parcel Label"
-        entityTypes:
-          - LWPOLYLINE
-          - MTEXT
-          - TEXT
-          - INSERT
+# dxfTransfer:
+#   - externalDxf: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Zeichnung/manual_additions.dxf"
+#     direction: "save"
+#     transfers:
+#       - fromLayer: "Parcel Label"
+#         entityTypes:
+#           - LWPOLYLINE
+#           - MTEXT
+#           - TEXT
+#           - INSERT
 
   # - externalDxf: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/CAD/manual_additions.dxf"
   #   direction: "load"  # load = import into working DXF
