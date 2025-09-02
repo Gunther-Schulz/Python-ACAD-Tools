@@ -66,10 +66,8 @@ geomLayers:
     viewports:
       - name: WorkView
         style: gemeindeWorkView
-  - name: Include Ausgleichsfläche
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/Include Ausgleichsfläche.shp"
-  # - name: Grünfläche Input 
-  #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/grünfläche_input_2.shp"
+  - name: Grünfläche Input 
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/grünfläche_input_2.shp"
   - name: Wald
     sync: push
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/wald.shp"
@@ -90,12 +88,11 @@ geomLayers:
         - Wald
   - name: Biotope Input
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/biotope.shp"
-  - name: Exclude Baufeld
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/Exclude Baufeld.shp"
-  - name: Exclude Baugrenze
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/Exclude Baugrenze.shp"
   - name: Exclude
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/exclude_v2.shp"
+  # - name: Exclude Acad
+  #   sync: skip
+  #   dxfLayer: "Exclude Acad"
   - name: Baumabstand Puffer
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/baum_abstand.shp"
     operations:
@@ -103,13 +100,13 @@ geomLayers:
         capStyle: flat
         distance: 5
   - name: Geschütze Biotope
-    # sync: push
+    sync: push
     style:
       layer:
         plot: false
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/gesch_biotope.shp"
   - name: Geschütze Biotope 2
-    # sync: push
+    sync: push
     # linetypeScale: 0.2
     linetypeGeneration: true
     style: gesGeschuetzesBiotop
@@ -138,12 +135,6 @@ geomLayers:
         color: "orange"
         plot: false
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/Ontras_FG_buffer_2.shp"
-  - name: Gastrasse
-    operations:
-      - type: copy
-        layers:
-          - Ontras_FG_buffer_2
-          - Ontras_FG_buffer_4
   - name: Ontras_FG_buffer_2 Buffer
     operations:
       - type: buffer
@@ -179,18 +170,11 @@ geomLayers:
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/FG_Oberirdisch.shp"
   - name: FG Buffer
     operations:
-      - type: dissolve
+      - type: buffer
         layers:
           - FG_Unterirdisch
           - FG_Oberirdisch
-      - type: buffer
-        # layers:
-        #   - FG_Unterirdisch
-        #   - FG_Oberirdisch
-        distance: 10
-        # mode: ring
-        joinStyle: round
-        # capStyle: round
+        distance: 5
   - name: Gebäude 150m Abstand Buffer
     sync: push
     operations:
@@ -531,7 +515,7 @@ geomLayers:
       - type: filterGeometry
         minArea: 200
   - name: Biotope
-    # sync: push
+    sync: push
     style:
       layer:
         plot: false
@@ -543,18 +527,18 @@ geomLayers:
         layers:
           - Biotope Input
           - Geschütze Biotope
-  # - name: Biotope Ausserhalb Geltungsbereich
-  #   sync: push
-  #   operations:
-  #     - type: copy
-  #       layers:
-  #         - Biotope
-  #     - type: difference
-  #       layers:
-  #         - Geltungsbereich NW
-  #         - Geltungsbereich NO
-  #         - Geltungsbereich S
-  #       reverseDifference: false
+  - name: Biotope Ausserhalb Geltungsbereich
+    sync: push
+    operations:
+      - type: copy
+        layers:
+          - Biotope
+      - type: difference
+        layers:
+          - Geltungsbereich NW
+          - Geltungsbereich NO
+          - Geltungsbereich S
+        reverseDifference: false
   - name: Biotope Innerhalb Geltungsbereich
     operations:
       - type: copy
@@ -565,7 +549,35 @@ geomLayers:
           - Geltungsbereich NW
           - Geltungsbereich NO
           - Geltungsbereich S
-
+  # - name: Biotope Innerhalb Geltungsbereich Grünfläche
+  #   sync: push
+  #   operations:
+  #     - type: copy
+  #       layers:
+  #         - Biotope Innerhalb Geltungsbereich
+  #     - type: buffer
+  #       distance: -3
+  # - name: Biotope Innerhalb Geltungsbereich Schutzfläche
+  #   sync: push
+  #   operations:
+  #     - type: copy
+  #       layers:
+  #         - Biotope Innerhalb Geltungsbereich
+  #     - type: difference
+  #       layers:
+  #         - Biotope Innerhalb Geltungsbereich Grünfläche
+  # - name: Biotope Innerhalb Geltungsbereich Grünfläche Schraffur
+  #   sync: push
+  #   style: grünfläche
+  #   applyHatch:
+  #     layers:
+  #       - Biotope Innerhalb Geltungsbereich Grünfläche
+  # - name: Biotope Innerhalb Geltungsbereich Schutzfläche Schraffur
+  #   sync: push
+  #   style: schutzflächeumgrenzung
+  #   applyHatch:
+  #     layers:
+  #       - Biotope Innerhalb Geltungsbereich Schutzfläche
   - name: Biotop Report NW
     operations:
       - type: copy
@@ -596,18 +608,6 @@ geomLayers:
           - perimeter
         decimalPlaces:
           area: 0
-  - name: Biotoppuffer
-    # sync: push
-    viewports:
-      - name: WorkView
-        style:
-          color: "brilliant-green"
-          linetype: "ACAD_ISO02W100"
-    operations:
-      - type: buffer
-        layers:
-          - Biotope
-        distance: 10
   - name: Ausgleichsfläche Gesamt
     sync: push
     style:
@@ -620,17 +620,14 @@ geomLayers:
     operations:
       - type: copy
         layers:
-          - Include Ausgleichsfläche
           - Biotope
           - Gastrasse Buffer
           - Gebäude 150m Abstand Buffer
-          - Exclude Baufeld
-          - Exclude Baugrenze
+          - Grünfläche Input 
           - Waldabstand
           - Baumabstand Puffer
           - FG Buffer
           - Straßenflurstückskante Buffer 20m
-          - Biotoppuffer
       - type: difference
         reverseDifference: false
         layers:
@@ -747,66 +744,66 @@ geomLayers:
     applyHatch:
       layers:
         - Hecke
-  # - name: Biotoppuffer
-  #   sync: push
-  #   viewports:
-  #     - name: WorkView
-  #       style:
-  #         color: "brilliant-green"
-  #         linetype: "ACAD_ISO02W100"
-  #   operations:
-  #     - type: buffer
-  #       layers:
-  #         - Biotope
-  #       distance: 10
-      # - type: difference
-      #   operations:
-      #     - type: dissolve
-      #       layers:
-      #         - Biotope
-      #         - Ausgleichsfläche Gesamt
-      #   reverseDifference: false
-      # - type: intersection
-      #   layers:
-      #     - Geltungsbereich NW
-      #     - Geltungsbereich NO
-      #     - Geltungsbereich S
-  # - name: Biotoppuffer Schraffur
-  #   sync: push
-  #   style: grünfläche
-  #   applyHatch:
-  #     layers:
-  #       - Biotoppuffer
-  # - name: Biotoppuffer Report NW
-  #   operations:
-  #     - type: copy
-  #       layers:
-  #         - Biotoppuffer
-  #     - type: intersection
-  #       layers:
-  #         - Geltungsbereich NW
-  #     - type: report
-  #       outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/biotoppuffer_report_nw.json"
-  #       calculate:
-  #         - area
-  #         - perimeter
-  #       decimalPlaces:
-  #         area: 0
-  # - name: Biotoppuffer Report S
-  #   operations:
-  #     - type: copy
-  #       layers:
-  #         - Biotoppuffer
-  #     - type: intersection
-  #       layers:
-  #         - Geltungsbereich S
-  #     - type: report
-  #       outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/biotoppuffer_report_s.json"
-  #       calculate:
-  #         - area
-  #         - perimeter
-  #       decimalPlaces:
-  #         area: 0
+  - name: Biotoppuffer
+    sync: push
+    viewports:
+      - name: WorkView
+        style:
+          color: "brilliant-green"
+          linetype: "ACAD_ISO02W100"
+    operations:
+      - type: buffer
+        layers:
+          - Biotope
+        distance: 10
+      - type: difference
+        operations:
+          - type: dissolve
+            layers:
+              - Biotope
+              - Ausgleichsfläche Gesamt
+        reverseDifference: false
+      - type: intersection
+        layers:
+          - Geltungsbereich NW
+          - Geltungsbereich NO
+          - Geltungsbereich S
+  - name: Biotoppuffer Schraffur
+    sync: push
+    style: grünfläche
+    applyHatch:
+      layers:
+        - Biotoppuffer
+  - name: Biotoppuffer Report NW
+    operations:
+      - type: copy
+        layers:
+          - Biotoppuffer
+      - type: intersection
+        layers:
+          - Geltungsbereich NW
+      - type: report
+        outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/biotoppuffer_report_nw.json"
+        calculate:
+          - area
+          - perimeter
+        decimalPlaces:
+          area: 0
+  - name: Biotoppuffer Report S
+    operations:
+      - type: copy
+        layers:
+          - Biotoppuffer
+      - type: intersection
+        layers:
+          - Geltungsbereich S
+      - type: report
+        outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/biotoppuffer_report_s.json"
+        calculate:
+          - area
+          - perimeter
+        decimalPlaces:
+          area: 0
   - name: Schutzflächeumgrenzung T-Symbol Temp
     # sync: push
     close: false
@@ -848,16 +845,16 @@ geomLayers:
     applyHatch:
       layers:
         - Ausgleich Schutzflächeumgrenzung
-  # - name: Baufeld Negative
-  #   operations:
-  #     - type: copy
-  #       layers:
-  #         - Ausgleichsfläche Gesamt
-  #         - Hecke
-  #         - Biotope
-  #         - Biotoppuffer
-  #     - type: dissolve
-  #       useBufferTrick: true
+  - name: Baufeld Negative
+    operations:
+      - type: copy
+        layers:
+          - Ausgleichsfläche Gesamt
+          - Hecke
+          - Biotope
+          - Biotoppuffer
+      - type: dissolve
+        useBufferTrick: true
   - name: Baufeld
     sync: push
     close: true
@@ -880,7 +877,6 @@ geomLayers:
               - Hecke
               - Biotope
               - Biotoppuffer
-              - Exclude Baufeld
       - type: filterGeometry
         minArea: 200
         geometryTypes:
@@ -915,7 +911,6 @@ geomLayers:
         reverseDifference: false
         layers:
           - Einfahrt
-          - Exclude Baugrenze
   - name: Baugrenze Report NW
     operations:
       - type: copy
