@@ -48,7 +48,17 @@ def smooth_geometry(all_layers, project_settings, crs, geometry, strength):
 
         # Ensure the smoothed geometry does not expand beyond the original geometry
         if not geometry.contains(smoothed):
-            smoothed = geometry.intersection(smoothed)
+            intersection_result = geometry.intersection(smoothed)
+            # Handle GeometryCollection from intersection
+            if intersection_result.geom_type == 'GeometryCollection':
+                # Extract the largest geometry from the collection
+                valid_geoms = [g for g in intersection_result.geoms if g.geom_type in ['LineString', 'MultiLineString', 'Polygon', 'MultiPolygon']]
+                if valid_geoms:
+                    smoothed = max(valid_geoms, key=lambda g: g.length if hasattr(g, 'length') else g.area)
+                else:
+                    smoothed = geometry  # Fallback to original
+            else:
+                smoothed = intersection_result
 
         # Increase vertex count for smoother curves
         if isinstance(smoothed, (Polygon, MultiPolygon)):
@@ -56,6 +66,16 @@ def smooth_geometry(all_layers, project_settings, crs, geometry, strength):
 
         # Ensure the smoothed geometry does not expand beyond the original geometry after vertex increase
         if not geometry.contains(smoothed):
-            smoothed = geometry.intersection(smoothed)
+            intersection_result = geometry.intersection(smoothed)
+            # Handle GeometryCollection from intersection
+            if intersection_result.geom_type == 'GeometryCollection':
+                # Extract the largest geometry from the collection
+                valid_geoms = [g for g in intersection_result.geoms if g.geom_type in ['LineString', 'MultiLineString', 'Polygon', 'MultiPolygon']]
+                if valid_geoms:
+                    smoothed = max(valid_geoms, key=lambda g: g.length if hasattr(g, 'length') else g.area)
+                else:
+                    smoothed = geometry  # Fallback to original
+            else:
+                smoothed = intersection_result
 
         return smoothed

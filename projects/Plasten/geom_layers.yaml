@@ -177,20 +177,23 @@ geomLayers:
         color: "blue"
         plot: false
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/FG_Oberirdisch.shp"
-  - name: FG Buffer
+  - name: FG Line
     operations:
-      - type: dissolve
+      - type: merge
         layers:
           - FG_Unterirdisch
           - FG_Oberirdisch
+  - name: FG Buffer
+    operations:
+      - type: copy
+        layers:
+          - FG Line
+      - type: dissolve
       - type: buffer
-        # layers:
-        #   - FG_Unterirdisch
-        #   - FG_Oberirdisch
-        distance: 10
-        # mode: ring
+        distance: 20
         joinStyle: round
-        # capStyle: round
+        capStyle: round
+        quadSegs: 32  # Higher value for smoother curves (QGIS uses 8-32)
   - name: Gebäude 150m Abstand Buffer
     sync: push
     operations:

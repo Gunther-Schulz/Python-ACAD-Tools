@@ -506,8 +506,10 @@ def explode_to_singlepart(geometry_or_gdf):
         exploded = exploded.reset_index(drop=True)
     else:
         if isinstance(geometry_or_gdf, GeometryCollection):
-            geometries = [geom for geom in geometry_or_gdf.geoms if isinstance(geom, (Polygon, MultiPolygon))]
+            geometries = [geom for geom in geometry_or_gdf.geoms if isinstance(geom, (Polygon, MultiPolygon, LineString, MultiLineString))]
         elif isinstance(geometry_or_gdf, (MultiPolygon, Polygon)):
+            geometries = [geometry_or_gdf]
+        elif isinstance(geometry_or_gdf, (MultiLineString, LineString)):
             geometries = [geometry_or_gdf]
         else:
             log_warning(f"Unsupported geometry type for explosion: {type(geometry_or_gdf)}")
@@ -515,7 +517,7 @@ def explode_to_singlepart(geometry_or_gdf):
 
         exploded = gpd.GeoDataFrame(geometry=[])
         for geom in geometries:
-            if isinstance(geom, MultiPolygon):
+            if isinstance(geom, (MultiPolygon, MultiLineString)):
                 exploded = exploded.append(gpd.GeoDataFrame(geometry=list(geom.geoms)))
             else:
                 exploded = exploded.append(gpd.GeoDataFrame(geometry=[geom]))

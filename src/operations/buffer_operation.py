@@ -17,6 +17,7 @@ def create_buffer_layer(all_layers, project_settings, crs, layer_name, operation
     cap_style = operation.get('capStyle', 'square')
     start_cap_style = operation.get('startCapStyle', cap_style)
     end_cap_style = operation.get('endCapStyle', cap_style)
+    quad_segs = operation.get('quadSegs', 16)  # Default to 16 for smoother curves (QGIS default)
 
     join_style_map = {
         'round': 1,
@@ -125,7 +126,7 @@ def create_buffer_layer(all_layers, project_settings, crs, layer_name, operation
                 # For polygons with holes when preserving islands:
                 if isinstance(geom, Polygon):
                     # Buffer exterior with specified distance
-                    exterior = Polygon(geom.exterior.coords).buffer(distance, cap_style=start_cap, join_style=join_style)
+                    exterior = Polygon(geom.exterior.coords).buffer(distance, quad_segs=quad_segs, cap_style=start_cap, join_style=join_style)
                     # Buffer holes with distance 0 (preserve them as-is)
                     holes = [Polygon(interior.coords).buffer(0) for interior in geom.interiors]
                     # Cut the preserved holes from the buffered exterior
@@ -144,16 +145,16 @@ def create_buffer_layer(all_layers, project_settings, crs, layer_name, operation
                         ring_width = abs(distance)  # Use absolute value for consistent width
                         if distance >= 0:
                             # Positive buffer: outer ring
-                            outer_buffer = geom.buffer(ring_width, cap_style=start_cap, join_style=join_style)
-                            inner_buffer = geom.buffer(0, cap_style=start_cap, join_style=join_style)  # Use 0 instead of 0.001
+                            outer_buffer = geom.buffer(ring_width, quad_segs=quad_segs, cap_style=start_cap, join_style=join_style)
+                            inner_buffer = geom.buffer(0, quad_segs=quad_segs, cap_style=start_cap, join_style=join_style)  # Use 0 instead of 0.001
                             return outer_buffer.difference(inner_buffer)
                         else:
                             # Negative buffer: inner ring
-                            outer_buffer = geom.buffer(0, cap_style=start_cap, join_style=join_style)  # Use original boundary
-                            inner_buffer = geom.buffer(-ring_width, cap_style=start_cap, join_style=join_style)
+                            outer_buffer = geom.buffer(0, quad_segs=quad_segs, cap_style=start_cap, join_style=join_style)  # Use original boundary
+                            inner_buffer = geom.buffer(-ring_width, quad_segs=quad_segs, cap_style=start_cap, join_style=join_style)
                             return outer_buffer.difference(inner_buffer)
                 # Regular buffer for other cases
-                return geom.buffer(distance, cap_style=start_cap, join_style=join_style)
+                return geom.buffer(distance, quad_segs=quad_segs, cap_style=start_cap, join_style=join_style)
 
         if isinstance(geom, MultiLineString):
             # Handle each line separately
@@ -164,19 +165,19 @@ def create_buffer_layer(all_layers, project_settings, crs, layer_name, operation
         # For single LineString
         if start_cap == end_cap:
             # If caps are the same, use regular buffer
-            return geom.buffer(distance, cap_style=start_cap, join_style=join_style)
+            return geom.buffer(distance, quad_segs=quad_segs, cap_style=start_cap, join_style=join_style)
 
         # Get start and end points
         start_point = Point(geom.coords[0])
         end_point = Point(geom.coords[-1])
 
         # Create buffers with different caps
-        buffer1 = geom.buffer(distance, cap_style=start_cap, join_style=join_style)
-        buffer2 = geom.buffer(distance, cap_style=end_cap, join_style=join_style)
+        buffer1 = geom.buffer(distance, quad_segs=quad_segs, cap_style=start_cap, join_style=join_style)
+        buffer2 = geom.buffer(distance, quad_segs=quad_segs, cap_style=end_cap, join_style=join_style)
 
         # Create small circles around start and end points
-        start_circle = start_point.buffer(distance * 1.5)
-        end_circle = end_point.buffer(distance * 1.5)
+        start_circle = start_point.buffer(distance * 1.5, quad_segs=quad_segs)
+        end_circle = end_point.buffer(distance * 1.5, quad_segs=quad_segs)
 
         # Combine the results
         result = (
