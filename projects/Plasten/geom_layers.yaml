@@ -924,6 +924,8 @@ geomLayers:
       - type: difference
         reverseDifference: false
         layers:
+          - FG Buffer
+          - Gastrasse Buffer
           - Einfahrt
           - Exclude Baugrenze
   - name: AgriPV
