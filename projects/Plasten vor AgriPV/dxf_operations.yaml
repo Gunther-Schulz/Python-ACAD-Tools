@@ -1,0 +1,38 @@
+dxfOperations:
+  extracts:
+    # Extract Nutzungsartengrenze polylines from Entwurfsvermessung
+    - sourceDxf: "/home/g/hidrive/Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Grundlagen/Entwurfsvermessung/5 - Spargelberg/Groß Plasten I (Am Spargelberg)/PV Groß Plasten I_Entwurfsvermessung_2025-07-29_VB-Haff.dxf"
+      layers:
+        - sourceLayer: "T--Nutzungsartengrenze"
+          outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/nutzungsartengrenze.shp"
+          entityTypes:  # Filter for polylines only
+            - LWPOLYLINE
+            - POLYLINE
+          # preprocessors:  # Optional: apply preprocessing
+          #   - block_exploder  # Explodes blocks to basic entities
+          #   - circle_extractor  # Extracts circle centers as points
+          #   - basepoint_extractor  # Extracts entity basepoints
+
+        # - sourceLayer: "Utilities"  # Another layer example
+        #   outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/extracted_utilities.shp"
+        #   entityTypes:
+        #     - LWPOLYLINE
+        #     - LINE
+
+    # Example: Extract from your current working DXF (sourceDxf: null)
+    # - sourceDxf: null  # Uses your working document
+    #   layers:
+    #     - sourceLayer: "Existing Layer"
+    #       outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/output/exported_layer.shp"
+
+  # transfers:
+    # DXF transfer configurations can also go here instead of dxf_transfer.yaml
+    # - externalDxf: "path/to/external.dxf"
+    #   direction: "load"  # or "save"
+    #   transfers:
+    #     - fromLayer: "SourceLayer"
+    #       toLayer: "TargetLayer"
+    #       entityTypes:
+    #         - LWPOLYLINE
+    #         - TEXT
+    #         - INSERT

@@ -13,7 +13,7 @@ def create_buffer_layer(all_layers, project_settings, crs, layer_name, operation
     buffer_distance = operation.get('distance', 0)
     buffer_field = operation.get('distanceField', None)
     buffer_mode = operation.get('mode', 'normal')
-    join_style = operation.get('joinStyle', 'mitre')
+    join_style = operation.get('joinStyle', 'round')
     cap_style = operation.get('capStyle', 'square')
     start_cap_style = operation.get('startCapStyle', cap_style)
     end_cap_style = operation.get('endCapStyle', cap_style)
