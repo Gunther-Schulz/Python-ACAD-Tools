@@ -531,7 +531,9 @@ geomLayers:
         layers:
           - Wald
         distance: 30
-        joinStyle: mitre
+        joinStyle: round
+        capStyle: round
+        quadSegs: 32
       # - type: difference
       #   reverseDifference: false
       #   layers:
@@ -650,6 +652,7 @@ geomLayers:
       #     - Heckenkante Buffer
       #     - Einfahrt
       - type: dissolve
+        useBufferTrick: true
       - type: intersection
         layers:
           - Geltungsbereich NW
@@ -909,6 +912,7 @@ geomLayers:
       - type: intersection
         layers:
           - Landwirtschaftliche Nutzung Base
+        useBufferTrick: true
   - name: AgriPV Full
     # sync: push
     close: true
@@ -982,6 +986,9 @@ geomLayers:
       - type: intersection
         layers:
           - AgriPV 20m Zone
+        useBufferTrick: true
+      - type: dissolve
+        useBufferTrick: true
       - type: filterGeometry
         minArea: 200
         geometryTypes:
@@ -1003,6 +1010,9 @@ geomLayers:
         layers:
           - AgriPV
         reverseDifference: false
+        useBufferTrick: true
+      - type: dissolve
+        useBufferTrick: true
   - name: AgriPV Schraffur
     sync: push
     style: baufeld
