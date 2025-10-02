@@ -22,9 +22,9 @@ shapefileOutputDir: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - 
 #     - Biotope
 #     # - Ausgleich Grünfläche
 #     # - Ausgleich Schutzflächeumgrenzung
-#     - Ausgleichsfläche Gesamt
+#     - Landwirtschaftliche Nutzung
 #     - Biotoppuffer
-#     - Baufeld
+#     - AgriPV
 #     - Baugrenze
 #     - FG Line
 #     - Gastrasse

@@ -102,6 +102,7 @@ geomLayers:
       - type: buffer
         capStyle: flat
         distance: 5
+        joinStyle: mitre
   - name: Geschütze Biotope
     # sync: push
     style:
@@ -118,6 +119,7 @@ geomLayers:
         layers:
           - Geschütze Biotope
         distance: 0.5
+        joinStyle: mitre
   - name: Ontras_FG_buffer_4
     # sync: push
     style:
@@ -131,6 +133,7 @@ geomLayers:
         layers:
           - Ontras_FG_buffer_4
         distance: 4
+        joinStyle: mitre
   - name: Ontras_FG_buffer_2
     # sync: push
     style:
@@ -150,6 +153,7 @@ geomLayers:
         layers:
           - Ontras_FG_buffer_2
         distance: 2
+        joinStyle: mitre
   - name: Gastrasse Buffer
     operations:
       - type: copy
@@ -191,14 +195,13 @@ geomLayers:
       - type: dissolve
       - type: buffer
         distance: 20
-        joinStyle: round
-        capStyle: round
-        quadSegs: 32  # Higher value for smoother curves (QGIS uses 8-32)
+        joinStyle: mitre
   - name: Gebäude 150m Abstand Buffer
     # sync: push
     operations:
       - type: buffer
         distance: 150
+        joinStyle: mitre
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/gebäude_150m_abstand.shp"
   - name: Geltungsbereich NW
     sync: push
@@ -274,6 +277,7 @@ geomLayers:
         layers:
           - name: Geltungsbereich NW
         distance: 2
+        joinStyle: mitre
   # - name: Geltungsbereich Hatch NW
   #   sync: push
   #   style: geltungsbereichHatches
@@ -364,6 +368,7 @@ geomLayers:
         layers:
           - name: Geltungsbereich NO
         distance: 2
+        joinStyle: mitre
   - name: Geltungsbereich S
     sync: push
     style: geltungsbereich
@@ -434,6 +439,7 @@ geomLayers:
         layers:
           - name: Geltungsbereich S
         distance: 2
+        joinStyle: mitre
   - name: Geltungsbereich Hatch NW
     sync: push
     style: geltungsbereichHatches
@@ -467,6 +473,7 @@ geomLayers:
       - type: buffer
         startCapStyle: round
         endCapStyle: flat
+        joinStyle: mitre
         layers:
           - Einfahrt Line
         distance: 5
@@ -507,6 +514,7 @@ geomLayers:
         layers:
           - Straßenflurstückskante
         distance: 20
+        joinStyle: mitre
       # - type: difference
       #   reverseDifference: false # default is "auto"
       #   layers:
@@ -517,9 +525,7 @@ geomLayers:
         layers:
           - Wald
         distance: 30
-        joinStyle: round
-        # capStyle: round
-        quadSegs: 32
+        joinStyle: mitre
       # - type: difference
       #   reverseDifference: false
       #   layers:
@@ -609,8 +615,9 @@ geomLayers:
         layers:
           - Biotope
         distance: 10
-  - name: Ausgleichsfläche Gesamt
-    sync: push
+        joinStyle: mitre
+  - name: Landwirtschaftliche Nutzung Base
+    # sync: push
     style:
       layer:
         color: "lime"
@@ -622,7 +629,6 @@ geomLayers:
       - type: copy
         layers:
           - Include Ausgleichsfläche
-          - Biotope
           - Gastrasse Buffer
           - Gebäude 150m Abstand Buffer
           - Exclude Baufeld
@@ -643,11 +649,11 @@ geomLayers:
           - Geltungsbereich NW
           - Geltungsbereich NO
           - Geltungsbereich S
-  - name: Ausgleichsfläche Report NW
+  - name: Landwirtschaftliche Nutzung Report NW
     operations:
       - type: copy
         layers:
-          - Ausgleichsfläche Gesamt
+          - Landwirtschaftliche Nutzung
       - type: intersection
         layers:
           - Geltungsbereich NW
@@ -658,11 +664,11 @@ geomLayers:
           - perimeter
         decimalPlaces:
           area: 0
-  - name: Ausgleichsfläche Report NO
+  - name: Landwirtschaftliche Nutzung Report NO
     operations:
       - type: copy
         layers:
-          - Ausgleichsfläche Gesamt
+          - Landwirtschaftliche Nutzung
           # - Hecke
       - type: intersection
         layers:
@@ -674,11 +680,11 @@ geomLayers:
           - perimeter
         decimalPlaces:
           area: 0
-  - name: Ausgleichsfläche Report S
+  - name: Landwirtschaftliche Nutzung Report S
     operations:
       - type: copy
         layers:
-          - Ausgleichsfläche Gesamt
+          - Landwirtschaftliche Nutzung
       - type: intersection
         layers:
           - Geltungsbereich S
@@ -697,9 +703,9 @@ geomLayers:
     operations:
       - type: buffer
         layers:
-          - Ausgleichsfläche Gesamt
+          - Landwirtschaftliche Nutzung
         distance: -3
-        joinStyle: round
+        joinStyle: mitre
     # bluntAngles:
     #   angleThreshold: 25  # Angles smaller than this will be blunted
     #   distance: 10.0  # Distance to move the vertex along the angle bisector
@@ -717,7 +723,7 @@ geomLayers:
     operations:
       - type: copy
         layers:
-          - Ausgleichsfläche Gesamt
+          - Landwirtschaftliche Nutzung
       - type: difference
         layers:
           - Ausgleich Grünfläche
@@ -815,7 +821,7 @@ geomLayers:
     operations:
       - type: copy
         layers:
-          - Ausgleichsfläche Gesamt
+          - Landwirtschaftliche Nutzung
           # - Biotope Innerhalb Geltungsbereich
       - type: dissolve
       - type: intersection
@@ -853,14 +859,14 @@ geomLayers:
   #   operations:
   #     - type: copy
   #       layers:
-  #         - Ausgleichsfläche Gesamt
+  #         - Landwirtschaftliche Nutzung
   #         - Hecke
   #         - Biotope
   #         - Biotoppuffer
   #     - type: dissolve
   #       useBufferTrick: true
-  - name: Baufeld
-    sync: push
+  - name: AgriPV Base
+    # sync: push
     close: true
     viewports:
       - name: WorkView
@@ -877,7 +883,7 @@ geomLayers:
         operations:
           - type: dissolve
             layers:
-              - Ausgleichsfläche Gesamt
+              - Landwirtschaftliche Nutzung Base
               # - Hecke
               - Biotope
               - Biotoppuffer
@@ -886,12 +892,82 @@ geomLayers:
         minArea: 200
         geometryTypes:
           - Polygon
-  - name: Baufeld Schraffur
+  - name: AgriPV Expansion
+    # sync: push
+    operations:
+      - type: buffer
+        layers:
+          - AgriPV Base
+        distance: 20
+        joinStyle: mitre
+      - type: intersection
+        layers:
+          - Landwirtschaftliche Nutzung Base
+  - name: AgriPV Full
+    # sync: push
+    close: true
+    operations:
+      - type: copy
+        layers:
+          - AgriPV Base
+          - AgriPV Expansion
+      - type: dissolve
+        useBufferTrick: true
+  - name: Baugrenze Temp
+    # sync: push
+    operations:
+      - type: buffer
+        layers:
+          - AgriPV Full
+        distance: -20
+        joinStyle: mitre
+      - type: difference
+        reverseDifference: false
+        layers:
+          - Einfahrt
+          - Exclude Baugrenze
+  - name: AgriPV
+    sync: push
+    close: true
+    viewports:
+      - name: WorkView
+        style: baufeld
+    operations:
+      - type: buffer
+        layers:
+          - Baugrenze Temp
+        distance: 20
+        joinStyle: mitre
+      - type: intersection
+        layers:
+          - AgriPV Full
+      - type: filterGeometry
+        minArea: 200
+        geometryTypes:
+          - Polygon
+  - name: Landwirtschaftliche Nutzung
+    sync: push
+    style:
+      layer:
+        color: "lime"
+        plot: false
+    viewports:
+      - name: WorkView
+        style: grünflächeWorkView
+    operations:
+      - type: copy
+        layers:
+          - Landwirtschaftliche Nutzung Base
+      - type: difference
+        layers:
+          - AgriPV
+        reverseDifference: false
+  - name: AgriPV Schraffur
     sync: push
     style: baufeld
     applyHatch:
       layers:
-        - Baufeld
+        - AgriPV
   - name: Baugrenze 2
     sync: push
     style: baugrenze_2
@@ -901,6 +977,7 @@ geomLayers:
         layers:
           - Baugrenze
         distance: -0.4
+        joinStyle: mitre
   - name: Baugrenze
     sync: push
     style: baugrenze
@@ -908,15 +985,9 @@ geomLayers:
     linetypeGeneration: true
     close: true
     operations:
-      - type: buffer
+      - type: copy
         layers:
-          - Baufeld
-        distance: -3
-      - type: difference
-        reverseDifference: false
-        layers:
-          - Einfahrt
-          - Exclude Baugrenze
+          - Baugrenze Temp
   - name: Baugrenze Report NW
     operations:
       - type: copy
@@ -962,11 +1033,11 @@ geomLayers:
           - perimeter
         decimalPlaces:
           area: 0
-  - name: Baufeldstreifen Report NW
+  - name: AgriPV Streifen Report NW
     operations:
       - type: copy
         layers:
-          - Baufeld
+          - AgriPV
       - type: difference
         layers:
           - Baugrenze
@@ -981,11 +1052,11 @@ geomLayers:
           - perimeter
         decimalPlaces:
           area: 0
-  - name: Baufeldstreifen Report NO
+  - name: AgriPV Streifen Report NO
     operations:
       - type: copy
         layers:
-          - Baufeld
+          - AgriPV
       - type: difference
         layers:
           - Baugrenze
@@ -1000,11 +1071,11 @@ geomLayers:
           - perimeter
         decimalPlaces:
           area: 0
-  - name: Baufeldstreifen Report S
+  - name: AgriPV Streifen Report S
     operations:
       - type: copy
         layers:
-          - Baufeld
+          - AgriPV
       - type: difference
         layers:
           - Baugrenze
