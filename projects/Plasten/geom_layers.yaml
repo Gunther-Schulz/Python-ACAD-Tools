@@ -913,14 +913,49 @@ geomLayers:
           - AgriPV Expansion
       - type: dissolve
         useBufferTrick: true
+  - name: AgriPV Unfiltered
+    # sync: push
+    close: true
+    operations:
+      - type: copy
+        layers:
+          - AgriPV Full
+      - type: filterGeometry
+        minArea: 200
+        geometryTypes:
+          - Polygon
+  - name: Baugrenze Mitre
+    # sync: push
+    operations:
+      - type: buffer
+        layers:
+          - AgriPV Unfiltered
+        distance: -20
+        joinStyle: mitre
+      - type: difference
+        reverseDifference: false
+        layers:
+          - FG Buffer
+          - Gastrasse Buffer
+          - Einfahrt
+          - Exclude Baugrenze
+  - name: AgriPV 20m Zone
+    # sync: push
+    operations:
+      - type: buffer
+        layers:
+          - Baugrenze Mitre
+        distance: 20
+        joinStyle: mitre
   - name: Baugrenze Temp
     # sync: push
     operations:
       - type: buffer
         layers:
-          - AgriPV Full
+          - AgriPV Unfiltered
         distance: -20
-        joinStyle: mitre
+        joinStyle: round
+        quadSegs: 16
       - type: difference
         reverseDifference: false
         layers:
@@ -935,14 +970,12 @@ geomLayers:
       - name: WorkView
         style: baufeld
     operations:
-      - type: buffer
+      - type: copy
         layers:
-          - Baugrenze Temp
-        distance: 20
-        joinStyle: mitre
+          - AgriPV Unfiltered
       - type: intersection
         layers:
-          - AgriPV Full
+          - AgriPV 20m Zone
       - type: filterGeometry
         minArea: 200
         geometryTypes:
