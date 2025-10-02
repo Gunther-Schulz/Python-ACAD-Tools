@@ -637,13 +637,11 @@ geomLayers:
       - type: copy
         layers:
           - Include Ausgleichsfläche
-          - Gastrasse Buffer
           - Gebäude 150m Abstand Buffer
           - Exclude Baufeld
           - Exclude Baugrenze
           - Waldabstand
           - Baumabstand Puffer
-          - FG Buffer
           - Straßenflurstückskante Buffer 20m
           - Biotoppuffer
       # - type: difference
@@ -896,7 +894,6 @@ geomLayers:
               # - Hecke
               - Biotope
               - Biotoppuffer
-              - Exclude Baufeld
       - type: filterGeometry
         minArea: 200
         geometryTypes:
@@ -983,12 +980,6 @@ geomLayers:
       - type: copy
         layers:
           - AgriPV Unfiltered
-      - type: intersection
-        layers:
-          - AgriPV 20m Zone
-        useBufferTrick: true
-      - type: dissolve
-        useBufferTrick: true
       - type: filterGeometry
         minArea: 200
         geometryTypes:
