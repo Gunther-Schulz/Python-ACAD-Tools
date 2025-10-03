@@ -42,3 +42,112 @@ Areas within AgriPV where Baugrenze cannot be placed due to buffer requirements.
 - The 20m AgriPV edge rule means Baugrenze must always be at least 20m inset from AgriPV boundaries
 - Where multiple buffers overlap, the most restrictive applies
 
+---
+
+## Implementation Details
+
+### Three Parcel Groups (Critical for Processing)
+
+The project is divided into three separate zones, each requiring independent calculation:
+
+| Zone | Parcels         | Location                      |
+|------|-----------------|-------------------------------|
+| **NW** | 1, 2, 4, 6, 7, 14 | Flur 1, Groß Plasten          |
+| **NO** | 24/8, 24/9        | Flur 1, Groß Plasten          |
+| **S**  | 41/1              | Flur 2, Klein Plasten         |
+
+Each zone needs:
+- Separate Geltungsbereich calculation
+- Independent AgriPV/Baugrenze processing
+- Individual area reports
+
+### Additional Output Layers
+
+Beyond the core zones, these features must be generated:
+
+- **EinAusfahrt Line** - Entrance/driveway access
+- **Blendschutzzaun** - Anti-glare fence
+
+### Biotope Handling
+
+**Combined Biotope Layer:**
+- **Biotope Input** + **Geschütze Biotope** → merged into single **Biotope** layer
+- **Geschütze Biotope 2** = Geschütze Biotope + 0.5m buffer (separate styling layer, synced)
+
+### Technical Buffer Specifications
+
+**Round Caps/Joins (for smooth utility buffer curves):**
+- **quadSegs: 32** - Creates smooth round caps and joins for utility line buffers
+- Used for: FG Buffer, Gastrasse Buffer, Waldabstand, Gebäude Buffer
+
+**Linetype Scales:**
+- **Baugrenze**: 0.5
+- **Geltungsbereich**: 1.0
+- **Flur**: 0.2
+
+**Linetype Generation:**
+- Enabled for: Flur, Gemarkung, Gemeinde, Baugrenze
+
+### Geometry Filters
+
+**Minimum Area Thresholds:**
+- **200m²** - AgriPV, Waldabstand, major features
+- **10m²** - Smaller features, cleanup operations
+
+**Geometry Type Filtering:**
+- **Polygon only** - Applied to AgriPV to remove any line artifacts
+
+### Hatching Layers
+
+Separate hatching/schraffur layers that reference base geometries:
+
+- **Wald Schraffur** → applies hatching to Wald
+- **AgriPV Schraffur** → applies hatching to AgriPV
+- **Geltungsbereich Hatch NW/NO/S** → applies hatching to respective Geltungsbereich zones
+
+### Label Fields (from Shapefiles)
+
+| Layer      | Label Field |
+|------------|-------------|
+| Flur       | flurname    |
+| Parcel     | label       |
+| Gemarkung  | gmkname     |
+| Gemeinde   | gen         |
+
+---
+
+## Final Synced Output Layers
+
+These layers are synchronized to DXF (sync: push):
+
+### Core Planning Zones
+1. **Geltungsbereich NW** - Planning boundary northwest
+2. **Geltungsbereich NO** - Planning boundary northeast  
+3. **Geltungsbereich S** - Planning boundary south
+4. **Geltungsbereich NW 2** - Styling variant (+2m buffer)
+5. **Geltungsbereich NO 2** - Styling variant (+2m buffer)
+6. **Geltungsbereich S 2** - Styling variant (+2m buffer)
+
+### Solar Zones
+7. **AgriPV** - Solar planning designation zone
+8. **AgriPV Schraffur** - Hatching for AgriPV
+9. **Baugrenze** - Construction boundary (where panels go)
+10. **Baugrenze 2** - Styling variant (-0.4m buffer)
+
+### Context/Reference Layers
+11. **Flur** - Field boundaries
+12. **Gemarkung** - District boundaries
+13. **Gemeinde** - Municipality boundaries
+14. **Wald** - Forest polygons
+15. **Wald Schraffur** - Forest hatching
+
+### Infrastructure
+16. **FG_Unterirdisch** - Underground utility lines
+17. **FG_Oberirdisch** - Overhead utility lines
+18. **Gastrasse** - Gas lines
+19. **EinAusfahrt Line** - Entrance/access
+20. **Blendschutzzaun** - Anti-glare fence
+
+### Biotopes
+21. **Geschütze Biotope 2** - Protected biotopes (+0.5m for styling)
+
