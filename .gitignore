@@ -55,7 +55,6 @@ exploration/
 
 # Exclude documentation
 docs/
-*.md
 *.rst
 
 .env
