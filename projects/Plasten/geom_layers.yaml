@@ -133,7 +133,7 @@ geomLayers:
         layers:
           - Ontras_FG_buffer_4
         distance: 4
-        joinStyle: round
+        joinStyle: mitre
         capStyle: round
         quadSegs: 32
   - name: Ontras_FG_buffer_2
@@ -155,7 +155,7 @@ geomLayers:
         layers:
           - Ontras_FG_buffer_2
         distance: 2
-        joinStyle: round
+        joinStyle: mitre
         capStyle: round
         quadSegs: 32
   - name: Gastrasse Buffer
@@ -199,7 +199,7 @@ geomLayers:
       - type: dissolve
       - type: buffer
         distance: 20
-        joinStyle: round
+        joinStyle: mitre
         capStyle: round
         quadSegs: 32
   - name: Gebäude 150m Abstand Buffer
@@ -531,7 +531,7 @@ geomLayers:
         layers:
           - Wald
         distance: 30
-        joinStyle: round
+        joinStyle: mitre
         capStyle: round
         quadSegs: 32
       # - type: difference
@@ -895,6 +895,12 @@ geomLayers:
           - AgriPV Base
         distance: 20
         joinStyle: mitre
+      - type: difference
+        layers:
+          - AgriPV Base
+          - Hard Exclusions
+        reverseDifference: false
+        useBufferTrick: true
       - type: intersection
         layers:
           - Soft Exclusions
