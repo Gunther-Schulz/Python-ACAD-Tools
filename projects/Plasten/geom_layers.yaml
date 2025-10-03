@@ -465,6 +465,15 @@ geomLayers:
         layers:
           - Hard Exclusions
         reverseDifference: false
+      # Buffer trick: -20m (round) then +20m (bevel) to shape AgriPV
+      # This ensures Baugrenze can reach all areas, while keeping geometric character
+      - type: buffer
+        distance: -20
+        joinStyle: round
+        quadSegs: 32
+      - type: buffer
+        distance: 20
+        joinStyle: bevel  # Bevel keeps it geometric with chamfered corners, not rounded
       # Clean up small artifacts
       - type: filterGeometry
         minArea: 200
