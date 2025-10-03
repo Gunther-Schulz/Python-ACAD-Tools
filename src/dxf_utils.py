@@ -771,16 +771,19 @@ def apply_style_to_entity(entity, style, project_loader, loaded_styles=None, ite
 
 def create_hatch(msp, boundary_paths, hatch_config, project_loader):
     hatch = msp.add_hatch()
+    
+    # Set elevation to 0 - all hatch paths must be at same Z level
+    hatch.dxf.elevation = (0, 0, 0)
 
     # Add boundary paths FIRST before setting pattern
     # This ensures AutoCAD properly applies the pattern
     if isinstance(boundary_paths, list):
         for path in boundary_paths:
-            hatch.paths.add_polyline_path(path)
+            hatch.paths.add_polyline_path(path, is_closed=True)
     else:
         # Single boundary case
         vertices = list(boundary_paths.exterior.coords)
-        hatch.paths.add_polyline_path(vertices)
+        hatch.paths.add_polyline_path(vertices, is_closed=True)
 
     # Now set the pattern fill after boundary paths are defined
     pattern = hatch_config.get('pattern', 'SOLID')
@@ -795,6 +798,21 @@ def create_hatch(msp, boundary_paths, hatch_config, project_loader):
             hatch.set_pattern_fill("SOLID")
     else:
         hatch.set_solid_fill()
+
+    # Set seed points - required for AutoCAD to properly display pattern
+    # This calculates the hatch pattern origin point
+    if pattern != 'SOLID' and hatch.paths:
+        # Get bounding box to calculate seed point
+        try:
+            # Use the first point of the first path as seed point
+            if isinstance(boundary_paths, list) and boundary_paths:
+                first_point = boundary_paths[0][0]
+                hatch.set_seed_points([first_point])
+            elif hasattr(boundary_paths, 'exterior'):
+                first_point = list(boundary_paths.exterior.coords)[0]
+                hatch.set_seed_points([first_point])
+        except Exception as e:
+            log_debug(f"Could not set hatch seed points: {str(e)}")
 
     # Apply color
     if 'color' in hatch_config and hatch_config['color'] not in (None, 'BYLAYER'):

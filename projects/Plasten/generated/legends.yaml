@@ -222,15 +222,25 @@ legends:
       text_style: "Arial"
       attachment_point: MTEXT_MIDDLE_LEFT
     groups:
+      # - name: "Art der baulichen Nutzung"
+      #   sync: push
+      #   subtitle: "§ 9 Abs. 1 Nr. 1 BauGB"
+      #   items:
+      #     - name: "Sonstiges Sondergebiet (§ 11 Abs. 2 BauNVO) Zweckbestimmung: Energiegewinnung auf der Basis solarer Strahlungsenergie"
+      #       type: area
+      #       applyHatch: true
+      #       style: baufeldLegend
+      #       blockSymbol: "Sonstiges Sondergebiet EBS"
+      #       blockSymbolScale: 2
       - name: "Art der baulichen Nutzung"
         sync: push
-        subtitle: "§ 9 Abs. 1 Nr. 1 BauGB"
+        subtitle: "§ 9 Abs. 1 Nr. 1 BauGB, § 11 BauNVO"
         items:
-          - name: "Sonstiges Sondergebiet (§ 11 Abs. 2 BauNVO) Zweckbestimmung: Energiegewinnung auf der Basis solarer Strahlungsenergie"
+          - name: "Sonstige Sondergebiete - Zweckbestimmung: Agri-PV gem. DIN SPEC 91434"
             type: area
             applyHatch: true
-            style: baufeldLegend
-            blockSymbol: "Sonstiges Sondergebiet EBS"
+            style: agripvLinesLegend
+            blockSymbol: "SO Agri-PV"
             blockSymbolScale: 2
       - name: "Maß der baulichen Nutzung"
         sync: push
@@ -246,7 +256,15 @@ legends:
         items:
           - name: "Baugrenze"
             type: empty
-            blockSymbol: "Baugrenze"   
+            blockSymbol: "Baugrenze"
+      - name: "Verkehrsflächen"
+        sync: push
+        subtitle: "(§ 9 Abs. 1 Nr. 11 und Abs. 6 BauGB)"
+        items:
+          - name: "Ein- und Ausfahrt"
+            # subtitle: "(§ 9 Abs. 1 Nr. 4, 11 und Abs. 6 BauGB)"
+            type: empty
+            blockSymbol: "EinAusfahrt"
       # - name: "Grünflächen"
       #   sync: push
       #   subtitle: "§ 9 Abs.1 Nr. 15 BauGB"
@@ -262,6 +280,10 @@ legends:
       #     - name: "Umgrenzung von Flächen für Maßnahmen zum Schutz, zur Pflege und zur Entwicklung von Natur und Landschaft"
       #       type: empty
       #       blockSymbol: "Schutzflächeumgrenzung"
+      #     - name: "Umgrenzung von Flächen zum Anpflanzen von Bäumen, Sträuchern und sonstigen Bepflanzungen"
+      #       subtitle: "(§ 9 Abs. 1 Nr. 25 Buchstabe a) und Abs. 6 BauGB)"
+      #       type: empty
+      #       blockSymbol: "Bepflanzungen Legende"
       - name: "Sonstige Planzeichen"
         sync: push
         items:
@@ -269,16 +291,16 @@ legends:
             subtitle: "(§ 9 Abs. 7 BauGB)"
             type: area
             rectangleStyle: geltungsbereich_2
+          - name: "Hauptversorgungs- und Hauptabwasserleitungen oberirdisch"
+            subtitle: "(§ 5 Abs. 2 Nr.4 und Abs. 4, § 9 Abs.1 Nr.1 u. Abs. 6)"
+            type: area
+            blockSymbol: "Leitung oberirdisch Legend"
+            blockSymbolScale: 2
           - name: "Hauptversorgungs- und Hauptabwasserleitungen unterirdisch"
             subtitle: "(§ 5 Abs. 2 Nr.4 und Abs. 4, § 9 Abs.1 Nr.1 u. Abs. 6)"
             type: area
-            blockSymbol: "Leitung oberirdisch"
+            blockSymbol: "Leitung unterirdisch Legend"
             blockSymbolScale: 2
-          # - name: "Hauptversorgungs- und Hauptabwasserleitungen oberirdisch"
-          #   subtitle: "(§ 5 Abs. 2 Nr.4 und Abs. 4, § 9 Abs.1 Nr.1 u. Abs. 6)"
-          #   type: area
-          #   blockSymbol: "Leitung unterirdisch"
-          #   blockSymbolScale: 2
       - name: "Darstellung ohne Normcharakter"
         sync: push
         items:
@@ -309,6 +331,10 @@ legends:
             type: area
             style: waldLegend
             applyHatch: true
+          # - name: "Baum"
+          #   type: empty
+          #   blockSymbol: "Baum"
+          #   blockSymbolScale: 1.8
           - name: "Gebäude - Bestand"
             type: empty
             blockSymbol: "Gebäude"
@@ -418,10 +444,15 @@ legends:
             subtitle: "(§ 9 Abs. 7 BauGB)"
             type: area
             rectangleStyle: geltungsbereich_2
+          - name: "Hauptversorgungs- und Hauptabwasserleitungen oberirdisch"
+            subtitle: "(§ 5 Abs. 2 Nr.4 und Abs. 4, § 9 Abs.1 Nr.1 u. Abs. 6)"
+            type: area
+            blockSymbol: "Leitung oberirdisch Legend"
+            blockSymbolScale: 2
           - name: "Hauptversorgungs- und Hauptabwasserleitungen unterirdisch"
             subtitle: "(§ 5 Abs. 2 Nr.4 und Abs. 4, § 9 Abs.1 Nr.1 u. Abs. 6)"
             type: area
-            blockSymbol: "Leitung oberirdisch"
+            blockSymbol: "Leitung unterirdisch Legend"
             blockSymbolScale: 2
       - name: "Darstellung ohne Normcharakter"
         sync: push
@@ -500,15 +531,25 @@ legends:
       text_style: "Arial"
       attachment_point: MTEXT_MIDDLE_LEFT
     groups:
+      # - name: "Art der baulichen Nutzung"
+      #   sync: push
+      #   subtitle: "§ 9 Abs. 1 Nr. 1 BauGB"
+      #   items:
+      #     - name: "Sonstiges Sondergebiet (§ 11 Abs. 2 BauNVO) Zweckbestimmung: Energiegewinnung auf der Basis solarer Strahlungsenergie"
+      #       type: area
+      #       applyHatch: true
+      #       style: baufeldLegend
+      #       blockSymbol: "Sonstiges Sondergebiet EBS"
+      #       blockSymbolScale: 2
       - name: "Art der baulichen Nutzung"
         sync: push
-        subtitle: "§ 9 Abs. 1 Nr. 1 BauGB"
+        subtitle: "§ 9 Abs. 1 Nr. 1 BauGB, § 11 BauNVO"
         items:
-          - name: "Sonstiges Sondergebiet (§ 11 Abs. 2 BauNVO) Zweckbestimmung: Energiegewinnung auf der Basis solarer Strahlungsenergie"
+          - name: "Sonstige Sondergebiete - Zweckbestimmung: Agri-PV gem. DIN SPEC 91434"
             type: area
             applyHatch: true
-            style: baufeldLegend
-            blockSymbol: "Sonstiges Sondergebiet EBS"
+            style: agripvLinesLegend
+            blockSymbol: "SO Agri-PV"
             blockSymbolScale: 2
       - name: "Maß der baulichen Nutzung"
         sync: push
@@ -524,7 +565,15 @@ legends:
         items:
           - name: "Baugrenze"
             type: empty
-            blockSymbol: "Baugrenze"   
+            blockSymbol: "Baugrenze"
+      - name: "Verkehrsflächen"
+        sync: push
+        subtitle: "(§ 9 Abs. 1 Nr. 11 und Abs. 6 BauGB)"
+        items:
+          - name: "Ein- und Ausfahrt"
+            # subtitle: "(§ 9 Abs. 1 Nr. 4, 11 und Abs. 6 BauGB)"
+            type: empty
+            blockSymbol: "EinAusfahrt"
       # - name: "Grünflächen"
       #   sync: push
       #   subtitle: "§ 9 Abs.1 Nr. 15 BauGB"
@@ -540,6 +589,10 @@ legends:
       #     - name: "Umgrenzung von Flächen für Maßnahmen zum Schutz, zur Pflege und zur Entwicklung von Natur und Landschaft"
       #       type: empty
       #       blockSymbol: "Schutzflächeumgrenzung"
+      #     - name: "Umgrenzung von Flächen zum Anpflanzen von Bäumen, Sträuchern und sonstigen Bepflanzungen"
+      #       subtitle: "(§ 9 Abs. 1 Nr. 25 Buchstabe a) und Abs. 6 BauGB)"
+      #       type: empty
+      #       blockSymbol: "Bepflanzungen Legende"
       - name: "Sonstige Planzeichen"
         sync: push
         items:
@@ -547,10 +600,15 @@ legends:
             subtitle: "(§ 9 Abs. 7 BauGB)"
             type: area
             rectangleStyle: geltungsbereich_2
+          - name: "Hauptversorgungs- und Hauptabwasserleitungen oberirdisch"
+            subtitle: "(§ 5 Abs. 2 Nr.4 und Abs. 4, § 9 Abs.1 Nr.1 u. Abs. 6)"
+            type: area
+            blockSymbol: "Leitung oberirdisch Legend"
+            blockSymbolScale: 2
           - name: "Hauptversorgungs- und Hauptabwasserleitungen unterirdisch"
             subtitle: "(§ 5 Abs. 2 Nr.4 und Abs. 4, § 9 Abs.1 Nr.1 u. Abs. 6)"
             type: area
-            blockSymbol: "Leitung oberirdisch"
+            blockSymbol: "Leitung unterirdisch Legend"
             blockSymbolScale: 2
       - name: "Darstellung ohne Normcharakter"
         sync: push
@@ -578,12 +636,11 @@ legends:
       - name: "Nachrichtliche Übernahme"
         sync: push
         items:
-          - name: "gesetzlich geschützes Biotop § 9 Abs. 6 BauGB i. V. m. § 20 NatSchAG - MV"
-            type: area
-            rectangleStyle: gesGeschuetzesBiotop
-            blockSymbol: "Gesetzlich geschütztes Biotop"
-            blockSymbolScale: 1.8
           - name: "Wald"
             type: area
             style: waldLegend
             applyHatch: true
+          # - name: "Baum"
+          #   type: empty
+          #   blockSymbol: "Baum"
+          #   blockSymbolScale: 1.8

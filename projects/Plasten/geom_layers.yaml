@@ -91,6 +91,13 @@ geomLayers:
     operations:
       - type: dissolve
 
+  - name: Moor
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/moor.shp"
+    close: true
+    sync: push
+    operations:
+      - type: dissolve
+
   - name: Biotope Input
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/biotope.shp"
 
@@ -348,6 +355,7 @@ geomLayers:
         layers:
           - Wald 10m Buffer
           - Biotope
+          - Moor
           # - Exclude Baufeld
           # - Exclude Geltungsbereich
       - type: dissolve
