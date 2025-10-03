@@ -42,6 +42,25 @@ Areas within AgriPV where Baugrenze cannot be placed due to buffer requirements.
 - The 20m AgriPV edge rule means Baugrenze must always be at least 20m inset from AgriPV boundaries
 - Where multiple buffers overlap, the most restrictive applies
 
+### Processing Architecture
+
+**Hard Exclusions** (AgriPV cannot be here):
+- Wald + **10m buffer** (creates the 10m gap)
+- Biotopes
+- Manual exclusions
+
+**Baugrenze Exclusions** (only affects Baugrenze, not AgriPV):
+- Waldabstand 30m (creates 20m dead zone: 30m - 10m gap = 20m)
+- FG Buffer, Gas Buffer, Building Buffer, Road Buffer, Tree Buffer
+
+**AgriPV Calculation:**
+```
+AgriPV = Parcels - Hard Exclusions
+```
+Simple subtraction only - no buffer operations to avoid geometric artifacts.
+
+**Result:** AgriPV extends to utilities/roads/trees, but maintains 10m gap from Wald. Baugrenze then applies 20m inset + buffer exclusions.
+
 ---
 
 ## Implementation Details
