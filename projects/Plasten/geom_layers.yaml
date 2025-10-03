@@ -128,9 +128,32 @@ geomLayers:
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/FG_Unterirdisch.shp"
     sync: push
 
-  - name: FG_Oberirdisch
+  # Raw input containing complete FG data (both oberirdisch and unterirdisch)
+  - name: FG_Oberirdisch Input
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/FG_Oberirdisch.shp"
+
+  # Buffer mask to subtract underground sections from complete FG
+  - name: FG_Unterirdisch Buffer Mask
+    operations:
+      - type: buffer
+        layers:
+          - FG_Unterirdisch
+        distance: 1
+        capStyle: flat  # Critical: no extension beyond line endpoints
+        joinStyle: round
+        quadSegs: 16
+
+  # Corrected oberirdisch layer: complete FG minus underground sections
+  - name: FG_Oberirdisch
     sync: push
+    operations:
+      - type: copy
+        layers:
+          - FG_Oberirdisch Input
+      - type: difference
+        layers:
+          - FG_Unterirdisch Buffer Mask
+        reverseDifference: false
 
   - name: Ontras_FG_buffer_4
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/Ontras_FG_buffer_4.shp"
@@ -614,10 +637,10 @@ geomLayers:
   # SECTION 9: INFRASTRUCTURE LAYERS
   # ==========================================================================
 
-  - name: Blendschutzzaun
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/blendschutzzaun.shp"
-    style: blendschutzzaun
-    sync: push
+  # - name: Blendschutzzaun
+  #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/blendschutzzaun.shp"
+  #   style: blendschutzzaun
+  #   sync: push
 
   - name: EinAusfahrt Line
     sync: push
