@@ -562,8 +562,7 @@ geomLayers:
         layers:
           - Baugrenze
         distance: 20
-        joinStyle: round
-        quadSegs: 32
+        joinStyle: mitre  # Sharp corners to maintain AgriPV's geometric character
 
   # Final AgriPV: Constrained to be within 20m of Baugrenze
   - name: AgriPV

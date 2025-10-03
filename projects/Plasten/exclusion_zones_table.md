@@ -6,6 +6,7 @@
 |----------------------------------------|-----------------|-----------------|--------------------|-----------------|--------------------|------------------------------|
 | **Wald (Forest)**                      | 30m             | ✓               | ✓                  | Full            | Yes (20m)          | Hard boundary with 10m gap   |
 | **Biotope**                            | Full area       | ✓               | ✓                  | Full            | No                 | Complete avoidance           |
+| **Moor (Wetland)**                     | 0m              | ✗               | ✓                  | Baugrenze-only  | Yes (trims AgriPV) | Allows crossing, but trims AgriPV to maintain 20m rule |
 | **Einzelbaumlinie (Tree Line)**        | 20m             | ✗               | ✓                  | Baugrenze-only  | Yes (20m)          | Extends to edge              |
 | **Straßenflurstückskante (Road Edge)** | 20m             | ✗               | ✓                  | Baugrenze-only  | Yes (20m)          | Extends to edge              |
 | **FG Utility Line**                    | 20m (±)         | ✗               | ✓                  | Baugrenze-only  | Yes (40m total)    | Allows crossing              |
@@ -50,22 +51,29 @@ Areas within AgriPV where Baugrenze cannot be placed due to buffer requirements.
 - Manual exclusions
 
 **Baugrenze Exclusions** (only affects Baugrenze, not AgriPV):
-- FG Buffer, Gas Buffer, Building Buffer
+- FG Buffer, Gas Buffer, Building Buffer, Moor
 - Note: Waldabstand, Roads, Trees NOT included - the 10m gap + 20m inset = 30m from forest, 20m from roads/trees already
+- Note: Moor has 0m buffer (Baugrenze stops at Moor edge), which can cause AgriPV to be trimmed back to maintain the 20m rule
 
-**AgriPV Calculation:**
+**AgriPV Base Calculation:**
 ```
-AgriPV = (Parcels - Hard Exclusions) → -20m round → +20m bevel
+AgriPV Base = (Parcels - Hard Exclusions) → -20m round → +20m bevel
 ```
-The -20m/+20m buffer trick shapes AgriPV to ensure Baugrenze can reach all areas. The -20m round buffer removes acute corners that can't accommodate the 20m inset, then +20m bevel expands back with chamfered (not rounded) corners. This eliminates geometric dead zones while preserving angular character.
+The -20m/+20m buffer trick shapes AgriPV Base to ensure Baugrenze can reach all areas. The -20m round buffer removes acute corners that can't accommodate the 20m inset, then +20m bevel expands back with chamfered (not rounded) corners. This eliminates geometric dead zones while preserving angular character.
 
 **Baugrenze Calculation:**
 ```
-Baugrenze = (AgriPV - 20m round inset) - Baugrenze Exclusions
+Baugrenze = (AgriPV Base - 20m round inset) - Baugrenze Exclusions
 ```
-The -20m round inset maintains true perpendicular distance from AgriPV at all corners. Then Baugrenze Exclusion zones (FG, Gas, Buildings) are subtracted for features crossing through AgriPV. Roads, Trees, and Waldabstand are automatically satisfied by the 20m inset at edges.
+The -20m round inset maintains true perpendicular distance from AgriPV Base at all corners. Then Baugrenze Exclusion zones (FG, Gas, Buildings, Moor) are subtracted for features crossing through AgriPV. Roads, Trees, and Waldabstand are automatically satisfied by the 20m inset at edges.
 
-**Result:** AgriPV extends to utilities/roads/trees, but maintains 10m gap from Wald. Baugrenze is 20m inset from AgriPV AND respects all buffer zones.
+**AgriPV Final Calculation (20m Constraint):**
+```
+AgriPV = AgriPV Base ∩ (Baugrenze + 20m mitre buffer)
+```
+AgriPV is constrained to areas within 20m of Baugrenze. This ensures that soft exclusions (Moor, utilities) don't create AgriPV zones that are too far from Baugrenze. The mitre buffer preserves sharp corners.
+
+**Result:** AgriPV extends to utilities/roads/trees where possible, but maintains 10m gap from Wald. Baugrenze respects all buffer zones. Every part of AgriPV is guaranteed to be within 20m of Baugrenze.
 
 ---
 
