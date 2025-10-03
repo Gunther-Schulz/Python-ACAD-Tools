@@ -209,8 +209,8 @@ geomLayers:
         distance: 150
         joinStyle: mitre
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/gebäude_150m_abstand.shp"
-  - name: Geltungsbereich NW
-    sync: push
+  - name: Geltungsbereich NW Base
+    # sync: push  # Don't sync - this is for calculations only
     style: geltungsbereich
     operations:
       - type: copy
@@ -281,7 +281,7 @@ geomLayers:
     operations:
       - type: buffer
         layers:
-          - name: Geltungsbereich NW
+          - name: Geltungsbereich NW Base
         distance: 2
         joinStyle: mitre
   # - name: Geltungsbereich Hatch NW
@@ -302,8 +302,8 @@ geomLayers:
   #   applyHatch:
   #     layers:
   #       - Geltungsbereich S
-  - name: Geltungsbereich NO
-    sync: push
+  - name: Geltungsbereich NO Base
+    # sync: push  # Don't sync - this is for calculations only
     style: geltungsbereich
     close: true
     operations:
@@ -372,11 +372,11 @@ geomLayers:
     operations:
       - type: buffer
         layers:
-          - name: Geltungsbereich NO
+          - name: Geltungsbereich NO Base
         distance: 2
         joinStyle: mitre
-  - name: Geltungsbereich S
-    sync: push
+  - name: Geltungsbereich S Base
+    # sync: push  # Don't sync - this is for calculations only
     style: geltungsbereich
     close: true
     operations:
@@ -443,7 +443,7 @@ geomLayers:
     operations:
       - type: buffer
         layers:
-          - name: Geltungsbereich S
+          - name: Geltungsbereich S Base
         distance: 2
         joinStyle: mitre
   - name: Geltungsbereich Hatch NW
@@ -485,9 +485,9 @@ geomLayers:
         distance: 5
       - type: intersection
         layers:
-          - Geltungsbereich NW
-          - Geltungsbereich NO
-          - Geltungsbereich S
+          - Geltungsbereich NW Base
+          - Geltungsbereich NO Base
+          - Geltungsbereich S Base
       - type: dissolve
         useBufferTrick: true
   
@@ -540,9 +540,9 @@ geomLayers:
       #     - Heckenkante Buffer
       - type: intersection
         layers:
-          - Geltungsbereich NW
-          - Geltungsbereich NO
-          - Geltungsbereich S
+          - Geltungsbereich NW Base
+          - Geltungsbereich NO Base
+          - Geltungsbereich S Base
       - type: filterGeometry
         minArea: 200
   - name: Biotope
@@ -577,9 +577,9 @@ geomLayers:
           - Biotope
       - type: intersection
         layers:
-          - Geltungsbereich NW
-          - Geltungsbereich NO
-          - Geltungsbereich S
+          - Geltungsbereich NW Base
+          - Geltungsbereich NO Base
+          - Geltungsbereich S Base
 
   - name: Biotop Report NW
     operations:
@@ -624,38 +624,48 @@ geomLayers:
           - Biotope
         distance: 10
         joinStyle: mitre
-  - name: Landwirtschaftliche Nutzung Base
+  - name: Soft Exclusions
     # sync: push
-    style:
-      layer:
-        color: "lime"
-        plot: false
-    viewports:
-      - name: WorkView
-        style: grünflächeWorkView
+    # These are areas AgriPV can expand 20m into (like Waldabstand, utility buffers, etc.)
     operations:
       - type: copy
         layers:
           - Include Ausgleichsfläche
+          - FG Buffer
+          - Gastrasse Buffer
           - Gebäude 150m Abstand Buffer
-          - Exclude Baufeld
-          - Exclude Baugrenze
           - Waldabstand
           - Baumabstand Puffer
           - Straßenflurstückskante Buffer 20m
-          - Biotoppuffer
-      # - type: difference
-      #   reverseDifference: false
-      #   layers:
-      #     - Heckenkante Buffer
-      #     - Einfahrt
       - type: dissolve
         useBufferTrick: true
+  - name: Hard Exclusions
+    # sync: push
+    # These are areas AgriPV can NEVER be in (Biotopes, manual exclusions)
+    operations:
+      - type: copy
+        layers:
+          - Biotope
+          - Biotoppuffer
+          - Exclude Baufeld
+      - type: dissolve
+        useBufferTrick: true
+  - name: Landwirtschaftliche Nutzung Base
+    # sync: push
+    operations:
+      - type: copy
+        layers:
+          - Soft Exclusions
       - type: intersection
         layers:
-          - Geltungsbereich NW
-          - Geltungsbereich NO
-          - Geltungsbereich S
+          - Geltungsbereich NW Base
+          - Geltungsbereich NO Base
+          - Geltungsbereich S Base
+      - type: difference
+        layers:
+          - AgriPV
+        reverseDifference: false
+        useBufferTrick: true
   - name: Landwirtschaftliche Nutzung Report NW
     operations:
       - type: copy
@@ -737,9 +747,9 @@ geomLayers:
         reverseDifference: false
       - type: intersection
         layers:
-          - Geltungsbereich NW
-          - Geltungsbereich NO
-          - Geltungsbereich S
+          - Geltungsbereich NW Base
+          - Geltungsbereich NO Base
+          - Geltungsbereich S Base
       # - type: filterGeometry
       #   minArea: 200
   # - name: Hecke
@@ -833,9 +843,9 @@ geomLayers:
       - type: dissolve
       - type: intersection
         layers:
-          - Geltungsbereich NW
-          - Geltungsbereich NO
-          - Geltungsbereich S
+          - Geltungsbereich NW Base
+          - Geltungsbereich NO Base
+          - Geltungsbereich S Base
       - type: filterGeometry
         minArea: 200
   # - name: Schutzflächeumgrenzung T-Small Temp
@@ -874,32 +884,25 @@ geomLayers:
   #       useBufferTrick: true
   - name: AgriPV Base
     # sync: push
-    close: true
-    viewports:
-      - name: WorkView
-        style: baufeld
     operations:
       - type: copy
         layers:
-          - Geltungsbereich NW
-          - Geltungsbereich NO
-          - Geltungsbereich S
+          - Geltungsbereich NW Base
+          - Geltungsbereich NO Base
+          - Geltungsbereich S Base
       - type: difference
-        useBufferTrick: true
+        layers:
+          - Soft Exclusions
+          - Hard Exclusions
         reverseDifference: false
-        operations:
-          - type: dissolve
-            layers:
-              - Landwirtschaftliche Nutzung Base
-              # - Hecke
-              - Biotope
-              - Biotoppuffer
+        useBufferTrick: true
       - type: filterGeometry
         minArea: 200
         geometryTypes:
           - Polygon
   - name: AgriPV Expansion
     # sync: push
+    # Expand 20m into soft exclusions only
     operations:
       - type: buffer
         layers:
@@ -908,11 +911,14 @@ geomLayers:
         joinStyle: mitre
       - type: intersection
         layers:
-          - Landwirtschaftliche Nutzung Base
+          - Soft Exclusions
         useBufferTrick: true
-  - name: AgriPV Full
-    # sync: push
+  - name: AgriPV
+    sync: push
     close: true
+    viewports:
+      - name: WorkView
+        style: baufeld
     operations:
       - type: copy
         layers:
@@ -920,46 +926,51 @@ geomLayers:
           - AgriPV Expansion
       - type: dissolve
         useBufferTrick: true
-  - name: AgriPV Unfiltered
-    # sync: push
-    close: true
-    operations:
-      - type: copy
+      - type: intersection
         layers:
-          - AgriPV Full
+          - Geltungsbereich NW Base
+          - Geltungsbereich NO Base
+          - Geltungsbereich S Base
       - type: filterGeometry
         minArea: 200
         geometryTypes:
           - Polygon
-  - name: Baugrenze Mitre
-    # sync: push
+  - name: Geltungsbereich NW
+    sync: push
+    style: geltungsbereich
     operations:
-      - type: buffer
+      - type: copy
         layers:
-          - AgriPV Unfiltered
-        distance: -20
-        joinStyle: mitre
-      - type: difference
-        reverseDifference: false
+          - AgriPV
+      - type: intersection
         layers:
-          - FG Buffer
-          - Gastrasse Buffer
-          - Einfahrt
-          - Exclude Baugrenze
-  - name: AgriPV 20m Zone
-    # sync: push
+          - Geltungsbereich NW Base
+  - name: Geltungsbereich NO
+    sync: push
+    style: geltungsbereich
     operations:
-      - type: buffer
+      - type: copy
         layers:
-          - Baugrenze Mitre
-        distance: 20
-        joinStyle: mitre
+          - AgriPV
+      - type: intersection
+        layers:
+          - Geltungsbereich NO Base
+  - name: Geltungsbereich S
+    sync: push
+    style: geltungsbereich
+    operations:
+      - type: copy
+        layers:
+          - AgriPV
+      - type: intersection
+        layers:
+          - Geltungsbereich S Base
   - name: Baugrenze Temp
     # sync: push
     operations:
       - type: buffer
         layers:
-          - AgriPV Unfiltered
+          - AgriPV
         distance: -20
         joinStyle: round
         quadSegs: 16
@@ -970,20 +981,6 @@ geomLayers:
           - Gastrasse Buffer
           - Einfahrt
           - Exclude Baugrenze
-  - name: AgriPV
-    sync: push
-    close: true
-    viewports:
-      - name: WorkView
-        style: baufeld
-    operations:
-      - type: copy
-        layers:
-          - AgriPV Unfiltered
-      - type: filterGeometry
-        minArea: 200
-        geometryTypes:
-          - Polygon
   - name: Landwirtschaftliche Nutzung
     sync: push
     style:
@@ -997,13 +994,6 @@ geomLayers:
       - type: copy
         layers:
           - Landwirtschaftliche Nutzung Base
-      - type: difference
-        layers:
-          - AgriPV
-        reverseDifference: false
-        useBufferTrick: true
-      - type: dissolve
-        useBufferTrick: true
   - name: AgriPV Schraffur
     sync: push
     style: baufeld
