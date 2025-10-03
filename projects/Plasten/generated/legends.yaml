@@ -367,7 +367,7 @@ legends:
             type: area
             applyHatch: true
             style: agripvLinesLegend
-            blockSymbol: "Sonstiges Sondergebiet EBS"
+            blockSymbol: "SO Agri-PV"
             blockSymbolScale: 2
       - name: "Maß der baulichen Nutzung"
         sync: push
