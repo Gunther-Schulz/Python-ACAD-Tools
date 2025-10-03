@@ -59,7 +59,13 @@ AgriPV = Parcels - Hard Exclusions
 ```
 Simple subtraction only - no buffer operations to avoid geometric artifacts.
 
-**Result:** AgriPV extends to utilities/roads/trees, but maintains 10m gap from Wald. Baugrenze then applies 20m inset + buffer exclusions.
+**Baugrenze Calculation:**
+```
+Baugrenze = (AgriPV - 20m inset) - Baugrenze Exclusions
+```
+The -20m inset removes sharp corners. Then ALL Baugrenze Exclusion zones (Waldabstand, FG, Gas, Buildings, Roads, Trees) are subtracted to ensure Baugrenze respects all buffer requirements.
+
+**Result:** AgriPV extends to utilities/roads/trees, but maintains 10m gap from Wald. Baugrenze is 20m inset from AgriPV AND respects all buffer zones.
 
 ---
 
@@ -96,9 +102,9 @@ Beyond the core zones, these features must be generated:
 ### Technical Buffer Specifications
 
 **Buffer Join Styles:**
-- **Wald 10m Buffer**: MUST use `joinStyle: round` - Mitre joins create shortcuts at acute angles, allowing AgriPV to get closer than 10m to forest edges at corners
-- **All other buffers**: Use `joinStyle: round` for consistent distance and smooth curves
-- **quadSegs: 32** - Creates smooth round caps/joins with 32 segments
+- **Wald 10m Buffer**: `joinStyle: round` (CRITICAL) - Mitre joins create shortcuts at acute angles, allowing AgriPV to get closer than 10m to forest edges at corners
+- **Exclusion buffers** (Waldabstand, FG, Gas, Gebäude, Roads, Trees): `joinStyle: round` with `quadSegs: 32` for smooth curves and consistent distances
+- **Baugrenze -20m inset**: `joinStyle: bevel` - Creates clean chamfered corners, prevents spikes at acute angles while maintaining geometric character
 
 **Linetype Scales:**
 - **Baugrenze**: 0.5

@@ -187,7 +187,6 @@ geomLayers:
 
   # 10m buffer: AgriPV must stay this far from Wald
   - name: Wald 10m Buffer
-    sync: push  # TEMPORARY: To verify this layer is being created
     style:
       layer:
         color: "cyan"
@@ -333,9 +332,20 @@ geomLayers:
       - type: dissolve
 
   # --------------------------------------------------------------------------
-  # NOTE: Baugrenze Exclusions layer removed!
-  # These will be calculated AFTER AgriPV is final, intersected with AgriPV
+  # Baugrenze Exclusions: All buffer zones that Baugrenze must avoid
   # --------------------------------------------------------------------------
+
+  - name: Baugrenze Exclusions
+    operations:
+      - type: copy
+        layers:
+          - Waldabstand
+          - FG Buffer
+          - Gastrasse Buffer
+          - Gebäude Buffer
+          - Einzelbaumlinie Buffer
+          - Straßenflurstückskante Buffer
+      - type: dissolve
 
   # ==========================================================================
   # SECTION 4: GELTUNGSBEREICH BASE - Calculated from parcels
@@ -538,38 +548,8 @@ geomLayers:
   # ==========================================================================
   # SECTION 7: BAUGRENZE CALCULATION
   # ==========================================================================
-  # Baugrenze = AgriPV - 20m inset, then subtract features CROSSING THROUGH AgriPV
-  # Features at AgriPV edges (Wald, roads, trees) are already handled by -20m inset
+  # Baugrenze = AgriPV - 20m inset, then subtract ALL Baugrenze exclusion zones
 
-  # Create buffer zones intersected with AgriPV (only the parts inside AgriPV)
-  - name: FG Buffer In AgriPV
-    operations:
-      - type: copy
-        layers:
-          - FG Buffer
-      - type: intersection
-        layers:
-          - AgriPV
-
-  - name: Gas Buffer In AgriPV
-    operations:
-      - type: copy
-        layers:
-          - Gastrasse Buffer
-      - type: intersection
-        layers:
-          - AgriPV
-
-  - name: Gebäude Buffer In AgriPV
-    operations:
-      - type: copy
-        layers:
-          - Gebäude Buffer
-      - type: intersection
-        layers:
-          - AgriPV
-
-  # Final Baugrenze calculation
   - name: Baugrenze
     sync: push
     style: baugrenze
@@ -582,13 +562,11 @@ geomLayers:
         layers:
           - AgriPV
         distance: -20
-        joinStyle: mitre
-      # Subtract features crossing through AgriPV (only the parts inside AgriPV)
+        joinStyle: bevel  # Bevel creates clean, chamfered corners instead of rounded
+      # Subtract ALL Baugrenze exclusion zones (Waldabstand, utilities, roads, trees, buildings)
       - type: difference
         layers:
-          - FG Buffer In AgriPV
-          - Gas Buffer In AgriPV
-          - Gebäude Buffer In AgriPV
+          - Baugrenze Exclusions
           - Exclude Baugrenze
         reverseDifference: false
 
