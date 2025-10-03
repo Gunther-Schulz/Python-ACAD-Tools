@@ -36,9 +36,7 @@ class StyleManager:
             'locked': False,
             'frozen': False,
             'is_on': True,
-            'transparency': 0,
-            'close': True,
-            'linetypeScale': 1.0
+            'transparency': 0
         }
 
     def get_style(self, style_name_or_config):
@@ -324,7 +322,7 @@ class StyleManager:
 
                 # Handle all other properties
                 for key in ['linetype', 'lineweight', 'plot', 'locked', 'frozen',
-                           'is_on', 'transparency', 'close', 'linetypeScale']:
+                           'is_on', 'transparency']:
                     if key in layer_style:
                         properties[key] = layer_style[key]
 

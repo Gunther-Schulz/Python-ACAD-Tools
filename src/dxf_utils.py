@@ -7,7 +7,7 @@ from ezdxf.lldxf.const import (
     MTEXT_MIDDLE_LEFT, MTEXT_MIDDLE_CENTER, MTEXT_MIDDLE_RIGHT,
     MTEXT_BOTTOM_LEFT, MTEXT_BOTTOM_CENTER, MTEXT_BOTTOM_RIGHT,
     MTEXT_LEFT_TO_RIGHT, MTEXT_TOP_TO_BOTTOM, MTEXT_BY_STYLE,
-    MTEXT_AT_LEAST, MTEXT_EXACT
+    MTEXT_AT_LEAST, MTEXT_EXACT, LWPOLYLINE_PLINEGEN
 )
 from ezdxf.enums import TextEntityAlignment
 from ezdxf.math import Vec3
@@ -761,6 +761,13 @@ def apply_style_to_entity(entity, style, project_loader, loaded_styles=None, ite
     # Apply linetype scale
     if 'linetypeScale' in style:
         entity.dxf.ltscale = float(style['linetypeScale'])
+    
+    # Apply linetype generation (for polylines)
+    if entity.dxftype() in ('LWPOLYLINE', 'POLYLINE') and 'linetypeGeneration' in style:
+        if style['linetypeGeneration']:
+            entity.dxf.flags |= LWPOLYLINE_PLINEGEN
+        else:
+            entity.dxf.flags &= ~LWPOLYLINE_PLINEGEN
 
 def create_hatch(msp, boundary_paths, hatch_config, project_loader):
     hatch = msp.add_hatch()

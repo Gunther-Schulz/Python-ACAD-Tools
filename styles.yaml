@@ -290,7 +290,8 @@ styles:
       linetype: DASHED
       color: yellow
       lineweight: 35
-    # linetypeScale: 0.2 #TODO: we need to fix our code so that we differentiate between enitity level styling and layer styling
+    entity:
+      linetypeScale: 0.2
 
   abstandSchienenweg:
     layer:
@@ -305,6 +306,7 @@ styles:
   geltungsbereich:
     layer:
       color: "red"
+    entity:
       linetypeGeneration: true
 
   geltungsbereich_2:
@@ -312,6 +314,7 @@ styles:
       color: "granite"
       linetype: "ACAD_ISO02W100"
       lineweight: 211
+    entity:
       linetypeGeneration: true
       # linetypeScale: 30
 
