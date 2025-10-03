@@ -761,8 +761,6 @@ def apply_style_to_entity(entity, style, project_loader, loaded_styles=None, ite
     # Apply linetype scale
     if 'linetypeScale' in style:
         entity.dxf.ltscale = float(style['linetypeScale'])
-    else:
-        entity.dxf.ltscale = 1.0
 
 def create_hatch(msp, boundary_paths, hatch_config, project_loader):
     hatch = msp.add_hatch()
