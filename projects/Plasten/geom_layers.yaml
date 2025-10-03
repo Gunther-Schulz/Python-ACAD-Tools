@@ -476,21 +476,16 @@ geomLayers:
   # ==========================================================================
   # SECTION 5: AGRIPV CALCULATION
   # ==========================================================================
-  # AgriPV = (Parcels - Hard Exclusions) → -20m round → +20m bevel → clip to Nutzungsartengrenze
+  # AgriPV = (Parcels - Hard Exclusions) → -20m round → +20m bevel → constrain to 20m from Baugrenze
   # The -20/+20 buffer trick ensures Baugrenze can reach all areas of AgriPV
   # while maintaining geometric character with chamfered corners.
-  # Finally clipped to Nutzungsartengrenze boundary to respect land use constraints.
+  # Finally, AgriPV is trimmed to ensure it's always within 20m of Baugrenze.
 
   # --------------------------------------------------------------------------
-  # AgriPV: Solar planning designation zone
+  # AgriPV Base: Initial solar planning zone (before 20m constraint)
   # --------------------------------------------------------------------------
 
-  - name: AgriPV
-    close: true
-    sync: push
-    viewports:
-      - name: WorkView
-        style: agripv
+  - name: AgriPV Base
     operations:
       # Start with all parcels
       - type: copy
@@ -498,7 +493,7 @@ geomLayers:
           - Geltungsbereich NW Base
           - Geltungsbereich NO Base
           - Geltungsbereich S Base
-      # Remove hard exclusions (Wald+10m, Moor, Biotope, manual exclusions)
+      # Remove hard exclusions (Wald+10m, Biotope, manual exclusions)
       # Note: Biotope holes will be filled later at Geltungsbereich level
       - type: difference
         layers:
@@ -513,10 +508,6 @@ geomLayers:
       - type: buffer
         distance: 20
         joinStyle: bevel  # Bevel keeps it geometric with chamfered corners, not rounded
-      # # Clip to Nutzungsartengrenze boundary
-      # - type: intersection
-      #   layers:
-      #     - Nutzungsartengrenze
       # Clean up small artifacts
       - type: filterGeometry
         minArea: 200
@@ -524,7 +515,74 @@ geomLayers:
           - Polygon
 
   # ==========================================================================
-  # SECTION 6: FINAL GELTUNGSBEREICH - Follows AgriPV outline
+  # SECTION 6: BAUGRENZE CALCULATION
+  # ==========================================================================
+  # Baugrenze = AgriPV Base - 20m inset, then subtract ALL Baugrenze exclusion zones
+
+  - name: Baugrenze
+    sync: push
+    style: baugrenze
+    linetypeScale: 0.5
+    linetypeGeneration: true
+    close: true
+    operations:
+      # Start with -20m inset from AgriPV Base
+      - type: buffer
+        layers:
+          - AgriPV Base
+        distance: -20
+        joinStyle: round  # Round maintains true 20m distance at all corners
+        quadSegs: 32
+      # Subtract ALL Baugrenze exclusion zones (utilities, roads, trees, buildings, Moor)
+      - type: difference
+        layers:
+          - Baugrenze Exclusions
+          # - Exclude Baugrenze
+        reverseDifference: false
+
+  - name: Baugrenze 2
+    sync: push
+    style: baugrenze_2
+    close: true
+    operations:
+      - type: buffer
+        layers:
+          - Baugrenze
+        distance: -0.4
+        joinStyle: mitre
+
+  # --------------------------------------------------------------------------
+  # AgriPV 20m Constraint: Trim AgriPV to ensure 20m distance to Baugrenze
+  # --------------------------------------------------------------------------
+
+  # Buffer Baugrenze by +20m to create the valid AgriPV envelope
+  - name: Baugrenze 20m Envelope
+    operations:
+      - type: buffer
+        layers:
+          - Baugrenze
+        distance: 20
+        joinStyle: round
+        quadSegs: 32
+
+  # Final AgriPV: Constrained to be within 20m of Baugrenze
+  - name: AgriPV
+    close: true
+    sync: push
+    viewports:
+      - name: WorkView
+        style: agripv
+    operations:
+      - type: copy
+        layers:
+          - AgriPV Base
+      # Trim to areas within 20m of Baugrenze
+      - type: intersection
+        layers:
+          - Baugrenze 20m Envelope
+
+  # ==========================================================================
+  # SECTION 7: FINAL GELTUNGSBEREICH - Follows AgriPV outline
   # ==========================================================================
 
   - name: Geltungsbereich NW
@@ -604,43 +662,6 @@ geomLayers:
         layers:
           - Geltungsbereich S
         distance: 2
-        joinStyle: mitre
-
-  # ==========================================================================
-  # SECTION 7: BAUGRENZE CALCULATION
-  # ==========================================================================
-  # Baugrenze = AgriPV - 20m inset, then subtract ALL Baugrenze exclusion zones
-
-  - name: Baugrenze
-    sync: push
-    style: baugrenze
-    linetypeScale: 0.5
-    linetypeGeneration: true
-    close: true
-    operations:
-      # Start with -20m inset from AgriPV
-      - type: buffer
-        layers:
-          - AgriPV
-        distance: -20
-        joinStyle: round  # Round maintains true 20m distance at all corners
-        quadSegs: 32
-      # Subtract ALL Baugrenze exclusion zones (Waldabstand, utilities, roads, trees, buildings)
-      - type: difference
-        layers:
-          - Baugrenze Exclusions
-          # - Exclude Baugrenze
-        reverseDifference: false
-
-  - name: Baugrenze 2
-    sync: push
-    style: baugrenze_2
-    close: true
-    operations:
-      - type: buffer
-        layers:
-          - Baugrenze
-        distance: -0.4
         joinStyle: mitre
 
   # ==========================================================================
