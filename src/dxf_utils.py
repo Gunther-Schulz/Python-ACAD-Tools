@@ -767,6 +767,17 @@ def apply_style_to_entity(entity, style, project_loader, loaded_styles=None, ite
 def create_hatch(msp, boundary_paths, hatch_config, project_loader):
     hatch = msp.add_hatch()
 
+    # Add boundary paths FIRST before setting pattern
+    # This ensures AutoCAD properly applies the pattern
+    if isinstance(boundary_paths, list):
+        for path in boundary_paths:
+            hatch.paths.add_polyline_path(path)
+    else:
+        # Single boundary case
+        vertices = list(boundary_paths.exterior.coords)
+        hatch.paths.add_polyline_path(vertices)
+
+    # Now set the pattern fill after boundary paths are defined
     pattern = hatch_config.get('pattern', 'SOLID')
     pattern_scale = hatch_config.get('scale', 1)
     pattern_angle = hatch_config.get('angle', 0)
@@ -779,15 +790,6 @@ def create_hatch(msp, boundary_paths, hatch_config, project_loader):
             hatch.set_pattern_fill("SOLID")
     else:
         hatch.set_solid_fill()
-
-    # Add boundary paths
-    if isinstance(boundary_paths, list):
-        for path in boundary_paths:
-            hatch.paths.add_polyline_path(path)
-    else:
-        # Single boundary case
-        vertices = list(boundary_paths.exterior.coords)
-        hatch.paths.add_polyline_path(vertices)
 
     # Apply color
     if 'color' in hatch_config and hatch_config['color'] not in (None, 'BYLAYER'):

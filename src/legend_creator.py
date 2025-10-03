@@ -326,17 +326,8 @@ class LegendCreator:
             hatch = dxf_utils.create_hatch(self.msp, hatch_paths, hatch_config, self.project_loader)
             hatch.dxf.layer = layer_name
 
-            if 'color' in hatch_style:
-                color = get_color_code(hatch_style['color'], self.project_loader.name_to_aci)
-                if isinstance(color, tuple):
-                    hatch.rgb = color
-                else:
-                    hatch.dxf.color = color
-
-            if 'transparency' in hatch_style:
-                transparency = convert_transparency(hatch_style['transparency'])
-                if transparency is not None:
-                    set_hatch_transparency(hatch, transparency)
+            # Note: color and transparency are already applied by create_hatch() from hatch_config
+            # Removing redundant property modifications that can cause display issues in AutoCAD
 
             self.attach_custom_data(hatch)
             entities.append(hatch)
