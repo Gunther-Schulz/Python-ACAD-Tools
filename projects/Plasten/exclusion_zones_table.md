@@ -95,9 +95,10 @@ Beyond the core zones, these features must be generated:
 
 ### Technical Buffer Specifications
 
-**Round Caps/Joins (for smooth utility buffer curves):**
-- **quadSegs: 32** - Creates smooth round caps and joins for utility line buffers
-- Used for: FG Buffer, Gastrasse Buffer, Waldabstand, Gebäude Buffer
+**Buffer Join Styles:**
+- **Wald 10m Buffer**: MUST use `joinStyle: round` - Mitre joins create shortcuts at acute angles, allowing AgriPV to get closer than 10m to forest edges at corners
+- **All other buffers**: Use `joinStyle: round` for consistent distance and smooth curves
+- **quadSegs: 32** - Creates smooth round caps/joins with 32 segments
 
 **Linetype Scales:**
 - **Baugrenze**: 0.5

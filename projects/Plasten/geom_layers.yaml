@@ -187,12 +187,17 @@ geomLayers:
 
   # 10m buffer: AgriPV must stay this far from Wald
   - name: Wald 10m Buffer
+    sync: push  # TEMPORARY: To verify this layer is being created
+    style:
+      layer:
+        color: "cyan"
+        plot: false
     operations:
       - type: buffer
         layers:
           - Wald
         distance: 10
-        joinStyle: mitre
+        joinStyle: round  # Use round joins to maintain true 10m distance at corners
         capStyle: round
         quadSegs: 32
 
