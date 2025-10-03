@@ -8,20 +8,20 @@ dxfOperations:
           entityTypes:  # Filter for polylines only
             - LWPOLYLINE
             - POLYLINE
-    # - sourceDxf: "/home/g/hidrive/Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Grundlagen/Entwurfsvermessung/6 - Devener Weg/Groß Plasten II (Dewener Weg)/PV Groß Plasten II_Entwurfsvermessung_2025-07-29_VB-Haff.dxf"
-    #   layers:
-    #     - sourceLayer: "T--Nutzungsartengrenze"
-    #       outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/nutzungsartengrenze6.shp"
-    #       entityTypes:  # Filter for polylines only
-    #         - LWPOLYLINE
-    #         - POLYLINE
-    # - sourceDxf: "/home/g/hidrive/Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Grundlagen/Entwurfsvermessung/7 - Straße nach Rockow/PV Klein Plasten Süd/PV Klein Plasten Süd_Entwurfsvermessung_2025-07-29_VB-Haff.dxf"
-    #   layers:
-    #     - sourceLayer: "T--Nutzungsartengrenze"
-    #       outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/nutzungsartengrenze7.shp"
-    #       entityTypes:  # Filter for polylines only
-    #         - LWPOLYLINE
-    #         - POLYLINE
+    - sourceDxf: "/home/g/hidrive/Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Grundlagen/Entwurfsvermessung/6 - Devener Weg/Groß Plasten II (Dewener Weg)/PV Groß Plasten II_Entwurfsvermessung_2025-07-29_VB-Haff.dxf"
+      layers:
+        - sourceLayer: "T--Nutzungsartengrenze"
+          outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/nutzungsartengrenze6.shp"
+          entityTypes:  # Filter for polylines only
+            - LWPOLYLINE
+            - POLYLINE
+    - sourceDxf: "/home/g/hidrive/Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Grundlagen/Entwurfsvermessung/7 - Straße nach Rockow/PV Klein Plasten Süd/PV Klein Plasten Süd_Entwurfsvermessung_2025-07-29_VB-Haff.dxf"
+      layers:
+        - sourceLayer: "T--Nutzungsartengrenze"
+          outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/nutzungsartengrenze7.shp"
+          entityTypes:  # Filter for polylines only
+            - LWPOLYLINE
+            - POLYLINE
           # preprocessors:  # Optional: apply preprocessing
           #   - block_exploder  # Explodes blocks to basic entities
           #   - circle_extractor  # Extracts circle centers as points

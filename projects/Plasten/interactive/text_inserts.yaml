@@ -13,9 +13,9 @@ texts:
     y: 856
   style: mainTitle
   _sync:
-    dxf_handle: 6DA15
+    dxf_handle: 734A2
     content_hash: 430296307b98e170361bca30847a4c8994db14c7334fb5360ef97cc300d87196
-    last_sync_time: 1759525994
+    last_sync_time: 1759528528
     sync_source: yaml
 - name: Map Header NW
   targetLayer: Plantext
@@ -28,9 +28,9 @@ texts:
     y: 808
   style: mapHeader
   _sync:
-    dxf_handle: 6DA16
+    dxf_handle: 734A3
     content_hash: d876ec7b0c2bc975a52137bde780a9ba2ed5cd3372bdae39aff4b1c04332b8b8
-    last_sync_time: 1759525994
+    last_sync_time: 1759528528
     sync_source: yaml
 - name: Übersichtslarte Header NW
   targetLayer: Plantext
@@ -43,9 +43,9 @@ texts:
     y: 399
   style: übersichtskarteHeader
   _sync:
-    dxf_handle: 6DA17
+    dxf_handle: 734A4
     content_hash: ad7e1dd056f8b4a69dcfc4ac57f7ecd9917a32a4e3b3a00d15cb174b8a9c8d8a
-    last_sync_time: 1759525994
+    last_sync_time: 1759528528
     sync_source: yaml
 - name: Satzungs NW
   targetLayer: Plantext
@@ -67,9 +67,9 @@ texts:
     y: 265
   style: satzungstext
   _sync:
-    dxf_handle: 6DA18
+    dxf_handle: 734A5
     content_hash: 62a6b2dda188868367708c82d9913d58f9b9861ddf11ff8a9874b3c0e24bc552
-    last_sync_time: 1759525994
+    last_sync_time: 1759528528
     sync_source: yaml
 - name: Main Title NO
   targetLayer: Plantext
@@ -84,9 +84,9 @@ texts:
     y: 856
   style: mainTitle
   _sync:
-    dxf_handle: 6DA19
+    dxf_handle: 734A6
     content_hash: 0ba035e1c47a5e2e15e2a482aa9a897b51734490e32bf1fddcaca1014a3dc59f
-    last_sync_time: 1759525994
+    last_sync_time: 1759528528
     sync_source: yaml
 - name: Map Header NO
   targetLayer: Plantext
@@ -99,9 +99,9 @@ texts:
     y: 808
   style: mapHeader
   _sync:
-    dxf_handle: 6DA1A
+    dxf_handle: 734A7
     content_hash: d5aa9d5e20db1a615aa50e9494057358d0a05c7d75040d40ca6f84a29478a040
-    last_sync_time: 1759525994
+    last_sync_time: 1759528528
     sync_source: yaml
 - name: Übersichtslarte Header NO
   targetLayer: Plantext
@@ -114,9 +114,9 @@ texts:
     y: 310
   style: übersichtskarteHeader
   _sync:
-    dxf_handle: 6DA1B
+    dxf_handle: 734A8
     content_hash: ba6c9d2d02a1bfd62836489c9801e843a4a94fe4fadf018a38a4870cf1593c48
-    last_sync_time: 1759525994
+    last_sync_time: 1759528528
     sync_source: yaml
 - name: Satzungs NO
   targetLayer: Plantext
@@ -138,9 +138,9 @@ texts:
     y: 265
   style: satzungstext
   _sync:
-    dxf_handle: 6DA1C
+    dxf_handle: 734A9
     content_hash: 07e2eb3deafba59b4f3f5574b52f8c58be8afdd4bb23be74d589574fe7828ec3
-    last_sync_time: 1759525994
+    last_sync_time: 1759528528
     sync_source: yaml
 - name: Main Title S
   targetLayer: Plantext
@@ -156,9 +156,9 @@ texts:
     y: 856
   style: mainTitle
   _sync:
-    dxf_handle: 6DA1D
+    dxf_handle: 734AA
     content_hash: cd95ff2a45b70f19c8d29bb28ed4bbb466152e0c37950a86b8dac3962ba30427
-    last_sync_time: 1759525994
+    last_sync_time: 1759528528
     sync_source: yaml
 - name: Map Header S
   targetLayer: Plantext
@@ -171,9 +171,9 @@ texts:
     y: 808
   style: mapHeader
   _sync:
-    dxf_handle: 6DA1E
+    dxf_handle: 734AB
     content_hash: 6843010824e1b3c72ad72c3ac9d3878e775ec695c10c0788f4e0d932daad88d5
-    last_sync_time: 1759525994
+    last_sync_time: 1759528528
     sync_source: yaml
 - name: Übersichtslarte Header S
   targetLayer: Plantext
@@ -186,9 +186,9 @@ texts:
     y: 399
   style: übersichtskarteHeader
   _sync:
-    dxf_handle: 6DA1F
+    dxf_handle: 734AC
     content_hash: c7681719cfe584997d97b287569acddc864258a66773c5ba834b7e85839fc13a
-    last_sync_time: 1759525994
+    last_sync_time: 1759528528
     sync_source: yaml
 - name: Satzungs S
   targetLayer: Plantext
@@ -210,9 +210,9 @@ texts:
     y: 265
   style: satzungstext
   _sync:
-    dxf_handle: 6DA20
+    dxf_handle: 734AD
     content_hash: 83c3e3ae3419a98335da99b8470890e089b926f0f29a7304a2764fa319c7ea8b
-    last_sync_time: 1759525994
+    last_sync_time: 1759528528
     sync_source: yaml
 discover_untracked_layers: []
 deletion_policy: confirm
