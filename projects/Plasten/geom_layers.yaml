@@ -34,10 +34,10 @@ geomLayers:
   # Administrative Boundaries
   # --------------------------------------------------------------------------
 
-  - name: Nutzungsartengrenze
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/nutzungsartengrenze_pl.shp"
-    close: true
-    sync: push
+  # - name: Nutzungsartengrenze
+  #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/nutzungsartengrenze5_pl.shp"
+  #   close: true
+  #   # sync: push
 
   - name: Flur
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/flur.shp"
@@ -194,8 +194,8 @@ geomLayers:
   # - name: Exclude Baugrenze
   #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/Exclude Baugrenze.shp"
 
-  # - name: Exclude Geltungsbereich
-  #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/exclude_v2.shp"
+  - name: Exclude Geltungsbereich
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/Exclude Geltungsbereich.shp"
 
   # --------------------------------------------------------------------------
   # Infrastructure Inputs
@@ -363,7 +363,7 @@ geomLayers:
           - Wald 10m Buffer
           - Biotope
           # - Exclude Baufeld
-          # - Exclude Geltungsbereich
+          - Exclude Geltungsbereich
       - type: dissolve
 
   # --------------------------------------------------------------------------
@@ -513,10 +513,10 @@ geomLayers:
       - type: buffer
         distance: 20
         joinStyle: bevel  # Bevel keeps it geometric with chamfered corners, not rounded
-      # Clip to Nutzungsartengrenze boundary
-      - type: intersection
-        layers:
-          - Nutzungsartengrenze
+      # # Clip to Nutzungsartengrenze boundary
+      # - type: intersection
+      #   layers:
+      #     - Nutzungsartengrenze
       # Clean up small artifacts
       - type: filterGeometry
         minArea: 200

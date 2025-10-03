@@ -1,13 +1,13 @@
-dxfOperations:
-  extracts:
-    # Extract Nutzungsartengrenze polylines from Entwurfsvermessung
-    - sourceDxf: "/home/g/hidrive/Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Grundlagen/Entwurfsvermessung/5 - Spargelberg/Groß Plasten I (Am Spargelberg)/PV Groß Plasten I_Entwurfsvermessung_2025-07-29_VB-Haff.dxf"
-      layers:
-        - sourceLayer: "T--Nutzungsartengrenze"
-          outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/nutzungsartengrenze5.shp"
-          entityTypes:  # Filter for polylines only
-            - LWPOLYLINE
-            - POLYLINE
+# dxfOperations:
+#   extracts:
+#     # Extract Nutzungsartengrenze polylines from Entwurfsvermessung
+#     - sourceDxf: "/home/g/hidrive/Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Grundlagen/Entwurfsvermessung/5 - Spargelberg/Groß Plasten I (Am Spargelberg)/PV Groß Plasten I_Entwurfsvermessung_2025-07-29_VB-Haff.dxf"
+#       layers:
+#         - sourceLayer: "T--Nutzungsartengrenze"
+#           outputShapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/nutzungsartengrenze5.shp"
+#           entityTypes:  # Filter for polylines only
+#             - LWPOLYLINE
+#             - POLYLINE
     # - sourceDxf: "/home/g/hidrive/Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Grundlagen/Entwurfsvermessung/6 - Devener Weg/Groß Plasten II (Dewener Weg)/PV Groß Plasten II_Entwurfsvermessung_2025-07-29_VB-Haff.dxf"
     #   layers:
     #     - sourceLayer: "T--Nutzungsartengrenze"
