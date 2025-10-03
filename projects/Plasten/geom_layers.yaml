@@ -330,14 +330,14 @@ geomLayers:
       - type: dissolve
 
   # --------------------------------------------------------------------------
-  # Baugrenze Exclusions: All buffer zones that Baugrenze must avoid
+  # Baugrenze Exclusions: Buffer zones that Baugrenze must avoid
+  # Note: Waldabstand NOT included - the 10m gap + 20m inset = 30m from forest already
   # --------------------------------------------------------------------------
 
   - name: Baugrenze Exclusions
     operations:
       - type: copy
         layers:
-          - Waldabstand
           - FG Buffer
           - Gastrasse Buffer
           - Gebäude Buffer
@@ -569,7 +569,8 @@ geomLayers:
         layers:
           - AgriPV
         distance: -20
-        joinStyle: bevel  # Bevel creates clean, chamfered corners instead of rounded
+        joinStyle: round  # Round maintains true 20m distance at all corners
+        quadSegs: 32
       # Subtract ALL Baugrenze exclusion zones (Waldabstand, utilities, roads, trees, buildings)
       - type: difference
         layers:

@@ -50,8 +50,8 @@ Areas within AgriPV where Baugrenze cannot be placed due to buffer requirements.
 - Manual exclusions
 
 **Baugrenze Exclusions** (only affects Baugrenze, not AgriPV):
-- Waldabstand 30m (creates 20m dead zone: 30m - 10m gap = 20m)
-- FG Buffer, Gas Buffer, Building Buffer, Road Buffer, Tree Buffer
+- FG Buffer, Gas Buffer, Building Buffer
+- Note: Waldabstand, Roads, Trees NOT included - the 10m gap + 20m inset = 30m from forest, 20m from roads/trees already
 
 **AgriPV Calculation:**
 ```
@@ -61,9 +61,9 @@ The -20m/+20m buffer trick shapes AgriPV to ensure Baugrenze can reach all areas
 
 **Baugrenze Calculation:**
 ```
-Baugrenze = (AgriPV - 20m inset) - Baugrenze Exclusions
+Baugrenze = (AgriPV - 20m round inset) - Baugrenze Exclusions
 ```
-The -20m inset removes sharp corners. Then ALL Baugrenze Exclusion zones (Waldabstand, FG, Gas, Buildings, Roads, Trees) are subtracted to ensure Baugrenze respects all buffer requirements.
+The -20m round inset maintains true perpendicular distance from AgriPV at all corners. Then Baugrenze Exclusion zones (FG, Gas, Buildings) are subtracted for features crossing through AgriPV. Roads, Trees, and Waldabstand are automatically satisfied by the 20m inset at edges.
 
 **Result:** AgriPV extends to utilities/roads/trees, but maintains 10m gap from Wald. Baugrenze is 20m inset from AgriPV AND respects all buffer zones.
 
@@ -106,7 +106,7 @@ Beyond the core zones, these features must be generated:
 - **Exclusion buffers** (Waldabstand, FG, Gas, Gebäude, Roads, Trees): `joinStyle: round` with `quadSegs: 32` for smooth curves and consistent distances
 - **AgriPV -20m shaping**: `joinStyle: round` - Removes acute corners smoothly
 - **AgriPV +20m expansion**: `joinStyle: bevel` - Expands back with chamfered corners to preserve geometric character
-- **Baugrenze -20m inset**: `joinStyle: bevel` - Creates clean chamfered corners, prevents spikes at acute angles while maintaining geometric character
+- **Baugrenze -20m inset**: `joinStyle: round` with `quadSegs: 32` - Maintains true perpendicular 20m distance at all corners, preventing shortcuts at sharp inward angles
 
 **Linetype Scales:**
 - **Baugrenze**: 0.5
