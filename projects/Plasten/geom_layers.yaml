@@ -611,19 +611,6 @@ geomLayers:
           - perimeter
         decimalPlaces:
           area: 0
-  - name: Biotoppuffer
-    # sync: push
-    viewports:
-      - name: WorkView
-        style:
-          color: "brilliant-green"
-          linetype: "ACAD_ISO02W100"
-    operations:
-      - type: buffer
-        layers:
-          - Biotope
-        distance: 10
-        joinStyle: mitre
   - name: Soft Exclusions
     # sync: push
     # These are areas AgriPV can expand 20m into (like Waldabstand, utility buffers, etc.)
@@ -646,7 +633,6 @@ geomLayers:
       - type: copy
         layers:
           - Biotope
-          - Biotoppuffer
           - Exclude Baufeld
       - type: dissolve
         useBufferTrick: true
@@ -939,25 +925,31 @@ geomLayers:
     sync: push
     style: geltungsbereich
     operations:
-      - type: intersection
+      - type: copy
         layers:
           - AgriPV
+      - type: intersection
+        layers:
           - Geltungsbereich NW Base
   - name: Geltungsbereich NO
     sync: push
     style: geltungsbereich
     operations:
-      - type: intersection
+      - type: copy
         layers:
           - AgriPV
+      - type: intersection
+        layers:
           - Geltungsbereich NO Base
   - name: Geltungsbereich S
     sync: push
     style: geltungsbereich
     operations:
-      - type: intersection
+      - type: copy
         layers:
           - AgriPV
+      - type: intersection
+        layers:
           - Geltungsbereich S Base
   - name: Baugrenze Temp
     # sync: push
@@ -966,8 +958,7 @@ geomLayers:
         layers:
           - AgriPV
         distance: -20
-        joinStyle: round
-        quadSegs: 16
+        joinStyle: mitre
       - type: difference
         reverseDifference: false
         layers:
