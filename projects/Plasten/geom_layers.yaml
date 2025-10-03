@@ -187,10 +187,6 @@ geomLayers:
 
   # 10m buffer: AgriPV must stay this far from Wald
   - name: Wald 10m Buffer
-    style:
-      layer:
-        color: "cyan"
-        plot: false
     operations:
       - type: buffer
         layers:
@@ -207,7 +203,7 @@ geomLayers:
         layers:
           - Wald
         distance: 30
-        joinStyle: mitre
+        joinStyle: round
         capStyle: round
         quadSegs: 32
 
@@ -221,7 +217,8 @@ geomLayers:
         layers:
           - Einzelbaumlinie
         distance: 20
-        joinStyle: mitre
+        joinStyle: round
+        quadSegs: 32
 
   # --------------------------------------------------------------------------
   # Road Edge Buffer: 20m
@@ -233,7 +230,8 @@ geomLayers:
         layers:
           - Straßenflurstückskante
         distance: 20
-        joinStyle: mitre
+        joinStyle: round
+        quadSegs: 32
 
   # --------------------------------------------------------------------------
   # FG Utility Line: 20m buffer (±40m total)
@@ -254,7 +252,7 @@ geomLayers:
       - type: dissolve
       - type: buffer
         distance: 20
-        joinStyle: mitre
+        joinStyle: round
         capStyle: round
         quadSegs: 32
 
@@ -276,7 +274,7 @@ geomLayers:
         layers:
           - Ontras_FG_buffer_4
         distance: 4
-        joinStyle: mitre
+        joinStyle: round
         capStyle: round
         quadSegs: 32
 
@@ -286,7 +284,7 @@ geomLayers:
         layers:
           - Ontras_FG_buffer_2
         distance: 2
-        joinStyle: mitre
+        joinStyle: round
         capStyle: round
         quadSegs: 32
 
@@ -308,7 +306,7 @@ geomLayers:
         layers:
           - Gebäude 150m Abstand
         distance: 150
-        joinStyle: mitre
+        joinStyle: round
         capStyle: round
         quadSegs: 32
 
@@ -439,9 +437,9 @@ geomLayers:
   # ==========================================================================
   # SECTION 5: AGRIPV CALCULATION
   # ==========================================================================
-  # Simple approach: AgriPV = Parcels - Hard Exclusions
-  # AgriPV extends right to the edge of utilities, roads, tree lines, etc.
-  # Those features only create dead zones for Baugrenze, not for AgriPV itself.
+  # AgriPV = (Parcels - Hard Exclusions) → -20m round → +20m bevel
+  # The -20/+20 buffer trick ensures Baugrenze can reach all areas of AgriPV
+  # while maintaining geometric character with chamfered corners.
 
   # --------------------------------------------------------------------------
   # AgriPV: Solar planning designation zone
