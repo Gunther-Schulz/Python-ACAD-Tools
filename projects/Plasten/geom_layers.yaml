@@ -693,3 +693,14 @@ geomLayers:
         distance: 0.5
         joinStyle: mitre
 
+  - name: Biotope Innerhalb Geltungsbereich
+    operations:
+      - type: copy
+        layers:
+          - Geschütze Biotope
+      - type: intersection
+        layers:
+          - Geltungsbereich NW
+          - Geltungsbereich NO
+          - Geltungsbereich S
+
