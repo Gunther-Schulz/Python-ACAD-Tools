@@ -6,11 +6,13 @@
 |----------------------------------------|-----------------|-----------------|--------------------|-----------------|--------------------|------------------------------|
 | **Wald (Forest)**                      | 30m             | ✓               | ✓                  | Full            | Yes (20m)          | Hard boundary with 10m gap   |
 | **Biotope**                            | Full area       | ✓               | ✓                  | Full            | No                 | Complete avoidance           |
+| **Moor**                               | 0m              | ✗               | ✓                  | Baugrenze-only  | Yes (full area)    | Extends over, no construction|
 | **Einzelbaumlinie (Tree Line)**        | 20m             | ✗               | ✓                  | Baugrenze-only  | Yes (20m)          | Extends to edge              |
 | **Straßenflurstückskante (Road Edge)** | 20m             | ✗               | ✓                  | Baugrenze-only  | Yes (20m)          | Extends to edge              |
 | **FG Utility Line**                    | 20m (±)         | ✗               | ✓                  | Baugrenze-only  | Yes (40m total)    | Allows crossing              |
 | **Gas Lines**                          | 4-8m (±)        | ✗               | ✓                  | Baugrenze-only  | Yes (8-16m total)  | Allows crossing              |
 | **Gebäude (Building)**                 | 150m            | ✗               | ✓                  | Baugrenze-only  | Yes (150m radius)  | Overlaps allowed             |
+| **Nutzungsartengrenze**                | Boundary line   | ✓               | ✓                  | Boundary        | N/A                | Hard clip (land use limit)   |
 | **Geltungsbereich**                    | Follows AgriPV  | N/A             | N/A                | Boundary        | N/A                | Defines legal planning scope |
 | **AgriPV Edge (General)**              | 20m inset       | N/A             | ✓                  | Baugrenze-only  | Yes (20m)          | Internal buffer              |
 
@@ -50,22 +52,23 @@ Areas within AgriPV where Baugrenze cannot be placed due to buffer requirements.
 - Manual exclusions
 
 **Baugrenze Exclusions** (only affects Baugrenze, not AgriPV):
+- Moor (0m buffer - stops at edge)
 - FG Buffer, Gas Buffer, Building Buffer
 - Note: Waldabstand, Roads, Trees NOT included - the 10m gap + 20m inset = 30m from forest, 20m from roads/trees already
 
 **AgriPV Calculation:**
 ```
-AgriPV = (Parcels - Hard Exclusions) → -20m round → +20m bevel
+AgriPV = (Parcels - Hard Exclusions) → -20m round → +20m bevel → clip to Nutzungsartengrenze
 ```
-The -20m/+20m buffer trick shapes AgriPV to ensure Baugrenze can reach all areas. The -20m round buffer removes acute corners that can't accommodate the 20m inset, then +20m bevel expands back with chamfered (not rounded) corners. This eliminates geometric dead zones while preserving angular character.
+The -20m/+20m buffer trick shapes AgriPV to ensure Baugrenze can reach all areas. The -20m round buffer removes acute corners that can't accommodate the 20m inset, then +20m bevel expands back with chamfered (not rounded) corners. This eliminates geometric dead zones while preserving angular character. Finally, AgriPV is clipped to the Nutzungsartengrenze boundary to respect land use constraints.
 
 **Baugrenze Calculation:**
 ```
 Baugrenze = (AgriPV - 20m round inset) - Baugrenze Exclusions
 ```
-The -20m round inset maintains true perpendicular distance from AgriPV at all corners. Then Baugrenze Exclusion zones (FG, Gas, Buildings) are subtracted for features crossing through AgriPV. Roads, Trees, and Waldabstand are automatically satisfied by the 20m inset at edges.
+The -20m round inset maintains true perpendicular distance from AgriPV at all corners. Then Baugrenze Exclusion zones (Moor, FG, Gas, Buildings) are subtracted for features crossing through AgriPV. Roads, Trees, and Waldabstand are automatically satisfied by the 20m inset at edges.
 
-**Result:** AgriPV extends to utilities/roads/trees, but maintains 10m gap from Wald. Baugrenze is 20m inset from AgriPV AND respects all buffer zones.
+**Result:** AgriPV extends to utilities/roads/trees and over Moor areas, but maintains 10m gap from Wald and is clipped to Nutzungsartengrenze. Baugrenze is 20m inset from AgriPV AND respects all buffer zones (including Moor).
 
 ---
 
@@ -98,6 +101,14 @@ Beyond the core zones, these features must be generated:
 **Combined Biotope Layer:**
 - **Biotope Input** + **Geschütze Biotope** → merged into single **Biotope** layer
 - **Geschütze Biotope 2** = Geschütze Biotope + 0.5m buffer (separate styling layer, synced)
+
+**Interior Ring Strategy:**
+Biotopes are hard exclusions that create holes in AgriPV and Baugrenze, but the legal planning boundary (Geltungsbereich) needed to be continuous without internal holes. The `removeInteriorRings` operation was applied after intersecting AgriPV with each Geltungsbereich Base zone (NW, NO, S) to fill in these biotope-created holes. This ensured:
+- AgriPV and Baugrenze properly avoided biotopes (with holes)
+- Geltungsbereich had a clean outer boundary without interior gaps
+- Legal planning scope encompassed the biotope areas even though construction couldn't occur there
+
+This strategy is no longer needed but demonstrates a technique for handling features that need different boundary treatment at different regulatory levels.
 
 ### Technical Buffer Specifications
 
@@ -166,16 +177,18 @@ These layers are synchronized to DXF (sync: push):
 11. **Flur** - Field boundaries
 12. **Gemarkung** - District boundaries
 13. **Gemeinde** - Municipality boundaries
-14. **Wald** - Forest polygons
-15. **Wald Schraffur** - Forest hatching
+14. **Nutzungsartengrenze** - Land use boundary (clips AgriPV)
+15. **Wald** - Forest polygons
+16. **Wald Schraffur** - Forest hatching
+17. **Moor** - Wetland/moor areas (soft exclusion)
 
 ### Infrastructure
-16. **FG_Unterirdisch** - Underground utility lines
-17. **FG_Oberirdisch** - Overhead utility lines
-18. **Gastrasse** - Gas lines
-19. **EinAusfahrt Line** - Entrance/access
-20. **Blendschutzzaun** - Anti-glare fence
+18. **FG_Unterirdisch** - Underground utility lines
+19. **FG_Oberirdisch** - Overhead utility lines
+20. **Gastrasse** - Gas lines
+21. **EinAusfahrt Line** - Entrance/access
+22. **Blendschutzzaun** - Anti-glare fence
 
 ### Biotopes
-21. **Geschütze Biotope 2** - Protected biotopes (+0.5m for styling)
+23. **Geschütze Biotope 2** - Protected biotopes (+0.5m for styling)
 

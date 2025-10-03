@@ -34,6 +34,11 @@ geomLayers:
   # Administrative Boundaries
   # --------------------------------------------------------------------------
 
+  - name: Nutzungsartengrenze
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/nutzungsartengrenze_pl.shp"
+    close: true
+    sync: push
+
   - name: Flur
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/flur.shp"
     label: flurname
@@ -92,7 +97,7 @@ geomLayers:
       - type: dissolve
 
   - name: Moor
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/moor.shp"
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/Moor.shp"
     close: true
     sync: push
     operations:
@@ -346,8 +351,9 @@ geomLayers:
 
   # --------------------------------------------------------------------------
   # Hard Exclusions: Areas where AgriPV can NEVER be
-  # Includes Wald + 10m gap, Moor, and Biotope
+  # Includes Wald + 10m gap and Biotope
   # Note: Biotope creates holes in AgriPV/Baugrenze, but these holes are filled in Geltungsbereich
+  # Note: Moor is now a soft exclusion (allows AgriPV but not Baugrenze)
   # --------------------------------------------------------------------------
 
   - name: Hard Exclusions
@@ -355,7 +361,6 @@ geomLayers:
       - type: copy
         layers:
           - Wald 10m Buffer
-          - Moor
           - Biotope
           # - Exclude Baufeld
           # - Exclude Geltungsbereich
@@ -364,6 +369,7 @@ geomLayers:
   # --------------------------------------------------------------------------
   # Baugrenze Exclusions: Buffer zones that Baugrenze must avoid
   # Note: Waldabstand NOT included - the 10m gap + 20m inset = 30m from forest already
+  # Note: Moor added as soft exclusion (0m buffer - Baugrenze stops at edge)
   # --------------------------------------------------------------------------
 
   - name: Baugrenze Exclusions
@@ -375,6 +381,7 @@ geomLayers:
           - Gebäude Buffer
           - Einzelbaumlinie Buffer
           - Straßenflurstückskante Buffer
+          - Moor
       - type: dissolve
 
   # ==========================================================================
@@ -469,9 +476,10 @@ geomLayers:
   # ==========================================================================
   # SECTION 5: AGRIPV CALCULATION
   # ==========================================================================
-  # AgriPV = (Parcels - Hard Exclusions) → -20m round → +20m bevel
+  # AgriPV = (Parcels - Hard Exclusions) → -20m round → +20m bevel → clip to Nutzungsartengrenze
   # The -20/+20 buffer trick ensures Baugrenze can reach all areas of AgriPV
   # while maintaining geometric character with chamfered corners.
+  # Finally clipped to Nutzungsartengrenze boundary to respect land use constraints.
 
   # --------------------------------------------------------------------------
   # AgriPV: Solar planning designation zone
@@ -505,6 +513,10 @@ geomLayers:
       - type: buffer
         distance: 20
         joinStyle: bevel  # Bevel keeps it geometric with chamfered corners, not rounded
+      # Clip to Nutzungsartengrenze boundary
+      - type: intersection
+        layers:
+          - Nutzungsartengrenze
       # Clean up small artifacts
       - type: filterGeometry
         minArea: 200
@@ -682,68 +694,70 @@ geomLayers:
   # SECTION 10: BIOTOPE OUTPUT
   # ==========================================================================
 
-  # Base biotope within Geltungsbereich
-  - name: Biotope Innerhalb Geltungsbereich
-    operations:
-      - type: copy
-        layers:
-          - Geschütze Biotope
-      - type: intersection
-        layers:
-          - Geltungsbereich NW
-          - Geltungsbereich NO
-          - Geltungsbereich S
+  # Commented out becasue we don't have any internal Biotope areas
 
-  # Inner biotope area (inset by 3m from boundary)
-  - name: Geschütze Biotope Innenfläche
-    sync: push
-    viewports:
-      - name: WorkView
-        style: biotopWorkView
-    operations:
-      - type: buffer
-        layers:
-          - Biotope Innerhalb Geltungsbereich
-        distance: -3
-        joinStyle: round
+  # # Base biotope within Geltungsbereich
+  # - name: Biotope Innerhalb Geltungsbereich
+  #   operations:
+  #     - type: copy
+  #       layers:
+  #         - Geschütze Biotope
+  #     - type: intersection
+  #       layers:
+  #         - Geltungsbereich NW
+  #         - Geltungsbereich NO
+  #         - Geltungsbereich S
 
-  # Solid hatching for inner biotope area
-  - name: Geschütze Biotope Innenfläche Schraffur
-    sync: push
-    style: grünfläche
-    applyHatch:
-      layers:
-        - Geschütze Biotope Innenfläche
+  # # Inner biotope area (inset by 3m from boundary)
+  # - name: Geschütze Biotope Innenfläche
+  #   sync: push
+  #   viewports:
+  #     - name: WorkView
+  #       style: biotopWorkView
+  #   operations:
+  #     - type: buffer
+  #       layers:
+  #         - Biotope Innerhalb Geltungsbereich
+  #       distance: -3
+  #       joinStyle: round
 
-  # Outer ring (3m wide border inside the biotope boundary)
-  - name: Geschütze Biotope Umgrenzung
-    sync: push
-    operations:
-      - type: copy
-        layers:
-          - Biotope Innerhalb Geltungsbereich
-      - type: difference
-        layers:
-          - Geschütze Biotope Innenfläche
-        reverseDifference: false
+  # # Solid hatching for inner biotope area
+  # - name: Geschütze Biotope Innenfläche Schraffur
+  #   sync: push
+  #   style: grünfläche
+  #   applyHatch:
+  #     layers:
+  #       - Geschütze Biotope Innenfläche
 
-  # T-symbol hatching for the outer ring
-  - name: Geschütze Biotope Umgrenzung Schraffur
-    sync: push
-    style: schutzflächeumgrenzung
-    applyHatch:
-      layers:
-        - Geschütze Biotope Umgrenzung
+  # # Outer ring (3m wide border inside the biotope boundary)
+  # - name: Geschütze Biotope Umgrenzung
+  #   sync: push
+  #   operations:
+  #     - type: copy
+  #       layers:
+  #         - Biotope Innerhalb Geltungsbereich
+  #     - type: difference
+  #       layers:
+  #         - Geschütze Biotope Innenfläche
+  #       reverseDifference: false
 
-  # Biotope outline with special linetype
-  - name: Geschütze Biotope 2
-    sync: push
-    linetypeGeneration: true
-    style: gesGeschuetzesBiotop
-    operations:
-      - type: buffer
-        layers:
-          - Geschütze Biotope
-        distance: 0.5
-        joinStyle: mitre
+  # # T-symbol hatching for the outer ring
+  # - name: Geschütze Biotope Umgrenzung Schraffur
+  #   sync: push
+  #   style: schutzflächeumgrenzung
+  #   applyHatch:
+  #     layers:
+  #       - Geschütze Biotope Umgrenzung
+
+  # # Biotope outline with special linetype
+  # - name: Geschütze Biotope 2
+  #   sync: push
+  #   linetypeGeneration: true
+  #   style: gesGeschuetzesBiotop
+  #   operations:
+  #     - type: buffer
+  #       layers:
+  #         - Geschütze Biotope
+  #       distance: 0.5
+  #       joinStyle: mitre
 
