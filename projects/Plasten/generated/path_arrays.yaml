@@ -1,11 +1,11 @@
 pathArrays:
-  # - name: "Schutzflächeumgrenzung T-Symbol Array"
-  #   sync: push
-  #   sourceLayer: "Schutzflächeumgrenzung T-Symbol Temp"
-  #   block: "T-Symbol"
-  #   spacing: 7
-  #   scale: 0.6
-  #   bufferDistance: 0.6
+  - name: "Geschütze Biotope Umgrenzung T-Symbol Array"
+    sync: push
+    sourceLayer: "Geschütze Biotope Umgrenzung"
+    block: "T-Symbol"
+    spacing: 7
+    scale: 0.6
+    bufferDistance: 0.6
   - name: "FG Line Array Oberirdisch"
     sync: push
     sourceLayer: "FG_Oberirdisch"

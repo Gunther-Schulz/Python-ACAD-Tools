@@ -582,17 +582,17 @@ legends:
       #       type: area
       #       style: grünflächeLegend
       #       applyHatch: true
-      # - name: "Planungen, Nutzungsregelungen, Maßnahmen und Flächen für Maßnahmen zum Schutz, zur Pflege und zur Entwicklung von Natur und Landschaft"
-      #   sync: push
-      #   subtitle: "§ 9 Abs.1 Nr. 20 BauGB"
-      #   items:
-      #     - name: "Umgrenzung von Flächen für Maßnahmen zum Schutz, zur Pflege und zur Entwicklung von Natur und Landschaft"
-      #       type: empty
-      #       blockSymbol: "Schutzflächeumgrenzung"
-      #     - name: "Umgrenzung von Flächen zum Anpflanzen von Bäumen, Sträuchern und sonstigen Bepflanzungen"
-      #       subtitle: "(§ 9 Abs. 1 Nr. 25 Buchstabe a) und Abs. 6 BauGB)"
-      #       type: empty
-      #       blockSymbol: "Bepflanzungen Legende"
+      - name: "Planungen, Nutzungsregelungen, Maßnahmen und Flächen für Maßnahmen zum Schutz, zur Pflege und zur Entwicklung von Natur und Landschaft"
+        sync: push
+        subtitle: "§ 9 Abs.1 Nr. 20 BauGB"
+        items:
+          - name: "Umgrenzung von Flächen für Maßnahmen zum Schutz, zur Pflege und zur Entwicklung von Natur und Landschaft"
+            type: empty
+            blockSymbol: "Schutzflächeumgrenzung"
+          - name: "Umgrenzung von Flächen zum Anpflanzen von Bäumen, Sträuchern und sonstigen Bepflanzungen"
+            subtitle: "(§ 9 Abs. 1 Nr. 25 Buchstabe a) und Abs. 6 BauGB)"
+            type: empty
+            blockSymbol: "Bepflanzungen Legende"
       - name: "Sonstige Planzeichen"
         sync: push
         items:
