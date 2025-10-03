@@ -281,7 +281,7 @@ geomLayers:
     operations:
       - type: buffer
         layers:
-          - name: Geltungsbereich NW Base
+          - name: Geltungsbereich NW
         distance: 2
         joinStyle: mitre
   # - name: Geltungsbereich Hatch NW
@@ -372,7 +372,7 @@ geomLayers:
     operations:
       - type: buffer
         layers:
-          - name: Geltungsbereich NO Base
+          - name: Geltungsbereich NO
         distance: 2
         joinStyle: mitre
   - name: Geltungsbereich S Base
@@ -443,7 +443,7 @@ geomLayers:
     operations:
       - type: buffer
         layers:
-          - name: Geltungsbereich S Base
+          - name: Geltungsbereich S
         distance: 2
         joinStyle: mitre
   - name: Geltungsbereich Hatch NW
@@ -939,31 +939,25 @@ geomLayers:
     sync: push
     style: geltungsbereich
     operations:
-      - type: copy
-        layers:
-          - AgriPV
       - type: intersection
         layers:
+          - AgriPV
           - Geltungsbereich NW Base
   - name: Geltungsbereich NO
     sync: push
     style: geltungsbereich
     operations:
-      - type: copy
-        layers:
-          - AgriPV
       - type: intersection
         layers:
+          - AgriPV
           - Geltungsbereich NO Base
   - name: Geltungsbereich S
     sync: push
     style: geltungsbereich
     operations:
-      - type: copy
-        layers:
-          - AgriPV
       - type: intersection
         layers:
+          - AgriPV
           - Geltungsbereich S Base
   - name: Baugrenze Temp
     # sync: push
