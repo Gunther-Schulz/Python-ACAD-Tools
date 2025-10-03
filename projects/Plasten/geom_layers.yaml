@@ -35,7 +35,7 @@ geomLayers:
   # --------------------------------------------------------------------------
 
   - name: Nutzungsartengrenze
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/nutzungsartengrenze5_pl.shp"
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/nutzungsartengrenze_pl.shp"
     close: true
     sync: push
 
