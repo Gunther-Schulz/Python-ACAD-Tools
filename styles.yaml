@@ -263,6 +263,13 @@ styles:
       angle: 45
       individual_hatches: false
 
+  agripvLinesLegend:
+    hatch:
+      pattern: "ANSI31"
+      scale: 2
+      angle: 45
+      individual_hatches: false
+
   baugrenze:
     layer:
       linetype: ACAD_ISO11W100
@@ -298,13 +305,14 @@ styles:
   geltungsbereich:
     layer:
       color: "red"
+      linetypeGeneration: true
 
   geltungsbereich_2:
     layer:
       color: "granite"
       linetype: "ACAD_ISO02W100"
       lineweight: 211
-      # linetypeGeneration: true
+      linetypeGeneration: true
       # linetypeScale: 30
 
   geltungsbereichFPlan:

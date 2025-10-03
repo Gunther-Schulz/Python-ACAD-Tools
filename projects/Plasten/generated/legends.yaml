@@ -71,45 +71,45 @@ legends:
           - name: "Baugrenze"
             type: empty
             blockSymbol: "Baugrenze"   
-      - name: "Verkehrsflächen"
-        sync: push
-        subtitle: "(§ 9 Abs. 1 Nr. 11 und Abs. 6 BauGB)"
-        items:
-          - name: "Verkehrsfläche besonderer Zweckbestimmung"
-            type: area
-            applyHatch: true
-            style: verkehrsfläche
-          - name: "Verkehrsberuhigter Bereich"
-            type: empty
-            blockSymbol: "Verkehrsberuhigter Bereich"
-            blockSymbolScale: 2
-          - name: "Privat"
-            type: empty
-            blockSymbol: "Privat"
-            blockSymbolScale: 2
-      - name: "Grünflächen"
-        sync: push
-        subtitle: "§ 9 Abs.1 Nr. 15 BauGB"
-        items:
-          - name: "Private Grünflächen"
-            type: area
-            style: grünflächeLegend
-            applyHatch: true
-      - name: "Wasserflächen und Flächen für die Wasserwirtschaft, den Hochwasserschutz und die Regelung des Wasserabflusses"
-        sync: push
-        subtitle: "§ 9 Abs. 1 Nr. 16 BauBG"
-        items:
-          - name: "Wasserflächen"
-            type: area
-            style: waterLegend
-            applyHatch: true
-      - name: "Planungen, Nutzungsregelungen, Maßnahmen und Flächen für Maßnahmen zum Schutz, zur Pflege und zur Entwicklung von Natur und Landschaft"
-        sync: push
-        subtitle: "§ 9 Abs.1 Nr. 20 BauGB"
-        items:
-          - name: "Umgrenzung von Flächen für Maßnahmen zum Schutz, zur Pflege und zur Entwicklung von Natur und Landschaft"
-            type: empty
-            blockSymbol: "Schutzflächeumgrenzung"
+      # - name: "Verkehrsflächen"
+      #   sync: push
+      #   subtitle: "(§ 9 Abs. 1 Nr. 11 und Abs. 6 BauGB)"
+      #   items:
+      #     - name: "Verkehrsfläche besonderer Zweckbestimmung"
+      #       type: area
+      #       applyHatch: true
+      #       style: verkehrsfläche
+      #     - name: "Verkehrsberuhigter Bereich"
+      #       type: empty
+      #       blockSymbol: "Verkehrsberuhigter Bereich"
+      #       blockSymbolScale: 2
+      #     - name: "Privat"
+      #       type: empty
+      #       blockSymbol: "Privat"
+      #       blockSymbolScale: 2
+      # - name: "Grünflächen"
+      #   sync: push
+      #   subtitle: "§ 9 Abs.1 Nr. 15 BauGB"
+      #   items:
+      #     - name: "Private Grünflächen"
+      #       type: area
+      #       style: grünflächeLegend
+      #       applyHatch: true
+      # - name: "Wasserflächen und Flächen für die Wasserwirtschaft, den Hochwasserschutz und die Regelung des Wasserabflusses"
+      #   sync: push
+      #   subtitle: "§ 9 Abs. 1 Nr. 16 BauBG"
+      #   items:
+      #     - name: "Wasserflächen"
+      #       type: area
+      #       style: waterLegend
+      #       applyHatch: true
+      # - name: "Planungen, Nutzungsregelungen, Maßnahmen und Flächen für Maßnahmen zum Schutz, zur Pflege und zur Entwicklung von Natur und Landschaft"
+      #   sync: push
+      #   subtitle: "§ 9 Abs.1 Nr. 20 BauGB"
+      #   items:
+      #     - name: "Umgrenzung von Flächen für Maßnahmen zum Schutz, zur Pflege und zur Entwicklung von Natur und Landschaft"
+      #       type: empty
+      #       blockSymbol: "Schutzflächeumgrenzung"
       - name: "Sonstige Planzeichen"
         sync: push
         items:
@@ -127,17 +127,17 @@ legends:
             type: area
             blockSymbol: "Leitung unterirdisch"
             blockSymbolScale: 2
-          - name: "Mit Geh-, Fahr- und Leitungsrechten zu belastende Flächen"
-            subtitle: "(§ 9 Abs.1 Nr.21 und Abs. 6 BauGB)"
-            type: area
-            rectangleStyle: gfl1
-            blockSymbol: "GFL1"
-            blockSymbolScale: 2
-          - name: "Mit Geh-, Fahr- und Leitungsrechten zu belastende Flächen"
-            subtitle: "(§ 9 Abs.1 Nr.21 und Abs. 6 BauGB)"
-            type: empty
-            blockSymbol: "GFL2"
-            blockSymbolScale: 1.6
+          # - name: "Mit Geh-, Fahr- und Leitungsrechten zu belastende Flächen"
+          #   subtitle: "(§ 9 Abs.1 Nr.21 und Abs. 6 BauGB)"
+          #   type: area
+          #   rectangleStyle: gfl1
+          #   blockSymbol: "GFL1"
+          #   blockSymbolScale: 2
+          # - name: "Mit Geh-, Fahr- und Leitungsrechten zu belastende Flächen"
+          #   subtitle: "(§ 9 Abs.1 Nr.21 und Abs. 6 BauGB)"
+          #   type: empty
+          #   blockSymbol: "GFL2"
+          #   blockSymbolScale: 1.6
       - name: "Darstellung ohne Normcharakter"
         sync: push
         items:
@@ -173,18 +173,20 @@ legends:
             type: area
             style: waldLegend
             applyHatch: true
-          - name: "Baum"
-            type: empty
-            blockSymbol: "Baum"
-            blockSymbolScale: 1.8
-          - name: "Baum erhalten"
-            type: empty
-            blockSymbol: "Baum erhalten"
-            blockSymbolScale: 1.8
-          - name: "Abgrenzung unterschiedlicher Nutzung, z. B. von Baugebieten, oder Abgrenzung des Maßes der Nutzung innerhalb eines Baugebiets z.B. § 1 Abs. 4 § 16 Abs. 5 BauNVO)"
-            type: empty
-            blockSymbol: "Abgrenzung unterschiedlicher Nutzung"
-            blockSymbolScale: 1.4
+          # - name: "Baum"
+          #   type: empty
+          #   blockSymbol: "Baum"
+          #   blockSymbolScale: 1.8
+          # - name: "Baum erhalten"
+          #   type: empty
+          #   blockSymbol: "Baum erhalten"
+          #   blockSymbolScale: 1.8
+          # - name: "Abgrenzung unterschiedlicher Nutzung, z. B. von Baugebieten, oder Abgrenzung des Maßes der Nutzung innerhalb eines Baugebiets z.B. § 1 Abs. 4 § 16 Abs. 5 BauNVO)"
+          #   type: empty
+          #   blockSymbol: "Abgrenzung unterschiedlicher Nutzung"
+          #   blockSymbolScale: 1.4
+# Legend NW 6
+# ---------
   - id: "Legend NW"
     title: "Planzeichen"
     subtitle: "(gem. PlanzV 1990-PlanzV 90 v.18.12.1990)"
@@ -245,21 +247,21 @@ legends:
           - name: "Baugrenze"
             type: empty
             blockSymbol: "Baugrenze"   
-      - name: "Grünflächen"
-        sync: push
-        subtitle: "§ 9 Abs.1 Nr. 15 BauGB"
-        items:
-          - name: "Private Grünflächen"
-            type: area
-            style: grünflächeLegend
-            applyHatch: true
-      - name: "Planungen, Nutzungsregelungen, Maßnahmen und Flächen für Maßnahmen zum Schutz, zur Pflege und zur Entwicklung von Natur und Landschaft"
-        sync: push
-        subtitle: "§ 9 Abs.1 Nr. 20 BauGB"
-        items:
-          - name: "Umgrenzung von Flächen für Maßnahmen zum Schutz, zur Pflege und zur Entwicklung von Natur und Landschaft"
-            type: empty
-            blockSymbol: "Schutzflächeumgrenzung"
+      # - name: "Grünflächen"
+      #   sync: push
+      #   subtitle: "§ 9 Abs.1 Nr. 15 BauGB"
+      #   items:
+      #     - name: "Private Grünflächen"
+      #       type: area
+      #       style: grünflächeLegend
+      #       applyHatch: true
+      # - name: "Planungen, Nutzungsregelungen, Maßnahmen und Flächen für Maßnahmen zum Schutz, zur Pflege und zur Entwicklung von Natur und Landschaft"
+      #   sync: push
+      #   subtitle: "§ 9 Abs.1 Nr. 20 BauGB"
+      #   items:
+      #     - name: "Umgrenzung von Flächen für Maßnahmen zum Schutz, zur Pflege und zur Entwicklung von Natur und Landschaft"
+      #       type: empty
+      #       blockSymbol: "Schutzflächeumgrenzung"
       - name: "Sonstige Planzeichen"
         sync: push
         items:
@@ -310,8 +312,8 @@ legends:
           - name: "Gebäude - Bestand"
             type: empty
             blockSymbol: "Gebäude"
-# Legend NO
-  # ---------
+# Legend NO 5
+# ---------
   - id: "Legend NO"
     title: "Planzeichen"
     subtitle: "(gem. PlanzV 1990-PlanzV 90 v.18.12.1990)"
@@ -347,14 +349,24 @@ legends:
       text_style: "Arial"
       attachment_point: MTEXT_MIDDLE_LEFT
     groups:
+      # - name: "Art der baulichen Nutzung"
+      #   sync: push
+      #   subtitle: "§ 9 Abs. 1 Nr. 1 BauGB"
+      #   items:
+      #     - name: "Sonstiges Sondergebiet (§ 11 Abs. 2 BauNVO) Zweckbestimmung: Energiegewinnung auf der Basis solarer Strahlungsenergie"
+      #       type: area
+      #       applyHatch: true
+      #       style: baufeldLegend
+      #       blockSymbol: "Sonstiges Sondergebiet EBS"
+      #       blockSymbolScale: 2
       - name: "Art der baulichen Nutzung"
         sync: push
-        subtitle: "§ 9 Abs. 1 Nr. 1 BauGB"
+        subtitle: "§ 9 Abs. 1 Nr. 1 BauGB, § 11 BauNVO"
         items:
-          - name: "Sonstiges Sondergebiet (§ 11 Abs. 2 BauNVO) Zweckbestimmung: Energiegewinnung auf der Basis solarer Strahlungsenergie"
+          - name: "Sonstige Sondergebiete - Zweckbestimmung: Agri-PV gem. DIN SPEC 91434"
             type: area
             applyHatch: true
-            style: baufeldLegend
+            style: agripvLinesLegend
             blockSymbol: "Sonstiges Sondergebiet EBS"
             blockSymbolScale: 2
       - name: "Maß der baulichen Nutzung"
@@ -380,25 +392,25 @@ legends:
             # subtitle: "(§ 9 Abs. 1 Nr. 4, 11 und Abs. 6 BauGB)"
             type: empty
             blockSymbol: "EinAusfahrt"
-      - name: "Grünflächen"
-        sync: push
-        subtitle: "§ 9 Abs.1 Nr. 15 BauGB"
-        items:
-          - name: "Private Grünflächen"
-            type: area
-            style: grünflächeLegend
-            applyHatch: true
-      - name: "Planungen, Nutzungsregelungen, Maßnahmen und Flächen für Maßnahmen zum Schutz, zur Pflege und zur Entwicklung von Natur und Landschaft"
-        sync: push
-        subtitle: "§ 9 Abs.1 Nr. 20 BauGB"
-        items:
-          - name: "Umgrenzung von Flächen für Maßnahmen zum Schutz, zur Pflege und zur Entwicklung von Natur und Landschaft"
-            type: empty
-            blockSymbol: "Schutzflächeumgrenzung"
-          - name: "Umgrenzung von Flächen zum Anpflanzen von Bäumen, Sträuchern und sonstigen Bepflanzungen"
-            subtitle: "(§ 9 Abs. 1 Nr. 25 Buchstabe a) und Abs. 6 BauGB)"
-            type: empty
-            blockSymbol: "Bepflanzungen Legende"
+      # - name: "Grünflächen"
+      #   sync: push
+      #   subtitle: "§ 9 Abs.1 Nr. 15 BauGB"
+      #   items:
+      #     - name: "Private Grünflächen"
+      #       type: area
+      #       style: grünflächeLegend
+      #       applyHatch: true
+      # - name: "Planungen, Nutzungsregelungen, Maßnahmen und Flächen für Maßnahmen zum Schutz, zur Pflege und zur Entwicklung von Natur und Landschaft"
+      #   sync: push
+      #   subtitle: "§ 9 Abs.1 Nr. 20 BauGB"
+      #   items:
+      #     - name: "Umgrenzung von Flächen für Maßnahmen zum Schutz, zur Pflege und zur Entwicklung von Natur und Landschaft"
+      #       type: empty
+      #       blockSymbol: "Schutzflächeumgrenzung"
+      #     - name: "Umgrenzung von Flächen zum Anpflanzen von Bäumen, Sträuchern und sonstigen Bepflanzungen"
+      #       subtitle: "(§ 9 Abs. 1 Nr. 25 Buchstabe a) und Abs. 6 BauGB)"
+      #       type: empty
+      #       blockSymbol: "Bepflanzungen Legende"
       - name: "Sonstige Planzeichen"
         sync: push
         items:
@@ -441,17 +453,17 @@ legends:
             type: area
             style: waldLegend
             applyHatch: true
-          - name: "Baum"
-            type: empty
-            blockSymbol: "Baum"
-            blockSymbolScale: 1.8
+          # - name: "Baum"
+          #   type: empty
+          #   blockSymbol: "Baum"
+          #   blockSymbolScale: 1.8
           - name: "Gebäude - Bestand"
             type: empty
             blockSymbol: "Gebäude"
-          - name: "Blendschutzzaun"
-            type: line
-            style: blendschutzzaun
-  # Legend S
+          # - name: "Blendschutzzaun"
+          #   type: line
+          #   style: blendschutzzaun
+  # Legend S 7
   # ---------
   - id: "Legend S"
     title: "Planzeichen"
@@ -513,21 +525,21 @@ legends:
           - name: "Baugrenze"
             type: empty
             blockSymbol: "Baugrenze"   
-      - name: "Grünflächen"
-        sync: push
-        subtitle: "§ 9 Abs.1 Nr. 15 BauGB"
-        items:
-          - name: "Private Grünflächen"
-            type: area
-            style: grünflächeLegend
-            applyHatch: true
-      - name: "Planungen, Nutzungsregelungen, Maßnahmen und Flächen für Maßnahmen zum Schutz, zur Pflege und zur Entwicklung von Natur und Landschaft"
-        sync: push
-        subtitle: "§ 9 Abs.1 Nr. 20 BauGB"
-        items:
-          - name: "Umgrenzung von Flächen für Maßnahmen zum Schutz, zur Pflege und zur Entwicklung von Natur und Landschaft"
-            type: empty
-            blockSymbol: "Schutzflächeumgrenzung"
+      # - name: "Grünflächen"
+      #   sync: push
+      #   subtitle: "§ 9 Abs.1 Nr. 15 BauGB"
+      #   items:
+      #     - name: "Private Grünflächen"
+      #       type: area
+      #       style: grünflächeLegend
+      #       applyHatch: true
+      # - name: "Planungen, Nutzungsregelungen, Maßnahmen und Flächen für Maßnahmen zum Schutz, zur Pflege und zur Entwicklung von Natur und Landschaft"
+      #   sync: push
+      #   subtitle: "§ 9 Abs.1 Nr. 20 BauGB"
+      #   items:
+      #     - name: "Umgrenzung von Flächen für Maßnahmen zum Schutz, zur Pflege und zur Entwicklung von Natur und Landschaft"
+      #       type: empty
+      #       blockSymbol: "Schutzflächeumgrenzung"
       - name: "Sonstige Planzeichen"
         sync: push
         items:
