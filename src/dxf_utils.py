@@ -769,10 +769,11 @@ def create_hatch(msp, boundary_paths, hatch_config, project_loader):
 
     pattern = hatch_config.get('pattern', 'SOLID')
     pattern_scale = hatch_config.get('scale', 1)
+    pattern_angle = hatch_config.get('angle', 0)
 
     if pattern != 'SOLID':
         try:
-            hatch.set_pattern_fill(pattern, scale=pattern_scale)
+            hatch.set_pattern_fill(pattern, scale=pattern_scale, angle=pattern_angle)
         except ezdxf.DXFValueError:
             log_warning(f"Invalid hatch pattern: {pattern}. Using SOLID instead.")
             hatch.set_pattern_fill("SOLID")

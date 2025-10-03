@@ -176,14 +176,14 @@ geomLayers:
   # Manual Exclusions
   # --------------------------------------------------------------------------
 
-  - name: Exclude Baufeld
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/Exclude Baufeld.shp"
+  # - name: Exclude Baufeld
+  #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/Exclude Baufeld.shp"
 
-  - name: Exclude Baugrenze
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/Exclude Baugrenze.shp"
+  # - name: Exclude Baugrenze
+  #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/Exclude Baugrenze.shp"
 
-  - name: Exclude Geltungsbereich
-    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/exclude_v2.shp"
+  # - name: Exclude Geltungsbereich
+  #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/exclude_v2.shp"
 
   # --------------------------------------------------------------------------
   # Infrastructure Inputs
@@ -348,8 +348,8 @@ geomLayers:
         layers:
           - Wald 10m Buffer
           - Biotope
-          - Exclude Baufeld
-          - Exclude Geltungsbereich
+          # - Exclude Baufeld
+          # - Exclude Geltungsbereich
       - type: dissolve
 
   # --------------------------------------------------------------------------
@@ -473,7 +473,7 @@ geomLayers:
     sync: push
     viewports:
       - name: WorkView
-        style: baufeld
+        style: agripv
     operations:
       # Start with all parcels
       - type: copy
@@ -598,7 +598,7 @@ geomLayers:
       - type: difference
         layers:
           - Baugrenze Exclusions
-          - Exclude Baugrenze
+          # - Exclude Baugrenze
         reverseDifference: false
 
   - name: Baugrenze 2
@@ -626,9 +626,16 @@ geomLayers:
       layers:
         - Wald
 
-  - name: AgriPV Schraffur
+  - name: AgriPV Schraffur Solid
     sync: push
-    style: baufeld
+    style: agripvSolid
+    applyHatch:
+      layers:
+        - AgriPV
+
+  - name: AgriPV Schraffur Lines
+    sync: push
+    style: agripvLines
     applyHatch:
       layers:
         - AgriPV

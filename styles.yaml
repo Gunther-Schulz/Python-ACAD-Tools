@@ -242,6 +242,27 @@ styles:
       color: "vermilion-light"
       transparency: 0.6
 
+  agripv:
+    layer:
+      color: "lime"
+      transparency: 0.6
+
+  agripvSolid:
+    layer:
+      color: "lime"
+      transparency: 0.6
+    hatch:
+      pattern: "SOLID"
+      color: "lime"
+      individual_hatches: false
+
+  agripvLines:
+    hatch:
+      pattern: "ANSI31"
+      scale: 5
+      angle: 45
+      individual_hatches: false
+
   baugrenze:
     layer:
       linetype: ACAD_ISO11W100
@@ -306,18 +327,18 @@ styles:
 
   grünfläche:
     layer:
-      color: "lime"
+      color: "green-medium"
       transparency: 0.6
 
   grünflächeLegend:
     hatch:
-      color: "lime"
+      color: "green-medium"
       transparency: 0.6
       individual_hatches: false
 
   grünflächeWorkView:
     layer:
-      color: "lime"
+      color: "green-medium"
       transparency: 0.6
 
   verkehrsfläche:
