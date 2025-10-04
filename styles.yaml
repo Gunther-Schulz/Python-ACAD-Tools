@@ -195,14 +195,17 @@ styles:
       lineweight: 30
 
   wald:
+    layer:
+      lineweight: 80
     hatch:
-      pattern: 'ANSI31'
+      pattern: 'DOTS'
       scale: 5
       individual_hatches: false
 
   waldLegend:
     hatch:
-      pattern: 'ANSI31'
+      lineweight: 80
+      pattern: 'DOTS'
       scale: 2
 
   waldWorkView:
