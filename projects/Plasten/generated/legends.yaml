@@ -265,14 +265,14 @@ legends:
           - name: "Baugrenze"
             type: empty
             blockSymbol: "Baugrenze"
-      - name: "Verkehrsflächen"
-        sync: push
-        subtitle: "(§ 9 Abs. 1 Nr. 11 und Abs. 6 BauGB)"
-        items:
-          - name: "Ein- und Ausfahrt"
-            # subtitle: "(§ 9 Abs. 1 Nr. 4, 11 und Abs. 6 BauGB)"
-            type: empty
-            blockSymbol: "EinAusfahrt"
+      # - name: "Verkehrsflächen"
+      #   sync: push
+      #   subtitle: "(§ 9 Abs. 1 Nr. 11 und Abs. 6 BauGB)"
+      #   items:
+      #     - name: "Ein- und Ausfahrt"
+      #       # subtitle: "(§ 9 Abs. 1 Nr. 4, 11 und Abs. 6 BauGB)"
+      #       type: empty
+      #       blockSymbol: "EinAusfahrt"
       # - name: "Grünflächen"
       #   sync: push
       #   subtitle: "§ 9 Abs.1 Nr. 15 BauGB"
@@ -453,6 +453,14 @@ legends:
       #       subtitle: "(§ 9 Abs. 1 Nr. 25 Buchstabe a) und Abs. 6 BauGB)"
       #       type: empty
       #       blockSymbol: "Bepflanzungen Legende"
+      - name: "Flächen für die Landwirtschaft"
+        sync: push
+        subtitle: "§ 9 Abs. 1 Nr. 18 BauGB"
+        items:
+          - name: "Fläche für die Landwirtschaft"
+            type: area
+            applyHatch: true
+            style: agripvLegend
       - name: "Sonstige Planzeichen"
         sync: push
         items:
@@ -609,6 +617,14 @@ legends:
             subtitle: "(§ 9 Abs. 1 Nr. 25 Buchstabe a) und Abs. 6 BauGB)"
             type: empty
             blockSymbol: "Bepflanzungen Legende"
+      - name: "Flächen für die Landwirtschaft"
+        sync: push
+        subtitle: "§ 9 Abs. 1 Nr. 18 BauGB"
+        items:
+          - name: "Fläche für die Landwirtschaft"
+            type: area
+            applyHatch: true
+            style: agripvLegend
       - name: "Sonstige Planzeichen"
         sync: push
         items:

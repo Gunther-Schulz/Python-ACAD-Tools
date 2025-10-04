@@ -1,8 +1,6 @@
 # Generated Block Placements
 # For bulk placement of blocks from source layer geometries
 
-# BUG: Instead of replacing it keeps adding duplicates on each run
-
 blockPlacements:
 - name: EinAusfahrt
   sync: push

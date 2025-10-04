@@ -1,22 +1,4 @@
 texts:
-- name: Main Title NW
-  targetLayer: Plantext
-  sync: skip
-  paperspace: true
-  text: 'Vorentwurf Agri-PV: Vorhabensbezogener Bebauungsplan Nr. 6 „Solarpark am
-    Devener Weg“
-
-    der Gemeinde Groß Plasten'
-  position:
-    type: absolute
-    x: 1650
-    y: 856
-  style: mainTitle
-  _sync:
-    dxf_handle: 8C7BB
-    content_hash: 430296307b98e170361bca30847a4c8994db14c7334fb5360ef97cc300d87196
-    last_sync_time: 1759581181
-    sync_source: yaml
 - name: Map Header NW
   targetLayer: Plantext
   sync: skip
@@ -34,7 +16,7 @@ texts:
     sync_source: yaml
 - name: Übersichtslarte Header NW
   targetLayer: Plantext
-  sync: auto
+  sync: skip
   paperspace: true
   text: Übersichtskarte i. M. 1:30.000
   position:
@@ -48,48 +30,6 @@ texts:
     last_sync_time: 1759583873
     sync_source: dxf
   layer: Plantext
-- name: Satzungs NW
-  targetLayer: Plantext
-  sync: skip
-  paperspace: true
-  justification: CENTER
-  text: 'VORENTWURF AGRI-PV
-
-    SATZUNG DER GEMEINDE
-
-    GROß PLASTEN
-
-    ÜBER DEN VORHABENSBEZOGENEN BEBAUUNGSPLAN
-
-    NR: 6 „Solarpark am Devener Weg“'
-  position:
-    type: absolute
-    x: 2590
-    y: 265
-  style: satzungstext
-  _sync:
-    dxf_handle: 8C7BE
-    content_hash: 62a6b2dda188868367708c82d9913d58f9b9861ddf11ff8a9874b3c0e24bc552
-    last_sync_time: 1759581181
-    sync_source: yaml
-- name: Main Title NO
-  targetLayer: Plantext
-  sync: skip
-  paperspace: true
-  text: 'Vorentwurf Agri-PV: Vorhabensbezogener Bebauungsplan Nr. 5 „Solarpark am
-    Spargelberg“
-
-    der Gemeinde Groß Plasten'
-  position:
-    type: absolute
-    x: 3650
-    y: 856
-  style: mainTitle
-  _sync:
-    dxf_handle: 8C7BF
-    content_hash: 0ba035e1c47a5e2e15e2a482aa9a897b51734490e32bf1fddcaca1014a3dc59f
-    last_sync_time: 1759581181
-    sync_source: yaml
 - name: Map Header NO
   targetLayer: Plantext
   sync: skip
@@ -107,62 +47,20 @@ texts:
     sync_source: yaml
 - name: Übersichtslarte Header NO
   targetLayer: Plantext
-  sync: auto
+  sync: skip
   paperspace: true
   text: Übersichtskarte i. M. 1:30.000
   position:
     type: absolute
     x: 4400.0
-    y: 404.1422450868867
+    y: 379.1476052943589
   style: übersichtskarteHeader
   _sync:
     dxf_handle: 8C7C1
-    content_hash: f16f5a48ddef047ea47b479ae0e078c859b0c1fbb9d15b90643ace281902d3c6
-    last_sync_time: 1759583873
+    content_hash: 00283d6dc6bfbb3f3f00395602cb0b07950413c8b220f0c10b5265bbf5b1f0ea
+    last_sync_time: 1759584802
     sync_source: dxf
   layer: Plantext
-- name: Satzungs NO
-  targetLayer: Plantext
-  sync: skip
-  paperspace: true
-  justification: CENTER
-  text: 'VORENTWURF AGRI-PV
-
-    SATZUNG DER GEMEINDE
-
-    GROß PLASTEN
-
-    ÜBER DEN VORHABENSBEZOGENEN BEBAUUNGSPLAN
-
-    NR: 5 „Solarpark am Spargelberg“'
-  position:
-    type: absolute
-    x: 4590
-    y: 265
-  style: satzungstext
-  _sync:
-    dxf_handle: 8C7C2
-    content_hash: 07e2eb3deafba59b4f3f5574b52f8c58be8afdd4bb23be74d589574fe7828ec3
-    last_sync_time: 1759581181
-    sync_source: yaml
-- name: Main Title S
-  targetLayer: Plantext
-  sync: skip
-  paperspace: true
-  text: 'Vorentwurf Agri-PV: Vorhabensbezogener Bebauungsplan Nr. 7 „Solarpark an
-    der Straße nach Rockow“
-
-    der Gemeinde Groß Plasten'
-  position:
-    type: absolute
-    x: 5650
-    y: 856
-  style: mainTitle
-  _sync:
-    dxf_handle: 8C7C3
-    content_hash: cd95ff2a45b70f19c8d29bb28ed4bbb466152e0c37950a86b8dac3962ba30427
-    last_sync_time: 1759581181
-    sync_source: yaml
 - name: Map Header S
   targetLayer: Plantext
   sync: skip
@@ -180,44 +78,20 @@ texts:
     sync_source: yaml
 - name: Übersichtslarte Header S
   targetLayer: Plantext
-  sync: auto
+  sync: skip
   paperspace: true
   text: Übersichtskarte i. M. 1:30.000
   position:
     type: absolute
     x: 6400.0
-    y: 364.6054893734436
+    y: 372.6236460069495
   style: übersichtskarteHeader
   _sync:
     dxf_handle: 8C7C5
-    content_hash: 64588444baa30619c4e2fe4c283cd2ab79a7b8b1f12a97dba95531a12e80dc55
-    last_sync_time: 1759583873
+    content_hash: 0e8e2d149694f81103005813e5b4847ab95658f802afefe415a6f9c27a0259be
+    last_sync_time: 1759584802
     sync_source: dxf
   layer: Plantext
-- name: Satzungs S
-  targetLayer: Plantext
-  sync: skip
-  paperspace: true
-  justification: CENTER
-  text: 'VORENTWURF AGRI-PV
-
-    SATZUNG DER GEMEINDE
-
-    GROß PLASTEN
-
-    ÜBER DEN VORHABENSBEZOGENEN BEBAUUNGSPLAN
-
-    NR: 7 „Solarpark an der Straße nach Rockow“'
-  position:
-    type: absolute
-    x: 6590
-    y: 265
-  style: satzungstext
-  _sync:
-    dxf_handle: 8C7C6
-    content_hash: 83c3e3ae3419a98335da99b8470890e089b926f0f29a7304a2764fa319c7ea8b
-    last_sync_time: 1759581181
-    sync_source: yaml
 discover_untracked_layers: []
 deletion_policy: confirm
 default_layer: Plantext
