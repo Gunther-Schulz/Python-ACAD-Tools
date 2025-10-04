@@ -157,6 +157,29 @@ def find_entity_by_xdata_name(space, entity_name, entity_types=None):
             continue
     return None
 
+def _extract_entity_name_from_xdata(entity):
+    """
+    Extract entity name from entity XDATA.
+
+    Args:
+        entity: DXF entity with potential XDATA
+
+    Returns:
+        str: Entity name if found, None otherwise
+    """
+    try:
+        xdata = entity.get_xdata(XDATA_APP_ID)
+        if xdata:
+            found_name_key = False
+            for code, value in xdata:
+                if code == 1000 and value == XDATA_ENTITY_NAME_KEY:
+                    found_name_key = True
+                elif found_name_key and code == 1000:
+                    return value
+    except Exception:
+        pass
+    return None
+
 def extract_content_hash_from_xdata(entity):
     """
     Extract content hash from entity XDATA.
@@ -302,7 +325,22 @@ def add_text(msp, text, x, y, layer_name, style_name, height=5, color=None):
     )
     return text_entity
 
-def remove_entities_by_layer(msp, layer_names, script_identifier):
+def remove_entities_by_layer(msp, layer_names, script_identifier, skip_entity_names=None):
+    """
+    Remove entities from specified layers.
+    
+    Args:
+        msp: Model space
+        layer_names: Layer name or list of layer names to clean
+        script_identifier: Script identifier to filter entities
+        skip_entity_names: Set of entity names to SKIP (protect from deletion)
+    """
+    if skip_entity_names is None:
+        skip_entity_names = set()
+    
+    # Normalize skip names for matching
+    skip_entity_names_normalized = {name.lower().strip() for name in skip_entity_names if name}
+    
     with profile_operation("Remove Entities By Layer", f"layers: {layer_names}"):
         doc = msp.doc
         key_func = doc.layers.key
@@ -352,6 +390,7 @@ def remove_entities_by_layer(msp, layer_names, script_identifier):
             return 0
 
     # Proceed with deletion
+    skipped_count = 0
     with doc.entitydb.trashcan() as trash:
         for space in [doc.modelspace(), doc.paperspace()]:
             for entity in doc.entitydb.values():
@@ -360,6 +399,18 @@ def remove_entities_by_layer(msp, layer_names, script_identifier):
                         continue
 
                     if key_func(entity.dxf.layer) in layer_keys and is_created_by_script(entity, script_identifier):
+                        # CRITICAL: Check if entity is in skip list before deletion
+                        if skip_entity_names or skip_entity_names_normalized:
+                            entity_name = _extract_entity_name_from_xdata(entity)
+                            entity_name_normalized = entity_name.lower().strip() if entity_name else None
+                            
+                            if (entity_name in skip_entity_names or 
+                                entity_name_normalized in skip_entity_names_normalized):
+                                # SKIP this entity - it's protected
+                                log_debug(f"Protecting skip entity '{entity_name}' from bulk layer cleaning")
+                                skipped_count += 1
+                                continue
+                        
                         try:
                             # Clear any XDATA before deletion
                             try:
@@ -375,6 +426,9 @@ def remove_entities_by_layer(msp, layer_names, script_identifier):
                             continue
                 except AttributeError:
                     continue
+    
+    if skipped_count > 0:
+        log_info(f"Protected {skipped_count} skip entities from deletion")
 
     # Try to perform cleanup operations
     try:

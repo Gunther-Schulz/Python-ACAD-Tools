@@ -15,7 +15,16 @@ class UnifiedSyncProcessor(ABC):
     - push: Bulk replacement (for generated content like geom_layers)
     - auto: Selective updates (for manual content like text_inserts)
     - pull: Read-only (update YAML from DXF)
-    - skip: No processing
+    - skip: HANDS-OFF - entity properties never modified, only XDATA sync_mode aligned
+    
+    SKIP MODE GUARANTEES:
+    - No metadata initialization (no _sync added to YAML)
+    - No sync processing of entity properties
+    - No YAML updates
+    - No DXF property modifications (geometry, text, position, etc.)
+    - ONLY XDATA sync_mode aligned to 'skip' for state consistency
+    - Protected from orphan cleanup (even if XDATA has old sync_mode)
+    - Protected from bulk layer cleaning
     """
 
     def __init__(self, project_settings, script_identifier, entity_type, project_loader=None):
@@ -131,6 +140,10 @@ class UnifiedSyncProcessor(ABC):
             if discovery_results.get('yaml_updated'):
                 yaml_updated = True
 
+        # Step 5.5: Align XDATA sync_mode for skip entities (state consistency)
+        if entities_by_mode['skip']:
+            self._align_skip_entity_metadata(doc, space, entities_by_mode['skip'])
+
         # Step 6: Clean up orphaned entities (entities in DXF but removed from YAML)
         if entities_by_mode['auto'] or entities_by_mode['push']:
             orphan_results = self._handle_orphaned_entities(doc, space, entity_configs)
@@ -161,6 +174,11 @@ class UnifiedSyncProcessor(ABC):
         log_debug(f"Grouped {self.entity_type} entities: push={len(entities_by_mode['push'])}, "
                  f"auto={len(entities_by_mode['auto'])}, pull={len(entities_by_mode['pull'])}, "
                  f"skip={len(entities_by_mode['skip'])}")
+        
+        # Log skip entities explicitly - they will NOT be touched
+        if entities_by_mode['skip']:
+            skip_names = [config.get('name', 'unnamed') for config in entities_by_mode['skip']]
+            log_debug(f"⏭️  SKIP mode: {len(entities_by_mode['skip'])} {self.entity_type} entities will be left completely alone: {', '.join(skip_names)}")
 
         return entities_by_mode
 
@@ -291,27 +309,44 @@ class UnifiedSyncProcessor(ABC):
         """
         Bulk clean target layers for push mode entities.
         This is the traditional layer cleaning approach.
+        
+        CRITICAL: Must protect skip entities on the same layer!
         """
         target_layers = set()
         for config in configs:
             layer_name = self._resolve_entity_layer(config)
             target_layers.add(layer_name)
 
-        # Clean layers using traditional approach
+        # Get ALL configs (including skip) to protect skip entities on same layers
+        all_configs = self._get_entity_configs()
+        skip_entity_names = {config.get('name') for config in all_configs 
+                            if config.get('name') and self._get_sync_direction(config) == 'skip'}
+
+        # Clean layers using traditional approach, but protect skip entities
         for layer_name in target_layers:
             log_debug(f"Bulk cleaning {self.entity_type} entities from layer: {layer_name}")
-            self._clean_layer_entities(doc, layer_name)
+            if skip_entity_names:
+                log_debug(f"Protecting {len(skip_entity_names)} skip entities from bulk cleaning: {', '.join(skip_entity_names)}")
+            self._clean_layer_entities(doc, layer_name, skip_entity_names)
 
-    def _clean_layer_entities(self, doc, layer_name):
+    def _clean_layer_entities(self, doc, layer_name, skip_entity_names=None):
         """
         Clean entities from a specific layer.
         Can be overridden by subclasses for space-specific handling.
+        
+        Args:
+            doc: DXF document
+            layer_name: Layer to clean
+            skip_entity_names: Set of entity names to SKIP (don't delete)
         """
+        if skip_entity_names is None:
+            skip_entity_names = set()
+        
         # Default: clean from both model and paper space
         spaces = [doc.modelspace(), doc.paperspace()]
         for space in spaces:
             from src.dxf_utils import remove_entities_by_layer
-            remove_entities_by_layer(space, layer_name, self.script_identifier)
+            remove_entities_by_layer(space, layer_name, self.script_identifier, skip_entity_names)
 
     def _get_sync_direction(self, config):
         """
@@ -765,7 +800,18 @@ class UnifiedSyncProcessor(ABC):
 
             else:
                 # No changes detected - both exist and are synchronized
-                log_debug(f"🔄 AUTO: '{entity_name}' unchanged - maintaining current state")
+                # However, check if XDATA sync_mode needs updating (e.g., switched from skip → auto)
+                from src.dxf_utils import _extract_sync_mode_from_xdata
+                dxf_sync_mode = _extract_sync_mode_from_xdata(existing_entity)
+                yaml_sync_mode = self._get_sync_direction(config)
+                
+                if dxf_sync_mode and dxf_sync_mode != yaml_sync_mode:
+                    log_info(f"🔄 AUTO: Sync mode changed for '{entity_name}' (DXF: {dxf_sync_mode} → YAML: {yaml_sync_mode}) - updating XDATA")
+                    self._attach_entity_metadata(existing_entity, config)
+                    # Note: No need to update stored hash since content unchanged
+                else:
+                    log_debug(f"🔄 AUTO: '{entity_name}' unchanged - maintaining current state")
+                
                 return {'entity': existing_entity, 'yaml_updated': False}
 
         else:
@@ -1309,6 +1355,47 @@ class UnifiedSyncProcessor(ABC):
         
         return deleted_configs
 
+    def _align_skip_entity_metadata(self, doc, space, skip_configs):
+        """
+        Align XDATA sync_mode for skip entities to maintain state consistency.
+        
+        Even though skip = hands-off, we update JUST the sync_mode metadata
+        so XDATA matches YAML. This is a minimal touch for clarity and consistency.
+        
+        Args:
+            doc: DXF document
+            space: Model space or paper space
+            skip_configs: List of entity configs with sync='skip'
+        """
+        aligned_count = 0
+        
+        for config in skip_configs:
+            try:
+                entity_name = config.get('name', 'unnamed')
+                
+                # Find entity in DXF
+                entity = self._find_entity_by_name(doc, entity_name)
+                if not entity:
+                    continue
+                
+                # Check current XDATA sync_mode
+                from src.dxf_utils import _extract_sync_mode_from_xdata
+                dxf_sync_mode = _extract_sync_mode_from_xdata(entity)
+                
+                # Only update if XDATA sync_mode differs from 'skip'
+                if dxf_sync_mode and dxf_sync_mode != 'skip':
+                    # Update ONLY the sync_mode in XDATA (minimal touch)
+                    self._attach_entity_metadata(entity, config)
+                    log_debug(f"⏭️  Aligned XDATA sync_mode to 'skip' for '{entity_name}' (was '{dxf_sync_mode}')")
+                    aligned_count += 1
+                    
+            except Exception as e:
+                log_debug(f"Error aligning skip entity metadata for '{config.get('name', 'unnamed')}': {str(e)}")
+                continue
+        
+        if aligned_count > 0:
+            log_info(f"⏭️  Aligned XDATA sync_mode for {aligned_count} skip {self.entity_type} entities")
+
     def _handle_orphaned_entities(self, doc, space, current_configs):
         """
         Clean up entities that exist in DXF but are no longer in YAML configuration.
@@ -1325,12 +1412,24 @@ class UnifiedSyncProcessor(ABC):
         Returns:
             dict: Result with deleted_count
         """
+        # SAFETY: Skip orphaned cleanup only for 'ignore' policy
+        # With 'confirm' policy, orphan cleanup runs but prompts user for confirmation
         if self.deletion_policy == 'ignore':
             log_debug(f"Orphaned entity cleanup skipped - deletion policy is 'ignore'")
             return {'deleted_count': 0}
 
-        # Get current config names for comparison
+        # CRITICAL: Get current config names for comparison
+        # This MUST include all entities that exist in YAML, even if they couldn't be found in DXF
         current_names = {config.get('name') for config in current_configs if config.get('name')}
+        # Also create normalized version for robust matching (case-insensitive, whitespace-stripped)
+        current_names_normalized = {name.lower().strip() for name in current_names if name}
+        
+        # CRITICAL FIX: Build set of SKIP entity names from YAML
+        # Entities with sync: skip in YAML should NEVER be considered orphaned,
+        # even if their DXF XDATA still says 'push' or 'auto' from before they were changed to skip
+        skip_entity_names = {config.get('name') for config in current_configs 
+                            if config.get('name') and self._get_sync_direction(config) == 'skip'}
+        skip_entity_names_normalized = {name.lower().strip() for name in skip_entity_names if name}
 
         # Find orphaned entities managed by our script
         orphaned_entities = []
@@ -1343,13 +1442,29 @@ class UnifiedSyncProcessor(ABC):
                     entity_name = self._get_entity_name_from_xdata(entity)
                     entity_sync_mode = _extract_sync_mode_from_xdata(entity)
 
-                    # Only check auto/push mode entities (where YAML is source of truth)
-                    # Skip if entity name not found or if entity is still in current configs
+                    # Normalize entity name for matching
+                    entity_name_normalized = entity_name.lower().strip() if entity_name else None
+                    
+                    # CRITICAL: Check if entity is marked as 'skip' in YAML
+                    # Skip entities should NEVER be considered orphaned, regardless of XDATA sync_mode
+                    is_skip_in_yaml = (entity_name in skip_entity_names or 
+                                      entity_name_normalized in skip_entity_names_normalized)
+                    
+                    # Check if entity is still in current configs
+                    is_in_current_configs = (entity_name in current_names or 
+                                            entity_name_normalized in current_names_normalized)
+                    
+                    # Only consider entity orphaned if:
+                    # 1. XDATA says it's auto/push mode (YAML was source of truth)
+                    # 2. Entity name exists
+                    # 3. NOT in current YAML configs (was removed from YAML)
+                    # 4. NOT marked as 'skip' in YAML (skip entities are intentionally left alone)
                     if (entity_sync_mode in ['auto', 'push'] and
                         entity_name and
-                        entity_name not in current_names):
+                        not is_in_current_configs and
+                        not is_skip_in_yaml):
                         orphaned_entities.append((entity, entity_name))
-                        log_debug(f"Found orphaned {self.entity_type} entity: '{entity_name}' (sync_mode: {entity_sync_mode})")
+                        log_debug(f"Found orphaned {self.entity_type} entity: '{entity_name}' (XDATA sync_mode: {entity_sync_mode})")
 
         except Exception as e:
             log_warning(f"Error scanning for orphaned {self.entity_type} entities: {str(e)}")
@@ -1394,6 +1509,9 @@ class UnifiedSyncProcessor(ABC):
 
         # Ask for confirmation
         response = input(f"\nDelete these {len(orphaned_entities)} orphaned {self.entity_type} entities? (y/N): ").lower().strip()
+        # Default to "n" (no) if user just presses Enter - safer for destructive operations
+        if not response:
+            response = 'n'
 
         if response == 'y':
             try:
