@@ -25,8 +25,6 @@ def create_remove_protrusions_layer(all_layers, project_settings, crs, layer_nam
     buffer_distance : float
         Buffer distance for identifying main body (default: 1.0)
     """
-    log_info(f"=== STARTING removeProtrusions operation for layer: {layer_name} ===")
-
     if layer_name not in all_layers:
         log_error(f"Layer '{layer_name}' not found for remove protrusions operation")
         return None
@@ -41,18 +39,21 @@ def create_remove_protrusions_layer(all_layers, project_settings, crs, layer_nam
     min_protrusion_length = operation.get('minProtrusionLength', 3.0)
     buffer_distance = operation.get('bufferDistance', 1.0)
 
-    log_info(f"Using parameters - protrusion_threshold: {protrusion_threshold}, min_protrusion_length: {min_protrusion_length}")
+    log_debug(f"removeProtrusions for layer '{layer_name}': threshold={protrusion_threshold}, min_length={min_protrusion_length}")
 
     # Process each geometry
     cleaned_geometries = []
     total_removed = 0
+    total_original_area = 0
+    total_cleaned_area = 0
 
     for idx, row in input_gdf.iterrows():
         geom = row.geometry
         if geom is None or geom.is_empty:
             continue
 
-        log_info(f"Processing feature {idx}: {geom.geom_type}, area={geom.area:.1f}")
+        log_debug(f"Processing feature {idx}: {geom.geom_type}, area={geom.area:.1f}")
+        original_area = geom.area
 
         if isinstance(geom, Polygon):
             cleaned_geom, removed_count = _remove_polygon_protrusions_conservative(
@@ -77,8 +78,13 @@ def create_remove_protrusions_layer(all_layers, project_settings, crs, layer_nam
             new_row = row.copy()
             new_row.geometry = cleaned_geom
             cleaned_geometries.append(new_row)
+            total_original_area += original_area
+            total_cleaned_area += cleaned_geom.area
 
-    log_info(f"=== COMPLETED removeProtrusions: Removed {total_removed} protrusions from {len(cleaned_geometries)} features ===")
+    # Only log if something was actually removed
+    if total_removed > 0:
+        area_loss_pct = (total_original_area - total_cleaned_area) / total_original_area * 100 if total_original_area > 0 else 0
+        log_info(f"removeProtrusions for layer '{layer_name}': Removed {total_removed} protrusions from {len(cleaned_geometries)} features (area loss: {area_loss_pct:.2f}%)")
 
     if cleaned_geometries:
         result_gdf = gpd.GeoDataFrame(cleaned_geometries, crs=crs)
@@ -147,7 +153,7 @@ def _remove_polygon_protrusions_conservative(polygon, protrusion_threshold, min_
             log_debug(f"Feature {label}: Would remove too much area ({area_loss:.1%}), keeping original")
             return polygon, 0
 
-        log_info(f"Feature {label}: Removed {len(significant_protrusions)} protrusions, area loss: {area_loss:.1%}")
+        log_debug(f"Feature {label}: Removed {len(significant_protrusions)} protrusions, area loss: {area_loss:.1%}")
         return result_polygon, len(significant_protrusions)
 
     except Exception as e:

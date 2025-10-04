@@ -29,8 +29,6 @@ def create_remove_degenerate_spikes_layer(all_layers, project_settings, crs, lay
     min_spike_length : float
         Minimum length to consider as spike (default: 0.1m)
     """
-    log_info(f"=== STARTING removeDegenerateSpikes operation for layer: {layer_name} ===")
-    
     if layer_name not in all_layers:
         log_error(f"Layer '{layer_name}' not found for remove degenerate spikes operation")
         return None
@@ -45,11 +43,13 @@ def create_remove_degenerate_spikes_layer(all_layers, project_settings, crs, lay
     simplify_tolerance = operation.get('simplifyTolerance', 0.05)  # 5cm simplification
     min_spike_length = operation.get('minSpikeLength', 0.1)  # 10cm minimum spike
     
-    log_info(f"Parameters: tolerance={tolerance}, simplify={simplify_tolerance}, minSpike={min_spike_length}")
+    log_debug(f"removeDegenerateSpikes for layer '{layer_name}': tolerance={tolerance}, simplify={simplify_tolerance}, minSpike={min_spike_length}")
     
     # Process each geometry
     cleaned_geometries = []
     total_spikes_removed = 0
+    total_original_area = 0
+    total_cleaned_area = 0
     
     for idx, row in input_gdf.iterrows():
         geom = row.geometry
@@ -57,6 +57,7 @@ def create_remove_degenerate_spikes_layer(all_layers, project_settings, crs, lay
             continue
         
         log_debug(f"Processing feature {idx}: {geom.geom_type}, area={geom.area:.1f}")
+        original_area = geom.area
         
         try:
             if isinstance(geom, Polygon):
@@ -85,6 +86,8 @@ def create_remove_degenerate_spikes_layer(all_layers, project_settings, crs, lay
                 new_row = row.copy()
                 new_row.geometry = cleaned_geom
                 cleaned_geometries.append(new_row)
+                total_original_area += original_area
+                total_cleaned_area += cleaned_geom.area
             else:
                 log_warning(f"Feature {idx}: Cleaning resulted in empty/invalid geometry")
                 
@@ -92,8 +95,13 @@ def create_remove_degenerate_spikes_layer(all_layers, project_settings, crs, lay
             log_warning(f"Feature {idx}: Error during spike removal - {e}, keeping original")
             new_row = row.copy()
             cleaned_geometries.append(new_row)
+            total_original_area += original_area
+            total_cleaned_area += original_area
     
-    log_info(f"=== COMPLETED removeDegenerateSpikes: Removed {total_spikes_removed} spikes from {len(cleaned_geometries)} features ===")
+    # Only log if something was actually removed
+    if total_spikes_removed > 0:
+        area_change_pct = abs(total_original_area - total_cleaned_area) / total_original_area * 100 if total_original_area > 0 else 0
+        log_info(f"removeDegenerateSpikes for layer '{layer_name}': Removed {total_spikes_removed} spikes from {len(cleaned_geometries)} features (area change: {area_change_pct:.2f}%)")
     
     if cleaned_geometries:
         result_gdf = gpd.GeoDataFrame(cleaned_geometries, crs=crs)
@@ -178,7 +186,7 @@ def _remove_degenerate_spikes_from_polygon(polygon, tolerance, simplify_toleranc
         # Check if we changed something
         if spikes_removed > 0:
             area_loss = abs(polygon.area - cleaned.area) / polygon.area if polygon.area > 0 else 0
-            log_info(f"Feature {label}: Removed {spikes_removed} vertices/spikes, area change: {area_loss:.2%}")
+            log_debug(f"Feature {label}: Removed {spikes_removed} vertices/spikes, area change: {area_loss:.2%}")
         
         return cleaned, spikes_removed
         
@@ -386,7 +394,7 @@ def _remove_collinear_vertices(polygon, tolerance=0.01):
             return None
         
         if collinear_removed > 0:
-            log_info(f"Removed {collinear_removed} collinear vertices from exterior")
+            log_debug(f"Removed {collinear_removed} collinear vertices from exterior")
         
         # Process interior rings
         cleaned_interiors = []
@@ -424,7 +432,7 @@ def _remove_collinear_vertices(polygon, tolerance=0.01):
             if len(cleaned_interior) >= 4:
                 cleaned_interiors.append(cleaned_interior)
                 if interior_collinear > 0:
-                    log_info(f"Removed {interior_collinear} collinear vertices from interior ring")
+                    log_debug(f"Removed {interior_collinear} collinear vertices from interior ring")
         
         # Create cleaned polygon
         return Polygon(cleaned_exterior, cleaned_interiors)

@@ -315,28 +315,11 @@ class BlockPlacementUtils:
         Returns:
             Single block reference or None
         """
+        points_and_rotations = BlockPlacementUtils.get_insertion_points(config.get('position', {}), all_layers)
         name = config.get('name')
-        block_name = config.get('blockName')
-        position_config = config.get('position', {})
-        source_layer = position_config.get('sourceLayer')
-        
-        log_debug(f"🔍 BLOCK INSERT DEBUG: Attempting to place block insert '{name}'")
-        log_debug(f"  - Block name: {block_name}")
-        log_debug(f"  - Source layer: {source_layer}")
-        log_debug(f"  - Available layers in all_layers: {list(all_layers.keys())[:20]}")
-        log_debug(f"  - Source layer exists: {source_layer in all_layers if source_layer else 'N/A'}")
-        
-        if source_layer and source_layer in all_layers:
-            layer_data = all_layers[source_layer]
-            log_debug(f"  - Source layer type: {type(layer_data)}")
-            if hasattr(layer_data, 'geometry'):
-                log_debug(f"  - Source layer geometry count: {len(layer_data.geometry)}")
-        
-        points_and_rotations = BlockPlacementUtils.get_insertion_points(position_config, all_layers)
-        log_debug(f"  - Insertion points found: {len(points_and_rotations) if points_and_rotations else 0}")
 
         if not points_and_rotations:
-            log_warning(f"❌ No insertion points found for block insert '{name}'")
+            log_warning(f"No insertion points found for block insert '{name}'")
             return None
 
         # For sync, we only create one block reference (first point)
@@ -358,14 +341,6 @@ class BlockPlacementUtils:
         layer_name = config.get('layer', name)
         if layer_name not in space.doc.layers:
             space.doc.layers.new(layer_name)
-
-        # Check if block exists before trying to insert
-        log_debug(f"  - Checking if block '{block_name}' exists in document...")
-        if block_name not in space.doc.blocks:
-            available_blocks = [b.name for b in space.doc.blocks if not b.name.startswith('*')][:20]
-            log_warning(f"❌ Block '{block_name}' not found in document!")
-            log_warning(f"   Available blocks: {available_blocks}")
-            return None
 
         block_ref = add_block_reference(
             space,

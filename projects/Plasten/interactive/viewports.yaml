@@ -109,14 +109,58 @@ viewports:
   lockZoom: true
   _sync:
     dxf_handle: 8AA97
-    content_hash: 82cf94f4a0158c3802af8cddb02dfc11f6db507ecff44e11b84283842a7cab4b
-    last_sync_time: 1759580744
-    sync_source: dxf
+    content_hash: 548019b7ab13bbb9270c7baf5e479e7c16f5a2ecab7873dd745f70105c51c288
+    last_sync_time: 1759581456
+    sync_source: yaml
   center:
     x: 2486.0
-    y: 303.5
+    y: 242.1565531513406
   frozenLayers:
-  - Grünfläche
+  - WMS Gebäude
+  - WMS Höhenlinien
+  - Gastrasse
+  - AgriPV
+  - AgriPV Schraffur
+  - AgriPV Schraffur Solid
+  - AgriPV Schraffur Lines
+  - Moor
+  - Geschütze Biotope Innenfläche
+  - Geschütze Biotope Innenfläche Schraffur
+  - Geschütze Biotope Umgrenzung
+  - Geschütze Biotope Umgrenzung Schraffur
+  - Nutzungsartengrenze
+  - Exclude Geltungsbereich
+  - Geschütze Biotope Umgrenzung T-Symbol Array
+  - Legend_Legend NW_Verkehrsflächen
+  - Legend_Legend S_Verkehrsflächen
+  - RAHMEN
+  - Defpoints
+  - 0-BLOCKS
+  - Gebäude
+  - Parcel Label
+  - Blendschutzzaun
+  - EinAusfahrt Line
+  - Baum Points
+  - Flur
+  - Gemarkung
+  - Gemeinde
+  - Wald
+  - Wald Schraffur
+  - Geschütze Biotope
+  - Geschütze Biotope 2
+  - Geltungsbereich NW 2
+  - Geltungsbereich NO
+  - Geltungsbereich NO 2
+  - Geltungsbereich S
+  - Geltungsbereich S 2
+  - Geltungsbereich Hatch NO
+  - Geltungsbereich Hatch S
+  - Baugrenze 2
+  - Baugrenze
+  - BLOCKS
+  - Plantext
+  - Legend_Main Legend_Title
+  - Legend_Legend NW_Title
   - Legend_Legend NO_Title
   - Legend_Legend S_Title
   - Legend_Main Legend_Art der baulichen Nutzung
@@ -168,51 +212,7 @@ viewports:
   - FG Line Array Oberirdisch
   - FG Line Array Unterirdisch
   - Gastrasse Array
-  - Flur
-  - Gemarkung
-  - Gemeinde
-  - Wald
-  - Wald Schraffur
-  - Geschütze Biotope
-  - Geschütze Biotope 2
-  - Geltungsbereich NW 2
-  - Geltungsbereich NO
-  - Geltungsbereich NO 2
-  - Geltungsbereich S
-  - Geltungsbereich S 2
-  - Geltungsbereich Hatch NO
-  - Geltungsbereich Hatch S
-  - Baugrenze 2
-  - Baugrenze
-  - BLOCKS
-  - Plantext
-  - Legend_Main Legend_Title
-  - Legend_Legend NW_Title
-  - Defpoints
-  - 0-BLOCKS
-  - Gebäude
-  - Parcel Label
-  - Blendschutzzaun
-  - EinAusfahrt Line
-  - Baum Points
-  - WMS Gebäude
-  - WMS Höhenlinien
-  - Gastrasse
-  - AgriPV
-  - AgriPV Schraffur
-  - AgriPV Schraffur Solid
-  - AgriPV Schraffur Lines
-  - Moor
-  - Geschütze Biotope Innenfläche
-  - Geschütze Biotope Innenfläche Schraffur
-  - Geschütze Biotope Umgrenzung
-  - Geschütze Biotope Umgrenzung Schraffur
-  - Nutzungsartengrenze
-  - Exclude Geltungsbereich
-  - Geschütze Biotope Umgrenzung T-Symbol Array
-  - Legend_Legend NW_Verkehrsflächen
-  - Legend_Legend S_Verkehrsflächen
-  - RAHMEN
+  - Grünfläche
 - name: MapViewportNO
   color: magenta
   topLeft:
@@ -268,11 +268,11 @@ viewports:
   topLeft:
     x: 4400
     y: 296
-  height: 74.0
+  height: 136.0862129740144
   width: 172.0
   viewCenter:
     x: 358132.0
-    y: 5935986.0
+    y: 5935054.70680539
   scale: 30.0
   visibleLayers:
   - Geltungsbereich NO
@@ -281,14 +281,58 @@ viewports:
   lockZoom: true
   _sync:
     dxf_handle: 8AA9A
-    content_hash: 2b66749d8107552c222331dec77662f06b9ae08d9e124603d05868641db30eed
-    last_sync_time: 1759580744
-    sync_source: dxf
+    content_hash: c4f9fafc5d56c58a971b096ed9a99bf123189cceb49e6e345cb9df7ccd4db195
+    last_sync_time: 1759581456
+    sync_source: yaml
   center:
     x: 4486.0
-    y: 259.0
+    y: 223.5689538584238
   frozenLayers:
-  - Grünfläche
+  - WMS Gebäude
+  - WMS Höhenlinien
+  - Gastrasse
+  - AgriPV
+  - AgriPV Schraffur
+  - AgriPV Schraffur Solid
+  - AgriPV Schraffur Lines
+  - Moor
+  - Geschütze Biotope Innenfläche
+  - Geschütze Biotope Innenfläche Schraffur
+  - Geschütze Biotope Umgrenzung
+  - Geschütze Biotope Umgrenzung Schraffur
+  - Nutzungsartengrenze
+  - Exclude Geltungsbereich
+  - Geschütze Biotope Umgrenzung T-Symbol Array
+  - Legend_Legend NW_Verkehrsflächen
+  - Legend_Legend S_Verkehrsflächen
+  - RAHMEN
+  - Defpoints
+  - 0-BLOCKS
+  - Gebäude
+  - Parcel Label
+  - Blendschutzzaun
+  - EinAusfahrt Line
+  - Baum Points
+  - Flur
+  - Gemarkung
+  - Gemeinde
+  - Wald
+  - Wald Schraffur
+  - Geschütze Biotope
+  - Geschütze Biotope 2
+  - Geltungsbereich NW
+  - Geltungsbereich NW 2
+  - Geltungsbereich NO 2
+  - Geltungsbereich S
+  - Geltungsbereich S 2
+  - Geltungsbereich Hatch NW
+  - Geltungsbereich Hatch S
+  - Baugrenze 2
+  - Baugrenze
+  - BLOCKS
+  - Plantext
+  - Legend_Main Legend_Title
+  - Legend_Legend NW_Title
   - Legend_Legend NO_Title
   - Legend_Legend S_Title
   - Legend_Main Legend_Art der baulichen Nutzung
@@ -340,51 +384,7 @@ viewports:
   - FG Line Array Oberirdisch
   - FG Line Array Unterirdisch
   - Gastrasse Array
-  - Flur
-  - Gemarkung
-  - Gemeinde
-  - Wald
-  - Wald Schraffur
-  - Geschütze Biotope
-  - Geschütze Biotope 2
-  - Geltungsbereich NW
-  - Geltungsbereich NW 2
-  - Geltungsbereich NO 2
-  - Geltungsbereich S
-  - Geltungsbereich S 2
-  - Geltungsbereich Hatch NW
-  - Geltungsbereich Hatch S
-  - Baugrenze 2
-  - Baugrenze
-  - BLOCKS
-  - Plantext
-  - Legend_Main Legend_Title
-  - Legend_Legend NW_Title
-  - Defpoints
-  - 0-BLOCKS
-  - Gebäude
-  - Parcel Label
-  - Blendschutzzaun
-  - EinAusfahrt Line
-  - Baum Points
-  - WMS Gebäude
-  - WMS Höhenlinien
-  - Gastrasse
-  - AgriPV
-  - AgriPV Schraffur
-  - AgriPV Schraffur Solid
-  - AgriPV Schraffur Lines
-  - Moor
-  - Geschütze Biotope Innenfläche
-  - Geschütze Biotope Innenfläche Schraffur
-  - Geschütze Biotope Umgrenzung
-  - Geschütze Biotope Umgrenzung Schraffur
-  - Nutzungsartengrenze
-  - Exclude Geltungsbereich
-  - Geschütze Biotope Umgrenzung T-Symbol Array
-  - Legend_Legend NW_Verkehrsflächen
-  - Legend_Legend S_Verkehrsflächen
-  - RAHMEN
+  - Grünfläche
 - name: MapViewportS
   color: magenta
   topLeft:
@@ -415,8 +415,8 @@ viewports:
   topLeft:
     x: 6396
     y: 857
-  height: 450.0
-  width: 180.0
+  height: 474.4157264395207
+  width: 175.7217803302155
   viewTopLeft:
     x: 369330
     y: 5942622
@@ -425,27 +425,27 @@ viewports:
   lockZoom: true
   _sync:
     dxf_handle: 8AA9C
-    content_hash: 743d39b46db96007e0877d3b0eda328196dc72a8bfd7e90e5cdee2285a21ac27
-    last_sync_time: 1759580744
+    content_hash: 6d2b2b286066af3ad65351c6361ca4aac173d36f0d2d260b157a3724b64180ec
+    last_sync_time: 1759581108
     sync_source: dxf
   center:
-    x: 6486.0
-    y: 632.0
+    x: 6483.860890165108
+    y: 619.7921367802396
   viewCenter:
-    x: 369420.0
-    y: 5942397.0
+    x: 369417.8608901651
+    y: 5942384.79213678
   scale: 1.0
 - name: ÜbersichtskarteS
   color: magenta
   topLeft:
     x: 6400
     y: 385
-  height: 89.93618818796676
-  width: 170.1846505045032
+  height: 134.3648164061469
+  width: 170.4464567945205
   viewCenter:
-    x: 357645.7697575676
-    y: 5931093.042822819
-  scale: 30.0
+    x: 357690.9285491435
+    y: 5932170.79300384
+  scale: 30.000002
   visibleLayers:
   - Geltungsbereich S
   - Geltungsbereich Hatch S
@@ -453,14 +453,13 @@ viewports:
   lockZoom: true
   _sync:
     dxf_handle: 8AA9D
-    content_hash: aa79b49750ba3e8c22d8ee8386aab14fbc61ec321e11c339ad6ecfe43373af64
-    last_sync_time: 1759580744
+    content_hash: 7ef158eb9afd2e8e9ac7e741ce437861a8e7632bb55b5206d445b091c69e6df0
+    last_sync_time: 1759581456
     sync_source: dxf
   center:
-    x: 6485.092325252252
-    y: 266.9680940939834
+    x: 6485.223228397261
+    y: 228.8366530499907
   frozenLayers:
-  - Grünfläche
   - Legend_Legend NO_Title
   - Legend_Legend S_Title
   - Legend_Main Legend_Art der baulichen Nutzung
@@ -512,6 +511,30 @@ viewports:
   - FG Line Array Oberirdisch
   - FG Line Array Unterirdisch
   - Gastrasse Array
+  - WMS Gebäude
+  - WMS Höhenlinien
+  - Gastrasse
+  - AgriPV
+  - AgriPV Schraffur
+  - AgriPV Schraffur Solid
+  - AgriPV Schraffur Lines
+  - Moor
+  - Geschütze Biotope Innenfläche
+  - Geschütze Biotope Innenfläche Schraffur
+  - Geschütze Biotope Umgrenzung
+  - Geschütze Biotope Umgrenzung Schraffur
+  - Nutzungsartengrenze
+  - Exclude Geltungsbereich
+  - Geschütze Biotope Umgrenzung T-Symbol Array
+  - Legend_Legend NW_Verkehrsflächen
+  - Legend_Legend S_Verkehrsflächen
+  - Defpoints
+  - 0-BLOCKS
+  - Gebäude
+  - Parcel Label
+  - Blendschutzzaun
+  - EinAusfahrt Line
+  - Baum Points
   - Flur
   - Gemarkung
   - Gemeinde
@@ -532,31 +555,8 @@ viewports:
   - Plantext
   - Legend_Main Legend_Title
   - Legend_Legend NW_Title
-  - Defpoints
-  - 0-BLOCKS
-  - Gebäude
-  - Parcel Label
-  - Blendschutzzaun
-  - EinAusfahrt Line
-  - Baum Points
-  - WMS Gebäude
-  - WMS Höhenlinien
-  - Gastrasse
-  - AgriPV
-  - AgriPV Schraffur
-  - AgriPV Schraffur Solid
-  - AgriPV Schraffur Lines
-  - Moor
-  - Geschütze Biotope Innenfläche
-  - Geschütze Biotope Innenfläche Schraffur
-  - Geschütze Biotope Umgrenzung
-  - Geschütze Biotope Umgrenzung Schraffur
-  - Nutzungsartengrenze
-  - Exclude Geltungsbereich
-  - Geschütze Biotope Umgrenzung T-Symbol Array
-  - Legend_Legend NW_Verkehrsflächen
-  - Legend_Legend S_Verkehrsflächen
   - RAHMEN
+  - Grünfläche
 discover_untracked_layers: []
 deletion_policy: confirm
 default_layer: VIEWPORTS
