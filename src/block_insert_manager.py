@@ -352,7 +352,10 @@ class BlockInsertManager(UnifiedSyncProcessor):
                         log_info(f"Auto-deleted missing block insert '{entity_name}' from YAML")
                     elif deletion_policy == 'confirm':
                         log_warning(f"Block insert '{entity_name}' exists in YAML but not in AutoCAD")
-                        response = input(f"Delete '{entity_name}' from configuration? (y/n): ").lower().strip()
+                        response = input(f"Delete '{entity_name}' from configuration? (y/N): ").lower().strip()
+                        # Default to "n" (no) if user just presses Enter - safer for destructive operations
+                        if not response:
+                            response = 'n'
                         if response == 'y':
                             deleted_configs.append(config)
                             log_info(f"Deleted missing block insert '{entity_name}' from YAML")

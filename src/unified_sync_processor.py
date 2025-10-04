@@ -1293,7 +1293,11 @@ class UnifiedSyncProcessor(ABC):
             log_warning(f"{self.entity_type.capitalize()} '{entity_name}' exists in YAML but not found in AutoCAD")
             
             try:
-                response = input(f"Delete '{entity_name}' from configuration? (y/n): ").lower().strip()
+                response = input(f"Delete '{entity_name}' from configuration? (y/N): ").lower().strip()
+                # Default to "n" (no) if user just presses Enter - safer for destructive operations
+                if not response:
+                    response = 'n'
+                
                 if response == 'y':
                     deleted_configs.append(config)
                     log_info(f"User confirmed deletion of {self.entity_type} '{entity_name}' from YAML")

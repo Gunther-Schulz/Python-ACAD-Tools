@@ -3,8 +3,8 @@ texts:
   targetLayer: Plantext
   sync: push
   paperspace: true
-  text: 'Vorentwurf Agri-PV: Vorhabensbezogener Bebauungsplan Nr. 6 „Solarpark am Devener
-    Weg“
+  text: 'Vorentwurf Agri-PV: Vorhabensbezogener Bebauungsplan Nr. 6 „Solarpark am
+    Devener Weg“
 
     der Gemeinde Groß Plasten'
   position:
@@ -13,9 +13,9 @@ texts:
     y: 856
   style: mainTitle
   _sync:
-    dxf_handle: 5B567
-    content_hash: 430296307b98e170361bca30847a4c8994db14c7334fb5360ef97cc300d87196
-    last_sync_time: 1756886803
+    dxf_handle: 95CB4
+    content_hash: e44b6554b81a3aaa35c24702f9be208d24d5b0ac7c4687e646c0e823dad995c0
+    last_sync_time: 1759585813
     sync_source: yaml
 - name: Map Header NW
   targetLayer: Plantext
@@ -34,7 +34,7 @@ texts:
     sync_source: yaml
 - name: Übersichtslarte Header NW
   targetLayer: Plantext
-  sync: skip
+  sync: auto
   paperspace: true
   text: Übersichtskarte i. M. 1:30.000
   position:
@@ -52,7 +52,7 @@ texts:
   sync: push
   paperspace: true
   justification: CENTER
-  text: 'VORENTWURF Agri-PV
+  text: 'VORENTWURF AGRI-PV
 
     SATZUNG DER GEMEINDE
 
@@ -67,15 +67,16 @@ texts:
     y: 265
   style: satzungstext
   _sync:
-    dxf_handle: 5B56A
-    content_hash: 62a6b2dda188868367708c82d9913d58f9b9861ddf11ff8a9874b3c0e24bc552
-    last_sync_time: 1756886803
+    dxf_handle: 95CB5
+    content_hash: 6eaf960dd4786308860b6eadea6cd60361ae34013f96cc3f3c2553e3b01e8d38
+    last_sync_time: 1759585813
     sync_source: yaml
 - name: Main Title NO
   targetLayer: Plantext
   sync: push
   paperspace: true
-  text: 'Vorentwurf Agri-PV: Vorhabensbezogener Bebauungsplan Nr. 5 „Solarpark am Spargelberg“
+  text: 'Vorentwurf Agri-PV: Vorhabensbezogener Bebauungsplan Nr. 5 „Solarpark am
+    Spargelberg“
 
     der Gemeinde Groß Plasten'
   position:
@@ -84,9 +85,9 @@ texts:
     y: 856
   style: mainTitle
   _sync:
-    dxf_handle: 5B56B
-    content_hash: 0ba035e1c47a5e2e15e2a482aa9a897b51734490e32bf1fddcaca1014a3dc59f
-    last_sync_time: 1756886803
+    dxf_handle: 95CB6
+    content_hash: 455b440f6bf0f4b6b79781898b743e0436b999c4f1820218165e862f33ecedd0
+    last_sync_time: 1759585813
     sync_source: yaml
 - name: Map Header NO
   targetLayer: Plantext
@@ -105,7 +106,7 @@ texts:
     sync_source: yaml
 - name: Übersichtslarte Header NO
   targetLayer: Plantext
-  sync: skip
+  sync: auto
   paperspace: true
   text: Übersichtskarte i. M. 1:30.000
   position:
@@ -123,7 +124,7 @@ texts:
   sync: push
   paperspace: true
   justification: CENTER
-  text: 'VORENTWURF Agri-PV
+  text: 'VORENTWURF AGRI-PV
 
     SATZUNG DER GEMEINDE
 
@@ -138,16 +139,16 @@ texts:
     y: 265
   style: satzungstext
   _sync:
-    dxf_handle: 5B56E
-    content_hash: 07e2eb3deafba59b4f3f5574b52f8c58be8afdd4bb23be74d589574fe7828ec3
-    last_sync_time: 1756886803
+    dxf_handle: 95CB7
+    content_hash: 6fbe2228f40bf22473612f85b47e37b2909052d054455313b8edf9e8e618176d
+    last_sync_time: 1759585813
     sync_source: yaml
 - name: Main Title S
   targetLayer: Plantext
   sync: push
   paperspace: true
-  text: 'Vorentwurf Agri-PV: Vorhabensbezogener Bebauungsplan Nr. 7 „Solarpark an der Straße
-    nach Rockow“
+  text: 'Vorentwurf Agri-PV: Vorhabensbezogener Bebauungsplan Nr. 7 „Solarpark an
+    der Straße nach Rockow“
 
     der Gemeinde Groß Plasten'
   position:
@@ -156,9 +157,9 @@ texts:
     y: 856
   style: mainTitle
   _sync:
-    dxf_handle: 5B56F
-    content_hash: cd95ff2a45b70f19c8d29bb28ed4bbb466152e0c37950a86b8dac3962ba30427
-    last_sync_time: 1756886803
+    dxf_handle: 95CB8
+    content_hash: 9ad2142f11d1681a16e24fa370826170abbaeb7f4bf69ed4f9c4f263819bf1d2
+    last_sync_time: 1759585813
     sync_source: yaml
 - name: Map Header S
   targetLayer: Plantext
@@ -177,7 +178,7 @@ texts:
     sync_source: yaml
 - name: Übersichtslarte Header S
   targetLayer: Plantext
-  sync: skip
+  sync: auto
   paperspace: true
   text: Übersichtskarte i. M. 1:30.000
   position:
@@ -195,7 +196,7 @@ texts:
   sync: push
   paperspace: true
   justification: CENTER
-  text: 'VORENTWURF Agri-PV
+  text: 'VORENTWURF AGRI-PV
 
     SATZUNG DER GEMEINDE
 
@@ -210,9 +211,9 @@ texts:
     y: 265
   style: satzungstext
   _sync:
-    dxf_handle: 5B572
-    content_hash: 83c3e3ae3419a98335da99b8470890e089b926f0f29a7304a2764fa319c7ea8b
-    last_sync_time: 1756886803
+    dxf_handle: 95CB9
+    content_hash: 443c7dcd6eaa6681f3c38d7a940fb4d9b55d6e89bdf70fb66527eff137061128
+    last_sync_time: 1759585813
     sync_source: yaml
 discover_untracked_layers: []
 deletion_policy: confirm
