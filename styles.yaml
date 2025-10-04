@@ -309,6 +309,7 @@ styles:
   geltungsbereich:
     layer:
       color: "red"
+      plot: false
     entity:
       linetypeGeneration: true
 
