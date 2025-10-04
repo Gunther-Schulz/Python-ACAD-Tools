@@ -1,7 +1,9 @@
 import geopandas as gpd
+import pandas as pd
 import json
-import yaml  # Add this import at the top with other imports
+import yaml
 import os
+import re
 from src.utils import log_info, log_warning, log_error, resolve_path, ensure_path_exists, log_debug
 from src.operations.common_operations import _process_layer_info, ensure_geodataframe
 from src.operations.calculate_operation import create_calculate_layer
@@ -25,7 +27,7 @@ def create_report_layer(all_layers, project_settings, crs, layer_name, operation
     feature_columns = operation.get('featureColumns', [])
     decimal_places = operation.get('decimalPlaces', {})
     
-    # Use calculate operation to compute metrics
+    # Use calculate operation to compute metrics FIRST (before sorting)
     if calculate_columns:
         calculations = []
         for calc in calculate_columns:
@@ -38,6 +40,44 @@ def create_report_layer(all_layers, project_settings, crs, layer_name, operation
             'calculations': calculations
         }
         source_gdf = create_calculate_layer(all_layers, project_settings, crs, layer_name, calculate_operation)
+    
+    # Handle sorting AFTER calculations
+    sort_by = operation.get('sortBy')
+    if sort_by:
+        try:
+            # Support natural sorting for mixed numeric/alphanumeric values like "110/1", "45"
+            def natural_sort_key(val):
+                """Convert string to list of integers and strings for natural sorting"""
+                if pd.isna(val):
+                    return (0, [])  # Put NaN values first
+                val_str = str(val)
+                # Split on digits, keeping the digits as separate elements
+                parts = re.split(r'(\d+)', val_str)
+                result = []
+                for p in parts:
+                    if p:  # Skip empty strings
+                        if p.isdigit():
+                            result.append((0, int(p)))  # (0, number) for numeric parts
+                        else:
+                            result.append((1, p.lower()))  # (1, text) for text parts
+                return (1, result)  # (1, ...) for non-NaN values
+            
+            # Debug: show values before sorting
+            if sort_by in source_gdf.columns:
+                log_debug(f"Before sorting by '{sort_by}': {source_gdf[sort_by].tolist()}")
+            
+            source_gdf = source_gdf.sort_values(
+                by=sort_by, 
+                key=lambda col: col.map(natural_sort_key),
+                ascending=True,
+                ignore_index=True  # Reset index automatically
+            )
+            
+            # Debug: show values after sorting
+            if sort_by in source_gdf.columns:
+                log_debug(f"After sorting by '{sort_by}': {source_gdf[sort_by].tolist()}")
+        except Exception as e:
+            log_warning(f"Could not sort by '{sort_by}': {str(e)}")
     
     # Create report data and summary data
     features_data = []
@@ -98,6 +138,11 @@ def create_report_layer(all_layers, project_settings, crs, layer_name, operation
         'summary': summary,
         'features': features_data
     }
+    
+    # Add metadata if provided (e.g., tolerance settings)
+    metadata = operation.get('metadata', {})
+    if metadata:
+        report['metadata'] = metadata
     
     # Write report to file
     if ensure_path_exists(output_file):

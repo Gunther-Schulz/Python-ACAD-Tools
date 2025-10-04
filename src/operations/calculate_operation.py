@@ -61,6 +61,70 @@ def create_calculate_layer(all_layers, project_settings, crs, layer_name, operat
                 source_gdf[column_name] = source_gdf[value1] <= (source_gdf[value2] + margin)
             elif operator == 'gte':
                 source_gdf[column_name] = source_gdf[value1] >= (source_gdf[value2] - margin)
+                
+        # Handle percentage calculations
+        elif calc_type == 'percentage':
+            numerator = calc.get('numerator')
+            denominator = calc.get('denominator')
+            column_name = calc.get('as', f"{numerator}_percent")
+            decimal_places = calc.get('decimalPlaces', 2)
+            
+            if numerator not in source_gdf.columns or denominator not in source_gdf.columns:
+                log_warning(f"Layer '{layer_name}': One or both columns not found for percentage: {numerator}, {denominator}")
+                continue
+            
+            # Calculate percentage, handle division by zero
+            source_gdf[column_name] = source_gdf.apply(
+                lambda row: round((row[numerator] / row[denominator] * 100), decimal_places) 
+                if row[denominator] > 0 else 0.0,
+                axis=1
+            )
+            
+        # Handle coverage status (complete/partial) based on percentage or absolute tolerance
+        elif calc_type == 'coverage_status':
+            column_name = calc.get('as', 'coverage_status')
+            complete_label = calc.get('completeLabel', 'vollständig')
+            partial_label = calc.get('partialLabel', 'teilweise')
+            
+            # Support two modes: percentage threshold OR absolute area tolerance
+            percentage_column = calc.get('percentageColumn')
+            percentage_threshold = calc.get('threshold')
+            
+            area_tolerance = calc.get('areaTolerance')
+            total_area_column = calc.get('totalAreaColumn')
+            intersection_area_column = calc.get('intersectionAreaColumn')
+            
+            # Mode 1: Percentage-based (original)
+            if percentage_column and percentage_threshold is not None:
+                if percentage_column not in source_gdf.columns:
+                    log_warning(f"Layer '{layer_name}': Percentage column not found: {percentage_column}")
+                    continue
+                
+                source_gdf[column_name] = source_gdf[percentage_column].apply(
+                    lambda pct: complete_label if pct >= percentage_threshold else partial_label
+                )
+            
+            # Mode 2: Absolute area tolerance (new)
+            # Default to 0 (strict) if areaTolerance is not explicitly set
+            elif total_area_column and intersection_area_column:
+                if area_tolerance is None:
+                    area_tolerance = 0  # Strict by default - no tolerance unless explicitly set
+                    
+                if total_area_column not in source_gdf.columns or intersection_area_column not in source_gdf.columns:
+                    log_warning(f"Layer '{layer_name}': Required columns not found: {total_area_column}, {intersection_area_column}")
+                    continue
+                
+                def check_coverage(row):
+                    total = row[total_area_column]
+                    intersection = row[intersection_area_column]
+                    difference = abs(total - intersection)
+                    return complete_label if difference <= area_tolerance else partial_label
+                
+                source_gdf[column_name] = source_gdf.apply(check_coverage, axis=1)
+            
+            else:
+                log_warning(f"Layer '{layer_name}': coverage_status requires either (percentageColumn + threshold) or (areaTolerance + totalAreaColumn + intersectionAreaColumn)")
+                continue
         else:
             log_warning(f"Unknown calculation type: {calc_type}")
             continue

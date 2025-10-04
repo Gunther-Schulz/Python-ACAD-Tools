@@ -897,3 +897,310 @@ geomLayers:
         distance: 0.5
         joinStyle: mitre
 
+  # ==========================================================================
+  # SECTION 11: AREA REPORTS - Statistics for each Geltungsbereich
+  # ==========================================================================
+  # These layers generate area reports broken down by Geltungsbereich region.
+  # Reports are output to: projects/Plasten/generated/reports/
+  # Each report contains area calculations in m² rounded to 0 decimal places.
+
+  # --------------------------------------------------------------------------
+  # Geltungsbereich NW Reports
+  # --------------------------------------------------------------------------
+
+  - name: Geltungsbereich NW Report
+    operations:
+      - type: copy
+        layers:
+          - Parcel
+      - type: calculate
+        calculations:
+          - type: area
+            as: parcel_area
+            decimalPlaces: 0
+      - type: intersection
+        layers:
+          - Geltungsbereich NW
+      - type: filterGeometry
+        minArea: 10
+        geometryTypes:
+          - polygon
+      - type: calculate
+        calculations:
+          - type: area
+            as: intersection_area
+            decimalPlaces: 0
+          - type: coverage_status
+            areaTolerance: 10
+            totalAreaColumn: parcel_area
+            intersectionAreaColumn: intersection_area
+            as: status
+            completeLabel: "vollständig"
+            partialLabel: "teilweise"
+      - type: report
+        outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/geltungsbereich_nw_report.json"
+        sortBy: label
+        featureColumns:
+          - label
+          - parcel_area
+          - intersection_area
+          - status
+        calculate:
+          - area
+        decimalPlaces:
+          area: 0
+          parcel_area: 0
+          intersection_area: 0
+        metadata:
+          area_tolerance_m2: 10
+          coverage_status_logic: "vollständig if |parcel_area - intersection_area| <= 10 m²"
+
+  - name: Baugrenze NW Report
+    operations:
+      - type: copy
+        layers:
+          - Baugrenze
+      - type: intersection
+        layers:
+          - Geltungsbereich NW Base
+      - type: report
+        outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/baugrenze_nw_report.json"
+        calculate:
+          - area
+        decimalPlaces:
+          area: 0
+
+  - name: AgriPV Dead Zone NW Report
+    operations:
+      - type: copy
+        layers:
+          - AgriPV
+      - type: intersection
+        layers:
+          - Geltungsbereich NW Base
+      - type: difference
+        reverseDifference: false
+        layers:
+          - Baugrenze
+      - type: report
+        outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/agripv_dead_zone_nw_report.json"
+        calculate:
+          - area
+        decimalPlaces:
+          area: 0
+
+  - name: Biotope NW Report
+    operations:
+      - type: copy
+        layers:
+          - Geschütze Biotope
+      - type: intersection
+        layers:
+          - Geltungsbereich NW
+      - type: report
+        outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/biotope_nw_report.json"
+        calculate:
+          - area
+        decimalPlaces:
+          area: 0
+
+  # --------------------------------------------------------------------------
+  # Geltungsbereich NO Reports
+  # --------------------------------------------------------------------------
+
+  - name: Geltungsbereich NO Report
+    operations:
+      - type: copy
+        layers:
+          - Parcel
+      - type: calculate
+        calculations:
+          - type: area
+            as: parcel_area
+            decimalPlaces: 0
+      - type: intersection
+        layers:
+          - Geltungsbereich NO
+      - type: filterGeometry
+        minArea: 10
+        geometryTypes:
+          - polygon
+      - type: calculate
+        calculations:
+          - type: area
+            as: intersection_area
+            decimalPlaces: 0
+          - type: coverage_status
+            areaTolerance: 10
+            totalAreaColumn: parcel_area
+            intersectionAreaColumn: intersection_area
+            as: status
+            completeLabel: "vollständig"
+            partialLabel: "teilweise"
+      - type: report
+        outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/geltungsbereich_no_report.json"
+        sortBy: label
+        featureColumns:
+          - label
+          - parcel_area
+          - intersection_area
+          - status
+        calculate:
+          - area
+        decimalPlaces:
+          area: 0
+          parcel_area: 0
+          intersection_area: 0
+        metadata:
+          area_tolerance_m2: 10
+          coverage_status_logic: "vollständig if |parcel_area - intersection_area| <= 10 m²"
+
+  - name: Baugrenze NO Report
+    operations:
+      - type: copy
+        layers:
+          - Baugrenze
+      - type: intersection
+        layers:
+          - Geltungsbereich NO Base
+      - type: report
+        outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/baugrenze_no_report.json"
+        calculate:
+          - area
+        decimalPlaces:
+          area: 0
+
+  - name: AgriPV Dead Zone NO Report
+    operations:
+      - type: copy
+        layers:
+          - AgriPV
+      - type: intersection
+        layers:
+          - Geltungsbereich NO Base
+      - type: difference
+        reverseDifference: false
+        layers:
+          - Baugrenze
+      - type: report
+        outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/agripv_dead_zone_no_report.json"
+        calculate:
+          - area
+        decimalPlaces:
+          area: 0
+
+  - name: Biotope NO Report
+    operations:
+      - type: copy
+        layers:
+          - Geschütze Biotope
+      - type: intersection
+        layers:
+          - Geltungsbereich NO
+      - type: report
+        outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/biotope_no_report.json"
+        calculate:
+          - area
+        decimalPlaces:
+          area: 0
+
+  # --------------------------------------------------------------------------
+  # Geltungsbereich S Reports
+  # --------------------------------------------------------------------------
+
+  - name: Geltungsbereich S Report
+    operations:
+      - type: copy
+        layers:
+          - Parcel
+      - type: calculate
+        calculations:
+          - type: area
+            as: parcel_area
+            decimalPlaces: 0
+      - type: intersection
+        layers:
+          - Geltungsbereich S
+      - type: filterGeometry
+        minArea: 10
+        geometryTypes:
+          - polygon
+      - type: calculate
+        calculations:
+          - type: area
+            as: intersection_area
+            decimalPlaces: 0
+          - type: coverage_status
+            areaTolerance: 10
+            totalAreaColumn: parcel_area
+            intersectionAreaColumn: intersection_area
+            as: status
+            completeLabel: "vollständig"
+            partialLabel: "teilweise"
+      - type: report
+        outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/geltungsbereich_s_report.json"
+        sortBy: label
+        featureColumns:
+          - label
+          - parcel_area
+          - intersection_area
+          - status
+        calculate:
+          - area
+        decimalPlaces:
+          area: 0
+          parcel_area: 0
+          intersection_area: 0
+        metadata:
+          area_tolerance_m2: 10
+          coverage_status_logic: "vollständig if |parcel_area - intersection_area| <= 10 m²"
+
+  - name: Baugrenze S Report
+    operations:
+      - type: copy
+        layers:
+          - Baugrenze
+      - type: intersection
+        layers:
+          - Geltungsbereich S Base
+      - type: report
+        outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/baugrenze_s_report.json"
+        calculate:
+          - area
+        decimalPlaces:
+          area: 0
+
+  - name: AgriPV Dead Zone S Report
+    operations:
+      - type: copy
+        layers:
+          - AgriPV
+      - type: intersection
+        layers:
+          - Geltungsbereich S Base
+      - type: difference
+        reverseDifference: false
+        layers:
+          - Baugrenze
+      - type: report
+        outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/agripv_dead_zone_s_report.json"
+        calculate:
+          - area
+        decimalPlaces:
+          area: 0
+
+  - name: Biotope S Report
+    operations:
+      - type: copy
+        layers:
+          - Geschütze Biotope
+      - type: intersection
+        layers:
+          - Geltungsbereich S
+      - type: report
+        outputFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/reports/biotope_s_report.json"
+        calculate:
+          - area
+        decimalPlaces:
+          area: 0
+
