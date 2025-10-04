@@ -10,6 +10,19 @@ def create_merged_layer(all_layers, project_settings, crs, layer_name, operation
     source_layers = operation.get('layers', [])
 
     combined_geometries = []
+    
+    # First, include the current layer's geometry if it exists (for chained operations)
+    if layer_name in all_layers:
+        current_geometry = all_layers[layer_name]
+        if current_geometry is not None and not current_geometry.empty:
+            if isinstance(current_geometry, gpd.GeoDataFrame):
+                current_geom = current_geometry.geometry.unary_union
+            else:
+                current_geom = current_geometry
+            log_debug(f"Including current layer '{layer_name}' geometry: {current_geom.geom_type}")
+            combined_geometries.append(current_geom)
+    
+    # Then add geometries from the specified source layers
     for layer_info in source_layers:
         source_layer_name, values, column_name = _process_layer_info(all_layers, project_settings, crs, layer_info)
         if source_layer_name is None:

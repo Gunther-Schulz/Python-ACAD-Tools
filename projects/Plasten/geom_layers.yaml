@@ -198,6 +198,14 @@ geomLayers:
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/Exclude Geltungsbereich.shp"
 
   # --------------------------------------------------------------------------
+  # Manual Inclusions
+  # --------------------------------------------------------------------------
+
+  - name: Include AgriPV
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/Include AgriPV.shp"
+    close: true
+
+  # --------------------------------------------------------------------------
   # Infrastructure Inputs
   # --------------------------------------------------------------------------
 
@@ -601,6 +609,7 @@ geomLayers:
         joinStyle: mitre  # Sharp corners to maintain AgriPV's geometric character
 
   # Final AgriPV: Constrained to be within 20m of Baugrenze
+  # Note: Include AgriPV areas are merged in to override the 20m rule
   - name: AgriPV
     close: true
     sync: push
@@ -632,6 +641,11 @@ geomLayers:
         minArea: 20
         removeEmptyGeometries: true
         removeFailures: true
+      # Override 20m rule: Add manual inclusion areas
+      - type: merge
+        layers:
+          - Include AgriPV
+      - type: dissolve
 
   # ==========================================================================
   # SECTION 7: FINAL GELTUNGSBEREICH - Follows AgriPV outline
