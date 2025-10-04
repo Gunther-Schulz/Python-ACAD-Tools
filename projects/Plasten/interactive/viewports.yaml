@@ -1,247 +1,563 @@
 viewports:
 - name: WorkView
-  sync: push
   color: magenta
   center:
-    x: 780
-    y: 2000
-  height: 653
-  width: 720
+    x: 780.0
+    y: 2000.0
+  height: 653.0
+  width: 720.0
   viewCenter:
-    x: 356027
-    y: 5935564
+    x: 356027.0
+    y: 5935564.0
   frozenLayers:
-  - WMTS Basemap
-  - WMTS DOP
   - Geltungsbereich Hatch NW
   - Geltungsbereich Hatch NO
   - Geltungsbereich Hatch S
+  - WMTS Basemap
   _sync:
-    dxf_handle: 8A133
-    content_hash: 8553ca210ccaf54afa1bd5cd09643cccbcc7d73bd5c73a9375a356fbc42231c5
-    last_sync_time: 1759580023
-    sync_source: yaml
+    dxf_handle: 8AA93
+    content_hash: eb3a309561f52635d6d6b322c22daf37b85733d981317138ae65d135bb93be9f
+    last_sync_time: 1759580744
+    sync_source: dxf
+  scale: 1.0
 - name: WorkView2
-  sync: push
   color: magenta
   center:
-    x: 1780
-    y: 2000
-  height: 653
-  width: 720
+    x: 1780.0
+    y: 2000.0
+  height: 653.0
+  width: 720.0
   viewCenter:
-    x: 356027
-    y: 5935564
+    x: 356027.0
+    y: 5935564.0
   frozenLayers:
-  - WMTS Basemap
-  - WMTS DOP
   - Geltungsbereich Hatch NW
   - Geltungsbereich Hatch NO
   - Geltungsbereich Hatch S
+  - WMTS Basemap
   _sync:
-    dxf_handle: 8A134
-    content_hash: 63869138514d748258d2958f7452acec01b4515a05cb3ff2589b7c9807cf7542
-    last_sync_time: 1759580023
-    sync_source: yaml
+    dxf_handle: 8AA94
+    content_hash: 7b638fd3d8a0c5651d8e14a53704a80dbc9ee5457e7a16090173657ff913a8d0
+    last_sync_time: 1759580744
+    sync_source: dxf
+  scale: 1.0
 - name: MapViewportNW
-  sync: push
   color: magenta
   topLeft:
     x: 1651
     y: 790
-  height: 630
-  width: 720
+  height: 630.0
+  width: 720.0
   viewCenter:
-    x: 356092
-    y: 5935489
+    x: 356092.0
+    y: 5935489.0
   scale: 1.5
   frozenLayers:
   - Geltungsbereich Hatch NW
-  - Geltungsbereich Hatch S
   - Geltungsbereich Hatch NO
+  - Geltungsbereich Hatch S
   - WMTS Basemap
-  - WMTS DOP
   lockZoom: true
   _sync:
-    dxf_handle: 8A135
-    content_hash: 169e0698b8206582a7e4a0cb116fe92fc5c6cf9e5f63bc681f375d136b86b15e
-    last_sync_time: 1759580023
-    sync_source: yaml
+    dxf_handle: 8AA95
+    content_hash: 332b25ad3737e2cdbdd7db931c4aa80d3b756c91f2cd12087137ec7287644cb7
+    last_sync_time: 1759580744
+    sync_source: dxf
+  center:
+    x: 2011.0
+    y: 475.0
 - name: LegendViewportNW
-  sync: push
   color: magenta
   topLeft:
     x: 2396
     y: 857
-  height: 447
-  width: 180
+  height: 447.0
+  width: 180.0
   viewTopLeft:
     x: 368330
     y: 5942622
   frozenLayers:
   - WMTS Basemap
-  - WMTS DOP
   lockZoom: true
   _sync:
-    dxf_handle: 8A136
-    content_hash: 0e0d0dc8b92f1330f384b119fd86ae137a3fb0e02bb291b93386408c82537e8f
-    last_sync_time: 1759580023
-    sync_source: yaml
+    dxf_handle: 8AA96
+    content_hash: 0b61f6933bb00ebfe636ac9bc96722a7bae69173880946787fb323974bd96e43
+    last_sync_time: 1759580744
+    sync_source: dxf
+  center:
+    x: 2486.0
+    y: 633.4999999999999
+  viewCenter:
+    x: 368420.0
+    y: 5942398.5
+  scale: 1.0
 - name: ÜbersichtskarteNW
-  sync: push
   color: magenta
   topLeft:
     x: 2400
     y: 385
-  height: 163
-  width: 172
+  height: 163.0
+  width: 172.0
   viewCenter:
-    x: 356028
-    y: 5935564
-  scale: 30
+    x: 356028.0
+    y: 5935564.0
+  scale: 30.0
   visibleLayers:
   - Geltungsbereich NW
   - Geltungsbereich Hatch NW
   - WMTS Basemap
   lockZoom: true
   _sync:
-    dxf_handle: 8A137
-    content_hash: 3494dd8b918b5a957562bfa5b33d52034de6ff3cfa2c3b260f8148ccdbd23818
-    last_sync_time: 1759580023
-    sync_source: yaml
+    dxf_handle: 8AA97
+    content_hash: 82cf94f4a0158c3802af8cddb02dfc11f6db507ecff44e11b84283842a7cab4b
+    last_sync_time: 1759580744
+    sync_source: dxf
+  center:
+    x: 2486.0
+    y: 303.5
+  frozenLayers:
+  - Grünfläche
+  - Legend_Legend NO_Title
+  - Legend_Legend S_Title
+  - Legend_Main Legend_Art der baulichen Nutzung
+  - Legend_Main Legend_Maß der baulichen Nutzung
+  - Legend_Main Legend_Bauweise_ Baulinien_ Baugrenzen
+  - Legend_Main Legend_Verkehrsflächen
+  - Legend_Main Legend_Grünflächen
+  - Legend_Main Legend_Wasserflächen und Flächen für die Wasserwirtschaft_ den Hochwasserschutz
+    und die Regelung des Wasserabflusses
+  - Legend_Main Legend_Planungen_ Nutzungsregelungen_ Maßnahmen und Flächen für Maßnahmen
+    zum Schutz_ zur Pflege und zur Entwicklung von Natur und Landschaft
+  - Legend_Main Legend_Sonstige Planzeichen
+  - Legend_Main Legend_Darstellung ohne Normcharakter
+  - Legend_Main Legend_Nachrichtliche Übernahme
+  - Legend_Legend NW_Art der baulichen Nutzung
+  - Legend_Legend NW_Maß der baulichen Nutzung
+  - Legend_Legend NW_Bauweise_ Baulinien_ Baugrenzen
+  - Legend_Legend NW_Grünflächen
+  - Legend_Legend NW_Planungen_ Nutzungsregelungen_ Maßnahmen und Flächen für Maßnahmen
+    zum Schutz_ zur Pflege und zur Entwicklung von Natur und Landschaft
+  - Legend_Legend NW_Sonstige Planzeichen
+  - Legend_Legend NW_Darstellung ohne Normcharakter
+  - Legend_Legend NW_Nachrichtliche Übernahme
+  - Legend_Legend NO_Art der baulichen Nutzung
+  - Legend_Legend NO_Maß der baulichen Nutzung
+  - Legend_Legend NO_Bauweise_ Baulinien_ Baugrenzen
+  - Legend_Legend NO_Verkehrsflächen
+  - Legend_Legend NO_Grünflächen
+  - Legend_Legend NO_Planungen_ Nutzungsregelungen_ Maßnahmen und Flächen für Maßnahmen
+    zum Schutz_ zur Pflege und zur Entwicklung von Natur und Landschaft
+  - Legend_Legend NO_Sonstige Planzeichen
+  - Legend_Legend NO_Darstellung ohne Normcharakter
+  - Legend_Legend NO_Nachrichtliche Übernahme
+  - Legend_Legend S_Art der baulichen Nutzung
+  - Legend_Legend S_Maß der baulichen Nutzung
+  - Legend_Legend S_Bauweise_ Baulinien_ Baugrenzen
+  - Legend_Legend S_Grünflächen
+  - Legend_Legend S_Planungen_ Nutzungsregelungen_ Maßnahmen und Flächen für Maßnahmen
+    zum Schutz_ zur Pflege und zur Entwicklung von Natur und Landschaft
+  - Legend_Legend S_Sonstige Planzeichen
+  - Legend_Legend S_Darstellung ohne Normcharakter
+  - Legend_Legend S_Nachrichtliche Übernahme
+  - Bemaßung
+  - Ontras_FG_buffer_4
+  - Ontras_FG_buffer_2
+  - FG_Unterirdisch
+  - FG_Oberirdisch
+  - Parcel
+  - FG Line Array Oberirdisch
+  - FG Line Array Unterirdisch
+  - Gastrasse Array
+  - Flur
+  - Gemarkung
+  - Gemeinde
+  - Wald
+  - Wald Schraffur
+  - Geschütze Biotope
+  - Geschütze Biotope 2
+  - Geltungsbereich NW 2
+  - Geltungsbereich NO
+  - Geltungsbereich NO 2
+  - Geltungsbereich S
+  - Geltungsbereich S 2
+  - Geltungsbereich Hatch NO
+  - Geltungsbereich Hatch S
+  - Baugrenze 2
+  - Baugrenze
+  - BLOCKS
+  - Plantext
+  - Legend_Main Legend_Title
+  - Legend_Legend NW_Title
+  - Defpoints
+  - 0-BLOCKS
+  - Gebäude
+  - Parcel Label
+  - Blendschutzzaun
+  - EinAusfahrt Line
+  - Baum Points
+  - WMS Gebäude
+  - WMS Höhenlinien
+  - Gastrasse
+  - AgriPV
+  - AgriPV Schraffur
+  - AgriPV Schraffur Solid
+  - AgriPV Schraffur Lines
+  - Moor
+  - Geschütze Biotope Innenfläche
+  - Geschütze Biotope Innenfläche Schraffur
+  - Geschütze Biotope Umgrenzung
+  - Geschütze Biotope Umgrenzung Schraffur
+  - Nutzungsartengrenze
+  - Exclude Geltungsbereich
+  - Geschütze Biotope Umgrenzung T-Symbol Array
+  - Legend_Legend NW_Verkehrsflächen
+  - Legend_Legend S_Verkehrsflächen
+  - RAHMEN
 - name: MapViewportNO
-  sync: push
   color: magenta
   topLeft:
     x: 3651
     y: 790
-  height: 630
-  width: 720
+  height: 630.0
+  width: 720.0
   viewCenter:
-    x: 358168
-    y: 5935944
+    x: 358168.0
+    y: 5935944.0
   scale: 1.5
   frozenLayers:
+  - Geltungsbereich Hatch NW
   - Geltungsbereich Hatch NO
   - Geltungsbereich Hatch S
-  - Geltungsbereich Hatch NW
   - WMTS Basemap
-  - WMTS DOP
   lockZoom: true
   _sync:
-    dxf_handle: 8A138
-    content_hash: 1c3e03400fbf5cbf994289542ef51eaf62601daac1cef07909f824f065356e7b
-    last_sync_time: 1759580023
-    sync_source: yaml
+    dxf_handle: 8AA98
+    content_hash: f7df9ce0b5ace5a39371e7108b88b74d634643a11b7e6966a772c80b773d79cd
+    last_sync_time: 1759580744
+    sync_source: dxf
+  center:
+    x: 4011.0
+    y: 475.0
 - name: LegendViewportNO
-  sync: push
   color: magenta
   topLeft:
     x: 4396
     y: 857
-  height: 540
-  width: 180
+  height: 540.0
+  width: 180.0
   viewTopLeft:
     x: 368830
     y: 5942622
   frozenLayers:
   - WMTS Basemap
-  - WMTS DOP
   lockZoom: true
   _sync:
-    dxf_handle: 8A139
-    content_hash: dac9f14ab820ebe119132259c1875a53162c0c493f5b6c870a21a8b75fab58e9
-    last_sync_time: 1759580023
-    sync_source: yaml
+    dxf_handle: 8AA99
+    content_hash: 19ed739539af96d863ced54dfb942174bac849dc88c962f336558443ecc8aac8
+    last_sync_time: 1759580744
+    sync_source: dxf
+  center:
+    x: 4486.0
+    y: 587.0
+  viewCenter:
+    x: 368920.0
+    y: 5942352.0
+  scale: 1.0
 - name: ÜbersichtskarteNO
-  sync: push
   color: magenta
   topLeft:
     x: 4400
     y: 296
-  height: 74
-  width: 172
+  height: 74.0
+  width: 172.0
   viewCenter:
-    x: 358132
-    y: 5935986
-  scale: 30
+    x: 358132.0
+    y: 5935986.0
+  scale: 30.0
   visibleLayers:
   - Geltungsbereich NO
   - Geltungsbereich Hatch NO
   - WMTS Basemap
   lockZoom: true
   _sync:
-    dxf_handle: 8A13A
-    content_hash: 63d18ddf71e064fa9994b183512bf79a58d147ccfabf4267c9d8f10ff8b5243a
-    last_sync_time: 1759580023
-    sync_source: yaml
+    dxf_handle: 8AA9A
+    content_hash: 2b66749d8107552c222331dec77662f06b9ae08d9e124603d05868641db30eed
+    last_sync_time: 1759580744
+    sync_source: dxf
+  center:
+    x: 4486.0
+    y: 259.0
+  frozenLayers:
+  - Grünfläche
+  - Legend_Legend NO_Title
+  - Legend_Legend S_Title
+  - Legend_Main Legend_Art der baulichen Nutzung
+  - Legend_Main Legend_Maß der baulichen Nutzung
+  - Legend_Main Legend_Bauweise_ Baulinien_ Baugrenzen
+  - Legend_Main Legend_Verkehrsflächen
+  - Legend_Main Legend_Grünflächen
+  - Legend_Main Legend_Wasserflächen und Flächen für die Wasserwirtschaft_ den Hochwasserschutz
+    und die Regelung des Wasserabflusses
+  - Legend_Main Legend_Planungen_ Nutzungsregelungen_ Maßnahmen und Flächen für Maßnahmen
+    zum Schutz_ zur Pflege und zur Entwicklung von Natur und Landschaft
+  - Legend_Main Legend_Sonstige Planzeichen
+  - Legend_Main Legend_Darstellung ohne Normcharakter
+  - Legend_Main Legend_Nachrichtliche Übernahme
+  - Legend_Legend NW_Art der baulichen Nutzung
+  - Legend_Legend NW_Maß der baulichen Nutzung
+  - Legend_Legend NW_Bauweise_ Baulinien_ Baugrenzen
+  - Legend_Legend NW_Grünflächen
+  - Legend_Legend NW_Planungen_ Nutzungsregelungen_ Maßnahmen und Flächen für Maßnahmen
+    zum Schutz_ zur Pflege und zur Entwicklung von Natur und Landschaft
+  - Legend_Legend NW_Sonstige Planzeichen
+  - Legend_Legend NW_Darstellung ohne Normcharakter
+  - Legend_Legend NW_Nachrichtliche Übernahme
+  - Legend_Legend NO_Art der baulichen Nutzung
+  - Legend_Legend NO_Maß der baulichen Nutzung
+  - Legend_Legend NO_Bauweise_ Baulinien_ Baugrenzen
+  - Legend_Legend NO_Verkehrsflächen
+  - Legend_Legend NO_Grünflächen
+  - Legend_Legend NO_Planungen_ Nutzungsregelungen_ Maßnahmen und Flächen für Maßnahmen
+    zum Schutz_ zur Pflege und zur Entwicklung von Natur und Landschaft
+  - Legend_Legend NO_Sonstige Planzeichen
+  - Legend_Legend NO_Darstellung ohne Normcharakter
+  - Legend_Legend NO_Nachrichtliche Übernahme
+  - Legend_Legend S_Art der baulichen Nutzung
+  - Legend_Legend S_Maß der baulichen Nutzung
+  - Legend_Legend S_Bauweise_ Baulinien_ Baugrenzen
+  - Legend_Legend S_Grünflächen
+  - Legend_Legend S_Planungen_ Nutzungsregelungen_ Maßnahmen und Flächen für Maßnahmen
+    zum Schutz_ zur Pflege und zur Entwicklung von Natur und Landschaft
+  - Legend_Legend S_Sonstige Planzeichen
+  - Legend_Legend S_Darstellung ohne Normcharakter
+  - Legend_Legend S_Nachrichtliche Übernahme
+  - Bemaßung
+  - Ontras_FG_buffer_4
+  - Ontras_FG_buffer_2
+  - FG_Unterirdisch
+  - FG_Oberirdisch
+  - Parcel
+  - FG Line Array Oberirdisch
+  - FG Line Array Unterirdisch
+  - Gastrasse Array
+  - Flur
+  - Gemarkung
+  - Gemeinde
+  - Wald
+  - Wald Schraffur
+  - Geschütze Biotope
+  - Geschütze Biotope 2
+  - Geltungsbereich NW
+  - Geltungsbereich NW 2
+  - Geltungsbereich NO 2
+  - Geltungsbereich S
+  - Geltungsbereich S 2
+  - Geltungsbereich Hatch NW
+  - Geltungsbereich Hatch S
+  - Baugrenze 2
+  - Baugrenze
+  - BLOCKS
+  - Plantext
+  - Legend_Main Legend_Title
+  - Legend_Legend NW_Title
+  - Defpoints
+  - 0-BLOCKS
+  - Gebäude
+  - Parcel Label
+  - Blendschutzzaun
+  - EinAusfahrt Line
+  - Baum Points
+  - WMS Gebäude
+  - WMS Höhenlinien
+  - Gastrasse
+  - AgriPV
+  - AgriPV Schraffur
+  - AgriPV Schraffur Solid
+  - AgriPV Schraffur Lines
+  - Moor
+  - Geschütze Biotope Innenfläche
+  - Geschütze Biotope Innenfläche Schraffur
+  - Geschütze Biotope Umgrenzung
+  - Geschütze Biotope Umgrenzung Schraffur
+  - Nutzungsartengrenze
+  - Exclude Geltungsbereich
+  - Geschütze Biotope Umgrenzung T-Symbol Array
+  - Legend_Legend NW_Verkehrsflächen
+  - Legend_Legend S_Verkehrsflächen
+  - RAHMEN
 - name: MapViewportS
-  sync: push
   color: magenta
   topLeft:
     x: 5651
     y: 790
-  height: 630
-  width: 720
+  height: 630.0
+  width: 720.0
   viewCenter:
-    x: 357643
-    y: 5932185
+    x: 357643.0
+    y: 5932185.0
   scale: 1.5
   frozenLayers:
+  - Geltungsbereich Hatch NW
   - Geltungsbereich Hatch NO
   - Geltungsbereich Hatch S
-  - Geltungsbereich Hatch NW
   - WMTS Basemap
-  - WMTS DOP
   lockZoom: true
   _sync:
-    dxf_handle: 8A13B
-    content_hash: 817fb470eea5fa30625a7d0fdc75f7996190f4797819ca820bbef35ccbf62e32
-    last_sync_time: 1759580023
-    sync_source: yaml
+    dxf_handle: 8AA9B
+    content_hash: 119fb0cc32397ff00cbcbb4f0ac32f162275a260f664d9fe050ef1c741851c8f
+    last_sync_time: 1759580744
+    sync_source: dxf
+  center:
+    x: 6011.0
+    y: 475.0
 - name: LegendViewportS
-  sync: push
   color: magenta
   topLeft:
     x: 6396
     y: 857
-  height: 450
-  width: 180
+  height: 450.0
+  width: 180.0
   viewTopLeft:
     x: 369330
     y: 5942622
   frozenLayers:
   - WMTS Basemap
-  - WMTS DOP
   lockZoom: true
   _sync:
-    dxf_handle: 8A13C
-    content_hash: bdd8faeba90de18d5740afcfac37be2cbdd2ac116e10d5ec2e808086ef6ecfc6
-    last_sync_time: 1759580023
-    sync_source: yaml
+    dxf_handle: 8AA9C
+    content_hash: 743d39b46db96007e0877d3b0eda328196dc72a8bfd7e90e5cdee2285a21ac27
+    last_sync_time: 1759580744
+    sync_source: dxf
+  center:
+    x: 6486.0
+    y: 632.0
+  viewCenter:
+    x: 369420.0
+    y: 5942397.0
+  scale: 1.0
 - name: ÜbersichtskarteS
-  sync: push
   color: magenta
   topLeft:
     x: 6400
     y: 385
-  height: 163
-  width: 172
+  height: 89.93618818796676
+  width: 170.1846505045032
   viewCenter:
-    x: 357673
-    y: 5932189
-  scale: 30
+    x: 357645.7697575676
+    y: 5931093.042822819
+  scale: 30.0
   visibleLayers:
   - Geltungsbereich S
   - Geltungsbereich Hatch S
   - WMTS Basemap
   lockZoom: true
   _sync:
-    dxf_handle: 8A13D
-    content_hash: d9a71dbc42d92859cbe2ae7390804b885248b33240e811cf5dece435b873c28c
-    last_sync_time: 1759580023
-    sync_source: yaml
+    dxf_handle: 8AA9D
+    content_hash: aa79b49750ba3e8c22d8ee8386aab14fbc61ec321e11c339ad6ecfe43373af64
+    last_sync_time: 1759580744
+    sync_source: dxf
+  center:
+    x: 6485.092325252252
+    y: 266.9680940939834
+  frozenLayers:
+  - Grünfläche
+  - Legend_Legend NO_Title
+  - Legend_Legend S_Title
+  - Legend_Main Legend_Art der baulichen Nutzung
+  - Legend_Main Legend_Maß der baulichen Nutzung
+  - Legend_Main Legend_Bauweise_ Baulinien_ Baugrenzen
+  - Legend_Main Legend_Verkehrsflächen
+  - Legend_Main Legend_Grünflächen
+  - Legend_Main Legend_Wasserflächen und Flächen für die Wasserwirtschaft_ den Hochwasserschutz
+    und die Regelung des Wasserabflusses
+  - Legend_Main Legend_Planungen_ Nutzungsregelungen_ Maßnahmen und Flächen für Maßnahmen
+    zum Schutz_ zur Pflege und zur Entwicklung von Natur und Landschaft
+  - Legend_Main Legend_Sonstige Planzeichen
+  - Legend_Main Legend_Darstellung ohne Normcharakter
+  - Legend_Main Legend_Nachrichtliche Übernahme
+  - Legend_Legend NW_Art der baulichen Nutzung
+  - Legend_Legend NW_Maß der baulichen Nutzung
+  - Legend_Legend NW_Bauweise_ Baulinien_ Baugrenzen
+  - Legend_Legend NW_Grünflächen
+  - Legend_Legend NW_Planungen_ Nutzungsregelungen_ Maßnahmen und Flächen für Maßnahmen
+    zum Schutz_ zur Pflege und zur Entwicklung von Natur und Landschaft
+  - Legend_Legend NW_Sonstige Planzeichen
+  - Legend_Legend NW_Darstellung ohne Normcharakter
+  - Legend_Legend NW_Nachrichtliche Übernahme
+  - Legend_Legend NO_Art der baulichen Nutzung
+  - Legend_Legend NO_Maß der baulichen Nutzung
+  - Legend_Legend NO_Bauweise_ Baulinien_ Baugrenzen
+  - Legend_Legend NO_Verkehrsflächen
+  - Legend_Legend NO_Grünflächen
+  - Legend_Legend NO_Planungen_ Nutzungsregelungen_ Maßnahmen und Flächen für Maßnahmen
+    zum Schutz_ zur Pflege und zur Entwicklung von Natur und Landschaft
+  - Legend_Legend NO_Sonstige Planzeichen
+  - Legend_Legend NO_Darstellung ohne Normcharakter
+  - Legend_Legend NO_Nachrichtliche Übernahme
+  - Legend_Legend S_Art der baulichen Nutzung
+  - Legend_Legend S_Maß der baulichen Nutzung
+  - Legend_Legend S_Bauweise_ Baulinien_ Baugrenzen
+  - Legend_Legend S_Grünflächen
+  - Legend_Legend S_Planungen_ Nutzungsregelungen_ Maßnahmen und Flächen für Maßnahmen
+    zum Schutz_ zur Pflege und zur Entwicklung von Natur und Landschaft
+  - Legend_Legend S_Sonstige Planzeichen
+  - Legend_Legend S_Darstellung ohne Normcharakter
+  - Legend_Legend S_Nachrichtliche Übernahme
+  - Bemaßung
+  - Ontras_FG_buffer_4
+  - Ontras_FG_buffer_2
+  - FG_Unterirdisch
+  - FG_Oberirdisch
+  - Parcel
+  - FG Line Array Oberirdisch
+  - FG Line Array Unterirdisch
+  - Gastrasse Array
+  - Flur
+  - Gemarkung
+  - Gemeinde
+  - Wald
+  - Wald Schraffur
+  - Geschütze Biotope
+  - Geschütze Biotope 2
+  - Geltungsbereich NW
+  - Geltungsbereich NW 2
+  - Geltungsbereich NO
+  - Geltungsbereich NO 2
+  - Geltungsbereich S 2
+  - Geltungsbereich Hatch NW
+  - Geltungsbereich Hatch NO
+  - Baugrenze 2
+  - Baugrenze
+  - BLOCKS
+  - Plantext
+  - Legend_Main Legend_Title
+  - Legend_Legend NW_Title
+  - Defpoints
+  - 0-BLOCKS
+  - Gebäude
+  - Parcel Label
+  - Blendschutzzaun
+  - EinAusfahrt Line
+  - Baum Points
+  - WMS Gebäude
+  - WMS Höhenlinien
+  - Gastrasse
+  - AgriPV
+  - AgriPV Schraffur
+  - AgriPV Schraffur Solid
+  - AgriPV Schraffur Lines
+  - Moor
+  - Geschütze Biotope Innenfläche
+  - Geschütze Biotope Innenfläche Schraffur
+  - Geschütze Biotope Umgrenzung
+  - Geschütze Biotope Umgrenzung Schraffur
+  - Nutzungsartengrenze
+  - Exclude Geltungsbereich
+  - Geschütze Biotope Umgrenzung T-Symbol Array
+  - Legend_Legend NW_Verkehrsflächen
+  - Legend_Legend S_Verkehrsflächen
+  - RAHMEN
 discover_untracked_layers: []
 deletion_policy: confirm
 default_layer: VIEWPORTS
-sync: skip
+sync: auto

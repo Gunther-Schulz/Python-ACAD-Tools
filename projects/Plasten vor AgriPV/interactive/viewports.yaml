@@ -1,6 +1,6 @@
 viewports:
 - name: WorkView
-  sync: auto
+  sync: push
   color: magenta
   center:
     x: 780
@@ -17,12 +17,12 @@ viewports:
   - Geltungsbereich Hatch NO
   - Geltungsbereich Hatch S
   _sync:
-    dxf_handle: 5B69F
+    dxf_handle: 8AA93
     content_hash: 8553ca210ccaf54afa1bd5cd09643cccbcc7d73bd5c73a9375a356fbc42231c5
-    last_sync_time: 1756886806
+    last_sync_time: 1759580476
     sync_source: yaml
 - name: WorkView2
-  sync: auto
+  sync: push
   color: magenta
   center:
     x: 1780
@@ -39,12 +39,12 @@ viewports:
   - Geltungsbereich Hatch NO
   - Geltungsbereich Hatch S
   _sync:
-    dxf_handle: 5B6A0
+    dxf_handle: 8AA94
     content_hash: 63869138514d748258d2958f7452acec01b4515a05cb3ff2589b7c9807cf7542
-    last_sync_time: 1756886806
+    last_sync_time: 1759580476
     sync_source: yaml
 - name: MapViewportNW
-  sync: auto
+  sync: push
   color: magenta
   topLeft:
     x: 1651
@@ -63,12 +63,12 @@ viewports:
   - WMTS DOP
   lockZoom: true
   _sync:
-    dxf_handle: 5B6A1
+    dxf_handle: 8AA95
     content_hash: 169e0698b8206582a7e4a0cb116fe92fc5c6cf9e5f63bc681f375d136b86b15e
-    last_sync_time: 1756886806
+    last_sync_time: 1759580476
     sync_source: yaml
 - name: LegendViewportNW
-  sync: auto
+  sync: push
   color: magenta
   topLeft:
     x: 2396
@@ -83,12 +83,12 @@ viewports:
   - WMTS DOP
   lockZoom: true
   _sync:
-    dxf_handle: 5B6A2
+    dxf_handle: 8AA96
     content_hash: 0e0d0dc8b92f1330f384b119fd86ae137a3fb0e02bb291b93386408c82537e8f
-    last_sync_time: 1756886806
+    last_sync_time: 1759580476
     sync_source: yaml
 - name: ÜbersichtskarteNW
-  sync: auto
+  sync: push
   color: magenta
   topLeft:
     x: 2400
@@ -105,12 +105,12 @@ viewports:
   - WMTS Basemap
   lockZoom: true
   _sync:
-    dxf_handle: 5B6A3
+    dxf_handle: 8AA97
     content_hash: 3494dd8b918b5a957562bfa5b33d52034de6ff3cfa2c3b260f8148ccdbd23818
-    last_sync_time: 1756886806
+    last_sync_time: 1759580476
     sync_source: yaml
 - name: MapViewportNO
-  sync: auto
+  sync: push
   color: magenta
   topLeft:
     x: 3651
@@ -129,12 +129,12 @@ viewports:
   - WMTS DOP
   lockZoom: true
   _sync:
-    dxf_handle: 5B6A4
+    dxf_handle: 8AA98
     content_hash: 1c3e03400fbf5cbf994289542ef51eaf62601daac1cef07909f824f065356e7b
-    last_sync_time: 1756886806
+    last_sync_time: 1759580476
     sync_source: yaml
 - name: LegendViewportNO
-  sync: auto
+  sync: push
   color: magenta
   topLeft:
     x: 4396
@@ -149,12 +149,12 @@ viewports:
   - WMTS DOP
   lockZoom: true
   _sync:
-    dxf_handle: 5B6A5
+    dxf_handle: 8AA99
     content_hash: dac9f14ab820ebe119132259c1875a53162c0c493f5b6c870a21a8b75fab58e9
-    last_sync_time: 1756886806
+    last_sync_time: 1759580476
     sync_source: yaml
 - name: ÜbersichtskarteNO
-  sync: auto
+  sync: push
   color: magenta
   topLeft:
     x: 4400
@@ -171,12 +171,12 @@ viewports:
   - WMTS Basemap
   lockZoom: true
   _sync:
-    dxf_handle: 5B6A6
+    dxf_handle: 8AA9A
     content_hash: 63d18ddf71e064fa9994b183512bf79a58d147ccfabf4267c9d8f10ff8b5243a
-    last_sync_time: 1756886806
+    last_sync_time: 1759580476
     sync_source: yaml
 - name: MapViewportS
-  sync: auto
+  sync: push
   color: magenta
   topLeft:
     x: 5651
@@ -195,12 +195,12 @@ viewports:
   - WMTS DOP
   lockZoom: true
   _sync:
-    dxf_handle: 5B6A7
+    dxf_handle: 8AA9B
     content_hash: 817fb470eea5fa30625a7d0fdc75f7996190f4797819ca820bbef35ccbf62e32
-    last_sync_time: 1756886806
+    last_sync_time: 1759580476
     sync_source: yaml
 - name: LegendViewportS
-  sync: auto
+  sync: push
   color: magenta
   topLeft:
     x: 6396
@@ -215,12 +215,12 @@ viewports:
   - WMTS DOP
   lockZoom: true
   _sync:
-    dxf_handle: 5B6A8
+    dxf_handle: 8AA9C
     content_hash: bdd8faeba90de18d5740afcfac37be2cbdd2ac116e10d5ec2e808086ef6ecfc6
-    last_sync_time: 1756886806
+    last_sync_time: 1759580476
     sync_source: yaml
 - name: ÜbersichtskarteS
-  sync: auto
+  sync: push
   color: magenta
   topLeft:
     x: 6400
@@ -237,11 +237,11 @@ viewports:
   - WMTS Basemap
   lockZoom: true
   _sync:
-    dxf_handle: 5B6A9
+    dxf_handle: 8AA9D
     content_hash: d9a71dbc42d92859cbe2ae7390804b885248b33240e811cf5dece435b873c28c
-    last_sync_time: 1756886806
+    last_sync_time: 1759580476
     sync_source: yaml
 discover_untracked_layers: []
 deletion_policy: confirm
 default_layer: VIEWPORTS
-sync: auto
+sync: skip
