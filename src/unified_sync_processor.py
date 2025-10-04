@@ -682,9 +682,25 @@ class UnifiedSyncProcessor(ABC):
                             update_sync_metadata(config, changes['current_yaml_hash'], 'yaml', entity_handle=entity_handle)
                         return {'entity': result, 'yaml_updated': True} if result else None
                 else:
-                    # Really not found anywhere - NOW we can assume deletion
-                    log_warning(f"🗑️  Entity '{entity_name}' not found by handle OR name - assuming user deletion")
-                    return self._handle_yaml_deletion(config)
+                    # Really not found anywhere - check deletion policy before removing
+                    log_warning(f"⚠️  Entity '{entity_name}' not found by handle OR name")
+                    
+                    # Respect deletion policy
+                    if self.deletion_policy == 'ignore':
+                        log_info(f"Keeping '{entity_name}' in YAML (deletion_policy=ignore)")
+                        return None
+                    elif self.deletion_policy == 'confirm':
+                        # Ask user for confirmation
+                        deleted_configs = self._confirm_delete_missing_entities([config])
+                        if deleted_configs:
+                            log_info(f"User confirmed deletion of '{entity_name}'")
+                            return self._handle_yaml_deletion(config)
+                        else:
+                            log_info(f"User declined deletion of '{entity_name}'")
+                            return None
+                    else:  # 'auto' policy
+                        log_warning(f"🗑️  Entity '{entity_name}' - auto-deleting from YAML (deletion_policy=auto)")
+                        return self._handle_yaml_deletion(config)
             else:
                 # No sync history - entity never existed, should be created
                 log_info(f"🔄 AUTO: Creating missing entity '{entity_name}' in DXF (never existed)")
@@ -1243,6 +1259,51 @@ class UnifiedSyncProcessor(ABC):
 
         # Return result indicating YAML needs updating (entity will be removed)
         return {'entity': None, 'yaml_updated': True, 'deleted': True}
+
+    def _auto_delete_missing_entities(self, missing_entities):
+        """
+        Automatically delete missing entities from YAML configuration.
+
+        Args:
+            missing_entities: List of entity configurations to delete
+
+        Returns:
+            list: List of deleted entity configurations
+        """
+        for config in missing_entities:
+            entity_name = config.get('name', 'unnamed')
+            log_info(f"Auto-deleted missing {self.entity_type} '{entity_name}' from YAML")
+        
+        return missing_entities
+
+    def _confirm_delete_missing_entities(self, missing_entities):
+        """
+        Prompt user to confirm deletion of missing entities from YAML configuration.
+
+        Args:
+            missing_entities: List of entity configurations to potentially delete
+
+        Returns:
+            list: List of confirmed deleted entity configurations
+        """
+        deleted_configs = []
+        
+        for config in missing_entities:
+            entity_name = config.get('name', 'unnamed')
+            log_warning(f"{self.entity_type.capitalize()} '{entity_name}' exists in YAML but not found in AutoCAD")
+            
+            try:
+                response = input(f"Delete '{entity_name}' from configuration? (y/n): ").lower().strip()
+                if response == 'y':
+                    deleted_configs.append(config)
+                    log_info(f"User confirmed deletion of {self.entity_type} '{entity_name}' from YAML")
+                else:
+                    log_info(f"User declined deletion of {self.entity_type} '{entity_name}'")
+            except (EOFError, KeyboardInterrupt):
+                log_warning(f"User input interrupted - skipping deletion of '{entity_name}'")
+                break
+        
+        return deleted_configs
 
     def _handle_orphaned_entities(self, doc, space, current_configs):
         """
