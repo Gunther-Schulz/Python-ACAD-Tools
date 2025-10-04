@@ -1092,7 +1092,9 @@ class DXFExporter:
                     continue
 
             # Clear existing blocks for this placement
-            remove_entities_by_layer(msp, name, self.script_identifier)
+            # Use the same layer resolution as place_blocks_bulk to ensure cleanup works correctly
+            target_layer = config.get('layer', name)
+            remove_entities_by_layer(msp, target_layer, self.script_identifier)
 
             block_name = config.get('blockName')
             if not block_name:

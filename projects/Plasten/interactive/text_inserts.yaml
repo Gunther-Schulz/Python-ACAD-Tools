@@ -3,8 +3,8 @@ texts:
   targetLayer: Plantext
   sync: skip
   paperspace: true
-  text: 'Vorentwurf: Vorhabensbezogener Bebauungsplan Nr. 6 „Solarpark am Devener
-    Weg“
+  text: 'Vorentwurf Agri-PV: Vorhabensbezogener Bebauungsplan Nr. 6 „Solarpark am
+    Devener Weg“
 
     der Gemeinde Groß Plasten'
   position:
@@ -40,12 +40,12 @@ texts:
   position:
     type: absolute
     x: 2400.0
-    y: 340.4823752554312
+    y: 401.0379913858941
   style: übersichtskarteHeader
   _sync:
     dxf_handle: 8C7BD
-    content_hash: a39fd865048b81c7ec392b0898f76466aa1c35024ae2373809f9963e125d522d
-    last_sync_time: 1759581378
+    content_hash: 86d6f58fbb0be5e5a08b67ce550dd90e2b5a9c1a9198953ae462349b961be1da
+    last_sync_time: 1759583873
     sync_source: dxf
   layer: Plantext
 - name: Satzungs NW
@@ -53,7 +53,7 @@ texts:
   sync: skip
   paperspace: true
   justification: CENTER
-  text: 'VORENTWURF
+  text: 'VORENTWURF AGRI-PV
 
     SATZUNG DER GEMEINDE
 
@@ -76,7 +76,8 @@ texts:
   targetLayer: Plantext
   sync: skip
   paperspace: true
-  text: 'Vorentwurf: Vorhabensbezogener Bebauungsplan Nr. 5 „Solarpark am Spargelberg“
+  text: 'Vorentwurf Agri-PV: Vorhabensbezogener Bebauungsplan Nr. 5 „Solarpark am
+    Spargelberg“
 
     der Gemeinde Groß Plasten'
   position:
@@ -112,12 +113,12 @@ texts:
   position:
     type: absolute
     x: 4400.0
-    y: 310.0
+    y: 404.1422450868867
   style: übersichtskarteHeader
   _sync:
     dxf_handle: 8C7C1
-    content_hash: 8403cd8b3bfa8ace8b135dbf0f145cae7a6728dea9587bf2468cda99884be152
-    last_sync_time: 1759581378
+    content_hash: f16f5a48ddef047ea47b479ae0e078c859b0c1fbb9d15b90643ace281902d3c6
+    last_sync_time: 1759583873
     sync_source: dxf
   layer: Plantext
 - name: Satzungs NO
@@ -125,7 +126,7 @@ texts:
   sync: skip
   paperspace: true
   justification: CENTER
-  text: 'VORENTWURF
+  text: 'VORENTWURF AGRI-PV
 
     SATZUNG DER GEMEINDE
 
@@ -148,8 +149,8 @@ texts:
   targetLayer: Plantext
   sync: skip
   paperspace: true
-  text: 'Vorentwurf: Vorhabensbezogener Bebauungsplan Nr. 7 „Solarpark an der Straße
-    nach Rockow“
+  text: 'Vorentwurf Agri-PV: Vorhabensbezogener Bebauungsplan Nr. 7 „Solarpark an
+    der Straße nach Rockow“
 
     der Gemeinde Groß Plasten'
   position:
@@ -185,12 +186,12 @@ texts:
   position:
     type: absolute
     x: 6400.0
-    y: 311.808881289986
+    y: 364.6054893734436
   style: übersichtskarteHeader
   _sync:
     dxf_handle: 8C7C5
-    content_hash: 85327f3af8ce4582881b099e22a3354eb73568a50a7ee76ec9b51e6aabfa34a5
-    last_sync_time: 1759581378
+    content_hash: 64588444baa30619c4e2fe4c283cd2ab79a7b8b1f12a97dba95531a12e80dc55
+    last_sync_time: 1759583873
     sync_source: dxf
   layer: Plantext
 - name: Satzungs S
@@ -198,7 +199,7 @@ texts:
   sync: skip
   paperspace: true
   justification: CENTER
-  text: 'VORENTWURF
+  text: 'VORENTWURF AGRI-PV
 
     SATZUNG DER GEMEINDE
 

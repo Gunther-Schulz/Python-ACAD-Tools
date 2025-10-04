@@ -3,15 +3,15 @@
 
 # BUG: Instead of replacing it keeps adding duplicates on each run
 
-# blockPlacements:
-# - name: EinAusfahrt
-#   sync: push
-#   blockName: EinAusfahrt
-#   scale: 0.6
-#   layer: BLOCKS
-#   position:
-#     sourceLayer: EinAusfahrt Line
-#     type: line
-#     method: middle
-#     lineOffset: -1
+blockPlacements:
+- name: EinAusfahrt
+  sync: push
+  blockName: EinAusfahrt
+  scale: 0.6
+  layer: BLOCKS
+  position:
+    sourceLayer: EinAusfahrt Line
+    type: line
+    method: middle
+    lineOffset: -1
 
