@@ -1,0 +1,14 @@
+# Generated Block Placements
+# For bulk placement of blocks from source layer geometries
+blockPlacements:
+- name: EinAusfahrt
+  sync: push
+  blockName: EinAusfahrt
+  scale: 0.6
+  layer: BLOCKS
+  position:
+    sourceLayer: EinAusfahrt Line
+    type: line
+    method: middle
+    lineOffset: -1
+

@@ -20,22 +20,36 @@ class BlockInsertManager(UnifiedSyncProcessor):
 
     def process_block_inserts(self, msp):
         """Process block inserts using the sync-based BlockInsertManager."""
+        log_info("=" * 80)
+        log_info("🔷 STARTING BLOCK INSERT PROCESSING")
+        log_info("=" * 80)
+        
         block_configs = self._get_entity_configs()
+        log_info(f"Found {len(block_configs)} block insert configurations")
+        
         if not block_configs:
             log_debug("No block inserts found in project settings")
             return
 
+        # Log each config
+        for i, config in enumerate(block_configs, 1):
+            log_info(f"  [{i}] {config.get('name')} - blockName: {config.get('blockName')}, sync: {config.get('sync')}")
+
         # Clean target layers before processing (only for entities that will be pushed)
         configs_to_process = [c for c in block_configs if self._get_sync_direction(c) == 'push']
+        log_info(f"Processing {len(configs_to_process)} block inserts in push mode")
         self.clean_target_layers(msp.doc, configs_to_process)
 
         # Process using sync manager in BOTH spaces (modelspace and paperspace)
         # Block entities can be in either space, so we need to process both
+        log_info("Processing blocks in modelspace...")
         processed_blocks_msp = self.process_entities(msp.doc, msp)
+        log_info("Processing blocks in paperspace...")
         processed_blocks_psp = self.process_entities(msp.doc, msp.doc.paperspace())
 
         total_processed = len(processed_blocks_msp) + len(processed_blocks_psp)
-        log_debug(f"Processed {total_processed} block inserts using sync system (MSP: {len(processed_blocks_msp)}, PSP: {len(processed_blocks_psp)})")
+        log_info(f"✅ Processed {total_processed} block inserts using sync system (MSP: {len(processed_blocks_msp)}, PSP: {len(processed_blocks_psp)})")
+        log_info("=" * 80)
 
     def clean_target_layers(self, doc, configs_to_process):
         """Clean target layers for block configs (both spaces). Uses centralized logic."""
