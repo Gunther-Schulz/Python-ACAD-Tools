@@ -34,10 +34,10 @@ geomLayers:
   # Administrative Boundaries
   # --------------------------------------------------------------------------
 
-  # - name: Nutzungsartengrenze
-  #   shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/nutzungsartengrenze5_pl.shp"
-  #   close: true
-  #   # sync: push
+  - name: Nutzungsartengrenze
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/nutzungsartengrenze5_pl.shp"
+    close: true
+    # sync: push
 
   - name: Flur
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/flur.shp"
@@ -485,7 +485,7 @@ geomLayers:
   # AgriPV Base: Initial solar planning zone (before 20m constraint)
   # --------------------------------------------------------------------------
 
-  - name: AgriPV Base
+  - name: AgriPV Base Unclipped
     operations:
       # Start with all parcels
       - type: copy
@@ -514,6 +514,42 @@ geomLayers:
         geometryTypes:
           - Polygon
 
+  # --------------------------------------------------------------------------
+  # AgriPV Base Region Split: Clip NO region with Nutzungsartengrenze
+  # --------------------------------------------------------------------------
+
+  # Extract and clip the NO region (intersects with Nutzungsartengrenze)
+  - name: AgriPV Base NO Region Clipped
+    operations:
+      - type: copy
+        layers:
+          - AgriPV Base Unclipped
+      - type: intersection
+        layers:
+          - Geltungsbereich NO Base
+      - type: intersection
+        layers:
+          - Nutzungsartengrenze
+
+  # Extract NW and S regions (unclipped)
+  - name: AgriPV Base Other Regions
+    operations:
+      - type: copy
+        layers:
+          - AgriPV Base Unclipped
+      - type: intersection
+        layers:
+          - Geltungsbereich NW Base
+          - Geltungsbereich S Base
+
+  # Merge clipped NO + unclipped other regions
+  - name: AgriPV Base
+    operations:
+      - type: merge
+        layers:
+          - AgriPV Base NO Region Clipped
+          - AgriPV Base Other Regions
+
   # ==========================================================================
   # SECTION 6: BAUGRENZE CALCULATION
   # ==========================================================================
@@ -526,7 +562,7 @@ geomLayers:
     linetypeGeneration: true
     close: true
     operations:
-      # Start with -20m inset from AgriPV Base
+      # Start with -20m inset from AgriPV Base (which already has NO region clipped)
       - type: buffer
         layers:
           - AgriPV Base
