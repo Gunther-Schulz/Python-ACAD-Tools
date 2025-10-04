@@ -579,6 +579,23 @@ geomLayers:
       - type: intersection
         layers:
           - Baugrenze 20m Envelope
+      # Stage 1: Remove degenerate spikes (zero-width, edge goes out and back on same path)
+      - type: removeDegenerateSpikes
+        tolerance: 0.01              # Merge vertices closer than 1cm
+        simplifyTolerance: 0.05      # Simplify with 5cm tolerance
+        minSpikeLength: 0.1          # Remove spikes thinner than 10cm
+      # Stage 2: Remove thin protrusions
+      - type: removeProtrusions
+        bufferDistance: 0.5
+        minProtrusionLength: 1.0
+      # Stage 3: Remove slivers (thin features < 0.4m wide)
+      - type: removeSliversErosion
+        erosionDistance: 0.2
+      # Stage 4: Final repair and cleanup
+      - type: repair
+        minArea: 20
+        removeEmptyGeometries: true
+        removeFailures: true
 
   # ==========================================================================
   # SECTION 7: FINAL GELTUNGSBEREICH - Follows AgriPV outline
@@ -597,6 +614,23 @@ geomLayers:
       # Remove interior rings (holes) caused by Biotope exclusions
       # Geltungsbereich should have a clean boundary without internal holes
       - type: removeInteriorRings
+      # Stage 1: Remove degenerate spikes (zero-width, edge goes out and back on same path)
+      - type: removeDegenerateSpikes
+        tolerance: 0.01              # Merge vertices closer than 1cm
+        simplifyTolerance: 0.05      # Simplify with 5cm tolerance
+        minSpikeLength: 0.1          # Remove spikes thinner than 10cm
+      # Stage 2: Remove thin protrusions
+      - type: removeProtrusions
+        bufferDistance: 0.5
+        minProtrusionLength: 1.0
+      # Stage 3: Remove slivers (thin features < 0.4m wide)
+      - type: removeSliversErosion
+        erosionDistance: 0.2
+      # Stage 4: Final repair and cleanup
+      - type: repair
+        minArea: 20
+        removeEmptyGeometries: true
+        removeFailures: true
 
   - name: Geltungsbereich NO
     sync: push
@@ -611,6 +645,23 @@ geomLayers:
       # Remove interior rings (holes) caused by Biotope exclusions
       # Geltungsbereich should have a clean boundary without internal holes
       - type: removeInteriorRings
+      # Stage 1: Remove degenerate spikes (zero-width, edge goes out and back on same path)
+      - type: removeDegenerateSpikes
+        tolerance: 0.01              # Merge vertices closer than 1cm
+        simplifyTolerance: 0.05      # Simplify with 5cm tolerance
+        minSpikeLength: 0.1          # Remove spikes thinner than 10cm
+      # Stage 2: Remove thin protrusions
+      - type: removeProtrusions
+        bufferDistance: 0.5
+        minProtrusionLength: 1.0
+      # Stage 3: Remove slivers (thin features < 0.4m wide)
+      - type: removeSliversErosion
+        erosionDistance: 0.2
+      # Stage 4: Final repair and cleanup
+      - type: repair
+        minArea: 20
+        removeEmptyGeometries: true
+        removeFailures: true
 
   - name: Geltungsbereich S
     sync: push
@@ -625,6 +676,23 @@ geomLayers:
       # Remove interior rings (holes) caused by Biotope exclusions
       # Geltungsbereich should have a clean boundary without internal holes
       - type: removeInteriorRings
+      # Stage 1: Remove degenerate spikes (zero-width, edge goes out and back on same path)
+      - type: removeDegenerateSpikes
+        tolerance: 0.01              # Merge vertices closer than 1cm
+        simplifyTolerance: 0.05      # Simplify with 5cm tolerance
+        minSpikeLength: 0.1          # Remove spikes thinner than 10cm
+      # Stage 2: Remove thin protrusions
+      - type: removeProtrusions
+        bufferDistance: 0.5
+        minProtrusionLength: 1.0
+      # Stage 3: Remove slivers (thin features < 0.4m wide)
+      - type: removeSliversErosion
+        erosionDistance: 0.2
+      # Stage 4: Final repair and cleanup
+      - type: repair
+        minArea: 20
+        removeEmptyGeometries: true
+        removeFailures: true
 
   # --------------------------------------------------------------------------
   # Geltungsbereich +2m Styling Variants

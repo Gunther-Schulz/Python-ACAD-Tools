@@ -45,6 +45,7 @@ from src.operations.point_label_operation import create_point_label_layer
 from src.operations.simplify_slivers_operation import create_simplify_slivers_layer
 from src.operations.remove_protrusions_operation import create_remove_protrusions_layer
 from src.operations.remove_slivers_erosion_operation import create_remove_slivers_erosion_layer
+from src.operations.remove_degenerate_spikes_operation import create_remove_degenerate_spikes_layer
 
 class LayerProcessor:
     def __init__(self, project_loader, plot_ops=False):
@@ -396,6 +397,8 @@ class LayerProcessor:
             result = create_remove_protrusions_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
         elif op_type == 'removeSliversErosion':
             result = create_remove_slivers_erosion_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
+        elif op_type == 'removeDegenerateSpikes':
+            result = create_remove_degenerate_spikes_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
         else:
             log_warning(f"Unknown operation type: {op_type} for layer {layer_name}")
             return None

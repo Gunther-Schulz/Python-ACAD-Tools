@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="800" height="600">
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#FF0000"/>
+    </marker>
+  </defs>
+  
+  <!-- Title -->
+  <text x="400" y="30" font-size="24" font-weight="bold" text-anchor="middle" fill="#000">
+    Degenerate Zero-Width Spike Problem
+  </text>
+  
+  <!-- ========== LEFT: NORMAL POLYGON ========== -->
+  <g id="normal-polygon">
+    <text x="150" y="70" font-size="18" font-weight="bold" text-anchor="middle" fill="#000">
+      Normal Polygon
+    </text>
+    
+    <!-- Normal polygon shape -->
+    <polygon points="50,100 250,100 250,350 50,350" 
+             fill="#90EE90" stroke="#006400" stroke-width="3"/>
+    
+    <!-- Vertices -->
+    <circle cx="50" cy="100" r="5" fill="#FF0000"/>
+    <circle cx="250" cy="100" r="5" fill="#FF0000"/>
+    <circle cx="250" cy="350" r="5" fill="#FF0000"/>
+    <circle cx="50" cy="350" r="5" fill="#FF0000"/>
+    
+    <!-- Labels -->
+    <text x="40" y="95" font-size="14" font-weight="bold" fill="#FF0000">A</text>
+    <text x="260" y="95" font-size="14" font-weight="bold" fill="#FF0000">B</text>
+    <text x="260" y="360" font-size="14" font-weight="bold" fill="#FF0000">C</text>
+    <text x="40" y="360" font-size="14" font-weight="bold" fill="#FF0000">D</text>
+    
+    <text x="150" y="400" font-size="14" text-anchor="middle" fill="#006400">
+      ✓ Clean boundary
+    </text>
+    <text x="150" y="420" font-size="14" text-anchor="middle" fill="#006400">
+      ✓ No duplicate vertices
+    </text>
+  </g>
+  
+  <!-- ========== RIGHT: DEGENERATE SPIKE ========== -->
+  <g id="degenerate-spike">
+    <text x="550" y="70" font-size="18" font-weight="bold" text-anchor="middle" fill="#000">
+      Polygon with Zero-Width Spike
+    </text>
+    
+    <!-- Polygon with spike - showing the problem -->
+    <path d="M 450,100 L 650,100 L 650,150 L 750,150 L 750,151 L 650,151 L 650,350 L 450,350 Z"
+          fill="#FFB6C1" stroke="#8B0000" stroke-width="3"/>
+    
+    <!-- Highlight the spike area -->
+    <rect x="645" y="148" width="110" height="5" fill="#FF0000" opacity="0.5"/>
+    
+    <!-- Vertices -->
+    <circle cx="450" cy="100" r="5" fill="#FF0000"/>
+    <circle cx="650" cy="100" r="5" fill="#FF0000"/>
+    <circle cx="650" cy="150" r="5" fill="#FF0000"/>
+    <circle cx="750" cy="150" r="6" fill="#FF0000" stroke="#000" stroke-width="2"/>
+    <circle cx="750" cy="151" r="6" fill="#FF0000" stroke="#000" stroke-width="2"/>
+    <circle cx="650" cy="151" r="5" fill="#FF0000"/>
+    <circle cx="650" cy="350" r="5" fill="#FF0000"/>
+    <circle cx="450" cy="350" r="5" fill="#FF0000"/>
+    
+    <!-- Labels -->
+    <text x="440" y="95" font-size="14" font-weight="bold" fill="#FF0000">A</text>
+    <text x="660" y="95" font-size="14" font-weight="bold" fill="#FF0000">B</text>
+    <text x="640" y="145" font-size="12" fill="#FF0000">C</text>
+    <text x="760" y="145" font-size="14" font-weight="bold" fill="#FF0000">D</text>
+    <text x="760" y="158" font-size="14" font-weight="bold" fill="#FF0000">E</text>
+    <text x="640" y="158" font-size="12" fill="#FF0000">F</text>
+    <text x="660" y="360" font-size="14" font-weight="bold" fill="#FF0000">G</text>
+    <text x="440" y="360" font-size="14" font-weight="bold" fill="#FF0000">H</text>
+    
+    <!-- Arrow showing the path -->
+    <path d="M 650,140 L 740,140" stroke="#0000FF" stroke-width="2" 
+          marker-end="url(#arrowhead)" stroke-dasharray="5,5"/>
+    <text x="695" y="135" font-size="12" fill="#0000FF" text-anchor="middle">OUT</text>
+    
+    <path d="M 740,160 L 650,160" stroke="#00FF00" stroke-width="2" 
+          marker-end="url(#arrowhead)" stroke-dasharray="5,5"/>
+    <text x="695" y="175" font-size="12" fill="#00FF00" text-anchor="middle">BACK</text>
+    
+    <!-- Problem indicators -->
+    <text x="550" y="400" font-size="14" text-anchor="middle" fill="#8B0000">
+      ✗ Edge goes OUT (B→C→D)
+    </text>
+    <text x="550" y="420" font-size="14" text-anchor="middle" fill="#8B0000">
+      ✗ Returns on SAME PATH (E→F→G)
+    </text>
+    <text x="550" y="440" font-size="14" text-anchor="middle" fill="#8B0000" font-weight="bold">
+      ✗ D and E are at same location!
+    </text>
+    <text x="550" y="460" font-size="14" text-anchor="middle" fill="#8B0000" font-weight="bold">
+      ✗ Zero width = Degenerate spike
+    </text>
+  </g>
+  
+  <!-- ========== BOTTOM: CLOSE-UP VIEW ========== -->
+  <g id="closeup">
+    <text x="400" y="510" font-size="18" font-weight="bold" text-anchor="middle" fill="#000">
+      Close-up of the Spike Problem
+    </text>
+    
+    <!-- Magnified view of the spike -->
+    <rect x="250" y="520" width="300" height="60" fill="#F0F0F0" stroke="#000" stroke-width="2"/>
+    
+    <!-- Main edge -->
+    <line x1="270" y1="550" x2="370" y2="550" stroke="#8B0000" stroke-width="4"/>
+    
+    <!-- Spike going out -->
+    <line x1="370" y1="550" x2="530" y2="550" stroke="#0000FF" stroke-width="3"/>
+    
+    <!-- Spike returning (slightly offset to show it's the same path) -->
+    <line x1="530" y1="551" x2="370" y2="551" stroke="#00FF00" stroke-width="3"/>
+    
+    <!-- Vertices -->
+    <circle cx="370" cy="550" r="4" fill="#FF0000"/>
+    <circle cx="530" cy="550" r="5" fill="#FF0000" stroke="#000" stroke-width="1"/>
+    <circle cx="530" cy="551" r="5" fill="#FF0000" stroke="#000" stroke-width="1"/>
+    
+    <text x="365" y="540" font-size="10" fill="#8B0000">C</text>
+    <text x="535" y="545" font-size="10" fill="#FF0000" font-weight="bold">D</text>
+    <text x="535" y="558" font-size="10" fill="#FF0000" font-weight="bold">E</text>
+    
+    <!-- Annotation -->
+    <text x="450" y="535" font-size="11" fill="#FF0000" text-anchor="middle" font-weight="bold">
+      D and E: Same or nearly same position!
+    </text>
+    <text x="400" y="575" font-size="10" text-anchor="middle" fill="#666">
+      Distance between D and E: &lt; 1cm (duplicate vertices)
+    </text>
+  </g>
+</svg>
+

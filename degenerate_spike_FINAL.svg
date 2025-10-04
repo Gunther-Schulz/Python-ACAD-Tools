@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 600" width="900" height="600">
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#FF0000"/>
+    </marker>
+  </defs>
+  
+  <!-- Title -->
+  <text x="450" y="30" font-size="24" font-weight="bold" text-anchor="middle" fill="#000">
+    THE REAL PROBLEM: Collinear Vertices Creating Zero-Width Spike
+  </text>
+  
+  <!-- ========== LEFT: NORMAL POLYGON ========== -->
+  <g id="normal-polygon">
+    <text x="180" y="70" font-size="18" font-weight="bold" text-anchor="middle" fill="#000">
+      Normal Polygon (Non-Collinear)
+    </text>
+    
+    <!-- Normal polygon shape -->
+    <polygon points="80,100 280,100 280,150 200,200 280,250 280,350 80,350" 
+             fill="#90EE90" stroke="#006400" stroke-width="3"/>
+    
+    <!-- Vertices -->
+    <circle cx="80" cy="100" r="5" fill="#FF0000"/>
+    <circle cx="280" cy="100" r="5" fill="#FF0000"/>
+    <circle cx="280" cy="150" r="5" fill="#FF0000"/>
+    <circle cx="200" cy="200" r="6" fill="#0000FF" stroke="#000" stroke-width="2"/>
+    <circle cx="280" cy="250" r="5" fill="#FF0000"/>
+    <circle cx="280" cy="350" r="5" fill="#FF0000"/>
+    <circle cx="80" cy="350" r="5" fill="#FF0000"/>
+    
+    <!-- Labels -->
+    <text x="280" y="140" font-size="14" font-weight="bold" fill="#FF0000">C</text>
+    <text x="190" y="195" font-size="14" font-weight="bold" fill="#0000FF">D</text>
+    <text x="280" y="260" font-size="14" font-weight="bold" fill="#FF0000">F</text>
+    
+    <!-- Show angle -->
+    <path d="M 280,150 L 260,170 L 260,230 L 280,250" stroke="#00AA00" stroke-width="2" fill="none" stroke-dasharray="3,3"/>
+    
+    <text x="180" y="400" font-size="14" text-anchor="middle" fill="#006400">
+      ✓ D is OFFSET from C-F line
+    </text>
+    <text x="180" y="420" font-size="14" text-anchor="middle" fill="#006400">
+      ✓ Creates actual area
+    </text>
+    <text x="180" y="440" font-size="14" text-anchor="middle" fill="#006400">
+      ✓ C, D, F NOT on same line
+    </text>
+  </g>
+  
+  <!-- ========== RIGHT: DEGENERATE COLLINEAR SPIKE ========== -->
+  <g id="collinear-spike">
+    <text x="650" y="70" font-size="18" font-weight="bold" text-anchor="middle" fill="#000">
+      YOUR PROBLEM: Collinear C→D→F
+    </text>
+    
+    <!-- Polygon with collinear spike - edge goes in and back on SAME LINE -->
+    <polygon points="480,100 680,100 680,150 680,200 680,250 680,350 480,350" 
+             fill="#FFB6C1" stroke="#8B0000" stroke-width="3"/>
+    
+    <!-- Highlight the collinear spike path -->
+    <line x1="680" y1="150" x2="580" y2="200" stroke="#0000FF" stroke-width="6" opacity="0.5"/>
+    <line x1="580" y1="200" x2="680" y2="250" stroke="#00FF00" stroke-width="6" opacity="0.5"/>
+    
+    <!-- Show they're on the SAME LINE -->
+    <line x1="680" y1="130" x2="550" y2="210" stroke="#FF0000" stroke-width="1" stroke-dasharray="5,5"/>
+    <line x1="550" y1="210" x2="680" y2="270" stroke="#FF0000" stroke-width="1" stroke-dasharray="5,5"/>
+    
+    <!-- Vertices - ONLY 3: C, D, F -->
+    <circle cx="480" cy="100" r="5" fill="#FF0000"/>
+    <circle cx="680" cy="100" r="5" fill="#FF0000"/>
+    <circle cx="680" cy="150" r="6" fill="#FF0000" stroke="#000" stroke-width="2"/>
+    <circle cx="580" cy="200" r="8" fill="#0000FF" stroke="#000" stroke-width="3"/>
+    <circle cx="680" cy="250" r="6" fill="#FF0000" stroke="#000" stroke-width="2"/>
+    <circle cx="680" cy="350" r="5" fill="#FF0000"/>
+    <circle cx="480" cy="350" r="5" fill="#FF0000"/>
+    
+    <!-- Labels -->
+    <text x="690" y="145" font-size="14" font-weight="bold" fill="#FF0000">C</text>
+    <text x="565" y="195" font-size="16" font-weight="bold" fill="#0000FF">D</text>
+    <text x="690" y="255" font-size="14" font-weight="bold" fill="#FF0000">F</text>
+    
+    <!-- Arrows showing the path -->
+    <text x="620" y="165" font-size="12" fill="#0000FF" font-weight="bold">→ IN</text>
+    <text x="620" y="235" font-size="12" fill="#00FF00" font-weight="bold">← BACK</text>
+    
+    <!-- Annotation box -->
+    <rect x="500" y="280" width="340" height="90" fill="#FFF5E6" stroke="#FF0000" stroke-width="2"/>
+    <text x="670" y="300" font-size="12" text-anchor="middle" fill="#8B0000" font-weight="bold">
+      PROBLEM: C, D, F are COLLINEAR!
+    </text>
+    <text x="670" y="320" font-size="11" text-anchor="middle" fill="#8B0000">
+      ✗ D lies on (or very close to) the line C↔F
+    </text>
+    <text x="670" y="338" font-size="11" text-anchor="middle" fill="#8B0000">
+      ✗ Edge goes: C→D (inward), D→F (back)
+    </text>
+    <text x="670" y="356" font-size="11" text-anchor="middle" fill="#8B0000">
+      ✗ Both paths on SAME LINE = Zero width!
+    </text>
+  </g>
+  
+  <!-- ========== BOTTOM: GEOMETRY EXPLANATION ========== -->
+  <g id="geometry">
+    <text x="450" y="480" font-size="18" font-weight="bold" text-anchor="middle" fill="#000">
+      Geometry: Why This Creates a Zero-Width Spike
+    </text>
+    
+    <!-- Show the line -->
+    <rect x="100" y="500" width="700" height="80" fill="#F0F0F0" stroke="#000" stroke-width="2"/>
+    
+    <!-- The straight line C-D-F -->
+    <line x1="150" y1="540" x2="750" y2="540" stroke="#FF0000" stroke-width="2"/>
+    
+    <!-- Points on the line -->
+    <circle cx="250" cy="540" r="6" fill="#FF0000" stroke="#000" stroke-width="2"/>
+    <text x="250" y="525" font-size="14" font-weight="bold" fill="#FF0000" text-anchor="middle">C</text>
+    <text x="250" y="560" font-size="10" fill="#666" text-anchor="middle">(680, 150)</text>
+    
+    <circle cx="450" cy="540" r="8" fill="#0000FF" stroke="#000" stroke-width="3"/>
+    <text x="450" y="525" font-size="16" font-weight="bold" fill="#0000FF" text-anchor="middle">D</text>
+    <text x="450" y="560" font-size="10" fill="#666" text-anchor="middle">(580, 200)</text>
+    
+    <circle cx="650" cy="540" r="6" fill="#FF0000" stroke="#000" stroke-width="2"/>
+    <text x="650" y="525" font-size="14" font-weight="bold" fill="#FF0000" text-anchor="middle">F</text>
+    <text x="650" y="560" font-size="10" fill="#666" text-anchor="middle">(680, 250)</text>
+    
+    <!-- Arrows showing direction -->
+    <path d="M 260 535 L 440 535" stroke="#0000FF" stroke-width="3" marker-end="url(#arrowhead)"/>
+    <path d="M 640 535 L 460 535" stroke="#00FF00" stroke-width="3" marker-end="url(#arrowhead)"/>
+    
+    <text x="450" y="575" font-size="12" text-anchor="middle" fill="#FF0000" font-weight="bold">
+      All 3 points on SAME LINE → Path goes out and back on itself → ZERO WIDTH!
+    </text>
+  </g>
+</svg>
+
