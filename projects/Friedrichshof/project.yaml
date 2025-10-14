@@ -2,7 +2,7 @@ exportFormat: dxf
 dxfVersion: R2018
 crs: EPSG:25833
 # dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/Zeichnung/22-16 Friedrichshof Zeichnung.dxf"
-dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/Zeichnung/25 08.13 Friedrichshof  Zeichnung.dxf"
+dxfFilename: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/Zeichnung/25 10.14 Friedrichshof  Zeichnung.dxf"
 shapefileOutputDir: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/generated"
 # dxfDumpOutputDir: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/dump"
 # Optional: Filter DXF dump by geometry types (polygons, lines, points)

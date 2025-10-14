@@ -34,6 +34,10 @@ def _get_filtered_geometry(all_layers, project_settings, crs, layer_name, values
             return None
 
         source_gdf = all_layers[layer_name]
+        if source_gdf is None:
+            log_warning(f"Layer '{layer_name}' has no data (None)")
+            return None
+        
         log_debug(f"Initial number of geometries in {layer_name}: {len(source_gdf)}")
 
         # ARCHITECTURAL FIX: Correct filtering logic
