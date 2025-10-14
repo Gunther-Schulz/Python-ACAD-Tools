@@ -28,18 +28,30 @@ def create_report_layer(all_layers, project_settings, crs, layer_name, operation
     decimal_places = operation.get('decimalPlaces', {})
     
     # Use calculate operation to compute metrics FIRST (before sorting)
+    # Only calculate fields that don't already exist and are valid calculation types
     if calculate_columns:
+        valid_calc_types = ['area', 'perimeter', 'compare', 'percentage', 'coverage_status']
         calculations = []
         for calc in calculate_columns:
-            calculations.append({
-                'type': calc,
-                'decimalPlaces': decimal_places.get(calc)
-            })
+            # If the column already exists, skip recalculation
+            if calc in source_gdf.columns:
+                log_debug(f"Column '{calc}' already exists in layer '{layer_name}', skipping calculation")
+                continue
+            # Only create calculation if it's a valid type
+            if calc in valid_calc_types:
+                calculations.append({
+                    'type': calc,
+                    'decimalPlaces': decimal_places.get(calc)
+                })
+            else:
+                log_debug(f"'{calc}' is not a valid calculation type, assuming it's a field reference")
         
-        calculate_operation = {
-            'calculations': calculations
-        }
-        source_gdf = create_calculate_layer(all_layers, project_settings, crs, layer_name, calculate_operation)
+        # Only call calculate if we have valid calculations to perform
+        if calculations:
+            calculate_operation = {
+                'calculations': calculations
+            }
+            source_gdf = create_calculate_layer(all_layers, project_settings, crs, layer_name, calculate_operation)
     
     # Handle sorting AFTER calculations
     sort_by = operation.get('sortBy')
@@ -84,8 +96,9 @@ def create_report_layer(all_layers, project_settings, crs, layer_name, operation
     summary = {}
     
     # Initialize summary accumulators for each calculated column
+    # Check if columns exist in the dataframe and are numeric
     for calc in calculate_columns:
-        if calc in ['area', 'perimeter']:  # Only summarize numeric calculations
+        if calc in source_gdf.columns and pd.api.types.is_numeric_dtype(source_gdf[calc]):
             summary[calc] = {
                 'total': 0, 'min': float('inf'), 'max': float('-inf'), 'count': 0
             }
@@ -106,7 +119,7 @@ def create_report_layer(all_layers, project_settings, crs, layer_name, operation
         
         # Update summaries for numeric calculations
         for calc in calculate_columns:
-            if calc in ['area', 'perimeter'] and calc in row.index:
+            if calc in summary and calc in row.index:
                 value = row[calc]
                 summary[calc]['total'] += value
                 summary[calc]['min'] = min(summary[calc]['min'], value)

@@ -185,7 +185,7 @@ geomLayers:
       - type: calculate
         calculations:
           - type: area
-            as: area
+            as: area_m2
             decimalPlaces: 0
           - type: perimeter
             as: perimeter
@@ -193,13 +193,13 @@ geomLayers:
       - type: report
         outputFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/reports/gruenstreifen_report.json"
         featureColumns:
-          - area
+          - area_m2
           - perimeter
         calculate:
-          - area
+          - area_m2
           - perimeter
         decimalPlaces:
-          area: 0
+          area_m2: 0
           perimeter: 1
 
   - name: "CEF input Report"
@@ -210,7 +210,7 @@ geomLayers:
       - type: calculate
         calculations:
           - type: area
-            as: area
+            as: area_m2
             decimalPlaces: 0
           - type: perimeter
             as: perimeter
@@ -218,13 +218,13 @@ geomLayers:
       - type: report
         outputFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/reports/cef_input_report.json"
         featureColumns:
-          - area
+          - area_m2
           - perimeter
         calculate:
-          - area
+          - area_m2
           - perimeter
         decimalPlaces:
-          area: 0
+          area_m2: 0
           perimeter: 1
 
   - name: "Ablagerungsfläche Report"
@@ -235,7 +235,7 @@ geomLayers:
       - type: calculate
         calculations:
           - type: area
-            as: area
+            as: area_m2
             decimalPlaces: 0
           - type: perimeter
             as: perimeter
@@ -243,13 +243,13 @@ geomLayers:
       - type: report
         outputFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/reports/ablagerungsflaeche_report.json"
         featureColumns:
-          - area
+          - area_m2
           - perimeter
         calculate:
-          - area
+          - area_m2
           - perimeter
         decimalPlaces:
-          area: 0
+          area_m2: 0
           perimeter: 1
 
   - name: "ges. gesch. Biotope Report"
@@ -260,7 +260,7 @@ geomLayers:
       - type: calculate
         calculations:
           - type: area
-            as: area
+            as: area_m2
             decimalPlaces: 0
           - type: perimeter
             as: perimeter
@@ -268,13 +268,13 @@ geomLayers:
       - type: report
         outputFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/reports/ges_gesch_biotope_report.json"
         featureColumns:
-          - area
+          - area_m2
           - perimeter
         calculate:
-          - area
+          - area_m2
           - perimeter
         decimalPlaces:
-          area: 0
+          area_m2: 0
           perimeter: 1
 
   - name: "ges. gesch. Biotope Puffer Ring Report"
@@ -285,7 +285,7 @@ geomLayers:
       - type: calculate
         calculations:
           - type: area
-            as: area
+            as: area_m2
             decimalPlaces: 0
           - type: perimeter
             as: perimeter
@@ -293,13 +293,13 @@ geomLayers:
       - type: report
         outputFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/reports/ges_gesch_biotope_puffer_ring_report.json"
         featureColumns:
-          - area
+          - area_m2
           - perimeter
         calculate:
-          - area
+          - area_m2
           - perimeter
         decimalPlaces:
-          area: 0
+          area_m2: 0
           perimeter: 1
 
   - name: "Ablagerungsfläche Puffer Ring Report"
@@ -310,7 +310,7 @@ geomLayers:
       - type: calculate
         calculations:
           - type: area
-            as: area
+            as: area_m2
             decimalPlaces: 0
           - type: perimeter
             as: perimeter
@@ -318,13 +318,13 @@ geomLayers:
       - type: report
         outputFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/reports/ablagerungsflaeche_puffer_ring_report.json"
         featureColumns:
-          - area
+          - area_m2
           - perimeter
         calculate:
-          - area
+          - area_m2
           - perimeter
         decimalPlaces:
-          area: 0
+          area_m2: 0
           perimeter: 1
 
 
@@ -337,7 +337,7 @@ geomLayers:
       - type: calculate
         calculations:
           - type: area
-            as: area
+            as: area_m2
             decimalPlaces: 0
           - type: perimeter
             as: perimeter
@@ -345,13 +345,13 @@ geomLayers:
       - type: report
         outputFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/reports/baugrenze_report.json"
         featureColumns:
-          - area
+          - area_m2
           - perimeter
         calculate:
-          - area
+          - area_m2
           - perimeter
         decimalPlaces:
-          area: 0
+          area_m2: 0
           perimeter: 1
 
   - name: "Baufeldstreifen Report"
@@ -366,7 +366,7 @@ geomLayers:
       - type: calculate
         calculations:
           - type: area
-            as: area
+            as: area_m2
             decimalPlaces: 0
           - type: perimeter
             as: perimeter
@@ -374,13 +374,13 @@ geomLayers:
       - type: report
         outputFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/reports/baufeldstreifen_report.json"
         featureColumns:
-          - area
+          - area_m2
           - perimeter
         calculate:
-          - area
+          - area_m2
           - perimeter
         decimalPlaces:
-          area: 0
+          area_m2: 0
           perimeter: 1
 
   ### Grünfläche ###
@@ -526,10 +526,10 @@ geomLayers:
           - parcel_area
           - intersection_area
         calculate:
-          - area
+          - area_m2
         decimalPlaces:
           intersection_area: 0
-          area: 0
+          area_m2: 0
 
 
   - name: ges. gesch. Biotope 2
