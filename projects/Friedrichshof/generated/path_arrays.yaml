@@ -3,8 +3,8 @@ pathArrays:
     sync: push
     sourceLayer: "Ausgleich Schutzflächeumgrenzung"
     block: "T-Symbol"
-    spacing: 7
-    scale: 0.4
+    spacing: 14
+    scale: 0.8
     bufferDistance: 0.2
 
 

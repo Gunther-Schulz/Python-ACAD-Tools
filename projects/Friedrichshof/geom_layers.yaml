@@ -93,6 +93,16 @@ geomLayers:
     # sync: push
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/input/CEF.shp"
 
+  - name: CEF without 81
+    operations:
+      - type: copy
+        layers:
+          - name: "CEF input"
+      - type: difference
+        reverseDifference: false
+        layers:
+          - name: "Exclude Parcel 81"
+
   - name: CIO input
     # sync: push
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/input/GIO - Intensivgrünland auf Moorstandorten.shp"
@@ -151,6 +161,10 @@ geomLayers:
         reverseDifference: false
         layers:
           - name: "CIO input"
+          - name: "Exclude Parcel 81"
+      - type: filterGeometry
+        geometryTypes:
+          - Polygon
 
   - name: Baufeld Schraffur
     sync: push
@@ -478,7 +492,7 @@ geomLayers:
           - "Grünfläche Naturschutz"
       - type: dissolve
       - type: buffer
-        distance: -2
+        distance: -4
         joinStyle: round
         preserveIslands: true
 
@@ -497,7 +511,7 @@ geomLayers:
         layers:
           - "Grünfläche Naturschutz"
       - type: buffer
-        distance: -2
+        distance: -4
         joinStyle: round
         mode: ring
 
@@ -559,6 +573,6 @@ geomLayers:
     linetypeGeneration: true
     operations:
       - type: buffer
-        distance: -1
+        distance: -2
         layers:
-          - name: "CEF input"
+          - name: "CEF without 81"
