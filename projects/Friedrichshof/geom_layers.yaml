@@ -48,7 +48,7 @@ geomLayers:
           - Geltungsbereich
       - type: dissolve
       - type: buffer
-        distance: 2
+        distance: 1.5
         joinStyle: round
         capStyle: round
       # - type: buffer

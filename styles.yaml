@@ -320,9 +320,11 @@ styles:
 
   geltungsbereich_2:
     layer:
-      color: "granite"
-      linetype: "ACAD_ISO02W100"
-      lineweight: 211
+      # color: "granite"
+      color: "ash"
+      # linetype: "ACAD_ISO02W100"
+      # lineweight: 211
+      lineweight: 120
     entity:
       linetypeGeneration: true
       # linetypeScale: 30
