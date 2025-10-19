@@ -347,18 +347,18 @@ styles:
 
   grünfläche:
     layer:
-      color: "green-medium"
+      color: "chartreuse"
       transparency: 0.6
 
   grünflächeLegend:
     hatch:
-      color: "green-medium"
+      color: "chartreuse"
       transparency: 0.6
       individual_hatches: false
 
   grünflächeWorkView:
     layer:
-      color: "green-medium"
+      color: "chartreuse"
       transparency: 0.6
 
   verkehrsfläche:

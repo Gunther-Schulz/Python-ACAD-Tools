@@ -556,6 +556,53 @@ geomLayers:
           intersection_area: 0
           area_m2: 0
 
+  - name: Geltungsbereich Report
+    operations:
+      - type: copy
+        layers:
+          - name: parcel
+      - type: calculate
+        calculations:
+          - type: area
+            as: parcel_area
+            decimalPlaces: 0
+      - type: intersection
+        layers:
+          - name: Geltungsbereich
+      - type: filterGeometry
+        minArea: 10
+        geometryTypes:
+          - polygon
+      - type: calculate
+        calculations:
+          - type: area
+            as: intersection_area
+            decimalPlaces: 0
+          - type: coverage_status
+            areaTolerance: 10
+            totalAreaColumn: parcel_area
+            intersectionAreaColumn: intersection_area
+            as: status
+            completeLabel: "vollständig"
+            partialLabel: "teilweise"
+      - type: report
+        outputFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/reports/geltungsbereich_report.json"
+        sortBy: label
+        featureColumns:
+          - label
+          - parcel_area
+          - intersection_area
+          - status
+        calculate:
+          - area
+        decimalPlaces:
+          area: 0
+          parcel_area: 0
+          intersection_area: 0
+        metadata:
+          area_tolerance_m2: 10
+          coverage_status_logic: "vollständig if |parcel_area - intersection_area| <= 10 m²"
+
 
   - name: ges. gesch. Biotope 2
     sync: push

@@ -1,0 +1,70 @@
+Bebauungsplan Photovoltaikanlage Georgendorf
+Auftraggeber: [Client Name]
+Rechnungsnummer: RG-2024-020
+Datum: 20.12.2024
+
+SCHLUSSRECHNUNG
+Honorarberechnung gemäß HOAI 2021, § 21 (Bebauungspläne)
+─────────────────────────────────────────────────────────────────────────────
+
+Honorarzone I gemäß § 21 Abs. 1 HOAI 2021
+Basissatz
+
+Projekthistorie:
+- Ursprüngliche Planung: 50,00 ha
+- Erweiterung nach Phase 1: 100,00 ha (Nachtrag 1)
+- Reduzierung nach 1. Auslegung: 80,00 ha (Nachtrag 2)
+- Zweite öffentliche Auslegung erforderlich (Nachtrag 2)
+
+
+Leistungsphasen                      Fläche    Grundhonorar  Anteil   Honorar       Erbracht    Honorar
+──────────────────────────────────────────────────────────────────────────────────────────────────────────
+1  Vorentwurf für die frühzeitige    50,00 ha  76.800,00 €    60%    46.080,00 €   100%        46.080,00 €
+   Beteiligung (§ 21 Abs. 2 Nr. 1)                                                  RG-2024-005
+
+   Nachtragshonorar Vorentwurf      100,00 ha 140.000,00 €    60%    84.000,00 €
+   (Flächenerweiterung 50 → 100 ha)
+   abzgl. bereits berechnet                                          -46.080,00 €   100%        37.920,00 €
+                                                                                     RG-2024-013
+
+2  Entwurf zur öffentlichen         100,00 ha 140.000,00 €    30%    42.000,00 €   100%        42.000,00 €
+   Auslegung - 1. Auslegung                                                         RG-2024-013
+   (§ 21 Abs. 2 Nr. 2)
+
+   Entwurf zur öffentlichen          80,00 ha 115.000,00 €    30%    34.500,00 €
+   Auslegung - 2. Auslegung                                          × 0,70
+   (Besondere Leistung, Wiederholung)                                              100%        24.150,00 €
+
+3  Plan zur Beschlussfassung         80,00 ha 115.000,00 €    10%    11.500,00 €   100%        11.500,00 €
+   (§ 21 Abs. 2 Nr. 3)
+──────────────────────────────────────────────────────────────────────────────────────────────────────────
+   Honorar gesamt                                                   161.650,00 €   100%       161.650,00 €
+   Bereits berechnet (RG-2024-005):                                                              46.080,00 €
+   Bereits berechnet (RG-2024-013):                                                              79.920,00 €
+──────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+Netto (diese Rechnung):                                                                        35.650,00 €
+MwSt. 19%:                                                                                      6.773,50 €
+═══════════════════════════════════════════════════════════════════════════════════════════════════════════
+BRUTTO zahlbar:                                                                                42.423,50 €
+
+
+HONORARÜBERSICHT GESAMTPROJEKT:
+─────────────────────────────────────────────────────────────────────────────
+Rechnungsnummer      Datum           Netto           MwSt.          Brutto
+─────────────────────────────────────────────────────────────────────────────
+RG-2024-005          20.04.2024      46.080,00 €     8.755,20 €     54.835,20 €
+RG-2024-013          30.09.2024      79.920,00 €    15.184,80 €     95.104,80 €
+RG-2024-020          20.12.2024      35.650,00 €     6.773,50 €     42.423,50 €
+─────────────────────────────────────────────────────────────────────────────
+GESAMT                              161.650,00 €    30.713,50 €    192.363,50 €
+
+
+PROJEKTÜBERSICHT:
+────────────────────────────────────────────────────────────────────────────
+Phase 1 - Vorentwurf (50 ha + Nachtrag auf 100 ha):      84.000,00 €
+Phase 2 - Entwurf 1. Auslegung (100 ha):                 42.000,00 €
+Phase 2 - Entwurf 2. Auslegung (80 ha, 70%):             24.150,00 €
+Phase 3 - Plan zur Beschlussfassung (80 ha):             11.500,00 €
+────────────────────────────────────────────────────────────────────────────
+GESAMT:                                                  161.650,00 €
