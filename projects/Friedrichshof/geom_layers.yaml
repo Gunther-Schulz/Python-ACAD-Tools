@@ -73,9 +73,17 @@ geomLayers:
       layers:
         - Ablagerungsfläche
 
+  - name: Weg
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/input/Weg.shp"
+
   - name: Grünstreifen
     sync: push
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/input/Grünstreifen.shp"
+    operations:
+      - type: difference
+        reverseDifference: false
+        layers:
+          - Weg
 
   - name: "Grünstreifen Schraffur"
     sync: push
