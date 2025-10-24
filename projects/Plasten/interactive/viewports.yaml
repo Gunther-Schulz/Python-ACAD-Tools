@@ -112,26 +112,13 @@ viewports:
   lockZoom: true
   _sync:
     dxf_handle: 8AA97
-    content_hash: 423abb7330497f75096c857d5b221e8b77435c89ce762c27e5ab2285a6bc88b2
-    last_sync_time: 1761321395
-    sync_source: yaml
+    content_hash: 8b49fec9b6efb0d61dc560fd67d5ca3ac20c1d1fb4e75baf5e963eab99a99f2d
+    last_sync_time: 1761322721
+    sync_source: dxf
   center:
     x: 2867.888555200216
     y: 302.7121692818036
   frozenLayers:
-  - PVcase Road
-  - Legend_Legend NO_Flächen für die Landwirtschaft
-  - Legend_Legend S_Flächen für die Landwirtschaft
-  - Gebäude Schraffur
-  - Wege
-  - RAHMEN
-  - Defpoints
-  - 0-BLOCKS
-  - Gebäude
-  - Parcel Label
-  - Blendschutzzaun
-  - EinAusfahrt Line
-  - Baum Points
   - Legend_Legend NO_Title
   - Legend_Legend S_Title
   - Legend_Main Legend_Art der baulichen Nutzung
@@ -187,26 +174,11 @@ viewports:
   - T--Höhe_Höhenlinie_100
   - 0 Legende
   - 0 Blattrahmen
-  - Flur
-  - Gemarkung
-  - Gemeinde
-  - Wald
-  - Wald Schraffur
-  - Geschütze Biotope
-  - Geschütze Biotope 2
-  - Geltungsbereich NW 2
-  - Geltungsbereich NO
-  - Geltungsbereich NO 2
-  - Geltungsbereich S
-  - Geltungsbereich S 2
-  - Geltungsbereich Hatch NO
-  - Geltungsbereich Hatch S
-  - Baugrenze 2
-  - Baugrenze
-  - BLOCKS
-  - Plantext
-  - Legend_Main Legend_Title
-  - Legend_Legend NW_Title
+  - PVcase Road
+  - Legend_Legend NO_Flächen für die Landwirtschaft
+  - Legend_Legend S_Flächen für die Landwirtschaft
+  - Gebäude Schraffur
+  - Wege
   - WMS Gebäude
   - WMS Höhenlinien
   - Gastrasse
@@ -228,6 +200,34 @@ viewports:
   - Legend_Legend NW_Flächen für die Landwirtschaft
   - Wege Schraffur
   - Grünfläche
+  - RAHMEN
+  - Flur
+  - Gemarkung
+  - Gemeinde
+  - Wald
+  - Wald Schraffur
+  - Geschütze Biotope
+  - Geschütze Biotope 2
+  - Geltungsbereich NW 2
+  - Geltungsbereich NO
+  - Geltungsbereich NO 2
+  - Geltungsbereich S
+  - Geltungsbereich S 2
+  - Geltungsbereich Hatch NO
+  - Geltungsbereich Hatch S
+  - Baugrenze 2
+  - Baugrenze
+  - BLOCKS
+  - Plantext
+  - Legend_Main Legend_Title
+  - Legend_Legend NW_Title
+  - Defpoints
+  - 0-BLOCKS
+  - Gebäude
+  - Parcel Label
+  - Blendschutzzaun
+  - EinAusfahrt Line
+  - Baum Points
 - name: MapViewportNO
   color: magenta
   topLeft:
@@ -299,26 +299,13 @@ viewports:
   lockZoom: true
   _sync:
     dxf_handle: 8AA9A
-    content_hash: a8a70fba40a20c08a65d2b18846e338e393aee4d789e47c54208747e1de70ca5
-    last_sync_time: 1761321395
-    sync_source: yaml
+    content_hash: ef4e31c6e9acc666ef5fb0e7258fd04adc986f17fa1d7fcf6fccddaa710ae889
+    last_sync_time: 1761322721
+    sync_source: dxf
   center:
     x: 4868.491665752536
     y: 292.7165591527828
   frozenLayers:
-  - PVcase Road
-  - Legend_Legend NO_Flächen für die Landwirtschaft
-  - Legend_Legend S_Flächen für die Landwirtschaft
-  - Gebäude Schraffur
-  - Wege
-  - RAHMEN
-  - Defpoints
-  - 0-BLOCKS
-  - Gebäude
-  - Parcel Label
-  - Blendschutzzaun
-  - EinAusfahrt Line
-  - Baum Points
   - Legend_Legend NO_Title
   - Legend_Legend S_Title
   - Legend_Main Legend_Art der baulichen Nutzung
@@ -374,26 +361,11 @@ viewports:
   - T--Höhe_Höhenlinie_100
   - 0 Legende
   - 0 Blattrahmen
-  - Flur
-  - Gemarkung
-  - Gemeinde
-  - Wald
-  - Wald Schraffur
-  - Geschütze Biotope
-  - Geschütze Biotope 2
-  - Geltungsbereich NW
-  - Geltungsbereich NW 2
-  - Geltungsbereich NO 2
-  - Geltungsbereich S
-  - Geltungsbereich S 2
-  - Geltungsbereich Hatch NW
-  - Geltungsbereich Hatch S
-  - Baugrenze 2
-  - Baugrenze
-  - BLOCKS
-  - Plantext
-  - Legend_Main Legend_Title
-  - Legend_Legend NW_Title
+  - PVcase Road
+  - Legend_Legend NO_Flächen für die Landwirtschaft
+  - Legend_Legend S_Flächen für die Landwirtschaft
+  - Gebäude Schraffur
+  - Wege
   - WMS Gebäude
   - WMS Höhenlinien
   - Gastrasse
@@ -415,6 +387,34 @@ viewports:
   - Legend_Legend NW_Flächen für die Landwirtschaft
   - Wege Schraffur
   - Grünfläche
+  - RAHMEN
+  - Flur
+  - Gemarkung
+  - Gemeinde
+  - Wald
+  - Wald Schraffur
+  - Geschütze Biotope
+  - Geschütze Biotope 2
+  - Geltungsbereich NW
+  - Geltungsbereich NW 2
+  - Geltungsbereich NO 2
+  - Geltungsbereich S
+  - Geltungsbereich S 2
+  - Geltungsbereich Hatch NW
+  - Geltungsbereich Hatch S
+  - Baugrenze 2
+  - Baugrenze
+  - BLOCKS
+  - Plantext
+  - Legend_Main Legend_Title
+  - Legend_Legend NW_Title
+  - Defpoints
+  - 0-BLOCKS
+  - Gebäude
+  - Parcel Label
+  - Blendschutzzaun
+  - EinAusfahrt Line
+  - Baum Points
 - name: MapViewportS
   color: magenta
   topLeft:
@@ -485,26 +485,13 @@ viewports:
   lockZoom: true
   _sync:
     dxf_handle: 8AA9D
-    content_hash: 84b9c40b5a5af5192b296215a7c54ba1fd89db8963d50ff987df698b0daba3be
-    last_sync_time: 1761321395
-    sync_source: yaml
+    content_hash: 6539257bc2e528cffc8c3dbf6bb0f30284981e3308cda578054aec75b65d6cc2
+    last_sync_time: 1761322721
+    sync_source: dxf
   center:
     x: 6869.144582332245
     y: 391.8814999718617
   frozenLayers:
-  - PVcase Road
-  - Legend_Legend NO_Flächen für die Landwirtschaft
-  - Legend_Legend S_Flächen für die Landwirtschaft
-  - Gebäude Schraffur
-  - Wege
-  - RAHMEN
-  - Defpoints
-  - 0-BLOCKS
-  - Gebäude
-  - Parcel Label
-  - Blendschutzzaun
-  - EinAusfahrt Line
-  - Baum Points
   - Legend_Legend NO_Title
   - Legend_Legend S_Title
   - Legend_Main Legend_Art der baulichen Nutzung
@@ -560,26 +547,11 @@ viewports:
   - T--Höhe_Höhenlinie_100
   - 0 Legende
   - 0 Blattrahmen
-  - Flur
-  - Gemarkung
-  - Gemeinde
-  - Wald
-  - Wald Schraffur
-  - Geschütze Biotope
-  - Geschütze Biotope 2
-  - Geltungsbereich NW
-  - Geltungsbereich NW 2
-  - Geltungsbereich NO
-  - Geltungsbereich NO 2
-  - Geltungsbereich S 2
-  - Geltungsbereich Hatch NW
-  - Geltungsbereich Hatch NO
-  - Baugrenze 2
-  - Baugrenze
-  - BLOCKS
-  - Plantext
-  - Legend_Main Legend_Title
-  - Legend_Legend NW_Title
+  - PVcase Road
+  - Legend_Legend NO_Flächen für die Landwirtschaft
+  - Legend_Legend S_Flächen für die Landwirtschaft
+  - Gebäude Schraffur
+  - Wege
   - WMS Gebäude
   - WMS Höhenlinien
   - Gastrasse
@@ -601,6 +573,34 @@ viewports:
   - Legend_Legend NW_Flächen für die Landwirtschaft
   - Wege Schraffur
   - Grünfläche
+  - RAHMEN
+  - Flur
+  - Gemarkung
+  - Gemeinde
+  - Wald
+  - Wald Schraffur
+  - Geschütze Biotope
+  - Geschütze Biotope 2
+  - Geltungsbereich NW
+  - Geltungsbereich NW 2
+  - Geltungsbereich NO
+  - Geltungsbereich NO 2
+  - Geltungsbereich S 2
+  - Geltungsbereich Hatch NW
+  - Geltungsbereich Hatch NO
+  - Baugrenze 2
+  - Baugrenze
+  - BLOCKS
+  - Plantext
+  - Legend_Main Legend_Title
+  - Legend_Legend NW_Title
+  - Defpoints
+  - 0-BLOCKS
+  - Gebäude
+  - Parcel Label
+  - Blendschutzzaun
+  - EinAusfahrt Line
+  - Baum Points
 discover_untracked_layers: []
 deletion_policy: confirm
 default_layer: VIEWPORTS

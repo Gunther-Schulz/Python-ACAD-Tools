@@ -139,6 +139,10 @@ geomLayers:
   - name: FG_Unterirdisch
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/FG_Unterirdisch.shp"
     sync: push
+    operations:
+      - type: cleanLine
+        tolerance: 0.01
+        minSegmentLength: 0.5
 
   # Raw input containing complete FG data (both oberirdisch and unterirdisch)
   - name: FG_Oberirdisch Input
@@ -166,6 +170,9 @@ geomLayers:
         layers:
           - FG_Unterirdisch Buffer Mask
         reverseDifference: false
+      - type: cleanLine
+        tolerance: 0.01
+        minSegmentLength: 0.5
 
   - name: Ontras_FG_buffer_4
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/Ontras_FG_buffer_4.shp"
@@ -317,6 +324,10 @@ geomLayers:
         layers:
           - Ontras_FG_buffer_2
           - Ontras_FG_buffer_4
+      - type: cleanLine
+        tolerance: 0.01              # Merge vertices closer than 1cm
+        minSegmentLength: 0.5        # Remove segments shorter than 0.5m (fixes alternating rotation!)
+        simplifyTolerance: 0.0       # Douglas-Peucker simplification (0 = disabled)
 
   - name: Ontras_FG_buffer_4 Buffer
     operations:

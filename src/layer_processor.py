@@ -32,7 +32,8 @@ from src.operations import (
     create_label_association_layer,
     create_filtered_by_column_layer,
     create_repair_layer,
-    create_remove_interior_rings_layer
+    create_remove_interior_rings_layer,
+    create_clean_line_layer
 )
 from src.style_manager import StyleManager
 from src.operations.filter_geometry_operation import create_filtered_geometry_layer
@@ -399,6 +400,8 @@ class LayerProcessor:
             result = create_remove_slivers_erosion_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
         elif op_type == 'removeDegenerateSpikes':
             result = create_remove_degenerate_spikes_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
+        elif op_type == 'cleanLine':
+            result = create_clean_line_layer(self.all_layers, self.project_settings, self.crs, layer_name, operation)
         else:
             log_warning(f"Unknown operation type: {op_type} for layer {layer_name}")
             return None
