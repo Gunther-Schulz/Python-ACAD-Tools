@@ -897,6 +897,13 @@ geomLayers:
           - AgriPV
         reverseDifference: false
 
+  - name: Wege Schraffur
+    sync: push
+    style: verkehrsfläche
+    applyHatch:
+      layers:
+        - Wege
+
   # ==========================================================================
   # SECTION 8: HATCHING LAYERS
   # ==========================================================================
