@@ -222,6 +222,9 @@ geomLayers:
   - name: EinAusfahrt Line Input
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/einausfahrt_line.shp"
 
+  - name: Wege Input
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/Wege.shp"
+
   # ==========================================================================
   # SECTION 2: BUFFER CALCULATIONS - Baugrenze Exclusion Zones
   # ==========================================================================
@@ -486,6 +489,47 @@ geomLayers:
       - type: dissolve
 
   # ==========================================================================
+  # SECTION 4.5: WEGE FILTERING
+  # ==========================================================================
+  # Filter Wege to only parts within each planning region
+
+  - name: Wege Filtered NW
+    operations:
+      - type: copy
+        layers:
+          - Wege Input
+      - type: intersection
+        layers:
+          - Geltungsbereich NW Base
+
+  - name: Wege Filtered NO
+    operations:
+      - type: copy
+        layers:
+          - Wege Input
+      - type: intersection
+        layers:
+          - Geltungsbereich NO Base
+
+  - name: Wege Filtered S
+    operations:
+      - type: copy
+        layers:
+          - Wege Input
+      - type: intersection
+        layers:
+          - Geltungsbereich S Base
+
+  # Combined Wege from all regions (for final output layer)
+  - name: Wege Filtered
+    operations:
+      - type: merge
+        layers:
+          - Wege Filtered NW
+          - Wege Filtered NO
+          - Wege Filtered S
+
+  # ==========================================================================
   # SECTION 5: AGRIPV CALCULATION
   # ==========================================================================
   # AgriPV = (Parcels - Hard Exclusions) → -20m round → +20m bevel → constrain to 20m from Baugrenze
@@ -652,12 +696,10 @@ geomLayers:
       - type: dissolve
 
   # ==========================================================================
-  # SECTION 7: FINAL GELTUNGSBEREICH - Follows AgriPV outline
+  # SECTION 7: FINAL GELTUNGSBEREICH - Follows AgriPV outline + Wege
   # ==========================================================================
 
-  - name: Geltungsbereich NW
-    sync: push
-    style: geltungsbereich
+  - name: Geltungsbereich NW Before Wege
     operations:
       - type: copy
         layers:
@@ -686,9 +728,26 @@ geomLayers:
         removeEmptyGeometries: true
         removeFailures: true
 
-  - name: Geltungsbereich NO
+  - name: Geltungsbereich NW
     sync: push
     style: geltungsbereich
+    operations:
+      - type: merge
+        layers:
+          - Geltungsbereich NW Before Wege
+          - Wege Filtered NW
+      - type: dissolve
+      # Final cleanup after merging with Wege
+      - type: removeDegenerateSpikes
+        tolerance: 0.01
+        simplifyTolerance: 0.05
+        minSpikeLength: 0.1
+      - type: repair
+        minArea: 20
+        removeEmptyGeometries: true
+        removeFailures: true
+
+  - name: Geltungsbereich NO Before Wege
     operations:
       - type: copy
         layers:
@@ -717,9 +776,26 @@ geomLayers:
         removeEmptyGeometries: true
         removeFailures: true
 
-  - name: Geltungsbereich S
+  - name: Geltungsbereich NO
     sync: push
     style: geltungsbereich
+    operations:
+      - type: merge
+        layers:
+          - Geltungsbereich NO Before Wege
+          - Wege Filtered NO
+      - type: dissolve
+      # Final cleanup after merging with Wege
+      - type: removeDegenerateSpikes
+        tolerance: 0.01
+        simplifyTolerance: 0.05
+        minSpikeLength: 0.1
+      - type: repair
+        minArea: 20
+        removeEmptyGeometries: true
+        removeFailures: true
+
+  - name: Geltungsbereich S Before Wege
     operations:
       - type: copy
         layers:
@@ -743,6 +819,25 @@ geomLayers:
       - type: removeSliversErosion
         erosionDistance: 0.2
       # Stage 4: Final repair and cleanup
+      - type: repair
+        minArea: 20
+        removeEmptyGeometries: true
+        removeFailures: true
+
+  - name: Geltungsbereich S
+    sync: push
+    style: geltungsbereich
+    operations:
+      - type: merge
+        layers:
+          - Geltungsbereich S Before Wege
+          - Wege Filtered S
+      - type: dissolve
+      # Final cleanup after merging with Wege
+      - type: removeDegenerateSpikes
+        tolerance: 0.01
+        simplifyTolerance: 0.05
+        minSpikeLength: 0.1
       - type: repair
         minArea: 20
         removeEmptyGeometries: true
@@ -784,6 +879,23 @@ geomLayers:
           - Geltungsbereich S
         distance: 2
         joinStyle: mitre
+
+  # ==========================================================================
+  # SECTION 7.5: FINAL WEGE OUTPUT
+  # ==========================================================================
+  # Final Wege layer showing paths outside AgriPV area
+
+  - name: Wege
+    sync: push
+    style: verkehrsfläche
+    operations:
+      - type: copy
+        layers:
+          - Wege Filtered
+      - type: difference
+        layers:
+          - AgriPV
+        reverseDifference: false
 
   # ==========================================================================
   # SECTION 8: HATCHING LAYERS

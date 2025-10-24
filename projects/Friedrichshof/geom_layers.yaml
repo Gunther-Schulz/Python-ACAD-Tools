@@ -76,6 +76,10 @@ geomLayers:
   - name: Weg
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/input/Weg.shp"
 
+  - name: Gebäude
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/input/Gebäude.shp"
+    sync: push
+
   - name: Include Baufeld
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/input/Include Baufeld.shp"
 
@@ -184,6 +188,13 @@ geomLayers:
     applyHatch:
       layers:
         - Baufeld
+
+  - name: Gebäude Schraffur
+    sync: push
+    style: gebäude
+    applyHatch:
+      layers:
+        - Gebäude
 
   - name: Baugrenze
     sync: push
