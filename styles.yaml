@@ -221,9 +221,9 @@ styles:
     layer:
       lineweight: 13
     hatch:
-      pattern: "ANSI31"
-      scale: 3
-      angle: 135
+      pattern: "ANSI37"
+      scale: 2
+      angle: 0
       individual_hatches: true
 
 

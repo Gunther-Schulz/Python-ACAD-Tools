@@ -71,22 +71,22 @@ legends:
           - name: "Baugrenze"
             type: empty
             blockSymbol: "Baugrenze"   
-      # - name: "Verkehrsflächen"
-      #   sync: push
-      #   subtitle: "(§ 9 Abs. 1 Nr. 11 und Abs. 6 BauGB)"
-      #   items:
-      #     - name: "Verkehrsfläche besonderer Zweckbestimmung"
-      #       type: area
-      #       applyHatch: true
-      #       style: verkehrsfläche
-      #     - name: "Verkehrsberuhigter Bereich"
-      #       type: empty
-      #       blockSymbol: "Verkehrsberuhigter Bereich"
-      #       blockSymbolScale: 2
-      #     - name: "Privat"
-      #       type: empty
-      #       blockSymbol: "Privat"
-      #       blockSymbolScale: 2
+      - name: "Verkehrsflächen"
+        sync: push
+        subtitle: "(§ 9 Abs. 1 Nr. 11 und Abs. 6 BauGB)"
+        items:
+          - name: "Verkehrsfläche besonderer Zweckbestimmung"
+            type: area
+            applyHatch: true
+            style: verkehrsfläche
+          - name: "Verkehrsberuhigter Bereich"
+            type: empty
+            blockSymbol: "Verkehrsberuhigter Bereich"
+            blockSymbolScale: 2
+          - name: "Privat"
+            type: empty
+            blockSymbol: "Privat"
+            blockSymbolScale: 2
       # - name: "Grünflächen"
       #   sync: push
       #   subtitle: "§ 9 Abs.1 Nr. 15 BauGB"
@@ -265,14 +265,14 @@ legends:
           - name: "Baugrenze"
             type: empty
             blockSymbol: "Baugrenze"
-      # - name: "Verkehrsflächen"
-      #   sync: push
-      #   subtitle: "(§ 9 Abs. 1 Nr. 11 und Abs. 6 BauGB)"
-      #   items:
-      #     - name: "Ein- und Ausfahrt"
-      #       # subtitle: "(§ 9 Abs. 1 Nr. 4, 11 und Abs. 6 BauGB)"
-      #       type: empty
-      #       blockSymbol: "EinAusfahrt"
+      - name: "Verkehrsflächen"
+        sync: push
+        subtitle: "(§ 9 Abs. 1 Nr. 11 und Abs. 6 BauGB)"
+        items:
+          - name: "Ein- und Ausfahrt"
+            # subtitle: "(§ 9 Abs. 1 Nr. 4, 11 und Abs. 6 BauGB)"
+            type: empty
+            blockSymbol: "EinAusfahrt"
       # - name: "Grünflächen"
       #   sync: push
       #   subtitle: "§ 9 Abs.1 Nr. 15 BauGB"
@@ -352,8 +352,9 @@ legends:
           #   blockSymbol: "Baum"
           #   blockSymbolScale: 1.8
           - name: "Gebäude - Bestand"
-            type: empty
-            blockSymbol: "Gebäude"
+            type: area
+            applyHatch: true
+            style: gebäude
 # Legend NO 5
 # ---------
   - id: "Legend NO"
@@ -513,8 +514,9 @@ legends:
           #   blockSymbol: "Baum"
           #   blockSymbolScale: 1.8
           - name: "Gebäude - Bestand"
-            type: empty
-            blockSymbol: "Gebäude"
+            type: area
+            applyHatch: true
+            style: gebäude
           # - name: "Blendschutzzaun"
           #   type: line
           #   style: blendschutzzaun
