@@ -13,9 +13,9 @@ texts:
     y: 856
   style: mainTitle
   _sync:
-    dxf_handle: 1BC606
+    dxf_handle: 1ED86A
     content_hash: e44b6554b81a3aaa35c24702f9be208d24d5b0ac7c4687e646c0e823dad995c0
-    last_sync_time: 1761320566
+    last_sync_time: 1761321377
     sync_source: yaml
 - name: Map Header NW
   targetLayer: Plantext
@@ -67,9 +67,9 @@ texts:
     y: 265
   style: satzungstext
   _sync:
-    dxf_handle: 1BC607
+    dxf_handle: 1ED86B
     content_hash: 6eaf960dd4786308860b6eadea6cd60361ae34013f96cc3f3c2553e3b01e8d38
-    last_sync_time: 1761320566
+    last_sync_time: 1761321377
     sync_source: yaml
 - name: Main Title NO
   targetLayer: Plantext
@@ -85,9 +85,9 @@ texts:
     y: 856
   style: mainTitle
   _sync:
-    dxf_handle: 1BC608
+    dxf_handle: 1ED86C
     content_hash: 455b440f6bf0f4b6b79781898b743e0436b999c4f1820218165e862f33ecedd0
-    last_sync_time: 1761320566
+    last_sync_time: 1761321377
     sync_source: yaml
 - name: Map Header NO
   targetLayer: Plantext
@@ -139,9 +139,9 @@ texts:
     y: 265
   style: satzungstext
   _sync:
-    dxf_handle: 1BC609
+    dxf_handle: 1ED86D
     content_hash: 6fbe2228f40bf22473612f85b47e37b2909052d054455313b8edf9e8e618176d
-    last_sync_time: 1761320566
+    last_sync_time: 1761321377
     sync_source: yaml
 - name: Main Title S
   targetLayer: Plantext
@@ -157,9 +157,9 @@ texts:
     y: 856
   style: mainTitle
   _sync:
-    dxf_handle: 1BC60A
+    dxf_handle: 1ED86E
     content_hash: 9ad2142f11d1681a16e24fa370826170abbaeb7f4bf69ed4f9c4f263819bf1d2
-    last_sync_time: 1761320566
+    last_sync_time: 1761321377
     sync_source: yaml
 - name: Map Header S
   targetLayer: Plantext
@@ -211,9 +211,9 @@ texts:
     y: 265
   style: satzungstext
   _sync:
-    dxf_handle: 1BC60B
+    dxf_handle: 1ED86F
     content_hash: 443c7dcd6eaa6681f3c38d7a940fb4d9b55d6e89bdf70fb66527eff137061128
-    last_sync_time: 1761320566
+    last_sync_time: 1761321377
     sync_source: yaml
 discover_untracked_layers: []
 deletion_policy: confirm
