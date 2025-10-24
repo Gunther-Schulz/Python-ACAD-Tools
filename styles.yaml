@@ -217,6 +217,15 @@ styles:
       color: "indigo-light"
       transparency: 0.6
 
+  gebäude:
+    layer:
+      lineweight: 13
+    hatch:
+      pattern: "ANSI31"
+      scale: 3
+      angle: 135
+      individual_hatches: true
+
 
 # Urban Planning
 # --------------

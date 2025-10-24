@@ -76,6 +76,9 @@ geomLayers:
   - name: Weg
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/input/Weg.shp"
 
+  - name: Include Baufeld
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/input/Include Baufeld.shp"
+
   - name: Grünstreifen
     sync: push
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/22-16 Maxsolar - Friedrichshof/GIS/input/Grünstreifen.shp"
@@ -84,6 +87,7 @@ geomLayers:
         reverseDifference: false
         layers:
           - Weg
+          - Include Baufeld
 
   - name: "Grünstreifen Schraffur"
     sync: push
@@ -197,6 +201,7 @@ geomLayers:
         reverseDifference: false
         layers:
           - Baum Puffer
+          - Include Baufeld
 
   - name: Baugrenze 2
     sync: push

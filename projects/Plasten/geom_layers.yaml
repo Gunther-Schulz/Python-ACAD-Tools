@@ -184,6 +184,10 @@ geomLayers:
   - name: Gebäude 150m Abstand
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/gebäude_150m_abstand.shp"
 
+  - name: Gebäude
+    shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/Gebäude.shp"
+    sync: push
+
   # --------------------------------------------------------------------------
   # Manual Exclusions
   # --------------------------------------------------------------------------
@@ -300,7 +304,7 @@ geomLayers:
         quadSegs: 32
 
   # --------------------------------------------------------------------------
-  # Gas Lines: Variable buffers (4m and 2m)
+  # Gas Lines: 10m buffers
   # --------------------------------------------------------------------------
 
   - name: Gastrasse
@@ -316,7 +320,7 @@ geomLayers:
       - type: buffer
         layers:
           - Ontras_FG_buffer_4
-        distance: 4
+        distance: 10
         joinStyle: round
         capStyle: round
         quadSegs: 32
@@ -326,7 +330,7 @@ geomLayers:
       - type: buffer
         layers:
           - Ontras_FG_buffer_2
-        distance: 2
+        distance: 10
         joinStyle: round
         capStyle: round
         quadSegs: 32
@@ -808,6 +812,13 @@ geomLayers:
     applyHatch:
       layers:
         - AgriPV
+
+  - name: Gebäude Schraffur
+    sync: push
+    style: gebäude
+    applyHatch:
+      layers:
+        - Gebäude
 
   # ==========================================================================
   # SECTION 9: INFRASTRUCTURE LAYERS
