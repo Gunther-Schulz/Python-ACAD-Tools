@@ -17,7 +17,7 @@ blockPlacements:
 # Copies blocks "as is" from source file, including all internal geometry
 - name: PV Transformers
   sync: push
-  blockName: "PVcase transformer"  # Block name in the external DXF
+  blockName: "Trafostation"  # Block name in the external DXF
   scale: 1.0
   layer: PV Transformers
   normalizeBlockLayers: true  # Remap all internal entity layers to "PV Transformers"
