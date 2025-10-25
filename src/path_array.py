@@ -81,7 +81,7 @@ def visualize_placement(ax, polyline_geom, combined_area, rotated_block_shape, i
     if 'Skipped Block' not in [l.get_label() for l in ax.get_lines()]:
         ax.plot([], [], color='red', marker='s', linestyle='None', markersize=10, label='Skipped Block')
 
-def create_path_array(msp, source_layer_name, target_layer_name, block_name, spacing, buffer_distance, scale=1.0, rotation=0.0, debug_visual=False, all_layers=None, adjust_for_vertices=True, path_offset=0, all_edges=False):
+def create_path_array(msp, source_layer_name, target_layer_name, block_name, spacing, buffer_distance, scale=1.0, rotation=0.0, debug_visual=False, all_layers=None, adjust_for_vertices=True, path_offset=0, all_edges=False, constrain_to_source=False, max_outside_percent=0):
     if block_name not in msp.doc.blocks:
         log_warning(f"Block '{block_name}' not found in the document")
         return
@@ -94,6 +94,16 @@ def create_path_array(msp, source_layer_name, target_layer_name, block_name, spa
 
     source_geometry = all_layers[source_layer_name]
     log_debug(f"Source geometry type: {type(source_geometry)}")
+    
+    # Extract constraint polygon if constraint checking is enabled
+    constraint_polygon = None
+    if constrain_to_source:
+        if isinstance(source_geometry, gpd.GeoDataFrame):
+            # Union all geometries to create a single constraint polygon
+            constraint_polygon = source_geometry.unary_union
+        else:
+            constraint_polygon = source_geometry
+        log_debug(f"Constraint checking enabled with max_outside_percent: {max_outside_percent}%")
     
     if isinstance(source_geometry, gpd.GeoDataFrame):
         if source_geometry.empty:
@@ -155,7 +165,8 @@ def create_path_array(msp, source_layer_name, target_layer_name, block_name, spa
                     # For lines derived from polygons, use process_polyline with buffer
                     process_polyline(msp, line, block_shape, block_base_point, block_name, 
                                    target_layer_name, spacing, buffer_distance, scale, rotation, 
-                                   debug_visual, ax, placed_blocks, adjust_for_vertices, path_offset)
+                                   debug_visual, ax, placed_blocks, adjust_for_vertices, path_offset,
+                                   constraint_polygon, max_outside_percent)
 
     log_debug(f"Processed {processed_geometries} geometries")
 
@@ -280,7 +291,8 @@ def get_angle_at_point(linestring, distance):
 
 def process_polyline(msp, polyline_geom, block_shape, block_base_point, block_name, 
                      target_layer_name, spacing, buffer_distance, scale, rotation, 
-                     debug_visual, ax, placed_blocks, adjust_for_vertices, path_offset=0):
+                     debug_visual, ax, placed_blocks, adjust_for_vertices, path_offset=0,
+                     constraint_polygon=None, max_outside_percent=0):
     total_length = polyline_geom.length
     
     # Create offset path for block placement
@@ -322,10 +334,31 @@ def process_polyline(msp, polyline_geom, block_shape, block_base_point, block_na
         
         rotated_block_shape = rotate_and_adjust_block(block_shape, block_base_point, insertion_point, angle)
         
-        # Only check for overlap with existing blocks
+        # Check for overlap with existing blocks
         overlaps_existing = any(rotated_block_shape.intersects(placed) for placed in placed_blocks)
         
-        if not overlaps_existing:
+        # Check constraint if enabled
+        violates_constraint = False
+        outside_percent = 0
+        if constraint_polygon is not None and not overlaps_existing:
+            try:
+                # Calculate how much of the block is outside the constraint polygon
+                block_area = rotated_block_shape.area
+                if block_area > 0:
+                    # Get the part of the block that's outside the constraint
+                    outside_area = rotated_block_shape.difference(constraint_polygon).area
+                    outside_percent = (outside_area / block_area) * 100
+                    violates_constraint = outside_percent > max_outside_percent
+                    if violates_constraint:
+                        log_debug(f"Block at {insertion_point} violates constraint: {outside_percent:.1f}% outside (max: {max_outside_percent}%)")
+            except Exception as e:
+                log_warning(f"Error checking constraint: {str(e)}")
+                violates_constraint = False
+        
+        # Place block if it passes all checks
+        should_place = not overlaps_existing and not violates_constraint
+        
+        if should_place:
             block_ref = add_block_reference(
                 msp,
                 block_name,
@@ -341,8 +374,15 @@ def process_polyline(msp, polyline_geom, block_shape, block_base_point, block_na
                 log_warning("Failed to create block reference")
         
         if debug_visual:
-            color = 'green' if not overlaps_existing else 'red'
-            label = "Placed" if not overlaps_existing else "Skipped"
+            if overlaps_existing:
+                color = 'red'
+                label = "Skipped (overlap)"
+            elif violates_constraint:
+                color = 'orange'
+                label = f"Skipped (constraint: {outside_percent:.0f}% outside)"
+            else:
+                color = 'green'
+                label = "Placed"
             visualize_placement(ax, polyline_geom, buffer_polygon, rotated_block_shape, insertion_point, color, label)
         
         block_distance += spacing

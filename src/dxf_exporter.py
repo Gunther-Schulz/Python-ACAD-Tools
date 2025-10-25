@@ -1072,17 +1072,22 @@ class DXFExporter:
                 show_debug_visual = config.get('showDebugVisual', False)
                 adjust_for_vertices = config.get('adjustForVertices', False)
                 all_edges = config.get('all_edges', False)
+                constrain_to_source = config.get('constrainToSource', False)
+                max_outside_percent = config.get('maxOutsidePercent', 0)
 
                 log_debug(f"Creating path array: {name}")
                 log_debug(f"Source layer: {source_layer_name}")
                 log_debug(f"Block: {block_name}, Spacing: {spacing}, Scale: {scale}")
                 log_debug(f"Path offset: {path_offset}")
                 log_debug(f"All edges: {all_edges}")
+                if constrain_to_source:
+                    log_debug(f"Constraint enabled: max {max_outside_percent}% outside allowed")
 
                 create_path_array(msp, source_layer_name, name, block_name,
                                  spacing, buffer_distance, scale, rotation,
                                  show_debug_visual, self.all_layers,
-                                 adjust_for_vertices, path_offset, all_edges)
+                                 adjust_for_vertices, path_offset, all_edges,
+                                 constrain_to_source, max_outside_percent)
 
         log_debug("Finished processing all path array configurations")
 

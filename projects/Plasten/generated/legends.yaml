@@ -135,17 +135,11 @@ legends:
             type: area
             blockSymbol: "Leitung unterirdisch"
             blockSymbolScale: 2
-          # - name: "Mit Geh-, Fahr- und Leitungsrechten zu belastende Flächen"
-          #   subtitle: "(§ 9 Abs.1 Nr.21 und Abs. 6 BauGB)"
-          #   type: area
-          #   rectangleStyle: gfl1
-          #   blockSymbol: "GFL1"
-          #   blockSymbolScale: 2
-          # - name: "Mit Geh-, Fahr- und Leitungsrechten zu belastende Flächen"
-          #   subtitle: "(§ 9 Abs.1 Nr.21 und Abs. 6 BauGB)"
-          #   type: empty
-          #   blockSymbol: "GFL2"
-          #   blockSymbolScale: 1.6
+          - name: "Mit Geh-, Fahr- und Leitungsrechten zu belastende Flächen"
+            subtitle: "(§ 9 Abs.1 Nr.21 und Abs. 6 BauGB)"
+            type: empty
+            blockSymbol: "GFL Symbol"
+            blockSymbolScale: 1.6
       - name: "Darstellung ohne Normcharakter"
         sync: push
         items:
@@ -326,6 +320,11 @@ legends:
             type: area
             blockSymbol: "Leitung unterirdisch Legend"
             blockSymbolScale: 2
+          - name: "Mit Geh-, Fahr- und Leitungsrechten zu belastende Flächen"
+            subtitle: "(§ 9 Abs.1 Nr.21 und Abs. 6 BauGB)"
+            type: empty
+            blockSymbol: "GFL Symbol"
+            blockSymbolScale: 1.6
       - name: "Darstellung ohne Normcharakter"
         sync: push
         items:
@@ -497,6 +496,11 @@ legends:
             type: area
             blockSymbol: "Leitung unterirdisch Legend"
             blockSymbolScale: 2
+          - name: "Mit Geh-, Fahr- und Leitungsrechten zu belastende Flächen"
+            subtitle: "(§ 9 Abs.1 Nr.21 und Abs. 6 BauGB)"
+            type: empty
+            blockSymbol: "GFL Symbol"
+            blockSymbolScale: 1.6
       - name: "Darstellung ohne Normcharakter"
         sync: push
         items:
@@ -671,6 +675,11 @@ legends:
             type: area
             blockSymbol: "Leitung unterirdisch Legend"
             blockSymbolScale: 2
+          - name: "Mit Geh-, Fahr- und Leitungsrechten zu belastende Flächen"
+            subtitle: "(§ 9 Abs.1 Nr.21 und Abs. 6 BauGB)"
+            type: empty
+            blockSymbol: "GFL Symbol"
+            blockSymbolScale: 1.6
       - name: "Darstellung ohne Normcharakter"
         sync: push
         items:

@@ -33,11 +33,15 @@ pathArrays:
     sourceLayer: "FG Buffer Path"
     block: "GFL Symbol"
     spacing: 8
+    constrainToSource: true
+    maxOutsidePercent: 20
   - name: "Gastrasse Buffer Path Array"
     sync: push
     sourceLayer: "Gastrasse Buffer Path"
     block: "GFL Symbol"
     spacing: 8
+    constrainToSource: true
+    maxOutsidePercent: 20
   # - name: "Hecke Array"
   #   sync: push
   #   sourceLayer: "Hecke"
