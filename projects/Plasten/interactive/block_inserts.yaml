@@ -7,9 +7,9 @@ blocks:
     x: 2489
     y: 186
   _sync:
-    dxf_handle: 3C32A5
+    dxf_handle: 3DBEE6
     content_hash: 2b61f3331f5dbd1a984b963ea0eeb9764d110325f3b7f29d8534ffe7f7c2f7d6
-    last_sync_time: 1761404111
+    last_sync_time: 1761404552
     sync_source: yaml
 - name: NO PBS Logo
   blockName: Firmenlogo
@@ -19,9 +19,9 @@ blocks:
     x: 4489
     y: 186
   _sync:
-    dxf_handle: 3C32A7
+    dxf_handle: 3DBEE8
     content_hash: 416172ae23f37e7f9c7556c8f718b91415cec318d37cc00a6d6596e075546926
-    last_sync_time: 1761404111
+    last_sync_time: 1761404552
     sync_source: yaml
 - name: NO PBS Logo
   blockName: Firmenlogo
@@ -31,9 +31,9 @@ blocks:
     x: 6489
     y: 186
   _sync:
-    dxf_handle: 3C32A9
+    dxf_handle: 3DBEEA
     content_hash: cc48f740c2dbe8992823394fb4bb159325d51c0106e92e2cfd89903d2402445e
-    last_sync_time: 1761404111
+    last_sync_time: 1761404552
     sync_source: yaml
 discover_untracked_layers: []
 deletion_policy: confirm

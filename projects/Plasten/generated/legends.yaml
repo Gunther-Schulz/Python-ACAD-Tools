@@ -187,12 +187,12 @@ legends:
             style: pvModulesLegend
           - name: "geplanter Standort für die Trafostationen"
             type: empty
-            blockSymbol: "Trafostation"
+            blockSymbol: "PV Transformer"
             blockSymbolScale: 1.5
-          # - name: "Baum"
-          #   type: empty
-          #   blockSymbol: "Baum"
-          #   blockSymbolScale: 1.8
+          - name: "Baum"
+            type: empty
+            blockSymbol: "Baum"
+            blockSymbolScale: 1.8
           # - name: "Baum erhalten"
           #   type: empty
           #   blockSymbol: "Baum erhalten"
@@ -355,17 +355,17 @@ legends:
             type: area
             style: waldLegend
             applyHatch: true
-          # - name: "Baum"
-          #   type: empty
-          #   blockSymbol: "Baum"
-          #   blockSymbolScale: 1.8
+          - name: "Baum"
+            type: empty
+            blockSymbol: "Baum"
+            blockSymbolScale: 1.8
           - name: "vorläufige Modulbelegungsfläche"
             type: area
             applyHatch: true
             style: pvModulesLegend
           - name: "geplanter Standort für die Trafostationen"
             type: empty
-            blockSymbol: "Trafostation"
+            blockSymbol: "PV Transformer"
             blockSymbolScale: 1.5
           - name: "Gebäude - Bestand"
             type: area
@@ -525,17 +525,17 @@ legends:
             type: area
             style: waldLegend
             applyHatch: true
-          # - name: "Baum"
-          #   type: empty
-          #   blockSymbol: "Baum"
-          #   blockSymbolScale: 1.8
+          - name: "Baum"
+            type: empty
+            blockSymbol: "Baum"
+            blockSymbolScale: 1.8
           - name: "vorläufige Modulbelegungsfläche"
             type: area
             applyHatch: true
             style: pvModulesLegend
           - name: "geplanter Standort für die Trafostationen"
             type: empty
-            blockSymbol: "Trafostation"
+            blockSymbol: "PV Transformer"
             blockSymbolScale: 1.5
           - name: "Gebäude - Bestand"
             type: area
@@ -699,15 +699,15 @@ legends:
             type: area
             style: waldLegend
             applyHatch: true
-          # - name: "Baum"
-          #   type: empty
-          #   blockSymbol: "Baum"
-          #   blockSymbolScale: 1.8
+          - name: "Baum"
+            type: empty
+            blockSymbol: "Baum"
+            blockSymbolScale: 1.8
           - name: "vorläufige Modulbelegungsfläche"
             type: area
             applyHatch: true
             style: pvModulesLegend
           - name: "geplanter Standort für die Trafostationen"
             type: empty
-            blockSymbol: "Trafostation"
+            blockSymbol: "PV Transformer"
             blockSymbolScale: 1.5
