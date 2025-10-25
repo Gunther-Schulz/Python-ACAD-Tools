@@ -232,6 +232,27 @@ geomLayers:
   - name: Wege Input
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/Wege.shp"
 
+  # --------------------------------------------------------------------------
+  # PV Module Blocks from External DXF
+  # --------------------------------------------------------------------------
+
+  - name: PV Modules
+    dxfSource:
+      file: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Grundlagen/Belegungskonzept/20251021_Groß Plasten I - Am Spargelberg 9m_bereinigt.dxf"
+      layer: "PVcase PV Modules (full frames)"
+      preprocessors:
+        - block_exploder
+      entityTypes:
+        - LWPOLYLINE
+        - POLYLINE
+    sync: push
+    style:
+      layer:
+        color: "cyan"
+        lineweight: 25
+    operations:
+      - type: dissolve
+
   # ==========================================================================
   # SECTION 2: BUFFER CALCULATIONS - Baugrenze Exclusion Zones
   # ==========================================================================
