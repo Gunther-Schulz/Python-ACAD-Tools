@@ -212,17 +212,21 @@ class LayerProcessor:
         
         Args:
             layer_name: Name of the layer to create
-            dxf_source_config: Dictionary with 'file', 'layer', and optional 'entityTypes'
+            dxf_source_config: Dictionary with 'file', 'layer', and optional 'entityTypes', 'preprocessors'
         """
         import ezdxf
         import geopandas as gpd
         from src.utils import resolve_path
+        from src.preprocessors.block_exploder import explode_blocks
+        from src.preprocessors.circle_extractor import extract_circle_centers
+        from src.preprocessors.basepoint_extractor import extract_entity_basepoints
         
         try:
             # Extract configuration
             dxf_file = dxf_source_config.get('file')
             source_layer = dxf_source_config.get('layer')
             entity_types = dxf_source_config.get('entityTypes', None)
+            preprocessors = dxf_source_config.get('preprocessors', [])
             
             if not dxf_file or not source_layer:
                 log_error(f"dxfSource for layer '{layer_name}' requires 'file' and 'layer' keys")
@@ -256,19 +260,66 @@ class LayerProcessor:
                 self.all_layers[layer_name] = gpd.GeoDataFrame(geometry=[], crs=self.crs)
                 return
             
-            # Read geometry from the external DXF layer
-            from src.dxf_utils import read_cad_layer_to_geodataframe
-            gdf = read_cad_layer_to_geodataframe(
-                doc,
-                source_layer,
-                self.crs,
-                entity_types=entity_types
-            )
+            # Get entities from the layer
+            msp = doc.modelspace()
             
-            if gdf.empty:
-                log_warning(f"No geometry found in layer '{source_layer}' from {dxf_file}")
+            # Build query for entity types if specified
+            if entity_types and len(entity_types) == 1:
+                query = f'{entity_types[0]}[layer=="{source_layer}"]'
             else:
+                query = f'*[layer=="{source_layer}"]'
+            
+            entities = list(msp.query(query))
+            
+            # Apply multiple entity type filter if specified
+            if entity_types and len(entity_types) > 1:
+                entities = [e for e in entities if e.dxftype() in entity_types]
+            
+            log_debug(f"Found {len(entities)} entities in layer '{source_layer}'")
+            
+            # Apply preprocessors if specified
+            preprocessor_map = {
+                'block_exploder': explode_blocks,
+                'circle_extractor': extract_circle_centers,
+                'basepoint_extractor': extract_entity_basepoints
+            }
+            
+            for preprocessor_name in preprocessors:
+                preprocessor = preprocessor_map.get(preprocessor_name)
+                if preprocessor:
+                    log_debug(f"Applying preprocessor: {preprocessor_name}")
+                    entities = preprocessor(entities, source_layer)
+                    log_debug(f"After {preprocessor_name}: {len(entities)} entities")
+                else:
+                    log_warning(f"Unknown preprocessor: {preprocessor_name}")
+            
+            # Convert entities to GeoDataFrame
+            from src.dxf_utils import read_cad_layer_to_geodataframe
+            from src.dump_to_shape import convert_entity_to_geometry
+            from shapely.geometry import Point
+            
+            geometries = []
+            for entity_data in entities:
+                # Handle preprocessed data (dict format from preprocessors)
+                if isinstance(entity_data, dict):
+                    if 'coords' in entity_data:
+                        # From circle_extractor or basepoint_extractor
+                        geom = Point(entity_data['coords'])
+                        if geom.is_valid and not geom.is_empty:
+                            geometries.append(geom)
+                else:
+                    # Regular entity - convert to geometry
+                    geom = convert_entity_to_geometry(entity_data)
+                    if geom is not None:
+                        geometries.append(geom)
+            
+            # Create GeoDataFrame
+            if geometries:
+                gdf = gpd.GeoDataFrame(geometry=geometries, crs=self.crs)
                 log_info(f"Loaded {len(gdf)} geometries from external DXF layer '{source_layer}' into '{layer_name}'")
+            else:
+                log_warning(f"No geometry found in layer '{source_layer}' from {dxf_file}")
+                gdf = gpd.GeoDataFrame(geometry=[], crs=self.crs)
             
             self.all_layers[layer_name] = gdf
             
@@ -287,7 +338,7 @@ class LayerProcessor:
         recognized_keys = {'name', 'sync', 'operations', 'shapeFile', 'dxfSource', 'type', 'sourceLayer',
                           'outputShapeFile', 'style', 'close', 'linetypeScale', 'linetypeGeneration',
                           'viewports', 'attributes', 'bluntAngles', 'label', 'applyHatch', 'plot', 
-                          'saveToLagefaktor', 'entityTypes'}
+                          'saveToLagefaktor', 'entityTypes', 'preprocessors'}
         unrecognized_keys = set(layer_obj.keys()) - recognized_keys
         if unrecognized_keys:
             log_warning(f"Unrecognized keys in layer {layer_name}: {', '.join(unrecognized_keys)}")
