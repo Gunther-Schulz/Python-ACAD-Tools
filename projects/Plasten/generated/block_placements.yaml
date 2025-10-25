@@ -1,7 +1,7 @@
 # Generated Block Placements
 # For bulk placement of blocks from source layer geometries
 
-# blockPlacements:
+blockPlacements:
 # - name: EinAusfahrt
 #   sync: push
 #   blockName: EinAusfahrt
@@ -16,39 +16,46 @@
 # PV Transformers from external DXF (all three planning areas)
 # Copies blocks "as is" from source files, including all internal geometry
 # All transformers merged onto same layer "PV Transformers"
+# 
+# alignCenters: true (default) - Automatically aligns bbox centers of source and target blocks
+#   This compensates for different insertion points (e.g., source at bottom-right, target at center)
+#   Set to false to use insertion points directly without adjustment
 
-# - name: PV Transformers I
-#   sync: push
-#   blockName: "PV Transformer"  # Block to place (must exist in output drawing)
-#   sourceBlockName: "Trafostation"  # Block to read positions from in external DXF
-#   scale: 1.0
-#   layer: PV Transformers
-#   position:
-#     type: external_dxf
-#     sourceFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Grundlagen/Belegungskonzept/20251021_Groß Plasten I - Am Spargelberg 9m_bereinigt.dxf"
-#     sourceLayer: "PVcase Transformers"  # Layer where transformer INSERTs are located
+- name: PV Transformers I
+  sync: push
+  blockName: "PV Transformer"  # Block to place (must exist in output drawing)
+  sourceBlockName: "Trafostation"  # Block to read positions from in external DXF
+  scale: 1.0
+  alignCenters: true  # Align block centers (default: true)
+  layer: PV Transformers
+  position:
+    type: external_dxf
+    sourceFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Grundlagen/Belegungskonzept/20251021_Groß Plasten I - Am Spargelberg 9m_bereinigt.dxf"
+    sourceLayer: "PVcase Transformers"  # Layer where transformer INSERTs are located
 
-# - name: PV Transformers II
-#   sync: push
-#   blockName: "PV Transformer"
-#   sourceBlockName: "Trafostation"
-#   scale: 1.0
-#   layer: PV Transformers
-#   position:
-#     type: external_dxf
-#     sourceFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Grundlagen/Belegungskonzept/20251021_Groß Plasten II - Devener Weg_bereinigt.dxf"
-#     sourceLayer: "PVcase Transformers"
+- name: PV Transformers II
+  sync: push
+  blockName: "PV Transformer"
+  sourceBlockName: "Trafostation"
+  scale: 1.0
+  alignCenters: true
+  layer: PV Transformers
+  position:
+    type: external_dxf
+    sourceFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Grundlagen/Belegungskonzept/20251021_Groß Plasten II - Devener Weg_bereinigt.dxf"
+    sourceLayer: "PVcase Transformers"
 
-# - name: PV Transformers Süd
-#   sync: push
-#   blockName: "PV Transformer"
-#   sourceBlockName: "Trafostation"
-#   scale: 1.0
-#   layer: PV Transformers
-#   position:
-#     type: external_dxf
-#     sourceFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Grundlagen/Belegungskonzept/20250827_Klein Plasten Süd - Rockower Str.dxf"
-#     sourceLayer: "PVcase Transformers"
+- name: PV Transformers Süd
+  sync: push
+  blockName: "PV Transformer"
+  sourceBlockName: "Trafostation"
+  scale: 1.0
+  alignCenters: true
+  layer: PV Transformers
+  position:
+    type: external_dxf
+    sourceFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Grundlagen/Belegungskonzept/20250827_Klein Plasten Süd - Rockower Str.dxf"
+    sourceLayer: "PVcase Transformers"
 
 # Trees from external DXF (all three planning areas)
 # Uses auto-scaling: measures both source blocks and "Baum" block, calculates scale automatically

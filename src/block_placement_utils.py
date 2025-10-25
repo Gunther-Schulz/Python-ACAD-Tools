@@ -15,6 +15,9 @@ class BlockPlacementUtils:
     # Class-level cache for block width measurements
     _block_width_cache = {}
     
+    # Class-level cache for block bbox center measurements
+    _block_center_cache = {}
+    
     @staticmethod
     def _measure_block_width(doc, block_name):
         """
@@ -78,6 +81,79 @@ class BlockPlacementUtils:
             return None
     
     @staticmethod
+    def _get_block_bbox_center(doc, block_name):
+        """
+        Calculate the center of a block's bounding box relative to its insertion point (0, 0).
+        
+        Args:
+            doc: ezdxf document containing the block
+            block_name: Name of the block to measure
+            
+        Returns:
+            tuple: (center_x, center_y) relative to insertion point, or None if measurement fails
+        """
+        from src.utils import log_debug, log_warning
+        
+        if block_name not in doc.blocks:
+            log_warning(f"Block '{block_name}' not found for bbox center measurement")
+            return None
+        
+        try:
+            block_layout = doc.blocks[block_name]
+            
+            all_x = []
+            all_y = []
+            
+            # Collect x and y coordinates from all entities
+            for entity in block_layout:
+                entity_type = entity.dxftype()
+                
+                if entity_type == 'CIRCLE':
+                    center = entity.dxf.center
+                    radius = entity.dxf.radius
+                    all_x.extend([center.x - radius, center.x + radius])
+                    all_y.extend([center.y - radius, center.y + radius])
+                    
+                elif entity_type == 'LINE':
+                    all_x.extend([entity.dxf.start.x, entity.dxf.end.x])
+                    all_y.extend([entity.dxf.start.y, entity.dxf.end.y])
+                    
+                elif entity_type == 'LWPOLYLINE':
+                    for point in entity.get_points():
+                        all_x.append(point[0])
+                        all_y.append(point[1])
+                        
+                elif entity_type == 'POLYLINE':
+                    if hasattr(entity, 'vertices'):
+                        for v in entity.vertices:
+                            if hasattr(v.dxf, 'location'):
+                                all_x.append(v.dxf.location.x)
+                                all_y.append(v.dxf.location.y)
+                                
+                elif entity_type == 'ARC':
+                    center = entity.dxf.center
+                    radius = entity.dxf.radius
+                    all_x.extend([center.x - radius, center.x + radius])
+                    all_y.extend([center.y - radius, center.y + radius])
+            
+            if not all_x or not all_y:
+                log_warning(f"No measurable geometry found in block '{block_name}'")
+                return None
+            
+            # Calculate center of bounding box relative to insertion point (0, 0)
+            min_x, max_x = min(all_x), max(all_x)
+            min_y, max_y = min(all_y), max(all_y)
+            center_x = (min_x + max_x) / 2.0
+            center_y = (min_y + max_y) / 2.0
+            
+            log_debug(f"Block '{block_name}' bbox center: ({center_x:.2f}, {center_y:.2f}) relative to insertion point")
+            return (center_x, center_y)
+            
+        except Exception as e:
+            log_warning(f"Error calculating bbox center for block '{block_name}': {str(e)}")
+            return None
+    
+    @staticmethod
     def _get_block_width_from_external_dxf(position_config, source_block_name):
         """
         Get the width of a block from an external DXF file, with caching.
@@ -121,6 +197,51 @@ class BlockPlacementUtils:
             BlockPlacementUtils._block_width_cache[cache_key] = width
         
         return width
+    
+    @staticmethod
+    def _get_block_center_from_external_dxf(position_config, source_block_name):
+        """
+        Get the bbox center of a block from an external DXF file, with caching.
+        
+        Args:
+            position_config: Position configuration containing sourceFile
+            source_block_name: Name of the block to measure
+            
+        Returns:
+            tuple: (center_x, center_y), or None if measurement fails
+        """
+        from src.utils import resolve_path, log_debug
+        
+        source_file = position_config.get('sourceFile')
+        if not source_file:
+            return None
+        
+        full_path = resolve_path(source_file)
+        cache_key = f"{full_path}::{source_block_name}::center"
+        
+        # Check cache first
+        if cache_key in BlockPlacementUtils._block_center_cache:
+            log_debug(f"Using cached bbox center for '{source_block_name}'")
+            return BlockPlacementUtils._block_center_cache[cache_key]
+        
+        # Load or get cached document
+        if full_path in BlockPlacementUtils._external_dxf_cache:
+            doc = BlockPlacementUtils._external_dxf_cache[full_path]
+        else:
+            try:
+                doc = ezdxf.readfile(full_path)
+                BlockPlacementUtils._external_dxf_cache[full_path] = doc
+            except Exception as e:
+                from src.utils import log_error
+                log_error(f"Error loading DXF for bbox center measurement: {str(e)}")
+                return None
+        
+        # Measure and cache
+        center = BlockPlacementUtils._get_block_bbox_center(doc, source_block_name)
+        if center is not None:
+            BlockPlacementUtils._block_center_cache[cache_key] = center
+        
+        return center
     
     @staticmethod
     def _get_insertion_points_from_external_dxf(position_config, offset_x=0, offset_y=0, source_block_name=None):
@@ -550,6 +671,46 @@ class BlockPlacementUtils:
             log_warning(f"No insertion points found for block placement '{name}'")
             return []
 
+        # Calculate center alignment offset for external_dxf placements
+        center_offset_x = 0
+        center_offset_y = 0
+        
+        if position_config.get('type') == 'external_dxf':
+            source_block_name = config.get('sourceBlockName')
+            block_name = config.get('blockName')
+            
+            # Only calculate offset if source and target blocks are different
+            # (or if sourceBlockName is not specified, implying same block)
+            if source_block_name and block_name:
+                # Check if alignment is requested (default to center alignment)
+                align_centers = config.get('alignCenters', True)
+                
+                if align_centers:
+                    log_debug(f"Calculating center alignment offset for '{name}'")
+                    
+                    # Get source block center
+                    source_center = BlockPlacementUtils._get_block_center_from_external_dxf(
+                        position_config, source_block_name
+                    )
+                    
+                    if source_center:
+                        # Get target block center
+                        target_center = BlockPlacementUtils._get_block_bbox_center(space.doc, block_name)
+                        
+                        if target_center:
+                            # Calculate offset: move from source insertion point to its center,
+                            # then back from target center to target insertion point
+                            center_offset_x = source_center[0] - target_center[0]
+                            center_offset_y = source_center[1] - target_center[1]
+                            
+                            log_info(f"Center alignment for '{name}': offset ({center_offset_x:.2f}, {center_offset_y:.2f})")
+                            log_debug(f"  Source '{source_block_name}' center: {source_center}")
+                            log_debug(f"  Target '{block_name}' center: {target_center}")
+                        else:
+                            log_warning(f"Could not measure target block '{block_name}' center - blocks may be misaligned")
+                    else:
+                        log_warning(f"Could not measure source block '{source_block_name}' center - blocks may be misaligned")
+
         # Calculate final scale
         scale_value = config.get('scale', 1.0)
         
@@ -625,13 +786,37 @@ class BlockPlacementUtils:
                 if not isinstance(point, tuple):  # Ensure point is always a tuple
                     point = (point[0], point[1]) if hasattr(point, '__getitem__') else (0, 0)
 
+            # Apply center alignment offset
+            # If the source INSERT has rotation, we need to rotate the offset vector too
+            if center_offset_x != 0 or center_offset_y != 0:
+                if rotation is not None and rotation != 0:
+                    # Rotate the offset vector by the INSERT rotation angle
+                    import math
+                    rotation_rad = math.radians(rotation)
+                    cos_r = math.cos(rotation_rad)
+                    sin_r = math.sin(rotation_rad)
+                    
+                    # Rotate offset vector
+                    rotated_offset_x = center_offset_x * cos_r - center_offset_y * sin_r
+                    rotated_offset_y = center_offset_x * sin_r + center_offset_y * cos_r
+                    
+                    adjusted_point = (point[0] + rotated_offset_x, point[1] + rotated_offset_y)
+                    
+                    log_debug(f"Rotated offset by {rotation}°: ({center_offset_x:.3f}, {center_offset_y:.3f}) -> ({rotated_offset_x:.3f}, {rotated_offset_y:.3f})")
+                else:
+                    # No rotation, use offset as-is
+                    adjusted_point = (point[0] + center_offset_x, point[1] + center_offset_y)
+            else:
+                # No offset
+                adjusted_point = point
+
             # Use the calculated rotation if available, otherwise use config rotation
             final_rotation = rotation if rotation is not None else config.get('rotation', 0)
 
             block_ref = add_block_reference(
                 space,
                 config['blockName'],
-                point,
+                adjusted_point,
                 layer_name,
                 scale=final_scale,
                 rotation=final_rotation

@@ -341,13 +341,14 @@ styles:
   pvModules:
     layer:
       color: "ash"
-      lineweight: 25
+      lineweight: 13
 
   pvModulesLegend:
     hatch:
       color: "ash"
       pattern: "ANSI32"
       scale: 0.5
+      lineweight: 13
       individual_hatches: false
 
   geltungsbereichFPlan:
