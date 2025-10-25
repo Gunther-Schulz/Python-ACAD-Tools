@@ -275,10 +275,7 @@ geomLayers:
   # Combined PV Modules layer
   - name: PV Modules
     sync: push
-    style:
-      layer:
-        color: "cyan"
-        lineweight: 25
+    style: pvModules
     operations:
       - type: merge
         layers:
@@ -286,6 +283,13 @@ geomLayers:
           - PV Modules II Source
           - PV Modules Süd Source
       - type: dissolve
+
+  - name: PV Modules Schraffur
+    sync: push
+    style: pvModulesLegend
+    applyHatch:
+      layers:
+        - PV Modules
 
   # ==========================================================================
   # SECTION 2: BUFFER CALCULATIONS - Baugrenze Exclusion Zones

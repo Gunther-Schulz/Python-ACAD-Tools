@@ -338,6 +338,18 @@ styles:
       linetypeGeneration: true
       # linetypeScale: 30
 
+  pvModules:
+    layer:
+      color: "ash"
+      lineweight: 25
+
+  pvModulesLegend:
+    hatch:
+      color: "ash"
+      pattern: "ANSI32"
+      scale: 0.5
+      individual_hatches: false
+
   geltungsbereichFPlan:
     layer:
       color: "vermilion-strong"
