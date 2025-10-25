@@ -212,10 +212,6 @@ def print_layer_settings():
             "description": "Path to the shapefile for this layer",
             "type": "string"
         },
-        "dxfLayer": {
-            "description": "Name of the DXF layer to use",
-            "type": "string"
-        },
         "outputShapeFile": {
             "description": "Path to save the output shapefile",
             "type": "string"

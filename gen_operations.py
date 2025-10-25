@@ -177,7 +177,7 @@ def main():
 
     layer_processor_content = "from src.operations import *\n\n"
     layer_processor_content += "class LayerProcessor:\n"
-    methods = ['__init__', 'process_layers', 'process_layer', 'process_operation', 'setup_shapefiles', 'load_dxf_layer', '_process_hatch_config', 'levenshtein_distance']
+    methods = ['__init__', 'process_layers', 'process_layer', 'process_operation', 'setup_shapefiles', '_process_hatch_config', 'levenshtein_distance']
 
     for method in methods:
         extracted_method = extract_class_method(content, 'LayerProcessor', method)

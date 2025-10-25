@@ -1,21 +1,14 @@
 import ezdxf
 import traceback
-from ezdxf.entities.lwpolyline import LWPolyline
-from ezdxf.entities.polyline import Polyline
 from src.utils import log_info, log_warning, log_error, resolve_path, log_debug
 from src.dxf_utils import ensure_layer_exists, attach_custom_data, sanitize_layer_name, initialize_document, atomic_save_dxf, XDATA_APP_ID, SCRIPT_IDENTIFIER
 from src.preprocessors.block_exploder import explode_blocks
 from src.preprocessors.circle_extractor import extract_circle_centers
 from src.preprocessors.basepoint_extractor import extract_entity_basepoints
 import geopandas as gpd
-from shapely.geometry import LineString, Point, Polygon, MultiPolygon
-import math
-import numpy as np
+from shapely.geometry import Point, Polygon, LineString, MultiPolygon
 from src.shapefile_utils import write_shapefile
 from pathlib import Path
-
-# Define a constant for the polygon closure tolerance
-POLYGON_CLOSURE_TOLERANCE = 0.5
 
 class DXFProcessor:
     def __init__(self, project_loader):
@@ -369,6 +362,9 @@ class DXFProcessor:
             ln_attrs = []
             pl_attrs = []
 
+            # Import the shared conversion function
+            from src.dump_to_shape import convert_entity_to_geometry
+
             for entity_data in entities:
                 if isinstance(entity_data, dict):
                     # Handle preprocessed data (e.g., from circle_extractor)
@@ -378,80 +374,30 @@ class DXFProcessor:
                             pt.append(point)
                             pt_attrs.append(entity_data.get('attributes', {}))
                 else:
-                    # Handle regular entities
-                    if isinstance(entity_data, (LWPolyline, Polyline)):
-                        try:
-                            points_list = []
-
-                            if isinstance(entity_data, LWPolyline):
-                                # LWPolyline stores points as (x, y, start_width, end_width, bulge)
-                                try:
-                                    for point in entity_data.get_points():
-                                        # Take only x,y coordinates from the 5-tuple
-                                        points_list.append((point[0], point[1]))
-                                except Exception as e:
-                                    log_warning(f"Failed to get points from LWPOLYLINE in layer '{source_layer}': {str(e)}")
-                                    continue
-                            else:
-                                # Regular POLYLINE needs different vertex handling
-                                try:
-                                    # For regular POLYLINE, vertices is a list property, not a method
-                                    if hasattr(entity_data, 'vertices'):
-                                        for vertex in entity_data.vertices:
-                                            if hasattr(vertex, 'dxf'):
-                                                # Get coordinates from DXFVertex
-                                                points_list.append((vertex.dxf.location.x, vertex.dxf.location.y))
-                                            else:
-                                                # Direct coordinate access
-                                                points_list.append((vertex[0], vertex[1]))
-                                except Exception as e:
-                                    log_warning(f"Failed to get vertices from POLYLINE in layer '{source_layer}': {str(e)}")
-                                    continue
-
-                            if len(points_list) >= 2:
-                                # Check both the closed attribute and if endpoints match (within tolerance)
-                                is_closed = (
-                                    (hasattr(entity_data, 'closed') and entity_data.closed) or
-                                    (len(points_list) >= 3 and
-                                     abs(points_list[0][0] - points_list[-1][0]) < POLYGON_CLOSURE_TOLERANCE and
-                                     abs(points_list[0][1] - points_list[-1][1]) < POLYGON_CLOSURE_TOLERANCE)
-                                )
-
-                                if is_closed and len(points_list) >= 3:
-                                    # Ensure the polygon is closed by adding first point if needed
-                                    if abs(points_list[0][0] - points_list[-1][0]) >= POLYGON_CLOSURE_TOLERANCE or abs(points_list[0][1] - points_list[-1][1]) >= POLYGON_CLOSURE_TOLERANCE:
-                                        points_list.append(points_list[0])
-                                    polygon = Polygon(points_list)
-                                    if polygon.is_valid and not polygon.is_empty:
-                                        # Split MultiPolygon into constituent polygons
-                                        if isinstance(polygon, MultiPolygon):
-                                            for p in polygon.geoms:
-                                                pl.append(p)
-                                                pl_attrs.append({})
-                                        else:
-                                            pl.append(polygon)
-                                            pl_attrs.append({})
-                                else:
-                                    line = LineString(points_list)
-                                    if line.is_valid and not line.is_empty:
-                                        ln.append(line)
-                                        ln_attrs.append({})
-                        except Exception as e:
-                            entity_type = entity_data.dxftype() if hasattr(entity_data, 'dxftype') else type(entity_data).__name__
-                            entity_handle = getattr(entity_data, 'dxf', {}).get('handle', 'unknown')
-                            log_warning(f"Failed to process {entity_type} entity (handle: {entity_handle}) in layer '{source_layer}': {str(e)}")
-                            continue
-
-                    elif isinstance(entity_data, ezdxf.entities.Line):
-                        line = LineString([entity_data.dxf.start, entity_data.dxf.end])
-                        if line.is_valid and not line.is_empty:
-                            ln.append(line)
-                            ln_attrs.append({})
-                    elif isinstance(entity_data, ezdxf.entities.Point):
-                        point = Point(entity_data.dxf.location[:2])
-                        if point.is_valid and not point.is_empty:
-                            pt.append(point)
-                            pt_attrs.append({})
+                    # Handle regular entities using shared conversion logic
+                    try:
+                        geom = convert_entity_to_geometry(entity_data)
+                        if geom is not None:
+                            # Classify by geometry type
+                            if isinstance(geom, Point):
+                                pt.append(geom)
+                                pt_attrs.append({})
+                            elif isinstance(geom, LineString):
+                                ln.append(geom)
+                                ln_attrs.append({})
+                            elif isinstance(geom, Polygon):
+                                pl.append(geom)
+                                pl_attrs.append({})
+                            elif isinstance(geom, MultiPolygon):
+                                # Split MultiPolygon into constituent polygons
+                                for p in geom.geoms:
+                                    pl.append(p)
+                                    pl_attrs.append({})
+                    except Exception as e:
+                        entity_type = entity_data.dxftype() if hasattr(entity_data, 'dxftype') else type(entity_data).__name__
+                        entity_handle = getattr(getattr(entity_data, 'dxf', None), 'handle', 'unknown')
+                        log_warning(f"Failed to process {entity_type} entity (handle: {entity_handle}) in layer '{source_layer}': {str(e)}")
+                        continue
 
             # Write separate shapefiles for each geometry type
             base_path = str(Path(full_output_path).with_suffix(''))

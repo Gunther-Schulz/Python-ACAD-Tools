@@ -213,7 +213,8 @@ class LayerProcessor:
         # Check for unrecognized keys
         recognized_keys = {'name', 'sync', 'operations', 'shapeFile', 'type', 'sourceLayer',
                           'outputShapeFile', 'style', 'close', 'linetypeScale', 'linetypeGeneration',
-                          'viewports', 'attributes', 'bluntAngles', 'label', 'applyHatch', 'plot', 'saveToLagefaktor'}
+                          'viewports', 'attributes', 'bluntAngles', 'label', 'applyHatch', 'plot', 
+                          'saveToLagefaktor', 'entityTypes'}
         unrecognized_keys = set(layer_obj.keys()) - recognized_keys
         if unrecognized_keys:
             log_warning(f"Unrecognized keys in layer {layer_name}: {', '.join(unrecognized_keys)}")
@@ -238,7 +239,7 @@ class LayerProcessor:
         elif 'shapeFile' in layer_obj:
             if layer_name not in self.all_layers:
                 log_warning(f"Shapefile for layer {layer_name} was not loaded properly")
-        elif 'dxfLayer' not in layer_obj:
+        else:
             # Only set to None if not already set (e.g., by pull mode)
             if layer_name not in self.all_layers:
                 self.all_layers[layer_name] = None
@@ -520,12 +521,6 @@ class LayerProcessor:
                 except Exception as e:
                     log_error(f"Failed to load shapefile for layer '{layer_name}': {str(e)}")
                     log_error(traceback.format_exc())
-            elif 'dxfLayer' in layer:
-                # gdf = self.load_dxf_layer(layer_name, layer['dxfLayer'])
-                self.all_layers[layer_name] = gdf
-                if 'outputShapeFile' in layer:
-                    output_path = self.project_loader.resolve_full_path(layer['outputShapeFile'])
-                    self.write_shapefile(layer_name, output_path)
 
         # After loading all layers, log the contents of all_layers
         for layer_name, gdf in self.all_layers.items():
@@ -615,9 +610,6 @@ class LayerProcessor:
                     log_debug(f"Deleted file: {filename}")
                 except Exception as e:
                     log_warning(f"Failed to delete {file_path}. Reason: {e}")
-
-    # def load_dxf_layer(self, layer_name, dxf_layer_name):
-    #     return load_dxf_layer(layer_name, dxf_layer_name, self.dxf_doc, self.project_loader, self.crs)
 
     def _process_hatch_config(self, layer_name, layer_config):
         log_debug(f"Processing hatch configuration for layer: {layer_name}")
