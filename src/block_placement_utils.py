@@ -12,6 +12,116 @@ class BlockPlacementUtils:
     # Class-level cache for external DXF documents
     _external_dxf_cache = {}
     
+    # Class-level cache for block width measurements
+    _block_width_cache = {}
+    
+    @staticmethod
+    def _measure_block_width(doc, block_name):
+        """
+        Measure the bounding box width of a block definition.
+        
+        Args:
+            doc: ezdxf document containing the block
+            block_name: Name of the block to measure
+            
+        Returns:
+            float: Width of the block bounding box, or None if measurement fails
+        """
+        from src.utils import log_debug, log_warning
+        
+        if block_name not in doc.blocks:
+            log_warning(f"Block '{block_name}' not found for width measurement")
+            return None
+        
+        try:
+            block_layout = doc.blocks[block_name]
+            
+            all_x = []
+            
+            # Collect x coordinates from all entities
+            for entity in block_layout:
+                entity_type = entity.dxftype()
+                
+                if entity_type == 'CIRCLE':
+                    center = entity.dxf.center
+                    radius = entity.dxf.radius
+                    all_x.extend([center.x - radius, center.x + radius])
+                    
+                elif entity_type == 'LINE':
+                    all_x.extend([entity.dxf.start.x, entity.dxf.end.x])
+                    
+                elif entity_type == 'LWPOLYLINE':
+                    for point in entity.get_points():
+                        all_x.append(point[0])
+                        
+                elif entity_type == 'POLYLINE':
+                    if hasattr(entity, 'vertices'):
+                        for v in entity.vertices:
+                            if hasattr(v.dxf, 'location'):
+                                all_x.append(v.dxf.location.x)
+                                
+                elif entity_type == 'ARC':
+                    center = entity.dxf.center
+                    radius = entity.dxf.radius
+                    all_x.extend([center.x - radius, center.x + radius])
+            
+            if not all_x:
+                log_warning(f"No measurable geometry found in block '{block_name}'")
+                return None
+            
+            width = max(all_x) - min(all_x)
+            log_debug(f"Measured block '{block_name}' width: {width:.2f}")
+            return width
+            
+        except Exception as e:
+            log_warning(f"Error measuring block '{block_name}': {str(e)}")
+            return None
+    
+    @staticmethod
+    def _get_block_width_from_external_dxf(position_config, source_block_name):
+        """
+        Get the width of a block from an external DXF file, with caching.
+        
+        Args:
+            position_config: Position configuration containing sourceFile
+            source_block_name: Name of the block to measure
+            
+        Returns:
+            float: Width of the block, or None if measurement fails
+        """
+        from src.utils import resolve_path, log_debug
+        
+        source_file = position_config.get('sourceFile')
+        if not source_file:
+            return None
+        
+        full_path = resolve_path(source_file)
+        cache_key = f"{full_path}::{source_block_name}"
+        
+        # Check cache first
+        if cache_key in BlockPlacementUtils._block_width_cache:
+            log_debug(f"Using cached width for '{source_block_name}'")
+            return BlockPlacementUtils._block_width_cache[cache_key]
+        
+        # Load or get cached document
+        if full_path in BlockPlacementUtils._external_dxf_cache:
+            doc = BlockPlacementUtils._external_dxf_cache[full_path]
+        else:
+            try:
+                doc = ezdxf.readfile(full_path)
+                BlockPlacementUtils._external_dxf_cache[full_path] = doc
+            except Exception as e:
+                from src.utils import log_error
+                log_error(f"Error loading DXF for width measurement: {str(e)}")
+                return None
+        
+        # Measure and cache
+        width = BlockPlacementUtils._measure_block_width(doc, source_block_name)
+        if width is not None:
+            BlockPlacementUtils._block_width_cache[cache_key] = width
+        
+        return width
+    
     @staticmethod
     def _get_insertion_points_from_external_dxf(position_config, offset_x=0, offset_y=0, source_block_name=None):
         """
@@ -440,6 +550,64 @@ class BlockPlacementUtils:
             log_warning(f"No insertion points found for block placement '{name}'")
             return []
 
+        # Calculate final scale
+        scale_value = config.get('scale', 1.0)
+        
+        if scale_value == 'auto':
+            # Auto-scale requires sourceBlockName
+            source_block_name = config.get('sourceBlockName')
+            block_name = config.get('blockName')
+            
+            if not source_block_name:
+                log_error(f"Block placement '{name}': scale='auto' requires 'sourceBlockName'")
+                return []
+            
+            if not block_name:
+                log_error(f"Block placement '{name}': scale='auto' requires 'blockName'")
+                return []
+            
+            # Get reference width - either from config or measure target block
+            reference_width = config.get('blockReferenceWidth')
+            
+            if reference_width:
+                log_debug(f"Using explicit blockReferenceWidth: {reference_width}")
+            else:
+                # Measure the target block in output document
+                reference_width = BlockPlacementUtils._measure_block_width(space.doc, block_name)
+                
+                if reference_width is None:
+                    log_error(f"Block placement '{name}': Failed to measure target block '{block_name}' for reference width. " +
+                             f"Block must exist in document before auto-scaling, or specify 'blockReferenceWidth' explicitly.")
+                    return []
+                
+                log_info(f"Auto-inferred reference width from block '{block_name}': {reference_width:.2f}")
+            
+            # Measure source block width
+            measured_width = BlockPlacementUtils._get_block_width_from_external_dxf(
+                position_config, source_block_name
+            )
+            
+            if measured_width is None:
+                log_error(f"Block placement '{name}': Failed to measure source block '{source_block_name}'")
+                return []
+            
+            # Calculate scale
+            final_scale = measured_width / reference_width
+            log_info(f"Auto-scale for '{name}': measured {measured_width:.2f} / reference {reference_width:.2f} = scale {final_scale:.3f}")
+        else:
+            # Use numeric scale value
+            try:
+                final_scale = float(scale_value)
+            except (TypeError, ValueError):
+                log_warning(f"Invalid scale value '{scale_value}' for '{name}', using 1.0")
+                final_scale = 1.0
+        
+        # Apply optional scale multiplier
+        if 'scaleMultiplier' in config:
+            multiplier = config.get('scaleMultiplier', 1.0)
+            final_scale *= multiplier
+            log_debug(f"Applied scale multiplier {multiplier} for '{name}', final scale: {final_scale:.3f}")
+
         # Ensure layer exists
         layer_name = config.get('layer', name)
         if layer_name not in space.doc.layers:
@@ -465,7 +633,7 @@ class BlockPlacementUtils:
                 config['blockName'],
                 point,
                 layer_name,
-                scale=config.get('scale', 1.0),
+                scale=final_scale,
                 rotation=final_rotation
             )
             if block_ref:
