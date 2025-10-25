@@ -936,6 +936,44 @@ geomLayers:
         joinStyle: mitre
 
   # ==========================================================================
+  # SECTION 7.6: GFL PATH LAYERS - Utility Corridor Boundary Lines
+  # ==========================================================================
+  # These layers create visual boundary lines inside utility buffer zones
+  # for placement of GFL Symbol blocks via path arrays.
+
+  - name: FG Buffer Path
+    sync: push
+    style: gflPath
+    operations:
+      - type: copy
+        layers:
+          - FG Buffer
+      - type: buffer
+        distance: -0.7
+        joinStyle: mitre
+      - type: intersection
+        layers:
+          - Geltungsbereich NW
+          - Geltungsbereich NO
+          - Geltungsbereich S
+
+  - name: Gastrasse Buffer Path
+    sync: push
+    style: gflPath
+    operations:
+      - type: copy
+        layers:
+          - Gastrasse Buffer
+      - type: buffer
+        distance: -0.7
+        joinStyle: mitre
+      - type: intersection
+        layers:
+          - Geltungsbereich NW
+          - Geltungsbereich NO
+          - Geltungsbereich S
+
+  # ==========================================================================
   # SECTION 7.5: FINAL WEGE OUTPUT
   # ==========================================================================
   # Final Wege layer showing paths outside AgriPV area

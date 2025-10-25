@@ -28,6 +28,16 @@ pathArrays:
     spacing: 8 #  For line paths: includes the block length (block length + spacing)
     # scale: 0.6
     # bufferDistance: 0.6
+  - name: "FG Buffer Path Array"
+    sync: push
+    sourceLayer: "FG Buffer Path"
+    block: "GFL Symbol"
+    spacing: 8
+  - name: "Gastrasse Buffer Path Array"
+    sync: push
+    sourceLayer: "Gastrasse Buffer Path"
+    block: "GFL Symbol"
+    spacing: 8
   # - name: "Hecke Array"
   #   sync: push
   #   sourceLayer: "Hecke"

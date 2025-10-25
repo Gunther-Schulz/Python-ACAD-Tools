@@ -369,6 +369,12 @@ styles:
     layer:
       linetype: "ACAD_ISO02W100"
 
+  gflPath:
+    layer:
+      color: "white"
+      lineweight: 13
+      plot: false
+
   grünfläche:
     layer:
       color: "chartreuse"
