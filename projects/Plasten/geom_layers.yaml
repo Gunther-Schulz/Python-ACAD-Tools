@@ -188,6 +188,25 @@ geomLayers:
         color: "orange"
         plot: false
 
+  - name: Mittelspannungsleitung Input
+    dxfSource:
+      file: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/Grundlagen/Belegungskonzept/20250827_Klein Plasten Süd - Rockower Str.dxf"
+      layer: "01 Mittelspannungsleitung"
+      entityTypes:
+        - LINE
+        - LWPOLYLINE
+        - POLYLINE
+
+  - name: Mittelspannungsleitung
+    sync: push
+    operations:
+      - type: copy
+        layers:
+          - Mittelspannungsleitung Input
+      - type: cleanLine
+        tolerance: 0.01
+        minSegmentLength: 0.5
+
   - name: Gebäude 150m Abstand
     shapeFile: "Öffentlich Planungsbüro Schulz/Projekte/23-24 Maxsolar - Plasten/GIS/input/gebäude_150m_abstand.shp"
 
@@ -417,6 +436,20 @@ geomLayers:
       - type: dissolve
 
   # --------------------------------------------------------------------------
+  # Mittelspannungsleitung Buffer: 3m
+  # --------------------------------------------------------------------------
+
+  - name: Mittelspannungsleitung Buffer
+    operations:
+      - type: buffer
+        layers:
+          - Mittelspannungsleitung
+        distance: 3
+        joinStyle: round
+        capStyle: round
+        quadSegs: 32
+
+  # --------------------------------------------------------------------------
   # Building Buffer: 150m
   # --------------------------------------------------------------------------
 
@@ -463,6 +496,7 @@ geomLayers:
         layers:
           - FG Buffer
           - Gastrasse Buffer
+          - Mittelspannungsleitung Buffer
           - Gebäude Buffer
           - Einzelbaumlinie Buffer
           - Straßenflurstückskante Buffer
@@ -964,6 +998,24 @@ geomLayers:
       - type: copy
         layers:
           - Gastrasse Buffer
+      - type: buffer
+        distance: -0.7
+        joinStyle: mitre
+      - type: intersection
+        layers:
+          - Geltungsbereich NW
+          - Geltungsbereich NO
+          - Geltungsbereich S
+
+  - name: Mittelspannungsleitung Buffer Path
+    sync: push
+    style: gfl1
+    linetypeScale: 0.1
+    linetypeGeneration: true
+    operations:
+      - type: copy
+        layers:
+          - Mittelspannungsleitung Buffer
       - type: buffer
         distance: -0.7
         joinStyle: mitre

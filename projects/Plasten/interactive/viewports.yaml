@@ -112,135 +112,137 @@ viewports:
   lockZoom: true
   _sync:
     dxf_handle: 8AA97
-    content_hash: dd44553d3bdd7a2bd23cc16c04954579ed3aab90fbba8dcd2437800e7e5feeee
-    last_sync_time: 1761410621
-    sync_source: yaml
+    content_hash: 1e51b497ef99206974ef0ad89028c29d86a574a042a6611949622550cb61a6c6
+    last_sync_time: 1761412694
+    sync_source: dxf
   center:
     x: 2867.888555200216
     y: 302.7121692818036
   frozenLayers:
-  - Legend_Main Legend_Verkehrsflächen
-  - Geschütze Biotope Umgrenzung T-Symbol Array
-  - Legend_Main Legend_Planungen_ Nutzungsregelungen_ Maßnahmen und Flächen für Maßnahmen
-    zum Schutz_ zur Pflege und zur Entwicklung von Natur und Landschaft
-  - Legend_Legend NO_Verkehrsflächen
-  - Bäume
-  - Geltungsbereich S
-  - Wege Schraffur
-  - Legend_Legend NW_Nachrichtliche Übernahme
-  - Baugrenze 2
-  - Legend_Legend NW_Flächen für die Landwirtschaft
-  - Legend_Legend NW_Darstellung ohne Normcharakter
-  - Gastrasse Array
-  - Legend_Legend S_Bauweise_ Baulinien_ Baugrenzen
-  - Wald
-  - Legend_Legend NO_Grünflächen
-  - Legend_Legend S_Planungen_ Nutzungsregelungen_ Maßnahmen und Flächen für Maßnahmen
-    zum Schutz_ zur Pflege und zur Entwicklung von Natur und Landschaft
-  - FG_Oberirdisch
-  - Legend_Main Legend_Maß der baulichen Nutzung
-  - 0-BLOCKS
-  - Legend_Legend S_Maß der baulichen Nutzung
-  - Bemaßung
-  - Blendschutzzaun
-  - Legend_Legend NW_Planungen_ Nutzungsregelungen_ Maßnahmen und Flächen für Maßnahmen
-    zum Schutz_ zur Pflege und zur Entwicklung von Natur und Landschaft
-  - Geltungsbereich NO 2
-  - Gemeinde
-  - 0 Blattrahmen
-  - 05 Löschwasserkissen
+  - PVcase Road
+  - Legend_Legend NO_Flächen für die Landwirtschaft
+  - Legend_Legend S_Flächen für die Landwirtschaft
   - Gebäude Schraffur
-  - Legend_Legend NW_Bauweise_ Baulinien_ Baugrenzen
-  - Nutzungsartengrenze
-  - Legend_Legend S_Darstellung ohne Normcharakter
-  - PV Transformers
-  - Legend_Legend S_Title
-  - Legend_Legend NW_Grünflächen
-  - Legend_Main Legend_Title
-  - Legend_Legend S_Sonstige Planzeichen
-  - Legend_Legend NO_Planungen_ Nutzungsregelungen_ Maßnahmen und Flächen für Maßnahmen
-    zum Schutz_ zur Pflege und zur Entwicklung von Natur und Landschaft
+  - Wege
+  - Flur
+  - Gemarkung
+  - Gemeinde
+  - Wald
+  - Wald Schraffur
+  - Geschütze Biotope
+  - Geschütze Biotope 2
   - Geltungsbereich NW 2
-  - Ontras_FG_buffer_4
+  - Geltungsbereich NO
+  - Geltungsbereich NO 2
+  - Geltungsbereich S
+  - Geltungsbereich S 2
+  - Geltungsbereich Hatch NO
+  - Geltungsbereich Hatch S
+  - Baugrenze 2
+  - Baugrenze
+  - BLOCKS
+  - Plantext
+  - Legend_Main Legend_Title
+  - Legend_Legend NW_Title
   - T--Höhe_Höhenlinie_050
-  - AgriPV Schraffur Solid
-  - Legend_Legend S_Verkehrsflächen
-  - Parcel
-  - FG Buffer Path
-  - WMS Höhenlinien
+  - T--Höhe_Höhenlinie_100
+  - 0 Legende
+  - 0 Blattrahmen
+  - Legend_Legend NO_Title
+  - Legend_Legend S_Title
+  - Legend_Main Legend_Art der baulichen Nutzung
+  - Legend_Main Legend_Maß der baulichen Nutzung
+  - Legend_Main Legend_Bauweise_ Baulinien_ Baugrenzen
+  - Legend_Main Legend_Verkehrsflächen
+  - Legend_Main Legend_Grünflächen
   - Legend_Main Legend_Wasserflächen und Flächen für die Wasserwirtschaft_ den Hochwasserschutz
     und die Regelung des Wasserabflusses
-  - BLOCKS
+  - Legend_Main Legend_Planungen_ Nutzungsregelungen_ Maßnahmen und Flächen für Maßnahmen
+    zum Schutz_ zur Pflege und zur Entwicklung von Natur und Landschaft
   - Legend_Main Legend_Sonstige Planzeichen
-  - WMS Gebäude
-  - Legend_Legend NO_Flächen für die Landwirtschaft
-  - 02 Sondergebiet
-  - Legend_Legend NO_Title
-  - Plantext
-  - Geschütze Biotope Innenfläche Schraffur
-  - Flur
-  - Legend_Legend S_Art der baulichen Nutzung
-  - Legend_Legend NO_Darstellung ohne Normcharakter
-  - Geltungsbereich S 2
-  - Legend_Legend NO_Bauweise_ Baulinien_ Baugrenzen
-  - EinAusfahrt Line
-  - Geltungsbereich Hatch S
-  - Ontras_FG_buffer_2
-  - AgriPV Schraffur Lines
-  - Geschütze Biotope Umgrenzung Schraffur
-  - RAHMEN
-  - M-Trafostation
-  - Legend_Main Legend_Art der baulichen Nutzung
-  - Baugrenze
-  - FG Line Array Oberirdisch
   - Legend_Main Legend_Darstellung ohne Normcharakter
-  - Legend_Legend NW_Verkehrsflächen
-  - Geschütze Biotope Innenfläche
-  - Wald Schraffur
-  - Moor
-  - Geltungsbereich NO
-  - FG_Unterirdisch
-  - Legend_Main Legend_Flächen für die Landwirtschaft
-  - Geltungsbereich Hatch NO
-  - Legend_Legend NO_Nachrichtliche Übernahme
-  - Legend_Main Legend_Bauweise_ Baulinien_ Baugrenzen
-  - Gemarkung
-  - T--Strasse_BESC
-  - Legend_Legend NW_Title
-  - Gastrasse
-  - Baum Points
-  - 0 Legende
-  - AgriPV
-  - Legend_Legend NO_Art der baulichen Nutzung
-  - PVcase Road
-  - Gebäude
-  - Defpoints
-  - Legend_Legend S_Flächen für die Landwirtschaft
+  - Legend_Main Legend_Nachrichtliche Übernahme
   - Legend_Legend NW_Art der baulichen Nutzung
+  - Legend_Legend NW_Maß der baulichen Nutzung
+  - Legend_Legend NW_Bauweise_ Baulinien_ Baugrenzen
+  - Legend_Legend NW_Grünflächen
+  - Legend_Legend NW_Planungen_ Nutzungsregelungen_ Maßnahmen und Flächen für Maßnahmen
+    zum Schutz_ zur Pflege und zur Entwicklung von Natur und Landschaft
+  - Legend_Legend NW_Sonstige Planzeichen
+  - Legend_Legend NW_Darstellung ohne Normcharakter
+  - Legend_Legend NW_Nachrichtliche Übernahme
+  - Legend_Legend NO_Art der baulichen Nutzung
   - Legend_Legend NO_Maß der baulichen Nutzung
-  - 01 Gewässer L83b 40 Shape B-Büro (Groß Plasten II)
-  - T--Höhe_Höhenlinie_100
-  - PV Transformer
-  - Legend_Main Legend_Grünflächen
-  - PV Modules Schraffur
-  - Gastrasse Buffer Path
-  - FG Line Array Unterirdisch
-  - Grünfläche
-  - Geschütze Biotope
-  - AgriPV Schraffur
+  - Legend_Legend NO_Bauweise_ Baulinien_ Baugrenzen
+  - Legend_Legend NO_Verkehrsflächen
+  - Legend_Legend NO_Grünflächen
+  - Legend_Legend NO_Planungen_ Nutzungsregelungen_ Maßnahmen und Flächen für Maßnahmen
+    zum Schutz_ zur Pflege und zur Entwicklung von Natur und Landschaft
+  - Legend_Legend NO_Sonstige Planzeichen
+  - Legend_Legend NO_Darstellung ohne Normcharakter
+  - Legend_Legend NO_Nachrichtliche Übernahme
+  - Legend_Legend S_Art der baulichen Nutzung
+  - Legend_Legend S_Maß der baulichen Nutzung
+  - Legend_Legend S_Bauweise_ Baulinien_ Baugrenzen
+  - Legend_Legend S_Grünflächen
+  - Legend_Legend S_Planungen_ Nutzungsregelungen_ Maßnahmen und Flächen für Maßnahmen
+    zum Schutz_ zur Pflege und zur Entwicklung von Natur und Landschaft
+  - Legend_Legend S_Sonstige Planzeichen
+  - Legend_Legend S_Darstellung ohne Normcharakter
   - Legend_Legend S_Nachrichtliche Übernahme
+  - Bemaßung
+  - Ontras_FG_buffer_4
+  - Ontras_FG_buffer_2
+  - FG_Unterirdisch
+  - FG_Oberirdisch
+  - Parcel
+  - FG Line Array Oberirdisch
+  - FG Line Array Unterirdisch
+  - Gastrasse Array
+  - PV Transformer
+  - 05 Löschwasserkissen
+  - Bäume
+  - 02 Sondergebiet
+  - Defpoints
+  - 0-BLOCKS
+  - Gebäude
+  - Parcel Label
+  - Blendschutzzaun
+  - EinAusfahrt Line
+  - Baum Points
+  - RAHMEN
+  - Grünfläche
+  - WMS Gebäude
+  - WMS Höhenlinien
+  - Gastrasse
+  - AgriPV
+  - AgriPV Schraffur
+  - AgriPV Schraffur Solid
+  - AgriPV Schraffur Lines
+  - Moor
+  - Geschütze Biotope Innenfläche
+  - Geschütze Biotope Innenfläche Schraffur
+  - Geschütze Biotope Umgrenzung
+  - Geschütze Biotope Umgrenzung Schraffur
+  - Nutzungsartengrenze
+  - Exclude Geltungsbereich
+  - Geschütze Biotope Umgrenzung T-Symbol Array
+  - Legend_Legend NW_Verkehrsflächen
+  - Legend_Legend S_Verkehrsflächen
+  - Legend_Main Legend_Flächen für die Landwirtschaft
+  - Legend_Legend NW_Flächen für die Landwirtschaft
+  - FG Buffer Path
+  - Gastrasse Buffer Path
+  - FG Buffer Path Array
+  - Gastrasse Buffer Path Array
+  - 01 Gewässer L83b 40 Shape B-Büro (Groß Plasten II)
+  - PV Modules Schraffur
+  - PV Transformers
+  - M-Trafostation
+  - Wege Schraffur
+  - T--Strasse_BESC
   - T--Strasse_befestigt_OK
   - PV Modules
-  - Legend_Legend NW_Maß der baulichen Nutzung
-  - Geschütze Biotope Umgrenzung
-  - Legend_Legend NW_Sonstige Planzeichen
-  - Parcel Label
-  - Legend_Legend S_Grünflächen
-  - Legend_Legend NO_Sonstige Planzeichen
-  - Geschütze Biotope 2
-  - Exclude Geltungsbereich
-  - Legend_Main Legend_Nachrichtliche Übernahme
-  - Wege
 - name: MapViewportNO
   color: magenta
   topLeft:
@@ -312,135 +314,137 @@ viewports:
   lockZoom: true
   _sync:
     dxf_handle: 8AA9A
-    content_hash: a4425b4b3503abdb5bd73abbaa4f79c9c5a68e526e37d175aae8fa47938a86db
-    last_sync_time: 1761410621
-    sync_source: yaml
+    content_hash: d4814e40fdf1c436e40f03b58b3bd2b8c38e99e9c8abd0865797521c52cba6e5
+    last_sync_time: 1761412694
+    sync_source: dxf
   center:
     x: 4868.491665752536
     y: 292.7165591527828
   frozenLayers:
-  - Legend_Main Legend_Verkehrsflächen
-  - Geschütze Biotope Umgrenzung T-Symbol Array
-  - Legend_Main Legend_Planungen_ Nutzungsregelungen_ Maßnahmen und Flächen für Maßnahmen
-    zum Schutz_ zur Pflege und zur Entwicklung von Natur und Landschaft
-  - Legend_Legend NO_Verkehrsflächen
-  - Bäume
-  - Geltungsbereich S
-  - Wege Schraffur
-  - Legend_Legend NW_Nachrichtliche Übernahme
-  - Baugrenze 2
-  - Legend_Legend NW_Flächen für die Landwirtschaft
-  - Legend_Legend NW_Darstellung ohne Normcharakter
-  - Gastrasse Array
-  - Legend_Legend S_Bauweise_ Baulinien_ Baugrenzen
-  - Wald
-  - Legend_Legend NO_Grünflächen
-  - Legend_Legend S_Planungen_ Nutzungsregelungen_ Maßnahmen und Flächen für Maßnahmen
-    zum Schutz_ zur Pflege und zur Entwicklung von Natur und Landschaft
-  - FG_Oberirdisch
-  - Legend_Main Legend_Maß der baulichen Nutzung
-  - 0-BLOCKS
-  - Legend_Legend S_Maß der baulichen Nutzung
-  - Bemaßung
-  - Blendschutzzaun
-  - Legend_Legend NW_Planungen_ Nutzungsregelungen_ Maßnahmen und Flächen für Maßnahmen
-    zum Schutz_ zur Pflege und zur Entwicklung von Natur und Landschaft
-  - Geltungsbereich NO 2
-  - Gemeinde
-  - 0 Blattrahmen
-  - 05 Löschwasserkissen
+  - PVcase Road
+  - Legend_Legend NO_Flächen für die Landwirtschaft
+  - Legend_Legend S_Flächen für die Landwirtschaft
   - Gebäude Schraffur
-  - Legend_Legend NW_Bauweise_ Baulinien_ Baugrenzen
-  - Nutzungsartengrenze
-  - Legend_Legend S_Darstellung ohne Normcharakter
-  - PV Transformers
-  - Legend_Legend S_Title
-  - Legend_Legend NW_Grünflächen
-  - Legend_Main Legend_Title
-  - Legend_Legend S_Sonstige Planzeichen
-  - Legend_Legend NO_Planungen_ Nutzungsregelungen_ Maßnahmen und Flächen für Maßnahmen
-    zum Schutz_ zur Pflege und zur Entwicklung von Natur und Landschaft
+  - Wege
+  - Flur
+  - Gemarkung
+  - Gemeinde
+  - Wald
+  - Wald Schraffur
+  - Geschütze Biotope
+  - Geschütze Biotope 2
+  - Geltungsbereich NW
   - Geltungsbereich NW 2
-  - Ontras_FG_buffer_4
+  - Geltungsbereich NO 2
+  - Geltungsbereich S
+  - Geltungsbereich S 2
+  - Geltungsbereich Hatch NW
+  - Geltungsbereich Hatch S
+  - Baugrenze 2
+  - Baugrenze
+  - BLOCKS
+  - Plantext
+  - Legend_Main Legend_Title
+  - Legend_Legend NW_Title
   - T--Höhe_Höhenlinie_050
-  - AgriPV Schraffur Solid
-  - Legend_Legend S_Verkehrsflächen
-  - Parcel
-  - FG Buffer Path
-  - WMS Höhenlinien
+  - T--Höhe_Höhenlinie_100
+  - 0 Legende
+  - 0 Blattrahmen
+  - Legend_Legend NO_Title
+  - Legend_Legend S_Title
+  - Legend_Main Legend_Art der baulichen Nutzung
+  - Legend_Main Legend_Maß der baulichen Nutzung
+  - Legend_Main Legend_Bauweise_ Baulinien_ Baugrenzen
+  - Legend_Main Legend_Verkehrsflächen
+  - Legend_Main Legend_Grünflächen
   - Legend_Main Legend_Wasserflächen und Flächen für die Wasserwirtschaft_ den Hochwasserschutz
     und die Regelung des Wasserabflusses
-  - BLOCKS
+  - Legend_Main Legend_Planungen_ Nutzungsregelungen_ Maßnahmen und Flächen für Maßnahmen
+    zum Schutz_ zur Pflege und zur Entwicklung von Natur und Landschaft
   - Legend_Main Legend_Sonstige Planzeichen
-  - WMS Gebäude
-  - Legend_Legend NO_Flächen für die Landwirtschaft
-  - 02 Sondergebiet
-  - Legend_Legend NO_Title
-  - Plantext
-  - Geschütze Biotope Innenfläche Schraffur
-  - Flur
-  - Legend_Legend S_Art der baulichen Nutzung
-  - Legend_Legend NO_Darstellung ohne Normcharakter
-  - Geltungsbereich S 2
-  - Legend_Legend NO_Bauweise_ Baulinien_ Baugrenzen
-  - EinAusfahrt Line
-  - Geltungsbereich Hatch S
-  - Ontras_FG_buffer_2
-  - AgriPV Schraffur Lines
-  - Geschütze Biotope Umgrenzung Schraffur
-  - RAHMEN
-  - M-Trafostation
-  - Legend_Main Legend_Art der baulichen Nutzung
-  - Baugrenze
-  - FG Line Array Oberirdisch
   - Legend_Main Legend_Darstellung ohne Normcharakter
-  - Legend_Legend NW_Verkehrsflächen
-  - Geschütze Biotope Innenfläche
-  - Wald Schraffur
-  - Moor
-  - FG_Unterirdisch
-  - Legend_Main Legend_Flächen für die Landwirtschaft
-  - Legend_Legend NO_Nachrichtliche Übernahme
-  - Legend_Main Legend_Bauweise_ Baulinien_ Baugrenzen
-  - Gemarkung
-  - T--Strasse_BESC
-  - Legend_Legend NW_Title
-  - Gastrasse
-  - Baum Points
-  - 0 Legende
-  - AgriPV
-  - Legend_Legend NO_Art der baulichen Nutzung
-  - PVcase Road
-  - Gebäude
-  - Defpoints
-  - Legend_Legend S_Flächen für die Landwirtschaft
+  - Legend_Main Legend_Nachrichtliche Übernahme
   - Legend_Legend NW_Art der baulichen Nutzung
+  - Legend_Legend NW_Maß der baulichen Nutzung
+  - Legend_Legend NW_Bauweise_ Baulinien_ Baugrenzen
+  - Legend_Legend NW_Grünflächen
+  - Legend_Legend NW_Planungen_ Nutzungsregelungen_ Maßnahmen und Flächen für Maßnahmen
+    zum Schutz_ zur Pflege und zur Entwicklung von Natur und Landschaft
+  - Legend_Legend NW_Sonstige Planzeichen
+  - Legend_Legend NW_Darstellung ohne Normcharakter
+  - Legend_Legend NW_Nachrichtliche Übernahme
+  - Legend_Legend NO_Art der baulichen Nutzung
   - Legend_Legend NO_Maß der baulichen Nutzung
-  - 01 Gewässer L83b 40 Shape B-Büro (Groß Plasten II)
-  - T--Höhe_Höhenlinie_100
-  - PV Transformer
-  - Legend_Main Legend_Grünflächen
-  - PV Modules Schraffur
-  - Gastrasse Buffer Path
-  - FG Line Array Unterirdisch
-  - Grünfläche
-  - Geschütze Biotope
-  - AgriPV Schraffur
+  - Legend_Legend NO_Bauweise_ Baulinien_ Baugrenzen
+  - Legend_Legend NO_Verkehrsflächen
+  - Legend_Legend NO_Grünflächen
+  - Legend_Legend NO_Planungen_ Nutzungsregelungen_ Maßnahmen und Flächen für Maßnahmen
+    zum Schutz_ zur Pflege und zur Entwicklung von Natur und Landschaft
+  - Legend_Legend NO_Sonstige Planzeichen
+  - Legend_Legend NO_Darstellung ohne Normcharakter
+  - Legend_Legend NO_Nachrichtliche Übernahme
+  - Legend_Legend S_Art der baulichen Nutzung
+  - Legend_Legend S_Maß der baulichen Nutzung
+  - Legend_Legend S_Bauweise_ Baulinien_ Baugrenzen
+  - Legend_Legend S_Grünflächen
+  - Legend_Legend S_Planungen_ Nutzungsregelungen_ Maßnahmen und Flächen für Maßnahmen
+    zum Schutz_ zur Pflege und zur Entwicklung von Natur und Landschaft
+  - Legend_Legend S_Sonstige Planzeichen
+  - Legend_Legend S_Darstellung ohne Normcharakter
   - Legend_Legend S_Nachrichtliche Übernahme
+  - Bemaßung
+  - Ontras_FG_buffer_4
+  - Ontras_FG_buffer_2
+  - FG_Unterirdisch
+  - FG_Oberirdisch
+  - Parcel
+  - FG Line Array Oberirdisch
+  - FG Line Array Unterirdisch
+  - Gastrasse Array
+  - PV Transformer
+  - 05 Löschwasserkissen
+  - Bäume
+  - 02 Sondergebiet
+  - Defpoints
+  - 0-BLOCKS
+  - Gebäude
+  - Parcel Label
+  - Blendschutzzaun
+  - EinAusfahrt Line
+  - Baum Points
+  - RAHMEN
+  - Grünfläche
+  - WMS Gebäude
+  - WMS Höhenlinien
+  - Gastrasse
+  - AgriPV
+  - AgriPV Schraffur
+  - AgriPV Schraffur Solid
+  - AgriPV Schraffur Lines
+  - Moor
+  - Geschütze Biotope Innenfläche
+  - Geschütze Biotope Innenfläche Schraffur
+  - Geschütze Biotope Umgrenzung
+  - Geschütze Biotope Umgrenzung Schraffur
+  - Nutzungsartengrenze
+  - Exclude Geltungsbereich
+  - Geschütze Biotope Umgrenzung T-Symbol Array
+  - Legend_Legend NW_Verkehrsflächen
+  - Legend_Legend S_Verkehrsflächen
+  - Legend_Main Legend_Flächen für die Landwirtschaft
+  - Legend_Legend NW_Flächen für die Landwirtschaft
+  - FG Buffer Path
+  - Gastrasse Buffer Path
+  - FG Buffer Path Array
+  - Gastrasse Buffer Path Array
+  - 01 Gewässer L83b 40 Shape B-Büro (Groß Plasten II)
+  - PV Modules Schraffur
+  - PV Transformers
+  - M-Trafostation
+  - Wege Schraffur
+  - T--Strasse_BESC
   - T--Strasse_befestigt_OK
   - PV Modules
-  - Legend_Legend NW_Maß der baulichen Nutzung
-  - Geschütze Biotope Umgrenzung
-  - Legend_Legend NW_Sonstige Planzeichen
-  - Parcel Label
-  - Legend_Legend S_Grünflächen
-  - Legend_Legend NO_Sonstige Planzeichen
-  - Geltungsbereich NW
-  - Geschütze Biotope 2
-  - Exclude Geltungsbereich
-  - Legend_Main Legend_Nachrichtliche Übernahme
-  - Geltungsbereich Hatch NW
-  - Wege
 - name: MapViewportS
   color: magenta
   topLeft:
@@ -511,135 +515,137 @@ viewports:
   lockZoom: true
   _sync:
     dxf_handle: 8AA9D
-    content_hash: d5b6e476125052126d776cd74edb82915beb09aaf508675af8fddd8070631007
-    last_sync_time: 1761410621
-    sync_source: yaml
+    content_hash: b68836b59bfd505d9786e33f103574606ea4f358818d52839bc05215a3d7dc59
+    last_sync_time: 1761412694
+    sync_source: dxf
   center:
     x: 6869.144582332245
     y: 391.8814999718617
   frozenLayers:
-  - Legend_Main Legend_Verkehrsflächen
-  - Geschütze Biotope Umgrenzung T-Symbol Array
-  - Legend_Main Legend_Planungen_ Nutzungsregelungen_ Maßnahmen und Flächen für Maßnahmen
-    zum Schutz_ zur Pflege und zur Entwicklung von Natur und Landschaft
-  - Legend_Legend NO_Verkehrsflächen
-  - Bäume
-  - Wege Schraffur
-  - Legend_Legend NW_Nachrichtliche Übernahme
-  - Baugrenze 2
-  - Legend_Legend NW_Flächen für die Landwirtschaft
-  - Legend_Legend NW_Darstellung ohne Normcharakter
-  - Gastrasse Array
-  - Legend_Legend S_Bauweise_ Baulinien_ Baugrenzen
-  - Wald
-  - Legend_Legend NO_Grünflächen
-  - Legend_Legend S_Planungen_ Nutzungsregelungen_ Maßnahmen und Flächen für Maßnahmen
-    zum Schutz_ zur Pflege und zur Entwicklung von Natur und Landschaft
-  - FG_Oberirdisch
-  - Legend_Main Legend_Maß der baulichen Nutzung
-  - 0-BLOCKS
-  - Legend_Legend S_Maß der baulichen Nutzung
-  - Bemaßung
-  - Blendschutzzaun
-  - Legend_Legend NW_Planungen_ Nutzungsregelungen_ Maßnahmen und Flächen für Maßnahmen
-    zum Schutz_ zur Pflege und zur Entwicklung von Natur und Landschaft
-  - Geltungsbereich NO 2
-  - Gemeinde
-  - 0 Blattrahmen
-  - 05 Löschwasserkissen
+  - PVcase Road
+  - Legend_Legend NO_Flächen für die Landwirtschaft
+  - Legend_Legend S_Flächen für die Landwirtschaft
   - Gebäude Schraffur
-  - Legend_Legend NW_Bauweise_ Baulinien_ Baugrenzen
-  - Nutzungsartengrenze
-  - Legend_Legend S_Darstellung ohne Normcharakter
-  - PV Transformers
-  - Legend_Legend S_Title
-  - Legend_Legend NW_Grünflächen
-  - Legend_Main Legend_Title
-  - Legend_Legend S_Sonstige Planzeichen
-  - Legend_Legend NO_Planungen_ Nutzungsregelungen_ Maßnahmen und Flächen für Maßnahmen
-    zum Schutz_ zur Pflege und zur Entwicklung von Natur und Landschaft
+  - Wege
+  - Flur
+  - Gemarkung
+  - Gemeinde
+  - Wald
+  - Wald Schraffur
+  - Geschütze Biotope
+  - Geschütze Biotope 2
+  - Geltungsbereich NW
   - Geltungsbereich NW 2
-  - Ontras_FG_buffer_4
+  - Geltungsbereich NO
+  - Geltungsbereich NO 2
+  - Geltungsbereich S 2
+  - Geltungsbereich Hatch NW
+  - Geltungsbereich Hatch NO
+  - Baugrenze 2
+  - Baugrenze
+  - BLOCKS
+  - Plantext
+  - Legend_Main Legend_Title
+  - Legend_Legend NW_Title
   - T--Höhe_Höhenlinie_050
-  - AgriPV Schraffur Solid
-  - Legend_Legend S_Verkehrsflächen
-  - Parcel
-  - FG Buffer Path
-  - WMS Höhenlinien
+  - T--Höhe_Höhenlinie_100
+  - 0 Legende
+  - 0 Blattrahmen
+  - Legend_Legend NO_Title
+  - Legend_Legend S_Title
+  - Legend_Main Legend_Art der baulichen Nutzung
+  - Legend_Main Legend_Maß der baulichen Nutzung
+  - Legend_Main Legend_Bauweise_ Baulinien_ Baugrenzen
+  - Legend_Main Legend_Verkehrsflächen
+  - Legend_Main Legend_Grünflächen
   - Legend_Main Legend_Wasserflächen und Flächen für die Wasserwirtschaft_ den Hochwasserschutz
     und die Regelung des Wasserabflusses
-  - BLOCKS
+  - Legend_Main Legend_Planungen_ Nutzungsregelungen_ Maßnahmen und Flächen für Maßnahmen
+    zum Schutz_ zur Pflege und zur Entwicklung von Natur und Landschaft
   - Legend_Main Legend_Sonstige Planzeichen
-  - WMS Gebäude
-  - Legend_Legend NO_Flächen für die Landwirtschaft
-  - 02 Sondergebiet
-  - Legend_Legend NO_Title
-  - Plantext
-  - Geschütze Biotope Innenfläche Schraffur
-  - Flur
-  - Legend_Legend S_Art der baulichen Nutzung
-  - Legend_Legend NO_Darstellung ohne Normcharakter
-  - Geltungsbereich S 2
-  - Legend_Legend NO_Bauweise_ Baulinien_ Baugrenzen
-  - EinAusfahrt Line
-  - Ontras_FG_buffer_2
-  - AgriPV Schraffur Lines
-  - Geschütze Biotope Umgrenzung Schraffur
-  - RAHMEN
-  - M-Trafostation
-  - Legend_Main Legend_Art der baulichen Nutzung
-  - Baugrenze
-  - FG Line Array Oberirdisch
   - Legend_Main Legend_Darstellung ohne Normcharakter
-  - Legend_Legend NW_Verkehrsflächen
-  - Geschütze Biotope Innenfläche
-  - Wald Schraffur
-  - Moor
-  - Geltungsbereich NO
-  - FG_Unterirdisch
-  - Legend_Main Legend_Flächen für die Landwirtschaft
-  - Geltungsbereich Hatch NO
-  - Legend_Legend NO_Nachrichtliche Übernahme
-  - Legend_Main Legend_Bauweise_ Baulinien_ Baugrenzen
-  - Gemarkung
-  - T--Strasse_BESC
-  - Legend_Legend NW_Title
-  - Gastrasse
-  - Baum Points
-  - 0 Legende
-  - AgriPV
-  - Legend_Legend NO_Art der baulichen Nutzung
-  - PVcase Road
-  - Gebäude
-  - Defpoints
-  - Legend_Legend S_Flächen für die Landwirtschaft
+  - Legend_Main Legend_Nachrichtliche Übernahme
   - Legend_Legend NW_Art der baulichen Nutzung
+  - Legend_Legend NW_Maß der baulichen Nutzung
+  - Legend_Legend NW_Bauweise_ Baulinien_ Baugrenzen
+  - Legend_Legend NW_Grünflächen
+  - Legend_Legend NW_Planungen_ Nutzungsregelungen_ Maßnahmen und Flächen für Maßnahmen
+    zum Schutz_ zur Pflege und zur Entwicklung von Natur und Landschaft
+  - Legend_Legend NW_Sonstige Planzeichen
+  - Legend_Legend NW_Darstellung ohne Normcharakter
+  - Legend_Legend NW_Nachrichtliche Übernahme
+  - Legend_Legend NO_Art der baulichen Nutzung
   - Legend_Legend NO_Maß der baulichen Nutzung
-  - 01 Gewässer L83b 40 Shape B-Büro (Groß Plasten II)
-  - T--Höhe_Höhenlinie_100
-  - PV Transformer
-  - Legend_Main Legend_Grünflächen
-  - PV Modules Schraffur
-  - Gastrasse Buffer Path
-  - FG Line Array Unterirdisch
-  - Grünfläche
-  - Geschütze Biotope
-  - AgriPV Schraffur
+  - Legend_Legend NO_Bauweise_ Baulinien_ Baugrenzen
+  - Legend_Legend NO_Verkehrsflächen
+  - Legend_Legend NO_Grünflächen
+  - Legend_Legend NO_Planungen_ Nutzungsregelungen_ Maßnahmen und Flächen für Maßnahmen
+    zum Schutz_ zur Pflege und zur Entwicklung von Natur und Landschaft
+  - Legend_Legend NO_Sonstige Planzeichen
+  - Legend_Legend NO_Darstellung ohne Normcharakter
+  - Legend_Legend NO_Nachrichtliche Übernahme
+  - Legend_Legend S_Art der baulichen Nutzung
+  - Legend_Legend S_Maß der baulichen Nutzung
+  - Legend_Legend S_Bauweise_ Baulinien_ Baugrenzen
+  - Legend_Legend S_Grünflächen
+  - Legend_Legend S_Planungen_ Nutzungsregelungen_ Maßnahmen und Flächen für Maßnahmen
+    zum Schutz_ zur Pflege und zur Entwicklung von Natur und Landschaft
+  - Legend_Legend S_Sonstige Planzeichen
+  - Legend_Legend S_Darstellung ohne Normcharakter
   - Legend_Legend S_Nachrichtliche Übernahme
+  - Bemaßung
+  - Ontras_FG_buffer_4
+  - Ontras_FG_buffer_2
+  - FG_Unterirdisch
+  - FG_Oberirdisch
+  - Parcel
+  - FG Line Array Oberirdisch
+  - FG Line Array Unterirdisch
+  - Gastrasse Array
+  - PV Transformer
+  - 05 Löschwasserkissen
+  - Bäume
+  - 02 Sondergebiet
+  - Defpoints
+  - 0-BLOCKS
+  - Gebäude
+  - Parcel Label
+  - Blendschutzzaun
+  - EinAusfahrt Line
+  - Baum Points
+  - RAHMEN
+  - Grünfläche
+  - WMS Gebäude
+  - WMS Höhenlinien
+  - Gastrasse
+  - AgriPV
+  - AgriPV Schraffur
+  - AgriPV Schraffur Solid
+  - AgriPV Schraffur Lines
+  - Moor
+  - Geschütze Biotope Innenfläche
+  - Geschütze Biotope Innenfläche Schraffur
+  - Geschütze Biotope Umgrenzung
+  - Geschütze Biotope Umgrenzung Schraffur
+  - Nutzungsartengrenze
+  - Exclude Geltungsbereich
+  - Geschütze Biotope Umgrenzung T-Symbol Array
+  - Legend_Legend NW_Verkehrsflächen
+  - Legend_Legend S_Verkehrsflächen
+  - Legend_Main Legend_Flächen für die Landwirtschaft
+  - Legend_Legend NW_Flächen für die Landwirtschaft
+  - FG Buffer Path
+  - Gastrasse Buffer Path
+  - FG Buffer Path Array
+  - Gastrasse Buffer Path Array
+  - 01 Gewässer L83b 40 Shape B-Büro (Groß Plasten II)
+  - PV Modules Schraffur
+  - PV Transformers
+  - M-Trafostation
+  - Wege Schraffur
+  - T--Strasse_BESC
   - T--Strasse_befestigt_OK
   - PV Modules
-  - Legend_Legend NW_Maß der baulichen Nutzung
-  - Geschütze Biotope Umgrenzung
-  - Legend_Legend NW_Sonstige Planzeichen
-  - Parcel Label
-  - Legend_Legend S_Grünflächen
-  - Legend_Legend NO_Sonstige Planzeichen
-  - Geltungsbereich NW
-  - Geschütze Biotope 2
-  - Exclude Geltungsbereich
-  - Legend_Main Legend_Nachrichtliche Übernahme
-  - Geltungsbereich Hatch NW
-  - Wege
 discover_untracked_layers: []
 deletion_policy: confirm
 default_layer: VIEWPORTS
