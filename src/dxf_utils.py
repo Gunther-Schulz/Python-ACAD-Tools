@@ -1064,7 +1064,7 @@ def normalize_block_layers(block_layout, target_layer):
     
     return changed_count
 
-def copy_block_definition_from_dxf(source_doc, target_doc, block_name, normalize_layers_to=None):
+def copy_block_definition_from_dxf(source_doc, target_doc, block_name, normalize_layers_to=None, force_reimport=False):
     """
     Copy a block definition from source DXF to target DXF using ezdxf's Importer.
     Optionally normalize all internal entity layers to a target layer.
@@ -1074,6 +1074,7 @@ def copy_block_definition_from_dxf(source_doc, target_doc, block_name, normalize
         target_doc: Target DXF document
         block_name: Name of block to copy
         normalize_layers_to: If specified, remap all entity layers in block to this layer
+        force_reimport: If True, delete existing block and reimport from source (useful for correcting broken blocks)
     
     Returns:
         bool: True if successful, False otherwise
@@ -1094,16 +1095,25 @@ def copy_block_definition_from_dxf(source_doc, target_doc, block_name, normalize
             log_warning(f"Block '{block_name}' not found in source document")
             return False
         
-        # If block already exists in target, skip (or optionally update)
+        # If block already exists in target, handle based on force_reimport flag
         if block_name in target_doc.blocks:
-            log_debug(f"Block '{block_name}' already exists in target document")
-            # If normalization requested, normalize the existing block
-            if normalize_layers_to:
-                existing_block = target_doc.blocks[block_name]
-                changed = normalize_block_layers(existing_block, normalize_layers_to)
-                if changed > 0:
-                    log_info(f"Normalized {changed} entity layers in existing block '{block_name}'")
-            return True
+            if force_reimport:
+                log_info(f"Force reimporting block '{block_name}' - deleting existing definition")
+                try:
+                    target_doc.blocks.delete_block(block_name, safe=False)
+                    log_debug(f"Successfully deleted existing block '{block_name}'")
+                except Exception as e:
+                    log_warning(f"Could not delete existing block '{block_name}': {str(e)}")
+                    log_warning(f"Will attempt to reimport anyway")
+            else:
+                log_debug(f"Block '{block_name}' already exists in target document")
+                # If normalization requested, normalize the existing block
+                if normalize_layers_to:
+                    existing_block = target_doc.blocks[block_name]
+                    changed = normalize_block_layers(existing_block, normalize_layers_to)
+                    if changed > 0:
+                        log_info(f"Normalized {changed} entity layers in existing block '{block_name}'")
+                return True
         
         # Use ezdxf's Importer to properly copy block definitions
         # This handles all the complexity of copying entities, nested blocks, and dependencies

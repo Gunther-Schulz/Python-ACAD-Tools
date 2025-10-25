@@ -393,12 +393,16 @@ class BlockPlacementUtils:
                             # Check if normalization is requested
                             normalize_to = layer_name if config.get('normalizeBlockLayers', False) else None
                             
-                            # Copy block definition (with optional layer normalization)
+                            # Check if force reimport is requested
+                            force_reimport = config.get('forceReimport', False)
+                            
+                            # Copy block definition (with optional layer normalization and force reimport)
                             success = copy_block_definition_from_dxf(
                                 source_doc, 
                                 space.doc, 
                                 block_name,
-                                normalize_layers_to=normalize_to
+                                normalize_layers_to=normalize_to,
+                                force_reimport=force_reimport
                             )
                             
                             if not success:
