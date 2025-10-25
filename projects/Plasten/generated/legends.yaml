@@ -181,6 +181,14 @@ legends:
             type: area
             style: waldLegend
             applyHatch: true
+          - name: "vorläufige Modulbelegungsfläche"
+            type: area
+            applyHatch: true
+            style: pvModulesLegend
+          - name: "geplanter Standort für die Trafostationen"
+            type: empty
+            blockSymbol: "Trafostation"
+            blockSymbolScale: 1.5
           # - name: "Baum"
           #   type: empty
           #   blockSymbol: "Baum"
@@ -351,6 +359,14 @@ legends:
           #   type: empty
           #   blockSymbol: "Baum"
           #   blockSymbolScale: 1.8
+          - name: "vorläufige Modulbelegungsfläche"
+            type: area
+            applyHatch: true
+            style: pvModulesLegend
+          - name: "geplanter Standort für die Trafostationen"
+            type: empty
+            blockSymbol: "Trafostation"
+            blockSymbolScale: 1.5
           - name: "Gebäude - Bestand"
             type: area
             applyHatch: true
@@ -513,6 +529,14 @@ legends:
           #   type: empty
           #   blockSymbol: "Baum"
           #   blockSymbolScale: 1.8
+          - name: "vorläufige Modulbelegungsfläche"
+            type: area
+            applyHatch: true
+            style: pvModulesLegend
+          - name: "geplanter Standort für die Trafostationen"
+            type: empty
+            blockSymbol: "Trafostation"
+            blockSymbolScale: 1.5
           - name: "Gebäude - Bestand"
             type: area
             applyHatch: true
@@ -679,3 +703,11 @@ legends:
           #   type: empty
           #   blockSymbol: "Baum"
           #   blockSymbolScale: 1.8
+          - name: "vorläufige Modulbelegungsfläche"
+            type: area
+            applyHatch: true
+            style: pvModulesLegend
+          - name: "geplanter Standort für die Trafostationen"
+            type: empty
+            blockSymbol: "Trafostation"
+            blockSymbolScale: 1.5

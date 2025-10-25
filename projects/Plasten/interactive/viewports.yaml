@@ -112,9 +112,9 @@ viewports:
   lockZoom: true
   _sync:
     dxf_handle: 8AA97
-    content_hash: 7f5982a4af10f99cea57d77c1288658384c71178185a0786312c027ccf4fd28e
-    last_sync_time: 1761380904
-    sync_source: dxf
+    content_hash: cbe18c9b04b4d39cc47fb15b931a28eae1c781274e9332133aeae758a1a61607
+    last_sync_time: 1761381547
+    sync_source: yaml
   center:
     x: 2867.888555200216
     y: 302.7121692818036
@@ -304,9 +304,9 @@ viewports:
   lockZoom: true
   _sync:
     dxf_handle: 8AA9A
-    content_hash: d9700dc1fbb2d909ce867656bfc958dc789709fe1d2c9c26e3d3888f90caf26f
-    last_sync_time: 1761380904
-    sync_source: dxf
+    content_hash: 2fd0f018da967f9b8288e3067ae6ff5aa4fd167aa83f589e71d5fbb234892f8e
+    last_sync_time: 1761381547
+    sync_source: yaml
   center:
     x: 4868.491665752536
     y: 292.7165591527828
@@ -495,9 +495,9 @@ viewports:
   lockZoom: true
   _sync:
     dxf_handle: 8AA9D
-    content_hash: a43871b8ac32b20d5d014075e1a8458b7a548c2414bdd24ff0973940f7d4e85d
-    last_sync_time: 1761380904
-    sync_source: dxf
+    content_hash: f979edbc5f36e37486868618ced0e3fad8c8da4f7a610ca0279d0d536fa95bfd
+    last_sync_time: 1761381547
+    sync_source: yaml
   center:
     x: 6869.144582332245
     y: 391.8814999718617
